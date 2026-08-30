@@ -7,6 +7,8 @@ local ARROW_KEYS = { up = true, down = true, left = true, right = true }
 local NATIVE_W = 240
 local NATIVE_H = 160
 
+local PANEL_WIDTH = 100
+
 local view_size = 1024
 local spot_count = 90
 local spot = nil
@@ -39,7 +41,18 @@ end
 
 function love.keypressed(key)
     if key == "escape" then love.event.quit() end
-    if key == "space" then Panel.toogle(panel,selected) end
+    if key == "space" then
+        panel.open = not panel.open
+        Panel.set_target(panel, selected)
+        if panel.open then
+            camera.view_w =  NATIVE_W - PANEL_WIDTH
+            Camera.set_mode(camera, "center")
+            Camera.set_target(camera, selected.x, selected.y)
+        else
+            camera.view_w =  NATIVE_W
+            Camera.set_mode(camera, "bound")
+        end
+    end
 
     if not ARROW_KEYS[key] then return end
 
@@ -52,7 +65,8 @@ function love.keypressed(key)
     selected.selected=false
     selected = neighbor
     selected.selected = true
-    panel = Panel.new(selected)
+
+    Panel.set_target(panel, selected)
     Camera.set_target(camera, selected.x, selected.y)
 end
 
@@ -61,7 +75,7 @@ function love.draw()
     love.graphics.setCanvas(canvas)
     love.graphics.clear(love.graphics.getBackgroundColor())
     Spot.draw(camera,spot)
-    Panel.draw(camera,panel)
+    Panel.draw(camera,panel,NATIVE_W)
     love.graphics.setCanvas()
 
     local win_w, win_h = love.graphics.getDimensions()

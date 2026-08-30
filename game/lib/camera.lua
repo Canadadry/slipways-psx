@@ -11,10 +11,17 @@ local function new(view_w, view_h, margin, x, y)
         view_w = view_w,
         view_h = view_h,
         margin = margin,
+        mode = "bound",
     }
 end
 
 local function set_target(camera, x, y)
+    if camera.mode == "center" then
+        camera.target_x = x - camera.view_w / 2
+        camera.target_y = y - camera.view_h / 2
+        return
+    end
+
     local left = camera.x + camera.margin
     local right = camera.x + camera.view_w - camera.margin
     if x < left then
@@ -30,6 +37,14 @@ local function set_target(camera, x, y)
     elseif y > bottom then
         camera.target_y = y - camera.view_h + camera.margin
     end
+end
+
+
+local function set_mode(camera, mode)
+    assert(mode == "bound" or mode == "center", "invalid camera mode: " .. tostring(mode))
+    camera.mode = mode
+    camera.target_x = camera.x
+    camera.target_y = camera.y
 end
 
 local function update(camera, dt)
@@ -58,6 +73,7 @@ end
 return {
     new = new,
     set_target = set_target,
+    set_mode = set_mode,
     update = update,
     resolve_direction = resolve_direction,
 }

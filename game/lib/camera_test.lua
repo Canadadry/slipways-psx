@@ -49,4 +49,67 @@ for _, case in ipairs(cases) do
     end)
 end
 
+
+T.test("camera: in center mode, set_target eases toward centering x in the current view_w", function()
+    local camera = Camera.new(240, 160, 10, 0, 0)
+    camera.view_w= 140
+    Camera.set_mode(camera, "center")
+    Camera.set_target(camera, 300, 80)
+
+    for _ = 1, STEPS do
+        Camera.update(camera, DT)
+    end
+
+    -- centering spot_x=300 in a 140-wide viewport: camera.x = 300 - 140/2 = 230
+    T.eq(math.abs(camera.x - 230) < EPSILON, true, "x converged to centered target")
+end)
+
+T.test("camera: in center mode, y still uses margin-based scrolling (x-only centering)", function()
+    local camera = Camera.new(240, 160, 10, 0, 0)
+    camera.view_w= 140
+    Camera.set_mode(camera, "center")
+    Camera.set_target(camera, 300, 200)
+
+    for _ = 1, STEPS do
+        Camera.update(camera, DT)
+    end
+
+    -- spot_y=200 is beyond bottom margin (view_h - margin = 150), so target_y = 200 - 160 + 10 = 50
+    T.eq(math.abs(camera.y - 50) < EPSILON, true, "y follows the spot via margin scrolling, not centering")
+end)
+
+T.test("camera: set_mode freezes any in-flight animation, no drift on subsequent update", function()
+    local camera = Camera.new(240, 160, 10, 0, 0)
+    camera.view_w= 140
+    Camera.set_mode(camera, "center")
+    Camera.set_target(camera, 300, 80)
+    Camera.update(camera, DT) -- animation in flight, camera.x has not reached target_x yet
+
+    camera.view_w= 240
+    Camera.set_mode(camera, "bound")
+    local x_at_switch = camera.x
+
+    for _ = 1, STEPS do Camera.update(camera, DT) end
+
+    T.eq(camera.x, x_at_switch, "x does not drift after switching mode")
+end)
+
+T.test("camera: after round-tripping to center and back to bound, bound uses the restored view_w", function()
+    local camera = Camera.new(240, 160, 10, 0, 0)
+    camera.view_w= 140
+    Camera.set_mode(camera, "center")
+    Camera.set_target(camera, 300, 80)
+    for _ = 1, STEPS do Camera.update(camera, DT) end
+
+    camera.view_w= 240
+    Camera.set_mode(camera, "bound")
+
+    -- camera.x is now 230 (left over from centering); right bound margin is camera.x + 240 - 10 = 460
+    Camera.set_target(camera, 455, 80)
+    for _ = 1, STEPS do Camera.update(camera, DT) end
+
+    -- 455 is within the 240-wide bound box, so camera.x should not have moved from 230
+    T.eq(math.abs(camera.x - 230) < EPSILON, true, "bound mode respects the restored full view_w")
+end)
+
 T.report()
