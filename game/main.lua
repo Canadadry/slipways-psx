@@ -14,10 +14,13 @@ local camera = nil
 local selected = nil
 local panel = nil
 local canvas = nil
+local font = nil
 
 function love.load()
+    font = love.graphics.newImageFont("assets/font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+
     love.graphics.setBackgroundColor(0.1, 0.1, 0.1)
-    spot = Spot.new_spot(spot_count, view_size)
+    spot = Spot.new_spot(spot_count, view_size,{"red","blue","green"})
 
     canvas = love.graphics.newCanvas(NATIVE_W, NATIVE_H)
     canvas:setFilter("nearest", "nearest")
@@ -48,15 +51,17 @@ function love.keypressed(key)
 
     selected.selected=false
     selected = neighbor
-    selected.selected=true
+    selected.selected = true
+    panel = Panel.new(selected)
     Camera.set_target(camera, selected.x, selected.y)
 end
 
 function love.draw()
+    love.graphics.setFont(font)
     love.graphics.setCanvas(canvas)
     love.graphics.clear(love.graphics.getBackgroundColor())
     Spot.draw(camera,spot)
-    Panel.draw(panel)
+    Panel.draw(camera,panel)
     love.graphics.setCanvas()
 
     local win_w, win_h = love.graphics.getDimensions()

@@ -17,12 +17,13 @@ local function check_min_dist(spot, s1)
     return true
 end
 
-local function add_spot(spot)
+local function add_spot(spot,kinds)
     local rand  = function() return math.random(spot.view_size-2*spot.border)+spot.border end
     local p = { x = rand(), y = rand() }
-    while check_min_dist(spot,p)==false do
+    while check_min_dist(spot, p) == false do
         p = { x = rand(), y = rand(), selected = false }
     end
+    p.title = kinds[math.random(#kinds)]
     table.insert(spot,p)
 end
 
@@ -40,7 +41,7 @@ local function nearest(spot, x, y)
     return best
 end
 
-local function new_spot(spot_count, view_size)
+local function new_spot(spot_count, view_size,kinds)
     local spot = {
         count = 90,
         min_dist = 0.05 * view_size,
@@ -48,7 +49,7 @@ local function new_spot(spot_count, view_size)
         view_size = view_size,
     }
     for i = 0, spot_count, 1 do
-        add_spot(spot)
+        add_spot(spot,kinds)
     end
     for _, point in ipairs(spot) do
         Neighbors.find_nearest(spot, point)
