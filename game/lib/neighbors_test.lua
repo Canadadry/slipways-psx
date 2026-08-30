@@ -5,11 +5,11 @@ local DIRS = { "n", "ne", "e", "se", "s", "sw", "w", "nw" }
 
 local cases = {
     {
-        name = "clear nearest neighbor in a cone",
+        name = "sole candidate also reaches its two adjacent diagonal directions",
         others = {
             { x = 10, y = 0 },
         },
-        expected = { e = 1 },
+        expected = { e = 1, se = 1, ne = 1 },
     },
     {
         name = "no candidate in a direction is nil",
@@ -17,19 +17,19 @@ local cases = {
         expected = {},
     },
     {
-        name = "diagonal cone selection",
+        name = "diagonal sole candidate also reaches its two adjacent cardinal directions",
         others = {
             { x = 10, y = 10 },
         },
-        expected = { se = 1 },
+        expected = { se = 1, e = 1, s = 1 },
     },
     {
-        name = "multiple candidates in one cone: nearest wins",
+        name = "multiple candidates in one direction: nearest wins, including for shared adjacent directions",
         others = {
             { x = 5, y = 0 },
             { x = 20, y = 0 },
         },
-        expected = { e = 1 },
+        expected = { e = 1, se = 1, ne = 1 },
     },
     {
         name = "all eight directions populated",
@@ -44,6 +44,16 @@ local cases = {
             { x = 10, y = -10 }, -- ne
         },
         expected = { e = 1, se = 2, s = 3, sw = 4, w = 5, nw = 6, n = 7, ne = 8 },
+    },
+    {
+        name = "close off-angle spot beats far well-aligned spot",
+        others = {
+            { x = 2, y = 2.1 },  -- ~46 deg off east axis, distance ~2.9, just outside the old 45deg "e" cone
+            { x = 30, y = 0 },   -- dead-on east, distance 30
+        },
+        -- the close spot is near enough to also win s/sw/se; the far spot is
+        -- only ever a fallback where the close spot is too far off-angle (ne)
+        expected = { e = 1, se = 1, s = 1, sw = 1, ne = 2 },
     },
 }
 
