@@ -40,12 +40,12 @@ local function nearest(spot, x, y)
     return best
 end
 
-local function new_spot(spot_count,view_size)
+local function new_spot(spot_count, view_size)
     local spot = {
         count = 90,
-        min_dist =  0.05 * view_size,
-        border =  0.05 * view_size,
-        view_size =  view_size,
+        min_dist = 0.05 * view_size,
+        border = 0.05 * view_size,
+        view_size = view_size,
     }
     for i = 0, spot_count, 1 do
         add_spot(spot)
@@ -56,7 +56,19 @@ local function new_spot(spot_count,view_size)
     return spot
 end
 
+local function draw(camera,spot)
+    for index, s in ipairs(spot) do
+        if s.selected then
+            love.graphics.setColor(255,0,0)
+        else
+            love.graphics.setColor(255,255,255)
+        end
+        love.graphics.circle("fill", s.x - camera.x, s.y - camera.y, 5)
+    end
+end
+
 return {
     new_spot=new_spot,
-    nearest=nearest,
+    nearest = nearest,
+    draw=draw,
 }
