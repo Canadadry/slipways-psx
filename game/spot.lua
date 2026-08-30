@@ -23,7 +23,7 @@ local function add_spot(spot,kinds)
     while check_min_dist(spot, p) == false do
         p = { x = rand(), y = rand(), selected = false }
     end
-    p.title = kinds[math.random(#kinds)]
+    p.kind = kinds[math.random(#kinds)]
     table.insert(spot,p)
 end
 
@@ -59,12 +59,7 @@ end
 
 local function draw(camera,spot)
     for index, s in ipairs(spot) do
-        if s.selected then
-            love.graphics.setColor(255,0,0)
-        else
-            love.graphics.setColor(255,255,255)
-        end
-        love.graphics.circle("fill", s.x - camera.x, s.y - camera.y, 5)
+        s.kind:draw(s.selected, s.x - camera.x, s.y - camera.y)
     end
 end
 

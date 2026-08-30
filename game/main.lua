@@ -1,6 +1,7 @@
 local Spot = require("spot")
 local Camera = require("lib.camera")
 local Panel = require("panel")
+local SpotKinds = require("spot_kind")
 
 local ARROW_KEYS = { up = true, down = true, left = true, right = true }
 
@@ -20,9 +21,8 @@ local font = nil
 
 function love.load()
     font = love.graphics.newImageFont("assets/font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-
     love.graphics.setBackgroundColor(0.1, 0.1, 0.1)
-    spot = Spot.new_spot(spot_count, view_size,{"red","blue","green"})
+    spot = Spot.new_spot(spot_count, view_size,SpotKinds)
 
     canvas = love.graphics.newCanvas(NATIVE_W, NATIVE_H)
     canvas:setFilter("nearest", "nearest")
@@ -42,9 +42,7 @@ end
 function love.keypressed(key)
     if key == "escape" then love.event.quit() end
     if key == "space" then
-        panel.open = not panel.open
-        Panel.set_target(panel, selected)
-        if panel.open then
+        if panel:toogle() then
             camera.view_w =  NATIVE_W - PANEL_WIDTH
             Camera.set_mode(camera, "center")
             Camera.set_target(camera, selected.x, selected.y)
@@ -52,6 +50,7 @@ function love.keypressed(key)
             camera.view_w =  NATIVE_W
             Camera.set_mode(camera, "bound")
         end
+        Panel.set_target(panel, selected)
     end
 
     if not ARROW_KEYS[key] then return end

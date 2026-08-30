@@ -2,6 +2,10 @@ local function new()
     return {
         target = nil,
         open = false,
+        toogle = function(self)
+            self.open = not self.open
+            return self.open
+        end
     }
 end
 
@@ -17,9 +21,10 @@ local function draw(camera, panel, screen_w)
     if not panel.open then
         return
     end
-    local x = screen_w- w
+    local x = screen_w - w
+    love.graphics.setColor(255,255,255)
     love.graphics.rectangle("fill", x, 0, w, h)
-    love.graphics.print(panel.target.title, x+8, 8)
+    love.graphics.print(panel.target.kind.name, x+8, 8)
 end
 
 return {
