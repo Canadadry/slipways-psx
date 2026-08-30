@@ -1,3 +1,5 @@
+local Neighbors = require("lib.neighbors")
+
 local function len(p)
     return math.sqrt(p.x*p.x+p.y*p.y)
 end
@@ -19,11 +21,24 @@ local function add_spot(spot)
     local rand  = function() return math.random(spot.view_size-2*spot.border)+spot.border end
     local p = { x = rand(), y = rand() }
     while check_min_dist(spot,p)==false do
-        p = { x = rand(), y = rand() }
+        p = { x = rand(), y = rand(), selected = false }
     end
     table.insert(spot,p)
 end
 
+
+local function nearest(spot, x, y)
+    local best, best_dist2
+    for _, s in ipairs(spot) do
+        local dx, dy = s.x - x, s.y - y
+        local dist2 = dx * dx + dy * dy
+        if best_dist2 == nil or dist2 < best_dist2 then
+            best_dist2 = dist2
+            best = s
+        end
+    end
+    return best
+end
 
 local function new_spot(spot_count,view_size)
     local spot = {
@@ -35,9 +50,13 @@ local function new_spot(spot_count,view_size)
     for i = 0, spot_count, 1 do
         add_spot(spot)
     end
+    for _, point in ipairs(spot) do
+        Neighbors.find_nearest(spot, point)
+    end
     return spot
 end
 
 return {
-    new_spot=new_spot
+    new_spot=new_spot,
+    nearest=nearest,
 }
