@@ -43,14 +43,29 @@ function love.keypressed(key)
     if key == "escape" then love.event.quit() end
     if key == "space" then
         if panel:toogle() then
-            camera.view_w =  NATIVE_W - PANEL_WIDTH
+            camera.view_w = NATIVE_W - PANEL_WIDTH
             Camera.set_mode(camera, "center")
             Camera.set_target(camera, selected.x, selected.y)
         else
-            camera.view_w =  NATIVE_W
+            camera.view_w = NATIVE_W
             Camera.set_mode(camera, "bound")
         end
         Panel.set_target(panel, selected)
+    end
+
+    if love.keyboard.isDown("x") then
+        if panel.open then
+            if key == "up" then
+                Panel.prev_item(panel)
+            end
+            if key == "down" then
+                Panel.next_item(panel)
+            end
+            if key == "right" then
+                Panel.run(panel)
+            end
+            return
+        end
     end
 
     if not ARROW_KEYS[key] then return end
