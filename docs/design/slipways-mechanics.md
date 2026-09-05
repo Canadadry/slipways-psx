@@ -1,6 +1,6 @@
 # Slipways (PICO-8) — règles de design & mécaniques
 
-Document de référence pour la réimplémentation du scope de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music) sur GBA. Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
+Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur manette pour Game Boy Advance (Love2D en prototype de référence ; Nintendo DS en repli si un point dur GBA bloque, voir `docs/plan.md`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
 
 ## Pitch officiel (itch.io)
 
@@ -48,7 +48,7 @@ Il n'y a pas de combat, pas d'ennemis actifs : le jeu est un puzzle d'optimisati
 - Défaite anticipée : **banqueroute**. Si le revenu net annuel `ge<=0` **et** la trésorerie `nz<3`, `hy.hl="bankrupt"` et la partie s'arrête (même ligne).
 - Chaque action qui « prend du temps » (envoyer une sonde, coloniser, construire une structure) consomme un nombre de mois fixe (`fp`, souvent `1` ou `2`, `3` par défaut pour une colonisation normale via `autoassemblers` qui le réduit à `2`).
 
-**Pour le portage GBA** : le modèle « continu + tick annuel » peut rester tel quel, ou être simplifié en tours annuels explicites (plus adapté à un pad + petit écran) sans dénaturer l'équilibrage — toutes les formules ci-dessous sont exprimées par année.
+**Pour le portage GBA** : le modèle « continu + tick annuel » reste tel quel (aucun changement de modèle de temps décidé) — toutes les formules ci-dessous sont exprimées par année.
 
 ## 3. La galaxie
 
@@ -283,7 +283,7 @@ Le coût de construction des slipways et les seuils de portée/technologie reste
 
 ## 15. Interface & contrôles (version PICO-8) — points d'attention pour le portage GBA
 
-La version PICO-8 est **pilotée à la souris**, ce qui ne se transpose pas directement sur GBA (pas de pointeur) :
+La version PICO-8 est **pilotée à la souris**, ce qui ne se transpose pas directement sur GBA (pas de pointeur, layout D-pad/A/B/L/R/Start/Select — pas de X/Y) :
 
 - Survol d'une planète/bouton = mise en évidence (`ui:gw`, ligne 226).
 - Clic gauche maintenu + glisser depuis une planète colonisée jusqu'à une autre = tracer une nouvelle slipway (`ui:bh`, `jo:ldown`).
