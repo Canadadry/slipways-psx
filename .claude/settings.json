@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "WebSearch",
+      "WebFetch",
       "Read",
       "Edit(docs/**)",
       "Edit(.gitignore)",

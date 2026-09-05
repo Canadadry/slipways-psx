@@ -2,6 +2,7 @@ local Spot = require("spot")
 local Camera = require("lib.camera")
 local Panel = require("panel")
 local SpotKinds = require("spot_kind")
+local Probe = require("probe")
 
 local ARROW_KEYS = { up = true, down = true, left = true, right = true }
 
@@ -18,6 +19,8 @@ local selected = nil
 local panel = nil
 local canvas = nil
 local font = nil
+local probe = nil
+local worm_hole=nil
 
 function love.load()
     font = love.graphics.newImageFont("assets/font.png", " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
@@ -27,20 +30,51 @@ function love.load()
     canvas = love.graphics.newCanvas(NATIVE_W, NATIVE_H)
     canvas:setFilter("nearest", "nearest")
 
-    selected = Spot.nearest(spot, view_size / 2, view_size / 2)
-    selected.selected = true
-
     local margin = 0.1 * math.min(NATIVE_W, NATIVE_H)
-    camera = Camera.new(NATIVE_W, NATIVE_H, margin, selected.x - NATIVE_W / 2, selected.y - NATIVE_H / 2)
+    camera = Camera.new(NATIVE_W, NATIVE_H, margin, (view_size-NATIVE_W) / 2, (view_size-NATIVE_H) / 2)
     panel = Panel.new()
+    probe = Probe.new(view_size)
 end
 
 function love.update(dt)
     Camera.update(camera, dt)
+    if worm_hole == nil then
+        Probe.move_source_px(probe, {
+            left = love.keyboard.isDown("left"),
+            right = love.keyboard.isDown("right"),
+            up = love.keyboard.isDown("up"),
+            down = love.keyboard.isDown("down"),
+        })
+    end
+    if worm_hole ~= nil and (selected==nil or love.keyboard.isDown("x")) then
+        Probe.move_target_px(probe, {
+            left=love.keyboard.isDown("left"),
+            right=love.keyboard.isDown("right"),
+            up=love.keyboard.isDown("up"),
+            down=love.keyboard.isDown("down"),
+        })
+    end
+
 end
 
 function love.keypressed(key)
     if key == "escape" then love.event.quit() end
+    if worm_hole == nil then
+        if key == "space" then
+            worm_hole = { x = probe.source.x, y = probe.source.y }
+        end
+        return
+    end
+
+    if key == "x" then
+        local probe_target = Probe.get_valid_target(probe)
+        if probe_target ~= nil then
+            Spot.reveal_at(probe_target)
+        end
+        return
+    end
+
+    if selected == nil then return end
     if key == "space" then
         if panel:toogle() then
             camera.view_w = NATIVE_W - PANEL_WIDTH
@@ -52,7 +86,6 @@ function love.keypressed(key)
         end
         Panel.set_target(panel, selected)
     end
-
     if love.keyboard.isDown("x") then
         if panel.open then
             if key == "up" then
@@ -81,6 +114,7 @@ function love.keypressed(key)
     selected.selected = true
 
     Panel.set_target(panel, selected)
+    Probe.set_source(probe,selected)
     Camera.set_target(camera, selected.x, selected.y)
 end
 
@@ -89,7 +123,8 @@ function love.draw()
     love.graphics.setCanvas(canvas)
     love.graphics.clear(love.graphics.getBackgroundColor())
     Spot.draw(camera,spot)
-    Panel.draw(camera,panel,NATIVE_W)
+    Panel.draw(camera, panel, NATIVE_W)
+    Probe.draw(camera,probe)
     love.graphics.setCanvas()
 
     local win_w, win_h = love.graphics.getDimensions()

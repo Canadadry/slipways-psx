@@ -19,9 +19,9 @@ end
 
 local function add_spot(spot,kinds)
     local rand  = function() return math.random(spot.view_size-2*spot.border)+spot.border end
-    local p = { x = rand(), y = rand() }
+    local p = { x = rand(), y = rand(), selected = false,hidden = true }
     while check_min_dist(spot, p) == false do
-        p = { x = rand(), y = rand(), selected = false,hidden = false }
+        p = { x = rand(), y = rand(), selected = false,hidden = true }
     end
     p.kind = kinds[math.random(#kinds)]
     table.insert(spot,p)
@@ -67,7 +67,7 @@ local function new_spot(spot_count, view_size,kinds)
 end
 
 local function draw(camera,spot)
-    for index, s in ipairs(visible_spot(spot)) do
+    for index, s in ipairs(spot) do
         s.kind:draw(s.selected,s.hidden, s.x - camera.x, s.y - camera.y)
     end
 end
