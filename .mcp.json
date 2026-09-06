@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mgba": {
+      "command": "node",
+      "args": ["tools/mcp-mgba/dist/index.js"]
+    }
+  }
+}

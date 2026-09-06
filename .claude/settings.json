@@ -43,7 +43,12 @@
       "Bash(pwd)",
       "Bash(jq *)",
       "Bash(make unit)",
-      "Bash(make test)"
+      "Bash(make test)",
+      "Bash(make gba-devkit-setup)",
+      "Bash(make gba-hello)",
+      "Bash(make gba-hello-clean)",
+      "Bash(make install)",
+      "Bash(make mcp-mgba-test)"
     ],
     "deny": [
       "Bash(python*)",
@@ -78,6 +83,7 @@
     ],
     "defaultMode": "dontAsk"
   },
+  "enabledMcpjsonServers": ["mgba"],
   "hooks": {
     "PreToolUse": [
       {
