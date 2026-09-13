@@ -7,7 +7,10 @@ PREFIX="${1:-/usr/local/mipsel-none-elf}"
 BUILD_TIMEOUT=2700
 
 sudo apt-get update
-sudo apt-get install -y build-essential make wget
+# texinfo (makeinfo) is needed even with --disable-docs: this binutils
+# version still runs the doc/bfd.info target unconditionally and dies with
+# "makeinfo: not found" (exit 127) otherwise.
+sudo apt-get install -y build-essential make wget texinfo
 
 work_dir="$(mktemp -d)"
 cd "$work_dir"
