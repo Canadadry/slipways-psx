@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen
+test: test-planetgen test-galaxy-render
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -32,6 +32,25 @@ test-planetgen:
 	$(PLANETGEN_HOST_BUILD_DIR)/rng_and_fixed_test
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(PLANETGEN_HOST_BUILD_DIR)/planetgen_test $(PLANETGEN_TEST_HOST_SRCS) -lm
 	$(PLANETGEN_HOST_BUILD_DIR)/planetgen_test
+
+# Host-native tests for the galaxy-rendering pure modules (screen_map,
+# world), same shape/output dir as test-planetgen above.
+GALAXY_RENDER_HOST_BUILD_DIR = psx-slipways/build-host
+SCREEN_MAP_TEST_HOST_SRCS = \
+	psx-slipways/screen_map.c \
+	psx-slipways/host_tests/screen_map_test.c
+WORLD_TEST_HOST_SRCS = \
+	psx-slipways/rng.c \
+	psx-slipways/planetgen.c \
+	psx-slipways/world.c \
+	psx-slipways/host_tests/world_test.c
+
+test-galaxy-render:
+	mkdir -p $(GALAXY_RENDER_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(GALAXY_RENDER_HOST_BUILD_DIR)/screen_map_test $(SCREEN_MAP_TEST_HOST_SRCS) -lm
+	$(GALAXY_RENDER_HOST_BUILD_DIR)/screen_map_test
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(GALAXY_RENDER_HOST_BUILD_DIR)/world_test $(WORLD_TEST_HOST_SRCS) -lm
+	$(GALAXY_RENDER_HOST_BUILD_DIR)/world_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png

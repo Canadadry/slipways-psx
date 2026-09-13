@@ -4,9 +4,7 @@
 
 #include "game.h"
 #include "input.h"
-
-#define SCREEN_XRES 320
-#define SCREEN_YRES 240
+#include "screen.h"
 
 typedef struct {
 	DISPENV disp;

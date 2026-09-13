@@ -12,6 +12,9 @@
 #define PLANETGEN_OK 0
 #define PLANETGEN_FAIL (-1)
 
+#define PLANETGEN_PLACEMENT_MIN ((fixed_t)(0.125 * FX_ONE))
+#define PLANETGEN_PLACEMENT_SPAN ((fixed_t)(2.75 * FX_ONE))
+
 typedef struct {
     fixed_t x;
     fixed_t y;

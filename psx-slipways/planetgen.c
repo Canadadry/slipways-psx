@@ -3,8 +3,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#define PLANETGEN_PLACEMENT_MIN ((fixed_t)(0.125 * FX_ONE))
-#define PLANETGEN_PLACEMENT_SPAN ((fixed_t)(2.75 * FX_ONE))
 #define PLANETGEN_MAX_ATTEMPTS_PER_POINT 10000
 
 static int planetgen_fits(const galaxy_t *g, fixed_t x, fixed_t y, int64_t min_dist_sq) {

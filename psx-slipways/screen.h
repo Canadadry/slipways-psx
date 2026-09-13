@@ -1,0 +1,7 @@
+#ifndef SLIPWAYS_SCREEN_H
+#define SLIPWAYS_SCREEN_H
+
+#define SCREEN_XRES 320
+#define SCREEN_YRES 240
+
+#endif
