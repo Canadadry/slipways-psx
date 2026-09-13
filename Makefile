@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx
+.PHONY: build run test test-planetgen font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx
 
 
 build:
@@ -9,8 +9,24 @@ build:
 
 run:
 	$(LOVE) game
-test:
+test: test-planetgen
 	cd game && lua ../tests/test_all.lua
+
+# Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
+# independent logic (fixed-point, RNG, and later galaxy generation). Output
+# goes under build-host/, kept separate from build/ (the PSn00bSDK cross-
+# build output). List source files explicitly here as later chunks add
+# more (e.g. planetgen.c and its own host test file).
+PLANETGEN_HOST_BUILD_DIR = psx-slipways/build-host
+PLANETGEN_HOST_BIN = $(PLANETGEN_HOST_BUILD_DIR)/planetgen_test
+PLANETGEN_HOST_SRCS = \
+	psx-slipways/rng.c \
+	psx-slipways/host_tests/rng_and_fixed_test.c
+
+test-planetgen:
+	mkdir -p $(PLANETGEN_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(PLANETGEN_HOST_BIN) $(PLANETGEN_HOST_SRCS) -lm
+	$(PLANETGEN_HOST_BIN)
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png

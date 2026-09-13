@@ -10,6 +10,7 @@ tools/pcsx-redux/
 tools/.boot-test-pcsx-run/
 tools/.input-test-pcsx-run/
 psx-slipways/build/
+psx-slipways/build-host/
 tools/.boot-test-pcsx-slipways-run/
 tools/.screenshot-pcsx-run/
 tools/.verify-snaps/
