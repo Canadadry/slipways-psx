@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx
+.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx
 
 
 build:
@@ -45,3 +45,13 @@ psx-hello-boot-test-pcsx:
 
 psx-hello-input-test-pcsx:
 	sh tools/boot_test_psx_hello_pcsx_input.sh
+
+psx-slipways:
+	cd psx-slipways && PATH="$(PSN00BSDK_TOOLCHAIN_BIN):$$PATH" PSN00BSDK_LIBS=$(PSN00BSDK_LIBS_DIR) cmake --preset default .
+	cd psx-slipways && PATH="$(PSN00BSDK_TOOLCHAIN_BIN):$$PATH" cmake --build build
+
+psx-slipways-clean:
+	rm -rf psx-slipways/build
+
+psx-slipways-boot-test-pcsx:
+	sh tools/boot_test_psx_slipways_pcsx.sh

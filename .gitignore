@@ -9,3 +9,5 @@ tools/.boot-test-snaps/
 tools/pcsx-redux/
 tools/.boot-test-pcsx-run/
 tools/.input-test-pcsx-run/
+psx-slipways/build/
+tools/.boot-test-pcsx-slipways-run/
