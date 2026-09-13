@@ -2,3 +2,4 @@ __pycache__/
 .love2d-meta/
 tmp/
 tools/.sandbox-psx-smoketest/
+psx-hello/build/

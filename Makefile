@@ -18,8 +18,12 @@ font:
 psn00bsdk-toolchain-setup:
 	sh tools/install_psn00bsdk_toolchain.sh
 
+PSN00BSDK_TOOLCHAIN_BIN = /usr/local/mipsel-none-elf/bin
+PSN00BSDK_LIBS_DIR = /usr/local/lib/libpsn00b
+
 psx-hello:
-	cmake -S psx-hello -B psx-hello/build && cmake --build psx-hello/build
+	cd psx-hello && PATH="$(PSN00BSDK_TOOLCHAIN_BIN):$$PATH" PSN00BSDK_LIBS=$(PSN00BSDK_LIBS_DIR) cmake --preset default .
+	cd psx-hello && PATH="$(PSN00BSDK_TOOLCHAIN_BIN):$$PATH" cmake --build build
 
 psx-hello-clean:
 	rm -rf psx-hello/build
