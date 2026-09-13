@@ -68,3 +68,34 @@ void planetgen_build_neighbor_graph(neighbor_graph_t *out, const galaxy_t *g, in
         }
     }
 }
+
+bool planetgen_is_connected(const neighbor_graph_t *g, int count) {
+    if (count <= 1) {
+        return true;
+    }
+
+    bool visited[PLANETGEN_MAX_PLANETS];
+    int queue[PLANETGEN_MAX_PLANETS];
+    int queue_head = 0;
+    int queue_tail = 0;
+    int visited_count = 0;
+
+    memset(visited, 0, sizeof(visited));
+
+    visited[0] = true;
+    visited_count++;
+    queue[queue_tail++] = 0;
+
+    while (queue_head < queue_tail) {
+        int node = queue[queue_head++];
+        for (int neighbor = 0; neighbor < count; neighbor++) {
+            if (g->adjacent[node][neighbor] && !visited[neighbor]) {
+                visited[neighbor] = true;
+                visited_count++;
+                queue[queue_tail++] = neighbor;
+            }
+        }
+    }
+
+    return visited_count == count;
+}

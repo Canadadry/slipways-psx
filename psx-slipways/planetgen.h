@@ -36,4 +36,10 @@ typedef struct {
 
 void planetgen_build_neighbor_graph(neighbor_graph_t *out, const galaxy_t *g, int64_t range_sq);
 
+/* True iff every planet in [0, count) is reachable from every other planet
+ * by traversing g's edges (BFS). count of 0 or 1 is trivially/vacuously
+ * connected -- no pair exists that could be disconnected. count must not
+ * exceed PLANETGEN_MAX_PLANETS. */
+bool planetgen_is_connected(const neighbor_graph_t *g, int count);
+
 #endif

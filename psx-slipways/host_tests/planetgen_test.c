@@ -3,6 +3,8 @@
 #include "../planetgen.h"
 #include "../rng.h"
 
+#include <string.h>
+
 #define SQ_UNITS(d) ((int64_t)((d) * (double)FX_ONE * (double)FX_ONE))
 
 static void test_generates_exact_count(void) {
@@ -169,6 +171,74 @@ static void test_neighbor_graph_has_no_self_loops(void) {
     }
 }
 
+static void test_trivial_count_one_is_connected(void) {
+    neighbor_graph_t graph;
+    memset(graph.adjacent, 0, sizeof(graph.adjacent));
+
+    T_CHECK(planetgen_is_connected(&graph, 1));
+}
+
+static void test_trivial_count_zero_is_connected(void) {
+    neighbor_graph_t graph;
+    memset(graph.adjacent, 0, sizeof(graph.adjacent));
+
+    T_CHECK(planetgen_is_connected(&graph, 0));
+}
+
+static void set_edge(neighbor_graph_t *g, int i, int j) {
+    g->adjacent[i][j] = true;
+    g->adjacent[j][i] = true;
+}
+
+static void test_hand_built_connected_graph_is_connected(void) {
+    neighbor_graph_t graph;
+    memset(graph.adjacent, 0, sizeof(graph.adjacent));
+
+    /* Planets 0..5 fully connected to each other. */
+    for (int i = 0; i < 6; i++) {
+        for (int j = i + 1; j < 6; j++) {
+            set_edge(&graph, i, j);
+        }
+    }
+
+    T_CHECK(planetgen_is_connected(&graph, 6));
+}
+
+static void test_hand_built_two_disjoint_clusters_is_not_connected(void) {
+    neighbor_graph_t graph;
+    memset(graph.adjacent, 0, sizeof(graph.adjacent));
+
+    /* Planets 0-2 fully connected to each other, planets 3-5 fully
+     * connected to each other, but zero edges between the two groups. */
+    for (int i = 0; i < 3; i++) {
+        for (int j = i + 1; j < 3; j++) {
+            set_edge(&graph, i, j);
+        }
+    }
+    for (int i = 3; i < 6; i++) {
+        for (int j = i + 1; j < 6; j++) {
+            set_edge(&graph, i, j);
+        }
+    }
+
+    T_CHECK(!planetgen_is_connected(&graph, 6));
+}
+
+static void test_hand_built_chain_is_connected_via_transitive_bridges(void) {
+    neighbor_graph_t graph;
+    memset(graph.adjacent, 0, sizeof(graph.adjacent));
+
+    /* Chain 0-1-2-3-4: only adjacent links, no shortcuts. Confirms BFS
+     * genuinely traverses transitively rather than only checking direct
+     * neighbors of some fixed start node. */
+    set_edge(&graph, 0, 1);
+    set_edge(&graph, 1, 2);
+    set_edge(&graph, 2, 3);
+    set_edge(&graph, 3, 4);
+
+    T_CHECK(planetgen_is_connected(&graph, 5));
+}
+
 int main(void) {
     t_run("generates_exact_count", test_generates_exact_count);
     t_run("no_pair_violates_minimum_distance", test_no_pair_violates_minimum_distance);
@@ -179,5 +249,10 @@ int main(void) {
     t_run("hand_placed_points_have_expected_edges_and_some_gaps", test_hand_placed_points_have_expected_edges_and_some_gaps);
     t_run("neighbor_graph_is_symmetric", test_neighbor_graph_is_symmetric);
     t_run("neighbor_graph_has_no_self_loops", test_neighbor_graph_has_no_self_loops);
+    t_run("trivial_count_one_is_connected", test_trivial_count_one_is_connected);
+    t_run("trivial_count_zero_is_connected", test_trivial_count_zero_is_connected);
+    t_run("hand_built_connected_graph_is_connected", test_hand_built_connected_graph_is_connected);
+    t_run("hand_built_two_disjoint_clusters_is_not_connected", test_hand_built_two_disjoint_clusters_is_not_connected);
+    t_run("hand_built_chain_is_connected_via_transitive_bridges", test_hand_built_chain_is_connected_via_transitive_bridges);
     return t_report();
 }
