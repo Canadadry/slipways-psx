@@ -30,3 +30,7 @@ void world_init(void) {
 const galaxy_t *world_get_galaxy(void) {
     return &g_galaxy;
 }
+
+int world_get_wormhole_index(void) {
+    return WORLD_WORMHOLE_INDEX;
+}

@@ -25,8 +25,20 @@ static void test_world_init_is_deterministic_across_calls(void) {
     }
 }
 
+static void test_world_wormhole_index_is_within_range(void) {
+    world_init();
+    const galaxy_t *g = world_get_galaxy();
+
+    int wormhole_index = world_get_wormhole_index();
+
+    T_CHECK(wormhole_index == WORLD_WORMHOLE_INDEX);
+    T_CHECK(wormhole_index >= 0);
+    T_CHECK(wormhole_index < g->count);
+}
+
 int main(void) {
     t_run("world_init_produces_90_planets", test_world_init_produces_90_planets);
     t_run("world_init_is_deterministic_across_calls", test_world_init_is_deterministic_across_calls);
+    t_run("world_wormhole_index_is_within_range", test_world_wormhole_index_is_within_range);
     return t_report();
 }
