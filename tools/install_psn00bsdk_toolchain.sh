@@ -12,8 +12,11 @@ sudo apt-get install -y build-essential make wget
 work_dir="$(mktemp -d)"
 cd "$work_dir"
 
-wget "https://ftpmirror.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.xz"
-wget "https://ftpmirror.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
+# Pinned to a specific mirror rather than ftpmirror.gnu.org: its random
+# mirror selection landed on hosts that reset the connection or 404'd from
+# inside a sandboxed session's egress proxy; this one was verified reachable.
+wget "https://mirrors.nju.edu.cn/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.xz"
+wget "https://mirrors.nju.edu.cn/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"
 tar xf "binutils-${BINUTILS_VERSION}.tar.xz"
 tar xf "gcc-${GCC_VERSION}.tar.xz"
 rm -f ./*.tar.xz
