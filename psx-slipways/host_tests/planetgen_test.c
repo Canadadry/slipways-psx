@@ -239,6 +239,62 @@ static void test_hand_built_chain_is_connected_via_transitive_bridges(void) {
     T_CHECK(planetgen_is_connected(&graph, 5));
 }
 
+/* Chunk 5 (integration): the real 90-planet configuration (traced
+ * MIN_DIST_SQ = 0.05, NEIGHBOR_RANGE_SQ = 0.19, both squared units per
+ * lua.lua:748/768) exercised across many distinct seeds.
+ *
+ * This does NOT assert 100% connectivity. The original PICO-8 source has no
+ * galaxy-level connectivity guarantee: bw(90) (lua.lua:744) is called
+ * exactly once per game, from eu() (lua.lua:1181-1182), with no retry and
+ * no post-generation connectivity check or regeneration. The probe-range
+ * check (mz:hq, lua.lua:767) tests against a fixed 0.19 (0.27 with "space
+ * folding" tech) that never grows over time -- so an isolated planet
+ * stranded in a domain corner, outside probe range of everything else, is a
+ * real, if rare, outcome of the original game, not a porting bug. This was
+ * confirmed empirically (22/2000 seeds, 1.1%, disconnected) and the project
+ * owner directed that this quirk be preserved rather than engineered away.
+ *
+ * So instead this test bounds the disconnect rate: it must be > 0% (a
+ * suspicious 0% across 2000 seeds would suggest the test isn't exercising
+ * real generation, or a silent behavior change masking the quirk) and
+ * < 5% (~91 seeds; a rate that much higher than the measured ~1.1% would
+ * suggest a real regression in generation/graph/BFS logic, not the
+ * expected quirk). 5% is a generous ~4.5x margin over the observed 1.1%,
+ * chosen to absorb run-to-run/platform noise without masking a regression. */
+static void test_real_90_planet_configuration_is_connected_across_many_seeds(void) {
+    const int NUM_SEEDS = 2000;
+    const int64_t min_dist_sq = SQ_UNITS(0.05);       /* lua.lua:748 */
+    const int64_t neighbor_range_sq = SQ_UNITS(0.19); /* lua.lua:768, base (no tech) */
+    int disconnected_count = 0;
+
+    for (uint32_t seed = 1; seed <= (uint32_t)NUM_SEEDS; seed++) {
+        rng_t rng;
+        rng_seed(&rng, seed);
+
+        galaxy_t g;
+        int status = planetgen_generate(&g, PLANETGEN_MAX_PLANETS, min_dist_sq, &rng);
+        if (status != PLANETGEN_OK) {
+            printf("     seed %u: planetgen_generate failed (status=%d)\n", seed, status);
+            t_current_test_failed = 1;
+            continue;
+        }
+
+        neighbor_graph_t graph;
+        planetgen_build_neighbor_graph(&graph, &g, neighbor_range_sq);
+
+        if (!planetgen_is_connected(&graph, g.count)) {
+            printf("     seed %u: galaxy of %d planets is NOT connected at range_sq=0.19\n", seed, g.count);
+            disconnected_count++;
+        }
+    }
+
+    printf("     %d/%d seeds disconnected (%.2f%%)\n", disconnected_count, NUM_SEEDS,
+           100.0 * disconnected_count / NUM_SEEDS);
+
+    T_CHECK(disconnected_count > 0);
+    T_CHECK(disconnected_count < (NUM_SEEDS * 5 / 100));
+}
+
 int main(void) {
     t_run("generates_exact_count", test_generates_exact_count);
     t_run("no_pair_violates_minimum_distance", test_no_pair_violates_minimum_distance);
@@ -254,5 +310,6 @@ int main(void) {
     t_run("hand_built_connected_graph_is_connected", test_hand_built_connected_graph_is_connected);
     t_run("hand_built_two_disjoint_clusters_is_not_connected", test_hand_built_two_disjoint_clusters_is_not_connected);
     t_run("hand_built_chain_is_connected_via_transitive_bridges", test_hand_built_chain_is_connected_via_transitive_bridges);
+    t_run("real_90_planet_configuration_is_connected_across_many_seeds", test_real_90_planet_configuration_is_connected_across_many_seeds);
     return t_report();
 }

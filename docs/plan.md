@@ -33,7 +33,7 @@ Alternative pour des vérifications visuelles ponctuelles en cours de développe
 ### Phase 1 — Fondations PSX & boucle de jeu
 
 1. Mettre en place le projet PSn00bSDK : `main.c` reste une pure colle (boucle principale synchronisée sur le VSync, dispatch update/draw), aucune logique métier dedans — même principe de découpage que prévu pour Love2D (un fichier = une responsabilité).
-2. Porter en C pur, compilable et testable côté host (gcc natif, sans dépendance PSX, même esprit que l'ancien `lib/t.lua`) : génération procédurale des 90 planètes (rejet si trop proches, seuil `0.05` normalisé — §3 de la doc de design) et le graphe de voisins, avec un test de connexité globale (BFS : tout spot atteignable depuis tout autre).
+2. Porter en C pur, compilable et testable côté host (gcc natif, sans dépendance PSX, même esprit que l'ancien `lib/t.lua`) : génération procédurale des 90 planètes (rejet si trop proches, seuil `0.05` normalisé — §3 de la doc de design) et le graphe de voisins, avec un test de connexité par BFS sur ~2000 seeds, borné à un taux de déconnexion attendu (la source PICO-8 elle-même ne garantit pas 100% de connexité — voir `docs/prd/triage/psx-planet-generation.md`).
 3. Lire la manette via l'API pad de PSn00bSDK (lecture directe, pas d'abstraction cross-runtime nécessaire ici).
 4. Afficher planètes + wormhole + segments de slipway via les primitives GPU natives (sprite/polygone pour les planètes, `LINE_F2`/`LINE_G2` pour les slipways) — mesurer contre le critère de faisabilité (30 fps, ~40-60 slipways) via le harnais de la Phase 0.
 
