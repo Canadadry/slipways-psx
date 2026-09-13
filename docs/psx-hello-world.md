@@ -6,7 +6,7 @@ the BIOS pad driver, and the v1 controller mapping from `docs/plan.md` Phase 2
 (Cross toggles mouse mode, D-pad moves a pixel cursor while it's on, Circle
 simulates a click).
 
-## Status: fully verified, with a real BIOS supplied locally (not distributed here)
+## Status: fully verified, two independent ways
 
 1. `make psn00bsdk-toolchain-setup` builds the real `mipsel-none-elf` GCC
    12.2.0 + binutils 2.40 toolchain from source and installs PSn00bSDK.
@@ -16,19 +16,22 @@ simulates a click).
    `psx-hello/CMakeLists.txt`, a bootable CD image
    (`psx-hello/build/psx-hello.bin`/`.cue`, from `psx-hello/iso.xml` +
    `psx-hello/system.cnf`). **Done.**
-3. `make psx-hello-boot-test` boots it under Mednafen (`Xvfb` + `xdotool` for
-   a display and input injection, F9 for screenshots) and checks: pad status
-   text renders, Cross toggles "MOUSE MODE", D-pad moves the cursor tile
-   while it's on, Circle flashes it yellow with a "CLICK!" label. **All four
-   confirmed working**, screenshot by screenshot, in a session that had a
-   real Sony BIOS dump supplied locally by the user for testing (their own
-   legitimate dump; never committed, distributed, or referenced by path in
-   this repo — see "Boot-testing with a real BIOS" below). Without a real
-   BIOS, `make psx-hello-openbios-setup` builds a legal open-source
-   replacement instead, but it currently can't get far enough to boot
-   `psx-hello` — see "OpenBIOS: builds, but still can't boot this disc"
-   below for the precise, upstream reason why, logged as a `docs/plan.md`
-   -style *point dur* rather than something blocking the rest of the port.
+3. Boot-test it and confirm: pad status text renders, Cross toggles "MOUSE
+   MODE", D-pad moves the cursor tile while it's on, Circle flashes it
+   yellow with a "CLICK!" label. **Done, two ways**:
+   - `make psx-hello-boot-test-pcsx` (`make pcsx-redux-setup` first) boots it
+     under **PCSX-Redux + OpenBIOS** — fully legal, no real Sony BIOS
+     anywhere, and it just works: OpenBIOS recognizes the disc and boots it
+     normally (`*** Data is acceptable, booting now. ***`), no workaround
+     needed. This is also the tool `docs/plan.md`'s Phase 0 settled on for
+     the real headless test harness — see "PCSX-Redux + OpenBIOS" below.
+   - `make psx-hello-boot-test` boots it under Mednafen (`Xvfb` + `xdotool`,
+     F9 screenshots) — **all four behaviors screenshot-verified**, given a
+     real Sony BIOS supplied locally by the user for testing (their own
+     legitimate dump; never committed, distributed, or referenced by path in
+     this repo — see "Boot-testing with a real BIOS" below). Useful for
+     quick visual checks during development; not required now that
+     PCSX-Redux+OpenBIOS covers the fully-legal, no-BIOS-needed case.
 
 ## What was actually blocked, and what wasn't
 
@@ -124,34 +127,73 @@ matching `main.c`); Circle shows "CLICK! (CIRCLE)" and turns the cursor tile
 yellow; Cross toggles mouse mode back to "OFF" and the cursor disappears.
 All four checklist items from the top of this doc, genuinely confirmed.
 
-## OpenBIOS: builds, but still can't boot this disc
+## PCSX-Redux + OpenBIOS: the clean, fully legal path (recommended)
 
-Without a real BIOS, `make psx-hello-openbios-setup` (optionally
-`BOOT_MODE=fast`) builds and installs
 [OpenBIOS](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/openbios)
-instead: a clean-room reimplementation ("bugs, quirks and all"), built from
+is a clean-room BIOS reimplementation ("bugs, quirks and all"), built from
 disassembly of a dumped retail BIOS under the same legal doctrine as *Sony
 v. Connectix* (see its own README's "Legality" section) — MIT-licensed and
-meant exactly for this kind of testing. It builds fine with the
-already-installed `mipsel-none-elf` toolchain (no Docker needed, despite
-that being its own documented default method), after two real fixes:
+meant exactly for this kind of testing, no real Sony BIOS needed anywhere.
+`tools/install_pcsx_redux.sh` (`make pcsx-redux-setup`) builds both PCSX-Redux
+itself and OpenBIOS from source with the already-installed `mipsel-none-elf`
+toolchain — no Docker needed, despite that being PCSX-Redux's own documented
+default method. Real fixes needed along the way:
 
-- `third_party/uC-sdk` is a git submodule a plain `git clone` doesn't
-  populate; without `git submodule update --init`, the build fails with
-  `stdlib.h`/`string.h`/etc. "No such file or directory" (uC-sdk provides
-  OpenBIOS's own minimal libc — the `mipsel-none-elf` toolchain is
-  deliberately headerless, per PSn00bSDK's own `--without-headers` GCC
-  configure flag).
-- Passing `INSTALL_TTY_CONSOLE=true` (tried while debugging, to capture
-  kernel debug prints) hangs forever: it installs a driver for real
-  DTL-H2000 devkit hardware that doesn't exist under Mednafen's
-  retail-console emulation, busy-looping on an unmapped I/O register
-  (`1f802000`). Confirmed via Mednafen's `-psx.dbg_level 2`, which logs
-  every access to an unmapped address.
+- Ubuntu 24.04 doesn't package `libsdl3-dev` yet (only SDL2) — the script
+  builds SDL3 3.2.x from source and installs it to `/usr/local` first.
+- `-lGL` is missing at link time unless `libgl1-mesa-dev` (and
+  `libglu1-mesa-dev`) are installed alongside PCSX-Redux's own documented
+  Debian dependency list.
+- `third_party/luv`'s own nested submodules (`deps/lua-compat-5.3` etc.)
+  need a second, recursive `git submodule update` — the top-level
+  `--depth 1` non-recursive init used for PSn00bSDK/OpenBIOS earlier in this
+  doc isn't enough here, since `luv` is a submodule-of-a-submodule.
 
-Neither OpenBIOS build mode gets `psx-hello` running, even with the sideload
-fix above (which only helps once the BIOS reaches its CD-boot attempt point
-— OpenBIOS crashes or loops before that):
+With that built, `make psx-hello-boot-test-pcsx`
+(`tools/boot_test_psx_hello_pcsx.sh`) boots `psx-hello.cue` under
+`./pcsx-redux --no-ui --loadiso ... --run` and **it just works** — no SCEx
+workaround, no sideload/stack-patch trick, no crash:
+
+```
+*** OpenBIOS tiny shell - starting ***
+*** Data is acceptable, booting now. ***
+...
+boot file     : cdrom:\PSXHELLO.EXE;1
+EXEC:PC0(8001274c)  T_ADDR(80010000)  T_SIZE(00005000)
+...
+psxgpu: setup done, default mode is NTSC
+PS-X Control PAD Driver
+```
+
+This is `psx-hello`'s own code running for real, booted the normal way
+(BIOS reads `SYSTEM.CNF`, jumps to the listed executable) — no manual
+resolution of the SCEx issue from the previous sections was needed.
+`--no-ui` is also a genuinely headless CLI mode (clean console output, no
+window), unlike Mednafen which still needs a virtual display (`Xvfb`) even
+in its most minimal mode. **This is why `docs/plan.md`'s Phase 0 settled on
+PCSX-Redux**: its `--test-mode` (makes a ROM-triggered `pcsx_exit()`
+actually terminate the process with that exit code) and Lua/LuaJIT bridge
+(`--dofile`/`--exec`, memory access via FFI) are confirmed present and
+current in the source (`src/main/main.cc`'s `testQuit()`,
+`src/core/pcsxlua.cc` and friends) — the real automated build → boot →
+assertion loop the plan always wanted, not just a screenshot.
+
+The earlier finding that OpenBIOS's default build gets stuck on its own
+boot-logo screen, and its `BOOT_MODE=fast` build crashes in
+`cdromBlockReading`, **turned out to be specific to Mednafen**, not a
+general OpenBIOS limitation — kept below for the record since Mednafen is
+still useful for quick visual checks, but it's no longer the recommended
+path now that PCSX-Redux is confirmed to just work.
+
+## OpenBIOS under Mednafen specifically: boot-logo stall and a CD-ROM crash
+
+Without a real BIOS, `make psx-hello-openbios-setup` (optionally
+`BOOT_MODE=fast`) builds and installs OpenBIOS for use with **Mednafen**
+(same source as above; see "Getting a legal BIOS" there for the build
+fixes needed — `git submodule update --init` for `third_party/uC-sdk`, and
+avoiding `INSTALL_TTY_CONSOLE=true` which hangs under Mednafen's emulation).
+Neither OpenBIOS build mode gets `psx-hello` running under Mednafen, even
+with the sideload fix above:
 
 - **Default build**: boots clean, no crash, but never advances past its own
   boot-logo screen — a rotating shaded cube (`src/mips/shell/hull.c`'s
@@ -159,7 +201,7 @@ fix above (which only helps once the BIOS reaches its CD-boot attempt point
   animation, not a bug and not `psx-hello`'s own rendering — confirmed by
   grepping both `openbios`'s and `psx-hello/main.c`'s source for any
   cube/GTE code: there isn't any). The shell's boot-logo loop never attempts
-  a CD boot at all, so the sideload hook never gets a chance to fire.
+  a CD boot at all, so Mednafen's sideload hook never gets a chance to fire.
 - **`BOOT_MODE=fast` build**: skips the shell/boot-logo and heads straight
   for the CD boot — and crashes before the sideload hook can fire either,
   with `=== Unimplemented A0:A1 syscall from 0xBFC03CCC === ... === halting
@@ -171,12 +213,12 @@ fix above (which only helps once the BIOS reaches its CD-boot attempt point
   CD-ROM sector read, not board/kernel init as the crash's own "uC-sdk -
   booting" banner might suggest at a glance.
 
-Both are genuine gaps/bugs in OpenBIOS's CD-ROM boot path under this
-toolchain/Mednafen combination, not in `psx-hello` or this repo's own code —
-a `docs/plan.md`-style *point dur*. Worth trying before re-diagnosing from
-scratch: an older OpenBIOS commit, or PCSX-Redux/DuckStation instead of
-Mednafen (explicitly listed as tested-compatible in OpenBIOS's own
-`COMPATIBILITY.md`, unlike standalone Mednafen).
+Given the same OpenBIOS source boots `psx-hello.cue` cleanly under
+PCSX-Redux (previous section), this looks like a Mednafen-side
+compatibility gap rather than an OpenBIOS bug — consistent with OpenBIOS's
+own `COMPATIBILITY.md`, which lists PCSX-Redux (and libretro cores built on
+Mednafen's own PSX code, confusingly) as tested, but not standalone
+Mednafen.
 
 ## Sandbox-only fallback smoke test (no real toolchain needed)
 
@@ -216,8 +258,13 @@ this evidence alone.
 
 ## Next steps
 
-- `psx-hello` itself is fully verified now (given a real BIOS supplied
-  locally) — Phase 1-2 game logic can build on it directly.
-- If a fully legal, no-real-BIOS-required boot-test loop matters before
-  then, resolve the OpenBIOS `cdromBlockReading` crash or boot-logo stall
-  above (an older commit, or switching to PCSX-Redux/DuckStation).
+- `psx-hello` itself is fully verified now, two independent ways (real BIOS
+  under Mednafen, OpenBIOS under PCSX-Redux) — Phase 1-2 game logic can
+  build on it directly.
+- `docs/plan.md` Phase 0 (headless test harness): the emulator + build/boot
+  primitives are validated (`make pcsx-redux-setup`,
+  `make psx-hello-boot-test-pcsx`). What's left is the actual MCP/agent
+  bridge on top — memory reads, input injection, and `--test-mode`-based
+  pass/fail via PCSX-Redux's Lua bridge (`--dofile`/`--exec`) or its
+  built-in web server (`src/core/web-server.cc`, not explored yet), rather
+  than the log-grepping `boot_test_psx_hello_pcsx.sh` does today.

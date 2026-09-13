@@ -16,25 +16,24 @@ Point qui reste à vérifier empiriquement avant de considérer le rendu acquis 
 
 **Toolchain : PSn00bSDK** — SDK PS1 open source (GCC MIPS, libs GPU/GTE/pad/DMA, outils de build). Alternative écartée : SDK officiel Sony, non redistribuable librement.
 
-## Prérequis méthodologique — la boucle de test headless n'existe pas encore
+## Prérequis méthodologique — outil retranché : PCSX-Redux
 
-Aucun pont MCP prêt à l'emploi vers un émulateur headless n'existe pour PS1 aujourd'hui : il faudra l'écrire nous-mêmes. L'option la plus sérieuse est [PCSX-Redux](https://pcsx-redux.consoledev.net/Lua/introduction/), qui fournit déjà une bonne partie des briques bas niveau en CLI pur (pas besoin de GUI ni de bridge pour ça) :
+**Tranché** (voir `docs/psx-hello-world.md` pour le détail de l'investigation) : l'émulateur pour le harnais headless de la Phase 0 est [PCSX-Redux](https://pcsx-redux.consoledev.net/Lua/introduction/), pas Mednafen (utilisé en interim pendant l'investigation, cf. plus bas). Build et boot réel de `psx-hello.cue` validés de bout en bout dans une session sandbox :
 
-- `--no-ui`/`--cli` : lance en mode TUI sans interface graphique.
-- `--iso`/`--loadiso`/`--exe`/`--loadexe` + `--run` : charge une ROM/exécutable de test et démarre direct.
-- `--test-mode` : fait que l'appel interne `pcsx_exit()` (déclenché depuis le code de la ROM) ferme réellement l'émulateur au lieu de le mettre en pause — le primitif "la ROM de test signale qu'elle a fini, le process se termine" nécessaire à une boucle build → boot → assertion automatisée sans watchdog externe.
-- `--dofile`/`--exec` : charge un script Lua au boot / exécute une commande Lua — pour la lecture mémoire, les savestates et l'injection d'input (API Lua/LuaJIT, accès mémoire direct par FFI).
-- `--gdb`/`--gdb-port` : serveur GDB complet (breakpoints, registres, mémoire) en alternative ou complément au bridge Lua pour lire l'état depuis l'agent.
+- `tools/install_pcsx_redux.sh` (`make pcsx-redux-setup`) build PCSX-Redux et OpenBIOS depuis les sources avec les dépendances `apt` (SDL3 doit être compilé à la main, pas encore packagé sur Ubuntu 24.04 au moment de l'écriture — le script le fait automatiquement). Aucun Docker requis malgré la doc upstream qui le suggère par défaut.
+- `--no-ui` lance un vrai mode headless (pas de fenêtre, sortie console propre) — confirmé, contrairement à Mednafen qui a besoin d'un display virtuel (Xvfb).
+- `--loadiso <cue> --run` boote directement, et **avec OpenBIOS (légal, aucun BIOS Sony requis), le disque `psx-hello.cue` est reconnu et boote normalement** (`*** Data is acceptable, booting now. ***` puis exécution réelle de `psx-hello`) — sans le contournement SCEx/patch de pile nécessaire sous Mednafen. `make psx-hello-boot-test-pcsx` (`tools/boot_test_psx_hello_pcsx.sh`) vérifie ça automatiquement (grep sur les marqueurs de boot réussi dans la sortie console).
+- `--test-mode` (`pcsx_exit()` déclenché depuis le code de la ROM ferme réellement le process avec un code de sortie) et le pont Lua/LuaJIT (`--dofile`/`--exec`, lecture mémoire par FFI) sont confirmés présents et à jour dans le code source actuel (`src/main/main.cc`, `testQuit()`) — pas de la doc obsolète.
 
-Ce qui reste réellement à construire : le pont MCP par-dessus (exposer ces primitives côté agent), pas les primitives elles-mêmes. Attention documentée dans la littérature existante sur ce genre de pont Lua : l'automatisation programmatique (savestates, boucle d'itération fiable) y est rapportée comme peu fiable — à corroborer par notre propre usage avant d'en dépendre pour toute la boucle Phase 0-5.
+Reste réellement à construire pour clore la Phase 0 : le pont MCP par-dessus ces primitives (exposer boot/lecture-mémoire/input côté agent), et des vraies assertions programmatiques (au-delà du grep sur stdout de `boot_test_psx_hello_pcsx.sh`, qui n'est qu'un premier niveau) — probablement via le bridge Lua ou le serveur web intégré (`src/core/web-server.cc`, non exploré en détail). Mednafen reste utile en complément pour des vérifications visuelles rapides pendant le développement (`make psx-hello-boot-test`, captures d'écran via `xdotool`), mais dépend d'un vrai BIOS Sony (fourni localement par le développeur, jamais committé) puisque son émulation stricte du SCEx bloque OpenBIOS — voir `docs/psx-hello-world.md`.
 
-**Étape 0 du plan PSX, avant toute logique de jeu** : construire ce harnais minimal (boot d'une ROM de test, lecture mémoire, capture d'image ou de framebuffer, contrôle du input, sortie propre via `pcsx_exit()`/`--test-mode`) et valider qu'il est exploitable en boucle automatisée. Si PCSX-Redux s'avère trop instable pour ça, c'est un point dur à consigner (cf. Garde-fous) — pas une raison de revenir sur le choix de la PSX comme cible, qui reste justifié techniquement (GPU natif) indépendamment de l'outillage de test.
+**Étape 0 du plan PSX, avant toute logique de jeu** : construire le pont MCP/agent par-dessus PCSX-Redux (boot d'une ROM de test, lecture mémoire, capture d'image ou de framebuffer, contrôle du input, sortie propre via `pcsx_exit()`/`--test-mode`) et valider qu'il est exploitable en boucle automatisée répétable. Si PCSX-Redux s'avère trop instable pour ça à l'usage, c'est un point dur à consigner (cf. Garde-fous) — pas une raison de revenir sur le choix de la PSX comme cible, qui reste justifié techniquement (GPU natif) indépendamment de l'outillage de test.
 
 ## Plan d'action
 
 ### Phase 0 — Harnais de test headless
 
-0. Mettre en place le pont Lua/MCP par-dessus PCSX-Redux (ou solution équivalente) permettant de builder une ROM de test, la booter headless, lire son état et injecter des entrées manette depuis l'agent. Critère de sortie : une boucle de build → boot → assertion automatisée fonctionne de façon répétable (pas seulement une fois "à la main").
+0. Mettre en place le pont Lua/MCP par-dessus PCSX-Redux (build et boot headless déjà validés manuellement, `make pcsx-redux-setup` + `make psx-hello-boot-test-pcsx` — reste le pont agent proprement dit) permettant de builder une ROM de test, la booter headless, lire son état et injecter des entrées manette depuis l'agent. Critère de sortie : une boucle de build → boot → assertion automatisée fonctionne de façon répétable (pas seulement une fois "à la main").
 
 ### Phase 1 — Fondations PSX & boucle de jeu
 

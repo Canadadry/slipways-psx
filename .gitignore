@@ -6,7 +6,5 @@ psx-hello/build/
 tools/.openbios-build/
 tools/.boot-test-run/
 tools/.boot-test-snaps/
-tools/.pcsx-research/
-tools/.pcsx_research_build.sh
-tools/.sdl3-src/
-tools/.sdl3-build/
+tools/pcsx-redux/
+tools/.boot-test-pcsx-run/
