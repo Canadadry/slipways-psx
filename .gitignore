@@ -3,3 +3,6 @@ __pycache__/
 tmp/
 tools/.sandbox-psx-smoketest/
 psx-hello/build/
+tools/.openbios-build/
+tools/.boot-test-run/
+tools/.boot-test-snaps/
