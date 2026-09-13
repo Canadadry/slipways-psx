@@ -1,6 +1,6 @@
 # Slipways (PICO-8) — règles de design & mécaniques
 
-Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur manette pour Game Boy Advance (Love2D en prototype de référence ; Nintendo DS en repli si un point dur GBA bloque, voir `docs/plan.md`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
+Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur manette pour PlayStation 1 (Love2D en prototype de référence, voir `docs/plan.md`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
 
 ## Pitch officiel (itch.io)
 
@@ -48,7 +48,7 @@ Il n'y a pas de combat, pas d'ennemis actifs : le jeu est un puzzle d'optimisati
 - Défaite anticipée : **banqueroute**. Si le revenu net annuel `ge<=0` **et** la trésorerie `nz<3`, `hy.hl="bankrupt"` et la partie s'arrête (même ligne).
 - Chaque action qui « prend du temps » (envoyer une sonde, coloniser, construire une structure) consomme un nombre de mois fixe (`fp`, souvent `1` ou `2`, `3` par défaut pour une colonisation normale via `autoassemblers` qui le réduit à `2`).
 
-**Pour le portage GBA** : le modèle « continu + tick annuel » reste tel quel (aucun changement de modèle de temps décidé) — toutes les formules ci-dessous sont exprimées par année.
+**Pour le portage PSX** : le modèle « continu + tick annuel » reste tel quel (aucun changement de modèle de temps décidé) — toutes les formules ci-dessous sont exprimées par année.
 
 ## 3. La galaxie
 
@@ -281,18 +281,18 @@ La partie se termine à l'année 3426 (« final score ») ou en banqueroute (§2
 
 Le coût de construction des slipways et les seuils de portée/technologie restent identiques quelle que soit la difficulté ; seuls le revenu commercial et la qualité des planètes découvertes varient.
 
-## 15. Interface & contrôles (version PICO-8) — points d'attention pour le portage GBA
+## 15. Interface & contrôles (version PICO-8) — points d'attention pour le portage PSX
 
-La version PICO-8 est **pilotée à la souris**, ce qui ne se transpose pas directement sur GBA (pas de pointeur, layout D-pad/A/B/L/R/Start/Select — pas de X/Y) :
+La version PICO-8 est **pilotée à la souris**, ce qui ne se transpose pas directement sur la manette PSX (pas de pointeur, layout D-pad/✕/○/□/△/L1/L2/R1/R2/Start/Select) :
 
 - Survol d'une planète/bouton = mise en évidence (`ui:gw`, ligne 226).
 - Clic gauche maintenu + glisser depuis une planète colonisée jusqu'à une autre = tracer une nouvelle slipway (`ui:bh`, `jo:ldown`).
 - Clic droit maintenu + glisser dans le vide = déplacer la caméra (`bg:rdown`/`bg:hq`).
 - Clic sur une planète inconnue = envoyer une sonde ; clic sur une planète connue mais non colonisée = ouvrir le choix de colonisation (`jo:fe`, liste des jobs compatibles).
-- Il existe malgré tout un vestige de contrôle directionnel : `qb:ph` (ligne 1134) déplace un curseur avec les 4 boutons directionnels PICO-8 (inertie simple, vitesse ×3, freinage ×0.2) — c'est probablement un fallback clavier/manette resté dans le code, à réutiliser comme base pour un contrôle GBA (D-pad pour déplacer un curseur/réticule, A pour sélectionner/valider, B pour annuler, L/R ou une modale pour choisir la cible d'une route plutôt qu'un drag continu).
+- Il existe malgré tout un vestige de contrôle directionnel : `qb:ph` (ligne 1134) déplace un curseur avec les 4 boutons directionnels PICO-8 (inertie simple, vitesse ×3, freinage ×0.2) — c'est probablement un fallback clavier/manette resté dans le code ; le plan retient toutefois un mode souris simple pour la v1 (curseur en pixels + clic simulé, voir `docs/plan.md`) plutôt que ce fallback à inertie.
 - Pas de scroll de zoom : la caméra suit simplement le curseur (`qb:md`).
 
-**Recommandation de conception pour le portage** : remplacer le drag-and-drop par un mode « sélection source → sélection destination » en 2 pressions de A avec un curseur D-pad, en gardant toutes les règles de blocage (portée, croisement, planète sur le trajet) telles quelles — elles ne dépendent pas de la souris.
+Règles de blocage (portée, croisement, planète sur le trajet) à garder telles quelles quel que soit le mapping manette retenu — elles ne dépendent pas de la souris. Idées de mapping alternatif au mode souris v1 : voir `docs/after-v1.md`.
 
 ---
 

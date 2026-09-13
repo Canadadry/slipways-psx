@@ -1,5 +1,3 @@
 __pycache__/
 .love2d-meta/
-gba-hello/build/
-gba-hello/*.elf
-gba-hello/*.gba
+tmp/
