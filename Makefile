@@ -18,15 +18,20 @@ test: test-planetgen
 # build output). List source files explicitly here as later chunks add
 # more (e.g. planetgen.c and its own host test file).
 PLANETGEN_HOST_BUILD_DIR = psx-slipways/build-host
-PLANETGEN_HOST_BIN = $(PLANETGEN_HOST_BUILD_DIR)/planetgen_test
-PLANETGEN_HOST_SRCS = \
+RNG_AND_FIXED_HOST_SRCS = \
 	psx-slipways/rng.c \
 	psx-slipways/host_tests/rng_and_fixed_test.c
+PLANETGEN_TEST_HOST_SRCS = \
+	psx-slipways/rng.c \
+	psx-slipways/planetgen.c \
+	psx-slipways/host_tests/planetgen_test.c
 
 test-planetgen:
 	mkdir -p $(PLANETGEN_HOST_BUILD_DIR)
-	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(PLANETGEN_HOST_BIN) $(PLANETGEN_HOST_SRCS) -lm
-	$(PLANETGEN_HOST_BIN)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(PLANETGEN_HOST_BUILD_DIR)/rng_and_fixed_test $(RNG_AND_FIXED_HOST_SRCS) -lm
+	$(PLANETGEN_HOST_BUILD_DIR)/rng_and_fixed_test
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(PLANETGEN_HOST_BUILD_DIR)/planetgen_test $(PLANETGEN_TEST_HOST_SRCS) -lm
+	$(PLANETGEN_HOST_BUILD_DIR)/planetgen_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
