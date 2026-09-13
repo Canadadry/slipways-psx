@@ -3,6 +3,7 @@
 #include <psxgpu.h>
 
 #include "game.h"
+#include "input.h"
 
 #define SCREEN_XRES 320
 #define SCREEN_YRES 240
@@ -50,7 +51,12 @@ int main(int argc, const char *argv[]) {
 	RenderContext ctx;
 	init_context(&ctx);
 
+	input_init();
+
 	game_init();
+
+	static volatile int test_harness_ready = 0;
+	test_harness_ready = 0x1eadbeef;
 
 	for (;;) {
 		game_update();
