@@ -30,8 +30,15 @@ wasn't possible to verify from inside the sandboxed session that wrote this.
 
 ## What was actually verified in this sandbox, and why the rest wasn't
 
-The session that wrote this had two hard constraints worth recording before
-anyone re-derives them the hard way:
+Two sandboxed sessions have now hit the same two constraints (network egress
+and the absolute-path hook below) independently. The second turned the
+narrative from the first into a script, `tools/sandbox_psx_smoketest.sh`
+(run via `make psx-hello-sandbox-smoketest`), so a future sandboxed session
+doesn't have to redo this by hand — it's not a substitute for the real
+build, just a repeatable version of the check described in this section.
+
+The session that wrote the original narrative had two hard constraints
+worth recording before anyone re-derives them the hard way:
 
 - **Network egress policy blocks the real toolchain and any emulator.**
   `github.com/*/releases` (prebuilt PSn00bSDK packages), `ftpmirror.gnu.org`
@@ -64,31 +71,31 @@ These are plain GCC MIPS backend flags, not something specific to a
 toolchain, the sandbox's already-installed `apt` cross compiler
 (`gcc-12-mipsel-linux-gnu`, target `mipsel-linux-gnu`, **not** the same
 target triple PSn00bSDK expects) was used standalone, outside CMake, to prove
-the compile → link → PS-EXE pipeline works at all in this environment:
+the compile → link → PS-EXE pipeline works at all in this environment. This
+is now `tools/sandbox_psx_smoketest.sh` (`make psx-hello-sandbox-smoketest`):
 
-1. Compiled a tiny freestanding `.c` file (an infinite loop writing to a
+1. Compiles a tiny freestanding `.c` file (an infinite loop writing to a
    fake GPU status register) with the flags above.
-   `mipsel-linux-gnu-readelf -h` on the resulting object confirmed
-   `Machine: MIPS R3000`, `mips1`, `o32` — i.e. `-march=r3000` was honored.
-2. Linked it with a hand-written linker script placing `.text` at
+   `mipsel-linux-gnu-readelf -h` on the resulting object confirms
+   `Machine: MIPS R3000`, `mips1`, `o32` — i.e. `-march=r3000` is honored.
+2. Links it with a hand-written linker script placing `.text` at
    `0x80010000` (the standard PS1 RAM load address) and `_boot` as the entry
-   point. The linked ELF's entry point came out as `0x80010000` as expected.
+   point.
 3. PSn00bSDK's own ELF→PS-EXE converter (`tools/util/elf2x.c`, a small
    standalone host program, no cross-compilation needed) **crashed** with a
-   glibc stack-protector abort on this ELF. AddressSanitizer traced it to an
-   out-of-bounds `fread()` at `elf2x.c:194`: the tool computes the output
-   buffer size from only the highest segment's virtual address and the
-   *last* program header's file size, which doesn't hold for the segment
-   layout this modern `binutils 2.42` linker produced (worth flagging
-   upstream if this recurs with the real toolchain — the tool dates from
-   2018-2021). Worked around it for this smoke test by extracting the raw
-   bytes with `objcopy -O binary` and writing the 2048-byte PS-EXE header by
-   hand (`PS-X EXE` magic + `pc0`/`t_addr`/`t_size`/`sp_addr`, rest zeroed)
-   instead of depending on `elf2x`.
-4. End result: a structurally valid 4096-byte `.EXE` file (2048-byte header +
-   2048-byte padded code) with the right magic, entry point, text address/size
-   and a real compiled MIPS I prologue (`addiu $sp,$sp,-16` etc.) visible at
-   the code offset.
+   glibc stack-protector abort on an ELF built this way, when this was first
+   tried by hand. AddressSanitizer traced it to an out-of-bounds `fread()` at
+   `elf2x.c:194`: the tool computes the output buffer size from only the
+   highest segment's virtual address and the *last* program header's file
+   size, which doesn't hold for the segment layout this modern
+   `binutils 2.42` linker produces (worth flagging upstream if this recurs
+   with the real toolchain — the tool dates from 2018-2021). The script
+   works around it the same way: extracting the raw bytes with
+   `objcopy -O binary` and writing the 2048-byte PS-EXE header itself
+   (`tools/psx_exe_header.py`: `PS-X EXE` magic + `pc0`/`t_addr`/`t_size`/
+   `sp_addr`, rest zeroed) instead of depending on `elf2x`.
+4. End result: a structurally valid `.EXE` file (2048-byte header + padded
+   code) with the right magic, entry point and text address/size.
 
 **What this proves**: a MIPS backend with PS1-shaped flags can produce
 correct R3000 code and a correctly-shaped PS-EXE container, in principle.

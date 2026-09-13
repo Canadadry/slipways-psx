@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean
+.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest
 
 
 build:
@@ -23,3 +23,6 @@ psx-hello:
 
 psx-hello-clean:
 	rm -rf psx-hello/build
+
+psx-hello-sandbox-smoketest:
+	sh tools/sandbox_psx_smoketest.sh
