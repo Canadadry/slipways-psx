@@ -63,11 +63,14 @@ int main(int argc, const char *argv[]) {
 	StartPAD();
 	ChangeClearPAD(0);
 
-	int cursor_x = SCREEN_XRES / 2;
-	int cursor_y = SCREEN_YRES / 2;
-	int mouse_mode = 0;
-	int click_flash = 0;
+	static int cursor_x = SCREEN_XRES / 2;
+	static int cursor_y = SCREEN_YRES / 2;
+	static int mouse_mode = 0;
+	static int click_flash = 0;
 	uint16_t prev_btn = 0xffff;
+
+	static volatile int test_harness_ready = 0;
+	test_harness_ready = 0x1eadbeef;
 
 	for (;;) {
 		PADTYPE *pad = (PADTYPE *) pad_buff[0];

@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx
+.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx
 
 
 build:
@@ -42,3 +42,6 @@ pcsx-redux-setup:
 
 psx-hello-boot-test-pcsx:
 	sh tools/boot_test_psx_hello_pcsx.sh
+
+psx-hello-input-test-pcsx:
+	sh tools/boot_test_psx_hello_pcsx_input.sh

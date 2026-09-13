@@ -18,19 +18,17 @@ Point qui reste à vérifier empiriquement avant de considérer le rendu acquis 
 
 ## Prérequis méthodologique — harnais de test headless
 
-Outil retenu : [PCSX-Redux](https://pcsx-redux.consoledev.net/Lua/introduction/) (`make pcsx-redux-setup` build PCSX-Redux + OpenBIOS depuis les sources — voir `docs/psx-hello-world.md`). Build et boot de `psx-hello.cue` validés (`make psx-hello-boot-test-pcsx`) : BIOS légal intégré (OpenBIOS, aucun BIOS Sony requis), mode headless réel (`--no-ui`), sortie propre de fin de test (`--test-mode`/`pcsx_exit()`), pont Lua/LuaJIT pour lecture mémoire et injection d'input (`--dofile`/`--exec`).
-
-Reste à construire pour clore la Phase 0 : le pont MCP/agent par-dessus ces primitives (lecture mémoire, injection d'input côté agent), et de vraies assertions programmatiques au-delà du grep sur stdout que fait `boot_test_psx_hello_pcsx.sh` aujourd'hui.
+Outil retenu : [PCSX-Redux](https://pcsx-redux.consoledev.net/Lua/introduction/) (`make pcsx-redux-setup` build PCSX-Redux + OpenBIOS depuis les sources — voir `docs/psx-hello-world.md`). Phase 0 close : `make psx-hello-input-test-pcsx` boote `psx-hello.cue` headless (`--no-ui`, BIOS légal OpenBIOS), pilote Croix/D-pad/Cercle via le pont Lua/LuaJIT de PCSX-Redux (`PCSX.SIO0.slots[...].pads[...].setOverride`/`clearOverride`), lit l'état réel en RAM invité (`PCSX.getMemPtr()`) et sort avec un code pass/fail réel (`PCSX.quit(code)`) — plus de grep sur stdout. `make psx-hello-boot-test-pcsx` reste un smoke-test boot-only rapide (log-grep, sans assertions).
 
 Alternative pour des vérifications visuelles ponctuelles en cours de développement : Mednafen (`make psx-hello-boot-test`), nécessite un vrai BIOS Sony fourni localement par le développeur (jamais committé) — voir `docs/psx-hello-world.md`.
 
-**Étape 0 du plan PSX, avant toute logique de jeu** : construire ce pont MCP/agent (boot d'une ROM de test, lecture mémoire, capture d'image ou de framebuffer, contrôle du input, sortie propre) et valider qu'il est exploitable en boucle automatisée répétable. Si PCSX-Redux s'avère trop instable pour ça à l'usage, c'est un point dur à consigner (cf. Garde-fous) — pas une raison de revenir sur le choix de la PSX comme cible.
+**Étape 0 du plan PSX, avant toute logique de jeu** : faite. Reste, hors scope Phase 0 : étendre ce harnais à la logique de jeu réelle au fur et à mesure des phases suivantes (Phase 1 étape 4 notamment).
 
 ## Plan d'action
 
 ### Phase 0 — Harnais de test headless
 
-0. Mettre en place le pont Lua/MCP par-dessus PCSX-Redux permettant de builder une ROM de test, la booter headless, lire son état et injecter des entrées manette depuis l'agent (build et boot déjà validés — `make pcsx-redux-setup` + `make psx-hello-boot-test-pcsx` — reste le pont agent). Critère de sortie : une boucle de build → boot → assertion automatisée fonctionne de façon répétable (pas seulement une fois "à la main").
+0. **Fait.** Pont Lua par-dessus PCSX-Redux : build (`make psx-hello`), boot headless (`make pcsx-redux-setup`), lecture d'état et injection d'input depuis l'agent (`make psx-hello-input-test-pcsx`). Boucle build → boot → assertion automatisée validée répétable, y compris sa capacité à détecter une vraie régression (voir `docs/psx-hello-world.md`).
 
 ### Phase 1 — Fondations PSX & boucle de jeu
 

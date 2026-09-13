@@ -25,6 +25,10 @@ simulates a click).
      normally (`*** Data is acceptable, booting now. ***`), no workaround
      needed. This is also the tool `docs/plan.md`'s Phase 0 settled on for
      the real headless test harness — see "PCSX-Redux + OpenBIOS" below.
+     `make psx-hello-input-test-pcsx` goes further: it actually drives
+     Cross/D-pad/Circle through PCSX-Redux's Lua bridge and asserts on live
+     guest RAM (not just log-grepping boot progress) — see "The Lua/agent
+     bridge" below.
    - `make psx-hello-boot-test` boots it under Mednafen (`Xvfb` + `xdotool`,
      F9 screenshots) — **all four behaviors screenshot-verified**, given a
      real Sony BIOS supplied locally by the user for testing (their own
@@ -256,15 +260,101 @@ specific to the sandbox's newer host `binutils`/linker rather than something
 that recurs with PSn00bSDK's own toolchain — no need to file it upstream on
 this evidence alone.
 
+## The Lua/agent bridge: real input-driven assertions
+
+`make psx-hello-input-test-pcsx` (`tools/boot_test_psx_hello_pcsx_input.sh`)
+is the real "boot → drive input → assert" loop `docs/plan.md` Phase 0 wanted,
+replacing the log-grepping `boot_test_psx_hello_pcsx.sh` did (kept as-is, as
+a fast boot-only smoke test — `psx-hello-boot-test-pcsx`). It drives Cross,
+the D-pad and Circle through PCSX-Redux's Lua bridge and asserts on live
+guest RAM: Cross actually flips `mouse_mode`, the D-pad moves the cursor by
+the expected `CURSOR_SPEED`-scaled amount and nothing else, Circle actually
+sets `click_flash` and it decays back to 0. No `-testmode`/`pcsx_exit()`
+round-trip through guest code was needed for this — `PCSX.quit(code)` (Lua
+FFI, `core/pcsxlua.cc`) terminates the host process with that exit code
+unconditionally, `-testmode` only gates the separate `pcsx_exit()`-from-ROM
+path (`SystemImpl::testQuit`), so the whole test drives input and asserts
+purely from the host side.
+
+**Input injection**: `PCSX.SIO0.slots[1].pads[1].setOverride(BTN.CROSS)` /
+`.clearOverride(...)` (`core/pad.cc`'s `setLua`) force bits in the pad's
+`overrides` mask, which `read()` ANDs with the live `buttonStatus` before
+building the actual SIO0 reply bytes (`pad.buttonStatus & pad.overrides`,
+`core/pad.cc:759`) — this is a real hold-and-release at the SIO0 protocol
+level the guest's BIOS pad driver receives, not a shortcut into guest
+memory. Verified by tracing OpenBIOS's own `readPad()`
+(`src/mips/openbios/sio0/driver.c`) byte-for-byte against PCSX-Redux's
+`PadsImpl::Pad::poll()`/`read()` state machine (`core/pad.cc`,
+`core/sio.cc`'s `writePad`): address byte → dummy 0xff, command byte 0x42
+→ ID/type byte 0x41, dummy → 0x5a prefix, two more dummies → button lo/hi
+bytes, matching `PADTYPE`'s `stat`/`len:4|type:4`/`btn` layout
+(`psxpad.h`) byte-for-byte.
+
+**Memory reads**: `PCSX.getMemPtr()` (FFI, `core/pcsxlua.cc`) returns a
+`uint8_t*` to the emulator's 2MB WRAM; a KUSEG/KSEG0 address (`0x8001xxxx`)
+is read by masking `& 0x1fffff` and casting. Frame pacing for both input
+holds and settle waits is a Lua coroutine yielding once per
+`PCSX.Events.createEventListener("GPU::Vsync", ...)` tick — this event
+fires from `Emulator::vsync()` at the exact point the real VBlank IRQ is
+raised (`core/psxcounters.cc`), the same interrupt OpenBIOS's pad polling
+and the game's own `VSync(0)` are built on.
+
+**The `mouse_mode`/`cursor_x`/`cursor_y`/`click_flash` addressing problem**
+(local stack variables, not fixed addresses) is solved by making those four
+`static` in `main.c` (behavior-preserving — `main()` never returns or
+recurses, so `static` vs. automatic storage changes nothing at runtime) so
+they link to fixed `.data`/`.bss` addresses, then parsing
+`psx-hello/build/psx-hello.map` for those addresses at test-generation time
+(`tools/gen_pcsx_hello_input_test_lua.py`, invoked by
+`boot_test_psx_hello_pcsx_input.sh` before each run) and baking them into a
+freshly generated Lua driver script — this also automatically survives GCC
+renumbering local statics as `cursor_x.1`/`cursor_x.2`/etc. across rebuilds
+(the generator strips the `.N` suffix when matching by name).
+
+**Two real bugs found and fixed while building this, worth knowing**:
+
+- A `static volatile int` local initialized only via `= CONST;` at its
+  declaration compiles to a **link-time data image**, not a runtime store —
+  nothing ever emits code that touches it, so with
+  `-ffunction-sections -fdata-sections` and `--gc-sections` the linker
+  correctly (if unhelpfully, for this use case) drops it as dead data
+  entirely, and it never appears in the `.map` file at all. A boot-readiness
+  sentinel needs an actual runtime *assignment statement* after
+  declaration (`test_harness_ready = 0x1eadbeef;`, not
+  `= 0x1eadbeef` on the `static volatile` declaration itself) to force a
+  real store instruction the linker can see a reference to and keep.
+- Booting `psx-hello.cue` from cold (OpenBIOS + real CD-image reads) takes
+  **~336 emulated VBlank frames** under PCSX-Redux — nowhere near the
+  handful of frames a "just wait a bit after boot" guess assumed. The fix
+  is the `test_harness_ready` sentinel above: the driver script polls for
+  it every frame (capped at 3000 frames as a circuit breaker) instead of
+  guessing a fixed settle time, so it isn't sensitive to how long boot
+  actually takes on a given machine.
+
+**One environment quirk, not a bug**: headless SDL/Xvfb input can deliver
+one spurious keybinding edge very early in boot — `mouse_mode` is not
+reliably `0` the instant `psx-hello` reaches its main loop (observed
+starting already-on once, with no override involved). The driver does not
+assume a fresh-boot starting state; it explicitly drives `mouse_mode` to a
+known value (pressing Cross again if needed) before testing the Cross → on
+→ D-pad → Circle → Cross → off sequence.
+
+**Verified as a real assertion, not a happy-path check only**: deliberately
+breaking `main.c` (zeroing the Up-D-pad's cursor delta; retargeting the
+click flash to Triangle instead of Circle) made
+`psx-hello-input-test-pcsx` fail with the exact, specific assertion
+(`cursor_y did not move by the expected amount while holding Up (expected
+between 22 and 26, got 0)`; `Circle did not register a click (click_flash
+not set) (expected between 1 and 15, got 0)`) before both were reverted.
+
 ## Next steps
 
 - `psx-hello` itself is fully verified now, two independent ways (real BIOS
   under Mednafen, OpenBIOS under PCSX-Redux) — Phase 1-2 game logic can
   build on it directly.
-- `docs/plan.md` Phase 0 (headless test harness): the emulator + build/boot
-  primitives are validated (`make pcsx-redux-setup`,
-  `make psx-hello-boot-test-pcsx`). What's left is the actual MCP/agent
-  bridge on top — memory reads, input injection, and `--test-mode`-based
-  pass/fail via PCSX-Redux's Lua bridge (`--dofile`/`--exec`) or its
-  built-in web server (`src/core/web-server.cc`, not explored yet), rather
-  than the log-grepping `boot_test_psx_hello_pcsx.sh` does today.
+- `docs/plan.md` Phase 0 (headless test harness) is done: build, boot, real
+  input injection, memory-read assertions, and clean pass/fail exit codes
+  all work through `make psx-hello-input-test-pcsx`. Not built: a web-server
+  or GDB-server-based alternative to the Lua bridge (`core/web-server.cc`,
+  `core/gdb-server.cc`) — the Lua bridge covered everything this phase
+  needed, so those were never explored.
