@@ -13,12 +13,13 @@
 void game_draw(void) {
 	const galaxy_t *galaxy = world_get_galaxy();
 
-	/* Chunk 1 scope: draw exactly one hardcoded planet
-	 * (positions[0]) as a single TILE primitive. Looping over the
-	 * full galaxy is chunk 2's job. */
-	if (galaxy->count > 0) {
+	/* Chunk 2 scope: draw every generated planet (positions[0..count))
+	 * as a TILE primitive, all with the same placeholder color. No
+	 * wormhole/slipways yet -- those are chunk 3/4's job. */
+	int i;
+	for (i = 0; i < galaxy->count; i++) {
 		int x, y;
-		screen_map_planet(galaxy->positions[0], &x, &y);
+		screen_map_planet(galaxy->positions[i], &x, &y);
 
 		TILE tile;
 		setTile(&tile);
