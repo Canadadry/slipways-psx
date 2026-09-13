@@ -78,10 +78,106 @@ static void test_impossible_configuration_reports_failure(void) {
     T_CHECK(g.count == 0);
 }
 
+static planet_pos_t pos(double x, double y) {
+    planet_pos_t p;
+    p.x = fixed_from_double(x);
+    p.y = fixed_from_double(y);
+    return p;
+}
+
+static void test_two_points_within_threshold_become_adjacent(void) {
+    galaxy_t g;
+    g.count = 2;
+    g.positions[0] = pos(0.0, 0.0);
+    g.positions[1] = pos(1.0, 0.0); /* squared distance = 1.0 */
+
+    neighbor_graph_t graph;
+    planetgen_build_neighbor_graph(&graph, &g, SQ_UNITS(2.0));
+
+    T_CHECK(graph.adjacent[0][1]);
+    T_CHECK(graph.adjacent[1][0]);
+}
+
+static void test_two_points_beyond_threshold_are_not_adjacent(void) {
+    galaxy_t g;
+    g.count = 2;
+    g.positions[0] = pos(0.0, 0.0);
+    g.positions[1] = pos(1.0, 0.0); /* squared distance = 1.0 */
+
+    neighbor_graph_t graph;
+    planetgen_build_neighbor_graph(&graph, &g, SQ_UNITS(0.5));
+
+    T_CHECK(!graph.adjacent[0][1]);
+    T_CHECK(!graph.adjacent[1][0]);
+}
+
+/* Hand-placed on a line: P0=(0,0) P1=(1,0) P2=(2,0) P3=(0,4).
+ * Squared distances: P0-P1=1 P0-P2=4 P0-P3=16 P1-P2=1 P1-P3=17 P2-P3=20.
+ * With range_sq = 2.0, only P0-P1 and P1-P2 are within range: the graph
+ * connects P0-P1-P2 but leaves P3 isolated, and P0-P2 unconnected too. */
+static void test_hand_placed_points_have_expected_edges_and_some_gaps(void) {
+    galaxy_t g;
+    g.count = 4;
+    g.positions[0] = pos(0.0, 0.0);
+    g.positions[1] = pos(1.0, 0.0);
+    g.positions[2] = pos(2.0, 0.0);
+    g.positions[3] = pos(0.0, 4.0);
+
+    neighbor_graph_t graph;
+    planetgen_build_neighbor_graph(&graph, &g, SQ_UNITS(2.0));
+
+    T_CHECK(graph.adjacent[0][1]);
+    T_CHECK(graph.adjacent[1][2]);
+
+    T_CHECK(!graph.adjacent[0][2]);
+    T_CHECK(!graph.adjacent[0][3]);
+    T_CHECK(!graph.adjacent[1][3]);
+    T_CHECK(!graph.adjacent[2][3]);
+}
+
+static void test_neighbor_graph_is_symmetric(void) {
+    rng_t rng;
+    rng_seed(&rng, 55u);
+
+    galaxy_t g;
+    int status = planetgen_generate(&g, 25, SQ_UNITS(0.05), &rng);
+    T_CHECK(status == PLANETGEN_OK);
+
+    neighbor_graph_t graph;
+    planetgen_build_neighbor_graph(&graph, &g, SQ_UNITS(0.19));
+
+    for (int i = 0; i < g.count; i++) {
+        for (int j = 0; j < g.count; j++) {
+            T_CHECK(graph.adjacent[i][j] == graph.adjacent[j][i]);
+        }
+    }
+}
+
+static void test_neighbor_graph_has_no_self_loops(void) {
+    rng_t rng;
+    rng_seed(&rng, 56u);
+
+    galaxy_t g;
+    int status = planetgen_generate(&g, 25, SQ_UNITS(0.05), &rng);
+    T_CHECK(status == PLANETGEN_OK);
+
+    neighbor_graph_t graph;
+    planetgen_build_neighbor_graph(&graph, &g, SQ_UNITS(0.19));
+
+    for (int i = 0; i < g.count; i++) {
+        T_CHECK(!graph.adjacent[i][i]);
+    }
+}
+
 int main(void) {
     t_run("generates_exact_count", test_generates_exact_count);
     t_run("no_pair_violates_minimum_distance", test_no_pair_violates_minimum_distance);
     t_run("same_seed_is_deterministic", test_same_seed_is_deterministic);
     t_run("impossible_configuration_reports_failure", test_impossible_configuration_reports_failure);
+    t_run("two_points_within_threshold_become_adjacent", test_two_points_within_threshold_become_adjacent);
+    t_run("two_points_beyond_threshold_are_not_adjacent", test_two_points_beyond_threshold_are_not_adjacent);
+    t_run("hand_placed_points_have_expected_edges_and_some_gaps", test_hand_placed_points_have_expected_edges_and_some_gaps);
+    t_run("neighbor_graph_is_symmetric", test_neighbor_graph_is_symmetric);
+    t_run("neighbor_graph_has_no_self_loops", test_neighbor_graph_has_no_self_loops);
     return t_report();
 }

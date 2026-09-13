@@ -1,6 +1,7 @@
 #include "planetgen.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #define PLANETGEN_PLACEMENT_MIN ((fixed_t)(0.125 * FX_ONE))
 #define PLANETGEN_PLACEMENT_SPAN ((fixed_t)(2.75 * FX_ONE))
@@ -49,4 +50,21 @@ int planetgen_generate(galaxy_t *out, int count, int64_t min_dist_sq, rng_t *rng
     }
 
     return PLANETGEN_OK;
+}
+
+void planetgen_build_neighbor_graph(neighbor_graph_t *out, const galaxy_t *g, int64_t range_sq) {
+    memset(out->adjacent, 0, sizeof(out->adjacent));
+
+    for (int i = 0; i < g->count; i++) {
+        for (int j = i + 1; j < g->count; j++) {
+            int64_t dx = (int64_t)fixed_sub(g->positions[i].x, g->positions[j].x);
+            int64_t dy = (int64_t)fixed_sub(g->positions[i].y, g->positions[j].y);
+            int64_t dist_sq = dx * dx + dy * dy;
+
+            if (dist_sq <= range_sq) {
+                out->adjacent[i][j] = true;
+                out->adjacent[j][i] = true;
+            }
+        }
+    }
 }
