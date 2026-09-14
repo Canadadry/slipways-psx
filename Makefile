@@ -39,9 +39,13 @@ GALAXY_RENDER_HOST_BUILD_DIR = psx-slipways/build-host
 SCREEN_MAP_TEST_HOST_SRCS = \
 	psx-slipways/screen_map.c \
 	psx-slipways/host_tests/screen_map_test.c
+SLIPWAY_BENCH_TEST_HOST_SRCS = \
+	psx-slipways/slipway_bench.c \
+	psx-slipways/host_tests/slipway_bench_test.c
 WORLD_TEST_HOST_SRCS = \
 	psx-slipways/rng.c \
 	psx-slipways/planetgen.c \
+	psx-slipways/slipway_bench.c \
 	psx-slipways/world.c \
 	psx-slipways/host_tests/world_test.c
 
@@ -49,6 +53,8 @@ test-galaxy-render:
 	mkdir -p $(GALAXY_RENDER_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(GALAXY_RENDER_HOST_BUILD_DIR)/screen_map_test $(SCREEN_MAP_TEST_HOST_SRCS) -lm
 	$(GALAXY_RENDER_HOST_BUILD_DIR)/screen_map_test
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(GALAXY_RENDER_HOST_BUILD_DIR)/slipway_bench_test $(SLIPWAY_BENCH_TEST_HOST_SRCS) -lm
+	$(GALAXY_RENDER_HOST_BUILD_DIR)/slipway_bench_test
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(GALAXY_RENDER_HOST_BUILD_DIR)/world_test $(WORLD_TEST_HOST_SRCS) -lm
 	$(GALAXY_RENDER_HOST_BUILD_DIR)/world_test
 

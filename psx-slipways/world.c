@@ -19,12 +19,18 @@
 #define WORLD_MIN_DIST_SQ ((int64_t)(0.05 * (double)FX_ONE * (double)FX_ONE))
 
 static galaxy_t g_galaxy;
+static neighbor_graph_t g_neighbor_graph;
+static slipway_edge_t g_slipway_edges[MAX_SYNTHETIC_SLIPWAYS];
+static int g_slipway_edge_count;
 
 void world_init(void) {
     rng_t rng;
     rng_seed(&rng, WORLD_RNG_SEED);
 
     planetgen_generate(&g_galaxy, WORLD_PLANET_COUNT, WORLD_MIN_DIST_SQ, &rng);
+    planetgen_build_neighbor_graph(&g_neighbor_graph, &g_galaxy, WORLD_NEIGHBOR_RANGE_SQ);
+    g_slipway_edge_count = slipway_bench_select_edges(&g_neighbor_graph, g_galaxy.count,
+                                                        MAX_SYNTHETIC_SLIPWAYS, g_slipway_edges);
 }
 
 const galaxy_t *world_get_galaxy(void) {
@@ -33,4 +39,9 @@ const galaxy_t *world_get_galaxy(void) {
 
 int world_get_wormhole_index(void) {
     return WORLD_WORMHOLE_INDEX;
+}
+
+void world_get_slipway_edges(const slipway_edge_t **out_edges, int *out_count) {
+    *out_edges = g_slipway_edges;
+    *out_count = g_slipway_edge_count;
 }

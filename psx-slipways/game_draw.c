@@ -17,6 +17,8 @@
 #define GAME_DRAW_WORMHOLE_HALF_SIZE 6
 
 void game_draw(void) {
+	const slipway_edge_t *slipway_edges;
+	int slipway_edge_count;
 	const galaxy_t *galaxy = world_get_galaxy();
 	int wormhole_index = world_get_wormhole_index();
 
@@ -62,5 +64,27 @@ void game_draw(void) {
 		setRGB0(&poly, 255, 64, 0); /* arbitrary placeholder color, distinct from planet tiles */
 
 		DrawPrim(&poly);
+	}
+
+	/* Chunk 4: draw world.c's capped, deterministic synthetic slipway-line
+	 * geometry (see slipway_bench.h) as LINE_F2 primitives. Pure geometry
+	 * standing in for "slipways" for GPU-primitive-path/FPS-feasibility
+	 * purposes only -- no cost, no validity, no game meaning; the real
+	 * slipway logic is Phase 3 step 9's job (see docs/prd/triage/
+	 * psx-galaxy-rendering.md). */
+	world_get_slipway_edges(&slipway_edges, &slipway_edge_count);
+
+	int e;
+	for (e = 0; e < slipway_edge_count; e++) {
+		int ax, ay, bx, by;
+		screen_map_planet(galaxy->positions[slipway_edges[e].a], &ax, &ay);
+		screen_map_planet(galaxy->positions[slipway_edges[e].b], &bx, &by);
+
+		LINE_F2 line;
+		setLineF2(&line);
+		setXY2(&line, ax, ay, bx, by);
+		setRGB0(&line, 64, 128, 255); /* arbitrary placeholder color, distinct from planet tiles and wormhole */
+
+		DrawPrim(&line);
 	}
 }
