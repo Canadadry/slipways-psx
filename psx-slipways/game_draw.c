@@ -109,7 +109,16 @@ void game_draw(void) {
 			setTile(&tile);
 			setXY0(&tile, cursor.x - GAME_DRAW_CURSOR_TILE_SIZE / 2, cursor.y - GAME_DRAW_CURSOR_TILE_SIZE / 2);
 			setWH(&tile, GAME_DRAW_CURSOR_TILE_SIZE, GAME_DRAW_CURSOR_TILE_SIZE);
-			setRGB0(&tile, 255, 255, 255); /* plain white, distinct from planet/wormhole/slipway colors */
+			/* Click-acknowledgment flash (psx-simulated-click.md): yellow
+			 * while click_flash_frames is counting down, matching
+			 * psx-hello/main.c's exact click_flash color (255, 255, 0);
+			 * plain white otherwise, distinct from planet/wormhole/slipway
+			 * colors above. */
+			if (cursor.click_flash_frames > 0) {
+				setRGB0(&tile, 255, 255, 0);
+			} else {
+				setRGB0(&tile, 255, 255, 255);
+			}
 
 			DrawPrim(&tile);
 		}
