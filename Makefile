@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render
+test: test-planetgen test-galaxy-render test-cursor
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -57,6 +57,18 @@ test-galaxy-render:
 	$(GALAXY_RENDER_HOST_BUILD_DIR)/slipway_bench_test
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(GALAXY_RENDER_HOST_BUILD_DIR)/world_test $(WORLD_TEST_HOST_SRCS) -lm
 	$(GALAXY_RENDER_HOST_BUILD_DIR)/world_test
+
+# Host-native test for cursor.c (mode-toggle chunk), same shape/output dir
+# as test-planetgen/test-galaxy-render above.
+CURSOR_HOST_BUILD_DIR = psx-slipways/build-host
+CURSOR_TEST_HOST_SRCS = \
+	psx-slipways/cursor.c \
+	psx-slipways/host_tests/cursor_test.c
+
+test-cursor:
+	mkdir -p $(CURSOR_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(CURSOR_HOST_BUILD_DIR)/cursor_test $(CURSOR_TEST_HOST_SRCS) -lm
+	$(CURSOR_HOST_BUILD_DIR)/cursor_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
