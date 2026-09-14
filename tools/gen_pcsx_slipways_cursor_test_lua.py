@@ -1,7 +1,16 @@
 import re
 import sys
 
-WANTED = ["g_cursor_mouse_mode", "g_cursor_x", "g_cursor_y", "test_harness_ready"]
+WANTED = [
+    "g_cursor_mouse_mode",
+    "g_cursor_x",
+    "g_cursor_y",
+    "g_cursor_click_pressed",
+    "g_cursor_click_held",
+    "g_cursor_click_released",
+    "g_cursor_click_flash_frames",
+    "test_harness_ready",
+]
 
 SYM_RE = re.compile(r"^(\S+)\s+\S+\s+([0-9a-fA-F]+)\b")
 
@@ -29,6 +38,10 @@ local ffi = ffi
 local G_CURSOR_MOUSE_MODE_ADDR = __G_CURSOR_MOUSE_MODE_ADDR__
 local G_CURSOR_X_ADDR = __G_CURSOR_X_ADDR__
 local G_CURSOR_Y_ADDR = __G_CURSOR_Y_ADDR__
+local G_CURSOR_CLICK_PRESSED_ADDR = __G_CURSOR_CLICK_PRESSED_ADDR__
+local G_CURSOR_CLICK_HELD_ADDR = __G_CURSOR_CLICK_HELD_ADDR__
+local G_CURSOR_CLICK_RELEASED_ADDR = __G_CURSOR_CLICK_RELEASED_ADDR__
+local G_CURSOR_CLICK_FLASH_FRAMES_ADDR = __G_CURSOR_CLICK_FLASH_FRAMES_ADDR__
 local READY_ADDR = __TEST_HARNESS_READY_ADDR__
 local READY_MAGIC = 0x1eadbeef
 
@@ -49,6 +62,16 @@ local DPAD_HOLD_FRAMES = 12
 -- cursor already is when this hold starts.
 local EDGE_HOLD_FRAMES = 100
 
+-- Mirrors psx-slipways/cursor.h's CLICK_FLASH_FRAMES (cross-checked at
+-- generation time, not re-derived).
+local CLICK_FLASH_FRAMES = 15
+-- Short window bracketing a Circle press/release edge for observePulse:
+-- long enough to reliably contain the one-frame pulse despite
+-- override/poll-alignment jitter, short enough that it can't also
+-- contain a second, unrelated edge.
+local CLICK_PULSE_WINDOW_FRAMES = 4
+local CLICK_HOLD_SETTLE_FRAMES = 8
+
 local MEM = PCSX.getMemPtr()
 
 local function readS32(addr)
@@ -59,6 +82,24 @@ local function waitFrames(n)
     for i = 1, n do
         coroutine.yield()
     end
+end
+
+-- Samples the given address on *every* frame across a windowFrames-frame
+-- window (once per Vsync, via coroutine.yield(), same as waitFrames) and
+-- returns how many of those frames saw it nonzero. This is the technique
+-- this PRD's chunk 4 adds specifically to catch a single-frame edge pulse
+-- (click_pressed/click_released) that waitFrames' "wait N frames, then
+-- check once" style would miss entirely if the pulse comes and goes
+-- inside the gap.
+local function observePulse(addr, windowFrames)
+    local seen = 0
+    for i = 1, windowFrames do
+        if readS32(addr) ~= 0 then
+            seen = seen + 1
+        end
+        coroutine.yield()
+    end
+    return seen
 end
 
 local function assertEq(actual, expected, msg)
@@ -174,6 +215,73 @@ local function testBody()
     assertEq(readS32(G_CURSOR_X_ADDR), xBeforeGatedHold, "g_cursor_x should not move while g_cursor_mouse_mode is off")
     assertEq(readS32(G_CURSOR_Y_ADDR), yBeforeGatedHold, "g_cursor_y should not move while g_cursor_mouse_mode is off")
 
+    -- (6) click events (psx-simulated-click PRD, chunk 4): real emulated
+    -- SIO0 Circle injection, proving the press/held/release edges and the
+    -- flash countdown are genuinely wired end to end, not just correct in
+    -- the host-tested pure core. Mode is currently off (step 5 above left
+    -- it there) -- turn it back on first.
+    press(BTN.CROSS, SETTLE_FRAMES)
+    waitFrames(SETTLE_FRAMES)
+    assertEq(readMouseMode(), 1, "third Cross press should toggle g_cursor_mouse_mode back on for click assertions")
+
+    -- (7) pressing Circle: click_pressed is a single-frame edge pulse, so
+    -- it's observed with observePulse (sampling every frame across a
+    -- short window right after the press) rather than checked once after
+    -- a settle gap, which would already read back 0 by the time it's
+    -- checked.
+    PAD.setOverride(BTN.CIRCLE)
+    local pressedSeen = observePulse(G_CURSOR_CLICK_PRESSED_ADDR, CLICK_PULSE_WINDOW_FRAMES)
+    assertRange(pressedSeen, 1, 2,
+        "g_cursor_click_pressed should have pulsed nonzero at least once (tolerating up to one frame of override/poll jitter) right after pressing Circle")
+
+    -- (8) the flash countdown should still be actively running shortly
+    -- after the press (not yet exhausted).
+    assertRange(readS32(G_CURSOR_CLICK_FLASH_FRAMES_ADDR), 1, CLICK_FLASH_FRAMES,
+        "g_cursor_click_flash_frames should still be actively counting down right after the press")
+
+    -- (9) click_held is a level, not an edge: it should read true for as
+    -- long as Circle stays physically held, well past the single press
+    -- frame -- checked the same settle-and-check way the existing
+    -- Cross-toggle assertions above already use.
+    waitFrames(CLICK_HOLD_SETTLE_FRAMES)
+    assertEq(readS32(G_CURSOR_CLICK_HELD_ADDR), 1,
+        "g_cursor_click_held should be true while Circle remains held past the initial press frame")
+
+    -- (10) releasing Circle: click_released is likewise a single-frame
+    -- edge pulse, observed the same way as the press edge above.
+    PAD.clearOverride(BTN.CIRCLE)
+    local releasedSeen = observePulse(G_CURSOR_CLICK_RELEASED_ADDR, CLICK_PULSE_WINDOW_FRAMES)
+    assertRange(releasedSeen, 1, 2,
+        "g_cursor_click_released should have pulsed nonzero at least once (tolerating up to one frame of override/poll jitter) right after releasing Circle")
+
+    waitFrames(SETTLE_FRAMES)
+    assertEq(readS32(G_CURSOR_CLICK_HELD_ADDR), 0, "g_cursor_click_held should be false after releasing Circle")
+
+    -- (11) waiting comfortably longer than CLICK_FLASH_FRAMES frames past
+    -- the press, with no further press in between, the countdown must
+    -- have reached and stayed at exactly 0.
+    waitFrames(CLICK_FLASH_FRAMES + SETTLE_FRAMES)
+    assertEq(readS32(G_CURSOR_CLICK_FLASH_FRAMES_ADDR), 0,
+        "g_cursor_click_flash_frames should read back exactly 0 well after the flash window has elapsed")
+
+    -- (12) toggling mouse mode back off, then holding Circle across the
+    -- same pulse-observation window used above, proves the mode gate is
+    -- real for click state too (mirrors step 5's D-pad gate check): none
+    -- of the four click fields should ever go nonzero while mode is off.
+    press(BTN.CROSS, SETTLE_FRAMES)
+    waitFrames(SETTLE_FRAMES)
+    assertEq(readMouseMode(), 0, "fourth Cross press should toggle g_cursor_mouse_mode back off")
+
+    PAD.setOverride(BTN.CIRCLE)
+    local pressedSeenGated = observePulse(G_CURSOR_CLICK_PRESSED_ADDR, CLICK_PULSE_WINDOW_FRAMES + CLICK_HOLD_SETTLE_FRAMES)
+    assertEq(pressedSeenGated, 0, "g_cursor_click_pressed should never pulse while g_cursor_mouse_mode is off")
+    assertEq(readS32(G_CURSOR_CLICK_HELD_ADDR), 0, "g_cursor_click_held should stay 0 while g_cursor_mouse_mode is off, even with Circle held")
+    assertEq(readS32(G_CURSOR_CLICK_FLASH_FRAMES_ADDR), 0, "g_cursor_click_flash_frames should stay 0 while g_cursor_mouse_mode is off")
+
+    PAD.clearOverride(BTN.CIRCLE)
+    local releasedSeenGated = observePulse(G_CURSOR_CLICK_RELEASED_ADDR, CLICK_PULSE_WINDOW_FRAMES)
+    assertEq(releasedSeenGated, 0, "g_cursor_click_released should never pulse while g_cursor_mouse_mode is off")
+
     print("OK: all psx-slipways cursor assertions passed")
     PCSX.quit(0)
 end
@@ -200,7 +308,7 @@ def main():
     missing = [name for name in WANTED if name not in addrs]
     if missing:
         print("missing symbols in %s: %s" % (map_path, ", ".join(missing)), file=sys.stderr)
-        print("(cursor.c's g_cursor_mouse_mode/g_cursor_x/g_cursor_y and main.c's test_harness_ready must be 'static' or otherwise map-visible)", file=sys.stderr)
+        print("(cursor.c's g_cursor_mouse_mode/g_cursor_x/g_cursor_y/g_cursor_click_pressed/g_cursor_click_held/g_cursor_click_released/g_cursor_click_flash_frames and main.c's test_harness_ready must be 'static' or otherwise map-visible)", file=sys.stderr)
         return 1
 
     out = TEMPLATE
