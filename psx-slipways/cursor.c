@@ -24,6 +24,24 @@ cursor_state_t cursor_step(cursor_state_t prev_state,
 		next.mouse_mode = !next.mouse_mode;
 	}
 
+	if (next.mouse_mode) {
+		int dx = 0;
+		int dy = 0;
+
+		if (!(buttons & CURSOR_PAD_UP))    dy -= CURSOR_STEP;
+		if (!(buttons & CURSOR_PAD_DOWN))  dy += CURSOR_STEP;
+		if (!(buttons & CURSOR_PAD_LEFT))  dx -= CURSOR_STEP;
+		if (!(buttons & CURSOR_PAD_RIGHT)) dx += CURSOR_STEP;
+
+		next.x += dx;
+		next.y += dy;
+
+		if (next.x < 0) next.x = 0;
+		if (next.y < 0) next.y = 0;
+		if (next.x > SCREEN_XRES - 1) next.x = SCREEN_XRES - 1;
+		if (next.y > SCREEN_YRES - 1) next.y = SCREEN_YRES - 1;
+	}
+
 	return next;
 }
 
