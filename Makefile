@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx
 
 
 build:
@@ -107,3 +107,6 @@ psx-slipways-input-test-pcsx:
 
 psx-slipways-screenshot-pcsx:
 	sh tools/capture_psx_screenshot_pcsx.sh psx-slipways/build/slipways.cue tools/.verify-snaps/psx-slipways-boot.png 1800
+
+psx-slipways-fps-test-pcsx:
+	sh tools/boot_test_psx_slipways_pcsx_fps.sh

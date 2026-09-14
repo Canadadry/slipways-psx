@@ -56,11 +56,21 @@ int main(int argc, const char *argv[]) {
 	static volatile int test_harness_ready = 0;
 	test_harness_ready = 0x1eadbeef;
 
+	/* Test-support plumbing for tools/gen_pcsx_slipways_fps_test_lua.py
+	 * (docs/prd/triage/psx-galaxy-rendering.md's FPS harness) -- not
+	 * business logic, not observable gameplay. Incremented via a real
+	 * store every loop iteration (not just initialized once), so it can't
+	 * fall to the same dead-store --gc-sections pitfall test_harness_ready
+	 * above was already fixed for (see docs/psx-hello-world.md). */
+	static volatile uint32_t g_frame_count = 0;
+
 	for (;;) {
 		game_update();
 		game_draw();
 
 		display(&ctx);
+
+		g_frame_count++;
 	}
 
 	return 0;
