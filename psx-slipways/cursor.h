@@ -15,12 +15,20 @@ typedef struct {
 	int click_pressed;  /* edge: Circle press this frame, mouse_mode on */
 	int click_held;     /* level: Circle currently held, mouse_mode on */
 	int click_released; /* edge: Circle release this frame, mouse_mode on */
+	int click_flash_frames; /* countdown, click-acknowledgment visual only --
+	                          * zero game-logic, see PRD */
 } cursor_state_t;
 
 /* Per-frame D-pad movement step, pixels/frame. Matches psx-hello/main.c's
  * own CURSOR_SPEED -- a v1 UX/tuning choice, not a slipways-mechanics.md
  * traceable game-design constant (see PRD). */
 #define CURSOR_STEP 2
+
+/* Click-acknowledgment flash duration, frames. Matches psx-hello/main.c's
+ * own CLICK_FLASH_FRAMES exactly -- a reused, already-screenshot-verified
+ * v1 UX-tuning value, not a slipways-mechanics.md traceable game-design
+ * constant (see PRD). */
+#define CLICK_FLASH_FRAMES 15
 
 /* Pure core: no statics, no I/O, zero PSX headers. Same active-low raw
  * bitmask convention input.h already established (0 = pressed).
@@ -41,7 +49,25 @@ typedef struct {
  * current Circle level, click_released is the Circle release edge. All
  * three are forced to 0 whenever mouse_mode ends up off that frame --
  * including the exact frame mode is toggled off mid-hold, which does not
- * synthesize a click_released for the interrupted hold. */
+ * synthesize a click_released for the interrupted hold.
+ *
+ * click_flash_frames is a pure rendering-countdown mirroring
+ * psx-hello/main.c's proven click_flash mechanism exactly: a fresh
+ * click_pressed this frame unconditionally (re-)sets it to
+ * CLICK_FLASH_FRAMES -- even if a previous flash was still counting down,
+ * a re-press restarts the flash rather than accumulating or being ignored
+ * -- otherwise, while nonzero, it decrements by 1 per frame, reaching and
+ * staying at 0 until the next press. Like the three click-event fields
+ * above, it is forced to 0 whenever mouse_mode ends up off that frame
+ * (including the exact frame mode is toggled off mid-flash): the flash is
+ * purely a click acknowledgment, and mouse_mode off means the cursor tile
+ * itself isn't drawn at all, so a countdown ticking on in the dark (or
+ * jumping back in already-decremented once mode returns) would be
+ * observable state with no visible referent -- forcing it to 0 alongside
+ * the click-event fields it visually represents keeps one single gating
+ * rule for everything this module forces off when the cursor goes
+ * inactive, rather than a second, subtly different rule just for the
+ * countdown. */
 cursor_state_t cursor_step(cursor_state_t prev_state,
                             uint16_t prev_buttons,
                             uint16_t buttons);

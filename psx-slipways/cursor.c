@@ -15,6 +15,7 @@ int g_cursor_y = SCREEN_YRES / 2;
 int g_cursor_click_pressed = 0;
 int g_cursor_click_held = 0;
 int g_cursor_click_released = 0;
+int g_cursor_click_flash_frames = 0;
 uint16_t g_cursor_prev_buttons = 0xffff;
 
 cursor_state_t cursor_step(cursor_state_t prev_state,
@@ -51,10 +52,17 @@ cursor_state_t cursor_step(cursor_state_t prev_state,
 
 		uint16_t released_circle = buttons & (uint16_t) (~prev_buttons) & CURSOR_PAD_CIRCLE;
 		next.click_released = released_circle != 0;
+
+		if (next.click_pressed) {
+			next.click_flash_frames = CLICK_FLASH_FRAMES;
+		} else if (next.click_flash_frames > 0) {
+			next.click_flash_frames--;
+		}
 	} else {
 		next.click_pressed = 0;
 		next.click_held = 0;
 		next.click_released = 0;
+		next.click_flash_frames = 0;
 	}
 
 	return next;
@@ -67,6 +75,7 @@ void cursor_init(void) {
 	g_cursor_click_pressed = 0;
 	g_cursor_click_held = 0;
 	g_cursor_click_released = 0;
+	g_cursor_click_flash_frames = 0;
 	g_cursor_prev_buttons = 0xffff;
 }
 
@@ -78,6 +87,7 @@ void cursor_update(uint16_t buttons) {
 	prev.click_pressed = g_cursor_click_pressed;
 	prev.click_held = g_cursor_click_held;
 	prev.click_released = g_cursor_click_released;
+	prev.click_flash_frames = g_cursor_click_flash_frames;
 
 	cursor_state_t next = cursor_step(prev, g_cursor_prev_buttons, buttons);
 
@@ -87,6 +97,7 @@ void cursor_update(uint16_t buttons) {
 	g_cursor_click_pressed = next.click_pressed;
 	g_cursor_click_held = next.click_held;
 	g_cursor_click_released = next.click_released;
+	g_cursor_click_flash_frames = next.click_flash_frames;
 	g_cursor_prev_buttons = buttons;
 }
 
@@ -98,5 +109,6 @@ cursor_state_t cursor_get_state(void) {
 	state.click_pressed = g_cursor_click_pressed;
 	state.click_held = g_cursor_click_held;
 	state.click_released = g_cursor_click_released;
+	state.click_flash_frames = g_cursor_click_flash_frames;
 	return state;
 }

@@ -360,6 +360,122 @@ static void test_cross_toggle_does_not_affect_click_fields_when_circle_idle(void
 	T_CHECK(next.click_released == 0);
 }
 
+static void test_circle_press_sets_click_flash_to_full_duration(void) {
+	cursor_state_t prev = { 1, SCREEN_XRES / 2, SCREEN_YRES / 2, 0, 0, 0, 0 };
+	uint16_t prev_buttons = 0xffff;
+	uint16_t buttons = (uint16_t) ~TEST_PAD_CIRCLE;
+
+	cursor_state_t next = cursor_step(prev, prev_buttons, buttons);
+
+	T_CHECK(next.click_flash_frames == CLICK_FLASH_FRAMES);
+}
+
+static void test_click_flash_frames_counts_down_by_one_per_step(void) {
+	cursor_state_t state = { 1, SCREEN_XRES / 2, SCREEN_YRES / 2, 0, 0, 0, 0 };
+	uint16_t prev_buttons = 0xffff;
+	uint16_t press = (uint16_t) ~TEST_PAD_CIRCLE;
+
+	state = cursor_step(state, prev_buttons, press);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES);
+
+	/* Release Circle; flash keeps counting down on subsequent frames even
+	 * though the click itself is over. */
+	state = cursor_step(state, press, 0xffff);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES - 1);
+
+	state = cursor_step(state, 0xffff, 0xffff);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES - 2);
+}
+
+static void test_click_flash_frames_reaches_and_stays_at_zero(void) {
+	cursor_state_t state = { 1, SCREEN_XRES / 2, SCREEN_YRES / 2, 0, 0, 0, 0 };
+	uint16_t prev_buttons = 0xffff;
+	uint16_t press = (uint16_t) ~TEST_PAD_CIRCLE;
+
+	state = cursor_step(state, prev_buttons, press);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES);
+
+	uint16_t buttons = press;
+	prev_buttons = press;
+	for (int i = 0; i < CLICK_FLASH_FRAMES; i++) {
+		state = cursor_step(state, prev_buttons, buttons);
+	}
+	T_CHECK(state.click_flash_frames == 0);
+
+	/* Further frames with no new press must not go negative. */
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.click_flash_frames == 0);
+
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.click_flash_frames == 0);
+}
+
+static void test_repress_while_flashing_restarts_flash_to_full_duration(void) {
+	cursor_state_t state = { 1, SCREEN_XRES / 2, SCREEN_YRES / 2, 0, 0, 0, 0 };
+	uint16_t prev_buttons = 0xffff;
+	uint16_t press = (uint16_t) ~TEST_PAD_CIRCLE;
+
+	/* Press, then let it count down partway. */
+	state = cursor_step(state, prev_buttons, press);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES);
+
+	state = cursor_step(state, press, 0xffff); /* release */
+	state = cursor_step(state, 0xffff, 0xffff);
+	state = cursor_step(state, 0xffff, 0xffff);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES - 3);
+
+	/* Re-press while still flashing (nonzero): must reset to the full
+	 * constant, not add to or ignore the remainder. */
+	state = cursor_step(state, 0xffff, press);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES);
+}
+
+static void test_toggling_mode_off_mid_flash_zeroes_click_flash_frames(void) {
+	/* Turn mode on, press Circle: flash starts at full duration. */
+	cursor_state_t state = { 0, SCREEN_XRES / 2, SCREEN_YRES / 2, 0, 0, 0, 0 };
+	uint16_t prev_buttons = 0xffff;
+	uint16_t buttons = (uint16_t) ~TEST_PAD_CROSS;
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.mouse_mode == 1);
+
+	prev_buttons = buttons; /* Cross released this frame, Circle newly pressed */
+	buttons = (uint16_t) ~TEST_PAD_CIRCLE;
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES);
+
+	/* Let it count down partway while still flashing. */
+	prev_buttons = buttons;
+	buttons = 0xffff; /* Circle released */
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.click_flash_frames == CLICK_FLASH_FRAMES - 1);
+
+	/* Toggle mode off (Cross press-edge) mid-flash: click_flash_frames must
+	 * be forced to 0 that same frame, matching the click-event fields'
+	 * gating -- the cursor tile itself isn't drawn while mode is off, so a
+	 * countdown with no visible referent would be observable state nothing
+	 * can see. */
+	prev_buttons = buttons;
+	buttons = (uint16_t) ~TEST_PAD_CROSS;
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.mouse_mode == 0);
+	T_CHECK(state.click_flash_frames == 0);
+
+	/* Mode stays off on a further frame: still 0, not resumed. */
+	prev_buttons = buttons;
+	buttons = 0xffff;
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.mouse_mode == 0);
+	T_CHECK(state.click_flash_frames == 0);
+
+	/* Toggling back on (Cross press-edge), Circle untouched: the flash does
+	 * not resume from where it left off -- it stays 0 until a fresh press. */
+	prev_buttons = buttons;
+	buttons = (uint16_t) ~TEST_PAD_CROSS;
+	state = cursor_step(state, prev_buttons, buttons);
+	T_CHECK(state.mouse_mode == 1);
+	T_CHECK(state.click_flash_frames == 0);
+}
+
 static void test_update_get_state_round_trip_matches_step(void) {
 	cursor_init();
 
@@ -397,8 +513,10 @@ static void test_update_get_state_round_trip_matches_step(void) {
 	T_CHECK(got.click_pressed == expected.click_pressed);
 	T_CHECK(got.click_held == expected.click_held);
 	T_CHECK(got.click_released == expected.click_released);
+	T_CHECK(got.click_flash_frames == expected.click_flash_frames);
 	T_CHECK(got.click_pressed == 1);
 	T_CHECK(got.click_held == 1);
+	T_CHECK(got.click_flash_frames == CLICK_FLASH_FRAMES);
 }
 
 int main(void) {
@@ -427,6 +545,11 @@ int main(void) {
 	t_run("toggling_mode_off_mid_hold_zeroes_click_state", test_toggling_mode_off_mid_hold_zeroes_click_state);
 	t_run("click_fields_independent_of_dpad_and_cross", test_click_fields_independent_of_dpad_and_cross);
 	t_run("cross_toggle_does_not_affect_click_fields_when_circle_idle", test_cross_toggle_does_not_affect_click_fields_when_circle_idle);
+	t_run("circle_press_sets_click_flash_to_full_duration", test_circle_press_sets_click_flash_to_full_duration);
+	t_run("click_flash_frames_counts_down_by_one_per_step", test_click_flash_frames_counts_down_by_one_per_step);
+	t_run("click_flash_frames_reaches_and_stays_at_zero", test_click_flash_frames_reaches_and_stays_at_zero);
+	t_run("repress_while_flashing_restarts_flash_to_full_duration", test_repress_while_flashing_restarts_flash_to_full_duration);
+	t_run("toggling_mode_off_mid_flash_zeroes_click_flash_frames", test_toggling_mode_off_mid_flash_zeroes_click_flash_frames);
 	t_run("update_get_state_round_trip_matches_step", test_update_get_state_round_trip_matches_step);
 	return t_report();
 }
