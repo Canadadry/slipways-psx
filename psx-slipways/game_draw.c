@@ -2,6 +2,7 @@
 
 #include <psxgpu.h>
 
+#include "cursor.h"
 #include "screen_map.h"
 #include "world.h"
 
@@ -15,6 +16,12 @@
  * GAME_DRAW_PLANET_TILE_SIZE tile dots, not traced art (see docs/prd/
  * triage/psx-galaxy-rendering.md). */
 #define GAME_DRAW_WORMHOLE_HALF_SIZE 6
+
+/* Arbitrary size for the mouse-mode cursor marker -- a v1 UX/rendering
+ * choice, not traced art (see docs/prd/triage/psx-mouse-mode-cursor.md's
+ * "Rendering the cursor" decision). Only needs to be small and visually
+ * distinct from GAME_DRAW_PLANET_TILE_SIZE; doesn't need to match it. */
+#define GAME_DRAW_CURSOR_TILE_SIZE 6
 
 void game_draw(void) {
 	const slipway_edge_t *slipway_edges;
@@ -86,5 +93,25 @@ void game_draw(void) {
 		setRGB0(&line, 64, 128, 255); /* arbitrary placeholder color, distinct from planet tiles and wormhole */
 
 		DrawPrim(&line);
+	}
+
+	/* Chunk 3 (psx-mouse-mode-cursor): mouse-mode cursor marker, gated on
+	 * cursor_get_state().mouse_mode so it's invisible until the player
+	 * toggles it on with Cross. Mirrors the planet TILE code above exactly
+	 * (setTile/setXY0/setWH/setRGB0/DrawPrim, centered on the coordinate
+	 * via a half-size offset), per the PRD's "Rendering the cursor"
+	 * decision. Plain white, distinct from the planet (green), wormhole
+	 * (orange), and slipway (blue) placeholder colors above. */
+	{
+		cursor_state_t cursor = cursor_get_state();
+		if (cursor.mouse_mode) {
+			TILE tile;
+			setTile(&tile);
+			setXY0(&tile, cursor.x - GAME_DRAW_CURSOR_TILE_SIZE / 2, cursor.y - GAME_DRAW_CURSOR_TILE_SIZE / 2);
+			setWH(&tile, GAME_DRAW_CURSOR_TILE_SIZE, GAME_DRAW_CURSOR_TILE_SIZE);
+			setRGB0(&tile, 255, 255, 255); /* plain white, distinct from planet/wormhole/slipway colors */
+
+			DrawPrim(&tile);
+		}
 	}
 }
