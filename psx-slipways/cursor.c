@@ -2,15 +2,19 @@
 
 #include "screen.h"
 
-#define CURSOR_PAD_CROSS (1 << 14)
-#define CURSOR_PAD_UP    (1 << 4)
-#define CURSOR_PAD_RIGHT (1 << 5)
-#define CURSOR_PAD_DOWN  (1 << 6)
-#define CURSOR_PAD_LEFT  (1 << 7)
+#define CURSOR_PAD_CROSS  (1 << 14)
+#define CURSOR_PAD_CIRCLE (1 << 13)
+#define CURSOR_PAD_UP     (1 << 4)
+#define CURSOR_PAD_RIGHT  (1 << 5)
+#define CURSOR_PAD_DOWN   (1 << 6)
+#define CURSOR_PAD_LEFT   (1 << 7)
 
 int g_cursor_mouse_mode = 0;
 int g_cursor_x = SCREEN_XRES / 2;
 int g_cursor_y = SCREEN_YRES / 2;
+int g_cursor_click_pressed = 0;
+int g_cursor_click_held = 0;
+int g_cursor_click_released = 0;
 uint16_t g_cursor_prev_buttons = 0xffff;
 
 cursor_state_t cursor_step(cursor_state_t prev_state,
@@ -40,6 +44,17 @@ cursor_state_t cursor_step(cursor_state_t prev_state,
 		if (next.y < 0) next.y = 0;
 		if (next.x > SCREEN_XRES - 1) next.x = SCREEN_XRES - 1;
 		if (next.y > SCREEN_YRES - 1) next.y = SCREEN_YRES - 1;
+
+		uint16_t pressed_circle = (uint16_t) (~buttons) & prev_buttons & CURSOR_PAD_CIRCLE;
+		next.click_pressed = pressed_circle != 0;
+		next.click_held = !(buttons & CURSOR_PAD_CIRCLE);
+
+		uint16_t released_circle = buttons & (uint16_t) (~prev_buttons) & CURSOR_PAD_CIRCLE;
+		next.click_released = released_circle != 0;
+	} else {
+		next.click_pressed = 0;
+		next.click_held = 0;
+		next.click_released = 0;
 	}
 
 	return next;
@@ -49,6 +64,9 @@ void cursor_init(void) {
 	g_cursor_mouse_mode = 0;
 	g_cursor_x = SCREEN_XRES / 2;
 	g_cursor_y = SCREEN_YRES / 2;
+	g_cursor_click_pressed = 0;
+	g_cursor_click_held = 0;
+	g_cursor_click_released = 0;
 	g_cursor_prev_buttons = 0xffff;
 }
 
@@ -57,12 +75,18 @@ void cursor_update(uint16_t buttons) {
 	prev.mouse_mode = g_cursor_mouse_mode;
 	prev.x = g_cursor_x;
 	prev.y = g_cursor_y;
+	prev.click_pressed = g_cursor_click_pressed;
+	prev.click_held = g_cursor_click_held;
+	prev.click_released = g_cursor_click_released;
 
 	cursor_state_t next = cursor_step(prev, g_cursor_prev_buttons, buttons);
 
 	g_cursor_mouse_mode = next.mouse_mode;
 	g_cursor_x = next.x;
 	g_cursor_y = next.y;
+	g_cursor_click_pressed = next.click_pressed;
+	g_cursor_click_held = next.click_held;
+	g_cursor_click_released = next.click_released;
 	g_cursor_prev_buttons = buttons;
 }
 
@@ -71,5 +95,8 @@ cursor_state_t cursor_get_state(void) {
 	state.mouse_mode = g_cursor_mouse_mode;
 	state.x = g_cursor_x;
 	state.y = g_cursor_y;
+	state.click_pressed = g_cursor_click_pressed;
+	state.click_held = g_cursor_click_held;
+	state.click_released = g_cursor_click_released;
 	return state;
 }
