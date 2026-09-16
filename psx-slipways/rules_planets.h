@@ -3,6 +3,8 @@
 
 #include "fixed.h"
 
+#include <stdbool.h>
+
 /* Only the 7 resources this step's 5-job subset actually touches, plus a
  * RESOURCE_NONE sentinel (used for "no default need"). See
  * docs/prd/triage/psx-rules-planets.md, Implementation Decisions / Data
@@ -86,5 +88,14 @@ typedef struct {
  * mirrors world_get_galaxy()'s simplicity, no elaborate error handling. */
 const planet_type_t *rules_planets_type(planet_type_id_t id);
 const colonization_job_t *rules_planets_job(colonization_job_id_t id);
+
+/* Generic production-by-level curve lookup, traced to hc (pico8/lua.lua,
+ * unstash 8383) and hp:po()'s curve-selection logic. level < 1 returns 0
+ * (an unfounded colony produces nothing, per design doc SS9 point 1); level
+ * is otherwise clamped to [1,4], the only traced levels. When upgraded is
+ * true and curve is CURVE_MINUS, looks up CURVE_PLUS's table instead (the
+ * mc upgrade mapping) -- CURVE_PLUS has no upgrade target in this subset,
+ * so upgraded has no effect when curve is already CURVE_PLUS. */
+int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
 
 #endif

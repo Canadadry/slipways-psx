@@ -89,6 +89,48 @@ static void test_agroworld_job_matches_traced_values(void) {
     T_CHECK(j->default_need == RESOURCE_ORGANICS);
 }
 
+static void test_curve_minus_levels_1_to_4_match_traced_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 1, false) == 1);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 2, false) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 3, false) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 4, false) == 3);
+}
+
+static void test_curve_plus_levels_1_to_4_match_traced_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 1, false) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 2, false) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 3, false) == 4);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 4, false) == 4);
+}
+
+static void test_curve_value_level_below_1_returns_0(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 0, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, -1, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 0, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, -5, false) == 0);
+}
+
+static void test_curve_minus_upgraded_returns_curve_plus_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 1, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 2, true) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 3, true) == 4);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 4, true) == 4);
+}
+
+static void test_curve_plus_upgraded_is_a_no_op(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 1, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 2, true) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 3, true) == 4);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 4, true) == 4);
+}
+
+static void test_curve_value_level_above_4_clamps_to_level_4(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 5, false) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 100, false) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_PLUS, 5, false) == 4);
+    T_CHECK(rules_planets_curve_value(CURVE_MINUS, 5, true) == 4);
+}
+
 static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
@@ -112,5 +154,11 @@ int main(void) {
     t_run("bots_job_matches_traced_values", test_bots_job_matches_traced_values);
     t_run("agroworld_job_matches_traced_values", test_agroworld_job_matches_traced_values);
     t_run("hiveworld_job_matches_traced_values", test_hiveworld_job_matches_traced_values);
+    t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
+    t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
+    t_run("curve_value_level_below_1_returns_0", test_curve_value_level_below_1_returns_0);
+    t_run("curve_minus_upgraded_returns_curve_plus_values", test_curve_minus_upgraded_returns_curve_plus_values);
+    t_run("curve_plus_upgraded_is_a_no_op", test_curve_plus_upgraded_is_a_no_op);
+    t_run("curve_value_level_above_4_clamps_to_level_4", test_curve_value_level_above_4_clamps_to_level_4);
     return t_report();
 }

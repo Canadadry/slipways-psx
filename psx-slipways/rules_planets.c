@@ -80,3 +80,25 @@ const planet_type_t *rules_planets_type(planet_type_id_t id) {
 const colonization_job_t *rules_planets_job(colonization_job_id_t id) {
     return &g_jobs[id];
 }
+
+/* Per-level production tables traced to hc (pico8/lua.lua, unstash 8383).
+ * Index 0..3 represents levels 1..4. */
+static const int g_curve_minus[4] = { 1, 2, 3, 3 };
+static const int g_curve_plus[4] = { 2, 3, 4, 4 };
+
+int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
+    if (level < 1) {
+        return 0;
+    }
+    if (level > 4) {
+        level = 4;
+    }
+
+    curve_id_t effective_curve = curve;
+    if (upgraded && curve == CURVE_MINUS) {
+        effective_curve = CURVE_PLUS;
+    }
+
+    const int *table = (effective_curve == CURVE_MINUS) ? g_curve_minus : g_curve_plus;
+    return table[level - 1];
+}
