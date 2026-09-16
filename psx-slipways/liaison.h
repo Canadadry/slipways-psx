@@ -146,4 +146,23 @@ liaison_drag_state_t liaison_drag_step(liaison_drag_state_t prev,
                                         const galaxy_t *galaxy,
                                         const liaison_route_t *routes, int route_count);
 
+/* Route-list capacity: the upper end of docs/plan.md's own stated 40-60-
+ * simultaneous-slipway feasibility band (see
+ * docs/prd/triage/psx-liaison-validity.md, "Never persist a committed
+ * route"). Deliberately distinct from world.h's MAX_SYNTHETIC_SLIPWAYS,
+ * which belongs to a module explicitly forbidden from growing into real
+ * logic. */
+#define LIAISON_MAX_ROUTES 60
+
+/* Stateful wrapper, mirroring cursor_init/cursor_update/cursor_get_state's
+ * flat-statics convention exactly (see docs/prd/triage/psx-liaison-
+ * validity.md, "Stateful wrapper"). liaison_update calls world_get_galaxy()
+ * internally and threads the module's own static, currently-always-empty
+ * route list (g_liaison_routes/g_liaison_route_count) -- this chunk never
+ * writes into that list, it only reads it (permanently empty) as
+ * liaison_drag_step's routes[] argument. */
+void liaison_init(void);
+void liaison_update(cursor_state_t cursor);
+liaison_drag_state_t liaison_get_state(void);
+
 #endif

@@ -3,6 +3,32 @@
 #include <stddef.h>
 
 #include "screen_map.h"
+#include "world.h"
+
+/* Flat top-level (non-static) globals, one scalar per liaison_drag_state_t
+ * field (nested liaison_result_t structs flattened too), mirroring
+ * cursor.c's g_cursor_* convention exactly -- so a future PCSX-Redux Lua
+ * harness can address each field independently by symbol name in guest RAM
+ * (see docs/prd/triage/psx-liaison-validity.md, "Stateful wrapper"). Never
+ * written outside liaison_init/liaison_update. */
+int g_liaison_dragging = 0;
+int g_liaison_from_index = -1;
+int g_liaison_hover_index = -1;
+liaison_reason_t g_liaison_live_reason = LIAISON_VALID;
+int g_liaison_live_blocking_planet = -1;
+int g_liaison_live_blocking_route = -1;
+liaison_reason_t g_liaison_last_reason = LIAISON_VALID;
+int g_liaison_last_blocking_planet = -1;
+int g_liaison_last_blocking_route = -1;
+int g_liaison_last_valid_frames = 0;
+
+/* Always-empty route list -- see liaison.h's LIAISON_MAX_ROUTES comment and
+ * the PRD's "Never persist a committed route" guardrail. Nothing in this
+ * chunk ever writes g_liaison_route_count above 0 or populates
+ * g_liaison_routes; a future colonization step (Phase 3 step 10) is the
+ * first to start writing into it. */
+liaison_route_t g_liaison_routes[LIAISON_MAX_ROUTES];
+int g_liaison_route_count = 0;
 
 /* Q16.16 throughout, int64_t intermediates wherever a product could
  * overflow int32_t -- same overflow-safety idiom as screen_map.c's
@@ -245,4 +271,74 @@ liaison_drag_state_t liaison_drag_step(liaison_drag_state_t prev,
     }
 
     return liaison_idle_state(prev);
+}
+
+/* Resets every flat global to the idle state liaison_idle_state()'s own
+ * scalars establish (dragging 0, from_index/hover_index -1, live/last
+ * neutral {LIAISON_VALID,-1,-1}, last_valid_frames 0), and empties the route
+ * list -- mirrors cursor_init()'s exact shape. */
+void liaison_init(void) {
+    g_liaison_dragging = 0;
+    g_liaison_from_index = -1;
+    g_liaison_hover_index = -1;
+    g_liaison_live_reason = LIAISON_VALID;
+    g_liaison_live_blocking_planet = -1;
+    g_liaison_live_blocking_route = -1;
+    g_liaison_last_reason = LIAISON_VALID;
+    g_liaison_last_blocking_planet = -1;
+    g_liaison_last_blocking_route = -1;
+    g_liaison_last_valid_frames = 0;
+
+    g_liaison_route_count = 0;
+}
+
+/* Reads the flat globals into a local liaison_drag_state_t, calls
+ * world_get_galaxy() and liaison_drag_step(), then writes the result back
+ * out into the flat globals -- mirrors cursor_update()'s exact
+ * read-into-struct / call-pure-function / write-back-out shape. */
+void liaison_update(cursor_state_t cursor) {
+    liaison_drag_state_t prev;
+    prev.dragging = g_liaison_dragging;
+    prev.from_index = g_liaison_from_index;
+    prev.hover_index = g_liaison_hover_index;
+    prev.live.reason = g_liaison_live_reason;
+    prev.live.blocking_planet = g_liaison_live_blocking_planet;
+    prev.live.blocking_route = g_liaison_live_blocking_route;
+    prev.last.reason = g_liaison_last_reason;
+    prev.last.blocking_planet = g_liaison_last_blocking_planet;
+    prev.last.blocking_route = g_liaison_last_blocking_route;
+    prev.last_valid_frames = g_liaison_last_valid_frames;
+
+    const galaxy_t *galaxy = world_get_galaxy();
+
+    liaison_drag_state_t next = liaison_drag_step(prev, cursor, galaxy,
+                                                    g_liaison_routes, g_liaison_route_count);
+
+    g_liaison_dragging = next.dragging;
+    g_liaison_from_index = next.from_index;
+    g_liaison_hover_index = next.hover_index;
+    g_liaison_live_reason = next.live.reason;
+    g_liaison_live_blocking_planet = next.live.blocking_planet;
+    g_liaison_live_blocking_route = next.live.blocking_route;
+    g_liaison_last_reason = next.last.reason;
+    g_liaison_last_blocking_planet = next.last.blocking_planet;
+    g_liaison_last_blocking_route = next.last.blocking_route;
+    g_liaison_last_valid_frames = next.last_valid_frames;
+}
+
+/* Assembles and returns a liaison_drag_state_t from the current flat
+ * globals -- mirrors cursor_get_state() exactly. */
+liaison_drag_state_t liaison_get_state(void) {
+    liaison_drag_state_t state;
+    state.dragging = g_liaison_dragging;
+    state.from_index = g_liaison_from_index;
+    state.hover_index = g_liaison_hover_index;
+    state.live.reason = g_liaison_live_reason;
+    state.live.blocking_planet = g_liaison_live_blocking_planet;
+    state.live.blocking_route = g_liaison_live_blocking_route;
+    state.last.reason = g_liaison_last_reason;
+    state.last.blocking_planet = g_liaison_last_blocking_planet;
+    state.last.blocking_route = g_liaison_last_blocking_route;
+    state.last_valid_frames = g_liaison_last_valid_frames;
+    return state;
 }

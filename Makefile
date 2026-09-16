@@ -82,13 +82,19 @@ test-rules-planets:
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_PLANETS_HOST_BUILD_DIR)/rules_planets_test $(RULES_PLANETS_TEST_HOST_SRCS) -lm
 	$(RULES_PLANETS_HOST_BUILD_DIR)/rules_planets_test
 
-# Host-native test for liaison.c (chunk 1: section-5 geometry core), same
-# shape/output dir as test-planetgen/test-galaxy-render/test-cursor/
+# Host-native test for liaison.c (chunk 1: section-5 geometry core; chunk 4
+# adds the stateful wrapper, which calls world_init()/world_get_galaxy(), so
+# this now needs the same WORLD_TEST_HOST_SRCS transitive set), same shape/
+# output dir as test-planetgen/test-galaxy-render/test-cursor/
 # test-rules-planets above.
 LIAISON_HOST_BUILD_DIR = psx-slipways/build-host
 RULES_LIAISON_TEST_HOST_SRCS = \
 	psx-slipways/liaison.c \
 	psx-slipways/screen_map.c \
+	psx-slipways/rng.c \
+	psx-slipways/planetgen.c \
+	psx-slipways/slipway_bench.c \
+	psx-slipways/world.c \
 	psx-slipways/host_tests/liaison_test.c
 
 test-liaison:

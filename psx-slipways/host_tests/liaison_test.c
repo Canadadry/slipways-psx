@@ -6,6 +6,7 @@
 #include "../planetgen.h"
 #include "../screen.h"
 #include "../screen_map.h"
+#include "../world.h"
 
 static planet_pos_t pos(double x, double y) {
     planet_pos_t p;
@@ -471,6 +472,84 @@ static void test_interrupted_hold_cancels_without_touching_last(void) {
     T_CHECK(next.last_valid_frames == prev.last_valid_frames);
 }
 
+/* --- liaison_init/liaison_update/liaison_get_state (chunk 4): stateful
+ * wrapper round trip against the real world_get_galaxy(), mirroring
+ * cursor_test.c's test_update_get_state_round_trip_matches_step exactly.
+ * world_init() is deterministic (fixed WORLD_RNG_SEED), but this test
+ * compares the wrapper's path against a direct liaison_drag_step call
+ * using the SAME real galaxy pointer, rather than hardcoding any generated
+ * planet position, per the PRD's explicit preference. --- */
+
+static void assert_state_eq(liaison_drag_state_t got, liaison_drag_state_t expected) {
+    T_CHECK(got.dragging == expected.dragging);
+    T_CHECK(got.from_index == expected.from_index);
+    T_CHECK(got.hover_index == expected.hover_index);
+    T_CHECK(got.live.reason == expected.live.reason);
+    T_CHECK(got.live.blocking_planet == expected.live.blocking_planet);
+    T_CHECK(got.live.blocking_route == expected.live.blocking_route);
+    T_CHECK(got.last.reason == expected.last.reason);
+    T_CHECK(got.last.blocking_planet == expected.last.blocking_planet);
+    T_CHECK(got.last.blocking_route == expected.last.blocking_route);
+    T_CHECK(got.last_valid_frames == expected.last_valid_frames);
+}
+
+static void test_update_get_state_round_trip_matches_drag_step(void) {
+    world_init();
+    liaison_init();
+
+    const galaxy_t *galaxy = world_get_galaxy();
+
+    /* Frame 1: press on planet 0. */
+    int fx, fy;
+    screen_map_planet(galaxy->positions[0], &fx, &fy);
+    cursor_state_t press = idle_cursor(fx, fy);
+    press.click_pressed = 1;
+
+    liaison_drag_state_t expected = idle_drag_state();
+    expected = liaison_drag_step(expected, press, galaxy, NULL, 0);
+
+    liaison_update(press);
+    liaison_drag_state_t got = liaison_get_state();
+
+    assert_state_eq(got, expected);
+    T_CHECK(got.dragging == 1);
+    T_CHECK(got.from_index == 0);
+
+    /* Frame 2: held, target planet 1. */
+    int tx, ty;
+    screen_map_planet(galaxy->positions[1], &tx, &ty);
+    cursor_state_t held = idle_cursor(tx, ty);
+    held.click_held = 1;
+
+    expected = liaison_drag_step(expected, held, galaxy, NULL, 0);
+    liaison_update(held);
+    got = liaison_get_state();
+
+    assert_state_eq(got, expected);
+
+    /* Frame 3: released. */
+    cursor_state_t released = idle_cursor(tx, ty);
+    released.click_released = 1;
+
+    expected = liaison_drag_step(expected, released, galaxy, NULL, 0);
+    liaison_update(released);
+    got = liaison_get_state();
+
+    assert_state_eq(got, expected);
+    T_CHECK(got.dragging == 0);
+    T_CHECK(got.last_valid_frames == LIAISON_LAST_VALID_FRAMES);
+}
+
+static void test_init_resets_to_idle_state(void) {
+    world_init();
+    liaison_init();
+
+    liaison_drag_state_t got = liaison_get_state();
+    liaison_drag_state_t expected = idle_drag_state();
+
+    assert_state_eq(got, expected);
+}
+
 int main(void) {
     t_run("point_at_segment_midpoint_within_tolerance_blocks", test_point_at_segment_midpoint_within_tolerance_blocks);
     t_run("point_far_from_segment_does_not_block", test_point_far_from_segment_does_not_block);
@@ -495,5 +574,7 @@ int main(void) {
     t_run("release_finalizes_last_and_clears_dragging", test_release_finalizes_last_and_clears_dragging);
     t_run("release_never_mutates_routes_array", test_release_never_mutates_routes_array);
     t_run("interrupted_hold_cancels_without_touching_last", test_interrupted_hold_cancels_without_touching_last);
+    t_run("init_resets_to_idle_state", test_init_resets_to_idle_state);
+    t_run("update_get_state_round_trip_matches_drag_step", test_update_get_state_round_trip_matches_drag_step);
     return t_report();
 }
