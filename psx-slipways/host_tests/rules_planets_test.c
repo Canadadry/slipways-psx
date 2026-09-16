@@ -145,6 +145,34 @@ static void test_hiveworld_job_matches_traced_values(void) {
     T_CHECK(j->default_need == RESOURCE_GOODS);
 }
 
+static void test_mine_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_MINE, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_MINE, true, false) == 5);
+}
+
+static void test_agroworld_job_cost_base_case(void) {
+    T_CHECK(rules_planets_job_cost(JOB_AGROWORLD, false, false) == 5);
+}
+
+static void test_agroworld_job_cost_tech_researched_only(void) {
+    /* 5 * 1.5 = 7.5, floored -> 7. */
+    T_CHECK(rules_planets_job_cost(JOB_AGROWORLD, true, false) == 7);
+}
+
+static void test_agroworld_job_cost_nanomaterials_researched_only(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_AGROWORLD, false, true) == 4);
+}
+
+static void test_agroworld_job_cost_both_flags_true_floors_once_at_end(void) {
+    /* 5 * 1.5 * 0.85 = 6.375, floored ONCE at the end -> 6. This is the
+     * load-bearing case: flooring after each step instead would give
+     * floor(floor(5*1.5)*0.85) = floor(7*0.85) = floor(5.95) = 5, a
+     * DIFFERENT (wrong) result. This module must compute the whole chain in
+     * fixed-point and truncate only once at the very end, per hp:od(). */
+    T_CHECK(rules_planets_job_cost(JOB_AGROWORLD, true, true) == 6);
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -160,5 +188,10 @@ int main(void) {
     t_run("curve_minus_upgraded_returns_curve_plus_values", test_curve_minus_upgraded_returns_curve_plus_values);
     t_run("curve_plus_upgraded_is_a_no_op", test_curve_plus_upgraded_is_a_no_op);
     t_run("curve_value_level_above_4_clamps_to_level_4", test_curve_value_level_above_4_clamps_to_level_4);
+    t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
+    t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
+    t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
+    t_run("agroworld_job_cost_nanomaterials_researched_only", test_agroworld_job_cost_nanomaterials_researched_only);
+    t_run("agroworld_job_cost_both_flags_true_floors_once_at_end", test_agroworld_job_cost_both_flags_true_floors_once_at_end);
     return t_report();
 }

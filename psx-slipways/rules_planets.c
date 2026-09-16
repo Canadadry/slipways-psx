@@ -102,3 +102,26 @@ int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
     const int *table = (effective_curve == CURVE_MINUS) ? g_curve_minus : g_curve_plus;
     return table[level - 1];
 }
+
+/* hp:od()'s two multipliers, traced to pico8/lua.lua:1426-1433. Q16.16
+ * fixed-point constants, never float/double at runtime. */
+#define RULES_PLANETS_TECH_GATE_MULTIPLIER ((fixed_t)(1.5 * FX_ONE))
+#define RULES_PLANETS_NANOMATERIALS_MULTIPLIER ((fixed_t)(0.85 * FX_ONE))
+
+int rules_planets_job_cost(colonization_job_id_t id, bool job_tech_researched, bool nanomaterials_researched) {
+    const colonization_job_t *job = rules_planets_job(id);
+
+    fixed_t cost = (fixed_t)(job->cost * FX_ONE);
+
+    if (job->tech_gate != NULL && job_tech_researched) {
+        cost = fixed_mul(cost, RULES_PLANETS_TECH_GATE_MULTIPLIER);
+    }
+    if (nanomaterials_researched) {
+        cost = fixed_mul(cost, RULES_PLANETS_NANOMATERIALS_MULTIPLIER);
+    }
+
+    /* Floor to an integer ONCE at the very end -- not after each
+     * multiplication step -- matching PICO-8's own internal Q16.16 number
+     * representation. */
+    return (int)(cost >> 16);
+}

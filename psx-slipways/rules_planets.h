@@ -98,4 +98,13 @@ const colonization_job_t *rules_planets_job(colonization_job_id_t id);
  * so upgraded has no effect when curve is already CURVE_PLUS. */
 int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
 
+/* Job cost formula, ports hp:od() exactly (pico8/lua.lua:1426-1433). Starts
+ * from the job's base cost; if the job has a tech_gate AND
+ * job_tech_researched is true, multiplies by 1.5; if
+ * nanomaterials_researched is true, multiplies by 0.85 (unconditionally).
+ * Computed in Q16.16 fixed-point (chained fixed_mul calls), floored to an
+ * integer ONCE at the very end -- not after each multiplication step --
+ * matching PICO-8's own internal Q16.16 number representation. */
+int rules_planets_job_cost(colonization_job_id_t id, bool job_tech_researched, bool nanomaterials_researched);
+
 #endif
