@@ -2,6 +2,8 @@
 
 #include <stddef.h>
 
+#include "screen_map.h"
+
 /* Q16.16 throughout, int64_t intermediates wherever a product could
  * overflow int32_t -- same overflow-safety idiom as screen_map.c's
  * screen_map_axis and planetgen.c's dist_sq helpers. dx/dy/cax/cay stay
@@ -121,4 +123,36 @@ liaison_result_t liaison_check(int from_index, planet_pos_t from_pos,
 
     /* 5. Otherwise valid. */
     return result;
+}
+
+/* Screen-pixel-space hit test: reuses screen_map_planet (world->screen)
+ * per planet rather than a screen->world inverse (that inverse,
+ * screen_map_unproject, exists for the live validity check's raw-cursor
+ * case, not for picking). Squared pixel distance keeps this integer-only;
+ * "nearest wins" tracks and compares the running minimum rather than
+ * returning the first in-radius planet found. */
+int liaison_pick_planet(int screen_x, int screen_y, const galaxy_t *galaxy, int pick_radius_px) {
+    if (galaxy == NULL) {
+        return -1;
+    }
+
+    int64_t radius_sq = (int64_t)pick_radius_px * (int64_t)pick_radius_px;
+    int best_index = -1;
+    int64_t best_dist_sq = 0;
+
+    for (int i = 0; i < galaxy->count; i++) {
+        int px, py;
+        screen_map_planet(galaxy->positions[i], &px, &py);
+
+        int64_t dx = (int64_t)(px - screen_x);
+        int64_t dy = (int64_t)(py - screen_y);
+        int64_t dist_sq = dx * dx + dy * dy;
+
+        if (dist_sq <= radius_sq && (best_index == -1 || dist_sq < best_dist_sq)) {
+            best_index = i;
+            best_dist_sq = dist_sq;
+        }
+    }
+
+    return best_index;
 }

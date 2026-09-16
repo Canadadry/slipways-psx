@@ -4,6 +4,7 @@
 #include "../fixed.h"
 #include "../liaison.h"
 #include "../planetgen.h"
+#include "../screen_map.h"
 
 static planet_pos_t pos(double x, double y) {
     planet_pos_t p;
@@ -173,6 +174,51 @@ static void test_no_obstruction_reports_valid(void) {
     T_CHECK(r.blocking_route == -1);
 }
 
+static void test_pick_planet_within_radius_returns_its_index(void) {
+    /* Planet 0 sits at the placement domain's low corner, which
+     * screen_map_planet maps exactly to (SCREEN_MAP_MARGIN,
+     * SCREEN_MAP_MARGIN) -- see screen_map_test.c's own
+     * low_corner_maps_to_margin case. Query right on top of it. */
+    galaxy_t g = make_galaxy(1, 0.125, 0.125);
+    int x, y;
+    screen_map_planet(g.positions[0], &x, &y);
+
+    int picked = liaison_pick_planet(x, y, &g, 8);
+
+    T_CHECK(picked == 0);
+}
+
+static void test_pick_planet_outside_radius_returns_negative_one(void) {
+    galaxy_t g = make_galaxy(1, 0.125, 0.125);
+    int x, y;
+    screen_map_planet(g.positions[0], &x, &y);
+
+    /* 50px away in both axes, well outside an 8px pick radius. */
+    int picked = liaison_pick_planet(x + 50, y + 50, &g, 8);
+
+    T_CHECK(picked == -1);
+}
+
+static void test_pick_planet_nearest_wins_when_multiple_in_radius(void) {
+    /* Two planets, both within a generous pick radius of the query point.
+     * Planet 0 (galaxy index 0) is farther from the query point than
+     * planet 1 (galaxy index 1) -- deliberately placing the FARTHER
+     * planet EARLIER in index order, so a buggy "first planet found
+     * in-range" implementation (scanning index order without tracking a
+     * running minimum) would wrongly return index 0 instead of the
+     * genuinely nearer index 1. */
+    galaxy_t g = make_galaxy(2,
+        0.3, 0.125,   /* index 0: farther from the query point below */
+        0.125, 0.125  /* index 1: exactly at the query point */
+    );
+    int qx, qy;
+    screen_map_planet(g.positions[1], &qx, &qy);
+
+    int picked = liaison_pick_planet(qx, qy, &g, 100);
+
+    T_CHECK(picked == 1);
+}
+
 int main(void) {
     t_run("point_at_segment_midpoint_within_tolerance_blocks", test_point_at_segment_midpoint_within_tolerance_blocks);
     t_run("point_far_from_segment_does_not_block", test_point_far_from_segment_does_not_block);
@@ -185,5 +231,8 @@ int main(void) {
     t_run("blocked_by_planet_reports_the_blocking_planet", test_blocked_by_planet_reports_the_blocking_planet);
     t_run("crosses_route_reports_first_crossing_route_in_list_order", test_crosses_route_reports_first_crossing_route_in_list_order);
     t_run("no_obstruction_reports_valid", test_no_obstruction_reports_valid);
+    t_run("pick_planet_within_radius_returns_its_index", test_pick_planet_within_radius_returns_its_index);
+    t_run("pick_planet_outside_radius_returns_negative_one", test_pick_planet_outside_radius_returns_negative_one);
+    t_run("pick_planet_nearest_wins_when_multiple_in_radius", test_pick_planet_nearest_wins_when_multiple_in_radius);
     return t_report();
 }

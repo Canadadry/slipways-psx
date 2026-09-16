@@ -87,4 +87,13 @@ liaison_result_t liaison_check(int from_index, planet_pos_t from_pos,
                                 const galaxy_t *galaxy,
                                 const liaison_route_t *routes, int route_count);
 
+/* Pure hit test, screen-pixel space: reuses screen_map_planet (world->
+ * screen) per planet rather than requiring a screen->world inverse for
+ * picking itself (see docs/prd/triage/psx-liaison-validity.md, "Pure hit
+ * test"). Returns the index of the CLOSEST planet in galaxy whose screen
+ * position is within pick_radius_px pixels of (screen_x, screen_y), or -1
+ * if none qualify. "Nearest wins" when multiple planets are in radius.
+ * galaxy may be NULL (returns -1). */
+int liaison_pick_planet(int screen_x, int screen_y, const galaxy_t *galaxy, int pick_radius_px);
+
 #endif

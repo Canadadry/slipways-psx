@@ -88,6 +88,7 @@ test-rules-planets:
 LIAISON_HOST_BUILD_DIR = psx-slipways/build-host
 RULES_LIAISON_TEST_HOST_SRCS = \
 	psx-slipways/liaison.c \
+	psx-slipways/screen_map.c \
 	psx-slipways/host_tests/liaison_test.c
 
 test-liaison:
