@@ -125,3 +125,17 @@ int rules_planets_job_cost(colonization_job_id_t id, bool job_tech_researched, b
      * representation. */
     return (int)(cost >> 16);
 }
+
+int rules_planets_job_production(colonization_job_id_t id, int level, bool job_tech_researched) {
+    const colonization_job_t *job = rules_planets_job(id);
+
+    /* Same "has a tech_gate and it's researched" condition
+     * rules_planets_job_cost uses for its surcharge -- source gates both
+     * hp:od()'s cost surcharge and hp:po()'s curve upgrade off the exact
+     * same self.il and oj(self.il) check. Written verbatim here rather than
+     * factored into a shared helper with rules_planets_job_cost, since this
+     * chunk must not modify that already-landed function. */
+    bool upgraded = job->tech_gate != NULL && job_tech_researched;
+
+    return rules_planets_curve_value(job->curve, level, upgraded);
+}

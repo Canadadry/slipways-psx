@@ -107,4 +107,13 @@ int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
  * matching PICO-8's own internal Q16.16 number representation. */
 int rules_planets_job_cost(colonization_job_id_t id, bool job_tech_researched, bool nanomaterials_researched);
 
+/* Per-job production wrapper, ports hp:po()'s curve-selection logic
+ * (pico8/lua.lua:1422-1425) exactly: resolves the job's curve_id_t and
+ * whether it's upgraded (its tech_gate is present AND job_tech_researched is
+ * true -- the exact same condition rules_planets_job_cost uses for its
+ * surcharge, since source gates both off self.il and oj(self.il)), then
+ * calls rules_planets_curve_value. level follows that function's clamping
+ * (0 below level 1, clamped at level 4). */
+int rules_planets_job_production(colonization_job_id_t id, int level, bool job_tech_researched);
+
 #endif

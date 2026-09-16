@@ -173,6 +173,59 @@ static void test_agroworld_job_cost_both_flags_true_floors_once_at_end(void) {
     T_CHECK(rules_planets_job_cost(JOB_AGROWORLD, true, true) == 6);
 }
 
+static void test_mine_job_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_MINE, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_MINE, 1, false) == 1);
+    T_CHECK(rules_planets_job_production(JOB_MINE, 2, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_MINE, 3, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_MINE, 4, false) == 3);
+}
+
+static void test_nanotech_job_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_NANOTECH, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_NANOTECH, 1, false) == 1);
+    T_CHECK(rules_planets_job_production(JOB_NANOTECH, 2, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_NANOTECH, 3, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_NANOTECH, 4, false) == 3);
+}
+
+static void test_bots_job_production_matches_curve_plus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_BOTS, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_BOTS, 1, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_BOTS, 2, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_BOTS, 3, false) == 4);
+    T_CHECK(rules_planets_job_production(JOB_BOTS, 4, false) == 4);
+}
+
+static void test_agroworld_job_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 1, false) == 1);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 2, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 3, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 4, false) == 3);
+}
+
+static void test_hiveworld_job_production_matches_curve_plus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_HIVEWORLD, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_HIVEWORLD, 1, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_HIVEWORLD, 2, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_HIVEWORLD, 3, false) == 4);
+    T_CHECK(rules_planets_job_production(JOB_HIVEWORLD, 4, false) == 4);
+}
+
+static void test_agroworld_job_production_switches_to_curve_plus_when_tech_researched(void) {
+    /* The anchor property this chunk exists to prove: agroworld's tech_gate
+     * ("xenofoods") plus job_tech_researched=true must flip its curve from
+     * CURVE_MINUS ({1,2,3,3}) to CURVE_PLUS ({2,3,4,4}) -- the exact same
+     * condition that raises its cost in rules_planets_job_cost, proving the
+     * shared cost/curve gating trigger is actually wired here, not just
+     * documented. */
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 1, true) == 2);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 2, true) == 3);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 3, true) == 4);
+    T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 4, true) == 4);
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -193,5 +246,11 @@ int main(void) {
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
     t_run("agroworld_job_cost_nanomaterials_researched_only", test_agroworld_job_cost_nanomaterials_researched_only);
     t_run("agroworld_job_cost_both_flags_true_floors_once_at_end", test_agroworld_job_cost_both_flags_true_floors_once_at_end);
+    t_run("mine_job_production_matches_curve_minus_unresearched", test_mine_job_production_matches_curve_minus_unresearched);
+    t_run("nanotech_job_production_matches_curve_minus_unresearched", test_nanotech_job_production_matches_curve_minus_unresearched);
+    t_run("bots_job_production_matches_curve_plus_unresearched", test_bots_job_production_matches_curve_plus_unresearched);
+    t_run("agroworld_job_production_matches_curve_minus_unresearched", test_agroworld_job_production_matches_curve_minus_unresearched);
+    t_run("hiveworld_job_production_matches_curve_plus_unresearched", test_hiveworld_job_production_matches_curve_plus_unresearched);
+    t_run("agroworld_job_production_switches_to_curve_plus_when_tech_researched", test_agroworld_job_production_switches_to_curve_plus_when_tech_researched);
     return t_report();
 }
