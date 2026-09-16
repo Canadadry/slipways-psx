@@ -1,0 +1,82 @@
+#include "rules_planets.h"
+
+#include <stddef.h>
+
+static const planet_type_t g_planet_types[PLANET_TYPE_COUNT] = {
+    [PLANET_TYPE_EARTHLIKE] = {
+        .id = PLANET_TYPE_EARTHLIKE,
+        .name = "earth-like",
+        .rarity = (fixed_t)(4.5 * FX_ONE),
+    },
+    [PLANET_TYPE_FORGEWORLD] = {
+        .id = PLANET_TYPE_FORGEWORLD,
+        .name = "forgeworld",
+        .rarity = (fixed_t)(6 * FX_ONE),
+    },
+    [PLANET_TYPE_MINERAL] = {
+        .id = PLANET_TYPE_MINERAL,
+        .name = "mineral",
+        .rarity = (fixed_t)(4 * FX_ONE),
+    },
+};
+
+static const colonization_job_t g_jobs[JOB_COUNT] = {
+    [JOB_MINE] = {
+        .planet_type = PLANET_TYPE_MINERAL,
+        .cost = 5,
+        .needs = { RESOURCE_PEOPLE },
+        .needs_count = 1,
+        .produces = RESOURCE_ORE,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+    },
+    [JOB_NANOTECH] = {
+        .planet_type = PLANET_TYPE_FORGEWORLD,
+        .cost = 8,
+        .needs = { RESOURCE_ORE },
+        .needs_count = 1,
+        .produces = RESOURCE_TECH,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+    },
+    [JOB_BOTS] = {
+        .planet_type = PLANET_TYPE_FORGEWORLD,
+        .cost = 8,
+        .needs = { RESOURCE_ORE, RESOURCE_TECH },
+        .needs_count = 2,
+        .produces = RESOURCE_BOTS,
+        .curve = CURVE_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+    },
+    [JOB_AGROWORLD] = {
+        .planet_type = PLANET_TYPE_EARTHLIKE,
+        .cost = 5,
+        .needs = { RESOURCE_BOTS },
+        .needs_count = 1,
+        .produces = RESOURCE_FOOD,
+        .curve = CURVE_MINUS,
+        .tech_gate = "xenofoods",
+        .default_need = RESOURCE_ORGANICS,
+    },
+    [JOB_HIVEWORLD] = {
+        .planet_type = PLANET_TYPE_EARTHLIKE,
+        .cost = 5,
+        .needs = { RESOURCE_FOOD },
+        .needs_count = 1,
+        .produces = RESOURCE_PEOPLE,
+        .curve = CURVE_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_GOODS,
+    },
+};
+
+const planet_type_t *rules_planets_type(planet_type_id_t id) {
+    return &g_planet_types[id];
+}
+
+const colonization_job_t *rules_planets_job(colonization_job_id_t id) {
+    return &g_jobs[id];
+}
