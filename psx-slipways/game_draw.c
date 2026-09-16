@@ -3,6 +3,7 @@
 #include <psxgpu.h>
 
 #include "cursor.h"
+#include "liaison.h"
 #include "screen_map.h"
 #include "world.h"
 
@@ -121,6 +122,48 @@ void game_draw(void) {
 			}
 
 			DrawPrim(&tile);
+		}
+	}
+
+	/* Chunk 5 (psx-liaison-validity): live slipway-validity drag preview,
+	 * gated on liaison_get_state().dragging so nothing is drawn when no
+	 * drag is in progress (no leftover/stale line). Source point is the
+	 * drag's source planet (screen_map_planet, same as every other
+	 * primitive above); target point is the hovered planet's screen
+	 * position when one is hovered, or the cursor's own raw x/y directly
+	 * otherwise -- no unprojection needed here, only the live validity
+	 * math itself needs screen_map_unproject (see docs/prd/triage/
+	 * psx-liaison-validity.md, "Rendering"). Mirrors the chunk 4
+	 * slipway-line LINE_F2 block above exactly. */
+	{
+		liaison_drag_state_t liaison = liaison_get_state();
+		if (liaison.dragging) {
+			int ax, ay, bx, by;
+			screen_map_planet(galaxy->positions[liaison.from_index], &ax, &ay);
+
+			if (liaison.hover_index != -1) {
+				screen_map_planet(galaxy->positions[liaison.hover_index], &bx, &by);
+			} else {
+				cursor_state_t cursor = cursor_get_state();
+				bx = cursor.x;
+				by = cursor.y;
+			}
+
+			LINE_F2 line;
+			setLineF2(&line);
+			setXY2(&line, ax, ay, bx, by);
+			/* Green when the live result is valid or already-connected,
+			 * red otherwise (too far / blocked by planet / crosses an
+			 * existing route) -- a v1 UX color choice, not traced art
+			 * (same framing as the click-flash yellow above), distinct
+			 * from every existing placeholder color in this file. */
+			if (liaison.live.reason == LIAISON_VALID || liaison.live.reason == LIAISON_ALREADY_CONNECTED) {
+				setRGB0(&line, 0, 255, 0);
+			} else {
+				setRGB0(&line, 255, 0, 0);
+			}
+
+			DrawPrim(&line);
 		}
 	}
 }
