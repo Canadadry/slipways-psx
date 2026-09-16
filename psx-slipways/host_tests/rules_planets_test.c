@@ -226,6 +226,64 @@ static void test_agroworld_job_production_switches_to_curve_plus_when_tech_resea
     T_CHECK(rules_planets_job_production(JOB_AGROWORLD, 4, true) == 4);
 }
 
+/* Chunk 5: closed-loop structural regression test. Walks the JOB_COUNT-sized
+ * g_jobs table generically (via the public rules_planets_job() accessor, not
+ * hardcoded pairwise "mine needs PEOPLE, hiveworld produces PEOPLE" checks)
+ * and asserts the property the whole PRD's scoping argument depends on: every
+ * resource any job needs is produced by some OTHER job in the table, and
+ * every resource any job produces is needed by some OTHER job in the table.
+ * A future edit that breaks this closure (e.g. changing a job's needs[]
+ * without checking downstream effects) must fail here. */
+static void test_every_need_is_produced_by_another_job(void) {
+    for (int consumer = 0; consumer < JOB_COUNT; consumer++) {
+        const colonization_job_t *c = rules_planets_job((colonization_job_id_t)consumer);
+
+        for (int n = 0; n < c->needs_count; n++) {
+            resource_id_t needed = c->needs[n];
+            bool produced_elsewhere = false;
+
+            for (int producer = 0; producer < JOB_COUNT; producer++) {
+                if (producer == consumer) {
+                    continue;
+                }
+                const colonization_job_t *p = rules_planets_job((colonization_job_id_t)producer);
+                if (p->produces == needed) {
+                    produced_elsewhere = true;
+                    break;
+                }
+            }
+
+            T_CHECK(produced_elsewhere);
+        }
+    }
+}
+
+static void test_every_produce_is_needed_by_another_job(void) {
+    for (int producer = 0; producer < JOB_COUNT; producer++) {
+        const colonization_job_t *p = rules_planets_job((colonization_job_id_t)producer);
+        resource_id_t produced = p->produces;
+        bool needed_elsewhere = false;
+
+        for (int consumer = 0; consumer < JOB_COUNT; consumer++) {
+            if (consumer == producer) {
+                continue;
+            }
+            const colonization_job_t *c = rules_planets_job((colonization_job_id_t)consumer);
+            for (int n = 0; n < c->needs_count; n++) {
+                if (c->needs[n] == produced) {
+                    needed_elsewhere = true;
+                    break;
+                }
+            }
+            if (needed_elsewhere) {
+                break;
+            }
+        }
+
+        T_CHECK(needed_elsewhere);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -252,5 +310,7 @@ int main(void) {
     t_run("agroworld_job_production_matches_curve_minus_unresearched", test_agroworld_job_production_matches_curve_minus_unresearched);
     t_run("hiveworld_job_production_matches_curve_plus_unresearched", test_hiveworld_job_production_matches_curve_plus_unresearched);
     t_run("agroworld_job_production_switches_to_curve_plus_when_tech_researched", test_agroworld_job_production_switches_to_curve_plus_when_tech_researched);
+    t_run("every_need_is_produced_by_another_job", test_every_need_is_produced_by_another_job);
+    t_run("every_produce_is_needed_by_another_job", test_every_produce_is_needed_by_another_job);
     return t_report();
 }
