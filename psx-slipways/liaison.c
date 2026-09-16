@@ -156,3 +156,93 @@ int liaison_pick_planet(int screen_x, int screen_y, const galaxy_t *galaxy, int 
 
     return best_index;
 }
+
+static liaison_result_t liaison_neutral_result(void) {
+    liaison_result_t r;
+    r.reason = LIAISON_VALID;
+    r.blocking_planet = -1;
+    r.blocking_route = -1;
+    return r;
+}
+
+/* Shared "not dragging" shape: dragging/from_index/hover_index/live reset
+ * to their idle convention. last/last_valid_frames are intentionally left
+ * as prev's -- callers that want to set a real outcome (release) overwrite
+ * them afterward; callers that don't (idle no-press, interrupted cancel)
+ * leave them untouched, per the PRD's "no synthesized outcome" rule. */
+static liaison_drag_state_t liaison_idle_state(liaison_drag_state_t prev) {
+    liaison_drag_state_t next = prev;
+    next.dragging = 0;
+    next.from_index = -1;
+    next.hover_index = -1;
+    next.live = liaison_neutral_result();
+    return next;
+}
+
+/* Resolves the live drag target for a held/released frame: hover_index via
+ * liaison_pick_planet, then either that planet's index/position, or, when
+ * nothing is hovered, to_index=-1 with the raw cursor position unprojected
+ * to world space (mirrors jc:hq's {ra=mp,p=mp/128} fallback). */
+static void liaison_resolve_target(int screen_x, int screen_y, const galaxy_t *galaxy,
+                                    int *out_hover, int *out_to_index, planet_pos_t *out_to_pos) {
+    int hover = liaison_pick_planet(screen_x, screen_y, galaxy, LIAISON_PICK_RADIUS_PX);
+    *out_hover = hover;
+    if (hover != -1) {
+        *out_to_index = hover;
+        *out_to_pos = galaxy->positions[hover];
+    } else {
+        *out_to_index = -1;
+        *out_to_pos = screen_map_unproject(screen_x, screen_y);
+    }
+}
+
+liaison_drag_state_t liaison_drag_step(liaison_drag_state_t prev,
+                                        cursor_state_t cursor,
+                                        const galaxy_t *galaxy,
+                                        const liaison_route_t *routes, int route_count) {
+    if (prev.dragging) {
+        if (cursor.click_held) {
+            liaison_drag_state_t next = prev;
+            int to_index;
+            planet_pos_t to_pos;
+            liaison_resolve_target(cursor.x, cursor.y, galaxy, &next.hover_index, &to_index, &to_pos);
+            next.live = liaison_check(prev.from_index, galaxy->positions[prev.from_index],
+                                       to_index, to_pos, galaxy, routes, route_count);
+            return next;
+        }
+
+        if (cursor.click_released) {
+            int hover, to_index;
+            planet_pos_t to_pos;
+            liaison_resolve_target(cursor.x, cursor.y, galaxy, &hover, &to_index, &to_pos);
+            liaison_result_t result = liaison_check(prev.from_index, galaxy->positions[prev.from_index],
+                                                      to_index, to_pos, galaxy, routes, route_count);
+
+            liaison_drag_state_t next = liaison_idle_state(prev);
+            next.last = result;
+            next.last_valid_frames = LIAISON_LAST_VALID_FRAMES;
+            return next;
+        }
+
+        /* Neither held nor released this frame: the gesture was
+         * interrupted (e.g. mouse mode toggled off mid-drag), not
+         * concluded. Silently cancel -- no synthesized last outcome. */
+        return liaison_idle_state(prev);
+    }
+
+    if (cursor.click_pressed) {
+        int picked = liaison_pick_planet(cursor.x, cursor.y, galaxy, LIAISON_PICK_RADIUS_PX);
+        if (picked != -1) {
+            liaison_drag_state_t next = prev;
+            next.dragging = 1;
+            next.from_index = picked;
+            next.hover_index = picked;
+            next.live = liaison_check(picked, galaxy->positions[picked],
+                                       picked, galaxy->positions[picked],
+                                       galaxy, routes, route_count);
+            return next;
+        }
+    }
+
+    return liaison_idle_state(prev);
+}

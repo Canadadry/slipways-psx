@@ -1,6 +1,7 @@
 #ifndef SLIPWAYS_LIAISON_H
 #define SLIPWAYS_LIAISON_H
 
+#include "cursor.h"
 #include "fixed.h"
 #include "planetgen.h"
 
@@ -95,5 +96,54 @@ liaison_result_t liaison_check(int from_index, planet_pos_t from_pos,
  * if none qualify. "Nearest wins" when multiple planets are in radius.
  * galaxy may be NULL (returns -1). */
 int liaison_pick_planet(int screen_x, int screen_y, const galaxy_t *galaxy, int pick_radius_px);
+
+/* Hit-test radius for liaison_drag_step's press/held/release target
+ * resolution -- a v1 UX-tuning constant (like CURSOR_STEP/
+ * CLICK_FLASH_FRAMES), not a slipways-mechanics.md traceable value. */
+#define LIAISON_PICK_RADIUS_PX 8
+
+/* Visual-only countdown liaison_drag_step sets last_valid_frames to on
+ * release, mirroring cursor.h's own CLICK_FLASH_FRAMES click-acknowledgment
+ * convention exactly (same constant, reused rather than a second magic
+ * number for the same kind of "how long should this stay visible" value). */
+#define LIAISON_LAST_VALID_FRAMES CLICK_FLASH_FRAMES
+
+/* Pure drag-state machine, mirroring cursor_step's exact shape (previous
+ * state + inputs -> next state). See
+ * docs/prd/triage/psx-liaison-validity.md, "Pure drag-state machine", for
+ * the full source-cited logic this ports (jc:hq/jc:ey's press/held/release
+ * mechanic). */
+typedef struct {
+    int dragging;             /* 0/1 */
+    int from_index;           /* source planet, valid only while dragging */
+    int hover_index;          /* -1 if not hovering a planet */
+    liaison_result_t live;    /* recomputed every held frame */
+    liaison_result_t last;    /* final outcome, one frame, after release */
+    int last_valid_frames;    /* countdown, visual-only, mirrors click_flash_frames */
+} liaison_drag_state_t;
+
+/* Not dragging + click_pressed resolving to a real planet -> starts a drag
+ * (dragging/from_index/hover_index/live all populated for this same
+ * frame). Dragging + click_held -> re-runs the hit test and liaison_check
+ * every call, updating hover_index/live continuously; dragging stays 1.
+ * Dragging + click_released -> one final liaison_check at the release-time
+ * target, copied into last/last_valid_frames (set to
+ * LIAISON_LAST_VALID_FRAMES); dragging clears to 0 and from_index/
+ * hover_index reset to the idle convention (-1). Dragging + neither
+ * click_held nor click_released this frame (the interrupted/mode-toggled-
+ * off-mid-drag case) -> silently cancels: dragging/from_index/hover_index
+ * reset to idle, last/last_valid_frames untouched (no synthesized outcome
+ * for an interrupted gesture). Not dragging + no press this frame (or a
+ * press that missed every planet) -> returns an idle state: dragging 0,
+ * from_index/hover_index -1, live a neutral not-yet-computed result
+ * ({LIAISON_VALID,-1,-1}, the same default liaison_check itself starts
+ * from), last/last_valid_frames untouched.
+ *
+ * Never writes to routes[] -- it is read-only input, forwarded to
+ * liaison_check unchanged. */
+liaison_drag_state_t liaison_drag_step(liaison_drag_state_t prev,
+                                        cursor_state_t cursor,
+                                        const galaxy_t *galaxy,
+                                        const liaison_route_t *routes, int route_count);
 
 #endif
