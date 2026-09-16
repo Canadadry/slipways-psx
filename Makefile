@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -81,6 +81,19 @@ test-rules-planets:
 	mkdir -p $(RULES_PLANETS_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_PLANETS_HOST_BUILD_DIR)/rules_planets_test $(RULES_PLANETS_TEST_HOST_SRCS) -lm
 	$(RULES_PLANETS_HOST_BUILD_DIR)/rules_planets_test
+
+# Host-native test for liaison.c (chunk 1: section-5 geometry core), same
+# shape/output dir as test-planetgen/test-galaxy-render/test-cursor/
+# test-rules-planets above.
+LIAISON_HOST_BUILD_DIR = psx-slipways/build-host
+RULES_LIAISON_TEST_HOST_SRCS = \
+	psx-slipways/liaison.c \
+	psx-slipways/host_tests/liaison_test.c
+
+test-liaison:
+	mkdir -p $(LIAISON_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(LIAISON_HOST_BUILD_DIR)/liaison_test $(RULES_LIAISON_TEST_HOST_SRCS) -lm
+	$(LIAISON_HOST_BUILD_DIR)/liaison_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
