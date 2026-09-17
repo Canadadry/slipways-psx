@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -153,6 +153,22 @@ test-rules-tech:
 	mkdir -p $(RULES_TECH_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_TECH_HOST_BUILD_DIR)/rules_tech_test $(RULES_TECH_TEST_HOST_SRCS) -lm
 	$(RULES_TECH_HOST_BUILD_DIR)/rules_tech_test
+
+# Host-native test for rules_economy.c (chunk 1: traced static tables and
+# simple constants -- rules_economy_trade_level_bonus). This module is a
+# leaf -- no dependency on world.c/cursor.c/liaison.c/rules_planets.c/
+# rules_discovery.c/rules_tech.c at all -- same shape/output dir as
+# test-planetgen/test-galaxy-render/test-cursor/test-rules-planets/
+# test-liaison/test-rules-discovery/test-effects/test-rules-tech above.
+RULES_ECONOMY_HOST_BUILD_DIR = psx-slipways/build-host
+RULES_ECONOMY_TEST_HOST_SRCS = \
+	psx-slipways/rules_economy.c \
+	psx-slipways/host_tests/rules_economy_test.c
+
+test-rules-economy:
+	mkdir -p $(RULES_ECONOMY_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_ECONOMY_HOST_BUILD_DIR)/rules_economy_test $(RULES_ECONOMY_TEST_HOST_SRCS) -lm
+	$(RULES_ECONOMY_HOST_BUILD_DIR)/rules_economy_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
