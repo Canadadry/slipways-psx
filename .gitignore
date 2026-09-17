@@ -15,5 +15,6 @@ tools/.boot-test-pcsx-slipways-run/
 tools/.input-test-pcsx-slipways-run/
 tools/.fps-test-pcsx-slipways-run/
 tools/.cursor-test-pcsx-slipways-run/
+tools/.liaison-test-pcsx-slipways-run/
 tools/.screenshot-pcsx-run/
 tools/.verify-snaps/
