@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -101,6 +101,21 @@ test-liaison:
 	mkdir -p $(LIAISON_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(LIAISON_HOST_BUILD_DIR)/liaison_test $(RULES_LIAISON_TEST_HOST_SRCS) -lm
 	$(LIAISON_HOST_BUILD_DIR)/liaison_test
+
+# Host-native test for rules_discovery.c (chunk 1: probe cost constants --
+# header-only so far, no rules_discovery.c yet; rng.c is included here for
+# forward consistency with the later chunks that will need rng_t), same
+# shape/output dir as test-planetgen/test-galaxy-render/test-cursor/
+# test-rules-planets/test-liaison above.
+RULES_DISCOVERY_HOST_BUILD_DIR = psx-slipways/build-host
+RULES_DISCOVERY_TEST_HOST_SRCS = \
+	psx-slipways/rng.c \
+	psx-slipways/host_tests/rules_discovery_test.c
+
+test-rules-discovery:
+	mkdir -p $(RULES_DISCOVERY_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_DISCOVERY_HOST_BUILD_DIR)/rules_discovery_test $(RULES_DISCOVERY_TEST_HOST_SRCS) -lm
+	$(RULES_DISCOVERY_HOST_BUILD_DIR)/rules_discovery_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
