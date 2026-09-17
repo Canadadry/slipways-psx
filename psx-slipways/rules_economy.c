@@ -132,6 +132,94 @@ fixed_t rules_economy_colony_trade_income(int trade_difficulty, fixed_t sensitiv
     return total;
 }
 
+/* Floor a fixed_t value to an int, correct for BOTH positive and negative
+ * inputs -- unlike rules_planets_job_cost's own `(int)(cost >> 16)` idiom
+ * (rules_planets.c:126), which is only ever exercised there with
+ * non-negative job costs. This module's own db()/da() trace explicitly
+ * allows negative results: trade income minus maintenance
+ * (rules_economy_colony_net) and the empire's annual net income
+ * (rules_economy_annual_net_income) can both go negative -- a colony can
+ * cost more in maintenance than it earns in trade, and the whole empire can
+ * run a deficit, which is exactly what RULES_ECONOMY_BANKRUPTCY_TREASURY_
+ * THRESHOLD exists to detect in a later chunk -- so a floor idiom that is
+ * only correct for x>=0 would silently corrupt this module's two most
+ * important numbers.
+ *
+ * A plain arithmetic right shift (`x >> 16`) DOES floor correctly for a
+ * negative two's-complement fixed_t on every compiler this project actually
+ * uses (host gcc, and the PSn00bSDK/mipsel cross compiler -- both GCC, and
+ * GCC documents right-shifting a negative signed integer as a
+ * sign-propagating arithmetic shift). But the C standard itself (C11
+ * 6.5.7p5) leaves the result of right-shifting a negative signed value
+ * *implementation-defined*, not guaranteed -- so rather than rely on a
+ * documented-but-not-ISO-guaranteed GCC extension for this module's two
+ * safety-critical floors, this helper is instead built from plain integer
+ * division and modulo, both of which the C standard DOES guarantee
+ * truncate toward zero for any sign (C11 6.5.5p6) -- portably correct on
+ * any standard-conforming compiler, not just this project's current two.
+ *
+ * Truncating division already equals floor() for x>=0 and for any exact
+ * multiple of FX_ONE (remainder 0, either sign). The only case needing a
+ * correction is a negative x with a nonzero fractional part, where
+ * truncation-toward-zero stops one step short of floor (e.g. -0.3
+ * truncates to 0, but flr(-0.3) is -1) -- corrected by subtracting 1 in
+ * exactly that case.
+ */
+static int fixed_floor_to_int(fixed_t x) {
+    int whole = x / FX_ONE;
+    int remainder = x % FX_ONE;
+
+    if (remainder != 0 && x < 0) {
+        whole -= 1;
+    }
+
+    return whole;
+}
+
+int rules_economy_colony_net(fixed_t trade_income, int maintenance) {
+    /* flr(db(p) - da(p)), pico8/lua.lua:1230-1231 -- the FIRST of this
+     * module's two floors. maintenance (already an int) is widened to
+     * fixed_t via the same "int * FX_ONE, cast to fixed_t" idiom
+     * rules_economy_trade_edge_income already uses for its own int
+     * trade_difficulty parameter, before subtracting. */
+    fixed_t maintenance_fx = (fixed_t)(maintenance * FX_ONE);
+    fixed_t net = fixed_sub(trade_income, maintenance_fx);
+
+    return fixed_floor_to_int(net);
+}
+
+/* ov("skill implants",1,1.15)'s bonus factor, pico8/lua.lua:1233. 1.15 is
+ * not exactly representable in Q16.16, folded from the traced double
+ * literal via the same idiom g_trade_level_bonus[] (above) already uses.
+ * Kept file-local: no other consumer, per this file's own established
+ * "keep unexposed constants static/#define, not in the header" precedent
+ * (see g_colony_maintenance_cost/RULES_ECONOMY_LUXURY_TRADE_MULTIPLIER
+ * above). */
+#define RULES_ECONOMY_SKILL_IMPLANTS_MULTIPLIER ((fixed_t)(1.15 * (double)FX_ONE))
+
+int rules_economy_annual_net_income(const int *colony_nets, int colony_count, bool skill_implants_researched, int overhead) {
+    /* dd = sum of already-floored p.kr values, pico8/lua.lua:1227-1231. */
+    int sum = 0;
+    for (int i = 0; i < colony_count; i++) {
+        sum += colony_nets[i];
+    }
+
+    /* ov("skill implants",1,1.15): base 1.0 unless researched, matching
+     * rules_planets_job_cost's own caller-supplied-boolean pattern for
+     * "no live tech-researched state exists" (rules_planets.c). Widen the
+     * already-integer sum to fixed_t (same idiom as rules_economy_colony_net
+     * above), multiply by the factor, THEN floor -- the SECOND floor,
+     * applied to the scaled sum, not to the un-scaled sum. */
+    fixed_t multiplier = skill_implants_researched ? RULES_ECONOMY_SKILL_IMPLANTS_MULTIPLIER : FX_ONE;
+    fixed_t scaled = fixed_mul((fixed_t)(sum * FX_ONE), multiplier);
+    int floored = fixed_floor_to_int(scaled);
+
+    /* - cz(): overhead subtracts AFTER the second floor, exactly matching
+     * source's `flr(dd*ov(...)) - cz()` placement (the subtraction is
+     * outside the flr(...) call). */
+    return floored - overhead;
+}
+
 int rules_economy_overhead(int colonized_count) {
     /* floor(0.18 * colonized_count^2). Computed with plain integer
      * arithmetic (18*n*n/100, using C's truncating integer division, which

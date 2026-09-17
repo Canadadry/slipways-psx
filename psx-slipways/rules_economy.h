@@ -188,4 +188,92 @@ fixed_t rules_economy_colony_trade_income(int trade_difficulty, fixed_t sensitiv
                                            const int *partner_levels, int partner_count, bool produces_luxury,
                                            fixed_t luxury_production);
 
+/* A colony's net income for the year, FLOORED -- the FIRST of this module's
+ * two floors (see rules_economy_annual_net_income below for the second),
+ * traced to `p.kr = flr(db(p) - da(p))` (pico8/lua.lua:1230-1231, inside
+ * hy:lj()'s per-colony loop):
+ *
+ *   local dd=0
+ *   for p in all(cg.jo) do
+ *     p.kr = flr(db(p) - da(p))
+ *     dd += p.kr
+ *   end
+ *
+ * This per-colony floor is a genuine, source-verified departure from the
+ * design doc's own SS10 prose ("Revenu annuel net : floor(SUM(revenu -
+ * maintenance) x mult) - frais_generaux", a SINGLE floor over the raw sum)
+ * and from this port's own "floor once at the very end" fidelity convention
+ * (rules_planets_job_cost's chained multiplications) -- see the PRD's
+ * Implementation Decisions, "The double-floor finding." Source floors EACH
+ * colony's (trade_income - maintenance) individually, before summing, not
+ * once at the very end.
+ *
+ * `trade_income` (db(p), fixed_t, from rules_economy_colony_trade_income)
+ * can be fractional -- ct's -0.333/0.25/0.5 per-level bonuses guarantee it
+ * routinely is. `maintenance` (da(p), already an int, from
+ * rules_economy_colony_maintenance) is widened to fixed_t before
+ * subtracting. The fractional difference is then floored to an int HERE --
+ * not truncated toward zero: db(p)-da(p) can be negative (a colony can cost
+ * more in maintenance than it earns in trade), and flooring a negative
+ * fractional fixed_t must round toward negative infinity (flr(-0.3) = -1),
+ * not toward zero (which would wrongly give 0) -- see rules_economy.c's
+ * fixed_floor_to_int for the implementation and its correctness argument
+ * for both signs.
+ */
+int rules_economy_colony_net(fixed_t trade_income, int maintenance);
+
+/* Annual net income across the whole empire -- the SECOND of this module's
+ * two floors (see rules_economy_colony_net above for the first), traced to
+ * `self.ge = flr(dd*ov("skill implants",1,1.15)) - cz()`
+ * (pico8/lua.lua:1233, inside hy:lj()):
+ *
+ *   local dd=0
+ *   for p in all(cg.jo) do
+ *     p.kr = flr(db(p) - da(p))
+ *     dd += p.kr
+ *   end
+ *   self.ge = flr(dd*ov("skill implants",1,1.15)) - cz()
+ *
+ * This floor operates over the SUM of already-floored integers (`dd`, i.e.
+ * colony_nets here, each one rules_economy_colony_net's own return value)
+ * -- not over a raw fractional sum. Ported: sum colony_nets[0..colony_count)
+ * as plain ints; multiply by the skill-implants factor (`FX_ONE` normally,
+ * `1.15*FX_ONE` if skill_implants_researched -- ov("skill implants",1,1.15)'s
+ * own "unresearched -> base value" shape, the same caller-supplied-boolean
+ * pattern rules_planets_job_cost already established for
+ * job_tech_researched/nanomaterials_researched, rules_planets.c -- no live
+ * tech-researched state exists anywhere in this port, per rules_tech.c's own
+ * precedent); floor the scaled sum to an int AGAIN; then subtract overhead
+ * (already an int, from rules_economy_overhead) AFTER this second floor,
+ * exactly matching source's own `- cz()` placement outside the `flr(...)`.
+ *
+ * Why a naive single-floor-at-the-end implementation would be WRONG:
+ * flooring each colony's net individually, then summing the (now-integer)
+ * results, is NOT the same arithmetic as summing the raw fractional
+ * per-colony nets first and flooring only once at the very end. Concrete
+ * example (this module's own discriminating test,
+ * host_tests/rules_economy_test.c, uses exactly this): three colonies each
+ * with a fractional (trade_income - maintenance) of 0.4 (fixed_t). Source's
+ * real double-floor shape: flr(0.4)=0 for EACH colony
+ * (rules_economy_colony_net), summed as already-floored ints ->
+ * dd=0+0+0=0; with no skill-implants bonus and zero overhead,
+ * annual_net_income = flr(0*1) - 0 = 0. A hypothetical SINGLE floor over
+ * the raw sum instead (i.e. summing the fractional per-colony nets BEFORE
+ * any floor, then flooring once): 0.4+0.4+0.4=1.2 (fixed_t), floored once
+ * -> 1 -- a different, WRONG answer (1, not source's real 0) that a
+ * single-floor implementation would silently produce. This module's test
+ * asserts the real double-floor result (0, via three
+ * rules_economy_colony_net calls followed by this function) AND asserts it
+ * explicitly differs from that hand-computed single-floor alternative (1),
+ * proving the real double-floor shape is implemented, not simplified to
+ * one floor (per the PRD's own User Story #9).
+ *
+ * colony_nets holds the ALREADY-FLOORED per-colony net values (i.e. each
+ * one is rules_economy_colony_net's own return value) -- this function does
+ * not re-derive them from fractional inputs; it only sums, scales, floors
+ * again, and subtracts overhead, exactly as source's own `dd` accumulator
+ * (already summing floored p.kr values) does.
+ */
+int rules_economy_annual_net_income(const int *colony_nets, int colony_count, bool skill_implants_researched, int overhead);
+
 #endif
