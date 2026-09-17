@@ -1,9 +1,11 @@
 #include "game.h"
 
 #include <psxgpu.h>
+#include <stdbool.h>
 
 #include "cursor.h"
 #include "liaison.h"
+#include "rules_tech.h"
 #include "screen_map.h"
 #include "world.h"
 
@@ -23,6 +25,20 @@
  * "Rendering the cursor" decision). Only needs to be small and visually
  * distinct from GAME_DRAW_PLANET_TILE_SIZE; doesn't need to match it. */
 #define GAME_DRAW_CURSOR_TILE_SIZE 6
+
+/* Tech menu placeholder tile size/spacing/margin -- v1 UX/rendering
+ * choices, not traced art (same framing as GAME_DRAW_CURSOR_TILE_SIZE
+ * above; see docs/prd/triage/psx-rules-tech.md's "Rendering" decision).
+ * Deliberately larger than the planet/cursor tiles above since this is a
+ * top-level UI element, not a world-space marker. GAME_DRAW_TECH_MARGIN
+ * is a small offset from the screen's (0,0) corner so the tiles aren't
+ * drawn flush against the very corner (per the PRD's own "small margin"
+ * framing) while still reading as anchored at the top-left, per the
+ * source pitch text's "top-left corner" and ix[2]'s own ra=v(0,0)
+ * position. */
+#define GAME_DRAW_TECH_TILE_SIZE 8
+#define GAME_DRAW_TECH_TILE_SPACING 4
+#define GAME_DRAW_TECH_MARGIN 8
 
 void game_draw(void) {
 	const slipway_edge_t *slipway_edges;
@@ -164,6 +180,57 @@ void game_draw(void) {
 			}
 
 			DrawPrim(&line);
+		}
+	}
+
+	/* Chunk 4 (psx-rules-tech): tech menu placeholder, gated on
+	 * rules_tech_get_state().open so nothing is drawn (no leftover/stale
+	 * primitive) when the menu is closed -- mirrors the mouse-mode
+	 * cursor's .mouse_mode gate and the liaison drag preview's .dragging
+	 * gate above exactly. 4 TILEs, one per Era-1 tech in tech_id_t's own
+	 * enum order (TECH_SPACE_FOLDING, TECH_GENESEEDS, TECH_NANOMATERIALS,
+	 * TECH_DRILLBOTS), laid out as a single horizontal row anchored at
+	 * the screen's top-left corner (v1 layout choice among equally valid
+	 * options like a 2x2 grid -- a single row reads cleanest for 4
+	 * same-size tiles and needs no row-wrap logic). See
+	 * GAME_DRAW_TECH_TILE_SIZE/_SPACING/_MARGIN above for the size/
+	 * spacing/margin rationale. */
+	{
+		rules_tech_state_t tech = rules_tech_get_state();
+		if (tech.open) {
+			/* Caller-local placeholder "researched" state (PRD's own
+			 * explicit instruction): no live science economy exists yet
+			 * to populate this -- Phase 3 step 13 / Phase 4 step 14.
+			 * Deliberately not owned by rules_tech.c itself (which has
+			 * no way to ever set an entry true yet); this keeps the
+			 * render call site reading real, if currently constant,
+			 * parameters, the same shape as the liaison preview's
+			 * live.reason-driven color above. */
+			const bool tech_researched[TECH_COUNT] = { false, false, false, false };
+
+			int t;
+			for (t = 0; t < TECH_COUNT; t++) {
+				int x = GAME_DRAW_TECH_MARGIN + t * (GAME_DRAW_TECH_TILE_SIZE + GAME_DRAW_TECH_TILE_SPACING);
+				int y = GAME_DRAW_TECH_MARGIN;
+
+				TILE tile;
+				setTile(&tile);
+				setXY0(&tile, x, y);
+				setWH(&tile, GAME_DRAW_TECH_TILE_SIZE, GAME_DRAW_TECH_TILE_SIZE);
+				/* Cyan for researched (never true today -- the logic is
+				 * real and correct if the array ever had a true), gray
+				 * for unresearched -- both distinct from every existing
+				 * placeholder color in this file (planet green, wormhole
+				 * orange, slipway blue, cursor white/click-flash yellow,
+				 * liaison drag green/red). */
+				if (tech_researched[t]) {
+					setRGB0(&tile, 0, 255, 255);
+				} else {
+					setRGB0(&tile, 128, 128, 128);
+				}
+
+				DrawPrim(&tile);
+			}
 		}
 	}
 }
