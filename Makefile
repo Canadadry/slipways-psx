@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -138,6 +138,21 @@ test-effects:
 	mkdir -p $(EFFECTS_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(EFFECTS_HOST_BUILD_DIR)/effects_test $(EFFECTS_TEST_HOST_SRCS) -lm
 	$(EFFECTS_HOST_BUILD_DIR)/effects_test
+
+# Host-native test for rules_tech.c (chunk 1: static Era-1 tech data table).
+# This module is a leaf -- no dependency on world.c/cursor.c/liaison.c at
+# all -- same shape/output dir as test-planetgen/test-galaxy-render/
+# test-cursor/test-rules-planets/test-liaison/test-rules-discovery/
+# test-effects above.
+RULES_TECH_HOST_BUILD_DIR = psx-slipways/build-host
+RULES_TECH_TEST_HOST_SRCS = \
+	psx-slipways/rules_tech.c \
+	psx-slipways/host_tests/rules_tech_test.c
+
+test-rules-tech:
+	mkdir -p $(RULES_TECH_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_TECH_HOST_BUILD_DIR)/rules_tech_test $(RULES_TECH_TEST_HOST_SRCS) -lm
+	$(RULES_TECH_HOST_BUILD_DIR)/rules_tech_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
