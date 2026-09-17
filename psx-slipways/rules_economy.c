@@ -403,6 +403,102 @@ rules_economy_game_over_t rules_economy_check_game_over(int year, int net_income
     return RULES_ECONOMY_GAME_CONTINUES;
 }
 
+/* bk()'s own 0.27/0.1 literals, pico8/lua.lua:1264: `sqrt(#cg.jc)*0.27-0.1`.
+ * Folded from their traced double literals via this file's own established
+ * literal-folding idiom (g_trade_level_bonus, above). Kept file-local: no
+ * other consumer, per this file's own established "keep unexposed constants
+ * static/#define, not in the header" precedent. */
+#define RULES_ECONOMY_SLIPWAY_COST_FACTOR_SCALE ((fixed_t)(0.27 * (double)FX_ONE))
+#define RULES_ECONOMY_SLIPWAY_COST_FACTOR_OFFSET ((fixed_t)(0.1 * (double)FX_ONE))
+
+fixed_t rules_economy_slipway_cost_factor(int existing_route_count) {
+    /* sqrt(#cg.jc), pico8/lua.lua:1264. existing_route_count (a plain Lua
+     * table-length, #cg.jc -- NOT a vector `#` -- see this function's own
+     * doc comment in rules_economy.h) is converted to fixed_t via the same
+     * "int * FX_ONE, cast to fixed_t" idiom this file already uses repeatedly
+     * (e.g. rules_economy_trade_edge_income's trade_difficulty), THEN handed
+     * to fixed_sqrt -- this module's SECOND, independent use of fixed_sqrt
+     * (the first being rules_economy_slipway_cost's two chained calls,
+     * below). */
+    fixed_t count_fx = (fixed_t)(existing_route_count * FX_ONE);
+    fixed_t root = fixed_sqrt(count_fx);
+
+    /* sqrt(count)*0.27-0.1, pico8/lua.lua:1264. */
+    fixed_t scaled = fixed_sub(fixed_mul(root, RULES_ECONOMY_SLIPWAY_COST_FACTOR_SCALE), RULES_ECONOMY_SLIPWAY_COST_FACTOR_OFFSET);
+
+    /* max(1, ...), pico8/lua.lua:1264: at existing_route_count=0,
+     * sqrt(0)*0.27-0.1 = -0.1, below this floor, so the result clamps to
+     * exactly 1*FX_ONE (see this function's own dedicated test). */
+    if (scaled < FX_ONE) {
+        scaled = FX_ONE;
+    }
+
+    return scaled;
+}
+
+/* dj()'s bq divisor, pico8/lua.lua:1259: `bn, bq = 6, 0.0977`. Since fixed.h
+ * has no fixed_div, `x / bq` is ported as `fixed_mul(x, 1/bq)` -- a
+ * compile-time-folded RECIPROCAL constant, the same "fold a double-literal
+ * constant at compile time" idiom liaison.h's LIAISON_RANGE_SQ/
+ * LIAISON_BLOCK_TOLERANCE_SQ already use, per the PRD's own exact spec (NOT a
+ * general-purpose division primitive this codebase doesn't otherwise need).
+ * Kept file-local: no other consumer, per this file's own established
+ * precedent. */
+#define RULES_ECONOMY_SLIPWAY_COST_DIVISOR_RECIP ((fixed_t)((1.0 / 0.0977) * (double)FX_ONE))
+
+/* dj()'s own bn=6 base multiplier, pico8/lua.lua:1259. Plain int, no
+ * fixed_t/double-literal folding needed (6 is an exact integer). */
+#define RULES_ECONOMY_SLIPWAY_COST_BASE 6
+
+int rules_economy_slipway_cost(fixed_t distance_sq, int existing_route_count) {
+    /* (#(to.p-pb.p)/bq)^0.75, pico8/lua.lua:1259. distance_sq is the same
+     * squared-world-distance quantity liaison_check/liaison.h's own
+     * constants already use -- see this function's own doc comment in
+     * rules_economy.h for the full convergence-with-liaison.c citation. */
+    fixed_t x = fixed_mul(distance_sq, RULES_ECONOMY_SLIPWAY_COST_DIVISOR_RECIP);
+
+    /* x^0.75 = x^(1/2) * x^(1/4) = sqrt(x) * sqrt(sqrt(x)): two chained
+     * fixed_sqrt calls plus one fixed_mul -- this module's FIRST use of
+     * fixed_sqrt (the second being rules_economy_slipway_cost_factor's
+     * direct sqrt(count), above). No new fixed-point primitive needed;
+     * fixed_pow does not exist anywhere in this codebase. */
+    fixed_t s1 = fixed_sqrt(x);
+    fixed_t s2 = fixed_sqrt(s1);
+    fixed_t ec = fixed_mul(s1, s2);
+
+    /* max(0.5, ec), pico8/lua.lua:1259. */
+    fixed_t half = FX_ONE / 2;
+    if (ec < half) {
+        ec = half;
+    }
+
+    /* bn*bk()*max(0.5,ec), floored once at the very end -- matching this
+     * port's usual "floor once at the very end" convention here (unlike
+     * rules_economy_annual_net_income's own genuine double floor above): dj
+     * is an independently-traced source function from a different part of
+     * source, ported exactly as its own source floors it (see this
+     * function's own doc comment in rules_economy.h). */
+    fixed_t factor = rules_economy_slipway_cost_factor(existing_route_count);
+    fixed_t product = fixed_mul((fixed_t)(RULES_ECONOMY_SLIPWAY_COST_BASE * FX_ONE), factor);
+    product = fixed_mul(product, ec);
+
+    return fixed_floor_to_int(product);
+}
+
+bool rules_economy_can_afford(int treasury, int cost) {
+    /* self.nz<jt refuses; this ports the negated condition directly:
+     * treasury>=cost affords (the boundary, treasury==cost, affords). */
+    return treasury >= cost;
+}
+
+int rules_economy_debit(int treasury, int cost) {
+    /* self.nz-=jt. Meaningful only when rules_economy_can_afford already
+     * returned true for the same (treasury, cost) pair -- the caller's
+     * responsibility, see this function's own doc comment in
+     * rules_economy.h. */
+    return treasury - cost;
+}
+
 int rules_economy_overhead(int colonized_count) {
     /* floor(0.18 * colonized_count^2). Computed with plain integer
      * arithmetic (18*n*n/100, using C's truncating integer division, which

@@ -2,6 +2,8 @@
 #include "../fixed.h"
 #include "../rules_economy.h"
 
+#include <math.h>
+
 /* -0.333/0.25/0.5 are not exactly representable in Q16.16, so exercise them
  * within a tight documented tolerance rather than requiring exact equality
  * (level 2's traced value, 0, IS compared exactly below since 0 is exactly
@@ -569,6 +571,165 @@ static void test_game_over_final_year_wins_over_simultaneous_bankruptcy(void) {
     T_CHECK(rules_economy_check_game_over(RULES_ECONOMY_FINAL_YEAR, -10, 0) == RULES_ECONOMY_GAME_OVER_FINAL_YEAR);
 }
 
+/* -- rules_economy_slipway_cost_factor (bk) -----------------------------
+ *
+ * bk, pico8/lua.lua:1259-1264: max(1, sqrt(existing_route_count)*0.27-0.1).
+ * Per the PRD's chunk-7 spec: the existing_route_count=0 clamp-to-1 case,
+ * and monotonic increase across a small sweep. */
+
+static void test_slipway_cost_factor_zero_routes_clamps_to_one(void) {
+    /* sqrt(0)*0.27-0.1 = -0.1, below the max(1,...) floor -- the result
+     * must be EXACTLY 1*FX_ONE (not merely close to it), since sqrt(0) is
+     * exact and the clamp itself introduces no rounding. */
+    T_CHECK(rules_economy_slipway_cost_factor(0) == FX_ONE);
+}
+
+static void test_slipway_cost_factor_increases_monotonically_with_routes(void) {
+    int counts[4] = {0, 5, 20, 50};
+    fixed_t prev = rules_economy_slipway_cost_factor(counts[0]);
+
+    for (int i = 1; i < 4; i++) {
+        fixed_t cur = rules_economy_slipway_cost_factor(counts[i]);
+        T_CHECK(cur >= prev);
+        prev = cur;
+    }
+}
+
+/* -- rules_economy_slipway_cost (dj) ------------------------------------
+ *
+ * dj, pico8/lua.lua:1259-1264: floor(bn * bk() * max(0.5, (distance_sq/bq)
+ * ^0.75)), bn=6, bq=0.0977, x^0.75 via two chained fixed_sqrt calls. Per the
+ * PRD's chunk-7 spec: matched against an INDEPENDENTLY double-computed
+ * reference (using libm's own sqrt/pow, NOT this module's fixed_sqrt or
+ * fixed_mul) for a spread of distances and route counts, within a
+ * documented tolerance.
+ *
+ * Tolerance reasoning (per the PRD's own explicit guidance that the band
+ * must be wider than fixed_sqrt's own single-call EPSILON=0.001 real-unit
+ * tolerance, since dj chains TWO fixed_sqrt calls whose rounding errors
+ * compound): rather than propagate an analytic error bound through two
+ * sqrt calls, a fixed_mul, and a final floor by hand, the tolerance here
+ * is bounded EMPIRICALLY -- the same "bounded empirically, not
+ * analytically" precedent this project already established for
+ * docs/plan.md Phase 1 step 2's BFS-connectivity-rate tolerance and
+ * rules_discovery.c's empty-roll Monte-Carlo tolerance (see the PRD's
+ * Testing Decisions). A dense empirical sweep (implementation-time only,
+ * not part of this test itself) comparing rules_economy_slipway_cost's
+ * actual int result against this same double reference, over
+ * distance_sq_real in [0,200] (step ~0.009) x existing_route_count in
+ * [0,1000] (step 1) -- far wider and finer than the handful of spot-check
+ * values below -- found a worst-case absolute difference of exactly 1
+ * (integer unit of the final floored cost), never more, anywhere in that
+ * sweep. TOLERANCE_DJ=1 is that empirical bound directly: any single
+ * fixed-point rounding step (either fixed_sqrt call, or the final
+ * fixed_mul/floor) can shift the pre-floor value just enough to cross one
+ * integer boundary the double reference's own floor didn't cross (or vice
+ * versa), but never more than one such boundary in this formula's actual
+ * range of chained operations. */
+#define TOLERANCE_DJ 1
+
+static double reference_bk(int route_count) {
+    double v = sqrt((double)route_count) * 0.27 - 0.1;
+    if (v < 1.0) {
+        v = 1.0;
+    }
+    return v;
+}
+
+static double reference_dj(double distance_sq_real, int route_count) {
+    double x = distance_sq_real / 0.0977;
+    double ec = pow(x, 0.75);
+    if (ec < 0.5) {
+        ec = 0.5;
+    }
+    return floor(6.0 * reference_bk(route_count) * ec);
+}
+
+static void check_slipway_cost_matches_reference(double distance_sq_real, int route_count) {
+    fixed_t distance_sq = fixed_from_double(distance_sq_real);
+    int actual = rules_economy_slipway_cost(distance_sq, route_count);
+    double expected = reference_dj(distance_sq_real, route_count);
+
+    int diff = actual - (int)expected;
+    if (diff < 0) {
+        diff = -diff;
+    }
+    T_CHECK(diff <= TOLERANCE_DJ);
+}
+
+static void test_slipway_cost_matches_double_reference_for_spread_of_inputs(void) {
+    /* A spread of squared distances and route counts, each computed against
+     * the independent double reference above -- distances span from very
+     * short (near the LIAISON_BLOCK_TOLERANCE_SQ/LIAISON_RANGE_SQ order of
+     * magnitude liaison.h's own constants use) to comfortably longer than
+     * LIAISON_RANGE_SQ (0.5), and route counts span 0 (this port's own
+     * always-empty liaison.c route list today) up through a much larger
+     * hypothetical count. */
+    double distances[] = {0.0, 0.01, 0.0977, 0.19, 0.5, 1.0, 5.0, 20.0, 50.0};
+    int route_counts[] = {0, 1, 3, 5, 10, 20, 50};
+
+    for (size_t i = 0; i < sizeof(distances) / sizeof(distances[0]); i++) {
+        for (size_t j = 0; j < sizeof(route_counts) / sizeof(route_counts[0]); j++) {
+            check_slipway_cost_matches_reference(distances[i], route_counts[j]);
+        }
+    }
+}
+
+static void test_slipway_cost_zero_distance_uses_ec_floor_of_half(void) {
+    /* distance_sq=0 -> x=0 -> x^0.75=0, below max(0.5,...)'s floor, so
+     * ec clamps to exactly 0.5 -- isolates that clamp specifically (distinct
+     * from rules_economy_slipway_cost_factor's own max(1,...) clamp on the
+     * OTHER factor of this same formula). At route_count=0 (bk()=1 exactly),
+     * this is floor(6*1*0.5) = floor(3.0) = 3 exactly, matching the spread
+     * test's own dist=0.0 row but checked here as an isolated, hand-derived
+     * exact value (not merely within TOLERANCE_DJ of a double reference). */
+    T_CHECK(rules_economy_slipway_cost(0, 0) == 3);
+}
+
+/* -- rules_economy_can_afford / rules_economy_debit ---------------------
+ *
+ * fm:lu's gate and mutation, pico8/lua.lua:1217-1224 (via d_(),
+ * pico8/lua.lua:569-576). Per the PRD's chunk-7 spec: the treasury==cost
+ * boundary affords exactly (>=, not >); treasury<cost refuses;
+ * rules_economy_debit's post-debit value for an affordable case; and,
+ * defensively, that debit is safe (no crash/overflow) even for an
+ * unaffordable pair, even though its result is meaningless there per the
+ * PRD's own caller-responsibility framing. */
+
+static void test_can_afford_boundary_treasury_equals_cost_affords(void) {
+    T_CHECK(rules_economy_can_afford(100, 100) == true);
+}
+
+static void test_can_afford_treasury_less_than_cost_refuses(void) {
+    T_CHECK(rules_economy_can_afford(99, 100) == false);
+}
+
+static void test_can_afford_treasury_greater_than_cost_affords(void) {
+    T_CHECK(rules_economy_can_afford(150, 100) == true);
+}
+
+static void test_debit_produces_correct_post_debit_treasury(void) {
+    T_CHECK(rules_economy_can_afford(100, 34) == true);
+    T_CHECK(rules_economy_debit(100, 34) == 66);
+}
+
+static void test_debit_boundary_treasury_equals_cost_leaves_zero(void) {
+    T_CHECK(rules_economy_can_afford(50, 50) == true);
+    T_CHECK(rules_economy_debit(50, 50) == 0);
+}
+
+static void test_debit_unaffordable_pair_is_safe_but_meaningless(void) {
+    /* Defensive test only, per the PRD's own explicit ask: even though
+     * rules_economy_debit is only meaningful when rules_economy_can_afford
+     * already returned true for the same pair (the caller's responsibility,
+     * matching d_()'s own short-circuit ordering), calling it anyway for an
+     * unaffordable pair must not crash or overflow -- it's plain integer
+     * subtraction -- even though the resulting negative treasury is not a
+     * value any real caller in this port should ever construct. */
+    T_CHECK(rules_economy_can_afford(10, 100) == false);
+    T_CHECK(rules_economy_debit(10, 100) == -90);
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -617,5 +778,15 @@ int main(void) {
     t_run("game_over_bankrupt_boundary_treasury_strict_less_than", test_game_over_bankrupt_boundary_treasury_strict_less_than);
     t_run("game_over_final_year_alone_with_healthy_economy", test_game_over_final_year_alone_with_healthy_economy);
     t_run("game_over_final_year_wins_over_simultaneous_bankruptcy", test_game_over_final_year_wins_over_simultaneous_bankruptcy);
+    t_run("slipway_cost_factor_zero_routes_clamps_to_one", test_slipway_cost_factor_zero_routes_clamps_to_one);
+    t_run("slipway_cost_factor_increases_monotonically_with_routes", test_slipway_cost_factor_increases_monotonically_with_routes);
+    t_run("slipway_cost_matches_double_reference_for_spread_of_inputs", test_slipway_cost_matches_double_reference_for_spread_of_inputs);
+    t_run("slipway_cost_zero_distance_uses_ec_floor_of_half", test_slipway_cost_zero_distance_uses_ec_floor_of_half);
+    t_run("can_afford_boundary_treasury_equals_cost_affords", test_can_afford_boundary_treasury_equals_cost_affords);
+    t_run("can_afford_treasury_less_than_cost_refuses", test_can_afford_treasury_less_than_cost_refuses);
+    t_run("can_afford_treasury_greater_than_cost_affords", test_can_afford_treasury_greater_than_cost_affords);
+    t_run("debit_produces_correct_post_debit_treasury", test_debit_produces_correct_post_debit_treasury);
+    t_run("debit_boundary_treasury_equals_cost_leaves_zero", test_debit_boundary_treasury_equals_cost_leaves_zero);
+    t_run("debit_unaffordable_pair_is_safe_but_meaningless", test_debit_unaffordable_pair_is_safe_but_meaningless);
     return t_report();
 }

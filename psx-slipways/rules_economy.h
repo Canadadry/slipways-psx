@@ -459,4 +459,123 @@ typedef enum {
 
 rules_economy_game_over_t rules_economy_check_game_over(int year, int net_income, int treasury);
 
+/* Slipway-cost factor, traced to `bk` (pico8/lua.lua:1259-1264):
+ *
+ *   function bk()
+ *     return max(1, sqrt(#(cg.jc or {}))*0.27-0.1)
+ *   end
+ *
+ * `#(cg.jc or {})` is a PLAIN Lua table-length -- the count of existing
+ * slipways -- NOT a vector `#` (squared distance). This is a genuinely
+ * different use of `#` than every prior squared-distance use of it in this
+ * codebase (world.h/liaison.h's `km:__len`-derived constants, and
+ * rules_economy_slipway_cost's own `distance_sq` parameter below): here it is
+ * a route COUNT, converted to fixed_t (`count << 16`, i.e. `count * FX_ONE`)
+ * before being handed to fixed_sqrt, not a squared-distance quantity that
+ * fixed_sqrt then un-squares. `existing_route_count` is `#(cg.jc or {})`, the
+ * plain route count, taken as a caller-supplied int mirroring liaison.c's own
+ * `route_count` parameter shape (currently always 0 from its permanently-
+ * empty route list, same as every other caller-supplied count in this port
+ * today -- see the PRD's Implementation Decisions, "Slipway cost").
+ *
+ * This is a SECOND, independent use of fixed_sqrt in this same module (the
+ * first being rules_economy_slipway_cost's two chained calls for its own
+ * `x^0.75` term below) -- fixed_sqrt was added to fixed.h for effects.c's
+ * segment-length calculation, and this module's own PRD explicitly confirms
+ * it turns out to be exactly the primitive both of THIS module's formulas
+ * need too, not effects.c-only infrastructure that merely happens to be
+ * reusable.
+ *
+ * `max(1, sqrt(count)*0.27-0.1)`: at count=0, sqrt(0)=0, so
+ * 0*0.27-0.1=-0.1, which is below the `max(1,...)` floor -- the result
+ * clamps to exactly 1*FX_ONE in that case (see the dedicated test).
+ * 0.27/0.1 are folded from their traced double literals via this module's
+ * own established literal-folding idiom (g_trade_level_bonus, above).
+ */
+fixed_t rules_economy_slipway_cost_factor(int existing_route_count);
+
+/* Slipway cost, traced to `dj` (pico8/lua.lua:1259-1264):
+ *
+ *   bn, bq = 6, 0.0977
+ *   function dj(pb,to) local ec = (#(to.p-pb.p)/bq)^0.75
+ *     return flr(bn*bk()*max(0.5,ec)) end
+ *
+ * `#(to.p-pb.p)` is SQUARED distance (`km:__len`, the same "`#v` is squared,
+ * not linear" fact world.h/liaison.h already rely on) -- `distance_sq` here
+ * is exactly that quantity, the SAME squared-world-distance quantity
+ * `liaison_check`/liaison.h's own range/tolerance constants already use, so
+ * a future live-wiring step can hand this function liaison.c's own already-
+ * computed squared distance directly. This is the concrete convergence point
+ * `docs/prd/psx-liaison-validity.md` deferred here: that PRD traced `dj`/`bk`
+ * and explicitly asked for them to be ported in this step (Phase 3 step 13,
+ * rules_economy.c) once they existed to call -- this function is that port.
+ *
+ * `bq=0.0977` is a plain divisor. Since fixed.h has no fixed_div, this is
+ * ported as a multiplication by a compile-time-folded RECIPROCAL constant
+ * (RULES_ECONOMY_SLIPWAY_COST_DIVISOR_RECIP, rules_economy.c), the same
+ * "fold a double-literal constant at compile time" idiom liaison.h's
+ * LIAISON_RANGE_SQ/LIAISON_BLOCK_TOLERANCE_SQ already use -- NOT a general-
+ * purpose fixed-point division primitive this codebase doesn't otherwise
+ * need.
+ *
+ * `x^0.75` (x = distance_sq * (1/bq)) has no fixed_pow anywhere in this
+ * codebase. Computed as x^0.75 = x^(1/2) * x^(1/4) = sqrt(x) * sqrt(sqrt(x)):
+ * two chained fixed_sqrt calls plus one fixed_mul
+ * (`s1 = fixed_sqrt(x); s2 = fixed_sqrt(s1); ec = fixed_mul(s1, s2);`) --
+ * this is this module's FIRST use of fixed_sqrt (the second being
+ * rules_economy_slipway_cost_factor's direct `sqrt(count)` above).
+ * `max(0.5, ec)` clamps the result before the final multiplication.
+ *
+ * `existing_route_count` is passed straight through to
+ * rules_economy_slipway_cost_factor (`bk()`) -- see that function's own doc
+ * comment for why it is a plain route count, not a squared-distance `#`.
+ *
+ * Floored once, at the very end (`bn=6`, `floor(bn * bk() * max(0.5,ec))`) --
+ * matching this port's usual "floor once at the very end" convention here
+ * (unlike rules_economy_annual_net_income's own genuine double floor above):
+ * dj/bk are two independently-traced source functions from a wholly
+ * different part of source (pico8/lua.lua:1259-1264, not hy:lj()'s
+ * 1226-1238), each ported exactly as its own source floors it.
+ */
+int rules_economy_slipway_cost(fixed_t distance_sq, int existing_route_count);
+
+/* Affordability gate, traced to `fm:lu`'s gate (pico8/lua.lua:1217-1224, via
+ * `d_()`, pico8/lua.lua:569-576):
+ *
+ *   function hy:lu(jt) if self.nz<jt then iv({"-no money-",8}) return end
+ *     self.nz-=jt
+ *     ...
+ *
+ * `self.nz<jt` refuses (returns without debiting); this function ports the
+ * NEGATED condition directly -- `treasury >= cost` AFFORDS -- matching
+ * source's own "refuse if treasury is strictly less than cost" gate exactly
+ * (treasury==cost affords: the boundary is inclusive on the affording side).
+ * The `iv(...)` toast call is UI feedback, out of scope (no UI-text system
+ * exists yet, Phase 5). Converges liaison.c's own deferred `fm:lu`/`d_`
+ * reference: a future live-wiring step in liaison.c's drag-commit path can
+ * call this directly once a live treasury exists.
+ */
+bool rules_economy_can_afford(int treasury, int cost);
+
+/* Affordability mutation, traced to `fm:lu`'s debit (pico8/lua.lua:1217-1224):
+ *
+ *   self.nz-=jt
+ *
+ * Plain `treasury - cost`. Meaningful ONLY when rules_economy_can_afford has
+ * already returned true for the SAME (treasury, cost) pair -- this is the
+ * caller's responsibility, not something this function checks or enforces,
+ * matching `d_()`'s own call-site short-circuit ordering exactly
+ * (`if not self.et and fm:lu(...)`, pico8/lua.lua:569-576 -- `fm:lu` itself
+ * is only ever invoked after `d_()`'s own gating, and `fm:lu`'s internal
+ * `self.nz<jt` check is what actually refuses/mutates; this function ports
+ * only the mutation half, `rules_economy_can_afford` the gate half, exactly
+ * as the PRD's own "split into a pure gate and a pure debit" instruction
+ * asks). Calling this for an unaffordable pair is not undefined behavior --
+ * it is plain integer subtraction, so it cannot crash or overflow for any
+ * value this module's own int range supports -- but the resulting negative
+ * treasury value is not meaningful per source's own gating, and no caller in
+ * this port should ever construct that case.
+ */
+int rules_economy_debit(int treasury, int cost);
+
 #endif
