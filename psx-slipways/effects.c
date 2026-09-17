@@ -113,3 +113,20 @@ int effects_flow_try_spawn(fixed_t from_x, fixed_t from_y, fixed_t to_x, fixed_t
 
     return 1;
 }
+
+int effects_flow_step_particle(effects_flow_particle_t *p) {
+    /* t.ra+=t.v (pico8/lua.lua:674): position advances by the stored
+     * velocity, once per call. */
+    p->x = fixed_add(p->x, p->vx);
+    p->y = fixed_add(p->y, p->vy);
+
+    /* t.l-=1 (pico8/lua.lua:675): PICO-8's own numbers are natively
+     * Q16.16 fixed-point, so this literal "1" is already one full
+     * number-unit in that same representation -- exactly FX_ONE here, not
+     * a plain integer needing rescale. See effects.h's doc comment on
+     * this function for the full trail. */
+    p->lifetime = fixed_sub(p->lifetime, FX_ONE);
+
+    /* if (t.l<=0)del(...) (pico8/lua.lua:676), inverted to "still alive". */
+    return p->lifetime > 0;
+}

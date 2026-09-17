@@ -141,6 +141,94 @@ static void test_from_equals_to_never_spawns(void) {
     }
 }
 
+/* t.ra+=t.v (pico8/lua.lua:674): position advances by exactly the stored
+ * velocity per call. Uses a real spawned particle (non-trivial vx/vy, not
+ * (0,0) or an axis-aligned trivial vector) so the assertion actually
+ * exercises both components. */
+static void test_step_advances_position_by_velocity(void) {
+    uint32_t seed = find_seed_with_successful_draw();
+    rng_t rng;
+    rng_seed(&rng, seed);
+
+    effects_flow_particle_t p;
+    int spawned = effects_flow_try_spawn(0, 0, 3 * FX_ONE, 4 * FX_ONE, 1, &rng, &p);
+    T_CHECK(spawned == 1);
+
+    fixed_t x0 = p.x, y0 = p.y, vx = p.vx, vy = p.vy;
+
+    int alive = effects_flow_step_particle(&p);
+    (void)alive;
+
+    T_CHECK(p.x == fixed_add(x0, vx));
+    T_CHECK(p.y == fixed_add(y0, vy));
+}
+
+/* t.l-=1 (pico8/lua.lua:675), ported as lifetime -= FX_ONE (not a plain
+ * integer 1) -- see effects.h's doc comment. Checked as EXACT fixed-point
+ * subtraction, not an approximate/tolerance-bounded check. */
+static void test_step_decrements_lifetime_by_exactly_fx_one(void) {
+    effects_flow_particle_t p = {0};
+    p.x = 10 * FX_ONE;
+    p.y = 20 * FX_ONE;
+    p.vx = FX_ONE / 2;
+    p.vy = -FX_ONE / 3;
+    p.lifetime = 5 * FX_ONE + (FX_ONE / 4);
+
+    fixed_t lifetime0 = p.lifetime;
+    effects_flow_step_particle(&p);
+
+    T_CHECK(p.lifetime == fixed_sub(lifetime0, FX_ONE));
+}
+
+/* A particle survives every call while lifetime > 0, and reports dead on
+ * the first call that brings it to <= 0 -- verified at the exact tick
+ * count, not just "eventually dies". lifetime = 3*FX_ONE: call 1 leaves
+ * 2*FX_ONE (alive), call 2 leaves FX_ONE (alive), call 3 leaves 0 (dead,
+ * matching source's t.l<=0 test). */
+static void test_particle_survives_until_lifetime_crosses_zero(void) {
+    effects_flow_particle_t p = {0};
+    p.x = 0;
+    p.y = 0;
+    p.vx = FX_ONE;
+    p.vy = 0;
+    p.lifetime = 3 * FX_ONE;
+
+    int alive1 = effects_flow_step_particle(&p);
+    T_CHECK(alive1 == 1);
+    T_CHECK(p.lifetime == 2 * FX_ONE);
+
+    int alive2 = effects_flow_step_particle(&p);
+    T_CHECK(alive2 == 1);
+    T_CHECK(p.lifetime == FX_ONE);
+
+    int alive3 = effects_flow_step_particle(&p);
+    T_CHECK(alive3 == 0);
+    T_CHECK(p.lifetime == 0);
+}
+
+/* Defensive edge case (not explicitly required by the chunk spec, but
+ * worth confirming): a particle whose lifetime is already <= 0 BEFORE any
+ * call still reports dead (a sane, non-crashing result) the very first
+ * time it's stepped, rather than e.g. reporting alive because no
+ * "crossing" happened during this particular call. */
+static void test_already_dead_particle_reports_dead_on_first_step(void) {
+    effects_flow_particle_t p = {0};
+    p.x = 0;
+    p.y = 0;
+    p.vx = 0;
+    p.vy = 0;
+    p.lifetime = 0;
+
+    int alive = effects_flow_step_particle(&p);
+    T_CHECK(alive == 0);
+    T_CHECK(p.lifetime == -FX_ONE);
+
+    effects_flow_particle_t p2 = {0};
+    p2.lifetime = -5 * FX_ONE;
+    int alive2 = effects_flow_step_particle(&p2);
+    T_CHECK(alive2 == 0);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -149,5 +237,12 @@ int main(void) {
     t_run("spawn_position_is_perpendicular_offset_from_source",
           test_spawn_position_is_perpendicular_offset_from_source);
     t_run("from_equals_to_never_spawns", test_from_equals_to_never_spawns);
+    t_run("step_advances_position_by_velocity", test_step_advances_position_by_velocity);
+    t_run("step_decrements_lifetime_by_exactly_fx_one",
+          test_step_decrements_lifetime_by_exactly_fx_one);
+    t_run("particle_survives_until_lifetime_crosses_zero",
+          test_particle_survives_until_lifetime_crosses_zero);
+    t_run("already_dead_particle_reports_dead_on_first_step",
+          test_already_dead_particle_reports_dead_on_first_step);
     return t_report();
 }

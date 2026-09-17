@@ -87,4 +87,50 @@ typedef struct {
  */
 int effects_flow_try_spawn(fixed_t from_x, fixed_t from_y, fixed_t to_x, fixed_t to_y, int active, rng_t *rng, effects_flow_particle_t *out);
 
+/*
+ * effects_flow_step_particle -- ports the per-particle update block inside
+ * jc:kj's loop, pico8/lua.lua:673-678:
+ *
+ *   self:lg(-1,2,3,bc)self:lg(0,1,1,c)for _,t in pairs(self.ts)do
+ *   t.ra+=t.v
+ *   t.l-=1
+ *   if (t.l<=0)del(self.ts,t)
+ *   local x,y=t.ra.x,t.ra.y
+ *   rectfill(x,y,x+1,y+1,0)pset(x,y,tc)end
+ *
+ * Position advance (t.ra+=t.v, line 674): straight-line addition of the
+ * particle's stored (unit) velocity, once per call -- ported as
+ * `p->x = fixed_add(p->x, p->vx); p->y = fixed_add(p->y, p->vy);`.
+ *
+ * Lifetime and death (t.l-=1 then if(t.l<=0)del(...), line 675-676): PICO-8's
+ * own numbers are natively Q16.16 fixed-point -- the exact same
+ * representation fixed_t already uses throughout this codebase. So `t.l`'s
+ * literal "1" here is not a plain integer frame counter that needs
+ * rescaling on the way in; it is already one full PICO-8 number-unit in
+ * that same Q16.16 representation, i.e. exactly FX_ONE in this port's own
+ * convention. Ported as `p->lifetime = fixed_sub(p->lifetime, FX_ONE);`,
+ * keeping `lifetime` a fixed_t throughout rather than truncating it to a
+ * plain `int` frame count upfront -- matching `l`'s literal
+ * fractional-capable representation in source (see
+ * docs/prd/triage/psx-effects.md, Implementation Decisions / "The
+ * particle-update formula").
+ *
+ * Returns 1 if the particle is still alive (lifetime > 0) after the
+ * decrement, or 0 if it just died (lifetime <= 0) -- source's own
+ * `t.l<=0` deletion test, inverted to an alive/dead result. The caller,
+ * not this function, is responsible for removing a dead particle from
+ * whatever list it lives in (this step introduces no such list -- see
+ * docs/prd/triage/psx-effects.md's Out of Scope).
+ *
+ * Mutates *p in place, matching effects_flow_try_spawn's established
+ * in/out-parameter convention (the caller owns and threads the particle's
+ * state across calls).
+ *
+ * The drawing calls (rectfill/pset, line 677-678) and the self:ch() spawn
+ * calls immediately following the update loop (line 679) are not part of
+ * this function -- pure rendering and pure spawning are each already
+ * covered (or, for rendering, explicitly out of scope) elsewhere.
+ */
+int effects_flow_step_particle(effects_flow_particle_t *p);
+
 #endif
