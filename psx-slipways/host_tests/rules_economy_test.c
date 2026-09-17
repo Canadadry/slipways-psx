@@ -508,6 +508,67 @@ static void test_compute_score_negative_total_floors_toward_negative_infinity_no
     T_CHECK(score.stars == -1);
 }
 
+/* -- rules_economy_check_game_over --------------------------------------
+ *
+ * hy.hl's assignment, pico8/lua.lua:1235-1236:
+ *   self.hl = self.yr>=3426 and "final score"
+ *             or self.ge<=0 and self.nz<3 and "bankrupt"
+ * Per the PRD's chunk-6 spec: continues-vs-bankrupt-vs-final-year, exact
+ * boundary operators (>= year, <= net_income, < treasury), and the critical
+ * short-circuit test where a simultaneous final-year-and-bankrupt case must
+ * resolve to final year, not bankrupt or some combined result. */
+
+static void test_game_over_continues_with_positive_income(void) {
+    /* year<3426, net_income>0 (treasury doesn't matter since the AND's
+     * first clause is already false) -> continues. */
+    T_CHECK(rules_economy_check_game_over(3400, 1, 0) == RULES_ECONOMY_GAME_CONTINUES);
+}
+
+static void test_game_over_continues_with_sufficient_treasury_despite_nonpositive_income(void) {
+    /* year<3426, net_income<=0 BUT treasury>=3 (the AND's second clause is
+     * false) -> continues. Confirms the bankruptcy AND genuinely requires
+     * BOTH clauses -- either alone being "not bankrupt" is enough to keep
+     * the game going. */
+    T_CHECK(rules_economy_check_game_over(3400, 0, RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD) == RULES_ECONOMY_GAME_CONTINUES);
+    T_CHECK(rules_economy_check_game_over(3400, -50, 1000) == RULES_ECONOMY_GAME_CONTINUES);
+}
+
+static void test_game_over_bankrupt_when_both_clauses_hold(void) {
+    /* year<3426, net_income<=0 AND treasury<3 -> bankrupt. */
+    T_CHECK(rules_economy_check_game_over(3400, -10, 0) == RULES_ECONOMY_GAME_OVER_BANKRUPT);
+}
+
+static void test_game_over_bankrupt_boundary_net_income_zero_counts(void) {
+    /* net_income==0 counts as bankrupt-eligible, per source's <= (not <). */
+    T_CHECK(rules_economy_check_game_over(3400, 0, RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD - 1) == RULES_ECONOMY_GAME_OVER_BANKRUPT);
+}
+
+static void test_game_over_bankrupt_boundary_treasury_strict_less_than(void) {
+    /* treasury exactly AT the threshold does NOT count (strict <), but one
+     * below it does -- both checked with the same nonpositive net_income to
+     * isolate the treasury boundary specifically. */
+    T_CHECK(rules_economy_check_game_over(3400, -1, RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD) == RULES_ECONOMY_GAME_CONTINUES);
+    T_CHECK(rules_economy_check_game_over(3400, -1, RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD - 1) == RULES_ECONOMY_GAME_OVER_BANKRUPT);
+}
+
+static void test_game_over_final_year_alone_with_healthy_economy(void) {
+    /* year>=3426, healthy income/treasury -> final year. */
+    T_CHECK(rules_economy_check_game_over(RULES_ECONOMY_FINAL_YEAR, 500, 1000) == RULES_ECONOMY_GAME_OVER_FINAL_YEAR);
+    T_CHECK(rules_economy_check_game_over(RULES_ECONOMY_FINAL_YEAR + 1, 500, 1000) == RULES_ECONOMY_GAME_OVER_FINAL_YEAR);
+}
+
+static void test_game_over_final_year_wins_over_simultaneous_bankruptcy(void) {
+    /* THE critical short-circuit test (PRD's own single most important test
+     * in this chunk): year>=3426 AND a simultaneously bankrupt net_income/
+     * treasury pair (net_income<=0 AND treasury<3, both true) must still
+     * resolve to RULES_ECONOMY_GAME_OVER_FINAL_YEAR, exactly matching
+     * source's `and`/`or` short-circuit -- the bankruptcy clause is never
+     * even evaluated once the final-year clause is true, so a simultaneous
+     * bankrupt fixture must NOT produce RULES_ECONOMY_GAME_OVER_BANKRUPT or
+     * any other result. */
+    T_CHECK(rules_economy_check_game_over(RULES_ECONOMY_FINAL_YEAR, -10, 0) == RULES_ECONOMY_GAME_OVER_FINAL_YEAR);
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -549,5 +610,12 @@ int main(void) {
     t_run("compute_score_population_score_is_population_times_40", test_compute_score_population_score_is_population_times_40);
     t_run("compute_score_stars_clamps_to_5_when_total_exceeds_10000", test_compute_score_stars_clamps_to_5_when_total_exceeds_10000);
     t_run("compute_score_negative_total_floors_toward_negative_infinity_not_truncated", test_compute_score_negative_total_floors_toward_negative_infinity_not_truncated);
+    t_run("game_over_continues_with_positive_income", test_game_over_continues_with_positive_income);
+    t_run("game_over_continues_with_sufficient_treasury_despite_nonpositive_income", test_game_over_continues_with_sufficient_treasury_despite_nonpositive_income);
+    t_run("game_over_bankrupt_when_both_clauses_hold", test_game_over_bankrupt_when_both_clauses_hold);
+    t_run("game_over_bankrupt_boundary_net_income_zero_counts", test_game_over_bankrupt_boundary_net_income_zero_counts);
+    t_run("game_over_bankrupt_boundary_treasury_strict_less_than", test_game_over_bankrupt_boundary_treasury_strict_less_than);
+    t_run("game_over_final_year_alone_with_healthy_economy", test_game_over_final_year_alone_with_healthy_economy);
+    t_run("game_over_final_year_wins_over_simultaneous_bankruptcy", test_game_over_final_year_wins_over_simultaneous_bankruptcy);
     return t_report();
 }

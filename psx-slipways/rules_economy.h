@@ -408,4 +408,55 @@ typedef struct {
 rules_economy_score_t rules_economy_compute_score(const int *colony_levels, int colony_count, int population,
                                                     int tech_invented_count, fixed_t happiness_percent);
 
+/* End condition, traced to `hy.hl`'s assignment (pico8/lua.lua:1235-1236):
+ *
+ *   self.hl = self.yr>=3426 and "final score"
+ *             or self.ge<=0 and self.nz<3 and "bankrupt"
+ *
+ * Lua's `and`/`or` chain short-circuits left to right, and that short-circuit
+ * is the whole point of this function, not an incidental detail: if
+ * `self.yr>=3426` is true, the expression evaluates to "final score"
+ * IMMEDIATELY -- the entire `self.ge<=0 and self.nz<3 and "bankrupt"` clause
+ * is structurally never reached, not merely "checked after" or "lower
+ * priority." Lua's `and` returns its right operand only when the left is
+ * truthy, and `or` returns its left operand (without evaluating its right)
+ * whenever that left operand is already truthy -- `self.yr>=3426 and "final
+ * score"` is a truthy string the instant `self.yr>=3426` holds, so the `or`
+ * short-circuits and its own right-hand side (the bankruptcy clause) is
+ * simply never evaluated. A simultaneous "year>=3426 AND bankrupt" case
+ * therefore resolves to "final score" every time, matching source exactly --
+ * not some combined or undefined result.
+ *
+ * Only when `self.yr>=3426` is false does evaluation ever reach the
+ * bankruptcy clause, which is itself a further `and`: both `self.ge<=0`
+ * (net income) AND `self.nz<3` (treasury) must hold for `hl` to become
+ * "bankrupt"; if either alone is false, the whole clause is falsy and `hl`
+ * stays false (the game continues).
+ *
+ * Ported as a plain C `if`-return sequence -- a direct structural mirror of
+ * the short-circuit, since C's own top-to-bottom `if`/`return` evaluation
+ * naturally matches Lua's left-to-right `and`/`or` short-circuit here:
+ *
+ *   if (year >= RULES_ECONOMY_FINAL_YEAR) return RULES_ECONOMY_GAME_OVER_FINAL_YEAR;
+ *   if (net_income <= 0 && treasury < RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD)
+ *       return RULES_ECONOMY_GAME_OVER_BANKRUPT;
+ *   return RULES_ECONOMY_GAME_CONTINUES;
+ *
+ * The first `if` returning unconditionally, before the second `if` is even
+ * reached, is exactly what reproduces "the bankruptcy clause is never even
+ * evaluated" -- not just "evaluated second." Comparison operators matched
+ * exactly to source: `>=` for year (`self.yr>=3426`), `<=` for net_income
+ * (`self.ge<=0`, so a net_income of exactly 0 counts as bankrupt-eligible),
+ * and strict `<` for treasury (`self.nz<3`, so treasury exactly equal to
+ * RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD does NOT count -- only
+ * strictly below it does).
+ */
+typedef enum {
+    RULES_ECONOMY_GAME_CONTINUES = 0,
+    RULES_ECONOMY_GAME_OVER_FINAL_YEAR,
+    RULES_ECONOMY_GAME_OVER_BANKRUPT,
+} rules_economy_game_over_t;
+
+rules_economy_game_over_t rules_economy_check_game_over(int year, int net_income, int treasury);
+
 #endif

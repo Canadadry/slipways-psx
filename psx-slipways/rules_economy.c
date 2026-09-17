@@ -380,6 +380,29 @@ rules_economy_score_t rules_economy_compute_score(const int *colony_levels, int 
     return score;
 }
 
+rules_economy_game_over_t rules_economy_check_game_over(int year, int net_income, int treasury) {
+    /* self.yr>=3426 and "final score" or ..., pico8/lua.lua:1235. This `if`
+     * returning unconditionally, before the bankruptcy check below is even
+     * reached, is what reproduces Lua's `or` short-circuit exactly: once
+     * this is true, the bankruptcy clause is structurally never evaluated --
+     * see rules_economy.h's doc comment on this function for the full
+     * short-circuit trace. */
+    if (year >= RULES_ECONOMY_FINAL_YEAR) {
+        return RULES_ECONOMY_GAME_OVER_FINAL_YEAR;
+    }
+
+    /* self.ge<=0 and self.nz<3 and "bankrupt", pico8/lua.lua:1236. Only
+     * reached when the final-year check above was false. Both clauses must
+     * hold (source's own `and`): net_income<=0 (0 counts) AND
+     * treasury<RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD (strictly below,
+     * exactly at the threshold does NOT count). */
+    if (net_income <= 0 && treasury < RULES_ECONOMY_BANKRUPTCY_TREASURY_THRESHOLD) {
+        return RULES_ECONOMY_GAME_OVER_BANKRUPT;
+    }
+
+    return RULES_ECONOMY_GAME_CONTINUES;
+}
+
 int rules_economy_overhead(int colonized_count) {
     /* floor(0.18 * colonized_count^2). Computed with plain integer
      * arithmetic (18*n*n/100, using C's truncating integer division, which
