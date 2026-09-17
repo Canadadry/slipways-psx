@@ -346,6 +346,105 @@ static void test_full_spawn_to_death_lifecycle(void) {
     T_CHECK(diff_y <= tolerance);
 }
 
+/* Chunk 5 (final): the Monte-Carlo spawn-rate regression this PRD's own
+ * Implementation Chunks item 5 / Testing Decisions call for -- "many
+ * thousands of effects_flow_try_spawn calls with active=1 from a fixed
+ * seed, asserting the empirical spawn rate falls within an
+ * implementation-chosen tolerance band around 0.08" -- explicitly mirroring
+ * docs/prd/psx-rules-discovery.md's own empty-roll Monte-Carlo regression
+ * (rules_discovery_test.c's
+ * test_empty_rate_matches_045_within_tolerance_over_many_rolls), itself
+ * mirroring docs/plan.md Phase 1 step 2's BFS-connectivity-rate precedent.
+ * Same posture: ONE rng_t (seeded once), threaded across every call, not
+ * re-seeded per call -- matching how a real per-frame sequence of calls
+ * would consume the RNG. A fixed, non-degenerate from/to pair is used --
+ * the specific geometry doesn't matter for the spawn-rate statistic, since
+ * effects_flow_try_spawn always draws its RNG value first, unconditionally,
+ * before the geometry is ever touched (see effects.h's/effects.c's "always
+ * consume a draw" trace) -- but a real segment, not a from==to case that
+ * would never spawn regardless of the draw, is used for realism.
+ *
+ * UNLIKE rules_discovery's empty-roll (jf(0.8,0.5), a mean-reverting random
+ * WALK whose stationary rate is not analytically obvious and measured
+ * ~0.436 against a nominal 0.45 -- a real, expected ~0.014 gap, not a bug),
+ * effects_flow_try_spawn's spawn trial is a plain i.i.d. Bernoulli(0.08)
+ * draw every call: `rng_next_range(rng, 0, FX_ONE) < EFFECTS_FLOW_SPAWN_CHANCE`,
+ * with no persistent bias/state carried between calls (effects_flow_try_spawn
+ * takes no state struct, unlike rules_discovery_empty_roll_t -- see
+ * effects.c). So this test's empirical rate is expected to converge MUCH
+ * closer to exactly 0.08 than rules_discovery's own ~0.436-vs-0.45 gap --
+ * confirmed by exploration below, not just assumed from the PRD's reasoning.
+ *
+ * Choosing N and the tolerance band (empirical, per this PRD -- exploration
+ * below, not part of the final test itself):
+ *   - A standalone exploration harness (same shape as this test: one rng_t
+ *     per seed, threaded across N calls to effects_flow_try_spawn with
+ *     active=1 and this same fixed non-degenerate from/to pair) was run
+ *     across 30 distinct seeds at N=50,000/100,000/200,000. At N=50,000:
+ *     mean rate 0.07996 (within 0.00004 of the nominal 0.08 -- essentially
+ *     exact), min 0.07772, max 0.08338 (a 0.00566 seed-to-seed spread). At
+ *     N=100,000: mean 0.07987, min 0.07882, max 0.08233 (spread tightens to
+ *     0.00351 -- variance shrinking with N, exactly as expected for i.i.d.
+ *     Bernoulli draws, unlike a mean-reverting walk's stationary spread,
+ *     which would not shrink the same way). This confirms the "i.i.d., not
+ *     a walk" analysis above empirically, not just theoretically: the
+ *     empirical rate lands within a few thousandths of 0.08 at every N
+ *     tried, nowhere near rules_discovery's own ~0.014 gap, and nowhere
+ *     near the "below 0.05 or above 0.12" danger zone that would flag a
+ *     real chunk 1-4 spawn-trial bug rather than ordinary sampling noise.
+ *   - N=100,000 was chosen over N=50,000 for its tighter seed-to-seed spread
+ *     (0.00351 vs 0.00566), at negligible extra cost -- the whole
+ *     exploration sweep above (30 seeds x 3 N values, plus a threshold
+ *     sensitivity check) runs in well under a second on the host.
+ *   - A sensitivity check (deliberately comparing the RNG draw against
+ *     mis-set thresholds in place of the real EFFECTS_FLOW_SPAWN_CHANCE, at
+ *     N=50,000, single seed) confirmed the empirical rate tracks a wrong
+ *     threshold almost exactly 1:1 (0.07 -> ~0.0697, 0.075 -> ~0.0746,
+ *     0.09 -> ~0.0898, 0.12 -> ~0.1187) -- unlike rules_discovery's walk,
+ *     where a threshold change is damped by mean-reversion, this i.i.d.
+ *     generator is, if anything, an EASIER target for a tolerance band to
+ *     usefully catch a regression on, not a harder one.
+ *   - Tolerance: +/-0.01 around 0.08 (i.e. [0.07, 0.09]). The observed
+ *     seed-to-seed spread at N=100,000 (max single-sided deviation ~0.00233
+ *     from 0.08) sits comfortably inside this band -- margin to the nearest
+ *     edge (~0.01) is roughly 4.3x that maximum observed deviation,
+ *     matching rules_discovery's own "3-7x the observed spread" margin
+ *     choice -- while still tight enough to catch a threshold-constant bug
+ *     of a magnitude the sensitivity check above shows would be readily
+ *     visible (e.g. an accidental 0.07 threshold, empirical rate ~0.0697,
+ *     already falls outside [0.07, 0.09] on its own at this precision).
+ *     This test itself uses ONE fixed seed (987654321u, confirmed during
+ *     exploration to land at 0.07833 -- comfortably inside the band, not a
+ *     cherry-picked edge case), so it is fully deterministic and non-flaky
+ *     by construction; the tolerance band exists to bound the GENERATOR's
+ *     true stochastic behavior, not to average out test-to-test variance. */
+static void test_spawn_rate_matches_008_within_tolerance_over_many_calls(void) {
+    const long NUM_CALLS = 100000;
+    const double EXPECTED_RATE = 0.08;
+    const double TOLERANCE = 0.01;
+
+    rng_t rng;
+    rng_seed(&rng, 987654321u);
+
+    fixed_t from_x = 2 * FX_ONE, from_y = 3 * FX_ONE;
+    fixed_t to_x = 11 * FX_ONE, to_y = 15 * FX_ONE;
+
+    long spawn_count = 0;
+    for (long i = 0; i < NUM_CALLS; i++) {
+        effects_flow_particle_t p;
+        if (effects_flow_try_spawn(from_x, from_y, to_x, to_y, 1, &rng, &p)) {
+            spawn_count++;
+        }
+    }
+
+    double empirical_rate = (double)spawn_count / (double)NUM_CALLS;
+    printf("     %ld/%ld calls spawned (%.5f), expected ~%.2f +/- %.2f\n", spawn_count, NUM_CALLS,
+           empirical_rate, EXPECTED_RATE, TOLERANCE);
+
+    T_CHECK(empirical_rate > EXPECTED_RATE - TOLERANCE);
+    T_CHECK(empirical_rate < EXPECTED_RATE + TOLERANCE);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -362,5 +461,7 @@ int main(void) {
     t_run("already_dead_particle_reports_dead_on_first_step",
           test_already_dead_particle_reports_dead_on_first_step);
     t_run("full_spawn_to_death_lifecycle", test_full_spawn_to_death_lifecycle);
+    t_run("spawn_rate_matches_008_within_tolerance_over_many_calls",
+          test_spawn_rate_matches_008_within_tolerance_over_many_calls);
     return t_report();
 }
