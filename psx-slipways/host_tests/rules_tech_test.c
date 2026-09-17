@@ -94,6 +94,46 @@ static void test_release_edge_does_not_toggle(void) {
     T_CHECK(open == 0);
 }
 
+static void test_update_get_state_round_trip_matches_step(void) {
+    rules_tech_init();
+
+    T_CHECK(rules_tech_get_state().open == 0);
+
+    /* Frame 1: Select press edge -- expect closed(0) -> open(1), matching
+     * rules_tech_step() called directly with the same inputs. */
+    uint16_t prev_buttons = 0xffff;
+    uint16_t buttons = (uint16_t) ~RULES_TECH_PAD_SELECT;
+    int expected = rules_tech_step(0, prev_buttons, buttons);
+
+    rules_tech_update(buttons);
+    T_CHECK(rules_tech_get_state().open == expected);
+    T_CHECK(expected == 1);
+
+    /* Frame 2: Select held, no new edge -- stays open. */
+    uint16_t buttons2 = (uint16_t) ~RULES_TECH_PAD_SELECT;
+    expected = rules_tech_step(expected, buttons, buttons2);
+
+    rules_tech_update(buttons2);
+    T_CHECK(rules_tech_get_state().open == expected);
+    T_CHECK(expected == 1);
+
+    /* Frame 3: Select released -- release edge, no toggle -- stays open. */
+    uint16_t buttons3 = 0xffff;
+    expected = rules_tech_step(expected, buttons2, buttons3);
+
+    rules_tech_update(buttons3);
+    T_CHECK(rules_tech_get_state().open == expected);
+    T_CHECK(expected == 1);
+
+    /* Frame 4: fresh Select press edge -- open(1) -> closed(0). */
+    uint16_t buttons4 = (uint16_t) ~RULES_TECH_PAD_SELECT;
+    expected = rules_tech_step(expected, buttons3, buttons4);
+
+    rules_tech_update(buttons4);
+    T_CHECK(rules_tech_get_state().open == expected);
+    T_CHECK(expected == 0);
+}
+
 int main(void) {
     t_run("space_folding_matches_traced_values", test_space_folding_matches_traced_values);
     t_run("geneseeds_matches_traced_values", test_geneseeds_matches_traced_values);
@@ -104,5 +144,6 @@ int main(void) {
     t_run("holding_select_toggles_only_once", test_holding_select_toggles_only_once);
     t_run("no_edge_leaves_open_unchanged", test_no_edge_leaves_open_unchanged);
     t_run("release_edge_does_not_toggle", test_release_edge_does_not_toggle);
+    t_run("update_get_state_round_trip_matches_step", test_update_get_state_round_trip_matches_step);
     return t_report();
 }

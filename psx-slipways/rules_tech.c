@@ -41,3 +41,33 @@ int rules_tech_step(int prev_open, uint16_t prev_buttons, uint16_t buttons) {
 
     return next_open;
 }
+
+/* Stateful wrapper -- mirrors cursor.c's g_cursor_mouse_mode/
+ * g_cursor_prev_buttons shape exactly: flat, non-static, module-owned
+ * globals; rules_tech_init() resets them; rules_tech_update() reads them
+ * into locals, calls the pure step function, writes the result back out,
+ * then updates prev_buttons last (matching cursor_update()'s own
+ * read-into-locals/call-pure-fn/write-back-out/update-prev_buttons-last
+ * sequencing). */
+int g_rules_tech_open = 0;
+uint16_t g_rules_tech_prev_buttons = 0xffff;
+
+void rules_tech_init(void) {
+    g_rules_tech_open = 0;
+    g_rules_tech_prev_buttons = 0xffff;
+}
+
+void rules_tech_update(uint16_t buttons) {
+    int prev_open = g_rules_tech_open;
+
+    int next_open = rules_tech_step(prev_open, g_rules_tech_prev_buttons, buttons);
+
+    g_rules_tech_open = next_open;
+    g_rules_tech_prev_buttons = buttons;
+}
+
+rules_tech_state_t rules_tech_get_state(void) {
+    rules_tech_state_t state;
+    state.open = g_rules_tech_open;
+    return state;
+}

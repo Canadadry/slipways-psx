@@ -77,4 +77,17 @@ const tech_t *rules_tech_get(tech_id_t id);
  * mouse_mode field convention, per this PRD's own declared signature. */
 int rules_tech_step(int prev_open, uint16_t prev_buttons, uint16_t buttons);
 
+/* Stateful wrapper, mirroring cursor.h/cursor.c's own
+ * init/update/get_state shape exactly. rules_tech_update() reads the raw
+ * buttons value directly (the caller passes input_get_state().buttons) --
+ * this module has no dependency on cursor.c whatsoever, per this PRD's
+ * Implementation Decisions ("Select's edge detection and gating"). */
+typedef struct {
+    int open; /* 0 = closed, 1 = open */
+} rules_tech_state_t;
+
+void rules_tech_init(void);
+void rules_tech_update(uint16_t buttons);
+rules_tech_state_t rules_tech_get_state(void);
+
 #endif
