@@ -109,4 +109,83 @@ int rules_economy_colony_maintenance(bool is_laboratory, int laboratory_count, b
  * not merely simpler. */
 int rules_economy_overhead(int colonized_count);
 
+/* One trade edge's contribution to db()'s total, traced to db()'s inner
+ * edge-loop body (pico8/lua.lua:1325-1337, specifically the accumulation
+ * line at 1333):
+ *
+ *   function db(pt)
+ *     local total=0
+ *     for e in all(pt.by) do
+ *       local oz=e:to()
+ *       if oz.hf then
+ *         total += dk.trade * pt.hs * (1+ct[pt.mi]+ct[oz.mi])   -- line 1333
+ *       end
+ *     end
+ *     ...
+ *
+ * `dk.trade` (trade_difficulty), `pt.hs` (sensitivity, a per-colony "local
+ * sensitivity" field, default 1 for a regular colony per the `jo` class,
+ * pico8/lua.lua:387), `pt.mi` (self_level) and `oz.mi` (partner_level) are
+ * all plain caller-supplied parameters here -- no live route/colonization
+ * list exists in this module to derive them from (see the PRD's Implementation
+ * Decisions, "Trade income": "the caller supplies the levels of whatever
+ * colonies are currently connected and already known to be 'regular' (hf)").
+ * `ct` is rules_economy_trade_level_bonus, already ported in chunk 1.
+ *
+ * Not floored: this is a single edge's fractional contribution, summed with
+ * others (and floored only once, per-colony) by rules_economy_colony_net --
+ * a later chunk (4), not this one. Returns fixed_t, matching db()'s own
+ * fractional intermediate total.
+ */
+fixed_t rules_economy_trade_edge_income(int trade_difficulty, fixed_t sensitivity, int self_level, int partner_level);
+
+/* A colony's full trade income for the year: every outgoing edge's
+ * contribution (rules_economy_trade_edge_income, summed over
+ * partner_levels[0..partner_count)) plus the corrected external-trade
+ * ("luxury") bonus, traced to db() in full (pico8/lua.lua:1325-1337):
+ *
+ *   function db(pt)
+ *     local total=0
+ *     for e in all(pt.by) do
+ *       local oz=e:to()
+ *       if oz.hf then
+ *         total += dk.trade * pt.hs * (1+ct[pt.mi]+ct[oz.mi])
+ *       end
+ *     end
+ *     if pt.kw.qe==r.w then
+ *       total += pt.kw.mu * dk.trade * 1.5
+ *     end
+ *     return total
+ *   end
+ *
+ * **The luxury-bonus correction**: `pt.kw.qe==r.w` -- the design doc's own
+ * SS10 prose guesses "energie... en fait la ressource << joker >> globale",
+ * but neither guess survives a direct check against the design doc's own
+ * Annexe A: `r.w` is `12` and `iz[12]="luxury"` (docs/design/
+ * slipways-mechanics.md:304-306) -- neither "energy" (r.e=54) nor the joker
+ * (r["?"]=36). The real condition is "this colony's OWN produced resource is
+ * luxury", not any external/global resource -- ported here as the caller-
+ * supplied `produces_luxury` boolean (standing in for `pt.kw.qe==r.w`) and
+ * `luxury_production` (standing in for `pt.kw.mu`, the colony's own
+ * production quantity, an aggregate rules_economy.c has no live source for --
+ * see the PRD's Implementation Decisions, item (B) on bx()/ck()).
+ * `produces_luxury and luxury_production` -- the bonus is
+ * `luxury_production * trade_difficulty * 1.5`, added iff produces_luxury is
+ * true, unconditional on any trade edge existing (it is a separate `if`
+ * block in source, not part of the edge loop above).
+ *
+ * partner_levels/partner_count stand in for `pt.by`/`e:to()`'s edge walk,
+ * already filtered to partners known to be "regular" (`oz.hf`) by the
+ * caller -- mirrors effects.c's identical `active`-parameter resolution for
+ * the structurally analogous "no live trade state exists" problem (see the
+ * PRD's Implementation Decisions, "Trade income").
+ *
+ * Not floored: matches rules_economy_trade_edge_income's own "not floored
+ * here" convention -- the per-colony floor is rules_economy_colony_net's
+ * job (a later chunk).
+ */
+fixed_t rules_economy_colony_trade_income(int trade_difficulty, fixed_t sensitivity, int self_level,
+                                           const int *partner_levels, int partner_count, bool produces_luxury,
+                                           fixed_t luxury_production);
+
 #endif
