@@ -220,6 +220,166 @@ int rules_economy_annual_net_income(const int *colony_nets, int colony_count, bo
     return floored - overhead;
 }
 
+/* co, pico8/lua.lua:1364: {-5,0,1,1} for levels 1-4. All-integer (like
+ * g_colony_maintenance_cost above, unlike g_trade_level_bonus), so each
+ * entry is folded to Q16.16 via a plain "int * FX_ONE" literal -- no
+ * fractional double-literal folding concern, matching the PRD's own note
+ * that these are "exact integers." Index 0..3 represents levels 1..4,
+ * matching every other per-level table's indexing convention in this file. */
+static const fixed_t g_happiness_level_adjustment[4] = {
+    -5 * FX_ONE,
+    0 * FX_ONE,
+    1 * FX_ONE,
+    1 * FX_ONE,
+};
+
+fixed_t rules_economy_happiness(fixed_t joy_production, fixed_t luxury_production, const int *colony_levels, int colony_count) {
+    /* 100 + 2*(fm.po[r.h]+fm.po[r.w]), pico8/lua.lua:1367. */
+    fixed_t h = fixed_add((fixed_t)(100 * FX_ONE), fixed_mul((fixed_t)(2 * FX_ONE), fixed_add(joy_production, luxury_production)));
+
+    /* for pt in all(cg.jo) do if pt:gg() then h += co[pt.mi] end end,
+     * pico8/lua.lua:1368-1370 -- every colony_levels entry stands in for a
+     * colony already known to satisfy pt:gg(), per this module's established
+     * "caller already filtered" convention (see rules_economy.h's doc
+     * comment on this function). */
+    for (int i = 0; i < colony_count; i++) {
+        int level = colony_levels[i];
+
+        if (level < 1) {
+            level = 1;
+        }
+        if (level > 4) {
+            level = 4;
+        }
+
+        h = fixed_add(h, g_happiness_level_adjustment[level - 1]);
+    }
+
+    /* Not floored, not clamped: see rules_economy.h's doc comment on this
+     * function for why -- source never does either to `h`. */
+    return h;
+}
+
+/* b_, pico8/lua.lua:1339: {0,100,200,400} for levels 1-4. All-integer, kept
+ * as a plain int table (not fixed_t) since colonies_score/population_score/
+ * tech_score/total are all plain ints in source too (di/gl/el/total are never
+ * fixed-point in ky() -- only the final `*0.01*fm.happiness` step needs real
+ * fixed-point arithmetic, handled directly in rules_economy_compute_score
+ * below). */
+static const int g_colonies_score[4] = {0, 100, 200, 400};
+
+/* (#fm.invented*1.2)^2's "1.2" multiplier, pico8/lua.lua:1361. Not exactly
+ * representable in Q16.16, folded from the traced double literal via the
+ * same idiom RULES_ECONOMY_LUXURY_TRADE_MULTIPLIER/RULES_ECONOMY_SKILL_
+ * IMPLANTS_MULTIPLIER already use above. Kept file-local: no other consumer,
+ * per this file's own established "keep unexposed constants static/#define,
+ * not in the header" precedent. */
+#define RULES_ECONOMY_SCORE_TECH_MULTIPLIER ((fixed_t)(1.2 * (double)FX_ONE))
+
+rules_economy_score_t rules_economy_compute_score(const int *colony_levels, int colony_count, int population,
+                                                    int tech_invented_count, fixed_t happiness_percent) {
+    rules_economy_score_t score;
+
+    /* di: sum of b_[level] over colony_levels, pico8/lua.lua:1341-1345 --
+     * every entry stands in for a colony already known to satisfy pt:gg(),
+     * same "caller already filtered" convention as rules_economy_happiness
+     * above. level clamped to [1,4], mirroring this file's established
+     * clamping idiom exactly. */
+    int colonies_score = 0;
+    for (int i = 0; i < colony_count; i++) {
+        int level = colony_levels[i];
+
+        if (level < 1) {
+            level = 1;
+        }
+        if (level > 4) {
+            level = 4;
+        }
+
+        colonies_score += g_colonies_score[level - 1];
+    }
+
+    /* gl = fm.po[r.p]*40, pico8/lua.lua:1360. Plain int arithmetic: both
+     * operands are exact integers, no fixed_t needed. */
+    int population_score = population * 40;
+
+    /* el = flr((#fm.invented*1.2)^2)*10, pico8/lua.lua:1361. tech_x is
+     * (tech_invented_count*1.2) in Q16.16; tech_x_squared is tech_x^2 in
+     * Q16.16, floored to an int via this file's own fixed_floor_to_int
+     * (defined above, chunk 4) -- reused, not duplicated -- then multiplied
+     * by 10. tech_invented_count is widened to fixed_t via the same
+     * "int * FX_ONE, cast to fixed_t" idiom this file already uses
+     * repeatedly (e.g. rules_economy_trade_edge_income's trade_difficulty). */
+    fixed_t tech_x = fixed_mul((fixed_t)(tech_invented_count * FX_ONE), RULES_ECONOMY_SCORE_TECH_MULTIPLIER);
+    fixed_t tech_x_squared = fixed_mul(tech_x, tech_x);
+    int tech_score = fixed_floor_to_int(tech_x_squared) * 10;
+
+    /* total = flr((di+gl+el)*0.01*fm.happiness), pico8/lua.lua:1362.
+     *
+     * Computed with int64_t intermediates throughout, NOT via a fixed_t
+     * widening of the raw integer sum, for two independent reasons:
+     * (1) overflow -- population_score (population*40) is unbounded by
+     * anything this module tracks, so a large enough population pushes
+     * sum*FX_ONE past fixed_t's int32 range even though this module's own
+     * tests never exercise a sum that large; (2) precision -- even for
+     * sums well inside fixed_t's range, multiplying by a Q16.16-truncated
+     * "0.01" literal ((fixed_t)(0.01*FX_ONE) is not exact, since 0.01 has
+     * no finite binary representation) measurably corrupts the result --
+     * verified concretely: for this module's own stars-clamping test
+     * (sum=16000, happiness=100%), a naive two-step fixed_mul chain through
+     * a truncated 0.01 constant yields total=15991, not the exact 16000,
+     * an error large enough to have failed that test's own exact-match
+     * assertion even though no step in that particular chain overflows.
+     * Instead: numerator = sum * happiness_percent (both widened to
+     * int64_t before multiplying, so THIS product cannot overflow for any
+     * value either operand could plausibly hold); denominator = 100 *
+     * FX_ONE (the fixed-point representation of the literal "100" in
+     * "*0.01*..."). numerator/denominator is mathematically exactly
+     * sum*happiness_percent_real/100, i.e. sum*0.01*happiness_percent_real
+     * -- the same value source computes, without ever materializing a
+     * truncated "0.01" constant or an out-of-range fixed_t along the way.
+     *
+     * Floored toward negative infinity, not truncated toward zero:
+     * happiness_percent (rules_economy_happiness's own return value) is
+     * uncapped and can be negative, which makes numerator (and so `total`)
+     * negative too for a nonzero sum -- the same "truncation != floor for
+     * negative values" correction fixed_floor_to_int already establishes,
+     * applied here directly to the int64_t quotient/remainder since this
+     * value never takes the form of an in-range fixed_t that
+     * fixed_floor_to_int itself could be called on. */
+    int sum = colonies_score + population_score + tech_score;
+    int64_t numerator = (int64_t)sum * (int64_t)happiness_percent;
+    int64_t denominator = (int64_t)100 * (int64_t)FX_ONE;
+    int64_t total64 = numerator / denominator;
+    if (numerator % denominator != 0 && numerator < 0) {
+        total64 -= 1;
+    }
+    int total = (int)total64;
+
+    /* stars = min(flr(total/2000), 5), pico8/lua.lua:1363. `total` is
+     * already a plain, already-floored int here -- this is an int/int floor
+     * division, not a fixed_t operation -- but still not C's truncating `/`,
+     * for the same reason `total` above needed care: `total` can be
+     * negative, and truncating division rounds toward zero, not toward
+     * negative infinity. No lower clamp: source has none, only the upper
+     * min(...,5) bound is ported. */
+    int stars = total / 2000;
+    if (total % 2000 != 0 && total < 0) {
+        stars -= 1;
+    }
+    if (stars > 5) {
+        stars = 5;
+    }
+
+    score.colonies_score = colonies_score;
+    score.population_score = population_score;
+    score.tech_score = tech_score;
+    score.total = total;
+    score.stars = stars;
+
+    return score;
+}
+
 int rules_economy_overhead(int colonized_count) {
     /* floor(0.18 * colonized_count^2). Computed with plain integer
      * arithmetic (18*n*n/100, using C's truncating integer division, which

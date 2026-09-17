@@ -276,4 +276,136 @@ int rules_economy_colony_net(fixed_t trade_income, int maintenance);
  */
 int rules_economy_annual_net_income(const int *colony_nets, int colony_count, bool skill_implants_researched, int overhead);
 
+/* Empire happiness for the year, traced to `bf` (pico8/lua.lua:1365-1373):
+ *
+ *   co = ob([[-5,0,1,1,]])
+ *   function bf()
+ *     local h = 100 + 2*(fm.po[r.h]+fm.po[r.w])
+ *     for pt in all(cg.jo) do
+ *       if pt:gg() then h += co[pt.mi] end
+ *     end
+ *     return h
+ *   end
+ *
+ * `r.h` is `25` (Annexe A) -> `iz[25]="joy"`; `r.w` is `12` -> `iz[12]=
+ * "luxury"` (the same code identified in rules_economy_colony_trade_income's
+ * doc comment above -- both bf() and db() key off r.w="luxury", one more
+ * piece of the same already-decoded table this module's own PRD reuses
+ * rather than re-guessing, per the PRD's Implementation Decisions,
+ * "Happiness"). `joy_production`/`luxury_production` stand in for
+ * `fm.po[r.h]`/`fm.po[r.w]` -- the aggregated per-resource production totals
+ * `bx()` would have produced, taken here as plain caller-supplied parameters
+ * for the same reason rules_economy_colony_trade_income's own
+ * luxury_production parameter is (see the PRD's Implementation Decisions,
+ * item (B) on bx()/ck() -- no live per-planet production state exists in
+ * this module).
+ *
+ * `co` (`{-5,0,1,1}` for levels 1-4) is the per-colonized-colony adjustment,
+ * summed over colony_levels[0..colony_count) -- every entry stands in for a
+ * colony satisfying `pt:gg()` (regular, colonized), matching this module's
+ * established "caller already filtered to the relevant colonies" convention
+ * (rules_economy_colony_trade_income's partner_levels). level is clamped to
+ * [1,4], mirroring rules_economy_trade_level_bonus's own clamping idiom
+ * exactly.
+ *
+ * Returns fixed_t, NOT int: nothing in source floors `h` (bf() returns a
+ * plain Lua number, added to directly and later multiplied by 0.01 inside
+ * ky(), never passed through flr() anywhere in its own body or at any of its
+ * call sites). Deliberately UNCAPPED: no clamp to 100 is applied here,
+ * matching both source's own un-floored, uncapped arithmetic above (there is
+ * no min()/max() anywhere in bf()) and the design doc's own explicit
+ * "n'est pas plafonne" ("is not capped") note on this exact value -- so a
+ * heavy joy/luxury economy can push happiness well above 100, and enough
+ * unhappy (level-1) colonies can push it below 100, even negative.
+ */
+fixed_t rules_economy_happiness(fixed_t joy_production, fixed_t luxury_production, const int *colony_levels, int colony_count);
+
+/* ky()'s own returned tuple shape, traced to `ky()` (pico8/lua.lua:
+ * 1339-1363) -- see rules_economy_compute_score below for the full formula.
+ * Field order matches ky()'s own `{di, gl, el, fm.happiness.."%", total,
+ * min(flr(total/2000),5)}` return, minus the happiness-percent-as-string
+ * field (fm.happiness is rules_economy_happiness's own return value, already
+ * available to the caller as the fixed_t it passed in -- not duplicated
+ * here).
+ */
+typedef struct {
+    int colonies_score;
+    int population_score;
+    int tech_score;
+    int total;
+    int stars;
+} rules_economy_score_t;
+
+/* Empire score for the year, traced to `ky` (pico8/lua.lua:1339-1363):
+ *
+ *   b_ = ob([[0,100,200,400,]])
+ *   function ky()
+ *     local di=0
+ *     for pt in all(cg.jo) do
+ *       if pt:gg() then di+=b_[pt.mi] end
+ *     end
+ *     local gl = fm.po[r.p]*40
+ *     local el = flr((#fm.invented*1.2)^2)*10
+ *     local total = flr((di+gl+el)*0.01*fm.happiness)
+ *     return {di, gl, el, fm.happiness.."%", total, min(flr(total/2000),5)}
+ *   end
+ *
+ * - `colonies_score` (`di`): sum of `b_[level]` (`{0,100,200,400}` for
+ *   levels 1-4) over colony_levels[0..colony_count) -- every entry stands in
+ *   for a colonized colony (`pt:gg()`), matching rules_economy_happiness's
+ *   own "caller already filtered" convention. level clamped to [1,4].
+ * - `population_score` (`gl`): `population*40` (`fm.po[r.p]*40` -- `r.p` is
+ *   `19` -> `iz[19]="people"`, matching RESOURCE_PEOPLE in rules_planets.h,
+ *   produced by JOB_HIVEWORLD). Plain int arithmetic, no fixed_t needed --
+ *   both operands and the multiplier are exact integers.
+ * - `tech_score` (`el`): `floor((tech_invented_count*1.2)^2)*10`. `1.2` is
+ *   not exactly representable in Q16.16 (folded from the traced double
+ *   literal via the same idiom RULES_ECONOMY_LUXURY_TRADE_MULTIPLIER/
+ *   RULES_ECONOMY_SKILL_IMPLANTS_MULTIPLIER already use, rules_economy.c),
+ *   so this needs real fixed-point multiplication, unlike population_score.
+ *   Computed as `fixed_t x = fixed_mul(tech_invented_count*FX_ONE,
+ *   <1.2 in Q16.16>)`, then `fixed_mul(x,x)`, floored to an int via this
+ *   module's own fixed_floor_to_int (rules_economy.c, added in chunk 4,
+ *   reused here rather than duplicated), then multiplied by 10.
+ * - `total`: `floor((colonies_score+population_score+tech_score)*0.01*
+ *   happiness_percent)`. `happiness_percent` is exactly
+ *   rules_economy_happiness's own return value passed straight in (source's
+ *   own `fm.happiness` field, set once per year by bf() inside hy:lj()),
+ *   keeping the two functions composable without any shared live state --
+ *   see rules_economy_happiness's own doc comment above. Computed with
+ *   int64_t intermediates throughout (rules_economy.c), NOT by first
+ *   widening the raw integer sum to a fixed_t and calling fixed_mul, for
+ *   two independent reasons: overflow (population_score is unbounded by
+ *   this module, so a large enough population pushes sum*FX_ONE past
+ *   fixed_t's int32 range, even beyond what this module's own tests
+ *   exercise) and precision (even for sums well inside range, a
+ *   Q16.16-truncated "0.01" literal measurably corrupts the result --
+ *   verified to produce 15991 instead of the exact 16000 for this
+ *   module's own stars-clamping test inputs, an error large enough to
+ *   fail that test's exact-match assertion on its own, independent of
+ *   any overflow). The int64_t composition avoids both while still
+ *   producing the exact same mathematical floor(...) source computes.
+ *   Uses this module's own floor-toward-negative-infinity convention
+ *   (fixed_floor_to_int's own
+ *   correctness argument, rules_economy.c) rather than C's truncate-toward-
+ *   zero integer division, since `happiness_percent` is itself uncapped and
+ *   can go negative (rules_economy_happiness's own doc comment above), which
+ *   would make `total` negative too -- a case plain truncating division
+ *   would floor incorrectly.
+ * - `stars`: `min(floor(total/2000), 5)`. `total` is already a plain,
+ *   already-floored int here, so this is an int/int floor-division, not a
+ *   fixed_t operation -- but still NOT C's plain truncating `/`, for the
+ *   same reason `total` itself needed care above: `total` can be negative
+ *   (an unhappy-enough empire), and truncating division rounds a negative
+ *   quotient toward zero, not toward negative infinity (e.g. `-500/2000`
+ *   truncates to `0` in C, but `floor(-500/2000)` is `-1`) -- so this is
+ *   computed with the same floor-toward-negative-infinity correction
+ *   fixed_floor_to_int already establishes, applied here to a plain int
+ *   division instead of a fixed_t one. No lower clamp is applied (source has
+ *   none): `stars` can go negative for a deeply unhappy empire, only the
+ *   upper `min(...,5)` bound from source is ported.
+ */
+rules_economy_score_t rules_economy_compute_score(const int *colony_levels, int colony_count, int population,
+                                                    int tech_invented_count, fixed_t happiness_percent);
+
 #endif

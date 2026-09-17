@@ -370,6 +370,144 @@ static void test_annual_net_income_overhead_subtracts_after_second_floor(void) {
     T_CHECK(actual != naive_wrong);
 }
 
+/* -- rules_economy_happiness --------------------------------------------
+ *
+ * bf, pico8/lua.lua:1365-1373: h = 100 + 2*(joy+luxury) + sum(co[level]),
+ * co={-5,0,1,1} for levels 1-4. fixed_t, uncapped in both directions --
+ * these tests specifically construct cases both above and below 100 to
+ * prove it, per the PRD's chunk-5 spec (User Story #10, Implementation
+ * Chunks item 5). */
+
+static void test_happiness_base_100_with_no_production_or_colonies(void) {
+    T_CHECK(rules_economy_happiness(0, 0, NULL, 0) == 100 * FX_ONE);
+}
+
+static void test_happiness_joy_and_luxury_production_add_term(void) {
+    /* 100 + 2*(3+2) = 110, exact. */
+    fixed_t joy = 3 * FX_ONE;
+    fixed_t luxury = 2 * FX_ONE;
+    T_CHECK(rules_economy_happiness(joy, luxury, NULL, 0) == 110 * FX_ONE);
+}
+
+static void test_happiness_mixed_colony_levels_sum_correctly(void) {
+    /* One colony at each level 1-4: co sums to -5+0+1+1=-3, so
+     * h = 100 + 0 - 3 = 97, exact. Exercises every co[] entry in one call,
+     * not just the extremes the above/below-100 tests below isolate. */
+    int colony_levels[4] = {1, 2, 3, 4};
+    T_CHECK(rules_economy_happiness(0, 0, colony_levels, 4) == 97 * FX_ONE);
+}
+
+static void test_happiness_heavy_production_goes_above_100(void) {
+    /* 100 + 2*(40+40) = 100+160 = 260, exact -- genuinely above 100, not
+     * clamped. */
+    fixed_t joy = 40 * FX_ONE;
+    fixed_t luxury = 40 * FX_ONE;
+    fixed_t actual = rules_economy_happiness(joy, luxury, NULL, 0);
+    T_CHECK(actual == 260 * FX_ONE);
+    T_CHECK(actual > 100 * FX_ONE);
+}
+
+static void test_happiness_many_unhappy_colonies_goes_below_100_and_negative(void) {
+    /* 25 colonies at level 1 (co[1]=-5 each): h = 100 - 125 = -25, exact --
+     * genuinely below 100 AND negative, proving this is not silently
+     * clamped to 0 or 100 in either direction. */
+    int colony_levels[25];
+    for (int i = 0; i < 25; i++) {
+        colony_levels[i] = 1;
+    }
+
+    fixed_t actual = rules_economy_happiness(0, 0, colony_levels, 25);
+    T_CHECK(actual == -25 * FX_ONE);
+    T_CHECK(actual < 100 * FX_ONE);
+    T_CHECK(actual < 0);
+}
+
+static void test_happiness_level_clamps_to_valid_range(void) {
+    int level_0[1] = {0};
+    int level_1[1] = {1};
+    int level_5[1] = {5};
+    int level_4[1] = {4};
+    T_CHECK(rules_economy_happiness(0, 0, level_0, 1) == rules_economy_happiness(0, 0, level_1, 1));
+    T_CHECK(rules_economy_happiness(0, 0, level_5, 1) == rules_economy_happiness(0, 0, level_4, 1));
+}
+
+/* -- rules_economy_compute_score ------------------------------------------
+ *
+ * ky, pico8/lua.lua:1339-1363: colonies_score=sum(b_[level]),
+ * b_={0,100,200,400}; population_score=population*40;
+ * tech_score=floor((tech*1.2)^2)*10; total=floor((sum)*0.01*happiness);
+ * stars=min(floor(total/2000),5). Per the PRD's chunk-5 spec: each component
+ * checked against a hand-computed value for a non-trivial input, and a case
+ * where total exceeds 5*2000=10000 confirming stars clamps to 5 exactly. */
+
+static void test_compute_score_components_match_hand_computed_values(void) {
+    /* colony_levels={1,2,3,4,4}: colonies_score = 0+100+200+400+400=1100.
+     * population=50: population_score=2000.
+     * tech_invented_count=4: tech_x=4*1.2=4.8 (approx in Q16.16),
+     * tech_x^2=23.04 (approx), floored to 23, tech_score=230.
+     * happiness_percent=80% (80*FX_ONE, exact):
+     * total = floor(3330*0.01*80) = floor(2664.0) = 2664 (exact).
+     * stars = min(floor(2664/2000),5) = min(1,5) = 1. */
+    int colony_levels[5] = {1, 2, 3, 4, 4};
+    rules_economy_score_t score = rules_economy_compute_score(colony_levels, 5, 50, 4, 80 * FX_ONE);
+
+    T_CHECK(score.colonies_score == 1100);
+    T_CHECK(score.population_score == 2000);
+    T_CHECK(score.tech_score == 230);
+    T_CHECK(score.total == 2664);
+    T_CHECK(score.stars == 1);
+}
+
+static void test_compute_score_colonies_score_matches_b_table_alone(void) {
+    /* Isolate colonies_score with population/tech at 0: one colony per
+     * level, b_ sums to 0+100+200+400=700. */
+    int colony_levels[4] = {1, 2, 3, 4};
+    rules_economy_score_t score = rules_economy_compute_score(colony_levels, 4, 0, 0, 0);
+    T_CHECK(score.colonies_score == 700);
+    T_CHECK(score.population_score == 0);
+    T_CHECK(score.tech_score == 0);
+}
+
+static void test_compute_score_population_score_is_population_times_40(void) {
+    rules_economy_score_t score = rules_economy_compute_score(NULL, 0, 17, 0, 0);
+    T_CHECK(score.population_score == 17 * 40);
+}
+
+static void test_compute_score_stars_clamps_to_5_when_total_exceeds_10000(void) {
+    /* 30 colonies at level 4: colonies_score=30*400=12000.
+     * population=100: population_score=4000.
+     * tech_invented_count=0: tech_score=0.
+     * sum=16000. happiness_percent=100% (100*FX_ONE, exact):
+     * total = floor(16000*0.01*100) = floor(16000.0) = 16000 (exact).
+     * Without the min(...,5) cap, floor(16000/2000)=8 -- this test confirms
+     * stars is clamped to 5, not 8. */
+    int colony_levels[30];
+    for (int i = 0; i < 30; i++) {
+        colony_levels[i] = 4;
+    }
+
+    rules_economy_score_t score = rules_economy_compute_score(colony_levels, 30, 100, 0, 100 * FX_ONE);
+    T_CHECK(score.colonies_score == 12000);
+    T_CHECK(score.population_score == 4000);
+    T_CHECK(score.tech_score == 0);
+    T_CHECK(score.total == 16000);
+    T_CHECK(score.total / 2000 == 8); /* confirms the cap is genuinely doing something */
+    T_CHECK(score.stars == 5);
+}
+
+static void test_compute_score_negative_total_floors_toward_negative_infinity_not_truncated(void) {
+    /* A single level-4 colony (colonies_score=400), no population/tech, and
+     * a deeply unhappy (uncapped-negative) happiness_percent of -50%:
+     * total = floor(400*0.01*(-50)) = floor(-200.0) = -200 (exact).
+     * stars = floor(-200/2000) = floor(-0.1) = -1, NOT 0 -- C's truncating
+     * `/` would give -200/2000==0, which is wrong; this asserts the correct
+     * floor-toward-negative-infinity result instead. */
+    int colony_levels[1] = {4};
+    rules_economy_score_t score = rules_economy_compute_score(colony_levels, 1, 0, 0, -50 * FX_ONE);
+    T_CHECK(score.total == -200);
+    T_CHECK(score.stars == -1);
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -400,5 +538,16 @@ int main(void) {
     t_run("annual_net_income_double_floor_discriminating_example", test_annual_net_income_double_floor_discriminating_example);
     t_run("annual_net_income_skill_implants_multiplier_applies_before_second_floor", test_annual_net_income_skill_implants_multiplier_applies_before_second_floor);
     t_run("annual_net_income_overhead_subtracts_after_second_floor", test_annual_net_income_overhead_subtracts_after_second_floor);
+    t_run("happiness_base_100_with_no_production_or_colonies", test_happiness_base_100_with_no_production_or_colonies);
+    t_run("happiness_joy_and_luxury_production_add_term", test_happiness_joy_and_luxury_production_add_term);
+    t_run("happiness_mixed_colony_levels_sum_correctly", test_happiness_mixed_colony_levels_sum_correctly);
+    t_run("happiness_heavy_production_goes_above_100", test_happiness_heavy_production_goes_above_100);
+    t_run("happiness_many_unhappy_colonies_goes_below_100_and_negative", test_happiness_many_unhappy_colonies_goes_below_100_and_negative);
+    t_run("happiness_level_clamps_to_valid_range", test_happiness_level_clamps_to_valid_range);
+    t_run("compute_score_components_match_hand_computed_values", test_compute_score_components_match_hand_computed_values);
+    t_run("compute_score_colonies_score_matches_b_table_alone", test_compute_score_colonies_score_matches_b_table_alone);
+    t_run("compute_score_population_score_is_population_times_40", test_compute_score_population_score_is_population_times_40);
+    t_run("compute_score_stars_clamps_to_5_when_total_exceeds_10000", test_compute_score_stars_clamps_to_5_when_total_exceeds_10000);
+    t_run("compute_score_negative_total_floors_toward_negative_infinity_not_truncated", test_compute_score_negative_total_floors_toward_negative_infinity_not_truncated);
     return t_report();
 }
