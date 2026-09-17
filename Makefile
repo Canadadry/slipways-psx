@@ -102,14 +102,17 @@ test-liaison:
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(LIAISON_HOST_BUILD_DIR)/liaison_test $(RULES_LIAISON_TEST_HOST_SRCS) -lm
 	$(LIAISON_HOST_BUILD_DIR)/liaison_test
 
-# Host-native test for rules_discovery.c (chunk 1: probe cost constants --
-# header-only so far, no rules_discovery.c yet; rng.c is included here for
-# forward consistency with the later chunks that will need rng_t), same
-# shape/output dir as test-planetgen/test-galaxy-render/test-cursor/
-# test-rules-planets/test-liaison above.
+# Host-native test for rules_discovery.c (chunk 2 adds rules_discovery.c
+# itself: rules_discovery_probe_in_range, reusing world.h's
+# WORLD_NEIGHBOR_RANGE_SQ, which is a header-only macro -- no link-time
+# dependency on world.c/planetgen.c/etc.; rng.c is included here for
+# forward consistency with the later empty-roll chunks that will need
+# rng_t), same shape/output dir as test-planetgen/test-galaxy-render/
+# test-cursor/test-rules-planets/test-liaison above.
 RULES_DISCOVERY_HOST_BUILD_DIR = psx-slipways/build-host
 RULES_DISCOVERY_TEST_HOST_SRCS = \
 	psx-slipways/rng.c \
+	psx-slipways/rules_discovery.c \
 	psx-slipways/host_tests/rules_discovery_test.c
 
 test-rules-discovery:

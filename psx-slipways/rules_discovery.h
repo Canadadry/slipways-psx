@@ -1,6 +1,10 @@
 #ifndef RULES_DISCOVERY_H
 #define RULES_DISCOVERY_H
 
+#include <stdbool.h>
+
+#include "planetgen.h"
+
 /* Probe cost -- corrected from docs/plan.md's own stated value, traced
  * directly to source. See docs/prd/triage/psx-rules-discovery.md,
  * Implementation Decisions / "Probe cost" for the full trail.
@@ -29,5 +33,32 @@
  * Decisions / "Probe cost" and Further Notes for the full citation trail
  * and the recommended (not-in-scope) doc correction. */
 #define RULES_DISCOVERY_PROBE_COST_MONTHS 1
+
+/* Probe launch-range gate -- ports mz:hq() (pico8/lua.lua:767-771):
+ * "nq,self.ij=ij(self.p,self.ox) if nq>ov("space folding",0.19,0.27) then
+ * self.et=mz.jj end". self.ox is the caller's "founded" (colonized) planet
+ * list (mz:pq(), line 764-766); ij(p,j_) (line 351-358) returns the minimum
+ * SQUARED distance from p to the nearest point in j_.
+ *
+ * This reuses world.h's WORLD_NEIGHBOR_RANGE_SQ directly rather than
+ * defining a second, independently-drifting constant -- that macro already
+ * cites this exact mz:hq() trace (world.h:22-29) as the base 0.19 probe
+ * range, before any "space folding" tech extension (left unmodeled, no tech
+ * system exists yet -- same scope WORLD_NEIGHBOR_RANGE_SQ and liaison.h's
+ * LIAISON_RANGE_SQ already give their own tech extensions). See
+ * docs/prd/triage/psx-rules-discovery.md, Implementation Decisions /
+ * "Probe launch-range gate".
+ *
+ * Computes the minimum squared distance from target to every position in
+ * founded_positions[0, founded_count), and returns whether that minimum is
+ * <= WORLD_NEIGHBOR_RANGE_SQ (source's own comparison is "nq > threshold"
+ * -> too far, so in-range is "<=" -- matching liaison.c's identical
+ * boundary convention for its own range check). founded_count == 0 always
+ * returns false (no founded planet exists to be "in range" of -- mirrors
+ * ij()'s own effectively-infinite minimum when its input list is empty).
+ * A caller-supplied position list, not a read of any live galaxy/
+ * colonization singleton -- no live "founded planets" state exists
+ * anywhere in this port yet. */
+bool rules_discovery_probe_in_range(planet_pos_t target, const planet_pos_t *founded_positions, int founded_count);
 
 #endif
