@@ -69,4 +69,44 @@
  * value below the range, level 4's value above it). */
 fixed_t rules_economy_trade_level_bonus(int level);
 
+/* Per-colony annual maintenance cost, traced to `da` (pico8/lua.lua:
+ * 1312-1318):
+ *
+ *   es = ob([[1,0,1,2,]])
+ *   function da(pt)
+ *     return pt.qh and #cg.qh
+ *       or pt:gg() and es[pt.mi]
+ *       or 0
+ *   end
+ *
+ * Three branches, both real ones ported (per the PRD's explicit "port both
+ * branches" instruction, even though no Laboratory type exists in this port
+ * yet -- Phase 4 step 15):
+ *   - is_laboratory (`pt.qh`, Laboratory-type entity): returns
+ *     laboratory_count (`#cg.qh`, the current total Laboratory count in the
+ *     galaxy) -- level has no effect on this branch.
+ *   - else if colonized (`pt:gg()`, a regular colonized planet): returns
+ *     `es[level]` -- `{1,0,1,2}` for levels 1-4 ("content" is the only free
+ *     level). level is clamped to [1,4], mirroring
+ *     rules_economy_trade_level_bonus's own clamping idiom exactly.
+ *   - else: returns 0.
+ */
+int rules_economy_colony_maintenance(bool is_laboratory, int laboratory_count, bool colonized, int level);
+
+/* Empire-wide annual overhead, traced to `cz` (pico8/lua.lua:1319-1321):
+ *
+ *   function cz()
+ *     local mu = #jp(cg.jo, jo.gg)
+ *     return flr(0.18*mu^2)
+ *   end
+ *
+ * `floor(0.18 * colonized_count^2)`, where colonized_count (`mu`) is the
+ * number of planets satisfying `jo:gg()` (regular, colonized) -- supplied
+ * directly by the caller here, since no live per-planet list exists in this
+ * module. Computed with plain integer arithmetic, not fixed_t -- see
+ * rules_economy.c's implementation for the empirical comparison against a
+ * Q16.16 route showing the integer route is strictly more correct here,
+ * not merely simpler. */
+int rules_economy_overhead(int colonized_count);
+
 #endif
