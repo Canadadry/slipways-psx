@@ -229,6 +229,123 @@ static void test_already_dead_particle_reports_dead_on_first_step(void) {
     T_CHECK(alive2 == 0);
 }
 
+/* Chunk 4: full spawn-to-death lifecycle test -- the end-to-end integration
+ * proof that effects_flow_try_spawn's spawn geometry and
+ * effects_flow_step_particle's iterative stepping are mutually consistent:
+ * a particle spawned by the first function, then repeatedly stepped by the
+ * second until it reports dead, must travel the correct distance in the
+ * correct direction and land near `to` -- NOT exactly at `to` (see
+ * effects.h's doc comment on effects_flow_try_spawn and the PRD's
+ * "Velocity and lifetime" trace: the real endpoint is `to +
+ * perp(unit(to-from))`, one perpendicular unit off from `to` itself, not
+ * exact arrival). This does NOT re-test what
+ * test_spawned_velocity_is_unit_length /
+ * test_spawn_position_is_perpendicular_offset_from_source (chunk 2) or
+ * test_step_advances_position_by_velocity /
+ * test_particle_survives_until_lifetime_crosses_zero (chunk 3) already
+ * independently prove in isolation -- it proves those two formulas compose
+ * correctly when chained spawn-then-repeated-step, which none of the
+ * earlier tests (each of which only calls one of the two functions, or
+ * steps a hand-built fixture rather than a real spawned particle) exercise.
+ *
+ * Segment: from=(2,3), to=(11,15) (screen-space FX_ONE units) -- a
+ * 9-12-15-scaled 3-4-5 right triangle (dx=9, dy=12), distinct from the
+ * (3,4,5) and (5,12,13) pairs chunk 2's own tests already use. Chosen so
+ * dx^2+dy^2=225 is a PERFECT SQUARE: effects_length's integer sqrt returns
+ * exactly 15*FX_ONE with zero rounding error, so the tick-count
+ * hand-derivation below is exact arithmetic, not an approximation.
+ *
+ * Hand-derivation (worked out before writing the assertions):
+ *
+ *   lifetime_initial = effects_length(dx,dy) = 15*FX_ONE exactly. dx =
+ *   9*FX_ONE, dy = 12*FX_ONE (both exact, since from/to are chosen as
+ *   exact-integer FX_ONE multiples), so effects_length's raw squared sum
+ *   is dx^2+dy^2 = FX_ONE^2*(81+144) = FX_ONE^2*225, and the bit-by-bit
+ *   integer sqrt of a perfect square is exact: sqrt = FX_ONE*15.
+ *
+ *   Each effects_flow_step_particle call subtracts exactly FX_ONE from
+ *   lifetime (fixed_sub is exact integer subtraction, and lifetime stays
+ *   an exact multiple of FX_ONE throughout: 15,14,...,1,0 -- no
+ *   fractional remainder ever appears). A call reports alive (1) while
+ *   the POST-decrement lifetime is >0, and dead (0) the first time it is
+ *   <=0 (source's own `t.l<=0` test). So calls 1..14 report alive
+ *   (lifetime 14*FX_ONE down to 1*FX_ONE), and call 15 reports dead
+ *   (lifetime exactly 0*FX_ONE) -- ticks_to_death = 15 =
+ *   ceil(lifetime_initial/FX_ONE), with no off-by-one ambiguity here
+ *   since 15*FX_ONE is an exact multiple of FX_ONE (nothing to round up
+ *   from).
+ *
+ *   Final position: spawn = (from_x - vy, from_y + vx) (km:pa()'s
+ *   perpendicular offset, effects_flow_try_spawn's own formula); after
+ *   N=15 steps, final = spawn + N*(vx,vy). Expected real-valued endpoint
+ *   = (to_x - vy, to_y + vx) (the SAME perpendicular formula applied to
+ *   `to` instead of `from`, per the PRD's corrected "one perpendicular
+ *   unit off from `to`, not exact arrival" wording) -- computed here from
+ *   the particle's own p.vx/p.vy fields, exactly like chunk 2's
+ *   test_spawn_position_is_perpendicular_offset_from_source already does,
+ *   not a separately-rederived continuous value. Algebraically:
+ *   diff_x = final_x - expected_x
+ *          = (from_x - vy + N*vx) - (to_x - vy) = N*vx - dx
+ *   diff_y = final_y - expected_y
+ *          = (from_y + vx + N*vy) - (to_y + vx) = N*vy - dy
+ *   -- the perpendicular-offset term cancels exactly between spawn and
+ *   expected, leaving only the accumulated per-tick unit-vector
+ *   truncation error: effects_fixed_div (effects.c) truncates towards
+ *   zero, so each of vx/vy is within 1 raw fixed_t unit of its ideal real
+ *   value, and that loss accumulates additively over N ticks (each step
+ *   adds the SAME already-truncated vx/vy again). Worst-case bound:
+ *   |diff| < N raw units = 15 raw units for this segment.
+ *
+ *   Tolerance: 20 raw fixed_t units (~0.0003 in real terms, i.e.
+ *   20/FX_ONE). Comfortably above the 15-raw-unit worst-case bound just
+ *   derived, with a few units of margin for a future reader adapting this
+ *   segment (this bound scales with ticks_to_death, so a much larger
+ *   segment would need a larger tolerance too) -- small enough to still
+ *   be a meaningful geometric check (FX_ONE is 65536, so 20 is a tiny
+ *   fraction of it), generous enough to absorb the fixed-point
+ *   division/sqrt truncation inherent to this arithmetic, matching
+ *   chunk 1's fixed_sqrt irrational-value tolerance and
+ *   screen_map_test.c's round-trip tolerance-bounded style. */
+static void test_full_spawn_to_death_lifecycle(void) {
+    uint32_t seed = find_seed_with_successful_draw();
+    rng_t rng;
+    rng_seed(&rng, seed);
+
+    fixed_t from_x = 2 * FX_ONE, from_y = 3 * FX_ONE;
+    fixed_t to_x = 11 * FX_ONE, to_y = 15 * FX_ONE;
+
+    effects_flow_particle_t p;
+    int spawned = effects_flow_try_spawn(from_x, from_y, to_x, to_y, 1, &rng, &p);
+    T_CHECK(spawned == 1);
+    T_CHECK(p.lifetime == 15 * FX_ONE);
+
+    /* Expected real-valued endpoint, from the SAME perpendicular formula
+     * effects_flow_try_spawn itself uses, applied to `to` instead of
+     * `from`, using the particle's own (already spawn-truncated) vx/vy --
+     * see the derivation above for why this is the right comparison. */
+    fixed_t expected_x = fixed_add(to_x, -p.vy);
+    fixed_t expected_y = fixed_add(to_y, p.vx);
+
+    int alive = 1;
+    int ticks = 0;
+    int max_ticks = 1000; /* safety bound against a runaway loop; the hand
+                            * derivation above expects exactly 15 */
+    while (alive && ticks < max_ticks) {
+        alive = effects_flow_step_particle(&p);
+        ticks++;
+    }
+
+    T_CHECK(ticks == 15);
+    T_CHECK(p.lifetime == 0);
+
+    fixed_t tolerance = 20;
+    fixed_t diff_x = p.x > expected_x ? p.x - expected_x : expected_x - p.x;
+    fixed_t diff_y = p.y > expected_y ? p.y - expected_y : expected_y - p.y;
+
+    T_CHECK(diff_x <= tolerance);
+    T_CHECK(diff_y <= tolerance);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -244,5 +361,6 @@ int main(void) {
           test_particle_survives_until_lifetime_crosses_zero);
     t_run("already_dead_particle_reports_dead_on_first_step",
           test_already_dead_particle_reports_dead_on_first_step);
+    t_run("full_spawn_to_death_lifecycle", test_full_spawn_to_death_lifecycle);
     return t_report();
 }
