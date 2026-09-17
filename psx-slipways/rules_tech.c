@@ -29,3 +29,15 @@ static const tech_t g_tech_table[TECH_COUNT] = {
 const tech_t *rules_tech_get(tech_id_t id) {
     return &g_tech_table[id];
 }
+
+int rules_tech_step(int prev_open, uint16_t prev_buttons, uint16_t buttons) {
+    uint16_t pressed = (uint16_t) (~buttons) & prev_buttons;
+
+    int next_open = prev_open;
+
+    if (pressed & RULES_TECH_PAD_SELECT) {
+        next_open = !next_open;
+    }
+
+    return next_open;
+}
