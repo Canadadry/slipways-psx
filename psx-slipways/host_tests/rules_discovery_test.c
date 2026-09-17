@@ -1,4 +1,6 @@
 #include "t.h"
+#include "../fixed.h"
+#include "../rng.h"
 #include "../rules_discovery.h"
 #include "../world.h"
 
@@ -89,6 +91,99 @@ static void test_founded_count_zero_returns_false(void) {
     T_CHECK(rules_discovery_probe_in_range(target, coincident_but_not_counted, 0) == false);
 }
 
+/* Chunk 3: the empty-roll generator (jo.ir=jf(0.8,0.5), pico8/lua.lua:333-
+ * 338,750-751; jo:hh()'s "<0.45" test, line 408). Mirrors planetgen_test.c's
+ * test_same_seed_is_deterministic pattern exactly: same seed and same
+ * initial state must reproduce an identical sequence of results AND of the
+ * internal bias state, not just matching booleans. */
+static void test_same_seed_and_state_is_deterministic(void) {
+    rng_t rng_a, rng_b;
+    rng_seed(&rng_a, 99u);
+    rng_seed(&rng_b, 99u);
+
+    rules_discovery_empty_roll_t state_a, state_b;
+    rules_discovery_empty_roll_init(&state_a);
+    rules_discovery_empty_roll_init(&state_b);
+
+    for (int i = 0; i < 20; i++) {
+        bool result_a = rules_discovery_roll_empty(&state_a, &rng_a);
+        bool result_b = rules_discovery_roll_empty(&state_b, &rng_b);
+
+        T_CHECK(result_a == result_b);
+        T_CHECK(state_a.bias == state_b.bias);
+    }
+}
+
+/* Proves this is a genuine stateful, mean-reverting walk -- not a stateless
+ * constant-probability stand-in wearing a struct. bias must visibly move
+ * away from its FX_ONE/2 (0.5) initial value across a handful of calls. */
+static void test_bias_evolves_across_calls(void) {
+    rng_t rng;
+    rng_seed(&rng, 99u);
+
+    rules_discovery_empty_roll_t state;
+    rules_discovery_empty_roll_init(&state);
+
+    T_CHECK(state.bias == FX_ONE / 2);
+
+    for (int i = 0; i < 5; i++) {
+        rules_discovery_roll_empty(&state, &rng);
+    }
+
+    T_CHECK(state.bias != FX_ONE / 2);
+}
+
+/* Hand-computed check, seed=1, first two calls of jf(0.8,0.5) stepped by
+ * hand (all values are exact Q16.16 int32 arithmetic, cross-checked against
+ * a standalone scratch build of the real rng.c/fixed.h against this exact
+ * seed -- not "some plausible value"):
+ *
+ * rng_seed(1): state=1 (seed!=0, used as-is).
+ *
+ * Call 1, bias b0 = FX_ONE/2 = 32768 (0.5):
+ *   span = FX_ONE - |b0| = 65536 - 32768 = 32768               (1-abs(b)=0.5)
+ *   rng_next_u32(state=1): x=1; x^=x<<13 -> 1^8192=8193;
+ *     x^=x>>17 -> 8193^0=8193 (8193 < 2^17); x^=x<<5 -> 8193^262176=270369.
+ *     new state=270369, returned raw=270369.
+ *   drawn = 270369 % 32768 = 8225                               (rnd(0.5))
+ *   v0 = drawn + max(b0,0) = 8225 + 32768 = 40993               (0.625504)
+ *   v0 (40993) is NOT < threshold (FX_ONE*45/100 = 29491), so the roll is
+ *     "not empty" (false).
+ *   b1 = b0 + fixed_mul(FX_ONE/2 - v0, n_)
+ *      = 32768 + fixed_mul(32768-40993, 52428)
+ *      = 32768 + fixed_mul(-8225, 52428)
+ *      = 32768 + ((-8225*52428)>>16) = 32768 + (-431221900>>16)
+ *      = 32768 + (-6580) = 26188                                (0.399597)
+ *     (n_ = (fixed_t)(0.8*FX_ONE) = 52428, matching
+ *     RULES_DISCOVERY_EMPTY_ROLL_N.)
+ *
+ * Call 2, bias b1 = 26188:
+ *   span = 65536 - 26188 = 39348                                (0.600403)
+ *   rng_next_u32(state=270369): computed result = 67634689 (raw next
+ *     xorshift output from that intermediate state -- taken as given from
+ *     the algorithm, same as any second call in a deterministic sequence).
+ *   drawn = 67634689 % 39348 = 34825                            (0.531387)
+ *   v1 = drawn + max(b1,0) = 34825 + 26188 = 61013               (0.930984)
+ *   v1 (61013) is NOT < threshold (29491), so the roll is "not empty"
+ *     (false) again.
+ *
+ * These are exact, checkable values, not "some plausible" ones. */
+static void test_hand_derived_first_two_rolls_match_seed_1(void) {
+    rng_t rng;
+    rng_seed(&rng, 1u);
+
+    rules_discovery_empty_roll_t state;
+    rules_discovery_empty_roll_init(&state);
+
+    bool empty_1 = rules_discovery_roll_empty(&state, &rng);
+    T_CHECK(empty_1 == false);
+    T_CHECK(state.bias == 26188);
+
+    bool empty_2 = rules_discovery_roll_empty(&state, &rng);
+    T_CHECK(empty_2 == false);
+    T_CHECK(state.bias == 3592);
+}
+
 int main(void) {
     t_run("probe_cost_credits_matches_traced_value", test_probe_cost_credits_matches_traced_value);
     t_run("probe_cost_months_is_1_not_3", test_probe_cost_months_is_1_not_3);
@@ -98,5 +193,8 @@ int main(void) {
           test_founded_planet_just_beyond_threshold_is_out_of_range);
     t_run("nearest_founded_planet_governs_result", test_nearest_founded_planet_governs_result);
     t_run("founded_count_zero_returns_false", test_founded_count_zero_returns_false);
+    t_run("same_seed_and_state_is_deterministic", test_same_seed_and_state_is_deterministic);
+    t_run("bias_evolves_across_calls", test_bias_evolves_across_calls);
+    t_run("hand_derived_first_two_rolls_match_seed_1", test_hand_derived_first_two_rolls_match_seed_1);
     return t_report();
 }

@@ -3,7 +3,9 @@
 
 #include <stdbool.h>
 
+#include "fixed.h"
 #include "planetgen.h"
+#include "rng.h"
 
 /* Probe cost -- corrected from docs/plan.md's own stated value, traced
  * directly to source. See docs/prd/triage/psx-rules-discovery.md,
@@ -60,5 +62,55 @@
  * colonization singleton -- no live "founded planets" state exists
  * anywhere in this port yet. */
 bool rules_discovery_probe_in_range(planet_pos_t target, const planet_pos_t *founded_positions, int founded_count);
+
+/* Empty-planet roll -- ports jo.ir, the actual stateful generator jo:hh()
+ * (pico8/lua.lua:407-411) tests against 0.45, NOT a plain Bernoulli(0.45)
+ * draw. See docs/prd/triage/psx-rules-discovery.md, Implementation
+ * Decisions / "Empty-planet roll" for the full trail.
+ *
+ * jo:hh() (pico8/lua.lua:407-411): "self.nk = jo.ir()<0.45 and df.ll or
+ * jo.oc() ...". jo.ir is assigned ONCE per game session, at galaxy-
+ * generation time (pico8/lua.lua:750-751: "jo.oc,jo.ir =
+ * gn(df,2,jf(0.5,dk.en)), jf(0.8,0.5)") -- a single closure instance reused
+ * for every discovery for the rest of that session, not re-created per
+ * probe.
+ *
+ * jf(n_,b) (pico8/lua.lua:333-338) is a closure over a mutable b (bias): a
+ * mean-reverting random walk, not rnd(1). Each call:
+ *   v = rnd(1-abs(b)) + max(b,0)
+ *   b += (0.5-v)*n_
+ *   return v
+ * For jo.ir = jf(0.8,0.5): n_=0.8 (baked into this instantiation, not a
+ * general parameter -- jo.ir takes no n_/b arguments of its own), initial
+ * b=0.5 -- both literal, matching design doc SS3's "independante de la
+ * difficulte" (jf(0.8,0.5) takes no dk.en argument, unlike jo.oc's
+ * jf(0.5,dk.en)). */
+typedef struct {
+    fixed_t bias;
+} rules_discovery_empty_roll_t;
+
+/* Sets state->bias to FX_ONE/2 (0.5), the literal initial b in
+ * jo.ir=jf(0.8,0.5) (pico8/lua.lua:750-751). */
+void rules_discovery_empty_roll_init(rules_discovery_empty_roll_t *state);
+
+/* Ports one call of jf(0.8,0.5)'s closure body (pico8/lua.lua:333-338) plus
+ * jo:hh()'s "<0.45" test (pico8/lua.lua:408). state->bias is threaded by
+ * the caller across repeated calls (mirroring jo.ir's own one-time-created,
+ * session-long closure shape, and rng_t's own injection pattern in
+ * planetgen_generate) -- it is NOT reset per call.
+ *
+ * Q16.16 throughout:
+ *   span = FX_ONE - |state->bias|              (1-abs(b))
+ *   drawn = rng_next_range(rng, 0, span)        (rnd(1-abs(b)))
+ *     -- reuses planetgen.c:33-34's exact idiom: a fixed_t span's raw
+ *     int32_t value used directly as rng_next_range's exclusive bound.
+ *   v = drawn + max(state->bias, 0)
+ *   state->bias += fixed_mul(FX_ONE/2 - v, 0.8 as fixed_t)   (n_=0.8)
+ *   return v < 0.45*FX_ONE
+ *
+ * state->bias can and does go negative (the walk is unbounded within the
+ * range this formula naturally settles into), so max(state->bias,0) is a
+ * real, exercised branch, not a formality. */
+bool rules_discovery_roll_empty(rules_discovery_empty_roll_t *state, rng_t *rng);
 
 #endif

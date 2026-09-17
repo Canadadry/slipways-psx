@@ -32,3 +32,35 @@ bool rules_discovery_probe_in_range(planet_pos_t target, const planet_pos_t *fou
      * for its own range check (LIAISON_RANGE_SQ). */
     return min_dist_sq <= WORLD_NEIGHBOR_RANGE_SQ;
 }
+
+/* n_=0.8 baked into this instantiation (jo.ir=jf(0.8,0.5),
+ * pico8/lua.lua:750-751), in Q16.16 -- named following rules_planets.c's
+ * own convention for inline fixed-point literal constants (e.g.
+ * RULES_PLANETS_TECH_GATE_MULTIPLIER). */
+#define RULES_DISCOVERY_EMPTY_ROLL_N ((fixed_t)(0.8 * (double)FX_ONE))
+
+/* jo:hh()'s "<0.45" test (pico8/lua.lua:408), in Q16.16. */
+#define RULES_DISCOVERY_EMPTY_ROLL_THRESHOLD ((fixed_t)(FX_ONE * 45 / 100))
+
+static fixed_t rules_discovery_fixed_abs(fixed_t v) {
+    return v < 0 ? -v : v;
+}
+
+static fixed_t rules_discovery_fixed_max0(fixed_t v) {
+    return v > 0 ? v : 0;
+}
+
+void rules_discovery_empty_roll_init(rules_discovery_empty_roll_t *state) {
+    state->bias = FX_ONE / 2;
+}
+
+bool rules_discovery_roll_empty(rules_discovery_empty_roll_t *state, rng_t *rng) {
+    fixed_t span = fixed_sub(FX_ONE, rules_discovery_fixed_abs(state->bias));
+    fixed_t drawn = (fixed_t)rng_next_range(rng, 0u, (uint32_t)span);
+    fixed_t v = fixed_add(drawn, rules_discovery_fixed_max0(state->bias));
+
+    state->bias = fixed_add(state->bias,
+                             fixed_mul(fixed_sub(FX_ONE / 2, v), RULES_DISCOVERY_EMPTY_ROLL_N));
+
+    return v < RULES_DISCOVERY_EMPTY_ROLL_THRESHOLD;
+}
