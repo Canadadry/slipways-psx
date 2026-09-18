@@ -28,12 +28,31 @@ typedef enum {
     RESOURCE_LUXURY,
 } resource_id_t;
 
-/* The 3 (of 10 documented) planet types this step ports. See
- * docs/prd/triage/psx-rules-planets.md, Out of Scope for the other 7. */
+/* All 10 documented planet types, traced to df (pico8/lua.lua:1377-1389).
+ * The first 3 (EARTHLIKE, FORGEWORLD, MINERAL) were ported by
+ * docs/prd/psx-rules-planets.md; the remaining 7 were added by chunk 2 of
+ * docs/prd/triage/psx-full-planets-and-tech.md. The special ll
+ * ("unknown/empty") df entry (r=0, pico8/lua.lua:1378) is rules_discovery.c's
+ * empty-planet-roll sentinel, not one of these 10, and is out of scope
+ * here. */
 typedef enum {
     PLANET_TYPE_EARTHLIKE,
     PLANET_TYPE_FORGEWORLD,
     PLANET_TYPE_MINERAL,
+    /* df code "o", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=3. */
+    PLANET_TYPE_OCEAN,
+    /* df code "r", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=2.5. */
+    PLANET_TYPE_REMNANT,
+    /* df code "x", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=3. */
+    PLANET_TYPE_XENO,
+    /* df code "j", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=2. */
+    PLANET_TYPE_JUNGLE,
+    /* df code "i", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=2. */
+    PLANET_TYPE_ICEBALL,
+    /* df code "s", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=2. */
+    PLANET_TYPE_BARREN,
+    /* df code "g", pico8/lua.lua:1377-1389, unstash Annexe A: rarity r=4. */
+    PLANET_TYPE_GASGIANT,
     PLANET_TYPE_COUNT,
 } planet_type_id_t;
 

@@ -31,6 +31,79 @@ static void test_mineral_type_matches_traced_values(void) {
     T_CHECK(t->rarity == (fixed_t)(4 * FX_ONE));
 }
 
+/* Chunk 2 (docs/prd/triage/psx-full-planets-and-tech.md): the 7 new planet
+ * types, traced to df (pico8/lua.lua:1377-1389, unstash Annexe A). */
+static void test_ocean_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_OCEAN);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_OCEAN);
+    T_CHECK(strcmp(t->name, "ocean") == 0);
+    T_CHECK(t->rarity == (fixed_t)(3 * FX_ONE));
+}
+
+static void test_remnant_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_REMNANT);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_REMNANT);
+    T_CHECK(strcmp(t->name, "remnant") == 0);
+    T_CHECK(t->rarity == (fixed_t)(2.5 * FX_ONE));
+}
+
+static void test_xeno_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_XENO);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_XENO);
+    T_CHECK(strcmp(t->name, "xeno") == 0);
+    T_CHECK(t->rarity == (fixed_t)(3 * FX_ONE));
+}
+
+static void test_jungle_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_JUNGLE);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_JUNGLE);
+    T_CHECK(strcmp(t->name, "jungle") == 0);
+    T_CHECK(t->rarity == (fixed_t)(2 * FX_ONE));
+}
+
+static void test_iceball_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_ICEBALL);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_ICEBALL);
+    T_CHECK(strcmp(t->name, "iceball") == 0);
+    T_CHECK(t->rarity == (fixed_t)(2 * FX_ONE));
+}
+
+static void test_barren_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_BARREN);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_BARREN);
+    T_CHECK(strcmp(t->name, "barren") == 0);
+    T_CHECK(t->rarity == (fixed_t)(2 * FX_ONE));
+}
+
+static void test_gasgiant_type_matches_traced_values(void) {
+    const planet_type_t *t = rules_planets_type(PLANET_TYPE_GASGIANT);
+
+    T_CHECK(t != NULL);
+    T_CHECK(t->id == PLANET_TYPE_GASGIANT);
+    T_CHECK(strcmp(t->name, "gas giant") == 0);
+    T_CHECK(t->rarity == (fixed_t)(4 * FX_ONE));
+}
+
+/* Chunk 2's own sanity guard: PLANET_TYPE_COUNT must be exactly 10 after
+ * this chunk's 7-type extension (3 pre-existing + 7 new), matching the PRD's
+ * chunk 10 "PLANET_TYPE_COUNT == 10" full-roster guard applied early, at the
+ * point where this module's own enum actually grows to that size. */
+static void test_planet_type_count_is_10(void) {
+    T_CHECK(PLANET_TYPE_COUNT == 10);
+}
+
 static void test_mine_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_MINE);
 
@@ -317,6 +390,14 @@ int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
     t_run("mineral_type_matches_traced_values", test_mineral_type_matches_traced_values);
+    t_run("ocean_type_matches_traced_values", test_ocean_type_matches_traced_values);
+    t_run("remnant_type_matches_traced_values", test_remnant_type_matches_traced_values);
+    t_run("xeno_type_matches_traced_values", test_xeno_type_matches_traced_values);
+    t_run("jungle_type_matches_traced_values", test_jungle_type_matches_traced_values);
+    t_run("iceball_type_matches_traced_values", test_iceball_type_matches_traced_values);
+    t_run("barren_type_matches_traced_values", test_barren_type_matches_traced_values);
+    t_run("gasgiant_type_matches_traced_values", test_gasgiant_type_matches_traced_values);
+    t_run("planet_type_count_is_10", test_planet_type_count_is_10);
     t_run("mine_job_matches_traced_values", test_mine_job_matches_traced_values);
     t_run("nanotech_job_matches_traced_values", test_nanotech_job_matches_traced_values);
     t_run("bots_job_matches_traced_values", test_bots_job_matches_traced_values);

@@ -18,6 +18,41 @@ static const planet_type_t g_planet_types[PLANET_TYPE_COUNT] = {
         .name = "mineral",
         .rarity = (fixed_t)(4 * FX_ONE),
     },
+    [PLANET_TYPE_OCEAN] = {
+        .id = PLANET_TYPE_OCEAN,
+        .name = "ocean",
+        .rarity = (fixed_t)(3 * FX_ONE),
+    },
+    [PLANET_TYPE_REMNANT] = {
+        .id = PLANET_TYPE_REMNANT,
+        .name = "remnant",
+        .rarity = (fixed_t)(2.5 * FX_ONE),
+    },
+    [PLANET_TYPE_XENO] = {
+        .id = PLANET_TYPE_XENO,
+        .name = "xeno",
+        .rarity = (fixed_t)(3 * FX_ONE),
+    },
+    [PLANET_TYPE_JUNGLE] = {
+        .id = PLANET_TYPE_JUNGLE,
+        .name = "jungle",
+        .rarity = (fixed_t)(2 * FX_ONE),
+    },
+    [PLANET_TYPE_ICEBALL] = {
+        .id = PLANET_TYPE_ICEBALL,
+        .name = "iceball",
+        .rarity = (fixed_t)(2 * FX_ONE),
+    },
+    [PLANET_TYPE_BARREN] = {
+        .id = PLANET_TYPE_BARREN,
+        .name = "barren",
+        .rarity = (fixed_t)(2 * FX_ONE),
+    },
+    [PLANET_TYPE_GASGIANT] = {
+        .id = PLANET_TYPE_GASGIANT,
+        .name = "gas giant",
+        .rarity = (fixed_t)(4 * FX_ONE),
+    },
 };
 
 static const colonization_job_t g_jobs[JOB_COUNT] = {
