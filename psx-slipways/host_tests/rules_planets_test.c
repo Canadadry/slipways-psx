@@ -208,6 +208,13 @@ static void test_job_available_on_matches_exactly_its_one_real_type(void) {
         { JOB_TOURISM, PLANET_TYPE_JUNGLE },
         /* Chunk 8: luxury, earthlike batch, single-type. */
         { JOB_LUXURY, PLANET_TYPE_EARTHLIKE },
+        /* Chunk 9: excavate_mineral is this chunk's one single-real-type
+         * job, so it fits this generic table directly; the 4 genuinely
+         * multi-type jobs (habitat, genefarm, excavate_iceball_gasgiant,
+         * farm) are covered separately by
+         * test_multi_type_job_available_on_matches_exactly_its_two_real_types,
+         * since this table's row shape assumes exactly one real type. */
+        { JOB_EXCAVATE_MINERAL, PLANET_TYPE_MINERAL },
     };
 
     for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
@@ -568,6 +575,166 @@ static void test_luxury_job_matches_traced_values(void) {
     T_CHECK(j->tech_gate == NULL);
     T_CHECK(j->default_need == RESOURCE_NONE);
     T_CHECK(j->required_tech == NULL);
+}
+
+/* Chunk 9 (docs/prd/triage/psx-full-planets-and-tech.md): barren/iceball/
+ * gas-giant batch, the first chunk to genuinely exercise
+ * planet_types_count == 2. habitat is valid on both barren and iceball. */
+static void test_habitat_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_HABITAT);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 2);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_BARREN);
+    T_CHECK(j->planet_types[1] == PLANET_TYPE_ICEBALL);
+    T_CHECK(j->cost == 12);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_ORGANICS);
+    T_CHECK(j->needs[1] == RESOURCE_FOOD);
+    T_CHECK(j->produces == RESOURCE_PEOPLE);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_GOODS);
+    T_CHECK(j->required_tech != NULL);
+    T_CHECK(strcmp(j->required_tech, "geneseeds") == 0);
+}
+
+static void test_genefarm_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_GENEFARM);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 2);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_BARREN);
+    T_CHECK(j->planet_types[1] == PLANET_TYPE_ICEBALL);
+    T_CHECK(j->cost == 12);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_ORGANICS);
+    T_CHECK(j->needs[1] == RESOURCE_BOTS);
+    T_CHECK(j->produces == RESOURCE_FOOD);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech != NULL);
+    T_CHECK(strcmp(j->required_tech, "geneseeds") == 0);
+}
+
+/* excavate_mineral: single-type (mineral only), CURVE_PLUS -- see the
+ * dedicated test_excavate_mineral_and_iceball_gasgiant_are_genuinely_distinct
+ * test below for the direct side-by-side comparison against
+ * excavate_iceball_gasgiant that this chunk's PRD explicitly calls for. */
+static void test_excavate_mineral_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_EXCAVATE_MINERAL);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_MINERAL);
+    T_CHECK(j->cost == 12);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_BOTS);
+    T_CHECK(j->produces == RESOURCE_ORE);
+    T_CHECK(j->curve == CURVE_PLUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech != NULL);
+    T_CHECK(strcmp(j->required_tech, "drillbots") == 0);
+}
+
+static void test_excavate_iceball_gasgiant_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_EXCAVATE_ICEBALL_GASGIANT);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 2);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_ICEBALL);
+    T_CHECK(j->planet_types[1] == PLANET_TYPE_GASGIANT);
+    T_CHECK(j->cost == 12);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_BOTS);
+    T_CHECK(j->produces == RESOURCE_ORE);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech != NULL);
+    T_CHECK(strcmp(j->required_tech, "drillbots") == 0);
+}
+
+/* The PRD's own explicitly-flagged risk: excavate_mineral and
+ * excavate_iceball_gasgiant share identical cost/needs/produces
+ * (12/{bots}/ore) -- this test proves they remain two genuinely distinct
+ * colonization_job_id_t entries, not accidentally merged or copy-paste
+ * confused, by checking the two fields that actually differ (curve,
+ * planet_types/available_on) directly against each other. */
+static void test_excavate_mineral_and_iceball_gasgiant_are_genuinely_distinct(void) {
+    T_CHECK(JOB_EXCAVATE_MINERAL != JOB_EXCAVATE_ICEBALL_GASGIANT);
+
+    const colonization_job_t *mineral = rules_planets_job(JOB_EXCAVATE_MINERAL);
+    const colonization_job_t *iceball_gasgiant = rules_planets_job(JOB_EXCAVATE_ICEBALL_GASGIANT);
+
+    /* Same cost/needs/produces -- the coincidence this test guards against. */
+    T_CHECK(mineral->cost == iceball_gasgiant->cost);
+    T_CHECK(mineral->needs_count == iceball_gasgiant->needs_count);
+    T_CHECK(mineral->needs[0] == iceball_gasgiant->needs[0]);
+    T_CHECK(mineral->produces == iceball_gasgiant->produces);
+
+    /* Genuinely different curves. */
+    T_CHECK(mineral->curve == CURVE_PLUS);
+    T_CHECK(iceball_gasgiant->curve == CURVE_MINUS);
+    T_CHECK(mineral->curve != iceball_gasgiant->curve);
+
+    /* Genuinely different availability: mineral is mineral-only; iceball's
+     * gas-giant variant is iceball+gasgiant, never mineral. */
+    T_CHECK(rules_planets_job_available_on(JOB_EXCAVATE_MINERAL, PLANET_TYPE_MINERAL) == true);
+    T_CHECK(rules_planets_job_available_on(JOB_EXCAVATE_MINERAL, PLANET_TYPE_ICEBALL) == false);
+    T_CHECK(rules_planets_job_available_on(JOB_EXCAVATE_MINERAL, PLANET_TYPE_GASGIANT) == false);
+
+    T_CHECK(rules_planets_job_available_on(JOB_EXCAVATE_ICEBALL_GASGIANT, PLANET_TYPE_ICEBALL) == true);
+    T_CHECK(rules_planets_job_available_on(JOB_EXCAVATE_ICEBALL_GASGIANT, PLANET_TYPE_GASGIANT) == true);
+    T_CHECK(rules_planets_job_available_on(JOB_EXCAVATE_ICEBALL_GASGIANT, PLANET_TYPE_MINERAL) == false);
+}
+
+static void test_farm_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_FARM);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 2);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_XENO);
+    T_CHECK(j->planet_types[1] == PLANET_TYPE_JUNGLE);
+    T_CHECK(j->cost == 10);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_BOTS);
+    T_CHECK(j->produces == RESOURCE_FOOD);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_ORGANICS);
+    T_CHECK(j->required_tech != NULL);
+    T_CHECK(strcmp(j->required_tech, "xenofoods") == 0);
+}
+
+/* Chunk 9's central new property: rules_planets_job_available_on returns
+ * true for BOTH real types of each of this chunk's 4 multi-type jobs, and
+ * false for every other type -- walked generically over PLANET_TYPE_COUNT,
+ * mirroring test_job_available_on_matches_exactly_its_one_real_type's own
+ * style but extended to a 2-type expectation, since that existing table's
+ * shape assumes exactly one real type per case. A separate loop (rather than
+ * widening the existing table's row shape) keeps both tests simple and keeps
+ * this chunk's new property isolated and easy to review on its own. */
+static void test_multi_type_job_available_on_matches_exactly_its_two_real_types(void) {
+    static const struct {
+        colonization_job_id_t job;
+        planet_type_id_t type_a;
+        planet_type_id_t type_b;
+    } cases[] = {
+        { JOB_HABITAT, PLANET_TYPE_BARREN, PLANET_TYPE_ICEBALL },
+        { JOB_GENEFARM, PLANET_TYPE_BARREN, PLANET_TYPE_ICEBALL },
+        { JOB_EXCAVATE_ICEBALL_GASGIANT, PLANET_TYPE_ICEBALL, PLANET_TYPE_GASGIANT },
+        { JOB_FARM, PLANET_TYPE_XENO, PLANET_TYPE_JUNGLE },
+    };
+
+    for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
+        for (int t = 0; t < PLANET_TYPE_COUNT; t++) {
+            bool expected = ((planet_type_id_t)t == cases[c].type_a) || ((planet_type_id_t)t == cases[c].type_b);
+            T_CHECK(rules_planets_job_available_on(cases[c].job, (planet_type_id_t)t) == expected);
+        }
+    }
 }
 
 static void test_mine_job_cost_unaffected_by_tech_researched(void) {
@@ -1130,6 +1297,136 @@ static void test_luxury_job_production_matches_curve_f_minus_regardless_of_tech_
     }
 }
 
+/* Chunk 9 (docs/prd/triage/psx-full-planets-and-tech.md): barren/iceball/
+ * gas-giant batch cost/production. None of the 5 has a tech_gate, so
+ * job_tech_researched has zero cost/curve effect for any of them (same
+ * no-gate pattern as breed(xeno)/hunt/tourism/luxury above);
+ * nanomaterials_researched still applies its unconditional 0.85 multiplier.
+ * Base-12 jobs (habitat, genefarm, excavate_mineral,
+ * excavate_iceball_gasgiant): 12*0.85=10.2, floored -> 10 (independently
+ * computed here, not assumed from any earlier chunk's base-10/base-5/base-8
+ * values, since no prior chunk has a base-12 job). farm's base-10 nano-only
+ * value floor(10*0.85)=8 reuses colony(xeno)'s/tourism's/luxury's own
+ * already-verified base-10 math directly. */
+static void test_habitat_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_HABITAT, false, false) == 12);
+    T_CHECK(rules_planets_job_cost(JOB_HABITAT, true, false) == 12);
+}
+
+static void test_habitat_job_cost_nanomaterials_researched(void) {
+    /* 12 * 0.85 = 10.2, floored -> 10. */
+    T_CHECK(rules_planets_job_cost(JOB_HABITAT, false, true) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_HABITAT, true, true) == 10);
+}
+
+static void test_habitat_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_HABITAT, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_HABITAT, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_HABITAT, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_HABITAT, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_HABITAT, 4, researched) == 3);
+    }
+}
+
+static void test_genefarm_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_GENEFARM, false, false) == 12);
+    T_CHECK(rules_planets_job_cost(JOB_GENEFARM, true, false) == 12);
+}
+
+static void test_genefarm_job_cost_nanomaterials_researched(void) {
+    /* 12 * 0.85 = 10.2, floored -> 10. */
+    T_CHECK(rules_planets_job_cost(JOB_GENEFARM, false, true) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_GENEFARM, true, true) == 10);
+}
+
+static void test_genefarm_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_GENEFARM, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_GENEFARM, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_GENEFARM, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_GENEFARM, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_GENEFARM, 4, researched) == 3);
+    }
+}
+
+static void test_excavate_mineral_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_MINERAL, false, false) == 12);
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_MINERAL, true, false) == 12);
+}
+
+static void test_excavate_mineral_job_cost_nanomaterials_researched(void) {
+    /* 12 * 0.85 = 10.2, floored -> 10. */
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_MINERAL, false, true) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_MINERAL, true, true) == 10);
+}
+
+/* CURVE_PLUS, distinct from excavate_iceball_gasgiant's CURVE_MINUS below
+ * despite the identical base cost/needs/produces -- see
+ * test_excavate_mineral_and_iceball_gasgiant_are_genuinely_distinct for the
+ * direct side-by-side comparison. */
+static void test_excavate_mineral_job_production_matches_curve_plus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_MINERAL, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_MINERAL, 1, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_MINERAL, 2, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_MINERAL, 3, researched) == 4);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_MINERAL, 4, researched) == 4);
+    }
+}
+
+static void test_excavate_iceball_gasgiant_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_ICEBALL_GASGIANT, false, false) == 12);
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_ICEBALL_GASGIANT, true, false) == 12);
+}
+
+static void test_excavate_iceball_gasgiant_job_cost_nanomaterials_researched(void) {
+    /* 12 * 0.85 = 10.2, floored -> 10. */
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_ICEBALL_GASGIANT, false, true) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_EXCAVATE_ICEBALL_GASGIANT, true, true) == 10);
+}
+
+/* CURVE_MINUS, distinct from excavate_mineral's CURVE_PLUS above. */
+static void test_excavate_iceball_gasgiant_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_ICEBALL_GASGIANT, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_ICEBALL_GASGIANT, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_ICEBALL_GASGIANT, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_ICEBALL_GASGIANT, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_EXCAVATE_ICEBALL_GASGIANT, 4, researched) == 3);
+    }
+}
+
+static void test_farm_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_FARM, false, false) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_FARM, true, false) == 10);
+}
+
+static void test_farm_job_cost_nanomaterials_researched(void) {
+    /* 10 * 0.85 = 8.5, floored -> 8 -- reuses colony(xeno)'s/tourism's/
+     * luxury's own already-verified base-10 nanomaterials math directly. */
+    T_CHECK(rules_planets_job_cost(JOB_FARM, false, true) == 8);
+    T_CHECK(rules_planets_job_cost(JOB_FARM, true, true) == 8);
+}
+
+static void test_farm_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_FARM, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_FARM, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_FARM, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_FARM, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_FARM, 4, researched) == 3);
+    }
+}
+
+/* Chunk 9's own sanity guard: JOB_COUNT must be exactly 24 after this
+ * chunk's 5-job extension -- the full roster, matching the PRD's chunk 10
+ * "JOB_COUNT == 24" full-roster guard applied early, at the point where this
+ * module's own enum actually grows to that size. */
+static void test_job_count_is_24(void) {
+    T_CHECK(JOB_COUNT == 24);
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -1161,6 +1458,7 @@ int main(void) {
     t_run("hunt_job_matches_traced_values", test_hunt_job_matches_traced_values);
     t_run("tourism_job_matches_traced_values", test_tourism_job_matches_traced_values);
     t_run("luxury_job_matches_traced_values", test_luxury_job_matches_traced_values);
+    t_run("habitat_job_matches_traced_values", test_habitat_job_matches_traced_values);
     t_run("job_available_on_matches_exactly_its_one_real_type", test_job_available_on_matches_exactly_its_one_real_type);
     t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
     t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
@@ -1235,5 +1533,27 @@ int main(void) {
     t_run("luxury_job_cost_unaffected_by_tech_researched", test_luxury_job_cost_unaffected_by_tech_researched);
     t_run("luxury_job_cost_nanomaterials_researched", test_luxury_job_cost_nanomaterials_researched);
     t_run("luxury_job_production_matches_curve_f_minus_regardless_of_tech_researched", test_luxury_job_production_matches_curve_f_minus_regardless_of_tech_researched);
+    t_run("genefarm_job_matches_traced_values", test_genefarm_job_matches_traced_values);
+    t_run("excavate_mineral_job_matches_traced_values", test_excavate_mineral_job_matches_traced_values);
+    t_run("excavate_iceball_gasgiant_job_matches_traced_values", test_excavate_iceball_gasgiant_job_matches_traced_values);
+    t_run("excavate_mineral_and_iceball_gasgiant_are_genuinely_distinct", test_excavate_mineral_and_iceball_gasgiant_are_genuinely_distinct);
+    t_run("farm_job_matches_traced_values", test_farm_job_matches_traced_values);
+    t_run("multi_type_job_available_on_matches_exactly_its_two_real_types", test_multi_type_job_available_on_matches_exactly_its_two_real_types);
+    t_run("habitat_job_cost_unaffected_by_tech_researched", test_habitat_job_cost_unaffected_by_tech_researched);
+    t_run("habitat_job_cost_nanomaterials_researched", test_habitat_job_cost_nanomaterials_researched);
+    t_run("habitat_job_production_matches_curve_minus", test_habitat_job_production_matches_curve_minus);
+    t_run("genefarm_job_cost_unaffected_by_tech_researched", test_genefarm_job_cost_unaffected_by_tech_researched);
+    t_run("genefarm_job_cost_nanomaterials_researched", test_genefarm_job_cost_nanomaterials_researched);
+    t_run("genefarm_job_production_matches_curve_minus", test_genefarm_job_production_matches_curve_minus);
+    t_run("excavate_mineral_job_cost_unaffected_by_tech_researched", test_excavate_mineral_job_cost_unaffected_by_tech_researched);
+    t_run("excavate_mineral_job_cost_nanomaterials_researched", test_excavate_mineral_job_cost_nanomaterials_researched);
+    t_run("excavate_mineral_job_production_matches_curve_plus", test_excavate_mineral_job_production_matches_curve_plus);
+    t_run("excavate_iceball_gasgiant_job_cost_unaffected_by_tech_researched", test_excavate_iceball_gasgiant_job_cost_unaffected_by_tech_researched);
+    t_run("excavate_iceball_gasgiant_job_cost_nanomaterials_researched", test_excavate_iceball_gasgiant_job_cost_nanomaterials_researched);
+    t_run("excavate_iceball_gasgiant_job_production_matches_curve_minus", test_excavate_iceball_gasgiant_job_production_matches_curve_minus);
+    t_run("farm_job_cost_unaffected_by_tech_researched", test_farm_job_cost_unaffected_by_tech_researched);
+    t_run("farm_job_cost_nanomaterials_researched", test_farm_job_cost_nanomaterials_researched);
+    t_run("farm_job_production_matches_curve_minus", test_farm_job_production_matches_curve_minus);
+    t_run("job_count_is_24", test_job_count_is_24);
     return t_report();
 }

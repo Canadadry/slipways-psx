@@ -116,6 +116,25 @@ typedef enum {
      * not just correct for one specific job. No tech_gate, no default_need,
      * no required_tech -- the same no-gate shape as tourism itself. */
     JOB_LUXURY,
+    /* Chunk 9 (docs/prd/triage/psx-full-planets-and-tech.md): barren/iceball/
+     * gas-giant batch -- the first chunk to genuinely exercise
+     * planet_types_count == 2 (habitat/genefarm: barren+iceball;
+     * excavate_iceball_gasgiant: iceball+gas giant; farm: xeno+jungle, both
+     * already added by chunk 7). excavate_mineral is a NEW job on the
+     * already-existing PLANET_TYPE_MINERAL, deliberately placed next to
+     * excavate_iceball_gasgiant despite sharing identical cost/needs/produces
+     * (12/{bots}/ore) -- their curves differ (CURVE_PLUS vs. CURVE_MINUS) and
+     * their planet_types differ, proving they're genuinely distinct entries,
+     * not a copy-paste-confused merge (see this PRD's own explicit risk
+     * flag). None of the 5 carries a tech_gate (il); habitat, genefarm,
+     * excavate_mineral, and excavate_iceball_gasgiant DO carry a
+     * required_tech (rr), captured as data only, mirroring uplift's own
+     * chunk-4 precedent. */
+    JOB_HABITAT,
+    JOB_GENEFARM,
+    JOB_EXCAVATE_MINERAL,
+    JOB_EXCAVATE_ICEBALL_GASGIANT,
+    JOB_FARM,
     JOB_COUNT,
 } colonization_job_id_t;
 

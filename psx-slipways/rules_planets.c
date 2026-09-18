@@ -323,6 +323,81 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .default_need = RESOURCE_NONE,
         .required_tech = NULL,
     },
+    /* Chunk 9 (docs/prd/triage/psx-full-planets-and-tech.md): barren/
+     * iceball/gas-giant batch, traced to fd's full 24-job re-decode
+     * (Implementation Decisions table). habitat and genefarm are both valid
+     * on barren+iceball (planet_types_count == 2) -- the first real
+     * exercise of RULES_PLANETS_MAX_TYPES == 2 in this table. Neither has a
+     * tech_gate; both share required_tech = "geneseeds". */
+    [JOB_HABITAT] = {
+        .planet_types = { PLANET_TYPE_BARREN, PLANET_TYPE_ICEBALL },
+        .planet_types_count = 2,
+        .cost = 12,
+        .needs = { RESOURCE_ORGANICS, RESOURCE_FOOD },
+        .needs_count = 2,
+        .produces = RESOURCE_PEOPLE,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_GOODS,
+        .required_tech = "geneseeds",
+    },
+    [JOB_GENEFARM] = {
+        .planet_types = { PLANET_TYPE_BARREN, PLANET_TYPE_ICEBALL },
+        .planet_types_count = 2,
+        .cost = 12,
+        .needs = { RESOURCE_ORGANICS, RESOURCE_BOTS },
+        .needs_count = 2,
+        .produces = RESOURCE_FOOD,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = "geneseeds",
+    },
+    /* excavate_mineral and excavate_iceball_gasgiant deliberately share
+     * identical cost/needs/produces (12/{bots}/ore) but differ in both
+     * planet_types (mineral-only vs. iceball+gasgiant) and curve (CURVE_PLUS
+     * vs. CURVE_MINUS) -- two genuinely distinct colonization_job_id_t
+     * entries, not a copy-paste-confused merge (see this PRD's own explicit
+     * risk flag, re-verified by rules_planets_test.c's dedicated
+     * distinguishing test). */
+    [JOB_EXCAVATE_MINERAL] = {
+        .planet_types = { PLANET_TYPE_MINERAL },
+        .planet_types_count = 1,
+        .cost = 12,
+        .needs = { RESOURCE_BOTS },
+        .needs_count = 1,
+        .produces = RESOURCE_ORE,
+        .curve = CURVE_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = "drillbots",
+    },
+    [JOB_EXCAVATE_ICEBALL_GASGIANT] = {
+        .planet_types = { PLANET_TYPE_ICEBALL, PLANET_TYPE_GASGIANT },
+        .planet_types_count = 2,
+        .cost = 12,
+        .needs = { RESOURCE_BOTS },
+        .needs_count = 1,
+        .produces = RESOURCE_ORE,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = "drillbots",
+    },
+    /* farm is valid on xeno+jungle, both already added by chunk 7 -- the
+     * third of this chunk's 4 genuinely multi-type jobs. */
+    [JOB_FARM] = {
+        .planet_types = { PLANET_TYPE_XENO, PLANET_TYPE_JUNGLE },
+        .planet_types_count = 2,
+        .cost = 10,
+        .needs = { RESOURCE_BOTS },
+        .needs_count = 1,
+        .produces = RESOURCE_FOOD,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_ORGANICS,
+        .required_tech = "xenofoods",
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {
