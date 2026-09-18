@@ -1427,6 +1427,205 @@ static void test_job_count_is_24(void) {
     T_CHECK(JOB_COUNT == 24);
 }
 
+/* ========================================================================
+ * Chunk 10 (docs/prd/triage/psx-full-planets-and-tech.md): "Full-roster
+ * regression + closed-loop scope confirmation". No new jobs or planet types
+ * are added here -- chunks 1-9 already landed all 10 planet types and all 24
+ * jobs (confirmed by direct re-read of rules_planets.h/.c immediately above
+ * writing this section). This is purely a consolidation/regression-proofing
+ * chunk, in three parts.
+ * ======================================================================== */
+
+/* Part 1: a consolidated sanity guard, asserting PLANET_TYPE_COUNT == 10 and
+ * JOB_COUNT == 24 together, in one place, as the PRD's own chunk 10 wording
+ * asks for ("A consolidated test asserting PLANET_TYPE_COUNT == 10 and
+ * JOB_COUNT == 24"). test_planet_type_count_is_10 (chunk 2, above) and
+ * test_job_count_is_24 (chunk 9, above) already assert these individually --
+ * deliberately left untouched rather than deleted or merged into this one:
+ * each chunk's own tests are meant to stand alone as that chunk's regression
+ * proof (per this chunk's own task framing), so consolidating by deleting
+ * either earlier test would weaken that guarantee for no real benefit. This
+ * new, separately-named test is chunk 10's own belt-and-suspenders duplicate
+ * of the same guard, not a replacement for either. */
+static void test_full_roster_sanity_guard(void) {
+    T_CHECK(PLANET_TYPE_COUNT == 10);
+    T_CHECK(JOB_COUNT == 24);
+}
+
+/* Part 2: every one of the 24 jobs' full field set, re-asserted in ONE place
+ * as a data table. This table is independently re-derived directly from the
+ * PRD's own "24 real colonization jobs" table
+ * (docs/prd/triage/psx-full-planets-and-tech.md, Implementation Decisions),
+ * re-typed by hand from that table's rows -- deliberately NOT copied or
+ * factored out of any of this file's own earlier per-job tests above (e.g.
+ * test_agroworld_job_matches_traced_values), since this chunk's whole
+ * purpose is to catch any per-chunk transcription slip a prior chunk might
+ * have introduced; using an earlier chunk's own test as "ground truth" could
+ * never catch that earlier chunk's own mistake, by construction. */
+typedef struct {
+    colonization_job_id_t id;
+    planet_type_id_t planet_types[RULES_PLANETS_MAX_TYPES];
+    int planet_types_count;
+    int cost;
+    resource_id_t needs[RULES_PLANETS_MAX_NEEDS];
+    int needs_count;
+    resource_id_t produces;
+    curve_id_t curve;
+    const char *tech_gate;      /* il: cost surcharge + curve upgrade gate. */
+    const char *required_tech;  /* rr: job-availability gate (data only). */
+    resource_id_t default_need; /* dm. */
+} prd_job_row_t;
+
+static const prd_job_row_t g_prd_job_table[] = {
+    /* earth-like */
+    { JOB_HIVEWORLD, { PLANET_TYPE_EARTHLIKE }, 1, 5, { RESOURCE_FOOD }, 1, RESOURCE_PEOPLE, CURVE_PLUS, NULL, NULL, RESOURCE_GOODS },
+    { JOB_AGROWORLD, { PLANET_TYPE_EARTHLIKE }, 1, 5, { RESOURCE_BOTS }, 1, RESOURCE_FOOD, CURVE_MINUS, "xenofoods", NULL, RESOURCE_ORGANICS },
+    { JOB_LUXURY, { PLANET_TYPE_EARTHLIKE }, 1, 10, { RESOURCE_TECH, RESOURCE_GOODS }, 2, RESOURCE_LUXURY, CURVE_F_MINUS, NULL, NULL, RESOURCE_NONE },
+    /* forgeworld */
+    { JOB_NANOTECH, { PLANET_TYPE_FORGEWORLD }, 1, 8, { RESOURCE_ORE }, 1, RESOURCE_TECH, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_BOTS, { PLANET_TYPE_FORGEWORLD }, 1, 8, { RESOURCE_ORE, RESOURCE_TECH }, 2, RESOURCE_BOTS, CURVE_PLUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_GOODS, { PLANET_TYPE_FORGEWORLD }, 1, 10, { RESOURCE_ORE, RESOURCE_BOTS }, 2, RESOURCE_GOODS, CURVE_PLUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_GADGETS, { PLANET_TYPE_FORGEWORLD }, 1, 10, { RESOURCE_ORE, RESOURCE_TECH }, 2, RESOURCE_GOODS, CURVE_PLUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_UPLIFT, { PLANET_TYPE_FORGEWORLD }, 1, 20, { RESOURCE_ORGANICS }, 1, RESOURCE_PEOPLE, CURVE_MINUS, NULL, "gene rewriting", RESOURCE_NONE },
+    /* mineral */
+    { JOB_MINE, { PLANET_TYPE_MINERAL }, 1, 5, { RESOURCE_PEOPLE }, 1, RESOURCE_ORE, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_EXCAVATE_MINERAL, { PLANET_TYPE_MINERAL }, 1, 12, { RESOURCE_BOTS }, 1, RESOURCE_ORE, CURVE_PLUS, NULL, "drillbots", RESOURCE_NONE },
+    /* ocean */
+    { JOB_COLONY_OCEAN, { PLANET_TYPE_OCEAN }, 1, 10, { RESOURCE_ORE, RESOURCE_FOOD }, 2, RESOURCE_PEOPLE, CURVE_MINUS, "gene rewriting", NULL, RESOURCE_GOODS },
+    { JOB_ALGAE, { PLANET_TYPE_OCEAN }, 1, 8, { RESOURCE_BOTS }, 1, RESOURCE_FOOD, CURVE_MINUS, "xenofoods", NULL, RESOURCE_ORGANICS },
+    { JOB_BREED_OCEAN, { PLANET_TYPE_OCEAN }, 1, 5, { RESOURCE_PEOPLE }, 1, RESOURCE_ORGANICS, CURVE_PLUS, NULL, NULL, RESOURCE_NONE },
+    /* remnant */
+    { JOB_STRIP, { PLANET_TYPE_REMNANT }, 1, 5, { RESOURCE_PEOPLE, RESOURCE_FOOD }, 2, RESOURCE_ORE, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_DISMANTLE, { PLANET_TYPE_REMNANT }, 1, 5, { RESOURCE_PEOPLE, RESOURCE_FOOD }, 2, RESOURCE_TECH, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_SCAVENGE, { PLANET_TYPE_REMNANT }, 1, 5, { RESOURCE_PEOPLE, RESOURCE_FOOD }, 2, RESOURCE_BOTS, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    /* xeno */
+    { JOB_COLONY_XENO, { PLANET_TYPE_XENO }, 1, 10, { RESOURCE_TECH, RESOURCE_FOOD }, 2, RESOURCE_PEOPLE, CURVE_MINUS, "gene rewriting", NULL, RESOURCE_GOODS },
+    { JOB_BREED_XENO, { PLANET_TYPE_XENO }, 1, 5, { RESOURCE_BOTS }, 1, RESOURCE_ORGANICS, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    /* jungle */
+    { JOB_HUNT, { PLANET_TYPE_JUNGLE }, 1, 5, { RESOURCE_PEOPLE }, 1, RESOURCE_ORGANICS, CURVE_MINUS, NULL, NULL, RESOURCE_NONE },
+    { JOB_TOURISM, { PLANET_TYPE_JUNGLE }, 1, 10, { RESOURCE_PEOPLE, RESOURCE_GOODS }, 2, RESOURCE_LUXURY, CURVE_F_MINUS, NULL, NULL, RESOURCE_NONE },
+    /* xeno + jungle (multi-type) */
+    { JOB_FARM, { PLANET_TYPE_XENO, PLANET_TYPE_JUNGLE }, 2, 10, { RESOURCE_BOTS }, 1, RESOURCE_FOOD, CURVE_MINUS, NULL, "xenofoods", RESOURCE_ORGANICS },
+    /* barren + iceball (multi-type) */
+    { JOB_HABITAT, { PLANET_TYPE_BARREN, PLANET_TYPE_ICEBALL }, 2, 12, { RESOURCE_ORGANICS, RESOURCE_FOOD }, 2, RESOURCE_PEOPLE, CURVE_MINUS, NULL, "geneseeds", RESOURCE_GOODS },
+    { JOB_GENEFARM, { PLANET_TYPE_BARREN, PLANET_TYPE_ICEBALL }, 2, 12, { RESOURCE_ORGANICS, RESOURCE_BOTS }, 2, RESOURCE_FOOD, CURVE_MINUS, NULL, "geneseeds", RESOURCE_NONE },
+    /* iceball + gas giant (multi-type) */
+    { JOB_EXCAVATE_ICEBALL_GASGIANT, { PLANET_TYPE_ICEBALL, PLANET_TYPE_GASGIANT }, 2, 12, { RESOURCE_BOTS }, 1, RESOURCE_ORE, CURVE_MINUS, NULL, "drillbots", RESOURCE_NONE },
+};
+
+static void test_full_roster_matches_prd_table(void) {
+    size_t row_count = sizeof(g_prd_job_table) / sizeof(g_prd_job_table[0]);
+    /* The table itself must have exactly 24 rows -- a missing or duplicated
+     * row here would otherwise silently under-cover the roster. */
+    T_CHECK(row_count == (size_t)JOB_COUNT);
+
+    bool seen[JOB_COUNT];
+    for (int i = 0; i < JOB_COUNT; i++) {
+        seen[i] = false;
+    }
+
+    for (size_t r = 0; r < row_count; r++) {
+        const prd_job_row_t *row = &g_prd_job_table[r];
+
+        /* Every row's id must be in range and appear exactly once -- catches
+         * both an omitted job id and an accidentally-duplicated one. */
+        T_CHECK(row->id >= 0 && row->id < JOB_COUNT);
+        T_CHECK(!seen[row->id]);
+        seen[row->id] = true;
+
+        const colonization_job_t *j = rules_planets_job(row->id);
+        T_CHECK(j != NULL);
+
+        T_CHECK(j->planet_types_count == row->planet_types_count);
+        for (int t = 0; t < row->planet_types_count; t++) {
+            T_CHECK(j->planet_types[t] == row->planet_types[t]);
+        }
+
+        T_CHECK(j->cost == row->cost);
+
+        T_CHECK(j->needs_count == row->needs_count);
+        for (int n = 0; n < row->needs_count; n++) {
+            T_CHECK(j->needs[n] == row->needs[n]);
+        }
+
+        T_CHECK(j->produces == row->produces);
+        T_CHECK(j->curve == row->curve);
+
+        T_CHECK((j->tech_gate == NULL) == (row->tech_gate == NULL));
+        if (j->tech_gate != NULL && row->tech_gate != NULL) {
+            T_CHECK(strcmp(j->tech_gate, row->tech_gate) == 0);
+        }
+
+        T_CHECK((j->required_tech == NULL) == (row->required_tech == NULL));
+        if (j->required_tech != NULL && row->required_tech != NULL) {
+            T_CHECK(strcmp(j->required_tech, row->required_tech) == 0);
+        }
+
+        T_CHECK(j->default_need == row->default_need);
+    }
+
+    /* Every one of the 24 job ids was covered by exactly one row above. */
+    for (int i = 0; i < JOB_COUNT; i++) {
+        T_CHECK(seen[i]);
+    }
+}
+
+/* Part 3: an explicit, separately-named test confirming the EXISTING
+ * closed-loop structural tests (test_every_need_is_produced_by_another_job/
+ * test_every_produce_is_needed_by_another_job, from
+ * docs/prd/psx-rules-planets.md's own original, already-graduated PRD, above)
+ * still pass unchanged in scope -- both are already pinned to
+ * RULES_PLANETS_ORIGINAL_CLOSED_LOOP_JOB_COUNT (5), not JOB_COUNT, and this
+ * chunk does not touch either test or that constant.
+ *
+ * This step does not attempt to extend "closed loop" to the full 24-job
+ * roster, because that's not a real property of the source game itself.
+ * The original 5-job subset's closed-loop property (every need has an
+ * in-subset producer, every product has an in-subset consumer) was a
+ * deliberate, self-imposed design choice of that original PRD's own 5-job
+ * selection, not a property of the source game as a whole -- the full
+ * 24-job roster genuinely isn't closed: luxury, produced by tourism/luxury,
+ * is consumed by no job among the full 24-job roster's needs; it feeds
+ * docs/prd/psx-rules-economy.md's db()/bf() formulas directly, outside this
+ * module entirely. This test states that explicitly and demonstrates it
+ * directly (not just by assertion) so a future reader doesn't either
+ * (a) assume the extended roster is still closed and get confused when a
+ * hypothetical future "closed-loop, full roster" test would necessarily
+ * fail, or (b) assume the existing 5-job test above was weakened by this
+ * step (it wasn't touched at all). */
+static void test_full_roster_is_not_closed_loop(void) {
+    /* First confirm RESOURCE_LUXURY genuinely has a producer in the full
+     * roster (tourism, luxury) -- otherwise "no consumer" below would be a
+     * vacuous finding about a resource nothing produces, not a real sink. */
+    bool luxury_has_producer = false;
+    for (int i = 0; i < JOB_COUNT; i++) {
+        const colonization_job_t *j = rules_planets_job((colonization_job_id_t)i);
+        if (j->produces == RESOURCE_LUXURY) {
+            luxury_has_producer = true;
+            break;
+        }
+    }
+    T_CHECK(luxury_has_producer);
+
+    /* The actual negative property this test exists to prove: no job among
+     * the full 24-job roster needs RESOURCE_LUXURY -- luxury is a genuine
+     * terminal sink, not a dangling oversight. */
+    bool luxury_has_consumer = false;
+    for (int i = 0; i < JOB_COUNT; i++) {
+        const colonization_job_t *j = rules_planets_job((colonization_job_id_t)i);
+        for (int n = 0; n < j->needs_count; n++) {
+            if (j->needs[n] == RESOURCE_LUXURY) {
+                luxury_has_consumer = true;
+                break;
+            }
+        }
+        if (luxury_has_consumer) {
+            break;
+        }
+    }
+    T_CHECK(!luxury_has_consumer);
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -1555,5 +1754,8 @@ int main(void) {
     t_run("farm_job_cost_nanomaterials_researched", test_farm_job_cost_nanomaterials_researched);
     t_run("farm_job_production_matches_curve_minus", test_farm_job_production_matches_curve_minus);
     t_run("job_count_is_24", test_job_count_is_24);
+    t_run("full_roster_sanity_guard", test_full_roster_sanity_guard);
+    t_run("full_roster_matches_prd_table", test_full_roster_matches_prd_table);
+    t_run("full_roster_is_not_closed_loop", test_full_roster_is_not_closed_loop);
     return t_report();
 }
