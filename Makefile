@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy font psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas font sprite-atlas psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -170,6 +170,39 @@ test-rules-economy:
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(RULES_ECONOMY_HOST_BUILD_DIR)/rules_economy_test $(RULES_ECONOMY_TEST_HOST_SRCS) -lm
 	$(RULES_ECONOMY_HOST_BUILD_DIR)/rules_economy_test
 
+# Generation step for psx-slipways/sprite_atlas.h/.c (chunk 1 of
+# docs/prd/triage/psx-sprites-audio-extraction.md): reads pico8/gfx.json
+# and packs it into a 4bpp CLUT texture blob + the PICO-8 default palette,
+# converted to PS1 BGR555 -- see gen_psx_sprite_atlas.py's own header
+# comment for the pixel-packing/CLUT-conversion decisions. Mirrors the
+# existing font: target's shape (a tool call as its own Makefile recipe);
+# unlike font:, this one is also wired as a prerequisite of
+# test-sprite-atlas/psx-slipways below (not just a separately-invoked
+# target), so those never silently build against stale generated data.
+# The generated sprite_atlas.h/.c files are not committed -- see
+# .gitignore -- so this step must run before anything that reads them.
+sprite-atlas:
+	python3 tools/gen_psx_sprite_atlas.py
+
+# Host-native test for sprite_atlas.c's pure half (the generated
+# g_sprite_atlas_4bpp/g_pico8_clut const arrays plus sprite_atlas_cel_rect,
+# zero PSX-header dependency -- see docs/prd/triage/
+# psx-sprites-audio-extraction.md, Implementation Chunks chunk 1), same
+# shape/output dir as test-planetgen/test-galaxy-render/test-cursor/
+# test-rules-planets/test-liaison/test-rules-discovery/test-effects/
+# test-rules-tech/test-rules-economy above. Depends on sprite-atlas so the
+# generated sprite_atlas.h/.c are always fresh before compiling against
+# them.
+SPRITE_ATLAS_HOST_BUILD_DIR = psx-slipways/build-host
+SPRITE_ATLAS_TEST_HOST_SRCS = \
+	psx-slipways/sprite_atlas.c \
+	psx-slipways/host_tests/sprite_atlas_test.c
+
+test-sprite-atlas: sprite-atlas
+	mkdir -p $(SPRITE_ATLAS_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(SPRITE_ATLAS_HOST_BUILD_DIR)/sprite_atlas_test $(SPRITE_ATLAS_TEST_HOST_SRCS) -lm
+	$(SPRITE_ATLAS_HOST_BUILD_DIR)/sprite_atlas_test
+
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
 
@@ -204,7 +237,11 @@ psx-hello-boot-test-pcsx:
 psx-hello-input-test-pcsx:
 	sh tools/boot_test_psx_hello_pcsx_input.sh
 
-psx-slipways:
+# Depends on sprite-atlas so the cross-build's file(GLOB *.c) (psx-slipways/
+# CMakeLists.txt) always picks up freshly-generated sprite_atlas.h/.c
+# rather than stale or missing ones (Implementation Chunks chunk 1,
+# docs/prd/triage/psx-sprites-audio-extraction.md).
+psx-slipways: sprite-atlas
 	cd psx-slipways && PATH="$(PSN00BSDK_TOOLCHAIN_BIN):$$PATH" PSN00BSDK_LIBS=$(PSN00BSDK_LIBS_DIR) cmake --preset default .
 	cd psx-slipways && PATH="$(PSN00BSDK_TOOLCHAIN_BIN):$$PATH" cmake --build build
 
