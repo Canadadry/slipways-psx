@@ -85,6 +85,11 @@ const colonization_job_t *rules_planets_job(colonization_job_id_t id) {
  * Index 0..3 represents levels 1..4. */
 static const int g_curve_minus[4] = { 1, 2, 3, 3 };
 static const int g_curve_plus[4] = { 2, 3, 4, 4 };
+/* f- = [0,1,2,3] for levels 1-4, traced to hc (unstash Annexe A). No
+ * upgrade target is modeled for this curve (see curve_id_t's own doc
+ * comment) -- CURVE_F_MINUS is deliberately absent from the "upgraded"
+ * mapping below, so upgraded=true is a documented no-op for it. */
+static const int g_curve_f_minus[4] = { 0, 1, 2, 3 };
 
 int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
     if (level < 1) {
@@ -99,6 +104,9 @@ int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
         effective_curve = CURVE_PLUS;
     }
 
+    if (effective_curve == CURVE_F_MINUS) {
+        return g_curve_f_minus[level - 1];
+    }
     const int *table = (effective_curve == CURVE_MINUS) ? g_curve_minus : g_curve_plus;
     return table[level - 1];
 }

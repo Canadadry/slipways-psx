@@ -19,6 +19,13 @@ typedef enum {
     RESOURCE_FOOD,
     RESOURCE_GOODS,
     RESOURCE_ORGANICS,
+    /* r.w=12 per Annexe A, "luxury": produced by tourism/luxury (both added
+     * in a later chunk of docs/prd/triage/psx-full-planets-and-tech.md),
+     * needed by no in-scope job -- a genuine terminal sink in this module,
+     * converging with docs/prd/psx-rules-economy.md's own independent r.w /
+     * "luxury" trace for db()'s external-trade bonus and bf()'s happiness
+     * formula (both outside this module). */
+    RESOURCE_LUXURY,
 } resource_id_t;
 
 /* The 3 (of 10 documented) planet types this step ports. See
@@ -49,6 +56,17 @@ typedef enum {
 typedef enum {
     CURVE_MINUS,
     CURVE_PLUS,
+    /* hc (unstash Annexe A): f- = [0,1,2,3] for levels 1-4, used by
+     * tourism/luxury (both added in a later chunk of
+     * docs/prd/triage/psx-full-planets-and-tech.md). f-'s mc upgrade target
+     * (f+) is documented in hc but never reachable from any in-scope job --
+     * neither tourism nor luxury carries an il field (per that PRD's own
+     * finding), so no upgrade-table entry is added for CURVE_F_MINUS here:
+     * rules_planets_curve_value(CURVE_F_MINUS, level, upgraded=true) is a
+     * documented no-op, returning the same non-upgraded CURVE_F_MINUS
+     * values, matching CURVE_PLUS's own existing precedent of having no
+     * upgrade target. */
+    CURVE_F_MINUS,
 } curve_id_t;
 
 /* Maximum number of entries in a colonization_job_t's needs array. Source
@@ -97,6 +115,11 @@ const colonization_job_t *rules_planets_job(colonization_job_id_t id);
  * mc upgrade mapping) -- CURVE_PLUS has no upgrade target in this subset,
  * so upgraded has no effect when curve is already CURVE_PLUS. */
 int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
+
+/* CURVE_F_MINUS values, traced to hc (unstash Annexe A): f- = [0,1,2,3] for
+ * levels 1-4. It has no upgrade target in this module's scope (see
+ * curve_id_t's own doc comment), so upgraded has no effect on it, matching
+ * CURVE_PLUS's own precedent. */
 
 /* Job cost formula, ports hp:od() exactly (pico8/lua.lua:1426-1433). Starts
  * from the job's base cost; if the job has a tech_gate AND

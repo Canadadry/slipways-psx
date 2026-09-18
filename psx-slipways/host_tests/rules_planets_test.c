@@ -131,6 +131,35 @@ static void test_curve_value_level_above_4_clamps_to_level_4(void) {
     T_CHECK(rules_planets_curve_value(CURVE_MINUS, 5, true) == 4);
 }
 
+/* Chunk 1 (docs/prd/triage/psx-full-planets-and-tech.md): CURVE_F_MINUS,
+ * traced to hc (unstash Annexe A), f- = [0,1,2,3] for levels 1-4. */
+static void test_curve_f_minus_levels_1_to_4_match_traced_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 1, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 2, false) == 1);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 3, false) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 4, false) == 3);
+}
+
+static void test_curve_f_minus_level_below_1_returns_0(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 0, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, -1, false) == 0);
+}
+
+/* CURVE_F_MINUS has no upgrade target in this module's scope (neither
+ * tourism nor luxury carries an il field) -- upgraded=true must be a
+ * documented no-op, returning the exact same values as upgraded=false, not
+ * some garbage/uninitialized/wrongly-mapped value. */
+static void test_curve_f_minus_upgraded_is_a_no_op(void) {
+    for (int level = 1; level <= 4; level++) {
+        T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, level, true) ==
+                rules_planets_curve_value(CURVE_F_MINUS, level, false));
+    }
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 1, true) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 2, true) == 1);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 3, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 4, true) == 3);
+}
+
 static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
@@ -299,6 +328,9 @@ int main(void) {
     t_run("curve_minus_upgraded_returns_curve_plus_values", test_curve_minus_upgraded_returns_curve_plus_values);
     t_run("curve_plus_upgraded_is_a_no_op", test_curve_plus_upgraded_is_a_no_op);
     t_run("curve_value_level_above_4_clamps_to_level_4", test_curve_value_level_above_4_clamps_to_level_4);
+    t_run("curve_f_minus_levels_1_to_4_match_traced_values", test_curve_f_minus_levels_1_to_4_match_traced_values);
+    t_run("curve_f_minus_level_below_1_returns_0", test_curve_f_minus_level_below_1_returns_0);
+    t_run("curve_f_minus_upgraded_is_a_no_op", test_curve_f_minus_upgraded_is_a_no_op);
     t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
     t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
