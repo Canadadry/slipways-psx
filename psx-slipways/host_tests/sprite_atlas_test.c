@@ -138,23 +138,70 @@ static void test_sprite_liaison_invalid_target_specific_positions(void) {
     T_CHECK(unpack_4bpp_pixel(g_sprite_atlas_4bpp, rx + 3, ry + 3) == 8);
 }
 
+/* Independently-derived expected CLUT values (chunk 2,
+ * docs/prd/triage/psx-sprites-audio-extraction.md, Implementation Chunks
+ * item 2). Hand-typed here from PICO-8's real, well-known, fixed default
+ * 16-color system palette -- deliberately NOT copied from
+ * tools/gen_psx_sprite_atlas.py's PICO8_PALETTE_HEX table -- so that this
+ * test independently checks the tool's generated output rather than
+ * tautologically re-testing the tool against itself. Standard PICO-8
+ * color names/hex, in PICO-8's fixed index order 0-15: black, dark-blue,
+ * dark-purple, dark-green, brown, dark-grey, light-grey, white, red,
+ * orange, yellow, green, blue, lavender, pink, light-peach. */
+static const uint32_t g_expected_pico8_palette_rgb888[16] = {
+    0x000000, /* 0  black */
+    0x1D2B53, /* 1  dark-blue */
+    0x7E2553, /* 2  dark-purple */
+    0x008751, /* 3  dark-green */
+    0xAB5236, /* 4  brown */
+    0x5F574F, /* 5  dark-grey */
+    0xC2C3C7, /* 6  light-grey */
+    0xFFF1E8, /* 7  white */
+    0xFF004D, /* 8  red */
+    0xFFA300, /* 9  orange */
+    0xFFEC27, /* 10 yellow */
+    0x00E436, /* 11 green */
+    0x29ADFF, /* 12 blue */
+    0x83769C, /* 13 lavender */
+    0xFF77A8, /* 14 pink */
+    0xFFCCAA, /* 15 light-peach */
+};
+
+/* Test-local BGR555 conversion, independently re-implemented here rather
+ * than shared with tools/gen_psx_sprite_atlas.py's rgb_to_bgr555() -- same
+ * reasoning as the palette table above: this must independently verify
+ * the tool's conversion, not just re-run it. Same standard,
+ * truncating-right-shift-by-3-per-channel encoding:
+ * bgr555 = (b5<<10)|(g5<<5)|r5. */
+static uint16_t expected_bgr555(uint32_t rgb888) {
+    uint8_t r8 = (uint8_t)((rgb888 >> 16) & 0xFF);
+    uint8_t g8 = (uint8_t)((rgb888 >> 8) & 0xFF);
+    uint8_t b8 = (uint8_t)(rgb888 & 0xFF);
+    uint16_t r5 = (uint16_t)(r8 >> 3);
+    uint16_t g5 = (uint16_t)(g8 >> 3);
+    uint16_t b5 = (uint16_t)(b8 >> 3);
+    return (uint16_t)((b5 << 10) | (g5 << 5) | r5);
+}
+
+/* Dedicated, standalone guard for PICO-8's own sprite-color-0-is-
+ * transparent convention (see sprite_atlas.h's doc comment on
+ * g_pico8_clut) -- kept deliberately separate from the general per-index
+ * loop below, and asserting the literal 0x0000 value rather than relying
+ * on "whatever black's real RGB happens to convert to" (which also
+ * independently computes to 0x0000 -- see index 0 in
+ * test_clut_matches_independently_derived_pico8_palette below -- but that
+ * is a coincidence this test does not depend on): this is the one check
+ * that keeps a future edit from silently dropping the deliberate
+ * clut[0] = 0x0000 override). */
 static void test_clut_index_zero_is_forced_transparent_black(void) {
     T_CHECK(g_pico8_clut[0] == 0x0000);
 }
 
-/* color 1: #1D2B53 -> r=0x1D>>3=3, g=0x2B>>3=5, b=0x53>>3=10 ->
- * (10<<10)|(5<<5)|3 = 0x28a3
- * color 6: #C2C3C7 -> r=0xC2>>3=24, g=0xC3>>3=24, b=0xC7>>3=24 ->
- * (24<<10)|(24<<5)|24 = 0x6318
- * color 7: #FFF1E8 -> r=0xFF>>3=31, g=0xF1>>3=30, b=0xE8>>3=29 ->
- * (29<<10)|(30<<5)|31 = 0x77df
- * color 8: #FF004D -> r=0xFF>>3=31, g=0x00>>3=0, b=0x4D>>3=9 ->
- * (9<<10)|(0<<5)|31 = 0x241f */
-static void test_clut_matches_traced_pico8_default_palette(void) {
-    T_CHECK(g_pico8_clut[1] == 0x28a3);
-    T_CHECK(g_pico8_clut[6] == 0x6318);
-    T_CHECK(g_pico8_clut[7] == 0x77df);
-    T_CHECK(g_pico8_clut[8] == 0x241f);
+static void test_clut_matches_independently_derived_pico8_palette(void) {
+    for (int i = 0; i < 16; i++) {
+        uint16_t expected = expected_bgr555(g_expected_pico8_palette_rgb888[i]);
+        T_CHECK(g_pico8_clut[i] == expected);
+    }
 }
 
 static void test_cel_rect_1x1_matches_id_to_pixel_formula(void) {
@@ -189,7 +236,7 @@ int main(void) {
     t_run("sprite_cursor_default_specific_positions", test_sprite_cursor_default_specific_positions);
     t_run("sprite_liaison_invalid_target_specific_positions", test_sprite_liaison_invalid_target_specific_positions);
     t_run("clut_index_zero_is_forced_transparent_black", test_clut_index_zero_is_forced_transparent_black);
-    t_run("clut_matches_traced_pico8_default_palette", test_clut_matches_traced_pico8_default_palette);
+    t_run("clut_matches_independently_derived_pico8_palette", test_clut_matches_independently_derived_pico8_palette);
     t_run("cel_rect_1x1_matches_id_to_pixel_formula", test_cel_rect_1x1_matches_id_to_pixel_formula);
     t_run("cel_rect_2x2_matches_id_to_pixel_formula", test_cel_rect_2x2_matches_id_to_pixel_formula);
     return t_report();
