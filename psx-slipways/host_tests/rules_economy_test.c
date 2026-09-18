@@ -3,6 +3,7 @@
 #include "../rules_economy.h"
 
 #include <math.h>
+#include <string.h>
 
 /* -0.333/0.25/0.5 are not exactly representable in Q16.16, so exercise them
  * within a tight documented tolerance rather than requiring exact equality
@@ -730,6 +731,76 @@ static void test_debit_unaffordable_pair_is_safe_but_meaningless(void) {
     T_CHECK(rules_economy_debit(10, 100) == -90);
 }
 
+/* -- rules_economy_difficulty (bo) --------------------------------------
+ *
+ * bo, pico8/lua.lua:1189-1198: 4-entry table, one per named difficulty
+ * level, each with a display name (`px`), a trade multiplier (`trade`,
+ * already ported as the RULES_ECONOMY_TRADE_* #defines) and a planet-type-
+ * draw bias (`en`). Per this chunk's own spec: each entry's name/trade/en
+ * checked against the traced table; each entry's trade field cross-checked
+ * against the corresponding pre-existing RULES_ECONOMY_TRADE_* #define (a
+ * regression guard tying the new struct to Phase 3's own already-tested
+ * constants); RULES_ECONOMY_DIFFICULTY_COUNT==4.
+ *
+ * Note on `name`: source's own raw string literals carry PICO-8's own
+ * fixed-width-string padding for its own UI (e.g. "forgiving   ", trailing
+ * spaces) -- not semantically part of the name. This is trimmed here, and
+ * in the ported data itself, to the clean strings ("forgiving", etc.). */
+
+static void test_difficulty_forgiving_matches_traced_table(void) {
+    const rules_economy_difficulty_t *d = rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_FORGIVING);
+    T_CHECK(strcmp(d->name, "forgiving") == 0);
+    T_CHECK(d->trade == 7);
+    T_CHECK(fixed_approx_equal(d->en, (fixed_t)(-0.99 * (double)FX_ONE)));
+}
+
+static void test_difficulty_reasonable_matches_traced_table(void) {
+    const rules_economy_difficulty_t *d = rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_REASONABLE);
+    T_CHECK(strcmp(d->name, "reasonable") == 0);
+    T_CHECK(d->trade == 6);
+    T_CHECK(fixed_approx_equal(d->en, (fixed_t)(-0.6 * (double)FX_ONE)));
+}
+
+static void test_difficulty_challenging_matches_traced_table(void) {
+    const rules_economy_difficulty_t *d = rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_CHALLENGING);
+    T_CHECK(strcmp(d->name, "challenging") == 0);
+    T_CHECK(d->trade == 5);
+    T_CHECK(fixed_approx_equal(d->en, (fixed_t)(-0.4 * (double)FX_ONE)));
+}
+
+static void test_difficulty_tough_matches_traced_table(void) {
+    const rules_economy_difficulty_t *d = rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_TOUGH);
+    T_CHECK(strcmp(d->name, "tough") == 0);
+    T_CHECK(d->trade == 4);
+    T_CHECK(fixed_approx_equal(d->en, (fixed_t)(-0.2 * (double)FX_ONE)));
+}
+
+static void test_difficulty_trade_matches_preexisting_defines_regression_guard(void) {
+    /* Ties the new struct's trade field to Phase 3's own already-tested
+     * RULES_ECONOMY_TRADE_* #defines -- catches any future drift between
+     * the two. */
+    T_CHECK(rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_FORGIVING)->trade == RULES_ECONOMY_TRADE_FORGIVING);
+    T_CHECK(rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_REASONABLE)->trade == RULES_ECONOMY_TRADE_REASONABLE);
+    T_CHECK(rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_CHALLENGING)->trade == RULES_ECONOMY_TRADE_CHALLENGING);
+    T_CHECK(rules_economy_difficulty(RULES_ECONOMY_DIFFICULTY_TOUGH)->trade == RULES_ECONOMY_TRADE_TOUGH);
+}
+
+static void test_difficulty_count_is_four(void) {
+    T_CHECK(RULES_ECONOMY_DIFFICULTY_COUNT == 4);
+}
+
+/* -- RULES_ECONOMY_FOOD_PROCESSOR_SENSITIVITY ---------------------------
+ *
+ * Food processor's traced hs=0.5 field, pico8/lua.lua:1100, already cited
+ * by rules_economy_colony_trade_income's own parameter design (Phase 3)
+ * but never captured as a citable constant until now. 0.5 is exactly
+ * representable in Q16.16 (0.5*65536=32768, no rounding), so this is
+ * checked for exact equality, not tolerance. */
+
+static void test_food_processor_sensitivity_matches_traced_value_exactly(void) {
+    T_CHECK(RULES_ECONOMY_FOOD_PROCESSOR_SENSITIVITY == (fixed_t)(0.5 * FX_ONE));
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -788,5 +859,12 @@ int main(void) {
     t_run("debit_produces_correct_post_debit_treasury", test_debit_produces_correct_post_debit_treasury);
     t_run("debit_boundary_treasury_equals_cost_leaves_zero", test_debit_boundary_treasury_equals_cost_leaves_zero);
     t_run("debit_unaffordable_pair_is_safe_but_meaningless", test_debit_unaffordable_pair_is_safe_but_meaningless);
+    t_run("difficulty_forgiving_matches_traced_table", test_difficulty_forgiving_matches_traced_table);
+    t_run("difficulty_reasonable_matches_traced_table", test_difficulty_reasonable_matches_traced_table);
+    t_run("difficulty_challenging_matches_traced_table", test_difficulty_challenging_matches_traced_table);
+    t_run("difficulty_tough_matches_traced_table", test_difficulty_tough_matches_traced_table);
+    t_run("difficulty_trade_matches_preexisting_defines_regression_guard", test_difficulty_trade_matches_preexisting_defines_regression_guard);
+    t_run("difficulty_count_is_four", test_difficulty_count_is_four);
+    t_run("food_processor_sensitivity_matches_traced_value_exactly", test_food_processor_sensitivity_matches_traced_value_exactly);
     return t_report();
 }

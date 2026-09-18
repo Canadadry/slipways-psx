@@ -109,6 +109,68 @@ int rules_economy_colony_maintenance(bool is_laboratory, int laboratory_count, b
  * not merely simpler. */
 int rules_economy_overhead(int colonized_count);
 
+/* Food processor's traced local-sensitivity override, `hs=0.5`
+ * (pico8/lua.lua:1100). Already cited by rules_economy_colony_trade_income's
+ * own `sensitivity` parameter design above (Phase 3), but never captured as
+ * a citable constant until this chunk. 0.5 is exactly representable in
+ * Q16.16 (0.5*65536=32768, no rounding), unlike the difficulty table's `en`
+ * literals below. */
+#define RULES_ECONOMY_FOOD_PROCESSOR_SENSITIVITY ((fixed_t)(0.5 * FX_ONE))
+
+/* `bo` (pico8/lua.lua:1189-1198), the 4-entry difficulty table, ported as
+ * real, accessor-backed data:
+ *
+ *   bo=ob([[
+ *   o(lq=o(49,"forgiving   "),px="forgiving",
+ *   trade=7,en=-0.99),
+ *   o(lq=o(50,"reasonable  "),px="reasonable",
+ *   trade=6,en=-0.6),
+ *   o(lq=o(51,"challenging "),px="challenging",
+ *   trade=5,en=-0.4),
+ *   o(lq=o(52,"tough       "),px="tough",
+ *   trade=4,en=-0.2),
+ *   ]])
+ *
+ * `trade` matches the already-ported RULES_ECONOMY_TRADE_FORGIVING/
+ * REASONABLE/CHALLENGING/TOUGH #defines exactly (cross-checked by this
+ * module's own tests as a regression guard, not merely duplicated). `en` is
+ * the planet-type-draw bias (`dk.en`); its only consumer, `jo.oc()`/`gn()`
+ * (the planet-type draw), stays unported -- see
+ * docs/prd/triage/psx-rules-economy-completion.md. `-0.99`/`-0.6`/`-0.4`/
+ * `-0.2` are not exactly representable in Q16.16, folded from their traced
+ * double literals via this file's own established literal-folding idiom
+ * (g_trade_level_bonus, rules_economy.c).
+ *
+ * `name` (`px`): source's own raw string literal carries PICO-8's own
+ * fixed-width-string padding for its own menu UI (`lq`'s second field, e.g.
+ * "forgiving   ", trailing spaces to a fixed column) -- that padding is
+ * PICO-8's own display mechanism, not semantically part of the name, so it
+ * is trimmed here to the clean string ("forgiving", "reasonable",
+ * "challenging", "tough"), matching `px`'s own already-unpadded value in
+ * source (the SAME name appears twice in source: once padded inside `lq`
+ * for PICO-8's menu column, once as the clean `px` field this struct actually
+ * ports).
+ *
+ * No live "currently selected difficulty" global is introduced by this
+ * chunk: `trade_difficulty` stays a plain caller-supplied `int` everywhere
+ * else in this module (unchanged from Phase 3); this struct is pure,
+ * enumerable data for a future selector to consume. */
+typedef enum {
+    RULES_ECONOMY_DIFFICULTY_FORGIVING,
+    RULES_ECONOMY_DIFFICULTY_REASONABLE,
+    RULES_ECONOMY_DIFFICULTY_CHALLENGING,
+    RULES_ECONOMY_DIFFICULTY_TOUGH,
+    RULES_ECONOMY_DIFFICULTY_COUNT,
+} rules_economy_difficulty_id_t;
+
+typedef struct {
+    const char *name;
+    int trade;
+    fixed_t en;
+} rules_economy_difficulty_t;
+
+const rules_economy_difficulty_t *rules_economy_difficulty(rules_economy_difficulty_id_t id);
+
 /* One trade edge's contribution to db()'s total, traced to db()'s inner
  * edge-loop body (pico8/lua.lua:1325-1337, specifically the accumulation
  * line at 1333):

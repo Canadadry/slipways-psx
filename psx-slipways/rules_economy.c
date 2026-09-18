@@ -533,3 +533,30 @@ int rules_economy_overhead(int colonized_count) {
      * one of the two that is actually correct here. */
     return (18 * colonized_count * colonized_count) / 100;
 }
+
+/* bo, pico8/lua.lua:1189-1198: the 4-entry difficulty table. Index order
+ * matches rules_economy_difficulty_id_t's own declaration order
+ * (rules_economy.h), which itself matches bo's own source order
+ * (forgiving, reasonable, challenging, tough). `en`'s -0.99/-0.6/-0.4/-0.2
+ * literals are folded from their traced double literals via this file's own
+ * established literal-folding idiom (g_trade_level_bonus, above) -- none of
+ * the four is exactly representable in Q16.16. `name` is the clean,
+ * unpadded string (`px`'s own value in source) -- see rules_economy.h's doc
+ * comment on rules_economy_difficulty_t for why the padded `lq` variant is
+ * NOT used here. `trade` matches the pre-existing RULES_ECONOMY_TRADE_*
+ * #defines exactly (cross-checked by this module's own regression-guard
+ * test, host_tests/rules_economy_test.c, not merely duplicated here). */
+static const rules_economy_difficulty_t g_difficulty[RULES_ECONOMY_DIFFICULTY_COUNT] = {
+    {"forgiving", RULES_ECONOMY_TRADE_FORGIVING, (fixed_t)(-0.99 * (double)FX_ONE)},
+    {"reasonable", RULES_ECONOMY_TRADE_REASONABLE, (fixed_t)(-0.6 * (double)FX_ONE)},
+    {"challenging", RULES_ECONOMY_TRADE_CHALLENGING, (fixed_t)(-0.4 * (double)FX_ONE)},
+    {"tough", RULES_ECONOMY_TRADE_TOUGH, (fixed_t)(-0.2 * (double)FX_ONE)},
+};
+
+const rules_economy_difficulty_t *rules_economy_difficulty(rules_economy_difficulty_id_t id) {
+    /* No clamping idiom here (unlike this file's per-level lookups above):
+     * id is an enum with a known, small range, and every caller in this
+     * chunk's own tests passes a named enumerator -- out-of-range access is
+     * a caller bug, not a value this module needs to gracefully clamp. */
+    return &g_difficulty[id];
+}
