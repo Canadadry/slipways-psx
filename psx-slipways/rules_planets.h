@@ -84,6 +84,14 @@ typedef enum {
     JOB_COLONY_OCEAN,
     JOB_ALGAE,
     JOB_BREED_OCEAN,
+    /* Chunk 6 (docs/prd/triage/psx-full-planets-and-tech.md): remnant batch,
+     * the first jobs on PLANET_TYPE_REMNANT (added by chunk 2 but unused by
+     * any job until now). Deliberately simple: none of the 3 carries a
+     * tech_gate (il), a required_tech (rr), or a default_need (dm) -- placed
+     * here to keep pace varied and each chunk reviewable in isolation. */
+    JOB_STRIP,
+    JOB_DISMANTLE,
+    JOB_SCAVENGE,
     JOB_COUNT,
 } colonization_job_id_t;
 

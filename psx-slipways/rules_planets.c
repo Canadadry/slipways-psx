@@ -206,6 +206,47 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .default_need = RESOURCE_NONE,
         .required_tech = NULL,
     },
+    /* Chunk 6 (docs/prd/triage/psx-full-planets-and-tech.md): remnant batch,
+     * traced to fd's full 24-job re-decode (Implementation Decisions table).
+     * All 3 are single-type (remnant only), with no tech_gate, no
+     * default_need, and no required_tech -- deliberately the simplest
+     * "add a new job" case in the full roster. */
+    [JOB_STRIP] = {
+        .planet_types = { PLANET_TYPE_REMNANT },
+        .planet_types_count = 1,
+        .cost = 5,
+        .needs = { RESOURCE_PEOPLE, RESOURCE_FOOD },
+        .needs_count = 2,
+        .produces = RESOURCE_ORE,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
+    [JOB_DISMANTLE] = {
+        .planet_types = { PLANET_TYPE_REMNANT },
+        .planet_types_count = 1,
+        .cost = 5,
+        .needs = { RESOURCE_PEOPLE, RESOURCE_FOOD },
+        .needs_count = 2,
+        .produces = RESOURCE_TECH,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
+    [JOB_SCAVENGE] = {
+        .planet_types = { PLANET_TYPE_REMNANT },
+        .planet_types_count = 1,
+        .cost = 5,
+        .needs = { RESOURCE_PEOPLE, RESOURCE_FOOD },
+        .needs_count = 2,
+        .produces = RESOURCE_BOTS,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {

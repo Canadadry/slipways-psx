@@ -197,6 +197,10 @@ static void test_job_available_on_matches_exactly_its_one_real_type(void) {
         { JOB_COLONY_OCEAN, PLANET_TYPE_OCEAN },
         { JOB_ALGAE, PLANET_TYPE_OCEAN },
         { JOB_BREED_OCEAN, PLANET_TYPE_OCEAN },
+        /* Chunk 6: remnant batch, all single-type. */
+        { JOB_STRIP, PLANET_TYPE_REMNANT },
+        { JOB_DISMANTLE, PLANET_TYPE_REMNANT },
+        { JOB_SCAVENGE, PLANET_TYPE_REMNANT },
     };
 
     for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
@@ -405,6 +409,61 @@ static void test_algae_job_matches_traced_values(void) {
     T_CHECK(j->tech_gate != NULL);
     T_CHECK(strcmp(j->tech_gate, "xenofoods") == 0);
     T_CHECK(j->default_need == RESOURCE_ORGANICS);
+    T_CHECK(j->required_tech == NULL);
+}
+
+/* Chunk 6 (docs/prd/triage/psx-full-planets-and-tech.md): remnant batch
+ * (strip, dismantle, scavenge). Deliberately simple: no tech_gate (il), no
+ * required_tech (rr), no default_need (dm) -- the PRD's own "simpler chunk
+ * placed here to keep pace varied" framing. */
+static void test_strip_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_STRIP);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_REMNANT);
+    T_CHECK(j->cost == 5);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->needs[1] == RESOURCE_FOOD);
+    T_CHECK(j->produces == RESOURCE_ORE);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+static void test_dismantle_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_DISMANTLE);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_REMNANT);
+    T_CHECK(j->cost == 5);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->needs[1] == RESOURCE_FOOD);
+    T_CHECK(j->produces == RESOURCE_TECH);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+static void test_scavenge_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_SCAVENGE);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_REMNANT);
+    T_CHECK(j->cost == 5);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->needs[1] == RESOURCE_FOOD);
+    T_CHECK(j->produces == RESOURCE_BOTS);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
     T_CHECK(j->required_tech == NULL);
 }
 
@@ -747,6 +806,76 @@ static void test_breed_ocean_job_production_matches_curve_plus(void) {
     }
 }
 
+/* Chunk 6 (docs/prd/triage/psx-full-planets-and-tech.md): remnant batch.
+ * None of strip/dismantle/scavenge has a tech_gate, so job_tech_researched
+ * never changes cost or curve for any of them (matching mine's/bots'/goods'/
+ * gadgets'/breed(ocean)'s own no-tech-gate precedent above);
+ * nanomaterials_researched still applies its unconditional 0.85 multiplier.
+ * floor(5*0.85)=4 reuses breed(ocean)'s own exact precedent -- same base cost
+ * (5), same math. */
+static void test_strip_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_STRIP, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_STRIP, true, false) == 5);
+}
+
+static void test_strip_job_cost_nanomaterials_researched(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_STRIP, false, true) == 4);
+    T_CHECK(rules_planets_job_cost(JOB_STRIP, true, true) == 4);
+}
+
+static void test_strip_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_STRIP, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_STRIP, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_STRIP, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_STRIP, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_STRIP, 4, researched) == 3);
+    }
+}
+
+static void test_dismantle_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_DISMANTLE, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_DISMANTLE, true, false) == 5);
+}
+
+static void test_dismantle_job_cost_nanomaterials_researched(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_DISMANTLE, false, true) == 4);
+    T_CHECK(rules_planets_job_cost(JOB_DISMANTLE, true, true) == 4);
+}
+
+static void test_dismantle_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_DISMANTLE, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_DISMANTLE, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_DISMANTLE, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_DISMANTLE, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_DISMANTLE, 4, researched) == 3);
+    }
+}
+
+static void test_scavenge_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_SCAVENGE, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_SCAVENGE, true, false) == 5);
+}
+
+static void test_scavenge_job_cost_nanomaterials_researched(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_SCAVENGE, false, true) == 4);
+    T_CHECK(rules_planets_job_cost(JOB_SCAVENGE, true, true) == 4);
+}
+
+static void test_scavenge_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_SCAVENGE, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_SCAVENGE, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_SCAVENGE, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_SCAVENGE, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_SCAVENGE, 4, researched) == 3);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -770,6 +899,9 @@ int main(void) {
     t_run("colony_ocean_job_matches_traced_values", test_colony_ocean_job_matches_traced_values);
     t_run("algae_job_matches_traced_values", test_algae_job_matches_traced_values);
     t_run("breed_ocean_job_matches_traced_values", test_breed_ocean_job_matches_traced_values);
+    t_run("strip_job_matches_traced_values", test_strip_job_matches_traced_values);
+    t_run("dismantle_job_matches_traced_values", test_dismantle_job_matches_traced_values);
+    t_run("scavenge_job_matches_traced_values", test_scavenge_job_matches_traced_values);
     t_run("job_available_on_matches_exactly_its_one_real_type", test_job_available_on_matches_exactly_its_one_real_type);
     t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
     t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
@@ -817,5 +949,14 @@ int main(void) {
     t_run("breed_ocean_job_cost_unaffected_by_tech_researched", test_breed_ocean_job_cost_unaffected_by_tech_researched);
     t_run("breed_ocean_job_cost_nanomaterials_researched", test_breed_ocean_job_cost_nanomaterials_researched);
     t_run("breed_ocean_job_production_matches_curve_plus", test_breed_ocean_job_production_matches_curve_plus);
+    t_run("strip_job_cost_unaffected_by_tech_researched", test_strip_job_cost_unaffected_by_tech_researched);
+    t_run("strip_job_cost_nanomaterials_researched", test_strip_job_cost_nanomaterials_researched);
+    t_run("strip_job_production_matches_curve_minus", test_strip_job_production_matches_curve_minus);
+    t_run("dismantle_job_cost_unaffected_by_tech_researched", test_dismantle_job_cost_unaffected_by_tech_researched);
+    t_run("dismantle_job_cost_nanomaterials_researched", test_dismantle_job_cost_nanomaterials_researched);
+    t_run("dismantle_job_production_matches_curve_minus", test_dismantle_job_production_matches_curve_minus);
+    t_run("scavenge_job_cost_unaffected_by_tech_researched", test_scavenge_job_cost_unaffected_by_tech_researched);
+    t_run("scavenge_job_cost_nanomaterials_researched", test_scavenge_job_cost_nanomaterials_researched);
+    t_run("scavenge_job_production_matches_curve_minus", test_scavenge_job_production_matches_curve_minus);
     return t_report();
 }
