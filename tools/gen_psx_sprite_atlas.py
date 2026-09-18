@@ -201,14 +201,88 @@ extern const uint8_t g_sprite_atlas_4bpp[128 * 128 / 2];
  * "Transparency" section. */
 extern const uint16_t g_pico8_clut[16];
 
-/* Sprites this chunk wires (Implementation Chunks chunk 1,
- * docs/prd/triage/psx-sprites-audio-extraction.md). The remaining
- * traced-but-unwired roster (11 planet types, 4 mood icons, 8 structure
- * icons, 2 unreachable cursor variants) is chunk 3's job, not this
- * chunk's. */
+/* The 3 sprites live-wired into game_draw.c (Implementation Chunks
+ * chunks 1/4/5/6, docs/prd/triage/psx-sprites-audio-extraction.md). The
+ * remaining traced-but-unwired roster (11 planet types, 4 mood icons, 8
+ * structure icon variants, 2 unreachable cursor variants), added by
+ * chunk 3 below, is real, tested data with zero live caller -- see that
+ * roster's own doc comments for citations. */
 #define SPRITE_PLANET_UNKNOWN 43           /* jo:kj's `self.s or 43` fallback, pico8/lua.lua:541-551 */
 #define SPRITE_CURSOR_DEFAULT 58           /* ui's prototype default ql=58, pico8/lua.lua:213 */
 #define SPRITE_LIAISON_INVALID_TARGET 31   /* dl()'s spr(31,...), pico8/lua.lua:564, reachable via jc:ev */
+
+/* Chunk 3 (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks item 3): the full traced-but-currently-unreachable roster (11
+ * planet types, 4 mood-status icons, 8 structure-purchase icon variants,
+ * 2 unreachable cursor variants). Real, source-traced sprite ids, backed
+ * by a real, tested atlas -- but with zero live caller in this port, the
+ * same "traced but unwired" shape rules_planets.c's own 10-type roster
+ * and rules_tech.c's own 19-tech table already have (Implementation
+ * Decisions, "Real sprite inventory," items 1/2/6; Out of Scope). None of
+ * these are read by game_draw.c or any rules_*.c file yet. */
+
+/* 11 planet-type sprites -- df (pico8/lua.lua:1377-1389), the same
+ * planet-type table docs/prd/psx-rules-planets.md already traced for
+ * name/rarity but explicitly did NOT port the `s` (sprite) field
+ * (Implementation Decisions item 1). Drawn via jo:kj's `spr(self.nk and
+ * self.nk.s or self.s or 43,p.x-4,p.y-4,2,2)` (pico8/lua.lua:541-551,
+ * hence always 2x2 cels) once a planet has a discovered/transformed
+ * type -- not reachable in this port yet since no discovery-commit
+ * mechanism exists (see SPRITE_PLANET_UNKNOWN above, which IS wired). */
+#define SPRITE_PLANET_EMPTY 45              /* df.ll's s=45 (empty/unknown-roll sentinel), pico8/lua.lua:1377-1389 -- distinct from the `43` pre-discovery fallback above */
+#define SPRITE_PLANET_EARTHLIKE 160         /* df.e's s=160 ("earth-like"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_FORGEWORLD 128        /* df.f's s=128 ("forgeworld"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_MINERAL 134           /* df.m's s=134 ("mineral"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_OCEAN 130             /* df.o's s=130 ("ocean"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_REMNANT 140           /* df.r's s=140 ("remnant"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_XENO 162              /* df.x's s=162 ("xeno"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_JUNGLE 136            /* df.j's s=136 ("jungle"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_ICEBALL 138           /* df.i's s=138 ("iceball"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_BARREN 142            /* df.s's s=142 ("barren"), pico8/lua.lua:1377-1389 */
+#define SPRITE_PLANET_GASGIANT 96           /* df.g's s=96 ("gas giant"), pico8/lua.lua:1377-1389 */
+
+/* 4 mood-status icons -- jo:kj's `spr(self.mi+1,p.x-3,p.y-6)`
+ * (pico8/lua.lua:541-551), gated on self:gg() (a colonized-job flag).
+ * self.mi indexes jo.dz's 4 mood entries 1-based, so self.mi+1 ranges
+ * 2-5, in order unhappy -> content -> prosperous -> rich. Not reachable
+ * in this port yet (same gap as the planet-type roster above -- no live
+ * colonization-job state exists). */
+#define SPRITE_MOOD_UNHAPPY 2                /* jo.dz[1] ("unhappy"), self.mi+1 where self.mi=1, pico8/lua.lua:541-551 */
+#define SPRITE_MOOD_CONTENT 3                /* jo.dz[2] ("content"), self.mi+1 where self.mi=2, pico8/lua.lua:541-551 */
+#define SPRITE_MOOD_PROSPEROUS 4             /* jo.dz[3] ("prosperous"), self.mi+1 where self.mi=3, pico8/lua.lua:541-551 */
+#define SPRITE_MOOD_RICH 5                   /* jo.dz[4] ("rich"), self.mi+1 where self.mi=4, pico8/lua.lua:541-551 */
+
+/* 8 structures' icon sprite ids -- ie:kj (pico8/lua.lua:936-939). Not one
+ * of this step's six named draw-call placeholders (no structure-purchase
+ * UI exists anywhere in game_draw.c, docs/prd/psx-structures-and-
+ * transforms.md's own Out of Scope) -- captured as data since the ids
+ * were sitting right there in the same spr()/sspr() trace (Implementation
+ * Decisions item 6). Infragate is the one structure whose icon changes
+ * with live connection count (0-3): its source table is
+ * `hz=o(78,78,78,76)` (pico8/lua.lua:936-939) -- the first 3 variants
+ * genuinely share sprite id 78, only the 4th differs to 76; ported
+ * faithfully here as 4 distinct named constants, not collapsed/
+ * deduplicated, even though 3 of the 4 values are identical. */
+#define SPRITE_STRUCTURE_LABORATORY 174           /* Laboratory s=174, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_ASCENSION_GATE 166       /* Ascension Gate s=166, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_PROTOSTAR 98             /* Protostar s=98, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_SYNTHESIZER 66           /* Synthesizer s=66, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_TRADING_HUB 68           /* Trading Hub s=68, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_FOOD_PROCESSOR 100       /* Food processor s=100, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_SLIPGATE 170             /* Slipgate s=170, ie:kj, pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_INFRAGATE_0 78           /* Infragate hz[1]=78 (0 live connections), ie:kj's hz=o(78,78,78,76), pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_INFRAGATE_1 78           /* Infragate hz[2]=78 (1 live connection) -- same sprite id as INFRAGATE_0, ie:kj's hz=o(78,78,78,76), pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_INFRAGATE_2 78           /* Infragate hz[3]=78 (2 live connections) -- same sprite id as INFRAGATE_0/1, ie:kj's hz=o(78,78,78,76), pico8/lua.lua:936-939 */
+#define SPRITE_STRUCTURE_INFRAGATE_3 76           /* Infragate hz[4]=76 (3 live connections) -- the one variant that actually differs, ie:kj's hz=o(78,78,78,76), pico8/lua.lua:936-939 */
+
+/* 2 unreachable cursor variants -- ui:ev, pico8/lua.lua:225:
+ * `spr(self.rheld and 9 or self.o_ and self.o_.ql or self.ql, ...)`.
+ * Both are real sprite ids, both confirmed dead/unreachable in the
+ * original source (Implementation Decisions item 2 / Further Notes) --
+ * not wired to this port's own click/drag state, since doing so would
+ * invent behavior the source itself never exercises. */
+#define SPRITE_CURSOR_HELD 9                  /* the self.rheld branch -- self.rheld is never assigned anywhere in pico8/lua.lua (confirmed by exhaustive grep), so this is confirmed dead code in the original game, not a bug. ui:ev, pico8/lua.lua:225 */
+#define SPRITE_CURSOR_HOVER_OVERRIDE 11       /* the self.o_.ql per-hovered-object override -- self.o_.ql has exactly one other assignment in the whole source (ql=11, pico8/lua.lua:1158), on an entirely unwired UI entity, so also unreachable in this port currently. ui:ev, pico8/lua.lua:225 */
 
 /* Computes sprite id's pixel rectangle within the 128x128 atlas. PICO-8's
  * sprite sheet is a fixed 16x16 grid of 8x8-pixel cels, so a sprite id's

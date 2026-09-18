@@ -228,6 +228,55 @@ static void test_cel_rect_2x2_matches_id_to_pixel_formula(void) {
     T_CHECK(h == 16);
 }
 
+/* Chunk 3 (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks item 3): generalization proof that sprite_atlas_cel_rect()'s
+ * cel_x=id%16,cel_y=id/16 formula holds for roster ids beyond chunk 1's
+ * own 3 hardcoded cases (43/58/31), computed here by hand, independently
+ * of the function under test:
+ *   id=160 -> cel_x=160%16=0,  cel_y=160/16=10 -> px (0,80)
+ * Planets are always drawn 2x2 (jo:kj's spr(...,2,2) call, already
+ * established by chunk 1's own SPRITE_PLANET_UNKNOWN test above), so this
+ * exercises the same 2x2-cel case as chunk 1 but with a different roster
+ * id, proving the formula generalizes rather than being special-cased for
+ * id 43. */
+static void test_cel_rect_2x2_generalizes_to_new_roster_id_planet_earthlike(void) {
+    int x, y, w, h;
+    sprite_atlas_cel_rect(SPRITE_PLANET_EARTHLIKE, 2, 2, &x, &y, &w, &h);
+    T_CHECK(x == 0);
+    T_CHECK(y == 80);
+    T_CHECK(w == 16);
+    T_CHECK(h == 16);
+}
+
+/* id=174 -> cel_x=174%16=14, cel_y=174/16=10 -> px (112,80). Structures
+ * have no documented multi-cel draw call anywhere in the PRD's own trace
+ * of ie:kj (pico8/lua.lua:936-939) -- PICO-8's sprite default is a single
+ * 8x8 cel, so this defaults to 1x1 per this chunk's own instructions,
+ * exercising the same 1x1-cel shape as chunk 1's cursor/liaison-marker
+ * tests but with a different roster id and a different underlying atlas
+ * row (cel_y=10, not 0/1/8 like chunk 1's three ids). */
+static void test_cel_rect_1x1_generalizes_to_new_roster_id_structure_laboratory(void) {
+    int x, y, w, h;
+    sprite_atlas_cel_rect(SPRITE_STRUCTURE_LABORATORY, 1, 1, &x, &y, &w, &h);
+    T_CHECK(x == 112);
+    T_CHECK(y == 80);
+    T_CHECK(w == 8);
+    T_CHECK(h == 8);
+}
+
+/* id=5 -> cel_x=5%16=5, cel_y=5/16=0 -> px (40,0). A third, independent
+ * 1x1-cel roster id (a mood icon, jo:kj's spr(self.mi+1,...) call) in yet
+ * another atlas row, to rule out the formula only happening to work for
+ * one or two coincidentally-aligned new ids. */
+static void test_cel_rect_1x1_generalizes_to_new_roster_id_mood_rich(void) {
+    int x, y, w, h;
+    sprite_atlas_cel_rect(SPRITE_MOOD_RICH, 1, 1, &x, &y, &w, &h);
+    T_CHECK(x == 40);
+    T_CHECK(y == 0);
+    T_CHECK(w == 8);
+    T_CHECK(h == 8);
+}
+
 int main(void) {
     t_run("sprite_planet_unknown_pixels_match_gfx_json", test_sprite_planet_unknown_pixels_match_gfx_json);
     t_run("sprite_cursor_default_pixels_match_gfx_json", test_sprite_cursor_default_pixels_match_gfx_json);
@@ -239,5 +288,8 @@ int main(void) {
     t_run("clut_matches_independently_derived_pico8_palette", test_clut_matches_independently_derived_pico8_palette);
     t_run("cel_rect_1x1_matches_id_to_pixel_formula", test_cel_rect_1x1_matches_id_to_pixel_formula);
     t_run("cel_rect_2x2_matches_id_to_pixel_formula", test_cel_rect_2x2_matches_id_to_pixel_formula);
+    t_run("cel_rect_2x2_generalizes_to_new_roster_id_planet_earthlike", test_cel_rect_2x2_generalizes_to_new_roster_id_planet_earthlike);
+    t_run("cel_rect_1x1_generalizes_to_new_roster_id_structure_laboratory", test_cel_rect_1x1_generalizes_to_new_roster_id_structure_laboratory);
+    t_run("cel_rect_1x1_generalizes_to_new_roster_id_mood_rich", test_cel_rect_1x1_generalizes_to_new_roster_id_mood_rich);
     return t_report();
 }
