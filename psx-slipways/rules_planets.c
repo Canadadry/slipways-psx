@@ -454,6 +454,50 @@ static const structure_t g_structures[STRUCTURE_COUNT] = {
         .max_connections = 0,
         .crosses_other_routes = false,
     },
+    /* Chunk 3 (docs/prd/triage/psx-structures-and-transforms.md): od=60,
+     * pico8/lua.lua:1003; rr="ascension" (pico8/lua.lua:1000) -- a purchase
+     * gate, captured as data only (see structure_t's own doc comment); needs
+     * = people; produces = joy; curve = f+, no il (curve-upgrade gate) -- f+
+     * has no mc upgrade target of its own (hc, Annexe A), so tech_gate ==
+     * NULL is the traced fact, not a simplification. No joker need/produce
+     * -- resolvable_count = 0. */
+    [STRUCTURE_ASCENSION_GATE] = {
+        .name = "Ascension Gate",
+        .purchasable = true,
+        .cost = 60,
+        .required_tech = "ascension",
+        .needs = { RESOURCE_PEOPLE },
+        .needs_count = 1,
+        .produces = RESOURCE_JOY,
+        .curve = CURVE_F_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .resolvable_count = 0,
+        .max_connections = 0,
+        .crosses_other_routes = false,
+    },
+    /* Chunk 3: Protostar (`pm`), non-purchasable -- created only by the
+     * collapse transform action (chunk 7's job), never bought directly. No
+     * `od` field exists on its own source definition at all, so `cost` here
+     * is a placeholder literal with no traced meaning (see structure_t's own
+     * doc comment: "meaningless when purchasable == false") -- never
+     * asserted to any particular value by any test. needs = none; produces =
+     * energy; curve = `-` (CURVE_MINUS) -- the first non-colonization-job
+     * caller of that curve. */
+    [STRUCTURE_PROTOSTAR] = {
+        .name = "Protostar",
+        .purchasable = false,
+        .cost = 0,
+        .required_tech = NULL,
+        .needs_count = 0,
+        .produces = RESOURCE_ENERGY,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .resolvable_count = 0,
+        .max_connections = 0,
+        .crosses_other_routes = false,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {

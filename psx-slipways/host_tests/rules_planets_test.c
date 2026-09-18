@@ -490,6 +490,107 @@ static void test_food_processor_structure_production_switches_to_curve_f_plus_wh
     T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 4, true) == 4);
 }
 
+/* Chunk 3 (docs/prd/triage/psx-structures-and-transforms.md): Ascension
+ * Gate. od=60 (pico8/lua.lua:1003), rr="ascension" (a purchase gate,
+ * pico8/lua.lua:1000) -- captured as data only, not applied (mirrors
+ * colonization_job_t.required_tech's own precedent; no live
+ * colonization-choice/structure-purchase menu exists anywhere in this port).
+ * needs = people, produces = joy, curve = f+, no il (curve-upgrade gate) --
+ * f+ has no mc upgrade target of its own, so tech_gate == NULL here is not a
+ * simplification, it is the traced fact. No joker need/produce, so
+ * resolvable_count == 0. */
+static void test_ascension_gate_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_ASCENSION_GATE);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Ascension Gate") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 60);
+    T_CHECK(s->required_tech != NULL);
+    T_CHECK(strcmp(s->required_tech, "ascension") == 0);
+    T_CHECK(s->needs_count == 1);
+    T_CHECK(s->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(s->produces == RESOURCE_JOY);
+    T_CHECK(s->curve == CURVE_F_PLUS);
+    T_CHECK(s->tech_gate == NULL);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 0);
+    T_CHECK(s->max_connections == 0);
+    T_CHECK(s->crosses_other_routes == false);
+}
+
+/* Ascension Gate's rules_planets_structure_production: tech_gate == NULL, so
+ * rules_planets_structure_production's own "upgraded = tech_gate != NULL &&
+ * curve_upgrade_researched" guard forces upgraded to always be false here --
+ * both researched states must therefore match f+'s own [0,2,3,4] identically
+ * (mirroring tourism's/luxury's own CURVE_F_MINUS no-tech-gate precedent,
+ * just for CURVE_F_PLUS now). This is a structural no-op (proven by the guard
+ * itself, not a coincidence of f+ having no upgrade table -- f+ genuinely has
+ * none, per curve_id_t's own doc comment, so both reasons independently hold). */
+static void test_ascension_gate_structure_production_matches_curve_f_plus_unresearched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 1, false) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 2, false) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 3, false) == 3);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 4, false) == 4);
+}
+
+static void test_ascension_gate_structure_production_identical_when_researched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 1, true) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 2, true) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 3, true) == 3);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_ASCENSION_GATE, 4, true) == 4);
+}
+
+/* Protostar: non-purchasable, created only by the collapse transform action
+ * (chunk 7's job) -- never bought directly. needs_count == 0 ("none" per the
+ * traced table); produces == energy; curve == CURVE_MINUS, the first
+ * non-colonization-job caller of that curve (every prior CURVE_MINUS user
+ * was a real colonization job -- mine, nanotech, uplift, etc.). cost is
+ * deliberately NOT asserted here: the PRD documents it as meaningless when
+ * purchasable == false (Protostar has no od field at all in source), so this
+ * test only confirms the struct is readable without crashing, never pinning
+ * a particular literal. */
+static void test_protostar_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_PROTOSTAR);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Protostar") == 0);
+    T_CHECK(s->purchasable == false);
+    T_CHECK(s->required_tech == NULL);
+    T_CHECK(s->needs_count == 0);
+    T_CHECK(s->produces == RESOURCE_ENERGY);
+    T_CHECK(s->curve == CURVE_MINUS);
+    T_CHECK(s->tech_gate == NULL);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 0);
+    T_CHECK(s->max_connections == 0);
+    T_CHECK(s->crosses_other_routes == false);
+}
+
+/* Protostar's rules_planets_structure_production: tech_gate == NULL, so both
+ * researched states are identical here too (same structural guard as
+ * Ascension Gate above) -- and since CURVE_MINUS has no upgrade target
+ * wired for a NULL tech_gate to reach anyway, both match CURVE_MINUS's
+ * already-tested [1,2,3,3] identically. This proves
+ * rules_planets_curve_value/rules_planets_structure_production are genuinely
+ * caller-agnostic -- Protostar is a structure_t, not a colonization_job_t,
+ * yet the exact same CURVE_MINUS values already asserted for real jobs
+ * (e.g. test_mine_job_production_matches_curve_minus_unresearched) come back
+ * unchanged through the structure-side call path. */
+static void test_protostar_structure_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 1, false) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 2, false) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 3, false) == 3);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 4, false) == 3);
+}
+
+static void test_protostar_structure_production_identical_when_researched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 1, true) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 2, true) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 3, true) == 3);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 4, true) == 3);
+}
+
 static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
@@ -1877,6 +1978,12 @@ int main(void) {
     t_run("laboratory_structure_production_switches_to_curve_qh_plus_when_researched", test_laboratory_structure_production_switches_to_curve_qh_plus_when_researched);
     t_run("food_processor_structure_production_matches_curve_f_minus_unresearched", test_food_processor_structure_production_matches_curve_f_minus_unresearched);
     t_run("food_processor_structure_production_switches_to_curve_f_plus_when_researched", test_food_processor_structure_production_switches_to_curve_f_plus_when_researched);
+    t_run("ascension_gate_structure_matches_traced_values", test_ascension_gate_structure_matches_traced_values);
+    t_run("ascension_gate_structure_production_matches_curve_f_plus_unresearched", test_ascension_gate_structure_production_matches_curve_f_plus_unresearched);
+    t_run("ascension_gate_structure_production_identical_when_researched", test_ascension_gate_structure_production_identical_when_researched);
+    t_run("protostar_structure_matches_traced_values", test_protostar_structure_matches_traced_values);
+    t_run("protostar_structure_production_matches_curve_minus_unresearched", test_protostar_structure_production_matches_curve_minus_unresearched);
+    t_run("protostar_structure_production_identical_when_researched", test_protostar_structure_production_identical_when_researched);
     t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
     t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
