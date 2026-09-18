@@ -718,6 +718,107 @@ static void test_trading_hub_structure_production_identical_when_researched(void
     T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 4, true) == 3);
 }
 
+/* Chunk 5 (docs/prd/triage/psx-structures-and-transforms.md): Slipgate.
+ * Genuinely "no production" -- neither nr nor fr's own entity definition
+ * (pico8/lua.lua:1101-1127) sets an hp= field at all, so there is no fd
+ * record and thus no needs/produces/curve data for either Slipgate or
+ * Infragate: needs_count == 0, produces == RESOURCE_NONE, curve ==
+ * CURVE_NONE, the first real (non-synthetic) structure data to exercise
+ * CURVE_NONE (added in chunk 1). od=10 (pico8/lua.lua:1103), rr="slipgates"
+ * (pico8/lua.lua:1108) -- a purchase gate, captured as data only.
+ * max_connections == 3 (design doc SS5, #self.oe<3) -- shared with Infragate.
+ * crosses_other_routes == false: Slipgate does NOT carry mt=1, unlike
+ * Infragate below -- the one field that actually distinguishes the two
+ * structures (see test_slipgate_and_infragate_crosses_other_routes_differ). */
+static void test_slipgate_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_SLIPGATE);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Slipgate") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 10);
+    T_CHECK(s->required_tech != NULL);
+    T_CHECK(strcmp(s->required_tech, "slipgates") == 0);
+    T_CHECK(s->needs_count == 0);
+    T_CHECK(s->produces == RESOURCE_NONE);
+    T_CHECK(s->curve == CURVE_NONE);
+    T_CHECK(s->tech_gate == NULL);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 0);
+    T_CHECK(s->max_connections == 3);
+    T_CHECK(s->crosses_other_routes == false);
+}
+
+/* Slipgate's rules_planets_structure_production: CURVE_NONE is a real
+ * sentinel (chunk 1) -- must return 0 for every level 0-5 (the full range,
+ * not just the traced 1-4 window) and both upgraded states, the first real,
+ * non-synthetic exercise of CURVE_NONE's no-op (chunk 1 only tested it
+ * synthetically on rules_planets_curve_value directly). */
+static void test_slipgate_structure_production_returns_0_for_every_level(void) {
+    for (int level = 0; level <= 5; level++) {
+        T_CHECK(rules_planets_structure_production(STRUCTURE_SLIPGATE, level, false) == 0);
+        T_CHECK(rules_planets_structure_production(STRUCTURE_SLIPGATE, level, true) == 0);
+    }
+}
+
+/* Infragate: the same "no production" status as Slipgate above -- fr's own
+ * entity definition (pico8/lua.lua:1109-1127) also sets no hp= field, so
+ * needs_count == 0, produces == RESOURCE_NONE, curve == CURVE_NONE
+ * identically. od=25 (pico8/lua.lua:1126), rr="infraspace"
+ * (pico8/lua.lua:1125) -- a purchase gate, captured as data only.
+ * max_connections == 3, same #self.oe<3 rule as Slipgate. crosses_other_routes
+ * == true: Infragate's mt=1 -- a route that crosses another route is only
+ * valid if the crossing structure is an Infragate, the one field that
+ * actually distinguishes it from Slipgate. */
+static void test_infragate_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_INFRAGATE);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Infragate") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 25);
+    T_CHECK(s->required_tech != NULL);
+    T_CHECK(strcmp(s->required_tech, "infraspace") == 0);
+    T_CHECK(s->needs_count == 0);
+    T_CHECK(s->produces == RESOURCE_NONE);
+    T_CHECK(s->curve == CURVE_NONE);
+    T_CHECK(s->tech_gate == NULL);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 0);
+    T_CHECK(s->max_connections == 3);
+    T_CHECK(s->crosses_other_routes == true);
+}
+
+/* Infragate's rules_planets_structure_production: same CURVE_NONE no-op
+ * property as Slipgate's own test above, exercised independently here so a
+ * future reader can't mistake it for a shared-fixture coincidence. */
+static void test_infragate_structure_production_returns_0_for_every_level(void) {
+    for (int level = 0; level <= 5; level++) {
+        T_CHECK(rules_planets_structure_production(STRUCTURE_INFRAGATE, level, false) == 0);
+        T_CHECK(rules_planets_structure_production(STRUCTURE_INFRAGATE, level, true) == 0);
+    }
+}
+
+/* The discriminating test: crosses_other_routes is the ONE field that
+ * actually distinguishes Slipgate from Infragate (every other field --
+ * needs/produces/curve/max_connections -- is identical between the two, per
+ * both structures' own tests above). Asserted both directions here (not just
+ * a single positive check on one structure) so this genuinely proves the
+ * two structures differ, not merely that one of them happens to be true. */
+static void test_slipgate_and_infragate_crosses_other_routes_differ(void) {
+    const structure_t *slipgate = rules_planets_structure(STRUCTURE_SLIPGATE);
+    const structure_t *infragate = rules_planets_structure(STRUCTURE_INFRAGATE);
+
+    T_CHECK(slipgate->crosses_other_routes == false);
+    T_CHECK(infragate->crosses_other_routes == true);
+    T_CHECK(slipgate->crosses_other_routes != infragate->crosses_other_routes);
+
+    /* max_connections is identical between the two (both == 3) -- confirming
+     * crosses_other_routes, not max_connections, is the discriminating
+     * field. */
+    T_CHECK(slipgate->max_connections == infragate->max_connections);
+}
+
 static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
@@ -2117,6 +2218,11 @@ int main(void) {
     t_run("trading_hub_structure_matches_traced_values", test_trading_hub_structure_matches_traced_values);
     t_run("trading_hub_structure_production_matches_curve_f_minus_unresearched", test_trading_hub_structure_production_matches_curve_f_minus_unresearched);
     t_run("trading_hub_structure_production_identical_when_researched", test_trading_hub_structure_production_identical_when_researched);
+    t_run("slipgate_structure_matches_traced_values", test_slipgate_structure_matches_traced_values);
+    t_run("slipgate_structure_production_returns_0_for_every_level", test_slipgate_structure_production_returns_0_for_every_level);
+    t_run("infragate_structure_matches_traced_values", test_infragate_structure_matches_traced_values);
+    t_run("infragate_structure_production_returns_0_for_every_level", test_infragate_structure_production_returns_0_for_every_level);
+    t_run("slipgate_and_infragate_crosses_other_routes_differ", test_slipgate_and_infragate_crosses_other_routes_differ);
     t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
     t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);

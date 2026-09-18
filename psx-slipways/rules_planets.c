@@ -548,6 +548,53 @@ static const structure_t g_structures[STRUCTURE_COUNT] = {
         .max_connections = 0,
         .crosses_other_routes = false,
     },
+    /* Chunk 5 (docs/prd/triage/psx-structures-and-transforms.md): Slipgate.
+     * od=10, pico8/lua.lua:1103; rr="slipgates", pico8/lua.lua:1108 -- a
+     * purchase gate, captured as data only. Genuinely "no production": nr's
+     * own entity definition (pico8/lua.lua:1101-1108) sets no hp= field at
+     * all, so there is no fd record and thus no needs/produces/curve data --
+     * needs_count = 0, produces = RESOURCE_NONE, curve = CURVE_NONE (the
+     * first real, non-synthetic structure data to exercise CURVE_NONE, added
+     * in chunk 1). max_connections = 3 (design doc SS5, #self.oe<3) -- shared
+     * with Infragate below. crosses_other_routes = false: Slipgate does NOT
+     * carry mt=1, unlike Infragate -- the one field distinguishing the two. */
+    [STRUCTURE_SLIPGATE] = {
+        .name = "Slipgate",
+        .purchasable = true,
+        .cost = 10,
+        .required_tech = "slipgates",
+        .needs_count = 0,
+        .produces = RESOURCE_NONE,
+        .curve = CURVE_NONE,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .resolvable_count = 0,
+        .max_connections = 3,
+        .crosses_other_routes = false,
+    },
+    /* Infragate: the same "no production" status as Slipgate above -- fr's
+     * own entity definition (pico8/lua.lua:1109-1127) also sets no hp= field.
+     * od=25, pico8/lua.lua:1126; rr="infraspace", pico8/lua.lua:1125 -- a
+     * purchase gate, captured as data only. needs_count = 0, produces =
+     * RESOURCE_NONE, curve = CURVE_NONE (same as Slipgate). max_connections =
+     * 3, same #self.oe<3 rule as Slipgate. crosses_other_routes = true:
+     * Infragate's mt=1 -- the one field distinguishing it from Slipgate (a
+     * route crossing another route is only valid if the crossing structure
+     * is an Infragate). */
+    [STRUCTURE_INFRAGATE] = {
+        .name = "Infragate",
+        .purchasable = true,
+        .cost = 25,
+        .required_tech = "infraspace",
+        .needs_count = 0,
+        .produces = RESOURCE_NONE,
+        .curve = CURVE_NONE,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .resolvable_count = 0,
+        .max_connections = 3,
+        .crosses_other_routes = true,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {
