@@ -597,12 +597,97 @@ static const structure_t g_structures[STRUCTURE_COUNT] = {
     },
 };
 
+/* Chunk 7 (docs/prd/triage/psx-structures-and-transforms.md, the FINAL chunk
+ * of this PRD): the 4 planet-transform/destroy actions, traced to fd's 4
+ * transform-shaped records (unstash 8494), each preceded by exactly one bare
+ * required_tech string in fd's own array order (the same mechanism real
+ * jobs' required_tech already uses):
+ *
+ *   "replication",o("mechanize","mrsoijx",20,ii=38,go="f")
+ *   "biome hacking",o("terraform","xisoj",20,ii=39,go="e")
+ *   "starbirth",o("collapse","gm",30,ii=41,cw="pm",rn=45)
+ *   "geoharvesting",o("harvest","efmorxjisg",-20,ii=23,cw="ga",rn=46)
+ *
+ * mechanize: mineral, remnant, barren, ocean, iceball, jungle, xeno (7,
+ * lr="mrsoijx"); cost 20; result becomes forgeworld (go="f") -- forgeworld
+ * itself is deliberately absent from applicable_types (a planet already
+ * forgeworld can't "become forgeworld").
+ * terraform: xeno, iceball, barren, ocean, jungle (5, lr="xisoj"); cost 20;
+ * result becomes earth-like (go="e").
+ * collapse: gas giant, mineral (2, lr="gm"); cost 30; result becomes
+ * Protostar (cw="pm", this PRD's own STRUCTURE_PROTOSTAR) --
+ * result_planet_type is not meaningful for this result_kind.
+ * harvest: all 10 planet types (lr="efmorxjisg" -- see
+ * RULES_PLANETS_MAX_TRANSFORM_TYPES's own doc comment in rules_planets.h for
+ * the correction this drives: the PRD's own stated constant of 7 is wrong,
+ * the real traced maximum is 10); cost -20 (a genuine refund, ported as-is,
+ * never clamped to non-negative); result is destroyed (cw="ga") --
+ * result_planet_type is not meaningful for this result_kind. */
+static const transform_action_t g_transforms[TRANSFORM_COUNT] = {
+    [TRANSFORM_MECHANIZE] = {
+        .name = "mechanize",
+        .applicable_types = {
+            PLANET_TYPE_MINERAL, PLANET_TYPE_REMNANT, PLANET_TYPE_BARREN,
+            PLANET_TYPE_OCEAN, PLANET_TYPE_ICEBALL, PLANET_TYPE_JUNGLE, PLANET_TYPE_XENO,
+        },
+        .applicable_types_count = 7,
+        .cost = 20,
+        .required_tech = "replication",
+        .result_kind = TRANSFORM_RESULT_PLANET_TYPE,
+        .result_planet_type = PLANET_TYPE_FORGEWORLD,
+    },
+    [TRANSFORM_TERRAFORM] = {
+        .name = "terraform",
+        .applicable_types = {
+            PLANET_TYPE_XENO, PLANET_TYPE_ICEBALL, PLANET_TYPE_BARREN,
+            PLANET_TYPE_OCEAN, PLANET_TYPE_JUNGLE,
+        },
+        .applicable_types_count = 5,
+        .cost = 20,
+        .required_tech = "biome hacking",
+        .result_kind = TRANSFORM_RESULT_PLANET_TYPE,
+        .result_planet_type = PLANET_TYPE_EARTHLIKE,
+    },
+    [TRANSFORM_COLLAPSE] = {
+        .name = "collapse",
+        .applicable_types = { PLANET_TYPE_GASGIANT, PLANET_TYPE_MINERAL },
+        .applicable_types_count = 2,
+        .cost = 30,
+        .required_tech = "starbirth",
+        .result_kind = TRANSFORM_RESULT_PROTOSTAR,
+        /* Not meaningful for this result_kind -- a sensible placeholder,
+         * never asserted by any test (see transform_action_t's own doc
+         * comment). */
+        .result_planet_type = PLANET_TYPE_EARTHLIKE,
+    },
+    [TRANSFORM_HARVEST] = {
+        .name = "harvest",
+        .applicable_types = {
+            PLANET_TYPE_EARTHLIKE, PLANET_TYPE_FORGEWORLD, PLANET_TYPE_MINERAL,
+            PLANET_TYPE_OCEAN, PLANET_TYPE_REMNANT, PLANET_TYPE_XENO,
+            PLANET_TYPE_JUNGLE, PLANET_TYPE_ICEBALL, PLANET_TYPE_BARREN, PLANET_TYPE_GASGIANT,
+        },
+        .applicable_types_count = 10,
+        .cost = -20,
+        .required_tech = "geoharvesting",
+        .result_kind = TRANSFORM_RESULT_DESTROYED,
+        /* Not meaningful for this result_kind -- a sensible placeholder,
+         * never asserted by any test (see transform_action_t's own doc
+         * comment). */
+        .result_planet_type = PLANET_TYPE_EARTHLIKE,
+    },
+};
+
 const planet_type_t *rules_planets_type(planet_type_id_t id) {
     return &g_planet_types[id];
 }
 
 const structure_t *rules_planets_structure(structure_id_t id) {
     return &g_structures[id];
+}
+
+const transform_action_t *rules_planets_transform(transform_action_id_t id) {
+    return &g_transforms[id];
 }
 
 const colonization_job_t *rules_planets_job(colonization_job_id_t id) {
@@ -614,6 +699,20 @@ bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t t
 
     for (int i = 0; i < job->planet_types_count; i++) {
         if (job->planet_types[i] == type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Mirrors rules_planets_job_available_on exactly, over
+ * transform_action_t's applicable_types[] instead of
+ * colonization_job_t's planet_types[]. */
+bool rules_planets_transform_applicable_to(transform_action_id_t id, planet_type_id_t type) {
+    const transform_action_t *transform = rules_planets_transform(id);
+
+    for (int i = 0; i < transform->applicable_types_count; i++) {
+        if (transform->applicable_types[i] == type) {
             return true;
         }
     }

@@ -216,6 +216,25 @@ typedef enum {
  * speculative headroom, mirroring RULES_PLANETS_MAX_NEEDS's own precedent. */
 #define RULES_PLANETS_MAX_TYPES 2
 
+/* Maximum number of entries in a transform_action_t's applicable_types[]
+ * array. Chunk 7 (docs/prd/triage/psx-structures-and-transforms.md): the
+ * PRD's own "Data model changes needed" section states this as 7 ("mechanize's
+ * `lr`, the real traced maximum"), but that is a transcription error in the
+ * PRD itself, caught by re-verifying directly against the PRD's own raw `fd`
+ * dump rather than trusting its stated constant: harvest's own `lr` string,
+ * "efmorxjisg" (o("harvest","efmorxjisg",-20,ii=23,cw="ga",rn=46), the PRD's
+ * "Transform/destroy actions" section), is 10 distinct single-character
+ * planet-type codes (e,f,m,o,r,x,j,i,s,g -- all 10 of PLANET_TYPE_COUNT),
+ * strictly larger than mechanize's own 7-character "mrsoijx". harvest is
+ * genuinely applicable to every planet type (per the PRD's own transform
+ * table row: "all 10 (`efmorxjisg`)"), so 7 is not the real traced maximum --
+ * 10 is. This mirrors this same PRD's own precedent of correcting two
+ * design-doc errors (Trading Hub's produce, Synthesizer's resolvable set)
+ * from source rather than copying them: here the source being corrected
+ * against is the PRD's own stated constant, re-verified against the PRD's own
+ * cited raw data. */
+#define RULES_PLANETS_MAX_TRANSFORM_TYPES 10
+
 /* One entry of the traced df table (pico8/lua.lua:1377-1389): a planet
  * type's display name and rarity weight. rarity is fixed_t (Q16.16), never
  * float/double, since 4.5 is not integral -- per the project's established
@@ -320,6 +339,52 @@ typedef struct {
     bool crosses_other_routes;          /* Infragate's mt=1; false for every other structure */
 } structure_t;
 
+/* The 4 planet-transform/destroy actions (mechanize, terraform, collapse,
+ * harvest), traced to fd's 4 transform-shaped records (unstash 8494), each
+ * preceded by exactly one bare required_tech string in fd's own array order
+ * (the same bare-string-loop mechanism real jobs' required_tech already
+ * uses). See docs/prd/triage/psx-structures-and-transforms.md, "Transform/
+ * destroy actions, re-verified against the current, larger fd decode". */
+typedef enum {
+    TRANSFORM_MECHANIZE,
+    TRANSFORM_TERRAFORM,
+    TRANSFORM_COLLAPSE,
+    TRANSFORM_HARVEST,
+    TRANSFORM_COUNT,
+} transform_action_id_t;
+
+/* Distinguishes what a transform's target field (go vs. cw in source) names:
+ * `go` (mechanize/terraform) names a single planet_type_id_t the planet's
+ * type becomes; `cw` (collapse/harvest) names a different *entity* the planet
+ * becomes instead of a plain type -- Protostar (collapse) or a plain
+ * destroy/particle-effect marker with no further game-mechanical role
+ * (harvest). result_planet_type is meaningful only for
+ * TRANSFORM_RESULT_PLANET_TYPE. */
+typedef enum {
+    TRANSFORM_RESULT_PLANET_TYPE,
+    TRANSFORM_RESULT_PROTOSTAR,
+    TRANSFORM_RESULT_DESTROYED,
+} transform_result_kind_t;
+
+/* One entry of the traced fd transform records (unstash 8494). cost is
+ * negative for harvest (a genuine refund, ported as-is, never clamped to
+ * non-negative). required_tech is the raw fd array's bare-string rr gate
+ * (the same job-availability mechanism colonization_job_t.required_tech
+ * already uses), captured as data only -- no live colonization/transform-
+ * commit menu exists anywhere in this port to apply it to (see this PRD's Out
+ * of Scope). result_planet_type is valid iff result_kind ==
+ * TRANSFORM_RESULT_PLANET_TYPE; for TRANSFORM_RESULT_PROTOSTAR/
+ * TRANSFORM_RESULT_DESTROYED it holds an unasserted placeholder value only. */
+typedef struct {
+    const char *name;
+    planet_type_id_t applicable_types[RULES_PLANETS_MAX_TRANSFORM_TYPES];
+    int applicable_types_count;
+    int cost;                          /* negative for harvest (a refund) */
+    const char *required_tech;         /* rr, via fd's bare-string mechanism (same as real jobs) */
+    transform_result_kind_t result_kind;
+    planet_type_id_t result_planet_type; /* valid iff result_kind == TRANSFORM_RESULT_PLANET_TYPE */
+} transform_action_t;
+
 /* Plain accessors into the static planet-type/job/structure tables. id must
  * be a valid enum value in range (less than PLANET_TYPE_COUNT, JOB_COUNT, or
  * STRUCTURE_COUNT) -- mirrors world_get_galaxy()'s simplicity, no elaborate
@@ -327,6 +392,7 @@ typedef struct {
 const planet_type_t *rules_planets_type(planet_type_id_t id);
 const colonization_job_t *rules_planets_job(colonization_job_id_t id);
 const structure_t *rules_planets_structure(structure_id_t id);
+const transform_action_t *rules_planets_transform(transform_action_id_t id);
 
 /* Mirrors source's own bj() filter (pico8/lua.lua:1391-1398), minus the
  * oj(b.rr) tech-researched check (required_tech stays a caller-supplied
@@ -334,6 +400,12 @@ const structure_t *rules_planets_structure(structure_id_t id);
  * colonization_job_t's own doc comment). Returns true iff type appears
  * anywhere in job id's planet_types[0..planet_types_count-1]. */
 bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t type);
+
+/* Mirrors rules_planets_job_available_on exactly, for transform_action_t's
+ * applicable_types[] in place of colonization_job_t's planet_types[]. Returns
+ * true iff type appears anywhere in id's
+ * applicable_types[0..applicable_types_count-1]. */
+bool rules_planets_transform_applicable_to(transform_action_id_t id, planet_type_id_t type);
 
 /* Generic production-by-level curve lookup, traced to hc (pico8/lua.lua,
  * unstash 8383) and hp:po()'s curve-selection logic. level < 1 returns 0

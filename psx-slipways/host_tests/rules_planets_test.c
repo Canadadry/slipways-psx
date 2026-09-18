@@ -2353,6 +2353,206 @@ static void test_full_structure_roster_matches_prd_table(void) {
     }
 }
 
+/* ========================================================================
+ * Chunk 7 (docs/prd/triage/psx-structures-and-transforms.md, the FINAL
+ * chunk of this PRD): transform_action_t/transform_action_id_t, the 4
+ * planet-transform/destroy actions (mechanize, terraform, collapse,
+ * harvest), traced to fd's 4 transform-shaped records (unstash 8494).
+ *
+ * RULES_PLANETS_MAX_TRANSFORM_TYPES correction: the PRD's own "Data model
+ * changes needed" section states this constant as 7 ("mechanize's lr, the
+ * real traced maximum"), but that is wrong -- re-verified directly against
+ * the PRD's own raw fd dump for harvest,
+ * o("harvest","efmorxjisg",-20,ii=23,cw="ga",rn=46): "efmorxjisg" is 10
+ * distinct single-character planet-type codes (e,f,m,o,r,x,j,i,s,g -- all 10
+ * of PLANET_TYPE_COUNT), strictly more than mechanize's own 7-character
+ * "mrsoijx". harvest is genuinely applicable to all 10 planet types (matching
+ * the PRD's own transform table row: "all 10 (efmorxjisg)"), so the real
+ * traced maximum is 10, not 7 -- rules_planets.h defines
+ * RULES_PLANETS_MAX_TRANSFORM_TYPES as 10 accordingly (see that header's own
+ * doc comment for the full correction). test_harvest_transform_matches_traced_values
+ * below doubles as the regression guard for this corrected constant.
+ * ======================================================================== */
+
+static void test_transform_count_is_4(void) {
+    T_CHECK(TRANSFORM_COUNT == 4);
+}
+
+/* mechanize: applicable_types = mineral, remnant, barren, ocean, iceball,
+ * jungle, xeno (7: lr="mrsoijx"); cost = 20; required_tech = "replication";
+ * result_kind = TRANSFORM_RESULT_PLANET_TYPE, result_planet_type =
+ * PLANET_TYPE_FORGEWORLD (go="f"). Forgeworld itself is deliberately absent
+ * from applicable_types -- a planet already forgeworld can't "become
+ * forgeworld" -- confirmed explicitly by
+ * test_mechanize_transform_not_applicable_to_forgeworld below. */
+static void test_mechanize_transform_matches_traced_values(void) {
+    const transform_action_t *tr = rules_planets_transform(TRANSFORM_MECHANIZE);
+
+    T_CHECK(tr != NULL);
+    T_CHECK(strcmp(tr->name, "mechanize") == 0);
+    T_CHECK(tr->applicable_types_count == 7);
+    T_CHECK(tr->applicable_types[0] == PLANET_TYPE_MINERAL);
+    T_CHECK(tr->applicable_types[1] == PLANET_TYPE_REMNANT);
+    T_CHECK(tr->applicable_types[2] == PLANET_TYPE_BARREN);
+    T_CHECK(tr->applicable_types[3] == PLANET_TYPE_OCEAN);
+    T_CHECK(tr->applicable_types[4] == PLANET_TYPE_ICEBALL);
+    T_CHECK(tr->applicable_types[5] == PLANET_TYPE_JUNGLE);
+    T_CHECK(tr->applicable_types[6] == PLANET_TYPE_XENO);
+    T_CHECK(tr->cost == 20);
+    T_CHECK(tr->required_tech != NULL);
+    T_CHECK(strcmp(tr->required_tech, "replication") == 0);
+    T_CHECK(tr->result_kind == TRANSFORM_RESULT_PLANET_TYPE);
+    T_CHECK(tr->result_planet_type == PLANET_TYPE_FORGEWORLD);
+}
+
+static void test_mechanize_transform_applicable_to_matches_exactly_its_7_real_types(void) {
+    static const planet_type_id_t applicable[] = {
+        PLANET_TYPE_MINERAL, PLANET_TYPE_REMNANT, PLANET_TYPE_BARREN,
+        PLANET_TYPE_OCEAN, PLANET_TYPE_ICEBALL, PLANET_TYPE_JUNGLE, PLANET_TYPE_XENO,
+    };
+
+    for (int t = 0; t < PLANET_TYPE_COUNT; t++) {
+        bool expected = false;
+        for (size_t i = 0; i < sizeof(applicable) / sizeof(applicable[0]); i++) {
+            if (applicable[i] == (planet_type_id_t)t) {
+                expected = true;
+                break;
+            }
+        }
+        T_CHECK(rules_planets_transform_applicable_to(TRANSFORM_MECHANIZE, (planet_type_id_t)t) == expected);
+    }
+
+    /* This PRD's own explicitly-named test case: mechanize is NOT applicable
+     * to forgeworld -- a planet can't "become forgeworld" by transforming a
+     * planet that's already forgeworld, since forgeworld is absent from
+     * mechanize's own 7-type applicable_types[] (asserted generically above,
+     * called out explicitly here too so this specific case can't silently
+     * regress). */
+    T_CHECK(rules_planets_transform_applicable_to(TRANSFORM_MECHANIZE, PLANET_TYPE_FORGEWORLD) == false);
+}
+
+/* terraform: applicable_types = xeno, iceball, barren, ocean, jungle (5:
+ * lr="xisoj"); cost = 20; required_tech = "biome hacking"; result_kind =
+ * TRANSFORM_RESULT_PLANET_TYPE, result_planet_type = PLANET_TYPE_EARTHLIKE
+ * (go="e"). */
+static void test_terraform_transform_matches_traced_values(void) {
+    const transform_action_t *tr = rules_planets_transform(TRANSFORM_TERRAFORM);
+
+    T_CHECK(tr != NULL);
+    T_CHECK(strcmp(tr->name, "terraform") == 0);
+    T_CHECK(tr->applicable_types_count == 5);
+    T_CHECK(tr->applicable_types[0] == PLANET_TYPE_XENO);
+    T_CHECK(tr->applicable_types[1] == PLANET_TYPE_ICEBALL);
+    T_CHECK(tr->applicable_types[2] == PLANET_TYPE_BARREN);
+    T_CHECK(tr->applicable_types[3] == PLANET_TYPE_OCEAN);
+    T_CHECK(tr->applicable_types[4] == PLANET_TYPE_JUNGLE);
+    T_CHECK(tr->cost == 20);
+    T_CHECK(tr->required_tech != NULL);
+    T_CHECK(strcmp(tr->required_tech, "biome hacking") == 0);
+    T_CHECK(tr->result_kind == TRANSFORM_RESULT_PLANET_TYPE);
+    T_CHECK(tr->result_planet_type == PLANET_TYPE_EARTHLIKE);
+}
+
+static void test_terraform_transform_applicable_to_matches_exactly_its_5_real_types(void) {
+    static const planet_type_id_t applicable[] = {
+        PLANET_TYPE_XENO, PLANET_TYPE_ICEBALL, PLANET_TYPE_BARREN, PLANET_TYPE_OCEAN, PLANET_TYPE_JUNGLE,
+    };
+
+    for (int t = 0; t < PLANET_TYPE_COUNT; t++) {
+        bool expected = false;
+        for (size_t i = 0; i < sizeof(applicable) / sizeof(applicable[0]); i++) {
+            if (applicable[i] == (planet_type_id_t)t) {
+                expected = true;
+                break;
+            }
+        }
+        T_CHECK(rules_planets_transform_applicable_to(TRANSFORM_TERRAFORM, (planet_type_id_t)t) == expected);
+    }
+}
+
+/* collapse: applicable_types = gas giant, mineral (2: lr="gm"); cost = 30;
+ * required_tech = "starbirth"; result_kind = TRANSFORM_RESULT_PROTOSTAR
+ * (cw="pm" -- becomes the Protostar structure, chunk 3's own
+ * STRUCTURE_PROTOSTAR). result_planet_type is not meaningful for this
+ * result_kind -- deliberately NOT asserted below, per structure_t's own
+ * "valid iff result_kind == TRANSFORM_RESULT_PLANET_TYPE" doc comment. */
+static void test_collapse_transform_matches_traced_values(void) {
+    const transform_action_t *tr = rules_planets_transform(TRANSFORM_COLLAPSE);
+
+    T_CHECK(tr != NULL);
+    T_CHECK(strcmp(tr->name, "collapse") == 0);
+    T_CHECK(tr->applicable_types_count == 2);
+    T_CHECK(tr->applicable_types[0] == PLANET_TYPE_GASGIANT);
+    T_CHECK(tr->applicable_types[1] == PLANET_TYPE_MINERAL);
+    T_CHECK(tr->cost == 30);
+    T_CHECK(tr->required_tech != NULL);
+    T_CHECK(strcmp(tr->required_tech, "starbirth") == 0);
+    T_CHECK(tr->result_kind == TRANSFORM_RESULT_PROTOSTAR);
+    /* result_planet_type deliberately not asserted -- not meaningful here. */
+}
+
+static void test_collapse_transform_applicable_to_matches_exactly_its_2_real_types(void) {
+    static const planet_type_id_t applicable[] = { PLANET_TYPE_GASGIANT, PLANET_TYPE_MINERAL };
+
+    for (int t = 0; t < PLANET_TYPE_COUNT; t++) {
+        bool expected = false;
+        for (size_t i = 0; i < sizeof(applicable) / sizeof(applicable[0]); i++) {
+            if (applicable[i] == (planet_type_id_t)t) {
+                expected = true;
+                break;
+            }
+        }
+        T_CHECK(rules_planets_transform_applicable_to(TRANSFORM_COLLAPSE, (planet_type_id_t)t) == expected);
+    }
+}
+
+/* harvest: applicable_types = ALL 10 planet types (lr="efmorxjisg" -- see
+ * this section's own header comment for the RULES_PLANETS_MAX_TRANSFORM_TYPES
+ * correction this finding drives); cost = -20 (a genuine refund, asserted
+ * exactly, not clamped to non-negative); required_tech = "geoharvesting";
+ * result_kind = TRANSFORM_RESULT_DESTROYED (cw="ga" -- planet destroyed, no
+ * resulting type). result_planet_type similarly not meaningful -- not
+ * asserted. applicable_types_count == 10 (not the PRD's stated 7) is this
+ * chunk's regression guard for the corrected RULES_PLANETS_MAX_TRANSFORM_TYPES
+ * constant. */
+static void test_harvest_transform_matches_traced_values(void) {
+    const transform_action_t *tr = rules_planets_transform(TRANSFORM_HARVEST);
+
+    T_CHECK(tr != NULL);
+    T_CHECK(strcmp(tr->name, "harvest") == 0);
+    /* Regression guard for the corrected RULES_PLANETS_MAX_TRANSFORM_TYPES
+     * (10, not the PRD's stated 7) -- harvest's own applicable_types_count is
+     * the real traced maximum across all 4 transforms. */
+    T_CHECK(tr->applicable_types_count == 10);
+    T_CHECK(tr->applicable_types[0] == PLANET_TYPE_EARTHLIKE);
+    T_CHECK(tr->applicable_types[1] == PLANET_TYPE_FORGEWORLD);
+    T_CHECK(tr->applicable_types[2] == PLANET_TYPE_MINERAL);
+    T_CHECK(tr->applicable_types[3] == PLANET_TYPE_OCEAN);
+    T_CHECK(tr->applicable_types[4] == PLANET_TYPE_REMNANT);
+    T_CHECK(tr->applicable_types[5] == PLANET_TYPE_XENO);
+    T_CHECK(tr->applicable_types[6] == PLANET_TYPE_JUNGLE);
+    T_CHECK(tr->applicable_types[7] == PLANET_TYPE_ICEBALL);
+    T_CHECK(tr->applicable_types[8] == PLANET_TYPE_BARREN);
+    T_CHECK(tr->applicable_types[9] == PLANET_TYPE_GASGIANT);
+    /* cost == -20 captured as-is: a documented refund, never clamped to
+     * non-negative. */
+    T_CHECK(tr->cost == -20);
+    T_CHECK(tr->required_tech != NULL);
+    T_CHECK(strcmp(tr->required_tech, "geoharvesting") == 0);
+    T_CHECK(tr->result_kind == TRANSFORM_RESULT_DESTROYED);
+    /* result_planet_type deliberately not asserted -- not meaningful here. */
+}
+
+/* harvest is applicable to literally every planet type -- exercised
+ * generically over the whole PLANET_TYPE_COUNT range, expecting true
+ * unconditionally (there is no non-applicable type to sample, unlike the
+ * other 3 transforms). */
+static void test_harvest_transform_applicable_to_every_planet_type(void) {
+    for (int t = 0; t < PLANET_TYPE_COUNT; t++) {
+        T_CHECK(rules_planets_transform_applicable_to(TRANSFORM_HARVEST, (planet_type_id_t)t) == true);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -2517,5 +2717,14 @@ int main(void) {
     t_run("full_roster_matches_prd_table", test_full_roster_matches_prd_table);
     t_run("full_roster_is_not_closed_loop", test_full_roster_is_not_closed_loop);
     t_run("full_structure_roster_matches_prd_table", test_full_structure_roster_matches_prd_table);
+    t_run("transform_count_is_4", test_transform_count_is_4);
+    t_run("mechanize_transform_matches_traced_values", test_mechanize_transform_matches_traced_values);
+    t_run("mechanize_transform_applicable_to_matches_exactly_its_7_real_types", test_mechanize_transform_applicable_to_matches_exactly_its_7_real_types);
+    t_run("terraform_transform_matches_traced_values", test_terraform_transform_matches_traced_values);
+    t_run("terraform_transform_applicable_to_matches_exactly_its_5_real_types", test_terraform_transform_applicable_to_matches_exactly_its_5_real_types);
+    t_run("collapse_transform_matches_traced_values", test_collapse_transform_matches_traced_values);
+    t_run("collapse_transform_applicable_to_matches_exactly_its_2_real_types", test_collapse_transform_applicable_to_matches_exactly_its_2_real_types);
+    t_run("harvest_transform_matches_traced_values", test_harvest_transform_matches_traced_values);
+    t_run("harvest_transform_applicable_to_every_planet_type", test_harvest_transform_applicable_to_every_planet_type);
     return t_report();
 }
