@@ -92,6 +92,22 @@ typedef enum {
     JOB_STRIP,
     JOB_DISMANTLE,
     JOB_SCAVENGE,
+    /* Chunk 7 (docs/prd/triage/psx-full-planets-and-tech.md): xeno + jungle
+     * batch, the first chunk to combine TWO new planet types
+     * (PLANET_TYPE_XENO, PLANET_TYPE_JUNGLE -- both added by chunk 2 but
+     * unused by any job until now) in one chunk. colony(xeno) is tech-gated
+     * exactly like colony(ocean) from chunk 5 (same tech_gate = "gene
+     * rewriting", same base cost 10, same default_need = RESOURCE_GOODS).
+     * breed(xeno) and hunt have no tech_gate, no default_need, no
+     * required_tech -- the simple no-gate pattern chunks 4/5/6 already
+     * established. tourism is the first real job to use CURVE_F_MINUS
+     * (added in chunk 1, previously only exercised by a synthetic unit test
+     * on rules_planets_curve_value directly) -- proving the curve lookup is
+     * genuinely job-agnostic for real data, not just synthetic test data. */
+    JOB_COLONY_XENO,
+    JOB_BREED_XENO,
+    JOB_HUNT,
+    JOB_TOURISM,
     JOB_COUNT,
 } colonization_job_id_t;
 

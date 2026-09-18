@@ -201,6 +201,11 @@ static void test_job_available_on_matches_exactly_its_one_real_type(void) {
         { JOB_STRIP, PLANET_TYPE_REMNANT },
         { JOB_DISMANTLE, PLANET_TYPE_REMNANT },
         { JOB_SCAVENGE, PLANET_TYPE_REMNANT },
+        /* Chunk 7: xeno + jungle batch, all single-type. */
+        { JOB_COLONY_XENO, PLANET_TYPE_XENO },
+        { JOB_BREED_XENO, PLANET_TYPE_XENO },
+        { JOB_HUNT, PLANET_TYPE_JUNGLE },
+        { JOB_TOURISM, PLANET_TYPE_JUNGLE },
     };
 
     for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
@@ -462,6 +467,80 @@ static void test_scavenge_job_matches_traced_values(void) {
     T_CHECK(j->needs[1] == RESOURCE_FOOD);
     T_CHECK(j->produces == RESOURCE_BOTS);
     T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+/* Chunk 7 (docs/prd/triage/psx-full-planets-and-tech.md): xeno + jungle
+ * batch. colony(xeno) is tech-gated exactly like colony(ocean) from chunk 5
+ * -- same tech_gate string ("gene rewriting"), same default_need
+ * (RESOURCE_GOODS). */
+static void test_colony_xeno_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_COLONY_XENO);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_XENO);
+    T_CHECK(j->cost == 10);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_TECH);
+    T_CHECK(j->needs[1] == RESOURCE_FOOD);
+    T_CHECK(j->produces == RESOURCE_PEOPLE);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate != NULL);
+    T_CHECK(strcmp(j->tech_gate, "gene rewriting") == 0);
+    T_CHECK(j->default_need == RESOURCE_GOODS);
+    T_CHECK(j->required_tech == NULL);
+}
+
+static void test_breed_xeno_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_BREED_XENO);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_XENO);
+    T_CHECK(j->cost == 5);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_BOTS);
+    T_CHECK(j->produces == RESOURCE_ORGANICS);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+static void test_hunt_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_HUNT);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_JUNGLE);
+    T_CHECK(j->cost == 5);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->produces == RESOURCE_ORGANICS);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+/* tourism: the first real job to use CURVE_F_MINUS (added in chunk 1, only
+ * exercised by a synthetic unit test on rules_planets_curve_value directly
+ * until now). */
+static void test_tourism_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_TOURISM);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_JUNGLE);
+    T_CHECK(j->cost == 10);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->needs[1] == RESOURCE_GOODS);
+    T_CHECK(j->produces == RESOURCE_LUXURY);
+    T_CHECK(j->curve == CURVE_F_MINUS);
     T_CHECK(j->tech_gate == NULL);
     T_CHECK(j->default_need == RESOURCE_NONE);
     T_CHECK(j->required_tech == NULL);
@@ -876,6 +955,126 @@ static void test_scavenge_job_production_matches_curve_minus(void) {
     }
 }
 
+/* Chunk 7 (docs/prd/triage/psx-full-planets-and-tech.md): xeno + jungle
+ * batch. colony(xeno) is tech-gated exactly like colony(ocean) from chunk 5
+ * -- same base cost (10) and same multipliers, so the same numbers apply:
+ * base 10, tech-only -> 15, nano-only -> 8, both -> 12. Independently
+ * derived here (not copied blindly): 10*1.5=15 exact; 10*0.85=8.5, floored
+ * -> 8; 10*1.5*0.85=12.75, floored ONCE at the end -> 12. */
+static void test_colony_xeno_job_cost_base_case(void) {
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_XENO, false, false) == 10);
+}
+
+static void test_colony_xeno_job_cost_tech_researched_only(void) {
+    /* 10 * 1.5 = 15, exact. */
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_XENO, true, false) == 15);
+}
+
+static void test_colony_xeno_job_cost_nanomaterials_researched_only(void) {
+    /* 10 * 0.85 = 8.5, floored -> 8. */
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_XENO, false, true) == 8);
+}
+
+static void test_colony_xeno_job_cost_both_flags_true_floors_once_at_end(void) {
+    /* 10 * 1.5 * 0.85 = 12.75, floored ONCE at the end -> 12. */
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_XENO, true, true) == 12);
+}
+
+static void test_colony_xeno_job_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 1, false) == 1);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 2, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 3, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 4, false) == 3);
+}
+
+static void test_colony_xeno_job_production_switches_to_curve_plus_when_tech_researched(void) {
+    /* Same anchor property agroworld's/colony(ocean)'s own equivalent tests
+     * above prove, now for colony(xeno)'s tech_gate ("gene rewriting"):
+     * CURVE_MINUS ({1,2,3,3}) flips to CURVE_PLUS ({2,3,4,4}). */
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 1, true) == 2);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 2, true) == 3);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 3, true) == 4);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_XENO, 4, true) == 4);
+}
+
+/* breed(xeno) and hunt have no tech_gate: same simpler shape as bots'/
+ * goods'/gadgets'/breed(ocean)'s own no-gate tests above -- job_tech_researched
+ * never changes cost or curve, and nanomaterials_researched still applies
+ * its unconditional 0.85 multiplier. */
+static void test_breed_xeno_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_BREED_XENO, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_BREED_XENO, true, false) == 5);
+}
+
+static void test_breed_xeno_job_cost_nanomaterials_researched(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_BREED_XENO, false, true) == 4);
+    T_CHECK(rules_planets_job_cost(JOB_BREED_XENO, true, true) == 4);
+}
+
+static void test_breed_xeno_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_BREED_XENO, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_BREED_XENO, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_BREED_XENO, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_BREED_XENO, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_BREED_XENO, 4, researched) == 3);
+    }
+}
+
+static void test_hunt_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_HUNT, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_HUNT, true, false) == 5);
+}
+
+static void test_hunt_job_cost_nanomaterials_researched(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_HUNT, false, true) == 4);
+    T_CHECK(rules_planets_job_cost(JOB_HUNT, true, true) == 4);
+}
+
+static void test_hunt_job_production_matches_curve_minus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_HUNT, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_HUNT, 1, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_HUNT, 2, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_HUNT, 3, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_HUNT, 4, researched) == 3);
+    }
+}
+
+/* tourism: the first real job to use CURVE_F_MINUS (added in chunk 1).
+ * tech_gate == NULL, so job_tech_researched has zero cost effect (same
+ * no-gate pattern as breed(xeno)/hunt above) -- base 10, nano-only
+ * floor(10*0.85)=8, same nanomaterials math as colony(ocean)'s own base-10
+ * case. Production values {0,1,2,3} at levels 1-4 are asserted identical for
+ * job_tech_researched=true and false, since CURVE_F_MINUS has no upgrade
+ * table at all (confirmed directly from rules_planets_curve_value's source:
+ * the "upgraded && curve == CURVE_MINUS" branch never matches
+ * CURVE_F_MINUS) -- this is the first real (non-synthetic) exercise of that
+ * no-op behavior end to end through rules_planets_job_production. */
+static void test_tourism_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_TOURISM, false, false) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_TOURISM, true, false) == 10);
+}
+
+static void test_tourism_job_cost_nanomaterials_researched(void) {
+    /* 10 * 0.85 = 8.5, floored -> 8. */
+    T_CHECK(rules_planets_job_cost(JOB_TOURISM, false, true) == 8);
+    T_CHECK(rules_planets_job_cost(JOB_TOURISM, true, true) == 8);
+}
+
+static void test_tourism_job_production_matches_curve_f_minus_regardless_of_tech_researched(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_TOURISM, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_TOURISM, 1, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_TOURISM, 2, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_TOURISM, 3, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_TOURISM, 4, researched) == 3);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -902,6 +1101,10 @@ int main(void) {
     t_run("strip_job_matches_traced_values", test_strip_job_matches_traced_values);
     t_run("dismantle_job_matches_traced_values", test_dismantle_job_matches_traced_values);
     t_run("scavenge_job_matches_traced_values", test_scavenge_job_matches_traced_values);
+    t_run("colony_xeno_job_matches_traced_values", test_colony_xeno_job_matches_traced_values);
+    t_run("breed_xeno_job_matches_traced_values", test_breed_xeno_job_matches_traced_values);
+    t_run("hunt_job_matches_traced_values", test_hunt_job_matches_traced_values);
+    t_run("tourism_job_matches_traced_values", test_tourism_job_matches_traced_values);
     t_run("job_available_on_matches_exactly_its_one_real_type", test_job_available_on_matches_exactly_its_one_real_type);
     t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
     t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
@@ -958,5 +1161,20 @@ int main(void) {
     t_run("scavenge_job_cost_unaffected_by_tech_researched", test_scavenge_job_cost_unaffected_by_tech_researched);
     t_run("scavenge_job_cost_nanomaterials_researched", test_scavenge_job_cost_nanomaterials_researched);
     t_run("scavenge_job_production_matches_curve_minus", test_scavenge_job_production_matches_curve_minus);
+    t_run("colony_xeno_job_cost_base_case", test_colony_xeno_job_cost_base_case);
+    t_run("colony_xeno_job_cost_tech_researched_only", test_colony_xeno_job_cost_tech_researched_only);
+    t_run("colony_xeno_job_cost_nanomaterials_researched_only", test_colony_xeno_job_cost_nanomaterials_researched_only);
+    t_run("colony_xeno_job_cost_both_flags_true_floors_once_at_end", test_colony_xeno_job_cost_both_flags_true_floors_once_at_end);
+    t_run("colony_xeno_job_production_matches_curve_minus_unresearched", test_colony_xeno_job_production_matches_curve_minus_unresearched);
+    t_run("colony_xeno_job_production_switches_to_curve_plus_when_tech_researched", test_colony_xeno_job_production_switches_to_curve_plus_when_tech_researched);
+    t_run("breed_xeno_job_cost_unaffected_by_tech_researched", test_breed_xeno_job_cost_unaffected_by_tech_researched);
+    t_run("breed_xeno_job_cost_nanomaterials_researched", test_breed_xeno_job_cost_nanomaterials_researched);
+    t_run("breed_xeno_job_production_matches_curve_minus", test_breed_xeno_job_production_matches_curve_minus);
+    t_run("hunt_job_cost_unaffected_by_tech_researched", test_hunt_job_cost_unaffected_by_tech_researched);
+    t_run("hunt_job_cost_nanomaterials_researched", test_hunt_job_cost_nanomaterials_researched);
+    t_run("hunt_job_production_matches_curve_minus", test_hunt_job_production_matches_curve_minus);
+    t_run("tourism_job_cost_unaffected_by_tech_researched", test_tourism_job_cost_unaffected_by_tech_researched);
+    t_run("tourism_job_cost_nanomaterials_researched", test_tourism_job_cost_nanomaterials_researched);
+    t_run("tourism_job_production_matches_curve_f_minus_regardless_of_tech_researched", test_tourism_job_production_matches_curve_f_minus_regardless_of_tech_researched);
     return t_report();
 }

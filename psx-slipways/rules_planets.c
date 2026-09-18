@@ -247,6 +247,64 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .default_need = RESOURCE_NONE,
         .required_tech = NULL,
     },
+    /* Chunk 7 (docs/prd/triage/psx-full-planets-and-tech.md): xeno + jungle
+     * batch, traced to fd's full 24-job re-decode (Implementation Decisions
+     * table). colony(xeno) is tech-gated exactly like colony(ocean) from
+     * chunk 5 -- same tech_gate ("gene rewriting") and default_need
+     * (RESOURCE_GOODS); only needs/planet_types differ. */
+    [JOB_COLONY_XENO] = {
+        .planet_types = { PLANET_TYPE_XENO },
+        .planet_types_count = 1,
+        .cost = 10,
+        .needs = { RESOURCE_TECH, RESOURCE_FOOD },
+        .needs_count = 2,
+        .produces = RESOURCE_PEOPLE,
+        .curve = CURVE_MINUS,
+        .tech_gate = "gene rewriting",
+        .default_need = RESOURCE_GOODS,
+        .required_tech = NULL,
+    },
+    [JOB_BREED_XENO] = {
+        .planet_types = { PLANET_TYPE_XENO },
+        .planet_types_count = 1,
+        .cost = 5,
+        .needs = { RESOURCE_BOTS },
+        .needs_count = 1,
+        .produces = RESOURCE_ORGANICS,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
+    [JOB_HUNT] = {
+        .planet_types = { PLANET_TYPE_JUNGLE },
+        .planet_types_count = 1,
+        .cost = 5,
+        .needs = { RESOURCE_PEOPLE },
+        .needs_count = 1,
+        .produces = RESOURCE_ORGANICS,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
+    /* tourism: the first real job to use CURVE_F_MINUS (added in chunk 1).
+     * No tech_gate, so job_tech_researched never changes its cost or curve
+     * -- and CURVE_F_MINUS itself has no upgrade table (see curve_id_t's own
+     * doc comment), so even a hypothetical tech_gate wouldn't change its
+     * production values. */
+    [JOB_TOURISM] = {
+        .planet_types = { PLANET_TYPE_JUNGLE },
+        .planet_types_count = 1,
+        .cost = 10,
+        .needs = { RESOURCE_PEOPLE, RESOURCE_GOODS },
+        .needs_count = 2,
+        .produces = RESOURCE_LUXURY,
+        .curve = CURVE_F_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {
