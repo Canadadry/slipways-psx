@@ -499,6 +499,126 @@ int rules_economy_debit(int treasury, int cost) {
     return treasury - cost;
 }
 
+/* Trading Hub's own "count of entries with delivery_count>0"
+ * sub-computation, pico8/lua.lua:1300: `#jp(pt.jy,function(i) return
+ * i.gc>0 end)`. Factored into its own small helper and kept `static`,
+ * matching median3's own convention below and this file's established
+ * "keep helpers static, test only indirectly through the public function"
+ * practice. This is what lets rules_economy_colony_level's own Trading Hub
+ * branch port the source's provably-redundant independent count LITERALLY,
+ * as a real scan of the array, rather than shortcut to need_count
+ * directly. The redundancy itself (this count always equals need_count for
+ * any input that reaches this branch through the public dispatcher's own
+ * "any need unmet" gate) is mathematically unobservable through any real
+ * call to rules_economy_colony_level -- unlike the double-floor finding
+ * (Phase 3), which IS independently observable through ordinary inputs --
+ * so it is verified by this comment's own direct trace against dh()'s
+ * source, not by a synthetic test constructed from an input the public
+ * dispatcher would never actually pass through. */
+/* PICO-8's built-in 3-argument `mid()`, ported for the regular-colony
+ * branch below (`mid(#pt.by,#pt.cc,1)`, pico8/lua.lua:1309) -- the only
+ * consumer of a 3-way median anywhere in this file, kept file-local (no
+ * other function needs it). Plain int comparisons, no fixed_t needed:
+ * both of this formula's own real arguments (partner_route_count,
+ * total_deliveries_received) are exact integer counts, and the third
+ * argument is the exact integer literal 1. Sorts the three values (a
+ * simple three-comparison network, not a generic sort) and returns the
+ * middle one. */
+static int median3(int a, int b, int c) {
+    if (a > b) {
+        int t = a;
+        a = b;
+        b = t;
+    }
+    if (b > c) {
+        int t = b;
+        b = c;
+        c = t;
+    }
+    if (a > b) {
+        int t = a;
+        a = b;
+        b = t;
+    }
+
+    return b;
+}
+
+static int rules_economy_colony_level_count_positive_needs(const int *need_delivery_counts, int need_count) {
+    int count = 0;
+    for (int i = 0; i < need_count; i++) {
+        if (need_delivery_counts[i] > 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+int rules_economy_colony_level(bool colonized, rules_economy_colony_kind_t kind,
+                                const int *need_delivery_counts, int need_count,
+                                int partner_route_count, int total_deliveries_received) {
+    /* pt.me~="ly" -> 0, pico8/lua.lua:1292. Fires first, unconditionally,
+     * before anything else in dh() is even reached. */
+    if (!colonized) {
+        return 0;
+    }
+
+    /* jd=1; for i in all(pt.jy)do jd*=i.gc end, pico8/lua.lua:1293-1297.
+     * need_count==0 (Protostar) leaves this loop unentered and jd at its
+     * initial 1 -- NOT the "any unmet" case (see gate below). */
+    int jd = 1;
+    for (int i = 0; i < need_count; i++) {
+        jd *= need_delivery_counts[i];
+    }
+
+    /* if (jd==0)return 1, pico8/lua.lua:1298. Guarded by need_count>0 so an
+     * empty needs array (jd stays at its initial 1) never fires this --
+     * matching source's own for-loop never running at all in that case. */
+    if (need_count > 0 && jd == 0) {
+        return 1;
+    }
+
+    /* if pt.nl then return min(#jp(pt.jy,function(i) return i.gc>0
+     * end),3) end, pico8/lua.lua:1300-1302. */
+    if (kind == RULES_ECONOMY_COLONY_KIND_TRADING_HUB) {
+        int satisfied_count = rules_economy_colony_level_count_positive_needs(need_delivery_counts, need_count);
+
+        if (satisfied_count > 3) {
+            satisfied_count = 3;
+        }
+
+        return satisfied_count;
+    }
+
+    /* if not pt.hf then local li=pt.jy[#pt.jy] return li and
+     * min(li.gc+1,4)or 2 end, pico8/lua.lua:1304-1307. */
+    if (kind == RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE) {
+        if (need_count == 0) {
+            return 2;
+        }
+
+        int last_delivery_count = need_delivery_counts[need_count - 1];
+        int level = last_delivery_count + 1;
+
+        if (level > 4) {
+            level = 4;
+        }
+
+        return level;
+    }
+
+    /* Regular colony, the fallback (pt.hf true, kind ==
+     * RULES_ECONOMY_COLONY_KIND_REGULAR): return
+     * min(4,1+mid(#pt.by,#pt.cc,1)), pico8/lua.lua:1309. */
+    int level = 1 + median3(partner_route_count, total_deliveries_received, 1);
+
+    if (level > 4) {
+        level = 4;
+    }
+
+    return level;
+}
+
 int rules_economy_overhead(int colonized_count) {
     /* floor(0.18 * colonized_count^2). Computed with plain integer
      * arithmetic (18*n*n/100, using C's truncating integer division, which

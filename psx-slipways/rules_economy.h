@@ -619,6 +619,100 @@ int rules_economy_slipway_cost(fixed_t distance_sq, int existing_route_count);
  */
 bool rules_economy_can_afford(int treasury, int cost);
 
+/* Colony-level-target formula, traced to `dh()` (pico8/lua.lua:1291-1310):
+ *
+ *   function dh(pt)
+ *     if (pt.me~="ly")return 0
+ *     local jd=1
+ *     for i in all(pt.jy)do
+ *       i.gc=#jp(pt.cc,function(im) return im.qe==i.qe end)
+ *       jd*=i.gc
+ *     end
+ *     if (jd==0)return 1
+ *     if pt.nl then
+ *       return min(#jp(pt.jy,function(i) return i.gc>0 end),3)
+ *     end
+ *     if not pt.hf then
+ *       local li=pt.jy[#pt.jy]
+ *       return li and min(li.gc+1,4)or 2
+ *     end
+ *     return min(4,1+mid(#pt.by,#pt.cc,1))
+ *   end
+ *
+ * This is the module's most complex new formula, four branches dispatched
+ * in source order (this port's `if`-return sequence mirrors that order
+ * exactly, since later branches assume earlier gates already failed --
+ * matching rules_economy_check_game_over's own precedent for a single
+ * dispatcher covering multiple source branches):
+ *
+ * 1. `pt.me~="ly"` (not colonized) -> `0`, regardless of every other field.
+ *    Ported as the negated `!colonized` guard, fired first and
+ *    unconditionally, exactly like rules_economy_check_game_over's own
+ *    first `if`.
+ * 2. `jd` is the PRODUCT of every need's delivered-count (`i.gc`), starting
+ *    at `1` -- `need_count==0` (Protostar, no needs at all) leaves the loop
+ *    unentered and `jd` at its initial `1`, which is NOT the "any unmet"
+ *    case. Ported as: multiply `need_delivery_counts[0..need_count)` into a
+ *    running product starting at 1.
+ * 3. "Any unmet" gate: fires ONLY when `need_count>0` AND the product is
+ *    `0` (a product of non-negative integers is zero iff at least one
+ *    factor is) -> `1`. Deliberately guarded by `need_count>0` so an empty
+ *    needs array (product stays at its initial 1) never triggers this,
+ *    even though `jd==0` would otherwise read as "false" either way here --
+ *    the guard is what keeps this branch from ever firing for
+ *    `need_count==0`, matching source's own `for` loop never running at
+ *    all in that case (there's nothing to have been unmet).
+ * 4. Trading Hub branch (`pt.nl`, RULES_ECONOMY_COLONY_KIND_TRADING_HUB):
+ *    `#jp(pt.jy,function(i) return i.gc>0 end)` -- an INDEPENDENT count of
+ *    entries with a positive delivery count, ported literally as its own
+ *    real loop rather than shortcut to `need_count` even though, once gate
+ *    3 above has passed, every remaining entry is provably `>0` and so this
+ *    count is provably always equal to `need_count` -- matching this
+ *    module's established "preserve a real source step even where it is
+ *    provably redundant" practice (the double-floor finding, Phase 3).
+ *    Capped at `3` (`min(...,3)`). At `need_count==0` this returns
+ *    `min(0,3)=0` -- deliberately DIFFERENT from the single-need-structure
+ *    branch's own `need_count==0` case below (which returns a flat `2`),
+ *    since Trading Hub's `pt.nl` branch has no "empty needs" special case
+ *    of its own in source.
+ * 5. Single-need-structure branch (`not pt.hf`,
+ *    RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, e.g. Laboratory/
+ *    Ascension Gate/Synthesizer/Protostar): `li=pt.jy[#pt.jy]` (the LAST
+ *    need entry) -- `li and min(li.gc+1,4) or 2`. Non-empty needs ->
+ *    `min(last_delivery_count+1,4)`; empty needs (Protostar) -> a fixed
+ *    `2` (this is the one branch where gate 3's "any unmet" check can never
+ *    fire for an empty-needs entity, since there is nothing to be unmet).
+ * 6. Regular-colony branch (the fallback, `pt.hf` true,
+ *    RULES_ECONOMY_COLONY_KIND_REGULAR): `min(4,1+mid(#pt.by,#pt.cc,1))` --
+ *    `mid()` is PICO-8's built-in 3-argument median, ported via a small
+ *    file-local `median3` helper (rules_economy.c). `partner_route_count`
+ *    stands in for `#pt.by` (outgoing trade-partner-edge count),
+ *    `total_deliveries_received` for `#pt.cc` (total deliveries received),
+ *    both plain caller-supplied ints, mirroring
+ *    rules_economy_colony_trade_income's own `partner_count` parameter
+ *    shape. All-integer arithmetic -- no fixed_t needed anywhere in this
+ *    formula.
+ *
+ * `need_delivery_counts`/`need_count` stand in for `pt.jy`/each entry's own
+ * `i.gc` (already-computed delivered count) -- the caller supplies the
+ * already-counted per-need delivery totals `bd()`'s own live stabilization
+ * loop would have produced (out of scope here, see the PRD's Out of Scope:
+ * "bd()/bb()'s live stabilization loop and delivery-count computation
+ * itself"), the same "caller supplies the aggregate a live loop would have
+ * produced" idiom this module already established for
+ * rules_economy_colony_trade_income's partner_levels[]/
+ * rules_economy_happiness's colony_levels[].
+ */
+typedef enum {
+    RULES_ECONOMY_COLONY_KIND_REGULAR,
+    RULES_ECONOMY_COLONY_KIND_TRADING_HUB,
+    RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE,
+} rules_economy_colony_kind_t;
+
+int rules_economy_colony_level(bool colonized, rules_economy_colony_kind_t kind,
+                                const int *need_delivery_counts, int need_count,
+                                int partner_route_count, int total_deliveries_received);
+
 /* Affordability mutation, traced to `fm:lu`'s debit (pico8/lua.lua:1217-1224):
  *
  *   self.nz-=jt

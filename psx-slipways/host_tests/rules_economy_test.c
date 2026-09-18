@@ -801,6 +801,132 @@ static void test_food_processor_sensitivity_matches_traced_value_exactly(void) {
     T_CHECK(RULES_ECONOMY_FOOD_PROCESSOR_SENSITIVITY == (fixed_t)(0.5 * FX_ONE));
 }
 
+/* -- rules_economy_colony_level (dh) ------------------------------------
+ *
+ * dh, pico8/lua.lua:1291-1310: the colony-level-target dispatcher, four
+ * branches in source order (not-colonized, any-need-unmet, Trading Hub,
+ * single-need-structure, regular-colony). Per the PRD's chunk-2 spec, see
+ * rules_economy.h's doc comment on rules_economy_colony_level for the full
+ * branch-by-branch trace.
+ */
+
+static void test_colony_level_not_colonized_returns_zero_regardless_of_kind(void) {
+    /* !colonized -> 0 for a representative sample across all 3 kinds and
+     * varying counts -- proving the gate genuinely short-circuits
+     * regardless of kind, need_delivery_counts, or the route/delivery
+     * totals. */
+    int needs_all_positive[3] = {1, 2, 3};
+    int needs_with_zero[3] = {1, 0, 3};
+
+    T_CHECK(rules_economy_colony_level(false, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 0, 0) == 0);
+    T_CHECK(rules_economy_colony_level(false, RULES_ECONOMY_COLONY_KIND_REGULAR, needs_all_positive, 3, 5, 9) == 0);
+    T_CHECK(rules_economy_colony_level(false, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, needs_all_positive, 3, 0, 0) == 0);
+    T_CHECK(rules_economy_colony_level(false, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, needs_with_zero, 3, 0, 0) == 0);
+    T_CHECK(rules_economy_colony_level(false, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, NULL, 0, 0, 0) == 0);
+    T_CHECK(rules_economy_colony_level(false, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, needs_all_positive, 3, 0, 0) == 0);
+}
+
+static void test_colony_level_any_need_unmet_returns_one_for_all_kinds(void) {
+    /* need_count>0, at least one entry 0 -> 1, for all 3 kinds -- proving
+     * the gate applies uniformly before the kind-specific branches split.
+     * partner_route_count/total_deliveries_received are set to values that
+     * would otherwise change the regular-colony branch's own result, to
+     * confirm the gate fires before that branch is even reached. */
+    int one_unmet[3] = {4, 0, 2};
+    int all_unmet[2] = {0, 0};
+
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, one_unmet, 3, 10, 10) == 1);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, one_unmet, 3, 10, 10) == 1);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, one_unmet, 3, 10, 10) == 1);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, all_unmet, 2, 0, 0) == 1);
+}
+
+static void test_colony_level_trading_hub_all_satisfied_returns_need_count_capped_at_three(void) {
+    /* Trading Hub, no zero entries -> min(need_count,3), need_count in
+     * {0,1,2,3,4} -- covering the cap at 4, and confirming need_count==0
+     * returns min(0,3)=0 for this kind specifically (a different,
+     * intentional result from the single-need-structure branch's own
+     * need_count==0 case, which returns a fixed 2). */
+    int needs_1[1] = {5};
+    int needs_2[2] = {5, 1};
+    int needs_3[3] = {5, 1, 2};
+    int needs_4[4] = {5, 1, 2, 9};
+
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, NULL, 0, 0, 0) == 0);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, needs_1, 1, 0, 0) == 1);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, needs_2, 2, 0, 0) == 2);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, needs_3, 3, 0, 0) == 3);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_TRADING_HUB, needs_4, 4, 0, 0) == 3);
+}
+
+/* The Trading Hub branch's own "count of entries with delivery_count>0"
+ * sub-computation (pico8/lua.lua:1300) is ported as a real, independent
+ * scan of the array rather than shortcut to need_count directly -- see
+ * rules_economy.c's own comment on rules_economy_colony_level_count_positive_needs
+ * for why this can't be usefully proven by a black-box test: any input
+ * that reaches this branch through the public dispatcher's "any need
+ * unmet" gate already has zero zero-entries, so a real scan and a
+ * need_count shortcut are mathematically identical on every such input.
+ * Kept `static` and verified by direct source trace instead, matching
+ * median3's own convention in this same file. */
+
+static void test_colony_level_single_need_structure_empty_needs_returns_fixed_two(void) {
+    /* li=pt.jy[#pt.jy]; ... li and ... or 2, pico8/lua.lua:1304-1307.
+     * need_count==0 (Protostar) -> a fixed 2 -- distinct from Trading Hub's
+     * own need_count==0 case (which returns 0), since this branch's own
+     * "any unmet" gate can never fire for an empty needs list. */
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, NULL, 0, 0, 0) == 2);
+}
+
+static void test_colony_level_single_need_structure_nonempty_returns_last_delivery_count_plus_one_capped_at_four(void) {
+    /* min(li.gc+1,4) -- the LAST need entry's own delivery count + 1,
+     * capped at 4. Spread of last-entry counts including the boundary
+     * where the cap fires (last count = 2,3,4,10 -> +1 = 3,4,5,11, capped
+     * to 3,4,4,4). Earlier entries in the array are irrelevant (only the
+     * last one is read), so they're deliberately varied too, to confirm
+     * only the last entry matters. */
+    int needs_last_2[2] = {9, 2};
+    int needs_last_3[2] = {1, 3};
+    int needs_last_4[3] = {5, 5, 4};
+    int needs_last_10[1] = {10};
+
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, needs_last_2, 2, 0, 0) == 3);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, needs_last_3, 2, 0, 0) == 4);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, needs_last_4, 3, 0, 0) == 4);
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_SINGLE_NEED_STRUCTURE, needs_last_10, 1, 0, 0) == 4);
+}
+
+static void test_colony_level_regular_colony_median_formula(void) {
+    /* min(4,1+mid(partner_route_count,total_deliveries_received,1)),
+     * pico8/lua.lua:1309. Several (partner_route_count,
+     * total_deliveries_received) pairs, genuinely exercising mid()'s own
+     * three-way tie-breaking -- one where the fixed literal 1 is the
+     * median, one where partner_route_count is, one where
+     * total_deliveries_received is -- not just the common case. All
+     * checked with an empty needs array (need_count=0), so the "any unmet"
+     * gate above never fires and this branch is genuinely reached. */
+
+    /* median is the fixed literal 1: sorted {0,1,5} -> median=1 ->
+     * min(4,1+1)=2. */
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 0, 5) == 2);
+
+    /* median is partner_route_count (3): sorted {1,3,10} -> median=3 ->
+     * min(4,1+3)=4. */
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 3, 10) == 4);
+
+    /* median is total_deliveries_received (3): sorted {1,3,10} -> median=3
+     * -> min(4,1+3)=4. */
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 10, 3) == 4);
+
+    /* both partner_route_count and total_deliveries_received equal (1,1):
+     * sorted {1,1,1} -> median=1 -> min(4,1+1)=2. */
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 1, 1) == 2);
+
+    /* both large (10,10): sorted {1,10,10} -> median=10 ->
+     * min(4,1+10)=min(4,11)=4 -- confirms the outer cap at 4 fires. */
+    T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 10, 10) == 4);
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -866,5 +992,11 @@ int main(void) {
     t_run("difficulty_trade_matches_preexisting_defines_regression_guard", test_difficulty_trade_matches_preexisting_defines_regression_guard);
     t_run("difficulty_count_is_four", test_difficulty_count_is_four);
     t_run("food_processor_sensitivity_matches_traced_value_exactly", test_food_processor_sensitivity_matches_traced_value_exactly);
+    t_run("colony_level_not_colonized_returns_zero_regardless_of_kind", test_colony_level_not_colonized_returns_zero_regardless_of_kind);
+    t_run("colony_level_any_need_unmet_returns_one_for_all_kinds", test_colony_level_any_need_unmet_returns_one_for_all_kinds);
+    t_run("colony_level_trading_hub_all_satisfied_returns_need_count_capped_at_three", test_colony_level_trading_hub_all_satisfied_returns_need_count_capped_at_three);
+    t_run("colony_level_single_need_structure_empty_needs_returns_fixed_two", test_colony_level_single_need_structure_empty_needs_returns_fixed_two);
+    t_run("colony_level_single_need_structure_nonempty_returns_last_delivery_count_plus_one_capped_at_four", test_colony_level_single_need_structure_nonempty_returns_last_delivery_count_plus_one_capped_at_four);
+    t_run("colony_level_regular_colony_median_formula", test_colony_level_regular_colony_median_formula);
     return t_report();
 }
