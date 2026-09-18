@@ -713,6 +713,40 @@ int rules_economy_colony_level(bool colonized, rules_economy_colony_kind_t kind,
                                 const int *need_delivery_counts, int need_count,
                                 int partner_route_count, int total_deliveries_received);
 
+/* Colony-level "never decreases" ratchet, traced to `bb()`'s own update rule
+ * (pico8/lua.lua:1278,1281-1283):
+ *
+ *   local jw=dh(pt)if not pt.mi or jw>pt.mi then
+ *     ...
+ *     pt.mi,jg=jw,true
+ *   end
+ *
+ * `jw` (this year's target level, dh()'s own return value --
+ * rules_economy_colony_level above) only overwrites the colony's persisted
+ * level `pt.mi` if `pt.mi` is unset (`not pt.mi`, i.e. never assigned) or the
+ * new target is strictly greater. `0` is a safe, source-faithful stand-in
+ * for "unset" for every colonized case that actually occurs in real game
+ * data: rules_economy_colony_level's "not colonized" branch returns 0, and
+ * every OTHER reachable case returns 1 or higher -- EXCEPT one latent edge
+ * case that mirrors dh() itself exactly: RULES_ECONOMY_COLONY_KIND_TRADING_HUB
+ * called with need_count==0 also returns 0 while colonized (see that
+ * function's own chunk-2 test), because Trading Hub's real data always
+ * carries 2 flexible/joker need slots (docs/design/slipways-mechanics.md,
+ * docs/prd/psx-structures-and-transforms.md's own `ba` resolvable-set
+ * citation), so need_count==0 for a Trading Hub never happens with real
+ * game data -- exactly as unreachable in dh()'s own Lua source. `0` as
+ * "unset" therefore holds for every value this function is ever actually
+ * called with, not as a universal property of rules_economy_colony_level's
+ * signature. `target_level > current_level` alone (with `current_level`
+ * initialized to 0) reproduces `not pt.mi or jw>pt.mi` exactly, with no
+ * separate "is this the first assignment" boolean needed.
+ *
+ * Returns `target_level` if strictly greater than `current_level`, else
+ * `current_level` unchanged (including the `target_level==current_level`
+ * boundary, which does NOT overwrite -- matching source's own strict `>`).
+ */
+int rules_economy_colony_level_ratchet(int current_level, int target_level);
+
 /* Affordability mutation, traced to `fm:lu`'s debit (pico8/lua.lua:1217-1224):
  *
  *   self.nz-=jt

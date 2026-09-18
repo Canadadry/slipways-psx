@@ -619,6 +619,20 @@ int rules_economy_colony_level(bool colonized, rules_economy_colony_kind_t kind,
     return level;
 }
 
+int rules_economy_colony_level_ratchet(int current_level, int target_level) {
+    /* not pt.mi or jw>pt.mi, pico8/lua.lua:1278,1281-1283. current_level==0
+     * stands in for "unset" (rules_economy_colony_level never returns 0 for
+     * anything colonized), so a plain strict `>` against current_level alone
+     * reproduces the full `not pt.mi or jw>pt.mi` condition -- no separate
+     * "first assignment" boolean needed. target_level==current_level does
+     * NOT overwrite (source's own strict `>`, not `>=`). */
+    if (target_level > current_level) {
+        return target_level;
+    }
+
+    return current_level;
+}
+
 int rules_economy_overhead(int colonized_count) {
     /* floor(0.18 * colonized_count^2). Computed with plain integer
      * arithmetic (18*n*n/100, using C's truncating integer division, which

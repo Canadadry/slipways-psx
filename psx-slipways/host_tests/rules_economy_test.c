@@ -927,6 +927,44 @@ static void test_colony_level_regular_colony_median_formula(void) {
     T_CHECK(rules_economy_colony_level(true, RULES_ECONOMY_COLONY_KIND_REGULAR, NULL, 0, 10, 10) == 4);
 }
 
+/* -- rules_economy_colony_level_ratchet (bb()'s own update rule) --------
+ *
+ * pico8/lua.lua:1278,1281-1283: `local jw=dh(pt)if not pt.mi or jw>pt.mi
+ * then ... pt.mi,jg=jw,true end`. Per the PRD's chunk-3 spec: target>current
+ * returns target (a spread of values); target<=current returns current
+ * unchanged, INCLUDING the target==current boundary; current==0 (the
+ * "unset" stand-in) with any realistic target>=1 returns target.
+ */
+
+static void test_colony_level_ratchet_target_greater_than_current_returns_target(void) {
+    T_CHECK(rules_economy_colony_level_ratchet(0, 1) == 1);
+    T_CHECK(rules_economy_colony_level_ratchet(2, 4) == 4);
+    T_CHECK(rules_economy_colony_level_ratchet(1, 2) == 2);
+}
+
+static void test_colony_level_ratchet_target_not_greater_than_current_keeps_current(void) {
+    /* target<current: strictly-less case. */
+    T_CHECK(rules_economy_colony_level_ratchet(4, 2) == 4);
+    T_CHECK(rules_economy_colony_level_ratchet(3, 1) == 3);
+    /* target==current: the boundary source's strict `>` explicitly excludes
+     * -- must NOT overwrite, not just "happen to return the same value". */
+    T_CHECK(rules_economy_colony_level_ratchet(3, 3) == 3);
+    T_CHECK(rules_economy_colony_level_ratchet(1, 1) == 1);
+    T_CHECK(rules_economy_colony_level_ratchet(4, 4) == 4);
+}
+
+static void test_colony_level_ratchet_current_zero_unset_stand_in_with_realistic_targets(void) {
+    /* current_level==0 stands in for `not pt.mi` (never assigned) -- any
+     * realistic target_level>=1 (rules_economy_colony_level never returns 0
+     * for anything colonized) must overwrite. Checked individually for
+     * targets 1 through 4, matching rules_economy_colony_level's own [1,4]
+     * output range exactly. */
+    T_CHECK(rules_economy_colony_level_ratchet(0, 1) == 1);
+    T_CHECK(rules_economy_colony_level_ratchet(0, 2) == 2);
+    T_CHECK(rules_economy_colony_level_ratchet(0, 3) == 3);
+    T_CHECK(rules_economy_colony_level_ratchet(0, 4) == 4);
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -998,5 +1036,8 @@ int main(void) {
     t_run("colony_level_single_need_structure_empty_needs_returns_fixed_two", test_colony_level_single_need_structure_empty_needs_returns_fixed_two);
     t_run("colony_level_single_need_structure_nonempty_returns_last_delivery_count_plus_one_capped_at_four", test_colony_level_single_need_structure_nonempty_returns_last_delivery_count_plus_one_capped_at_four);
     t_run("colony_level_regular_colony_median_formula", test_colony_level_regular_colony_median_formula);
+    t_run("colony_level_ratchet_target_greater_than_current_returns_target", test_colony_level_ratchet_target_greater_than_current_returns_target);
+    t_run("colony_level_ratchet_target_not_greater_than_current_keeps_current", test_colony_level_ratchet_target_not_greater_than_current_keeps_current);
+    t_run("colony_level_ratchet_current_zero_unset_stand_in_with_realistic_targets", test_colony_level_ratchet_current_zero_unset_stand_in_with_realistic_targets);
     return t_report();
 }
