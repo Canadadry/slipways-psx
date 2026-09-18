@@ -93,6 +93,14 @@ typedef enum {
  * sized to the real traced maximum, not padded for speculative headroom. */
 #define RULES_PLANETS_MAX_NEEDS 2
 
+/* Maximum number of planet types a single colonization_job_t can be valid
+ * on. Chunk 3 (docs/prd/triage/psx-full-planets-and-tech.md): source's own
+ * `lr` field is a string of 1 or 2 planet-type codes -- no job in the full
+ * 24-job roster spans 3+ types (confirmed by that PRD's own exhaustive `fd`
+ * re-decode), so this is sized to the real traced maximum, not padded for
+ * speculative headroom, mirroring RULES_PLANETS_MAX_NEEDS's own precedent. */
+#define RULES_PLANETS_MAX_TYPES 2
+
 /* One entry of the traced df table (pico8/lua.lua:1377-1389): a planet
  * type's display name and rarity weight. rarity is fixed_t (Q16.16), never
  * float/double, since 4.5 is not integral -- per the project's established
@@ -104,13 +112,33 @@ typedef struct {
 } planet_type_t;
 
 /* One entry of the traced fd table (pico8/lua.lua, unstash 8494): a
- * colonization job's planet type, base cost, resource needs, production,
- * curve, optional tech gate, and optional default need. Field order
- * cross-checked against hp.mr's positional-field-name list
- * (pico8/lua.lua:1400). tech_gate is NULL when the job has none;
- * default_need is RESOURCE_NONE when the job has none. */
+ * colonization job's planet type(s), base cost, resource needs, production,
+ * curve, optional cost/curve tech gate, optional default need, and optional
+ * required tech. Field order cross-checked against hp.mr's
+ * positional-field-name list (pico8/lua.lua:1400). tech_gate is NULL when
+ * the job has none; default_need is RESOURCE_NONE when the job has none.
+ *
+ * planet_types/planet_types_count (chunk 3,
+ * docs/prd/triage/psx-full-planets-and-tech.md) replace a single
+ * planet_type_id_t field: source's own `lr` field is a string of 1 or 2
+ * planet-type codes (4 of the full 24-job roster's jobs are valid on two
+ * types from a single source record), which a single-value field cannot
+ * represent faithfully. Mirrors needs[]/needs_count's existing shape
+ * exactly.
+ *
+ * required_tech (chunk 3) captures the raw fd array's second, distinct
+ * tech-gating mechanism -- `rr`, a job-availability gate (whether the job is
+ * offered as a choice at all), consumed by a small stateful loop at
+ * pico8/lua.lua:1434-1440 -- as opposed to tech_gate (`il`), a cost
+ * surcharge + curve upgrade on an already-available job, already wired via
+ * rules_planets_job_cost/rules_planets_job_production. required_tech is
+ * captured as data only, mirroring default_need's own precedent: no
+ * function applies it (see this PRD's Out of Scope -- no live
+ * colonization-choice menu exists anywhere in this port to apply it to).
+ * NULL when the job has no rr gate; none of this chunk's 5 existing jobs do. */
 typedef struct {
-    planet_type_id_t planet_type;
+    planet_type_id_t planet_types[RULES_PLANETS_MAX_TYPES];
+    int planet_types_count;
     int cost;
     resource_id_t needs[RULES_PLANETS_MAX_NEEDS];
     int needs_count;
@@ -118,6 +146,7 @@ typedef struct {
     curve_id_t curve;
     const char *tech_gate;
     resource_id_t default_need;
+    const char *required_tech;
 } colonization_job_t;
 
 /* Plain accessors into the static planet-type/job tables. id must be a
@@ -125,6 +154,13 @@ typedef struct {
  * mirrors world_get_galaxy()'s simplicity, no elaborate error handling. */
 const planet_type_t *rules_planets_type(planet_type_id_t id);
 const colonization_job_t *rules_planets_job(colonization_job_id_t id);
+
+/* Mirrors source's own bj() filter (pico8/lua.lua:1391-1398), minus the
+ * oj(b.rr) tech-researched check (required_tech stays a caller-supplied
+ * concern, exactly like every other tech gate in this module -- see
+ * colonization_job_t's own doc comment). Returns true iff type appears
+ * anywhere in job id's planet_types[0..planet_types_count-1]. */
+bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t type);
 
 /* Generic production-by-level curve lookup, traced to hc (pico8/lua.lua,
  * unstash 8383) and hp:po()'s curve-selection logic. level < 1 returns 0

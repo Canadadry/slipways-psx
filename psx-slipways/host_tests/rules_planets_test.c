@@ -108,7 +108,8 @@ static void test_mine_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_MINE);
 
     T_CHECK(j != NULL);
-    T_CHECK(j->planet_type == PLANET_TYPE_MINERAL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_MINERAL);
     T_CHECK(j->cost == 5);
     T_CHECK(j->needs_count == 1);
     T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
@@ -116,13 +117,15 @@ static void test_mine_job_matches_traced_values(void) {
     T_CHECK(j->curve == CURVE_MINUS);
     T_CHECK(j->tech_gate == NULL);
     T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
 }
 
 static void test_nanotech_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_NANOTECH);
 
     T_CHECK(j != NULL);
-    T_CHECK(j->planet_type == PLANET_TYPE_FORGEWORLD);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_FORGEWORLD);
     T_CHECK(j->cost == 8);
     T_CHECK(j->needs_count == 1);
     T_CHECK(j->needs[0] == RESOURCE_ORE);
@@ -130,13 +133,15 @@ static void test_nanotech_job_matches_traced_values(void) {
     T_CHECK(j->curve == CURVE_MINUS);
     T_CHECK(j->tech_gate == NULL);
     T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
 }
 
 static void test_bots_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_BOTS);
 
     T_CHECK(j != NULL);
-    T_CHECK(j->planet_type == PLANET_TYPE_FORGEWORLD);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_FORGEWORLD);
     T_CHECK(j->cost == 8);
     T_CHECK(j->needs_count == 2);
     T_CHECK(j->needs[0] == RESOURCE_ORE);
@@ -145,13 +150,15 @@ static void test_bots_job_matches_traced_values(void) {
     T_CHECK(j->curve == CURVE_PLUS);
     T_CHECK(j->tech_gate == NULL);
     T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
 }
 
 static void test_agroworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_AGROWORLD);
 
     T_CHECK(j != NULL);
-    T_CHECK(j->planet_type == PLANET_TYPE_EARTHLIKE);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_EARTHLIKE);
     T_CHECK(j->cost == 5);
     T_CHECK(j->needs_count == 1);
     T_CHECK(j->needs[0] == RESOURCE_BOTS);
@@ -160,6 +167,33 @@ static void test_agroworld_job_matches_traced_values(void) {
     T_CHECK(j->tech_gate != NULL);
     T_CHECK(strcmp(j->tech_gate, "xenofoods") == 0);
     T_CHECK(j->default_need == RESOURCE_ORGANICS);
+    T_CHECK(j->required_tech == NULL);
+}
+
+/* Chunk 3 (docs/prd/triage/psx-full-planets-and-tech.md): each of the 5
+ * existing jobs is available on exactly its one real planet type, and on
+ * none of the other 9 -- walked generically over PLANET_TYPE_COUNT (now 10,
+ * per chunk 2) rather than hardcoded per-type checks, mirroring this file's
+ * own closed-loop tests' style of exercising the public accessor across the
+ * whole enum range instead of a few hand-picked values. */
+static void test_job_available_on_matches_exactly_its_one_real_type(void) {
+    static const struct {
+        colonization_job_id_t job;
+        planet_type_id_t type;
+    } cases[] = {
+        { JOB_HIVEWORLD, PLANET_TYPE_EARTHLIKE },
+        { JOB_AGROWORLD, PLANET_TYPE_EARTHLIKE },
+        { JOB_NANOTECH, PLANET_TYPE_FORGEWORLD },
+        { JOB_BOTS, PLANET_TYPE_FORGEWORLD },
+        { JOB_MINE, PLANET_TYPE_MINERAL },
+    };
+
+    for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
+        for (int t = 0; t < PLANET_TYPE_COUNT; t++) {
+            bool expected = ((planet_type_id_t)t == cases[c].type);
+            T_CHECK(rules_planets_job_available_on(cases[c].job, (planet_type_id_t)t) == expected);
+        }
+    }
 }
 
 static void test_curve_minus_levels_1_to_4_match_traced_values(void) {
@@ -237,7 +271,8 @@ static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
     T_CHECK(j != NULL);
-    T_CHECK(j->planet_type == PLANET_TYPE_EARTHLIKE);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_EARTHLIKE);
     T_CHECK(j->cost == 5);
     T_CHECK(j->needs_count == 1);
     T_CHECK(j->needs[0] == RESOURCE_FOOD);
@@ -245,6 +280,7 @@ static void test_hiveworld_job_matches_traced_values(void) {
     T_CHECK(j->curve == CURVE_PLUS);
     T_CHECK(j->tech_gate == NULL);
     T_CHECK(j->default_need == RESOURCE_GOODS);
+    T_CHECK(j->required_tech == NULL);
 }
 
 static void test_mine_job_cost_unaffected_by_tech_researched(void) {
@@ -403,6 +439,7 @@ int main(void) {
     t_run("bots_job_matches_traced_values", test_bots_job_matches_traced_values);
     t_run("agroworld_job_matches_traced_values", test_agroworld_job_matches_traced_values);
     t_run("hiveworld_job_matches_traced_values", test_hiveworld_job_matches_traced_values);
+    t_run("job_available_on_matches_exactly_its_one_real_type", test_job_available_on_matches_exactly_its_one_real_type);
     t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
     t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
     t_run("curve_value_level_below_1_returns_0", test_curve_value_level_below_1_returns_0);

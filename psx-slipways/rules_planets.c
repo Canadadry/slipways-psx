@@ -57,7 +57,8 @@ static const planet_type_t g_planet_types[PLANET_TYPE_COUNT] = {
 
 static const colonization_job_t g_jobs[JOB_COUNT] = {
     [JOB_MINE] = {
-        .planet_type = PLANET_TYPE_MINERAL,
+        .planet_types = { PLANET_TYPE_MINERAL },
+        .planet_types_count = 1,
         .cost = 5,
         .needs = { RESOURCE_PEOPLE },
         .needs_count = 1,
@@ -65,9 +66,11 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .curve = CURVE_MINUS,
         .tech_gate = NULL,
         .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
     },
     [JOB_NANOTECH] = {
-        .planet_type = PLANET_TYPE_FORGEWORLD,
+        .planet_types = { PLANET_TYPE_FORGEWORLD },
+        .planet_types_count = 1,
         .cost = 8,
         .needs = { RESOURCE_ORE },
         .needs_count = 1,
@@ -75,9 +78,11 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .curve = CURVE_MINUS,
         .tech_gate = NULL,
         .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
     },
     [JOB_BOTS] = {
-        .planet_type = PLANET_TYPE_FORGEWORLD,
+        .planet_types = { PLANET_TYPE_FORGEWORLD },
+        .planet_types_count = 1,
         .cost = 8,
         .needs = { RESOURCE_ORE, RESOURCE_TECH },
         .needs_count = 2,
@@ -85,9 +90,11 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .curve = CURVE_PLUS,
         .tech_gate = NULL,
         .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
     },
     [JOB_AGROWORLD] = {
-        .planet_type = PLANET_TYPE_EARTHLIKE,
+        .planet_types = { PLANET_TYPE_EARTHLIKE },
+        .planet_types_count = 1,
         .cost = 5,
         .needs = { RESOURCE_BOTS },
         .needs_count = 1,
@@ -95,9 +102,11 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .curve = CURVE_MINUS,
         .tech_gate = "xenofoods",
         .default_need = RESOURCE_ORGANICS,
+        .required_tech = NULL,
     },
     [JOB_HIVEWORLD] = {
-        .planet_type = PLANET_TYPE_EARTHLIKE,
+        .planet_types = { PLANET_TYPE_EARTHLIKE },
+        .planet_types_count = 1,
         .cost = 5,
         .needs = { RESOURCE_FOOD },
         .needs_count = 1,
@@ -105,6 +114,7 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .curve = CURVE_PLUS,
         .tech_gate = NULL,
         .default_need = RESOURCE_GOODS,
+        .required_tech = NULL,
     },
 };
 
@@ -114,6 +124,17 @@ const planet_type_t *rules_planets_type(planet_type_id_t id) {
 
 const colonization_job_t *rules_planets_job(colonization_job_id_t id) {
     return &g_jobs[id];
+}
+
+bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t type) {
+    const colonization_job_t *job = rules_planets_job(id);
+
+    for (int i = 0; i < job->planet_types_count; i++) {
+        if (job->planet_types[i] == type) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /* Per-level production tables traced to hc (pico8/lua.lua, unstash 8383).
