@@ -206,10 +206,10 @@ void game_draw(void) {
 			 * render call site reading real, if currently constant,
 			 * parameters, the same shape as the liaison preview's
 			 * live.reason-driven color above. */
-			const bool tech_researched[TECH_COUNT] = { false, false, false, false };
+			const bool tech_researched[RULES_TECH_ERA1_TILE_COUNT] = { false, false, false, false };
 
 			int t;
-			for (t = 0; t < TECH_COUNT; t++) {
+			for (t = 0; t < RULES_TECH_ERA1_TILE_COUNT; t++) {
 				int x = GAME_DRAW_TECH_MARGIN + t * (GAME_DRAW_TECH_TILE_SIZE + GAME_DRAW_TECH_TILE_SPACING);
 				int y = GAME_DRAW_TECH_MARGIN;
 

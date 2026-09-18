@@ -1,28 +1,111 @@
 #include "rules_tech.h"
 
-/* The 4 Era-1 records, traced to the raw nb table (unstash 10457,
+/* The full 19-tech table, traced to the raw nb table (unstash 10457,
  * pico8/map.json), re-decoded directly rather than trusted from
  * docs/design/slipways-mechanics.md's own SS12 table/prose -- see
  * rules_tech.h for the full citation and the doc's own era-assignment
  * correction (xenofoods is Era 2, not Era 1, per raw lv). name/base_cost
- * (od) values, in raw nb table order: space folding(4), geneseeds(5),
- * nanomaterials(6), drillbots(7). */
+ * (od) values, in raw nb table order.
+ *
+ * The 4 Era-1 entries (TECH_SPACE_FOLDING..TECH_DRILLBOTS) are unchanged
+ * from this module's original PRD -- only the new `.era = 1` line was
+ * added to each; name/base_cost stay byte-identical, re-asserted by
+ * host_tests/rules_tech_test.c's own regression checks. */
 static const tech_t g_tech_table[TECH_COUNT] = {
     [TECH_SPACE_FOLDING] = {
         .name = "space folding",
         .base_cost = 4,
+        .era = 1,
     },
     [TECH_GENESEEDS] = {
         .name = "geneseeds",
         .base_cost = 5,
+        .era = 1,
     },
     [TECH_NANOMATERIALS] = {
         .name = "nanomaterials",
         .base_cost = 6,
+        .era = 1,
     },
     [TECH_DRILLBOTS] = {
         .name = "drillbots",
         .base_cost = 7,
+        .era = 1,
+    },
+    [TECH_XENOFOODS] = {
+        .name = "xenofoods",
+        .base_cost = 10,
+        .era = 2,
+    },
+    [TECH_SLIPGATES] = {
+        .name = "slipgates",
+        .base_cost = 12,
+        .era = 2,
+    },
+    [TECH_GEOHARVESTING] = {
+        .name = "geoharvesting",
+        .base_cost = 14,
+        .era = 2,
+    },
+    [TECH_TRADE_LEAGUE] = {
+        .name = "trade league",
+        .base_cost = 16,
+        .era = 2,
+    },
+    [TECH_REPLICATION] = {
+        .name = "replication",
+        .base_cost = 18,
+        .era = 2,
+    },
+    [TECH_AUTOASSEMBLERS] = {
+        .name = "autoassemblers",
+        .base_cost = 19,
+        .era = 3,
+    },
+    [TECH_SKILL_IMPLANTS] = {
+        .name = "skill implants",
+        .base_cost = 22,
+        .era = 3,
+    },
+    [TECH_STARBIRTH] = {
+        .name = "starbirth",
+        .base_cost = 25,
+        .era = 3,
+    },
+    [TECH_BIOME_HACKING] = {
+        .name = "biome hacking",
+        .base_cost = 28,
+        .era = 3,
+    },
+    [TECH_INFRASPACE] = {
+        .name = "infraspace",
+        .base_cost = 31,
+        .era = 3,
+    },
+    [TECH_SUPERHUMAN_AI] = {
+        .name = "superhuman ai",
+        .base_cost = 34,
+        .era = 4,
+    },
+    [TECH_VOID_SYNTHESIS] = {
+        .name = "void synthesis",
+        .base_cost = 38,
+        .era = 4,
+    },
+    [TECH_GENE_REWRITING] = {
+        .name = "gene rewriting",
+        .base_cost = 42,
+        .era = 4,
+    },
+    [TECH_TIME_COMPRESSION] = {
+        .name = "time compression",
+        .base_cost = 46,
+        .era = 4,
+    },
+    [TECH_ASCENSION] = {
+        .name = "ascension",
+        .base_cost = 50,
+        .era = 4,
     },
 };
 

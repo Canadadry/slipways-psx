@@ -32,25 +32,60 @@ typedef enum {
     TECH_GENESEEDS,
     TECH_NANOMATERIALS,
     TECH_DRILLBOTS,
+    /* Era 2 (od 10-18), raw nb table order, per
+     * docs/prd/triage/psx-full-planets-and-tech.md's traced full 19-tech
+     * table (chunk 11). */
+    TECH_XENOFOODS,
+    TECH_SLIPGATES,
+    TECH_GEOHARVESTING,
+    TECH_TRADE_LEAGUE,
+    TECH_REPLICATION,
+    /* Era 3 (od 19-31). */
+    TECH_AUTOASSEMBLERS,
+    TECH_SKILL_IMPLANTS,
+    TECH_STARBIRTH,
+    TECH_BIOME_HACKING,
+    TECH_INFRASPACE,
+    /* Era 4 (od 34-50). */
+    TECH_SUPERHUMAN_AI,
+    TECH_VOID_SYNTHESIS,
+    TECH_GENE_REWRITING,
+    TECH_TIME_COMPRESSION,
+    TECH_ASCENSION,
     TECH_COUNT,
 } tech_id_t;
 
 /* One entry of the traced nb table (pico8/lua.lua, unstash 10457): a
- * tech's display name and its static base cost (the raw od field). lv/nk
- * are documented above but not stored as struct fields -- lv is implicitly
- * 1 for every entry in this subset by construction, and nk/fu/gi (the live
- * cost-discount formula) are wholly deferred (see the PRD's Implementation
- * Decisions / Out of Scope). */
+ * tech's display name, its static base cost (the raw od field), and its
+ * era (the raw lv field, 1-4). lv/nk are documented above but nk/fu/gi
+ * (the live cost-discount formula) are wholly deferred (see the PRD's
+ * Implementation Decisions / Out of Scope). era is appended after the two
+ * original fields rather than inserted between them, so the 4 existing
+ * Era-1 entries' name/base_cost initializers stay byte-identical and only
+ * gain one new `.era = 1` line each (regression-safe extension, matching
+ * this PRD's own "zero-value-change" discipline for pre-existing data). */
 typedef struct {
     const char *name;
     int base_cost;
+    int era;
 } tech_t;
 
-/* Plain accessor into the static Era-1 tech table. id must be a valid enum
- * value in range (less than TECH_COUNT) -- mirrors
+/* Plain accessor into the static full 19-tech table. id must be a valid
+ * enum value in range (less than TECH_COUNT) -- mirrors
  * rules_planets_type()/rules_planets_job()'s own simplicity, no elaborate
  * error handling. */
 const tech_t *rules_tech_get(tech_id_t id);
+
+/* The fixed number of tiles game_draw.c's placeholder tech-menu render
+ * loop draws: exactly the 4 real, zero-prerequisite Era-1 techs this port
+ * originally shipped (TECH_SPACE_FOLDING..TECH_DRILLBOTS), not
+ * TECH_COUNT. Deliberately decoupled from TECH_COUNT so growing the tech
+ * table to the full 19-entry roster (chunk 11) doesn't silently balloon
+ * that placeholder's visual output from 4 tiles to 19 -- the placeholder
+ * has no live "researched"/era-progression state to justify rendering
+ * anything beyond the original 4-tile mock, per this PRD's own
+ * "behavior-preserving" requirement for the game_draw.c change. */
+#define RULES_TECH_ERA1_TILE_COUNT 4
 
 /* Select's bit in the raw PSn00bSDK pad bitmask: bit 0, PAD_SELECT,
  * standard published PS1 SIO0 digital-button layout (psxpad.h's own
