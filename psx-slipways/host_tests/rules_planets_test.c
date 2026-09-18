@@ -206,6 +206,8 @@ static void test_job_available_on_matches_exactly_its_one_real_type(void) {
         { JOB_BREED_XENO, PLANET_TYPE_XENO },
         { JOB_HUNT, PLANET_TYPE_JUNGLE },
         { JOB_TOURISM, PLANET_TYPE_JUNGLE },
+        /* Chunk 8: luxury, earthlike batch, single-type. */
+        { JOB_LUXURY, PLANET_TYPE_EARTHLIKE },
     };
 
     for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
@@ -538,6 +540,28 @@ static void test_tourism_job_matches_traced_values(void) {
     T_CHECK(j->cost == 10);
     T_CHECK(j->needs_count == 2);
     T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->needs[1] == RESOURCE_GOODS);
+    T_CHECK(j->produces == RESOURCE_LUXURY);
+    T_CHECK(j->curve == CURVE_F_MINUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+/* luxury: the second real job to use CURVE_F_MINUS (after tourism, chunk 7)
+ * -- deliberately chosen to prove the curve lookup is genuinely job-agnostic
+ * across independent jobs, not just correct for one specific job. Same
+ * no-gate shape as tourism: no tech_gate, no default_need, no
+ * required_tech. */
+static void test_luxury_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_LUXURY);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_EARTHLIKE);
+    T_CHECK(j->cost == 10);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_TECH);
     T_CHECK(j->needs[1] == RESOURCE_GOODS);
     T_CHECK(j->produces == RESOURCE_LUXURY);
     T_CHECK(j->curve == CURVE_F_MINUS);
@@ -1075,6 +1099,37 @@ static void test_tourism_job_production_matches_curve_f_minus_regardless_of_tech
     }
 }
 
+/* luxury: same no-gate cost/production shape as tourism (chunk 7) -- base
+ * cost 10, tech_gate == NULL so job_tech_researched never changes cost,
+ * nanomaterials-only floor(10*0.85)=8 (same math as tourism's own base-10
+ * case). Production values {0,1,2,3} at levels 1-4 identical for
+ * job_tech_researched=true/false, since CURVE_F_MINUS has no upgrade table
+ * regardless of which job selects it -- this is the second independent,
+ * real (non-synthetic) exercise of that no-op behavior end to end through
+ * rules_planets_job_production, confirming the curve lookup genuinely
+ * generalizes across jobs rather than having been coincidentally correct
+ * for tourism alone. */
+static void test_luxury_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_LUXURY, false, false) == 10);
+    T_CHECK(rules_planets_job_cost(JOB_LUXURY, true, false) == 10);
+}
+
+static void test_luxury_job_cost_nanomaterials_researched(void) {
+    /* 10 * 0.85 = 8.5, floored -> 8. */
+    T_CHECK(rules_planets_job_cost(JOB_LUXURY, false, true) == 8);
+    T_CHECK(rules_planets_job_cost(JOB_LUXURY, true, true) == 8);
+}
+
+static void test_luxury_job_production_matches_curve_f_minus_regardless_of_tech_researched(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_LUXURY, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_LUXURY, 1, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_LUXURY, 2, researched) == 1);
+        T_CHECK(rules_planets_job_production(JOB_LUXURY, 3, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_LUXURY, 4, researched) == 3);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -1105,6 +1160,7 @@ int main(void) {
     t_run("breed_xeno_job_matches_traced_values", test_breed_xeno_job_matches_traced_values);
     t_run("hunt_job_matches_traced_values", test_hunt_job_matches_traced_values);
     t_run("tourism_job_matches_traced_values", test_tourism_job_matches_traced_values);
+    t_run("luxury_job_matches_traced_values", test_luxury_job_matches_traced_values);
     t_run("job_available_on_matches_exactly_its_one_real_type", test_job_available_on_matches_exactly_its_one_real_type);
     t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
     t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
@@ -1176,5 +1232,8 @@ int main(void) {
     t_run("tourism_job_cost_unaffected_by_tech_researched", test_tourism_job_cost_unaffected_by_tech_researched);
     t_run("tourism_job_cost_nanomaterials_researched", test_tourism_job_cost_nanomaterials_researched);
     t_run("tourism_job_production_matches_curve_f_minus_regardless_of_tech_researched", test_tourism_job_production_matches_curve_f_minus_regardless_of_tech_researched);
+    t_run("luxury_job_cost_unaffected_by_tech_researched", test_luxury_job_cost_unaffected_by_tech_researched);
+    t_run("luxury_job_cost_nanomaterials_researched", test_luxury_job_cost_nanomaterials_researched);
+    t_run("luxury_job_production_matches_curve_f_minus_regardless_of_tech_researched", test_luxury_job_production_matches_curve_f_minus_regardless_of_tech_researched);
     return t_report();
 }

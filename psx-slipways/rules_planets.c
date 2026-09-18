@@ -305,6 +305,24 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .default_need = RESOURCE_NONE,
         .required_tech = NULL,
     },
+    /* Chunk 8 (docs/prd/triage/psx-full-planets-and-tech.md): "Earthlike
+     * remaining", luxury -- the second real job to use CURVE_F_MINUS (after
+     * tourism above), deliberately chosen to prove the curve lookup is
+     * genuinely job-agnostic across independent jobs, not just correct for
+     * one specific job. Same no-gate shape as tourism: no tech_gate, no
+     * default_need, no required_tech. */
+    [JOB_LUXURY] = {
+        .planet_types = { PLANET_TYPE_EARTHLIKE },
+        .planet_types_count = 1,
+        .cost = 10,
+        .needs = { RESOURCE_TECH, RESOURCE_GOODS },
+        .needs_count = 2,
+        .produces = RESOURCE_LUXURY,
+        .curve = CURVE_F_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {

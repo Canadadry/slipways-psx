@@ -108,6 +108,14 @@ typedef enum {
     JOB_BREED_XENO,
     JOB_HUNT,
     JOB_TOURISM,
+    /* Chunk 8 (docs/prd/triage/psx-full-planets-and-tech.md): "Earthlike
+     * remaining" -- a single new job, luxury, on the already-included
+     * PLANET_TYPE_EARTHLIKE type. It's the second real job to use
+     * CURVE_F_MINUS (after chunk 7's tourism), deliberately chosen to prove
+     * the curve lookup is genuinely job-agnostic across independent jobs,
+     * not just correct for one specific job. No tech_gate, no default_need,
+     * no required_tech -- the same no-gate shape as tourism itself. */
+    JOB_LUXURY,
     JOB_COUNT,
 } colonization_job_id_t;
 
