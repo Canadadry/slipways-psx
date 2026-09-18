@@ -2149,6 +2149,210 @@ static void test_full_roster_is_not_closed_loop(void) {
     T_CHECK(!luxury_has_consumer);
 }
 
+/* ========================================================================
+ * Chunk 6 (docs/prd/triage/psx-structures-and-transforms.md): "Full-
+ * structure-roster regression". Mirrors
+ * docs/prd/psx-full-planets-and-tech.md's own chunk-10 precedent
+ * (test_full_roster_matches_prd_table above, "Part 2"): a single consolidated
+ * test walking all 8 structures' full field set, independently re-derived
+ * directly from THIS PRD's own structure table
+ * (docs/prd/triage/psx-structures-and-transforms.md, Implementation
+ * Decisions -- the 8-row #/hp/Structure/Needs/Produces/Curve/il/dm table,
+ * plus the cost/required_tech/resolvable[]/max_connections/
+ * crosses_other_routes values cited in that PRD's "Cost model"/"Purchase-gate
+ * rr"/"Resource-code resolution"/"Live-wiring verdict" prose paragraphs) --
+ * deliberately NOT copied from this file's own chunks 2-5 tests above
+ * (test_laboratory_structure_matches_traced_values,
+ * test_food_processor_structure_matches_traced_values,
+ * test_ascension_gate_structure_matches_traced_values,
+ * test_protostar_structure_matches_traced_values,
+ * test_synthesizer_structure_matches_traced_values,
+ * test_trading_hub_structure_matches_traced_values,
+ * test_slipgate_structure_matches_traced_values,
+ * test_infragate_structure_matches_traced_values), since the whole point of
+ * this consolidation (like the predecessor PRD's chunk 10) is to catch any
+ * per-chunk transcription slip one of those earlier tests' own hand-typed
+ * expectations might itself have introduced -- using an earlier chunk's own
+ * test as "ground truth" here could never catch that earlier chunk's own
+ * mistake, by construction.
+ *
+ * STRUCTURE_COUNT == 8 is already asserted by test_structure_count_is_8
+ * (chunk 2, above) -- this chunk's own task explicitly does NOT duplicate
+ * that guard; its job is the field-set consolidation below only.
+ * ======================================================================== */
+typedef struct {
+    structure_id_t id;
+    const char *name;
+    bool purchasable;
+    int cost;                   /* od; not checked when !purchasable (Protostar has no od field at all). */
+    const char *required_tech;  /* entity-literal rr: purchase gate (data only). */
+    resource_id_t needs[RULES_PLANETS_MAX_NEEDS];
+    int needs_count;
+    resource_id_t produces;
+    curve_id_t curve;
+    const char *tech_gate;      /* il: curve-upgrade gate. */
+    resource_id_t default_need; /* dm. */
+    resource_id_t resolvable[RULES_PLANETS_MAX_RESOLVABLE]; /* ba/ht: joker-resolution set. */
+    int resolvable_count;
+    int max_connections;        /* Slipgate/Infragate only (#self.oe<3); 0 otherwise. */
+    bool crosses_other_routes;  /* Infragate's mt=1; false for every other structure. */
+} prd_structure_row_t;
+
+static const prd_structure_row_t g_prd_structure_table[] = {
+    /* Ordered per the PRD's own #/hp table (Laboratory=1 .. Trading Hub=6),
+     * then Slipgate/Infragate (separately cited, no fd/hp record) -- NOT the
+     * enum's/g_structures[]'s own declaration order (Laboratory, Food
+     * processor, Slipgate, Infragate, Trading Hub, Synthesizer, Ascension
+     * Gate, Protostar) -- deliberately, so this table's row order can't be a
+     * disguised copy of the struct's own layout. */
+
+    /* 1: Laboratory. od=15 (pico8/lua.lua:910); no rr on its own definition;
+     * needs = people, joker; produces = science; curve = qh, upgraded via
+     * il="superhuman ai" to qh+; resolvable = ba=o(28,18,20,21,22,48)
+     * (pico8/lua.lua:914) = food, bots, organics, ore, tech, goods (6). */
+    { STRUCTURE_LABORATORY, "Laboratory", true, 15, NULL,
+      { RESOURCE_PEOPLE, RESOURCE_JOKER }, 2, RESOURCE_SCIENCE, CURVE_QH, "superhuman ai", RESOURCE_NONE,
+      { RESOURCE_FOOD, RESOURCE_BOTS, RESOURCE_ORGANICS, RESOURCE_ORE, RESOURCE_TECH, RESOURCE_GOODS }, 6,
+      0, false },
+
+    /* 2: Ascension Gate. od=60 (pico8/lua.lua:1003); rr="ascension"
+     * (pico8/lua.lua:1000) -- a purchase gate, captured as data only; needs =
+     * people; produces = joy; curve = f+, no il (f+ has no mc upgrade target
+     * of its own). No joker need/produce -- resolvable_count = 0. */
+    { STRUCTURE_ASCENSION_GATE, "Ascension Gate", true, 60, "ascension",
+      { RESOURCE_PEOPLE }, 1, RESOURCE_JOY, CURVE_F_PLUS, NULL, RESOURCE_NONE,
+      { 0 }, 0,
+      0, false },
+
+    /* 3: Protostar, non-purchasable -- created only by collapse (chunk 7's
+     * job); no od field at all in source, so cost is not checked below (see
+     * structure_t's own doc comment: "meaningless when purchasable ==
+     * false"). needs = none; produces = energy; curve = `-` (CURVE_MINUS). */
+    { STRUCTURE_PROTOSTAR, "Protostar", false, 0, NULL,
+      { 0 }, 0, RESOURCE_ENERGY, CURVE_MINUS, NULL, RESOURCE_NONE,
+      { 0 }, 0,
+      0, false },
+
+    /* 4: Food processor. od=15 (pico8/lua.lua:1099); no rr on its own
+     * definition; needs = organics; produces = food; curve = f-, upgraded via
+     * il="xenofoods" to f+. No joker need/produce -- resolvable_count = 0. */
+    { STRUCTURE_FOOD_PROCESSOR, "Food processor", true, 15, NULL,
+      { RESOURCE_ORGANICS }, 1, RESOURCE_FOOD, CURVE_F_MINUS, "xenofoods", RESOURCE_NONE,
+      { 0 }, 0,
+      0, false },
+
+    /* 5: Synthesizer. od=40 (pico8/lua.lua:1040); rr="void synthesis"
+     * (pico8/lua.lua:1038); needs = none; produces = joker (dynamic, captured
+     * as the sentinel, not resolved); curve = f-, no il; resolvable =
+     * ht=o(28,20,21,22) (pico8/lua.lua:1041) = food, organics, ore, tech (4)
+     * -- design-doc correction #2: the real 4th resource is ore (21), NOT
+     * bots (18). */
+    { STRUCTURE_SYNTHESIZER, "Synthesizer", true, 40, "void synthesis",
+      { 0 }, 0, RESOURCE_JOKER, CURVE_F_MINUS, NULL, RESOURCE_NONE,
+      { RESOURCE_FOOD, RESOURCE_ORGANICS, RESOURCE_ORE, RESOURCE_TECH }, 4,
+      0, false },
+
+    /* 6: Trading Hub. od=20 (pico8/lua.lua:1061); rr="trade league"
+     * (pico8/lua.lua:1059); needs = joker, joker; produces = luxury --
+     * design-doc correction #1: the raw fd record's produce field is
+     * unambiguously w=luxury (r.w=12), NOT joy/energy; curve = f-, no il;
+     * default_need = joker (dm="?"); resolvable = ba=o(28,48,18,20,21,22)
+     * (pico8/lua.lua:1062) = food, goods, bots, organics, ore, tech (6). */
+    { STRUCTURE_TRADING_HUB, "Trading Hub", true, 20, "trade league",
+      { RESOURCE_JOKER, RESOURCE_JOKER }, 2, RESOURCE_LUXURY, CURVE_F_MINUS, NULL, RESOURCE_JOKER,
+      { RESOURCE_FOOD, RESOURCE_GOODS, RESOURCE_BOTS, RESOURCE_ORGANICS, RESOURCE_ORE, RESOURCE_TECH }, 6,
+      0, false },
+
+    /* Slipgate. od=10 (pico8/lua.lua:1103); rr="slipgates"
+     * (pico8/lua.lua:1108); zero production (nr's own entity definition sets
+     * no hp= field at all) -- needs = none, produces = none, curve =
+     * CURVE_NONE; max_connections = 3 (design doc S5, #self.oe<3), shared
+     * with Infragate; crosses_other_routes = false (no mt=1 on nr). */
+    { STRUCTURE_SLIPGATE, "Slipgate", true, 10, "slipgates",
+      { 0 }, 0, RESOURCE_NONE, CURVE_NONE, NULL, RESOURCE_NONE,
+      { 0 }, 0,
+      3, false },
+
+    /* Infragate. od=25 (pico8/lua.lua:1126); rr="infraspace"
+     * (pico8/lua.lua:1125); same zero-production status as Slipgate (fr also
+     * sets no hp= field); max_connections = 3, same #self.oe<3 rule as
+     * Slipgate; crosses_other_routes = true (fr's own mt=1) -- the one field
+     * that actually distinguishes it from Slipgate. */
+    { STRUCTURE_INFRAGATE, "Infragate", true, 25, "infraspace",
+      { 0 }, 0, RESOURCE_NONE, CURVE_NONE, NULL, RESOURCE_NONE,
+      { 0 }, 0,
+      3, true },
+};
+
+static void test_full_structure_roster_matches_prd_table(void) {
+    size_t row_count = sizeof(g_prd_structure_table) / sizeof(g_prd_structure_table[0]);
+    /* The table itself must have exactly 8 rows -- a missing or duplicated
+     * row here would otherwise silently under-cover the roster. */
+    T_CHECK(row_count == (size_t)STRUCTURE_COUNT);
+
+    bool seen[STRUCTURE_COUNT];
+    for (int i = 0; i < STRUCTURE_COUNT; i++) {
+        seen[i] = false;
+    }
+
+    for (size_t r = 0; r < row_count; r++) {
+        const prd_structure_row_t *row = &g_prd_structure_table[r];
+
+        /* Every row's id must be in range and appear exactly once -- catches
+         * both an omitted structure id and an accidentally-duplicated one. */
+        T_CHECK(row->id >= 0 && row->id < STRUCTURE_COUNT);
+        T_CHECK(!seen[row->id]);
+        seen[row->id] = true;
+
+        const structure_t *s = rules_planets_structure(row->id);
+        T_CHECK(s != NULL);
+
+        T_CHECK(strcmp(s->name, row->name) == 0);
+        T_CHECK(s->purchasable == row->purchasable);
+        if (row->purchasable) {
+            /* Protostar's cost is deliberately never asserted (see the
+             * table's own doc comment and structure_t's doc comment). */
+            T_CHECK(s->cost == row->cost);
+        }
+
+        T_CHECK((s->required_tech == NULL) == (row->required_tech == NULL));
+        if (s->required_tech != NULL && row->required_tech != NULL) {
+            T_CHECK(strcmp(s->required_tech, row->required_tech) == 0);
+        }
+
+        T_CHECK(s->needs_count == row->needs_count);
+        for (int n = 0; n < row->needs_count; n++) {
+            T_CHECK(s->needs[n] == row->needs[n]);
+        }
+
+        T_CHECK(s->produces == row->produces);
+        T_CHECK(s->curve == row->curve);
+
+        T_CHECK((s->tech_gate == NULL) == (row->tech_gate == NULL));
+        if (s->tech_gate != NULL && row->tech_gate != NULL) {
+            T_CHECK(strcmp(s->tech_gate, row->tech_gate) == 0);
+        }
+
+        T_CHECK(s->default_need == row->default_need);
+
+        T_CHECK(s->resolvable_count == row->resolvable_count);
+        for (int i = 0; i < row->resolvable_count; i++) {
+            T_CHECK(s->resolvable[i] == row->resolvable[i]);
+        }
+
+        T_CHECK(s->max_connections == row->max_connections);
+        T_CHECK(s->crosses_other_routes == row->crosses_other_routes);
+    }
+
+    /* Every one of the 8 structure ids was covered by exactly one row
+     * above -- the "seen" bitset itself is what actually proves this (not
+     * just the row_count == STRUCTURE_COUNT check above, which alone could
+     * pass with a duplicate id masking an omitted one). */
+    for (int i = 0; i < STRUCTURE_COUNT; i++) {
+        T_CHECK(seen[i]);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -2312,5 +2516,6 @@ int main(void) {
     t_run("full_roster_sanity_guard", test_full_roster_sanity_guard);
     t_run("full_roster_matches_prd_table", test_full_roster_matches_prd_table);
     t_run("full_roster_is_not_closed_loop", test_full_roster_is_not_closed_loop);
+    t_run("full_structure_roster_matches_prd_table", test_full_structure_roster_matches_prd_table);
     return t_report();
 }
