@@ -26,6 +26,17 @@ typedef enum {
      * "luxury" trace for db()'s external-trade bonus and bf()'s happiness
      * formula (both outside this module). */
     RESOURCE_LUXURY,
+    /* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): the exact 4
+     * resources this step's 6 structure records and 4 transform records
+     * touch, confirmed by exhaustive scan -- science (Laboratory's produce),
+     * energy (Protostar's produce), joy (Ascension Gate's produce), and the
+     * joker (Laboratory's/Trading Hub's flexible need slots, Synthesizer's
+     * dynamic produce). No structure/transform data is added by this chunk
+     * itself -- these are pure enum appends, exercised by later chunks. */
+    RESOURCE_SCIENCE,
+    RESOURCE_ENERGY,
+    RESOURCE_JOY,
+    RESOURCE_JOKER,
 } resource_id_t;
 
 /* All 10 documented planet types, traced to df (pico8/lua.lua:1377-1389).
@@ -156,6 +167,28 @@ typedef enum {
      * values, matching CURVE_PLUS's own existing precedent of having no
      * upgrade target. */
     CURVE_F_MINUS,
+    /* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): the 3 real
+     * curve shapes this step's structures need (hc, Annexe A) plus one new
+     * sentinel. f+ = [0,2,3,4] for levels 1-4, no mc upgrade target of its
+     * own (Ascension Gate; also Food processor's il-gated upgrade target
+     * from f-). qh = [0,1,3,5], with a real mc upgrade target to qh+
+     * (Laboratory) -- the upgrade-remap branch is wired into
+     * rules_planets_curve_value in this same chunk (mirroring
+     * CURVE_MINUS->CURVE_PLUS's own existing precedent) since it is pure
+     * curve-lookup infrastructure, not structure/transform data; chunk 2
+     * (Laboratory) is the first REAL, non-synthetic caller to exercise it.
+     * qh+ = [0,2,5,8], no upgrade target of its own. */
+    CURVE_F_PLUS,
+    CURVE_QH,
+    CURVE_QH_PLUS,
+    /* CURVE_NONE has NO per-level table at all -- Slipgate/Infragate's
+     * genuine "no production" case (this step's own new infrastructure, not
+     * a direct hc table). rules_planets_curve_value(CURVE_NONE, level,
+     * upgraded) returns 0 unconditionally, for any level (including
+     * out-of-range) and any upgraded value -- a real sentinel, mirroring
+     * RESOURCE_NONE's own precedent, not a magic-number special case buried
+     * elsewhere. */
+    CURVE_NONE,
 } curve_id_t;
 
 /* Maximum number of entries in a colonization_job_t's needs array. Source
@@ -240,6 +273,15 @@ bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t t
  * mc upgrade mapping) -- CURVE_PLUS has no upgrade target in this subset,
  * so upgraded has no effect when curve is already CURVE_PLUS. */
 int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
+
+/* CURVE_F_PLUS/CURVE_QH/CURVE_QH_PLUS values, traced to hc (unstash Annexe
+ * A): f+ = [0,2,3,4], qh = [0,1,3,5], qh+ = [0,2,5,8], all for levels 1-4.
+ * When upgraded is true and curve is CURVE_QH, looks up CURVE_QH_PLUS's
+ * table instead (the mc upgrade mapping), mirroring CURVE_MINUS's own
+ * upgrade-to-CURVE_PLUS precedent exactly. CURVE_F_PLUS and CURVE_QH_PLUS
+ * have no upgrade target of their own, so upgraded has no effect on them.
+ * CURVE_NONE has no table at all: it returns 0 for any level/upgraded
+ * combination (see curve_id_t's own doc comment). */
 
 /* CURVE_F_MINUS values, traced to hc (unstash Annexe A): f- = [0,1,2,3] for
  * levels 1-4. It has no upgrade target in this module's scope (see

@@ -428,8 +428,23 @@ static const int g_curve_plus[4] = { 2, 3, 4, 4 };
  * comment) -- CURVE_F_MINUS is deliberately absent from the "upgraded"
  * mapping below, so upgraded=true is a documented no-op for it. */
 static const int g_curve_f_minus[4] = { 0, 1, 2, 3 };
+/* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): the 3 new
+ * per-level tables this step's structures need, traced to hc (unstash
+ * Annexe A). No upgrade target is modeled for CURVE_F_PLUS/CURVE_QH_PLUS
+ * (see curve_id_t's own doc comment); CURVE_QH's real mc upgrade target
+ * (CURVE_QH_PLUS) is handled in the remap below. */
+static const int g_curve_f_plus[4] = { 0, 2, 3, 4 };
+static const int g_curve_qh[4] = { 0, 1, 3, 5 };
+static const int g_curve_qh_plus[4] = { 0, 2, 5, 8 };
 
 int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
+    /* CURVE_NONE has no per-level table at all -- a real sentinel (mirroring
+     * RESOURCE_NONE's own precedent), returning 0 unconditionally for any
+     * level (including out-of-range) and any upgraded value. Checked before
+     * the level clamp below since this case is independent of level. */
+    if (curve == CURVE_NONE) {
+        return 0;
+    }
     if (level < 1) {
         return 0;
     }
@@ -440,13 +455,28 @@ int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
     curve_id_t effective_curve = curve;
     if (upgraded && curve == CURVE_MINUS) {
         effective_curve = CURVE_PLUS;
+    } else if (upgraded && curve == CURVE_QH) {
+        effective_curve = CURVE_QH_PLUS;
     }
 
-    if (effective_curve == CURVE_F_MINUS) {
-        return g_curve_f_minus[level - 1];
+    switch (effective_curve) {
+        case CURVE_F_MINUS:
+            return g_curve_f_minus[level - 1];
+        case CURVE_F_PLUS:
+            return g_curve_f_plus[level - 1];
+        case CURVE_QH:
+            return g_curve_qh[level - 1];
+        case CURVE_QH_PLUS:
+            return g_curve_qh_plus[level - 1];
+        case CURVE_MINUS:
+            return g_curve_minus[level - 1];
+        case CURVE_PLUS:
+        default:
+            /* CURVE_NONE is handled by the early return above and never
+             * reaches here; default exists only to keep this switch total
+             * over curve_id_t without a compiler warning. */
+            return g_curve_plus[level - 1];
     }
-    const int *table = (effective_curve == CURVE_MINUS) ? g_curve_minus : g_curve_plus;
-    return table[level - 1];
 }
 
 /* hp:od()'s two multipliers, traced to pico8/lua.lua:1426-1433. Q16.16

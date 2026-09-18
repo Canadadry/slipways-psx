@@ -296,6 +296,92 @@ static void test_curve_f_minus_upgraded_is_a_no_op(void) {
     T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 4, true) == 3);
 }
 
+/* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): CURVE_F_PLUS/
+ * CURVE_QH/CURVE_QH_PLUS, traced to hc (unstash Annexe A). No
+ * structure/transform data exists yet -- these are pure curve-table
+ * additions, exercised synthetically here; chunk 2 (Laboratory/Food
+ * processor) is the first real, non-synthetic caller. */
+static void test_curve_f_plus_levels_1_to_4_match_traced_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 1, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 2, false) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 3, false) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 4, false) == 4);
+}
+
+/* CURVE_F_PLUS has no upgrade target of its own (hc, Annexe A) -- upgraded
+ * must be a documented no-op, mirroring CURVE_PLUS's/CURVE_QH_PLUS's own
+ * precedent. */
+static void test_curve_f_plus_upgraded_is_a_no_op(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 1, true) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 2, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 3, true) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_F_PLUS, 4, true) == 4);
+}
+
+static void test_curve_qh_levels_1_to_4_match_traced_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 1, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 2, false) == 1);
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 3, false) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 4, false) == 5);
+}
+
+static void test_curve_qh_plus_levels_1_to_4_match_traced_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 1, false) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 2, false) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 3, false) == 5);
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 4, false) == 8);
+}
+
+/* CURVE_QH has a real mc upgrade target (qh+) -- wired into
+ * rules_planets_curve_value in this same chunk as pure curve-lookup
+ * infrastructure, mirroring CURVE_MINUS->CURVE_PLUS's own precedent. This is
+ * still a synthetic exercise (no Laboratory data exists yet); chunk 2 is the
+ * first real, non-synthetic caller. */
+static void test_curve_qh_upgraded_returns_curve_qh_plus_values(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 1, true) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 2, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 3, true) == 5);
+    T_CHECK(rules_planets_curve_value(CURVE_QH, 4, true) == 8);
+}
+
+/* CURVE_QH_PLUS has no upgrade target of its own -- upgraded must be a
+ * documented no-op, mirroring CURVE_PLUS's own precedent. */
+static void test_curve_qh_plus_upgraded_is_a_no_op(void) {
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 1, true) == 0);
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 2, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 3, true) == 5);
+    T_CHECK(rules_planets_curve_value(CURVE_QH_PLUS, 4, true) == 8);
+}
+
+/* CURVE_NONE has no per-level table at all (Slipgate/Infragate's genuine "no
+ * production" case, this chunk's own new infrastructure) -- it must return 0
+ * unconditionally, for every level 0-5 (the full range, not just the 1-4
+ * traced window) and both upgraded states, mirroring RESOURCE_NONE's own
+ * "real sentinel" precedent. */
+static void test_curve_none_returns_0_for_every_level_and_upgraded_state(void) {
+    for (int level = 0; level <= 5; level++) {
+        T_CHECK(rules_planets_curve_value(CURVE_NONE, level, false) == 0);
+        T_CHECK(rules_planets_curve_value(CURVE_NONE, level, true) == 0);
+    }
+}
+
+/* resource_id_t: no accessor uses RESOURCE_SCIENCE/RESOURCE_ENERGY/
+ * RESOURCE_JOY/RESOURCE_JOKER in this chunk (no job/structure data exists
+ * yet) -- just confirm the enum compiles and every new value is genuinely
+ * distinct from every other, including the pre-existing RESOURCE_LUXURY. */
+static void test_new_resource_ids_are_distinct(void) {
+    T_CHECK(RESOURCE_SCIENCE != RESOURCE_ENERGY);
+    T_CHECK(RESOURCE_SCIENCE != RESOURCE_JOY);
+    T_CHECK(RESOURCE_SCIENCE != RESOURCE_JOKER);
+    T_CHECK(RESOURCE_ENERGY != RESOURCE_JOY);
+    T_CHECK(RESOURCE_ENERGY != RESOURCE_JOKER);
+    T_CHECK(RESOURCE_JOY != RESOURCE_JOKER);
+    T_CHECK(RESOURCE_SCIENCE != RESOURCE_LUXURY);
+    T_CHECK(RESOURCE_ENERGY != RESOURCE_LUXURY);
+    T_CHECK(RESOURCE_JOY != RESOURCE_LUXURY);
+    T_CHECK(RESOURCE_JOKER != RESOURCE_LUXURY);
+}
+
 static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
@@ -1668,6 +1754,14 @@ int main(void) {
     t_run("curve_f_minus_levels_1_to_4_match_traced_values", test_curve_f_minus_levels_1_to_4_match_traced_values);
     t_run("curve_f_minus_level_below_1_returns_0", test_curve_f_minus_level_below_1_returns_0);
     t_run("curve_f_minus_upgraded_is_a_no_op", test_curve_f_minus_upgraded_is_a_no_op);
+    t_run("curve_f_plus_levels_1_to_4_match_traced_values", test_curve_f_plus_levels_1_to_4_match_traced_values);
+    t_run("curve_f_plus_upgraded_is_a_no_op", test_curve_f_plus_upgraded_is_a_no_op);
+    t_run("curve_qh_levels_1_to_4_match_traced_values", test_curve_qh_levels_1_to_4_match_traced_values);
+    t_run("curve_qh_plus_levels_1_to_4_match_traced_values", test_curve_qh_plus_levels_1_to_4_match_traced_values);
+    t_run("curve_qh_upgraded_returns_curve_qh_plus_values", test_curve_qh_upgraded_returns_curve_qh_plus_values);
+    t_run("curve_qh_plus_upgraded_is_a_no_op", test_curve_qh_plus_upgraded_is_a_no_op);
+    t_run("curve_none_returns_0_for_every_level_and_upgraded_state", test_curve_none_returns_0_for_every_level_and_upgraded_state);
+    t_run("new_resource_ids_are_distinct", test_new_resource_ids_are_distinct);
     t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
     t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
