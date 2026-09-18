@@ -400,8 +400,68 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
     },
 };
 
+/* Chunk 2 (docs/prd/triage/psx-structures-and-transforms.md): structure_t's
+ * struct shape + the first 2 of 8 structures (Laboratory, Food processor),
+ * chosen because neither has a required_tech purchase-gate -- proving the
+ * struct shape and the flat-cost model (cost read directly, no formula
+ * function exists to call, unlike colonization_job_t's cost) before any
+ * tech-gated structure. The other 6 slots stay zero-initialized
+ * (uninitialized-by-omission via C's designated-initializer semantics) until
+ * chunks 3-5 populate them -- STRUCTURE_COUNT is already 8 (the full enum),
+ * but only these 2 array entries have real data yet. */
+static const structure_t g_structures[STRUCTURE_COUNT] = {
+    /* od=15, pico8/lua.lua:910; no rr field on Laboratory's own definition;
+     * needs = people, joker; produces = science; curve = qh, upgraded via
+     * il="superhuman ai" (pico8/lua.lua:907-914) to qh+ (chunk 1's remap,
+     * exercised for real here for the first time); resolvable =
+     * ba=o(28,18,20,21,22,48) (pico8/lua.lua:914) = food, bots, organics,
+     * ore, tech, goods (6 resources). */
+    [STRUCTURE_LABORATORY] = {
+        .name = "Laboratory",
+        .purchasable = true,
+        .cost = 15,
+        .required_tech = NULL,
+        .needs = { RESOURCE_PEOPLE, RESOURCE_JOKER },
+        .needs_count = 2,
+        .produces = RESOURCE_SCIENCE,
+        .curve = CURVE_QH,
+        .tech_gate = "superhuman ai",
+        .default_need = RESOURCE_NONE,
+        .resolvable = { RESOURCE_FOOD, RESOURCE_BOTS, RESOURCE_ORGANICS, RESOURCE_ORE, RESOURCE_TECH, RESOURCE_GOODS },
+        .resolvable_count = 6,
+        .max_connections = 0,
+        .crosses_other_routes = false,
+    },
+    /* od=15, pico8/lua.lua:1099; no rr field on Food processor's own
+     * definition; needs = organics; produces = food; curve = f-, upgraded
+     * via il="xenofoods" (pico8/lua.lua:1099) to f+ -- the first point in the
+     * port where CURVE_F_MINUS's f-->f+ upgrade path becomes genuinely
+     * reachable (see the new remap branch in rules_planets_curve_value
+     * below). No joker need/produce, unlike Laboratory/Synthesizer/Trading
+     * Hub -- resolvable_count = 0. */
+    [STRUCTURE_FOOD_PROCESSOR] = {
+        .name = "Food processor",
+        .purchasable = true,
+        .cost = 15,
+        .required_tech = NULL,
+        .needs = { RESOURCE_ORGANICS },
+        .needs_count = 1,
+        .produces = RESOURCE_FOOD,
+        .curve = CURVE_F_MINUS,
+        .tech_gate = "xenofoods",
+        .default_need = RESOURCE_NONE,
+        .resolvable_count = 0,
+        .max_connections = 0,
+        .crosses_other_routes = false,
+    },
+};
+
 const planet_type_t *rules_planets_type(planet_type_id_t id) {
     return &g_planet_types[id];
+}
+
+const structure_t *rules_planets_structure(structure_id_t id) {
+    return &g_structures[id];
 }
 
 const colonization_job_t *rules_planets_job(colonization_job_id_t id) {
@@ -423,10 +483,10 @@ bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t t
  * Index 0..3 represents levels 1..4. */
 static const int g_curve_minus[4] = { 1, 2, 3, 3 };
 static const int g_curve_plus[4] = { 2, 3, 4, 4 };
-/* f- = [0,1,2,3] for levels 1-4, traced to hc (unstash Annexe A). No
- * upgrade target is modeled for this curve (see curve_id_t's own doc
- * comment) -- CURVE_F_MINUS is deliberately absent from the "upgraded"
- * mapping below, so upgraded=true is a documented no-op for it. */
+/* f- = [0,1,2,3] for levels 1-4, traced to hc (unstash Annexe A). Its mc
+ * upgrade target (CURVE_F_PLUS) is wired into the remap below by chunk 2
+ * (docs/prd/triage/psx-structures-and-transforms.md, Food processor's real
+ * il="xenofoods" field -- see curve_id_t's own doc comment). */
 static const int g_curve_f_minus[4] = { 0, 1, 2, 3 };
 /* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): the 3 new
  * per-level tables this step's structures need, traced to hc (unstash
@@ -457,6 +517,16 @@ int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded) {
         effective_curve = CURVE_PLUS;
     } else if (upgraded && curve == CURVE_QH) {
         effective_curve = CURVE_QH_PLUS;
+    } else if (upgraded && curve == CURVE_F_MINUS) {
+        /* Chunk 2 (docs/prd/triage/psx-structures-and-transforms.md): the
+         * f-->f+ upgrade remap, new in this chunk. Food processor
+         * (il="xenofoods") is the first structure with a real il field on a
+         * CURVE_F_MINUS structure -- tourism/luxury (the predecessor PRD's
+         * only other CURVE_F_MINUS users) both have tech_gate == NULL, so
+         * rules_planets_job_production's upgraded is always false for them
+         * regardless of this branch existing; their production values are
+         * unaffected. */
+        effective_curve = CURVE_F_PLUS;
     }
 
     switch (effective_curve) {
@@ -514,4 +584,17 @@ int rules_planets_job_production(colonization_job_id_t id, int level, bool job_t
     bool upgraded = job->tech_gate != NULL && job_tech_researched;
 
     return rules_planets_curve_value(job->curve, level, upgraded);
+}
+
+int rules_planets_structure_production(structure_id_t id, int level, bool curve_upgrade_researched) {
+    const structure_t *structure = rules_planets_structure(id);
+
+    /* Mirrors rules_planets_job_production's "has a tech_gate and it's
+     * researched" condition exactly (see this function's own header
+     * comment). Written verbatim here rather than factored into a shared
+     * helper with rules_planets_job_production, matching that function's own
+     * precedent of not sharing with rules_planets_job_cost. */
+    bool upgraded = structure->tech_gate != NULL && curve_upgrade_researched;
+
+    return rules_planets_curve_value(structure->curve, level, upgraded);
 }

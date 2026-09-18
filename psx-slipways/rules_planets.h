@@ -158,14 +158,20 @@ typedef enum {
     CURVE_PLUS,
     /* hc (unstash Annexe A): f- = [0,1,2,3] for levels 1-4, used by
      * tourism/luxury (both added in a later chunk of
-     * docs/prd/triage/psx-full-planets-and-tech.md). f-'s mc upgrade target
-     * (f+) is documented in hc but never reachable from any in-scope job --
-     * neither tourism nor luxury carries an il field (per that PRD's own
-     * finding), so no upgrade-table entry is added for CURVE_F_MINUS here:
-     * rules_planets_curve_value(CURVE_F_MINUS, level, upgraded=true) is a
-     * documented no-op, returning the same non-upgraded CURVE_F_MINUS
-     * values, matching CURVE_PLUS's own existing precedent of having no
-     * upgrade target. */
+     * docs/prd/triage/psx-full-planets-and-tech.md) and, from chunk 2
+     * (docs/prd/triage/psx-structures-and-transforms.md), Food processor.
+     * f-'s mc upgrade target (f+) is documented in hc but was never reachable
+     * from any in-scope job when this enum value was first added -- neither
+     * tourism nor luxury carries an il field, so their production is
+     * unaffected by upgraded regardless. Food processor's real
+     * il="xenofoods" field is the first genuinely reachable case: chunk 2
+     * wires a CURVE_F_MINUS->CURVE_F_PLUS upgrade-remap branch into
+     * rules_planets_curve_value (mirroring CURVE_MINUS->CURVE_PLUS's/
+     * CURVE_QH->CURVE_QH_PLUS's own precedent), so
+     * rules_planets_curve_value(CURVE_F_MINUS, level, upgraded=true) now
+     * returns CURVE_F_PLUS's values -- no longer a no-op in general, though
+     * it remains one for any caller (tourism/luxury) whose own upgraded flag
+     * is structurally always false. */
     CURVE_F_MINUS,
     /* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): the 3 real
      * curve shapes this step's structures need (hc, Annexe A) plus one new
@@ -195,6 +201,12 @@ typedef enum {
  * jobs need 1 or 2 resources (this subset's max is bots' 2: ORE and TECH) --
  * sized to the real traced maximum, not padded for speculative headroom. */
 #define RULES_PLANETS_MAX_NEEDS 2
+
+/* Maximum number of entries in a structure_t's resolvable[] joker-resolution
+ * set. Laboratory's/Trading Hub's own ba field is the real traced maximum (6
+ * resources) -- see docs/prd/triage/psx-structures-and-transforms.md,
+ * "Data model changes needed". */
+#define RULES_PLANETS_MAX_RESOLVABLE 6
 
 /* Maximum number of planet types a single colonization_job_t can be valid
  * on. Chunk 3 (docs/prd/triage/psx-full-planets-and-tech.md): source's own
@@ -252,11 +264,69 @@ typedef struct {
     const char *required_tech;
 } colonization_job_t;
 
-/* Plain accessors into the static planet-type/job tables. id must be a
- * valid enum value in range (less than PLANET_TYPE_COUNT or JOB_COUNT) --
- * mirrors world_get_galaxy()'s simplicity, no elaborate error handling. */
+/* The 7 purchasable structures (Laboratory, Food processor, Slipgate,
+ * Infragate, Trading Hub, Synthesizer, Ascension Gate) plus the
+ * non-purchasable Protostar (STRUCTURE_PROTOSTAR, created only by the
+ * collapse transform action, chunk 7's job -- never bought directly), traced
+ * to fd's 6 structure-shaped records (unstash 8494) plus dr's 7 tooltip
+ * entries (unstash 9807). Ordered to match
+ * docs/design/slipways-mechanics.md SS6's own table, with Protostar appended
+ * last and clearly marked non-purchasable. Chunk 2
+ * (docs/prd/triage/psx-structures-and-transforms.md) declares the full
+ * 8-member enum but only populates g_structures[]'s
+ * STRUCTURE_LABORATORY/STRUCTURE_FOOD_PROCESSOR entries -- the other 6 stay
+ * zero-initialized (uninitialized-by-omission via C's designated-initializer
+ * semantics) until chunks 3-5 fill them in. */
+typedef enum {
+    STRUCTURE_LABORATORY,
+    STRUCTURE_FOOD_PROCESSOR,
+    STRUCTURE_SLIPGATE,
+    STRUCTURE_INFRAGATE,
+    STRUCTURE_TRADING_HUB,
+    STRUCTURE_SYNTHESIZER,
+    STRUCTURE_ASCENSION_GATE,
+    /* Non-purchasable: created only by the collapse transform action (chunk
+     * 7's job). Deliberately last -- see this enum's own doc comment. */
+    STRUCTURE_PROTOSTAR,
+    STRUCTURE_COUNT,
+} structure_id_t;
+
+/* One entry of the traced fd structure records (unstash 8494) plus each
+ * structure entity's own literal fields (pico8/lua.lua:905-1127). Unlike
+ * colonization_job_t, cost is a flat literal (od) -- never run through
+ * rules_planets_job_cost's tech-multiplier formula (see this PRD's Cost
+ * model section) -- and required_tech is a purchase gate (entity-literal rr),
+ * structurally distinct from tech_gate (il, a curve-upgrade gate applied via
+ * rules_planets_structure_production, same mechanism as
+ * colonization_job_t.tech_gate). resolvable[]/resolvable_count captures the
+ * joker (?) need/produce resolution set (ba/ht); dynamic resolution at
+ * runtime is out of scope (see PRD Out of Scope). max_connections/
+ * crosses_other_routes are Slipgate/Infragate-only (chunk 5's job); 0/false
+ * for every other structure. */
+typedef struct {
+    const char *name;
+    bool purchasable;                 /* false only for STRUCTURE_PROTOSTAR */
+    int cost;                          /* od; meaningless when purchasable == false */
+    const char *required_tech;         /* entity-literal rr; NULL for Laboratory/Food processor/Protostar */
+    resource_id_t needs[RULES_PLANETS_MAX_NEEDS];
+    int needs_count;
+    resource_id_t produces;            /* RESOURCE_NONE for Slipgate/Infragate */
+    curve_id_t curve;                  /* CURVE_NONE for Slipgate/Infragate */
+    const char *tech_gate;             /* il; curve-upgrade gate, NULL if none */
+    resource_id_t default_need;        /* dm; RESOURCE_NONE if none */
+    resource_id_t resolvable[RULES_PLANETS_MAX_RESOLVABLE]; /* ba/ht: joker-resolution set */
+    int resolvable_count;
+    int max_connections;               /* Slipgate/Infragate only; 0 otherwise */
+    bool crosses_other_routes;          /* Infragate's mt=1; false for every other structure */
+} structure_t;
+
+/* Plain accessors into the static planet-type/job/structure tables. id must
+ * be a valid enum value in range (less than PLANET_TYPE_COUNT, JOB_COUNT, or
+ * STRUCTURE_COUNT) -- mirrors world_get_galaxy()'s simplicity, no elaborate
+ * error handling. */
 const planet_type_t *rules_planets_type(planet_type_id_t id);
 const colonization_job_t *rules_planets_job(colonization_job_id_t id);
+const structure_t *rules_planets_structure(structure_id_t id);
 
 /* Mirrors source's own bj() filter (pico8/lua.lua:1391-1398), minus the
  * oj(b.rr) tech-researched check (required_tech stays a caller-supplied
@@ -269,9 +339,12 @@ bool rules_planets_job_available_on(colonization_job_id_t id, planet_type_id_t t
  * unstash 8383) and hp:po()'s curve-selection logic. level < 1 returns 0
  * (an unfounded colony produces nothing, per design doc SS9 point 1); level
  * is otherwise clamped to [1,4], the only traced levels. When upgraded is
- * true and curve is CURVE_MINUS, looks up CURVE_PLUS's table instead (the
- * mc upgrade mapping) -- CURVE_PLUS has no upgrade target in this subset,
- * so upgraded has no effect when curve is already CURVE_PLUS. */
+ * true, looks up the curve's own mc upgrade target instead: CURVE_MINUS ->
+ * CURVE_PLUS, CURVE_QH -> CURVE_QH_PLUS, and (chunk 2,
+ * docs/prd/triage/psx-structures-and-transforms.md) CURVE_F_MINUS ->
+ * CURVE_F_PLUS. Every other curve (including each of those 3 curves'
+ * upgrade targets) has no upgrade target of its own, so upgraded has no
+ * effect on it. */
 int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
 
 /* CURVE_F_PLUS/CURVE_QH/CURVE_QH_PLUS values, traced to hc (unstash Annexe
@@ -284,9 +357,10 @@ int rules_planets_curve_value(curve_id_t curve, int level, bool upgraded);
  * combination (see curve_id_t's own doc comment). */
 
 /* CURVE_F_MINUS values, traced to hc (unstash Annexe A): f- = [0,1,2,3] for
- * levels 1-4. It has no upgrade target in this module's scope (see
- * curve_id_t's own doc comment), so upgraded has no effect on it, matching
- * CURVE_PLUS's own precedent. */
+ * levels 1-4. Its mc upgrade target (f+) is genuinely reachable as of chunk 2
+ * (docs/prd/triage/psx-structures-and-transforms.md, Food processor's real
+ * il="xenofoods" field) -- see curve_id_t's own doc comment and
+ * rules_planets_curve_value's. */
 
 /* Job cost formula, ports hp:od() exactly (pico8/lua.lua:1426-1433). Starts
  * from the job's base cost; if the job has a tech_gate AND
@@ -305,5 +379,14 @@ int rules_planets_job_cost(colonization_job_id_t id, bool job_tech_researched, b
  * calls rules_planets_curve_value. level follows that function's clamping
  * (0 below level 1, clamped at level 4). */
 int rules_planets_job_production(colonization_job_id_t id, int level, bool job_tech_researched);
+
+/* Per-structure production wrapper, mirrors rules_planets_job_production
+ * exactly: resolves the structure's curve_id_t and whether it's upgraded
+ * (its tech_gate is present AND curve_upgrade_researched is true), then calls
+ * rules_planets_curve_value. level follows that function's clamping (0 below
+ * level 1, clamped at level 4). Ports hp:po()'s curve-selection logic
+ * (pico8/lua.lua:1422-1425), confirmed shared verbatim between jobs and
+ * structures (see this PRD's Implementation Decisions, "Curve-upgrade il"). */
+int rules_planets_structure_production(structure_id_t id, int level, bool curve_upgrade_researched);
 
 #endif

@@ -281,19 +281,28 @@ static void test_curve_f_minus_level_below_1_returns_0(void) {
     T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, -1, false) == 0);
 }
 
-/* CURVE_F_MINUS has no upgrade target in this module's scope (neither
- * tourism nor luxury carries an il field) -- upgraded=true must be a
- * documented no-op, returning the exact same values as upgraded=false, not
- * some garbage/uninitialized/wrongly-mapped value. */
-static void test_curve_f_minus_upgraded_is_a_no_op(void) {
-    for (int level = 1; level <= 4; level++) {
-        T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, level, true) ==
-                rules_planets_curve_value(CURVE_F_MINUS, level, false));
-    }
+/* CURVE_F_MINUS had no reachable upgrade target when this test was first
+ * written (neither tourism nor luxury carries an il field). Chunk 2
+ * (docs/prd/triage/psx-structures-and-transforms.md) wires a genuine
+ * CURVE_F_MINUS->CURVE_F_PLUS upgrade-remap branch into
+ * rules_planets_curve_value (Food processor's real il="xenofoods" field is
+ * what makes it reachable) -- so upgraded=true is no longer a no-op at the
+ * curve-value level in general; it now returns CURVE_F_PLUS's own values.
+ * tourism/luxury (both structurally tech_gate == NULL) are unaffected by
+ * this change, since rules_planets_job_production never passes upgraded=true
+ * for them regardless of this branch existing -- see
+ * test_tourism_job_production_matches_curve_f_minus_regardless_of_tech_researched/
+ * test_luxury_job_production_matches_curve_f_minus_regardless_of_tech_researched
+ * below, both re-asserted unchanged by this chunk. */
+static void test_curve_f_minus_upgraded_returns_curve_f_plus_values(void) {
     T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 1, true) == 0);
-    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 2, true) == 1);
-    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 3, true) == 2);
-    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 4, true) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 2, true) == 2);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 3, true) == 3);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 4, true) == 4);
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 1, true) ==
+            rules_planets_curve_value(CURVE_F_PLUS, 1, false));
+    T_CHECK(rules_planets_curve_value(CURVE_F_MINUS, 4, true) ==
+            rules_planets_curve_value(CURVE_F_PLUS, 4, false));
 }
 
 /* Chunk 1 (docs/prd/triage/psx-structures-and-transforms.md): CURVE_F_PLUS/
@@ -380,6 +389,105 @@ static void test_new_resource_ids_are_distinct(void) {
     T_CHECK(RESOURCE_ENERGY != RESOURCE_LUXURY);
     T_CHECK(RESOURCE_JOY != RESOURCE_LUXURY);
     T_CHECK(RESOURCE_JOKER != RESOURCE_LUXURY);
+}
+
+/* Chunk 2 (docs/prd/triage/psx-structures-and-transforms.md): STRUCTURE_COUNT
+ * is already 8 (the full enum) even though only Laboratory/Food processor
+ * have real data yet -- the other 6 slots are zero-initialized-by-omission,
+ * left for chunks 3-5 to populate and assert. */
+static void test_structure_count_is_8(void) {
+    T_CHECK(STRUCTURE_COUNT == 8);
+}
+
+/* Laboratory: od=15 (pico8/lua.lua:910), no rr field on its own definition,
+ * needs = people + joker, produces = science, curve = qh (upgraded via
+ * il="superhuman ai" to qh+), resolvable = the 6-resource "any resource" set
+ * (ba=o(28,18,20,21,22,48), pico8/lua.lua:914). */
+static void test_laboratory_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_LABORATORY);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Laboratory") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 15);
+    T_CHECK(s->required_tech == NULL);
+    T_CHECK(s->needs_count == 2);
+    T_CHECK(s->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(s->needs[1] == RESOURCE_JOKER);
+    T_CHECK(s->produces == RESOURCE_SCIENCE);
+    T_CHECK(s->curve == CURVE_QH);
+    T_CHECK(s->tech_gate != NULL);
+    T_CHECK(strcmp(s->tech_gate, "superhuman ai") == 0);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 6);
+    T_CHECK(s->resolvable[0] == RESOURCE_FOOD);
+    T_CHECK(s->resolvable[1] == RESOURCE_BOTS);
+    T_CHECK(s->resolvable[2] == RESOURCE_ORGANICS);
+    T_CHECK(s->resolvable[3] == RESOURCE_ORE);
+    T_CHECK(s->resolvable[4] == RESOURCE_TECH);
+    T_CHECK(s->resolvable[5] == RESOURCE_GOODS);
+    T_CHECK(s->max_connections == 0);
+    T_CHECK(s->crosses_other_routes == false);
+}
+
+/* Food processor: od=15 (pico8/lua.lua:1099), no rr field on its own
+ * definition, needs = organics, produces = food, curve = f- (upgraded via
+ * il="xenofoods" to f+). No joker need/produce, unlike Laboratory/
+ * Synthesizer/Trading Hub -- resolvable_count == 0. */
+static void test_food_processor_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_FOOD_PROCESSOR);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Food processor") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 15);
+    T_CHECK(s->required_tech == NULL);
+    T_CHECK(s->needs_count == 1);
+    T_CHECK(s->needs[0] == RESOURCE_ORGANICS);
+    T_CHECK(s->produces == RESOURCE_FOOD);
+    T_CHECK(s->curve == CURVE_F_MINUS);
+    T_CHECK(s->tech_gate != NULL);
+    T_CHECK(strcmp(s->tech_gate, "xenofoods") == 0);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 0);
+    T_CHECK(s->max_connections == 0);
+    T_CHECK(s->crosses_other_routes == false);
+}
+
+/* Laboratory's rules_planets_structure_production: unresearched matches qh's
+ * [0,1,3,5]; researched matches qh+'s [0,2,5,8] -- the first real,
+ * non-synthetic exercise of CURVE_QH's upgrade path (chunk 1 only tested it
+ * synthetically on rules_planets_curve_value directly). */
+static void test_laboratory_structure_production_matches_curve_qh_unresearched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 1, false) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 2, false) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 3, false) == 3);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 4, false) == 5);
+}
+
+static void test_laboratory_structure_production_switches_to_curve_qh_plus_when_researched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 1, true) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 2, true) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 3, true) == 5);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_LABORATORY, 4, true) == 8);
+}
+
+/* Food processor's rules_planets_structure_production: unresearched matches
+ * f-'s [0,1,2,3]; researched matches f+'s [0,2,3,4] -- the first real,
+ * non-synthetic exercise of the NEW CURVE_F_MINUS->CURVE_F_PLUS branch added
+ * in this same chunk. */
+static void test_food_processor_structure_production_matches_curve_f_minus_unresearched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 1, false) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 2, false) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 3, false) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 4, false) == 3);
+}
+
+static void test_food_processor_structure_production_switches_to_curve_f_plus_when_researched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 1, true) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 2, true) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 3, true) == 3);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_FOOD_PROCESSOR, 4, true) == 4);
 }
 
 static void test_hiveworld_job_matches_traced_values(void) {
@@ -1753,7 +1861,7 @@ int main(void) {
     t_run("curve_value_level_above_4_clamps_to_level_4", test_curve_value_level_above_4_clamps_to_level_4);
     t_run("curve_f_minus_levels_1_to_4_match_traced_values", test_curve_f_minus_levels_1_to_4_match_traced_values);
     t_run("curve_f_minus_level_below_1_returns_0", test_curve_f_minus_level_below_1_returns_0);
-    t_run("curve_f_minus_upgraded_is_a_no_op", test_curve_f_minus_upgraded_is_a_no_op);
+    t_run("curve_f_minus_upgraded_returns_curve_f_plus_values", test_curve_f_minus_upgraded_returns_curve_f_plus_values);
     t_run("curve_f_plus_levels_1_to_4_match_traced_values", test_curve_f_plus_levels_1_to_4_match_traced_values);
     t_run("curve_f_plus_upgraded_is_a_no_op", test_curve_f_plus_upgraded_is_a_no_op);
     t_run("curve_qh_levels_1_to_4_match_traced_values", test_curve_qh_levels_1_to_4_match_traced_values);
@@ -1762,6 +1870,13 @@ int main(void) {
     t_run("curve_qh_plus_upgraded_is_a_no_op", test_curve_qh_plus_upgraded_is_a_no_op);
     t_run("curve_none_returns_0_for_every_level_and_upgraded_state", test_curve_none_returns_0_for_every_level_and_upgraded_state);
     t_run("new_resource_ids_are_distinct", test_new_resource_ids_are_distinct);
+    t_run("structure_count_is_8", test_structure_count_is_8);
+    t_run("laboratory_structure_matches_traced_values", test_laboratory_structure_matches_traced_values);
+    t_run("food_processor_structure_matches_traced_values", test_food_processor_structure_matches_traced_values);
+    t_run("laboratory_structure_production_matches_curve_qh_unresearched", test_laboratory_structure_production_matches_curve_qh_unresearched);
+    t_run("laboratory_structure_production_switches_to_curve_qh_plus_when_researched", test_laboratory_structure_production_switches_to_curve_qh_plus_when_researched);
+    t_run("food_processor_structure_production_matches_curve_f_minus_unresearched", test_food_processor_structure_production_matches_curve_f_minus_unresearched);
+    t_run("food_processor_structure_production_switches_to_curve_f_plus_when_researched", test_food_processor_structure_production_switches_to_curve_f_plus_when_researched);
     t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
     t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
