@@ -116,6 +116,51 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .default_need = RESOURCE_GOODS,
         .required_tech = NULL,
     },
+    /* Chunk 4 (docs/prd/triage/psx-full-planets-and-tech.md): forgeworld
+     * batch, traced to fd's full 24-job re-decode (Implementation
+     * Decisions table). All 3 are single-type (forgeworld only). */
+    [JOB_GOODS] = {
+        .planet_types = { PLANET_TYPE_FORGEWORLD },
+        .planet_types_count = 1,
+        .cost = 10,
+        .needs = { RESOURCE_ORE, RESOURCE_BOTS },
+        .needs_count = 2,
+        .produces = RESOURCE_GOODS,
+        .curve = CURVE_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
+    [JOB_GADGETS] = {
+        .planet_types = { PLANET_TYPE_FORGEWORLD },
+        .planet_types_count = 1,
+        .cost = 10,
+        .needs = { RESOURCE_ORE, RESOURCE_TECH },
+        .needs_count = 2,
+        .produces = RESOURCE_GOODS,
+        .curve = CURVE_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
+    /* required_tech = "gene rewriting": the raw fd array's rr
+     * (availability-gate) field, captured as data only -- no live
+     * colonization-choice menu exists anywhere in this port to apply it to
+     * (see colonization_job_t's own doc comment and this PRD's Out of
+     * Scope). Not to be confused with tech_gate (il), which this job does
+     * not have. */
+    [JOB_UPLIFT] = {
+        .planet_types = { PLANET_TYPE_FORGEWORLD },
+        .planet_types_count = 1,
+        .cost = 20,
+        .needs = { RESOURCE_ORGANICS },
+        .needs_count = 1,
+        .produces = RESOURCE_PEOPLE,
+        .curve = CURVE_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = "gene rewriting",
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {

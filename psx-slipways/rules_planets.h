@@ -56,15 +56,24 @@ typedef enum {
     PLANET_TYPE_COUNT,
 } planet_type_id_t;
 
-/* The 5 (of about 24 documented) colonization jobs this step ports --
- * chosen because they form one closed resource loop (see the PRD's
- * Implementation Decisions). */
+/* The original 5 (of about 24 documented) colonization jobs
+ * docs/prd/psx-rules-planets.md ported -- chosen because they form one
+ * closed resource loop (see that PRD's Implementation Decisions). Chunk 4
+ * (docs/prd/triage/psx-full-planets-and-tech.md) appends the first 3 of the
+ * full roster's remaining jobs: JOB_GOODS/JOB_GADGETS/JOB_UPLIFT, all 3
+ * single-type forgeworld jobs -- the simplest possible "add a new job"
+ * tracer bullet. These 3 are intentionally NOT part of the original 5's
+ * closed loop (see rules_planets_test.c's own closed-loop test scope note);
+ * later chunks append the rest. */
 typedef enum {
     JOB_HIVEWORLD,
     JOB_AGROWORLD,
     JOB_NANOTECH,
     JOB_BOTS,
     JOB_MINE,
+    JOB_GOODS,
+    JOB_GADGETS,
+    JOB_UPLIFT,
     JOB_COUNT,
 } colonization_job_id_t;
 
