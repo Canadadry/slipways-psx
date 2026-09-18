@@ -694,3 +694,58 @@ const rules_economy_difficulty_t *rules_economy_difficulty(rules_economy_difficu
      * a caller bug, not a value this module needs to gracefully clamp. */
     return &g_difficulty[id];
 }
+
+/* ck()'s own 0.15-per-Laboratory discount step, pico8/lua.lua:1254:
+ * `d[l.jy[#l.jy].qe]-=0.15`. Not exactly representable in Q16.16, folded from
+ * the traced double literal via this file's own established literal-folding
+ * idiom (g_trade_level_bonus, above). Kept file-local: no other consumer,
+ * per this file's own established "keep unexposed constants static/#define,
+ * not in the header" precedent. */
+#define RULES_ECONOMY_TECH_DISCOUNT_STEP ((fixed_t)(0.15 * (double)FX_ONE))
+
+fixed_t rules_economy_tech_discount_factor(int laboratories_producing_count) {
+    /* d=cm(1) (start at 1), then -=0.15 per matching Laboratory,
+     * pico8/lua.lua:1252-1256. laboratories_producing_count is a plain int
+     * count, not itself a fixed_t value -- so this is plain integer
+     * multiplication of the already-fixed-point STEP constant by that count
+     * (NOT fixed_mul, which would wrongly re-scale by >>16 a second time).
+     * This is mathematically EXACT: it produces the identical result as
+     * subtracting RULES_ECONOMY_TECH_DISCOUNT_STEP from a running total one
+     * fixed_sub call per Laboratory (plain integer subtraction introduces no
+     * further rounding beyond STEP's own single fold), matching ck()'s own
+     * per-Laboratory loop shape without needing an actual loop here.
+     *
+     * Deliberately UNCLAMPED, matching ck() itself: it never floors or
+     * clamps this value anywhere in its own body -- rules_economy_tech_cost
+     * (gi(), below) applies the only clamp, at the point of use. A large
+     * enough laboratories_producing_count genuinely drives this NEGATIVE
+     * (see this module's own tests, e.g. count=7 -> a negative fixed_t),
+     * not floored to 0 and not clamped to the 0.55 floor here. */
+    return FX_ONE - RULES_ECONOMY_TECH_DISCOUNT_STEP * laboratories_producing_count;
+}
+
+/* gi()'s own 0.55 floor, pico8/lua.lua:1472: `max(0.55,fm.fu[t.nk])`. Not
+ * exactly representable in Q16.16, folded via this file's own established
+ * literal-folding idiom. Kept file-local, matching every other unexposed
+ * per-formula constant in this file. */
+#define RULES_ECONOMY_TECH_COST_DISCOUNT_FLOOR ((fixed_t)(0.55 * (double)FX_ONE))
+
+int rules_economy_tech_cost(int base_cost, fixed_t discount_factor) {
+    /* max(0.55, discount_factor), pico8/lua.lua:1472 -- the only clamp
+     * anywhere in this ck()/gi() pair, applied here at the point of use, not
+     * inside rules_economy_tech_discount_factor. */
+    if (discount_factor < RULES_ECONOMY_TECH_COST_DISCOUNT_FLOOR) {
+        discount_factor = RULES_ECONOMY_TECH_COST_DISCOUNT_FLOOR;
+    }
+
+    /* flr(t.od*max(0.55,...)), pico8/lua.lua:1472. base_cost widened to
+     * fixed_t via this file's established "int * FX_ONE, cast to fixed_t"
+     * idiom (e.g. rules_economy_trade_edge_income's trade_difficulty, above),
+     * then fixed_mul, then floored via this file's own fixed_floor_to_int
+     * (handles a negative product correctly too, though the 0.55 floor above
+     * guarantees the clamped discount_factor is never negative here). */
+    fixed_t base_cost_fx = (fixed_t)(base_cost * FX_ONE);
+    fixed_t cost_fx = fixed_mul(base_cost_fx, discount_factor);
+
+    return fixed_floor_to_int(cost_fx);
+}

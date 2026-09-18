@@ -965,6 +965,197 @@ static void test_colony_level_ratchet_current_zero_unset_stand_in_with_realistic
     T_CHECK(rules_economy_colony_level_ratchet(0, 4) == 4);
 }
 
+/* -- rules_economy_tech_discount_factor / rules_economy_tech_cost (ck()/gi())
+ * ------------------------------------------------------------------------
+ *
+ * ck(), pico8/lua.lua:1252-1256: `d=cm(1)` (start every resource at 1), then
+ * `-=0.15` per currently-existing Laboratory whose last need matches that
+ * resource -- ported as a pure function of a caller-supplied count,
+ * UNCLAMPED (ck() itself never floors or clamps).
+ * gi(t), pico8/lua.lua:1471-1474: `flr(t.od*max(0.55,fm.fu[t.nk]))` -- the
+ * discount applied to a tech's base cost, floored, with the ONLY clamp in
+ * this pair (never cheaper than 55% of base cost).
+ *
+ * 0.15 itself is not exactly representable in Q16.16 -- folded via this
+ * file's own established literal-folding idiom, (fixed_t)(0.15*(double)
+ * FX_ONE), which truncates 0.15*65536=9830.4 down to 9830 (a step slightly
+ * SMALLER than the true 0.15, so the accumulated per-count drift below is
+ * consistently a few ULPs ABOVE what a naive "0.85*FX_ONE"-style single
+ * literal fold would give -- see the per-count comments below for the exact
+ * divergence). Expected values here are hand-derived via the ACTUAL chain
+ * (FX_ONE - count*STEP, computed independently in this test with the same
+ * folded STEP constant, not merely reusing the function under test's own
+ * result and not assuming the decimal arithmetic is exact), matching this
+ * file's own "hand-derive independently, not via a shared literal" practice
+ * (see e.g. test_trade_edge_income_full_level_sweep_matches_hand_written_formula
+ * above). */
+
+/* The same 0.15-per-Laboratory step ck() itself uses (RULES_ECONOMY_TECH_
+ * DISCOUNT_STEP, rules_economy.c), folded independently here rather than
+ * exposed via the header -- matching this module's own "keep unexposed
+ * per-formula constants file-local" precedent, and giving this test an
+ * independent derivation of STEP*count rather than importing the module's
+ * own #define. */
+#define TECH_DISCOUNT_STEP ((fixed_t)(0.15 * (double)FX_ONE))
+
+static void test_tech_discount_factor_zero_laboratories_is_exactly_one(void) {
+    /* count=0: FX_ONE - 0*STEP = FX_ONE exactly -- 1.0, no rounding
+     * possible since nothing is subtracted. */
+    T_CHECK(rules_economy_tech_discount_factor(0) == FX_ONE);
+}
+
+static void test_tech_discount_factor_matches_hand_derived_chain_at_various_counts(void) {
+    /* Hand-derived via the exact chain FX_ONE - count*TECH_DISCOUNT_STEP
+     * (TECH_DISCOUNT_STEP=9830, an exact int32, so this multiplication and
+     * subtraction introduce NO further rounding beyond STEP's own single
+     * fold) -- computed independently here, not by calling
+     * rules_economy_tech_discount_factor itself, and NOT by folding a
+     * decimal literal like "0.85*FX_ONE" directly (which would give 55705,
+     * one ULP below the true chain result of 55706, since 0.85*65536=
+     * 55705.6 truncates differently than FX_ONE-9830 does):
+     *
+     *   count=1: 65536 - 1*9830 = 55706  (0.8500061035..., NOT 0.85*FX_ONE=55705)
+     *   count=2: 65536 - 2*9830 = 45876  (0.7000122070..., NOT 0.70*FX_ONE=45875)
+     *   count=4: 65536 - 4*9830 = 26216  (0.4000244141..., NOT 0.40*FX_ONE=26214)
+     *   count=7: 65536 - 7*9830 = -3274  (-0.0499572754..., a genuinely
+     *            NEGATIVE fixed_t -- confirms ck() itself never floors or
+     *            clamps: this is well below the 0.55 floor gi() applies
+     *            separately, and even below zero, yet
+     *            rules_economy_tech_discount_factor returns it unclamped). */
+    T_CHECK(rules_economy_tech_discount_factor(1) == (fixed_t)(FX_ONE - 1 * TECH_DISCOUNT_STEP));
+    T_CHECK(rules_economy_tech_discount_factor(1) == 55706);
+
+    T_CHECK(rules_economy_tech_discount_factor(2) == (fixed_t)(FX_ONE - 2 * TECH_DISCOUNT_STEP));
+    T_CHECK(rules_economy_tech_discount_factor(2) == 45876);
+
+    T_CHECK(rules_economy_tech_discount_factor(4) == (fixed_t)(FX_ONE - 4 * TECH_DISCOUNT_STEP));
+    T_CHECK(rules_economy_tech_discount_factor(4) == 26216);
+
+    T_CHECK(rules_economy_tech_discount_factor(7) == (fixed_t)(FX_ONE - 7 * TECH_DISCOUNT_STEP));
+    T_CHECK(rules_economy_tech_discount_factor(7) == -3274);
+    /* The load-bearing assertion for "unclamped": genuinely negative, not
+     * clamped to 0 or to the 0.55 floor. */
+    T_CHECK(rules_economy_tech_discount_factor(7) < 0);
+}
+
+/* -- rules_economy_tech_cost, discount factor ABOVE 0.55 (no clamp fires) - */
+
+static void test_tech_cost_above_floor_matches_hand_computed_floor_across_base_cost_range(void) {
+    /* discount_factor = the count=1 case above (0.85, exactly
+     * rules_economy_tech_discount_factor(1) == 55706, well above the 0.55
+     * floor -- RULES_ECONOMY_TECH_COST_DISCOUNT_FLOOR's own 36044). Spread
+     * of base_cost values spanning rules_tech.h's own traced base_cost range
+     * (4-60, per that module's tech_t.base_cost field), each checked against
+     * a hand-computed floor(base_cost * (55706/65536)) reference value --
+     * computed with double-precision floor() here (not this module's own
+     * fixed_mul/fixed_floor_to_int), matching this file's own
+     * "independently double-computed reference" practice
+     * (reference_dj/reference_bk above) so this test can't share a bug with
+     * the function under test. */
+    fixed_t discount_factor = rules_economy_tech_discount_factor(1);
+    T_CHECK(discount_factor == 55706);
+
+    int base_costs[] = {4, 10, 15, 23, 37, 48, 60};
+    for (size_t i = 0; i < sizeof(base_costs) / sizeof(base_costs[0]); i++) {
+        int base_cost = base_costs[i];
+        int expected = (int)floor((double)base_cost * ((double)discount_factor / (double)FX_ONE));
+        int actual = rules_economy_tech_cost(base_cost, discount_factor);
+        T_CHECK(actual == expected);
+    }
+}
+
+/* -- rules_economy_tech_cost, discount factor EXACTLY at the 0.55 boundary
+ * (the clamp is a no-op there) ------------------------------------------- */
+
+static void test_tech_cost_at_exact_point_five_five_boundary_clamp_is_noop(void) {
+    /* discount_factor == the folded 0.55 constant itself (not a value below
+     * it that happens to floor to the same result) -- confirms max(0.55,x)
+     * uses 0.55 itself at the boundary, not merely "some value <= 0.55".
+     * folded 0.55 = (fixed_t)(0.55*(double)FX_ONE) = 36044 (0.55*65536=
+     * 36044.8, truncated). */
+    fixed_t boundary = (fixed_t)(0.55 * (double)FX_ONE);
+    T_CHECK(boundary == 36044);
+
+    int base_costs[] = {4, 20, 60};
+    for (size_t i = 0; i < sizeof(base_costs) / sizeof(base_costs[0]); i++) {
+        int base_cost = base_costs[i];
+        int expected = (int)floor((double)base_cost * ((double)boundary / (double)FX_ONE));
+        int actual = rules_economy_tech_cost(base_cost, boundary);
+        T_CHECK(actual == expected);
+    }
+}
+
+/* -- rules_economy_tech_cost, discount factor BELOW 0.55 (the clamp genuinely
+ * fires) ------------------------------------------------------------------- */
+
+static void test_tech_cost_below_floor_clamps_to_point_five_five_not_passed_in_factor(void) {
+    /* discount_factor = the count=4 case (0.40, rules_economy_tech_discount_
+     * factor(4)==26216) -- below the 0.55 floor, so the clamp must fire: the
+     * result must match floor(base_cost*0.55...), NOT floor(base_cost*0.40).
+     * Confirmed by checking the actual result differs from the unclamped
+     * (wrong) computation and matches the clamped (correct) one, for a
+     * spread of base_cost values. */
+    fixed_t discount_factor = rules_economy_tech_discount_factor(4);
+    T_CHECK(discount_factor == 26216);
+    fixed_t boundary = (fixed_t)(0.55 * (double)FX_ONE);
+
+    int base_costs[] = {4, 20, 60};
+    for (size_t i = 0; i < sizeof(base_costs) / sizeof(base_costs[0]); i++) {
+        int base_cost = base_costs[i];
+        int expected_clamped = (int)floor((double)base_cost * ((double)boundary / (double)FX_ONE));
+        int wrong_unclamped = (int)floor((double)base_cost * ((double)discount_factor / (double)FX_ONE));
+        int actual = rules_economy_tech_cost(base_cost, discount_factor);
+
+        T_CHECK(actual == expected_clamped);
+        T_CHECK(actual != wrong_unclamped);
+    }
+}
+
+static void test_tech_cost_negative_discount_factor_clamps_to_positive_cost_via_floor(void) {
+    /* discount_factor = the count=7 case (-0.05, a genuinely NEGATIVE
+     * fixed_t, rules_economy_tech_discount_factor(7)==-3274) -- the clamp
+     * must still fire and produce a normal POSITIVE cost via the 0.55 floor,
+     * NOT a negative or zero cost (which an unclamped
+     * base_cost*negative_factor would wrongly give). */
+    fixed_t discount_factor = rules_economy_tech_discount_factor(7);
+    T_CHECK(discount_factor == -3274);
+    T_CHECK(discount_factor < 0);
+    fixed_t boundary = (fixed_t)(0.55 * (double)FX_ONE);
+
+    int base_costs[] = {4, 20, 60};
+    for (size_t i = 0; i < sizeof(base_costs) / sizeof(base_costs[0]); i++) {
+        int base_cost = base_costs[i];
+        int expected_clamped = (int)floor((double)base_cost * ((double)boundary / (double)FX_ONE));
+        int actual = rules_economy_tech_cost(base_cost, discount_factor);
+
+        T_CHECK(actual == expected_clamped);
+        T_CHECK(actual > 0);
+    }
+}
+
+/* -- end-to-end: chaining both real functions ---------------------------- */
+
+static void test_tech_discount_and_cost_chained_end_to_end_matches_hand_computed_reference(void) {
+    /* A representative (base_cost, laboratories_producing_count) pair:
+     * base_cost=37 (mid-range of rules_tech.h's 4-60 span),
+     * laboratories_producing_count=2.
+     *
+     * Hand-computed reference, entirely independently of both functions
+     * under test:
+     *   discount_factor = 1 - 2*0.15 = 0.7 (real-number arithmetic)
+     *   cost = floor(37 * 0.7) = floor(25.9) = 25
+     *
+     * The chained REAL function calls (rules_economy_tech_discount_factor(2)
+     * then rules_economy_tech_cost(37, that_value)) must match this
+     * hand-computed reference exactly -- 0.7 is well above the 0.55 floor,
+     * so no clamp fires here, and 37*0.7=25.9 is comfortably clear of any
+     * Q16.16 rounding boundary that could shift the floor by one. */
+    fixed_t discount_factor = rules_economy_tech_discount_factor(2);
+    int cost = rules_economy_tech_cost(37, discount_factor);
+
+    T_CHECK(cost == 25);
+}
+
 int main(void) {
     t_run("trade_level_bonus_level_1_matches_traced_value", test_trade_level_bonus_level_1_matches_traced_value);
     t_run("trade_level_bonus_level_2_matches_traced_value_exactly", test_trade_level_bonus_level_2_matches_traced_value_exactly);
@@ -1039,5 +1230,12 @@ int main(void) {
     t_run("colony_level_ratchet_target_greater_than_current_returns_target", test_colony_level_ratchet_target_greater_than_current_returns_target);
     t_run("colony_level_ratchet_target_not_greater_than_current_keeps_current", test_colony_level_ratchet_target_not_greater_than_current_keeps_current);
     t_run("colony_level_ratchet_current_zero_unset_stand_in_with_realistic_targets", test_colony_level_ratchet_current_zero_unset_stand_in_with_realistic_targets);
+    t_run("tech_discount_factor_zero_laboratories_is_exactly_one", test_tech_discount_factor_zero_laboratories_is_exactly_one);
+    t_run("tech_discount_factor_matches_hand_derived_chain_at_various_counts", test_tech_discount_factor_matches_hand_derived_chain_at_various_counts);
+    t_run("tech_cost_above_floor_matches_hand_computed_floor_across_base_cost_range", test_tech_cost_above_floor_matches_hand_computed_floor_across_base_cost_range);
+    t_run("tech_cost_at_exact_point_five_five_boundary_clamp_is_noop", test_tech_cost_at_exact_point_five_five_boundary_clamp_is_noop);
+    t_run("tech_cost_below_floor_clamps_to_point_five_five_not_passed_in_factor", test_tech_cost_below_floor_clamps_to_point_five_five_not_passed_in_factor);
+    t_run("tech_cost_negative_discount_factor_clamps_to_positive_cost_via_floor", test_tech_cost_negative_discount_factor_clamps_to_positive_cost_via_floor);
+    t_run("tech_discount_and_cost_chained_end_to_end_matches_hand_computed_reference", test_tech_discount_and_cost_chained_end_to_end_matches_hand_computed_reference);
     return t_report();
 }

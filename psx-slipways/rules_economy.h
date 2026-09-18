@@ -747,6 +747,60 @@ int rules_economy_colony_level(bool colonized, rules_economy_colony_kind_t kind,
  */
 int rules_economy_colony_level_ratchet(int current_level, int target_level);
 
+/* `ck()`/`gi()` (pico8/lua.lua:1252-1256, 1471-1474) -- the twice-deferred
+ * tech cost-discount, resolved as two pure functions:
+ *
+ *   function ck()local d=cm(1)for l in all(cg.qh)do
+ *     d[l.jy[#l.jy].qe]-=0.15
+ *   end
+ *   return d
+ *   end
+ *   ...
+ *   function gi(t)
+ *     return flr(t.od*max(0.55,fm.fu[t.nk]))
+ *   end
+ *
+ * `ck()` starts every resource's discount factor at `1` (`cm(1)`), then
+ * subtracts `0.15` PER currently-existing Laboratory (`cg.qh`) whose *last*
+ * need's resource matches that resource code -- i.e. per Laboratory
+ * currently consuming that specific resource. Which resource a given
+ * Laboratory ends up consuming (Laboratory's own flexible-need resolution,
+ * `docs/prd/psx-structures-and-transforms.md`'s `ba` set) is itself out of
+ * scope -- this function takes that per-resource count as a plain
+ * caller-supplied `laboratories_producing_count` int, mirroring
+ * rules_economy_colony_maintenance's own existing `laboratory_count`
+ * parameter shape (though semantically distinct: that one is a *total*
+ * Laboratory count for the maintenance formula's `pt.qh` branch; this one is
+ * a *per-resource* count, "how many Laboratories currently consume resource
+ * X"). Deliberately UNCLAMPED, matching source exactly: `ck()` itself never
+ * floors or clamps this value anywhere in its own body -- `gi()`
+ * (rules_economy_tech_cost, below) applies the only clamp, at the point of
+ * use. A large enough laboratories_producing_count (e.g. 7) genuinely drives
+ * this NEGATIVE -- not floored to 0, not clamped to 0.55 -- exactly as
+ * source's own unclamped `-=0.15` loop would.
+ */
+fixed_t rules_economy_tech_discount_factor(int laboratories_producing_count);
+
+/* `gi(t)` applies the discount to a tech's base cost, floored, with a `0.55`
+ * floor on the discount factor itself (never cheaper than 55% of base cost,
+ * however many Laboratories are stacked on that resource):
+ * `floor(base_cost * max(0.55, discount_factor))`.
+ *
+ * `base_cost` composes directly with `rules_tech_get(id)->base_cost`
+ * (`rules_tech.h`'s already-graduated `tech_t.base_cost` field, range 4-60)
+ * once a caller has both values -- but this function itself takes
+ * `base_cost` as a plain `int` parameter, introducing NO new #include of
+ * rules_tech.h (this module stays a dependency-free leaf, unchanged from
+ * every prior chunk in this file).
+ *
+ * `discount_factor` is exactly rules_economy_tech_discount_factor's own
+ * unclamped return value, passed straight in -- the 0.55 floor is applied
+ * HERE, at the point of use, not inside that function, matching source's own
+ * two-function split (`ck()`'s own subtraction loop never clamps; `gi()`'s
+ * own `max(0.55,...)` is the only clamp anywhere in this pair).
+ */
+int rules_economy_tech_cost(int base_cost, fixed_t discount_factor);
+
 /* Affordability mutation, traced to `fm:lu`'s debit (pico8/lua.lua:1217-1224):
  *
  *   self.nz-=jt
