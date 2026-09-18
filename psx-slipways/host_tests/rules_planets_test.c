@@ -193,6 +193,10 @@ static void test_job_available_on_matches_exactly_its_one_real_type(void) {
         { JOB_GOODS, PLANET_TYPE_FORGEWORLD },
         { JOB_GADGETS, PLANET_TYPE_FORGEWORLD },
         { JOB_UPLIFT, PLANET_TYPE_FORGEWORLD },
+        /* Chunk 5: ocean batch, all single-type. */
+        { JOB_COLONY_OCEAN, PLANET_TYPE_OCEAN },
+        { JOB_ALGAE, PLANET_TYPE_OCEAN },
+        { JOB_BREED_OCEAN, PLANET_TYPE_OCEAN },
     };
 
     for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); c++) {
@@ -344,6 +348,64 @@ static void test_uplift_job_matches_traced_values(void) {
     T_CHECK(j->default_need == RESOURCE_NONE);
     T_CHECK(j->required_tech != NULL);
     T_CHECK(strcmp(j->required_tech, "gene rewriting") == 0);
+}
+
+/* Chunk 5 (docs/prd/triage/psx-full-planets-and-tech.md): ocean batch.
+ * breed(ocean) has no tech_gate and no default_need, matching bots'/goods'/
+ * gadgets' own CURVE_PLUS precedent. */
+static void test_breed_ocean_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_BREED_OCEAN);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_OCEAN);
+    T_CHECK(j->cost == 5);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_PEOPLE);
+    T_CHECK(j->produces == RESOURCE_ORGANICS);
+    T_CHECK(j->curve == CURVE_PLUS);
+    T_CHECK(j->tech_gate == NULL);
+    T_CHECK(j->default_need == RESOURCE_NONE);
+    T_CHECK(j->required_tech == NULL);
+}
+
+/* colony(ocean)'s tech_gate (il) happens to be the same string
+ * ("gene rewriting") as uplift's required_tech (rr) -- a coincidence of the
+ * raw fd source data, not a shared field: colony(ocean) has no required_tech
+ * of its own, and uplift has no tech_gate of its own. */
+static void test_colony_ocean_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_COLONY_OCEAN);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_OCEAN);
+    T_CHECK(j->cost == 10);
+    T_CHECK(j->needs_count == 2);
+    T_CHECK(j->needs[0] == RESOURCE_ORE);
+    T_CHECK(j->needs[1] == RESOURCE_FOOD);
+    T_CHECK(j->produces == RESOURCE_PEOPLE);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate != NULL);
+    T_CHECK(strcmp(j->tech_gate, "gene rewriting") == 0);
+    T_CHECK(j->default_need == RESOURCE_GOODS);
+    T_CHECK(j->required_tech == NULL);
+}
+
+static void test_algae_job_matches_traced_values(void) {
+    const colonization_job_t *j = rules_planets_job(JOB_ALGAE);
+
+    T_CHECK(j != NULL);
+    T_CHECK(j->planet_types_count == 1);
+    T_CHECK(j->planet_types[0] == PLANET_TYPE_OCEAN);
+    T_CHECK(j->cost == 8);
+    T_CHECK(j->needs_count == 1);
+    T_CHECK(j->needs[0] == RESOURCE_BOTS);
+    T_CHECK(j->produces == RESOURCE_FOOD);
+    T_CHECK(j->curve == CURVE_MINUS);
+    T_CHECK(j->tech_gate != NULL);
+    T_CHECK(strcmp(j->tech_gate, "xenofoods") == 0);
+    T_CHECK(j->default_need == RESOURCE_ORGANICS);
+    T_CHECK(j->required_tech == NULL);
 }
 
 static void test_mine_job_cost_unaffected_by_tech_researched(void) {
@@ -577,6 +639,114 @@ static void test_uplift_job_production_matches_curve_minus(void) {
     }
 }
 
+/* Chunk 5 (docs/prd/triage/psx-full-planets-and-tech.md): ocean batch.
+ * colony(ocean) and algae are the second and third real tech_gate cases in
+ * this module (after agroworld) -- exercised with the exact same
+ * cost-surcharge/curve-upgrade test shape agroworld's own tests above use,
+ * proving rules_planets_job_cost/_production's existing, unmodified bodies
+ * genuinely generalize to new tech-gated data, not just the original
+ * agroworld case. */
+static void test_colony_ocean_job_cost_base_case(void) {
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_OCEAN, false, false) == 10);
+}
+
+static void test_colony_ocean_job_cost_tech_researched_only(void) {
+    /* 10 * 1.5 = 15, exact -- no flooring surprise here (unlike agroworld's
+     * 5 * 1.5 = 7.5 case), but still routed through the same fixed-point
+     * chain and floored once at the end. */
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_OCEAN, true, false) == 15);
+}
+
+static void test_colony_ocean_job_cost_nanomaterials_researched_only(void) {
+    /* 10 * 0.85 = 8.5, floored -> 8. */
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_OCEAN, false, true) == 8);
+}
+
+static void test_colony_ocean_job_cost_both_flags_true_floors_once_at_end(void) {
+    /* 10 * 1.5 * 0.85 = 12.75, floored ONCE at the end -> 12. */
+    T_CHECK(rules_planets_job_cost(JOB_COLONY_OCEAN, true, true) == 12);
+}
+
+static void test_colony_ocean_job_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 1, false) == 1);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 2, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 3, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 4, false) == 3);
+}
+
+static void test_colony_ocean_job_production_switches_to_curve_plus_when_tech_researched(void) {
+    /* Same anchor property agroworld's own equivalent test above proves,
+     * now for colony(ocean)'s tech_gate ("gene rewriting"): CURVE_MINUS
+     * ({1,2,3,3}) flips to CURVE_PLUS ({2,3,4,4}). */
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 1, true) == 2);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 2, true) == 3);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 3, true) == 4);
+    T_CHECK(rules_planets_job_production(JOB_COLONY_OCEAN, 4, true) == 4);
+}
+
+static void test_algae_job_cost_base_case(void) {
+    T_CHECK(rules_planets_job_cost(JOB_ALGAE, false, false) == 8);
+}
+
+static void test_algae_job_cost_tech_researched_only(void) {
+    /* 8 * 1.5 = 12, exact. */
+    T_CHECK(rules_planets_job_cost(JOB_ALGAE, true, false) == 12);
+}
+
+static void test_algae_job_cost_nanomaterials_researched_only(void) {
+    /* 8 * 0.85 = 6.8, floored -> 6. */
+    T_CHECK(rules_planets_job_cost(JOB_ALGAE, false, true) == 6);
+}
+
+static void test_algae_job_cost_both_flags_true_floors_once_at_end(void) {
+    /* 8 * 1.5 * 0.85 = 10.2, floored ONCE at the end -> 10. */
+    T_CHECK(rules_planets_job_cost(JOB_ALGAE, true, true) == 10);
+}
+
+static void test_algae_job_production_matches_curve_minus_unresearched(void) {
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 0, false) == 0);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 1, false) == 1);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 2, false) == 2);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 3, false) == 3);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 4, false) == 3);
+}
+
+static void test_algae_job_production_switches_to_curve_plus_when_tech_researched(void) {
+    /* Same anchor property, now for algae's tech_gate ("xenofoods") --
+     * the exact same gate string agroworld itself already uses, confirming
+     * the gating is keyed off "has a tech_gate", not off any particular
+     * string value. */
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 1, true) == 2);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 2, true) == 3);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 3, true) == 4);
+    T_CHECK(rules_planets_job_production(JOB_ALGAE, 4, true) == 4);
+}
+
+/* breed(ocean) has no tech_gate: same simpler shape as bots'/goods'/gadgets'
+ * own CURVE_PLUS tests above -- job_tech_researched never changes its cost
+ * or curve, and nanomaterials_researched still applies unconditionally. */
+static void test_breed_ocean_job_cost_unaffected_by_tech_researched(void) {
+    T_CHECK(rules_planets_job_cost(JOB_BREED_OCEAN, false, false) == 5);
+    T_CHECK(rules_planets_job_cost(JOB_BREED_OCEAN, true, false) == 5);
+}
+
+static void test_breed_ocean_job_cost_nanomaterials_researched(void) {
+    /* 5 * 0.85 = 4.25, floored -> 4. */
+    T_CHECK(rules_planets_job_cost(JOB_BREED_OCEAN, false, true) == 4);
+    T_CHECK(rules_planets_job_cost(JOB_BREED_OCEAN, true, true) == 4);
+}
+
+static void test_breed_ocean_job_production_matches_curve_plus(void) {
+    for (int researched = 0; researched <= 1; researched++) {
+        T_CHECK(rules_planets_job_production(JOB_BREED_OCEAN, 0, researched) == 0);
+        T_CHECK(rules_planets_job_production(JOB_BREED_OCEAN, 1, researched) == 2);
+        T_CHECK(rules_planets_job_production(JOB_BREED_OCEAN, 2, researched) == 3);
+        T_CHECK(rules_planets_job_production(JOB_BREED_OCEAN, 3, researched) == 4);
+        T_CHECK(rules_planets_job_production(JOB_BREED_OCEAN, 4, researched) == 4);
+    }
+}
+
 int main(void) {
     t_run("earthlike_type_matches_traced_values", test_earthlike_type_matches_traced_values);
     t_run("forgeworld_type_matches_traced_values", test_forgeworld_type_matches_traced_values);
@@ -597,6 +767,9 @@ int main(void) {
     t_run("goods_job_matches_traced_values", test_goods_job_matches_traced_values);
     t_run("gadgets_job_matches_traced_values", test_gadgets_job_matches_traced_values);
     t_run("uplift_job_matches_traced_values", test_uplift_job_matches_traced_values);
+    t_run("colony_ocean_job_matches_traced_values", test_colony_ocean_job_matches_traced_values);
+    t_run("algae_job_matches_traced_values", test_algae_job_matches_traced_values);
+    t_run("breed_ocean_job_matches_traced_values", test_breed_ocean_job_matches_traced_values);
     t_run("job_available_on_matches_exactly_its_one_real_type", test_job_available_on_matches_exactly_its_one_real_type);
     t_run("curve_minus_levels_1_to_4_match_traced_values", test_curve_minus_levels_1_to_4_match_traced_values);
     t_run("curve_plus_levels_1_to_4_match_traced_values", test_curve_plus_levels_1_to_4_match_traced_values);
@@ -629,5 +802,20 @@ int main(void) {
     t_run("uplift_job_cost_unaffected_by_tech_researched", test_uplift_job_cost_unaffected_by_tech_researched);
     t_run("uplift_job_cost_nanomaterials_researched", test_uplift_job_cost_nanomaterials_researched);
     t_run("uplift_job_production_matches_curve_minus", test_uplift_job_production_matches_curve_minus);
+    t_run("colony_ocean_job_cost_base_case", test_colony_ocean_job_cost_base_case);
+    t_run("colony_ocean_job_cost_tech_researched_only", test_colony_ocean_job_cost_tech_researched_only);
+    t_run("colony_ocean_job_cost_nanomaterials_researched_only", test_colony_ocean_job_cost_nanomaterials_researched_only);
+    t_run("colony_ocean_job_cost_both_flags_true_floors_once_at_end", test_colony_ocean_job_cost_both_flags_true_floors_once_at_end);
+    t_run("colony_ocean_job_production_matches_curve_minus_unresearched", test_colony_ocean_job_production_matches_curve_minus_unresearched);
+    t_run("colony_ocean_job_production_switches_to_curve_plus_when_tech_researched", test_colony_ocean_job_production_switches_to_curve_plus_when_tech_researched);
+    t_run("algae_job_cost_base_case", test_algae_job_cost_base_case);
+    t_run("algae_job_cost_tech_researched_only", test_algae_job_cost_tech_researched_only);
+    t_run("algae_job_cost_nanomaterials_researched_only", test_algae_job_cost_nanomaterials_researched_only);
+    t_run("algae_job_cost_both_flags_true_floors_once_at_end", test_algae_job_cost_both_flags_true_floors_once_at_end);
+    t_run("algae_job_production_matches_curve_minus_unresearched", test_algae_job_production_matches_curve_minus_unresearched);
+    t_run("algae_job_production_switches_to_curve_plus_when_tech_researched", test_algae_job_production_switches_to_curve_plus_when_tech_researched);
+    t_run("breed_ocean_job_cost_unaffected_by_tech_researched", test_breed_ocean_job_cost_unaffected_by_tech_researched);
+    t_run("breed_ocean_job_cost_nanomaterials_researched", test_breed_ocean_job_cost_nanomaterials_researched);
+    t_run("breed_ocean_job_production_matches_curve_plus", test_breed_ocean_job_production_matches_curve_plus);
     return t_report();
 }

@@ -161,6 +161,51 @@ static const colonization_job_t g_jobs[JOB_COUNT] = {
         .default_need = RESOURCE_NONE,
         .required_tech = "gene rewriting",
     },
+    /* Chunk 5 (docs/prd/triage/psx-full-planets-and-tech.md): ocean batch,
+     * traced to fd's full 24-job re-decode (Implementation Decisions table).
+     * The first chunk combining a new planet type (PLANET_TYPE_OCEAN, added
+     * by chunk 2 but unused by any job until now) with new jobs on it.
+     * colony(ocean) and algae both carry a real tech_gate (il) AND a real
+     * default_need (dm) -- exercised via rules_planets_job_cost/_production
+     * exactly like agroworld's own existing il/dm pair, proving those
+     * already-landed, unmodified functions genuinely generalize to new
+     * tech-gated data. */
+    [JOB_COLONY_OCEAN] = {
+        .planet_types = { PLANET_TYPE_OCEAN },
+        .planet_types_count = 1,
+        .cost = 10,
+        .needs = { RESOURCE_ORE, RESOURCE_FOOD },
+        .needs_count = 2,
+        .produces = RESOURCE_PEOPLE,
+        .curve = CURVE_MINUS,
+        .tech_gate = "gene rewriting",
+        .default_need = RESOURCE_GOODS,
+        .required_tech = NULL,
+    },
+    [JOB_ALGAE] = {
+        .planet_types = { PLANET_TYPE_OCEAN },
+        .planet_types_count = 1,
+        .cost = 8,
+        .needs = { RESOURCE_BOTS },
+        .needs_count = 1,
+        .produces = RESOURCE_FOOD,
+        .curve = CURVE_MINUS,
+        .tech_gate = "xenofoods",
+        .default_need = RESOURCE_ORGANICS,
+        .required_tech = NULL,
+    },
+    [JOB_BREED_OCEAN] = {
+        .planet_types = { PLANET_TYPE_OCEAN },
+        .planet_types_count = 1,
+        .cost = 5,
+        .needs = { RESOURCE_PEOPLE },
+        .needs_count = 1,
+        .produces = RESOURCE_ORGANICS,
+        .curve = CURVE_PLUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .required_tech = NULL,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {

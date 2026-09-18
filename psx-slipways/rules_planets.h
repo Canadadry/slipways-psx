@@ -74,6 +74,16 @@ typedef enum {
     JOB_GOODS,
     JOB_GADGETS,
     JOB_UPLIFT,
+    /* Chunk 5 (docs/prd/triage/psx-full-planets-and-tech.md): ocean batch,
+     * the first chunk to combine a new planet type (PLANET_TYPE_OCEAN, added
+     * by chunk 2 but unused by any job until now) with new jobs on it.
+     * colony(ocean) and algae both carry a real tech_gate (il) AND a real
+     * default_need (dm) -- exercised the same way agroworld's own existing
+     * il/dm pair already is. breed(ocean) has neither, matching bots'/
+     * goods'/gadgets' own CURVE_PLUS precedent. */
+    JOB_COLONY_OCEAN,
+    JOB_ALGAE,
+    JOB_BREED_OCEAN,
     JOB_COUNT,
 } colonization_job_id_t;
 
