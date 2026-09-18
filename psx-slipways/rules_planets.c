@@ -498,6 +498,56 @@ static const structure_t g_structures[STRUCTURE_COUNT] = {
         .max_connections = 0,
         .crosses_other_routes = false,
     },
+    /* Chunk 4 (docs/prd/triage/psx-structures-and-transforms.md): od=40,
+     * pico8/lua.lua:1040; rr="void synthesis" (pico8/lua.lua:1038) -- a
+     * purchase gate, captured as data only. needs = none; produces = joker
+     * (dynamic -- captured as the joker sentinel, not resolved to a concrete
+     * resource at runtime, per this PRD's Out of Scope). curve = f-, no il
+     * (curve-upgrade gate). resolvable = ht=o(28,20,21,22)
+     * (pico8/lua.lua:1041) = food, organics, ore, tech (4 resources) --
+     * design-doc correction #2: the design doc's own §6 prose says
+     * "food/organics/bots/tech," but the raw ht field never contains code 18
+     * (bots); the real 4th resource is code 21 (ore). Ported from ht
+     * directly, per this PRD's own finding. */
+    [STRUCTURE_SYNTHESIZER] = {
+        .name = "Synthesizer",
+        .purchasable = true,
+        .cost = 40,
+        .required_tech = "void synthesis",
+        .needs_count = 0,
+        .produces = RESOURCE_JOKER,
+        .curve = CURVE_F_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_NONE,
+        .resolvable = { RESOURCE_FOOD, RESOURCE_ORGANICS, RESOURCE_ORE, RESOURCE_TECH },
+        .resolvable_count = 4,
+        .max_connections = 0,
+        .crosses_other_routes = false,
+    },
+    /* od=20, pico8/lua.lua:1061; rr="trade league" (pico8/lua.lua:1059) -- a
+     * purchase gate, captured as data only. needs = joker, joker; produces =
+     * luxury -- design-doc correction #1: the design doc's own §6 row
+     * guesses "joy/énergie" (marked uncertain by the doc itself), but the raw
+     * fd record's produce field is unambiguously w = luxury (r.w=12). curve =
+     * f-, no il. default_need = joker (dm="?", the joker itself). resolvable
+     * = ba=o(28,48,18,20,21,22) (pico8/lua.lua:1062) = food, goods, bots,
+     * organics, ore, tech (6 resources). */
+    [STRUCTURE_TRADING_HUB] = {
+        .name = "Trading Hub",
+        .purchasable = true,
+        .cost = 20,
+        .required_tech = "trade league",
+        .needs = { RESOURCE_JOKER, RESOURCE_JOKER },
+        .needs_count = 2,
+        .produces = RESOURCE_LUXURY,
+        .curve = CURVE_F_MINUS,
+        .tech_gate = NULL,
+        .default_need = RESOURCE_JOKER,
+        .resolvable = { RESOURCE_FOOD, RESOURCE_GOODS, RESOURCE_BOTS, RESOURCE_ORGANICS, RESOURCE_ORE, RESOURCE_TECH },
+        .resolvable_count = 6,
+        .max_connections = 0,
+        .crosses_other_routes = false,
+    },
 };
 
 const planet_type_t *rules_planets_type(planet_type_id_t id) {

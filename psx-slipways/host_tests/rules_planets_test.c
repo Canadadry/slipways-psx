@@ -591,6 +591,133 @@ static void test_protostar_structure_production_identical_when_researched(void) 
     T_CHECK(rules_planets_structure_production(STRUCTURE_PROTOSTAR, 4, true) == 3);
 }
 
+/* Chunk 4 (docs/prd/triage/psx-structures-and-transforms.md): Synthesizer.
+ * od=40 (pico8/lua.lua:1040), rr="void synthesis" (pico8/lua.lua:1038) -- a
+ * purchase gate, captured as data only (mirrors Ascension Gate's own
+ * required_tech precedent from chunk 3). needs = none; produces = joker (a
+ * dynamic produce -- captured as the joker sentinel, not resolved to a
+ * concrete resource, per this PRD's Out of Scope). curve = f-, no il
+ * (curve-upgrade gate). resolvable = ht=o(28,20,21,22) (pico8/lua.lua:1041)
+ * = food, organics, ore, tech (4 resources) -- design-doc correction #2: the
+ * design doc's own §6 prose says this set is "food/organics/bots/tech," but
+ * the raw ht field never contains code 18 (bots); the real 4th resource is
+ * code 21 (ore). The explicit "does NOT contain RESOURCE_BOTS" check below
+ * guards against a future silent revert to the wrong design-doc value. */
+static void test_synthesizer_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_SYNTHESIZER);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Synthesizer") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 40);
+    T_CHECK(s->required_tech != NULL);
+    T_CHECK(strcmp(s->required_tech, "void synthesis") == 0);
+    T_CHECK(s->needs_count == 0);
+    T_CHECK(s->produces == RESOURCE_JOKER);
+    T_CHECK(s->curve == CURVE_F_MINUS);
+    T_CHECK(s->tech_gate == NULL);
+    T_CHECK(s->default_need == RESOURCE_NONE);
+    T_CHECK(s->resolvable_count == 4);
+    T_CHECK(s->resolvable[0] == RESOURCE_FOOD);
+    T_CHECK(s->resolvable[1] == RESOURCE_ORGANICS);
+    T_CHECK(s->resolvable[2] == RESOURCE_ORE);
+    T_CHECK(s->resolvable[3] == RESOURCE_TECH);
+    T_CHECK(s->max_connections == 0);
+    T_CHECK(s->crosses_other_routes == false);
+
+    /* Design-doc correction #2 guard: RESOURCE_BOTS must NOT appear anywhere
+     * in Synthesizer's resolvable[] set -- guards against a future silent
+     * revert to the design doc's wrong "food/organics/bots/tech" prose. */
+    bool has_bots = false;
+    for (int i = 0; i < s->resolvable_count; i++) {
+        if (s->resolvable[i] == RESOURCE_BOTS) {
+            has_bots = true;
+            break;
+        }
+    }
+    T_CHECK(!has_bots);
+}
+
+/* Synthesizer's rules_planets_structure_production: tech_gate == NULL, so
+ * both researched states must match f-'s own [0,1,2,3] identically -- the
+ * same structural no-op the Ascension Gate/Protostar tests already
+ * established in chunk 3, exercised here for CURVE_F_MINUS's base (not
+ * upgraded) table instead. */
+static void test_synthesizer_structure_production_matches_curve_f_minus_unresearched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 1, false) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 2, false) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 3, false) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 4, false) == 3);
+}
+
+static void test_synthesizer_structure_production_identical_when_researched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 1, true) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 2, true) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 3, true) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_SYNTHESIZER, 4, true) == 3);
+}
+
+/* Trading Hub. od=20 (pico8/lua.lua:1061), rr="trade league"
+ * (pico8/lua.lua:1059) -- a purchase gate, captured as data only. needs =
+ * joker, joker; produces = luxury -- design-doc correction #1: the design
+ * doc's own §6 row guesses "joy/énergie" (marked uncertain by the doc
+ * itself), but the raw fd record's produce field is unambiguously w =
+ * luxury (r.w=12). The explicit produces == RESOURCE_LUXURY check below
+ * (plus the != RESOURCE_JOY / != RESOURCE_ENERGY checks) guards this
+ * correction. curve = f-, no il. default_need = joker (dm="?", the joker
+ * itself). resolvable = ba=o(28,48,18,20,21,22) (pico8/lua.lua:1062) = food,
+ * goods, bots, organics, ore, tech (6 resources). */
+static void test_trading_hub_structure_matches_traced_values(void) {
+    const structure_t *s = rules_planets_structure(STRUCTURE_TRADING_HUB);
+
+    T_CHECK(s != NULL);
+    T_CHECK(strcmp(s->name, "Trading Hub") == 0);
+    T_CHECK(s->purchasable == true);
+    T_CHECK(s->cost == 20);
+    T_CHECK(s->required_tech != NULL);
+    T_CHECK(strcmp(s->required_tech, "trade league") == 0);
+    T_CHECK(s->needs_count == 2);
+    T_CHECK(s->needs[0] == RESOURCE_JOKER);
+    T_CHECK(s->needs[1] == RESOURCE_JOKER);
+
+    /* Design-doc correction #1 guard: Trading Hub must produce luxury, not
+     * joy or energy (the design doc's own already-flagged-uncertain guess). */
+    T_CHECK(s->produces == RESOURCE_LUXURY);
+    T_CHECK(s->produces != RESOURCE_JOY);
+    T_CHECK(s->produces != RESOURCE_ENERGY);
+
+    T_CHECK(s->curve == CURVE_F_MINUS);
+    T_CHECK(s->tech_gate == NULL);
+    T_CHECK(s->default_need == RESOURCE_JOKER);
+    T_CHECK(s->resolvable_count == 6);
+    T_CHECK(s->resolvable[0] == RESOURCE_FOOD);
+    T_CHECK(s->resolvable[1] == RESOURCE_GOODS);
+    T_CHECK(s->resolvable[2] == RESOURCE_BOTS);
+    T_CHECK(s->resolvable[3] == RESOURCE_ORGANICS);
+    T_CHECK(s->resolvable[4] == RESOURCE_ORE);
+    T_CHECK(s->resolvable[5] == RESOURCE_TECH);
+    T_CHECK(s->max_connections == 0);
+    T_CHECK(s->crosses_other_routes == false);
+}
+
+/* Trading Hub's rules_planets_structure_production: tech_gate == NULL, so
+ * both researched states must match f-'s own [0,1,2,3] identically, mirroring
+ * Synthesizer's own no-op above and the Ascension Gate/Protostar precedent
+ * from chunk 3. */
+static void test_trading_hub_structure_production_matches_curve_f_minus_unresearched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 1, false) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 2, false) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 3, false) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 4, false) == 3);
+}
+
+static void test_trading_hub_structure_production_identical_when_researched(void) {
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 1, true) == 0);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 2, true) == 1);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 3, true) == 2);
+    T_CHECK(rules_planets_structure_production(STRUCTURE_TRADING_HUB, 4, true) == 3);
+}
+
 static void test_hiveworld_job_matches_traced_values(void) {
     const colonization_job_t *j = rules_planets_job(JOB_HIVEWORLD);
 
@@ -1984,6 +2111,12 @@ int main(void) {
     t_run("protostar_structure_matches_traced_values", test_protostar_structure_matches_traced_values);
     t_run("protostar_structure_production_matches_curve_minus_unresearched", test_protostar_structure_production_matches_curve_minus_unresearched);
     t_run("protostar_structure_production_identical_when_researched", test_protostar_structure_production_identical_when_researched);
+    t_run("synthesizer_structure_matches_traced_values", test_synthesizer_structure_matches_traced_values);
+    t_run("synthesizer_structure_production_matches_curve_f_minus_unresearched", test_synthesizer_structure_production_matches_curve_f_minus_unresearched);
+    t_run("synthesizer_structure_production_identical_when_researched", test_synthesizer_structure_production_identical_when_researched);
+    t_run("trading_hub_structure_matches_traced_values", test_trading_hub_structure_matches_traced_values);
+    t_run("trading_hub_structure_production_matches_curve_f_minus_unresearched", test_trading_hub_structure_production_matches_curve_f_minus_unresearched);
+    t_run("trading_hub_structure_production_identical_when_researched", test_trading_hub_structure_production_identical_when_researched);
     t_run("mine_job_cost_unaffected_by_tech_researched", test_mine_job_cost_unaffected_by_tech_researched);
     t_run("agroworld_job_cost_base_case", test_agroworld_job_cost_base_case);
     t_run("agroworld_job_cost_tech_researched_only", test_agroworld_job_cost_tech_researched_only);
