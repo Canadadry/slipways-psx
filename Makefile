@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch font sprite-atlas audio-data psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx psx-slipways-tech-icon-screenshot-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch test-audio-waveforms font sprite-atlas audio-data audio-waveforms psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx psx-slipways-tech-icon-screenshot-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch test-audio-waveforms
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -248,6 +248,43 @@ test-audio-pitch:
 	mkdir -p $(AUDIO_PITCH_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_PITCH_HOST_BUILD_DIR)/audio_pitch_test $(AUDIO_PITCH_TEST_HOST_SRCS) -lm
 	$(AUDIO_PITCH_HOST_BUILD_DIR)/audio_pitch_test
+
+# Generation step for psx-slipways/audio_waveforms.h/.c (chunk 2 of
+# docs/prd/triage/psx-spu-audio.md): synthesizes PICO-8's 8 basic-instrument
+# single-cycle PCM waveforms (public PICO-8 engine knowledge, no cart data
+# read -- see gen_psx_waveforms.py's own header comment for citations) and
+# encodes each to PS-ADPCM ("VAG") blocks via a from-scratch encoder (no
+# psxavenc/third-party dependency -- that PRD's own Implementation
+# Decisions, "ADPCM: standard, well-documented Sony PS1 SPU-ADPCM..."
+# subsection). Mirrors sprite-atlas/audio-data's shape/reasoning above (a
+# tool call as its own Makefile recipe, wired as a prerequisite of
+# test-audio-waveforms below). The generated audio_waveforms.h/.c files are
+# not committed -- see .gitignore -- so this step must run before anything
+# that reads them. Unlike sprite-atlas/audio-data, reads no pico8/*.json
+# input at all -- pure synthesis from public engine knowledge plus chunk 1's
+# own AUDIO_WAVEFORM_REFERENCE_HZ constant (audio_pitch.h).
+audio-waveforms:
+	python3 tools/gen_psx_waveforms.py
+
+# Host-native test for gen_psx_waveforms.py's generated audio_waveforms.c
+# (chunk 2, docs/prd/triage/psx-spu-audio.md): decode-and-compare round-trip
+# against an independently-recomputed reference PCM waveform (own from-
+# scratch ADPCM decoder + reimplemented waveform formulas, not copied from
+# the generator -- see gen_psx_waveforms_test.c's own header comment) plus
+# block-count/loop-flag self-consistency checks. Pure data, zero PSX-header
+# dependency (no SPU/psxspu.h needed, same reasoning as test-audio-pitch),
+# same shape/output dir as every other test-* target above. Depends on
+# audio-waveforms so the generated audio_waveforms.h/.c are always fresh
+# before compiling against them.
+AUDIO_WAVEFORMS_HOST_BUILD_DIR = psx-slipways/build-host
+AUDIO_WAVEFORMS_TEST_HOST_SRCS = \
+	psx-slipways/audio_waveforms.c \
+	psx-slipways/host_tests/gen_psx_waveforms_test.c
+
+test-audio-waveforms: audio-waveforms
+	mkdir -p $(AUDIO_WAVEFORMS_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_WAVEFORMS_HOST_BUILD_DIR)/gen_psx_waveforms_test $(AUDIO_WAVEFORMS_TEST_HOST_SRCS) -lm
+	$(AUDIO_WAVEFORMS_HOST_BUILD_DIR)/gen_psx_waveforms_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
