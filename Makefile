@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch test-audio-waveforms font sprite-atlas audio-data audio-waveforms psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx psx-slipways-tech-icon-screenshot-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch test-audio-waveforms test-audio-sequencer font sprite-atlas audio-data audio-waveforms psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx psx-slipways-tech-icon-screenshot-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch test-audio-waveforms
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch test-audio-waveforms test-audio-sequencer
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -248,6 +248,27 @@ test-audio-pitch:
 	mkdir -p $(AUDIO_PITCH_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_PITCH_HOST_BUILD_DIR)/audio_pitch_test $(AUDIO_PITCH_TEST_HOST_SRCS) -lm
 	$(AUDIO_PITCH_HOST_BUILD_DIR)/audio_pitch_test
+
+# Host-native test for audio_sequencer.c (chunk 3, docs/prd/triage/
+# psx-spu-audio.md): the instrument-fallback resolver and the
+# sfx-preempts-music channel-arbitration state machine only -- NOT the
+# note-advance sequencer (speed/loop_start/loop_end stepping), which is
+# chunk 4, a separate future addition to this same audio_sequencer.c. Pure
+# int logic, zero PSX-header dependency, same shape/output dir as
+# test-audio-pitch and every other test-* target above. Unlike
+# test-audio-waveforms, this target has no generated-file prerequisite --
+# audio_sequencer.c deliberately does not #include audio_waveforms.h (see
+# audio_sequencer.c's own AUDIO_SEQUENCER_BASIC_INSTRUMENT_COUNT comment for
+# why), so nothing needs to be generated before compiling this test.
+AUDIO_SEQUENCER_HOST_BUILD_DIR = psx-slipways/build-host
+AUDIO_SEQUENCER_TEST_HOST_SRCS = \
+	psx-slipways/audio_sequencer.c \
+	psx-slipways/host_tests/audio_sequencer_test.c
+
+test-audio-sequencer:
+	mkdir -p $(AUDIO_SEQUENCER_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_SEQUENCER_HOST_BUILD_DIR)/audio_sequencer_test $(AUDIO_SEQUENCER_TEST_HOST_SRCS) -lm
+	$(AUDIO_SEQUENCER_HOST_BUILD_DIR)/audio_sequencer_test
 
 # Generation step for psx-slipways/audio_waveforms.h/.c (chunk 2 of
 # docs/prd/triage/psx-spu-audio.md): synthesizes PICO-8's 8 basic-instrument
