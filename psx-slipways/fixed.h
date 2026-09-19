@@ -237,4 +237,37 @@ static inline fixed_t fixed_cos(fixed_t turns) {
     return c;
 }
 
+/*
+ * fixed_polar: Q16.16 fixed-point polar-to-Cartesian conversion, ported
+ * directly from PICO-8's qm(magnitude, turns) helper (pico8/lua.lua:124-126):
+ *
+ *   function qm(fy,lx)
+ *   return v(cos(lx),sin(lx))*fy
+ *   end
+ *
+ * i.e. qm(fy, lx) returns the vector (cos(lx), sin(lx)) scaled by fy, where
+ * cos()/sin() are PICO-8's own turns-based, sign-flipped-sine trig functions
+ * (see the fixed_sin/fixed_cos block comment above). fixed_polar is built
+ * directly on fixed_sin/fixed_cos (not on standard-math sin/cos), so PICO-8's
+ * sign convention carries through here automatically, exactly matching qm()'s
+ * own behavior. magnitude and turns both follow this header's usual Q16.16
+ * convention (turns: 0..FX_ONE == one full turn, same argument convention as
+ * fixed_sin/fixed_cos above).
+ *
+ * Writes the resulting Cartesian offset to out_x/out_y -- an output-
+ * parameter pair, matching fixed_std_sincos's own established
+ * out_sin/out_cos convention above, rather than returning a struct this
+ * header has no existing precedent for.
+ *
+ * Every angle-based juice effect this primitive is meant to support (kick
+ * wobble, probe pulse/sweep, spiral particle engine spawn position/velocity,
+ * slipway line wobble -- see docs/prd/triage/psx-juice-effects.md) is a
+ * direct caller of this one function, exactly mirroring qm()'s own
+ * single-shared-helper role in source.
+ */
+static inline void fixed_polar(fixed_t magnitude, fixed_t turns, fixed_t *out_x, fixed_t *out_y) {
+    *out_x = fixed_mul(magnitude, fixed_cos(turns));
+    *out_y = fixed_mul(magnitude, fixed_sin(turns));
+}
+
 #endif

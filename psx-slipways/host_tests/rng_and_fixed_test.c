@@ -129,6 +129,75 @@ static void test_fixed_sin_cos_irrational_spot_check(void) {
     T_CHECK(fabs(actual_cos - expected_cos) < EPSILON);
 }
 
+static void test_fixed_polar_zero_turns_returns_magnitude_x(void) {
+    /* qm(fy,0) = v(cos(0),sin(0))*fy = v(1,0)*fy = (fy,0) -- turns=0 is also
+     * an exact table-boundary value for fixed_sin/fixed_cos (already
+     * confirmed exact above), so this is an exact equality, not a
+     * tolerance-bounded check. */
+    fixed_t magnitude = fixed_from_double(2.75);
+    fixed_t out_x, out_y;
+
+    fixed_polar(magnitude, 0, &out_x, &out_y);
+    T_CHECK(out_x == magnitude);
+    T_CHECK(out_y == 0);
+
+    /* Also true for a negative magnitude -- fixed_mul(mag, FX_ONE) == mag
+     * regardless of sign. */
+    fixed_t neg_magnitude = fixed_from_double(-1.5);
+    fixed_polar(neg_magnitude, 0, &out_x, &out_y);
+    T_CHECK(out_x == neg_magnitude);
+    T_CHECK(out_y == 0);
+}
+
+static void test_fixed_polar_zero_magnitude_returns_zero(void) {
+    /* qm(0,lx) = v(cos(lx),sin(lx))*0 = (0,0) for any turns -- checked at a
+     * few different turns values, including ones that exercise the
+     * table-interpolation path (not just exact quarter-turn boundaries). */
+    fixed_t out_x, out_y;
+
+    fixed_polar(0, FX_ONE / 4, &out_x, &out_y);
+    T_CHECK(out_x == 0);
+    T_CHECK(out_y == 0);
+
+    fixed_polar(0, fixed_from_double(1.0 / 6.0), &out_x, &out_y);
+    T_CHECK(out_x == 0);
+    T_CHECK(out_y == 0);
+
+    fixed_polar(0, fixed_from_double(3.7), &out_x, &out_y);
+    T_CHECK(out_x == 0);
+    T_CHECK(out_y == 0);
+}
+
+static void test_fixed_polar_matches_hand_computed_value(void) {
+    /* A non-axis-aligned case: magnitude=3, turns=1/6 (60 degrees), not a
+     * table-boundary value, so this exercises fixed_sin/fixed_cos's
+     * interpolation path, not just an exact sample. Expected values are
+     * independently derived here from qm()'s own real formula
+     * (v(cos(lx),sin(lx))*fy, using PICO-8's turns-based, sign-flipped-sine
+     * cos()/sin() -- see the fixed_polar/fixed_sin/fixed_cos block comments
+     * in fixed.h) via libm at test time, not copied from this chunk's PRD
+     * text, which never states this particular value. */
+    double magnitude_d = 3.0;
+    double turns_d = 1.0 / 6.0;
+
+    double expected_x = magnitude_d * cos(2.0 * M_PI * turns_d);
+    double expected_y = magnitude_d * (-sin(2.0 * M_PI * turns_d));
+
+    fixed_t magnitude = fixed_from_double(magnitude_d);
+    fixed_t turns = fixed_from_double(turns_d);
+    fixed_t out_x, out_y;
+
+    fixed_polar(magnitude, turns, &out_x, &out_y);
+
+    /* Tolerance covers the same combined sources test_fixed_sin_cos_
+     * irrational_spot_check already documents above (fixed_from_double's own
+     * rounding, the lookup table's linear-interpolation error, and the
+     * table's own Q16.16 rounding), plus fixed_mul's own truncation on top --
+     * EPSILON is already generous enough to cover all of these combined. */
+    T_CHECK(fabs(fixed_to_double(out_x) - expected_x) < EPSILON);
+    T_CHECK(fabs(fixed_to_double(out_y) - expected_y) < EPSILON);
+}
+
 static void test_rng_deterministic_for_same_seed(void) {
     rng_t a, b;
     rng_seed(&a, 12345u);
@@ -171,6 +240,9 @@ int main(void) {
     t_run("fixed_sqrt_is_monotonic", test_fixed_sqrt_is_monotonic);
     t_run("fixed_sin_cos_known_turns", test_fixed_sin_cos_known_turns);
     t_run("fixed_sin_cos_irrational_spot_check", test_fixed_sin_cos_irrational_spot_check);
+    t_run("fixed_polar_zero_turns_returns_magnitude_x", test_fixed_polar_zero_turns_returns_magnitude_x);
+    t_run("fixed_polar_zero_magnitude_returns_zero", test_fixed_polar_zero_magnitude_returns_zero);
+    t_run("fixed_polar_matches_hand_computed_value", test_fixed_polar_matches_hand_computed_value);
     t_run("rng_deterministic_for_same_seed", test_rng_deterministic_for_same_seed);
     t_run("rng_next_range_stays_within_bounds", test_rng_next_range_stays_within_bounds);
     return t_report();
