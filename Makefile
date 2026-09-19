@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data font sprite-atlas audio-data psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx psx-slipways-tech-icon-screenshot-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch font sprite-atlas audio-data psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx psx-slipways-tech-icon-screenshot-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data test-audio-pitch
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -233,6 +233,21 @@ test-audio-data: audio-data
 	mkdir -p $(AUDIO_DATA_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_DATA_HOST_BUILD_DIR)/audio_data_test $(AUDIO_DATA_TEST_HOST_SRCS) -lm
 	$(AUDIO_DATA_HOST_BUILD_DIR)/audio_data_test
+
+# Host-native test for audio_pitch.c (chunk 1, docs/prd/triage/
+# psx-spu-audio.md): pure integer table + lookup, zero PSX-header dependency
+# (no SPU/psxspu.h needed -- this module never touches real hardware
+# registers, only computes the VALUE that would go into one), same shape/
+# output dir as test-audio-data and every other test-* target above.
+AUDIO_PITCH_HOST_BUILD_DIR = psx-slipways/build-host
+AUDIO_PITCH_TEST_HOST_SRCS = \
+	psx-slipways/audio_pitch.c \
+	psx-slipways/host_tests/audio_pitch_test.c
+
+test-audio-pitch:
+	mkdir -p $(AUDIO_PITCH_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_PITCH_HOST_BUILD_DIR)/audio_pitch_test $(AUDIO_PITCH_TEST_HOST_SRCS) -lm
+	$(AUDIO_PITCH_HOST_BUILD_DIR)/audio_pitch_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
