@@ -283,6 +283,30 @@ fixed_t effects_probe_sweep_radius(fixed_t frozen_radius, fixed_t t) {
     return fixed_mul(root, frozen_radius);
 }
 
+int effects_spiral_spawn_count(fixed_t rate, rng_t *rng) {
+    int count = 0;
+
+    /* while rnd()<n do ... n-=1 end (pico8/lua.lua:687-691). Draw a fresh
+     * uniform [0,1) value each iteration -- the same
+     * rng_next_range(rng, 0, FX_ONE) idiom effects_flow_try_spawn (above)
+     * already establishes -- and stop the moment a draw fails to beat the
+     * remaining rate, or the remaining rate has already reached/passed
+     * zero (checked up front each iteration, so a rate<=0 call never draws
+     * at all -- see effects.h's doc comment on this function for why that
+     * still matches source's own observable spawn count exactly). */
+    while (rate > 0) {
+        fixed_t draw = (fixed_t)rng_next_range(rng, 0u, (uint32_t)FX_ONE);
+        if (!(draw < rate)) {
+            break;
+        }
+
+        count++;
+        rate = fixed_sub(rate, FX_ONE);
+    }
+
+    return count;
+}
+
 int effects_reveal_ramp_step(int *nh) {
     /* local jv=self.k_[self.nh] (pico8/lua.lua:669): read the CURRENT index
      * before it advances -- this is the value THIS call returns. */

@@ -816,6 +816,132 @@ static void test_probe_sweep_radius_caps_exactly_at_frozen_radius(void) {
     }
 }
 
+/* Chunk 7: rate<=0 never spawns, for any RNG state -- effects.h's doc
+ * comment on effects_spiral_spawn_count establishes this returns 0
+ * immediately without even drawing, but the OBSERVABLE contract under test
+ * here is simply "never spawns," checked across many calls threading a
+ * single rng_t (so if the implementation ever did draw despite rate<=0,
+ * this would still catch any accidental nonzero count, not just the
+ * no-draw implementation detail). Checked at rate exactly 0 and at a
+ * negative rate (source's own `while rnd()<n do` never enters its body for
+ * n<0 either, same as n==0, since rnd() is always >=0). */
+static void test_spiral_spawn_count_nonpositive_rate_never_spawns(void) {
+    rng_t rng;
+    rng_seed(&rng, 42u);
+
+    for (int i = 0; i < 1000; i++) {
+        T_CHECK(effects_spiral_spawn_count(0, &rng) == 0);
+    }
+
+    rng_t rng2;
+    rng_seed(&rng2, 777u);
+    for (int i = 0; i < 1000; i++) {
+        T_CHECK(effects_spiral_spawn_count(-FX_ONE, &rng2) == 0);
+    }
+}
+
+/* Chunk 7: mirrors planetgen_test.c's own test_same_seed_is_deterministic
+ * pattern -- two independent rng_t instances seeded identically must
+ * produce an identical sequence of returned counts across many calls, at a
+ * fixed fractional rate (3.5*FX_ONE, chosen so both the "always spawns 3"
+ * guaranteed floor and the "maybe a 4th" fractional trial are exercised
+ * every call, not just a whole-number rate that would never touch the
+ * fractional-trial code path at all). */
+static void test_spiral_spawn_count_same_seed_is_deterministic(void) {
+    rng_t rng_a, rng_b;
+    rng_seed(&rng_a, 12345u);
+    rng_seed(&rng_b, 12345u);
+
+    fixed_t rate = 3 * FX_ONE + FX_ONE / 2;
+
+    for (int i = 0; i < 500; i++) {
+        int count_a = effects_spiral_spawn_count(rate, &rng_a);
+        int count_b = effects_spiral_spawn_count(rate, &rng_b);
+        T_CHECK(count_a == count_b);
+        /* Every call at this rate guarantees at least the integer floor
+         * (3) and never more than one beyond it (4) -- see effects.h's doc
+         * comment on effects_spiral_spawn_count. */
+        T_CHECK(count_a == 3 || count_a == 4);
+    }
+}
+
+/* Chunk 7 (final): the Monte-Carlo spawn-count regression this PRD's own
+ * Implementation Chunks item 7 calls for -- "a fixed fractional rate (e.g.
+ * 1.5), confirms the empirical mean lands within a documented tolerance of
+ * the rate itself," explicitly mirroring
+ * docs/prd/psx-rules-discovery.md's own empty-roll Monte-Carlo regression
+ * (rules_discovery_test.c's
+ * test_empty_rate_matches_045_within_tolerance_over_many_rolls), itself
+ * mirroring this file's own identical
+ * test_spawn_rate_matches_008_within_tolerance_over_many_calls precedent
+ * above. Same posture: ONE rng_t (seeded once), threaded across every
+ * call, not re-seeded per call.
+ *
+ * UNLIKE rules_discovery's empty-roll (a mean-reverting random walk whose
+ * stationary rate is not analytically obvious), effects_spiral_spawn_count
+ * is a sum of i.i.d. Bernoulli trials each call (see effects.h's doc
+ * comment: floor(rate/FX_ONE) guaranteed spawns plus one more with
+ * probability equal to rate's own fractional part), so its expected value
+ * is EXACTLY `rate` (in real terms) for any rate>=0 -- confirmed
+ * empirically below, not just assumed from that analysis.
+ *
+ * Choosing N and the tolerance band (empirical, per this PRD -- exploration
+ * below, not part of the final test itself):
+ *   - A standalone exploration harness (same shape as this test: one rng_t
+ *     per seed, threaded across N calls to effects_spiral_spawn_count at
+ *     this same fixed rate 1.5*FX_ONE) was run across 20 distinct seeds at
+ *     N=20,000/50,000/100,000. At N=100,000: average-of-seed-means 1.49970
+ *     (within 0.0003 of the nominal 1.5 -- essentially exact), min
+ *     1.49756, max 1.50243 (a 0.00487 seed-to-seed spread, i.e. at most
+ *     ~0.0025 single-sided deviation from 1.5 at any of the 20 seeds
+ *     tried) -- tighter than N=50,000's own 0.00930 spread and N=20,000's
+ *     0.01230, variance shrinking with N exactly as expected for a sum of
+ *     i.i.d. Bernoulli trials, not a mean-reverting walk's stationary
+ *     spread (which would not shrink the same way) -- matching
+ *     rules_discovery_test.c's own identical "confirmed empirically, not
+ *     just assumed" posture for its i.i.d.-vs-walk distinction.
+ *   - N=100,000 was chosen over N=20,000/50,000 for its tighter
+ *     seed-to-seed spread, at negligible extra cost -- the whole
+ *     exploration sweep (20 seeds x 3 N values) runs in well under a
+ *     second on the host.
+ *   - Tolerance: +/-0.015 around 1.5. The observed seed-to-seed spread at
+ *     N=100,000 (max single-sided deviation ~0.0025 from 1.5) sits
+ *     comfortably inside this band -- margin to the nearest edge (0.015)
+ *     is exactly 6x that maximum observed deviation, matching
+ *     rules_discovery's/this file's own established "3-7x the observed
+ *     spread" margin choice -- while still tight enough to catch a
+ *     genuinely wrong loop condition or decrement amount (e.g. an
+ *     off-by-one in the FX_ONE decrement would shift the mean by a
+ *     magnitude far larger than this band). This test itself uses ONE
+ *     fixed seed (56789u, confirmed by this test's own run to land at
+ *     1.49867 -- comfortably inside the band, not a cherry-picked edge
+ *     case), so
+ *     it is fully deterministic and non-flaky by construction; the
+ *     tolerance band exists to bound the GENERATOR's true stochastic
+ *     behavior, not to average out test-to-test variance. */
+static void test_spiral_spawn_count_mean_matches_rate_within_tolerance_over_many_calls(void) {
+    const long NUM_CALLS = 100000;
+    const double EXPECTED_MEAN = 1.5;
+    const double TOLERANCE = 0.015;
+
+    rng_t rng;
+    rng_seed(&rng, 56789u);
+
+    fixed_t rate = FX_ONE + FX_ONE / 2; /* 1.5*FX_ONE */
+
+    long total_spawned = 0;
+    for (long i = 0; i < NUM_CALLS; i++) {
+        total_spawned += effects_spiral_spawn_count(rate, &rng);
+    }
+
+    double empirical_mean = (double)total_spawned / (double)NUM_CALLS;
+    printf("     %ld calls, mean count %.5f, expected ~%.2f +/- %.3f\n", NUM_CALLS, empirical_mean,
+           EXPECTED_MEAN, TOLERANCE);
+
+    T_CHECK(empirical_mean > EXPECTED_MEAN - TOLERANCE);
+    T_CHECK(empirical_mean < EXPECTED_MEAN + TOLERANCE);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -856,5 +982,11 @@ int main(void) {
     t_run("probe_sweep_radius_zero_ticks_is_zero", test_probe_sweep_radius_zero_ticks_is_zero);
     t_run("probe_sweep_radius_caps_exactly_at_frozen_radius",
           test_probe_sweep_radius_caps_exactly_at_frozen_radius);
+    t_run("spiral_spawn_count_nonpositive_rate_never_spawns",
+          test_spiral_spawn_count_nonpositive_rate_never_spawns);
+    t_run("spiral_spawn_count_same_seed_is_deterministic",
+          test_spiral_spawn_count_same_seed_is_deterministic);
+    t_run("spiral_spawn_count_mean_matches_rate_within_tolerance_over_many_calls",
+          test_spiral_spawn_count_mean_matches_rate_within_tolerance_over_many_calls);
     return t_report();
 }

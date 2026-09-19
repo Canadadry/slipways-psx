@@ -425,4 +425,52 @@ fixed_t effects_probe_pulse_radius(fixed_t base_radius, fixed_t t);
  */
 fixed_t effects_probe_sweep_radius(fixed_t frozen_radius, fixed_t t);
 
+/*
+ * effects_spiral_spawn_count -- ports `ez(self,n)`'s spawn-count formula,
+ * pico8/lua.lua:687-691:
+ *
+ *   function ez(self,n)while rnd()<n do
+ *   add(self.qy,self:mm())
+ *   n-=1
+ *   end
+ *   end
+ *
+ * This chunk is ONLY the counting formula itself (the `while rnd()<n do ...
+ * n-=1 end` loop) -- `add(self.qy,self:mm())` (constructing and appending an
+ * actual particle) is `effects_spiral_try_spawn_particle`'s job, a separate
+ * chunk not implemented here; this function only tells the caller HOW MANY
+ * particles to spawn this call, matching this file's established "one
+ * function per traced piece of behavior" style (effects_kick_step/
+ * effects_kick_offset's own identical split).
+ *
+ * PICO-8's `rnd()` (no argument) draws uniformly in [0,1) -- the same
+ * "raw int32_t span used directly as rng_next_range's exclusive bound"
+ * idiom effects_flow_try_spawn (above) and
+ * rules_discovery_roll_empty (rules_discovery.c) already establish for this
+ * codebase, via `rng_next_range(rng, 0, FX_ONE)`. Since a [0,1) draw is
+ * strictly less than any integer k>=1, every iteration up to `n`'s integer
+ * part always succeeds (`rnd()<k` is always true for integer k>=1), so this
+ * function guarantees exactly `floor(rate/FX_ONE)` spawns, plus one more
+ * with probability equal to `rate`'s own fractional part (the final
+ * iteration, whose remaining rate is that fractional part, e.g.
+ * `rnd()<0.5`) -- expected value exactly `rate` (in real terms) for any
+ * `rate>=0`. See docs/prd/triage/psx-juice-effects.md, "### 1. Spiral
+ * particle engine" for the full trace and Implementation Chunks item 7 for
+ * this chunk's own scope.
+ *
+ * `rate<=0` returns 0 immediately, never looping or drawing -- source's own
+ * `while rnd()<n do` never enters its body for n<=0 either (rnd() is always
+ * >=0, so `rnd()<n` is always false when n<=0), so the observable spawn
+ * count is identical either way; this port simply checks `rate>0` up front
+ * rather than drawing once just to discover the condition is already false.
+ *
+ * `rate` and each loop iteration's decrement (`n-=1`, ported as subtracting
+ * exactly `FX_ONE`) follow this file's established "PICO-8's own numbers
+ * are natively Q16.16, so a plain per-particle unit is exactly FX_ONE, not
+ * a separately-rescaled integer" convention (effects_flow_step_particle's
+ * own `t.l-=1` -> `FX_ONE` precedent). `rng` is threaded by the caller,
+ * matching every other RNG-injected function in this codebase.
+ */
+int effects_spiral_spawn_count(fixed_t rate, rng_t *rng);
+
 #endif
