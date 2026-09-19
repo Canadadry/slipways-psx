@@ -445,6 +445,108 @@ static void test_spawn_rate_matches_008_within_tolerance_over_many_calls(void) {
     T_CHECK(empirical_rate < EXPECTED_RATE + TOLERANCE);
 }
 
+/* Chunk 3: effects_kick_start sets the exact literal starting amplitude
+ * jo:kd() ports (pico8/lua.lua:469: self.ma=1.25). 1.25*FX_ONE is an exact
+ * double-to-fixed_t conversion (1.25*65536==81920.0, no fractional part),
+ * so this is checked as EXACT equality, not a tolerance-bounded check. */
+static void test_kick_start_sets_amplitude_to_125_fx_one(void) {
+    effects_kick_t k;
+    effects_kick_start(&k);
+
+    T_CHECK(k.amplitude == (fixed_t)(1.25 * (double)FX_ONE));
+}
+
+/* Chunk 3: effects_kick_step decays amplitude by exactly 0.1*FX_ONE per
+ * call (ma(p,e)'s own e.ma=max(0,e.ma-0.1), pico8/lua.lua:349), checked
+ * from a non-starting amplitude so this doesn't accidentally also depend on
+ * effects_kick_start's own value being correct. */
+static void test_kick_step_decays_amplitude_by_exact_amount(void) {
+    effects_kick_t k;
+    k.amplitude = 50000;
+
+    effects_kick_step(&k);
+
+    T_CHECK(k.amplitude == 50000 - (fixed_t)(0.1 * (double)FX_ONE));
+}
+
+/* Chunk 3: the traced 13-step lifecycle (docs/prd/triage/psx-juice-effects.md,
+ * "### 2. Planet "kick" wobble" -- "1.25 - 13*0.1 = -0.05, floored ... the
+ * 12th call leaves 0.05, still nonzero"). Hand-traced here in fixed_t terms
+ * (not just restating the PRD's real-number arithmetic), starting from
+ * EFFECTS_KICK_START_AMPLITUDE == 81920 and
+ * EFFECTS_KICK_DECAY_PER_STEP == (fixed_t)(0.1*FX_ONE) == 6553 (0.1*65536
+ * == 6553.6, truncated): 81920 - 12*6553 == 3284 (still > 0) after the
+ * 12th step, and 3284 - 6553 == -3269, floored to exactly 0, after the
+ * 13th. Also confirms a 14th step leaves it at 0 (floored, not negative)
+ * -- the amplitude never goes negative once it bottoms out. */
+static void test_kick_amplitude_reaches_zero_after_exactly_13_steps(void) {
+    effects_kick_t k;
+    effects_kick_start(&k);
+
+    for (int step = 1; step <= 12; step++) {
+        effects_kick_step(&k);
+        T_CHECK(k.amplitude > 0);
+    }
+
+    T_CHECK(k.amplitude == 3284);
+
+    effects_kick_step(&k);
+    T_CHECK(k.amplitude == 0);
+
+    /* Floored, stays at 0 -- does not go negative on further steps. */
+    effects_kick_step(&k);
+    T_CHECK(k.amplitude == 0);
+}
+
+/* Chunk 3: effects_kick_offset is a thin wrapper around fixed_polar --
+ * ma(p,e)'s own `qm(e.ma, e.t*0.2)` (pico8/lua.lua:350). Confirms, at a
+ * handful of hand-picked (amplitude, age_ticks) pairs, that
+ * effects_kick_offset(k, age_ticks, ...) produces EXACTLY the same output
+ * as calling fixed_polar(amplitude, age_ticks*0.2_in_Q16.16, ...) directly
+ * -- exact equality is possible (no tolerance needed) since both paths run
+ * the identical fixed_polar computation on the identical resolved
+ * arguments. The angular-rate constant (0.2 turns/tick) is recomputed here
+ * independently of effects.c's own EFFECTS_KICK_ANGULAR_TURNS_PER_TICK
+ * (which is file-local, not visible from this test anyway) -- both
+ * expressions are the same literal double-to-fixed_t translation of
+ * source's own `0.2` constant, deterministic and lossless-of-difference
+ * across translation units, so this is a real independent check, not a
+ * tautology.
+ *
+ * Pairs are chosen so magnitude and turns are clearly distinguishable from
+ * each other (never equal, never simply related) -- if effects_kick_offset
+ * ever swapped fixed_polar's argument order (magnitude for turns or vice
+ * versa), at least one of these pairs would produce a visibly different
+ * result than the correctly-ordered expected computation. */
+static void test_kick_offset_matches_fixed_polar_directly(void) {
+    fixed_t angular_rate = (fixed_t)(0.2 * (double)FX_ONE); /* turns/tick */
+
+    struct {
+        fixed_t amplitude;
+        fixed_t age_ticks;
+    } cases[] = {
+        {0, 7 * FX_ONE},
+        {(fixed_t)(1.25 * (double)FX_ONE), 0},
+        {5 * FX_ONE, FX_ONE},
+        {50000, 3 * FX_ONE + FX_ONE / 4},
+    };
+
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        effects_kick_t k;
+        k.amplitude = cases[i].amplitude;
+
+        fixed_t actual_dx, actual_dy;
+        effects_kick_offset(&k, cases[i].age_ticks, &actual_dx, &actual_dy);
+
+        fixed_t expected_dx, expected_dy;
+        fixed_t turns = fixed_mul(cases[i].age_ticks, angular_rate);
+        fixed_polar(cases[i].amplitude, turns, &expected_dx, &expected_dy);
+
+        T_CHECK(actual_dx == expected_dx);
+        T_CHECK(actual_dy == expected_dy);
+    }
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -463,5 +565,10 @@ int main(void) {
     t_run("full_spawn_to_death_lifecycle", test_full_spawn_to_death_lifecycle);
     t_run("spawn_rate_matches_008_within_tolerance_over_many_calls",
           test_spawn_rate_matches_008_within_tolerance_over_many_calls);
+    t_run("kick_start_sets_amplitude_to_125_fx_one", test_kick_start_sets_amplitude_to_125_fx_one);
+    t_run("kick_step_decays_amplitude_by_exact_amount", test_kick_step_decays_amplitude_by_exact_amount);
+    t_run("kick_amplitude_reaches_zero_after_exactly_13_steps",
+          test_kick_amplitude_reaches_zero_after_exactly_13_steps);
+    t_run("kick_offset_matches_fixed_polar_directly", test_kick_offset_matches_fixed_polar_directly);
     return t_report();
 }

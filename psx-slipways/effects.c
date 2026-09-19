@@ -130,3 +130,47 @@ int effects_flow_step_particle(effects_flow_particle_t *p) {
     /* if (t.l<=0)del(...) (pico8/lua.lua:676), inverted to "still alive". */
     return p->lifetime > 0;
 }
+
+/*
+ * EFFECTS_KICK_START_AMPLITUDE -- ports `jo:kd()`'s literal `self.ma=1.25`
+ * (pico8/lua.lua:469). Exact: 1.25*FX_ONE == 1.25*65536 == 81920.0 has no
+ * fractional part, so this double-to-fixed_t truncation is lossless.
+ */
+#define EFFECTS_KICK_START_AMPLITUDE ((fixed_t)(1.25 * (double)FX_ONE))
+
+/*
+ * EFFECTS_KICK_DECAY_PER_STEP -- ports `ma(p,e)`'s literal `e.ma-0.1`
+ * (pico8/lua.lua:349). Unlike EFFECTS_KICK_START_AMPLITUDE above,
+ * 0.1*FX_ONE (6553.6) is NOT exactly representable, so this truncates to
+ * 6553 -- the same double-to-fixed_t truncation convention
+ * EFFECTS_FLOW_SPAWN_CHANCE (effects.h) already establishes for this
+ * codebase's literal-PICO8-constant macros.
+ */
+#define EFFECTS_KICK_DECAY_PER_STEP ((fixed_t)(0.1 * (double)FX_ONE))
+
+/*
+ * EFFECTS_KICK_ANGULAR_TURNS_PER_TICK -- ports `ma(p,e)`'s literal
+ * `e.t*0.2` (pico8/lua.lua:350): 0.2 turns swept per tick of age. Kept
+ * local to this file (not effects.h) since, unlike
+ * EFFECTS_KICK_START_AMPLITUDE/EFFECTS_KICK_DECAY_PER_STEP, no other
+ * function in this codebase has a reason to reference this particular
+ * constant.
+ */
+#define EFFECTS_KICK_ANGULAR_TURNS_PER_TICK ((fixed_t)(0.2 * (double)FX_ONE))
+
+void effects_kick_start(effects_kick_t *k) {
+    k->amplitude = EFFECTS_KICK_START_AMPLITUDE;
+}
+
+void effects_kick_step(effects_kick_t *k) {
+    fixed_t decayed = fixed_sub(k->amplitude, EFFECTS_KICK_DECAY_PER_STEP);
+    k->amplitude = decayed > 0 ? decayed : 0;
+}
+
+void effects_kick_offset(const effects_kick_t *k, fixed_t age_ticks, fixed_t *out_dx, fixed_t *out_dy) {
+    /* qm(e.ma, e.t*0.2) -- magnitude is the amplitude, turns is the AGE
+     * scaled by 0.2, not the other way around (see effects.h's doc comment
+     * on this function for why that argument order matters). */
+    fixed_t turns = fixed_mul(age_ticks, EFFECTS_KICK_ANGULAR_TURNS_PER_TICK);
+    fixed_polar(k->amplitude, turns, out_dx, out_dy);
+}

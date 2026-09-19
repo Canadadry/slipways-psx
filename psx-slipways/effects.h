@@ -133,4 +133,73 @@ int effects_flow_try_spawn(fixed_t from_x, fixed_t from_y, fixed_t to_x, fixed_t
  */
 int effects_flow_step_particle(effects_flow_particle_t *p);
 
+/*
+ * effects_kick_t -- the planet "kick" wobble's decaying amplitude, ported
+ * from `ma(p,e)`/`jo:kd()` (pico8/lua.lua:349-350,468-469):
+ *
+ *   function ma(p,e)e.ma=max(0,e.ma-0.1)
+ *   return p+qm(e.ma,e.t*0.2)end
+ *   ...
+ *   function jo:kd()self.ma=1.25
+ *   end
+ *
+ * `self.ma` (a single planet-entity field in source) is the whole of this
+ * effect's state -- carried here as its own small struct, mirroring
+ * effects_flow_particle_t's established "one struct per traced piece of
+ * per-instance state" shape, rather than a bare fixed_t the caller has to
+ * remember the meaning of. See docs/prd/triage/psx-juice-effects.md,
+ * "### 2. Planet "kick" wobble" for the full trace (trigger call sites,
+ * decay-per-draw-call cadence, and the exact 13-call-to-zero lifecycle) and
+ * the Data Model section for this struct's/these functions' signatures.
+ */
+typedef struct {
+    fixed_t amplitude;
+} effects_kick_t;
+
+/*
+ * effects_kick_start -- ports `jo:kd()` (pico8/lua.lua:468-469):
+ * `self.ma=1.25`. Sets *k's amplitude to the literal starting value
+ * `1.25*FX_ONE`, matching source's own literal constant exactly (not
+ * derived from anything else). Called whenever source would call `jo:kd()`
+ * -- on discovery, colonization, or a new slipway connecting to this
+ * planet (see effects.h's block comment above for all three cited call
+ * sites; none is wired to a live event in this port yet, matching this
+ * step's Out of Scope).
+ */
+void effects_kick_start(effects_kick_t *k);
+
+/*
+ * effects_kick_step -- ports `ma(p,e)`'s own amplitude decay,
+ * `e.ma=max(0,e.ma-0.1)` (pico8/lua.lua:349), in isolation from that same
+ * function's position-offset return value (which effects_kick_offset below
+ * covers separately, matching this codebase's established "one function per
+ * traced piece of behavior" style rather than one function doing both).
+ * Decays *k's amplitude by exactly `0.1*FX_ONE` per call, floored at 0 --
+ * source's own `max(0, ...)`. Called once per draw call, exactly like
+ * source's own `ma()` (see effects.h's block comment above: PICO-8's
+ * `jo:kj` is a `dc("kj")` draw-pass function, not a tick function, though
+ * this port's own established 60fps 1:1 frame correspondence means the two
+ * cadences coincide in practice).
+ */
+void effects_kick_step(effects_kick_t *k);
+
+/*
+ * effects_kick_offset -- ports `ma(p,e)`'s own position-offset return value,
+ * `return p+qm(e.ma,e.t*0.2)` (pico8/lua.lua:350), in isolation from that
+ * same function's amplitude decay (effects_kick_step above covers that
+ * separately). Writes the offset (NOT `p` itself -- the caller adds this to
+ * whatever base position `p` it's tracking, exactly like effects_flow's own
+ * in/out-parameter convention) to *out_dx and *out_dy: a point at distance
+ * k->amplitude from the origin, at an angle sweeping `0.2` turns per tick of
+ * age_ticks -- `qm(e.ma, e.t*0.2)`, i.e. `fixed_polar(k->amplitude,
+ * fixed_mul(age_ticks, <0.2 turns in Q16.16>), out_dx, out_dy)`. Note the
+ * argument order: source scales the AGE by 0.2 turns/call, not the
+ * amplitude -- `e.t*0.2`, not `e.ma*0.2` -- so fixed_polar's first argument
+ * (magnitude) is k->amplitude and its second (turns) is the scaled age, not
+ * the other way around. A thin wrapper around fixed_polar, but per this
+ * step's Data Model it is tested and called as its own named function, not
+ * inlined at call sites.
+ */
+void effects_kick_offset(const effects_kick_t *k, fixed_t age_ticks, fixed_t *out_dx, fixed_t *out_dy);
+
 #endif
