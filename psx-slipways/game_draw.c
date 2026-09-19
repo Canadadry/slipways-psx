@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "cursor.h"
+#include "effects.h"
 #include "liaison.h"
 #include "rules_tech.h"
 #include "screen_map.h"
@@ -329,6 +330,51 @@ void game_draw(void) {
 			 * live.reason-driven color above. */
 			const bool tech_researched[RULES_TECH_ERA1_TILE_COUNT] = { false, false, false, false };
 
+			/* Chunk 13 (psx-juice-effects, Implementation Chunks item 13):
+			 * each tile's own final screen position, computed up front
+			 * (same formula this loop always used) so
+			 * effects_tech_menu_update() can record every tile's settle
+			 * target for THIS frame before the draw pass below reads back
+			 * each tile's current (possibly still-animating) position. No
+			 * change to what any position represents -- only when it's
+			 * computed relative to the draw pass. */
+			int target_x[RULES_TECH_ERA1_TILE_COUNT];
+			int target_y[RULES_TECH_ERA1_TILE_COUNT];
+			{
+				int i;
+				for (i = 0; i < RULES_TECH_ERA1_TILE_COUNT; i++) {
+					target_x[i] = GAME_DRAW_TECH_MARGIN + i * (GAME_DRAW_TECH_TILE_SIZE + GAME_DRAW_TECH_TILE_SPACING);
+					target_y[i] = GAME_DRAW_TECH_MARGIN;
+				}
+			}
+
+			/* The shared origin every tile's slide-in-and-settle starts
+			 * from on the menu's false->true open edge -- this port's own
+			 * screen-space equivalent of source's `pj.cr.hi=v(0,11)`
+			 * anchor (docs/prd/triage/psx-juice-effects.md, "### 7. Menu
+			 * row slide-in-and-settle"). Source's own anchor is itself
+			 * just "a point in the menu's own coordinate space that every
+			 * row starts from" -- not a PICO-8-128-native world/screen
+			 * constant with an established rescale of its own (unlike,
+			 * say, a planet_pos_t world coordinate screen_map.c's rescale
+			 * function exists specifically for): this port's tech-menu
+			 * tile layout is already a new v1 UI choice (a horizontal
+			 * row, computed directly in screen-space by this file's own
+			 * GAME_DRAW_TECH_* constants, not derived from any PICO-8-
+			 * 128-native position). Given that mismatch, the closest
+			 * defensible analogue to source's own "anchor near the
+			 * screen's top-left, rows/tiles stack outward from it"
+			 * framing is this row's own leading edge -- tile 0's own
+			 * final position, (GAME_DRAW_TECH_MARGIN, GAME_DRAW_TECH_MARGIN)
+			 * -- so every tile visibly slides in FROM where the row
+			 * itself already starts, rather than inventing a numeric
+			 * rescale of `(0,11)` that has no real meaning for a
+			 * screen-space-native UI constant. */
+			int origin_x = GAME_DRAW_TECH_MARGIN;
+			int origin_y = GAME_DRAW_TECH_MARGIN;
+
+			effects_tech_menu_update(tech.open, origin_x, origin_y, target_x, target_y);
+
 			/* Chunk 8 (psx-sprites-audio-extraction): DR_TPAGE hoisted out
 			 * of the loop and sent once, same reasoning as the planet
 			 * loop above -- every tile uses the same texture page/CLUT,
@@ -340,8 +386,18 @@ void game_draw(void) {
 
 			int t;
 			for (t = 0; t < RULES_TECH_ERA1_TILE_COUNT; t++) {
-				int x = GAME_DRAW_TECH_MARGIN + t * (GAME_DRAW_TECH_TILE_SIZE + GAME_DRAW_TECH_TILE_SPACING);
-				int y = GAME_DRAW_TECH_MARGIN;
+				/* Chunk 13: draw at this tile's current settle position
+				 * (effects_tech_menu_update() above already stepped it
+				 * for this frame) instead of target_x[t]/target_y[t]
+				 * directly -- mid-animation while still easing/snapping
+				 * in, exactly the tile's final position once settled (see
+				 * effects_tech_menu_tile_pos()'s own doc comment for why
+				 * no separate settled/not-settled branch is needed here).
+				 * Nothing else in this loop changes: tech_researched[t]/
+				 * rules_tech_get(t)->icon still decide what each tile
+				 * REPRESENTS, only where it's drawn. */
+				int x, y;
+				effects_tech_menu_tile_pos(t, &x, &y);
 
 				TILE tile;
 				setTile(&tile);

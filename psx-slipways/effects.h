@@ -3,6 +3,10 @@
 
 #include "fixed.h"
 #include "rng.h"
+#include "rules_tech.h" /* RULES_TECH_ERA1_TILE_COUNT, for effects_tech_menu_t below --
+                          * liaison.h already establishes the precedent of one entity/
+                          * effects module depending on another's header for a shared
+                          * constant/type (liaison.h includes cursor.h). */
 
 /* One trade-flow particle traveling along a slipway segment. All fields are
  * fixed_t (Q16.16), screen-space units -- mirrors t.ra (position), t.v
@@ -1011,5 +1015,135 @@ typedef struct {
  * effects_popup_step, effects_spiral_step_particle, effects_growbar_step).
  */
 int effects_settle_step(effects_settle_t *s);
+
+/*
+ * effects_tech_menu_* -- Implementation Chunks item 13 (docs/prd/triage/
+ * psx-juice-effects.md, "### 7. Menu row slide-in-and-settle"): the live
+ * wiring of effects_settle_t/effects_settle_step above into the real
+ * tech-menu tiles game_draw.c already draws. Chunk 12 (above) ported only
+ * the pure per-call math (`js:ph()`); this is `pz(p,bs)`'s own live
+ * menu-open-triggered reset behavior (pico8/lua.lua:257-265), specialized
+ * to this port's one concrete live menu-open toggle today
+ * (rules_tech_get_state().open) rather than a generic multi-menu system --
+ * see this PRD's own note that every other real pz() call site (jo:fe, the
+ * restart-confirm buttons, the structure-purchase picker) has no live
+ * menu-open toggle in this port yet, so only the tech menu gets an actual
+ * live-wiring chunk.
+ *
+ * Three-layer shape, mirroring rules_tech.c's own "pure step / stateful
+ * wrapper / real wiring" precedent exactly (rules_tech_step /
+ * rules_tech_init+rules_tech_update+module globals / game_update.c's
+ * game_init()+game_update() calls):
+ *
+ *   1. effects_tech_menu_just_opened() -- pure, stateless edge-detect
+ *      (prev_open, open) -> 0/1, mirroring rules_tech_step()'s own pure
+ *      shape exactly (no globals, host-testable in isolation).
+ *   2. effects_tech_menu_init()/effects_tech_menu_update() -- a stateful
+ *      module-owned-globals wrapper (RULES_TECH_ERA1_TILE_COUNT
+ *      effects_settle_t tiles, one per Era-1 tech, plus a "was open last
+ *      frame" flag), mirroring rules_tech.c's own g_rules_tech_open/
+ *      g_rules_tech_prev_buttons flat-globals shape (not a caller-owned
+ *      struct instance) -- a "named singleton accessor inside effects.c",
+ *      per this PRD's own explicitly offered ownership option, since
+ *      exactly one tech menu exists in this port today, matching
+ *      rules_tech.c's own single-instance precedent.
+ *   3. game_draw.c's tech-menu block -- the real wiring: calls
+ *      effects_tech_menu_update() once per frame with
+ *      rules_tech_get_state().open and this frame's already-computed
+ *      per-tile final x,y (the existing loop's own `x`,`y`), then reads
+ *      effects_tech_menu_tile_pos() for each tile's current draw position
+ *      instead of the loop's own final x,y directly.
+ */
+
+/*
+ * effects_tech_menu_just_opened -- pure edge-detect: `(!prev_open) &&
+ * open`. Ports the same "false->true edge, not a held/true state" idiom
+ * rules_tech_step()'s own press-edge detection already established in
+ * this codebase, applied here to the tech menu's own open/closed state
+ * instead of the Select button's raw pressed state. int in, int out (0/1
+ * booleans, matching rules_tech_state_t.open's own plain-int convention),
+ * no fixed_t/PSX dependency whatsoever -- fully host-testable in
+ * isolation.
+ */
+int effects_tech_menu_just_opened(int prev_open, int open);
+
+/*
+ * effects_tech_menu_init -- resets the module's globals: every tile's
+ * effects_settle_t to (0,0)/(0,0) and "was open" to 0. Mirrors
+ * rules_tech_init()'s own shape exactly. Called once from game_init()
+ * (game_update.c), alongside rules_tech_init() -- though note zero-
+ * initialized static/global state would already be a safe default here
+ * (an explicit init still documents the reset intent and matches every
+ * other *_init() precedent in this file's call site).
+ */
+void effects_tech_menu_init(void);
+
+/*
+ * effects_tech_menu_update -- the stateful per-frame step, mirroring
+ * rules_tech_update()'s own "read globals into locals, call the pure
+ * step fn, write back out" shape, extended to also drive
+ * effects_settle_step() for every tile:
+ *
+ *   - `open` is this frame's rules_tech_get_state().open, passed straight
+ *     through by the caller (game_draw.c), not read from rules_tech.c
+ *     directly -- keeps this module free of any direct rules_tech.c
+ *     function-call dependency (its header dependency, for
+ *     RULES_TECH_ERA1_TILE_COUNT, is unavoidable and already justified
+ *     above), matching effects.c's existing established shape of never
+ *     calling into a *_get_state() accessor itself, only consuming values
+ *     its caller already read.
+ *   - `origin_x`/`origin_y` -- the single shared origin every tile's `ra`
+ *     is reset to on the false->true edge (`ra = p.hi or p.ra` in source,
+ *     pico8/lua.lua:259 -- "every row starts at the exact same point").
+ *     Screen-space pixels, this port's own convention (see game_draw.c's
+ *     own shared-origin choice, documented at its call site).
+ *   - `target_x`/`target_y` -- each tile's own individual already-computed
+ *     final screen position (`b.qf` in source) -- game_draw.c's existing
+ *     loop already computes these every frame; this function only stores
+ *     them as each tile's settle target, it does not compute them.
+ *
+ * When `open` is false, this function does nothing but record `open` into
+ * "was open last frame" (so the next true frame is correctly seen as an
+ * edge) -- no tile is stepped or reset while the menu is closed, matching
+ * game_draw.c's own existing "nothing drawn/computed while tech.open is
+ * false" gate.
+ *
+ * When `open` is true: on the false->true edge (per
+ * effects_tech_menu_just_opened(), evaluated against the PREVIOUS call's
+ * `open`), every tile's `ra` is first reset to (origin_x, origin_y) --
+ * BEFORE this frame's step, so the very first settle step of a freshly
+ * opened menu genuinely starts from the shared origin, matching source's
+ * own `pz()`-then-immediately-ticking sequencing. Every frame the menu is
+ * open (edge or not), every tile's `qf` is (re-)written from
+ * target_x[i]/target_y[i] and then effects_settle_step() is called for
+ * it, unconditionally -- matching source's own `dg()`-dispatched `js:ph()`
+ * behavior of ticking every row every frame regardless of whether it has
+ * already settled (effects_settle_step() is idempotent once snapped, per
+ * chunk 12's own "settle_step_idempotent_after_snap" test).
+ *
+ * int screen-space pixel coordinates in, converted to fixed_t internally
+ * (`* FX_ONE`, this file's/screen_map.c's own established int<->fixed_t
+ * pixel convention) -- callers never construct fixed_t pixel values
+ * themselves.
+ */
+void effects_tech_menu_update(int open, int origin_x, int origin_y,
+    const int target_x[RULES_TECH_ERA1_TILE_COUNT], const int target_y[RULES_TECH_ERA1_TILE_COUNT]);
+
+/*
+ * effects_tech_menu_tile_pos -- accessor for tile `index`'s current draw
+ * position, i.e. its effects_settle_t.ra converted back to int screen-
+ * space pixels (`>> 16`, truncating -- exact for the non-negative,
+ * whole-pixel-origin/target values this module is ever fed, matching
+ * effects_popup_fade_index's own `>> 16` truncation precedent). Reads the
+ * value AFTER effects_tech_menu_update()'s own effects_settle_step() call
+ * for this frame, so it is always this frame's already-stepped position
+ * (mid-animation while still easing/snapping-in, exactly the final
+ * target once settled -- effects_settle_step()'s own "ra becomes exactly
+ * qf on snap" guarantee means no separate settled/not-settled branch is
+ * needed at the call site). `index` must be a valid tech_id_t
+ * (`< RULES_TECH_ERA1_TILE_COUNT`), mirroring rules_tech_get()'s own
+ * simplicity/no-elaborate-error-handling convention.
+ */
+void effects_tech_menu_tile_pos(int index, int *out_x, int *out_y);
 
 #endif

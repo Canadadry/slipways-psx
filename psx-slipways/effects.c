@@ -576,3 +576,75 @@ int effects_settle_step(effects_settle_t *s) {
     s->ra_y = fixed_add(s->ra_y, fixed_mul(dy, EFFECTS_SETTLE_EASE_FACTOR));
     return 1;
 }
+
+/* Implementation Chunks item 13: the tech-menu live-wiring layer. See
+ * effects.h's own doc comment on effects_tech_menu_just_opened/
+ * effects_tech_menu_init/effects_tech_menu_update/effects_tech_menu_tile_pos
+ * for the full three-layer design (mirrors rules_tech.c's pure-step/
+ * stateful-wrapper/real-wiring shape exactly). */
+
+int effects_tech_menu_just_opened(int prev_open, int open) {
+    return (!prev_open) && open;
+}
+
+/* Stateful wrapper globals -- mirrors rules_tech.c's own
+ * g_rules_tech_open/g_rules_tech_prev_buttons flat, module-owned-globals
+ * shape exactly (a named singleton, not a caller-owned struct instance):
+ * exactly one tech menu exists in this port today. */
+static effects_settle_t g_effects_tech_menu_tiles[RULES_TECH_ERA1_TILE_COUNT];
+static int g_effects_tech_menu_was_open = 0;
+
+void effects_tech_menu_init(void) {
+    int i;
+
+    for (i = 0; i < RULES_TECH_ERA1_TILE_COUNT; i++) {
+        g_effects_tech_menu_tiles[i].ra_x = 0;
+        g_effects_tech_menu_tiles[i].ra_y = 0;
+        g_effects_tech_menu_tiles[i].qf_x = 0;
+        g_effects_tech_menu_tiles[i].qf_y = 0;
+    }
+    g_effects_tech_menu_was_open = 0;
+}
+
+void effects_tech_menu_update(int open, int origin_x, int origin_y,
+    const int target_x[RULES_TECH_ERA1_TILE_COUNT], const int target_y[RULES_TECH_ERA1_TILE_COUNT]) {
+    if (open) {
+        /* Edge computed against the PREVIOUS call's open state, evaluated
+         * before g_effects_tech_menu_was_open is overwritten below --
+         * matches pz()'s own "reset ra, THEN this frame's first tick eases
+         * from there" sequencing (pico8/lua.lua:257-265). */
+        int just_opened = effects_tech_menu_just_opened(g_effects_tech_menu_was_open, open);
+        int i;
+
+        for (i = 0; i < RULES_TECH_ERA1_TILE_COUNT; i++) {
+            if (just_opened) {
+                /* pz()'s own `ra=p.hi or p.ra` then `b.ra=ra` for every
+                 * row (pico8/lua.lua:259-261): every tile starts at the
+                 * SAME shared origin. */
+                g_effects_tech_menu_tiles[i].ra_x = origin_x * FX_ONE;
+                g_effects_tech_menu_tiles[i].ra_y = origin_y * FX_ONE;
+            }
+
+            /* pz()'s own `b.qf=bp` (pico8/lua.lua:261): each tile's own
+             * individual target -- (re-)written every frame the menu is
+             * open, not just on the edge, since game_draw.c's loop
+             * recomputes it every frame anyway (harmless when it hasn't
+             * actually changed, and correct if it ever does). */
+            g_effects_tech_menu_tiles[i].qf_x = target_x[i] * FX_ONE;
+            g_effects_tech_menu_tiles[i].qf_y = target_y[i] * FX_ONE;
+
+            /* js:ph()'s own dg()-tick dispatch (pico8/lua.lua:263-266):
+             * ticks every row every frame, settled or not -- see
+             * effects.h's own doc comment on why this is safe/idempotent
+             * once a tile has snapped. */
+            effects_settle_step(&g_effects_tech_menu_tiles[i]);
+        }
+    }
+
+    g_effects_tech_menu_was_open = open;
+}
+
+void effects_tech_menu_tile_pos(int index, int *out_x, int *out_y) {
+    *out_x = (int)(g_effects_tech_menu_tiles[index].ra_x >> 16);
+    *out_y = (int)(g_effects_tech_menu_tiles[index].ra_y >> 16);
+}

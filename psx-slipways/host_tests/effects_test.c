@@ -1913,6 +1913,132 @@ static void test_settle_step_combines_both_axes_not_per_axis_threshold(void) {
     T_CHECK(s.ra_y != s.qf_y);
 }
 
+/* Chunk 13 (psx-juice-effects, Implementation Chunks item 13):
+ * effects_tech_menu_just_opened is the pure, stateless half of the
+ * live-wiring layer -- host-testable in isolation, mirroring
+ * rules_tech_step's own pure-function tests. Only the false->true
+ * transition reports "just opened"; every other combination (staying
+ * closed, staying open, closing) does not. */
+static void test_tech_menu_just_opened_only_on_false_to_true_edge(void) {
+    T_CHECK(effects_tech_menu_just_opened(0, 0) == 0);
+    T_CHECK(effects_tech_menu_just_opened(0, 1) == 1);
+    T_CHECK(effects_tech_menu_just_opened(1, 1) == 0);
+    T_CHECK(effects_tech_menu_just_opened(1, 0) == 0);
+}
+
+/* The stateful wrapper's open edge: every tile's ra is reset to the SAME
+ * shared origin before this frame's own effects_settle_step() call, so a
+ * tile whose target happens to equal the origin snaps immediately (mag_sq
+ * 0 <= FX_ONE) while a tile with a genuinely distant target is still mid-
+ * ease after that same call -- proving both "shared origin" and "distinct
+ * per-tile target" in one round trip. */
+static void test_tech_menu_update_resets_every_tile_to_shared_origin_on_open_edge(void) {
+    effects_tech_menu_init();
+
+    int target_x[RULES_TECH_ERA1_TILE_COUNT];
+    int target_y[RULES_TECH_ERA1_TILE_COUNT];
+    target_x[0] = 0;
+    target_y[0] = 0; /* == origin: settles immediately */
+    target_x[1] = 0;
+    target_y[1] = 11; /* far from origin: still easing after one call */
+    int i;
+    for (i = 2; i < RULES_TECH_ERA1_TILE_COUNT; i++) {
+        target_x[i] = 0;
+        target_y[i] = 0;
+    }
+
+    effects_tech_menu_update(1, 0, 0, target_x, target_y);
+
+    int x0, y0, x1, y1;
+    effects_tech_menu_tile_pos(0, &x0, &y0);
+    effects_tech_menu_tile_pos(1, &x1, &y1);
+
+    T_CHECK(x0 == 0);
+    T_CHECK(y0 == 0); /* tile 0: origin == target, snapped exactly */
+
+    T_CHECK(x1 == 0);
+    T_CHECK(y1 != 0);
+    T_CHECK(y1 != 11); /* tile 1: started at the same origin, but still
+                         * mid-ease toward its own distant target -- not
+                         * yet at either endpoint. */
+}
+
+/* Repeated updates (menu held open, target unchanged) converge exactly to
+ * the target and stay there -- effects_settle_step's own idempotent-after-
+ * snap guarantee, exercised through the stateful wrapper rather than the
+ * pure primitive directly. */
+static void test_tech_menu_update_converges_and_stays_at_target_while_open(void) {
+    effects_tech_menu_init();
+
+    int target_x[RULES_TECH_ERA1_TILE_COUNT];
+    int target_y[RULES_TECH_ERA1_TILE_COUNT];
+    int i;
+    for (i = 0; i < RULES_TECH_ERA1_TILE_COUNT; i++) {
+        target_x[i] = 8 + i * 12;
+        target_y[i] = 8;
+    }
+
+    int call;
+    for (call = 0; call < 30; call++) {
+        effects_tech_menu_update(1, 0, 0, target_x, target_y);
+    }
+
+    int t;
+    for (t = 0; t < RULES_TECH_ERA1_TILE_COUNT; t++) {
+        int x, y;
+        effects_tech_menu_tile_pos(t, &x, &y);
+        T_CHECK(x == target_x[t]);
+        T_CHECK(y == target_y[t]);
+    }
+
+    /* One more call after settling must not move it off target. */
+    effects_tech_menu_update(1, 0, 0, target_x, target_y);
+    int x, y;
+    effects_tech_menu_tile_pos(0, &x, &y);
+    T_CHECK(x == target_x[0]);
+    T_CHECK(y == target_y[0]);
+}
+
+/* Closing the menu (open=0) freezes every tile's position (no step, no
+ * reset) -- and reopening it afterward re-fires the edge, resetting back
+ * to the shared origin even though the tile had already settled at its
+ * previous target. */
+static void test_tech_menu_close_then_reopen_resets_again(void) {
+    effects_tech_menu_init();
+
+    int target_x[RULES_TECH_ERA1_TILE_COUNT];
+    int target_y[RULES_TECH_ERA1_TILE_COUNT];
+    int i;
+    for (i = 0; i < RULES_TECH_ERA1_TILE_COUNT; i++) {
+        target_x[i] = 8 + i * 12;
+        target_y[i] = 8;
+    }
+
+    int call;
+    for (call = 0; call < 30; call++) {
+        effects_tech_menu_update(1, 0, 0, target_x, target_y);
+    }
+    int settled_x, settled_y;
+    effects_tech_menu_tile_pos(0, &settled_x, &settled_y);
+    T_CHECK(settled_x == target_x[0]);
+
+    /* Closed: position must not change, even across several closed
+     * frames. */
+    effects_tech_menu_update(0, 0, 0, target_x, target_y);
+    effects_tech_menu_update(0, 0, 0, target_x, target_y);
+    int x, y;
+    effects_tech_menu_tile_pos(0, &x, &y);
+    T_CHECK(x == settled_x);
+    T_CHECK(y == settled_y);
+
+    /* Reopen with the same shared origin (0,0) -- away from tile 0's own
+     * already-settled target -- the edge must fire again and reset tile 0
+     * back toward that origin (away from where it was left settled). */
+    effects_tech_menu_update(1, 0, 0, target_x, target_y);
+    effects_tech_menu_tile_pos(0, &x, &y);
+    T_CHECK(x != settled_x || y != settled_y);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -2015,5 +2141,12 @@ int main(void) {
     t_run("settle_step_idempotent_after_snap", test_settle_step_idempotent_after_snap);
     t_run("settle_step_combines_both_axes_not_per_axis_threshold",
           test_settle_step_combines_both_axes_not_per_axis_threshold);
+    t_run("tech_menu_just_opened_only_on_false_to_true_edge",
+          test_tech_menu_just_opened_only_on_false_to_true_edge);
+    t_run("tech_menu_update_resets_every_tile_to_shared_origin_on_open_edge",
+          test_tech_menu_update_resets_every_tile_to_shared_origin_on_open_edge);
+    t_run("tech_menu_update_converges_and_stays_at_target_while_open",
+          test_tech_menu_update_converges_and_stays_at_target_while_open);
+    t_run("tech_menu_close_then_reopen_resets_again", test_tech_menu_close_then_reopen_resets_again);
     return t_report();
 }

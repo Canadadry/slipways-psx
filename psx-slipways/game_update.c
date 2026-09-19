@@ -1,5 +1,6 @@
 #include "game.h"
 #include "cursor.h"
+#include "effects.h"
 #include "input.h"
 #include "liaison.h"
 #include "rules_tech.h"
@@ -18,6 +19,14 @@ void game_init(void) {
 	cursor_init();
 	liaison_init();
 	rules_tech_init();
+
+	/* Chunk 13 (psx-juice-effects): resets the tech-menu slide-in-and-
+	 * settle wrapper's globals -- zero-initialized statics would already
+	 * be a safe default (every tile at (0,0), "was open" false, so the
+	 * first real open still correctly hits the false->true edge and
+	 * resets from the shared origin), but an explicit init matches every
+	 * other *_init() call above. */
+	effects_tech_menu_init();
 }
 
 void game_update(void) {
