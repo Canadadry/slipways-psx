@@ -942,6 +942,219 @@ static void test_spiral_spawn_count_mean_matches_rate_within_tolerance_over_many
     T_CHECK(empirical_mean < EXPECTED_MEAN + TOLERANCE);
 }
 
+/* Chunk 8: the wormhole's own reference parameters (`g_`,
+ * pico8/lua.lua:708-726), reused by every effects_spiral_try_spawn_particle
+ * test below -- pn=3,pk=1,du=2,py=0.06,ki=9 -- matching this PRD's own
+ * Implementation Chunks item 8 and Testing section exactly. */
+#define WORMHOLE_BASE_RADIUS (2 * FX_ONE)
+#define WORMHOLE_SECTORS 3
+#define WORMHOLE_TANGENTIAL 1
+#define WORMHOLE_LIFETIME (9 * FX_ONE)
+
+/* fixed_from_double(0.06) is not a compile-time constant expression (it's an
+ * inline function), so the velocity scale is computed inside each test
+ * function rather than via a further #define -- matching this file's own
+ * existing precedent of computing such values locally when a macro can't
+ * hold them (e.g. test_kick_offset_matches_fixed_polar_directly's own local
+ * `angular_rate`). */
+
+/* Chunk 8: mirrors test_spiral_spawn_count_same_seed_is_deterministic's own
+ * pattern -- two independent rng_t instances seeded identically must
+ * produce an identical sequence of spawned particles (every field, not just
+ * a subset) across many calls, at a growing age_ticks each call (so the
+ * angle-drift term is genuinely exercised across a range of values, not
+ * just age_ticks=0 every time). */
+static void test_spiral_spawn_particle_same_seed_is_deterministic(void) {
+    rng_t rng_a, rng_b;
+    rng_seed(&rng_a, 12345u);
+    rng_seed(&rng_b, 12345u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    for (int i = 0; i < 500; i++) {
+        fixed_t age_ticks = i * FX_ONE;
+        effects_spiral_particle_t pa, pb;
+        int result_a = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS,
+                                                           WORMHOLE_TANGENTIAL, age_ticks, velocity_scale,
+                                                           WORMHOLE_LIFETIME, &rng_a, &pa);
+        int result_b = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS,
+                                                           WORMHOLE_TANGENTIAL, age_ticks, velocity_scale,
+                                                           WORMHOLE_LIFETIME, &rng_b, &pb);
+
+        T_CHECK(result_a == 1);
+        T_CHECK(result_b == 1);
+        T_CHECK(pa.x == pb.x);
+        T_CHECK(pa.y == pb.y);
+        T_CHECK(pa.vx == pb.vx);
+        T_CHECK(pa.vy == pb.vy);
+        T_CHECK(pa.life == pb.life);
+        T_CHECK(pa.has_accel == pb.has_accel);
+    }
+}
+
+/* Chunk 8: every spawned particle's initial position lies within the
+ * expected radius band. Derived from the formula (`p=qm(du+rnd(),a)`,
+ * `rnd()` uniform in [0,1)): the spawn radius itself is in [du, du+1), and
+ * fixed_polar's own magnitude-preserving cos/sin pair means
+ * sqrt(x^2+y^2) should equal that same radius, up to the small numerical
+ * error fixed_sin/fixed_cos's own LUT-interpolation and fixed_sqrt's own
+ * truncation introduce -- the same magnitude-check shape
+ * test_spawned_velocity_is_unit_length (chunk 2, above) already
+ * establishes for a unit-length check; here the expected magnitude is a
+ * band, not a single point. TOLERANCE (0.002 real units) is double
+ * rng_and_fixed_test.c's own EPSILON (0.001) for a single fixed_polar
+ * call, to budget for the extra fixed_sqrt truncation this check chains on
+ * top. */
+static void test_spiral_spawn_particle_position_within_radius_band(void) {
+    double TOLERANCE = 0.002;
+
+    rng_t rng;
+    rng_seed(&rng, 999u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    for (int i = 0; i < 500; i++) {
+        effects_spiral_particle_t p;
+        int spawned = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS,
+                                                          WORMHOLE_TANGENTIAL, i * FX_ONE, velocity_scale,
+                                                          WORMHOLE_LIFETIME, &rng, &p);
+        T_CHECK(spawned == 1);
+
+        fixed_t mag_sq = fixed_add(fixed_mul(p.x, p.x), fixed_mul(p.y, p.y));
+        double magnitude = fixed_to_double(fixed_sqrt(mag_sq));
+
+        double base = fixed_to_double(WORMHOLE_BASE_RADIUS);
+        T_CHECK(magnitude > base - TOLERANCE);
+        T_CHECK(magnitude < base + 1.0 + TOLERANCE);
+    }
+}
+
+/* Chunk 8: the tangential (pk=1) branch produces a velocity perpendicular
+ * to the radial spawn vector -- dot(p,v) near zero. TOLERANCE (0.001)
+ * matches rng_and_fixed_test.c's own EPSILON for a single fixed_polar-chain
+ * check -- this dot product chains only a couple of extra fixed_mul calls
+ * beyond fixed_polar itself (each contributing under 1 raw fixed_t unit of
+ * truncation, negligible against 0.001 in real terms), matching this file's
+ * established "budget a bit above the independently-derived worst case"
+ * tolerance posture. */
+static void test_spiral_spawn_particle_tangential_velocity_is_perpendicular(void) {
+    double TOLERANCE = 0.001;
+
+    rng_t rng;
+    rng_seed(&rng, 424242u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    for (int i = 0; i < 500; i++) {
+        effects_spiral_particle_t p;
+        int spawned = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS,
+                                                          WORMHOLE_TANGENTIAL, i * FX_ONE, velocity_scale,
+                                                          WORMHOLE_LIFETIME, &rng, &p);
+        T_CHECK(spawned == 1);
+
+        fixed_t dot = fixed_add(fixed_mul(p.x, p.vx), fixed_mul(p.y, p.vy));
+        T_CHECK(fabs(fixed_to_double(dot)) < TOLERANCE);
+    }
+}
+
+/* Chunk 8: the counterpart to the perpendicularity check above -- with
+ * tangential=0 (the radial branch), velocity must instead be PARALLEL to
+ * position (cross product near zero, not the dot product), confirming the
+ * `tangential` flag genuinely selects between the two branches rather than
+ * e.g. always rotating regardless of its value (a bug the perpendicularity
+ * test alone, run only with tangential=1, could never catch). Same
+ * TOLERANCE reasoning as the perpendicularity check above. */
+static void test_spiral_spawn_particle_radial_velocity_is_parallel(void) {
+    double TOLERANCE = 0.001;
+
+    rng_t rng;
+    rng_seed(&rng, 13579u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    for (int i = 0; i < 500; i++) {
+        effects_spiral_particle_t p;
+        int spawned = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS, 0, i * FX_ONE,
+                                                          velocity_scale, WORMHOLE_LIFETIME, &rng, &p);
+        T_CHECK(spawned == 1);
+
+        fixed_t cross = fixed_sub(fixed_mul(p.x, p.vy), fixed_mul(p.y, p.vx));
+        T_CHECK(fabs(fixed_to_double(cross)) < TOLERANCE);
+    }
+}
+
+/* Chunk 8: lifetime is always exactly `lifetime` (ki*FX_ONE) -- no
+ * randomness in this field at all (unlike position/angle), so this is
+ * checked as EXACT equality, not tolerance-bounded, matching this file's
+ * established "exact when the source formula has no randomness" precedent
+ * (test_step_decrements_lifetime_by_exactly_fx_one and others). Checked
+ * across both the tangential and radial branches and a range of age_ticks,
+ * confirming life never depends on either. */
+static void test_spiral_spawn_particle_lifetime_is_always_exact(void) {
+    rng_t rng;
+    rng_seed(&rng, 24680u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    for (int i = 0; i < 200; i++) {
+        effects_spiral_particle_t p_tangential, p_radial;
+        int spawned_t = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS, 1, i * FX_ONE,
+                                                            velocity_scale, WORMHOLE_LIFETIME, &rng, &p_tangential);
+        int spawned_r = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS, 0, i * FX_ONE,
+                                                            velocity_scale, WORMHOLE_LIFETIME, &rng, &p_radial);
+
+        T_CHECK(spawned_t == 1);
+        T_CHECK(spawned_r == 1);
+        T_CHECK(p_tangential.life == WORMHOLE_LIFETIME);
+        T_CHECK(p_radial.life == WORMHOLE_LIFETIME);
+    }
+}
+
+/* Chunk 8: has_accel/ax/ay are always 0 for this (g_:mm) reference variant
+ * -- the wormhole's own particles never set `.a` (only `ga:mm` does, out of
+ * scope for this whole PRD -- see effects.h's doc comment on effects_
+ * spiral_particle_t). Checked as EXACT equality alongside the lifetime
+ * check's own precedent above. */
+static void test_spiral_spawn_particle_never_sets_acceleration(void) {
+    rng_t rng;
+    rng_seed(&rng, 11111u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    effects_spiral_particle_t p;
+    int spawned = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS, WORMHOLE_TANGENTIAL, 0,
+                                                      velocity_scale, WORMHOLE_LIFETIME, &rng, &p);
+    T_CHECK(spawned == 1);
+    T_CHECK(p.has_accel == 0);
+    T_CHECK(p.ax == 0);
+    T_CHECK(p.ay == 0);
+}
+
+/* Defensive edge case (not explicitly required by the chunk spec, but
+ * worth confirming, matching test_from_equals_to_never_spawns's own
+ * "defensive, not source-exercised, but still verified" precedent): a
+ * non-positive `sectors` never spawns, for any RNG state, rather than
+ * dividing by zero. */
+static void test_spiral_spawn_particle_nonpositive_sectors_never_spawns(void) {
+    rng_t rng;
+    rng_seed(&rng, 55555u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    for (int i = 0; i < 100; i++) {
+        effects_spiral_particle_t p;
+        int spawned_zero = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, 0, WORMHOLE_TANGENTIAL,
+                                                               i * FX_ONE, velocity_scale, WORMHOLE_LIFETIME, &rng,
+                                                               &p);
+        T_CHECK(spawned_zero == 0);
+
+        int spawned_negative = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, -3, WORMHOLE_TANGENTIAL,
+                                                                   i * FX_ONE, velocity_scale, WORMHOLE_LIFETIME,
+                                                                   &rng, &p);
+        T_CHECK(spawned_negative == 0);
+    }
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -988,5 +1201,19 @@ int main(void) {
           test_spiral_spawn_count_same_seed_is_deterministic);
     t_run("spiral_spawn_count_mean_matches_rate_within_tolerance_over_many_calls",
           test_spiral_spawn_count_mean_matches_rate_within_tolerance_over_many_calls);
+    t_run("spiral_spawn_particle_same_seed_is_deterministic",
+          test_spiral_spawn_particle_same_seed_is_deterministic);
+    t_run("spiral_spawn_particle_position_within_radius_band",
+          test_spiral_spawn_particle_position_within_radius_band);
+    t_run("spiral_spawn_particle_tangential_velocity_is_perpendicular",
+          test_spiral_spawn_particle_tangential_velocity_is_perpendicular);
+    t_run("spiral_spawn_particle_radial_velocity_is_parallel",
+          test_spiral_spawn_particle_radial_velocity_is_parallel);
+    t_run("spiral_spawn_particle_lifetime_is_always_exact",
+          test_spiral_spawn_particle_lifetime_is_always_exact);
+    t_run("spiral_spawn_particle_never_sets_acceleration",
+          test_spiral_spawn_particle_never_sets_acceleration);
+    t_run("spiral_spawn_particle_nonpositive_sectors_never_spawns",
+          test_spiral_spawn_particle_nonpositive_sectors_never_spawns);
     return t_report();
 }

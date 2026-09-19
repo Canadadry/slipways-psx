@@ -473,4 +473,160 @@ fixed_t effects_probe_sweep_radius(fixed_t frozen_radius, fixed_t t);
  */
 int effects_spiral_spawn_count(fixed_t rate, rng_t *rng);
 
+/*
+ * effects_spiral_particle_t -- one particle owned by the generic spiral
+ * particle engine (`f_`/`ez`/`ei`/`g_:mm`, pico8/lua.lua:685-730). Ports
+ * `ei`'s own per-particle table entry, `{p=...,v=...,l=...}` (and, for the
+ * `ga:mm` variant this PRD traces but does not port -- see
+ * docs/prd/triage/psx-juice-effects.md, Implementation Decisions item 1,
+ * "Variants not fully ported" -- an optional `.a` acceleration field):
+ *
+ *   x, y      -- p (position), Q16.16, engine-center-relative.
+ *   vx, vy    -- v (velocity), Q16.16, added to x/y once per step
+ *                (effects_spiral_step_particle, chunk 9 -- NOT this chunk).
+ *   life      -- l (lifetime/age-remaining), Q16.16, decremented by a flat
+ *                per-tick amount and compared against a `<=1*FX_ONE` (NOT
+ *                `<=0`) death threshold in source -- both effects_spiral_
+ *                step_particle's job, not this struct's or this chunk's.
+ *   ax, ay    -- a (the `ga:mm`-only optional acceleration term), added to
+ *                v once per step when present.
+ *   has_accel -- an explicit flag for whether ax/ay applies, ported in
+ *                place of Lua's own `if(p.a)` truthy-table-or-nil check --
+ *                matching this codebase's established preference for
+ *                explicit flags over sentinel values (a magic ax==ay==0
+ *                meaning "no acceleration" would collide with a real,
+ *                legitimate zero acceleration).
+ *
+ * effects_spiral_try_spawn_particle (below) always initializes has_accel to
+ * 0 and ax/ay to 0 -- the wormhole's own particles (`g_:mm`, this chunk's
+ * ported reference variant) never set `.a`; only `ga:mm` does, and `ga` is
+ * out of scope for this whole PRD (Implementation Decisions item 1).
+ */
+typedef struct {
+    fixed_t x, y;
+    fixed_t vx, vy;
+    fixed_t life;
+    fixed_t ax, ay;
+    int has_accel;
+} effects_spiral_particle_t;
+
+/*
+ * effects_spiral_try_spawn_particle -- ports `g_:mm()`, the wormhole's own
+ * spawn-particle constructor and this generic engine's ported reference
+ * variant (pico8/lua.lua:727-730):
+ *
+ *   function g_:mm()local a=(flr(rnd(self.pn))+rnd(0.5))/self.pn+self.t*0.001
+ *   local p=qm(self.du+rnd(),a)local v=p*self.py
+ *   return {p=p,v=self.pk and v:pa()or v,l=self.ki
+ *   }
+ *   end
+ *
+ * Called once per new particle by whatever loop calls `ez(self,n)`'s own
+ * `add(self.qy,self:mm())` -- that loop (drive this function N times, once
+ * per spawn count from effects_spiral_spawn_count) is the caller's job, not
+ * this function's; this is only the single-particle constructor `self:mm()`
+ * itself.
+ *
+ * Parameters map directly to g_:mm's own per-type constants/state (source
+ * name -> parameter, wormhole's own literal value in parens, per this PRD's
+ * "Wormhole's full parameter set"):
+ *   base_radius    -- du (2*FX_ONE)     -- base spawn radius.
+ *   sectors        -- pn (3)            -- angle-quantization sector count.
+ *   tangential     -- pk (1/true)       -- velocity mode: 0 = radially
+ *                                          outward, nonzero = rotated 90
+ *                                          degrees (tangential/orbital).
+ *   age_ticks      -- self.t            -- the owning entity's own
+ *                                          age-since-:ks() counter (same
+ *                                          field effects.h's dispatch-
+ *                                          mechanism note above effects_
+ *                                          spiral_spawn_count already cites).
+ *   velocity_scale -- py (0.06*FX_ONE)  -- scales the radial spawn vector
+ *                                          into the initial velocity.
+ *   lifetime       -- ki (9*FX_ONE)     -- flat initial lifetime, no
+ *                                          randomness (unlike position).
+ *
+ * **Angle** (`a=(flr(rnd(pn))+rnd(0.5))/pn+t*0.001`): three RNG draws occur
+ * here, in this exact order -- matching source's own left-to-right
+ * evaluation, the same "preserve Lua's own draw order" precedent effects_
+ * flow_try_spawn's doc comment above already establishes:
+ *   1. `flr(rnd(pn))` -- a uniform INTEGER draw in [0,sectors), via
+ *      rng_next_range(rng, 0, sectors) directly. Unlike every other
+ *      rng_next_range call in this codebase (which passes a fixed_t span --
+ *      "a fixed_t span's raw int32_t value used directly as rng_next_
+ *      range's exclusive bound", rules_discovery_roll_empty/planetgen_
+ *      generate), this one's bound is the plain int `sectors` itself: flr()
+ *      collapses the draw to an integer regardless, so this port draws that
+ *      integer directly (uniform among 0..sectors-1) rather than drawing a
+ *      fixed_t value and then flooring it -- an equivalent, simpler result.
+ *   2. `rnd(0.5)` -- a uniform fixed_t draw in [0, FX_ONE/2) via
+ *      rng_next_range(rng, 0, FX_ONE/2), the same fixed_t-span idiom cited
+ *      above -- the within-sector jitter, asymmetric (biased toward each
+ *      sector's own upper half, per this PRD's own explicit caveat), ported
+ *      literally, not smoothed into a symmetric jitter.
+ *   3. `rnd()` inside `du+rnd()` below -- drawn AFTER the angle's own two
+ *      draws (source evaluates `a` fully before `p`), a uniform fixed_t
+ *      draw in [0,FX_ONE) via rng_next_range(rng, 0, FX_ONE) -- the same
+ *      idiom effects_flow_try_spawn's own spawn-chance draw already
+ *      establishes.
+ * The integer sector draw and the fractional jitter draw are summed as a
+ * single fixed_t (sector_index*FX_ONE + jitter), then divided by `sectors`
+ * (widened to a fixed_t) using this file's existing effects_fixed_div
+ * helper -- `sectors` is a runtime parameter here (not a compile-time
+ * constant), exactly the case effects_fixed_div's own doc comment reserves
+ * it for, unlike the EFFECTS_PROBE_*_RECIP_* precomputed-reciprocal macros
+ * elsewhere in this file, which are for dividing by a compile-time literal.
+ * The age-drift term (age_ticks scaled by a truncated 0.001*FX_ONE-per-tick
+ * constant, the same "traced literal -> truncated Q16.16 macro" convention
+ * every other constant in this file follows) is then added on top. The
+ * result can legitimately reach or exceed one full turn as age_ticks grows
+ * large -- fixed_sin/fixed_cos already wrap any turns value via fixed_std_
+ * sincos's own modulo, so no extra clamping is needed here.
+ *
+ * **Position** (`p=qm(du+rnd(),a)`): fixed_polar(base_radius+radius_jitter,
+ * angle, &out->x, &out->y), where radius_jitter is RNG draw #3 above
+ * (uniform [0,FX_ONE)) -- the spawn radius is base_radius plus a further
+ * [0,1) jitter, exactly matching `du+rnd()`.
+ *
+ * **Velocity** (`v=p*py`, then `self.pk and v:pa() or v`): the position
+ * vector scaled by velocity_scale gives the RADIAL velocity
+ * (fixed_mul(out->x,velocity_scale), fixed_mul(out->y,velocity_scale)). If
+ * tangential is nonzero, that radial vector is instead rotated 90 degrees
+ * via `v:pa()` -- `km:pa()`, pico8/lua.lua:115-116, confirmed by direct
+ * re-read (`function km:pa()return v(-self.y,self.x)end`, i.e.
+ * (x,y)->(-y,x)) -- the SAME rotation helper and direction effects_flow_
+ * try_spawn's own doc comment above already cites for its spawn-position
+ * offset, applied here to a velocity instead of a unit vector (rotating
+ * "radially outward" into "tangential"/orbital motion, per this PRD's own
+ * "Position"/"Velocity" trace).
+ *
+ * **Lifetime** (`l=self.ki`): out->life is set to `lifetime` directly -- no
+ * randomness and no further scaling; `lifetime` is already the caller-
+ * supplied, pre-scaled fixed_t constant (e.g. 9*FX_ONE for the wormhole),
+ * matching this file's established "PICO-8's own numbers are natively
+ * Q16.16, the caller passes the already-scaled fixed_t" convention
+ * (effects_kick_start's own EFFECTS_KICK_START_AMPLITUDE precedent).
+ *
+ * has_accel/ax/ay are always initialized to 0/0/0 -- see effects_spiral_
+ * particle_t's own doc comment above for why.
+ *
+ * **Return value**: `sectors<=0` is a defensive no-spawn case (returns 0,
+ * *out left untouched) -- source structurally never calls this with
+ * `self.pn<=0` (the wormhole's own literal `pn=3`, and no other traced
+ * caller of this generic engine's `:mm()` slot overrides `pn` to a
+ * non-positive value), so this guard is never exercised by any traced
+ * source path; it exists purely as ordinary defensive robustness for a
+ * host-tested pure function against a division by zero in the angle
+ * formula's own `/pn` step -- the same "defensive case source never
+ * exercises, but still defined" posture effects_flow_try_spawn's own
+ * from==to guard already establishes. Otherwise always returns 1 and
+ * populates *out -- unlike effects_flow_try_spawn, `g_:mm()` has no
+ * Bernoulli gate or other real failure mode of its own; the `int` return
+ * here exists purely to match this file's established `effects_*_try_*`
+ * naming/return convention (mirroring effects_flow_try_spawn's own
+ * signature shape), not because this particular formula can meaningfully
+ * fail under any sectors>0 input. `rng` is threaded by the caller, matching
+ * every other RNG-injected function in this codebase.
+ */
+int effects_spiral_try_spawn_particle(fixed_t base_radius, int sectors, int tangential, fixed_t age_ticks, fixed_t velocity_scale, fixed_t lifetime, rng_t *rng, effects_spiral_particle_t *out);
+
 #endif

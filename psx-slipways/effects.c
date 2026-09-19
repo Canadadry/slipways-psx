@@ -307,6 +307,68 @@ int effects_spiral_spawn_count(fixed_t rate, rng_t *rng) {
     return count;
 }
 
+/*
+ * EFFECTS_SPIRAL_ANGLE_DRIFT_PER_TICK -- ports `g_:mm()`'s own literal
+ * `t*0.001` (pico8/lua.lua:727): 0.001 turns of angle drift per tick of
+ * age. 0.001*FX_ONE (65.536) is NOT exactly representable, so this
+ * truncates to 65 -- the same double-to-fixed_t truncation convention
+ * every other literal-constant macro in this file already follows.
+ */
+#define EFFECTS_SPIRAL_ANGLE_DRIFT_PER_TICK ((fixed_t)(0.001 * (double)FX_ONE))
+
+int effects_spiral_try_spawn_particle(fixed_t base_radius, int sectors, int tangential, fixed_t age_ticks, fixed_t velocity_scale, fixed_t lifetime, rng_t *rng, effects_spiral_particle_t *out) {
+    /* a=...(flr(rnd(pn))+rnd(0.5))/pn... divides by sectors -- defensive
+     * guard against a division by zero no traced source call site ever
+     * exercises (see this function's doc comment in effects.h). */
+    if (sectors <= 0) {
+        return 0;
+    }
+
+    /* Three RNG draws, in source's own exact left-to-right order -- see
+     * effects.h's doc comment on this function for the full trail. */
+    int sector_index = (int)rng_next_range(rng, 0u, (uint32_t)sectors);         /* flr(rnd(pn)) */
+    fixed_t jitter = (fixed_t)rng_next_range(rng, 0u, (uint32_t)(FX_ONE / 2));  /* rnd(0.5) */
+    fixed_t radius_jitter = (fixed_t)rng_next_range(rng, 0u, (uint32_t)FX_ONE); /* rnd() */
+
+    /* a = (flr(rnd(pn))+rnd(0.5))/pn + t*0.001 */
+    fixed_t sector_and_jitter = fixed_add((fixed_t)sector_index * FX_ONE, jitter);
+    fixed_t sector_fraction = effects_fixed_div(sector_and_jitter, (fixed_t)sectors * FX_ONE);
+    fixed_t drift = fixed_mul(age_ticks, EFFECTS_SPIRAL_ANGLE_DRIFT_PER_TICK);
+    fixed_t angle = fixed_add(sector_fraction, drift);
+
+    /* p = qm(du+rnd(), a) */
+    fixed_t radius = fixed_add(base_radius, radius_jitter);
+    fixed_t px, py_pos;
+    fixed_polar(radius, angle, &px, &py_pos);
+    out->x = px;
+    out->y = py_pos;
+
+    /* v = p*py, then self.pk and v:pa() or v -- km:pa()'s 90-degree
+     * rotation (x,y)->(-y,x), the same helper/direction effects_flow_try_
+     * spawn's own doc comment above already cites, applied here to the
+     * radial velocity instead of a unit vector. */
+    fixed_t radial_vx = fixed_mul(px, velocity_scale);
+    fixed_t radial_vy = fixed_mul(py_pos, velocity_scale);
+    if (tangential) {
+        out->vx = -radial_vy;
+        out->vy = radial_vx;
+    } else {
+        out->vx = radial_vx;
+        out->vy = radial_vy;
+    }
+
+    /* l = ki -- flat, already-scaled, no randomness. */
+    out->life = lifetime;
+
+    /* ga:mm's own optional acceleration never applies to this reference
+     * (g_:mm) variant -- see effects_spiral_particle_t's doc comment. */
+    out->ax = 0;
+    out->ay = 0;
+    out->has_accel = 0;
+
+    return 1;
+}
+
 int effects_reveal_ramp_step(int *nh) {
     /* local jv=self.k_[self.nh] (pico8/lua.lua:669): read the CURRENT index
      * before it advances -- this is the value THIS call returns. */
