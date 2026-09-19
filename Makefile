@@ -1,7 +1,7 @@
 LOVE = /Applications/love.app/Contents/MacOS/love
 LOVE_FILE = slipways.love
 
-.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas font sprite-atlas psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx
+.PHONY: build run test test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data font sprite-atlas audio-data psn00bsdk-toolchain-setup psx-hello psx-hello-clean psx-hello-sandbox-smoketest psx-hello-openbios-setup psx-hello-boot-test pcsx-redux-setup psx-hello-boot-test-pcsx psx-hello-input-test-pcsx psx-slipways psx-slipways-clean psx-slipways-boot-test-pcsx psx-slipways-screenshot-pcsx psx-slipways-input-test-pcsx psx-slipways-fps-test-pcsx psx-slipways-cursor-test-pcsx psx-slipways-liaison-test-pcsx psx-slipways-rules-tech-test-pcsx psx-slipways-liaison-marker-screenshot-pcsx
 
 
 build:
@@ -9,7 +9,7 @@ build:
 
 run:
 	$(LOVE) game
-test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas
+test: test-planetgen test-galaxy-render test-cursor test-rules-planets test-liaison test-rules-discovery test-effects test-rules-tech test-rules-economy test-sprite-atlas test-audio-data
 	cd game && lua ../tests/test_all.lua
 
 # Host-native (gcc, no PSn00bSDK toolchain) tests for psx-slipways' PSX-
@@ -202,6 +202,37 @@ test-sprite-atlas: sprite-atlas
 	mkdir -p $(SPRITE_ATLAS_HOST_BUILD_DIR)
 	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(SPRITE_ATLAS_HOST_BUILD_DIR)/sprite_atlas_test $(SPRITE_ATLAS_TEST_HOST_SRCS) -lm
 	$(SPRITE_ATLAS_HOST_BUILD_DIR)/sprite_atlas_test
+
+# Generation step for psx-slipways/audio_data.h/.c (chunk 7 of
+# docs/prd/triage/psx-sprites-audio-extraction.md): reads pico8/sfx.json/
+# pico8/music.json and emits the sfx_def_t/music_pattern_t data tables --
+# see gen_psx_audio_data.py's own header comment for the struct-shape/enum
+# decisions. Mirrors sprite-atlas's shape/reasoning above (a tool call as
+# its own Makefile recipe, wired as a prerequisite of test-audio-data below
+# rather than only a separately-invoked target). The generated
+# audio_data.h/.c files are not committed -- see .gitignore -- so this step
+# must run before anything that reads them. Pure data, no PSX/psxgpu.h
+# dependency at all -- unlike sprite-atlas, this one is not also a
+# psx-slipways prerequisite, since no PSX-side code reads it yet this step
+# (SPU playback is docs/plan.md Phase 5 step 19's job).
+audio-data:
+	python3 tools/gen_psx_audio_data.py
+
+# Host-native test for audio_data.c (chunk 7, docs/prd/triage/
+# psx-sprites-audio-extraction.md): pure data end to end, zero PSX-header
+# dependency (unlike sprite_atlas.c, this module has no __mips__-gated
+# half at all), same shape/output dir as test-sprite-atlas and every other
+# test-* target above. Depends on audio-data so the generated
+# audio_data.h/.c are always fresh before compiling against them.
+AUDIO_DATA_HOST_BUILD_DIR = psx-slipways/build-host
+AUDIO_DATA_TEST_HOST_SRCS = \
+	psx-slipways/audio_data.c \
+	psx-slipways/host_tests/audio_data_test.c
+
+test-audio-data: audio-data
+	mkdir -p $(AUDIO_DATA_HOST_BUILD_DIR)
+	gcc -std=c11 -Wall -Wextra -I psx-slipways -o $(AUDIO_DATA_HOST_BUILD_DIR)/audio_data_test $(AUDIO_DATA_TEST_HOST_SRCS) -lm
+	$(AUDIO_DATA_HOST_BUILD_DIR)/audio_data_test
 
 font:
 	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png

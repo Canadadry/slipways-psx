@@ -13,6 +13,8 @@ psx-slipways/build/
 psx-slipways/build-host/
 psx-slipways/sprite_atlas.h
 psx-slipways/sprite_atlas.c
+psx-slipways/audio_data.h
+psx-slipways/audio_data.c
 tools/.boot-test-pcsx-slipways-run/
 tools/.input-test-pcsx-slipways-run/
 tools/.fps-test-pcsx-slipways-run/
