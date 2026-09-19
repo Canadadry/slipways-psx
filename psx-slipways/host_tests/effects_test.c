@@ -669,6 +669,153 @@ static void test_reveal_ramp_table_matches_traced_k_table(void) {
     }
 }
 
+/* Chunk 6: effects_probe_pulse_radius matches `mz:kz(t)`'s own
+ * `base_radius*(min(t/15,1)+sin(t/40)*0.1)` at the PRD's own specified
+ * checkpoints -- `t=0`, `t=15` (the ramp-up caps here), `t=40` (one full
+ * breathing period, since PICO-8's turns-based sin() gives sin(t/40) a true
+ * period of 40 ticks -- see this PRD's own corrected Implementation
+ * Decisions note), `t=80` (two full breathing periods). Expected values are
+ * derived independently here via libm at test-authorship time
+ * (`base*(min(t/15,1) + (-sin(2*pi*(t/40)))*0.1)`, PICO-8's own
+ * sign-flipped-sine convention -- see fixed.h's fixed_sin block comment),
+ * not copied from the PRD text (which states the formula but never this
+ * function's numeric values at these particular t's) and not recomputed
+ * through this port's own truncated EFFECTS_PROBE_PULSE_RAMP_RECIP_15/
+ * EFFECTS_PROBE_PULSE_BREATH_RECIP_40/EFFECTS_PROBE_PULSE_BREATH_AMPLITUDE
+ * constants (which would make this test tautological against a wrong
+ * constant value) -- matching test_idle_bob_delta_matches_formula_at_
+ * several_t_values's own established derivation style exactly.
+ *
+ * base_radius = 29*FX_ONE (the traced "space folding" un-researched literal,
+ * mz:kz's own `ov("space folding",29,35)` -- an arbitrary-but-traced choice
+ * for this test; this function takes base_radius as a plain parameter, no
+ * tech lookup happens here, see effects.h's doc comment).
+ *
+ * Tolerance: this function chains TWO truncated reciprocal constants
+ * (EFFECTS_PROBE_PULSE_RAMP_RECIP_15, EFFECTS_PROBE_PULSE_BREATH_RECIP_40)
+ * ahead of fixed_sin, each losing a small fraction of a turn per tick of
+ * `t`, so error grows with `t` -- independently confirmed (not just assumed)
+ * by computing this port's own actual fixed-point output against the libm
+ * ideal at every checkpoint during test authorship: the largest observed gap
+ * is ~0.0089 (at t=80, where the breathing term's own phase drift is largest
+ * relative to its own ~2.9-unit swing, 0.1*base_radius). 0.015 sits
+ * comfortably above that observed worst case while remaining tight enough to
+ * catch a genuinely wrong reciprocal/amplitude constant or a sign error --
+ * matching test_idle_bob_delta_matches_formula_at_several_t_values's own
+ * "margin above an independently-derived worst-case bound" tolerance
+ * posture. */
+static void test_probe_pulse_radius_matches_formula_at_prd_checkpoints(void) {
+    double PULSE_TOLERANCE = 0.015;
+    double base = 29.0;
+
+    double t_values[] = {0, 15, 40, 80};
+
+    for (size_t i = 0; i < sizeof(t_values) / sizeof(t_values[0]); i++) {
+        double t = t_values[i];
+        double ramp = t / 15.0;
+        if (ramp > 1.0) {
+            ramp = 1.0;
+        }
+        double breath = -sin(2.0 * M_PI * (t / 40.0)) * 0.1;
+        double expected = base * (ramp + breath);
+
+        fixed_t t_fx = fixed_from_double(t);
+        double actual = fixed_to_double(effects_probe_pulse_radius(fixed_from_double(base), t_fx));
+
+        T_CHECK(fabs(actual - expected) < PULSE_TOLERANCE);
+    }
+}
+
+/* Chunk 6: effects_probe_pulse_radius(base, 0) == 0 exactly -- ramp is
+ * exactly 0 (fixed_mul(0, anything) is exactly 0), and breath is
+ * base*sin(0)*0.1 which is also exactly 0 since fixed_sin(0) is an exact
+ * table-boundary sample (already confirmed exact in rng_and_fixed_test.c's
+ * test_fixed_sin_cos_known_turns) -- so this is checked as EXACT equality,
+ * unlike the tolerance-bounded nonzero-t checkpoints above, matching
+ * test_idle_bob_delta_zero_ticks_is_zero's own identical t=0 exactness
+ * precedent. */
+static void test_probe_pulse_radius_zero_ticks_is_zero(void) {
+    T_CHECK(effects_probe_pulse_radius(fixed_from_double(29.0), 0) == 0);
+}
+
+/* Chunk 6: effects_probe_sweep_radius matches `mz:ej(t)`'s own
+ * `min(sqrt(t/15),1)*frozen_radius` at the PRD's own specified checkpoints --
+ * `t=0`, `t=7.5` (a genuinely fractional tick, per `mz:kj`'s own `self:ej
+ * (self.t-dt)` re-call pattern -- see effects.h's doc comment on this
+ * function pair), `t=15` (the cap engages exactly here), `t=30` (well past
+ * the cap, confirming it holds). Expected values derived independently via
+ * libm at test-authorship time (`min(sqrt(t/15),1)*frozen`), not copied from
+ * the PRD text and not recomputed through this port's own truncated
+ * EFFECTS_PROBE_SWEEP_RECIP_15 constant.
+ *
+ * frozen_radius = 35*FX_ONE (the traced "space folding"-researched literal --
+ * again arbitrary-but-traced; this function takes frozen_radius as a plain
+ * parameter, see effects.h's doc comment).
+ *
+ * Tolerance: 0.001, comfortably above the largest observed actual-vs-ideal
+ * gap at these checkpoints (~0.00053, at t=7.5 and t=15, confirmed during
+ * test authorship the same way as the pulse test above) while tight enough
+ * to catch a genuinely wrong reciprocal constant, a missing/wrong clamp, or
+ * a sign error -- this function chains only ONE truncated reciprocal
+ * constant (EFFECTS_PROBE_SWEEP_RECIP_15) ahead of fixed_sqrt, unlike the
+ * pulse function's two, so its error budget is correspondingly tighter. */
+static void test_probe_sweep_radius_matches_formula_at_prd_checkpoints(void) {
+    double SWEEP_TOLERANCE = 0.001;
+    double frozen = 35.0;
+
+    double t_values[] = {0, 7.5, 15, 30};
+
+    for (size_t i = 0; i < sizeof(t_values) / sizeof(t_values[0]); i++) {
+        double t = t_values[i];
+        double root = sqrt(t / 15.0);
+        if (root > 1.0) {
+            root = 1.0;
+        }
+        double expected = root * frozen;
+
+        fixed_t t_fx = fixed_from_double(t);
+        double actual = fixed_to_double(effects_probe_sweep_radius(fixed_from_double(frozen), t_fx));
+
+        T_CHECK(fabs(actual - expected) < SWEEP_TOLERANCE);
+    }
+}
+
+/* Chunk 6: effects_probe_sweep_radius(frozen, 0) == 0 exactly --
+ * fixed_mul(0, RECIP_15) is exactly 0, fixed_sqrt(0) is exactly 0 (fixed.h's
+ * own fixed_sqrt contract: x=0 is not the x<0 defensive case, and the
+ * bit-by-bit loop returns exactly 0 for n=0), and fixed_mul(0, frozen) is
+ * exactly 0 -- checked as EXACT equality, matching this pair's own
+ * zero-ticks-is-zero precedent for the pulse function above. */
+static void test_probe_sweep_radius_zero_ticks_is_zero(void) {
+    T_CHECK(effects_probe_sweep_radius(fixed_from_double(35.0), 0) == 0);
+}
+
+/* Chunk 6: for t comfortably past 15, effects_probe_sweep_radius holds
+ * EXACTLY at frozen_radius -- source's own min(sqrt(t/15),1) cap, once
+ * t/15's sqrt reaches or exceeds 1, never exceeds frozen_radius no matter
+ * how much further t grows. Checked at several t values well past 15,
+ * confirming the cap holds rather than drifting (e.g. from further sqrt
+ * growth an unclamped implementation would wrongly show), and as EXACT
+ * equality (root clamps to precisely FX_ONE, and fixed_mul(FX_ONE, frozen)
+ * is exact by fixed_mul's own definition), not tolerance-bounded. `t=15`
+ * itself is deliberately NOT included here -- EFFECTS_PROBE_SWEEP_RECIP_15's
+ * own truncation (4369/65536 == 0.0666656494, a hair below the true
+ * 1/15 == 0.0666666667) makes the computed ratio at exactly t=15 a hair
+ * BELOW 1.0 (not clamped, root landing a few raw units short of FX_ONE) --
+ * the PRD checkpoint test above already covers t=15 with the appropriate
+ * tolerance for exactly this reason; this test's job is only the
+ * comfortably-past-the-cap region where the clamp itself, not truncation
+ * noise near the boundary, is what's under test. */
+static void test_probe_sweep_radius_caps_exactly_at_frozen_radius(void) {
+    fixed_t frozen = fixed_from_double(35.0);
+
+    long t_values[] = {20, 100, 10000};
+    for (size_t i = 0; i < sizeof(t_values) / sizeof(t_values[0]); i++) {
+        fixed_t t_fx = t_values[i] * FX_ONE;
+        T_CHECK(effects_probe_sweep_radius(frozen, t_fx) == frozen);
+    }
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -701,5 +848,13 @@ int main(void) {
           test_reveal_ramp_step_default_20_never_climbs);
     t_run("reveal_ramp_table_matches_traced_k_table",
           test_reveal_ramp_table_matches_traced_k_table);
+    t_run("probe_pulse_radius_matches_formula_at_prd_checkpoints",
+          test_probe_pulse_radius_matches_formula_at_prd_checkpoints);
+    t_run("probe_pulse_radius_zero_ticks_is_zero", test_probe_pulse_radius_zero_ticks_is_zero);
+    t_run("probe_sweep_radius_matches_formula_at_prd_checkpoints",
+          test_probe_sweep_radius_matches_formula_at_prd_checkpoints);
+    t_run("probe_sweep_radius_zero_ticks_is_zero", test_probe_sweep_radius_zero_ticks_is_zero);
+    t_run("probe_sweep_radius_caps_exactly_at_frozen_radius",
+          test_probe_sweep_radius_caps_exactly_at_frozen_radius);
     return t_report();
 }

@@ -319,4 +319,110 @@ static const int EFFECTS_SLIPWAY_REVEAL_RAMP[EFFECTS_SLIPWAY_REVEAL_RAMP_LENGTH]
  */
 int effects_reveal_ramp_step(int *nh);
 
+/*
+ * effects_probe_pulse_radius / effects_probe_sweep_radius -- port the probe
+ * entity `mz`'s two radius-envelope formulas, `mz:kz(t)`/`mz:ej(t)`
+ * (pico8/lua.lua:772-796):
+ *
+ *   function mz:kz(t)self.oi=ov("space folding",29,35)*
+ *   (min(t/15,1)+sin(t/40)*0.1)end
+ *   ...
+ *   function mz:ej(t)
+ *   return min(sqrt(t/15),1)*self.oi
+ *   end
+ *
+ * Two independently-traced formulas, each its own function, matching this
+ * file's established "one function per traced piece of behavior" style
+ * (effects_kick_step/effects_kick_offset's own identical split). Neither the
+ * `mz:kz(t)`/`mz:pr(t)`/`mz:ej(t)` state-name dispatch (`self.me`, same
+ * mechanism as the idle bob's own `self.me=="ly"` gate) nor the discovery
+ * marking inside `mz:pr` (`pt:hh()`) is this pair's job -- both are out of
+ * scope here (no live probe entity exists yet; see
+ * docs/prd/triage/psx-juice-effects.md's Out of Scope, "Probe reveal-sweep
+ * pulse's live wiring, and the discovery logic inside `mz:pr` itself"). See
+ * that PRD's "### 5. Probe reveal-sweep pulse" section for the full trace.
+ *
+ * `t` follows this file's established "PICO-8's own numbers are natively
+ * Q16.16, so a plain tick count is passed as that many whole FX_ONE units"
+ * convention (effects_kick_offset's/effects_idle_bob_delta's own age_ticks;
+ * e.g. tick 15 is `15*FX_ONE`, not the plain integer `15`) -- and, per
+ * `ej`'s own use inside `mz:kj`'s "pr"-state draw branch (`self:ej(self.t-dt)`,
+ * pico8/lua.lua:788), can legitimately be fractional (a non-integer number of
+ * ticks), which is exactly why this pair's own host tests include a
+ * fractional `t` (7.5) for the sweep, not just whole-tick values.
+ */
+
+/*
+ * effects_probe_pulse_radius -- ports `mz:kz(t)`'s own single assignment,
+ * `self.oi = base_radius * (min(t/15,1) + sin(t/40)*0.1)`. `base_radius` is
+ * `ov("space folding",29,35)` in source -- a tech-gated constant (29
+ * PICO-8-pixel units base, 35 with the "space folding" tech researched, the
+ * same tech-gated-constant idiom `docs/prd/psx-rules-tech.md` already
+ * established) -- but the tech lookup itself is NOT this function's job,
+ * matching this step's own explicit scope ("take `base_radius` as a plain
+ * parameter... the tech-gated lookup itself belongs to whichever future step
+ * wires this live"); the caller supplies whichever of the two literal values
+ * (or any other) applies.
+ *
+ * The envelope has two parts, added together before scaling by
+ * `base_radius`:
+ *   - `min(t/15,1)`: a linear ramp-up over the first 15 ticks, reaching 1
+ *     and staying there -- clamped here the same way effects_probe_sweep_
+ *     radius's own `min(sqrt(t/15),1)` is clamped below (a plain
+ *     greater-than-FX_ONE clamp, matching effects_kick_step's own
+ *     `max(0,...)` floor's identical inline-ternary style rather than a new
+ *     fixed_min/fixed_max helper this codebase has no other precedent for).
+ *   - `sin(t/40)*0.1`: a small, PERMANENT, non-decaying sinusoidal
+ *     "breathing" term -- unlike every other effect in this file (kick
+ *     wobble, idle bob's own continuous-but-never-settling oscillation
+ *     aside, reveal ramp), this term never turns off for as long as the
+ *     caller keeps advancing `t`. `t/40` is a plain numeric ratio in the
+ *     min()/sqrt() sense (t divided by 40), NOT already "turns" by itself --
+ *     but PICO-8's own sin() interprets whatever argument it's given as
+ *     turns (see fixed.h's fixed_sin block comment), so this same ratio,
+ *     once computed, is already in exactly the right units to feed
+ *     fixed_sin directly with no further conversion -- the identical
+ *     "the ratio IS the turns argument, per PICO-8's own sin() convention"
+ *     pattern effects_idle_bob_delta's own `sin(t*0.005)` already
+ *     establishes (effects.h's doc comment on that function).
+ *
+ * `t/15` and `t/40` are both ordinary divisions by a compile-time-constant
+ * divisor -- fixed.h has no fixed_div (chunk 1 only added fixed_sqrt
+ * alongside the pre-existing fixed_add/fixed_sub/fixed_mul), so, per this
+ * codebase's own established convention for dividing a fixed_t by a known
+ * constant (RULES_ECONOMY_SLIPWAY_COST_DIVISOR_RECIP, rules_economy.c: `x/n`
+ * becomes `fixed_mul(x, 1/n)`, the reciprocal folded once at compile time,
+ * NOT effects.c's own separate `effects_fixed_div` helper, which is for
+ * dividing by a runtime-computed value, e.g. a particle's own travel
+ * distance -- not this pair's case), both divisions here are a `fixed_mul`
+ * against a precomputed reciprocal constant.
+ */
+fixed_t effects_probe_pulse_radius(fixed_t base_radius, fixed_t t);
+
+/*
+ * effects_probe_sweep_radius -- ports `mz:ej(t)`'s own return value,
+ * `min(sqrt(t/15),1)*self.oi`. `frozen_radius` is `self.oi` -- NOT computed
+ * by this function -- source's own comment at `mz:pr`'s call site frames it
+ * as "the frozen `self.oi` value" (captured from whatever
+ * effects_probe_pulse_radius last computed when scanning stopped); the
+ * caller owns and threads that value exactly like effects_kick_offset's own
+ * caller-owned `effects_kick_t` amplitude.
+ *
+ * A square-root-eased (fast-then-slowing, unlike effects_probe_pulse_
+ * radius's own LINEAR ramp-up) expansion from 0 to `frozen_radius` over 15
+ * ticks: `t/15` (same reciprocal-multiply division idiom as
+ * effects_probe_pulse_radius above -- a separately-named/defined constant
+ * from that function's own `t/15` divisor, even though both are literally
+ * 1/15, since `kz` and `ej` are two independently-traced source formulas,
+ * matching this file's "one macro per traced literal, tied to its own
+ * source citation" style elsewhere) is fed to `fixed_sqrt` (already in
+ * fixed.h, from chunk 1's own predecessor -- this step's own "don't touch
+ * fixed.h" constraint applies here unmodified: `fixed_sqrt` already exists
+ * and needs no changes), then clamped to at most `FX_ONE` -- source's own
+ * `min(sqrt(t/15),1)` -- the same inline-ternary clamp style
+ * effects_probe_pulse_radius's own ramp-up clamp uses above, before scaling
+ * by `frozen_radius`.
+ */
+fixed_t effects_probe_sweep_radius(fixed_t frozen_radius, fixed_t t);
+
 #endif

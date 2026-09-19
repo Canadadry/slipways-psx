@@ -205,6 +205,84 @@ fixed_t effects_idle_bob_delta(fixed_t age_ticks) {
     return fixed_mul(fixed_sin(turns), EFFECTS_IDLE_BOB_AMPLITUDE);
 }
 
+/*
+ * EFFECTS_PROBE_PULSE_RAMP_RECIP_15 -- `mz:kz(t)`'s own `t/15` divisor
+ * inside its ramp-up term `min(t/15,1)` (pico8/lua.lua:772-773), as a
+ * precomputed reciprocal constant -- the same reciprocal-multiply idiom
+ * RULES_ECONOMY_SLIPWAY_COST_DIVISOR_RECIP (rules_economy.c) already
+ * establishes for dividing a fixed_t by a compile-time constant (`x/n`
+ * becomes `fixed_mul(x, 1/n)`), since fixed.h has no general fixed_div.
+ * 1/15 (0.0666...) is NOT exactly representable in Q16.16, so this
+ * truncates -- the same double-to-fixed_t truncation convention every other
+ * literal-constant macro in this file already follows.
+ */
+#define EFFECTS_PROBE_PULSE_RAMP_RECIP_15 ((fixed_t)((1.0 / 15.0) * (double)FX_ONE))
+
+/*
+ * EFFECTS_PROBE_PULSE_BREATH_RECIP_40 -- same reciprocal-multiply idiom as
+ * above, for `mz:kz(t)`'s own `t/40` divisor inside its breathing term
+ * `sin(t/40)*0.1` (pico8/lua.lua:772-773 again -- `kz`'s single `self.oi=...`
+ * statement uses both divisors).
+ */
+#define EFFECTS_PROBE_PULSE_BREATH_RECIP_40 ((fixed_t)((1.0 / 40.0) * (double)FX_ONE))
+
+/*
+ * EFFECTS_PROBE_PULSE_BREATH_AMPLITUDE -- `mz:kz(t)`'s own literal `*0.1`
+ * scaling the breathing sine term (pico8/lua.lua:773). 0.1*FX_ONE (6553.6)
+ * is NOT exactly representable, so this truncates to 6553 -- the same
+ * convention EFFECTS_KICK_DECAY_PER_STEP's identical `0.1` literal already
+ * follows above.
+ */
+#define EFFECTS_PROBE_PULSE_BREATH_AMPLITUDE ((fixed_t)(0.1 * (double)FX_ONE))
+
+fixed_t effects_probe_pulse_radius(fixed_t base_radius, fixed_t t) {
+    /* min(t/15,1) -- the linear ramp-up, clamped the same plain-ternary way
+     * effects_kick_step's own max(0,...) floor is above (no fixed_min/
+     * fixed_max helper -- see effects.h's doc comment on this function). */
+    fixed_t ramp = fixed_mul(t, EFFECTS_PROBE_PULSE_RAMP_RECIP_15);
+    if (ramp > FX_ONE) {
+        ramp = FX_ONE;
+    }
+
+    /* sin(t/40)*0.1 -- t/40 is a plain numeric ratio in source's own
+     * min()/sqrt() sense, but PICO-8's sin() takes its argument in turns
+     * (fixed.h's fixed_sin block comment), so this ratio is already in the
+     * right units to feed fixed_sin directly -- the same pattern
+     * effects_idle_bob_delta's own sin(t*0.005) already establishes (see
+     * effects.h's doc comment on this function). */
+    fixed_t breath_turns = fixed_mul(t, EFFECTS_PROBE_PULSE_BREATH_RECIP_40);
+    fixed_t breath = fixed_mul(fixed_sin(breath_turns), EFFECTS_PROBE_PULSE_BREATH_AMPLITUDE);
+
+    return fixed_mul(base_radius, fixed_add(ramp, breath));
+}
+
+/*
+ * EFFECTS_PROBE_SWEEP_RECIP_15 -- `mz:ej(t)`'s own `t/15` divisor inside
+ * `sqrt(t/15)` (pico8/lua.lua:795-796), same reciprocal-multiply idiom as
+ * EFFECTS_PROBE_PULSE_RAMP_RECIP_15 above -- kept as its own separately-
+ * named constant (not shared with that macro) even though both equal 1/15,
+ * since `kz` and `ej` are two independently-traced source formulas, matching
+ * this file's "one macro per traced literal, tied to its own source
+ * citation" style elsewhere (e.g. EFFECTS_KICK_START_AMPLITUDE vs
+ * EFFECTS_IDLE_BOB_AMPLITUDE, each its own named constant regardless of
+ * numeric relationship to any other).
+ */
+#define EFFECTS_PROBE_SWEEP_RECIP_15 ((fixed_t)((1.0 / 15.0) * (double)FX_ONE))
+
+fixed_t effects_probe_sweep_radius(fixed_t frozen_radius, fixed_t t) {
+    /* sqrt(t/15), then min(...,1) -- fixed_sqrt (fixed.h, chunk 1) takes a
+     * fixed_t x representing the real value x/FX_ONE and returns the fixed_t
+     * representing sqrt(x/FX_ONE), which is exactly the shape `ratio`
+     * (representing the real value t/15) needs here. */
+    fixed_t ratio = fixed_mul(t, EFFECTS_PROBE_SWEEP_RECIP_15);
+    fixed_t root = fixed_sqrt(ratio);
+    if (root > FX_ONE) {
+        root = FX_ONE;
+    }
+
+    return fixed_mul(root, frozen_radius);
+}
+
 int effects_reveal_ramp_step(int *nh) {
     /* local jv=self.k_[self.nh] (pico8/lua.lua:669): read the CURRENT index
      * before it advances -- this is the value THIS call returns. */
