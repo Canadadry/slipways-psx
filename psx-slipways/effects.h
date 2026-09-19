@@ -629,4 +629,78 @@ typedef struct {
  */
 int effects_spiral_try_spawn_particle(fixed_t base_radius, int sectors, int tangential, fixed_t age_ticks, fixed_t velocity_scale, fixed_t lifetime, rng_t *rng, effects_spiral_particle_t *out);
 
+/*
+ * effects_spiral_step_particle -- ports `ei(self)`'s per-particle loop body,
+ * the generic spiral particle engine's tick step (pico8/lua.lua:692-706,
+ * inside the `for _,p in pairs(self.qy)do ... end` loop -- the surrounding
+ * visibility guard, the `for` loop itself, and the trailing `ez(self,self.fc)`
+ * respawn call are all the caller's job, not this function's; see
+ * effects_spiral_particle_t's own doc comment for this file's established
+ * split between struct/spawn/step):
+ *
+ *   local pv=p.v
+ *   p.p+=pv
+ *   p.v.x=qo*pv.x+ro*pv.y
+ *   p.v.y=qg*pv.x+q_*pv.y
+ *   if (p.a)p.v+=p.a
+ *   p.l-=0.14
+ *   if p.l<=1 then
+ *   del(self.qy,p)else
+ *   pset(cx+p.p.x,cy+p.p.y,cs[flr(p.l)])
+ *   end
+ *
+ * **Position advance** (`local pv=p.v` then `p.p+=pv`): position advances by
+ * the OLD velocity, read into `pv` BEFORE the velocity update below
+ * overwrites it -- source's own exact evaluation order, preserved here by
+ * capturing `p->vx`/`p->vy` into locals first and using those locals (not
+ * `p->vx`/`p->vy` re-read after the update) for the position add.
+ *
+ * **Velocity update** (`p.v.x=qo*pv.x+ro*pv.y`, `p.v.y=qg*pv.x+q_*pv.y`): a
+ * GENERAL 2x2 linear transform of the OLD velocity -- NOT a hardcoded
+ * rotation formula, since the four per-type constants (`qo,ro,qg,q_`) aren't
+ * required to form a literal rotation matrix (see docs/prd/triage/
+ * psx-juice-effects.md, "### 1. Spiral particle engine," item 103's own
+ * "general 2x2 linear map, not literally a rotation matrix" note). Parameters
+ * map directly: `m00`=`qo`, `m01`=`ro` (new vx = m00*old_vx + m01*old_vy),
+ * `m10`=`qg`, `m11`=`q_` (new vy = m10*old_vx + m11*old_vy). The wormhole's
+ * own reference constants are `qo=1.02,ro=-0.0525,qg=0.0525,q_=1.02` (a
+ * slight rotation-plus-outward-scale each tick), but this function makes no
+ * assumption about the caller's specific matrix -- correct for any type's own
+ * constants, matching source's own fully general formula.
+ *
+ * **Optional acceleration** (`if(p.a)p.v+=p.a`): only applies when
+ * `p->has_accel` is set, added to velocity AFTER the matrix transform above
+ * (matching source's own statement order: the `if(p.a)` line runs after the
+ * `p.v.x=.../p.v.y=...` assignments). `effects_spiral_try_spawn_particle`
+ * (chunk 8) always initializes `has_accel` to 0 for the wormhole's own
+ * reference variant, but this function implements the check as a genuine
+ * runtime conditional (not skipped or always-applied), matching
+ * `effects_spiral_particle_t`'s own general-purpose struct design -- a real,
+ * if here always-false-in-practice, `if(p.a)` branch, per this codebase's
+ * "implement the struct's own general shape faithfully" convention.
+ *
+ * **Aging and death** (`p.l-=0.14`, then `if p.l<=1 then del(...) else ...`):
+ * lifetime decays by a flat `0.14*FX_ONE` every call, independent of any
+ * per-type constant (unlike the velocity matrix above). The death threshold
+ * is `<=1*FX_ONE`, DELIBERATELY NOT `<=0` -- unlike this file's existing
+ * `effects_flow_step_particle`, whose own `t.l<=0` threshold this function's
+ * threshold does NOT match (a particle that would draw with `cs[0]`, out of
+ * source's 1-indexed `cs` table range, is killed one tick early instead; see
+ * docs/prd/triage/psx-juice-effects.md item 105). Returns 1 if the particle
+ * is still alive (life > 1*FX_ONE) after the decrement, or 0 if it just died
+ * (life <= 1*FX_ONE) -- matching effects_flow_step_particle's own "1=alive,
+ * 0=dead" return convention, just against this function's own different
+ * threshold.
+ *
+ * The drawing call (`pset(cx+p.p.x,cy+p.p.y,cs[flr(p.l)])`) is NOT part of
+ * this function -- pure rendering, out of scope for this pure-function step,
+ * matching every other unwired module in this PRD. The caller is responsible
+ * for removing a dead particle from whatever list it lives in, exactly
+ * matching effects_flow_step_particle's own established convention.
+ *
+ * Mutates *p in place, matching effects_flow_step_particle's/effects_spiral_
+ * try_spawn_particle's own established in/out-parameter convention.
+ */
+int effects_spiral_step_particle(effects_spiral_particle_t *p, fixed_t m00, fixed_t m01, fixed_t m10, fixed_t m11);
+
 #endif

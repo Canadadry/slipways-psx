@@ -1155,6 +1155,265 @@ static void test_spiral_spawn_particle_nonpositive_sectors_never_spawns(void) {
     }
 }
 
+/* Chunk 9: the wormhole's own matrix constants (`g_`, pico8/lua.lua:708-726:
+ * `qo=1.02,ro=-0.0525,qg=0.0525,q_=1.02`), reused by every effects_spiral_
+ * step_particle test below -- matching this PRD's own Implementation Chunks
+ * item 9 and Testing section exactly, and this file's own established
+ * "define the reference constants once, reuse across the chunk's tests"
+ * precedent (WORMHOLE_BASE_RADIUS et al. above). Not compile-time constant
+ * expressions (fixed_from_double is an inline function), so these are plain
+ * file-scope non-const globals rather than #defines -- computed once here,
+ * matching this file's own "compute locally when a macro can't hold it"
+ * precedent noted above WORMHOLE_BASE_RADIUS. */
+static fixed_t spiral_m00(void) { return fixed_from_double(1.02); }
+static fixed_t spiral_m01(void) { return fixed_from_double(-0.0525); }
+static fixed_t spiral_m10(void) { return fixed_from_double(0.0525); }
+static fixed_t spiral_m11(void) { return fixed_from_double(1.02); }
+
+/* effects_spiral_try_spawn_particle always zeroes has_accel/ax/ay, so a
+ * has_accel=0 fixture for the step tests below is built directly rather than
+ * via that spawn function -- matching effects_flow_step_particle's own
+ * established "hand-built fixture, not always spawned" precedent
+ * (test_step_decrements_lifetime_by_exactly_fx_one and others above). */
+static effects_spiral_particle_t make_spiral_particle(fixed_t x, fixed_t y, fixed_t vx, fixed_t vy, fixed_t life) {
+    effects_spiral_particle_t p;
+    p.x = x;
+    p.y = y;
+    p.vx = vx;
+    p.vy = vy;
+    p.life = life;
+    p.ax = 0;
+    p.ay = 0;
+    p.has_accel = 0;
+    return p;
+}
+
+/* Chunk 9: p.p+=pv (pico8/lua.lua:698) uses the OLD velocity, read BEFORE
+ * the matrix update overwrites it -- NOT the post-update velocity. vy=0 and
+ * vx=FX_ONE are chosen so the post-update velocity (m00*vx+m01*vy,
+ * m10*vx+m11*vy) = (1.02*FX_ONE, 0.0525*FX_ONE) is CLEARLY different from
+ * the pre-update (FX_ONE, 0) -- both components differ, not just one -- so a
+ * bug that read p->vx/p->vy AFTER the matrix update for the position advance
+ * would be caught (position would advance by a visibly different amount).
+ * life is kept comfortably above 1*FX_ONE so the return value isn't also
+ * under test here (that's covered separately below). */
+static void test_step_position_advances_by_pre_update_velocity(void) {
+    effects_spiral_particle_t p = make_spiral_particle(5 * FX_ONE, -3 * FX_ONE, FX_ONE, 0, 5 * FX_ONE);
+
+    effects_spiral_step_particle(&p, spiral_m00(), spiral_m01(), spiral_m10(), spiral_m11());
+
+    /* Position must advance by exactly the OLD (FX_ONE, 0), not the
+     * post-update velocity. */
+    T_CHECK(p.x == fixed_add(5 * FX_ONE, FX_ONE));
+    T_CHECK(p.y == fixed_add(-3 * FX_ONE, 0));
+
+    /* Sanity check that pre/post velocity genuinely differ here -- if they
+     * didn't, the position check above couldn't distinguish the two
+     * evaluation orders at all. */
+    T_CHECK(p.vx != FX_ONE);
+}
+
+/* Chunk 9: p.v.x=qo*pv.x+ro*pv.y, p.v.y=qg*pv.x+q_*pv.y (pico8/lua.lua:
+ * 699-700) -- the general 2x2 matrix transform, checked two independent
+ * ways against a nontrivial (vx,vy) with both components nonzero and
+ * unequal in magnitude (so a row/column transposition bug -- e.g. swapping
+ * m01 and m10 -- would produce a visibly different result than the correct
+ * mapping):
+ *
+ *   1. EXACT equality against the same fixed_mul/fixed_add chain the
+ *      function itself is expected to run, built independently here from
+ *      the raw m00/m01/m10/m11 values -- matches this file's own
+ *      test_kick_offset_matches_fixed_polar_directly precedent (exact
+ *      equality is possible since both sides run identical fixed-point
+ *      arithmetic on identical resolved arguments).
+ *   2. A tolerance-bounded cross-check against libm doubles, computed
+ *      wholly independently of both this port's truncated fixed_t matrix
+ *      constants AND the fixed_mul/fixed_add chain above -- this is what
+ *      actually catches a wrong m00<->m10 or m01<->m10 mapping (check 1
+ *      alone would happily "pass" a consistently-swapped mapping, since it
+ *      reuses the same swapped assignment on both sides).
+ */
+static void test_step_velocity_matches_2x2_matrix_transform(void) {
+    fixed_t vx = 3 * FX_ONE + FX_ONE / 4;   /* 3.25 */
+    fixed_t vy = -(2 * FX_ONE + FX_ONE / 2); /* -2.5 */
+
+    fixed_t m00 = spiral_m00(), m01 = spiral_m01(), m10 = spiral_m10(), m11 = spiral_m11();
+
+    effects_spiral_particle_t p = make_spiral_particle(0, 0, vx, vy, 5 * FX_ONE);
+    effects_spiral_step_particle(&p, m00, m01, m10, m11);
+
+    /* Check 1: exact match against the same fixed-point chain. */
+    fixed_t expected_vx = fixed_add(fixed_mul(m00, vx), fixed_mul(m01, vy));
+    fixed_t expected_vy = fixed_add(fixed_mul(m10, vx), fixed_mul(m11, vy));
+    T_CHECK(p.vx == expected_vx);
+    T_CHECK(p.vy == expected_vy);
+
+    /* Check 2: independent libm cross-check -- 1.02*3.25+(-0.0525)*(-2.5)
+     * = 3.44625, 0.0525*3.25+1.02*(-2.5) = -2.379375. Tolerance 0.001,
+     * matching this file's own established EPSILON-scale budget for a
+     * couple of chained fixed_mul/fixed_add calls (well under 1 raw
+     * fixed_t unit each). */
+    double expected_vx_d = 1.02 * 3.25 + (-0.0525) * (-2.5);
+    double expected_vy_d = 0.0525 * 3.25 + 1.02 * (-2.5);
+    T_CHECK(fabs(fixed_to_double(p.vx) - expected_vx_d) < 0.001);
+    T_CHECK(fabs(fixed_to_double(p.vy) - expected_vy_d) < 0.001);
+}
+
+/* Chunk 9: p.l-=0.14 (pico8/lua.lua:702) -- checked as EXACT fixed-point
+ * subtraction, matching test_step_decrements_lifetime_by_exactly_fx_one's
+ * own identical exactness precedent for the trade-flow particle. */
+static void test_step_decrements_life_by_exactly_014_fx_one(void) {
+    fixed_t life_decay = (fixed_t)(0.14 * (double)FX_ONE);
+
+    effects_spiral_particle_t p = make_spiral_particle(0, 0, FX_ONE / 2, -FX_ONE / 3, 10 * FX_ONE);
+    fixed_t life0 = p.life;
+
+    effects_spiral_step_particle(&p, spiral_m00(), spiral_m01(), spiral_m10(), spiral_m11());
+
+    T_CHECK(p.life == fixed_sub(life0, life_decay));
+}
+
+/* Chunk 9: the death threshold is life<=1*FX_ONE, NOT life<=0 -- the one
+ * place this function's death condition genuinely differs from
+ * effects_flow_step_particle's own <=0 threshold (see effects.h's doc
+ * comment on this function). life0 is chosen so the boundary crossing
+ * happens at a known, hand-derived call: life0 = FX_ONE + 2*life_decay, so
+ * call 1 leaves FX_ONE+life_decay (still >FX_ONE, alive) and call 2 leaves
+ * EXACTLY FX_ONE (not >FX_ONE, dead) -- the exact boundary this threshold is
+ * about, not just "eventually dies". */
+static void test_particle_survives_until_life_crosses_one_fx_one(void) {
+    fixed_t life_decay = (fixed_t)(0.14 * (double)FX_ONE);
+    fixed_t life0 = fixed_add(FX_ONE, 2 * life_decay);
+
+    effects_spiral_particle_t p = make_spiral_particle(0, 0, 0, 0, life0);
+
+    int alive1 = effects_spiral_step_particle(&p, spiral_m00(), spiral_m01(), spiral_m10(), spiral_m11());
+    T_CHECK(alive1 == 1);
+    T_CHECK(p.life == fixed_add(FX_ONE, life_decay));
+
+    int alive2 = effects_spiral_step_particle(&p, spiral_m00(), spiral_m01(), spiral_m10(), spiral_m11());
+    T_CHECK(alive2 == 0);
+    T_CHECK(p.life == FX_ONE);
+}
+
+/* Chunk 9: a particle whose life lands strictly BETWEEN 0 and 1*FX_ONE
+ * (post-decrement) must ALREADY report dead -- the case a wrongly-ported
+ * `<=0` threshold (effects_flow_step_particle's own threshold, mistakenly
+ * reused here) would get wrong, reporting it alive instead. life0 is chosen
+ * so life lands at exactly FX_ONE/2 after one decrement -- squarely inside
+ * (0, FX_ONE), nowhere near either boundary, so this isn't just re-testing
+ * the exact-FX_ONE boundary the previous test already covers. */
+static void test_particle_with_life_between_zero_and_one_fx_one_is_dead(void) {
+    fixed_t life_decay = (fixed_t)(0.14 * (double)FX_ONE);
+    fixed_t life0 = fixed_add(FX_ONE / 2, life_decay);
+
+    effects_spiral_particle_t p = make_spiral_particle(0, 0, 0, 0, life0);
+
+    int alive = effects_spiral_step_particle(&p, spiral_m00(), spiral_m01(), spiral_m10(), spiral_m11());
+
+    T_CHECK(p.life == FX_ONE / 2);
+    T_CHECK(p.life > 0);
+    T_CHECK(p.life < FX_ONE);
+    T_CHECK(alive == 0);
+}
+
+/* Chunk 9 (final): full spawn-to-death lifecycle -- spawn via chunk 8's
+ * effects_spiral_try_spawn_particle with lifetime=9*FX_ONE (the wormhole's
+ * own ki=9), then step repeatedly via this chunk's function until it
+ * reports dead, confirming the tick count matches (ki-1)/0.14 within one
+ * tick -- mirroring test_full_spawn_to_death_lifecycle's own (chunk 4)
+ * lifecycle-test precedent above.
+ *
+ * Hand-derivation (worked out independently before writing the assertion,
+ * using this same truncated life_decay=9175 this file's own
+ * test_step_decrements_life_by_exactly_014_fx_one already established, not
+ * copied from the PRD's real-number arithmetic): life0 = 9*FX_ONE = 589824.
+ * Each step subtracts exactly life_decay=9175. The first N with
+ * 589824 - N*9175 <= FX_ONE(65536) is N=58: at N=57, life =
+ * 589824-57*9175=66849 (>65536, alive); at N=58, life=66849-9175=57674
+ * (<=65536, dead). (ki-1)/0.14 = 8/0.14 = 57.142857..., which rounds up to
+ * 58 -- ticks_to_death=58 matches that within less than one tick, as the PRD
+ * requires. */
+static void test_spiral_full_spawn_to_death_lifecycle(void) {
+    rng_t rng;
+    rng_seed(&rng, 2024u);
+
+    fixed_t velocity_scale = fixed_from_double(0.06);
+
+    effects_spiral_particle_t p;
+    int spawned = effects_spiral_try_spawn_particle(WORMHOLE_BASE_RADIUS, WORMHOLE_SECTORS, WORMHOLE_TANGENTIAL, 0,
+                                                      velocity_scale, WORMHOLE_LIFETIME, &rng, &p);
+    T_CHECK(spawned == 1);
+    T_CHECK(p.life == WORMHOLE_LIFETIME);
+
+    fixed_t m00 = spiral_m00(), m01 = spiral_m01(), m10 = spiral_m10(), m11 = spiral_m11();
+
+    int alive = 1;
+    int ticks = 0;
+    int max_ticks = 1000; /* safety bound; hand derivation above expects
+                            * exactly 58 */
+    while (alive && ticks < max_ticks) {
+        alive = effects_spiral_step_particle(&p, m00, m01, m10, m11);
+        ticks++;
+    }
+
+    T_CHECK(ticks == 58);
+    T_CHECK(p.life <= FX_ONE);
+}
+
+/* Chunk 9: if(p.a)p.v+=p.a (pico8/lua.lua:701) -- has_accel=1 with nonzero
+ * ax/ay must add them to velocity AFTER the matrix transform. Expected
+ * velocity is the same matrix-transform chain test_step_velocity_matches_
+ * 2x2_matrix_transform's own check 1 already establishes, plus ax/ay added
+ * on top -- checked as EXACT equality, matching this file's established
+ * "exact when the chain is fully deterministic fixed-point arithmetic"
+ * precedent. */
+static void test_step_applies_acceleration_when_has_accel_set(void) {
+    fixed_t vx = 2 * FX_ONE, vy = -FX_ONE;
+    fixed_t ax = FX_ONE / 4, ay = -(FX_ONE / 5);
+
+    fixed_t m00 = spiral_m00(), m01 = spiral_m01(), m10 = spiral_m10(), m11 = spiral_m11();
+
+    effects_spiral_particle_t p = make_spiral_particle(0, 0, vx, vy, 5 * FX_ONE);
+    p.ax = ax;
+    p.ay = ay;
+    p.has_accel = 1;
+
+    effects_spiral_step_particle(&p, m00, m01, m10, m11);
+
+    fixed_t expected_vx = fixed_add(fixed_add(fixed_mul(m00, vx), fixed_mul(m01, vy)), ax);
+    fixed_t expected_vy = fixed_add(fixed_add(fixed_mul(m10, vx), fixed_mul(m11, vy)), ay);
+    T_CHECK(p.vx == expected_vx);
+    T_CHECK(p.vy == expected_vy);
+}
+
+/* Chunk 9: the counterpart to the has_accel=1 check above -- has_accel=0
+ * must leave velocity as JUST the matrix transform, regardless of whatever
+ * garbage sits in ax/ay (here, deliberately large nonzero values that would
+ * visibly perturb the result if the conditional were skipped or always
+ * applied incorrectly). Confirms the conditional is genuinely checked, not
+ * always-applied (this test alone would catch that) nor always-skipped
+ * (test_step_applies_acceleration_when_has_accel_set above would catch
+ * that) -- the pair together prove the branch is a real conditional. */
+static void test_step_ignores_acceleration_garbage_when_has_accel_clear(void) {
+    fixed_t vx = 2 * FX_ONE, vy = -FX_ONE;
+
+    fixed_t m00 = spiral_m00(), m01 = spiral_m01(), m10 = spiral_m10(), m11 = spiral_m11();
+
+    effects_spiral_particle_t p = make_spiral_particle(0, 0, vx, vy, 5 * FX_ONE);
+    /* "Garbage" ax/ay -- large and nonzero, but has_accel is 0 (see
+     * make_spiral_particle), so these must be ignored entirely. */
+    p.ax = 999 * FX_ONE;
+    p.ay = -777 * FX_ONE;
+
+    effects_spiral_step_particle(&p, m00, m01, m10, m11);
+
+    fixed_t expected_vx = fixed_add(fixed_mul(m00, vx), fixed_mul(m01, vy));
+    fixed_t expected_vy = fixed_add(fixed_mul(m10, vx), fixed_mul(m11, vy));
+    T_CHECK(p.vx == expected_vx);
+    T_CHECK(p.vy == expected_vy);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -1215,5 +1474,20 @@ int main(void) {
           test_spiral_spawn_particle_never_sets_acceleration);
     t_run("spiral_spawn_particle_nonpositive_sectors_never_spawns",
           test_spiral_spawn_particle_nonpositive_sectors_never_spawns);
+    t_run("step_position_advances_by_pre_update_velocity",
+          test_step_position_advances_by_pre_update_velocity);
+    t_run("step_velocity_matches_2x2_matrix_transform",
+          test_step_velocity_matches_2x2_matrix_transform);
+    t_run("step_decrements_life_by_exactly_014_fx_one",
+          test_step_decrements_life_by_exactly_014_fx_one);
+    t_run("particle_survives_until_life_crosses_one_fx_one",
+          test_particle_survives_until_life_crosses_one_fx_one);
+    t_run("particle_with_life_between_zero_and_one_fx_one_is_dead",
+          test_particle_with_life_between_zero_and_one_fx_one_is_dead);
+    t_run("spiral_full_spawn_to_death_lifecycle", test_spiral_full_spawn_to_death_lifecycle);
+    t_run("step_applies_acceleration_when_has_accel_set",
+          test_step_applies_acceleration_when_has_accel_set);
+    t_run("step_ignores_acceleration_garbage_when_has_accel_clear",
+          test_step_ignores_acceleration_garbage_when_has_accel_clear);
     return t_report();
 }

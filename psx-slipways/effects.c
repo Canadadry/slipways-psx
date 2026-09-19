@@ -369,6 +369,53 @@ int effects_spiral_try_spawn_particle(fixed_t base_radius, int sectors, int tang
     return 1;
 }
 
+/*
+ * EFFECTS_SPIRAL_LIFE_DECAY_PER_STEP -- ports `ei(self)`'s own literal
+ * `p.l-=0.14` (pico8/lua.lua:702), a flat per-tick lifetime decay independent
+ * of any per-type constant. 0.14*FX_ONE (9175.04) is NOT exactly
+ * representable, so this truncates to 9175 -- the same double-to-fixed_t
+ * truncation convention every other literal-constant macro in this file
+ * already follows.
+ */
+#define EFFECTS_SPIRAL_LIFE_DECAY_PER_STEP ((fixed_t)(0.14 * (double)FX_ONE))
+
+int effects_spiral_step_particle(effects_spiral_particle_t *p, fixed_t m00, fixed_t m01, fixed_t m10, fixed_t m11) {
+    /* local pv=p.v (pico8/lua.lua:697): capture the OLD velocity before the
+     * matrix update below overwrites it -- the position advance just below
+     * uses these captured locals, not p->vx/p->vy re-read after the update,
+     * preserving source's own exact evaluation order. */
+    fixed_t old_vx = p->vx;
+    fixed_t old_vy = p->vy;
+
+    /* p.p+=pv (pico8/lua.lua:698): position advances by the OLD velocity. */
+    p->x = fixed_add(p->x, old_vx);
+    p->y = fixed_add(p->y, old_vy);
+
+    /* p.v.x=qo*pv.x+ro*pv.y, p.v.y=qg*pv.x+q_*pv.y (pico8/lua.lua:699-700): a
+     * general 2x2 linear transform of the OLD velocity -- see effects.h's
+     * doc comment on this function for the m00/m01/m10/m11 mapping. */
+    p->vx = fixed_add(fixed_mul(m00, old_vx), fixed_mul(m01, old_vy));
+    p->vy = fixed_add(fixed_mul(m10, old_vx), fixed_mul(m11, old_vy));
+
+    /* if (p.a)p.v+=p.a (pico8/lua.lua:701): optional acceleration, applied
+     * AFTER the matrix transform above, only when has_accel is set -- a real
+     * conditional, not dead code, per effects_spiral_particle_t's own
+     * general-purpose struct design (see effects.h's doc comment). */
+    if (p->has_accel) {
+        p->vx = fixed_add(p->vx, p->ax);
+        p->vy = fixed_add(p->vy, p->ay);
+    }
+
+    /* p.l-=0.14 (pico8/lua.lua:702): flat per-tick decay, independent of any
+     * per-type constant. */
+    p->life = fixed_sub(p->life, EFFECTS_SPIRAL_LIFE_DECAY_PER_STEP);
+
+    /* if p.l<=1 then del(...) (pico8/lua.lua:703-704), inverted to "still
+     * alive" -- NOT the <=0 threshold effects_flow_step_particle uses; see
+     * effects.h's doc comment on this function for why. */
+    return p->life > FX_ONE;
+}
+
 int effects_reveal_ramp_step(int *nh) {
     /* local jv=self.k_[self.nh] (pico8/lua.lua:669): read the CURRENT index
      * before it advances -- this is the value THIS call returns. */
