@@ -6,7 +6,11 @@
 /* Chunk 11 (psx-full-planets-and-tech): the 4 existing Era-1 entries'
  * name/base_cost must stay byte-identical after the table grows to 19 --
  * these are the same tests as before, now also asserting .era == 1 (a
- * regression check, not just a new-data check). */
+ * regression check, not just a new-data check). Chunk 8
+ * (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks item 8) extends each with a .icon assertion against the same
+ * traced values (sprite_atlas.h's SPRITE_RESOURCE_TECH/ORGANICS/ORE/BOTS
+ * constants). */
 static void test_space_folding_matches_traced_values(void) {
     const tech_t *t = rules_tech_get(TECH_SPACE_FOLDING);
 
@@ -14,6 +18,7 @@ static void test_space_folding_matches_traced_values(void) {
     T_CHECK(strcmp(t->name, "space folding") == 0);
     T_CHECK(t->base_cost == 4);
     T_CHECK(t->era == 1);
+    T_CHECK(t->icon == 22);
 }
 
 static void test_geneseeds_matches_traced_values(void) {
@@ -23,6 +28,7 @@ static void test_geneseeds_matches_traced_values(void) {
     T_CHECK(strcmp(t->name, "geneseeds") == 0);
     T_CHECK(t->base_cost == 5);
     T_CHECK(t->era == 1);
+    T_CHECK(t->icon == 20);
 }
 
 static void test_nanomaterials_matches_traced_values(void) {
@@ -32,6 +38,7 @@ static void test_nanomaterials_matches_traced_values(void) {
     T_CHECK(strcmp(t->name, "nanomaterials") == 0);
     T_CHECK(t->base_cost == 6);
     T_CHECK(t->era == 1);
+    T_CHECK(t->icon == 21);
 }
 
 static void test_drillbots_matches_traced_values(void) {
@@ -41,6 +48,7 @@ static void test_drillbots_matches_traced_values(void) {
     T_CHECK(strcmp(t->name, "drillbots") == 0);
     T_CHECK(t->base_cost == 7);
     T_CHECK(t->era == 1);
+    T_CHECK(t->icon == 18);
 }
 
 /* Era 2 (chunk 11 new entries). */

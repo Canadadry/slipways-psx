@@ -284,6 +284,24 @@ extern const uint16_t g_pico8_clut[16];
 #define SPRITE_CURSOR_HELD 9                  /* the self.rheld branch -- self.rheld is never assigned anywhere in pico8/lua.lua (confirmed by exhaustive grep), so this is confirmed dead code in the original game, not a bug. ui:ev, pico8/lua.lua:225 */
 #define SPRITE_CURSOR_HOVER_OVERRIDE 11       /* the self.o_.ql per-hovered-object override -- self.o_.ql has exactly one other assignment in the whole source (ql=11, pico8/lua.lua:1158), on an entirely unwired UI entity, so also unreachable in this port currently. ui:ev, pico8/lua.lua:225 */
 
+/* Chunk 8 (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks item 8): the tech-menu's 4 Era-1 per-tech resource icons. Drawn
+ * every frame via js:kj() -> self.lq:ol() -> the closure lq:mn() builds
+ * for a bare-number label field (`elseif f then
+ * fn=function(p)dv(qw)spr(f,p.x,p.y)dv()end`, pico8/lua.lua:300-310),
+ * where f is t.nk after nb's own load-time letter-to-resource-code
+ * transform (ho(), pico8/lua.lua:17-23, invoked at :1442) -- these are
+ * the same already-decoded resource-code ids docs/design/
+ * slipways-mechanics.md's Annexe A gives (t=22,l=20,o=21,b=18), not new
+ * atlas/pixel data, just new named cells within the atlas chunks 1-3
+ * already extract. Selected per-tech via rules_tech.h's new `icon`
+ * field, populated in rules_tech.c for the 4 Era-1 entries
+ * (TECH_SPACE_FOLDING/TECH_GENESEEDS/TECH_NANOMATERIALS/TECH_DRILLBOTS). */
+#define SPRITE_RESOURCE_TECH 22       /* space-folding tech's raw nk letter "t", resolved by ho(), pico8/lua.lua:17-23; docs/design/slipways-mechanics.md Annexe A */
+#define SPRITE_RESOURCE_ORGANICS 20   /* geneseeds tech's raw nk letter "l", resolved by ho(), pico8/lua.lua:17-23; docs/design/slipways-mechanics.md Annexe A */
+#define SPRITE_RESOURCE_ORE 21        /* nanomaterials tech's raw nk letter "o", resolved by ho(), pico8/lua.lua:17-23; docs/design/slipways-mechanics.md Annexe A */
+#define SPRITE_RESOURCE_BOTS 18       /* drillbots tech's raw nk letter "b", resolved by ho(), pico8/lua.lua:17-23; docs/design/slipways-mechanics.md Annexe A */
+
 /* Computes sprite id's pixel rectangle within the 128x128 atlas. PICO-8's
  * sprite sheet is a fixed 16x16 grid of 8x8-pixel cels, so a sprite id's
  * top-left cel is at cel_x = id % 16, cel_y = id / 16, giving pixel

@@ -44,6 +44,56 @@ static const uint8_t g_sprite31_pixels[8][8] = {
     { 3, 3, 3, 3, 3, 3, 3, 3 },
 };
 
+/* Chunk 8 (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks item 8): the tech-menu's 4 Era-1 resource icons. Hand-typed here
+ * directly from pico8/gfx.json (re-read at test-authorship time via the
+ * same sprite-id-to-pixel-rect formula sprite_atlas_cel_rect() computes,
+ * not copied from tools/gen_psx_sprite_atlas.py's own output), matching
+ * chunk 1's own rigor for sprites 43/58/31. */
+static const uint8_t g_sprite22_pixels[8][8] = {
+    { 3, 0, 0, 0, 0, 0, 3, 3 },
+    { 0, 0, 7, 6, 1, 0, 0, 3 },
+    { 0, 15, 7, 13, 1, 10, 0, 3 },
+    { 0, 4, 7, 13, 1, 2, 0, 3 },
+    { 0, 15, 6, 13, 1, 10, 0, 3 },
+    { 0, 0, 5, 5, 1, 0, 0, 3 },
+    { 3, 0, 0, 0, 0, 0, 3, 3 },
+    { 3, 3, 3, 3, 3, 3, 3, 3 },
+};
+
+static const uint8_t g_sprite20_pixels[8][8] = {
+    { 3, 3, 0, 0, 0, 3, 3, 3 },
+    { 3, 0, 13, 13, 13, 0, 3, 3 },
+    { 0, 13, 7, 7, 11, 5, 0, 3 },
+    { 0, 13, 7, 11, 11, 5, 0, 3 },
+    { 0, 13, 11, 11, 5, 0, 3, 3 },
+    { 3, 0, 5, 5, 0, 3, 3, 3 },
+    { 3, 3, 0, 0, 3, 3, 3, 3 },
+    { 3, 3, 3, 3, 3, 3, 3, 3 },
+};
+
+static const uint8_t g_sprite21_pixels[8][8] = {
+    { 3, 3, 0, 0, 0, 3, 3, 3 },
+    { 3, 0, 7, 14, 2, 0, 3, 3 },
+    { 0, 10, 14, 2, 2, 1, 0, 3 },
+    { 0, 14, 2, 2, 14, 1, 0, 3 },
+    { 3, 0, 2, 14, 2, 2, 0, 3 },
+    { 3, 3, 0, 1, 2, 0, 0, 3 },
+    { 3, 3, 3, 0, 0, 0, 3, 3 },
+    { 3, 3, 3, 3, 3, 3, 3, 3 },
+};
+
+static const uint8_t g_sprite18_pixels[8][8] = {
+    { 3, 0, 3, 3, 3, 0, 3, 3 },
+    { 0, 13, 0, 0, 0, 5, 0, 3 },
+    { 0, 0, 13, 0, 5, 0, 0, 3 },
+    { 0, 7, 7, 7, 6, 13, 0, 3 },
+    { 0, 13, 6, 13, 6, 13, 0, 3 },
+    { 0, 6, 6, 6, 6, 13, 0, 3 },
+    { 0, 0, 0, 0, 0, 0, 0, 3 },
+    { 3, 3, 3, 3, 3, 3, 3, 3 },
+};
+
 static uint8_t unpack_4bpp_pixel(const uint8_t *atlas, int x, int y) {
     uint8_t byte = atlas[y * (128 / 2) + (x / 2)];
     if (x % 2 == 0) {
@@ -90,6 +140,62 @@ static void test_sprite_liaison_invalid_target_pixels_match_gfx_json(void) {
         for (int x = 0; x < rw; x++) {
             uint8_t decoded = unpack_4bpp_pixel(g_sprite_atlas_4bpp, rx + x, ry + y);
             T_CHECK(decoded == g_sprite31_pixels[y][x]);
+        }
+    }
+}
+
+static void test_sprite_resource_tech_pixels_match_gfx_json(void) {
+    int rx, ry, rw, rh;
+    sprite_atlas_cel_rect(SPRITE_RESOURCE_TECH, 1, 1, &rx, &ry, &rw, &rh);
+
+    T_CHECK(rw == 8);
+    T_CHECK(rh == 8);
+    for (int y = 0; y < rh; y++) {
+        for (int x = 0; x < rw; x++) {
+            uint8_t decoded = unpack_4bpp_pixel(g_sprite_atlas_4bpp, rx + x, ry + y);
+            T_CHECK(decoded == g_sprite22_pixels[y][x]);
+        }
+    }
+}
+
+static void test_sprite_resource_organics_pixels_match_gfx_json(void) {
+    int rx, ry, rw, rh;
+    sprite_atlas_cel_rect(SPRITE_RESOURCE_ORGANICS, 1, 1, &rx, &ry, &rw, &rh);
+
+    T_CHECK(rw == 8);
+    T_CHECK(rh == 8);
+    for (int y = 0; y < rh; y++) {
+        for (int x = 0; x < rw; x++) {
+            uint8_t decoded = unpack_4bpp_pixel(g_sprite_atlas_4bpp, rx + x, ry + y);
+            T_CHECK(decoded == g_sprite20_pixels[y][x]);
+        }
+    }
+}
+
+static void test_sprite_resource_ore_pixels_match_gfx_json(void) {
+    int rx, ry, rw, rh;
+    sprite_atlas_cel_rect(SPRITE_RESOURCE_ORE, 1, 1, &rx, &ry, &rw, &rh);
+
+    T_CHECK(rw == 8);
+    T_CHECK(rh == 8);
+    for (int y = 0; y < rh; y++) {
+        for (int x = 0; x < rw; x++) {
+            uint8_t decoded = unpack_4bpp_pixel(g_sprite_atlas_4bpp, rx + x, ry + y);
+            T_CHECK(decoded == g_sprite21_pixels[y][x]);
+        }
+    }
+}
+
+static void test_sprite_resource_bots_pixels_match_gfx_json(void) {
+    int rx, ry, rw, rh;
+    sprite_atlas_cel_rect(SPRITE_RESOURCE_BOTS, 1, 1, &rx, &ry, &rw, &rh);
+
+    T_CHECK(rw == 8);
+    T_CHECK(rh == 8);
+    for (int y = 0; y < rh; y++) {
+        for (int x = 0; x < rw; x++) {
+            uint8_t decoded = unpack_4bpp_pixel(g_sprite_atlas_4bpp, rx + x, ry + y);
+            T_CHECK(decoded == g_sprite18_pixels[y][x]);
         }
     }
 }
@@ -281,6 +387,10 @@ int main(void) {
     t_run("sprite_planet_unknown_pixels_match_gfx_json", test_sprite_planet_unknown_pixels_match_gfx_json);
     t_run("sprite_cursor_default_pixels_match_gfx_json", test_sprite_cursor_default_pixels_match_gfx_json);
     t_run("sprite_liaison_invalid_target_pixels_match_gfx_json", test_sprite_liaison_invalid_target_pixels_match_gfx_json);
+    t_run("sprite_resource_tech_pixels_match_gfx_json", test_sprite_resource_tech_pixels_match_gfx_json);
+    t_run("sprite_resource_organics_pixels_match_gfx_json", test_sprite_resource_organics_pixels_match_gfx_json);
+    t_run("sprite_resource_ore_pixels_match_gfx_json", test_sprite_resource_ore_pixels_match_gfx_json);
+    t_run("sprite_resource_bots_pixels_match_gfx_json", test_sprite_resource_bots_pixels_match_gfx_json);
     t_run("sprite_planet_unknown_specific_positions", test_sprite_planet_unknown_specific_positions);
     t_run("sprite_cursor_default_specific_positions", test_sprite_cursor_default_specific_positions);
     t_run("sprite_liaison_invalid_target_specific_positions", test_sprite_liaison_invalid_target_specific_positions);

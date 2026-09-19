@@ -63,11 +63,23 @@ typedef enum {
  * original fields rather than inserted between them, so the 4 existing
  * Era-1 entries' name/base_cost initializers stay byte-identical and only
  * gain one new `.era = 1` line each (regression-safe extension, matching
- * this PRD's own "zero-value-change" discipline for pre-existing data). */
+ * this PRD's own "zero-value-change" discipline for pre-existing data).
+ *
+ * icon (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks chunk 8): the resolved resource-code sprite id t.nk already
+ * carries after nb's own load-time ho() letter-to-resource-code transform
+ * (pico8/lua.lua:17-23, invoked at :1442) -- not a raw nk letter and not a
+ * new lookup table, just a place to hold the value this port already
+ * decodes elsewhere (docs/design/slipways-mechanics.md's Annexe A).
+ * Populated for the 4 Era-1 entries only (sprite_atlas.h's
+ * SPRITE_RESOURCE_* constants); appended last so it, too, is a
+ * regression-safe extension -- every other existing field/initializer
+ * stays byte-identical. */
 typedef struct {
     const char *name;
     int base_cost;
     int era;
+    int icon;
 } tech_t;
 
 /* Plain accessor into the static full 19-tech table. id must be a valid

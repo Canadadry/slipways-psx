@@ -312,6 +312,15 @@ void game_draw(void) {
 			 * live.reason-driven color above. */
 			const bool tech_researched[RULES_TECH_ERA1_TILE_COUNT] = { false, false, false, false };
 
+			/* Chunk 8 (psx-sprites-audio-extraction): DR_TPAGE hoisted out
+			 * of the loop and sent once, same reasoning as the planet
+			 * loop above -- every tile uses the same texture page/CLUT,
+			 * so there is no reason to re-emit an identical DR_TPAGE
+			 * primitive RULES_TECH_ERA1_TILE_COUNT times. */
+			DR_TPAGE tpage_prim;
+			setDrawTPage(&tpage_prim, 0, 1, sprite_atlas_get_tpage());
+			DrawPrim(&tpage_prim);
+
 			int t;
 			for (t = 0; t < RULES_TECH_ERA1_TILE_COUNT; t++) {
 				int x = GAME_DRAW_TECH_MARGIN + t * (GAME_DRAW_TECH_TILE_SIZE + GAME_DRAW_TECH_TILE_SPACING);
@@ -336,6 +345,51 @@ void game_draw(void) {
 				}
 
 				DrawPrim(&tile);
+
+				/* Chunk 8 (psx-sprites-audio-extraction): the tech's
+				 * resource icon, layered on top of the flat TILE above
+				 * (drawn after it, same primitive list) -- an addition,
+				 * not a swap, per this PRD's own "the existing TILE stays
+				 * exactly as-is" instruction. Ports js:kj() ->
+				 * self.lq:ol() -> lq:mn()'s bare-number-label closure
+				 * (`spr(f,p.x,p.y)`, pico8/lua.lua:300-310), where f is
+				 * t.nk after nb's own load-time resource-code resolution
+				 * -- rules_tech_get(t)->icon already carries that resolved
+				 * value (rules_tech.h's new `icon` field, Implementation
+				 * Chunks chunk 8). t here is also a valid tech_id_t: the
+				 * loop index matches tech_id_t's own enum order exactly
+				 * (TECH_SPACE_FOLDING=0..TECH_DRILLBOTS=3), same
+				 * correspondence RULES_TECH_ERA1_TILE_COUNT's own doc
+				 * comment already relies on.
+				 *
+				 * SPRT/DR_TPAGE/setUV0+setWH (sprite_atlas_cel_rect's
+				 * 1x1-cel rectangle)/setClut, the same mechanism the
+				 * cursor/planet/liaison-marker blocks above already
+				 * established -- not drawn at the tile's own x,y directly
+				 * (unlike lq:mn()'s literal spr(f,p.x,p.y)) but centered
+				 * on the tile like every other sprite in this file (x -
+				 * sw/2, y - sh/2 from the tile's own center), since the
+				 * tile size here (GAME_DRAW_TECH_TILE_SIZE=8) already
+				 * matches the icon's own 8x8 cel exactly, so centering and
+				 * top-left-aligning coincide. Untinted (setRGB0(255,255,
+				 * 255)), matching lq:mn()'s own bare spr(f,p.x,p.y) call
+				 * (no dv()/qw palette bracket around it) -- same
+				 * "Transparency"/"Palette-swap mechanism" reasoning as the
+				 * liaison-marker block above. */
+				{
+					int sx, sy, sw, sh;
+					sprite_atlas_cel_rect(rules_tech_get((tech_id_t) t)->icon, 1, 1, &sx, &sy, &sw, &sh);
+
+					SPRT icon;
+					setSprt(&icon);
+					setXY0(&icon, x + GAME_DRAW_TECH_TILE_SIZE / 2 - sw / 2, y + GAME_DRAW_TECH_TILE_SIZE / 2 - sh / 2);
+					setUV0(&icon, sx, sy);
+					setWH(&icon, sw, sh);
+					icon.clut = sprite_atlas_get_clut();
+					setRGB0(&icon, 255, 255, 255); /* untinted -- see comment above */
+
+					DrawPrim(&icon);
+				}
 			}
 		}
 	}

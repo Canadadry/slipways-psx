@@ -10,27 +10,41 @@
  * The 4 Era-1 entries (TECH_SPACE_FOLDING..TECH_DRILLBOTS) are unchanged
  * from this module's original PRD -- only the new `.era = 1` line was
  * added to each; name/base_cost stay byte-identical, re-asserted by
- * host_tests/rules_tech_test.c's own regression checks. */
+ * host_tests/rules_tech_test.c's own regression checks.
+ *
+ * icon (docs/prd/triage/psx-sprites-audio-extraction.md, Implementation
+ * Chunks chunk 8): populated for the 4 Era-1 entries only, with the
+ * already-traced resource-code sprite ids docs/prd/psx-rules-tech.md's own
+ * raw nk letters resolve to via docs/design/slipways-mechanics.md's Annexe
+ * A (t=22, l=20, o=21, b=18) -- matching sprite_atlas.h's
+ * SPRITE_RESOURCE_TECH/ORGANICS/ORE/BOTS constants. Every other entry
+ * (Era 2-4) leaves icon at its default zero-initialized value: those
+ * techs' resource icons are not traced by this chunk, so nothing is
+ * invented for them. */
 static const tech_t g_tech_table[TECH_COUNT] = {
     [TECH_SPACE_FOLDING] = {
         .name = "space folding",
         .base_cost = 4,
         .era = 1,
+        .icon = 22,
     },
     [TECH_GENESEEDS] = {
         .name = "geneseeds",
         .base_cost = 5,
         .era = 1,
+        .icon = 20,
     },
     [TECH_NANOMATERIALS] = {
         .name = "nanomaterials",
         .base_cost = 6,
         .era = 1,
+        .icon = 21,
     },
     [TECH_DRILLBOTS] = {
         .name = "drillbots",
         .base_cost = 7,
         .era = 1,
+        .icon = 18,
     },
     [TECH_XENOFOODS] = {
         .name = "xenofoods",
