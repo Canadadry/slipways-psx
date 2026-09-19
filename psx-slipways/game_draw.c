@@ -229,6 +229,61 @@ void game_draw(void) {
 			}
 
 			DrawPrim(&line);
+
+			/* Chunk 6 (psx-sprites-audio-extraction): invalid-target
+			 * marker, layered on top of the line above (drawn after it,
+			 * same primitive list). Ports dl()'s spr(31,mp.x-3,mp.y-8)
+			 * call (pico8/lua.lua:562-563, reachable via jc:ev whenever
+			 * jc:ce()'s candidate blocker self.et is set but has no .qs
+			 * text field -- see this PRD's Implementation Decisions item
+			 * 4 for the full trace). That maps onto liaison_reason_t as:
+			 * already-connected (an existing route object, no .qs),
+			 * blocked-by-planet or crosses-route (the first blocker/
+			 * crossing ds[1], no .qs) all show the marker; too-far (a
+			 * real {qs="-too far-"} text reason, unrendered in this
+			 * port -- just the red line alone) and valid (nil, real cost
+			 * text instead, also unrendered -- just the green line
+			 * alone) do not. Deliberately NOT the same condition as the
+			 * red/green line color above: LIAISON_ALREADY_CONNECTED
+			 * draws a GREEN line WITH the marker on top (matching
+			 * source's own behavior exactly, not a bug). Drawn at the
+			 * same bx,by the line's own target endpoint already
+			 * computed (the hovered planet's screen position, or the
+			 * cursor's raw position), centered like every other sprite
+			 * in this file (x - sw/2, y - sh/2) rather than replicating
+			 * PICO-8's raw mp.x-3,mp.y-8 offset literally -- same
+			 * half-size-centering convention chunk 5's cursor/planet
+			 * sprites already established.
+			 *
+			 * DR_TPAGE kept inline (per-draw), not hoisted: this marker
+			 * draws at most once per frame (only while dragging, and
+			 * only for 3 of the 5 live.reason values), matching the
+			 * mouse cursor block's own single/rare-draw precedent, not
+			 * the 90-planet loop's hoisted-for-many-draws precedent. */
+			if (liaison.live.reason == LIAISON_ALREADY_CONNECTED ||
+				liaison.live.reason == LIAISON_BLOCKED_BY_PLANET ||
+				liaison.live.reason == LIAISON_CROSSES_ROUTE) {
+				int sx, sy, sw, sh;
+				sprite_atlas_cel_rect(SPRITE_LIAISON_INVALID_TARGET, 1, 1, &sx, &sy, &sw, &sh);
+
+				DR_TPAGE tpage_prim;
+				setDrawTPage(&tpage_prim, 0, 1, sprite_atlas_get_tpage());
+				DrawPrim(&tpage_prim);
+
+				SPRT marker;
+				setSprt(&marker);
+				setXY0(&marker, bx - sw / 2, by - sh / 2);
+				setUV0(&marker, sx, sy);
+				setWH(&marker, sw, sh);
+				marker.clut = sprite_atlas_get_clut();
+				/* Untinted -- dl()'s spr(31,...) call is bare, no
+				 * dv()/qw palette bracket around it at all (unlike the
+				 * cursor's click-flash tint), per this PRD's own
+				 * "Transparency" section. */
+				setRGB0(&marker, 255, 255, 255);
+
+				DrawPrim(&marker);
+			}
 		}
 	}
 
