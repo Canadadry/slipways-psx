@@ -4,6 +4,10 @@
 
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #define EPSILON 0.001
 
 static void test_fixed_round_trip(void) {
@@ -65,6 +69,66 @@ static void test_fixed_sqrt_is_monotonic(void) {
     }
 }
 
+static void test_fixed_sin_cos_known_turns(void) {
+    /* PICO-8's own documented convention: pico8_sin(x) = -sin(2*pi*x),
+     * pico8_cos(x) = cos(2*pi*x), in standard-math terms, x in turns.
+     * At x = 0, 0.25, 0.5, 0.75 these land on exact values, independently
+     * confirmed here via ordinary trig identities (not copied from this
+     * chunk's own PRD prose):
+     *   x=0.00: sin(0)=0,      cos(0)=1      -> pico8_sin=0,  pico8_cos=1
+     *   x=0.25: sin(pi/2)=1,   cos(pi/2)=0   -> pico8_sin=-1, pico8_cos=0
+     *   x=0.50: sin(pi)=0,     cos(pi)=-1    -> pico8_sin=0,  pico8_cos=-1
+     *   x=0.75: sin(3pi/2)=-1, cos(3pi/2)=0  -> pico8_sin=1,  pico8_cos=0
+     * These also happen to be exact table-boundary samples (turns that are
+     * multiples of a quarter turn need zero interpolation), so the checks
+     * below are exact equalities, not tolerance-bounded. The sign flip on
+     * sin (and its absence on cos) is the load-bearing assertion here: a
+     * plain, unflipped sin() port would fail the 0.25/0.75 checks with the
+     * sign backwards while still passing the 0/0.5 checks (both 0 either
+     * way), which is exactly the kind of bug this test exists to catch.
+     */
+    T_CHECK(fixed_sin(0) == 0);
+    T_CHECK(fixed_cos(0) == FX_ONE);
+
+    T_CHECK(fixed_sin(FX_ONE / 4) == -FX_ONE);
+    T_CHECK(fixed_cos(FX_ONE / 4) == 0);
+
+    T_CHECK(fixed_sin(FX_ONE / 2) == 0);
+    T_CHECK(fixed_cos(FX_ONE / 2) == -FX_ONE);
+
+    T_CHECK(fixed_sin(3 * FX_ONE / 4) == FX_ONE);
+    T_CHECK(fixed_cos(3 * FX_ONE / 4) == 0);
+}
+
+static void test_fixed_sin_cos_irrational_spot_check(void) {
+    /* turns = 1/3: not a table-boundary value, so this actually exercises
+     * the interpolation path (unlike the exact-quarter-turn checks above).
+     * Expected values are independently derived here from PICO-8's own
+     * documented formula (pico8_sin(x) = -sin(2*pi*x), pico8_cos(x) =
+     * cos(2*pi*x)) via libm at test time -- not copied from this chunk's
+     * PRD text, which never states this particular value. */
+    double x = 1.0 / 3.0;
+    fixed_t turns = fixed_from_double(x);
+
+    double expected_sin = -sin(2.0 * M_PI * x);
+    double expected_cos = cos(2.0 * M_PI * x);
+
+    double actual_sin = fixed_to_double(fixed_sin(turns));
+    double actual_cos = fixed_to_double(fixed_cos(turns));
+
+    /* Tolerance covers (a) fixed_from_double's own rounding of 1/3 into
+     * Q16.16 before fixed_sin/fixed_cos ever see it, (b) the lookup table's
+     * linear-interpolation error between its 1/1024-turn samples (bounded
+     * by (1/8)*|f''|*h^2 for linear interpolation of sin/cos, h = 2*pi/1024
+     * radians, |f''| <= (2*pi)^2 -- a small fraction of a Q16.16 unit), and
+     * (c) the table itself being rounded to the nearest Q16.16 integer at
+     * generation time. EPSILON (0.001, already used above for fixed_sqrt)
+     * is generous against all three combined while still tight enough to
+     * catch a genuinely broken table, interpolation, or sign error. */
+    T_CHECK(fabs(actual_sin - expected_sin) < EPSILON);
+    T_CHECK(fabs(actual_cos - expected_cos) < EPSILON);
+}
+
 static void test_rng_deterministic_for_same_seed(void) {
     rng_t a, b;
     rng_seed(&a, 12345u);
@@ -105,6 +169,8 @@ int main(void) {
     t_run("fixed_sqrt_irrational_within_tolerance", test_fixed_sqrt_irrational_within_tolerance);
     t_run("fixed_sqrt_negative_is_zero", test_fixed_sqrt_negative_is_zero);
     t_run("fixed_sqrt_is_monotonic", test_fixed_sqrt_is_monotonic);
+    t_run("fixed_sin_cos_known_turns", test_fixed_sin_cos_known_turns);
+    t_run("fixed_sin_cos_irrational_spot_check", test_fixed_sin_cos_irrational_spot_check);
     t_run("rng_deterministic_for_same_seed", test_rng_deterministic_for_same_seed);
     t_run("rng_next_range_stays_within_bounds", test_rng_next_range_stays_within_bounds);
     return t_report();
