@@ -512,3 +512,32 @@ int effects_popup_fade_index(const effects_popup_t *p) {
 
     return index;
 }
+
+/*
+ * EFFECTS_GROWBAR_STEP -- ports `pj:kj`'s own literal `self.gz+=0.2`
+ * (pico8/lua.lua:854). 0.2*FX_ONE (13107.2) is NOT exactly representable,
+ * so this truncates to 13107 -- the same double-to-fixed_t truncation
+ * convention every other literal-constant macro in this file already
+ * follows (e.g. EFFECTS_KICK_DECAY_PER_STEP's identical `0.1` literal
+ * above).
+ */
+#define EFFECTS_GROWBAR_STEP ((fixed_t)(0.2 * (double)FX_ONE))
+
+/*
+ * EFFECTS_GROWBAR_HEIGHT_CAP -- ports `pj:kj`'s own literal `min(self.gz,
+ * 3.2)` (pico8/lua.lua:855). 3.2*FX_ONE (209715.2) is NOT exactly
+ * representable, so this truncates to 209715 -- same convention as
+ * EFFECTS_GROWBAR_STEP above.
+ */
+#define EFFECTS_GROWBAR_HEIGHT_CAP ((fixed_t)(3.2 * (double)FX_ONE))
+
+fixed_t effects_growbar_step(effects_growbar_t *g) {
+    /* self.gz+=0.2 (pico8/lua.lua:854): uncapped -- only the height formula
+     * below clamps its USE of gz, not gz itself. */
+    g->gz = fixed_add(g->gz, EFFECTS_GROWBAR_STEP);
+
+    /* h=min(self.gz,3.2)^2 (pico8/lua.lua:855): clamp FIRST, then square via
+     * fixed_mul -- matching source's own exact order. */
+    fixed_t clamped = g->gz > EFFECTS_GROWBAR_HEIGHT_CAP ? EFFECTS_GROWBAR_HEIGHT_CAP : g->gz;
+    return fixed_mul(clamped, clamped);
+}

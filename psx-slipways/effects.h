@@ -833,4 +833,79 @@ int effects_popup_step(effects_popup_t *p);
  */
 int effects_popup_fade_index(const effects_popup_t *p);
 
+/*
+ * effects_growbar_t -- the end-game reveal's growing frame-border bars'
+ * counter state, ported from `pj:kj`'s own `self.gz` field (pico8/lua.lua:
+ * 853-856):
+ *
+ *   function pj:kj()bl(la(pj.i_,pj.ou))if self.gz then
+ *   self.gz+=0.2
+ *   local h=min(self.gz,3.2)^2
+ *   rk(0,h,0)rk(127-h,127)end
+ *   end
+ *
+ * Only the `self.gz` branch matters for this chunk -- `bl(la(pj.i_,pj.ou))`
+ * at the top is the milestone-popup screen shake (`mh`/`bl()`), already out
+ * of scope for this whole PRD (no camera system -- see
+ * docs/prd/triage/psx-juice-effects.md's Out of Scope), and NOT part of
+ * what this struct/function pair ports. `self.gz` is only non-nil during
+ * the end-game reveal (source's own `if self.gz then...end` guard around
+ * the whole per-tick update) -- this port doesn't model that live/absent
+ * state, so this chunk just ports the pure `gz`/height formula assuming the
+ * caller already knows it's active; see effects.h's doc comment on
+ * effects_growbar_step below for the full trace.
+ *
+ * `self.gz` (a single `pj`-instance field in source) is the whole of this
+ * effect's traced state -- carried here as its own small struct, matching
+ * effects_kick_t's/effects_popup_t's own established "one struct per traced
+ * piece of per-instance state" shape, rather than a bare fixed_t the caller
+ * has to remember the meaning of.
+ */
+typedef struct {
+    fixed_t gz;
+} effects_growbar_t;
+
+/*
+ * effects_growbar_step -- ports `pj:kj`'s own per-tick `self.gz`
+ * advance-then-height-formula (see effects_growbar_t's doc comment above
+ * for the full source excerpt): `self.gz+=0.2` then
+ * `h=min(self.gz,3.2)^2`.
+ *
+ * Advance (`self.gz+=0.2`): advances `g->gz` by exactly
+ * EFFECTS_GROWBAR_STEP (0.2*FX_ONE, truncated -- effects.c) per call,
+ * UNCAPPED -- source's own `self.gz+=0.2` has no ceiling on `gz` itself,
+ * only on its USE in the height formula below (`min(self.gz,3.2)`, not
+ * `self.gz=min(self.gz+0.2,3.2)`), so `g->gz` keeps growing without bound
+ * for as long as the caller keeps calling this function, matching this
+ * file's established "PICO-8's own numbers are natively Q16.16, so a plain
+ * per-tick literal is exactly that many FX_ONE units" convention
+ * (effects_popup_step's own `self.l+=0.1` precedent).
+ *
+ * Height (`h=min(self.gz,3.2)^2`): the (just-advanced) `g->gz` is clamped
+ * to at most EFFECTS_GROWBAR_HEIGHT_CAP (3.2*FX_ONE, truncated -- effects.c)
+ * FIRST, then squared via `fixed_mul` -- matching source's own exact
+ * `min(gz,3.2)^2` order (clamp then square, not square then clamp). No
+ * sqrt is needed anywhere in this formula. Because EFFECTS_GROWBAR_STEP is
+ * a TRUNCATED representation of the real 0.2 (0.2*FX_ONE==13107.2,
+ * truncated to 13107 -- see effects.c), `g->gz` accumulates slightly slower
+ * than the real 0.2/tick rate, so the cap does NOT first engage on the
+ * naively-expected 16th call (16*0.2==3.2 in real terms) -- see
+ * effects_test.c's own hand-derivation for the exact call this actually
+ * crosses on.
+ *
+ * `rk(0,h,0)`/`rk(127-h,127)` (drawing the two growing frame bars, top and
+ * bottom) are NOT part of this function -- pure rendering, out of scope for
+ * this pure-function step, matching every other unwired module in this
+ * file.
+ *
+ * Returns the computed height directly (unlike effects_flow_step_particle's/
+ * effects_popup_step's own alive/dead int return -- this formula has no
+ * lifecycle to report, it is a pure per-call computation, matching
+ * effects_probe_pulse_radius's/effects_probe_sweep_radius's own "return the
+ * computed value directly" shape instead). Mutates *g in place (advancing
+ * gz), matching this file's established in/out-parameter convention
+ * (effects_flow_step_particle, effects_kick_step, effects_popup_step).
+ */
+fixed_t effects_growbar_step(effects_growbar_t *g);
+
 #endif

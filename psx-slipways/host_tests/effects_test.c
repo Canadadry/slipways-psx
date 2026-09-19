@@ -1557,6 +1557,178 @@ static void test_popup_fade_index_monotonic_and_bounded_through_and_past_death(v
     T_CHECK(prev_index == 4);
 }
 
+/* Chunk 11: EFFECTS_GROWBAR_STEP is file-local to effects.c, so this helper
+ * re-derives the same literal-to-fixed_t translation independently here --
+ * `self.gz+=0.2` (`pj:kj`, pico8/lua.lua:854, the end-game reveal's
+ * frame-grow bars). 0.2*FX_ONE (13107.2) is NOT exactly representable; C's
+ * (fixed_t) cast from a positive double truncates towards zero, giving
+ * 13107, matching effects.c's own EFFECTS_GROWBAR_STEP. */
+static fixed_t growbar_step_constant(void) {
+    return (fixed_t)(0.2 * (double)FX_ONE);
+}
+
+/* Chunk 11: same independent-re-derivation pattern for the height cap --
+ * `min(self.gz,3.2)` (`pj:kj`, pico8/lua.lua:855). 3.2*FX_ONE (209715.2) is
+ * NOT exactly representable, truncating to 209715. */
+static fixed_t growbar_height_cap_constant(void) {
+    return (fixed_t)(3.2 * (double)FX_ONE);
+}
+
+/* Chunk 11: `g->gz` advances by exactly EFFECTS_GROWBAR_STEP every call,
+ * UNCAPPED -- checked well past the point where the HEIGHT formula's own
+ * clamp engages (call 17, per the hand-derivation in
+ * test_growbar_cap_engages_at_17th_call_not_16th below), confirming gz
+ * itself keeps growing without bound, matching source's own `self.gz+=0.2`
+ * (no ceiling on gz, only on its use in the height formula) -- see
+ * effects.h's doc comment on effects_growbar_step for why. Checked as EXACT
+ * equality (fixed_add is exact integer addition, and the step constant is
+ * itself an exact integer once truncated), across 30 calls. */
+static void test_growbar_gz_advances_by_exact_step_uncapped(void) {
+    effects_growbar_t g = {0};
+    fixed_t step = growbar_step_constant();
+
+    fixed_t expected_gz = 0;
+    for (int call = 1; call <= 30; call++) {
+        effects_growbar_step(&g);
+        expected_gz = fixed_add(expected_gz, step);
+        T_CHECK(g.gz == expected_gz);
+    }
+
+    /* By call 30, gz is comfortably past the 3.2*FX_ONE height cap -- gz
+     * itself must still equal the plain uncapped sum, not the clamped
+     * value. */
+    T_CHECK(g.gz > growbar_height_cap_constant());
+}
+
+/* Chunk 11: the exact call at which the HEIGHT formula's clamp first
+ * engages, hand-derived here independently of both the PRD text (which
+ * claims "the 16th" call) and effects.c's own EFFECTS_GROWBAR_STEP/
+ * EFFECTS_GROWBAR_HEIGHT_CAP macros (which would make this test
+ * tautological against a wrong constant):
+ *
+ *   EFFECTS_GROWBAR_STEP = (fixed_t)(0.2*65536) = (fixed_t)(13107.2) = 13107
+ *   (truncated towards zero, exact double-to-fixed_t translation).
+ *   EFFECTS_GROWBAR_HEIGHT_CAP = (fixed_t)(3.2*65536) =
+ *   (fixed_t)(209715.2) = 209715 (truncated towards zero).
+ *
+ *   After N calls (starting from gz=0), gz = N*13107 exactly (each call
+ *   adds the same already-truncated integer step, so this is exact integer
+ *   arithmetic, no further rounding per call -- the same "exact accumulated
+ *   sum of an exact per-step integer" reasoning
+ *   test_popup_dies_at_exactly_51st_step above already establishes for this
+ *   file).
+ *
+ *   N=16: gz = 16*13107 = 209712 -- STILL BELOW the cap (209712 < 209715),
+ *   so `min(gz,cap)` returns gz itself (209712) unclamped at call 16 --
+ *   contrary to the PRD's stated "the 16th" call. This is exactly the kind
+ *   of truncation-caused off-by-one this chunk's own task description
+ *   warns to verify precisely, not assume (mirroring
+ *   test_popup_dies_at_exactly_51st_step's own identical "50th" vs "51st"
+ *   finding for a different constant in this same file).
+ *
+ *   N=17: gz = 17*13107 = 222819 -- now >= the cap (222819 >= 209715), so
+ *   `min(gz,cap)` clamps to exactly 209715 here for the first time. The cap
+ *   FIRST ENGAGES ON THE 17TH CALL, not the 16th.
+ *
+ *   Heights: h(16) = fixed_mul(209712,209712) = (209712*209712)>>16 =
+ *   671068 (still the UNCLAMPED gz squared). h(17) =
+ *   fixed_mul(209715,209715) = (209715*209715)>>16 = 671087 (the CLAMPED
+ *   cap squared, for the first time) -- both values computed here via
+ *   fixed_mul directly (the same primitive effects_growbar_step itself
+ *   uses), not via floating-point, so this is an exact integer check with
+ *   no tolerance needed.
+ */
+static void test_growbar_cap_engages_at_17th_call_not_16th(void) {
+    effects_growbar_t g = {0};
+
+    fixed_t h = 0;
+    for (int call = 1; call <= 17; call++) {
+        h = effects_growbar_step(&g);
+    }
+
+    /* Re-derive both boundary heights independently via fixed_mul on the
+     * hand-computed gz values above, not by copying effects_growbar_step's
+     * own return value back at itself. */
+    fixed_t h16 = fixed_mul(209712, 209712);
+    fixed_t h17 = fixed_mul(209715, 209715);
+    T_CHECK(h16 == 671068);
+    T_CHECK(h17 == 671087);
+
+    /* Rewind and check call 16 in isolation: still unclamped. */
+    effects_growbar_t g16 = {0};
+    fixed_t h_at_16 = 0;
+    for (int call = 1; call <= 16; call++) {
+        h_at_16 = effects_growbar_step(&g16);
+    }
+    T_CHECK(g16.gz == 16 * 13107);
+    T_CHECK(g16.gz < growbar_height_cap_constant());
+    T_CHECK(h_at_16 == h16);
+
+    /* Call 17: gz has now crossed the cap, so the height is the CLAMPED cap
+     * squared, not gz itself squared. */
+    T_CHECK(g.gz == 17 * 13107);
+    T_CHECK(g.gz >= growbar_height_cap_constant());
+    T_CHECK(h == h17);
+}
+
+/* Chunk 11: effects_growbar_step matches `min(gz,3.2)^2` at several
+ * hand-picked call counts well before the cap engages (calls 1, 5, 10),
+ * confirming the plain unclamped-squaring path, not just the boundary
+ * calls test_growbar_cap_engages_at_17th_call_not_16th already covers.
+ * Expected heights are computed here via fixed_mul directly on the
+ * independently hand-derived gz value at each call count (N*13107), not
+ * copied from the PRD text and not recomputed through effects.c's own
+ * macros. */
+static void test_growbar_height_matches_formula_before_cap_engages(void) {
+    struct {
+        int calls;
+        fixed_t expected_gz;
+        fixed_t expected_height;
+    } cases[] = {
+        {1, 1 * 13107, fixed_mul(1 * 13107, 1 * 13107)},
+        {5, 5 * 13107, fixed_mul(5 * 13107, 5 * 13107)},
+        {10, 10 * 13107, fixed_mul(10 * 13107, 10 * 13107)},
+    };
+
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        effects_growbar_t g = {0};
+        fixed_t h = 0;
+        for (int call = 0; call < cases[i].calls; call++) {
+            h = effects_growbar_step(&g);
+        }
+
+        T_CHECK(g.gz == cases[i].expected_gz);
+        T_CHECK(h == cases[i].expected_height);
+    }
+}
+
+/* Chunk 11: once the cap has engaged (call 17 onward, per
+ * test_growbar_cap_engages_at_17th_call_not_16th), the returned height
+ * stays EXACTLY at the capped value (EFFECTS_GROWBAR_HEIGHT_CAP squared)
+ * forever after, even though gz itself (per
+ * test_growbar_gz_advances_by_exact_step_uncapped) keeps growing without
+ * bound -- checked well past the cap-engaging call (up to call 50), not
+ * just immediately after it. */
+static void test_growbar_height_stays_capped_well_past_cap_engaging_call(void) {
+    effects_growbar_t g = {0};
+    fixed_t capped_height = fixed_mul(209715, 209715);
+
+    fixed_t h = 0;
+    for (int call = 1; call <= 50; call++) {
+        h = effects_growbar_step(&g);
+        if (call >= 17) {
+            T_CHECK(h == capped_height);
+        }
+    }
+
+    T_CHECK(h == capped_height);
+    /* gz itself is still far past the cap, confirming the height clamp is
+     * genuinely re-derived from a still-growing gz each call, not a
+     * one-time latch. */
+    T_CHECK(g.gz == 50 * 13107);
+    T_CHECK(g.gz > growbar_height_cap_constant());
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -1642,5 +1814,13 @@ int main(void) {
           test_popup_fade_index_is_4_just_before_death);
     t_run("popup_fade_index_monotonic_and_bounded_through_and_past_death",
           test_popup_fade_index_monotonic_and_bounded_through_and_past_death);
+    t_run("growbar_gz_advances_by_exact_step_uncapped",
+          test_growbar_gz_advances_by_exact_step_uncapped);
+    t_run("growbar_cap_engages_at_17th_call_not_16th",
+          test_growbar_cap_engages_at_17th_call_not_16th);
+    t_run("growbar_height_matches_formula_before_cap_engages",
+          test_growbar_height_matches_formula_before_cap_engages);
+    t_run("growbar_height_stays_capped_well_past_cap_engaging_call",
+          test_growbar_height_stays_capped_well_past_cap_engaging_call);
     return t_report();
 }
