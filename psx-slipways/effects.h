@@ -202,4 +202,58 @@ void effects_kick_step(effects_kick_t *k);
  */
 void effects_kick_offset(const effects_kick_t *k, fixed_t age_ticks, fixed_t *out_dx, fixed_t *out_dy);
 
+/*
+ * effects_idle_bob_delta -- ports `na(self,t)`'s per-tick vertical delta,
+ * pico8/lua.lua:577-579:
+ *
+ *   function na(self,t)
+ *   self.ra.y+=sin(t*0.005)*0.06
+ *   end
+ *
+ * `na()` itself **directly mutates** `self.ra.y` (the entity's own
+ * screen-space render position) in place, every tick. Unlike that, this is
+ * ported as a pure function returning that same per-tick delta for the
+ * caller to add -- matching `ma()`'s/effects_kick_offset's own
+ * function-not-mutation shape rather than `na()`'s literal
+ * mutate-in-place shape, since every other primitive in this codebase (and
+ * docs/prd/psx-effects.md's own established convention) returns a value for
+ * the caller to apply, never reaches into a shared struct field directly.
+ * See docs/prd/triage/psx-juice-effects.md, "### 3. Trade-league idle bob"
+ * for the full trace -- trigger state (`self.me=="ly"`, the "trade league"
+ * special-resource planet type's settled state), cadence, and why this
+ * stays unwired (no live "trade league" planet-type assignment exists in
+ * this port yet, `rules_planets.c`'s own 3-of-10-type coverage doesn't
+ * include it).
+ *
+ * `sin(t*0.005)`: `t` (age_ticks) scaled by `0.005` turns/tick, fed to
+ * fixed_sin -- NOT fixed_cos; this is a plain sine wave, unlike
+ * effects_kick_offset's combined cos/sin pair via fixed_polar. PICO-8's own
+ * turns-based, sign-flipped sin() convention applies here exactly as it
+ * does everywhere else fixed_sin is used (see fixed.h's fixed_sin/fixed_cos
+ * block comment) -- a continuous, non-decaying oscillation for as long as
+ * the caller keeps advancing age_ticks (unlike the kick wobble, this never
+ * settles to zero).
+ *
+ * `*0.06`: source's own literal amplitude, in PICO-8's native 128-unit
+ * coordinate space -- kept here as a literal Q16.16 constant, NOT rescaled
+ * to this port's own screen resolution, exactly matching
+ * EFFECTS_KICK_START_AMPLITUDE's identical "keep the traced literal,
+ * caller applies whatever screen-space scale it needs" precedent
+ * (effects.c) -- this function has no opinion on screen_map.c's own
+ * PICO-8-128-to-PSX-screen-space rescale (screen_map_planet), since unlike
+ * that rescale (which converts a WORLD position), this is a small
+ * *offset* added on top of an already-placed screen-space position, and
+ * no live "trade league" caller exists yet to settle what scale it would
+ * need applied at. A future caller wiring this in decides that, the same
+ * way effects_kick_offset's own amplitude is left unscaled today.
+ *
+ * age_ticks follows this codebase's established "PICO-8's own numbers are
+ * natively Q16.16" convention (see effects_flow_step_particle's doc
+ * comment on `t.l`/effects_kick_offset's own age_ticks): a plain tick count
+ * is passed as that many whole FX_ONE units (e.g. tick 200 is
+ * `200 * FX_ONE`, not the plain integer `200`), matching every other
+ * age/tick-counter argument in this file.
+ */
+fixed_t effects_idle_bob_delta(fixed_t age_ticks);
+
 #endif

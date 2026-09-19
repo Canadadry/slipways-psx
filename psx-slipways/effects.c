@@ -174,3 +174,33 @@ void effects_kick_offset(const effects_kick_t *k, fixed_t age_ticks, fixed_t *ou
     fixed_t turns = fixed_mul(age_ticks, EFFECTS_KICK_ANGULAR_TURNS_PER_TICK);
     fixed_polar(k->amplitude, turns, out_dx, out_dy);
 }
+
+/*
+ * EFFECTS_IDLE_BOB_ANGULAR_TURNS_PER_TICK -- ports `na()`'s literal
+ * `t*0.005` (pico8/lua.lua:578): 0.005 turns swept per tick of age, fed to
+ * fixed_sin as its turns argument (see effects.h's doc comment on
+ * effects_idle_bob_delta for why fixed_sin, not fixed_cos). 0.005*FX_ONE
+ * (327.68) is NOT exactly representable, so this truncates to 327 -- the
+ * same double-to-fixed_t truncation convention EFFECTS_FLOW_SPAWN_CHANCE
+ * (effects.h) and EFFECTS_KICK_DECAY_PER_STEP above already establish for
+ * this codebase's literal-PICO8-constant macros.
+ */
+#define EFFECTS_IDLE_BOB_ANGULAR_TURNS_PER_TICK ((fixed_t)(0.005 * (double)FX_ONE))
+
+/*
+ * EFFECTS_IDLE_BOB_AMPLITUDE -- ports `na()`'s literal `*0.06`
+ * (pico8/lua.lua:578), kept in PICO-8's native 128-unit space, unscaled --
+ * see effects.h's doc comment on effects_idle_bob_delta for why this
+ * function doesn't rescale it. 0.06*FX_ONE (3932.16) is NOT exactly
+ * representable, so this truncates to 3932, same convention as the two
+ * constants above.
+ */
+#define EFFECTS_IDLE_BOB_AMPLITUDE ((fixed_t)(0.06 * (double)FX_ONE))
+
+fixed_t effects_idle_bob_delta(fixed_t age_ticks) {
+    /* sin(t*0.005)*0.06 -- fixed_sin (not fixed_cos: a plain sine wave, see
+     * effects.h's doc comment on this function), scaled by the traced,
+     * unrescaled amplitude. */
+    fixed_t turns = fixed_mul(age_ticks, EFFECTS_IDLE_BOB_ANGULAR_TURNS_PER_TICK);
+    return fixed_mul(fixed_sin(turns), EFFECTS_IDLE_BOB_AMPLITUDE);
+}

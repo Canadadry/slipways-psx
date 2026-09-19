@@ -3,6 +3,12 @@
 #include "../fixed.h"
 #include "../rng.h"
 
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /* Brute-force search for a seed whose FIRST rng_next_range(rng, 0, FX_ONE)
  * draw lands under EFFECTS_FLOW_SPAWN_CHANCE (~8% of draws do), used to
  * build a fixture that actually exercises the "the RNG draw succeeds" side
@@ -547,6 +553,70 @@ static void test_kick_offset_matches_fixed_polar_directly(void) {
     }
 }
 
+/* Chunk 4: effects_idle_bob_delta(0) == 0 -- turns = fixed_mul(0, rate) is
+ * exactly 0 regardless of the turn-rate constant's own truncation (anything
+ * times 0 is 0), and fixed_sin(0) is an exact table-boundary sample
+ * (already confirmed exact in rng_and_fixed_test.c's
+ * test_fixed_sin_cos_known_turns), so this is checked as EXACT equality,
+ * not tolerance-bounded, unlike the nonzero-t cases below. */
+static void test_idle_bob_delta_zero_ticks_is_zero(void) {
+    T_CHECK(effects_idle_bob_delta(0) == 0);
+}
+
+/* Chunk 4: effects_idle_bob_delta matches na()'s own `sin(t*0.005)*0.06`
+ * (pico8/lua.lua:578) at several hand-picked age_ticks values, including
+ * t=137 (not a "nice" round number, and not any exact fixed_sin table
+ * boundary either -- table samples land every 1/1024 turn, 137*0.005=0.685
+ * turns is not a multiple of that), so this genuinely exercises the
+ * interpolation path, not just table-boundary cases -- matching this
+ * chunk's own testing mandate (docs/prd/triage/psx-juice-effects.md,
+ * Implementation Chunks item 4) directly.
+ *
+ * Expected values are derived independently here via libm at test-authorship
+ * time (`-sin(2*pi*(t*0.005))*0.06`, PICO-8's own sign-flipped-sine
+ * convention -- see effects.h's doc comment on effects_idle_bob_delta and
+ * fixed.h's fixed_sin block comment), not copied from the PRD text (which
+ * states the formula but never this function's numeric values at these
+ * particular t's) and not recomputed through this port's own truncated
+ * EFFECTS_IDLE_BOB_ANGULAR_TURNS_PER_TICK/EFFECTS_IDLE_BOB_AMPLITUDE
+ * constants (which would make this test tautological against a wrong
+ * constant value).
+ *
+ * Tolerance: this function chains an EXTRA truncated constant
+ * (EFFECTS_IDLE_BOB_ANGULAR_TURNS_PER_TICK, 327 vs the real 327.68) ahead
+ * of fixed_sin, unlike rng_and_fixed_test.c's own
+ * test_fixed_sin_cos_irrational_spot_check (which feeds fixed_sin a turns
+ * value built directly via fixed_from_double, with no separate per-tick
+ * rate constant in between) -- so this needs a wider budget than that
+ * test's own EPSILON (0.001), not the same one reused unchanged. The rate
+ * constant's own truncation error (0.005 - 327/65536 =~ 0.0000103760
+ * turns/tick) accumulates linearly with t: at t=283 (the largest value
+ * tested here), that's ~0.0029364 turns of phase drift, i.e. ~0.01845
+ * radians, and since d(sin)/d(angle) <= 1, at most ~0.01845 of "raw sine"
+ * error before scaling by this function's own 0.06 amplitude -- ~0.0011.
+ * Adding a small margin for the table's own linear-interpolation error and
+ * the amplitude/fixed_mul truncations (each independently already shown
+ * negligible, well under 0.0001, by rng_and_fixed_test.c's own EPSILON
+ * budget scaled down by this function's 0.06 amplitude), 0.002 is
+ * comfortably above the ~0.0011 worst case among the t values tested here
+ * while still tight enough to catch a genuinely wrong rate/amplitude
+ * constant or a sign error. */
+static void test_idle_bob_delta_matches_formula_at_several_t_values(void) {
+    double IDLE_BOB_TOLERANCE = 0.002;
+
+    long t_values[] = {50, 137, 283, -64};
+
+    for (size_t i = 0; i < sizeof(t_values) / sizeof(t_values[0]); i++) {
+        double t = (double)t_values[i];
+        double expected = -sin(2.0 * M_PI * (t * 0.005)) * 0.06;
+
+        fixed_t age_ticks = fixed_from_double(t);
+        double actual = fixed_to_double(effects_idle_bob_delta(age_ticks));
+
+        T_CHECK(fabs(actual - expected) < IDLE_BOB_TOLERANCE);
+    }
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -570,5 +640,8 @@ int main(void) {
     t_run("kick_amplitude_reaches_zero_after_exactly_13_steps",
           test_kick_amplitude_reaches_zero_after_exactly_13_steps);
     t_run("kick_offset_matches_fixed_polar_directly", test_kick_offset_matches_fixed_polar_directly);
+    t_run("idle_bob_delta_zero_ticks_is_zero", test_idle_bob_delta_zero_ticks_is_zero);
+    t_run("idle_bob_delta_matches_formula_at_several_t_values",
+          test_idle_bob_delta_matches_formula_at_several_t_values);
     return t_report();
 }
