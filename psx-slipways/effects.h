@@ -256,4 +256,67 @@ void effects_kick_offset(const effects_kick_t *k, fixed_t age_ticks, fixed_t *ou
  */
 fixed_t effects_idle_bob_delta(fixed_t age_ticks);
 
+/*
+ * EFFECTS_SLIPWAY_REVEAL_RAMP -- ports `jc`'s own `k_` prototype field,
+ * pico8/lua.lua:618: `k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1)`. 20
+ * entries, PICO-8 palette indices, captured verbatim as raw index data (no
+ * RGB conversion at this layer) -- the same "traced-but-unmapped
+ * color/index data captured as-is" precedent sprite_atlas.h's own `SPRITE_*`
+ * constants already establish, and following FIXED_QUARTER_SIN_TABLE's own
+ * "static const array declared directly in its header" convention (fixed.h)
+ * since this codebase has no other precedent for an extern-const-array
+ * split across a .h/.c pair. See docs/prd/triage/psx-juice-effects.md,
+ * "### 4. Slipway newly-built color-reveal ramp" for the full trace.
+ */
+#define EFFECTS_SLIPWAY_REVEAL_RAMP_LENGTH 20
+
+static const int EFFECTS_SLIPWAY_REVEAL_RAMP[EFFECTS_SLIPWAY_REVEAL_RAMP_LENGTH] = {
+    0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1,
+};
+
+/*
+ * effects_reveal_ramp_step -- ports `jc:kj`'s own read-then-advance of the
+ * reveal-ramp counter `self.nh` against `self.k_`, pico8/lua.lua:667-670:
+ *
+ *   function jc:kj()if gd(self.qu)or gd(self.re)then
+ *   local jv=
+ *   self.k_[self.nh]
+ *   if (self.nh<20)self.nh+=1
+ *
+ * `self.nh` (a single `jc`-instance field in source, prototype-defaulted to
+ * `20` at pico8/lua.lua:619 -- an in-progress/never-released drag always
+ * reads the last, fully-settled ramp entry) is reset to `1` on a successful
+ * drag-release by `jc:ey(re)` (pico8/lua.lua:633-640: `self.nh,self.re=1,re`,
+ * inside the "drag completed into a new connection" success path). Neither
+ * that prototype default nor the reset call is this function's job -- both
+ * are ordinary caller-owned state, exactly like effects_flow_step_particle's
+ * own particle struct: the caller allocates and initializes its own `int nh`
+ * (to `20` for "never dragged"/"in progress", or resets it to `1` on a
+ * successful release, mirroring `jc:ey`) and threads it through this
+ * function via the `int *nh` out-parameter, matching this codebase's
+ * established in/out-parameter convention (effects_flow_step_particle,
+ * effects_kick_step) rather than this function owning any state itself.
+ *
+ * Each call reads `*nh` (the index to use THIS call) BEFORE advancing it --
+ * source's own `local jv=self.k_[self.nh]` runs before `self.nh+=1`, so the
+ * value returned by call N (from a fresh reset, N starting at 1) is exactly
+ * N itself, for N in [1,20], then holds at 20 forever after (source's own
+ * `if (self.nh<20)self.nh+=1`, i.e. the increment is skipped once `self.nh`
+ * already equals its 20 cap -- never overshoots). Returns that pre-increment
+ * value (the 1-based index into EFFECTS_SLIPWAY_REVEAL_RAMP above the caller
+ * should read for this call -- source's own `local jv=self.k_[self.nh]`,
+ * i.e. `EFFECTS_SLIPWAY_REVEAL_RAMP[effects_reveal_ramp_step(&nh) - 1]` for
+ * this function's 1-based return value against this port's 0-based array),
+ * NOT the color value itself -- this function is the pure counter only,
+ * mirroring this codebase's "one function per traced piece of behavior"
+ * style (effects_kick_step/effects_kick_offset's own identical split)
+ * rather than folding the table lookup in here too.
+ *
+ * This chunk is independently implementable: unlike every other function in
+ * this file, it has no dependency on fixed_t/fixed_sin/fixed_polar at all --
+ * a pure int-counter, per docs/prd/triage/psx-juice-effects.md's
+ * Implementation Chunks item 5.
+ */
+int effects_reveal_ramp_step(int *nh);
+
 #endif

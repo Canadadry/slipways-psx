@@ -204,3 +204,18 @@ fixed_t effects_idle_bob_delta(fixed_t age_ticks) {
     fixed_t turns = fixed_mul(age_ticks, EFFECTS_IDLE_BOB_ANGULAR_TURNS_PER_TICK);
     return fixed_mul(fixed_sin(turns), EFFECTS_IDLE_BOB_AMPLITUDE);
 }
+
+int effects_reveal_ramp_step(int *nh) {
+    /* local jv=self.k_[self.nh] (pico8/lua.lua:669): read the CURRENT index
+     * before it advances -- this is the value THIS call returns. */
+    int index = *nh;
+
+    /* if (self.nh<20)self.nh+=1 (pico8/lua.lua:670): advance, capped at 20
+     * -- the increment is skipped once *nh already equals the cap, so it
+     * never overshoots. */
+    if (*nh < EFFECTS_SLIPWAY_REVEAL_RAMP_LENGTH) {
+        *nh += 1;
+    }
+
+    return index;
+}

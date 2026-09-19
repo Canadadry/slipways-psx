@@ -617,6 +617,58 @@ static void test_idle_bob_delta_matches_formula_at_several_t_values(void) {
     }
 }
 
+/* Chunk 5: the sequence of values returned over 25 calls, starting from a
+ * fresh reset (nh=1, matching jc:ey's own self.nh=1), climbs 1,2,...,19,20
+ * then holds at 20 forever -- source's own read-before-increment,
+ * capped-at-20 counter (pico8/lua.lua:669-670). Hand-traced here, not just
+ * restated from the PRD: call N returns the pre-increment value of nh, which
+ * starts at 1 and increments by exactly 1 per call while nh<20, so call N
+ * returns N for N in [1,20] (20 calls climb 1..20, incrementing after each
+ * of the first 19 since only those satisfy nh<20 at read time -- the 20th
+ * call reads nh==20 and, since 20<20 is false, does NOT increment further);
+ * every call after that (calls 21-25) reads nh==20 again and again returns
+ * 20, never incrementing past the cap. */
+static void test_reveal_ramp_step_sequence_climbs_then_holds_at_20(void) {
+    int nh = 1;
+    int expected[25] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13,
+                         14, 15, 16, 17, 18, 19, 20, 20, 20, 20, 20, 20};
+
+    for (int call = 0; call < 25; call++) {
+        int value = effects_reveal_ramp_step(&nh);
+        T_CHECK(value == expected[call]);
+    }
+
+    T_CHECK(nh == 20);
+}
+
+/* Chunk 5: an in-progress/never-reset counter (nh starting at its `jc`
+ * prototype default of 20, pico8/lua.lua:619, i.e. a drag that was never
+ * successfully released) always reads the last, fully-settled ramp entry --
+ * every call returns 20, with no climb at all, and nh never moves past 20. */
+static void test_reveal_ramp_step_default_20_never_climbs(void) {
+    int nh = 20;
+
+    for (int call = 0; call < 5; call++) {
+        int value = effects_reveal_ramp_step(&nh);
+        T_CHECK(value == 20);
+        T_CHECK(nh == 20);
+    }
+}
+
+/* Chunk 5: EFFECTS_SLIPWAY_REVEAL_RAMP's 20 entries match `k_`
+ * (pico8/lua.lua:618) exactly, cross-checked directly against the actual
+ * source line (re-read at pico8/lua.lua:618 during this chunk's
+ * implementation, not just copied from the PRD's own transcription of it):
+ * `k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1)`. */
+static void test_reveal_ramp_table_matches_traced_k_table(void) {
+    int expected[EFFECTS_SLIPWAY_REVEAL_RAMP_LENGTH] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9,
+                                                          9, 9, 9, 9, 4,  4,  4, 2, 2, 1};
+
+    for (int i = 0; i < EFFECTS_SLIPWAY_REVEAL_RAMP_LENGTH; i++) {
+        T_CHECK(EFFECTS_SLIPWAY_REVEAL_RAMP[i] == expected[i]);
+    }
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -643,5 +695,11 @@ int main(void) {
     t_run("idle_bob_delta_zero_ticks_is_zero", test_idle_bob_delta_zero_ticks_is_zero);
     t_run("idle_bob_delta_matches_formula_at_several_t_values",
           test_idle_bob_delta_matches_formula_at_several_t_values);
+    t_run("reveal_ramp_step_sequence_climbs_then_holds_at_20",
+          test_reveal_ramp_step_sequence_climbs_then_holds_at_20);
+    t_run("reveal_ramp_step_default_20_never_climbs",
+          test_reveal_ramp_step_default_20_never_climbs);
+    t_run("reveal_ramp_table_matches_traced_k_table",
+          test_reveal_ramp_table_matches_traced_k_table);
     return t_report();
 }
