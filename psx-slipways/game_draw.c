@@ -83,7 +83,16 @@ void game_draw(void) {
 
 		SPRT sprite;
 		setSprt(&sprite);
-		setXY0(&sprite, x - sw / 2, y - sh / 2);
+		/* Fixed -4,-4 offset, not -sw/2,-sh/2: the real spr() call is
+		 * spr(...,p.x-4,p.y-4,2,2) (pico8/lua.lua:546) -- a deliberate,
+		 * non-centering offset, since sprite 43's actual art occupies
+		 * only the requested 2x2 cel's top-left 8x8 quadrant (confirmed
+		 * against pico8/gfx.json: non-zero pixels span local x[1,7]
+		 * y[1,7] of the 16x16 cel). -sw/2,-sh/2 (-8,-8) would center the
+		 * *whole* 16x16 box on the planet position, leaving the actual
+		 * visible art offset up-left of it -- exactly the "connects at
+		 * top-left, not center" bug this literal offset avoids. */
+		setXY0(&sprite, x - 4, y - 4);
 		setUV0(&sprite, sx, sy);
 		setWH(&sprite, sw, sh);
 		sprite.clut = sprite_atlas_get_clut();
@@ -171,7 +180,11 @@ void game_draw(void) {
 
 			SPRT sprite;
 			setSprt(&sprite);
-			setXY0(&sprite, cursor.x - sw / 2, cursor.y - sh / 2);
+			/* No offset at all, not -sw/2,-sh/2: the real call is the
+			 * bare spr(...,je.ra.x,je.ra.y) (pico8/lua.lua:225) --
+			 * je.ra is cursor.x/y's own source equivalent, used directly
+			 * as the sprite's top-left corner, not centered on it. */
+			setXY0(&sprite, cursor.x, cursor.y);
 			setUV0(&sprite, sx, sy);
 			setWH(&sprite, sw, sh);
 			sprite.clut = sprite_atlas_get_clut();
@@ -249,11 +262,15 @@ void game_draw(void) {
 			 * source's own behavior exactly, not a bug). Drawn at the
 			 * same bx,by the line's own target endpoint already
 			 * computed (the hovered planet's screen position, or the
-			 * cursor's raw position), centered like every other sprite
-			 * in this file (x - sw/2, y - sh/2) rather than replicating
-			 * PICO-8's raw mp.x-3,mp.y-8 offset literally -- same
-			 * half-size-centering convention chunk 5's cursor/planet
-			 * sprites already established.
+			 * cursor's raw position), offset by the real spr(31,
+			 * mp.x-3,mp.y-8) call's own literal -3,-8 (pico8/lua.lua:
+			 * 564) rather than a generic centering offset: the real
+			 * source deliberately places this marker above and
+			 * slightly right of the target point, not centered on it,
+			 * and the cursor/planet sprites' own centering (chunks 4/5)
+			 * was itself a mismatch against their real spr() calls'
+			 * literal offsets, corrected alongside this one -- see
+			 * those blocks' own comments.
 			 *
 			 * DR_TPAGE kept inline (per-draw), not hoisted: this marker
 			 * draws at most once per frame (only while dragging, and
@@ -272,7 +289,7 @@ void game_draw(void) {
 
 				SPRT marker;
 				setSprt(&marker);
-				setXY0(&marker, bx - sw / 2, by - sh / 2);
+				setXY0(&marker, bx - 3, by - 8);
 				setUV0(&marker, sx, sy);
 				setWH(&marker, sw, sh);
 				marker.clut = sprite_atlas_get_clut();
