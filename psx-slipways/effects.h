@@ -703,4 +703,134 @@ int effects_spiral_try_spawn_particle(fixed_t base_radius, int sectors, int tang
  */
 int effects_spiral_step_particle(effects_spiral_particle_t *p, fixed_t m00, fixed_t m01, fixed_t m10, fixed_t m11);
 
+/*
+ * effects_popup_t -- the money-spent/income floating popup's motion/fade
+ * state, ported from `iv` (pico8/lua.lua:941-951, `iv:ph`'s per-tick update
+ * block; see also pico8/lua.lua:339-345 (`ne()`, the value-formatting
+ * helper this popup's out-of-scope text draw uses), 515-516 (`jo:hk()`, the
+ * income-popup trigger), 1217-1225 (`hy:lu()`, the spend/insufficient-funds
+ * trigger)):
+ *
+ *   iv=ke:jr([[
+ *   fa=9,
+ *   l=0,v=v(0,-0.34),
+ *   ]])function iv:pq()self.ra=self.ra or
+ *   je.ra+mo.ra-v(0,5)end
+ *   function iv:ph()
+ *   self.ra+=self.v
+ *   self.l+=0.1
+ *   self.p_=self.l>=5
+ *   end
+ *   function iv:kj(p)dv(self.l)io(self[1],p.x,p.y,self[2],0.5)dv()end
+ *
+ * `self.ra` (position) and `self.v`/`self.l` (velocity/age-timer -- this
+ * struct's own `vy`/`age`) are the whole of this effect's traced state --
+ * carried here as its own small struct, matching effects_kick_t's/effects_
+ * spiral_particle_t's own established "one struct per traced piece of
+ * per-instance state" shape. `self.v` (`v=(0,-0.34)`) is a FIXED constant
+ * in source, never reassigned after the prototype default -- this struct
+ * still stores it as a mutable `vy` field rather than applying the constant
+ * directly inside effects_popup_step, matching this step's Data Model's
+ * exact struct shape (docs/prd/triage/psx-juice-effects.md's own
+ * `effects_popup_t` entry) rather than optimizing the field away.
+ *
+ * `iv:pq()`'s own anchor-position setup (`self.ra=self.ra or je.ra+mo.ra-v
+ * (0,5)`) and `iv:kj`'s own text draw (`io(self[1],p.x,p.y,self[2],0.5)`,
+ * wrapped in `dv(self.l)...dv()`'s palette-swap bracket,
+ * docs/prd/psx-sprites-audio-extraction.md's own already-traced mechanism)
+ * are both out of scope for this chunk -- `pq()` is a one-time spawn-anchor
+ * default this chunk's own effects_popup_start (below) replaces with an
+ * explicit caller-supplied (x,y) instead (that default computes the anchor
+ * from two other live entities' own positions, `je`/`mo`, out of scope
+ * here, matching effects_flow_try_spawn's own caller-supplied-not-a-live-
+ * global precedent), and `kj()`'s text rendering needs `io()` (PICO-8's
+ * print), which no font/glyph rendering anywhere in this port implements
+ * (re-confirmed by every prior PRD's identical finding) -- see this PRD's
+ * "### 6. Money-spent/income floating popup" section for the full trace.
+ */
+typedef struct {
+    fixed_t x, y, vy, age;
+} effects_popup_t;
+
+/*
+ * effects_popup_start -- initializes a fresh popup at the caller-supplied
+ * spawn position (x,y), standing in for `iv:pq()`'s own one-time anchor
+ * default -- see effects_popup_t's doc comment above for why that default
+ * itself is out of scope here; this function simply takes the already-
+ * resolved (x,y) directly, matching effects_kick_start's/effects_spiral_
+ * try_spawn_particle's own "caller resolves whatever live state feeds this
+ * effect, this function just applies it" convention. Sets *p's position to
+ * (x,y), `vy` to the fixed constant `v=(0,-0.34)` (EFFECTS_POPUP_VELOCITY_Y,
+ * effects.c), and `age` to 0 -- matching `l=0` in `iv`'s own prototype
+ * default.
+ */
+void effects_popup_start(effects_popup_t *p, fixed_t x, fixed_t y);
+
+/*
+ * effects_popup_step -- ports `iv:ph()`'s own per-tick update body (see
+ * effects_popup_t's doc comment above for the full source excerpt):
+ *
+ *   self.ra+=self.v
+ *   self.l+=0.1
+ *   self.p_=self.l>=5
+ *
+ * Position advance (`self.ra+=self.v`): straight addition of the stored
+ * (fixed, never-changing) velocity `p->vy` to `p->y` only -- `v=(0,-0.34)`
+ * has no x component, matching source's own "no horizontal motion" literal
+ * exactly (p->x is left untouched by this function).
+ *
+ * Age/fade timer (`self.l+=0.1`): advances `p->age` by exactly
+ * EFFECTS_POPUP_AGE_PER_STEP (0.1*FX_ONE, truncated -- effects.c) per call
+ * -- PICO-8's own numbers are natively Q16.16, matching this file's
+ * established "a plain per-tick literal is exactly that many FX_ONE units,
+ * not a separately-rescaled integer" convention (effects_flow_step_
+ * particle's/effects_spiral_step_particle's own identical precedent).
+ *
+ * Death (`self.p_=self.l>=5`): returns 1 while still alive (age <
+ * 5*FX_ONE after the increment), 0 once dead (age >= 5*FX_ONE) -- matching
+ * effects_flow_step_particle's/effects_spiral_step_particle's own
+ * established "1=alive, 0=dead" return convention, inverted from source's
+ * own "pending delete" boolean sense, exactly like those two functions
+ * invert their own source `del(...)`/`p_` tests. Because EFFECTS_POPUP_
+ * AGE_PER_STEP is a TRUNCATED representation of the real 0.1 (0.1*FX_ONE
+ * ==6553.6, truncated to 6553 -- see effects.c), this accumulates slightly
+ * slower than the real 0.1/tick rate, so death does NOT land on the
+ * naively-expected 50th call (50*0.1==5.0 in real terms) -- see
+ * effects_test.c's own hand-derivation for the exact call this actually
+ * crosses on.
+ *
+ * Mutates *p in place, matching this file's established in/out-parameter
+ * convention (effects_flow_step_particle, effects_kick_step, effects_
+ * spiral_step_particle).
+ */
+int effects_popup_step(effects_popup_t *p);
+
+/*
+ * effects_popup_fade_index -- ports `iv:kj`'s own use of `self.l` as a
+ * direct palette-swap-table index (`dv(self.l)...io(...)...dv()`, see
+ * effects_popup_t's doc comment above for the full source excerpt): `self.l`
+ * (0 at spawn, rising toward 5 at death, in steps of 0.1/tick) is used AS
+ * the index directly, not smoothly interpolated -- a discrete indexed
+ * palette remap, NOT an alpha fade (PICO-8 has no alpha), matching this
+ * PRD's own explicit "discrete indexed remap" framing.
+ *
+ * Returns `(int)(p->age >> 16)` -- the integer part of `age` in Q16.16, the
+ * same truncate-to-integer idiom rules_planets_job_cost's own `(int)
+ * (cost >> 16)` already establishes for this codebase (rules_planets.c) --
+ * clamped to `[0,4]` (5 distinct states, matching this PRD's own Data Model
+ * spec exactly). The upper clamp is NOT purely defensive dead code: age can
+ * legitimately reach or exceed `5*FX_ONE` once effects_popup_step has
+ * already reported this popup dead, if the caller still calls this once
+ * more (e.g. one last draw before removal) -- `age>>16` would then be
+ * exactly 5 or more, outside source's own 5-entry `cs` swap-table range
+ * `[0,5)`, so the clamp is a real, exercised case -- see effects_test.c's
+ * own test for the exact age values this clamp catches. `age` is always
+ * >=0 in this struct's own normal lifecycle (effects_popup_start zeroes it,
+ * effects_popup_step only ever adds a positive amount), so the lower clamp
+ * is ordinary defensive robustness for a host-tested pure function, the
+ * same posture effects_flow_try_spawn's own from==to guard already
+ * establishes, not a traced source path.
+ */
+int effects_popup_fade_index(const effects_popup_t *p);
+
 #endif

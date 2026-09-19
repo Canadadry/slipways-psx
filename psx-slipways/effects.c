@@ -430,3 +430,85 @@ int effects_reveal_ramp_step(int *nh) {
 
     return index;
 }
+
+/*
+ * EFFECTS_POPUP_VELOCITY_Y -- ports `iv`'s own literal `v=(0,-0.34)`
+ * (pico8/lua.lua:941-951, `iv`'s prototype default; see effects.h's doc
+ * comment on effects_popup_t for the full excerpt): a fixed, never-changing
+ * upward drift (PICO-8's y-axis points down, so a negative y velocity is
+ * "up" on screen). 0.34*FX_ONE (22282.24) is NOT exactly representable, so
+ * -0.34*(double)FX_ONE truncates to -22282 -- the same double-to-fixed_t
+ * truncation convention every other literal-constant macro in this file
+ * already follows, applied here to a negative literal: C's (fixed_t) cast
+ * from a negative double truncates TOWARDS ZERO (drops the fractional part,
+ * the same direction as this file's own positive-literal truncations
+ * elsewhere), so this is exactly -22282, not -22283 (which a
+ * floor-towards-negative-infinity truncation would instead produce).
+ */
+#define EFFECTS_POPUP_VELOCITY_Y ((fixed_t)(-0.34 * (double)FX_ONE))
+
+/*
+ * EFFECTS_POPUP_AGE_PER_STEP -- ports `iv:ph()`'s own literal `self.l+=0.1`
+ * (pico8/lua.lua:941-951). 0.1*FX_ONE (6553.6) is NOT exactly
+ * representable, so this truncates to 6553 -- the same convention
+ * EFFECTS_KICK_DECAY_PER_STEP's identical `0.1` literal already follows
+ * above, kept as its OWN separately-named macro (not shared with that one)
+ * since `iv:ph`'s age timer and `ma()`'s kick-amplitude decay are two
+ * independently-traced source formulas that merely happen to share the
+ * same numeric literal -- matching this file's "one macro per traced
+ * literal, tied to its own source citation" style elsewhere
+ * (EFFECTS_PROBE_PULSE_RAMP_RECIP_15 vs EFFECTS_PROBE_SWEEP_RECIP_15's
+ * identical precedent).
+ */
+#define EFFECTS_POPUP_AGE_PER_STEP ((fixed_t)(0.1 * (double)FX_ONE))
+
+/*
+ * EFFECTS_POPUP_DEATH_AGE -- ports `iv:ph()`'s own death threshold
+ * `self.l>=5`: 5 full PICO-8 number-units, i.e. exactly `5*FX_ONE` in this
+ * port's own "PICO-8's numbers are natively Q16.16" convention (matching
+ * effects_flow_particle_t's own lifetime-literal precedent). Exact -- 5 has
+ * no fractional part, so no truncation is involved in this one.
+ */
+#define EFFECTS_POPUP_DEATH_AGE (5 * FX_ONE)
+
+void effects_popup_start(effects_popup_t *p, fixed_t x, fixed_t y) {
+    p->x = x;
+    p->y = y;
+    p->vy = EFFECTS_POPUP_VELOCITY_Y;
+    p->age = 0;
+}
+
+int effects_popup_step(effects_popup_t *p) {
+    /* self.ra+=self.v (pico8/lua.lua:941-951): y only -- v has no x
+     * component, matching source's own "no horizontal motion" literal. */
+    p->y = fixed_add(p->y, p->vy);
+
+    /* self.l+=0.1 */
+    p->age = fixed_add(p->age, EFFECTS_POPUP_AGE_PER_STEP);
+
+    /* self.p_=self.l>=5, inverted to "still alive". */
+    return p->age < EFFECTS_POPUP_DEATH_AGE;
+}
+
+int effects_popup_fade_index(const effects_popup_t *p) {
+    /* (int)(age>>16) -- the same truncate-to-integer idiom rules_planets_
+     * job_cost's own (int)(cost>>16) already establishes (rules_planets.c).
+     * age is always >=0 in this struct's own normal lifecycle (see
+     * effects.h's doc comment on this function), so this plain arithmetic
+     * right shift is an exact integer-part extraction here, not an
+     * approximation. */
+    int index = (int)(p->age >> 16);
+
+    /* Lower clamp: ordinary defensive robustness, not a traced source path
+     * (see effects.h's doc comment). Upper clamp: a real, exercised case --
+     * age can legitimately reach or exceed 5*FX_ONE once this popup is
+     * already dead. */
+    if (index < 0) {
+        index = 0;
+    }
+    if (index > 4) {
+        index = 4;
+    }
+
+    return index;
+}

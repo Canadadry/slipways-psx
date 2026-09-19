@@ -1414,6 +1414,149 @@ static void test_step_ignores_acceleration_garbage_when_has_accel_clear(void) {
     T_CHECK(p.vy == expected_vy);
 }
 
+/* Chunk 10: EFFECTS_POPUP_VELOCITY_Y is file-local to effects.c, so this
+ * helper re-derives the same literal-to-fixed_t translation independently
+ * here -- `v=(0,-0.34)` (`iv`'s own prototype default, pico8/lua.lua:
+ * 941-951, the money-spent/income popup). -0.34*FX_ONE (-22282.24) is NOT
+ * exactly representable; C's (fixed_t) cast from a negative double
+ * truncates TOWARDS ZERO (drops the fractional part, the same direction as
+ * this file's own positive-literal truncations elsewhere), giving -22282,
+ * NOT -22283 (which a floor-towards-negative-infinity truncation would
+ * instead produce). */
+static fixed_t popup_velocity_y(void) {
+    return (fixed_t)(-0.34 * (double)FX_ONE);
+}
+
+/* Chunk 10: effects_popup_start places the popup at the exact caller-
+ * supplied (x,y), sets vy to the fixed constant above, and age to 0 --
+ * checked as EXACT equality (a plain field-copy, no computation involved
+ * at all). */
+static void test_popup_start_sets_position_velocity_and_zero_age(void) {
+    effects_popup_t p;
+    effects_popup_start(&p, 7 * FX_ONE, -3 * FX_ONE);
+
+    T_CHECK(p.x == 7 * FX_ONE);
+    T_CHECK(p.y == -3 * FX_ONE);
+    T_CHECK(p.vy == popup_velocity_y());
+    T_CHECK(p.age == 0);
+}
+
+/* Chunk 10: self.ra+=self.v (`iv:ph`, pico8/lua.lua:941-951) -- position
+ * advances by exactly the stored (fixed) vy each call, x untouched (v has
+ * no x component). Checked across several calls, not just one, confirming
+ * the SAME constant applies every time, not just the first. */
+static void test_popup_step_advances_y_by_exact_velocity_each_call(void) {
+    effects_popup_t p;
+    effects_popup_start(&p, 100 * FX_ONE, 50 * FX_ONE);
+
+    fixed_t vy = popup_velocity_y();
+    fixed_t expected_y = 50 * FX_ONE;
+
+    for (int i = 0; i < 5; i++) {
+        effects_popup_step(&p);
+        expected_y = fixed_add(expected_y, vy);
+        T_CHECK(p.y == expected_y);
+        T_CHECK(p.x == 100 * FX_ONE);
+    }
+}
+
+/* Chunk 10: dies at exactly the 51st call, NOT the naively-expected 50th
+ * (50*0.1==5.0 in real-number terms) -- hand-derived here independently of
+ * both the PRD text and effects.c's own EFFECTS_POPUP_AGE_PER_STEP/
+ * EFFECTS_POPUP_DEATH_AGE macros (which would make this test tautological
+ * against a wrong constant):
+ *
+ *   0.1*FX_ONE = 0.1*65536 = 6553.6, truncated (towards zero) to 6553 --
+ *   the same truncation convention every other literal-constant macro in
+ *   this file already follows (see effects.c's own doc comment on
+ *   EFFECTS_POPUP_AGE_PER_STEP).
+ *   5*FX_ONE = 5*65536 = 327680 (the death threshold -- exact, 5 has no
+ *   fractional part).
+ *   After N calls, age = N*6553 (each call adds exactly the same already-
+ *   truncated 6553, an exact integer, so this is exact arithmetic with no
+ *   further rounding per call).
+ *   N=50: 50*6553 = 327650 < 327680 -- still alive.
+ *   N=51: 51*6553 = 334203 >= 327680 -- dead.
+ *
+ * So the truncated per-step constant accumulates just enough shortfall (30
+ * raw fixed_t units short of the threshold at N=50) to push death one call
+ * later than the naive real-number expectation -- exactly the kind of
+ * off-by-one this chunk's own task description warns to verify precisely,
+ * not assume. */
+static void test_popup_dies_at_exactly_51st_step(void) {
+    effects_popup_t p;
+    effects_popup_start(&p, 0, 0);
+
+    int alive = 1;
+    for (int i = 1; i <= 50; i++) {
+        alive = effects_popup_step(&p);
+        T_CHECK(alive == 1);
+    }
+    T_CHECK(p.age == 50 * 6553);
+
+    alive = effects_popup_step(&p);
+    T_CHECK(alive == 0);
+    T_CHECK(p.age == 51 * 6553);
+}
+
+/* Chunk 10: effects_popup_fade_index == 0 at spawn (age=0) --
+ * (int)(0>>16) is exactly 0, no clamping involved, checked as EXACT
+ * equality. */
+static void test_popup_fade_index_zero_at_spawn(void) {
+    effects_popup_t p;
+    effects_popup_start(&p, 0, 0);
+
+    T_CHECK(effects_popup_fade_index(&p) == 0);
+}
+
+/* Chunk 10: effects_popup_fade_index == 4 at the LAST alive call (the
+ * 50th, per test_popup_dies_at_exactly_51st_step's own hand derivation
+ * above) -- age = 50*6553 = 327650 there; (int)(327650>>16) =
+ * floor(327650/65536) = 4 (4*65536=262144 <= 327650 < 327680=5*65536),
+ * independently re-derived here, not copied from the PRD's own "4 just
+ * before death" wording. */
+static void test_popup_fade_index_is_4_just_before_death(void) {
+    effects_popup_t p;
+    effects_popup_start(&p, 0, 0);
+
+    int alive = 1;
+    for (int i = 0; i < 50; i++) {
+        alive = effects_popup_step(&p);
+    }
+    T_CHECK(alive == 1);
+    T_CHECK(effects_popup_fade_index(&p) == 4);
+}
+
+/* Chunk 10: fade index is monotonically non-decreasing across the popup's
+ * entire alive lifetime (age only ever increases, and floor(age/FX_ONE) of
+ * a monotonically increasing sequence can never decrease), and never
+ * strays outside [0,4] -- checked well past death too (several extra calls
+ * after effects_popup_step first reports dead), confirming the upper
+ * clamp genuinely engages once age exceeds 5*FX_ONE (a real, exercised
+ * case -- see effects.h's doc comment on effects_popup_fade_index for why
+ * this isn't dead code). */
+static void test_popup_fade_index_monotonic_and_bounded_through_and_past_death(void) {
+    effects_popup_t p;
+    effects_popup_start(&p, 0, 0);
+
+    int prev_index = effects_popup_fade_index(&p);
+    T_CHECK(prev_index == 0);
+
+    for (int i = 0; i < 60; i++) {
+        effects_popup_step(&p);
+        int index = effects_popup_fade_index(&p);
+        T_CHECK(index >= 0);
+        T_CHECK(index <= 4);
+        T_CHECK(index >= prev_index);
+        prev_index = index;
+    }
+
+    /* After 60 calls (well past the 51st-call death), age has grown
+     * comfortably past 5*FX_ONE -- confirms the clamp holds, not just that
+     * it happened not to be exercised at exactly the boundary. */
+    T_CHECK(prev_index == 4);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -1489,5 +1632,15 @@ int main(void) {
           test_step_applies_acceleration_when_has_accel_set);
     t_run("step_ignores_acceleration_garbage_when_has_accel_clear",
           test_step_ignores_acceleration_garbage_when_has_accel_clear);
+    t_run("popup_start_sets_position_velocity_and_zero_age",
+          test_popup_start_sets_position_velocity_and_zero_age);
+    t_run("popup_step_advances_y_by_exact_velocity_each_call",
+          test_popup_step_advances_y_by_exact_velocity_each_call);
+    t_run("popup_dies_at_exactly_51st_step", test_popup_dies_at_exactly_51st_step);
+    t_run("popup_fade_index_zero_at_spawn", test_popup_fade_index_zero_at_spawn);
+    t_run("popup_fade_index_is_4_just_before_death",
+          test_popup_fade_index_is_4_just_before_death);
+    t_run("popup_fade_index_monotonic_and_bounded_through_and_past_death",
+          test_popup_fade_index_monotonic_and_bounded_through_and_past_death);
     return t_report();
 }
