@@ -908,4 +908,108 @@ typedef struct {
  */
 fixed_t effects_growbar_step(effects_growbar_t *g);
 
+/*
+ * effects_settle_t -- the menu row slide-in-and-settle's position/target
+ * state, ported from `js`'s own `self.ra`/`self.qf` fields, `js:ph()`
+ * (pico8/lua.lua:263-266):
+ *
+ *   function js:ph()if self.qf then
+ *   local d=self.qf-self.ra
+ *   self.ra+=(#d<=1 and d or d*0.4)
+ *   end
+ *   end
+ *
+ * `self.ra` (current position) and `self.qf` (target position) are the
+ * whole of this effect's traced state -- carried here as its own small
+ * struct, matching effects_kick_t's/effects_popup_t's/effects_growbar_t's
+ * own established "one struct per traced piece of per-instance state"
+ * shape. Unlike those, this struct has TWO position fields (current and
+ * target), not one scalar/one position -- matching `js`'s own two distinct
+ * fields exactly, rather than collapsing them into one.
+ *
+ * This chunk is ONLY the pure per-call math primitive (`js:ph()` itself) --
+ * NOT `pz(p,bs)`'s own menu-row construction/layout (pico8/lua.lua:280-288,
+ * which sets each row's initial `ra`/`qf` from live entity positions this
+ * port doesn't have yet) and NOT any live wiring into a real tech-menu
+ * tile -- see docs/prd/triage/psx-juice-effects.md, "### 7. Menu row
+ * slide-in-and-settle" for the full trace, and Implementation Chunks item
+ * 12 (this chunk, the pure primitive) vs item 13 (a separate, not-yet-
+ * implemented future chunk that wires this into `rules_tech.c`'s/
+ * `game_draw.c`'s tech-menu tiles) for the exact split.
+ *
+ * `self.qf`'s own `if self.qf then` nil-guard (a menu row not yet given a
+ * target never eases at all) is not modeled here -- this struct always has
+ * both `ra_x/ra_y` and `qf_x/qf_y` set to *something* (the caller decides
+ * what "no target yet" means, e.g. by setting qf equal to ra, which this
+ * function trivially settles on the very first call since d is then
+ * exactly (0,0)), matching effects_flow_try_spawn's own "caller resolves
+ * whatever live state feeds this effect" convention rather than adding an
+ * extra has-target flag this PRD's own Data Model doesn't call for.
+ */
+typedef struct {
+    fixed_t ra_x, ra_y, qf_x, qf_y;
+} effects_settle_t;
+
+/*
+ * effects_settle_step -- ports `js:ph()`'s own per-tick update body (see
+ * effects_settle_t's doc comment above for the full source excerpt):
+ * `local d=self.qf-self.ra` then `self.ra+=(#d<=1 and d or d*0.4)`.
+ *
+ * `d = qf - ra` (vector from the current position toward the target):
+ * `dx = fixed_sub(s->qf_x, s->ra_x)`, `dy = fixed_sub(s->qf_y, s->ra_y)`.
+ *
+ * `#d` -- PICO-8's vector-length operator -- is, per this codebase's own
+ * already-established `km:__len` precedent (the same squared-distance-
+ * threshold-compare idiom `liaison.c`'s `liaison_point_blocks_segment`/
+ * `liaison_check` and `rules_discovery.c`'s `rules_discovery_probe_in_range`
+ * already rely on, cited in docs/prd/triage/psx-juice-effects.md's
+ * Implementation Decisions), actually SQUARED magnitude, not linear
+ * distance. So `#d<=1` compares `dx*dx+dy*dy` (via `fixed_mul` -- both dx
+ * and dy are expected to be modest menu-row screen-space deltas, well
+ * within the range `fixed_mul`'s own truncate-to-`fixed_t` result can hold,
+ * unlike `effects_length`'s own dedicated overflow-safe int64 path reserved
+ * for potentially-large trade-flow segments) against `1*FX_ONE`, i.e. `1`
+ * full PICO-8 number-unit, SQUARED -- NOT `sqrt(dx*dx+dy*dy)<=1`; no sqrt
+ * appears anywhere in this function, deliberately. Because comparing
+ * squared-distance to `1` happens to equal comparing linear distance to
+ * `sqrt(1)=1` (1 is sqrt's own fixed point), this particular threshold
+ * VALUE gives the same yes/no answer either way -- effects_test.c's own
+ * doc comment on this point explains why no single (dx,dy) case can
+ * behaviorally distinguish "squared-compared-to-1" from
+ * "sqrt-then-compared-to-1" at this exact threshold, and instead
+ * constructs a different, genuinely distinguishing case (a combined-vs-
+ * per-axis-threshold mixup) that a `sqrt`/formula bug could plausibly take
+ * the shape of. The comparison ITSELF must still be done in squared units,
+ * not linear -- that's what makes no `sqrt` call necessary at all, which is
+ * the whole point of this primitive.
+ *
+ * Within that squared-distance-1 threshold (`mag_sq <= FX_ONE`, inclusive,
+ * matching source's own `<=`): `self.ra+=d` -- snaps `*s`'s position
+ * directly to the target (`s->ra_x = s->qf_x`, `s->ra_y = s->qf_y`,
+ * computed as the exact target values directly, not as `ra+d`'s own
+ * fixed-point-arithmetic result, since those are mathematically identical
+ * and the former is simpler and exact by construction rather than by
+ * cancellation). Returns 0 -- "no longer moving," matching this codebase's
+ * established 1=alive/0=dead-style return convention
+ * (effects_flow_step_particle, effects_popup_step,
+ * effects_spiral_step_particle) applied here to "still easing toward the
+ * target" instead of "still alive."
+ *
+ * Otherwise: `self.ra+=d*0.4` -- eases exactly 40% of the remaining
+ * distance (`s->ra_x += fixed_mul(dx, EFFECTS_SETTLE_EASE_FACTOR)`, same
+ * for y, effects.c). Returns 1 -- "still moving."
+ *
+ * A textbook exponential-decay lerp-toward-target with a snap threshold: no
+ * overshoot, no oscillation (each step's remaining distance strictly
+ * shrinks -- either to exactly 0 via the snap, or by a genuine fraction of
+ * itself via the ease branch, since `0.4` is used as a `fixed_mul`'d
+ * fraction of `d`, never a full step past the target), and the position
+ * always ends EXACTLY at the target once it settles.
+ *
+ * Mutates *s in place, matching this file's established in/out-parameter
+ * convention (effects_flow_step_particle, effects_kick_step,
+ * effects_popup_step, effects_spiral_step_particle, effects_growbar_step).
+ */
+int effects_settle_step(effects_settle_t *s);
+
 #endif

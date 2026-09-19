@@ -541,3 +541,38 @@ fixed_t effects_growbar_step(effects_growbar_t *g) {
     fixed_t clamped = g->gz > EFFECTS_GROWBAR_HEIGHT_CAP ? EFFECTS_GROWBAR_HEIGHT_CAP : g->gz;
     return fixed_mul(clamped, clamped);
 }
+
+/*
+ * EFFECTS_SETTLE_EASE_FACTOR -- ports `js:ph()`'s own literal `d*0.4`
+ * (pico8/lua.lua:264). 0.4*FX_ONE (26214.4) is NOT exactly representable,
+ * so this truncates to 26214 -- the same double-to-fixed_t truncation
+ * convention every other literal-constant macro in this file already
+ * follows.
+ */
+#define EFFECTS_SETTLE_EASE_FACTOR ((fixed_t)(0.4 * (double)FX_ONE))
+
+int effects_settle_step(effects_settle_t *s) {
+    /* local d=self.qf-self.ra (pico8/lua.lua:264). */
+    fixed_t dx = fixed_sub(s->qf_x, s->ra_x);
+    fixed_t dy = fixed_sub(s->qf_y, s->ra_y);
+
+    /* #d<=1 (pico8/lua.lua:264): SQUARED magnitude, not linear distance --
+     * see effects.h's doc comment on this function for the full trail. No
+     * sqrt anywhere in this function -- comparing the squared sum directly
+     * against 1*FX_ONE is the whole point. */
+    fixed_t mag_sq = fixed_add(fixed_mul(dx, dx), fixed_mul(dy, dy));
+
+    if (mag_sq <= FX_ONE) {
+        /* self.ra+=d, within threshold: snap exactly to the target rather
+         * than relying on ra+d's own fixed-point arithmetic to land there
+         * (mathematically identical, but this is exact by construction). */
+        s->ra_x = s->qf_x;
+        s->ra_y = s->qf_y;
+        return 0;
+    }
+
+    /* self.ra+=d*0.4: ease 40% of the remaining distance. */
+    s->ra_x = fixed_add(s->ra_x, fixed_mul(dx, EFFECTS_SETTLE_EASE_FACTOR));
+    s->ra_y = fixed_add(s->ra_y, fixed_mul(dy, EFFECTS_SETTLE_EASE_FACTOR));
+    return 1;
+}

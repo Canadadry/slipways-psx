@@ -1729,6 +1729,190 @@ static void test_growbar_height_stays_capped_well_past_cap_engaging_call(void) {
     T_CHECK(g.gz > growbar_height_cap_constant());
 }
 
+/* Chunk 12: `js:ph()`'s own `d=qf-ra` easing formula, `self.ra+=(#d<=1 and
+ * d or d*0.4)` (pico8/lua.lua:264). A target more than 1 unit (squared)
+ * away eases by exactly 40% of the remaining vector per call. d=(6,8)*FX_ONE
+ * (a 6-8-10-scaled 3-4-5 right triangle, squared magnitude 100 -- nowhere
+ * near the 1-unit-squared snap threshold), from ra0=(2,3)*FX_ONE so qf ends
+ * up at (8,11)*FX_ONE (ra0+d), distinct from every from/to pair already
+ * used elsewhere in this file. Expected new position is computed here via
+ * fixed_add(ra0, fixed_mul(d, EASE)) directly, with EASE recomputed
+ * independently as (fixed_t)(0.4*(double)FX_ONE) -- effects.c's own
+ * EFFECTS_SETTLE_EASE_FACTOR is file-local, not visible here anyway -- both
+ * expressions are the same literal double-to-fixed_t translation of
+ * source's own `0.4` constant, so this is a real independent check (proving
+ * effects_settle_step's own formula/argument order), not a tautology,
+ * matching test_kick_offset_matches_fixed_polar_directly's own established
+ * "recompute the constant independently, then call the same underlying
+ * primitive directly" style. Exact equality is possible (no tolerance
+ * needed): both paths run the identical fixed_mul computation on the
+ * identical resolved arguments. qf itself must be left untouched by a call
+ * that only eases (never snaps). */
+static void test_settle_step_eases_by_exactly_40_percent_when_far(void) {
+    fixed_t ease = (fixed_t)(0.4 * (double)FX_ONE);
+
+    effects_settle_t s;
+    s.ra_x = 2 * FX_ONE;
+    s.ra_y = 3 * FX_ONE;
+    s.qf_x = 8 * FX_ONE;  /* ra_x + 6*FX_ONE */
+    s.qf_y = 11 * FX_ONE; /* ra_y + 8*FX_ONE */
+
+    fixed_t expected_ra_x = fixed_add(2 * FX_ONE, fixed_mul(6 * FX_ONE, ease));
+    fixed_t expected_ra_y = fixed_add(3 * FX_ONE, fixed_mul(8 * FX_ONE, ease));
+
+    int still_moving = effects_settle_step(&s);
+
+    T_CHECK(still_moving == 1);
+    T_CHECK(s.ra_x == expected_ra_x);
+    T_CHECK(s.ra_y == expected_ra_y);
+    T_CHECK(s.qf_x == 8 * FX_ONE);
+    T_CHECK(s.qf_y == 11 * FX_ONE);
+}
+
+/* Chunk 12: a target within the squared-1 threshold snaps exactly to it in
+ * one call, never overshoots, never oscillates. d=(0.5,0)*FX_ONE -- linear
+ * magnitude 0.5, squared magnitude 0.25*FX_ONE, comfortably under the
+ * 1*FX_ONE threshold -- and, critically, NOT already zero distance (ra !=
+ * qf going in), so this genuinely exercises the snap branch rather than the
+ * already-settled trivial case test_settle_step_idempotent_after_snap below
+ * covers separately. After one call, ra must equal qf EXACTLY (not merely
+ * "close" -- checked as exact equality, matching this file's established
+ * "checked as EXACT equality" precedent wherever the underlying arithmetic
+ * guarantees it, e.g. test_step_decrements_lifetime_by_exactly_fx_one). */
+static void test_settle_step_snaps_within_threshold_not_already_at_target(void) {
+    effects_settle_t s;
+    s.ra_x = 5 * FX_ONE;
+    s.ra_y = -2 * FX_ONE;
+    s.qf_x = 5 * FX_ONE + FX_ONE / 2; /* ra_x + 0.5*FX_ONE */
+    s.qf_y = -2 * FX_ONE;
+
+    int still_moving = effects_settle_step(&s);
+
+    T_CHECK(still_moving == 0);
+    T_CHECK(s.ra_x == s.qf_x);
+    T_CHECK(s.ra_y == s.qf_y);
+    T_CHECK(s.ra_x == 5 * FX_ONE + FX_ONE / 2);
+}
+
+/* Chunk 12: the squared-distance-1 threshold is INCLUSIVE (`#d<=1`, not
+ * `#d<1`), matching source's own `<=` exactly -- checked at the exact
+ * boundary, d=(1,0)*FX_ONE: linear magnitude exactly 1, so squared
+ * magnitude fixed_mul(FX_ONE,FX_ONE) is also exactly FX_ONE (1*1==1, no
+ * fixed-point rounding at this particular value -- (FX_ONE*FX_ONE)>>16 ==
+ * FX_ONE exactly), landing precisely ON the threshold rather than merely
+ * near it. Must still snap (mag_sq <= FX_ONE holds with equality), not
+ * ease -- a `<` instead of `<=` bug would wrongly ease here instead. */
+static void test_settle_step_snaps_exactly_at_squared_distance_one_boundary(void) {
+    effects_settle_t s;
+    s.ra_x = 0;
+    s.ra_y = 0;
+    s.qf_x = FX_ONE;
+    s.qf_y = 0;
+
+    fixed_t mag_sq_at_boundary = fixed_mul(FX_ONE, FX_ONE);
+    T_CHECK(mag_sq_at_boundary == FX_ONE);
+
+    int still_moving = effects_settle_step(&s);
+
+    T_CHECK(still_moving == 0);
+    T_CHECK(s.ra_x == FX_ONE);
+    T_CHECK(s.ra_y == 0);
+}
+
+/* Chunk 12: repeated calls after snapping leave the position unchanged
+ * (idempotent once settled) and continue to report "no longer moving" --
+ * since d is exactly (0,0) once ra==qf, squared magnitude 0<=1*FX_ONE
+ * trivially holds every subsequent call. Snaps first (reusing this same
+ * near-but-not-at-target setup, distinct from the exactly-on-target-from-
+ * the-start case below), then calls again twice more to confirm the
+ * steady state genuinely holds, not just immediately after the snap. */
+static void test_settle_step_idempotent_after_snap(void) {
+    effects_settle_t s;
+    s.ra_x = 10 * FX_ONE;
+    s.ra_y = 4 * FX_ONE;
+    s.qf_x = 10 * FX_ONE + FX_ONE / 4; /* squared magnitude 0.0625*FX_ONE */
+    s.qf_y = 4 * FX_ONE;
+
+    int first = effects_settle_step(&s);
+    T_CHECK(first == 0);
+    T_CHECK(s.ra_x == s.qf_x);
+    T_CHECK(s.ra_y == s.qf_y);
+
+    for (int call = 0; call < 2; call++) {
+        fixed_t ra_x_before = s.ra_x, ra_y_before = s.ra_y;
+        int still_moving = effects_settle_step(&s);
+
+        T_CHECK(still_moving == 0);
+        T_CHECK(s.ra_x == ra_x_before);
+        T_CHECK(s.ra_y == ra_y_before);
+        T_CHECK(s.ra_x == s.qf_x);
+        T_CHECK(s.ra_y == s.qf_y);
+    }
+}
+
+/* Chunk 12: proves `#d<=1` is a genuine COMBINED squared-magnitude test
+ * (dx*dx+dy*dy), not a per-axis-independent check and not a linear sum
+ * (dx+dy) -- the concrete boundary case the PRD's own testing mandate asks
+ * for ("verify the squared, not linear, distance claim... work out a
+ * concrete numeric case where an accidentally wrong threshold formula would
+ * give a different, wrong answer").
+ *
+ * A single (dx,dy) case can NOT distinguish the correct combined-squared
+ * formula (dx*dx+dy*dy<=1*FX_ONE) from an incorrectly-linear one
+ * (sqrt(dx*dx+dy*dy)<=1*FX_ONE) -- both are mathematically equivalent at
+ * threshold 1 (sqrt is monotonic and sqrt(1)==1, i.e. 1 is sqrt's own fixed
+ * point: M<=1 iff sqrt(M)<=1 for any M>=0), matching this PRD's own
+ * explicit "this threshold happens to be the same either way" caveat (see
+ * effects.h's doc comment on effects_settle_step) -- so no such case is
+ * constructed here (none exists to construct).
+ *
+ * What DOES genuinely distinguish the correct formula from a plausible
+ * wrong one is dx=dy=0.9*FX_ONE: the TRUE combined squared magnitude is
+ * 0.9^2+0.9^2 = 1.62 (real terms), comfortably OVER the 1-unit threshold, so
+ * a correct implementation must EASE, not snap. But two plausible wrong
+ * formulas would both wrongly snap here instead:
+ *   - a per-axis-independent check (`dx<=1*FX_ONE && dy<=1*FX_ONE`, testing
+ *     each component against the threshold separately instead of summing
+ *     their squares first) -- 0.9<=1 is true for BOTH axes independently,
+ *     so this bug would wrongly report "within threshold" and snap.
+ *   - a raw (non-squared) magnitude sum (`dx+dy<=1*FX_ONE`, mistaking `#d`
+ *     for a Manhattan-style sum rather than squared Euclidean magnitude) --
+ *     0.9+0.9=1.8, which is itself over the 1*FX_ONE threshold too... but
+ *     that one coincidentally does NOT snap here either (see below), so
+ *     this particular case only catches the per-axis bug, not that one; no
+ *     single case catches every conceivable wrong formula at once, and the
+ *     per-axis mixup is the more plausible bug shape for this specific
+ *     "#d<=1" one-liner (accidentally treating a vector comparison as two
+ *     scalar comparisons) -- this test's job is that one concrete,
+ *     traceable distinction, not an exhaustive catalog of every possible
+ *     wrong formula.
+ * Position after the call is also checked against the exact 40% ease
+ * formula (same independent-recomputation style as
+ * test_settle_step_eases_by_exactly_40_percent_when_far above), confirming
+ * the ease branch itself still computes correctly here, not just that it
+ * was taken. */
+static void test_settle_step_combines_both_axes_not_per_axis_threshold(void) {
+    fixed_t ease = (fixed_t)(0.4 * (double)FX_ONE);
+    fixed_t component = (fixed_t)(0.9 * (double)FX_ONE);
+
+    effects_settle_t s;
+    s.ra_x = 0;
+    s.ra_y = 0;
+    s.qf_x = component;
+    s.qf_y = component;
+
+    fixed_t mag_sq = fixed_add(fixed_mul(component, component), fixed_mul(component, component));
+    T_CHECK(mag_sq > FX_ONE); /* 0.81+0.81 == 1.62, over the 1-unit threshold */
+
+    int still_moving = effects_settle_step(&s);
+
+    T_CHECK(still_moving == 1); /* eases -- must NOT snap */
+    T_CHECK(s.ra_x == fixed_mul(component, ease));
+    T_CHECK(s.ra_y == fixed_mul(component, ease));
+    T_CHECK(s.ra_x != s.qf_x);
+    T_CHECK(s.ra_y != s.qf_y);
+}
+
 int main(void) {
     t_run("active_zero_never_spawns_even_when_draw_would_succeed",
           test_active_zero_never_spawns_even_when_draw_would_succeed);
@@ -1822,5 +2006,14 @@ int main(void) {
           test_growbar_height_matches_formula_before_cap_engages);
     t_run("growbar_height_stays_capped_well_past_cap_engaging_call",
           test_growbar_height_stays_capped_well_past_cap_engaging_call);
+    t_run("settle_step_eases_by_exactly_40_percent_when_far",
+          test_settle_step_eases_by_exactly_40_percent_when_far);
+    t_run("settle_step_snaps_within_threshold_not_already_at_target",
+          test_settle_step_snaps_within_threshold_not_already_at_target);
+    t_run("settle_step_snaps_exactly_at_squared_distance_one_boundary",
+          test_settle_step_snaps_exactly_at_squared_distance_one_boundary);
+    t_run("settle_step_idempotent_after_snap", test_settle_step_idempotent_after_snap);
+    t_run("settle_step_combines_both_axes_not_per_axis_threshold",
+          test_settle_step_combines_both_axes_not_per_axis_threshold);
     return t_report();
 }
