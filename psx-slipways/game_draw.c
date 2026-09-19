@@ -10,25 +10,23 @@
 #include "sprite_atlas.h"
 #include "world.h"
 
-/* Arbitrary size, not traced art -- chunk 1's only goal is proving the
- * TILE/DrawPrim primitive path end-to-end (see docs/prd/triage/
- * psx-galaxy-rendering.md). */
-#define GAME_DRAW_PLANET_TILE_SIZE 4
-
 /* Arbitrary half-width/half-height in pixels of the wormhole placeholder's
  * POLY_F4 quad -- chosen only to be small and visually distinct from the
- * GAME_DRAW_PLANET_TILE_SIZE tile dots, not traced art (see docs/prd/
- * triage/psx-galaxy-rendering.md). */
+ * planet dots, not traced art (see docs/prd/triage/
+ * psx-galaxy-rendering.md). The planet dots themselves are no longer a
+ * placeholder tile size -- they now draw SPRITE_PLANET_UNKNOWN from the
+ * real sprite atlas, see docs/prd/triage/psx-sprites-audio-extraction.md. */
 #define GAME_DRAW_WORMHOLE_HALF_SIZE 6
 
 /* Tech menu placeholder tile size/spacing/margin -- v1 UX/rendering
- * choices, not traced art (same framing GAME_DRAW_PLANET_TILE_SIZE/
- * GAME_DRAW_WORMHOLE_HALF_SIZE above already established; see
+ * choices, not traced art (same framing the wormhole half-size above
+ * already established; see
  * docs/prd/triage/psx-rules-tech.md's "Rendering" decision). The cursor
  * is no longer a placeholder tile size -- it now draws SPRITE_CURSOR_DEFAULT
  * from the real sprite atlas, see docs/prd/triage/psx-sprites-audio-extraction.md.
- * Deliberately larger than the planet tile above since this is a
- * top-level UI element, not a world-space marker. GAME_DRAW_TECH_MARGIN
+ * Deliberately sized as a top-level UI element, not a world-space
+ * marker, independent of the planet/wormhole/cursor sprite sizes above.
+ * GAME_DRAW_TECH_MARGIN
  * is a small offset from the screen's (0,0) corner so the tiles aren't
  * drawn flush against the very corner (per the PRD's own "small margin"
  * framing) while still reading as anchored at the top-left, per the
@@ -44,11 +42,33 @@ void game_draw(void) {
 	const galaxy_t *galaxy = world_get_galaxy();
 	int wormhole_index = world_get_wormhole_index();
 
-	/* Chunk 3 scope: draw every generated planet (positions[0..count))
-	 * as a TILE primitive, EXCEPT the wormhole marker's index -- that
+	/* Chunk 5 (psx-sprites-audio-extraction): draw every generated planet
+	 * (positions[0..count)), EXCEPT the wormhole marker's index -- that
 	 * one is drawn once, below, as a distinct POLY_F4 instead of being
-	 * double-drawn as a plain tile too. No slipways yet -- that's
-	 * chunk 4's job. */
+	 * double-drawn as a plain sprite too -- as the real "unknown planet"
+	 * sprite (SPRITE_PLANET_UNKNOWN, a 16x16 2x2-cel sprite in the atlas
+	 * sprite_atlas_init() uploaded from game_init()), replacing chunk 3's
+	 * flat placeholder TILE.
+	 *
+	 * Same SPRT/DR_TPAGE mechanism the mouse cursor block below already
+	 * established (see that block's own comment for the full rationale),
+	 * with the DR_TPAGE hoisted out of the loop and sent once: every
+	 * planet uses the same texture page/CLUT, and up to 90 of them are
+	 * drawn per frame, so there is no reason to re-emit an identical
+	 * DR_TPAGE primitive 90 times.
+	 *
+	 * Untinted (plain white, no color modulation): confirmed by this
+	 * PRD's own Implementation Decisions item 1 trace of `jo:kj`
+	 * (pico8/lua.lua:541-551) -- `dv(self.qw)`/`dv()` brackets the
+	 * planet sprite draw, but no planet type ever has a `qw` field, so
+	 * `self.qw` is always nil and the bracket is a no-op; "planets
+	 * always draw with the identity/default palette," i.e. untinted. */
+	{
+		DR_TPAGE tpage_prim;
+		setDrawTPage(&tpage_prim, 0, 1, sprite_atlas_get_tpage());
+		DrawPrim(&tpage_prim);
+	}
+
 	int i;
 	for (i = 0; i < galaxy->count; i++) {
 		if (i == wormhole_index) {
@@ -58,13 +78,18 @@ void game_draw(void) {
 		int x, y;
 		screen_map_planet(galaxy->positions[i], &x, &y);
 
-		TILE tile;
-		setTile(&tile);
-		setXY0(&tile, x - GAME_DRAW_PLANET_TILE_SIZE / 2, y - GAME_DRAW_PLANET_TILE_SIZE / 2);
-		setWH(&tile, GAME_DRAW_PLANET_TILE_SIZE, GAME_DRAW_PLANET_TILE_SIZE);
-		setRGB0(&tile, 0, 255, 128); /* arbitrary placeholder color */
+		int sx, sy, sw, sh;
+		sprite_atlas_cel_rect(SPRITE_PLANET_UNKNOWN, 2, 2, &sx, &sy, &sw, &sh);
 
-		DrawPrim(&tile);
+		SPRT sprite;
+		setSprt(&sprite);
+		setXY0(&sprite, x - sw / 2, y - sh / 2);
+		setUV0(&sprite, sx, sy);
+		setWH(&sprite, sw, sh);
+		sprite.clut = sprite_atlas_get_clut();
+		setRGB0(&sprite, 255, 255, 255); /* untinted -- see comment above */
+
+		DrawPrim(&sprite);
 	}
 
 	/* placeholder position for the wormhole GPU-primitive proof; the real
@@ -83,7 +108,7 @@ void game_draw(void) {
 			wx + GAME_DRAW_WORMHOLE_HALF_SIZE, wy - GAME_DRAW_WORMHOLE_HALF_SIZE,
 			wx - GAME_DRAW_WORMHOLE_HALF_SIZE, wy + GAME_DRAW_WORMHOLE_HALF_SIZE,
 			wx + GAME_DRAW_WORMHOLE_HALF_SIZE, wy + GAME_DRAW_WORMHOLE_HALF_SIZE);
-		setRGB0(&poly, 255, 64, 0); /* arbitrary placeholder color, distinct from planet tiles */
+		setRGB0(&poly, 255, 64, 0); /* arbitrary placeholder color, distinct from the planet sprite */
 
 		DrawPrim(&poly);
 	}
@@ -105,7 +130,7 @@ void game_draw(void) {
 		LINE_F2 line;
 		setLineF2(&line);
 		setXY2(&line, ax, ay, bx, by);
-		setRGB0(&line, 64, 128, 255); /* arbitrary placeholder color, distinct from planet tiles and wormhole */
+		setRGB0(&line, 64, 128, 255); /* arbitrary placeholder color, distinct from the planet sprite and wormhole */
 
 		DrawPrim(&line);
 	}
@@ -244,9 +269,11 @@ void game_draw(void) {
 				/* Cyan for researched (never true today -- the logic is
 				 * real and correct if the array ever had a true), gray
 				 * for unresearched -- both distinct from every existing
-				 * placeholder color in this file (planet green, wormhole
-				 * orange, slipway blue, cursor white/click-flash yellow,
-				 * liaison drag green/red). */
+				 * placeholder color in this file (wormhole orange, slipway
+				 * blue, cursor white/click-flash yellow, liaison drag
+				 * green/red; the planet sprite itself is untinted, not a
+				 * placeholder color at all -- see the planet loop's own
+				 * comment above). */
 				if (tech_researched[t]) {
 					setRGB0(&tile, 0, 255, 255);
 				} else {
