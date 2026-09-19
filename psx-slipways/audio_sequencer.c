@@ -71,3 +71,48 @@ void audio_channel_sfx_finished(audio_channel_state_t *ch) {
      * -- the same "emergent resume" guarantee as above, from the opposite
      * direction. */
 }
+
+/* Chunk 4 (Implementation Chunks item 4) -- the note-advance sequencer,
+ * completing this module. audio_seq_state_t's/audio_seq_step's own doc
+ * comments (audio_sequencer.h) carry the full trace/citation; this .c side
+ * stays a direct, uncommented-beyond-necessity port of that already-quoted
+ * stepping rule, matching audio_resolve_instrument's own "the .h has the
+ * trace, the .c has the arithmetic" split above. */
+
+void audio_seq_init(audio_seq_state_t *seq) {
+    seq->current_row = 0;
+    seq->row_tick = 0;
+    seq->active = 1;
+}
+
+int audio_seq_step(audio_seq_state_t *seq, const sfx_def_t *sfx, int tick_period) {
+    if (!seq->active) {
+        return 0;
+    }
+
+    seq->row_tick++;
+    if (seq->row_tick < sfx->speed * tick_period) {
+        /* Current row hasn't held its own full duration yet -- nothing
+         * else changes this step. */
+        return seq->active;
+    }
+
+    /* The current row has now held for exactly speed*tick_period steps:
+     * either advance to the next row in order, or -- only once the LAST row
+     * (note_count-1) has finished holding -- loop back to loop_start or stop,
+     * per the stepping rule quoted on audio_seq_state_t's own doc comment. */
+    seq->row_tick = 0;
+    if (seq->current_row < sfx->note_count - 1) {
+        seq->current_row++;
+    } else if (sfx->loop_end > sfx->loop_start) {
+        seq->current_row = sfx->loop_start;
+    } else {
+        seq->active = 0;
+    }
+
+    return seq->active;
+}
+
+const sfx_note_t *audio_seq_current_note(const audio_seq_state_t *seq, const sfx_def_t *sfx) {
+    return &sfx->notes[seq->current_row];
+}
