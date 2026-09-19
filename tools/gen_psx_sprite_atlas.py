@@ -292,6 +292,21 @@ extern const uint16_t g_pico8_clut[16];
  * spr(...,2,2) call) -- pure, host-testable, no PSX dependency. */
 void sprite_atlas_cel_rect(int sprite_id, int cel_w, int cel_h, int *out_x, int *out_y, int *out_w, int *out_h);
 
+/* PSX-only (Implementation Chunks chunk 4, docs/prd/triage/
+ * psx-sprites-audio-extraction.md): uploads g_sprite_atlas_4bpp/
+ * g_pico8_clut to VRAM once at boot (LoadImage) and records the texpage/
+ * CLUT values later draw calls need. Declared here unconditionally, like
+ * sprite_atlas_cel_rect() above, so any PSX-side caller (game_update.c's
+ * game_init()) sees one prototype regardless of build target -- but the
+ * *implementation* (sprite_atlas.c's own #ifdef __mips__ block, this
+ * template's C_TEMPLATE below) is psxgpu.h-dependent and compiled only
+ * for the real PSn00bSDK cross build, not the host gcc test build
+ * (test-sprite-atlas has no psxgpu.h on its include path and never calls
+ * any of these three). */
+void sprite_atlas_init(void);
+uint16_t sprite_atlas_get_tpage(void);
+uint16_t sprite_atlas_get_clut(void);
+
 #endif
 """
 
@@ -322,6 +337,114 @@ void sprite_atlas_cel_rect(int sprite_id, int cel_w, int cel_h, int *out_x, int 
     *out_w = cel_w * 8;
     *out_h = cel_h * 8;
 }
+
+#ifdef __mips__
+/* PSX-only half of this otherwise fully-generated file (Implementation
+ * Chunks chunk 4, docs/prd/triage/psx-sprites-audio-extraction.md) -- the
+ * first hand-written, psxgpu.h-dependent addition here. Lives in this
+ * Python template (rather than a hand-maintained sibling .c file) because
+ * `make sprite-atlas` fully regenerates sprite_atlas.c on every build
+ * (see this file's own header comment above); a sibling file would never
+ * be re-touched by that regeneration but could silently drift out of sync
+ * with it instead.
+ *
+ * Guarded by __mips__, GCC's own standard predefined macro for any MIPS
+ * target (confirmed defined by the installed mipsel-none-elf-gcc), so
+ * this half compiles only for the real PSn00bSDK cross build and is
+ * skipped entirely for the host gcc test build (test-sprite-atlas) --
+ * which has no psxgpu.h on its include path (-I psx-slipways only, see
+ * the Makefile's SPRITE_ATLAS_TEST_HOST_SRCS recipe) and never calls any
+ * of these three functions. Mirrors world.c/screen_map.c's existing
+ * pure/impure split for one concern, just enforced by a preprocessor
+ * guard here instead of a second file, for the reason above. */
+#include <psxgpu.h>
+
+/* VRAM placement for the uploaded atlas texture + CLUT. main.c's
+ * init_context() (SetDefDispEnv/SetDefDrawEnv) places this port's two
+ * double-buffered 320x240 framebuffers at VRAM (0,0)-(320,240) and
+ * (320,0)-(640,240) -- together occupying the full x:[0,640), y:[0,240)
+ * rectangle. VRAM is 1024x512 total (the PS1 GPU's fixed framebuffer
+ * size), so anything placed entirely at x >= 640 is safe regardless of y,
+ * with 384 columns x 512 rows of headroom to spare -- far more than this
+ * atlas (32 columns) or CLUT (16 columns) need. Placed at the left edge
+ * of that safe region (x=640, y=0) purely for readability; no other
+ * constraint picks a more specific offset. x=640 is also exactly
+ * texpage-column-aligned (640 = 10*64, texpages are 64px wide in X, see
+ * getTPage's own bit-packing below) and CLUT-column-aligned (640 = 40*16,
+ * getClut's x is truncated to 16px units), so neither upload loses any
+ * precision snapping to hardware granularity.
+ *
+ * SPRITE_ATLAS_VRAM_W is in 16-bit VRAM "pixel" units, the PS1 GPU's
+ * native VRAM addressing granularity: a 4bpp texture packs 4 texels into
+ * each 16-bit VRAM pixel, so the 128px-wide atlas occupies 128/4=32 VRAM
+ * columns (matching g_sprite_atlas_4bpp's own 2-texels-per-byte packing,
+ * sprite_atlas.h's own doc comment) by 128 rows -- entirely inside one
+ * 64x256 texture page, so the texture never straddles a page boundary.
+ * The CLUT (16 uint16_t BGR555 entries) occupies 16 VRAM columns by 1
+ * row, placed directly below the atlas (y = SPRITE_ATLAS_VRAM_H) so the
+ * two uploads can never overlap. */
+#define SPRITE_ATLAS_VRAM_X 640
+#define SPRITE_ATLAS_VRAM_Y 0
+#define SPRITE_ATLAS_VRAM_W (128 / 4)
+#define SPRITE_ATLAS_VRAM_H 128
+#define SPRITE_ATLAS_CLUT_VRAM_X SPRITE_ATLAS_VRAM_X
+#define SPRITE_ATLAS_CLUT_VRAM_Y (SPRITE_ATLAS_VRAM_Y + SPRITE_ATLAS_VRAM_H)
+
+static uint16_t g_sprite_atlas_tpage;
+static uint16_t g_sprite_atlas_clut_id;
+
+void sprite_atlas_init(void) {
+    RECT atlas_rect;
+    setRECT(&atlas_rect, SPRITE_ATLAS_VRAM_X, SPRITE_ATLAS_VRAM_Y, SPRITE_ATLAS_VRAM_W, SPRITE_ATLAS_VRAM_H);
+    /* g_sprite_atlas_4bpp is declared uint8_t[8192] (sprite_atlas.h) but
+     * LoadImage's real signature (verified directly against the installed
+     * psxgpu.h -- int LoadImage(const RECT *rect, const uint32_t *data) --
+     * not assumed) takes const uint32_t*: the PS1 GPU's VRAM DMA transfers
+     * data as 32-bit words. This relies on the compiler's default
+     * alignment of a file-scope 8192-byte array (mipsel-none-elf-gcc
+     * aligns data objects this size to at least a 4-byte boundary by
+     * default); no explicit alignment attribute is added here since that
+     * would mean hand-editing the generated array declaration itself,
+     * out of scope for this chunk. */
+    LoadImage(&atlas_rect, (const uint32_t *) g_sprite_atlas_4bpp);
+
+    RECT clut_rect;
+    setRECT(&clut_rect, SPRITE_ATLAS_CLUT_VRAM_X, SPRITE_ATLAS_CLUT_VRAM_Y, 16, 1);
+    /* Same LoadImage entry point uploads the CLUT: PS1 CLUTs are just an
+     * ordinary small VRAM pixel region (16 entries x 1 row here), not a
+     * separate upload mechanism -- confirmed against the header, which
+     * declares no CLUT-specific transfer function. */
+    LoadImage(&clut_rect, (const uint32_t *) g_pico8_clut);
+
+    /* LoadImage's transfer is GPU-DMA-driven; DrawSync(0) blocks until it
+     * (and anything queued before it) finishes, so no draw call can ever
+     * race ahead of the upload -- called once here, at boot, before any
+     * primitive referencing this texture/CLUT is ever drawn. */
+    DrawSync(0);
+
+    /* getTPage(tp, abr, x, y) (psxgpu.h's own helper, used here instead of
+     * hand-rolling the bit-packing): tp=0 selects the GPU's 4bpp CLUT
+     * texture page color mode -- the atlas's real format, per
+     * g_sprite_atlas_4bpp's own doc comment; the PS1 GPU's 3 tp values are
+     * 0=4bit CLUT, 1=8bit CLUT, 2=15bit direct. abr=0: no semi-
+     * transparency blending (none of this chunk's sprites need it). x/y
+     * are this texture's raw VRAM pixel coordinates -- getTPage's own
+     * bit-packing (verified against the installed header) masks these to
+     * page granularity itself, so the raw VRAM x/y is passed directly,
+     * not pre-divided. getClut(x, y) is the CLUT-upload's equivalent
+     * helper. */
+    g_sprite_atlas_tpage = getTPage(0, 0, SPRITE_ATLAS_VRAM_X, SPRITE_ATLAS_VRAM_Y);
+    g_sprite_atlas_clut_id = getClut(SPRITE_ATLAS_CLUT_VRAM_X, SPRITE_ATLAS_CLUT_VRAM_Y);
+}
+
+uint16_t sprite_atlas_get_tpage(void) {
+    return g_sprite_atlas_tpage;
+}
+
+uint16_t sprite_atlas_get_clut(void) {
+    return g_sprite_atlas_clut_id;
+}
+#endif
 """
 
 

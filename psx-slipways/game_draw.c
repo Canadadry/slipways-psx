@@ -7,6 +7,7 @@
 #include "liaison.h"
 #include "rules_tech.h"
 #include "screen_map.h"
+#include "sprite_atlas.h"
 #include "world.h"
 
 /* Arbitrary size, not traced art -- chunk 1's only goal is proving the
@@ -20,16 +21,13 @@
  * triage/psx-galaxy-rendering.md). */
 #define GAME_DRAW_WORMHOLE_HALF_SIZE 6
 
-/* Arbitrary size for the mouse-mode cursor marker -- a v1 UX/rendering
- * choice, not traced art (see docs/prd/triage/psx-mouse-mode-cursor.md's
- * "Rendering the cursor" decision). Only needs to be small and visually
- * distinct from GAME_DRAW_PLANET_TILE_SIZE; doesn't need to match it. */
-#define GAME_DRAW_CURSOR_TILE_SIZE 6
-
 /* Tech menu placeholder tile size/spacing/margin -- v1 UX/rendering
- * choices, not traced art (same framing as GAME_DRAW_CURSOR_TILE_SIZE
- * above; see docs/prd/triage/psx-rules-tech.md's "Rendering" decision).
- * Deliberately larger than the planet/cursor tiles above since this is a
+ * choices, not traced art (same framing GAME_DRAW_PLANET_TILE_SIZE/
+ * GAME_DRAW_WORMHOLE_HALF_SIZE above already established; see
+ * docs/prd/triage/psx-rules-tech.md's "Rendering" decision). The cursor
+ * is no longer a placeholder tile size -- it now draws SPRITE_CURSOR_DEFAULT
+ * from the real sprite atlas, see docs/prd/triage/psx-sprites-audio-extraction.md.
+ * Deliberately larger than the planet tile above since this is a
  * top-level UI element, not a world-space marker. GAME_DRAW_TECH_MARGIN
  * is a small offset from the screen's (0,0) corner so the tiles aren't
  * drawn flush against the very corner (per the PRD's own "small margin"
@@ -112,32 +110,58 @@ void game_draw(void) {
 		DrawPrim(&line);
 	}
 
-	/* Chunk 3 (psx-mouse-mode-cursor): mouse-mode cursor marker, gated on
-	 * cursor_get_state().mouse_mode so it's invisible until the player
-	 * toggles it on with Cross. Mirrors the planet TILE code above exactly
-	 * (setTile/setXY0/setWH/setRGB0/DrawPrim, centered on the coordinate
-	 * via a half-size offset), per the PRD's "Rendering the cursor"
-	 * decision. Plain white, distinct from the planet (green), wormhole
-	 * (orange), and slipway (blue) placeholder colors above. */
+	/* Chunk 4 (psx-sprites-audio-extraction): mouse-mode cursor, gated on
+	 * cursor_get_state().mouse_mode exactly as before -- the flat
+	 * placeholder TILE is replaced by the real cursor sprite
+	 * (SPRITE_CURSOR_DEFAULT, an 8x8 1x1-cel sprite in the atlas
+	 * sprite_atlas_init() uploaded from game_init()).
+	 *
+	 * SPRT (not POLY_FT4): PSn00bSDK's dedicated single axis-aligned
+	 * UV-mapped rectangle primitive (psxgpu.h's SPRT struct: x0/y0/u0/v0/
+	 * w/h -- one position, one size, no per-corner xy/uv quadruple to fill
+	 * in by hand) -- the more direct, idiomatic fit for one plain square
+	 * sprite than POLY_FT4's 4 explicit corners. Unlike POLY_FT4, SPRT
+	 * carries no tpage field of its own, so the active texture page is set
+	 * once via a DR_TPAGE primitive immediately before it (matching the
+	 * PRD's own "DR_TPAGE set once, not per-primitive" framing -- there's
+	 * only one sprite drawn in this block, but the mechanism is the same
+	 * one the planet-tile loop will reuse).
+	 *
+	 * setSprt's own fixed code byte (0x64) already has its raw-texture bit
+	 * clear, meaning this primitive is modulated (not raw) by default --
+	 * no extra flag needed to keep it that way -- so setRGB0 below keeps
+	 * tinting the sprite exactly like it tinted the flat TILE before it;
+	 * real PS1 hardware still color-multiplies a modulated textured
+	 * primitive by its r0/g0/b0, so the click-flash yellow/white logic is
+	 * carried over completely unchanged. */
 	{
 		cursor_state_t cursor = cursor_get_state();
 		if (cursor.mouse_mode) {
-			TILE tile;
-			setTile(&tile);
-			setXY0(&tile, cursor.x - GAME_DRAW_CURSOR_TILE_SIZE / 2, cursor.y - GAME_DRAW_CURSOR_TILE_SIZE / 2);
-			setWH(&tile, GAME_DRAW_CURSOR_TILE_SIZE, GAME_DRAW_CURSOR_TILE_SIZE);
+			int sx, sy, sw, sh;
+			sprite_atlas_cel_rect(SPRITE_CURSOR_DEFAULT, 1, 1, &sx, &sy, &sw, &sh);
+
+			DR_TPAGE tpage_prim;
+			setDrawTPage(&tpage_prim, 0, 1, sprite_atlas_get_tpage());
+			DrawPrim(&tpage_prim);
+
+			SPRT sprite;
+			setSprt(&sprite);
+			setXY0(&sprite, cursor.x - sw / 2, cursor.y - sh / 2);
+			setUV0(&sprite, sx, sy);
+			setWH(&sprite, sw, sh);
+			sprite.clut = sprite_atlas_get_clut();
 			/* Click-acknowledgment flash (psx-simulated-click.md): yellow
 			 * while click_flash_frames is counting down, matching
 			 * psx-hello/main.c's exact click_flash color (255, 255, 0);
-			 * plain white otherwise, distinct from planet/wormhole/slipway
-			 * colors above. */
+			 * plain white otherwise -- identical logic to the flat TILE
+			 * this block replaced. */
 			if (cursor.click_flash_frames > 0) {
-				setRGB0(&tile, 255, 255, 0);
+				setRGB0(&sprite, 255, 255, 0);
 			} else {
-				setRGB0(&tile, 255, 255, 255);
+				setRGB0(&sprite, 255, 255, 255);
 			}
 
-			DrawPrim(&tile);
+			DrawPrim(&sprite);
 		}
 	}
 
