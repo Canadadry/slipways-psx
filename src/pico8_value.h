@@ -73,4 +73,36 @@ pico8_value_t pico8_value_ref(void *p);
  *     not one to guess at now. */
 int pico8_value_equal(pico8_value_t a, pico8_value_t b);
 
+/* tostr(v): converts any of the shared value type's kinds to a
+ * newly heap-allocated, NUL-terminated string the caller owns and must
+ * free() -- tostr() produces a new, independent Lua string value, the
+ * same ownership convention pico8_sub (pico8_str.h) uses.
+ *
+ * Every tostr() call site found by grepping pico8/lua.lua in this phase's
+ * scope (lines 443, 530, 884, 957, 1418, 1420) passes a fixed-point number
+ * (a field holding a count/score/id) -- never a string, boolean, or
+ * reference. So:
+ *   - PICO8_VALUE_FIXED is the kind this phase's real usage actually
+ *     needs, and gets a real (if simple) decimal formatting: printed with
+ *     4 fractional digits, then trailing zeros and a bare trailing '.'
+ *     are trimmed, so an exact integer value like 3 renders "3", not
+ *     "3.0000". PICO-8's own exact tostr() decimal-formatting rules for
+ *     arbitrary fixed-point values (trailing-zero/precision edge cases)
+ *     were not separately sourced beyond "produces a human-readable
+ *     decimal" -- this phase's own tests only assert on small integers
+ *     this phase itself controls, per the PRD's Out of Scope; a specific
+ *     formatted value Phase 3's UI code needs is deferred to whichever
+ *     call site first needs it.
+ *   - PICO8_VALUE_STRING is never actually passed to tostr() by any
+ *     in-scope call site either, but is trivial and unambiguous (identity/
+ *     passthrough of the string's content) so it's implemented for
+ *     completeness rather than left to assert/crash.
+ *   - PICO8_VALUE_BOOL and PICO8_VALUE_REF are likewise never passed to
+ *     tostr() by any in-scope call site; both get a minimal, defensive
+ *     result (BOOL: "true"/"false"; REF: an empty string) rather than a
+ *     researched PICO-8-accurate formatting, since no real call site in
+ *     scope exercises either -- a real future need is evidence to build
+ *     that out properly, not something to guess at now. */
+char *pico8_value_tostr(pico8_value_t v);
+
 #endif

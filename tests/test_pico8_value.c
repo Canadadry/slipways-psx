@@ -2,6 +2,8 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static void test_fixed_constructs_with_fixed_kind(void) {
     pico8_value_t v = pico8_value_fixed(pico8_fixed_from_int(42));
@@ -63,6 +65,39 @@ static void test_equal_different_kinds_never_equal(void) {
     assert(!pico8_value_equal(fixed_zero, bool_false));
 }
 
+static void test_tostr_small_positive_integer(void) {
+    char *s = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(3)));
+    assert(strcmp(s, "3") == 0);
+    free(s);
+}
+
+static void test_tostr_zero(void) {
+    char *s = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(0)));
+    assert(strcmp(s, "0") == 0);
+    free(s);
+}
+
+static void test_tostr_negative_integer(void) {
+    char *s = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(-5)));
+    assert(strcmp(s, "-5") == 0);
+    free(s);
+}
+
+static void test_tostr_string_is_content_passthrough(void) {
+    char *s = pico8_value_tostr(pico8_value_string("hi"));
+    assert(strcmp(s, "hi") == 0);
+    free(s);
+}
+
+static void test_tostr_bool(void) {
+    char *t = pico8_value_tostr(pico8_value_bool(1));
+    char *f = pico8_value_tostr(pico8_value_bool(0));
+    assert(strcmp(t, "true") == 0);
+    assert(strcmp(f, "false") == 0);
+    free(t);
+    free(f);
+}
+
 int main(void) {
     test_fixed_constructs_with_fixed_kind();
     test_string_constructs_with_string_kind();
@@ -73,6 +108,11 @@ int main(void) {
     test_equal_ref_by_pointer_identity();
     test_equal_string_by_pointer_identity_not_content();
     test_equal_different_kinds_never_equal();
+    test_tostr_small_positive_integer();
+    test_tostr_zero();
+    test_tostr_negative_integer();
+    test_tostr_string_is_content_passthrough();
+    test_tostr_bool();
 
     printf("test_pico8_value: all tests passed\n");
     return 0;
