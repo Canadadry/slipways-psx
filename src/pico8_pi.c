@@ -6,6 +6,7 @@
 #include "pico8_collect.h"
 #include "pico8_geom.h"
 #include "pico8_hud.h"
+#include "pico8_layout.h"
 #include "pico8_vec.h"
 
 /* pi={b=qz,v=v,br=rk,qr=io,rf=eq,s=spr} (pico8/lua.lua:133). See
@@ -159,6 +160,34 @@ static pico8_value_t pico8_pi_vec_v_constructor(pico8_value_t a1, pico8_value_t 
     return pico8_value_ref(v);
 }
 
+/* pi.ld = lq.ol (function lq:ol(p,a) ... end, pico8_layout.h/.c) -- the
+ * one gap Chunk 2's own pico8_pi_init() deliberately left open (see this
+ * file's own git-blame-visible history / docs/portage-progress.md's Vague
+ * 2 note), now closed by Chunk 3 (docs/prd/triage/phase3-etape1-function-
+ * by-function-c-port.md's own "pi.ld=lq.ol" instruction), now that
+ * pico8_layout.h's lq/lq:ol exist. `oo(pi["ld"],e)`'s real e is
+ * `{lq(st),st.ra,0.5,fn="ld"}` (pico8/lua.lua:891): a1=the lq instance
+ * itself (REF), a2=a position vector (REF to a heap pico8_vec_t, same
+ * convention as pico8_pi_vec_v_constructor's own output), a3=the
+ * alignment factor (always 0.5 at this one real call site) -- `lq.ol`
+ * itself is UNBOUND (no `:` in `pi.ld=lq.ol`), so oo()'s own
+ * `fn(a[1],a[2],a[3],a[4],a[5])` call passes a1 as lq:ol's own `self`,
+ * exactly matching pico8_lq_ol's own (gfx,mem,self,p,a) signature once
+ * gfx/mem are threaded in from this module's own dispatch context, same
+ * as every other adapter in this file. */
+static pico8_value_t pico8_pi_ld_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
+                                              pico8_value_t a5) {
+    const pico8_instance_t *self = (a1.kind == PICO8_VALUE_REF) ? (const pico8_instance_t *)a1.as.ref : NULL;
+    pico8_vec_t p = (a2.kind == PICO8_VALUE_REF && a2.as.ref != NULL)
+                        ? *(const pico8_vec_t *)a2.as.ref
+                        : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_fixed_t a = (a3.kind == PICO8_VALUE_FIXED) ? a3.as.fixed : pico8_fixed_from_int(0);
+    (void)a4;
+    (void)a5;
+    pico8_lq_ol(g_pi_gfx, g_pi_mem, self, p, a);
+    return pico8_value_ref(NULL);
+}
+
 /* oo(pi[e.fn],e) -- bl()'s own inner dispatch step, factored out since
  * both pico8_bl (nc provided) and pico8_bl_default (nc omitted) need it
  * identically; see pico8_pi.h's own comment on pico8_bl for why `e` is
@@ -238,4 +267,14 @@ void pico8_pi_init(void) {
     pico8_pi_dispatch_register("qr", pico8_pi_io_constructor);
     pico8_pi_dispatch_register("rf", pico8_pi_eq_constructor);
     pico8_pi_dispatch_register("s", pico8_pi_spr_constructor);
+    /* pi.ld=lq.ol -- Chunk 2's own deliberately-left-open gap, closed now
+     * that Chunk 3's pico8_layout.h/lq/lq:ol exist. See
+     * pico8_pi_ld_constructor's own comment above. Requires
+     * pico8_layout_init() to have already built the real lq class before
+     * this dispatch entry is ever actually exercised (registering the
+     * function pointer here doesn't itself need lq_class to exist yet,
+     * only calling through it later does) -- same "some future bootstrap
+     * sequence" ordering note as pico8_layout_init()/pico8_ke_init()'s own
+     * headers. */
+    pico8_pi_dispatch_register("ld", pico8_pi_ld_constructor);
 }

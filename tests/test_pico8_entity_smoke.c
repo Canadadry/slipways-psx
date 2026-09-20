@@ -6,6 +6,7 @@
 
 #include "../src/pico8_class.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_ke.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_value.h"
@@ -241,8 +242,56 @@ static void test_entity_dispatch_smoke(void) {
     pico8_class_registry_clear();
 }
 
+/* Phase 3, Chunk 3's own targeted extension to this smoke test (per this
+ * PRD's own per-lot "entity/dispatch mechanism coverage" check): the
+ * FIRST real (non-fake) class whose pq genuinely self-registers a fresh
+ * instance into hv/cv/cg on instantiation, rather than a test-only fake pq
+ * that merely sets a marker field and leaves pico8_lt() to be called
+ * separately by the test itself (as test_entity_dispatch_smoke above
+ * does). `ke.pq=lt` (pico8_ke.h/.c) is the real cart's own version of this
+ * exact mechanism -- see pico8_ke.h's own top comment for the full trace.
+ * This is a genuinely new structural exercise Phase 2's own smoke test
+ * (built before any real class existed) had no way to cover. */
+static void test_ke_pq_registers_via_lt(void) {
+    pico8_instance_t *e;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    pico8_ke_init();
+
+    /* No explicit pico8_lt(e) call anywhere in this test -- ke.pq=lt means
+     * instantiation ALONE must already register e into hv (and, since ke's
+     * own spec sets no bm-listed field or "nu" tag, into no cv[]/cg[]
+     * bucket at all). */
+    e = pico8_class_instantiate(pico8_ke_class(), NULL);
+    assert(list_contains_instance(pico8_hv(), e));
+    assert(!list_contains_instance(pico8_cv("ev"), e));
+    assert(!list_contains_instance(pico8_cv("hd"), e));
+    assert(!list_contains_instance(pico8_cv("hk"), e));
+    assert(!list_contains_instance(pico8_cv("hb"), e));
+    assert(!list_contains_instance(pico8_cv("kj"), e));
+
+    /* ke's own defaults ("me"="ph","t"=0) must be reachable via the
+     * ordinary prototype-chain fallback, same as any other class. */
+    {
+        pico8_value_t v;
+        assert(pico8_instance_get_field(e, "me", &v) && v.kind == PICO8_VALUE_STRING);
+        assert(pico8_instance_get_field(e, "t", &v) && v.kind == PICO8_VALUE_FIXED &&
+               v.as.fixed == pico8_fixed_from_int(0));
+    }
+
+    pico8_he(e);
+    assert(!list_contains_instance(pico8_hv(), e));
+    pico8_instance_free(e);
+
+    pico8_ke_shutdown();
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
+    test_ke_pq_registers_via_lt();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;

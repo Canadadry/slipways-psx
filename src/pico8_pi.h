@@ -133,15 +133,12 @@ void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb
  *     path): "br"->pico8_rk, "qr"->pico8_io, "rf"->pico8_eq, "s"->spr
  *     (same adapter function as the char-keyed 's' registration above,
  *     not duplicated).
- *   - "ld"->lq's `ol` method is DELIBERATELY LEFT UNREGISTERED here: `lq`
- *     is Chunk 3's own class, not yet ported, so there is no real function
- *     to point at yet. pico8_pi_dispatch_lookup("ld") returns NULL until
- *     Chunk 3's own implementer adds the one missing
- *     `pico8_pi_dispatch_register("ld", <lq_ol_adapter>);` call (to this
- *     function, or anywhere run before bl() is first exercised) once
- *     `lq`/`lq:ol` exist. This is the one open forward-reference gap this
- *     chunk leaves for Chunk 3, documented here and in
- *     docs/portage-progress.md rather than guessed at with a stub.
+ *   - "ld"->lq's `ol` method: RESOLVED by Chunk 3 (pico8_pi.c's own
+ *     pico8_pi_ld_constructor, registered by this same pico8_pi_init()
+ *     below) now that `lq`/`lq:ol` exist (src/pico8_layout.h/.c). This was
+ *     Chunk 2's own deliberately-left-open gap (`lq` didn't exist yet at
+ *     Chunk 2 time) -- see pico8_pi.c's own comment on
+ *     pico8_pi_ld_constructor for the full trace.
  *
  * A single grouped init function (rather than N scattered standalone call
  * sites) mirrors pico8_entity_init()'s own "groups related setup calls"
