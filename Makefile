@@ -65,10 +65,13 @@ $(TMP_DIR)/test_pico8_str: tests/test_pico8_str.c src/pico8_str.c src/pico8_str.
 $(TMP_DIR)/test_pico8_ob: tests/test_pico8_ob.c src/pico8_ob.c src/pico8_ob.h src/pico8_list.c src/pico8_list.h src/pico8_value.c src/pico8_value.h src/pico8_str.c src/pico8_str.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_ob.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c -lm
 
+$(TMP_DIR)/test_pico8_entity_smoke: tests/test_pico8_entity_smoke.c src/pico8_entity.c src/pico8_entity.h src/pico8_class.c src/pico8_class.h src/pico8_ob.c src/pico8_ob.h src/pico8_list.c src/pico8_list.h src/pico8_value.c src/pico8_value.h src/pico8_str.c src/pico8_str.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ tests/test_pico8_entity_smoke.c src/pico8_entity.c src/pico8_class.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c -lm
+
 $(TMP_DIR)/pico8_demo: src/main.c src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_input.c src/pico8_input.h src/pico8_dump.c src/pico8_dump.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ src/main.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -82,6 +85,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_list
 	./$(TMP_DIR)/test_pico8_str
 	./$(TMP_DIR)/test_pico8_ob
+	./$(TMP_DIR)/test_pico8_entity_smoke
 
 demo: $(TMP_DIR)/pico8_demo
 	./$(TMP_DIR)/pico8_demo
