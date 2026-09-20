@@ -365,25 +365,39 @@ pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
  *
  * `fm:lu(self.od)` / `fm:nx(self.fp or 0)`: real Lua method-call sugar on
  * the SINGLE global `fm` (Chunk 12's `hy` economy singleton -- "can afford
- * this project's cost" / "spend it", by this chunk's own reading of the
- * PRD's economy-singleton framing). Since `hy`'s own class doesn't exist
- * yet and `lu`/`nx` are ordinary Lua method-call-sugar names (never written
- * as literal `mv(...)` in the real source the way `js:pq`'s `mv(self,
- * "lq")` is), this is routed through the SAME generic `pico8_mv()` dynamic
+ * this project's cost" / "spend it").
+ *
+ * *** CORRECTION (Chunk 14, docs/prd/triage/phase3-etape1-function-by-
+ * function-c-port.md) ***: this paragraph originally routed both calls
+ * through `pico8_mv()`, reasoned below as HISTORY (still accurate for why
+ * that choice was made AT THE TIME): since `hy`'s own class didn't exist
+ * yet when this chunk (10) was written and `lu`/`nx` are ordinary Lua
+ * method-call-sugar names (never written as literal `mv(...)` in the real
+ * source), this was routed through the same generic `pico8_mv()` dynamic
  * field-lookup mechanism Chunk 9's own `ez`'s `self:mm()` already uses for
  * an identical "genuinely dynamic method call on a not-yet-fully-resolved
  * self" shape (pico8_particle.h's own top comment) -- NOT `pico8_ke_ks`'s
  * own "known, single, already-built implementation" direct-call treatment,
- * since `hy:lu`/`hy:nx` don't exist to call directly yet. `pico8_fm()`'s
- * own placeholder (this file's own top comment) has no "lu"/"nx" field, so
- * `pico8_mv()` returns 0 (absent) for both today, exactly the same
- * "compiles, not yet meaningfully exercised" status this whole PRD already
- * gives every other forward reference -- confirmed, not assumed, since
- * `pico8_mv()`'s own contract already documents this "field not found"
- * case explicitly (pico8_entity.h). `self.od` is passed as-is (whatever
- * kind it holds, default fixed 0 per this file's own top comment); `self.fp
- * or 0` reproduces Lua's own `or` fallback (default `false`, per `fp=f` --
- * so this fallback is taken by default until a real caller overrides `fp`).
+ * since `hy:lu`/`hy:nx` didn't exist to call directly yet at the time.
+ * Once Chunk 12 landed, its own `pico8_economy.h` top comment settled the
+ * real convention explicitly for every `hy` method, including these two by
+ * name: never `bm`/mv()/dc()-routed, always direct C calls (`hy` is never
+ * subclassed anywhere in the real cart, so there's no runtime-polymorphic
+ * receiver to resolve, unlike `jo:kf`/`jo:cn`'s own genuine cluster-wide
+ * dispatch) -- this port's own code here was never updated to match, so
+ * `pico8_mv(fm,"lu"/"nx",...)` kept silently resolving "field not found"
+ * even after `hy` became real, since `hy`'s own class correctly never
+ * wires "lu"/"nx" as dispatch fields at all. Found and fixed by Chunk 14
+ * (`pico8_jc_ey`'s own real end-to-end trade-cluster exercise, the first
+ * real caller this stale routing actually blocked) -- `pico8_d_` below now
+ * calls `pico8_hy_lu`/`pico8_hy_nx` directly, matching Chunk 12's
+ * documented convention; see `pico8_d_`'s own updated in-body comment for
+ * the full trace, and `docs/plan.md`'s "Notes de portage" for this port's
+ * general record of such found-in-shipped-code gaps. `self.od` is passed
+ * as-is (whatever kind it holds, narrowed to fixed with a 0 default per
+ * this file's own top comment's pervasive convention); `self.fp or 0`
+ * reproduces Lua's own `or` fallback (default `false`, per `fp=f` -- so
+ * this fallback is taken by default until a real caller overrides `fp`).
  *
  * `self:ks(self.dq or "ph")`: unlike `fm:lu`/`fm:nx` above, `ks` IS a
  * single, already-built, known implementation on every `ke`-descended

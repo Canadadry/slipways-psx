@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
+#include "pico8_economy.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
@@ -293,9 +294,11 @@ pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
  * end
  * end
  * (pico8/lua.lua:569-576.) See pico8_probe.h's own top comment on this
- * declaration for the full trace, including why `fm:lu`/`fm:nx` are routed
- * through pico8_mv() (a genuinely dynamic method call on the not-yet-real
- * `fm` singleton) while `self:ks(...)` is called directly (a known,
+ * declaration for the full trace. CORRECTION (Chunk 14): `fm:lu`/`fm:nx`
+ * are plain Lua method-call sugar, never mv()-routed -- like every other
+ * `hy` method (pico8_economy.h's own convention, `hy` has no subclass) --
+ * so this port calls pico8_hy_lu/pico8_hy_nx directly, not through
+ * pico8_mv(). `self:ks(...)` is likewise a direct call (a known,
  * already-built implementation, pico8_ke_ks). The `not self.et and ...`
  * short-circuit is preserved exactly: `fm:lu` is only ever reached when
  * `!has_et`. */
@@ -304,7 +307,6 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
     int has_et;
     pico8_value_t od_val = pico8_value_ref(NULL);
     pico8_instance_t *fm;
-    pico8_value_t lu_result = pico8_value_ref(NULL);
     int lu_ok = 0;
 
     if (self == NULL) {
@@ -313,17 +315,47 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
 
     has_et = pico8_instance_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
+    fm = pico8_fm();
     if (!has_et) {
+        pico8_fixed_t jt = pico8_fixed_from_int(0);
         (void)pico8_instance_get_field(self, "od", &od_val);
-        fm = pico8_fm();
-        lu_ok = pico8_mv(fm, "lu", 1, od_val, pico8_value_ref(NULL), &lu_result);
+        if (od_val.kind == PICO8_VALUE_FIXED) {
+            jt = od_val.as.fixed;
+        }
+        /* CORRECTION (Chunk 14, docs/prd/triage/phase3-etape1-function-by-
+         * function-c-port.md): `fm:lu`/`fm:nx` were originally routed
+         * through pico8_mv() here because `hy` (Chunk 12) didn't exist yet
+         * when this chunk (10) was written -- see this file's own header
+         * comment on this declaration, still accurate as HISTORY. Once
+         * Chunk 12 landed, its own pico8_economy.h top comment settled the
+         * real convention for these two methods explicitly: "none of its
+         * own methods (pq,nx,hk,lu,lj,kt) are bm dispatch names or ever
+         * called via mv()/dc() in the real source ... so all are ported as
+         * direct, known C functions" -- `hy` is never subclassed anywhere
+         * in the real cart, so there is no runtime-polymorphic receiver to
+         * resolve here, unlike jo:kf/jo:cn's own genuine mv()-worthy
+         * cross-class dispatch. Chunk 12's own header comment even names
+         * THIS exact call site as its evidence ("e.g. d_'s fm:lu(...)/
+         * fm:nx(...), Chunk 10") while concluding it should be direct --
+         * an oversight this port's own code was never updated to match.
+         * Found and fixed here, Chunk 14, the first real caller (`jc:ey`)
+         * whose own end-to-end trade-cluster exercise this stale mv()
+         * routing silently defeated (pico8_mv(fm,"lu"/"nx",...) always
+         * returned "field not found" even after hy became real, since hy's
+         * own class never wires "lu"/"nx" as PICO8_VALUE_FUNCTION fields --
+         * correctly so, per Chunk 12's own convention). Same treatment as
+         * this port's other "gap found in already-shipped code, fixed
+         * minimally, documented" precedents (pico8_hp_lq_dispatch,
+         * pico8_gn_free's NULL guard) -- see docs/plan.md's "Notes de
+         * portage" for the full trace. */
+        lu_ok = pico8_hy_lu(fm, jt);
     }
 
-    if (!has_et && lu_ok && pico8_probe_truthy(lu_result)) {
+    if (!has_et && lu_ok) {
         pico8_value_t dq_val;
         pico8_value_t fp_val;
         pico8_value_t ik_val;
-        pico8_value_t nx_result;
+        pico8_fixed_t hx = pico8_fixed_from_int(0);
 
         if (!pico8_instance_get_field(self, "dq", &dq_val) || !pico8_probe_truthy(dq_val)) {
             dq_val = pico8_value_string("ph");
@@ -333,7 +365,10 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
         if (!pico8_instance_get_field(self, "fp", &fp_val) || !pico8_probe_truthy(fp_val)) {
             fp_val = pico8_value_fixed(pico8_fixed_from_int(0));
         }
-        (void)pico8_mv(pico8_fm(), "nx", 1, fp_val, pico8_value_ref(NULL), &nx_result);
+        if (fp_val.kind == PICO8_VALUE_FIXED) {
+            hx = fp_val.as.fixed;
+        }
+        pico8_hy_nx(pico8_fm(), hx);
 
         if (!pico8_instance_get_field(self, "ik", &ik_val) || !pico8_probe_truthy(ik_val)) {
             ik_val = pico8_value_fixed(pico8_fixed_from_int(54));
