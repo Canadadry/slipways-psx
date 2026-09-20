@@ -221,6 +221,33 @@
  * `argc`/`arg0`/`arg1`, the same pattern `pico8_jo_hb_dispatch` already
  * uses. */
 
+/* *** SUB-LOT 3 (this session) *** -- two parts, per the task brief's own
+ * explicit ordering: FIRST, the module split sub-lot 2's own write-up
+ * flagged as required (`docs/portage-progress.md`'s "Vague 13" entry:
+ * 767/722 lines, well past the ~430-540 threshold) -- `hb`/`gh`/`gv`
+ * moved verbatim to the new `pico8_planet_display.c`/`.h` (see this
+ * file's own "SUB-LOT 3 MODULE SPLIT NOTICE" comment further below, right
+ * before `jo:hu`'s declaration, for the exact list and rationale); no
+ * `pico8_planet_trade.c` created yet, since `kf`/`cn`/`ib` (the only
+ * methods that would go there) aren't ported yet -- nothing to move.
+ * SECOND, `ldown`/`fe` are ported, now that `hu` (sub-lot 2) exists to
+ * satisfy `fe`'s own `self:hu()` call -- `jc` (Chunk 14) remains the one
+ * real blocker, still not built for `ldown`'s own `jc({...})` call, so it
+ * compiles against the SAME already-generic `pico8_class_lookup_named`
+ * mechanism `hu` already established, exactly as the PRD's own "forward
+ * references are ported, not deferred" convention prescribes (see
+ * `pico8_jo_ldown`'s own comment below for the full trace). `ldown`
+ * itself is declared below, after `hk`; `fe` is declared in
+ * `pico8_planet_display.h` instead -- porting both into THIS file first
+ * (as sub-lot 2's own plan originally proposed) measured 663 lines, still
+ * over the ~430-540 range even after the split above, almost entirely
+ * because of `fe`'s own bulk (the "my" closure's representation) -- see
+ * `pico8_planet_display.h`'s own "STEP 2 REBALANCE" comment for the full
+ * size trace and why `fe` specifically (not `ldown`) was the one moved.
+ * This brings `jo` to 13 of its 17 real methods ported; left for later
+ * sub-lots: the mutually-recursive trade cluster `kf`/`cn`/`ib` and `kj`
+ * (the PRD's own flagged "first real `dc('kj')` exercise"). */
+
 void pico8_jo_init(void);
 
 /* Not part of the Lua original (no manual teardown under GC): frees the
@@ -379,186 +406,20 @@ void pico8_jo_kd(pico8_instance_t *self);
  * `self` is a safe no-op. */
 void pico8_jo_ll(pico8_instance_t *self, pico8_fixed_t t);
 
-/* function jo:hb()self.lq=jo.ex(self.jy,self.kw.qe,self.kw.mu,#self.by,0
- * )end
- * (pico8/lua.lua:539-540.) Rebuilds this planet's own floating info-icon
- * row (`self.lq`, an `lq` instance -- Chunk 3) from its current wants
- * (`self.jy`, set by `jo:lz` above) and export state (`self.kw.qe`/
- * `self.kw.mu`) and incoming-trade count (`#self.by`, Chunk 13's own
- * `jo:ib()` result field, deferred -- absent/NULL reads as 0, this port's
- * pervasive "missing list counts as empty" convention). Calls
- * `pico8_jo_ex` (`pico8_research_display.h`, Chunk 11, ALREADY BUILT --
- * this is the exact real call site that chunk's own top comment
- * anticipated: "only ONE single Lua GLOBAL FIELD read from within its
- * body, `jo.em`, genuinely forward-references [jo]... That single read
- * ... is NULL today"; `jo.em` resolves for real the moment THIS chunk's
- * own `pico8_class_register_named("jo",...)` call above has run, since
- * `pico8_jo_ex` reads it via `pico8_class_lookup_named("jo")->defaults`)
- * directly (a known function, not `mv()`-routed).
- *
- * `hb` IS one of `bm`'s 5 real dispatch names (see this file's own top
- * comment on the PRD's 16-vs-17 undercount) -- wired as a real
- * `PICO8_VALUE_FUNCTION` field via `pico8_jo_hb_dispatch` (this file's own
- * .c, a bridge with no extra arguments, matching `hy:lj()`'s own real
- * `e:hb()` call shape, Chunk 12, already built) so any real `jo` instance
- * this sub-lot's own construction produces is reachable through
- * `hy:lj()`'s own `for e in all(cv.hb)do e:hb()end` dispatch loop for
- * real, closing that forward reference. Also directly callable as this
- * plain C function (no other real same-class caller found in scope, but
- * matches this port's established "expose the known function, wire a thin
- * bridge alongside it" pattern regardless). A NULL `self` is a safe
- * no-op. */
-void pico8_jo_hb(pico8_instance_t *self);
-
-/* function jo:gh()local bs={{lq=
- * self.px or
- * jo.dz[self.mi]
- * }}
- * bs[1].h_=self.kr
- * and {ne(self.kr).."$",bg=self.kr>=0 and 1}
- * local ji={"receives:"}
- * local jx=jp(self.jy,function(i)for j=1,i.gc do
- * add(ji,i)end
- * return i.gc==0
- * end)if jx[1]then
- * add(bs,{lq=la({"needs:"},jx)})else
- * if self.mi<4 and #self.jy>0 and self.kw.qe~=r.w then
- * add(bs,{lq=la({"wants more:"},self.qh
- * and {self.jy[#self.jy]}
- * or self.jy
- * )})end
- * end
- * add(bs,ji[2]and {lq=ji})if self.kw.mu>0 then
- * local lb=gu(jo.cq,self.kw.qe)and {"makes:",tostr(self.kw.mu),self.kw}
- * or {"exports:",#self.by.."/"..self.kw.mu,self.kw}
- * add(bs,{lq=lb})end
- * for i=2,#bs do
- * add(bs[i].lq,{false,1})end
- * pz(self,bs)end
- * (pico8/lua.lua:424-448.) The planet's own click-to-inspect info panel --
- * builds `bs` (a list of `{lq=...,h_=...}` rows, exactly the shape
- * `pico8_pz`'s own header comment documents, pico8_msgbox.h Chunk 8) and
- * hands it to `pz(self,bs)` (already built) to render.
- *
- * `bs[1]`: the icon row. `self.px or jo.dz[self.mi]` -- `self.px` (an
- * optional per-instance override, truthy-checked via this file's own
- * `pico8_jo_truthy`) if present, else `jo.dz[self.mi]` (the CLASS-level
- * `dz` field -- one of the four `o("unhappy",c=8)`-shaped status tuples
- * from this file's own top comment's class-spec trace -- indexed by
- * `self.mi`, absent-mi reading as "no index", matching real Lua's own
- * safe nil-key table read). `bs[1].h_`: `self.kr and {...}` -- `self.kr`
- * truthy (this port's `pico8_jo_truthy`, so a real fixed 0 still counts)
- * gets a `{text,bg=...}` tuple (`ne(self.kr)` -- `c`/`ku` both omitted,
- * per pico8_collect.h's own documented "only ne()'s first return value is
- * ever used when callers omit `c`" convention -- with a literal "$"
- * appended; `bg=self.kr>=0 and 1`, a real fixed 1 when true, the literal
- * boolean `false` -- stored as a real field value, not omitted -- when
- * false); absent/falsy `self.kr` leaves `h_` as `self.kr` itself (nil).
- *
- * `ji`/`jx`: `jp(self.jy,predicate)`'s own predicate has a real SIDE
- * EFFECT (`for j=1,i.gc do add(ji,i) end`, appending `i` to the captured
- * `ji` list `i.gc` times) alongside its filter condition (`i.gc==0`) --
- * ported via `pico8_jp`'s own `ctx` parameter holding a pointer to the
- * heap `ji` list being built (this file's own private
- * `pico8_jo_gh_jp_step`), not a pure predicate. `i.gc` (a want-record's
- * own "how many trades already fulfill this want" count) is set only by
- * `dh()` (Chunk 12's already-built `pico8_dh`, pico8_economy_tiers.c) --
- * absent here reads as 0 (this port's pervasive convention), which is
- * also real Lua's own correct reading for a want that's never gone
- * through `dh()` yet.
- *
- * `if jx[1]` (jx non-empty, i.e. some want is still fully unfulfilled):
- * adds a `{lq=la({"needs:"},jx)}` row. Else, if `self.mi<4 and
- * #self.jy>0 and self.kw.qe~=r.w` (a young-enough, actually-wanting,
- * non-`r.w`-exporting planet), adds a `{lq=la({"wants more:"},X)}` row,
- * `X` being `{self.jy[#self.jy]}` (a fresh one-item list holding just the
- * LAST want) when `self.qh` is truthy, else the WHOLE `self.jy` list --
- * `self.qh` itself is a plain per-instance data field some planet
- * subtypes' own class specs set (Chunk 15, e.g. `qh=jo:jr([[...,qh=1,...
- * ]])`), absent/falsy on a base `jo`.
- *
- * `add(bs,ji[2]and{lq=ji})`: `ji[2]` is Lua `nil` (not `false`) when the
- * predicate above never appended anything -- `nil and {...}` is `nil`,
- * and `add(t,nil)` is PICO-8's own documented no-op (pico8_collect.h's
- * own pico8_nv comment) -- ported as "only append this row when
- * `ji->count>=2`", not as appending a literal `false` list element.
- *
- * `if self.kw.mu>0`: `gu(jo.cq,self.kw.qe)` -- `jo.cq` (the CLASS-level
- * `o(12,36,24,25)` field) walked via this file's own private
- * `pico8_jo_positional_values` (the same "positional-entries-of-an-
- * ob_table -> pico8_list_t" bridge already established independently by
- * `pico8_research_display_positional_values`/`pico8_layout_positional_
- * values`/`pico8_msgbox_positional_values`, a documented, accepted
- * duplication, not a new pattern) -- picks `{"makes:",tostr(self.kw.mu),
- * self.kw}` when `self.kw.qe` is one of those four constants, else
- * `{"exports:",<concatenated "N/M" string>,self.kw}` (`#self.by` -- Chunk
- * 13's own `jo:ib()` result field, still deferred, absent reads as 0, per
- * `jo:hb`'s own identical precedent -- concatenated with `self.kw.mu` via
- * `tostr()`, this port's established malloc+memcpy/strcat convention,
- * matching `pico8_ne`'s/`pico8_ho_apply`'s own style, see pico8_planet.c).
- * `self.kw` itself (the whole table) is the row's own THIRD list item, a
- * shared REF to the SAME table `self.kw` already points to, not a copy.
- *
- * `for i=2,#bs do add(bs[i].lq,{false,1}) end`: every row from the SECOND
- * one onward (never `bs[1]`, whose own `lq` is a single icon value, never
- * a list) gets one more trailing `{false,1}` tuple appended to its own
- * `lq` list -- every `lq` value built above by this function (the
- * "needs:"/"wants more:"/`ji`/"makes:"/"exports:" rows) is represented as
- * a heap `pico8_list_t*` REF specifically so this in-place `add()` is
- * possible, matching how `jp`/`la`/`nv` themselves already return
- * `pico8_list_t` values throughout this port.
- *
- * Every intermediate SCRATCH `pico8_list_t` whose own contents get copied
- * elsewhere (the literal `{"needs:"}"/`{"wants more:"}` prefix lists fed
- * into `la()`, and `jx` itself once merged) is released with
- * `pico8_list_free()` right after use, mirroring `pico8_pz`'s own
- * identical `prefix_item`/`merged` cleanup (pico8_msgbox.c) -- but no
- * `pico8_ob_table_t`/`pico8_list_t` that becomes part of the final `bs`
- * structure handed to `pz()` is ever freed here, matching this port's
- * pervasive "the surviving structure leaks, like Lua's own GC-deferred
- * collection" convention. A NULL `self` is a safe no-op (nothing to
- * build a panel for). Read-only on `self` -- no field is written. */
-void pico8_jo_gh(const pico8_instance_t *self);
-
-/* function jo:gv(s)if self.me=="ly" then
- * if s.qu==self then
- * self:gh()else
- * return true
- * end
- * end
- * end
- * (pico8/lua.lua:472-478.) "Can an incoming slipway drag `s` land on this
- * planet?" -- real call site: `ui:jz("gv",held)` (pico8_ui.h's own
- * `pico8_ui_jz`, Chunk 5, already built and already `mv()`-dispatching by
- * this exact name). Only colonized planets (`self.me=="ly"`, compared by
- * STRING CONTENT like `jo:gg`) participate at all -- an uncolonized
- * planet falls off the end, returning Lua nil (`pico8_value_ref(NULL)`
- * here). For a colonized planet: if `s.qu` (a slipway's own "already
- * connected from" planet field, Chunk 14's `jc`, not yet built -- read
- * generically via `pico8_instance_get_field`, no `jc` class dependency)
- * IS this same instance (compared by POINTER IDENTITY, matching real
- * Lua's own table-reference `==`), the drag is landing back on its own
- * origin -- shows this planet's own info panel instead (`self:gh()`, this
- * sub-lot's own `pico8_jo_gh` above) and returns nil (no `return`
- * statement follows the `self:gh()` call); otherwise returns `true` (a
- * genuinely different planet -- a valid drop target).
- *
- * Not one of `bm`'s 5 real dispatch names, but still a real `mv()`-routed
- * field (see this file's own top "SUB-LOT 2" comment) -- wired as a
- * `PICO8_VALUE_FUNCTION` bridge (`pico8_jo_gv_dispatch`, pico8_planet.c)
- * threading `mv()`'s own `arg0` through as `s`, the same "field function,
- * not a `cv` auto-registration" treatment `gg`/`hb` already established.
- * Also directly callable as this plain C function. A NULL `self` is a
- * safe no-op (returns Lua nil); a NULL `s` is read the same defensive way
- * every other "self-shaped argument" is elsewhere in this port (`s.qu`
- * absent -> never equal to `self`, so the `else` branch's `return true`
- * is taken, matching what real Lua would do for a `nil.qu` READ... except
- * real Lua would actually ERROR on `nil.qu`; no real call site in scope
- * ever passes a genuinely nil `s` to `gv`, so this divergence is purely
- * defensive, never actually exercised, matching this port's pervasive
- * "wrong-kind/absent argument reads as absent rather than crashing"
- * convention). */
-pico8_value_t pico8_jo_gv(const pico8_instance_t *self, const pico8_instance_t *s);
+/* *** SUB-LOT 3 (this session) MODULE SPLIT NOTICE *** -- `hb`, `gh`,
+ * `gv` (sub-lot 2's own ports, plus their private helpers
+ * `pico8_jo_gh_ctx_t`/`pico8_jo_gh_jp_step`/`pico8_jo_gh_row`/
+ * `pico8_jo_positional_values`/`field_truthy`/`field_fixed`/`field_list`/
+ * `field_ref_table`) moved VERBATIM (every trace comment intact, no
+ * logic changed) to the new `pico8_planet_display.c`/`.h` sibling module
+ * in this sub-lot's own required proactive split (see this file's own
+ * "New module" paragraph above and `docs/portage-progress.md`'s "Vague
+ * 13" entry for why: 767/722 lines, well past the ~430-540 threshold).
+ * See `pico8_planet_display.h` for their declarations and full trace
+ * comments. `pico8_jo_hb_dispatch`/`pico8_jo_gv_dispatch` (the two
+ * `mv()`-dispatch bridges installed by `pico8_jo_init()` below) stay in
+ * `pico8_planet.c`, now calling across the file boundary via
+ * `pico8_planet_display.h`. */
 
 /* function jo:hu(hp)local fp=2
  * if hp.cw then
@@ -700,6 +561,65 @@ void pico8_jo_hh(pico8_instance_t *self);
  * as this plain C function. A NULL `self` is a safe no-op. Read-only on
  * `self` -- no field is written. */
 void pico8_jo_hk(const pico8_instance_t *self);
+
+/* function jo:ldown()if self.me=="known" then
+ * self:fe()
+ * return true
+ * elseif self.me=="ly" then
+ * return jc({qu=self})end
+ * end
+ * (pico8/lua.lua:412-417.) Left-click on a planet: if it's still an
+ * un-colonized but already-`known` (surveyed) planet, opens the research
+ * panel (`self:fe()`, `pico8_planet_display.h`'s own `pico8_jo_fe` --
+ * see this file's own "STEP 2 REBALANCE" note, `pico8_planet_display.h`,
+ * for why `fe` itself lives there rather than here) and returns the
+ * genuine Lua boolean `true` (`ui:bh()`'s own `type(pw.kn)=="table"` check,
+ * pico8_ui.h, treats a non-table truthy return as "handled the click,
+ * nothing to hold as a drag" -- distinct from `bg:ldown`'s own "return a
+ * fresh table to hold as a drag" case); if it's already colonized
+ * (`self.me=="ly"`, compared by STRING CONTENT like `jo:gg`/`jo:gv`),
+ * constructs and returns a fresh `jc` (slipway) instance with `qu=self`
+ * (the slipway's own "already connected from" planet field, per `jo:gv`'s
+ * own comment on that same field) -- the caller (`ui:bh()`) holds onto
+ * this returned table as a slipway-drag-in-progress. Any other `self.me`
+ * (the class-level default, "unknown") falls off the end, returning Lua
+ * nil (`pico8_value_ref(NULL)`).
+ *
+ * `jc({qu=self})`: a DIRECT constructor-style call using the class's own
+ * name as a global -- `jc` (Chunk 14, the slipway class, not yet built)
+ * doesn't exist yet. Ported against the SAME already-generic
+ * `pico8_class_lookup_named` mechanism `jo:hu`'s own `kv[hp.cw]` forward
+ * reference already established (pico8_class.h, Chunk 7) -- looked up by
+ * the literal name `"jc"` (this port's own established convention of
+ * using the real Lua global's own name as the lookup key, matching
+ * `bg:ldown`'s own `"mz"`/`"g_"` choice, pico8_bg.h) rather than a direct
+ * `pico8_jc_new`-style call this port has no header for yet. Returns
+ * `pico8_value_ref(NULL)` today (no class has registered under `"jc"`
+ * yet) -- compiles and is mechanically ready, not yet meaningfully
+ * exercisable, the SAME "forward references are ported, not deferred"
+ * treatment every other such reference in this port already gets; once
+ * Chunk 14 calls `pico8_class_register_named("jc", jc_class)` alongside
+ * its own `pico8_class_declare()`, this starts resolving and
+ * instantiating for real, with no further change needed here.
+ *
+ * Not one of `bm`'s 5 real dispatch names, but still a real `mv()`-routed
+ * field -- `ui:jz`'s own dynamically-named `self:jz(bt.."down",self.qa,
+ * je.ra)` (pico8_ui_button.h, Chunk 5, already built) reaches "ldown" by
+ * name with 2 extra arguments the real, parameterless `jo:ldown()` simply
+ * discards (this file's own `pico8_jo_ldown_dispatch`, pico8_planet.c) --
+ * the same "field function, not a `cv` auto-registration" treatment
+ * `gg`/`hb`/`gv`/`hk` already established. Also directly callable as this
+ * plain C function. A NULL `self` (or a `self.me` that isn't a string) is
+ * a safe no-op, returning Lua nil. */
+pico8_value_t pico8_jo_ldown(pico8_instance_t *self);
+
+/* `jo:fe()` -- MODULE-SIZE REBALANCE (this same sub-lot's own split, see
+ * pico8_planet_display.h's own top comment for the trace): declared and
+ * defined in `pico8_planet_display.c`/`.h` instead of here, alongside
+ * `gh`/`gv`/`hb`. `jo:ldown`'s own `self:fe()` call above reaches it via
+ * `pico8_planet_display.h` (already included by this module's own `.c`
+ * file). See `pico8_planet_display.h` for `fe`'s full Lua-source trace
+ * and the closure-representation technique its own "my" field needed. */
 
 /* jo.oc,jo.ir=gn(df,2,jf(0.5,dk.en)),jf(0.8,0.5) (pico8/lua.lua:750-751,
  * inside `bw()`, Chunk 20 -- not yet built). Two CLASS-LEVEL fields (NOT

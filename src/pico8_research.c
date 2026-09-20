@@ -15,6 +15,7 @@
 
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
+#include "pico8_research_display.h"
 #include "pico8_stash.h"
 #include "pico8_tech_gate.h"
 
@@ -87,6 +88,18 @@ static void pico8_research_free_gb_instances(void) {
     }
 }
 
+/* Bridges to pico8_hp_lq's own signature (pico8_research_display.h) --
+ * see pico8_research.h's own top comment for why this registration exists
+ * (a real gap found while porting `jo:fe`, Chunk 13, sub-lot 3: the real
+ * source's `mv(b,"lq")` needs `hp`'s class-level "lq" field to actually be
+ * PICO8_VALUE_FUNCTION-kind, which this module never wired). */
+static pico8_value_t pico8_hp_lq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    return pico8_value_ref(pico8_hp_lq((pico8_instance_t *)self));
+}
+
 /* hp=kv:jr([[
  * mr=o("px","lr","fj","ja","i","o","il","dm"),
  * gp=o("o","dm"),
@@ -101,6 +114,7 @@ void pico8_research_init(void) {
                                    "gp=o(\"o\",\"dm\"),\n"
                                    "fk=o(f,2),\n");
     pico8_class_set_pq(g_hp_class, pico8_hp_pq);
+    pico8_ob_table_set_name(g_hp_class->defaults, "lq", pico8_value_function(pico8_hp_lq_dispatch));
 }
 
 void pico8_research_shutdown(void) {

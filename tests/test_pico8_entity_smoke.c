@@ -440,11 +440,94 @@ static void test_mv_two_and_zero_argument_dispatch(void) {
     pico8_class_registry_clear();
 }
 
+/* Phase 3, Chunk 13, sub-lot 3's own targeted extension to this smoke test
+ * (per this PRD's own per-lot "entity/dispatch mechanism coverage" check):
+ * `jo:fe()`'s own "my" field (pico8_planet_display.c's own
+ * pico8_jo_fe_my_dispatch) is the first real case in this whole port of a
+ * genuine Lua CLOSURE (captured upvalues, not just global state) that must
+ * survive to be called an arbitrary time LATER through the generic,
+ * context-free `pico8_value_function_t` shape, rather than being resolved
+ * synchronously inside a `pico8_jp`/`pico8_nv` map call's own `ctx`
+ * parameter (every closure this smoke test's own earlier tests, and every
+ * closure ported before Chunk 13, already covers). Resolved by stashing
+ * the closure's own captured values as EXTRA fields on the same entity the
+ * PICO8_VALUE_FUNCTION field itself lives on, relying on two mechanisms
+ * ALREADY individually tested elsewhere in this smoke test but never
+ * exercised TOGETHER this way: (1) `pico8_class_instantiate` copies EVERY
+ * field of `overrides` verbatim, including ones the dispatched function
+ * never "knows" about by name; (2) a PICO8_VALUE_FUNCTION field is called
+ * with the ENTITY IT WAS DISPATCHED ON as `self`, so that function can
+ * turn around and read its own sibling fields off that same `self` via
+ * the ordinary `pico8_instance_get_field` fallback chain. Neither
+ * mechanism changes; this is a structurally new COMBINATION of them, not
+ * a new primitive -- ported here as a small, generic fake (not `jo`/`hp`
+ * themselves) to keep this smoke test's own Makefile dependency footprint
+ * unchanged, exactly like `test_mv_two_and_zero_argument_dispatch`'s own
+ * fake-class precedent above. */
+static pico8_value_t fake_captured_closure(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    const pico8_instance_t *inst = (const pico8_instance_t *)self;
+    pico8_value_t tag_val;
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    assert(pico8_instance_get_field(inst, "_hidden_tag", &tag_val));
+    assert(tag_val.kind == PICO8_VALUE_FIXED);
+    return tag_val;
+}
+
+static void test_closure_context_survives_instantiate_field_copy(void) {
+    pico8_class_t *row_class;
+    pico8_ob_table_t *row; /* stands in for jo:fe's own per-item "row" table */
+    pico8_instance_t *built;
+    pico8_value_t out;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+
+    row_class = pico8_class_declare(NULL, "");
+
+    /* Mirrors pico8_jo_fe_step's own row shape: one "real" field, one
+     * PICO8_VALUE_FUNCTION field ("my"), and one EXTRA field with no Lua-
+     * source equivalent (the stashed captured value) -- none of these
+     * names are known to `row_class` itself, exactly like a real `jo:fe`
+     * row is built entirely from positional/named overrides, never from
+     * class-level defaults. */
+    row = pico8_ob_table_new();
+    pico8_ob_table_set_name(row, "some_real_field", pico8_value_bool(1));
+    pico8_ob_table_set_name(row, "_hidden_tag", pico8_value_fixed(pico8_fixed_from_int(4242)));
+    pico8_ob_table_set_name(row, "my", pico8_value_function(fake_captured_closure));
+
+    /* pz()'s own `js(b)` construction, in miniature: a FRESH instance
+     * built FROM the row table as overrides -- the hidden field must ride
+     * along untouched, the same way it would onto a real `js` instance. */
+    built = pico8_class_instantiate(row_class, row);
+
+    {
+        pico8_value_t real_field;
+        assert(pico8_instance_get_field(built, "some_real_field", &real_field));
+        assert(real_field.kind == PICO8_VALUE_BOOL && real_field.as.boolean == 1);
+    }
+
+    /* mv(built,"my") -- the generic, later dispatch a real js:ldown/
+     * fq:ldown would perform. The dispatched function receives `built`
+     * (not the original `row` table) as `self`, and must still recover
+     * the captured value through it. */
+    assert(pico8_mv(built, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(4242));
+
+    pico8_instance_free(built);
+    pico8_ob_table_free(row);
+    pico8_class_free(row_class);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
     test_real_ke_subclass_with_own_distinct_pq();
     test_mv_two_and_zero_argument_dispatch();
+    test_closure_context_survives_instantiate_field_copy();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;

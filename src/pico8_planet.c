@@ -13,10 +13,9 @@
 #include "pico8_ke.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
+#include "pico8_planet_display.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
-#include "pico8_research_display.h"
-#include "pico8_stash.h"
 #include "pico8_tech_gate.h"
 
 static pico8_class_t *g_jo_class = NULL;
@@ -38,66 +37,11 @@ static int pico8_jo_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* field_truthy/field_fixed/field_list/field_ref_table: the same small
- * "read a named field off an instance, with a documented default when
- * absent/wrong-kind" helpers already independently established (and
- * already flagged as an accepted, documented duplication) in
- * pico8_economy.c/pico8_economy_tiers.c/pico8_economy_formulas.c -- a
- * private per-module copy here, not shared, per this port's pervasive
- * "small per-module private helper" convention. */
-static int field_truthy(const pico8_instance_t *self, const char *name) {
-    pico8_value_t v;
-    if (self == NULL || !pico8_instance_get_field(self, name, &v)) {
-        return 0;
-    }
-    return pico8_jo_truthy(v);
-}
-
-static pico8_fixed_t field_fixed(const pico8_instance_t *self, const char *name) {
-    pico8_value_t v;
-    if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
-static const pico8_list_t *field_list(const pico8_instance_t *self, const char *name) {
-    pico8_value_t v;
-    if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_list_t *)v.as.ref;
-    }
-    return NULL;
-}
-
-static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *self, const char *name) {
-    pico8_value_t v;
-    if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_ob_table_t *)v.as.ref;
-    }
-    return NULL;
-}
-
-/* Not a port of any named Lua function: private per-module bridge from
- * "positional entries of a pico8_ob_table_t" to a pico8_list_t (used here
- * for `jo.cq`, `jo:gh`'s own `gu(jo.cq,self.kw.qe)`) -- the same
- * established pattern already independently duplicated by
- * pico8_research_display_positional_values/pico8_layout_positional_values/
- * pico8_msgbox_positional_values (documented, accepted duplication). */
-static pico8_list_t pico8_jo_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
+/* field_truthy/field_fixed/field_list/field_ref_table and
+ * pico8_jo_positional_values (both only ever used by `jo:gh`) moved to
+ * pico8_planet_display.c alongside `gh` itself in this sub-lot's own
+ * module split -- see that file's own comments for their unchanged
+ * bodies. */
 
 static void pico8_jo_pq(pico8_instance_t *self);
 
@@ -142,6 +86,20 @@ static pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
+/* "ldown" is not one of `bm`'s 5 real dispatch names, but is still a real
+ * mv()-routed field -- `ui:jz`'s own `self:jz(bt.."down",self.qa,je.ra)`
+ * (bt="l" giving "ldown", pico8_ui_button.h's own comment on this exact
+ * dynamic name, Chunk 5) reaches it by name with 2 extra arguments; real
+ * `jo:ldown()` itself takes none, so both are simply discarded here, the
+ * same "bridge ignores every argument" treatment `pico8_jo_hb_dispatch`/
+ * `pico8_jo_hk_dispatch` already established. */
+static pico8_value_t pico8_jo_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    return pico8_jo_ldown((pico8_instance_t *)self);
+}
+
 void pico8_jo_init(void) {
     pico8_jo_shutdown();
     pico8_pi_init();
@@ -170,6 +128,7 @@ void pico8_jo_init(void) {
     pico8_ob_table_set_name(g_jo_class->defaults, "hb", pico8_value_function(pico8_jo_hb_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "gv", pico8_value_function(pico8_jo_gv_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "hk", pico8_value_function(pico8_jo_hk_dispatch));
+    pico8_ob_table_set_name(g_jo_class->defaults, "ldown", pico8_value_function(pico8_jo_ldown_dispatch));
     pico8_class_register_named("jo", g_jo_class);
 }
 
@@ -317,292 +276,17 @@ void pico8_jo_ll(pico8_instance_t *self, pico8_fixed_t t) {
     pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(t > pico8_fixed_from_int(60)));
 }
 
-void pico8_jo_hb(pico8_instance_t *self) {
-    pico8_value_t jy_val;
-    pico8_value_t kw_val;
-    pico8_value_t by_val;
-    const pico8_list_t *jy_list = NULL;
-    const pico8_list_t *by_list = NULL;
-    pico8_value_t qe = pico8_value_ref(NULL);
-    pico8_fixed_t mu = pico8_fixed_from_int(0);
-    pico8_instance_t *lq_result;
-
-    if (self == NULL) {
-        return;
-    }
-
-    if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-        jy_list = (const pico8_list_t *)jy_val.as.ref;
-    }
-    if (pico8_instance_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
-        const pico8_ob_table_t *kw = (const pico8_ob_table_t *)kw_val.as.ref;
-        pico8_value_t mu_val;
-        if (!pico8_ob_table_get_name(kw, "qe", &qe)) {
-            qe = pico8_value_ref(NULL);
-        }
-        if (pico8_ob_table_get_name(kw, "mu", &mu_val) && mu_val.kind == PICO8_VALUE_FIXED) {
-            mu = mu_val.as.fixed;
-        }
-    }
-    if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
-        by_list = (const pico8_list_t *)by_val.as.ref;
-    }
-
-    lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
-                             pico8_fixed_from_int(0));
-    pico8_ob_table_set_name(self->fields, "lq", pico8_value_ref(lq_result));
-}
-
-/* Sub-lot 2 (see this file's own header top comment): gh, gv, hu, hh, hk. */
-
-typedef struct {
-    pico8_list_t *ji;
-} pico8_jo_gh_ctx_t;
-
-/* jp(self.jy,function(i)for j=1,i.gc do add(ji,i)end return i.gc==0 end):
- * the predicate's own side effect (appending `i` to the captured `ji`
- * list `i.gc` times) threaded through pico8_jp's own ctx parameter. */
-static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
-    pico8_jo_gh_ctx_t *ctx = (pico8_jo_gh_ctx_t *)ctx_ptr;
-    pico8_fixed_t gc = pico8_fixed_from_int(0);
-    int count;
-    int j;
-
-    if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        pico8_value_t gc_val;
-        if (pico8_ob_table_get_name((const pico8_ob_table_t *)e.as.ref, "gc", &gc_val) &&
-            gc_val.kind == PICO8_VALUE_FIXED) {
-            gc = gc_val.as.fixed;
-        }
-    }
-    count = (int)pico8_fixed_to_double(gc);
-    for (j = 0; j < count; j++) {
-        pico8_list_add(ctx->ji, e);
-    }
-    return gc == pico8_fixed_from_int(0);
-}
-
-/* `{lq=<list>}` -- one of jo:gh's own `bs` rows (pico8_pz's own documented
- * `{lq=...,h_=...}` row shape, pico8_msgbox.h). */
-static pico8_ob_table_t *pico8_jo_gh_row(pico8_list_t *lq_list) {
-    pico8_ob_table_t *row = pico8_ob_table_new();
-    pico8_ob_table_set_name(row, "lq", pico8_value_ref(lq_list));
-    return row;
-}
-
-void pico8_jo_gh(const pico8_instance_t *self) {
-    pico8_list_t bs;
-    pico8_ob_table_t *bs1;
-    pico8_value_t px_val;
-    pico8_value_t icon_val = pico8_value_ref(NULL);
-    pico8_value_t kr_val;
-    pico8_value_t h_field;
-    pico8_list_t *ji;
-    pico8_jo_gh_ctx_t ctx;
-    const pico8_list_t *jy;
-    pico8_list_t jx;
-    int i;
-
-    if (self == NULL) {
-        return;
-    }
-
-    pico8_list_init(&bs);
-
-    /* bs={{lq=self.px or jo.dz[self.mi]}} */
-    bs1 = pico8_ob_table_new();
-    if (pico8_instance_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
-        icon_val = px_val;
-    } else {
-        pico8_value_t mi_val;
-        if (pico8_instance_get_field(self, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
-            g_jo_class != NULL) {
-            pico8_value_t dz_val;
-            if (pico8_ob_table_get_name(g_jo_class->defaults, "dz", &dz_val) && dz_val.kind == PICO8_VALUE_REF &&
-                dz_val.as.ref != NULL) {
-                pico8_ob_table_get_index((const pico8_ob_table_t *)dz_val.as.ref,
-                                          (int)pico8_fixed_to_double(mi_val.as.fixed), &icon_val);
-            }
-        }
-    }
-    pico8_ob_table_set_name(bs1, "lq", icon_val);
-
-    /* bs[1].h_=self.kr and {ne(self.kr).."$",bg=self.kr>=0 and 1} */
-    if (pico8_instance_get_field(self, "kr", &kr_val) && pico8_jo_truthy(kr_val)) {
-        pico8_ob_table_t *h_tuple = pico8_ob_table_new();
-        int discard_color = 0;
-        pico8_fixed_t kr_fixed = (kr_val.kind == PICO8_VALUE_FIXED) ? kr_val.as.fixed : pico8_fixed_from_int(0);
-        char *text = pico8_ne(kr_fixed, 0, NULL, &discard_color);
-        size_t text_len = strlen(text);
-        char *with_suffix = malloc(text_len + 2);
-        memcpy(with_suffix, text, text_len);
-        with_suffix[text_len] = '$';
-        with_suffix[text_len + 1] = '\0';
-        free(text);
-        pico8_ob_table_set_index(h_tuple, 1, pico8_value_string(with_suffix));
-        pico8_ob_table_set_name(h_tuple, "bg",
-                                 (kr_val.kind == PICO8_VALUE_FIXED && kr_val.as.fixed >= pico8_fixed_from_int(0))
-                                     ? pico8_value_fixed(pico8_fixed_from_int(1))
-                                     : pico8_value_bool(0));
-        h_field = pico8_value_ref(h_tuple);
-    } else {
-        h_field = pico8_value_ref(NULL);
-    }
-    pico8_ob_table_set_name(bs1, "h_", h_field);
-    pico8_list_add(&bs, pico8_value_ref(bs1));
-
-    /* local ji={"receives:"} */
-    ji = malloc(sizeof *ji);
-    pico8_list_init(ji);
-    pico8_list_add(ji, pico8_value_string("receives:"));
-    ctx.ji = ji;
-
-    /* local jx=jp(self.jy,function(i)...end) */
-    jy = field_list(self, "jy");
-    jx = pico8_jp(jy, pico8_jo_gh_jp_step, &ctx);
-
-    if (jx.count > 0) {
-        pico8_list_t prefix;
-        pico8_list_t *merged = malloc(sizeof *merged);
-        pico8_list_init(&prefix);
-        pico8_list_add(&prefix, pico8_value_string("needs:"));
-        *merged = pico8_la(&prefix, &jx);
-        pico8_list_free(&prefix);
-        pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
-    } else {
-        pico8_fixed_t mi_fixed = field_fixed(self, "mi");
-        const pico8_ob_table_t *kw = field_ref_table(self, "kw");
-        pico8_value_t kw_qe = pico8_value_ref(NULL);
-        pico8_value_t r_w;
-        int qe_is_r_w;
-
-        if (kw != NULL) {
-            pico8_ob_table_get_name(kw, "qe", &kw_qe);
-        }
-        qe_is_r_w = pico8_ob_table_get_name(pico8_r(), "w", &r_w) && pico8_value_equal(kw_qe, r_w);
-
-        if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            pico8_list_t prefix;
-            pico8_list_t *merged = malloc(sizeof *merged);
-            pico8_list_init(&prefix);
-            pico8_list_add(&prefix, pico8_value_string("wants more:"));
-            if (field_truthy(self, "qh")) {
-                pico8_list_t last_only;
-                pico8_list_init(&last_only);
-                pico8_list_add(&last_only, jy->items[jy->count - 1]);
-                *merged = pico8_la(&prefix, &last_only);
-                pico8_list_free(&last_only);
-            } else {
-                *merged = pico8_la(&prefix, jy);
-            }
-            pico8_list_free(&prefix);
-            pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
-        }
-    }
-    pico8_list_free(&jx);
-
-    /* add(bs,ji[2]and{lq=ji}): ji[2] is Lua nil (not false) when nothing
-     * was ever appended -- add(t,nil) is a documented no-op. */
-    if (ji->count >= 2) {
-        pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(ji)));
-    } else {
-        pico8_list_free(ji);
-        free(ji);
-    }
-
-    /* if self.kw.mu>0 then ... end */
-    {
-        const pico8_ob_table_t *kw = field_ref_table(self, "kw");
-        pico8_fixed_t mu = pico8_fixed_from_int(0);
-        pico8_value_t qe_val = pico8_value_ref(NULL);
-
-        if (kw != NULL) {
-            pico8_value_t mu_val;
-            if (pico8_ob_table_get_name(kw, "mu", &mu_val) && mu_val.kind == PICO8_VALUE_FIXED) {
-                mu = mu_val.as.fixed;
-            }
-            pico8_ob_table_get_name(kw, "qe", &qe_val);
-        }
-
-        if (mu > pico8_fixed_from_int(0)) {
-            pico8_list_t *lb = malloc(sizeof *lb);
-            int makes = 0;
-
-            pico8_list_init(lb);
-
-            if (g_jo_class != NULL) {
-                pico8_value_t cq_val;
-                if (pico8_ob_table_get_name(g_jo_class->defaults, "cq", &cq_val) && cq_val.kind == PICO8_VALUE_REF &&
-                    cq_val.as.ref != NULL) {
-                    pico8_list_t cq_list = pico8_jo_positional_values((const pico8_ob_table_t *)cq_val.as.ref);
-                    makes = pico8_gu(&cq_list, qe_val);
-                    pico8_list_free(&cq_list);
-                }
-            }
-
-            if (makes) {
-                char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));
-                pico8_list_add(lb, pico8_value_string("makes:"));
-                pico8_list_add(lb, pico8_value_string(mu_str));
-            } else {
-                const pico8_list_t *by = field_list(self, "by");
-                int by_count = (by != NULL) ? by->count : 0;
-                char *count_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(by_count)));
-                char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));
-                size_t count_len = strlen(count_str);
-                size_t mu_len = strlen(mu_str);
-                char *combined = malloc(count_len + 1 + mu_len + 1);
-                memcpy(combined, count_str, count_len);
-                combined[count_len] = '/';
-                memcpy(combined + count_len + 1, mu_str, mu_len + 1);
-                free(count_str);
-                free(mu_str);
-                pico8_list_add(lb, pico8_value_string("exports:"));
-                pico8_list_add(lb, pico8_value_string(combined));
-            }
-            pico8_list_add(lb, pico8_value_ref((void *)kw));
-            pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(lb)));
-        }
-    }
-
-    /* for i=2,#bs do add(bs[i].lq,{false,1}) end */
-    for (i = 1; i < bs.count; i++) {
-        pico8_value_t row_val = bs.items[i];
-        if (row_val.kind == PICO8_VALUE_REF && row_val.as.ref != NULL) {
-            pico8_ob_table_t *row = (pico8_ob_table_t *)row_val.as.ref;
-            pico8_value_t lq_val;
-            if (pico8_ob_table_get_name(row, "lq", &lq_val) && lq_val.kind == PICO8_VALUE_REF &&
-                lq_val.as.ref != NULL) {
-                pico8_ob_table_t *tuple = pico8_ob_table_new();
-                pico8_ob_table_set_index(tuple, 1, pico8_value_bool(0));
-                pico8_ob_table_set_index(tuple, 2, pico8_value_fixed(pico8_fixed_from_int(1)));
-                pico8_list_add((pico8_list_t *)lq_val.as.ref, pico8_value_ref(tuple));
-            }
-        }
-    }
-
-    pico8_pz(self, &bs);
-    pico8_list_free(&bs);
-}
-
-pico8_value_t pico8_jo_gv(const pico8_instance_t *self, const pico8_instance_t *s) {
-    pico8_value_t me_val;
-    pico8_value_t qu_val;
-
-    if (self == NULL) {
-        return pico8_value_ref(NULL);
-    }
-    if (!pico8_instance_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
-        strcmp(me_val.as.string, "ly") != 0) {
-        return pico8_value_ref(NULL);
-    }
-    if (s != NULL && pico8_instance_get_field(s, "qu", &qu_val) && qu_val.kind == PICO8_VALUE_REF &&
-        qu_val.as.ref == (const void *)self) {
-        pico8_jo_gh(self);
-        return pico8_value_ref(NULL);
-    }
-    return pico8_value_bool(1);
-}
+/* `hb`, `gh`, `gv` (sub-lot 2's own ports, plus their private helpers
+ * `pico8_jo_gh_ctx_t`/`pico8_jo_gh_jp_step`/`pico8_jo_gh_row`) moved to
+ * pico8_planet_display.c/.h in this sub-lot's own pure module split (see
+ * pico8_planet_display.h's own top comment for the full trace, and this
+ * file's own header top comment for the split's overall plan) -- no
+ * logic changed, only file location. `pico8_jo_hb_dispatch`/
+ * `pico8_jo_gv_dispatch` just below stay here, alongside the rest of
+ * `pico8_jo_init()`'s own class-registration wiring, and now call
+ * `pico8_jo_hb`/`pico8_jo_gv` across the file boundary via
+ * pico8_planet_display.h (included above) exactly as they already called
+ * them as plain sibling functions before the split. */
 
 void pico8_jo_hu(pico8_instance_t *self, pico8_instance_t *hp_instance) {
     pico8_instance_t *working_self;
@@ -761,4 +445,35 @@ void pico8_jo_hk(const pico8_instance_t *self) {
          * "Notes de portage" for the fix: pico8_hy_lu now matches this
          * same non-freeing pattern). */
     }
+}
+
+/* Sub-lot 3 (see this file's own header top comment): ldown. `fe` itself
+ * lands in pico8_planet_display.c/.h instead -- see that header's own top
+ * "STEP 2 REBALANCE" comment for why. */
+
+pico8_value_t pico8_jo_ldown(pico8_instance_t *self) {
+    pico8_value_t me_val;
+
+    if (self == NULL || !pico8_instance_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING) {
+        return pico8_value_ref(NULL);
+    }
+    if (strcmp(me_val.as.string, "known") == 0) {
+        pico8_jo_fe(self);
+        return pico8_value_bool(1);
+    }
+    if (strcmp(me_val.as.string, "ly") == 0) {
+        pico8_class_t *jc_class = pico8_class_lookup_named("jc");
+        pico8_instance_t *made;
+        pico8_ob_table_t *overrides;
+
+        if (jc_class == NULL) {
+            return pico8_value_ref(NULL);
+        }
+        overrides = pico8_ob_table_new();
+        pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
+        made = pico8_class_instantiate(jc_class, overrides);
+        pico8_ob_table_free(overrides);
+        return pico8_value_ref(made);
+    }
+    return pico8_value_ref(NULL);
 }

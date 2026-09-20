@@ -44,11 +44,28 @@
  * exercises nothing structurally new in the entity/dispatch mechanism
  * itself -- see docs/portage-progress.md's own Vague 11 entry for the
  * explicit per-lot assessment. None of `hp`'s own methods (`lq`,`jb`,`po`,
- * `od`) are `bm` dispatch names or ever called via mv()/dc() in the real
- * source (all real call sites use plain `self:method()`/`ClassTable.
- * method()` syntax) -- so all are ported as direct, known C functions
- * (pico8_ke_ks's own "known method, direct call" precedent), never wired
- * as PICO8_VALUE_FUNCTION fields. */
+ * `od`) are `bm` dispatch names, and `jb`/`po`/`od` are never called via
+ * mv()/dc() anywhere in the real source (every real call site for those
+ * three uses plain `self:method()` syntax) -- so all four are still
+ * ported as direct, known C functions (pico8_ke_ks's own "known method,
+ * direct call" precedent).
+ *
+ * *** CORRECTION (Chunk 13, sub-lot 3) *** -- this paragraph originally
+ * claimed NONE of `hp`'s methods are ever called via mv(), full stop.
+ * That was wrong for `lq` specifically: `jo:fe()` (Chunk 13, pico8/
+ * lua.lua:418-423) has a real `mv(b,"lq")` call site where `b` is an `hp`
+ * instance -- found while porting `fe`, the same kind of "prose error in
+ * already-shipped code, found and fixed" this port has already logged a
+ * few times (see docs/plan.md's own "Notes de portage"). Fixed by also
+ * wiring "lq" as a real PICO8_VALUE_FUNCTION field on `hp`'s class
+ * defaults (`pico8_research.c`'s own `pico8_hp_lq_dispatch`, alongside
+ * `pico8_research_init()`'s own `pico8_class_declare()` call) -- `jb`/
+ * `po`/`od` remain plain direct calls, unaffected; `pico8_hp_lq` itself
+ * (pico8_research_display.h) is UNCHANGED, still a plain known C
+ * function directly callable exactly as it already was. This is a pure
+ * additive fix: it doesn't change what `pico8_hp_lq` computes, only
+ * makes it reachable through `pico8_mv()` too, the way the real source
+ * genuinely needs. */
 void pico8_research_init(void);
 
 /* Not part of the Lua original (no manual teardown under GC): frees every

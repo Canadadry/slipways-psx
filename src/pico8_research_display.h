@@ -52,7 +52,16 @@
  * happens) -- a defensive divergence from real Lua, which would crash
  * calling `add()` on nil; not evidenced by any real call site in this
  * chunk's own scope (self.o is always present after hp:pq's own renaming
- * pass). A NULL `self` is a no-op, returning NULL. */
+ * pass). A NULL `self` is a no-op, returning NULL.
+ *
+ * ADDENDUM (Chunk 13, sub-lot 3): also wired as a real PICO8_VALUE_FUNCTION
+ * field on `hp`'s class defaults (`pico8_research.c`'s own
+ * `pico8_hp_lq_dispatch`, registered in `pico8_research_init()`), fixing a
+ * real gap this function's own then-sibling `pico8_research.h` top comment
+ * used to claim didn't exist ("hp's methods are never called via mv()") --
+ * `jo:fe()`'s real `mv(b,"lq")` call site (pico8/lua.lua:419) needs exactly
+ * this. This function's own body/signature/behavior are unchanged; see
+ * `pico8_research.h`'s own "CORRECTION" note for the full trace. */
 pico8_instance_t *pico8_hp_lq(pico8_instance_t *self);
 
 /* function hp:jb()
