@@ -1,0 +1,64 @@
+#ifndef PICO8_FIXED_H
+#define PICO8_FIXED_H
+
+#include <stdint.h>
+
+/* PICO-8's 16.16 fixed-point number: a signed 32-bit integer whose bits
+ * 31-16 are the two's-complement integer part and bits 15-0 are the
+ * fractional part as sixteenths of 65536, matching the documented range
+ * -32768.0 to 32767.9999847412109375.
+ * Source: PICO-8 Math wiki, https://pico-8.fandom.com/wiki/Math */
+typedef int32_t pico8_fixed_t;
+
+#define PICO8_FIXED_SHIFT 16
+
+/* Saturation results for division by zero: +0x7fff.ffff / -0x7fff.ffff,
+ * per the PICO-8 manual (see pico8_fixed_div below). */
+#define PICO8_FIXED_DIV0_POS ((pico8_fixed_t)0x7FFFFFFF)
+#define PICO8_FIXED_DIV0_NEG ((pico8_fixed_t)(-0x7FFFFFFF))
+
+/* Constructs a fixed-point value from a plain integer (i << 16). */
+pico8_fixed_t pico8_fixed_from_int(int32_t i);
+
+/* Constructs a fixed-point value from a double, rounding to the nearest
+ * representable 16.16 value. Test/debugging convenience for writing
+ * expected values with a fractional part; PICO-8 itself has no floating
+ * point and never goes through this constructor. */
+pico8_fixed_t pico8_fixed_from_double(double d);
+
+/* Converts a fixed-point value back to a double, for assertions/printing. */
+double pico8_fixed_to_double(pico8_fixed_t x);
+
+/* + and - are plain 32-bit addition/subtraction. PICO-8 documents that
+ * overflow wraps (two's-complement), confirmed for the classic
+ * 128*128+128*128 overflow-to--32768 case.
+ * Source: PICO-8 Known Bugs wiki, https://pico-8.fandom.com/wiki/Known_Bugs
+ * Because signed-integer overflow is undefined behavior in C, the
+ * wraparound is produced by computing in the corresponding unsigned 32-bit
+ * type (whose overflow behavior C does define) and reinterpreting the bit
+ * pattern back as signed -- never by relying on int32_t overflow directly
+ * or on a compiler flag like -fwrapv. */
+pico8_fixed_t pico8_fixed_add(pico8_fixed_t a, pico8_fixed_t b);
+pico8_fixed_t pico8_fixed_sub(pico8_fixed_t a, pico8_fixed_t b);
+
+/* Computes the product in a 64-bit signed intermediate (a*b as raw 32-bit
+ * integers, i.e. the numerator scaled by 65536^2), shifts right by 16 to
+ * rescale back to the 16.16 format, and truncates to 32 bits -- the
+ * truncation is itself where PICO-8's documented multiply overflow/
+ * wraparound occurs. */
+pico8_fixed_t pico8_fixed_mul(pico8_fixed_t a, pico8_fixed_t b);
+
+/* Computes ((int64_t)a << 16) / b and truncates to 32 bits the same way,
+ * except when b == 0: PICO-8's manual documents this special case
+ * explicitly as saturating to 0x7fff.ffff if the dividend is non-negative,
+ * -0x7fff.ffff if negative.
+ * Source: PICO-8 manual, https://www.lexaloffle.com/pico8_manual.txt
+ * 0 divided by 0 is treated as non-negative, saturating to +0x7fff.ffff,
+ * since it isn't separately documented and 0 is not negative. */
+pico8_fixed_t pico8_fixed_div(pico8_fixed_t a, pico8_fixed_t b);
+
+/* Unary - is 0 - x under the same wraparound rule as + and -, so negating
+ * the most-negative representable value wraps rather than overflowing. */
+pico8_fixed_t pico8_fixed_neg(pico8_fixed_t x);
+
+#endif

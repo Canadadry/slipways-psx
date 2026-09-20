@@ -34,15 +34,30 @@ $(TMP_DIR)/test_pico8_input: tests/test_pico8_input.c src/pico8_input.c src/pico
 $(TMP_DIR)/test_pico8_dump: tests/test_pico8_dump.c src/pico8_dump.c src/pico8_dump.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_mem.c src/pico8_mem.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_dump.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c
 
+$(TMP_DIR)/test_pico8_fixed: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ tests/test_pico8_fixed.c src/pico8_fixed.c
+
+# UBSan-instrumented build of the same fixed-point test binary, scoped to
+# this module only: pico8_fixed does bit-level signed/unsigned
+# reinterpretation tricks (see pico8_fixed_add/sub/neg/div) where a
+# regression back to plain signed-overflow/shift UB would produce correct
+# numeric results on today's x86 codegen while still being undefined
+# behavior. -fno-sanitize-recover=undefined makes any UBSan report a hard
+# failure (non-zero exit) instead of a printed warning that's easy to miss.
+$(TMP_DIR)/test_pico8_fixed_ubsan: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -fsanitize=undefined -fno-sanitize-recover=undefined -o $@ tests/test_pico8_fixed.c src/pico8_fixed.c
+
 $(TMP_DIR)/pico8_demo: src/main.c src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_input.c src/pico8_input.h src/pico8_dump.c src/pico8_dump.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ src/main.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
 	./$(TMP_DIR)/test_pico8_input
 	./$(TMP_DIR)/test_pico8_dump
+	./$(TMP_DIR)/test_pico8_fixed
+	./$(TMP_DIR)/test_pico8_fixed_ubsan
 
 demo: $(TMP_DIR)/pico8_demo
 	./$(TMP_DIR)/pico8_demo
