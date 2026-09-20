@@ -1,5 +1,7 @@
 #include "pico8_geom.h"
 
+#include <stdlib.h>
+
 /* function ee(a,b,c)
  *   local kl=
  *   (b.y-a.y)*(c.x-b.x)-
@@ -63,4 +65,25 @@ int pico8_geom_be(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c, pico8_fixed_t fh)
     pico8_vec_t projected = pico8_vec_sub(pico8_vec_add(a, pico8_vec_mul(d, l)), c);
     pico8_fixed_t dist_sq = pico8_vec_len_sq(projected);
     return l > lo && l < hi && dist_sq < fh;
+}
+
+/* function qz(xl,yt,xr,yb)
+ * return function(p)
+ * return mid(xl,xr,p.x)==p.x
+ * and mid(yt,yb,p.y)==p.y
+ * end
+ * end
+ * See pico8_geom.h's own comment on this declaration for why this returns
+ * a heap box rather than a native closure. */
+pico8_qz_box_t *pico8_qz(pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb) {
+    pico8_qz_box_t *box = malloc(sizeof *box);
+    box->xl = xl;
+    box->yt = yt;
+    box->xr = xr;
+    box->yb = yb;
+    return box;
+}
+
+int pico8_qz_call(const pico8_qz_box_t *box, pico8_vec_t p) {
+    return pico8_fixed_mid(box->xl, box->xr, p.x) == p.x && pico8_fixed_mid(box->yt, box->yb, p.y) == p.y;
 }

@@ -1,6 +1,9 @@
 #include "pico8_collect.h"
 
 #include <stdlib.h>
+#include <string.h>
+
+#include "pico8_stash.h"
 
 /* function ft(rc,nt,pu)rc[nt]=rc[nt]or {}
  * add(rc[nt],pu)end
@@ -166,4 +169,121 @@ pico8_value_t pico8_oo(pico8_ob_constructor_fn fn, const pico8_ob_table_t *a) {
         return fn(a1, a2, a3, a4, a5);
     }
     return pico8_value_ref((void *)a);
+}
+
+/* See pico8_collect.h's own comment on this declaration for why this
+ * exists alongside pico8_gu rather than changing pico8_value_equal. */
+int pico8_gu_content(const pico8_list_t *qk, pico8_value_t kb) {
+    pico8_list_iter_t it;
+    pico8_value_t e;
+    if (qk == NULL) {
+        return 0;
+    }
+    it = pico8_list_all(qk);
+    while (pico8_list_iter_next(&it, &e)) {
+        if (e.kind == PICO8_VALUE_STRING && kb.kind == PICO8_VALUE_STRING) {
+            if (strcmp(e.as.string, kb.as.string) == 0) {
+                return 1;
+            }
+        } else if (pico8_value_equal(e, kb)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* function ne(d,c,ku)if d>=0 then
+ * d="+"..d
+ * else
+ * c=8
+ * end
+ * return d..(ku or ""),c
+ * end
+ * See pico8_collect.h's own comment on this declaration. */
+char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
+    char *num_str = pico8_value_tostr(pico8_value_fixed(d));
+    const char *suffix = ku != NULL ? ku : "";
+    char *result;
+    size_t prefix_len;
+
+    if (d >= 0) {
+        *out_color = c;
+        prefix_len = 1 + strlen(num_str);
+        result = malloc(prefix_len + strlen(suffix) + 1);
+        result[0] = '+';
+        memcpy(result + 1, num_str, strlen(num_str) + 1);
+    } else {
+        *out_color = 8;
+        prefix_len = strlen(num_str);
+        result = malloc(prefix_len + strlen(suffix) + 1);
+        memcpy(result, num_str, strlen(num_str) + 1);
+    }
+    strcat(result, suffix);
+    free(num_str);
+    return result;
+}
+
+/* function ho(rc,mr,gp)
+ * return function(ri)for i,p in pairs(mr)do
+ * ri[p]=gu(gp,p)and r[ri[i]]or ri[i]
+ * end
+ * rc[ri.px]=ri
+ * end
+ * end
+ * See pico8_collect.h's own comment on this declaration for the full
+ * design trace (why mr is walked positionally only, gp's NULL/pico8_gu_
+ * content handling, r[ri[i]]'s polymorphic-key lookup). */
+void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico8_list_t *gp, pico8_ob_table_t *ri) {
+    const pico8_ob_table_t *r = pico8_r();
+    pico8_value_t px_val;
+    int i;
+
+    for (i = 0; i < mr->count; i++) {
+        pico8_ob_key_t key = mr->entries[i].key;
+        pico8_value_t p_val;
+        const char *p;
+        pico8_value_t raw;
+        pico8_value_t new_value;
+
+        if (key.kind != PICO8_OB_KEY_INDEX) {
+            continue;
+        }
+        p_val = mr->entries[i].value;
+        if (p_val.kind != PICO8_VALUE_STRING) {
+            continue;
+        }
+        p = p_val.as.string;
+
+        if (!pico8_ob_table_get_index(ri, key.index, &raw)) {
+            continue;
+        }
+
+        if (pico8_gu_content(gp, p_val)) {
+            new_value = raw;
+            if (raw.kind == PICO8_VALUE_FIXED) {
+                pico8_ob_table_get_index(r, (int)pico8_fixed_to_double(raw.as.fixed), &new_value);
+            } else if (raw.kind == PICO8_VALUE_STRING) {
+                pico8_ob_table_get_name(r, raw.as.string, &new_value);
+            }
+        } else {
+            new_value = raw;
+        }
+        pico8_ob_table_set_name(ri, p, new_value);
+    }
+
+    if (pico8_ob_table_get_name(ri, "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
+        pico8_ob_table_set_name(rc, px_val.as.string, pico8_value_ref(ri));
+    }
+}
+
+/* pi['b'] (pico8/lua.lua:133) -- see pico8_collect.h's own comment on this
+ * declaration. */
+static pico8_value_t pico8_qz_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
+                                           pico8_value_t a5) {
+    (void)a5;
+    return pico8_value_ref(pico8_qz(a1.as.fixed, a2.as.fixed, a3.as.fixed, a4.as.fixed));
+}
+
+void pico8_qz_register_constructor(void) {
+    pico8_ob_register_constructor('b', pico8_qz_constructor);
 }

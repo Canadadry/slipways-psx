@@ -75,4 +75,40 @@ int pico8_geom_cl(pico8_vec_t p1, pico8_vec_t p2, pico8_vec_t q1, pico8_vec_t q2
  * Returns 1/0, matching this codebase's existing int-as-bool convention. */
 int pico8_geom_be(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c, pico8_fixed_t fh);
 
+/* Phase 3, Chunk 1, second sub-lot's own addition to this otherwise-Phase-2
+ * pure geometry module: qz(xl,yt,xr,yb) (pico8/lua.lua:127-132), a
+ * rectangle-containment predicate FACTORY -- `qz(...)` itself just builds
+ * and returns the box (the original returns a Lua closure over its own
+ * xl/yt/xr/yb; this port returns a heap-allocated box struct instead,
+ * since C has no closures, and a later `e.kq(point)` call becomes
+ * pico8_qz_call(box,point) -- see pico8_entity_geom.h's pico8_gk for the
+ * one real consumer of a box stored this way). Pure/no entity dependency,
+ * matching this module's own existing concern, so it lives here rather
+ * than in pico8_entity_geom.c (which owns the LIVE-entity-field side of
+ * this same mechanism) or pico8_collect.c (which owns this box's ob()
+ * registry wiring, see that module's pico8_qz_register_constructor). */
+typedef struct {
+    pico8_fixed_t xl;
+    pico8_fixed_t yt;
+    pico8_fixed_t xr;
+    pico8_fixed_t yb;
+} pico8_qz_box_t;
+
+/* function qz(xl,yt,xr,yb)
+ * return function(p)
+ * return mid(xl,xr,p.x)==p.x
+ * and mid(yt,yb,p.y)==p.y
+ * end
+ * end
+ * Builds a heap-allocated box the caller owns (freed like any other
+ * PICO8_VALUE_REF payload, see pico8_value.h's borrowed-pointer
+ * convention -- a box is typically stored as one such REF field, e.g.
+ * `hw=b(10,10,118,118)` via pico8_ob's `'b'` constructor registration). */
+pico8_qz_box_t *pico8_qz(pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb);
+
+/* The returned closure's own body: true iff p is inside [xl,xr]x[yt,yb],
+ * via mid()'s own clamp-then-compare-equal idiom (mid(lo,hi,v)==v iff v
+ * was already within [lo,hi] -- pico8_fixed_mid, pico8_fixed.h). */
+int pico8_qz_call(const pico8_qz_box_t *box, pico8_vec_t p);
+
 #endif

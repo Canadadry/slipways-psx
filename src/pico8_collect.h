@@ -1,6 +1,7 @@
 #ifndef PICO8_COLLECT_H
 #define PICO8_COLLECT_H
 
+#include "pico8_geom.h"
 #include "pico8_list.h"
 #include "pico8_ob.h"
 #include "pico8_value.h"
@@ -165,5 +166,109 @@ pico8_list_t pico8_la(const pico8_list_t *a, const pico8_list_t *b);
  * Chunk 2 decisions) is wired in as a constructor -- resolve then, not
  * speculatively here. */
 pico8_value_t pico8_oo(pico8_ob_constructor_fn fn, const pico8_ob_table_t *a);
+
+/* Phase 3, Chunk 1, second sub-lot's own additions to this module: ne, ho,
+ * plus two small pieces of ob()/pi registry glue (pico8_gu_content,
+ * pico8_qz_register_constructor) this sub-lot's own work surfaced a real
+ * need for -- see each declaration's own comment below. */
+
+/* gu()/pico8_value_equal's PICO8_VALUE_STRING comparison is pointer
+ * identity, correct for every real del()-based call site pico8_value.h's
+ * own comment evidences (pico8_gu, this module) -- but this port's own
+ * ob() (pico8_ob.c's pico8_ob_value_for_token) allocates a FRESH string
+ * for every quoted token it parses, never interning, unlike real Lua where
+ * an identical string literal genuinely IS the same object. ho()'s real
+ * gu(gp,p) call (see pico8_ho below) compares a field-name string parsed
+ * out of one ob() table (`mr`) against entries of a SEPARATE list (`gp`,
+ * e.g. the real `{"nk"}` at pico8/lua.lua:1443) -- two independently-
+ * produced strings that are never the same pointer even when equal in
+ * content, so pico8_gu's pointer-identity rule would silently never match
+ * here. Rather than widen pico8_value_equal's own documented, tested
+ * contract (still correct for its own callers) this is a narrowly-scoped
+ * sibling: same list-membership shape as pico8_gu, but PICO8_VALUE_STRING
+ * pairs are compared by content (strcmp); every other kind still goes
+ * through pico8_value_equal unchanged. This is the resolution for the gap
+ * pico8_gu's own header comment (above) flagged as left open for "whichever
+ * chunk first needs it" -- this sub-lot's own ho() is that chunk. */
+int pico8_gu_content(const pico8_list_t *qk, pico8_value_t kb);
+
+/* function ne(d,c,ku)if d>=0 then
+ * d="+"..d
+ * else
+ * c=8
+ * end
+ * return d..(ku or ""),c
+ * end
+ * Signed-number formatting with a forced color for negatives: d>=0 gets a
+ * "+" prefix and keeps caller's own color `c`; d<0 keeps its own natural
+ * "-" sign (from pico8_value_tostr's own PICO8_VALUE_FIXED formatting,
+ * reused rather than duplicating number-to-string logic -- see this
+ * module's own top comment on avoiding duplicated helpers) and forces
+ * color 8 (red). `ku` (an optional trailing unit suffix, e.g. "$") is
+ * appended last, defaulting to "" when NULL (`ku or ""`). Returns a
+ * newly heap-allocated string the caller owns and must free() (matching
+ * pico8_value_tostr/pico8_sub's own ownership convention) and writes the
+ * resulting color to *out_color. `c` itself has no faithful "omitted"
+ * representation in a plain `int` parameter; every real call site that
+ * omits it (`ne(self.kr)`, `ne(fm.ge)`) only ever uses ne()'s FIRST
+ * return value afterward, so *out_color's value when d>=0 and no
+ * meaningful `c` was on hand is never actually observed by any real,
+ * evidenced call site -- callers with no real `c` may pass any int (e.g.
+ * 0) for it. */
+char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color);
+
+/* function ho(rc,mr,gp)
+ * return function(ri)for i,p in pairs(mr)do
+ * ri[p]=gu(gp,p)and r[ri[i]]or ri[i]
+ * end
+ * rc[ri.px]=ri
+ * end
+ * end
+ * A positional-to-named field-renaming pass, used as
+ * `foreach(df,ho(df,mr,gp))`/`foreach(nb,ho(nb,mr,gp))` (Chunk 11) to
+ * rename each raw ob()-parsed data record `ri` in place (adding named
+ * fields alongside its existing positional ones, per `mr`'s index->name
+ * map) and register it into `rc` keyed by its own new `.px` field. Ported
+ * as this file's own established "closure factory -> context + a function
+ * taking that context's own captured values as plain parameters, applied
+ * once per record" pattern (matching pico8_jp/pico8_nv's ctx convention),
+ * rather than a native C closure: pico8_ho_apply IS the returned
+ * function's own body, called once per `ri` by whatever later ports
+ * ho()'s own foreach() call sites (Chunk 11, out of this sub-lot's scope).
+ *
+ * `mr` is always purely positional in every real ho() call site in scope
+ * (its own index->name map, e.g. ob([["px","lv","nk","od","oy",]])), so
+ * only PICO8_OB_KEY_INDEX entries of `mr` are walked. `gp` (`gu(gp,p)`'s
+ * own list, e.g. the real `{"nk"}` literal at pico8/lua.lua:1443) may be
+ * NULL, mirroring the real ho()'s own optional third parameter (`ho(df,
+ * mr)`, no gp, at df's own call site) -- pico8_gu_content already treats a
+ * NULL list as "never a member" (see pico8_gu's own identical NULL
+ * handling). `r[ri[i]]` indexes the global `r` table (pico8_r(),
+ * pico8_stash.h, built earlier in this SAME sub-lot) by ri[i]'s own value
+ * -- a PICO8_VALUE_FIXED indexes r by number, a PICO8_VALUE_STRING indexes
+ * it by name, mirroring pico8_ft_index/pico8_ft_name's own established
+ * polymorphic-key split for exactly this "the real Lua key's type isn't
+ * known until runtime" situation. `ri[i]` absent (no positional value at
+ * that index) is left un-renamed (`ri[p]` simply isn't set), the same
+ * defensive "field absence stays absence" divergence pico8_entity.c's
+ * dc()/he() already established for a not-really-reachable Lua-would-crash
+ * case. */
+void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico8_list_t *gp, pico8_ob_table_t *ri);
+
+/* The `pi` table's `'b'` entry (pico8/lua.lua:133's `pi={b=qz,...}`): an
+ * pico8_ob_constructor_fn adapter around pico8_qz (pico8_geom.h),
+ * unpacking a1..a4 (always PICO8_VALUE_FIXED at the one real spec-string
+ * call site in scope, `hw=b(10,10,118,118)`, ui's own class spec, Chunk 5)
+ * into pico8_qz's own four pico8_fixed_t parameters. Registering it lives
+ * here (not pico8_geom.c, which stays a pure module with no pico8_ob.h
+ * registry dependency, matching this module's own "constructor-dispatch
+ * adapters" theme already established by pico8_oo's own header comment)
+ * per this sub-lot's own explicit instruction to wire `'b'`->qz into the
+ * existing registry now. Like `'v'`'s own still-unregistered status
+ * (pico8_ob.h's own comment on pico8_vec_v), nothing in THIS sub-lot's own
+ * scope calls pico8_qz_register_constructor() yet -- it is ready for
+ * whichever future init sequence (Chunk 2's bl()/game bootstrap, most
+ * likely) actually needs pi['b'] resolvable through ob()'s own parser. */
+void pico8_qz_register_constructor(void);
 
 #endif

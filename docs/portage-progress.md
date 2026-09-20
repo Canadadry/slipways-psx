@@ -12,7 +12,7 @@ Gabarit de table, une section `## Vague N` par vague. Colonne « Module cible »
 
 ## Vague 1 — Chunk 1 : « Generic pure helpers, list/data glue, and the missing audio stubs » (PRD [phase3-etape1-function-by-function-c-port.md](prd/triage/phase3-etape1-function-by-function-c-port.md))
 
-~27 fonctions + littéraux de données, sans dépendance mutuelle interne au chunk — le PRD autorise explicitement 2-3 sous-lots par sous-thème. Sous-lot 1 (cette session) ci-dessous ; le reste reste `restante` pour un sous-lot suivant.
+~27 fonctions + littéraux de données, sans dépendance mutuelle interne au chunk — le PRD autorise explicitement 2-3 sous-lots par sous-thème. Porté en 2 sous-lots (voir détail plus bas) : le sous-lot 1 a couvert `ft`,`qj`,`mw`,`gu`,`jp`,`nv`,`la`,`oo` ; le sous-lot 2 a couvert tout le reste. **Chunk 1 entièrement porté.**
 
 | Fonction (nom minifié) | Module cible | Statut | Notes |
 | --- | --- | --- | --- |
@@ -24,36 +24,64 @@ Gabarit de table, une section `## Vague N` par vague. Colonne « Module cible »
 | `nv` | `pico8_collect.c`/`.h` | portée | Map générique ; `kp(e)or nil` porté via le motif "écrit *out_value, retourne 1/0" déjà utilisé par `pico8_fi()` (pas de genre nil dans `pico8_value_t`). |
 | `la` | `pico8_collect.c`/`.h` | portée | Concat de deux listes via `pico8_list_foreach` (fidèle à l'original qui utilise `foreach`, pas une boucle nue). |
 | `oo` | `pico8_collect.c`/`.h` | portée | Invocation de constructeur positionnel (`fn(a[1]..a[5])or a`) sur `pico8_ob_table_t`/`pico8_ob_constructor_fn`. Logique identique déjà inline dans la branche `identifier(...)` de `pico8_ob_value_for_token` (Phase 2) — non refactorée pour partager le code (éviter de faire grossir `pico8_ob.c`, déjà proche du seuil), duplication documentée. Note pour le futur portage de `bl()` (Chunk 2) : si le registre `pi[e.fn]` à clé chaîne enregistre des adaptateurs `pico8_ob_constructor_fn`-compatibles pour `rk`/`io`/`eq`/`lq.ol`/`spr`, cette même `pico8_oo` est directement réutilisable telle quelle. **Signalé (vérification Chunk 1, sous-lot 1)** : le vrai `fn and fn(...) or a` retombe sur `a` si `fn(...)` renvoie un résultat *falsy* (pas seulement si `fn` est nil), mais ce port ne gère que le cas `fn==NULL` — même simplification que la duplication inline déjà existante dans `pico8_ob.c` (donc pas un écart nouveau), non exercée aujourd'hui (aucun constructeur enregistré ne peut renvoyer falsy), à revisiter quand un builtin void comme `spr` sera enregistré comme constructeur (Chunk 2). |
-| `ne` | — | restante | Formatage de nombre signé (`+`/couleur). |
-| `ij` | — | restante | Plus proche voisin dans une liste de points. |
-| `rn` (+ `pico8_sfx`/`pico8_music`) | — | restante | `rn` référence le global `ih` (pas encore assigné avant Chunk 21) — traitement « référence avant, compile, pas encore exerçable » comme `bg:ldown`. Stubs audio no-op à créer ici, seul et unique endroit où ils existent. |
-| `jf` | — | restante | Fabrique de fermeture (marche aléatoire bornée), utilise `rnd`/`abs`/`max` (Phase 2). |
-| `bu` | — | restante | Glue bouton souris (`stat(34)`+`band`), lit `qn.on` précédent. |
-| `qz` | — | restante | À enregistrer dans le registre `char`-keyed existant de `pico8_ob` sous `'b'` (`pico8_ob_register_constructor`) — si porté dans un sous-lot séparé de celui qui touche `pico8_ob.c`, laisser la note ici pour le sous-lot qui s'en charge. |
-| `gk` | — | restante | Seuil `mp`/`rp` selon `e.fa`. |
-| `na` | — | restante | Oscillation verticale (`self.ra.y+=sin(...)`), assignée plus tard comme `qh.ly` (Chunk 15, hors scope ici — juste la fonction standalone). |
-| `ma` | — | restante | Décroissance + décalage polaire (`qm`), utilisé pour l'auréole de particules. |
-| `gd` | — | restante | Test de visibilité écran — référence le futur singleton `mo` (pas encore réel avant Chunk 6) — même traitement « référence avant ». |
-| `cu` | — | restante | Construit la table de palette en mémoire (`poke`/`sget`/`bor`). |
-| `dv` | — | restante | `memcpy` de la palette (astuce PICO-8 `0x5f00`). |
-| `rk` | — | restante | `rectfill` bande horizontale pleine largeur. |
-| `eq` | — | restante | Cadre + 2 sprites (bouton d'aide). |
-| `io` | — | restante | Texte avec contour (`er`, un des littéraux de données de ce chunk). |
-| `unstash` | — | restante | Décodage RLE-par-caractère depuis `peek()`/`gt` (alphabet de 44 caractères) — à lire et porter littéralement (algorithme confirmé en lisant `pico8/lua.lua:79-84`, pas deviné). |
-| `gn` | — | restante | Générateur pondéré par `.r` avec exclusion des 3 derniers tirages (`nm[3-#oc%3]`). |
-| `ho` | — | restante | Fermeture de renommage de champs positionnels→nommés (via `r`), retour de fonction Lua — en C, exposée comme un contexte + une fonction `pico8_list_foreach_fn` séparée (pas de fermeture native). Dépend de `gu` (portée) et du global `r` (construit via `unstash`, même sous-lot restant). |
-| `gt` | — | restante | Constante chaîne (alphabet de 44 caractères pour `unstash`). |
-| `er` | — | restante | Littéral `ob([[...]])`, offsets de contour pour `io()`. |
-| `es` | — | restante | Littéral `ob([[1,0,1,2,]])`. |
-| `ct` | — | restante | Littéral `ob([[-0.333,0,0.25,0.5,]])`. |
-| `b_` | — | restante | Littéral `ob([[0,100,200,400,]])`. |
-| `co` | — | restante | Littéral `ob([[-5,0,1,1,]])`. |
-| `bn`/`bq` | — | restante | Constantes numériques (`6,0.0977`) — pas via `ob()`, affectation directe. |
-| `fb` | — | restante | Littéral `ob([[2,2,5,5,7,7,10,10,14,14,14,19,19,19,]])`. |
-| `r`/`iz` | — | restante | `ob(unstash(8192))`/`ob(unstash(8259))` — dépendent de `unstash` (même sous-lot restant). |
+| `ne` | `pico8_collect.c`/`.h` | portée | Formatage signé (`+`/couleur forcée à 8 si négatif), réutilise `pico8_value_tostr` (Phase 2) plutôt que de dupliquer le formatage de nombre. `c` omis (2 sites réels : `ne(self.kr)`, `ne(fm.ge)`) n'a pas de représentation fidèle en `int` simple — non observé par un appelant réel (seule la 1ère valeur de retour est lue à ces sites), documenté plutôt que deviné. |
+| `ij` | `pico8_entity_geom.c`/`.h` | portée | Plus proche voisin dans `cg.jo`/`cg.np` (listes d'entités), lit le champ `.p` (pas `.ra`) via `pico8_instance_get_field`. |
+| `rn` (+ `pico8_sfx`/`pico8_music`) | `pico8_audio.c`/`.h` | portée | `rn` référence le global `ih` (accesseur `pico8_ih()`/`pico8_set_ih()`, façon `pico8_mo()`) — pas encore assigné avant Chunk 21, traitement « référence avant, compile, pas encore exerçable » comme `bg:ldown`. Stubs audio no-op créés ici (seul et unique endroit où ils existent) ; module choisi car aucun stub host-builtin trivial n'existe encore ailleurs pour ce genre de no-op permanent. |
+| `jf` | `pico8_gen.c`/`.h` | portée | Fabrique de fermeture (marche aléatoire bornée) → struct d'état chauffée + `pico8_jf_next`, motif « contexte + fonction d'avancement » (C n'a pas de fermetures). |
+| `bu` | `pico8_mouse.c`/`.h` | portée | Glue bouton souris (`stat(34)`+bitwise `&` sur les entiers bruts, pas `pico8_fixed_band` — `stat`/`oa` sont déjà des entiers simples, pas de virgule fixe fractionnaire ici), lit/écrit `qn.on`/`qn.jn`/`qn.hm` sur une `pico8_ob_table_t*` simple (pas une entité). |
+| `qz` | `pico8_geom.c`/`.h` (prédicat pur + type boîte) + `pico8_collect.c`/`.h` (adaptateur/enregistrement `'b'` dans le registre `pico8_ob`) | portée | Enregistrement fait via `pico8_qz_register_constructor()` (nouveau) — appelé par personne pour l'instant dans ce sous-lot, comme `'v'` (même statut « prêt mais pas encore câblé » déjà noté par `pico8_ob.h`) ; à appeler par la future séquence d'init de Chunk 2/6. Établit la convention « valeur vecteur de champ = `PICO8_VALUE_REF` vers `pico8_vec_t` chauffé », consommée par `gk`/`gd`/`na`/`ma`/`ij`. |
+| `gk` | `pico8_entity_geom.c`/`.h` | portée | Seuil `mp`/`rp` selon `e.fa`, appelle le prédicat boîte de `e.kq` (`pico8_qz_call`). Champ `kq` absent → renvoie faux (divergence défensive documentée, même traitement que `dc()`/`he()` Phase 2). Vérifié par un test manuel ad hoc (instance réelle + boîte réelle), cf. notes de vérification ci-dessous. |
+| `na` | `pico8_entity_geom.c`/`.h` | portée | Oscillation verticale, mute `self.ra.y` en place via le pointeur `pico8_vec_t*` du champ (pas de réaffectation du champ) ; assignée plus tard comme `qh.ly` (Chunk 15, hors scope ici — juste la fonction standalone). |
+| `ma` | `pico8_entity_geom.c`/`.h` | portée | Décroissance de `e.ma` (écrite dans `e->fields`, écrasant tout défaut de classe comme en Lua réel) + décalage polaire (`qm`), utilisé pour l'auréole de particules. |
+| `gd` | `pico8_entity_geom.c`/`.h` | portée | Test de visibilité écran — référence le futur singleton `mo` (`pico8_mo()`, pas encore réel avant Chunk 6) — même traitement « référence avant » ; champs `.ra` absents lus comme vecteur nul (divergence défensive documentée). |
+| `cu` | `pico8_hud.c`/`.h` | portée | Construit la table de palette en mémoire (`poke`/`sget`/bor). Hypothèse non sourcée mais cohérente documentée : `c==3 and 0x80` (qui vaut `false`, pas un nombre, si faux) coercé à 0 par le `bor` PICO-8, comme pour `dv()` ci-dessous. |
+| `dv` | `pico8_hud.c`/`.h` | portée | `memcpy` de la palette (astuce PICO-8 `0x5f00`). `no` omis (plusieurs sites réels, ex. `_draw()`) → défaut 0 (`pico8_dv_default`, motif `pico8_spr`/`pico8_spr_default`), même hypothèse de coercion PICO-8 que `cu`. |
+| `rk` | `pico8_hud.c`/`.h` | portée | `rectfill` bande horizontale pleine largeur. `y2` omis → `pico8_rk_y1` (motif `spr_default`). La forme 2-arguments SANS couleur (`rk(127-h,127)`, `pj:kj`, Chunk 18) dépend d'un état « dernière couleur dessinée » que `pico8_gfx_t` ne modélise pas encore — lacune réelle mais signalée, explicitement laissée pour Chunk 18 plutôt que devinée ici (aucun appelant réel dans ce sous-lot). |
+| `eq` | `pico8_hud.c`/`.h` | portée | Cadre + 2 sprites 1x2 (bouton d'aide). |
+| `io` | `pico8_hud.c`/`.h` | portée | Texte avec contour ; `er` porté en tableau C fixe (comme `bm` en Phase 2), pas re-parsé via `ob()`. `a` omis → `pico8_io_default`. |
+| `unstash` | `pico8_stash.c`/`.h` | portée | **Corrigé par rapport à la note du sous-lot 1** : ce n'est PAS du RLE — simple table de correspondance octet→caractère via `gt` (alphabet confirmé à **51** caractères en comptant le source réel, pas 44), lu directement depuis `pico8/lua.lua:79-84`. Les adresses décodées (8192, 8259, ...) tombent dans la région mémoire de la map PICO-8 (`PICO8_ADDR_MAP`, 8192 octets) — astuce PICO-8 réelle de réutilisation de mémoire, pas un bug de lecture. |
+| `gn` | `pico8_gen.c`/`.h` | portée | Générateur pondéré par `.r` avec exclusion des 3 derniers tirages (`nm[3-#oc%3]`) → struct d'état + `pico8_gn_next`. `nm` n'est PAS une `pico8_list_t` (jamais construite via `add()`, seulement par affectation d'index direct) : portée comme 3 cases + drapeaux « case déjà écrite », parcourues avec l'arrêt-au-premier-trou réel de `all()` sur une séquence à trous plutôt que routée par `pico8_gu`. |
+| `ho` | `pico8_collect.c`/`.h` | portée | Renommage positionnel→nommé, `rc[ri.px]=ri`. **Résolution de l'écart `gu`/`pico8_value_equal`** (voir note dédiée ci-dessous) : nouvelle fonction `pico8_gu_content` (comparaison par contenu pour les chaînes) plutôt que d'élargir `pico8_value_equal`. `r[ri[i]]` indexé par nombre ou par nom selon le type de `ri[i]`, même motif que `pico8_ft_index`/`pico8_ft_name`. |
+| `gt` | `pico8_stash.c` (privé) | portée | Constante chaîne, alphabet confirmé à **51** caractères (pas 44, voir note `unstash` ci-dessus) — privée au module, aucun autre site réel ne lit le global `gt`. |
+| `er` | `pico8_hud.c` (privé) | portée | Tableau C fixe de 9 triplets {dx,dy,c}, pas re-parsé via `ob()` (même raisonnement que `bm`, Phase 2). |
+| `es` | `pico8_game_data.c`/`.h` | portée | `ob([[1,0,1,2,]])`, consommateur réel = `da()` (Chunk 12, hors scope). |
+| `ct` | `pico8_game_data.c`/`.h` | portée | `ob([[-0.333,0,0.25,0.5,]])`, consommateur réel = `db()` (Chunk 12). |
+| `b_` | `pico8_game_data.c`/`.h` | portée | `ob([[0,100,200,400,]])`, consommateur réel = `ky()` (Chunk 12). Accesseur nommé `pico8_b_` (underscore final légal en C). |
+| `co` | `pico8_game_data.c`/`.h` | portée | `ob([[-5,0,1,1,]])`, consommateur réel = `bf()` (Chunk 12). |
+| `bn`/`bq` | `pico8_game_data.c`/`.h` | portée | Constantes numériques (`6,0.0977`) — pas via `ob()`, littéraux Lua bruts ; `bq` via `pico8_fixed_from_double` (seule option raisonnable disponible pour un littéral décimal hors chaîne `ob()`). |
+| `fb` | `pico8_game_data.c`/`.h` | portée | `ob([[2,2,5,5,7,7,10,10,14,14,14,19,19,19,]])`, consommateur réel = `eg()` (Chunk 21). |
+| `r`/`iz` | `pico8_stash.c`/`.h` | portée | `ob(unstash(8192))`/`ob(unstash(8259))`, construits par `pico8_stash_init(mem)` depuis la VRAIE mémoire PICO-8 (nécessite `pico8/map.json` déjà chargé, comme le fait `main.c`). `r` est déjà consommé dans ce sous-lot par `pico8_ho_apply` (`r[ri[i]]`). |
 
 **Sous-lot 1 (cette session)** : `ft`, `qj`, `mw`, `gu`, `jp`, `nv`, `la`, `oo` — module `src/pico8_collect.c`/`src/pico8_collect.h` (nouveau, 169+155 lignes, sous le seuil de 430-540 lignes). Aucune de ces fonctions n'est encore appelée par un binaire du Makefile (aucun consommateur n'existe encore dans ce chunk) : compilation propre vérifiée manuellement (`cc -std=c99 -Wall -Wextra -Werror -c`, 0 warning) plutôt que via `make test`, conformément à la politique « pas de test unitaire par fonction » de cette phase ; le sous-lot/chunk qui appellera réellement ces fonctions ajoutera le rattachement Makefile nécessaire (même schéma que `pico8_class.c`, qui n'est compilé que via `test_pico8_entity_smoke`).
 
 **Vérification module cible** : `pico8_ob.c` (Phase 2) reste à 538 lignes, déjà au-dessus du repère ~430-540 signalé par `warn-review` — non touché par ce sous-lot (décision explicite ci-dessus de ne pas y ajouter `oo` pour ne pas l'alourdir davantage). Aucun autre module existant modifié.
 
-**Restant pour le(s) sous-lot(s) suivant(s)** : `ne`, `ij`, `rn`+stubs `pico8_sfx`/`pico8_music`, `jf`, `bu`, `qz`, `gk`, `na`, `ma`, `gd`, `cu`, `dv`, `rk`, `eq`, `io`, `unstash`, `gn`, `ho`, plus les littéraux `gt`, `er`, `es`, `ct`, `b_`, `co`, `bn`/`bq`, `fb`, `r`/`iz`.
+**Sous-lot 2 (cette session)** : le reste du Chunk 1 en entier — `ne`, `ij`, `rn`+stubs `pico8_sfx`/`pico8_music`, `jf`, `bu`, `qz`, `gk`, `na`, `ma`, `gd`, `cu`, `dv`, `rk`, `eq`, `io`, `unstash`, `gn`, `ho`, plus les littéraux `gt`, `er`, `es`, `ct`, `b_`, `co`, `bn`/`bq`, `fb`, `r`/`iz` — soit tout ce que le sous-lot 1 avait laissé « restante ». **Le Chunk 1 est donc entièrement porté à l'issue de ce sous-lot**, pas besoin d'un 3e sous-lot.
+
+Modules touchés : `pico8_collect.c`/`.h` (étendu : `ne`, `ho`, `pico8_gu_content`, l'adaptateur/enregistrement `pico8_qz_register_constructor`), `pico8_geom.c`/`.h` (étendu : `qz` — type boîte + prédicat pur), et 6 nouveaux petits modules par concern propre (comme autorisé par le PRD pour un chunk volumineux) : `pico8_entity_geom.c`/`.h` (`gk`,`gd`,`na`,`ma`,`ij` — glue géométrie sur champs vectoriels d'entités vivantes), `pico8_gen.c`/`.h` (`jf`,`gn` — générateurs procéduraux), `pico8_mouse.c`/`.h` (`bu`), `pico8_audio.c`/`.h` (stubs `sfx`/`music` + `rn` + accesseur `ih`), `pico8_stash.c`/`.h` (`unstash`, `gt`, `r`/`iz`), `pico8_hud.c`/`.h` (`cu`,`dv`,`rk`,`eq`,`io`, `er`), `pico8_game_data.c`/`.h` (`es`,`ct`,`b_`,`co`,`bn`/`bq`,`fb`).
+
+**Décision `gu`/`pico8_value_equal`** (gap documenté par le sous-lot 1) : résolue en ajoutant `pico8_gu_content` (`pico8_collect.c`/`.h`), une variante de `pico8_gu` qui compare les `PICO8_VALUE_STRING` par CONTENU (`strcmp`) plutôt que par identité de pointeur, utilisée uniquement par `ho()`'s réel `gu(gp,p)`. `pico8_value_equal`/`pico8_gu` restent inchangés (toujours corrects pour leurs propres appelants `del()`-style) — la cause racine identifiée : ce portage n'interne JAMAIS les chaînes (`pico8_ob`'s `pico8_sub` alloue une chaîne fraîche à chaque appel), contrairement au vrai Lua où un littéral de chaîne identique EST le même objet, ce qui rend `==` par identité correct côté Lua mais pas côté C ici. Décision documentée dans `pico8_collect.h`, pas seulement ici.
+
+**Convention nouvelle établie** : une valeur vecteur (`v(x,y)`) stockée comme champ d'entité est un `PICO8_VALUE_REF` vers un `pico8_vec_t` chauffé (anticipée par le commentaire de `pico8_value.h` mais jamais exercée avant ce sous-lot) — voir `pico8_entity_geom.h`. Champ absent → valeur par défaut défensive (vecteur nul / 0 / faux selon le cas), même traitement que la divergence déjà actée par `dc()`/`he()` en Phase 2 — jamais exercé par un site d'appel réel avant que les Chunks 4/6/13/15 existent.
+
+**Corrections de lecture du source** (par rapport aux notes du sous-lot 1, qui n'avait pas encore lu ces fonctions) : `unstash()` n'est PAS du RLE — simple octet→caractère via une table `gt` confirmée à **51** caractères (pas 44).
+
+**Lacune signalée, non résolue (hors scope)** : `rk(127-h,127)` (`pj:kj`, Chunk 18) omet la couleur, ce qui dépend d'un état « dernière couleur dessinée » que `pico8_gfx_t` (Phase 1) ne modélise pas — laissé pour Chunk 18 (aucun appelant réel dans ce sous-lot), pas deviné ici.
+
+**Vérification module cible** : aucun module touché ne dépasse ~200-290 lignes (voir tableau récapitulatif ci-dessous), largement sous le seuil de 430-540 lignes.
+
+| Module | Lignes (.c/.h) |
+| --- | --- |
+| `pico8_collect.c`/`.h` | 289 / 274 |
+| `pico8_geom.c`/`.h` | 89 / 114 |
+| `pico8_entity_geom.c`/`.h` | 155 / 106 |
+| `pico8_gen.c`/`.h` | 158 / 77 |
+| `pico8_mouse.c`/`.h` | 18 / 33 |
+| `pico8_audio.c`/`.h` | 38 / 53 |
+| `pico8_stash.c`/`.h` | 89 / 69 |
+| `pico8_hud.c`/`.h` | 117 / 96 |
+| `pico8_game_data.c`/`.h` | 64 / 69 |
+
+**Vérification faite** : (1) aucune de ces nouvelles fonctions n'est encore appelée par un binaire du Makefile (mêmes raisons que le sous-lot 1 — leurs vrais consommateurs sont des chunks ultérieurs) : chaque fichier `.c` touché/nouveau a été compilé individuellement (`cc -std=c99 -Wall -Wextra -Werror -g -c`, 0 warning), plus un lien combiné manuel de tous les nouveaux modules dans un petit programme jetable exerçant chaque fonction (y compris une instance réelle construite via `pico8_class_declare`/`pico8_class_instantiate` pour vérifier `gk`/`na`/`ma`/`ho` avec de vraies valeurs, pas seulement une compilation) — résultats numériques conformes à la trace manuelle du source Lua ; ce programme de vérification n'a pas été conservé dans le dépôt (pas un test permanent, conformément à la politique de cette phase). (2) `rm -rf tmp && make test` : reconstruction complète propre, 0 régression, 0 warning. (3) aucune fonction de ce sous-lot ne touche `pico8_class`/`pico8_entity` autrement qu'en LECTURE via les accesseurs déjà publics (`pico8_instance_get_field`, `pico8_mo()`) — le 3e contrôle du plan (couverture du mécanisme d'entités/dispatch) ne s'applique donc pas ici.
+
+**Chunk 1 : entièrement porté.** Prochaine étape possible : Chunk 2 (`bl()` + registre `pi` à clé chaîne).
