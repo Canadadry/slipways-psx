@@ -37,7 +37,7 @@ Scanné directement dans `lua.lua` (pas deviné, pas construit par anticipation)
 `main.c` et toutes les fonctions portées n'appellent **jamais** raylib directement — uniquement la couche de mimétisme PICO-8 ci-dessus. Deux implémentations de cette même API existent, choisies au lien/à la compilation, sans toucher au code de jeu :
 
 1. **Backend rendu logiciel + rejeu scripté** (Phases 1 à 4) : framebuffer 128×128/8 couleurs en mémoire, entrée lue depuis un `events.json` (position souris + boutons souris + les 4 booléens `btn()` D-pad, par frame — couvre exactement `stat(32/33/34)` et `btn(0-3)`), sortie dumpée en texte (format proche PPM, pas de PNG) pour être lisible directement par un LLM sans décodage d'image.
-2. **Backend raylib interactif** (Phase 5) : fenêtre raylib réelle, entrée souris/clavier live, même framebuffer 128×128 uploadé comme texture et affiché à l'échelle.
+2. **Backend raylib interactif** (Phase 5) : fenêtre raylib réelle, entrée souris/clavier live, même framebuffer 128×128 uploadé comme texture et affiché à l'échelle. Inclut un **mode enregistrement** : chaque frame de la session, l'entrée live (souris + D-pad) est écrite dans un `events.json` au même format que celui rejoué par le Backend 1 — ce que l'humain vient de faire redevient un rejeu scripté que l'agent peut réexécuter et inspecter en headless, sans jamais avoir vu la session se dérouler.
 
 ## Stratégie de test
 
@@ -79,6 +79,8 @@ Sortie de phase (déclenche la Phase 5) : un rejeu scripté complet couvrant cet
 
 Basculer vers le backend raylib (fenêtre réelle, entrée souris/clavier live) sans toucher `main.c` ni aucune fonction portée — seul le backend change. Premier moment où un humain joue réellement et donne son retour.
 
+Le backend raylib enregistre toujours la session en `events.json` (mode enregistrement, cf. Architecture ci-dessus) — l'humain n'a rien à activer. Si l'humain rapporte un bug ou un comportement suspect, l'agent n'a pas besoin qu'on le lui décrive : il reprend directement l'`events.json` de la session concernée et le rejoue en headless via le Backend 1 (mêmes outils que la Phase 4) pour reproduire et investiguer, sans jamais avoir besoin d'ouvrir de fenêtre lui-même.
+
 Avant de faire appel à un humain : l'agent compile et lie le backend raylib (compilation/édition de liens uniquement, jamais d'exécution — cf. politique d'exécution) et s'assure que ça réussit. Ce n'est pas la sortie de phase, juste un contrôle préalable bon marché pour ne pas gâcher le cycle humain, coûteux et difficile à répéter, sur une erreur de lien ou une signature incompatible avec l'API de mimétisme.
 
 Sortie de phase (fin du portage) : un humain termine une partie complète de la boucle centrale (sonde → wormhole → colonisation → slipway → commerce → score) via le backend raylib sans crash, et confirme que les mécaniques correspondent à sa compréhension de la cartouche PICO-8 originale.
@@ -93,7 +95,7 @@ Sortie de phase (fin du portage) : un humain termine une partie complète de la 
 
 ## Notes de portage
 
-Journal à compléter au fil des Phases 1 à 5 (contrairement à « Décisions actées » ci-dessous, figée à l'issue du cadrage initial) : chaque résolution d'un cas ambigu rencontré pendant le développement (ex. sémantique exacte d'un index `stat()`, arrondi/débordement d'un cas limite en virgule fixe, ou un chemin insuffisamment exercé par le rejeu scripté de la Phase 4 et découvert seulement pendant le test humain de la Phase 5 — pas seulement les cas rencontrés en Phase 3) est consignée en une ligne — fonction/zone concernée, problème, résolution retenue — pour qu'une décision prise une fois ne soit pas relitigée ou tranchée différemment plus tard sur un cas similaire. Quand un cas est découvert en Phase 5 parce qu'il n'était pas couvert par le rejeu scripté de la Phase 4, le corpus `events.json` de la Phase 4 est étendu pour l'exercer désormais — la consignation dans ce journal documente la décision, mais ne remplace pas la protection par le test de non-régression headless existant.
+Journal à compléter au fil des Phases 1 à 5 (contrairement à « Décisions actées » ci-dessous, figée à l'issue du cadrage initial) : chaque résolution d'un cas ambigu rencontré pendant le développement (ex. sémantique exacte d'un index `stat()`, arrondi/débordement d'un cas limite en virgule fixe, ou un chemin insuffisamment exercé par le rejeu scripté de la Phase 4 et découvert seulement pendant le test humain de la Phase 5 — pas seulement les cas rencontrés en Phase 3) est consignée en une ligne — fonction/zone concernée, problème, résolution retenue — pour qu'une décision prise une fois ne soit pas relitigée ou tranchée différemment plus tard sur un cas similaire. Quand un cas est découvert en Phase 5 parce qu'il n'était pas couvert par le rejeu scripté de la Phase 4, le corpus `events.json` de la Phase 4 est étendu pour l'exercer désormais — concrètement, en réutilisant (éventuellement raccourci) l'`events.json` enregistré par le mode enregistrement du backend raylib pendant la session où le cas a été découvert, plutôt qu'en écrivant un nouveau scénario à la main — la consignation dans ce journal documente la décision, mais ne remplace pas la protection par le test de non-régression headless existant.
 
 *(vide pour l'instant — aucune phase n'a commencé)*
 
@@ -106,6 +108,7 @@ Journal à compléter au fil des Phases 1 à 5 (contrairement à « Décisions a
 - Arithmétique fixe 16.16 et algorithmes `rnd`/`sin`/`cos` PICO-8 reproduits exactement (pas de flottant natif).
 - Pas d'oracle Lua différentiel (investigué et écarté — cf. Stratégie de test) ; tests unitaires C pour l'arithmétique/les primitives pures (Phase 2), comparaison source/port pour le reste (Phase 3), rejeu headless pour l'intégration (Phase 4).
 - Backend interchangeable sous une API fixe : software+rejeu JSON+dump texte (Phases 1-4) vs raylib+entrée live (Phase 5), sans jamais modifier `main.c` ni les fonctions portées.
+- Le backend raylib enregistre systématiquement chaque session en `events.json` (mode enregistrement) : toute session humaine est rejouable et inspectable en headless par l'agent sans description manuelle du bug.
 - Son (`sfx`/`music`) explicitement hors périmètre, pas seulement différé.
 - PSX en pause : repris uniquement une fois une version PC pleinement jouable en C obtenue, en repartant de ce C plutôt que de la doc de design.
 - Prototype Love2D `game/` supprimé (incarnait l'approche « réécriture » abandonnée).
