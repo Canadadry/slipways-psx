@@ -238,9 +238,9 @@ static int pico8_map_cell_addr(int x, int y) {
         return -1;
     }
     if (y < PICO8_MAP_BASE_ROWS) {
-        return PICO8_ADDR_MAP + y * PICO8_MAP_WIDTH + x;
+        return PICO8_ADDR_SPRITE_MAP_SHARED + y * PICO8_MAP_WIDTH + x;
     }
-    return PICO8_ADDR_SPRITE_MAP_SHARED + (y - PICO8_MAP_BASE_ROWS) * PICO8_MAP_WIDTH + x;
+    return PICO8_ADDR_MAP + (y - PICO8_MAP_BASE_ROWS) * PICO8_MAP_WIDTH + x;
 }
 
 void pico8_mset(pico8_mem_t *mem, int x, int y, int val) {

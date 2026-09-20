@@ -117,9 +117,9 @@ static void map_cell_sink(int index, int value, void *ctx_ptr) {
     int col = index % ctx->width;
     int addr;
     if (row < PICO8_MAP_BASE_ROWS) {
-        addr = PICO8_ADDR_MAP + row * ctx->width + col;
+        addr = PICO8_ADDR_SPRITE_MAP_SHARED + row * ctx->width + col;
     } else {
-        addr = PICO8_ADDR_SPRITE_MAP_SHARED + (row - PICO8_MAP_BASE_ROWS) * ctx->width + col;
+        addr = PICO8_ADDR_MAP + (row - PICO8_MAP_BASE_ROWS) * ctx->width + col;
     }
     pico8_poke(ctx->mem, addr, (unsigned char)value);
 }

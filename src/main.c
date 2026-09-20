@@ -23,7 +23,9 @@ int main(void) {
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
 
     assert(pico8_sget(&mem, 16, 0) == 3);
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 1) == 81);
+    /* map.json's cells row 0 lands in PICO8_ADDR_SPRITE_MAP_SHARED on the
+     * real cart (confirmed against pico8/original.p8.png's decoded ROM). */
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
 
     pico8_cls(&mem);
     assert(screen_pixel(&mem, 0, 0) == 0);

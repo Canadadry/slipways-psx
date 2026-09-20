@@ -401,25 +401,29 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
 }
 
 static void test_mset_writes_base_region_cell(void) {
+    /* Cel rows 0-31 (the "base" JSON/map rows) land in the real cart's
+     * PICO8_ADDR_SPRITE_MAP_SHARED region, confirmed by decoding
+     * pico8/original.p8.png's cart ROM byte-for-byte. */
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
     pico8_mset(&mem, 9, 0, 213);
     pico8_mset(&mem, 0, 31, 51);
 
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 9) == 213);
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 51);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 9) == 213);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 51);
 }
 
 static void test_mset_writes_shared_upper_region_cell(void) {
+    /* Cel rows 32-63 land in the real cart's PICO8_ADDR_MAP region. */
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
     pico8_mset(&mem, 1, 32, 6);
     pico8_mset(&mem, 0, 63, 41);
 
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 6);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 41);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 1) == 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 41);
 }
 
 static void test_mset_out_of_range_is_noop(void) {
@@ -479,10 +483,10 @@ static void test_map_and_mset_round_trip_against_real_cart_data(void) {
     unsigned char expected = pico8_sget(&mem, 16, 0);
     assert(expected == 3);
 
-    pico8_mset(&mem, 4, 40, 2); /* shared upper region: row 40 >= 32 */
+    pico8_mset(&mem, 4, 40, 2); /* row 40 >= 32 lands in PICO8_ADDR_MAP */
     pico8_map(&gfx, &mem, 4, 40, 0, 0, 1, 1);
 
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + (40 - 32) * 128 + 4) == 2);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + (40 - 32) * 128 + 4) == 2);
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == expected);
 }
 

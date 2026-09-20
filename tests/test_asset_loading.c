@@ -26,27 +26,32 @@ static void test_gfx_json_loads_full_128x128_range(void) {
 }
 
 static void test_map_json_loads_base_region(void) {
+    /* map.json's cells rows 0-31 (the "base" JSON rows) land in the real
+     * cart's PICO8_ADDR_SPRITE_MAP_SHARED region (0x1000), confirmed by
+     * decoding pico8/original.p8.png's cart ROM byte-for-byte. */
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
     int ok = pico8_load_map_json(&mem, "pico8/map.json");
     assert(ok);
 
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 1) == 81);
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 9) == 213);
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 51);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 81);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 9) == 213);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 51);
 }
 
 static void test_map_json_loads_shared_region_for_rows_32_to_63(void) {
+    /* map.json's cells rows 32-63 land in the real cart's PICO8_ADDR_MAP
+     * region (0x2000), confirmed the same way. */
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
     int ok = pico8_load_map_json(&mem, "pico8/map.json");
     assert(ok);
 
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 0) == 51);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 6);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 41);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 0) == 51);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 1) == 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 41);
 }
 
 static void test_gfx_and_map_loaded_into_same_instance(void) {
@@ -72,14 +77,15 @@ static void test_gfx_and_map_loaded_into_same_instance(void) {
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET + 64 * 128 + 2) == 1);
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET + 127 * 128 + 0) == 3);
 
-    /* Map cells (base region and the shared upper region for rows
-     * 32-63) must be correct too. */
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 1) == 81);
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 9) == 213);
-    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 51);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 0) == 51);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 6);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 41);
+    /* Map cells (JSON rows 0-31 landing in PICO8_ADDR_SPRITE_MAP_SHARED,
+     * and JSON rows 32-63 landing in PICO8_ADDR_MAP) must be correct
+     * too. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 81);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 9) == 213);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 51);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 0) == 51);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 1) == 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 41);
 }
 
 static void test_gfx_json_missing_file_returns_failure(void) {
