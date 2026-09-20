@@ -25,12 +25,12 @@ static void test_sprite_sheet_region_boundary(void) {
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
-    assert(PICO8_ADDR_SPRITE_SHEET == 0x0000);
+    assert(PICO8_ADDR_SPRITE_SHEET == 0x6000);
     pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET, 1);
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET) == 1);
 
-    pico8_poke(&mem, PICO8_ADDR_SPRITE_MAP_SHARED - 1, 2);
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED - 1) == 2);
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0x4000 - 1, 2);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET + 0x4000 - 1) == 2);
 }
 
 static void test_shared_region_boundary(void) {
@@ -53,15 +53,15 @@ static void test_map_region_boundary(void) {
     pico8_poke(&mem, PICO8_ADDR_MAP, 5);
     assert(pico8_peek(&mem, PICO8_ADDR_MAP) == 5);
 
-    pico8_poke(&mem, PICO8_ADDR_SCREEN - 1, 6);
-    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN - 1) == 6);
+    pico8_poke(&mem, PICO8_ADDR_MAP + 0x1000 - 1, 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0x1000 - 1) == 6);
 }
 
 static void test_screen_region_boundary(void) {
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
-    assert(PICO8_ADDR_SCREEN == 0x6000);
+    assert(PICO8_ADDR_SCREEN == 0xA000);
     pico8_poke(&mem, PICO8_ADDR_SCREEN, 7);
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN) == 7);
 
