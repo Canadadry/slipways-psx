@@ -6,6 +6,12 @@
 #define PICO8_SCREEN_WIDTH 128
 #define PICO8_SCREEN_HEIGHT 128
 
+#define PICO8_SPRITE_SIZE 8
+#define PICO8_SPRITE_SHEET_WIDTH 128
+#define PICO8_SPRITE_SHEET_HEIGHT 128
+#define PICO8_MAP_WIDTH 128
+#define PICO8_MAP_HEIGHT 64
+
 typedef struct {
     int camera_x;
     int camera_y;
@@ -40,5 +46,15 @@ void pico8_circfill(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cx, int cy, in
 void pico8_fillp(pico8_gfx_t *gfx, unsigned int pattern);
 
 void pico8_fillp_reset(pico8_gfx_t *gfx);
+
+unsigned char pico8_sget(const pico8_mem_t *mem, int x, int y);
+
+void pico8_spr(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y, int w, int h);
+
+void pico8_spr_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y);
+
+void pico8_mset(pico8_mem_t *mem, int x, int y, int val);
+
+void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h);
 
 #endif

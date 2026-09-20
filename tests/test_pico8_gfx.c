@@ -1,3 +1,4 @@
+#include "../src/pico8_assets.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_mem.h"
 
@@ -304,6 +305,187 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
     }
 }
 
+static void test_sget_reads_known_pixel_from_loaded_cart_data(void) {
+    /* Cross-checked against test_asset_loading.c's known-good values:
+     * pixel (16,0)=3 is sprite 2's top-left pixel, pixel (2,64)=1 is
+     * sprite 128's pixel (dx=2,dy=0), pixel (0,127)=3 is sprite 240's
+     * bottom-left pixel. sget takes raw sprite-sheet pixel coordinates,
+     * not sprite index + offset. */
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+    int ok = pico8_load_gfx_json(&mem, "pico8/gfx.json");
+    assert(ok);
+
+    assert(pico8_sget(&mem, 16, 0) == 3);
+    assert(pico8_sget(&mem, 2, 64) == 1);
+    assert(pico8_sget(&mem, 0, 127) == 3);
+}
+
+static void test_sget_out_of_range_returns_zero(void) {
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+    /* Poke a nonzero value adjacent to the sheet's bounds to make sure a
+     * naive/unclamped read wouldn't accidentally also read 0 here. */
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET, 9);
+
+    assert(pico8_sget(&mem, -1, 0) == 0);
+    assert(pico8_sget(&mem, 0, -1) == 0);
+    assert(pico8_sget(&mem, PICO8_SPRITE_SHEET_WIDTH, 0) == 0);
+    assert(pico8_sget(&mem, 0, PICO8_SPRITE_SHEET_HEIGHT) == 0);
+}
+
+static void test_spr_default_draws_1x1_sprite_at_world_position(void) {
+    /* Sprite 5 lives at sheet pixel (40,0) (col 5*8, row 0*8, since 16
+     * sprites/row). Poke two of its pixels directly and draw it with the
+     * 3-arg convenience wrapper (defaults w=h=1). */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 40, 7);
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 1 * 128 + 41, 8);
+
+    pico8_spr_default(&gfx, &mem, 5, 20, 30);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 30 * PICO8_SCREEN_WIDTH + 20) == 7);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 31 * PICO8_SCREEN_WIDTH + 21) == 8);
+    /* Outside the 8x8 block is untouched. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 38 * PICO8_SCREEN_WIDTH + 20) == 0);
+}
+
+static void test_spr_with_explicit_wh_draws_multi_block_sprite(void) {
+    /* Sprite 0 spans a 2x2-sprite (16x16 pixel) area starting at sheet
+     * (0,0) when w=2,h=2: it reads pixels from sprite 0's own block plus
+     * sprite 1 (to its right), sprite 16 (below), and sprite 17
+     * (diagonal) -- real PICO-8's multi-cell sprite behavior. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 0, 1);   /* sprite 0, corner */
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 8, 2);   /* sprite 1's corner */
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 8 * 128 + 0, 3);   /* sprite 16's corner */
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 15 * 128 + 15, 4); /* sprite 17's far corner */
+
+    pico8_spr(&gfx, &mem, 0, 0, 0, 2, 2);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 1);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 8) == 2);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 8 * PICO8_SCREEN_WIDTH + 0) == 3);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 15 * PICO8_SCREEN_WIDTH + 15) == 4);
+    /* Beyond the 16x16 area is untouched. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 16 * PICO8_SCREEN_WIDTH + 0) == 0);
+}
+
+static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
+    /* Unlike pset/shapes, spr must consult palt: a source pixel whose
+     * color is marked transparent is skipped (not drawn), leaving
+     * whatever was already on screen underneath. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 0, 3); /* sprite 0, corner pixel */
+    pico8_poke(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0, 9); /* pre-existing content */
+
+    pico8_palt(&gfx, 3, 1);
+    pico8_spr_default(&gfx, &mem, 0, 0, 0);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 9);
+
+    pico8_palt(&gfx, 3, 0);
+    pico8_spr_default(&gfx, &mem, 0, 0, 0);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 3);
+}
+
+static void test_mset_writes_base_region_cell(void) {
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+
+    pico8_mset(&mem, 9, 0, 213);
+    pico8_mset(&mem, 0, 31, 51);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 0 * 128 + 9) == 213);
+    assert(pico8_peek(&mem, PICO8_ADDR_MAP + 31 * 128 + 0) == 51);
+}
+
+static void test_mset_writes_shared_upper_region_cell(void) {
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+
+    pico8_mset(&mem, 1, 32, 6);
+    pico8_mset(&mem, 0, 63, 41);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 41);
+}
+
+static void test_mset_out_of_range_is_noop(void) {
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+
+    pico8_mset(&mem, -1, 0, 5);
+    pico8_mset(&mem, 0, -1, 5);
+    pico8_mset(&mem, PICO8_MAP_WIDTH, 0, 5);
+    pico8_mset(&mem, 0, PICO8_MAP_HEIGHT, 5);
+
+    for (int i = 0; i < PICO8_MAP_WIDTH * 32; i++) {
+        assert(pico8_peek(&mem, PICO8_ADDR_MAP + i) == 0);
+    }
+    for (int i = 0; i < PICO8_MAP_WIDTH * 32; i++) {
+        assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + i) == 0);
+    }
+}
+
+static void test_map_draws_cells_via_sprite_drawing_logic(void) {
+    /* A 2x2-cell region, cell (1,0) pointing to sprite 5, the rest to
+     * sprite 0. map() draws each cell as a 1x1 spr() call at
+     * sx+c*8, sy+r*8 -- confirmed by cell (1,0) landing sprite 5's known
+     * pixel at screen column 8 (the second cell), not column 0. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 40, 7); /* sprite 5's corner */
+    pico8_mset(&mem, 1, 0, 5);
+
+    pico8_map(&gfx, &mem, 0, 0, 0, 0, 2, 2);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 8) == 7);
+    /* Cell (0,0) is sprite 0, whose corner pixel was never poked (stays
+     * palette index 0, which is transparent by default and so is
+     * skipped -- screen stays at its cleared 0 value either way). */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 0);
+}
+
+static void test_map_and_mset_round_trip_against_real_cart_data(void) {
+    /* End-to-end: load the real cart's sprite sheet, mset a cell (in the
+     * shared upper map region) to point at a known real sprite, draw it
+     * via map(), and confirm the drawn pixel matches sget's own read of
+     * that same sprite-sheet pixel -- both direct sget and the drawn
+     * framebuffer must agree. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+    int ok = pico8_load_gfx_json(&mem, "pico8/gfx.json");
+    assert(ok);
+
+    /* Sprite 2's top-left pixel is known-good color 3 (see
+     * test_sget_reads_known_pixel_from_loaded_cart_data). */
+    unsigned char expected = pico8_sget(&mem, 16, 0);
+    assert(expected == 3);
+
+    pico8_mset(&mem, 4, 40, 2); /* shared upper region: row 40 >= 32 */
+    pico8_map(&gfx, &mem, 4, 40, 0, 0, 1, 1);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + (40 - 32) * 128 + 4) == 2);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == expected);
+}
+
 int main(void) {
     test_cls_clears_whole_screen_to_zero();
     test_pset_plots_pixel_at_coordinate();
@@ -324,6 +506,16 @@ int main(void) {
     test_circfill_fills_the_disc();
     test_circfill_zero_radius_draws_single_pixel();
     test_fillp_pattern_alters_rectfill_output();
+    test_sget_reads_known_pixel_from_loaded_cart_data();
+    test_sget_out_of_range_returns_zero();
+    test_spr_default_draws_1x1_sprite_at_world_position();
+    test_spr_with_explicit_wh_draws_multi_block_sprite();
+    test_spr_skips_pixels_marked_transparent_by_palt();
+    test_mset_writes_base_region_cell();
+    test_mset_writes_shared_upper_region_cell();
+    test_mset_out_of_range_is_noop();
+    test_map_draws_cells_via_sprite_drawing_logic();
+    test_map_and_mset_round_trip_against_real_cart_data();
 
     printf("test_pico8_gfx: all tests passed\n");
     return 0;

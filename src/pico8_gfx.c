@@ -190,6 +190,84 @@ void pico8_fillp_reset(pico8_gfx_t *gfx) {
     pico8_fillp(gfx, 0);
 }
 
+unsigned char pico8_sget(const pico8_mem_t *mem, int x, int y) {
+    if (x < 0 || x >= PICO8_SPRITE_SHEET_WIDTH || y < 0 || y >= PICO8_SPRITE_SHEET_HEIGHT) {
+        return 0;
+    }
+    return pico8_peek(mem, PICO8_ADDR_SPRITE_SHEET + y * PICO8_SPRITE_SHEET_WIDTH + x);
+}
+
+/* Sprite index n's top-left pixel sits at sheet coordinate
+ * ((n % 16) * 8, (n / 16) * 8): the sheet is 128x128 pixels, laid out as
+ * 16x16 blocks of 8x8-pixel sprites (128/8 = 16 per row). w/h are in
+ * sprite-size (8px) multiples, so a wide/tall sprite just reads a larger
+ * contiguous pixel rectangle from the sheet, spilling into neighboring
+ * sprite slots exactly like real PICO-8's multi-cell sprites do. */
+void pico8_spr(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y, int w, int h) {
+    const int sprites_per_row = PICO8_SPRITE_SHEET_WIDTH / PICO8_SPRITE_SIZE;
+    int sheet_x = (n % sprites_per_row) * PICO8_SPRITE_SIZE;
+    int sheet_y = (n / sprites_per_row) * PICO8_SPRITE_SIZE;
+    int pixel_w = w * PICO8_SPRITE_SIZE;
+    int pixel_h = h * PICO8_SPRITE_SIZE;
+
+    for (int dy = 0; dy < pixel_h; dy++) {
+        for (int dx = 0; dx < pixel_w; dx++) {
+            unsigned char col = pico8_sget(mem, sheet_x + dx, sheet_y + dy);
+            if (pico8_gfx_is_transparent(gfx, col)) {
+                continue;
+            }
+            pico8_pset(gfx, mem, x + dx, y + dy, col);
+        }
+    }
+}
+
+void pico8_spr_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y) {
+    pico8_spr(gfx, mem, n, x, y, 1, 1);
+}
+
+/* Map cell addressing mirrors pico8_assets.c's map_cell_sink: cel rows
+ * 0-31 live in the base map region, rows 32-63 spill into the shared
+ * sprite-sheet/map region (pico8/map.json's cart data is 128x64 cells,
+ * larger than the base 128x32 map region). Kept in sync by hand rather
+ * than shared code, since pico8_assets.c's sink is private to its own
+ * flat-JSON-array loading loop. */
+#define PICO8_MAP_BASE_ROWS 32
+
+static int pico8_map_cell_addr(int x, int y) {
+    if (x < 0 || x >= PICO8_MAP_WIDTH || y < 0 || y >= PICO8_MAP_HEIGHT) {
+        return -1;
+    }
+    if (y < PICO8_MAP_BASE_ROWS) {
+        return PICO8_ADDR_MAP + y * PICO8_MAP_WIDTH + x;
+    }
+    return PICO8_ADDR_SPRITE_MAP_SHARED + (y - PICO8_MAP_BASE_ROWS) * PICO8_MAP_WIDTH + x;
+}
+
+void pico8_mset(pico8_mem_t *mem, int x, int y, int val) {
+    int addr = pico8_map_cell_addr(x, y);
+    if (addr < 0) {
+        return;
+    }
+    pico8_poke(mem, addr, (unsigned char)val);
+}
+
+static unsigned char pico8_map_cell_get(const pico8_mem_t *mem, int x, int y) {
+    int addr = pico8_map_cell_addr(x, y);
+    if (addr < 0) {
+        return 0;
+    }
+    return pico8_peek(mem, addr);
+}
+
+void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h) {
+    for (int r = 0; r < cel_h; r++) {
+        for (int c = 0; c < cel_w; c++) {
+            unsigned char sprite_n = pico8_map_cell_get(mem, cel_x + c, cel_y + r);
+            pico8_spr(gfx, mem, sprite_n, sx + c * PICO8_SPRITE_SIZE, sy + r * PICO8_SPRITE_SIZE, 1, 1);
+        }
+    }
+}
+
 void pico8_rectfill(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, int x2, int y2, int col) {
     int xmin = pico8_min(x1, x2);
     int xmax = pico8_max(x1, x2);
