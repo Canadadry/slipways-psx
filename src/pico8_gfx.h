@@ -57,4 +57,15 @@ void pico8_mset(pico8_mem_t *mem, int x, int y, int val);
 
 void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, int sx, int sy, int cel_w, int cel_h);
 
+/* Each glyph occupies a 3x5-pixel bitmap left-aligned in a 4-pixel-wide
+ * advance cell (column 3 and the 6th row are always blank, giving 1px of
+ * horizontal spacing and matching the "characters 4px apart" metric real
+ * PICO-8 uses); see pico8_gfx.c for the covered character set and the
+ * placeholder glyph drawn for anything outside it. */
+#define PICO8_FONT_GLYPH_WIDTH 3
+#define PICO8_FONT_GLYPH_HEIGHT 5
+#define PICO8_FONT_CELL_WIDTH 4
+
+void pico8_print(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *str, int x, int y, int col);
+
 #endif

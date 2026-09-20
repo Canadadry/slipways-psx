@@ -486,6 +486,153 @@ static void test_map_and_mset_round_trip_against_real_cart_data(void) {
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == expected);
 }
 
+static void test_print_draws_known_glyph_pixels(void) {
+    /* Spot-check the hand-authored 'a' glyph: a 3-wide x 5-tall bitmap
+     * (see PICO8_FONT_GLYPH_WIDTH/HEIGHT) left-aligned at (x,y), with
+     * column x+3 (the 4th column of the 4px advance cell) always blank. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_print(&gfx, &mem, "a", 10, 20, 7);
+
+    /* 'a' row-by-row (# = lit, . = blank): .#. / #.# / ### / #.# / #.# */
+    int expected[5][3] = {
+        {0, 1, 0},
+        {1, 0, 1},
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 0, 1},
+    };
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 3; col++) {
+            unsigned char pixel = pico8_peek(&mem, PICO8_ADDR_SCREEN + (20 + row) * PICO8_SCREEN_WIDTH + (10 + col));
+            assert(pixel == (expected[row][col] ? 7 : 0));
+        }
+        /* 4th column of the advance cell is always blank spacing. */
+        assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + (20 + row) * PICO8_SCREEN_WIDTH + 13) == 0);
+    }
+}
+
+static void test_print_advances_cursor_by_cell_width_between_chars(void) {
+    /* 'b' row-by-row: #.. / #.. / ##. / #.# / ##. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_print(&gfx, &mem, "ab", 0, 0, 6);
+
+    /* Second glyph ('b') starts 4px to the right of the first, at x=4. */
+    int expected_b[5][3] = {
+        {1, 0, 0},
+        {1, 0, 0},
+        {1, 1, 0},
+        {1, 0, 1},
+        {1, 1, 0},
+    };
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 3; col++) {
+            unsigned char pixel = pico8_peek(&mem, PICO8_ADDR_SCREEN + row * PICO8_SCREEN_WIDTH + (4 + col));
+            assert(pixel == (expected_b[row][col] ? 6 : 0));
+        }
+    }
+}
+
+static void test_print_unmapped_character_draws_placeholder_block(void) {
+    /* A character outside the documented covered set (see pico8_gfx.c)
+     * draws a solid 3x5 block rather than staying blank, so a missing
+     * mapping is visually obvious. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_print(&gfx, &mem, "@", 0, 0, 8);
+
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 3; col++) {
+            assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + row * PICO8_SCREEN_WIDTH + col) == 8);
+        }
+    }
+}
+
+static void test_print_space_is_blank(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_print(&gfx, &mem, " ", 0, 0, 5);
+
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 4; col++) {
+            assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + row * PICO8_SCREEN_WIDTH + col) == 0);
+        }
+    }
+}
+
+static void test_print_respects_camera_offset(void) {
+    /* Consistent with every other pico8_gfx primitive: print goes through
+     * pico8_pset, so a camera offset shifts world coordinates the same
+     * way it would for pset/line/etc. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+    pico8_camera(&gfx, 10, 20);
+
+    pico8_print(&gfx, &mem, "a", 10, 20, 7);
+
+    /* World (10,20) minus camera (10,20) lands at screen (0,0); the 'a'
+     * glyph's top-left pixel (row0,col1) should be lit there. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 1) == 7);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 0);
+}
+
+static void test_print_digit_and_punctuation_glyphs(void) {
+    /* Spot-check a digit and a punctuation glyph from the covered set
+     * documented in pico8_gfx.c (this cart's UI text uses digits for
+     * scores/years/percentages and ':' for labels like "population:"). */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_print(&gfx, &mem, "1:", 0, 0, 9);
+
+    /* '1' row-by-row: .#. / ##. / .#. / .#. / ### */
+    int expected_1[5][3] = {
+        {0, 1, 0},
+        {1, 1, 0},
+        {0, 1, 0},
+        {0, 1, 0},
+        {1, 1, 1},
+    };
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 3; col++) {
+            unsigned char pixel = pico8_peek(&mem, PICO8_ADDR_SCREEN + row * PICO8_SCREEN_WIDTH + col);
+            assert(pixel == (expected_1[row][col] ? 9 : 0));
+        }
+    }
+
+    /* ':' (second cell, starting at x=4) row-by-row: ... / .#. / ... / .#. / ... */
+    int expected_colon[5][3] = {
+        {0, 0, 0},
+        {0, 1, 0},
+        {0, 0, 0},
+        {0, 1, 0},
+        {0, 0, 0},
+    };
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 3; col++) {
+            unsigned char pixel = pico8_peek(&mem, PICO8_ADDR_SCREEN + row * PICO8_SCREEN_WIDTH + (4 + col));
+            assert(pixel == (expected_colon[row][col] ? 9 : 0));
+        }
+    }
+}
+
 int main(void) {
     test_cls_clears_whole_screen_to_zero();
     test_pset_plots_pixel_at_coordinate();
@@ -516,6 +663,12 @@ int main(void) {
     test_mset_out_of_range_is_noop();
     test_map_draws_cells_via_sprite_drawing_logic();
     test_map_and_mset_round_trip_against_real_cart_data();
+    test_print_draws_known_glyph_pixels();
+    test_print_advances_cursor_by_cell_width_between_chars();
+    test_print_unmapped_character_draws_placeholder_block();
+    test_print_space_is_blank();
+    test_print_respects_camera_offset();
+    test_print_digit_and_punctuation_glyphs();
 
     printf("test_pico8_gfx: all tests passed\n");
     return 0;

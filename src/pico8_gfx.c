@@ -268,6 +268,158 @@ void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, i
     }
 }
 
+/* Hand-authored bitmap font (see pico8_gfx.h for cell/glyph metrics).
+ * Each row is a 3-bit value, MSB = leftmost column of the glyph's 3x5
+ * bitmap (bit 2 = col 0, bit 1 = col 1, bit 0 = col 2).
+ *
+ * Real PICO-8's font bitmap isn't present anywhere in the extracted
+ * `pico8/` cart assets (it's part of the PICO-8 runtime, not the cart --
+ * see docs/prd/triage/phase1-etape1-pico8-interface-software-rendering.md's
+ * "Further Notes"), so this table is a minimal, hand-authored invention,
+ * not a reproduction of PICO-8's real glyphs -- legible enough to spot
+ * one character from another in a headless text dump, nothing more.
+ *
+ * Coverage: space, digits 0-9, lowercase a-z, and the punctuation
+ * ! $ % ' ( ) + , - . / : = ? -- derived by grepping pico8/lua.lua's
+ * string literals actually reachable from print()/io() call sites (see
+ * this chunk's implementation notes). Uppercase letters and any other
+ * punctuation are NOT covered (none of the scanned UI text needs them).
+ * Any uncovered character draws PICO8_FONT_ROWS_PLACEHOLDER, a solid 3x5
+ * block -- deliberately distinct from every covered glyph and from the
+ * blank space glyph, so a missing-character bug is visually obvious in a
+ * text dump rather than silently reading as whitespace.
+ *
+ * 'u' and 'v' intentionally share the same bitmap: at 3x5 there isn't
+ * room to distinguish them meaningfully, and this table doesn't need to
+ * be legible beyond "which of the covered characters is this". */
+static const unsigned char PICO8_FONT_ROWS_PLACEHOLDER[PICO8_FONT_GLYPH_HEIGHT] = {7, 7, 7, 7, 7};
+static const unsigned char PICO8_FONT_ROWS_SPACE[PICO8_FONT_GLYPH_HEIGHT] = {0, 0, 0, 0, 0};
+
+static const unsigned char PICO8_FONT_ROWS_0[PICO8_FONT_GLYPH_HEIGHT] = {7, 5, 5, 5, 7};
+static const unsigned char PICO8_FONT_ROWS_1[PICO8_FONT_GLYPH_HEIGHT] = {2, 6, 2, 2, 7};
+static const unsigned char PICO8_FONT_ROWS_2[PICO8_FONT_GLYPH_HEIGHT] = {7, 1, 7, 4, 7};
+static const unsigned char PICO8_FONT_ROWS_3[PICO8_FONT_GLYPH_HEIGHT] = {7, 1, 7, 1, 7};
+static const unsigned char PICO8_FONT_ROWS_4[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 7, 1, 1};
+static const unsigned char PICO8_FONT_ROWS_5[PICO8_FONT_GLYPH_HEIGHT] = {7, 4, 7, 1, 7};
+static const unsigned char PICO8_FONT_ROWS_6[PICO8_FONT_GLYPH_HEIGHT] = {7, 4, 7, 5, 7};
+static const unsigned char PICO8_FONT_ROWS_7[PICO8_FONT_GLYPH_HEIGHT] = {7, 1, 1, 1, 1};
+static const unsigned char PICO8_FONT_ROWS_8[PICO8_FONT_GLYPH_HEIGHT] = {7, 5, 7, 5, 7};
+static const unsigned char PICO8_FONT_ROWS_9[PICO8_FONT_GLYPH_HEIGHT] = {7, 5, 7, 1, 7};
+
+static const unsigned char PICO8_FONT_ROWS_A[PICO8_FONT_GLYPH_HEIGHT] = {2, 5, 7, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_B[PICO8_FONT_GLYPH_HEIGHT] = {4, 4, 6, 5, 6};
+static const unsigned char PICO8_FONT_ROWS_C[PICO8_FONT_GLYPH_HEIGHT] = {3, 4, 4, 4, 3};
+static const unsigned char PICO8_FONT_ROWS_D[PICO8_FONT_GLYPH_HEIGHT] = {1, 1, 3, 5, 3};
+static const unsigned char PICO8_FONT_ROWS_E[PICO8_FONT_GLYPH_HEIGHT] = {7, 4, 6, 4, 7};
+static const unsigned char PICO8_FONT_ROWS_F[PICO8_FONT_GLYPH_HEIGHT] = {7, 4, 6, 4, 4};
+static const unsigned char PICO8_FONT_ROWS_G[PICO8_FONT_GLYPH_HEIGHT] = {3, 4, 5, 5, 3};
+static const unsigned char PICO8_FONT_ROWS_H[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 7, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_I[PICO8_FONT_GLYPH_HEIGHT] = {7, 2, 2, 2, 7};
+static const unsigned char PICO8_FONT_ROWS_J[PICO8_FONT_GLYPH_HEIGHT] = {1, 1, 1, 5, 2};
+static const unsigned char PICO8_FONT_ROWS_K[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 6, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_L[PICO8_FONT_GLYPH_HEIGHT] = {4, 4, 4, 4, 7};
+static const unsigned char PICO8_FONT_ROWS_M[PICO8_FONT_GLYPH_HEIGHT] = {5, 7, 7, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_N[PICO8_FONT_GLYPH_HEIGHT] = {5, 6, 5, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_O[PICO8_FONT_GLYPH_HEIGHT] = {2, 5, 5, 5, 2};
+static const unsigned char PICO8_FONT_ROWS_P[PICO8_FONT_GLYPH_HEIGHT] = {6, 5, 6, 4, 4};
+static const unsigned char PICO8_FONT_ROWS_Q[PICO8_FONT_GLYPH_HEIGHT] = {2, 5, 5, 3, 1};
+static const unsigned char PICO8_FONT_ROWS_R[PICO8_FONT_GLYPH_HEIGHT] = {6, 5, 6, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_S[PICO8_FONT_GLYPH_HEIGHT] = {3, 4, 2, 1, 6};
+static const unsigned char PICO8_FONT_ROWS_T[PICO8_FONT_GLYPH_HEIGHT] = {7, 2, 2, 2, 2};
+static const unsigned char PICO8_FONT_ROWS_U[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 5, 5, 2};
+static const unsigned char PICO8_FONT_ROWS_W[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 5, 7, 5};
+static const unsigned char PICO8_FONT_ROWS_X[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 2, 5, 5};
+static const unsigned char PICO8_FONT_ROWS_Y[PICO8_FONT_GLYPH_HEIGHT] = {5, 5, 2, 2, 2};
+static const unsigned char PICO8_FONT_ROWS_Z[PICO8_FONT_GLYPH_HEIGHT] = {7, 1, 2, 4, 7};
+
+static const unsigned char PICO8_FONT_ROWS_BANG[PICO8_FONT_GLYPH_HEIGHT] = {2, 2, 2, 0, 2};
+static const unsigned char PICO8_FONT_ROWS_DOLLAR[PICO8_FONT_GLYPH_HEIGHT] = {2, 7, 2, 7, 2};
+static const unsigned char PICO8_FONT_ROWS_PERCENT[PICO8_FONT_GLYPH_HEIGHT] = {5, 1, 2, 4, 5};
+static const unsigned char PICO8_FONT_ROWS_APOSTROPHE[PICO8_FONT_GLYPH_HEIGHT] = {2, 2, 0, 0, 0};
+static const unsigned char PICO8_FONT_ROWS_LPAREN[PICO8_FONT_GLYPH_HEIGHT] = {1, 2, 2, 2, 1};
+static const unsigned char PICO8_FONT_ROWS_RPAREN[PICO8_FONT_GLYPH_HEIGHT] = {4, 2, 2, 2, 4};
+static const unsigned char PICO8_FONT_ROWS_PLUS[PICO8_FONT_GLYPH_HEIGHT] = {0, 2, 7, 2, 0};
+static const unsigned char PICO8_FONT_ROWS_COMMA[PICO8_FONT_GLYPH_HEIGHT] = {0, 0, 0, 2, 4};
+static const unsigned char PICO8_FONT_ROWS_MINUS[PICO8_FONT_GLYPH_HEIGHT] = {0, 0, 7, 0, 0};
+static const unsigned char PICO8_FONT_ROWS_PERIOD[PICO8_FONT_GLYPH_HEIGHT] = {0, 0, 0, 0, 2};
+static const unsigned char PICO8_FONT_ROWS_SLASH[PICO8_FONT_GLYPH_HEIGHT] = {1, 1, 2, 4, 4};
+static const unsigned char PICO8_FONT_ROWS_COLON[PICO8_FONT_GLYPH_HEIGHT] = {0, 2, 0, 2, 0};
+static const unsigned char PICO8_FONT_ROWS_EQUALS[PICO8_FONT_GLYPH_HEIGHT] = {0, 7, 0, 7, 0};
+static const unsigned char PICO8_FONT_ROWS_QUESTION[PICO8_FONT_GLYPH_HEIGHT] = {6, 1, 2, 0, 2};
+
+static const unsigned char *pico8_font_glyph_rows(char c) {
+    switch (c) {
+        case ' ': return PICO8_FONT_ROWS_SPACE;
+        case '0': return PICO8_FONT_ROWS_0;
+        case '1': return PICO8_FONT_ROWS_1;
+        case '2': return PICO8_FONT_ROWS_2;
+        case '3': return PICO8_FONT_ROWS_3;
+        case '4': return PICO8_FONT_ROWS_4;
+        case '5': return PICO8_FONT_ROWS_5;
+        case '6': return PICO8_FONT_ROWS_6;
+        case '7': return PICO8_FONT_ROWS_7;
+        case '8': return PICO8_FONT_ROWS_8;
+        case '9': return PICO8_FONT_ROWS_9;
+        case 'a': return PICO8_FONT_ROWS_A;
+        case 'b': return PICO8_FONT_ROWS_B;
+        case 'c': return PICO8_FONT_ROWS_C;
+        case 'd': return PICO8_FONT_ROWS_D;
+        case 'e': return PICO8_FONT_ROWS_E;
+        case 'f': return PICO8_FONT_ROWS_F;
+        case 'g': return PICO8_FONT_ROWS_G;
+        case 'h': return PICO8_FONT_ROWS_H;
+        case 'i': return PICO8_FONT_ROWS_I;
+        case 'j': return PICO8_FONT_ROWS_J;
+        case 'k': return PICO8_FONT_ROWS_K;
+        case 'l': return PICO8_FONT_ROWS_L;
+        case 'm': return PICO8_FONT_ROWS_M;
+        case 'n': return PICO8_FONT_ROWS_N;
+        case 'o': return PICO8_FONT_ROWS_O;
+        case 'p': return PICO8_FONT_ROWS_P;
+        case 'q': return PICO8_FONT_ROWS_Q;
+        case 'r': return PICO8_FONT_ROWS_R;
+        case 's': return PICO8_FONT_ROWS_S;
+        case 't': return PICO8_FONT_ROWS_T;
+        case 'u': return PICO8_FONT_ROWS_U;
+        case 'v': return PICO8_FONT_ROWS_U; /* deliberately shared, see comment above */
+        case 'w': return PICO8_FONT_ROWS_W;
+        case 'x': return PICO8_FONT_ROWS_X;
+        case 'y': return PICO8_FONT_ROWS_Y;
+        case 'z': return PICO8_FONT_ROWS_Z;
+        case '!': return PICO8_FONT_ROWS_BANG;
+        case '$': return PICO8_FONT_ROWS_DOLLAR;
+        case '%': return PICO8_FONT_ROWS_PERCENT;
+        case '\'': return PICO8_FONT_ROWS_APOSTROPHE;
+        case '(': return PICO8_FONT_ROWS_LPAREN;
+        case ')': return PICO8_FONT_ROWS_RPAREN;
+        case '+': return PICO8_FONT_ROWS_PLUS;
+        case ',': return PICO8_FONT_ROWS_COMMA;
+        case '-': return PICO8_FONT_ROWS_MINUS;
+        case '.': return PICO8_FONT_ROWS_PERIOD;
+        case '/': return PICO8_FONT_ROWS_SLASH;
+        case ':': return PICO8_FONT_ROWS_COLON;
+        case '=': return PICO8_FONT_ROWS_EQUALS;
+        case '?': return PICO8_FONT_ROWS_QUESTION;
+        default: return PICO8_FONT_ROWS_PLACEHOLDER;
+    }
+}
+
+void pico8_print(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *str, int x, int y, int col) {
+    int cx = x;
+    for (const char *p = str; *p != '\0'; p++) {
+        const unsigned char *rows = pico8_font_glyph_rows(*p);
+        for (int row = 0; row < PICO8_FONT_GLYPH_HEIGHT; row++) {
+            for (int gx = 0; gx < PICO8_FONT_GLYPH_WIDTH; gx++) {
+                int bit_index = PICO8_FONT_GLYPH_WIDTH - 1 - gx;
+                if ((rows[row] >> bit_index) & 1) {
+                    pico8_pset(gfx, mem, cx + gx, y + row, col);
+                }
+            }
+        }
+        cx += PICO8_FONT_CELL_WIDTH;
+    }
+}
+
 void pico8_rectfill(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, int x2, int y2, int col) {
     int xmin = pico8_min(x1, x2);
     int xmax = pico8_max(x1, x2);
