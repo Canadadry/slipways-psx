@@ -29,22 +29,31 @@ static pico8_vec_t pico8_qb_field_vec(const pico8_instance_t *inst, const char *
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-/* Bridges pico8_value_function_t's fixed (self,arg) shape to pico8_qb_ph's
- * own real signature; `arg` (dg()'s `qc.t`) unused, matching the real
- * Lua body's own arity. See pico8_scroll.h's own comment on pico8_qb_ph. */
-static pico8_value_t pico8_qb_ph_dispatch(void *self, pico8_value_t arg) {
-    (void)arg;
+/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape (Phase 3
+ * Chunk 5's own arity extension, pico8_value.h) to pico8_qb_ph's own real
+ * signature; dg()'s own per-tick dispatch (`qc[qc.me](qc,qc.t)`) always
+ * passes argc=1 with `qc.t` as arg0, unused here, matching the real Lua
+ * body's own arity. See pico8_scroll.h's own comment on pico8_qb_ph. */
+static pico8_value_t pico8_qb_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
     pico8_qb_ph(pico8_dispatch_input(), (pico8_instance_t *)self);
     return pico8_value_ref(NULL);
 }
 
-/* Bridges pico8_value_function_t's fixed (self,arg) shape to pico8_qb_md's
- * own real signature, resolving `fy or 1` here (arg not PICO8_VALUE_FIXED
- * -- the never-evidenced omitted-fy case -- defaults to 1, matching the
- * real Lua fallback exactly). See pico8_scroll.h's own comment on
- * pico8_qb_md for why this is also the "kj" dead-branch connection. */
-static pico8_value_t pico8_qb_md_dispatch(void *self, pico8_value_t arg) {
-    pico8_fixed_t fy = (arg.kind == PICO8_VALUE_FIXED) ? arg.as.fixed : pico8_fixed_from_int(1);
+/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape to
+ * pico8_qb_md's own real signature, resolving `fy or 1` here (arg0 not
+ * PICO8_VALUE_FIXED -- the never-evidenced omitted-fy case -- defaults to
+ * 1, matching the real Lua fallback exactly). This chunk's own real call
+ * site (dc()'s "kj" branch, `mo:md(ci[o])`, pico8_entity.c) always passes
+ * argc=1 with a genuine arg0, so `arg1` is unused. See pico8_scroll.h's
+ * own comment on pico8_qb_md for why this is also the "kj" dead-branch
+ * connection. */
+static pico8_value_t pico8_qb_md_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_fixed_t fy = (arg0.kind == PICO8_VALUE_FIXED) ? arg0.as.fixed : pico8_fixed_from_int(1);
+    (void)argc;
+    (void)arg1;
     pico8_qb_md(pico8_dispatch_gfx(), (pico8_instance_t *)self, fy);
     return pico8_value_ref(NULL);
 }

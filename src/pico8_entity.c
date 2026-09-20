@@ -29,19 +29,30 @@
  * plus every extra argument mv() itself received, and return the result;
  * otherwise just return `fn` as-is (which is Lua nil when `e` had no such
  * field at all). Every real mv()-equivalent dispatch call site inside
- * this chunk's own scope -- dc()'s `entity[nt](entity,entity.ra)` (line
- * 196, not literally spelled "mv(...)" but the exact same
+ * this chunk's (Chunk 10's) OWN scope -- dc()'s `entity[nt](entity,entity.ra)`
+ * (line 196, not literally spelled "mv(...)" but the exact same
  * "resolve-then-call-with-self-plus-one-arg" shape the PRD's own "dc/mv"
  * decision explicitly says to route through this same mechanism) and
  * `mo:md(ci[o])` (line 194) -- passes exactly ONE extra argument, never
- * more, never a variable count. (mv() is also called elsewhere in
- * pico8/lua.lua, e.g. lines 228/244/245/250, with 0-2 extra arguments --
- * but those call sites are real Phase 3 game code, entirely out of this
- * chunk's own dependency scope; nothing in Chunk 10's own work needs
- * them.) So this port's pico8_mv() takes exactly one extra argument
- * (`arg`, a plain pico8_value_t, not a variadic list), per this chunk's
- * own explicit instruction to build only what's actually called within
- * scope rather than a speculative generic variadic dispatcher. "Is a
+ * more, never a variable count, so Phase 2's own pico8_mv() took exactly
+ * one extra argument (`arg`, a plain pico8_value_t, not a variadic list),
+ * per Chunk 10's own explicit instruction to build only what was actually
+ * called within its own scope rather than a speculative generic variadic
+ * dispatcher.
+ *
+ * UPDATE, Phase 3 Chunk 5 (docs/prd/triage/phase3-etape1-function-by-
+ * function-c-port.md): mv() is also called elsewhere in pico8/lua.lua
+ * (lines 228, 244, 245, 250, 261, 277, 327, 419, 548, 589) with 0-2 extra
+ * arguments -- real Phase 3 game code, out of Chunk 10's own original
+ * scope, but squarely in Chunk 5's own scope (the `ui` class, the first
+ * real 0- and 2-argument mv() call site). Chunk 5 re-grepped every real
+ * `mv(` call site across the WHOLE cart and confirmed the maximum extra-
+ * argument count is 2, never 3+ -- see pico8_value.h's own comment on
+ * pico8_value_function_t for the full confirmation trail. pico8_mv() (and
+ * pico8_value_function_t) are therefore extended below to a small
+ * FIXED-size argument list (`argc` plus `arg0`/`arg1`), not a variadic
+ * one; this chunk's (Chunk 10's) own two call sites below keep working
+ * unchanged by passing argc=1 with `arg1` an unused filler. "Is a
  * function" is PICO8_VALUE_FUNCTION-kind (pico8_value.h) instead of Lua's
  * `type(fn)=="function"` check. `e and e[rm]` being nil when `e` is nil is
  * mirrored by treating a NULL `e` as "absent" up front, before even
@@ -447,10 +458,12 @@ void pico8_he(pico8_instance_t *e) {
     }
 }
 
-/* mv(e,rm,arg) (pico8/lua.lua:5-9) -- see this file's own top comment for
- * the full line-by-line trace and why this port takes exactly one extra
- * argument. */
-int pico8_mv(pico8_instance_t *e, const char *method_name, pico8_value_t arg, pico8_value_t *out_value) {
+/* mv(e,rm,...) (pico8/lua.lua:5-9) -- see this file's own top comment for
+ * the full line-by-line trace and Phase 3 Chunk 5's own arity-extension
+ * rationale (argc plus up to two extra pico8_value_t slots, per
+ * pico8_value.h's own comment on pico8_value_function_t). */
+int pico8_mv(pico8_instance_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
+             pico8_value_t *out_value) {
     pico8_value_t field_val;
 
     /* local fn=e and e[rm] -- e's own falsiness short-circuits before
@@ -464,7 +477,7 @@ int pico8_mv(pico8_instance_t *e, const char *method_name, pico8_value_t arg, pi
 
     /* if type(fn)=="function" then return fn(e,...) end; return fn */
     if (field_val.kind == PICO8_VALUE_FUNCTION) {
-        *out_value = field_val.as.function(e, arg);
+        *out_value = field_val.as.function(e, argc, arg0, arg1);
     } else {
         *out_value = field_val;
     }
@@ -511,7 +524,7 @@ void pico8_dc(const char *nt) {
             pico8_value_t ci_val;
             if (pico8_ob_table_get_index(g_ci, o, &ci_val)) {
                 pico8_value_t discard;
-                pico8_mv(g_mo, "md", ci_val, &discard);
+                pico8_mv(g_mo, "md", 1, ci_val, pico8_value_ref(NULL), &discard);
             }
         }
 
@@ -524,7 +537,7 @@ void pico8_dc(const char *nt) {
             if (!pico8_instance_get_field(qc, "ra", &ra_val)) {
                 ra_val = pico8_value_ref(NULL);
             }
-            pico8_mv(qc, nt, ra_val, &discard);
+            pico8_mv(qc, nt, 1, ra_val, pico8_value_ref(NULL), &discard);
         }
     }
 

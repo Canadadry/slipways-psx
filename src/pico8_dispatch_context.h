@@ -8,7 +8,8 @@
 /* Phase 3, Chunk 4 (docs/prd/triage/phase3-etape1-function-by-function-c-
  * port.md): a small, SHARED answer to a problem this phase's generic
  * dispatch mechanism (pico8_value_function_t, pico8_value.h -- the shape
- * `(void *self, pico8_value_t arg)`) has had since Chunk 2 first hit it
+ * `(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1)`, Phase
+ * 3 Chunk 5's own arity extension) has had since Chunk 2 first hit it
  * (pico8_pi.c's own private `g_pi_gfx`/`g_pi_mem` statics, set by bl()
  * right before each dispatch): a dispatched method has no parameter slot
  * for gfx/mem/input, yet several of THIS chunk's own real methods need one

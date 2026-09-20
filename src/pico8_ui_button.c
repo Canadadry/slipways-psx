@@ -71,53 +71,69 @@ static void pico8_js_pq_dispatch(pico8_instance_t *instance) {
     pico8_js_pq(instance);
 }
 
-/* Bridges pico8_value_function_t's fixed (self,arg) shape to pico8_js_ph's
- * own signature; `arg` (dg()'s `qc.t`) unused, matching the real Lua
- * body's own arity -- js:ph needs no external context either. */
-static pico8_value_t pico8_js_ph_dispatch(void *self, pico8_value_t arg) {
-    (void)arg;
+/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape (Phase 3
+ * Chunk 5's own arity extension, pico8_value.h) to pico8_js_ph's own
+ * signature; dg()'s own per-tick dispatch always passes argc=1 with
+ * `qc.t` as arg0, unused here, matching the real Lua body's own arity --
+ * js:ph needs no external context either. */
+static pico8_value_t pico8_js_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
     pico8_js_ph((pico8_instance_t *)self);
     return pico8_value_ref(NULL);
 }
 
 /* Bridges to pico8_js_ev's own signature; dc()'s own "ev" dispatch passes
- * `qc.ra` as `arg` (js:ev's real body never references it, so unused
- * here too), reading pico8_dispatch_context.h's shared gfx/mem for
+ * argc=1 with `qc.ra` as arg0 (js:ev's real body never references it, so
+ * unused here too), reading pico8_dispatch_context.h's shared gfx/mem for
  * jb:ol's own real drawing need. */
-static pico8_value_t pico8_js_ev_dispatch(void *self, pico8_value_t arg) {
-    (void)arg;
+static pico8_value_t pico8_js_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
     pico8_js_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_instance_t *)self);
     return pico8_value_ref(NULL);
 }
 
 /* Bridges to pico8_js_kj's own signature; dc()'s own "kj" dispatch passes
- * `qc.ra` as `arg` -- js:kj's real body DOES use it (`p`, its own drawing
- * position), unpacked here as a REF-to-vec exactly like every other
- * vector-carrying pico8_value_t in this port. */
-static pico8_value_t pico8_js_kj_dispatch(void *self, pico8_value_t arg) {
-    pico8_vec_t p = (arg.kind == PICO8_VALUE_REF && arg.as.ref != NULL) ? *(const pico8_vec_t *)arg.as.ref
-                                                                         : pico8_vec_v(pico8_fixed_from_int(0),
-                                                                                       pico8_fixed_from_int(0));
+ * argc=1 with `qc.ra` as arg0 -- js:kj's real body DOES use it (`p`, its
+ * own drawing position), unpacked here as a REF-to-vec exactly like every
+ * other vector-carrying pico8_value_t in this port; `arg1` is unused. */
+static pico8_value_t pico8_js_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_vec_t p = (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) ? *(const pico8_vec_t *)arg0.as.ref
+                                                                           : pico8_vec_v(pico8_fixed_from_int(0),
+                                                                                         pico8_fixed_from_int(0));
+    (void)argc;
+    (void)arg1;
     pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_instance_t *)self, p);
     return pico8_value_ref(NULL);
 }
 
-/* `js.hd=gk` -- see pico8_ui_button.h's own top comment for why this is a
- * KNOWINGLY INCOMPLETE adapter (passes the same single `arg` for both
- * pico8_gk's own `mp`/`rp` parameters, since pico8_value_function_t's
- * current shape has only one extra-argument slot) that Chunk 5's own
- * mv()/pico8_value_function_t arity extension must revisit once `ui:gw()`
- * (the real 2-argument `mv(e,"hd",self.qa,je.ra)` caller) is ported. */
-static pico8_value_t pico8_js_hd_dispatch(void *self, pico8_value_t arg) {
-    return pico8_gk((const pico8_instance_t *)self, arg, arg);
+/* `js.hd=gk` -- NOW CORRECT, per Phase 3 Chunk 5's own mv()/
+ * pico8_value_function_t arity extension (pico8_value.h): `ui:gw()`'s own
+ * real 2-argument call site (`mv(e,"hd",self.qa,je.ra)`, pico8_ui.c) now
+ * threads argc=2 with mp=arg0 (self.qa) and rp=arg1 (je.ra) distinctly --
+ * see pico8_ui_button.h's own top comment for the full history of why
+ * this adapter used to be knowingly incomplete (passing the same single
+ * `arg` for both). The argc<2 fallback below (reusing arg0 for rp too) is
+ * never evidenced by any real call site -- kept only as the same
+ * defensive, documented divergence this port uses everywhere a
+ * structurally-impossible-today case is reached. */
+static pico8_value_t pico8_js_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_value_t mp = arg0;
+    pico8_value_t rp = (argc >= 2) ? arg1 : arg0;
+    return pico8_gk((const pico8_instance_t *)self, mp, rp);
 }
 
 /* Bridges to pico8_js_ldown's own signature; `ui:jz(rm,...)`'s own
- * `mv(h,rm,...)` dispatch (Chunk 5) would pass `self.qa`/`je.ra` as extra
- * arguments here, but js:ldown's real body never references any --
- * unused, matching that arity exactly. */
-static pico8_value_t pico8_js_ldown_dispatch(void *self, pico8_value_t arg) {
-    (void)arg;
+ * `mv(h,rm,...)` dispatch (Chunk 5, pico8_ui.c) would pass `self.qa`/
+ * `je.ra` as arg0/arg1 here, but js:ldown's real body never references
+ * either -- unused, matching that arity exactly. */
+static pico8_value_t pico8_js_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
     return pico8_js_ldown((pico8_instance_t *)self);
 }
 
@@ -156,13 +172,21 @@ pico8_instance_t *pico8_js_new(const pico8_ob_table_t *overrides) {
 /* function js:pq()self.lq=lq(mv(self,"lq"))self.mb=self.lq.w+2
  * self.kq=qz(0,-1,self.mb,11)self.h_=self.h_ and lq(self.h_)self.jb=self.jb and jb(self.jb)end
  * -- see pico8_ui_button.h's own comment on this declaration for the full
- * trace. `mv(self,"lq",...)` is this port's own established zero-extra-
- * argument mv() convention (pico8_value_ref(NULL) standing in for "no
- * real Lua argument"), returning self's own raw "lq" override field
- * as-is (never a function at any real call site) for pico8_lq_new() to
- * consume as overrides. */
+ * trace. `mv(self,"lq")` is a real 0-extra-argument mv() call (Phase 3
+ * Chunk 5's own arity extension, pico8_value.h) -- passed as argc=0 here,
+ * returning self's own raw "lq" override field as-is (never a function at
+ * any real call site) for pico8_lq_new() to consume as overrides. */
 void pico8_js_pq(pico8_instance_t *self) {
-    pico8_value_t lq_overrides_val;
+    /* Latent bug found and fixed during Chunk 5's own integration testing
+     * (docs/prd/triage/phase3-etape1-function-by-function-c-port.md) --
+     * pre-existing since Chunk 4, not introduced by Chunk 5's arity
+     * extension: pico8_mv() leaves *out_value untouched when the field is
+     * absent (its own documented contract, pico8_entity.h), so a real
+     * `js(NULL)`/no "lq" override left this uninitialized before. Explicit
+     * pico8_value_ref(NULL) init matches this port's own established "no
+     * real Lua value here" convention and makes the fallback-to-NULL
+     * overrides path below well-defined. */
+    pico8_value_t lq_overrides_val = pico8_value_ref(NULL);
     const pico8_ob_table_t *lq_overrides;
     pico8_instance_t *new_lq;
     pico8_value_t w_val;
@@ -175,7 +199,7 @@ void pico8_js_pq(pico8_instance_t *self) {
         return;
     }
 
-    pico8_mv(self, "lq", pico8_value_ref(NULL), &lq_overrides_val);
+    pico8_mv(self, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_overrides_val);
     lq_overrides =
         (lq_overrides_val.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)lq_overrides_val.as.ref : NULL;
     new_lq = pico8_lq_new(lq_overrides);
@@ -326,15 +350,17 @@ pico8_value_t pico8_js_ldown(pico8_instance_t *self) {
     int has_my = pico8_ui_field_truthy(self, "my");
 
     pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
-    pico8_mv(self, "my", pico8_value_ref(NULL), &discard);
+    pico8_mv(self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &discard);
 
     return pico8_value_bool(1);
 }
 
-/* Bridges to pico8_fq_ldown's own signature; unused `arg`, same reasoning
- * as pico8_js_ldown_dispatch. */
-static pico8_value_t pico8_fq_ldown_dispatch(void *self, pico8_value_t arg) {
-    (void)arg;
+/* Bridges to pico8_fq_ldown's own signature; unused argc/arg0/arg1, same
+ * reasoning as pico8_js_ldown_dispatch. */
+static pico8_value_t pico8_fq_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
     return pico8_fq_ldown((pico8_instance_t *)self);
 }
 
@@ -376,7 +402,7 @@ pico8_value_t pico8_fq_ldown(pico8_instance_t *self) {
     if (self == NULL) {
         return pico8_value_bool(1);
     }
-    if (pico8_mv(self, "my", pico8_value_ref(NULL), &my_result)) {
+    if (pico8_mv(self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
         pico8_ob_table_set_name(self->fields, "p_", my_result);
     }
     return pico8_value_bool(1);

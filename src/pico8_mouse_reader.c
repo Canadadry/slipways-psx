@@ -20,12 +20,15 @@ static void pico8_nf_pq_dispatch(pico8_instance_t *instance) {
     pico8_nf_pq(pico8_dispatch_mem(), instance);
 }
 
-/* Bridges pico8_value_function_t's fixed (self,arg) shape to pico8_nf_ph's
- * own real signature -- `arg` (dg()'s own `qc.t`) is unused, matching the
- * real Lua body's own arity. See pico8_mouse_reader.h's own comment on
- * pico8_nf_ph. */
-static pico8_value_t pico8_nf_ph_dispatch(void *self, pico8_value_t arg) {
-    (void)arg;
+/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape (Phase 3
+ * Chunk 5's own arity extension, pico8_value.h) to pico8_nf_ph's own real
+ * signature -- dg()'s own per-tick dispatch always passes argc=1 with
+ * `qc.t` as arg0, unused here, matching the real Lua body's own arity.
+ * See pico8_mouse_reader.h's own comment on pico8_nf_ph. */
+static pico8_value_t pico8_nf_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
     pico8_nf_ph(pico8_dispatch_input(), (pico8_instance_t *)self);
     return pico8_value_ref(NULL);
 }

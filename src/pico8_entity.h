@@ -70,16 +70,21 @@ const pico8_list_t *pico8_cg(const char *tag);
 pico8_instance_t *pico8_lt(pico8_instance_t *e);
 void pico8_he(pico8_instance_t *e);
 
-/* mv(e,rm,arg) (pico8/lua.lua:5-9) -- see pico8_entity.c's own top
- * comment for why this port takes exactly one extra argument (`arg`)
- * rather than a variadic list. Returns 1 and writes *out_value when `e`
- * is non-NULL and has a field named `method_name` anywhere on its
- * class-chain fallback (pico8_instance_get_field) -- calling it with `e`
- * and `arg` first, if the field is PICO8_VALUE_FUNCTION-kind, and using
- * its result, or using the field's own value as-is otherwise. Returns 0
- * (absent, *out_value left untouched) if `e` is NULL or has no such field
- * at all. */
-int pico8_mv(pico8_instance_t *e, const char *method_name, pico8_value_t arg, pico8_value_t *out_value);
+/* mv(e,rm,...) (pico8/lua.lua:5-9) -- see pico8_entity.c's own top comment
+ * for the full trace, and pico8_value.h's own comment on
+ * pico8_value_function_t for Phase 3 Chunk 5's arity-extension rationale
+ * (0, 1, or 2 real extra arguments, confirmed against every real mv() call
+ * site in pico8/lua.lua). `argc` says how many of `arg0`/`arg1` are real;
+ * a caller passes pico8_value_ref(NULL) for any slot argc doesn't cover,
+ * matching this port's established "no real Lua argument" filler
+ * convention. Returns 1 and writes *out_value when `e` is non-NULL and has
+ * a field named `method_name` anywhere on its class-chain fallback
+ * (pico8_instance_get_field) -- calling it with `e`, `argc`, `arg0` and
+ * `arg1` if the field is PICO8_VALUE_FUNCTION-kind, and using its result,
+ * or using the field's own value as-is otherwise. Returns 0 (absent,
+ * *out_value left untouched) if `e` is NULL or has no such field at all. */
+int pico8_mv(pico8_instance_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
+             pico8_value_t *out_value);
 
 /* dc(nt) (pico8/lua.lua:184-195) -- see pico8_entity.c. */
 void pico8_dc(const char *nt);

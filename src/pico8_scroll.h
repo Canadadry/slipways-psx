@@ -116,7 +116,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_instance_t *self);
  * work end to end.
  *
  * Needs `gfx` (camera()); pico8_qb_md_dispatch is the adapter reading
- * pico8_dispatch_gfx() -- pico8_value_function_t's fixed (self,arg) shape
+ * pico8_dispatch_gfx() -- pico8_value_function_t's fixed (self,argc,arg0,arg1) shape
  * has no room for gfx itself, same problem (and same shared-context
  * solution, pico8_dispatch_context.h) as pico8_ui_button.h's own js:kj/
  * js:ev. A NULL `self` or `gfx` is a safe no-op. */

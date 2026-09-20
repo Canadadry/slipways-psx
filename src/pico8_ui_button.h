@@ -44,19 +44,20 @@
  * `hd` is one of bm's 5 dispatch names, so this makes every js instance
  * register into cv["hd"] (lt()'s own field-presence check, pico8_entity.c)
  * and reachable via `mv(e,"hd",self.qa,je.ra)` (`ui:gw()`, Chunk 5's own
- * real 2-argument mv() call site). pico8_gk's own real signature takes
- * TWO extra values (mp,rp); pico8_value_function_t's CURRENT shape (Chunk
- * 5 hasn't extended it yet) only carries one. pico8_js_hd_dispatch
- * (pico8_ui_button.c) is therefore a KNOWINGLY INCOMPLETE adapter: it
- * passes the SAME single `arg` for both mp and rp, which is only
- * correct when the real 2-argument call happens to pass the same vector
- * twice (never evidenced) -- flagged here explicitly as needing a real
- * fix once Chunk 5's mv()/pico8_value_function_t arity extension lands
- * and `ui:gw()` is ported, not silently left as if it were already
- * correct. Not exercised by anything in this chunk's own scope (no `ui`,
- * no smoke-test case dispatches through cv["hd"] this way) -- the same
- * "compiles, not yet exercised" forward-reference treatment as everywhere
- * else in this PRD.
+ * real 2-argument mv() call site, pico8_ui.c). pico8_gk's own real
+ * signature takes TWO extra values (mp,rp).
+ *
+ * UPDATE, Phase 3 Chunk 5 (docs/prd/triage/phase3-etape1-function-by-
+ * function-c-port.md): originally (Chunk 4), pico8_value_function_t's
+ * shape only carried one extra argument, so pico8_js_hd_dispatch
+ * (pico8_ui_button.c) was a KNOWINGLY INCOMPLETE adapter passing the SAME
+ * single `arg` for both mp and rp. Chunk 5 extends
+ * pico8_value_function_t/pico8_mv() to carry an argc plus two extra
+ * arguments (pico8_value.h) and ports `ui:gw()` -- pico8_js_hd_dispatch is
+ * updated in the SAME chunk to thread `self.qa` (arg0, mp) and `je.ra`
+ * (arg1, rp) through distinctly, per that real 2-argument call site. See
+ * pico8_ui_button.c's own comment on pico8_js_hd_dispatch for the fixed
+ * implementation.
  *
  * `js:pq/ph/ev/kj/ldown` are all real, dispatchable class fields too (not
  * just plain C functions): `kj`/`ev` are bm names (dc()'s own generic

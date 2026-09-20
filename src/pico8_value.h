@@ -49,13 +49,35 @@ typedef struct pico8_value pico8_value_t;
  * includes pico8_ob.h, which includes this file), so it must not depend
  * upward on pico8_instance_t's own definition -- pico8_entity.c casts
  * `self` back to pico8_instance_t* itself wherever it calls a method it
- * looked up. Every real mv()-equivalent dispatch call site in this
- * phase's own scope (dc()'s `entity[nt](entity,entity.ra)`, and
- * `mo:md(ci[o])`) passes exactly one extra argument, so a method takes
- * exactly one (not a variadic list) -- see pico8_entity.c's own top
- * comment on mv() for the confirmation trail across every real call site
- * in pico8/lua.lua. */
-typedef pico8_value_t (*pico8_value_function_t)(void *self, pico8_value_t arg);
+ * looked up.
+ *
+ * Phase 3, Chunk 5 (docs/prd/triage/phase3-etape1-function-by-function-c-
+ * port.md) arity extension: originally (Phase 2) this took exactly one
+ * extra argument, evidenced only by Phase 2's own two call sites (dc()'s
+ * `entity[nt](entity,entity.ra)` and the placeholder `mo:md(ci[o])`).
+ * Re-grepping every real `mv(` call site across the WHOLE of
+ * pico8/lua.lua for this chunk (not just its own `ui` class) turns up
+ * exactly three arities, never more:
+ *   - 0 extra arguments: `mv(self,"lq")` (js:pq), `mv(self,"my")`
+ *     (js:ldown/fq:ldown), `mv(self,"lh")` (line 589, a later chunk).
+ *   - 1 extra argument: `mv(held,"ey",nw and nw.kv)` (ui:bh).
+ *   - 2 extra arguments: `mv(e,"hd",self.qa,je.ra)`,
+ *     `mv(held,"hq",self.qa,je.ra)` (both ui:bh/ui:gw), and
+ *     `mv(self.lq,"ol",p+v(0,7),0.5)` (a later chunk).
+ * `ui:jz(rm,...)`'s own vararg-forwarding `mv(h,rm,...)` never forwards
+ * more than 2 (its own two real call sites pass 1 and 2). No real call
+ * site anywhere in the cart ever needs 3+, so this is extended to a small
+ * FIXED-size argument list -- an argument count (0, 1, or 2) plus two
+ * named pico8_value_t slots -- not a general variadic mechanism. Phase
+ * 2's own two call sites keep working unchanged by passing argc=1, with
+ * `arg1` an unused filler (this port's established
+ * pico8_value_ref(NULL) convention for "no real Lua value here"). A
+ * dispatched function must check `argc` before trusting `arg0`/`arg1`:
+ * reading a slot argc says isn't real yields whatever filler value the
+ * caller happened to pass, never a distinguished "Lua nil". See
+ * pico8_entity.c's own top comment on mv() for the full confirmation
+ * trail. */
+typedef pico8_value_t (*pico8_value_function_t)(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 /* A value never owns the memory a PICO8_VALUE_STRING or PICO8_VALUE_REF
  * points to -- it's a plain tagged union of a scalar or a borrowed

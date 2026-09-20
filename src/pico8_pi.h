@@ -33,8 +33,10 @@
  * key/value container (checked first, per this phase's duplication-grep
  * policy): a pico8_ob_table_t's value slots are pico8_value_t, whose only
  * function-pointer member (PICO8_VALUE_FUNCTION's pico8_value_function_t,
- * `pico8_value_t(*)(void*,pico8_value_t)` -- Chunk 10's mv()/dc() shape)
- * is a genuinely different function-pointer type than
+ * `pico8_value_t(*)(void*,int,pico8_value_t,pico8_value_t)` -- Chunk 10's
+ * mv()/dc() shape, extended to this argc-plus-two-slots form by Phase 3
+ * Chunk 5, pico8_value.h) is a genuinely different function-pointer type
+ * than
  * pico8_ob_constructor_fn (`pico8_value_t(*)(pico8_value_t,pico8_value_t,
  * pico8_value_t,pico8_value_t,pico8_value_t)`) -- storing one as the other
  * would need an unsound function-pointer-to-object-pointer cast, not a

@@ -32,20 +32,32 @@ static pico8_value_t g_ev_b_last_arg;
 static char g_call_order[4];
 static int g_call_order_count = 0;
 
-static pico8_value_t fake_ev_a(void *self, pico8_value_t arg) {
+/* Phase 3, Chunk 5 (docs/prd/triage/phase3-etape1-function-by-function-c-
+ * port.md) extended pico8_value_function_t/pico8_mv() to carry an argc
+ * plus two extra pico8_value_t slots instead of exactly one -- see
+ * pico8_value.h's own comment on pico8_value_function_t. Every real
+ * dispatch call site this existing smoke test exercises (dc()'s own
+ * per-entity "ev" dispatch, and a direct pico8_mv() call) always passes
+ * argc=1, so these fakes assert that backward-compatible shape explicitly
+ * rather than silently ignoring argc. */
+static pico8_value_t fake_ev_a(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)arg1;
+    assert(argc == 1);
     g_ev_a_calls++;
     g_ev_a_last_self = self;
-    g_ev_a_last_arg = arg;
+    g_ev_a_last_arg = arg0;
     if (g_call_order_count < 4) {
         g_call_order[g_call_order_count++] = 'A';
     }
     return pico8_value_fixed(pico8_fixed_from_int(901));
 }
 
-static pico8_value_t fake_ev_b(void *self, pico8_value_t arg) {
+static pico8_value_t fake_ev_b(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)arg1;
+    assert(argc == 1);
     g_ev_b_calls++;
     g_ev_b_last_self = self;
-    g_ev_b_last_arg = arg;
+    g_ev_b_last_arg = arg0;
     if (g_call_order_count < 4) {
         g_call_order[g_call_order_count++] = 'B';
     }
@@ -214,7 +226,7 @@ static void test_entity_dispatch_smoke(void) {
     assert(g_call_order[0] == 'A');
     assert(g_call_order[1] == 'B');
 
-    assert(pico8_mv(entity_a, "ev", pico8_value_fixed(pico8_fixed_from_int(55)), &out));
+    assert(pico8_mv(entity_a, "ev", 1, pico8_value_fixed(pico8_fixed_from_int(55)), pico8_value_ref(NULL), &out));
     assert(g_ev_a_calls == 2);
     assert(g_ev_a_last_self == entity_a);
     assert(g_ev_a_last_arg.as.fixed == pico8_fixed_from_int(55));
@@ -222,7 +234,7 @@ static void test_entity_dispatch_smoke(void) {
 
     /* "ra" is a plain fixed field, not a function -- mv() must return it
      * as-is rather than trying to call it. */
-    assert(pico8_mv(entity_a, "ra", pico8_value_fixed(pico8_fixed_from_int(0)), &out));
+    assert(pico8_mv(entity_a, "ra", 1, pico8_value_fixed(pico8_fixed_from_int(0)), pico8_value_ref(NULL), &out));
     assert(out.kind == PICO8_VALUE_FIXED);
     assert(out.as.fixed == pico8_fixed_from_int(111));
 
@@ -355,10 +367,84 @@ static void test_real_ke_subclass_with_own_distinct_pq(void) {
     pico8_class_registry_clear();
 }
 
+/* Phase 3, Chunk 5's own targeted extension to this smoke test (per this
+ * PRD's own per-lot "entity/dispatch mechanism coverage" check, and its
+ * own explicit flag: "this chunk is explicitly the FIRST real 0- and
+ * 2-argument mv() call sites"). Neither prior test above ever calls
+ * pico8_mv()/dispatches through pico8_value_function_t with argc other
+ * than 1 -- this is the first structurally new exercise of the mechanism
+ * Chunk 5's own arity extension (pico8_value.h) makes possible: a real
+ * 2-argument dispatch (`ui:gw()`'s own `mv(e,"hd",self.qa,je.ra)` shape)
+ * with both arguments threaded through DISTINCTLY (not one duplicated
+ * into the other, not one silently dropped), and a real 0-argument
+ * dispatch (`js:pq()`'s own `mv(self,"lq")` shape). A small fake class
+ * (not `js`/`ui` themselves, to avoid growing this test binary's own
+ * Makefile dependency footprint for logic this chunk's own source/port
+ * comment comparison already verifies) stands in for both shapes. */
+static int g_hd_calls = 0;
+static void *g_hd_last_self = NULL;
+static int g_hd_last_argc = -1;
+static pico8_value_t g_hd_last_arg0;
+static pico8_value_t g_hd_last_arg1;
+
+static pico8_value_t fake_hd(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    g_hd_calls++;
+    g_hd_last_self = self;
+    g_hd_last_argc = argc;
+    g_hd_last_arg0 = arg0;
+    g_hd_last_arg1 = arg1;
+    return pico8_value_bool(1);
+}
+
+static void test_mv_two_and_zero_argument_dispatch(void) {
+    pico8_class_t *class_c;
+    pico8_ob_table_t *overrides_c;
+    pico8_instance_t *entity_c;
+    pico8_value_t out;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    g_hd_calls = 0;
+
+    class_c = pico8_class_declare(NULL, "");
+    overrides_c = pico8_ob_table_new();
+    pico8_ob_table_set_name(overrides_c, "hd", pico8_value_function(fake_hd));
+    entity_c = pico8_class_instantiate(class_c, overrides_c);
+
+    /* 2-argument call (ui:gw()'s own real shape): arg0 and arg1 must both
+     * reach the dispatched function DISTINCTLY -- not one duplicated into
+     * the other (the old, knowingly-incomplete js.hd=gk adapter's own
+     * bug before this chunk's fix) and not one dropped. */
+    assert(pico8_mv(entity_c, "hd", 2, pico8_value_fixed(pico8_fixed_from_int(10)),
+                     pico8_value_fixed(pico8_fixed_from_int(20)), &out));
+    assert(g_hd_calls == 1);
+    assert(g_hd_last_self == entity_c);
+    assert(g_hd_last_argc == 2);
+    assert(g_hd_last_arg0.kind == PICO8_VALUE_FIXED && g_hd_last_arg0.as.fixed == pico8_fixed_from_int(10));
+    assert(g_hd_last_arg1.kind == PICO8_VALUE_FIXED && g_hd_last_arg1.as.fixed == pico8_fixed_from_int(20));
+    assert(g_hd_last_arg0.as.fixed != g_hd_last_arg1.as.fixed);
+    assert(out.kind == PICO8_VALUE_BOOL && out.as.boolean == 1);
+
+    /* 0-argument call (js:pq()'s own `mv(self,"lq")` shape): argc==0 must
+     * reach the dispatched function too, not silently coerced to 1. */
+    g_hd_calls = 0;
+    g_hd_last_argc = -1;
+    assert(pico8_mv(entity_c, "hd", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(g_hd_calls == 1);
+    assert(g_hd_last_argc == 0);
+
+    pico8_instance_free(entity_c);
+    pico8_ob_table_free(overrides_c);
+    pico8_class_free(class_c);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
     test_real_ke_subclass_with_own_distinct_pq();
+    test_mv_two_and_zero_argument_dispatch();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;
