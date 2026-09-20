@@ -108,4 +108,38 @@ pico8_fixed_t pico8_fixed_shl(pico8_fixed_t x, int32_t n);
  * Source: PICO-8 Sqrt wiki, https://pico-8.fandom.com/wiki/Sqrt */
 pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x);
 
+/* rnd/sin/cos -- documented CONTRACT ONLY, bit-exact algorithm NOT
+ * reproduced. PICO-8 is closed-source; no authoritative source for the
+ * exact internal PRNG state-update formula or the exact sin/cos
+ * approximation was reachable from this sandbox (searched: the Lexaloffle
+ * forums, the PICO-8 wiki, and the official manual -- all document
+ * behavior/contract, none publish the internal algorithm). What follows
+ * satisfies the documented contract (range/domain, sign convention,
+ * documented zero/identity cases) with a placeholder deterministic PRNG
+ * and the host's standard trig functions -- it is NOT claimed to match
+ * real PICO-8 bit-for-bit, and docs/plan.md's "same seed -> same galaxy"
+ * fidelity goal does not hold for these three functions yet. This is a
+ * flagged open risk (see docs/plan.md's "Notes de portage"), to be
+ * revisited if a reliable PICO-8 reference (a legally-obtained binary to
+ * trace, or an independently-verified community reimplementation) ever
+ * becomes available.
+ * Source (contract only): PICO-8 manual, https://www.lexaloffle.com/pico8_manual.txt */
+
+/* rnd(x) returns a pseudo-random value in [0, x) for x > 0, and 0 for
+ * x == 0. Driven by a small internal linear-congruential generator seeded
+ * at a fixed default -- a placeholder, not PICO-8's real PRNG. */
+pico8_fixed_t pico8_fixed_rnd(pico8_fixed_t x);
+
+/* rnd() with no argument behaves as rnd(1). */
+pico8_fixed_t pico8_fixed_rnd_default(void);
+
+/* cos(x): x is in "turns" (0.0-1.0 maps to a full 0-2*pi rotation).
+ * Follows the standard mathematical convention (no sign inversion). */
+pico8_fixed_t pico8_fixed_cos(pico8_fixed_t x);
+
+/* sin(x): x is in "turns", same convention as cos above, but the result's
+ * sign is inverted relative to standard math, to account for PICO-8's
+ * y-axis increasing downward on screen. */
+pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x);
+
 #endif

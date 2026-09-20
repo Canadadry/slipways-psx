@@ -1,5 +1,7 @@
 #include "pico8_fixed.h"
 
+#include <math.h>
+
 /* 16.16 fixed-point: bits 31-16 two's-complement integer part, bits 15-0
  * fractional part in sixteenths of 65536.
  * Source: PICO-8 Math wiki, https://pico-8.fandom.com/wiki/Math */
@@ -186,4 +188,72 @@ pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x) {
     }
     uint64_t scaled = (uint64_t)(uint32_t)x << PICO8_FIXED_SHIFT;
     return (pico8_fixed_t)pico8_fixed_isqrt_u64(scaled);
+}
+
+/* rnd/sin/cos -- documented CONTRACT ONLY, bit-exact algorithm NOT
+ * reproduced. See the header's comment above these declarations for the
+ * full explanation of this gap; it is deliberately not repeated here in
+ * full to avoid drifting out of sync with two copies of the same caveat. */
+
+/* Placeholder PRNG: a small linear-congruential generator (Numerical
+ * Recipes' constants), seeded at a fixed default. This is NOT PICO-8's
+ * real internal PRNG -- just any reasonable, simple, deterministic
+ * generator satisfying rnd()'s documented range contract. */
+#define PICO8_RND_LCG_MULTIPLIER 1664525u
+#define PICO8_RND_LCG_INCREMENT 1013904223u
+#define PICO8_RND_DEFAULT_SEED 0x2545F491u
+
+static uint32_t pico8_rnd_state = PICO8_RND_DEFAULT_SEED;
+
+static uint32_t pico8_rnd_next_u32(void) {
+    pico8_rnd_state = pico8_rnd_state * PICO8_RND_LCG_MULTIPLIER + PICO8_RND_LCG_INCREMENT;
+    return pico8_rnd_state;
+}
+
+/* rnd(x): 0 for x == 0 (documented special case); otherwise a value in
+ * [0, x) for x > 0 (the only case PICO-8's documented contract and this
+ * project's own call sites need). The generator's raw 32-bit output is
+ * treated as a fraction in [0, 1) (numerator / 2^32) and scaled by x's raw
+ * magnitude in a 64-bit intermediate, landing the result's raw fixed-point
+ * bits in [0, |x|) before restoring x's sign -- this sign handling
+ * generalizes to negative x but is not itself part of the documented
+ * contract this phase tests against. */
+pico8_fixed_t pico8_fixed_rnd(pico8_fixed_t x) {
+    if (x == 0) {
+        return 0;
+    }
+    uint32_t magnitude = (x < 0) ? (uint32_t)(-(int64_t)x) : (uint32_t)x;
+    uint32_t draw = pico8_rnd_next_u32();
+    uint64_t scaled = ((uint64_t)magnitude * (uint64_t)draw) >> 32;
+    pico8_fixed_t result = (pico8_fixed_t)(uint32_t)scaled;
+    return (x < 0) ? pico8_fixed_neg(result) : result;
+}
+
+pico8_fixed_t pico8_fixed_rnd_default(void) {
+    return pico8_fixed_rnd(pico8_fixed_from_int(1));
+}
+
+/* Two*pi, spelled out rather than relying on <math.h>'s M_PI: M_PI is a
+ * common extension, not standard C99, and is not defined by glibc's
+ * math.h under strict -std=c99 (confirmed while implementing this
+ * function -- without a GNU/POSIX feature-test macro, M_PI is simply
+ * absent, not merely a warning). */
+#define PICO8_TWO_PI 6.28318530717958647692528676655900576839433879875021
+
+/* cos(x): x in "turns" (0.0-1.0 == a full 0-2*pi rotation), standard
+ * mathematical convention -- computed via the host's own cos() over the
+ * turns-to-radians conversion. */
+pico8_fixed_t pico8_fixed_cos(pico8_fixed_t x) {
+    double turns = pico8_fixed_to_double(x);
+    double radians = turns * PICO8_TWO_PI;
+    return pico8_fixed_from_double(cos(radians));
+}
+
+/* sin(x): same turns convention as cos above, but the result's sign is
+ * inverted relative to standard math, per PICO-8's documented convention
+ * (screen y-axis increases downward). */
+pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x) {
+    double turns = pico8_fixed_to_double(x);
+    double radians = turns * PICO8_TWO_PI;
+    return pico8_fixed_from_double(-sin(radians));
 }

@@ -286,6 +286,87 @@ static void test_sqrt_negative_value_is_zero(void) {
     assert(pico8_fixed_sqrt(x) == pico8_fixed_from_int(0));
 }
 
+/* rnd/sin/cos -- tested against the documented CONTRACT ONLY (range,
+ * specific documented zero/identity cases, sign convention, periodicity).
+ * Deliberately NOT tested against any claimed bit-exact reference value:
+ * PICO-8's real internal PRNG algorithm and sin/cos approximation are not
+ * publicly documented anywhere reachable from this sandbox, so no specific
+ * numeric result (e.g. "rnd(10) == some value" or "sin(0.137) == some
+ * decimal") is a confirmed-correct reference to assert against. See
+ * pico8_fixed.h's comment above pico8_fixed_rnd/sin/cos and docs/plan.md's
+ * "Notes de portage" for the full explanation of this gap. */
+
+static void test_rnd_zero_is_zero(void) {
+    /* rnd(0) returns 0. */
+    assert(pico8_fixed_rnd(pico8_fixed_from_int(0)) == pico8_fixed_from_int(0));
+}
+
+static void test_rnd_result_in_documented_range(void) {
+    /* rnd(x) returns a value in [0, x). Sampled repeatedly (the generator
+     * is stateful) to exercise more than one draw, asserting only the
+     * documented range property, never a specific drawn value. */
+    pico8_fixed_t x = pico8_fixed_from_int(10);
+    for (int i = 0; i < 200; i++) {
+        pico8_fixed_t result = pico8_fixed_rnd(x);
+        assert(result >= pico8_fixed_from_int(0));
+        assert(result < x);
+    }
+}
+
+static void test_rnd_default_behaves_as_rnd_one(void) {
+    /* rnd() (no argument) behaves as rnd(1): its result is in the same
+     * documented range [0, 1) that rnd(1) itself is bound by. */
+    pico8_fixed_t one = pico8_fixed_from_int(1);
+    for (int i = 0; i < 200; i++) {
+        pico8_fixed_t result = pico8_fixed_rnd_default();
+        assert(result >= pico8_fixed_from_int(0));
+        assert(result < one);
+    }
+}
+
+static void test_sin_zero_is_zero(void) {
+    assert(pico8_fixed_sin(pico8_fixed_from_int(0)) == pico8_fixed_from_int(0));
+}
+
+static void test_cos_zero_is_one(void) {
+    assert(pico8_fixed_cos(pico8_fixed_from_int(0)) == pico8_fixed_from_int(1));
+}
+
+static void test_sin_quarter_turn_sign_is_inverted(void) {
+    /* A quarter turn is a documented identity: standard math has
+     * sin(pi/2) == 1, but PICO-8's sin() inverts the sign for
+     * screen-space y, so sin(0.25 turns) == -1 exactly -- this pins down
+     * the sign-inversion convention itself, not an arbitrary computed
+     * decimal. */
+    pico8_fixed_t quarter_turn = pico8_fixed_from_double(0.25);
+    assert(pico8_fixed_sin(quarter_turn) == pico8_fixed_from_int(-1));
+}
+
+static void test_cos_quarter_turn_is_zero(void) {
+    /* Another documented identity: cos(pi/2) == 0, unaffected by sin's
+     * sign inversion since cos follows the standard convention. */
+    pico8_fixed_t quarter_turn = pico8_fixed_from_double(0.25);
+    assert(pico8_fixed_cos(quarter_turn) == pico8_fixed_from_int(0));
+}
+
+static void test_cos_half_turn_is_negative_one(void) {
+    pico8_fixed_t half_turn = pico8_fixed_from_double(0.5);
+    assert(pico8_fixed_cos(half_turn) == pico8_fixed_from_int(-1));
+}
+
+static void test_sin_and_cos_periodic_at_whole_turn_boundary(void) {
+    /* A full turn (1.0) is the same rotation as no turn (0.0): sin/cos
+     * must agree at that whole-turn boundary. */
+    pico8_fixed_t zero_turns = pico8_fixed_from_int(0);
+    pico8_fixed_t one_turn = pico8_fixed_from_int(1);
+    pico8_fixed_t two_turns = pico8_fixed_from_int(2);
+
+    assert(pico8_fixed_sin(one_turn) == pico8_fixed_sin(zero_turns));
+    assert(pico8_fixed_cos(one_turn) == pico8_fixed_cos(zero_turns));
+    assert(pico8_fixed_sin(two_turns) == pico8_fixed_sin(zero_turns));
+    assert(pico8_fixed_cos(two_turns) == pico8_fixed_cos(zero_turns));
+}
+
 int main(void) {
     test_sqrt_perfect_square();
     test_sqrt_perfect_square_fractional();
@@ -331,6 +412,16 @@ int main(void) {
     test_div_zero_by_zero_saturates_positive();
     test_neg_representative_value();
     test_neg_most_negative_value_wraps_to_itself();
+
+    test_rnd_zero_is_zero();
+    test_rnd_result_in_documented_range();
+    test_rnd_default_behaves_as_rnd_one();
+    test_sin_zero_is_zero();
+    test_cos_zero_is_one();
+    test_sin_quarter_turn_sign_is_inverted();
+    test_cos_quarter_turn_is_zero();
+    test_cos_half_turn_is_negative_one();
+    test_sin_and_cos_periodic_at_whole_turn_boundary();
 
     printf("test_pico8_fixed: all tests passed\n");
     return 0;
