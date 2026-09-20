@@ -25,10 +25,14 @@ $(TMP_DIR)/test_asset_loading: tests/test_asset_loading.c src/pico8_assets.c src
 $(TMP_DIR)/test_pico8_gfx: tests/test_pico8_gfx.c src/pico8_gfx.c src/pico8_gfx.h src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_gfx.c src/pico8_gfx.c src/pico8_mem.c src/pico8_assets.c
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx
+$(TMP_DIR)/test_pico8_input: tests/test_pico8_input.c src/pico8_input.c src/pico8_input.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ tests/test_pico8_input.c src/pico8_input.c
+
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
+	./$(TMP_DIR)/test_pico8_input
 
 test: unit
 
