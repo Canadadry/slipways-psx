@@ -137,6 +137,173 @@ static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 5) == 3);
 }
 
+static void test_line_draws_diagonal_pixels(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_line(&gfx, &mem, 2, 2, 5, 5, 8);
+
+    for (int i = 2; i <= 5; i++) {
+        assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + i * PICO8_SCREEN_WIDTH + i) == 8);
+    }
+    /* Off the diagonal is untouched. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 2 * PICO8_SCREEN_WIDTH + 3) == 0);
+}
+
+static void test_line_zero_length_draws_single_pixel(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_line(&gfx, &mem, 7, 9, 7, 9, 11);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 9 * PICO8_SCREEN_WIDTH + 7) == 11);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 9 * PICO8_SCREEN_WIDTH + 8) == 0);
+}
+
+static void test_rect_draws_unfilled_outline(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_rect(&gfx, &mem, 2, 2, 5, 4, 8);
+
+    /* Corners and edges are drawn. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 2 * PICO8_SCREEN_WIDTH + 2) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 2 * PICO8_SCREEN_WIDTH + 5) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 2) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 5) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 2 * PICO8_SCREEN_WIDTH + 3) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 3 * PICO8_SCREEN_WIDTH + 2) == 8);
+    /* Interior is untouched (unfilled). */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 3 * PICO8_SCREEN_WIDTH + 3) == 0);
+}
+
+static void test_rect_single_pixel_draws_one_point(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_rect(&gfx, &mem, 6, 6, 6, 6, 12);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 6 * PICO8_SCREEN_WIDTH + 6) == 12);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 6 * PICO8_SCREEN_WIDTH + 7) == 0);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 7 * PICO8_SCREEN_WIDTH + 6) == 0);
+}
+
+static void test_rectfill_fills_every_pixel_in_bounds(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_rectfill(&gfx, &mem, 2, 2, 4, 3, 9);
+
+    for (int y = 2; y <= 3; y++) {
+        for (int x = 2; x <= 4; x++) {
+            assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x) == 9);
+        }
+    }
+    /* Just outside the rectangle is untouched. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 2) == 0);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 2 * PICO8_SCREEN_WIDTH + 5) == 0);
+}
+
+static void test_circ_draws_unfilled_outline(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_circ(&gfx, &mem, 10, 10, 3, 8);
+
+    /* Cardinal points of the outline. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 13) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 7) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 13 * PICO8_SCREEN_WIDTH + 10) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 7 * PICO8_SCREEN_WIDTH + 10) == 8);
+    /* Center is untouched (unfilled). */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 10) == 0);
+}
+
+static void test_circ_zero_radius_draws_single_pixel(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_circ(&gfx, &mem, 5, 5, 0, 6);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 5) == 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 6) == 0);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 5) == 0);
+}
+
+static void test_circfill_fills_the_disc(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_circfill(&gfx, &mem, 10, 10, 3, 8);
+
+    /* Center and outline are both filled. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 10) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 13) == 8);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 7) == 8);
+    /* Well outside the disc is untouched. */
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 10 * PICO8_SCREEN_WIDTH + 14) == 0);
+}
+
+static void test_circfill_zero_radius_draws_single_pixel(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    pico8_circfill(&gfx, &mem, 5, 5, 0, 6);
+
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 5) == 6);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 6) == 0);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 5) == 0);
+}
+
+static void test_fillp_pattern_alters_rectfill_output(void) {
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    /* Rows alternate solid/skip in groups of 4: row%4==0..2 draws (bits
+     * clear), row%4==3 skips (bits set) -- 0b0000000000001111 marks only
+     * the pattern's last row as "skip". */
+    pico8_fillp(&gfx, 0x000F);
+    pico8_rectfill(&gfx, &mem, 0, 0, 3, 3, 8);
+
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 4; x++) {
+            assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x) == 8);
+        }
+    }
+    for (int x = 0; x < 4; x++) {
+        assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 3 * PICO8_SCREEN_WIDTH + x) == 0);
+    }
+
+    /* fillp() with no pattern resets to solid (always draw). */
+    pico8_fillp_reset(&gfx);
+    pico8_rectfill(&gfx, &mem, 0, 0, 3, 3, 8);
+    for (int y = 0; y < 4; y++) {
+        for (int x = 0; x < 4; x++) {
+            assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x) == 8);
+        }
+    }
+}
+
 int main(void) {
     test_cls_clears_whole_screen_to_zero();
     test_pset_plots_pixel_at_coordinate();
@@ -147,6 +314,16 @@ int main(void) {
     test_palt_marks_color_transparent_and_opaque();
     test_palt_out_of_range_col_is_noop_and_queries_as_opaque();
     test_palt_affects_a_subsequent_transparent_color_draw();
+    test_line_draws_diagonal_pixels();
+    test_line_zero_length_draws_single_pixel();
+    test_rect_draws_unfilled_outline();
+    test_rect_single_pixel_draws_one_point();
+    test_rectfill_fills_every_pixel_in_bounds();
+    test_circ_draws_unfilled_outline();
+    test_circ_zero_radius_draws_single_pixel();
+    test_circfill_fills_the_disc();
+    test_circfill_zero_radius_draws_single_pixel();
+    test_fillp_pattern_alters_rectfill_output();
 
     printf("test_pico8_gfx: all tests passed\n");
     return 0;
