@@ -265,6 +265,57 @@ void pico8_class_registry_clear(void) {
     g_class_registry_capacity = 0;
 }
 
+/* Phase 3, Chunk 7's own named-class forward-reference registry -- see
+ * pico8_class.h's own comment on pico8_class_register_named/
+ * pico8_class_lookup_named for the full trace of why this exists as a
+ * SEPARATE table from g_class_registry above. Fixed capacity, linear
+ * strcmp scan -- same shape as pico8_pi.c's own PICO8_PI_DISPATCH_CAPACITY
+ * table, not a third independently-reinvented doubling-capacity growable
+ * array. */
+typedef struct {
+    char name[8];
+    pico8_class_t *cls;
+} pico8_class_named_entry_t;
+
+static pico8_class_named_entry_t g_class_named_registry[PICO8_CLASS_NAMED_REGISTRY_CAPACITY];
+static int g_class_named_registry_count = 0;
+
+void pico8_class_register_named(const char *name, pico8_class_t *cls) {
+    int i;
+
+    for (i = 0; i < g_class_named_registry_count; i++) {
+        if (strcmp(g_class_named_registry[i].name, name) == 0) {
+            g_class_named_registry[i].cls = cls;
+            return;
+        }
+    }
+
+    if (g_class_named_registry_count >= PICO8_CLASS_NAMED_REGISTRY_CAPACITY) {
+        abort();
+    }
+    strncpy(g_class_named_registry[g_class_named_registry_count].name, name,
+            sizeof g_class_named_registry[g_class_named_registry_count].name - 1);
+    g_class_named_registry[g_class_named_registry_count]
+        .name[sizeof g_class_named_registry[g_class_named_registry_count].name - 1] = '\0';
+    g_class_named_registry[g_class_named_registry_count].cls = cls;
+    g_class_named_registry_count++;
+}
+
+pico8_class_t *pico8_class_lookup_named(const char *name) {
+    int i;
+
+    for (i = 0; i < g_class_named_registry_count; i++) {
+        if (strcmp(g_class_named_registry[i].name, name) == 0) {
+            return g_class_named_registry[i].cls;
+        }
+    }
+    return NULL;
+}
+
+void pico8_class_registry_named_clear(void) {
+    g_class_named_registry_count = 0;
+}
+
 /* `kv:jr` (pico8/lua.lua:86-97) -- see this file's own top comment for the
  * full line-by-line trace this function's body follows. */
 pico8_class_t *pico8_class_declare(pico8_class_t *parent, const char *spec) {

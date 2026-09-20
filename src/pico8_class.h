@@ -122,6 +122,48 @@ void pico8_class_set_pq(pico8_class_t *cls, pico8_class_pq_fn fn);
 pico8_class_t *pico8_class_lookup(const char *name);
 void pico8_class_registry_clear(void);
 
+/* Phase 3, Chunk 7 (docs/prd/triage/phase3-etape1-function-by-function-c-
+ * port.md): a SEPARATE small registry from kv[]/pico8_class_lookup above,
+ * added for `bg:ldown`'s forward reference to `mz`/`g_` (pico8/lua.lua:377's
+ * `(#(cg.g_ or {})>0 and mz or g_)()` -- calling one of two Lua GLOBAL CLASS
+ * VARIABLES by name, neither of which exists yet: `mz`/`g_` are Chunks
+ * 10/16, not yet ported). Unlike `jo:hu`'s `kv[hp.cw]` dynamic reclassing
+ * (Chunk 13, a genuinely different forward reference that the kv[]/
+ * pico8_class_lookup registry above already serves, since `hp.cw` names a
+ * class that DOES set a real `fz` field -- confirmed by reading pico8/
+ * lua.lua: only `pm`/`ga`, Chunk 15, ever do), `mz`/`g_` never set an `fz`
+ * field at all. Reusing kv[]'s shared "" registry slot here would silently
+ * collide with EVERY other unnamed class registered so far (`ke`, `lq`,
+ * `jb`, `trade`, `nf`, `js`, `fq`, `qb`, `ui`, `bg` itself) -- kv[""] holds
+ * whichever of those was declared last, not a reliable way to tell "mz"
+ * from "g_" apart. This registry is keyed instead by an explicit, THIS-
+ * PORT-CHOSEN lookup name (never a Lua source field, just a name Chunk 7
+ * and its forward-referenced classes agree on) -- one entry per forward-
+ * referenced Lua global class variable this port needs to compile a call
+ * to before that class exists. `pico8_bg_ldown` (pico8_bg.c) looks "mz"/
+ * "g_" up here today via pico8_class_lookup_named, getting NULL (a
+ * documented "not yet built" result -- the same "compiles, not yet
+ * exercised" treatment this whole PRD already gives every other forward
+ * reference, e.g. Phase 2's `mo:md()`/`"kj"` dead branch); whichever wave
+ * later builds mz/g_ (Chunks 10/16) calls pico8_class_register_named once,
+ * right alongside its own pico8_class_declare() call, using this exact
+ * same name -- see pico8_bg.h's own top comment for the full trace of the
+ * calling side. Fixed capacity (8 slots, linear strcmp scan), matching
+ * pico8_pi.c's own PICO8_PI_DISPATCH_CAPACITY precedent, deliberately NOT a
+ * third independently-reinvented doubling-capacity growable array (the
+ * pattern already flagged across pico8_value.c/pico8_ob.c/pico8_class.c/
+ * pico8_entity.c) -- the real evidenced need is exactly 2 names ("mz",
+ * "g_"), so 8 leaves comfortable headroom without inventing a growth story
+ * nothing in this port's scope needs.
+ * pico8_class_registry_named_clear() is test-support only (mirrors
+ * pico8_class_registry_clear()'s own test-isolation convention), never part
+ * of the Lua original. */
+#define PICO8_CLASS_NAMED_REGISTRY_CAPACITY 8
+
+void pico8_class_register_named(const char *name, pico8_class_t *cls);
+pico8_class_t *pico8_class_lookup_named(const char *name);
+void pico8_class_registry_named_clear(void);
+
 /* "Instantiating a class" (`ke()`/`ke(overrides)`, the `__call` closure at
  * pico8/lua.lua:88-96): shallow-copies `overrides` (NULL treated as no
  * overrides, mirroring `ke()`'s own `ob=nil` case flowing through
