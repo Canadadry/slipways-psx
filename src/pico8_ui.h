@@ -140,8 +140,44 @@ pico8_instance_t *pico8_ui_new(const pico8_ob_table_t *overrides);
 
 /* je -- see this file's own top comment for the full rationale. Built/
  * freed by pico8_ui_init()/pico8_ui_shutdown(), like pico8_mo() is by
- * pico8_entity_init()/_shutdown(). */
+ * pico8_entity_init()/_shutdown(), until Phase 3 Chunk 6 (docs/prd/
+ * triage/phase3-etape1-function-by-function-c-port.md) replaces the
+ * placeholder with a real `nf` instance via pico8_ui_set_je() below --
+ * that chunk's own resolution of this file's own "must either replace the
+ * global of this accessor... or explicitly redirect the declaration"
+ * note above: the global is replaced, the declaration stays exactly
+ * here. */
 pico8_instance_t *pico8_je(void);
+
+/* Chunk 6 (jl() completion): reconciles pico8_je()'s own placeholder --
+ * see pico8_entity_set_mo() (pico8_entity.h) for the identical pattern
+ * applied to `mo`. Frees whatever pico8_je() previously returned (the
+ * classless placeholder pico8_ui_init() builds above, or an earlier real
+ * instance) and makes `instance` the new one. The real `je=nf()`
+ * construction itself happens in pico8_bootstrap.c (this module
+ * deliberately never includes pico8_mouse_reader.h itself). A NULL
+ * `instance` goes back to "no je"; passing back the current pico8_je()
+ * value is a safe no-op. */
+void pico8_ui_set_je(pico8_instance_t *instance);
+
+/* ok -- Chunk 6's own real `ok=ui()` singleton (the click/panel
+ * dispatcher itself, a `ui` instance): a NEW accessor -- Chunk 5 (this
+ * module) built the `ui` class but no singleton of it. Mirrors
+ * pico8_mo()'s/pico8_je()'s own accessor convention: returns NULL before
+ * pico8_ui_set_ok() below is first called (or after pico8_ui_shutdown()).
+ * Built by pico8_bootstrap.c's pico8_jl() (`pico8_ui_new(NULL)`, matching
+ * `ui()`'s own no-argument real call shape), which then hands the result
+ * to pico8_ui_set_ok() -- kept here, not in pico8_bootstrap.c itself, so
+ * `ok`'s storage lives alongside the `ui` class it's an instance of, the
+ * same module every OTHER `ui`-related accessor (pico8_ui_class(),
+ * pico8_ui_new()) already lives in. */
+pico8_instance_t *pico8_ok(void);
+
+/* Sets/replaces the real `ok` instance -- see pico8_ok()'s own comment.
+ * Frees whatever pico8_ok() previously returned and takes ownership of
+ * `instance`. A NULL `instance` goes back to "no ok"; passing back the
+ * current pico8_ok() value is a safe no-op. */
+void pico8_ui_set_ok(pico8_instance_t *instance);
 
 /* function ui:lj()local le=self.le
  * self.qa=je.ra+mo.ra

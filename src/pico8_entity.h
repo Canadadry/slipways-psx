@@ -32,7 +32,11 @@
  * test case for isolation, mirroring pico8_class_registry_clear()'s and
  * pico8_ob_clear_constructors()'s own established test-isolation
  * convention. Must be called before any of hv/cv/cg/lt/he/dc/mv/ci/mo
- * below are used. */
+ * below are used. Phase 3 Chunk 6 (docs/prd/triage/phase3-etape1-function-
+ * by-function-c-port.md) completes the rest of jl() -- the real `mo=qb()/
+ * je=nf()/ok=ui()` construction -- in the new pico8_bootstrap.c/pico8_jl(),
+ * which calls this function first, then pico8_entity_set_mo() below to
+ * replace the classless placeholder mo built here with a real instance. */
 void pico8_entity_init(void);
 
 /* Releases this module's own bookkeeping storage (hv/cv/cg's list
@@ -99,13 +103,32 @@ const pico8_ob_table_t *pico8_ci(void);
 
 /* mo -- Phase 2's OWN placeholder for the real camera/palette singleton
  * (NOT a port of any real Lua source -- see pico8_entity.c's own comment
- * on this global). A single global instance with no fields set, existing
- * solely so dc()'s literal `mo:md(ci[o])` line has a real object to
- * dispatch through and compiles/links; never dereferenced by anything
- * except that same never-exercised "kj" branch (Chunk 11's smoke test
- * deliberately never calls dc("kj"), per the PRD's Testing Decisions).
- * Owned by this module (built/freed by pico8_entity_init()/_shutdown());
+ * on this global), until Phase 3 Chunk 6 (see pico8_entity_set_mo() below)
+ * replaces it with a real `qb` instance. Before Chunk 6 runs, this is a
+ * single classless instance with no fields set, existing solely so dc()'s
+ * literal `mo:md(ci[o])` line has a real object to dispatch through and
+ * compiles/links (also read defensively by pico8_entity_geom.c's gd() and
+ * pico8_ui.c's ui:lj(), both of which already tolerate an absent/zero
+ * `.ra` field the same way). Owned by this module (built/freed by
+ * pico8_entity_init()/_shutdown(), or replaced by pico8_entity_set_mo());
  * callers must not free it. */
 pico8_instance_t *pico8_mo(void);
+
+/* Chunk 6 (jl() completion, docs/prd/triage/phase3-etape1-function-by-
+ * function-c-port.md): reconciles pico8_mo()'s own placeholder. Frees
+ * whatever pico8_mo() previously returned (the classless placeholder
+ * pico8_entity_init() builds above, or an earlier real instance from a
+ * prior call) and makes `instance` the new one -- pico8_mo()'s own
+ * signature/declaration are unchanged, so every existing real caller
+ * (pico8_entity_geom.c's gd(), pico8_ui.c's ui:lj()) keeps working
+ * unmodified. The real `mo=qb()` construction itself happens in the new
+ * jl()-completion module (pico8_bootstrap.c), which calls this setter
+ * right after building the real instance -- this module deliberately
+ * never includes pico8_scroll.h (the qb class) itself, keeping this
+ * already-oversized module from growing further. A NULL `instance` is a
+ * valid way to go back to "no mo" (pico8_instance_free's own NULL-is-a-
+ * no-op convention); passing back the current pico8_mo() value is a safe
+ * no-op, not a use-after-free. */
+void pico8_entity_set_mo(pico8_instance_t *instance);
 
 #endif

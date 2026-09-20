@@ -553,3 +553,12 @@ const pico8_ob_table_t *pico8_ci(void) {
 pico8_instance_t *pico8_mo(void) {
     return g_mo;
 }
+
+/* See pico8_entity.h's own comment on this declaration. */
+void pico8_entity_set_mo(pico8_instance_t *instance) {
+    if (instance == g_mo) {
+        return;
+    }
+    pico8_instance_free(g_mo);
+    g_mo = instance;
+}

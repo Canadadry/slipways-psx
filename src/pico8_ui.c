@@ -17,6 +17,7 @@
 
 static pico8_class_t *g_ui_class = NULL;
 static pico8_instance_t *g_je = NULL;
+static pico8_instance_t *g_ok = NULL;
 
 /* Per-module defensive field readers, matching the same "read a field
  * expected to hold kind K, absent/wrong-kind/NULL-instance all read as a
@@ -147,6 +148,10 @@ void pico8_ui_shutdown(void) {
         pico8_instance_free(g_je);
         g_je = NULL;
     }
+    if (g_ok != NULL) {
+        pico8_instance_free(g_ok);
+        g_ok = NULL;
+    }
 }
 
 pico8_class_t *pico8_ui_class(void) {
@@ -159,6 +164,28 @@ pico8_instance_t *pico8_ui_new(const pico8_ob_table_t *overrides) {
 
 pico8_instance_t *pico8_je(void) {
     return g_je;
+}
+
+/* See pico8_ui.h's own comment on this declaration. */
+void pico8_ui_set_je(pico8_instance_t *instance) {
+    if (instance == g_je) {
+        return;
+    }
+    pico8_instance_free(g_je);
+    g_je = instance;
+}
+
+pico8_instance_t *pico8_ok(void) {
+    return g_ok;
+}
+
+/* See pico8_ui.h's own comment on this declaration. */
+void pico8_ui_set_ok(pico8_instance_t *instance) {
+    if (instance == g_ok) {
+        return;
+    }
+    pico8_instance_free(g_ok);
+    g_ok = instance;
 }
 
 /* function ui:lj()local le=self.le
