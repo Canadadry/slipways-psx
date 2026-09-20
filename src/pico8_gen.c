@@ -153,6 +153,9 @@ pico8_value_t pico8_gn_next(pico8_gn_state_t *state) {
 }
 
 void pico8_gn_free(pico8_gn_state_t *state) {
+    if (state == NULL) {
+        return;
+    }
     pico8_list_free(&state->oc);
     free(state);
 }

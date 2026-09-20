@@ -233,7 +233,27 @@ int pico8_hy_lu(pico8_instance_t *self, pico8_fixed_t jt) {
         pico8_ob_table_set_index(overrides, 2, pico8_value_fixed(pico8_fixed_from_int(color)));
         pico8_iv_new(overrides);
         pico8_ob_table_free(overrides);
-        free(text);
+        /* `text` intentionally NOT freed here: pico8_iv_new's own shallow
+         * copy (pico8_class_instantiate copying `overrides` entries by
+         * plain pico8_value_t assignment) stores this SAME pointer
+         * (pico8_value_string never duplicates -- see pico8_value.h's own
+         * "a value never owns the memory a STRING/REF points to" comment)
+         * into the new `iv` instance's own fields, read back every frame
+         * it stays on screen (pico8_iv_kj). Freeing it here was a real,
+         * ASan-confirmed heap-use-after-free -- fixed by matching
+         * pico8_jo_hk's own already-correct identical pattern
+         * (src/pico8_planet.c), the ONLY other real call site in this
+         * codebase that keeps a pico8_ne()-produced buffer alive inside a
+         * long-lived `iv` instance this same way. pico8_ne's own contract
+         * ("caller owns and must free()", pico8_collect.h) still holds in
+         * general -- it just means ownership of THIS buffer passes to the
+         * `iv` instance from this point on -- the same "heap string handed
+         * to pico8_value_string() then left unfreed because a longer-lived
+         * container now owns it" pattern already used elsewhere in this
+         * codebase for other allocators (e.g. pico8_hp_jb_join's `it`,
+         * pico8_research_display.c; pico8_economy_score.c's
+         * `concat_percent` result), just not, until this fix, for a
+         * pico8_ne()-produced buffer at this particular call site. */
     }
 
     return 1;
