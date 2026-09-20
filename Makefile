@@ -1,19 +1,8 @@
-LOVE = /Applications/love.app/Contents/MacOS/love
-LOVE_FILE = slipways.love
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean
 
-.PHONY: build run test font psn00bsdk-toolchain-setup psx-hello psx-hello-clean
-
-
-build:
-	cd game && zip -r ../$(LOVE_FILE) .
-
-run:
-	$(LOVE) game
-test:
-	cd game && lua ../tests/test_all.lua
-
-font:
-	python3 tools/ttf_to_pixelfont.py "game/assets/kenney_kenney-fonts/Fonts/Kenney Mini.ttf" 8 " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" -o game/assets/font.png
+# No `build`/`run`/`test` targets yet: the Love2D prototype (`game/`) was
+# removed in favor of the PC/raylib literal port described in docs/plan.md.
+# Phase 1 of that plan adds a C build + test setup here.
 
 psn00bsdk-toolchain-setup:
 	sh tools/install_psn00bsdk_toolchain.sh

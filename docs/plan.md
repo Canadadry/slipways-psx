@@ -1,102 +1,97 @@
-# Plan de développement — Slipways sur manette (PSX)
+# Plan de développement — Slipways sur PC (raylib, portage littéral)
 
-Objectif final : reproduire *Slipways* (édition PICO-8) intégralement jouable à la manette (manette PS1 standard : D-pad, ✕/○/□/△, L1/L2/R1/R2, Start/Select — pas de stick analogique utilisé, aucune souris). Cible : portage natif en C sur PlayStation 1 (`PSn00bSDK`), scope intégral.
+Objectif : reproduire *Slipways* (édition PICO-8) en C, jouable sur PC via [raylib](https://www.raylib.com/) en rendu logiciel (raylib sert uniquement de couche fenêtrage/présentation/entrée, aucune primitive raylib n'est utilisée pour dessiner).
 
-Référence de gameplay : [`docs/design/slipways-mechanics.md`](design/slipways-mechanics.md) (règles extraites du code source PICO-8, `pico8/lua.lua`).
+Référence de gameplay : [`docs/design/slipways-mechanics.md`](design/slipways-mechanics.md). Idées d'amélioration hors scope : [`docs/after-v1.md`](after-v1.md) (écrit pour l'ancien plan manette PSX — à relire avec un œil critique, certaines idées n'ont plus de sens une fois qu'on porte `btn()`/la souris PICO-8 tels quels).
 
-Idées d'amélioration hors scope v1 : [`docs/after-v1.md`](after-v1.md).
+## Contexte et changement de cap
 
-## Rendu des slipways sur PSX
+Le plan précédent (portage direct PSX, réécriture en C à partir de la doc de design, conservé dans l'historique git) s'est heurté à un problème méthodologique de fond : une réécriture complète est très coûteuse à prouver correcte, faute d'oracle de référence pendant tout le développement.
 
-Le GPU de la PSX dessine nativement des primitives ligne (monochrome et gouraud-shaded) et polygone via des commandes GP0 dédiées, avec un GTE matériel pour les transformations — de l'ordre de 360 000 polygones flat-shaded/s en régime nominal, très au-delà du besoin d'un réseau de quelques dizaines de segments. Le rendu du réseau de slipways se fait directement avec les primitives GPU natives (`LINE_F2`/`LINE_G2`/polylignes via PSn00bSDK).
+Nouvelle stratégie : **porter `pico8/lua.lua` (le code source réel de la cartouche, pas juste une référence de lecture) fonction par fonction vers le C, en copiant la logique plutôt qu'en réécrivant depuis la doc de design.** Cible : PC, via raylib en rendu logiciel — un environnement de développement et de test immédiat, sans toolchain croisée ni émulateur.
 
-Point qui reste à vérifier empiriquement avant de considérer le rendu acquis : le budget CPU du calcul (pas du dessin) — génération procédurale, recalcul de validité de liaison en direct, trigonométrie. Le R3000A de la PSX n'a pas de FPU matérielle (le GTE accélère les transformations matricielles mais pas la trigonométrie générale) : la trigo en virgule fixe reste nécessaire et se valide en Phase 1.
+**PSX est mis en pause, pas abandonné** : il ne sera repris qu'une fois obtenue une version PC pleinement jouable en C. Le C porté sur PC devient alors la base du portage PSX (au lieu de repartir d'une réécriture depuis la doc de design). Aucun travail PSX n'est engagé avant ce jalon.
 
-**Critère de faisabilité** (hypothèse documentée faute de donnée source sur ce qu'est une "partie moyenne") : 30 fps face à ~30 planètes colonisées / 40-60 slipways simultanées.
+`game/` (prototype Love2D from-scratch : `Spot`/`Camera`/`Panel`/`Probe`) a été supprimé : il incarnait l'ancienne approche « réécriture depuis la doc de design », explicitement abandonnée au profit du portage littéral décrit ici.
 
-**Toolchain : PSn00bSDK** — SDK PS1 open source (GCC MIPS, libs GPU/GTE/pad/DMA, outils de build). Alternative écartée : SDK officiel Sony, non redistribuable librement.
+## Stratégie de portage : copie fonction par fonction, pas de réécriture
 
-## Prérequis méthodologique — la boucle de test headless n'existe pas encore
+- `pico8/lua.lua` est minifié (noms de fonctions/variables réduits à 1-2 lettres). Chaque fonction portée en C **garde son nom minifié d'origine** (`ft()`, `->ra`, `->qe`, etc.) et est précédée en commentaire du **code Lua source exact** de cette fonction. La comparaison ligne à ligne entre le commentaire et le C juste en dessous est le principal moyen de vérifier la fidélité du portage (cf. Stratégie de test).
+- Le mécanisme d'entités/dispatch que `lua.lua` se construit lui-même (`kv:jr` — système de classes par chaîne de prototypes, `hv`/`cv`/`cg` — collections d'entités indexées par tag, `dc()`/`mv()`/`lt()`/`he()` — dispatch par nom de méthode) est **porté littéralement**, pas réécrit en C idiomatique (pas de struct-par-type-d'entité + enum + switch). Les entités C portent un sac de champs optionnels (union/petite table clé-valeur) qui reproduit la forme dynamique des tables Lua ; `dc()`, `mv()`, `lt()`, `he()` sont portées quasi verbatim par-dessus cette structure.
+- Renommer en clair est explicitement écarté (perdrait la traçabilité de diff contre la source) — les seuls ajouts sont des commentaires ponctuels quand une signification a été confirmée via `slipways-mechanics.md`.
 
-Aucun pont MCP prêt à l'emploi vers un émulateur headless n'existe pour PS1 aujourd'hui : il faudra l'écrire nous-mêmes. L'option la plus sérieuse est [PCSX-Redux](https://pcsx-redux.consoledev.net/Lua/introduction/), qui fournit déjà une bonne partie des briques bas niveau en CLI pur (pas besoin de GUI ni de bridge pour ça) :
+## Fidélité numérique
 
-- `--no-ui`/`--cli` : lance en mode TUI sans interface graphique.
-- `--iso`/`--loadiso`/`--exe`/`--loadexe` + `--run` : charge une ROM/exécutable de test et démarre direct.
-- `--test-mode` : fait que l'appel interne `pcsx_exit()` (déclenché depuis le code de la ROM) ferme réellement l'émulateur au lieu de le mettre en pause — le primitif "la ROM de test signale qu'elle a fini, le process se termine" nécessaire à une boucle build → boot → assertion automatisée sans watchdog externe.
-- `--dofile`/`--exec` : charge un script Lua au boot / exécute une commande Lua — pour la lecture mémoire, les savestates et l'injection d'input (API Lua/LuaJIT, accès mémoire direct par FFI).
-- `--gdb`/`--gdb-port` : serveur GDB complet (breakpoints, registres, mémoire) en alternative ou complément au bridge Lua pour lire l'état depuis l'agent.
+Les nombres PICO-8 sont en virgule fixe 16.16, pas en flottant. Le portage C **émule ce type exactement** (dépassement/troncature identiques) ainsi que les algorithmes PICO-8 de `rnd()`, `sin()`, `cos()` (convention « tours » 0-1, signe inversé pour `sin`). Objectif : une graine donnée doit produire exactement la même galaxie/le même déroulé que l'original — pas une approximation en `double`.
 
-Ce qui reste réellement à construire : le pont MCP par-dessus (exposer ces primitives côté agent), pas les primitives elles-mêmes. Attention documentée dans la littérature existante sur ce genre de pont Lua : l'automatisation programmatique (savestates, boucle d'itération fiable) y est rapportée comme peu fiable — à corroborer par notre propre usage avant d'en dépendre pour toute la boucle Phase 0-5.
+## Périmètre de l'API PICO-8 à mimer
 
-**Étape 0 du plan PSX, avant toute logique de jeu** : construire ce harnais minimal (boot d'une ROM de test, lecture mémoire, capture d'image ou de framebuffer, contrôle du input, sortie propre via `pcsx_exit()`/`--test-mode`) et valider qu'il est exploitable en boucle automatisée. Si PCSX-Redux s'avère trop instable pour ça, c'est un point dur à consigner (cf. Garde-fous) — pas une raison de revenir sur le choix de la PSX comme cible, qui reste justifié techniquement (GPU natif) indépendamment de l'outillage de test.
+Scanné directement dans `lua.lua` (pas deviné, pas construit par anticipation) :
+
+- **Dessin/entrée** : `cls`, `pset`, `spr`, `map`, `mset`, `sget`, `circ`, `circfill`, `rect`, `rectfill`, `line`, `print`, `camera`, `palt`, `fillp`, `btn` (D-pad — utilisé nativement par `qb:ph()` pour le déplacement caméra), `stat` (souris — `stat(32/33/34)`, plus quelques index annexes), `peek`, `poke`, `memcpy` (astuce de palette et décodage `unstash`).
+- **Maths/listes/chaînes** (socle de la Phase 2, arithmétique fixe + primitives dynamiques) : `sqrt`, `cos`, `sin`, `mid`, `flr`, `abs`, `rnd`, `sgn`, `band`, `bor`, `shl`, `add`, `del`, `all`, `foreach`, `sub`, `tostr`.
+- **Explicitement hors périmètre** : `sfx`, `music` (son abandonné entièrement pour ce portage — deviennent des no-op dans la couche de mimétisme) ; tout le reste de l'API PICO-8 non listé ci-dessus n'est tout simplement pas appelé par `lua.lua` (`sspr`, `fget`/`fset`, `mget`, `sset`, `pal`, `cursor`, `color`, `flip`, `btnp`, `peek2/4`, `poke2/4`, `cartdata`, `dget`/`dset`, coroutines, `atan2`…) et n'est donc pas construit.
+
+## Architecture : backend interchangeable sous une API fixe
+
+`main.c` et toutes les fonctions portées n'appellent **jamais** raylib directement — uniquement la couche de mimétisme PICO-8 ci-dessus. Deux implémentations de cette même API existent, choisies au lien/à la compilation, sans toucher au code de jeu :
+
+1. **Backend rendu logiciel + rejeu scripté** (Phases 1 à 4) : framebuffer 128×128/8 couleurs en mémoire, entrée lue depuis un `events.json` (position souris + boutons souris + les 4 booléens `btn()` D-pad, par frame — couvre exactement `stat(32/33/34)` et `btn(0-3)`), sortie dumpée en texte (format proche PPM, pas de PNG) pour être lisible directement par un LLM sans décodage d'image.
+2. **Backend raylib interactif** (Phase 5) : fenêtre raylib réelle, entrée souris/clavier live, même framebuffer 128×128 uploadé comme texture et affiché à l'échelle.
+
+## Stratégie de test
+
+Une piste écartée après investigation : faire tourner `lua.lua` lui-même sous un interpréteur Lua standard comme oracle de différence (comparer chaque fonction portée à son original exécuté). Rejetée car :
+- La syntaxe PICO-8 (`+=`, littéraux binaires `0b...`, `if (cond) stmt` sans `then`/`end`) est un problème mineur et mécanique (~76 occurrences, préprocesseur trivial à écrire).
+- Le vrai problème : `lua.lua` embarque son propre mini-langage de description de données (`ob()`, un parseur caractère par caractère fait main) et un système de classes par chaîne de prototypes (`kv:jr`). Construire une seule entité de test réaliste exige d'avoir cette infrastructure et les singletons globaux (`dk`, `fm`) correctement amorcés — un chantier presque aussi lourd que le portage lui-même, avec le risque que des bugs dans l'oracle Lui-même invalident silencieusement la comparaison.
+
+Stratégie retenue, à trois niveaux, alignée sur les phases :
+- **Phase 2 (arithmétique/primitives dynamiques)** : tests unitaires C classiques, valeurs attendues calculées à la main (comportement documenté de PICO-8 pour `rnd`/`sin`/`cos`/débordement fixe). C'est aussi là que vivent les fonctions vraiment pures (opérations vectorielles `km`, géométrie `cl`/`ee`/`be`) — pas d'entité, pas d'état global, donc testables isolément sans le problème ci-dessus.
+- **Phase 3 (portage fonction par fonction du reste)** : pas de test automatisé forcé — la comparaison entre le commentaire (source Lua exacte) et le C porté juste en dessous *est* la vérification.
+- **Phase 4 (intégration)** : exécution headless pas à pas via le backend rejeu scripté (`events.json` en entrée, dump texte en sortie), lue par l'agent — invariants grossiers (nombre de planètes, crédits, pas de crash), pas de comparaison fine.
+- **Phase 5** : test interactif par un humain via le backend raylib — premier moment où le jeu est réellement joué.
+
+**Politique d'exécution** : jamais de fenêtre interactive lancée par l'agent, à aucune phase avant la 5. Seules des vérifications non-interactives sont permises (N frames puis sortie automatique, dump du framebuffer). Voir `CLAUDE.md`.
 
 ## Plan d'action
 
-### Phase 0 — Harnais de test headless
+### Phase 1 — Interface PICO-8 minimale + rendu logiciel
 
-0. Mettre en place le pont Lua/MCP par-dessus PCSX-Redux (ou solution équivalente) permettant de builder une ROM de test, la booter headless, lire son état et injecter des entrées manette depuis l'agent. Critère de sortie : une boucle de build → boot → assertion automatisée fonctionne de façon répétable (pas seulement une fois "à la main").
+Construire en C, sans dépendance raylib, l'interface de dessin/entrée listée ci-dessus (`cls`, `pset`, `spr`, `map`, `mset`, `sget`, `circ`, `circfill`, `rect`, `rectfill`, `line`, `print`, `camera`, `palt`, `fillp`, `btn`, `stat`, `peek`, `poke`, `memcpy`), backée par un framebuffer logiciel 128×128/8 couleurs. `main.c` charge automatiquement `sprite.png` et `map.json` (déjà extraits dans `pico8/`). Lecture d'un `events.json` de rejeu (souris + D-pad par frame). Sortie : dump texte du framebuffer (format simple, pas de PNG). Un petit programme C de démonstration exerce l'interface (quelques primitives de dessin) pour valider la boucle bout en bout avant de commencer le portage réel en Phase 3.
 
-### Phase 1 — Fondations PSX & boucle de jeu
+### Phase 2 — Arithmétique fixe & primitives dynamiques
 
-1. Mettre en place le projet PSn00bSDK : `main.c` reste une pure colle (boucle principale synchronisée sur le VSync, dispatch update/draw), aucune logique métier dedans — même principe de découpage que prévu pour Love2D (un fichier = une responsabilité).
-2. Porter en C pur, compilable et testable côté host (gcc natif, sans dépendance PSX, même esprit que l'ancien `lib/t.lua`) : génération procédurale des 90 planètes (rejet si trop proches, seuil `0.05` normalisé — §3 de la doc de design) et le graphe de voisins, avec un test de connexité globale (BFS : tout spot atteignable depuis tout autre).
-3. Lire la manette via l'API pad de PSn00bSDK (lecture directe, pas d'abstraction cross-runtime nécessaire ici).
-4. Afficher planètes + wormhole + segments de slipway via les primitives GPU natives (sprite/polygone pour les planètes, `LINE_F2`/`LINE_G2` pour les slipways) — mesurer contre le critère de faisabilité (30 fps, ~40-60 slipways) via le harnais de la Phase 0.
+Type fixe 16.16 (`+`, `-`, `*`, `/`, débordement identique à PICO-8), `rnd()`/`sin()`/`cos()` reproduisant les algorithmes PICO-8, opérations vectorielles (`km`), géométrie pure (`cl`/`ee`/`be`), primitives de liste (`add`/`del`/`all`/`foreach`), le mécanisme d'entités/dispatch (`kv:jr`, `hv`/`cv`/`cg`, `dc`, `mv`, `lt`, `he`) porté littéralement. Tests unitaires C.
 
-### Phase 2 — Input & navigation manette (v1 simple, volontairement provisoire)
+### Phase 3 — Portage fonction par fonction
 
-Décision actée pour cette v1 : un seul mode de curseur, pas de state machine de modes. Priorité à la proximité avec le code source PICO-8 (curseur + clic, comme la souris de l'original), pour pouvoir reprendre le plus directement possible la logique de `pico8/lua.lua` (les handlers `:ldown` etc. opèrent déjà sur une position de curseur + un événement clic, indépendamment de tout "mode"). Idées de mapping plus élaboré (mode saut, boutons dédiés par panneau) : voir `docs/after-v1.md`, hors scope v1.
+Chaque fonction de `lua.lua` restante est portée en C : nom minifié conservé, code Lua source collé en commentaire juste au-dessus, logique copiée (pas réécrite). Pas d'ordre de portage lié à une « tranche verticale » de fonctionnalités — la notion ne s'applique pas bien à une copie littérale d'un monolithe ; l'ordre suit plutôt les dépendances entre fonctions (ce qui est appelé avant ce qui appelle).
 
-5. **✕** active/désactive le mode souris (bascule on/off) : mode actif, le D-pad déplace un curseur libre en pixels (caméra qui suit) — seul mode de curseur en v1.
-6. **○** simule un clic à la position courante du curseur (mode souris actif) — c'est cet événement qui doit driver directement la logique déjà présente dans `pico8/lua.lua` (pose de wormhole, colonisation, lancement de sonde, tracé de liaison), sans réinventer une state machine de jeu par-dessus.
-7. Select (menu tech) et Start (score courant) : mapping 1:1, disponibles nativement sur la manette PSX, aucune adaptation nécessaire.
+### Phase 4 — Vérification de jouabilité en mode headless
 
-**Reste à trancher avant d'aller plus loin sur cette phase** :
-- Le clic PICO-8 a une sémantique pression/relâchement (`:ldown`, et vraisemblablement un relâchement pour terminer un drag de slipway). Est-ce que **○** doit générer un événement pression ET un événement relâchement (bouton maintenu = drag en cours), ou seulement un clic instantané ? Non tranché — à vérifier contre `pico8/lua.lua` avant de coder l'étape 6.
+Une fois l'essentiel porté, exécution pas à pas via le backend rejeu scripté (`events.json` + dump texte), sans jamais ouvrir de fenêtre. Vérifier que le jeu tourne sans crash et que les mécaniques de base s'enchaînent (sonde → wormhole → colonisation → slipway → commerce → score).
 
-### Phase 3 — Vertical slice
+### Phase 5 — Intégration raylib interactive
 
-8. `rules_planets.c` : types de planètes + jobs de colonisation réduits.
-9. `liaison.c` : calcul de validité des slipways (trop loin / bloqué par une planète / croise une route existante — formules du §5 de la doc de design), branché sur l'événement clic de la Phase 2.
-10. `rules_discovery.c` : coût (3 crédits, 3 mois), portée de sonde (seuil 0.19, étendu à 0.27 avec *space folding*), tirage planète vide (~45%) — RNG injecté pour tests déterministes.
-11. `effects.c` : animation de flux commercial le long des liaisons actives.
-12. `rules_tech.c` : menu tech minimal, accessible en permanence via Select.
-13. `rules_economy.c` : formules réduites (commerce, maintenance, bonheur, score) et conditions de fin (banqueroute, limite de temps).
-
-### Phase 4 — Clone complet
-
-14. Étendre `rules_planets.c`/`rules_tech.c` à l'ensemble des 10 types de planètes, spécialisations et 20 technologies documentées.
-15. Implémenter les structures spéciales (Slipgate, Infragate, Trading Hub, Synthesizer, Ascension Gate, Laboratory, Food processor) et les actions de transformation de planète (mechanize/terraform/collapse/harvest). Placement : réutilise le mécanisme d'insertion dynamique dans le graphe de voisins (wormhole, Phase 1-2).
-16. Compléter `rules_economy.c` (formules complètes, niveaux de difficulté, score final) tels que documentés dans `slipways-mechanics.md`.
-
-### Phase 5 — Graphismes, son & validation matérielle finale
-
-17. Extraire les sprites et données audio (sfx/musique) de la cartouche PICO-8, remplacer les placeholders de rendu.
-18. Porter les effets de "juice" recensés dans `pico8/lua.lua` (particules, flashs, secousses d'écran, animations de transition, pulsation de sélection, etc. — au-delà du flux commercial déjà couvert par `effects.c`).
-19. Intégrer les effets sonores et la musique extraits (SPU de la PSX).
-20. Test headless via le harnais de la Phase 0 avec le jeu complet (sprites/son/juice inclus) : critère de succès = boot sans crash, manette répond, FPS cible (30, cf. section rendu) tenu. Tout écart devient un point dur consigné, traité en Phase 6.
-
-### Phase 6 — Résolution des points durs
-
-Toute incompatibilité matérielle PSX découverte en cours de route (Phase 0 à 5) est consignée comme point dur, jamais traitée comme bloquante immédiatement.
-
-21. Reprendre un par un les points durs consignés et les corriger, en conservant la fidélité aux règles (aucune formule/mécanique modifiée).
-22. Relancer le test headless (Phase 0) pour confirmer que les points durs sont résolus — ce test clôture le portage.
+Basculer vers le backend raylib (fenêtre réelle, entrée souris/clavier live) sans toucher `main.c` ni aucune fonction portée — seul le backend change. Premier moment où un humain joue réellement et donne son retour.
 
 ## Garde-fous
 
-Règles à relire à chaque nouvelle étape de code, pas seulement au démarrage du projet :
-
-- **Couche interaction vs contenu** : le curseur en mode souris, le bouton ✕ de bascule et le clic simulé par ○ sont des ajouts tolérés — ils compensent l'absence de souris, rien de plus. Ils ne doivent jamais introduire une capacité de jeu (ressource, action, règle) absente du PICO-8. En cas de doute sur si un ajout relève de l'interaction ou du contenu, il est traité comme du contenu par défaut (donc interdit) et doit être justifié explicitement avant d'être codé.
-- **Traçabilité des valeurs** : toute constante (coût, seuil, formule) codée doit être retrouvable dans `slipways-mechanics.md`. Une valeur manquante ou ambiguë se documente comme "Incertain" dans la doc et se résout en relisant `pico8/lua.lua` — jamais par une valeur "raisonnable" inventée.
-- **Pas de contenu retiré silencieusement** : toute règle listée dans la doc de design doit apparaître quelque part dans le plan d'action (Phase 3/4). Si une règle semble non portée à la relecture d'une phase, c'est un oubli à corriger, pas une simplification à assumer.
-- **Pas de juice inventé** : les seuls effets visuels/sonores ajoutés en Phase 5 sont ceux recensés dans `pico8/lua.lua`. Un effet qui "améliorerait" le ressenti sans exister dans la source n'est pas ajouté.
-- **Points durs, jamais de points bloquants** : une incompatibilité PSX découverte en cours de route (Phase 0 à 5) est consignée puis traitée en Phase 6 — elle ne justifie jamais de changer une règle de jeu pour "faire marcher" le portage, ni de rouvrir une phase déjà validée.
+- **Traçabilité** : toute fonction portée garde son nom minifié et son code Lua source en commentaire au-dessus. Une signification de champ/fonction non confirmée par `slipways-mechanics.md` reste documentée comme incertaine plutôt que devinée.
+- **Pas de réécriture déguisée** : si une fonction semble « améliorable » en la réécrivant plutôt qu'en la portant, ce n'est pas fait sans discussion explicite — l'objectif du portage littéral est justement d'éviter ce piège.
+- **Son hors périmètre** : `sfx`/`music` ne sont pas portés ; ce n'est pas un report à une phase ultérieure, c'est explicitement exclu de ce projet de portage.
+- **Jamais de fenêtre interactive lancée par l'agent** avant la Phase 5 (voir `CLAUDE.md`).
+- **PSX en pause, pas abandonné** : aucun travail PSX tant qu'une version PC n'est pas pleinement jouable en C.
 
 ## Décisions actées
 
-- Cible de portage : PSX (`PSn00bSDK`).
-- Interaction manette v1 : un seul mode curseur, pas de state machine de modes — mode souris activé par ✕ (D-pad déplace le curseur) + clic simulé (○), délibérément proche du modèle souris de PICO-8. Autres idées de mapping : `docs/after-v1.md`, hors scope v1.
-- Pas de carte de tech façon PC : le tech tree est un menu accessible à tout moment (fidèle au PICO-8).
-- Pas de changement du modèle de temps : continu avec tick annuel, comme l'original.
-- Sprites et audio extraits tels quels de la cartouche PICO-8, effets de juice reproduits d'après la logique de la source (`pico8/lua.lua`) — aucun nouvel art ni effet inventé.
+- Cible active : PC via raylib, rendu logiciel uniquement (raylib = fenêtrage/présentation/entrée, jamais de dessin raylib).
+- Stratégie : portage littéral fonction par fonction de `pico8/lua.lua`, pas de réécriture depuis la doc de design.
+- Noms minifiés conservés + code Lua source en commentaire au-dessus de chaque fonction portée, comme méthode de traçabilité et de vérification principale (Phase 3).
+- Mécanisme d'entités/dispatch (`kv:jr`, `hv`/`cv`/`cg`, `dc`/`mv`/`lt`/`he`) porté littéralement, pas réécrit en C idiomatique.
+- Arithmétique fixe 16.16 et algorithmes `rnd`/`sin`/`cos` PICO-8 reproduits exactement (pas de flottant natif).
+- Pas d'oracle Lua différentiel (investigué et écarté — cf. Stratégie de test) ; tests unitaires C pour l'arithmétique/les primitives pures (Phase 2), comparaison source/port pour le reste (Phase 3), rejeu headless pour l'intégration (Phase 4).
+- Backend interchangeable sous une API fixe : software+rejeu JSON+dump texte (Phases 1-4) vs raylib+entrée live (Phase 5), sans jamais modifier `main.c` ni les fonctions portées.
+- Son (`sfx`/`music`) explicitement hors périmètre, pas seulement différé.
+- PSX en pause : repris uniquement une fois une version PC pleinement jouable en C obtenue, en repartant de ce C plutôt que de la doc de design.
+- Prototype Love2D `game/` supprimé (incarnait l'approche « réécriture » abandonnée).
