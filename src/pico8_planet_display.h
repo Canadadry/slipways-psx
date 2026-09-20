@@ -2,7 +2,10 @@
 #define PICO8_PLANET_DISPLAY_H
 
 #include "pico8_class.h"
+#include "pico8_gfx.h"
+#include "pico8_mem.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 /* Phase 3, Chunk 13 (docs/prd/triage/phase3-etape1-function-by-function-c-
  * port.md), THIRD sub-lot: PURE MODULE SPLIT (no port-logic change) plus
@@ -64,7 +67,34 @@
  * `pico8_planet.c`), exactly like the `hb`/`gv` dispatch bridges already
  * do the reverse direction. If `pico8_planet_display.c` itself later
  * crosses the range once `kj` lands, that is a decision for whichever
- * sub-lot ports `kj` to make, not pre-empted here. */
+ * sub-lot ports `kj` to make, not pre-empted here.
+ *
+ * *** SUB-LOT 5 (this session): `kj` lands here too *** -- exactly where
+ * this file's own STEP 1 comment above already anticipated it ("gh,gv,
+ * kj once a later sub-lot ports it, hb"). `kj` is the PRD's own explicitly
+ * flagged "first real, non-dead `dc('kj')` exercise" method (see this
+ * chunk's own PRD text, Testing Decisions section) -- it is one of `bm`'s
+ * 5 real dispatch names, so wiring it as a real field on `jo`'s class
+ * defaults (`pico8_planet.c`'s own `pico8_jo_kj_dispatch`, alongside
+ * `pico8_jo_init()`'s own class-registration wiring, the same "bridge
+ * lives with the registration code" precedent `hb`/`gv` already
+ * established) is what finally makes `dc("kj")` -- called for real once a
+ * frame by `_draw()`, Chunk 22, not yet built -- reach a genuine, non-
+ * placeholder `jo` instance's own draw method for the first time in this
+ * whole port, alongside `mo:md(ci[o])` (already real since Chunk 4's
+ * `qb:md`, wired as `mo`'s own "md" the moment Chunk 6's `pico8_jl()`
+ * makes `mo` a real `qb` instance). This module's own `pico8_jo_truthy`
+ * (already duplicated here, sub-lot 3) and `pico8_jo_class()` (the public
+ * accessor, not the private `pico8_planet.c`-only `g_jo_class`, same
+ * precedent `gh`'s own `jo.dz`/`jo.cq` reads already established) are
+ * reused for `kj`'s own `jo.ka` class-level read. See `pico8_jo_kj`'s own
+ * declaration below for the full per-line trace, including two real,
+ * previously-invisible gaps this sub-lot found and fixed (`lq`'s own "ol"
+ * field never wired for `mv()`, mirroring the already-logged `hp`'s own
+ * "lq" gap; `self.qw` never set anywhere in scope for any `jo`-family
+ * instance) and one deliberate scope narrowing carried over unchanged from
+ * Phase 1 (`fillp`'s PICO-8 fractional "transparency" flag has no separate
+ * representation in this port). */
 
 /* function jo:hb()self.lq=jo.ex(self.jy,self.kw.qe,self.kw.mu,#self.by,0
  * )end
@@ -291,5 +321,181 @@ pico8_value_t pico8_jo_gv(const pico8_instance_t *self, const pico8_instance_t *
  * cross-class dependency that requires it to live here specifically). A
  * NULL `self` is a safe no-op. */
 void pico8_jo_fe(pico8_instance_t *self);
+
+/* function jo:kj(p)
+ * if (not gd(self))return
+ * p=ma(p,self)if self.me=="ll" and rnd(30)<self.t-30 then
+ * return
+ * end
+ * circfill(p.x,p.y,7,0)dv(self.qw)palt(3,false)palt(0,true)spr(self.nk and self.nk.s or self.s or 43,p.x-4,p.y-4,2,2)dv()if self:gg()then
+ * circ(p.x,p.y,6,jo.ka[self.mi])spr(self.mi+1,p.x-3,p.y-6)end
+ * mv(self.lq,"ol",p+v(0,7),0.5)if self.fo then
+ * fillp(0b1010101010101010.1)circfill(p.x,p.y,sqrt(self.fo.dw)*128,2)fillp()self.fo=nil
+ * end
+ * end
+ * (pico8/lua.lua:541-550.) `jo`'s own real "kj" -- the planet's own draw
+ * method, one of `bm`'s 5 real dispatch names (`bm=["kj","ev","hd","hk",
+ * "hb"]`, pico8_entity.c). Per this chunk's own PRD text (Testing
+ * Decisions): the moment this is wired as a real field on a real,
+ * `dc()`-registered `jo` instance, `dc("kj")` finally reaches something
+ * real and non-dead for the first time in this whole port -- see this
+ * file's own top "SUB-LOT 5" comment for the full significance trace, and
+ * `pico8_jo_kj_dispatch`'s own comment (`pico8_planet.c`) for the wiring
+ * itself.
+ *
+ * `gd(self)`/`ma(p,self)`: Chunk 1's already-built `pico8_gd`/`pico8_ma`
+ * (pico8_entity_geom.h) -- `not gd(self)` early-returns for an
+ * off-screen planet (no draw work at all, matching every real call site's
+ * own expectation that `kj` never runs for something the camera can't
+ * see); `p=ma(p,self)` re-derives the actual screen position AND decays
+ * `self.ma` (the particle-halo strength field, `pico8_ma`'s own documented
+ * side effect) -- `p` from here on is this ADJUSTED vector, used by every
+ * remaining line of the function, never the raw `self.ra` `dc("kj")`
+ * itself passed in.
+ *
+ * `self.me=="ll"`: a STRING-CONTENT comparison (`strcmp`, matching
+ * `gg`/`gv`/`ldown`'s own established treatment) against a value `self.me`
+ * IS assigned "ll" for real, once, in this cart -- NOT a dead branch (a
+ * prior version of this comment claimed it was; that claim was wrong).
+ * `jo:hh()` (`pico8_jo_hh`, `pico8_planet.c`, pico8/lua.lua:407-411) does
+ * `self.nk=jo.ir()<0.45 and df.ll or jo.oc()` then `self:ks(self.nk.me or
+ * "known")`; `df.ll` (pico8/lua.lua:1378, `o("ll",45,0,me="ll")`) has
+ * `me="ll"`, and `ke:ks(me)` (pico8/lua.lua:185, the base-class method
+ * `jo` inherits) does `self.me,self.t=me,0` -- so roughly 45% of real
+ * `jo:hh()` calls DO set `self.me="ll"` for real, a genuinely reachable
+ * "lifeless planet" state. It IS still unexercised by any already-ported
+ * code path today: `jo.ir`/`jo.oc` (`pico8_planet.c`'s own
+ * `g_jo_ir`/`g_jo_oc`) are only ever wired to a real generator by Chunk 20
+ * (not yet built), so `pico8_jo_hh`'s own `g_jo_ir != NULL` guard is
+ * always false in every test/call path this port currently exercises --
+ * `self.me` can genuinely be "ll" (in addition to "unknown"/"known"/"ly",
+ * also assigned by `pico8_jo_hh`/`pico8_jo_hu`) once Chunk 20 lands.
+ * Ported faithfully regardless, the same "forward references/not-yet-
+ * exercised branches are ported, not stripped" treatment this port
+ * already gives `jc:ey`'s `stat(19)==50` and `jo:pq`'s own `self.hp`
+ * branch (sub-lot 1). `self.t` (this branch's own other read) is a plain,
+ * generic per-instance field, read defensively as 0 when absent, this
+ * file's own established `field_fixed` helper.
+ *
+ * `circfill(p.x,p.y,7,0)`: a solid black backing circle, drawn before the
+ * sprite so any surrounding halo pixels never bleed through -- `p.x`/`p.y`
+ * converted to plain C ints the same `(int)pico8_fixed_to_double(...)`
+ * way every other pixel-coordinate conversion in this port already is
+ * (`pico8_bg_to_int`/`pico8_ui_to_int`'s own established idiom -- no new
+ * named helper introduced here, matching this file's own existing inline
+ * style for its handful of int conversions).
+ *
+ * `dv(self.qw)`: `self.qw` is never set on `jo` itself, but a prior
+ * version of this comment's "never set anywhere in this whole cart for
+ * ANY jo-family instance" claim was wrong -- Chunk 15's `nl` (a real
+ * `jo`-family subclass, `jo->qh->nl`, not yet ported) sets it for real,
+ * both as a class-level default (`nl=qh:jr([[...od=20,qw=15,...]])`,
+ * pico8/lua.lua:1057-1066) and again as a per-instance override
+ * (`nl:ly(t)`'s own `self.qw=8+t%42/6` when `self.mi>=2`). (The only OTHER
+ * `qw` occurrences in scope belong to `lq:mn`'s own unrelated local
+ * variable and `mz`'s own class, Chunk 16, a wholly different entity.)
+ * Until Chunk 15 lands `nl` for real, no real `jo`-family instance this
+ * port can actually construct today ever has `qw` set, so `self.qw` still
+ * reads as absent for every real call path currently in scope -- a real,
+ * currently-correct behavior, but a temporary one, not a permanent
+ * property of the cart; Chunk 15's own implementer should NOT read this
+ * comment (in its old form) as license to skip wiring `qw` for `nl`. A
+ * real Lua `dv(nil)` would error inside `flr()`; this port's own
+ * pervasive, already-established "absent numeric field reads as 0"
+ * convention (`field_fixed`, this file; `pico8_jo_gh`'s own identical
+ * treatment of `self.kr`/`self.mi`) is applied here too -- this call
+ * behaves exactly like `pico8_dv_default(mem)`, a documented, non-crashing
+ * divergence from what real Lua would do if `self.qw` were ever genuinely
+ * absent, exactly the "wrong-kind/absent argument reads as absent rather
+ * than crashing" convention `pico8_jo_gv`'s own comment already states
+ * verbatim.
+ *
+ * `palt(3,false)palt(0,true)`/trailing `dv()`: two plain, already-built
+ * Phase 1 primitives bracketing the sprite blit (make color 3 opaque,
+ * color 0 transparent, for this one sprite only) then reset the draw
+ * palette back to default -- no new representation needed.
+ *
+ * `self.nk and self.nk.s or self.s or 43`: real Lua's `A and B or C or D`
+ * idiom, reproduced at full rigor (not shortcut to "if nk present, always
+ * use nk.s"): `self.nk.s` is only even consulted when `self.nk` ITSELF is
+ * truthy (`pico8_jo_truthy`, this file), and only used when it too is
+ * present and PICO8_VALUE_FIXED-kind (any real, evidenced `.s` value is a
+ * plain sprite-id number, so a FIXED 0 -- truthy in real Lua, unlike C --
+ * still counts, matching `pico8_jo_truthy`'s own semantics); otherwise
+ * (nk falsy, OR nk truthy but `.s` itself falsy/absent/wrong-kind) falls
+ * through to `self.s` under the exact same FIXED-kind rule, else the
+ * literal `43`. `self.nk` itself is a plain `pico8_ob_table_t*` (one of
+ * `pico8_df()`'s own entries, or `jo.oc()`'s/`jo.ir()`'s own generator
+ * output -- `pico8_jo_hh`'s own established shape, NOT a `kv:jr` instance),
+ * so its own "s" field is read via `pico8_ob_table_get_name`, not
+ * `pico8_instance_get_field`.
+ *
+ * `if self:gg()then...end`: `:` method-call sugar (NOT the game's own
+ * `mv()` global function, unlike the `mv(self.lq,"ol",...)` line below) --
+ * ported as a direct call to the already-built, directly-callable
+ * `pico8_jo_gg` (`pico8_planet.c`, sub-lot 1's own "wired as a field AND
+ * directly callable" precedent), matching `pico8_jo_gv`'s own identical
+ * `self:gh()` treatment. `jo.ka[self.mi]`: a CLASS-level nested-table read
+ * (`jo.ka=o(2,3,9,12)`, `pico8_jo_init`'s own class spec string, already
+ * wired since sub-lot 1) -- read from `pico8_jo_class()->defaults` (the
+ * PUBLIC accessor, not the private `g_jo_class` this file has no access
+ * to), the exact same "class-level-not-instance-level read" pattern
+ * `pico8_jo_gh`'s own `jo.dz[self.mi]`/`jo.cq` reads already established
+ * in this same file (and, further back, Chunk 7's `bg.pl`). An absent or
+ * out-of-range `self.mi` index (real Lua's own safe nil-key table read)
+ * yields Lua nil here too -- `color` stays 0 (this port's default), never
+ * a crash. The second `spr(self.mi+1,...)` call omits `w`/`h`, so it maps
+ * to `pico8_spr_default`, not `pico8_spr`.
+ *
+ * `mv(self.lq,"ol",p+v(0,7),0.5)`: the game's own `mv()` GLOBAL FUNCTION
+ * (not `:` sugar this time), so ported through the real, generic
+ * `pico8_mv()` mechanism, exactly as this port's own established
+ * convention requires (see `pico8_jo_fe`'s own `mv(b,"lq")` treatment,
+ * this same file). `self.lq` is an `lq` instance (built by `jo:hb`, sub-
+ * lot 1, from `pico8_jo_ex`) -- but `lq`'s class NEVER wired "ol" as an
+ * `mv()`-dispatchable field before this sub-lot (its only two previously-
+ * known real call sites, `pico8_ui_button.c`'s own `self.jb:ol(...)`/
+ * `c:ol(...)`, are both plain `:` sugar, ported as direct calls) -- a real,
+ * previously-invisible gap, the exact same shape as `pico8_research.h`'s
+ * own already-logged `hp:lq` correction, found and fixed here (see
+ * `pico8_layout.h`'s own "CORRECTION" note on `pico8_lq_ol` for the full
+ * trace, and `pico8_lq_ol_dispatch`'s own comment, `pico8_layout.c`, for
+ * the bridge itself). `p+v(0,7)` is a fresh stack `pico8_vec_t`, passed by
+ * address as this call's own `arg0` (safe: `pico8_mv()` is fully
+ * synchronous here, unlike `jo:fe`'s own `"my"` closure, which genuinely
+ * has to survive past its own building call).
+ *
+ * `if self.fo then...end`: `self.fo` is a genuine OTHER entity instance
+ * (a probe, `g_`'s own class, Chunk 10 -- set by `bv`'s own `self.et.fo=
+ * self`, pico8/lua.lua:562), read generically via `pico8_instance_get_field`
+ * (not `pico8_ob_table_get_name`, unlike `self.nk` above -- `self.fo` is a
+ * real class instance, not a plain data table), truthy-checked the same
+ * `pico8_jo_truthy` way as everywhere else in this file. `self.fo.dw` is
+ * read the same generic way off that instance (absent reads as 0, this
+ * port's pervasive default). `sqrt(self.fo.dw)*128`: `pico8_fixed_sqrt`
+ * then `pico8_fixed_mul` by 128, converted to a plain int radius the same
+ * inline way as every other pixel coordinate in this function.
+ * `fillp(0b1010101010101010.1)`: the binary LITERAL's own integer part is
+ * `1010101010101010`=`0xAAAA`; its trailing `.1` (PICO-8's own fixed-point
+ * fractional flag, which toggles the pattern's "1" bits from "draw with a
+ * second colour" to "leave this pixel untouched" instead) has NO SEPARATE
+ * representation in this port's own `pico8_fillp` (`pico8_gfx.h`, Phase 1)
+ * -- that module's OWN top comment on `pico8_fillp_skips` already
+ * documents its chosen, already-shipped semantics unconditionally ("a set
+ * bit means skip this pixel"), which is exactly what the `.1` flag would
+ * select in real PICO-8 -- so passing the plain 16-bit pattern `0xAAAAu`
+ * here, with the fractional flag simply dropped, matches this port's own
+ * Phase-1 fillp model exactly as well as `bg:kj`'s own `0b1010010110100101`
+ * (no `.1` at all) already does; this is not a new decision, just this
+ * call site's own first use of a `.1`-suffixed literal. `self.fo=nil`
+ * (Lua's own field-clearing assignment) is `pico8_ob_table_set_name(self->
+ * fields,"fo",pico8_value_ref(NULL))`, matching this port's established
+ * "write nil as REF(NULL)" convention throughout.
+ *
+ * A NULL `self` is a safe no-op (nothing to draw). `self` is non-const
+ * (unlike `pico8_jo_gh`'s own read-only treatment): `pico8_ma`'s own
+ * documented side effect (decaying `self.ma`) and this function's own
+ * final `self.fo=nil` write both mutate the instance. */
+void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p);
 
 #endif

@@ -5,8 +5,11 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_entity.h"
+#include "pico8_entity_geom.h"
+#include "pico8_hud.h"
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
@@ -567,4 +570,138 @@ void pico8_jo_fe(pico8_instance_t *self) {
 
     pico8_pz(self, &rows);
     pico8_list_free(&rows);
+}
+
+void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
+    pico8_vec_t adjusted;
+    pico8_value_t me_val;
+    int px;
+    int py;
+    int spr_index = 43;
+    pico8_value_t nk_val;
+    pico8_value_t s_val;
+
+    if (self == NULL || !pico8_gd(self)) {
+        return;
+    }
+
+    /* p=ma(p,self): re-derives the screen position AND decays self.ma
+     * (pico8_ma's own documented side effect) -- `adjusted` is used by
+     * every remaining line below, never the raw parameter `p`. */
+    adjusted = pico8_ma(p, self);
+
+    /* if self.me=="ll" and rnd(30)<self.t-30 then return end -- NOT dead
+     * code: jo:hh() (pico8_planet.c's own pico8_jo_hh, ported from
+     * pico8/lua.lua:407-411) does `self.nk=jo.ir()<0.45 and df.ll or
+     * jo.oc()` then `self:ks(self.nk.me or "known")`, and df.ll
+     * (pico8/lua.lua:1378, `o("ll",45,0,me="ll")`) has `me="ll"` -- so
+     * roughly 45% of real jo:hh() calls DO set self.me="ll" for real, via
+     * ke:ks() (pico8/lua.lua:185, `self.me,self.t=me,0`, the base-class
+     * method jo inherits). Genuinely REACHABLE once Chunk 20 wires
+     * jo.ir/jo.oc to a real generator (g_jo_ir/g_jo_oc are still NULL
+     * today, pico8_planet.c) -- simply not yet EXERCISED by any
+     * already-ported code path. See this file's own header comment on
+     * pico8_jo_kj for the full trace. */
+    if (pico8_instance_get_field(self, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
+        strcmp(me_val.as.string, "ll") == 0) {
+        pico8_fixed_t t = field_fixed(self, "t");
+        if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
+            return;
+        }
+    }
+
+    px = (int)pico8_fixed_to_double(adjusted.x);
+    py = (int)pico8_fixed_to_double(adjusted.y);
+
+    /* circfill(p.x,p.y,7,0) */
+    pico8_circfill(gfx, mem, px, py, 7, 0);
+
+    /* dv(self.qw): self.qw is never set on jo ITSELF, but Chunk 15's `nl`
+     * (a real jo-family subclass, jo->qh->nl, not yet ported) DOES set it
+     * for real -- as a class-level default (nl=qh:jr([[...od=20,qw=15,...
+     * ]]), pico8/lua.lua:1057-1066) and again as a per-instance override
+     * (nl:ly(t)'s own self.qw=8+t%42/6 when self.mi>=2). Until Chunk 15
+     * lands, no real jo-family instance in scope ever has qw set, so
+     * absent reads as 0 (this file's own field_fixed) remains the
+     * correct, evidenced behavior today -- same observable effect as
+     * pico8_dv_default. See this file's own header comment on pico8_jo_kj
+     * for the full trace. */
+    pico8_dv(mem, field_fixed(self, "qw"));
+    pico8_palt(gfx, 3, 0);
+    pico8_palt(gfx, 0, 1);
+
+    /* spr(self.nk and self.nk.s or self.s or 43,p.x-4,p.y-4,2,2) */
+    if (pico8_instance_get_field(self, "nk", &nk_val) && pico8_jo_truthy(nk_val) && nk_val.kind == PICO8_VALUE_REF &&
+        nk_val.as.ref != NULL &&
+        pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "s", &s_val) &&
+        s_val.kind == PICO8_VALUE_FIXED) {
+        spr_index = (int)pico8_fixed_to_double(s_val.as.fixed);
+    } else if (pico8_instance_get_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
+        spr_index = (int)pico8_fixed_to_double(s_val.as.fixed);
+    }
+    pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
+    pico8_dv_default(mem);
+
+    /* if self:gg()then circ(p.x,p.y,6,jo.ka[self.mi])spr(self.mi+1,p.x-3,p.y-6)end */
+    if (pico8_jo_truthy(pico8_jo_gg(self))) {
+        int mi = (int)pico8_fixed_to_double(field_fixed(self, "mi"));
+        int color = 0;
+        pico8_value_t ka_val;
+        pico8_value_t ka_entry;
+
+        if (pico8_jo_class() != NULL && pico8_ob_table_get_name(pico8_jo_class()->defaults, "ka", &ka_val) &&
+            ka_val.kind == PICO8_VALUE_REF && ka_val.as.ref != NULL &&
+            pico8_ob_table_get_index((const pico8_ob_table_t *)ka_val.as.ref, mi, &ka_entry) &&
+            ka_entry.kind == PICO8_VALUE_FIXED) {
+            color = (int)pico8_fixed_to_double(ka_entry.as.fixed);
+        }
+        pico8_circ(gfx, mem, px, py, 6, color);
+        pico8_spr_default(gfx, mem, mi + 1, px - 3, py - 6);
+    }
+
+    /* mv(self.lq,"ol",p+v(0,7),0.5) -- the game's own mv() global
+     * function, ported through the real pico8_mv() mechanism (not a
+     * direct call). See this file's own header comment on pico8_jo_kj for
+     * why lq's own "ol" field needed to be newly wired for this. */
+    {
+        pico8_value_t lq_val;
+        if (pico8_instance_get_field(self, "lq", &lq_val) && lq_val.kind == PICO8_VALUE_REF &&
+            lq_val.as.ref != NULL) {
+            pico8_vec_t offset =
+                pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
+            pico8_value_t offset_val = pico8_value_ref(&offset);
+            pico8_value_t a_val = pico8_value_fixed(pico8_fixed_from_double(0.5));
+            pico8_value_t discard;
+            pico8_mv((pico8_instance_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
+        }
+    }
+
+    /* if self.fo then fillp(0b1010101010101010.1)circfill(p.x,p.y,
+     * sqrt(self.fo.dw)*128,2)fillp()self.fo=nil end */
+    {
+        pico8_value_t fo_val;
+        if (pico8_instance_get_field(self, "fo", &fo_val) && pico8_jo_truthy(fo_val) &&
+            fo_val.kind == PICO8_VALUE_REF && fo_val.as.ref != NULL) {
+            pico8_fixed_t dw = pico8_fixed_from_int(0);
+            pico8_value_t dw_val;
+            pico8_fixed_t radius_f;
+            int radius;
+
+            if (pico8_instance_get_field((const pico8_instance_t *)fo_val.as.ref, "dw", &dw_val) &&
+                dw_val.kind == PICO8_VALUE_FIXED) {
+                dw = dw_val.as.fixed;
+            }
+            radius_f = pico8_fixed_mul(pico8_fixed_sqrt(dw), pico8_fixed_from_int(128));
+            radius = (int)pico8_fixed_to_double(radius_f);
+
+            /* 0b1010101010101010.1 -- see this file's own header comment
+             * on pico8_jo_kj for why the trailing .1 fractional flag is
+             * simply dropped (pico8_fillp's own already-shipped semantics
+             * already model it unconditionally). */
+            pico8_fillp(gfx, 0xAAAAu);
+            pico8_circfill(gfx, mem, px, py, radius, 2);
+            pico8_fillp_reset(gfx);
+            pico8_ob_table_set_name(self->fields, "fo", pico8_value_ref(NULL));
+        }
+    }
 }

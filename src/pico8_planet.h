@@ -150,6 +150,16 @@
  *     smoke-test-coverage assessment justice, rather than folded in here
  *     where its own "first real dc('kj')" significance would be
  *     underserved by a rushed one-line assessment.
+ *     *** UPDATE (sub-lot 5, FINAL): PORTED *** -- lands in
+ *     `pico8_planet_display.c`/`.h` (this file's own "LEFT FOR FOLLOW-UP"
+ *     module-size trace above already anticipated this), wired via a new
+ *     `pico8_jo_kj_dispatch` bridge in THIS file's own `pico8_jo_init()`.
+ *     `jo` is now FULLY PORTED, 17/17 real methods -- see
+ *     `pico8_planet_display.h`'s own top comment and `docs/portage-
+ *     progress.md`'s "Vague 13" sub-lot-5 entry for the full trace,
+ *     including two real, previously-invisible gaps this sub-lot found
+ *     and fixed (`lq`'s own "ol" field never wired for `mv()`, and the
+ *     `self.qw` absent-field divergence).
  *
  * New module (`pico8_planet.c`/`.h`, not `pico8_ke.c`/`pico8_entity.c`/
  * `pico8_research.c`/`pico8_economy.c`, all either the base class module or

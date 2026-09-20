@@ -80,10 +80,24 @@ $(TMP_DIR)/test_pico8_stash: tests/test_pico8_stash.c src/pico8_stash.c src/pico
 $(TMP_DIR)/test_pico8_data_init: tests/test_pico8_data_init.c src/pico8_data_init.c src/pico8_data_init.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_data_init.c src/pico8_data_init.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c -lm
 
+# Phase 3, Chunk 13, sub-lot 5: pico8_dc("kj")'s own first real, non-dead
+# exercise (a real jo instance registered under the real "kj" bm bucket,
+# dispatched against a real mo=qb() singleton) -- deliberately its own
+# small permanent test/target rather than folded into test_pico8_entity_
+# smoke (whose minimal dependency graph is a considered design choice,
+# already reaffirmed once in this same chunk) or test_pico8_data_init
+# (topically about data decoding, not entity dispatch) -- see that test
+# file's own top comment for the full rationale. Shares the exact same
+# real dependency closure test_pico8_data_init already needs, for the
+# same reason (jo/planet pulls in the whole entity/economy/research/UI/
+# dispatch engine).
+$(TMP_DIR)/test_pico8_planet_kj_dispatch: tests/test_pico8_planet_kj_dispatch.c src/pico8_data_init.c src/pico8_data_init.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ tests/test_pico8_planet_kj_dispatch.c src/pico8_data_init.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c -lm
+
 $(TMP_DIR)/pico8_demo: src/main.c src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_input.c src/pico8_input.h src/pico8_dump.c src/pico8_dump.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ src/main.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -100,6 +114,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_entity_smoke
 	./$(TMP_DIR)/test_pico8_stash
 	./$(TMP_DIR)/test_pico8_data_init
+	./$(TMP_DIR)/test_pico8_planet_kj_dispatch
 
 demo: $(TMP_DIR)/pico8_demo
 	./$(TMP_DIR)/pico8_demo

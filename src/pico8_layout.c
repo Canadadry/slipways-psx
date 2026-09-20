@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_dispatch_context.h"
 #include "pico8_hud.h"
 #include "pico8_list.h"
 
@@ -402,16 +403,54 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *sel
     }
 }
 
+/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape to
+ * pico8_lq_ol's own real signature -- see pico8_layout.h's own top
+ * "CORRECTION" note on pico8_lq_ol for why this registration exists (a
+ * real gap found while porting `jo:kj`, Chunk 13, sub-lot 5: the real
+ * source's `mv(self.lq,"ol",p+v(0,7),0.5)` needs `lq`'s class-level "ol"
+ * field to actually be PICO8_VALUE_FUNCTION-kind, which this module never
+ * wired -- the two real call sites known when this module was first built,
+ * `self.jb:ol(...)`/`c:ol(...)` in pico8_ui_button.c, are both plain `:`
+ * method-call sugar, never `mv()`, so no gap was visible until now). `argc`
+ * is always 2 at this real call site (`p`, `a`) -- an omitted `a` (this
+ * port's own `pico8_lq_ol_default`) has no real `mv()` call site anywhere
+ * in scope, so this bridge doesn't special-case `argc<2`; `arg1` not being
+ * PICO8_VALUE_FIXED (never evidenced) falls back to 0, matching `a`
+ * omitted numerically (see pico8_layout.h's own comment on pico8_lq_ol for
+ * why that's an exact equivalence, not an approximation). gfx/mem come
+ * from pico8_dispatch_context.h (pico8_dispatch_gfx/pico8_dispatch_mem),
+ * the same shared "current frame's gfx/mem" convention every other
+ * gfx/mem-needing dispatch bridge in this port already uses (see that
+ * header's own top comment). */
+static pico8_value_t pico8_lq_ol_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_fixed_t a = pico8_fixed_from_int(0);
+    (void)argc;
+
+    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
+        p = *(const pico8_vec_t *)arg0.as.ref;
+    }
+    if (arg1.kind == PICO8_VALUE_FIXED) {
+        a = arg1.as.fixed;
+    }
+    pico8_lq_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_instance_t *)self, p, a);
+    return pico8_value_ref(NULL);
+}
+
 /* lq=kv:jr()... / jb=kv:jr()... (pico8/lua.lua:289/314): both root
  * classes, no spec string (`kv:jr()`, NULL here, mirroring `rj or ""`'s
  * "no argument" case -- pico8_class_declare's own comment). Neither gets
  * an `ns`-metatable-based `__eq`/dispatch entry -- only their own `pq` is
  * set, exactly matching the real `function lq:pq()...end`/`function
- * jb:pq()...end` statements. */
+ * jb:pq()...end` statements. `lq`'s own "ol" field is ALSO wired here as a
+ * real `mv()`-routed field (`pico8_lq_ol_dispatch` above) -- see that
+ * function's own comment for the full trace of this real, previously-
+ * unwired gap. */
 void pico8_layout_init(void) {
     pico8_layout_shutdown();
     g_lq_class = pico8_class_declare(NULL, NULL);
     pico8_class_set_pq(g_lq_class, pico8_lq_pq);
+    pico8_ob_table_set_name(g_lq_class->defaults, "ol", pico8_value_function(pico8_lq_ol_dispatch));
     g_jb_class = pico8_class_declare(NULL, NULL);
     pico8_class_set_pq(g_jb_class, pico8_jb_pq);
 }

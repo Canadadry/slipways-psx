@@ -103,7 +103,29 @@ pico8_instance_t *pico8_jb_new(const pico8_ob_table_t *overrides);
  * a=0, matching every other two-entry-point optional-argument function
  * already established in this area of the port (pico8_dv/pico8_rk/
  * pico8_io, pico8_hud.h). A NULL self is a no-op (matches
- * pico8_entity_geom.c's own established defensive convention). */
+ * pico8_entity_geom.c's own established defensive convention).
+ *
+ * *** CORRECTION (Chunk 13, sub-lot 5) *** -- when this function was first
+ * ported (Chunk 3), the two real call sites known then (`self.jb:ol(...)`,
+ * `c:ol(...)`, pico8_ui_button.c) were both plain `:` method-call sugar,
+ * so `pico8_lq_ol`/`pico8_lq_ol_default` were left as plain, directly-
+ * callable C functions with no `mv()`-dispatch bridge, the same "known
+ * function, no bridge needed" treatment `jo:kd` still gets. That was
+ * incomplete: `jo:kj()` (Chunk 13, pico8/lua.lua:548) has a real
+ * `mv(self.lq,"ol",p+v(0,7),0.5)` call site -- the game's own `mv()`
+ * GLOBAL FUNCTION, not `:` sugar -- which needs `lq`'s class-level "ol"
+ * field to actually be PICO8_VALUE_FUNCTION-kind, the exact same kind of
+ * already-shipped gap this port's own `hp:lq` correction (pico8_research.h)
+ * already found and fixed for a different class. Fixed the same way: also
+ * wiring "ol" as a real PICO8_VALUE_FUNCTION field on `lq`'s class defaults
+ * (`pico8_layout.c`'s own `pico8_lq_ol_dispatch`, alongside
+ * `pico8_layout_init()`'s own class-declaration call) -- `pico8_lq_ol`/
+ * `pico8_lq_ol_default` themselves are UNCHANGED, still plain, directly-
+ * callable C functions exactly as they already were (still used directly
+ * by `pico8_ui_button.c`'s own `:` sugar call sites, unaffected). A pure
+ * additive fix: it doesn't change what `pico8_lq_ol` computes, only makes
+ * it reachable through `pico8_mv()` too, the way `jo:kj`'s real source
+ * genuinely needs. */
 void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p,
                   pico8_fixed_t a);
 void pico8_lq_ol_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p);

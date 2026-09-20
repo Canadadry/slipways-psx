@@ -7,6 +7,7 @@
 #include "pico8_audio.h"
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
+#include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_entity_geom.h"
 #include "pico8_gen.h"
@@ -84,6 +85,30 @@ static pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t ar
     (void)arg0;
     (void)arg1;
     pico8_jo_hk((const pico8_instance_t *)self);
+    return pico8_value_ref(NULL);
+}
+
+/* Sub-lot 5 (this session): "kj" IS one of `bm`'s 5 real dispatch names
+ * (`bm=["kj","ev","hd","hk","hb"]`, pico8_entity.c) -- `dc("kj")`'s own
+ * `qc[nt](qc,qc.ra)` call shape (pico8_entity.c) always passes `qc.ra` as
+ * `arg0`, so this bridge reads it as a vec, exactly the same "arg0 is a
+ * REF to a pico8_vec_t" convention already established (pico8_qb_field_vec,
+ * pico8_scroll.c; pico8_gk's own `mp`/`rp` params). gfx/mem come from
+ * pico8_dispatch_context.h, the same shared "current frame's gfx/mem"
+ * convention pico8_qb_md_dispatch already uses for the OTHER half of this
+ * exact "dc('kj') finally does something real" story (see
+ * pico8_planet_display.h's own top "SUB-LOT 5" comment for the full
+ * trace). A missing/wrong-kind `arg0` falls back to the zero vector,
+ * matching every other defensive "absent field/argument reads as a safe
+ * default" treatment in this port. */
+static pico8_value_t pico8_jo_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    (void)argc;
+    (void)arg1;
+    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
+        p = *(const pico8_vec_t *)arg0.as.ref;
+    }
+    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self, p);
     return pico8_value_ref(NULL);
 }
 
@@ -173,6 +198,7 @@ void pico8_jo_init(void) {
     pico8_ob_table_set_name(g_jo_class->defaults, "kf", pico8_value_function(pico8_jo_kf_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "cn", pico8_value_function(pico8_jo_cn_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "ib", pico8_value_function(pico8_jo_ib_dispatch));
+    pico8_ob_table_set_name(g_jo_class->defaults, "kj", pico8_value_function(pico8_jo_kj_dispatch));
     pico8_class_register_named("jo", g_jo_class);
 }
 
