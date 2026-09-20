@@ -289,9 +289,76 @@ static void test_ke_pq_registers_via_lt(void) {
     pico8_class_registry_clear();
 }
 
+/* Phase 3, Chunk 4's own targeted extension to this smoke test (per this
+ * PRD's own per-lot "entity/dispatch mechanism coverage" check and its own
+ * explicit flag: "the first real multi-level inheritance chain deeper than
+ * Phase 2's smoke test used -- js/nf/fq/qb all extend ke, which itself
+ * extends kv"). Reasoned through carefully rather than added reflexively:
+ * Chunk 3's own test_ke_pq_registers_via_lt already exercises a REAL `ke`
+ * with NO subclass (depth 1: kv -> ke). test_entity_dispatch_smoke (Phase
+ * 2) already exercises a two-level chain (class_a -> class_b) with the
+ * SAME structural shape nf/js embody (leaf sets its own distinct pq,
+ * separate from an inherited ancestor's) -- but with an entirely FAKE
+ * root (class_a's own fake_pq_a, requiring an explicit pico8_lt() call by
+ * the test itself, never the real ke.pq=lt auto-registration mechanism).
+ * Neither prior test combines a REAL `ke` parent (whose own pq IS lt,
+ * genuinely self-registering) with a REAL child's own distinct pq -- the
+ * one new ingredient nf/js's own real shape (`X=ke:jr(...)` plus their own
+ * `function X:pq()...end`) introduces. This test closes exactly that gap,
+ * with a small fake child class (not nf/js.c themselves, to avoid growing
+ * this test binary's own Makefile dependency footprint for logic this
+ * chunk's own source/port comment comparison already verifies) standing
+ * in for nf/js's own structural shape. */
+static int g_child_pq_calls = 0;
+
+static void fake_child_pq(pico8_instance_t *instance) {
+    g_child_pq_calls++;
+    pico8_ob_table_set_name(instance->fields, "child_pq_ran", pico8_value_bool(1));
+}
+
+static void test_real_ke_subclass_with_own_distinct_pq(void) {
+    pico8_class_t *child;
+    pico8_instance_t *e;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    pico8_ke_init();
+    g_child_pq_calls = 0;
+
+    child = pico8_class_declare(pico8_ke_class(), "");
+    pico8_class_set_pq(child, fake_child_pq);
+
+    e = pico8_class_instantiate(child, NULL);
+
+    assert(g_child_pq_calls == 1);
+    {
+        pico8_value_t v;
+        assert(pico8_ob_table_get_name(e->fields, "child_pq_ran", &v) && v.kind == PICO8_VALUE_BOOL &&
+               v.as.boolean == 1);
+    }
+    assert(list_contains_instance(pico8_hv(), e));
+
+    {
+        pico8_value_t v;
+        assert(pico8_instance_get_field(e, "me", &v) && v.kind == PICO8_VALUE_STRING);
+        assert(pico8_instance_get_field(e, "t", &v) && v.kind == PICO8_VALUE_FIXED &&
+               v.as.fixed == pico8_fixed_from_int(0));
+    }
+
+    pico8_he(e);
+    assert(!list_contains_instance(pico8_hv(), e));
+    pico8_instance_free(e);
+    pico8_class_free(child);
+
+    pico8_ke_shutdown();
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
+    test_real_ke_subclass_with_own_distinct_pq();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;
