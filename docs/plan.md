@@ -29,7 +29,7 @@ Les nombres PICO-8 sont en virgule fixe 16.16, pas en flottant. Le portage C **�
 Scanné directement dans `lua.lua` (pas deviné, pas construit par anticipation) :
 
 - **Dessin/entrée** : `cls`, `pset`, `spr`, `map`, `mset`, `sget`, `circ`, `circfill`, `rect`, `rectfill`, `line`, `print`, `camera`, `palt`, `fillp`, `btn` (D-pad — utilisé nativement par `qb:ph()` pour le déplacement caméra), `stat` (souris — `stat(32/33/34)`, plus quelques index annexes), `peek`, `poke`, `memcpy` (astuce de palette et décodage `unstash`).
-- **Maths/listes/chaînes** (socle de la Phase 2, arithmétique fixe + primitives dynamiques) : `sqrt`, `cos`, `sin`, `mid`, `flr`, `abs`, `rnd`, `sgn`, `band`, `bor`, `shl`, `add`, `del`, `all`, `foreach`, `sub`, `tostr`.
+- **Maths/listes/chaînes** (socle de la Phase 2, arithmétique fixe + primitives dynamiques — toutes explicitement affectées à la Phase 2 dans le détail de cette phase ci-dessous) : `sqrt`, `cos`, `sin`, `mid`, `flr`, `abs`, `rnd`, `sgn`, `band`, `bor`, `shl`, `add`, `del`, `all`, `foreach`, `sub`, `tostr`.
 - **Explicitement hors périmètre** : `sfx`, `music` (son abandonné entièrement pour ce portage — deviennent des no-op dans la couche de mimétisme) ; tout le reste de l'API PICO-8 non listé ci-dessus n'est tout simplement pas appelé par `lua.lua` (`sspr`, `fget`/`fset`, `mget`, `sset`, `pal`, `cursor`, `color`, `flip`, `btnp`, `peek2/4`, `poke2/4`, `cartdata`, `dget`/`dset`, coroutines, `atan2`…) et n'est donc pas construit.
 
 ## Architecture : backend interchangeable sous une API fixe
@@ -57,23 +57,31 @@ Stratégie retenue, à trois niveaux, alignée sur les phases :
 
 ### Phase 1 — Interface PICO-8 minimale + rendu logiciel
 
-Construire en C, sans dépendance raylib, l'interface de dessin/entrée listée ci-dessus (`cls`, `pset`, `spr`, `map`, `mset`, `sget`, `circ`, `circfill`, `rect`, `rectfill`, `line`, `print`, `camera`, `palt`, `fillp`, `btn`, `stat`, `peek`, `poke`, `memcpy`), backée par un framebuffer logiciel 128×128/8 couleurs. `main.c` charge automatiquement `sprite.png` et `map.json` (déjà extraits dans `pico8/`). Lecture d'un `events.json` de rejeu (souris + D-pad par frame). Sortie : dump texte du framebuffer (format simple, pas de PNG). Un petit programme C de démonstration exerce l'interface (quelques primitives de dessin) pour valider la boucle bout en bout avant de commencer le portage réel en Phase 3.
+Construire en C, sans dépendance raylib, l'interface de dessin/entrée listée ci-dessus (`cls`, `pset`, `spr`, `map`, `mset`, `sget`, `circ`, `circfill`, `rect`, `rectfill`, `line`, `print`, `camera`, `palt`, `fillp`, `btn`, `stat`, `peek`, `poke`, `memcpy`), backée par un framebuffer logiciel 128×128/8 couleurs. `main.c` charge automatiquement `sprite.png` et `map.json` (déjà extraits dans `pico8/`). Lecture d'un `events.json` de rejeu (souris + D-pad par frame). Sortie : dump texte du framebuffer (format simple, pas de PNG). Un petit programme C de démonstration exerce l'interface pour valider la boucle bout en bout avant de commencer le portage réel en Phase 3 : au moins un appel par catégorie (pixel `pset`, forme `line`/`rect`/`circ`, sprite `spr`, carte `map`, texte `print`), une lecture `btn`+`stat`, une frame pilotée par `events.json`, et un dump texte du framebuffer — le tout branché sur la cible `make test` que cette phase ajoute. `make test` fait des assertions précises sur le résultat, pas juste « le programme tourne » : après chaque appel de démonstration, les octets du framebuffer (ou les valeurs lues via `peek`/`memcpy`) attendus à des positions connues sont comparés à des valeurs de référence calculées à la main.
 
 ### Phase 2 — Arithmétique fixe & primitives dynamiques
 
-Type fixe 16.16 (`+`, `-`, `*`, `/`, débordement identique à PICO-8), `rnd()`/`sin()`/`cos()` reproduisant les algorithmes PICO-8, opérations vectorielles (`km`), géométrie pure (`cl`/`ee`/`be`), primitives de liste (`add`/`del`/`all`/`foreach`), le mécanisme d'entités/dispatch (`kv:jr`, `hv`/`cv`/`cg`, `dc`, `mv`, `lt`, `he`) porté littéralement. Tests unitaires C.
+Type fixe 16.16 (`+`, `-`, `*`, `/`, débordement identique à PICO-8), `rnd()`/`sin()`/`cos()`/`sqrt()`/`mid()`/`flr()`/`abs()`/`sgn()`/`band()`/`bor()`/`shl()` reproduisant les algorithmes PICO-8, opérations vectorielles (`km`), géométrie pure (`cl`/`ee`/`be`), primitives de liste (`add`/`del`/`all`/`foreach`) et de chaîne (`sub`/`tostr`), le mini-langage de description de données (`ob()`/`fi()`) et le mécanisme d'entités/dispatch qui en dépend directement (`kv:jr` appelle `ob()` dès sa première ligne — `hv`/`cv`/`cg`, `dc`, `mv`, `lt`, `he`), tous portés littéralement. Tests unitaires C pour les fonctions pures (arithmétique fixe, `rnd`/`sin`/`cos`/`sqrt`/`mid`/`flr`/`abs`/`sgn`/`band`/`bor`/`shl`, `km`, `cl`/`ee`/`be`, `add`/`del`/`all`/`foreach`, `sub`/`tostr`) ; pour `ob()`/`fi()`/`kv:jr`/`hv`/`cv`/`cg`/`dc`/`mv`/`lt`/`he`, pas de test unitaire fonction par fonction — vérifiés par comparaison source/port comme en Phase 3 (cf. Stratégie de test), plus un test de fumée dédié : définir 1-2 types d'entités factices via `ob()`/`kv:jr` et exercer `dc`/`mv`/`lt`/`he` dessus, branché sur la même cible `make test` que la Phase 1. Le test de fumée fait des assertions précises, pas juste « ça tourne » : `dc()`/`mv()` appellent bien la méthode attendue sur l'entité factice, et `lt()`/`he()` l'ajoutent/la retirent effectivement des collections `hv`/`cv`/`cg` concernées. Sortie de phase : ce test de fumée passe (avec ces assertions), en plus des tests unitaires ci-dessus.
 
 ### Phase 3 — Portage fonction par fonction
 
 Chaque fonction de `lua.lua` restante est portée en C : nom minifié conservé, code Lua source collé en commentaire juste au-dessus, logique copiée (pas réécrite). Pas d'ordre de portage lié à une « tranche verticale » de fonctionnalités — la notion ne s'applique pas bien à une copie littérale d'un monolithe ; l'ordre suit plutôt les dépendances entre fonctions (ce qui est appelé avant ce qui appelle).
 
+Une liste de suivi (portée / restante), groupée par vague de dépendances, est tenue à jour pendant toute la phase dans [`docs/portage-progress.md`](portage-progress.md) (fichier dédié plutôt qu'une section de ce plan : ~140 fonctions à suivre, ça alourdirait ce document). Checkpoint après chaque lot porté (un lot = une vague de dépendances du tracker ci-dessus) : le projet compile et `make test` passe toujours dans son ensemble (démonstration de la Phase 1, tests unitaires et test de fumée de la Phase 2) — cette phase porte des fonctions qui s'appuient aussi bien sur les primitives de dessin/mémoire de la Phase 1 (`camera`, `spr`, `map`, l'astuce de palette via `memcpy`/`peek`/`poke`...) que sur le mécanisme d'entités/dispatch de la Phase 2, donc la plus susceptible de régresser l'un ou l'autre. C'est le seul contrôle intermédiaire, pas de test automatisé par fonction (cf. Stratégie de test). Sortie de phase (déclenche la Phase 4) : toute fonction atteignable depuis `_init`, `_update60` ou `_draw` est portée.
+
 ### Phase 4 — Vérification de jouabilité en mode headless
 
-Une fois l'essentiel porté, exécution pas à pas via le backend rejeu scripté (`events.json` + dump texte), sans jamais ouvrir de fenêtre. Vérifier que le jeu tourne sans crash et que les mécaniques de base s'enchaînent (sonde → wormhole → colonisation → slipway → commerce → score).
+Une fois la Phase 3 terminée (toute fonction atteignable depuis `_init`/`_update60`/`_draw` portée), exécution pas à pas via le backend rejeu scripté (`events.json` + dump texte), sans jamais ouvrir de fenêtre. Vérifier que le jeu tourne sans crash et que les mécaniques de base s'enchaînent (sonde → wormhole → colonisation → slipway → commerce → score).
+
+Sortie de phase (déclenche la Phase 5) : un rejeu scripté complet couvrant cette chaîne (sonde → wormhole → colonisation → slipway → commerce → score) tourne sans crash jusqu'au bout, avec à chaque étape : le nombre de planètes qui reste dans une plage plausible (jamais négatif, jamais au-delà de 90 — pas de valeur aberrante signe d'un bug de comptage), et les crédits qui restent dans un ordre de grandeur cohérent avec une partie normale (les crédits peuvent légitimement devenir négatifs en jeu — cf. `hy:hk()`, `self.nz+=self.ge` sans plancher — donc l'invariant n'est pas « jamais négatif » mais l'absence de saut brutal type débordement/valeur aberrante).
 
 ### Phase 5 — Intégration raylib interactive
 
 Basculer vers le backend raylib (fenêtre réelle, entrée souris/clavier live) sans toucher `main.c` ni aucune fonction portée — seul le backend change. Premier moment où un humain joue réellement et donne son retour.
+
+Avant de faire appel à un humain : l'agent compile et lie le backend raylib (compilation/édition de liens uniquement, jamais d'exécution — cf. politique d'exécution) et s'assure que ça réussit. Ce n'est pas la sortie de phase, juste un contrôle préalable bon marché pour ne pas gâcher le cycle humain, coûteux et difficile à répéter, sur une erreur de lien ou une signature incompatible avec l'API de mimétisme.
+
+Sortie de phase (fin du portage) : un humain termine une partie complète de la boucle centrale (sonde → wormhole → colonisation → slipway → commerce → score) via le backend raylib sans crash, et confirme que les mécaniques correspondent à sa compréhension de la cartouche PICO-8 originale.
 
 ## Garde-fous
 
@@ -82,6 +90,12 @@ Basculer vers le backend raylib (fenêtre réelle, entrée souris/clavier live) 
 - **Son hors périmètre** : `sfx`/`music` ne sont pas portés ; ce n'est pas un report à une phase ultérieure, c'est explicitement exclu de ce projet de portage.
 - **Jamais de fenêtre interactive lancée par l'agent** avant la Phase 5 (voir `CLAUDE.md`).
 - **PSX en pause, pas abandonné** : aucun travail PSX tant qu'une version PC n'est pas pleinement jouable en C.
+
+## Notes de portage
+
+Journal à compléter au fil des Phases 1 à 5 (contrairement à « Décisions actées » ci-dessous, figée à l'issue du cadrage initial) : chaque résolution d'un cas ambigu rencontré pendant le développement (ex. sémantique exacte d'un index `stat()`, arrondi/débordement d'un cas limite en virgule fixe, ou un chemin insuffisamment exercé par le rejeu scripté de la Phase 4 et découvert seulement pendant le test humain de la Phase 5 — pas seulement les cas rencontrés en Phase 3) est consignée en une ligne — fonction/zone concernée, problème, résolution retenue — pour qu'une décision prise une fois ne soit pas relitigée ou tranchée différemment plus tard sur un cas similaire. Quand un cas est découvert en Phase 5 parce qu'il n'était pas couvert par le rejeu scripté de la Phase 4, le corpus `events.json` de la Phase 4 est étendu pour l'exercer désormais — la consignation dans ce journal documente la décision, mais ne remplace pas la protection par le test de non-régression headless existant.
+
+*(vide pour l'instant — aucune phase n'a commencé)*
 
 ## Décisions actées
 
