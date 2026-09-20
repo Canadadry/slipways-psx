@@ -77,3 +77,113 @@ pico8_fixed_t pico8_fixed_div(pico8_fixed_t a, pico8_fixed_t b) {
 pico8_fixed_t pico8_fixed_neg(pico8_fixed_t x) {
     return (pico8_fixed_t)((uint32_t)0 - (uint32_t)x);
 }
+
+/* flr truncates toward negative infinity on the fixed value. Clearing the
+ * low 16 (fractional) bits of the two's-complement raw representation
+ * does exactly this for both signs -- e.g. raw -1 (0xFFFFFFFF, a tiny
+ * negative fraction just below 0) masks to 0xFFFF0000 (-1.0), not 0
+ * (which truncation-toward-zero would give).
+ * Source: PICO-8 Math wiki, https://pico-8.fandom.com/wiki/Math */
+pico8_fixed_t pico8_fixed_flr(pico8_fixed_t x) {
+    return (pico8_fixed_t)((uint32_t)x & 0xFFFF0000u);
+}
+
+/* abs is the fixed-point absolute value. Built on pico8_fixed_neg so it
+ * inherits the same two's-complement wraparound: negating the
+ * most-negative representable value wraps back to itself rather than
+ * growing, matching +/-'s own overflow rule.
+ * Source: PICO-8 Math wiki, https://pico-8.fandom.com/wiki/Math */
+pico8_fixed_t pico8_fixed_abs(pico8_fixed_t x) {
+    return x < 0 ? pico8_fixed_neg(x) : x;
+}
+
+/* sgn(x) returns 1 for x >= 0 and -1 for x < 0. sgn(0) == 1, not 0.
+ * Source: PICO-8 Sgn wiki, https://pico-8.fandom.com/wiki/Sgn */
+pico8_fixed_t pico8_fixed_sgn(pico8_fixed_t x) {
+    return x < 0 ? pico8_fixed_from_int(-1) : pico8_fixed_from_int(1);
+}
+
+/* mid(a,b,c) returns the median of the three arguments, so mid(lo,hi,v)
+ * clamps v into [lo,hi] regardless of which of the three call-site
+ * conventions is used. Ordinary signed comparison of the raw
+ * representation is a correct total order over fixed-point values, so no
+ * conversion is needed.
+ * Source: PICO-8 manual, https://www.lexaloffle.com/pico8_manual.txt */
+pico8_fixed_t pico8_fixed_mid(pico8_fixed_t a, pico8_fixed_t b, pico8_fixed_t c) {
+    if ((a <= b && b <= c) || (c <= b && b <= a)) {
+        return b;
+    }
+    if ((b <= a && a <= c) || (c <= a && a <= b)) {
+        return a;
+    }
+    return c;
+}
+
+/* band/bor are bitwise AND/OR on the raw 32-bit fixed representation, not
+ * on the "human" integer value. Bitwise AND/OR are well-defined on signed
+ * integers in C regardless of sign (unlike shift), so no unsigned
+ * reinterpretation trick is needed here.
+ * Source: PICO-8 Band wiki, https://pico-8.fandom.com/wiki/Band
+ * Source: PICO-8 Bor wiki, https://pico-8.fandom.com/wiki/Bor */
+pico8_fixed_t pico8_fixed_band(pico8_fixed_t a, pico8_fixed_t b) {
+    return a & b;
+}
+
+pico8_fixed_t pico8_fixed_bor(pico8_fixed_t a, pico8_fixed_t b) {
+    return a | b;
+}
+
+/* shl(x,n) shifts the raw 32-bit representation left by n bits.
+ * Left-shifting a negative signed value directly is undefined behavior in
+ * C (C11 6.5.7p4), so -- as with pico8_fixed_add/sub/neg/div above -- x is
+ * reinterpreted as unsigned first (where left-shift is always
+ * well-defined, reduced modulo 2^32) and the result reinterpreted back as
+ * signed. n outside [0,31] is also UB to shift by in C (regardless of the
+ * shifted value's signedness) and is not documented for this function, so
+ * it's defensively clamped to 0 rather than risking UB -- an unconfirmed
+ * defensive choice, not sourced PICO-8 behavior.
+ * Source: PICO-8 Shl wiki, https://pico-8.fandom.com/wiki/Shl */
+pico8_fixed_t pico8_fixed_shl(pico8_fixed_t x, int32_t n) {
+    if (n < 0 || n >= 32) {
+        return 0;
+    }
+    return (pico8_fixed_t)((uint32_t)x << (uint32_t)n);
+}
+
+/* Integer square root (floor) of a 64-bit value via binary search: the
+ * largest y such that y*y <= n. y fits in 32 bits for every n this module
+ * calls it with (see pico8_fixed_sqrt), and doing this in integer
+ * arithmetic avoids a host floating-point dependency. */
+static uint32_t pico8_fixed_isqrt_u64(uint64_t n) {
+    uint64_t lo = 0;
+    uint64_t hi = 0xFFFFFFFFu;
+    while (lo < hi) {
+        uint64_t mid = lo + (hi - lo + 1) / 2;
+        if (mid * mid <= n) {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return (uint32_t)lo;
+}
+
+/* sqrt(x) for x < 0 returns 0.
+ * Source: PICO-8 Sqrt wiki, https://pico-8.fandom.com/wiki/Sqrt
+ * For x >= 0: x's raw representation is x_raw/65536 as a real number, so
+ * sqrt(x) = sqrt(x_raw/65536), and the *raw* representation of that
+ * result is sqrt(x_raw/65536)*65536 = sqrt(x_raw*65536). x_raw*65536 is
+ * computed in a 64-bit unsigned intermediate (x is known non-negative
+ * here, so reinterpreting it as uint32_t first and widening is safe and
+ * avoids ever left-shifting a signed value), and its integer square root
+ * is the answer's raw bits directly. This truncates (floors) rather than
+ * rounds to the nearest representable fixed-point value -- a reasonable
+ * but not separately sourced choice, consistent with this module's other
+ * truncating operations. */
+pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x) {
+    if (x < 0) {
+        return 0;
+    }
+    uint64_t scaled = (uint64_t)(uint32_t)x << PICO8_FIXED_SHIFT;
+    return (pico8_fixed_t)pico8_fixed_isqrt_u64(scaled);
+}
