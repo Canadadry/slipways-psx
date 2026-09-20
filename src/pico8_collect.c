@@ -101,6 +101,9 @@ pico8_list_t pico8_jp(const pico8_list_t *qk, pico8_jp_predicate_fn ow, void *ct
     pico8_list_iter_t it;
     pico8_value_t e;
     pico8_list_init(&f);
+    if (qk == NULL) {
+        return f;
+    }
     it = pico8_list_all(qk);
     while (pico8_list_iter_next(&it, &e)) {
         if (ow(e, ctx)) {

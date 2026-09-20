@@ -138,6 +138,9 @@ pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_list_t *j_, pico8_value_t *out
     pico8_value_t e;
 
     *out_nearest = pico8_value_ref(NULL);
+    if (j_ == NULL) {
+        return mk;
+    }
     it = pico8_list_all(j_);
     while (pico8_list_iter_next(&it, &e)) {
         pico8_instance_t *o = (pico8_instance_t *)e.as.ref;
