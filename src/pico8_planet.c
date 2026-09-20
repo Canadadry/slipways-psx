@@ -14,6 +14,7 @@
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_planet_display.h"
+#include "pico8_planet_trade.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
@@ -100,6 +101,46 @@ static pico8_value_t pico8_jo_ldown_dispatch(void *self, int argc, pico8_value_t
     return pico8_jo_ldown((pico8_instance_t *)self);
 }
 
+/* Sub-lot 4 (this session): the jo-side of the mutually-recursive trade
+ * cluster (see pico8_planet_trade.h's own top comment for the full PRD
+ * trace). `kf`/`cn`/`ib` are none of them one of `bm`'s 5 real dispatch
+ * names, but all three are genuine `mv()`-routed fields (dynamic receiver-
+ * class resolution is the whole reason this cluster exists) -- these
+ * bridges stay HERE, alongside `pico8_jo_init()`'s own class-registration
+ * wiring, calling across to `pico8_planet_trade.h`'s own `pico8_jo_kf`/
+ * `pico8_jo_cn`/`pico8_jo_ib`, the SAME "bridge lives with the
+ * registration code, function lives in the sibling module" precedent
+ * `pico8_jo_hb_dispatch`/`pico8_jo_gv_dispatch` already established
+ * (sub-lot 3) for `pico8_planet_display.h`. */
+static pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_instance_t *sw = NULL;
+    (void)argc;
+    (void)arg1;
+    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
+        sw = (pico8_instance_t *)arg0.as.ref;
+    }
+    pico8_jo_kf((pico8_instance_t *)self, sw);
+    return pico8_value_ref(NULL);
+}
+
+static pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_jo_trade_proposal_t *lw = NULL;
+    (void)argc;
+    (void)arg1;
+    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
+        lw = (pico8_jo_trade_proposal_t *)arg0.as.ref;
+    }
+    pico8_jo_cn((pico8_instance_t *)self, lw);
+    return pico8_value_ref(NULL);
+}
+
+static pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    return pico8_value_ref(pico8_jo_ib((pico8_instance_t *)self));
+}
+
 void pico8_jo_init(void) {
     pico8_jo_shutdown();
     pico8_pi_init();
@@ -129,6 +170,9 @@ void pico8_jo_init(void) {
     pico8_ob_table_set_name(g_jo_class->defaults, "gv", pico8_value_function(pico8_jo_gv_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "hk", pico8_value_function(pico8_jo_hk_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "ldown", pico8_value_function(pico8_jo_ldown_dispatch));
+    pico8_ob_table_set_name(g_jo_class->defaults, "kf", pico8_value_function(pico8_jo_kf_dispatch));
+    pico8_ob_table_set_name(g_jo_class->defaults, "cn", pico8_value_function(pico8_jo_cn_dispatch));
+    pico8_ob_table_set_name(g_jo_class->defaults, "ib", pico8_value_function(pico8_jo_ib_dispatch));
     pico8_class_register_named("jo", g_jo_class);
 }
 
