@@ -24,31 +24,60 @@
  * dedicated pico8_vec_t member; nothing in this chunk's or chunk 8's scope
  * needs a value slot to know it's holding a vector specifically. */
 typedef enum {
-    PICO8_VALUE_FIXED,  /* a PICO-8 fixed-point number */
-    PICO8_VALUE_STRING, /* a C string (not owned by the value; see below) */
-    PICO8_VALUE_BOOL,   /* a boolean (0 or 1) */
-    PICO8_VALUE_REF     /* an opaque pointer/reference (e.g. an entity) */
+    PICO8_VALUE_FIXED,   /* a PICO-8 fixed-point number */
+    PICO8_VALUE_STRING,  /* a C string (not owned by the value; see below) */
+    PICO8_VALUE_BOOL,    /* a boolean (0 or 1) */
+    PICO8_VALUE_REF,     /* an opaque pointer/reference (e.g. an entity) */
+    PICO8_VALUE_FUNCTION /* an entity method (Chunk 10's mv()/dc()); see
+                           * pico8_value_function_t below */
 } pico8_value_kind_t;
+
+/* Forward-declared (still incomplete here) so pico8_value_function_t's own
+ * by-value parameter/return type below can name it before its full
+ * definition -- the union member of that same function pointer type,
+ * further down, is what forces this order (the struct's own definition
+ * can't come first, since it needs pico8_value_function_t already
+ * declared to name it as a union member). */
+typedef struct pico8_value pico8_value_t;
+
+/* Entity method dispatch (Chunk 10's mv()/dc(), pico8_entity.h): a
+ * PICO8_VALUE_FUNCTION-kind value holds a method -- a field like
+ * .kj/.ev/.hd/.hk/.hb on a real entity, called as
+ * `entity[nt](entity,entity.ra)` by dc()/mv(). Takes the entity as an
+ * opaque `void *self` rather than a concrete pico8_instance_t*:
+ * pico8_value.h is a lower-level module than pico8_class.h (pico8_class.h
+ * includes pico8_ob.h, which includes this file), so it must not depend
+ * upward on pico8_instance_t's own definition -- pico8_entity.c casts
+ * `self` back to pico8_instance_t* itself wherever it calls a method it
+ * looked up. Every real mv()-equivalent dispatch call site in this
+ * phase's own scope (dc()'s `entity[nt](entity,entity.ra)`, and
+ * `mo:md(ci[o])`) passes exactly one extra argument, so a method takes
+ * exactly one (not a variadic list) -- see pico8_entity.c's own top
+ * comment on mv() for the confirmation trail across every real call site
+ * in pico8/lua.lua. */
+typedef pico8_value_t (*pico8_value_function_t)(void *self, pico8_value_t arg);
 
 /* A value never owns the memory a PICO8_VALUE_STRING or PICO8_VALUE_REF
  * points to -- it's a plain tagged union of a scalar or a borrowed
  * pointer, matching Lua's own by-reference semantics for strings/tables
  * (assigning a Lua value never deep-copies a string or table). Callers
  * are responsible for whatever the pointer's lifetime needs to be. */
-typedef struct {
+struct pico8_value {
     pico8_value_kind_t kind;
     union {
         pico8_fixed_t fixed;
         const char *string;
         int boolean;
         void *ref;
+        pico8_value_function_t function;
     } as;
-} pico8_value_t;
+};
 
 pico8_value_t pico8_value_fixed(pico8_fixed_t x);
 pico8_value_t pico8_value_string(const char *s);
 pico8_value_t pico8_value_bool(int b);
 pico8_value_t pico8_value_ref(void *p);
+pico8_value_t pico8_value_function(pico8_value_function_t fn);
 
 /* "Equal in value", as used by del() (PICO-8 Del wiki:
  * https://pico-8.fandom.com/wiki/Del) to find the first matching element.
@@ -58,6 +87,11 @@ pico8_value_t pico8_value_ref(void *p);
  *   - PICO8_VALUE_FIXED: compared numerically (raw 16.16 equality).
  *   - PICO8_VALUE_BOOL:  compared as plain booleans.
  *   - PICO8_VALUE_REF:   compared by pointer identity.
+ *   - PICO8_VALUE_FUNCTION: compared by function-pointer identity (never
+ *     exercised by any del() call site in scope -- methods are never
+ *     del()'d, only entities holding them are -- but a fifth tagged-union
+ *     kind still needs a defined equality case rather than an implicit
+ *     "never equal" left to fall through unhandled).
  *   - PICO8_VALUE_STRING: compared by pointer identity, NOT by content
  *     (no strcmp). Every del() call site found by grepping lua.lua in
  *     this phase's scope (pico8/lua.lua:163,164,167,484,676,704,740 --
@@ -97,11 +131,12 @@ int pico8_value_equal(pico8_value_t a, pico8_value_t b);
  *     in-scope call site either, but is trivial and unambiguous (identity/
  *     passthrough of the string's content) so it's implemented for
  *     completeness rather than left to assert/crash.
- *   - PICO8_VALUE_BOOL and PICO8_VALUE_REF are likewise never passed to
- *     tostr() by any in-scope call site; both get a minimal, defensive
- *     result (BOOL: "true"/"false"; REF: an empty string) rather than a
- *     researched PICO-8-accurate formatting, since no real call site in
- *     scope exercises either -- a real future need is evidence to build
+ *   - PICO8_VALUE_BOOL, PICO8_VALUE_REF and PICO8_VALUE_FUNCTION are
+ *     likewise never passed to tostr() by any in-scope call site; all
+ *     three get a minimal, defensive result (BOOL: "true"/"false"; REF
+ *     and FUNCTION: an empty string) rather than a researched
+ *     PICO-8-accurate formatting, since no real call site in scope
+ *     exercises any of them -- a real future need is evidence to build
  *     that out properly, not something to guess at now. */
 char *pico8_value_tostr(pico8_value_t v);
 

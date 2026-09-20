@@ -32,6 +32,13 @@ pico8_value_t pico8_value_ref(void *p) {
     return v;
 }
 
+pico8_value_t pico8_value_function(pico8_value_function_t fn) {
+    pico8_value_t v;
+    v.kind = PICO8_VALUE_FUNCTION;
+    v.as.function = fn;
+    return v;
+}
+
 int pico8_value_equal(pico8_value_t a, pico8_value_t b) {
     if (a.kind != b.kind) {
         return 0;
@@ -45,6 +52,8 @@ int pico8_value_equal(pico8_value_t a, pico8_value_t b) {
             return a.as.string == b.as.string;
         case PICO8_VALUE_REF:
             return a.as.ref == b.as.ref;
+        case PICO8_VALUE_FUNCTION:
+            return a.as.function == b.as.function;
     }
     return 0;
 }
@@ -86,6 +95,7 @@ char *pico8_value_tostr(pico8_value_t v) {
             return pico8_strdup_owned(buf);
         }
         case PICO8_VALUE_REF:
+        case PICO8_VALUE_FUNCTION:
             /* Never exercised by any in-scope call site; minimal/
              * defensive rather than a researched formatting. */
             return pico8_strdup_owned("");
