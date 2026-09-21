@@ -48,6 +48,25 @@ int pico8_input_load(pico8_input_t *input, const char *path);
  * unless every frame is written and the file closes successfully. */
 int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const char *path);
 
+/* Adds one more frame to the events.json-schema recording at `path`
+ * without re-serializing the frames already recorded there, so the cost of
+ * recording a frame does not grow with the length of the session (the
+ * always-on per-frame recording in pico8_raylib_backend_present() is the
+ * one caller this exists for). `*io_tail_offset` is the writer's whole
+ * memory of the recording: set it to 0 to start a new one -- `path` is
+ * then created or truncated and written with this single frame -- and pass
+ * the same variable back, untouched, on every later call for that
+ * recording. After every successful call `path` holds a complete, valid
+ * events.json that pico8_input_load parses, byte-for-byte identical to
+ * what pico8_input_save(frames, n, path) writes for the same n frames;
+ * that identity is why the caller never has to keep the frames it has
+ * already recorded, and why a session recorded this way replays exactly
+ * like one recorded by repeated full rewrites. Returns 1 on success, 0 on
+ * failure (a NULL argument, or a file open/seek/write/close failure),
+ * leaving `*io_tail_offset` unchanged so the next call writes its frame
+ * into the same slot rather than past a frame that never landed. */
+int pico8_input_append(const pico8_input_frame_t *frame, const char *path, long *io_tail_offset);
+
 /* Releases the frame array. Safe to call on an input that was only
  * pico8_input_init'd (never loaded), and safe to call again before a
  * fresh pico8_input_load. */

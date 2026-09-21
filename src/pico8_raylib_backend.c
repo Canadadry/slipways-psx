@@ -4,7 +4,6 @@
 #include "pico8_gfx.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 
 /* The standard, published PICO-8 default palette (16 RGB colors), in
@@ -33,30 +32,9 @@ static const Color PICO8_PALETTE[16] = {
     { 0xFF, 0xCC, 0xAA, 0xFF },
 };
 
-/* Appends `frame` to the session's growing in-memory frame list,
- * doubling capacity as needed (same growth pattern as pico8_input.c's
- * own frame-array loading code). A failed realloc silently drops the
- * append rather than crashing a live playtest session -- the next
- * present() call's pico8_input_save will simply rewrite the same
- * (unchanged) frame count again; this is presentation/recording-layer
- * robustness, not a ported function's error-handling contract. */
-static void append_session_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame) {
-    if (backend->session_frame_count == backend->session_frame_capacity) {
-        int new_capacity = (backend->session_frame_capacity == 0) ? 64 : backend->session_frame_capacity * 2;
-        pico8_input_frame_t *bigger = realloc(backend->session_frames, sizeof(pico8_input_frame_t) * (size_t)new_capacity);
-        if (!bigger) {
-            return;
-        }
-        backend->session_frames = bigger;
-        backend->session_frame_capacity = new_capacity;
-    }
-    backend->session_frames[backend->session_frame_count++] = *frame;
-}
-
 void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
-    backend->session_frames = NULL;
     backend->session_frame_count = 0;
-    backend->session_frame_capacity = 0;
+    backend->record_tail_offset = 0;
 
     time_t now = time(NULL);
     snprintf(backend->record_path, sizeof(backend->record_path), "tmp/events_recorded_%ld.json", (long)now);
@@ -150,16 +128,21 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
     EndDrawing();
 
-    append_session_frame(backend, frame);
-    pico8_input_save(backend->session_frames, backend->session_frame_count, backend->record_path);
+    /* A failed append silently drops the frame rather than crashing a live
+     * playtest session, and leaves session_frame_count alone so the next
+     * frame takes the slot this one never reached -- keeping the count the
+     * index of the next frame in the recording, which is what poll_input's
+     * marker file writes out. Presentation/recording-layer robustness, not
+     * a ported function's error-handling contract. */
+    if (pico8_input_append(frame, backend->record_path, &backend->record_tail_offset)) {
+        backend->session_frame_count++;
+    }
 }
 
 void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend) {
     UnloadTexture(backend->screen_texture);
     ShowCursor();
     CloseWindow();
-    free(backend->session_frames);
-    backend->session_frames = NULL;
     backend->session_frame_count = 0;
-    backend->session_frame_capacity = 0;
+    backend->record_tail_offset = 0;
 }

@@ -694,11 +694,14 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             radius_f = pico8_fixed_mul(pico8_fixed_sqrt(dw), pico8_fixed_from_int(128));
             radius = (int)pico8_fixed_to_double(radius_f);
 
-            /* 0b1010101010101010.1 -- see this file's own header comment
-             * on pico8_jo_kj for why the trailing .1 fractional flag is
-             * simply dropped (pico8_fillp's own already-shipped semantics
-             * already model it unconditionally). */
-            pico8_fillp(gfx, 0xAAAAu);
+            /* 0b1010101010101010.1 -- the trailing .1 is PICO-8's own
+             * fill-pattern transparency flag ("when this bit is set, the
+             * second colour is not drawn"), so the pattern's set bits
+             * leave the screen untouched here rather than drawing 0x2's
+             * own (empty) high nibble: pico8_fillp_transparent, not
+             * pico8_fillp. See this file's own header comment on
+             * pico8_jo_kj. */
+            pico8_fillp_transparent(gfx, 0xAAAAu);
             pico8_circfill(gfx, mem, px, py, radius, 2);
             pico8_fillp_reset(gfx);
             pico8_ob_table_set_name(self->fields, "fo", pico8_value_ref(NULL));

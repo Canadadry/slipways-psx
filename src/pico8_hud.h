@@ -90,7 +90,8 @@ void pico8_dv_default(pico8_mem_t *mem);
  * of this comment claimed "a NULL `gfx` is a safe no-op ... pico8_rectfill's
  * own NULL handling covers the rest" -- false, confirmed by a real ASan/
  * UBSan repro (`pico8_rk(NULL, mem, 0, 5, 3)` crashes, "member access
- * within null pointer", pico8_gfx.c's own pico8_fillp_skips). Neither
+ * within null pointer", pico8_gfx.c's own pico8_fillp_bit_set -- named
+ * pico8_fillp_skips when that repro was run). Neither
  * `pico8_rectfill` nor `pico8_pset` (pico8_gfx.c, both pre-existing,
  * unmodified here) guard their own `gfx` parameter against NULL at all --
  * matching this port's pervasive "the CALLER must guard NULL, not the

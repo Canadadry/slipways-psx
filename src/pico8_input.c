@@ -188,6 +188,31 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
     return 1;
 }
 
+/* The events.json file's fixed head and tail, and the one place a frame
+ * object's own line is spelled out -- shared by pico8_input_save and
+ * pico8_input_append so the two writers cannot drift into producing
+ * different bytes for the same frames. Between two frame lines comes
+ * FRAME_SEPARATOR; after the last one comes JSON_SUFFIX. */
+#define JSON_PREFIX "{\n  \"frames\": [\n"
+#define JSON_SUFFIX "\n  ]\n}\n"
+#define FRAME_SEPARATOR ",\n"
+#define FRAME_LINE_MAX 160
+
+static int format_frame_line(char *buf, size_t size, const pico8_input_frame_t *fr) {
+    int rc = snprintf(
+        buf,
+        size,
+        "    { \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, \"dpad\": [%s, %s, %s, %s] }",
+        fr->mouse_x,
+        fr->mouse_y,
+        fr->mouse_buttons,
+        fr->dpad[0] ? "true" : "false",
+        fr->dpad[1] ? "true" : "false",
+        fr->dpad[2] ? "true" : "false",
+        fr->dpad[3] ? "true" : "false");
+    return rc > 0 && (size_t)rc < size;
+}
+
 int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const char *path) {
     if (!frames || frame_count <= 0) {
         return 0;
@@ -207,28 +232,18 @@ int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const c
     }
 
     int ok = 1;
-    if (fprintf(f, "{\n  \"frames\": [\n") < 0) {
+    if (fputs(JSON_PREFIX, f) < 0) {
         ok = 0;
     }
     for (int i = 0; ok && i < frame_count; i++) {
-        const pico8_input_frame_t *fr = &frames[i];
-        int rc = fprintf(
-            f,
-            "    { \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, \"dpad\": [%s, %s, %s, %s] }%s\n",
-            fr->mouse_x,
-            fr->mouse_y,
-            fr->mouse_buttons,
-            fr->dpad[0] ? "true" : "false",
-            fr->dpad[1] ? "true" : "false",
-            fr->dpad[2] ? "true" : "false",
-            fr->dpad[3] ? "true" : "false",
-            (i + 1 < frame_count) ? "," : "");
-        if (rc < 0) {
+        char line[FRAME_LINE_MAX];
+        if (!format_frame_line(line, sizeof(line), &frames[i])) {
+            ok = 0;
+            break;
+        }
+        if (fputs(line, f) < 0 || fputs((i + 1 < frame_count) ? FRAME_SEPARATOR : JSON_SUFFIX, f) < 0) {
             ok = 0;
         }
-    }
-    if (ok && fprintf(f, "  ]\n}\n") < 0) {
-        ok = 0;
     }
 
     if (fclose(f) != 0) {
@@ -248,6 +263,58 @@ int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const c
     }
 
     free(tmp_path);
+    return 1;
+}
+
+int pico8_input_append(const pico8_input_frame_t *frame, const char *path, long *io_tail_offset) {
+    if (!frame || !path || !io_tail_offset) {
+        return 0;
+    }
+
+    char line[FRAME_LINE_MAX];
+    if (!format_frame_line(line, sizeof(line), frame)) {
+        return 0;
+    }
+
+    /* `*io_tail_offset` is where the previous frame's object ended, i.e.
+     * where JSON_SUFFIX currently starts. Writing the new frame there
+     * turns that suffix into a separator plus the new frame's line plus a
+     * fresh suffix, which is strictly longer -- the file only ever grows,
+     * so nothing has to be truncated. */
+    int fresh = (*io_tail_offset <= 0);
+    const char *head = fresh ? JSON_PREFIX : FRAME_SEPARATOR;
+    long start = fresh ? 0 : *io_tail_offset;
+
+    char tail[sizeof(JSON_PREFIX) + FRAME_LINE_MAX + sizeof(JSON_SUFFIX)];
+    int written = snprintf(tail, sizeof(tail), "%s%s%s", head, line, JSON_SUFFIX);
+    if (written <= 0 || (size_t)written >= sizeof(tail)) {
+        return 0;
+    }
+
+    FILE *f = fopen(path, fresh ? "wb" : "r+b");
+    if (!f) {
+        return 0;
+    }
+    if (!fresh && fseek(f, start, SEEK_SET) != 0) {
+        fclose(f);
+        return 0;
+    }
+
+    /* One fwrite of the whole tail, so a process killed mid-session cannot
+     * land between two halves of it: the recording on disk is either the
+     * one without this frame or the one with it, never a torn file. That is
+     * the same all-or-nothing guarantee pico8_input_save gets from writing
+     * a .tmp file and renaming it. */
+    size_t tail_len = (size_t)written;
+    if (fwrite(tail, 1, tail_len, f) != tail_len) {
+        fclose(f);
+        return 0;
+    }
+    if (fclose(f) != 0) {
+        return 0;
+    }
+
+    *io_tail_offset = start + (long)strlen(head) + (long)strlen(line);
     return 1;
 }
 

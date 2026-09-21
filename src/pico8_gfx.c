@@ -6,6 +6,7 @@ void pico8_gfx_init(pico8_gfx_t *gfx) {
     gfx->camera_x = 0;
     gfx->camera_y = 0;
     gfx->fillp_pattern = 0;
+    gfx->fillp_transparent = 0;
     /* Phase 3, Chunk 18: PICO-8's own documented default pen colour before
      * any real color()/col-taking draw call ever runs is 6 (light grey) --
      * an external, well-known PICO-8-manual fact, not something derived
@@ -99,17 +100,43 @@ void pico8_line(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, int x2
 
 /* fillp's 16-bit pattern is a 4x4 grid of bits, read most-significant-bit
  * first, row-major from top-left: bit 15 is (row 0, col 0), bit 0 is
- * (row 3, col 3). A set bit means "skip this pixel"; fillp(0) (the
- * default/reset value) has every bit clear, so every pixel is drawn.
+ * (row 3, col 3) -- the PICO-8 manual's own "P is a bitfield in reading
+ * order starting from the highest bit" table. fillp(0) (the
+ * default/reset value) has every bit clear.
  * Only *fill* operations (rectfill, circfill) consult this: every
  * fillp(...)-bracketed call site found in pico8/lua.lua surrounds a fill
  * call and explicitly resets the pattern with fillp() before any
  * unfilled line/rect/circ call, so those never need to respect it. */
-static int pico8_fillp_skips(const pico8_gfx_t *gfx, int x, int y) {
+static int pico8_fillp_bit_set(const pico8_gfx_t *gfx, int x, int y) {
     int row = ((y % 4) + 4) % 4;
     int col = ((x % 4) + 4) % 4;
     int bit_index = 15 - (row * 4 + col);
     return (gfx->fillp_pattern >> bit_index) & 1;
+}
+
+/* The fill pattern is a TWO-COLOUR pattern, and the colour parameter of a
+ * fill carries both of its colours: "To specify a second colour for the
+ * pattern, use the high bits of any colour parameter" (PICO-8 manual,
+ * FILLP). So the pattern's clear bits draw `col`'s low nibble and its set
+ * bits draw `col`'s high nibble -- unless the pattern's own transparency
+ * flag is set, in which case "the second colour is not drawn" and the set
+ * bits leave the screen untouched (returned here as -1).
+ *
+ * This is why the colour never reaches the framebuffer unmasked: PICO-8's
+ * screen is 4 bits per pixel, so only a 0..15 index can ever be stored,
+ * and the cart's one two-nibble colour literal -- `rk(om,dn,0x10)` in
+ * jb:ol (pico8/lua.lua:319) -- means "colour 0 and colour 1", not
+ * "colour 16". pico8_pset() is deliberately left unmasked so that
+ * src/pico8_dump.c's own assert(pixel <= 0x0f) keeps catching any future
+ * primitive that stores a bogus index. */
+static int pico8_fillp_color(const pico8_gfx_t *gfx, int x, int y, int col) {
+    if (!pico8_fillp_bit_set(gfx, x, y)) {
+        return col & 0x0F;
+    }
+    if (gfx->fillp_transparent) {
+        return -1;
+    }
+    return (col >> 4) & 0x0F;
 }
 
 static int pico8_min(int a, int b) {
@@ -173,8 +200,9 @@ static void pico8_circfill_span(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1
     int xmax = pico8_max(x1, x2);
 
     for (int x = xmin; x <= xmax; x++) {
-        if (!pico8_fillp_skips(gfx, x, y)) {
-            pico8_pset(gfx, mem, x, y, col);
+        int pattern_col = pico8_fillp_color(gfx, x, y, col);
+        if (pattern_col >= 0) {
+            pico8_pset(gfx, mem, x, y, pattern_col);
         }
     }
 }
@@ -205,6 +233,12 @@ void pico8_circfill(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cx, int cy, in
 
 void pico8_fillp(pico8_gfx_t *gfx, unsigned int pattern) {
     gfx->fillp_pattern = pattern & 0xFFFFu;
+    gfx->fillp_transparent = 0;
+}
+
+void pico8_fillp_transparent(pico8_gfx_t *gfx, unsigned int pattern) {
+    gfx->fillp_pattern = pattern & 0xFFFFu;
+    gfx->fillp_transparent = 1;
 }
 
 void pico8_fillp_reset(pico8_gfx_t *gfx) {
@@ -495,8 +529,9 @@ void pico8_rectfill(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, in
 
     for (int y = ymin; y <= ymax; y++) {
         for (int x = xmin; x <= xmax; x++) {
-            if (!pico8_fillp_skips(gfx, x, y)) {
-                pico8_pset(gfx, mem, x, y, col);
+            int pattern_col = pico8_fillp_color(gfx, x, y, col);
+            if (pattern_col >= 0) {
+                pico8_pset(gfx, mem, x, y, pattern_col);
             }
         }
     }
