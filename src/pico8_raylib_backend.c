@@ -33,12 +33,17 @@ static const Color PICO8_PALETTE[16] = {
 };
 
 void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
-    backend->session_frame_count = 0;
-    backend->record_tail_offset = 0;
-
+    /* One time(NULL) for both names, because the whole point of the
+     * marker file is that a human can pair it with its recording by
+     * name; two clock reads could straddle a second and silently break
+     * that pairing. It is also why the recording's path is minted here
+     * and handed to the recorder rather than chosen by it -- see
+     * pico8_session_recorder.h. */
     time_t now = time(NULL);
-    snprintf(backend->record_path, sizeof(backend->record_path), "tmp/events_recorded_%ld.json", (long)now);
+    char record_path[PICO8_SESSION_RECORDER_PATH_MAX];
+    snprintf(record_path, sizeof(record_path), "tmp/events_recorded_%ld.json", (long)now);
     snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
+    pico8_session_recorder_open(&backend->recorder, record_path);
 
     InitWindow(PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, PICO8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");
@@ -100,17 +105,18 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
      * frame they want to talk about by tapping space, without needing to
      * describe "it happened somewhere around..." Appended (never
      * rewritten) so a marker already on disk survives a crash later in
-     * the session; session_frame_count is the index this frame will get
+     * the session; the recorder's frame count is the index this frame gets
      * once pico8_raylib_backend_record_frame() appends it (the caller's
      * very next call, immediately after this one), i.e. exactly the
      * 0-based index into the paired recording's own "frames" array. */
     if (IsKeyReleased(KEY_SPACE)) {
+        int marked_frame = pico8_session_recorder_frame_count(&backend->recorder);
         FILE *markers = fopen(backend->markers_path, "a");
         if (markers) {
-            fprintf(markers, "%d\n", backend->session_frame_count);
+            fprintf(markers, "%d\n", marked_frame);
             fclose(markers);
         }
-        printf("marker: frame %d (%s)\n", backend->session_frame_count, backend->markers_path);
+        printf("marker: frame %d (%s)\n", marked_frame, backend->markers_path);
         fflush(stdout);
     }
 }
@@ -133,21 +139,20 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
 }
 
 void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame) {
-    /* A failed append silently drops the frame rather than crashing a live
-     * playtest session, and leaves session_frame_count alone so the next
-     * frame takes the slot this one never reached -- keeping the count the
-     * index of the next frame in the recording, which is what poll_input's
-     * marker file writes out. Presentation/recording-layer robustness, not
-     * a ported function's error-handling contract. */
-    if (pico8_input_append(frame, backend->record_path, &backend->record_tail_offset)) {
-        backend->session_frame_count++;
-    }
+    /* The return value is deliberately ignored: a failed append drops
+     * the frame rather than crashing a live playtest session, and the
+     * recorder already leaves its own count alone in that case, so the
+     * next frame takes the slot this one never reached and poll_input's
+     * marker file keeps naming the right frame (pico8_session_recorder.
+     * h). There is nothing this backend could do about a drop that
+     * would not be worse than the drop. Presentation/recording-layer
+     * robustness, not a ported function's error-handling contract. */
+    (void)pico8_session_recorder_record_frame(&backend->recorder, frame);
 }
 
 void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend) {
     UnloadTexture(backend->screen_texture);
     ShowCursor();
     CloseWindow();
-    backend->session_frame_count = 0;
-    backend->record_tail_offset = 0;
+    pico8_session_recorder_close(&backend->recorder);
 }

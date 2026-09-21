@@ -5,8 +5,10 @@
  * PICO8_ADDR_SCREEN, exactly like pico8_dump_screen already does) as a
  * texture and presenting it scaled, polling live mouse/keyboard input
  * into a pico8_input_frame_t, and recording every played frame to a
- * timestamped events.json-shaped file via pico8_input_append after every
- * single frame. None of the ported PICO-8 mimicry API (pico8_gfx_t/
+ * timestamped events.json-shaped file (through pico8_session_recorder,
+ * which owns that bookkeeping since Chunk 3 of docs/prd/triage/raylib-
+ * replay-then-resume.md -- see the struct below) after every single
+ * frame. None of the ported PICO-8 mimicry API (pico8_gfx_t/
  * pico8_mem_t/pico8_input_t/pico8_btn/pico8_stat) is touched or
  * duplicated here -- this module only feeds it a live-polled
  * pico8_input_frame_t and reads pico8_mem_t for presentation, same as
@@ -61,6 +63,7 @@
 
 #include "pico8_mem.h"
 #include "pico8_input.h"
+#include "pico8_session_recorder.h"
 
 #include "raylib.h"
 
@@ -71,19 +74,29 @@
  * any other module (see the PRD's Further Notes). */
 #define PICO8_RAYLIB_BACKEND_SCALE 6
 
-/* Owns the raylib window/texture and this session's always-on events.json
- * recording: how many frames have been recorded so far, and where the next
- * one goes in the file (pico8_input_append's `io_tail_offset`). The frames
- * themselves are not kept in memory -- each one is added to the recording
- * as it is played and never needed again. Callers only ever pass a pointer
- * to one of these to the functions below -- no field is meant to be read
- * or written directly. */
+/* Owns the raylib window/texture, this session's always-on events.json
+ * recording, and the paired marker file. The frames themselves are never
+ * kept in memory -- each one is added to the recording as it is played
+ * and never needed again. Callers only ever pass a pointer to one of
+ * these to the functions below -- no field is meant to be read or
+ * written directly.
+ *
+ * `recorder` used to be three plain fields here (a frame count, an
+ * append tail offset and a path). Chunk 3 of docs/prd/triage/raylib-
+ * replay-then-resume.md moved them into pico8_session_recorder.{c,h}
+ * unchanged, for a testing reason rather than a design one: this file
+ * includes raylib.h, so nothing in it can be exercised by `make unit`,
+ * and the one property that chunk owes the player -- a resumed session
+ * keeps recording, replayed frames then new ones -- could not be
+ * asserted anywhere while the bookkeeping lived here. It is asserted
+ * now, in tests/test_pico8_recording_continuity.c, against the real
+ * recorder and the real pico8_replay_source. See that module's header
+ * for the rest, including why the timestamped path is still minted
+ * below and not there. */
 typedef struct {
     Texture2D screen_texture;
     Color pixel_buffer[128 * 128];
-    int session_frame_count;
-    long record_tail_offset;
-    char record_path[64];
+    pico8_session_recorder_t recorder;
     char markers_path[64];
 } pico8_raylib_backend_t;
 
@@ -121,7 +134,7 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
  * 0-based index (matching the paired recording's own "frames" array
  * index) as a line of plain text to
  * tmp/events_recorded_<timestamp>.markers.txt -- the same <timestamp>
- * as record_path, so the two files pair up by name. Purely a playtest-
+ * as the recording's own path, so the two files pair up by name. Purely a playtest-
  * feedback aid (bookmark "the frame I want to talk about" without
  * describing it) -- no Lua-source equivalent, no effect on *out_frame
  * or the recorded frame data itself. */
@@ -139,15 +152,23 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
  * so the call site's shape stays stable. */
 void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame);
 
-/* Adds *frame (the same frame poll_input just filled) to the session's
- * recording file via pico8_input_append, which costs the same whether it
- * is the session's first frame or its thirty-thousandth. Called once per
- * loop iteration, immediately after pico8_raylib_backend_poll_input()
- * and BEFORE pico8__update60()/pico8__draw(), so that a frame whose
+/* Adds *frame to the session's recording (pico8_session_recorder, which
+ * appends rather than rewriting, so recording a frame costs the same
+ * whether it is the session's first or its thirty-thousandth). Called
+ * once per loop iteration, on whatever frame is about to be played,
+ * BEFORE pico8__update60()/pico8__draw(), so that a frame whose
  * update60() crashes is already on disk -- see this header's own top
  * comment for the playtest segfault that forced this ordering. A failed
  * append silently drops the frame rather than crashing a live playtest
- * session. */
+ * session.
+ *
+ * `frame` is deliberately not asked where it came from. src/main_raylib.c
+ * calls this unconditionally, so a frame replayed from a recording is
+ * recorded exactly like a live one, which is what makes the recording of
+ * a resumed session hold the replayed frames followed by the new ones
+ * and stay replayable in its turn (PRD "continuite de l'enregistrement",
+ * user stories 8 and 9, proven end to end in
+ * tests/test_pico8_recording_continuity.c). */
 void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame);
 
 /* Restores the host OS cursor init() hid, unloads the texture and closes
