@@ -2,6 +2,7 @@
 #define PICO8_CLASS_H
 
 #include "pico8_ob.h"
+#include "pico8_type_tag.h"
 
 /* pico8/lua.lua's `kv:jr` class system (line 85-97, see pico8_class.c's
  * own top comment for the exact source and a full read-through). A class

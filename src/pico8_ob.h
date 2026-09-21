@@ -2,6 +2,7 @@
 #define PICO8_OB_H
 
 #include "pico8_list.h"
+#include "pico8_type_tag.h"
 #include "pico8_value.h"
 
 /* pico8/lua.lua's ob()/fi() data-description mini-language (lines 55-78):

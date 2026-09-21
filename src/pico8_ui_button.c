@@ -1,5 +1,6 @@
 #include "pico8_ui_button.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -110,11 +111,25 @@ static pico8_class_t *g_fq_class = NULL;
  *               freed, the same accepted row-builder leak convention
  *               pico8_ob.h documents on the converter itself.
  *   UNKNOWN  -> an untagged/foreign REF. NOT blind-cast any more (that
- *               blind cast is the whole bug family): treated as "no
- *               overrides", i.e. exactly the same NULL this function
- *               already returns for an absent/non-REF "lq" field, which
- *               `pico8_lq_new()` handles as `mw(nil)` -- an empty fields
- *               table. No real call site is expected to reach it. */
+ *               blind cast is the whole bug family). Asserted loudly
+ *               rather than quietly degraded: falling back to "no
+ *               overrides" (NULL) would render the row EMPTY instead of
+ *               crashing, and a silently dropped row is the quietest
+ *               possible failure for precisely the family this tag
+ *               exists to kill -- the same "no real call site is
+ *               expected to reach it" expectation the pre-Phase-5 cast
+ *               audit was made of when it marked this very site safe
+ *               (docs/plan.md's own "Notes de portage"). No construction
+ *               path in src/ leaves an object untagged (all 12 `fields`
+ *               writers, both `items` writers and both `entries`
+ *               writers set one), and an instrumented run of the full
+ *               9758-frame recorded playtest plus the whole suite saw
+ *               0 UNKNOWN across ~230 dispatches -- so this is a "cannot
+ *               happen" guard, and the point of it is to stay audible if
+ *               a future construction path ever forgets the tag. With
+ *               the recording fix in place (pico8_raylib_backend.h) an
+ *               abort here leaves a recording that ends WITH the
+ *               offending frame, so it is directly reproducible. */
 static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
     if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
@@ -128,6 +143,7 @@ static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
     case PICO8_TYPE_TAG_LIST:
         return pico8_ob_table_from_list((const pico8_list_t *)v.as.ref);
     default:
+        assert(0 && "untagged REF reached js:pq's lq()/h_() argument");
         return NULL;
     }
 }
