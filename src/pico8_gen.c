@@ -7,6 +7,8 @@
 
 #include <stdlib.h>
 
+#include "pico8_ob.h"
+
 /* function jf(n_,b)
  * return function()local v=rnd(1-abs(b))+max(b,0)
  * b+=(0.5-v)*n_
@@ -77,14 +79,39 @@ static int pico8_gn_nm_contains(const pico8_gn_state_t *state, pico8_value_t e) 
  * return e
  * end
  * end
- * pico8_gn builds the ticket pool `oc` (each entity `e` from `hr`, e.g.
- * cg.jo, appears `flr(e.r*og)` times -- Lua's `for n=1,X do` iterates
- * exactly floor(X) times for X>=1, 0 times otherwise, matching
- * pico8_fixed_flr here); pico8_gn_next is the returned closure's own body
- * (below). `r` (a zero-argument Lua closure the real gn() call itself
- * receives, e.g. `rnd`) becomes a plain `pico8_fixed_t(*)(void*)` function
- * pointer plus a ctx, this codebase's own established convention for a
- * captured Lua closure with no native C equivalent. */
+ * pico8_gn builds the ticket pool `oc` (each entity `e` from `hr` appears
+ * `flr(e.r*og)` times -- Lua's `for n=1,X do` iterates exactly floor(X)
+ * times for X>=1, 0 times otherwise, matching pico8_fixed_flr here);
+ * pico8_gn_next is the returned closure's own body (below). `r` (a
+ * zero-argument Lua closure the real gn() call itself receives, e.g.
+ * `rnd`) becomes a plain `pico8_fixed_t(*)(void*)` function pointer plus a
+ * ctx, this codebase's own established convention for a captured Lua
+ * closure with no native C equivalent.
+ *
+ * *** CHUNK 20 FIX -- `hr`-ENTRY SHAPE CORRECTED, `e.r` READ VIA
+ * `pico8_ob_table_get_name`, NOT `pico8_instance_get_field` *** (Phase 3,
+ * Chunk 1's own flagged, deferred gap -- see docs/plan.md's own "Notes de
+ * portage" for the full trace): `gn(` has exactly ONE real call site in
+ * the whole cart (confirmed by grepping `pico8/lua.lua` directly: line 732
+ * is `gn`'s own definition, line 751 is its only call), `gn(df,2,jf(0.5,
+ * dk.en))` inside `bw()` (Chunk 20, pico8_galaxy.c). `df` (Chunk 11's
+ * `pico8_df()`, pico8_data_init.h) is a plain, POSITIONALLY-`ob()`-parsed
+ * table whose own entries are themselves plain `pico8_ob_table_t*` records
+ * (e.g. `e.s=160,e.r=4.5,e.d="earth-like"`, confirmed by Chunk 11's own
+ * verification) -- `df` is never `pico8_class_instantiate`'d anywhere in
+ * this port, so `hr`'s own list elements are never `pico8_instance_t*`
+ * despite this function's own original (Chunk 1) assumption that they
+ * were. Reading `e.r` via `pico8_instance_get_field` against a genuine
+ * `pico8_ob_table_t*` reinterprets that struct's `{entries,count,
+ * capacity}` layout as `pico8_instance_t`'s own `{fields,cls}` layout --
+ * undefined behavior, not a simple "field absent" miss -- so every real
+ * ticket in `oc` would previously have been silently dropped (`weight_val`
+ * never resolving to a genuine `PICO8_VALUE_FIXED`) the moment this
+ * function was ever exercised against its one real caller. Fixed by
+ * reading `e.r` via `pico8_ob_table_get_name(entity, "r", &weight_val)`
+ * against `e.as.ref` reinterpreted as `const pico8_ob_table_t*` instead --
+ * the correct, and only evidenced, shape for `hr`'s own real elements. No
+ * other line of this function changed. */
 pico8_gn_state_t *pico8_gn(const pico8_list_t *hr, pico8_fixed_t og, pico8_gn_random_fn r, void *r_ctx) {
     pico8_gn_state_t *state = malloc(sizeof *state);
     pico8_list_iter_t it;
@@ -101,12 +128,12 @@ pico8_gn_state_t *pico8_gn(const pico8_list_t *hr, pico8_fixed_t og, pico8_gn_ra
 
     it = pico8_list_all(hr);
     while (pico8_list_iter_next(&it, &e)) {
-        pico8_instance_t *entity = (pico8_instance_t *)e.as.ref;
+        const pico8_ob_table_t *entity = (const pico8_ob_table_t *)e.as.ref;
         pico8_value_t weight_val;
         pico8_fixed_t count_fixed;
         int count, n;
 
-        if (!pico8_instance_get_field(entity, "r", &weight_val) || weight_val.kind != PICO8_VALUE_FIXED) {
+        if (!pico8_ob_table_get_name(entity, "r", &weight_val) || weight_val.kind != PICO8_VALUE_FIXED) {
             continue;
         }
         count_fixed = pico8_fixed_flr(pico8_fixed_mul(weight_val.as.fixed, og));

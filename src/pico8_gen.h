@@ -60,8 +60,22 @@ typedef pico8_fixed_t (*pico8_gn_random_fn)(void *ctx);
  * pico8_gn builds the pool, pico8_gn_next is the returned closure's own
  * body (one pick per call, removing the picked ticket from the pool),
  * pico8_gn_free releases it. The returned entity is a PICO8_VALUE_REF
- * (whatever kind of value `hr`'s own list held, e.g. a pico8_instance_t*
- * for `gn(df,...)`, Chunk 11 -- not decoded further here). */
+ * (whatever kind of value `hr`'s own list held) -- not decoded further
+ * here.
+ *
+ * *** CHUNK 20 CORRECTION (was: "e.g. a pico8_instance_t* for gn(df,...),
+ * not decoded further here") *** -- `gn(` has exactly one real call site
+ * in the whole cart, `gn(df,2,jf(0.5,dk.en))` inside `bw()` (Chunk 20,
+ * pico8_galaxy.c), and `hr`'s own real elements there (`df`'s own
+ * positional entries, Chunk 11's `pico8_df()`) are plain
+ * `pico8_ob_table_t*` records, NEVER `pico8_instance_t*` (`df` is never
+ * `pico8_class_instantiate`'d anywhere in this port) -- the previous note
+ * above was an unverified assumption made when this function was first
+ * built (Chunk 1, before `gn`'s one real caller existed), corrected here
+ * once Chunk 20 confirmed the real shape and fixed `pico8_gn`'s own `e.r`
+ * read in pico8_gen.c accordingly (see that file's own comment on
+ * `pico8_gn` for the full trace; logged in docs/plan.md's "Notes de
+ * portage"). */
 typedef struct {
     pico8_list_t oc;
     pico8_value_t nm[3];
