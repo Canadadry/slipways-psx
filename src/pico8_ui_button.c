@@ -29,6 +29,71 @@
 static pico8_class_t *g_js_class = NULL;
 static pico8_class_t *g_fq_class = NULL;
 
+/* PHASE 4 BUG FIX (found by this phase's own first real full-game
+ * playability exercise, tests/test_pico8_playability.c -- see
+ * docs/portage-progress.md): `js:pq()`'s own real Lua body reads
+ * `mv(self,"lq")`/`self.h_` and passes the result straight into `lq(...)`
+ * (a REAL Lua constructor call) -- and in real Lua, ANY table works there
+ * uniformly, whether it's a plain nested `o(...)`-parsed spec table (the
+ * common case, e.g. every plain dialog/menu button) OR an ALREADY-BUILT
+ * `lq()` instance (a real, evidenced case: a building/tech option's own
+ * "lq" field is `mv(b,"lq")` where `b` is an `hp`-classed research entry,
+ * pico8_research.c's own `pico8_hp_lq_dispatch`, whose real body --
+ * `pico8_hp_lq`, pico8_research_display.c -- itself calls `pico8_jo_ex()`
+ * then `pico8_lq_new()`, returning a genuine, already-constructed `lq`
+ * INSTANCE, not a raw spec table). Real Lua's own `lq(X)` constructor
+ * (`mw(X)=qj({},X)`, `pico8_class.c`'s own top comment) copies EVERY key
+ * of `X` via `pairs()` regardless of whether `X` is a plain table or
+ * another class instance -- Lua's table model doesn't distinguish them --
+ * so this is harmless, idempotent double-construction in the real cart.
+ *
+ * This port's C representation, unlike Lua, DOES structurally distinguish
+ * a raw `pico8_ob_table_t` (`{entries;count;capacity}`) from a
+ * `pico8_instance_t` (`{fields;cls}`) -- both 16 bytes on a 64-bit build,
+ * so the two are NOT interchangeable, but nothing before this fix ever
+ * told them apart. `pico8_js_pq`'s own OLD code unconditionally cast
+ * `mv(self,"lq")`'s REF payload straight to `const pico8_ob_table_t *`
+ * and fed it to `pico8_lq_new()` (`pico8_class_instantiate`'s own
+ * overrides-copy loop, `pico8_class.c`) -- correct for the common "plain
+ * spec table" case, but for the "already an lq instance" case, this
+ * reinterpreted the instance's OWN `->cls` pointer (offset 8) as if it
+ * were `pico8_ob_table_t`'s `count`/`capacity` fields, an essentially
+ * random large "count" that made `pico8_class_instantiate`'s own copy
+ * loop walk far past any real allocation and write garbage-derived
+ * key/value pairs into the freshly built instance's own fields table --
+ * a real, reproducible heap-buffer-overflow (confirmed under ASan)
+ * reached from `jo:ldown()` -> `jo:fe()` -> `pz()` -> `js(b)` the very
+ * first time a "known" (revealed-but-uncolonized) planet's own building
+ * menu is opened, since `bj()`'s own real candidate list includes at
+ * least one `hp`-classed (research/building) option.
+ *
+ * FIX: since a `pico8_value_t` REF carries no type tag of its own, this
+ * helper disambiguates by inspecting the SAME real, evidenced property
+ * that actually differs between the two cases: an `lq` instance's own
+ * `->cls` is always exactly `pico8_lq_class()` (every real `lq` instance
+ * in this port is built through `pico8_lq_new()`, which sets `cls` to
+ * that one class pointer, `pico8_class_instantiate`'s own `inst->cls =
+ * cls`); reading the same 8 bytes off a plain `pico8_ob_table_t*` reads
+ * its `count`/`capacity` fields instead, whose bit pattern matching a
+ * live heap class pointer by chance is not a real risk here. When it
+ * matches, this returns the instance's own `->fields` (the SAME table
+ * `qj({},X)` would have copied from via `pairs(X)` in real Lua); otherwise
+ * the REF is a plain spec table already, returned as-is -- either way,
+ * `pico8_lq_new()` receives a genuine `pico8_ob_table_t*` to copy from,
+ * never a misinterpreted `pico8_instance_t*`. */
+static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
+    pico8_instance_t *maybe_instance;
+
+    if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+        return NULL;
+    }
+    maybe_instance = (pico8_instance_t *)v.as.ref;
+    if (maybe_instance->cls == pico8_lq_class()) {
+        return maybe_instance->fields;
+    }
+    return (const pico8_ob_table_t *)v.as.ref;
+}
+
 /* Per-module defensive field readers (fixed/bool/vec), matching the same
  * "read a field expected to hold kind K, absent/wrong-kind/NULL-instance
  * all read as a documented default" convention already established by
@@ -200,8 +265,7 @@ void pico8_js_pq(pico8_instance_t *self) {
     }
 
     pico8_mv(self, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_overrides_val);
-    lq_overrides =
-        (lq_overrides_val.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)lq_overrides_val.as.ref : NULL;
+    lq_overrides = pico8_js_lq_arg_table(lq_overrides_val);
     new_lq = pico8_lq_new(lq_overrides);
     pico8_ob_table_set_name(self->fields, "lq", pico8_value_ref(new_lq));
 
@@ -215,8 +279,10 @@ void pico8_js_pq(pico8_instance_t *self) {
     pico8_ob_table_set_name(self->fields, "kq", pico8_value_ref(kq));
 
     if (pico8_instance_get_field(self, "h_", &h_val) && !(h_val.kind == PICO8_VALUE_BOOL && h_val.as.boolean == 0)) {
-        const pico8_ob_table_t *h_overrides =
-            (h_val.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)h_val.as.ref : NULL;
+        /* `self.h_=self.h_ and lq(self.h_)` -- same real Lua `lq(...)`
+         * constructor call as "lq" above, same latent representation
+         * ambiguity, same fix (pico8_js_lq_arg_table's own top comment). */
+        const pico8_ob_table_t *h_overrides = pico8_js_lq_arg_table(h_val);
         pico8_instance_t *new_h = pico8_lq_new(h_overrides);
         pico8_ob_table_set_name(self->fields, "h_", pico8_value_ref(new_h));
     }

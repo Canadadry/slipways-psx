@@ -42,13 +42,43 @@ static pico8_value_t pico8_ui_field_raw(const pico8_instance_t *inst, const char
 }
 
 /* Lua truthiness (nil/false are falsy, everything else -- including 0 --
- * is truthy): `pico8_value_ref(NULL)` (this port's own "absent"/"no real
- * Lua value" filler) is REF-kind, not BOOL-kind, so it reads truthy here
- * by this same rule unless explicitly caught first by a caller -- matches
- * every real call site in this file, which always checks REF-and-non-NULL
- * separately before falling back to this generic truthiness check. */
+ * is truthy).
+ *
+ * PHASE 4 BUG FIX (found by this phase's own first real full-game
+ * playability exercise, tests/test_pico8_playability.c -- see
+ * docs/portage-progress.md): this function's own PREVIOUS body only
+ * caught `PICO8_VALUE_BOOL(false)` as falsy, leaving `pico8_value_ref
+ * (NULL)` -- this port's own established, pervasive stand-in for real Lua
+ * `nil` (pico8_value.h's own top comment; already correctly handled by
+ * e.g. pico8_probe_truthy, pico8_probe.c) -- reading as TRUTHY here. That
+ * was flat wrong for this file's own real, evidenced call sites: contrary
+ * to this comment's OLD claim that "every real call site... always checks
+ * REF-and-non-NULL separately... before falling back to this generic
+ * check", none of the three real call sites below (`rheld`, `hd`'s own
+ * `hit_out`, `jz`'s own `kn`) do any such separate check first. This
+ * concretely broke `pico8_ui_jz`'s own click-dispatch precedence: a real
+ * `jo:ldown()` (`pico8_jo_ldown`, pico8_planet.c) returns
+ * `pico8_value_ref(NULL)` (Lua nil) for an "unknown" (unrevealed) planet
+ * -- clicking one should fall through `jz`'s own layer walk to a LOWER-
+ * priority entity (e.g. `bg:ldown`, the background/probe-launch handler),
+ * exactly like real Lua's `if kn then return {...} end` skipping a nil
+ * `kn` -- but the old, incomplete truthy check here treated that nil as
+ * truthy, so `jz` incorrectly stopped at the planet and returned a REF
+ * wrapping a NULL pointer, silently swallowing every click landing near
+ * an unrevealed planet and permanently blocking `bg:ldown` (and therefore
+ * ever creating a `mz` wormhole once a `g_` probe already exists) for
+ * that click. Fixed to match `pico8_probe_truthy`'s own already-correct
+ * "REF with a NULL pointer is falsy too" rule -- the direct C
+ * consequence of choosing REF(NULL) as this port's own nil
+ * representation in the first place, not a new convention. */
 static int pico8_ui_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
+        return 0;
+    }
+    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
+        return 0;
+    }
+    return 1;
 }
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
