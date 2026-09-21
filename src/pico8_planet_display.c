@@ -627,8 +627,8 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
      * pico8_dv_default. See this file's own header comment on pico8_jo_kj
      * for the full trace. */
     pico8_dv(mem, field_fixed(self, "qw"));
-    pico8_palt(gfx, 3, 0);
-    pico8_palt(gfx, 0, 1);
+    pico8_palt(mem, 3, 0);
+    pico8_palt(mem, 0, 1);
 
     /* spr(self.nk and self.nk.s or self.s or 43,p.x-4,p.y-4,2,2) */
     if (pico8_instance_get_field(self, "nk", &nk_val) && pico8_jo_truthy(nk_val) && nk_val.kind == PICO8_VALUE_REF &&

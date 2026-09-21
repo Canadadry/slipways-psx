@@ -78,39 +78,62 @@ static void test_camera_reset_restores_zero_offset(void) {
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 3) == 6);
 }
 
-static void test_gfx_init_default_transparency_is_color_0_only(void) {
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
+/* palt()'s store is the draw palette in memory, so the PICO-8 default
+ * ("all colours opaque except colour 0") is memory's own power-on state,
+ * pico8_mem_init's (pico8_mem.c), not a gfx-side flag array's. */
+static void test_mem_init_default_transparency_is_color_0_only(void) {
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
 
-    assert(pico8_gfx_is_transparent(&gfx, 0));
+    assert(pico8_gfx_is_transparent(&mem, 0));
     for (int c = 1; c < 16; c++) {
-        assert(!pico8_gfx_is_transparent(&gfx, c));
+        assert(!pico8_gfx_is_transparent(&mem, c));
     }
 }
 
 static void test_palt_marks_color_transparent_and_opaque(void) {
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
 
-    pico8_palt(&gfx, 3, 1);
-    assert(pico8_gfx_is_transparent(&gfx, 3));
+    pico8_palt(&mem, 3, 1);
+    assert(pico8_gfx_is_transparent(&mem, 3));
 
-    pico8_palt(&gfx, 0, 0);
-    assert(!pico8_gfx_is_transparent(&gfx, 0));
+    pico8_palt(&mem, 0, 0);
+    assert(!pico8_gfx_is_transparent(&mem, 0));
 
-    pico8_palt(&gfx, 3, 0);
-    assert(!pico8_gfx_is_transparent(&gfx, 3));
+    pico8_palt(&mem, 3, 0);
+    assert(!pico8_gfx_is_transparent(&mem, 3));
+}
+
+/* The single-store consequence, and the one this cart actually depends on:
+ * dv()'s own memcpy into 0x5f00 (pico8_hud.c) REPLACES whatever palt()
+ * last said -- pico8/lua.lua:546's trailing bare dv() is exactly that
+ * undo for its own palt(0,true), and the cart never calls palt(0,false). */
+static void test_draw_palette_write_overrides_a_previous_palt(void) {
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+
+    pico8_palt(&mem, 0, 1);
+    assert(pico8_gfx_is_transparent(&mem, 0));
+
+    for (int c = 0; c < 16; c++) {
+        pico8_poke(&mem, 0x5000 + c, (unsigned char)(c == 3 ? (c | PICO8_DRAW_PALETTE_TRANSPARENT_BIT) : c));
+    }
+    pico8_memcpy(&mem, PICO8_ADDR_DRAW_PALETTE, 0x5000, 16);
+
+    assert(!pico8_gfx_is_transparent(&mem, 0));
+    assert(pico8_gfx_is_transparent(&mem, 3));
 }
 
 static void test_palt_out_of_range_col_is_noop_and_queries_as_opaque(void) {
-    pico8_gfx_t gfx;
-    pico8_gfx_init(&gfx);
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
 
-    pico8_palt(&gfx, -1, 1);
-    pico8_palt(&gfx, 16, 1);
+    pico8_palt(&mem, -1, 1);
+    pico8_palt(&mem, 16, 1);
 
-    assert(!pico8_gfx_is_transparent(&gfx, -1));
-    assert(!pico8_gfx_is_transparent(&gfx, 16));
+    assert(!pico8_gfx_is_transparent(&mem, -1));
+    assert(!pico8_gfx_is_transparent(&mem, 16));
 }
 
 static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
@@ -123,16 +146,16 @@ static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
 
-    pico8_palt(&gfx, 3, 1);
+    pico8_palt(&mem, 3, 1);
 
     int col = 3;
-    if (!pico8_gfx_is_transparent(&gfx, col)) {
+    if (!pico8_gfx_is_transparent(&mem, col)) {
         pico8_pset(&gfx, &mem, 5, 5, col);
     }
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 5) == 0);
 
-    pico8_palt(&gfx, 3, 0);
-    if (!pico8_gfx_is_transparent(&gfx, col)) {
+    pico8_palt(&mem, 3, 0);
+    if (!pico8_gfx_is_transparent(&mem, col)) {
         pico8_pset(&gfx, &mem, 5, 5, col);
     }
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 5 * PICO8_SCREEN_WIDTH + 5) == 3);
@@ -391,11 +414,11 @@ static void test_spr_skips_pixels_marked_transparent_by_palt(void) {
     pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 0, 3); /* sprite 0, corner pixel */
     pico8_poke(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0, 9); /* pre-existing content */
 
-    pico8_palt(&gfx, 3, 1);
+    pico8_palt(&mem, 3, 1);
     pico8_spr_default(&gfx, &mem, 0, 0, 0);
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 9);
 
-    pico8_palt(&gfx, 3, 0);
+    pico8_palt(&mem, 3, 0);
     pico8_spr_default(&gfx, &mem, 0, 0, 0);
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 3);
 }
@@ -666,8 +689,9 @@ int main(void) {
     test_pset_off_screen_is_clipped_silently();
     test_camera_offset_shifts_subsequent_pset();
     test_camera_reset_restores_zero_offset();
-    test_gfx_init_default_transparency_is_color_0_only();
+    test_mem_init_default_transparency_is_color_0_only();
     test_palt_marks_color_transparent_and_opaque();
+    test_draw_palette_write_overrides_a_previous_palt();
     test_palt_out_of_range_col_is_noop_and_queries_as_opaque();
     test_palt_affects_a_subsequent_transparent_color_draw();
     test_line_draws_diagonal_pixels();

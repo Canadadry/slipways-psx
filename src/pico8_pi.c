@@ -101,13 +101,25 @@ static pico8_value_t pico8_pi_rk_constructor(pico8_value_t a1, pico8_value_t a2,
 /* pi.qr = io (function io(t,x,y,c,a) ... end, pico8_hud.h/.c). `a5` (io's
  * own optional centering factor `a`) absent -> pico8_io_default, present
  * -> pico8_io with a pointer to the unpacked value (matching pico8_io's
- * own const pico8_fixed_t* convention for an optional trailing arg). `a1`
- * (the text) not being PICO8_VALUE_STRING defensively falls back to "" --
- * matches pico8_oo's own established "field absence stays a documented,
- * defensive default" divergence, never exercised by a real spec string. */
+ * own const pico8_fixed_t* convention for an optional trailing arg).
+ *
+ * `a1` (the text) is a NUMBER at real call sites, not only a string:
+ * `pj:hb()` copies `fm.jk` and `fm.yr` into pj.ou AS-IS, with no coercion
+ * at all (pico8/lua.lua:847, pico8_score_panel.c), and io()'s own body is
+ * plain `print(t,...)` -- Lua's print() renders a number argument as its
+ * decimal string. Substituting "" for it (as this adapter did before this
+ * fix) is what blanked the technology counter and the year in the top menu
+ * bar, a real, human-reported bug. PICO8_VALUE_FIXED therefore goes
+ * through pico8_value_tostr (pico8_value.h), this port's own established
+ * number-to-string helper -- the same one `pj:hb()` itself already uses
+ * for its neighbouring `fm.nz.."$"`/`fm.happiness.."%"` slots, which is
+ * exactly why only the two raw-number slots were ever blank. Any OTHER
+ * kind still defensively falls back to "" -- pico8_oo's own established
+ * "absence stays a documented, defensive default" divergence. */
 static pico8_value_t pico8_pi_io_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
                                               pico8_value_t a5) {
-    const char *t = (a1.kind == PICO8_VALUE_STRING) ? a1.as.string : "";
+    char *owned = (a1.kind == PICO8_VALUE_FIXED) ? pico8_value_tostr(a1) : NULL;
+    const char *t = (a1.kind == PICO8_VALUE_STRING) ? a1.as.string : (owned != NULL ? owned : "");
     pico8_fixed_t x = (a2.kind == PICO8_VALUE_FIXED) ? a2.as.fixed : pico8_fixed_from_int(0);
     pico8_fixed_t y = (a3.kind == PICO8_VALUE_FIXED) ? a3.as.fixed : pico8_fixed_from_int(0);
     int c = (a4.kind == PICO8_VALUE_FIXED) ? (int)pico8_fixed_to_double(a4.as.fixed) : 0;
@@ -117,6 +129,7 @@ static pico8_value_t pico8_pi_io_constructor(pico8_value_t a1, pico8_value_t a2,
     } else {
         pico8_io_default(g_pi_gfx, g_pi_mem, t, x, y, c);
     }
+    free(owned);
     return pico8_value_ref(NULL);
 }
 
