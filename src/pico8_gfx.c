@@ -215,7 +215,31 @@ unsigned char pico8_sget(const pico8_mem_t *mem, int x, int y) {
  * 16x16 blocks of 8x8-pixel sprites (128/8 = 16 per row). w/h are in
  * sprite-size (8px) multiples, so a wide/tall sprite just reads a larger
  * contiguous pixel rectangle from the sheet, spilling into neighboring
- * sprite slots exactly like real PICO-8's multi-cell sprites do. */
+ * sprite slots exactly like real PICO-8's multi-cell sprites do.
+ *
+ * Real hardware's own `spr()` treats a source pixel as transparent when
+ * EITHER `palt()` says so (`pico8_gfx_is_transparent`, this port's own
+ * pico8_gfx_t-side flag array) OR the CURRENT draw palette byte for that
+ * color (`mem[PICO8_ADDR_DRAW_PALETTE+col]`, `pal()`'s own backing
+ * memory) has its high bit set -- the same bit real PICO-8's `palt()`
+ * itself would flip on that very table. This cart never calls a plain,
+ * unconditional `palt(3,true)`; instead `cu()`/`dv()` (pico8_hud.c) bake
+ * that exact bit into every palette block they build/activate (`bor(sget(
+ * p,c),c==3 and 0x80)`), and `_draw()`'s own bare `dv()` re-activates it
+ * every single frame -- the cart's real, literal mechanism for making
+ * color 3 (not color 0) the default "invisible" placeholder everywhere,
+ * including the title screen's own `spr(192,0,11,16,4)` logo blit
+ * (`fv:kj`/`bl`, pico8_help.c) whose sprite art uses color 3 as its own
+ * background fill. Checking only `pico8_gfx_is_transparent` here (as
+ * before this fix) leaves that mem-side bit permanently unconsulted, so
+ * every `spr()` draws color 3 as a literal opaque dark green -- this was
+ * the exact cause of a real, human-reported "solid green band behind the
+ * SLIPWAYS logo" bug on the title screen. Deliberately scoped to `spr()`
+ * only, not every draw primitive (pset/rect/circ/print/...): it is the
+ * one primitive with a real, evidenced, currently-broken call site; see
+ * this function's own top comment in pico8_gfx.h for why widening this to
+ * every primitive (a full `pal()` remap, not just its transparency bit)
+ * is left for a future chunk with its own evidenced need. */
 void pico8_spr(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y, int w, int h) {
     const int sprites_per_row = PICO8_SPRITE_SHEET_WIDTH / PICO8_SPRITE_SIZE;
     int sheet_x = (n % sprites_per_row) * PICO8_SPRITE_SIZE;
@@ -226,7 +250,8 @@ void pico8_spr(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y, in
     for (int dy = 0; dy < pixel_h; dy++) {
         for (int dx = 0; dx < pixel_w; dx++) {
             unsigned char col = pico8_sget(mem, sheet_x + dx, sheet_y + dy);
-            if (pico8_gfx_is_transparent(gfx, col)) {
+            int palette_byte = pico8_peek(mem, PICO8_ADDR_DRAW_PALETTE + col);
+            if (pico8_gfx_is_transparent(gfx, col) || (palette_byte & PICO8_DRAW_PALETTE_TRANSPARENT_BIT) != 0) {
                 continue;
             }
             pico8_pset(gfx, mem, x + dx, y + dy, col);
