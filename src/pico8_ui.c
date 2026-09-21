@@ -436,7 +436,15 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
  * arbitrary runtime `const char *`, so no special mechanism is needed --
  * built here with snprintf into small fixed buffers. `mv(held,"hq",...)`'s
  * result is discarded (side effect only), matching the real source's own
- * bare statement. */
+ * bare statement.
+ *
+ * `nw and nw.kv`: `nw` is the FRESH `{kv=h,kn=kn}` table ui:jz builds
+ * (pico8/lua.lua:251), so `nw.kv` IS `h`, the entity jz found -- which
+ * pico8_ui_jz already hands back directly as `*out_kv` (see pico8_ui.h).
+ * It is NOT a field read on that entity: no object in this cart ever has a
+ * field named "kv" (`grep -n "kv=" pico8/lua.lua` -> only the global class
+ * registry and jz's own return table), so reading one would make this
+ * always pass nil to jc:ey() and kill slipway construction outright. */
 void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
     char ni[16];
     pico8_value_t held_val;
@@ -478,10 +486,7 @@ void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
         pico8_value_t ey_arg = pico8_value_ref(NULL);
 
         if (pico8_ui_jz(self, "gv", 1, held_val, pico8_value_ref(NULL), &nw_kv, &nw_kn) && nw_kv != NULL) {
-            pico8_value_t kv_field;
-            if (pico8_instance_get_field(nw_kv, "kv", &kv_field)) {
-                ey_arg = kv_field;
-            }
+            ey_arg = pico8_value_ref(nw_kv);
         }
 
         pico8_mv(held_inst, "ey", 1, ey_arg, pico8_value_ref(NULL), &discard);
