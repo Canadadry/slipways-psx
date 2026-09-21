@@ -63,7 +63,19 @@ Un littéral comme `0.27` dans `pico8/lua.lua` est converti en 16.16 **par PICO-
 
 **28 des 34 littéraux distincts ne sont pas exactement représentables en 16.16** et dépendent donc de cette règle inconnue. Seuls `0.125`, `0.5`, `1.25`, `1.5`, `2.75`, `10.5` sont exacts et ne posent aucune question.
 
-Un LSB d'écart sur `0.27` se propage dans `pico8_bk()` (`economy_formulas.c:211`), qui le multiplie ensuite. Deviner la règle violerait le garde-fou « Traçabilité » de `docs/plan.md`. → Résolu par le relevé de sonde (§5, bloc A) : les constantes seront **recopiées**, pas dérivées.
+> **RÉSOLU par le relevé** (`tools/probe_out.txt`, PICO-8 0.2.6b, bloc A) : **PICO-8 tronque**, `floor(v × 65536)`, vérifié sans exception sur les 54 littéraux de `lua.lua`.
+>
+> ```
+> 0.27  → 0x0000.451e = 17694     le C produit 17695
+> 0.1   → 0x0000.1999 =  6553     le C produit  6554
+> 0.001 → 0x0000.0041 =    65     le C produit    66
+> ```
+>
+> **Conséquence : 16 des 34 constantes du C sont aujourd'hui décalées d'un LSB.**
+> `0.001` `0.0032` `0.005` `0.031` `0.05` `0.08` `0.0977` `0.1` `0.19` `0.27` `0.55` `0.6` `0.8` `0.85` `0.99` `1.08`.
+> Les 18 autres coïncident par hasard (la valeur exacte ou un `.x` où troncature et arrondi tombent pareil).
+>
+> C'est le premier bug trouvé par ce chantier, et il était invisible autrement : aucun test ne portait sur une valeur numérique. Les constantes sont désormais **recopiées** du relevé, jamais dérivées.
 
 ### 3.2 Les 76 casts — un accident de portage, pas une sémantique
 
@@ -85,7 +97,22 @@ Et des valeurs négatives arrivent réellement à ces sites — `src/pico8_layou
 |---|---|---|---|
 | **(a)** | Le Lua dit explicitement `flr(…)` | `flr` entier, sans discussion | ≤ 17 sites, trivial |
 | **(b)** | Le Lua est muet, mais la valeur est **prouvablement ≥ 0** (indice issu d'un compteur, `#t`, boucle `for i=1,n`, identifiant de sprite) | Troncature et `flr` coïncident → **aucune conséquence observable**. Bascule mécanique ; il suffit de prouver le **signe**, pas la sémantique. | majorité, peu cher |
-| **(c)** | Le Lua est muet **et** la valeur peut être négative (coordonnées écran, deltas, positions) | Vraie question ouverte → tranchée par le relevé de sonde (§5, bloc B) | poignée de sites |
+| **(c)** | Le Lua est muet **et** la valeur peut être négative (coordonnées écran, deltas, positions) | **`flr`** — tranché par le relevé, voir ci-dessous | poignée de sites |
+
+> **RÉSOLU par le relevé** (bloc B) : **`spr()` applique `flr`, pas une troncature.** Le pixel témoin est à l'offset local (7,0) du sprite, donc `colonne − 7 = origine` :
+>
+> ```
+> spr(-0.5, 4)  → col 6    origine -1      troncature aurait donné 0 → col 7
+> spr(-0.9, 8)  → col 6    origine -1      troncature → 0
+> spr(-1.5,12)  → col 5    origine -2      troncature → -1 → col 6
+> spr(4, -0.5)  → none     origine -1, hors écran ; troncature → 0, visible
+> ```
+>
+> `flr` lui-même est bien un arrondi vers −∞ (`flr(-1.5) → -2`, `flr(-0.5) → -1`).
+>
+> **Les 76 casts sont donc faux pour toute coordonnée négative** — `pico8_layout.c:277-278` en tête. Deuxième bug confirmé, avec source.
+>
+> **Découverte non anticipée, même bloc : les clés de table fractionnaires sont des clés distinctes.** `t[1.5]="a"` puis `t[1]` → `nil`, et `t[2]="b"` puis `t[2.5]` → `nil`. Le C, lui, convertit la clé en `int` *avant* la recherche (`pico8_score_panel.c:110`, `pico8_planet.c:309`, `economy_formulas.c:55,66`…) : sur une clé fractionnaire il trouverait une entrée là où Lua ne trouve rien. À vérifier site par site pendant l'audit — une clé toujours entière par construction rend le point sans objet, mais ça doit être établi, pas supposé.
 
 **Posture retenue : audit (posture 2), et ce chantier assume de corriger des bugs de portage**, pas seulement de transformer. Conséquence directe sur le critère de fin (§6) : « terminé » n'est pas « le rendu est identique ».
 
@@ -140,6 +167,24 @@ Une cartouche autonome que l'humain charge et lance une fois ; elle écrit un fi
 
 *Réserve connue :* la destination exacte du fichier écrit par `printh()` varie selon la version et la plateforme de PICO-8. La cartouche imprime donc **aussi** tout à l'écran, en secours d'une capture d'écran.
 
+### État : relevé effectué
+
+`tools/probe_out.txt` — PICO-8 **0.2.6b**, macOS, 342 lignes. Résultats par bloc :
+
+| Bloc | Résultat | Effet |
+|---|---|---|
+| **A** | PICO-8 **tronque** les littéraux | §3.1 — 16 constantes du C à corriger |
+| **B** | `spr()` applique **`flr`** ; clés fractionnaires distinctes | §3.2 — population (c) tranchée, 2ᵉ bug confirmé |
+| **C** | 13 échantillons sur 14 **correspondent déjà** au C actuel | voir ci-dessous — un seul cas reste ouvert |
+| **D** | `x^0.75 = sqrt(x) · sqrt(sqrt(x))` | §7 Phase D — plus de `pow` à écrire |
+| **E/F** | capturés | non exploités, cf. clôture ci-dessus |
+
+**Bloc C — le seul point encore ouvert.** `pico8_value_tostr` (`%.4f`, trim des zéros, trim du point) reproduit exactement PICO-8 sur 13 des 14 témoins, `2/3 → "0.6667"` et `1/3 → "0.3333"` compris. Le seul écart est `-0.0001` (brut −6) : PICO-8 affiche **`"-0"`**, le C afficherait `"-0.0001"`. Aucune règle unique ne réconcilie ce cas avec `2/3 → "0.6667"` — donc **il n'est pas deviné**. Il est consigné comme question ouverte, à trancher par une relance d'une ligne de la sonde. Il ne bloque pas : aucune valeur affichée par le jeu (crédits, scores, comptes) n'a une magnitude inférieure à 0.0001.
+
+**Bloc D — la formule.** Vérifiée sur les vecteurs : `x=2 → 0x0001.ae87 = 1.68178`, et `sqrt(2)·sqrt(sqrt(2)) = 1.414214 × 1.189207 = 1.681793` ; `x=0.25 → 0.353546 = 0.5 × 0.70711` ; `x=16 → 8` exact. Deux `sqrt` et une multiplication, tout en fixe. Les 16 vecteurs servent de test.
+
+**Bloc F, en passant :** `rnd(0)` **n'avance pas** le PRNG (`rnd(10)` juste après redonne le premier tirage), et `rnd(x)` se comporte comme `r mod (x·65536)`. Le C matche déjà le premier point (`pico8_fixed.c:229`, retour avant `next_u32`). Consigné, **pas exploité**.
+
 ### Instrument 2 — Filet de non-régression par empreintes
 
 Un `events.json` enregistré par le mode enregistrement du backend raylib sur une vraie session, couvrant la chaîne sonde → wormhole → colonisation → slipway → commerce.
@@ -175,20 +220,28 @@ Le point 4 est ce qui empêche ce chantier de devenir une réécriture à l'aveu
 
 ## 7. Phases — volet flottant
 
-### Phase A — Relevé PICO-8
-Rédiger `tools/probe.p8` (blocs A→F). L'humain la lance et fournit la sortie. Le relevé est versionné dans le dépôt comme donnée de référence.
-**Sortie de phase :** le fichier de relevé est dans le dépôt, et les 34 littéraux distincts y ont chacun leur valeur hexa.
+### Phase A — Relevé PICO-8 — ✅ FAITE
+`tools/probe.p8` rédigée, lancée sur PICO-8 0.2.6b (macOS), sortie versionnée en `tools/probe_out.txt`. Les 54 littéraux de `lua.lua` y ont leur valeur hexa. Résultats : §5, « État : relevé effectué ».
+**Reliquat :** le cas `tostr` de magnitude < 0.0001 (bloc C) — une relance d'une ligne, non bloquante.
 
 ### Phase B — Capture du filet
 Enregistrer la session via le mode enregistrement raylib, produire `frames.hash` de référence **sur le code actuel, avant toute modification**.
 **Sortie de phase :** `frames.hash` versionné, et rejouer deux fois le même `events.json` produit le même fichier (détermination vérifiée, pas supposée).
 
-### Phase C — Populations (a) et (b), strictement préservatrices
-Les 34 constantes remplacées par les entiers relevés ; les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe** consignée par site.
-**Sortie de phase :** `frames.hash` **identique** à celui de la Phase B. Toute divergence est un bug introduit, pas un progrès.
+### Phase C — Populations (a) et (b), et les constantes
+Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe** consignée par site. Les 34 constantes remplacées par les entiers de `tools/probe_out.txt`.
+
+**Attention, la Phase C n'est plus intégralement préservatrice :** 16 des 34 constantes changent de valeur (§3.1), donc `frames.hash` **peut légitimement diverger** de la Phase B. La découpe est donc :
+
+- **C1 — strictement préservatrice** : les sites (a) et (b) seuls, constantes inchangées. `frames.hash` doit être **identique**. Toute divergence est un bug introduit.
+- **C2 — correction des 16 constantes**, en un commit séparé. Divergences attendues, à revoir frame par frame.
+
+Séparer C1 de C2 est ce qui garde le critère §6.4 falsifiable : mélangées, une régression de C1 se cacherait derrière une divergence légitime de C2.
+
+**Sortie de phase :** `frames.hash` identique après C1 ; après C2, chaque frame divergente est rattachée à une constante précise du relevé.
 
 ### Phase D — Population (c) et les 5 sites flottants
-Les sites à signe potentiellement négatif tranchés par le relevé (bloc B). `pico8_value_tostr` réécrit en entier d'après le bloc C. `pico8_dj`'s `^0.75` réécrit en fixe d'après le bloc D.
+Les 76 casts à signe potentiellement négatif passent en **`flr`** (bloc B — plus une question ouverte, une correction de bug sourcée). `pico8_value_tostr` réécrit en entier d'après le bloc C, en laissant le cas `< 0.0001` sur le comportement actuel **et documenté comme non sourcé**. `pico8_dj`'s `^0.75` réécrit en `sqrt(x) · sqrt(sqrt(x))`, validé contre les 16 vecteurs du bloc D. Les sites d'indexation de table revus contre la sémantique des clés fractionnaires (§3.2).
 **Sortie de phase :** chaque frame divergente est expliquée par une ligne du relevé ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression.
 
 ### Phase E — Fermeture
@@ -241,8 +294,11 @@ La majorité de ces allocations sont de **petites structures boxées à durée d
 
 | Risque | Effet | Traitement |
 |---|---|---|
-| Le relevé ne tranche pas la population (c) | Des sites restent sans source | Consignés en risque ouvert, comportement actuel conservé **et documenté comme non sourcé** — pas comme délibéré |
-| `printh()` n'écrit pas où attendu | Pas de fichier exploitable | Sortie écran en secours, tenant en une capture |
+| ~~Le relevé ne tranche pas la population (c)~~ | — | **Levé** : le bloc B tranche, c'est `flr` |
+| ~~`printh()` n'écrit pas où attendu~~ | — | **Levé** : le fichier a été produit |
+| `tostr` sous 0.0001 non sourcé | Un cas limite d'affichage reste deviné | Comportement actuel conservé **et documenté comme non sourcé** ; relance d'une ligne de la sonde quand ce sera utile |
+| Clés de table fractionnaires (§3.2) | Le C trouverait une entrée là où Lua renvoie `nil` | À établir site par site pendant l'audit — « toujours entier par construction » doit être démontré, pas supposé |
+| Phase C mélangeant (a)/(b) et les 16 constantes | Une régression se cacherait derrière une divergence légitime | Découpe C1/C2 en commits séparés (§7) |
 | `frames.hash` diverge en Phase C | Bug introduit par une transformation censée être neutre | C'est précisément l'objet du critère §6.4 : la divergence est le signal, pas un désagrément |
 | Le `pow(^0.75)` en fixe n'est pas reproductible à partir de 16 points témoins | `pico8_dj` reste approximatif | Risque accepté et consigné ; c'est déjà le statut actuel (note « fidélité numérique fractionnaire » de `pico8_economy_formulas.h`) |
 | Dérive vers la réécriture de `sin`/`cos`/`rnd` | Ce chantier absorbe un chantier voisin et ne finit pas | Clôture explicite du §5 |
@@ -264,3 +320,13 @@ Figées à l'issue de la session de cadrage, pour ne pas être relitigées :
 8. Le filet de non-régression stocke des **empreintes par frame**, pas des pixels, et est capturé **avant** toute modification.
 9. Le critère de fin inclut la vérification `nm` de l'absence de symboles soft-float — seule preuve réelle de l'objectif PSX.
 10. Le volet `malloc` n'est **pas** cadré ; le §8 liste ses questions ouvertes.
+
+Ajoutées après le relevé (`tools/probe_out.txt`, PICO-8 0.2.6b) :
+
+11. PICO-8 **tronque** les littéraux décimaux : `floor(v × 65536)`, sans exception sur les 54 relevés. Les constantes du C sont recopiées du relevé.
+12. **16 des 34 constantes du C sont décalées d'un LSB** — bug confirmé, corrigé en Phase C2, dans un commit séparé de C1.
+13. `spr()` applique **`flr`** à ses coordonnées. Les 76 casts `(int)pico8_fixed_to_double` sont **faux pour tout négatif** — bug confirmé, corrigé en Phase D.
+14. Les **clés de table fractionnaires sont des clés distinctes** en Lua/PICO-8 ; le C convertit avant la recherche. À établir site par site.
+15. `pico8_value_tostr` est **déjà correct** sur 13 témoins sur 14 ; seul le cas de magnitude < 0.0001 reste non sourcé et est conservé tel quel, documenté comme tel.
+16. `x^0.75` s'écrit `sqrt(x) · sqrt(sqrt(x))` en fixe pur — aucun `pow` à écrire, 16 vecteurs de test disponibles.
+17. `rnd(0)` n'avance pas le PRNG, ce que le C fait déjà. Consigné, **non exploité** (bloc F).
