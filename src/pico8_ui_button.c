@@ -1,5 +1,6 @@
 #include "pico8_ui_button.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -67,31 +68,84 @@ static pico8_class_t *g_fq_class = NULL;
  * menu is opened, since `bj()`'s own real candidate list includes at
  * least one `hp`-classed (research/building) option.
  *
- * FIX: since a `pico8_value_t` REF carries no type tag of its own, this
- * helper disambiguates by inspecting the SAME real, evidenced property
- * that actually differs between the two cases: an `lq` instance's own
- * `->cls` is always exactly `pico8_lq_class()` (every real `lq` instance
- * in this port is built through `pico8_lq_new()`, which sets `cls` to
- * that one class pointer, `pico8_class_instantiate`'s own `inst->cls =
- * cls`); reading the same 8 bytes off a plain `pico8_ob_table_t*` reads
- * its `count`/`capacity` fields instead, whose bit pattern matching a
- * live heap class pointer by chance is not a real risk here. When it
- * matches, this returns the instance's own `->fields` (the SAME table
- * `qj({},X)` would have copied from via `pairs(X)` in real Lua); otherwise
- * the REF is a plain spec table already, returned as-is -- either way,
- * `pico8_lq_new()` receives a genuine `pico8_ob_table_t*` to copy from,
- * never a misinterpreted `pico8_instance_t*`. */
+ * ORIGINAL FIX (superseded, kept here as the record of why the current
+ * one is shaped the way it is): this helper used to disambiguate by
+ * sniffing `->cls` against `pico8_lq_class()`. That told an lq INSTANCE
+ * apart from a table, and nothing else -- so when a THIRD shape showed up
+ * in the same field, a raw `pico8_list_t*` (`pico8_jo_gh_row()`,
+ * pico8_planet_display.c, the only site in src/ that writes a raw list
+ * into an "lq" field), it matched neither branch and fell straight
+ * through to the unguarded cast on the last line. That produced the exact
+ * same heap-buffer-overflow one shape over: `pico8_class_instantiate`
+ * indexing `overrides->entries[i]` at 32-byte `pico8_ob_entry_t` stride
+ * over an array of 16-byte `pico8_value_t`, out of bounds for every row
+ * with >= 3 items. Reported from a real playtest as a hard SIGSEGV on
+ * mouse RELEASE over a developed planet (`jo:gv` -> `jo:gh`), and the
+ * FOURTH occurrence of this same representation-ambiguity family -- the
+ * first one the pre-Phase-5 cast audit (docs/plan.md's own "Notes de
+ * portage" journal) had positively marked as safe, precisely because it
+ * saw this helper here and took "guarded" to mean "guarded against
+ * everything".
+ *
+ * CURRENT FIX: stop guessing. All three shapes now carry a real
+ * first-member type tag (pico8_type_tag.h), so this asks the REF what it
+ * actually is and handles each of the four possible answers explicitly:
+ *
+ *   INSTANCE -> its own `->fields` (the SAME table `qj({},X)` would have
+ *               copied from via `pairs(X)` in real Lua). Note this no
+ *               longer special-cases `lq` specifically: ANY instance's
+ *               fields table is what real Lua's `pairs()` would walk, and
+ *               `js:pq`'s own "h_" call site can legitimately hold a
+ *               non-lq one.
+ *   OB_TABLE -> already a plain spec table, returned as-is.
+ *   LIST     -> converted to a fresh positional `pico8_ob_table_t`
+ *               (`pico8_ob_table_from_list`, pico8_ob.h -- the shared
+ *               converter promoted out of pico8_menu.c, which needed the
+ *               identical conversion for `js:pq`'s own "jb" field). This
+ *               is what real Lua gets for free: `{"exports:","0/1",kw}`
+ *               IS a table, and `pairs()` yields its array part at keys
+ *               1..n, which is exactly what this rebuilds. Behaviour is
+ *               therefore unchanged from what pico8/lua.lua:258-262 and
+ *               :424-448 describe; only the C representation is made
+ *               unambiguous. The result is heap-allocated and never
+ *               freed, the same accepted row-builder leak convention
+ *               pico8_ob.h documents on the converter itself.
+ *   UNKNOWN  -> an untagged/foreign REF. NOT blind-cast any more (that
+ *               blind cast is the whole bug family). Asserted loudly
+ *               rather than quietly degraded: falling back to "no
+ *               overrides" (NULL) would render the row EMPTY instead of
+ *               crashing, and a silently dropped row is the quietest
+ *               possible failure for precisely the family this tag
+ *               exists to kill -- the same "no real call site is
+ *               expected to reach it" expectation the pre-Phase-5 cast
+ *               audit was made of when it marked this very site safe
+ *               (docs/plan.md's own "Notes de portage"). No construction
+ *               path in src/ leaves an object untagged (all 12 `fields`
+ *               writers, both `items` writers and both `entries`
+ *               writers set one), and an instrumented run of the full
+ *               9758-frame recorded playtest plus the whole suite saw
+ *               0 UNKNOWN across ~230 dispatches -- so this is a "cannot
+ *               happen" guard, and the point of it is to stay audible if
+ *               a future construction path ever forgets the tag. With
+ *               the recording fix in place (pico8_raylib_backend.h) an
+ *               abort here leaves a recording that ends WITH the
+ *               offending frame, so it is directly reproducible. */
 static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
-    pico8_instance_t *maybe_instance;
-
     if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
-    maybe_instance = (pico8_instance_t *)v.as.ref;
-    if (maybe_instance->cls == pico8_lq_class()) {
-        return maybe_instance->fields;
+
+    switch (pico8_type_tag_of(v.as.ref)) {
+    case PICO8_TYPE_TAG_INSTANCE:
+        return ((const pico8_instance_t *)v.as.ref)->fields;
+    case PICO8_TYPE_TAG_OB_TABLE:
+        return (const pico8_ob_table_t *)v.as.ref;
+    case PICO8_TYPE_TAG_LIST:
+        return pico8_ob_table_from_list((const pico8_list_t *)v.as.ref);
+    default:
+        assert(0 && "untagged REF reached js:pq's lq()/h_() argument");
+        return NULL;
     }
-    return (const pico8_ob_table_t *)v.as.ref;
 }
 
 /* Per-module defensive field readers (fixed/bool/vec), matching the same

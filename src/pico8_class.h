@@ -2,6 +2,7 @@
 #define PICO8_CLASS_H
 
 #include "pico8_ob.h"
+#include "pico8_type_tag.h"
 
 /* pico8/lua.lua's `kv:jr` class system (line 85-97, see pico8_class.c's
  * own top comment for the exact source and a full read-through). A class
@@ -66,6 +67,13 @@ struct pico8_class {
 };
 
 struct pico8_instance {
+    /* Always PICO8_TYPE_TAG_INSTANCE -- see pico8_type_tag.h, and
+     * pico8_list_t's own `tag` comment (pico8_list.h), for why all three
+     * of this port's Lua-table-modelling structs lead with this. Set by
+     * pico8_class_instantiate() and by the handful of modules that build
+     * a bare, classless instance by hand (`mo`, `je`, `fm`, the `mz.jj`/
+     * `ie.ke` wrappers, pz()'s own row wrappers, ...). */
+    pico8_type_tag_t tag;
     pico8_ob_table_t *fields;
     pico8_class_t *cls;
 };

@@ -5,6 +5,7 @@
 #define PICO8_LIST_INITIAL_CAPACITY 4
 
 void pico8_list_init(pico8_list_t *list) {
+    list->tag = PICO8_TYPE_TAG_LIST;
     list->items = NULL;
     list->count = 0;
     list->capacity = 0;

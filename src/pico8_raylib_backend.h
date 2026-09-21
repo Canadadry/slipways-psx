@@ -19,6 +19,7 @@
  *   while (pico8_raylib_backend_should_continue(&backend)) {
  *       pico8_input_frame_t frame;
  *       pico8_raylib_backend_poll_input(&backend, &frame);
+ *       pico8_raylib_backend_record_frame(&backend, &frame);
  *       pico8_input_t input = { &frame, 1, 0 };
  *       pico8_dispatch_set_input(&input);   // same call main.c's headless
  *                                           // driver already makes every
@@ -34,12 +35,26 @@
  * run between polling this frame's input and presenting the framebuffer
  * they produced -- this module never calls those ported functions
  * itself (they are main_raylib.c's job, mirroring main.c), so it cannot
- * offer a single call spanning both sides of them. Recording is folded
- * into present() rather than given its own call: by the time present()
- * runs, this frame's input is already known and the frame it produced
- * is already on screen, so that is the one point in the loop where
- * "this frame is done" is true and there is nothing to gain from a
- * fourth call the caller must remember to make every iteration. */
+ * offer a single call spanning both sides of them.
+ *
+ * Recording is its own third call, made BEFORE update60()/draw() rather
+ * than folded into present() after them. It used to be folded into
+ * present(), on the reasoning that present() is the one point where
+ * "this frame is done" is true; a real playtest segfault disproved that
+ * reasoning. update60() is exactly where a crash lands, and it runs
+ * BEFORE present(), so a crashing frame's input was polled, fed to the
+ * game, and killed the process without ever reaching the append -- every
+ * crash recording was therefore truncated one frame short of the input
+ * that caused the crash, which is the single frame a bug report most
+ * needs. Reproducing that segfault required reconstructing the missing
+ * frame by hand (see docs/plan.md's own "Notes de portage" entry).
+ * Recording the frame as soon as it is known costs the same
+ * pico8_input_append call and makes a crash recording end WITH the
+ * crashing frame, so replaying it headlessly reproduces the crash
+ * directly. The cost of the new ordering is one frame of over-recording
+ * on a clean quit (the final polled frame is recorded even though
+ * WindowShouldClose ends the loop before it is presented), which is
+ * harmless: it replays as one extra frame of real input. */
 
 #ifndef PICO8_RAYLIB_BACKEND_H
 #define PICO8_RAYLIB_BACKEND_H
@@ -116,12 +131,24 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
  * pico8_peek/PICO8_ADDR_SCREEN, one PICO8_PALETTE lookup per pixel) as a
  * texture and draws it scaled to fill the window -- the only raylib
  * drawing this module (or this whole backend) ever does; no raylib-
- * native UI/HUD. Then adds *frame (the same frame poll_input filled this
- * iteration) to the session's recording file via pico8_input_append,
- * which costs the same whether it is the session's first frame or its
- * thirty-thousandth. Called once per loop iteration, after this frame's
- * pico8__update60()/pico8__draw(). */
+ * native UI/HUD. Called once per loop iteration, after this frame's
+ * pico8__update60()/pico8__draw(). Does not record anything: that is
+ * pico8_raylib_backend_record_frame()'s job, and it deliberately happens
+ * before update60() rather than here (see this header's own top comment
+ * on why). `frame` is no longer read by this function and is kept only
+ * so the call site's shape stays stable. */
 void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame);
+
+/* Adds *frame (the same frame poll_input just filled) to the session's
+ * recording file via pico8_input_append, which costs the same whether it
+ * is the session's first frame or its thirty-thousandth. Called once per
+ * loop iteration, immediately after pico8_raylib_backend_poll_input()
+ * and BEFORE pico8__update60()/pico8__draw(), so that a frame whose
+ * update60() crashes is already on disk -- see this header's own top
+ * comment for the playtest segfault that forced this ordering. A failed
+ * append silently drops the frame rather than crashing a live playtest
+ * session. */
+void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame);
 
 /* Restores the host OS cursor init() hid, unloads the texture and closes
  * the window. The recording file on disk is left in place (it is already

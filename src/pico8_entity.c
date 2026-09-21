@@ -361,6 +361,7 @@ void pico8_entity_init(void) {
     g_ci = pico8_ob("0.5,1,1,1,1,1,1,1,1,0,0,0,0,0,0,", NULL);
 
     g_mo = malloc(sizeof *g_mo);
+    g_mo->tag = PICO8_TYPE_TAG_INSTANCE;
     g_mo->fields = pico8_ob_table_new();
     g_mo->cls = NULL;
 

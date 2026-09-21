@@ -101,10 +101,30 @@ static char *pico8_ob_strdup(const char *s) {
 
 pico8_ob_table_t *pico8_ob_table_new(void) {
     pico8_ob_table_t *t = malloc(sizeof *t);
+    t->tag = PICO8_TYPE_TAG_OB_TABLE;
     t->entries = NULL;
     t->count = 0;
     t->capacity = 0;
     return t;
+}
+
+/* See pico8_ob.h's own comment on this declaration for what it is for,
+ * where it came from, and who owns the result. */
+pico8_ob_table_t *pico8_ob_table_from_list(const pico8_list_t *list) {
+    pico8_ob_table_t *table = pico8_ob_table_new();
+    pico8_list_iter_t it;
+    pico8_value_t v;
+    int i = 1;
+
+    if (list == NULL) {
+        return table;
+    }
+    it = pico8_list_all(list);
+    while (pico8_list_iter_next(&it, &v)) {
+        pico8_ob_table_set_index(table, i, v);
+        i++;
+    }
+    return table;
 }
 
 /* Frees this table's own backing storage and its own owned key-name

@@ -24,7 +24,7 @@ static pico8_class_t *g_ie_class = NULL;
  * file's own `ie_ke_wrapper` comment for why one shared static table is
  * safe to reuse across every call (pico8_instance_get_field only ever
  * reads through `fields`, never writes it). */
-static pico8_ob_table_t g_ie_empty_fields = {NULL, 0, 0};
+static pico8_ob_table_t g_ie_empty_fields = {PICO8_TYPE_TAG_OB_TABLE, NULL, 0, 0};
 
 /* Truncating fixed->int conversion, the same private per-module copy
  * convention already established throughout this port (e.g. pico8_bg.c's
@@ -90,6 +90,7 @@ static pico8_class_t *ie_self_ke_class(const pico8_instance_t *self) {
  * `self.ke.s` read, and `ie:kj`'s own `dl(self.ke)` call. */
 static pico8_instance_t ie_ke_wrapper(pico8_class_t *cls) {
     pico8_instance_t wrapper;
+    wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
     wrapper.fields = &g_ie_empty_fields;
     wrapper.cls = cls;
     return wrapper;

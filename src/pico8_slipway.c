@@ -113,6 +113,7 @@ void pico8_jc_hq(pico8_instance_t *self, pico8_value_t mp) {
     } else {
         pico8_instance_t *placeholder = malloc(sizeof *placeholder);
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
+        placeholder->tag = PICO8_TYPE_TAG_INSTANCE;
         placeholder->cls = NULL;
         placeholder->fields = pico8_ob_table_new();
         pico8_ob_table_set_name(placeholder->fields, "ra", mp);
@@ -258,6 +259,7 @@ pico8_value_t pico8_jc_ce(pico8_instance_t *self) {
 
     if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {
         pico8_instance_t *placeholder = malloc(sizeof *placeholder);
+        placeholder->tag = PICO8_TYPE_TAG_INSTANCE;
         placeholder->cls = NULL;
         placeholder->fields = pico8_ob_table_new();
         pico8_ob_table_set_name(placeholder->fields, "qs", pico8_value_string("-too far-"));

@@ -425,6 +425,7 @@ pico8_instance_t *pico8_class_instantiate(pico8_class_t *cls, const pico8_ob_tab
      * NULL` mirrors `ke()`'s own `ob=nil` case (`pairs(nil or {})` is an
      * empty iteration), so nothing is copied and `inst->fields` starts
      * empty, exactly like `mw(nil)`. */
+    inst->tag = PICO8_TYPE_TAG_INSTANCE;
     inst->fields = pico8_ob_table_new();
     inst->cls = cls;
 

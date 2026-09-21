@@ -101,8 +101,9 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
      * describe "it happened somewhere around..." Appended (never
      * rewritten) so a marker already on disk survives a crash later in
      * the session; session_frame_count is the index this frame will get
-     * once present() appends it below, i.e. exactly the 0-based index
-     * into the paired recording's own "frames" array. */
+     * once pico8_raylib_backend_record_frame() appends it (the caller's
+     * very next call, immediately after this one), i.e. exactly the
+     * 0-based index into the paired recording's own "frames" array. */
     if (IsKeyReleased(KEY_SPACE)) {
         FILE *markers = fopen(backend->markers_path, "a");
         if (markers) {
@@ -128,6 +129,10 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
     EndDrawing();
 
+    (void)frame;
+}
+
+void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame) {
     /* A failed append silently drops the frame rather than crashing a live
      * playtest session, and leaves session_frame_count alone so the next
      * frame takes the slot this one never reached -- keeping the count the

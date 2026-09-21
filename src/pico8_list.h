@@ -1,6 +1,7 @@
 #ifndef PICO8_LIST_H
 #define PICO8_LIST_H
 
+#include "pico8_type_tag.h"
 #include "pico8_value.h"
 
 /* PICO-8's own list primitives -- add()/del()/all()/foreach(), used all
@@ -15,6 +16,12 @@
  * later in this phase (see pico8_value.h's own top comment) -- not
  * reinvented per consumer. */
 typedef struct {
+    /* Always PICO8_TYPE_TAG_LIST, set by pico8_list_init() -- see
+     * pico8_type_tag.h for why this port's three Lua-table-modelling
+     * structs all carry an explicit first-member discriminator. Kept
+     * FIRST (and first in every sibling struct) so pico8_type_tag_of()
+     * can read it off a bare REF without knowing the type yet. */
+    pico8_type_tag_t tag;
     pico8_value_t *items;
     int count;
     int capacity;

@@ -51,8 +51,8 @@ int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const c
 /* Adds one more frame to the events.json-schema recording at `path`
  * without re-serializing the frames already recorded there, so the cost of
  * recording a frame does not grow with the length of the session (the
- * always-on per-frame recording in pico8_raylib_backend_present() is the
- * one caller this exists for). `*io_tail_offset` is the writer's whole
+ * always-on per-frame recording in pico8_raylib_backend_record_frame()
+ * is the one caller this exists for).`*io_tail_offset` is the writer's whole
  * memory of the recording: set it to 0 to start a new one -- `path` is
  * then created or truncated and written with this single frame -- and pass
  * the same variable back, untouched, on every later call for that
