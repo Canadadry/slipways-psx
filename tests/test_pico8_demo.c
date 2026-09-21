@@ -66,7 +66,17 @@ int main(void) {
     assert(screen_pixel(&mem, 1, 90) == 0);
 
     pico8_map(&gfx, &mem, 0, 0, 0, 100, 4, 1);
-    assert(screen_pixel(&mem, 0, 101) == 1);
+    /* The real cart's map cell (0,0) is 0, and map() takes sprite 0 to mean
+     * "empty" and does not draw it (PICO-8 manual, MAP()) -- so that whole
+     * first 8x8 block stays cleared. This assertion used to read
+     * `screen_pixel(&mem, 0, 101) == 1`, which was sprite 0's own row-1
+     * pixel: the cart's sprite 0 is palette data (pico8/lua.lua:134-140),
+     * not a tile, and drawing it here was the bug. */
+    for (int y = 100; y <= 107; y++) {
+        for (int x = 0; x <= 7; x++) {
+            assert(screen_pixel(&mem, x, y) == 0);
+        }
+    }
     assert(screen_pixel(&mem, 8, 100) == 0);
     assert(screen_pixel(&mem, 16, 100) == 1);
     assert(screen_pixel(&mem, 31, 107) == 6);

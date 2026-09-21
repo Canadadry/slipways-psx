@@ -301,6 +301,19 @@ void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, i
     for (int r = 0; r < cel_h; r++) {
         for (int c = 0; c < cel_w; c++) {
             unsigned char sprite_n = pico8_map_cell_get(mem, cel_x + c, cel_y + r);
+            /* "Sprite 0 is taken to mean empty and is not drawn" -- PICO-8
+             * manual, MAP(). (Its opt-out, POKE(0x5F36,0x8), is never poked
+             * by this cart, so it isn't implemented here.) The rule is
+             * map()'s alone: spr(0,...) still draws sprite 0. It matters
+             * because THIS cart's sprite 0 is not artwork at all but one
+             * quadrant of the 16x16 pixel block `cu()` reads as its palette
+             * table (pico8/lua.lua:134-140), while `bg:pq()` writes cell
+             * value 0 for most of the sky (3 of `bg.pl`'s 15 entries are
+             * literally 0, pico8/lua.lua:362-371) -- drawing it tiled that
+             * palette block over the whole galaxy background. */
+            if (sprite_n == 0) {
+                continue;
+            }
             pico8_spr(gfx, mem, sprite_n, sx + c * PICO8_SPRITE_SIZE, sy + r * PICO8_SPRITE_SIZE, 1, 1);
         }
     }
