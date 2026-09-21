@@ -67,6 +67,11 @@ int main(void) {
     while (pico8_raylib_backend_should_continue(&backend)) {
         pico8_input_frame_t frame;
         pico8_raylib_backend_poll_input(&backend, &frame);
+        /* Recorded BEFORE the game steps, so a frame whose
+         * pico8__update60() crashes is already on disk -- see
+         * pico8_raylib_backend.h's own top comment for the playtest
+         * segfault that forced this ordering. */
+        pico8_raylib_backend_record_frame(&backend, &frame);
         pico8_input_t input = { &frame, 1, 0 };
         pico8_dispatch_set_input(&input);
 
