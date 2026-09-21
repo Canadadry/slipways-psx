@@ -1,4 +1,4 @@
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib
 
 # The Love2D prototype (`game/`) was removed in favor of the PC/raylib
 # literal port described in docs/plan.md. Phase 1 of that plan added a C
@@ -61,6 +61,17 @@ $(TMP_DIR)/test_pico8_fixed: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico
 # failure (non-zero exit) instead of a printed warning that's easy to miss.
 $(TMP_DIR)/test_pico8_fixed_ubsan: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -fsanitize=undefined -fno-sanitize-recover=undefined -o $@ tests/test_pico8_fixed.c src/pico8_fixed.c -lm
+
+# Phase 5, Etape 1, Chunk 5 (docs/prd/triage/phase5-etape1-raylib-
+# interactive-backend.md): the one meaningfully testable piece of the
+# raylib backend, and deliberately raylib-free (see
+# src/pico8_raylib_backend_coords.h's own header comment) -- links only
+# against pico8_raylib_backend_coords.c, never raylib.h/libraylib.a, so
+# wiring it into `unit`/`test` (per the PRD's own Testing Decisions,
+# which call this "fine and even preferred") adds coverage without
+# giving the fast, window-free day-to-day suite any raylib dependency.
+$(TMP_DIR)/test_pico8_raylib_backend_coords: tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c
 
 $(TMP_DIR)/test_pico8_vec: tests/test_pico8_vec.c src/pico8_vec.c src/pico8_vec.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c -lm
@@ -138,7 +149,7 @@ $(TMP_DIR)/pico8_replay: src/main.c src/pico8_assets.c src/pico8_assets.h src/pi
 $(TMP_DIR)/test_pico8_playability: tests/test_pico8_playability.c tests/fixtures/phase4_playthrough_events.json src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_playability.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_raylib_backend_coords
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -158,6 +169,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_planet_kj_dispatch
 	./$(TMP_DIR)/test_pico8_demo
 	./$(TMP_DIR)/test_pico8_playability
+	./$(TMP_DIR)/test_pico8_raylib_backend_coords
 
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
@@ -186,3 +198,41 @@ psx-hello-clean:
 # no project C code depends on this yet (see the PRD's Chunk 1 for why).
 raylib-vendor-setup:
 	sh tools/install_raylib_vendor.sh
+
+# Phase 5, Etape 1, Chunk 5 (docs/prd/triage/phase5-etape1-raylib-
+# interactive-backend.md), the final chunk of that PRD: compiles and
+# links src/main_raylib.c + src/pico8_raylib_backend.c +
+# src/pico8_raylib_backend_coords.c against the SAME full engine closure
+# pico8_replay already links (main_raylib.c boots the identical cart via
+# pico8_cart_load(), same reasoning as that target's own header comment)
+# and against the vendored third_party/raylib/src/libraylib.a, plus the
+# system libs raylib's own PLATFORM_DESKTOP build needs on Linux (-lm
+# -lGL -lX11 -lpthread -ldl -lrt) -- the same set already confirmed to
+# link successfully while building Chunks 3 and 4. `-I third_party/
+# raylib/src` is needed on top of $(CFLAGS) so raylib.h is found.
+#
+# This is a LINK-ONLY check and the `raylib` target below deliberately
+# never runs the binary it builds: per this project's CLAUDE.md, no
+# raylib window may be opened by an agent at any point before Phase 5's
+# real human-playthrough exit gate, and the PRD's own Solution/
+# Implementation Decisions sections are explicit that "a Makefile target
+# that compiles and links main_raylib.c against the vendored raylib
+# without ever running the resulting binary... [is] the actual,
+# automatable exit criterion for everything this PRD's own chunks can
+# complete" before ever calling on a human to play it. Unlike `replay:`,
+# `raylib:` has no `./$(TMP_DIR)/...` execution line.
+#
+# This target requires third_party/raylib/src/libraylib.a to already
+# exist (built by the separate, deliberately manual `raylib-vendor-
+# setup` above) -- it is a normal prerequisite, not an order-only one
+# and not auto-triggered, so running `make raylib` before vendoring
+# raylib fails with an ordinary Make "no rule to make target" error,
+# matching how `psx-hello` is kept fully separate from
+# `psn00bsdk-toolchain-setup`. `raylib` is deliberately left out of
+# `unit`/`test` for the same reason `psx-hello` is: it depends on a
+# separate, slow/network-heavy one-time setup step no CI/day-to-day run
+# should require.
+$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a -lm -lGL -lX11 -lpthread -ldl -lrt
+
+raylib: $(TMP_DIR)/main_raylib
