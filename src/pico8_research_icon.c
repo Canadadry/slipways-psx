@@ -334,7 +334,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         return;
     }
 
-    pico8_palt(gfx, 3, 0);
+    pico8_palt(mem, 3, 0);
 
     /* `spr(self.ke.s,p.x,p.y)` -- `self.ke.s`, whichever planet-upgrade
      * class's own sprite id (`self.ke.rr`'s own class-wrapper read, see
@@ -373,7 +373,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         }
     }
 
-    pico8_palt(gfx, 3, 1);
+    pico8_palt(mem, 3, 1);
 }
 
 /* Bridges to pico8_ie_kj's own signature, reading gfx/mem from the shared

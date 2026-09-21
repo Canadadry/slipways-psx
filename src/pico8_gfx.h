@@ -15,7 +15,6 @@
 typedef struct {
     int camera_x;
     int camera_y;
-    unsigned char transparent[16];
     unsigned int fillp_pattern;
     /* Phase 3, Chunk 18 (docs/prd/triage/phase3-etape1-function-by-function-
      * c-port.md): PICO-8's own "current pen colour" state -- real PICO-8's
@@ -50,9 +49,22 @@ void pico8_camera(pico8_gfx_t *gfx, int x, int y);
 
 void pico8_camera_reset(pico8_gfx_t *gfx);
 
-void pico8_palt(pico8_gfx_t *gfx, int col, int transparent);
+/* palt(c,t). Real PICO-8 keeps ONE transparency store, not two: palt()
+ * flips the 0x80 bit of `mem[PICO8_ADDR_DRAW_PALETTE+c]`, the very byte
+ * pal()/`memcpy(0x5f00,...)` writes -- so a palette block activated by
+ * dv() (pico8_hud.h) overrides whatever palt() said before it, and
+ * palt(c,false) really can make a color opaque again. This port used to
+ * keep a SECOND, pico8_gfx_t-side flag array OR'd onto that byte, which
+ * made both directions impossible: `dv()` could not undo a palt(0,true)
+ * (pico8/lua.lua:546's own trailing bare `dv()` is exactly that undo, and
+ * the cart never calls palt(0,false) anywhere), and palt(3,false)
+ * (pico8/lua.lua:937) could not clear the 0x80 bit cu() bakes in for
+ * color 3 -- the cause of a real, human-reported "every icon lost its
+ * black outline" bug. Takes `mem`, not `gfx`, for that reason: the store
+ * it writes IS the draw palette in memory. */
+void pico8_palt(pico8_mem_t *mem, int col, int transparent);
 
-int pico8_gfx_is_transparent(const pico8_gfx_t *gfx, int col);
+int pico8_gfx_is_transparent(const pico8_mem_t *mem, int col);
 
 void pico8_line(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, int x2, int y2, int col);
 

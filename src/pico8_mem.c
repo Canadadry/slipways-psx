@@ -2,8 +2,29 @@
 
 #include <string.h>
 
+/* Zeroed memory, plus PICO-8's own documented power-on DRAW PALETTE at
+ * 0x5f00: the identity map (color c drawn as color c), with color 0 -- and
+ * only color 0 -- carrying the transparency bit. That is what the PICO-8
+ * manual states palt() resets to ("all colours opaque except colour 0"),
+ * and since this port's own palt()/spr() now share that one table
+ * (pico8_gfx.h's own comment on pico8_palt) rather than a separate
+ * gfx-side flag array, this is where that default has to live. In this
+ * cart it is only ever observed before the first `cu()`/`dv()` pair runs
+ * (pico8__init() calls cu() and _draw() opens with a bare dv(),
+ * pico8_cart.c), which is precisely why a plain all-zero table -- "every
+ * color maps to 0, nothing transparent" -- would be the wrong start. */
 void pico8_mem_init(pico8_mem_t *mem) {
+    int c;
+
     memset(mem->data, 0, sizeof(mem->data));
+
+    for (c = 0; c < 16; c++) {
+        unsigned char entry = (unsigned char)c;
+        if (c == 0) {
+            entry = (unsigned char)(entry | PICO8_DRAW_PALETTE_TRANSPARENT_BIT);
+        }
+        mem->data[PICO8_ADDR_DRAW_PALETTE + c] = entry;
+    }
 }
 
 static int pico8_addr_in_range(int addr) {
