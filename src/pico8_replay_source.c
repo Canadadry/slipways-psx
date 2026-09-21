@@ -10,6 +10,7 @@ pico8_replay_source_status_t pico8_replay_source_open(pico8_replay_source_t *sou
     assert(source);
 
     source->path = path;
+    source->next_frame_index = 0;
     pico8_input_init(&source->recording);
 
     if (!path) {
@@ -39,10 +40,30 @@ int pico8_replay_source_frame_count(const pico8_replay_source_t *source) {
     return source->recording.frame_count;
 }
 
+int pico8_replay_source_next_frame(pico8_replay_source_t *source, pico8_input_frame_t *out_frame) {
+    assert(source);
+    assert(out_frame);
+
+    /* One test covers both the "no recording was asked for" and the
+     * "the recording ran out" cases, because for this module they are
+     * the same fact: there is no frame to serve. A NONE source has a
+     * frame_count of 0 and an index of 0, so it is exhausted on its
+     * first call without any status check -- the branch the driver does
+     * not have to write. */
+    if (source->next_frame_index >= source->recording.frame_count) {
+        return 0;
+    }
+
+    *out_frame = source->recording.frames[source->next_frame_index];
+    source->next_frame_index++;
+    return 1;
+}
+
 void pico8_replay_source_close(pico8_replay_source_t *source) {
     assert(source);
 
     pico8_input_free(&source->recording);
     source->status = PICO8_REPLAY_SOURCE_NONE;
     source->path = NULL;
+    source->next_frame_index = 0;
 }
