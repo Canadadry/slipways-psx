@@ -1,0 +1,2490 @@
+{
+ "frames": [
+  {
+   "mouse_x": 76,
+   "mouse_y": 71,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 76,
+   "mouse_y": 71,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 118,
+   "mouse_y": 0,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 118,
+   "mouse_y": 0,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 108,
+   "mouse_y": 10,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 108,
+   "mouse_y": 10,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 108,
+   "mouse_y": 10,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 108,
+   "mouse_y": 10,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 108,
+   "mouse_y": 10,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 91,
+   "mouse_y": 62,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 91,
+   "mouse_y": 62,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 118,
+   "mouse_y": 0,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 118,
+   "mouse_y": 0,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 81,
+   "mouse_y": 98,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 81,
+   "mouse_y": 98,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 88,
+   "mouse_y": 37,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 86,
+   "mouse_y": 44,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 84,
+   "mouse_y": 51,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 82,
+   "mouse_y": 58,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 80,
+   "mouse_y": 65,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 78,
+   "mouse_y": 73,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 118,
+   "mouse_y": 0,
+   "mouse_buttons": 1,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "mouse_x": 118,
+   "mouse_y": 0,
+   "mouse_buttons": 0,
+   "dpad": [
+    false,
+    false,
+    false,
+    false
+   ]
+  }
+ ]
+}
