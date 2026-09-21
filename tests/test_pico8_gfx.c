@@ -465,6 +465,29 @@ static void test_map_draws_cells_via_sprite_drawing_logic(void) {
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0 * PICO8_SCREEN_WIDTH + 0) == 0);
 }
 
+static void test_map_treats_sprite_0_cells_as_empty(void) {
+    /* Real PICO-8's map() "takes sprite 0 to mean empty and does not draw
+     * it" (PICO-8 manual, MAP()); the opt-out POKE(0x5F36,0x8) is never
+     * poked by this cart. So a cell holding 0 leaves its 8x8 block alone
+     * even when sprite 0's own pixels are opaque -- which they are in this
+     * cart, whose sprite 0 is palette data, not artwork. Direct spr(0,...)
+     * is unaffected by that rule and still draws. */
+    pico8_mem_t mem;
+    pico8_gfx_t gfx;
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+
+    /* Sprite 0's top-left pixel, opaque colour 7. */
+    pico8_poke(&mem, PICO8_ADDR_SPRITE_SHEET + 0, 7);
+    pico8_mset(&mem, 0, 0, 0);
+
+    pico8_map(&gfx, &mem, 0, 0, 0, 0, 1, 1);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0) == 0);
+
+    pico8_spr(&gfx, &mem, 0, 0, 0, 1, 1);
+    assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 0) == 7);
+}
+
 static void test_map_and_mset_round_trip_against_real_cart_data(void) {
     /* End-to-end: load the real cart's sprite sheet, mset a cell (in the
      * shared upper map region) to point at a known real sprite, draw it
@@ -666,6 +689,7 @@ int main(void) {
     test_mset_writes_shared_upper_region_cell();
     test_mset_out_of_range_is_noop();
     test_map_draws_cells_via_sprite_drawing_logic();
+    test_map_treats_sprite_0_cells_as_empty();
     test_map_and_mset_round_trip_against_real_cart_data();
     test_print_draws_known_glyph_pixels();
     test_print_advances_cursor_by_cell_width_between_chars();
