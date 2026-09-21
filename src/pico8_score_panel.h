@@ -402,30 +402,19 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
 /* `eg()` -- pico8/lua.lua:1173-1177 (`function eg()local ps=#jp(cg.jo,
  * jo.gg)/2 for i,ny in pairs(fb)do local pd=0x3101+4*ny poke(pd,peek(pd)%
  * 128+(ps<i and 128 or 0))end end`), called at the tail of `pj:hb()`'s own
- * real body -- a research-icon palette-shading effect, EXPLICITLY assigned
- * by the PRD's own Implementation Chunks list to Chunk 21 ("`cr()`, `eg()`,
- * ... Depends on ... Chunk 18 (`pj.cr`/`pj:hb`'s `ef` usage)"), not this
- * chunk. Every one of `eg()`'s own real dependencies (`fb`, Chunk 1's
- * `pico8_fb()`; `cg.jo`/`jo.gg`, Chunk 13's `pico8_cg("jo")`/`pico8_jo_gg`;
- * `poke`/`peek`, Phase 1) already exists in this port today, but porting
- * its real body here anyway would step outside this chunk's own
- * PRD-assigned scope and duplicate work Chunk 21 is explicitly tasked
- * with -- so, exactly like `pico8_dk()`'s own "accessor built now, real
- * reconciliation left to its owning chunk" precedent (pico8_economy_score.h),
- * this chunk builds ONLY the minimal placeholder `pj:hb()` needs to
- * compile and call faithfully: a plain, directly-callable, documented
- * NO-OP stub (this port's own established "nothing to act on yet" filler,
- * same category as `pico8_rn()`'s own inert stub or `eu`/`_init`'s own
- * placeholder bodies). UNLIKE `eu`/`_init`/`ju` above, `eg()` needs NO
- * get/set indirection: it is never stored as a value anywhere in the real
- * source (line 1173's own top-level `function eg()...end` is the only
- * place it's ever named besides this one bare call), only ever invoked
- * directly by name -- so Chunk 21, when it ports `eg()`'s own real body,
- * should simply REPLACE this stub's function BODY in place (same
- * declared signature, same call site here in `pico8_pj_hb()` needing no
- * change at all), the same "stub now, fill in the body later" treatment
- * already established for a plain (non-singleton, non-field-value)
- * not-yet-ported function with a real, evidenced future implementation. */
+ * real body -- a research-icon palette-shading effect. Originally
+ * (Chunk 18) a deliberate, documented NO-OP stub, EXPLICITLY assigned by
+ * the PRD's own Implementation Chunks list to Chunk 21 for its real body
+ * ("`cr()`, `eg()`, ... Depends on ... Chunk 18 (`pj.cr`/`pj:hb`'s `ef`
+ * usage)"). *** CHUNK 21 UPDATE ***: the real body is now ported (see
+ * pico8_score_panel.c's own comment on this function's definition for the
+ * full field-by-field trace) -- same declared signature, same one real
+ * call site (`pico8_pj_hb()`'s own tail call), no other change needed,
+ * exactly as this comment originally anticipated. `eg()` needed no get/set
+ * indirection either before or after this update: it is never stored as a
+ * value anywhere in the real source (line 1173's own top-level `function
+ * eg()...end` is the only place it's ever named besides this one bare
+ * call), only ever invoked directly by name. */
 void pico8_eg(void);
 
 #endif

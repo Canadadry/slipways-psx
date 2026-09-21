@@ -6,11 +6,13 @@
 #include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
+#include "pico8_game_data.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
+#include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_score_panel_display.h"
 #include "pico8_stash.h"
@@ -178,13 +180,114 @@ void pico8_score_panel_set_init(pico8_value_function_t fn) {
     g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
 }
 
-/* `eg()` -- see pico8_score_panel.h's own top comment for the full trace
- * on why this is a deliberate, documented stub (Chunk 21's own real
- * function, not this chunk's job to port) rather than a get/set
- * placeholder pair. */
+/* function eg()local ps=#jp(cg.jo,jo.gg)/2
+ * for i,ny in pairs(fb)do
+ * local pd=0x3101+4*ny
+ * poke(pd,peek(pd)%128+(ps<i and 128 or 0))end
+ * end
+ * (pico8/lua.lua:1173-1177.) *** CHUNK 21 REAL BODY *** -- replaces the
+ * stub above (Chunk 18's own placeholder, this file's own history) in
+ * place, same declared signature, same one real call site
+ * (`pico8_pj_hb`'s own tail call below), no other change needed. See
+ * pico8_score_panel.h's own updated top comment on this declaration for
+ * the full trace on why this stub existed and why Chunk 21 is the right
+ * owner.
+ *
+ * `#jp(cg.jo,jo.gg)/2`: filters every registered `jo` entity (`cg.jo`,
+ * pico8_entity.c's `pico8_cg("jo")`) by `jo:gg()`'s own truthiness
+ * (Chunk 13's `pico8_jo_gg`, pico8_planet.h) via a small inline predicate
+ * (`pico8_eg_gg_pred`, this file) bridging `pico8_jp`'s own ctx-based
+ * predicate shape (`int(*)(pico8_value_t,void*)`) to `pico8_jo_gg`'s own
+ * direct `pico8_value_t(*)(const pico8_instance_t*)` signature -- the
+ * same "tiny adapter bridging two already-real, differently-shaped
+ * functions" precedent `pico8_bw_gn_r` already established
+ * (pico8_galaxy.c, Chunk 20). The resulting filtered list's own LENGTH
+ * (`#...`) is halved via ordinary fixed-point division (`pico8_fixed_
+ * div`, since real Lua's `/` always divides as a float regardless of its
+ * operands' own types, matching e.g. `pico8_ky`'s own `#fm.invented*1.2`
+ * precedent, pico8_economy_score.c).
+ *
+ * `for i,ny in pairs(fb)do...end`: `fb` (Chunk 1's `pico8_fb()`, a purely
+ * positional 14-entry data literal, pico8_game_data.h) is walked by a
+ * plain 1-based index loop directly against `pico8_ob_table_get_index` --
+ * no ob_table-to-list bridge needed here (unlike `jp()`'s own call above,
+ * which genuinely needs a `pico8_list_t`). `pd=0x3101+4*ny`: `ny` is one
+ * of `fb`'s own positional FIXED values, converted to a plain C `int` for
+ * the address arithmetic, matching every other real peek/poke address
+ * computation already ported elsewhere in this port.
+ *
+ * `peek(pd)%128`: CONFIRMED, not assumed, against pico8_mem.h's own real
+ * signature (`unsigned char pico8_peek(const pico8_mem_t*, int)`) before
+ * committing to this reading, per this chunk's own explicit instruction --
+ * `pico8_peek`'s return type is a plain `unsigned char`, NOT a
+ * `pico8_fixed_t`, so `%128` here is ordinary C integer modulo on that
+ * same `unsigned char` (promoted to `int` by C's own usual arithmetic
+ * conversions), NOT `pico8_fixed_mod` -- one of only 3 real `%` use sites
+ * in the whole cart this port's own "Notes de portage" already flags as
+ * applying to a C `int`, confirmed here directly rather than trusted
+ * blindly. `ps<i`: `ps` (a genuine `pico8_fixed_t`, from the `/2` above)
+ * is compared against `i` (the loop's own 1-based positional index, a
+ * plain C `int`) by lifting `i` to a fixed value (`pico8_fixed_from_int`)
+ * -- a real Lua NUMERIC comparison between two numbers, mirrored exactly.
+ * `(ps<i and 128 or 0)`: a genuine Lua comparison result (always a real
+ * boolean), ported as a plain C ternary, matching `jo:fe`'s own `od>0 and
+ * {...}` precedent (pico8_planet_display.c) for "the condition is a
+ * comparison, not a bare value" case.
+ *
+ * `mem` is read via pico8_dispatch_context.h's shared "current frame"
+ * accessor (`pico8_dispatch_mem()`, already `#include`d by this file),
+ * matching this port's established convention for a plain top-level
+ * function (no self/gfx/mem parameters of its own) that still needs
+ * Phase 1's memory primitives -- a NULL `mem` (before any frame has set
+ * one) is a safe no-op, the same "compiles, not yet exercised" treatment
+ * every other pico8_dispatch_context.h consumer in this port already
+ * gets. */
+static int pico8_eg_gg_pred(pico8_value_t e, void *ctx) {
+    pico8_value_t gg;
+    (void)ctx;
+    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
+        return 0;
+    }
+    gg = pico8_jo_gg((const pico8_instance_t *)e.as.ref);
+    if (gg.kind == PICO8_VALUE_BOOL && gg.as.boolean == 0) {
+        return 0;
+    }
+    if (gg.kind == PICO8_VALUE_REF && gg.as.ref == NULL) {
+        return 0;
+    }
+    return 1;
+}
+
 void pico8_eg(void) {
-    /* Intentional no-op -- see this file's own top comment on this
-     * declaration. */
+    pico8_mem_t *mem = pico8_dispatch_mem();
+    pico8_list_t filtered;
+    pico8_fixed_t ps;
+    const pico8_ob_table_t *fb;
+    int i;
+
+    filtered = pico8_jp(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
+    ps = pico8_fixed_div(pico8_fixed_from_int(filtered.count), pico8_fixed_from_int(2));
+    pico8_list_free(&filtered);
+
+    if (mem == NULL) {
+        return;
+    }
+
+    fb = pico8_fb();
+    if (fb == NULL) {
+        return;
+    }
+
+    for (i = 1; i <= fb->count; i++) {
+        pico8_value_t ny_val;
+        if (pico8_ob_table_get_index(fb, i, &ny_val) && ny_val.kind == PICO8_VALUE_FIXED) {
+            int ny = (int)pico8_fixed_to_double(ny_val.as.fixed);
+            int pd = 0x3101 + 4 * ny;
+            unsigned char cur = pico8_peek(mem, pd);
+            int newval = (cur % 128) + ((ps < pico8_fixed_from_int(i)) ? 128 : 0);
+            pico8_poke(mem, pd, (unsigned char)newval);
+        }
+    }
 }
 
 /* function pj:hb()local cf=ne(fm.ge)local ou={fm.nz.."$",cf,fm.jk,

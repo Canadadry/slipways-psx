@@ -320,4 +320,28 @@ void pico8_pj_hk(pico8_fixed_t yr);
 void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);
 
+/* *** CHUNK 21 ADDITION *** -- `ix[3].my=function()ju.c_=true fq(de)end`
+ * (pico8/lua.lua:984-985, Chunk 21's own `pico8_menu.c`) needs this SAME
+ * real Lua global `de` table (the identical table `pj:ph()` above already
+ * builds and reuses -- confirmed by re-reading pico8/lua.lua directly:
+ * `de` is declared exactly once, as one top-level table right after `pj`'s
+ * own methods, pico8/lua.lua:901), but this module's own `g_de` static was
+ * PRIVATE (no public accessor) until now -- Chunk 18 never needed one,
+ * since its own only real consumer (`pj:ph`) already lives in this same
+ * file. Rather than have Chunk 21 rebuild a second, independent `{my=
+ * function()ju.c_=not ju.c_ end}` table (a real, observable divergence
+ * from real Lua's single-global-table semantics: two distinct tables would
+ * mean `js(ob([[...]],de))`'s own button and `fq(de)`'s own button no
+ * longer share one live `my` field, even though the real cart's `de` is
+ * exactly one table read from two call sites), this small, narrowly-scoped
+ * public accessor exposes the EXISTING `g_de` static as-is -- no new
+ * table, no new state, `pico8_score_panel_display_init()`/`_shutdown()`
+ * unchanged. Same "expose an existing private static because a new,
+ * independently-verified real call site needs the SAME global" shape this
+ * port already used for `pico8_dk()`/`pico8_ju()`'s own reconciliation
+ * notes, just resolved immediately here rather than deferred to a future
+ * chunk, since `de` itself is already fully real today (unlike `_init`/
+ * `ju`, which still need their own later reconciliation). */
+const pico8_ob_table_t *pico8_de(void);
+
 #endif

@@ -449,3 +449,12 @@ void pico8_score_panel_display_shutdown(void) {
         g_de = NULL;
     }
 }
+
+/* `de` -- see this file's own top comment and pico8_score_panel_display.h's
+ * own updated comment on this declaration for why Chunk 21 needed a public
+ * accessor for this module's own already-existing `g_de` static (`ix[3]
+ * .my`'s own real `fq(de)` call, pico8_menu.c) rather than building a
+ * second, competing `de` table. */
+const pico8_ob_table_t *pico8_de(void) {
+    return g_de;
+}
