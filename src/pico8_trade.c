@@ -49,11 +49,24 @@ int pico8_trade_to(const pico8_instance_t *self, pico8_value_t *out_value) {
     return 1;
 }
 
+/* A real Lua `{x}` table constructor holds zero elements, not one, when x
+ * is nil (`#{nil}==0`), so `foreach({nil},...)` never runs -- see this
+ * port's pico8_value_ref(NULL) "nil" convention documented in
+ * pico8_value.h's mv() comment. pico8_trade_kg below needs this to match
+ * `trade({...,rl=la(self.rl,{jc}),...})` when called as `t:kg(self)` (jc
+ * omitted, e.g. line 495's `t:kg(self)`), where `{jc}` must contribute
+ * nothing to rl. */
+static int value_is_nil(pico8_value_t v) {
+    return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
+}
+
 /* See pico8_trade.h's own comment on this declaration. `{np}`/`{jc}` (the
  * real Lua's own single-element list literals) are built here as
  * one-element pico8_list_t stack values (np_list/jc_list) fed to pico8_la
  * (pico8_collect.h), then freed once pico8_la has copied their single
- * element into the new heap-allocated lp/rl lists it returns. */
+ * element into the new heap-allocated lp/rl lists it returns. A nil np/jc
+ * (see value_is_nil above) contributes no element, matching `{nil}`'s
+ * real length of 0. */
 pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np, pico8_value_t jc) {
     pico8_value_t lp_val, rl_val, qe_val;
     pico8_list_t empty_lp;
@@ -84,9 +97,13 @@ pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np,
     }
 
     pico8_list_init(&np_list);
-    pico8_list_add(&np_list, np);
+    if (!value_is_nil(np)) {
+        pico8_list_add(&np_list, np);
+    }
     pico8_list_init(&jc_list);
-    pico8_list_add(&jc_list, jc);
+    if (!value_is_nil(jc)) {
+        pico8_list_add(&jc_list, jc);
+    }
 
     new_lp = malloc(sizeof *new_lp);
     *new_lp = pico8_la(lp, &np_list);
