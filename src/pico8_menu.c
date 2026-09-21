@@ -139,6 +139,51 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     return 1;
 }
 
+/* Not a port of any named Lua function: the SAME "pico8_list_t -> fresh
+ * positional pico8_ob_table_t" bridge already established a dozen times
+ * over in this port (e.g. `pico8_score_panel_display_list_to_ob_table`,
+ * pico8_score_panel_display.c) -- private per-module duplicate, same
+ * "don't widen another module's header surface for a few-line helper"
+ * reasoning those copies already give. Needed here because `cr()`'s own
+ * "extra" row below sets its `"jb"` field straight from `fm.invented`,
+ * a genuine `pico8_list_t*` (pico8_economy.c's own `pico8_hy_pq`), NOT a
+ * `pico8_ob_table_t*` like every other row's own "jb" field
+ * (`pico8_hp_jb()`'s return) -- real Lua's `jb(self.jb)` doesn't care
+ * (`pairs()` walks a list-shaped table exactly like any other), but this
+ * port's `pico8_ob_table_t`/`pico8_list_t` are structurally DISTINCT
+ * ({entries;count;capacity} of `pico8_ob_entry_t` vs {items;count;
+ * capacity} of the smaller `pico8_value_t`), so passing the raw list REF
+ * through unconverted -- as the code did before this fix -- reinterprets
+ * the list's own backing array at the WRONG element stride the moment
+ * `js:pq()`'s own `self.jb=self.jb and jb(self.jb)` step reads it back
+ * (`pico8_jb_new`->`pico8_class_instantiate`), a real, ASan-confirmed
+ * heap-buffer-overflow (same representation-ambiguity family as this
+ * file's own sibling fix, `pico8_js_lq_arg_table`, pico8_ui_button.c --
+ * found during this port's own Phase 5 pre-flight representation-cast
+ * audit, docs/plan.md's own "Notes de portage" journal). Returns a new,
+ * heap-allocated table
+ * the caller owns; this call site never frees it (same accepted
+ * "temporary override table, shallow-copied by the constructor chain
+ * that eventually consumes it, then left for the rest of the program"
+ * leak this port's row-building call sites already establish, e.g.
+ * `pico8_hp_jb()`'s own table above). */
+static pico8_ob_table_t *pico8_menu_list_to_ob_table(const pico8_list_t *list) {
+    pico8_ob_table_t *table = pico8_ob_table_new();
+    pico8_list_iter_t it;
+    pico8_value_t v;
+    int i = 1;
+
+    if (list == NULL) {
+        return table;
+    }
+    it = pico8_list_all(list);
+    while (pico8_list_iter_next(&it, &v)) {
+        pico8_ob_table_set_index(table, i, v);
+        i++;
+    }
+    return table;
+}
+
 /* function cr()local bs,rd,gr={},{},#fm.invented
  * local tl=fm.ew
  * local qi=ek[tl-1]or 0
@@ -194,7 +239,15 @@ void pico8_cr(void) {
         pico8_ob_table_set_index(lq2, 2, pico8_value_string(label));
         pico8_ob_table_set_name(lq2, "c", pico8_value_fixed(pico8_fixed_from_int(3)));
         pico8_ob_table_set_name(extra, "lq", pico8_value_ref(lq2));
-        pico8_ob_table_set_name(extra, "jb", invented_val);
+        /* `jb=fm.invented` -- see pico8_menu_list_to_ob_table's own top
+         * comment above for why `invented_val` (a genuine `pico8_list_t*`)
+         * is bridged into a fresh positional `pico8_ob_table_t*` here
+         * rather than stored as-is. */
+        {
+            const pico8_list_t *invented_list =
+                (invented_val.kind == PICO8_VALUE_REF) ? (const pico8_list_t *)invented_val.as.ref : NULL;
+            pico8_ob_table_set_name(extra, "jb", pico8_value_ref(pico8_menu_list_to_ob_table(invented_list)));
+        }
         pico8_list_add(&bs, pico8_value_ref(extra));
     }
 
