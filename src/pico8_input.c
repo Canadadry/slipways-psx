@@ -188,6 +188,69 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
     return 1;
 }
 
+int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const char *path) {
+    if (!frames || frame_count <= 0) {
+        return 0;
+    }
+
+    size_t tmp_len = strlen(path) + 5;
+    char *tmp_path = malloc(tmp_len);
+    if (!tmp_path) {
+        return 0;
+    }
+    snprintf(tmp_path, tmp_len, "%s.tmp", path);
+
+    FILE *f = fopen(tmp_path, "wb");
+    if (!f) {
+        free(tmp_path);
+        return 0;
+    }
+
+    int ok = 1;
+    if (fprintf(f, "{\n  \"frames\": [\n") < 0) {
+        ok = 0;
+    }
+    for (int i = 0; ok && i < frame_count; i++) {
+        const pico8_input_frame_t *fr = &frames[i];
+        int rc = fprintf(
+            f,
+            "    { \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, \"dpad\": [%s, %s, %s, %s] }%s\n",
+            fr->mouse_x,
+            fr->mouse_y,
+            fr->mouse_buttons,
+            fr->dpad[0] ? "true" : "false",
+            fr->dpad[1] ? "true" : "false",
+            fr->dpad[2] ? "true" : "false",
+            fr->dpad[3] ? "true" : "false",
+            (i + 1 < frame_count) ? "," : "");
+        if (rc < 0) {
+            ok = 0;
+        }
+    }
+    if (ok && fprintf(f, "  ]\n}\n") < 0) {
+        ok = 0;
+    }
+
+    if (fclose(f) != 0) {
+        ok = 0;
+    }
+
+    if (!ok) {
+        remove(tmp_path);
+        free(tmp_path);
+        return 0;
+    }
+
+    if (rename(tmp_path, path) != 0) {
+        remove(tmp_path);
+        free(tmp_path);
+        return 0;
+    }
+
+    free(tmp_path);
+    return 1;
+}
+
 void pico8_input_step(pico8_input_t *input) {
     assert(input->current_frame + 1 < input->frame_count);
     input->current_frame++;

@@ -29,6 +29,25 @@ void pico8_input_init(pico8_input_t *input);
  * partial/best-effort load. */
 int pico8_input_load(pico8_input_t *input, const char *path);
 
+/* Writes `frame_count` frames from `frames` to `path` as a complete
+ * events.json-schema file (a full rewrite, never an append), in exactly
+ * the shape pico8_input_load parses: {"frames": [ { "mouse_x": ...,
+ * "mouse_y": ..., "mouse_buttons": ..., "dpad": [bool, bool, bool,
+ * bool] }, ... ]}, with dpad[b] written as JSON true/false (nonzero is
+ * true). This is new, C-only infrastructure with no Lua-source
+ * equivalent (the events.json writer side of the schema
+ * pico8_input_load already reads) -- not a ported function, so it is
+ * named plainly rather than mimicking pico8/lua.lua's own naming, per
+ * this port's established naming exception for such plumbing (see
+ * e.g. pico8_cart_load). Returns 1 on success, 0 on failure: a NULL
+ * `frames`, a non-positive `frame_count` (mirroring pico8_input_load's
+ * own hard-error treatment of an empty frames array -- this function
+ * never writes a file pico8_input_load couldn't then load back), or a
+ * file-open/write/close failure (e.g. a bad path or a full disk). No
+ * partial file is left in place: nothing is written to `path` at all
+ * unless every frame is written and the file closes successfully. */
+int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const char *path);
+
 /* Releases the frame array. Safe to call on an input that was only
  * pico8_input_init'd (never loaded), and safe to call again before a
  * fresh pico8_input_load. */
