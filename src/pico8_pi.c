@@ -33,8 +33,18 @@ static int g_pi_dispatch_count = 0;
  * itself. Set by pico8_bl/pico8_bl_default (the only real callers of this
  * dispatch path in the whole cart) right before each dispatch; see
  * pico8_pi.h's own comment on pico8_bl for the scope/limits of this. Not
- * exposed in the header -- nothing outside this module needs to set it. */
-static const pico8_gfx_t *g_pi_gfx = NULL;
+ * exposed in the header -- nothing outside this module needs to set it.
+ *
+ * Phase 3, Chunk 18: no longer `const` -- pico8_rk() (pico8_hud.h) now
+ * writes through its own `gfx` parameter (recording the current pen
+ * colour, see that header's own comment), so this module's cached pointer
+ * must be non-const too for its own `pico8_rk(g_pi_gfx, ...)` call site
+ * below to keep compiling. The real pointee is already non-const at its
+ * one real assignment site (`pico8_bl_dispatch_one`'s own `gfx` parameter,
+ * below) -- this was only ever a stricter-than-necessary local
+ * qualifier, not a genuine const object, so relaxing it here changes
+ * nothing about ownership/aliasing. */
+static pico8_gfx_t *g_pi_gfx = NULL;
 static pico8_mem_t *g_pi_mem = NULL;
 
 void pico8_pi_dispatch_register(const char *name, pico8_ob_constructor_fn fn) {

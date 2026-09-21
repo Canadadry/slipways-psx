@@ -190,6 +190,27 @@ void pico8_ob_table_set_name(pico8_ob_table_t *table, const char *name, pico8_va
     pico8_ob_table_set(table, key, value);
 }
 
+/* See pico8_ob.h's own comment on this declaration for the full Chunk 18
+ * trace. Splices the matching entry out (memmove-ing every later entry
+ * down by one) and decrements `count` -- the direct inverse of
+ * pico8_ob_table_set's own append step. */
+void pico8_ob_table_remove_index(pico8_ob_table_t *table, int index) {
+    int i;
+    if (table == NULL) {
+        return;
+    }
+    for (i = 0; i < table->count; i++) {
+        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX && table->entries[i].key.index == index) {
+            int remaining = table->count - i - 1;
+            if (remaining > 0) {
+                memmove(&table->entries[i], &table->entries[i + 1], (size_t)remaining * sizeof(pico8_ob_entry_t));
+            }
+            table->count--;
+            return;
+        }
+    }
+}
+
 int pico8_ob_table_get_index(const pico8_ob_table_t *table, int index, pico8_value_t *out_value) {
     int i;
     for (i = 0; i < table->count; i++) {

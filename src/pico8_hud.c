@@ -66,13 +66,22 @@ void pico8_dv_default(pico8_mem_t *mem) {
 }
 
 /* function rk(y1,y2,...)rectfill(0,y1,127,y2 or y1,...)end
- * See pico8_hud.h's own comment on this declaration. */
-void pico8_rk(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, pico8_fixed_t y2, int col) {
+ * See pico8_hud.h's own comment on this declaration, including the
+ * Chunk 18 `pen_color`-recording resolution. */
+void pico8_rk(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, pico8_fixed_t y2, int col) {
+    if (gfx != NULL) {
+        gfx->pen_color = col;
+    }
     pico8_rectfill(gfx, mem, 0, pico8_hud_to_int(y1), 127, pico8_hud_to_int(y2), col);
 }
 
-void pico8_rk_y1(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, int col) {
+void pico8_rk_y1(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, int col) {
     pico8_rk(gfx, mem, y1, y1, col);
+}
+
+void pico8_rk_default(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, pico8_fixed_t y2) {
+    int col = (gfx != NULL) ? gfx->pen_color : 6;
+    pico8_rk(gfx, mem, y1, y2, col);
 }
 
 /* function eq(x1,y1,x2)rect(x1,y1,x2+1,y1+12,0)rectfill(x1+1,y1+1,x2,y1+11,5)spr(70,x1,y1,1,2)spr(71,x2-2,y1,1,2)end

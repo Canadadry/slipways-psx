@@ -82,6 +82,34 @@ void pico8_ob_table_set_name(pico8_ob_table_t *table, const char *name, pico8_va
 int pico8_ob_table_get_index(const pico8_ob_table_t *table, int index, pico8_value_t *out_value);
 int pico8_ob_table_get_name(const pico8_ob_table_t *table, const char *name, pico8_value_t *out_value);
 
+/* Phase 3, Chunk 18 (docs/prd/triage/phase3-etape1-function-by-function-c-
+ * port.md): removes table[index] entirely (as opposed to
+ * pico8_ob_table_set_index, which can only ever ASSIGN a value, never take
+ * an entry away) -- the C equivalent of real Lua's own `t[index]=nil`
+ * field-removal statement. Added by this chunk because `pj:hk(yr)`'s own
+ * real `iw[3]=pp or nil` (pico8/lua.lua, Chunk 18) genuinely needs to
+ * REMOVE a previously-set index-3 entry, on the ordinary/exercised path
+ * (whenever `pp` is falsy), not merely skip writing one that was never
+ * there -- unlike every earlier "field write skipped when the real Lua
+ * value would be nil" case in this port (e.g. `fq:ldown`'s own `self.p_=
+ * mv(self,"my")`, pico8_ui_button.h), where the target field was never
+ * previously set at all, so simply not writing it was already faithful.
+ * Here the SAME class-level table can carry a real value from an earlier
+ * call that must be taken away again on a later one, and this port's
+ * shared `pico8_ob_table_t` had no primitive for that until now (every
+ * prior consumer only ever read or overwrote entries, confirmed by
+ * grepping every existing caller of pico8_ob_table_set_index/set_name
+ * across src/). A no-op if `table` is NULL or no PICO8_OB_KEY_INDEX entry
+ * at `index` exists. Does not free the removed entry's own VALUE (a
+ * pico8_ob_table_t never owns what a PICO8_VALUE_REF/STRING value points
+ * to, per this file's own top comment) -- only this table's own {key,
+ * value} slot is spliced out and the backing array compacted. No
+ * pico8_ob_table_remove_name() companion is added: no real call site in
+ * this port's own scope (as of this chunk) ever needs to remove a
+ * NAMED entry, only an indexed one -- add that symmetrically, following
+ * this same shape, if/when one genuinely does. */
+void pico8_ob_table_remove_index(pico8_ob_table_t *table, int index);
+
 /* The `pi` constructor table (pico8/lua.lua:133, `pi={b=qz,v=v,br=rk,
  * qr=io,rf=eq,s=spr}`): a name -> constructor-function lookup that ob()'s
  * "identifier(...)" branch consults. ob()'s own `sc` (the token's FIRST

@@ -10,6 +10,19 @@ void pico8_gfx_init(pico8_gfx_t *gfx) {
     }
     gfx->transparent[0] = 1;
     gfx->fillp_pattern = 0;
+    /* Phase 3, Chunk 18: PICO-8's own documented default pen colour before
+     * any real color()/col-taking draw call ever runs is 6 (light grey) --
+     * an external, well-known PICO-8-manual fact, not something derived
+     * from pico8/lua.lua's own source text (flagged per this port's own
+     * convention for such assumptions, e.g. pico8_hud.h's top comment).
+     * The one real, evidenced omitted-col call site this default could
+     * ever matter for (`pj:kj()`'s own `rk(127-h,127)`) is always preceded,
+     * in the SAME function call, by `rk(0,h,0)` (an explicit col=0) on the
+     * real source's own immediately preceding line -- so this default is
+     * never actually observed by any real call site in this cart; it only
+     * matters if some future, not-yet-evidenced call site reads the pen
+     * colour before ever setting it explicitly. */
+    gfx->pen_color = 6;
 }
 
 void pico8_cls(pico8_mem_t *mem) {

@@ -58,12 +58,50 @@ void pico8_dv_default(pico8_mem_t *mem);
  * col-omitted call site in the whole cart (`rk(127-h,127)`, pj:kj,
  * Chunk 18) relies on PICO-8's "col omitted -> last color drawn" state,
  * which this port's pico8_gfx_t has no field for (Phase 1 never needed
- * it). Left as a real, evidenced, but explicitly DEFERRED gap for
- * Chunk 18 to resolve (by extending pico8_gfx_t with real current-color
- * state) rather than guessed at here with no real consumer yet to verify
- * against. */
-void pico8_rk(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, pico8_fixed_t y2, int col);
-void pico8_rk_y1(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, int col);
+ * it). This WAS left as a real, evidenced, but explicitly DEFERRED gap
+ * for Chunk 18 to resolve (by extending pico8_gfx_t with real
+ * current-color state) rather than guessed at here with no real consumer
+ * yet to verify against.
+ *
+ * RESOLVED, Phase 3 Chunk 18: pico8_gfx_t now carries a `pen_color` field
+ * (pico8_gfx.h) for exactly this. `gfx` is no longer `const` here (it was
+ * before Chunk 18, when this function never wrote through it) since a real
+ * `col` argument now RECORDS itself into `gfx->pen_color` as a side
+ * effect, matching real PICO-8's own documented "an explicit col argument
+ * to a draw call also becomes the new current pen colour" behavior for
+ * every draw primitive that takes one -- confirmed against both of this
+ * function's own existing real callers (pico8_layout.c's `pico8_rk(gfx,
+ * mem, om, dn, 0x10)`, pico8_pi.c's own `bl()`-driven dispatch), both of
+ * which already hold a non-const `pico8_gfx_t*` at their own call site, so
+ * this signature change needed no caller-side workaround. Deliberately
+ * narrow (see pico8_gfx.h's own comment on `pen_color`): only pico8_rk
+ * itself updates/reads this field; pico8_rectfill/pico8_rect/etc. are
+ * untouched, since no other real call site in this cart is evidenced to
+ * need the "col omitted" case. pico8_rk_default (new) is the third real
+ * entry point, for the one evidenced col-omitted call site
+ * (`rk(127-h,127)`, pj:kj) -- it reads whatever `gfx->pen_color` currently
+ * holds (6, PICO-8's own documented default pen colour, until some
+ * explicit-col draw call updates it -- see pico8_gfx_init's own comment)
+ * rather than taking a `col` parameter at all, mirroring
+ * pico8_dv_default/pico8_io_default's own "omitted argument -> no
+ * parameter for it at all, not a sentinel value" convention.
+ *
+ * CORRECTION (found during Chunk 18's own verification): a prior version
+ * of this comment claimed "a NULL `gfx` is a safe no-op ... pico8_rectfill's
+ * own NULL handling covers the rest" -- false, confirmed by a real ASan/
+ * UBSan repro (`pico8_rk(NULL, mem, 0, 5, 3)` crashes, "member access
+ * within null pointer", pico8_gfx.c's own pico8_fillp_skips). Neither
+ * `pico8_rectfill` nor `pico8_pset` (pico8_gfx.c, both pre-existing,
+ * unmodified here) guard their own `gfx` parameter against NULL at all --
+ * matching this port's pervasive "the CALLER must guard NULL, not the
+ * callee" convention (see e.g. pico8_ob_table_get_name/get_index's own
+ * unguarded contract). No real call site in this cart's own scope ever
+ * passes a NULL `gfx` to `pico8_rk`, so this was never a live bug -- just
+ * an inaccurate safety claim, corrected here rather than adding a guard
+ * nothing evidences a need for. */
+void pico8_rk(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, pico8_fixed_t y2, int col);
+void pico8_rk_y1(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, int col);
+void pico8_rk_default(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fixed_t y1, pico8_fixed_t y2);
 
 /* function eq(x1,y1,x2)rect(x1,y1,x2+1,y1+12,0)rectfill(x1+1,y1+1,x2,y1+11,5)spr(70,x1,y1,1,2)spr(71,x2-2,y1,1,2)end
  * A help-button frame: a 1px black outline, a gray fill, and two 8x16
