@@ -2,7 +2,23 @@
 
 #include <stdlib.h>
 
+#include "pico8_ref_audit.h"
+
 #define PICO8_LIST_INITIAL_CAPACITY 4
+
+/* ACCESSOR-ENTRY HALF OF THE REVERSE REF-CAST AUDIT
+ * (src/pico8_ref_audit.h, docs/audit-ref-cast-reverse.md). In an ordinary
+ * build PICO8_REF_AUDIT_EXPECT_LIST expands to nothing at all. Under
+ * -DPICO8_REF_AUDIT it asks each incoming pointer whether it really is a
+ * pico8_list_t and reports the first time it is not.
+ *
+ * Why here and not only at the cast sites: the cast-site macros can only
+ * watch the conversions this audit itself enumerated and rewrote. These
+ * five entry points are where EVERY list operation in the port
+ * eventually arrives, whatever path the pointer took to get there -- so
+ * a REF read as a list through some route nobody listed still shows up.
+ * pico8_list_init is deliberately NOT checked: it is the function that
+ * WRITES the tag, and its argument is legitimately uninitialised. */
 
 void pico8_list_init(pico8_list_t *list) {
     list->tag = PICO8_TYPE_TAG_LIST;
@@ -12,6 +28,7 @@ void pico8_list_init(pico8_list_t *list) {
 }
 
 void pico8_list_free(pico8_list_t *list) {
+    PICO8_REF_AUDIT_EXPECT_LIST(list);
     free(list->items);
     list->items = NULL;
     list->count = 0;
@@ -34,7 +51,9 @@ static void pico8_list_grow(pico8_list_t *list) {
     list->capacity = new_capacity;
 }
 
+
 void pico8_list_add(pico8_list_t *list, pico8_value_t value) {
+    PICO8_REF_AUDIT_EXPECT_LIST(list);
     if (list->count == list->capacity) {
         pico8_list_grow(list);
     }
@@ -44,6 +63,7 @@ void pico8_list_add(pico8_list_t *list, pico8_value_t value) {
 
 int pico8_list_del(pico8_list_t *list, pico8_value_t value) {
     int i;
+    PICO8_REF_AUDIT_EXPECT_LIST(list);
     for (i = 0; i < list->count; i++) {
         if (pico8_value_equal(list->items[i], value)) {
             int j;
@@ -59,6 +79,7 @@ int pico8_list_del(pico8_list_t *list, pico8_value_t value) {
 
 pico8_list_iter_t pico8_list_all(const pico8_list_t *list) {
     pico8_list_iter_t it;
+    PICO8_REF_AUDIT_EXPECT_LIST(list);
     it.list = list;
     it.index = -1;
     it.last_count = list->count;
@@ -96,6 +117,7 @@ int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value) {
 
 void pico8_list_foreach(const pico8_list_t *list, pico8_list_foreach_fn fn, void *ctx) {
     int i;
+    PICO8_REF_AUDIT_EXPECT_LIST(list);
     for (i = 0; i < list->count; i++) {
         fn(list->items[i], ctx);
     }

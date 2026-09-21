@@ -8,6 +8,7 @@
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_vec.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_particle.h's own top comment for the full source of `f_`/`ez`/
  * `ei` and every design decision below (dispatch-shape split for `ei`,
@@ -38,10 +39,18 @@ static pico8_vec_t pico8_particle_field_vec(const pico8_instance_t *inst, const 
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
+/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
+ * one name this module ever passes. Both call sites are
+ * `pico8_particle_field_list(self, "qy")`, and "qy" has a single writer
+ * in the whole port: pico8_f_() a few lines below (`self.qy={}` ported as
+ * a freshly pico8_list_init()ed heap list), which is the `pq` every
+ * particle-system class routes through (pico8_ga_pq(),
+ * src/pico8_planet_family.c, calls it before anything can read the
+ * field). No class spec string anywhere declares a `qy` default. */
 static pico8_list_t *pico8_particle_field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_list_t *)v.as.ref;
+        return PICO8_REF_AS_LIST(v.as.ref);
     }
     return NULL;
 }

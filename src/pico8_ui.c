@@ -11,6 +11,7 @@
 #include "pico8_list.h"
 #include "pico8_pi.h"
 #include "pico8_vec.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_ui.h's own top comment for the full source/trace, the `le`
  * representation decision, and the `je` placeholder's own rationale. */
@@ -275,8 +276,14 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "le", &le_val) && le_val.kind == PICO8_VALUE_REF && le_val.as.ref != NULL) {
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producers of "le", all heap pico8_list_t*: pico8_ui_init()
+         * above (which explicitly throws away the `le=o()` ob_table the
+         * class spec string parses and installs a real empty list in the
+         * class defaults), pico8_ui_cj() below, and pico8_pz()
+         * (src/pico8_msgbox.c:509/525). */
         le_ptr_before = le_val.as.ref;
-        le_count = ((const pico8_list_t *)le_val.as.ref)->count;
+        le_count = PICO8_REF_AS_LIST_CONST(le_val.as.ref)->count;
     } else {
         le_count = 0;
     }
@@ -289,7 +296,10 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_ui_gw(mem, self);
 
     hit = (le_count == 0) ||
-          pico8_gu((const pico8_list_t *)le_ptr_before, pico8_ui_field_raw(self, "o_"));
+          /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- `le_ptr_before`
+           * is the very REF read as "le" above, captured before gw()/bh()
+           * can rebind the field. */
+          pico8_gu(PICO8_REF_AS_LIST_CONST(le_ptr_before), pico8_ui_field_raw(self, "o_"));
     if (hit) {
         pico8_ui_bh(self, "l");
     }
@@ -533,7 +543,12 @@ int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t 
             bucket_val.as.ref == NULL) {
             continue;
         }
-        bucket = (const pico8_list_t *)bucket_val.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * `ic` is built by pico8_ob_table_new() in pico8_ui_gw() above
+         * and its indexed entries are written by exactly one thing,
+         * pico8_ft_index() (src/pico8_collect.c), whose buckets are
+         * always a malloc'd, pico8_list_init()ed pico8_list_t*. */
+        bucket = PICO8_REF_AS_LIST_CONST(bucket_val.as.ref);
 
         for (i = 0; i < bucket->count; i++) {
             pico8_instance_t *h = bucket->items[i].as.ref;
@@ -582,7 +597,9 @@ void pico8_ui_cj(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "le", &le_val) && le_val.kind == PICO8_VALUE_REF && le_val.as.ref != NULL) {
-        pico8_list_t discarded = pico8_nv((const pico8_list_t *)le_val.as.ref, pico8_ui_cj_he_mapper, NULL);
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "le", same three
+         * producers listed in pico8_ui_lj above. */
+        pico8_list_t discarded = pico8_nv(PICO8_REF_AS_LIST_CONST(le_val.as.ref), pico8_ui_cj_he_mapper, NULL);
         pico8_list_free(&discarded);
     }
 

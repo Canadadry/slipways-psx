@@ -14,6 +14,7 @@
 #include "pico8_research.h"
 #include "pico8_stash.h"
 #include "pico8_tech_gate.h"
+#include "pico8_ref_audit.h"
 
 /* Lua truthiness (nil/false falsy, everything else truthy), extended to
  * also treat PICO8_VALUE_REF(NULL) as falsy -- same extension established
@@ -93,7 +94,11 @@ static char *pico8_hp_jb_join(const pico8_instance_t *self) {
     if (!pico8_instance_get_field(self, "i", &i_val) || i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
         return out;
     }
-    i_list = i_val.as.ref;
+    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+     * Producer: pico8_hp_pq() (src/pico8_research.c), which ends by
+     * replacing whatever the `ho()` rename pass wrote into "i" with the
+     * heap pico8_list_t* pico8_fi() built. Sole writer of "i". */
+    i_list = PICO8_REF_AS_LIST_CONST(i_val.as.ref);
     it = pico8_list_all(i_list);
     while (pico8_list_iter_next(&it, &entry)) {
         pico8_value_t qe = pico8_value_ref(NULL);
@@ -324,7 +329,9 @@ pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "i", &i_val) && i_val.kind == PICO8_VALUE_REF && i_val.as.ref != NULL) {
-        is = i_val.as.ref;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "i", producer
+         * pico8_hp_pq() (src/pico8_research.c), sole writer. */
+        is = PICO8_REF_AS_LIST_CONST(i_val.as.ref);
     }
     if (!pico8_instance_get_field(self, "o", &o_val)) {
         o_val = pico8_value_ref(NULL);

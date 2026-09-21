@@ -14,6 +14,7 @@
 #include "pico8_probe.h"
 #include "pico8_tech_gate.h"
 #include "pico8_wormhole_display.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_wormhole.h's own top comment for the full source/trace of `mz`
  * -- the real Lua source for every method, the bm-vs-mv()-routed-vs-pq
@@ -132,7 +133,11 @@ void pico8_mz_hq(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
 
     p_vec = pico8_mz_field_vec(self, "p");
     if (pico8_instance_get_field(self, "ox", &ox_val) && ox_val.kind == PICO8_VALUE_REF && ox_val.as.ref != NULL) {
-        ox_list = (const pico8_list_t *)ox_val.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_mz_pq() above (`heap_ox`, a pico8_jp result),
+         * sole writer of "ox" in the port; the `mz` class spec string
+         * declares no `ox` default. */
+        ox_list = PICO8_REF_AS_LIST_CONST(ox_val.as.ref);
     }
 
     nq = pico8_ij(p_vec, ox_list, &nearest);

@@ -13,6 +13,7 @@
 #include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
 #include "pico8_trade.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_planet_family_trade.h's own top comment for the full Lua-
  * source trace of every class/method this file ports. Ordering
@@ -82,7 +83,11 @@ pico8_value_t pico8_nr_gv(const pico8_instance_t *self, const pico8_instance_t *
     qu_not_self = !(qu_val.kind == PICO8_VALUE_REF && qu_val.as.ref == (const void *)self);
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe_count = ((const pico8_list_t *)oe_val.as.ref)->count;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_jo_pq() (src/pico8_planet.c), which mallocs and
+         * pico8_list_init()s `oe` and is the ONLY writer of "oe" in the
+         * port; no class spec string declares an `oe` default. */
+        oe_count = PICO8_REF_AS_LIST_CONST(oe_val.as.ref)->count;
     }
 
     return pico8_value_bool(qu_not_self && oe_count < 3);
@@ -158,7 +163,9 @@ void pico8_nr_hb(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe_count = ((const pico8_list_t *)oe_val.as.ref)->count;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "oe", producer
+         * pico8_jo_pq() (src/pico8_planet.c), sole writer. */
+        oe_count = PICO8_REF_AS_LIST_CONST(oe_val.as.ref)->count;
     }
 
     if (pico8_instance_get_field(self, "hz", &hz_val) && hz_val.kind == PICO8_VALUE_REF && hz_val.as.ref != NULL) {
@@ -202,7 +209,9 @@ void pico8_nr_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     t = lw->t;
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe = (const pico8_list_t *)oe_val.as.ref;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "oe", producer
+         * pico8_jo_pq() (src/pico8_planet.c), sole writer. */
+        oe = PICO8_REF_AS_LIST_CONST(oe_val.as.ref);
     }
 
     it = pico8_list_all(oe);
@@ -222,7 +231,14 @@ void pico8_nr_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
 
         if (t != NULL && pico8_instance_get_field(t, "rl", &t_rl_val) && t_rl_val.kind == PICO8_VALUE_REF &&
             t_rl_val.as.ref != NULL) {
-            t_rl = (const pico8_list_t *)t_rl_val.as.ref;
+            /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
+             * CONSTRUCTION. `t` is a `trade` instance; "rl" is written
+             * only by the two `overrides` tables handed to
+             * pico8_trade_new() -- pico8_trade_kg()
+             * (src/pico8_trade.c:118) and pico8_jo_ib()
+             * (src/pico8_planet_trade.c:354) -- both heap lists, and the
+             * `trade` class is declared with no spec string at all. */
+            t_rl = PICO8_REF_AS_LIST_CONST(t_rl_val.as.ref);
         }
         if (pico8_gu(t_rl, pico8_value_ref(w))) {
             continue;
@@ -283,7 +299,10 @@ void pico8_mx_kf(pico8_instance_t *self, pico8_instance_t *sw) {
         pico8_value_t i_val;
 
         if (pico8_instance_get_field(cp, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-            jy = (const pico8_list_t *)jy_val.as.ref;
+            /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "jy",
+             * producers pico8_jo_lz() (src/pico8_planet.c) and
+             * pico8_jo_cn() (src/pico8_planet_trade.c). */
+            jy = PICO8_REF_AS_LIST_CONST(jy_val.as.ref);
         }
 
         it = pico8_list_all(jy);

@@ -69,6 +69,8 @@
 
 #include "pico8_ob.h"
 
+#include "pico8_ref_audit.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -132,7 +134,12 @@ pico8_ob_table_t *pico8_ob_table_from_list(const pico8_list_t *list) {
  * pico8_ob_table_t for why) -- a nested table reached through a
  * PICO8_VALUE_REF value must be freed separately by the caller, and a
  * PICO8_VALUE_STRING value's string likewise. */
+
+/* Ordered-table half of the accessor-entry audit -- see the same comment
+ * in src/pico8_list.c, and src/pico8_ref_audit.h. pico8_ob_table_new is
+ * the tag writer here, so it is the one entry point not checked. */
 void pico8_ob_table_free(pico8_ob_table_t *table) {
+    PICO8_REF_AUDIT_EXPECT_OB_TABLE(table);
     int i;
     if (table == NULL) {
         return;
@@ -195,6 +202,7 @@ static void pico8_ob_table_set(pico8_ob_table_t *table, pico8_ob_key_t key, pico
 }
 
 void pico8_ob_table_set_index(pico8_ob_table_t *table, int index, pico8_value_t value) {
+    PICO8_REF_AUDIT_EXPECT_OB_TABLE(table);
     pico8_ob_key_t key;
     key.kind = PICO8_OB_KEY_INDEX;
     key.index = index;
@@ -203,6 +211,7 @@ void pico8_ob_table_set_index(pico8_ob_table_t *table, int index, pico8_value_t 
 }
 
 void pico8_ob_table_set_name(pico8_ob_table_t *table, const char *name, pico8_value_t value) {
+    PICO8_REF_AUDIT_EXPECT_OB_TABLE(table);
     pico8_ob_key_t key;
     key.kind = PICO8_OB_KEY_NAME;
     key.index = 0;
@@ -215,6 +224,7 @@ void pico8_ob_table_set_name(pico8_ob_table_t *table, const char *name, pico8_va
  * down by one) and decrements `count` -- the direct inverse of
  * pico8_ob_table_set's own append step. */
 void pico8_ob_table_remove_index(pico8_ob_table_t *table, int index) {
+    PICO8_REF_AUDIT_EXPECT_OB_TABLE(table);
     int i;
     if (table == NULL) {
         return;
@@ -232,6 +242,7 @@ void pico8_ob_table_remove_index(pico8_ob_table_t *table, int index) {
 }
 
 int pico8_ob_table_get_index(const pico8_ob_table_t *table, int index, pico8_value_t *out_value) {
+    PICO8_REF_AUDIT_EXPECT_OB_TABLE(table);
     int i;
     for (i = 0; i < table->count; i++) {
         if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX && table->entries[i].key.index == index) {
@@ -243,6 +254,7 @@ int pico8_ob_table_get_index(const pico8_ob_table_t *table, int index, pico8_val
 }
 
 int pico8_ob_table_get_name(const pico8_ob_table_t *table, const char *name, pico8_value_t *out_value) {
+    PICO8_REF_AUDIT_EXPECT_OB_TABLE(table);
     int i;
     for (i = 0; i < table->count; i++) {
         if (table->entries[i].key.kind == PICO8_OB_KEY_NAME &&

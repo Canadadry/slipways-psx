@@ -21,6 +21,7 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
+#include "pico8_ref_audit.h"
 
 static pico8_ob_table_t *g_ix = NULL;
 static pico8_ob_table_t *g_ha = NULL;
@@ -201,7 +202,11 @@ void pico8_cr(void) {
     }
     if (fm != NULL && pico8_instance_get_field(fm, "invented", &invented_val) &&
         invented_val.kind == PICO8_VALUE_REF && invented_val.as.ref != NULL) {
-        gr = ((const pico8_list_t *)invented_val.as.ref)->count;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_hy_pq() (src/pico8_economy.c), sole writer of
+         * "invented", which replaces the spec string's own
+         * `invented=o()` ob_table with a real heap list. */
+        gr = PICO8_REF_AS_LIST_CONST(invented_val.as.ref)->count;
     }
 
     ek = pico8_ek();
@@ -233,7 +238,9 @@ void pico8_cr(void) {
          * rather than stored as-is. */
         {
             const pico8_list_t *invented_list =
-                (invented_val.kind == PICO8_VALUE_REF) ? (const pico8_list_t *)invented_val.as.ref : NULL;
+                /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION, same
+                 * pico8_hy_pq() producer as the `gr` read above. */
+                (invented_val.kind == PICO8_VALUE_REF) ? PICO8_REF_AS_LIST_CONST(invented_val.as.ref) : NULL;
             pico8_ob_table_set_name(extra, "jb", pico8_value_ref(pico8_menu_list_to_ob_table(invented_list)));
         }
         pico8_list_add(&bs, pico8_value_ref(extra));

@@ -7,6 +7,7 @@
 #include "pico8_ob.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
+#include "pico8_ref_audit.h"
 
 static int pico8_jc_display_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -118,7 +119,12 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
                 pico8_ob_table_set_name(particle, "v", pico8_value_ref(v_heap));
                 pico8_ob_table_set_name(particle, "l", pico8_value_fixed(pico8_vec_qx(d)));
 
-                pico8_list_add((pico8_list_t *)ts_val.as.ref, pico8_value_ref(particle));
+                /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
+                 * CONSTRUCTION. Producer: pico8_jc_pq()
+                 * (src/pico8_slipway.c), which mallocs and
+                 * pico8_list_init()s `ts`; sole writer of "ts" in the
+                 * port, and no spec string declares a `ts` default. */
+                pico8_list_add(PICO8_REF_AS_LIST(ts_val.as.ref), pico8_value_ref(particle));
             }
         }
     }
@@ -208,7 +214,9 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
         {
             pico8_value_t ts_val = pico8_jc_display_field_value(self, "ts");
             if (ts_val.kind == PICO8_VALUE_REF && ts_val.as.ref != NULL) {
-                pico8_list_t *ts = (pico8_list_t *)ts_val.as.ref;
+                /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "ts",
+                 * producer pico8_jc_pq() (src/pico8_slipway.c). */
+                pico8_list_t *ts = PICO8_REF_AS_LIST(ts_val.as.ref);
                 int i;
                 for (i = 0; i < ts->count; i++) {
                     pico8_value_t t_val = ts->items[i];

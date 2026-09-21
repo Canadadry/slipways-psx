@@ -11,6 +11,7 @@
 #include "pico8_msgbox.h"
 #include "pico8_stash.h"
 #include "pico8_tech_gate.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_economy.h's own top comment for the full trace, including the
  * FM RECONCILIATION decision (Chunk 22's eu() builds the real `fm=hy()`
@@ -389,7 +390,16 @@ void pico8_hy_kt(pico8_instance_t *self, const pico8_ob_table_t *t) {
 
     if (pico8_instance_get_field(self, "invented", &invented_val) && invented_val.kind == PICO8_VALUE_REF &&
         invented_val.as.ref != NULL) {
-        pico8_list_t *invented = (pico8_list_t *)invented_val.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_hy_pq() in this same file (the
+         * `pico8_ob_table_set_name(self->fields, "invented", ...)` on a
+         * freshly pico8_list_init()ed heap list), which deliberately
+         * throws away the `invented=o()` empty ob_table the class spec
+         * string parses and replaces it with a real list -- see that
+         * function's own comment. It is the only writer of "invented"
+         * in the whole port (grep), and hy:pq runs once per hy instance
+         * before any consumer can read the field. */
+        pico8_list_t *invented = PICO8_REF_AS_LIST(invented_val.as.ref);
         if (t != NULL && pico8_ob_table_get_name(t, "px", &px_val)) {
             pico8_list_add(invented, px_val);
         }

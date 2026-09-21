@@ -82,8 +82,9 @@ TMP_DIR := tmp
 # each, ~7x over; they now share one set of objects and only link
 # separately.
 #
-# WHY THERE ARE THREE OBJECT TREES, AND WHY THEY MUST NOT BE MERGED.
-# Two targets are built with their own instrumentation:
+# WHY THERE ARE FOUR OBJECT TREES, AND WHY THEY MUST NOT BE MERGED.
+# Three targets (families of targets) are built with their own
+# instrumentation:
 # test_pico8_planet_gh_row_lq under AddressSanitizer and
 # test_pico8_fixed_ubsan under UndefinedBehaviorSanitizer (each target's
 # own comment says why). A sanitizer is a property of every object in the
@@ -95,19 +96,34 @@ TMP_DIR := tmp
 # silence proves nothing, with nothing in the build output to say so, and
 # the ASan target in particular has no plain twin whose crash would give
 # the game away. Hence one output tree per flag set, keyed by the flags
-# themselves. Do not "simplify" the three into one, and do not add a
+# themselves. Do not "simplify" the four into one, and do not add a
 # target carrying its own compiler flags without giving it its own tree
 # (and its own $(call ...) helper) here.
+#
+# The FOURTH tree, tmp/obj-refaudit, is the same rule applied to a
+# non-sanitizer instrumentation: -DPICO8_REF_AUDIT turns
+# src/pico8_ref_audit.h's PICO8_REF_AS_LIST macros from a plain cast into
+# a per-site tag recorder (see that header, and docs/audit-ref-cast-
+# reverse.md). It obeys the same "never share an object with an
+# uninstrumented target" rule and for the same reason: the audit's whole
+# claim is that a site it reports as NOT COVERED really was never
+# reached, and an uninstrumented object silently linked into the audit
+# binary would manufacture exactly that false answer for every site in
+# it -- the same "silence that proves nothing" this comment already
+# warns about for ASan, except here the silence IS the result.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
+OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 
 DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
+REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
 
 # $(call objs,<.c list>) maps a source list to its object paths in the
-# plain tree; asan_objs/ubsan_objs do the same in the instrumented trees.
+# plain tree; asan_objs/ubsan_objs/refaudit_objs do the same in the
+# instrumented trees.
 # A target names its sources ONCE, as a .c list, and both its prerequisite
 # list and its link line come from that. The link lines use
 # $(filter %.o,$^) so that non-source prerequisites -- the events.json
@@ -118,6 +134,7 @@ UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
+refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 
 # One pattern rule per tree; the object tree mirrors src/ and tests/ under
 # each root, so tmp/obj/src/pico8_mem.o next to tmp/obj-asan/src/
@@ -136,6 +153,10 @@ $(OBJ_ASAN_DIR)/%.o: %.c
 $(OBJ_UBSAN_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_REFAUDIT_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # The two shared dependency closures, previously spelled out in full on
 # every target that needed them (and drifting apart was only a matter of
@@ -518,7 +539,19 @@ $(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_p
 $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq
+# Reverse REF-cast audit (docs/prd/triage/reverse-direction-ref-cast-
+# audit.md): the one field the audit could not call safe by construction,
+# pinned to the panel line a player reads -- see the test's own top
+# comment for the full trace, including why it is deliberately NOT built
+# under a sanitizer (this cast direction under-reads and cannot leave the
+# allocation, so there is nothing for ASan to find; its forward-direction
+# twin, test_pico8_planet_gh_row_lq, overflows and therefore is). Full
+# engine source list for the same reason that one's is: pico8_cart_load()
+# pulls in the whole port.
+$(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -549,11 +582,74 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_shop_tooltip_fillp
 	./$(TMP_DIR)/test_pico8_empty_planet_cleared
 	ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/test_pico8_planet_gh_row_lq
+	./$(TMP_DIR)/test_pico8_ga_export_panel_by
 
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
 
 test: unit replay
+
+# ---------------------------------------------------------------------
+# REVERSE REF-CAST AUDIT (docs/prd/triage/reverse-direction-ref-cast-
+# audit.md, docs/audit-ref-cast-reverse.md, src/pico8_ref_audit.h).
+#
+# `make ref-audit` is a DIAGNOSTIC, not a test, and is deliberately not
+# part of `unit`/`test`: it answers "which REF -> pico8_list_t* cast
+# sites did anything actually reach, and with which type tag", which is
+# a question about the audit's own coverage, not about whether the port
+# behaves. It is kept runnable so the next phase can replay it cheaply
+# against whatever new fixtures exist then (the PRD's user story 12)
+# instead of redoing a manual pass.
+#
+# The same closure the plain targets use, rebuilt in the refaudit tree.
+# Seven binaries, chosen for what they REACH rather than what they
+# assert: the headless replay driver (run below over every recorded
+# events.json in the repo, so one binary covers six scenarios), the
+# three fixture-driven interaction tests, the two data/dispatch tests
+# that build real game state without replaying, and the lq regression
+# test, which is the one that constructs a developed planet directly.
+$(TMP_DIR)/pico8_replay_refaudit: $(call refaudit_objs,src/main.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_playability_refaudit: $(call refaudit_objs,tests/test_pico8_playability.c $(ENGINE_SRCS)) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_slipway_drag_refaudit: $(call refaudit_objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit: $(call refaudit_objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit: $(call refaudit_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_data_init_refaudit: $(call refaudit_objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_planet_kj_dispatch_refaudit: $(call refaudit_objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_ga_export_panel_by_refaudit: $(call refaudit_objs,tests/test_pico8_ga_export_panel_by.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+REFAUDIT_BINS := \
+    $(TMP_DIR)/pico8_replay_refaudit \
+    $(TMP_DIR)/test_pico8_playability_refaudit \
+    $(TMP_DIR)/test_pico8_slipway_drag_refaudit \
+    $(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit \
+    $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit \
+    $(TMP_DIR)/test_pico8_data_init_refaudit \
+    $(TMP_DIR)/test_pico8_planet_kj_dispatch_refaudit \
+    $(TMP_DIR)/test_pico8_ga_export_panel_by_refaudit
+
+# Every binary appends its per-site tally to one file; the report tool
+# then folds them together and diffs the result against the cast sites
+# it greps out of src/, so a site nothing reached is printed as NOT
+# COVERED rather than quietly missing from the output.
+ref-audit: $(REFAUDIT_BINS)
+	sh tools/ref_audit_report.sh
+
+.PHONY: ref-audit
 
 psn00bsdk-toolchain-setup:
 	sh tools/install_psn00bsdk_toolchain.sh
@@ -649,3 +745,4 @@ raylib: $(TMP_DIR)/main_raylib
 -include $(wildcard $(OBJ_DIR)/src/*.d $(OBJ_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)

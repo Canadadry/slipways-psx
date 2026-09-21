@@ -19,6 +19,7 @@
 #include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
+#include "pico8_ref_audit.h"
 
 static pico8_class_t *g_jo_class = NULL;
 
@@ -372,7 +373,13 @@ void pico8_jo_lz(pico8_instance_t *self, pico8_instance_t *hp_instance) {
     pico8_list_init(&jy);
     if (hp_instance != NULL && pico8_instance_get_field(hp_instance, "i", &i_val) &&
         i_val.kind == PICO8_VALUE_REF && i_val.as.ref != NULL) {
-        jy = pico8_nv((const pico8_list_t *)i_val.as.ref, pico8_jo_lz_mw_step, NULL);
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * `i_val` is the "i" field of an `hp` research record. Producer:
+         * pico8_hp_pq() (src/pico8_research.c), which ends by
+         * unconditionally replacing whatever the `ho()` rename pass put
+         * in "i" (a raw spec string) with the heap pico8_list_t* that
+         * pico8_fi() returned -- see that function's own comment. */
+        jy = pico8_nv(PICO8_REF_AS_LIST_CONST(i_val.as.ref), pico8_jo_lz_mw_step, NULL);
     }
     jy_heap = malloc(sizeof *jy_heap);
     *jy_heap = jy;
