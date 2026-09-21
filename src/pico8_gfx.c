@@ -5,10 +5,6 @@
 void pico8_gfx_init(pico8_gfx_t *gfx) {
     gfx->camera_x = 0;
     gfx->camera_y = 0;
-    for (int i = 0; i < 16; i++) {
-        gfx->transparent[i] = 0;
-    }
-    gfx->transparent[0] = 1;
     gfx->fillp_pattern = 0;
     /* Phase 3, Chunk 18: PICO-8's own documented default pen colour before
      * any real color()/col-taking draw call ever runs is 6 (light grey) --
@@ -49,18 +45,30 @@ void pico8_camera_reset(pico8_gfx_t *gfx) {
     pico8_camera(gfx, 0, 0);
 }
 
-void pico8_palt(pico8_gfx_t *gfx, int col, int transparent) {
+/* See pico8_gfx.h's own comment on this declaration for why the single
+ * store is the draw-palette byte in memory rather than a gfx-side flag. */
+void pico8_palt(pico8_mem_t *mem, int col, int transparent) {
+    int addr;
+    unsigned char byte;
+
     if (col < 0 || col > 15) {
         return;
     }
-    gfx->transparent[col] = transparent ? 1 : 0;
+    addr = PICO8_ADDR_DRAW_PALETTE + col;
+    byte = pico8_peek(mem, addr);
+    if (transparent) {
+        byte = (unsigned char)(byte | PICO8_DRAW_PALETTE_TRANSPARENT_BIT);
+    } else {
+        byte = (unsigned char)(byte & ~PICO8_DRAW_PALETTE_TRANSPARENT_BIT);
+    }
+    pico8_poke(mem, addr, byte);
 }
 
-int pico8_gfx_is_transparent(const pico8_gfx_t *gfx, int col) {
+int pico8_gfx_is_transparent(const pico8_mem_t *mem, int col) {
     if (col < 0 || col > 15) {
         return 0;
     }
-    return gfx->transparent[col];
+    return (pico8_peek(mem, PICO8_ADDR_DRAW_PALETTE + col) & PICO8_DRAW_PALETTE_TRANSPARENT_BIT) != 0;
 }
 
 void pico8_line(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, int x2, int y2, int col) {
@@ -218,12 +226,14 @@ unsigned char pico8_sget(const pico8_mem_t *mem, int x, int y) {
  * sprite slots exactly like real PICO-8's multi-cell sprites do.
  *
  * Real hardware's own `spr()` treats a source pixel as transparent when
- * EITHER `palt()` says so (`pico8_gfx_is_transparent`, this port's own
- * pico8_gfx_t-side flag array) OR the CURRENT draw palette byte for that
- * color (`mem[PICO8_ADDR_DRAW_PALETTE+col]`, `pal()`'s own backing
- * memory) has its high bit set -- the same bit real PICO-8's `palt()`
- * itself would flip on that very table. This cart never calls a plain,
- * unconditional `palt(3,true)`; instead `cu()`/`dv()` (pico8_hud.c) bake
+ * the CURRENT draw palette byte for that color
+ * (`mem[PICO8_ADDR_DRAW_PALETTE+col]`, `pal()`'s own backing memory) has
+ * its high bit set -- the one, single store, which real PICO-8's `palt()`
+ * writes into as well (`pico8_palt`/`pico8_gfx_is_transparent` above; this
+ * port used to keep a second, gfx-side flag array OR'd onto this byte,
+ * see pico8_gfx.h's own comment on pico8_palt for the bug that caused).
+ * This cart never calls a plain, unconditional
+ * `palt(3,true)`; instead `cu()`/`dv()` (pico8_hud.c) bake
  * that exact bit into every palette block they build/activate (`bor(sget(
  * p,c),c==3 and 0x80)`), and `_draw()`'s own bare `dv()` re-activates it
  * every single frame -- the cart's real, literal mechanism for making
@@ -250,8 +260,7 @@ void pico8_spr(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y, in
     for (int dy = 0; dy < pixel_h; dy++) {
         for (int dx = 0; dx < pixel_w; dx++) {
             unsigned char col = pico8_sget(mem, sheet_x + dx, sheet_y + dy);
-            int palette_byte = pico8_peek(mem, PICO8_ADDR_DRAW_PALETTE + col);
-            if (pico8_gfx_is_transparent(gfx, col) || (palette_byte & PICO8_DRAW_PALETTE_TRANSPARENT_BIT) != 0) {
+            if (pico8_gfx_is_transparent(mem, col)) {
                 continue;
             }
             pico8_pset(gfx, mem, x + dx, y + dy, col);
@@ -330,15 +339,22 @@ void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, i
  * not a reproduction of PICO-8's real glyphs -- legible enough to spot
  * one character from another in a headless text dump, nothing more.
  *
- * Coverage: space, digits 0-9, lowercase a-z, and the punctuation
- * ! $ % ' ( ) + , - . / : = ? -- derived by grepping pico8/lua.lua's
- * string literals actually reachable from print()/io() call sites (see
- * this chunk's implementation notes). Uppercase letters and any other
- * punctuation are NOT covered (none of the scanned UI text needs them).
- * Any uncovered character draws PICO8_FONT_ROWS_PLACEHOLDER, a solid 3x5
- * block -- deliberately distinct from every covered glyph and from the
- * blank space glyph, so a missing-character bug is visually obvious in a
- * text dump rather than silently reading as whitespace.
+ * Coverage: space, digits 0-9, letters a-z AND A-Z, and the punctuation
+ * ! $ % ' ( ) + , - . / : = ? -- originally derived by grepping
+ * pico8/lua.lua's string literals actually reachable from print()/io()
+ * call sites (see this chunk's implementation notes). That scan missed
+ * `ef`, the month-name table, whose entries are written as decimal
+ * escapes rather than plain literals (`ef=ob("\"\74\65\78\",...")`,
+ * pico8/lua.lua:797 -- \74\65\78 is "JAN"), so uppercase went uncovered
+ * and the top menu bar's date drew three solid placeholder blocks instead
+ * of a month: a real, human-reported bug. Upper- and lowercase share one
+ * bitmap each, for the same reason 'u'/'v' do (below) -- this table only
+ * has to answer "which character is this", and at 3x5 there is no room
+ * for a second, case-distinguishing shape. Any still-uncovered character
+ * draws PICO8_FONT_ROWS_PLACEHOLDER, a solid 3x5 block -- deliberately
+ * distinct from every covered glyph and from the blank space glyph, so a
+ * missing-character bug is visually obvious in a text dump rather than
+ * silently reading as whitespace.
  *
  * 'u' and 'v' intentionally share the same bitmap: at 3x5 there isn't
  * room to distinguish them meaningfully, and this table doesn't need to
@@ -411,32 +427,32 @@ static const unsigned char *pico8_font_glyph_rows(char c) {
         case '7': return PICO8_FONT_ROWS_7;
         case '8': return PICO8_FONT_ROWS_8;
         case '9': return PICO8_FONT_ROWS_9;
-        case 'a': return PICO8_FONT_ROWS_A;
-        case 'b': return PICO8_FONT_ROWS_B;
-        case 'c': return PICO8_FONT_ROWS_C;
-        case 'd': return PICO8_FONT_ROWS_D;
-        case 'e': return PICO8_FONT_ROWS_E;
-        case 'f': return PICO8_FONT_ROWS_F;
-        case 'g': return PICO8_FONT_ROWS_G;
-        case 'h': return PICO8_FONT_ROWS_H;
-        case 'i': return PICO8_FONT_ROWS_I;
-        case 'j': return PICO8_FONT_ROWS_J;
-        case 'k': return PICO8_FONT_ROWS_K;
-        case 'l': return PICO8_FONT_ROWS_L;
-        case 'm': return PICO8_FONT_ROWS_M;
-        case 'n': return PICO8_FONT_ROWS_N;
-        case 'o': return PICO8_FONT_ROWS_O;
-        case 'p': return PICO8_FONT_ROWS_P;
-        case 'q': return PICO8_FONT_ROWS_Q;
-        case 'r': return PICO8_FONT_ROWS_R;
-        case 's': return PICO8_FONT_ROWS_S;
-        case 't': return PICO8_FONT_ROWS_T;
-        case 'u': return PICO8_FONT_ROWS_U;
-        case 'v': return PICO8_FONT_ROWS_U; /* deliberately shared, see comment above */
-        case 'w': return PICO8_FONT_ROWS_W;
-        case 'x': return PICO8_FONT_ROWS_X;
-        case 'y': return PICO8_FONT_ROWS_Y;
-        case 'z': return PICO8_FONT_ROWS_Z;
+        case 'A': case 'a': return PICO8_FONT_ROWS_A;
+        case 'B': case 'b': return PICO8_FONT_ROWS_B;
+        case 'C': case 'c': return PICO8_FONT_ROWS_C;
+        case 'D': case 'd': return PICO8_FONT_ROWS_D;
+        case 'E': case 'e': return PICO8_FONT_ROWS_E;
+        case 'F': case 'f': return PICO8_FONT_ROWS_F;
+        case 'G': case 'g': return PICO8_FONT_ROWS_G;
+        case 'H': case 'h': return PICO8_FONT_ROWS_H;
+        case 'I': case 'i': return PICO8_FONT_ROWS_I;
+        case 'J': case 'j': return PICO8_FONT_ROWS_J;
+        case 'K': case 'k': return PICO8_FONT_ROWS_K;
+        case 'L': case 'l': return PICO8_FONT_ROWS_L;
+        case 'M': case 'm': return PICO8_FONT_ROWS_M;
+        case 'N': case 'n': return PICO8_FONT_ROWS_N;
+        case 'O': case 'o': return PICO8_FONT_ROWS_O;
+        case 'P': case 'p': return PICO8_FONT_ROWS_P;
+        case 'Q': case 'q': return PICO8_FONT_ROWS_Q;
+        case 'R': case 'r': return PICO8_FONT_ROWS_R;
+        case 'S': case 's': return PICO8_FONT_ROWS_S;
+        case 'T': case 't': return PICO8_FONT_ROWS_T;
+        case 'U': case 'u': return PICO8_FONT_ROWS_U;
+        case 'V': case 'v': return PICO8_FONT_ROWS_U; /* deliberately shared with u, see comment above */
+        case 'W': case 'w': return PICO8_FONT_ROWS_W;
+        case 'X': case 'x': return PICO8_FONT_ROWS_X;
+        case 'Y': case 'y': return PICO8_FONT_ROWS_Y;
+        case 'Z': case 'z': return PICO8_FONT_ROWS_Z;
         case '!': return PICO8_FONT_ROWS_BANG;
         case '$': return PICO8_FONT_ROWS_DOLLAR;
         case '%': return PICO8_FONT_ROWS_PERCENT;
