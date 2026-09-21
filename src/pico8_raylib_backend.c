@@ -60,6 +60,7 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
 
     time_t now = time(NULL);
     snprintf(backend->record_path, sizeof(backend->record_path), "tmp/events_recorded_%ld.json", (long)now);
+    snprintf(backend->markers_path, sizeof(backend->markers_path), "tmp/events_recorded_%ld.markers.txt", (long)now);
 
     InitWindow(PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, PICO8_SCREEN_HEIGHT * PICO8_RAYLIB_BACKEND_SCALE,
                "Slipways (raylib PC port)");
@@ -77,8 +78,6 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend) 
 }
 
 void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_input_frame_t *out_frame) {
-    (void)backend;
-
     int px;
     int py;
     pico8_raylib_backend_window_to_pico8(GetMouseX(), GetMouseY(), PICO8_RAYLIB_BACKEND_SCALE, &px, &py);
@@ -101,6 +100,24 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
     out_frame->dpad[1] = IsKeyDown(KEY_RIGHT) ? 1 : 0;
     out_frame->dpad[2] = IsKeyDown(KEY_UP) ? 1 : 0;
     out_frame->dpad[3] = IsKeyDown(KEY_DOWN) ? 1 : 0;
+
+    /* Debug/dev tooling only, no Lua-source equivalent and no effect on
+     * *out_frame or game input: lets a human playtester bookmark the
+     * frame they want to talk about by tapping space, without needing to
+     * describe "it happened somewhere around..." Appended (never
+     * rewritten) so a marker already on disk survives a crash later in
+     * the session; session_frame_count is the index this frame will get
+     * once present() appends it below, i.e. exactly the 0-based index
+     * into the paired recording's own "frames" array. */
+    if (IsKeyReleased(KEY_SPACE)) {
+        FILE *markers = fopen(backend->markers_path, "a");
+        if (markers) {
+            fprintf(markers, "%d\n", backend->session_frame_count);
+            fclose(markers);
+        }
+        printf("marker: frame %d (%s)\n", backend->session_frame_count, backend->markers_path);
+        fflush(stdout);
+    }
 }
 
 void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame) {

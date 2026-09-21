@@ -67,13 +67,16 @@ typedef struct {
     int session_frame_count;
     int session_frame_capacity;
     char record_path[64];
+    char markers_path[64];
 } pico8_raylib_backend_t;
 
 /* Opens the raylib window at PICO8_RAYLIB_BACKEND_SCALE, allocates the
  * (initially empty) session frame list, and computes this session's
- * timestamped recording path (tmp/events_recorded_<timestamp>.json,
- * taken once here, not per frame). Must be called exactly once, before
- * any other pico8_raylib_backend_* call on this backend. */
+ * timestamped recording path (tmp/events_recorded_<timestamp>.json) and
+ * its paired marker-file path (tmp/events_recorded_<timestamp>.markers.
+ * txt, see pico8_raylib_backend_poll_input()) -- both taken once here,
+ * not per frame. Must be called exactly once, before any other
+ * pico8_raylib_backend_* call on this backend. */
 void pico8_raylib_backend_init(pico8_raylib_backend_t *backend);
 
 /* Wraps raylib's WindowShouldClose(): 0 once the window has been closed
@@ -89,7 +92,17 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
  * pico8_input.h's documented stat(34) layout), and the four arrow keys
  * (PICO-8's own default btn(0..3) binding for player 0: left/right/up/
  * down -- no alternate binding) into *out_frame. Does not record or
- * present anything. */
+ * present anything.
+ *
+ * Also writes a small debug-only marker file alongside the recording:
+ * releasing the space bar during play appends the current frame's
+ * 0-based index (matching the paired recording's own "frames" array
+ * index) as a line of plain text to
+ * tmp/events_recorded_<timestamp>.markers.txt -- the same <timestamp>
+ * as record_path, so the two files pair up by name. Purely a playtest-
+ * feedback aid (bookmark "the frame I want to talk about" without
+ * describing it) -- no Lua-source equivalent, no effect on *out_frame
+ * or the recorded frame data itself. */
 void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_input_frame_t *out_frame);
 
 /* Uploads the current 128x128 framebuffer (read from *mem via
