@@ -75,7 +75,12 @@ typedef struct {
  * timestamped recording path (tmp/events_recorded_<timestamp>.json) and
  * its paired marker-file path (tmp/events_recorded_<timestamp>.markers.
  * txt, see pico8_raylib_backend_poll_input()) -- both taken once here,
- * not per frame. Must be called exactly once, before any other
+ * not per frame. Also hides the host OS cursor: this cart's own nf:pq()
+ * (pico8_mouse_reader.c) unconditionally pokes PICO-8's real "enable
+ * mouse" flag once during boot and never clears it, and real hardware
+ * ties that flag to hiding the host cursor since the cart draws its own
+ * (ui:ev(), already ported) -- pico8_raylib_backend_shutdown() restores
+ * it. Must be called exactly once, before any other
  * pico8_raylib_backend_* call on this backend. */
 void pico8_raylib_backend_init(pico8_raylib_backend_t *backend);
 
@@ -115,12 +120,12 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
  * iteration, after this frame's pico8__update60()/pico8__draw(). */
 void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame);
 
-/* Unloads the texture, closes the window, and frees the session frame
- * list. The recording file on disk is left in place (it is already
- * complete and valid after every present() call, per pico8_input_save's
- * own full-rewrite-every-time contract). Safe to call only once, after
- * init; not safe to call twice or on a backend that was never
- * initialized. */
+/* Restores the host OS cursor init() hid, unloads the texture, closes
+ * the window, and frees the session frame list. The recording file on
+ * disk is left in place (it is already complete and valid after every
+ * present() call, per pico8_input_save's own full-rewrite-every-time
+ * contract). Safe to call only once, after init; not safe to call twice
+ * or on a backend that was never initialized. */
 void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend);
 
 #endif

@@ -70,6 +70,22 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
     backend->screen_texture = LoadTextureFromImage(blank);
     UnloadImage(blank);
     SetTextureFilter(backend->screen_texture, TEXTURE_FILTER_POINT);
+
+    /* This cart's own nf:pq() (pico8_mouse_reader.c) unconditionally does
+     * poke(0x5f2d,1) -- real PICO-8's "enable mouse" flag -- once during
+     * boot, and never turns it back off. On real hardware that flag also
+     * hides the host cursor, since the cart is expected to draw its own
+     * (ui:ev(), pico8_ui.c, already ported and already dispatched every
+     * frame via _draw()'s dc("ev")) -- without this, a human sees BOTH
+     * cursors overlapping (a real second bug found alongside the title-
+     * screen transparency fix: the same fix also cleaned up this cart-
+     * drawn cursor sprite's own art, but never addressed the host cursor
+     * still being shown underneath it). This cart's own poke(0x5f2d,1)
+     * happens unconditionally on every boot (pico8_cart_load() always
+     * builds nf via pico8_jl()), so hiding the host cursor once here,
+     * rather than polling mem every frame for a flag this cart never
+     * clears, is the correct, minimal match for this specific game. */
+    HideCursor();
 }
 
 int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend) {
@@ -140,6 +156,7 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
 
 void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend) {
     UnloadTexture(backend->screen_texture);
+    ShowCursor();
     CloseWindow();
     free(backend->session_frames);
     backend->session_frames = NULL;
