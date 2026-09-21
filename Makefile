@@ -1,15 +1,30 @@
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit demo test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test
 
 # The Love2D prototype (`game/`) was removed in favor of the PC/raylib
-# literal port described in docs/plan.md. Phase 1 of that plan adds a C
+# literal port described in docs/plan.md. Phase 1 of that plan added a C
 # build + test setup here: `unit` runs the focused unit tests for each
-# deep module (pico8_mem, asset loaders, pico8_gfx primitives, ...);
-# `demo` builds and runs the end-to-end acceptance program (src/main.c,
-# Chunk 9) that exercises every API category against the real pico8/
-# cart assets and a scripted events.json replay, asserting specific
-# framebuffer/peek values; `test` runs both, and is Phase 1's exit gate
-# (see docs/prd/triage/phase1-etape1-pico8-interface-software-rendering.md,
-# Implementation Chunks 1-9).
+# deep module (pico8_mem, asset loaders, pico8_gfx primitives, ...).
+# `demo` (src/main.c, Chunk 9) was Phase 1's own end-to-end acceptance
+# program, asserting specific framebuffer/peek values against a scripted
+# events.json replay -- its assertions now live verbatim in
+# tests/test_pico8_demo.c (part of `unit`), since main.c itself became
+# Phase 4's real headless game driver (see below). `test` runs both, and
+# was Phase 1's exit gate (see docs/prd/triage/phase1-etape1-pico8-
+# interface-software-rendering.md, Implementation Chunks 1-9).
+#
+# Phase 4, Chunk 1 (docs/prd/triage/phase4-etape1-headless-replay-wiring-
+# and-playability-verification.md): `main.c` is rewritten as the one real
+# headless replay driver -- it boots the fully-assembled cart
+# (pico8_cart_load/pico8__init/pico8_eu) and steps it frame-by-frame from
+# a scripted events.json, dumping the final framebuffer as text. `replay`
+# (formerly `demo`) builds and runs it as an integration/smoke check only
+# ("the real game boots and runs to the end of a scripted replay without
+# crashing") -- no gameplay-specific assertions belong there; those live
+# in tests/test_pico8_playability.c (Chunk 2/3), a dedicated permanent
+# test wired into `unit` once it exists. `pico8_cart_load()` pulls in
+# essentially the whole engine, so `replay`'s own source list (like
+# test_pico8_data_init/test_pico8_planet_kj_dispatch's before it) is the
+# full engine closure, not a narrow module subset.
 
 CC ?= cc
 CFLAGS ?= -std=c99 -Wall -Wextra -Werror -g
@@ -94,10 +109,20 @@ $(TMP_DIR)/test_pico8_data_init: tests/test_pico8_data_init.c src/pico8_data_ini
 $(TMP_DIR)/test_pico8_planet_kj_dispatch: tests/test_pico8_planet_kj_dispatch.c src/pico8_data_init.c src/pico8_data_init.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ tests/test_pico8_planet_kj_dispatch.c src/pico8_data_init.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c -lm
 
-$(TMP_DIR)/pico8_demo: src/main.c src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_input.c src/pico8_input.h src/pico8_dump.c src/pico8_dump.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ src/main.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c
+$(TMP_DIR)/test_pico8_demo: tests/test_pico8_demo.c src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_input.c src/pico8_input.h src/pico8_dump.c src/pico8_dump.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ tests/test_pico8_demo.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch
+# Chunk 1's own "full engine source list": pico8_cart_load() bootstraps
+# essentially every class/data-table this whole port has built, so
+# main.c's own real dependency closure is literally every module in
+# src/ except itself -- the same reasoning test_pico8_data_init/
+# test_pico8_planet_kj_dispatch's own header comments already establish
+# for reaching real game state, now widened to the WHOLE engine since
+# main.c reaches through pico8_cart_load() rather than one data module.
+$(TMP_DIR)/pico8_replay: src/main.c src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ src/main.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -115,11 +140,12 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_stash
 	./$(TMP_DIR)/test_pico8_data_init
 	./$(TMP_DIR)/test_pico8_planet_kj_dispatch
+	./$(TMP_DIR)/test_pico8_demo
 
-demo: $(TMP_DIR)/pico8_demo
-	./$(TMP_DIR)/pico8_demo
+replay: $(TMP_DIR)/pico8_replay
+	./$(TMP_DIR)/pico8_replay
 
-test: unit demo
+test: unit replay
 
 psn00bsdk-toolchain-setup:
 	sh tools/install_psn00bsdk_toolchain.sh

@@ -1,18 +1,30 @@
+/* Phase 4, Chunk 1 (docs/prd/triage/phase4-etape1-headless-replay-wiring-
+ * and-playability-verification.md): the project's one real headless game
+ * driver -- loads cart assets, wires the dispatch context, boots the real
+ * cart (pico8_cart_load/pico8__init/pico8_eu), steps it frame-by-frame
+ * from a scripted events.json, and dumps the final framebuffer as text.
+ * No game-specific assertions live here (that's tests/test_pico8_
+ * playability.c's job, Chunk 2/3) -- this is a thin, general-purpose
+ * shell, reusable as-is by Phase 5's raylib backend. Phase 1's own demo
+ * assertions, formerly this file's entire content, now live verbatim in
+ * tests/test_pico8_demo.c. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
 #include "pico8_gfx.h"
 #include "pico8_input.h"
 #include "pico8_dump.h"
+#include "pico8_dispatch_context.h"
+#include "pico8_cart.h"
+#include "pico8_help.h"
+#include "pico8_ui_button.h"
 
 #include <assert.h>
 #include <stdio.h>
 
-static unsigned char screen_pixel(const pico8_mem_t *mem, int x, int y) {
-    return pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
-}
+int main(int argc, char **argv) {
+    const char *events_path = (argc > 1) ? argv[1] : "events.json";
 
-int main(void) {
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
@@ -22,93 +34,43 @@ int main(void) {
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
 
-    assert(pico8_sget(&mem, 16, 0) == 3);
-    /* map.json's cells row 0 lands in PICO8_ADDR_SPRITE_MAP_SHARED on the
-     * real cart (confirmed against pico8/original.p8.png's decoded ROM). */
-    assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 1) == 81);
-
-    pico8_cls(&mem);
-    assert(screen_pixel(&mem, 0, 0) == 0);
-    assert(screen_pixel(&mem, 127, 127) == 0);
-
-    pico8_line(&gfx, &mem, 0, 5, 4, 5, 8);
-    for (int x = 0; x <= 4; x++) {
-        assert(screen_pixel(&mem, x, 5) == 8);
-    }
-    assert(screen_pixel(&mem, 5, 5) == 0);
-
-    pico8_pset(&gfx, &mem, 10, 20, 7);
-    assert(screen_pixel(&mem, 10, 20) == 7);
-    assert(screen_pixel(&mem, 11, 20) == 0);
-
-    pico8_rect(&gfx, &mem, 30, 30, 34, 34, 9);
-    for (int x = 30; x <= 34; x++) {
-        assert(screen_pixel(&mem, x, 30) == 9);
-        assert(screen_pixel(&mem, x, 34) == 9);
-    }
-    for (int y = 30; y <= 34; y++) {
-        assert(screen_pixel(&mem, 30, y) == 9);
-        assert(screen_pixel(&mem, 34, y) == 9);
-    }
-    assert(screen_pixel(&mem, 32, 32) == 0);
-
-    pico8_circ(&gfx, &mem, 60, 60, 3, 10);
-    assert(screen_pixel(&mem, 63, 60) == 10);
-    assert(screen_pixel(&mem, 57, 60) == 10);
-    assert(screen_pixel(&mem, 60, 63) == 10);
-    assert(screen_pixel(&mem, 60, 57) == 10);
-    assert(screen_pixel(&mem, 60, 60) == 0);
-
-    pico8_spr(&gfx, &mem, 2, 0, 90, 1, 1);
-    assert(screen_pixel(&mem, 0, 90) == 3);
-    assert(screen_pixel(&mem, 7, 90) == 3);
-    assert(screen_pixel(&mem, 2, 91) == 4);
-    assert(screen_pixel(&mem, 1, 90) == 0);
-
-    pico8_map(&gfx, &mem, 0, 0, 0, 100, 4, 1);
-    assert(screen_pixel(&mem, 0, 101) == 1);
-    assert(screen_pixel(&mem, 8, 100) == 0);
-    assert(screen_pixel(&mem, 16, 100) == 1);
-    assert(screen_pixel(&mem, 31, 107) == 6);
-
-    pico8_print(&gfx, &mem, "hi", 0, 115, 11);
-    assert(screen_pixel(&mem, 0, 115) == 11);
-    assert(screen_pixel(&mem, 1, 115) == 0);
-    assert(screen_pixel(&mem, 2, 117) == 11);
-    assert(screen_pixel(&mem, 5, 115) == 11);
-    assert(screen_pixel(&mem, 4, 116) == 0);
-    assert(screen_pixel(&mem, 5, 116) == 11);
-
     pico8_input_t input;
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, "events.json"));
+    assert(pico8_input_load(&input, events_path));
 
-    assert(pico8_stat(&input, 32) == 64);
-    assert(pico8_stat(&input, 33) == 32);
-    assert(pico8_stat(&input, 34) == 1);
-    assert(pico8_btn(&input, 0) == 0);
-    assert(pico8_btn(&input, 1) == 1);
-    assert(pico8_btn(&input, 2) == 0);
-    assert(pico8_btn(&input, 3) == 0);
+    pico8_dispatch_set_gfx(&gfx);
+    pico8_dispatch_set_mem(&mem);
+    pico8_dispatch_set_input(&input);
 
-    pico8_input_step(&input);
+    pico8_cart_load();
+    pico8__init();
 
-    assert(pico8_stat(&input, 32) == 70);
-    assert(pico8_stat(&input, 33) == 40);
-    assert(pico8_stat(&input, 34) == 0);
-    assert(pico8_btn(&input, 0) == 0);
-    assert(pico8_btn(&input, 1) == 0);
-    assert(pico8_btn(&input, 2) == 1);
-    assert(pico8_btn(&input, 3) == 0);
+    pico8_value_t difficulty_entry;
+    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
+    assert(difficulty_entry.kind == PICO8_VALUE_REF);
+    pico8_instance_t *difficulty_button =
+        pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref);
+    pico8_eu(difficulty_button);
 
-    pico8_input_free(&input);
+    int frame_count = input.frame_count;
+    for (int i = 0; i < frame_count; i++) {
+        pico8_dispatch_set_input(&input);
+        pico8__update60();
+        pico8__draw();
+        if (i < frame_count - 1) {
+            pico8_input_step(&input);
+        }
+    }
 
-    FILE *dump_out = fopen("tmp/pico8_demo_dump.txt", "w");
+    FILE *dump_out = fopen("tmp/pico8_replay_dump.txt", "w");
     assert(dump_out != NULL);
     int dump_ok = pico8_dump_screen(&mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
 
-    printf("pico8 demo: all assertions passed; framebuffer dumped to tmp/pico8_demo_dump.txt\n");
+    pico8_input_free(&input);
+
+    printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to tmp/pico8_replay_dump.txt\n",
+           frame_count, events_path);
     return 0;
 }

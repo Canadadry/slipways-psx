@@ -1,6 +1,8 @@
 {
   "frames": [
     { "mouse_x": 64, "mouse_y": 32, "mouse_buttons": 1, "dpad": [false, true, false, false] },
-    { "mouse_x": 70, "mouse_y": 40, "mouse_buttons": 0, "dpad": [false, false, true, false] }
+    { "mouse_x": 70, "mouse_y": 40, "mouse_buttons": 0, "dpad": [false, false, true, false] },
+    { "mouse_x": 72, "mouse_y": 42, "mouse_buttons": 0, "dpad": [false, false, false, false] },
+    { "mouse_x": 74, "mouse_y": 44, "mouse_buttons": 0, "dpad": [false, false, false, false] }
   ]
 }
