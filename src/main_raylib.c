@@ -42,10 +42,74 @@
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
 #include "pico8_raylib_backend.h"
+#include "pico8_replay_source.h"
 
 #include <assert.h>
+#include <stdio.h>
 
-int main(void) {
+/* Chunk 1 of docs/prd/triage/raylib-replay-then-resume.md adds the one
+ * optional positional argument: the recording this session replays
+ * before handing control back to the player. Everything about it that
+ * is decidable without a window lives in pico8_replay_source.{c,h} and
+ * is unit-tested there; what is left here is the two things only this
+ * driver can own -- the argv reading, and what a failed load does to the
+ * process.
+ *
+ * The launch error is emitted and the process exits BEFORE
+ * pico8_raylib_backend_init opens the window, deliberately. The PRD's
+ * Implementation Decisions forbid falling back to a new game on a bad
+ * path ("un repli silencieux... ferait croire a une perte de
+ * sauvegarde"), and a window that opens on the title screen IS that
+ * fallback as far as the player can tell, whatever was printed to a
+ * terminal they may not be looking at. Failing before anything is
+ * displayed makes the failure impossible to mistake for a lost save.
+ *
+ * With no argument, this file behaves exactly as it did before: same
+ * boot sequence, same loop, same title screen. In particular the long
+ * comment above still holds in full -- no simulated difficulty click is
+ * added here, and none may be. It is load-bearing for this PRD and not
+ * merely for the last one: a recording made by this backend starts at
+ * the title screen and contains its own difficulty click, so a driver
+ * that pre-clicked would desynchronise every recording it replays from
+ * its very first frame (PRD, "fidelite du demarrage", user story 11). */
+
+int main(int argc, char **argv) {
+    /* One optional positional argument, nothing else: no flags, no
+     * recording-picker UI (explicitly out of scope in the PRD). */
+    const char *replay_path = (argc > 1) ? argv[1] : NULL;
+
+    pico8_replay_source_t replay;
+    if (pico8_replay_source_open(&replay, replay_path) == PICO8_REPLAY_SOURCE_LOAD_FAILED) {
+        fprintf(stderr,
+                "main_raylib: '%s' could not be loaded as a recording "
+                "(missing, unreadable, or not a valid events.json). "
+                "Refusing to start a new game instead.\n",
+                replay_path);
+        pico8_replay_source_close(&replay);
+        return 1;
+    }
+
+    /* HONEST STATEMENT OF WHAT THIS CHUNK DOES NOT DO: when a recording
+     * loaded, its frames are held and then freed below without ever
+     * being played. The loop still takes every frame from the live
+     * window, so `./main_raylib some_recording.json` currently starts an
+     * ordinary new game after successfully loading the file. Feeding
+     * those frames to the loop is Chunk 2 ("source d'entree
+     * commutable"), which is where the feature's actual behavior lands;
+     * this chunk is only the argument, the load, and the launch error.
+     *
+     * Until then, saying so on stderr is not optional politeness: a
+     * successful load that silently starts a new game is, on screen,
+     * the exact thing the PRD forbids the FAILED case from doing. The
+     * line below is what keeps "loaded, not replayed yet" from looking
+     * like "your recording was ignored". It goes away with Chunk 2. */
+    if (pico8_replay_source_frame_count(&replay) > 0) {
+        fprintf(stderr,
+                "main_raylib: loaded '%s' (%d frames). Replay is not wired into "
+                "the loop yet; starting a new game.\n",
+                replay_path, pico8_replay_source_frame_count(&replay));
+    }
+
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
@@ -82,6 +146,7 @@ int main(void) {
     }
 
     pico8_raylib_backend_shutdown(&backend);
+    pico8_replay_source_close(&replay);
 
     return 0;
 }
