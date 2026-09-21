@@ -1,0 +1,165 @@
+#ifndef PICO8_VALUE_H
+#define PICO8_VALUE_H
+
+#include "pico8_fixed.h"
+
+/* pico8/lua.lua's `add`/`del`/`all`/`foreach` (list primitives, e.g. lines
+ * 156-167's lt/he, and every all()/foreach() call site) and the later
+ * ob()/fi() parser output and entity key/value representation all need to
+ * hold "any one of a small handful of value shapes" in a plain array or
+ * field slot. Rather than let each of those consumers invent its own
+ * ad-hoc tagged union (the exact "duplicated helper" mistake this phase's
+ * PRD calls out from Phase 1's warn-review finding on `read_whole_file`),
+ * this single small tagged-value type is the one shared shape all of them
+ * are built on.
+ *
+ * Kept deliberately minimal ("at least" per the PRD, not "every kind we
+ * can imagine"): the four kinds below are exactly what this phase's
+ * ob()/fi() grammar (Chunk 8, not yet built) can produce -- a parsed
+ * number, a quoted string, the literal `false`, and a nested-table/
+ * constructor-call result (represented as an opaque reference, since this
+ * chunk doesn't need to know what it points to) -- plus what this chunk's
+ * own add/del/all/foreach need to store and compare. No separate vector
+ * kind: `v(...)`/nested-table values are opaque references here, not a
+ * dedicated pico8_vec_t member; nothing in this chunk's or chunk 8's scope
+ * needs a value slot to know it's holding a vector specifically. */
+typedef enum {
+    PICO8_VALUE_FIXED,   /* a PICO-8 fixed-point number */
+    PICO8_VALUE_STRING,  /* a C string (not owned by the value; see below) */
+    PICO8_VALUE_BOOL,    /* a boolean (0 or 1) */
+    PICO8_VALUE_REF,     /* an opaque pointer/reference (e.g. an entity) */
+    PICO8_VALUE_FUNCTION /* an entity method (Chunk 10's mv()/dc()); see
+                           * pico8_value_function_t below */
+} pico8_value_kind_t;
+
+/* Forward-declared (still incomplete here) so pico8_value_function_t's own
+ * by-value parameter/return type below can name it before its full
+ * definition -- the union member of that same function pointer type,
+ * further down, is what forces this order (the struct's own definition
+ * can't come first, since it needs pico8_value_function_t already
+ * declared to name it as a union member). */
+typedef struct pico8_value pico8_value_t;
+
+/* Entity method dispatch (Chunk 10's mv()/dc(), pico8_entity.h): a
+ * PICO8_VALUE_FUNCTION-kind value holds a method -- a field like
+ * .kj/.ev/.hd/.hk/.hb on a real entity, called as
+ * `entity[nt](entity,entity.ra)` by dc()/mv(). Takes the entity as an
+ * opaque `void *self` rather than a concrete pico8_instance_t*:
+ * pico8_value.h is a lower-level module than pico8_class.h (pico8_class.h
+ * includes pico8_ob.h, which includes this file), so it must not depend
+ * upward on pico8_instance_t's own definition -- pico8_entity.c casts
+ * `self` back to pico8_instance_t* itself wherever it calls a method it
+ * looked up.
+ *
+ * Phase 3, Chunk 5 (docs/prd/triage/phase3-etape1-function-by-function-c-
+ * port.md) arity extension: originally (Phase 2) this took exactly one
+ * extra argument, evidenced only by Phase 2's own two call sites (dc()'s
+ * `entity[nt](entity,entity.ra)` and the placeholder `mo:md(ci[o])`).
+ * Re-grepping every real `mv(` call site across the WHOLE of
+ * pico8/lua.lua for this chunk (not just its own `ui` class) turns up
+ * exactly three arities, never more:
+ *   - 0 extra arguments: `mv(self,"lq")` (js:pq), `mv(self,"my")`
+ *     (js:ldown/fq:ldown), `mv(self,"lh")` (line 589, a later chunk).
+ *   - 1 extra argument: `mv(held,"ey",nw and nw.kv)` (ui:bh).
+ *   - 2 extra arguments: `mv(e,"hd",self.qa,je.ra)`,
+ *     `mv(held,"hq",self.qa,je.ra)` (both ui:bh/ui:gw), and
+ *     `mv(self.lq,"ol",p+v(0,7),0.5)` (a later chunk).
+ * `ui:jz(rm,...)`'s own vararg-forwarding `mv(h,rm,...)` never forwards
+ * more than 2 (its own two real call sites pass 1 and 2). No real call
+ * site anywhere in the cart ever needs 3+, so this is extended to a small
+ * FIXED-size argument list -- an argument count (0, 1, or 2) plus two
+ * named pico8_value_t slots -- not a general variadic mechanism. Phase
+ * 2's own two call sites keep working unchanged by passing argc=1, with
+ * `arg1` an unused filler (this port's established
+ * pico8_value_ref(NULL) convention for "no real Lua value here"). A
+ * dispatched function must check `argc` before trusting `arg0`/`arg1`:
+ * reading a slot argc says isn't real yields whatever filler value the
+ * caller happened to pass, never a distinguished "Lua nil". See
+ * pico8_entity.c's own top comment on mv() for the full confirmation
+ * trail. */
+typedef pico8_value_t (*pico8_value_function_t)(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+
+/* A value never owns the memory a PICO8_VALUE_STRING or PICO8_VALUE_REF
+ * points to -- it's a plain tagged union of a scalar or a borrowed
+ * pointer, matching Lua's own by-reference semantics for strings/tables
+ * (assigning a Lua value never deep-copies a string or table). Callers
+ * are responsible for whatever the pointer's lifetime needs to be. */
+struct pico8_value {
+    pico8_value_kind_t kind;
+    union {
+        pico8_fixed_t fixed;
+        const char *string;
+        int boolean;
+        void *ref;
+        pico8_value_function_t function;
+    } as;
+};
+
+pico8_value_t pico8_value_fixed(pico8_fixed_t x);
+pico8_value_t pico8_value_string(const char *s);
+pico8_value_t pico8_value_bool(int b);
+pico8_value_t pico8_value_ref(void *p);
+pico8_value_t pico8_value_function(pico8_value_function_t fn);
+
+/* "Equal in value", as used by del() (PICO-8 Del wiki:
+ * https://pico-8.fandom.com/wiki/Del) to find the first matching element.
+ * Two values of different kinds are never equal.
+ *
+ * Per-kind comparison, and how far each is built out:
+ *   - PICO8_VALUE_FIXED: compared numerically (raw 16.16 equality).
+ *   - PICO8_VALUE_BOOL:  compared as plain booleans.
+ *   - PICO8_VALUE_REF:   compared by pointer identity.
+ *   - PICO8_VALUE_FUNCTION: compared by function-pointer identity (never
+ *     exercised by any del() call site in scope -- methods are never
+ *     del()'d, only entities holding them are -- but a fifth tagged-union
+ *     kind still needs a defined equality case rather than an implicit
+ *     "never equal" left to fall through unhandled).
+ *   - PICO8_VALUE_STRING: compared by pointer identity, NOT by content
+ *     (no strcmp). Every del() call site found by grepping lua.lua in
+ *     this phase's scope (pico8/lua.lua:163,164,167,484,676,704,740 --
+ *     he()'s del(hv,e)/del(cv[p],e)/del(cg[t],e), and four more inline
+ *     uses) deletes an entity/table reference, never a string or a
+ *     number -- there is no real call site in scope that ever needs
+ *     "equal string content, different pointer" to count as a match.
+ *     Pointer-identity comparison is therefore all this phase's evidenced
+ *     usage needs; content comparison is deliberately not built, per the
+ *     PRD's Out of Scope guidance against speculative generality. If a
+ *     future phase's del() call needs by-content string equality, that's
+ *     a real, evidenced need to extend this function for at that point,
+ *     not one to guess at now. */
+int pico8_value_equal(pico8_value_t a, pico8_value_t b);
+
+/* tostr(v): converts any of the shared value type's kinds to a
+ * newly heap-allocated, NUL-terminated string the caller owns and must
+ * free() -- tostr() produces a new, independent Lua string value, the
+ * same ownership convention pico8_sub (pico8_str.h) uses.
+ *
+ * Every tostr() call site found by grepping pico8/lua.lua in this phase's
+ * scope (lines 443, 530, 884, 957, 1418, 1420) passes a fixed-point number
+ * (a field holding a count/score/id) -- never a string, boolean, or
+ * reference. So:
+ *   - PICO8_VALUE_FIXED is the kind this phase's real usage actually
+ *     needs, and gets a real (if simple) decimal formatting: printed with
+ *     4 fractional digits, then trailing zeros and a bare trailing '.'
+ *     are trimmed, so an exact integer value like 3 renders "3", not
+ *     "3.0000". PICO-8's own exact tostr() decimal-formatting rules for
+ *     arbitrary fixed-point values (trailing-zero/precision edge cases)
+ *     were not separately sourced beyond "produces a human-readable
+ *     decimal" -- this phase's own tests only assert on small integers
+ *     this phase itself controls, per the PRD's Out of Scope; a specific
+ *     formatted value Phase 3's UI code needs is deferred to whichever
+ *     call site first needs it.
+ *   - PICO8_VALUE_STRING is never actually passed to tostr() by any
+ *     in-scope call site either, but is trivial and unambiguous (identity/
+ *     passthrough of the string's content) so it's implemented for
+ *     completeness rather than left to assert/crash.
+ *   - PICO8_VALUE_BOOL, PICO8_VALUE_REF and PICO8_VALUE_FUNCTION are
+ *     likewise never passed to tostr() by any in-scope call site; all
+ *     three get a minimal, defensive result (BOOL: "true"/"false"; REF
+ *     and FUNCTION: an empty string) rather than a researched
+ *     PICO-8-accurate formatting, since no real call site in scope
+ *     exercises any of them -- a real future need is evidence to build
+ *     that out properly, not something to guess at now. */
+char *pico8_value_tostr(pico8_value_t v);
+
+#endif

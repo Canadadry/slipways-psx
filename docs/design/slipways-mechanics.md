@@ -1,6 +1,6 @@
 # Slipways (PICO-8) — règles de design & mécaniques
 
-Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur manette pour PlayStation 1 (Love2D en prototype de référence, voir `docs/plan.md`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
+Document de référence pour la réimplémentation intégrale de la version PICO-8 de *Slipways* (@krajzeg / @gruber_music), portée sur PC en C via raylib (voir `docs/plan.md`). Les mécaniques et valeurs ci-dessous sont extraites directement du code source (`lua.lua`) et des données embarquées dans la cartouche (`map.json`) ; le pitch et les instructions officielles viennent de la page itch.io.
 
 ## Pitch officiel (itch.io)
 
