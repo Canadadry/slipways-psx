@@ -166,6 +166,34 @@ static pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(pico8_jo_ib((pico8_instance_t *)self));
 }
 
+/* function jo:ll(t)self.p_=t>60 end (pico8/lua.lua:470-471) -- the real
+ * call site `pico8_jo_ll`'s own declaration comment (pico8_planet.h) left
+ * to "whichever later chunk's own real call site turns up" is `dg()`'s own
+ * `local fn=qc[qc.me] if fn then fn(qc,qc.t) end` (pico8/lua.lua:173-181,
+ * pico8_dg in pico8_bootstrap.c): a STATE-NAMED field looked up by the
+ * entity's own current `me`, never a textual `:ll(` anywhere in the cart.
+ * `jo:hh()` puts an empty-probed planet in exactly that state (`self:ks(
+ * self.nk.me or "known")` with `df.ll`'s own `me="ll"`, pico8/lua.lua:
+ * 407-411/1378), so without this field the self-destruct flag is never set
+ * and the faded-out planet stays in `cg.np` forever, refusing every
+ * structure dropped on its spot. Same "state name registered as a class
+ * default field" wiring every other state handler in this port already
+ * uses (`qh.ly`/`nl.ly`, pico8_planet_family.c; `mz.kz`/`mz.pr`,
+ * pico8_wormhole.c; the `ph` handlers in pico8_scroll.c/pico8_ui_button.c/
+ * ...), and `dg()` always passes `qc.t` as `arg0`, read here with the same
+ * "arg0 is a fixed, absent reads as a safe default" convention as
+ * pico8_nl_ly_dispatch. */
+static pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_fixed_t t = pico8_fixed_from_int(0);
+    (void)argc;
+    (void)arg1;
+    if (arg0.kind == PICO8_VALUE_FIXED) {
+        t = arg0.as.fixed;
+    }
+    pico8_jo_ll((pico8_instance_t *)self, t);
+    return pico8_value_ref(NULL);
+}
+
 void pico8_jo_init(void) {
     pico8_jo_shutdown();
     pico8_pi_init();
@@ -199,6 +227,7 @@ void pico8_jo_init(void) {
     pico8_ob_table_set_name(g_jo_class->defaults, "cn", pico8_value_function(pico8_jo_cn_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "ib", pico8_value_function(pico8_jo_ib_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "kj", pico8_value_function(pico8_jo_kj_dispatch));
+    pico8_ob_table_set_name(g_jo_class->defaults, "ll", pico8_value_function(pico8_jo_ll_dispatch));
     pico8_class_register_named("jo", g_jo_class);
 }
 

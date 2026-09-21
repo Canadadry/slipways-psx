@@ -407,13 +407,15 @@ void pico8_jo_kd(pico8_instance_t *self);
  * treatment already given `jo:hk`'s own dead `stat(19)`-style branches
  * elsewhere in this port): whichever later chunk's own real call site
  * turns up (most likely `_update60()`, Chunk 22, or a not-yet-read
- * `mv(e,"ll",...)`) will simply find this already built and correct. Not
- * a `bm` name, so no dispatch bridge is wired for it -- if a future chunk's
- * own real call site turns out to be `mv()`-routed rather than a direct
- * `self:ll(...)` call, that chunk is responsible for wiring the field
- * then, using this same function as the bridge's target (matching every
- * other bridge-around-an-existing-function precedent in this port). A NULL
- * `self` is a safe no-op. */
+ * `mv(e,"ll",...)`) will simply find this already built and correct.
+ *
+ * *** THAT REAL CALL SITE HAS SINCE BEEN FOUND (Phase 5 bug fix) *** and
+ * it is the `mv()`-routed one this comment anticipated: `dg()`'s own
+ * `local fn=qc[qc.me]` (pico8/lua.lua:173-181) looks `ll` up BY STATE
+ * NAME, which is why the grep for a textual `:ll(` came back empty.
+ * `pico8_jo_init()` (pico8_planet.c) therefore now registers a
+ * `pico8_jo_ll_dispatch` bridge as the `"ll"` field of the `jo` class,
+ * exactly as this comment prescribed. A NULL `self` is a safe no-op. */
 void pico8_jo_ll(pico8_instance_t *self, pico8_fixed_t t);
 
 /* *** SUB-LOT 3 (this session) MODULE SPLIT NOTICE *** -- `hb`, `gh`,
