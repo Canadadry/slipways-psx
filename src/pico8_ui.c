@@ -196,12 +196,39 @@ pico8_instance_t *pico8_je(void) {
     return g_je;
 }
 
-/* See pico8_ui.h's own comment on this declaration. */
+/* See pico8_ui.h's own comment on this declaration.
+ *
+ * REAL BUG FOUND AND FIXED (Phase 5, raylib interactive backend): this
+ * used to unconditionally pico8_instance_free() the outgoing g_je before
+ * replacing it, matching the shape of every other _set_ singleton setter
+ * in this port. But je is one of the three singletons (mo/je/ok) pico8_jl
+ * rebuilds UNCONDITIONALLY on every call (see pico8_bootstrap.c), and
+ * pico8_jl() itself runs a second time from inside pico8_eu() -- which is
+ * reachable not just from main.c's own direct boot-time call, but from a
+ * REAL mouse click on a difficulty button, dispatched through pico8_ui_lj
+ * (self=the pre-rebuild ok) -> ... -> mv(button,"my") -> pico8_eu(). At
+ * that point pico8_ui_lj's own call frame is still using its `self`
+ * (the OLD ok) after the callback returns (pico8_ui_lj's own final
+ * self->fields write) -- exactly the moment the OLD je/ok would already
+ * have been freed here, a confirmed ASan heap-use-after-free reproduced
+ * via a real simulated click (never hit by any existing test/replay,
+ * since main.c/test_pico8_playability all reach eu() via a direct call
+ * BEFORE the frame loop starts, never through a live click mid-dispatch).
+ * Real Lua has no equivalent hazard: reassigning the global `je`/`ok`
+ * never invalidates whatever a live call's own `self` local still
+ * references -- the old table simply becomes garbage, reclaimed by the
+ * GC only once nothing points to it anymore, never while a frame like
+ * pico8_ui_lj's is still running on it. The C-faithful fix is therefore
+ * to stop freeing the outgoing instance here and let it leak instead,
+ * matching real Lua's own deferred-reclaim semantics -- and matching
+ * this project's own already-accepted "no full teardown of long-lived
+ * singletons" convention (see e.g. the fv/particle instances pico8_jl()
+ * itself never frees either). Zero Lua-observable behavior change: only
+ * C memory-reclamation timing differs. */
 void pico8_ui_set_je(pico8_instance_t *instance) {
     if (instance == g_je) {
         return;
     }
-    pico8_instance_free(g_je);
     g_je = instance;
 }
 
@@ -209,12 +236,14 @@ pico8_instance_t *pico8_ok(void) {
     return g_ok;
 }
 
-/* See pico8_ui.h's own comment on this declaration. */
+/* See pico8_ui.h's own comment on this declaration, and pico8_ui_set_je's
+ * own comment just above for the full real-bug trace this shares (ok is
+ * the specific singleton the confirmed use-after-free was reproduced
+ * against). */
 void pico8_ui_set_ok(pico8_instance_t *instance) {
     if (instance == g_ok) {
         return;
     }
-    pico8_instance_free(g_ok);
     g_ok = instance;
 }
 

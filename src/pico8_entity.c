@@ -554,11 +554,21 @@ pico8_instance_t *pico8_mo(void) {
     return g_mo;
 }
 
-/* See pico8_entity.h's own comment on this declaration. */
+/* See pico8_entity.h's own comment on this declaration.
+ *
+ * REAL BUG FOUND AND FIXED (Phase 5, raylib interactive backend): used
+ * to unconditionally pico8_instance_free() the outgoing g_mo before
+ * replacing it -- see pico8_ui.c's pico8_ui_set_je()/pico8_ui_set_ok()
+ * for the full trace of the confirmed ASan heap-use-after-free this
+ * exact pattern produces (mo/je/ok are the same trio pico8_jl() rebuilds
+ * unconditionally on every call, including from inside a real mouse
+ * click's own dispatch chain). Fixed the same way, for the same reason:
+ * stop freeing the outgoing instance and let it leak, matching real
+ * Lua's own deferred-reclaim (GC) semantics -- zero Lua-observable
+ * behavior change. */
 void pico8_entity_set_mo(pico8_instance_t *instance) {
     if (instance == g_mo) {
         return;
     }
-    pico8_instance_free(g_mo);
     g_mo = instance;
 }
