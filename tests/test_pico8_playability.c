@@ -133,10 +133,83 @@
  * been run while building this chunk, so it is wired into `unit` alongside
  * `test_pico8_data_init`/`test_pico8_planet_kj_dispatch` (same full engine
  * closure, same reasoning: reaching real game state pulls in essentially
- * the whole engine). Chunk 3's own job is turning these printed checkpoints
- * into real `assert()`-based invariants -- this file intentionally has
- * NONE yet, per this chunk's own explicit scope. */
+ * the whole engine).
+ *
+ * CHUNK 3 -- formalizing the two invariants, `docs/plan.md`'s own exit-gate
+ * wording quoted verbatim rather than paraphrased (Phase 4's own "Sortie de
+ * phase" paragraph): "le nombre de planetes qui reste dans une plage
+ * plausible (jamais negatif, jamais au-dela de 90 -- pas de valeur
+ * aberrante signe d'un bug de comptage)", and "les credits qui restent dans
+ * un ordre de grandeur coherent avec une partie normale (les credits
+ * peuvent legitimement devenir negatifs en jeu -- cf. `hy:hk()`,
+ * `self.nz+=self.ge` sans plancher -- donc l'invariant n'est pas <<jamais
+ * negatif>> mais l'absence de saut brutal type debordement/valeur
+ * aberrante)".
+ *
+ * PLANET COUNT: a direct range check, `assert(count>=0 && count<=90)` --
+ * `bw(90)` (pico8_galaxy.c, Chunk 20) is the only place `cg.jo` is ever
+ * populated in this port's own current scope (no in-game mechanic adds a
+ * planet post-start), so 90 is a hard ceiling, not a guess, and a negative
+ * count can only mean a real double-free/double-removal bug in the
+ * entity/tag list machinery (pico8_entity.c).
+ *
+ * CREDITS -- "no aberrant jump", NOT "never negative": two independent
+ * checks, both grounded in the real economy formulas this cart uses
+ * (`pico8_hy_hk`/`pico8_hy_lj`, src/pico8_economy.c; `bx`/`ck`/`dj`/`bk`,
+ * src/pico8_economy_formulas.c; `bd`/`bb`/`dh`, src/pico8_economy_tiers.c;
+ * `da`/`cz`/`db`/`ky`/`bf`, src/pico8_economy_score.c), not arbitrary round
+ * numbers:
+ *
+ *   (a) PER-STAGE DELTA vs. a running baseline. `hy:hk()`'s own
+ *       `self.nz+=self.ge` is the ONLY place `nz` is ever mutated, and
+ *       `hy:lj()`'s own `self.ge=flr(dd*ov("skill implants",1,1.15))-cz()`
+ *       shows `ge` is a SUM, over `cg.jo` (at most 90 planets), of each
+ *       planet's `kr=flr(db(p)-da(p))` net (pico8_hy_lj, pico8_economy.c).
+ *       Reading `db()`'s own real constants (src/pico8_economy_score.c):
+ *       `dk.trade` is 4-7 across this cart's own 4 real difficulty entries
+ *       (`pico8_help.c`'s own `g_bo` literal table: "forgiving"=7,
+ *       "reasonable"=6, "challenging"=5, "tough"=4), `pt.hs` is 0.5 or 1
+ *       (`pico8_planet.c`/`pico8_planet_family.c`'s own class specs), and
+ *       `ct[]`'s own real values (`pico8_game_data.c`'s own
+ *       `g_ct=pico8_ob("-0.333,0,0.25,0.5,")`) keep the `(1+ct+ct)` bonus
+ *       term in roughly [0.33, 2] -- so a SINGLE trade-route contribution
+ *       to `db()` plausibly stays in the low tens of credits, even
+ *       generously rounded up. Even a hypothetical, far-more-developed
+ *       90-planet economy than this early scripted run ever reaches (every
+ *       planet colonized, several trade routes and a maxed-out production
+ *       tier each) would plausibly keep the SUM `dd` (and therefore `ge`,
+ *       since `cz()`'s own `flr(0.18*mu^2)` upkeep term only ever
+ *       SUBTRACTS) under a few thousand credits per single `hy:hk()` tick
+ *       -- nowhere near the tens-of-thousands territory a genuine
+ *       `pico8_fixed_t` overflow/wraparound would produce. `hy:nx()`'s own
+ *       `kx=ov("time compression",12,15)` guard means at most a small,
+ *       bounded number of `hy:hk()` ticks can fire between two consecutive
+ *       checkpoints (a handful of frames apart in this fixture, not
+ *       hundreds), so a per-stage (not just per-tick) threshold of
+ *       PICO8_PLAYABILITY_MAX_STAGE_CREDIT_DELTA=5000.0 credits gives a
+ *       comfortable order-of-magnitude margin over that generously-derived
+ *       full-90-planet-economy estimate, while staying more than two orders
+ *       of magnitude above the actual observed per-checkpoint deltas in
+ *       this scripted early-game run (at most 12.00, per Chunk 2's own
+ *       recorded checkpoint values above) -- loose enough to never
+ *       spuriously fail on legitimate gameplay variance, tight enough to
+ *       catch a real overflow-shaped jump.
+ *   (b) ABSOLUTE SANITY CEILING, independent of the delta check.
+ *       `pico8_fixed_t` (src/pico8_fixed.h) is a 16.16 fixed-point `int32_t`
+ *       -- its integer part is representable only up to roughly +/-32768
+ *       before the format itself wraps. PICO8_PLAYABILITY_MAX_ABS_CREDITS
+ *       is set to 20000.0: comfortably below that ~32768 ceiling (so a
+ *       genuine overflow/saturation value, which lands AT or wraps AROUND
+ *       that boundary, still gets caught), yet utterly implausible for
+ *       this cart's own early-game credit values (starting at 100.00,
+ *       Chunk 2's own recorded checkpoints never exceeding 100.00) even
+ *       allowing enormous headroom.
+ *
+ *   Neither check asserts "credits never negative" -- `hy:hk()`'s own
+ *   `self.nz+=self.ge` has no floor, so a negative `nz` is legitimate
+ *   in-game state this test must NOT reject. */
 
+#include <math.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -161,6 +234,20 @@
 #define STAGE5_TRADE_ROUTE_SETUP_FRAME 221
 #define STAGE6_SCORE_TICK_FRAME 223
 
+/* docs/plan.md's own Phase 4 exit gate, quoted verbatim in this file's own
+ * top comment: planet count "jamais negatif, jamais au-dela de 90". */
+#define PICO8_PLAYABILITY_MIN_PLANETS 0
+#define PICO8_PLAYABILITY_MAX_PLANETS 90
+
+/* hy:pq()'s own real starting spec value (src/pico8_economy.c: "nz=100,..."),
+ * the running baseline the very first stage's own delta is measured from. */
+#define PICO8_PLAYABILITY_CREDIT_BASELINE 100.0
+
+/* See this file's own top comment ("CREDITS -- no aberrant jump") for the
+ * full derivation of both of these from the real economy formulas. */
+#define PICO8_PLAYABILITY_MAX_STAGE_CREDIT_DELTA 5000.0
+#define PICO8_PLAYABILITY_MAX_ABS_CREDITS 20000.0
+
 static double credits_now(void) {
     pico8_instance_t *fm = pico8_fm();
     pico8_value_t nz;
@@ -175,9 +262,36 @@ static int planet_count(void) {
     return jo != NULL ? jo->count : 0;
 }
 
-static void print_checkpoint(const char *stage_name, int frame_index) {
-    printf("[checkpoint] %-32s frame=%-4d cg(jo) count=%-3d credits (fm.nz)=%.2f\n", stage_name, frame_index,
-           planet_count(), credits_now());
+/* Prints the same diagnostic line Chunk 2 already printed, then asserts
+ * both of docs/plan.md's own Phase 4 exit-gate invariants against the live
+ * state just read -- see this file's own top comment for the exact quoted
+ * wording and the full derivation of the two credit thresholds.
+ * `prev_credits` is the running baseline the per-stage delta check is
+ * measured against: the caller seeds it with
+ * PICO8_PLAYABILITY_CREDIT_BASELINE (hy:pq()'s own real nz=100 start) and
+ * this function updates it, in place, to the value just observed, so each
+ * of the 6 calls checks the delta since the PREVIOUS stage, not since the
+ * very start. */
+static void verify_checkpoint(const char *stage_name, int frame_index, double *prev_credits) {
+    int count = planet_count();
+    double credits = credits_now();
+    double delta = credits - *prev_credits;
+
+    printf("[checkpoint] %-32s frame=%-4d cg(jo) count=%-3d credits (fm.nz)=%.2f\n", stage_name, frame_index, count,
+           credits);
+
+    /* Invariant 1: planet count stays in a plausible range. */
+    assert(count >= PICO8_PLAYABILITY_MIN_PLANETS);
+    assert(count <= PICO8_PLAYABILITY_MAX_PLANETS);
+
+    /* Invariant 2: credits stay in a plausible order of magnitude -- no
+     * aberrant, overflow-shaped jump since the previous stage, and no
+     * implausibly huge absolute value. Deliberately NOT "credits never
+     * negative" (see this file's own top comment). */
+    assert(fabs(delta) <= PICO8_PLAYABILITY_MAX_STAGE_CREDIT_DELTA);
+    assert(fabs(credits) <= PICO8_PLAYABILITY_MAX_ABS_CREDITS);
+
+    *prev_credits = credits;
 }
 
 int main(void) {
@@ -188,6 +302,7 @@ int main(void) {
     pico8_instance_t *difficulty_button;
     int frame_count;
     int i;
+    double prev_credits = PICO8_PLAYABILITY_CREDIT_BASELINE;
 
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -218,17 +333,17 @@ int main(void) {
         pico8__draw();
 
         if (i == STAGE1_PROBE_LAUNCH_FRAME) {
-            print_checkpoint("1. probe launch", i);
+            verify_checkpoint("1. probe launch", i, &prev_credits);
         } else if (i == STAGE2_WORMHOLE_TRAVERSAL_FRAME) {
-            print_checkpoint("2. wormhole traversal", i);
+            verify_checkpoint("2. wormhole traversal", i, &prev_credits);
         } else if (i == STAGE3_COLONIZATION_FRAME) {
-            print_checkpoint("3. colonization", i);
+            verify_checkpoint("3. colonization", i, &prev_credits);
         } else if (i == STAGE4_SLIPWAY_CONSTRUCTION_FRAME) {
-            print_checkpoint("4. slipway construction", i);
+            verify_checkpoint("4. slipway construction", i, &prev_credits);
         } else if (i == STAGE5_TRADE_ROUTE_SETUP_FRAME) {
-            print_checkpoint("5. trade route setup", i);
+            verify_checkpoint("5. trade route setup", i, &prev_credits);
         } else if (i == STAGE6_SCORE_TICK_FRAME) {
-            print_checkpoint("6. score/credit-affecting tick", i);
+            verify_checkpoint("6. score/credit-affecting tick", i, &prev_credits);
         }
 
         if (i < frame_count - 1) {
@@ -238,7 +353,8 @@ int main(void) {
 
     pico8_input_free(&input);
 
-    printf("pico8 playability: %d frame(s) run against %s; all 6 stage checkpoints reached\n", frame_count,
-           PHASE4_PLAYTHROUGH_EVENTS_PATH);
+    printf("pico8 playability: %d frame(s) run against %s; all 6 stage checkpoints reached and both "
+           "docs/plan.md Phase 4 exit-gate invariants held\n",
+           frame_count, PHASE4_PLAYTHROUGH_EVENTS_PATH);
     return 0;
 }
