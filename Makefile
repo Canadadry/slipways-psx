@@ -1,4 +1,4 @@
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup
 
 # The Love2D prototype (`game/`) was removed in favor of the PC/raylib
 # literal port described in docs/plan.md. Phase 1 of that plan added a C
@@ -172,3 +172,17 @@ psx-hello:
 
 psx-hello-clean:
 	rm -rf psx-hello/build
+
+# Phase 5, Etape 1, Chunk 1 (docs/prd/triage/phase5-etape1-raylib-
+# interactive-backend.md): raylib is not available as a system package in
+# this project's build/verification environment, so it is vendored and
+# built from source, following the exact precedent already established
+# above for PSn00bSDK -- clone a pinned release tag (never a floating
+# branch) into third_party/raylib/ (gitignored, like tmp/) and build
+# raylib's own static library with raylib's own build system
+# (third_party/raylib/src/Makefile, PLATFORM_DESKTOP). Slow-ish and
+# network-heavy (a shallow clone plus a from-source library build), a
+# one-time setup step, and deliberately kept out of `make`/`make test` --
+# no project C code depends on this yet (see the PRD's Chunk 1 for why).
+raylib-vendor-setup:
+	sh tools/install_raylib_vendor.sh
