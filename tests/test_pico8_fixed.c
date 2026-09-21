@@ -131,6 +131,36 @@ static void test_flr_exact_integer_is_unchanged(void) {
     assert(pico8_fixed_flr(x) == pico8_fixed_from_int(5));
 }
 
+static void test_mod_positive_operands(void) {
+    /* 45 % 42 == 3, the literal shape nl:ly's own "t%42/6" needs
+     * (pico8/lua.lua:1064, Phase 3 Chunk 15). */
+    pico8_fixed_t a = pico8_fixed_from_int(45);
+    pico8_fixed_t b = pico8_fixed_from_int(42);
+    assert(pico8_fixed_mod(a, b) == pico8_fixed_from_int(3));
+}
+
+static void test_mod_fractional_operand(void) {
+    /* a-flr(a/b)*b: 5.5 % 2 == 1.5. */
+    pico8_fixed_t a = pico8_fixed_from_double(5.5);
+    pico8_fixed_t b = pico8_fixed_from_int(2);
+    assert(pico8_fixed_mod(a, b) == pico8_fixed_from_double(1.5));
+}
+
+static void test_mod_negative_dividend_matches_lua_floor_semantics(void) {
+    /* Lua's floor-based modulo (not C's truncating "%"): -1 % 3 == 2, not
+     * -1, since flr(-1/3)==-1 and -1-(-1*3)==2. */
+    pico8_fixed_t a = pico8_fixed_from_int(-1);
+    pico8_fixed_t b = pico8_fixed_from_int(3);
+    assert(pico8_fixed_mod(a, b) == pico8_fixed_from_int(2));
+}
+
+static void test_mod_result_less_than_divisor_when_exact(void) {
+    /* An exact multiple leaves a zero remainder. */
+    pico8_fixed_t a = pico8_fixed_from_int(84);
+    pico8_fixed_t b = pico8_fixed_from_int(42);
+    assert(pico8_fixed_mod(a, b) == pico8_fixed_from_int(0));
+}
+
 static void test_abs_negative_value(void) {
     pico8_fixed_t x = pico8_fixed_from_double(-3.5);
     assert(pico8_fixed_abs(x) == pico8_fixed_from_double(3.5));
@@ -390,6 +420,11 @@ int main(void) {
     test_flr_positive_truncates_fraction();
     test_flr_negative_rounds_toward_negative_infinity();
     test_flr_exact_integer_is_unchanged();
+
+    test_mod_positive_operands();
+    test_mod_fractional_operand();
+    test_mod_negative_dividend_matches_lua_floor_semantics();
+    test_mod_result_less_than_divisor_when_exact();
 
     test_abs_negative_value();
     test_abs_positive_value_is_unchanged();

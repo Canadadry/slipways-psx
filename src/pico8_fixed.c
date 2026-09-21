@@ -135,6 +135,14 @@ pico8_fixed_t pico8_fixed_bor(pico8_fixed_t a, pico8_fixed_t b) {
     return a | b;
 }
 
+/* a-flr(a/b)*b -- see pico8_fixed.h's own comment on pico8_fixed_mod for
+ * why this is a new Chunk 15 primitive, not a Phase 2 oversight, and why
+ * b==0 is left to whatever pico8_fixed_div's own documented saturation
+ * produces rather than a second special case. */
+pico8_fixed_t pico8_fixed_mod(pico8_fixed_t a, pico8_fixed_t b) {
+    return pico8_fixed_sub(a, pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_div(a, b)), b));
+}
+
 /* shl(x,n) shifts the raw 32-bit representation left by n bits.
  * Left-shifting a negative signed value directly is undefined behavior in
  * C (C11 6.5.7p4), so -- as with pico8_fixed_add/sub/neg/div above -- x is

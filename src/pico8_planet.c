@@ -248,6 +248,45 @@ pico8_instance_t *pico8_jo_new(const pico8_ob_table_t *overrides) {
     return pico8_class_instantiate(g_jo_class, overrides);
 }
 
+/* function jo:pq()self.oe={}
+ * if self.hp then self:lz(gb[self.hp])end
+ * end
+ * (pico8/lua.lua:403-405, sub-lot 1's own trace, docs/portage-progress.md's
+ * Vague 13 table.) `self.oe={}`: a fresh, empty connection list (this
+ * planet's own connected slipways, `jo:kf` below). `if self.hp then
+ * self:lz(gb[self.hp]) end`: a polymorphic FIXED/STRING lookup into `gb`
+ * (Chunk 11's `pico8_gb()`, `pico8_research.h`) -- present-and-truthy
+ * `self.hp` (this port's own established `pico8_jo_truthy`) selects an
+ * entry, then `self:lz(...)` (`pico8_jo_lz`, this file) colonizes.
+ *
+ * *** CORRECTION (Chunk 15, docs/prd/triage/phase3-etape1-function-by-
+ * function-c-port.md) -- real NULL-pointer crash found and fixed, sub-lot
+ * 1's own documentation of this branch was WRONG *** : sub-lot 1's own
+ * note (docs/portage-progress.md's Vague 13 table) claimed "no real call
+ * site ever sets self.hp ... a dead-but-compiled branch" -- true only for
+ * `jo` ITSELF, at the time that sub-lot was written (before Chunk 15's
+ * planet-subtype family existed). Reading Chunk 15's own real class specs
+ * directly shows every one of `qh`/`hj`/`pm`/`os`/`mx`/`nl` sets a real,
+ * non-nil `hp=1..6` class-level default -- so this branch is genuinely
+ * LIVE, and always was, the moment any of those six classes' own first
+ * real instance is constructed. Because `pico8_gb()` legitimately returns
+ * NULL before Chunk 20's own `bw()`/`pico8_data_init()` has run (`gb`'s
+ * own module-level storage starts NULL, `pico8_research.c`), and neither
+ * `pico8_ob_table_get_index` nor `pico8_ob_table_get_name` guard their own
+ * `table` parameter against NULL (this port's own pervasive convention:
+ * the CALLER guards, not the primitive -- matching every other real call
+ * site of these two functions elsewhere in this port, e.g. `pico8_jo_kj`'s
+ * own `pico8_jo_class() != NULL &&` guard on `jo.ka`), this branch
+ * dereferenced a NULL `gb` and crashed (reproduced under ASan: SEGV in
+ * `pico8_ob_table_get_index`) the FIRST time this chunk's own disposable
+ * verification program constructed a real `qh`-family instance before
+ * `pico8_data_init()` had populated `gb` for real. Fixed with the same
+ * "add the missing NULL guard, change nothing else" treatment already
+ * given to `pico8_gn_free`/`pico8_hp_lq`/`pico8_jc_ey` (`docs/plan.md`'s
+ * "Notes de portage"): `gb != NULL` now gates both lookup calls below. A
+ * genuinely absent/not-yet-built `gb` simply leaves `found` at 0, exactly
+ * as the "field not found" convention already established everywhere
+ * else in this port -- no other behavior changes. */
 static void pico8_jo_pq(pico8_instance_t *self) {
     pico8_value_t hp_val;
     pico8_list_t *oe;
@@ -265,10 +304,12 @@ static void pico8_jo_pq(pico8_instance_t *self) {
         pico8_value_t target;
         int found = 0;
 
-        if (hp_val.kind == PICO8_VALUE_FIXED) {
-            found = pico8_ob_table_get_index(gb, (int)pico8_fixed_to_double(hp_val.as.fixed), &target);
-        } else if (hp_val.kind == PICO8_VALUE_STRING) {
-            found = pico8_ob_table_get_name(gb, hp_val.as.string, &target);
+        if (gb != NULL) {
+            if (hp_val.kind == PICO8_VALUE_FIXED) {
+                found = pico8_ob_table_get_index(gb, (int)pico8_fixed_to_double(hp_val.as.fixed), &target);
+            } else if (hp_val.kind == PICO8_VALUE_STRING) {
+                found = pico8_ob_table_get_name(gb, hp_val.as.string, &target);
+            }
         }
         if (found && target.kind == PICO8_VALUE_REF && target.as.ref != NULL) {
             pico8_jo_lz(self, (pico8_instance_t *)target.as.ref);

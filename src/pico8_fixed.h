@@ -90,6 +90,28 @@ pico8_fixed_t pico8_fixed_mid(pico8_fixed_t a, pico8_fixed_t b, pico8_fixed_t c)
 pico8_fixed_t pico8_fixed_band(pico8_fixed_t a, pico8_fixed_t b);
 pico8_fixed_t pico8_fixed_bor(pico8_fixed_t a, pico8_fixed_t b);
 
+/* Phase 3, Chunk 15 (docs/prd/triage/phase3-etape1-function-by-function-c-
+ * port.md): a genuinely NEW fixed-point primitive Phase 2 never built,
+ * added here rather than reimplemented ad hoc at its one real call site
+ * (`nl:ly`'s own `t%42/6`, pico8/lua.lua:1064) -- the first place in this
+ * whole port's scope (Chunk 1's own `nm[3-#oc%3]` and Chunk 1's own
+ * `peek(pd)%128` both apply PICO-8's `%` to a plain, already-integer C
+ * `int` count, never to a genuine `pico8_fixed_t`) that needs `%` on a
+ * real fixed-point value. PICO-8's `%` is documented on the same general
+ * arithmetic-operators reference already cited by `pico8_fixed_flr`/
+ * `pico8_fixed_abs`/`pico8_fixed_sgn` above (PICO-8 Math wiki,
+ * https://pico-8.fandom.com/wiki/Math) as Lua's own floor-based modulo,
+ * `a-flr(a/b)*b` -- built directly from this module's own already-shipped
+ * `pico8_fixed_flr`/`pico8_fixed_div`/`pico8_fixed_mul`/`pico8_fixed_sub`,
+ * no new algorithm invented. `b==0` is not separately special-cased here:
+ * it inherits whatever `pico8_fixed_div`'s own documented zero-divisor
+ * saturation produces for `a/b`, the same "reuse the already-documented
+ * primitive's own edge-case behavior rather than invent a second one"
+ * choice `pico8_vec_nn` already made for a zero-length vector
+ * (pico8_vec.h) -- not evidenced to matter for `nl:ly`'s own real call
+ * site, whose divisor is the literal 42, never zero. */
+pico8_fixed_t pico8_fixed_mod(pico8_fixed_t a, pico8_fixed_t b);
+
 /* shl(x,n) shifts the raw 32-bit representation left by n bits. n is a
  * plain shift count (not itself a fixed-point value), matching this
  * cart's own use at shl(flr(no),4). n outside [0,31] is not documented by
