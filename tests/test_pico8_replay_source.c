@@ -180,6 +180,41 @@ static void test_no_recording_is_exhausted_from_the_first_frame(void) {
     pico8_replay_source_close(&source);
 }
 
+/* Chunk 4 adds the one number a progress indicator needs and nothing
+ * else: how far into the recording the replay has got (user story 6,
+ * "savoir ou en est le rejeu... afin de ne pas croire que le jeu est
+ * fige"). It is an accessor on the cursor this module already keeps,
+ * rather than a counter the driver maintains alongside it, precisely
+ * because a second counter can drift from the first -- and a progress
+ * line that disagrees with the replay is worse than none, since it is
+ * the thing the player consults to decide whether to keep waiting.
+ * Counted in frames SERVED, so it is 1 on the frame being played first
+ * and N on the last: the numbering the overlay shows a human, one step
+ * ahead of the 0-based index the marker file writes. */
+static void test_frames_served_tracks_the_replay_position(void) {
+    pico8_replay_source_t source;
+    pico8_input_frame_t frame;
+
+    assert(pico8_replay_source_open(&source, "tests/fixtures/events_valid.json") ==
+           PICO8_REPLAY_SOURCE_LOADED);
+    assert(pico8_replay_source_frames_served(&source) == 0);
+
+    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
+    assert(pico8_replay_source_frames_served(&source) == 1);
+    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
+    assert(pico8_replay_source_next_frame(&source, &frame) == 1);
+    assert(pico8_replay_source_frames_served(&source) == 3);
+    assert(pico8_replay_source_frames_served(&source) == pico8_replay_source_frame_count(&source));
+
+    /* Exhaustion does not advance it: once the player has the controls
+     * back, the replay stays finished at N of N rather than counting
+     * the live frames they now play. */
+    assert(pico8_replay_source_next_frame(&source, &frame) == 0);
+    assert(pico8_replay_source_frames_served(&source) == 3);
+
+    pico8_replay_source_close(&source);
+}
+
 int main(void) {
     test_no_path_requests_no_recording();
     test_valid_recording_loads_with_its_frame_count();
@@ -189,6 +224,7 @@ int main(void) {
     test_loaded_recording_serves_every_frame_in_order();
     test_exhausted_recording_reports_exhaustion_forever();
     test_no_recording_is_exhausted_from_the_first_frame();
+    test_frames_served_tracks_the_replay_position();
 
     printf("test_pico8_replay_source: all tests passed\n");
     return 0;

@@ -43,6 +43,7 @@
 #include "pico8_cart.h"
 #include "pico8_raylib_backend.h"
 #include "pico8_replay_source.h"
+#include "pico8_replay_control.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -95,11 +96,32 @@
  * dernier segfault, ou le chemin fautif disparaissait sans les effets de
  * bord du dessin", user story 15). Drawing has side effects on game
  * state here, so a replay that skipped it would not reach the state the
- * recording describes, which is the only thing the replay is for. It
- * also costs the feature nothing this chunk cares about: replay runs at
- * game speed for now, and making it faster is Chunk 4's problem, to be
- * solved by shortening the wait between frames and never by dropping
- * one. */
+ * recording describes, which is the only thing the replay is for.
+ *
+ * CHUNK 4 MAKES THE REPLAY COMFORTABLE WITHOUT TOUCHING ANY OF THAT.
+ * The loop below still plays and draws every single recorded frame; the
+ * only thing that changes is how long it waits between them. That is
+ * the PRD's own hard constraint on this chunk -- "abreger ne doit jamais
+ * sauter de frame, seulement reduire l'attente entre frames, sinon
+ * l'etat obtenu n'est plus celui de l'enregistrement" -- and it is why
+ * the speed control is a frame-rate cap and literally nothing else.
+ * Three things are added, each one statement in the loop: a frame-rate
+ * cap taken from pico8_replay_control (4x game speed by default, Page
+ * Up/Page Down to change it, End to remove it entirely, and back to 60
+ * FPS the instant the recording runs out); the reading of those three
+ * keys, through pico8_raylib_backend_poll_replay_controls rather than
+ * poll_input, for reasons given at the call site; and a progress line
+ * passed to present(), which exists only while the recording is
+ * driving.
+ *
+ * WHY THE DEFAULT IS FASTER THAN THE GAME. Replaying a thirty-minute
+ * recording at game speed takes thirty minutes, which is the whole
+ * benefit gone -- user stories 7 and 10 exist to reach a late game state
+ * without living through it again. 4x is the compromise that keeps user
+ * story 2 ("reconnaitre le moment ou quelque chose a mal tourne")
+ * possible while making the wait a fraction of what it was; the faster
+ * levels are for the player who has already seen what they came for.
+ * See src/pico8_replay_control.h for the ladder and its reasoning. */
 
 int main(int argc, char **argv) {
     /* One optional positional argument, nothing else: no flags, no
@@ -125,9 +147,20 @@ int main(int argc, char **argv) {
      * -- a real progress indicator is Chunk 4's. */
     if (pico8_replay_source_frame_count(&replay) > 0) {
         fprintf(stderr,
-                "main_raylib: replaying '%s' (%d frames), then handing control back.\n",
+                "main_raylib: replaying '%s' (%d frames), then handing control back.\n"
+                "main_raylib: during the replay -- PAGE UP faster, PAGE DOWN slower, END uncapped.\n",
                 replay_path, pico8_replay_source_frame_count(&replay));
     }
+
+    /* The replay's speed, and only its speed. Initialised before the
+     * window opens so that the very first replayed frame already runs
+     * at the default rather than spending one frame at game speed; it
+     * is also read on every live frame afterwards, where
+     * pico8_replay_control_target_fps ignores the level entirely and
+     * returns 60 (see that header -- the reset the driver cannot
+     * forget, because there is nothing here to remember). */
+    pico8_replay_control_t replay_control;
+    pico8_replay_control_init(&replay_control);
 
     pico8_mem_t mem;
     pico8_mem_init(&mem);
@@ -176,9 +209,31 @@ int main(int argc, char **argv) {
          * event queue in EndDrawing(), which present() calls every
          * frame, so closing the window or pressing the quit key still
          * ends the loop mid-replay through should_continue(). */
-        if (!pico8_replay_source_next_frame(&replay, &frame)) {
+        int from_recording = pico8_replay_source_next_frame(&replay, &frame);
+        if (!from_recording) {
             pico8_raylib_backend_poll_input(&backend, &frame);
+        } else {
+            /* The replay's own narrow input path, and the reason Chunk
+             * 4 did not simply let poll_input run with its result
+             * discarded. poll_input is not a pure read: releasing the
+             * space bar makes it append a frame index to this session's
+             * marker file, and a marker is a bookmark on a frame the
+             * player is AUTHORING, not one they are watching go by. So
+             * the replay reads the three keys it is entitled to and
+             * nothing else -- this call is not even given the backend,
+             * so it cannot reach the recording or the markers if a
+             * later edit wanted it to. The frame for this iteration was
+             * decided by the file one line above and is not consulted,
+             * let alone modified, by anything here: live hardware has
+             * no say whatsoever in a replayed frame. */
+            pico8_raylib_backend_poll_replay_controls(&replay_control);
         }
+        /* Re-asserted every frame rather than only when it changes.
+         * The frame that matters most is the first live one, where the
+         * cap must drop back to game speed; making that fall out of an
+         * unconditional call means no code path can leave the player's
+         * resumed game running at eight times speed. */
+        pico8_raylib_backend_set_frame_rate_cap(pico8_replay_control_target_fps(&replay_control, from_recording));
         /* Recorded BEFORE the game steps, so a frame whose
          * pico8__update60() crashes is already on disk -- see
          * pico8_raylib_backend.h's own top comment for the playtest
@@ -196,7 +251,25 @@ int main(int argc, char **argv) {
         pico8__update60();
         pico8__draw();
 
-        pico8_raylib_backend_present(&backend, &mem, &frame);
+        /* User story 6: "savoir ou en est le rejeu pendant qu'il se
+         * deroule, afin de ne pas croire que le jeu est fige". Built
+         * only while the recording is driving, and passed as NULL
+         * otherwise -- so the overlay does not survive the replay by
+         * one frame, and live play has no HUD at all. The string is
+         * composed by pico8_replay_control_format_status, which is
+         * tested; present() only draws whatever it is handed, on top of
+         * the already-blitted framebuffer, so neither the PICO-8 pixels
+         * nor the recorded frames can be affected by it. */
+        const char *replay_status = NULL;
+        char replay_status_text[PICO8_REPLAY_CONTROL_STATUS_MAX];
+        if (from_recording) {
+            pico8_replay_control_format_status(&replay_control,
+                                               pico8_replay_source_frames_served(&replay),
+                                               pico8_replay_source_frame_count(&replay),
+                                               replay_status_text, sizeof replay_status_text);
+            replay_status = replay_status_text;
+        }
+        pico8_raylib_backend_present(&backend, &mem, &frame, replay_status);
     }
 
     pico8_raylib_backend_shutdown(&backend);

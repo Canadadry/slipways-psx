@@ -28,9 +28,17 @@
  *                                           // frame, just fed live input
  *       pico8__update60();
  *       pico8__draw();
- *       pico8_raylib_backend_present(&backend, &mem, &frame);
+ *       pico8_raylib_backend_present(&backend, &mem, &frame, NULL);
  *   }
  *   pico8_raylib_backend_shutdown(&backend);
+ *
+ * That is the shape of a plain live session, which is still the only
+ * shape this module imposes. A session resumed from a recording (docs/
+ * prd/triage/raylib-replay-then-resume.md) replaces poll_input with a
+ * frame read from the file, adds pico8_raylib_backend_poll_replay_
+ * controls/set_frame_rate_cap for as long as the file is driving, and
+ * passes a progress string to present() instead of NULL -- see
+ * src/main_raylib.c, which owns that loop and is the only caller.
  *
  * poll_input and present are two calls rather than one "poll + present +
  * record" call because the real game's own update60()/draw() step must
@@ -64,6 +72,7 @@
 #include "pico8_mem.h"
 #include "pico8_input.h"
 #include "pico8_session_recorder.h"
+#include "pico8_replay_control.h"
 
 #include "raylib.h"
 
@@ -137,20 +146,119 @@ int pico8_raylib_backend_should_continue(const pico8_raylib_backend_t *backend);
  * as the recording's own path, so the two files pair up by name. Purely a playtest-
  * feedback aid (bookmark "the frame I want to talk about" without
  * describing it) -- no Lua-source equivalent, no effect on *out_frame
- * or the recorded frame data itself. */
+ * or the recorded frame data itself.
+ *
+ * THAT INDEX STAYS RIGHT AFTER A RESUME, AND IT IS NOW PROVEN RATHER
+ * THAN HOPED (Chunk 4 of docs/prd/triage/raylib-replay-then-resume.md,
+ * user story 14). A resumed session replays N frames before the player
+ * touches anything, so "frames played by the player" and "frames in the
+ * recording" stop being the same number -- but the index written here
+ * is read from pico8_session_recorder_frame_count(), and the recorder
+ * counts every frame written to the file, replayed ones included,
+ * because src/main_raylib.c records them all unconditionally. So a
+ * marker dropped on the player's first live frame of a resumed session
+ * is N, which is exactly where that frame sits in the file. It always
+ * was; what Chunk 4 added is tests/test_pico8_marker_coherence.c, which
+ * fails if anyone ever stops recording the replayed frames -- an edit
+ * that would otherwise shift every marker in the session by N in
+ * silence. Two supporting facts, both outside what a test here can
+ * reach: this function is not called at all while the recording drives
+ * the frames (src/main_raylib.c), so no marker can land on a frame the
+ * player is merely watching; and raylib recomputes its key-released
+ * edge from the previous and current frame's key state each time it
+ * pumps events, so a space bar released mid-replay is dropped rather
+ * than queued to fire on the first live frame. */
 void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_input_frame_t *out_frame);
 
 /* Uploads the current 128x128 framebuffer (read from *mem via
  * pico8_peek/PICO8_ADDR_SCREEN, one PICO8_PALETTE lookup per pixel) as a
- * texture and draws it scaled to fill the window -- the only raylib
- * drawing this module (or this whole backend) ever does; no raylib-
- * native UI/HUD. Called once per loop iteration, after this frame's
- * pico8__update60()/pico8__draw(). Does not record anything: that is
- * pico8_raylib_backend_record_frame()'s job, and it deliberately happens
- * before update60() rather than here (see this header's own top comment
- * on why). `frame` is no longer read by this function and is kept only
- * so the call site's shape stays stable. */
-void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame);
+ * texture and draws it scaled to fill the window. Called once per loop
+ * iteration, after this frame's pico8__update60()/pico8__draw(). Does
+ * not record anything: that is pico8_raylib_backend_record_frame()'s
+ * job, and it deliberately happens before update60() rather than here
+ * (see this header's own top comment on why). `frame` is no longer read
+ * by this function and is kept only so the call site's shape stays
+ * stable.
+ *
+ * THE ONE RAYLIB-NATIVE OVERLAY THERE IS, AND WHY IT IS ALLOWED. This
+ * comment used to say flatly "the only raylib drawing this module (or
+ * this whole backend) ever does; no raylib-native UI/HUD", and for
+ * everything the game itself displays that still holds without
+ * exception: every pixel of Slipways comes from the ported cart through
+ * the framebuffer above, and a HUD drawn by raylib would be a piece of
+ * this game that no PICO-8 cart could produce. That sentence was
+ * written before user story 6 of docs/prd/triage/raylib-replay-then-
+ * resume.md existed: "je veux savoir ou en est le rejeu pendant qu'il
+ * se deroule, afin de ne pas croire que le jeu est fige". A replay of
+ * nine thousand frames looks exactly like a hung program, and the
+ * information that would say otherwise -- which frame of how many, at
+ * what speed -- does not exist inside the cart and cannot be drawn by
+ * it. So `replay_status`, when non-NULL, is drawn over the presented
+ * texture as plain raylib text, and it is the only such exception.
+ *
+ * It is constrained to be an exception rather than the start of a HUD:
+ * it is drawn AFTER the texture has been uploaded and blitted, so it
+ * cannot touch a single byte of the PICO-8 framebuffer or of the
+ * recorded frame data; it is a string this module is handed rather than
+ * one it composes, so it holds no game state and asks the engine
+ * nothing (pico8_replay_control_format_status builds it, and is tested);
+ * and it exists only while the caller passes one. NULL is the ordinary
+ * case -- live play, and every frame after the recording runs out --
+ * and NULL draws nothing at all, which is how "l'overlay ne doit plus
+ * exister une fois le rejeu termine" is expressed here: not as a flag
+ * that is cleared, but as an argument that is absent. */
+void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame, const char *replay_status);
+
+/* Reads the replay's own three keys -- Page Up faster, Page Down
+ * slower, End uncapped -- and applies them to *control. Chunk 4 of
+ * docs/prd/triage/raylib-replay-then-resume.md.
+ *
+ * WHY THIS IS NOT pico8_raylib_backend_poll_input. Chunk 2 deliberately
+ * does not call poll_input while the recording drives the frames, for
+ * two reasons that both still hold: a replayed frame must be exactly
+ * the recorded one, so the live mouse and keyboard get no say in it at
+ * all; and poll_input is not a pure read -- releasing the space bar
+ * makes it append a frame index to this session's marker file, which
+ * during a replay would bookmark a frame the player is only watching go
+ * by. Speed control needs neither of those things, so it gets its own
+ * deliberately narrow path instead of a flag threaded through
+ * poll_input: this function reads three keys, writes to *control, and
+ * touches nothing else -- not the frame being played, not the
+ * recording, not the markers. Its signature is the guarantee: it is not
+ * given the backend, so it cannot reach the recorder or the marker file
+ * even by accident.
+ *
+ * WHY THESE THREE KEYS. The cart itself binds only the four arrow keys
+ * (btn(0..3)) and the mouse, and the space bar is already the marker
+ * key, so none of those may be reused. Page Up / Page Down / End are
+ * free, sit together on any keyboard, are in the same place on every
+ * layout this port is likely to meet (including the AZERTY one it is
+ * developed on, where the bracket and punctuation keys are not where a
+ * QWERTY reader would expect), and End reads as "take me to the end",
+ * which is what uncapping a replay is for. Pressed, not held: one tap
+ * is one level, so a player can count the steps rather than guess how
+ * long they held a key. */
+void pico8_raylib_backend_poll_replay_controls(pico8_replay_control_t *control);
+
+/* Applies a frame-rate cap for the frame about to be presented: the
+ * number comes straight from pico8_replay_control_target_fps, and 0 is
+ * passed through as raylib's own "do not wait between frames at all".
+ * This is the entire abbreviation mechanism, and the PRD's hard
+ * constraint is the reason it is the entire mechanism: "abreger ne doit
+ * jamais sauter de frame, seulement reduire l'attente entre frames,
+ * sinon l'etat obtenu n'est plus celui de l'enregistrement". Every
+ * recorded frame is still fed to pico8__update60() and still drawn,
+ * however fast the replay is running.
+ *
+ * Called unconditionally every frame rather than only when the level
+ * changes: SetTargetFPS is one division, and a cap that is re-asserted
+ * every frame cannot be left stale by a code path that forgot to
+ * update it -- which matters most on exactly one frame, the first live
+ * one, where the cap must drop back to 60. Takes no backend for the
+ * same reason poll_replay_controls does not: it is raylib-global
+ * pacing, with no access to and no effect on this session's recording
+ * or markers. */
+void pico8_raylib_backend_set_frame_rate_cap(int target_fps);
 
 /* Adds *frame to the session's recording (pico8_session_recorder, which
  * appends rather than rewriting, so recording a frame costs the same

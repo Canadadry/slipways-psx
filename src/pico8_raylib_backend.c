@@ -121,7 +121,37 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
     }
 }
 
-void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame) {
+void pico8_raylib_backend_poll_replay_controls(pico8_replay_control_t *control) {
+    /* Three keys, three calls, and nothing else in this function: no
+     * frame is touched, no marker is written, and the backend is not
+     * even in scope. That narrowness is the design, not an accident of
+     * it -- see this function's declaration in the header for why the
+     * replay cannot simply borrow poll_input. IsKeyPressed rather than
+     * IsKeyDown so that one tap is exactly one level, which is what
+     * makes a speed the player can count to rather than guess at. */
+    if (IsKeyPressed(KEY_PAGE_UP)) {
+        pico8_replay_control_faster(control);
+    }
+    if (IsKeyPressed(KEY_PAGE_DOWN)) {
+        pico8_replay_control_slower(control);
+    }
+    if (IsKeyPressed(KEY_END)) {
+        pico8_replay_control_uncap(control);
+    }
+}
+
+void pico8_raylib_backend_set_frame_rate_cap(int target_fps) {
+    /* Passed through untranslated, 0 included: raylib's own SetTargetFPS
+     * treats anything below 1 as "do not wait between frames at all",
+     * which is precisely the uncapped level, so there is no mapping
+     * here to get wrong. The entire abbreviation mechanism is this one
+     * line -- shortening the wait between frames, never skipping one
+     * (see the declaration in the header, and the PRD's own constraint
+     * quoted there). */
+    SetTargetFPS(target_fps);
+}
+
+void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame, const char *replay_status) {
     for (int y = 0; y < PICO8_SCREEN_HEIGHT; y++) {
         for (int x = 0; x < PICO8_SCREEN_WIDTH; x++) {
             unsigned char idx = pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
@@ -133,6 +163,21 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     BeginDrawing();
     ClearBackground(BLACK);
     DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
+    /* The replay's progress line, and the only raylib-drawn thing in
+     * this port -- see this function's declaration for why user story 6
+     * earns the exception and how it is kept to one. Drawn here, after
+     * the framebuffer has already been uploaded and blitted, so it is
+     * physically incapable of altering a single PICO-8 pixel or a single
+     * recorded frame: it lands on the window, never on the game. A
+     * translucent band behind it because the line has to be readable
+     * over whatever the cart happens to be drawing, and the cart owns
+     * every pixel underneath. NULL -- live play, and every frame after
+     * the recording runs out -- draws nothing, which is how the overlay
+     * ceases to exist once the replay is over. */
+    if (replay_status) {
+        DrawRectangle(0, 0, PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
+        DrawText(replay_status, 8, 5, 18, RAYWHITE);
+    }
     EndDrawing();
 
     (void)frame;

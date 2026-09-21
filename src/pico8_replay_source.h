@@ -140,6 +140,24 @@ pico8_replay_source_status_t pico8_replay_source_open(pico8_replay_source_t *sou
  * replay will be, not what any frame contains. */
 int pico8_replay_source_frame_count(const pico8_replay_source_t *source);
 
+/* How many frames this source has already served, i.e. how far into the
+ * recording the replay has got: 0 before the first
+ * pico8_replay_source_next_frame call, N once the recording is
+ * exhausted, and never more than N however many times exhaustion is
+ * reported afterwards. Added by Chunk 4 for the replay's progress
+ * indicator (user story 6), which needs exactly this number and the
+ * frame count above to say "frame 1234 of 9589".
+ *
+ * It is an accessor on the cursor this module already keeps rather than
+ * a counter the driver maintains in parallel, because two counters that
+ * must agree eventually do not, and the one place that disagreement
+ * would show is the line the player reads to decide whether the game
+ * has frozen. Note it is a count, not an index: on the frame being
+ * played it is one more than that frame's 0-based position, which is
+ * the position the marker file writes. The two numbers are different on
+ * purpose and neither is derived from the other. */
+int pico8_replay_source_frames_served(const pico8_replay_source_t *source);
+
 /* Serves the next recorded frame, or reports that there are none left.
  * Returns 1 and copies the frame into *out_frame when the recording
  * still has one; returns 0 and leaves *out_frame untouched once the

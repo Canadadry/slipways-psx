@@ -40,6 +40,12 @@ int pico8_replay_source_frame_count(const pico8_replay_source_t *source) {
     return source->recording.frame_count;
 }
 
+int pico8_replay_source_frames_served(const pico8_replay_source_t *source) {
+    assert(source);
+
+    return source->next_frame_index;
+}
+
 int pico8_replay_source_next_frame(pico8_replay_source_t *source, pico8_input_frame_t *out_frame) {
     assert(source);
     assert(out_frame);
