@@ -92,9 +92,10 @@
  * previously-invisible gaps this sub-lot found and fixed (`lq`'s own "ol"
  * field never wired for `mv()`, mirroring the already-logged `hp`'s own
  * "lq" gap; `self.qw` never set anywhere in scope for any `jo`-family
- * instance) and one deliberate scope narrowing carried over unchanged from
- * Phase 1 (`fillp`'s PICO-8 fractional "transparency" flag has no separate
- * representation in this port). */
+ * instance). (Phase 1's deliberate scope narrowing -- `fillp`'s PICO-8
+ * fractional "transparency" flag having no separate representation in this
+ * port -- was undone by a Phase 5 bug fix; see `pico8_jo_kj`'s own
+ * declaration below.) */
 
 /* function jo:hb()self.lq=jo.ex(self.jy,self.kw.qe,self.kw.mu,#self.by,0
  * )end
@@ -478,16 +479,18 @@ void pico8_jo_fe(pico8_instance_t *self);
  * `fillp(0b1010101010101010.1)`: the binary LITERAL's own integer part is
  * `1010101010101010`=`0xAAAA`; its trailing `.1` (PICO-8's own fixed-point
  * fractional flag, which toggles the pattern's "1" bits from "draw with a
- * second colour" to "leave this pixel untouched" instead) has NO SEPARATE
- * representation in this port's own `pico8_fillp` (`pico8_gfx.h`, Phase 1)
- * -- that module's OWN top comment on `pico8_fillp_skips` already
- * documents its chosen, already-shipped semantics unconditionally ("a set
- * bit means skip this pixel"), which is exactly what the `.1` flag would
- * select in real PICO-8 -- so passing the plain 16-bit pattern `0xAAAAu`
- * here, with the fractional flag simply dropped, matches this port's own
- * Phase-1 fillp model exactly as well as `bg:kj`'s own `0b1010010110100101`
- * (no `.1` at all) already does; this is not a new decision, just this
- * call site's own first use of a `.1`-suffixed literal. `self.fo=nil`
+ * second colour" to "leave this pixel untouched" instead) is carried by
+ * `pico8_fillp_transparent(gfx,0xAAAAu)` (`pico8_gfx.h`).
+ * CORRECTION (Phase 5 bug fix, "hovering a shop button aborts the
+ * framebuffer dumper"): until that fix this call passed plain
+ * `pico8_fillp(gfx,0xAAAAu)` with the fractional flag simply DROPPED,
+ * because the port's fillp model was "a set bit means skip this pixel"
+ * unconditionally -- i.e. it modelled only the `.1` case, and had no
+ * notion of the second colour at all. That made this one call site
+ * accidentally right and every `.1`-less one (`jb:ol`'s own
+ * `fillp(0b0000111100001111)rk(om,dn,0x10)`, pico8/lua.lua:319, and
+ * `bg:kj`'s own `0b1010010110100101`, :373) wrong; see
+ * `pico8_gfx.c`'s own `pico8_fillp_color`. `self.fo=nil`
  * (Lua's own field-clearing assignment) is `pico8_ob_table_set_name(self->
  * fields,"fo",pico8_value_ref(NULL))`, matching this port's established
  * "write nil as REF(NULL)" convention throughout.

@@ -16,6 +16,13 @@ typedef struct {
     int camera_x;
     int camera_y;
     unsigned int fillp_pattern;
+    /* PICO-8's own `0b0.100 Transparency` fill-pattern flag (the `.1`
+     * suffix of a fillp() literal): "when this bit is set, the second
+     * colour is not drawn" (PICO-8 manual, FILLP). Set only by
+     * pico8_fillp_transparent(); pico8_fillp()/pico8_fillp_reset() clear
+     * it. See pico8_fillp_bit_set()/pico8_fillp_color() in pico8_gfx.c for
+     * how the two combine. */
+    int fillp_transparent;
     /* Phase 3, Chunk 18 (docs/prd/triage/phase3-etape1-function-by-function-
      * c-port.md): PICO-8's own "current pen colour" state -- real PICO-8's
      * draw functions that take an optional trailing `col` argument use this
@@ -77,6 +84,13 @@ void pico8_circ(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cx, int cy, int r,
 void pico8_circfill(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cx, int cy, int r, int col);
 
 void pico8_fillp(pico8_gfx_t *gfx, unsigned int pattern);
+
+/* fillp() with PICO-8's own fractional transparency flag set, i.e. a real
+ * source literal written `fillp(0b<pattern>.1)`. The cart has exactly one
+ * such call site (pico8/lua.lua:549, pico8_planet_display.c's own
+ * pico8_jo_kj); every other one -- pico8/lua.lua:319 and :373 -- is a
+ * plain two-colour pattern and uses pico8_fillp() above. */
+void pico8_fillp_transparent(pico8_gfx_t *gfx, unsigned int pattern);
 
 void pico8_fillp_reset(pico8_gfx_t *gfx);
 
