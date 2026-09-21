@@ -115,26 +115,77 @@
  * reconciliation (pico8_entity_set_mo()/pico8_ui_set_je()/pico8_ui_set_ok(),
  * see those functions' own comments) from scratch every time it's called --
  * matching this port's own established "safe to call more than once"
- * convention (pico8_entity_init()'s own contract), needed because the real
- * cart's own `_init()` genuinely calls `jl()` TWICE (pico8/lua.lua:1178 and
- * 1182 -- confirmed by reading the source, not assumed), resetting entity
- * state in between. Calls, in this exact order (each of the first four
- * already independently idempotent, calling its own shutdown first):
- * pico8_entity_init() (hv/cv/cg/ci/placeholder-mo), pico8_ke_init() (`ke`
- * -- NOT called defensively by pico8_qb_init()/pico8_nf_init()/
- * pico8_ui_init() themselves, unlike their own defensive pico8_pi_init()
- * calls -- see pico8_pi.c's own "future bootstrap sequence" comment on
- * pico8_ke_init(): this IS that bootstrap sequence), pico8_qb_init(),
- * pico8_nf_init(), pico8_ui_init() -- THEN constructs the three real
- * instances (pico8_qb_new(NULL), pico8_nf_new(NULL), pico8_ui_new(NULL),
- * matching `qb()`/`nf()`/`ui()`'s own no-argument real call shape) and
- * hands each to its reconciled accessor's own setter. Every real
- * ke-descended instance self-registers into hv/cv/cg via its class's own
- * inherited-or-own `pq` the moment pico8_class_instantiate runs (ke.pq=lt,
- * pico8_ke.c) -- so mo/je/ok are NOT specially exempted from this: they
- * land in `hv` (and, for `ok`, in `cv["ev"]` too -- `ui`'s own `ev` default
- * field IS one of bm's 5 dispatch names) exactly like any other real
- * entity, matching the real Lua's own unremarkable behavior here. */
+ * convention (pico8_entity_init()'s own contract), needed because a full
+ * play-through genuinely calls `jl()` more than once (pico8/lua.lua:1178,
+ * inside `_init()`, and again at line ~1182, inside `eu()` -- Phase 3
+ * Chunk 22, src/pico8_cart.c -- confirmed by reading the source, not
+ * assumed), resetting entity state in between. Calls pico8_entity_init()
+ * (hv/cv/cg/ci/placeholder-mo) every time, unconditionally -- this part
+ * genuinely needs a fresh reset on every call, matching real Lua's own
+ * `hv,cv,cg={},{},{}` inside `jl()`'s literal body.
+ *
+ * *** CHUNK 22 FIX, real dangling-pointer bug found and corrected ***:
+ * `ke`/`qb`/`nf`/`ui` are, as of Chunk 22, built EXACTLY ONCE by
+ * `pico8_cart_load()` (src/pico8_cart.c) -- the real, one-time,
+ * cart-load-time bootstrap sequence this file's own comment above used to
+ * anticipate as "some future bootstrap sequence" before it existed. This
+ * function used to unconditionally call pico8_ke_init()/pico8_qb_init()/
+ * pico8_nf_init()/pico8_ui_init() on EVERY call (each "independently
+ * idempotent, calling its own shutdown first" -- i.e. FREEING the previous
+ * class object and heap-allocating a fresh one at a new address every
+ * time). That was harmless at Chunk 6's own time, when no OTHER class yet
+ * extended `ke` and outlived a single pico8_jl() call. It stopped being
+ * harmless from Chunk 7 onward: every `ke`-descended class this port has
+ * built since (`bg`, `mh`, `iv`, `jo` and its whole planet-family subtree,
+ * `jc`, `mz`, `pj`, `ie`, `g_`/the probe, `js`, `fq`) is built ONCE, by
+ * pico8_cart_load(), and keeps its own `.parent` pointer pointing at
+ * WHATEVER `ke` class object existed at THAT time -- if pico8_jl() later
+ * frees that same `ke` object and rebuilds a new one at a different
+ * address (which it always did, on every `_init()`/`eu()` call), every one
+ * of those already-built subclasses' `.parent` pointer instantly dangles.
+ * pico8_instance_get_field()'s own class-chain walk (pico8_class.c) then
+ * reads freed memory the moment it needs to fall through to `ke`'s own
+ * defaults (e.g. `dg()`'s own `qc.me`/`qc.t` reads, needed by every real
+ * entity that doesn't override `me`/`t` itself) -- a real, reproducible
+ * heap-use-after-free, confirmed under ASan by this chunk's own whole-game
+ * disposable verification program (the first thing in this whole port to
+ * ever call `pico8_jl()` a second time with a real, pico8_cart_load()-built
+ * `jo`/`bg`/etc. instance already alive). Real Lua's OWN `jl()` never
+ * touches classes at all (`hv,cv,cg={},{},{} mo,je,ok=qb(),nf(),ui()end` --
+ * `qb()`/`nf()`/`ui()` are plain INSTANCE-constructor calls against
+ * already-existing classes); Chunk 6 only folded class (re)declaration into
+ * `jl()` as a stopgap, in the ABSENCE of any real "run once, before `_init()`
+ * ever runs" hook -- explicitly flagged as provisional by its own comment
+ * ("this IS that bootstrap sequence" -- anticipating exactly this fix).
+ *
+ * FIX: pico8_ke_init()/pico8_qb_init()/pico8_nf_init()/pico8_ui_init() are
+ * now called from HERE only defensively, guarded by "not already built" --
+ * i.e. build-once, matching real Lua's own true one-time top-level class
+ * declaration semantics, and matching what pico8_cart_load() already does
+ * for every OTHER class in this port. This keeps pico8_jl() safe to call
+ * with NO prior pico8_cart_load() call too (every existing test that calls
+ * pico8_jl() directly, e.g. tests/test_pico8_planet_kj_dispatch.c, still
+ * gets a freshly-built `ke`/`qb`/`nf`/`ui` on its own first call, exactly
+ * as before) -- only a SECOND or later pico8_jl() call, once these classes
+ * already exist, now skips rebuilding them, closing the dangling-pointer
+ * window. Only the actual INSTANCES (`mo`/`je`/`ok`) are still rebuilt
+ * fresh on every single call, matching real Lua's own `jl()` body exactly.
+ *
+ * Calls, in this exact order: pico8_entity_init() (unconditional, every
+ * call), then pico8_ke_init()/pico8_qb_init()/pico8_nf_init()/
+ * pico8_ui_init() (each ONLY if not already built -- see the fix above;
+ * `ke` must exist before qb/nf/ui's own pico8_class_declare(pico8_ke_
+ * class(),...) calls, hence this order even in the defensive/first-call
+ * case) -- THEN constructs the three real instances (pico8_qb_new(NULL),
+ * pico8_nf_new(NULL), pico8_ui_new(NULL), matching `qb()`/`nf()`/`ui()`'s
+ * own no-argument real call shape) and hands each to its reconciled
+ * accessor's own setter. Every real ke-descended instance self-registers
+ * into hv/cv/cg via its class's own inherited-or-own `pq` the moment
+ * pico8_class_instantiate runs (ke.pq=lt, pico8_ke.c) -- so mo/je/ok are
+ * NOT specially exempted from this: they land in `hv` (and, for `ok`, in
+ * `cv["ev"]` too -- `ui`'s own `ev` default field IS one of bm's 5 dispatch
+ * names) exactly like any other real entity, matching the real Lua's own
+ * unremarkable behavior here. */
 void pico8_jl(void);
 
 /* Not part of the Lua original (no manual teardown under GC) -- tears

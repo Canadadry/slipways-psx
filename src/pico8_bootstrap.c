@@ -32,21 +32,33 @@ void pico8_jl(void) {
     pico8_instance_t *real_ok;
 
     /* hv,cv,cg={},{},{} -- unchanged Phase 2 slice (also rebuilds ci and
-     * the classless mo placeholder pico8_entity_set_mo() below replaces). */
+     * the classless mo placeholder pico8_entity_set_mo() below replaces).
+     * Unconditional on every call, matching real Lua's own jl() body. */
     pico8_entity_init();
 
-    /* ke must exist before qb/nf/ui's own pico8_class_declare(pico8_ke_
-     * class(),...) calls -- unlike their own defensive pico8_pi_init()
-     * calls, none of them calls pico8_ke_init() itself (see pico8_ke.h's
-     * own comment: this accessor is "this chunk's own hand-off point" for
-     * Chunk 4's subclasses, not a self-init). This IS the "future
-     * bootstrap sequence" pico8_pi.c's own comment on pico8_ke_init()
-     * already anticipates. Each call below is independently idempotent
-     * (calls its own shutdown first). */
-    pico8_ke_init();
-    pico8_qb_init();
-    pico8_nf_init();
-    pico8_ui_init();
+    /* CHUNK 22 FIX (see this file's own header comment on pico8_jl() for
+     * the full trace of the real dangling-.parent-pointer bug this
+     * resolves): ke/qb/nf/ui are built ONCE (by pico8_cart_load(),
+     * src/pico8_cart.c, in the normal case) -- only build them here if
+     * they don't already exist, never unconditionally rebuild them.
+     * ke must exist before qb/nf/ui's own pico8_class_declare(pico8_ke_
+     * class(),...) calls, hence this order even in the defensive/no-prior-
+     * pico8_cart_load() case (every existing caller that invokes
+     * pico8_jl() directly, e.g. tests/test_pico8_planet_kj_dispatch.c,
+     * still gets a freshly-built ke/qb/nf/ui on ITS OWN first call here,
+     * exactly as before this fix). */
+    if (pico8_ke_class() == NULL) {
+        pico8_ke_init();
+    }
+    if (pico8_qb_class() == NULL) {
+        pico8_qb_init();
+    }
+    if (pico8_nf_class() == NULL) {
+        pico8_nf_init();
+    }
+    if (pico8_ui_class() == NULL) {
+        pico8_ui_init();
+    }
 
     /* mo,je,ok=qb(),nf(),ui() -- each pico8_*_new(NULL) also runs that
      * class's own pq chain (ke's inherited pq=lt, plus nf's own distinct
