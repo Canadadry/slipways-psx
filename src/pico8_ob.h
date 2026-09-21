@@ -48,6 +48,10 @@ typedef struct {
  * (see pico8_value.h's own ownership note) -- only this table's own key
  * names are owned and freed by pico8_ob_table_free. */
 typedef struct {
+    /* Always PICO8_TYPE_TAG_OB_TABLE -- see pico8_type_tag.h, and
+     * pico8_list_t's own `tag` comment (pico8_list.h), for why all three
+     * of this port's Lua-table-modelling structs lead with this. */
+    pico8_type_tag_t tag;
     pico8_ob_entry_t *entries;
     int count;
     int capacity;
@@ -62,6 +66,32 @@ typedef struct {
  * rather than a special case for tables specifically. */
 pico8_ob_table_t *pico8_ob_table_new(void);
 void pico8_ob_table_free(pico8_ob_table_t *table);
+
+/* Not a port of any named Lua function: the "pico8_list_t -> fresh
+ * positional pico8_ob_table_t" bridge this port needs wherever a value
+ * built as an array-shaped list (`{"exports:","0/1",kw}`, `fm.invented`,
+ * ...) is then consumed by something that copies a table's key/value
+ * pairs (`mw(ob)`/`qj({},ob)` -- pico8_class_instantiate). Real Lua needs
+ * no such bridge, since `pairs()` walks a list-shaped table exactly like
+ * any other; this port does, because its two shapes have different
+ * element types (see pico8_type_tag.h).
+ *
+ * Entries come out at positional keys 1..#list in list order, which is
+ * exactly the order `pairs()` yields a Lua table's own array part built
+ * by repeated `add()`.
+ *
+ * Promoted here from pico8_menu.c, which had it as a private
+ * `pico8_menu_list_to_ob_table()` for the identical bug in `js:pq`'s own
+ * "jb" field, once pico8_ui_button.c's own "lq" field turned out to need
+ * the very same conversion -- one shared converter rather than a second
+ * copy of it. Returns a NEW, heap-allocated table the CALLER owns; the
+ * row-building call sites never free it, the same accepted "temporary
+ * override table, shallow-copied by the constructor chain that eventually
+ * consumes it, then left for the rest of the program" convention this
+ * port's row builders already establish (e.g. pico8_hp_jb()'s own table)
+ * -- this port has no GC (pico8_value.h's own ownership note). A NULL
+ * list yields an empty table, mirroring `pairs(nil or {})`. */
+pico8_ob_table_t *pico8_ob_table_from_list(const pico8_list_t *list);
 
 /* Sets table[index]/table[name] = value, Lua-table-assignment style: if an
  * entry with an equal key (by value, not by pointer, for a name) already

@@ -165,6 +165,7 @@ void pico8_ui_init(void) {
      * single, bare, classless instance with no fields set. See pico8_ui.h's
      * own top comment for the full rationale and the note for Chunk 6. */
     g_je = malloc(sizeof *g_je);
+    g_je->tag = PICO8_TYPE_TAG_INSTANCE;
     g_je->fields = pico8_ob_table_new();
     g_je->cls = NULL;
 }

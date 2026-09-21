@@ -177,6 +177,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
             pico8_vec_t rp_vec = pico8_probe_value_vec(rp);
             if (!pico8_probe_ui_hw_call(rp_vec)) {
                 pico8_instance_t *empty = malloc(sizeof *empty);
+                empty->tag = PICO8_TYPE_TAG_INSTANCE;
                 empty->fields = pico8_ob_table_new();
                 empty->cls = NULL;
                 et = pico8_value_ref(empty);
@@ -489,6 +490,7 @@ void pico8_probe_init(void) {
     pico8_class_register_named("g_", g_probe_class);
 
     g_fm = malloc(sizeof *g_fm);
+    g_fm->tag = PICO8_TYPE_TAG_INSTANCE;
     g_fm->fields = pico8_ob_table_new();
     g_fm->cls = NULL;
 }

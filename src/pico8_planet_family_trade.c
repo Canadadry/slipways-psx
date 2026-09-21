@@ -115,6 +115,7 @@ pico8_value_t pico8_nr_ldown(pico8_instance_t *self) {
     }
 
     empty_fields = pico8_ob_table_new();
+    empty.tag = PICO8_TYPE_TAG_INSTANCE;
     empty.fields = empty_fields;
     empty.cls = NULL;
     gv_result = pico8_nr_gv(self, &empty);

@@ -390,6 +390,7 @@ void pico8_wormhole_init(void) {
         jj_table = (pico8_ob_table_t *)jj_val.as.ref;
     }
     g_mz_jj_wrapper = malloc(sizeof *g_mz_jj_wrapper);
+    g_mz_jj_wrapper->tag = PICO8_TYPE_TAG_INSTANCE;
     g_mz_jj_wrapper->fields = jj_table;
     g_mz_jj_wrapper->cls = NULL;
 }

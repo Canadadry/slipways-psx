@@ -139,12 +139,13 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     return 1;
 }
 
-/* Not a port of any named Lua function: the SAME "pico8_list_t -> fresh
- * positional pico8_ob_table_t" bridge already established a dozen times
- * over in this port (e.g. `pico8_score_panel_display_list_to_ob_table`,
- * pico8_score_panel_display.c) -- private per-module duplicate, same
- * "don't widen another module's header surface for a few-line helper"
- * reasoning those copies already give. Needed here because `cr()`'s own
+/* Was a private per-module copy of the "pico8_list_t -> fresh positional
+ * pico8_ob_table_t" bridge; now a thin alias for the one SHARED converter,
+ * `pico8_ob_table_from_list()` (pico8_ob.h), which this copy was promoted
+ * into once `js:pq`'s own "lq" field turned out to need exactly the same
+ * conversion (pico8_ui_button.c's own pico8_js_lq_arg_table). Kept as a
+ * named local wrapper only so this call site's own trace below still reads
+ * as one statement. Needed here because `cr()`'s own
  * "extra" row below sets its `"jb"` field straight from `fm.invented`,
  * a genuine `pico8_list_t*` (pico8_economy.c's own `pico8_hy_pq`), NOT a
  * `pico8_ob_table_t*` like every other row's own "jb" field
@@ -168,20 +169,7 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
  * leak this port's row-building call sites already establish, e.g.
  * `pico8_hp_jb()`'s own table above). */
 static pico8_ob_table_t *pico8_menu_list_to_ob_table(const pico8_list_t *list) {
-    pico8_ob_table_t *table = pico8_ob_table_new();
-    pico8_list_iter_t it;
-    pico8_value_t v;
-    int i = 1;
-
-    if (list == NULL) {
-        return table;
-    }
-    it = pico8_list_all(list);
-    while (pico8_list_iter_next(&it, &v)) {
-        pico8_ob_table_set_index(table, i, v);
-        i++;
-    }
-    return table;
+    return pico8_ob_table_from_list(list);
 }
 
 /* function cr()local bs,rd,gr={},{},#fm.invented
@@ -291,6 +279,7 @@ void pico8_cr(void) {
 
         pico8_ob_table_set_name(cr_table, "ep", pico8_value_string(ep));
 
+        wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
         wrapper.fields = cr_table;
         wrapper.cls = NULL;
         pico8_pz(&wrapper, &bs);
@@ -469,6 +458,7 @@ static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t a
 
     if (g_ha != NULL) {
         bs = pico8_menu_positional_values(g_ha);
+        wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
         wrapper.fields = g_ha;
         wrapper.cls = NULL;
         pico8_pz(&wrapper, &bs);
