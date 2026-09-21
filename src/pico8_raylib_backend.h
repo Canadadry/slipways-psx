@@ -5,7 +5,7 @@
  * PICO8_ADDR_SCREEN, exactly like pico8_dump_screen already does) as a
  * texture and presenting it scaled, polling live mouse/keyboard input
  * into a pico8_input_frame_t, and recording every played frame to a
- * timestamped events.json-shaped file via pico8_input_save after every
+ * timestamped events.json-shaped file via pico8_input_append after every
  * single frame. None of the ported PICO-8 mimicry API (pico8_gfx_t/
  * pico8_mem_t/pico8_input_t/pico8_btn/pico8_stat) is touched or
  * duplicated here -- this module only feeds it a live-polled
@@ -56,22 +56,24 @@
  * any other module (see the PRD's Further Notes). */
 #define PICO8_RAYLIB_BACKEND_SCALE 6
 
-/* Owns the raylib window/texture and the growing in-memory list of every
- * pico8_input_frame_t played this session (for the always-on events.json
- * recording). Callers only ever pass a pointer to one of these to the
- * functions below -- no field is meant to be read or written directly. */
+/* Owns the raylib window/texture and this session's always-on events.json
+ * recording: how many frames have been recorded so far, and where the next
+ * one goes in the file (pico8_input_append's `io_tail_offset`). The frames
+ * themselves are not kept in memory -- each one is added to the recording
+ * as it is played and never needed again. Callers only ever pass a pointer
+ * to one of these to the functions below -- no field is meant to be read
+ * or written directly. */
 typedef struct {
     Texture2D screen_texture;
     Color pixel_buffer[128 * 128];
-    pico8_input_frame_t *session_frames;
     int session_frame_count;
-    int session_frame_capacity;
+    long record_tail_offset;
     char record_path[64];
     char markers_path[64];
 } pico8_raylib_backend_t;
 
-/* Opens the raylib window at PICO8_RAYLIB_BACKEND_SCALE, allocates the
- * (initially empty) session frame list, and computes this session's
+/* Opens the raylib window at PICO8_RAYLIB_BACKEND_SCALE, starts this
+ * session's (still empty) recording, and computes this session's
  * timestamped recording path (tmp/events_recorded_<timestamp>.json) and
  * its paired marker-file path (tmp/events_recorded_<timestamp>.markers.
  * txt, see pico8_raylib_backend_poll_input()) -- both taken once here,
@@ -114,18 +116,18 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
  * pico8_peek/PICO8_ADDR_SCREEN, one PICO8_PALETTE lookup per pixel) as a
  * texture and draws it scaled to fill the window -- the only raylib
  * drawing this module (or this whole backend) ever does; no raylib-
- * native UI/HUD. Then appends *frame (the same frame poll_input filled
- * this iteration) to the session's growing frame list and rewrites the
- * full recording file via pico8_input_save. Called once per loop
- * iteration, after this frame's pico8__update60()/pico8__draw(). */
+ * native UI/HUD. Then adds *frame (the same frame poll_input filled this
+ * iteration) to the session's recording file via pico8_input_append,
+ * which costs the same whether it is the session's first frame or its
+ * thirty-thousandth. Called once per loop iteration, after this frame's
+ * pico8__update60()/pico8__draw(). */
 void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_mem_t *mem, const pico8_input_frame_t *frame);
 
-/* Restores the host OS cursor init() hid, unloads the texture, closes
- * the window, and frees the session frame list. The recording file on
- * disk is left in place (it is already complete and valid after every
- * present() call, per pico8_input_save's own full-rewrite-every-time
- * contract). Safe to call only once, after init; not safe to call twice
- * or on a backend that was never initialized. */
+/* Restores the host OS cursor init() hid, unloads the texture and closes
+ * the window. The recording file on disk is left in place (it is already
+ * complete and valid after every present() call, per pico8_input_append's
+ * own contract). Safe to call only once, after init; not safe to call
+ * twice or on a backend that was never initialized. */
 void pico8_raylib_backend_shutdown(pico8_raylib_backend_t *backend);
 
 #endif
