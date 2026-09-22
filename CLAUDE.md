@@ -8,7 +8,7 @@
 
 ## Ce qu'on ne fait pas
 
-- **Ne jamais lancer l'appli raylib en interactif** (aucune fenêtre) avant la phase 5 de `docs/plan.md`. La vérification se fait sans fenêtre : N frames pilotées par un `events.json` scripté, puis dump texte du framebuffer.
+- **Ne jamais lancer l'appli raylib.** Pas de fenêtre, pas de serveur X : un agent n'a ni yeux ni souris, il ne verrait rien de ce qu'il ouvre. La vérification se fait sans fenêtre — N frames pilotées par un `events.json` scripté, puis dump texte du framebuffer. Jouer le jeu, c'est le travail d'un humain.
 
 ## Build
 
