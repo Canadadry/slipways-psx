@@ -482,7 +482,9 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `kc` | `pico8_kc` | la boîte de message actuellement affichée, ou rien |
 | `ju` | `pico8_ju` | le singleton du panneau de score, instance de `pj` |
 | `cr()` | `pico8_cr` | l'écran de l'arbre technologique |
-| `ef`, `bz`, `de` | `pico8_ef`, `pico8_bz`, `pico8_de` | tables de mise en page du panneau de score ; `ef` est indexée par le compteur de ticks `fm.lo` |
+| `ef` | `pico8_ef` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
+| `bz` | `pico8_bz` | les rangées du détail de score |
+| `de` | `pico8_de` | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau. Il ne doit y en avoir qu'une |
 | `ix` | `pico8_ix` | les 4 boutons de la vue galaxie |
 | `ha` | `pico8_ha` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |

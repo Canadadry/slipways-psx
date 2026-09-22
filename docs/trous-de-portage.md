@@ -128,10 +128,15 @@ Fichier : `src/pico8_ob.c`.
 
 ## TROU-10 — L'audio est hors périmètre
 
-`sfx()` et `music()` sont des fonctions vides, et le drapeau de sourdine
-`ih` n'est jamais posé. Ce n'est pas un report : le port n'aura pas de son.
+`sfx()` et `music()` sont des fonctions vides. Ce n'est pas un report : le
+port n'aura pas de son.
 
-Fichier : `src/pico8_audio.c`.
+Le reste de la chaîne, lui, fonctionne : le bouton « toggle sfx » du menu
+pause bascule bien le drapeau de sourdine `ih`, et `rn()` le lit avant de
+décider d'appeler `sfx()`. Seul l'appel final est inerte — donc les deux
+boutons audio du menu pause répondent au clic sans rien produire.
+
+Fichiers : `src/pico8_audio.c`, `src/pico8_menu.c`.
 
 ## TROU-11 — Le repli d'arité de `hd` rendrait le survol silencieusement faux
 
@@ -171,3 +176,20 @@ changera les enregistrements existants, ce qui en fait une décision de
 jeu, pas une reprise de commentaires.
 
 Fichier : `src/pico8_wormhole_display.c`.
+
+## TROU-13 — `tostr` d'un champ absent rend la chaîne vide
+
+La rangée « score 0 » du panneau lit `s[st.score]` avec `score == 0`,
+c'est-à-dire un indice que `ky()` ne pose jamais. Lua y verrait nil.
+
+Ce port n'a pas de nil : il passe son emplissage « absent »
+(`pico8_value_ref(NULL)`) à `pico8_value_tostr`, qui rend `""`. PICO-8,
+lui, a une représentation dédiée pour nil dans `tostr` — donc la ligne ne
+s'affiche pas pareil.
+
+Corollaire : le commentaire de `pico8_value_tostr` affirmait que ses
+branches `REF`/`FUNCTION` ne sont exercées par aucun site d'appel. C'est
+faux depuis que le panneau de score existe : elles le sont à chaque
+rafraîchissement.
+
+Fichiers : `src/pico8_score_panel_display.c`, `src/pico8_value.c`.

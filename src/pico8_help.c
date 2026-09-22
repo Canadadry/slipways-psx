@@ -1,9 +1,6 @@
-/* See pico8_help.h's own top comment for the full source/trace of `fv`,
- * `bo`, the `hd`/`kj`/`pq` field-by-field classification, and the `eu`
- * forward-reference placeholder design. */
-
 #include "pico8_help.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -15,25 +12,13 @@
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_probe.h"
+#include "pico8_type_tag.h"
 
 static pico8_class_t *g_fv_class = NULL;
 static pico8_ob_table_t *g_bo = NULL;
 
-/* Not a port of any named Lua function: a private per-module bridge from
- * "positional entries of a pico8_ob_table_t" to a pico8_list_t, matching
- * pico8_tech_gate_positional_values'/pico8_layout_positional_values'/
- * pico8_msgbox_positional_values'/pico8_research_positional_values'/
- * pico8_data_init_positional_values'/the two `positional_values` copies in
- * pico8_planet_trade.c and pico8_planet_family_trade.c/pico8_jo_
- * positional_values' (pico8_planet_display.c) own established
- * per-module-duplicate convention (9 existing copies on an independent
- * recount, more than this chunk's own brief named -- see pico8_help.h's
- * own top comment for the corrected count). Used for BOTH `bo` (pico8_fv_pq)
- * and `self.rb`
- * (pico8_fv_kj) -- see pico8_help.h's own top comment on pico8_fv_kj for
- * why one copy trivially serves both rather than a second, redundant one
- * inside this same module. Returns a new, heap-backed list the caller owns
- * and must release with pico8_list_free(). */
+/* Returns a new, heap-backed list the caller owns and must release with
+ * pico8_list_free(). */
 static pico8_list_t pico8_help_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -50,11 +35,6 @@ static pico8_list_t pico8_help_positional_values(const pico8_ob_table_t *table) 
     return list;
 }
 
-/* See pico8_help.h's own top "THE eu FORWARD-REFERENCE PLACEHOLDER"
- * section for the full trace. A documented no-op matching pico8_value_
- * function_t's own exact shape -- this port's established "nothing to act
- * on yet" filler (pico8_value_ref(NULL)), same treatment as every other
- * not-yet-exercisable forward reference in this PRD. */
 static pico8_value_t pico8_fv_eu_placeholder(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)self;
     (void)argc;
@@ -73,24 +53,11 @@ void pico8_help_set_eu(pico8_value_function_t fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
-/* `fv.hd=gk` -- see pico8_help.h's own top comment for the full trace
- * (including the confirmed "dc(\"hd\") is never actually called anywhere
- * in the real source" finding). Replicates pico8_jo_hd_dispatch's exact
- * shape verbatim (pico8_planet.c). */
 static pico8_value_t pico8_fv_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     return pico8_gk((const pico8_instance_t *)self, arg0, arg1);
 }
 
-/* function fv:pq()for i,d in pairs(bo)do
- * d.my=eu
- * end
- * pz(self,bo)end
- * (pico8/lua.lua:1166-1169.) See pico8_help.h's own top comment for the
- * full trace. Walks every positional entry of `bo`, setting its own "my"
- * field to the current `eu` placeholder/real-dispatch value (never `bo`
- * itself); then bridges `bo`'s positional entries to a pico8_list_t for
- * pico8_pz (Chunk 8, pico8_msgbox.h). */
 void pico8_fv_pq(pico8_instance_t *self) {
     int i;
 
@@ -99,6 +66,7 @@ void pico8_fv_pq(pico8_instance_t *self) {
             if (g_bo->entries[i].key.kind == PICO8_OB_KEY_INDEX && g_bo->entries[i].value.kind == PICO8_VALUE_REF &&
                 g_bo->entries[i].value.as.ref != NULL) {
                 pico8_ob_table_t *d = (pico8_ob_table_t *)g_bo->entries[i].value.as.ref;
+                assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_OB_TABLE && "bo's rows must be plain spec tables");
                 pico8_ob_table_set_name(d, "my", pico8_eu_field_value());
             }
         }
@@ -111,10 +79,6 @@ void pico8_fv_pq(pico8_instance_t *self) {
     }
 }
 
-/* function fv:kj(p)ei(self)bl(self.rb)end
- * (pico8/lua.lua:1170.) See pico8_help.h's own top comment for the full
- * trace, including why `p` is accepted but never read, and why `bl`'s
- * omitted `nc` argument routes through pico8_bl_default. */
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
     pico8_value_t rb_val;
     const pico8_ob_table_t *rb_table = NULL;
@@ -125,6 +89,8 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
 
     if (self != NULL && pico8_instance_get_field(self, "rb", &rb_val) && rb_val.kind == PICO8_VALUE_REF &&
         rb_val.as.ref != NULL) {
+        assert(pico8_type_tag_of(rb_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+               "fv's rb field must hold a plain spec table");
         rb_table = (const pico8_ob_table_t *)rb_val.as.ref;
     }
 
@@ -135,13 +101,6 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     }
 }
 
-/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape to
- * pico8_fv_kj's own signature, reading gfx/mem from the shared dispatch
- * context -- the same split as pico8_jo_kj_dispatch/pico8_mz_kj_dispatch.
- * Real call convention (dc("kj")'s own qc[nt](qc,qc.ra)): p=self.ra,
- * unpacked as a REF-to-vec exactly like every other kj dispatch bridge,
- * zero-vector fallback if absent/malformed -- even though pico8_fv_kj's
- * own body never reads it. */
 pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     (void)argc;
@@ -153,36 +112,12 @@ pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pic
     return pico8_value_ref(NULL);
 }
 
-/* fv=g_:jr([[
- * fa=10,ra=v(64,28),
- * hi=v(34,56),
- * ca=11,
- * gq=v(0,11),
- * eo=-1,
- * ff=1,
- * fc=5,
- * k_=o(0,1,1,2,4,9,10,9,4,2,1,1,1),
- * qo=1.02,ro=-0.007,
- * qg=0.007,q_=1.02,
- * pn=5,du=15,
- * py=0.0067,pk=1,
- * ki=17,
- * kq=b(-40,78,40,98),
- * ql=11,fg=5,
- * rb=o(
- * o(192,0,11,16,4,fn="s"),
- * o(172,20,107,2,2,fn="s"),
- * o("need help?",40,110,13,fn="qr"),
- * o("slipways.net/help",40,116,5,fn="qr"),
- * ),
- * ]])fv.hd=gk
- * (pico8/lua.lua:1143-1165.) See pico8_help.h's own top comment for the
- * full trace, including the "no nu=o(...) tag field" finding and why no
- * pico8_class_register_named() call is made here. Also builds `bo`
- * (pico8/lua.lua:1189-1198) -- used only by pico8_fv_pq() in this chunk's
- * own scope, so folded into this same module's init/shutdown pair rather
- * than a separate one. */
+/* This module, unlike most, does not call pico8_pi_init() itself, and `fv`
+ * extends `g_`, not `ke`: both preconditions are asserted, not repaired. */
 void pico8_help_init(void) {
+    assert(pico8_ob_lookup_constructor('v') != NULL && "pico8_help_init() runs after pico8_pi_init()");
+    assert(pico8_g__class() != NULL && "pico8_help_init() runs after pico8_probe_init()");
+
     pico8_help_shutdown();
 
     g_bo = pico8_ob("\no(lq=o(49,\"forgiving   \"),px=\"forgiving\",\ntrade=7,en=-0.99),\n"
