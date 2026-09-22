@@ -142,3 +142,24 @@ ailleurs légitime. Le vrai correctif est de décider ce que `hd` doit faire
 sous `dc()`, ce qui dépasse une reprise de commentaires.
 
 Fichiers : `src/pico8_ui_button.c`, `src/pico8_entity.c`.
+
+## TROU-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
+
+`mz:kj` colore chaque anneau par `self.kk[flr(sr/self.oi*8)]`. L'indice
+tombe à 0 dès que `sr < oi/8`, c'est-à-dire pour l'anneau le plus jeune, à
+chaque tick où `self.t` vient de dépasser un `dt`.
+
+`kk` est une table Lua indexée à partir de 1 : `kk[0]` est nil, et PICO-8
+conserve alors la couleur de plume courante. Ce port retombe sur 0 et
+dessine en noir. Ce n'est pas la même image.
+
+Trouvé en reprenant les commentaires : le commentaire à cet endroit
+affirmait l'inverse — « REAL, FAITHFULLY-REPRODUCED EDGE CASE ». L'écart
+est réel, l'affirmation était fausse.
+
+Pas transformé en `assert` : la condition est atteinte en permanence, et
+c'est le comportement actuel que les rejeux enregistrent. Le corriger
+changera les enregistrements existants, ce qui en fait une décision de
+jeu, pas une reprise de commentaires.
+
+Fichier : `src/pico8_wormhole_display.c`.
