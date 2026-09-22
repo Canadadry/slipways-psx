@@ -5,6 +5,8 @@
 
 #include "pico8_bootstrap.h"
 
+#include <assert.h>
+
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_ke.h"
@@ -19,8 +21,28 @@
  * truthy): a private per-module copy, matching the same convention
  * already established independently by pico8_ui.c's own pico8_ui_truthy
  * (not shared/exported -- see that file's own reasoning, reused here
- * verbatim). Used by dg()'s own `if qc.p_ then he(qc) end`. */
+ * verbatim). Used by dg()'s own `if qc.p_ then he(qc) end`.
+ *
+ * This helper is deliberately NOT given the REF(NULL) clause that 19 of
+ * this port's truthiness helpers carry: no caller was ever shown to reach
+ * it with a Lua nil, and adding the clause speculatively would assert
+ * fidelity nobody measured. The assert states that assumption instead of
+ * trusting it. Should it ever fire, the two-clause form below would have
+ * reported nil as TRUE -- exactly the defect fixed in pz()/lq:mn (see
+ * docs/plan.md's journal entry on the built-planet sprite-0 block), so
+ * aborting loudly is cheaper than drawing garbage: the raylib backend
+ * records every session to events.json including the crashing frame, so a
+ * fired assert hands back a replayable case.
+ *
+ * It is a live guard, not a dormant one: dg() runs it 2249 times over
+ * events.json's 9729 frames (and 141-469 times on each scripted fixture),
+ * every one of them non-nil. Its call site below -- `if
+ * (pico8_instance_get_field(qc, "p_", &p_val) && pico8_dg_truthy(p_val))`
+ * -- has no second guard rejecting REF(NULL), which is why this helper
+ * needs the assert where pico8_particle_truthy does not (see that
+ * helper's own comment in src/pico8_particle.c). */
 static int pico8_dg_truthy(pico8_value_t v) {
+    assert(!(v.kind == PICO8_VALUE_REF && v.as.ref == NULL));
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
 }
 

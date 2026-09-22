@@ -48,9 +48,25 @@ static pico8_class_t *g_jb_class = NULL;
 
 /* Lua truthiness (only nil/false are falsy) -- same idiom already
  * established at pico8_audio.c:32, applied here to lq:mn's own several
- * `and`/`or` truthiness checks (`f.qe`, `f3 or qw`, `qv or 2`). */
+ * `and`/`or` truthiness checks (`f.qe`, `f3 or qw`, `qv or 2`) and to its
+ * own `elseif f then` sprite branch.
+ *
+ * The REF-NULL clause is not optional: this port models Lua nil as
+ * pico8_value_ref(NULL) (src/pico8_value.h's own convention), so a helper
+ * that only rejects BOOL false reports nil as TRUE and the comment above
+ * it becomes a lie. Measured consequence, the reason this clause is here:
+ * lq:mn's own `elseif f then` (pico8/lua.lua:308) turned a nil item into
+ * a sprite whose id then fell back to 0, drawing an 8x8 block of raw
+ * sprite-sheet ramp data. See tests/test_pico8_built_planet_panel_nil_
+ * row.c. */
 static int pico8_layout_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
+        return 0;
+    }
+    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
+        return 0;
+    }
+    return 1;
 }
 
 /* Not a port of any named Lua function: `nv(self,...)`/`all(self)` (real

@@ -67,7 +67,18 @@ static const pico8_ob_table_t *pico8_particle_field_table(const pico8_instance_t
  * established across this port (pico8_layout_truthy, pico8_ui_field_
  * truthy, pico8_msgbox_truthy), a private per-module copy here too, same
  * reasoning those files already give. Used by `ei`'s own `if (p.a)`
- * check. */
+ * check.
+ *
+ * Deliberately WITHOUT the REF(NULL) clause that 19 of this port's
+ * truthiness helpers carry, and deliberately without an assert guarding
+ * its absence: at this helper's single call site the very next conjunct
+ * is already `a_value.kind == PICO8_VALUE_REF && a_value.as.ref != NULL`,
+ * so a nil `p.a` is rejected there whatever this helper answers. The
+ * missing clause is unreachable by construction rather than merely
+ * unobserved, and an assert here would abort on a value the call site
+ * handles correctly today. Contrast pico8_dg_truthy
+ * (src/pico8_bootstrap.c), whose call site has no such second guard and
+ * therefore does carry one. */
 static int pico8_particle_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
 }

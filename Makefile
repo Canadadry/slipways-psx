@@ -551,7 +551,46 @@ $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet
 $(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by
+# Phase 5 bug fix (a garbage 8x8 icon -- PICO-8 sprite #0 -- drawn over a
+# BUILT planet when its info panel opens, because `jo:lz`'s own faithfully
+# ported `self.hn,self.ep=hp` nils `ep` and two truthiness helpers then
+# read this port's nil as true): the regression test for it,
+# tests/test_pico8_built_planet_panel_nil_row.c. Reaches the bug the way a
+# human does -- scripted mouse input only (the phase4 playthrough that
+# really colonizes a planet, then a plain click-and-release on it) through
+# the real pico8__update60()/pico8__draw() dispatch chain -- so it shares
+# pico8_replay/test_pico8_playability/test_pico8_empty_planet_cleared's own
+# full engine source list, for the same "reaching real game state pulls in
+# essentially the whole engine" reasoning their own header comments already
+# establish.
+$(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_built_planet_panel_nil_row.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+# The OTHER half of that same fix, which the replay above cannot reach.
+# test_pico8_built_planet_panel_nil_row pins the MSGBOX guard (`pz()`'s own
+# `if p.ep then`); reverting src/pico8_layout.c's own `REF(NULL)` clause
+# alone leaves the whole suite green, because once `pz()` stops building
+# the bogus row no nil ever arrives at `lq:mn` on any replay in the repo --
+# the single nil in the entire corpus was manufactured by the msgbox bug
+# itself. This test pins `lq:mn`'s own `elseif f then` directly instead:
+# one `lq()` holding one nil item, rendered with `lq:ol()`, must write no
+# pixels. See tests/test_pico8_layout_nil_item_draws_nothing.c's own top
+# comment (including its positive control, and why it is sprite #0's row 7
+# and not row 0 that it scans for).
+#
+# NOT the full $(ENGINE_SRCS) closure, unlike its twin above: this one
+# never boots a cart, so it needs only what pico8_layout.c itself reaches
+# -- lq/jb and their constructors (class/ob/list/collect/stash/value/str/
+# fixed/vec/geom), the drawing primitives `lq:mn`'s own branches call
+# (gfx/hud/mem), the sprite sheet those read (assets), and
+# pico8_dispatch_context.c for `lq`'s own mv()-routed "ol" field. Measured
+# by linking, not guessed. Objects are shared with every other target
+# through tmp/obj, so a shorter list costs nothing and buys a link line
+# that says what this unit test actually depends on.
+$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -583,6 +622,8 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_empty_planet_cleared
 	ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/test_pico8_planet_gh_row_lq
 	./$(TMP_DIR)/test_pico8_ga_export_panel_by
+	./$(TMP_DIR)/test_pico8_built_planet_panel_nil_row
+	./$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
