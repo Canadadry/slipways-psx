@@ -159,11 +159,11 @@ Une cartouche autonome que l'humain charge et lance une fois ; elle écrit un fi
 | **E** | `sqrt`, `sin(i/64)` et `cos(i/64)` pour `i=0..63`, en hexa | *capturé, non exploité* |
 | **F** | `srand(1)` puis 64 tirages `rnd(1)`, en hexa | *capturé, non exploité* |
 
-**A→D servent ce chantier. E et F ne le servent pas** : ils visent le risque ouvert n°1 des Notes de portage (`rnd`/`sin`/`cos` non bit-exacts, objectif « même graine → même galaxie » acté non atteint). Ils sont capturés parce que les six blocs coûtent **la même manipulation unique**, et que ne pas les prendre garantirait de redemander la manip plus tard.
+**A→D servent ce chantier. E et F ne le servent pas** : ils visent le premier trou de portage (`rnd`/`sin`/`cos` non bit-exacts, objectif « même graine → même galaxie » acté non atteint — [TROU-1](trous-de-portage.md)). Ils sont capturés parce que les six blocs coûtent **la même manipulation unique**, et que ne pas les prendre garantirait de redemander la manip plus tard.
 
 > **Clôture de périmètre, à opposer à toute dérive :** E et F sont **capturés et stockés**, pas exploités. `pico8_fixed_sin`/`cos`/`rnd` ne sont pas touchés par ce chantier.
 
-**Effet de second ordre, qui est le vrai gain de « testable » :** aujourd'hui `tests/test_pico8_fixed.c` n'assertent que des *contrats* (plage, cas zéro, périodicité) et **jamais une valeur numérique**, faute de source — les Notes de portage l'actent explicitement. Le fichier de relevé, versionné, devient une **fixture** : les tests assertent désormais des valeurs exactes relevées sur PICO-8. C'est un changement de nature, pas un ajout de couverture.
+**Effet de second ordre, qui est le vrai gain de « testable » :** aujourd'hui `tests/test_pico8_fixed.c` n'assertent que des *contrats* (plage, cas zéro, périodicité) et **jamais une valeur numérique**, faute de source. Le fichier de relevé, versionné, devient une **fixture** : les tests assertent désormais des valeurs exactes relevées sur PICO-8. C'est un changement de nature, pas un ajout de couverture.
 
 *Réserve connue :* la destination exacte du fichier écrit par `printh()` varie selon la version et la plateforme de PICO-8. La cartouche imprime donc **aussi** tout à l'écran, en secours d'une capture d'écran.
 
@@ -245,7 +245,7 @@ Les 76 casts à signe potentiellement négatif passent en **`flr`** (bloc B — 
 **Sortie de phase :** chaque frame divergente est expliquée par une ligne du relevé ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression.
 
 ### Phase E — Fermeture
-`-lm` retiré de la cible du cœur, vérification `nm`, entrées consignées en Notes de portage.
+`-lm` retiré de la cible du cœur, vérification `nm`, [TROU-1](trous-de-portage.md) refermé.
 **Sortie de phase :** les quatre points du §6 passent.
 
 ---
@@ -256,7 +256,7 @@ Les 76 casts à signe potentiellement négatif passent en **`flr`** (bloc B — 
 
 ### Ce qui est déjà mesuré
 
-102 sites d'allocation sur 41 fichiers. L'allocation n'est pas périphérique : c'est **la couche d'émulation Lua elle-même** — `pico8_value_t` (chaînes possédées via `pico8_strdup_owned`), `pico8_list_t`, `pico8_ob_table_t`, `pico8_class_t`/`pico8_instance_t`, `pico8_entity`. Chacune réimplémente indépendamment le même motif « tableau croissant à doublement », déjà signalé trois fois en Notes de portage.
+102 sites d'allocation sur 41 fichiers. L'allocation n'est pas périphérique : c'est **la couche d'émulation Lua elle-même** — `pico8_value_t` (chaînes possédées via `pico8_strdup_owned`), `pico8_list_t`, `pico8_ob_table_t`, `pico8_class_t`/`pico8_instance_t`, `pico8_entity`. Chacune réimplémente indépendamment le même motif « tableau croissant à doublement », déjà signalé trois fois.
 
 Une structure favorable apparaît à l'inspection du chemin de dessin :
 
@@ -274,7 +274,7 @@ La majorité de ces allocations sont de **petites structures boxées à durée d
 2. **Le dimensionnement.** Chaque pool exige une borne maximale. Lua n'en a aucune. D'où viennent ces bornes, et que fait le jeu quand une borne est atteinte ?
 3. **Le comportement en épuisement.** Aujourd'hui : `abort()` (`pico8_class.c:229,294`). Sur PSX, `abort()` n'a aucun sens. Épuisement d'un pool = écran noir ? dégradation ? assertion ?
 4. **Les signatures.** `pico8_sub()` et `pico8_value_tostr()` retournent de la mémoire possédée par l'appelant. Sans `malloc`, elles doivent changer de forme (tampon fourni par l'appelant ? arène ? pool de chaînes internées ?). Combien de sites d'appel en dépendent ?
-5. **La mutualisation.** Faut-il d'abord unifier le motif « tableau croissant » réimplémenté 4+ fois — ce que les Notes de portage réclament déjà indépendamment de ce chantier — avant d'y toucher, pour ne pas faire le travail quatre fois ?
+5. **La mutualisation.** Faut-il d'abord unifier le motif « tableau croissant » réimplémenté 4+ fois — ce que les garde-fous de `plan.md` réclament déjà indépendamment de ce chantier — avant d'y toucher, pour ne pas faire le travail quatre fois ?
 6. **Le filet.** `frames.hash` suffit-il à prouver une transformation qui change les durées de vie ? Probablement pas seul : une corruption mémoire peut ne pas se voir sur une frame. Quel instrument complémentaire (ASan/Valgrind sur le build hôte, que ce chantier **ne doit pas** casser — d'où le §4, les outils gardent la libc) ?
 
 ---
@@ -286,7 +286,7 @@ La majorité de ces allocations sont de **petites structures boxées à durée d
 - **Jamais de fenêtre interactive lancée par l'agent** (hérité de `CLAUDE.md`). Ce chantier se vérifie entièrement en headless. L'humain n'intervient que deux fois : lancer la sonde (Phase A), enregistrer la session (Phase B).
 - **Les outils gardent la libc** (§4). Les amputer détruirait le moyen de prouver le reste.
 - **E/F capturés, pas exploités** (§5).
-- **Constats structurels récurrents** : ce chantier hérite de la liste vivante des Notes de portage — motif de tableau croissant, seuil de taille de module, sites de cast REF non gardés.
+- **Constats structurels récurrents** : ce chantier hérite de la liste des garde-fous de `plan.md` — motif de tableau croissant, seuil de taille de module, sites de cast REF non gardés.
 
 ---
 
