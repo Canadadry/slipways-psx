@@ -1,5 +1,6 @@
 #include "pico8_planet_trade.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -11,15 +12,6 @@
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 
-/* Phase 3, Chunk 13, FOURTH sub-lot (docs/prd/triage/phase3-etape1-
- * function-by-function-c-port.md): jo:kf/jo:cn/jo:ib, the jo-side of the
- * mutually-recursive trade cluster. See pico8_planet_trade.h's own top
- * comment and each function's own comment there for the full Lua-source
- * trace; this file carries the port itself. pico8_jo_truthy is this
- * module's own private copy of the same truthiness rule already
- * independently duplicated by pico8_planet.c/pico8_planet_display.c/
- * pico8_economy*.c/etc (documented, accepted duplication, not a new
- * pattern). */
 static int pico8_jo_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -30,13 +22,8 @@ static int pico8_jo_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Not a port of any named Lua function: private per-module bridge from
- * "positional entries of a pico8_ob_table_t" to a pico8_list_t (used here
- * for jo:cn's own `gu(self.ba,t.qe)`) -- the same established pattern
- * already independently duplicated by pico8_jo_positional_values
- * (pico8_planet_display.c)/pico8_research_display_positional_values/
- * pico8_layout_positional_values/pico8_msgbox_positional_values/
- * pico8_data_init_positional_values (documented, accepted duplication). */
+/* The returned list is by value and borrows its values: the caller frees
+ * it with pico8_list_free. */
 static pico8_list_t positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -53,18 +40,9 @@ static pico8_list_t positional_values(const pico8_ob_table_t *table) {
     return list;
 }
 
-/* Resolves the documented gap pico8_trade.h's own top comment flags
- * ("a future chunk that needs gu()/del()-style membership on a list of
- * trade instances needs its own pico8_trade_eq-aware sibling ... not a
- * silent reuse of the generic one") -- this IS that future chunk, at
- * jo:ib's own `gu(ib,a)` call site (below), which really does need
- * "same start and end planet" trade equality (pico8_trade_eq, Chunk 3),
- * not pico8_gu's own pointer-identity rule (every `a` here is a BRAND
- * NEW trade instance from t:kg(), so pointer identity would never match
- * an already-accepted route with the same start/end). Matches
- * pico8_gu_content's own precedent (pico8_collect.h) of a small,
- * type-aware sibling rather than widening the generic pico8_gu. NULL-safe
- * on `list`, matching pico8_gu's own convention. */
+/* Membership by trade equality (same endpoints), not pico8_gu's pointer
+ * identity: every candidate offered here is a freshly built instance, which
+ * identity would never match. NULL-safe on `list`. */
 static int gu_trade(const pico8_list_t *list, pico8_value_t v) {
     pico8_list_iter_t it;
     pico8_value_t e;
@@ -82,16 +60,6 @@ static int gu_trade(const pico8_list_t *list, pico8_value_t v) {
     return 0;
 }
 
-/* `function(self,a)if not gu(ib,a)then add(ib,a)self.mu-=1 end end`
- * (pico8/lua.lua:505-509) -- the real body of jo:ib's own local closure
- * field, assigned as `lw.kf` by pico8_jo_ib below. See
- * pico8_planet_trade.h's own top comment and pico8_jo_trade_proposal_kf_fn's
- * own comment for the full "why a plain struct + function pointer, not
- * the generic mv()-dispatch technique" trace. `self` is THIS proposal
- * (the struct itself, via `lw:kf(a)`'s own colon-call sugar), not the
- * enclosing planet. A NULL `self` or NULL `self->ib` is a safe no-op
- * (never a real case: pico8_jo_ib below always sets both before this is
- * ever reachable). */
 static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_value_t a) {
     if (self == NULL || self->ib == NULL) {
         return;
@@ -102,11 +70,6 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_value_
     }
 }
 
-/* function jo:kf(sw)add(self.oe,sw)
- * if (sw:eb(self).fx)self.fx=true
- * self:kd()end
- * (pico8/lua.lua:465-467.) See pico8_planet_trade.h's own comment on this
- * declaration for the full trace. */
 void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw) {
     pico8_value_t oe_val;
     pico8_list_t *oe = NULL;
@@ -117,9 +80,6 @@ void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw) {
     }
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * Producer: pico8_jo_pq() (src/pico8_planet.c), sole writer of
-         * "oe" in the port; no spec string declares an `oe` default. */
         oe = PICO8_REF_AS_LIST(oe_val.as.ref);
     }
     if (oe != NULL) {
@@ -138,29 +98,6 @@ void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw) {
     pico8_jo_kd(self);
 }
 
-/* function jo:cn(lw)local t=lw.t
- * if t.qe==r.e
- * and not self.jh then
- * for i in all(self.jy)do
- * if i.gc==0 and i.qe~=r["?"]then
- * del(self.jy,i)break
- * end
- * end
- * self.jy,self.jh=
- * la({{qe=r.e}},self.jy),1
- * end
- * for i in all(self.jy)do
- * if i.qe==r["?"]and gu(self.ba,t.qe)then
- * i.qe=t.qe
- * end
- * if t.qe==i.qe and i.qe~=r["?"]then
- * lw:kf(t:kg(self))
- * return
- * end
- * end
- * end
- * (pico8/lua.lua:479-499.) See pico8_planet_trade.h's own comment on this
- * declaration for the full trace. */
 void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     const pico8_ob_table_t *r;
     pico8_value_t r_e = pico8_value_ref(NULL);
@@ -188,9 +125,6 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     have_r_q = pico8_ob_table_get_name(r, "?", &r_q);
 
     if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "jy", producers
-         * pico8_jo_lz() (src/pico8_planet.c) and pico8_jo_cn() (this
-         * same file), both heap lists. */
         jy = PICO8_REF_AS_LIST(jy_val.as.ref);
     }
 
@@ -199,11 +133,15 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
         it = pico8_list_all(jy);
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                const pico8_ob_table_t *i_table = (const pico8_ob_table_t *)e.as.ref;
+                const pico8_ob_table_t *i_table;
                 pico8_value_t gc_val;
                 pico8_value_t qe_val;
                 pico8_fixed_t gc = pico8_fixed_from_int(0);
                 int qe_is_r_q;
+
+                assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+                       "a jy entry read as a want record is not a table");
+                i_table = (const pico8_ob_table_t *)e.as.ref;
 
                 if (pico8_ob_table_get_name(i_table, "gc", &gc_val) && gc_val.kind == PICO8_VALUE_FIXED) {
                     gc = gc_val.as.fixed;
@@ -246,6 +184,8 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
         if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
             continue;
         }
+        assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+               "a jy entry read as a want record is not a table");
         i_table = (pico8_ob_table_t *)e.as.ref;
         have_qe = pico8_ob_table_get_name(i_table, "qe", &qe_val);
 
@@ -280,23 +220,6 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     }
 }
 
-/* function jo:ib()local ib=self.by or {}
- * local qe,mu=
- * self.kw.qe,self.kw.mu
- * for w in all(self.oe)do
- * local lw={t=trade({lp={self},rl={w},qe=qe
- * }),mu=mu-#ib,kf=function(self,a)if not gu(ib,a)then
- * add(ib,a)
- * self.mu-=1
- * end
- * end
- * }
- * if (lw.mu==0)break
- * w:eb(self):cn(lw)end
- * return ib
- * end
- * (pico8/lua.lua:500-514.) See pico8_planet_trade.h's own comment on this
- * declaration for the full trace. */
 pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
     pico8_value_t by_val;
     pico8_list_t *ib;
@@ -313,16 +236,6 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION,
-         * but only since this audit. `local ib=self.by or {}`: "by" has
-         * two producers -- bd_route_visit() (src/pico8_economy_tiers.c),
-         * which stores this function's own return value, and the `ga`
-         * class default. That default USED to be the `by=o()` ob_table
-         * the spec string parses, which this line then read as a list
-         * and pico8_list_add()ed into; pico8_planet_family_init()
-         * (src/pico8_planet_family.c) now installs a real empty heap
-         * pico8_list_t* there instead, exactly as pico8_ui_init()
-         * already did for `le` and pico8_hy_pq() for `invented`. */
         ib = PICO8_REF_AS_LIST(by_val.as.ref);
     } else {
         ib = malloc(sizeof *ib);
@@ -342,8 +255,6 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "oe", producer
-         * pico8_jo_pq() (src/pico8_planet.c), sole writer. */
         oe = PICO8_REF_AS_LIST_CONST(oe_val.as.ref);
     }
 
@@ -375,14 +286,19 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
 
         lw.t = pico8_trade_new(overrides);
         pico8_ob_table_free(overrides);
+        /* Recomputed each iteration: an earlier proposal's `kf` may already
+         * have grown `ib`. */
         lw.mu = mu - pico8_fixed_from_int(ib->count);
         lw.kf = pico8_jo_ib_kf_closure;
         lw.ib = ib;
 
+        /* TROU-7 */
         if (lw.mu == pico8_fixed_from_int(0)) {
             break;
         }
 
+        /* `lw` is on the stack: a callee that keeps the REF past this
+         * iteration holds a dangling pointer. `nr:cn` copies it instead. */
         if (pico8_mv(w, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
             eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
             pico8_value_t discard;
