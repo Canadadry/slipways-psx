@@ -39,9 +39,26 @@ void pico8_msgbox_set_kc(pico8_instance_t *instance) {
  * established across this port (e.g. pico8_layout.c's own
  * pico8_layout_truthy, pico8_ui_button.c's own pico8_ui_field_truthy), a
  * private per-module copy here too, same reasoning those files already
- * give for not sharing a few-line helper across a module boundary. */
+ * give for not sharing a few-line helper across a module boundary.
+ *
+ * The REF-NULL clause is not optional: this port models Lua nil as
+ * pico8_value_ref(NULL) (src/pico8_value.h's own convention), so a helper
+ * that only rejects BOOL false reports nil as TRUE and the comment above
+ * it becomes a lie. Measured consequence, the reason this clause is here:
+ * pz()'s own `if p.ep then` (pico8/lua.lua:280) prepended a description
+ * row to a BUILT planet's panel, whose `ep` jo:lz just nilled
+ * (`self.hn,self.ep=hp`, pico8/lua.lua:461) -- a row real Lua never
+ * builds, which lq:mn then drew as spr(0), an 8x8 block of raw sprite-
+ * sheet ramp data on top of the planet. See tests/test_pico8_built_
+ * planet_panel_nil_row.c. */
 static int pico8_msgbox_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
+        return 0;
+    }
+    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
+        return 0;
+    }
+    return 1;
 }
 
 /* Per-module defensive field readers (fixed/vec), matching the same
