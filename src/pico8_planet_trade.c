@@ -9,6 +9,7 @@
 #include "pico8_planet.h"
 #include "pico8_stash.h"
 #include "pico8_trade.h"
+#include "pico8_ref_audit.h"
 
 /* Phase 3, Chunk 13, FOURTH sub-lot (docs/prd/triage/phase3-etape1-
  * function-by-function-c-port.md): jo:kf/jo:cn/jo:ib, the jo-side of the
@@ -116,7 +117,10 @@ void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw) {
     }
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe = (pico8_list_t *)oe_val.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_jo_pq() (src/pico8_planet.c), sole writer of
+         * "oe" in the port; no spec string declares an `oe` default. */
+        oe = PICO8_REF_AS_LIST(oe_val.as.ref);
     }
     if (oe != NULL) {
         pico8_list_add(oe, pico8_value_ref(sw));
@@ -184,7 +188,10 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     have_r_q = pico8_ob_table_get_name(r, "?", &r_q);
 
     if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-        jy = (pico8_list_t *)jy_val.as.ref;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "jy", producers
+         * pico8_jo_lz() (src/pico8_planet.c) and pico8_jo_cn() (this
+         * same file), both heap lists. */
+        jy = PICO8_REF_AS_LIST(jy_val.as.ref);
     }
 
     if (have_r_e && pico8_value_equal(t_qe, r_e) &&
@@ -306,7 +313,17 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
-        ib = (pico8_list_t *)by_val.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION,
+         * but only since this audit. `local ib=self.by or {}`: "by" has
+         * two producers -- bd_route_visit() (src/pico8_economy_tiers.c),
+         * which stores this function's own return value, and the `ga`
+         * class default. That default USED to be the `by=o()` ob_table
+         * the spec string parses, which this line then read as a list
+         * and pico8_list_add()ed into; pico8_planet_family_init()
+         * (src/pico8_planet_family.c) now installs a real empty heap
+         * pico8_list_t* there instead, exactly as pico8_ui_init()
+         * already did for `le` and pico8_hy_pq() for `invented`. */
+        ib = PICO8_REF_AS_LIST(by_val.as.ref);
     } else {
         ib = malloc(sizeof *ib);
         pico8_list_init(ib);
@@ -325,7 +342,9 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe = (const pico8_list_t *)oe_val.as.ref;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "oe", producer
+         * pico8_jo_pq() (src/pico8_planet.c), sole writer. */
+        oe = PICO8_REF_AS_LIST_CONST(oe_val.as.ref);
     }
 
     it = pico8_list_all(oe);

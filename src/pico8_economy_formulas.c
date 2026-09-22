@@ -6,6 +6,7 @@
 #include "pico8_game_data.h"
 #include "pico8_stash.h"
 #include "pico8_vec.h"
+#include "pico8_ref_audit.h"
 
 static int economy_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
@@ -39,10 +40,19 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
     return NULL;
 }
 
+/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
+ * one name this module ever passes. The single call site is
+ * `field_list(l, "jy")` in pico8_ow() below, and "jy" has exactly two
+ * writers in the whole port, both producing a heap pico8_list_t*:
+ * pico8_jo_lz() (src/pico8_planet.c, `jy_heap` from pico8_nv) and
+ * pico8_jo_cn() (src/pico8_planet_trade.c, `merged_heap` from pico8_la).
+ * A generic-looking helper is only as safe as the names its callers
+ * actually pass, so that enumeration -- not the helper's shape -- is the
+ * justification. */
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_list_t *)v.as.ref;
+        return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
 }

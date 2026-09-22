@@ -14,6 +14,7 @@
 #include "pico8_planet.h"
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_planet_family.h's own top comment for the full Lua-source
  * trace of every class/method this file ports. Local helpers below
@@ -293,7 +294,11 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     }
 
     if (pico8_instance_get_field(self, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL) {
-        qy = (const pico8_list_t *)qy_val.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_f_() (src/pico8_particle.c), the `self.qy={}`
+         * this class's own pico8_ga_pq() calls first thing; sole writer
+         * of "qy" in the port, and no spec string declares a default. */
+        qy = PICO8_REF_AS_LIST_CONST(qy_val.as.ref);
     }
 
     px = (int)pico8_fixed_to_double(p.x);
@@ -452,6 +457,50 @@ void pico8_planet_family_init(void) {
                                       "k_=o(1,2,4,9,9,10,10,7,7,7,7,7),\n"
                                       "iu=-0.06,py=6,ms=3,\n");
     pico8_class_set_pq(g_ga_class, pico8_ga_pq);
+
+    /* `by=o()`: ob()'s own generic "identifier(...)" fallback parses an
+     * empty, untyped pico8_ob_table_t here, but every real consumer of
+     * `self.by` in this port reads it as a pico8_list_t* -- `jo:ib`'s own
+     * `local ib=self.by or {}` and its `add(ib,a)`
+     * (src/pico8_planet_trade.c), `jo:hb`/`jo:gh`'s export counters
+     * (src/pico8_planet_display.c), `pico8_db` (src/pico8_economy_score.c)
+     * and `pico8_dh` (src/pico8_economy_tiers.c). Overridden here, right after
+     * declaring, with a properly-typed empty heap pico8_list_t* REF; the
+     * raw table ob() actually built is freed immediately since nothing
+     * else ever sees it. EXACTLY the swap pico8_ui_init() already makes
+     * for `le=o()` (src/pico8_ui.c) and pico8_hy_pq() for `invented=o()`
+     * (src/pico8_economy.c), for exactly the same reason, and this is the
+     * third and last of them (docs/audit-ref-cast-reverse.md enumerates
+     * every `X=o()` class default in the port against every field read as
+     * a list; these three were the only overlaps).
+     *
+     * Behaviour is unchanged, and that is the uncomfortable part worth
+     * writing down: pico8_ob_table_t and pico8_list_t put `count` at the
+     * same byte offset, and the table ob() builds for `by=o()` is EMPTY,
+     * so all six of those reads already got the right answer -- 0 --
+     * through the wrong type. Nothing displayed differently before this
+     * line existed. What it removes is a REF whose type tag said
+     * OB_TABLE while the whole program treated it as a list: unwritten,
+     * correct by coincidence, and the precise shape of the invariant that
+     * let the pre-Phase-5 cast audit mark `js:pq`'s own "lq" safe
+     * (docs/plan.md's "Notes de portage"). The `ga` class default is one
+     * object shared by every `ga` instance, both before and after -- real
+     * Lua's `ga=jo:jr([[by=o(),]])` shares it the same way, since
+     * `qj({},X)` copies the reference, so no aliasing changes here. */
+    {
+        pico8_ob_table_t *raw_by = NULL;
+        pico8_value_t by_val;
+        pico8_list_t *heap_by;
+
+        if (pico8_ob_table_get_name(g_ga_class->defaults, "by", &by_val) && by_val.kind == PICO8_VALUE_REF) {
+            raw_by = (pico8_ob_table_t *)by_val.as.ref;
+        }
+        heap_by = malloc(sizeof *heap_by);
+        pico8_list_init(heap_by);
+        pico8_ob_table_set_name(g_ga_class->defaults, "by", pico8_value_ref(heap_by));
+        pico8_ob_table_free(raw_by);
+    }
+
     pico8_ob_table_set_name(g_ga_class->defaults, "mm", pico8_value_function(pico8_ga_mm));
     pico8_ob_table_set_name(g_ga_class->defaults, "kj", pico8_value_function(pico8_ga_kj_dispatch));
     pico8_class_register_named("ga", g_ga_class);

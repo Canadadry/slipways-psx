@@ -9,6 +9,7 @@
 #include "pico8_probe.h"
 #include "pico8_stash.h"
 #include "pico8_trade.h"
+#include "pico8_ref_audit.h"
 
 static int economy_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
@@ -49,10 +50,18 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
     return NULL;
 }
 
+/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
+ * two names this module ever passes. `field_list(pt, "by")`: since this
+ * audit, "by" is a pico8_list_t* from every producer -- pico8_bd()'s own
+ * `pt.by=pt:ib()` (src/pico8_economy_tiers.c, the pico8_jo_ib() return)
+ * and the `ga` class default, which pico8_planet_family_init() now swaps
+ * from the spec string's `by=o()` ob_table to a real empty heap list
+ * exactly as pico8_ui_init() already did for `le`. `field_list(fm(),
+ * "invented")`: pico8_hy_pq() (src/pico8_economy.c), sole writer. */
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_list_t *)v.as.ref;
+        return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
 }

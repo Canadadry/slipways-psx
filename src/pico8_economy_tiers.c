@@ -6,6 +6,7 @@
 #include "pico8_entity.h"
 #include "pico8_research.h"
 #include "pico8_trade.h"
+#include "pico8_ref_audit.h"
 
 static int economy_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
@@ -30,10 +31,23 @@ static int field_truthy(const pico8_instance_t *inst, const char *name) {
     return economy_truthy(v);
 }
 
+/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
+ * five names this module ever passes -- "rl", "lp", "jy", "cc", "by".
+ * Producers, all making a heap pico8_list_t*: "rl"/"lp" come only from
+ * the two `overrides` tables handed to pico8_trade_new()
+ * (pico8_trade_kg(), src/pico8_trade.c:117-118, and pico8_jo_ib(),
+ * src/pico8_planet_trade.c:353-354) -- the `trade` class is declared with
+ * NO spec string at all (pico8_trade_init()), so it has no default of
+ * either name to compete with them; "jy" from pico8_jo_lz()
+ * (src/pico8_planet.c) and pico8_jo_cn() (src/pico8_planet_trade.c);
+ * "cc" from bd_reset_visit() in this same file; "by" from
+ * bd_route_visit() in this same file plus the `ga` class default, which
+ * pico8_planet_family_init() now initialises as a real empty list (see
+ * this audit's entry in docs/plan.md). */
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_list_t *)v.as.ref;
+        return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
 }
@@ -82,7 +96,12 @@ static void bd_reset_visit(pico8_instance_t *pt, void *ctx) {
         return;
     }
     if (pico8_instance_get_field(pt, "cc", &old) && old.kind == PICO8_VALUE_REF && old.as.ref != NULL) {
-        pico8_list_free((pico8_list_t *)old.as.ref);
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: the three lines below in this same function, the
+         * only writer of "cc" in the port. On a planet's first bd()
+         * pass the field is absent and this branch is skipped; on every
+         * later pass it holds the list this function itself installed. */
+        pico8_list_free(PICO8_REF_AS_LIST(old.as.ref));
         free(old.as.ref);
     }
     cc = malloc(sizeof *cc);
@@ -108,7 +127,14 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
         return;
     }
 
-    it = pico8_list_all((const pico8_list_t *)by_val.as.ref);
+    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+     * Producer: pico8_jo_ib() (src/pico8_planet_trade.c), whose return
+     * value `by_val` IS -- it is the `ib` that function either freshly
+     * pico8_list_init()s or reads back out of `self.by`, which since
+     * this audit is a pico8_list_t* on every path (see this file's own
+     * field_list comment above). The set_name two lines up is what makes
+     * that the field's value for the rest of the frame. */
+    it = pico8_list_all(PICO8_REF_AS_LIST_CONST(by_val.as.ref));
     while (pico8_list_iter_next(&it, &e)) {
         pico8_instance_t *route;
         const pico8_list_t *rl;
@@ -160,7 +186,11 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
             pico8_value_t cc_val;
             if (pico8_instance_get_field(dest, "cc", &cc_val) && cc_val.kind == PICO8_VALUE_REF &&
                 cc_val.as.ref != NULL) {
-                pico8_list_add((pico8_list_t *)cc_val.as.ref, e);
+                /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
+                 * CONSTRUCTION. Producer: bd_reset_visit() in this same
+                 * file, the only writer of "cc", and pico8_bd() runs it
+                 * over every `cg.jo` planet before this loop starts. */
+                pico8_list_add(PICO8_REF_AS_LIST(cc_val.as.ref), e);
             }
         }
     }
@@ -210,7 +240,11 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
                     jy_val.as.ref != NULL) {
                     pico8_ob_table_t *entry = pico8_ob_table_new();
                     pico8_ob_table_set_name(entry, "qe", dm_val);
-                    pico8_list_add((pico8_list_t *)jy_val.as.ref, pico8_value_ref(entry));
+                    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
+                     * CONSTRUCTION. Producers of "jy": pico8_jo_lz()
+                     * (src/pico8_planet.c) and pico8_jo_cn()
+                     * (src/pico8_planet_trade.c), both heap lists. */
+                    pico8_list_add(PICO8_REF_AS_LIST(jy_val.as.ref), pico8_value_ref(entry));
                 }
             }
         }

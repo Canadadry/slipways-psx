@@ -16,6 +16,7 @@
 #include "pico8_research.h"
 #include "pico8_research_display.h"
 #include "pico8_stash.h"
+#include "pico8_ref_audit.h"
 
 /* Phase 3, Chunk 13, sub-lot 3's own pure module split (see
  * pico8_planet_display.h's own top comment for the full trace): `gh`,
@@ -64,10 +65,17 @@ static pico8_fixed_t field_fixed(const pico8_instance_t *self, const char *name)
     return pico8_fixed_from_int(0);
 }
 
+/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
+ * two names this module ever passes. "jy": pico8_jo_lz()
+ * (src/pico8_planet.c) and pico8_jo_cn() (src/pico8_planet_trade.c),
+ * both heap lists. "by": bd_route_visit() (src/pico8_economy_tiers.c,
+ * the pico8_jo_ib() return) and the `ga` class default, which
+ * pico8_planet_family_init() now initialises as a real empty heap list
+ * instead of leaving it as the spec string's `by=o()` ob_table. */
 static const pico8_list_t *field_list(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
     if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_list_t *)v.as.ref;
+        return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
 }
@@ -117,7 +125,9 @@ void pico8_jo_hb(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-        jy_list = (const pico8_list_t *)jy_val.as.ref;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "jy", producers
+         * pico8_jo_lz()/pico8_jo_cn(), see field_list above. */
+        jy_list = PICO8_REF_AS_LIST_CONST(jy_val.as.ref);
     }
     if (pico8_instance_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
         const pico8_ob_table_t *kw = (const pico8_ob_table_t *)kw_val.as.ref;
@@ -130,7 +140,14 @@ void pico8_jo_hb(pico8_instance_t *self) {
         }
     }
     if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
-        by_list = (const pico8_list_t *)by_val.as.ref;
+        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "by", producers
+         * bd_route_visit() and the `ga` class default now built as a
+         * real empty list by pico8_planet_family_init(); see field_list
+         * above. This is the site the audit found reading the `ga`
+         * default ob_table: `->count` happens to sit at the same offset
+         * in both structs, so the displayed export count was right by
+         * coincidence, not by construction. */
+        by_list = PICO8_REF_AS_LIST_CONST(by_val.as.ref);
     }
 
     lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
@@ -359,7 +376,15 @@ void pico8_jo_gh(const pico8_instance_t *self) {
                 pico8_ob_table_t *tuple = pico8_ob_table_new();
                 pico8_ob_table_set_index(tuple, 1, pico8_value_bool(0));
                 pico8_ob_table_set_index(tuple, 2, pico8_value_fixed(pico8_fixed_from_int(1)));
-                pico8_list_add((pico8_list_t *)lq_val.as.ref, pico8_value_ref(tuple));
+                /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
+                 * CONSTRUCTION. Producer: pico8_jo_gh_row() in this same
+                 * file, which is the only thing that builds the rows
+                 * this loop walks -- and the loop starts at i=1 on
+                 * purpose, skipping `bs1`, the one row built by hand
+                 * above whose "lq" is an icon string or a `jo.dz` entry
+                 * rather than a list (`for i=2,#bs`, pico8/lua.lua's own
+                 * bound). */
+                pico8_list_add(PICO8_REF_AS_LIST(lq_val.as.ref), pico8_value_ref(tuple));
             }
         }
     }

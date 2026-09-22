@@ -19,6 +19,7 @@
 #include "pico8_ui.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
+#include "pico8_ref_audit.h"
 
 /* Phase 3, Chunk 14 (docs/prd/triage/phase3-etape1-function-by-function-c-
  * port.md): jc's own class declaration plus its "core lifecycle/dispatch"
@@ -269,7 +270,11 @@ pico8_value_t pico8_jc_ce(pico8_instance_t *self) {
     {
         pico8_value_t oe_val = pico8_jc_field_value(qu, "oe");
         if (oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-            pico8_list_iter_t it = pico8_list_all((const pico8_list_t *)oe_val.as.ref);
+            /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
+             * CONSTRUCTION. `qu` is the planet this slipway targets, and
+             * "oe" has exactly one writer in the port: pico8_jo_pq()
+             * (src/pico8_planet.c). */
+            pico8_list_iter_t it = pico8_list_all(PICO8_REF_AS_LIST_CONST(oe_val.as.ref));
             pico8_value_t w_val;
             while (pico8_list_iter_next(&it, &w_val)) {
                 pico8_instance_t *w;

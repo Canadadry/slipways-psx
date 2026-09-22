@@ -8,6 +8,7 @@
 #include "pico8_dispatch_context.h"
 #include "pico8_hud.h"
 #include "pico8_list.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_layout.h's own top comment for lq's/jb's full real Lua source
  * and the design trace. This is the first chunk to call a real class
@@ -304,7 +305,12 @@ void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     if (!pico8_instance_get_field(self, "fs", &fs_val) || fs_val.kind != PICO8_VALUE_REF || fs_val.as.ref == NULL) {
         return;
     }
-    it = pico8_list_all((const pico8_list_t *)fs_val.as.ref);
+    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+     * Producer: pico8_lq_pq() in this same file (`fs_heap`, a freshly
+     * pico8_list_init()ed heap list), the only writer of "fs" in the
+     * port -- the `lq` class spec string has no `fs` default for it to
+     * compete with. */
+    it = pico8_list_all(PICO8_REF_AS_LIST_CONST(fs_val.as.ref));
     while (pico8_list_iter_next(&it, &entry)) {
         if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
             pico8_lq_ol_item_draw(gfx, mem, (const pico8_lq_item_t *)entry.as.ref, p);
@@ -382,7 +388,10 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *sel
         ls_val.as.ref == NULL) {
         return;
     }
-    ls = (const pico8_list_t *)ls_val.as.ref;
+    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+     * Producer: pico8_lq_ol() in this same file (`ls_heap`), the only
+     * writer of "ls" in the port. */
+    ls = PICO8_REF_AS_LIST_CONST(ls_val.as.ref);
 
     h = pico8_fixed_add(pico8_fixed_mul(pico8_fixed_from_int(ls->count), pico8_fixed_from_int(8)),
                          pico8_fixed_from_int(2));

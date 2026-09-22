@@ -11,6 +11,7 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
+#include "pico8_ref_audit.h"
 
 /* Phase 3, Chunk 4 (docs/prd/triage/phase3-etape1-function-by-function-c-
  * port.md): `js` and `fq`, both real `ke`-descended classes declared
@@ -141,7 +142,12 @@ static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
     case PICO8_TYPE_TAG_OB_TABLE:
         return (const pico8_ob_table_t *)v.as.ref;
     case PICO8_TYPE_TAG_LIST:
-        return pico8_ob_table_from_list((const pico8_list_t *)v.as.ref);
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY the tag
+         * itself -- this is the LIST arm of the switch above, so the
+         * REF has just been asked what it is and answered. The one site
+         * in the port whose justification is a runtime answer rather
+         * than a named producer. */
+        return pico8_ob_table_from_list(PICO8_REF_AS_LIST_CONST(v.as.ref));
     default:
         assert(0 && "untagged REF reached js:pq's lq()/h_() argument");
         return NULL;

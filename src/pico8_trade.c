@@ -5,6 +5,7 @@
 
 #include "pico8_collect.h"
 #include "pico8_list.h"
+#include "pico8_ref_audit.h"
 
 /* See pico8_trade.h's own top comment for trade's full real Lua source
  * and design trace. */
@@ -41,7 +42,13 @@ int pico8_trade_to(const pico8_instance_t *self, pico8_value_t *out_value) {
         lp_val.as.ref == NULL) {
         return 0;
     }
-    lp = (const pico8_list_t *)lp_val.as.ref;
+    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+     * The `trade` class is declared with NO spec string
+     * (pico8_trade_init above), so "lp" can only come from an
+     * `overrides` table: pico8_trade_kg() below (`new_lp`, a pico8_la
+     * result) or pico8_jo_ib() (src/pico8_planet_trade.c:353). Both heap
+     * pico8_list_t*. Same for "rl". */
+    lp = PICO8_REF_AS_LIST_CONST(lp_val.as.ref);
     if (lp->count == 0) {
         return 0;
     }
@@ -87,10 +94,14 @@ pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np,
     pico8_list_init(&empty_lp);
     pico8_list_init(&empty_rl);
     lp = (pico8_instance_get_field(self, "lp", &lp_val) && lp_val.kind == PICO8_VALUE_REF && lp_val.as.ref != NULL)
-             ? (const pico8_list_t *)lp_val.as.ref
+             /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "lp", see
+              * pico8_trade_to above. */
+             ? PICO8_REF_AS_LIST_CONST(lp_val.as.ref)
              : &empty_lp;
     rl = (pico8_instance_get_field(self, "rl", &rl_val) && rl_val.kind == PICO8_VALUE_REF && rl_val.as.ref != NULL)
-             ? (const pico8_list_t *)rl_val.as.ref
+             /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "rl", same
+              * two `overrides` producers as "lp". */
+             ? PICO8_REF_AS_LIST_CONST(rl_val.as.ref)
              : &empty_rl;
     if (!pico8_instance_get_field(self, "qe", &qe_val)) {
         qe_val = pico8_value_bool(0);
@@ -138,8 +149,10 @@ int pico8_trade_eq(const pico8_instance_t *l, const pico8_instance_t *r) {
         r_lp_val.kind != PICO8_VALUE_REF || r_lp_val.as.ref == NULL) {
         return 0;
     }
-    l_lp = (const pico8_list_t *)l_lp_val.as.ref;
-    r_lp = (const pico8_list_t *)r_lp_val.as.ref;
+    /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "lp" on both sides,
+     * see pico8_trade_to above. */
+    l_lp = PICO8_REF_AS_LIST_CONST(l_lp_val.as.ref);
+    r_lp = PICO8_REF_AS_LIST_CONST(r_lp_val.as.ref);
     if (l_lp->count == 0 || r_lp->count == 0) {
         return 0;
     }

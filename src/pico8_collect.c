@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "pico8_stash.h"
+#include "pico8_ref_audit.h"
 
 /* function ft(rc,nt,pu)rc[nt]=rc[nt]or {}
  * add(rc[nt],pu)end
@@ -13,7 +14,15 @@ void pico8_ft_index(pico8_ob_table_t *rc, int nt, pico8_value_t pu) {
     pico8_value_t bucket_value;
     pico8_list_t *bucket;
     if (pico8_ob_table_get_index(rc, nt, &bucket_value)) {
-        bucket = bucket_value.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: this function's own `else` branch four lines below,
+         * which is the ONLY thing in this port that ever writes an
+         * indexed entry into a table pico8_ft_index is given -- the sole
+         * caller is pico8_ui_gw (src/pico8_ui.c:396), and the table it
+         * passes is the `ic` built by pico8_ob_table_new() a few lines
+         * earlier in that same function (src/pico8_ui.c:380-381) and
+         * never written to by anything else. */
+        bucket = PICO8_REF_AS_LIST(bucket_value.as.ref);
     } else {
         bucket = malloc(sizeof *bucket);
         pico8_list_init(bucket);
@@ -29,7 +38,19 @@ void pico8_ft_name(pico8_ob_table_t *rc, const char *nt, pico8_value_t pu) {
     pico8_value_t bucket_value;
     pico8_list_t *bucket;
     if (pico8_ob_table_get_name(rc, nt, &bucket_value)) {
-        bucket = bucket_value.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): NOT COVERED. Same
+         * shape as pico8_ft_index above, but this function has NO caller
+         * anywhere in src/ or tests/ (the real `ft(cv,...)`/`ft(cg,...)`
+         * call sites of pico8/lua.lua:156-162 are ported in
+         * pico8_entity.c as direct pico8_list_add/pico8_list_del calls on
+         * the static `g_cv`/`g_cg` lists, never through ft()), so no
+         * producer can be named and neither the replay nor the suite
+         * reaches it. Reported as NOT COVERED rather than safe: an
+         * unexercised site whose only justification would be "it looks
+         * like its sibling" is exactly the reasoning that marked `js:pq`
+         * safe. Whoever first gives this function a caller owns
+         * classifying it then. */
+        bucket = PICO8_REF_AS_LIST(bucket_value.as.ref);
     } else {
         bucket = malloc(sizeof *bucket);
         pico8_list_init(bucket);
@@ -138,6 +159,14 @@ pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx) {
 /* local kg=function(e)add(t,e)end -- la()'s own inline closure, ported as
  * a plain pico8_list_foreach_fn taking the target list `t` as ctx. */
 static void pico8_la_append(pico8_value_t value, void *ctx) {
+    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): examined and NOT a REF cast
+     * -- the only `(pico8_list_t *)` in src/ that is left spelled out
+     * rather than routed through PICO8_REF_AS_LIST. `ctx` is not a
+     * pico8_value_t REF at all; it is the `&t` pico8_la passes four lines
+     * below, a pico8_list_t this same file just pico8_list_init()ed on
+     * its own stack, threaded through pico8_list_foreach's void* the way
+     * every callback in this port carries its closure state. Nothing
+     * else can ever reach this function. */
     pico8_list_add((pico8_list_t *)ctx, value);
 }
 

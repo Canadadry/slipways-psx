@@ -6,6 +6,7 @@
 #include "pico8_data_init.h"
 #include "pico8_ob.h"
 #include "pico8_probe.h"
+#include "pico8_ref_audit.h"
 
 /* Lua truthiness (nil/false falsy, everything else -- including fixed 0 --
  * truthy), extended to also treat PICO8_VALUE_REF(NULL) as falsy -- the
@@ -64,7 +65,11 @@ int pico8_oj(pico8_value_t px) {
     }
     if (pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "invented", &invented) &&
         invented.kind == PICO8_VALUE_REF) {
-        invented_list = invented.as.ref;
+        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
+         * Producer: pico8_hy_pq() (src/pico8_economy.c), sole writer of
+         * "invented", which swaps the spec string's own `invented=o()`
+         * ob_table for a real heap list. */
+        invented_list = PICO8_REF_AS_LIST_CONST(invented.as.ref);
     }
     return pico8_gu_content(invented_list, px);
 }
