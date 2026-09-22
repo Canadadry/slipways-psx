@@ -1,6 +1,6 @@
 ---
 name: reprendre-les-commentaires
-description: Ramène un dépôt noyé sous le récit de chantier (numéros de phase, renvois aux specs, code source recopié, historiques de correctifs abandonnés) à des commentaires qui ne portent plus que ce que le code ne dit pas — phase 1 séquentielle qui extrait ce qu'on ne pourrait plus reconstituer, phase 2 avec un agent par module sous une règle de quatre destinations. Use when le ratio commentaires/code est hors de proportion, quand on veut supprimer massivement du commentaire sans perdre ce qu'il contenait, quand un portage ou une génération par agents a laissé du journal de bord dans les sources, ou quand l'utilisateur parle de dégraisser, tailler, reprendre ou nettoyer les commentaires d'un dépôt.
+description: Ramène un dépôt noyé sous le récit de chantier (numéros de phase, renvois aux specs, code source recopié, historiques de correctifs abandonnés) à des commentaires qui ne portent plus que ce que le code ne dit pas — phase 1 séquentielle qui extrait ce qu'on ne pourrait plus reconstituer, phase 2 avec un agent par module sous une règle de quatre destinations. Use when le ratio commentaires/code est hors de proportion, quand on veut supprimer massivement du commentaire sans perdre ce qu'il contenait, quand un portage ou une génération par agents a laissé du journal de bord dans les sources, quand l'utilisateur parle de dégraisser, tailler, reprendre ou nettoyer les commentaires d'un dépôt, ou quand quelques fichiers écrits sous l'ancien régime arrivent dans un dépôt déjà repris (merge, branche longue, contribution extérieure) et qu'il faut les rattraper.
 ---
 
 # Reprendre les commentaires
@@ -10,6 +10,21 @@ Un dépôt écrit par vagues d'agents accumule du **récit de chantier** dans se
 Cette skill ramène ce volume à ce qui a une raison de vivre dans le code, **sans changer un comportement**.
 
 Exemple travaillé de bout en bout (un port C d'un cart PICO-8, 18 544 → 2 966 lignes de commentaire, 47 % → 12 %) : [exemple-travaille.md](exemple-travaille.md). Le reste de ce fichier est la méthode, à appliquer ailleurs.
+
+## Deux régimes d'emploi — choisir avant de commencer
+
+Un dépôt ne se reprend qu'une fois ; le rattrapage, lui, revient à chaque merge. Les deux usages ne suivent pas le même chemin.
+
+**Campagne complète** — le dépôt n'a jamais été repris, le récit est partout. Phase 1 puis phase 2, dans l'ordre, ratio mesuré sur le dépôt entier.
+
+**Rattrapage ponctuel** — le dépôt a déjà été repris, et quelques fichiers neufs sont arrivés sous l'ancien régime : un merge, une branche longue, une contribution extérieure. C'est l'usage le plus fréquent une fois la campagne passée. Alors :
+
+- **phase 1 sautée.** Le glossaire et le fichier d'écarts existent : ils se consultent en lecture seule, et comme en campagne l'agent n'y écrit pas — il propose ses ajouts et ses corrections dans son rapport.
+- **la règle des quatre destinations est déjà dans le fichier d'instructions du dépôt** (`CLAUDE.md` ou équivalent). L'agent la lit là-bas ; la consigne n'a pas à la recopier, seulement à y renvoyer.
+- **ratio mesuré par fichier**, jamais sur le dépôt : sur deux fichiers, la mesure globale ne bouge pas et ne dit rien.
+- **un seul agent** si les fichiers tiennent dans ce qu'une vague lui donnerait. La règle « l'en-tête et le corps ensemble » vaut toujours.
+
+Dépôt à moitié repris — un glossaire mais pas de fichier d'écarts, ou l'inverse : c'est un rattrapage quand même. On ne fabrique pas la moitié manquante par symétrie ; on la crée le jour où un écart se présente vraiment.
 
 ## Prérequis, non négociable
 
@@ -35,7 +50,7 @@ Tout commentaire rencontré va dans **une** de ces quatre destinations, sinon il
 
 Tout le reste va dans le **message de commit**. Git le garde, et personne ne le paie en jetons à chaque lecture du fichier. `TODO` reste autorisé : c'est l'aveu qu'un cas n'est pas traité.
 
-## Phase 1 — séquentielle, pendant que la prose est encore là
+## Phase 1 — campagne complète seulement, séquentielle, pendant que la prose est encore là
 
 L'orchestrateur la fait seul, avant tout agent. Elle extrait ce qu'on ne pourrait plus reconstituer une fois les commentaires taillés.
 
@@ -47,6 +62,8 @@ L'orchestrateur la fait seul, avant tout agent. Elle extrait ce qu'on ne pourrai
 Commiter la phase 1 avant d'ouvrir la phase 2.
 
 ## Phase 2 — un agent par module
+
+En rattrapage ponctuel, c'est ici qu'on entre directement.
 
 Un agent, un module, et **l'en-tête et le corps ensemble** (`.h` + `.c`, interface + implémentation) : le piège est souvent décrit dans l'en-tête alors que l'assert qui le remplace doit vivre dans le corps. Un agent qui ne voit qu'un des deux fichiers perd la moitié de la transformation.
 
