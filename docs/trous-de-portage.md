@@ -35,7 +35,7 @@ n'en aura pas : `btn(b,1)` rend toujours faux.
 
 Sans effet tant que personne ne branche une deuxième manette.
 
-Fichiers : `src/pico8_scroll.c`, `src/pico8_raylib_backend.c` (l'endroit où la capture décide qu'il n'y a pas de second joueur).
+Fichiers : `src/pico8_scroll.c`, `src/pico8_input.h` (le schéma de frame, qui n'a pas de second joueur), `src/pico8_raylib_backend.c` (l'endroit où la capture le décide).
 
 ## TROU-3 — Les chaînes ne sont pas internées
 

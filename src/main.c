@@ -1,35 +1,16 @@
-/* Phase 4, Chunk 1 (docs/prd/triage/phase4-etape1-headless-replay-wiring-
- * and-playability-verification.md): the project's one real headless game
- * driver -- loads cart assets, wires the dispatch context, boots the real
- * cart (pico8_cart_load/pico8__init/pico8_eu), steps it frame-by-frame
- * from a scripted events.json, and dumps the final framebuffer as text.
- * No game-specific assertions live here (that's tests/test_pico8_
- * playability.c's job, Chunk 2/3) -- this is a thin, general-purpose
- * shell, reusable as-is by Phase 5's raylib backend. Phase 1's own demo
- * assertions, formerly this file's entire content, now live verbatim in
- * tests/test_pico8_demo.c.
+/* The headless replay driver: loads the cart's assets, boots the cart, steps it
+ * one frame per events.json entry, and dumps the final framebuffer as text to
+ * tmp/pico8_replay_dump.txt. It asserts nothing about the game itself -- that is
+ * what tests/ is for.
  *
- * Chunk 2 de docs/prd/triage/screencast-capture-and-viewer.md ("La
- * capture dans le pilote headless") ajoute a ce pilote UN argument
- * optionnel de plus -- le chemin ou ecrire les pixels de chaque frame --
- * et rien d'autre. Le PRD refuse explicitement un second pilote :
- * "Le depot a deja duplique une sequence de demarrage pour le backend
- * raylib, et la raison y etait enoncee : le pilote raylib a une boucle
- * et une source d'entree differentes. Ici ce n'est pas le cas -- c'est
- * exactement le meme rejeu, avec une ecriture en plus. Une troisieme
- * copie de la sequence d'amorcage creerait un second rejeu subtilement
- * different, et la baseline decrirait alors un deroulement que personne
- * d'autre n'execute." C'est la raison pour laquelle la capture est ici,
- * dans le fichier qui etait deja le rejeu de tout le monde, et non dans
- * un src/main_screencast.c qui aurait ete plus simple a ecrire.
+ * argv[1] names the script to replay. The default, events.json at the repo
+ * root, is a working recording the player's own session overwrites; it is
+ * not a fixture, and nothing should be pinned to its contents. Tests use
+ * their own files under tests/fixtures/.
  *
- * SANS CET ARGUMENT, CE FICHIER SE COMPORTE EXACTEMENT COMME AVANT :
- * meme amorcage, meme boucle, meme dump texte de la derniere frame vers
- * tmp/pico8_replay_dump.txt (ni remplace ni modifie -- c'est encore la
- * seule sortie que `make replay` produit), meme ligne sur stdout, meme
- * code de sortie. tests/test_pico8_headless_capture.c en fait une
- * assertion et pas une intention : il rejoue la meme fixture avec et
- * sans capture et compare les deux dumps. */
+ * argv[2], optional, is where each frame's pixels are written. Absent means no
+ * capture, and the driver then behaves exactly as it did before capture
+ * existed -- tests/test_pico8_headless_capture.c asserts that. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -78,29 +59,10 @@ int main(int argc, char **argv) {
     pico8_cart_load();
     pico8__init();
 
-    /* L'ouverture a lieu AVANT la premiere frame, et son echec tue le
-     * processus avant qu'une seule frame ne soit rejouee. Le PRD veut
-     * l'inverse de la politique de pico8_session_recorder, qui absorbe
-     * un echec d'ecriture plutot que de tuer la partie d'un humain :
-     * "Ici le contexte est inverse : personne ne joue, et un fichier
-     * tronque produirait silencieusement une empreinte fausse,
-     * c'est-a-dire un faux rouge indiscernable d'une regression." Une
-     * capture qui n'aurait jamais commence est le cas extreme de ce
-     * fichier tronque -- le chunk 3 calculerait une empreinte sur un
-     * fichier absent ou sur celui d'un rejeu precedent.
-     *
-     * fprintf(stderr) et un code de sortie plutot qu'un assert() comme
-     * le reste de ce fichier : un assert imprime une expression C et
-     * pas le chemin fautif, alors que "disque plein, chemin invalide"
-     * sont precisement les erreurs qu'un humain corrige en lisant le
-     * chemin qu'il a tape. Le message le nomme, donc.
-     *
-     * Place avant l'amorcage du jeu et pas juste avant la boucle : un
-     * chemin mal tape est signale tout de suite, et non apres le
-     * chargement de la cartouche. Le fichier vide qu'une ouverture
-     * reussie suivie d'un amorcage avorte laisserait derriere elle est
-     * le cas PICO8_SCREENCAST_EMPTY, que la lecture refuse deja
-     * explicitement -- il ne peut pas passer pour une capture. */
+    /* Ouverte avant la première frame, et un échec tue le processus : une capture
+     * absente ou tronquée produirait une empreinte fausse, indiscernable d'une
+     * régression. fprintf plutôt qu'un assert, pour que le message nomme le
+     * chemin fautif -- c'est ce qu'un humain corrige. */
     pico8_screencast_writer_t capture = { NULL };
     if (capture_path && !pico8_screencast_writer_open(&capture, capture_path)) {
         fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de capture '%s'\n",
@@ -108,6 +70,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    /* Entry 2 of bo() is the difficulty every replay starts on; the driver
+     * picks it for the player instead of waiting for a title-screen click. */
     pico8_value_t difficulty_entry;
     assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
     assert(difficulty_entry.kind == PICO8_VALUE_REF);

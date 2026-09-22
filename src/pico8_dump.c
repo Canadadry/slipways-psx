@@ -15,7 +15,7 @@ int pico8_dump_screen(const pico8_mem_t *mem, FILE *out) {
         char line[PICO8_SCREEN_WIDTH + 1];
         for (int x = 0; x < PICO8_SCREEN_WIDTH; x++) {
             unsigned char pixel = pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
-            assert(pixel <= 0x0f);
+            assert(pixel <= 0x0f && "screen memory holds one 4-bit color index per byte");
             line[x] = HEX_DIGITS[pixel];
         }
         line[PICO8_SCREEN_WIDTH] = '\n';

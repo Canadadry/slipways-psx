@@ -188,11 +188,11 @@ int pico8_input_load(pico8_input_t *input, const char *path) {
     return 1;
 }
 
-/* The events.json file's fixed head and tail, and the one place a frame
- * object's own line is spelled out -- shared by pico8_input_save and
- * pico8_input_append so the two writers cannot drift into producing
- * different bytes for the same frames. Between two frame lines comes
- * FRAME_SEPARATOR; after the last one comes JSON_SUFFIX. */
+/* The file's fixed head and tail, and the single spelling of a frame line,
+ * shared by pico8_input_save and pico8_input_append: the two writers must
+ * not drift into different bytes for the same frames (see
+ * pico8_input_append's contract). Frame lines are joined by
+ * FRAME_SEPARATOR, the last one followed by JSON_SUFFIX. */
 #define JSON_PREFIX "{\n  \"frames\": [\n"
 #define JSON_SUFFIX "\n  ]\n}\n"
 #define FRAME_SEPARATOR ",\n"
@@ -224,6 +224,9 @@ int pico8_input_save(const pico8_input_frame_t *frames, int frame_count, const c
         return 0;
     }
     snprintf(tmp_path, tmp_len, "%s.tmp", path);
+    /* tmp_len was sized for this exact suffix; a longer one would silently
+     * truncate the path and rename over the wrong file. */
+    assert(strlen(tmp_path) == strlen(path) + 4);
 
     FILE *f = fopen(tmp_path, "wb");
     if (!f) {
@@ -276,11 +279,10 @@ int pico8_input_append(const pico8_input_frame_t *frame, const char *path, long 
         return 0;
     }
 
-    /* `*io_tail_offset` is where the previous frame's object ended, i.e.
-     * where JSON_SUFFIX currently starts. Writing the new frame there
-     * turns that suffix into a separator plus the new frame's line plus a
-     * fresh suffix, which is strictly longer -- the file only ever grows,
-     * so nothing has to be truncated. */
+    /* `*io_tail_offset` is where JSON_SUFFIX currently starts. Writing
+     * there turns that suffix into a separator, the new line and a fresh
+     * suffix -- strictly longer, so the file only grows and nothing ever
+     * needs truncating. */
     int fresh = (*io_tail_offset <= 0);
     const char *head = fresh ? JSON_PREFIX : FRAME_SEPARATOR;
     long start = fresh ? 0 : *io_tail_offset;
@@ -300,11 +302,8 @@ int pico8_input_append(const pico8_input_frame_t *frame, const char *path, long 
         return 0;
     }
 
-    /* One fwrite of the whole tail, so a process killed mid-session cannot
-     * land between two halves of it: the recording on disk is either the
-     * one without this frame or the one with it, never a torn file. That is
-     * the same all-or-nothing guarantee pico8_input_save gets from writing
-     * a .tmp file and renaming it. */
+    /* One fwrite of the whole tail: a process killed mid-session leaves the
+     * recording either without this frame or with it, never torn. */
     size_t tail_len = (size_t)written;
     if (fwrite(tail, 1, tail_len, f) != tail_len) {
         fclose(f);
@@ -315,6 +314,9 @@ int pico8_input_append(const pico8_input_frame_t *frame, const char *path, long 
     }
 
     *io_tail_offset = start + (long)strlen(head) + (long)strlen(line);
+    /* The new offset must land exactly on the JSON_SUFFIX just written,
+     * which is where the next frame overwrites it. */
+    assert(*io_tail_offset + (long)strlen(JSON_SUFFIX) == start + (long)written);
     return 1;
 }
 

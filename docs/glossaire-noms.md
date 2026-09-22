@@ -54,7 +54,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `bu(qn,oa)` | `pico8_bu` | détection de front d'un bouton souris : remplit `on`/`jn`/`hm` (tenu / vient d'être pressé / vient d'être relâché) depuis `stat(34)` |
 | `on`, `jn`, `hm` | champs | bouton tenu / front descendant / front montant |
-| `ih` | `pico8_ih` | drapeau « son coupé », posé par l'écran de difficulté |
+| `ih` | `pico8_ih` | drapeau « son coupé », basculé par la rangée « toggle sfx » du **menu pause** |
 | `rn(no)` | `pico8_rn` | joue le sfx `no` si `no` est vrai et `ih` faux |
 | `sfx`, `music` | `pico8_sfx`, `pico8_music` | stubs inertes : l'audio est hors périmètre du port |
 | `sub(s,i,j)` | `pico8_sub` | sous-chaîne PICO-8, indices 1-based et bornes incluses |

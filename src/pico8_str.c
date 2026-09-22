@@ -6,8 +6,6 @@
 char *pico8_sub(const char *s, int i, int j) {
     int len = (int)strlen(s);
 
-    /* Clamp out-of-range indices the way PICO-8's own sub() does, rather
-     * than reading out of bounds or erroring. */
     if (i < 1) {
         i = 1;
     }
@@ -16,8 +14,6 @@ char *pico8_sub(const char *s, int i, int j) {
     }
 
     if (j < i) {
-        /* Empty range (e.g. an empty quoted-string token in ob()'s
-         * grammar): still a valid, independent, heap-owned string. */
         char *out = malloc(1);
         out[0] = '\0';
         return out;
