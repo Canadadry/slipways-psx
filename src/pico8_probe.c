@@ -1,5 +1,6 @@
 #include "pico8_probe.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,11 +18,6 @@
 #include "pico8_ke.h"
 #include "pico8_particle.h"
 #include "pico8_ui.h"
-
-/* See pico8_probe.h's own top comment for the full source/trace of `bv`/
- * `dl`/`d_`/`g_`, the bm-vs-mv()-routed-vs-pq field classification, the
- * double-underscore accessor naming decision, and the `fm` forward-
- * reference/Chunk 12 reconciliation note. */
 
 static pico8_class_t *g_probe_class = NULL;
 static pico8_instance_t *g_fm = NULL;
@@ -104,6 +100,8 @@ static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     return pico8_geom_be(qu_p, re_p, ctx->self_p, pico8_fixed_from_double(0.0032));
 }
 
+/* `hw` is read off the `ui` class defaults, not off `ok`; an absent class or
+ * an absent/wrong-kind box reads as "the point is not inside the panel". */
 static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
     pico8_class_t *ui_class = pico8_ui_class();
     pico8_value_t hw_val;
@@ -118,17 +116,6 @@ static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
     return pico8_qz_call((const pico8_qz_box_t *)hw_val.as.ref, rp);
 }
 
-/* function bv(self,mp,rp)self.ra,self.p=mp,mp/128
- * local nq,c=ij(self.p,cg.np)self.et=
- * nq<self.dw and c or
- * jp(cg.jc,function(sw)
- * return be(sw.qu.p,sw.re.p,self.p,0.0032)end)[1]or
- * not ui.hw(rp)and {}
- * if (self.et)self.et.fo=self
- * end
- * (pico8/lua.lua:552-559.) See pico8_probe.h's own top comment on this
- * declaration for the full trace of the `and`/`or` short-circuit chain and
- * the classless-`{}`-as-`pico8_instance_t` representation decision. */
 void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
@@ -145,6 +132,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_ob_table_set_name(self->fields, "ra", mp);
     mp_vec = pico8_probe_value_vec(mp);
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
+    /* TROU-7 */
     p_heap = malloc(sizeof *p_heap);
     *p_heap = p_vec;
     pico8_ob_table_set_name(self->fields, "p", pico8_value_ref(p_heap));
@@ -176,6 +164,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
         } else {
             pico8_vec_t rp_vec = pico8_probe_value_vec(rp);
             if (!pico8_probe_ui_hw_call(rp_vec)) {
+                /* TROU-7 */
                 pico8_instance_t *empty = malloc(sizeof *empty);
                 empty->tag = PICO8_TYPE_TAG_INSTANCE;
                 empty->fields = pico8_ob_table_new();
@@ -191,35 +180,18 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
 
     if (pico8_probe_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
         pico8_instance_t *et_inst = (pico8_instance_t *)et.as.ref;
+        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
+               "bv: et is an instance, real target or class-less throwaway, never a bare table");
         pico8_ob_table_set_name(et_inst->fields, "fo", pico8_value_ref(self));
     }
 }
 
-/* Bridges pico8_value_function_t's shape to pico8_bv's own signature;
- * `ui:bh()`'s own `mv(held,"hq",self.qa,je.ra)` passes argc=2, matching
- * `bg_hq_dispatch`'s own identical precedent. `bv` returns nothing (nil)
- * in the real source, so this bridges to `pico8_value_ref(NULL)`. */
 pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     pico8_bv((pico8_instance_t *)self, arg0, arg1);
     return pico8_value_ref(NULL);
 }
 
-/* function dl(self)if self.me=="kz" then
- * local mp,t=je.ra
- * if self.et then
- * t=self.et.qs
- * if (not t)spr(31,mp.x-3,mp.y-8)
- * elseif self.od then
- * t=self.od.."$"end
- * io(t or "",mp.x,mp.y-8,8,0.5)end
- * end
- * (pico8/lua.lua:560-567.) See pico8_probe.h's own top comment on this
- * declaration for the full trace -- a generic tooltip helper, not probe-
- * specific, reused directly by other classes (Chunks 14/15). `display`/
- * `heap_display` stand in for Lua's own `t` local (nil, `self.et.qs`, or
- * `self.od.."$"`, via pico8_value_tostr to reuse existing number-to-string
- * formatting rather than duplicate it). */
 void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_value_t me_val;
     pico8_vec_t mp;
@@ -275,9 +247,6 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
     free(heap_display);
 }
 
-/* Bridges to pico8_dl's own signature, reading gfx/mem from the shared
- * dispatch context (same split as pico8_ei/pico8_ei_dispatch). Wired as
- * `ev` -- a REAL bm name, so a future dc("ev") reaches this too. */
 pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
@@ -286,23 +255,6 @@ pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
     return pico8_value_ref(NULL);
 }
 
-/* function d_(self)if not self.et
- * and fm:lu(self.od)then
- * self:ks(self.dq or "ph")fm:nx(self.fp or 0)rn(self.ik or 54)
- * return true
- * else
- * rn(57)self.p_=true
- * end
- * end
- * (pico8/lua.lua:569-576.) See pico8_probe.h's own top comment on this
- * declaration for the full trace. CORRECTION (Chunk 14): `fm:lu`/`fm:nx`
- * are plain Lua method-call sugar, never mv()-routed -- like every other
- * `hy` method (pico8_economy.h's own convention, `hy` has no subclass) --
- * so this port calls pico8_hy_lu/pico8_hy_nx directly, not through
- * pico8_mv(). `self:ks(...)` is likewise a direct call (a known,
- * already-built implementation, pico8_ke_ks). The `not self.et and ...`
- * short-circuit is preserved exactly: `fm:lu` is only ever reached when
- * `!has_et`. */
 pico8_value_t pico8_d_(pico8_instance_t *self) {
     pico8_value_t et_val;
     int has_et;
@@ -323,34 +275,10 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
         if (od_val.kind == PICO8_VALUE_FIXED) {
             jt = od_val.as.fixed;
         }
-        /* CORRECTION (Chunk 14, docs/prd/triage/phase3-etape1-function-by-
-         * function-c-port.md): `fm:lu`/`fm:nx` were originally routed
-         * through pico8_mv() here because `hy` (Chunk 12) didn't exist yet
-         * when this chunk (10) was written -- see this file's own header
-         * comment on this declaration, still accurate as HISTORY. Once
-         * Chunk 12 landed, its own pico8_economy.h top comment settled the
-         * real convention for these two methods explicitly: "none of its
-         * own methods (pq,nx,hk,lu,lj,kt) are bm dispatch names or ever
-         * called via mv()/dc() in the real source ... so all are ported as
-         * direct, known C functions" -- `hy` is never subclassed anywhere
-         * in the real cart, so there is no runtime-polymorphic receiver to
-         * resolve here, unlike jo:kf/jo:cn's own genuine mv()-worthy
-         * cross-class dispatch. Chunk 12's own header comment even names
-         * THIS exact call site as its evidence ("e.g. d_'s fm:lu(...)/
-         * fm:nx(...), Chunk 10") while concluding it should be direct --
-         * an oversight this port's own code was never updated to match.
-         * Found and fixed here, Chunk 14, the first real caller (`jc:ey`)
-         * whose own end-to-end trade-cluster exercise this stale mv()
-         * routing silently defeated (pico8_mv(fm,"lu"/"nx",...) always
-         * returned "field not found" even after hy became real, since hy's
-         * own class never wires "lu"/"nx" as PICO8_VALUE_FUNCTION fields --
-         * correctly so, per Chunk 12's own convention). Same treatment as
-         * this port's other "gap found in already-shipped code, fixed
-         * minimally, documented" precedents (pico8_hp_lq_dispatch,
-         * pico8_gn_free's NULL guard) -- see docs/plan.md's "Notes de
-         * portage" for the full trace. */
         lu_ok = pico8_hy_lu(fm, jt);
     }
+
+    assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
     if (!has_et && lu_ok) {
         pico8_value_t dq_val;
@@ -384,9 +312,6 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
     return pico8_value_ref(NULL);
 }
 
-/* Bridges to pico8_d_'s own signature; `ui:bh()`'s own `mv(held,"ey",nw and
- * nw.kv)` passes argc=1 (unused). Returns pico8_d_'s own result directly,
- * same precedent as pico8_bg_ldown_dispatch for a non-void real function. */
 pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
@@ -394,17 +319,6 @@ pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_
     return pico8_d_((pico8_instance_t *)self);
 }
 
-/* function g_:mm()local a=(flr(rnd(self.pn))+rnd(0.5))/self.pn+self.t*0.001
- * local p=qm(self.du+rnd(),a)local v=p*self.py
- * return {p=p,v=self.pk and v:pa()or v,l=self.ki
- * }
- * end
- * (pico8/lua.lua:727-731.) See pico8_probe.h's own top comment on this
- * declaration for the full trace -- the first real definer of `mm`
- * anywhere in this port, giving Chunk 9's `ez`/`self:mm()` a real target
- * for the first time. Particle table shape matches pico8_particle.h's own
- * established "p"/"v"/"l" convention exactly, no "a" field (this source
- * omits one). */
 pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *self = (pico8_instance_t *)self_ptr;
     pico8_fixed_t pn, t, du, py, ki;
@@ -436,6 +350,7 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
         v = pico8_vec_pa(v);
     }
 
+    /* TROU-7 */
     particle = pico8_ob_table_new();
     p_heap = malloc(sizeof *p_heap);
     *p_heap = p;
@@ -448,32 +363,6 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     return pico8_value_ref(particle);
 }
 
-/* g_=ke:jr([[
- * nu=o("g_","prober"),
- * fx=1,
- * dq="ly",
- * od=0,fp=f,
- * fa=2,
- * dw=0.025,
- * py=0.06,ki=9,
- * pn=3,pk=1,
- * fc=1,
- * k_=o(1,1,5,13,6),
- * qo=1.02,ro=-0.0525,
- * qg=0.0525,q_=1.02,
- * du=2,
- * ]])g_.hq=bv
- * g_.ey=d_
- * g_.ev=dl
- * g_.pq=f_
- * g_.kj=ei
- * (pico8/lua.lua:708-726.) See pico8_probe.h's own top comment for the full
- * bm-vs-mv()-routed-vs-pq classification of these 5 field assignments, and
- * this file's own top comment for why `pq=f_`/`kj=ei` reuse Chunk 9's
- * `pico8_f_`/`pico8_ei_dispatch` verbatim rather than defining new bodies.
- * Also builds the `fm` forward-reference placeholder (classless, same
- * construction as Phase 2's own `g_mo`) -- see pico8_probe.h's own top
- * comment for the full trace and the Chunk 12 reconciliation note. */
 void pico8_probe_init(void) {
     pico8_probe_shutdown();
 
