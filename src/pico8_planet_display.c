@@ -1,5 +1,6 @@
 #include "pico8_planet_display.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,19 +18,9 @@
 #include "pico8_research_display.h"
 #include "pico8_stash.h"
 #include "pico8_ref_audit.h"
+#include "pico8_type_tag.h"
 
-/* Phase 3, Chunk 13, sub-lot 3's own pure module split (see
- * pico8_planet_display.h's own top comment for the full trace): `gh`,
- * `gv`, `hb` moved here verbatim from pico8_planet.c, along with the
- * private helpers used only by them. `pico8_jo_truthy` is intentionally
- * duplicated here (a plain copy, not shared via a header) rather than
- * exposed from pico8_planet.c, matching this port's own established
- * "small per-module private helper, documented duplication accepted"
- * convention already applied to this exact helper's own sibling copies
- * (pico8_probe_truthy/pico8_research_truthy/pico8_tech_gate_truthy/etc,
- * see pico8_planet.c's own comment on pico8_jo_truthy) -- both this copy
- * and pico8_planet.c's copy must stay behaviorally identical, since both
- * are ports of the exact same Lua truthiness rule. */
+/* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
 static int pico8_jo_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -40,15 +31,8 @@ static int pico8_jo_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* field_truthy/field_fixed/field_list/field_ref_table: the same small
- * "read a named field off an instance, with a documented default when
- * absent/wrong-kind" helpers already independently established (and
- * already flagged as an accepted, documented duplication) in
- * pico8_economy.c/pico8_economy_tiers.c/pico8_economy_formulas.c -- a
- * private per-module copy here, not shared, per this port's pervasive
- * "small per-module private helper" convention. Used only by `jo:gh`
- * below (moved here alongside it, unlike `pico8_jo_truthy` above which
- * pico8_planet.c's own remaining methods still need too). */
+/* Field readers: an absent field, a wrong kind, or a NULL instance all read
+ * as the zero/false/NULL default. */
 static int field_truthy(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
     if (self == NULL || !pico8_instance_get_field(self, name, &v)) {
@@ -65,13 +49,6 @@ static pico8_fixed_t field_fixed(const pico8_instance_t *self, const char *name)
     return pico8_fixed_from_int(0);
 }
 
-/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
- * two names this module ever passes. "jy": pico8_jo_lz()
- * (src/pico8_planet.c) and pico8_jo_cn() (src/pico8_planet_trade.c),
- * both heap lists. "by": bd_route_visit() (src/pico8_economy_tiers.c,
- * the pico8_jo_ib() return) and the `ga` class default, which
- * pico8_planet_family_init() now initialises as a real empty heap list
- * instead of leaving it as the spec string's `by=o()` ob_table. */
 static const pico8_list_t *field_list(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
     if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -83,17 +60,14 @@ static const pico8_list_t *field_list(const pico8_instance_t *self, const char *
 static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
     if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "field read as an ob_table is not one");
         return (const pico8_ob_table_t *)v.as.ref;
     }
     return NULL;
 }
 
-/* Not a port of any named Lua function: private per-module bridge from
- * "positional entries of a pico8_ob_table_t" to a pico8_list_t (used here
- * for `jo.cq`, `jo:gh`'s own `gu(jo.cq,self.kw.qe)`) -- the same
- * established pattern already independently duplicated by
- * pico8_research_display_positional_values/pico8_layout_positional_values/
- * pico8_msgbox_positional_values (documented, accepted duplication). */
+/* The returned list borrows the table's values: the caller frees the list,
+ * never the table. */
 static pico8_list_t pico8_jo_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -125,8 +99,6 @@ void pico8_jo_hb(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "jy", producers
-         * pico8_jo_lz()/pico8_jo_cn(), see field_list above. */
         jy_list = PICO8_REF_AS_LIST_CONST(jy_val.as.ref);
     }
     if (pico8_instance_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
@@ -140,13 +112,6 @@ void pico8_jo_hb(pico8_instance_t *self) {
         }
     }
     if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "by", producers
-         * bd_route_visit() and the `ga` class default now built as a
-         * real empty list by pico8_planet_family_init(); see field_list
-         * above. This is the site the audit found reading the `ga`
-         * default ob_table: `->count` happens to sit at the same offset
-         * in both structs, so the displayed export count was right by
-         * coincidence, not by construction. */
         by_list = PICO8_REF_AS_LIST_CONST(by_val.as.ref);
     }
 
@@ -159,9 +124,8 @@ typedef struct {
     pico8_list_t *ji;
 } pico8_jo_gh_ctx_t;
 
-/* jp(self.jy,function(i)for j=1,i.gc do add(ji,i)end return i.gc==0 end):
- * the predicate's own side effect (appending `i` to the captured `ji`
- * list `i.gc` times) threaded through pico8_jp's own ctx parameter. */
+/* Filters on `gc == 0`, and also appends the element to the `ji` list in
+ * `ctx` once per `gc`: the Lua predicate has that side effect. */
 static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
     pico8_jo_gh_ctx_t *ctx = (pico8_jo_gh_ctx_t *)ctx_ptr;
     pico8_fixed_t gc = pico8_fixed_from_int(0);
@@ -182,8 +146,8 @@ static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
     return gc == pico8_fixed_from_int(0);
 }
 
-/* `{lq=<list>}` -- one of jo:gh's own `bs` rows (pico8_pz's own documented
- * `{lq=...,h_=...}` row shape, pico8_msgbox.h). */
+/* One `bs` row in the `{lq=...,h_=...}` shape `pz()` expects. The row owns
+ * nothing: `lq_list` must outlive it. */
 static pico8_ob_table_t *pico8_jo_gh_row(pico8_list_t *lq_list) {
     pico8_ob_table_t *row = pico8_ob_table_new();
     pico8_ob_table_set_name(row, "lq", pico8_value_ref(lq_list));
@@ -209,7 +173,6 @@ void pico8_jo_gh(const pico8_instance_t *self) {
 
     pico8_list_init(&bs);
 
-    /* bs={{lq=self.px or jo.dz[self.mi]}} */
     bs1 = pico8_ob_table_new();
     if (pico8_instance_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
         icon_val = px_val;
@@ -227,7 +190,6 @@ void pico8_jo_gh(const pico8_instance_t *self) {
     }
     pico8_ob_table_set_name(bs1, "lq", icon_val);
 
-    /* bs[1].h_=self.kr and {ne(self.kr).."$",bg=self.kr>=0 and 1} */
     if (pico8_instance_get_field(self, "kr", &kr_val) && pico8_jo_truthy(kr_val)) {
         pico8_ob_table_t *h_tuple = pico8_ob_table_new();
         int discard_color = 0;
@@ -251,13 +213,11 @@ void pico8_jo_gh(const pico8_instance_t *self) {
     pico8_ob_table_set_name(bs1, "h_", h_field);
     pico8_list_add(&bs, pico8_value_ref(bs1));
 
-    /* local ji={"receives:"} */
     ji = malloc(sizeof *ji);
     pico8_list_init(ji);
     pico8_list_add(ji, pico8_value_string("receives:"));
     ctx.ji = ji;
 
-    /* local jx=jp(self.jy,function(i)...end) */
     jy = field_list(self, "jy");
     jx = pico8_jp(jy, pico8_jo_gh_jp_step, &ctx);
 
@@ -279,6 +239,7 @@ void pico8_jo_gh(const pico8_instance_t *self) {
         if (kw != NULL) {
             pico8_ob_table_get_name(kw, "qe", &kw_qe);
         }
+        /* TROU-3 */
         qe_is_r_w = pico8_ob_table_get_name(pico8_r(), "w", &r_w) && pico8_value_equal(kw_qe, r_w);
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
@@ -301,8 +262,9 @@ void pico8_jo_gh(const pico8_instance_t *self) {
     }
     pico8_list_free(&jx);
 
-    /* add(bs,ji[2]and{lq=ji}): ji[2] is Lua nil (not false) when nothing
-     * was ever appended -- add(t,nil) is a documented no-op. */
+    /* A `ji` still holding only its header means the predicate appended
+     * nothing; Lua's `add(t,nil)` is a no-op, so there is no row at all,
+     * not a row holding false. */
     if (ji->count >= 2) {
         pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(ji)));
     } else {
@@ -310,7 +272,6 @@ void pico8_jo_gh(const pico8_instance_t *self) {
         free(ji);
     }
 
-    /* if self.kw.mu>0 then ... end */
     {
         const pico8_ob_table_t *kw = field_ref_table(self, "kw");
         pico8_fixed_t mu = pico8_fixed_from_int(0);
@@ -365,7 +326,8 @@ void pico8_jo_gh(const pico8_instance_t *self) {
         }
     }
 
-    /* for i=2,#bs do add(bs[i].lq,{false,1}) end */
+    /* From the second row on: the first row's `lq` is a single icon value,
+     * not a list. */
     for (i = 1; i < bs.count; i++) {
         pico8_value_t row_val = bs.items[i];
         if (row_val.kind == PICO8_VALUE_REF && row_val.as.ref != NULL) {
@@ -376,14 +338,6 @@ void pico8_jo_gh(const pico8_instance_t *self) {
                 pico8_ob_table_t *tuple = pico8_ob_table_new();
                 pico8_ob_table_set_index(tuple, 1, pico8_value_bool(0));
                 pico8_ob_table_set_index(tuple, 2, pico8_value_fixed(pico8_fixed_from_int(1)));
-                /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
-                 * CONSTRUCTION. Producer: pico8_jo_gh_row() in this same
-                 * file, which is the only thing that builds the rows
-                 * this loop walks -- and the loop starts at i=1 on
-                 * purpose, skipping `bs1`, the one row built by hand
-                 * above whose "lq" is an icon string or a `jo.dz` entry
-                 * rather than a list (`for i=2,#bs`, pico8/lua.lua's own
-                 * bound). */
                 pico8_list_add(PICO8_REF_AS_LIST(lq_val.as.ref), pico8_value_ref(tuple));
             }
         }
@@ -412,66 +366,13 @@ pico8_value_t pico8_jo_gv(const pico8_instance_t *self, const pico8_instance_t *
     return pico8_value_bool(1);
 }
 
-/* Per-item context for pico8_jo_fe_step below: `self` (the planet)
- * threaded through pico8_nv's own `ctx` parameter, matching this port's
- * established "closure -> context struct" convention (see e.g.
- * pico8_planet.c's own pico8_jo_lz_mw_step, or this same file's own
- * pico8_jo_gh_jp_step above) for the parts of the real closure's own
- * captured upvalues that a SYNCHRONOUS map step can just read straight
- * off a C local -- unlike `od`/`b` themselves, which the "my" closure
- * needs to survive PAST this map (see pico8_jo_fe_my_dispatch below for
- * why those two are threaded a different way). */
 typedef struct {
     pico8_instance_t *self;
 } pico8_jo_fe_ctx_t;
 
-/* `my=function()if fm:lu(od)then self:hu(b)end end`: the one real Lua
- * closure inside `jo:fe`'s own mapper that is NOT resolved synchronously
- * (unlike `lq`/`h_`/`jb`, computed once per item right here) -- it is
- * stored as a genuine PICO8_VALUE_FUNCTION field value on the built row,
- * to be called LATER, generically, by `mv(rowEntity,"my")` (pico8_value.h's
- * own comment on pico8_value_function_t already lists this EXACT real call
- * shape: `mv(self,"my")`, js:ldown/fq:ldown, 0 extra arguments) -- once the
- * row becomes a real `js` button instance via `pz()`'s own `js(b)`
- * construction (Chunk 8, already built: `pico8_class_instantiate` copies
- * EVERY field of the row table verbatim onto the new instance, per its own
- * documented "mw(ob)=qj({},ob)" contract).
- *
- * C has no closures (this port's own pervasive limitation, already
- * documented at pico8_layout.c's own top comment) -- and unlike every
- * closure this port has represented so far (a `ctx` pointer threaded
- * through a SYNCHRONOUS pico8_jp/pico8_nv/pico8_pz_step call, resolved
- * before that call returns), THIS closure must still be callable an
- * arbitrary time LATER, through the generic, single-C-function-pointer
- * `pico8_value_function_t` shape (no userdata/context slot of its own).
- * Resolved here by exploiting the exact same fact `pico8_pz_step` already
- * relies on: whichever entity `pico8_mv()` is eventually called ON (the
- * real Lua `self` a colon-call would receive) IS the row/button instance
- * itself -- so its own real captured upvalues (`self` here meaning the
- * PLANET, `b` the `hp` instance, `od` the fixed value) are stashed as
- * three EXTRA fields on the very same row `pico8_ob_table_t` being built
- * (`"_jo_fe_pt"`/`"_jo_fe_b"`/`"_jo_fe_od"` -- leading underscore, `jo_fe`
- * prefix: clearly NOT real Lua field names, pure C-port plumbing with no
- * Lua-source equivalent, the same kind of new, clearly-named infrastructure
- * this port's Out of Scope section already carves out an exception for,
- * e.g. `pico8_pi_dispatch_register`). Since `pico8_class_instantiate` (and
- * therefore `js(b)`/`pz()`) copies EVERY field of `overrides` verbatim --
- * confirmed by reading `pico8_class_instantiate`'s own real body,
- * pico8_class.c -- these three extra fields ride along onto the final `js`
- * instance untouched, and this bridge reads them straight back off its own
- * `self` parameter (which, at call time, WILL be that same instance) via
- * the ordinary `pico8_instance_get_field` fallback-chain lookup. This is a
- * NEW representational technique this sub-lot introduces (the first real
- * Lua closure in scope whose own upvalues must survive past a synchronous
- * map call) -- not a rewrite of any existing convention, and it changes no
- * OBSERVABLE behavior: the extra fields are never read by anything else
- * (`pz()`'s own real source only ever writes `ra`/`qf`/`fa`, never
- * enumerates a row's fields), so this is invisible to every other real
- * call site. Ignores its own dispatched `self`/`argc`/`arg0`/`arg1` for
- * the SAME reason `jo:hb`/`jo:hk`'s own bridges do: the real Lua closure
- * here (`function()...end`) declares no parameters of its own, so real
- * Lua's own "extra call arguments are simply discarded" semantics apply
- * regardless of what mv() actually passes. */
+/* C has no closures: the three values the Lua `my` callback captures ride
+ * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
+ * verbatim onto the button instance this bridge is later dispatched on. */
 static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     const pico8_instance_t *inst = (const pico8_instance_t *)self;
     pico8_value_t pt_val;
@@ -499,38 +400,13 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
         od = od_val.as.fixed;
     }
 
+    assert(pt != NULL && "jo:fe's my callback lost its captured planet");
     if (pico8_hy_lu(pico8_fm(), od)) {
         pico8_jo_hu(pt, b);
     }
     return pico8_value_ref(NULL);
 }
 
-/* function(b)local od=b:od()
- * return {lq=mv(b,"lq"),h_=od>0 and {od.."$",c=13},my=function()if fm:lu(od)then
- * self:hu(b)end
- * end,jb=b:jb()}
- * end
- * (pico8/lua.lua:418-422, jo:fe's own inline `nv()` mapper.) Builds one
- * row per research entry `b` (an `hp` instance, per `bj()`'s own
- * documented return shape, pico8_research_display.h). `od=b:od()`: a
- * direct, known same-class call (`pico8_hp_od`, pico8_research.h). `lq=
- * mv(b,"lq")`: a genuine `mv()` dispatch (see pico8_research.h's own
- * "CORRECTION" note on why `hp`'s class now wires "lq" for exactly this
- * call site) -- `pico8_mv` returning 0 (field genuinely absent, never
- * evidenced as a real case once the fix lands) leaves the row's own "lq"
- * key UNSET, matching Lua's own `{lq=nil}` never creating that key. `h_=
- * od>0 and {od.."$",c=13}`: `od>0` is a genuine Lua COMPARISON, always a
- * real boolean (unlike `jo:gh`'s own `self.kr and {...}`, where the
- * left-hand side is a plain field read) -- so the falsy branch is the
- * literal boolean `false`, not `od` itself; the truthy branch's `od..
- * "$"` uses `pico8_value_tostr` (this port's own established "concatenate
- * a fixed value with a string suffix" convention, matching `jo:gh`'s own
- * identical `#self.by.."/"..self.kw.mu` treatment). `jb=b:jb()`: another
- * direct, known same-class call (`pico8_hp_jb`, pico8_research_display.h).
- * `my=...`: see pico8_jo_fe_my_dispatch above for the full closure-
- * representation trace. Always contributes a row (never a falsy/nil `nv()`
- * skip -- the real Lua table constructor here is always truthy), so this
- * always returns 1 for a well-formed element. */
 static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_value) {
     const pico8_jo_fe_ctx_t *ctx = (const pico8_jo_fe_ctx_t *)ctx_ptr;
     pico8_instance_t *b;
@@ -549,6 +425,8 @@ static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_v
 
     if (pico8_mv(b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
         pico8_ob_table_set_name(row, "lq", lq_val);
+    } else {
+        assert(0 && "hp must expose \"lq\" as an mv()-dispatchable field");
     }
 
     if (od > pico8_fixed_from_int(0)) {
@@ -610,23 +488,10 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         return;
     }
 
-    /* p=ma(p,self): re-derives the screen position AND decays self.ma
-     * (pico8_ma's own documented side effect) -- `adjusted` is used by
-     * every remaining line below, never the raw parameter `p`. */
+    /* Also decays `self.ma`. Everything below draws at `adjusted`, never
+     * at the `p` that was passed in. */
     adjusted = pico8_ma(p, self);
 
-    /* if self.me=="ll" and rnd(30)<self.t-30 then return end -- NOT dead
-     * code: jo:hh() (pico8_planet.c's own pico8_jo_hh, ported from
-     * pico8/lua.lua:407-411) does `self.nk=jo.ir()<0.45 and df.ll or
-     * jo.oc()` then `self:ks(self.nk.me or "known")`, and df.ll
-     * (pico8/lua.lua:1378, `o("ll",45,0,me="ll")`) has `me="ll"` -- so
-     * roughly 45% of real jo:hh() calls DO set self.me="ll" for real, via
-     * ke:ks() (pico8/lua.lua:185, `self.me,self.t=me,0`, the base-class
-     * method jo inherits). Genuinely REACHABLE once Chunk 20 wires
-     * jo.ir/jo.oc to a real generator (g_jo_ir/g_jo_oc are still NULL
-     * today, pico8_planet.c) -- simply not yet EXERCISED by any
-     * already-ported code path. See this file's own header comment on
-     * pico8_jo_kj for the full trace. */
     if (pico8_instance_get_field(self, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
         strcmp(me_val.as.string, "ll") == 0) {
         pico8_fixed_t t = field_fixed(self, "t");
@@ -638,24 +503,15 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     px = (int)pico8_fixed_to_double(adjusted.x);
     py = (int)pico8_fixed_to_double(adjusted.y);
 
-    /* circfill(p.x,p.y,7,0) */
     pico8_circfill(gfx, mem, px, py, 7, 0);
 
-    /* dv(self.qw): self.qw is never set on jo ITSELF, but Chunk 15's `nl`
-     * (a real jo-family subclass, jo->qh->nl, not yet ported) DOES set it
-     * for real -- as a class-level default (nl=qh:jr([[...od=20,qw=15,...
-     * ]]), pico8/lua.lua:1057-1066) and again as a per-instance override
-     * (nl:ly(t)'s own self.qw=8+t%42/6 when self.mi>=2). Until Chunk 15
-     * lands, no real jo-family instance in scope ever has qw set, so
-     * absent reads as 0 (this file's own field_fixed) remains the
-     * correct, evidenced behavior today -- same observable effect as
-     * pico8_dv_default. See this file's own header comment on pico8_jo_kj
-     * for the full trace. */
+    /* An absent `qw` reads as 0, i.e. the default palette block. */
     pico8_dv(mem, field_fixed(self, "qw"));
     pico8_palt(mem, 3, 0);
     pico8_palt(mem, 0, 1);
 
-    /* spr(self.nk and self.nk.s or self.s or 43,p.x-4,p.y-4,2,2) */
+    /* `A and B or C`: a truthy `nk` whose own `s` is absent still falls
+     * through to `self.s`, then to the literal 43. */
     if (pico8_instance_get_field(self, "nk", &nk_val) && pico8_jo_truthy(nk_val) && nk_val.kind == PICO8_VALUE_REF &&
         nk_val.as.ref != NULL &&
         pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "s", &s_val) &&
@@ -667,7 +523,6 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
     pico8_dv_default(mem);
 
-    /* if self:gg()then circ(p.x,p.y,6,jo.ka[self.mi])spr(self.mi+1,p.x-3,p.y-6)end */
     if (pico8_jo_truthy(pico8_jo_gg(self))) {
         int mi = (int)pico8_fixed_to_double(field_fixed(self, "mi"));
         int color = 0;
@@ -684,10 +539,8 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         pico8_spr_default(gfx, mem, mi + 1, px - 3, py - 6);
     }
 
-    /* mv(self.lq,"ol",p+v(0,7),0.5) -- the game's own mv() global
-     * function, ported through the real pico8_mv() mechanism (not a
-     * direct call). See this file's own header comment on pico8_jo_kj for
-     * why lq's own "ol" field needed to be newly wired for this. */
+    /* `offset` is a stack vector handed over by address: safe only because
+     * `mv()` resolves the call before returning. */
     {
         pico8_value_t lq_val;
         if (pico8_instance_get_field(self, "lq", &lq_val) && lq_val.kind == PICO8_VALUE_REF &&
@@ -697,12 +550,15 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             pico8_value_t offset_val = pico8_value_ref(&offset);
             pico8_value_t a_val = pico8_value_fixed(pico8_fixed_from_double(0.5));
             pico8_value_t discard;
-            pico8_mv((pico8_instance_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
+            int dispatched;
+            assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
+                   "jo.lq must be an lq instance");
+            dispatched = pico8_mv((pico8_instance_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
+            assert(dispatched && "lq must expose \"ol\" as an mv()-dispatchable field");
+            (void)dispatched;
         }
     }
 
-    /* if self.fo then fillp(0b1010101010101010.1)circfill(p.x,p.y,
-     * sqrt(self.fo.dw)*128,2)fillp()self.fo=nil end */
     {
         pico8_value_t fo_val;
         if (pico8_instance_get_field(self, "fo", &fo_val) && pico8_jo_truthy(fo_val) &&
@@ -719,13 +575,9 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             radius_f = pico8_fixed_mul(pico8_fixed_sqrt(dw), pico8_fixed_from_int(128));
             radius = (int)pico8_fixed_to_double(radius_f);
 
-            /* 0b1010101010101010.1 -- the trailing .1 is PICO-8's own
-             * fill-pattern transparency flag ("when this bit is set, the
-             * second colour is not drawn"), so the pattern's set bits
-             * leave the screen untouched here rather than drawing 0x2's
-             * own (empty) high nibble: pico8_fillp_transparent, not
-             * pico8_fillp. See this file's own header comment on
-             * pico8_jo_kj. */
+            /* The pattern literal's fractional `.1` is PICO-8's
+             * transparency flag: its set bits leave the screen untouched,
+             * so this is `_transparent`, not plain `pico8_fillp`. */
             pico8_fillp_transparent(gfx, 0xAAAAu);
             pico8_circfill(gfx, mem, px, py, radius, 2);
             pico8_fillp_reset(gfx);

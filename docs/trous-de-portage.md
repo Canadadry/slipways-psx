@@ -49,6 +49,14 @@ plusieurs modules ont leur propre comparaison par contenu (`jo:gg`, `dh`,
 `db`). Toute nouvelle comparaison de chaînes doit choisir explicitement,
 `pico8_value_equal` ne fera pas ce qu'on croit.
 
+**Une exception, qui explique deux sites voisins qui ne se ressemblent
+pas.** Les valeurs que `ho()` route à travers `r` partagent littéralement
+le pointeur de `r` : là, la comparaison par identité est correcte. C'est
+le cas de `kw.qe` (routé depuis `hp.o`), d'où un `pico8_value_equal` dans
+`jo:gh` là où `db()` — qui compare une chaîne d'une autre provenance —
+doit passer par le contenu. Aucun des deux n'est à « corriger » d'après
+l'autre.
+
 Fichiers : `src/pico8_value.c`, `src/pico8_collect.c`.
 
 ## TROU-4 — `oo()` ne retombe pas sur la table quand le constructeur rend faux
