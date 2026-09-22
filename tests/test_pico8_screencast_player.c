@@ -52,15 +52,16 @@ static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
 /* LA FIN DU FICHIER, QUI EST LA VRAIE DECISION DE CE MODULE. La lecture
  * reprend a la premiere frame au lieu de s'arreter sur la derniere. Le
  * PRD demande que le visualiseur joue le fichier "en continu", et la
- * raison est la meme que celle de la ligne de progression du rejeu
- * interactif : une image figee est indiscernable d'un programme plante,
- * et c'est exactement le doute que ce visualiseur existe pour lever.
- * Un humain qui veut revoir un passage n'a alors rien a relancer.
+ * raison est dans l'en-tete du module : une capture a une fin, et la
+ * derniere image est celle qu'un humain vient examiner avant de signer
+ * une empreinte -- une lecture qui repartirait au debut la lui
+ * retirerait au moment ou il la regarde.
  *
- * La suite complete est affirmee, et pas seulement le retour a zero :
- * un curseur qui repartirait de 0 puis resterait coince y passerait un
- * test qui ne regarderait que la premiere reprise. */
-static void test_playback_loops_back_to_the_first_frame_at_the_end(void) {
+ * La suite complete est affirmee, et l'avance est appelee PLUSIEURS
+ * fois au-dela de la fin : un curseur qui se figerait une fois puis
+ * repartirait, ou qui deborderait a la deuxieme avance de trop,
+ * passerait un test qui s'arreterait a la premiere. */
+static void test_playback_freezes_on_the_last_frame(void) {
     pico8_screencast_player_t player;
     pico8_screencast_player_init(&player, 3);
 
@@ -69,14 +70,13 @@ static void test_playback_loops_back_to_the_first_frame_at_the_end(void) {
     assert(pico8_screencast_player_current_frame(&player) == 1);
     pico8_screencast_player_advance(&player);
     assert(pico8_screencast_player_current_frame(&player) == 2);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 0);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 1);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 2);
-    pico8_screencast_player_advance(&player);
-    assert(pico8_screencast_player_current_frame(&player) == 0);
+
+    /* La derniere frame est atteinte : a partir d'ici, plus rien ne
+     * bouge, et surtout jamais vers 0. */
+    for (int i = 0; i < 50; i++) {
+        pico8_screencast_player_advance(&player);
+        assert(pico8_screencast_player_current_frame(&player) == 2);
+    }
 }
 
 /* Un fichier d'une seule frame est une capture valide (8 192 octets), et
@@ -189,7 +189,7 @@ static void test_the_shared_palette_is_the_published_pico8_one(void) {
 
 int main(void) {
     test_playback_starts_at_the_first_frame_and_walks_in_order();
-    test_playback_loops_back_to_the_first_frame_at_the_end();
+    test_playback_freezes_on_the_last_frame();
     test_a_single_frame_capture_stays_on_its_only_frame();
     test_each_refusal_names_the_path_and_its_own_reason();
     test_a_refusal_truncates_rather_than_overflowing();

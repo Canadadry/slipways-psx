@@ -166,11 +166,11 @@ int main(int argc, char **argv) {
         /* Les trois memes touches que le rejeu interactif, lues par la
          * meme fonction -- voir le commentaire en tete de fichier. */
         pico8_raylib_backend_poll_replay_controls(&control);
-        /* `replay_active` vaut toujours 1 : ici la lecture ne s'epuise
-         * jamais, elle reboucle, et il n'y a pas de "partie vivante" a
-         * laquelle rendre les 60 FPS du jeu. Passer 0 ramenerait
-         * silencieusement toute lecture a la vitesse du jeu et
-         * annulerait l'echelle de vitesse. */
+        /* `replay_active` vaut toujours 1, y compris une fois la
+         * lecture figee sur la derniere frame : il n'y a ici aucune
+         * "partie vivante" a laquelle rendre les 60 FPS du jeu. Passer
+         * 0 ramenerait silencieusement toute lecture a la vitesse du
+         * jeu et annulerait l'echelle de vitesse. */
         pico8_raylib_backend_set_frame_rate_cap(pico8_replay_control_target_fps(&control, 1));
 
         int index = pico8_screencast_player_current_frame(&player);
@@ -215,8 +215,11 @@ int main(int argc, char **argv) {
         EndDrawing();
 
         /* Avance APRES l'affichage : la premiere frame du fichier est la
-         * premiere montree. Le rebouclage en fin de fichier est dans le
-         * curseur, ou il est teste. */
+         * premiere montree. L'arret sur la derniere frame est dans le
+         * curseur, ou il est teste -- d'ou l'absence de toute condition
+         * de fin ici : une fois la fin atteinte, cet appel ne fait plus
+         * rien et la fenetre continue de dessiner la derniere image,
+         * que la ligne d'etat annonce "N / N". */
         pico8_screencast_player_advance(&player);
     }
 

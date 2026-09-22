@@ -1,5 +1,6 @@
 /* Voir pico8_screencast_player.h pour ce qu'est ce module, pourquoi il
- * vit hors du fichier raylib, et pourquoi la lecture reboucle. */
+ * vit hors du fichier raylib, et pourquoi la lecture se fige sur la
+ * derniere frame. */
 
 #include "pico8_screencast_player.h"
 
@@ -29,15 +30,18 @@ int pico8_screencast_player_current_frame(const pico8_screencast_player_t *playe
 void pico8_screencast_player_advance(pico8_screencast_player_t *player) {
     assert(player);
 
-    player->current++;
-    /* Le rebouclage, et le seul endroit du depot ou il est ecrit. Fait
-     * ici plutot que par un modulo au moment de l'affichage : l'index
-     * tenu reste toujours un index valide du fichier, donc aucun
-     * appelant ne peut demander au chunk 1 une frame qui n'existe pas,
-     * et la ligne d'etat ne peut pas annoncer une frame au-dela du
-     * total. */
-    if (player->current >= player->frame_count) {
-        player->current = 0;
+    /* La lecture se FIGE sur la derniere frame, elle ne reboucle pas
+     * (voir en tete de pico8_screencast_player.h). L'increment est
+     * garde plutot que suivi d'un recadrage : ainsi `current` ne prend
+     * jamais, meme le temps d'une instruction, une valeur hors du
+     * fichier, donc aucun appelant ne peut demander au chunk 1 une
+     * frame qui n'existe pas et la ligne d'etat ne peut pas annoncer
+     * une frame au-dela du total. Appeler cette fonction sur la
+     * derniere frame est un no-op, autant de fois qu'on veut : c'est ce
+     * qui rend la fin de lecture stable plutot qu'un cas a detecter par
+     * l'appelant. */
+    if (player->current + 1 < player->frame_count) {
+        player->current++;
     }
 }
 

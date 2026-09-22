@@ -26,14 +26,18 @@
  * un module de dix lignes teste vaut mieux que dix lignes noyees dans
  * un fichier que personne ne peut executer.
  *
- * LA LECTURE REBOUCLE EN FIN DE FICHIER. Le PRD demande que le
- * visualiseur joue le fichier "en continu", et la raison est celle qui
- * a deja donne sa ligne de progression au rejeu interactif : une image
- * figee sur la derniere frame est indiscernable d'un programme plante,
- * et lever ce doute est precisement ce qu'on attend d'un instrument
- * qu'un humain regarde pour SIGNER une empreinte. Le rebouclage donne
- * aussi, gratuitement, le seul geste de navigation dont ce chunk a
- * besoin : revoir un passage sans rien relancer.
+ * LA LECTURE SE FIGE SUR LA DERNIERE FRAME. Une capture a une fin, et
+ * la montrer est ce qu'on attend d'un instrument qu'un humain regarde
+ * pour SIGNER une empreinte : la derniere image du fichier est celle
+ * qu'il doit pouvoir examiner, et une lecture qui repart au debut la
+ * lui retire au moment ou il la regarde.
+ *
+ * REJETE : le rebouclage, qui a ete ecrit d'abord. Son argument etait
+ * qu'une image figee est indiscernable d'un programme plante -- vrai en
+ * general, faux ici : la ligne d'etat affiche "frame courante / total"
+ * a chaque frame, donc une lecture terminee s'y lit "N / N" et se
+ * distingue d'elle-meme d'un blocage. Le doute que le rebouclage
+ * pretendait lever etait deja leve par autre chose.
  *
  * REJETE : la pause, le retour en arriere, le saut a une frame
  * arbitraire, les chapitres depuis le fichier de marqueurs. Hors
@@ -91,11 +95,10 @@ void pico8_screencast_player_init(pico8_screencast_player_t *player, int frame_c
  * humain compte, et l'appelant ajoute donc 1. */
 int pico8_screencast_player_current_frame(const pico8_screencast_player_t *player);
 
-/* Passe a la frame suivante, ou revient a la premiere quand la
- * derniere vient d'etre affichee : la lecture ne se termine jamais
- * d'elle-meme, elle reboucle (voir en tete de ce fichier). Rien
- * d'autre ne fait avancer la lecture, et rien ici ne touche au
- * fichier. */
+/* Passe a la frame suivante, sauf sur la derniere frame ou l'appel ne
+ * fait rien : la lecture s'y arrete et y reste (voir en tete de ce
+ * fichier). Appelable indefiniment dans cet etat. Rien d'autre ne fait
+ * avancer la lecture, et rien ici ne touche au fichier. */
 void pico8_screencast_player_advance(pico8_screencast_player_t *player);
 
 /* Ecrit dans `out` (toujours termine par un NUL, tronque plutot que
