@@ -93,6 +93,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ma(p,e)` | `pico8_ma` | fait décroître le halo de `e` et décale `p` d'un vecteur polaire |
 | `ij(p,j_)` | `pico8_ij` | plus proche voisin : rend la distance au carré et l'entité |
 | `mo` | `pico8_mo` | la caméra (instance `qb`) |
+| `mp`, `rp` | — | les deux positions de souris passées à `hd`/`gk` : monde et écran. `fa >= 10` décide laquelle sert |
 
 ## Générateurs procéduraux
 
