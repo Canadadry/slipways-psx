@@ -1,5 +1,6 @@
 #include "pico8_slipway_display.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -9,6 +10,7 @@
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
+/* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
 static int pico8_jc_display_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -19,6 +21,8 @@ static int pico8_jc_display_truthy(pico8_value_t v) {
     return 1;
 }
 
+/* Field readers: an absent field, a wrong kind, or a NULL instance or table
+ * all read as the zero/false/NULL default. */
 static pico8_value_t pico8_jc_display_field_value(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v)) {
@@ -93,6 +97,8 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
     if (self == NULL) {
         return;
     }
+    /* The random draw happens before the `hg` test, as in Lua: swapping the
+     * two would consume the RNG differently and desynchronise every replay. */
     if (pico8_fixed_rnd_default() >= pico8_fixed_from_double(0.08)) {
         return;
     }
@@ -119,11 +125,6 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
                 pico8_ob_table_set_name(particle, "v", pico8_value_ref(v_heap));
                 pico8_ob_table_set_name(particle, "l", pico8_value_fixed(pico8_vec_qx(d)));
 
-                /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
-                 * CONSTRUCTION. Producer: pico8_jc_pq()
-                 * (src/pico8_slipway.c), which mallocs and
-                 * pico8_list_init()s `ts`; sole writer of "ts" in the
-                 * port, and no spec string declares a `ts` default. */
                 pico8_list_add(PICO8_REF_AS_LIST(ts_val.as.ref), pico8_value_ref(particle));
             }
         }
@@ -142,6 +143,9 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     if (self == NULL) {
         return;
     }
+
+    assert(s > pico8_fixed_from_int(0) && "jc:lg only ascends: a zero step hangs, a negative one draws nothing");
+    assert(gfx != NULL && mem != NULL && "pico8_line dereferences gfx and mem: neither may be NULL here");
 
     qu = pico8_jc_display_field_instance(self, "qu");
     re = pico8_jc_display_field_instance(self, "re");
@@ -186,6 +190,8 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
         pico8_fixed_t bc;
         pico8_fixed_t tc;
 
+        assert(nh_i >= 1 && "k_ is 1-based: an nh of 0 would silently draw the slipway black");
+
         if (k_val.kind == PICO8_VALUE_REF && k_val.as.ref != NULL) {
             pico8_value_t entry;
             if (pico8_ob_table_get_index((const pico8_ob_table_t *)k_val.as.ref, nh_i, &entry) &&
@@ -214,8 +220,6 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
         {
             pico8_value_t ts_val = pico8_jc_display_field_value(self, "ts");
             if (ts_val.kind == PICO8_VALUE_REF && ts_val.as.ref != NULL) {
-                /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "ts",
-                 * producer pico8_jc_pq() (src/pico8_slipway.c). */
                 pico8_list_t *ts = PICO8_REF_AS_LIST(ts_val.as.ref);
                 int i;
                 for (i = 0; i < ts->count; i++) {
@@ -242,6 +246,8 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
                     new_l = pico8_fixed_sub(pico8_jc_display_table_field_fixed(t, "l"), pico8_fixed_from_int(1));
                     pico8_ob_table_set_name(t, "l", pico8_value_fixed(new_l));
 
+                    /* No `else` in the Lua: an expired particle is removed
+                     * and still drawn once more at its final position. */
                     if (new_l <= pico8_fixed_from_int(0)) {
                         pico8_list_del(ts, t_val);
                     }

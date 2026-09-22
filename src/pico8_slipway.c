@@ -1,5 +1,6 @@
 #include "pico8_slipway.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -21,17 +22,9 @@
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
-/* Phase 3, Chunk 14 (docs/prd/triage/phase3-etape1-function-by-function-c-
- * port.md): jc's own class declaration plus its "core lifecycle/dispatch"
- * methods (pq, hq, ey, ce, eb, ev). See pico8_slipway.h's own top comment
- * and each function's own comment there for the full Lua-source trace;
- * this file carries the port itself. pico8_jc_truthy/pico8_jc_field_*
- * are this module's own private copies of the same field-access/truthy
- * patterns already independently duplicated by pico8_probe.c/pico8_
- * planet.c/pico8_planet_trade.c/etc (documented, accepted duplication,
- * not a new pattern). */
 static pico8_class_t *g_jc_class = NULL;
 
+/* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
 static int pico8_jc_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -42,6 +35,8 @@ static int pico8_jc_truthy(pico8_value_t v) {
     return 1;
 }
 
+/* Field readers: an absent field, a wrong kind, or a NULL instance all read
+ * as the zero/false/NULL default. */
 static pico8_value_t pico8_jc_field_value(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v)) {
@@ -136,7 +131,10 @@ void pico8_jc_hq(pico8_instance_t *self, pico8_value_t mp) {
     et = pico8_jc_ce(self);
     pico8_ob_table_set_name(self->fields, "et", et);
     if (pico8_jc_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
-        pico8_instance_t *et_inst = (pico8_instance_t *)et.as.ref;
+        pico8_instance_t *et_inst;
+        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
+               "jc:ce must yield an instance to hang `fo` on");
+        et_inst = (pico8_instance_t *)et.as.ref;
         pico8_ob_table_set_name(et_inst->fields, "fo", pico8_value_ref(self));
     }
 
@@ -152,18 +150,13 @@ void pico8_jc_ey(pico8_instance_t *self, pico8_instance_t *re) {
         return;
     }
 
+    /* `d_()` charges the player and advances the clock, so it must stay
+     * behind the `re == NULL` short-circuit. */
     should_fail = (re == NULL) || !pico8_jc_truthy(pico8_d_(self));
     if (should_fail) {
-        /* stat(19)==50: pico8_stat's own dead-branch fallback (see this
-         * file's own header comment on pico8_jc_ey) -- always 0 for index
-         * 19, so this is dead-but-compiled, same treatment as the branch
-         * itself. pico8_stat, like pico8_btn, requires a non-NULL `input`
-         * (the CALLER guards, matching pico8_qb_ph's/pico8_nf_ph's own
-         * established "if (input==NULL) return/skip" precedent, pico8_
-         * scroll.c/pico8_mouse_reader.c) -- pico8_dispatch_input() is
-         * still NULL before dg()/_update60() (Chunk 22) ever sets a real
-         * input, so this guard is genuinely load-bearing today, not
-         * speculative. */
+        /* pico8_stat has no case for 19, so it reads 0 and this sfx never
+         * fires; ported anyway. It dereferences `input` without checking it,
+         * so the NULL guard below is load-bearing. */
         const pico8_input_t *input = pico8_dispatch_input();
         if (input != NULL && pico8_stat(input, 19) == 50) {
             pico8_rn(pico8_value_fixed(pico8_fixed_from_int(-1)));
@@ -178,19 +171,14 @@ void pico8_jc_ey(pico8_instance_t *self, pico8_instance_t *re) {
     {
         pico8_instance_t *qu = pico8_jc_field_instance(self, "qu");
         pico8_value_t discard;
-        pico8_mv(qu, "kf", 1, pico8_value_ref(self), pico8_value_ref(NULL), &discard);
-        pico8_mv(re, "kf", 1, pico8_value_ref(self), pico8_value_ref(NULL), &discard);
-        /* fm:nx(1) -- a direct call, NOT pico8_mv(): hy (Chunk 12) is
-         * never subclassed anywhere in the real cart, so there is no
-         * runtime-polymorphic receiver to resolve here, unlike qu:kf(self)/
-         * re:kf(self) above (a real jo/mx-family ambiguity). Matches
-         * pico8_economy.h's own explicit, documented convention for every
-         * hy method ("none ... are ever called via mv()/dc() ... ported as
-         * direct, known C functions") -- see pico8_probe.c's own pico8_d_
-         * for the CORRECTION note on the identical fm:lu/fm:nx pattern this
-         * chunk's own reading of pico8_economy.h surfaced and fixed there
-         * too (Chunk 10's own pico8_d_ had stale pico8_mv() routing left
-         * over from before hy existed). */
+        int qu_registered;
+        int re_registered;
+        qu_registered = pico8_mv(qu, "kf", 1, pico8_value_ref(self), pico8_value_ref(NULL), &discard);
+        re_registered = pico8_mv(re, "kf", 1, pico8_value_ref(self), pico8_value_ref(NULL), &discard);
+        assert(qu_registered && re_registered &&
+               "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
+        (void)qu_registered;
+        (void)re_registered;
         pico8_hy_nx(pico8_fm(), pico8_fixed_from_int(1));
     }
 }
@@ -200,6 +188,8 @@ typedef struct {
     pico8_vec_t dp;
 } pico8_jc_ce_np_ctx_t;
 
+/* `be()` excludes the segment's own endpoints (their projection fraction is
+ * exactly 0 or 1), so `qu` and `re` never match themselves here. */
 static int pico8_jc_ce_np_predicate(pico8_value_t e, void *ctx_ptr) {
     const pico8_jc_ce_np_ctx_t *ctx = (const pico8_jc_ce_np_ctx_t *)ctx_ptr;
     pico8_instance_t *n;
@@ -217,6 +207,8 @@ typedef struct {
     pico8_value_t self_mt;
 } pico8_jc_ce_jc_ctx_t;
 
+/* `self` is already registered in `cg("jc")` when this runs; `cl()` of a
+ * segment against itself is always false, so no self-exclusion is needed. */
 static int pico8_jc_ce_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     const pico8_jc_ce_jc_ctx_t *ctx = (const pico8_jc_ce_jc_ctx_t *)ctx_ptr;
     pico8_instance_t *sw;
@@ -270,10 +262,6 @@ pico8_value_t pico8_jc_ce(pico8_instance_t *self) {
     {
         pico8_value_t oe_val = pico8_jc_field_value(qu, "oe");
         if (oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-            /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY
-             * CONSTRUCTION. `qu` is the planet this slipway targets, and
-             * "oe" has exactly one writer in the port: pico8_jo_pq()
-             * (src/pico8_planet.c). */
             pico8_list_iter_t it = pico8_list_all(PICO8_REF_AS_LIST_CONST(oe_val.as.ref));
             pico8_value_t w_val;
             while (pico8_list_iter_next(&it, &w_val)) {
@@ -282,6 +270,8 @@ pico8_value_t pico8_jc_ce(pico8_instance_t *self) {
                 if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
                     continue;
                 }
+                assert(pico8_type_tag_of(w_val.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
+                       "qu.oe must hold slipway instances");
                 w = (pico8_instance_t *)w_val.as.ref;
                 if (pico8_mv(w, "eb", 1, pico8_value_ref(qu), pico8_value_ref(NULL), &eb_result) &&
                     pico8_value_equal(eb_result, pico8_value_ref(re))) {
@@ -330,6 +320,8 @@ pico8_value_t pico8_jc_eb(const pico8_instance_t *self, const pico8_instance_t *
     qu = pico8_jc_field_instance(self, "qu");
     re_val = pico8_jc_field_value(self, "re");
 
+    /* `A and B or C`: a falsy `self.re` falls through to `self.qu`, so this
+     * is not a plain ternary. */
     if (jo_instance == qu && pico8_jc_truthy(re_val)) {
         return re_val;
     }
