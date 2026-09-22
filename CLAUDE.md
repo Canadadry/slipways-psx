@@ -15,18 +15,8 @@
 - `make test` est la suite complète. La légende des cibles est en tête du `Makefile`.
 - `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
 
-## Commentaires : ce qui a le droit de rester dans le code
+## Commentaires
 
-Un commentaire va dans une de ces destinations, sinon il part :
+Un commentaire ne reste que s'il porte l'une de ces quatre choses : le sens d'un nom minifié (→ `docs/glossaire-noms.md`), un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* TROU-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
 
-- **Le sens d'un nom minifié** (`jo`, `bv`, `cg`, `kq`…) → `docs/glossaire-noms.md`, une ligne par symbole. Les identifiants C portent déjà le nom d'origine (`pico8_bv`, `pico8_jo_kj`) ; c'est le sens qui manquait, pas le nom.
-- **Un écart connu avec le cart, ou un morceau volontairement non fait** → `docs/trous-de-portage.md`, numéroté. Le code s'y réfère par un `/* TROU-7 */` nu, rien de plus.
-- **Un piège qu'un lecteur futur pourrait réintroduire** → un `assert(cond && "…")` porteur de message si la condition est vérifiable à l'exécution, sinon **40 mots maximum**. Pas de récit, pas de trace ASan, pas d'historique des correctifs.
-- **Un contrat C que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui la libère, ce que rend la fonction quand le champ est absent → une phrase en en-tête.
-- **`TODO`** reste autorisé : c'est l'aveu qu'un cas n'est pas traité.
-
-Dans un `Makefile`, la seule destination est l'aide à la lecture d'une commande.
-
-Tout le reste — pourquoi telle décision a été prise, ce qui avait été essayé avant, quelle revue a signalé quoi — va dans le **message de commit**. Git le garde, et personne ne le paie en jetons à chaque lecture du fichier.
-
-Le code Lua d'origine ne se recopie pas en commentaire : `pico8/lua.lua` est dans le dépôt, et les tests de rejeu (`make test`, 9 729 frames) sont ce qui atteste la fidélité.
+Pour reprendre un fichier déjà écrit : skill `reprendre-les-commentaires`.
