@@ -1,22 +1,32 @@
-# Project notes
+# Notes de projet
 
-- The active porting target is **PC via raylib, software rendering** — see `docs/plan.md`. Strategy: literal function-by-function port of `pico8/lua.lua` (the actual decompiled cart source), not a rewrite from the design doc. PSX (previous target) is paused, not abandoned — resumed only once a fully playable PC/C version exists.
-- Never launch the raylib app interactively (no live window) at any phase before Phase 5 of `docs/plan.md`. Non-interactive checks are fine: running it for a fixed number of frames driven by a scripted `events.json` and dumping the framebuffer as text is the intended verification method — see `docs/plan.md`'s testing strategy.
-- Audio (`sfx`/`music`) is explicitly out of scope for this port, not deferred.
-- The Love2D prototype (`game/`) has been removed — it embodied the abandoned "rewrite from the design doc" approach.
-- `psx-hello/` is a PSn00bSDK smoke-test project (real toolchain build, not attempted in a sandboxed session — see `docs/psx-hello-world.md` for what was and wasn't verified and why). `make psn00bsdk-toolchain-setup` builds the real toolchain from source (slow, ~30-45 min, network-heavy — do not run it expecting it to finish quickly); `make psx-hello` builds the project once the toolchain is installed.
-- raylib is not available as a system package in this project's environment, so it's vendored: `make raylib-vendor-setup` clones a pinned raylib release tag into `third_party/raylib/` (gitignored) and builds raylib's own static library from its own build system — network-heavy (a fresh clone) and a one-time setup step, kept separate from `make`/`make test`. `src/main_raylib.c`/`src/pico8_raylib_backend.c` depend on it; `make raylib` (link-only, never executes the binary) builds them against it. Both the vendor script and the Makefile's link flags are OS-aware (`uname -s`): on Linux, `apt-get` installs the X11/GL dev headers and links `-lGL -lX11 -lpthread -ldl -lrt`; on macOS, no package install is needed (just Xcode Command Line Tools) and it links the `-framework OpenGL -framework Cocoa -framework IOKit -framework CoreAudio -framework CoreVideo` set raylib's own `src/Makefile` documents for an external PLATFORM_DESKTOP program on OSX. `RAYLIB_VENDOR_SKIP_APT=1 make raylib-vendor-setup` skips the `sudo apt-get` step on Linux for anyone who already has the dependencies or can't/won't grant sudo.
+## Le portage
 
-# Commentaires : ce qui a le droit de rester dans le code
+- Cible active : **PC via raylib, rendu logiciel** — voir `docs/plan.md`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception.
+- PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
+- L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
 
-Le portage a produit 18 500 lignes de commentaire pour 39 000 lignes de code, presque toutes consacrées à justifier le chantier lui-même (numéros de chunk, renvois aux PRD, code Lua recopié, récit des décisions). Ce n'est plus la matière qu'on garde. La règle, désormais :
+## Ce qu'on ne fait pas
 
-- **Le sens d'un nom minifié** (`jo`, `bv`, `cg`, `kq`…) va dans `docs/glossaire-noms.md`, une ligne par symbole. Le code ne le répète pas : les identifiants C portent déjà le nom d'origine (`pico8_bv`, `pico8_jo_kj`), c'est le sens qui manquait.
-- **Un écart connu avec le cart, ou un morceau volontairement non fait**, va dans `docs/trous-de-portage.md`, numéroté. Le code s'y réfère par un `/* TROU-7 */` nu, rien de plus.
-- **Un piège qu'un lecteur futur pourrait réintroduire** reste sur place, mais sous la forme la plus courte qui tienne : un `assert(0 && "…")` porteur de message quand la condition est vérifiable à l'exécution, sinon un commentaire de **40 mots maximum**. Pas de récit, pas de trace ASan, pas d'historique des correctifs précédents.
-- **Un contrat C que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui doit la libérer, ce que rend la fonction quand le champ est absent — reste en en-tête, en une phrase.
+- **Ne jamais lancer l'appli raylib en interactif** (aucune fenêtre) avant la phase 5 de `docs/plan.md`. La vérification se fait sans fenêtre : N frames pilotées par un `events.json` scripté, puis dump texte du framebuffer.
+
+## Build
+
+- `make test` est la suite complète. La légende des cibles est en tête du `Makefile`.
+- `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
+
+## Commentaires : ce qui a le droit de rester dans le code
+
+Un commentaire va dans une de ces destinations, sinon il part :
+
+- **Le sens d'un nom minifié** (`jo`, `bv`, `cg`, `kq`…) → `docs/glossaire-noms.md`, une ligne par symbole. Les identifiants C portent déjà le nom d'origine (`pico8_bv`, `pico8_jo_kj`) ; c'est le sens qui manquait, pas le nom.
+- **Un écart connu avec le cart, ou un morceau volontairement non fait** → `docs/trous-de-portage.md`, numéroté. Le code s'y réfère par un `/* TROU-7 */` nu, rien de plus.
+- **Un piège qu'un lecteur futur pourrait réintroduire** → un `assert(cond && "…")` porteur de message si la condition est vérifiable à l'exécution, sinon **40 mots maximum**. Pas de récit, pas de trace ASan, pas d'historique des correctifs.
+- **Un contrat C que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui la libère, ce que rend la fonction quand le champ est absent → une phrase en en-tête.
 - **`TODO`** reste autorisé : c'est l'aveu qu'un cas n'est pas traité.
+
+Dans un `Makefile`, la seule destination est l'aide à la lecture d'une commande.
 
 Tout le reste — pourquoi telle décision a été prise, ce qui avait été essayé avant, quelle revue a signalé quoi — va dans le **message de commit**. Git le garde, et personne ne le paie en jetons à chaque lecture du fichier.
 
-Le code Lua d'origine ne se recopie plus en commentaire : `pico8/lua.lua` est dans le dépôt, et les tests de rejeu (`make test`, 9 729 frames) sont ce qui atteste la fidélité.
+Le code Lua d'origine ne se recopie pas en commentaire : `pico8/lua.lua` est dans le dépôt, et les tests de rejeu (`make test`, 9 729 frames) sont ce qui atteste la fidélité.
