@@ -1,8 +1,3 @@
-/* See pico8_research_display.h's own top comment for why this module
- * exists separately from pico8_research.c (a pure module-size split, same
- * source region), and each declaration's own comment there for the full
- * Lua source/trace of every function ported here. */
-
 #include "pico8_research_display.h"
 
 #include <stddef.h>
@@ -16,11 +11,8 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ref_audit.h"
 
-/* Lua truthiness (nil/false falsy, everything else truthy), extended to
- * also treat PICO8_VALUE_REF(NULL) as falsy -- same extension established
- * throughout this port (pico8_probe.c/pico8_tech_gate.c/pico8_research.c).
- * A private per-module copy, not shared with pico8_research.c's own
- * identical helper, per this file's own top comment on the size split. */
+/* Lua truthiness, widened so this port's "absent" filler REF(NULL) is
+ * falsy too. */
 static int pico8_research_display_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -31,12 +23,8 @@ static int pico8_research_display_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Not a port of any named Lua function: private per-module bridge from
- * "positional entries of a pico8_ob_table_t" to a pico8_list_t (used here
- * for `gb`, pico8_bj's own `jp(gb,...)`) -- a separate copy from
- * pico8_research.c's own identical helper, per this file's own top comment
- * on the size split. Returns a new, heap-backed list the caller owns and
- * must release with pico8_list_free(). */
+/* Returns a new, heap-backed list the caller owns and must release with
+ * pico8_list_free(). */
 static pico8_list_t pico8_research_display_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -53,11 +41,7 @@ static pico8_list_t pico8_research_display_positional_values(const pico8_ob_tabl
     return list;
 }
 
-/* Not a port of any named Lua function: counts an ob_table's own POSITIONAL
- * entries only (Lua's own `#t` for a table built purely positionally) --
- * used by pico8_hp_lq below to compute the next free index before its own
- * two `add(l,...)` calls onto an already-`pq()`'d lq instance's raw fields
- * (see pico8_hp_lq's own header comment). */
+/* Lua's `#t` for a table built purely positionally. */
 static int pico8_research_display_count_positional(const pico8_ob_table_t *table) {
     int i;
     int count = 0;
@@ -73,12 +57,7 @@ static int pico8_research_display_count_positional(const pico8_ob_table_t *table
     return count;
 }
 
-/* `for i in all(self.i)do it=(it and it..","or"")..iz[tostr(i.qe)]end`
- * (pico8/lua.lua:1416-1419) -- hp:jb's own comma-join loop, factored out
- * so pico8_hp_jb (below) stays focused on the surrounding table shape.
- * Growable-buffer string concatenation, matching pico8_unstash's own
- * established "incremental growable string" pattern (pico8_stash.c).
- * Returns a newly heap-allocated, NUL-terminated string the caller owns
+/* Returns a newly heap-allocated, NUL-terminated string the caller owns
  * and must free(). */
 static char *pico8_hp_jb_join(const pico8_instance_t *self) {
     pico8_value_t i_val;
@@ -94,10 +73,6 @@ static char *pico8_hp_jb_join(const pico8_instance_t *self) {
     if (!pico8_instance_get_field(self, "i", &i_val) || i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
         return out;
     }
-    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-     * Producer: pico8_hp_pq() (src/pico8_research.c), which ends by
-     * replacing whatever the `ho()` rename pass wrote into "i" with the
-     * heap pico8_list_t* pico8_fi() built. Sole writer of "i". */
     i_list = PICO8_REF_AS_LIST_CONST(i_val.as.ref);
     it = pico8_list_all(i_list);
     while (pico8_list_iter_next(&it, &entry)) {
@@ -134,9 +109,6 @@ static char *pico8_hp_jb_join(const pico8_instance_t *self) {
     return out;
 }
 
-/* function hp:jb()...end (pico8/lua.lua:1414-1421.) See
- * pico8_research_display.h's own top comment on this declaration for the
- * full trace. */
 pico8_ob_table_t *pico8_hp_jb(const pico8_instance_t *self) {
     pico8_value_t ii_val;
     char *it;
@@ -172,9 +144,6 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_instance_t *self) {
     return outer;
 }
 
-/* function jo.ex(is,o,jq,mj,d)...end (pico8/lua.lua:518-538.) See
- * pico8_research_display.h's own top comment on this declaration for the
- * full trace, including the `jo.em` forward reference. */
 pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
                                pico8_fixed_t d) {
     pico8_ob_table_t *l;
@@ -195,6 +164,7 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
 
     {
         pico8_value_t r_w;
+        /* TROU-3 */
         int o_is_r_w = pico8_ob_table_get_name(pico8_r(), "w", &r_w) && pico8_value_equal(o, r_w);
 
         if (o_is_r_w) {
@@ -231,10 +201,8 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
             pico8_ob_table_set_index(tuple, 1, qe);
             pico8_ob_table_set_index(
                 tuple, 2, pico8_value_fixed(pico8_fixed_sub(pico8_fixed_from_int(3), pico8_fixed_from_int(lc))));
-            /* Lua's `i.gc~=0 and 0 or 7`: gc==0 -> 7, gc~=0 (or absent) -> 0
-             * (0 is truthy in Lua, so this is NOT the naive "gc==0 -> 0"
-             * reading -- fixed here after a verifier caught the inverted
-             * ternary). */
+            /* Lua's `i.gc~=0 and 0 or 7`: gc==0 -> 7, gc~=0 or absent -> 0.
+             * 0 is truthy in Lua, so it is NOT "gc==0 -> 0". */
             pico8_ob_table_set_index(tuple, 3, pico8_value_fixed(pico8_fixed_from_int(gc_zero ? 7 : 0)));
             pico8_ob_table_set_index(l, idx++, pico8_value_ref(tuple));
         }
@@ -308,10 +276,6 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
     return result;
 }
 
-/* function hp:lq()...end (pico8/lua.lua:1409-1413.) See
- * pico8_research_display.h's own top comment on this declaration for the
- * full trace, including the deliberately preserved `self.lq` field-vs-
- * method naming collision. */
 pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
     pico8_value_t i_val;
     pico8_value_t o_val;
@@ -329,8 +293,6 @@ pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "i", &i_val) && i_val.kind == PICO8_VALUE_REF && i_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "i", producer
-         * pico8_hp_pq() (src/pico8_research.c), sole writer. */
         is = PICO8_REF_AS_LIST_CONST(i_val.as.ref);
     }
     if (!pico8_instance_get_field(self, "o", &o_val)) {
@@ -359,18 +321,13 @@ pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
     return l;
 }
 
-/* `bj(jo)`'s own ctx for its filter predicate below -- `jo` (renamed here
- * to `jo_instance`), the real Lua closure's own captured upvalue. */
+/* The filter closure's captured upvalue. */
 typedef struct {
     const pico8_instance_t *jo_instance;
 } pico8_bj_ctx_t;
 
-/* `function(b)if oj(b.rr)then local mg fi(b.lr,function(k)mg=mg or
- * k==jo.nk.px end) return mg end end` (pico8/lua.lua:1392-1397) -- `bj`'s
- * own real Lua closure. See pico8_research_display.h's own top comment on
- * pico8_bj for the full trace, including why the `k==jo.nk.px` comparison
- * is a direct C-character comparison, not routed through pico8_gu/
- * pico8_gu_content at all. */
+/* `jo.nk.px` is one character wide by construction, so `k==jo.nk.px` is a
+ * plain char comparison here -- no string identity involved. */
 static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     pico8_bj_ctx_t *ctx = ctx_ptr;
     pico8_instance_t *b;
@@ -416,11 +373,6 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     return mg;
 }
 
-/* function bj(jo)
- * return jp(gb,function(b)...end)
- * end
- * (pico8/lua.lua:1391-1398.) See pico8_research_display.h's own top
- * comment on this declaration for the full trace. */
 pico8_list_t pico8_bj(const pico8_instance_t *jo_instance) {
     pico8_list_t items = pico8_research_display_positional_values(pico8_gb());
     pico8_bj_ctx_t ctx;

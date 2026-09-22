@@ -23,7 +23,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `t` | champ `"t"` | compteur de frames de l'état courant |
 | `mv(e,rm,...)` | `pico8_mv` | dispatch : résout `e[rm]`, l'appelle si c'est une fonction, sinon rend la valeur |
 | `dc(nt)` | `pico8_dc` | envoie le message `nt` à toutes les entités inscrites sous ce nom ; la branche `kj` dessine couche par couche via `ci` |
-| `ft(rc,nt,pu)` | — | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` » ; porté en ligne à chaque site |
+| `ft(rc,nt,pu)` | `pico8_ft_index`, `pico8_ft_name` | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` ». La clé polymorphe de Lua devient deux points d'entrée ; seul `pico8_ft_index` a un appelant (`ui:gw`) |
 | `bm` | — | les cinq noms de message que `dc` sait router : `kj`, `ev`, `hd`, `hk`, `hb` |
 | `cv` | `pico8_cv` | entités indexées par nom de message `bm` : `kj` (dessin), `ev`, `hd` (survol), `hk`, `hb` |
 | `cg` | `pico8_cg` | entités indexées par étiquette (`nu`), d'où `cg("jo")` = toutes les planètes |
@@ -577,3 +577,35 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `cr` | l'écran de l'arbre technologique — mais `pj.cr` est un bloc de mise en page |
 | `ij` | la fonction « plus proche voisin » — mais sur `mz`, le champ qui retient l'ancrage choisi |
 | `l` | la durée de vie d'une particule — mais sur `iv`, l'avancement du fondu |
+
+### Projets de recherche et icônes d'amélioration
+
+| Nom | Sens |
+|---|---|
+| `fj` | coût de base d'un projet, avant les modificateurs de `hp:od` |
+| `ja` | clé du projet dans `hc`, qui donne sa table de production |
+| `il` | technologie qui **améliore** le projet : coût ×1,5 et production prise sur l'entrée améliorée |
+| `mc` | sur une entrée de `hc`, le nom de l'entrée améliorée que `hp:po` substitue |
+| `ii` | marqueur « ce projet est une technologie » : supprime la bulle, fait écrire un `lq` **donnée** au lieu d'une méthode |
+| `lr` | codes de type de planète qu'un projet accepte, comparés à `jo.nk.px` |
+| `i` | ressources requises, développées en liste de `{qe=…}` |
+| `o` | ressource produite |
+| `dm` | routé par `gp` comme `o` ; aucun lecteur trouvé |
+| `fk` | l'entrée `{false,2}` que `hp:lq` ajoute en fin de rangée |
+| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` — c'est `gp` qui rend `o`/`dm` identiques au pointeur de `r`, donc qui justifie l'exception de TROU-3 |
+| `ke` (sur `ie`) | la **classe** d'amélioration que l'icône construit, pas une instance |
+| `kh` | drapeau d'instance « icône déjà révélée » |
+| `id` (sur `ie`) | compteur de classe, source de l'override de sprite |
+| `jo.em` | l'entrée d'espacement que `jo.ex` ajoute après chaque élément |
+
+### Locales du parseur et de la boucle d'entités
+
+Elles n'existent pas hors de leur fonction, mais le port a gardé leurs noms.
+
+| Nom | Sens |
+|---|---|
+| `rj` | dans `kv:jr`, la table de spec qui **devient** la classe |
+| `ko`, `iy` | remontée de chaîne à l'instanciation : la classe courante, et le dernier `pq` appelé. `iy` porte toute la règle de déduplication |
+| `qc`, `fl` | dans `dc()` : l'entité visitée, et les 15 seaux par couche |
+| `kn`, `s`, `n`, `lm`, `sc`, `rq` | dans `ob()` : table résultat, début du token, clé courante, profondeur de parenthèses, premier caractère du token, position suivante |
+| `f` | dans une spec, l'identifiant nu `f` vaut le **faux** littéral — c'est ce qui rend `fp=f` différent de `fp=0` |
