@@ -1,6 +1,3 @@
-/* See pico8_game_data.h's own top comment for what each of these ports and
- * why they're grouped into one module. */
-
 #include "pico8_game_data.h"
 
 #include <stddef.h>
@@ -11,7 +8,6 @@ static pico8_ob_table_t *g_b_ = NULL;
 static pico8_ob_table_t *g_co = NULL;
 static pico8_ob_table_t *g_fb = NULL;
 
-/* See pico8_game_data.h's own comment on this declaration. */
 void pico8_game_data_shutdown(void) {
     pico8_ob_table_free(g_es);
     g_es = NULL;
@@ -59,6 +55,7 @@ pico8_fixed_t pico8_bn(void) {
     return pico8_fixed_from_int(6);
 }
 
+/* TROU-1 */
 pico8_fixed_t pico8_bq(void) {
     return pico8_fixed_from_double(0.0977);
 }

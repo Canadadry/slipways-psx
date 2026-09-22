@@ -433,7 +433,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hp:od()` | `pico8_hp_od` | coût du projet, réduit par les technologies acquises |
 | `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée |
 | `gb` | `pico8_gb` | tous les projets construits depuis `fd` |
-| `cb(t)` | `pico8_cb` | les technologies affichables ; `t` vrai ignore le coût |
+| `cb(bi)` | `pico8_cb` | les technologies affichables ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
 | `gi(t)` | `pico8_gi` | coût en points de recherche d'une technologie |
 
 ## Particules

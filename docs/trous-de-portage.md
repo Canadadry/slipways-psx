@@ -232,3 +232,64 @@ que le cart à un endroit et pas aux autres.
 
 Fichiers : `src/pico8_economy_tiers.c`, `src/pico8_economy_formulas.c`,
 `src/pico8_entity.c`.
+
+## TROU-16 — Le tirage pondéré lit hors bornes si son pool se vide
+
+`gn()` construit un pool de tickets **consommable** : chaque `gn_next()`
+retire le ticket tiré, et rien ne le regarnit. Quand il est vide,
+`idx0` vaut 0 et le code lit `oc.items[0]` sur une liste vide — `items`
+peut être NULL.
+
+Les chiffres, calculés sur le littéral `df` du dépôt avec `og=2` :
+**66 tickets**. `bw(90)` place 90 planètes, et `jo:hh` tire un ticket pour
+chacune qui ne prend pas la branche fixe (environ 55 % des cas). L'espérance
+reste sous 66, mais la queue de distribution la franchit.
+
+Trouvé en reprenant les commentaires : un agent voulait poser
+`assert(oc.count > 0)` et a calculé la marge avant de l'écrire — l'assert
+aurait sauté. Ni le cart ni ce port ne gardent contre ce cas ; en Lua,
+`oc[flr(r()*0+1)]` vaut nil et le `until not gu(nm,e)` boucle
+indéfiniment, ce qui n'est pas mieux.
+
+Fichier : `src/pico8_gen.c`.
+
+## TROU-17 — Le générateur pseudo-aléatoire n'est pas celui de PICO-8
+
+`pico8_fixed_rnd` tire d'un générateur maison (`pico8_rnd_next_u32`), pas
+de celui de PICO-8. Aucune séquence ne coïncide.
+
+Conséquence directe, et plus forte que TROU-1 : l'objectif acté
+« même graine → même galaxie » **ne tient pas** face au vrai cart, et pas
+seulement parce que le flottant dérive. Ici la première valeur tirée
+diffère déjà.
+
+Les rejeux internes restent déterministes — ce port se compare à
+lui-même.
+
+Fichier : `src/pico8_fixed.c`.
+
+## TROU-18 — Le remap de couleurs de `pal()` n'est pas porté
+
+`pico8_spr` lit la couleur d'un pixel de la feuille de sprites, teste le
+bit de transparence, puis l'écrit **telle quelle**. Le remap de couleurs
+que `pal()` installe dans la palette de dessin n'est appliqué nulle part :
+seul le bit 0x80 de l'octet de palette est lu.
+
+Ce qui marche quand même : `dv()` sélectionne un bloc de palette et le
+cart s'en sert surtout pour éteindre ou allumer des couleurs, pas pour les
+permuter. Ce qui ne marche pas se verrait sur un effet qui permute
+réellement deux couleurs.
+
+Fichier : `src/pico8_gfx.c`, marqué par un `TODO` sur place.
+
+## TROU-19 — La police est reconstituée à la main
+
+Les glyphes de PICO-8 appartiennent à son runtime, pas au cart : ils ne
+sont dans aucun asset exportable. Ce port les redessine — 3×5 pixels dans
+une cellule de 4 — et affiche un bloc plein pour tout caractère non
+couvert.
+
+Divergence visuelle permanente, assumée : la seule façon de la refermer
+serait de relever les glyphes depuis PICO-8 lui-même.
+
+Fichier : `src/pico8_gfx.c`.
