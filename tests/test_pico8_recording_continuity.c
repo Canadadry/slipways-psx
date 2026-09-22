@@ -1,54 +1,17 @@
-/* Chunk 3 of docs/prd/triage/raylib-replay-then-resume.md ("Continuite
- * de l'enregistrement : la session reprise ecrit un enregistrement
- * complet, contenant les frames rejouees puis les nouvelles, verifie
- * rejouable"). The PRD prescribes this test almost word for word: "La
- * continuite de l'enregistrement se teste de bout en bout en headless :
- * produire un enregistrement de reprise, le recharger, et verifier
- * qu'il contient les frames rejouees suivies des nouvelles, et qu'il se
- * recharge sans erreur."
+/* The seam between the replay source and the session recorder, which each
+ * have their own tests and neither of which says what happens where they
+ * meet -- the only place a resume can go wrong. The loop below drives both
+ * real modules in `main_raylib.c`'s order, replacing only the hardware
+ * poll.
  *
- * WHY THIS FILE EXISTS AT ALL, GIVEN THAT THE CODE ALREADY DID IT.
- * src/main_raylib.c's loop has recorded every frame it is about to
- * play, replayed or live, since Chunk 2 -- one unconditional call to
- * the recorder. So the behavior this chunk owes was plausibly already
- * there, which is exactly why it is worth proving instead of
- * declaring: nothing anywhere asserted that the file coming out of a
- * resumed session holds the replayed frames FOLLOWED BY the new ones,
- * and a single misplaced `if` would have turned a resumed game into a
- * recording that describes half a game -- "reprendre une partie casse
- * la chaine", the PRD's own words, and the failure the player would
- * only discover the next time they tried to resume.
+ * Frames are compared field by field and in order: a count of N+M would
+ * pass on a recording that replayed the wrong frames, replayed them
+ * backwards, or wrote the live ones first, and each of those reloads fine
+ * and replays to a different game.
  *
- * WHAT IS REALLY UNDER TEST IS THE PAIR, NOT EITHER PIECE. The input
- * source alone is already covered (tests/test_pico8_replay_source.c),
- * and so is the incremental writer (tests/test_pico8_input.c, whose
- * test_append_recording_is_byte_identical_to_save_every_frame pins the
- * file on disk to what a full rewrite would have produced after EVERY
- * appended frame -- the prior art the PRD's Testing Decisions cite, and
- * it does hold). Neither says anything about what happens at the seam
- * between them, which is the only place a resume can go wrong. So the
- * loop below is not a stand-in for main_raylib.c's loop: it drives the
- * same two real modules, in the same order, with the same "take the
- * frame from the file while there is one, from the hardware
- * afterwards" switch, and the only thing it replaces is the hardware
- * poll -- the one part that needs a window and is therefore the one
- * part this environment can never run (CLAUDE.md).
- *
- * WHY THE ASSERTIONS ARE FIELD-BY-FIELD AND ORDERED. A test that
- * counted N+M frames would pass on a recording that replayed the wrong
- * frames, replayed them backwards, or recorded the live frames first;
- * every one of those produces a file that reloads fine and replays to
- * a different game. The recorded values are chosen to make any such
- * mix-up visible: replayed and live frames occupy disjoint value ranges
- * and no two frames are alike.
- *
- * WHY IT DOES NOT STOP AT RELOADING THE FILE. The last test feeds the
- * resumed recording back into a fresh pico8_replay_source, which is
- * user story 9 ("je veux que l'enregistrement issu d'une reprise soit
- * rejouable a son tour, afin de pouvoir reprendre une partie deja
- * reprise") and the PRD's stated reason the chain does not break at the
- * first resume. Loading a file only says it parses; serving it as a
- * replay source is what the next session actually does with it. */
+ * The last test serves the resumed recording back as a replay source
+ * rather than merely reloading it: parsing says nothing about what the
+ * next session does with the file. */
 
 #include "../src/pico8_session_recorder.h"
 #include "../src/pico8_replay_source.h"
@@ -56,9 +19,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* The session that is resumed: N frames, every field distinct, all
- * mouse coordinates below 50 so that a live frame can never be mistaken
- * for a replayed one. */
+/* The session that is resumed: every field distinct, all coordinates
+ * below 50, so a live frame can never be mistaken for a replayed one. */
 #define SOURCE_FRAME_COUNT 5
 static const pico8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
     { 10, 11, 0, { 0, 0, 0, 0 } },
@@ -68,8 +30,8 @@ static const pico8_input_frame_t k_source_frames[SOURCE_FRAME_COUNT] = {
     { 18, 19, 3, { 0, 0, 0, 1 } },
 };
 
-/* What the player does after getting the controls back: M frames, in a
- * value range the replayed frames never reach. */
+/* What the player does after getting the controls back, in a value range
+ * the replayed frames never reach. */
 #define LIVE_FRAME_COUNT 4
 static const pico8_input_frame_t k_live_frames[LIVE_FRAME_COUNT] = {
     { 90, 91, 1, { 1, 1, 0, 0 } },
@@ -88,24 +50,16 @@ static void assert_frame_equals(const pico8_input_frame_t *got, const pico8_inpu
     assert(got->dpad[3] == want->dpad[3]);
 }
 
-/* Stands in for pico8_raylib_backend_poll_input, and for nothing else:
- * it is the single call in the loop below that needs a mouse, a
- * keyboard and an open window. Handing out a scripted frame instead is
- * what makes the rest of the loop -- the switch, the recorder, the file
- * -- runnable headlessly. */
+/* Stands in for `pico8_raylib_backend_poll_input`, the one call below that
+ * needs a window. */
 static void poll_simulated_live_frame(int live_index, pico8_input_frame_t *out_frame) {
     assert(live_index >= 0 && live_index < LIVE_FRAME_COUNT);
     *out_frame = k_live_frames[live_index];
 }
 
-/* src/main_raylib.c's loop, with its one unrunnable call replaced and
- * its game step removed: the frame comes from the recording while there
- * is one and from the "hardware" afterwards, and either way it is
- * recorded before anything else happens to it -- the ordering
- * pico8_raylib_backend.h's own top comment explains a playtest segfault
- * forced, and which this test must not quietly reverse. Runs for
- * exactly `iterations` frames, the way a player quitting after M live
- * frames would end it. */
+/* `main_raylib.c`'s loop, with that call replaced and the game step
+ * dropped. The frame is recorded before anything else happens to it, an
+ * ordering a playtest segfault forced and this test must not reverse. */
 static void run_resumed_session(const char *source_path, const char *resumed_path, int iterations) {
     pico8_replay_source_t replay;
     assert(pico8_replay_source_open(&replay, source_path) == PICO8_REPLAY_SOURCE_LOADED);
@@ -157,17 +111,13 @@ static void test_recorder_writes_a_loadable_recording(void) {
     remove(path);
 }
 
-/* The chunk itself: the file a resumed session leaves behind is the
- * whole game, replayed part first, played part after -- "un
- * enregistrement complet et autonome" -- and it reloads with no error.
- * User story 8. */
+/* The file a resumed session leaves behind is the whole game: replayed
+ * part first, played part after, and it reloads without error. */
 static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     const char *source_path = "tmp/test_recording_continuity_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_resumed.json";
 
-    /* The session being resumed is written by pico8_input_save, not by
-     * the recorder under test: the fixture this chunk is measured
-     * against must not be produced by the code it is measuring. */
+    /* Written by `pico8_input_save`, not by the recorder under test. */
     assert(pico8_input_save(k_source_frames, SOURCE_FRAME_COUNT, source_path));
 
     run_resumed_session(source_path, resumed_path, SOURCE_FRAME_COUNT + LIVE_FRAME_COUNT);
@@ -189,13 +139,9 @@ static void test_resumed_session_records_replayed_frames_then_new_ones(void) {
     remove(resumed_path);
 }
 
-/* User story 9, and the reason the chain does not break at the first
- * resume: the recording a resumed session produces is itself a
- * recording a session can be resumed from. Replaying it must serve all
- * N+M frames, in order, and then report exhaustion exactly as the
- * original did -- if it served fewer, the second resume would hand the
- * controls back in the middle of a game the player had already
- * played. */
+/* A resumed session's recording must itself be resumable: all N+M frames
+ * in order, then exhaustion as the original reported it. Serving fewer
+ * would hand the controls back mid-game on the second resume. */
 static void test_resumed_recording_is_itself_resumable(void) {
     const char *source_path = "tmp/test_recording_continuity_chain_source.json";
     const char *resumed_path = "tmp/test_recording_continuity_chain_resumed.json";

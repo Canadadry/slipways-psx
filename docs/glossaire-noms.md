@@ -226,7 +226,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jy` | besoins de la planète, une liste de `{qe=ressource}` |
 | `cc` | routes commerciales arrivant sur la planète |
 | `by` | routes partant de la planète (résultat de `jo:ib()`) |
-| `kw` | production : `{qe=ressource, mu=quantité}` |
+| `kw` | production : `{qe=ressource, mu=quantité}`. `mu` est aussi le dénominateur du « 0/2 » affiché : la capacité en routes d'export |
 | `hf` | la planète est un hub |
 | `hs` | multiplicateur de revenu commercial ; 1 par défaut, 0,5 sur une planète colonisée |
 | `jh` | bonus de production ajouté à `kw.mu`, posé une seule fois par `jo:cn` |
@@ -626,3 +626,14 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
 | Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des trois formes qui modélisent la table Lua ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
 | Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
+
+### Mise en page
+
+| Nom | Sens |
+|---|---|
+| `lq:mn` | découpe un item en (dessin, largeur, espacement) ; le cœur de la mise en page |
+| `fs` | **deux sens** : sur une instance `lq`, une entrée par élément mis en page ; dans `lq:pq`, une locale qui retient le dernier espacement |
+| `ls` | les rangées `lq` d'une bulle `jb` |
+| `w`, `c` | largeur totale de la rangée (`w - fs`), et couleur du texte (défaut 6) |
+| `qv` | l'espacement rendu par `mn`, accumulé dans `w` |
+| `om` | ordonnée du haut de la bulle dans `jb:ol` |

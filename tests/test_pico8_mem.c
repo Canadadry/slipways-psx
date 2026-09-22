@@ -3,19 +3,14 @@
 #include <assert.h>
 #include <stdio.h>
 
-/* pico8_mem_init leaves exactly one region non-zero -- the 16-byte draw
- * palette at 0x5f00, PICO-8's own power-on default (see
- * test_init_zeroes_everything_but_the_default_draw_palette below, and
- * pico8_mem.c's own comment on pico8_mem_init). Every "nothing was
- * written" whole-memory scan in this file skips it. */
+/* `pico8_mem_init` leaves exactly one region non-zero, the 16-byte draw
+ * palette. Every "nothing was written" whole-memory scan here skips it. */
 static int is_default_draw_palette_addr(int addr) {
     return addr >= PICO8_ADDR_DRAW_PALETTE && addr < PICO8_ADDR_DRAW_PALETTE + 16;
 }
 
-/* Memory comes up zeroed EXCEPT the 16-byte draw palette at 0x5f00, which
- * comes up in PICO-8's own documented power-on state: the identity map,
- * color 0 (and only color 0) transparent. See pico8_mem.c's own comment on
- * pico8_mem_init for why that default has to live in memory. */
+/* That palette comes up in PICO-8's documented power-on state: the identity
+ * map, with colour 0 and only colour 0 transparent. */
 static void test_init_zeroes_everything_but_the_default_draw_palette(void) {
     pico8_mem_t mem;
     for (int i = 0; i < PICO8_MEM_SIZE; i += 4096) {

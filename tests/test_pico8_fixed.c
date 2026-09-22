@@ -56,11 +56,9 @@ static void test_div_representative_value(void) {
 }
 
 static void test_div_negative_dividend_nonzero_divisor(void) {
-    /* -10 / 4 = -2.5. Regression test for a UB bug where the numerator
-     * (a << PICO8_FIXED_SHIFT) was computed via a signed left-shift, which
-     * is undefined behavior in C when a is negative (C11 6.5.7p4) -- caught
-     * by UBSan even though the numeric result is correct under today's x86
-     * codegen. See tmp/test_pico8_fixed_ubsan in the Makefile. */
+    /* -10 / 4 = -2.5. Guards against the numerator going back to a signed
+     * left shift, which is undefined for a negative value however right the
+     * result looks on x86. */
     pico8_fixed_t a = pico8_fixed_from_int(-10);
     pico8_fixed_t b = pico8_fixed_from_int(4);
     pico8_fixed_t result = pico8_fixed_div(a, b);
@@ -132,8 +130,7 @@ static void test_flr_exact_integer_is_unchanged(void) {
 }
 
 static void test_mod_positive_operands(void) {
-    /* 45 % 42 == 3, the literal shape nl:ly's own "t%42/6" needs
-     * (pico8/lua.lua:1064, Phase 3 Chunk 15). */
+    /* 45 % 42 == 3: the shape `nl:ly`'s `t%42/6` needs. */
     pico8_fixed_t a = pico8_fixed_from_int(45);
     pico8_fixed_t b = pico8_fixed_from_int(42);
     assert(pico8_fixed_mod(a, b) == pico8_fixed_from_int(3));
@@ -207,10 +204,8 @@ static void test_mid_middle_argument_already_sorted(void) {
 }
 
 static void test_mid_is_order_independent(void) {
-    /* mid(lo,hi,v) clamps v into [lo,hi] regardless of which of the three
-     * call-site conventions (lo,hi,v)/(v,lo,hi)/(hi,v,lo)/etc. is used --
-     * the median of the three values is the same no matter the order the
-     * arguments are passed in. */
+    /* The median of three values does not depend on the order they are
+     * passed in, so every call-site convention clamps the same. */
     pico8_fixed_t lo = pico8_fixed_from_int(0);
     pico8_fixed_t hi = pico8_fixed_from_int(10);
     pico8_fixed_t v = pico8_fixed_from_int(4);
@@ -239,11 +234,9 @@ static void test_mid_clamps_value_above_range(void) {
 }
 
 static void test_band_positive_raw_operands(void) {
-    /* band operates on the raw 32-bit representation, not the "human"
-     * integer value: 6.0 (raw 0x00060000) AND 3.0 (raw 0x00030000) is
-     * 0x00020000, i.e. 2.0 -- coincidentally identical to integer AND
-     * here since the fractional bits are all zero, but it's the raw
-     * bits being combined. */
+    /* `band` combines the raw 32-bit representations, not the human
+     * values: 0x00060000 AND 0x00030000 is 0x00020000. It matches integer
+     * AND here only because the fractional bits are all zero. */
     pico8_fixed_t a = pico8_fixed_from_int(6);
     pico8_fixed_t b = pico8_fixed_from_int(3);
     assert(pico8_fixed_band(a, b) == pico8_fixed_from_int(2));
@@ -272,19 +265,16 @@ static void test_bor_negative_raw_operand(void) {
 }
 
 static void test_shl_positive_raw_operand(void) {
-    /* shl shifts the raw 32-bit representation left by n bits: this
-     * cart's own use is shl(flr(no),4), multiplying an already-integer
-     * value by 16. */
+    /* `shl` shifts the raw representation; the cart's own use is
+     * `shl(flr(no),4)`, times sixteen on an integer value. */
     pico8_fixed_t x = pico8_fixed_from_int(5);
     assert(pico8_fixed_shl(x, 4) == pico8_fixed_from_int(80));
 }
 
 static void test_shl_negative_raw_operand(void) {
-    /* Regression-shaped test for the same class of shift UB Chunk 1 found
-     * in pico8_fixed_div: left-shifting a negative signed value directly
-     * is undefined behavior in C (C11 6.5.7p4), so this must go through
-     * the unsigned reinterpretation the header documents. -1 (raw
-     * 0xFFFFFFFF) shifted left by 1 bit is 0xFFFFFFFE (raw -2). */
+    /* Same shift UB as in `pico8_fixed_div`: shifting a negative signed
+     * value must go through the unsigned reinterpretation. -1, raw
+     * 0xFFFFFFFF, shifted by 1 is 0xFFFFFFFE. */
     pico8_fixed_t x = (pico8_fixed_t)0xFFFFFFFFu;
     pico8_fixed_t result = pico8_fixed_shl(x, 1);
     assert(result == (pico8_fixed_t)0xFFFFFFFEu);
@@ -316,15 +306,11 @@ static void test_sqrt_negative_value_is_zero(void) {
     assert(pico8_fixed_sqrt(x) == pico8_fixed_from_int(0));
 }
 
-/* rnd/sin/cos -- tested against the documented CONTRACT ONLY (range,
- * specific documented zero/identity cases, sign convention, periodicity).
- * Deliberately NOT tested against any claimed bit-exact reference value:
- * PICO-8's real internal PRNG algorithm and sin/cos approximation are not
- * publicly documented anywhere reachable from this sandbox, so no specific
- * numeric result (e.g. "rnd(10) == some value" or "sin(0.137) == some
- * decimal") is a confirmed-correct reference to assert against. See
- * pico8_fixed.h's comment above pico8_fixed_rnd/sin/cos and docs/plan.md's
- * "Notes de portage" for the full explanation of this gap. */
+/* rnd/sin/cos are asserted on their documented contract only -- range,
+ * documented identities, sign convention, periodicity. No bit-exact value
+ * is asserted: PICO-8's own PRNG and sin/cos approximation are not
+ * published, so there is no reference to compare against. */
+/* TROU-1 */
 
 static void test_rnd_zero_is_zero(void) {
     /* rnd(0) returns 0. */
