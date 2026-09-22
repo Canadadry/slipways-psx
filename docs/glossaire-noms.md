@@ -242,8 +242,11 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `ob(qs,mr)` | `pico8_ob` | analyse une spec compacte (`"x=-1,y=-1,c=0,"`) en table, puis y fusionne `mr` ; **la virgule finale est obligatoire**, sans elle le dernier champ est perdu |
 | `fi(qs,fn)` | `pico8_fi` | applique `fn` à chaque caractère et collecte les résultats non nuls |
-| `pi` | `pico8_ob_register_constructor` | table des constructeurs appelables depuis une spec : `b`→`qz`, `v`→`v`, `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr` (seule la première lettre est atteignable) |
+| `pi` | `pico8_ob_register_constructor` | table des constructeurs appelables depuis une spec : `b`→`qz`, `v`→`v`, `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol`. Depuis une spec, seule la première lettre est atteignable ; les noms longs ne le sont que par `bl()` |
 | `oo(fn,a)` | `pico8_oo` | appelle le constructeur `fn` avec les 5 premières entrées positionnelles, ou rend `a` tel quel |
+| `bl(rb,nc)` | `pico8_bl` | dessine chaque rangée de `rb` via le constructeur `pi` que nomme son champ `fn`, avec une secousse de caméra `nc` alternée. C'est le second consommateur de `pi` |
+| `fn`, `rb`, `nc` | — | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
+| `oa` | — | masque de bouton passé à `bu()` : 1 pour le gauche, 6 pour le droit |
 
 ## Le système de classes `kv:jr`
 
@@ -611,3 +614,15 @@ Elles n'existent pas hors de leur fonction, mais le port a gardé leurs noms.
 | `qc`, `fl` | dans `dc()` : l'entité visitée, et les 15 seaux par couche |
 | `kn`, `s`, `n`, `lm`, `sc`, `rq` | dans `ob()` : table résultat, début du token, clé courante, profondeur de parenthèses, premier caractère du token, position suivante |
 | `f` | dans une spec, l'identifiant nu `f` vaut le **faux** littéral — c'est ce qui rend `fp=f` différent de `fp=0` |
+
+## Conventions de propriété et de représentation
+
+Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
+
+| Convention | Règle |
+|---|---|
+| Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_list_free` ne libère que son tableau, `pico8_ob_table_free` que ses clés |
+| L'inverse, pour les chaînes construites | `tostr`, `sub`, `unstash` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
+| `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
+| Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des trois formes qui modélisent la table Lua ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
+| Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |

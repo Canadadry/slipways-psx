@@ -95,7 +95,7 @@ n'importe quelle table.
 
 Aujourd'hui sans danger — toutes les classes qui définissent `ldown` rendent
 soit une instance, soit un booléen — mais c'est la même famille de
-confusion de représentation que celle qui a produit trois segfaults (voir
+confusion de représentation que celle qui a produit quatre débordements de tas (voir
 le tag de type, `src/pico8_type_tag.h`).
 
 Fichier : `src/pico8_ui.c`.
