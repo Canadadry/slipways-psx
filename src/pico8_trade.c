@@ -7,12 +7,8 @@
 #include "pico8_list.h"
 #include "pico8_ref_audit.h"
 
-/* See pico8_trade.h's own top comment for trade's full real Lua source
- * and design trace. */
 static pico8_class_t *g_trade_class = NULL;
 
-/* trade=kv:jr() -- root class, no spec string, no `pq` (never assigned
- * anywhere in the real source, unlike ke's `ke.pq=lt`). */
 void pico8_trade_init(void) {
     pico8_trade_shutdown();
     g_trade_class = pico8_class_declare(NULL, NULL);
@@ -33,7 +29,6 @@ pico8_instance_t *pico8_trade_new(const pico8_ob_table_t *overrides) {
     return pico8_class_instantiate(g_trade_class, overrides);
 }
 
-/* See pico8_trade.h's own comment on this declaration. */
 int pico8_trade_to(const pico8_instance_t *self, pico8_value_t *out_value) {
     pico8_value_t lp_val;
     const pico8_list_t *lp;
@@ -42,12 +37,6 @@ int pico8_trade_to(const pico8_instance_t *self, pico8_value_t *out_value) {
         lp_val.as.ref == NULL) {
         return 0;
     }
-    /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-     * The `trade` class is declared with NO spec string
-     * (pico8_trade_init above), so "lp" can only come from an
-     * `overrides` table: pico8_trade_kg() below (`new_lp`, a pico8_la
-     * result) or pico8_jo_ib() (src/pico8_planet_trade.c:353). Both heap
-     * pico8_list_t*. Same for "rl". */
     lp = PICO8_REF_AS_LIST_CONST(lp_val.as.ref);
     if (lp->count == 0) {
         return 0;
@@ -56,24 +45,15 @@ int pico8_trade_to(const pico8_instance_t *self, pico8_value_t *out_value) {
     return 1;
 }
 
-/* A real Lua `{x}` table constructor holds zero elements, not one, when x
- * is nil (`#{nil}==0`), so `foreach({nil},...)` never runs -- see this
- * port's pico8_value_ref(NULL) "nil" convention documented in
- * pico8_value.h's mv() comment. pico8_trade_kg below needs this to match
- * `trade({...,rl=la(self.rl,{jc}),...})` when called as `t:kg(self)` (jc
- * omitted, e.g. line 495's `t:kg(self)`), where `{jc}` must contribute
- * nothing to rl. */
+/* A Lua `{x}` holds zero elements when x is nil, so `{jc}` must contribute
+ * nothing to `rl` when trade:kg is called with no slipway -- as
+ * pico8_planet_trade.c does. */
 static int value_is_nil(pico8_value_t v) {
     return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
 }
 
-/* See pico8_trade.h's own comment on this declaration. `{np}`/`{jc}` (the
- * real Lua's own single-element list literals) are built here as
- * one-element pico8_list_t stack values (np_list/jc_list) fed to pico8_la
- * (pico8_collect.h), then freed once pico8_la has copied their single
- * element into the new heap-allocated lp/rl lists it returns. A nil np/jc
- * (see value_is_nil above) contributes no element, matching `{nil}`'s
- * real length of 0. */
+/* `{np}`/`{jc}` are built as one-element stack lists, freed once pico8_la has
+ * copied their element into the heap lp/rl lists it returns. */
 pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np, pico8_value_t jc) {
     pico8_value_t lp_val, rl_val, qe_val;
     pico8_list_t empty_lp;
@@ -94,13 +74,9 @@ pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np,
     pico8_list_init(&empty_lp);
     pico8_list_init(&empty_rl);
     lp = (pico8_instance_get_field(self, "lp", &lp_val) && lp_val.kind == PICO8_VALUE_REF && lp_val.as.ref != NULL)
-             /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "lp", see
-              * pico8_trade_to above. */
              ? PICO8_REF_AS_LIST_CONST(lp_val.as.ref)
              : &empty_lp;
     rl = (pico8_instance_get_field(self, "rl", &rl_val) && rl_val.kind == PICO8_VALUE_REF && rl_val.as.ref != NULL)
-             /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "rl", same
-              * two `overrides` producers as "lp". */
              ? PICO8_REF_AS_LIST_CONST(rl_val.as.ref)
              : &empty_rl;
     if (!pico8_instance_get_field(self, "qe", &qe_val)) {
@@ -116,6 +92,7 @@ pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np,
         pico8_list_add(&jc_list, jc);
     }
 
+    /* TROU-7 */
     new_lp = malloc(sizeof *new_lp);
     *new_lp = pico8_la(lp, &np_list);
     new_rl = malloc(sizeof *new_rl);
@@ -134,7 +111,6 @@ pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np,
     return result;
 }
 
-/* See pico8_trade.h's own comment on this declaration. */
 int pico8_trade_eq(const pico8_instance_t *l, const pico8_instance_t *r) {
     pico8_value_t l_lp_val, r_lp_val;
     const pico8_list_t *l_lp, *r_lp;
@@ -149,8 +125,6 @@ int pico8_trade_eq(const pico8_instance_t *l, const pico8_instance_t *r) {
         r_lp_val.kind != PICO8_VALUE_REF || r_lp_val.as.ref == NULL) {
         return 0;
     }
-    /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "lp" on both sides,
-     * see pico8_trade_to above. */
     l_lp = PICO8_REF_AS_LIST_CONST(l_lp_val.as.ref);
     r_lp = PICO8_REF_AS_LIST_CONST(r_lp_val.as.ref);
     if (l_lp->count == 0 || r_lp->count == 0) {
