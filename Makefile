@@ -31,6 +31,234 @@ CFLAGS ?= -std=c99 -Wall -Wextra -Werror -g
 
 TMP_DIR := tmp
 
+# docs/prd/triage/makefile-header-prerequisites.md: intermediate objects
+# and compiler-generated header dependencies.
+#
+# Until that PRD, every target below went from its .c sources straight to
+# an executable in ONE $(CC) invocation, and named its headers by hand --
+# unevenly: 38 of the 66 headers in src/ were named by no target at all.
+# Editing a header therefore did not rebuild the binaries that include
+# it. Make saw the targets as up to date and `make test` went green
+# against objects compiled from a source that no longer existed. That was
+# survivable as long as headers held only declarations, since a changed
+# signature fails loudly at link time; src/pico8_type_tag.h ended it,
+# because that header compiles SEMANTICS into every object -- magic
+# constants and a `static inline` reader. Change a constant without a
+# rebuild and one translation unit tests the old value while the next
+# tests the new one: exactly the type confusion that header exists to
+# eliminate, reintroduced by the build system and invisible in the
+# source. Measured on the pre-PRD Makefile: editing PICO8_TYPE_TAG_LIST
+# rebuilt 1 of the 30 binaries `unit` links, and appending to a purely
+# declarative header (src/pico8_planet.h) rebuilt 0 of 30.
+#
+# The minimal variant -- naming the semantic headers as prerequisites of
+# the targets that include them -- was costed and rejected (the PRD asks
+# for it to be costed, not skipped): it is about a dozen edited lines,
+# but it is the same hand-maintained list that has already drifted once,
+# it has to be redone by hand every time an #include is added, and it
+# gets the transitive cases wrong exactly where it matters (pico8_type_
+# tag.h is reached through pico8_list.h/pico8_ob.h/pico8_class.h, not
+# directly, in every target but one).
+#
+# What is here instead: each .c is compiled to an object with $(DEPFLAGS)
+# = -MMD -MP, which makes the compiler write, next to that object, a make
+# fragment naming every header that translation unit really opened,
+# transitively. The `-include` at the bottom of this file pulls those
+# fragments back in. The prerequisite list stops being a declaration of
+# intent and becomes a measurement, produced by the same compiler that
+# reads the #includes, so it cannot drift from the code and nobody has to
+# think about it when adding a target. -MP additionally emits a phony
+# target for each header, so deleting or renaming a header does not wedge
+# the build with a "No rule to make target" out of a stale fragment.
+#
+# The `-include $(wildcard ...)` form is deliberate: it tolerates the
+# fragments not existing at all, so a fresh clone with no tmp/ builds in
+# one step -- it simply compiles everything and writes the fragments as
+# it goes.
+#
+# Objects and fragments live under tmp/, already used by the test
+# binaries and already gitignored. The secondary benefit is speed: the
+# seven targets sharing $(ENGINE_SRCS) used to recompile the whole engine
+# each, ~7x over; they now share one set of objects and only link
+# separately.
+#
+# WHY THERE ARE THREE OBJECT TREES, AND WHY THEY MUST NOT BE MERGED.
+# Two targets are built with their own instrumentation:
+# test_pico8_planet_gh_row_lq under AddressSanitizer and
+# test_pico8_fixed_ubsan under UndefinedBehaviorSanitizer (each target's
+# own comment says why). A sanitizer is a property of every object in the
+# binary, not of the link: an object compiled without -fsanitize=address
+# gets no redzones and no shadow-memory bookkeeping, so an overflow
+# inside IT is simply not seen. Sharing one object tree between a plain
+# target and an instrumented one would therefore link, run and pass while
+# the binary was blind over most of its own code -- a silent test whose
+# silence proves nothing, with nothing in the build output to say so, and
+# the ASan target in particular has no plain twin whose crash would give
+# the game away. Hence one output tree per flag set, keyed by the flags
+# themselves. Do not "simplify" the three into one, and do not add a
+# target carrying its own compiler flags without giving it its own tree
+# (and its own $(call ...) helper) here.
+OBJ_DIR := $(TMP_DIR)/obj
+OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
+OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
+
+DEPFLAGS := -MMD -MP
+ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
+UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
+
+# $(call objs,<.c list>) maps a source list to its object paths in the
+# plain tree; asan_objs/ubsan_objs do the same in the instrumented trees.
+# A target names its sources ONCE, as a .c list, and both its prerequisite
+# list and its link line come from that. The link lines use
+# $(filter %.o,$^) so that non-source prerequisites -- the events.json
+# fixtures some tests read at run time, declared as prerequisites since
+# Phase 4 -- stay ordinary prerequisites without landing on the command
+# line. Headers appear in no prerequisite list at all any more: that is
+# the point, they come from the dependency fragments.
+objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
+asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
+ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
+
+# One pattern rule per tree; the object tree mirrors src/ and tests/ under
+# each root, so tmp/obj/src/pico8_mem.o next to tmp/obj-asan/src/
+# pico8_mem.o. `mkdir -p $(@D)` in the recipe rather than an order-only
+# directory prerequisite: a directory's mtime changes every time a file is
+# written into it, and as an ordinary prerequisite that would rebuild
+# everything on every run.
+$(OBJ_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_ASAN_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_UBSAN_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+# The two shared dependency closures, previously spelled out in full on
+# every target that needed them (and drifting apart was only a matter of
+# time). $(ENGINE_SRCS) is the whole-engine closure pico8_replay's own
+# comment below describes -- every module in src/ except the two entry
+# points (main.c, main_raylib.c) and the five raylib-facing/replay-driver
+# modules only the interactive driver links; seven targets use it
+# verbatim. $(DATA_ENGINE_SRCS) is the narrower
+# "pico8_data_init() reaches real game state" closure test_pico8_data_
+# init's own comment describes, shared verbatim by three targets. Both
+# lists are reproduced here exactly as those targets spelled them, in the
+# same order; nothing was added or removed while moving them.
+ENGINE_SRCS := \
+    src/pico8_assets.c \
+    src/pico8_audio.c \
+    src/pico8_bg.c \
+    src/pico8_bootstrap.c \
+    src/pico8_cart.c \
+    src/pico8_class.c \
+    src/pico8_collect.c \
+    src/pico8_data_init.c \
+    src/pico8_dispatch_context.c \
+    src/pico8_dump.c \
+    src/pico8_economy.c \
+    src/pico8_economy_formulas.c \
+    src/pico8_economy_score.c \
+    src/pico8_economy_tiers.c \
+    src/pico8_entity.c \
+    src/pico8_entity_geom.c \
+    src/pico8_fixed.c \
+    src/pico8_galaxy.c \
+    src/pico8_game_data.c \
+    src/pico8_gen.c \
+    src/pico8_geom.c \
+    src/pico8_gfx.c \
+    src/pico8_help.c \
+    src/pico8_hud.c \
+    src/pico8_input.c \
+    src/pico8_ke.c \
+    src/pico8_layout.c \
+    src/pico8_list.c \
+    src/pico8_mem.c \
+    src/pico8_menu.c \
+    src/pico8_mouse.c \
+    src/pico8_mouse_reader.c \
+    src/pico8_msgbox.c \
+    src/pico8_ob.c \
+    src/pico8_particle.c \
+    src/pico8_pi.c \
+    src/pico8_planet.c \
+    src/pico8_planet_display.c \
+    src/pico8_planet_family.c \
+    src/pico8_planet_family_trade.c \
+    src/pico8_planet_trade.c \
+    src/pico8_probe.c \
+    src/pico8_research.c \
+    src/pico8_research_display.c \
+    src/pico8_research_icon.c \
+    src/pico8_score_panel.c \
+    src/pico8_score_panel_display.c \
+    src/pico8_scroll.c \
+    src/pico8_slipway.c \
+    src/pico8_slipway_display.c \
+    src/pico8_stash.c \
+    src/pico8_str.c \
+    src/pico8_tech_gate.c \
+    src/pico8_trade.c \
+    src/pico8_ui.c \
+    src/pico8_ui_button.c \
+    src/pico8_value.c \
+    src/pico8_vec.c \
+    src/pico8_wormhole.c \
+    src/pico8_wormhole_display.c
+
+DATA_ENGINE_SRCS := \
+    src/pico8_data_init.c \
+    src/pico8_assets.c \
+    src/pico8_audio.c \
+    src/pico8_bg.c \
+    src/pico8_bootstrap.c \
+    src/pico8_class.c \
+    src/pico8_collect.c \
+    src/pico8_dispatch_context.c \
+    src/pico8_dump.c \
+    src/pico8_economy.c \
+    src/pico8_economy_formulas.c \
+    src/pico8_economy_score.c \
+    src/pico8_economy_tiers.c \
+    src/pico8_entity.c \
+    src/pico8_entity_geom.c \
+    src/pico8_fixed.c \
+    src/pico8_game_data.c \
+    src/pico8_gen.c \
+    src/pico8_geom.c \
+    src/pico8_gfx.c \
+    src/pico8_hud.c \
+    src/pico8_input.c \
+    src/pico8_ke.c \
+    src/pico8_layout.c \
+    src/pico8_list.c \
+    src/pico8_mem.c \
+    src/pico8_mouse.c \
+    src/pico8_mouse_reader.c \
+    src/pico8_msgbox.c \
+    src/pico8_ob.c \
+    src/pico8_particle.c \
+    src/pico8_pi.c \
+    src/pico8_planet.c \
+    src/pico8_planet_display.c \
+    src/pico8_planet_trade.c \
+    src/pico8_probe.c \
+    src/pico8_research.c \
+    src/pico8_research_display.c \
+    src/pico8_scroll.c \
+    src/pico8_stash.c \
+    src/pico8_str.c \
+    src/pico8_tech_gate.c \
+    src/pico8_trade.c \
+    src/pico8_ui.c \
+    src/pico8_ui_button.c \
+    src/pico8_value.c \
+    src/pico8_vec.c
+
 # Host OS, used only by the `raylib` target below to pick the right
 # system libs to link raylib's own PLATFORM_DESKTOP build against --
 # every other target here is plain portable C with no OS-specific
@@ -45,23 +273,23 @@ endif
 $(TMP_DIR):
 	mkdir -p $(TMP_DIR)
 
-$(TMP_DIR)/test_pico8_mem: tests/test_pico8_mem.c src/pico8_mem.c src/pico8_mem.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_mem.c src/pico8_mem.c
+$(TMP_DIR)/test_pico8_mem: $(call objs,tests/test_pico8_mem.c src/pico8_mem.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_asset_loading: tests/test_asset_loading.c src/pico8_assets.c src/pico8_assets.h src/pico8_mem.c src/pico8_mem.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_asset_loading.c src/pico8_assets.c src/pico8_mem.c
+$(TMP_DIR)/test_asset_loading: $(call objs,tests/test_asset_loading.c src/pico8_assets.c src/pico8_mem.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_gfx: tests/test_pico8_gfx.c src/pico8_gfx.c src/pico8_gfx.h src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_gfx.c src/pico8_gfx.c src/pico8_mem.c src/pico8_assets.c
+$(TMP_DIR)/test_pico8_gfx: $(call objs,tests/test_pico8_gfx.c src/pico8_gfx.c src/pico8_mem.c src/pico8_assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_input: tests/test_pico8_input.c src/pico8_input.c src/pico8_input.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_input.c src/pico8_input.c
+$(TMP_DIR)/test_pico8_input: $(call objs,tests/test_pico8_input.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_dump: tests/test_pico8_dump.c src/pico8_dump.c src/pico8_dump.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_mem.c src/pico8_mem.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_dump.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c
+$(TMP_DIR)/test_pico8_dump: $(call objs,tests/test_pico8_dump.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_fixed: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_fixed.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_fixed: $(call objs,tests/test_pico8_fixed.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # UBSan-instrumented build of the same fixed-point test binary, scoped to
 # this module only: pico8_fixed does bit-level signed/unsigned
@@ -70,8 +298,8 @@ $(TMP_DIR)/test_pico8_fixed: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico
 # numeric results on today's x86 codegen while still being undefined
 # behavior. -fno-sanitize-recover=undefined makes any UBSan report a hard
 # failure (non-zero exit) instead of a printed warning that's easy to miss.
-$(TMP_DIR)/test_pico8_fixed_ubsan: tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -fsanitize=undefined -fno-sanitize-recover=undefined -o $@ tests/test_pico8_fixed.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_fixed_ubsan: $(call ubsan_objs,tests/test_pico8_fixed.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5, Etape 1, Chunk 5 (docs/prd/triage/phase5-etape1-raylib-
 # interactive-backend.md): the one meaningfully testable piece of the
@@ -81,8 +309,8 @@ $(TMP_DIR)/test_pico8_fixed_ubsan: tests/test_pico8_fixed.c src/pico8_fixed.c sr
 # wiring it into `unit`/`test` (per the PRD's own Testing Decisions,
 # which call this "fine and even preferred") adds coverage without
 # giving the fast, window-free day-to-day suite any raylib dependency.
-$(TMP_DIR)/test_pico8_raylib_backend_coords: tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c
+$(TMP_DIR)/test_pico8_raylib_backend_coords: $(call objs,tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Chunk 1 of docs/prd/triage/raylib-replay-then-resume.md: the replay
 # source is deliberately raylib-free (see src/pico8_replay_source.h's own
@@ -93,8 +321,8 @@ $(TMP_DIR)/test_pico8_raylib_backend_coords: tests/test_pico8_raylib_backend_coo
 # window-free `unit`/`test` suite. The fixtures are prerequisites because
 # the test reads them at run time, as the other fixture-driven targets
 # below already declare.
-$(TMP_DIR)/test_pico8_replay_source: tests/test_pico8_replay_source.c tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_input.c src/pico8_input.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_replay_source.c src/pico8_replay_source.c src/pico8_input.c
+$(TMP_DIR)/test_pico8_replay_source: $(call objs,tests/test_pico8_replay_source.c src/pico8_replay_source.c src/pico8_input.c) tests/fixtures/events_valid.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Chunk 3 of docs/prd/triage/raylib-replay-then-resume.md: the end-to-end
 # proof that a resumed session keeps recording -- the replayed frames
@@ -107,8 +335,8 @@ $(TMP_DIR)/test_pico8_replay_source: tests/test_pico8_replay_source.c tests/fixt
 # No fixture prerequisites, unlike the target above: the file this test
 # asserts on has to be one a resumed session actually produced, so it
 # writes its own recordings under tmp/ and removes them again.
-$(TMP_DIR)/test_pico8_recording_continuity: tests/test_pico8_recording_continuity.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_input.c src/pico8_input.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_recording_continuity.c src/pico8_session_recorder.c src/pico8_replay_source.c src/pico8_input.c
+$(TMP_DIR)/test_pico8_recording_continuity: $(call objs,tests/test_pico8_recording_continuity.c src/pico8_session_recorder.c src/pico8_replay_source.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Chunk 4 of docs/prd/triage/raylib-replay-then-resume.md: the replay's
 # speed ladder and its progress line, extracted from the raylib backend
@@ -118,8 +346,8 @@ $(TMP_DIR)/test_pico8_recording_continuity: tests/test_pico8_recording_continuit
 # pico8_replay_control.c alone: this module depends on nothing, not even
 # pico8_input, which is what lets it pin exact frame-rate caps and exact
 # overlay strings in a suite with no window in it.
-$(TMP_DIR)/test_pico8_replay_control: tests/test_pico8_replay_control.c src/pico8_replay_control.c src/pico8_replay_control.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_replay_control.c src/pico8_replay_control.c
+$(TMP_DIR)/test_pico8_replay_control: $(call objs,tests/test_pico8_replay_control.c src/pico8_replay_control.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Chunk 4 of the same PRD, user story 14: the frame index a space-bar
 # marker receives still names the right frame after a session has been
@@ -132,32 +360,32 @@ $(TMP_DIR)/test_pico8_replay_control: tests/test_pico8_replay_control.c src/pico
 # (hence pico8_input.c for the writer and the loader). Same shape and
 # same reasoning as test_pico8_recording_continuity above, and likewise
 # writes its own files under tmp/ and removes them again.
-$(TMP_DIR)/test_pico8_marker_coherence: tests/test_pico8_marker_coherence.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_input.c src/pico8_input.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_marker_coherence.c src/pico8_session_recorder.c src/pico8_replay_source.c src/pico8_input.c
+$(TMP_DIR)/test_pico8_marker_coherence: $(call objs,tests/test_pico8_marker_coherence.c src/pico8_session_recorder.c src/pico8_replay_source.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_vec: tests/test_pico8_vec.c src/pico8_vec.c src/pico8_vec.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_geom: tests/test_pico8_geom.c src/pico8_geom.c src/pico8_geom.h src/pico8_vec.c src/pico8_vec.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_value: tests/test_pico8_value.c src/pico8_value.c src/pico8_value.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_value.c src/pico8_value.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_value: $(call objs,tests/test_pico8_value.c src/pico8_value.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_list: tests/test_pico8_list.c src/pico8_list.c src/pico8_list.h src/pico8_value.c src/pico8_value.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_list.c src/pico8_list.c src/pico8_value.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_list: $(call objs,tests/test_pico8_list.c src/pico8_list.c src/pico8_value.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_str: tests/test_pico8_str.c src/pico8_str.c src/pico8_str.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_str.c src/pico8_str.c
+$(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c src/pico8_str.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_ob: tests/test_pico8_ob.c src/pico8_ob.c src/pico8_ob.h src/pico8_list.c src/pico8_list.h src/pico8_value.c src/pico8_value.h src/pico8_str.c src/pico8_str.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_ob.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_ob: $(call objs,tests/test_pico8_ob.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_entity_smoke: tests/test_pico8_entity_smoke.c src/pico8_entity.c src/pico8_entity.h src/pico8_class.c src/pico8_class.h src/pico8_ke.c src/pico8_ke.h src/pico8_ob.c src/pico8_ob.h src/pico8_list.c src/pico8_list.h src/pico8_value.c src/pico8_value.h src/pico8_str.c src/pico8_str.h src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_entity_smoke.c src/pico8_entity.c src/pico8_class.c src/pico8_ke.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c -lm
+$(TMP_DIR)/test_pico8_entity_smoke: $(call objs,tests/test_pico8_entity_smoke.c src/pico8_entity.c src/pico8_class.c src/pico8_ke.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_stash: tests/test_pico8_stash.c src/pico8_stash.c src/pico8_stash.h src/pico8_str.c src/pico8_str.h src/pico8_ob.c src/pico8_ob.h src/pico8_list.c src/pico8_list.h src/pico8_value.c src/pico8_value.h src/pico8_fixed.c src/pico8_fixed.h src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_stash.c src/pico8_stash.c src/pico8_str.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_fixed.c src/pico8_mem.c src/pico8_assets.c -lm
+$(TMP_DIR)/test_pico8_stash: $(call objs,tests/test_pico8_stash.c src/pico8_stash.c src/pico8_str.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_fixed.c src/pico8_mem.c src/pico8_assets.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # pico8_data_init() exercises pico8_research()/pico8_tech_gate(), which pull
 # in pico8_probe()'s own placeholder `pico8_fm()` -- from there, this test's
@@ -165,8 +393,8 @@ $(TMP_DIR)/test_pico8_stash: tests/test_pico8_stash.c src/pico8_stash.c src/pico
 # engine those modules call into (unlike every other test above, none of
 # which is real "data decoding" work). Full non-main() source list below
 # reflects that real closure rather than an approximate subset.
-$(TMP_DIR)/test_pico8_data_init: tests/test_pico8_data_init.c src/pico8_data_init.c src/pico8_data_init.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_data_init.c src/pico8_data_init.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c -lm
+$(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 3, Chunk 13, sub-lot 5: pico8_dc("kj")'s own first real, non-dead
 # exercise (a real jo instance registered under the real "kj" bm bucket,
@@ -179,11 +407,11 @@ $(TMP_DIR)/test_pico8_data_init: tests/test_pico8_data_init.c src/pico8_data_ini
 # real dependency closure test_pico8_data_init already needs, for the
 # same reason (jo/planet pulls in the whole entity/economy/research/UI/
 # dispatch engine).
-$(TMP_DIR)/test_pico8_planet_kj_dispatch: tests/test_pico8_planet_kj_dispatch.c src/pico8_data_init.c src/pico8_data_init.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_planet_kj_dispatch.c src/pico8_data_init.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c -lm
+$(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_demo: tests/test_pico8_demo.c src/pico8_mem.c src/pico8_mem.h src/pico8_assets.c src/pico8_assets.h src/pico8_gfx.c src/pico8_gfx.h src/pico8_input.c src/pico8_input.h src/pico8_dump.c src/pico8_dump.h | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_demo.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c
+$(TMP_DIR)/test_pico8_demo: $(call objs,tests/test_pico8_demo.c src/pico8_mem.c src/pico8_assets.c src/pico8_gfx.c src/pico8_input.c src/pico8_dump.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Chunk 1's own "full engine source list": pico8_cart_load() bootstraps
 # essentially every class/data-table this whole port has built, so
@@ -192,8 +420,8 @@ $(TMP_DIR)/test_pico8_demo: tests/test_pico8_demo.c src/pico8_mem.c src/pico8_me
 # test_pico8_planet_kj_dispatch's own header comments already establish
 # for reaching real game state, now widened to the WHOLE engine since
 # main.c reaches through pico8_cart_load() rather than one data module.
-$(TMP_DIR)/pico8_replay: src/main.c src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ src/main.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/pico8_replay: $(call objs,src/main.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 4, Chunk 2 (docs/prd/triage/phase4-etape1-headless-replay-wiring-
 # and-playability-verification.md): the exit-gate exploratory playthrough
@@ -208,8 +436,8 @@ $(TMP_DIR)/pico8_replay: src/main.c src/pico8_assets.c src/pico8_assets.h src/pi
 # wiring it in now is fine" allowance, it is a permanent part of
 # `make test` -- printed checkpoints only, no assert()-based invariants
 # yet (Chunk 3's own job).
-$(TMP_DIR)/test_pico8_playability: tests/test_pico8_playability.c tests/fixtures/phase4_playthrough_events.json src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_playability.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS)) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5 bug fix ("in screen game top menu is weird": missing icon
 # outlines, blank technology counter, month drawn as placeholder blocks)
@@ -218,8 +446,8 @@ $(TMP_DIR)/test_pico8_playability: tests/test_pico8_playability.c tests/fixtures
 # human can, through a really booted cart (pico8_cart_load/pico8__init/
 # pico8__update60/pico8__draw), so it shares test_pico8_playability's own
 # full-engine source list verbatim, with its own inert 4-frame fixture.
-$(TMP_DIR)/test_pico8_top_menubar: tests/test_pico8_top_menubar.c tests/fixtures/top_menubar_events.json src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_top_menubar.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/test_pico8_top_menubar: $(call objs,tests/test_pico8_top_menubar.c $(ENGINE_SRCS)) tests/fixtures/top_menubar_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5 bug fix (hovering a shop-bar button aborted the headless
 # framebuffer dumper on src/pico8_dump.c's own `assert(pixel <= 0x0f)`,
@@ -231,8 +459,8 @@ $(TMP_DIR)/test_pico8_top_menubar: tests/test_pico8_top_menubar.c tests/fixtures
 # so it shares test_pico8_top_menubar's own full-engine source list
 # verbatim, with its own 25-frame hover fixture. See
 # tests/test_pico8_shop_tooltip_fillp.c's own top comment.
-$(TMP_DIR)/test_pico8_shop_tooltip_fillp: tests/test_pico8_shop_tooltip_fillp.c tests/fixtures/shop_button_hover_events.json src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_shop_tooltip_fillp.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/test_pico8_shop_tooltip_fillp: $(call objs,tests/test_pico8_shop_tooltip_fillp.c $(ENGINE_SRCS)) tests/fixtures/shop_button_hover_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5 bug fix (map() drew sprite 0 instead of treating it as
 # "empty"): the galaxy sky's only map() call site is bg:kj(), so this
@@ -241,8 +469,8 @@ $(TMP_DIR)/test_pico8_shop_tooltip_fillp: tests/test_pico8_shop_tooltip_fillp.c 
 # dependency closure is the same full-engine one test_pico8_data_init
 # already links (bg -> ke/entity/dispatch), so its source list is
 # reused verbatim here rather than re-derived.
-$(TMP_DIR)/test_pico8_bg_kj: tests/test_pico8_bg_kj.c src/pico8_data_init.c src/pico8_data_init.h src/pico8_bg.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_bg_kj.c src/pico8_data_init.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_scroll.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c -lm
+$(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5 bug fix (releasing a slipway drag on a valid target planet did
 # nothing -- ui:bh passed nil instead of the drop target to jc:ey): the
@@ -254,8 +482,8 @@ $(TMP_DIR)/test_pico8_bg_kj: tests/test_pico8_bg_kj.c src/pico8_data_init.c src/
 # own full engine source list, for the same "reaching real game state pulls
 # in essentially the whole engine" reasoning their own header comments
 # already establish.
-$(TMP_DIR)/test_pico8_slipway_drag: tests/test_pico8_slipway_drag.c tests/fixtures/slipway_drag_events.json src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_slipway_drag.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5 bug fix (a planet a probe reveals as EMPTY faded out of view but
 # was never removed from the world, so it went on refusing every structure
@@ -267,8 +495,8 @@ $(TMP_DIR)/test_pico8_slipway_drag: tests/test_pico8_slipway_drag.c tests/fixtur
 # own full engine source list, for the same "reaching real game state pulls
 # in essentially the whole engine" reasoning their own header comments
 # already establish.
-$(TMP_DIR)/test_pico8_empty_planet_cleared: tests/test_pico8_empty_planet_cleared.c tests/fixtures/empty_planet_cleared_events.json src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ tests/test_pico8_empty_planet_cleared.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Phase 5 bug fix (hard SIGSEGV on mouse RELEASE over a developed planet:
 # jo:gh's own display rows store a raw pico8_list_t* in their "lq" field,
@@ -287,8 +515,8 @@ $(TMP_DIR)/test_pico8_empty_planet_cleared: tests/test_pico8_empty_planet_cleare
 # ownership note). Full engine source list for the same reason
 # test_pico8_empty_planet_cleared's is (pico8_cart_load pulls in the
 # whole port).
-$(TMP_DIR)/test_pico8_planet_gh_row_lq: tests/test_pico8_planet_gh_row_lq.c src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_class.h src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_list.h src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_ob.h src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_type_tag.h src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c | $(TMP_DIR)
-	$(CC) $(CFLAGS) -fsanitize=address -fno-omit-frame-pointer -o $@ tests/test_pico8_planet_gh_row_lq.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c -lm
+$(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq
 	./$(TMP_DIR)/test_pico8_mem
@@ -388,7 +616,36 @@ raylib-vendor-setup:
 # `unit`/`test` for the same reason `psx-hello` is: it depends on a
 # separate, slow/network-heavy one-time setup step no CI/day-to-day run
 # should require.
+#
+# THIS IS THE ONE TARGET LEFT IN THE OLD SOURCE-TO-EXECUTABLE FORM, ON
+# PURPOSE (docs/prd/triage/makefile-header-prerequisites.md, whose
+# Implementation Decisions and Out of Scope both say so). Every other
+# target above now compiles through the object trees at the top of this
+# file and gets its header prerequisites from the compiler; this one does
+# not, because it cannot be built -- let alone run -- in the environments
+# where that change was made and verified: raylib is not vendored there,
+# so third_party/raylib/src/libraylib.a does not exist and `make raylib`
+# stops before compiling anything. Converting it blind would also walk
+# straight into the flag-mixing trap the top-of-file comment warns about:
+# the three raylib-facing sources need `-I third_party/raylib/src` and the
+# other 63 do not, and src/pico8_raylib_backend_coords.c is ALSO linked by
+# the window-free test_pico8_raylib_backend_coords target without that
+# flag, so a careless shared object tree would silently hand one target an
+# object compiled for the other. Rewriting it is a fine follow-up for
+# whoever next has a vendored raylib in front of them and can actually
+# link the result; until then it keeps working exactly as it always has,
+# at the cost of keeping the stale-header behaviour this PRD removed
+# everywhere else -- which is the safe direction for a target no test can
+# cover here.
 $(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
 	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/main_raylib
+
+# The compiler-written dependency fragments described at the top of this
+# file, one per object, pulled in per object tree. `-include` plus
+# $(wildcard ...) means "use them if they are there": on a fresh clone
+# there are none, nothing is included, and everything is compiled anyway.
+-include $(wildcard $(OBJ_DIR)/src/*.d $(OBJ_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
