@@ -2,35 +2,34 @@
 
 #include "pico8_raylib_backend_coords.h"
 #include "pico8_gfx.h"
+#include "pico8_palette.h"
 
 #include <stdio.h>
 #include <time.h>
 
-/* The standard, published PICO-8 default palette (16 RGB colors), in
- * index order. Presentation-layer plumbing, not a ported function --
- * these are well-known, universally documented values (see e.g. the
- * PICO-8 wiki's "Palette" page), not something traced from pico8/
- * lua.lua. Alpha is always opaque; PICO-8's own transparency (palt())
- * is already handled inside the mimicry layer before a pixel ever
- * reaches the framebuffer this module reads. */
-static const Color PICO8_PALETTE[16] = {
-    { 0x00, 0x00, 0x00, 0xFF },
-    { 0x1D, 0x2B, 0x53, 0xFF },
-    { 0x7E, 0x25, 0x53, 0xFF },
-    { 0x00, 0x87, 0x51, 0xFF },
-    { 0xAB, 0x52, 0x36, 0xFF },
-    { 0x5F, 0x57, 0x4F, 0xFF },
-    { 0xC2, 0xC3, 0xC7, 0xFF },
-    { 0xFF, 0xF1, 0xE8, 0xFF },
-    { 0xFF, 0x00, 0x4D, 0xFF },
-    { 0xFF, 0xA3, 0x00, 0xFF },
-    { 0xFF, 0xEC, 0x27, 0xFF },
-    { 0x00, 0xE4, 0x36, 0xFF },
-    { 0x29, 0xAD, 0xFF, 0xFF },
-    { 0x83, 0x76, 0x9C, 0xFF },
-    { 0xFF, 0x77, 0xA8, 0xFF },
-    { 0xFF, 0xCC, 0xAA, 0xFF },
-};
+/* The standard, published PICO-8 default palette, which used to be a
+ * `static const Color` table right here. It moved to src/pico8_palette.
+ * {c,h} in Chunk 4 of docs/prd/triage/screencast-capture-and-viewer.md,
+ * for a sharing reason rather than a design one: that chunk adds a
+ * SECOND raylib program (src/main_screencast_viewer.c) which presents
+ * the very same 128x128 PICO-8 screen memory, and its PRD forbids it a
+ * palette of its own -- "le visualiseur affiche exactement la meme
+ * chose et ne doit pas redefinir sa propre palette". A copied table
+ * would agree with this one right up until the day somebody corrects
+ * only one of them.
+ *
+ * Nothing about what this file draws changed: the same sixteen RGB
+ * values, in the same index order, with the same always-opaque alpha --
+ * which is now added here, at the point of use, because the shared
+ * table is deliberately raylib-free (three bytes per color, not a
+ * `Color`) so that `make unit` can assert its values without a window.
+ * Still presentation-layer plumbing, not a ported function; PICO-8's
+ * own transparency (palt()) is already handled inside the mimicry layer
+ * before a pixel ever reaches the framebuffer this module reads. */
+static Color palette_color(unsigned char index) {
+    pico8_rgb_t rgb = PICO8_PALETTE_RGB[index & 0x0f];
+    return (Color){ rgb.r, rgb.g, rgb.b, 0xFF };
+}
 
 void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
     /* One time(NULL) for both names, because the whole point of the
@@ -155,7 +154,7 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     for (int y = 0; y < PICO8_SCREEN_HEIGHT; y++) {
         for (int x = 0; x < PICO8_SCREEN_WIDTH; x++) {
             unsigned char idx = pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
-            backend->pixel_buffer[y * PICO8_SCREEN_WIDTH + x] = PICO8_PALETTE[idx & 0x0f];
+            backend->pixel_buffer[y * PICO8_SCREEN_WIDTH + x] = palette_color(idx);
         }
     }
     UpdateTexture(backend->screen_texture, backend->pixel_buffer);

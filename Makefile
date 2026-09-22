@@ -1,4 +1,4 @@
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign screencast-viewer
 
 # The Love2D prototype (`game/`) was removed in favor of the PC/raylib
 # literal port described in docs/plan.md. Phase 1 of that plan added a C
@@ -415,6 +415,21 @@ $(TMP_DIR)/test_pico8_screencast: $(call objs,tests/test_pico8_screencast.c src/
 $(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_capture.c src/pico8_screencast.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c src/pico8_input.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+# Chunk 4 de docs/prd/triage/screencast-capture-and-viewer.md : ce que
+# le visualiseur decide sans fenetre -- quelle frame afficher
+# maintenant, et ce qu'on dit d'un fichier qu'on refuse de jouer -- plus
+# la palette PICO-8, sortie de src/pico8_raylib_backend.c pour que le
+# visualiseur l'affiche sans la redefinir (le PRD le lui interdit).
+# src/main_screencast_viewer.c, lui, inclut raylib.h et n'est donc
+# exercable par aucune cible d'ici : c'est exactement la raison d'etre
+# de ces deux modules, et la cinquieme application du precedent
+# pico8_raylib_backend_coords / pico8_replay_source /
+# pico8_session_recorder / pico8_screencast. Ne lie ni raylib, ni le
+# moteur : le curseur ne connait qu'un nombre de frames, et la palette
+# n'est que seize triplets.
+$(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -626,7 +641,7 @@ $(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_b
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -654,6 +669,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_marker_coherence
 	./$(TMP_DIR)/test_pico8_screencast
 	./$(TMP_DIR)/test_pico8_headless_capture
+	./$(TMP_DIR)/test_pico8_screencast_player
 	./$(TMP_DIR)/test_pico8_bg_kj
 	./$(TMP_DIR)/test_pico8_top_menubar
 	./$(TMP_DIR)/test_pico8_shop_tooltip_fillp
@@ -688,6 +704,13 @@ test: unit replay screencast-check
 SCREENCAST_EVENTS := events.json
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 SCREENCAST_SHA := $(SCREENCAST_EVENTS).sha256
+
+# Le visualiseur du chunk 4. Son nom est defini ICI, a cote des pixels
+# qu'il ouvre, parce que le message d'echec ci-dessous doit pouvoir
+# donner la commande reelle ; sa regle de construction, elle, est tout
+# en bas avec celle de `raylib`, dont elle partage les options et les
+# bibliotheques (et l'exigence de raylib vendorise).
+SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 
 # L'outil de calcul du sha256, choisi sur $(UNAME_S) comme les options
 # d'edition de liens de raylib le sont deja plus haut. `sha256sum`
@@ -813,7 +836,7 @@ screencast-check: $(SCREENCAST_CHECK_PREREQ)
 	        echo "screencast: EMPREINTE DIVERGENTE -- le port ne dessine plus la meme chose sur $(SCREENCAST_EVENTS)." >&2; \
 	        echo "screencast:   attendue ($(SCREENCAST_SHA)) : $$attendue" >&2; \
 	        echo "screencast:   obtenue  ($(SCREENCAST_BIN)) : $$obtenue" >&2; \
-	        echo "screencast: regenerer les pixels : make screencast   |   les regarder : voir le visualiseur" >&2; \
+	        echo "screencast: regenerer les pixels : make screencast   |   les regarder : make screencast-viewer && ./$(SCREENCAST_VIEWER_BIN) $(SCREENCAST_BIN)" >&2; \
 	        echo "screencast: si la divergence est VOULUE et a ete regardee, re-signer : make screencast-sign" >&2; \
 	        exit 1; \
 	    fi; \
@@ -839,7 +862,7 @@ screencast-sign: $(SCREENCAST_BIN)
 	@echo "screencast: empreinte posee dans $(SCREENCAST_SHA) : $$(cat $(SCREENCAST_SHA))"
 	@echo "screencast: cette ligne est un acte de signature -- commettez-la avec ce que vous avez regarde."
 
-.PHONY: screencast screencast-check screencast-sign
+.PHONY: screencast screencast-check screencast-sign screencast-viewer
 
 # RESERVE CONNUE, `make -j`. src/main.c ecrit tmp/pico8_replay_dump.txt
 # a chaque execution, quel que soit son scenario. Trois choses lancent
@@ -1004,10 +1027,62 @@ raylib-vendor-setup:
 # at the cost of keeping the stale-header behaviour this PRD removed
 # everywhere else -- which is the safe direction for a target no test can
 # cover here.
-$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
-	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
+$(TMP_DIR)/main_raylib: src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_palette.c src/pico8_palette.h src/pico8_assets.c src/pico8_assets.h src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_cart.h src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dispatch_context.h src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_help.h src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_replay_source.c src/pico8_replay_source.h src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_raylib.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_palette.c src/pico8_assets.c src/pico8_audio.c src/pico8_bg.c src/pico8_bootstrap.c src/pico8_cart.c src/pico8_class.c src/pico8_collect.c src/pico8_data_init.c src/pico8_dispatch_context.c src/pico8_dump.c src/pico8_economy.c src/pico8_economy_formulas.c src/pico8_economy_score.c src/pico8_economy_tiers.c src/pico8_entity.c src/pico8_entity_geom.c src/pico8_fixed.c src/pico8_galaxy.c src/pico8_game_data.c src/pico8_gen.c src/pico8_geom.c src/pico8_gfx.c src/pico8_help.c src/pico8_hud.c src/pico8_input.c src/pico8_ke.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_menu.c src/pico8_mouse.c src/pico8_mouse_reader.c src/pico8_msgbox.c src/pico8_ob.c src/pico8_particle.c src/pico8_pi.c src/pico8_planet.c src/pico8_planet_display.c src/pico8_planet_family.c src/pico8_planet_family_trade.c src/pico8_planet_trade.c src/pico8_probe.c src/pico8_replay_control.c src/pico8_replay_source.c src/pico8_research.c src/pico8_research_display.c src/pico8_research_icon.c src/pico8_score_panel.c src/pico8_score_panel_display.c src/pico8_scroll.c src/pico8_session_recorder.c src/pico8_slipway.c src/pico8_slipway_display.c src/pico8_stash.c src/pico8_str.c src/pico8_tech_gate.c src/pico8_trade.c src/pico8_ui.c src/pico8_ui_button.c src/pico8_value.c src/pico8_vec.c src/pico8_wormhole.c src/pico8_wormhole_display.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
 
 raylib: $(TMP_DIR)/main_raylib
+
+# Chunk 4 de docs/prd/triage/screencast-capture-and-viewer.md : LE
+# VISUALISEUR. Une cible a elle, sur le modele exact de `raylib`
+# ci-dessus -- memes options par systeme, memes bibliotheques, meme
+# exigence d'un raylib deja vendorise (prerequis ordinaire sur third_
+# party/raylib/src/libraylib.a : sans lui, un "No rule to make target"
+# ordinaire, comme pour `raylib` et `psx-hello`).
+#
+# ELLE N'ENTRE NI DANS `test` NI DANS `unit`, ET C'EST UNE EXIGENCE, PAS
+# UNE COMMODITE. Ce binaire ouvre une fenetre : aucun agent ne peut le
+# lancer (pas de serveur graphique, CLAUDE.md l'interdit), et raylib
+# n'est pas vendorise dans les environnements ou tourne la suite. Une
+# suite qui en dependrait ne serait plus constructible la ou elle doit
+# l'etre. Ce que ce binaire decide est teste ailleurs, par tmp/test_
+# pico8_screencast_player et tmp/test_pico8_screencast, qui ne lient pas
+# raylib ; ce qui reste ici -- une fenetre, une texture, un blit --
+# n'est validable que par un humain qui l'ouvre.
+#
+# MEME FORME SOURCE-VERS-EXECUTABLE QUE `raylib`, ET POUR LA MEME
+# RAISON (docs/prd/triage/makefile-header-prerequisites.md) : les deux
+# sources qui incluent raylib.h ont besoin de `-I third_party/raylib/
+# src`, que les autres n'ont pas, tandis que cinq des sources listees
+# ici -- pico8_raylib_backend_coords.c, pico8_replay_control.c,
+# pico8_screencast.c, pico8_screencast_player.c et pico8_palette.c --
+# sont AUSSI liees par des cibles de test sans fenetre, qui elles
+# passent par l'arbre d'objets partage. Melanger les deux jeux de
+# drapeaux dans un meme arbre est exactement le piege que le
+# commentaire en tete de fichier decrit, et il n'est de toute facon pas
+# verifiable ici, ou cette cible ne se construit pas. Le cout assume
+# est le meme que pour `raylib` : les prerequis d'en-tetes sont nommes
+# a la main, dans une cible qu'aucun test ne couvre.
+#
+# POURQUOI src/pico8_raylib_backend.c EST DANS LA LISTE d'un programme
+# qui ne joue a rien : le visualiseur lui emprunte ses deux seules
+# fonctions qui ne recoivent pas de backend (lecture des trois touches
+# de vitesse, application du plafond de frames), pour avoir les MEMES
+# touches que le rejeu interactif par construction plutot que par
+# recopie -- voir le commentaire en tete de src/main_screencast_
+# viewer.c. L'edition de liens tire avec lui pico8_raylib_backend_
+# coords.c, pico8_session_recorder.c, pico8_input.c et pico8_mem.c, dont
+# pas une ligne ne s'execute dans ce programme : le visualiseur n'ouvre
+# aucun fichier en ecriture.
+$(SCREENCAST_VIEWER_BIN): src/main_screencast_viewer.c src/pico8_screencast.c src/pico8_screencast.h src/pico8_screencast_player.c src/pico8_screencast_player.h src/pico8_palette.c src/pico8_palette.h src/pico8_replay_control.c src/pico8_replay_control.h src/pico8_raylib_backend.c src/pico8_raylib_backend.h src/pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.h src/pico8_session_recorder.c src/pico8_session_recorder.h src/pico8_input.c src/pico8_input.h src/pico8_mem.c src/pico8_mem.h src/pico8_gfx.h third_party/raylib/src/libraylib.a | $(TMP_DIR)
+	$(CC) $(CFLAGS) -I third_party/raylib/src -o $@ src/main_screencast_viewer.c src/pico8_screencast.c src/pico8_screencast_player.c src/pico8_palette.c src/pico8_replay_control.c src/pico8_raylib_backend.c src/pico8_raylib_backend_coords.c src/pico8_session_recorder.c src/pico8_input.c src/pico8_mem.c third_party/raylib/src/libraylib.a $(RAYLIB_LDLIBS)
+
+# Comme `raylib`, cette cible CONSTRUIT et ne lance rien : il n'y a pas
+# de ligne `./$(SCREENCAST_VIEWER_BIN)` ici, et il ne doit pas y en
+# avoir. Celui qui veut regarder une session tape les deux commandes
+# lui-meme, et c'est le message d'echec de screencast-check qui les lui
+# rappelle :
+#   make screencast && make screencast-viewer && ./tmp/screencast_viewer tmp/screencast.bin
+screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 
 # The compiler-written dependency fragments described at the top of this
 # file, one per object, pulled in per object tree. `-include` plus
