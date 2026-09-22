@@ -209,3 +209,26 @@ seul rendra les trois incohérents entre eux.
 
 Fichiers : `src/pico8_particle.c`, `src/pico8_slipway_display.c`,
 et `src/pico8_bootstrap.c` pour la variante de TROU-5.
+
+## TROU-15 — Là où Lua planterait, ce port ignore
+
+Convention générale du portage, et non un oubli local : quand le cart
+indexe une table absente, Lua lève une erreur. Ce port lit le champ comme
+absent et continue. Les sites connus :
+
+- `bd()` écrit dans l'ensemble `hg` d'un slipway qui n'en a pas : écriture
+  ignorée.
+- `lt`/`he` testent la **présence** du champ `bm`, pas sa véracité Lua :
+  un champ posé à faux inscrit quand même l'entité.
+- `he` sur une étiquette jamais enregistrée ne fait rien.
+- `dc` écarte de toutes les couches une entité sans `fa`, ou dont le `fa`
+  sort de 1..15.
+- `ck()` saute une planète dont la liste de besoins est absente ou vide.
+
+Aucun de ces cas n'est atteint en partie normale — ils décrivent ce qui
+arriverait sur une donnée malformée. Consignés parce qu'un lecteur qui en
+« corrige » un seul en le rendant fatal rendrait le port moins tolérant
+que le cart à un endroit et pas aux autres.
+
+Fichiers : `src/pico8_economy_tiers.c`, `src/pico8_economy_formulas.c`,
+`src/pico8_entity.c`.

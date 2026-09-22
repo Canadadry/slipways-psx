@@ -13,10 +13,6 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ref_audit.h"
 
-/* See pico8_economy.h's own top comment for the full trace, including the
- * FM RECONCILIATION decision (Chunk 22's eu() builds the real `fm=hy()`
- * instance, not this module). */
-
 static pico8_class_t *g_hy_class = NULL;
 
 static pico8_fixed_t field_fixed(const pico8_instance_t *inst, const char *name) {
@@ -27,29 +23,10 @@ static pico8_fixed_t field_fixed(const pico8_instance_t *inst, const char *name)
     return pico8_fixed_from_int(0);
 }
 
-/* function hy:pq()qj(self,ob([[
- * nz=100,ge=0,
- * jk=0,ew=1,
- * invented=o(),
- * lo=1,yr=3401,
- * ]]))end
- * (pico8/lua.lua:1198-1203.) `qj(self,ob([[...]]))` merges the freshly
- * parsed spec INTO self (the spec's own values win on a shared key,
- * pico8_qj's own established merge direction). `invented=o()` parses, via
- * ob()'s generic "identifier(...)" branch, as a nested EMPTY
- * pico8_ob_table_t (pi has no 'o' entry registered, so oo(NULL,...) falls
- * back to the freshly-parsed empty table itself, pico8_collect.h's own
- * pico8_oo comment) -- but every REAL consumer of self.invented in this
- * port's own scope (`hy:kt`'s add(), `oj()`'s gu(fm.invented,px),
- * `ky()`'s #fm.invented) treats it as a Lua LIST, never a keyed table.
- * Immediately replaced here with a fresh, empty pico8_list_t (REF-owned
- * by this instance) -- the same "spec-produced placeholder value swapped
- * for the actually-needed live representation right after construction"
- * decision already established for vector fields (Chunk 1) and `lq`'s own
- * `fs` field (Chunk 3), not a guess: every real call site is list-shaped.
- * The spec's own nested empty table (now unreachable) is freed explicitly
- * first, since pico8_ob_table_free never follows a nested REF (pico8_ob.h).
- * A NULL `self` is a safe no-op. */
+/* The spec's `invented=o()` parses as an empty nested table, but every
+ * reader of the field treats it as a list; it is swapped for a real one
+ * here. The parsed table is freed explicitly first: pico8_ob_table_free
+ * never follows a nested REF. */
 static void pico8_hy_pq(pico8_instance_t *self) {
     pico8_ob_table_t *spec;
     pico8_value_t old_invented;
@@ -72,6 +49,7 @@ static void pico8_hy_pq(pico8_instance_t *self) {
         old_invented.as.ref != NULL) {
         pico8_ob_table_free((pico8_ob_table_t *)old_invented.as.ref);
     }
+    /* TROU-7 */
     invented = malloc(sizeof *invented);
     pico8_list_init(invented);
     pico8_ob_table_set_name(self->fields, "invented", pico8_value_ref(invented));
@@ -98,14 +76,6 @@ pico8_instance_t *pico8_hy_new(const pico8_ob_table_t *overrides) {
     return pico8_class_instantiate(g_hy_class, overrides);
 }
 
-/* function hy:nx(hx)local kx=ov("time compression",12,15)
- * self.lo+=hx
- * self:lj()if self.lo>kx then
- * self.lo-=kx
- * self:hk()end
- * end
- * (pico8/lua.lua:1204-1209.) See pico8_economy.h's own top comment on this
- * declaration for the full trace. */
 void pico8_hy_nx(pico8_instance_t *self, pico8_fixed_t hx) {
     pico8_value_t kxv;
     pico8_fixed_t kx;
@@ -130,15 +100,6 @@ void pico8_hy_nx(pico8_instance_t *self, pico8_fixed_t hx) {
     }
 }
 
-/* function hy:hk()
- * self.nz+=self.ge
- * self.jk+=self.po[r.k]+1
- * self.yr+=1
- * self:lj()for e in all(cv.hk)do
- * e:hk(self.yr)end
- * end
- * (pico8/lua.lua:1210-1216.) See pico8_economy.h's own top comment on this
- * declaration for the full trace. */
 void pico8_hy_hk(pico8_instance_t *self) {
     pico8_fixed_t nz;
     pico8_fixed_t ge;
@@ -198,17 +159,6 @@ void pico8_hy_hk(pico8_instance_t *self) {
     }
 }
 
-/* function hy:lu(jt)if self.nz<jt then
- * iv({"-no money-",8})
- * return
- * end
- * self.nz-=jt
- * if jt~=0 then
- * iv({ne(-jt,10,"$")})end
- * return true
- * end
- * (pico8/lua.lua:1217-1225.) See pico8_economy.h's own top comment on this
- * declaration for the full trace. */
 int pico8_hy_lu(pico8_instance_t *self, pico8_fixed_t jt) {
     pico8_fixed_t nz = field_fixed(self, "nz");
     pico8_ob_table_t *overrides;
@@ -234,47 +184,13 @@ int pico8_hy_lu(pico8_instance_t *self, pico8_fixed_t jt) {
         pico8_ob_table_set_index(overrides, 2, pico8_value_fixed(pico8_fixed_from_int(color)));
         pico8_iv_new(overrides);
         pico8_ob_table_free(overrides);
-        /* `text` intentionally NOT freed here: pico8_iv_new's own shallow
-         * copy (pico8_class_instantiate copying `overrides` entries by
-         * plain pico8_value_t assignment) stores this SAME pointer
-         * (pico8_value_string never duplicates -- see pico8_value.h's own
-         * "a value never owns the memory a STRING/REF points to" comment)
-         * into the new `iv` instance's own fields, read back every frame
-         * it stays on screen (pico8_iv_kj). Freeing it here was a real,
-         * ASan-confirmed heap-use-after-free -- fixed by matching
-         * pico8_jo_hk's own already-correct identical pattern
-         * (src/pico8_planet.c), the ONLY other real call site in this
-         * codebase that keeps a pico8_ne()-produced buffer alive inside a
-         * long-lived `iv` instance this same way. pico8_ne's own contract
-         * ("caller owns and must free()", pico8_collect.h) still holds in
-         * general -- it just means ownership of THIS buffer passes to the
-         * `iv` instance from this point on -- the same "heap string handed
-         * to pico8_value_string() then left unfreed because a longer-lived
-         * container now owns it" pattern already used elsewhere in this
-         * codebase for other allocators (e.g. pico8_hp_jb_join's `it`,
-         * pico8_research_display.c; pico8_economy_score.c's
-         * `concat_percent` result), just not, until this fix, for a
-         * pico8_ne()-produced buffer at this particular call site. */
+        /* `text` is now owned by the new `iv` instance, which reads it every
+         * frame it stays on screen: not freed here. */
     }
 
     return 1;
 }
 
-/* function hy:lj()repeat
- * bd()until not bb()self.po,self.fu=
- * bx(),ck()local dd=0
- * for p in all(cg.jo)do
- * p.kr=flr(db(p)-
- * da(p))
- * dd+=p.kr
- * end
- * self.ge=flr(dd*ov("skill implants",1,1.15))- cz()self.happiness=
- * bf()self.hl=
- * self.yr>=3426 and "final score"or self.ge<=0 and self.nz<3 and "bankrupt"for e in all(cv.hb)do
- * e:hb()end
- * end
- * (pico8/lua.lua:1226-1238.) See pico8_economy.h's own top comment on this
- * declaration for the full trace. */
 void pico8_hy_lj(pico8_instance_t *self) {
     pico8_value_t old_po_val;
     pico8_value_t old_fu_val;
@@ -296,6 +212,8 @@ void pico8_hy_lj(pico8_instance_t *self) {
         return;
     }
 
+    /* Terminates because `bb()` reports only tier INCREASES and a tier is
+     * capped at 4; a `jw != mi` test there would spin forever. */
     do {
         pico8_bd();
     } while (pico8_bb());
@@ -363,17 +281,6 @@ void pico8_hy_lj(pico8_instance_t *self) {
     }
 }
 
-/* function hy:kt(t)
- * self.jk-=gi(t)
- * add(self.invented,t.px)
- * if self.ew<4
- * and #self.invented>=ek[self.ew]then
- * self.ew+=1
- * end
- * self:lj()
- * end
- * (pico8/lua.lua:1446-1454.) See pico8_economy.h's own top comment on this
- * declaration for the full trace. */
 void pico8_hy_kt(pico8_instance_t *self, const pico8_ob_table_t *t) {
     pico8_value_t px_val;
     pico8_fixed_t jk;
@@ -390,15 +297,6 @@ void pico8_hy_kt(pico8_instance_t *self, const pico8_ob_table_t *t) {
 
     if (pico8_instance_get_field(self, "invented", &invented_val) && invented_val.kind == PICO8_VALUE_REF &&
         invented_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * Producer: pico8_hy_pq() in this same file (the
-         * `pico8_ob_table_set_name(self->fields, "invented", ...)` on a
-         * freshly pico8_list_init()ed heap list), which deliberately
-         * throws away the `invented=o()` empty ob_table the class spec
-         * string parses and replaces it with a real list -- see that
-         * function's own comment. It is the only writer of "invented"
-         * in the whole port (grep), and hy:pq runs once per hy instance
-         * before any consumer can read the field. */
         pico8_list_t *invented = PICO8_REF_AS_LIST(invented_val.as.ref);
         if (t != NULL && pico8_ob_table_get_name(t, "px", &px_val)) {
             pico8_list_add(invented, px_val);

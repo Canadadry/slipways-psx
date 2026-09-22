@@ -228,6 +228,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `by` | routes partant de la planète (résultat de `jo:ib()`) |
 | `kw` | production : `{qe=ressource, mu=quantité}` |
 | `hf` | la planète est un hub |
+| `hs` | multiplicateur de revenu commercial ; 1 par défaut, 0,5 sur une planète colonisée |
+| `jh` | bonus de production ajouté à `kw.mu`, posé une seule fois par `jo:cn` |
 | `hn` | le projet de recherche installé (instance `hp`) |
 | `kr` | revenu net de la planète |
 | `gg()` | la planète compte-t-elle dans les scores (colonisée) |

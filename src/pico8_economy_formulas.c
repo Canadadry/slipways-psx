@@ -40,15 +40,6 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
     return NULL;
 }
 
-/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
- * one name this module ever passes. The single call site is
- * `field_list(l, "jy")` in pico8_ow() below, and "jy" has exactly two
- * writers in the whole port, both producing a heap pico8_list_t*:
- * pico8_jo_lz() (src/pico8_planet.c, `jy_heap` from pico8_nv) and
- * pico8_jo_cn() (src/pico8_planet_trade.c, `merged_heap` from pico8_la).
- * A generic-looking helper is only as safe as the names its callers
- * actually pass, so that enumeration -- not the helper's shape -- is the
- * justification. */
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -97,14 +88,6 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-/* function cm(jm)local p={}
- * for _,qe in pairs(r)do
- * p[qe]=jm
- * end
- * return p
- * end
- * (pico8/lua.lua:1239-1244.) See pico8_economy_formulas.h's own top
- * comment on this declaration for the full trace. */
 pico8_ob_table_t *pico8_cm(pico8_fixed_t jm) {
     const pico8_ob_table_t *r = pico8_r();
     pico8_ob_table_t *p = pico8_ob_table_new();
@@ -141,15 +124,6 @@ static void bx_visit(pico8_instance_t *pt, void *ctx) {
     set_by_value(p, qe_val, pico8_value_fixed(pico8_fixed_add(current.as.fixed, mu)));
 }
 
-/* function bx()local p=cm(0)for pt in all(cg.jo)do
- * if pt.jy then
- * p[pt.kw.qe]+=pt.kw.mu
- * end
- * end
- * return p
- * end
- * (pico8/lua.lua:1245-1251.) See pico8_economy_formulas.h's own top
- * comment on this declaration for the full trace. */
 pico8_ob_table_t *pico8_bx(void) {
     pico8_ob_table_t *p = pico8_cm(pico8_fixed_from_int(0));
     for_each_cg("jo", bx_visit, p);
@@ -175,45 +149,30 @@ static void ck_visit(pico8_instance_t *l, void *ctx) {
     if (!pico8_ob_table_get_name(last, "qe", &qe_val)) {
         return;
     }
+    /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
+     * is a resource `r` never listed, treated as that same seed. */
     if (!get_by_value(d, qe_val, &current) || current.kind != PICO8_VALUE_FIXED) {
         current = pico8_value_fixed(pico8_fixed_from_int(1));
     }
     set_by_value(d, qe_val, pico8_value_fixed(pico8_fixed_sub(current.as.fixed, pico8_fixed_from_double(0.15))));
 }
 
-/* function ck()local d=cm(1)for l in all(cg.qh)do
- * d[l.jy[#l.jy].qe]-=0.15
- * end
- * return d
- * end
- * (pico8/lua.lua:1252-1256.) See pico8_economy_formulas.h's own top
- * comment on this declaration for the full trace. */
 pico8_ob_table_t *pico8_ck(void) {
     pico8_ob_table_t *d = pico8_cm(pico8_fixed_from_int(1));
     for_each_cg("qh", ck_visit, d);
     return d;
 }
 
-/* function dj(pb,to)local ec=
- * (#(to.p-pb.p)/bq)^0.75
- * return flr(bn*bk()*max(0.5,ec))end
- * (pico8/lua.lua:1259-1261.) See pico8_economy_formulas.h's own top
- * comment on this declaration for the full trace, including the `^0.75`
- * fractional-power numeric-fidelity note. */
 pico8_fixed_t pico8_dj(const pico8_instance_t *pb, const pico8_instance_t *to) {
     pico8_vec_t diff = pico8_vec_sub(field_vec(to, "p"), field_vec(pb, "p"));
     pico8_fixed_t len_sq = pico8_vec_len_sq(diff);
+    /* TROU-1 */
     double ec_d = pow(pico8_fixed_to_double(len_sq) / pico8_fixed_to_double(pico8_bq()), 0.75);
     pico8_fixed_t ec = pico8_fixed_from_double(ec_d);
     pico8_fixed_t clamped = fixed_max(pico8_fixed_from_double(0.5), ec);
     return pico8_fixed_flr(pico8_fixed_mul(pico8_fixed_mul(pico8_bn(), pico8_bk()), clamped));
 }
 
-/* function bk()
- * return max(1,sqrt(#(cg.jc or {}))*0.27-0.1
- * )end
- * (pico8/lua.lua:1262-1264.) See pico8_economy_formulas.h's own top
- * comment on this declaration for the full trace. */
 pico8_fixed_t pico8_bk(void) {
     const pico8_list_t *jc = pico8_cg("jc");
     int count = (jc != NULL) ? jc->count : 0;
