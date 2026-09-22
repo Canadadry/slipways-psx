@@ -20,6 +20,8 @@ et des `assert`, sous les conditions ci-dessous.
 
 Tout commentaire que tu lis va dans une de ces quatre destinations, sinon il part.
 
+**Premier tri, avant les quatre : ce qui est déjà tenu ailleurs dans le dépôt part.** Tu renvoies à l'endroit par son chemin, tu ne recopies pas. L'explication vit là où passera celui qui casserait la chose — à la garde elle-même, pas dans le test qui la couvre, pas chez l'appelant. Vérifie avant de renvoyer que la note est bien là-bas, et cite le fichier.
+
 1. **Le sens d'un nom** → `<docs/glossaire.md>`. Tu **n'écris pas** dans ce
    fichier (d'autres agents travaillent en parallèle) : tu listes dans ton rapport
    les entrées à ajouter ou à corriger, une ligne chacune. Le code ne répète pas
@@ -94,7 +96,7 @@ fourchette, un index est irrécupérable sans sa raison : tu gardes ces raisons,
 taux de conservation sera légitimement plus élevé. Tu retires le récit de chantier
 et les affirmations périmées, rien d'autre.
 
-**Tu ne touches à aucune assertion** : ni la valeur, ni l'ajout, ni le retrait.
+**Tu ne touches à aucune assertion** : ni la valeur, ni l'ajout, ni le retrait. Ce n'est pas « pas d'assert dans un test » — un test n'est fait que de ça : c'est que **ta passe** ne change pas ce qu'il prouve, et ton diff préprocesseur doit rester vide, sans même la tolérance « aux `assert` près ». Un piège de destination 3 que tu vois ici se signale en rubrique 4 (`pourquoi écarté : changement de test, hors passe`), avec sa preuve. L'orchestrateur le posera à part s'il le veut.
 
 ## Contrôle avant de rendre la main
 

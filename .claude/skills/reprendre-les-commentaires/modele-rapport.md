@@ -22,6 +22,8 @@ Une ligne par commentaire conservé, avec sa destination (3 = piège, 4 = contra
 
 ## 3. Asserts posés
 
+Sur un fichier de test, cette rubrique est vide : la passe ne pose pas d'assertion. Une vide n'est pas une rubrique ratée.
+
 Un bloc par assert. **Le mode de preuve est obligatoire** : énumération des sites
 d'appel, mesure, ou preuve locale sans hypothèse sur les appelants. « Je ne vois
 pas comment ça pourrait arriver » n'est pas un mode de preuve.
@@ -44,6 +46,8 @@ remplacé par        : <les 40 mots, ou rien>
 ```
 
 Si le calcul de marge a dit non, donne les nombres. Ça a déjà révélé un bug.
+
+C'est aussi ici qu'atterrit l'assert qu'un **fichier de test** appellerait : `pourquoi écarté : changement de test, hors passe`, avec sa preuve quand même. L'orchestrateur décide de le poser à part.
 
 ## 5. Entrées de glossaire à ajouter ou corriger
 
