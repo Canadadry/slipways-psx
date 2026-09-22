@@ -1,25 +1,19 @@
-/* Chunk 4 de docs/prd/triage/screencast-capture-and-viewer.md ("Le
- * visualiseur") : les deux seules decisions que le visualiseur prend et
- * qui ne demandent pas de fenetre -- quelle frame afficher maintenant,
+/* Les deux seules decisions que prend le visualiseur de screencast et
+ * qui ne demandent pas de fenetre : quelle frame afficher maintenant,
  * et ce qu'on dit a un humain dont le fichier ne peut pas etre joue.
  *
- * CE QUE CE FICHIER PEUT AFFIRMER, ET CE QU'IL NE PEUT PAS. Il ne peut
- * pas affirmer qu'une fenetre s'ouvre, que l'image est a l'echelle 6,
- * que PAGE UP accelere reellement la lecture, ni que la ligne d'etat est
- * lisible : tout cela demande un serveur graphique et un humain, et
- * CLAUDE.md interdit par ailleurs d'ouvrir cette fenetre a ce stade. Le
- * PRD en tire la consequence sur le decoupage plutot que sur les tests :
- * "si une partie du visualiseur n'est pas testable sans fenetre, c'est
- * qu'elle est au mauvais endroit". Ce fichier teste donc ce qui a ete
- * mis au bon endroit, et ne simule ni touche ni pixel.
+ * CE QUE CE FICHIER NE PEUT PAS AFFIRMER : qu'une fenetre s'ouvre, que
+ * l'image est a l'echelle 6, que PAGE UP accelere reellement la
+ * lecture, que la ligne d'etat est lisible. Tout cela demande un
+ * serveur graphique et un humain, et CLAUDE.md interdit d'ouvrir cette
+ * fenetre. Ce qui n'est pas testable sans fenetre est au mauvais
+ * endroit ; ce fichier teste ce qui a ete mis au bon endroit, et ne
+ * simule ni touche ni pixel.
  *
- * Le motif d'assertion suit celui de tests/test_pico8_replay_source.c et
- * de tests/test_pico8_screencast.c : on affirme la SUITE des index
- * servis, un par un et dans l'ordre, jamais leur nombre. Un test qui
- * compterait les avances passerait sur un curseur qui resservirait
- * toujours la frame 0, ou qui les servirait a l'envers -- remarque deja
- * consignee a propos du module de rejeu, et que le PRD reprend mot pour
- * mot pour ce chunk-ci. */
+ * On affirme partout la SUITE des index servis, un par un et dans
+ * l'ordre, jamais leur nombre : un test qui compterait les avances
+ * passerait sur un curseur qui resservirait toujours la frame 0, ou qui
+ * les servirait a l'envers. */
 
 #include "../src/pico8_screencast_player.h"
 
@@ -30,10 +24,9 @@
 #include <string.h>
 
 /* La lecture commence sur la premiere frame du fichier et avance d'une
- * frame par appel, dans l'ordre : c'est la seule chose qu'un
- * visualiseur de video doit faire, et c'est la logique neuve de ce
- * chunk (le format et la lecture indexee sont au chunk 1, la vitesse
- * est dans pico8_replay_control). */
+ * frame par appel, dans l'ordre. C'est la logique neuve de ce module :
+ * le format et la lecture indexee sont dans pico8_screencast, la
+ * vitesse dans pico8_replay_control. */
 static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
     pico8_screencast_player_t player;
     pico8_screencast_player_init(&player, 5);
@@ -50,15 +43,13 @@ static void test_playback_starts_at_the_first_frame_and_walks_in_order(void) {
 }
 
 /* LA FIN DU FICHIER, QUI EST LA VRAIE DECISION DE CE MODULE. La lecture
- * reprend a la premiere frame au lieu de s'arreter sur la derniere. Le
- * PRD demande que le visualiseur joue le fichier "en continu", et la
- * raison est dans l'en-tete du module : une capture a une fin, et la
- * derniere image est celle qu'un humain vient examiner avant de signer
- * une empreinte -- une lecture qui repartirait au debut la lui
- * retirerait au moment ou il la regarde.
+ * se fige sur la derniere frame au lieu de reboucler : une capture a
+ * une fin, et la derniere image est celle qu'un humain vient examiner
+ * avant de signer une empreinte -- une lecture qui repartirait au debut
+ * la lui retirerait au moment ou il la regarde.
  *
- * La suite complete est affirmee, et l'avance est appelee PLUSIEURS
- * fois au-dela de la fin : un curseur qui se figerait une fois puis
+ * L'avance est appelee PLUSIEURS fois au-dela de la fin, et l'index est
+ * asserti a chaque tour : un curseur qui se figerait une fois puis
  * repartirait, ou qui deborderait a la deuxieme avance de trop,
  * passerait un test qui s'arreterait a la premiere. */
 static void test_playback_freezes_on_the_last_frame(void) {
@@ -81,9 +72,9 @@ static void test_playback_freezes_on_the_last_frame(void) {
 
 /* Un fichier d'une seule frame est une capture valide (8 192 octets), et
  * c'est le cas ou une avance mal ecrite sort du fichier le plus vite :
- * l'index reste 0, quel que soit le nombre d'avances. Ce que le chunk 1
- * refuserait de lire -- un index hors bornes -- ne doit donc jamais lui
- * etre demande. */
+ * l'index reste 0, quel que soit le nombre d'avances. Un index hors
+ * bornes ne doit jamais etre demande a pico8_screencast_read_frame, qui
+ * le refuserait. */
 static void test_a_single_frame_capture_stays_on_its_only_frame(void) {
     pico8_screencast_player_t player;
     pico8_screencast_player_init(&player, 1);
@@ -94,23 +85,20 @@ static void test_a_single_frame_capture_stays_on_its_only_frame(void) {
     }
 }
 
-/* LE REFUS, QUI EST L'AUTRE MOITIE DU MODULE. Le chunk 1 sait deja
- * DISTINGUER les trois facons dont un fichier de pixels peut etre
+/* LE REFUS, QUI EST L'AUTRE MOITIE DU MODULE. pico8_screencast sait
+ * deja DISTINGUER les trois facons dont un fichier de pixels peut etre
  * injouable (absent/illisible, vide, tronque) ; ce qu'il ne fait pas,
- * et ne doit pas faire, c'est decider quoi en dire a un humain. C'est
- * ici, et c'est teste ici, parce que le PRD en fait une exigence de
- * fond : "une fenetre qui s'ouvre sur du noir est indiscernable d'une
- * session qui commence par un ecran noir", donc le refus doit etre
- * EXPLICITE et doit arriver AVANT la fenetre.
+ * et ne doit pas faire, c'est decider quoi en dire a un humain. Une
+ * fenetre qui s'ouvre sur du noir est indiscernable d'une session qui
+ * commence par un ecran noir, donc le refus doit etre EXPLICITE et doit
+ * arriver AVANT la fenetre.
  *
  * Les trois messages sont affirmes un par un et en entier. Un test qui
- * se contenterait de verifier qu'une chaine non vide sort passerait sur
- * la mutation la plus probable de tout ce module -- un seul message
- * generique pour les trois cas -- qui est precisement le defaut que le
- * PRD nomme : "le message est la seule interface humaine d'un echec".
- * Chacun nomme le chemin (celui qu'on a tape n'est pas toujours celui
- * qu'on croit), dit la cause, et dit qu'aucune fenetre ne s'est
- * ouverte. */
+ * verifierait seulement qu'une chaine non vide sort passerait sur la
+ * mutation la plus probable de ce module -- un seul message generique
+ * pour les trois cas. Chacun nomme le chemin (celui qu'on a tape n'est
+ * pas toujours celui qu'on croit), dit la cause, et dit qu'aucune
+ * fenetre ne s'est ouverte. */
 static void test_each_refusal_names_the_path_and_its_own_reason(void) {
     char out[PICO8_SCREENCAST_PLAYER_REFUSAL_MAX];
 
@@ -135,7 +123,8 @@ static void test_each_refusal_names_the_path_and_its_own_reason(void) {
  * toujours terminee par un NUL, tronquee plutot que debordee. Un
  * message d'erreur n'a pas le droit d'etre lui-meme la faute -- et
  * celui-ci est ecrit juste avant un exit, la ou plus rien ne rattrape
- * un debordement. */
+ * un debordement. Les 16 octets de `out` sont plus courts que le plus
+ * court des trois messages, donc la troncature est certaine. */
 static void test_a_refusal_truncates_rather_than_overflowing(void) {
     char out[16];
     char guard[8];
@@ -151,27 +140,20 @@ static void test_a_refusal_truncates_rather_than_overflowing(void) {
 }
 
 /* LA PALETTE, ET POURQUOI ELLE EST ASSERTIONNEE DANS CE FICHIER-CI. Le
- * PRD interdit au visualiseur de redefinir sa palette : "la conversion
- * d'un index de palette PICO-8 vers une couleur est DEJA faite par le
- * backend interactif ; le visualiseur affiche exactement la meme chose".
- * Les seize couleurs etaient jusqu'ici une table `static const Color`
- * enfermee dans src/pico8_raylib_backend.c -- inatteignable depuis un
- * second binaire raylib autrement qu'en la recopiant, c'est-a-dire en
- * creant la deuxieme verite que le PRD refuse. Elles sont donc sorties
- * dans src/pico8_palette.{c,h}, sans raylib (trois octets par couleur,
- * pas un `Color`), et les deux fichiers raylib les lisent la.
+ * visualiseur ne redefinit pas sa palette : la conversion d'un index
+ * PICO-8 vers une couleur est deja faite par le backend interactif, et
+ * les deux binaires raylib lisent la meme table (src/pico8_palette.c,
+ * sans raylib, trois octets par couleur).
  *
- * Deplacer quarante-huit octets hexadecimaux ecrits a la main est
- * exactement l'operation ou une faute de frappe se cache sans rien
- * casser de visible -- un bleu legerement faux ne fait echouer aucune
- * compilation et ne se remarque qu'a l'oeil, sur une fenetre que
- * personne ici ne peut ouvrir. D'ou ces seize assertions, une par
- * couleur. Elles vivent dans ce binaire plutot que dans une cible a
- * elles parce qu'une cible de plus pour seize constantes serait plus de
- * Makefile que de test, et parce que la palette est, comme le reste de
- * ce fichier, ce que le visualiseur decide sans fenetre. Les valeurs
- * sont celles, publiees et universellement documentees, de la palette
- * par defaut de PICO-8 -- pas une fonction portee depuis pico8/lua.lua. */
+ * Quarante-huit octets hexadecimaux ecrits a la main sont exactement ou
+ * une faute de frappe se cache sans rien casser de visible : un bleu
+ * legerement faux ne fait echouer aucune compilation et ne se remarque
+ * qu'a l'oeil, sur une fenetre que personne ici ne peut ouvrir. D'ou
+ * ces seize assertions, une par couleur. Les valeurs sont celles,
+ * publiees et universellement documentees, de la palette par defaut de
+ * PICO-8 -- pas une fonction portee depuis pico8/lua.lua. Elles vivent
+ * dans ce binaire plutot que dans une cible a elles parce qu'une cible
+ * de plus pour seize constantes serait plus de Makefile que de test. */
 static void test_the_shared_palette_is_the_published_pico8_one(void) {
     static const unsigned char expected[PICO8_PALETTE_COLORS][3] = {
         { 0x00, 0x00, 0x00 }, { 0x1D, 0x2B, 0x53 }, { 0x7E, 0x25, 0x53 }, { 0x00, 0x87, 0x51 },
