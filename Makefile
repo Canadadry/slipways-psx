@@ -1,4 +1,4 @@
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign
 
 # The Love2D prototype (`game/`) was removed in favor of the PC/raylib
 # literal port described in docs/plan.md. Phase 1 of that plan added a C
@@ -280,9 +280,12 @@ DATA_ENGINE_SRCS := \
     src/pico8_value.c \
     src/pico8_vec.c
 
-# Host OS, used only by the `raylib` target below to pick the right
-# system libs to link raylib's own PLATFORM_DESKTOP build against --
-# every other target here is plain portable C with no OS-specific
+# Host OS, used by exactly two things: the `raylib` target below, to
+# pick the right system libs to link raylib's own PLATFORM_DESKTOP build
+# against, and -- depuis le chunk 3 de docs/prd/triage/screencast-
+# capture-and-viewer.md -- la section SCREENCAST tout en bas, qui choisit
+# l'outil de calcul du sha256 (`sha256sum` n'existe pas sur macOS).
+# Every other target here is plain portable C with no OS-specific
 # linking at all.
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -663,7 +666,199 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
 
-test: unit replay
+test: unit replay screencast-check
+
+# ---------------------------------------------------------------------
+# SCREENCAST : FABRICATION DES PIXELS, EMPREINTE VERSIONNEE, CONTROLE
+# (chunk 3 de docs/prd/triage/screencast-capture-and-viewer.md).
+#
+# Le chunk 1 a donne le format (src/pico8_screencast.h), le chunk 2 a
+# donne au pilote headless son deuxieme argument optionnel (src/main.c).
+# Ici on cable les deux au systeme de construction, et c'est ce qui rend
+# l'instrument OPERANT : a partir de maintenant, une modification du
+# rendu fait rougir la suite -- une fois qu'un humain a pose une
+# empreinte, et pas avant (voir plus bas, c'est la decision centrale de
+# ce bloc).
+#
+# Les pixels d'une session sont une FONCTION du code et de l'events.json
+# -- le rejeu headless est deterministe. C'est l'unique idee dont tout
+# le reste decoule : le fichier de pixels n'a pas a etre conserve, il a
+# a etre regenerable, et seule son empreinte est versionnee.
+
+SCREENCAST_EVENTS := events.json
+SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
+SCREENCAST_SHA := $(SCREENCAST_EVENTS).sha256
+
+# L'outil de calcul du sha256, choisi sur $(UNAME_S) comme les options
+# d'edition de liens de raylib le sont deja plus haut. `sha256sum`
+# N'EXISTE PAS sur macOS : l'equivalent y est `shasum -a 256`, livre
+# avec le systeme. Le PRD en fait une exigence nommee (user story 23) et
+# la raison est concrete : le relevé PICO-8 de reference (tools/
+# probe_out.txt, docs/plan-2.md §5) a ete fait sur un macOS, donc une
+# cible qui ne saurait calculer une empreinte que sous Linux serait
+# inutilisable exactement sur la machine qui sert d'oracle.
+#
+# Les deux outils impriment la meme chose, "<empreinte>  <chemin>", d'ou
+# le `cut -d' ' -f1` commun ci-dessous : le chemin ne doit PAS entrer
+# dans le fichier d'empreinte, sinon l'empreinte versionnee dependrait
+# de l'endroit ou le fichier temporaire a ete ecrit.
+#
+# REJETE : une implementation de sha256 dans le C du projet. Le PRD
+# l'interdit ("pas d'implementation de sha256 dans le code du projet"),
+# et l'interdiction se justifie toute seule -- ce serait du code a
+# tester, dans un depot dont le sujet est de porter un jeu, pour
+# remplacer un outil present sur les deux systemes vises.
+ifeq ($(UNAME_S),Darwin)
+    SHA256_CMD := shasum -a 256
+else
+    SHA256_CMD := sha256sum
+endif
+
+# LA REGLE DE FABRICATION. Une regle de FICHIER, pas une cible factice :
+# c'est la difference entre "make refait les pixels quand un source ou
+# le scenario ont change" et "make refait les pixels a chaque fois qu'on
+# lance la suite". Mesure sur l'events.json actuel : 9 729 frames, ~11 s
+# et ~80 Mo. Une cible factice aurait donc ajoute 11 s a CHAQUE boucle
+# rouge-vert, y compris celles qui ne touchent pas a src/.
+#
+# Deux prerequis, et ils suffisent :
+#  - $(TMP_DIR)/pico8_replay, le pilote lui-meme. Il porte deja la
+#    cloture complete du moteur a travers les objets intermediaires et
+#    les fragments de dependances generes par le compilateur (voir le
+#    grand commentaire de docs/prd/triage/makefile-header-prerequisites.
+#    md en tete de fichier). Nommer ici "les objets du moteur" un par un
+#    aurait redit, en moins fiable, ce que le binaire dit deja : editer
+#    un .c OU un .h du moteur relie le pilote, et relier le pilote
+#    refait les pixels.
+#  - $(SCREENCAST_EVENTS), le scenario. Changer le scenario change les
+#    pixels tout autant que changer le code.
+# Le repertoire tmp/ est un prerequis d'ordre seul, comme partout
+# ailleurs ici : sa date de modification change des qu'on y ecrit, donc
+# en prerequis ordinaire il refabriquerait 80 Mo a chaque passage.
+#
+# Le fichier vit sous tmp/, deja ignore par git (.gitignore). Il n'entre
+# jamais dans le depot, et le seul artefact durable de tout ce PRD est
+# la ligne d'empreinte ci-dessous.
+$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS) | $(TMP_DIR)
+	./$(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS) $@
+
+# Le confort humain : "fabrique-moi les pixels", sans avoir a taper le
+# chemin du fichier temporaire. C'est aussi ce qu'un humain lance avant
+# d'ouvrir le visualiseur du chunk 4.
+screencast: $(SCREENCAST_BIN)
+
+# SI LA RECETTE ECHOUE, LE FICHIER PARTIEL EST DETRUIT. Sans cela, un
+# rejeu interrompu (disque plein -- 80 Mo, ce n'est pas theorique) ou tue
+# laisserait derriere lui un tmp/screencast.bin tronque MAIS plus recent
+# que ses prerequis : make le croirait a jour et le controle suivant
+# calculerait une empreinte sur un fichier incomplet, c'est-a-dire un
+# faux rouge indiscernable d'une regression -- precisement ce que le
+# chunk 2 s'est donne du mal a rendre impossible cote pilote (erreur
+# fatale sur echec d'ecriture). Special target standard de GNU make,
+# sans effet sur les cibles factices (unit, replay, test...) : elles
+# n'ont pas de fichier a detruire.
+.DELETE_ON_ERROR:
+
+# LE CONTROLE, DONT `test` DEPEND.
+#
+# La forme voulue par le PRD : "La suite de tests DEPEND de ce fichier
+# sans le fabriquer elle-meme". D'ou un prerequis et non un `make
+# $(SCREENCAST_BIN)` dans la recette -- une recette qui fabrique refait
+# le travail a chaque appel et court-circuite le calcul de peremption
+# qui est toute la raison d'etre d'une regle de fichier.
+#
+# TANT QU'AUCUNE EMPREINTE N'EST POSEE, LA SUITE PASSE ET NE FABRIQUE
+# RIEN. C'est une decision, pas un oubli, et elle a deux moities.
+#
+# Passer : docs/plan-2.md §5 porte un avertissement d'ordonnancement
+# explicite -- "capturer ce filet avant d'avoir tranche la population
+# (c) gelerait la troncature actuelle dans un fichier versionne, et
+# toute correction ulterieure vers `flr` apparaitrait alors comme une
+# regression. Un doute serait transforme en apparente certitude, dans le
+# mauvais sens." Poser une empreinte, c'est affirmer que ce qui est
+# dessine est ce qu'on VEUT. Ce chunk livre l'instrument ; il ne le
+# charge pas. Un depot sans events.json.sha256 est l'etat normal jusqu'a
+# ce qu'un humain ait regarde defiler une session et l'ait acceptee.
+#
+# Ne rien fabriquer : fabriquer 80 Mo en 11 s pour les comparer a rien
+# serait du gaspillage pur. D'ou le $(wildcard) ci-dessous, evalue a la
+# lecture du Makefile : sans fichier d'empreinte, screencast-check n'a
+# AUCUN prerequis, donc `make test` ne lance meme pas le pilote.
+#
+# REJETE : mettre l'empreinte a jour automatiquement quand elle diverge.
+# Le PRD l'interdit en toutes lettres -- "ce serait l'annulation
+# silencieuse du filet". Une empreinte qui se re-pose toute seule ne
+# repond plus a la question qui a motive tout ce PRD, "a quel commit un
+# humain a-t-il valide pour la derniere fois ce que le jeu affiche".
+# Seule screencast-sign ecrit ce fichier, et rien ne l'appelle.
+ifeq ($(wildcard $(SCREENCAST_SHA)),)
+SCREENCAST_CHECK_PREREQ :=
+else
+SCREENCAST_CHECK_PREREQ := $(SCREENCAST_BIN)
+endif
+
+# Le message est la seule interface humaine d'un echec, et un echec muet
+# sur un hash ne dit rien a personne : il nomme les DEUX valeurs
+# (attendue / obtenue), rappelle ou sont les pixels, comment les
+# regarder, et quelle cible re-signe. Sans ces trois rappels, celui qui
+# voit rougir la suite doit relire ce Makefile pour savoir quoi faire.
+screencast-check: $(SCREENCAST_CHECK_PREREQ)
+	@if [ ! -f "$(SCREENCAST_SHA)" ]; then \
+	    echo "screencast: aucune empreinte de reference n'est posee ($(SCREENCAST_SHA) absent) -- rien n'a ete fabrique ni compare."; \
+	    echo "screencast: pour en poser une, apres avoir regarde la session : make screencast-sign"; \
+	else \
+	    attendue=$$(cut -d' ' -f1 < "$(SCREENCAST_SHA)"); \
+	    obtenue=$$($(SHA256_CMD) "$(SCREENCAST_BIN)" | cut -d' ' -f1); \
+	    if [ "$$attendue" != "$$obtenue" ]; then \
+	        echo "screencast: EMPREINTE DIVERGENTE -- le port ne dessine plus la meme chose sur $(SCREENCAST_EVENTS)." >&2; \
+	        echo "screencast:   attendue ($(SCREENCAST_SHA)) : $$attendue" >&2; \
+	        echo "screencast:   obtenue  ($(SCREENCAST_BIN)) : $$obtenue" >&2; \
+	        echo "screencast: regenerer les pixels : make screencast   |   les regarder : voir le visualiseur" >&2; \
+	        echo "screencast: si la divergence est VOULUE et a ete regardee, re-signer : make screencast-sign" >&2; \
+	        exit 1; \
+	    fi; \
+	    echo "screencast: empreinte conforme ($$attendue)"; \
+	fi
+
+# (RE)POSER L'EMPREINTE -- LE SEUL ENDROIT DU DEPOT QUI ECRIT CE
+# FICHIER, ET RIEN NE L'APPELLE. C'est un acte humain delibere : on
+# fabrique les pixels, on les regarde defiler, puis on lance ceci, et la
+# ligne modifiee apparait dans le diff du commit. C'est ce qui donne son
+# sens a `git blame` sur cette ligne -- "a quel commit un humain a-t-il
+# valide ce que le jeu affiche".
+#
+# Le fichier fait une ligne et ne contient QUE l'empreinte : ni le
+# chemin du fichier temporaire (qui varie), ni date, ni nom de machine.
+# "L'empreinte porte sur les pixels et rien d'autre, afin qu'elle ne
+# depende ni de la machine, ni de l'horodatage, ni d'un outil de
+# compression" (user story 30). Le controle ci-dessus lit quand meme sa
+# premiere colonne, donc une ligne au format natif de sha256sum posee a
+# la main y passerait aussi.
+screencast-sign: $(SCREENCAST_BIN)
+	@$(SHA256_CMD) "$(SCREENCAST_BIN)" | cut -d' ' -f1 > "$(SCREENCAST_SHA)"
+	@echo "screencast: empreinte posee dans $(SCREENCAST_SHA) : $$(cat $(SCREENCAST_SHA))"
+	@echo "screencast: cette ligne est un acte de signature -- commettez-la avec ce que vous avez regarde."
+
+.PHONY: screencast screencast-check screencast-sign
+
+# RESERVE CONNUE, `make -j`. src/main.c ecrit tmp/pico8_replay_dump.txt
+# a chaque execution, quel que soit son scenario. Trois choses lancent
+# ce binaire : la cible `replay`, tests/test_pico8_headless_capture (par
+# system(), depuis `unit`) et desormais la regle ci-dessus. Sous
+# `make -j test` ces trois-la peuvent tourner en meme temps et ecrire le
+# meme chemin, et le test de capture RELIT ce dump juste apres son
+# propre appel -- donc un faux rouge est possible. La concurrence entre
+# `replay` et `unit` preexiste a ce chunk ; la regle ci-dessus en ajoute
+# une troisieme source et allonge la fenetre.
+#
+# Aucune correction d'une ou deux lignes n'existe a ce niveau : le
+# chemin du dump est en dur dans src/main.c (hors perimetre de ce
+# chunk), `.NOTPARALLEL` avec prerequis demande GNU make >= 4.4 (4.3
+# ici, ou la forme sans prerequis tuerait TOUT le parallelisme du
+# depot), et serialiser par des prerequis d'ordre entre cibles factices
+# forcerait `make replay` a lancer la suite unitaire. Consigne ici
+# plutot que corrige a moitie ; `make test` en serie, la facon dont il
+# est lance, n'est pas concerne.
 
 # ---------------------------------------------------------------------
 # REVERSE REF-CAST AUDIT (docs/prd/triage/reverse-direction-ref-cast-
