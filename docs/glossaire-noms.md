@@ -317,12 +317,21 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `lheld`, `rheld` | champs | entité tenue par le bouton gauche / droit |
 | `ok` | `pico8_ok` | le singleton `ui` |
 
+### Champs de bouton et de rangée
+
+| Nom | Sens |
+|---|---|
+| `h_` | seconde rangée d'icônes d'un bouton : l'infobulle dessinée à côté |
+| `mb` | largeur du bouton, dérivée de celle de sa rangée `lq` |
+| `qf` | position cible vers laquelle `ph` fait glisser `ra` |
+| `ep` | champ de planète effacé par `jo:lz` et reposé par `jo:hh` ; l'effacement est un effet de bord observable, pas un oubli |
+
 ## La planète `jo` et sa famille
 
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `jo` | `pico8_jo_class` | la planète de base : toute planète de la carte en est une, ou une sous-classe |
-| `jo:lz(hp)` | `pico8_jo_lz` | installe un projet de recherche : fixe `hn`, dérive les besoins `jy` et la production `kw` |
+| `jo:lz(hp)` | `pico8_jo_lz` | installe un projet de recherche : fixe `hn`, **efface `ep`**, dérive les besoins `jy` et la production `kw` |
 | `jo:gg()` | `pico8_jo_gg` | la planète est-elle colonisée et prospère (`hf` vrai et état `ly`) |
 | `jo:kd()` | `pico8_jo_kd` | relance le halo de particules à son maximum |
 | `jo:ll(t)` | `pico8_jo_ll` | état « en train de disparaître » : au-delà de 60 ticks, marque la planète pour destruction |

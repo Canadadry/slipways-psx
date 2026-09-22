@@ -3,6 +3,7 @@
 
 #include "pico8_list.h"
 #include "pico8_type_tag.h"
+#include <assert.h>
 
 /* The REVERSE-direction half of this port's REF-cast problem, and the
  * reusable instrumentation that measures it.
@@ -237,10 +238,23 @@ static inline void pico8_ref_audit_expect(const char *what, const void *p, pico8
 
 #else /* !PICO8_REF_AUDIT */
 
-/* An ordinary build gets back exactly the cast that was written here
- * before this header existed -- no call, no branch, no storage. */
-#define PICO8_REF_AS_LIST(r) ((pico8_list_t *)(r))
-#define PICO8_REF_AS_LIST_CONST(r) ((const pico8_list_t *)(r))
+/* An ordinary build checks the tag and then casts. Reading a REF that is
+ * not a list walks its backing array at the wrong stride, off the end of
+ * the allocation -- the bug family that produced three segfaults. Each
+ * site used to carry a comment arguing why its own cast was safe; the
+ * check replaces all of them, and unlike a comment it cannot go stale. */
+static inline pico8_list_t *pico8_ref_as_list(void *r) {
+    assert((r == NULL || pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");
+    return (pico8_list_t *)r;
+}
+
+static inline const pico8_list_t *pico8_ref_as_list_const(const void *r) {
+    assert((r == NULL || pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");
+    return (const pico8_list_t *)r;
+}
+
+#define PICO8_REF_AS_LIST(r) pico8_ref_as_list(r)
+#define PICO8_REF_AS_LIST_CONST(r) pico8_ref_as_list_const(r)
 #define PICO8_REF_AUDIT_EXPECT_LIST(p) ((void)0)
 #define PICO8_REF_AUDIT_EXPECT_OB_TABLE(p) ((void)0)
 

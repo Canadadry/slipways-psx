@@ -124,3 +124,21 @@ Fichier : `src/pico8_ob.c`.
 `ih` n'est jamais posé. Ce n'est pas un report : le port n'aura pas de son.
 
 Fichier : `src/pico8_audio.c`.
+
+## TROU-11 — Le repli d'arité de `hd` rendrait le survol silencieusement faux
+
+`pico8_js_hd_dispatch` reçoit `(argc, arg0, arg1)` et lit
+`rp = (argc >= 2) ? arg1 : arg0`. Le seul site qui dispatche `"hd"`
+aujourd'hui est `pico8_ui_gw`, avec `argc=2` en dur.
+
+Mais `dc()` dispatche n'importe quel nom de `bm` — dont `"hd"` — avec
+`argc=1`. Rien n'appelle `dc("hd")` aujourd'hui ; le jour où quelque chose
+le fera, le repli donnera `mp == rp`, c'est-à-dire un test de survol qui
+compare la position monde à elle-même au lieu de la position écran. Faux,
+et silencieux.
+
+Pas transformé en `assert(argc >= 2)` : ça ferait sauter un `dc("hd")` par
+ailleurs légitime. Le vrai correctif est de décider ce que `hd` doit faire
+sous `dc()`, ce qui dépasse une reprise de commentaires.
+
+Fichiers : `src/pico8_ui_button.c`, `src/pico8_entity.c`.
