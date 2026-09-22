@@ -7,10 +7,9 @@
 #include <stdio.h>
 #include <time.h>
 
-/* La palette vit dans pico8_palette.{c,h} : le visualiseur d'enregistrement
- * affiche le même écran et ne doit pas en redéfinir une. La table partagée est
- * sans raylib (trois octets par couleur) pour que `make unit` l'asserte sans
- * fenêtre ; l'alpha toujours opaque s'ajoute ici. */
+/* La table partagée est sans raylib (trois octets par couleur) pour que
+ * `make unit` l'asserte sans fenêtre ; l'alpha, toujours opaque, s'ajoute
+ * ici. Le second binaire raylib la lit là aussi et n'en redéfinit pas. */
 static Color palette_color(unsigned char index) {
     pico8_rgb_t rgb = PICO8_PALETTE_RGB[index & 0x0f];
     return (Color){ rgb.r, rgb.g, rgb.b, 0xFF };
@@ -36,8 +35,7 @@ void pico8_raylib_backend_init(pico8_raylib_backend_t *backend) {
     SetTextureFilter(backend->screen_texture, TEXTURE_FILTER_POINT);
 
     /* Hidden once, not polled per frame: nf:pq() pokes 0x5f2d on every
-     * boot and never clears it, so the host cursor would sit under the
-     * one the cart draws itself (ui:ev). */
+     * boot and never clears it. */
     HideCursor();
 }
 
@@ -71,10 +69,9 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
     out_frame->dpad[2] = IsKeyDown(KEY_UP) ? 1 : 0;
     out_frame->dpad[3] = IsKeyDown(KEY_DOWN) ? 1 : 0;
 
-    /* Playtest bookmark, appended rather than rewritten so a marker
-     * already on disk survives a later crash. The count read here is the
-     * 0-based index this frame gets when the caller records it on its very
-     * next call -- see the declaration in the header. */
+    /* Appended rather than rewritten, so a marker already on disk
+     * survives a later crash. The count read here is the index this frame
+     * gets when the caller records it on its very next call. */
     if (IsKeyReleased(KEY_SPACE)) {
         int marked_frame = pico8_session_recorder_frame_count(&backend->recorder);
         FILE *markers = fopen(backend->markers_path, "a");
@@ -88,9 +85,6 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
 }
 
 void pico8_raylib_backend_poll_replay_controls(pico8_replay_control_t *control) {
-    /* Three keys, three calls, nothing else: no frame, no marker, and the
-     * backend is not even in scope. IsKeyPressed rather than IsKeyDown so
-     * one tap is exactly one level. */
     if (IsKeyPressed(KEY_PAGE_UP)) {
         pico8_replay_control_faster(control);
     }
@@ -103,9 +97,6 @@ void pico8_raylib_backend_poll_replay_controls(pico8_replay_control_t *control) 
 }
 
 void pico8_raylib_backend_set_frame_rate_cap(int target_fps) {
-    /* Passed through untranslated, 0 included: SetTargetFPS treats
-     * anything below 1 as "do not wait", which is exactly the uncapped
-     * level, so there is no mapping here to get wrong. */
     SetTargetFPS(target_fps);
 }
 
@@ -121,9 +112,8 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
     BeginDrawing();
     ClearBackground(BLACK);
     DrawTextureEx(backend->screen_texture, (Vector2){ 0, 0 }, 0.0f, (float)PICO8_RAYLIB_BACKEND_SCALE, WHITE);
-    /* Drawn after the framebuffer has been uploaded and blitted, so it
-     * lands on the window and never on the game. The band behind it is
-     * there because the cart owns every pixel underneath. */
+    /* The band behind the text is there because the cart owns every pixel
+     * underneath. */
     if (replay_status) {
         DrawRectangle(0, 0, PICO8_SCREEN_WIDTH * PICO8_RAYLIB_BACKEND_SCALE, 26, (Color){ 0, 0, 0, 190 });
         DrawText(replay_status, 8, 5, 18, RAYWHITE);
@@ -134,9 +124,9 @@ void pico8_raylib_backend_present(pico8_raylib_backend_t *backend, const pico8_m
 }
 
 void pico8_raylib_backend_record_frame(pico8_raylib_backend_t *backend, const pico8_input_frame_t *frame) {
-    /* The return value is ignored on purpose: a dropped frame must not
-     * kill a live playtest, and the recorder leaves its own count alone on
-     * failure, so the marker file keeps naming the right frame. */
+    /* The return value is ignored on purpose: the recorder leaves its own
+     * count alone on failure, so the marker file keeps naming the right
+     * frame. */
     (void)pico8_session_recorder_record_frame(&backend->recorder, frame);
 }
 

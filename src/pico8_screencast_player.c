@@ -1,7 +1,3 @@
-/* Voir pico8_screencast_player.h pour ce qu'est ce module, pourquoi il
- * vit hors du fichier raylib, et pourquoi la lecture se fige sur la
- * derniere frame. */
-
 #include "pico8_screencast_player.h"
 
 #include <assert.h>
@@ -9,12 +5,9 @@
 
 void pico8_screencast_player_init(pico8_screencast_player_t *player, int frame_count) {
     assert(player);
-    /* Zero frame n'est pas un cas a gerer ici : pico8_screencast_reader_
-     * open refuse deja un fichier vide (PICO8_SCREENCAST_EMPTY) et le
-     * visualiseur s'arrete avant d'ouvrir sa fenetre, donc arriver ici
-     * avec un compte nul serait un appelant casse, pas un fichier
-     * douteux -- et un curseur sur zero frame demanderait la frame 0
-     * d'un fichier qui n'en a aucune. */
+    /* pico8_screencast_reader_open rend deja EMPTY sur un fichier de
+     * taille nulle, donc un compte nul ici est un appelant casse, pas un
+     * fichier douteux. */
     assert(frame_count > 0);
 
     player->frame_count = frame_count;
@@ -30,16 +23,9 @@ int pico8_screencast_player_current_frame(const pico8_screencast_player_t *playe
 void pico8_screencast_player_advance(pico8_screencast_player_t *player) {
     assert(player);
 
-    /* La lecture se FIGE sur la derniere frame, elle ne reboucle pas
-     * (voir en tete de pico8_screencast_player.h). L'increment est
-     * garde plutot que suivi d'un recadrage : ainsi `current` ne prend
-     * jamais, meme le temps d'une instruction, une valeur hors du
-     * fichier, donc aucun appelant ne peut demander au chunk 1 une
-     * frame qui n'existe pas et la ligne d'etat ne peut pas annoncer
-     * une frame au-dela du total. Appeler cette fonction sur la
-     * derniere frame est un no-op, autant de fois qu'on veut : c'est ce
-     * qui rend la fin de lecture stable plutot qu'un cas a detecter par
-     * l'appelant. */
+    /* Increment garde, et non increment suivi d'un recadrage : `current`
+     * ne prend jamais, meme le temps d'une instruction, une valeur hors
+     * du fichier. */
     if (player->current + 1 < player->frame_count) {
         player->current++;
     }

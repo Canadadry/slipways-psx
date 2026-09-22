@@ -28,15 +28,6 @@
 
 int main(int argc, char **argv) {
     const char *events_path = (argc > 1) ? argv[1] : "events.json";
-    /* Le deuxieme argument, optionnel, est le chemin du fichier de
-     * pixels. Absent == capture desactivee, ce qui est le defaut exige
-     * par le PRD ("La capture est optionnelle et desactivee par
-     * defaut"). Un drapeau nomme (--screencast=...) aurait demande a ce
-     * pilote un analyseur d'arguments qu'il n'a pas : il lit argv[1] de
-     * la meme facon depuis le chunk 1 de la phase 4, et src/main_raylib.c
-     * a ajoute son propre argument optionnel positionnel a l'identique.
-     * Deux conventions d'arguments dans deux pilotes du meme depot
-     * n'auraient achete rien du tout. */
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
 
     pico8_mem_t mem;
@@ -59,10 +50,9 @@ int main(int argc, char **argv) {
     pico8_cart_load();
     pico8__init();
 
-    /* Ouverte avant la première frame, et un échec tue le processus : une capture
-     * absente ou tronquée produirait une empreinte fausse, indiscernable d'une
-     * régression. fprintf plutôt qu'un assert, pour que le message nomme le
-     * chemin fautif -- c'est ce qu'un humain corrige. */
+    /* Un echec tue le processus : une capture absente ou tronquee
+     * produirait une empreinte fausse, indiscernable d'une regression.
+     * fprintf plutot qu'un assert, pour que le message nomme le chemin. */
     pico8_screencast_writer_t capture = { NULL };
     if (capture_path && !pico8_screencast_writer_open(&capture, capture_path)) {
         fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de capture '%s'\n",
@@ -84,21 +74,11 @@ int main(int argc, char **argv) {
         pico8_dispatch_set_input(&input);
         pico8__update60();
         pico8__draw();
-        /* APRES pico8__draw() et avant la frame suivante, comme le PRD
-         * le prescrit : c'est le seul instant ou la memoire ecran tient
-         * la frame i complete. Une ecriture placee en tete de boucle
-         * capturerait la frame precedente et decalerait toute la
-         * capture d'une frame, ce que tests/test_pico8_headless_
-         * capture.c detecte en comparant la DERNIERE frame capturee au
-         * dump texte.
-         *
-         * La capture est en lecture seule sur `mem` (pico8_screencast_
-         * write_frame prend un const pico8_mem_t *), et c'est la
-         * propriete qui compte le plus ici : "une capture qui
-         * modifierait ce qu'elle observe invaliderait tout
-         * l'instrument". Rien n'est ajoute a l'etat du jeu, aucune
-         * variable de boucle ne depend de la capture, et le meme test
-         * verifie que le dump final est identique avec et sans elle. */
+        /* APRES pico8__draw() et avant la frame suivante : c'est le seul
+         * instant ou la memoire ecran tient la frame i complete. En tete
+         * de boucle, la capture entiere serait decalee d'une frame --
+         * tests/test_pico8_headless_capture.c le detecte en comparant la
+         * derniere frame capturee au dump texte. */
         if (capture_path && !pico8_screencast_write_frame(&capture, &mem)) {
             fprintf(stderr, "pico8 replay: echec d'ecriture de la frame %d dans '%s'\n",
                     i, capture_path);
@@ -110,18 +90,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* La fermeture est verifiee au meme titre que les ecritures :
-     * fclose est le dernier endroit ou une ecriture tamponnee peut
-     * echouer, et une capture dont la derniere frame n'a pas atteint le
-     * disque est exactement le fichier tronque dont le chunk 3 tirerait
-     * une empreinte fausse. Sans capture demandee, rien n'a ete ouvert
-     * et rien n'est ferme ici.
-     *
+    /* La fermeture est verifiee au meme titre que les ecritures : fclose
+     * est le dernier endroit ou une ecriture tamponnee peut echouer.
      * Elle a lieu AVANT le dump texte, et un echec renonce donc a
-     * ecrire ce dump : un rejeu dont la capture est perdue n'a pas
-     * reussi, et laisser derriere lui un tmp/pico8_replay_dump.txt
-     * frais le ferait passer pour une execution normale aux yeux de
-     * tout ce qui regarde ce fichier. */
+     * l'ecrire : un tmp/pico8_replay_dump.txt frais ferait passer pour
+     * normale une execution dont la capture est perdue. */
     if (capture_path && !pico8_screencast_writer_close(&capture)) {
         fprintf(stderr, "pico8 replay: echec de fermeture du fichier de capture '%s'\n",
                 capture_path);
@@ -138,10 +111,6 @@ int main(int argc, char **argv) {
 
     printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to tmp/pico8_replay_dump.txt\n",
            frame_count, events_path);
-    /* Une ligne EN PLUS, et non une ligne modifiee : la ligne ci-dessus
-     * est celle que `make replay` imprime depuis la phase 4 et elle
-     * reste octet pour octet la meme quand aucune capture n'est
-     * demandee. */
     if (capture_path) {
         printf("pico8 replay: %d frame(s) captured to %s\n", frame_count, capture_path);
     }
