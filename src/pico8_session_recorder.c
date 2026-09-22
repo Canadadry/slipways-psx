@@ -1,7 +1,3 @@
-/* See pico8_session_recorder.h for what this module is and, above all,
- * why this bookkeeping lives outside the raylib backend that used to
- * own it. */
-
 #include "pico8_session_recorder.h"
 
 #include <assert.h>
@@ -12,15 +8,12 @@ void pico8_session_recorder_open(pico8_session_recorder_t *recorder, const char 
     assert(path);
 
     int written = snprintf(recorder->path, sizeof(recorder->path), "%s", path);
-    /* Truncation would silently record to a different file than the one
-     * the caller named -- and, worse, one whose name no longer pairs
-     * with the backend's marker file. A caller bug, caught here rather
-     * than discovered when the recording cannot be found. */
-    assert(written > 0 && (size_t)written < sizeof(recorder->path));
+    assert(written > 0 && (size_t)written < sizeof(recorder->path) &&
+           "a truncated path records to a file the caller did not name, and one that no longer pairs with the marker file");
 
     recorder->frame_count = 0;
-    /* 0 is pico8_input_append's documented "start a new recording":
-     * the first recorded frame creates or truncates the file. */
+    /* 0 is pico8_input_append's "start a new recording": the first frame
+     * creates or truncates the file. */
     recorder->tail_offset = 0;
 }
 
@@ -28,11 +21,15 @@ int pico8_session_recorder_record_frame(pico8_session_recorder_t *recorder, cons
     assert(recorder);
     assert(frame);
 
+    /* Appending, never rewriting: a frame must not cost more as the
+     * session grows. The file must stay byte-identical to what
+     * pico8_input_save writes for the same frames, or a resumed recording
+     * replays to another state. */
     if (!pico8_input_append(frame, recorder->path, &recorder->tail_offset)) {
-        /* Dropped, not fatal: a live playtest outranks a frame of its
-         * own recording. pico8_input_append leaves *tail_offset
-         * untouched on failure, so the next frame takes the slot this
-         * one never reached, and the count is left alone to match. */
+        /* Dropped, not fatal: a live playtest outranks a frame of its own
+         * recording. append leaves *tail_offset untouched on failure, so
+         * the next frame takes the slot this one never reached, and the
+         * count is left alone to match. */
         return 0;
     }
 

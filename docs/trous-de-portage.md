@@ -35,7 +35,7 @@ n'en aura pas : `btn(b,1)` rend toujours faux.
 
 Sans effet tant que personne ne branche une deuxième manette.
 
-Fichier : `src/pico8_scroll.c`.
+Fichiers : `src/pico8_scroll.c`, `src/pico8_raylib_backend.c` (l'endroit où la capture décide qu'il n'y a pas de second joueur).
 
 ## TROU-3 — Les chaînes ne sont pas internées
 
@@ -193,3 +193,19 @@ faux depuis que le panneau de score existe : elles le sont à chaque
 rafraîchissement.
 
 Fichiers : `src/pico8_score_panel_display.c`, `src/pico8_value.c`.
+
+## TROU-14 — Une boucle qui supprime son propre élément en saute un
+
+Même famille que TROU-5, à d'autres endroits et sur d'autres listes :
+`ei()` parcourt les particules de `qy` et en supprime au milieu de sa
+propre boucle, sans compenser l'indice. La particule qui prend la place de
+celle qui vient d'être retirée n'est pas visitée cette frame. Le même
+motif existe dans l'affichage des slipways.
+
+Sans conséquence visible : une particule vit une frame de plus que prévu,
+et elle sera visitée à la frame suivante. Consigné parce que c'est le
+troisième site du même motif, et qu'un futur lecteur qui en corrige un
+seul rendra les trois incohérents entre eux.
+
+Fichiers : `src/pico8_particle.c`, `src/pico8_slipway_display.c`,
+et `src/pico8_bootstrap.c` pour la variante de TROU-5.
