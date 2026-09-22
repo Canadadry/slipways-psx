@@ -1,5 +1,6 @@
 #include "pico8_planet_family.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -15,17 +16,6 @@
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
 #include "pico8_ref_audit.h"
-
-/* See pico8_planet_family.h's own top comment for the full Lua-source
- * trace of every class/method this file ports. Local helpers below
- * (`pico8_pf_truthy`/`pico8_pf_field_fixed`/`pico8_pf_value_vec`/
- * `pico8_pf_field_vec`) are one more module-private copy of the exact
- * same patterns already independently duplicated across `pico8_planet.c`/
- * `pico8_planet_display.c`/`pico8_planet_trade.c`/`pico8_probe.c`/
- * `pico8_slipway.c`/etc. -- documented duplication, the same established
- * precedent, not a new pattern (grep run before writing any of this file,
- * per this chunk's own required per-lot check: no doubling-capacity
- * growable array or `strdup`-like helper is reinvented here). */
 
 static pico8_class_t *g_qh_class = NULL;
 static pico8_class_t *g_nl_class = NULL;
@@ -67,13 +57,6 @@ static pico8_vec_t pico8_pf_field_vec(const pico8_instance_t *inst, const char *
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-/* qh.ly=na (pico8/lua.lua:916): `pico8_na` (Chunk 1, pico8_entity_geom.h)
- * has never been wired as a dispatch field by any earlier chunk, so --
- * unlike `hq=bv`/`ev=dl`/`ey=d_`, which reuse Chunk 10's own already-built
- * bridges VERBATIM -- this one small bridge is genuinely new plumbing
- * (not a new method BODY: `pico8_na` itself is untouched). See
- * pico8_planet_family.h's own top comment for the full `dg()`-per-tick
- * dispatch trace confirming this is real, load-bearing wiring. */
 static pico8_value_t pico8_qh_ly_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_fixed_t t = pico8_fixed_from_int(0);
     (void)argc;
@@ -85,13 +68,9 @@ static pico8_value_t pico8_qh_ly_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* function nl:ly(t)na(self,t)if self.mi>=2 then
- * self.qw=8+t%42/6
- * end
- * end
- * (pico8/lua.lua:1063-1066.) See pico8_planet_family.h's own declaration
- * comment for the full trace. */
 void pico8_nl_ly(pico8_instance_t *self, pico8_fixed_t t) {
+    pico8_value_t mi_val;
+    int has_mi;
     pico8_fixed_t mi;
 
     if (self == NULL) {
@@ -99,7 +78,9 @@ void pico8_nl_ly(pico8_instance_t *self, pico8_fixed_t t) {
     }
     pico8_na(self, t);
 
-    mi = pico8_pf_field_fixed(self, "mi");
+    has_mi = pico8_instance_get_field(self, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED;
+    assert(has_mi && "nl:ly reads self.mi unguarded, unlike hj:kj");
+    mi = has_mi ? mi_val.as.fixed : pico8_fixed_from_int(0);
     if (mi >= pico8_fixed_from_int(2)) {
         pico8_fixed_t qw = pico8_fixed_add(
             pico8_fixed_from_int(8),
@@ -119,13 +100,6 @@ static pico8_value_t pico8_nl_ly_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* function hj:kj(p)if self.mi and self.mi>=2 then
- * ei(self)end
- * jo.kj(self,p)end
- * (pico8/lua.lua:1014-1016.) See pico8_planet_family.h's own declaration
- * comment for the full trace, including why the `self.mi and` truthy
- * pre-check is load-bearing here (unlike `nl:ly`'s own unguarded `self.mi
- * >=2`). */
 void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
     pico8_value_t mi_val;
 
@@ -150,14 +124,6 @@ static pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* function pm:pq()ga(ob([[
- * qo=0.97,ro=-0.1255,
- * qg=0.1255,q_=0.97,
- * k_=o(1,2,8,14,14,14,14,8,8,2,2,1,1),
- * iu=-0.009,py=9,ms=1.5,
- * ]],{ra=self.ra+self.ng}))end
- * (pico8/lua.lua:1030-1035.) See pico8_planet_family.h's own declaration
- * comment for the full trace. */
 void pico8_pm_pq(pico8_instance_t *self) {
     pico8_vec_t ra;
     pico8_vec_t ng;
@@ -188,19 +154,11 @@ void pico8_pm_pq(pico8_instance_t *self) {
                           defaults);
     pico8_ob_table_free(defaults);
 
-    /* Discarded, matching real Lua's own discarded `ga(...)` call result
-     * -- the spawned instance stays alive only through hv/cg (see this
-     * function's own declaration comment for the full "GC-deferred"
-     * rationale). */
     spawned = pico8_ga_new(overrides);
     (void)spawned;
     pico8_ob_table_free(overrides);
 }
 
-/* function ga:pq()f_(self)ez(self,140)mo.ma=3
- * end
- * (pico8/lua.lua:1079-1080.) See pico8_planet_family.h's own declaration
- * comment for the full trace. */
 void pico8_ga_pq(pico8_instance_t *self) {
     pico8_instance_t *mo;
 
@@ -216,14 +174,6 @@ void pico8_ga_pq(pico8_instance_t *self) {
     }
 }
 
-/* function ga:mm()local qd=rnd(1.5)+0.5
- * if (rnd()<0.6)qd=flr(qd/0.5)*0.5
- * local p=qm(qd,rnd())
- * return {p=p,v=p*self.ms,a=p*self.iu,l=rnd(self.py)+self.py
- * }
- * end
- * (pico8/lua.lua:1081-1086.) See pico8_planet_family.h's own declaration
- * comment for the full trace. */
 pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *self = (pico8_instance_t *)self_ptr;
     pico8_fixed_t qd;
@@ -271,16 +221,6 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     return pico8_value_ref(particle);
 }
 
-/* function ga:kj(p)local pt
- * for i=1,3 do
- * pt=self.qy[i]
- * if pt then
- * circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])end
- * end
- * ei(self)self.p_=not pt
- * end
- * (pico8/lua.lua:1087-1094.) See pico8_planet_family.h's own declaration
- * comment for the full trace. */
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
     pico8_value_t qy_val;
     const pico8_list_t *qy = NULL;
@@ -294,10 +234,6 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     }
 
     if (pico8_instance_get_field(self, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * Producer: pico8_f_() (src/pico8_particle.c), the `self.qy={}`
-         * this class's own pico8_ga_pq() calls first thing; sole writer
-         * of "qy" in the port, and no spec string declares a default. */
         qy = PICO8_REF_AS_LIST_CONST(qy_val.as.ref);
     }
 
@@ -341,6 +277,9 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             pico8_circ(gfx, mem, px, py, (int)pico8_fixed_to_double(pico8_vec_qx(pt_p)), color);
         }
 
+        /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
+         * alone: the burst dies when fewer than 3 particles remain, not
+         * when none do. */
         last_pt = pt;
     }
 
@@ -360,12 +299,10 @@ static pico8_value_t pico8_ga_kj_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 void pico8_planet_family_init(void) {
+    assert(pico8_jo_class() != NULL && "pico8_jo_init() must run first");
     pico8_planet_family_shutdown();
     pico8_pi_init();
 
-    /* qh=jo:jr([[...]])qh.hq=bv qh.ly=na qh.ev=dl qh.ey=d_
-     * (pico8/lua.lua:905-918.) See pico8_planet_family.h's own top
-     * comment for the full field-reuse trace. */
     g_qh_class = pico8_class_declare(pico8_jo_class(),
                                       "\n"
                                       "nu=o(\"qh\",\"jo\",\"np\",\"prober\"),\n"
@@ -382,7 +319,6 @@ void pico8_planet_family_init(void) {
     pico8_ob_table_set_name(g_qh_class->defaults, "ev", pico8_value_function(pico8_dl_dispatch));
     pico8_ob_table_set_name(g_qh_class->defaults, "ey", pico8_value_function(pico8_d__dispatch));
 
-    /* nl=qh:jr([[...]])function nl:ly(t)...end (pico8/lua.lua:1057-1066). */
     g_nl_class = pico8_class_declare(g_qh_class,
                                       "\n"
                                       "nu=o(\"jo\",\"np\",\"prober\"),\n"
@@ -392,8 +328,6 @@ void pico8_planet_family_init(void) {
                                       "ba=o(28,48,18,20,21,22),\n");
     pico8_ob_table_set_name(g_nl_class->defaults, "ly", pico8_value_function(pico8_nl_ly_dispatch));
 
-    /* os=qh:jr([[...]]) -- no new bodies, no field reuse (pico8/
-     * lua.lua:1095-1100). */
     g_os_class = pico8_class_declare(g_qh_class,
                                       "\n"
                                       "nu=o(\"jo\",\"np\",\"prober\"),\n"
@@ -402,8 +336,6 @@ void pico8_planet_family_init(void) {
                                       "od=15,\n"
                                       "hs=0.5,\n");
 
-    /* hj=qh:jr([[...]])hj.pq=f_ hj.mm=g_.mm function hj:kj(p)...end
-     * (pico8/lua.lua:998-1016). */
     g_hj_class = pico8_class_declare(g_qh_class,
                                       "\n"
                                       "nu=o(\"hj\",\"jo\",\"np\",\"prober\"),\n"
@@ -423,7 +355,6 @@ void pico8_planet_family_init(void) {
     pico8_ob_table_set_name(g_hj_class->defaults, "mm", pico8_value_function(pico8_g__mm));
     pico8_ob_table_set_name(g_hj_class->defaults, "kj", pico8_value_function(pico8_hj_kj_dispatch));
 
-    /* pm=hj:jr([[...]])function pm:pq()...end (pico8/lua.lua:1017-1035). */
     g_pm_class = pico8_class_declare(g_hj_class,
                                       "\n"
                                       "fz=\"pm\",\n"
@@ -441,8 +372,9 @@ void pico8_planet_family_init(void) {
     pico8_class_set_pq(g_pm_class, pico8_pm_pq);
     pico8_class_register_named("pm", g_pm_class);
 
-    /* ga=jo:jr([[...]])function ga:pq()...end function ga:mm()...end
-     * function ga:kj(p)...end (pico8/lua.lua:1067-1094). */
+    /* `nu=o()` is empty and wins outright: chain fallback stops at the
+     * first class that defines a field, so no `ga` instance is ever
+     * registered under jo/np/prober in `cg`. This is not a merge. */
     g_ga_class = pico8_class_declare(pico8_jo_class(),
                                       "\n"
                                       "fz=\"ga\",\n"
@@ -458,35 +390,9 @@ void pico8_planet_family_init(void) {
                                       "iu=-0.06,py=6,ms=3,\n");
     pico8_class_set_pq(g_ga_class, pico8_ga_pq);
 
-    /* `by=o()`: ob()'s own generic "identifier(...)" fallback parses an
-     * empty, untyped pico8_ob_table_t here, but every real consumer of
-     * `self.by` in this port reads it as a pico8_list_t* -- `jo:ib`'s own
-     * `local ib=self.by or {}` and its `add(ib,a)`
-     * (src/pico8_planet_trade.c), `jo:hb`/`jo:gh`'s export counters
-     * (src/pico8_planet_display.c), `pico8_db` (src/pico8_economy_score.c)
-     * and `pico8_dh` (src/pico8_economy_tiers.c). Overridden here, right after
-     * declaring, with a properly-typed empty heap pico8_list_t* REF; the
-     * raw table ob() actually built is freed immediately since nothing
-     * else ever sees it. EXACTLY the swap pico8_ui_init() already makes
-     * for `le=o()` (src/pico8_ui.c) and pico8_hy_pq() for `invented=o()`
-     * (src/pico8_economy.c), for exactly the same reason, and this is the
-     * third and last of them (docs/audit-ref-cast-reverse.md enumerates
-     * every `X=o()` class default in the port against every field read as
-     * a list; these three were the only overlaps).
-     *
-     * Behaviour is unchanged, and that is the uncomfortable part worth
-     * writing down: pico8_ob_table_t and pico8_list_t put `count` at the
-     * same byte offset, and the table ob() builds for `by=o()` is EMPTY,
-     * so all six of those reads already got the right answer -- 0 --
-     * through the wrong type. Nothing displayed differently before this
-     * line existed. What it removes is a REF whose type tag said
-     * OB_TABLE while the whole program treated it as a list: unwritten,
-     * correct by coincidence, and the precise shape of the invariant that
-     * let the pre-Phase-5 cast audit mark `js:pq`'s own "lq" safe
-     * (docs/plan.md's "Notes de portage"). The `ga` class default is one
-     * object shared by every `ga` instance, both before and after -- real
-     * Lua's `ga=jo:jr([[by=o(),]])` shares it the same way, since
-     * `qj({},X)` copies the reference, so no aliasing changes here. */
+    /* `by=o()` parses to an ob_table, but every reader of `by` casts it
+     * to a list; without this swap the tag check in PICO8_REF_AS_LIST
+     * aborts on the first read. The raw table ob() built is freed here. */
     {
         pico8_ob_table_t *raw_by = NULL;
         pico8_value_t by_val;

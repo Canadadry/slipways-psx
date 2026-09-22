@@ -119,7 +119,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hc` | `pico8_hc` | données lues par `hp:po()` |
 | `fd` | `pico8_fd` | données des projets de recherche, source de `gb` |
 | `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
-| `dr` | `pico8_dr` | table décodée, sans consommateur connu dans le cart |
+| `dr` | `pico8_dr` | les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
 | `nb` | `pico8_nb` | liste des technologies, lue et mutée par `cb()`/`gi()` |
 | `ek` | `pico8_ek` | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
@@ -356,15 +356,17 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 ### Les sous-classes de planète
 
-| Nom | Sens |
-|---|---|
-| `qh` | planète colonisée |
-| `os` | variante de `qh`, sans méthode propre |
-| `nr` | slipgate : relaie les routes au lieu de les consommer |
-| `fr`, `nl`, `mx` | variantes de planète, chacune redéfinissant une poignée de méthodes |
-| `hj` | planète d'ascension, émettrice de particules |
-| `pm` | classe atteinte par reclassement dynamique ; engendre un `ga` à la construction |
-| `ga` | éclat de particules, purement visuel |
+| Nom | Nom affiché | Sens |
+|---|---|---|
+| `qh` | laboratory | planète colonisée, la base de toutes les autres |
+| `os` | processor | variante de `qh`, sans méthode propre |
+| `nr` | slipgate | relaie les routes au lieu de les consommer |
+| `fr` | infraspace | |
+| `nl` | trading hub | débloquée par `trade league` |
+| `mx` | synthesizer | débloquée par `void synthesis` ; synthétise les ressources de son champ `ht` |
+| `hj` | ascension | émettrice de particules |
+| `pm` | protostar | une des deux seules classes que `jo:hu` sait résoudre par son nom `fz` |
+| `ga` | | éclat de particules ; **pas purement visuel** : son `pq` écrit `mo.ma=3` sur la caméra |
 
 ## Le trou de ver `mz`
 
@@ -470,6 +472,7 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `ey` | relâchement : valider l'action |
 | `gv` | puis-je être la cible du glissé en cours |
 | `ph` | tick ordinaire ; c'est l'état `me` par défaut de `ke` |
+| `dq` | l'état dans lequel `d_` fait basculer l'entité après validation, via `ks(self.dq or "ph")`. **C'est le seul chemin qui mène à `ly`** : aucun site n'écrit `:ly(`, ces méthodes ne sont atteintes que parce que `dq="ly"` devient `me`, et que `dg()` appelle chaque frame la méthode qui porte le nom de l'état. Un `grep ly` conclura à tort à du code mort |
 | `ly`, `kz`, `pr`, `ll` | autres états, appelés par `dg()` quand `me` vaut ce nom |
 | `mm` | forme d'une nouvelle particule |
 | `ol` | dessiner une rangée d'icônes ou une bulle |
@@ -489,3 +492,88 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `ha` | `pico8_ha` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |
 | `je` | `pico8_je` | le singleton lecteur de souris, instance de `nf` |
+
+## Champs de classe et d'instance, par thème
+
+Les noms qui reviennent d'un module à l'autre. Un même digramme peut avoir
+deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
+
+### Animation, particules, rendu
+
+| Nom | Sens |
+|---|---|
+| `oi` | rayon du cercle en expansion d'un trou de ver |
+| `kk` | rampe de 9 couleurs indexée par le rayon relatif (voir TROU-12) |
+| `qy` | liste de particules vivantes |
+| `pn`, `pk`, `du`, `py`, `ki` | forme d'une particule : tranches angulaires, rotation d'un quart de tour, rayon de base, facteur de vélocité, durée de vie |
+| `k_` | palette de la traînée de particules |
+| `l` (sur `iv`) | avancement du fondu, 0 → 5 ; sert d'indice de bloc de palette et déclenche `p_` à 5 |
+| `qw` | index de bloc de palette du sprite ; posé par `nl`, absent = 0 |
+| `s` | identifiant de sprite |
+| `ka` | couleur de l'anneau d'une planète colonisée, indexée par `mi` |
+| `dz` | les quatre tuples d'état `unhappy`/`content`/`prosperous`/`rich`, indexés par `mi` |
+| `ng` | décalage de position du `ga` engendré par `pm` |
+
+### Boîtes, rangées, mise en page
+
+| Nom | Sens |
+|---|---|
+| `rh` | échelle de durée d'animation d'une boîte : `t/rh - 10` donne ouverture, plateau, fermeture |
+| `lh` | prédicat « garder la boîte ouverte » ; tant qu'il rend vrai, le compte à rebours de fermeture est gelé |
+| `iw` | la liste de rangées passée à `mh(iw)` |
+| `hi` | position de pose, prioritaire sur `ra` |
+| `gq` | pas de progression d'une rangée à la suivante |
+| `ca` | couleur de fond d'une boîte, ou couche `fa` imposée aux boutons créés par `pz` |
+| `ff` | vider `ok.le` juste après l'avoir rempli |
+| `eo` | numéro de sfx joué par `pz` (62 par défaut) |
+| `h_` | seconde rangée d'un bouton : l'infobulle dessinée à côté |
+| `mb` | largeur du bouton, dérivée de celle de sa rangée `lq` |
+| `qf` | position cible vers laquelle `ph` fait glisser `ra` |
+
+### Économie, commerce, recherche
+
+| Nom | Sens |
+|---|---|
+| `gc` | combien de routes arrivées satisfont déjà ce besoin ; posé par `dh`, absent = 0 |
+| `cq` | les quatre ressources qu'une planète « makes: » au lieu d'« exports: » |
+| `ba` | ressources qu'une sous-classe accepte, lues par `jo:cn` |
+| `ht` | ressources qu'un `mx` sait synthétiser |
+| `hz` | sprite choisi selon le nombre de connexions (`nr`, `fr`) |
+| `oy` | contenu de l'infobulle d'une technologie |
+| `e_` | « finançable », posé par `cb()` ; toujours un booléen |
+| `lv` | ère d'une technologie, comparée à `fm.ew` |
+| `en` | champ de réglage d'une entrée de `bo`, à côté de `trade` |
+
+### Panneau de score
+
+| Nom | Sens |
+|---|---|
+| `ea` | la rangée du bandeau d'année, réécrite par `pj:hk` |
+| `gs` | messages de compte à rebours, indexés par `3426 - yr` |
+| `i_`, `ou` | rangées du cadre / les 7 afficheurs réécrits par `pj:hb` |
+| `ed` | la dernière boîte construite par le panneau, comparée à `kc` |
+| `gz` | compteur du rideau de fin, testé par **présence** et non par valeur |
+| `c_` | « panneau visible », basculé par le `my` de `de` |
+| `gy`, `eh` | sur la classe `ie` : `eh` est la valeur de repos, `gy` la valeur courante partagée par toute la classe. `_init()` fait `gy = eh` à chaque démarrage, `ie:hb` réécrit `gy` |
+| `nj` | le bouton de difficulté cliqué, dont la table de champs **devient** `dk` |
+
+### Sonde et validation
+
+| Nom | Sens |
+|---|---|
+| `np` | étiquette `nu` portée par toutes les planètes ; `bv` cherche la plus proche dans `cg("np")` |
+| `fp` | nombre de ticks que `d_` transmet à `fm:nx` ; `g_` le pose à faux, d'où le repli 0 |
+| `ik` | sprite d'état lu par `dl`, et numéro de sfx à la validation réussie |
+| `jj` | la pseudo-cible « -too far- » posée dans `et` quand aucun ancrage n'est assez proche |
+| `ij` (champ) | l'ancrage retenu par `mz:hq` — homonyme de la fonction `ij`, qui cherche le plus proche voisin |
+| `spawn_snd` | posé à 52 dans la spec de `mz`, aucun lecteur (audio hors périmètre) |
+
+### Deux noms, deux sens
+
+| Nom | Selon le fichier |
+|---|---|
+| `hp` | la **classe** d'un projet de recherche — mais sur une sous-classe de planète, un **nombre** de 1 à 6 : l'index du projet correspondant, lu par `jo:hu` |
+| `nk` | l'aléa courant d'une planète — mais sur une entrée de `nb`, l'**icône** de la technologie |
+| `cr` | l'écran de l'arbre technologique — mais `pj.cr` est un bloc de mise en page |
+| `ij` | la fonction « plus proche voisin » — mais sur `mz`, le champ qui retient l'ancrage choisi |
+| `l` | la durée de vie d'une particule — mais sur `iv`, l'avancement du fondu |
