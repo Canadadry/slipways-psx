@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+#define DEMO_EVENTS_PATH "tests/fixtures/demo_events.json"
+
 static unsigned char screen_pixel(const pico8_mem_t *mem, int x, int y) {
     return pico8_peek(mem, PICO8_ADDR_SCREEN + y * PICO8_SCREEN_WIDTH + x);
 }
@@ -89,9 +91,18 @@ int main(void) {
     assert(screen_pixel(&mem, 4, 116) == 0);
     assert(screen_pixel(&mem, 5, 116) == 11);
 
+    /* This block asserts the Phase-1 four-frame scenario's exact stat()/
+     * btn() values, so it needs that exact scenario -- not whatever the
+     * root events.json happens to hold. It read "events.json" until
+     * 741d633 ("chore: use segfault recording as root events.json")
+     * replaced that file with a 9729-frame playtest recording, which
+     * aborted this test on its first assertion. The scenario now lives in
+     * a fixture of its own, where a recording swap cannot reach it; the
+     * root recording is still covered, for shape and loadability rather
+     * than fixed values, by tests/test_pico8_input.c. */
     pico8_input_t input;
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, "events.json"));
+    assert(pico8_input_load(&input, DEMO_EVENTS_PATH));
 
     assert(pico8_stat(&input, 32) == 64);
     assert(pico8_stat(&input, 33) == 32);
