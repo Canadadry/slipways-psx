@@ -386,11 +386,9 @@ static void test_pow075_negative_value_is_zero(void) {
     assert(pico8_fixed_pow075((pico8_fixed_t)0xFFFFC000u) == pico8_fixed_from_int(0));
 }
 
-/* rnd/sin/cos are asserted on their documented contract only -- range,
- * documented identities, sign convention, periodicity. No bit-exact value
- * is asserted: PICO-8's own PRNG and sin/cos approximation are not
- * published, so there is no reference to compare against. */
-/* TROU-1 */
+/* rnd is asserted on its documented contract only: PICO-8's own PRNG is not
+ * published, so no drawn value has a reference to compare against. */
+/* TROU-17 */
 
 static void test_rnd_zero_is_zero(void) {
     /* rnd(0) returns 0. */
@@ -417,6 +415,97 @@ static void test_rnd_default_behaves_as_rnd_one(void) {
         pico8_fixed_t result = pico8_fixed_rnd_default();
         assert(result >= pico8_fixed_from_int(0));
         assert(result < one);
+    }
+}
+
+/* sin/cos are bit-exact at the 64 probed points i/64 only. */
+/* TROU-1 */
+static void test_sin_matches_probe_block_e(void) {
+    /* tools/probe_out.txt, "## e sin": copied from the probe, never
+     * derived. The argument is i/64 turns, raw i * 0x400. */
+    static const struct { uint32_t raw; uint32_t expected; } probe[] = {
+        {0x00000000u, 0x00000000u}, {0x00000400u, 0xFFFFE6E8u}, {0x00000800u, 0xFFFFCE0Fu},
+        {0x00000C00u, 0xFFFFB5B0u}, {0x00001000u, 0xFFFF9E08u}, {0x00001400u, 0xFFFF8753u},
+        {0x00001800u, 0xFFFF71C6u}, {0x00001C00u, 0xFFFF5D98u}, {0x00002000u, 0xFFFF4AFBu},
+        {0x00002400u, 0xFFFF3A1Cu}, {0x00002800u, 0xFFFF2B25u}, {0x00002C00u, 0xFFFF1E3Au},
+        {0x00003000u, 0xFFFF137Du}, {0x00003400u, 0xFFFF0B06u}, {0x00003800u, 0xFFFF04EBu},
+        {0x00003C00u, 0xFFFF013Cu}, {0x00004000u, 0xFFFF0000u}, {0x00004400u, 0xFFFF013Cu},
+        {0x00004800u, 0xFFFF04EBu}, {0x00004C00u, 0xFFFF0B06u}, {0x00005000u, 0xFFFF137Du},
+        {0x00005400u, 0xFFFF1E3Au}, {0x00005800u, 0xFFFF2B25u}, {0x00005C00u, 0xFFFF3A1Cu},
+        {0x00006000u, 0xFFFF4AFBu}, {0x00006400u, 0xFFFF5D98u}, {0x00006800u, 0xFFFF71C6u},
+        {0x00006C00u, 0xFFFF8753u}, {0x00007000u, 0xFFFF9E08u}, {0x00007400u, 0xFFFFB5B0u},
+        {0x00007800u, 0xFFFFCE0Fu}, {0x00007C00u, 0xFFFFE6E8u}, {0x00008000u, 0x00000000u},
+        {0x00008400u, 0x00001918u}, {0x00008800u, 0x000031F1u}, {0x00008C00u, 0x00004A50u},
+        {0x00009000u, 0x000061F8u}, {0x00009400u, 0x000078ADu}, {0x00009800u, 0x00008E3Au},
+        {0x00009C00u, 0x0000A268u}, {0x0000A000u, 0x0000B505u}, {0x0000A400u, 0x0000C5E4u},
+        {0x0000A800u, 0x0000D4DBu}, {0x0000AC00u, 0x0000E1C6u}, {0x0000B000u, 0x0000EC83u},
+        {0x0000B400u, 0x0000F4FAu}, {0x0000B800u, 0x0000FB15u}, {0x0000BC00u, 0x0000FEC4u},
+        {0x0000C000u, 0x00010000u}, {0x0000C400u, 0x0000FEC4u}, {0x0000C800u, 0x0000FB15u},
+        {0x0000CC00u, 0x0000F4FAu}, {0x0000D000u, 0x0000EC83u}, {0x0000D400u, 0x0000E1C6u},
+        {0x0000D800u, 0x0000D4DBu}, {0x0000DC00u, 0x0000C5E4u}, {0x0000E000u, 0x0000B505u},
+        {0x0000E400u, 0x0000A268u}, {0x0000E800u, 0x00008E3Au}, {0x0000EC00u, 0x000078ADu},
+        {0x0000F000u, 0x000061F8u}, {0x0000F400u, 0x00004A50u}, {0x0000F800u, 0x000031F1u},
+        {0x0000FC00u, 0x00001918u},
+    };
+    for (size_t i = 0; i < sizeof probe / sizeof probe[0]; i++) {
+        assert(pico8_fixed_sin((pico8_fixed_t)probe[i].raw) == (pico8_fixed_t)probe[i].expected);
+    }
+}
+
+static void test_cos_matches_probe_block_e(void) {
+    /* tools/probe_out.txt, "## e cos": copied from the probe, never
+     * derived. The argument is i/64 turns, raw i * 0x400. */
+    static const struct { uint32_t raw; uint32_t expected; } probe[] = {
+        {0x00000000u, 0x00010000u}, {0x00000400u, 0x0000FEC4u}, {0x00000800u, 0x0000FB15u},
+        {0x00000C00u, 0x0000F4FAu}, {0x00001000u, 0x0000EC83u}, {0x00001400u, 0x0000E1C6u},
+        {0x00001800u, 0x0000D4DBu}, {0x00001C00u, 0x0000C5E4u}, {0x00002000u, 0x0000B505u},
+        {0x00002400u, 0x0000A268u}, {0x00002800u, 0x00008E3Au}, {0x00002C00u, 0x000078ADu},
+        {0x00003000u, 0x000061F8u}, {0x00003400u, 0x00004A50u}, {0x00003800u, 0x000031F1u},
+        {0x00003C00u, 0x00001918u}, {0x00004000u, 0x00000000u}, {0x00004400u, 0xFFFFE6E8u},
+        {0x00004800u, 0xFFFFCE0Fu}, {0x00004C00u, 0xFFFFB5B0u}, {0x00005000u, 0xFFFF9E08u},
+        {0x00005400u, 0xFFFF8753u}, {0x00005800u, 0xFFFF71C6u}, {0x00005C00u, 0xFFFF5D98u},
+        {0x00006000u, 0xFFFF4AFBu}, {0x00006400u, 0xFFFF3A1Cu}, {0x00006800u, 0xFFFF2B25u},
+        {0x00006C00u, 0xFFFF1E3Au}, {0x00007000u, 0xFFFF137Du}, {0x00007400u, 0xFFFF0B06u},
+        {0x00007800u, 0xFFFF04EBu}, {0x00007C00u, 0xFFFF013Cu}, {0x00008000u, 0xFFFF0000u},
+        {0x00008400u, 0xFFFF013Cu}, {0x00008800u, 0xFFFF04EBu}, {0x00008C00u, 0xFFFF0B06u},
+        {0x00009000u, 0xFFFF137Du}, {0x00009400u, 0xFFFF1E3Au}, {0x00009800u, 0xFFFF2B25u},
+        {0x00009C00u, 0xFFFF3A1Cu}, {0x0000A000u, 0xFFFF4AFBu}, {0x0000A400u, 0xFFFF5D98u},
+        {0x0000A800u, 0xFFFF71C6u}, {0x0000AC00u, 0xFFFF8753u}, {0x0000B000u, 0xFFFF9E08u},
+        {0x0000B400u, 0xFFFFB5B0u}, {0x0000B800u, 0xFFFFCE0Fu}, {0x0000BC00u, 0xFFFFE6E8u},
+        {0x0000C000u, 0x00000000u}, {0x0000C400u, 0x00001918u}, {0x0000C800u, 0x000031F1u},
+        {0x0000CC00u, 0x00004A50u}, {0x0000D000u, 0x000061F8u}, {0x0000D400u, 0x000078ADu},
+        {0x0000D800u, 0x00008E3Au}, {0x0000DC00u, 0x0000A268u}, {0x0000E000u, 0x0000B505u},
+        {0x0000E400u, 0x0000C5E4u}, {0x0000E800u, 0x0000D4DBu}, {0x0000EC00u, 0x0000E1C6u},
+        {0x0000F000u, 0x0000EC83u}, {0x0000F400u, 0x0000F4FAu}, {0x0000F800u, 0x0000FB15u},
+        {0x0000FC00u, 0x0000FEC4u},
+    };
+    for (size_t i = 0; i < sizeof probe / sizeof probe[0]; i++) {
+        assert(pico8_fixed_cos((pico8_fixed_t)probe[i].raw) == (pico8_fixed_t)probe[i].expected);
+    }
+}
+
+static const uint32_t sin_cos_sample_fractions[] = {
+    0x0001u, 0x1234u, 0x3FFFu, 0x4001u, 0x5555u, 0x8001u, 0x9ABCu, 0xC3A1u, 0xFFFFu,
+};
+
+static void test_sin_and_cos_period_is_one_turn_for_any_whole_part(void) {
+    static const int32_t whole_parts[] = {-32768, -1, 1, 2, 100, 32767};
+    for (size_t w = 0; w < sizeof whole_parts / sizeof whole_parts[0]; w++) {
+        for (size_t f = 0; f < sizeof sin_cos_sample_fractions / sizeof sin_cos_sample_fractions[0]; f++) {
+            pico8_fixed_t frac = (pico8_fixed_t)sin_cos_sample_fractions[f];
+            pico8_fixed_t x = pico8_fixed_add(pico8_fixed_from_int(whole_parts[w]), frac);
+            assert(pico8_fixed_sin(x) == pico8_fixed_sin(frac));
+            assert(pico8_fixed_cos(x) == pico8_fixed_cos(frac));
+        }
+    }
+}
+
+static void test_sin_is_odd_and_cos_is_even(void) {
+    for (size_t f = 0; f < sizeof sin_cos_sample_fractions / sizeof sin_cos_sample_fractions[0]; f++) {
+        pico8_fixed_t x = (pico8_fixed_t)sin_cos_sample_fractions[f];
+        pico8_fixed_t minus_x = pico8_fixed_neg(x);
+        assert(pico8_fixed_sin(minus_x) == pico8_fixed_neg(pico8_fixed_sin(x)));
+        assert(pico8_fixed_cos(minus_x) == pico8_fixed_cos(x));
     }
 }
 
@@ -532,6 +621,10 @@ int main(void) {
     test_cos_quarter_turn_is_zero();
     test_cos_half_turn_is_negative_one();
     test_sin_and_cos_periodic_at_whole_turn_boundary();
+    test_sin_matches_probe_block_e();
+    test_cos_matches_probe_block_e();
+    test_sin_and_cos_period_is_one_turn_for_any_whole_part();
+    test_sin_is_odd_and_cos_is_even();
 
     printf("test_pico8_fixed: all tests passed\n");
     return 0;
