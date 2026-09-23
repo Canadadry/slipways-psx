@@ -1,11 +1,13 @@
 /* Replays tests/fixtures/tech_screen_invent_events.json headless and checks
  * that it reaches the tech screen and invents a tech through it.
  *
+ * The game starts the way src/main.c starts every replay of the net:
+ * `eu()` on `bo[2]` before frame 0, no title screen.
+ *
  * The fixture's stages and what grounds each check:
  *
- *   1. difficulty (frame 10). A click on the title menu's second row
- *      ("reasonable") runs `eu()`, which creates `fm` with `jk=0`, `ew=1`
- *      and an empty `invented` (lua.lua:1200-1201).
+ *   1. start (before frame 0). `eu()` creates `fm` with `jk=0`, `ew=1` and
+ *      an empty `invented` (lua.lua:1200-1201).
  *   2. five skipped years (frames 14-23). Each click on `ix[1]` runs
  *      `hy:hk()`, which adds `po[r.k]+1` research to `fm.jk` (lua.lua:1212).
  *   3. tech screen (frame 24). A click on `ix[2]` runs `cr()`, whose `pz()`
@@ -26,6 +28,8 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_help.h"
+#include "../src/pico8_ui_button.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_class.h"
 #include "../src/pico8_value.h"
@@ -72,6 +76,7 @@ int main(void) {
     pico8_gfx_t gfx;
     pico8_input_t input;
     int frame_count;
+    pico8_value_t difficulty_entry;
     int i;
     pico8_fixed_t jk_before = 0;
     pico8_fixed_t first_cost = 0;
@@ -91,6 +96,10 @@ int main(void) {
 
     pico8_cart_load();
     pico8__init();
+
+    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
+    assert(difficulty_entry.kind == PICO8_VALUE_REF);
+    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref));
 
     frame_count = input.frame_count;
     assert(frame_count > INVENT_FRAME);

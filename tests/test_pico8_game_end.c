@@ -1,10 +1,12 @@
 /* Replays tests/fixtures/game_end_events.json headless and checks that it
  * plays the game to its end by skipping years, which opens the score panel.
  *
+ * The game starts the way src/main.c starts every replay of the net:
+ * `eu()` on `bo[2]` before frame 0, no title screen.
+ *
  * The fixture's stages and what grounds each check:
  *
- *   1. difficulty (frame 10). A click on the title menu's second row
- *      ("reasonable") runs `eu()`, which creates `fm` with `yr=3401`
+ *   1. start (before frame 0). `eu()` creates `fm` with `yr=3401`
  *      (lua.lua:1202).
  *   2. 25 skipped years (presses at frames 14, 16, ... 62). Each click on
  *      `ix[1]` runs `hy:hk()`, `yr+=1` (lua.lua:1213); at 3426 `hl` becomes
@@ -12,11 +14,7 @@
  *      `fq()` overlay without `my` (lua.lua:870-880). With `c_` set, `pj:ph`
  *      draws the score rows through `s[st.score]` (lua.lua:882-889).
  *   3. three more clicks on `ix[1]` land on that overlay (fa=14, above the
- *      button's fa=11, lua.lua:324-326 and 258), so `yr` stays at 3426.
- *
- * The panel is not opened through `ix[3]` first: closing it again needs a
- * click on its `fq(de)` overlay, and the port's `de.my` returns nil where
- * lua.lua:902 returns true. */
+ *      button's fa=11, lua.lua:324-326 and 258), so `yr` stays at 3426. */
 
 #include <stdio.h>
 #include <string.h>
@@ -28,6 +26,9 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_help.h"
+#include "../src/pico8_ob.h"
+#include "../src/pico8_ui_button.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_class.h"
 #include "../src/pico8_value.h"
@@ -69,6 +70,7 @@ int main(void) {
     pico8_gfx_t gfx;
     pico8_input_t input;
     int frame_count;
+    pico8_value_t difficulty_entry;
     int i;
     int end_frame = -1;
 
@@ -87,6 +89,10 @@ int main(void) {
 
     pico8_cart_load();
     pico8__init();
+
+    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
+    assert(difficulty_entry.kind == PICO8_VALUE_REF);
+    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref));
 
     frame_count = input.frame_count;
     assert(frame_count > LAST_PLAYING_FRAME);
