@@ -31,6 +31,8 @@
 #                       fichier d'événements la frame du premier ancien != nouveau
 # make float-guard   -> réécrit tools/float_guard.txt, hors suite, en échec
 #                       tant qu'un fichier du cœur a besoin du flottant
+# make sin-table     -> régénère src/pico8_quarter_wave.h (table de sin/cos du
+#                       cœur) depuis tools/gen_quarter_wave.c, hors suite
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
 # make screencast-viewer -> idem pour le visualiseur d'enregistrement
 #                       (les deux exigent make raylib-vendor-setup au préalable)
@@ -759,6 +761,15 @@ float-guard: tools/float_guard.sh | $(TMP_DIR)
 	exit $$status
 
 .PHONY: float-guard
+
+$(TMP_DIR)/gen_quarter_wave: tools/gen_quarter_wave.c | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $< -lm
+
+sin-table: $(TMP_DIR)/gen_quarter_wave
+	./$(TMP_DIR)/gen_quarter_wave > $(TMP_DIR)/pico8_quarter_wave.h
+	mv $(TMP_DIR)/pico8_quarter_wave.h src/pico8_quarter_wave.h
+
+.PHONY: sin-table
 
 psn00bsdk-toolchain-setup:
 	sh tools/install_psn00bsdk_toolchain.sh

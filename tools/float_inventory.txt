@@ -18,23 +18,13 @@
 #
 # Population et etape des casts : lues dans tools/float_annotation.txt, qui
 # porte leur justification. "-" pour les autres categories.
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 10 | - | - | pico8_fixed_from_double(double d)
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 10 | - | - | double
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 11 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 16 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 16 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 17 | - | - | double
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 129 | - | - | float
-src/pico8_fixed.c | pico8_fixed_cos | autre | 1 | ligne 182 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 2 | ligne 182 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 3 | ligne 183 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 4 | ligne 184 | - | - | pico8_fixed_from_double(cos(radians))
-src/pico8_fixed.c | pico8_fixed_cos | reecrit | 1 | ligne 184 | - | - | cos
-src/pico8_fixed.c | pico8_fixed_sin | autre | 1 | ligne 191 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 2 | ligne 191 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 3 | ligne 192 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 193 | - | - | pico8_fixed_from_double(-sin(radians))
-src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 193 | - | - | sin
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 9 | - | - | pico8_fixed_from_double(double d)
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 9 | - | - | double
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 10 | - | - | double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 15 | - | - | double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 15 | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 16 | - | - | double
+src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 128 | - | - | float
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | - | - | double
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
@@ -42,9 +32,9 @@ src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
 # Comptes
 compte constante 0
 compte cast 0
-compte reecrit 2
-compte autre 18
-compte total 20
+compte reecrit 0
+compte autre 10
+compte total 10
 compte population (a) 0
 compte population (b) 0
 compte population (c) 0

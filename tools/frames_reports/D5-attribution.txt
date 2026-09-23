@@ -1,0 +1,57 @@
+attribution et revue headless, etape D5
+regle : docs/plan-2.md, Phase D, "Regle d'attribution d'une etape D".
+unite de conversion : la fonction (sin, cos), pas le site d'appel.
+S = fonctions D5 dont au moins un site a ancien!=nouveau >= 1 sur le filet
+(make float-audit) ; A = plus petite frame de premier ancien!=nouveau d'un
+site D5, par fichier ; F = premiere frame divergente de D5.txt.
+paire au niveau de la valeur rendue : ancien = from_double(-sin(to_double(x)
+* 2pi)) / from_double(cos(to_double(x) * 2pi)) de la libc, nouveau = table
+quart d'onde src/pico8_quarter_wave.h ; argument = x brut ; nouveau!=reference
+toujours 0 (la verite aux 64 points i/64 est le bloc E, assertee par
+test_sin_matches_probe_block_e et test_cos_matches_probe_block_e).
+sites D5, 3 lignes, 4 appels :
+src/pico8_vec.c pico8_vec_qm, ligne 54 (cos et sin, ligne partagee : les
+compteurs additionnent les deux appels) : 323526 appels, 0 negatif, 323240
+fractionnaires, ancien!=nouveau 0.
+src/pico8_wormhole.c pico8_mz_kz, ligne 145 (sin, champ oi) : 1503 appels,
+0 negatif, 1428 fractionnaires, ancien!=nouveau 0.
+src/pico8_entity_geom.c pico8_na, ligne 66 (sin, ra.y) : 1 appel (atteint
+par empty_planet_cleared seul), 0 negatif, 0 fractionnaire, ancien!=nouveau 0.
+S = {} : les trois sites sont "transformation sans ecart sur le filet" (la
+valeur est la meme par construction), proteges par
+test_sin_and_cos_match_old_computation_on_every_fraction (65536 fractions,
+sin et cos, contre l'ancienne expression) et par le test du bloc E (64 sin,
+64 cos au bit pres).
+complement neutre : S vide, donc "S ramene a l'ancienne forme" = arbre D5
+lui-meme ; lance quand meme sur l'arbre du commit 1 (tests seulement),
+frames-check contre les references d'avant D5.
+variante suffisante : satisfaite par construction (arbre d'avant, S vide
+converti = arbre d'avant) ; aucun arbre de variante fabrique.
+revue : sans objet, aucun fichier divergent.
+
+events.json : conforme | A aucun (280512 appels qm, 1357 mz_kz) | complement conforme (9729 frames)
+tests/fixtures/phase4_playthrough_events.json : conforme | A aucun (6720 appels qm, 34 mz_kz) | complement conforme (224 frames)
+tests/fixtures/built_planet_panel_events.json : conforme | A aucun (8704 appels qm, 34 mz_kz) | complement conforme (278 frames)
+tests/fixtures/empty_planet_cleared_events.json : conforme | A aucun (6638 appels qm, 22 mz_kz, 1 na) | complement conforme (229 frames)
+tests/fixtures/slipway_drag_events.json : conforme | A aucun (6532 appels qm, 39 mz_kz) | complement conforme (226 frames)
+tests/fixtures/shop_button_hover_events.json : conforme | A aucun (700 appels qm) | complement conforme (25 frames)
+tests/fixtures/screencast_capture_events.json : conforme | A aucun (224 appels qm) | complement conforme (8 frames)
+tests/fixtures/top_menubar_events.json : conforme | A aucun (112 appels qm) | complement conforme (4 frames)
+tests/fixtures/tech_screen_invent_events.json : conforme | A aucun (1720 appels qm) | complement conforme (58 frames)
+tests/fixtures/game_end_events.json : conforme | A aucun (2200 appels qm) | complement conforme (74 frames)
+tests/fixtures/pause_menu_music_events.json : conforme | A aucun (940 appels qm) | complement conforme (32 frames)
+tests/fixtures/geoharvest_burst_events.json : conforme | A aucun (8524 appels qm, 17 mz_kz) | complement conforme (293 frames)
+
+controle 1 (A <= F) : aucun F, aucun A ; ni F sans A, ni A sans F.
+controle 2 (complement neutre) : 12/12 conformes aux references d'avant D5.
+controle 3 (variante suffisante) : par construction, S vide.
+attribution : aucune frame divergente ; pas de make frames-baseline.
+
+cascade, regle D3 : sin/cos ecrivent dans l'etat (ra.y par pico8_na, oi par
+pico8_mz_kz, positions generees par qm) ; l'identite C1 est exigee sur les
+fichiers sans A, ici 12/12.
+cascade, mesure : lignes AUD des 12 fichiers, arbre d'avant D5 contre arbre
+D5 : toutes les lignes d'avant (les 47 sites C1 et les sites D anterieurs,
+dont pico8_bl de pico8_pi.c) sont identiques sur 12/12, numeros de ligne
+compris ; seules lignes nouvelles, les 3 sites D5.
+cascade : aucune.

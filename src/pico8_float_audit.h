@@ -36,6 +36,17 @@ void pico8_float_audit_dj(const char *file, const char *func, int line, pico8_fi
 #define pico8_audit_dj(len_sq, bq, x, scale, cost) \
     pico8_float_audit_dj(__FILE__, __func__, __LINE__, (len_sq), (bq), (x), (scale), (cost))
 
+/* Paire D5 : chaque appel de pico8_fixed_sin/cos calcule aussi l'ancienne
+ * expression (to_double, 2*pi, sin()/cos() de la libc, from_double) et la
+ * compare a la valeur de la table ; l'argument enregistre est x brut. Colonne
+ * nouveau != reference toujours 0 : la verite aux 64 points releves est le
+ * bloc E, assertee par test_sin/cos_matches_probe_block_e. */
+pico8_fixed_t pico8_float_audit_sin(const char *file, const char *func, int line, pico8_fixed_t x);
+pico8_fixed_t pico8_float_audit_cos(const char *file, const char *func, int line, pico8_fixed_t x);
+
+#define pico8_fixed_sin(x) pico8_float_audit_sin(__FILE__, __func__, __LINE__, (x))
+#define pico8_fixed_cos(x) pico8_float_audit_cos(__FILE__, __func__, __LINE__, (x))
+
 int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, pico8_fixed_t x);
 
 #define pico8_fixed_flr_int(x) pico8_float_audit_flr_int(__FILE__, __func__, __LINE__, (x))

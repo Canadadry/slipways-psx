@@ -136,3 +136,21 @@ void pico8_float_audit_dj(const char *file, const char *func, int line, pico8_fi
 
     pico8_float_audit_record(file, func, line, x, old_cost != cost, 0);
 }
+
+#define PICO8_AUDIT_TWO_PI 6.28318530717958647692528676655900576839433879875021
+
+pico8_fixed_t pico8_float_audit_sin(const char *file, const char *func, int line, pico8_fixed_t x) {
+    pico8_fixed_t now = (pico8_fixed_sin)(x);
+    pico8_fixed_t before = pico8_fixed_from_double(-sin(pico8_fixed_to_double(x) * PICO8_AUDIT_TWO_PI));
+
+    pico8_float_audit_record(file, func, line, x, before != now, 0);
+    return now;
+}
+
+pico8_fixed_t pico8_float_audit_cos(const char *file, const char *func, int line, pico8_fixed_t x) {
+    pico8_fixed_t now = (pico8_fixed_cos)(x);
+    pico8_fixed_t before = pico8_fixed_from_double(cos(pico8_fixed_to_double(x) * PICO8_AUDIT_TWO_PI));
+
+    pico8_float_audit_record(file, func, line, x, before != now, 0);
+    return now;
+}

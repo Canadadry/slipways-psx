@@ -11,23 +11,30 @@ commentaires. Une entrée supprimée est une entrée refermée : voir git.
 
 ## TROU-1 — L'arithmétique flottante n'est pas bit-exacte
 
-`pico8_fixed_cos`/`_sin` passent par le `cos()`/`sin()` de l'hôte en
-`double`, puis reconvertissent en virgule fixe par
-`pico8_fixed_from_double`.
+`pico8_fixed_cos`/`_sin` lisent une table de quart d'onde 16.16
+(`src/pico8_quarter_wave.h`, 16 385 entrées, une par fraction de tour
+`r/65536` du premier quart, sans interpolation), générée sur l'hôte par
+`tools/gen_quarter_wave.c` (`make sin-table`). Elles sont exactes au bit
+près sur les 64 points `i/64` du relevé (`tools/probe_out.txt`, bloc E,
+asserté par `make test`). Ailleurs, elles rendent l'arrondi au plus proche
+de la valeur vraie, ce que rendait l'ancien calcul `double` de la libc,
+**sans source PICO-8** : l'approximation propre de PICO-8 n'est pas
+publiée.
 
 Les littéraux décimaux du cœur, eux, ne passent plus par
 `pico8_fixed_from_double` : `PICO8_FIXED_LIT` porte la valeur brute du
 relevé PICO-8 (`tools/probe_out.txt`, bloc A), et `make constants-check`
 la vérifie contre ce relevé. `pico8_fixed_from_double` reste défini.
 
+Le générateur pseudo-aléatoire relève de TROU-17.
+
 Conséquence : une partie rejouée ici peut diverger d'une partie rejouée
-dans le vrai PICO-8, d'autant plus vite que la divergence se propage par le
-générateur pseudo-aléatoire. Les rejeux internes restent déterministes,
+dans le vrai PICO-8. Les rejeux internes restent déterministes,
 puisqu'ils comparent ce port à lui-même.
 
 `docs/plan-2.md` a l'élimination du flottant à son programme.
 
-Fichiers : `src/pico8_fixed.c`, `src/pico8_economy_formulas.c`.
+Fichiers : `src/pico8_fixed.c`, `src/pico8_quarter_wave.h`.
 
 ## TROU-2 — La deuxième manette est câblée à « rien »
 

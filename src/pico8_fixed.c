@@ -1,6 +1,5 @@
 #include "pico8_fixed.h"
-
-#include <math.h>
+#include "pico8_quarter_wave.h"
 
 pico8_fixed_t pico8_fixed_from_int(int32_t i) {
     return (pico8_fixed_t)((uint32_t)i << PICO8_FIXED_SHIFT);
@@ -173,22 +172,23 @@ pico8_fixed_t pico8_fixed_rnd_default(void) {
     return pico8_fixed_rnd(pico8_fixed_from_int(1));
 }
 
-/* Spelled out rather than <math.h>'s M_PI, which is an extension glibc
- * does not define under strict -std=c99. */
-#define PICO8_TWO_PI 6.28318530717958647692528676655900576839433879875021
+/* Standard-sign sin of the turn fraction f (the low 16 bits of the
+ * argument): the quadrant folds f onto the quarter wave and sets the sign. */
+static pico8_fixed_t pico8_quarter_wave_at(uint32_t f) {
+    uint32_t quadrant = (f >> 14) & 3u;
+    uint32_t r = f & 0x3FFFu;
+    int32_t v = (quadrant & 1u) ? pico8_quarter_wave[0x4000u - r] : pico8_quarter_wave[r];
+    return (quadrant & 2u) ? -v : v;
+}
 
 /* TROU-1 */
 pico8_fixed_t pico8_fixed_cos(pico8_fixed_t x) {
-    double turns = pico8_fixed_to_double(x);
-    double radians = turns * PICO8_TWO_PI;
-    return pico8_fixed_from_double(cos(radians));
+    return pico8_quarter_wave_at(((uint32_t)x + 0x4000u) & 0xFFFFu);
 }
 
 /* Sign inverted relative to standard math: PICO-8's screen y-axis points
  * down. */
 /* TROU-1 */
 pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x) {
-    double turns = pico8_fixed_to_double(x);
-    double radians = turns * PICO8_TWO_PI;
-    return pico8_fixed_from_double(-sin(radians));
+    return -pico8_quarter_wave_at((uint32_t)x & 0xFFFFu);
 }

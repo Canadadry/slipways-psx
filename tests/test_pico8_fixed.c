@@ -1,6 +1,7 @@
 #include "../src/pico8_fixed.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -509,6 +510,28 @@ static void test_sin_is_odd_and_cos_is_even(void) {
     }
 }
 
+/* The pre-table sin/cos, kept here verbatim (same 2*pi, same rounding as
+ * pico8_fixed_from_double) so the generated table stays pinned to it. */
+#define OLD_TWO_PI 6.28318530717958647692528676655900576839433879875021
+
+static pico8_fixed_t old_round_to_fixed(double d) {
+    double scaled = d * 65536.0;
+    int64_t raw = (int64_t)(scaled >= 0 ? scaled + 0.5 : scaled - 0.5);
+    return (pico8_fixed_t)(uint32_t)raw;
+}
+
+static double old_radians(pico8_fixed_t x) {
+    return ((double)x / 65536.0) * OLD_TWO_PI;
+}
+
+static void test_sin_and_cos_match_old_computation_on_every_fraction(void) {
+    for (uint32_t f = 0; f <= 0xFFFFu; f++) {
+        pico8_fixed_t x = (pico8_fixed_t)f;
+        assert(pico8_fixed_sin(x) == old_round_to_fixed(-sin(old_radians(x))));
+        assert(pico8_fixed_cos(x) == old_round_to_fixed(cos(old_radians(x))));
+    }
+}
+
 static void test_sin_zero_is_zero(void) {
     assert(pico8_fixed_sin(pico8_fixed_from_int(0)) == pico8_fixed_from_int(0));
 }
@@ -625,6 +648,7 @@ int main(void) {
     test_cos_matches_probe_block_e();
     test_sin_and_cos_period_is_one_turn_for_any_whole_part();
     test_sin_is_odd_and_cos_is_even();
+    test_sin_and_cos_match_old_computation_on_every_fraction();
 
     printf("test_pico8_fixed: all tests passed\n");
     return 0;
