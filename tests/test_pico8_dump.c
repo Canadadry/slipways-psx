@@ -103,9 +103,57 @@ static void test_dump_of_hand_drawn_pattern_matches_exact_text(void) {
     free(expected);
 }
 
+/* Le texte ecrit par `write` sur un fichier temporaire. Tampon alloue,
+ * que l'appelant libere. */
+static char *capture_text(int (*write)(const void *, FILE *), const void *src, size_t *out_len) {
+    FILE *tmp = tmpfile();
+    assert(tmp != NULL);
+    assert(write(src, tmp));
+    long size = ftell(tmp);
+    assert(size > 0);
+    rewind(tmp);
+    char *buf = malloc((size_t)size);
+    assert(buf != NULL);
+    assert(fread(buf, 1, (size_t)size, tmp) == (size_t)size);
+    fclose(tmp);
+    *out_len = (size_t)size;
+    return buf;
+}
+
+static int write_screen(const void *mem, FILE *out) {
+    return pico8_dump_screen(mem, out);
+}
+
+static int write_pixels(const void *pixels, FILE *out) {
+    return pico8_dump_pixels(pixels, out);
+}
+
+static void test_dump_of_pixel_buffer_matches_dump_of_same_screen(void) {
+    static unsigned char pixels[PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT];
+    pico8_mem_t mem;
+    pico8_mem_init(&mem);
+    for (int i = 0; i < (int)sizeof(pixels); i++) {
+        pixels[i] = (unsigned char)((i * 7 + i / PICO8_SCREEN_WIDTH) % 16);
+        pico8_poke(&mem, PICO8_ADDR_SCREEN + i, pixels[i]);
+    }
+
+    size_t from_screen_len;
+    char *from_screen = capture_text(write_screen, &mem, &from_screen_len);
+    size_t from_pixels_len;
+    char *from_pixels = capture_text(write_pixels, pixels, &from_pixels_len);
+
+    assert(from_pixels_len == DUMP_SIZE);
+    assert(from_pixels_len == from_screen_len);
+    assert(memcmp(from_pixels, from_screen, from_screen_len) == 0);
+
+    free(from_screen);
+    free(from_pixels);
+}
+
 int main(void) {
     test_dump_of_cleared_screen_is_all_zero_grid();
     test_dump_of_hand_drawn_pattern_matches_exact_text();
+    test_dump_of_pixel_buffer_matches_dump_of_same_screen();
     printf("test_pico8_dump: all tests passed\n");
     return 0;
 }

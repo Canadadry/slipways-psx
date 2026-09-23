@@ -10,4 +10,8 @@
  * whole dump was written, 0 on the first write failure. */
 int pico8_dump_screen(const pico8_mem_t *mem, FILE *out);
 
+/* The same text, from `pixels`: 128x128 bytes in scan order, one color
+ * index 0-15 per byte -- what pico8_screencast_read_frame fills. */
+int pico8_dump_pixels(const unsigned char *pixels, FILE *out);
+
 #endif

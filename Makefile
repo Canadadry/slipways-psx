@@ -1,16 +1,18 @@
-# make test          -> unit + replay + screencast-check, la suite complète
+# make test          -> unit + replay + screencast-check + frames-check, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay        -> rejoue events.json dans le moteur headless
 # make screencast    -> refabrique les pixels de chaque frame du rejeu
 # make screencast-check -> compare leur empreinte à celle qui est signée
 # make screencast-sign  -> signe l'empreinte actuelle (acte humain, voir plus bas)
+# make frames-check  -> compare les empreintes par frame de chaque rejeu du filet
+# make frames-baseline -> (re)pose ces empreintes de référence, jamais par make test
 # make ref-audit     -> diagnostic des casts REF, hors suite
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
 # make screencast-viewer -> idem pour le visualiseur d'enregistrement
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign screencast-viewer
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign screencast-viewer frames-check frames-baseline
 
 CC ?= cc
 CFLAGS ?= -std=c99 -Wall -Wextra -Werror -g
@@ -237,6 +239,19 @@ $(TMP_DIR)/test_pico8_screencast: $(call objs,tests/test_pico8_screencast.c src/
 $(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_capture.c src/pico8_screencast.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c src/pico8_input.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pico8_frame_hash: $(call objs,tests/test_pico8_frame_hash.c src/pico8_frame_hash.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_frame_hash.c src/pico8_screencast.c src/pico8_dump.c src/pico8_mem.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+# Lance le pilote de rejeu puis l'outil d'empreintes, comme les cibles frames-*.
+$(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c src/pico8_frame_hash.c src/pico8_screencast.c src/pico8_mem.c) $(TMP_DIR)/pico8_replay $(TMP_DIR)/pico8_frames tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -312,7 +327,7 @@ $(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_b
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -341,6 +356,9 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_screencast
 	./$(TMP_DIR)/test_pico8_headless_capture
 	./$(TMP_DIR)/test_pico8_screencast_player
+	./$(TMP_DIR)/test_pico8_frame_hash
+	./$(TMP_DIR)/test_pico8_frames_tool
+	./$(TMP_DIR)/test_frames_check
 	./$(TMP_DIR)/test_pico8_bg_kj
 	./$(TMP_DIR)/test_pico8_top_menubar
 	./$(TMP_DIR)/test_pico8_shop_tooltip_fillp
@@ -353,7 +371,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
 
-test: unit replay screencast-check
+test: unit replay screencast-check frames-check
 
 # ENREGISTREMENT D'ÉCRAN : make screencast rejoue events.json en écrivant les
 # pixels de chaque frame, make screencast-check compare leur empreinte à celle
@@ -412,6 +430,55 @@ screencast-sign: $(SCREENCAST_BIN)
 	@echo "screencast: cette ligne est un acte de signature -- commettez-la avec ce que vous avez regarde."
 
 .PHONY: screencast screencast-check screencast-sign screencast-viewer
+
+# FILET PAR FRAME (docs/plan-2.md §5) : une empreinte par frame et par fichier
+# d'événements, versionnée à côté de lui sous <events>.frames.hash. C'est une
+# base de non-régression posée par make frames-baseline, pas la signature
+# humaine de screencast-sign. Liste explicite : un motif sur tests/fixtures/
+# ramasserait les fixtures malformées et celles du lecteur d'entrée.
+FRAMES_EVENTS := \
+    $(SCREENCAST_EVENTS) \
+    tests/fixtures/phase4_playthrough_events.json \
+    tests/fixtures/built_planet_panel_events.json \
+    tests/fixtures/empty_planet_cleared_events.json \
+    tests/fixtures/slipway_drag_events.json \
+    tests/fixtures/shop_button_hover_events.json \
+    tests/fixtures/screencast_capture_events.json \
+    tests/fixtures/top_menubar_events.json
+
+FRAMES_TOOL := $(TMP_DIR)/pico8_frames
+FRAMES_DIR := $(TMP_DIR)/frames
+
+frames_capture = $(if $(filter $(SCREENCAST_EVENTS),$(1)),$(SCREENCAST_BIN),$(FRAMES_DIR)/$(1).bin)
+frames_current = $(FRAMES_DIR)/$(1).frames.hash
+frames_reference = $(1).frames.hash
+
+# Sans .SECONDARY, make effacerait ces captures intermédiaires, que le message
+# d'échec de frames-check désigne pour émettre une frame.
+.SECONDARY: $(foreach e,$(filter-out $(SCREENCAST_EVENTS),$(FRAMES_EVENTS)),$(call frames_capture,$(e)))
+
+# pico8_replay réécrit toujours tmp/pico8_replay_dump.txt, que relisent
+# test_pico8_headless_capture et test_pico8_frames_tool : sous make -j, ces
+# captures ne doivent pas tourner en même temps que ces deux tests.
+$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
+	@mkdir -p $(@D)
+	./$(TMP_DIR)/pico8_replay $< $@ > /dev/null
+
+$(FRAMES_DIR)/%.frames.hash: $(FRAMES_DIR)/%.bin $(FRAMES_TOOL)
+	./$(FRAMES_TOOL) hashes $< $@
+
+$(call frames_current,$(SCREENCAST_EVENTS)): $(SCREENCAST_BIN) $(FRAMES_TOOL)
+	@mkdir -p $(@D)
+	./$(FRAMES_TOOL) hashes $< $@
+
+# Comme screencast-check : un rejeu sans référence n'est ni capturé ni comparé.
+FRAMES_CHECK_PREREQ := $(foreach e,$(FRAMES_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e))))
+
+frames-check: $(FRAMES_CHECK_PREREQ) tools/frames_check.sh
+	@sh tools/frames_check.sh ./$(FRAMES_TOOL) $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
+
+frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e)))
+	@$(foreach e,$(FRAMES_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "frames: reference posee dans $(call frames_reference,$(e)) ($$(wc -l < $(call frames_reference,$(e)) | tr -d ' ') frames)" && ) true
 
 # make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
 # Il répond « quels sites de cast REF ont été atteints, et avec quel tag », en
