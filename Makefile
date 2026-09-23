@@ -1,5 +1,6 @@
 # make test          -> unit + replay + screencast-check + frames-check
-#                       + float-inventory-check + constants-check, la suite complète
+#                       + float-inventory-check + constants-check + float-audit,
+#                       la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay        -> rejoue events.json dans le moteur headless
 # make screencast    -> refabrique les pixels de chaque frame du rejeu
@@ -24,9 +25,10 @@
 #                       tmp/constant_variants/synthese.txt, hors suite
 # make float-coverage -> réécrit tools/float_coverage.txt, hors suite
 # make float-observe -> réécrit tools/float_observe.txt, hors suite
-# make float-audit   -> audit par site, hors suite : sites C1
-#                       (tools/float_audit_c1.txt) troncature flottante = flr
-#                       entier et argument >= 0 ; sites D nouveau = flr
+# make float-audit   -> audit avant/après par site, dans make test : sites C1
+#                       (tools/float_audit_c1.txt) ancien = nouveau, argument
+#                       >= 0 et atteint ; sites D nouveau = flr. Imprime par
+#                       fichier d'événements la frame du premier ancien != nouveau
 # make float-guard   -> réécrit tools/float_guard.txt, hors suite, en échec
 #                       tant qu'un fichier du cœur a besoin du flottant
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
@@ -456,7 +458,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
 
-test: unit replay screencast-check frames-check float-inventory-check constants-check
+test: unit replay screencast-check frames-check float-inventory-check constants-check float-audit
 
 # ENREGISTREMENT D'ÉCRAN : make screencast rejoue events.json en écrivant les
 # pixels de chaque frame, make screencast-check compare leur empreinte à celle
