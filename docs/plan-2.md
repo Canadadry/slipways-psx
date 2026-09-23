@@ -261,7 +261,7 @@ Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe
 | Sous-groupe de l'inventaire | Jetons | Étape | Source |
 |---|---|---|---|
 | constantes `pico8_fixed_from_double(<littéral>)` | 61 | C2b | *Déduction.* Phase C : « les 34 constantes remplacées par les entiers de `tools/probe_out.txt` », et C1 garde les « constantes inchangées » : C2 est la seule étape de C qui touche aux constantes. Les 18 valeurs qui ne changent pas y sont remplacées sans divergence. |
-| casts, étape C1 | 37 | C1 | `compte etape C1` : (b) 36, et (a) à signe prouvé 1 (`pico8_gn_next`) |
+| casts, étape C1 | 37 | C1 — ✅ faite | `compte etape C1` : (b) 36, et (a) à signe prouvé 1 (`pico8_gn_next`) ; convertis, voir « État de C1 » |
 | casts, étape D1 | 22 | D1 | `compte etape D1` : (c) 21, et (a) à signe non prouvé 1 (`pico8_mz_kj`, `pico8_fixed_flr(ratio)`) |
 | casts « à auditer » | 17 | aucune — **bloqués** | `compte etape a auditer` ; voir « Casts bloqués » ci-dessous |
 | `%.4f`, et `double` + `pico8_fixed_to_double` de `pico8_value_tostr` | 3 | D2 | Phase D, `tostr` |
@@ -284,6 +284,17 @@ Somme : 61 + 37 + 22 + 17 + 3 + 5 + 0 + 4 + 10 + 6 = **165**, le `compte total` 
 - **Les 17 « à auditer »** : les 16 casts NON COUVERT de `tools/float_coverage.txt` (`pico8_ho_apply`, `pico8_hy_kt`, `set_by_value` de `economy_tiers`, `pico8_cr` ×2, `pico8_ha2_my_dispatch`, `pico8_jo_hu`, `pico8_ga_kj` ×5, `pico8_research_lookup`, `pico8_pj_ph_map` ×2, `pico8_jc_display_get_by_value`), plus `pico8_pj_hk` `yr`, couvert (8 passages) mais dont la preuve de signe est tombée. Plusieurs portent un candidat dans leur justification ; aucun candidat ne classe.
 - **Débordement de `qc.t`.** `qc.t` croît de 1 par frame sans borne (`lua.lua:179`) et repasse à -32768 après 32768 frames (~9 min) ; l'état de placement `kz` n'a pas de délai. À t = -1, `oi` ≈ -1.48 (troncature -1, `flr` -2). Ce constat a réfuté deux preuves (b) de `pico8_mz_kj` (`oi`, `sr`), passées en (c)/D1, et retiré la même prémisse de `pico8_pj_hk` `yr` (à auditer : `yr` part de 3401, +1 par année, sans borne établie).
 - **Observation** sur le filet (`FRAMES_EVENTS`), un indice, pas une preuve : 4 vus négatifs (`pico8_rn`, `pico8_bg_to_int`, `pico8_hud_to_int`, `pico8_bl`, tous (c)), 56 jamais négatifs, 16 NON COUVERT, 6 sur une ligne partagée, **0 contradiction** ((b) vu négatif). Total 76.
+
+**État de C1** (mesuré avec `cc` GCC 13.3, x86_64).
+
+- **Conversion.** Les 37 casts d'étape C1 appellent `pico8_fixed_flr_int` (module fixe, `flr` entier sans flottant) ; leurs lignes d'annotation sont retirées, et `tools/float_annotation.txt` n'a plus de ligne `| C1 |`.
+- **Inventaire** (`tools/float_inventory.txt`) : constantes 61, casts 39 (76 → 39), réécrits 5, autres 23, **total 128** (165 → 128). Populations : (a) 1, (b) 0, (c) 21, à auditer 17. **Étapes** : C1 0, D1 22, à auditer 17. La table de propriété ci-dessus reste la photographie de C0 (165) ; sans la ligne C1, sa somme donne 128.
+- **Porte 1, le filet** : `make frames-check` identique sur les 8 fichiers de `FRAMES_EVENTS` à chaque commit de conversion, sans `frames-baseline`.
+- **Porte 2, l'audit** (`make float-audit`, hors suite, sans rapport versionné) : 37 sites, 37 atteints, 0 non atteint, 0 écart, 0 négatif, 0 ligne partagée, 1 413 641 passages. Limite du filet : certains sites ne sont atteints que 1 à 4 fois (`pico8_jo_gh` 1, `pico8_jo_pq` 2, `pico8_jo_gh_jp_step` 2, `pico8_db` 4).
+- **Garde** (`tools/float_guard.txt`) : 32 → **24** fichiers en échec sur 58. Sortis : `pico8_economy_score.c`, `pico8_entity.c`, `pico8_gen.c`, `pico8_msgbox.c`, `pico8_research_display.c`, `pico8_research_icon.c`, `pico8_score_panel.c`, `pico8_tech_gate.c` — exactement la liste prévue par le PRD de C1.
+- **Observation** (`tools/float_observe.txt`) : vu négatif 4, jamais négatif 19 (56 → 19), non couvert 16, ligne partagée 4 (6 → 4), **contradiction 0**, total 39.
+- **Couverture** (`tools/float_coverage.txt`) : casts couverts 23, non couverts 16 ; total couverts 85, non couverts 43. Les passages de `pico8_fixed_to_double` tombent de 5 070 600 à 3 656 959 : l'écart, 1 413 641, est exactement le nombre de passages de l'audit.
+- **Constat.** La copie versionnée de `tools/float_coverage.txt` datait d'avant l'annotation de C0 : tous ses casts y portaient « a auditer | - ». Régénérée, elle porte les populations et étapes de l'annotation (par exemple `pico8_rn`, `pico8_bg_to_int` en (c)/D1). La couverture n'a pas de contrôle de fraîcheur dans `make test`.
 
 **Attention, la Phase C n'est plus intégralement préservatrice :** 16 des 34 constantes changent de valeur (§3.1), donc `frames.hash` **peut légitimement diverger** de la Phase B. La découpe est donc :
 
