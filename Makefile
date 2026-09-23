@@ -18,6 +18,10 @@
 # make constants-check -> compare chaque constante du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
+# make constant-variants [LITTERAL=<l>] -> rejoue le filet une fois par constante
+#                       en ECART (ou la seule nommée), chacune remplacée par sa valeur
+#                       relevée dans une copie de src/ ; synthèse dans
+#                       tmp/constant_variants/synthese.txt, hors suite
 # make float-coverage -> réécrit tools/float_coverage.txt, hors suite
 # make float-observe -> réécrit tools/float_observe.txt, hors suite
 # make float-audit   -> porte de C1 : troncature flottante = flr entier et
@@ -319,6 +323,10 @@ $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_g
 $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+# Rejoue un pilote fabriqué et en prend les empreintes avec le vrai outil.
+$(TMP_DIR)/test_constant_variants: $(call objs,tests/test_constant_variants.c) tools/constant_variants.sh tools/constants_compare.sh tools/frames_report.sh $(TMP_DIR)/pico8_frames src/pico8_fixed.c src/pico8_mem.c src/pico8_screencast.c | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -394,7 +402,7 @@ $(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_b
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_frames_report $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_frames_report $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_constant_variants $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -434,6 +442,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_float_audit
 	./$(TMP_DIR)/test_float_guard
 	./$(TMP_DIR)/test_constants_check
+	./$(TMP_DIR)/test_constant_variants
 	./$(TMP_DIR)/test_pico8_bg_kj
 	./$(TMP_DIR)/test_pico8_top_menubar
 	./$(TMP_DIR)/test_pico8_shop_tooltip_fillp
@@ -636,6 +645,14 @@ float-inventory-check: tools/float_inventory_check.sh tools/float_inventory.sh $
 
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
 	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check
+
+# Les sources de $(TMP_DIR)/pico8_replay, recompilées dans chaque copie.
+constant-variants: tools/constant_variants.sh tools/constants_compare.sh tools/frames_report.sh $(FLOAT_INVENTORY) tools/probe_out.txt $(FRAMES_TOOL)
+	CC='$(CC)' CFLAGS='$(CFLAGS)' sh tools/constant_variants.sh src '$(strip src/main.c src/pico8_screencast.c $(ENGINE_SRCS))' \
+	    $(FLOAT_INVENTORY) tools/probe_out.txt ./$(FRAMES_TOOL) $(TMP_DIR)/constant_variants '$(LITTERAL)' \
+	    $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)))
+
+.PHONY: constant-variants
 
 .PHONY: constants-check
 
