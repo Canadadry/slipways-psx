@@ -256,6 +256,35 @@ Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe
 - **Observation** (facultative mais recommandée) : le build d'audit de C1 lancé d'abord en mode relevé, qui consigne la valeur minimale vue à chaque cast sur tout le filet — tri empirique « vu négatif » / « jamais négatif » avant d'écrire les preuves. Les casts NON COUVERT restent « à auditer » jusqu'à test ou fixture (règle de B2).
 - **Fraîcheur** : `make test` régénère l'inventaire dans `tmp/` et le compare à la copie versionnée ; un rapport périmé fait échouer la suite. Éventuellement, cliquet sur la garde : tout fichier du cœur absent de `float_guard.txt` doit encore compiler sous `-mgeneral-regs-only` (la liste ne peut que rétrécir). La couverture reste manuelle, citée par chaque PRD d'étape.
 
+**Table de propriété** (tirée de `tools/float_inventory.txt` ; les comptes de casts viennent de ses lignes `compte etape`, pas d'un recopiage). Une ligne marquée *déduction* affecte un sous-groupe que le plan ne nomme pas mot pour mot : la phrase dont elle se déduit est citée, et l'humain peut la contester.
+
+| Sous-groupe de l'inventaire | Jetons | Étape | Source |
+|---|---|---|---|
+| constantes `pico8_fixed_from_double(<littéral>)` | 61 | C2b | *Déduction.* Phase C : « les 34 constantes remplacées par les entiers de `tools/probe_out.txt` », et C1 garde les « constantes inchangées » : C2 est la seule étape de C qui touche aux constantes. Les 18 valeurs qui ne changent pas y sont remplacées sans divergence. |
+| casts, étape C1 | 37 | C1 | `compte etape C1` : (b) 36, et (a) à signe prouvé 1 (`pico8_gn_next`) |
+| casts, étape D1 | 22 | D1 | `compte etape D1` : (c) 21, et (a) à signe non prouvé 1 (`pico8_mz_kj`, `pico8_fixed_flr(ratio)`) |
+| casts « à auditer » | 17 | aucune — **bloqués** | `compte etape a auditer` ; voir « Casts bloqués » ci-dessous |
+| `%.4f`, et `double` + `pico8_fixed_to_double` de `pico8_value_tostr` | 3 | D2 | Phase D, `tostr` |
+| `pow`, `pico8_fixed_from_double(ec_d)`, et `double` + 2 `pico8_fixed_to_double` de `pico8_dj` | 5 | D3 | Phase D, `^0.75` |
+| revue des clés de table | 0 | D4 | *Déduction* (PRD de C0) : la conversion du jeton d'un cast-clé suit sa population, et le plan route (b) vers C1 sans exception ; D4 ne retire aucun jeton. D4 hérite de la liste des 28 casts dont la justification porte « cle de table » dans `tools/float_annotation.txt` (16 en C1, 1 en D1, 11 à auditer). |
+| mots de commentaire : `float` (`pico8_fixed.c`), `double-free` (`pico8_bw`), `pico8_fixed_from_double` (`pico8_ob.c`, hors fonction), `double comma` (`pico8_ob_step`) | 4 | E | *Déduction* : le grep du §6.1, sortie de E, les voit. |
+| `sin`/`cos` libc (2 réécrits), et `double` ×2, `pico8_fixed_to_double`, `pico8_fixed_from_double(…)` de chacune de `pico8_fixed_cos`/`_sin` (8 autres) | 10 | **sans propriétaire — décision ouverte** | §4/§5 contre §6/E ; [TROU-1](trous-de-portage.md) |
+| définitions de `pico8_fixed_from_double`/`_to_double` (3 + 3 autres) | 6 | **sans propriétaire — décision ouverte** | idem |
+
+Somme : 61 + 37 + 22 + 17 + 3 + 5 + 0 + 4 + 10 + 6 = **165**, le `compte total` de l'inventaire (61 constantes, 76 casts, 5 réécrits, 23 autres).
+
+- **Ligne « décision ouverte »** — 16 jetons. Les deux options du plan (note de la Phase E) : ajuster le §6/E, ou lever la clôture du §5 pour ces sites. C0 la compte et ne la tranche pas ; elle reste à l'humain.
+- **Titre de la Phase D.** Il annonce « les 5 sites flottants », c'est-à-dire les 5 réécrits de l'inventaire. D2 et D3 n'en possèdent que 3 (`%.4f`, `pow`, `from_double(ec_d)`) ; les 2 autres sont le `sin`/`cos` de la décision ouverte. Constat seulement : le titre n'est pas corrigé.
+- **Casts bloqués** — les 17 « à auditer » n'appartiennent à aucune étape tant qu'ils ne sont pas classés, et C1 ne peut pas les prendre. Celle qui en convertira un — C1 s'il est reclassé (b) ou (a) à signe prouvé, D1 s'il est reclassé (c) ou (a) à signe non prouvé — doit d'abord l'atteindre, par la règle de B2 : un test unitaire au niveau valeur, une fixture scriptée qui l'atteint, ou une entrée explicite « non protégé par le filet » dans ce plan ; son annotation change dans le même commit. *Déduction* : D1 étant la dernière étape qui convertit des casts, c'est au plus tard à la sortie de D1 que les 17 doivent avoir été atteints et classés, faute de quoi E ne ferme pas. C0 ne fixe pas lequel des deux les prend.
+
+**État de C0** (mesuré avec `cc` GCC 13.3, x86_64).
+
+- **Fichiers.** `tools/float_annotation.txt` : une ligne par cast, clé (fichier, fonction, extrait, occurrence), population, étape, justification ; le seul des rapports flottants édité à la main. `tools/float_inventory.txt` le lit (`make float-inventory`). `tools/float_observe.txt` : `make float-observe`, build `-DPICO8_FLOAT_OBSERVE`, hors suite. `make test` lance `float-inventory-check`, qui régénère l'inventaire dans `tmp/` et échoue s'il diffère de la copie versionnée. Couverture et garde restent hors suite.
+- **Populations** des 76 casts : (a) 2, (b) 36, (c) 21, à auditer 17. **Étapes** : C1 37, D1 22, à auditer 17.
+- **Les 17 « à auditer »** : les 16 casts NON COUVERT de `tools/float_coverage.txt` (`pico8_ho_apply`, `pico8_hy_kt`, `set_by_value` de `economy_tiers`, `pico8_cr` ×2, `pico8_ha2_my_dispatch`, `pico8_jo_hu`, `pico8_ga_kj` ×5, `pico8_research_lookup`, `pico8_pj_ph_map` ×2, `pico8_jc_display_get_by_value`), plus `pico8_pj_hk` `yr`, couvert (8 passages) mais dont la preuve de signe est tombée. Plusieurs portent un candidat dans leur justification ; aucun candidat ne classe.
+- **Débordement de `qc.t`.** `qc.t` croît de 1 par frame sans borne (`lua.lua:179`) et repasse à -32768 après 32768 frames (~9 min) ; l'état de placement `kz` n'a pas de délai. À t = -1, `oi` ≈ -1.48 (troncature -1, `flr` -2). Ce constat a réfuté deux preuves (b) de `pico8_mz_kj` (`oi`, `sr`), passées en (c)/D1, et retiré la même prémisse de `pico8_pj_hk` `yr` (à auditer : `yr` part de 3401, +1 par année, sans borne établie).
+- **Observation** sur le filet (`FRAMES_EVENTS`), un indice, pas une preuve : 4 vus négatifs (`pico8_rn`, `pico8_bg_to_int`, `pico8_hud_to_int`, `pico8_bl`, tous (c)), 56 jamais négatifs, 16 NON COUVERT, 6 sur une ligne partagée, **0 contradiction** ((b) vu négatif). Total 76.
+
 **Attention, la Phase C n'est plus intégralement préservatrice :** 16 des 34 constantes changent de valeur (§3.1), donc `frames.hash` **peut légitimement diverger** de la Phase B. La découpe est donc :
 
 - **C1 — strictement préservatrice** : les sites (a) et (b) **dont le signe est prouvé ≥ 0**, constantes inchangées. Un site (a) pouvant recevoir un négatif change de comportement en passant de la troncature à `flr` — c'est une correction, pas une transformation neutre : il part en **D1** avec la population (c). `frames.hash` doit être **identique**. Toute divergence est un bug introduit. Un site atteint mais sans effet sur un pixel échappe au hash : C1 a donc une seconde porte, un **build d'audit** (sur le modèle de `-DPICO8_REF_AUDIT` / `make ref-audit`) qui asserte à chaque site (a)/(b) l'égalité de l'ancienne et de la nouvelle expression — pour (b), `x >= 0` — rejoué sur tout le filet. La preuve du signe devient une vérification exécutée, pas seulement consignée.
@@ -277,6 +306,8 @@ Les 76 casts à signe potentiellement négatif passent en **`flr`** (bloc B — 
 `-lm` retiré de la cible du cœur, garde `-mgeneral-regs-only` vide (§6.3), [TROU-1](trous-de-portage.md) refermé.
 
 > **Décision ouverte, relevée en fin de Phase B (à trancher en C0, par l'humain) :** les 2 sites `sin`/`cos` libc de `pico8_fixed_cos`/`_sin` n'appartiennent à aucune étape — le §4 et le §5 interdisent de réécrire ces fonctions, tandis que le §6.1-6.3 et la Phase E exigent zéro flottant et le retrait de `-lm`, et TROU-1 porte précisément sur eux. Tels quels, les deux ne peuvent être satisfaits ensemble. Idem pour les définitions `pico8_fixed_from_double`/`to_double` elles-mêmes (catégorie « autre »). Ce plan ne choisit pas : ajuster le §6/E, ou lever la clôture du §5 pour ces sites.
+> C0 l'a comptée sans la trancher : 16 jetons (10 pour `pico8_fixed_cos`/`_sin`, 6 pour les définitions), sur la ligne « sans propriétaire — décision ouverte » de la table de propriété (Phase C, C0).
+
 **Sortie de phase :** les quatre points du §6 passent.
 
 ---
