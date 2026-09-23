@@ -175,6 +175,16 @@ void pico8_bd(void) {
     for_each_cg("jo", bd_route_visit, NULL);
 }
 
+/* Lua's `#t`: `count` would also tally named keys, and hc["-"] carries mc. */
+static int ob_sequence_length(const pico8_ob_table_t *t) {
+    pico8_value_t v;
+    int n = 0;
+    while (pico8_ob_table_get_index(t, n + 1, &v)) {
+        n++;
+    }
+    return n;
+}
+
 static void bb_visit(pico8_instance_t *pt, void *ctx) {
     int *jg = (int *)ctx;
     pico8_fixed_t jw;
@@ -216,7 +226,8 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
             const pico8_ob_table_t *po = pico8_hp_po(hn);
             if (po != NULL) {
                 int idx = pico8_fixed_flr_int(mi);
-                int clamped_idx = (idx < po->count) ? idx : po->count;
+                int po_len = ob_sequence_length(po);
+                int clamped_idx = (idx < po_len) ? idx : po_len;
                 pico8_value_t po_val;
                 pico8_fixed_t base = pico8_fixed_from_int(0);
                 pico8_fixed_t jh = pico8_fixed_from_int(0);
