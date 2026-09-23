@@ -8,27 +8,8 @@
 # (pico8_fixed_from_double(<litteral>)) compile sans erreur. Cette liste n'est
 # pas l'inventaire ; tools/float_inventory.txt l'est.
 #
-echec src/pico8_audio.c
-echec src/pico8_bg.c
-echec src/pico8_collect.c
 echec src/pico8_economy_formulas.c
-echec src/pico8_economy_tiers.c
 echec src/pico8_fixed.c
-echec src/pico8_hud.c
-echec src/pico8_layout.c
-echec src/pico8_menu.c
-echec src/pico8_particle.c
-echec src/pico8_pi.c
-echec src/pico8_planet.c
-echec src/pico8_planet_display.c
-echec src/pico8_probe.c
-echec src/pico8_research.c
-echec src/pico8_score_panel_display.c
-echec src/pico8_scroll.c
-echec src/pico8_slipway_display.c
-echec src/pico8_ui.c
-echec src/pico8_ui_button.c
 echec src/pico8_value.c
-echec src/pico8_wormhole_display.c
 #
-garde fichiers 58 en-echec 22
+garde fichiers 58 en-echec 3
