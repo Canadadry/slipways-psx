@@ -1,0 +1,1 @@
+ke abstraite, jamais instanciée directement

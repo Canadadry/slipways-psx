@@ -89,4 +89,11 @@ void pico8_instance_free(pico8_instance_t *inst);
  * everywhere -- pico8_ob_table_get_name's own "absent" convention. */
 int pico8_instance_get_field(const pico8_instance_t *inst, const char *name, pico8_value_t *out_value);
 
+#ifdef PICO8_CLASS_COVERAGE
+/* Counted by class pointer, not by name: a class freed then redeclared at
+ * the same address would merge with its predecessor. */
+long pico8_class_coverage_count(const pico8_class_t *cls);
+long pico8_class_coverage_total(void);
+#endif
+
 #endif
