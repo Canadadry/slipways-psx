@@ -211,7 +211,8 @@ Aucun de ces points ne demande de jugement ni de relecture :
 
 1. `grep -rnE '\b(double|float)\b' src/` → vide, hors les helpers de test explicitement isolés et nommés comme tels.
 2. La cible de lien du cœur perd `-lm`, et le build passe.
-3. `nm` sur le binaire → **aucun symbole soft-float de `libgcc`** (`__floatsidf`, `__muldf3`, `__adddf3`, `__fixdfsi`, `__divdf3`…). **C'est le seul critère qui prouve réellement l'objectif PSX** : les points 1 et 2 peuvent passer alors qu'un flottant subsiste dans une constante non repliée par le compilateur.
+3. Les objets du cœur **compilent avec `-mgeneral-regs-only`** (erreur du compilateur sur tout flottant à l'exécution, constantes repliées tolérées). **C'est le seul critère qui prouve réellement l'objectif PSX** : les points 1 et 2 peuvent passer alors qu'un flottant subsiste dans une constante non repliée par le compilateur.
+   *Pourquoi pas `nm` :* sur l'hôte x86_64 le FPU est matériel, donc aucun symbole soft-float de `libgcc` (`__muldf3`, `__adddf3`…) n'est jamais émis — `nm` était **déjà vide avant tout changement** (mesuré : 0 symbole, alors que `pow`/`sin`/`cos` sont importés de la glibc). Un critère qui passe sur le code de départ ne prouve rien. Alternative équivalente : `nm` sur les `.o` du cœur compilés par le `mipsel` PSn00bSDK en soft-float.
 4. `frames.hash` **identique** avant/après pour les populations (a) et (b). Les seules divergences autorisées relèvent de la population (c) et des 5 sites réécrits, **chacune justifiée par une ligne du relevé de sonde**.
 
 Le point 4 est ce qui empêche ce chantier de devenir une réécriture à l'aveugle : il sépare mécaniquement « j'ai transformé » de « j'ai changé ».
@@ -226,21 +227,31 @@ Le point 4 est ce qui empêche ce chantier de devenir une réécriture à l'aveu
 
 ### Phase B — Capture du filet
 Enregistrer la session via le mode enregistrement raylib, produire `frames.hash` de référence **sur le code actuel, avant toute modification**.
-**Sortie de phase :** `frames.hash` versionné, et rejouer deux fois le même `events.json` produit le même fichier (détermination vérifiée, pas supposée).
+
+Méthode, en deux étapes :
+
+- **B1 — Empreintes.** Le filet n'est pas une seule session : la session humaine (`events.json` racine) n'atteint ni wormhole, ni slipway, ni commerce — donc pas le `^0.75`. Une empreinte par frame est prise **pour chaque fichier d'événements de jeu existant** (l'`events.json` racine et les fixtures de jeu non malformées de `tests/fixtures/`), un fichier d'empreintes par fichier d'événements.
+- **B2 — Inventaire, couverture, garde.** (i) Un script versionné produit l'inventaire des sites flottants du cœur par catégorie — (a), (b), (c), constantes, les 5 sites réécrits — au lieu de numéros de ligne cités, qui dérivent. (ii) Un build de couverture (`--coverage`/`gcov`) reproductible liste chaque site avec son nombre de passages sous le filet. (iii) La garde `-mgeneral-regs-only` du §6.3 est posée sur les objets du cœur, et on consigne qu'elle **échoue** sur le code actuel, avec la liste des fichiers en échec.
+
+**Sortie de phase :** fichiers d'empreintes versionnés, et rejouer deux fois le même fichier d'événements produit le même fichier d'empreintes (détermination vérifiée, pas supposée) ; inventaire et rapport de couverture reproductibles ; garde `-mgeneral-regs-only` en place et en échec constaté.
+
+**Règle pour C et D, issue de B2 :** chaque étape liste les sites qu'elle touche avec leur statut de couverture. Un site non atteint par le filet reçoit soit un test unitaire au niveau valeur, soit une fixture scriptée qui l'atteint, soit une entrée explicite « non protégé par le filet » dans ce plan — jamais un passage silencieux. La couverture et la liste des fichiers encore en échec sous la garde sont relancées en début de chaque phase ; la sortie de chaque phase s'énonce aussi en « compte de la catégorie X = 0 » d'après l'inventaire.
 
 ### Phase C — Populations (a) et (b), et les constantes
 Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe** consignée par site. Les 34 constantes remplacées par les entiers de `tools/probe_out.txt`.
 
 **Attention, la Phase C n'est plus intégralement préservatrice :** 16 des 34 constantes changent de valeur (§3.1), donc `frames.hash` **peut légitimement diverger** de la Phase B. La découpe est donc :
 
-- **C1 — strictement préservatrice** : les sites (a) et (b) seuls, constantes inchangées. `frames.hash` doit être **identique**. Toute divergence est un bug introduit.
-- **C2 — correction des 16 constantes**, en un commit séparé. Divergences attendues, à revoir frame par frame.
+- **C1 — strictement préservatrice** : les sites (a) et (b) seuls, constantes inchangées. `frames.hash` doit être **identique**. Toute divergence est un bug introduit. Un site atteint mais sans effet sur un pixel échappe au hash : C1 a donc une seconde porte, un **build d'audit** (sur le modèle de `-DPICO8_REF_AUDIT` / `make ref-audit`) qui asserte à chaque site (a)/(b) l'égalité de l'ancienne et de la nouvelle expression — pour (b), `x >= 0` — rejoué sur tout le filet. La preuve du signe devient une vérification exécutée, pas seulement consignée.
+- **C2 — correction des 16 constantes**, en un commit séparé. Divergences attendues, à revoir frame par frame. Pour rattacher chaque frame divergente à **une** constante, chaque constante est d'abord appliquée **seule** (boucle scriptée de rejeux), et l'ensemble des frames divergentes est consigné par constante avant le commit.
 
 Séparer C1 de C2 est ce qui garde le critère §6.4 falsifiable : mélangées, une régression de C1 se cacherait derrière une divergence légitime de C2.
 
 **Sortie de phase :** `frames.hash` identique après C1 ; après C2, chaque frame divergente est rattachée à une constante précise du relevé.
 
 ### Phase D — Population (c) et les 5 sites flottants
+Quatre changements divergents indépendants, donc quatre étapes, chacune avec son re-baseline et son rapport de divergences — sans quoi la même confusion que C1/C2 se reproduirait : **D1** population (c), **D2** `tostr`, **D3** `^0.75`, **D4** clés de table.
+
 Les 76 casts à signe potentiellement négatif passent en **`flr`** (bloc B — plus une question ouverte, une correction de bug sourcée). `pico8_value_tostr` réécrit en entier d'après le bloc C, en laissant le cas `< 0.0001` sur le comportement actuel **et documenté comme non sourcé**. `pico8_dj`'s `^0.75` réécrit en `sqrt(x) · sqrt(sqrt(x))`, validé contre les 16 vecteurs du bloc D. Les sites d'indexation de table revus contre la sémantique des clés fractionnaires (§3.2).
 **Sortie de phase :** chaque frame divergente est expliquée par une ligne du relevé ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression.
 
