@@ -231,7 +231,7 @@ static void pico8_jo_pq(pico8_instance_t *self) {
 
         if (gb != NULL) {
             if (hp_val.kind == PICO8_VALUE_FIXED) {
-                found = pico8_ob_table_get_index(gb, (int)pico8_fixed_to_double(hp_val.as.fixed), &target);
+                found = pico8_ob_table_get_index(gb, pico8_fixed_flr_int(hp_val.as.fixed), &target);
             } else if (hp_val.kind == PICO8_VALUE_STRING) {
                 found = pico8_ob_table_get_name(gb, hp_val.as.string, &target);
             }

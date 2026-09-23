@@ -112,7 +112,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                            "mz's kk colour ramp must be a spec table");
                     if (pico8_ob_table_get_index((const pico8_ob_table_t *)kk_val.as.ref, idx, &entry) &&
                         entry.kind == PICO8_VALUE_FIXED) {
-                        color = (int)pico8_fixed_to_double(entry.as.fixed);
+                        color = pico8_fixed_flr_int(entry.as.fixed);
                     }
                 }
 

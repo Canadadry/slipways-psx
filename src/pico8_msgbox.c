@@ -236,7 +236,7 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
         text = text_val.as.string;
     }
     if (pico8_ob_table_get_index(self->fields, 2, &color_val) && color_val.kind == PICO8_VALUE_FIXED) {
-        color = (int)pico8_fixed_to_double(color_val.as.fixed);
+        color = pico8_fixed_flr_int(color_val.as.fixed);
     }
 
     pico8_io(gfx, mem, text, p.x, p.y, color, &a_center);

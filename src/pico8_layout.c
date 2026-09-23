@@ -196,11 +196,11 @@ static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, cons
     case PICO8_LQ_ITEM_TEXT:
         pico8_io_default(gfx, mem, item->text, pico8_fixed_add(pos.x, pico8_fixed_from_int(2)),
                           pico8_fixed_add(pos.y, pico8_fixed_from_int(1)),
-                          (int)pico8_fixed_to_double(item->color));
+                          pico8_fixed_flr_int(item->color));
         break;
     case PICO8_LQ_ITEM_SPRITE:
         pico8_dv(mem, item->sprite_qw);
-        pico8_spr_default(gfx, mem, (int)pico8_fixed_to_double(item->sprite_id), (int)pico8_fixed_to_double(pos.x),
+        pico8_spr_default(gfx, mem, pico8_fixed_flr_int(item->sprite_id), (int)pico8_fixed_to_double(pos.x),
                            (int)pico8_fixed_to_double(pos.y));
         pico8_dv_default(mem);
         break;

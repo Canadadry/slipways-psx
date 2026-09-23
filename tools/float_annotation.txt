@@ -28,14 +28,11 @@ src/pico8_entity.c | pico8_dc | fa_val.as.fixed | 1 | (b) | C1 | cle de table fl
 src/pico8_gen.c | pico8_gn | count_fixed | 1 | (b) | C1 | borne de boucle for n=1,e.r*og (lua.lua:734) : og = 2 (unique appel lua.lua:751), e.r = poids de df, litteraux 0..4.5 (lua.lua:1377-1388)
 src/pico8_gen.c | pico8_gn_next | idx_fixed | 1 | (a) | C1 | oc[flr(r()*#oc+1)] lua.lua:739 ; r = jf(0.5,dk.en) (l.751) rend v dans [0,1) tant que abs(b) < 1, invariant garde par b+=(0.5-v)*0.5 depuis dk.en dans [-0.99,-0.2] (l.333-337, l.1190-1197) : argument >= 1
 src/pico8_hud.c | pico8_hud_to_int | x | 1 | (c) | D1 | aide, pire appelant : coordonnees ecran de rk/eq/io (lua.lua:24-30), Lua muet, vu negatif ; seul dv (lua.lua:142) passe par flr
-src/pico8_layout.c | pico8_lq_ol_item_draw | item->color | 1 | (b) | C1 | couleur self.c or 6 (lua.lua:306) ; c ne recoit que des litteraux 3..13 (lua.lua:281,419,530,957,961,1002-1097, dz lua.lua:393-396, dr unstash 9807 c=9)
-src/pico8_layout.c | pico8_lq_ol_item_draw | item->sprite_id | 1 | (b) | C1 | sprite f de lq:mn (lua.lua:309) : premier element d une entree lq, litteral du cart (menus, dr, nb, bz 56/57, 24/37, 32/35) ou identifiant de ressource qe/nk/ml, valeurs de r 12..54 (annexe A de slipways-mechanics.md) ; aucune source calculee
 src/pico8_layout.c | pico8_lq_ol_item_draw | pos.x | 1 | (c) | D1 | coordonnee ecran spr(f,p.x,p.y) (lua.lua:309), Lua muet ; negative des qu un objet sort par la gauche (plan-2 §3.2)
 src/pico8_layout.c | pico8_lq_ol_item_draw | pos.y | 1 | (c) | D1 | coordonnee ecran spr(f,p.x,p.y) (lua.lua:309), Lua muet ; negative des qu un objet sort par le haut (plan-2 §3.2)
 src/pico8_menu.c | pico8_cr | tl | 1 | a auditer | - | NON COUVERT par le filet ; cle de table ek[...]
 src/pico8_menu.c | pico8_cr | tl | 2 | a auditer | - | NON COUVERT par le filet ; cle de table ek[...]
 src/pico8_menu.c | pico8_ha2_my_dispatch | s | 1 | a auditer | - | NON COUVERT par le filet ; music(-sgn(stat(20))) (lua.lua:993), valeur -1, 0 ou 1 : candidat (c)
-src/pico8_msgbox.c | pico8_iv_kj | color_val.as.fixed | 1 | (b) | C1 | couleur self[2] (lua.lua:951) ; seuls iv( : lua.lua:516,1218,1223, qui passent 8 ou la couleur de ne(...,10), 10 ou 8 (lua.lua:339-344)
 src/pico8_particle.c | pico8_particle_to_int | x | 1 | (c) | D1 | aide, pire appelant : coordonnees pset(cx+p.p.x,cy+p.p.y) (lua.lua:705), Lua muet, positions pouvant etre negatives ; seul l index cs[flr(p.l)] passe par flr
 src/pico8_pi.c | pico8_pi_rk_constructor | a3.as.fixed | 1 | (b) | C1 | couleur des entrees fn="br" dispatchees par bl (lua.lua:597-601) : litteraux 0 ou 1 (lua.lua:798-802,818,831-832)
 src/pico8_pi.c | pico8_pi_io_constructor | a4.as.fixed | 1 | (b) | C1 | couleur des entrees fn="qr" : litteraux 2..13 (lua.lua:819-825,838-844,1162-1163), jamais reecrits (seul [1] l est, lua.lua:850,860)
@@ -45,17 +42,9 @@ src/pico8_pi.c | pico8_pi_spr_constructor | a3.as.fixed | 1 | (b) | C1 | y des s
 src/pico8_pi.c | pico8_pi_spr_constructor | a4.as.fixed | 1 | (b) | C1 | largeur des seules entrees fn="s" : litteraux 16 et 2 (lua.lua:1160-1161)
 src/pico8_pi.c | pico8_pi_spr_constructor | a5.as.fixed | 1 | (b) | C1 | hauteur des seules entrees fn="s" : litteraux 4 et 2 (lua.lua:1160-1161)
 src/pico8_pi.c | pico8_bl | nc | 1 | (c) | D1 | decalage camera(nc,0) (lua.lua:599), nc = -t^3/9 (lua.lua:592) puis -nc a chaque entree : Lua muet, vu negatif
-src/pico8_planet.c | pico8_jo_pq | hp_val.as.fixed | 1 | (b) | C1 | cle de table gb[self.hp] (lua.lua:405) ; hp ne recoit que les defauts de classe 1..6 (lua.lua:907,1001,1020,1039,1060,1097)
 src/pico8_planet.c | pico8_jo_hu | go_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table df[hp.go] (lua.lua:456)
-src/pico8_planet_display.c | pico8_jo_gh_jp_step | gc | 1 | (b) | C1 | borne de boucle for j=1,i.gc (lua.lua:431) ; gc ne recoit que #jp(...) (lua.lua:1295-1297), un compteur ; absent = 0
-src/pico8_planet_display.c | pico8_jo_gh | mi_val.as.fixed | 1 | (b) | C1 | cle de table jo.dz[self.mi] (lua.lua:426) ; mi ne recoit que 1 (lua.lua:912) ou dh(pt), qui rend 0, 1, 2 ou un min/mid de compteurs # >= 0 (lua.lua:1291-1310)
 src/pico8_planet_display.c | pico8_jo_kj | adjusted.x | 1 | (c) | D1 | coordonnee ecran p=ma(p,self) de circfill/spr (lua.lua:543-546), Lua muet ; gd admet une planete jusqu a 12 px hors ecran (lua.lua:347)
 src/pico8_planet_display.c | pico8_jo_kj | adjusted.y | 1 | (c) | D1 | coordonnee ecran p=ma(p,self) de circfill/spr (lua.lua:543-546), Lua muet ; gd admet une planete jusqu a 12 px hors ecran (lua.lua:347)
-src/pico8_planet_display.c | pico8_jo_kj | s_val.as.fixed | 1 | (b) | C1 | sprite self.nk.s (lua.lua:546) ; nk est une entree de df (lua.lua:407-409, 456), dont s est un litteral 45..162 (lua.lua:1377-1388)
-src/pico8_planet_display.c | pico8_jo_kj | s_val.as.fixed | 2 | (b) | C1 | sprite self.s (lua.lua:546) ; s ne recoit que des litteraux de classe 66..174 (lua.lua:913,1004,1021,1039,1060,1098,1105,1127) ou hz[#oe+1], litteraux 76/78 (lua.lua:1114,1127)
-src/pico8_planet_display.c | pico8_jo_kj | field_fixed(self, "mi") | 1 | (b) | C1 | cle de table jo.ka[self.mi] et sprite mi+1 (lua.lua:547) ; mi ne recoit que 1 (lua.lua:912) ou dh(pt), 0, 1, 2 ou un min/mid de compteurs # >= 0 (lua.lua:1291-1310)
-src/pico8_planet_display.c | pico8_jo_kj | ka_entry.as.fixed | 1 | (b) | C1 | couleur jo.ka[...] (lua.lua:547), table litterale 2,3,9,12 (lua.lua:391)
-src/pico8_planet_display.c | pico8_jo_kj | radius_f | 1 | (b) | C1 | rayon sqrt(self.fo.dw)*128 (lua.lua:549) : sqrt >= 0 (pico8_fixed_sqrt rend 0 sous 0), dw litteraux 0..0.025 (lua.lua:617,714,754,911,1107)
 src/pico8_planet_family.c | pico8_ga_kj | p.x | 1 | a auditer | - | NON COUVERT par le filet ; coordonnee ecran circ(p.x,...) (lua.lua:1091) : candidat (c)
 src/pico8_planet_family.c | pico8_ga_kj | p.y | 1 | a auditer | - | NON COUVERT par le filet ; coordonnee ecran circ(...,p.y,...) (lua.lua:1091) : candidat (c)
 src/pico8_planet_family.c | pico8_ga_kj | pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))) | 1 | a auditer | - | NON COUVERT par le filet ; cle de table k_[flr(pt.l/2)] (lua.lua:1091) : candidat (a)
@@ -63,8 +52,6 @@ src/pico8_planet_family.c | pico8_ga_kj | k_entry.as.fixed | 1 | a auditer | - |
 src/pico8_planet_family.c | pico8_ga_kj | pico8_vec_qx(pt_p) | 1 | a auditer | - | NON COUVERT par le filet ; rayon pt.p:qx() (lua.lua:1091)
 src/pico8_probe.c | pico8_probe_to_int | x | 1 | (c) | D1 | aide, seuls appelants spr(31,mp.x-3,mp.y-8) (lua.lua:564) : coordonnee du curseur moins 3 ou 8, Lua muet, negative pres du bord
 src/pico8_research.c | pico8_research_lookup | key.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table
-src/pico8_research_display.c | pico8_jo_ex | loop_bound | 1 | (b) | C1 | borne de boucle for i=1,max(jq,1) (lua.lua:534) : >= 1
-src/pico8_research_icon.c | ie_to_int | x | 1 | (b) | C1 | aide, spr(self.ke.s,p.x,p.y) (lua.lua:937) : s litteral de classe, p = ra = ie.gy, v(118,120) moins v(10,0) par icone revelee (lua.lua:924-929), 7 icones au plus (gx lua.lua:1182-1183), remis a eh par _init (lua.lua:1178-1179) : x >= 58, y = 120
 src/pico8_score_panel_display.c | pico8_pj_hk | yr | 1 | a auditer | - | cle de table gs[3426-yr] (lua.lua:859) ; preuve tombee : yr vaut 3401 (lua.lua:1202) puis += 1 par annee (lua.lua:1213) sans borne etablie, hl pose a 3426 (lua.lua:1235-1236) n arrete pas nx ; debordement a 32767.99 non exclu ; candidat (b) si la fin de partie borne yr
 src/pico8_score_panel_display.c | pico8_pj_ph_map | score_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table s[st.score] (lua.lua:884), score litteral 0..6 : candidat (b)
 src/pico8_score_panel_display.c | pico8_pj_ph_map | s6_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; comparaison i<=s[6] (lua.lua:888)
@@ -80,5 +67,4 @@ src/pico8_wormhole_display.c | pico8_mz_kj | oi | 1 | (c) | D1 | rayon self.oi (
 src/pico8_wormhole_display.c | pico8_mz_kj | cp.x | 1 | (c) | D1 | line(cp.x,cp.y,...) (lua.lua:786), cp = ij.ra, position monde d une entite fx (planete ou g_ pose au curseur), Lua muet, aucune borne >= 0 etablie
 src/pico8_wormhole_display.c | pico8_mz_kj | cp.y | 1 | (c) | D1 | line(cp.x,cp.y,...) (lua.lua:786), cp = ij.ra, position monde d une entite fx (planete ou g_ pose au curseur), Lua muet, aucune borne >= 0 etablie
 src/pico8_wormhole_display.c | pico8_mz_kj | pico8_fixed_flr(ratio) | 1 | (a) | D1 | cle de table kk[flr(sr/self.oi*8)] lua.lua:790 ; signe non prouve : oi = 0 donnerait 0/0 = 0x7fff.ffff, que *8 fait deborder ; deja entier par pico8_fixed_flr ; oi negatif possible apres debordement de qc.t
-src/pico8_wormhole_display.c | pico8_mz_kj | entry.as.fixed | 1 | (b) | C1 | couleur kk[...] (lua.lua:790), table litterale 7,7,6,13,5,1,1,1,0 (lua.lua:760)
 src/pico8_wormhole_display.c | pico8_mz_kj | sr | 1 | (c) | D1 | rayon sr = min(sqrt((t-dt)/15),1)*self.oi (lua.lua:790,795), Lua muet ; oi peut etre negatif apres debordement de qc.t (lua.lua:179, voir le cast oi), sr ~ -0.38 alors
