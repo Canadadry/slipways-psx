@@ -49,5 +49,7 @@ src/pico8_research_icon.c | ie_to_int | x | 1
 src/pico8_score_panel.c | get_by_value | key.as.fixed | 1
 src/pico8_score_panel.c | pico8_eg | ny_val.as.fixed | 1
 src/pico8_score_panel.c | pico8_pj_hb | fm_lo | 1
+src/pico8_score_panel_display.c | pico8_pj_hk | yr | 1
+src/pico8_score_panel_display.c | pico8_pj_ph_map | score_val.as.fixed | 1
 src/pico8_tech_gate.c | pico8_gi | nk_val.as.fixed | 1
 src/pico8_wormhole_display.c | pico8_mz_kj | entry.as.fixed | 1

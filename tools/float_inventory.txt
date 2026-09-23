@@ -63,9 +63,7 @@ src/pico8_planet_family.c | pico8_ga_kj | cast | 4 | ligne 275 | a auditer | - |
 src/pico8_planet_family.c | pico8_ga_kj | cast | 5 | ligne 277 | a auditer | - | pico8_vec_qx(pt_p)
 src/pico8_probe.c | pico8_probe_to_int | cast | 1 | ligne 26 | (c) | D1 | x
 src/pico8_research.c | pico8_research_lookup | cast | 1 | ligne 229 | a auditer | - | key.as.fixed
-src/pico8_score_panel_display.c | pico8_pj_hk | cast | 1 | ligne 92 | a auditer | - | yr
-src/pico8_score_panel_display.c | pico8_pj_ph_map | cast | 1 | ligne 214 | a auditer | - | score_val.as.fixed
-src/pico8_score_panel_display.c | pico8_pj_ph_map | cast | 2 | ligne 257 | a auditer | - | s6_val.as.fixed
+src/pico8_score_panel_display.c | pico8_pj_ph_map | cast | 1 | ligne 257 | (a) | D1 | s6_val.as.fixed
 src/pico8_scroll.c | pico8_qb_md | cast | 1 | ligne 139 | (c) | D1 | cp.x
 src/pico8_scroll.c | pico8_qb_md | cast | 2 | ligne 139 | (c) | D1 | cp.y
 src/pico8_slipway_display.c | pico8_jc_display_get_by_value | cast | 1 | ligne 82 | a auditer | - | key.as.fixed
@@ -85,14 +83,14 @@ src/pico8_wormhole_display.c | pico8_mz_kj | cast | 7 | ligne 120 | (c) | D1 | s
 #
 # Comptes
 compte constante 0
-compte cast 36
+compte cast 34
 compte reecrit 5
 compte autre 23
-compte total 64
-compte population (a) 1
+compte total 62
+compte population (a) 2
 compte population (b) 0
 compte population (c) 21
-compte population a auditer 14
+compte population a auditer 11
 compte etape C1 0
-compte etape D1 22
-compte etape a auditer 14
+compte etape D1 23
+compte etape a auditer 11

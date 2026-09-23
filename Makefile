@@ -387,6 +387,9 @@ $(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c 
 $(TMP_DIR)/test_pico8_tech_screen: $(call objs,tests/test_pico8_tech_screen.c $(ENGINE_SRCS)) tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_game_end: $(call objs,tests/test_pico8_game_end.c $(ENGINE_SRCS)) tests/fixtures/game_end_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -408,7 +411,7 @@ $(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_b
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_tech_screen $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_frames_report $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_constant_variants $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_tech_screen $(TMP_DIR)/test_pico8_game_end $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_frames_report $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_constant_variants $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -430,6 +433,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_playability
 	./$(TMP_DIR)/test_pico8_slipway_drag
 	./$(TMP_DIR)/test_pico8_tech_screen
+	./$(TMP_DIR)/test_pico8_game_end
 	./$(TMP_DIR)/test_pico8_raylib_backend_coords
 	./$(TMP_DIR)/test_pico8_replay_source
 	./$(TMP_DIR)/test_pico8_recording_continuity
@@ -536,7 +540,8 @@ FRAMES_EVENTS := \
     tests/fixtures/shop_button_hover_events.json \
     tests/fixtures/screencast_capture_events.json \
     tests/fixtures/top_menubar_events.json \
-    tests/fixtures/tech_screen_invent_events.json
+    tests/fixtures/tech_screen_invent_events.json \
+    tests/fixtures/game_end_events.json
 
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames

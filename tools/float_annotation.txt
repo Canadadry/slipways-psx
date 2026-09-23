@@ -39,9 +39,7 @@ src/pico8_planet_family.c | pico8_ga_kj | k_entry.as.fixed | 1 | a auditer | - |
 src/pico8_planet_family.c | pico8_ga_kj | pico8_vec_qx(pt_p) | 1 | a auditer | - | NON COUVERT par le filet ; rayon pt.p:qx() (lua.lua:1091)
 src/pico8_probe.c | pico8_probe_to_int | x | 1 | (c) | D1 | aide, seuls appelants spr(31,mp.x-3,mp.y-8) (lua.lua:564) : coordonnee du curseur moins 3 ou 8, Lua muet, negative pres du bord
 src/pico8_research.c | pico8_research_lookup | key.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table
-src/pico8_score_panel_display.c | pico8_pj_hk | yr | 1 | a auditer | - | cle de table gs[3426-yr] (lua.lua:859) ; preuve tombee : yr vaut 3401 (lua.lua:1202) puis += 1 par annee (lua.lua:1213) sans borne etablie, hl pose a 3426 (lua.lua:1235-1236) n arrete pas nx ; debordement a 32767.99 non exclu ; candidat (b) si la fin de partie borne yr
-src/pico8_score_panel_display.c | pico8_pj_ph_map | score_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table s[st.score] (lua.lua:884), score litteral 0..6 : candidat (b)
-src/pico8_score_panel_display.c | pico8_pj_ph_map | s6_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; comparaison i<=s[6] (lua.lua:888)
+src/pico8_score_panel_display.c | pico8_pj_ph_map | s6_val.as.fixed | 1 | (a) | D1 | s[6]=min(flr(total/2000),5) (lua.lua:1361) ; signe non prouve : total est flr((di+gl+el)*0.01*happiness) et happiness=bf() sans plancher (co[1]=-5 par planete mi=1), donc negatif possible ; comparaison i<=s[6], pas une cle
 src/pico8_scroll.c | pico8_qb_md | cp.x | 1 | (c) | D1 | camera(cp.x,cp.y) (lua.lua:1142), Lua muet ; self.p borne par mid(-64,320,...) (lua.lua:1140), donc negatif possible
 src/pico8_scroll.c | pico8_qb_md | cp.y | 1 | (c) | D1 | camera(cp.x,cp.y) (lua.lua:1142), Lua muet ; self.p borne par mid(-64,320,...) (lua.lua:1140), donc negatif possible
 src/pico8_slipway_display.c | pico8_jc_display_get_by_value | key.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table hg[t.id]

@@ -89,7 +89,7 @@ void pico8_pj_hk(pico8_fixed_t yr) {
         return;
     }
 
-    idx = 3426 - (int)pico8_fixed_to_double(yr);
+    idx = 3426 - pico8_fixed_flr_int(yr);
     if (gs != NULL) {
         pico8_ob_table_get_index(gs, idx, &pp);
     }
@@ -211,7 +211,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         return 1;
     }
 
-    score_i = (int)pico8_fixed_to_double(score_val.as.fixed);
+    score_i = pico8_fixed_flr_int(score_val.as.fixed);
 
     s_val = pico8_value_ref(NULL);
     if (ctx->s != NULL) {
