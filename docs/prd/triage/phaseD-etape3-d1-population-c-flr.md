@@ -1,6 +1,6 @@
 ---
 title: "Plan 2, Phase D1 : les 29 casts de population (c) passent à flr, avec attribution par l'audit et re-baseline revu"
-description: "Les 29 derniers casts (int)pico8_fixed_to_double(x) du cœur tronquent vers zéro alors que PICO-8 applique flr (bloc B du relevé) ; D1 les convertit en pico8_fixed_flr_int, attribue chaque première frame divergente à un site par l'audit avant/après, vérifie que cette correction d'affichage ne cascade pas dans l'état du jeu, liste les corrections que le filet ne voit pas, puis re-baseline volontairement."
+description: "Les 29 derniers casts (int)pico8_fixed_to_double(x) du cœur tronquent vers zéro alors que PICO-8 applique flr (bloc B du relevé) ; D1 les convertit en pico8_fixed_flr_int, attribue toutes les frames divergentes à pico8_bl par les contrôles complément neutre et variante suffisante, vérifie que cette correction d'affichage ne cascade pas dans l'état du jeu, liste les corrections que le filet ne voit pas, puis re-baseline volontairement."
 status: needs-triage
 ---
 
@@ -19,7 +19,7 @@ Tant qu'ils existent :
 
 1. **Le bug reste.** Dès qu'une coordonnée fractionnaire passe sous zéro, l'objet est dessiné un pixel trop à droite ou trop bas. `tools/float_observe.txt` montre que le filet le produit déjà : `pico8_bl` (`camera(nc,0)`, secousse de caméra) reçoit un négatif fractionnaire, avec un minimum de `0xFF7BAA4D`.
 2. **Le cœur garde 29 jetons flottants.** L'inventaire compte 29 casts, et plusieurs fichiers du cœur restent dans `tools/float_guard.txt` à cause d'eux seuls (`pico8_menu.c`, `pico8_score_panel_display.c`…).
-3. **La correction va faire diverger le filet.** La Phase D exige que la **première** frame divergente de chaque fichier d'événements soit attribuée à un site par la règle d'attribution. Il faut aussi établir que ce changement d'affichage **ne cascade pas** dans l'état du jeu, versionner le rapport de divergence avant le re-baseline, et revoir les frames concernées. On ne subit pas le re-baseline comme une régression.
+3. **La correction va faire diverger le filet.** La Phase D exige que **toutes** les frames divergentes de chaque fichier d'événements soient attribuées à l'ensemble S des sites qui changent de valeur, par la règle d'attribution (contrôles « complément neutre » et « variante suffisante »). Il faut aussi établir que ce changement d'affichage **ne cascade pas** dans l'état du jeu, versionner le rapport de divergence avant le re-baseline, et revoir les frames concernées. On ne subit pas le re-baseline comme une régression.
 4. **Beaucoup de corrections seront invisibles au filet.** Les 5 sites de G5 ne sont jamais atteints. `oi`, `sr` et `flr(ratio)` ne deviennent négatifs qu'après le repli de `qc.t` à 32 768 frames, alors que le plus long fichier du filet en fait 9 729. Les sites vus négatifs ne reçoivent peut-être que des entiers (`pico8_rn` −1, `pico8_bg_to_int` −12, `pico8_hud_to_int` −3), et sur un entier, troncature et `flr` coïncident. La règle « Corrections invisibles au filet » exige qu'on dise, pour chacun, ce qui le protège.
 
 ## Solution
@@ -33,9 +33,9 @@ Le travail se fait en trois commits :
    - conversion des 29 casts, suppression des 29 lignes d'annotation, inventaire régénéré ;
    - `make float-audit` : 0 échec, et on lit le premier ancien ≠ nouveau par fichier ;
    - `make frames-report ETAPE=D1` ;
-   - on applique la règle d'attribution à chaque fichier divergent ;
-   - on vérifie l'absence de cascade ;
-   - revue sans fenêtre de chaque frame F, avant et après ;
+   - on applique la règle d'attribution : A ≤ F sur chaque fichier divergent, puis les contrôles « complément neutre » et « variante suffisante » sur S = {`pico8_bl`} ;
+   - on vérifie l'absence de cascade sur l'état ;
+   - revue sans fenêtre de chaque frame F, avant et après, à titre de confirmation ;
    - `make frames-baseline ETAPE=D1`.
 
    Le commit porte `tools/frames_reports/D1.txt`, `tools/frames_reports/D1-attribution.txt` et les références réécrites.
@@ -43,8 +43,9 @@ Le travail se fait en trois commits :
 
 Si l'une des vérifications du commit 2 échoue, on n'applique **pas** de re-baseline. Les cas d'échec sont :
 
-- la règle d'attribution échoue pour un fichier ;
-- un fichier diverge sans qu'aucun site D1 ait d'écart ;
+- A > F pour un fichier, ou un fichier diverge sans qu'aucun site D1 ait d'écart (F sans A) ;
+- le complément neutre diverge de la référence d'avant D1 sur un fichier ;
+- la variante suffisante ne reproduit pas, sur un fichier, les empreintes de l'arbre D1 complet ;
 - un enregistrement C1 change entre avant et après, c'est-à-dire une cascade d'état ;
 - un « nouveau != flr ».
 
@@ -65,24 +66,25 @@ L'étape s'arrête. La conversion n'est pas commitée, et le constat est consign
 11. En tant qu'agent, je veux que `make float-audit` n'ait aucun échec après conversion (C1 inchangé, D sans `NOUVEAU != FLR`), pour que la porte de C1 et celle de D tiennent ensemble.
 12. En tant qu'agent, je veux lire dans l'audit, pour chaque fichier d'événements, la plus petite frame de premier ancien ≠ nouveau et les sites qui l'atteignent, pour disposer de l'entrée de la règle d'attribution sans outil nouveau.
 13. En tant qu'agent, je veux lancer `make frames-report ETAPE=D1` avant tout re-baseline, pour que le rapport de divergence complet soit versionné et relu avant décision.
-14. En tant qu'agent, je veux vérifier, pour chaque fichier divergent, que sa première frame divergente F égale la plus petite frame de premier ancien ≠ nouveau parmi les sites D1 de ce fichier, pour que F soit attribuée à un site nommé par la règle du plan.
-15. En tant qu'agent, je veux que, si plusieurs sites atteignent ensemble cette plus petite frame, tous soient nommés et que l'égalité soit consignée comme telle, pour qu'une attribution partagée soit un constat et non un choix arbitraire.
-16. En tant qu'agent, je veux qu'une ligne partagée entre deux sites D (`cp.x`/`cp.y` de `pico8_qb_md`, `cp.x`/`cp.y` de `pico8_mz_kj`) désigne la ligne, comme D0a l'avait annoncé, pour ne pas réécrire du code dans le seul but de départager deux arguments d'un même appel.
-17. En tant qu'agent, je veux qu'un fichier conforme au filet mais avec un écart à l'audit soit noté « correction sans effet sur l'empreinte », pour ne pas confondre « le filet ne l'a pas vue » avec « elle n'a pas eu lieu ».
-18. En tant qu'agent, je veux que tout fichier divergent sans écart D1, ou dont F diffère de la frame désignée par l'audit, arrête l'étape, pour que ce qui n'est pas attribué ne soit jamais re-baseliné.
-19. En tant qu'agent, je veux vérifier que D1 ne cascade pas : chaque ligne d'enregistrement d'audit de l'arbre d'avant (tous sites C1, par fichier d'événements) doit se retrouver à l'identique dans l'arbre d'après, pour qu'un changement d'état du jeu soit détecté au lieu d'être absorbé par le re-baseline.
-20. En tant qu'agent, je veux établir, par lecture, que chaque site D1 ne nourrit qu'une primitive d'affichage (`camera`, `spr`, `circ`, `line`, `pset`, `rect`/`rectfill`), un appel audio sans effet (`music`, `sfx`), un choix d'icône ou de couleur, ou une branche morte, pour que « D1 ne doit pas cascader » repose aussi sur le code et pas seulement sur un échantillon.
-21. En tant qu'agent, je veux que, si un site D1 nourrit l'état du jeu, l'étape s'arrête et le constat soit rapporté, pour que le plan, qui suppose un changement d'affichage seul, soit corrigé par une décision et pas par un re-baseline.
-22. En tant que relecteur, je veux une revue sans fenêtre de chaque frame F (dump avant, dump après, lignes, pixels et boîte de l'écart), pour que chaque re-baseline ait été regardé, comme en C2b.
-23. En tant que relecteur, je veux que la boîte de l'écart à F soit rapprochée de ce que dessine le site désigné (par exemple les entités décalées d'une colonne par la caméra de `pico8_bl`), pour que l'attribution soit confirmée par l'image et pas seulement par le compteur.
-24. En tant qu'agent, je veux `tools/frames_reports/D1-attribution.txt`, sur le modèle de `C2b-attribution.txt`, pour chaque fichier. Il donne F, le ou les sites désignés avec la ligne de l'audit, la revue, le nombre de frames divergentes après F et le résultat de la vérification d'absence de cascade, et ce fichier doit être versionné pour que l'attribution se vérifie après coup sans `tmp/`.
-25. En tant qu'agent, je veux `make frames-baseline ETAPE=D1` dans le commit de conversion, pour que `make test` soit vert à chaque commit et que `tools/frames_reports/D1.txt` soit versionné avec les références.
-26. En tant qu'agent, je veux lister tous les sites D1 à zéro ancien ≠ nouveau sur le filet, non atteints compris, sous « correction non vue par le filet », pour que la règle de la Phase D soit appliquée à partir de la sortie de l'audit et pas d'une prévision.
-27. En tant qu'agent, je veux que chaque correction non vue reçoive dans le plan une entrée explicite qui dit pourquoi le filet ne la voit pas (branche morte, repli de `qc.t`, argument déjà entier, jamais négatif fractionnaire) et ce qui la protège, pour que le critère de couverture de la Phase D soit tenu site par site.
-28. En tant qu'agent, je veux que ce qui protège la valeur de chaque expression convertie soit le test existant de `pico8_fixed_flr_int` contre le bloc B, cité par son nom, pour ne pas écrire 29 tests qui retesteraient la même fonction à travers des chemins d'appel.
-29. En tant qu'agent, je veux régénérer `tools/float_coverage.txt` et `tools/float_guard.txt` et lire leurs comptes, pour que l'« État de D1 » cite des chiffres mesurés.
-30. En tant qu'agent, je veux constater que `make float-observe` s'arrête sur « aucun cast » (code 2) une fois l'inventaire à zéro cast. Je le consigne, et je garde `tools/float_observe.txt` comme la photographie de D0b, pour ne pas changer un outil dont l'objet a disparu.
-31. En tant qu'agent, je veux un « État de D1 » dans `docs/plan-2.md`, pour que la phase D suivante reparte d'un état mesuré. Il contient :
+14. En tant qu'agent, je veux vérifier, pour chaque fichier divergent, que la plus petite frame de premier ancien ≠ nouveau A précède ou égale sa première frame divergente F, et consigner l'écart A→F, pour qu'aucun pixel n'ait bougé avant toute valeur auditée, tout en admettant un effet différé (la boîte de message déplacée hors écran par `pico8_bl`, visible plus tard).
+15. En tant qu'agent, je veux le contrôle « complément neutre » : l'arbre D1 dont seuls les sites de S sont ramenés à l'ancienne forme donne `frames-check` identique aux références d'avant D1 sur les 12 fichiers, pour prouver que les 28 autres conversions, corrections non vues comprises, ne changent aucun pixel, même par un glissement que l'audit ne voit pas.
+16. En tant qu'agent, je veux le contrôle « variante suffisante » : l'arbre d'avant D1 avec les seuls sites de S convertis donne des empreintes identiques à celles de l'arbre D1 complet sur les 12 fichiers et toutes les frames, pour prouver que S explique à lui seul toutes les frames divergentes, sans interaction.
+17. En tant qu'agent, je veux qu'une ligne partagée entre deux sites D (`cp.x`/`cp.y` de `pico8_qb_md`, `cp.x`/`cp.y` de `pico8_mz_kj`) désigne la ligne, comme D0a l'avait annoncé, pour ne pas réécrire du code dans le seul but de départager deux arguments d'un même appel.
+18. En tant qu'agent, je veux qu'un fichier conforme au filet mais avec un écart à l'audit soit noté « correction sans effet sur l'empreinte », pour ne pas confondre « le filet ne l'a pas vue » avec « elle n'a pas eu lieu ».
+19. En tant qu'agent, je veux que A > F, un fichier divergent sans écart D1, ou l'échec d'un des deux contrôles arrête l'étape, pour que ce qui n'est pas attribué ne soit jamais re-baseliné.
+20. En tant qu'agent, je veux vérifier que D1 ne cascade pas : chaque ligne d'enregistrement d'audit de l'arbre d'avant (tous sites C1, par fichier d'événements) doit se retrouver à l'identique dans l'arbre d'après, pour qu'un changement d'état du jeu soit détecté au lieu d'être absorbé par le re-baseline.
+21. En tant qu'agent, je veux établir, par lecture, que chaque site D1 ne nourrit qu'une primitive d'affichage (`camera`, `spr`, `circ`, `line`, `pset`, `rect`/`rectfill`), un appel audio sans effet (`music`, `sfx`), un choix d'icône ou de couleur, ou une branche morte, pour que « D1 ne doit pas cascader » repose aussi sur le code et pas seulement sur un échantillon.
+22. En tant qu'agent, je veux que, si un site D1 nourrit l'état du jeu, l'étape s'arrête et le constat soit rapporté, pour que le plan, qui suppose un changement d'affichage seul, soit corrigé par une décision et pas par un re-baseline.
+23. En tant que relecteur, je veux une revue sans fenêtre de chaque frame F (dump avant, dump après, lignes, pixels et boîte de l'écart), pour que chaque re-baseline ait été regardé, comme en C2b. C'est une confirmation, pas la porte : la porte est le couple de contrôles.
+24. En tant que relecteur, je veux que la boîte de l'écart à F soit rapprochée de ce que dessine `pico8_bl` (la boîte de message décalée d'une colonne par la caméra), pour que l'attribution soit confirmée par l'image et pas seulement par les contrôles.
+25. En tant qu'agent, je veux `tools/frames_reports/D1-attribution.txt`, versionné, pour que l'attribution se vérifie après coup sans `tmp/`. Il donne S, puis, par fichier, F, A, l'écart A→F (« effet différé de A à F »), le nombre de frames divergentes, le résultat du complément neutre et de la variante suffisante, la revue à F et le résultat de la vérification d'absence de cascade.
+26. En tant qu'agent, je veux `make frames-baseline ETAPE=D1` dans le commit de conversion, pour que `make test` soit vert à chaque commit et que `tools/frames_reports/D1.txt` soit versionné avec les références.
+27. En tant qu'agent, je veux lister tous les sites D1 à zéro ancien ≠ nouveau sur le filet, non atteints compris, sous « correction non vue par le filet », pour que la règle de la Phase D soit appliquée à partir de la sortie de l'audit et pas d'une prévision.
+28. En tant qu'agent, je veux que chaque correction non vue reçoive dans le plan une entrée explicite qui dit pourquoi le filet ne la voit pas (branche morte, repli de `qc.t`, argument déjà entier, jamais négatif fractionnaire) et ce qui la protège, pour que le critère de couverture de la Phase D soit tenu site par site.
+29. En tant qu'agent, je veux que ce qui protège la valeur de chaque expression convertie soit le test existant de `pico8_fixed_flr_int` contre le bloc B, cité par son nom, pour ne pas écrire 29 tests qui retesteraient la même fonction à travers des chemins d'appel.
+30. En tant qu'agent, je veux régénérer `tools/float_coverage.txt` et `tools/float_guard.txt` et lire leurs comptes, pour que l'« État de D1 » cite des chiffres mesurés.
+31. En tant qu'agent, je veux constater que `make float-observe` s'arrête sur « aucun cast » (code 2) une fois l'inventaire à zéro cast. Je le consigne, et je garde `tools/float_observe.txt` comme la photographie de D0b, pour ne pas changer un outil dont l'objet a disparu.
+32. En tant qu'agent, je veux un « État de D1 » dans `docs/plan-2.md`, pour que la phase D suivante reparte d'un état mesuré. Il contient :
     - la conversion ;
     - l'audit, avec les sites C1 et D, les passages, les négatifs et fractionnaires aux sites D, et le premier ancien ≠ nouveau par fichier ;
     - l'attribution ;
@@ -91,9 +93,9 @@ L'étape s'arrête. La conversion n'est pas commitée, et le constat est consign
     - les corrections non vues ;
     - l'inventaire, la couverture, la garde et l'observation ;
     - la durée de `make test`.
-32. En tant que mainteneur, je veux que la ligne D1 de la table de propriété soit marquée faite et dise que D1 a converti 29 casts (22 de C0 et 7 venus de D0b), pour que la table reste lisible sans être réécrite.
-33. En tant que mainteneur, je veux qu'aucun commentaire ne soit ajouté aux sites convertis, pour respecter la règle des quatre destinations de `CLAUDE.md`. Le récit va dans les messages de commit.
-34. En tant qu'agent sans yeux, je veux que toute vérification se fasse sans fenêtre, pour respecter `CLAUDE.md` : jamais de lancement de l'application raylib.
+33. En tant que mainteneur, je veux que la ligne D1 de la table de propriété soit marquée faite et dise que D1 a converti 29 casts (22 de C0 et 7 venus de D0b), pour que la table reste lisible sans être réécrite.
+34. En tant que mainteneur, je veux qu'aucun commentaire ne soit ajouté aux sites convertis, pour respecter la règle des quatre destinations de `CLAUDE.md`. Le récit va dans les messages de commit.
+35. En tant qu'agent sans yeux, je veux que toute vérification se fasse sans fenêtre, pour respecter `CLAUDE.md` : jamais de lancement de l'application raylib.
 
 ## Implementation Decisions
 
@@ -115,24 +117,22 @@ L'étape s'arrête. La conversion n'est pas commitée, et le constat est consign
 
 - **Classe D, sans liste.** L'audit classe D tout appel de `pico8_fixed_flr_int` absent de la liste C1. Aucune liste D n'est créée. La porte D reste celle de D0a : échec sur `NOUVEAU != FLR` seulement. Négatifs, fractionnaires et ancien ≠ nouveau sont des mesures, et zéro ancien ≠ nouveau sort « correction non vue par le filet ». L'outil d'audit ne change pas.
 
-- **Règle d'attribution appliquée** (plan, « Règle d'attribution d'une étape D »). Pour chaque fichier d'événements :
-  - F est la première frame divergente dans `tools/frames_reports/D1.txt` ;
-  - A est la valeur imprimée par l'audit, « premier ancien!=nouveau frame A | sites », pour ce fichier ;
-  - les sites C1 n'ayant jamais d'écart, A est le minimum parmi les sites D1.
+- **Règle d'attribution appliquée** (plan, « Règle d'attribution d'une étape D », version réécrite après l'arrêt du premier essai de D1). Définitions :
+  - S est l'ensemble des sites D1 ayant au moins un ancien ≠ nouveau sur le filet, d'après l'audit ;
+  - A est, par fichier, la plus petite frame de premier ancien ≠ nouveau imprimée par l'audit ;
+  - F est la première frame divergente dans `tools/frames_reports/D1.txt`.
 
-  Les cas possibles :
+  **Pour D1, S = {`pico8_bl`}.** Au premier essai, c'est le seul site D1 avec un ancien ≠ nouveau sur le filet. A < F sur les 6 fichiers divergents, avec des écarts de 6, 6, 6, 15, 49 et 51 frames, et A tombe partout sur `pico8_bl` : l'offset de caméra de la boîte de message change pendant qu'elle glisse hors écran, et l'effet sur les pixels vient quand elle entre. Les preuves sont dans `tmp/d1-bloque/` (`conversion.patch`, `D1.txt`, `audit-apres.txt`), à ne pas effacer. Si l'audit d'une nouvelle passe donne un autre S, c'est ce S-là qui s'applique, et le constat est consigné.
 
-  | F | A | Verdict |
-  |---|---|---|
-  | conforme | aucun | conforme |
-  | conforme | une valeur | « correction sans effet sur l'empreinte », consigné |
-  | F | A = F | attribué au(x) site(s) nommé(s) |
-  | F | A < F ou A > F | **échec de la règle** |
-  | F | aucun | **échec de la règle** |
+  Les contrôles, dans l'ordre :
+  1. **A ≤ F sur chaque fichier divergent.** A > F, ou F sans A, est un échec : un pixel a bougé avant toute valeur auditée. A < F est permis, et consigné.
+  2. **Complément neutre.** On part d'un arbre où `conversion.patch` est appliqué **sauf le hunk `pico8_bl`** de `src/pico8_pi.c`. `frames-check` doit y être identique aux références actuelles (d'avant D1) sur les 12 fichiers, sans `frames-baseline`. Cela prouve que les 28 autres conversions ne changent aucun pixel.
+  3. **Variante suffisante.** On part de l'arbre actuel avec **seulement le hunk `pico8_bl`**. Ses empreintes doivent être identiques à celles de l'arbre D1 complet, sur les 12 fichiers et toutes les frames. Cela prouve que `pico8_bl` explique toutes les frames divergentes, sans interaction.
+  4. Si 1 à 3 passent, toutes les frames divergentes sont attribuées à `pico8_bl`, nommé, et l'écart A→F est consigné comme « effet différé de A à F ».
 
-  Un échec arrête l'étape. On n'élargit pas la règle en cours de route pour « expliquer » un A < F, par exemple un écart sans effet sur un pixel aux frames précédentes. On le rapporte, et la décision revient au plan.
+  Mise en œuvre des contrôles 2 et 3 : des copies de travail sous `tmp/` (par exemple `tmp/d1-complement/`, `tmp/d1-variante/`), jamais `src/`. Les empreintes se comparent fichier par fichier avec les outils existants (`frames_check.sh` contre les références actuelles ; contre les empreintes de l'arbre D1 complet pour la variante). Aucun script versionné. Les commandes vont dans le message de commit, les résultats dans l'attribution.
 
-- **Égalité à A.** Si plusieurs sites (ou une ligne partagée) atteignent A, l'audit les nomme tous. L'attribution les nomme tous, et consigne « égalité ». La revue à F dit, quand elle le peut, lequel dessine dans la boîte de l'écart. On ne découpe pas la conversion en sous-étapes pour départager : aucun harnais de variantes par site n'existe (`constant-variants` ne voit plus de constante depuis C2b), et le seul négatif fractionnaire vu sur le filet est `pico8_bl`.
+- **S à plusieurs sites.** Ce n'est pas le cas pour D1. Si une nouvelle passe en donnait plusieurs, on consignerait « attribution partagée : S ». Les contrôles 2 et 3 ne seraient répétés site par site que pour départager.
 
 - **Absence de cascade, deux preuves.**
   1. *Lecture.* Pour chaque site, et pour chaque appelant d'une aide `*_to_int`, on établit que la valeur ne va qu'à :
@@ -145,11 +145,11 @@ L'étape s'arrête. La conversion n'est pas commitée, et le constat est consign
      C'est consigné dans l'attribution.
   2. *Mesure.* Les enregistrements `tmp/audit/<events>.aud` de l'arbre du commit 1 (avant) et de l'arbre converti (après) sont comparés. Chaque ligne `AUD` d'avant doit exister à l'identique dans l'après, pour chaque fichier d'événements. Ce sont tous des sites C1 : appels, négatifs, écarts, fractionnaires, frame. L'après n'a en plus que des lignes de sites D. Les 47 sites C1 échantillonnent la logique de jeu (`pico8_gn_next`, `pico8_pj_hk`, `pico8_hy_kt`…) : si l'état change, leurs comptes bougent.
 
-  Le couple de preuves est consigné sans script versionné : la commande va dans le message de commit, le résultat dans l'attribution. Un écart de l'une ou l'autre arrête l'étape (« D1 nourrit l'état du jeu »). Les frames divergentes après F sont notées « suite, affichage seul » dans l'attribution, avec leur nombre, et non « cascade d'état ».
+  Le couple de preuves est consigné sans script versionné : la commande va dans le message de commit, le résultat dans l'attribution. Un écart de l'une ou l'autre arrête l'étape (« D1 nourrit l'état du jeu »). Cette vérification répond à une autre question que la règle d'attribution, et elle est maintenue telle quelle. Au premier essai, elle a passé.
 
-- **Revue sans fenêtre à F** (méthode de C2b). On capture avant et après avec `pico8_frames frame`. L'arbre d'avant est celui du commit 1. On compte les lignes et les pixels qui diffèrent sur 128, et on donne la boîte de l'écart en indices 0..127. On la rapproche de ce que dessine le site désigné : pour `pico8_bl`, un décalage d'une colonne des entités dessinées sous la secousse. Aucun jugement de justesse du pixel : la justesse vient du bloc B.
+- **Revue sans fenêtre à F** (méthode de C2b), **en confirmation seulement**. On capture avant et après avec `pico8_frames frame`. L'arbre d'avant est celui du commit 1. On compte les lignes et les pixels qui diffèrent sur 128, et on donne la boîte de l'écart en indices 0..127. On la rapproche de ce que dessine `pico8_bl` : la boîte de message décalée d'une colonne à son entrée à l'écran. La porte est le couple complément/variante, pas la revue. Aucun jugement de justesse du pixel : la justesse vient du bloc B.
 
-- **Si rien ne diverge** (le négatif fractionnaire de `pico8_bl` pourrait ne changer aucun pixel), D1 n'est pas divergente. `frames-check` reste identique, sans `frames-baseline`. On ne versionne ni `D1.txt` ni l'attribution, et l'« État de D1 » le consigne, avec les écarts d'audit sans effet sur l'empreinte.
+- **D1 est divergente.** Au premier essai, 6 fichiers divergent sur 12. Le cas « rien ne diverge », prévu avant cet essai, est sans objet.
 
 - **Corrections non vues : ce qui compte comme « test au niveau valeur ».** L'expression convertie à chaque site est `pico8_fixed_flr_int(<arg>)`. Sa valeur sur des entrées négatives fractionnaires est assertée contre le relevé par `test_flr_int_matches_probe_block_b` (et par `test_flr_int_extremes` et `test_flr_int_raw_minus_one_is_minus_one_not_zero`) dans `tests/test_pico8_fixed.c`. Les deux formes composées se ramènent à ce test :
   - `-flr(s)` : la négation est hors de la conversion ;
@@ -196,16 +196,21 @@ L'étape s'arrête. La conversion n'est pas commitée, et le constat est consign
    3. `make float-inventory` ;
    4. `make float-audit`, qui doit donner 0 échec, 47 C1 et les sites D ;
    5. `make frames-report ETAPE=D1` ;
-   6. règle d'attribution par fichier ;
-   7. les deux preuves d'absence de cascade ;
-   8. revue à F ;
-   9. `tools/frames_reports/D1-attribution.txt` écrit ;
-   10. `make frames-baseline ETAPE=D1`.
+   6. A ≤ F par fichier, avec l'écart A→F lu ;
+   7. le complément neutre (le patch sans le hunk `pico8_bl`, puis `frames-check` identique aux références actuelles sur les 12 fichiers) ;
+   8. la variante suffisante (l'arbre actuel plus le seul hunk `pico8_bl`, avec des empreintes identiques à l'arbre D1 complet sur les 12 fichiers) ;
+   9. les deux preuves d'absence de cascade ;
+   10. revue à F, en confirmation ;
+   11. `tools/frames_reports/D1-attribution.txt` écrit ;
+   12. `make frames-baseline ETAPE=D1`.
 
    *Acceptation.*
    - `make test` vert ;
    - l'inventaire indique `compte cast 0` et `compte etape D1 0` ;
-   - chaque fichier divergent a F = A et un ou des sites nommés ;
+   - chaque fichier divergent a A ≤ F, et l'écart est consigné ;
+   - le complément neutre est identique aux références actuelles sur les 12 fichiers ;
+   - la variante suffisante est identique à l'arbre D1 complet sur les 12 fichiers ;
+   - toutes les frames divergentes sont attribuées à S = {`pico8_bl`} ;
    - toutes les lignes `AUD` d'avant sont retrouvées à l'identique ;
    - `D1.txt` et `D1-attribution.txt` sont versionnés dans le commit.
 
@@ -246,17 +251,24 @@ L'étape s'arrête. La conversion n'est pas commitée, et le constat est consign
 - **Texte de l'étape (docs/plan-2.md, §7 Phase D).**
   - *Introduction* : « Périmètre, d'après la table de propriété (Phase C) : **22 casts D1** (21 (c) + 1 (a) de signe non prouvé), **les 17 casts « à auditer »** (dont 11 clés de table), **3 jetons D2** (`tostr`), **5 jetons D3** (`^0.75`), et la revue des clés de table (D4). […] La sortie de chaque étape s'énonce en « compte d'étape = 0 » dans l'inventaire annoté. Sources, inchangées : population (c) → **`flr`** (bloc B, correction de bug sourcée) ; […] clés de table revues contre la sémantique des clés fractionnaires (§3.2). »
   - *Puce* : « **D1 — population (c).** Divergente, avec re-baseline. »
-  - *Règle d'attribution d'une étape D* : « la première frame divergente F de `tools/frames_reports/<étape>.txt` doit égaler la plus petite « frame du premier ancien ≠ nouveau » parmi les sites de l'étape ; ce site est désigné. Même règle qu'en C2b, lue dans un seul rejeu. »
+  - *Règle d'attribution d'une étape D* (réécrite après l'arrêt du premier essai de D1). Elle définit S, A et F, puis pose :
+    1. A > F, ou F sans A, est un échec ;
+    2. le complément neutre : les seuls sites de S ramenés à l'ancienne forme donnent `frames-check` identique à la référence d'avant l'étape ;
+    3. la variante suffisante : l'arbre d'avant avec les seuls sites de S convertis donne des empreintes identiques à celles de l'arbre de l'étape ;
+    4. si 2 et 3 passent, toutes les frames divergentes sont attribuées à S, A < F est permis et consigné, et la revue à F est une confirmation ;
+    5. si S a plusieurs sites, soit on les départage site par site, soit on consigne « attribution partagée ».
+
+    L'absence de cascade sur l'état est maintenue. Le texte fait foi dans `docs/plan-2.md`.
   - *Corrections invisibles au filet* : « pour chaque étape D, les sites à zéro appel ancien ≠ nouveau sur le filet sont listés « correction non vue par le filet » (comme les 13 constantes de C2b). Chacun reçoit un test au niveau valeur de l'expression convertie (par exemple une entrée négative fractionnaire qui doit donner `flr`) ou une entrée explicite dans ce plan. Critère de couverture, pas de ligne `gcov` : C a montré que NON COUVERT ne prouve rien dans un sens comme dans l'autre. Structurel pour D1 : `oi`, `sr` et `flr(ratio)` ne sont (c) que par le repli de `qc.t` à 32 768 frames, alors que le plus long fichier du filet en fait 9 729. »
-  - *Sortie de phase* : « pour chaque étape D divergente et chaque fichier d'événements, la première frame divergente est attribuée à un site par la règle ci-dessus, la suite étiquetée cascade (un changement d'affichage seul, D1, ne doit pas cascader), et le rapport de divergence est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression. D2 ne re-baseline pas. »
+  - *Sortie de phase* : « pour chaque étape D divergente, toutes les frames divergentes sont attribuées à S par les contrôles complément/variante de la règle ci-dessus ; F, A et l'écart A→F consignés dans `<étape>-attribution.txt` ; aucune cascade sur l'état (enregistrements C1 de l'audit identiques avant/après), et le rapport de divergence est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression. D2 ne re-baseline pas. »
 - **Décisions prises sans humain** (guideline : le plus simple qui se vérifie) :
   - pas de test par site : une entrée de plan qui cite le test de valeur existant ;
-  - égalité à A acceptée et nommée, sans sous-étapes ;
+  - une attribution à plusieurs sites serait consignée comme partagée, sans sous-étapes (la règle réécrite du plan le permet) ;
   - une seule ligne remise en forme (la ligne mixte C1/D) ;
   - `float-observe` constaté, pas modifié ;
   - l'absence de cascade prouvée par lecture et par la comparaison des enregistrements C1, sans nouvel outil.
 
   Chacune se conteste au triage.
-- **Prévision, pas critère.** D'après l'observation de D0b, le seul site susceptible de faire diverger le filet est `pico8_bl`. Les minimums négatifs de `pico8_rn`, `bg` et `hud` sont entiers, mais un minimum ne dit rien des autres valeurs reçues. C'est l'audit qui décide : les chiffres de l'« État » sont ceux qu'il imprime.
-- **Numérotation des frames.** D0a a aligné la frame d'audit (`current_frame` du contexte de dispatch) sur celle de `frames_check.sh` et `frames_report.sh`. Un décalage systématique d'une frame entre A et F serait un défaut d'outil. On le rapporte comme un échec de la règle, sans le corriger en cours d'étape.
+- **Prévision confirmée par le premier essai.** D'après l'observation de D0b, le seul site susceptible de faire diverger le filet était `pico8_bl`. L'audit du premier essai (`tmp/d1-bloque/audit-apres.txt`) le confirme : S = {`pico8_bl`}. Les minimums négatifs de `pico8_rn`, `bg` et `hud` sont entiers, mais un minimum ne dit rien des autres valeurs reçues. C'est l'audit qui décide : les chiffres de l'« État » sont ceux qu'il imprime.
+- **Numérotation des frames.** D0a a aligné la frame d'audit (`current_frame` du contexte de dispatch) sur celle de `frames_check.sh` et `frames_report.sh`. Les écarts A→F du premier essai (6 à 51 frames) sont des effets différés, pas un décalage d'outil. Un A > F reste un échec.
 - **Coût.** L'audit enregistre en plus les sites D, dont `pico8_particle_to_int` et `pico8_hud_to_int`, qui ont chacun des centaines de milliers à des millions de passages. La durée de `make float-audit` et de `make test` est donc mesurée et consignée avant et après.
