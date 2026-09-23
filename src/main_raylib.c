@@ -13,6 +13,7 @@
 #include "pico8_assets.h"
 #include "pico8_gfx.h"
 #include "pico8_input.h"
+#include "pico8_cheat.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
 #include "pico8_raylib_backend.h"
@@ -74,6 +75,8 @@ int main(int argc, char **argv) {
      * frame came from. Every recorded frame is stepped AND drawn --
      * drawing has measured side effects on game state, so skipping either
      * misses the recorded state. */
+    pico8_cheat_t cheat;
+    pico8_cheat_init(&cheat);
     while (pico8_raylib_backend_should_continue(&backend)) {
         pico8_input_frame_t frame;
         int from_recording = pico8_replay_source_next_frame(&replay, &frame);
@@ -94,6 +97,7 @@ int main(int argc, char **argv) {
         pico8_input_t input = { &frame, 1, 0 };
         pico8_dispatch_set_input(&input);
 
+        pico8_cheat_step(&cheat, &input);
         pico8__update60();
         pico8__draw();
 

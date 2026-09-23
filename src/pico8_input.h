@@ -2,14 +2,15 @@
 #define PICO8_INPUT_H
 
 /* One scripted frame: mouse_x/mouse_y/mouse_buttons feed
- * stat(32)/stat(33)/stat(34), and dpad[0..3] is btn(0)..btn(3) for that
- * frame (0=left, 1=right, 2=up, 3=down). */
+ * stat(32)/stat(33)/stat(34), and dpad[0..5] is btn(0)..btn(5) for that
+ * frame (0=left, 1=right, 2=up, 3=down, 4=O, 5=X) -- O and X included
+ * despite the name, to keep the events.json key. */
 /* TROU-2 */
 typedef struct {
     int mouse_x;
     int mouse_y;
     int mouse_buttons;
-    int dpad[4];
+    int dpad[6];
 } pico8_input_frame_t;
 
 typedef struct {
@@ -23,15 +24,16 @@ void pico8_input_init(pico8_input_t *input);
 /* Parses `path` as an events.json replay script and loads its frames into
  * `input`, positioned at frame 0. Returns 1 on success, 0 on a missing or
  * malformed file: no "frames" array, a frame object missing one of
- * mouse_x/mouse_y/mouse_buttons, a "dpad" that is not exactly 4 JSON
- * booleans, or an empty frames array. There is no partial load: on 0,
+ * mouse_x/mouse_y/mouse_buttons, a "dpad" that is neither 4 nor 6 JSON
+ * booleans, or an empty frames array. A 4-boolean dpad loads with O and X
+ * released. There is no partial load: on 0,
  * `input` is left untouched and the caller has nothing to replay. */
 int pico8_input_load(pico8_input_t *input, const char *path);
 
 /* Writes `frame_count` frames to `path` as a complete events.json file --
  * always a full rewrite -- in the exact shape pico8_input_load parses:
  * {"frames": [ { "mouse_x": ..., "mouse_y": ..., "mouse_buttons": ...,
- * "dpad": [bool, bool, bool, bool] }, ... ]}, nonzero dpad written as
+ * "dpad": [6 bools] }, ... ]}, nonzero dpad written as
  * true. Returns 1 on success, 0 on a NULL `frames`, a non-positive
  * `frame_count` (it never writes a file pico8_input_load would reject), or
  * a file error. No partial file is left behind: `path` is replaced only
@@ -65,8 +67,8 @@ void pico8_input_free(pico8_input_t *input);
  * script it was given. No looping, no clamping. */
 void pico8_input_step(pico8_input_t *input);
 
-/* `b` is 0 (left), 1 (right), 2 (up) or 3 (down); any other index
- * returns 0. */
+/* `b` is 0 (left), 1 (right), 2 (up), 3 (down), 4 (O) or 5 (X); any
+ * other index returns 0. */
 int pico8_btn(const pico8_input_t *input, int b);
 
 /* `n` is 32 (mouse x), 33 (mouse y) or 34 (mouse button bitmask, bit 0 =

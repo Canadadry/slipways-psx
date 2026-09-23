@@ -3,6 +3,7 @@
 # Tout .c/.h de src/ est soit dans le coeur (CORE_SRCS et leurs en-tetes, -MM),
 # soit ici ; un fichier du coeur ici fait echouer la cible.
 src/main.c | point d'entree du rejeu headless, outil d'hote du §4
+src/main_class_coverage.c | point d'entree de l'outil de couverture des classes (PICO8_CLASS_COVERAGE), outil d'hote
 src/main_frames.c | point d'entree de l'outil d'empreintes pico8_frames, outil d'hote
 src/main_raylib.c | point d'entree du driver interactif raylib
 src/main_screencast_viewer.c | point d'entree du visualiseur d'enregistrement

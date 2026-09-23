@@ -1,7 +1,7 @@
 ---
 title: "Boutons O/X et code de triche A A B B A A B B"
 description: "Ajouter les boutons PICO-8 O et X au modèle d'entrée, et un code de triche rejouable qui donne 99 de science et 200 crédits, pour permettre d'enregistrer une session qui construit toutes les planètes spéciales."
-status: needs-triage
+status: done
 ---
 
 ## Problem Statement

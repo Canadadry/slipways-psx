@@ -48,7 +48,7 @@ static int find_int_field(const char *obj, const char *key, int *out) {
     return 1;
 }
 
-static int find_dpad_field(const char *obj, int dpad_out[4]) {
+static int find_dpad_field(const char *obj, int dpad_out[6]) {
     const char *p = strstr(obj, "\"dpad\":");
     if (!p) {
         return 0;
@@ -60,9 +60,12 @@ static int find_dpad_field(const char *obj, int dpad_out[4]) {
     p++;
 
     int count = 0;
-    while (count < 4) {
+    for (;;) {
         while (*p == ' ' || *p == ',' || *p == '\n' || *p == '\r' || *p == '\t') {
             p++;
+        }
+        if (*p == ']' || count == 6) {
+            break;
         }
         if (strncmp(p, "true", 4) == 0) {
             dpad_out[count++] = 1;
@@ -74,10 +77,13 @@ static int find_dpad_field(const char *obj, int dpad_out[4]) {
             return 0;
         }
     }
-    while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') {
-        p++;
+    if (*p != ']' || (count != 4 && count != 6)) {
+        return 0;
     }
-    return *p == ']';
+    for (; count < 6; count++) {
+        dpad_out[count] = 0;
+    }
+    return 1;
 }
 
 void pico8_input_init(pico8_input_t *input) {
@@ -202,14 +208,16 @@ static int format_frame_line(char *buf, size_t size, const pico8_input_frame_t *
     int rc = snprintf(
         buf,
         size,
-        "    { \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, \"dpad\": [%s, %s, %s, %s] }",
+        "    { \"mouse_x\": %d, \"mouse_y\": %d, \"mouse_buttons\": %d, \"dpad\": [%s, %s, %s, %s, %s, %s] }",
         fr->mouse_x,
         fr->mouse_y,
         fr->mouse_buttons,
         fr->dpad[0] ? "true" : "false",
         fr->dpad[1] ? "true" : "false",
         fr->dpad[2] ? "true" : "false",
-        fr->dpad[3] ? "true" : "false");
+        fr->dpad[3] ? "true" : "false",
+        fr->dpad[4] ? "true" : "false",
+        fr->dpad[5] ? "true" : "false");
     return rc > 0 && (size_t)rc < size;
 }
 
@@ -326,7 +334,7 @@ void pico8_input_step(pico8_input_t *input) {
 }
 
 int pico8_btn(const pico8_input_t *input, int b) {
-    if (b < 0 || b > 3) {
+    if (b < 0 || b > 5) {
         return 0;
     }
     if (input->frame_count == 0 || input->current_frame >= input->frame_count) {
