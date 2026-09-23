@@ -98,4 +98,8 @@ pico8_fixed_t pico8_fixed_cos(pico8_fixed_t x);
 /* TROU-1 */
 pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x);
 
+#ifdef PICO8_FLOAT_OBSERVE
+#include "pico8_float_observe.h"
+#endif
+
 #endif
