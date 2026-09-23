@@ -26,7 +26,7 @@ src/pico8_economy_tiers.c | set_by_value | key.as.fixed | 1 | a auditer | - | NO
 src/pico8_hud.c | pico8_hud_to_int | x | 1 | (c) | D1 | aide, pire appelant : coordonnees ecran de rk/eq/io (lua.lua:24-30), Lua muet, vu negatif ; seul dv (lua.lua:142) passe par flr
 src/pico8_layout.c | pico8_lq_ol_item_draw | pos.x | 1 | (c) | D1 | coordonnee ecran spr(f,p.x,p.y) (lua.lua:309), Lua muet ; negative des qu un objet sort par la gauche (plan-2 §3.2)
 src/pico8_layout.c | pico8_lq_ol_item_draw | pos.y | 1 | (c) | D1 | coordonnee ecran spr(f,p.x,p.y) (lua.lua:309), Lua muet ; negative des qu un objet sort par le haut (plan-2 §3.2)
-src/pico8_menu.c | pico8_ha2_my_dispatch | s | 1 | a auditer | - | NON COUVERT par le filet ; music(-sgn(stat(20))) (lua.lua:993), valeur -1, 0 ou 1 : candidat (c)
+src/pico8_menu.c | pico8_ha2_my_dispatch | s | 1 | (c) | D1 | music(-sgn(stat(20))) (lua.lua:993), s=sgn(stat(20)) vaut -1 ou 1 : stat(20) vaut -1 sans musique, donc negatif possible ; vu 1 (0x00010000, 1 passage, pause_menu_music) car stat(20) rend 0 dans le port ; pas une cle
 src/pico8_particle.c | pico8_particle_to_int | x | 1 | (c) | D1 | aide, pire appelant : coordonnees pset(cx+p.p.x,cy+p.p.y) (lua.lua:705), Lua muet, positions pouvant etre negatives ; seul l index cs[flr(p.l)] passe par flr
 src/pico8_pi.c | pico8_bl | nc | 1 | (c) | D1 | decalage camera(nc,0) (lua.lua:599), nc = -t^3/9 (lua.lua:592) puis -nc a chaque entree : Lua muet, vu negatif
 src/pico8_planet.c | pico8_jo_hu | go_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table df[hp.go] (lua.lua:456)

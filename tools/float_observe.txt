@@ -19,19 +19,19 @@
 #
 # minimum   valeur brute 16.16 la plus petite recue, en hexa sur 32 bits
 # NON COUVERT  ligne jamais atteinte par le rejeu : ni negatif, ni positif
-src/pico8_audio.c | pico8_rn | 1 | ligne 28 | (c) | D1 | min 0xFFFF0000 | passages 210 | vu negatif | no.as.fixed
-src/pico8_bg.c | pico8_bg_to_int | 1 | ligne 16 | (c) | D1 | min 0xFFF40000 | passages 21084 | vu negatif | x
+src/pico8_audio.c | pico8_rn | 1 | ligne 28 | (c) | D1 | min 0xFFFF0000 | passages 215 | vu negatif | no.as.fixed
+src/pico8_bg.c | pico8_bg_to_int | 1 | ligne 16 | (c) | D1 | min 0xFFF40000 | passages 22679 | vu negatif | x
 src/pico8_collect.c | pico8_ho_apply | 1 | ligne 208 | a auditer | - | min - | passages 0 | NON COUVERT | raw.as.fixed
 src/pico8_economy_tiers.c | set_by_value | 1 | ligne 55 | a auditer | - | min - | passages 0 | NON COUVERT | key.as.fixed
-src/pico8_hud.c | pico8_hud_to_int | 1 | ligne 20 | (c) | D1 | min 0xFFFD0000 | passages 737223 | vu negatif | x
-src/pico8_layout.c | pico8_lq_ol_item_draw | 1 | ligne 203 | (c) | D1 | min 0x00010000 | passages 67987 | jamais negatif | pos.x
-src/pico8_layout.c | pico8_lq_ol_item_draw | 2 | ligne 204 | (c) | D1 | min 0x00020000 | passages 67987 | jamais negatif | pos.y
-src/pico8_menu.c | pico8_ha2_my_dispatch | 1 | ligne 358 | a auditer | - | min - | passages 0 | NON COUVERT | s
-src/pico8_particle.c | pico8_particle_to_int | 1 | ligne 56 | (c) | D1 | min 0x00010000 | passages 2007152 | jamais negatif | x
+src/pico8_hud.c | pico8_hud_to_int | 1 | ligne 20 | (c) | D1 | min 0xFFFD0000 | passages 739303 | vu negatif | x
+src/pico8_layout.c | pico8_lq_ol_item_draw | 1 | ligne 203 | (c) | D1 | min 0x00010000 | passages 68139 | jamais negatif | pos.x
+src/pico8_layout.c | pico8_lq_ol_item_draw | 2 | ligne 204 | (c) | D1 | min 0x00020000 | passages 68139 | jamais negatif | pos.y
+src/pico8_menu.c | pico8_ha2_my_dispatch | 1 | ligne 358 | (c) | D1 | min 0x00010000 | passages 1 | jamais negatif | s
+src/pico8_particle.c | pico8_particle_to_int | 1 | ligne 56 | (c) | D1 | min 0x00010000 | passages 2007845 | jamais negatif | x
 src/pico8_pi.c | pico8_bl | 1 | ligne 169 | (c) | D1 | min 0xFF7BAA4D | passages 1729 | vu negatif | nc
 src/pico8_planet.c | pico8_jo_hu | 1 | ligne 359 | a auditer | - | min - | passages 0 | NON COUVERT | go_val.as.fixed
-src/pico8_planet_display.c | pico8_jo_kj | 1 | ligne 503 | (c) | D1 | min 0x0091E600 | passages 134927 | jamais negatif | adjusted.x
-src/pico8_planet_display.c | pico8_jo_kj | 2 | ligne 504 | (c) | D1 | min 0x00841D00 | passages 134927 | jamais negatif | adjusted.y
+src/pico8_planet_display.c | pico8_jo_kj | 1 | ligne 503 | (c) | D1 | min 0x0091E600 | passages 135343 | jamais negatif | adjusted.x
+src/pico8_planet_display.c | pico8_jo_kj | 2 | ligne 504 | (c) | D1 | min 0x00841D00 | passages 135343 | jamais negatif | adjusted.y
 src/pico8_planet_family.c | pico8_ga_kj | 1 | ligne 240 | a auditer | - | min - | passages 0 | NON COUVERT | p.x
 src/pico8_planet_family.c | pico8_ga_kj | 2 | ligne 241 | a auditer | - | min - | passages 0 | NON COUVERT | p.y
 src/pico8_planet_family.c | pico8_ga_kj | 3 | ligne 270 | a auditer | - | min - | passages 0 | NON COUVERT | pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2)))
@@ -39,15 +39,13 @@ src/pico8_planet_family.c | pico8_ga_kj | 4 | ligne 275 | a auditer | - | min - 
 src/pico8_planet_family.c | pico8_ga_kj | 5 | ligne 277 | a auditer | - | min - | passages 0 | NON COUVERT | pico8_vec_qx(pt_p)
 src/pico8_probe.c | pico8_probe_to_int | 1 | ligne 26 | (c) | D1 | min 0x00050000 | passages 42 | jamais negatif | x
 src/pico8_research.c | pico8_research_lookup | 1 | ligne 229 | a auditer | - | min - | passages 0 | NON COUVERT | key.as.fixed
-src/pico8_score_panel_display.c | pico8_pj_hk | 1 | ligne 92 | a auditer | - | min 0x0D4A0000 | passages 38 | jamais negatif | yr
-src/pico8_score_panel_display.c | pico8_pj_ph_map | 1 | ligne 214 | a auditer | - | min 0x00000000 | passages 7 | jamais negatif | score_val.as.fixed
-src/pico8_score_panel_display.c | pico8_pj_ph_map | 2 | ligne 257 | a auditer | - | min 0x00000000 | passages 5 | jamais negatif | s6_val.as.fixed
-src/pico8_scroll.c | pico8_qb_md | 1 | ligne 139 | (c) | D1 | min 0x00000000 | passages 136812 | jamais negatif (ligne partagee) | cp.x
-src/pico8_scroll.c | pico8_qb_md | 2 | ligne 139 | (c) | D1 | min 0x00000000 | passages 136812 | jamais negatif (ligne partagee) | cp.y
+src/pico8_score_panel_display.c | pico8_pj_ph_map | 1 | ligne 257 | (a) | D1 | min 0x00000000 | passages 5 | jamais negatif | s6_val.as.fixed
+src/pico8_scroll.c | pico8_qb_md | 1 | ligne 139 | (c) | D1 | min 0x00000000 | passages 137188 | jamais negatif (ligne partagee) | cp.x
+src/pico8_scroll.c | pico8_qb_md | 2 | ligne 139 | (c) | D1 | min 0x00000000 | passages 137188 | jamais negatif (ligne partagee) | cp.y
 src/pico8_slipway_display.c | pico8_jc_display_get_by_value | 1 | ligne 82 | a auditer | - | min - | passages 0 | NON COUVERT | key.as.fixed
 src/pico8_slipway_display.c | pico8_jc_display_to_int | 1 | ligne 91 | (c) | D1 | min 0x00000000 | passages 4349 | jamais negatif | x
-src/pico8_ui.c | pico8_ui_to_int | 1 | ligne 53 | (c) | D1 | min 0x00000000 | passages 45233 | jamais negatif | x
-src/pico8_ui_button.c | pico8_ui_to_int | 1 | ligne 44 | (c) | D1 | min 0x00000000 | passages 191243 | jamais negatif | x
+src/pico8_ui.c | pico8_ui_to_int | 1 | ligne 53 | (c) | D1 | min 0x00000000 | passages 45364 | jamais negatif | x
+src/pico8_ui_button.c | pico8_ui_to_int | 1 | ligne 44 | (c) | D1 | min 0x00000000 | passages 191851 | jamais negatif | x
 src/pico8_wormhole_display.c | pico8_mz_kj | 1 | ligne 67 | (c) | D1 | min 0x00C4F969 | passages 2222 | jamais negatif | p.x
 src/pico8_wormhole_display.c | pico8_mz_kj | 2 | ligne 68 | (c) | D1 | min 0x00AEF6AD | passages 2222 | jamais negatif | p.y
 src/pico8_wormhole_display.c | pico8_mz_kj | 3 | ligne 79 | (c) | D1 | min 0x00000000 | passages 1170 | jamais negatif | oi
@@ -58,8 +56,8 @@ src/pico8_wormhole_display.c | pico8_mz_kj | 7 | ligne 120 | (c) | D1 | min 0x00
 #
 # Comptes
 observation vu negatif 4
-observation jamais negatif 21
-observation non couvert 11
+observation jamais negatif 20
+observation non couvert 10
 observation ligne partagee 4
 observation contradiction 0
-observation total 36
+observation total 34
