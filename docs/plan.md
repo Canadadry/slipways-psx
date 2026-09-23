@@ -17,6 +17,7 @@ Nouvelle stratégie : **porter `pico8/lua.lua` (le code source réel de la carto
 ## Stratégie de portage : copie fonction par fonction, pas de réécriture
 
 - `pico8/lua.lua` est minifié (noms de fonctions/variables réduits à 1-2 lettres). Chaque fonction portée en C **garde son nom minifié d'origine** (`ft()`, `->ra`, `->qe`, etc.) et est précédée en commentaire du **code Lua source exact** de cette fonction. La comparaison ligne à ligne entre le commentaire et le C juste en dessous est le principal moyen de vérifier la fidélité du portage (cf. Stratégie de test).
+- **Renversé par [`docs/plan-3.md`](plan-3.md)** une fois le port jouable : la couche objet ci-dessous est remplacée par des structs C plates. Le point suivant décrit le portage tel qu'il a été fait.
 - Le mécanisme d'entités/dispatch que `lua.lua` se construit lui-même (`kv:jr` — système de classes par chaîne de prototypes, `hv`/`cv`/`cg` — collections d'entités indexées par tag, `dc()`/`mv()`/`lt()`/`he()` — dispatch par nom de méthode) est **porté littéralement**, pas réécrit en C idiomatique (pas de struct-par-type-d'entité + enum + switch). Les entités C portent un sac de champs optionnels (union/petite table clé-valeur) qui reproduit la forme dynamique des tables Lua ; `dc()`, `mv()`, `lt()`, `he()` sont portées quasi verbatim par-dessus cette structure.
 - Renommer en clair est explicitement écarté (perdrait la traçabilité de diff contre la source) — les seuls ajouts sont des commentaires ponctuels quand une signification a été confirmée via `slipways-mechanics.md`.
 
