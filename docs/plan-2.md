@@ -531,7 +531,18 @@ Le contrôle d'absence de cascade sur l'état (enregistrements C1 de l'audit ide
 **Sortie de phase :** pour chaque étape D divergente, toutes les frames divergentes sont attribuées à S par les contrôles complément/variante de la règle ci-dessus ; F, A et l'écart A→F consignés dans `<étape>-attribution.txt` ; aucune cascade sur l'état (enregistrements C1 de l'audit identiques avant/après), et le rapport de divergence est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression. D2 ne re-baseline pas.
 
 ### Phase E — Fermeture
-`-lm` retiré de la cible du cœur, garde `-mgeneral-regs-only` vide (§6.3), [TROU-1](trous-de-portage.md) refermé.
+Seule porte de E : les quatre points du §6. Décisions humaines prises en fin de Phase D :
+- **§6.1 porte sur le cœur seul**, conformément au §4 : `CORE_SRCS` et les en-têtes qu'ils incluent par défaut (sans les définitions `PICO8_FLOAT_*`). Le reste de `src/` (backend raylib, visualiseur, builds d'audit) est exclu par une liste versionnée, une ligne de justification par fichier.
+- **§6.4 se lit « toute divergence justifiée par une ligne du relevé »** : C2b (bloc A) et D1 (bloc B) sont admis.
+- **Le build d'observation est retiré** (`make float-observe`, `src/pico8_float_observe.*`) : plus aucun cast à observer, l'audit avant/après le remplace.
+- **TROU-1 est restreint, pas fermé** : il ne décrit plus que `sin`/`cos` hors des 64 points du relevé.
+
+Étapes :
+- **E0 — Mesurer.** Une cible `make` par point du §6, lancée sur l'arbre actuel **avant toute modification**, résultat consigné : 6.1 (grep sur l'ensemble défini ci-dessus, via `cc -MM`, plus la liste d'exclusion), 6.2 (`$(TMP_DIR)/pico8_replay` lié sans `-lm` — c'est « la cible de lien du cœur »), 6.3 (`float-guard`), 6.4 (registre : chaque commit depuis `30dfd6c` qui touche un `*.frames.hash` a son `tools/frames_reports/<étape>.txt` et sa ligne de relevé). L'écart entre « inventaire = 0 » et « §6 passe » y apparaît (prototypes et commentaire de `pico8_fixed.h`, mots de commentaires d'en-têtes).
+- **E1 — Sortir `from_double`/`to_double` du cœur.** Déclarations **et** définitions dans un module d'aides de test/hôte, hors `ENGINE_SRCS`/`CORE_SRCS`, lié par les tests et l'audit. Sans prototype dans l'en-tête du cœur, tout nouvel appel flottant dans le cœur devient une erreur de compilation (`-Werror`, déclaration implicite) : c'est ce qui referme l'angle mort x86_64 de la garde. Retrait du build d'observation. Neutre : `frames-check` identique sans `frames-baseline`.
+- **E2 — Mots de commentaires** : les 4 de l'inventaire et les 3 d'en-têtes, plus la mention devenue périmée de `pico8_ob.c`. TROU-1 restreint.
+- **E3 — `-lm` retiré de `$(TMP_DIR)/pico8_replay`** seulement ; il reste sur les variantes couverture/audit, les tests qui incluent `math.h`, le générateur et `main_raylib`.
+- **E4 — Verrouiller** : les cibles 6.1, 6.3 (liste vide) et 6.4 entrent dans `make test` ; 6.2 est verrouillé par le lien de `pico8_replay` que `make test` construit déjà.
 
 > **Décision tranchée par l'humain en Phase D :** `sin`/`cos` sur table (D5) ; la vérification PSX hors périmètre. Historique de la question :
 >
