@@ -44,6 +44,11 @@ src/pico8_planet_display.c | pico8_jo_kj | s_val.as.fixed | 2
 src/pico8_planet_display.c | pico8_jo_kj | field_fixed(self, "mi") | 1
 src/pico8_planet_display.c | pico8_jo_kj | ka_entry.as.fixed | 1
 src/pico8_planet_display.c | pico8_jo_kj | radius_f | 1
+src/pico8_planet_family.c | pico8_ga_kj | p.x | 1
+src/pico8_planet_family.c | pico8_ga_kj | p.y | 1
+src/pico8_planet_family.c | pico8_ga_kj | pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))) | 1
+src/pico8_planet_family.c | pico8_ga_kj | k_entry.as.fixed | 1
+src/pico8_planet_family.c | pico8_ga_kj | pico8_vec_qx(pt_p) | 1
 src/pico8_research_display.c | pico8_jo_ex | loop_bound | 1
 src/pico8_research_icon.c | ie_to_int | x | 1
 src/pico8_score_panel.c | get_by_value | key.as.fixed | 1
