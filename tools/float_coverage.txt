@@ -19,23 +19,13 @@
 #                               "; ligne N : X" donne la ligne mesuree qui la
 #                               precede, a relire avant d'en conclure quoi que ce soit
 # NON COUVERT (absente de gcov) fichier ou ligne sans sortie gcov
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 10 | passages 325030 | - | - | pico8_fixed_from_double(double d)
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 10 | passages 325030 | - | - | double
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 11 | passages 325030 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 16 | passages 325030 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 16 | passages 325030 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 17 | passages 325030 | - | - | double
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 129 | NON COUVERT (ligne sans code ; ligne 125 : 68818) | - | - | float
-src/pico8_fixed.c | pico8_fixed_cos | autre | 1 | ligne 182 | passages 161763 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 2 | ligne 182 | passages 161763 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 3 | ligne 183 | passages 161763 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 4 | ligne 184 | passages 161763 | - | - | pico8_fixed_from_double(cos(radians))
-src/pico8_fixed.c | pico8_fixed_cos | reecrit | 1 | ligne 184 | passages 161763 | - | - | cos
-src/pico8_fixed.c | pico8_fixed_sin | autre | 1 | ligne 191 | passages 163267 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 2 | ligne 191 | passages 163267 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 3 | ligne 192 | passages 163267 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 193 | passages 163267 | - | - | pico8_fixed_from_double(-sin(radians))
-src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 193 | passages 163267 | - | - | sin
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 9 | NON COUVERT (#####) | - | - | pico8_fixed_from_double(double d)
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 9 | NON COUVERT (#####) | - | - | double
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 10 | NON COUVERT (#####) | - | - | double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 15 | NON COUVERT (#####) | - | - | double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 15 | NON COUVERT (#####) | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 16 | NON COUVERT (#####) | - | - | double
+src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 128 | NON COUVERT (ligne sans code ; ligne 124 : 68818) | - | - | float
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | NON COUVERT (ligne sans code ; ligne 130 : 15) | - | - | double
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | NON COUVERT (ligne sans code ; ligne 197 : 4831) | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | NON COUVERT (ligne sans code ; ligne 345 : 116495) | - | - | double
@@ -43,6 +33,6 @@ src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | NON COUVERT (ligne sans
 # Comptes
 couverture constante couverts 0 non-couverts 0
 couverture cast couverts 0 non-couverts 0
-couverture reecrit couverts 2 non-couverts 0
-couverture autre couverts 14 non-couverts 4
-couverture total couverts 16 non-couverts 4
+couverture reecrit couverts 0 non-couverts 0
+couverture autre couverts 0 non-couverts 10
+couverture total couverts 0 non-couverts 10
