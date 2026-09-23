@@ -177,6 +177,12 @@ c'est le comportement actuel que les rejeux enregistrent. Le corriger
 changera les enregistrements existants, ce qui en fait une décision de
 jeu, pas une reprise de commentaires.
 
+
+**Prémisse probablement fausse** (établi pour TROU-20, même situation) :
+`kk[0]` est un nil **explicite**, que zepto8 et fake-08 convertissent en
+couleur 0 ; le noir du port serait alors fidèle. Non vérifié sur le
+binaire PICO-8 — même vérification que TROU-20.
+
 Fichier : `src/pico8_wormhole_display.c`.
 
 ## TROU-13 — `tostr` d'un champ absent rend la chaîne vide
@@ -296,21 +302,34 @@ serait de relever les glyphes depuis PICO-8 lui-même.
 
 Fichier : `src/pico8_gfx.c`.
 
-## TROU-20 — L'éclat de particules trace en noir au lieu de garder la plume
+## TROU-20 — Un `nil` explicite comme couleur de `circ` n'est pas vérifié sur PICO-8
 
-Même écart que TROU-12, dans `ga:kj` : chaque particule est tracée par
+Dans `ga:kj`, chaque particule est tracée par
 `circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])` (lua.lua:1091). Les
-particules à `l <= 1` sont retirées avant, mais celles à `1 < l < 2`
-donnent l'indice 0. `k_` est indexée à partir de 1 : `k_[0]` est nil, et
-PICO-8 garde alors la couleur de plume courante. Ce port ne trouve pas
-d'entrée, laisse `color = 0` et trace en noir.
+particules à `1 < l < 2` donnent l'indice 0 ; `k_` est indexée à partir de
+1, donc `k_[0]` est nil et `circ` reçoit un quatrième argument **nil
+explicite**, pas un argument omis. Ce port trace alors en couleur 0 (noir).
 
-Probable, pas vérifié contre PICO-8. Atteint par le filet : sur
-`geoharvest_burst`, l'indice est calculé 251 fois et la couleur lue 175
-fois ; les 76 autres tracés n'ont pas d'entrée, donc sont en noir. Le
-corriger change la référence de ce rejeu : décision de jeu.
+Ce n'est probablement pas un écart. Le manuel ne dit rien d'un nil
+explicite ; deux émulateurs le convertissent en 0 et posent aussi la plume
+à 0 : zepto8 (`lua_isnone` seul marque l'argument absent, nil donne
+`lua_tonumber(nil)` = 0) et fake-08 (`lua_tonumber(L,4)` dès qu'il y a
+plus de 3 arguments). Le port trace donc comme eux ; il ne pose pas la
+plume, sans effet visible ici.
 
-Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
+Non vérifié sur le binaire PICO-8. La vérification : `color(8)
+circ(64,64,10,nil)` dans une cartouche, et regarder la couleur. Si PICO-8
+gardait la plume, il faudrait d'abord un vrai état de plume dans le port
+(voir la note sur `pen_color` plus bas) ; seules 22 frames de
+`geoharvest_burst` bougeraient.
+
+Note liée : dans les deux émulateurs, **tout** tracé coloré met la plume à
+jour, alors que `pen_color` du port n'est écrit que par `pico8_rk`. Un
+tracé coloré entre un `rk` et un `rk_default` ferait diverger le port.
+Non étudié.
+
+Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b) ;
+prémisse réfutée par diagnostic (émulateurs) après la Phase E.
 
 Fichier : `src/pico8_planet_family.c`.
 
