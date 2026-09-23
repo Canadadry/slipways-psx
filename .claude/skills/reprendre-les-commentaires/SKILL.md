@@ -32,12 +32,18 @@ Dépôt à moitié repris — un glossaire mais pas de fichier d'écarts, ou l'i
 
 Sans suite de tests : n'ajoutez aucun assert, la destination 3 se réduit à sa variante prose. Dites-le à l'utilisateur plutôt que de bricoler.
 
+**C'est une obligation de l'orchestrateur, pas une case que l'agent coche** : l'agent n'a pas le droit de lancer la suite (le répertoire de build est partagé). Le dire explicitement dans la consigne, sinon l'agent croit travailler sans filet — ou pire, croit en avoir un là où il n'y en a pas.
+
+**Et il y a des fichiers que la suite n'atteint pas.** Sur le chantier de référence, deux d'entre eux incluaient une bibliothèque graphique non vendorisée, dans un dépôt qui interdit par ailleurs d'ouvrir une fenêtre : aucune cible lançable ne les construit. Un assert faux y survivrait à toute la suite et n'exploserait qu'entre les mains d'un humain. **Dans un fichier qu'aucune cible lançable n'atteint, on ne pose aucun assert, même établi.** Recensez ces fichiers avant d'ouvrir la phase 2 et dites-le à leurs agents.
+
 Relevez le ratio de départ, il sert de mesure de progrès à chaque vague :
 
 ```sh
 # à adapter au langage ; ici commentaires C/C++ vs lignes de code
 cloc --by-file src/ | tail -5
 ```
+
+**Donnez cette commande aux agents, elle est la définition.** « Ligne de commentaire » a au moins trois sens (ligne entièrement commentaire, ligne en contenant, définition propre à `cloc`) : sans commande canonique, chaque agent écrit son compteur et les chiffres ne sont comparables ni entre eux ni avec le vôtre. C'est la seule mesure que la méthode présente comme objective ; qu'elle dépende de l'outil de chacun la vide de son sens.
 
 ## La règle : quatre destinations
 
@@ -46,7 +52,7 @@ Tout commentaire rencontré va dans **une** de ces quatre destinations, sinon il
 1. **Le sens d'un nom** → un fichier de glossaire, une ligne par symbole. Le code ne le répète pas.
 2. **Un écart connu avec la référence**, ou un morceau volontairement non fait → une entrée numérotée dans un fichier d'écarts. Le code n'y renvoie que par un **marqueur nu**, `/* TROU-7 */`, seul sur sa ligne au-dessus de la déclaration concernée — pas de résumé à côté, il périmerait.
 3. **Un piège qu'un lecteur futur réintroduirait** → `assert(cond && "message court")` au site exact si c'est vérifiable à l'exécution, **sinon 40 mots maximum**.
-4. **Un contrat que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui la libère, ce que rend la fonction quand le champ est absent, ce qu'un NULL déclenche → une phrase en en-tête.
+4. **Un contrat que ni le nom ni le glossaire ne portent** — qui possède la mémoire, qui la libère, ce que rend la fonction quand le champ est absent, ce qu'un NULL déclenche → une phrase en en-tête. Une exception, à nommer pour qu'elle ne serve pas de passe-droit : **un format de fichier ou un protocole que quelque chose d'extérieur au dépôt doit pouvoir lire** est un contrat long légitime — il n'a nulle part ailleurs où vivre. Tout le reste tient en une phrase, ou part dans un `docs/format-*.md`.
 
 Tout le reste va dans le **message de commit**. Git le garde, et personne ne le paie en jetons à chaque lecture du fichier. `TODO` reste autorisé : c'est l'aveu qu'un cas n'est pas traité.
 
@@ -60,6 +66,12 @@ L'orchestrateur la fait seul, avant tout agent. Elle extrait ce qu'on ne pourrai
 4. **Recâbler le processus qui produisait la prose** — sinon elle repousse. Concrètement : écrire la règle des quatre destinations dans le fichier d'instructions du dépôt (`CLAUDE.md` ou équivalent), et **corriger les skills qui écrivaient du récit**. Sur le chantier de référence, une skill de correction de bug ajoutait un paragraphe de journal à chaque passage ; l'étape a été retirée, le constat va au message de commit.
 
 Commiter la phase 1 avant d'ouvrir la phase 2.
+
+## Le récit ne vit pas que dans les commentaires
+
+Une chaîne destinée à un humain — bannière, message d'aide, ligne d'état — est de la documentation qui s'exécute, et elle périme exactement comme un commentaire. Sur le chantier de référence, un mode de lecture rejeté avait disparu des commentaires **et** du code, mais survivait dans la bannière que le programme imprime à chaque lancement : la seule phrase que lit l'humain avant de regarder ce qu'il va signer lui promettait un comportement qui n'existe plus.
+
+D'où la règle, à mettre dans chaque consigne : **une chaîne destinée à l'humain se vérifie comme un commentaire, et une divergence se signale — elle ne se corrige jamais dans cette passe.** C'est du code : le diff cesserait d'être purement soustractif, et le correctif mérite son propre commit `fix:`.
 
 ## Phase 2 — un agent par module
 
@@ -94,11 +106,13 @@ Les vagues suivantes ont refusé cinq asserts pour cette raison, et l'un d'eux a
 
 ## Rôle de l'orchestrateur
 
+0. **Le contrôle mécanique marche partout, y compris là où la compilation échoue.** `gcc -fpreprocessed -dD -E -P` ne résout pas les `#include` : il se contente de retirer les commentaires. Un fichier qui n'est pas compilable ici — dépendance non vendorisée, en-tête absent — se vérifie donc quand même, octet pour octet. Ne dites jamais à un agent de « relire le diff à la main » pour ces fichiers-là : vous lui retirez sa seule preuve. Second filet gratuit : le nombre de lignes de code doit être identique avant et après.
 1. **Compiler chaque module en isolation** dès que son agent rend la main (`make src/obj/module.o` ou l'équivalent). Ça attrape l'`#include <assert.h>` manquant et les commentaires imbriqués.
 2. **Ne lancer la suite complète que sur un arbre stabilisé** — tous les agents de la vague rendus. Une compilation sur un arbre à moitié réécrit ne dit rien, et c'est précisément ce qui a permis d'attribuer correctement la panne de l'assert.
 3. **Commiter module par module**, avec le récit dans le message : le ratio avant/après, les asserts posés et leur mode de preuve, les affirmations périmées démontées, les corrections du glossaire.
 4. **Séparer les commits qui ajoutent des `abort()`** (un assert en est un) de ceux qui ne font que supprimer du texte. Un commit purement soustractif doit pouvoir se relire comme tel, et se révoquer sans rien emporter.
-5. **Relever le ratio à chaque vague.** C'est la mesure de progrès utile, et la seule qui ne dépende pas d'un jugement.
+5. **Recommander le remplacement par plage de lignes**, qui refuse si la plage contient autre chose que du commentaire, plutôt que le remplacement de chaînes exactes recopiées depuis une lecture. Le premier ne peut pas toucher au code et échoue bruyamment ; le second se trompe d'un retour à la ligne et colle du texte approximatif.
+6. **Relever le ratio à chaque vague.** C'est la mesure de progrès utile, et la seule qui ne dépende pas d'un jugement.
 
 ## Ce que la méthode ne garantit pas
 

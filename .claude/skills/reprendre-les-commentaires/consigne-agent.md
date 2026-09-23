@@ -77,6 +77,18 @@ personne n'avait vu.
 Dans ton rapport, liste les asserts **envisagés puis écartés** avec la raison.
 Cette liste vaut autant que ceux que tu poses.
 
+**Si ton fichier n'est atteint par aucune cible lançable ici** — il inclut une
+dépendance non vendorisée, aucun test ne le construit — alors **tu ne poses aucun
+assert du tout**, même établi. Le filet qui rattrape les asserts faux, c'est la
+suite de tests ; là où elle ne passe pas, c'est un humain qui le rattrapera, bien
+plus tard. Dis-le dans ton rapport et écris 40 mots.
+
+**Un assert préexistant sans message** (`assert(cond)` nu, avec à côté le
+commentaire qui serait exactement son message) est un cas fréquent sur un dépôt
+déjà repris : la première passe a posé l'assert, la seconde trouve le commentaire
+orphelin. La fusion est la bonne transformation **et c'est une modification de
+code** : tu ne la fais pas. Tu gardes la prose et tu le signales.
+
 ## Vérifie toute affirmation de statut avant de la croire
 
 « Pas encore porté », « jamais exercé », « aucun lecteur », « code mort », « ce
@@ -85,6 +97,13 @@ sera un problème le jour où X » : ces phrases ne mentaient pas quand elles on
 dépôt, et plusieurs détournaient le regard du seul endroit qu'il fallait
 examiner. Chacune se vérifie (grep, compte d'appelants, lecture de la référence)
 ou se supprime. Une affirmation vérifiée fausse est un résultat : signale-la.
+
+**Ça vaut aussi pour les chaînes destinées à l'humain** — bannière, message
+d'aide, ligne d'état : c'est de la documentation qui s'exécute, et elle périme
+comme un commentaire. Sur ce chantier, un mode de lecture rejeté avait disparu du
+code et des commentaires mais survivait dans la bannière du programme. **Tu la
+vérifies, et une divergence se signale — jamais ne se corrige ici** : c'est du
+code, ça mérite son propre commit `fix:`.
 
 ## Si ton module est un fichier de test
 
@@ -96,14 +115,28 @@ et les affirmations périmées, rien d'autre.
 
 **Tu ne modifies ni ne supprimes une assertion existante** : ni sa valeur, ni sa présence. Tu peux en **ajouter** une si tu l'as prouvée — même exigence de preuve qu'ailleurs. Liste-la au rapport : l'orchestrateur en fera un commit `test:` séparé du commit `docs:`.
 
+Une assertion que tu juges **fausse, faible ou trompeuse** — elle ne prouve pas ce
+que son nom annonce — se signale dans ton rapport, avec ce qu'elle prouve
+réellement. Elle ne se corrige pas ici.
+
+Le curseur, puisque « taux plus élevé » n'en est pas un : **une phrase reste si
+elle explique une valeur littérale, un choix de cas ou un contrat de tampon ; elle
+part si elle raconte d'où vient la décision.**
+
 ## Contrôle avant de rendre la main
 
 - Aucune déclaration, aucune ligne de code perdue. Compare la sortie du
   préprocesseur (`<gcc -fpreprocessed -dD -E -P>`) avant/après : elle doit être
-  identique, aux `assert` près.
+  identique, aux `assert` près. **Cette vérification marche même sur un fichier
+  que tu ne peux pas compiler** : l'option ne résout pas les `#include`, elle
+  retire les commentaires. Ne te rabats jamais sur une relecture à l'œil.
+- Le nombre de lignes de code est identique avant et après. Second filet, gratuit.
 - Pas de commentaire de bloc imbriqué (un `/* */` ne s'imbrique pas).
 - `#include <assert.h>` présent si tu as posé un assert.
-- Compte les lignes de commentaire avant et après, et donne les deux.
+- Compte les lignes de commentaire avant et après avec **la commande que donne la
+  consigne**, pas avec la tienne : sinon ton chiffre n'est comparable à aucun autre.
+- Signale les fichiers du même lot que tu as croisés sans les avoir en charge. Un
+  rattrapage qui en laisse la moitié derrière lui n'en est pas un.
 
 ## Rapport
 

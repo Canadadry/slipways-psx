@@ -2,7 +2,12 @@
 
 À coller en fin de consigne, ou à faire lire à l'agent. L'orchestrateur en tire le
 message de commit, les lots d'entrées de glossaire et d'écarts, et la décision de
-relancer un module.
+relancer un module. Il lit **les rubriques 7 et 8 en premier** : ce sont elles qui
+portent les résultats.
+
+**Une rubrique vide n'est pas une rubrique ratée**, et ça vaut pour les neuf. Sur
+un rattrapage de quelques fichiers, 3, 5 et 6 sont souvent vides par construction.
+Meubler est le seul vrai échec.
 
 ---
 
@@ -11,7 +16,13 @@ relancer un module.
 ```
 <module>.h   <N> → <n> lignes de commentaire   (<X> lignes de code)
 <module>.c   <N> → <n>                          (<X>)
+
+contrôle : diff préprocesseur avant/après <identique | écart, lequel>
+            lignes de code <identiques | écart>
 ```
+
+Le contrôle va ici, à côté du ratio : c'est la première chose que l'orchestrateur
+doit lire, et la seule preuve que le nettoyage n'a rien cassé.
 
 ## 2. Ce que j'ai gardé, et sous quelle destination
 
@@ -22,7 +33,8 @@ Une ligne par commentaire conservé, avec sa destination (3 = piège, 4 = contra
 
 ## 3. Asserts posés
 
-Une rubrique vide n'est pas une rubrique ratée.
+Vide sur un fichier de test, et vide sur un fichier qu'aucune cible lançable
+n'atteint : dans les deux cas la passe n'en pose pas.
 
 Un bloc par assert. **Le mode de preuve est obligatoire** : énumération des sites
 d'appel, mesure, ou preuve locale sans hypothèse sur les appelants. « Je ne vois
