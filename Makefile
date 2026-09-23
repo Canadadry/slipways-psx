@@ -6,7 +6,11 @@
 # make screencast-check -> compare leur empreinte à celle qui est signée
 # make screencast-sign  -> signe l'empreinte actuelle (acte humain, voir plus bas)
 # make frames-check  -> compare les empreintes par frame de chaque rejeu du filet
-# make frames-baseline -> (re)pose ces empreintes de référence, jamais par make test
+# make frames-baseline -> (re)pose ces empreintes de référence, jamais par make test ;
+#                       refuse si une référence diverge, sauf avec ETAPE=<id>, qui
+#                       écrit d'abord tools/frames_reports/<id>.txt
+# make frames-report ETAPE=<id> -> écrit tools/frames_reports/<id>.txt, toutes les
+#                       frames divergentes par rejeu, sans re-baseliner
 # make ref-audit     -> diagnostic des casts REF, hors suite
 # make float-inventory -> réécrit tools/float_inventory.txt (cœur + tools/float_annotation.txt), hors suite
 # make float-inventory-check -> régénère l'inventaire dans tmp/ et échoue s'il
@@ -25,7 +29,7 @@
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign screencast-viewer frames-check frames-baseline
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-check screencast-sign screencast-viewer frames-check frames-baseline frames-report
 
 CC ?= cc
 CFLAGS ?= -std=c99 -Wall -Wextra -Werror -g
@@ -291,6 +295,9 @@ $(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c sr
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_frames_report: $(call objs,tests/test_frames_report.c) tools/frames_report.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_inventory: $(call objs,tests/test_float_inventory.c) tools/float_inventory.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -387,7 +394,7 @@ $(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_b
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_frames_report $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -419,6 +426,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_frame_hash
 	./$(TMP_DIR)/test_pico8_frames_tool
 	./$(TMP_DIR)/test_frames_check
+	./$(TMP_DIR)/test_frames_report
 	./$(TMP_DIR)/test_float_inventory
 	./$(TMP_DIR)/test_float_inventory_check
 	./$(TMP_DIR)/test_float_coverage
@@ -544,7 +552,23 @@ FRAMES_CHECK_PREREQ := $(foreach e,$(FRAMES_EVENTS),$(if $(wildcard $(call frame
 frames-check: $(FRAMES_CHECK_PREREQ) tools/frames_check.sh
 	@sh tools/frames_check.sh ./$(FRAMES_TOOL) $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
-frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e)))
+FRAMES_REPORTS_DIR := tools/frames_reports
+FRAMES_TRIPLETS := $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)))
+FRAMES_REPORT_FILE := $(FRAMES_REPORTS_DIR)/$(ETAPE).txt
+
+# Écrit à côté puis renomme : un rapport interrompu n'écrase pas le précédent.
+frames_write_report = sh tools/frames_report.sh --etape '$(ETAPE)' $(FRAMES_TRIPLETS) > $(FRAMES_REPORT_FILE).tmp \
+	    || { rm -f $(FRAMES_REPORT_FILE).tmp; exit 1; }; \
+	mv $(FRAMES_REPORT_FILE).tmp $(FRAMES_REPORT_FILE) && echo "frames: rapport ecrit dans $(FRAMES_REPORT_FILE)"
+
+frames-report: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e))) tools/frames_report.sh
+	@$(if $(ETAPE),,echo "frames-report: nommer l'etape : make frames-report ETAPE=<id>" >&2; exit 1)
+	@$(frames_write_report)
+
+# La garde refuse avant toute copie ; avec ETAPE=, le rapport précède la copie.
+frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e))) tools/frames_report.sh
+	@sh tools/frames_report.sh --garde '$(ETAPE)' $(FRAMES_TRIPLETS)
+	@$(if $(ETAPE),$(frames_write_report))
 	@$(foreach e,$(FRAMES_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "frames: reference posee dans $(call frames_reference,$(e)) ($$(wc -l < $(call frames_reference,$(e)) | tr -d ' ') frames)" && ) true
 
 # make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
