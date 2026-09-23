@@ -12,8 +12,8 @@
  * shell -- est paye sciemment.
  *
  * Effet de bord assume : chaque rejeu lance ici reecrit le dump du
- * pilote avec celui de la fixture courte. Rien d'autre dans la suite ne
- * lit ce fichier, et `make replay` le reecrit ensuite avec celui de
+ * pilote avec celui de la fixture courte ; test_pico8_frames_tool le
+ * reecrit aussi, et `make replay` le reecrit ensuite avec celui de
  * l'events.json de la racine. */
 
 #include "../src/pico8_dump.h"
@@ -29,10 +29,11 @@
 
 #define FIXTURE "tests/fixtures/screencast_capture_events.json"
 #define DRIVER "./tmp/pico8_replay"
-/* Le chemin que src/main.c ecrit en dur, et qui n'est pas
- * configurable. C'est la sortie sur laquelle portent la fidelite ET la
- * neutralite. */
+/* Le chemin par defaut du dump de src/main.c, quand argv[3] manque.
+ * C'est la sortie sur laquelle portent la fidelite ET la neutralite. */
 #define DRIVER_DUMP "tmp/pico8_replay_dump.txt"
+#define CUSTOM_DUMP "tmp/test_headless_capture_custom_dump.txt"
+#define DUMP_WITNESS "temoin: ce dump ne doit pas etre reecrit\n"
 #define CAPTURE "tmp/test_headless_capture.bin"
 #define STDERR_LOG "tmp/test_headless_capture_stderr.txt"
 /* Un chemin dont le repertoire parent n'existe pas : le cas "chemin
@@ -215,11 +216,48 @@ static void test_unopenable_capture_path_is_fatal_and_names_the_path(void) {
     remove(STDERR_LOG);
 }
 
+/* Des rejeux de variantes lances cote a cote ne doivent pas s'ecraser
+ * leur dump : avec argv[3], le dump va la, et le chemin par defaut --
+ * relu par ce test et par test_pico8_frames_tool -- garde son temoin. */
+static void test_third_argument_redirects_the_text_dump(void) {
+    remove(DRIVER_DUMP);
+    assert(system(DRIVER " " FIXTURE " > /dev/null") == 0);
+    size_t default_len;
+    char *default_dump = read_whole_file(DRIVER_DUMP, &default_len);
+
+    FILE *witness = fopen(DRIVER_DUMP, "w");
+    assert(witness != NULL);
+    assert(fputs(DUMP_WITNESS, witness) >= 0);
+    assert(fclose(witness) == 0);
+
+    remove(CUSTOM_DUMP);
+    remove(CAPTURE);
+    assert(system(DRIVER " " FIXTURE " " CAPTURE " " CUSTOM_DUMP " > /dev/null") == 0);
+
+    size_t custom_len;
+    char *custom = read_whole_file(CUSTOM_DUMP, &custom_len);
+    assert(custom_len == default_len);
+    assert(memcmp(custom, default_dump, default_len) == 0);
+
+    size_t untouched_len;
+    char *untouched = read_whole_file(DRIVER_DUMP, &untouched_len);
+    assert(untouched_len == strlen(DUMP_WITNESS));
+    assert(memcmp(untouched, DUMP_WITNESS, untouched_len) == 0);
+
+    free(untouched);
+    free(custom);
+    free(default_dump);
+    remove(CUSTOM_DUMP);
+    remove(CAPTURE);
+    remove(DRIVER_DUMP);
+}
+
 int main(void) {
     test_capture_holds_exactly_the_replayed_frames();
     test_last_captured_frame_matches_the_text_dump();
     test_capturing_changes_nothing_the_replay_produces();
     test_unopenable_capture_path_is_fatal_and_names_the_path();
+    test_third_argument_redirects_the_text_dump();
     printf("test_pico8_headless_capture: all tests passed\n");
     return 0;
 }
