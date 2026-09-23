@@ -1,24 +1,27 @@
 #include "pico8_list.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "pico8_ref_audit.h"
 
 #define PICO8_LIST_INITIAL_CAPACITY 4
 
-/* ACCESSOR-ENTRY HALF OF THE REVERSE REF-CAST AUDIT
- * (src/pico8_ref_audit.h, docs/audit-ref-cast-reverse.md). In an ordinary
- * build PICO8_REF_AUDIT_EXPECT_LIST expands to nothing at all. Under
- * -DPICO8_REF_AUDIT it asks each incoming pointer whether it really is a
- * pico8_list_t and reports the first time it is not.
+/* The five entry points below are where EVERY list operation in the port
+ * eventually arrives, whatever path the pointer took to get there, so
+ * they are the accessor-entry half of the reverse REF-cast audit
+ * (src/pico8_ref_audit.h, docs/audit-ref-cast-reverse.md): under
+ * -DPICO8_REF_AUDIT, PICO8_REF_AUDIT_EXPECT_LIST asks each incoming
+ * pointer whether it really is a pico8_list_t, catching a REF read as a
+ * list through a route the cast-site macros never enumerated.
  *
- * Why here and not only at the cast sites: the cast-site macros can only
- * watch the conversions this audit itself enumerated and rewrote. These
- * five entry points are where EVERY list operation in the port
- * eventually arrives, whatever path the pointer took to get there -- so
- * a REF read as a list through some route nobody listed still shows up.
  * pico8_list_init is deliberately NOT checked: it is the function that
- * WRITES the tag, and its argument is legitimately uninitialised. */
+ * WRITES the tag, and its argument is legitimately uninitialised.
+ *
+ * The assert is the other half, and is live in an ordinary build:
+ * PICO8_REF_AS_LIST passes a NULL ref through on purpose (a NULL is not a
+ * wrong tag), so a list primitive is where an absent field finally has to
+ * be refused. */
 
 void pico8_list_init(pico8_list_t *list) {
     list->tag = PICO8_TYPE_TAG_LIST;
@@ -29,18 +32,15 @@ void pico8_list_init(pico8_list_t *list) {
 
 void pico8_list_free(pico8_list_t *list) {
     PICO8_REF_AUDIT_EXPECT_LIST(list);
+    assert(list != NULL && "list primitive called on a NULL list");
     free(list->items);
     list->items = NULL;
     list->count = 0;
     list->capacity = 0;
 }
 
-/* Simple capacity-doubling growth, starting at a small initial capacity.
- * abort()s on allocation failure rather than returning a partially-valid
- * list -- this phase's own scope (a handful of small fake-entity lists in
- * a unit test / smoke test) never approaches a size where this matters in
- * practice; not a documented PICO-8 behavior, just an ordinary C growable-
- * array choice. */
+/* Capacity doubling from a small initial capacity. abort()s on allocation
+ * failure rather than returning a partially-valid list. */
 static void pico8_list_grow(pico8_list_t *list) {
     int new_capacity = list->capacity == 0 ? PICO8_LIST_INITIAL_CAPACITY : list->capacity * 2;
     pico8_value_t *new_items = realloc(list->items, (size_t)new_capacity * sizeof(pico8_value_t));
@@ -54,6 +54,7 @@ static void pico8_list_grow(pico8_list_t *list) {
 
 void pico8_list_add(pico8_list_t *list, pico8_value_t value) {
     PICO8_REF_AUDIT_EXPECT_LIST(list);
+    assert(list != NULL && "list primitive called on a NULL list");
     if (list->count == list->capacity) {
         pico8_list_grow(list);
     }
@@ -64,6 +65,7 @@ void pico8_list_add(pico8_list_t *list, pico8_value_t value) {
 int pico8_list_del(pico8_list_t *list, pico8_value_t value) {
     int i;
     PICO8_REF_AUDIT_EXPECT_LIST(list);
+    assert(list != NULL && "list primitive called on a NULL list");
     for (i = 0; i < list->count; i++) {
         if (pico8_value_equal(list->items[i], value)) {
             int j;
@@ -80,6 +82,7 @@ int pico8_list_del(pico8_list_t *list, pico8_value_t value) {
 pico8_list_iter_t pico8_list_all(const pico8_list_t *list) {
     pico8_list_iter_t it;
     PICO8_REF_AUDIT_EXPECT_LIST(list);
+    assert(list != NULL && "list primitive called on a NULL list");
     it.list = list;
     it.index = -1;
     it.last_count = list->count;
@@ -95,11 +98,9 @@ int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value) {
         next_index = 0;
     } else if (iter->list->count < iter->last_count) {
         /* The list shrank since we last returned an element: assume the
-         * element at iter->index (the one we just returned) is what was
-         * deleted. del() shifts everything after it down by one, so the
-         * next real element has slid into that same slot -- re-read it
-         * instead of advancing past it (see pico8_list.h's comment on
-         * pico8_list_all for the documented scope of this tolerance). */
+         * element at iter->index is what was deleted, and re-read that
+         * same slot (see pico8_list_all in pico8_list.h for the scope of
+         * this tolerance). */
         next_index = iter->index;
     } else {
         next_index = iter->index + 1;
@@ -118,6 +119,7 @@ int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value) {
 void pico8_list_foreach(const pico8_list_t *list, pico8_list_foreach_fn fn, void *ctx) {
     int i;
     PICO8_REF_AUDIT_EXPECT_LIST(list);
+    assert(list != NULL && "list primitive called on a NULL list");
     for (i = 0; i < list->count; i++) {
         fn(list->items[i], ctx);
     }

@@ -3,61 +3,54 @@
 
 #include "pico8_list.h"
 #include "pico8_type_tag.h"
+#include <assert.h>
 
 /* The REVERSE-direction half of this port's REF-cast problem, and the
- * reusable instrumentation that measures it.
+ * instrumentation that measures it.
  *
- * WHY THIS EXISTS. pico8_type_tag.h explains the forward direction: a
- * `pico8_list_t` read as a `pico8_ob_table_t` walks its backing array at
- * DOUBLE stride and overflows the allocation -- loud, ASan-visible, hit
- * four times. This header is about the mirror image, which is quiet: a
- * `pico8_ob_table_t` read as a `pico8_list_t`. The two structs have the
- * same layout down to `count`/`capacity` (tag, 4 bytes padding, a
- * pointer, two ints), so the header fields read back CORRECTLY -- it is
- * only the ELEMENTS that differ, 16-byte `pico8_value_t` against 32-byte
- * `pico8_ob_entry_t`. Reading N elements of 16 bytes out of an array of
- * N elements of 32 therefore stays comfortably inside the allocation and
- * never trips a sanitizer; what comes back is `items[0]` = entry 0's KEY
- * reinterpreted as a value (a PICO8_OB_KEY_INDEX kind of 0 reads as
- * PICO8_VALUE_FIXED, and the key's `name` pointer reads as that number's
- * bits), `items[1]` = entry 0's value, `items[2]` = entry 1's key, and so
- * on. The symptom is a wrong number on a panel, an empty line, or an
- * absurd glyph -- never a crash. Nobody notices.
+ * pico8_type_tag.h covers the forward direction: a `pico8_list_t` read as
+ * a `pico8_ob_table_t` walks its backing array at DOUBLE stride and
+ * overflows the allocation -- loud and ASan-visible. This header is about
+ * the mirror image, which is quiet: a `pico8_ob_table_t` read as a
+ * `pico8_list_t`. The two structs have the same header down to
+ * `count`/`capacity` (tag, 4 bytes padding, a pointer, two ints), so those
+ * fields read back CORRECTLY -- only the ELEMENTS differ, 16-byte
+ * `pico8_value_t` against 32-byte `pico8_ob_entry_t`. Reading N elements
+ * of 16 bytes out of an array of N elements of 32 stays comfortably inside
+ * the allocation and never trips a sanitizer; what comes back is
+ * `items[0]` = entry 0's KEY reinterpreted as a value (a
+ * PICO8_OB_KEY_INDEX kind of 0 reads as PICO8_VALUE_FIXED, and the key's
+ * `name` pointer reads as that number's bits), `items[1]` = entry 0's
+ * value, `items[2]` = entry 1's key, and so on. The symptom is a wrong
+ * number on a panel, an empty line, or an absurd glyph -- never a crash.
  *
- * WHAT THIS HEADER IS. Two things, both deliberately zero-cost in an
- * ordinary build:
+ * WHAT THIS HEADER IS. Two things:
  *
  *   1. PICO8_REF_AS_LIST / PICO8_REF_AS_LIST_CONST: the ONE spelling
  *      every "REF value -> pico8_list_t *" conversion in src/ goes
- *      through. In a normal build each is exactly the plain cast the
- *      code already had, so nothing is added to the shipped program.
- *      Their real job is to make the set of such sites greppable and
- *      countable, which is what the pre-Phase-5 audit -- the one that
- *      marked `js:pq`'s own "lq" safe and was wrong -- had no way to be.
+ *      through. In an ordinary build it is not a bare cast: it checks the
+ *      tag and aborts on an object that is not a list. It also keeps the
+ *      set of such sites greppable and countable.
  *
- *   2. Under -DPICO8_REF_AUDIT, the same two macros record WHAT each
- *      site actually received, per site, tag by tag, and dump a report
- *      at exit. That turns "I read the code and believe this is a list"
- *      into a measurement, and -- just as importantly -- distinguishes a
- *      site that ran clean from a site no scenario ever reached. A site
- *      no method reaches is NOT COVERED, not safe; conflating the two is
- *      precisely how the previous audit produced its false negative.
+ *   2. Under -DPICO8_REF_AUDIT, the same two macros instead record WHAT
+ *      each site actually received, per site, tag by tag, and dump a
+ *      report at exit. That turns "I read the code and believe this is a
+ *      list" into a measurement, and -- just as importantly --
+ *      distinguishes a site that ran clean from a site no scenario ever
+ *      reached. A site no method reaches is NOT COVERED, not safe;
+ *      conflating the two is how an earlier hand audit produced a false
+ *      negative.
  *
- * Deliberately header-only, function-local statics and all, for the same
- * reason pico8_type_tag.h is: every target in the Makefile would
- * otherwise have to grow a new .c in its source list, and one forgotten
- * list would produce a link error in an instrumented build nobody runs
- * by default. Each translation unit keeps its own little site table and
- * registers its own atexit dump; the sites of one .c file never appear
- * in another's, so the per-TU split costs nothing and the report tool
+ * Header-only, function-local statics and all: each translation unit
+ * keeps its own site table and registers its own atexit dump, so the
+ * sites of one .c file never appear in another's and the report tool
  * (tools/ref_audit_report.sh) simply concatenates.
  *
  * HOW TO RE-RUN IT. `make ref-audit`. That builds the headless replay
- * driver and the state-constructing tests into tmp/obj-refaudit (its own
- * object tree -- see the Makefile's own comment on why an instrumented
- * object may never be shared with an uninstrumented one), runs them over
- * every recorded events.json fixture in the repo, and prints one line
- * per cast site: the tags observed, or NOT COVERED. */
+ * driver and the state-constructing tests into their own instrumented
+ * object tree, runs them over every recorded events.json fixture in the
+ * repo, and prints one line per cast site: the tags observed, or NOT
+ * COVERED. See also docs/audit-ref-cast-reverse.md. */
 
 #ifdef PICO8_REF_AUDIT
 
@@ -189,8 +182,8 @@ static inline const void *pico8_ref_audit_note(const char *file, int line, const
  * the list and ordered-table primitives themselves, so a mis-typed object
  * arriving through a path nobody enumerated -- a helper that takes an
  * already-converted pointer, a field this audit never looked at, a site
- * written after it -- still announces itself. Exactly the gap that let
- * the pre-Phase-5 audit conclude "already guarded" about `js:pq`'s "lq".
+ * written after it -- still announces itself. That gap is what lets a
+ * hand audit of the cast sites alone conclude "already guarded" wrongly.
  *
  * Reports each distinct (function, wrong tag) pair once and then goes
  * quiet, so a mismatch in a per-frame primitive does not bury the run in
@@ -237,10 +230,24 @@ static inline void pico8_ref_audit_expect(const char *what, const void *p, pico8
 
 #else /* !PICO8_REF_AUDIT */
 
-/* An ordinary build gets back exactly the cast that was written here
- * before this header existed -- no call, no branch, no storage. */
-#define PICO8_REF_AS_LIST(r) ((pico8_list_t *)(r))
-#define PICO8_REF_AS_LIST_CONST(r) ((const pico8_list_t *)(r))
+/* An ordinary build checks the tag and then casts: reading a REF that is
+ * not a list walks its backing array at the wrong stride (pico8_type_tag.h
+ * for what that costs). Each site used to carry a comment arguing why its
+ * own cast was safe; this check replaces all of them, and unlike a comment
+ * it cannot go stale. NULL is let through deliberately -- it is an absent
+ * field, not a wrong tag -- and pico8_list.c refuses it instead. */
+static inline pico8_list_t *pico8_ref_as_list(void *r) {
+    assert((r == NULL || pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");
+    return (pico8_list_t *)r;
+}
+
+static inline const pico8_list_t *pico8_ref_as_list_const(const void *r) {
+    assert((r == NULL || pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");
+    return (const pico8_list_t *)r;
+}
+
+#define PICO8_REF_AS_LIST(r) pico8_ref_as_list(r)
+#define PICO8_REF_AS_LIST_CONST(r) pico8_ref_as_list_const(r)
 #define PICO8_REF_AUDIT_EXPECT_LIST(p) ((void)0)
 #define PICO8_REF_AUDIT_EXPECT_OB_TABLE(p) ((void)0)
 

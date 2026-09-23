@@ -1,10 +1,3 @@
-/* Voir pico8_palette.h pour ce qu'est cette table, d'ou elle vient et
- * pourquoi elle ne connait pas raylib. Les valeurs ci-dessous ont ete
- * DEPLACEES depuis src/pico8_raylib_backend.c, et non retapees : elles
- * y etaient une table `static const Color` dont le seul changement est
- * la perte de l'alpha, toujours opaque, que chaque fichier raylib
- * rajoute maintenant au point d'usage. */
-
 #include "pico8_palette.h"
 
 const pico8_rgb_t PICO8_PALETTE_RGB[PICO8_PALETTE_COLORS] = {

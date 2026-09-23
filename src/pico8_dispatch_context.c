@@ -1,8 +1,3 @@
-/* See pico8_dispatch_context.h's own top comment for the full rationale.
- * Plain module-level statics, defaulting to NULL (unset) -- mirrors
- * pico8_pi.c's own g_pi_gfx/g_pi_mem precedent exactly, just shared across
- * this chunk's own three new modules instead of re-declared in each. */
-
 #include "pico8_dispatch_context.h"
 
 #include <stddef.h>

@@ -1,6 +1,6 @@
 ---
 name: fix-bug
-description: End-to-end pipeline for one reported bug — a fresh help-me-debug agent proves the cause, a fresh tdd agent writes the failing test then the minimal fix, a third fresh agent verifies it independently, the finding is logged in docs/plan.md, and git-commit lands it. Use when a bug is reported (playtest feedback, crash, wrong rendering) and the user wants it fixed, not merely diagnosed.
+description: End-to-end pipeline for one reported bug — a fresh help-me-debug agent proves the cause, a fresh tdd agent writes the failing test then the minimal fix, a third fresh agent verifies it independently, and git-commit lands it with the finding in its message. Use when a bug is reported (playtest feedback, crash, wrong rendering) and the user wants it fixed, not merely diagnosed.
 ---
 
 # fix-bug
@@ -62,7 +62,7 @@ Its mandate, in this order:
 2. **GREEN**: the minimal fix the proven cause justifies. Nothing adjacent, no cleanup, no refactor of neighbouring code.
 3. `make test` fully green.
 
-It updates `README.md` only if user-visible behaviour changed. It never touches git, and never edits `docs/plan.md` — stage 4 owns that.
+It updates `README.md` only if user-visible behaviour changed. It never touches git — stage 4 owns that.
 
 Reporting contract: `DONE:` plus what the test asserts, which files and lines changed, and why that is the minimal fix — or `QUESTION:` (Rule #1). `DONE:` means implemented, **not** verified.
 
@@ -79,27 +79,26 @@ Reporting contract: `VERIFIED:` plus the evidence for each point, or `FAILED:` p
 
 On `FAILED:`, route by kind. A mechanical failure (test doesn't compile, wrong path, suite breakage) goes back to stage 2 with the detail. A fix that doesn't actually remove the symptom means the cause wasn't the cause: back to **stage 1**, not stage 2, handed the verifier's evidence. After one such round trip, stop and report to the user rather than spinning.
 
-### 4. Log the finding — `docs/plan.md`
-
-After `VERIFIED:`, write one paragraph in the **Notes de portage** section of `docs/plan.md`, in French, in the style of the entries already there — derived from the stage-1 bug document and the stage-3 evidence, strictly factual:
-
-- the symptom as reported, and what surfaced it (human playtest, scripted replay, sanitizer);
-- **the hypothesis that was disproved**, when there was one — as valuable as the cause itself, since it's what spares the next reader the same detour;
-- the proven cause, with file/function/line references, and the `pico8/lua.lua` lines when fidelity is at stake;
-- the fix retained, and what was deliberately *not* changed;
-- how it was verified (the detection proof, `make test`, sanitizers).
-
-Write it yourself rather than delegating: you hold both the proof and the verification, a fresh agent would hold neither.
-
-### 5. Commit the fix
+### 4. Commit the fix
 
 Invoke the `git-commit` skill **yourself, in place** — don't delegate it to a sub-agent, since its proposal step waits for the user's go-ahead and a sub-agent can't collect it. This is the one stop in the pipeline.
 
-Scope this commit to the code fix and its test (`fix:`). Leave `docs/plan.md` out — it's a separate intention.
+The commit message is where the finding is recorded — no journal file, no prose in the code. Write it in French, strictly factual, from the stage-1 bug document and the stage-3 evidence:
 
-### 6. Commit the note
+- the symptom as reported, and what surfaced it (human playtest, scripted replay, sanitizer);
+- **the hypothesis that was disproved**, when there was one — as valuable as the cause itself, since it's what spares the next reader the same detour;
+- the proven cause, with file/function references;
+- the fix retained, and what was deliberately *not* changed.
 
-Invoke `git-commit` again for `docs/plan.md` alone (`docs:`), as the repo already does for its porting notes.
+Write it yourself rather than delegating: you hold both the proof and the verification, a fresh agent would hold neither.
+
+What the commit message must NOT absorb, because it belongs in the working tree instead:
+
+- a trap a future reader could reintroduce → an `assert` carrying a message at the exact spot, or, when the invariant isn't checkable at runtime, a comment of at most 40 words there;
+- a divergence from the cart that stays open → a numbered entry in `docs/trous-de-portage.md`, referenced from the code by a bare `/* TROU-n */`;
+- the meaning of a minified name you had to work out → a line in `docs/glossaire-noms.md`.
+
+Scope the commit to the code fix and its test (`fix:`). A glossary or gaps-file edit is a separate intention: commit it on its own (`docs:`).
 
 ## Stopping conditions
 

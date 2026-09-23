@@ -1,11 +1,6 @@
-/* Phase 5, Etape 1, Chunk 3 (docs/prd/triage/phase5-etape1-raylib-
- * interactive-backend.md): unit tests for the one pure, raylib-free
- * function this chunk's own Testing Decisions call out explicitly --
- * known window-pixel inputs at a known fixed scale mapping to known
- * 128x128 outputs, including the clamping boundary. Links only against
- * pico8_raylib_backend_coords.c, never raylib itself, so it can run
- * headlessly as part of the existing `unit`/`test` targets with none of
- * that fast day-to-day suite's window-free/raylib-free guarantee lost. */
+/* Known window pixels at a known scale, mapped to known 128x128 outputs,
+ * clamping boundary included. Links against the coordinate module alone and
+ * never raylib, so it stays in the window-free suite. */
 
 #include "../src/pico8_raylib_backend_coords.h"
 

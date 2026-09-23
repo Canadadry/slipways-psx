@@ -7,18 +7,9 @@ void pico8_gfx_init(pico8_gfx_t *gfx) {
     gfx->camera_y = 0;
     gfx->fillp_pattern = 0;
     gfx->fillp_transparent = 0;
-    /* Phase 3, Chunk 18: PICO-8's own documented default pen colour before
-     * any real color()/col-taking draw call ever runs is 6 (light grey) --
-     * an external, well-known PICO-8-manual fact, not something derived
-     * from pico8/lua.lua's own source text (flagged per this port's own
-     * convention for such assumptions, e.g. pico8_hud.h's top comment).
-     * The one real, evidenced omitted-col call site this default could
-     * ever matter for (`pj:kj()`'s own `rk(127-h,127)`) is always preceded,
-     * in the SAME function call, by `rk(0,h,0)` (an explicit col=0) on the
-     * real source's own immediately preceding line -- so this default is
-     * never actually observed by any real call site in this cart; it only
-     * matters if some future, not-yet-evidenced call site reads the pen
-     * colour before ever setting it explicitly. */
+    /* 6 is PICO-8's power-on pen color. The cart's one col-omitted draw
+     * call always follows an explicit-col one, so this default is never
+     * observed today. */
     gfx->pen_color = 6;
 }
 
@@ -46,8 +37,6 @@ void pico8_camera_reset(pico8_gfx_t *gfx) {
     pico8_camera(gfx, 0, 0);
 }
 
-/* See pico8_gfx.h's own comment on this declaration for why the single
- * store is the draw-palette byte in memory rather than a gfx-side flag. */
 void pico8_palt(pico8_mem_t *mem, int col, int transparent) {
     int addr;
     unsigned char byte;
@@ -98,15 +87,10 @@ void pico8_line(const pico8_gfx_t *gfx, pico8_mem_t *mem, int x1, int y1, int x2
     }
 }
 
-/* fillp's 16-bit pattern is a 4x4 grid of bits, read most-significant-bit
- * first, row-major from top-left: bit 15 is (row 0, col 0), bit 0 is
- * (row 3, col 3) -- the PICO-8 manual's own "P is a bitfield in reading
- * order starting from the highest bit" table. fillp(0) (the
- * default/reset value) has every bit clear.
- * Only *fill* operations (rectfill, circfill) consult this: every
- * fillp(...)-bracketed call site found in pico8/lua.lua surrounds a fill
- * call and explicitly resets the pattern with fillp() before any
- * unfilled line/rect/circ call, so those never need to respect it. */
+/* The 16-bit pattern is a 4x4 grid read most-significant-bit first,
+ * row-major from the top left: bit 15 is (row 0, col 0), bit 0 is
+ * (row 3, col 3). Only the fills consult it -- the cart always resets the
+ * pattern before any line/rect/circ, so those need not. */
 static int pico8_fillp_bit_set(const pico8_gfx_t *gfx, int x, int y) {
     int row = ((y % 4) + 4) % 4;
     int col = ((x % 4) + 4) % 4;
@@ -114,21 +98,12 @@ static int pico8_fillp_bit_set(const pico8_gfx_t *gfx, int x, int y) {
     return (gfx->fillp_pattern >> bit_index) & 1;
 }
 
-/* The fill pattern is a TWO-COLOUR pattern, and the colour parameter of a
- * fill carries both of its colours: "To specify a second colour for the
- * pattern, use the high bits of any colour parameter" (PICO-8 manual,
- * FILLP). So the pattern's clear bits draw `col`'s low nibble and its set
- * bits draw `col`'s high nibble -- unless the pattern's own transparency
- * flag is set, in which case "the second colour is not drawn" and the set
- * bits leave the screen untouched (returned here as -1).
- *
- * This is why the colour never reaches the framebuffer unmasked: PICO-8's
- * screen is 4 bits per pixel, so only a 0..15 index can ever be stored,
- * and the cart's one two-nibble colour literal -- `rk(om,dn,0x10)` in
- * jb:ol (pico8/lua.lua:319) -- means "colour 0 and colour 1", not
- * "colour 16". pico8_pset() is deliberately left unmasked so that
- * src/pico8_dump.c's own assert(pixel <= 0x0f) keeps catching any future
- * primitive that stores a bogus index. */
+/* A fill pattern is two-colored and the `col` parameter carries both: the
+ * clear bits draw its low nibble, the set bits its high nibble, or nothing
+ * at all (-1 here) when the transparency flag is set. So `rk(om,dn,0x10)`
+ * means colors 0 and 1, not color 16. The masking happens here, not in
+ * pico8_pset, which stays unmasked so pico8_dump.c's assert keeps catching
+ * any primitive that stores an index above 0x0f. */
 static int pico8_fillp_color(const pico8_gfx_t *gfx, int x, int y, int col) {
     if (!pico8_fillp_bit_set(gfx, x, y)) {
         return col & 0x0F;
@@ -252,38 +227,19 @@ unsigned char pico8_sget(const pico8_mem_t *mem, int x, int y) {
     return pico8_peek(mem, PICO8_ADDR_SPRITE_SHEET + y * PICO8_SPRITE_SHEET_WIDTH + x);
 }
 
-/* Sprite index n's top-left pixel sits at sheet coordinate
- * ((n % 16) * 8, (n / 16) * 8): the sheet is 128x128 pixels, laid out as
- * 16x16 blocks of 8x8-pixel sprites (128/8 = 16 per row). w/h are in
- * sprite-size (8px) multiples, so a wide/tall sprite just reads a larger
- * contiguous pixel rectangle from the sheet, spilling into neighboring
- * sprite slots exactly like real PICO-8's multi-cell sprites do.
+/* Sprite n's top-left pixel is at ((n % 16) * 8, (n / 16) * 8) on the
+ * 128x128 sheet; w/h count 8px cells, so a multi-cell sprite reads one
+ * larger rectangle and spills into its neighbours, as on real hardware.
  *
- * Real hardware's own `spr()` treats a source pixel as transparent when
- * the CURRENT draw palette byte for that color
- * (`mem[PICO8_ADDR_DRAW_PALETTE+col]`, `pal()`'s own backing memory) has
- * its high bit set -- the one, single store, which real PICO-8's `palt()`
- * writes into as well (`pico8_palt`/`pico8_gfx_is_transparent` above; this
- * port used to keep a second, gfx-side flag array OR'd onto this byte,
- * see pico8_gfx.h's own comment on pico8_palt for the bug that caused).
- * This cart never calls a plain, unconditional
- * `palt(3,true)`; instead `cu()`/`dv()` (pico8_hud.c) bake
- * that exact bit into every palette block they build/activate (`bor(sget(
- * p,c),c==3 and 0x80)`), and `_draw()`'s own bare `dv()` re-activates it
- * every single frame -- the cart's real, literal mechanism for making
- * color 3 (not color 0) the default "invisible" placeholder everywhere,
- * including the title screen's own `spr(192,0,11,16,4)` logo blit
- * (`fv:kj`/`bl`, pico8_help.c) whose sprite art uses color 3 as its own
- * background fill. Checking only `pico8_gfx_is_transparent` here (as
- * before this fix) leaves that mem-side bit permanently unconsulted, so
- * every `spr()` draws color 3 as a literal opaque dark green -- this was
- * the exact cause of a real, human-reported "solid green band behind the
- * SLIPWAYS logo" bug on the title screen. Deliberately scoped to `spr()`
- * only, not every draw primitive (pset/rect/circ/print/...): it is the
- * one primitive with a real, evidenced, currently-broken call site; see
- * this function's own top comment in pico8_gfx.h for why widening this to
- * every primitive (a full `pal()` remap, not just its transparency bit)
- * is left for a future chunk with its own evidenced need. */
+ * A source pixel is transparent when its draw-palette byte has the 0x80
+ * bit. That is how color 3, not color 0, is the invisible one here: cu()
+ * bakes the bit in and _draw()'s bare dv() re-activates it every frame.
+ * Consulting a gfx-side flag instead drew a green band behind the title
+ * logo, whose art fills with color 3.
+ *
+ * TODO: only the transparency bit of that byte is honored. The rest of
+ * the draw palette -- pal()'s color remap -- is not applied, here or in
+ * any other primitive. */
 void pico8_spr(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, int y, int w, int h) {
     const int sprites_per_row = PICO8_SPRITE_SHEET_WIDTH / PICO8_SPRITE_SIZE;
     int sheet_x = (n % sprites_per_row) * PICO8_SPRITE_SIZE;
@@ -306,12 +262,10 @@ void pico8_spr_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, int n, int x, i
     pico8_spr(gfx, mem, n, x, y, 1, 1);
 }
 
-/* Map cell addressing mirrors pico8_assets.c's map_cell_sink: cel rows
- * 0-31 live in the base map region, rows 32-63 spill into the shared
- * sprite-sheet/map region (pico8/map.json's cart data is 128x64 cells,
- * larger than the base 128x32 map region). Kept in sync by hand rather
- * than shared code, since pico8_assets.c's sink is private to its own
- * flat-JSON-array loading loop. */
+/* Cell rows 0-31 live in the shared sprite-sheet/map region, rows 32-63
+ * in the base map region -- the cart's map is 128x64, larger than the
+ * 128x32 base. pico8_assets.c's map_cell_sink holds the same split and is
+ * kept in sync by hand. */
 #define PICO8_MAP_BASE_ROWS 32
 
 static int pico8_map_cell_addr(int x, int y) {
@@ -344,16 +298,11 @@ void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, i
     for (int r = 0; r < cel_h; r++) {
         for (int c = 0; c < cel_w; c++) {
             unsigned char sprite_n = pico8_map_cell_get(mem, cel_x + c, cel_y + r);
-            /* "Sprite 0 is taken to mean empty and is not drawn" -- PICO-8
-             * manual, MAP(). (Its opt-out, POKE(0x5F36,0x8), is never poked
-             * by this cart, so it isn't implemented here.) The rule is
-             * map()'s alone: spr(0,...) still draws sprite 0. It matters
-             * because THIS cart's sprite 0 is not artwork at all but one
-             * quadrant of the 16x16 pixel block `cu()` reads as its palette
-             * table (pico8/lua.lua:134-140), while `bg:pq()` writes cell
-             * value 0 for most of the sky (3 of `bg.pl`'s 15 entries are
-             * literally 0, pico8/lua.lua:362-371) -- drawing it tiled that
-             * palette block over the whole galaxy background. */
+            /* map() takes sprite 0 as empty and skips it; spr(0,...)
+             * still draws it. The distinction matters: this cart's sprite
+             * 0 is part of the pixel block cu() reads as its palette
+             * table, and bg writes cell value 0 over most of the sky.
+             * (PICO-8's opt-out, POKE(0x5F36,0x8), is never poked here.) */
             if (sprite_n == 0) {
                 continue;
             }
@@ -362,37 +311,17 @@ void pico8_map(const pico8_gfx_t *gfx, pico8_mem_t *mem, int cel_x, int cel_y, i
     }
 }
 
-/* Hand-authored bitmap font (see pico8_gfx.h for cell/glyph metrics).
- * Each row is a 3-bit value, MSB = leftmost column of the glyph's 3x5
- * bitmap (bit 2 = col 0, bit 1 = col 1, bit 0 = col 2).
+/* Hand-authored bitmap font, not PICO-8's own glyphs: the real ones live
+ * in the runtime, not in the extracted cart assets. It only has to make
+ * one character tellable from another in a text dump. Each row is a 3-bit
+ * value, MSB the leftmost column of the 3x5 bitmap.
  *
- * Real PICO-8's font bitmap isn't present anywhere in the extracted
- * `pico8/` cart assets (it's part of the PICO-8 runtime, not the cart --
- * see docs/prd/triage/phase1-etape1-pico8-interface-software-rendering.md's
- * "Further Notes"), so this table is a minimal, hand-authored invention,
- * not a reproduction of PICO-8's real glyphs -- legible enough to spot
- * one character from another in a headless text dump, nothing more.
- *
- * Coverage: space, digits 0-9, letters a-z AND A-Z, and the punctuation
- * ! $ % ' ( ) + , - . / : = ? -- originally derived by grepping
- * pico8/lua.lua's string literals actually reachable from print()/io()
- * call sites (see this chunk's implementation notes). That scan missed
- * `ef`, the month-name table, whose entries are written as decimal
- * escapes rather than plain literals (`ef=ob("\"\74\65\78\",...")`,
- * pico8/lua.lua:797 -- \74\65\78 is "JAN"), so uppercase went uncovered
- * and the top menu bar's date drew three solid placeholder blocks instead
- * of a month: a real, human-reported bug. Upper- and lowercase share one
- * bitmap each, for the same reason 'u'/'v' do (below) -- this table only
- * has to answer "which character is this", and at 3x5 there is no room
- * for a second, case-distinguishing shape. Any still-uncovered character
- * draws PICO8_FONT_ROWS_PLACEHOLDER, a solid 3x5 block -- deliberately
- * distinct from every covered glyph and from the blank space glyph, so a
- * missing-character bug is visually obvious in a text dump rather than
- * silently reading as whitespace.
- *
- * 'u' and 'v' intentionally share the same bitmap: at 3x5 there isn't
- * room to distinguish them meaningfully, and this table doesn't need to
- * be legible beyond "which of the covered characters is this". */
+ * Covered: space, 0-9, A-Z and a-z, and ! $ % ' ( ) + , - . / : = ?. Case
+ * shares a bitmap, as do 'u' and 'v': at 3x5 there is no room to tell
+ * them apart. Anything uncovered draws PICO8_FONT_ROWS_PLACEHOLDER, a
+ * solid block, on purpose -- a missing glyph must not read as whitespace.
+ * The cart's strings written as decimal escapes (`\74\65\78` is "JAN")
+ * are easy to miss when checking coverage by grep. */
 static const unsigned char PICO8_FONT_ROWS_PLACEHOLDER[PICO8_FONT_GLYPH_HEIGHT] = {7, 7, 7, 7, 7};
 static const unsigned char PICO8_FONT_ROWS_SPACE[PICO8_FONT_GLYPH_HEIGHT] = {0, 0, 0, 0, 0};
 
@@ -482,7 +411,7 @@ static const unsigned char *pico8_font_glyph_rows(char c) {
         case 'S': case 's': return PICO8_FONT_ROWS_S;
         case 'T': case 't': return PICO8_FONT_ROWS_T;
         case 'U': case 'u': return PICO8_FONT_ROWS_U;
-        case 'V': case 'v': return PICO8_FONT_ROWS_U; /* deliberately shared with u, see comment above */
+        case 'V': case 'v': return PICO8_FONT_ROWS_U; /* shared with u on purpose */
         case 'W': case 'w': return PICO8_FONT_ROWS_W;
         case 'X': case 'x': return PICO8_FONT_ROWS_X;
         case 'Y': case 'y': return PICO8_FONT_ROWS_Y;

@@ -1,53 +1,19 @@
-/* Permanent regression test for the `jo:gh()` -> `pz()` -> `js(b)` ->
- * `js:pq()` -> `lq(mv(self,"lq"))` type-confusion crash (docs/plan.md's
- * own "Notes de portage" journal; reported from a real raylib playtest as
- * a hard SIGSEGV on mouse RELEASE over a developed planet).
+/* A display row's "lq" holds a `pico8_list_t*` where `js:pq()` passes it on
+ * as class overrides, i.e. as a `pico8_ob_table_t*`. Lua has one table
+ * type and this port has two: before the type tag the structs were
+ * ABI-compatible but element-incompatible, so the copy loop walked 32-byte
+ * entries over a 16-byte-element array and overflowed the allocation.
  *
- * WHAT WENT WRONG (the defect this test locks down): `pico8_jo_gh_row()`
- * (src/pico8_planet_display.c) stores a raw `pico8_list_t*` in a display
- * row's "lq" field -- real Lua's `{lq={"exports:","0/1",kw}}` is just an
- * array-shaped table, and Lua has only ONE table type. This port does
- * not: `pico8_list_t` ({items;count;capacity} of 16-byte
- * `pico8_value_t`) and `pico8_ob_table_t` ({entries;count;capacity} of
- * 32-byte `pico8_ob_entry_t`) were, before the type tag, byte-for-byte
- * ABI-compatible but element-INCOMPATIBLE. `js:pq()` hands that REF
- * straight to `pico8_lq_new()` -> `pico8_class_instantiate()`, whose copy
- * loop walks `overrides->entries[i]` at 32-byte stride over a 16-byte-
- * element array: a heap-buffer-overflow for every row with >= 3 items
- * (capacity starts at 4 and doubles, so `2*count > capacity` always), and
- * the garbage key/value pairs it copies in blow up later in `lq:mn()`.
- *
- * WHAT THIS TEST DOES: builds the minimal real game state that reaches
- * that row -- one real `jo` planet with `kw={mu=1,qe="x"}` (jo:gh's own
- * `if self.kw.mu>0` "exports:" row, src/pico8_planet_display.c:310-347,
- * pico8/lua.lua:442-445) -- calls the real `pico8_jo_gh()`, then reads
- * the resulting `ok.le` buttons back through the ordinary public entity
- * interface and asserts the "exports:" button's own `lq` instance really
- * received the FOUR items the row actually holds, in order, at the right
- * element stride.
- *
- * WHY IT IS BUILT UNDER AddressSanitizer (Makefile target, -fsanitize=
- * address, the same "a sanitizer report is a hard failure" precedent
- * `test_pico8_fixed_ubsan` already establishes): the SIGSEGV this bug
- * produced is ALLOCATOR-LAYOUT DEPENDENT and therefore NOT a sound
- * oracle. Measured on the original 9758-frame replay of the reported
- * crash: plain -O0 exits 139, but plain -O1 and -O2 exit 0 -- while ASan
- * reports the heap-buffer-overflow in all three. A test asserting on a
- * crash (or on exit code 139) would silently pass forever. ASan turns the
- * overflow itself -- not its downstream symptom -- into a hard,
- * layout-independent failure. This port leaks by design (no GC, see
- * pico8_value.h's own ownership note), so the target runs with
- * ASAN_OPTIONS=detect_leaks=0.
+ * Built under AddressSanitizer, because the resulting SIGSEGV depends on
+ * allocator layout and is not a sound oracle: on the replay that reported
+ * it, -O0 exits 139 while -O1 and -O2 exit 0, and ASan reports the
+ * overflow in all three. The target runs with detect_leaks=0.
  *
  * The field assertions below are a second, sanitizer-independent oracle:
- * under the old blind cast the copied "entry count" was read out of the
- * list's own `capacity` slot and the keys/values came from past the end
- * of the allocation, so neither the entry count nor the item values could
- * come out right by construction.
- *
- * Full engine closure in the Makefile (like tests/test_pico8_planet_kj_
- * dispatch.c and tests/test_pico8_empty_planet_cleared.c before it):
- * `pico8_cart_load()` pulls in essentially the whole port. */
+ * under the blind cast the entry count came out of the list's `capacity`
+ * slot and the values from past the end of the allocation, so neither
+ * could be right by construction. */
+/* TROU-7 */
 
 #include <assert.h>
 #include <stdio.h>
@@ -70,8 +36,7 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-/* `ok.le` -- the list of `js` button instances pz() just built (see
- * pico8_msgbox.c's own pico8_pz). */
+/* The `js` button instances `pz()` just built. */
 static const pico8_list_t *ok_le(void) {
     pico8_instance_t *ok = pico8_ok();
     pico8_value_t le;
@@ -81,8 +46,8 @@ static const pico8_list_t *ok_le(void) {
     return (const pico8_list_t *)le.as.ref;
 }
 
-/* A button's own `lq` field, after js:pq() replaced the raw row override
- * with a real `lq` instance (`self.lq=lq(mv(self,"lq"))`). */
+/* A button's `lq` field, after `js:pq()` replaced the raw row override
+ * with a real `lq` instance. */
 static const pico8_instance_t *button_lq(pico8_value_t button_val) {
     const pico8_instance_t *button;
     pico8_value_t lq_val;
@@ -127,16 +92,15 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     planet = pico8_jo_new(NULL);
     assert(planet != NULL);
 
-    /* self.kw={mu=1,qe="x"} -- "x" is deliberately NOT one of jo.cq's own
-     * resources, so jo:gh takes the `else` branch and builds the
-     * "exports:" row (4 items once the `for i=2,#bs do add(bs[i].lq,
-     * {false,1}) end` tuple is appended), not the 3-item "makes:" one. */
+    /* "x" is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
+     * the else branch and builds the 4-item "exports:" row rather than the
+     * 3-item "makes:" one. */
     kw = pico8_ob_table_new();
     pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(1)));
     pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
     pico8_ob_table_set_name(planet->fields, "kw", pico8_value_ref(kw));
 
-    /* jo:gh reads self.ra/self.gq for pz()'s own row placement. */
+    /* `jo:gh` reads these for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra));
@@ -144,15 +108,12 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
     pico8_ob_table_set_name(planet->fields, "gq", pico8_value_ref(gq));
 
-    /* THE call under test. Before the type tag this overflowed the row's
-     * own 4-element pico8_list_t allocation inside
-     * pico8_class_instantiate() (ASan: heap-buffer-overflow, READ of size
-     * 16, 0 bytes after a 64-byte region). */
+    /* The call under test: this is where the overflow happened. */
     pico8_jo_gh(planet);
 
     le = ok_le();
-    /* bs[0] (the icon row, whose "lq" really IS a pico8_ob_table_t) plus
-     * the "exports:" row. */
+    /* The icon row, whose "lq" really is an ob_table, plus the "exports:"
+     * row. */
     assert(le->count >= 2);
 
     for (i = 0; i < le->count; i++) {
@@ -164,11 +125,9 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     }
     assert(exports_lq != NULL);
 
-    /* The four items the row genuinely holds, in order, each copied in at
-     * the RIGHT element stride:
-     *   1 "exports:"  2 "<#by>/<mu>"  3 the kw table  4 {false,1}
-     * (src/pico8_planet_display.c's own `lb` list plus jo:gh's own
-     * `add(bs[i].lq,{false,1})` tuple; pico8/lua.lua:442-448). */
+    /* The four items the row holds, in order and at the right element
+     * stride: "exports:", "<#by>/<mu>", the `kw` table, and the `{false,1}`
+     * tuple `jo:gh` appends to every row after the first. */
     assert(lq_index_is_string(exports_lq, 1, "exports:"));
     assert(lq_index_is_string(exports_lq, 2, "0/1"));
 
@@ -178,11 +137,10 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(pico8_ob_table_get_index(exports_lq->fields, 4, &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
 
-    /* ...and no phantom fifth item invented by an over-long copy loop. */
+    /* No phantom fifth item from an over-long copy loop. */
     assert(!pico8_ob_table_get_index(exports_lq->fields, 5, &entry));
 
-    /* lq:pq() really ran over exactly those four items: one `fs` entry per
-     * item (src/pico8_layout.c's own pico8_lq_pq). */
+    /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
     assert(pico8_instance_get_field(exports_lq, "fs", &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
     assert(((const pico8_list_t *)entry.as.ref)->count == 4);

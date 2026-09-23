@@ -1,5 +1,6 @@
 #include "pico8_menu.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -19,6 +20,7 @@
 #include "pico8_score_panel.h"
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"
+#include "pico8_type_tag.h"
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
 #include "pico8_ref_audit.h"
@@ -46,22 +48,21 @@ static char *cr_concat2(const char *a, const char *b) {
     return out;
 }
 
+/* Borrows `pj`'s class-level `cr` table, which this module then writes into:
+ * not a copy, and NULL before pico8_score_panel_init(). */
 static pico8_ob_table_t *pj_cr_table(void) {
     pico8_class_t *cls = pico8_pj_class();
     pico8_value_t v;
     if (cls != NULL && cls->defaults != NULL && pico8_ob_table_get_name(cls->defaults, "cr", &v) &&
         v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "pj.cr must be a plain spec table");
         return (pico8_ob_table_t *)v.as.ref;
     }
     return NULL;
 }
 
-/* `my=t.e_ and function()fm:kt(t)end` (one `cr()` row's own "my" field,
- * pico8/lua.lua:957). See pico8_menu.h's own top comment on pico8_cr()
- * for the full trace of the jo:fe-style closure technique this bridge
- * implements: the captured upvalue `t` was stashed as this row's own
- * extra `"_cr_t"` field by pico8_cr_step below, and is read back here via
- * `self` (the row, by then a real instance) at dispatch time. */
+/* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
+ * captured tech entry, read back here off the row once it is an instance. */
 static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *inst = (pico8_instance_t *)self;
     pico8_value_t t_val;
@@ -77,13 +78,9 @@ static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_
     return pico8_value_ref(NULL);
 }
 
-/* `function(t)return {lq={t.nk,t.px,c=6},h_={{24,5},tostr(gi(t))},
- * jb=t.oy,my=t.e_ and function()fm:kt(t)end}end` -- the closure
- * `nv(cb(true),...)` maps over every `nb` entry `t` (pico8/lua.lua:955-
- * 958). See pico8_menu.h's own top comment on pico8_cr() for the full
- * trace, including the evidenced correction on `t.e_`'s falsy branch
- * (a real PICO8_VALUE_BOOL(0), not nil -- `cb()`'s own real body always
- * sets `t.e_` to a genuine boolean before this closure ever sees `t`). */
+/* TROU-7 */
+/* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
+ * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
 static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     pico8_ob_table_t *t;
     pico8_ob_table_t *row;
@@ -101,6 +98,7 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
+    assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "cb() must yield plain nb entries");
     t = (pico8_ob_table_t *)e.as.ref;
 
     row = pico8_ob_table_new();
@@ -140,51 +138,14 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     return 1;
 }
 
-/* Was a private per-module copy of the "pico8_list_t -> fresh positional
- * pico8_ob_table_t" bridge; now a thin alias for the one SHARED converter,
- * `pico8_ob_table_from_list()` (pico8_ob.h), which this copy was promoted
- * into once `js:pq`'s own "lq" field turned out to need exactly the same
- * conversion (pico8_ui_button.c's own pico8_js_lq_arg_table). Kept as a
- * named local wrapper only so this call site's own trace below still reads
- * as one statement. Needed here because `cr()`'s own
- * "extra" row below sets its `"jb"` field straight from `fm.invented`,
- * a genuine `pico8_list_t*` (pico8_economy.c's own `pico8_hy_pq`), NOT a
- * `pico8_ob_table_t*` like every other row's own "jb" field
- * (`pico8_hp_jb()`'s return) -- real Lua's `jb(self.jb)` doesn't care
- * (`pairs()` walks a list-shaped table exactly like any other), but this
- * port's `pico8_ob_table_t`/`pico8_list_t` are structurally DISTINCT
- * ({entries;count;capacity} of `pico8_ob_entry_t` vs {items;count;
- * capacity} of the smaller `pico8_value_t`), so passing the raw list REF
- * through unconverted -- as the code did before this fix -- reinterprets
- * the list's own backing array at the WRONG element stride the moment
- * `js:pq()`'s own `self.jb=self.jb and jb(self.jb)` step reads it back
- * (`pico8_jb_new`->`pico8_class_instantiate`), a real, ASan-confirmed
- * heap-buffer-overflow (same representation-ambiguity family as this
- * file's own sibling fix, `pico8_js_lq_arg_table`, pico8_ui_button.c --
- * found during this port's own Phase 5 pre-flight representation-cast
- * audit, docs/plan.md's own "Notes de portage" journal). Returns a new,
- * heap-allocated table
- * the caller owns; this call site never frees it (same accepted
- * "temporary override table, shallow-copied by the constructor chain
- * that eventually consumes it, then left for the rest of the program"
- * leak this port's row-building call sites already establish, e.g.
- * `pico8_hp_jb()`'s own table above). */
+/* TROU-7 */
+/* Returns a fresh table the caller owns. Storing the list REF unconverted
+ * instead is what `js:pq`'s later `jb(self.jb)` would read at the wrong
+ * element stride. */
 static pico8_ob_table_t *pico8_menu_list_to_ob_table(const pico8_list_t *list) {
     return pico8_ob_table_from_list(list);
 }
 
-/* function cr()local bs,rd,gr={},{},#fm.invented
- * local tl=fm.ew
- * local qi=ek[tl-1]or 0
- * local bs=nv(cb(true),function(t)...end)
- * if gr>0 then
- * add(bs,{lq={30,gr.." invented",c=3},jb=fm.invented})
- * end
- * pj.cr.ep="level "..tl.." ("..(gr-qi).."/"..(ek[tl]-qi)..")"
- * pz(pj.cr,bs)end
- * (pico8/lua.lua:952-964.) See pico8_menu.h's own top comment on this
- * declaration for the full trace, including the `ek[tl-1]or 0` edge case
- * and the `pico8_pz`-vs-`pj.cr`-representation wrapper. */
 void pico8_cr(void) {
     pico8_instance_t *fm = pico8_fm();
     pico8_fixed_t tl = pico8_fixed_from_int(0);
@@ -202,10 +163,6 @@ void pico8_cr(void) {
     }
     if (fm != NULL && pico8_instance_get_field(fm, "invented", &invented_val) &&
         invented_val.kind == PICO8_VALUE_REF && invented_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * Producer: pico8_hy_pq() (src/pico8_economy.c), sole writer of
-         * "invented", which replaces the spec string's own
-         * `invented=o()` ob_table with a real heap list. */
         gr = PICO8_REF_AS_LIST_CONST(invented_val.as.ref)->count;
     }
 
@@ -218,6 +175,9 @@ void pico8_cr(void) {
         }
     }
 
+    /* `true` is the ignore-cost flag: this screen lists every tech of the era,
+     * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
+     * ones. The two sites do not merge. */
     cb_list = pico8_cb(pico8_value_bool(1));
     bs = pico8_nv(&cb_list, pico8_cr_step, NULL);
     pico8_list_free(&cb_list);
@@ -232,14 +192,8 @@ void pico8_cr(void) {
         pico8_ob_table_set_index(lq2, 2, pico8_value_string(label));
         pico8_ob_table_set_name(lq2, "c", pico8_value_fixed(pico8_fixed_from_int(3)));
         pico8_ob_table_set_name(extra, "lq", pico8_value_ref(lq2));
-        /* `jb=fm.invented` -- see pico8_menu_list_to_ob_table's own top
-         * comment above for why `invented_val` (a genuine `pico8_list_t*`)
-         * is bridged into a fresh positional `pico8_ob_table_t*` here
-         * rather than stored as-is. */
         {
             const pico8_list_t *invented_list =
-                /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION, same
-                 * pico8_hy_pq() producer as the `gr` read above. */
                 (invented_val.kind == PICO8_VALUE_REF) ? PICO8_REF_AS_LIST_CONST(invented_val.as.ref) : NULL;
             pico8_ob_table_set_name(extra, "jb", pico8_value_ref(pico8_menu_list_to_ob_table(invented_list)));
         }
@@ -303,6 +257,8 @@ static pico8_ob_table_t *pico8_menu_index_table(pico8_ob_table_t *table, int idx
     return NULL;
 }
 
+/* Returns a new, heap-backed list the caller owns and must release with
+ * pico8_list_free(). */
 static pico8_list_t pico8_menu_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -318,8 +274,6 @@ static pico8_list_t pico8_menu_positional_values(const pico8_ob_table_t *table) 
     return list;
 }
 
-/* `ix[1].my=function()fm.lo=1 fm:hk()end` (pico8/lua.lua:979-980). See
- * pico8_menu.h's own top comment on pico8_ix() for the full trace. */
 static pico8_value_t pico8_ix1_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *fm = pico8_fm();
     (void)self;
@@ -342,6 +296,10 @@ static pico8_value_t pico8_ix2_my_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
+/* TROU-7 */
+/* The bare `cb()` counts only affordable techs. pico8_cr()'s `cb(true)` is the
+ * other, non-interchangeable site: passing the flag here would light the icon
+ * whenever any tech of the era is left. */
 static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *inst = (pico8_instance_t *)self;
     pico8_list_t cb_list;
@@ -370,9 +328,8 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
-/* `ix[3].my=function()ju.c_=true fq(de)end` (pico8/lua.lua:984-985). See
- * pico8_menu.h's own top comment on pico8_ix() for the full trace,
- * including the `pico8_de()` accessor this reuses from `pj:ph()`. */
+/* `de` is borrowed from pico8_score_panel_display.c: the same table `pj:ph()`
+ * uses, not a copy. */
 static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *ju = pico8_ju();
     pico8_instance_t *built;
@@ -388,10 +345,7 @@ static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
-/* `function()music(-sgn(stat(20)))end` (`ha[2].my`, "toggle music" --
- * one of `ix[4].my`'s own 4 wired callbacks, pico8/lua.lua:993). See
- * pico8_menu.h's own top comment on pico8_ix()/pico8_ha() for the full
- * trace. */
+/* TROU-10 */
 static pico8_value_t pico8_ha2_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     int stat_val;
     pico8_fixed_t s;
@@ -405,16 +359,9 @@ static pico8_value_t pico8_ha2_my_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
-/* `function()ih=not ih end` ("toggle sfx", ha[3].my). CORRECTION (found
- * during this chunk's own verification): a prior version of this file
- * toggled a private, disconnected module-local static instead of the
- * real `ih` global -- Chunk 1 already built exactly this forward-
- * reference singleton for `ih` (`pico8_ih()`/`pico8_set_ih()`,
- * src/pico8_audio.h), purpose-built for whichever chunk wires the real
- * "toggle sfx" button (this one), and already read by `pico8_rn()`'s own
- * `if (no and not ih)sfx(no,3)end` (pico8/lua.lua:331, already ported).
- * Toggling a second, never-synchronized `ih` here would silently break
- * that mute check. Fixed to read/write the real singleton. */
+/* TROU-10 */
+/* `ih` is the real global of pico8_audio.c, which pico8_rn() reads; a private
+ * copy here would leave that mute check on the old value. */
 static pico8_value_t pico8_ha3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)self;
     (void)argc;
@@ -432,11 +379,9 @@ static pico8_value_t pico8_ha4_my_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
-/* `ix[4].my=function()for i,fn in pairs({_init,function()music(-sgn(
- * stat(20)))end,function()ih=not ih end,function()end})do ha[i].my=fn end
- * pz(ha,ha)end` (pico8/lua.lua:993-996). See pico8_menu.h's own top
- * comment on pico8_ix()/pico8_ha() for the full trace, including the
- * `pz(ha,ha)` self-referential wrapper. */
+/* `ha` is passed to `pz` as both the layout holder and the row list, so the
+ * stack wrapper borrows it as `->fields` while its positional entries go in
+ * as `bs`. The wrapper never outlives the call. */
 static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_ob_table_t *row;
     pico8_list_t bs;
@@ -543,8 +488,6 @@ void pico8_menu_shutdown(void) {
         pico8_ob_table_free(g_ha);
         g_ha = NULL;
     }
-    /* `ih` is NOT reset here: it's the real, persistent Lua global
-     * (pico8_ih()/pico8_set_ih(), src/pico8_audio.h, owned by Chunk 1's
-     * audio module) -- rebuilding/tearing down this module's own ix/ha
-     * button tables has no real-Lua-equivalent effect on it. */
+    /* `ih` is deliberately not reset here: it belongs to pico8_audio.c, and
+     * rebuilding this module's tables must not move it. */
 }

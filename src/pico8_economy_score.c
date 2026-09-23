@@ -50,14 +50,6 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
     return NULL;
 }
 
-/* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION, for the
- * two names this module ever passes. `field_list(pt, "by")`: since this
- * audit, "by" is a pico8_list_t* from every producer -- pico8_bd()'s own
- * `pt.by=pt:ib()` (src/pico8_economy_tiers.c, the pico8_jo_ib() return)
- * and the `ga` class default, which pico8_planet_family_init() now swaps
- * from the spec string's `by=o()` ob_table to a real empty heap list
- * exactly as pico8_ui_init() already did for `le`. `field_list(fm(),
- * "invented")`: pico8_hy_pq() (src/pico8_economy.c), sole writer. */
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -106,15 +98,6 @@ static int call_gg_truthy(pico8_instance_t *pt) {
     return economy_truthy(out);
 }
 
-/* function da(pt)
- * return pt.qh
- * and #cg.qh
- * or pt:gg()
- * and es[pt.mi]
- * or 0
- * end
- * (pico8/lua.lua:1312-1318.) See pico8_economy_score.h's own top comment
- * on this declaration for the full trace. */
 pico8_fixed_t pico8_da(pico8_instance_t *pt) {
     if (field_truthy(pt, "qh")) {
         const pico8_list_t *qh_list = pico8_cg("qh");
@@ -141,13 +124,6 @@ static int cz_predicate(pico8_value_t e, void *ctx) {
     return call_gg_truthy((pico8_instance_t *)e.as.ref);
 }
 
-/* function cz()
- * local mu=#jp(cg.jo,jo.gg)
- * return flr(0.18*mu^2)
- * end
- * (pico8/lua.lua:1319-1322.) See pico8_economy_score.h's own top comment
- * on this declaration for the full trace, including why `jo.gg` is
- * ported via the same forward-ref pico8_mv() dispatch as `pt:gg()`. */
 pico8_fixed_t pico8_cz(void) {
     const pico8_list_t *jo_list = pico8_cg("jo");
     pico8_list_t filtered = pico8_jp(jo_list, cz_predicate, NULL);
@@ -158,21 +134,6 @@ pico8_fixed_t pico8_cz(void) {
     return pico8_fixed_flr(result);
 }
 
-/* function db(pt)
- * local total=0
- * for e in all(pt.by)do
- * local oz=e:to()
- * if oz.hf then
- * total+=dk.trade*pt.hs*(1+ct[pt.mi]+ct[oz.mi])
- * end
- * end
- * if pt.kw.qe==r.w then
- * total+=pt.kw.mu*dk.trade*1.5
- * end
- * return total
- * end
- * (pico8/lua.lua:1325-1337.) See pico8_economy_score.h's own top comment
- * on this declaration for the full trace. */
 pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
     pico8_fixed_t total = pico8_fixed_from_int(0);
     const pico8_list_t *by = field_list(pt, "by");
@@ -241,6 +202,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
         if (kw != NULL && r != NULL) {
             pico8_value_t qe_val;
             pico8_value_t w_val;
+            /* TROU-3 */
             if (pico8_ob_table_get_name(kw, "qe", &qe_val) && pico8_ob_table_get_name(r, "w", &w_val) &&
                 economy_value_equal_content(qe_val, w_val)) {
                 pico8_fixed_t mu = pico8_fixed_from_int(0);
@@ -291,33 +253,6 @@ static char *concat_percent(const char *s) {
     return out;
 }
 
-/* function ky()
- * local di=0
- * for pt in all(cg.jo)do
- * if pt:gg()then
- * di+=b_[pt.mi]
- * end
- * end
- * local gl=
- * fm.po[r.p]*40
- * local el=
- * flr((#fm.invented*1.2)^2)*10
- * local total=flr((
- * di+
- * gl+
- * el
- * )*0.01*fm.happiness)
- * return {
- * di,
- * gl,
- * el,
- * fm.happiness.."%",
- * total,
- * min(flr(total/2000),5)
- * }
- * end
- * (pico8/lua.lua:1339-1363.) See pico8_economy_score.h's own top comment
- * on this declaration for the full trace. */
 pico8_ob_table_t *pico8_ky(void) {
     sum_by_mi_ctx_t di_ctx;
     pico8_fixed_t gl = pico8_fixed_from_int(0);
@@ -358,6 +293,7 @@ pico8_ob_table_t *pico8_ky(void) {
     pico8_ob_table_set_index(result, 1, pico8_value_fixed(di_ctx.total));
     pico8_ob_table_set_index(result, 2, pico8_value_fixed(gl));
     pico8_ob_table_set_index(result, 3, pico8_value_fixed(el));
+    /* TROU-7 */
     pico8_ob_table_set_index(result, 4, pico8_value_string(concat_percent(happiness_str)));
     free(happiness_str);
     pico8_ob_table_set_index(result, 5, pico8_value_fixed(total));
@@ -367,20 +303,6 @@ pico8_ob_table_t *pico8_ky(void) {
     return result;
 }
 
-/* function bf()
- * local h=100+2*(
- * fm.po[r.h]+
- * fm.po[r.w]
- * )
- * for pt in all(cg.jo)do
- * if pt:gg()then
- * h+=co[pt.mi]
- * end
- * end
- * return h
- * end
- * (pico8/lua.lua:1365-1376.) See pico8_economy_score.h's own top comment
- * on this declaration for the full trace. */
 pico8_fixed_t pico8_bf(void) {
     const pico8_ob_table_t *fm_po = field_ref_table(pico8_fm(), "po");
     const pico8_ob_table_t *r = pico8_r();

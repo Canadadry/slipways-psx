@@ -1,5 +1,6 @@
 #include "pico8_score_panel_display.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,22 +14,10 @@
 #include "pico8_score_panel.h"
 #include "pico8_ui_button.h"
 
-/* See pico8_score_panel_display.h's own top comment for the full
- * source/trace of `pj:ph()` and `de`. */
-
 static pico8_ob_table_t *g_de = NULL;
 
-/* This module's own private Lua-truthiness helper (nil/false falsy,
- * everything else -- including 0 -- truthy), matching `pico8_ui.c`'s own
- * `pico8_ui_truthy`/`pico8_economy_score.c`'s own `economy_truthy`
- * established per-module-copy convention -- widened past those two
- * precedents' own BOOL-only check the same way `pico8_score_panel.c`'s
- * own now-removed `pj_truthy` was (see that file's own NOTE on why it was
- * removed rather than left as dead code once its only caller, `pj:hk`,
- * moved here): `fm.hl`, `st.score`-lookups, and `pj:hk`'s own `pp` can
- * all genuinely come back as this port's own `pico8_value_ref(NULL)`
- * "absent" filler as well as a real BOOL false, and both must read as
- * falsy. */
+/* Lua truthiness: only `false` and this port's absent filler `ref(NULL)`
+ * read as falsy -- 0 does not. */
 static int pj_display_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -39,9 +28,6 @@ static int pj_display_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* This module's own private `fm` field-reader helper -- see
- * pico8_score_panel.c's own identical `fm_field_value` for the full
- * rationale (another accepted per-module duplicate). */
 static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name) {
     pico8_value_t v;
     if (fm != NULL && pico8_instance_get_field(fm, name, &v)) {
@@ -50,12 +36,7 @@ static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name
     return pico8_value_ref(NULL);
 }
 
-/* This module's own private two-piece string concat helper -- see
- * pico8_score_panel.c's own identical `pj_concat2` for the full
- * rationale (another accepted per-module duplicate; used here to build
- * `(fm.hl or "current score").." ("..dk.px..")"` via repeated two-piece
- * concatenation). Returns a newly heap-allocated string the caller owns
- * and must free(). */
+/* Returns a newly allocated string the caller owns and must free(). */
 static char *pj_concat2(const char *a, const char *b) {
     size_t la = strlen(a);
     size_t lb = strlen(b);
@@ -66,25 +47,24 @@ static char *pj_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* This module's own private "read `pj`'s OWN class-level field `name`"
- * helper -- see pico8_score_panel.c's own identical `pj_class_field_ref_
- * table` for the full rationale (another accepted per-module duplicate,
- * needed here now that `pj:hk`'s own body -- which reads `pj.ea`/`pj.gs`
- * this same class-level way -- lives in this file). */
+/* Reads `pj`'s OWN class-level table -- the one every instance shares, so
+ * writing through it mutates `pj.<name>` for all of them. NULL when the
+ * class is absent or the field is not a table. */
 static pico8_ob_table_t *pj_class_field_ref_table(const char *name) {
     pico8_value_t v;
     const pico8_class_t *cls = pico8_pj_class();
     if (cls != NULL && cls->defaults != NULL && pico8_ob_table_get_name(cls->defaults, name, &v) &&
         v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+               "pj's class-level field must hold a plain table");
         return (pico8_ob_table_t *)v.as.ref;
     }
     return NULL;
 }
 
-/* Captured `t` upvalue for `pj:hk`'s own `function iw.lh() t-=1 return
- * t>0 end` closure -- see pico8_score_panel_display.h's own comment on
- * pico8_pj_hk for the full rationale on why a single module-level static
- * (not a per-call heap allocation) is a fully faithful representation. */
+/* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:
+ * `pj.ea.lh` is replaced wholesale by every call that sets it, so only one
+ * such closure is ever live. */
 static int g_pj_hk_lh_t = 0;
 
 static pico8_value_t pico8_pj_hk_lh_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -96,21 +76,6 @@ static pico8_value_t pico8_pj_hk_lh_dispatch(void *self, int argc, pico8_value_t
     return pico8_value_bool(g_pj_hk_lh_t > 0);
 }
 
-/* function pj:hk(yr)local iw,pp=
- * pj.ea,pj.gs[3426-yr]
- * iw[2][1],iw[3]=
- * "year "..yr,pp or nil
- * if pp then
- * local t=90
- * function iw.lh()
- * t-=1
- * return t>0
- * end
- * end
- * mh(iw)
- * end
- * (pico8/lua.lua:856-869.) See pico8_score_panel_display.h's own comment
- * on this declaration for the full trace. */
 void pico8_pj_hk(pico8_fixed_t yr) {
     pico8_ob_table_t *iw = pj_class_field_ref_table("ea");
     const pico8_ob_table_t *gs = pj_class_field_ref_table("gs");
@@ -134,6 +99,7 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     free(yr_str);
 
     if (pico8_ob_table_get_index(iw, 2, &iw2_val) && iw2_val.kind == PICO8_VALUE_REF && iw2_val.as.ref != NULL) {
+        assert(pico8_type_tag_of(iw2_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "pj.ea[2] must hold a plain table");
         pico8_ob_table_set_index((pico8_ob_table_t *)iw2_val.as.ref, 1, pico8_value_string(year_label));
     }
 
@@ -151,11 +117,8 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 }
 
-/* This module's own private "ob_table positional entries -> pico8_list_t"
- * bridge -- see pico8_score_panel.c's own identical `pico8_score_panel_
- * positional_values` for the full cross-reference tally (this is that
- * same established per-module-duplicate pattern's 12th copy). Used here
- * to feed `bz`'s own 12 positional entries into `pico8_nv()`. */
+/* Returns a new list the caller owns and must release with
+ * pico8_list_free(). */
 static pico8_list_t pico8_score_panel_display_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -172,17 +135,9 @@ static pico8_list_t pico8_score_panel_display_positional_values(const pico8_ob_t
     return list;
 }
 
-/* Not a port of any named Lua function: the MIRROR IMAGE of the helper
- * above -- a NEW bridge this chunk introduces (no prior copy anywhere in
- * this port), needed because real Lua's own `local iw=nv(bz,...)  iw.rh=3
- * function iw.lh()...end` freely mixes `nv()`'s own positional results
- * with two EXTRA named fields on the very same table, something this
- * port's own `pico8_nv()` (which returns a plain array-only `pico8_list_t`)
- * has no room for. Builds a fresh `pico8_ob_table_t*` with one positional
- * entry per list element (1-based, in order) -- named fields (`rh`/`lh`)
- * are set by the caller afterward via ordinary `pico8_ob_table_set_name`.
- * Returns a new, heap-allocated table the caller owns and must release
- * with `pico8_ob_table_free()`. */
+/* Mirror image of the helper above: one positional entry per list element,
+ * so the caller can then set `rh`/`lh` on it as named fields. Returns a new
+ * table the caller owns and must release with pico8_ob_table_free(). */
 static pico8_ob_table_t *pico8_score_panel_display_list_to_ob_table(const pico8_list_t *list) {
     pico8_ob_table_t *table = pico8_ob_table_new();
     pico8_list_iter_t it;
@@ -200,11 +155,6 @@ static pico8_ob_table_t *pico8_score_panel_display_list_to_ob_table(const pico8_
     return table;
 }
 
-/* `function()ju.c_ = not ju.c_ end` (`de`'s own "my" field) -- a
- * complete, real implementation (not a placeholder): flips `pico8_ju()`'s
- * own "c_" field. A NULL `pico8_ju()` (before Chunk 22 reconciles it) is
- * a safe no-op, matching this port's pervasive defensive convention for
- * every not-yet-reconciled singleton read. */
 static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *ju = pico8_ju();
     (void)self;
@@ -219,13 +169,8 @@ static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t
     return pico8_value_ref(NULL);
 }
 
-/* `function iw.lh() return self.c_ end` (`pj:ph()`'s own closure) -- see
- * this file's own top comment for why reading `pico8_ju()`'s own "c_"
- * field directly (rather than a dedicated static self-capture, unlike
- * `pj:hk`'s own `t` upvalue) is the evidenced-correct representation
- * here: `self` inside `pj:ph()` is PROVABLY always `pico8_ju()` itself
- * (`pj()` is constructed exactly once in the whole real cart). A NULL
- * `pico8_ju()` reads as falsy (nothing to hold the box open for). */
+/* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
+ * in the cart -- so reading `ju.c_` here IS reading the captured upvalue. */
 static pico8_value_t pico8_pj_ph_lh_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *ju = pico8_ju();
     pico8_value_t c_val;
@@ -239,22 +184,10 @@ static pico8_value_t pico8_pj_ph_lh_dispatch(void *self, int argc, pico8_value_t
     return pico8_value_bool(0);
 }
 
-/* Per-`nv()`-call captured context: just `s` (`ky()`'s own 6-entry
- * score-breakdown table) -- this port's established ctx-pointer stand-in
- * for a captured Lua upvalue (matching `pico8_jp_predicate_fn`/`pico8_nv_
- * fn`'s own convention, pico8_collect.h). */
 typedef struct {
     const pico8_ob_table_t *s;
 } pico8_pj_ph_ctx_t;
 
-/* `function(st)if st.score then...else return st end end` (`pj:ph()`'s
- * own per-row `nv(bz,...)` mapper) -- see pico8_score_panel_display.h's
- * own top comment for the full field-by-field trace (the `s[0]`/`tostr`
- * divergence, the `dk.px` read, the score==6 star-rating rewrite, and the
- * `lq(st)` wrapper). Entries with no `.score` field pass through
- * unchanged (`e` itself, same REF); scored entries are mutated in place
- * (`st` is one of `bz`'s own shared class-level sub-tables, never
- * copied) and a fresh `{lq(st),st.ra,0.5,fn="ld"}` wrapper is returned. */
 static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_value) {
     const pico8_pj_ph_ctx_t *ctx = (const pico8_pj_ph_ctx_t *)ctx_ptr;
     pico8_ob_table_t *st;
@@ -270,6 +203,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         *out_value = e;
         return 1;
     }
+    assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "bz rows must hold plain tables");
     st = (pico8_ob_table_t *)e.as.ref;
 
     if (!pico8_ob_table_get_name(st, "score", &score_val) || score_val.kind != PICO8_VALUE_FIXED) {
@@ -283,14 +217,12 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     if (ctx->s != NULL) {
         pico8_ob_table_get_index(ctx->s, score_i, &s_val);
     }
-    /* `s[0]` (score_i==0) is genuinely absent -- see this file's own top
-     * comment on the resulting tostr(nil)-vs-tostr(ref(NULL)) divergence. */
+    /* `s[0]` is genuinely absent for score 0, and this port has no nil to
+     * format: `pico8_value_tostr` renders the absent filler as "", which
+     * PICO-8's own tostr would not. */
     s_str = pico8_value_tostr(s_val);
+    /* TROU-7 */
     pico8_ob_table_set_index(st, 3, pico8_value_string(s_str));
-    /* s_str is intentionally NOT freed here -- it is now st[3]'s own
-     * value, rebind-leaked on the NEXT pj:ph() refresh exactly like every
-     * other class-level-table string rebind in this chunk (see
-     * pico8_score_panel.c's own pico8_pj_hb comment). */
 
     if (score_i == 0) {
         const pico8_instance_t *fm = pico8_fm();
@@ -320,6 +252,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         if (ctx->s != NULL) {
             pico8_ob_table_get_index(ctx->s, 6, &s6_val);
         }
+        assert(s6_val.kind == PICO8_VALUE_FIXED && "ky() returns a numeric tier at s[6]");
         for (i = 1; i <= 5; i++) {
             int icon = (i <= (int)pico8_fixed_to_double(s6_val.as.fixed)) ? 56 : 57;
             pico8_ob_table_set_index(st, i, pico8_value_fixed(pico8_fixed_from_int(icon)));
@@ -327,6 +260,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     }
 
     pico8_ob_table_get_name(st, "ra", &ra_val);
+    /* TROU-7 */
     lq_inst = pico8_lq_new(st);
     wrapped = pico8_ob_table_new();
     pico8_ob_table_set_index(wrapped, 1, pico8_value_ref(lq_inst));
@@ -337,16 +271,6 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     return 1;
 }
 
-/* function pj:ph()if fm.hl and not self.gz then
- * fq()js(ob([[...]],{my=_init}))js(ob([[...]],de))self.c_,self.gz,self.fa=
- * true,0,13
- * end
- * if self.c_ and kc~=self.ed then
- * ...
- * self.ed=mh(iw)end
- * end
- * (pico8/lua.lua:870-896.) See pico8_score_panel_display.h's own top
- * comment for the complete field-by-field trace of both blocks. */
 void pico8_pj_ph(pico8_instance_t *self) {
     const pico8_instance_t *fm = pico8_fm();
     pico8_value_t hl_val = fm_field_value(fm, "hl");
@@ -388,19 +312,9 @@ void pico8_pj_ph(pico8_instance_t *self) {
         pico8_value_t ed_val;
         int ed_equals_kc = 0;
 
-        /* Real Lua `kc~=self.ed`: `self.ed`'s own class-level default is
-         * the NUMBER 1 (`ed=1`, pj's own class spec above), not nil -- Lua
-         * `~=` across two different types (nil `kc` vs. number 1) is
-         * unconditionally true, so this block fires on the very first
-         * eligible tick. A prior version of this port only ever built a
-         * comparable `ed_ptr` when `self.ed` already held a PICO8_VALUE_REF
-         * (i.e. only after THIS SAME block had already run once), which
-         * left `ed_ptr` at its own NULL default just like `pico8_kc()`'s
-         * own NULL default -- `NULL!=NULL` is false, so the block never
-         * fired at all on a fresh `pj` instance. Found and fixed during
-         * Chunk 18's own verification: a non-REF `self.ed` (the class
-         * default, never yet replaced by a real mh() instance) is never
-         * equal to `pico8_kc()`, whatever `pico8_kc()` currently holds. */
+        /* `self.ed`'s class-level default is the number 1, never a REF, and a
+         * non-REF `ed` is never `kc`: the block has to fire on the first
+         * eligible tick. Comparing only a REF-valued `ed` silently disables it. */
         if (self != NULL && pico8_instance_get_field(self, "ed", &ed_val) && ed_val.kind == PICO8_VALUE_REF) {
             ed_equals_kc = (pico8_kc() == (pico8_instance_t *)ed_val.as.ref);
         }
@@ -434,8 +348,6 @@ void pico8_pj_ph(pico8_instance_t *self) {
     }
 }
 
-/* Builds the top-level `de` table once -- see pico8_score_panel_display.h's
- * own comment on this declaration. */
 void pico8_score_panel_display_init(void) {
     pico8_score_panel_display_shutdown();
     g_de = pico8_ob_table_new();
@@ -450,11 +362,6 @@ void pico8_score_panel_display_shutdown(void) {
     }
 }
 
-/* `de` -- see this file's own top comment and pico8_score_panel_display.h's
- * own updated comment on this declaration for why Chunk 21 needed a public
- * accessor for this module's own already-existing `g_de` static (`ix[3]
- * .my`'s own real `fq(de)` call, pico8_menu.c) rather than building a
- * second, competing `de` table. */
 const pico8_ob_table_t *pico8_de(void) {
     return g_de;
 }

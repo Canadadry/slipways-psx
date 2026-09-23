@@ -1,37 +1,7 @@
-/* Chunk 1 de docs/prd/triage/screencast-capture-and-viewer.md ("Le
- * module de screencast et son format") : ce que le format promet, vu
- * du dehors -- des pixels a des positions donnees, un nombre de frames,
- * et des refus sur des fichiers invalides.
- *
- * Les Testing Decisions du PRD ouvrent par un avertissement qui vise
- * exactement un fichier comme celui-ci : "Un bon test ici porte sur ce
- * qui sort, pas sur comment c'est ecrit. Les tests assertent des
- * valeurs de pixels a des positions donnees, des nombres de frames, des
- * refus sur des fichiers invalides -- jamais la presence d'un champ,
- * d'une fonction ou d'une structure interne." Le precedent cite est net,
- * et il est repris ici mot pour mot : "un test qui se contenterait de
- * compter les frames passerait sur une source qui les sert a l'envers".
- * D'ou le motif de peinture de paint_frame ci-dessous, different pour
- * chaque frame ecrite : c'est lui qui donne aux assertions le pouvoir
- * de distinguer la frame N de la frame N+1, donc de faire echouer un
- * offset decale d'une frame ou deux frames interverties -- le controle
- * de mutation que le PRD exige sur les tests de lecture.
- *
- * Un test sort de ce cadre en apparence : test_on_disk_byte_holds_the_
- * even_pixel_in_its_low_nibble assertionne les octets bruts du fichier.
- * Ce n'est pas une assertion sur l'implementation mais sur le format
- * publie, que le PRD promet "trivial et documente, afin qu'un script
- * jetable puisse le lire sans dependre du code du projet" (user story
- * 21) : l'ordre des quartets fait partie de ce contrat, et un
- * aller-retour par ce module ne peut pas le prouver, puisqu'il resterait
- * vrai avec les quartets intervertis des deux cotes.
- *
- * Ne lie que pico8_screencast.c et pico8_mem.c -- pas de raylib, pas de
- * fenetre -- ce qui est la raison d'etre du module (voir
- * src/pico8_screencast.h) et ce qui permet a ce fichier de tourner dans
- * la suite `make unit` ordinaire. Les fichiers de travail sont ecrits
- * sous tmp/ et effaces, comme le fait deja
- * tests/test_pico8_recording_continuity.c. */
+/* Le format de capture vu du dehors : des pixels a des positions
+ * donnees, un nombre de frames, des refus sur des fichiers invalides --
+ * jamais la presence d'un champ, d'une fonction ou d'une structure
+ * interne. Les fichiers de travail sont ecrits sous tmp/ et effaces. */
 
 #include "../src/pico8_screencast.h"
 
@@ -42,12 +12,11 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Peint dans la memoire ecran un motif reconnaissable et different pour
- * chaque `seed`. Le pixel d'indice i vaut (i + seed) & 0x0f, donc deux
- * frames de seeds distincts different en presque tout point : c'est ce
- * qui permet aux assertions ci-dessous de distinguer la frame N de la
- * frame N+1, et donc d'echouer sur un offset decale ou deux frames
- * interverties. */
+/* Le pixel d'indice i vaut (i + seed) & 0x0f : deux frames de seeds
+ * distincts different en presque tout point, ce qui donne aux
+ * assertions ci-dessous le pouvoir de distinguer la frame N de la
+ * frame N+1, donc d'echouer sur un offset decale ou deux frames
+ * interverties. Un motif constant les rendrait toutes aveugles. */
 static void paint_frame(pico8_mem_t *mem, int seed) {
     for (int i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
         pico8_poke(mem, PICO8_ADDR_SCREEN + i, (unsigned char)((i + seed) & 0x0f));
@@ -104,8 +73,8 @@ static void test_written_frame_reads_back_pixel_for_pixel(void) {
 /* Le nombre de frames est la taille du fichier divisee par la taille
  * d'une frame, et rien d'autre : le format n'a ni en-tete ni index ou
  * un compteur pourrait se cacher. L'assertion sur la taille du fichier
- * est donc l'autre moitie de la meme affirmation, et c'est elle qui
- * fixe les 8 192 octets par frame exiges par le PRD. */
+ * est l'autre moitie de la meme affirmation, et c'est elle qui fixe les
+ * 8 192 octets par frame. */
 static void test_frame_count_is_file_size_divided_by_frame_size(void) {
     const char *path = "tmp/test_screencast_count.bin";
     pico8_screencast_reader_t reader;
@@ -126,11 +95,9 @@ static void test_frame_count_is_file_size_divided_by_frame_size(void) {
 }
 
 /* Chaque frame du fichier est la sienne, dans l'ordre ou elle a ete
- * ecrite. C'est l'assertion qui fait echouer un decalage d'un frame sur
- * l'offset ou une inversion de deux frames, precisement parce qu'elle
- * porte sur les valeurs des pixels et pas sur le nombre de frames : une
- * source qui les servirait a l'envers passerait un test qui les
- * compterait. */
+ * ecrite. Les assertions portent sur les valeurs des pixels et pas sur
+ * le nombre de frames, parce qu'une source qui les servirait a l'envers
+ * passerait un test qui les compterait. */
 static void test_each_frame_holds_its_own_pixels_in_order(void) {
     const char *path = "tmp/test_screencast_in_order.bin";
     pico8_screencast_reader_t reader;
@@ -153,11 +120,11 @@ static void test_each_frame_holds_its_own_pixels_in_order(void) {
     remove(path);
 }
 
-/* Lecture hors sequence : le visualiseur du chunk 4 rejoue en avant,
- * mais rien dans le format n'oblige a lire les frames dans l'ordre, et
- * une lecture qui dependrait de l'ordre ferait mentir "la frame N est a
- * l'offset N x 8192". On lit donc a rebours puis en sautant, et on
- * exige les memes pixels qu'en lecture sequentielle. */
+/* Rien dans le format n'oblige a lire les frames dans l'ordre, et une
+ * lecture qui dependrait de l'ordre ferait mentir "la frame N est a
+ * l'offset N x 8192". L'ordre teste lit a rebours, saute, et relit une
+ * frame deja lue ; on exige les memes pixels qu'en lecture
+ * sequentielle. */
 static void test_frames_can_be_read_out_of_sequence(void) {
     const char *path = "tmp/test_screencast_out_of_order.bin";
     pico8_screencast_reader_t reader;
@@ -183,7 +150,7 @@ static void test_frames_can_be_read_out_of_sequence(void) {
 
 /* Un fichier absent est refuse a l'ouverture, avec un resultat qui lui
  * est propre : une fenetre ouverte sur du noir est indiscernable d'une
- * session qui commence par un ecran noir (PRD, user story 27). */
+ * session qui commence par un ecran noir. */
 static void test_missing_file_is_refused(void) {
     pico8_screencast_reader_t reader;
 
@@ -223,11 +190,11 @@ static void test_empty_file_is_refused(void) {
 }
 
 /* Une taille qui n'est pas un multiple de la taille d'une frame decrit
- * une frame incomplete : le fichier a ete tronque, ou son ecriture a
- * echoue en cours de route. Le refuser a l'ouverture est ce qui empeche
- * de confondre un fichier incomplet avec une session courte -- les deux
- * cas testes sont "moins d'une frame" et "des frames entieres suivies
- * d'un reste". */
+ * une frame incomplete : fichier tronque, ou ecriture interrompue. Le
+ * refuser a l'ouverture est ce qui empeche de confondre un fichier
+ * incomplet avec une session courte. Les deux tailles testees sont les
+ * deux formes du cas : 8191 = moins d'une frame, 2 x 8192 + 1 = des
+ * frames entieres suivies d'un reste. */
 static void test_size_that_is_not_a_whole_number_of_frames_is_refused(void) {
     const char *short_path = "tmp/test_screencast_short.bin";
     const char *ragged_path = "tmp/test_screencast_ragged.bin";
@@ -247,10 +214,8 @@ static void test_size_that_is_not_a_whole_number_of_frames_is_refused(void) {
 }
 
 /* Un echec d'ecriture est rendu a l'appelant plutot que subi en
- * silence : le chunk 2 en fera une erreur fatale, parce qu'un fichier
- * partiel produirait une empreinte fausse, indiscernable d'une
- * regression. Ici on se contente de verifier que l'echec remonte, et
- * qu'aucun fichier n'est laisse derriere. */
+ * silence, et aucun fichier n'est laisse derriere : un fichier partiel
+ * produirait une empreinte fausse, indiscernable d'une regression. */
 static void test_writer_reports_a_path_it_cannot_open(void) {
     const char *path = "tmp/test_screencast_no_such_dir/capture.bin";
     pico8_screencast_writer_t writer;
@@ -272,9 +237,10 @@ static long read_whole_file(const char *path, unsigned char *out, long capacity)
 }
 
 /* Un aller-retour par la lecture ne change pas un octet du fichier.
- * C'est la propriete dont depend l'empreinte du chunk 3 : le jour ou
- * une lecture modifierait le fichier qu'elle lit, regarder une capture
- * suffirait a invalider la signature qu'on venait de poser. */
+ * C'est la propriete dont depend l'empreinte signee de `make
+ * screencast-check` : le jour ou une lecture modifierait le fichier
+ * qu'elle lit, regarder une capture suffirait a invalider la signature
+ * qu'on venait de poser. */
 static void test_reading_leaves_the_file_byte_for_byte_unchanged(void) {
     const char *path = "tmp/test_screencast_readonly.bin";
     pico8_screencast_reader_t reader;
@@ -325,9 +291,11 @@ static void test_frame_index_past_the_end_is_refused(void) {
 
 /* Ecrire une frame ne touche pas a la memoire du jeu, ni l'ecran ni le
  * reste : une capture qui modifierait ce qu'elle observe invaliderait
- * tout l'instrument (PRD, user story 26). Le `const` de la signature le
- * dit deja au compilateur ; ce test le dit sur toute la memoire, y
- * compris ce qu'un futur contournement du `const` atteindrait. */
+ * tout l'instrument. Le `const` de la signature le dit deja au
+ * compilateur ; ce test le dit sur toute la memoire, y compris ce qu'un
+ * futur contournement du `const` atteindrait. L'octet pose hors ecran
+ * (PICO8_ADDR_MAP) est ce qui donne a l'assertion prise sur le reste de
+ * la memoire et pas seulement sur une zone laissee a zero. */
 static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
     const char *path = "tmp/test_screencast_readonly_memory.bin";
     pico8_screencast_writer_t writer;
@@ -348,14 +316,14 @@ static void test_writing_a_frame_leaves_the_game_memory_untouched(void) {
     remove(path);
 }
 
-/* Le format lui-meme, vu depuis le dehors du projet : l'octet d'indice
- * k tient le pixel 2k dans son quartet de poids faible et le pixel
- * 2k+1 dans celui de poids fort, dans l'ordre de balayage de la
- * memoire ecran. Un aller-retour ne peut pas prouver cela -- ecrire et
- * relire avec les quartets intervertis des deux cotes rendrait les
- * memes pixels -- et c'est pourtant ce que le PRD promet a un script
- * jetable qui lirait le fichier sans dependre du code du projet (user
- * story 21). On l'assertion donc sur les octets bruts. */
+/* Le format vu depuis le dehors du projet : l'octet d'indice k tient le
+ * pixel 2k dans son quartet de poids faible et le pixel 2k+1 dans celui
+ * de poids fort. D'ou les valeurs asserties : pixels 0x03 et 0x0c
+ * donnent l'octet 0xc3, pixels 0x0f et 0x00 donnent 0x0f. Un
+ * aller-retour ne peut pas prouver cet ordre -- ecrire et relire avec
+ * les quartets intervertis des deux cotes rendrait les memes pixels --
+ * et c'est pourtant ce qui est promis a un script jetable qui lirait le
+ * fichier sans dependre du code du projet. */
 static void test_on_disk_byte_holds_the_even_pixel_in_its_low_nibble(void) {
     const char *path = "tmp/test_screencast_nibbles.bin";
     pico8_screencast_writer_t writer;

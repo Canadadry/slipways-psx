@@ -1,8 +1,22 @@
-# Project notes
+# Notes de projet
 
-- The active porting target is **PC via raylib, software rendering** — see `docs/plan.md`. Strategy: literal function-by-function port of `pico8/lua.lua` (the actual decompiled cart source), not a rewrite from the design doc. PSX (previous target) is paused, not abandoned — resumed only once a fully playable PC/C version exists.
-- Never launch the raylib app interactively (no live window) at any phase before Phase 5 of `docs/plan.md`. Non-interactive checks are fine: running it for a fixed number of frames driven by a scripted `events.json` and dumping the framebuffer as text is the intended verification method — see `docs/plan.md`'s testing strategy.
-- Audio (`sfx`/`music`) is explicitly out of scope for this port, not deferred.
-- The Love2D prototype (`game/`) has been removed — it embodied the abandoned "rewrite from the design doc" approach.
-- `psx-hello/` is a PSn00bSDK smoke-test project (real toolchain build, not attempted in a sandboxed session — see `docs/psx-hello-world.md` for what was and wasn't verified and why). `make psn00bsdk-toolchain-setup` builds the real toolchain from source (slow, ~30-45 min, network-heavy — do not run it expecting it to finish quickly); `make psx-hello` builds the project once the toolchain is installed.
-- raylib is not available as a system package in this project's environment, so it's vendored: `make raylib-vendor-setup` clones a pinned raylib release tag into `third_party/raylib/` (gitignored) and builds raylib's own static library from its own build system — network-heavy (a fresh clone) and a one-time setup step, kept separate from `make`/`make test`. `src/main_raylib.c`/`src/pico8_raylib_backend.c` depend on it; `make raylib` (link-only, never executes the binary) builds them against it. Both the vendor script and the Makefile's link flags are OS-aware (`uname -s`): on Linux, `apt-get` installs the X11/GL dev headers and links `-lGL -lX11 -lpthread -ldl -lrt`; on macOS, no package install is needed (just Xcode Command Line Tools) and it links the `-framework OpenGL -framework Cocoa -framework IOKit -framework CoreAudio -framework CoreVideo` set raylib's own `src/Makefile` documents for an external PLATFORM_DESKTOP program on OSX. `RAYLIB_VENDOR_SKIP_APT=1 make raylib-vendor-setup` skips the `sudo apt-get` step on Linux for anyone who already has the dependencies or can't/won't grant sudo.
+## Le portage
+
+- Cible active : **PC via raylib, rendu logiciel** — voir `docs/plan.md`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception.
+- PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
+- L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
+
+## Ce qu'on ne fait pas
+
+- **Ne jamais lancer l'appli raylib.** Pas de fenêtre, pas de serveur X : un agent n'a ni yeux ni souris, il ne verrait rien de ce qu'il ouvre. La vérification se fait sans fenêtre — N frames pilotées par un `events.json` scripté, puis dump texte du framebuffer. Jouer le jeu, c'est le travail d'un humain.
+
+## Build
+
+- `make test` est la suite complète. La légende des cibles est en tête du `Makefile`.
+- `make raylib` compile et linke le binaire interactif sans jamais l'exécuter ; il faut `make raylib-vendor-setup` d'abord — voir `docs/raylib-vendoring.md`.
+
+## Commentaires
+
+Un commentaire ne reste que s'il porte l'une de ces quatre choses : le sens d'un nom minifié (→ `docs/glossaire-noms.md`), un écart connu avec le cart (→ `docs/trous-de-portage.md`, référencé par un `/* TROU-7 */` nu), un piège qu'on réintroduirait (un `assert` porteur de message, sinon 40 mots), ou un contrat C que le nom ne dit pas (qui libère la mémoire, ce que rend la fonction si le champ manque). `TODO` reste autorisé. Dans un `Makefile`, seule l'aide à la lecture d'une commande reste. Tout le reste va dans le message de commit.
+
+Pour reprendre un fichier déjà écrit : skill `reprendre-les-commentaires`.

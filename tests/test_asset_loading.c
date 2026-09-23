@@ -55,13 +55,10 @@ static void test_map_json_loads_shared_region_for_rows_32_to_63(void) {
 }
 
 static void test_gfx_and_map_loaded_into_same_instance(void) {
-    /* Regression test: gfx.json's sprite sheet load and map.json's map
-     * load must not clobber each other when both land in the same
-     * pico8_mem_t, since the real cart loads both into one address
-     * space. This is the scenario the original packed-hardware-sized
-     * (0x2000-byte) sprite sheet/screen regions got wrong: a full
-     * unpacked 128x128 sprite sheet needs 0x4000 bytes, which used to
-     * spill into the map's 0x1000-0x2fff span. */
+    /* Both loads land in one `pico8_mem_t`, as they do on the real cart,
+     * and must not clobber each other: an unpacked 128x128 sprite sheet
+     * needs 0x4000 bytes, and a packed hardware-sized region spilled into
+     * the map's own span. */
     pico8_mem_t mem;
     pico8_mem_init(&mem);
 
@@ -70,16 +67,13 @@ static void test_gfx_and_map_loaded_into_same_instance(void) {
     int map_ok = pico8_load_map_json(&mem, "pico8/map.json");
     assert(map_ok);
 
-    /* Sprite sheet pixels must still read back correctly after the map
-     * load, including rows that would fall inside the map's address
-     * range under the old (buggy) packed-hardware-sized layout. */
+    /* Sprite rows that a packed layout would have put inside the map's
+     * address range still read back correctly after the map load. */
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET + 0 * 128 + 16) == 3);
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET + 64 * 128 + 2) == 1);
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_SHEET + 127 * 128 + 0) == 3);
 
-    /* Map cells (JSON rows 0-31 landing in PICO8_ADDR_SPRITE_MAP_SHARED,
-     * and JSON rows 32-63 landing in PICO8_ADDR_MAP) must be correct
-     * too. */
+    /* And the map cells, both regions. */
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 1) == 81);
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 0 * 128 + 9) == 213);
     assert(pico8_peek(&mem, PICO8_ADDR_SPRITE_MAP_SHARED + 31 * 128 + 0) == 51);

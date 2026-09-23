@@ -171,11 +171,12 @@ static void test_save_writes_events_json_schema_shape(void) {
     assert(strstr(written_json, "[") != NULL);
     assert(strstr(written_json, "]") != NULL);
 
-    /* Cross-check against the real, committed root events.json's own
-     * structure -- same key names in the same shape, not a
-     * self-consistent-but-different schema invented by writer+reader
-     * agreeing with each other alone. */
-    char *real_events_json = read_file_raw("events.json");
+    /* Cross-check against a committed recording this test did not write --
+     * same key names in the same shape, not a self-consistent-but-different
+     * schema invented by writer and reader agreeing with each other alone.
+     * Deliberately a fixture, not the events.json at the repo root: that one
+     * is a working recording, replaced whenever a session is played. */
+    char *real_events_json = read_file_raw("tests/fixtures/demo_events.json");
     assert(strstr(real_events_json, "\"frames\":") != NULL);
     assert(strstr(real_events_json, "\"mouse_x\":") != NULL);
     assert(strstr(real_events_json, "\"mouse_y\":") != NULL);
@@ -187,12 +188,12 @@ static void test_save_writes_events_json_schema_shape(void) {
     free(written_json);
     free(real_events_json);
 
-    /* The real events.json must itself load through pico8_input_load
-     * (sanity: our shape assumptions above are grounded in a file the
-     * loader actually accepts, not just string content). */
+    /* That recording must itself load through pico8_input_load (sanity: the
+     * shape assumptions above are grounded in a file the loader actually
+     * accepts, not just string content). */
     pico8_input_t input;
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, "events.json"));
+    assert(pico8_input_load(&input, "tests/fixtures/demo_events.json"));
     pico8_input_free(&input);
 }
 

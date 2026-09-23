@@ -1,5 +1,6 @@
 #include "pico8_ui.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,19 +14,12 @@
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
-/* See pico8_ui.h's own top comment for the full source/trace, the `le`
- * representation decision, and the `je` placeholder's own rationale. */
-
 static pico8_class_t *g_ui_class = NULL;
 static pico8_instance_t *g_je = NULL;
 static pico8_instance_t *g_ok = NULL;
 
-/* Per-module defensive field readers, matching the same "read a field
- * expected to hold kind K, absent/wrong-kind/NULL-instance all read as a
- * documented default" convention already established by
- * pico8_entity_geom.c/pico8_hud.c/pico8_scroll.c/pico8_ui_button.c -- a
- * private per-module copy each time, not shared/exported, same reasoning
- * those files already give. */
+/* Field readers: an absent field, a wrong kind, or a NULL instance all read
+ * as the default -- a zero vector here, "no value" for the raw one. */
 static pico8_vec_t pico8_ui_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -42,36 +36,9 @@ static pico8_value_t pico8_ui_field_raw(const pico8_instance_t *inst, const char
     return pico8_value_ref(NULL);
 }
 
-/* Lua truthiness (nil/false are falsy, everything else -- including 0 --
- * is truthy).
- *
- * PHASE 4 BUG FIX (found by this phase's own first real full-game
- * playability exercise, tests/test_pico8_playability.c -- see
- * docs/portage-progress.md): this function's own PREVIOUS body only
- * caught `PICO8_VALUE_BOOL(false)` as falsy, leaving `pico8_value_ref
- * (NULL)` -- this port's own established, pervasive stand-in for real Lua
- * `nil` (pico8_value.h's own top comment; already correctly handled by
- * e.g. pico8_probe_truthy, pico8_probe.c) -- reading as TRUTHY here. That
- * was flat wrong for this file's own real, evidenced call sites: contrary
- * to this comment's OLD claim that "every real call site... always checks
- * REF-and-non-NULL separately... before falling back to this generic
- * check", none of the three real call sites below (`rheld`, `hd`'s own
- * `hit_out`, `jz`'s own `kn`) do any such separate check first. This
- * concretely broke `pico8_ui_jz`'s own click-dispatch precedence: a real
- * `jo:ldown()` (`pico8_jo_ldown`, pico8_planet.c) returns
- * `pico8_value_ref(NULL)` (Lua nil) for an "unknown" (unrevealed) planet
- * -- clicking one should fall through `jz`'s own layer walk to a LOWER-
- * priority entity (e.g. `bg:ldown`, the background/probe-launch handler),
- * exactly like real Lua's `if kn then return {...} end` skipping a nil
- * `kn` -- but the old, incomplete truthy check here treated that nil as
- * truthy, so `jz` incorrectly stopped at the planet and returned a REF
- * wrapping a NULL pointer, silently swallowing every click landing near
- * an unrevealed planet and permanently blocking `bg:ldown` (and therefore
- * ever creating a `mz` wormhole once a `g_` probe already exists) for
- * that click. Fixed to match `pico8_probe_truthy`'s own already-correct
- * "REF with a NULL pointer is falsy too" rule -- the direct C
- * consequence of choosing REF(NULL) as this port's own nil
- * representation in the first place, not a new convention. */
+/* Lua truthiness, used on every dispatch result below: false is falsy, and
+ * so is this port's stand-in for nil, a REF holding NULL. A check that only
+ * caught false swallowed every click near an unrevealed planet. */
 static int pico8_ui_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -86,13 +53,13 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
     return (int)pico8_fixed_to_double(x);
 }
 
-/* je[bt] (bt "l" or "r"): reads the nested button-state table bu()
- * (pico8_mouse.h) would normally populate -- absent on this chunk's own
- * bare `je` placeholder, so every read through this helper defensively
- * returns NULL/false, matching this file's own top-comment rationale. */
+/* je[bt] (bt "l" or "r"): NULL when `je` has no such button-state table,
+ * which is the case for the field-less placeholder. */
 static const pico8_ob_table_t *pico8_ui_je_button_table(const char *bt) {
     pico8_value_t b_val;
     if (pico8_instance_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
+        assert(pico8_type_tag_of(b_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+               "je's per-button state must be a plain table");
         return (const pico8_ob_table_t *)b_val.as.ref;
     }
     return NULL;
@@ -107,11 +74,6 @@ static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
     return 0;
 }
 
-/* Bridges pico8_value_function_t's (self,argc,arg0,arg1) shape to
- * pico8_ui_ev's own signature; dc()'s own "ev" dispatch passes argc=1
- * with `qc.ra` as arg0 (ui:ev's real body never references it, so unused
- * here too, exactly like js:ev), reading pico8_dispatch_context.h's
- * shared gfx/mem for spr()'s own real drawing need. */
 static pico8_value_t pico8_ui_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
@@ -120,13 +82,6 @@ static pico8_value_t pico8_ui_ev_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* ui=ke:jr([[
- * ql=58,fa=15,le=o(),hw=b(10,10,118,118),
- * ]]) -- see pico8_ui.h's own top comment for the full trace. Calls
- * pico8_pi_init() defensively (idempotent) before declaring the class:
- * the spec string's own `b(...)` needs Chunk 1/2's 'b' char-keyed pi
- * registration to already exist, same real ordering hazard as
- * pico8_nf_init()/pico8_qb_init()'s own `v(...)` fields. */
 void pico8_ui_init(void) {
     pico8_ob_table_t *raw_le = NULL;
     pico8_value_t le_val;
@@ -137,15 +92,8 @@ void pico8_ui_init(void) {
 
     g_ui_class = pico8_class_declare(pico8_ke_class(), "\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n");
 
-    /* le=o(): ob()'s own generic "identifier(...)" fallback parses an
-     * empty, untyped table here (matching every other unregistered-
-     * identifier default in this port), but this class's own real
-     * consumers (gu()/nv()) need a pico8_list_t*, not a raw
-     * pico8_ob_table_t* -- see this file's own top comment (via
-     * pico8_ui.h) for the full rationale. Overridden here, right after
-     * declaring, with a properly-typed empty heap pico8_list_t* REF; the
-     * raw table ob() actually built for "le" is freed immediately since
-     * nothing else ever sees it. */
+    /* `gu()`/`nv()` need a list, not the table `ob()` parses for `le=o()`.
+     * The raw table is freed here: nothing else ever sees it. */
     if (pico8_ob_table_get_name(g_ui_class->defaults, "le", &le_val) && le_val.kind == PICO8_VALUE_REF) {
         raw_le = (pico8_ob_table_t *)le_val.as.ref;
     }
@@ -154,17 +102,8 @@ void pico8_ui_init(void) {
     pico8_ob_table_set_name(g_ui_class->defaults, "le", pico8_value_ref(heap_le));
     pico8_ob_table_free(raw_le);
 
-    /* `ev` IS one of bm's 5 dispatch names -- wired as a real
-     * PICO8_VALUE_FUNCTION class-default field, exactly like js:ev/js:kj
-     * (pico8_ui_button.c). `lj`/`gw`/`bh`/`jz`/`cj` are NOT bm names and
-     * are never routed through mv()/dc() -- see pico8_ui.h's own top
-     * comment -- so they need no such wiring. */
     pico8_ob_table_set_name(g_ui_class->defaults, "ev", pico8_value_function(pico8_ui_ev_dispatch));
 
-    /* je -- Chunk 5's own placeholder for the real `je=nf()` mouse-reader
-     * singleton, mirroring pico8_mo()'s exact shape (pico8_entity.c): a
-     * single, bare, classless instance with no fields set. See pico8_ui.h's
-     * own top comment for the full rationale and the note for Chunk 6. */
     g_je = malloc(sizeof *g_je);
     g_je->tag = PICO8_TYPE_TAG_INSTANCE;
     g_je->fields = pico8_ob_table_new();
@@ -198,35 +137,10 @@ pico8_instance_t *pico8_je(void) {
     return g_je;
 }
 
-/* See pico8_ui.h's own comment on this declaration.
- *
- * REAL BUG FOUND AND FIXED (Phase 5, raylib interactive backend): this
- * used to unconditionally pico8_instance_free() the outgoing g_je before
- * replacing it, matching the shape of every other _set_ singleton setter
- * in this port. But je is one of the three singletons (mo/je/ok) pico8_jl
- * rebuilds UNCONDITIONALLY on every call (see pico8_bootstrap.c), and
- * pico8_jl() itself runs a second time from inside pico8_eu() -- which is
- * reachable not just from main.c's own direct boot-time call, but from a
- * REAL mouse click on a difficulty button, dispatched through pico8_ui_lj
- * (self=the pre-rebuild ok) -> ... -> mv(button,"my") -> pico8_eu(). At
- * that point pico8_ui_lj's own call frame is still using its `self`
- * (the OLD ok) after the callback returns (pico8_ui_lj's own final
- * self->fields write) -- exactly the moment the OLD je/ok would already
- * have been freed here, a confirmed ASan heap-use-after-free reproduced
- * via a real simulated click (never hit by any existing test/replay,
- * since main.c/test_pico8_playability all reach eu() via a direct call
- * BEFORE the frame loop starts, never through a live click mid-dispatch).
- * Real Lua has no equivalent hazard: reassigning the global `je`/`ok`
- * never invalidates whatever a live call's own `self` local still
- * references -- the old table simply becomes garbage, reclaimed by the
- * GC only once nothing points to it anymore, never while a frame like
- * pico8_ui_lj's is still running on it. The C-faithful fix is therefore
- * to stop freeing the outgoing instance here and let it leak instead,
- * matching real Lua's own deferred-reclaim semantics -- and matching
- * this project's own already-accepted "no full teardown of long-lived
- * singletons" convention (see e.g. the fv/particle instances pico8_jl()
- * itself never frees either). Zero Lua-observable behavior change: only
- * C memory-reclamation timing differs. */
+/* Deliberately does not free the outgoing instance. `pico8_jl()` rebuilds
+ * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
+ * whose `self` is still the old `ok` after the callback returns -- freeing
+ * here is a use-after-free. */
 void pico8_ui_set_je(pico8_instance_t *instance) {
     if (instance == g_je) {
         return;
@@ -238,10 +152,7 @@ pico8_instance_t *pico8_ok(void) {
     return g_ok;
 }
 
-/* See pico8_ui.h's own comment on this declaration, and pico8_ui_set_je's
- * own comment just above for the full real-bug trace this shares (ok is
- * the specific singleton the confirmed use-after-free was reproduced
- * against). */
+/* Same non-freeing rule as pico8_ui_set_je(), and the same reason. */
 void pico8_ui_set_ok(pico8_instance_t *instance) {
     if (instance == g_ok) {
         return;
@@ -249,20 +160,8 @@ void pico8_ui_set_ok(pico8_instance_t *instance) {
     g_ok = instance;
 }
 
-/* function ui:lj()local le=self.le
- * self.qa=je.ra+mo.ra
- * self:gw()if #le==0 or gu(le,self.o_)then
- * self:bh("l")end
- * self:bh("r")if je.l.jn and self.le==le then
- * self:cj()end
- * self.gj=self.o_
- * end
- * -- see pico8_ui.h's own comment on this declaration for the full trace.
- * `local le=self.le` is captured BEFORE gw()/bh() run so `self.le==le`
- * (an identity/pointer comparison, not a value comparison) below still
- * refers to the list this call started with. `self.qa` is a field REBIND
- * (fresh heap vector), matching every other "field write always lands on
- * the instance" case already established. */
+/* `le` is read before gw()/bh() run: the `self.le == le` test further down
+ * is a pointer identity check against the list this frame started with. */
 void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_value_t le_val;
     void *le_ptr_before = NULL;
@@ -276,12 +175,6 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "le", &le_val) && le_val.kind == PICO8_VALUE_REF && le_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * Producers of "le", all heap pico8_list_t*: pico8_ui_init()
-         * above (which explicitly throws away the `le=o()` ob_table the
-         * class spec string parses and installs a real empty list in the
-         * class defaults), pico8_ui_cj() below, and pico8_pz()
-         * (src/pico8_msgbox.c:509/525). */
         le_ptr_before = le_val.as.ref;
         le_count = PICO8_REF_AS_LIST_CONST(le_val.as.ref)->count;
     } else {
@@ -289,17 +182,14 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     }
 
     qa = pico8_vec_add(pico8_ui_field_vec(g_je, "ra"), pico8_ui_field_vec(pico8_mo(), "ra"));
+    /* TROU-7 */
     heap_qa = malloc(sizeof *heap_qa);
     *heap_qa = qa;
     pico8_ob_table_set_name(self->fields, "qa", pico8_value_ref(heap_qa));
 
     pico8_ui_gw(mem, self);
 
-    hit = (le_count == 0) ||
-          /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- `le_ptr_before`
-           * is the very REF read as "le" above, captured before gw()/bh()
-           * can rebind the field. */
-          pico8_gu(PICO8_REF_AS_LIST_CONST(le_ptr_before), pico8_ui_field_raw(self, "o_"));
+    hit = (le_count == 0) || pico8_gu(PICO8_REF_AS_LIST_CONST(le_ptr_before), pico8_ui_field_raw(self, "o_"));
     if (hit) {
         pico8_ui_bh(self, "l");
     }
@@ -318,13 +208,8 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_ob_table_set_name(self->fields, "gj", pico8_ui_field_raw(self, "o_"));
 }
 
-/* function ui:ev()spr(self.rheld and 9 or self.o_ and self.o_.ql or self.ql,je.ra.x,je.ra.y)end
- * -- see pico8_ui.h's own comment on this declaration for the full trace.
- * `self.rheld and 9 or self.o_ and self.o_.ql or self.ql`: Lua's
- * and/or idiom, `(self.rheld and 9) or (self.o_ and self.o_.ql) or
- * self.ql` -- rheld truthy picks 9; else, if self.o_ is present AND its
- * own "ql" is itself truthy, that; else self's own "ql" (58, per the
- * class spec). */
+/* `(rheld and 9) or (o_ and o_.ql) or self.ql`: a hovered entity whose own
+ * `ql` is absent falls through to self's own cursor sprite. */
 void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self) {
     pico8_vec_t je_ra;
     int spr_id = 0;
@@ -354,25 +239,9 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     pico8_spr_default(gfx, mem, spr_id, pico8_ui_to_int(je_ra.x), pico8_ui_to_int(je_ra.y));
 }
 
-/* function ui:gw()self.ic,self.o_={}
- * for e in all(cv.hd)do
- * if mv(e,"hd",self.qa,je.ra)then
- * ft(self.ic,e.fa,e)self.o_=e
- * end
- * end
- * (self.gj or {}).m_=false
- * (self.o_ or {}).m_=true
- * poke(0x5f80,self.o_
- * and self.o_.fg
- * or max(peek(0x5f80)-1,0))end
- * -- see pico8_ui.h's own comment on this declaration for the full trace
- * and the arity-extension rationale. `self.ic,self.o_={}`: Lua multiple
- * assignment with one RHS value -- `self.ic` gets the fresh table,
- * `self.o_` gets nil (ported as pico8_value_ref(NULL), this port's own
- * "no real Lua value" filler). `(self.gj or {}).m_=false`/`(self.o_ or
- * {}).m_=true`: writing onto a throwaway `{}` when the LHS is absent has
- * no observable effect in real Lua, so this port simply skips the write
- * when absent rather than allocating a table nothing will ever read. */
+/* Lua's `(self.gj or {}).m_=false` writes onto a throwaway table when the
+ * field is absent, with no observable effect, so the write is simply
+ * skipped here rather than allocating a table nothing reads. */
 void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_ob_table_t *ic;
     pico8_value_t qa_val;
@@ -387,6 +256,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
         return;
     }
 
+    /* TROU-7 */
     ic = pico8_ob_table_new();
     pico8_ob_table_set_name(self->fields, "ic", pico8_value_ref(ic));
     pico8_ob_table_set_name(self->fields, "o_", pico8_value_ref(NULL));
@@ -400,6 +270,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
             pico8_instance_t *e = hd_bucket->items[i].as.ref;
             pico8_value_t hit_out;
 
+            /* TROU-11 */
             if (pico8_mv(e, "hd", 2, qa_val, je_ra_val, &hit_out) && pico8_ui_truthy(hit_out)) {
                 pico8_value_t fa_val;
                 if (pico8_instance_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
@@ -430,32 +301,6 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_poke(mem, 0x5f80, (unsigned char)poke_val);
 }
 
-/* function ui:bh(bt)local b,ni=
- * je[bt],bt.."held"if b.jn then
- * local pw=self:jz(bt.."down",self.qa,je.ra)if pw and type(pw.kn)=="table" then
- * self[ni]=pw.kn
- * end
- * end
- * local held=self[ni]
- * mv(held,"hq",self.qa,je.ra)if b.hm and held then
- * local nw=self:jz("gv",held)mv(held,"ey",nw and nw.kv)self[ni]=nil
- * end
- * end
- * -- see pico8_ui.h's own comment on this declaration for the full trace.
- * `bt.."held"`/`bt.."down"` (dynamic field-name/method-name string
- * concatenation): pico8_ob_table_set_name/pico8_mv already take an
- * arbitrary runtime `const char *`, so no special mechanism is needed --
- * built here with snprintf into small fixed buffers. `mv(held,"hq",...)`'s
- * result is discarded (side effect only), matching the real source's own
- * bare statement.
- *
- * `nw and nw.kv`: `nw` is the FRESH `{kv=h,kn=kn}` table ui:jz builds
- * (pico8/lua.lua:251), so `nw.kv` IS `h`, the entity jz found -- which
- * pico8_ui_jz already hands back directly as `*out_kv` (see pico8_ui.h).
- * It is NOT a field read on that entity: no object in this cart ever has a
- * field named "kv" (`grep -n "kv=" pico8/lua.lua` -> only the global class
- * registry and jz's own return table), so reading one would make this
- * always pass nil to jc:ey() and kill slipway construction outright. */
 void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
     char ni[16];
     pico8_value_t held_val;
@@ -486,6 +331,7 @@ void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
 
     held_val = pico8_ui_field_raw(self, ni);
     if (held_val.kind == PICO8_VALUE_REF && held_val.as.ref != NULL) {
+        /* TROU-6 */
         held_inst = (pico8_instance_t *)held_val.as.ref;
     }
 
@@ -496,6 +342,8 @@ void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
         pico8_value_t nw_kn;
         pico8_value_t ey_arg = pico8_value_ref(NULL);
 
+        /* `ey`'s argument is the entity `jz` found, not a field read on
+         * `held`: no object in this cart carries a "kv" field. */
         if (pico8_ui_jz(self, "gv", 1, held_val, pico8_value_ref(NULL), &nw_kv, &nw_kn) && nw_kv != NULL) {
             ey_arg = pico8_value_ref(nw_kv);
         }
@@ -505,20 +353,9 @@ void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
     }
 }
 
-/* function ui:jz(rm,...)for mf=15,0,-1 do
- * for h in all(self.ic[mf])do
- * local kn=mv(h,rm,...)if kn then
- * return {kv=h,kn=kn}
- * end
- * end
- * end
- * end
- * -- see pico8_ui.h's own comment on this declaration for the full trace.
- * `argc`/`arg0`/`arg1` are threaded straight through to pico8_mv() for
- * every candidate `h`, unchanged -- this function's own second real
- * variable-arity mv()-forwarding site (alongside ui:bh()'s two direct
- * calls above), matching the real Lua's own `mv(h,rm,...)` vararg
- * forwarding. */
+/* Layers descend from 15 to 0 and the first truthy answer wins: that order
+ * is the dispatch priority between overlapping entities, not an arbitrary
+ * walk. */
 int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
                 pico8_instance_t **out_kv, pico8_value_t *out_kn) {
     int mf;
@@ -543,11 +380,6 @@ int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t 
             bucket_val.as.ref == NULL) {
             continue;
         }
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * `ic` is built by pico8_ob_table_new() in pico8_ui_gw() above
-         * and its indexed entries are written by exactly one thing,
-         * pico8_ft_index() (src/pico8_collect.c), whose buckets are
-         * always a malloc'd, pico8_list_init()ed pico8_list_t*. */
         bucket = PICO8_REF_AS_LIST_CONST(bucket_val.as.ref);
 
         for (i = 0; i < bucket->count; i++) {
@@ -565,12 +397,9 @@ int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t 
     return 0;
 }
 
-/* nv(self.le,he)'s own `kp` callback: he() (pico8_entity.h) has no return
- * statement in real Lua (always nil), so nv()'s own `kp(e) or nil`
- * contributes NOTHING to the mapped list for every element -- this always
- * returns 0 (pico8_nv's own "didn't produce a value" convention),
- * matching that exactly; only the per-element pico8_he() SIDE EFFECT
- * (removing each entity from hv/cv/cg) is what ui:cj() is actually for. */
+/* `he()` returns nothing, so this never produces a mapped value (always 0)
+ * and the mapped list stays empty; the point is `pico8_he()`'s side effect
+ * of unregistering each entity. */
 static int pico8_ui_cj_he_mapper(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     (void)ctx;
     (void)out_value;
@@ -580,14 +409,6 @@ static int pico8_ui_cj_he_mapper(pico8_value_t e, void *ctx, pico8_value_t *out_
     return 0;
 }
 
-/* function ui:cj()nv(self.le,he)self.le={}
- * end
- * -- see pico8_ui.h's own comment on this declaration for the full trace.
- * The mapped list nv() produces is discarded immediately (see
- * pico8_ui_cj_he_mapper's own comment above); `self.le={}` rebinds
- * self.le to a fresh, empty heap pico8_list_t* REF, the same
- * representation pico8_ui_init() already establishes for `le`'s own
- * class-spec default. */
 void pico8_ui_cj(pico8_instance_t *self) {
     pico8_value_t le_val;
     pico8_list_t *heap_le;
@@ -597,12 +418,11 @@ void pico8_ui_cj(pico8_instance_t *self) {
     }
 
     if (pico8_instance_get_field(self, "le", &le_val) && le_val.kind == PICO8_VALUE_REF && le_val.as.ref != NULL) {
-        /* REVERSE-CAST AUDIT: SAFE BY CONSTRUCTION -- "le", same three
-         * producers listed in pico8_ui_lj above. */
         pico8_list_t discarded = pico8_nv(PICO8_REF_AS_LIST_CONST(le_val.as.ref), pico8_ui_cj_he_mapper, NULL);
         pico8_list_free(&discarded);
     }
 
+    /* TROU-7 */
     heap_le = malloc(sizeof *heap_le);
     pico8_list_init(heap_le);
     pico8_ob_table_set_name(self->fields, "le", pico8_value_ref(heap_le));

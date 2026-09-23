@@ -8,10 +8,8 @@
 
 static pico8_class_t *g_ke_class = NULL;
 
-/* Bridges pico8_class_pq_fn (`void(*)(pico8_instance_t*)`) to pico8_lt's
- * own real signature (`pico8_instance_t*(*)(pico8_instance_t*)`) -- see
- * pico8_ke.h's own top comment on `ke.pq=lt`. lt()'s returned pointer
- * (always the same instance it was given) is simply discarded. */
+/* Bridges pico8_class_pq_fn to pico8_lt, whose returned pointer is always
+ * the instance it was given and is discarded here. */
 static void pico8_ke_pq_lt(pico8_instance_t *instance) {
     pico8_lt(instance);
 }
@@ -33,9 +31,6 @@ pico8_class_t *pico8_ke_class(void) {
     return g_ke_class;
 }
 
-/* function ke:ks(me)self.me,self.t=me,0
- * end
- * See pico8_ke.h's own comment on this declaration. */
 void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me) {
     if (self == NULL) {
         return;

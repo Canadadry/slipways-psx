@@ -75,10 +75,8 @@ char *pico8_value_tostr(pico8_value_t v) {
         case PICO8_VALUE_BOOL:
             return pico8_strdup_owned(v.as.boolean ? "true" : "false");
         case PICO8_VALUE_FIXED: {
-            /* Simple decimal formatting, not PICO-8's exact stringify
-             * rules (see pico8_value.h's own comment on this function):
-             * print with fixed precision, then trim trailing fractional
-             * zeros (and a bare trailing '.') so an exact integer value
+            /* Print with fixed precision, then trim trailing fractional
+             * zeros and a bare trailing '.', so an exact integer value
              * renders without a fractional part. */
             double d = pico8_fixed_to_double(v.as.fixed);
             snprintf(buf, sizeof buf, "%.4f", d);
@@ -96,8 +94,7 @@ char *pico8_value_tostr(pico8_value_t v) {
         }
         case PICO8_VALUE_REF:
         case PICO8_VALUE_FUNCTION:
-            /* Never exercised by any in-scope call site; minimal/
-             * defensive rather than a researched formatting. */
+            /* TROU-13 */
             return pico8_strdup_owned("");
     }
     return pico8_strdup_owned("");

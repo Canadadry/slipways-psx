@@ -78,9 +78,9 @@ static void test_camera_reset_restores_zero_offset(void) {
     assert(pico8_peek(&mem, PICO8_ADDR_SCREEN + 4 * PICO8_SCREEN_WIDTH + 3) == 6);
 }
 
-/* palt()'s store is the draw palette in memory, so the PICO-8 default
- * ("all colours opaque except colour 0") is memory's own power-on state,
- * pico8_mem_init's (pico8_mem.c), not a gfx-side flag array's. */
+/* `palt()` stores into the draw palette in memory, so the PICO-8 default --
+ * every colour opaque but colour 0 -- is `pico8_mem_init`'s power-on state,
+ * not a gfx-side flag array. */
 static void test_mem_init_default_transparency_is_color_0_only(void) {
     pico8_mem_t mem;
     pico8_mem_init(&mem);
@@ -105,10 +105,9 @@ static void test_palt_marks_color_transparent_and_opaque(void) {
     assert(!pico8_gfx_is_transparent(&mem, 3));
 }
 
-/* The single-store consequence, and the one this cart actually depends on:
- * dv()'s own memcpy into 0x5f00 (pico8_hud.c) REPLACES whatever palt()
- * last said -- pico8/lua.lua:546's trailing bare dv() is exactly that
- * undo for its own palt(0,true), and the cart never calls palt(0,false). */
+/* The consequence of that single store, which this cart depends on: `dv()`'s
+ * memcpy into 0x5f00 replaces whatever `palt()` last said. The cart undoes
+ * its `palt(0,true)` with a bare `dv()`, never with `palt(0,false)`. */
 static void test_draw_palette_write_overrides_a_previous_palt(void) {
     pico8_mem_t mem;
     pico8_mem_init(&mem);
@@ -137,10 +136,9 @@ static void test_palt_out_of_range_col_is_noop_and_queries_as_opaque(void) {
 }
 
 static void test_palt_affects_a_subsequent_transparent_color_draw(void) {
-    /* pset itself never consults palt (matches real PICO-8: transparency
-     * only affects sprite-drawing primitives, added in a later chunk).
-     * This exercises the "does this pixel draw" query a later chunk's
-     * spr() will call before plotting each source pixel. */
+    /* `pset` never consults `palt`: as in real PICO-8, transparency only
+     * affects the sprite primitives. What is exercised here is the "does
+     * this pixel draw" query `spr()` makes per source pixel. */
     pico8_mem_t mem;
     pico8_gfx_t gfx;
     pico8_mem_init(&mem);
@@ -329,11 +327,9 @@ static void test_fillp_pattern_alters_rectfill_output(void) {
 }
 
 static void test_sget_reads_known_pixel_from_loaded_cart_data(void) {
-    /* Cross-checked against test_asset_loading.c's known-good values:
-     * pixel (16,0)=3 is sprite 2's top-left pixel, pixel (2,64)=1 is
-     * sprite 128's pixel (dx=2,dy=0), pixel (0,127)=3 is sprite 240's
-     * bottom-left pixel. sget takes raw sprite-sheet pixel coordinates,
-     * not sprite index + offset. */
+    /* The three known-good values, in raw sheet pixel coordinates, not
+     * sprite index plus offset: (16,0) is sprite 2's top-left, (2,64) is
+     * sprite 128's (dx=2,dy=0), (0,127) is sprite 240's bottom-left. */
     pico8_mem_t mem;
     pico8_mem_init(&mem);
     int ok = pico8_load_gfx_json(&mem, "pico8/gfx.json");
@@ -512,11 +508,8 @@ static void test_map_treats_sprite_0_cells_as_empty(void) {
 }
 
 static void test_map_and_mset_round_trip_against_real_cart_data(void) {
-    /* End-to-end: load the real cart's sprite sheet, mset a cell (in the
-     * shared upper map region) to point at a known real sprite, draw it
-     * via map(), and confirm the drawn pixel matches sget's own read of
-     * that same sprite-sheet pixel -- both direct sget and the drawn
-     * framebuffer must agree. */
+    /* `sget`'s read of a sprite-sheet pixel and the framebuffer `map()`
+     * draws from that same sprite must agree, on real cart data. */
     pico8_mem_t mem;
     pico8_gfx_t gfx;
     pico8_mem_init(&mem);

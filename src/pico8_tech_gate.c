@@ -8,13 +8,8 @@
 #include "pico8_probe.h"
 #include "pico8_ref_audit.h"
 
-/* Lua truthiness (nil/false falsy, everything else -- including fixed 0 --
- * truthy), extended to also treat PICO8_VALUE_REF(NULL) as falsy -- the
- * same extension pico8_probe.c's own pico8_probe_truthy already
- * established, needed here since `oj(px)`'s own `not px` can genuinely be
- * called with this port's "absent Lua value" filler. Private per-module
- * copy, matching this port's own pervasive per-module-truthy-helper
- * convention (pico8_ui.c, pico8_layout.c, pico8_bootstrap.c, ...). */
+/* Lua truthiness -- fixed 0 included, it is truthy -- extended to read
+ * this port's absent-value filler as falsy. */
 static int pico8_tech_gate_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -25,15 +20,8 @@ static int pico8_tech_gate_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Not a port of any named Lua function: `jp(nb,...)`'s own `nb` (real Lua
- * global built by pico8_data_init.c's own foreach(nb,ho(...)) pass) is a
- * plain ob()-parsed table whose real content is purely positional (each
- * entry one tech record) -- but pico8_jp (pico8_collect.h) takes a
- * pico8_list_t, not a pico8_ob_table_t. Same private-per-module bridge
- * already established independently by pico8_layout_positional_values
- * (pico8_layout.c) and pico8_msgbox_positional_values (pico8_msgbox.c) --
- * documented duplication, not a new pattern. Returns a new, heap-backed
- * list the caller owns and must release with pico8_list_free(). */
+/* Returns a new list the caller owns and must release with
+ * pico8_list_free(); a NULL table yields an empty one. */
 static pico8_list_t pico8_tech_gate_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
@@ -50,12 +38,6 @@ static pico8_list_t pico8_tech_gate_positional_values(const pico8_ob_table_t *ta
     return list;
 }
 
-/* function oj(px)
- * return not px or gu(fm.invented,px)
- * end
- * (pico8/lua.lua:1464-1466.) See pico8_tech_gate.h's own top comment on
- * this declaration for the full trace, including why pico8_gu_content is
- * used rather than pico8_gu. */
 int pico8_oj(pico8_value_t px) {
     pico8_value_t invented;
     const pico8_list_t *invented_list = NULL;
@@ -65,21 +47,14 @@ int pico8_oj(pico8_value_t px) {
     }
     if (pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "invented", &invented) &&
         invented.kind == PICO8_VALUE_REF) {
-        /* REVERSE-CAST AUDIT (pico8_ref_audit.h): SAFE BY CONSTRUCTION.
-         * Producer: pico8_hy_pq() (src/pico8_economy.c), sole writer of
-         * "invented", which swaps the spec string's own `invented=o()`
-         * ob_table for a real heap list. */
+        /* pico8_hy_pq is the only writer of "invented", and it swaps the
+         * spec string's `invented=o()` table for a real heap list. */
         invented_list = PICO8_REF_AS_LIST_CONST(invented.as.ref);
     }
+    /* TROU-3 */
     return pico8_gu_content(invented_list, px);
 }
 
-/* function ov(px,lk,mc)
- * return oj(px)
- * and mc or lk
- * end
- * (pico8/lua.lua:1467-1470.) See pico8_tech_gate.h's own top comment on
- * this declaration for the full A-and-B-or-C trace. */
 pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc) {
     if (pico8_oj(px) && pico8_tech_gate_truthy(mc)) {
         return mc;
@@ -87,14 +62,8 @@ pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc) {
     return lk;
 }
 
-/* function gi(t)
- * return flr(t.od*max(0.55,
- * fm.fu[t.nk]))
- * end
- * (pico8/lua.lua:1471-1474.) See pico8_tech_gate.h's own top comment on
- * this declaration for the full trace, including why `t` is a
- * pico8_ob_table_t* (a plain nb record), not an instance, and the
- * `fm.fu[t.nk]` polymorphic-key lookup. */
+/* `t.nk` keys fm.fu either by index or by name, decided at runtime -- the
+ * same split pico8_ft_index/pico8_ft_name already carry. */
 pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
     pico8_value_t od_val;
     pico8_value_t nk_val;
@@ -129,21 +98,14 @@ pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
     return pico8_fixed_flr(pico8_fixed_mul(od, factor));
 }
 
-/* `cb(bi)`'s own ctx for its filter predicate below -- `bi`, the real Lua
- * closure's own captured upvalue, threaded here as an explicit ctx per
- * pico8_jp_predicate_fn's own established convention. */
+/* `bi`, the Lua closure's captured upvalue, threaded as an explicit ctx. */
 typedef struct {
     pico8_value_t bi;
 } pico8_cb_ctx_t;
 
-/* `function(t)t.e_=gi(t)<=fm.jk return t.lv==fm.ew and not oj(t.px) and
- * (t.e_ or bi) end` (pico8/lua.lua:1456-1462) -- `cb`'s own real Lua
- * closure, called once per `nb` entry by pico8_jp below. See
- * pico8_tech_gate.h's own top comment on pico8_cb for the full trace,
- * including the real, unconditional `t.e_=...` side effect on every entry
- * visited (ported here exactly: the write happens before the kept/
- * not-kept decision, for every `t`, matching the real closure's own
- * statement order). */
+/* The `e_` write below happens for every `t`, before any early return:
+ * hoisting it under a keep/drop branch would change what callers read back
+ * off nb. */
 static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
     pico8_cb_ctx_t *ctx = ctx_ptr;
     pico8_ob_table_t *t;
@@ -186,11 +148,6 @@ static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
     return affordable || pico8_tech_gate_truthy(ctx->bi);
 }
 
-/* function cb(bi)
- * return jp(nb,function(t)...end)
- * end
- * (pico8/lua.lua:1455-1463.) See pico8_tech_gate.h's own top comment on
- * this declaration for the full trace. */
 pico8_list_t pico8_cb(pico8_value_t bi) {
     pico8_list_t items = pico8_tech_gate_positional_values(pico8_nb());
     pico8_cb_ctx_t ctx;

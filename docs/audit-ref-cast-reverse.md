@@ -2,8 +2,7 @@
 
 Table de classement site par site produite par
 [`docs/prd/triage/reverse-direction-ref-cast-audit.md`](prd/triage/reverse-direction-ref-cast-audit.md).
-Résumé, méthode et conclusion : entrée correspondante du journal
-« Notes de portage » de [`docs/plan.md`](plan.md). Outillage :
+Outillage :
 [`src/pico8_ref_audit.h`](../src/pico8_ref_audit.h),
 [`tools/ref_audit_report.sh`](../tools/ref_audit_report.sh), cible `make ref-audit`.
 
