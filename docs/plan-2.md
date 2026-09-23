@@ -420,11 +420,20 @@ Sources, inchangées : population (c) → **`flr`** (bloc B, correction de bug s
 - `pico8_research_lookup` (`hc[self.ja]`, `hc[qp.mc]`, lua.lua:1422-1423). `ja` est la position 4 d'une entrée du `fd` (unstash 8494). `mc` est un champ nommé de `hc` (unstash 8383). Les deux sont des chaînes ou `nil`, et `hc` n'a aucune clé nombre. Clé chaîne par construction.
 - `pico8_jo_hu` `go` (`df[hp.go]`, lua.lua:456). `hp` vient de `gb` (lua.lua:418-420, 1434-1440). `go` ne vaut que `"f"` ou `"e"` dans le `fd` (unstash 8494). `df` a des clés entières 1..11, mais aucun `go` n'est un nombre. Clé chaîne par construction.
 
-**Règle d'attribution d'une étape D :** la première frame divergente F de `tools/frames_reports/<étape>.txt` doit égaler la plus petite « frame du premier ancien ≠ nouveau » parmi les sites de l'étape ; ce site est désigné. Même règle qu'en C2b, lue dans un seul rejeu.
+**Règle d'attribution d'une étape D.** Soit S l'ensemble des sites de l'étape ayant au moins un ancien ≠ nouveau sur le filet (audit), A la plus petite frame de premier ancien ≠ nouveau, F la première frame divergente de `tools/frames_reports/<étape>.txt`.
+1. **A > F, ou F sans A : échec.** Un pixel a bougé avant toute valeur auditée.
+2. **Complément neutre :** l'arbre de l'étape, les seuls sites de S ramenés à l'ancienne forme, donne `frames-check` identique à la référence d'avant l'étape sur tous les fichiers, sans `frames-baseline`. Cela prouve que les sites hors S (dont les corrections non vues) ne changent aucun pixel — y compris un glissement d'argument que l'audit ne peut pas voir.
+3. **Variante suffisante :** l'arbre d'avant l'étape, les seuls sites de S convertis, donne des empreintes identiques à celles de l'arbre de l'étape, sur toutes les frames. Cela prouve l'absence d'interaction.
+4. Si 2 et 3 passent, toutes les frames divergentes sont attribuées à S, nommé. A < F est permis et consigné (« effet différé de A à F ») ; la revue sans fenêtre à F est une confirmation, pas la porte.
+5. Si S a plus d'un site et qu'on veut les départager, on répète 2 et 3 site par site ; sinon on consigne « attribution partagée : S ».
+
+Le contrôle d'absence de cascade sur l'état (enregistrements C1 de l'audit identiques avant/après, plus lecture du code) est maintenu : il répond à une autre question.
+
+*Source du changement (D1, chunk 2) :* l'ancienne règle « F == A » a échoué sur les 6 fichiers divergents, A < F partout (écarts 6/6/6/15/49/51), tous à `pico8_bl` — l'offset caméra de la boîte de message change alors qu'elle est encore hors écran, l'effet sur les pixels vient quand elle entre. `pico8_bl` est le seul site D1 à ancien ≠ nouveau sur tout le filet ; aucune cascade sur l'état. La règle stricte ne gardait que la première frame ; le complément neutre garde toutes les frames.
 
 **Corrections invisibles au filet :** pour chaque étape D, les sites à zéro appel ancien ≠ nouveau sur le filet sont listés « correction non vue par le filet » (comme les 13 constantes de C2b). Chacun reçoit un test au niveau valeur de l'expression convertie (par exemple une entrée négative fractionnaire qui doit donner `flr`) ou une entrée explicite dans ce plan. Critère de couverture, pas de ligne `gcov` : C a montré que NON COUVERT ne prouve rien dans un sens comme dans l'autre. Structurel pour D1 : `oi`, `sr` et `flr(ratio)` ne sont (c) que par le repli de `qc.t` à 32 768 frames, alors que le plus long fichier du filet en fait 9 729.
 
-**Sortie de phase :** pour chaque étape D divergente et chaque fichier d'événements, la première frame divergente est attribuée à un site par la règle ci-dessus, la suite étiquetée cascade (un changement d'affichage seul, D1, ne doit pas cascader), et le rapport de divergence est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression. D2 ne re-baseline pas.
+**Sortie de phase :** pour chaque étape D divergente, toutes les frames divergentes sont attribuées à S par les contrôles complément/variante de la règle ci-dessus ; F, A et l'écart A→F consignés dans `<étape>-attribution.txt` ; aucune cascade sur l'état (enregistrements C1 de l'audit identiques avant/après), et le rapport de divergence est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression. D2 ne re-baseline pas.
 
 ### Phase E — Fermeture
 `-lm` retiré de la cible du cœur, garde `-mgeneral-regs-only` vide (§6.3), [TROU-1](trous-de-portage.md) refermé.
