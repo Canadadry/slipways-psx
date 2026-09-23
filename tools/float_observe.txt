@@ -21,23 +21,23 @@
 # NON COUVERT  ligne jamais atteinte par le rejeu : ni negatif, ni positif
 src/pico8_audio.c | pico8_rn | 1 | ligne 28 | (c) | D1 | min 0xFFFF0000 | passages 254 | vu negatif | no.as.fixed
 src/pico8_bg.c | pico8_bg_to_int | 1 | ligne 16 | (c) | D1 | min 0xFFF40000 | passages 24274 | vu negatif | x
-src/pico8_collect.c | pico8_ho_apply | 1 | ligne 208 | a auditer | - | min - | passages 0 | NON COUVERT | raw.as.fixed
-src/pico8_economy_tiers.c | set_by_value | 1 | ligne 55 | a auditer | - | min - | passages 0 | NON COUVERT | key.as.fixed
+src/pico8_collect.c | pico8_ho_apply | 1 | ligne 208 | (c) | D1 | min - | passages 0 | NON COUVERT | raw.as.fixed
+src/pico8_economy_tiers.c | set_by_value | 1 | ligne 55 | (c) | D1 | min - | passages 0 | NON COUVERT | key.as.fixed
 src/pico8_hud.c | pico8_hud_to_int | 1 | ligne 20 | (c) | D1 | min 0xFFFD0000 | passages 763679 | vu negatif | x
 src/pico8_layout.c | pico8_lq_ol_item_draw | 1 | ligne 203 | (c) | D1 | min 0x00010000 | passages 70523 | jamais negatif | pos.x
 src/pico8_layout.c | pico8_lq_ol_item_draw | 2 | ligne 204 | (c) | D1 | min 0x00020000 | passages 70523 | jamais negatif | pos.y
 src/pico8_menu.c | pico8_ha2_my_dispatch | 1 | ligne 358 | (c) | D1 | min 0x00010000 | passages 1 | jamais negatif | s
 src/pico8_particle.c | pico8_particle_to_int | 1 | ligne 56 | (c) | D1 | min 0x00010000 | passages 2094431 | jamais negatif | x
 src/pico8_pi.c | pico8_bl | 1 | ligne 169 | (c) | D1 | min 0xFF7BAA4D | passages 2445 | vu negatif | nc
-src/pico8_planet.c | pico8_jo_hu | 1 | ligne 359 | a auditer | - | min - | passages 0 | NON COUVERT | go_val.as.fixed
+src/pico8_planet.c | pico8_jo_hu | 1 | ligne 359 | (c) | D1 | min - | passages 0 | NON COUVERT | go_val.as.fixed
 src/pico8_planet_display.c | pico8_jo_kj | 1 | ligne 503 | (c) | D1 | min 0x0091E600 | passages 138860 | jamais negatif | adjusted.x
 src/pico8_planet_display.c | pico8_jo_kj | 2 | ligne 504 | (c) | D1 | min 0x00841D00 | passages 138860 | jamais negatif | adjusted.y
 src/pico8_probe.c | pico8_probe_to_int | 1 | ligne 26 | (c) | D1 | min 0x00050000 | passages 42 | jamais negatif | x
-src/pico8_research.c | pico8_research_lookup | 1 | ligne 229 | a auditer | - | min - | passages 0 | NON COUVERT | key.as.fixed
+src/pico8_research.c | pico8_research_lookup | 1 | ligne 229 | (c) | D1 | min - | passages 0 | NON COUVERT | key.as.fixed
 src/pico8_score_panel_display.c | pico8_pj_ph_map | 1 | ligne 257 | (a) | D1 | min 0x00000000 | passages 5 | jamais negatif | s6_val.as.fixed
 src/pico8_scroll.c | pico8_qb_md | 1 | ligne 139 | (c) | D1 | min 0x00000000 | passages 141230 | jamais negatif (ligne partagee) | cp.x
 src/pico8_scroll.c | pico8_qb_md | 2 | ligne 139 | (c) | D1 | min 0x00000000 | passages 141230 | jamais negatif (ligne partagee) | cp.y
-src/pico8_slipway_display.c | pico8_jc_display_get_by_value | 1 | ligne 82 | a auditer | - | min - | passages 0 | NON COUVERT | key.as.fixed
+src/pico8_slipway_display.c | pico8_jc_display_get_by_value | 1 | ligne 82 | (c) | D1 | min - | passages 0 | NON COUVERT | key.as.fixed
 src/pico8_slipway_display.c | pico8_jc_display_to_int | 1 | ligne 91 | (c) | D1 | min 0x00000000 | passages 4349 | jamais negatif | x
 src/pico8_ui.c | pico8_ui_to_int | 1 | ligne 53 | (c) | D1 | min 0x00000000 | passages 46614 | jamais negatif | x
 src/pico8_ui_button.c | pico8_ui_to_int | 1 | ligne 44 | (c) | D1 | min 0x00000000 | passages 199587 | jamais negatif | x
