@@ -179,7 +179,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
             if (pico8_ob_table_get_name(p, "l", &l_value) && l_value.kind == PICO8_VALUE_FIXED) {
                 old_l = l_value.as.fixed;
             }
-            new_l = pico8_fixed_sub(old_l, pico8_fixed_from_double(0.14));
+            new_l = pico8_fixed_sub(old_l, PICO8_FIXED_LIT(0x000023d7, 0.14));
             pico8_ob_table_set_name(p, "l", pico8_value_fixed(new_l));
 
             if (new_l <= pico8_fixed_from_int(1)) {

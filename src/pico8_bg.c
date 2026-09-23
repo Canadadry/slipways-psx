@@ -116,7 +116,7 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_instance_t *self) {
         pl_table = (const pico8_ob_table_t *)pl_val.as.ref;
     }
 
-    oh = pico8_jf(pico8_fixed_from_double(0.1), pico8_fixed_from_int(0));
+    oh = pico8_jf(PICO8_FIXED_LIT(0x0000199a, 0.1), pico8_fixed_from_int(0));
 
     for (y = 0; y <= 31; y++) {
         for (x = 0; x <= 31; x++) {
@@ -126,12 +126,12 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_instance_t *self) {
             pico8_fixed_t roll;
             int tile;
 
-            vh = pico8_fixed_add(step, pico8_fixed_mul(pico8_fixed_add(vh, prev), pico8_fixed_from_double(0.5)));
+            vh = pico8_fixed_add(step, pico8_fixed_mul(pico8_fixed_add(vh, prev), PICO8_FIXED_LIT(0x00008000, 0.5)));
             vs[x] = vh;
             vs_set[x] = 1;
 
             roll = pico8_fixed_rnd_default();
-            if (roll < pico8_fixed_from_double(0.004)) {
+            if (roll < PICO8_FIXED_LIT(0x00000106, 0.004)) {
                 tile = 122 + pico8_bg_to_int(pico8_fixed_rnd(pico8_fixed_from_int(5)));
             } else {
                 pico8_fixed_t idx_f = pico8_fixed_flr(pico8_fixed_add(vh, pico8_fixed_rnd(pico8_fixed_from_int(4))));

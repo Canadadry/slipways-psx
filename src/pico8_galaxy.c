@@ -54,9 +54,9 @@ static pico8_fixed_t pico8_bw_gn_r(void *ctx) {
 
 void pico8_bw(pico8_fixed_t n) {
     pico8_fixed_t one = pico8_fixed_from_int(1);
-    pico8_fixed_t threshold = pico8_fixed_from_double(0.05);
-    pico8_fixed_t two_seventy_five = pico8_fixed_from_double(2.75);
-    pico8_fixed_t eighth = pico8_fixed_from_double(0.125);
+    pico8_fixed_t threshold = PICO8_FIXED_LIT(0x00000ccd, 0.05);
+    pico8_fixed_t two_seventy_five = PICO8_FIXED_LIT(0x0002c000, 2.75);
+    pico8_fixed_t eighth = PICO8_FIXED_LIT(0x00002000, 0.125);
     pico8_fixed_t id;
     const pico8_ob_table_t *df;
     const pico8_ob_table_t *dk;
@@ -125,7 +125,7 @@ void pico8_bw(pico8_fixed_t n) {
     }
 
     hr_list = pico8_bw_positional_values(df);
-    new_oc_r_ctx = pico8_jf(pico8_fixed_from_double(0.5), dk_en);
+    new_oc_r_ctx = pico8_jf(PICO8_FIXED_LIT(0x00008000, 0.5), dk_en);
     oc_state = pico8_gn(&hr_list, pico8_fixed_from_int(2), pico8_bw_gn_r, new_oc_r_ctx);
     pico8_list_free(&hr_list);
 
@@ -140,7 +140,7 @@ void pico8_bw(pico8_fixed_t n) {
 
     /* pico8_jo_set_ir owns this outright: jo.ir has no paired ctx of its
      * own to track. */
-    ir_state = pico8_jf(pico8_fixed_from_double(0.8), pico8_fixed_from_double(0.5));
+    ir_state = pico8_jf(PICO8_FIXED_LIT(0x0000cccd, 0.8), PICO8_FIXED_LIT(0x00008000, 0.5));
     pico8_jo_set_ir(ir_state);
 }
 

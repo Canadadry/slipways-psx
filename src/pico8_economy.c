@@ -245,7 +245,7 @@ void pico8_hy_lj(pico8_instance_t *self) {
     }
 
     skill = pico8_ov(pico8_value_string("skill implants"), pico8_value_fixed(pico8_fixed_from_int(1)),
-                      pico8_value_fixed(pico8_fixed_from_double(1.15)));
+                      pico8_value_fixed(PICO8_FIXED_LIT(0x00012666, 1.15)));
     skill_mult = (skill.kind == PICO8_VALUE_FIXED) ? skill.as.fixed : pico8_fixed_from_int(1);
     ge = pico8_fixed_sub(pico8_fixed_flr(pico8_fixed_mul(dd, skill_mult)), pico8_cz());
     pico8_ob_table_set_name(self->fields, "ge", pico8_value_fixed(ge));

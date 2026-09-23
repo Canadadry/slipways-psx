@@ -548,7 +548,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             pico8_vec_t offset =
                 pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
             pico8_value_t offset_val = pico8_value_ref(&offset);
-            pico8_value_t a_val = pico8_value_fixed(pico8_fixed_from_double(0.5));
+            pico8_value_t a_val = pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5));
             pico8_value_t discard;
             int dispatched;
             assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_INSTANCE &&

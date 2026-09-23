@@ -310,7 +310,7 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *sel
     while (pico8_list_iter_next(&it, &entry)) {
         if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
             pico8_vec_t pos = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_add(om, pico8_fixed_from_int(2)));
-            pico8_lq_ol(gfx, mem, (const pico8_instance_t *)entry.as.ref, pos, pico8_fixed_from_double(0.5));
+            pico8_lq_ol(gfx, mem, (const pico8_instance_t *)entry.as.ref, pos, PICO8_FIXED_LIT(0x00008000, 0.5));
             om = pico8_fixed_add(om, pico8_fixed_from_int(8));
         }
     }

@@ -108,7 +108,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_instance_t *self) {
     v = pico8_qb_field_vec(self, "v");
 
     p = pico8_vec_add(p, v);
-    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), pico8_fixed_from_double(0.2)));
+    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), PICO8_FIXED_LIT(0x00003333, 0.2)));
 
     p.x = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.x);
     p.y = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.y);

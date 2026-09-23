@@ -198,7 +198,7 @@ void pico8_js_ph(pico8_instance_t *self) {
         pico8_vec_t ra = pico8_ui_field_vec(self, "ra");
         pico8_vec_t d = pico8_vec_sub(qf, ra);
         pico8_fixed_t len_sq = pico8_vec_len_sq(d);
-        pico8_vec_t delta = (len_sq <= pico8_fixed_from_int(1)) ? d : pico8_vec_mul(d, pico8_fixed_from_double(0.4));
+        pico8_vec_t delta = (len_sq <= pico8_fixed_from_int(1)) ? d : pico8_vec_mul(d, PICO8_FIXED_LIT(0x00006666, 0.4));
         pico8_vec_t new_ra = pico8_vec_add(ra, delta);
         /* TROU-7 */
         pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);

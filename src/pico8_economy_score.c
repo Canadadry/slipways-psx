@@ -130,7 +130,7 @@ pico8_fixed_t pico8_cz(void) {
     int mu = filtered.count;
     pico8_fixed_t result;
     pico8_list_free(&filtered);
-    result = pico8_fixed_mul(pico8_fixed_from_double(0.18), pico8_fixed_from_int(mu * mu));
+    result = pico8_fixed_mul(PICO8_FIXED_LIT(0x00002e14, 0.18), pico8_fixed_from_int(mu * mu));
     return pico8_fixed_flr(result);
 }
 
@@ -217,7 +217,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                     trade_mult = trade_val.as.fixed;
                 }
                 total = pico8_fixed_add(
-                    total, pico8_fixed_mul(pico8_fixed_mul(mu, trade_mult), pico8_fixed_from_double(1.5)));
+                    total, pico8_fixed_mul(pico8_fixed_mul(mu, trade_mult), PICO8_FIXED_LIT(0x00018000, 1.5)));
             }
         }
     }
@@ -280,11 +280,11 @@ pico8_ob_table_t *pico8_ky(void) {
         }
     }
 
-    base = pico8_fixed_mul(pico8_fixed_from_int(invented_count), pico8_fixed_from_double(1.2));
+    base = pico8_fixed_mul(pico8_fixed_from_int(invented_count), PICO8_FIXED_LIT(0x00013333, 1.2));
     el = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_mul(base, base)), pico8_fixed_from_int(10));
 
     total = pico8_fixed_flr(pico8_fixed_mul(
-        pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), pico8_fixed_from_double(0.01)),
+        pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
     happiness_str = pico8_value_tostr(pico8_value_fixed(happiness));

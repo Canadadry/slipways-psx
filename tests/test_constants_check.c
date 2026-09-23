@@ -17,6 +17,9 @@
 
 #define COMPARE "sh tools/constants_compare.sh " INV " " PROBE " " FIXED " " WORK
 #define CHECK "sh tools/constants_check.sh " EXPECTED " " INV " " PROBE " " FIXED " " WORK
+#define SRC_A DIR "/pico8_a.c"
+#define SRC_B DIR "/pico8_b.c"
+#define SRCS " " SRC_A " " SRC_B
 
 #define SITE(file, fn, rank, lit) file " | " fn " | constante | " rank " | ligne 1 | - | - | " lit "\n"
 
@@ -36,6 +39,9 @@
     "0.5 0x0000.8000\n" \
     "## b rounding\n" \
     "flr 0xfffe.8000 -> 0xfffe.0000\n"
+
+/* Les sites de macro vivent dans les sources, plus dans l'inventaire. */
+#define INV_NO_CONSTANT INV_HEADER "src/pico8_b.c | pico8_two | cast | 1 | ligne 9 | x | C1 | pos.x\n"
 
 /* Tampon statique, termine par NUL, ecrase a chaque appel. */
 static const char *read_file(const char *path) {
@@ -142,6 +148,89 @@ static void test_block_after_a_is_not_read_as_literals(void) {
     assert(strstr(read_file(OUT), "0.27 | 0x0000.451e | 0x0000.451f | ECART | 2\n") != NULL);
 }
 
+static void write_sources(const char *a, const char *b) {
+    write_file(INV, INV_NO_CONSTANT);
+    write_file(SRC_A, a);
+    write_file(SRC_B, b);
+}
+
+static void test_macro_sites_are_read_from_the_sources(void) {
+    reset();
+    write_sources("x = PICO8_FIXED_LIT(0x00008000, 0.5);\n",
+                  "y = f(PICO8_FIXED_LIT(0x0000451f, 0.27), 2);\n");
+    assert(run(COMPARE SRCS) == 0);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "0.5 | 0x0000.8000 | 0x0000.8000 | ok | 1\n") != NULL);
+    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451f | ECART | 1\n") != NULL);
+    assert(strstr(out, "litteraux 2 | sites 2 | ok 1 | ecart 1\n") != NULL);
+}
+
+/* Un site juste ne couvre pas son frere faux. */
+static void test_two_sites_of_one_literal_with_two_values_are_ecart(void) {
+    reset();
+    write_sources("x = PICO8_FIXED_LIT(0x0000451e, 0.27);\n",
+                  "y = PICO8_FIXED_LIT(0x0000451f, 0.27);\n");
+    assert(run(COMPARE SRCS) == 0);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451e,0x0000.451f | ECART | 2\n") != NULL);
+    assert(strstr(out, "litteraux 1 | sites 2 | ok 0 | ecart 1\n") != NULL);
+}
+
+static void test_literal_under_both_forms_is_one_line_summing_its_sites(void) {
+    reset();
+    write_file(SRC_A, "x = PICO8_FIXED_LIT(0x0000451e, 0.27); y = PICO8_FIXED_LIT(0x00008000, 0.5);\n");
+    write_file(SRC_B, "\n");
+    assert(run(COMPARE SRCS) == 0);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "0.5 | 0x0000.8000 | 0x0000.8000 | ok | 2\n") != NULL);
+    assert(strstr(out, "0.27 | 0x0000.451e | 0x0000.451f,0x0000.451e | ECART | 3\n") != NULL);
+    assert(strstr(out, "litteraux 2 | sites 5 | ok 1 | ecart 1\n") != NULL);
+}
+
+static void test_malformed_macro_call_fails_naming_its_file(void) {
+    static const char *const bad[] = {
+        "x = PICO8_FIXED_LIT(0x000451e, 0.27);\n",
+        "x = PICO8_FIXED_LIT(0x0000451e, lit);\n",
+        "x = PICO8_FIXED_LIT(0x0000451E, 0.27);\n",
+        "x = PICO8_FIXED_LIT(17694, 0.27);\n",
+    };
+    for (size_t i = 0; i < sizeof bad / sizeof bad[0]; i++) {
+        reset();
+        write_sources("x = PICO8_FIXED_LIT(0x00008000, 0.5);\n", bad[i]);
+        assert(run(COMPARE SRCS) != 0);
+        assert(strstr(read_file(OUT), SRC_B ":1") != NULL);
+        assert(run(CHECK SRCS) != 0);
+    }
+}
+
+static void test_macro_literal_absent_from_block_a_fails(void) {
+    reset();
+    write_sources("x = PICO8_FIXED_LIT(0x00008000, 0.5);\n",
+                  "y = PICO8_FIXED_LIT(0x000030a3, 0.19);\n");
+    assert(run(COMPARE SRCS) != 0);
+    assert(strstr(read_file(OUT), "0.19") != NULL);
+}
+
+static void test_no_constant_under_any_form_fails(void) {
+    reset();
+    write_sources("x = 1;\n", "y = 2;\n");
+    write_file(EXPECTED, "");
+    assert(run(COMPARE SRCS) != 0);
+    assert(strstr(read_file(OUT), "aucune constante") != NULL);
+    assert(run(CHECK SRCS) != 0);
+}
+
+static void test_unlisted_macro_ecart_fails_as_regression(void) {
+    reset();
+    write_sources("x = PICO8_FIXED_LIT(0x00008000, 0.5);\n",
+                  "y = PICO8_FIXED_LIT(0x0000451f, 0.27);\n");
+    assert(run(CHECK SRCS) == 0);
+    assert(strstr(read_file(OUT), "litteraux 2 | sites 2 | ok 1 | ecart 1\n") != NULL);
+    write_file(EXPECTED, "");
+    assert(run(CHECK SRCS) != 0);
+    assert(strstr(read_file(OUT), "regression : 0.27") != NULL);
+}
+
 int main(void) {
     test_table_marks_exact_ok_and_truncated_ecart();
     test_expected_list_equal_to_ecarts_passes();
@@ -152,6 +241,13 @@ int main(void) {
     test_inventory_without_constant_fails();
     test_missing_block_a_fails();
     test_block_after_a_is_not_read_as_literals();
+    test_macro_sites_are_read_from_the_sources();
+    test_two_sites_of_one_literal_with_two_values_are_ecart();
+    test_literal_under_both_forms_is_one_line_summing_its_sites();
+    test_malformed_macro_call_fails_naming_its_file();
+    test_macro_literal_absent_from_block_a_fails();
+    test_no_constant_under_any_form_fails();
+    test_unlisted_macro_ecart_fails_as_regression();
     assert(system("rm -rf " DIR) == 0);
     printf("test_constants_check: all tests passed\n");
     return 0;

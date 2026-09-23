@@ -192,10 +192,10 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     (void)arg0;
     (void)arg1;
 
-    qd = pico8_fixed_add(pico8_fixed_rnd(pico8_fixed_from_double(1.5)), pico8_fixed_from_double(0.5));
-    if (pico8_fixed_rnd_default() < pico8_fixed_from_double(0.6)) {
-        qd = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_div(qd, pico8_fixed_from_double(0.5))),
-                              pico8_fixed_from_double(0.5));
+    qd = pico8_fixed_add(pico8_fixed_rnd(PICO8_FIXED_LIT(0x00018000, 1.5)), PICO8_FIXED_LIT(0x00008000, 0.5));
+    if (pico8_fixed_rnd_default() < PICO8_FIXED_LIT(0x0000999a, 0.6)) {
+        qd = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_div(qd, PICO8_FIXED_LIT(0x00008000, 0.5))),
+                              PICO8_FIXED_LIT(0x00008000, 0.5));
     }
     p = pico8_vec_qm(qd, pico8_fixed_rnd_default());
 

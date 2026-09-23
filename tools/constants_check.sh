@@ -1,9 +1,10 @@
 #!/bin/sh
-# usage: constants_check.sh <defaillances attendues> <inventaire> <releve> <pico8_fixed.c> <repertoire de travail>
+# usage: constants_check.sh <defaillances attendues> <inventaire> <releve> <pico8_fixed.c> <repertoire de travail> [<source.c>...]
 # Rend 0 si les litteraux en ECART de constants_compare.sh sont exactement ceux
 # de la liste (un par ligne, # pour un commentaire), en n'imprimant que les
 # comptes. Rend 1 sinon, ou si le comparateur echoue, ou si la liste nomme un
-# litteral absent de l'inventaire ; la table complete part alors sur stderr.
+# litteral absent de l'inventaire et des sources ; la table complete part
+# alors sur stderr.
 
 set -u
 

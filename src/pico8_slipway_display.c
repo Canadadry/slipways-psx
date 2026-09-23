@@ -99,7 +99,7 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
     }
     /* The random draw happens before the `hg` test, as in Lua: swapping the
      * two would consume the RNG differently and desynchronise every replay. */
-    if (pico8_fixed_rnd_default() >= pico8_fixed_from_double(0.08)) {
+    if (pico8_fixed_rnd_default() >= PICO8_FIXED_LIT(0x0000147b, 0.08)) {
         return;
     }
 
@@ -152,9 +152,9 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     t = pico8_jc_display_field_fixed(self, "t");
 
     qu_pt = pico8_vec_add(pico8_jc_display_field_vec(qu, "ra"),
-                           pico8_vec_qm(pico8_fixed_from_double(1.5), pico8_fixed_div(t, pico8_fixed_from_int(126))));
+                           pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(126))));
     re_pt = pico8_vec_add(pico8_jc_display_field_vec(re, "ra"),
-                           pico8_vec_qm(pico8_fixed_from_double(1.5), pico8_fixed_div(t, pico8_fixed_from_int(176))));
+                           pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(176))));
 
     for (dx = l; dx <= h; dx = pico8_fixed_add(dx, s)) {
         pico8_fixed_t dy;

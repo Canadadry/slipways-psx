@@ -15,6 +15,11 @@ typedef int32_t pico8_fixed_t;
 #define PICO8_FIXED_DIV0_POS ((pico8_fixed_t)0x7FFFFFFF)
 #define PICO8_FIXED_DIV0_NEG ((pico8_fixed_t)(-0x7FFFFFFF))
 
+/* raw: the 8 hex digits of tools/probe_out.txt block A, point removed; lua:
+ * the cart's literal, for grep and tools/constants_compare.sh -- never
+ * evaluated. */
+#define PICO8_FIXED_LIT(raw, lua) ((pico8_fixed_t)(uint32_t)(raw##u))
+
 pico8_fixed_t pico8_fixed_from_int(int32_t i);
 
 /* Rounds to the nearest representable 16.16 value. Every decimal literal

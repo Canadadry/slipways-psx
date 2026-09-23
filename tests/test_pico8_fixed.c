@@ -143,6 +143,18 @@ static void test_flr_int_matches_probe_block_b(void) {
     }
 }
 
+static void test_lit_is_the_raw_probe_value(void) {
+    assert(PICO8_FIXED_LIT(0x0000451e, 0.27) == 17694);
+    assert(PICO8_FIXED_LIT(0x000a8000, 10.5) == (pico8_fixed_t)0x000A8000u);
+    assert(PICO8_FIXED_LIT(0x0000fd70, 0.99) == 0xFD70);
+    assert(PICO8_FIXED_LIT(0x00008000, 0.5) == pico8_fixed_from_double(0.5));
+}
+
+/* Compiles only if the macro drops its second argument unevaluated. */
+static void test_lit_never_evaluates_its_literal(void) {
+    assert(PICO8_FIXED_LIT(0x00018000, never_declared_anywhere) == 0x18000);
+}
+
 static void test_flr_int_extremes(void) {
     assert(pico8_fixed_flr_int((pico8_fixed_t)0x7FFFFFFFu) == 32767);
     assert(pico8_fixed_flr_int((pico8_fixed_t)0x80000000u) == -32768);
@@ -430,6 +442,8 @@ int main(void) {
     test_flr_negative_rounds_toward_negative_infinity();
     test_flr_exact_integer_is_unchanged();
     test_flr_int_matches_probe_block_b();
+    test_lit_is_the_raw_probe_value();
+    test_lit_never_evaluates_its_literal();
     test_flr_int_extremes();
     test_flr_int_raw_minus_one_is_minus_one_not_zero();
 

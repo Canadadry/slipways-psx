@@ -274,8 +274,8 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
     pico8_list_free(&combined);
 
     if (self != NULL && pico8_instance_get_field(self, "gz", &gz_val) && gz_val.kind == PICO8_VALUE_FIXED) {
-        pico8_fixed_t gz = pico8_fixed_add(gz_val.as.fixed, pico8_fixed_from_double(0.2));
-        pico8_fixed_t capped = fixed_min(gz, pico8_fixed_from_double(3.2));
+        pico8_fixed_t gz = pico8_fixed_add(gz_val.as.fixed, PICO8_FIXED_LIT(0x00003333, 0.2));
+        pico8_fixed_t capped = fixed_min(gz, PICO8_FIXED_LIT(0x00033333, 3.2));
         pico8_fixed_t h = pico8_fixed_mul(capped, capped);
 
         pico8_ob_table_set_name(self->fields, "gz", pico8_value_fixed(gz));

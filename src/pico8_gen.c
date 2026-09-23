@@ -15,7 +15,7 @@ pico8_fixed_t pico8_jf_next(pico8_jf_state_t *state) {
     pico8_fixed_t one_minus_abs_b = pico8_fixed_sub(pico8_fixed_from_int(1), pico8_fixed_abs(state->b));
     pico8_fixed_t b_pos = (state->b > 0) ? state->b : 0;
     pico8_fixed_t v = pico8_fixed_add(pico8_fixed_rnd(one_minus_abs_b), b_pos);
-    pico8_fixed_t half = pico8_fixed_from_double(0.5);
+    pico8_fixed_t half = PICO8_FIXED_LIT(0x00008000, 0.5);
 
     state->b = pico8_fixed_add(state->b, pico8_fixed_mul(pico8_fixed_sub(half, v), state->n_));
     return v;

@@ -643,8 +643,10 @@ float-inventory-check: tools/float_inventory_check.sh tools/float_inventory.sh $
 
 .PHONY: float-inventory-check
 
-constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
-	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check
+# Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
+constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
+	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check \
+	    $(CORE_SRCS)
 
 # Les sources de $(TMP_DIR)/pico8_replay, recompilées dans chaque copie.
 constant-variants: tools/constant_variants.sh tools/constants_compare.sh tools/frames_report.sh $(FLOAT_INVENTORY) tools/probe_out.txt $(FRAMES_TOOL)

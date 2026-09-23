@@ -265,7 +265,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     wrapped = pico8_ob_table_new();
     pico8_ob_table_set_index(wrapped, 1, pico8_value_ref(lq_inst));
     pico8_ob_table_set_index(wrapped, 2, ra_val);
-    pico8_ob_table_set_index(wrapped, 3, pico8_value_fixed(pico8_fixed_from_double(0.5)));
+    pico8_ob_table_set_index(wrapped, 3, pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)));
     pico8_ob_table_set_name(wrapped, "fn", pico8_value_string("ld"));
     *out_value = pico8_value_ref(wrapped);
     return 1;

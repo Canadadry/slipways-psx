@@ -154,7 +154,7 @@ static void ck_visit(pico8_instance_t *l, void *ctx) {
     if (!get_by_value(d, qe_val, &current) || current.kind != PICO8_VALUE_FIXED) {
         current = pico8_value_fixed(pico8_fixed_from_int(1));
     }
-    set_by_value(d, qe_val, pico8_value_fixed(pico8_fixed_sub(current.as.fixed, pico8_fixed_from_double(0.15))));
+    set_by_value(d, qe_val, pico8_value_fixed(pico8_fixed_sub(current.as.fixed, PICO8_FIXED_LIT(0x00002666, 0.15))));
 }
 
 pico8_ob_table_t *pico8_ck(void) {
@@ -169,7 +169,7 @@ pico8_fixed_t pico8_dj(const pico8_instance_t *pb, const pico8_instance_t *to) {
     /* TROU-1 */
     double ec_d = pow(pico8_fixed_to_double(len_sq) / pico8_fixed_to_double(pico8_bq()), 0.75);
     pico8_fixed_t ec = pico8_fixed_from_double(ec_d);
-    pico8_fixed_t clamped = fixed_max(pico8_fixed_from_double(0.5), ec);
+    pico8_fixed_t clamped = fixed_max(PICO8_FIXED_LIT(0x00008000, 0.5), ec);
     return pico8_fixed_flr(pico8_fixed_mul(pico8_fixed_mul(pico8_bn(), pico8_bk()), clamped));
 }
 
@@ -177,6 +177,6 @@ pico8_fixed_t pico8_bk(void) {
     const pico8_list_t *jc = pico8_cg("jc");
     int count = (jc != NULL) ? jc->count : 0;
     pico8_fixed_t sq = pico8_fixed_sqrt(pico8_fixed_from_int(count));
-    pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, pico8_fixed_from_double(0.27)), pico8_fixed_from_double(0.1));
+    pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, PICO8_FIXED_LIT(0x0000451f, 0.27)), PICO8_FIXED_LIT(0x0000199a, 0.1));
     return fixed_max(pico8_fixed_from_int(1), val);
 }

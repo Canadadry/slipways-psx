@@ -275,11 +275,11 @@ pico8_fixed_t pico8_hp_od(const pico8_instance_t *self) {
     }
     if (self != NULL && pico8_instance_get_field(self, "il", &il_val) && pico8_research_truthy(il_val) &&
         pico8_oj(il_val)) {
-        od = pico8_fixed_mul(od, pico8_fixed_from_double(1.5));
+        od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x00018000, 1.5));
     }
     has_ii = self != NULL && pico8_instance_get_field(self, "ii", &ii_val) && pico8_research_truthy(ii_val);
     if (!has_ii && pico8_oj(pico8_value_string("nanomaterials"))) {
-        od = pico8_fixed_mul(od, pico8_fixed_from_double(0.85));
+        od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x0000d99a, 0.85));
     }
     return pico8_fixed_flr(od);
 }

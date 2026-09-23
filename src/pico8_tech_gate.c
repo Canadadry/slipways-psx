@@ -70,7 +70,7 @@ pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
     pico8_value_t fu_val;
     pico8_fixed_t od = pico8_fixed_from_int(0);
     pico8_fixed_t fu = pico8_fixed_from_int(0);
-    pico8_fixed_t threshold = pico8_fixed_from_double(0.55);
+    pico8_fixed_t threshold = PICO8_FIXED_LIT(0x00008ccd, 0.55);
     pico8_fixed_t factor;
 
     if (t != NULL && pico8_ob_table_get_name(t, "od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
