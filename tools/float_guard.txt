@@ -11,7 +11,6 @@
 echec src/pico8_audio.c
 echec src/pico8_bg.c
 echec src/pico8_collect.c
-echec src/pico8_economy.c
 echec src/pico8_economy_formulas.c
 echec src/pico8_economy_tiers.c
 echec src/pico8_fixed.c
@@ -22,7 +21,6 @@ echec src/pico8_particle.c
 echec src/pico8_pi.c
 echec src/pico8_planet.c
 echec src/pico8_planet_display.c
-echec src/pico8_planet_family.c
 echec src/pico8_probe.c
 echec src/pico8_research.c
 echec src/pico8_score_panel_display.c
@@ -33,4 +31,4 @@ echec src/pico8_ui_button.c
 echec src/pico8_value.c
 echec src/pico8_wormhole_display.c
 #
-garde fichiers 58 en-echec 24
+garde fichiers 58 en-echec 22

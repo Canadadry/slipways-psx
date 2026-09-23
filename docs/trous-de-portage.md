@@ -296,3 +296,39 @@ Divergence visuelle permanente, assumée : la seule façon de la refermer
 serait de relever les glyphes depuis PICO-8 lui-même.
 
 Fichier : `src/pico8_gfx.c`.
+
+## TROU-20 — L'éclat de particules trace en noir au lieu de garder la plume
+
+Même écart que TROU-12, dans `ga:kj` : chaque particule est tracée par
+`circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])` (lua.lua:1091). Les
+particules à `l <= 1` sont retirées avant, mais celles à `1 < l < 2`
+donnent l'indice 0. `k_` est indexée à partir de 1 : `k_[0]` est nil, et
+PICO-8 garde alors la couleur de plume courante. Ce port ne trouve pas
+d'entrée, laisse `color = 0` et trace en noir.
+
+Probable, pas vérifié contre PICO-8. Atteint par le filet : sur
+`geoharvest_burst`, l'indice est calculé 251 fois et la couleur lue 175
+fois ; les 76 autres tracés n'ont pas d'entrée, donc sont en noir. Le
+corriger change la référence de ce rejeu : décision de jeu.
+
+Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
+
+Fichier : `src/pico8_planet_family.c`.
+
+## TROU-21 — La palette d'un éclat né d'une protoétoile est celle de la classe
+
+`ga:kj` lit `self.k_` (lua.lua:1091), donc le `k_` de l'instance quand elle
+en a un. `pm:pq()` en donne un au `ga` qu'il crée,
+`k_=o(1,2,8,14,14,14,14,8,8,2,2,1,1)` (lua.lua:1030, 1033), qui masque celui
+de la classe, `k_=o(1,2,4,9,9,10,10,7,7,7,7,7)` (lua.lua:1077). Ce port lit
+`k_` dans les valeurs par défaut de la classe `ga`, jamais dans l'instance :
+l'éclat d'une protoétoile prend la palette de l'éclat ordinaire.
+
+Probable, pas vérifié contre PICO-8. Non atteint par le filet :
+`pico8_pm_pq` n'est exécuté par aucun rejeu de `FRAMES_EVENTS` (couverture
+de D0b). Le `ga` de `geoharvest_burst` naît de l'action « harvest » et n'a
+pas de `k_` propre ; il ne voit donc pas l'écart.
+
+Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
+
+Fichier : `src/pico8_planet_family.c`.
