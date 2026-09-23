@@ -8,7 +8,7 @@
 # d'exclusion invalide, coeur vide ou echec du compilateur : une mesure sur
 # rien passerait pour verte.
 # <cflags> ne doit jamais porter PICO8_FLOAT_* : -MM ferait entrer dans le
-# coeur les en-tetes d'audit et d'observation, que ces builds seuls incluent.
+# coeur l'en-tete d'audit, que ce build seul inclut.
 
 set -u
 

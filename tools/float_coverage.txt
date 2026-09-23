@@ -19,13 +19,7 @@
 #                               "; ligne N : X" donne la ligne mesuree qui la
 #                               precede, a relire avant d'en conclure quoi que ce soit
 # NON COUVERT (absente de gcov) fichier ou ligne sans sortie gcov
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 9 | NON COUVERT (#####) | - | - | pico8_fixed_from_double(double d)
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 9 | NON COUVERT (#####) | - | - | double
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 10 | NON COUVERT (#####) | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 15 | NON COUVERT (#####) | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 15 | NON COUVERT (#####) | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 16 | NON COUVERT (#####) | - | - | double
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 128 | NON COUVERT (ligne sans code ; ligne 124 : 68818) | - | - | float
+src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 117 | NON COUVERT (ligne sans code ; ligne 113 : 68818) | - | - | float
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | NON COUVERT (ligne sans code ; ligne 130 : 15) | - | - | double
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | NON COUVERT (ligne sans code ; ligne 197 : 4831) | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | NON COUVERT (ligne sans code ; ligne 345 : 116495) | - | - | double
@@ -34,5 +28,5 @@ src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | NON COUVERT (ligne sans
 couverture constante couverts 0 non-couverts 0
 couverture cast couverts 0 non-couverts 0
 couverture reecrit couverts 0 non-couverts 0
-couverture autre couverts 0 non-couverts 10
-couverture total couverts 0 non-couverts 10
+couverture autre couverts 0 non-couverts 4
+couverture total couverts 0 non-couverts 4
