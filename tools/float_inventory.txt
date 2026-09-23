@@ -18,17 +18,13 @@
 #
 # Population et etape des casts : lues dans tools/float_annotation.txt, qui
 # porte leur justification. "-" pour les autres categories.
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 117 | - | - | float
-src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | - | - | double
-src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | - | - | pico8_fixed_from_double
-src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
 #
 # Comptes
 compte constante 0
 compte cast 0
 compte reecrit 0
-compte autre 4
-compte total 4
+compte autre 0
+compte total 0
 compte population (a) 0
 compte population (b) 0
 compte population (c) 0

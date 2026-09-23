@@ -540,7 +540,7 @@ Seule porte de E : les quatre points du §6. Décisions humaines prises en fin d
 Étapes :
 - **E0 — Mesurer.** ✅ faite, voir « État de E0 ». Une cible `make` par point du §6, lancée sur l'arbre actuel **avant toute modification**, résultat consigné : 6.1 (grep sur l'ensemble défini ci-dessus, via `cc -MM`, plus la liste d'exclusion), 6.2 (`$(TMP_DIR)/pico8_replay` lié sans `-lm` — c'est « la cible de lien du cœur »), 6.3 (`float-guard`), 6.4 (registre : chaque commit depuis `30dfd6c` qui touche un `*.frames.hash` a son `tools/frames_reports/<étape>.txt` et sa ligne de relevé). L'écart entre « inventaire = 0 » et « §6 passe » y apparaît (prototypes et commentaire de `pico8_fixed.h`, mots de commentaires d'en-têtes).
 - **E1 — Sortir `from_double`/`to_double` du cœur.** ✅ faite, voir « État de E1 ». Déclarations **et** définitions dans un module d'aides de test/hôte, hors `ENGINE_SRCS`/`CORE_SRCS`, lié par les tests et l'audit. Sans prototype dans l'en-tête du cœur, tout nouvel appel flottant dans le cœur devient une erreur de compilation (`-Werror`, déclaration implicite) : c'est ce qui referme l'angle mort x86_64 de la garde. Retrait du build d'observation. Neutre : `frames-check` identique sans `frames-baseline`.
-- **E2 — Mots de commentaires** : les 4 de l'inventaire et les 3 d'en-têtes, plus la mention devenue périmée de `pico8_ob.c`. TROU-1 restreint.
+- **E2 — Mots de commentaires.** ✅ faite, voir « État de E2 ». Les 4 de l'inventaire et les 3 d'en-têtes, plus la mention devenue périmée de `pico8_ob.c`. TROU-1 restreint.
 - **E3 — `-lm` retiré de `$(TMP_DIR)/pico8_replay`** seulement ; il reste sur les variantes couverture/audit, les tests qui incluent `math.h`, le générateur et `main_raylib`.
 - **E4 — Verrouiller** : les cibles 6.1, 6.3 (liste vide) et 6.4 entrent dans `make test` ; 6.2 est verrouillé par le lien de `pico8_replay` que `make test` construit déjà.
 
@@ -581,6 +581,18 @@ Seule porte de E : les quatre points du §6. Décisions humaines prises en fin d
 - **Angle mort de la garde, fermé et mesuré** : sur une copie jetable de `src/pico8_vec.c` terminée par `return pico8_fixed_from_double(0.5);`, `cc -std=c99 -Wall -Wextra -Werror -g -I src -c` échoue (code 1), avec ou sans `-mgeneral-regs-only` : `error: implicit declaration of function 'pico8_fixed_from_double'; did you mean 'pico8_fixed_from_int'? [-Werror=implicit-function-declaration]`.
 - **Constat pour l'humain, pré-existant, non traité** : `make constant-variants` (hors suite) échoue comme avant E1 — `constants_compare: aucune constante dans tools/float_inventory.txt ni dans les sources`, code 1 —, sa recette appelant le comparateur sans sources et l'inventaire n'ayant plus de constante depuis C2b.
 - **Durée** : `make test` 38,4 s (arbres d'objets à jour), contre 37,4 s en E0.
+
+**État de E2** (mesuré avec `cc` GCC 13.3, x86_64, 4 cœurs). Seuls des commentaires changent dans `src/` (`git diff` : aucune ligne de code) : `pico8_fixed.c` (« no host float » retiré de la doc de `pico8_fixed_sqrt`, redondant avec la garde), `pico8_galaxy.c` (« frees the pair twice »), `pico8_ob.c` (première phrase du commentaire de `pico8_ob_parse_number`, périmée depuis E1, retirée ; « two commas in a row »), `pico8_geom.h` (« where 0 would have to mean both »), `pico8_research.h` (« free them twice »), `pico8_type_tag.h` (« twice the stride »). Aucune reformulation ne contient les sous-chaînes `double`/`float`. TROU-1 restreint : titré « `sin`/`cos` ne sont pas bit-exacts hors des 64 points relevés », sans le paragraphe des littéraux décimaux ni le renvoi à ce plan ; les `/* TROU-1 */` de `pico8_fixed_sin`/`_cos` restent. `make frames-check` est identique sur les 12 fichiers de `FRAMES_EVENTS`, sans `frames-baseline` ; aucun `*.frames.hash` touché ; `make test` est vert ; `make float-audit` passe.
+
+| § | Cible | Code | Résultat sur l'arbre d'E2 |
+|---|---|---|---|
+| 6.1 | `make float-grep` | 0 (passe) | `float-grep coeur 119 exclus 30 lignes 0` |
+| 6.2 | `make float-link` | 0 (passe) | `float-link objets 62 non-resolus 0` |
+| 6.3 | `make float-guard` | 0 (passe) | `garde fichiers 58 en-echec 0` |
+| 6.4 | `make frames-ledger` | 0 (passe) | `frames-ledger commits 6 poses 4 divergences 2 erreurs 0` |
+
+- **Inventaire** régénéré : `compte total 0`, toutes catégories à 0 ; `make float-inventory-check` vert. Le grep du §6.1 et l'inventaire valent tous deux zéro : l'écart décrit dans l'« État de E0 » est fermé.
+- **Constat pour l'humain, par conception, non traité** : `make float-coverage` (hors suite) rend désormais 2 — `float_coverage: aucun site dans tmp/coverage/inventaire.txt` —, l'outil refusant une jointure vide pour qu'elle ne passe pas pour une couverture complète. `tools/float_coverage.txt` reste la photographie d'E1 (4 sites non couverts, tous des commentaires, disparus en E2) : il n'est plus à jour. Idem, toujours, pour `make constant-variants` (constat d'E1).
 
 > **Décision tranchée par l'humain en Phase D :** `sin`/`cos` sur table (D5) ; la vérification PSX hors périmètre. Historique de la question :
 >

@@ -130,8 +130,8 @@ void pico8_bw(pico8_fixed_t n) {
     pico8_list_free(&hr_list);
 
     /* Freed in lockstep with pico8_jo_set_oc releasing the gn state it was
-     * paired with, so a repeated pico8_bw() neither leaks nor double-frees
-     * the pair. */
+     * paired with, so a repeated pico8_bw() neither leaks nor frees the pair
+     * twice. */
     if (g_bw_oc_r_ctx != NULL) {
         pico8_jf_free(g_bw_oc_r_ctx);
     }

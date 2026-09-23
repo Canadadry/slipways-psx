@@ -114,8 +114,8 @@ static uint32_t pico8_fixed_isqrt_u64(uint64_t n) {
 }
 
 /* x's raw bits are x/65536, so the raw bits of sqrt(x) are
- * sqrt(x_raw * 65536): one integer square root, no host float, and the
- * result truncates rather than rounding to the nearest value. */
+ * sqrt(x_raw * 65536): one integer square root, and the result truncates
+ * rather than rounding to the nearest value. */
 pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x) {
     if (x < 0) {
         return 0;

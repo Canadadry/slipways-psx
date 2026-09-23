@@ -6,8 +6,8 @@
 
 /* Three values, not a bool: `cl` needs "on the line" (the Lua nil `ee`
  * returns for a zero cross product) told apart from "off it, on this
- * side". A bool, or a bare sign with 0 doing double duty, loses one half
- * of that. */
+ * side". A bool, or a bare sign, where 0 would have to mean both, loses
+ * one half of that. */
 typedef enum {
     PICO8_EE_ON_LINE = 0,
     PICO8_EE_POSITIVE = 1,

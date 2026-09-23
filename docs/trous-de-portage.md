@@ -9,7 +9,7 @@ commentaires. Une entrée supprimée est une entrée refermée : voir git.
 
 ---
 
-## TROU-1 — L'arithmétique flottante n'est pas bit-exacte
+## TROU-1 — `sin`/`cos` ne sont pas bit-exacts hors des 64 points relevés
 
 `pico8_fixed_cos`/`_sin` lisent une table de quart d'onde 16.16
 (`src/pico8_quarter_wave.h`, 16 385 entrées, une par fraction de tour
@@ -21,18 +21,11 @@ de la valeur vraie, ce que rendait l'ancien calcul `double` de la libc,
 **sans source PICO-8** : l'approximation propre de PICO-8 n'est pas
 publiée.
 
-Les littéraux décimaux du cœur, eux, ne passent plus par
-`pico8_fixed_from_double` : `PICO8_FIXED_LIT` porte la valeur brute du
-relevé PICO-8 (`tools/probe_out.txt`, bloc A), et `make constants-check`
-la vérifie contre ce relevé. `pico8_fixed_from_double` reste défini.
-
 Le générateur pseudo-aléatoire relève de TROU-17.
 
 Conséquence : une partie rejouée ici peut diverger d'une partie rejouée
 dans le vrai PICO-8. Les rejeux internes restent déterministes,
 puisqu'ils comparent ce port à lui-même.
-
-`docs/plan-2.md` a l'élimination du flottant à son programme.
 
 Fichiers : `src/pico8_fixed.c`, `src/pico8_quarter_wave.h`.
 
