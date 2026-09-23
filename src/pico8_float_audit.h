@@ -23,6 +23,19 @@
 void pico8_float_audit_record(const char *file, const char *func, int line, pico8_fixed_t arg,
                               int old_differs, int new_differs_from_ref);
 
+/* Paire D3, appelee par pico8_dj : l'ancienne valeur rendue, meme fin
+ * flr(scale * max(0.5, ec)) sur l'ancien ec = pow(len_sq / bq, 0.75) en
+ * double, compare a cost ; l'argument enregistre est le quotient 16.16 x. Sa
+ * colonne nouveau != reference est toujours 0 : la verite de ^0.75 est le
+ * bloc D du releve, assertee par test_pow075_matches_probe_block_d, pas par
+ * l'audit. Macro sans "float" dans son nom : tools/float_inventory.sh compte
+ * ce mot dans le coeur. */
+void pico8_float_audit_dj(const char *file, const char *func, int line, pico8_fixed_t len_sq, pico8_fixed_t bq,
+                          pico8_fixed_t x, pico8_fixed_t scale, pico8_fixed_t cost);
+
+#define pico8_audit_dj(len_sq, bq, x, scale, cost) \
+    pico8_float_audit_dj(__FILE__, __func__, __LINE__, (len_sq), (bq), (x), (scale), (cost))
+
 int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, pico8_fixed_t x);
 
 #define pico8_fixed_flr_int(x) pico8_float_audit_flr_int(__FILE__, __func__, __LINE__, (x))

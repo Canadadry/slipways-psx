@@ -18,11 +18,6 @@
 #
 # Population et etape des casts : lues dans tools/float_annotation.txt, qui
 # porte leur justification. "-" pour les autres categories.
-src/pico8_economy_formulas.c | pico8_dj | autre | 1 | ligne 170 | - | - | double
-src/pico8_economy_formulas.c | pico8_dj | reecrit | 1 | ligne 170 | - | - | pow
-src/pico8_economy_formulas.c | pico8_dj | autre | 2 | ligne 170 | - | - | pico8_fixed_to_double
-src/pico8_economy_formulas.c | pico8_dj | autre | 3 | ligne 170 | - | - | pico8_fixed_to_double
-src/pico8_economy_formulas.c | pico8_dj | reecrit | 2 | ligne 171 | - | - | pico8_fixed_from_double(ec_d)
 src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 10 | - | - | pico8_fixed_from_double(double d)
 src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 10 | - | - | double
 src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 11 | - | - | double
@@ -47,9 +42,9 @@ src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
 # Comptes
 compte constante 0
 compte cast 0
-compte reecrit 4
-compte autre 21
-compte total 25
+compte reecrit 2
+compte autre 18
+compte total 20
 compte population (a) 0
 compte population (b) 0
 compte population (c) 0

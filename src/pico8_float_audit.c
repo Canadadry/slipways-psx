@@ -126,3 +126,13 @@ int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, 
     pico8_float_audit_record(file, func, line, x, before != now, now != reference);
     return now;
 }
+
+void pico8_float_audit_dj(const char *file, const char *func, int line, pico8_fixed_t len_sq, pico8_fixed_t bq,
+                          pico8_fixed_t x, pico8_fixed_t scale, pico8_fixed_t cost) {
+    pico8_fixed_t old_ec = pico8_fixed_from_double(pow(pico8_fixed_to_double(len_sq) / pico8_fixed_to_double(bq), 0.75));
+    pico8_fixed_t half = (pico8_fixed_t)0x00008000;
+    pico8_fixed_t old_clamped = (old_ec > half) ? old_ec : half;
+    pico8_fixed_t old_cost = pico8_fixed_flr(pico8_fixed_mul(scale, old_clamped));
+
+    pico8_float_audit_record(file, func, line, x, old_cost != cost, 0);
+}

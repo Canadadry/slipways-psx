@@ -1,7 +1,5 @@
 #include "pico8_economy_formulas.h"
 
-#include <math.h>
-
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_stash.h"
@@ -166,11 +164,15 @@ pico8_ob_table_t *pico8_ck(void) {
 pico8_fixed_t pico8_dj(const pico8_instance_t *pb, const pico8_instance_t *to) {
     pico8_vec_t diff = pico8_vec_sub(field_vec(to, "p"), field_vec(pb, "p"));
     pico8_fixed_t len_sq = pico8_vec_len_sq(diff);
-    /* TROU-1 */
-    double ec_d = pow(pico8_fixed_to_double(len_sq) / pico8_fixed_to_double(pico8_bq()), 0.75);
-    pico8_fixed_t ec = pico8_fixed_from_double(ec_d);
+    pico8_fixed_t x = pico8_fixed_div(len_sq, pico8_bq());
+    pico8_fixed_t ec = pico8_fixed_pow075(x);
     pico8_fixed_t clamped = fixed_max(PICO8_FIXED_LIT(0x00008000, 0.5), ec);
-    return pico8_fixed_flr(pico8_fixed_mul(pico8_fixed_mul(pico8_bn(), pico8_bk()), clamped));
+    pico8_fixed_t scale = pico8_fixed_mul(pico8_bn(), pico8_bk());
+    pico8_fixed_t cost = pico8_fixed_flr(pico8_fixed_mul(scale, clamped));
+#ifdef PICO8_FLOAT_AUDIT
+    pico8_audit_dj(len_sq, pico8_bq(), x, scale, cost);
+#endif
+    return cost;
 }
 
 pico8_fixed_t pico8_bk(void) {

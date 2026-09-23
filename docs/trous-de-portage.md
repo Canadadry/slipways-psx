@@ -13,8 +13,7 @@ commentaires. Une entrée supprimée est une entrée refermée : voir git.
 
 `pico8_fixed_cos`/`_sin` passent par le `cos()`/`sin()` de l'hôte en
 `double`, puis reconvertissent en virgule fixe par
-`pico8_fixed_from_double`. Idem pour l'exposant fractionnaire `^0.75` de
-`dj()` (`pico8_economy_formulas.c`).
+`pico8_fixed_from_double`.
 
 Les littéraux décimaux du cœur, eux, ne passent plus par
 `pico8_fixed_from_double` : `PICO8_FIXED_LIT` porte la valeur brute du
