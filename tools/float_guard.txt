@@ -10,6 +10,5 @@
 #
 echec src/pico8_economy_formulas.c
 echec src/pico8_fixed.c
-echec src/pico8_value.c
 #
-garde fichiers 58 en-echec 3
+garde fichiers 58 en-echec 2
