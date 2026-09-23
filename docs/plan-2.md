@@ -260,7 +260,7 @@ Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe
 
 | Sous-groupe de l'inventaire | Jetons | Étape | Source |
 |---|---|---|---|
-| constantes `pico8_fixed_from_double(<littéral>)` | 61 | C2b | *Déduction.* Phase C : « les 34 constantes remplacées par les entiers de `tools/probe_out.txt` », et C1 garde les « constantes inchangées » : C2 est la seule étape de C qui touche aux constantes. Les 18 valeurs qui ne changent pas y sont remplacées sans divergence. |
+| constantes `pico8_fixed_from_double(<littéral>)` | 61 | C2b — ✅ faite | *Déduction.* Phase C : « les 34 constantes remplacées par les entiers de `tools/probe_out.txt` », et C1 garde les « constantes inchangées » : C2 est la seule étape de C qui touche aux constantes. Les 18 valeurs qui ne changent pas y sont remplacées sans divergence. Converties, voir « État de C2b ». |
 | casts, étape C1 | 37 | C1 — ✅ faite | `compte etape C1` : (b) 36, et (a) à signe prouvé 1 (`pico8_gn_next`) ; convertis, voir « État de C1 » |
 | casts, étape D1 | 22 | D1 | `compte etape D1` : (c) 21, et (a) à signe non prouvé 1 (`pico8_mz_kj`, `pico8_fixed_flr(ratio)`) |
 | casts « à auditer » | 17 | aucune — **bloqués** | `compte etape a auditer` ; voir « Casts bloqués » ci-dessous |
@@ -325,7 +325,41 @@ Séparer C1 de C2 est ce qui garde le critère §6.4 falsifiable : mélangées, 
 - **13 des 16 constantes corrigées ne font diverger aucune frame du filet** : `0.0032`, `0.005`, `0.031`, `0.08`, `0.0977`, `0.19`, `0.27`, `0.55`, `0.6`, `0.8`, `0.85`, `0.99`, `1.08`. D'après `tools/float_coverage.txt`, 7 ont tous leurs sites couverts (`0.005`, `0.08`, `0.0977`, `0.19`, `0.55`, `0.8`, `0.99`), 2 en ont un sur deux (`0.0032`, `0.27`), 4 n'en ont aucun (`0.031`, `0.6`, `0.85`, `1.08`). Pour ces 13, le filet ne voit pas la correction, et `make constants-check` (niveau valeur, contre le relevé) est la seule protection : c'est le rôle que §7 C2a (iii) lui donne.
 - **Constat.** Le site de `0.001` (`pico8_g__mm`, `pico8_probe.c`, rang 2) est `NON COUVERT` dans `tools/float_coverage.txt` (« ligne sans code », granularité à la ligne), alors que sa variante fait diverger les 5 fichiers de jeu. `NON COUVERT` ne prouve donc pas qu'un site est hors d'atteinte du filet.
 
+**État de C2b** (mesuré avec `cc` GCC 13.3, x86_64).
+
+- **Forme.** `PICO8_FIXED_LIT(raw, lua)` (`src/pico8_fixed.h`) : `raw` est l'hexa à 8 chiffres du bloc A de `tools/probe_out.txt`, point retiré ; `lua` est le littéral du cart, jamais évalué. Les 61 sites du cœur ont cette forme ; `pico8_fixed_from_double(` n'y sert plus qu'à `sin`/`cos` et à `ec_d` (`^0.75`). Les 34 valeurs viennent du relevé, pas d'une règle d'arrondi (§9).
+- **Commit de forme, neutre deux fois** (`af4e53e`) : table du comparateur identique (`litteraux 34 | sites 61 | ok 18 | ecart 16`), liste des défaillances attendues inchangée, et `make frames-check` identique sur les 8 fichiers de `FRAMES_EVENTS`, sans `frames-baseline`.
+- **Comparateur.** `tools/constants_compare.sh` reçoit en plus `CORE_SRCS` et lit les sites de macro dans les `.c` du cœur ; il compile chaque appel tel qu'écrit, contre le vrai en-tête. Après le commit de valeurs (`2b1151d`), `make constants-check` imprime **`litteraux 34 | sites 61 | ok 34 | ecart 0`**, et `tools/constants_expected_ecarts.txt` ne garde que son en-tête (`# TROU-1` compris). Les 16 corrections touchent 22 sites.
+- **Attribution** (`tools/frames_reports/C2b-variantes.txt`, synthèse de `make constant-variants` sur l'arbre d'avant correction, `c6f16a4`, aucun chemin sous `tmp/` ; mêmes chiffres que la table de l'« État de C2a »). Règle : F = première frame divergente de `tools/frames_reports/C2b.txt`, rattachée à L si exactement une variante a F pour première frame et aucune n'a moins. Détail dans `tools/frames_reports/C2b-attribution.txt`.
+
+  | Fichier | F | Constante | Frames divergentes (combiné) | `0.001` seule | `0.1` seule | `0.05` seule |
+  |---|---|---|---|---|---|---|
+  | `events.json` | 291 | `0.001` | 9 174 | 7 631 | 21 | 7 302 |
+  | `phase4_playthrough` | 41 | `0.001` | 107 | 103 | 4 | 0 |
+  | `built_planet_panel` | 41 | `0.001` | 155 | 150 | 7 | 0 |
+  | `empty_planet_cleared` | 39 | `0.001` | 112 | 111 | 1 | 0 |
+  | `slipway_drag` | 38 | `0.001` | 107 | 106 | 1 | 0 |
+
+  Toutes les frames après F sont **cascade** ; les colonnes par variante sont données pour information. `shop_button_hover`, `screencast_capture` et `top_menubar` restent conformes. La règle n'a échoué sur aucun fichier : aucune interaction entre constantes à la première frame.
+- **Revue sans fenêtre**, à F, par `pico8_frames frame` (capture d'avant, d'après, et variante `lit-0.001`) : sur les 5 fichiers, « après » est identique octet pour octet à la variante. Écart « avant »/« après » : `events.json` 2 lignes sur 128, 2 pixels, lignes 64–65, colonne 49 ; `phase4_playthrough`, `built_planet_panel`, `empty_planet_cleared` 1 ligne, 1 pixel, ligne 12, colonne 109 ; `slipway_drag` 1 ligne, 1 pixel, ligne 10, colonne 104. Aucun jugement de justesse du pixel : la justesse vient du relevé, vérifiée au niveau valeur.
+- **Re-baseline** `make frames-baseline ETAPE=C2b` dans le commit de valeurs : `tools/frames_reports/C2b.txt` versionné, 5 fichiers d'empreintes réécrits. `events.json.sha256` n'existe pas ; `screencast-sign` n'a pas été lancé.
+- **13 des 16 corrections ne sont vues par aucune frame du filet** (`0.0032`, `0.005`, `0.031`, `0.08`, `0.0977`, `0.19`, `0.27`, `0.55`, `0.6`, `0.8`, `0.85`, `0.99`, `1.08`) : `make constants-check` est leur seule protection.
+- **Inventaire** (`tools/float_inventory.txt`) : constantes 0 (61 → 0), casts 39, réécrits 5, autres 23, **total 67** (128 → 67).
+- **Couverture** (`tools/float_coverage.txt`) : constantes couverts 0, non couverts 0 (38/23 → 0/0) ; casts 23/16, réécrits 5/0, autres 19/4 inchangés ; total couverts 47, non couverts 20 (85/43 → 47/20). Les passages de `pico8_fixed_from_double` tombent de 1 191 880 à 311 652, soit exactement `pico8_fixed_cos` 155 071 + `pico8_fixed_sin` 156 558 + `pico8_dj` 23. Les autres passages bougent parce que 5 rejeux divergent.
+- **Garde** (`tools/float_guard.txt`) : **24 → 24** fichiers en échec sur 58, liste identique. C'est l'angle mort de B2 : un argument `double` passé à `pico8_fixed_from_double` ne faisait échouer aucun fichier sous `-mgeneral-regs-only` sur x86_64, donc retirer ces appels n'en fait sortir aucun.
+- **Observation** (`tools/float_observe.txt`) : vu négatif 4, jamais négatif 19, non couvert 16, ligne partagée 4, contradiction 0, total 39, comptes inchangés. Les passages et certains minimums par site bougent, pour la même raison que la couverture.
+- **Limite connue, non corrigée : le harnais d'attribution est gelé sur l'ancienne forme.** Il appelle le comparateur sans `CORE_SRCS`, donc ne voit plus de constante. Mesuré après C2b : `make constant-variants` échoue (« aucune constante dans tools/float_inventory.txt ni dans les sources », code 2), au lieu de ne rien sélectionner. Son test sur arbre fabriqué reste vert.
+- **TROU-1** reste ouvert : seuls les littéraux décimaux sont maintenant bit-exacts ; `sin`/`cos` et `^0.75` ne le sont pas, et `pico8_fixed_from_double` reste défini (décision ouverte).
+
 **Sortie de phase :** `frames.hash` identique après C1 ; après C2, pour chaque fichier d'événements, la **première** frame divergente est rattachée à une constante précise du relevé, et la suite est étiquetée cascade (un changement d'état se propage à toutes les frames suivantes) ; le rapport de divergence est versionné avec le commit.
+
+**État de sortie de la Phase C** (d'après les états C0, C1, C2a et C2b).
+
+- *`frames.hash` identique après C1* : oui, `make frames-check` identique sur les 8 fichiers à chaque commit de conversion de C1, sans `frames-baseline` (« État de C1 », porte 1). C2a et le commit de forme de C2b l'ont aussi laissé identique.
+- *Après C2, première frame divergente rattachée à une constante du relevé, suite étiquetée cascade* : oui, 5 fichiers divergents, tous rattachés à `0.001` (frames 291, 41, 41, 39, 38), le reste en cascade ; 3 fichiers conformes (« État de C2b »).
+- *Rapport de divergence versionné avec le commit* : oui, `tools/frames_reports/C2b.txt` dans le commit de valeurs, à côté de `C2b-variantes.txt` et `C2b-attribution.txt`.
+- *Comptes d'inventaire* (règle de B2) : constantes 0, population (b) 0, étape C1 0. Restent 67 jetons : casts 39 ((a) 1 et (c) 21 en D1, 17 à auditer), réécrits 5, autres 23, tous affectés par la table de propriété à D1–D3, E ou à la décision ouverte.
+- *Garde* : 24 fichiers sur 58 en échec, liste inchangée depuis C1.
 
 ### Phase D — Population (c) et les 5 sites flottants
 Quatre changements divergents indépendants, donc quatre étapes, chacune avec son re-baseline et son rapport de divergences — sans quoi la même confusion que C1/C2 se reproduirait : **D1** population (c), **D2** `tostr`, **D3** `^0.75`, **D4** clés de table.

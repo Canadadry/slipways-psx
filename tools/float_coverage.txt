@@ -19,138 +19,77 @@
 #                               "; ligne N : X" donne la ligne mesuree qui la
 #                               precede, a relire avant d'en conclure quoi que ce soit
 # NON COUVERT (absente de gcov) fichier ou ligne sans sortie gcov
-src/pico8_audio.c | pico8_rn | cast | 1 | ligne 28 | passages 174 | (c) | D1 | no.as.fixed
-src/pico8_bg.c | pico8_bg_to_int | cast | 1 | ligne 16 | passages 17878 | (c) | D1 | x
-src/pico8_bg.c | pico8_bg_pq | constante | 1 | ligne 119 | passages 11 | - | - | 0.1
-src/pico8_bg.c | pico8_bg_pq | constante | 2 | ligne 129 | passages 11264 | - | - | 0.5
-src/pico8_bg.c | pico8_bg_pq | constante | 3 | ligne 134 | passages 11264 | - | - | 0.004
+src/pico8_audio.c | pico8_rn | cast | 1 | ligne 28 | passages 173 | (c) | D1 | no.as.fixed
+src/pico8_bg.c | pico8_bg_to_int | cast | 1 | ligne 16 | passages 17894 | (c) | D1 | x
 src/pico8_collect.c | pico8_ho_apply | cast | 1 | ligne 208 | NON COUVERT (#####) | a auditer | - | raw.as.fixed
-src/pico8_economy.c | pico8_hy_lj | constante | 1 | ligne 248 | NON COUVERT (ligne sans code ; ligne 247 : 62) | - | - | 1.15
 src/pico8_economy.c | pico8_hy_kt | cast | 1 | ligne 311 | NON COUVERT (#####) | a auditer | - | ew
-src/pico8_economy_formulas.c | ck_visit | constante | 1 | ligne 157 | passages 1 | - | - | 0.15
 src/pico8_economy_formulas.c | pico8_dj | autre | 1 | ligne 170 | passages 23 | - | - | double
 src/pico8_economy_formulas.c | pico8_dj | reecrit | 1 | ligne 170 | passages 23 | - | - | pow
 src/pico8_economy_formulas.c | pico8_dj | autre | 2 | ligne 170 | passages 23 | - | - | pico8_fixed_to_double
 src/pico8_economy_formulas.c | pico8_dj | autre | 3 | ligne 170 | passages 23 | - | - | pico8_fixed_to_double
 src/pico8_economy_formulas.c | pico8_dj | reecrit | 2 | ligne 171 | passages 23 | - | - | pico8_fixed_from_double(ec_d)
-src/pico8_economy_formulas.c | pico8_dj | constante | 1 | ligne 172 | passages 23 | - | - | 0.5
-src/pico8_economy_formulas.c | pico8_bk | constante | 1 | ligne 180 | passages 23 | - | - | 0.27
-src/pico8_economy_formulas.c | pico8_bk | constante | 2 | ligne 180 | passages 23 | - | - | 0.1
-src/pico8_economy_score.c | pico8_cz | constante | 1 | ligne 133 | passages 62 | - | - | 0.18
-src/pico8_economy_score.c | pico8_db | constante | 1 | ligne 220 | NON COUVERT (ligne sans code ; ligne 219 : #####) | - | - | 1.5
-src/pico8_economy_score.c | pico8_ky | constante | 1 | ligne 283 | NON COUVERT (#####) | - | - | 1.2
-src/pico8_economy_score.c | pico8_ky | constante | 2 | ligne 287 | NON COUVERT (ligne sans code ; ligne 286 : #####) | - | - | 0.01
 src/pico8_economy_tiers.c | set_by_value | cast | 1 | ligne 55 | NON COUVERT (#####) | a auditer | - | key.as.fixed
-src/pico8_entity_geom.c | pico8_na | constante | 1 | ligne 66 | passages 1 | - | - | 0.005
-src/pico8_entity_geom.c | pico8_na | constante | 2 | ligne 67 | NON COUVERT (ligne sans code ; ligne 66 : 1) | - | - | 0.06
-src/pico8_entity_geom.c | pico8_ma | constante | 1 | ligne 74 | passages 139031 | - | - | 0.1
-src/pico8_entity_geom.c | pico8_ma | constante | 2 | ligne 81 | passages 139031 | - | - | 0.2
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 10 | passages 1191880 | - | - | pico8_fixed_from_double(double d)
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 10 | passages 1191880 | - | - | double
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 11 | passages 1191880 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 16 | passages 3656959 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 16 | passages 3656959 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 17 | passages 3656959 | - | - | double
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 129 | NON COUVERT (ligne sans code ; ligne 125 : 63893) | - | - | float
-src/pico8_fixed.c | pico8_fixed_cos | autre | 1 | ligne 177 | passages 149415 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 2 | ligne 177 | passages 149415 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 3 | ligne 178 | passages 149415 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 4 | ligne 179 | passages 149415 | - | - | pico8_fixed_from_double(cos(radians))
-src/pico8_fixed.c | pico8_fixed_cos | reecrit | 1 | ligne 179 | passages 149415 | - | - | cos
-src/pico8_fixed.c | pico8_fixed_sin | autre | 1 | ligne 186 | passages 150907 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 2 | ligne 186 | passages 150907 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 3 | ligne 187 | passages 150907 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 188 | passages 150907 | - | - | pico8_fixed_from_double(-sin(radians))
-src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 188 | passages 150907 | - | - | sin
-src/pico8_galaxy.c | pico8_bw | constante | 1 | ligne 57 | passages 11 | - | - | 0.05
-src/pico8_galaxy.c | pico8_bw | constante | 2 | ligne 58 | passages 11 | - | - | 2.75
-src/pico8_galaxy.c | pico8_bw | constante | 3 | ligne 59 | passages 11 | - | - | 0.125
-src/pico8_galaxy.c | pico8_bw | constante | 4 | ligne 128 | passages 11 | - | - | 0.5
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 10 | passages 311652 | - | - | pico8_fixed_from_double(double d)
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 10 | passages 311652 | - | - | double
+src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 11 | passages 311652 | - | - | double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 16 | passages 3866299 | - | - | double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 16 | passages 3866299 | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 17 | passages 3866299 | - | - | double
+src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 129 | NON COUVERT (ligne sans code ; ligne 125 : 66002) | - | - | float
+src/pico8_fixed.c | pico8_fixed_cos | autre | 1 | ligne 177 | passages 155071 | - | - | double
+src/pico8_fixed.c | pico8_fixed_cos | autre | 2 | ligne 177 | passages 155071 | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_cos | autre | 3 | ligne 178 | passages 155071 | - | - | double
+src/pico8_fixed.c | pico8_fixed_cos | autre | 4 | ligne 179 | passages 155071 | - | - | pico8_fixed_from_double(cos(radians))
+src/pico8_fixed.c | pico8_fixed_cos | reecrit | 1 | ligne 179 | passages 155071 | - | - | cos
+src/pico8_fixed.c | pico8_fixed_sin | autre | 1 | ligne 186 | passages 156558 | - | - | double
+src/pico8_fixed.c | pico8_fixed_sin | autre | 2 | ligne 186 | passages 156558 | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_sin | autre | 3 | ligne 187 | passages 156558 | - | - | double
+src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 188 | passages 156558 | - | - | pico8_fixed_from_double(-sin(radians))
+src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 188 | passages 156558 | - | - | sin
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | NON COUVERT (ligne sans code ; ligne 130 : 11) | - | - | double
-src/pico8_galaxy.c | pico8_bw | constante | 5 | ligne 143 | passages 11 | - | - | 0.8
-src/pico8_galaxy.c | pico8_bw | constante | 6 | ligne 143 | passages 11 | - | - | 0.5
-src/pico8_game_data.c | pico8_bq | constante | 1 | ligne 60 | passages 23 | - | - | 0.0977
-src/pico8_gen.c | pico8_jf_next | constante | 1 | ligne 18 | passages 11334 | - | - | 0.5
-src/pico8_geom.c | pico8_geom_be | constante | 1 | ligne 34 | passages 2047 | - | - | 0.01
-src/pico8_geom.c | pico8_geom_be | constante | 2 | ligne 35 | passages 2047 | - | - | 0.99
-src/pico8_hud.c | pico8_hud_to_int | cast | 1 | ligne 20 | passages 690714 | (c) | D1 | x
-src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 1 | ligne 203 | passages 56345 | (c) | D1 | pos.x
-src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 2 | ligne 204 | passages 56345 | (c) | D1 | pos.y
-src/pico8_layout.c | pico8_jb_ol | constante | 1 | ligne 313 | passages 143 | - | - | 0.5
+src/pico8_hud.c | pico8_hud_to_int | cast | 1 | ligne 20 | passages 726950 | (c) | D1 | x
+src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 1 | ligne 203 | passages 67162 | (c) | D1 | pos.x
+src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 2 | ligne 204 | passages 67162 | (c) | D1 | pos.y
 src/pico8_menu.c | pico8_cr | cast | 1 | ligne 172 | NON COUVERT (#####) | a auditer | - | tl
 src/pico8_menu.c | pico8_cr | cast | 2 | ligne 216 | NON COUVERT (#####) | a auditer | - | tl
 src/pico8_menu.c | pico8_ha2_my_dispatch | cast | 1 | ligne 358 | NON COUVERT (#####) | a auditer | - | s
-src/pico8_msgbox.c | pico8_mh_ev | constante | 1 | ligne 137 | passages 672 | - | - | 10.5
-src/pico8_msgbox.c | pico8_iv_ph | constante | 1 | ligne 206 | passages 1755 | - | - | 0.1
-src/pico8_msgbox.c | pico8_iv_kj | constante | 1 | ligne 226 | passages 1790 | - | - | 0.5
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | NON COUVERT (ligne sans code ; ligne 197 : 3220) | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | NON COUVERT (ligne sans code ; ligne 345 : 77751) | - | - | double
-src/pico8_particle.c | pico8_particle_to_int | cast | 1 | ligne 56 | passages 1875088 | (c) | D1 | x
-src/pico8_particle.c | pico8_ei | constante | 1 | ligne 182 | passages 527485 | - | - | 0.14
+src/pico8_particle.c | pico8_particle_to_int | cast | 1 | ligne 56 | passages 1996550 | (c) | D1 | x
 src/pico8_pi.c | pico8_bl | cast | 1 | ligne 169 | passages 1344 | (c) | D1 | nc
-src/pico8_planet.c | pico8_jo_kd | constante | 1 | ligne 305 | passages 48 | - | - | 1.25
 src/pico8_planet.c | pico8_jo_hu | cast | 1 | ligne 359 | NON COUVERT (#####) | a auditer | - | go_val.as.fixed
-src/pico8_planet.c | pico8_jo_hh | constante | 1 | ligne 408 | passages 39 | - | - | 0.45
-src/pico8_planet_display.c | pico8_jo_kj | cast | 1 | ligne 503 | passages 128072 | (c) | D1 | adjusted.x
-src/pico8_planet_display.c | pico8_jo_kj | cast | 2 | ligne 504 | passages 128072 | (c) | D1 | adjusted.y
-src/pico8_planet_display.c | pico8_jo_kj | constante | 1 | ligne 551 | passages 1701 | - | - | 0.5
-src/pico8_planet_family.c | pico8_ga_mm | constante | 1 | ligne 195 | NON COUVERT (#####) | - | - | 1.5
-src/pico8_planet_family.c | pico8_ga_mm | constante | 2 | ligne 195 | NON COUVERT (#####) | - | - | 0.5
-src/pico8_planet_family.c | pico8_ga_mm | constante | 3 | ligne 196 | NON COUVERT (#####) | - | - | 0.6
-src/pico8_planet_family.c | pico8_ga_mm | constante | 4 | ligne 197 | NON COUVERT (#####) | - | - | 0.5
-src/pico8_planet_family.c | pico8_ga_mm | constante | 5 | ligne 198 | NON COUVERT (ligne sans code ; ligne 197 : #####) | - | - | 0.5
+src/pico8_planet_display.c | pico8_jo_kj | cast | 1 | ligne 503 | passages 133211 | (c) | D1 | adjusted.x
+src/pico8_planet_display.c | pico8_jo_kj | cast | 2 | ligne 504 | passages 133211 | (c) | D1 | adjusted.y
 src/pico8_planet_family.c | pico8_ga_kj | cast | 1 | ligne 240 | NON COUVERT (#####) | a auditer | - | p.x
 src/pico8_planet_family.c | pico8_ga_kj | cast | 2 | ligne 241 | NON COUVERT (#####) | a auditer | - | p.y
 src/pico8_planet_family.c | pico8_ga_kj | cast | 3 | ligne 270 | NON COUVERT (#####) | a auditer | - | pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2)))
 src/pico8_planet_family.c | pico8_ga_kj | cast | 4 | ligne 275 | NON COUVERT (#####) | a auditer | - | k_entry.as.fixed
 src/pico8_planet_family.c | pico8_ga_kj | cast | 5 | ligne 277 | NON COUVERT (#####) | a auditer | - | pico8_vec_qx(pt_p)
 src/pico8_probe.c | pico8_probe_to_int | cast | 1 | ligne 26 | passages 42 | (c) | D1 | x
-src/pico8_probe.c | pico8_bv_jc_predicate | constante | 1 | ligne 100 | NON COUVERT (#####) | - | - | 0.0032
-src/pico8_probe.c | pico8_dl | constante | 1 | ligne 243 | passages 1543 | - | - | 0.5
-src/pico8_probe.c | pico8_g__mm | constante | 1 | ligne 342 | NON COUVERT (ligne sans code ; ligne 341 : 9900) | - | - | 0.5
-src/pico8_probe.c | pico8_g__mm | constante | 2 | ligne 344 | NON COUVERT (ligne sans code ; ligne 341 : 9900) | - | - | 0.001
 src/pico8_research.c | pico8_research_lookup | cast | 1 | ligne 229 | NON COUVERT (#####) | a auditer | - | key.as.fixed
-src/pico8_research.c | pico8_hp_od | constante | 1 | ligne 278 | NON COUVERT (#####) | - | - | 1.5
-src/pico8_research.c | pico8_hp_od | constante | 2 | ligne 282 | NON COUVERT (#####) | - | - | 0.85
-src/pico8_score_panel.c | pico8_pj_kj | constante | 1 | ligne 277 | NON COUVERT (#####) | - | - | 0.2
-src/pico8_score_panel.c | pico8_pj_kj | constante | 2 | ligne 278 | NON COUVERT (#####) | - | - | 3.2
 src/pico8_score_panel_display.c | pico8_pj_hk | cast | 1 | ligne 92 | passages 8 | a auditer | - | yr
 src/pico8_score_panel_display.c | pico8_pj_ph_map | cast | 1 | ligne 214 | NON COUVERT (#####) | a auditer | - | score_val.as.fixed
 src/pico8_score_panel_display.c | pico8_pj_ph_map | cast | 2 | ligne 257 | NON COUVERT (#####) | a auditer | - | s6_val.as.fixed
-src/pico8_score_panel_display.c | pico8_pj_ph_map | constante | 1 | ligne 268 | NON COUVERT (#####) | - | - | 0.5
-src/pico8_scroll.c | pico8_qb_ph | constante | 1 | ligne 111 | passages 10723 | - | - | 0.2
-src/pico8_scroll.c | pico8_qb_md | cast | 1 | ligne 139 | passages 66565 | (c) | D1 | cp.x
-src/pico8_scroll.c | pico8_qb_md | cast | 2 | ligne 139 | passages 66565 | (c) | D1 | cp.y
-src/pico8_slipway.c | pico8_jc_ce_np_predicate | constante | 1 | ligne 201 | passages 2047 | - | - | 0.0032
-src/pico8_slipway.c | pico8_jc_ce | constante | 1 | ligne 249 | passages 23 | - | - | 0.5
-src/pico8_slipway.c | pico8_jc_ce | constante | 2 | ligne 250 | NON COUVERT (ligne sans code ; ligne 249 : 23) | - | - | 1.08
+src/pico8_scroll.c | pico8_qb_md | cast | 1 | ligne 139 | passages 67623 | (c) | D1 | cp.x
+src/pico8_scroll.c | pico8_qb_md | cast | 2 | ligne 139 | passages 67623 | (c) | D1 | cp.y
 src/pico8_slipway_display.c | pico8_jc_display_get_by_value | cast | 1 | ligne 82 | NON COUVERT (#####) | a auditer | - | key.as.fixed
 src/pico8_slipway_display.c | pico8_jc_display_to_int | cast | 1 | ligne 91 | passages 4349 | (c) | D1 | x
-src/pico8_slipway_display.c | pico8_jc_ch | constante | 1 | ligne 102 | passages 242 | - | - | 0.08
-src/pico8_slipway_display.c | pico8_jc_lg | constante | 1 | ligne 155 | NON COUVERT (ligne sans code ; ligne 154 : 242) | - | - | 1.5
-src/pico8_slipway_display.c | pico8_jc_lg | constante | 2 | ligne 157 | NON COUVERT (ligne sans code ; ligne 156 : 242) | - | - | 1.5
-src/pico8_tech_gate.c | pico8_gi | constante | 1 | ligne 73 | passages 1178 | - | - | 0.55
-src/pico8_ui.c | pico8_ui_to_int | cast | 1 | ligne 53 | passages 44437 | (c) | D1 | x
-src/pico8_ui_button.c | pico8_ui_to_int | cast | 1 | ligne 44 | passages 182713 | (c) | D1 | x
-src/pico8_ui_button.c | pico8_js_ph | constante | 1 | ligne 201 | passages 2933 | - | - | 0.4
-src/pico8_value.c | pico8_value_tostr | autre | 1 | ligne 81 | passages 23646 | - | - | double
-src/pico8_value.c | pico8_value_tostr | autre | 2 | ligne 81 | passages 23646 | - | - | pico8_fixed_to_double
-src/pico8_value.c | pico8_value_tostr | reecrit | 1 | ligne 82 | passages 23646 | - | - | %.4f
-src/pico8_wormhole.c | pico8_mz_hq | constante | 1 | ligne 109 | passages 1524 | - | - | 0.19
-src/pico8_wormhole.c | pico8_mz_hq | constante | 2 | ligne 110 | NON COUVERT (ligne sans code ; ligne 109 : 1524) | - | - | 0.27
-src/pico8_wormhole.c | pico8_mz_kz | constante | 1 | ligne 145 | passages 1491 | - | - | 0.1
-src/pico8_wormhole.c | pico8_mz_pr | constante | 1 | ligne 205 | NON COUVERT (ligne sans code ; ligne 204 : 702) | - | - | 0.031
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 1 | ligne 67 | passages 2200 | (c) | D1 | p.x
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 2 | ligne 68 | passages 2200 | (c) | D1 | p.y
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 3 | ligne 79 | passages 1118 | (c) | D1 | oi
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 4 | ligne 87 | passages 1498 | (c) | D1 | cp.x
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 5 | ligne 87 | passages 1498 | (c) | D1 | cp.y
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 6 | ligne 108 | passages 2860 | (a) | D1 | pico8_fixed_flr(ratio)
-src/pico8_wormhole_display.c | pico8_mz_kj | cast | 7 | ligne 120 | passages 2860 | (c) | D1 | sr
+src/pico8_ui.c | pico8_ui_to_int | cast | 1 | ligne 53 | passages 44621 | (c) | D1 | x
+src/pico8_ui_button.c | pico8_ui_to_int | cast | 1 | ligne 44 | passages 188427 | (c) | D1 | x
+src/pico8_value.c | pico8_value_tostr | autre | 1 | ligne 81 | passages 23734 | - | - | double
+src/pico8_value.c | pico8_value_tostr | autre | 2 | ligne 81 | passages 23734 | - | - | pico8_fixed_to_double
+src/pico8_value.c | pico8_value_tostr | reecrit | 1 | ligne 82 | passages 23734 | - | - | %.4f
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 1 | ligne 67 | passages 2222 | (c) | D1 | p.x
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 2 | ligne 68 | passages 2222 | (c) | D1 | p.y
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 3 | ligne 79 | passages 1170 | (c) | D1 | oi
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 4 | ligne 87 | passages 1493 | (c) | D1 | cp.x
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 5 | ligne 87 | passages 1493 | (c) | D1 | cp.y
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 6 | ligne 108 | passages 2970 | (a) | D1 | pico8_fixed_flr(ratio)
+src/pico8_wormhole_display.c | pico8_mz_kj | cast | 7 | ligne 120 | passages 2970 | (c) | D1 | sr
 #
 # Comptes
-couverture constante couverts 38 non-couverts 23
+couverture constante couverts 0 non-couverts 0
 couverture cast couverts 23 non-couverts 16
 couverture reecrit couverts 5 non-couverts 0
 couverture autre couverts 19 non-couverts 4
-couverture total couverts 85 non-couverts 43
+couverture total couverts 47 non-couverts 20

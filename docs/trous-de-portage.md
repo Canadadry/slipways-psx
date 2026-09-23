@@ -12,10 +12,14 @@ commentaires. Une entrée supprimée est une entrée refermée : voir git.
 ## TROU-1 — L'arithmétique flottante n'est pas bit-exacte
 
 `pico8_fixed_cos`/`_sin` passent par le `cos()`/`sin()` de l'hôte en
-`double`, puis reconvertissent en virgule fixe. Idem pour
-`pico8_fixed_from_double`, qui sert aux littéraux décimaux hors spec `ob()`
-(`bq=0.0977`), et pour l'exposant fractionnaire `^0.75` de `dj()`
-(`pico8_economy_formulas.c`).
+`double`, puis reconvertissent en virgule fixe par
+`pico8_fixed_from_double`. Idem pour l'exposant fractionnaire `^0.75` de
+`dj()` (`pico8_economy_formulas.c`).
+
+Les littéraux décimaux du cœur, eux, ne passent plus par
+`pico8_fixed_from_double` : `PICO8_FIXED_LIT` porte la valeur brute du
+relevé PICO-8 (`tools/probe_out.txt`, bloc A), et `make constants-check`
+la vérifie contre ce relevé. `pico8_fixed_from_double` reste défini.
 
 Conséquence : une partie rejouée ici peut diverger d'une partie rejouée
 dans le vrai PICO-8, d'autant plus vite que la divergence se propage par le
@@ -24,8 +28,7 @@ puisqu'ils comparent ce port à lui-même.
 
 `docs/plan-2.md` a l'élimination du flottant à son programme.
 
-Fichiers : `src/pico8_fixed.c`, `src/pico8_economy_formulas.c`,
-`src/pico8_game_data.c`.
+Fichiers : `src/pico8_fixed.c`, `src/pico8_economy_formulas.c`.
 
 ## TROU-2 — La deuxième manette est câblée à « rien »
 
