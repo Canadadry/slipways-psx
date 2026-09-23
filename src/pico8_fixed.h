@@ -89,6 +89,10 @@ pico8_fixed_t pico8_fixed_shl(pico8_fixed_t x, int32_t n);
  * square root on the raw bits, with no host floating point. */
 pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x);
 
+/* x^0.75 as PICO-8 computes it (tools/probe_out.txt block D): s*sqrt(s)
+ * with s = sqrt(x), each step truncated. 0 and negative x give 0. */
+pico8_fixed_t pico8_fixed_pow075(pico8_fixed_t x);
+
 /* Deterministic placeholder generator, NOT PICO-8's: it satisfies the
  * documented range but reproduces no real sequence, so a galaxy generated
  * here differs from the same seed in PICO-8. rnd(0) is 0; otherwise the

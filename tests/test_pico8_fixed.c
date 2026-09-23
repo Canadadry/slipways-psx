@@ -341,6 +341,51 @@ static void test_sqrt_negative_value_is_zero(void) {
     assert(pico8_fixed_sqrt(x) == pico8_fixed_from_int(0));
 }
 
+static void test_sqrt_matches_probe_block_e(void) {
+    /* tools/probe_out.txt, "## e sqrt": copied from the probe, never
+     * derived. */
+    static const struct { uint32_t raw; uint32_t expected; } probe[] = {
+        {0x00004000u, 0x00008000u}, {0x00008000u, 0x0000B504u},
+        {0x0000C000u, 0x0000DDB3u}, {0x00010000u, 0x00010000u},
+        {0x00018000u, 0x00013988u}, {0x00020000u, 0x00016A09u},
+        {0x00030000u, 0x0001BB67u}, {0x00040000u, 0x00020000u},
+        {0x00060000u, 0x00027311u}, {0x00080000u, 0x0002D413u},
+        {0x000C0000u, 0x000376CFu}, {0x00100000u, 0x00040000u},
+        {0x00180000u, 0x0004E623u}, {0x00200000u, 0x0005A827u},
+        {0x00400000u, 0x00080000u}, {0x00800000u, 0x000B504Fu},
+    };
+    for (size_t i = 0; i < sizeof probe / sizeof probe[0]; i++) {
+        assert(pico8_fixed_sqrt((pico8_fixed_t)probe[i].raw) == (pico8_fixed_t)probe[i].expected);
+    }
+}
+
+static void test_pow075_matches_probe_block_d(void) {
+    /* tools/probe_out.txt, "## d pow075": copied from the probe, never
+     * derived. */
+    static const struct { uint32_t raw; uint32_t expected; } probe[] = {
+        {0x00004000u, 0x00005A82u}, {0x00008000u, 0x00009836u},
+        {0x0000C000u, 0x0000CE4Fu}, {0x00010000u, 0x00010000u},
+        {0x00018000u, 0x00015AFAu}, {0x00020000u, 0x0001AE87u},
+        {0x00030000u, 0x0002478Au}, {0x00040000u, 0x0002D412u},
+        {0x00060000u, 0x0003D568u}, {0x00080000u, 0x0004C1BBu},
+        {0x000C0000u, 0x00067288u}, {0x00100000u, 0x00080000u},
+        {0x00180000u, 0x000AD7D7u}, {0x00200000u, 0x000D744Au},
+        {0x00400000u, 0x0016A098u}, {0x00800000u, 0x00260DF0u},
+    };
+    for (size_t i = 0; i < sizeof probe / sizeof probe[0]; i++) {
+        assert(pico8_fixed_pow075((pico8_fixed_t)probe[i].raw) == (pico8_fixed_t)probe[i].expected);
+    }
+}
+
+static void test_pow075_zero_is_zero(void) {
+    assert(pico8_fixed_pow075(pico8_fixed_from_int(0)) == pico8_fixed_from_int(0));
+}
+
+static void test_pow075_negative_value_is_zero(void) {
+    assert(pico8_fixed_pow075(pico8_fixed_from_int(-16)) == pico8_fixed_from_int(0));
+    assert(pico8_fixed_pow075((pico8_fixed_t)0xFFFFC000u) == pico8_fixed_from_int(0));
+}
+
 /* rnd/sin/cos are asserted on their documented contract only -- range,
  * documented identities, sign convention, periodicity. No bit-exact value
  * is asserted: PICO-8's own PRNG and sin/cos approximation are not
@@ -423,6 +468,10 @@ int main(void) {
     test_sqrt_perfect_square_fractional();
     test_sqrt_zero_is_zero();
     test_sqrt_negative_value_is_zero();
+    test_sqrt_matches_probe_block_e();
+    test_pow075_matches_probe_block_d();
+    test_pow075_zero_is_zero();
+    test_pow075_negative_value_is_zero();
 
     test_shl_positive_raw_operand();
     test_shl_negative_raw_operand();

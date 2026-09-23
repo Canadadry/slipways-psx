@@ -136,6 +136,11 @@ pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x) {
     return (pico8_fixed_t)pico8_fixed_isqrt_u64(scaled);
 }
 
+pico8_fixed_t pico8_fixed_pow075(pico8_fixed_t x) {
+    pico8_fixed_t s = pico8_fixed_sqrt(x);
+    return pico8_fixed_mul(s, pico8_fixed_sqrt(s));
+}
+
 /* Placeholder generator: a linear-congruential one with Numerical Recipes'
  * constants and a fixed seed. Not PICO-8's own, so no sequence matches the
  * real cart -- only rnd()'s documented range does. */
