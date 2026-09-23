@@ -308,7 +308,7 @@ void pico8_hy_kt(pico8_instance_t *self, const pico8_ob_table_t *t) {
     if (ew < pico8_fixed_from_int(4)) {
         const pico8_ob_table_t *ek = pico8_ek();
         pico8_value_t threshold_val;
-        if (ek != NULL && pico8_ob_table_get_index(ek, (int)pico8_fixed_to_double(ew), &threshold_val) &&
+        if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(ew), &threshold_val) &&
             threshold_val.kind == PICO8_VALUE_FIXED && pico8_fixed_from_int(count) >= threshold_val.as.fixed) {
             pico8_ob_table_set_name(self->fields, "ew", pico8_value_fixed(pico8_fixed_add(ew, pico8_fixed_from_int(1))));
         }

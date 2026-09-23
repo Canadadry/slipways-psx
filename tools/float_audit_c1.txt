@@ -12,6 +12,7 @@
 # commit. Une entree sans appel correspondant ou une cle dupliquee fait
 # echouer l'audit.
 src/pico8_economy.c | pico8_hy_hk | k_val.as.fixed | 1
+src/pico8_economy.c | pico8_hy_kt | ew | 1
 src/pico8_economy_formulas.c | set_by_value | key.as.fixed | 1
 src/pico8_economy_formulas.c | get_by_value | key.as.fixed | 1
 src/pico8_economy_score.c | get_by_value | key.as.fixed | 1
@@ -25,6 +26,8 @@ src/pico8_gen.c | pico8_gn | count_fixed | 1
 src/pico8_gen.c | pico8_gn_next | idx_fixed | 1
 src/pico8_layout.c | pico8_lq_ol_item_draw | item->color | 1
 src/pico8_layout.c | pico8_lq_ol_item_draw | item->sprite_id | 1
+src/pico8_menu.c | pico8_cr | tl | 1
+src/pico8_menu.c | pico8_cr | tl | 2
 src/pico8_msgbox.c | pico8_iv_kj | color_val.as.fixed | 1
 src/pico8_pi.c | pico8_pi_rk_constructor | a3.as.fixed | 1
 src/pico8_pi.c | pico8_pi_io_constructor | a4.as.fixed | 1
