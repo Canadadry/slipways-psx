@@ -51,7 +51,7 @@ pow(), snprintf("%.4f")                     3 sites (economy_formulas.c:196-197,
 sin()/cos() libc dans pico8_fixed          2 sites (fixed.c:254-266)
 ```
 
-Les numéros de ligne de cette section datent du cadrage et dérivent ; la liste à jour est `tools/float_inventory.txt` (`make float-inventory`, Phase B2).
+Les numéros de ligne de cette section datent du cadrage et dérivent ; la liste à jour était `tools/float_inventory.txt` (`make float-inventory`, Phase B2), retiré depuis (« Après la Phase E — outils retirés », §7).
 
 Un seul `from_double` porte sur une expression variable (`economy_formulas.c:197`, qui consomme le `pow`). Ce n'est donc pas 135 problèmes : **2 transformations mécaniques + 5 sites réécrits à la main.**
 
@@ -636,6 +636,15 @@ Constats laissés à l'humain, non traités par ce volet :
 > C0 l'a comptée sans la trancher : 16 jetons (10 pour `pico8_fixed_cos`/`_sin`, 6 pour les définitions), sur la ligne « sans propriétaire — décision ouverte » de la table de propriété (Phase C, C0).
 
 **Sortie de phase :** les quatre points du §6 passent. ✅ Atteinte, voir « Sortie de phase E ».
+
+### Après la Phase E — outils retirés
+
+Trois outils du volet flottant n'avaient plus d'objet ; ils sont retirés en entier (scripts, tests de `make unit`, rapports versionnés, règles, cibles et lignes de légende du `Makefile`, arbre d'objets `obj-coverage`) :
+- **`make constant-variants`** (`tools/constant_variants.sh`, `test_constant_variants`) : il servait l'attribution de C2b et échouait depuis, l'inventaire n'ayant plus de constante. `tools/frames_reports/C2b-variantes.txt` reste, comme trace de cette attribution.
+- **`make float-coverage`** (`tools/float_coverage.{sh,txt}`, `test_float_coverage`, `tmp/pico8_replay_coverage`) : il joignait la couverture du filet à l'inventaire, vide depuis E2, et rendait 2 par conception.
+- **L'inventaire** : `make float-inventory` et `float-inventory-check` (qui sort de `make test`), `tools/float_inventory{,_check}.sh`, `tools/float_inventory.txt`, `tools/float_annotation.txt` (plus aucun cast à annoter), `test_float_inventory{,_check}`. Il valait zéro depuis E2. La propriété qu'il tenait est tenue plus strictement par `float-grep` (§6.1 : cœur complet, en-têtes compris, par `cc -MM`) et `float-guard` (§6.3 : aucun flottant à l'exécution, et aucun prototype flottant, donc aucun appel), tous deux dans `make test`.
+
+`make constants-check` ne lit plus que les appels `PICO8_FIXED_LIT` des sources du cœur : `tools/constants_compare.sh` et `tools/constants_check.sh` perdent l'argument `<inventaire>`, le programme engendré n'a plus besoin de `pico8_fixed_test_double.c` ni de `-lm`, et `test_constants_check` fabrique des sources au lieu d'un inventaire. Résultat inchangé : `litteraux 34 | sites 61 | ok 34 | ecart 0`. `make test` devient `unit replay screencast-check frames-check constants-check float-audit float-grep float-guard` ; vert, `frames-check` conforme sur les 12 fichiers sans `frames-baseline`, 35,3 s (arbres d'objets à jour).
 
 ---
 

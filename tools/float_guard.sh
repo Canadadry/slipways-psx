@@ -39,8 +39,7 @@ cat <<'EOF'
 # Angle mort sur x86_64 : un argument double passe a une fonction externe
 # compile sans erreur sous la garde. Il est tenu par l'absence de prototype
 # flottant dans le coeur : un tel appel y est une declaration implicite, donc
-# une erreur. Cette liste n'est pas l'inventaire ; tools/float_inventory.txt
-# l'est.
+# une erreur.
 #
 EOF
 LC_ALL=C sort "$failed" | sed 's/^/echec /'

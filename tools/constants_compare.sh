@@ -1,25 +1,23 @@
 #!/bin/sh
-# usage: constants_compare.sh <inventaire> <releve> <pico8_fixed.c> <repertoire de travail> [<source.c>...]
-# pico8_fixed_test_double.c doit etre voisin de <pico8_fixed.c>.
-# Une ligne par litteral distinct, jetons constante de l'inventaire et appels
-# PICO8_FIXED_LIT(<hexa>, <litteral>) des sources reunis :
+# usage: constants_compare.sh <releve> <pico8_fixed.c> <repertoire de travail> <source.c>...
+# Une ligne par litteral distinct des appels PICO8_FIXED_LIT(<hexa>, <litteral>)
+# des sources :
 #   <litteral> | <hexa releve> | <hexa C> | ok|ECART | <sites>
 # puis la ligne des comptes. Un litteral est ECART si une de ses valeurs
 # differe du releve ; <hexa C> liste alors ses valeurs distinctes, separees
 # par des virgules. La valeur C vient d'un programme engendre dans le
 # repertoire de travail, qui compile le texte exact de chaque appel contre le
-# vrai pico8_fixed.h. Sans source, seul l'inventaire est lu. Rend 0 si la
-# table est complete, meme avec des ECART ; 1 si le bloc A manque, si un
-# litteral n'y figure pas, s'il n'y a aucune constante, si un appel
-# PICO8_FIXED_LIT n'a pas la forme stricte, ou si le programme ne compile pas.
+# vrai pico8_fixed.h. Rend 0 si la table est complete, meme avec des ECART ;
+# 1 si le bloc A manque, si un litteral n'y figure pas, s'il n'y a aucune
+# constante, si un appel PICO8_FIXED_LIT n'a pas la forme stricte, ou si le
+# programme ne compile pas.
 
 set -u
 
-inventory=$1
-probe=$2
-fixed_c=$3
-work=$4
-shift 4
+probe=$1
+fixed_c=$2
+work=$3
+shift 3
 
 fail() {
     echo "constants_compare: $1" >&2
@@ -32,29 +30,25 @@ releve=$work/releve.txt
 gen=$work/constants_values.c
 bin=$work/constants_values
 
-awk -F' [|] ' '!/^#/ && $3 == "constante" { print $NF "\tpico8_fixed_from_double(" $NF ")" }' \
-    "$inventory" > "$sites" || fail "inventaire $inventory illisible"
-
-if [ $# -gt 0 ]; then
-    awk '
-    {
-        rest = $0
-        while ((p = index(rest, "PICO8_FIXED_LIT")) > 0) {
-            rest = substr(rest, p)
-            if (!match(rest, /^PICO8_FIXED_LIT\(0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f], [0-9]*\.?[0-9]+\)/)) {
-                printf "constants_compare: %s:%d : appel PICO8_FIXED_LIT hors de la forme stricte\n", FILENAME, FNR > "/dev/stderr"
-                bad = 1
-                break
-            }
-            call = substr(rest, 1, RLENGTH)
-            lit = substr(call, 29, length(call) - 29)
-            print lit "\t" call
-            rest = substr(rest, RLENGTH + 1)
+[ $# -gt 0 ] || fail "aucune constante dans les sources : aucune source"
+awk '
+{
+    rest = $0
+    while ((p = index(rest, "PICO8_FIXED_LIT")) > 0) {
+        rest = substr(rest, p)
+        if (!match(rest, /^PICO8_FIXED_LIT\(0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f], [0-9]*\.?[0-9]+\)/)) {
+            printf "constants_compare: %s:%d : appel PICO8_FIXED_LIT hors de la forme stricte\n", FILENAME, FNR > "/dev/stderr"
+            bad = 1
+            break
         }
+        call = substr(rest, 1, RLENGTH)
+        lit = substr(call, 29, length(call) - 29)
+        print lit "\t" call
+        rest = substr(rest, RLENGTH + 1)
     }
-    END { exit bad }' "$@" >> "$sites" || fail "appel PICO8_FIXED_LIT mal forme"
-fi
-[ -s "$sites" ] || fail "aucune constante dans $inventory ni dans les sources"
+}
+END { exit bad }' "$@" > "$sites" || fail "appel PICO8_FIXED_LIT mal forme"
+[ -s "$sites" ] || fail "aucune constante dans les sources"
 
 awk '/^## a literals$/ { in_a = 1; found = 1; next }
      /^## / { in_a = 0 }
@@ -69,7 +63,6 @@ missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1
     echo '#include <stdint.h>'
     echo '#include <stdio.h>'
     echo '#include "pico8_fixed.h"'
-    echo '#include "pico8_fixed_test_double.h"'
     echo 'static void show(int call, pico8_fixed_t v) {'
     echo '    uint32_t u = (uint32_t)v;'
     printf '%s\n' '    printf("%d 0x%04x.%04x\n", call, (unsigned)(u >> 16), (unsigned)(u & 0xffffu));'
@@ -80,7 +73,7 @@ missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1
     echo '}'
 } > "$gen"
 
-${CC:-cc} -std=c99 -Wall -Wextra -Werror -I "$(dirname "$fixed_c")" -o "$bin" "$gen" "$fixed_c" "$(dirname "$fixed_c")/pico8_fixed_test_double.c" -lm \
+${CC:-cc} -std=c99 -Wall -Wextra -Werror -I "$(dirname "$fixed_c")" -o "$bin" "$gen" "$fixed_c" \
     || fail "le programme engendre $gen ne compile pas"
 "$bin" > "$work/valeurs.txt" || fail "$bin s'arrete en erreur"
 

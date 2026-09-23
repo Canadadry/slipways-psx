@@ -28,8 +28,7 @@ void pico8_float_audit_record(const char *file, const char *func, int line, pico
  * double, compare a cost ; l'argument enregistre est le quotient 16.16 x. Sa
  * colonne nouveau != reference est toujours 0 : la verite de ^0.75 est le
  * bloc D du releve, assertee par test_pow075_matches_probe_block_d, pas par
- * l'audit. Macro sans "float" dans son nom : tools/float_inventory.sh compte
- * ce mot dans le coeur. */
+ * l'audit. */
 void pico8_float_audit_dj(const char *file, const char *func, int line, pico8_fixed_t len_sq, pico8_fixed_t bq,
                           pico8_fixed_t x, pico8_fixed_t scale, pico8_fixed_t cost);
 
