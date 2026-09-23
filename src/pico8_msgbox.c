@@ -203,7 +203,7 @@ void pico8_iv_ph(pico8_instance_t *self) {
     pico8_ob_table_set_name(self->fields, "ra", pico8_value_ref(heap_ra));
 
     l = pico8_msgbox_field_fixed(self, "l");
-    new_l = pico8_fixed_add(l, PICO8_FIXED_LIT(0x0000199a, 0.1));
+    new_l = pico8_fixed_add(l, PICO8_FIXED_LIT(0x00001999, 0.1));
     pico8_ob_table_set_name(self->fields, "l", pico8_value_fixed(new_l));
 
     pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(new_l >= pico8_fixed_from_int(5)));

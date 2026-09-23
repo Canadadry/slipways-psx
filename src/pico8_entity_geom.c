@@ -63,7 +63,7 @@ void pico8_na(pico8_instance_t *self, pico8_fixed_t t) {
     pico8_value_t ra;
     if (self != NULL && pico8_instance_get_field(self, "ra", &ra) && ra.kind == PICO8_VALUE_REF && ra.as.ref != NULL) {
         pico8_vec_t *ra_vec = (pico8_vec_t *)ra.as.ref;
-        pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000148, 0.005))),
+        pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000147, 0.005))),
                                                PICO8_FIXED_LIT(0x00000f5c, 0.06));
         ra_vec->y = pico8_fixed_add(ra_vec->y, delta);
     }
@@ -71,7 +71,7 @@ void pico8_na(pico8_instance_t *self, pico8_fixed_t t) {
 
 pico8_vec_t pico8_ma(pico8_vec_t p, pico8_instance_t *e) {
     pico8_fixed_t ma = pico8_entity_geom_field_fixed(e, "ma");
-    pico8_fixed_t decremented = pico8_fixed_sub(ma, PICO8_FIXED_LIT(0x0000199a, 0.1));
+    pico8_fixed_t decremented = pico8_fixed_sub(ma, PICO8_FIXED_LIT(0x00001999, 0.1));
     pico8_fixed_t clamped = (decremented > 0) ? decremented : 0;
     pico8_fixed_t t = pico8_entity_geom_field_fixed(e, "t");
 

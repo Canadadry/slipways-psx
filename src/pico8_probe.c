@@ -97,7 +97,7 @@ static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     qu_p = pico8_probe_field_vec(qu, "p");
     re_p = pico8_probe_field_vec(re, "p");
 
-    return pico8_geom_be(qu_p, re_p, ctx->self_p, PICO8_FIXED_LIT(0x000000d2, 0.0032));
+    return pico8_geom_be(qu_p, re_p, ctx->self_p, PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 /* `hw` is read off the `ui` class defaults, not off `ok`; an absent class or
@@ -341,7 +341,7 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     a = pico8_fixed_add(
         pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(pico8_fixed_rnd(pn)), pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5))),
                          pn),
-        pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000042, 0.001)));
+        pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000041, 0.001)));
 
     p = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);
     v = pico8_vec_mul(p, py);

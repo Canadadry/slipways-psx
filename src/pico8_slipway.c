@@ -198,7 +198,7 @@ static int pico8_jc_ce_np_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
     n = (pico8_instance_t *)e.as.ref;
-    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_field_vec(n, "p"), PICO8_FIXED_LIT(0x000000d2, 0.0032));
+    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_field_vec(n, "p"), PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 typedef struct {
@@ -247,7 +247,7 @@ pico8_value_t pico8_jc_ce(pico8_instance_t *self) {
     dp = pico8_jc_field_vec(re, "p");
 
     ov_result = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)),
-                          pico8_value_fixed(PICO8_FIXED_LIT(0x0001147b, 1.08)));
+                          pico8_value_fixed(PICO8_FIXED_LIT(0x0001147a, 1.08)));
     threshold = (ov_result.kind == PICO8_VALUE_FIXED) ? ov_result.as.fixed : pico8_fixed_from_int(0);
 
     if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {

@@ -177,6 +177,6 @@ pico8_fixed_t pico8_bk(void) {
     const pico8_list_t *jc = pico8_cg("jc");
     int count = (jc != NULL) ? jc->count : 0;
     pico8_fixed_t sq = pico8_fixed_sqrt(pico8_fixed_from_int(count));
-    pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, PICO8_FIXED_LIT(0x0000451f, 0.27)), PICO8_FIXED_LIT(0x0000199a, 0.1));
+    pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, PICO8_FIXED_LIT(0x0000451e, 0.27)), PICO8_FIXED_LIT(0x00001999, 0.1));
     return fixed_max(pico8_fixed_from_int(1), val);
 }

@@ -116,7 +116,7 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_instance_t *self) {
         pl_table = (const pico8_ob_table_t *)pl_val.as.ref;
     }
 
-    oh = pico8_jf(PICO8_FIXED_LIT(0x0000199a, 0.1), pico8_fixed_from_int(0));
+    oh = pico8_jf(PICO8_FIXED_LIT(0x00001999, 0.1), pico8_fixed_from_int(0));
 
     for (y = 0; y <= 31; y++) {
         for (x = 0; x <= 31; x++) {

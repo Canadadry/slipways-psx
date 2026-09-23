@@ -106,8 +106,8 @@ void pico8_mz_hq(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     nq = pico8_ij(p_vec, ox_list, &nearest);
     pico8_ob_table_set_name(self->fields, "ij", nearest);
 
-    threshold_val = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(PICO8_FIXED_LIT(0x000030a4, 0.19)),
-                              pico8_value_fixed(PICO8_FIXED_LIT(0x0000451f, 0.27)));
+    threshold_val = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(PICO8_FIXED_LIT(0x000030a3, 0.19)),
+                              pico8_value_fixed(PICO8_FIXED_LIT(0x0000451e, 0.27)));
     threshold = (threshold_val.kind == PICO8_VALUE_FIXED) ? threshold_val.as.fixed : pico8_fixed_from_int(0);
 
     if (nq > threshold) {
@@ -142,7 +142,7 @@ void pico8_mz_kz(pico8_instance_t *self, pico8_fixed_t t) {
     td15 = pico8_fixed_div(t, pico8_fixed_from_int(15));
     min_val = (td15 < one) ? td15 : one;
     sin_term =
-        pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_div(t, pico8_fixed_from_int(40))), PICO8_FIXED_LIT(0x0000199a, 0.1));
+        pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_div(t, pico8_fixed_from_int(40))), PICO8_FIXED_LIT(0x00001999, 0.1));
 
     result = pico8_fixed_mul(threshold, pico8_fixed_add(min_val, sin_term));
     pico8_ob_table_set_name(self->fields, "oi", pico8_value_fixed(result));
@@ -202,7 +202,7 @@ void pico8_mz_pr(pico8_instance_t *self, pico8_fixed_t t) {
     }
 
     sr = pico8_fixed_add(pico8_fixed_div(pico8_mz_ej(self, t), pico8_fixed_from_int(128)),
-                          PICO8_FIXED_LIT(0x000007f0, 0.031));
+                          PICO8_FIXED_LIT(0x000007ef, 0.031));
 
     self_p = pico8_mz_field_vec(self, "p");
     jo_list = pico8_cg("jo");

@@ -32,7 +32,7 @@ int pico8_geom_be(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c, pico8_fixed_t fh)
     pico8_vec_t d = pico8_vec_sub(b, a);
     pico8_fixed_t l = pico8_fixed_div(pico8_vec_rg(d, pico8_vec_sub(c, a)), pico8_vec_len_sq(d));
     pico8_fixed_t lo = PICO8_FIXED_LIT(0x0000028f, 0.01);
-    pico8_fixed_t hi = PICO8_FIXED_LIT(0x0000fd71, 0.99);
+    pico8_fixed_t hi = PICO8_FIXED_LIT(0x0000fd70, 0.99);
     pico8_vec_t projected = pico8_vec_sub(pico8_vec_add(a, pico8_vec_mul(d, l)), c);
     pico8_fixed_t dist_sq = pico8_vec_len_sq(projected);
     return l > lo && l < hi && dist_sq < fh;

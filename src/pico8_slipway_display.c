@@ -99,7 +99,7 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
     }
     /* The random draw happens before the `hg` test, as in Lua: swapping the
      * two would consume the RNG differently and desynchronise every replay. */
-    if (pico8_fixed_rnd_default() >= PICO8_FIXED_LIT(0x0000147b, 0.08)) {
+    if (pico8_fixed_rnd_default() >= PICO8_FIXED_LIT(0x0000147a, 0.08)) {
         return;
     }
 

@@ -57,5 +57,5 @@ pico8_fixed_t pico8_bn(void) {
 
 /* TROU-1 */
 pico8_fixed_t pico8_bq(void) {
-    return PICO8_FIXED_LIT(0x00001903, 0.0977);
+    return PICO8_FIXED_LIT(0x00001902, 0.0977);
 }

@@ -1,0 +1,24 @@
+rapport de divergence, etape C2b
+events.json : DIVERGENT
+  premiere frame divergente : 291
+  frames divergentes : 9174
+  plages : 291 298 301 304 306 309 319 322-323 325 327 329-330 334-336 340-341 344 347 352 354 356 358-361 365 367 370 373-375 377-379 381-390 392-397 399 401-420 422-425 427-430 433-443 445-448 450-457 459-540 542-2218 2253 2256 2259 2264-2265 2270 2272-2274 2373-2374 2383-3738 3762-4570 4593 4595-9728
+tests/fixtures/phase4_playthrough_events.json : DIVERGENT
+  premiere frame divergente : 41
+  frames divergentes : 107
+  plages : 41 52 63-64 69 74-75 80 82-84 87 92 96 101-105 108-114 116 118 120 122-124 127 134-137 139-143 145-152 156-163 165 167-170 172-175 177-180 183-191 193-200 202-209 211-214 216-218 220-223
+tests/fixtures/built_planet_panel_events.json : DIVERGENT
+  premiere frame divergente : 41
+  frames divergentes : 155
+  plages : 41 52 63-64 69 74-75 80 82-84 87 92 96 101-105 108-114 116 118 120 122-124 127 134-137 139-143 145-152 156-163 165 167-170 172-175 177-180 183-191 193-200 202-209 211-214 216-218 220-233 235-251 253-256 259-261 263-269 271-277
+tests/fixtures/empty_planet_cleared_events.json : DIVERGENT
+  premiere frame divergente : 39
+  frames divergentes : 112
+  plages : 39 50 61-62 67 70 72 75 78 80-82 85 90 94 99-103 106-112 114 116 118 120-122 125 127 132-135 137-139 141 143-147 149-151 154-155 157-158 160-170 172-182 184-186 189 191 193 195-196 198-200 202-214 216-221 223-224 226-228
+tests/fixtures/slipway_drag_events.json : DIVERGENT
+  premiere frame divergente : 38
+  frames divergentes : 107
+  plages : 38 64 74 77 80-85 87 90 92 95 97-103 105 109-110 112-116 119-124 127-131 134 136 139-141 143 146 149-155 157-159 162-165 167-168 170-171 173-175 178-182 184-185 187-191 193 195-200 202-203 205-208 210 212-222 224-225
+tests/fixtures/shop_button_hover_events.json : conforme (25 frames)
+tests/fixtures/screencast_capture_events.json : conforme (8 frames)
+tests/fixtures/top_menubar_events.json : conforme (4 frames)
