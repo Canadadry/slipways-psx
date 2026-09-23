@@ -60,17 +60,17 @@ src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 11 | - | - | dou
 src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 16 | - | - | double
 src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 16 | - | - | pico8_fixed_to_double
 src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 17 | - | - | double
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 122 | - | - | float
-src/pico8_fixed.c | pico8_fixed_cos | autre | 1 | ligne 170 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 2 | ligne 170 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 3 | ligne 171 | - | - | double
-src/pico8_fixed.c | pico8_fixed_cos | autre | 4 | ligne 172 | - | - | pico8_fixed_from_double(cos(radians))
-src/pico8_fixed.c | pico8_fixed_cos | reecrit | 1 | ligne 172 | - | - | cos
-src/pico8_fixed.c | pico8_fixed_sin | autre | 1 | ligne 179 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 2 | ligne 179 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 3 | ligne 180 | - | - | double
-src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 181 | - | - | pico8_fixed_from_double(-sin(radians))
-src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 181 | - | - | sin
+src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 129 | - | - | float
+src/pico8_fixed.c | pico8_fixed_cos | autre | 1 | ligne 177 | - | - | double
+src/pico8_fixed.c | pico8_fixed_cos | autre | 2 | ligne 177 | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_cos | autre | 3 | ligne 178 | - | - | double
+src/pico8_fixed.c | pico8_fixed_cos | autre | 4 | ligne 179 | - | - | pico8_fixed_from_double(cos(radians))
+src/pico8_fixed.c | pico8_fixed_cos | reecrit | 1 | ligne 179 | - | - | cos
+src/pico8_fixed.c | pico8_fixed_sin | autre | 1 | ligne 186 | - | - | double
+src/pico8_fixed.c | pico8_fixed_sin | autre | 2 | ligne 186 | - | - | pico8_fixed_to_double
+src/pico8_fixed.c | pico8_fixed_sin | autre | 3 | ligne 187 | - | - | double
+src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 188 | - | - | pico8_fixed_from_double(-sin(radians))
+src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 188 | - | - | sin
 src/pico8_galaxy.c | pico8_bw | constante | 1 | ligne 57 | - | - | 0.05
 src/pico8_galaxy.c | pico8_bw | constante | 2 | ligne 58 | - | - | 2.75
 src/pico8_galaxy.c | pico8_bw | constante | 3 | ligne 59 | - | - | 0.125

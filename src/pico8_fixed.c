@@ -58,6 +58,13 @@ pico8_fixed_t pico8_fixed_flr(pico8_fixed_t x) {
     return (pico8_fixed_t)((uint32_t)x & 0xFFFF0000u);
 }
 
+/* Divides instead of shifting: >> on a negative is implementation-defined
+ * (C99 6.5.7p5), and the masked value is an exact multiple of 2^16, so the
+ * division's rounding direction never comes into play. */
+int32_t pico8_fixed_flr_int(pico8_fixed_t x) {
+    return pico8_fixed_flr(x) / ((int32_t)1 << PICO8_FIXED_SHIFT);
+}
+
 pico8_fixed_t pico8_fixed_abs(pico8_fixed_t x) {
     return x < 0 ? pico8_fixed_neg(x) : x;
 }

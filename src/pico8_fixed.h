@@ -50,6 +50,10 @@ pico8_fixed_t pico8_fixed_neg(pico8_fixed_t x);
  * negative fraction) floors to -1.0, not to 0. */
 pico8_fixed_t pico8_fixed_flr(pico8_fixed_t x);
 
+/* flr(x) as a plain integer, rounded toward negative infinity, not toward
+ * zero: raw -1 gives -1, not 0. */
+int32_t pico8_fixed_flr_int(pico8_fixed_t x);
+
 /* Inherits pico8_fixed_neg's wraparound: abs of the most-negative value is
  * itself. */
 pico8_fixed_t pico8_fixed_abs(pico8_fixed_t x);

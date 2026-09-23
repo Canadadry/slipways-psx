@@ -129,6 +129,29 @@ static void test_flr_exact_integer_is_unchanged(void) {
     assert(pico8_fixed_flr(x) == pico8_fixed_from_int(5));
 }
 
+static void test_flr_int_matches_probe_block_b(void) {
+    /* tools/probe_out.txt, "## b rounding": copied from the probe, never
+     * derived. */
+    static const struct { uint32_t raw; int32_t expected; } probe[] = {
+        {0xFFFE8000u, -2}, {0xFFFF8000u, -1}, {0xFFFF199Au, -1},
+        {0xFFFF0000u, -1}, {0xFFFD8000u, -3}, {0x00018000u, 1},
+        {0x00008000u, 0},  {0x0000E666u, 0},  {0x00010000u, 1},
+        {0x00000000u, 0},
+    };
+    for (size_t i = 0; i < sizeof probe / sizeof probe[0]; i++) {
+        assert(pico8_fixed_flr_int((pico8_fixed_t)probe[i].raw) == probe[i].expected);
+    }
+}
+
+static void test_flr_int_extremes(void) {
+    assert(pico8_fixed_flr_int((pico8_fixed_t)0x7FFFFFFFu) == 32767);
+    assert(pico8_fixed_flr_int((pico8_fixed_t)0x80000000u) == -32768);
+}
+
+static void test_flr_int_raw_minus_one_is_minus_one_not_zero(void) {
+    assert(pico8_fixed_flr_int((pico8_fixed_t)0xFFFFFFFFu) == -1);
+}
+
 static void test_mod_positive_operands(void) {
     /* 45 % 42 == 3: the shape `nl:ly`'s `t%42/6` needs. */
     pico8_fixed_t a = pico8_fixed_from_int(45);
@@ -406,6 +429,9 @@ int main(void) {
     test_flr_positive_truncates_fraction();
     test_flr_negative_rounds_toward_negative_infinity();
     test_flr_exact_integer_is_unchanged();
+    test_flr_int_matches_probe_block_b();
+    test_flr_int_extremes();
+    test_flr_int_raw_minus_one_is_minus_one_not_zero();
 
     test_mod_positive_operands();
     test_mod_fractional_operand();
