@@ -210,6 +210,8 @@ static void test_unknown_base_is_an_error_not_a_pass(void) {
     setup();
     write_file(LEDGER, "base 0123456789abcdef0123456789abcdef01234567\n");
     assert(run_ledger() == 2);
+    assert(strstr(read_file(OUT), "git fetch --unshallow") != NULL && "base injoignable : le message doit nommer le remede");
+    assert(strstr(read_file(OUT), "--deepen") != NULL);
 }
 
 static void test_not_a_git_repository_is_an_error(void) {

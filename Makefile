@@ -1,6 +1,6 @@
 # make test          -> unit + replay + screencast-check + frames-check
-#                       + float-inventory-check + constants-check + float-audit,
-#                       la suite complète
+#                       + float-inventory-check + constants-check + float-audit
+#                       + float-grep + float-guard, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay        -> rejoue events.json dans le moteur headless
 # make screencast    -> refabrique les pixels de chaque frame du rejeu
@@ -28,15 +28,17 @@
 #                       (tools/float_audit_c1.txt) ancien = nouveau, argument
 #                       >= 0 et atteint ; sites D nouveau = flr. Imprime par
 #                       fichier d'événements la frame du premier ancien != nouveau
-# make float-guard   -> réécrit tools/float_guard.txt, hors suite, en échec
-#                       tant qu'un fichier du cœur a besoin du flottant
+# make float-guard   -> réécrit tools/float_guard.txt, en échec si un fichier
+#                       du cœur a besoin du flottant (§6.3), dans make test
 # make float-grep    -> grep du §6.1 sur le cœur (CORE_SRCS + en-têtes, -MM), le
 #                       reste de src/ exclu par tools/float_grep_exclusions.txt,
-#                       hors suite
+#                       dans make test
 # make float-link    -> lie les objets de tmp/pico8_replay sans -lm (§6.2) dans un
-#                       binaire jetable, jamais lancé ; hors suite
+#                       binaire jetable, jamais lancé ; hors suite : make test
+#                       construit déjà tmp/pico8_replay, même lien
 # make frames-ledger -> confronte tools/frames_ledger.txt à l'historique git des
-#                       *.frames.hash (§6.4), rapports et relevé compris ; hors suite
+#                       *.frames.hash (§6.4), rapports et relevé compris ; hors
+#                       suite : rend 2 sur un clone qui n'atteint pas la base
 # make sin-table     -> régénère src/pico8_quarter_wave.h (table de sin/cos du
 #                       cœur) depuis tools/gen_quarter_wave.c, hors suite
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
@@ -489,7 +491,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay
 
-test: unit replay screencast-check frames-check float-inventory-check constants-check float-audit
+test: unit replay screencast-check frames-check float-inventory-check constants-check float-audit float-grep float-guard
 
 # ENREGISTREMENT D'ÉCRAN : make screencast rejoue events.json en écrivant les
 # pixels de chaque frame, make screencast-check compare leur empreinte à celle
@@ -739,8 +741,8 @@ float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh $(FLOAT_AUDIT_C1
 
 FLOAT_GUARD := tools/float_guard.txt
 
-# Le rapport est versionné même quand la garde échoue, ce qui est l'état attendu
-# jusqu'à la Phase E ; le code de sortie du script est rendu après le mv.
+# Le rapport est réécrit même quand la garde échoue ; le code de sortie du
+# script est rendu après le mv.
 float-guard: tools/float_guard.sh | $(TMP_DIR)
 	@status=0; sh tools/float_guard.sh "$(CC)" "$(CFLAGS)" $(TMP_DIR)/float-guard $(CORE_SRCS) > $(TMP_DIR)/float_guard.txt || status=$$?; \
 	mv $(TMP_DIR)/float_guard.txt $(FLOAT_GUARD); \

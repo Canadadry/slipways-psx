@@ -2,11 +2,13 @@
 # tools/float_guard.sh via make float-guard. Ne pas editer a la main.
 #
 # Une ligne par fichier du coeur qui ne compile pas sans registre flottant.
-# Liste vide attendue a la fin de la Phase E seulement.
+# La liste doit etre vide.
 #
 # Angle mort sur x86_64 : un argument double passe a une fonction externe
-# (pico8_fixed_from_double(<litteral>)) compile sans erreur. Cette liste n'est
-# pas l'inventaire ; tools/float_inventory.txt l'est.
+# compile sans erreur sous la garde. Il est tenu par l'absence de prototype
+# flottant dans le coeur : un tel appel y est une declaration implicite, donc
+# une erreur. Cette liste n'est pas l'inventaire ; tools/float_inventory.txt
+# l'est.
 #
 #
 garde fichiers 58 en-echec 0

@@ -38,7 +38,7 @@ top=$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null) || fatal "pas un dep
 
 base=$(sed -n 's/^base[[:space:]][[:space:]]*\([^[:space:]]*\).*/\1/p' "$ledger" | head -n 1)
 [ -n "$base" ] || fatal "registre sans ligne base"
-base_full=$(git -C "$repo" rev-parse --verify --quiet "$base^{commit}") || fatal "base injoignable : $base"
+base_full=$(git -C "$repo" rev-parse --verify --quiet "$base^{commit}") || fatal "base injoignable : $base (clone superficiel ? git fetch --unshallow, ou git fetch --deepen=<n> jusqu'a l'atteindre)"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
