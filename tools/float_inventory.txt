@@ -46,8 +46,8 @@ src/pico8_fixed.c | pico8_fixed_sin | autre | 4 | ligne 188 | - | - | pico8_fixe
 src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 188 | - | - | sin
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | - | - | double
 src/pico8_hud.c | pico8_hud_to_int | cast | 1 | ligne 20 | (c) | D1 | x
-src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 1 | ligne 203 | (c) | D1 | pos.x
-src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 2 | ligne 204 | (c) | D1 | pos.y
+src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 1 | ligne 204 | (c) | D1 | pos.x
+src/pico8_layout.c | pico8_lq_ol_item_draw | cast | 2 | ligne 205 | (c) | D1 | pos.y
 src/pico8_menu.c | pico8_ha2_my_dispatch | cast | 1 | ligne 358 | (c) | D1 | s
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double

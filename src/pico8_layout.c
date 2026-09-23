@@ -200,7 +200,8 @@ static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, cons
         break;
     case PICO8_LQ_ITEM_SPRITE:
         pico8_dv(mem, item->sprite_qw);
-        pico8_spr_default(gfx, mem, pico8_fixed_flr_int(item->sprite_id), (int)pico8_fixed_to_double(pos.x),
+        pico8_spr_default(gfx, mem, pico8_fixed_flr_int(item->sprite_id),
+                           (int)pico8_fixed_to_double(pos.x),
                            (int)pico8_fixed_to_double(pos.y));
         pico8_dv_default(mem);
         break;
