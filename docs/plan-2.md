@@ -4,6 +4,8 @@ Document distinct de [`docs/plan.md`](plan.md), qui reste le plan du **portage**
 
 Ce document est **le plan** ; aucune implémentation n'est engagée par sa rédaction.
 
+**État : le volet flottant (§7) est terminé** — les quatre points du §6 passent, voir « Sortie de phase E ». Le volet `malloc` (§8) n'est pas cadré.
+
 ---
 
 ## 1. Motivation, et ce qu'elle n'est pas
@@ -209,20 +211,20 @@ empreinte / frame  : 8 octets  →  1 000 frames = 8 Ko
 
 ## 6. Critère de fin — objectivement vérifiable
 
-Aucun de ces points ne demande de jugement ni de relecture :
+Aucun de ces points ne demande de jugement ni de relecture. Les points 1, 2 et 3 sont tenus par `make test` ; le point 4, propriété de l'historique git et non de l'arbre, par la cible explicite `make frames-ledger`.
 
-1. `grep -rnE '\b(double|float)\b' src/` → vide, hors les helpers de test explicitement isolés et nommés comme tels.
-2. La cible de lien du cœur perd `-lm`, et le build passe.
-3. Les objets du cœur **compilent avec `-mgeneral-regs-only`** (erreur du compilateur sur tout flottant à l'exécution, constantes repliées tolérées). **C'est le seul critère qui prouve réellement l'objectif PSX** : les points 1 et 2 peuvent passer alors qu'un flottant subsiste dans une constante non repliée par le compilateur.
-   *Angle mort sur x86_64, mesuré en B2 :* la garde rattrape les retours et opérations `double`, pas un argument `double` passé à une fonction externe — GCC le passe sur la pile sans erreur. `pico8_fixed_from_double(<littéral>)` compile donc sous la garde : voir « État de B2 » au §7.
-   *Pourquoi pas `nm` :* sur l'hôte x86_64 le FPU est matériel, donc aucun symbole soft-float de `libgcc` (`__muldf3`, `__adddf3`…) n'est jamais émis — `nm` était **déjà vide avant tout changement** (mesuré : 0 symbole, alors que `pow`/`sin`/`cos` sont importés de la glibc). Un critère qui passe sur le code de départ ne prouve rien. *Décision humaine (Phase D) :* la vérification PSX (`nm` sur un build `mipsel` soft-float) est **hors périmètre** ; ce chantier reste sur du C pour PC, et §6.3 se juge sur la garde hôte seule, angle mort compris.
-4. `frames.hash` **identique** avant/après pour les populations (a) et (b). Les seules divergences autorisées relèvent de la population (c) et des 5 sites réécrits, **chacune justifiée par une ligne du relevé de sonde**.
+1. **`make float-grep`** → aucune ligne. Le grep `\b(double|float)\b` porte sur le **cœur** (§4) : les `CORE_SRCS` et les en-têtes qu'ils incluent par défaut (calculés par `cc -MM`, sans les définitions `PICO8_FLOAT_*`). Le reste de `src/` (points d'entrée, outils d'hôte, backend raylib, visualiseur, builds d'audit, aide de test `pico8_fixed_test_double.{h,c}`) est exclu par `tools/float_grep_exclusions.txt`, une justification par ligne ; un fichier du cœur qui y figurerait fait échouer la cible.
+2. **La cible de lien du cœur est `$(TMP_DIR)/pico8_replay`** (sources `REPLAY_SRCS`) : elle est liée sans `-lm`, et `make test` la construit. `make float-link` refait ce lien dans un binaire jetable et liste les symboles non résolus ; c'est un diagnostic, hors suite.
+3. **`make float-guard`** → liste vide : les objets du cœur (`CORE_SRCS`) **compilent avec `-mgeneral-regs-only`** sur l'hôte (erreur du compilateur sur tout flottant à l'exécution, constantes repliées tolérées). C'est une **garde hôte** : elle ne prouve pas l'objectif PSX à elle seule.
+   *Angle mort sur x86_64, mesuré en B2 :* la garde rattrape les retours et opérations `double`, pas un argument `double` passé à une fonction externe — GCC le passe sur la pile sans erreur. Il est fermé depuis E1 par un autre moyen : le cœur n'a plus aucun prototype flottant, donc un tel appel y est une déclaration implicite, erreur sous `-Werror` (« État de E1 »).
+   *Pourquoi pas `nm` :* sur l'hôte x86_64 le FPU est matériel, donc aucun symbole soft-float de `libgcc` n'y est émis ; `nm` était déjà vide avant tout changement et ne prouve rien. *Décision humaine (Phase D) :* la vérification PSX (`nm` sur un build `mipsel` soft-float) est **hors périmètre** ; ce chantier reste sur du C pour PC, et §6.3 se juge sur la garde hôte seule.
+4. **`make frames-ledger`** → 0 erreur : toute divergence de `*.frames.hash` depuis la base `30dfd6c` est **justifiée par une ligne du relevé de sonde**, citée dans `tools/frames_ledger.txt`, et a son rapport et son attribution dans l'arbre de son commit ; un commit qui ne fait que poser des références n'en réécrit aucune. La cible exige un clone qui atteint la base (sinon elle rend 2 et nomme le remède) : elle est lancée à la clôture d'E4 et à chaque re-baseline, pas par `make test`.
 
 Le point 4 est ce qui empêche ce chantier de devenir une réécriture à l'aveugle : il sépare mécaniquement « j'ai transformé » de « j'ai changé ».
 
 ---
 
-## 7. Phases — volet flottant
+## 7. Phases — volet flottant — ✅ TERMINÉ
 
 ### Phase A — Relevé PICO-8 — ✅ FAITE
 `tools/probe.p8` rédigée, lancée sur PICO-8 0.2.6b (macOS), sortie versionnée en `tools/probe_out.txt`. Les 54 littéraux de `lua.lua` y ont leur valeur hexa. Résultats : §5, « État : relevé effectué ».
@@ -530,7 +532,7 @@ Le contrôle d'absence de cascade sur l'état (enregistrements C1 de l'audit ide
 
 **Sortie de phase :** pour chaque étape D divergente, toutes les frames divergentes sont attribuées à S par les contrôles complément/variante de la règle ci-dessus ; F, A et l'écart A→F consignés dans `<étape>-attribution.txt` ; aucune cascade sur l'état (enregistrements C1 de l'audit identiques avant/après), et le rapport de divergence est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression. D2 ne re-baseline pas.
 
-### Phase E — Fermeture
+### Phase E — Fermeture — ✅ FAITE
 Seule porte de E : les quatre points du §6. Décisions humaines prises en fin de Phase D :
 - **§6.1 porte sur le cœur seul**, conformément au §4 : `CORE_SRCS` et les en-têtes qu'ils incluent par défaut (sans les définitions `PICO8_FLOAT_*`). Le reste de `src/` (backend raylib, visualiseur, builds d'audit) est exclu par une liste versionnée, une ligne de justification par fichier.
 - **§6.4 se lit « toute divergence justifiée par une ligne du relevé »** : C2b (bloc A) et D1 (bloc B) sont admis.
@@ -544,7 +546,7 @@ Seule porte de E : les quatre points du §6. Décisions humaines prises en fin d
 - **E3 — `-lm` retiré de `$(TMP_DIR)/pico8_replay`** ✅ faite, voir « État de E3 ». Seulement ; il reste sur les variantes couverture/audit, les tests qui incluent `math.h`, le générateur et `main_raylib`.
 
   **État de E3.** La ligne de lien de `$(TMP_DIR)/pico8_replay` n'a plus `-lm` ; il reste sur les variantes couverture/audit, les tests, le générateur `gen_quarter_wave` et `main_raylib`. Le binaire ne dépend plus que de `libc.so.6` (`readelf -d`), `nm -u` ne montre aucun symbole de libm. Les quatre cibles du §6 : `float-grep` 0 (119 fichiers du cœur, 30 exclus, 0 ligne), `float-link` 0 (62 objets, 0 non résolu), `float-guard` 0 (58 fichiers, 0 en échec), `frames-ledger` 0 (6 commits, 4 poses, 2 divergences, 0 erreur). `frames-check` 12/12 identique, `make test` vert. Désormais 6.2 est tenu par le lien de `pico8_replay` que `make test` construit : un appel à libm réintroduit dans le cœur casserait ce lien.
-- **E4 — Verrouiller** : les cibles 6.1, 6.3 (liste vide) et 6.4 entrent dans `make test` ; 6.2 est verrouillé par le lien de `pico8_replay` que `make test` construit déjà.
+- **E4 — Verrouiller** ✅ faite, voir « État de E4 ». Les cibles 6.1, 6.3 (liste vide) et 6.4 entrent dans `make test` ; 6.2 est verrouillé par le lien de `pico8_replay` que `make test` construit déjà. *Écart décidé à l'exécution :* 6.4 (`make frames-ledger`) reste une cible explicite, hors suite.
 
 **État de E0** (mesuré avec `cc` GCC 13.3, x86_64, 4 cœurs). Aucune ligne de `src/` n'a changé ; `make frames-check` est identique sur les 12 fichiers de `FRAMES_EVENTS`, sans `frames-baseline`, et `make test` est vert. Trois cibles nouvelles, toutes hors de `make test`, chacune portée par un script de `tools/` testé sur des entrées fabriquées dans `make unit` (`test_float_grep`, `test_float_link`, `test_frames_ledger`) ; la 6.3 reste `make float-guard`, inchangée. La liste de sources de `$(TMP_DIR)/pico8_replay` devient `REPLAY_SRCS`, partagée avec `float-link` ; sa ligne de lien garde `-lm` jusqu'à E3.
 
@@ -596,12 +598,44 @@ Seule porte de E : les quatre points du §6. Décisions humaines prises en fin d
 - **Inventaire** régénéré : `compte total 0`, toutes catégories à 0 ; `make float-inventory-check` vert. Le grep du §6.1 et l'inventaire valent tous deux zéro : l'écart décrit dans l'« État de E0 » est fermé.
 - **Constat pour l'humain, par conception, non traité** : `make float-coverage` (hors suite) rend désormais 2 — `float_coverage: aucun site dans tmp/coverage/inventaire.txt` —, l'outil refusant une jointure vide pour qu'elle ne passe pas pour une couverture complète. `tools/float_coverage.txt` reste la photographie d'E1 (4 sites non couverts, tous des commentaires, disparus en E2) : il n'est plus à jour. Idem, toujours, pour `make constant-variants` (constat d'E1).
 
+**État de E4** (mesuré avec `cc` GCC 13.3, x86_64, 4 cœurs). Aucune ligne de `src/` n'a changé, aucun `*.frames.hash` touché ; `make frames-check` est conforme sur les 12 fichiers de `FRAMES_EVENTS`, sans `frames-baseline`. `make test` devient `unit replay screencast-check frames-check float-inventory-check constants-check float-audit float-grep float-guard` ; la légende du `Makefile` le dit, et dit pourquoi `float-link` et `frames-ledger` restent hors suite. L'en-tête que `tools/float_guard.sh` écrit dans `tools/float_guard.txt` (régénéré) dit que la liste doit être vide et que l'angle mort x86_64 est tenu par l'absence de prototype flottant dans le cœur ; le commentaire du `Makefile` au-dessus de `float-guard` ne garde que l'aide à la lecture. Le message « base injoignable » de `tools/frames_ledger.sh` nomme le remède (`git fetch --unshallow`, ou `git fetch --deepen=<n>`), code 2 inchangé ; `test_frames_ledger` l'asserte désormais, et `make unit` est vert.
+
+| § | Cible | Code | Résultat sur l'arbre d'E4 | Tenu par |
+|---|---|---|---|---|
+| 6.1 | `make float-grep` | 0 (passe) | `float-grep coeur 119 exclus 30 lignes 0` | `make test` |
+| 6.2 | lien de `tmp/pico8_replay` sans `-lm` ; `make float-link` | 0 (passe) | `float-link objets 62 non-resolus 0` | `make test` (cible `replay`) |
+| 6.3 | `make float-guard` | 0 (passe) | `garde fichiers 58 en-echec 0` | `make test` |
+| 6.4 | `make frames-ledger` | 0 (passe) | `frames-ledger commits 6 poses 4 divergences 2 erreurs 0` | cible explicite, lancée à la clôture |
+
+- **`float-link` hors suite** : il refait le lien des mêmes 62 objets que `tmp/pico8_replay`, que `make test` lie déjà sans `-lm` ; il reste un diagnostic (liste des non-résolus), et `test_float_link` reste dans `make unit`.
+- **`frames-ledger` hors suite** (décision de l'orchestrateur, écart à la puce E4) : §6.4 est une propriété de l'historique, et la cible rend 2 sur tout clone qui n'atteint pas la base — une suite rouge par environnement finirait ignorée. Lancée à la clôture d'E4 sur un clone superficiel qui atteint la base (`is-shallow-repository` : `true`, base à 96 commits de la tête) : code 0, ligne ci-dessus. Sur un clone de profondeur 50 fabriqué pour la mesure : code 2, `frames_ledger: base injoignable : 30dfd6c (clone superficiel ? git fetch --unshallow, ou git fetch --deepen=<n> jusqu'a l'atteindre)` ; après `git fetch --deepen=60`, code 0 et la même ligne. `make test` n'en dépend pas.
+- **Preuves de verrou**, une par cible, sur des changements jetables annulés ensuite (non versionnées) :
+  - `/* double */` ajouté en fin de `src/pico8_fixed.h` → `make test` rouge sur `float-grep` : `src/pico8_fixed.h:110:/* double */`, `float-grep coeur 119 exclus 30 lignes 1`, `make: *** [Makefile:757: float-grep] Error 1` ;
+  - `__typeof__(0.5) pico8_e4_probe(void) { return 0.5; }` (prototype compris) ajouté en fin de `src/pico8_vec.c`, sans le mot `double` pour passer le grep → `make test` rouge sur `float-guard` : `error: SSE register return with SSE disabled`, `garde fichiers 58 en-echec 1`, `make: *** [Makefile:747: float-guard] Error 1` ; `tools/float_guard.txt` régénéré ensuite ;
+  - ligne de C2b falsifiée dans `tools/frames_ledger.txt` (`0.001 0x0000.0042`) → `make frames-ledger` : le script rend 1, `2b1151d C2b erreur : ligne de releve introuvable dans le bloc a : 0.001 0x0000.0042`, `erreurs 1`.
+- **Durée** (arbres d'objets à jour, deux mesures) : l'ancienne composition 38,6 s et 38,4 s, `make test` 41,3 s et 40,7 s, soit ≈ 2,5 s de plus (≈ 6,5 %) ; `float-grep` 0,7 s, `float-guard` 2,2 s seuls.
+
+**Sortie de phase E.** Les quatre points du §6 passent, chacun verrouillé :
+
+| § | Point | Résultat final | Verrou |
+|---|---|---|---|
+| 6.1 | aucun `double`/`float` dans le cœur | `float-grep coeur 119 exclus 30 lignes 0` | `make test` (`float-grep`) |
+| 6.2 | la cible de lien du cœur sans `-lm` | `tmp/pico8_replay` lié sans `-lm` ; `float-link objets 62 non-resolus 0` | `make test` (`replay`) |
+| 6.3 | cœur compilé sous `-mgeneral-regs-only` (garde hôte) | `garde fichiers 58 en-echec 0` | `make test` (`float-guard`) |
+| 6.4 | toute divergence justifiée par une ligne du relevé | `frames-ledger commits 6 poses 4 divergences 2 erreurs 0` (C2b bloc A, D1 bloc B) | `make frames-ledger`, lancé à la clôture d'E4 |
+
+Constats laissés à l'humain, non traités par ce volet :
+- `make constant-variants` (hors suite) échoue depuis C2b : l'inventaire n'a plus de constante et la recette appelle le comparateur sans sources (« État de E1 ») ;
+- `make float-coverage` (hors suite) rend 2 sur inventaire vide, par conception ; `tools/float_coverage.txt` est la photographie d'E1 (« État de E2 ») ;
+- reliquat de la Phase A : le cas `tostr` de magnitude < 0.0001 n'est pas sourcé (§10) ;
+- hors périmètre par décision : la vérification `mipsel`/soft-float, `pico8_fixed_rnd` (TROU-17), et TROU-1 restreint à `sin`/`cos` hors des 64 points relevés.
+
 > **Décision tranchée par l'humain en Phase D :** `sin`/`cos` sur table (D5) ; la vérification PSX hors périmètre. Historique de la question :
 >
 > **Décision ouverte, relevée en fin de Phase B (à trancher en C0, par l'humain) :** les 2 sites `sin`/`cos` libc de `pico8_fixed_cos`/`_sin` n'appartiennent à aucune étape — le §4 et le §5 interdisent de réécrire ces fonctions, tandis que le §6.1-6.3 et la Phase E exigent zéro flottant et le retrait de `-lm`, et TROU-1 porte précisément sur eux. Tels quels, les deux ne peuvent être satisfaits ensemble. Idem pour les définitions `pico8_fixed_from_double`/`to_double` elles-mêmes (catégorie « autre »). Ce plan ne choisit pas : ajuster le §6/E, ou lever la clôture du §5 pour ces sites.
 > C0 l'a comptée sans la trancher : 16 jetons (10 pour `pico8_fixed_cos`/`_sin`, 6 pour les définitions), sur la ligne « sans propriétaire — décision ouverte » de la table de propriété (Phase C, C0).
 
-**Sortie de phase :** les quatre points du §6 passent.
+**Sortie de phase :** les quatre points du §6 passent. ✅ Atteinte, voir « Sortie de phase E ».
 
 ---
 
@@ -673,7 +707,7 @@ Figées à l'issue de la session de cadrage, pour ne pas être relitigées :
 6. La source de vérité pour (c), les constantes, `tostr` et `^0.75` est un **relevé PICO-8 en bits bruts**, pas une convention ni une décision d'ingénierie.
 7. Le relevé couvre **six blocs** en une seule manipulation ; E et F sont stockés sans être exploités.
 8. Le filet de non-régression stocke des **empreintes par frame**, pas des pixels, et est capturé **avant** toute modification.
-9. Le critère de fin inclut la vérification `nm` de l'absence de symboles soft-float — seule preuve réelle de l'objectif PSX.
+9. Le critère de fin inclut la vérification `nm` de l'absence de symboles soft-float — seule preuve réelle de l'objectif PSX. *Levée par décision humaine en Phase D : vérification `mipsel`/`nm` hors périmètre, §6.3 se juge sur la garde hôte.*
 10. Le volet `malloc` n'est **pas** cadré ; le §8 liste ses questions ouvertes.
 
 Ajoutées après le relevé (`tools/probe_out.txt`, PICO-8 0.2.6b) :
