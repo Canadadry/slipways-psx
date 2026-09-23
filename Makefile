@@ -13,6 +13,8 @@
 #                       diffère de tools/float_inventory.txt, dans make test
 # make float-coverage -> réécrit tools/float_coverage.txt, hors suite
 # make float-observe -> réécrit tools/float_observe.txt, hors suite
+# make float-audit   -> porte de C1 : troncature flottante = flr entier et
+#                       argument >= 0 à chaque site, hors suite
 # make float-guard   -> réécrit tools/float_guard.txt, hors suite, en échec
 #                       tant qu'un fichier du cœur a besoin du flottant
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
@@ -29,13 +31,14 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les six.
+# sur ce code, sans rien dire. Ne pas fusionner les sept.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 OBJ_OBSERVE_DIR := $(TMP_DIR)/obj-observe
+OBJ_AUDIT_DIR := $(TMP_DIR)/obj-audit
 
 # -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
 # que l'unité de compilation a vraiment ouverts. Le -include en bas du fichier
@@ -46,6 +49,7 @@ UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
 COVERAGE_CFLAGS := --coverage -O0
 OBSERVE_CFLAGS := -DPICO8_FLOAT_OBSERVE
+AUDIT_CFLAGS := -DPICO8_FLOAT_AUDIT
 
 # $(call objs,<liste de .c>) -> les chemins des .o correspondants dans l'arbre
 # concerné. Une cible nomme ses sources une fois ; ses prérequis et sa ligne de
@@ -56,6 +60,7 @@ ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 observe_objs = $(patsubst %.c,$(OBJ_OBSERVE_DIR)/%.o,$(1))
+audit_objs = $(patsubst %.c,$(OBJ_AUDIT_DIR)/%.o,$(1))
 
 # mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
 # d'un répertoire change à chaque fichier écrit dedans, ce qui rebuilderait tout.
@@ -82,6 +87,10 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 $(OBJ_OBSERVE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(OBSERVE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_AUDIT_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(AUDIT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # Closure complète du moteur : tout src/ sauf les deux points d'entrée (main.c,
 # main_raylib.c) et les modules qui ne servent qu'au driver interactif. Utilisée
@@ -291,6 +300,9 @@ $(TMP_DIR)/test_float_coverage: $(call objs,tests/test_float_coverage.c) tools/f
 $(TMP_DIR)/test_float_observe: $(call objs,tests/test_float_observe.c) tools/float_observe.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_float_audit: $(call objs,tests/test_float_audit.c) tools/float_audit.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -369,7 +381,7 @@ $(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_b
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frame_hash $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_float_inventory $(TMP_DIR)/test_float_inventory_check $(TMP_DIR)/test_float_coverage $(TMP_DIR)/test_float_observe $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -405,6 +417,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_float_inventory_check
 	./$(TMP_DIR)/test_float_coverage
 	./$(TMP_DIR)/test_float_observe
+	./$(TMP_DIR)/test_float_audit
 	./$(TMP_DIR)/test_float_guard
 	./$(TMP_DIR)/test_pico8_bg_kj
 	./$(TMP_DIR)/test_pico8_top_menubar
@@ -633,6 +646,22 @@ float-observe: $(TMP_DIR)/pico8_replay_observe tools/float_inventory.sh $(FLOAT_
 
 .PHONY: float-observe
 
+AUDIT_DIR := $(TMP_DIR)/audit
+
+# pico8_fixed.c vient de l'arbre par défaut : sous -DPICO8_FLOAT_AUDIT, la
+# macro réécrirait la définition de pico8_fixed_flr_int.
+$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call objs,src/pico8_fixed.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+# Chaque rejeu ajoute ses enregistrements au même fichier, effacé avant la passe.
+float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh
+	@mkdir -p $(AUDIT_DIR)
+	rm -f $(AUDIT_DIR)/aud.txt
+	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(AUDIT_DIR)/aud.txt ./$(TMP_DIR)/pico8_replay_audit $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
+	sh tools/float_audit.sh $(AUDIT_DIR)/aud.txt $(CORE_SRCS)
+
+.PHONY: float-audit
+
 FLOAT_GUARD := tools/float_guard.txt
 
 # Le rapport est versionné même quand la garde échoue, ce qui est l'état attendu
@@ -684,3 +713,4 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_OBSERVE_DIR)/src/*.d $(OBJ_OBSERVE_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_AUDIT_DIR)/src/*.d $(OBJ_AUDIT_DIR)/tests/*.d)

@@ -106,4 +106,8 @@ pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x);
 #include "pico8_float_observe.h"
 #endif
 
+#ifdef PICO8_FLOAT_AUDIT
+#include "pico8_float_audit.h"
+#endif
+
 #endif
