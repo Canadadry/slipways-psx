@@ -1,0 +1,97 @@
+# Annotation des casts (int)pico8_fixed_to_double(...) du coeur, lue par
+# tools/float_inventory.sh. Le seul des rapports flottants qu'on edite a la main.
+#
+# Une ligne par cast : fichier | fonction | extrait | occurrence | population | etape | justification
+#   cle          fichier, fonction, extrait tel que l'inventaire l'imprime, et
+#                occurrence (1, 2...) parmi les casts de meme extrait dans la
+#                fonction ; jamais le rang, qui glisse des qu'un frere est converti
+#   population   (a), (b), (c) ou a auditer
+#   etape        (b) -> C1, (c) -> D1, (a) -> C1 si le signe >= 0 est prouve,
+#                sinon D1, a auditer -> -
+#   justification une ligne non vide, jamais recopiee dans l'inventaire.
+#                (a) : un renvoi lua.lua:<ligne>, et chaque ligne citee de
+#                pico8/lua.lua contient flr( ; (b) : la preuve de signe ;
+#                (c) : pourquoi ; a auditer : ce qui manque
+#
+# Un cast dans une aide pico8_*_to_int prend la pire population de ses appelants.
+# Une observation "jamais negatif sur le filet" est un indice, jamais une
+# preuve : une justification (b) peut la citer en complement, pas a sa place.
+#
+# Une annotation sans cast, un cast sans annotation, un (a) non source ou une
+# etape contraire a la population arretent l'inventaire, donc make test.
+src/pico8_audio.c | pico8_rn | no.as.fixed | 1 | a auditer | - | non classe
+src/pico8_bg.c | pico8_bg_to_int | x | 1 | a auditer | - | non classe
+src/pico8_collect.c | pico8_ho_apply | raw.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy.c | pico8_hy_hk | k_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy.c | pico8_hy_kt | ew | 1 | a auditer | - | non classe
+src/pico8_economy_formulas.c | set_by_value | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_formulas.c | get_by_value | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_score.c | get_by_value | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_score.c | pico8_da | mi_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_score.c | pico8_db | pt_mi | 1 | a auditer | - | non classe
+src/pico8_economy_score.c | pico8_db | oz_mi_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_score.c | sum_by_mi_visit | mi_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_tiers.c | set_by_value | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_economy_tiers.c | bb_visit | mi | 1 | a auditer | - | non classe
+src/pico8_entity.c | pico8_dc | fa_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_gen.c | pico8_gn | count_fixed | 1 | a auditer | - | non classe
+src/pico8_gen.c | pico8_gn_next | idx_fixed | 1 | a auditer | - | non classe
+src/pico8_hud.c | pico8_hud_to_int | x | 1 | a auditer | - | non classe
+src/pico8_layout.c | pico8_lq_ol_item_draw | item->color | 1 | a auditer | - | non classe
+src/pico8_layout.c | pico8_lq_ol_item_draw | item->sprite_id | 1 | a auditer | - | non classe
+src/pico8_layout.c | pico8_lq_ol_item_draw | pos.x | 1 | a auditer | - | non classe
+src/pico8_layout.c | pico8_lq_ol_item_draw | pos.y | 1 | a auditer | - | non classe
+src/pico8_menu.c | pico8_cr | tl | 1 | a auditer | - | non classe
+src/pico8_menu.c | pico8_cr | tl | 2 | a auditer | - | non classe
+src/pico8_menu.c | pico8_ha2_my_dispatch | s | 1 | a auditer | - | non classe
+src/pico8_msgbox.c | pico8_iv_kj | color_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_particle.c | pico8_particle_to_int | x | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_rk_constructor | a3.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_io_constructor | a4.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_spr_constructor | a1.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_spr_constructor | a2.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_spr_constructor | a3.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_spr_constructor | a4.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_pi_spr_constructor | a5.as.fixed | 1 | a auditer | - | non classe
+src/pico8_pi.c | pico8_bl | nc | 1 | a auditer | - | non classe
+src/pico8_planet.c | pico8_jo_pq | hp_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_planet.c | pico8_jo_hu | go_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_gh_jp_step | gc | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_gh | mi_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | adjusted.x | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | adjusted.y | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | s_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | s_val.as.fixed | 2 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | field_fixed(self, "mi") | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | ka_entry.as.fixed | 1 | a auditer | - | non classe
+src/pico8_planet_display.c | pico8_jo_kj | radius_f | 1 | a auditer | - | non classe
+src/pico8_planet_family.c | pico8_ga_kj | p.x | 1 | a auditer | - | non classe
+src/pico8_planet_family.c | pico8_ga_kj | p.y | 1 | a auditer | - | non classe
+src/pico8_planet_family.c | pico8_ga_kj | pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))) | 1 | a auditer | - | non classe
+src/pico8_planet_family.c | pico8_ga_kj | k_entry.as.fixed | 1 | a auditer | - | non classe
+src/pico8_planet_family.c | pico8_ga_kj | pico8_vec_qx(pt_p) | 1 | a auditer | - | non classe
+src/pico8_probe.c | pico8_probe_to_int | x | 1 | a auditer | - | non classe
+src/pico8_research.c | pico8_research_lookup | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_research_display.c | pico8_jo_ex | loop_bound | 1 | a auditer | - | non classe
+src/pico8_research_icon.c | ie_to_int | x | 1 | a auditer | - | non classe
+src/pico8_score_panel.c | get_by_value | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_score_panel.c | pico8_eg | ny_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_score_panel.c | pico8_pj_hb | fm_lo | 1 | a auditer | - | non classe
+src/pico8_score_panel_display.c | pico8_pj_hk | yr | 1 | a auditer | - | non classe
+src/pico8_score_panel_display.c | pico8_pj_ph_map | score_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_score_panel_display.c | pico8_pj_ph_map | s6_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_scroll.c | pico8_qb_md | cp.x | 1 | a auditer | - | non classe
+src/pico8_scroll.c | pico8_qb_md | cp.y | 1 | a auditer | - | non classe
+src/pico8_slipway_display.c | pico8_jc_display_get_by_value | key.as.fixed | 1 | a auditer | - | non classe
+src/pico8_slipway_display.c | pico8_jc_display_to_int | x | 1 | a auditer | - | non classe
+src/pico8_tech_gate.c | pico8_gi | nk_val.as.fixed | 1 | a auditer | - | non classe
+src/pico8_ui.c | pico8_ui_to_int | x | 1 | a auditer | - | non classe
+src/pico8_ui_button.c | pico8_ui_to_int | x | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | p.x | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | p.y | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | oi | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | cp.x | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | cp.y | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | pico8_fixed_flr(ratio) | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | entry.as.fixed | 1 | a auditer | - | non classe
+src/pico8_wormhole_display.c | pico8_mz_kj | sr | 1 | a auditer | - | non classe

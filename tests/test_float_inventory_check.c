@@ -1,6 +1,6 @@
 /* tools/float_inventory_check.sh, la verification de fraicheur de `make test`,
- * sur un inventaire versionne et des sources fabriques : il se teste par ce
- * qu'il doit empecher. */
+ * sur un inventaire versionne, des sources et une annotation fabriques : il se
+ * teste par ce qu'il doit empecher. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -12,6 +12,11 @@
 #define VERSIONED DIR "/float_inventory.txt"
 #define FRESH DIR "/regenere.txt"
 #define LOG DIR "/log.txt"
+#define ANNOT DIR "/annotation.txt"
+#define LUA DIR "/lua.lua"
+#define INPUTS ANNOT " " LUA " " SRC
+
+#define ANNOTATION SRC " | pico8_two | pos.x | 1 | a auditer | - | non classe\n"
 
 #define SPECIMEN \
     "static void pico8_two(pico8_vec_t pos) {\n" \
@@ -45,15 +50,17 @@ static void write_file(const char *path, const char *text) {
 
 static void reset(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR) == 0);
+    write_file(ANNOT, ANNOTATION);
+    write_file(LUA, "spr(flr(x),0)\n");
 }
 
 static void version_inventory_of(const char *source_text) {
     write_file(SRC, source_text);
-    assert(system("sh tools/float_inventory.sh " SRC " > " VERSIONED) == 0);
+    assert(system("sh tools/float_inventory.sh " INPUTS " > " VERSIONED) == 0);
 }
 
 static int run_check(void) {
-    return system("sh tools/float_inventory_check.sh " VERSIONED " " FRESH " " SRC
+    return system("sh tools/float_inventory_check.sh " VERSIONED " " FRESH " " INPUTS
                   " > " LOG " 2>&1");
 }
 
@@ -103,12 +110,35 @@ static void test_inventory_failure_fails_the_check(void) {
     assert(run_check() != 0);
 }
 
+static void test_changed_annotation_fails(void) {
+    reset();
+    version_inventory_of(SPECIMEN);
+    write_file(ANNOT, SRC " | pico8_two | pos.x | 1 | (b) | C1 | compteur\n");
+    assert(run_check() != 0);
+    assert(strstr(read_file(LOG), "make float-inventory") != NULL);
+}
+
+/* L'annotation de pos.y est orpheline : l'inventaire s'arrete en erreur, et la
+ * verification avec lui. */
+static void test_incoherent_annotation_fails(void) {
+    reset();
+    write_file(ANNOT, ANNOTATION SRC " | pico8_two | pos.y | 1 | a auditer | - | non classe\n");
+    version_inventory_of(SPECIMEN_WITH_EXTRA_CAST);
+    write_file(SRC, SPECIMEN);
+    assert(run_check() != 0);
+    const char *log = read_file(LOG);
+    assert(strstr(log, "orpheline") != NULL);
+    assert(strstr(log, "make float-inventory") != NULL);
+}
+
 int main(void) {
     test_fresh_inventory_passes();
     test_added_cast_fails_and_names_the_command();
     test_versioned_inventory_is_never_rewritten();
     test_missing_versioned_inventory_fails();
     test_inventory_failure_fails_the_check();
+    test_changed_annotation_fails();
+    test_incoherent_annotation_fails();
     assert(system("rm -rf " DIR) == 0);
     printf("test_float_inventory_check: all tests passed\n");
     return 0;

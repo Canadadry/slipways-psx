@@ -8,7 +8,7 @@
 # make frames-check  -> compare les empreintes par frame de chaque rejeu du filet
 # make frames-baseline -> (re)pose ces empreintes de référence, jamais par make test
 # make ref-audit     -> diagnostic des casts REF, hors suite
-# make float-inventory -> réécrit tools/float_inventory.txt, hors suite
+# make float-inventory -> réécrit tools/float_inventory.txt (cœur + tools/float_annotation.txt), hors suite
 # make float-inventory-check -> régénère l'inventaire dans tmp/ et échoue s'il
 #                       diffère de tools/float_inventory.txt, dans make test
 # make float-coverage -> réécrit tools/float_coverage.txt, hors suite
@@ -561,18 +561,20 @@ ref-audit: $(REFAUDIT_BINS)
 .PHONY: ref-audit
 
 FLOAT_INVENTORY := tools/float_inventory.txt
+FLOAT_ANNOTATION := tools/float_annotation.txt
+FLOAT_INVENTORY_INPUTS := $(FLOAT_ANNOTATION) pico8/lua.lua $(CORE_SRCS)
 
 # Écrit à côté puis renommé : un inventaire arrêté sur un jeton hors catégorie
-# ne remplace pas le rapport versionné.
-float-inventory: tools/float_inventory.sh | $(TMP_DIR)
-	sh tools/float_inventory.sh $(CORE_SRCS) > $(TMP_DIR)/float_inventory.txt
+# ou une annotation incohérente ne remplace pas le rapport versionné.
+float-inventory: tools/float_inventory.sh $(FLOAT_ANNOTATION) | $(TMP_DIR)
+	sh tools/float_inventory.sh $(FLOAT_INVENTORY_INPUTS) > $(TMP_DIR)/float_inventory.txt
 	mv $(TMP_DIR)/float_inventory.txt $(FLOAT_INVENTORY)
 	@grep '^compte ' $(FLOAT_INVENTORY)
 
 .PHONY: float-inventory
 
-float-inventory-check: tools/float_inventory_check.sh tools/float_inventory.sh | $(TMP_DIR)
-	@sh tools/float_inventory_check.sh $(FLOAT_INVENTORY) $(TMP_DIR)/float_inventory_check.txt $(CORE_SRCS)
+float-inventory-check: tools/float_inventory_check.sh tools/float_inventory.sh $(FLOAT_ANNOTATION) | $(TMP_DIR)
+	@sh tools/float_inventory_check.sh $(FLOAT_INVENTORY) $(TMP_DIR)/float_inventory_check.txt $(FLOAT_INVENTORY_INPUTS)
 
 .PHONY: float-inventory-check
 
@@ -585,11 +587,11 @@ $(TMP_DIR)/pico8_replay_coverage: $(call coverage_objs,src/main.c src/pico8_scre
 # Les .gcda sont effacés avant la passe : les compteurs s'additionnent d'un
 # lancement à l'autre. Chaque fichier du filet est rejoué avec capture, comme
 # frames-check le rejoue. gcov -t écrit sur la sortie standard, sans .gcov.
-float-coverage: $(TMP_DIR)/pico8_replay_coverage tools/float_inventory.sh tools/float_coverage.sh
+float-coverage: $(TMP_DIR)/pico8_replay_coverage tools/float_inventory.sh $(FLOAT_ANNOTATION) tools/float_coverage.sh
 	find $(OBJ_COVERAGE_DIR) -name '*.gcda' -delete
 	@mkdir -p $(COVERAGE_DIR)
 	$(foreach e,$(FRAMES_EVENTS),./$(TMP_DIR)/pico8_replay_coverage $(e) $(COVERAGE_DIR)/capture.bin > /dev/null && ) true
-	sh tools/float_inventory.sh $(CORE_SRCS) > $(COVERAGE_DIR)/inventaire.txt
+	sh tools/float_inventory.sh $(FLOAT_INVENTORY_INPUTS) > $(COVERAGE_DIR)/inventaire.txt
 	gcov -t -o $(OBJ_COVERAGE_DIR)/src $(CORE_SRCS) > $(COVERAGE_DIR)/gcov.txt
 	sh tools/float_coverage.sh $(COVERAGE_DIR)/inventaire.txt "$$($(CC) --version | head -n 1)" $(COVERAGE_DIR)/gcov.txt > $(COVERAGE_DIR)/float_coverage.txt
 	mv $(COVERAGE_DIR)/float_coverage.txt $(FLOAT_COVERAGE)

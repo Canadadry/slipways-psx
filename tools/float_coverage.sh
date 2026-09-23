@@ -18,7 +18,7 @@ cat <<EOF
 #
 # Les sites sont ceux de tools/float_inventory.sh ; les passages viennent de
 # gcov, apres rejeu de chaque fichier de FRAMES_EVENTS par un build --coverage.
-# Une ligne par site : fichier | fonction | categorie | rang | ligne | couverture | population | extrait
+# Une ligne par site : fichier | fonction | categorie | rang | ligne | couverture | population | etape | extrait
 #
 # Limite : la granularite est la ligne, pas l'expression. Deux sites d'une meme
 # ligne recoivent le meme compte, et un site dans une branche jamais prise

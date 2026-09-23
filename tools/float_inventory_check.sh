@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: float_inventory_check.sh <inventaire versionne> <sortie> <source.c>...
+# usage: float_inventory_check.sh <inventaire versionne> <sortie> <annotation> <lua.lua> <source.c>...
 # Regenere l'inventaire dans <sortie> et le compare octet par octet a la copie
 # versionnee, qui n'est jamais reecrite. Rend 0 si elles sont identiques, 1
 # sinon, avec un diff court et la commande a relancer.
