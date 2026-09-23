@@ -137,7 +137,7 @@ Et des valeurs négatives arrivent réellement à ces sites — `src/pico8_layou
 **Hors périmètre, explicitement**
 
 - Les **tests**, `main.c`, `pico8_dump.c`, `pico8_assets.c`, le backend raylib et l'outillage de rejeu. Ils gardent `stdio`/`stdlib` : ce sont des outils d'hôte, et c'est exactement l'outillage de vérification sur lequel repose toute la stratégie de test de `docs/plan.md`. Les amputer détruirait le moyen de prouver que ce chantier n'a rien cassé.
-- **`pico8_fixed_sin`/`cos`/`rnd` ne sont pas réécrits par ce chantier** (voir §5 blocs E/F, et §9 Risques). Leur relevé est capturé et stocké ; son exploitation est un chantier distinct.
+- **`pico8_fixed_rnd` n'est pas réécrit par ce chantier** (voir §5 bloc F, et §9 Risques). Son relevé est capturé et stocké ; son exploitation est un chantier distinct. **`sin`/`cos` : clôture levée par décision humaine (Phase D)**, voir D5.
 - Le portage PSX lui-même.
 
 ---
@@ -163,7 +163,7 @@ Une cartouche autonome que l'humain charge et lance une fois ; elle écrit un fi
 
 **A→D servent ce chantier. E et F ne le servent pas** : ils visent le premier trou de portage (`rnd`/`sin`/`cos` non bit-exacts, objectif « même graine → même galaxie » acté non atteint — [TROU-1](trous-de-portage.md)). Ils sont capturés parce que les six blocs coûtent **la même manipulation unique**, et que ne pas les prendre garantirait de redemander la manip plus tard.
 
-> **Clôture de périmètre, à opposer à toute dérive :** E et F sont **capturés et stockés**, pas exploités. `pico8_fixed_sin`/`cos`/`rnd` ne sont pas touchés par ce chantier.
+> **Clôture de périmètre, à opposer à toute dérive :** F est **capturé et stocké**, pas exploité ; `pico8_fixed_rnd` n'est pas touché par ce chantier. *Levée partielle, décision humaine en Phase D :* `pico8_fixed_sin`/`cos` passent sur une table (D5), et les vecteurs `sin`/`cos` du bloc E en deviennent les points de contrôle.
 
 **Effet de second ordre, qui est le vrai gain de « testable » :** aujourd'hui `tests/test_pico8_fixed.c` n'assertent que des *contrats* (plage, cas zéro, périodicité) et **jamais une valeur numérique**, faute de source. Le fichier de relevé, versionné, devient une **fixture** : les tests assertent désormais des valeurs exactes relevées sur PICO-8. C'est un changement de nature, pas un ajout de couverture.
 
@@ -268,8 +268,8 @@ Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe
 | `pow`, `pico8_fixed_from_double(ec_d)`, et `double` + 2 `pico8_fixed_to_double` de `pico8_dj` | 5 | D3 | Phase D, `^0.75` |
 | revue des clés de table | 0 | D4 | *Déduction* (PRD de C0) : la conversion du jeton d'un cast-clé suit sa population, et le plan route (b) vers C1 sans exception ; D4 ne retire aucun jeton. D4 hérite de la liste des 28 casts dont la justification porte « cle de table » dans `tools/float_annotation.txt` (16 en C1, 1 en D1, 11 à auditer). |
 | mots de commentaire : `float` (`pico8_fixed.c`), `double-free` (`pico8_bw`), `pico8_fixed_from_double` (`pico8_ob.c`, hors fonction), `double comma` (`pico8_ob_step`) | 4 | E | *Déduction* : le grep du §6.1, sortie de E, les voit. |
-| `sin`/`cos` libc (2 réécrits), et `double` ×2, `pico8_fixed_to_double`, `pico8_fixed_from_double(…)` de chacune de `pico8_fixed_cos`/`_sin` (8 autres) | 10 | **sans propriétaire — décision ouverte** | §4/§5 contre §6/E ; [TROU-1](trous-de-portage.md) |
-| définitions de `pico8_fixed_from_double`/`_to_double` (3 + 3 autres) | 6 | **sans propriétaire — décision ouverte** | idem |
+| `sin`/`cos` libc (2 réécrits), et `double` ×2, `pico8_fixed_to_double`, `pico8_fixed_from_double(…)` de chacune de `pico8_fixed_cos`/`_sin` (8 autres) | 10 | **D5** (décision humaine, Phase D) | [TROU-1](trous-de-portage.md) |
+| définitions de `pico8_fixed_from_double`/`_to_double` (3 + 3 autres) | 6 | **E** (*déduction* : après D1–D3 et D5 le cœur ne les appelle plus ; §6.1 admet des helpers de test isolés) | idem |
 
 Somme : 61 + 37 + 22 + 17 + 3 + 5 + 0 + 4 + 10 + 6 = **165**, le `compte total` de l'inventaire (61 constantes, 76 casts, 5 réécrits, 23 autres).
 
@@ -362,7 +362,7 @@ Séparer C1 de C2 est ce qui garde le critère §6.4 falsifiable : mélangées, 
 - *Garde* : 24 fichiers sur 58 en échec, liste inchangée depuis C1.
 
 ### Phase D — Population (c) et les 5 sites flottants
-Périmètre, d'après la table de propriété (Phase C) : **22 casts D1** (21 (c) + 1 (a) de signe non prouvé), **les 17 casts « à auditer »** (dont 11 clés de table), **3 jetons D2** (`tostr`), **5 jetons D3** (`^0.75`), et la revue des clés de table (D4). Les 2 sites `sin`/`cos` du titre ne sont **pas** dans D : ils sont sur la ligne « sans propriétaire — décision ouverte ». La sortie de chaque étape s'énonce en « compte d'étape = 0 » dans l'inventaire annoté.
+Périmètre, d'après la table de propriété (Phase C) : **22 casts D1** (21 (c) + 1 (a) de signe non prouvé), **les 17 casts « à auditer »** (dont 11 clés de table), **3 jetons D2** (`tostr`), **5 jetons D3** (`^0.75`), et la revue des clés de table (D4). Les 2 sites `sin`/`cos` du titre sont en **D5** (décision humaine). La sortie de chaque étape s'énonce en « compte d'étape = 0 » dans l'inventaire annoté.
 
 Sources, inchangées : population (c) → **`flr`** (bloc B, correction de bug sourcée) ; `pico8_value_tostr` réécrit en entier d'après le bloc C, le cas `< 0.0001` gardé sur le comportement actuel **et documenté comme non sourcé** ; `^0.75` → `sqrt(x) · sqrt(sqrt(x))`, validé contre les 16 vecteurs du bloc D ; clés de table revues contre la sémantique des clés fractionnaires (§3.2).
 
@@ -370,10 +370,11 @@ Sources, inchangées : population (c) → **`flr`** (bloc B, correction de bug s
 
 - **D0a — Outillage de D** — ✅ faite, voir « État de D0a ». (i) Le build d'audit de C1 devient un build avant/après pour chaque étape D : par site modifié, nombre d'appels, appels où ancien ≠ nouveau, appels à argument fractionnaire, et **frame du premier ancien ≠ nouveau**. Même motif pour D2 (ancien `%.4f` contre nouveau) et D3 (ancien `pow` contre nouveau). C'est l'outil d'attribution de D — `constant-variants` ne remplace que des littéraux et n'a plus rien à remplacer. (ii) La garde de C1 est préservée : les 37 sites C1 sont figés dans une liste versionnée, la vérification se fait **par classe de site** (C1 : aucun négatif et ancien == nouveau ; D1 : nouveau == `flr`), et `float-audit` entre dans `make test`.
 - **D0b — Les 17 casts bloqués.** Sortie : « à auditer » = 0. Chacun est atteint par une fixture scriptée ou un test au niveau valeur, ou reçoit une entrée explicite « non protégé par le filet », puis est classé ; la revue de clé de ses 11 sites clé de table se fait ici, appuyée par le compte d'arguments fractionnaires de D0a. Un cast reclassé (b) est converti comme en C1 (et rejoint la liste figée) ; un cast reclassé (c) rejoint D1, dont le périmètre est ainsi fixé **avant** D1.
-- **D0c — Lever l'inconnue de la Phase E.** ~~(i) chaîne PSn00bSDK et `nm` mipsel~~ — retiré par décision humaine : la vérification PSX est hors périmètre, on reste sur du C pour PC. (ii) Une **mesure** jetable (hors `src/`, rien n'est fusionné) : combien des 64 vecteurs `sin`/`cos` du bloc E un candidat en virgule fixe reproduit au bit près. Elle chiffre l'une des deux options de la décision ouverte sans la trancher ; la décision reste à l'humain, avec les deux options chiffrées, et doit être prise avant la Phase E.
+- ~~**D0c**~~ — sans objet : (i) la vérification PSX est hors périmètre (décision humaine : on reste sur du C pour PC) ; (ii) la décision ouverte est tranchée (D5), la mesure n'a plus à la chiffrer.
 - **D1 — population (c).** Divergente, avec re-baseline.
 - **D2 — `tostr`.** **Préservatrice, pas divergente** : le `tostr` actuel reproduit déjà 13 témoins sur 14 et le 14ᵉ est conservé tel quel. Porte : (i) un test d'hôte qui compare ancien et nouveau sur les 65 536 parties fractionnaires, des deux signes, et quelques parties entières dont ±32767/−32768 — seule différence admise, le cas `< 0.0001` ; attention aux 16 égalités exactes où `%.4f` arrondit au pair ; (ii) `frames-check` identique, **sans** `frames-baseline`.
 - **D3 — `^0.75`.** Divergente si le nouveau diffère de l'ancien. Constat fait en revue de fin de Phase C : `pico8_fixed_mul(s, pico8_fixed_sqrt(s))` avec `s = pico8_fixed_sqrt(x)` reproduit les 16 vecteurs du bloc D au bit près, et `pico8_fixed_sqrt` les 16 vecteurs `sqrt` du bloc E.
+- **D5 — `sin`/`cos` sur table** (décision humaine). `pico8_fixed_sin`/`cos` lisent une table de valeurs 16.16 indexée par la fraction de tour, sans `sin()`/`cos()` libc. Modèle donné par l'humain : le portage de Celeste Classic sur GBA (JeffRuLz/Celeste-Classic-GBA, `src/sine.h` + `main.c:331-332` : 360 entrées `float`, index `(u16)(x*360) % 360`, sans interpolation) — le principe est repris, pas ses `float`. Porte : les 64 vecteurs `sin(i/64)`/`cos(i/64)` du bloc E reproduits **au bit près** ; hors de ces points, la table est une approximation **non sourcée**, documentée comme telle dans TROU-1 (taille, construction, interpolation éventuelle : à trancher par la PRD de l'étape). Divergente, avec re-baseline et attribution par l'audit avant/après (paire ancien libc / nouvelle table).
 - **D4 — clés de table.** Réduite aux clés déjà converties (16 en C1, 1 en D1) ; lue principalement dans le compte d'arguments fractionnaires de D0a (un site sans argument fractionnaire sur tout le filet est entier de fait, pas seulement par argument).
 
 **État de D0a** (mesuré avec `cc` GCC 13.3, x86_64, 4 cœurs). Aucune ligne du cœur n'a changé ; `make frames-check` est identique sur les 8 fichiers de `FRAMES_EVENTS`, sans `frames-baseline` ; `float-inventory-check` et `constants-check` inchangés.
@@ -395,6 +396,8 @@ Sources, inchangées : population (c) → **`flr`** (bloc B, correction de bug s
 ### Phase E — Fermeture
 `-lm` retiré de la cible du cœur, garde `-mgeneral-regs-only` vide (§6.3), [TROU-1](trous-de-portage.md) refermé.
 
+> **Décision tranchée par l'humain en Phase D :** `sin`/`cos` sur table (D5) ; la vérification PSX hors périmètre. Historique de la question :
+>
 > **Décision ouverte, relevée en fin de Phase B (à trancher en C0, par l'humain) :** les 2 sites `sin`/`cos` libc de `pico8_fixed_cos`/`_sin` n'appartiennent à aucune étape — le §4 et le §5 interdisent de réécrire ces fonctions, tandis que le §6.1-6.3 et la Phase E exigent zéro flottant et le retrait de `-lm`, et TROU-1 porte précisément sur eux. Tels quels, les deux ne peuvent être satisfaits ensemble. Idem pour les définitions `pico8_fixed_from_double`/`to_double` elles-mêmes (catégorie « autre »). Ce plan ne choisit pas : ajuster le §6/E, ou lever la clôture du §5 pour ces sites.
 > C0 l'a comptée sans la trancher : 16 jetons (10 pour `pico8_fixed_cos`/`_sin`, 6 pour les définitions), sur la ligne « sans propriétaire — décision ouverte » de la table de propriété (Phase C, C0).
 
