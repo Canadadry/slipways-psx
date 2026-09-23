@@ -709,14 +709,16 @@ AUDIT_DIR := $(TMP_DIR)/audit
 $(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call objs,src/pico8_fixed.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-# Chaque rejeu ajoute ses enregistrements au même fichier, effacé avant la passe.
 FLOAT_AUDIT_C1 := tools/float_audit_c1.txt
+float_audit_records = $(AUDIT_DIR)/$(notdir $(1)).aud
 
+# Un fichier d'enregistrements par fichier d'événements, tous effacés avant la
+# passe : un rejeu mort laisse le sien absent, et le rapport échoue.
 float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh $(FLOAT_AUDIT_C1)
 	@mkdir -p $(AUDIT_DIR)
-	rm -f $(AUDIT_DIR)/aud.txt
-	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(AUDIT_DIR)/aud.txt ./$(TMP_DIR)/pico8_replay_audit $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
-	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(AUDIT_DIR)/aud.txt $(CORE_SRCS)
+	rm -f $(AUDIT_DIR)/*.aud
+	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(call float_audit_records,$(e)) ./$(TMP_DIR)/pico8_replay_audit $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
+	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(foreach e,$(FRAMES_EVENTS),$(e) $(call float_audit_records,$(e))) -- $(CORE_SRCS)
 
 .PHONY: float-audit
 

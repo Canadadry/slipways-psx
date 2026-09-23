@@ -1,5 +1,8 @@
 #include "pico8_float_audit.h"
 
+#include "pico8_dispatch_context.h"
+
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,8 +16,12 @@ typedef struct {
     unsigned long passes;
     unsigned long negatives;
     unsigned long mismatches;
+    unsigned long fractional;
+    unsigned long not_ref;
     int has_first_bad;
     pico8_fixed_t first_bad;
+    int has_first_mismatch_frame;
+    int first_mismatch_frame;
 } pico8_float_audit_site_t;
 
 static pico8_float_audit_site_t sites[PICO8_FLOAT_AUDIT_MAX_SITES];
@@ -22,11 +29,10 @@ static int site_count;
 static int overflowed;
 static int registered;
 
-/* Ajoute a $PICO8_FLOAT_AUDIT_OUT (stderr sinon), en mode ajout : les
- * deversements de plusieurs rejeux s'additionnent dans un fichier que
- * tools/float_audit.sh replie. atexit ne tourne pas apres abort() : un rejeu
- * mort sur un assert ne deverse rien, et ses sites sortent NON ATTEINT ;
- * make float-audit echoue alors sur son code de sortie. */
+/* Ajoute a $PICO8_FLOAT_AUDIT_OUT (stderr sinon), en mode ajout ; make
+ * float-audit donne un fichier par fichier d'evenements. atexit ne tourne pas
+ * apres abort() : un rejeu mort sur un assert ne deverse rien, son fichier
+ * manque et tools/float_audit.sh echoue. */
 static void pico8_float_audit_dump(void) {
     const char *path = getenv("PICO8_FLOAT_AUDIT_OUT");
     FILE *out = NULL;
@@ -45,7 +51,13 @@ static void pico8_float_audit_dump(void) {
         const pico8_float_audit_site_t *s = &sites[i];
         fprintf(out, "AUD\t%s\t%s\t%d\t%lu\t%lu\t%lu\t", s->file, s->func, s->line, s->passes, s->negatives, s->mismatches);
         if (s->has_first_bad) {
-            fprintf(out, "0x%08lX\n", (unsigned long)(uint32_t)s->first_bad);
+            fprintf(out, "0x%08lX", (unsigned long)(uint32_t)s->first_bad);
+        } else {
+            fprintf(out, "-");
+        }
+        fprintf(out, "\t%lu\t%lu\t", s->fractional, s->not_ref);
+        if (s->has_first_mismatch_frame) {
+            fprintf(out, "%d\n", s->first_mismatch_frame);
         } else {
             fprintf(out, "-\n");
         }
@@ -55,11 +67,10 @@ static void pico8_float_audit_dump(void) {
     }
 }
 
-int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, pico8_fixed_t x) {
+void pico8_float_audit_record(const char *file, const char *func, int line, pico8_fixed_t arg,
+                              int old_differs, int new_differs_from_ref) {
     pico8_float_audit_site_t *site = NULL;
-    /* Entre parentheses : l'appel de la vraie fonction, pas de la macro. */
-    int32_t now = (pico8_fixed_flr_int)(x);
-    int before = (int)pico8_fixed_to_double(x);
+    const pico8_input_t *input = pico8_dispatch_input();
     int i;
 
     if (!registered) {
@@ -81,18 +92,37 @@ int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, 
     }
     if (site == NULL) {
         overflowed = 1;
-        return now;
+        return;
     }
     site->passes++;
-    if (x < 0) {
+    if (arg < 0) {
         site->negatives++;
     }
-    if (before != now) {
+    if (((uint32_t)arg & 0xFFFFu) != 0) {
+        site->fractional++;
+    }
+    if (old_differs) {
         site->mismatches++;
+        if (!site->has_first_mismatch_frame) {
+            site->has_first_mismatch_frame = 1;
+            site->first_mismatch_frame = (input != NULL) ? input->current_frame : -1;
+        }
     }
-    if ((x < 0 || before != now) && !site->has_first_bad) {
+    if (new_differs_from_ref) {
+        site->not_ref++;
+    }
+    if ((arg < 0 || old_differs) && !site->has_first_bad) {
         site->has_first_bad = 1;
-        site->first_bad = x;
+        site->first_bad = arg;
     }
+}
+
+int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, pico8_fixed_t x) {
+    /* Entre parentheses : l'appel de la vraie fonction, pas de la macro. */
+    int32_t now = (pico8_fixed_flr_int)(x);
+    int before = (int)pico8_fixed_to_double(x);
+    int32_t reference = (int32_t)floor(pico8_fixed_to_double(x));
+
+    pico8_float_audit_record(file, func, line, x, before != now, now != reference);
     return now;
 }
