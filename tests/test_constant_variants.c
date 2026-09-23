@@ -21,12 +21,13 @@
 #define B_EVENTS DIR "/b_events.txt"
 #define BAD_EVENTS DIR "/bad_events.txt"
 
-#define SOURCES ROOT "/driver.c " ROOT "/pico8_screencast.c " ROOT "/pico8_mem.c " ROOT "/pico8_fixed.c"
+#define SOURCES ROOT "/driver.c " ROOT "/pico8_screencast.c " ROOT "/pico8_mem.c " ROOT "/pico8_fixed.c " ROOT "/pico8_fixed_test_double.c"
 #define PAIRS A_EVENTS " " A_EVENTS ".frames.hash " B_EVENTS " " B_EVENTS ".frames.hash"
 #define SCRIPT "sh tools/constant_variants.sh " ROOT " '" SOURCES "' " INV " " PROBE " " TOOL " " OUTDIR
 
 #define DRIVER_TEXT \
     "#include \"pico8_fixed.h\"\n" \
+    "#include \"pico8_fixed_test_double.h\"\n" \
     "#include \"pico8_mem.h\"\n" \
     "#include \"pico8_screencast.h\"\n" \
     "#include <stdio.h>\n" \
@@ -98,7 +99,7 @@ static int run(const char *args) {
  * <events>.frames.hash du filet sont celles de src/. */
 static void reset(void) {
     assert(system("rm -rf " DIR " && mkdir -p " ROOT) == 0);
-    assert(system("cp src/*.h src/pico8_screencast.c src/pico8_mem.c src/pico8_fixed.c " ROOT) == 0);
+    assert(system("cp src/*.h src/pico8_screencast.c src/pico8_mem.c src/pico8_fixed.c src/pico8_fixed_test_double.c " ROOT) == 0);
     write_file(ROOT "/driver.c", DRIVER_TEXT);
     write_file(INV, INV_TEXT);
     write_file(PROBE, PROBE_TEXT);

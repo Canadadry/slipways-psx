@@ -1,4 +1,5 @@
 #include "../src/pico8_geom.h"
+#include "../src/pico8_fixed_test_double.h"
 
 #include <assert.h>
 #include <stdio.h>

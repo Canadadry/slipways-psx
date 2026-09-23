@@ -20,6 +20,7 @@
 #include "../src/pico8_probe.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_fixed_test_double.h"
 
 #define EMPTY_PLANET_EVENTS_PATH "tests/fixtures/empty_planet_cleared_events.json"
 

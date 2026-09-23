@@ -1,5 +1,6 @@
 #!/bin/sh
 # usage: constants_compare.sh <inventaire> <releve> <pico8_fixed.c> <repertoire de travail> [<source.c>...]
+# pico8_fixed_test_double.c doit etre voisin de <pico8_fixed.c>.
 # Une ligne par litteral distinct, jetons constante de l'inventaire et appels
 # PICO8_FIXED_LIT(<hexa>, <litteral>) des sources reunis :
 #   <litteral> | <hexa releve> | <hexa C> | ok|ECART | <sites>
@@ -68,6 +69,7 @@ missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1
     echo '#include <stdint.h>'
     echo '#include <stdio.h>'
     echo '#include "pico8_fixed.h"'
+    echo '#include "pico8_fixed_test_double.h"'
     echo 'static void show(int call, pico8_fixed_t v) {'
     echo '    uint32_t u = (uint32_t)v;'
     printf '%s\n' '    printf("%d 0x%04x.%04x\n", call, (unsigned)(u >> 16), (unsigned)(u & 0xffffu));'
@@ -78,7 +80,7 @@ missing=$(awk -F'\t' 'NR == FNR { split($0, f, " "); seen[f[1]] = 1; next } !($1
     echo '}'
 } > "$gen"
 
-${CC:-cc} -std=c99 -Wall -Wextra -Werror -I "$(dirname "$fixed_c")" -o "$bin" "$gen" "$fixed_c" -lm \
+${CC:-cc} -std=c99 -Wall -Wextra -Werror -I "$(dirname "$fixed_c")" -o "$bin" "$gen" "$fixed_c" "$(dirname "$fixed_c")/pico8_fixed_test_double.c" -lm \
     || fail "le programme engendre $gen ne compile pas"
 "$bin" > "$work/valeurs.txt" || fail "$bin s'arrete en erreur"
 

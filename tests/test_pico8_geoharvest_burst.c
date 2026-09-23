@@ -46,6 +46,7 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_ui_button.h"
+#include "../src/pico8_fixed_test_double.h"
 
 #define GEOHARVEST_EVENTS_PATH "tests/fixtures/geoharvest_burst_events.json"
 

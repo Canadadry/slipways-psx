@@ -10,6 +10,8 @@ src/pico8_assets.c | outil d'hote du §4, chargement des ressources par la libc
 src/pico8_assets.h | outil d'hote du §4, en-tete de pico8_assets.c
 src/pico8_dump.c | outil d'hote du §4, dump texte du framebuffer
 src/pico8_dump.h | outil d'hote du §4, en-tete de pico8_dump.c
+src/pico8_fixed_test_double.c | aide de test, hors coeur : from_double/to_double, liee par les tests, l'audit et le comparateur de constantes
+src/pico8_fixed_test_double.h | aide de test, hors coeur : en-tete de pico8_fixed_test_double.c, inclus par les tests, l'audit et le comparateur de constantes
 src/pico8_float_audit.c | build d'audit avant/apres (PICO8_FLOAT_AUDIT)
 src/pico8_float_audit.h | build d'audit, inclus seulement sous PICO8_FLOAT_AUDIT
 src/pico8_float_observe.c | build d'observation (PICO8_FLOAT_OBSERVE), retire en E1

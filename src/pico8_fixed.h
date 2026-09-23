@@ -22,15 +22,6 @@ typedef int32_t pico8_fixed_t;
 
 pico8_fixed_t pico8_fixed_from_int(int32_t i);
 
-/* Rounds to the nearest representable 16.16 value. Every decimal literal
- * spelled out in C reaches fixed point through here; the ones inside an
- * ob() spec string do not -- that parser reads digits into raw bits. */
-/* TROU-1 */
-pico8_fixed_t pico8_fixed_from_double(double d);
-
-/* Exact: every 16.16 value is representable as a double. */
-double pico8_fixed_to_double(pico8_fixed_t x);
-
 /* Overflow wraps, two's-complement, as PICO-8 documents. Computed through
  * the unsigned 32-bit type, since signed overflow is undefined behavior in
  * C -- never by relying on int32_t overflow or on -fwrapv. */

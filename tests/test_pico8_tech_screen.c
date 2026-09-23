@@ -35,6 +35,7 @@
 #include "../src/pico8_probe.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_tech_gate.h"
+#include "../src/pico8_fixed_test_double.h"
 
 #define TECH_SCREEN_EVENTS_PATH "tests/fixtures/tech_screen_invent_events.json"
 

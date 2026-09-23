@@ -265,13 +265,13 @@ $(TMP_DIR)/test_pico8_input: $(call objs,tests/test_pico8_input.c src/pico8_inpu
 $(TMP_DIR)/test_pico8_dump: $(call objs,tests/test_pico8_dump.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_fixed: $(call objs,tests/test_pico8_fixed.c src/pico8_fixed.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fixed: $(call objs,tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Le même test que ci-dessus, sous UBSan : pico8_fixed fait des réinterprétations
 # de bits signé/non signé qui donneraient les bons nombres tout en étant de l'UB.
 # -fno-sanitize-recover fait échouer le binaire au lieu d'imprimer un avertissement.
-$(TMP_DIR)/test_pico8_fixed_ubsan: $(call ubsan_objs,tests/test_pico8_fixed.c src/pico8_fixed.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fixed_ubsan: $(call ubsan_objs,tests/test_pico8_fixed.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_raylib_backend_coords: $(call objs,tests/test_pico8_raylib_backend_coords.c src/pico8_raylib_backend_coords.c) | $(TMP_DIR)
@@ -341,20 +341,20 @@ $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_lin
 $(TMP_DIR)/test_frames_ledger: $(call objs,tests/test_frames_ledger.c) tools/frames_ledger.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
+$(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/pico8_fixed.c src/pico8_fixed.h src/pico8_fixed_test_double.c src/pico8_fixed_test_double.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 # Rejoue un pilote fabriqué et en prend les empreintes avec le vrai outil.
-$(TMP_DIR)/test_constant_variants: $(call objs,tests/test_constant_variants.c) tools/constant_variants.sh tools/constants_compare.sh tools/frames_report.sh $(TMP_DIR)/pico8_frames src/pico8_fixed.c src/pico8_mem.c src/pico8_screencast.c | $(TMP_DIR)
+$(TMP_DIR)/test_constant_variants: $(call objs,tests/test_constant_variants.c) tools/constant_variants.sh tools/constants_compare.sh tools/frames_report.sh $(TMP_DIR)/pico8_frames src/pico8_fixed.c src/pico8_fixed_test_double.c src/pico8_fixed_test_double.h src/pico8_mem.c src/pico8_screencast.c | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_vec: $(call objs,tests/test_pico8_vec.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_geom: $(call objs,tests/test_pico8_geom.c src/pico8_geom.c src/pico8_vec.c src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_value: $(call objs,tests/test_pico8_value.c src/pico8_value.c src/pico8_fixed.c) | $(TMP_DIR)
@@ -389,7 +389,7 @@ REPLAY_SRCS := src/main.c src/pico8_screencast.c $(ENGINE_SRCS)
 $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS)) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_top_menubar: $(call objs,tests/test_pico8_top_menubar.c $(ENGINE_SRCS)) tests/fixtures/top_menubar_events.json | $(TMP_DIR)
@@ -401,10 +401,10 @@ $(TMP_DIR)/test_pico8_shop_tooltip_fillp: $(call objs,tests/test_pico8_shop_tool
 $(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_tech_screen: $(call objs,tests/test_pico8_tech_screen.c $(ENGINE_SRCS)) tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_tech_screen: $(call objs,tests/test_pico8_tech_screen.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_game_end: $(call objs,tests/test_pico8_game_end.c $(ENGINE_SRCS)) tests/fixtures/game_end_events.json | $(TMP_DIR)
@@ -413,13 +413,13 @@ $(TMP_DIR)/test_pico8_game_end: $(call objs,tests/test_pico8_game_end.c $(ENGINE
 $(TMP_DIR)/test_pico8_pause_menu_music: $(call objs,tests/test_pico8_pause_menu_music.c $(ENGINE_SRCS)) tests/fixtures/pause_menu_music_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_geoharvest_burst: $(call objs,tests/test_pico8_geoharvest_burst.c $(ENGINE_SRCS)) tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_geoharvest_burst: $(call objs,tests/test_pico8_geoharvest_burst.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_score_panel_close: $(call objs,tests/test_pico8_score_panel_close.c $(ENGINE_SRCS)) tests/fixtures/score_panel_close_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Sous ASan, et sans jumeau non instrumenté : le crash visé dépend de la
@@ -636,13 +636,13 @@ frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e))) tools
 $(TMP_DIR)/pico8_replay_refaudit: $(call refaudit_objs,src/main.c src/pico8_screencast.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_playability_refaudit: $(call refaudit_objs,tests/test_pico8_playability.c $(ENGINE_SRCS)) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_playability_refaudit: $(call refaudit_objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_slipway_drag_refaudit: $(call refaudit_objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_slipway_drag_refaudit: $(call refaudit_objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit: $(call refaudit_objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit: $(call refaudit_objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit: $(call refaudit_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -694,7 +694,7 @@ float-inventory-check: tools/float_inventory_check.sh tools/float_inventory.sh $
 .PHONY: float-inventory-check
 
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
-constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
+constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h src/pico8_fixed_test_double.c src/pico8_fixed_test_double.h $(CORE_SRCS) | $(TMP_DIR)
 	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt $(FLOAT_INVENTORY) tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check \
 	    $(CORE_SRCS)
 
@@ -755,7 +755,7 @@ AUDIT_DIR := $(TMP_DIR)/audit
 
 # pico8_fixed.c vient de l'arbre par défaut : sous -DPICO8_FLOAT_AUDIT, la
 # macro réécrirait la définition de pico8_fixed_flr_int.
-$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call objs,src/pico8_fixed.c) | $(TMP_DIR)
+$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call objs,src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 FLOAT_AUDIT_C1 := tools/float_audit_c1.txt

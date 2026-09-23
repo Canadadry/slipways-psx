@@ -1,6 +1,7 @@
 #include "pico8_float_audit.h"
 
 #include "pico8_dispatch_context.h"
+#include "pico8_fixed_test_double.h"
 
 #include <math.h>
 #include <stdio.h>

@@ -18,13 +18,7 @@
 #
 # Population et etape des casts : lues dans tools/float_annotation.txt, qui
 # porte leur justification. "-" pour les autres categories.
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 1 | ligne 9 | - | - | pico8_fixed_from_double(double d)
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 2 | ligne 9 | - | - | double
-src/pico8_fixed.c | pico8_fixed_from_double | autre | 3 | ligne 10 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 1 | ligne 15 | - | - | double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 2 | ligne 15 | - | - | pico8_fixed_to_double
-src/pico8_fixed.c | pico8_fixed_to_double | autre | 3 | ligne 16 | - | - | double
-src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 128 | - | - | float
+src/pico8_fixed.c | (hors fonction) | autre | 1 | ligne 117 | - | - | float
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | - | - | double
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
@@ -33,8 +27,8 @@ src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
 compte constante 0
 compte cast 0
 compte reecrit 0
-compte autre 10
-compte total 10
+compte autre 4
+compte total 4
 compte population (a) 0
 compte population (b) 0
 compte population (c) 0

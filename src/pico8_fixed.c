@@ -5,17 +5,6 @@ pico8_fixed_t pico8_fixed_from_int(int32_t i) {
     return (pico8_fixed_t)((uint32_t)i << PICO8_FIXED_SHIFT);
 }
 
-/* TROU-1 */
-pico8_fixed_t pico8_fixed_from_double(double d) {
-    double scaled = d * 65536.0;
-    int64_t raw = (int64_t)(scaled >= 0 ? scaled + 0.5 : scaled - 0.5);
-    return (pico8_fixed_t)(uint32_t)raw;
-}
-
-double pico8_fixed_to_double(pico8_fixed_t x) {
-    return (double)x / 65536.0;
-}
-
 /* Overflow wraps, two's-complement. Signed overflow is undefined behavior
  * in C, so the wrap is produced in the unsigned type and reinterpreted --
  * never by relying on int32_t overflow or on -fwrapv. */
