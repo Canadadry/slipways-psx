@@ -8,7 +8,6 @@
 # (pico8_fixed_from_double(<litteral>)) compile sans erreur. Cette liste n'est
 # pas l'inventaire ; tools/float_inventory.txt l'est.
 #
-echec src/pico8_economy_formulas.c
 echec src/pico8_fixed.c
 #
-garde fichiers 58 en-echec 2
+garde fichiers 58 en-echec 1
