@@ -41,13 +41,50 @@ static void test_load_and_step_multi_frame_matches_fields(void) {
     pico8_input_free(&input);
 }
 
+static void test_four_boolean_dpad_loads_with_o_and_x_released(void) {
+    pico8_input_t input;
+    pico8_input_init(&input);
+    assert(pico8_input_load(&input, "tests/fixtures/events_valid.json"));
+
+    assert(pico8_btn(&input, 4) == 0);
+    assert(pico8_btn(&input, 5) == 0);
+
+    pico8_input_free(&input);
+}
+
+static void test_six_boolean_dpad_loads_o_and_x(void) {
+    pico8_input_t input;
+    pico8_input_init(&input);
+    assert(pico8_input_load(&input, "tests/fixtures/events_valid_ox.json"));
+
+    assert(pico8_btn(&input, 1) == 1);
+    assert(pico8_btn(&input, 4) == 1);
+    assert(pico8_btn(&input, 5) == 0);
+    pico8_input_step(&input);
+    assert(pico8_btn(&input, 0) == 1);
+    assert(pico8_btn(&input, 2) == 1);
+    assert(pico8_btn(&input, 4) == 0);
+    assert(pico8_btn(&input, 5) == 1);
+
+    pico8_input_free(&input);
+}
+
+static void test_load_malformed_five_boolean_dpad_is_hard_error(void) {
+    pico8_input_t input;
+    pico8_input_init(&input);
+
+    assert(!pico8_input_load(&input, "tests/fixtures/events_malformed_five_dpad.json"));
+
+    pico8_input_free(&input);
+}
+
 static void test_btn_out_of_range_returns_zero(void) {
     pico8_input_t input;
     pico8_input_init(&input);
     assert(pico8_input_load(&input, "tests/fixtures/events_valid.json"));
 
     assert(pico8_btn(&input, -1) == 0);
-    assert(pico8_btn(&input, 4) == 0);
+    assert(pico8_btn(&input, 6) == 0);
 
     pico8_input_free(&input);
 }
@@ -120,11 +157,11 @@ static char *read_file_raw(const char *path) {
 
 static void test_save_then_load_round_trips_every_field(void) {
     pico8_input_frame_t written[5] = {
-        {64, 32, 1, {0, 1, 0, 0}},
-        {0, 127, 3, {1, 0, 1, 0}},
-        {127, 0, 0, {0, 0, 0, 1}},
-        {10, 20, 7, {1, 1, 1, 1}},
-        {5, 99, 2, {0, 0, 0, 0}},
+        {64, 32, 1, {0, 1, 0, 0, 1, 0}},
+        {0, 127, 3, {1, 0, 1, 0, 0, 1}},
+        {127, 0, 0, {0, 0, 0, 1, 0, 0}},
+        {10, 20, 7, {1, 1, 1, 1, 1, 1}},
+        {5, 99, 2, {0, 0, 0, 0, 0, 0}},
     };
     const char *path = "tmp/test_pico8_input_save_roundtrip.json";
 
@@ -145,6 +182,8 @@ static void test_save_then_load_round_trips_every_field(void) {
         assert(pico8_btn(&input, 1) == written[i].dpad[1]);
         assert(pico8_btn(&input, 2) == written[i].dpad[2]);
         assert(pico8_btn(&input, 3) == written[i].dpad[3]);
+        assert(pico8_btn(&input, 4) == written[i].dpad[4]);
+        assert(pico8_btn(&input, 5) == written[i].dpad[5]);
         if (i + 1 < 5) {
             pico8_input_step(&input);
         }
@@ -167,7 +206,7 @@ static void test_save_writes_events_json_schema_shape(void) {
     assert(strstr(written_json, "\"mouse_x\": 64") != NULL);
     assert(strstr(written_json, "\"mouse_y\": 32") != NULL);
     assert(strstr(written_json, "\"mouse_buttons\": 1") != NULL);
-    assert(strstr(written_json, "\"dpad\": [false, true, false, false]") != NULL);
+    assert(strstr(written_json, "\"dpad\": [false, true, false, false, false, false]") != NULL);
     assert(strstr(written_json, "[") != NULL);
     assert(strstr(written_json, "]") != NULL);
 
@@ -262,13 +301,13 @@ static void test_append_does_not_rewrite_already_recorded_frames(void) {
  * rewrite it replaces. */
 static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
     pico8_input_frame_t frames[7] = {
-        {64, 32, 1, {0, 1, 0, 0}},
-        {0, 127, 3, {1, 0, 1, 0}},
-        {127, 0, 0, {0, 0, 0, 1}},
-        {10, 20, 7, {1, 1, 1, 1}},
-        {5, 99, 2, {0, 0, 0, 0}},
-        {100, 100, 4, {0, 1, 1, 0}},
-        {1, 2, 6, {1, 0, 0, 1}},
+        {64, 32, 1, {0, 1, 0, 0, 1, 0}},
+        {0, 127, 3, {1, 0, 1, 0, 0, 1}},
+        {127, 0, 0, {0, 0, 0, 1, 0, 0}},
+        {10, 20, 7, {1, 1, 1, 1, 1, 1}},
+        {5, 99, 2, {0, 0, 0, 0, 0, 0}},
+        {100, 100, 4, {0, 1, 1, 0, 1, 1}},
+        {1, 2, 6, {1, 0, 0, 1, 0, 1}},
     };
     const char *appended_path = "tmp/test_pico8_input_append_identical.json";
     const char *reference_path = "tmp/test_pico8_input_append_reference.json";
@@ -297,6 +336,8 @@ static void test_append_recording_is_byte_identical_to_save_every_frame(void) {
         assert(pico8_btn(&input, 1) == frames[i].dpad[1]);
         assert(pico8_btn(&input, 2) == frames[i].dpad[2]);
         assert(pico8_btn(&input, 3) == frames[i].dpad[3]);
+        assert(pico8_btn(&input, 4) == frames[i].dpad[4]);
+        assert(pico8_btn(&input, 5) == frames[i].dpad[5]);
         if (i + 1 < 7) {
             pico8_input_step(&input);
         }
@@ -339,6 +380,9 @@ static void test_save_rejects_empty_frame_list(void) {
 
 int main(void) {
     test_load_and_step_multi_frame_matches_fields();
+    test_four_boolean_dpad_loads_with_o_and_x_released();
+    test_six_boolean_dpad_loads_o_and_x();
+    test_load_malformed_five_boolean_dpad_is_hard_error();
     test_btn_out_of_range_returns_zero();
     test_stat_unsupported_index_returns_zero();
     test_load_missing_file_is_hard_error();

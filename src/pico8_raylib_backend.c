@@ -68,6 +68,8 @@ void pico8_raylib_backend_poll_input(pico8_raylib_backend_t *backend, pico8_inpu
     out_frame->dpad[1] = IsKeyDown(KEY_RIGHT) ? 1 : 0;
     out_frame->dpad[2] = IsKeyDown(KEY_UP) ? 1 : 0;
     out_frame->dpad[3] = IsKeyDown(KEY_DOWN) ? 1 : 0;
+    out_frame->dpad[4] = IsKeyDown(KEY_Z) ? 1 : 0;
+    out_frame->dpad[5] = IsKeyDown(KEY_X) ? 1 : 0;
 
     /* Appended rather than rewritten, so a marker already on disk
      * survives a later crash. The count read here is the index this frame

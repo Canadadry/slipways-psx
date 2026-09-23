@@ -19,6 +19,7 @@
 #include "pico8_assets.h"
 #include "pico8_gfx.h"
 #include "pico8_input.h"
+#include "pico8_cheat.h"
 #include "pico8_dump.h"
 #include "pico8_screencast.h"
 #include "pico8_dispatch_context.h"
@@ -74,8 +75,11 @@ int main(int argc, char **argv) {
     pico8_eu(difficulty_button);
 
     int frame_count = input.frame_count;
+    pico8_cheat_t cheat;
+    pico8_cheat_init(&cheat);
     for (int i = 0; i < frame_count; i++) {
         pico8_dispatch_set_input(&input);
+        pico8_cheat_step(&cheat, &input);
         pico8__update60();
         pico8__draw();
         /* APRES pico8__draw() et avant la frame suivante : c'est le seul

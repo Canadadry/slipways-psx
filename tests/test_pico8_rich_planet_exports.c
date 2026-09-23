@@ -23,6 +23,7 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_cheat.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -121,8 +122,11 @@ int main(void) {
     assert(difficulty_entry.kind == PICO8_VALUE_REF);
     pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref));
 
+    pico8_cheat_t cheat;
+    pico8_cheat_init(&cheat);
     for (i = 0; i < input.frame_count; i++) {
         pico8_dispatch_set_input(&input);
+        pico8_cheat_step(&cheat, &input);
         pico8__update60();
         pico8__draw();
         if (i < input.frame_count - 1) {

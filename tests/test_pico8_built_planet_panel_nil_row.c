@@ -34,6 +34,7 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_cheat.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -185,8 +186,11 @@ int main(void) {
     frame_count = input.frame_count;
     assert(frame_count == BUILT_PANEL_FRAME + 1);
 
+    pico8_cheat_t cheat;
+    pico8_cheat_init(&cheat);
     for (i = 0; i < frame_count; i++) {
         pico8_dispatch_set_input(&input);
+        pico8_cheat_step(&cheat, &input);
         pico8__update60();
         pico8__draw();
 
