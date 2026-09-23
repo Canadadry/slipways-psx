@@ -305,6 +305,26 @@ Somme : 61 + 37 + 22 + 17 + 3 + 5 + 0 + 4 + 10 + 6 = **165**, le `compte total` 
 
 Séparer C1 de C2 est ce qui garde le critère §6.4 falsifiable : mélangées, une régression de C1 se cacherait derrière une divergence légitime de C2.
 
+**État de C2a** (mesuré avec `cc` GCC 13.3, x86_64). Aucune constante de `src/` n'a changé ; `make frames-check` est identique sur les 8 fichiers de `FRAMES_EVENTS`, sans `frames-baseline`.
+
+- **(iii) Comparateur et contrôle.** `tools/constants_compare.sh` lit les jetons `constante` de `tools/float_inventory.txt` et le bloc A de `tools/probe_out.txt`, compile chaque littéral tel qu'écrit dans la source contre le vrai `pico8_fixed.c`, et compare les valeurs brutes. `make constants-check` (`tools/constants_check.sh`, dans `make test`) : **34 littéraux, 61 sites, 18 ok, 16 écart**. Les 16 écarts sont exactement ceux du §3.1, listés à la main dans `tools/constants_expected_ecarts.txt` ; le contrôle échoue si l'ensemble des écarts diffère de la liste (« périmée » ou « régression »), si un littéral manque au bloc A, si la liste nomme un littéral absent de l'inventaire, ou si aucune constante n'est vérifiée.
+- **Contrat pour C2b.** Le commit qui corrige les constantes vide `tools/constants_expected_ecarts.txt` et rebranche le comparateur sur la forme retenue pour les constantes corrigées : les appels `pico8_fixed_from_double(<littéral>)` disparaissant, le contrôle échouerait sinon sur « zéro constante ». C2a ne choisit pas cette forme.
+- **(ii) Rapport de divergence.** `tools/frames_report.sh` : par fichier d'événements, `conforme (N frames)`, `aucune reference`, ou première frame divergente, nombre, **toutes** les plages et écart de longueur ; il rend 0, c'est un rapport. `make frames-report ETAPE=<id>` l'écrit dans `tools/frames_reports/<id>.txt` (répertoire versionné, un fichier par étape, vide aujourd'hui hors `.gitkeep`). `make frames-baseline` refuse sans rien copier quand une référence diverge et qu'`ETAPE=` manque ; avec `ETAPE=`, il écrit le rapport puis copie. `tools/frames_check.sh` et `MAX_LISTED` sont inchangés.
+- **Pilote de rejeu.** `src/main.c` accepte un troisième argument, le chemin du dump texte ; absent, le dump reste `tmp/pico8_replay_dump.txt`.
+- **(i) Harnais d'attribution.** `make constant-variants [LITTERAL=<l>]` (`tools/constant_variants.sh`, hors suite) : une variante par littéral en `ECART` du comparateur, copie de `src/` sous `tmp/constant_variants/lit-<l>/` où seuls les appels `pico8_fixed_from_double(<l>)` reçoivent la valeur brute du relevé, nombre de remplacements vérifié contre l'inventaire, rejeu des 8 fichiers de `FRAMES_EVENTS` contre les références versionnées. Synthèse : `tmp/constant_variants/synthese.txt`, **non versionnée** (C2b décide de ce qu'il en consigne). Tests sur entrées fabriquées dans `make test` : `test_constants_check`, `test_frames_report`, `test_constant_variants`, et `test_pico8_headless_capture` pour le chemin de dump.
+- **Passe réelle** (`make constant-variants`, environ 4 minutes) : 16 variantes, aucun échec de construction ni de rejeu, `src/` inchangé. Première frame divergente et nombre de frames divergentes, lus dans la synthèse (fichiers absents : 0 frame) :
+
+  | Littéral | Sites | `events.json` | `phase4_playthrough` | `built_planet_panel` | `empty_planet_cleared` | `slipway_drag` | 3 autres |
+  |---|---|---|---|---|---|---|---|
+  | `0.1` | 5 : `pico8_bg_pq`, `pico8_bk`, `pico8_ma`, `pico8_iv_ph`, `pico8_mz_kz` | 457, 21 | 75, 4 | 75, 7 | 75, 1 | 77, 1 | 0 |
+  | `0.05` | 1 : `pico8_bw` (`pico8_galaxy.c`) | 2373, 7302 | 0 | 0 | 0 | 0 | 0 |
+  | `0.001` | 1 : `pico8_g__mm` (`pico8_probe.c`) | 291, 7631 | 41, 103 | 41, 150 | 39, 111 | 38, 106 | 0 |
+  | les 13 autres | | 0 | 0 | 0 | 0 | 0 | 0 |
+
+  Les « 3 autres » sont `shop_button_hover`, `screencast_capture` et `top_menubar`. `events.json` compte 9 729 frames.
+- **13 des 16 constantes corrigées ne font diverger aucune frame du filet** : `0.0032`, `0.005`, `0.031`, `0.08`, `0.0977`, `0.19`, `0.27`, `0.55`, `0.6`, `0.8`, `0.85`, `0.99`, `1.08`. D'après `tools/float_coverage.txt`, 7 ont tous leurs sites couverts (`0.005`, `0.08`, `0.0977`, `0.19`, `0.55`, `0.8`, `0.99`), 2 en ont un sur deux (`0.0032`, `0.27`), 4 n'en ont aucun (`0.031`, `0.6`, `0.85`, `1.08`). Pour ces 13, le filet ne voit pas la correction, et `make constants-check` (niveau valeur, contre le relevé) est la seule protection : c'est le rôle que §7 C2a (iii) lui donne.
+- **Constat.** Le site de `0.001` (`pico8_g__mm`, `pico8_probe.c`, rang 2) est `NON COUVERT` dans `tools/float_coverage.txt` (« ligne sans code », granularité à la ligne), alors que sa variante fait diverger les 5 fichiers de jeu. `NON COUVERT` ne prouve donc pas qu'un site est hors d'atteinte du filet.
+
 **Sortie de phase :** `frames.hash` identique après C1 ; après C2, pour chaque fichier d'événements, la **première** frame divergente est rattachée à une constante précise du relevé, et la suite est étiquetée cascade (un changement d'état se propage à toutes les frames suivantes) ; le rapport de divergence est versionné avec le commit.
 
 ### Phase D — Population (c) et les 5 sites flottants
