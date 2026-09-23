@@ -254,7 +254,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         }
         assert(s6_val.kind == PICO8_VALUE_FIXED && "ky() returns a numeric tier at s[6]");
         for (i = 1; i <= 5; i++) {
-            int icon = (i <= (int)pico8_fixed_to_double(s6_val.as.fixed)) ? 56 : 57;
+            int icon = (i <= pico8_fixed_flr_int(s6_val.as.fixed)) ? 56 : 57;
             pico8_ob_table_set_index(st, i, pico8_value_fixed(pico8_fixed_from_int(icon)));
         }
     }

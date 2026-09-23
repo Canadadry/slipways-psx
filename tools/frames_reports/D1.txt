@@ -1,0 +1,31 @@
+rapport de divergence, etape D1
+events.json : conforme (9729 frames)
+tests/fixtures/phase4_playthrough_events.json : DIVERGENT
+  premiere frame divergente : 6
+  frames divergentes : 172
+  plages : 6-19 21-34 36-49 51-64 66-79 83 86-94 96-99 105-118 120-133 135-148 150-164 166-179 183 186-194 196-202
+tests/fixtures/built_planet_panel_events.json : DIVERGENT
+  premiere frame divergente : 6
+  frames divergentes : 219
+  plages : 6-19 21-34 36-49 51-64 66-79 83 86-94 96-99 105-118 120-133 135-148 150-164 166-179 183 186-194 196-202 228-241 243-256 258-271 273-277
+tests/fixtures/empty_planet_cleared_events.json : conforme (229 frames)
+tests/fixtures/slipway_drag_events.json : DIVERGENT
+  premiere frame divergente : 8
+  frames divergentes : 171
+  plages : 8-21 23-36 38-51 53-66 68-81 85 88-96 98-101 107-120 122-135 137-150 152-165 167-180 184 187-195 197-203
+tests/fixtures/shop_button_hover_events.json : conforme (25 frames)
+tests/fixtures/screencast_capture_events.json : conforme (8 frames)
+tests/fixtures/top_menubar_events.json : conforme (4 frames)
+tests/fixtures/tech_screen_invent_events.json : DIVERGENT
+  premiere frame divergente : 29
+  frames divergentes : 28
+  plages : 29-42 44-57
+tests/fixtures/game_end_events.json : DIVERGENT
+  premiere frame divergente : 63
+  frames divergentes : 10
+  plages : 63-64 66-73
+tests/fixtures/pause_menu_music_events.json : conforme (32 frames)
+tests/fixtures/geoharvest_burst_events.json : DIVERGENT
+  premiere frame divergente : 94
+  frames divergentes : 91
+  plages : 94-107 109-122 124-137 227-240 242-255 257-270 272-278

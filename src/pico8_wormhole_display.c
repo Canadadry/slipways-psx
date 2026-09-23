@@ -64,8 +64,8 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         return;
     }
 
-    px = (int)pico8_fixed_to_double(p.x);
-    py = (int)pico8_fixed_to_double(p.y);
+    px = pico8_fixed_flr_int(p.x);
+    py = pico8_fixed_flr_int(p.y);
 
     if (pico8_instance_get_field(self, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
         me_val.as.string != NULL && strcmp(me_val.as.string, "kz") == 0) {
@@ -76,7 +76,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         if (!has_et) {
             pico8_fixed_t oi = pico8_mzd_field_fixed(self, "oi");
             if (gfx != NULL && mem != NULL) {
-                pico8_circ(gfx, mem, px, py, (int)pico8_fixed_to_double(oi), 1);
+                pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(oi), 1);
             }
         }
 
@@ -84,7 +84,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
          * above guards the ring alone. */
         cp = pico8_mzd_field_ra_of_ij(self);
         if (gfx != NULL && mem != NULL) {
-            pico8_line(gfx, mem, (int)pico8_fixed_to_double(cp.x), (int)pico8_fixed_to_double(cp.y), px, py, 1);
+            pico8_line(gfx, mem, pico8_fixed_flr_int(cp.x), pico8_fixed_flr_int(cp.y), px, py, 1);
             pico8_spr_default(gfx, mem, 7, px - 4, py - 4);
         }
     } else {
@@ -105,7 +105,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                      * 1-indexed: Lua passes nil there and `circ` keeps the
                      * current pen colour, where this default draws in 0. */
                     pico8_fixed_t ratio = pico8_fixed_mul(pico8_fixed_div(sr, oi), pico8_fixed_from_int(8));
-                    int idx = (int)pico8_fixed_to_double(pico8_fixed_flr(ratio));
+                    int idx = pico8_fixed_flr_int(pico8_fixed_flr(ratio));
                     pico8_value_t entry;
 
                     assert(pico8_type_tag_of(kk_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
@@ -117,7 +117,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                 }
 
                 if (gfx != NULL && mem != NULL) {
-                    pico8_circ(gfx, mem, px, py, (int)pico8_fixed_to_double(sr), color);
+                    pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(sr), color);
                 }
             }
         }

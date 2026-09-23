@@ -13,7 +13,7 @@
 static pico8_class_t *g_bg_class = NULL;
 
 static int pico8_bg_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 /* An absent field, a wrong kind or a NULL instance all read as a zero

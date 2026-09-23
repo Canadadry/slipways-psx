@@ -356,7 +356,7 @@ void pico8_jo_hu(pico8_instance_t *self, pico8_instance_t *hp_instance) {
         int found = 0;
 
         if (go_val.kind == PICO8_VALUE_FIXED) {
-            found = pico8_ob_table_get_index(pico8_df(), (int)pico8_fixed_to_double(go_val.as.fixed), &nk_val);
+            found = pico8_ob_table_get_index(pico8_df(), pico8_fixed_flr_int(go_val.as.fixed), &nk_val);
         } else if (go_val.kind == PICO8_VALUE_STRING) {
             found = pico8_ob_table_get_name(pico8_df(), go_val.as.string, &nk_val);
         }

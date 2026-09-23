@@ -23,7 +23,7 @@ static pico8_class_t *g_probe_class = NULL;
 static pico8_instance_t *g_fm = NULL;
 
 static int pico8_probe_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 static int pico8_probe_truthy(pico8_value_t v) {

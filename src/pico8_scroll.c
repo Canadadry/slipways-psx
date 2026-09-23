@@ -136,5 +136,5 @@ void pico8_qb_md(pico8_gfx_t *gfx, pico8_instance_t *self, pico8_fixed_t fy) {
 
     ra = pico8_qb_field_vec(self, "ra");
     cp = pico8_vec_mul(ra, fy);
-    pico8_camera(gfx, (int)pico8_fixed_to_double(cp.x), (int)pico8_fixed_to_double(cp.y));
+    pico8_camera(gfx, pico8_fixed_flr_int(cp.x), pico8_fixed_flr_int(cp.y));
 }

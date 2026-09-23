@@ -166,7 +166,7 @@ void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb, pico8_
     pico8_value_t e_val;
 
     while (pico8_list_iter_next(&it, &e_val)) {
-        pico8_camera(gfx, (int)pico8_fixed_to_double(nc), 0);
+        pico8_camera(gfx, pico8_fixed_flr_int(nc), 0);
         nc = pico8_fixed_neg(nc);
         pico8_bl_dispatch_one(gfx, mem, e_val);
     }

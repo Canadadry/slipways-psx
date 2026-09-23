@@ -41,7 +41,7 @@ static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
 /* Field readers: an absent field, a wrong kind, or a NULL instance all read as
  * the zero/false default. */
 static int pico8_ui_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 static pico8_fixed_t pico8_ui_field_fixed(const pico8_instance_t *inst, const char *name) {

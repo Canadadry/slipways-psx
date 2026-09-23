@@ -226,7 +226,7 @@ static int pico8_research_lookup(const pico8_ob_table_t *table, pico8_value_t ke
         return 0;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, (int)pico8_fixed_to_double(key.as.fixed), out);
+        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
     }
     if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         return pico8_ob_table_get_name(table, key.as.string, out);

@@ -53,7 +53,7 @@ static int pico8_particle_truthy(pico8_value_t v) {
 }
 
 static int pico8_particle_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 /* TROU-7 */

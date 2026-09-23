@@ -500,8 +500,8 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         }
     }
 
-    px = (int)pico8_fixed_to_double(adjusted.x);
-    py = (int)pico8_fixed_to_double(adjusted.y);
+    px = pico8_fixed_flr_int(adjusted.x);
+    py = pico8_fixed_flr_int(adjusted.y);
 
     pico8_circfill(gfx, mem, px, py, 7, 0);
 

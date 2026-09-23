@@ -79,7 +79,7 @@ static int pico8_jc_display_get_by_value(const pico8_ob_table_t *table, pico8_va
         return 0;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, (int)pico8_fixed_to_double(key.as.fixed), out);
+        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
     }
     if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         return pico8_ob_table_get_name(table, key.as.string, out);
@@ -88,7 +88,7 @@ static int pico8_jc_display_get_by_value(const pico8_ob_table_t *table, pico8_va
 }
 
 static int pico8_jc_display_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_instance_t *t) {

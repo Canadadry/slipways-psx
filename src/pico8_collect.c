@@ -205,7 +205,7 @@ void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico
              * index and a string indexing it by name. */
             new_value = raw;
             if (raw.kind == PICO8_VALUE_FIXED) {
-                pico8_ob_table_get_index(r, (int)pico8_fixed_to_double(raw.as.fixed), &new_value);
+                pico8_ob_table_get_index(r, pico8_fixed_flr_int(raw.as.fixed), &new_value);
             } else if (raw.kind == PICO8_VALUE_STRING) {
                 pico8_ob_table_get_name(r, raw.as.string, &new_value);
             }

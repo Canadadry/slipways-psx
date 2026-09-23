@@ -355,7 +355,7 @@ static pico8_value_t pico8_ha2_my_dispatch(void *self, int argc, pico8_value_t a
     (void)arg1;
     stat_val = pico8_stat(pico8_dispatch_input(), 20);
     s = pico8_fixed_sgn(pico8_fixed_from_int(stat_val));
-    pico8_music(-(int)pico8_fixed_to_double(s));
+    pico8_music(-pico8_fixed_flr_int(s));
     return pico8_value_ref(NULL);
 }
 
