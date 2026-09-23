@@ -69,7 +69,7 @@ pico8_gn_state_t *pico8_gn(const pico8_list_t *hr, pico8_fixed_t og, pico8_gn_ra
             continue;
         }
         count_fixed = pico8_fixed_flr(pico8_fixed_mul(weight_val.as.fixed, og));
-        count = (int)pico8_fixed_to_double(count_fixed);
+        count = pico8_fixed_flr_int(count_fixed);
         for (n = 1; n <= count; n++) {
             pico8_list_add(&state->oc, e);
         }
@@ -89,7 +89,7 @@ pico8_value_t pico8_gn_next(pico8_gn_state_t *state) {
         pico8_fixed_t len_fixed = pico8_fixed_from_int(state->oc.count);
         pico8_fixed_t idx_fixed =
             pico8_fixed_flr(pico8_fixed_add(pico8_fixed_mul(r_val, len_fixed), pico8_fixed_from_int(1)));
-        int idx0 = (int)pico8_fixed_to_double(idx_fixed) - 1;
+        int idx0 = pico8_fixed_flr_int(idx_fixed) - 1;
 
         e = state->oc.items[idx0];
         if (!pico8_gn_nm_contains(state, e)) {

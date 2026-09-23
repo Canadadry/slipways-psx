@@ -24,9 +24,6 @@ src/pico8_bg.c | pico8_bg_to_int | x | 1 | (c) | D1 | aide, pire des 3 appelants
 src/pico8_collect.c | pico8_ho_apply | raw.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table r[ri[i]] (ho, lua.lua:17-19)
 src/pico8_economy.c | pico8_hy_kt | ew | 1 | a auditer | - | NON COUVERT par le filet ; cle de table ek[self.ew] (lua.lua:1450) ; candidat (b) : ew vaut 1 puis +=1 tant que < 4
 src/pico8_economy_tiers.c | set_by_value | key.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table w.hg[e.lp[i+1].id] (lua.lua:1271)
-src/pico8_entity.c | pico8_dc | fa_val.as.fixed | 1 | (b) | C1 | cle de table fl[qc.fa] (lua.lua:191) ; fa ne recoit que des litteraux 1..15 (defauts de classe lua.lua:214..1144, 2 ou 4 lua.lua:630-631, 13 lua.lua:879-880) ou p.ca, litteraux 9..14 (lua.lua:284,400,828,992,1146)
-src/pico8_gen.c | pico8_gn | count_fixed | 1 | (b) | C1 | borne de boucle for n=1,e.r*og (lua.lua:734) : og = 2 (unique appel lua.lua:751), e.r = poids de df, litteraux 0..4.5 (lua.lua:1377-1388)
-src/pico8_gen.c | pico8_gn_next | idx_fixed | 1 | (a) | C1 | oc[flr(r()*#oc+1)] lua.lua:739 ; r = jf(0.5,dk.en) (l.751) rend v dans [0,1) tant que abs(b) < 1, invariant garde par b+=(0.5-v)*0.5 depuis dk.en dans [-0.99,-0.2] (l.333-337, l.1190-1197) : argument >= 1
 src/pico8_hud.c | pico8_hud_to_int | x | 1 | (c) | D1 | aide, pire appelant : coordonnees ecran de rk/eq/io (lua.lua:24-30), Lua muet, vu negatif ; seul dv (lua.lua:142) passe par flr
 src/pico8_layout.c | pico8_lq_ol_item_draw | pos.x | 1 | (c) | D1 | coordonnee ecran spr(f,p.x,p.y) (lua.lua:309), Lua muet ; negative des qu un objet sort par la gauche (plan-2 §3.2)
 src/pico8_layout.c | pico8_lq_ol_item_draw | pos.y | 1 | (c) | D1 | coordonnee ecran spr(f,p.x,p.y) (lua.lua:309), Lua muet ; negative des qu un objet sort par le haut (plan-2 §3.2)
@@ -34,13 +31,6 @@ src/pico8_menu.c | pico8_cr | tl | 1 | a auditer | - | NON COUVERT par le filet 
 src/pico8_menu.c | pico8_cr | tl | 2 | a auditer | - | NON COUVERT par le filet ; cle de table ek[...]
 src/pico8_menu.c | pico8_ha2_my_dispatch | s | 1 | a auditer | - | NON COUVERT par le filet ; music(-sgn(stat(20))) (lua.lua:993), valeur -1, 0 ou 1 : candidat (c)
 src/pico8_particle.c | pico8_particle_to_int | x | 1 | (c) | D1 | aide, pire appelant : coordonnees pset(cx+p.p.x,cy+p.p.y) (lua.lua:705), Lua muet, positions pouvant etre negatives ; seul l index cs[flr(p.l)] passe par flr
-src/pico8_pi.c | pico8_pi_rk_constructor | a3.as.fixed | 1 | (b) | C1 | couleur des entrees fn="br" dispatchees par bl (lua.lua:597-601) : litteraux 0 ou 1 (lua.lua:798-802,818,831-832)
-src/pico8_pi.c | pico8_pi_io_constructor | a4.as.fixed | 1 | (b) | C1 | couleur des entrees fn="qr" : litteraux 2..13 (lua.lua:819-825,838-844,1162-1163), jamais reecrits (seul [1] l est, lua.lua:850,860)
-src/pico8_pi.c | pico8_pi_spr_constructor | a1.as.fixed | 1 | (b) | C1 | sprite des seules entrees fn="s" : litteraux 192 et 172 (lua.lua:1160-1161) ; aucun s( dans une chaine ob
-src/pico8_pi.c | pico8_pi_spr_constructor | a2.as.fixed | 1 | (b) | C1 | x des seules entrees fn="s" : litteraux 0 et 20 (lua.lua:1160-1161)
-src/pico8_pi.c | pico8_pi_spr_constructor | a3.as.fixed | 1 | (b) | C1 | y des seules entrees fn="s" : litteraux 11 et 107 (lua.lua:1160-1161)
-src/pico8_pi.c | pico8_pi_spr_constructor | a4.as.fixed | 1 | (b) | C1 | largeur des seules entrees fn="s" : litteraux 16 et 2 (lua.lua:1160-1161)
-src/pico8_pi.c | pico8_pi_spr_constructor | a5.as.fixed | 1 | (b) | C1 | hauteur des seules entrees fn="s" : litteraux 4 et 2 (lua.lua:1160-1161)
 src/pico8_pi.c | pico8_bl | nc | 1 | (c) | D1 | decalage camera(nc,0) (lua.lua:599), nc = -t^3/9 (lua.lua:592) puis -nc a chaque entree : Lua muet, vu negatif
 src/pico8_planet.c | pico8_jo_hu | go_val.as.fixed | 1 | a auditer | - | NON COUVERT par le filet ; cle de table df[hp.go] (lua.lua:456)
 src/pico8_planet_display.c | pico8_jo_kj | adjusted.x | 1 | (c) | D1 | coordonnee ecran p=ma(p,self) de circfill/spr (lua.lua:543-546), Lua muet ; gd admet une planete jusqu a 12 px hors ecran (lua.lua:347)

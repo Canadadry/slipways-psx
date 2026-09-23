@@ -258,7 +258,7 @@ void pico8_dc(const char *nt) {
             if (!pico8_instance_get_field(qc, "fa", &fa_val) || fa_val.kind != PICO8_VALUE_FIXED) {
                 continue;
             }
-            layer = (int)pico8_fixed_to_double(fa_val.as.fixed);
+            layer = pico8_fixed_flr_int(fa_val.as.fixed);
             if (layer < 1 || layer > 15) {
                 continue;
             }
