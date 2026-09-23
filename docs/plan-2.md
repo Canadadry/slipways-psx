@@ -250,23 +250,33 @@ Méthode, en deux étapes :
 ### Phase C — Populations (a) et (b), et les constantes
 Les sites (a) en `flr` entier ; les sites (b) basculés après **preuve du signe** consignée par site. Les 34 constantes remplacées par les entiers de `tools/probe_out.txt`.
 
+**C0 — Classement, propriété, fraîcheur (avant toute modification de site).**
+- **Table de propriété** : chaque catégorie ou sous-groupe de l'inventaire est affecté à **exactement une** étape (C1, C2b, D1–D4, E) ; la somme des comptes par étape égale le total de l'inventaire. Un site sans propriétaire devient une **décision ouverte consignée dans ce plan**, jamais un oubli découvert en Phase E.
+- **Fichier d'annotation versionné** des 76 casts : population + une ligne de justification par cast, joint à l'inventaire comme l'est la couverture. Une annotation orpheline ou un cast non annoté est une erreur. La clé doit survivre à la disparition d'un site voisin (fonction + extrait ; le rang ne sert qu'à départager), sinon convertir un cast décale les annotations de ses frères.
+- **Observation** (facultative mais recommandée) : le build d'audit de C1 lancé d'abord en mode relevé, qui consigne la valeur minimale vue à chaque cast sur tout le filet — tri empirique « vu négatif » / « jamais négatif » avant d'écrire les preuves. Les casts NON COUVERT restent « à auditer » jusqu'à test ou fixture (règle de B2).
+- **Fraîcheur** : `make test` régénère l'inventaire dans `tmp/` et le compare à la copie versionnée ; un rapport périmé fait échouer la suite. Éventuellement, cliquet sur la garde : tout fichier du cœur absent de `float_guard.txt` doit encore compiler sous `-mgeneral-regs-only` (la liste ne peut que rétrécir). La couverture reste manuelle, citée par chaque PRD d'étape.
+
 **Attention, la Phase C n'est plus intégralement préservatrice :** 16 des 34 constantes changent de valeur (§3.1), donc `frames.hash` **peut légitimement diverger** de la Phase B. La découpe est donc :
 
-- **C1 — strictement préservatrice** : les sites (a) et (b) seuls, constantes inchangées. `frames.hash` doit être **identique**. Toute divergence est un bug introduit. Un site atteint mais sans effet sur un pixel échappe au hash : C1 a donc une seconde porte, un **build d'audit** (sur le modèle de `-DPICO8_REF_AUDIT` / `make ref-audit`) qui asserte à chaque site (a)/(b) l'égalité de l'ancienne et de la nouvelle expression — pour (b), `x >= 0` — rejoué sur tout le filet. La preuve du signe devient une vérification exécutée, pas seulement consignée.
-- **C2 — correction des 16 constantes**, en un commit séparé. Divergences attendues, à revoir frame par frame. Pour rattacher chaque frame divergente à **une** constante, chaque constante est d'abord appliquée **seule** (boucle scriptée de rejeux), et l'ensemble des frames divergentes est consigné par constante avant le commit.
+- **C1 — strictement préservatrice** : les sites (a) et (b) **dont le signe est prouvé ≥ 0**, constantes inchangées. Un site (a) pouvant recevoir un négatif change de comportement en passant de la troncature à `flr` — c'est une correction, pas une transformation neutre : il part en **D1** avec la population (c). `frames.hash` doit être **identique**. Toute divergence est un bug introduit. Un site atteint mais sans effet sur un pixel échappe au hash : C1 a donc une seconde porte, un **build d'audit** (sur le modèle de `-DPICO8_REF_AUDIT` / `make ref-audit`) qui asserte à chaque site (a)/(b) l'égalité de l'ancienne et de la nouvelle expression — pour (b), `x >= 0` — rejoué sur tout le filet. La preuve du signe devient une vérification exécutée, pas seulement consignée.
+- **C2 — correction des 16 constantes**, en un commit séparé. Divergences attendues, à revoir frame par frame. Pour rattacher chaque frame divergente à **une** constante, chaque constante est d'abord appliquée **seule** (boucle scriptée de rejeux), et l'ensemble des frames divergentes est consigné par constante avant le commit. Deux étapes :
+  - **C2a — l'outillage.** (i) Le harnais d'attribution : un répertoire de sortie par variante, aucun chemin fixe partagé (`tmp/pico8_replay_dump.txt` est réécrit à chaque rejeu), testé sur un cas fabriqué où une constante connue fait basculer une frame connue. (ii) Un **rapport de divergence** complet par fichier d'événements — première frame divergente, nombre, plages — écrit dans un fichier **avant** tout `frames-baseline`, qui sinon efface la seule trace (`frames_check.sh` n'en liste que 10). (iii) Un test unitaire, piloté par l'inventaire, qui asserte que chaque constante du C égale sa valeur hexa de `tools/probe_out.txt` : seule protection des constantes NON COUVERT par le filet, et réalisation de la promesse du §5 (le relevé devient une fixture).
+  - **C2b — l'application** des 16 constantes, par le harnais de C2a.
 
 Séparer C1 de C2 est ce qui garde le critère §6.4 falsifiable : mélangées, une régression de C1 se cacherait derrière une divergence légitime de C2.
 
-**Sortie de phase :** `frames.hash` identique après C1 ; après C2, chaque frame divergente est rattachée à une constante précise du relevé.
+**Sortie de phase :** `frames.hash` identique après C1 ; après C2, pour chaque fichier d'événements, la **première** frame divergente est rattachée à une constante précise du relevé, et la suite est étiquetée cascade (un changement d'état se propage à toutes les frames suivantes) ; le rapport de divergence est versionné avec le commit.
 
 ### Phase D — Population (c) et les 5 sites flottants
 Quatre changements divergents indépendants, donc quatre étapes, chacune avec son re-baseline et son rapport de divergences — sans quoi la même confusion que C1/C2 se reproduirait : **D1** population (c), **D2** `tostr`, **D3** `^0.75`, **D4** clés de table.
 
 Les 76 casts à signe potentiellement négatif passent en **`flr`** (bloc B — plus une question ouverte, une correction de bug sourcée). `pico8_value_tostr` réécrit en entier d'après le bloc C, en laissant le cas `< 0.0001` sur le comportement actuel **et documenté comme non sourcé**. `pico8_dj`'s `^0.75` réécrit en `sqrt(x) · sqrt(sqrt(x))`, validé contre les 16 vecteurs du bloc D. Les sites d'indexation de table revus contre la sémantique des clés fractionnaires (§3.2).
-**Sortie de phase :** chaque frame divergente est expliquée par une ligne du relevé ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression.
+**Sortie de phase :** pour chaque étape D et chaque fichier d'événements, la première frame divergente est expliquée par une ligne du relevé, la suite étiquetée cascade (un changement d'affichage seul, D1, ne doit pas cascader), et le rapport de divergence de C2a est versionné avant le re-baseline ; `frames.hash` re-baseliné **volontairement**, avec revue des frames concernées — jamais subi comme une régression.
 
 ### Phase E — Fermeture
-`-lm` retiré de la cible du cœur, vérification `nm`, [TROU-1](trous-de-portage.md) refermé.
+`-lm` retiré de la cible du cœur, garde `-mgeneral-regs-only` vide (§6.3), [TROU-1](trous-de-portage.md) refermé.
+
+> **Décision ouverte, relevée en fin de Phase B (à trancher en C0, par l'humain) :** les 2 sites `sin`/`cos` libc de `pico8_fixed_cos`/`_sin` n'appartiennent à aucune étape — le §4 et le §5 interdisent de réécrire ces fonctions, tandis que le §6.1-6.3 et la Phase E exigent zéro flottant et le retrait de `-lm`, et TROU-1 porte précisément sur eux. Tels quels, les deux ne peuvent être satisfaits ensemble. Idem pour les définitions `pico8_fixed_from_double`/`to_double` elles-mêmes (catégorie « autre »). Ce plan ne choisit pas : ajuster le §6/E, ou lever la clôture du §5 pour ces sites.
 **Sortie de phase :** les quatre points du §6 passent.
 
 ---
