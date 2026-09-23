@@ -74,13 +74,14 @@ static void write_report(const char *step, const char *divergent) {
     write_file(path, "attribution\n");
 }
 
-/* base : a.json.frames.hash ; pose : ajout de b ; divergence X1 : a reecrit,
+/* base : a.json et a.json.frames.hash ; pose : ajout de b ; divergence X1 : a reecrit,
  * rapport et attribution dans le meme commit. */
 static void setup(void) {
     sh("rm -rf " DIR " && mkdir -p " REPO "/reports");
     sh(GIT "init -q && " GIT "config user.email t@example.invalid && " GIT "config user.name test"
            " && " GIT "config commit.gpgsign false");
     write_file(PROBE, "# probe\n## a literals\n0.001 0x0000.0041\n## b rounding\nspr(-0.5,4) -> 6,4\n");
+    write_file(REPO "/a.json", "clic parasite\n");
     write_file(REPO "/a.json.frames.hash", "0\n");
     write_file(REPO "/c.json.frames.hash", "0\n");
     base = commit(0, "base");
@@ -101,7 +102,7 @@ static void test_right_ledger_passes(void) {
     setup();
     write_right_ledger();
     assert(run_ledger() == 0);
-    assert(strstr(read_file(OUT), "frames-ledger commits 2 poses 1 divergences 1 erreurs 0\n") != NULL);
+    assert(strstr(read_file(OUT), "frames-ledger commits 2 poses 1 divergences 1 fixtures 0 erreurs 0\n") != NULL);
 }
 
 static void test_commit_missing_from_ledger_fails(void) {
@@ -206,6 +207,48 @@ static void test_deleted_reference_fails(void) {
     assert(strstr(read_file(OUT), "non prevu par le registre") != NULL);
 }
 
+/* fixture : l'entree a.json change, sa reference est recapturee, aucun code. */
+static const char *commit_fixture(const char *extra_path) {
+    write_file(REPO "/a.json", "clic retire\n");
+    write_file(REPO "/a.json.frames.hash", "3\n");
+    if (extra_path != NULL) {
+        write_file(extra_path, "x\n");
+    }
+    return commit(3, "fixture");
+}
+
+static void write_ledger_with_fixture(const char *fixture) {
+    char lines[1024];
+    snprintf(lines, sizeof lines, "%s | P0 | pose\n%s | X1 | divergence | a | 0.001 0x0000.0041\n%s | F1 | fixture\n",
+             pose, divergence, fixture);
+    write_ledger(lines);
+}
+
+static void test_fixture_rewrite_with_its_events_passes(void) {
+    setup();
+    write_ledger_with_fixture(commit_fixture(NULL));
+    assert(run_ledger() == 0);
+    assert(strstr(read_file(OUT), "frames-ledger commits 3 poses 1 divergences 1 fixtures 1 erreurs 0\n") != NULL);
+}
+
+static void test_fixture_that_touches_src_fails(void) {
+    setup();
+    sh("mkdir -p " REPO "/src");
+    write_ledger_with_fixture(commit_fixture(REPO "/src/game.c"));
+    assert(run_ledger() == 1);
+    assert(strstr(read_file(OUT), "fixture qui touche le code : src/game.c") != NULL);
+}
+
+static void test_fixture_rewriting_a_reference_whose_events_did_not_change_fails(void) {
+    setup();
+    write_file(REPO "/c.json.frames.hash", "3\n");
+    write_ledger_with_fixture(commit_fixture(NULL));
+    assert(run_ledger() == 1);
+    const char *out = read_file(OUT);
+    assert(strstr(out, "fixture dont l'entree n'a pas change : c.json") != NULL);
+    assert(strstr(out, ": a.json\n") == NULL);
+}
+
 static void test_unknown_base_is_an_error_not_a_pass(void) {
     setup();
     write_file(LEDGER, "base 0123456789abcdef0123456789abcdef01234567\n");
@@ -231,6 +274,9 @@ int main(void) {
     test_report_declaring_an_unrewritten_reference_fails();
     test_probe_line_absent_or_in_another_block_fails();
     test_deleted_reference_fails();
+    test_fixture_rewrite_with_its_events_passes();
+    test_fixture_that_touches_src_fails();
+    test_fixture_rewriting_a_reference_whose_events_did_not_change_fails();
     test_unknown_base_is_an_error_not_a_pass();
     test_not_a_git_repository_is_an_error();
     sh("rm -rf " DIR);

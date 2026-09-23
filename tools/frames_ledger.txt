@@ -3,8 +3,10 @@
 # (docs/plan-2.md §6.4). Une ligne par commit :
 #   <commit> | <etape> | pose
 #   <commit> | <etape> | divergence | <bloc de tools/probe_out.txt> | <ligne du releve>
+#   <commit> | <etape> | fixture
 # Une pose n'ajoute que des references neuves, qui n'ont pas d'avant et donc
-# pas de rapport de divergence.
+# pas de rapport de divergence. Une fixture recapture des references dont le
+# fichier d'evenements a change dans le meme commit, sans toucher a src/.
 base 30dfd6c
 2b1151d | C2b | divergence | a | 0.001 0x0000.0041
 6bb2265 | D0b | pose
@@ -12,3 +14,4 @@ base 30dfd6c
 4c40a1a | D0b | pose
 66d3c98 | D0b | pose
 d57e758 | D1 | divergence | b | spr(-0.5,4) -> 6,4
+177f42b | scenarios-sans-titre | fixture

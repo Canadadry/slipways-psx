@@ -5,10 +5,14 @@
 # registre, # en tete pour un commentaire :
 #   <commit> | <etape> | pose
 #   <commit> | <etape> | divergence | <bloc> | <ligne du releve>
+#   <commit> | <etape> | fixture
 # Une pose n'ajoute que des *.frames.hash ; une divergence en reecrit, et
 # <repertoire>/<etape>.txt et <etape>-attribution.txt sont dans l'arbre de ce
 # commit, ses fichiers DIVERGENT sont exactement les references reecrites, et
 # la ligne citee figure mot pour mot dans une section "## <bloc> ..." du releve.
+# Une fixture reecrit des references parce que leur entree a change : chaque
+# <x>.frames.hash reecrit a son <x> modifie dans le meme commit, et le commit
+# ne touche rien sous src/.
 # Le repertoire des rapports est relatif au depot.
 # Rend 1 sur erreur de registre, 2 si <depot> n'est pas la racine d'un depot
 # git ou si la base est injoignable (clone superficiel) : un historique
@@ -52,6 +56,7 @@ cut -d' ' -f1 "$work/touched" | awk '!seen[$0]++' > "$work/history"
 errors=0
 poses=0
 divergences=0
+fixtures=0
 : > "$work/listed"
 
 report_error() {
@@ -123,6 +128,20 @@ while IFS= read -r line <&3; do
                 report_error "$label" "ligne de releve introuvable dans le bloc $block : $cited"
             fi
             ;;
+        fixture)
+            fixtures=$((fixtures + 1))
+            [ -s "$work/rewritten" ] || report_error "$label" "fixture sans reference reecrite"
+            git -C "$repo" diff-tree --no-commit-id -r --name-status "$full" > "$work/changes"
+            while IFS= read -r path; do
+                events=${path%.frames.hash}
+                grep -qxF "M	$events" "$work/changes" \
+                    || report_error "$label" "fixture dont l'entree n'a pas change : $events"
+            done < "$work/rewritten"
+            cut -f2- "$work/changes" | tr '\t' '\n' | grep '^src/' | LC_ALL=C sort -u > "$work/code"
+            while IFS= read -r path; do
+                report_error "$label" "fixture qui touche le code : $path"
+            done < "$work/code"
+            ;;
         *)
             report_error "$label" "genre inconnu : $kind"
             ;;
@@ -134,5 +153,5 @@ while IFS= read -r full; do
     grep -qxF "$full" "$work/listed" || report_error "$full" "absent du registre"
 done < "$work/history"
 
-echo "frames-ledger commits $(wc -l < "$work/history" | tr -d ' ') poses $poses divergences $divergences erreurs $errors"
+echo "frames-ledger commits $(wc -l < "$work/history" | tr -d ' ') poses $poses divergences $divergences fixtures $fixtures erreurs $errors"
 [ "$errors" -eq 0 ]
