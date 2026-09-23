@@ -1,0 +1,44 @@
+# Garde -mgeneral-regs-only sur le coeur (docs/plan-2.md §6.3), produite par
+# tools/float_guard.sh via make float-guard. Ne pas editer a la main.
+#
+# Une ligne par fichier du coeur qui ne compile pas sans registre flottant.
+# Liste vide attendue a la fin de la Phase E seulement.
+#
+# Angle mort sur x86_64 : un argument double passe a une fonction externe
+# (pico8_fixed_from_double(<litteral>)) compile sans erreur. Cette liste n'est
+# pas l'inventaire ; tools/float_inventory.txt l'est.
+#
+echec src/pico8_audio.c
+echec src/pico8_bg.c
+echec src/pico8_collect.c
+echec src/pico8_economy.c
+echec src/pico8_economy_formulas.c
+echec src/pico8_economy_score.c
+echec src/pico8_economy_tiers.c
+echec src/pico8_entity.c
+echec src/pico8_fixed.c
+echec src/pico8_gen.c
+echec src/pico8_hud.c
+echec src/pico8_layout.c
+echec src/pico8_menu.c
+echec src/pico8_msgbox.c
+echec src/pico8_particle.c
+echec src/pico8_pi.c
+echec src/pico8_planet.c
+echec src/pico8_planet_display.c
+echec src/pico8_planet_family.c
+echec src/pico8_probe.c
+echec src/pico8_research.c
+echec src/pico8_research_display.c
+echec src/pico8_research_icon.c
+echec src/pico8_score_panel.c
+echec src/pico8_score_panel_display.c
+echec src/pico8_scroll.c
+echec src/pico8_slipway_display.c
+echec src/pico8_tech_gate.c
+echec src/pico8_ui.c
+echec src/pico8_ui_button.c
+echec src/pico8_value.c
+echec src/pico8_wormhole_display.c
+#
+garde fichiers 58 en-echec 32

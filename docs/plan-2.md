@@ -49,6 +49,8 @@ pow(), snprintf("%.4f")                     3 sites (economy_formulas.c:196-197,
 sin()/cos() libc dans pico8_fixed          2 sites (fixed.c:254-266)
 ```
 
+Les numéros de ligne de cette section datent du cadrage et dérivent ; la liste à jour est `tools/float_inventory.txt` (`make float-inventory`, Phase B2).
+
 Un seul `from_double` porte sur une expression variable (`economy_formulas.c:197`, qui consomme le `pow`). Ce n'est donc pas 135 problèmes : **2 transformations mécaniques + 5 sites réécrits à la main.**
 
 ### 3.1 Les 61 constantes — le piège d'arrondi
@@ -212,6 +214,7 @@ Aucun de ces points ne demande de jugement ni de relecture :
 1. `grep -rnE '\b(double|float)\b' src/` → vide, hors les helpers de test explicitement isolés et nommés comme tels.
 2. La cible de lien du cœur perd `-lm`, et le build passe.
 3. Les objets du cœur **compilent avec `-mgeneral-regs-only`** (erreur du compilateur sur tout flottant à l'exécution, constantes repliées tolérées). **C'est le seul critère qui prouve réellement l'objectif PSX** : les points 1 et 2 peuvent passer alors qu'un flottant subsiste dans une constante non repliée par le compilateur.
+   *Angle mort sur x86_64, mesuré en B2 :* la garde rattrape les retours et opérations `double`, pas un argument `double` passé à une fonction externe — GCC le passe sur la pile sans erreur. `pico8_fixed_from_double(<littéral>)` compile donc sous la garde : voir « État de B2 » au §7.
    *Pourquoi pas `nm` :* sur l'hôte x86_64 le FPU est matériel, donc aucun symbole soft-float de `libgcc` (`__muldf3`, `__adddf3`…) n'est jamais émis — `nm` était **déjà vide avant tout changement** (mesuré : 0 symbole, alors que `pow`/`sin`/`cos` sont importés de la glibc). Un critère qui passe sur le code de départ ne prouve rien. Alternative équivalente : `nm` sur les `.o` du cœur compilés par le `mipsel` PSn00bSDK en soft-float.
 4. `frames.hash` **identique** avant/après pour les populations (a) et (b). Les seules divergences autorisées relèvent de la population (c) et des 5 sites réécrits, **chacune justifiée par une ligne du relevé de sonde**.
 
@@ -232,6 +235,13 @@ Méthode, en deux étapes :
 
 - **B1 — Empreintes.** Le filet n'est pas une seule session : la session humaine (`events.json` racine) n'atteint ni wormhole, ni slipway, ni commerce — donc pas le `^0.75`. Une empreinte par frame est prise **pour chaque fichier d'événements de jeu existant** (l'`events.json` racine et les fixtures de jeu non malformées de `tests/fixtures/`), un fichier d'empreintes par fichier d'événements.
 - **B2 — Inventaire, couverture, garde.** (i) Un script versionné produit l'inventaire des sites flottants du cœur par catégorie — (a), (b), (c), constantes, les 5 sites réécrits — au lieu de numéros de ligne cités, qui dérivent. (ii) Un build de couverture (`--coverage`/`gcov`) reproductible liste chaque site avec son nombre de passages sous le filet. (iii) La garde `-mgeneral-regs-only` du §6.3 est posée sur les objets du cœur, et on consigne qu'elle **échoue** sur le code actuel, avec la liste des fichiers en échec.
+
+**État de B2** (mesuré avec `cc` GCC 13.3, x86_64). Les trois cibles sont hors de `make test`, qui ne lance que leurs tests sur des entrées fabriquées. Toutes partent de `CORE_SRCS` du `Makefile` : `ENGINE_SRCS` moins `pico8_assets.c` et `pico8_dump.c`, 58 fichiers `.c`.
+
+- **Inventaire** — `make float-inventory` → `tools/float_inventory.txt`, une ligne par jeton, identité (fichier, fonction, catégorie, rang) indépendante du numéro de ligne. Comptes : 61 constantes, 76 casts, 5 réécrits, 23 autres (à auditer), 165 au total. Les populations (a), (b), (c) valent 0 : les 76 casts portent « à auditer », faute de règle déductible du code seul ; leur classement est le travail de la Phase C. L'inventaire ne lit que les `.c` du cœur : le grep du §6.1 sur `src/` voit en plus les prototypes de `pico8_fixed.h` (réservés aux tests), des mots de commentaire d'en-têtes (« double-free »…), le backend raylib et le visualiseur de screencast. À l'inverse, l'inventaire compte aussi les mots `double` des commentaires des `.c` du cœur, en « autre ».
+- **Couverture** — `make float-coverage` → `tools/float_coverage.txt`, passages par site après rejeu de chaque fichier de `FRAMES_EVENTS` ; granularité à la ligne, pas à l'expression. 122 sites couverts, 43 `NON COUVERT` (constantes 38/23, casts 60/16, réécrits 5/0, autres 19/4). C'est ce rapport que cite la règle pour C et D ci-dessous.
+- **Garde** — `make float-guard` → `tools/float_guard.txt`, la liste des fichiers du cœur qui ne compilent pas avec `-mgeneral-regs-only`, sans édition de liens. **Elle échoue sur le code actuel : 32 fichiers sur 58**, tous sur « SSE register return with SSE disabled ». La cible sort en échec tant que la liste n'est pas vide ; le fichier versionné est réécrit même en échec, et sa décroissance se lit dans l'historique.
+- **Angle mort de la garde.** Six fichiers compilent sous la garde alors qu'ils contiennent des constantes `pico8_fixed_from_double(<littéral>)` (20 au total) : `pico8_entity_geom.c`, `pico8_galaxy.c`, `pico8_game_data.c`, `pico8_geom.c`, `pico8_slipway.c`, `pico8_wormhole.c`. La liste de la garde n'est donc pas l'inventaire : la source de vérité sur les sites restants est `tools/float_inventory.txt`, et §6.3 ne prouve rien de plus sur cet hôte que les fichiers qu'il voit. La garde `mipsel` soft-float du §6.3 fermerait cet angle ; elle n'est pas posée.
 
 **Sortie de phase :** fichiers d'empreintes versionnés, et rejouer deux fois le même fichier d'événements produit le même fichier d'empreintes (détermination vérifiée, pas supposée) ; inventaire et rapport de couverture reproductibles ; garde `-mgeneral-regs-only` en place et en échec constaté.
 
