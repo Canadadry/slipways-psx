@@ -1,34 +1,94 @@
 #!/bin/sh
-# usage: float_audit.sh <enregistrements> <source>...
-# Ecrit le rapport sur la sortie standard. Rend 2 si les sources ne
-# contiennent aucun appel de pico8_fixed_flr_int : une porte qui ne voit rien
-# ne passe pas ; 3 si un site est en ECART, NEGATIF ou NON ATTEINT, apres le
-# rapport entier ; 4 si un enregistrement a deborde (OVERFLOW) : des sites
-# atteints sortiraient NON ATTEINT.
+# usage: float_audit.sh <liste C1> <enregistrements> <source>...
+# Ecrit le rapport sur la sortie standard. Codes de sortie, apres le rapport
+# entier sauf 2 et 4 : 2 si les sources ne contiennent aucun appel de
+# pico8_fixed_flr_int, une porte qui ne voit rien ne passe pas ; 3 si un site
+# est en echec ; 4 si un enregistrement a deborde (OVERFLOW), des sites
+# atteints sortiraient NON ATTEINT ; 5 si la liste C1 a une entree sans site
+# ou une cle dupliquee, prioritaire sur 3.
 
 set -u
 
-records=$1
-shift
+c1_list=$1
+records=$2
+shift 2
 
 cat <<EOF
-# Porte d'audit de C1 (docs/plan-2.md §7), produite par tools/float_audit.sh
-# via make float-audit. Aucun rapport versionne : la porte se lit ici et sur
-# le code de sortie.
+# Audit avant/apres par site (docs/plan-2.md §7 Phase D0a), produit par
+# tools/float_audit.sh via make float-audit. Aucun rapport versionne : la
+# porte se lit ici et sur le code de sortie.
 #
 # Les sites sont les appels pico8_fixed_flr_int( des sources, hors de sa
 # definition ; les comptes viennent du build -DPICO8_FLOAT_AUDIT, apres rejeu
-# de chaque fichier de FRAMES_EVENTS.
-# Une ligne par appel : fichier | fonction | ligne | passages | negatifs | ecarts | statut
+# de chaque fichier de FRAMES_EVENTS. Classe C1 si la cle (fichier, fonction,
+# extrait, occurrence) est dans tools/float_audit_c1.txt, D sinon.
+# Une ligne par appel : fichier | fonction | ligne | classe | appels | negatifs
+# | fractionnaires | ancien!=nouveau | nouveau!=flr | statut
 #
-# ECART        (int)pico8_fixed_to_double(x) != pico8_fixed_flr_int(x)
-# NEGATIF      x < 0 : la preuve de signe du site est refutee
-# NON ATTEINT  ligne jamais executee par le rejeu : rien n'y est verifie
+# Echecs C1 :
+# ECART           (int)pico8_fixed_to_double(x) != pico8_fixed_flr_int(x)
+# NEGATIF         x < 0 : la preuve de signe du site est refutee
+# NON ATTEINT     ligne jamais executee par le rejeu : rien n'y est verifie
+# Echec D :
+# NOUVEAU != FLR  la nouvelle valeur differe de la reference flr
+# Pour un site D, negatifs, fractionnaires et ancien!=nouveau sont des
+# mesures ; zero ancien!=nouveau, non atteint compris, sort « correction non
+# vue par le filet », sans echec.
 # Granularite : la ligne. Les appels d'une meme ligne, marques (ligne
 # partagee), partagent leurs compteurs.
 EOF
 
-awk -v records="$records" '
+awk -v records="$records" -v c1_list="$c1_list" '
+function balanced_arg(s, start,    depth, k, c) {
+    depth = 1
+    for (k = start; k <= length(s); k++) {
+        c = substr(s, k, 1)
+        if (c == "(") depth++
+        else if (c == ")") {
+            depth--
+            if (depth == 0) return substr(s, start, k - start)
+        }
+    }
+    return substr(s, start)
+}
+
+function trim(s) {
+    sub(/^[ \t]+/, "", s)
+    sub(/[ \t]+$/, "", s)
+    return s
+}
+
+function list_error(message) {
+    list_errors++
+    list_error_text[list_errors] = "liste C1 : " message
+}
+
+# Extrait en milieu de ligne : il peut lui-meme contenir " | ".
+function read_c1_list(    entry, n, f, k, extract, key, shown_key) {
+    while ((getline entry < c1_list) > 0) {
+        if (entry ~ /^[ \t]*(#|$)/) continue
+        n = split(entry, f, / \| /)
+        if (n < 4) {
+            list_error("ligne mal formee : " entry)
+            continue
+        }
+        extract = f[3]
+        for (k = 4; k < n; k++) extract = extract " | " f[k]
+        key = trim(f[1]) SUBSEP trim(f[2]) SUBSEP trim(extract) SUBSEP (trim(f[n]) + 0)
+        shown_key = trim(f[1]) " | " trim(f[2]) " | " trim(extract) " | " (trim(f[n]) + 0)
+        if (key in c1_key) {
+            list_error("cle dupliquee : " shown_key)
+            continue
+        }
+        c1_key[key] = shown_key
+        c1_order[++c1_count] = key
+    }
+}
+
+BEGIN {
+    read_c1_list()
+}
+
 FNR == 1 {
     func_name = "(hors fonction)"
 }
@@ -50,7 +110,11 @@ FNR == 1 {
         while ((p = index(rest, "pico8_fixed_flr_int(")) > 0) {
             if (p == 1 || substr(rest, p - 1, 1) !~ /[A-Za-z0-9_]/) {
                 sites++
+                extract = trim(balanced_arg(rest, p + 20))
+                base = FILENAME SUBSEP func_name SUBSEP extract
+                occurrence[base]++
                 site[sites] = FILENAME SUBSEP FNR
+                site_c1_key[sites] = base SUBSEP occurrence[base]
                 shown[sites] = FILENAME " | " func_name " | ligne " FNR
             }
             rest = substr(rest, p + 20)
@@ -63,11 +127,16 @@ FNR == 1 {
 END {
     while ((getline entry < records) > 0) {
         if (entry ~ /^OVERFLOW/) overflow = 1
-        if (split(entry, f, "\t") < 8 || f[1] != "AUD") continue
+        n = split(entry, f, "\t")
+        if (n < 8 || f[1] != "AUD") continue
         key = f[2] SUBSEP (f[4] + 0)
         passes[key] += f[5]
         negatives[key] += f[6]
         mismatches[key] += f[7]
+        if (n >= 10) {
+            fractional[key] += f[9]
+            not_flr[key] += f[10]
+        }
         if (!(key in first_bad) && f[8] != "-") first_bad[key] = f[8]
     }
     if (overflow) {
@@ -78,24 +147,50 @@ END {
         print "float_audit: aucun site pico8_fixed_flr_int( dans les sources" > "/dev/stderr"
         exit 2
     }
-    for (i = 1; i <= sites; i++) on_line[site[i]]++
+    for (i = 1; i <= sites; i++) {
+        on_line[site[i]]++
+        if (site_c1_key[i] in c1_key) matched[site_c1_key[i]] = 1
+    }
+    for (i = 1; i <= c1_count; i++)
+        if (!(c1_order[i] in matched)) list_error("entree sans site : " c1_key[c1_order[i]])
+
     for (i = 1; i <= sites; i++) {
         key = site[i]
+        class = (site_c1_key[i] in c1_key) ? "C1" : "D"
+        class_count[class]++
         status = ""
         if (!(key in passes)) {
-            status = "NON ATTEINT"
             unreached++
+            if (class == "C1") {
+                status = "NON ATTEINT"
+                failed++
+            } else {
+                status = "NON ATTEINT, correction non vue par le filet"
+                unseen++
+            }
         } else {
             reached++
             if (!(key in counted)) total += passes[key]
             counted[key] = 1
-            if (mismatches[key] > 0) {
-                status = "ECART"
-                ecart++
-            }
-            if (negatives[key] > 0) {
-                status = (status == "" ? "" : status " ") "NEGATIF"
-                negatif++
+            if (class == "C1") {
+                if (mismatches[key] > 0) {
+                    status = "ECART"
+                    ecart++
+                }
+                if (negatives[key] > 0) {
+                    status = (status == "" ? "" : status " ") "NEGATIF"
+                    negatif++
+                }
+                if (status != "") failed++
+            } else {
+                if (not_flr[key] > 0) {
+                    status = "NOUVEAU != FLR"
+                    new_not_flr++
+                    failed++
+                } else if (mismatches[key] == 0) {
+                    status = "correction non vue par le filet"
+                    unseen++
+                }
             }
             if (status == "") status = "ok"
         }
@@ -104,17 +199,24 @@ END {
             shared++
         }
         if (key in first_bad) status = status " | premier fautif " first_bad[key]
-        printf "%s | passages %d | negatifs %d | ecarts %d | %s\n", shown[i], passes[key], negatives[key], mismatches[key], status
+        printf "%s | %s | appels %d | negatifs %d | fractionnaires %d | ancien!=nouveau %d | nouveau!=flr %d | %s\n", shown[i], class, passes[key], negatives[key], fractional[key], mismatches[key], not_flr[key], status
     }
+    for (i = 1; i <= list_errors; i++) print list_error_text[i]
     print "#"
     print "# Comptes"
     printf "audit sites %d\n", sites
+    printf "audit sites C1 %d\n", class_count["C1"]
+    printf "audit sites D %d\n", class_count["D"]
     printf "audit atteint %d\n", reached
     printf "audit non atteint %d\n", unreached
     printf "audit ecart %d\n", ecart
     printf "audit negatif %d\n", negatif
+    printf "audit nouveau!=flr %d\n", new_not_flr
+    printf "audit correction non vue %d\n", unseen
+    printf "audit erreur liste C1 %d\n", list_errors
     printf "audit ligne partagee %d\n", shared
     printf "audit passages %d\n", total
-    if (unreached + ecart + negatif > 0) exit 3
+    if (list_errors > 0) exit 5
+    if (failed > 0) exit 3
 }
 ' "$@"

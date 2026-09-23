@@ -13,8 +13,8 @@
  * reecrirait la definition de la fonction elle-meme.
  *
  * "Argument negatif = echec" ne vaut que pour les sites C1, dont le signe est
- * prouve. Des que D1 appellera pico8_fixed_flr_int a des sites (c), un negatif
- * y sera legitime : la porte devra alors distinguer les sites. */
+ * prouve : tools/float_audit_c1.txt les nomme, tout autre appel est un site D
+ * ou un negatif est legitime. */
 int32_t pico8_float_audit_flr_int(const char *file, const char *func, int line, pico8_fixed_t x);
 
 #define pico8_fixed_flr_int(x) pico8_float_audit_flr_int(__FILE__, __func__, __LINE__, (x))

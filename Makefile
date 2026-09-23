@@ -24,8 +24,9 @@
 #                       tmp/constant_variants/synthese.txt, hors suite
 # make float-coverage -> réécrit tools/float_coverage.txt, hors suite
 # make float-observe -> réécrit tools/float_observe.txt, hors suite
-# make float-audit   -> porte de C1 : troncature flottante = flr entier et
-#                       argument >= 0 à chaque site, hors suite
+# make float-audit   -> audit par site, hors suite : sites C1
+#                       (tools/float_audit_c1.txt) troncature flottante = flr
+#                       entier et argument >= 0 ; sites D nouveau = flr
 # make float-guard   -> réécrit tools/float_guard.txt, hors suite, en échec
 #                       tant qu'un fichier du cœur a besoin du flottant
 # make raylib        -> compile et LINK le binaire interactif, ne le lance jamais
@@ -314,7 +315,7 @@ $(TMP_DIR)/test_float_coverage: $(call objs,tests/test_float_coverage.c) tools/f
 $(TMP_DIR)/test_float_observe: $(call objs,tests/test_float_observe.c) tools/float_observe.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_float_audit: $(call objs,tests/test_float_audit.c) tools/float_audit.sh | $(TMP_DIR)
+$(TMP_DIR)/test_float_audit: $(call objs,tests/test_float_audit.c) tools/float_audit.sh tools/float_audit_c1.txt | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
@@ -709,11 +710,13 @@ $(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Chaque rejeu ajoute ses enregistrements au même fichier, effacé avant la passe.
-float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh
+FLOAT_AUDIT_C1 := tools/float_audit_c1.txt
+
+float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh $(FLOAT_AUDIT_C1)
 	@mkdir -p $(AUDIT_DIR)
 	rm -f $(AUDIT_DIR)/aud.txt
 	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(AUDIT_DIR)/aud.txt ./$(TMP_DIR)/pico8_replay_audit $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
-	sh tools/float_audit.sh $(AUDIT_DIR)/aud.txt $(CORE_SRCS)
+	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(AUDIT_DIR)/aud.txt $(CORE_SRCS)
 
 .PHONY: float-audit
 
