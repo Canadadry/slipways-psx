@@ -1,5 +1,6 @@
 #include "pico8_value.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,11 +76,26 @@ char *pico8_value_tostr(pico8_value_t v) {
         case PICO8_VALUE_BOOL:
             return pico8_strdup_owned(v.as.boolean ? "true" : "false");
         case PICO8_VALUE_FIXED: {
-            /* Print with fixed precision, then trim trailing fractional
-             * zeros and a bare trailing '.', so an exact integer value
-             * renders without a fractional part. */
-            double d = pico8_fixed_to_double(v.as.fixed);
-            snprintf(buf, sizeof buf, "%.4f", d);
+            /* TROU-22 */
+            int negative = v.as.fixed < 0;
+            uint32_t mag = negative ? 0u - (uint32_t)v.as.fixed
+                                    : (uint32_t)v.as.fixed;
+            uint32_t ip = mag >> 16;
+            uint32_t p = (mag & 0xFFFFu) * 625u;
+            uint32_t q = p >> 12;
+            uint32_t r = p & 4095u;
+            /* Round half to even, as glibc printf does: half-up would be
+             * wrong on 8 of the 16 exact ties per integer part, e.g.
+             * 0x0000.0800 -> "0.0312". */
+            if (r > 2048u || (r == 2048u && (q & 1u))) {
+                q++;
+            }
+            if (q == 10000u) {
+                ip++;
+                q = 0;
+            }
+            snprintf(buf, sizeof buf, "%s%lu.%04lu", negative ? "-" : "",
+                     (unsigned long)ip, (unsigned long)q);
             char *dot = strchr(buf, '.');
             if (dot) {
                 char *end = buf + strlen(buf) - 1;

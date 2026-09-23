@@ -43,16 +43,13 @@ src/pico8_fixed.c | pico8_fixed_sin | reecrit | 1 | ligne 188 | - | - | sin
 src/pico8_galaxy.c | pico8_bw | autre | 1 | ligne 133 | - | - | double
 src/pico8_ob.c | (hors fonction) | autre | 1 | ligne 201 | - | - | pico8_fixed_from_double
 src/pico8_ob.c | pico8_ob_step | autre | 1 | ligne 347 | - | - | double
-src/pico8_value.c | pico8_value_tostr | autre | 1 | ligne 81 | - | - | double
-src/pico8_value.c | pico8_value_tostr | autre | 2 | ligne 81 | - | - | pico8_fixed_to_double
-src/pico8_value.c | pico8_value_tostr | reecrit | 1 | ligne 82 | - | - | %.4f
 #
 # Comptes
 compte constante 0
 compte cast 0
-compte reecrit 5
-compte autre 23
-compte total 28
+compte reecrit 4
+compte autre 21
+compte total 25
 compte population (a) 0
 compte population (b) 0
 compte population (c) 0

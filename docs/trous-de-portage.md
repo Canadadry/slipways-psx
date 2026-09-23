@@ -332,3 +332,22 @@ pas de `k_` propre ; il ne voit donc pas l'écart.
 Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
 
 Fichier : `src/pico8_planet_family.c`.
+
+## TROU-22 — `tostr` sous 0.0001 n'est pas sourcé
+
+`pico8_value_tostr` écrit un nombre avec 4 décimales arrondies au pair,
+puis retire les zéros de fin et le point nu. Cette règle reproduit 13 des
+14 témoins du bloc C de `tools/probe_out.txt`, dont `2/3 → "0.6667"`.
+
+Le 14ᵉ est le brut −6 (`0xffff.fffa`) : PICO-8 affiche `"-0"`, ce port
+`"-0.0001"`. Aucune règle unique ne concilie ce témoin avec
+`2/3 → "0.6667"`, donc elle n'est pas devinée. Ce port garde sa sortie :
+brut −6 → `"-0.0001"`, bruts −1 à −3 → `"-0"`, bruts 1 à 3 → `"0"`. Pour
+les autres magnitudes inférieures à 0.0001, la règle de PICO-8 est
+inconnue.
+
+Non atteint par le filet : aucune valeur affichée par le jeu n'a une
+magnitude inférieure à 0.0001. Se tranche par une relance d'une ligne de
+la sonde (reliquat de la Phase A, `docs/plan-2.md`).
+
+Fichier : `src/pico8_value.c`.
