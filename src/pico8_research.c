@@ -226,7 +226,7 @@ static int pico8_research_lookup(const pico8_ob_table_t *table, pico8_value_t ke
         return 0;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, (int)pico8_fixed_to_double(key.as.fixed), out);
+        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
     }
     if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         return pico8_ob_table_get_name(table, key.as.string, out);
@@ -275,11 +275,11 @@ pico8_fixed_t pico8_hp_od(const pico8_instance_t *self) {
     }
     if (self != NULL && pico8_instance_get_field(self, "il", &il_val) && pico8_research_truthy(il_val) &&
         pico8_oj(il_val)) {
-        od = pico8_fixed_mul(od, pico8_fixed_from_double(1.5));
+        od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x00018000, 1.5));
     }
     has_ii = self != NULL && pico8_instance_get_field(self, "ii", &ii_val) && pico8_research_truthy(ii_val);
     if (!has_ii && pico8_oj(pico8_value_string("nanomaterials"))) {
-        od = pico8_fixed_mul(od, pico8_fixed_from_double(0.85));
+        od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x0000d999, 0.85));
     }
     return pico8_fixed_flr(od);
 }

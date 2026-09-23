@@ -1,0 +1,48 @@
+attribution et revue headless, etape D3
+regle : docs/plan-2.md, Phase D, "Regle d'attribution d'une etape D".
+S = sites D3 a ancien!=nouveau >= 1 sur le filet (make float-audit) ;
+A = plus petite frame de premier ancien!=nouveau du site D3, par fichier ;
+F = premiere frame divergente de D3.txt.
+site D3 unique : src/pico8_economy_formulas.c pico8_dj, ligne 173 ; paire au
+niveau de la valeur rendue (ancien = flr(bn*bk*max(0.5, pow(len_sq/bq,0.75)
+en double arrondi)), nouveau = flr(bn*bk*max(0.5, pow075(len_sq/bq en
+16.16)))), argument = quotient 16.16 len_sq/bq, nouveau!=reference toujours 0.
+pico8_dj : 23 appels, 0 negatif, 14 fractionnaires, ancien!=nouveau 0
+(phase4_playthrough 9, built_planet_panel 14, 0 ailleurs).
+S = {} : pico8_dj est "correction non vue par le filet", protege par
+test_pow075_matches_probe_block_d (16 vecteurs du bloc D au bit pres) et
+test_sqrt_matches_probe_block_e (16 vecteurs sqrt du bloc E).
+complement neutre : S vide, donc "S ramene a l'ancienne forme" = arbre D3
+lui-meme ; lance quand meme sur l'arbre du commit 1 (tests et
+pico8_fixed_pow075 seuls), frames-check contre les references d'avant D3.
+variante suffisante : satisfaite par construction (arbre d'avant, S vide
+converti = arbre d'avant) ; aucun arbre de variante fabrique.
+revue : sans objet, aucun fichier divergent.
+
+events.json : conforme | A aucun | complement conforme (9729 frames)
+tests/fixtures/phase4_playthrough_events.json : conforme | A aucun (9 appels pico8_dj) | complement conforme (224 frames)
+tests/fixtures/built_planet_panel_events.json : conforme | A aucun (14 appels pico8_dj) | complement conforme (278 frames)
+tests/fixtures/empty_planet_cleared_events.json : conforme | A aucun | complement conforme (229 frames)
+tests/fixtures/slipway_drag_events.json : conforme | A aucun | complement conforme (226 frames)
+tests/fixtures/shop_button_hover_events.json : conforme | A aucun | complement conforme (25 frames)
+tests/fixtures/screencast_capture_events.json : conforme | A aucun | complement conforme (8 frames)
+tests/fixtures/top_menubar_events.json : conforme | A aucun | complement conforme (4 frames)
+tests/fixtures/tech_screen_invent_events.json : conforme | A aucun | complement conforme (58 frames)
+tests/fixtures/game_end_events.json : conforme | A aucun | complement conforme (74 frames)
+tests/fixtures/pause_menu_music_events.json : conforme | A aucun | complement conforme (32 frames)
+tests/fixtures/geoharvest_burst_events.json : conforme | A aucun | complement conforme (293 frames)
+
+controle 1 (A <= F) : aucun F, aucun A ; ni F sans A, ni A sans F.
+controle 2 (complement neutre) : 12/12 conformes aux references d'avant D3.
+controle 3 (variante suffisante) : par construction, S vide.
+attribution : aucune frame divergente ; pas de make frames-baseline.
+
+cascade, regle D3 : pico8_dj ecrit dans l'etat (champ od du slipway en
+trace), l'identite C1 n'est exigee que sur les fichiers sans A ; ici 12/12.
+cascade, mesure : lignes AUD des 12 fichiers, arbre du commit 1 contre arbre
+D3 : les 47 sites C1 ont des compteurs identiques sur 12/12 ; seule
+difference, set_by_value et get_by_value de pico8_economy_formulas.c passent
+des lignes 56/67 aux lignes 54/65 (retrait de #include <math.h>), compteurs
+inchanges ; une ligne nouvelle, le site D pico8_dj, sur les 2 fichiers qui
+l'atteignent.
+cascade : aucune.

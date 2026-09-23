@@ -197,10 +197,8 @@ pico8_list_t pico8_fi(const char *s, pico8_fi_fn fn, void *ctx) {
     return rs;
 }
 
-/* Reads the decimal digits into 16.16 bits directly rather than through
- * pico8_fixed_from_double, which pico8_fixed.h reserves for tests. Handles
- * exactly what a spec-string number token can be: an optional '-', digits,
- * an optional '.' and more digits. No exponent, no hex. */
+/* Handles exactly what a spec-string number token can be: an optional '-',
+ * digits, an optional '.' and more digits. No exponent, no hex. */
 static pico8_fixed_t pico8_ob_parse_number(const char *tok) {
     const char *p = tok;
     int neg = 0;
@@ -344,7 +342,7 @@ static int pico8_ob_step(char c, int i, void *ctx_ptr, pico8_value_t *out_value)
             ctx->s = rq;
         } else if (c == ',' && ctx->s < i) {
             /* The comma is what flushes a field. The `ctx->s < i` guard
-             * drops an empty pending token (a stray double comma). The key
+             * drops an empty pending token (two commas in a row). The key
              * is stored as its own copy, since ctx->n keeps its name for the
              * fields that follow. */
             pico8_value_t value = pico8_ob_value_for_token(ctx->qs, ctx->s, i - 1, sc);

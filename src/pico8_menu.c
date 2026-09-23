@@ -169,7 +169,7 @@ void pico8_cr(void) {
     ek = pico8_ek();
     if (ek != NULL) {
         pico8_value_t qi_val;
-        int idx = (int)pico8_fixed_to_double(tl) - 1;
+        int idx = pico8_fixed_flr_int(tl) - 1;
         if (pico8_ob_table_get_index(ek, idx, &qi_val) && qi_val.kind == PICO8_VALUE_FIXED) {
             qi = qi_val.as.fixed;
         }
@@ -213,7 +213,7 @@ void pico8_cr(void) {
         char *ep;
         pico8_instance_t wrapper;
 
-        if (ek != NULL && pico8_ob_table_get_index(ek, (int)pico8_fixed_to_double(tl), &ek_tl_val) &&
+        if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(tl), &ek_tl_val) &&
             ek_tl_val.kind == PICO8_VALUE_FIXED) {
             ek_tl = ek_tl_val.as.fixed;
         }
@@ -355,7 +355,7 @@ static pico8_value_t pico8_ha2_my_dispatch(void *self, int argc, pico8_value_t a
     (void)arg1;
     stat_val = pico8_stat(pico8_dispatch_input(), 20);
     s = pico8_fixed_sgn(pico8_fixed_from_int(stat_val));
-    pico8_music(-(int)pico8_fixed_to_double(s));
+    pico8_music(-pico8_fixed_flr_int(s));
     return pico8_value_ref(NULL);
 }
 

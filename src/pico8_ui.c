@@ -50,7 +50,7 @@ static int pico8_ui_truthy(pico8_value_t v) {
 }
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 /* je[bt] (bt "l" or "r"): NULL when `je` has no such button-state table,

@@ -108,7 +108,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_instance_t *self) {
     v = pico8_qb_field_vec(self, "v");
 
     p = pico8_vec_add(p, v);
-    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), pico8_fixed_from_double(0.2)));
+    v = pico8_vec_add(v, pico8_vec_mul(pico8_vec_sub(ip, v), PICO8_FIXED_LIT(0x00003333, 0.2)));
 
     p.x = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.x);
     p.y = pico8_fixed_mid(pico8_fixed_from_int(-64), pico8_fixed_from_int(320), p.y);
@@ -136,5 +136,5 @@ void pico8_qb_md(pico8_gfx_t *gfx, pico8_instance_t *self, pico8_fixed_t fy) {
 
     ra = pico8_qb_field_vec(self, "ra");
     cp = pico8_vec_mul(ra, fy);
-    pico8_camera(gfx, (int)pico8_fixed_to_double(cp.x), (int)pico8_fixed_to_double(cp.y));
+    pico8_camera(gfx, pico8_fixed_flr_int(cp.x), pico8_fixed_flr_int(cp.y));
 }

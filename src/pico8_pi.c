@@ -61,7 +61,7 @@ static pico8_value_t pico8_pi_rk_constructor(pico8_value_t a1, pico8_value_t a2,
     int col;
     (void)a4;
     (void)a5;
-    col = (a3.kind == PICO8_VALUE_FIXED) ? (int)pico8_fixed_to_double(a3.as.fixed) : 0;
+    col = (a3.kind == PICO8_VALUE_FIXED) ? pico8_fixed_flr_int(a3.as.fixed) : 0;
     if (a2.kind == PICO8_VALUE_FIXED) {
         pico8_rk(g_pi_gfx, g_pi_mem, a1.as.fixed, a2.as.fixed, col);
     } else {
@@ -79,7 +79,7 @@ static pico8_value_t pico8_pi_io_constructor(pico8_value_t a1, pico8_value_t a2,
     const char *t = (a1.kind == PICO8_VALUE_STRING) ? a1.as.string : (owned != NULL ? owned : "");
     pico8_fixed_t x = (a2.kind == PICO8_VALUE_FIXED) ? a2.as.fixed : pico8_fixed_from_int(0);
     pico8_fixed_t y = (a3.kind == PICO8_VALUE_FIXED) ? a3.as.fixed : pico8_fixed_from_int(0);
-    int c = (a4.kind == PICO8_VALUE_FIXED) ? (int)pico8_fixed_to_double(a4.as.fixed) : 0;
+    int c = (a4.kind == PICO8_VALUE_FIXED) ? pico8_fixed_flr_int(a4.as.fixed) : 0;
     if (a5.kind == PICO8_VALUE_FIXED) {
         pico8_fixed_t a_val = a5.as.fixed;
         pico8_io(g_pi_gfx, g_pi_mem, t, x, y, c, &a_val);
@@ -102,12 +102,12 @@ static pico8_value_t pico8_pi_eq_constructor(pico8_value_t a1, pico8_value_t a2,
  * w/h are supplied both or neither, as in real spr(). */
 static pico8_value_t pico8_pi_spr_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
                                                pico8_value_t a5) {
-    int n = (int)pico8_fixed_to_double(a1.as.fixed);
-    int x = (int)pico8_fixed_to_double(a2.as.fixed);
-    int y = (int)pico8_fixed_to_double(a3.as.fixed);
+    int n = pico8_fixed_flr_int(a1.as.fixed);
+    int x = pico8_fixed_flr_int(a2.as.fixed);
+    int y = pico8_fixed_flr_int(a3.as.fixed);
     if (a4.kind == PICO8_VALUE_FIXED && a5.kind == PICO8_VALUE_FIXED) {
-        int w = (int)pico8_fixed_to_double(a4.as.fixed);
-        int h = (int)pico8_fixed_to_double(a5.as.fixed);
+        int w = pico8_fixed_flr_int(a4.as.fixed);
+        int h = pico8_fixed_flr_int(a5.as.fixed);
         pico8_spr(g_pi_gfx, g_pi_mem, n, x, y, w, h);
     } else {
         pico8_spr_default(g_pi_gfx, g_pi_mem, n, x, y);
@@ -166,7 +166,7 @@ void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb, pico8_
     pico8_value_t e_val;
 
     while (pico8_list_iter_next(&it, &e_val)) {
-        pico8_camera(gfx, (int)pico8_fixed_to_double(nc), 0);
+        pico8_camera(gfx, pico8_fixed_flr_int(nc), 0);
         nc = pico8_fixed_neg(nc);
         pico8_bl_dispatch_one(gfx, mem, e_val);
     }

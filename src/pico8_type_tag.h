@@ -12,7 +12,7 @@
  * compatible header, so a cast between any two compiles silently AND
  * yields a plausible-looking object -- while their element strides differ
  * by 2x. Reading a pico8_list_t as a pico8_ob_table_t therefore walks its
- * backing array at double stride past the end of the allocation; four
+ * backing array at twice the stride, past the end of the allocation; four
  * separate heap-buffer-overflows of this port came from that confusion.
  * The tag makes "what is this REF really" a question with an answer, and
  * with an explicit "I don't know" for anything untagged.

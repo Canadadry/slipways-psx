@@ -134,7 +134,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
         pico8_camera_reset(gfx);
     }
 
-    if (t > pico8_fixed_from_double(10.5)) {
+    if (t > PICO8_FIXED_LIT(0x000a8000, 10.5)) {
         pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(1));
         pico8_msgbox_set_kc(NULL);
         assert(pico8_kc() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
@@ -203,7 +203,7 @@ void pico8_iv_ph(pico8_instance_t *self) {
     pico8_ob_table_set_name(self->fields, "ra", pico8_value_ref(heap_ra));
 
     l = pico8_msgbox_field_fixed(self, "l");
-    new_l = pico8_fixed_add(l, pico8_fixed_from_double(0.1));
+    new_l = pico8_fixed_add(l, PICO8_FIXED_LIT(0x00001999, 0.1));
     pico8_ob_table_set_name(self->fields, "l", pico8_value_fixed(new_l));
 
     pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(new_l >= pico8_fixed_from_int(5)));
@@ -223,7 +223,7 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     pico8_value_t color_val;
     const char *text = "";
     int color = 0;
-    pico8_fixed_t a_center = pico8_fixed_from_double(0.5);
+    pico8_fixed_t a_center = PICO8_FIXED_LIT(0x00008000, 0.5);
 
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
@@ -236,7 +236,7 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
         text = text_val.as.string;
     }
     if (pico8_ob_table_get_index(self->fields, 2, &color_val) && color_val.kind == PICO8_VALUE_FIXED) {
-        color = (int)pico8_fixed_to_double(color_val.as.fixed);
+        color = pico8_fixed_flr_int(color_val.as.fixed);
     }
 
     pico8_io(gfx, mem, text, p.x, p.y, color, &a_center);

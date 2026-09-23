@@ -18,7 +18,7 @@ void pico8_research_init(void);
 
 /* Frees every `hp` instance `gb` still holds, then `gb` and the class.
  * Walks `gb`'s positional entries only: its named `gb[px]` entries alias
- * the same instances, so freeing both would double-free. Idempotent, and
+ * the same instances, so freeing both would free them twice. Idempotent, and
  * safe before the first pico8_research_init(). */
 void pico8_research_shutdown(void);
 

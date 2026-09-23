@@ -15,16 +15,12 @@ typedef int32_t pico8_fixed_t;
 #define PICO8_FIXED_DIV0_POS ((pico8_fixed_t)0x7FFFFFFF)
 #define PICO8_FIXED_DIV0_NEG ((pico8_fixed_t)(-0x7FFFFFFF))
 
+/* raw: the 8 hex digits of tools/probe_out.txt block A, point removed; lua:
+ * the cart's literal, for grep and tools/constants_compare.sh -- never
+ * evaluated. */
+#define PICO8_FIXED_LIT(raw, lua) ((pico8_fixed_t)(uint32_t)(raw##u))
+
 pico8_fixed_t pico8_fixed_from_int(int32_t i);
-
-/* Rounds to the nearest representable 16.16 value. Every decimal literal
- * spelled out in C reaches fixed point through here; the ones inside an
- * ob() spec string do not -- that parser reads digits into raw bits. */
-/* TROU-1 */
-pico8_fixed_t pico8_fixed_from_double(double d);
-
-/* Exact: every 16.16 value is representable as a double. */
-double pico8_fixed_to_double(pico8_fixed_t x);
 
 /* Overflow wraps, two's-complement, as PICO-8 documents. Computed through
  * the unsigned 32-bit type, since signed overflow is undefined behavior in
@@ -49,6 +45,10 @@ pico8_fixed_t pico8_fixed_neg(pico8_fixed_t x);
 /* flr truncates toward negative infinity, not toward zero: raw -1 (a tiny
  * negative fraction) floors to -1.0, not to 0. */
 pico8_fixed_t pico8_fixed_flr(pico8_fixed_t x);
+
+/* flr(x) as a plain integer, rounded toward negative infinity, not toward
+ * zero: raw -1 gives -1, not 0. */
+int32_t pico8_fixed_flr_int(pico8_fixed_t x);
 
 /* Inherits pico8_fixed_neg's wraparound: abs of the most-negative value is
  * itself. */
@@ -80,6 +80,10 @@ pico8_fixed_t pico8_fixed_shl(pico8_fixed_t x, int32_t n);
  * square root on the raw bits, with no host floating point. */
 pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x);
 
+/* x^0.75 as PICO-8 computes it (tools/probe_out.txt block D): s*sqrt(s)
+ * with s = sqrt(x), each step truncated. 0 and negative x give 0. */
+pico8_fixed_t pico8_fixed_pow075(pico8_fixed_t x);
+
 /* Deterministic placeholder generator, NOT PICO-8's: it satisfies the
  * documented range but reproduces no real sequence, so a galaxy generated
  * here differs from the same seed in PICO-8. rnd(0) is 0; otherwise the
@@ -97,5 +101,9 @@ pico8_fixed_t pico8_fixed_cos(pico8_fixed_t x);
  * math, matching PICO-8's screen y-axis pointing down. */
 /* TROU-1 */
 pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x);
+
+#ifdef PICO8_FLOAT_AUDIT
+#include "pico8_float_audit.h"
+#endif
 
 #endif

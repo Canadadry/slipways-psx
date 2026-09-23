@@ -1,0 +1,3 @@
+# TROU-1
+# Defaillances attendues de make constants-check, un litteral par ligne. Le
+# commit qui corrige ces constantes vide la liste, sinon le controle echoue.

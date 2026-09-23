@@ -52,7 +52,7 @@ static void set_by_value(pico8_ob_table_t *table, pico8_value_t key, pico8_value
         return;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        pico8_ob_table_set_index(table, (int)pico8_fixed_to_double(key.as.fixed), value);
+        pico8_ob_table_set_index(table, pico8_fixed_flr_int(key.as.fixed), value);
     } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         pico8_ob_table_set_name(table, key.as.string, value);
     }
@@ -215,7 +215,7 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
         if (hn != NULL) {
             const pico8_ob_table_t *po = pico8_hp_po(hn);
             if (po != NULL) {
-                int idx = (int)pico8_fixed_to_double(mi);
+                int idx = pico8_fixed_flr_int(mi);
                 int clamped_idx = (idx < po->count) ? idx : po->count;
                 pico8_value_t po_val;
                 pico8_fixed_t base = pico8_fixed_from_int(0);

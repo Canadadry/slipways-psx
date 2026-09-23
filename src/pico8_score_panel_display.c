@@ -89,7 +89,7 @@ void pico8_pj_hk(pico8_fixed_t yr) {
         return;
     }
 
-    idx = 3426 - (int)pico8_fixed_to_double(yr);
+    idx = 3426 - pico8_fixed_flr_int(yr);
     if (gs != NULL) {
         pico8_ob_table_get_index(gs, idx, &pp);
     }
@@ -166,7 +166,7 @@ static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t
         int current = pico8_instance_get_field(ju, "c_", &c_val) && pj_display_truthy(c_val);
         pico8_ob_table_set_name(ju->fields, "c_", pico8_value_bool(!current));
     }
-    return pico8_value_ref(NULL);
+    return pico8_value_bool(1);
 }
 
 /* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
@@ -211,7 +211,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         return 1;
     }
 
-    score_i = (int)pico8_fixed_to_double(score_val.as.fixed);
+    score_i = pico8_fixed_flr_int(score_val.as.fixed);
 
     s_val = pico8_value_ref(NULL);
     if (ctx->s != NULL) {
@@ -254,7 +254,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         }
         assert(s6_val.kind == PICO8_VALUE_FIXED && "ky() returns a numeric tier at s[6]");
         for (i = 1; i <= 5; i++) {
-            int icon = (i <= (int)pico8_fixed_to_double(s6_val.as.fixed)) ? 56 : 57;
+            int icon = (i <= pico8_fixed_flr_int(s6_val.as.fixed)) ? 56 : 57;
             pico8_ob_table_set_index(st, i, pico8_value_fixed(pico8_fixed_from_int(icon)));
         }
     }
@@ -265,7 +265,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     wrapped = pico8_ob_table_new();
     pico8_ob_table_set_index(wrapped, 1, pico8_value_ref(lq_inst));
     pico8_ob_table_set_index(wrapped, 2, ra_val);
-    pico8_ob_table_set_index(wrapped, 3, pico8_value_fixed(pico8_fixed_from_double(0.5)));
+    pico8_ob_table_set_index(wrapped, 3, pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)));
     pico8_ob_table_set_name(wrapped, "fn", pico8_value_string("ld"));
     *out_value = pico8_value_ref(wrapped);
     return 1;

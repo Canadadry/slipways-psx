@@ -128,7 +128,7 @@ void pico8_hy_hk(pico8_instance_t *self) {
             int found = 0;
             if (k_val.kind == PICO8_VALUE_FIXED) {
                 found = pico8_ob_table_get_index((const pico8_ob_table_t *)po_val.as.ref,
-                                                  (int)pico8_fixed_to_double(k_val.as.fixed), &rk_val);
+                                                  pico8_fixed_flr_int(k_val.as.fixed), &rk_val);
             } else if (k_val.kind == PICO8_VALUE_STRING && k_val.as.string != NULL) {
                 found = pico8_ob_table_get_name((const pico8_ob_table_t *)po_val.as.ref, k_val.as.string, &rk_val);
             }
@@ -245,7 +245,7 @@ void pico8_hy_lj(pico8_instance_t *self) {
     }
 
     skill = pico8_ov(pico8_value_string("skill implants"), pico8_value_fixed(pico8_fixed_from_int(1)),
-                      pico8_value_fixed(pico8_fixed_from_double(1.15)));
+                      pico8_value_fixed(PICO8_FIXED_LIT(0x00012666, 1.15)));
     skill_mult = (skill.kind == PICO8_VALUE_FIXED) ? skill.as.fixed : pico8_fixed_from_int(1);
     ge = pico8_fixed_sub(pico8_fixed_flr(pico8_fixed_mul(dd, skill_mult)), pico8_cz());
     pico8_ob_table_set_name(self->fields, "ge", pico8_value_fixed(ge));
@@ -308,7 +308,7 @@ void pico8_hy_kt(pico8_instance_t *self, const pico8_ob_table_t *t) {
     if (ew < pico8_fixed_from_int(4)) {
         const pico8_ob_table_t *ek = pico8_ek();
         pico8_value_t threshold_val;
-        if (ek != NULL && pico8_ob_table_get_index(ek, (int)pico8_fixed_to_double(ew), &threshold_val) &&
+        if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(ew), &threshold_val) &&
             threshold_val.kind == PICO8_VALUE_FIXED && pico8_fixed_from_int(count) >= threshold_val.as.fixed) {
             pico8_ob_table_set_name(self->fields, "ew", pico8_value_fixed(pico8_fixed_add(ew, pico8_fixed_from_int(1))));
         }

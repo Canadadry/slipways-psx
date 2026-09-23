@@ -192,10 +192,10 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     (void)arg0;
     (void)arg1;
 
-    qd = pico8_fixed_add(pico8_fixed_rnd(pico8_fixed_from_double(1.5)), pico8_fixed_from_double(0.5));
-    if (pico8_fixed_rnd_default() < pico8_fixed_from_double(0.6)) {
-        qd = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_div(qd, pico8_fixed_from_double(0.5))),
-                              pico8_fixed_from_double(0.5));
+    qd = pico8_fixed_add(pico8_fixed_rnd(PICO8_FIXED_LIT(0x00018000, 1.5)), PICO8_FIXED_LIT(0x00008000, 0.5));
+    if (pico8_fixed_rnd_default() < PICO8_FIXED_LIT(0x00009999, 0.6)) {
+        qd = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_div(qd, PICO8_FIXED_LIT(0x00008000, 0.5))),
+                              PICO8_FIXED_LIT(0x00008000, 0.5));
     }
     p = pico8_vec_qm(qd, pico8_fixed_rnd_default());
 
@@ -237,8 +237,8 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         qy = PICO8_REF_AS_LIST_CONST(qy_val.as.ref);
     }
 
-    px = (int)pico8_fixed_to_double(p.x);
-    py = (int)pico8_fixed_to_double(p.y);
+    px = pico8_fixed_flr_int(p.x);
+    py = pico8_fixed_flr_int(p.y);
 
     for (i = 1; i <= 3; i++) {
         pico8_ob_table_t *pt = NULL;
@@ -267,14 +267,14 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             if (pico8_ob_table_get_name(pt, "l", &l_field) && l_field.kind == PICO8_VALUE_FIXED) {
                 l = l_field.as.fixed;
             }
-            idx = (int)pico8_fixed_to_double(pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))));
+            idx = pico8_fixed_flr_int(pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))));
             if (g_ga_class != NULL && pico8_ob_table_get_name(g_ga_class->defaults, "k_", &k_val) &&
                 k_val.kind == PICO8_VALUE_REF && k_val.as.ref != NULL &&
                 pico8_ob_table_get_index((const pico8_ob_table_t *)k_val.as.ref, idx, &k_entry) &&
                 k_entry.kind == PICO8_VALUE_FIXED) {
-                color = (int)pico8_fixed_to_double(k_entry.as.fixed);
+                color = pico8_fixed_flr_int(k_entry.as.fixed);
             }
-            pico8_circ(gfx, mem, px, py, (int)pico8_fixed_to_double(pico8_vec_qx(pt_p)), color);
+            pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(pico8_vec_qx(pt_p)), color);
         }
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot

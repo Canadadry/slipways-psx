@@ -1,7 +1,5 @@
 #include "pico8_economy_formulas.h"
 
-#include <math.h>
-
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_stash.h"
@@ -53,7 +51,7 @@ static void set_by_value(pico8_ob_table_t *table, pico8_value_t key, pico8_value
         return;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        pico8_ob_table_set_index(table, (int)pico8_fixed_to_double(key.as.fixed), value);
+        pico8_ob_table_set_index(table, pico8_fixed_flr_int(key.as.fixed), value);
     } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         pico8_ob_table_set_name(table, key.as.string, value);
     }
@@ -64,7 +62,7 @@ static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_
         return 0;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, (int)pico8_fixed_to_double(key.as.fixed), out);
+        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
     } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         return pico8_ob_table_get_name(table, key.as.string, out);
     }
@@ -154,7 +152,7 @@ static void ck_visit(pico8_instance_t *l, void *ctx) {
     if (!get_by_value(d, qe_val, &current) || current.kind != PICO8_VALUE_FIXED) {
         current = pico8_value_fixed(pico8_fixed_from_int(1));
     }
-    set_by_value(d, qe_val, pico8_value_fixed(pico8_fixed_sub(current.as.fixed, pico8_fixed_from_double(0.15))));
+    set_by_value(d, qe_val, pico8_value_fixed(pico8_fixed_sub(current.as.fixed, PICO8_FIXED_LIT(0x00002666, 0.15))));
 }
 
 pico8_ob_table_t *pico8_ck(void) {
@@ -166,17 +164,21 @@ pico8_ob_table_t *pico8_ck(void) {
 pico8_fixed_t pico8_dj(const pico8_instance_t *pb, const pico8_instance_t *to) {
     pico8_vec_t diff = pico8_vec_sub(field_vec(to, "p"), field_vec(pb, "p"));
     pico8_fixed_t len_sq = pico8_vec_len_sq(diff);
-    /* TROU-1 */
-    double ec_d = pow(pico8_fixed_to_double(len_sq) / pico8_fixed_to_double(pico8_bq()), 0.75);
-    pico8_fixed_t ec = pico8_fixed_from_double(ec_d);
-    pico8_fixed_t clamped = fixed_max(pico8_fixed_from_double(0.5), ec);
-    return pico8_fixed_flr(pico8_fixed_mul(pico8_fixed_mul(pico8_bn(), pico8_bk()), clamped));
+    pico8_fixed_t x = pico8_fixed_div(len_sq, pico8_bq());
+    pico8_fixed_t ec = pico8_fixed_pow075(x);
+    pico8_fixed_t clamped = fixed_max(PICO8_FIXED_LIT(0x00008000, 0.5), ec);
+    pico8_fixed_t scale = pico8_fixed_mul(pico8_bn(), pico8_bk());
+    pico8_fixed_t cost = pico8_fixed_flr(pico8_fixed_mul(scale, clamped));
+#ifdef PICO8_FLOAT_AUDIT
+    pico8_audit_dj(len_sq, pico8_bq(), x, scale, cost);
+#endif
+    return cost;
 }
 
 pico8_fixed_t pico8_bk(void) {
     const pico8_list_t *jc = pico8_cg("jc");
     int count = (jc != NULL) ? jc->count : 0;
     pico8_fixed_t sq = pico8_fixed_sqrt(pico8_fixed_from_int(count));
-    pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, pico8_fixed_from_double(0.27)), pico8_fixed_from_double(0.1));
+    pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, PICO8_FIXED_LIT(0x0000451e, 0.27)), PICO8_FIXED_LIT(0x00001999, 0.1));
     return fixed_max(pico8_fixed_from_int(1), val);
 }

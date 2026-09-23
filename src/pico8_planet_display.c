@@ -139,7 +139,7 @@ static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
             gc = gc_val.as.fixed;
         }
     }
-    count = (int)pico8_fixed_to_double(gc);
+    count = pico8_fixed_flr_int(gc);
     for (j = 0; j < count; j++) {
         pico8_list_add(ctx->ji, e);
     }
@@ -184,7 +184,7 @@ void pico8_jo_gh(const pico8_instance_t *self) {
             if (pico8_ob_table_get_name(pico8_jo_class()->defaults, "dz", &dz_val) && dz_val.kind == PICO8_VALUE_REF &&
                 dz_val.as.ref != NULL) {
                 pico8_ob_table_get_index((const pico8_ob_table_t *)dz_val.as.ref,
-                                          (int)pico8_fixed_to_double(mi_val.as.fixed), &icon_val);
+                                          pico8_fixed_flr_int(mi_val.as.fixed), &icon_val);
             }
         }
     }
@@ -500,8 +500,8 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         }
     }
 
-    px = (int)pico8_fixed_to_double(adjusted.x);
-    py = (int)pico8_fixed_to_double(adjusted.y);
+    px = pico8_fixed_flr_int(adjusted.x);
+    py = pico8_fixed_flr_int(adjusted.y);
 
     pico8_circfill(gfx, mem, px, py, 7, 0);
 
@@ -516,15 +516,15 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         nk_val.as.ref != NULL &&
         pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "s", &s_val) &&
         s_val.kind == PICO8_VALUE_FIXED) {
-        spr_index = (int)pico8_fixed_to_double(s_val.as.fixed);
+        spr_index = pico8_fixed_flr_int(s_val.as.fixed);
     } else if (pico8_instance_get_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
-        spr_index = (int)pico8_fixed_to_double(s_val.as.fixed);
+        spr_index = pico8_fixed_flr_int(s_val.as.fixed);
     }
     pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
     pico8_dv_default(mem);
 
     if (pico8_jo_truthy(pico8_jo_gg(self))) {
-        int mi = (int)pico8_fixed_to_double(field_fixed(self, "mi"));
+        int mi = pico8_fixed_flr_int(field_fixed(self, "mi"));
         int color = 0;
         pico8_value_t ka_val;
         pico8_value_t ka_entry;
@@ -533,7 +533,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             ka_val.kind == PICO8_VALUE_REF && ka_val.as.ref != NULL &&
             pico8_ob_table_get_index((const pico8_ob_table_t *)ka_val.as.ref, mi, &ka_entry) &&
             ka_entry.kind == PICO8_VALUE_FIXED) {
-            color = (int)pico8_fixed_to_double(ka_entry.as.fixed);
+            color = pico8_fixed_flr_int(ka_entry.as.fixed);
         }
         pico8_circ(gfx, mem, px, py, 6, color);
         pico8_spr_default(gfx, mem, mi + 1, px - 3, py - 6);
@@ -548,7 +548,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             pico8_vec_t offset =
                 pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
             pico8_value_t offset_val = pico8_value_ref(&offset);
-            pico8_value_t a_val = pico8_value_fixed(pico8_fixed_from_double(0.5));
+            pico8_value_t a_val = pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5));
             pico8_value_t discard;
             int dispatched;
             assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
@@ -573,7 +573,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                 dw = dw_val.as.fixed;
             }
             radius_f = pico8_fixed_mul(pico8_fixed_sqrt(dw), pico8_fixed_from_int(128));
-            radius = (int)pico8_fixed_to_double(radius_f);
+            radius = pico8_fixed_flr_int(radius_f);
 
             /* The pattern literal's fractional `.1` is PICO-8's
              * transparency flag: its set bits leave the screen untouched,

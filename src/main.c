@@ -1,6 +1,6 @@
 /* The headless replay driver: loads the cart's assets, boots the cart, steps it
- * one frame per events.json entry, and dumps the final framebuffer as text to
- * tmp/pico8_replay_dump.txt. It asserts nothing about the game itself -- that is
+ * one frame per events.json entry, and dumps the final framebuffer as text.
+ * It asserts nothing about the game itself -- that is
  * what tests/ is for.
  *
  * argv[1] names the script to replay. The default, events.json at the repo
@@ -10,7 +10,10 @@
  *
  * argv[2], optional, is where each frame's pixels are written. Absent means no
  * capture, and the driver then behaves exactly as it did before capture
- * existed -- tests/test_pico8_headless_capture.c asserts that. */
+ * existed -- tests/test_pico8_headless_capture.c asserts that.
+ *
+ * argv[3], optional, is where the text dump goes; absent means
+ * tmp/pico8_replay_dump.txt. Giving it requires giving argv[2]. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -29,6 +32,7 @@
 int main(int argc, char **argv) {
     const char *events_path = (argc > 1) ? argv[1] : "events.json";
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
+    const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 
     pico8_mem_t mem;
     pico8_mem_init(&mem);
@@ -93,7 +97,7 @@ int main(int argc, char **argv) {
     /* La fermeture est verifiee au meme titre que les ecritures : fclose
      * est le dernier endroit ou une ecriture tamponnee peut echouer.
      * Elle a lieu AVANT le dump texte, et un echec renonce donc a
-     * l'ecrire : un tmp/pico8_replay_dump.txt frais ferait passer pour
+     * l'ecrire : un dump frais ferait passer pour
      * normale une execution dont la capture est perdue. */
     if (capture_path && !pico8_screencast_writer_close(&capture)) {
         fprintf(stderr, "pico8 replay: echec de fermeture du fichier de capture '%s'\n",
@@ -101,7 +105,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    FILE *dump_out = fopen("tmp/pico8_replay_dump.txt", "w");
+    FILE *dump_out = fopen(dump_path, "w");
     assert(dump_out != NULL);
     int dump_ok = pico8_dump_screen(&mem, dump_out);
     fclose(dump_out);
@@ -109,8 +113,8 @@ int main(int argc, char **argv) {
 
     pico8_input_free(&input);
 
-    printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to tmp/pico8_replay_dump.txt\n",
-           frame_count, events_path);
+    printf("pico8 replay: %d frame(s) run against %s; framebuffer dumped to %s\n",
+           frame_count, events_path, dump_path);
     if (capture_path) {
         printf("pico8 replay: %d frame(s) captured to %s\n", frame_count, capture_path);
     }

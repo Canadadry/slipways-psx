@@ -85,10 +85,11 @@ int pico8_value_equal(pico8_value_t a, pico8_value_t b);
  * string the caller owns and must free() -- the ownership convention
  * pico8_sub (pico8_str.h) also uses.
  *
- * FIXED is printed with 4 fractional digits, then trailing zeros and a
- * bare trailing '.' are trimmed, so an exact 3 renders "3" and not
- * "3.0000"; that is a readable decimal, not PICO-8's exact stringify
- * rule. STRING passes its content through, BOOL renders "true"/"false",
+ * FIXED is printed with 4 fractional digits rounded half to even, then
+ * trailing zeros and a bare trailing '.' are trimmed, so an exact 3
+ * renders "3" and not "3.0000". This reproduces 13 of the 14 block-C
+ * witnesses of tools/probe_out.txt; magnitudes below 0.0001 are TROU-22.
+ * STRING passes its content through, BOOL renders "true"/"false",
  * and REF and FUNCTION render the empty string. The empty string is also
  * what an absent field yields, since this port spells "absent" as
  * pico8_value_ref(NULL) and PICO-8 would print nil there. */

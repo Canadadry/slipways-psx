@@ -21,7 +21,7 @@ static pico8_class_t *g_ie_class = NULL;
 static pico8_ob_table_t g_ie_empty_fields = {PICO8_TYPE_TAG_OB_TABLE, NULL, 0, 0};
 
 static int ie_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 /* Lua truthiness -- fixed 0 included -- widened so this port's "absent"

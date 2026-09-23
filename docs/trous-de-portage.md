@@ -9,23 +9,25 @@ commentaires. Une entrée supprimée est une entrée refermée : voir git.
 
 ---
 
-## TROU-1 — L'arithmétique flottante n'est pas bit-exacte
+## TROU-1 — `sin`/`cos` ne sont pas bit-exacts hors des 64 points relevés
 
-`pico8_fixed_cos`/`_sin` passent par le `cos()`/`sin()` de l'hôte en
-`double`, puis reconvertissent en virgule fixe. Idem pour
-`pico8_fixed_from_double`, qui sert aux littéraux décimaux hors spec `ob()`
-(`bq=0.0977`), et pour l'exposant fractionnaire `^0.75` de `dj()`
-(`pico8_economy_formulas.c`).
+`pico8_fixed_cos`/`_sin` lisent une table de quart d'onde 16.16
+(`src/pico8_quarter_wave.h`, 16 385 entrées, une par fraction de tour
+`r/65536` du premier quart, sans interpolation), générée sur l'hôte par
+`tools/gen_quarter_wave.c` (`make sin-table`). Elles sont exactes au bit
+près sur les 64 points `i/64` du relevé (`tools/probe_out.txt`, bloc E,
+asserté par `make test`). Ailleurs, elles rendent l'arrondi au plus proche
+de la valeur vraie, ce que rendait l'ancien calcul `double` de la libc,
+**sans source PICO-8** : l'approximation propre de PICO-8 n'est pas
+publiée.
+
+Le générateur pseudo-aléatoire relève de TROU-17.
 
 Conséquence : une partie rejouée ici peut diverger d'une partie rejouée
-dans le vrai PICO-8, d'autant plus vite que la divergence se propage par le
-générateur pseudo-aléatoire. Les rejeux internes restent déterministes,
+dans le vrai PICO-8. Les rejeux internes restent déterministes,
 puisqu'ils comparent ce port à lui-même.
 
-`docs/plan-2.md` a l'élimination du flottant à son programme.
-
-Fichiers : `src/pico8_fixed.c`, `src/pico8_economy_formulas.c`,
-`src/pico8_game_data.c`.
+Fichiers : `src/pico8_fixed.c`, `src/pico8_quarter_wave.h`.
 
 ## TROU-2 — La deuxième manette est câblée à « rien »
 
@@ -175,6 +177,12 @@ c'est le comportement actuel que les rejeux enregistrent. Le corriger
 changera les enregistrements existants, ce qui en fait une décision de
 jeu, pas une reprise de commentaires.
 
+
+**Prémisse probablement fausse** (établi pour TROU-20, même situation) :
+`kk[0]` est un nil **explicite**, que zepto8 et fake-08 convertissent en
+couleur 0 ; le noir du port serait alors fidèle. Non vérifié sur le
+binaire PICO-8 — même vérification que TROU-20.
+
 Fichier : `src/pico8_wormhole_display.c`.
 
 ## TROU-13 — `tostr` d'un champ absent rend la chaîne vide
@@ -293,3 +301,71 @@ Divergence visuelle permanente, assumée : la seule façon de la refermer
 serait de relever les glyphes depuis PICO-8 lui-même.
 
 Fichier : `src/pico8_gfx.c`.
+
+## TROU-20 — Un `nil` explicite comme couleur de `circ` n'est pas vérifié sur PICO-8
+
+Dans `ga:kj`, chaque particule est tracée par
+`circ(p.x,p.y,pt.p:qx(),self.k_[flr(pt.l/2)])` (lua.lua:1091). Les
+particules à `1 < l < 2` donnent l'indice 0 ; `k_` est indexée à partir de
+1, donc `k_[0]` est nil et `circ` reçoit un quatrième argument **nil
+explicite**, pas un argument omis. Ce port trace alors en couleur 0 (noir).
+
+Ce n'est probablement pas un écart. Le manuel ne dit rien d'un nil
+explicite ; deux émulateurs le convertissent en 0 et posent aussi la plume
+à 0 : zepto8 (`lua_isnone` seul marque l'argument absent, nil donne
+`lua_tonumber(nil)` = 0) et fake-08 (`lua_tonumber(L,4)` dès qu'il y a
+plus de 3 arguments). Le port trace donc comme eux ; il ne pose pas la
+plume, sans effet visible ici.
+
+Non vérifié sur le binaire PICO-8. La vérification : `color(8)
+circ(64,64,10,nil)` dans une cartouche, et regarder la couleur. Si PICO-8
+gardait la plume, il faudrait d'abord un vrai état de plume dans le port
+(voir la note sur `pen_color` plus bas) ; seules 22 frames de
+`geoharvest_burst` bougeraient.
+
+Note liée : dans les deux émulateurs, **tout** tracé coloré met la plume à
+jour, alors que `pen_color` du port n'est écrit que par `pico8_rk`. Un
+tracé coloré entre un `rk` et un `rk_default` ferait diverger le port.
+Non étudié.
+
+Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b) ;
+prémisse réfutée par diagnostic (émulateurs) après la Phase E.
+
+Fichier : `src/pico8_planet_family.c`.
+
+## TROU-21 — La palette d'un éclat né d'une protoétoile est celle de la classe
+
+`ga:kj` lit `self.k_` (lua.lua:1091), donc le `k_` de l'instance quand elle
+en a un. `pm:pq()` en donne un au `ga` qu'il crée,
+`k_=o(1,2,8,14,14,14,14,8,8,2,2,1,1)` (lua.lua:1030, 1033), qui masque celui
+de la classe, `k_=o(1,2,4,9,9,10,10,7,7,7,7,7)` (lua.lua:1077). Ce port lit
+`k_` dans les valeurs par défaut de la classe `ga`, jamais dans l'instance :
+l'éclat d'une protoétoile prend la palette de l'éclat ordinaire.
+
+Probable, pas vérifié contre PICO-8. Non atteint par le filet :
+`pico8_pm_pq` n'est exécuté par aucun rejeu de `FRAMES_EVENTS` (couverture
+de D0b). Le `ga` de `geoharvest_burst` naît de l'action « harvest » et n'a
+pas de `k_` propre ; il ne voit donc pas l'écart.
+
+Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
+
+Fichier : `src/pico8_planet_family.c`.
+
+## TROU-22 — `tostr` sous 0.0001 n'est pas sourcé
+
+`pico8_value_tostr` écrit un nombre avec 4 décimales arrondies au pair,
+puis retire les zéros de fin et le point nu. Cette règle reproduit 13 des
+14 témoins du bloc C de `tools/probe_out.txt`, dont `2/3 → "0.6667"`.
+
+Le 14ᵉ est le brut −6 (`0xffff.fffa`) : PICO-8 affiche `"-0"`, ce port
+`"-0.0001"`. Aucune règle unique ne concilie ce témoin avec
+`2/3 → "0.6667"`, donc elle n'est pas devinée. Ce port garde sa sortie :
+brut −6 → `"-0.0001"`, bruts −1 à −3 → `"-0"`, bruts 1 à 3 → `"0"`. Pour
+les autres magnitudes inférieures à 0.0001, la règle de PICO-8 est
+inconnue.
+
+Non atteint par le filet : aucune valeur affichée par le jeu n'a une
+magnitude inférieure à 0.0001. Se tranche par une relance d'une ligne de
+la sonde (reliquat de la Phase A, `docs/plan-2.md`).
+
+Fichier : `src/pico8_value.c`.

@@ -23,7 +23,7 @@ static pico8_class_t *g_probe_class = NULL;
 static pico8_instance_t *g_fm = NULL;
 
 static int pico8_probe_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 static int pico8_probe_truthy(pico8_value_t v) {
@@ -97,7 +97,7 @@ static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     qu_p = pico8_probe_field_vec(qu, "p");
     re_p = pico8_probe_field_vec(re, "p");
 
-    return pico8_geom_be(qu_p, re_p, ctx->self_p, pico8_fixed_from_double(0.0032));
+    return pico8_geom_be(qu_p, re_p, ctx->self_p, PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 /* `hw` is read off the `ui` class defaults, not off `ok`; an absent class or
@@ -240,7 +240,7 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
     }
 
     if (gfx != NULL && mem != NULL) {
-        pico8_fixed_t a = pico8_fixed_from_double(0.5);
+        pico8_fixed_t a = PICO8_FIXED_LIT(0x00008000, 0.5);
         pico8_io(gfx, mem, display, mp.x, pico8_fixed_sub(mp.y, pico8_fixed_from_int(8)), 8, &a);
     }
 
@@ -339,9 +339,9 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     ki = pico8_probe_field_fixed(self, "ki");
 
     a = pico8_fixed_add(
-        pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(pico8_fixed_rnd(pn)), pico8_fixed_rnd(pico8_fixed_from_double(0.5))),
+        pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(pico8_fixed_rnd(pn)), pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5))),
                          pn),
-        pico8_fixed_mul(t, pico8_fixed_from_double(0.001)));
+        pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000041, 0.001)));
 
     p = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);
     v = pico8_vec_mul(p, py);

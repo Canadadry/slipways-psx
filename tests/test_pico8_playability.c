@@ -51,6 +51,7 @@
 #include "../src/pico8_entity.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_fixed_test_double.h"
 
 #define PHASE4_PLAYTHROUGH_EVENTS_PATH "tests/fixtures/phase4_playthrough_events.json"
 

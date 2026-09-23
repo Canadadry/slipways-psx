@@ -245,7 +245,7 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
         for (qq_i = 0; qq_i < ml_count; qq_i++) {
             pico8_value_t qq = ml[qq_i];
             pico8_fixed_t loop_bound = (jq > pico8_fixed_from_int(1)) ? jq : pico8_fixed_from_int(1);
-            int n = (int)pico8_fixed_to_double(loop_bound);
+            int n = pico8_fixed_flr_int(loop_bound);
             int i;
             pico8_class_t *jo_class;
             pico8_value_t em_val;

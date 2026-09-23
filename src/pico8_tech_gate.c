@@ -70,7 +70,7 @@ pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
     pico8_value_t fu_val;
     pico8_fixed_t od = pico8_fixed_from_int(0);
     pico8_fixed_t fu = pico8_fixed_from_int(0);
-    pico8_fixed_t threshold = pico8_fixed_from_double(0.55);
+    pico8_fixed_t threshold = PICO8_FIXED_LIT(0x00008ccc, 0.55);
     pico8_fixed_t factor;
 
     if (t != NULL && pico8_ob_table_get_name(t, "od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
@@ -85,7 +85,7 @@ pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
         int found = 0;
 
         if (nk_val.kind == PICO8_VALUE_FIXED) {
-            found = pico8_ob_table_get_index(fu_table, (int)pico8_fixed_to_double(nk_val.as.fixed), &v);
+            found = pico8_ob_table_get_index(fu_table, pico8_fixed_flr_int(nk_val.as.fixed), &v);
         } else if (nk_val.kind == PICO8_VALUE_STRING && nk_val.as.string != NULL) {
             found = pico8_ob_table_get_name(fu_table, nk_val.as.string, &v);
         }

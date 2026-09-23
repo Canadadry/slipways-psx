@@ -63,7 +63,7 @@ static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_
         return 0;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, (int)pico8_fixed_to_double(key.as.fixed), out);
+        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
     } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         return pico8_ob_table_get_name(table, key.as.string, out);
     }
@@ -108,7 +108,7 @@ pico8_fixed_t pico8_da(pico8_instance_t *pt) {
         pico8_value_t mi_val;
         pico8_value_t es_val;
         if (es != NULL && pico8_instance_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
-            pico8_ob_table_get_index(es, (int)pico8_fixed_to_double(mi_val.as.fixed), &es_val) &&
+            pico8_ob_table_get_index(es, pico8_fixed_flr_int(mi_val.as.fixed), &es_val) &&
             es_val.kind == PICO8_VALUE_FIXED) {
             return es_val.as.fixed;
         }
@@ -130,7 +130,7 @@ pico8_fixed_t pico8_cz(void) {
     int mu = filtered.count;
     pico8_fixed_t result;
     pico8_list_free(&filtered);
-    result = pico8_fixed_mul(pico8_fixed_from_double(0.18), pico8_fixed_from_int(mu * mu));
+    result = pico8_fixed_mul(PICO8_FIXED_LIT(0x00002e14, 0.18), pico8_fixed_from_int(mu * mu));
     return pico8_fixed_flr(result);
 }
 
@@ -177,7 +177,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                     }
                     if (ct != NULL && has_pt_mi) {
                         pico8_value_t v;
-                        if (pico8_ob_table_get_index(ct, (int)pico8_fixed_to_double(pt_mi), &v) &&
+                        if (pico8_ob_table_get_index(ct, pico8_fixed_flr_int(pt_mi), &v) &&
                             v.kind == PICO8_VALUE_FIXED) {
                             ct_pt = v.as.fixed;
                         }
@@ -185,7 +185,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                     if (ct != NULL && pico8_instance_get_field(oz, "mi", &oz_mi_val) &&
                         oz_mi_val.kind == PICO8_VALUE_FIXED) {
                         pico8_value_t v;
-                        if (pico8_ob_table_get_index(ct, (int)pico8_fixed_to_double(oz_mi_val.as.fixed), &v) &&
+                        if (pico8_ob_table_get_index(ct, pico8_fixed_flr_int(oz_mi_val.as.fixed), &v) &&
                             v.kind == PICO8_VALUE_FIXED) {
                             ct_oz = v.as.fixed;
                         }
@@ -217,7 +217,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                     trade_mult = trade_val.as.fixed;
                 }
                 total = pico8_fixed_add(
-                    total, pico8_fixed_mul(pico8_fixed_mul(mu, trade_mult), pico8_fixed_from_double(1.5)));
+                    total, pico8_fixed_mul(pico8_fixed_mul(mu, trade_mult), PICO8_FIXED_LIT(0x00018000, 1.5)));
             }
         }
     }
@@ -238,7 +238,7 @@ static void sum_by_mi_visit(pico8_instance_t *pt, void *ctx_) {
         return;
     }
     if (pico8_instance_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
-        pico8_ob_table_get_index(ctx->table, (int)pico8_fixed_to_double(mi_val.as.fixed), &v) &&
+        pico8_ob_table_get_index(ctx->table, pico8_fixed_flr_int(mi_val.as.fixed), &v) &&
         v.kind == PICO8_VALUE_FIXED) {
         ctx->total = pico8_fixed_add(ctx->total, v.as.fixed);
     }
@@ -280,11 +280,11 @@ pico8_ob_table_t *pico8_ky(void) {
         }
     }
 
-    base = pico8_fixed_mul(pico8_fixed_from_int(invented_count), pico8_fixed_from_double(1.2));
+    base = pico8_fixed_mul(pico8_fixed_from_int(invented_count), PICO8_FIXED_LIT(0x00013333, 1.2));
     el = pico8_fixed_mul(pico8_fixed_flr(pico8_fixed_mul(base, base)), pico8_fixed_from_int(10));
 
     total = pico8_fixed_flr(pico8_fixed_mul(
-        pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), pico8_fixed_from_double(0.01)),
+        pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
     happiness_str = pico8_value_tostr(pico8_value_fixed(happiness));

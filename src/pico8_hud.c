@@ -17,7 +17,7 @@ static const pico8_io_offset_t g_er[9] = {
 };
 
 static int pico8_hud_to_int(pico8_fixed_t x) {
-    return (int)pico8_fixed_to_double(x);
+    return pico8_fixed_flr_int(x);
 }
 
 /* `c==3 and 0x80` is Lua's false, not a number, for every other color --

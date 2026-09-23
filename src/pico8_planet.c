@@ -231,7 +231,7 @@ static void pico8_jo_pq(pico8_instance_t *self) {
 
         if (gb != NULL) {
             if (hp_val.kind == PICO8_VALUE_FIXED) {
-                found = pico8_ob_table_get_index(gb, (int)pico8_fixed_to_double(hp_val.as.fixed), &target);
+                found = pico8_ob_table_get_index(gb, pico8_fixed_flr_int(hp_val.as.fixed), &target);
             } else if (hp_val.kind == PICO8_VALUE_STRING) {
                 found = pico8_ob_table_get_name(gb, hp_val.as.string, &target);
             }
@@ -302,7 +302,7 @@ void pico8_jo_kd(pico8_instance_t *self) {
     if (self == NULL) {
         return;
     }
-    pico8_ob_table_set_name(self->fields, "ma", pico8_value_fixed(pico8_fixed_from_double(1.25)));
+    pico8_ob_table_set_name(self->fields, "ma", pico8_value_fixed(PICO8_FIXED_LIT(0x00014000, 1.25)));
 }
 
 void pico8_jo_ll(pico8_instance_t *self, pico8_fixed_t t) {
@@ -356,7 +356,7 @@ void pico8_jo_hu(pico8_instance_t *self, pico8_instance_t *hp_instance) {
         int found = 0;
 
         if (go_val.kind == PICO8_VALUE_FIXED) {
-            found = pico8_ob_table_get_index(pico8_df(), (int)pico8_fixed_to_double(go_val.as.fixed), &nk_val);
+            found = pico8_ob_table_get_index(pico8_df(), pico8_fixed_flr_int(go_val.as.fixed), &nk_val);
         } else if (go_val.kind == PICO8_VALUE_STRING) {
             found = pico8_ob_table_get_name(pico8_df(), go_val.as.string, &nk_val);
         }
@@ -405,7 +405,7 @@ void pico8_jo_hh(pico8_instance_t *self) {
         /* `jo.ir()<0.45 and df.ll or jo.oc()`: a falsy `df.ll` falls through
          * to `jo.oc()` even on a winning roll -- both conditions, never the
          * roll alone. */
-        if (roll < pico8_fixed_from_double(0.45)) {
+        if (roll < PICO8_FIXED_LIT(0x00007333, 0.45)) {
             use_ll = pico8_ob_table_get_name(pico8_df(), "ll", &ll_val) && pico8_jo_truthy(ll_val);
         }
         if (use_ll) {

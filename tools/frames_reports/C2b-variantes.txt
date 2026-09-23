@@ -1,0 +1,166 @@
+variante lit-0.1 : 0.1 -> 0x0000.1999
+  site : src/pico8_bg.c | pico8_bg_pq | 1
+  site : src/pico8_economy_formulas.c | pico8_bk | 2
+  site : src/pico8_entity_geom.c | pico8_ma | 1
+  site : src/pico8_msgbox.c | pico8_iv_ph | 1
+  site : src/pico8_wormhole.c | pico8_mz_kz | 1
+  events.json : premiere 457 | frames 21 | plages 457 639 809 998 1614 1700 1776 1844 2043 2515 2641 2764 2918 5775 5855 5957 6099 6676 6808 8159 8248
+  tests/fixtures/phase4_playthrough_events.json : premiere 75 | frames 4 | plages 75 147 150 169
+  tests/fixtures/built_planet_panel_events.json : premiere 75 | frames 7 | plages 75 147 150 169 242 251 273
+  tests/fixtures/empty_planet_cleared_events.json : premiere 75 | frames 1 | plages 75
+  tests/fixtures/slipway_drag_events.json : premiere 77 | frames 1 | plages 77
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.27 : 0.27 -> 0x0000.451e
+  site : src/pico8_economy_formulas.c | pico8_bk | 1
+  site : src/pico8_wormhole.c | pico8_mz_hq | 2
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.005 : 0.005 -> 0x0000.0147
+  site : src/pico8_entity_geom.c | pico8_na | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.05 : 0.05 -> 0x0000.0ccc
+  site : src/pico8_galaxy.c | pico8_bw | 1
+  events.json : premiere 2373 | frames 7302 | plages 2373-2374 2383-3738 3762-4570 4593 4595-9728
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.8 : 0.8 -> 0x0000.cccc
+  site : src/pico8_galaxy.c | pico8_bw | 5
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.0977 : 0.0977 -> 0x0000.1902
+  site : src/pico8_game_data.c | pico8_bq | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.99 : 0.99 -> 0x0000.fd70
+  site : src/pico8_geom.c | pico8_geom_be | 2
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.6 : 0.6 -> 0x0000.9999
+  site : src/pico8_planet_family.c | pico8_ga_mm | 3
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.0032 : 0.0032 -> 0x0000.00d1
+  site : src/pico8_probe.c | pico8_bv_jc_predicate | 1
+  site : src/pico8_slipway.c | pico8_jc_ce_np_predicate | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.001 : 0.001 -> 0x0000.0041
+  site : src/pico8_probe.c | pico8_g__mm | 2
+  events.json : premiere 291 | frames 7631 | plages 291 298 301 304 306 309 319 322-323 325 327 329-330 334-336 340-341 344 347 352 354 356 358-361 365 367 370 373-375 377-379 381-390 392-397 399 401-420 422-425 427-430 433-443 445-448 450-457 459-540 542-2218 2253 2256 2259 2264-2265 2270 2272-2274 2409 2416 2419 2424 2428 2436 2442 2444 2446-2447 2449 2454 2456-2458 2460 2462-2467 2469 2471-2480 2482-2490 2492-2494 2497-2505 2507-2517 2519-2524 2526-2529 2531 2533-2543 2545-2570 2572-2592 2594-2624 2626-3738 3769 3772 3776-3778 3781-3782 3784-3787 3789-3795 4112 4612-4614 4618 5086 5089 5213 5217 5226 5230 5234 5238-5241 5243 5246 5248-5249 5252 5254-5255 5257-5258 5260 5262 5264 5266-5267 5269 5271-5278 5280-5287 5289-5293 5295-5297 5299-5306 5308-5317 5319-5322 5324-5327 5329-5332 5334-5384 5386-8294 8311-9728
+  tests/fixtures/phase4_playthrough_events.json : premiere 41 | frames 103 | plages 41 52 63-64 69 74 80 82-84 87 92 96 101-105 108-114 116 118 120 122-124 127 134-137 139-143 145-146 148-149 151-152 156-163 165 167-168 170 172-175 177-180 183-191 193-200 202-209 211-214 216-218 220-223
+  tests/fixtures/built_planet_panel_events.json : premiere 41 | frames 150 | plages 41 52 63-64 69 74 80 82-84 87 92 96 101-105 108-114 116 118 120 122-124 127 134-137 139-143 145-146 148-149 151-152 156-163 165 167-168 170 172-175 177-180 183-191 193-200 202-209 211-214 216-218 220-233 235-250 253-256 259-261 263-269 271-277
+  tests/fixtures/empty_planet_cleared_events.json : premiere 39 | frames 111 | plages 39 50 61-62 67 70 72 78 80-82 85 90 94 99-103 106-112 114 116 118 120-122 125 127 132-135 137-139 141 143-147 149-151 154-155 157-158 160-170 172-182 184-186 189 191 193 195-196 198-200 202-214 216-221 223-224 226-228
+  tests/fixtures/slipway_drag_events.json : premiere 38 | frames 106 | plages 38 64 74 80-85 87 90 92 95 97-103 105 109-110 112-116 119-124 127-131 134 136 139-141 143 146 149-155 157-159 162-165 167-168 170-171 173-175 178-182 184-185 187-191 193 195-200 202-203 205-208 210 212-222 224-225
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.85 : 0.85 -> 0x0000.d999
+  site : src/pico8_research.c | pico8_hp_od | 2
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-1.08 : 1.08 -> 0x0001.147a
+  site : src/pico8_slipway.c | pico8_jc_ce | 2
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.08 : 0.08 -> 0x0000.147a
+  site : src/pico8_slipway_display.c | pico8_jc_ch | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.55 : 0.55 -> 0x0000.8ccc
+  site : src/pico8_tech_gate.c | pico8_gi | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.19 : 0.19 -> 0x0000.30a3
+  site : src/pico8_wormhole.c | pico8_mz_hq | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame
+variante lit-0.031 : 0.031 -> 0x0000.07ef
+  site : src/pico8_wormhole.c | pico8_mz_pr | 1
+  events.json : 0 frame
+  tests/fixtures/phase4_playthrough_events.json : 0 frame
+  tests/fixtures/built_planet_panel_events.json : 0 frame
+  tests/fixtures/empty_planet_cleared_events.json : 0 frame
+  tests/fixtures/slipway_drag_events.json : 0 frame
+  tests/fixtures/shop_button_hover_events.json : 0 frame
+  tests/fixtures/screencast_capture_events.json : 0 frame
+  tests/fixtures/top_menubar_events.json : 0 frame

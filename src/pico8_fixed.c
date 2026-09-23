@@ -1,20 +1,8 @@
 #include "pico8_fixed.h"
-
-#include <math.h>
+#include "pico8_quarter_wave.h"
 
 pico8_fixed_t pico8_fixed_from_int(int32_t i) {
     return (pico8_fixed_t)((uint32_t)i << PICO8_FIXED_SHIFT);
-}
-
-/* TROU-1 */
-pico8_fixed_t pico8_fixed_from_double(double d) {
-    double scaled = d * 65536.0;
-    int64_t raw = (int64_t)(scaled >= 0 ? scaled + 0.5 : scaled - 0.5);
-    return (pico8_fixed_t)(uint32_t)raw;
-}
-
-double pico8_fixed_to_double(pico8_fixed_t x) {
-    return (double)x / 65536.0;
 }
 
 /* Overflow wraps, two's-complement. Signed overflow is undefined behavior
@@ -56,6 +44,13 @@ pico8_fixed_t pico8_fixed_neg(pico8_fixed_t x) {
  * negative fraction) masks to 0xFFFF0000, i.e. -1.0, not 0. */
 pico8_fixed_t pico8_fixed_flr(pico8_fixed_t x) {
     return (pico8_fixed_t)((uint32_t)x & 0xFFFF0000u);
+}
+
+/* Divides instead of shifting: >> on a negative is implementation-defined
+ * (C99 6.5.7p5), and the masked value is an exact multiple of 2^16, so the
+ * division's rounding direction never comes into play. */
+int32_t pico8_fixed_flr_int(pico8_fixed_t x) {
+    return pico8_fixed_flr(x) / ((int32_t)1 << PICO8_FIXED_SHIFT);
 }
 
 pico8_fixed_t pico8_fixed_abs(pico8_fixed_t x) {
@@ -119,14 +114,19 @@ static uint32_t pico8_fixed_isqrt_u64(uint64_t n) {
 }
 
 /* x's raw bits are x/65536, so the raw bits of sqrt(x) are
- * sqrt(x_raw * 65536): one integer square root, no host float, and the
- * result truncates rather than rounding to the nearest value. */
+ * sqrt(x_raw * 65536): one integer square root, and the result truncates
+ * rather than rounding to the nearest value. */
 pico8_fixed_t pico8_fixed_sqrt(pico8_fixed_t x) {
     if (x < 0) {
         return 0;
     }
     uint64_t scaled = (uint64_t)(uint32_t)x << PICO8_FIXED_SHIFT;
     return (pico8_fixed_t)pico8_fixed_isqrt_u64(scaled);
+}
+
+pico8_fixed_t pico8_fixed_pow075(pico8_fixed_t x) {
+    pico8_fixed_t s = pico8_fixed_sqrt(x);
+    return pico8_fixed_mul(s, pico8_fixed_sqrt(s));
 }
 
 /* Placeholder generator: a linear-congruential one with Numerical Recipes'
@@ -161,22 +161,23 @@ pico8_fixed_t pico8_fixed_rnd_default(void) {
     return pico8_fixed_rnd(pico8_fixed_from_int(1));
 }
 
-/* Spelled out rather than <math.h>'s M_PI, which is an extension glibc
- * does not define under strict -std=c99. */
-#define PICO8_TWO_PI 6.28318530717958647692528676655900576839433879875021
+/* Standard-sign sin of the turn fraction f (the low 16 bits of the
+ * argument): the quadrant folds f onto the quarter wave and sets the sign. */
+static pico8_fixed_t pico8_quarter_wave_at(uint32_t f) {
+    uint32_t quadrant = (f >> 14) & 3u;
+    uint32_t r = f & 0x3FFFu;
+    int32_t v = (quadrant & 1u) ? pico8_quarter_wave[0x4000u - r] : pico8_quarter_wave[r];
+    return (quadrant & 2u) ? -v : v;
+}
 
 /* TROU-1 */
 pico8_fixed_t pico8_fixed_cos(pico8_fixed_t x) {
-    double turns = pico8_fixed_to_double(x);
-    double radians = turns * PICO8_TWO_PI;
-    return pico8_fixed_from_double(cos(radians));
+    return pico8_quarter_wave_at(((uint32_t)x + 0x4000u) & 0xFFFFu);
 }
 
 /* Sign inverted relative to standard math: PICO-8's screen y-axis points
  * down. */
 /* TROU-1 */
 pico8_fixed_t pico8_fixed_sin(pico8_fixed_t x) {
-    double turns = pico8_fixed_to_double(x);
-    double radians = turns * PICO8_TWO_PI;
-    return pico8_fixed_from_double(-sin(radians));
+    return -pico8_quarter_wave_at((uint32_t)x & 0xFFFFu);
 }

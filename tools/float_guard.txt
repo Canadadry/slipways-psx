@@ -1,0 +1,13 @@
+# Garde -mgeneral-regs-only sur le coeur (docs/plan-2.md §6.3), produite par
+# tools/float_guard.sh via make float-guard. Ne pas editer a la main.
+#
+# Une ligne par fichier du coeur qui ne compile pas sans registre flottant.
+# La liste doit etre vide.
+#
+# Angle mort sur x86_64 : un argument double passe a une fonction externe
+# compile sans erreur sous la garde. Il est tenu par l'absence de prototype
+# flottant dans le coeur : un tel appel y est une declaration implicite, donc
+# une erreur.
+#
+#
+garde fichiers 58 en-echec 0

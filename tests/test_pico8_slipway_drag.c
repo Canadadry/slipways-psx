@@ -17,6 +17,7 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_fixed_test_double.h"
 
 #define SLIPWAY_DRAG_EVENTS_PATH "tests/fixtures/slipway_drag_events.json"
 
