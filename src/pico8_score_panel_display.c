@@ -166,7 +166,7 @@ static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t
         int current = pico8_instance_get_field(ju, "c_", &c_val) && pj_display_truthy(c_val);
         pico8_ob_table_set_name(ju->fields, "c_", pico8_value_bool(!current));
     }
-    return pico8_value_ref(NULL);
+    return pico8_value_bool(1);
 }
 
 /* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
