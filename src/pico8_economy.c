@@ -128,7 +128,7 @@ void pico8_hy_hk(pico8_instance_t *self) {
             int found = 0;
             if (k_val.kind == PICO8_VALUE_FIXED) {
                 found = pico8_ob_table_get_index((const pico8_ob_table_t *)po_val.as.ref,
-                                                  (int)pico8_fixed_to_double(k_val.as.fixed), &rk_val);
+                                                  pico8_fixed_flr_int(k_val.as.fixed), &rk_val);
             } else if (k_val.kind == PICO8_VALUE_STRING && k_val.as.string != NULL) {
                 found = pico8_ob_table_get_name((const pico8_ob_table_t *)po_val.as.ref, k_val.as.string, &rk_val);
             }

@@ -215,7 +215,7 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
         if (hn != NULL) {
             const pico8_ob_table_t *po = pico8_hp_po(hn);
             if (po != NULL) {
-                int idx = (int)pico8_fixed_to_double(mi);
+                int idx = pico8_fixed_flr_int(mi);
                 int clamped_idx = (idx < po->count) ? idx : po->count;
                 pico8_value_t po_val;
                 pico8_fixed_t base = pico8_fixed_from_int(0);

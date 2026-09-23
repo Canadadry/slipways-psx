@@ -75,7 +75,7 @@ static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_
         return 0;
     }
     if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, (int)pico8_fixed_to_double(key.as.fixed), out);
+        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
     } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
         return pico8_ob_table_get_name(table, key.as.string, out);
     }
@@ -165,7 +165,7 @@ void pico8_eg(void) {
     for (i = 1; i <= fb->count; i++) {
         pico8_value_t ny_val;
         if (pico8_ob_table_get_index(fb, i, &ny_val) && ny_val.kind == PICO8_VALUE_FIXED) {
-            int ny = (int)pico8_fixed_to_double(ny_val.as.fixed);
+            int ny = pico8_fixed_flr_int(ny_val.as.fixed);
             int pd = 0x3101 + 4 * ny;
             unsigned char cur = pico8_peek(mem, pd);
             int newval = (cur % 128) + ((ps < pico8_fixed_from_int(i)) ? 128 : 0);
@@ -226,7 +226,7 @@ void pico8_pj_hb(void) {
     {
         pico8_value_t ef_val = pico8_value_ref(NULL);
         if (g_ef != NULL) {
-            pico8_ob_table_get_index(g_ef, (int)pico8_fixed_to_double(fm_lo), &ef_val);
+            pico8_ob_table_get_index(g_ef, pico8_fixed_flr_int(fm_lo), &ef_val);
         }
         ou[5] = ef_val;
     }

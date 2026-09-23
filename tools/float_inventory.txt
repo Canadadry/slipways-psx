@@ -24,11 +24,8 @@ src/pico8_bg.c | pico8_bg_pq | constante | 1 | ligne 119 | - | - | 0.1
 src/pico8_bg.c | pico8_bg_pq | constante | 2 | ligne 129 | - | - | 0.5
 src/pico8_bg.c | pico8_bg_pq | constante | 3 | ligne 134 | - | - | 0.004
 src/pico8_collect.c | pico8_ho_apply | cast | 1 | ligne 208 | a auditer | - | raw.as.fixed
-src/pico8_economy.c | pico8_hy_hk | cast | 1 | ligne 131 | (b) | C1 | k_val.as.fixed
 src/pico8_economy.c | pico8_hy_lj | constante | 1 | ligne 248 | - | - | 1.15
 src/pico8_economy.c | pico8_hy_kt | cast | 1 | ligne 311 | a auditer | - | ew
-src/pico8_economy_formulas.c | set_by_value | cast | 1 | ligne 56 | (b) | C1 | key.as.fixed
-src/pico8_economy_formulas.c | get_by_value | cast | 1 | ligne 67 | (b) | C1 | key.as.fixed
 src/pico8_economy_formulas.c | ck_visit | constante | 1 | ligne 157 | - | - | 0.15
 src/pico8_economy_formulas.c | pico8_dj | autre | 1 | ligne 170 | - | - | double
 src/pico8_economy_formulas.c | pico8_dj | reecrit | 1 | ligne 170 | - | - | pow
@@ -38,17 +35,11 @@ src/pico8_economy_formulas.c | pico8_dj | reecrit | 2 | ligne 171 | - | - | pico
 src/pico8_economy_formulas.c | pico8_dj | constante | 1 | ligne 172 | - | - | 0.5
 src/pico8_economy_formulas.c | pico8_bk | constante | 1 | ligne 180 | - | - | 0.27
 src/pico8_economy_formulas.c | pico8_bk | constante | 2 | ligne 180 | - | - | 0.1
-src/pico8_economy_score.c | get_by_value | cast | 1 | ligne 66 | (b) | C1 | key.as.fixed
-src/pico8_economy_score.c | pico8_da | cast | 1 | ligne 111 | (b) | C1 | mi_val.as.fixed
 src/pico8_economy_score.c | pico8_cz | constante | 1 | ligne 133 | - | - | 0.18
-src/pico8_economy_score.c | pico8_db | cast | 1 | ligne 180 | (b) | C1 | pt_mi
-src/pico8_economy_score.c | pico8_db | cast | 2 | ligne 188 | (b) | C1 | oz_mi_val.as.fixed
 src/pico8_economy_score.c | pico8_db | constante | 1 | ligne 220 | - | - | 1.5
-src/pico8_economy_score.c | sum_by_mi_visit | cast | 1 | ligne 241 | (b) | C1 | mi_val.as.fixed
 src/pico8_economy_score.c | pico8_ky | constante | 1 | ligne 283 | - | - | 1.2
 src/pico8_economy_score.c | pico8_ky | constante | 2 | ligne 287 | - | - | 0.01
 src/pico8_economy_tiers.c | set_by_value | cast | 1 | ligne 55 | a auditer | - | key.as.fixed
-src/pico8_economy_tiers.c | bb_visit | cast | 1 | ligne 218 | (b) | C1 | mi
 src/pico8_entity.c | pico8_dc | cast | 1 | ligne 261 | (b) | C1 | fa_val.as.fixed
 src/pico8_entity_geom.c | pico8_na | constante | 1 | ligne 66 | - | - | 0.005
 src/pico8_entity_geom.c | pico8_na | constante | 2 | ligne 67 | - | - | 0.06
@@ -143,9 +134,6 @@ src/pico8_research.c | pico8_hp_od | constante | 1 | ligne 278 | - | - | 1.5
 src/pico8_research.c | pico8_hp_od | constante | 2 | ligne 282 | - | - | 0.85
 src/pico8_research_display.c | pico8_jo_ex | cast | 1 | ligne 248 | (b) | C1 | loop_bound
 src/pico8_research_icon.c | ie_to_int | cast | 1 | ligne 24 | (b) | C1 | x
-src/pico8_score_panel.c | get_by_value | cast | 1 | ligne 78 | (b) | C1 | key.as.fixed
-src/pico8_score_panel.c | pico8_eg | cast | 1 | ligne 168 | (b) | C1 | ny_val.as.fixed
-src/pico8_score_panel.c | pico8_pj_hb | cast | 1 | ligne 229 | (b) | C1 | fm_lo
 src/pico8_score_panel.c | pico8_pj_kj | constante | 1 | ligne 277 | - | - | 0.2
 src/pico8_score_panel.c | pico8_pj_kj | constante | 2 | ligne 278 | - | - | 3.2
 src/pico8_score_panel_display.c | pico8_pj_hk | cast | 1 | ligne 92 | a auditer | - | yr
@@ -164,7 +152,6 @@ src/pico8_slipway_display.c | pico8_jc_ch | constante | 1 | ligne 102 | - | - | 
 src/pico8_slipway_display.c | pico8_jc_lg | constante | 1 | ligne 155 | - | - | 1.5
 src/pico8_slipway_display.c | pico8_jc_lg | constante | 2 | ligne 157 | - | - | 1.5
 src/pico8_tech_gate.c | pico8_gi | constante | 1 | ligne 73 | - | - | 0.55
-src/pico8_tech_gate.c | pico8_gi | cast | 1 | ligne 88 | (b) | C1 | nk_val.as.fixed
 src/pico8_ui.c | pico8_ui_to_int | cast | 1 | ligne 53 | (c) | D1 | x
 src/pico8_ui_button.c | pico8_ui_to_int | cast | 1 | ligne 44 | (c) | D1 | x
 src/pico8_ui_button.c | pico8_js_ph | constante | 1 | ligne 201 | - | - | 0.4
@@ -186,14 +173,14 @@ src/pico8_wormhole_display.c | pico8_mz_kj | cast | 8 | ligne 120 | (c) | D1 | s
 #
 # Comptes
 compte constante 61
-compte cast 76
+compte cast 63
 compte reecrit 5
 compte autre 23
-compte total 165
+compte total 152
 compte population (a) 2
-compte population (b) 36
+compte population (b) 23
 compte population (c) 21
 compte population a auditer 17
-compte etape C1 37
+compte etape C1 24
 compte etape D1 22
 compte etape a auditer 17
