@@ -56,7 +56,7 @@ Le filet compare l'écran, pas l'état : une erreur sur une valeur jamais affich
 
 Dans cet ordre, chacun bloquant le suivant :
 
-1. **Code de triche** — PRD [`docs/prd/code-triche-boutons-ox.md`](prd/code-triche-boutons-ox.md) : boutons O/X, séquence A A B B A A B B → 99 science, 200 crédits.
+1. **Code de triche** — PRD [`docs/prd/triage/01-code-triche-boutons-ox.md`](prd/triage/01-code-triche-boutons-ox.md) : boutons O/X, séquence A A B B A A B B → 99 science, 200 crédits.
 2. **Outil de couverture des classes** — `make class-coverage DIR=<dossier>` :
    - rejoue **chaque** `*events.json` du dossier ; un fichier qui ne se charge pas est signalé « illisible » et ignoré, sans arrêter l'outil ;
    - affiche une ligne par classe : nom, nombre d'instanciations, nombre de rejeux qui l'instancient ;
