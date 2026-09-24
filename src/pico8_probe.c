@@ -322,7 +322,7 @@ pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_
 pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *self = (pico8_instance_t *)self_ptr;
     pico8_fixed_t pn, t, du, py, ki;
-    pico8_fixed_t a;
+    pico8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
     pico8_ob_table_t *particle;
     pico8_vec_t *p_heap;
@@ -338,9 +338,12 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     py = pico8_probe_field_fixed(self, "py");
     ki = pico8_probe_field_fixed(self, "ki");
 
+    /* Two statements, not two arguments: C leaves argument order unspecified
+     * (gcc drew rnd(0.5) first), Lua draws rnd(self.pn) first. */
+    rnd_pn = pico8_fixed_rnd(pn);
+    rnd_half = pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5));
     a = pico8_fixed_add(
-        pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(pico8_fixed_rnd(pn)), pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5))),
-                         pn),
+        pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(rnd_pn), rnd_half), pn),
         pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000041, 0.001)));
 
     p = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);
