@@ -61,7 +61,9 @@ cat <<EOF
 # partagee), partagent leurs compteurs.
 EOF
 
-awk -v pairs="$pairs" -v c1_list="$c1_list" '
+# awk -v refuse une valeur qui contient un saut de ligne (awk de macOS) :
+# pairs passe par l'environnement.
+FLOAT_AUDIT_PAIRS=$pairs awk -v c1_list="$c1_list" '
 function balanced_arg(s, start,    depth, k, c) {
     depth = 1
     for (k = start; k <= length(s); k++) {
@@ -183,7 +185,7 @@ function read_records(e, path,    entry, n, f, key, r, frame) {
 }
 
 END {
-    events_count = split(pairs, pair_lines, "\n")
+    events_count = split(ENVIRON["FLOAT_AUDIT_PAIRS"], pair_lines, "\n")
     for (e = 1; e <= events_count; e++) {
         if (pair_lines[e] == "") {
             events_count = e - 1
