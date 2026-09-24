@@ -45,23 +45,36 @@ static int pico8_layout_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Collects `table`'s PICO8_OB_KEY_INDEX entries in insertion order, which is
- * what Lua's all() walks on a purely positional table. Returns a new list the
- * caller owns and must release with pico8_list_free(). */
+/* Collects `table`'s PICO8_OB_KEY_INDEX entries in ascending index order, as
+ * Lua's all() walks them — not insertion order: pj:ph writes the star row's
+ * st[3] before st[1..5]. Returns a new list the caller owns and must release
+ * with pico8_list_free(). */
 static pico8_list_t pico8_layout_positional_values(const pico8_ob_table_t *table) {
     pico8_list_t list;
     int i;
+    int have_last = 0;
+    int last = 0;
 
     pico8_list_init(&list);
     if (table == NULL) {
         return list;
     }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
+    for (;;) {
+        int next = -1;
+        for (i = 0; i < table->count; i++) {
+            if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX &&
+                (!have_last || table->entries[i].key.index > last) &&
+                (next < 0 || table->entries[i].key.index < table->entries[next].key.index)) {
+                next = i;
+            }
         }
+        if (next < 0) {
+            return list;
+        }
+        pico8_list_add(&list, table->entries[next].value);
+        last = table->entries[next].key.index;
+        have_last = 1;
     }
-    return list;
 }
 
 /* Writes out_item plus mn's second and third Lua return values (out_w,
