@@ -1,12 +1,10 @@
-/* L'outil d'empreintes, lance tel que les cibles make le lancent, sur une
- * capture faite par le vrai pilote de rejeu. Comme
+/* L'outil d'emission de frames, lance tel que les messages de make frames-ref
+ * le proposent, sur une capture faite par le vrai pilote de rejeu. Comme
  * test_pico8_headless_capture, ce test reecrit le dump du pilote. */
 
-#include "../src/pico8_frame_hash.h"
 #include "../src/pico8_screencast.h"
 
 #include <assert.h>
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,13 +14,10 @@
 #define TOOL "./tmp/pico8_frames"
 #define DRIVER_DUMP "tmp/pico8_replay_dump.txt"
 #define CAPTURE "tmp/test_frames_tool.bin"
-#define HASHES "tmp/test_frames_tool.hash"
 #define FRAME_OUT "tmp/test_frames_tool_frame.txt"
 #define STDERR_LOG "tmp/test_frames_tool_stderr.txt"
 #define BAD_CAPTURE "tmp/test_frames_tool_bad.bin"
 #define MISSING_CAPTURE "tmp/no_such_capture_for_frames_tool.bin"
-
-#define HASH_LINE_LEN 17
 
 /* Le contenu entier de `path`, termine par un NUL en plus de `*out_len`
  * octets. Tampon alloue : l'appelant le libere. Rend NULL si le fichier
@@ -58,40 +53,6 @@ static void assert_stderr_names(const char *needle) {
     assert(log != NULL);
     assert(strstr(log, needle) != NULL);
     free(log);
-}
-
-static void test_line_k_is_the_hash_of_frame_k(void) {
-    capture_fixture();
-    remove(HASHES);
-    assert(system(TOOL " hashes " CAPTURE " " HASHES) == 0);
-
-    size_t len;
-    char *text = read_whole_file(HASHES, &len);
-    assert(text != NULL);
-
-    pico8_screencast_reader_t reader;
-    assert(pico8_screencast_reader_open(&reader, CAPTURE) == PICO8_SCREENCAST_OK);
-    int count = pico8_screencast_frame_count(&reader);
-    assert(count > 1);
-    assert(len == (size_t)count * HASH_LINE_LEN);
-
-    static unsigned char pixels[PICO8_SCREENCAST_FRAME_PIXELS];
-    char expected[HASH_LINE_LEN + 1];
-    for (int k = 0; k < count; k++) {
-        assert(pico8_screencast_read_frame(&reader, k, pixels));
-        snprintf(expected, sizeof(expected), "%016" PRIx64 "\n", pico8_frame_hash(pixels));
-        assert(memcmp(text + (size_t)k * HASH_LINE_LEN, expected, HASH_LINE_LEN) == 0);
-    }
-    pico8_screencast_reader_close(&reader);
-
-    /* Temoin de l'ordre : sans deux lignes distinctes a la fin, une
-     * inversion de lignes passerait la boucle ci-dessus. */
-    assert(memcmp(text + (size_t)(count - 2) * HASH_LINE_LEN,
-                  text + (size_t)(count - 1) * HASH_LINE_LEN, HASH_LINE_LEN) != 0);
-
-    free(text);
-    remove(HASHES);
-    remove(CAPTURE);
 }
 
 static void test_emitted_last_frame_is_the_driver_dump(void) {
@@ -152,17 +113,8 @@ static void test_out_of_bounds_frame_fails_and_names_the_index(void) {
     remove(CAPTURE);
 }
 
-/* Aucun fichier d'empreintes ne doit rester apres un echec : il serait
- * pris pour complet. */
-static void assert_hashes_refuse(const char *capture_path) {
+static void assert_frame_refuses(const char *capture_path) {
     char command[256];
-    remove(HASHES);
-    snprintf(command, sizeof(command), TOOL " hashes %s " HASHES " 2> " STDERR_LOG, capture_path);
-    assert(system(command) != 0);
-    assert_stderr_names(capture_path);
-    size_t len;
-    assert(read_whole_file(HASHES, &len) == NULL);
-
     snprintf(command, sizeof(command), TOOL " frame %s 0 > " FRAME_OUT " 2> " STDERR_LOG, capture_path);
     assert(system(command) != 0);
     assert_stderr_names(capture_path);
@@ -178,15 +130,15 @@ static void test_truncated_empty_or_missing_capture_is_refused(void) {
     assert(bad != NULL);
     assert(fwrite(bytes, 1, len - 1, bad) == len - 1);
     fclose(bad);
-    assert_hashes_refuse(BAD_CAPTURE);
+    assert_frame_refuses(BAD_CAPTURE);
 
     bad = fopen(BAD_CAPTURE, "wb");
     assert(bad != NULL);
     fclose(bad);
-    assert_hashes_refuse(BAD_CAPTURE);
+    assert_frame_refuses(BAD_CAPTURE);
 
     remove(MISSING_CAPTURE);
-    assert_hashes_refuse(MISSING_CAPTURE);
+    assert_frame_refuses(MISSING_CAPTURE);
 
     free(bytes);
     remove(BAD_CAPTURE);
@@ -196,7 +148,6 @@ static void test_truncated_empty_or_missing_capture_is_refused(void) {
 }
 
 int main(void) {
-    test_line_k_is_the_hash_of_frame_k();
     test_emitted_last_frame_is_the_driver_dump();
     test_out_of_bounds_frame_fails_and_names_the_index();
     test_truncated_empty_or_missing_capture_is_refused();
