@@ -6,7 +6,7 @@ status: needs-triage
 
 ## Problem Statement
 
-Le filet de non-régression versionne, pour chacun de ses 12 rejeux, un fichier `<events>.frames.hash` qui porte une empreinte par frame. Sur la grosse session `events.json`, c'est 116 045 lignes, soit près de 2 Mo réécrits à chaque re-baseline.
+Le filet de non-régression versionne, pour chacun de ses 13 rejeux, un fichier `<events>.frames.hash` qui porte une empreinte par frame. Sur la grosse session `events.json`, c'est 116 045 lignes, soit près de 2 Mo réécrits à chaque re-baseline.
 
 Ce détail ne sert pas à grand-chose. Une seule empreinte suffit pour savoir si le rendu a changé. Pour comprendre ce qui a changé, il faut de toute façon les pixels des deux côtés, et le plan 2 le disait déjà (§5 : « on régénère cette frame des deux côtés et on diffe »). L'empreinte par frame ne fait que localiser la première frame fautive, ce qu'un `cmp` sur les deux captures fait aussi bien.
 
@@ -46,7 +46,7 @@ Trois gestes, et rien d'autre :
 5. En tant que développeur, je veux que `frames-check` examine tous les rejeux avant de conclure, afin de voir d'un coup tous ceux qui divergent.
 6. En tant que développeur, je veux que le message de divergence de `frames-check` nomme le rejeu fautif, les deux empreintes et la commande `make frames-ref`, afin de savoir quoi faire ensuite sans relire le `Makefile`.
 7. En tant que développeur, je veux qu'une capture courante absente soit une erreur de `frames-check` et non un « conforme », afin qu'un rejeu qui n'a rien produit ne passe pas pour juste.
-8. En tant qu'humain qui re-baseline, je veux que `make frames-baseline` réécrive les empreintes des 12 rejeux et affiche ce qu'il a posé, afin que la re-baseline tienne en une commande.
+8. En tant qu'humain qui re-baseline, je veux que `make frames-baseline` réécrive les empreintes des 13 rejeux et affiche ce qu'il a posé, afin que la re-baseline tienne en une commande.
 9. En tant qu'humain qui re-baseline, je veux que `frames-baseline` ne soit jamais appelé par `make test`, afin qu'une régression ne puisse pas devenir référence par accident.
 10. En tant que développeur qui enquête, je veux lancer `make frames-ref` sans argument, afin de ne pas avoir à recopier le chemin d'un fichier d'événements.
 11. En tant que développeur qui enquête, je veux que `frames-ref` ne traite que les rejeux dont l'empreinte diverge, afin de ne pas payer la reconstruction des rejeux conformes.
@@ -73,7 +73,7 @@ Trois gestes, et rien d'autre :
 ## Implementation Decisions
 
 - **Format de l'empreinte** : le sha256 hexadécimal de la capture `.bin` entière, une seule ligne par fichier, nommée `<events>.sha256` et placée à côté du fichier d'événements. Le calcul passe par la variable sha256 portable déjà définie dans le `Makefile` (`sha256sum`, ou `shasum -a 256` sous Darwin).
-- **Le filet** : la liste explicite des 12 fichiers d'événements ne change pas. `events.json` en fait déjà partie et partage sa capture avec `make screencast`. Un rejeu sans référence posée n'est ni capturé ni comparé.
+- **Le filet** : la liste explicite des 13 fichiers d'événements ne change pas. `events.json` en fait déjà partie et partage sa capture avec `make screencast`. Un rejeu sans référence posée n'est ni capturé ni comparé.
 - **`frames-check`** : pour chaque rejeu dont la référence est posée, il compare l'empreinte versionnée à l'empreinte de la capture courante. Il examine tous les rejeux avant de conclure, puis rend un code non nul si l'un diverge ou si une capture courante manque. Le message de divergence nomme le rejeu et les deux empreintes, et indique `make frames-ref`. Le script existant peut être gardé et simplifié, ou la vérification peut être inlinée dans le `Makefile`. Le critère : ce qui est le plus simple à tester depuis `make unit`.
 - **`frames-baseline`** : il copie les empreintes courantes sur les références, sans argument et sans garde. Il affiche chaque référence posée.
 - **`frames-ref`** : une cible hors suite, sans argument. Pour chaque rejeu divergent :
@@ -101,9 +101,9 @@ Trois gestes, et rien d'autre :
 
 Un seul commit, pour que le blame de chaque `.sha256` désigne un commit dont le code produit ces pixels. Ordre de travail à l'intérieur de ce commit :
 
-1. **Précondition** : sur l'arbre de départ, avant toute modification, `make frames-check` est conforme sur les 12 rejeux avec les anciens `*.frames.hash`. Si ce n'est pas le cas, on s'arrête : la migration gèlerait une régression.
+1. **Précondition** : sur l'arbre de départ, avant toute modification, `make frames-check` est conforme sur les 13 rejeux avec les anciens `*.frames.hash`. Si ce n'est pas le cas, on s'arrête : la migration gèlerait une régression.
 2. **Outillage** : nouveau `frames-check`, `frames-baseline` simplifié, `frames-ref`, `pico8_frames` réduit à `frame`, retraits.
-3. **Migration des références** : on pose les 12 `<events>.sha256` avec `frames-baseline`, sur les captures produites par le même code que celui de l'étape 1, puis on supprime les 12 `*.frames.hash`.
+3. **Migration des références** : on pose les 13 `<events>.sha256` avec `frames-baseline`, sur les captures produites par le même code que celui de l'étape 1, puis on supprime les 13 `*.frames.hash`.
 4. **Documentation** et légende du `Makefile`.
 5. **Vérification** : `make test` est vert. Puis une vérification manuelle de `frames-ref`, non commitée : on altère volontairement un pixel, on lance `frames-check` (divergent), puis `frames-ref` (première frame annoncée cohérente avec l'altération), et on annule l'altération. Cette vérification demande que le commit de migration existe, puisque le blame doit désigner un commit : elle se fait donc juste après avoir commité, avant de pousser.
 
