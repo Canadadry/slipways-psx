@@ -570,7 +570,8 @@ FRAMES_EVENTS := \
     tests/fixtures/tech_screen_invent_events.json \
     tests/fixtures/game_end_events.json \
     tests/fixtures/pause_menu_music_events.json \
-    tests/fixtures/geoharvest_burst_events.json
+    tests/fixtures/geoharvest_burst_events.json \
+    tests/fixtures/events_recorded_1790198294.json
 
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames
