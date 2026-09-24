@@ -198,7 +198,7 @@ static void test_capturing_changes_nothing_the_replay_produces(void) {
  * s'inverse ici parce que personne ne joue : un fichier tronque
  * produirait silencieusement une empreinte fausse, c'est-a-dire un faux
  * rouge indiscernable d'une regression. Un pilote qui aurait continue
- * sans capturer aurait rendu 0, et `make screencast-check` aurait
+ * sans capturer aurait rendu 0, et `make frames-check` aurait
  * calcule une empreinte sur le fichier d'un rejeu precedent.
  *
  * Le message est assertionne, pas seulement le code de sortie : il est

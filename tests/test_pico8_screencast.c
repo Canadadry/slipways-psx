@@ -237,10 +237,9 @@ static long read_whole_file(const char *path, unsigned char *out, long capacity)
 }
 
 /* Un aller-retour par la lecture ne change pas un octet du fichier.
- * C'est la propriete dont depend l'empreinte signee de `make
- * screencast-check` : le jour ou une lecture modifierait le fichier
- * qu'elle lit, regarder une capture suffirait a invalider la signature
- * qu'on venait de poser. */
+ * C'est la propriete dont depend l'empreinte de `make frames-check` : le
+ * jour ou une lecture modifierait le fichier qu'elle lit, regarder une
+ * capture suffirait a la faire diverger. */
 static void test_reading_leaves_the_file_byte_for_byte_unchanged(void) {
     const char *path = "tmp/test_screencast_readonly.bin";
     pico8_screencast_reader_t reader;

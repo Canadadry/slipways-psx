@@ -198,10 +198,12 @@ Un `events.json` enregistré par le mode enregistrement du backend raylib sur un
 ```
 dump texte actuel  : 16 512 octets / frame  (128 lignes de 128 hexa + saut de ligne)
 1 000 frames       : 16,5 Mo versionnés — par baseline, et il y aura des re-baselines
-empreinte / frame  : 8 octets  →  1 000 frames = 8 Ko
+empreinte / rejeu  : un sha256 de la capture entière, 65 octets quelle que soit sa durée
 ```
 
-→ un fichier `frames.hash` versionné (une empreinte par ligne), et le dumper conserve la capacité d'émettre la frame *N* en entier à la demande. Quand une empreinte diverge, on régénère cette frame des deux côtés et on diffe 128 lignes. Volume maîtrisé, diagnostic intact.
+→ un fichier `<events>.sha256` versionné à côté de chaque fichier d'événements du filet : le sha256 de sa capture `.bin`, concaténation brute des frames sans en-tête, donc une empreinte de toutes les frames et de leur nombre. `make frames-check` (dans `make test`) le compare à la capture courante ; `make frames-baseline` le repose, jamais par `make test`. Quand une empreinte diverge, `make frames-ref` rejoue le fichier d'événements au commit qui a posé la référence (`git blame` sur `<events>.sha256`, un worktree jetable par commit), laisse la capture de référence dans `tmp/frames/<events>.ref.bin` et donne la première frame divergente par `cmp` ; `pico8_frames frame <capture> <N>` émet cette frame des deux côtés et on diffe 128 lignes. Volume maîtrisé, diagnostic intact.
+
+*Historique :* jusqu'à la migration vers une empreinte par rejeu, le filet versionnait un `<events>.frames.hash` d'une empreinte par frame, avec les rapports de `tools/frames_reports/` et le registre `make frames-ledger` que citent les états de phase ci-dessous ; ils ont été retirés, l'historique des références étant dans git.
 
 > **Ce filet est une base de non-régression, pas un oracle de fidélité.** Il enregistre ce que produit le port C, pas ce que produit PICO-8. Il répond à « ai-je cassé quelque chose ? », jamais à « était-ce juste ? ». Cette seconde question n'a qu'une source : l'instrument 1.
 >
@@ -211,14 +213,14 @@ empreinte / frame  : 8 octets  →  1 000 frames = 8 Ko
 
 ## 6. Critère de fin — objectivement vérifiable
 
-Aucun de ces points ne demande de jugement ni de relecture. Les points 1, 2 et 3 sont tenus par `make test` ; le point 4, propriété de l'historique git et non de l'arbre, par la cible explicite `make frames-ledger`.
+Aucun de ces points ne demande de jugement ni de relecture. Les points 1, 2 et 3 sont tenus par `make test` ; le point 4 était tenu par `make frames-ledger`, retirée depuis.
 
 1. **`make float-grep`** → aucune ligne. Le grep `\b(double|float)\b` porte sur le **cœur** (§4) : les `CORE_SRCS` et les en-têtes qu'ils incluent par défaut (calculés par `cc -MM`, sans les définitions `PICO8_FLOAT_*`). Le reste de `src/` (points d'entrée, outils d'hôte, backend raylib, visualiseur, builds d'audit, aide de test `pico8_fixed_test_double.{h,c}`) est exclu par `tools/float_grep_exclusions.txt`, une justification par ligne ; un fichier du cœur qui y figurerait fait échouer la cible.
 2. **La cible de lien du cœur est `$(TMP_DIR)/pico8_replay`** (sources `REPLAY_SRCS`) : elle est liée sans `-lm`, et `make test` la construit. `make float-link` refait ce lien dans un binaire jetable et liste les symboles non résolus ; c'est un diagnostic, hors suite.
 3. **`make float-guard`** → liste vide : les objets du cœur (`CORE_SRCS`) **compilent avec `-mgeneral-regs-only`** sur l'hôte (erreur du compilateur sur tout flottant à l'exécution, constantes repliées tolérées). C'est une **garde hôte** : elle ne prouve pas l'objectif PSX à elle seule.
    *Angle mort sur x86_64, mesuré en B2 :* la garde rattrape les retours et opérations `double`, pas un argument `double` passé à une fonction externe — GCC le passe sur la pile sans erreur. Il est fermé depuis E1 par un autre moyen : le cœur n'a plus aucun prototype flottant, donc un tel appel y est une déclaration implicite, erreur sous `-Werror` (« État de E1 »).
    *Pourquoi pas `nm` :* sur l'hôte x86_64 le FPU est matériel, donc aucun symbole soft-float de `libgcc` n'y est émis ; `nm` était déjà vide avant tout changement et ne prouve rien. *Décision humaine (Phase D) :* la vérification PSX (`nm` sur un build `mipsel` soft-float) est **hors périmètre** ; ce chantier reste sur du C pour PC, et §6.3 se juge sur la garde hôte seule.
-4. **`make frames-ledger`** → 0 erreur : toute divergence de `*.frames.hash` depuis la base `30dfd6c` est **justifiée par une ligne du relevé de sonde**, citée dans `tools/frames_ledger.txt`, et a son rapport et son attribution dans l'arbre de son commit ; un commit qui ne fait que poser des références n'en réécrit aucune. Une référence réécrite parce que son entrée a changé n'est pas une divergence de code : elle est inscrite `fixture`, et son commit modifie aussi le fichier d'événements dont elle porte le nom sans rien toucher sous `src/`. La cible exige un clone qui atteint la base (sinon elle rend 2 et nomme le remède) : elle est lancée à la clôture d'E4 et à chaque re-baseline, pas par `make test`.
+4. **`make frames-ledger`** → 0 erreur : toute divergence de `*.frames.hash` depuis la base `30dfd6c` est **justifiée par une ligne du relevé de sonde**, citée dans `tools/frames_ledger.txt`, et a son rapport et son attribution dans l'arbre de son commit ; un commit qui ne fait que poser des références n'en réécrit aucune. Une référence réécrite parce que son entrée a changé n'est pas une divergence de code : elle est inscrite `fixture`, et son commit modifie aussi le fichier d'événements dont elle porte le nom sans rien toucher sous `src/`. La cible exige un clone qui atteint la base (sinon elle rend 2 et nomme le remède) : elle est lancée à la clôture d'E4 et à chaque re-baseline, pas par `make test`. *Retirée depuis, avec le passage à une empreinte par rejeu (§5, Instrument 2).*
 
 Le point 4 est ce qui empêche ce chantier de devenir une réécriture à l'aveugle : il sépare mécaniquement « j'ai transformé » de « j'ai changé ».
 

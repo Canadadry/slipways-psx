@@ -1,10 +1,10 @@
 /* Le visualiseur de screencast : une fenetre raylib qui joue le fichier
  * de pixels fabrique par `make screencast`, pour qu'un humain puisse
- * regarder une session avant de signer son empreinte.
+ * regarder une session.
  *
  * Il n'ouvre rien en ecriture, nulle part : un aller-retour par le
- * visualiseur qui changerait un octet ferait mentir l'empreinte que
- * `make screencast-sign` vient de poser. C'est pourquoi il n'appelle pas
+ * visualiseur qui changerait un octet ferait diverger l'empreinte de
+ * `make frames-check`. C'est pourquoi il n'appelle pas
  * pico8_raylib_backend_init()/present() -- init() ouvre un enregistrement
  * de session et present() lit la memoire d'un jeu qui tourne. Les deux
  * seules fonctions du backend qu'il emprunte sont celles qui ne recoivent

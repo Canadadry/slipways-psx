@@ -1,7 +1,7 @@
 ---
 title: "Une empreinte globale par rejeu au lieu d'une empreinte par frame"
 description: "Remplacer les *.frames.hash (une ligne par frame, 2 Mo sur les grosses sessions) par un sha256 de toute la capture, et outiller la seule étape dure du diagnostic : reconstruire la capture de référence."
-status: needs-triage
+status: done
 ---
 
 ## Problem Statement

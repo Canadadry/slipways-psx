@@ -48,7 +48,7 @@ Plus des **instances sans classe** construites à la main : `mo`, `je`, le `fm` 
 
 ## 3. Invariant de toutes les phases
 
-**Après chaque commit, `make test` passe et tous les `*.frames.hash` sont identiques octet pour octet.** Aucun re-baseline dans ce plan. Un changement de rendu voulu n'appartient pas à ce plan.
+**Après chaque commit, `make test` passe et tous les `*.sha256` du filet sont identiques (`make frames-check` conforme).** Aucun re-baseline dans ce plan. Un changement de rendu voulu n'appartient pas à ce plan.
 
 Le filet compare l'écran, pas l'état : une erreur sur une valeur jamais affichée pendant les frames enregistrées lui échappe. C'est accepté (décision de cadrage) ; la couverture de l'étape 0 réduit le risque, elle ne l'annule pas.
 
@@ -65,7 +65,7 @@ Dans cet ordre, chacun bloquant le suivant :
    - liste d'exemptions versionnée, une raison par ligne. Contenu initial : `ke` (abstraite, jamais instanciée directement). **`pm` et `ga` ne sont pas exemptés** ;
    - **hors de `make test`** : lancé à la main, et par l'autopilote aux points prévus ci-dessous ;
    - le contrat de l'outil est « chaque type d'entité est construit au moins une fois », indépendant de la représentation : en 1a, le crochet migre vers les constructeurs de struct, dans le commit de la classe concernée.
-3. **Enregistrement humain** — une session raylib qui construit `qh`, `os`, `nl`, `hj`, `nr`, `fr`, `mx` et sonde une protostar (`pm`, qui engendre `ga`). Déposée par l'humain dans le dossier de fixtures de son choix, avec son `.frames.hash` posé par `make frames-baseline`.
+3. **Enregistrement humain** — une session raylib qui construit `qh`, `os`, `nl`, `hj`, `nr`, `fr`, `mx` et sonde une protostar (`pm`, qui engendre `ga`). Déposée par l'humain dans le dossier de fixtures de son choix, avec son `.sha256` posé par `make frames-baseline`.
 4. **Porte** — `make class-coverage` sur ce dossier : aucune classe à 0 hors exemption. Sinon, l'autopilote s'arrête et demande un nouvel enregistrement.
 
 Mesure de cadrage (12 rejeux du filet, avant l'étape 0) : à 0 → `ke`, `nl`, `os`, `hj`, `pm`, `nr`, `fr`, `mx` ; rares → `qh` 4, `ga` 1, `fq` 1 ; les 19 autres entre 15 et 1 350.
