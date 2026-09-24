@@ -14,7 +14,7 @@
  * Effet de bord assume : chaque rejeu lance ici reecrit le dump du
  * pilote avec celui de la fixture courte ; test_pico8_frames_tool le
  * reecrit aussi, et `make replay` le reecrit ensuite avec celui de
- * l'events.json de la racine. */
+ * la session humaine (tests/fixtures/session_events.json). */
 
 #include "../src/pico8_dump.h"
 #include "../src/pico8_gfx.h"

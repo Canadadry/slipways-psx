@@ -2,7 +2,7 @@
 #                       + constants-check + float-audit + float-grep + float-guard,
 #                       la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
-# make replay        -> rejoue events.json dans le moteur headless
+# make replay        -> rejoue la session humaine dans le moteur headless
 # make screencast    -> refabrique les pixels de chaque frame du rejeu
 # make screencast-check -> compare leur empreinte à celle qui est signée
 # make screencast-sign  -> signe l'empreinte actuelle (acte humain, voir plus bas)
@@ -491,17 +491,17 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_probe_mm_rnd_order
 
 replay: $(TMP_DIR)/pico8_replay
-	./$(TMP_DIR)/pico8_replay
+	./$(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS)
 
 test: unit replay screencast-check frames-check constants-check float-audit float-grep float-guard
 
-# ENREGISTREMENT D'ÉCRAN : make screencast rejoue events.json en écrivant les
+# ENREGISTREMENT D'ÉCRAN : make screencast rejoue SCREENCAST_EVENTS en écrivant les
 # pixels de chaque frame, make screencast-check compare leur empreinte à celle
-# signée dans events.json.sha256. Sans fichier d'empreinte, la vérification ne
+# signée dans SCREENCAST_SHA. Sans fichier d'empreinte, la vérification ne
 # fabrique rien et ne compare rien : elle dit seulement comment en poser une.
 # Signer est un acte humain — ça vaut « j'ai regardé cette session et elle est
 # juste » — d'où une cible séparée, jamais appelée par `make test`.
-SCREENCAST_EVENTS := events.json
+SCREENCAST_EVENTS := tests/fixtures/session_events.json
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 SCREENCAST_SHA := $(SCREENCAST_EVENTS).sha256
 
