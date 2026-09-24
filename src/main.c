@@ -31,7 +31,7 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-    const char *events_path = (argc > 1) ? argv[1] : "events.json";
+    const char *events_path = (argc > 1) ? argv[1] : "tests/fixtures/session_events.json";
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 

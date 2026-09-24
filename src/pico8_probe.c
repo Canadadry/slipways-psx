@@ -338,14 +338,12 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     py = pico8_probe_field_fixed(self, "py");
     ki = pico8_probe_field_fixed(self, "ki");
 
-    /* C leaves argument evaluation order unspecified (gcc and clang differ):
-     * the two rnd draws must stay sequenced in locals, left then right, as
-     * Lua evaluates them. */
-    rnd_pn = pico8_fixed_flr(pico8_fixed_rnd(pn));
+    /* Two statements, not two arguments: C leaves argument order unspecified
+     * (gcc drew rnd(0.5) first), Lua draws rnd(self.pn) first. */
+    rnd_pn = pico8_fixed_rnd(pn);
     rnd_half = pico8_fixed_rnd(PICO8_FIXED_LIT(0x00008000, 0.5));
     a = pico8_fixed_add(
-        pico8_fixed_div(pico8_fixed_add(rnd_pn, rnd_half),
-                         pn),
+        pico8_fixed_div(pico8_fixed_add(pico8_fixed_flr(rnd_pn), rnd_half), pn),
         pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000041, 0.001)));
 
     p = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);

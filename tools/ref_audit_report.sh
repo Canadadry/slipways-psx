@@ -38,7 +38,7 @@ run() {
 echo "== running instrumented binaries =="
 # One replay driver over every recorded events.json in the repo: six
 # scenarios for the price of one build.
-for fixture in events.json \
+for fixture in tests/fixtures/session_events.json \
                tests/fixtures/phase4_playthrough_events.json \
                tests/fixtures/slipway_drag_events.json \
                tests/fixtures/empty_planet_cleared_events.json \

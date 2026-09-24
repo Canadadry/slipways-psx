@@ -213,7 +213,7 @@ static void test_save_writes_events_json_schema_shape(void) {
     /* Cross-check against a committed recording this test did not write --
      * same key names in the same shape, not a self-consistent-but-different
      * schema invented by writer and reader agreeing with each other alone.
-     * Deliberately a fixture, not the events.json at the repo root: that one
+     * Deliberately a fixture, not the human session_events.json: that one
      * is a working recording, replaced whenever a session is played. */
     char *real_events_json = read_file_raw("tests/fixtures/demo_events.json");
     assert(strstr(real_events_json, "\"frames\":") != NULL);

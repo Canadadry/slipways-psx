@@ -2,8 +2,8 @@
 #                       + constants-check + float-audit + float-grep + float-guard,
 #                       la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
-# make replay        -> rejoue events.json dans le moteur headless
-# make screencast    -> refabrique les pixels de chaque frame du rejeu de events.json
+# make replay        -> rejoue la session humaine dans le moteur headless
+# make screencast    -> refabrique les pixels de chaque frame du rejeu de la session humaine
 # make frames-check  -> compare le sha256 de la capture de chaque rejeu du filet à
 #                       sa référence <events>.sha256, dans make test
 # make frames-baseline -> (re)pose ces références sur le code actuel, jamais par
@@ -365,9 +365,6 @@ $(TMP_DIR)/test_pico8_top_menubar: $(call objs,tests/test_pico8_top_menubar.c $(
 $(TMP_DIR)/test_pico8_shop_tooltip_fillp: $(call objs,tests/test_pico8_shop_tooltip_fillp.c $(ENGINE_SRCS)) tests/fixtures/shop_button_hover_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_rnd_order.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -412,6 +409,9 @@ $(TMP_DIR)/test_pico8_rich_planet_exports: $(call objs,tests/test_pico8_rich_pla
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_cheat_code: $(call objs,tests/test_pico8_cheat_code.c $(ENGINE_SRCS)) tests/fixtures/cheat_code_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_rnd_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Liste de sources réduite et non $(ENGINE_SRCS) : ce test ne boote pas de cart.
@@ -464,7 +464,6 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_float_link
 	./$(TMP_DIR)/test_constants_check
 	./$(TMP_DIR)/test_pico8_bg_kj
-	./$(TMP_DIR)/test_pico8_probe_mm_rnd_order
 	./$(TMP_DIR)/test_pico8_top_menubar
 	./$(TMP_DIR)/test_pico8_shop_tooltip_fillp
 	./$(TMP_DIR)/test_pico8_empty_planet_cleared
@@ -474,15 +473,16 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
 	./$(TMP_DIR)/test_pico8_rich_planet_exports
 	./$(TMP_DIR)/test_pico8_cheat_code
+	./$(TMP_DIR)/test_pico8_probe_mm_rnd_order
 
 replay: $(TMP_DIR)/pico8_replay
-	./$(TMP_DIR)/pico8_replay
+	./$(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS)
 
 test: unit replay frames-check constants-check float-audit float-grep float-guard
 
-# ENREGISTREMENT D'ÉCRAN : make screencast rejoue events.json en écrivant les
-# pixels de chaque frame ; c'est aussi la capture du rejeu events.json du filet.
-SCREENCAST_EVENTS := events.json
+# ENREGISTREMENT D'ÉCRAN : make screencast rejoue SCREENCAST_EVENTS en écrivant les
+# pixels de chaque frame ; c'est aussi la capture du rejeu de SCREENCAST_EVENTS du filet.
+SCREENCAST_EVENTS := tests/fixtures/session_events.json
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
 SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
@@ -520,7 +520,8 @@ FRAMES_EVENTS := \
     tests/fixtures/game_end_events.json \
     tests/fixtures/pause_menu_music_events.json \
     tests/fixtures/geoharvest_burst_events.json \
-    tests/fixtures/long_session_events.json
+    tests/fixtures/long_session_events.json \
+    tests/fixtures/events_recorded_1790198294.json
 
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames
