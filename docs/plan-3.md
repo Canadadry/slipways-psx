@@ -65,8 +65,8 @@ Dans cet ordre, chacun bloquant le suivant :
    - liste d'exemptions versionnée, une raison par ligne. Contenu initial : `ke` (abstraite, jamais instanciée directement). **`pm` et `ga` ne sont pas exemptés** ;
    - **hors de `make test`** : lancé à la main, et par l'autopilote aux points prévus ci-dessous ;
    - le contrat de l'outil est « chaque type d'entité est construit au moins une fois », indépendant de la représentation : en 1a, le crochet migre vers les constructeurs de struct, dans le commit de la classe concernée.
-3. **Enregistrement humain** — une session raylib qui construit `qh`, `os`, `nl`, `hj`, `nr`, `fr`, `mx` et sonde une protostar (`pm`, qui engendre `ga`). Déposée par l'humain dans le dossier de fixtures de son choix, avec son `.sha256` posé par `make frames-baseline`.
-4. **Porte** — `make class-coverage` sur ce dossier : aucune classe à 0 hors exemption. Sinon, l'autopilote s'arrête et demande un nouvel enregistrement.
+3. **Enregistrement humain** — une session raylib qui construit `qh`, `os`, `nl`, `hj`, `nr`, `fr`, `mx` et sonde une protostar (`pm`, qui engendre `ga`). Déposée par l'humain dans le dossier de fixtures de son choix, ajoutée à la liste `FRAMES_EVENTS` du filet, avec son `.sha256` posé par `make frames-baseline`.
+4. **Porte** — `make class-coverage` sur ce dossier : aucune classe à 0 hors exemption, sur un dossier qui ne contient que les rejeux du filet (dans `FRAMES_EVENTS`, `.sha256` versionné) — un rejeu hors filet n'en protège aucune, et `tests/fixtures/` en contient. Le nombre de rejeux lus par l'outil doit égaler le nombre de rejeux du filet dans le dossier : sinon c'est « enregistrement non rejoué » (l'enregistreur nomme `events_recorded_<horodatage>.json`, que le motif `*events.json` de l'outil ne prend pas), que l'autopilote corrige lui-même sans redemander de session. Le code de sortie tranche ensuite. Même règle pour la relance en sortie de 1a. Sinon, l'autopilote s'arrête et demande un nouvel enregistrement.
 
 Mesure de cadrage (12 rejeux du filet, avant l'étape 0) : à 0 → `ke`, `nl`, `os`, `hj`, `pm`, `nr`, `fr`, `mx` ; rares → `qh` 4, `ga` 1, `fq` 1 ; les 19 autres entre 15 et 1 350.
 
@@ -82,6 +82,8 @@ Transformation mécanique. Chaque classe devient un `struct` dont le premier mem
 - **Instances sans classe** : converties comme des classes à part entière, sans parent.
 - **Coexistence** : une instance convertie porte un nouveau tag (`PICO8_TYPE_TAG_STRUCT`) et un pointeur vers sa table de méthodes, dans le même premier emplacement qu'aujourd'hui. `hv`/`cv`/`cg`, `dc`, `mv` traitent les deux formes pendant la migration ; l'ordre d'enregistrement est préservé.
 - **Ordre** : une classe par commit, la parente avant ses filles (`ke` → `jo` → `qh` → …). Les racines sans parent dans n'importe quel ordre.
+- **Premier commit** : une racine sans parent ni fille (liste « racines » du §2), qui prouve la coexistence avant de toucher l'arbre. `ke` ne vient qu'ensuite.
+- **Héritage entre formes** : les filles non converties trouvent leurs champs hérités en remontant `parent`. Une classe convertie garde donc sa `pico8_class_t` enregistrée jusqu'à la conversion de sa dernière fille ; elle n'est supprimée qu'à ce moment-là.
 - **Sortie** : plus aucune `pico8_class_t`/`pico8_instance_t` à l'exécution ; `pico8_class.c` supprimé ; `make class-coverage` relancé sur le dossier de l'étape 0, toujours sans zéro.
 
 ### Phase 1b — Types C réels
@@ -95,6 +97,7 @@ Struct par struct, chaque membre `pico8_value_t` prend son type C (`pico8_fixed_
 ### Phase D — Données
 
 - Les tables constantes parsées au démarrage (`g_es`, `g_ct`, `g_b_`, `g_co`, `g_fb`, `g_ek`, `ci`, menus `g_ix`/`g_ha`, aide `g_bo`, score `g_ef`/`g_bz`, `g_df`) et celles décodées par `unstash` (`g_hc`, `g_fd`, `g_dr`, `g_nb`, `g_r`, `g_iz`) deviennent des tableaux/structs `static const`, **générés une fois** à partir de ce que `ob()`/`unstash` produisent aujourd'hui, puis versionnés.
+- Test ponctuel, supprimé dans le commit qui supprime `pico8_ob.c`/`pico8_stash.c` : chaque table générée est égale, entrée par entrée, à ce que `ob()`/`unstash` produit. Le filet ne voit pas les entrées jamais affichées (aide, score, menus).
 - Les tables ad hoc construites en cours de partie (~68 `ob_table_new()`) deviennent des structs locales ou des tableaux fixes.
 - **Sortie** : `pico8_ob.c`, `pico8_value.c`, `pico8_type_tag.h`, `pico8_ref_audit.h`, `pico8_stash.c` supprimés ; plus aucun `malloc` pour des données. Les entités gardent le leur : c'est Plan 2 §8.
 
@@ -112,6 +115,8 @@ Règles, appliquées sans supervision :
 2. **Composant** : un groupe de champs devient un composant s'il apparaît dans **deux branches distinctes** de l'arbre (exemple connu : `py`/`fc`/`k_`/`qo`/`ro`/`qg`/`q_`/`du` dans `hj`, `pm`, `mx` et `ga`, alors que `ga` descend de `jo`). Sinon il reste dans la struct du type.
 3. Test ponctuel, supprimé en fin de phase : pour chaque ancienne classe, chaque champ résolu par sa chaîne est égal à la valeur de l'archétype correspondant (piège connu : le `nu=o()` vide de `ga` masque celui de `jo`).
 
+- **Sortie** : aucune struct d'entité n'enchâsse plus la struct de sa parente (tout type = noyau + archétype + composants) ; chaque ancienne classe a son archétype `static const` ; le test ponctuel est passé pour chacune avant d'être supprimé.
+
 ### Phase 3 — Renommage
 
 Un champ est renommé **seulement** si `docs/glossaire-noms.md` en donne le sens. Sinon, il garde son nom minifié. Aucun sens n'est inventé. Un commit par groupe de champs renommés ; le glossaire est mis à jour en conséquence (l'entrée pointe du nom minifié vers le nouveau nom).
@@ -119,18 +124,24 @@ Un champ est renommé **seulement** si `docs/glossaire-noms.md` en donne le sens
 ## 6. Tests existants
 
 - Les tests **de la couche** (`test_pico8_entity_smoke`, `test_pico8_ob`, `test_pico8_value`, et `test_pico8_list`/`test_pico8_stash` s'ils perdent leur objet) sont supprimés dans le commit qui supprime le code testé.
-- Les tests **de régression de bugs** (17 fichiers : `nil_row`, `gh_row_lq`, `ga_export_panel_by`, `game_end`, …) ne sont **jamais supprimés**. Chacun est réécrit pour lire la struct, dans le commit qui convertit la classe qu'il touche, et doit toujours échouer si le bug d'origine est réintroduit.
+- Les tests **de régression de bugs** (17 fichiers : `nil_row`, `gh_row_lq`, `ga_export_panel_by`, `game_end`, …) ne sont **jamais supprimés**. Chacun est réécrit pour lire la struct, dans le commit qui convertit la classe qu'il touche, et doit toujours échouer si le bug d'origine est réintroduit. Vérifié dans ce commit : bug remis localement, test rouge, correctif restauré.
 
 ## 7. Exécution
 
 `plan-pilot`, phase après phase, un commit par classe (1a, 1b) ou par groupe (D, 2, 3).
+
+- **Une étape `plan-pilot`** = une classe en 1a/1b, un groupe nommé en D, 2 et 3. La liste ordonnée des étapes d'une phase (classes et instances sans classe en 1a/1b, dans l'ordre du §5 ; groupes en D, 2 et 3) est écrite dans ce plan à l'entrée de la phase, avant son premier commit.
+- **Nommage des PRD** : `plan3-phase<X>-etape<M>-*.md` (X ∈ `0`, `1a`, `1b`, `D`, `2`, `3`). « La plus haute » s'entend dans l'ordre du plan — `0` < `1a` < `1b` < `D` < `2` < `3`, puis `M` numérique —, jamais dans l'ordre texte des noms. Seuls ces fichiers de `docs/prd/done/` comptent pour trouver l'étape suivante — les `phaseD-*`/`phaseE-*` de Plan 2 n'en sont pas. Les étapes 0.1 et 0.2 sont livrées, 0.3 est humaine : l'autopilote démarre à la porte 0.4, puis au premier commit de 1a.
 
 L'autopilote **s'arrête et demande à l'humain** quand :
 
 - le filet reste rouge après **3 tentatives** de correction sur le même commit ;
 - un champ ne tombe sous aucune règle (§5 : clé dynamique à ensemble non fini ; en phase 2, champ ni archétype ni état, ou groupe au classement ambigu) ;
 - un test de régression de bug devrait être modifié **dans son intention** (pas seulement dans sa façon de lire l'état) pour passer ;
-- la porte de l'étape 0 échoue.
+- la porte de l'étape 0 échoue ;
+- le diff modifie ou supprime un `.sha256` du filet, ou retire une entrée de `FRAMES_EVENTS` (seule exception : l'ajout de l'enregistrement de l'étape 0.3) — `make test` resterait vert.
+
+Chacune de ces conditions est écrite dans le PRD de l'étape concernée comme critère que le vérificateur de `prd-autopilot` traduit en `FAILED:` — c'est le seul arrêt que `plan-pilot` honore.
 
 ## 8. Hors périmètre
 
