@@ -31,7 +31,9 @@ trap 'rm -rf "$work"' EXIT
 
 # cflags est volontairement non quote : c'est une liste d'options.
 $cc $cflags -MM "$@" > "$work/deps" || fail "echec de $cc -MM"
-tr ' \\' '\n\n' < "$work/deps" | grep -v ':$' | grep . | LC_ALL=C sort -u > "$work/core"
+# Apple clang ajoute aux dependances -MM des fichiers qui ne sont pas du C
+# (SDKSettings.json du SDK) : seuls les .c et .h forment le coeur.
+tr ' \\' '\n\n' < "$work/deps" | grep -v ':$' | grep -E '\.[ch]$' | LC_ALL=C sort -u > "$work/core"
 [ -s "$work/core" ] || fail "coeur vide"
 
 errors=0
