@@ -11,9 +11,13 @@ Generic, project-agnostic. Takes one argument: the path to a plan file. Runs a b
 
 Repeat each round:
 
-1. Spawn a fresh `plan-review` agent against the plan file's current state.
+1. Spawn a fresh `plan-review` agent against the plan file's current state. Pass it the level rule from step 3, so it doesn't look below the plan's level.
 2. Read its report: a list of proposals, or an explicit no-improvement line.
-3. Judge every proposal yourself, one at a time, against a single question: *does this concretely improve the project's odds of success?* This is a real filter — reject anything that's merely plausible, stylistic, or not clearly worth it. `plan-review` already screened for method-only relevance; your job here is value, not re-checking scope.
+3. Judge every proposal yourself, one at a time, against two questions, in this order:
+   - **Level** — *is this at the plan's level of detail?* The yardstick is the plan as it stood before round 1, not as the previous rounds left it. Reject anything more detailed than that yardstick, even when it's true. Otherwise every round finds something finer, the plan drifts down one level at a time, and the loop never runs empty.
+   - **Value** — *does this concretely improve the project's odds of success?* Reject anything that's merely plausible, stylistic, or not clearly worth it.
+
+   A proposal that fails either question is rejected, even if `plan-review` let it through.
 4. Apply every accepted proposal to the plan file directly (edit it). If a round accepts nothing, apply nothing and don't commit — an empty round still counts for the stop condition below.
 5. If anything was applied, commit it on the temp branch (see Git mechanics).
 
