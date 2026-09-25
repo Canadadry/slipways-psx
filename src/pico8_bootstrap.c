@@ -24,7 +24,7 @@ static int pico8_dg_truthy(pico8_value_t v) {
 
 void pico8_jl(void) {
     pico8_instance_t *real_mo;
-    pico8_instance_t *real_je;
+    pico8_nf_t *real_je;
     pico8_instance_t *real_ok;
 
     pico8_entity_init();
@@ -50,7 +50,7 @@ void pico8_jl(void) {
     real_ok = pico8_ui_new(NULL);
 
     pico8_entity_set_mo(real_mo);
-    pico8_ui_set_je(real_je);
+    pico8_ui_set_je((pico8_instance_t *)real_je);
     pico8_ui_set_ok(real_ok);
 }
 

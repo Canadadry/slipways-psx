@@ -18,8 +18,9 @@
  * field-less `je` that `pico8_ui_set_je()` later replaces. */
 void pico8_ui_init(void);
 
-/* Frees the `ui` class, `je` and `ok`. Idempotent, and safe before the first
- * `pico8_ui_init()`. */
+/* Frees the `ui` class, `ok`, and `je` while it is still the placeholder
+ * instance: an `nf` struct in its place is dropped, never freed (TROU-7).
+ * Idempotent, and safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
 
 /* NULL before `pico8_ui_init()` and after `pico8_ui_shutdown()`. Not
@@ -31,7 +32,8 @@ pico8_instance_t *pico8_ui_new(const pico8_ob_table_t *overrides);
 
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is a class-less
  * instance with no fields, so every `je.<field>` read falls back to its
- * default. */
+ * default; after `pico8_jl()` it is an `nf` struct (pico8_mouse_reader.h).
+ * Read it only through `pico8_entity_get_field()`. */
 pico8_instance_t *pico8_je(void);
 
 /* Makes `instance` the new `je`. The outgoing instance is NOT freed -- see

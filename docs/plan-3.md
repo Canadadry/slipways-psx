@@ -79,7 +79,7 @@ Transformation mécanique. Chaque classe devient un `struct` dont le premier mem
 
 - **Méthodes** : une table `static const` de pointeurs de fonction par classe ; une surcharge remplace l'entrée héritée. Les méthodes appelées par nom de chaîne (`mv(held,"hq")`, `jz(rm,…)`, `dc(nt)`) passent par un enum de méthode qui indexe cette table.
 - **Clés construites à l'exécution** : `self[bt.."held"]` (`pico8_ui.c:328`) → deux champs `lheld`/`rheld` ; `ldown`/`rdown` côté méthodes. Tout autre site de clé dynamique trouvé est énuméré de même, ou déclenche un arrêt (§7) si l'ensemble des clés n'est pas fini.
-- **Défauts mutés sur la classe** : `ie.gy`, `ie.id` (`pico8_research_icon.c:158,182`, `pico8_cart.c:158`) deviennent un état statique partagé de la classe, jamais un champ d'instance. Même traitement pour tout autre défaut réaffecté après l'initialisation **ou dont la table pointée est modifiée en place** (connus : `pj.ou`, `pj.ea`, `pj.cr`, `ga.by`) ; la liste des étapes les nomme.
+- **Défauts mutés sur la classe** : `ie.gy`, `ie.id` (`pico8_research_icon.c:158,182`, `pico8_cart.c:158`) deviennent un état statique partagé de la classe, jamais un champ d'instance. Même traitement pour tout autre défaut réaffecté après l'initialisation **ou dont la table pointée est modifiée en place** (connus : `pj.ou`, `pj.ea`, `pj.cr`, `ga.by`, `nf.l`, `nf.r`) ; la liste des étapes les nomme.
 - **Instances sans classe** : converties comme des classes à part entière, sans parent.
 - **Coexistence** : une instance convertie porte un nouveau tag (`PICO8_TYPE_TAG_STRUCT`) et un pointeur vers sa table de méthodes, dans le même premier emplacement qu'aujourd'hui. `hv`/`cv`/`cg`, `dc`, `mv` traitent les deux formes pendant la migration ; l'ordre d'enregistrement est préservé.
 - **Ordre** : une classe par commit, la parente avant ses filles (`ke` → `jo` → `qh` → …). Les racines sans parent dans n'importe quel ordre.
@@ -98,7 +98,7 @@ Chemins relatifs à `src/`. « Tests » = tests de régression (§6) réécrits 
 - 1a.3 — ~~`iv` (`msgbox.c:260`). Tests : aucun.~~ Sans objet : `iv` a été mesurée feuille de plus petite emprise et convertie dans 1a.2.
 - 1a.4 — `mh` (`msgbox.c:146`), construite avec le défaut muté `pj.ea` (`score_panel_display.c:115`). Tests : aucun.
 - 1a.5 — `fq` (`ui_button.c:297`), méthode `ldown`. Tests : `score_panel_close` Découvert à 1a.5 : boucle de survol `gw` (`ui.c`, lecture `fa`, écritures `m_`), `jc:hq` (`slipway.c:107`, `ok.o_.gv`).
-- 1a.6 — `nf` (`mouse_reader.c:35`), clé dynamique `je[bt]` (`ui.c:60`) → `l`/`r`. Tests : aucun.
+- 1a.6 — `nf` (`mouse_reader.c:35`), clé dynamique `je[bt]` (`ui.c:60`) → `l`/`r`. Tests : aucun. Découvert à 1a.6 : `l`/`r` défauts modifiés en place (`bu`, partagés par tous les `nf`) → état statique.
 - 1a.7 — `je` : sans classe (`ui.c:108`), provisoire, remplacée par un `nf` (`bootstrap.c:49`).
 - 1a.8 — `qb` (`scroll.c:50`). Tests : `planet_kj_dispatch` (`md`).
 - 1a.9 — `mo` : sans classe (`entity.c:129`), provisoire, remplacée par un `qb` (`bootstrap.c:48`). Tests : `planet_kj_dispatch`.

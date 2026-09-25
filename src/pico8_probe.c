@@ -61,7 +61,7 @@ static pico8_vec_t pico8_probe_value_vec(pico8_value_t v) {
 
 static pico8_vec_t pico8_probe_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v)) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
         return pico8_probe_value_vec(v);
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));

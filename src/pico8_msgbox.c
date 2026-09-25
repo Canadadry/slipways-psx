@@ -47,7 +47,7 @@ static int pico8_msgbox_truthy(pico8_value_t v) {
  * as the zero default. */
 static pico8_vec_t pico8_msgbox_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));

@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
@@ -22,7 +23,7 @@ static pico8_instance_t *g_ok = NULL;
  * as the default -- a zero vector here, "no value" for the raw one. */
 static pico8_vec_t pico8_ui_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -57,7 +58,9 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
  * which is the case for the field-less placeholder. */
 static const pico8_ob_table_t *pico8_ui_je_button_table(const char *bt) {
     pico8_value_t b_val;
-    if (pico8_instance_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
+    assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
+           "je[bt]: plan-3 section 5 enumerates bt as l or r only; another key is an unmeasured field -- stop");
+    if (pico8_entity_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
         assert(pico8_type_tag_of(b_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
                "je's per-button state must be a plain table");
         return (const pico8_ob_table_t *)b_val.as.ref;
@@ -116,10 +119,10 @@ void pico8_ui_shutdown(void) {
         pico8_class_free(g_ui_class);
         g_ui_class = NULL;
     }
-    if (g_je != NULL) {
+    if (g_je != NULL && pico8_type_tag_of(g_je) == PICO8_TYPE_TAG_INSTANCE) {
         pico8_instance_free(g_je);
-        g_je = NULL;
     }
+    g_je = NULL;
     if (g_ok != NULL) {
         pico8_instance_free(g_ok);
         g_ok = NULL;

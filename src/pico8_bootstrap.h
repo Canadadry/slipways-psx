@@ -11,9 +11,9 @@
  * frees them until pico8_bootstrap_shutdown(). */
 void pico8_jl(void);
 
-/* Frees the `mo`/`je`/`ok` instances through their owning modules, in
- * reverse order. Idempotent, and safe before the first pico8_jl(). No Lua
- * equivalent. */
+/* Frees the `mo`/`ok` instances and the placeholder `je` through their
+ * owning modules, in reverse order; an `nf` struct `je` is never freed.
+ * Idempotent, and safe before the first pico8_jl(). No Lua equivalent. */
 void pico8_bootstrap_shutdown(void);
 
 /* One frame of entity logic. Requires pico8_jl() (or at least
