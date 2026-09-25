@@ -292,7 +292,7 @@ static void check_fresh_mz(const void *mz) {
     pico8_value_t v;
     const pico8_ob_table_t *kk;
     const pico8_ob_table_t *nu;
-    const pico8_ob_table_t *jj;
+    const void *jj;
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
@@ -320,9 +320,9 @@ static void check_fresh_mz(const void *mz) {
     assert(pico8_ob_table_get_index(nu, 1, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "mz") == 0);
     assert(pico8_entity_get_field(mz, "jj", &v) && v.kind == PICO8_VALUE_REF);
     jj = v.as.ref;
-    assert(pico8_ob_table_get_name(jj, "qs", &v) && v.kind == PICO8_VALUE_STRING &&
+    assert(pico8_entity_get_field(jj, "qs", &v) && v.kind == PICO8_VALUE_STRING &&
            strcmp(v.as.string, "-too far-") == 0);
-    assert(pico8_mz_jj_wrapper()->fields == jj);
+    assert((const void *)pico8_mz_jj_wrapper() == jj);
 
     assert(!has(mz, "ra") && !has(mz, "p") && !has(mz, "et") && !has(mz, "ij") && !has(mz, "p_"));
     assert(!has(mz, "fx") && !has(mz, "qu"));
@@ -727,15 +727,94 @@ static void test_gv(void) {
     assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
 }
 
+/* `mz.jj` as the cart has it: `qs` and nothing else, never written. `bv`
+ * puts `fo` on the target it has just computed, never on the wrapper a
+ * previous `hq` left in `et`. */
+static void check_jj_untouched(void) {
+    static const char *const absent[] = {"fo", "ra", "p", "me", "t", "nu", "et"};
+    void *wrapper = (void *)pico8_mz_jj_wrapper();
+    size_t i;
+
+    assert(wrapper != NULL);
+    assert(is_string(wrapper, "qs", "-too far-"));
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        assert(!has(wrapper, absent[i]));
+    }
+}
+
+static void check_fo_is(const void *mz) {
+    pico8_value_t et;
+    pico8_value_t fo;
+
+    assert(pico8_entity_get_field(mz, "et", &et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL);
+    assert(pico8_entity_get_field(et.as.ref, "fo", &fo) && fo.kind == PICO8_VALUE_REF && fo.as.ref == mz);
+}
+
+static void test_jj_wrapper(void) {
+    static const char *const methods[] = {"kj", "ev", "hq"};
+    void *wrapper;
+    void *mz;
+    void *other;
+    const pico8_list_t *jcs;
+    const void *jc;
+    pico8_vec_t mid;
+    pico8_value_t et;
+    pico8_value_t other_et;
+    size_t i;
+
+    world();
+    wrapper = (void *)pico8_mz_jj_wrapper();
+    check_jj_untouched();
+    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
+        pico8_value_t out;
+        assert(!pico8_mv(wrapper, methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    }
+
+    mz = build_mz();
+    hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(et_kind(mz) == ET_JJ);
+    check_jj_untouched();
+
+    jcs = pico8_cg("jc");
+    assert(jcs != NULL && jcs->count > 0);
+    jc = jcs->items[0].as.ref;
+    mid = pico8_vec_mul(pico8_vec_div(pico8_vec_add(vec_of(get(jc, "qu").as.ref, "p"), vec_of(get(jc, "re").as.ref, "p")),
+                                      pico8_fixed_from_int(2)),
+                        pico8_fixed_from_int(128));
+    hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
+    assert(et_kind(mz) == ET_JC);
+    check_fo_is(mz);
+    check_jj_untouched();
+
+    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
+    assert(et_kind(mz) == ET_THROWAWAY);
+    check_fo_is(mz);
+    check_jj_untouched();
+
+    hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(et_kind(mz) == ET_JJ);
+    check_jj_untouched();
+
+    other = build_mz();
+    hq(other, vec_ref(640, 640), vec_ref(64, 64));
+    assert(et_kind(other) == ET_JJ);
+    assert(pico8_entity_get_field(mz, "et", &et) && pico8_entity_get_field(other, "et", &other_et));
+    assert(et.as.ref == other_et.as.ref && et.as.ref == wrapper);
+    check_jj_untouched();
+}
+
+static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == cls;
+}
+
 static int is_an_mz_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)e)->cls == pico8_mz_struct_class();
+    return is_a_struct_of(e, pico8_mz_struct_class());
 }
 
 /* Built through `bg:ldown`'s `lookup_named` or directly, an `mz` is a
- * struct with its six methods; the `jj` wrapper stays a classless
- * instance on the very table of the `jj` member; a generic write of a
- * name other than `ra`/`p`/`et`/`p_` stops the run instead of growing a
+ * struct with its six methods; the `jj` wrapper is a struct too, the very
+ * object of the `jj` member, and has no writer; a generic write of a name
+ * other than `ra`/`p`/`et`/`p_` stops the run instead of growing a
  * member. */
 static void test_mz_is_a_struct(void) {
     static const char *const methods[] = {"hq", "ey", "kz", "pr", "kj", "ev"};
@@ -757,9 +836,19 @@ static void test_mz_is_a_struct(void) {
     }
     assert(!has(mz, "ph") && !has(mz, "ldown") && !has(mz, "md") && !has(mz, "ol"));
 
-    assert(pico8_type_tag_of(pico8_mz_jj_wrapper()) == PICO8_TYPE_TAG_INSTANCE);
-    assert(pico8_mz_jj_wrapper()->cls == NULL);
-    assert(pico8_entity_get_field(mz, "jj", &jj) && jj.as.ref == pico8_mz_jj_wrapper()->fields);
+    assert(is_a_struct_of(pico8_mz_jj_wrapper(), pico8_mz_jj_struct_class()));
+    assert(pico8_entity_get_field(mz, "jj", &jj) && jj.as.ref == (const void *)pico8_mz_jj_wrapper());
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        pico8_entity_set_field(pico8_mz_jj_wrapper(), "fo", pico8_value_ref(mz));
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 
     fflush(stdout);
     child = fork();
@@ -812,6 +901,7 @@ int main(void) {
     in_fresh_child(test_playthrough);
     in_fresh_child(test_geoharvest);
     in_fresh_child(test_gv);
+    in_fresh_child(test_jj_wrapper);
     in_fresh_child(test_mz_is_a_struct);
 
     printf("test_pico8_mz: all tests passed\n");

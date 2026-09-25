@@ -18,10 +18,31 @@
 #include "pico8_ref_audit.h"
 
 static pico8_class_t *g_mz_class = NULL;
-static pico8_instance_t *g_mz_jj_wrapper = NULL;
 static pico8_ob_table_t *g_mz_nu = NULL;
 static pico8_ob_table_t *g_mz_kk = NULL;
-static pico8_ob_table_t *g_mz_jj = NULL;
+
+static int pico8_mz_jj_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_mz_jj_t *jj = self;
+
+    if (strcmp(name, "qs") == 0) {
+        *out_value = jj->qs;
+        return 1;
+    }
+    return 0;
+}
+
+static const pico8_struct_class_t g_mz_jj_struct_class = {
+    {0},
+    pico8_mz_jj_field,
+    NULL,
+};
+
+/* The only one: never allocated, never freed; no writer, so a write
+ * reaching it stops the run. */
+static pico8_mz_jj_t g_mz_jj_wrapper = {
+    {PICO8_TYPE_TAG_STRUCT, &g_mz_jj_struct_class},
+    {PICO8_VALUE_STRING, {.string = "-too far-"}},
+};
 
 static int pico8_mz_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -338,7 +359,7 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
     self->fp = pico8_value_fixed(pico8_fixed_from_int(1));
     self->fa = pico8_value_fixed(pico8_fixed_from_int(5));
     self->kk = pico8_value_ref(g_mz_kk);
-    self->jj = pico8_value_ref(g_mz_jj);
+    self->jj = pico8_value_ref(&g_mz_jj_wrapper);
     self->ox = pico8_value_ref(NULL);
     self->ra = pico8_value_ref(NULL);
     self->p = pico8_value_ref(NULL);
@@ -362,7 +383,7 @@ static pico8_ob_table_t *pico8_mz_spec_table(const pico8_ob_table_t *spec, const
 
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "mz's nu, kk and jj spec entries must parse to tables (the spec's trailing comma is load-bearing)");
+           "mz's nu and kk spec entries must parse to tables (the spec's trailing comma is load-bearing)");
     (void)found;
     return (pico8_ob_table_t *)v.as.ref;
 }
@@ -379,35 +400,21 @@ void pico8_wormhole_init(void) {
     pico8_class_set_struct_new(g_mz_class, pico8_mz_struct_new);
     pico8_class_register_named("mz", g_mz_class);
 
-    spec = pico8_ob("\nnu=o(\"mz\"),\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n", NULL);
+    spec = pico8_ob("\nnu=o(\"mz\"),\nkk=o(7,7,6,13,5,1,1,1,0),\n", NULL);
     g_mz_nu = pico8_mz_spec_table(spec, "nu");
     g_mz_kk = pico8_mz_spec_table(spec, "kk");
-    g_mz_jj = pico8_mz_spec_table(spec, "jj");
     pico8_ob_table_free(spec);
-
-    g_mz_jj_wrapper = malloc(sizeof *g_mz_jj_wrapper);
-    g_mz_jj_wrapper->tag = PICO8_TYPE_TAG_INSTANCE;
-    g_mz_jj_wrapper->fields = g_mz_jj;
-    g_mz_jj_wrapper->cls = NULL;
 }
 
-/* Plain `free()` on the wrapper, never `pico8_instance_free()`: its
- * `->fields` is the module's `jj` table, freed after it. */
 void pico8_wormhole_shutdown(void) {
     if (g_mz_class != NULL) {
         pico8_class_free(g_mz_class);
         g_mz_class = NULL;
     }
-    if (g_mz_jj_wrapper != NULL) {
-        free(g_mz_jj_wrapper);
-        g_mz_jj_wrapper = NULL;
-    }
     pico8_ob_table_free(g_mz_nu);
     g_mz_nu = NULL;
     pico8_ob_table_free(g_mz_kk);
     g_mz_kk = NULL;
-    pico8_ob_table_free(g_mz_jj);
-    g_mz_jj = NULL;
 }
 
 pico8_class_t *pico8_mz_class(void) {
@@ -422,6 +429,10 @@ pico8_mz_t *pico8_mz_new(const pico8_ob_table_t *overrides) {
     return pico8_mz_struct_new(overrides);
 }
 
-pico8_instance_t *pico8_mz_jj_wrapper(void) {
-    return g_mz_jj_wrapper;
+pico8_mz_jj_t *pico8_mz_jj_wrapper(void) {
+    return &g_mz_jj_wrapper;
+}
+
+const pico8_struct_class_t *pico8_mz_jj_struct_class(void) {
+    return &g_mz_jj_struct_class;
 }

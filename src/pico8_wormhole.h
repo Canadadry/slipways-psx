@@ -14,8 +14,15 @@
  * or wrong-kind member reads as its zero/false default rather than
  * crashing. */
 
-/* `nu`, `kk` and `jj` point at the tables the module owns, shared by every
- * `mz` and never modified in place. Nothing frees the struct: TROU-7. */
+/* `mz.jj`: no parent, never an entity, and no writer. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t qs;
+} pico8_mz_jj_t;
+
+/* `nu` and `kk` point at the tables the module owns, `jj` at the one
+ * `pico8_mz_jj_t`; all shared by every `mz` and never modified in place.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     pico8_value_t nu;
@@ -39,8 +46,8 @@ typedef struct {
 
 void pico8_wormhole_init(void);
 
-/* Frees the `mz` class, the `jj` wrapper and the module's `nu`/`kk`/`jj`
- * tables, never any `mz`. Idempotent, and safe before the first
+/* Frees the `mz` class and the module's `nu`/`kk` tables, never any `mz`
+ * nor the `jj` wrapper. Idempotent, and safe before the first
  * `pico8_wormhole_init()`. */
 void pico8_wormhole_shutdown(void);
 
@@ -54,12 +61,10 @@ const pico8_struct_class_t *pico8_mz_struct_class(void);
  * it. */
 pico8_mz_t *pico8_mz_new(const pico8_ob_table_t *overrides);
 
-/* `mz.jj` wrapped in a classless instance, so that `self.et` holds an
- * instance whichever branch wrote it and `dl` can read `.qs` off it
- * uniformly. Its `fields` are the module's `jj` table -- shared by every
- * `mz`, never freed nor written through this wrapper. NULL before
- * `pico8_wormhole_init()`. */
-pico8_instance_t *pico8_mz_jj_wrapper(void);
+/* The one `mz.jj`, shared by every `mz`: static, never NULL, never
+ * freed, and without a writer, so a write reaching it stops the run. */
+pico8_mz_jj_t *pico8_mz_jj_wrapper(void);
+const pico8_struct_class_t *pico8_mz_jj_struct_class(void);
 
 /* TROU-7 */
 void pico8_mz_pq(pico8_mz_t *self);

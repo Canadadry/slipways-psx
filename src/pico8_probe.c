@@ -214,9 +214,9 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
     has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
     if (has_et) {
-        pico8_instance_t *et_inst = (et_val.kind == PICO8_VALUE_REF) ? (pico8_instance_t *)et_val.as.ref : NULL;
+        const void *et_obj = (et_val.kind == PICO8_VALUE_REF) ? et_val.as.ref : NULL;
         pico8_value_t qs_val;
-        if (et_inst != NULL && pico8_instance_get_field(et_inst, "qs", &qs_val) &&
+        if (et_obj != NULL && pico8_entity_get_field(et_obj, "qs", &qs_val) &&
             qs_val.kind == PICO8_VALUE_STRING && pico8_probe_truthy(qs_val)) {
             display = qs_val.as.string;
         } else {
