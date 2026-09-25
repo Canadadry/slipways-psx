@@ -38,7 +38,7 @@ static int pico8_probe_truthy(pico8_value_t v) {
 
 static pico8_fixed_t pico8_probe_field_fixed(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -125,17 +125,17 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_fixed_t dw;
     pico8_value_t et;
 
-    if (self == NULL || self->fields == NULL) {
+    if (self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_INSTANCE && self->fields == NULL)) {
         return;
     }
 
-    pico8_ob_table_set_name(self->fields, "ra", mp);
+    pico8_entity_set_field(self, "ra", mp);
     mp_vec = pico8_probe_value_vec(mp);
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
     /* TROU-7 */
     p_heap = malloc(sizeof *p_heap);
     *p_heap = p_vec;
-    pico8_ob_table_set_name(self->fields, "p", pico8_value_ref(p_heap));
+    pico8_entity_set_field(self, "p", pico8_value_ref(p_heap));
 
     c = pico8_value_ref(NULL);
     nq = pico8_ij(p_vec, pico8_cg("np"), &c);
@@ -176,7 +176,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
         }
     }
 
-    pico8_ob_table_set_name(self->fields, "et", et);
+    pico8_entity_set_field(self, "et", et);
 
     if (pico8_probe_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
         pico8_instance_t *et_inst = (pico8_instance_t *)et.as.ref;
@@ -204,14 +204,14 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
         return;
     }
 
-    if (!pico8_instance_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
+    if (!pico8_entity_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
         me_val.as.string == NULL || strcmp(me_val.as.string, "kz") != 0) {
         return;
     }
 
     mp = pico8_probe_field_vec(pico8_je(), "ra");
 
-    has_et = pico8_instance_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
+    has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
     if (has_et) {
         pico8_instance_t *et_inst = (et_val.kind == PICO8_VALUE_REF) ? (pico8_instance_t *)et_val.as.ref : NULL;
@@ -227,7 +227,7 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
         }
     } else {
         pico8_value_t od_val;
-        if (pico8_instance_get_field(self, "od", &od_val) && pico8_probe_truthy(od_val)) {
+        if (pico8_entity_get_field(self, "od", &od_val) && pico8_probe_truthy(od_val)) {
             char *od_str = pico8_value_tostr(od_val);
             size_t len = strlen(od_str);
             heap_display = malloc(len + 2);
@@ -266,12 +266,12 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
         return pico8_value_ref(NULL);
     }
 
-    has_et = pico8_instance_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
+    has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
     fm = pico8_fm();
     if (!has_et) {
         pico8_fixed_t jt = pico8_fixed_from_int(0);
-        (void)pico8_instance_get_field(self, "od", &od_val);
+        (void)pico8_entity_get_field(self, "od", &od_val);
         if (od_val.kind == PICO8_VALUE_FIXED) {
             jt = od_val.as.fixed;
         }
@@ -286,12 +286,12 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
         pico8_value_t ik_val;
         pico8_fixed_t hx = pico8_fixed_from_int(0);
 
-        if (!pico8_instance_get_field(self, "dq", &dq_val) || !pico8_probe_truthy(dq_val)) {
+        if (!pico8_entity_get_field(self, "dq", &dq_val) || !pico8_probe_truthy(dq_val)) {
             dq_val = pico8_value_string("ph");
         }
         pico8_ke_ks(self, dq_val);
 
-        if (!pico8_instance_get_field(self, "fp", &fp_val) || !pico8_probe_truthy(fp_val)) {
+        if (!pico8_entity_get_field(self, "fp", &fp_val) || !pico8_probe_truthy(fp_val)) {
             fp_val = pico8_value_fixed(pico8_fixed_from_int(0));
         }
         if (fp_val.kind == PICO8_VALUE_FIXED) {
@@ -299,7 +299,7 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
         }
         pico8_hy_nx(pico8_fm(), hx);
 
-        if (!pico8_instance_get_field(self, "ik", &ik_val) || !pico8_probe_truthy(ik_val)) {
+        if (!pico8_entity_get_field(self, "ik", &ik_val) || !pico8_probe_truthy(ik_val)) {
             ik_val = pico8_value_fixed(pico8_fixed_from_int(54));
         }
         pico8_rn(ik_val);
@@ -308,7 +308,7 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
     }
 
     pico8_rn(pico8_value_fixed(pico8_fixed_from_int(57)));
-    pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(1));
+    pico8_entity_set_field(self, "p_", pico8_value_bool(1));
     return pico8_value_ref(NULL);
 }
 

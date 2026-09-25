@@ -102,7 +102,7 @@ Chemins relatifs à `src/`. « Tests » = tests de régression (§6) réécrits 
 - 1a.7 — `je` : sans classe (`ui.c:108`), provisoire, remplacée par un `nf` (`bootstrap.c:49`).
 - 1a.8 — `qb` (`scroll.c:50`). Tests : `planet_kj_dispatch` (`md`). Découvert à 1a.8 : `mo` lu par `gd` (`entity_geom.c:54`), `ma()` partagée qb/jo (`entity_geom.c:72`), écritures `mo.ma` (`planet_family.c:173`, `ga:pq`) et `mo.v` (`bg.c:225`, `bg:hq`), libération de `mo` (`entity.c:107`).
 - 1a.9 — `mo` : sans classe (`entity.c:129`), provisoire, remplacée par un `qb` (`bootstrap.c:48`). Tests : `planet_kj_dispatch`.
-- 1a.10 — `mz` (`wormhole.c:270`), `jj` lu sur la classe. Tests : aucun.
+- 1a.10 — `mz` (`wormhole.c:270`), `jj` lu sur la classe. Tests : aucun. Découvert à 1a.10 : helpers partagés `bv`/`dl`/`d_` (`probe.c`) et `ks` (`ke.c`), `s.qu` lu par `jo:gv` (`planet_display.c:361`) et `nr:gv` (`planet_family_trade.c:60`).
 - 1a.11 — enveloppe `mz.jj` : sans classe (`wormhole.c:293`).
 - 1a.12 — `bg` (`bg.c:69`), `pl` lu sur la classe, `ldown`/`rdown`, `lookup_named("mz"|"g_")` (`bg.c:185-191`). Tests : aucun.
 - 1a.13 — `jc` (`slipway.c:392`), instanciée par `lookup_named("jc")` (`planet.c:482,491`, `planet_family_trade.c:104,110`). Tests : aucun.

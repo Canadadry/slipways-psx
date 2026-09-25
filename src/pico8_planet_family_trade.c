@@ -57,7 +57,7 @@ pico8_value_t pico8_nr_gv(const pico8_instance_t *self, const pico8_instance_t *
     }
 
     if (s != NULL) {
-        pico8_instance_get_field(s, "qu", &qu_val);
+        pico8_entity_get_field(s, "qu", &qu_val);
     }
     qu_not_self = !(qu_val.kind == PICO8_VALUE_REF && qu_val.as.ref == (const void *)self);
 

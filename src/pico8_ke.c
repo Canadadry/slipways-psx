@@ -37,6 +37,11 @@ void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me) {
     if (self == NULL) {
         return;
     }
+    if (pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) {
+        ((pico8_ke_t *)self)->me = me;
+        ((pico8_ke_t *)self)->t = pico8_value_fixed(pico8_fixed_from_int(0));
+        return;
+    }
     pico8_ob_table_set_name(self->fields, "me", me);
     pico8_ob_table_set_name(self->fields, "t", pico8_value_fixed(pico8_fixed_from_int(0)));
 }

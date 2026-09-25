@@ -179,13 +179,13 @@ static void test_price_toast_lives_as_before(void) {
 static void test_mz_scan_skips_a_live_toast(void) {
     pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(40), pico8_fixed_from_int(60));
     void *e;
-    pico8_instance_t *mz;
+    pico8_mz_t *mz;
     pico8_value_t ox;
 
     fresh_world();
     e = build(&ra, "+1$", 11);
     mz = pico8_mz_new(NULL);
-    assert(pico8_instance_get_field(mz, "ox", &ox) && ox.kind == PICO8_VALUE_REF && ox.as.ref != NULL);
+    assert(pico8_entity_get_field(mz, "ox", &ox) && ox.kind == PICO8_VALUE_REF && ox.as.ref != NULL);
     assert(!listed((const pico8_list_t *)ox.as.ref, e));
     assert(((const pico8_list_t *)ox.as.ref)->count == 0);
 }

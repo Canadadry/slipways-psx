@@ -358,7 +358,7 @@ pico8_value_t pico8_jo_gv(const pico8_instance_t *self, const pico8_instance_t *
         strcmp(me_val.as.string, "ly") != 0) {
         return pico8_value_ref(NULL);
     }
-    if (s != NULL && pico8_instance_get_field(s, "qu", &qu_val) && qu_val.kind == PICO8_VALUE_REF &&
+    if (s != NULL && pico8_entity_get_field(s, "qu", &qu_val) && qu_val.kind == PICO8_VALUE_REF &&
         qu_val.as.ref == (const void *)self) {
         pico8_jo_gh(self);
         return pico8_value_ref(NULL);

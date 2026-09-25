@@ -32,7 +32,8 @@ void pico8_ke_shutdown(void);
  * reliable way to reach it. */
 pico8_class_t *pico8_ke_class(void);
 
-/* A NULL `self` is a no-op. */
+/* A NULL `self` is a no-op. A struct gets `me` and `t` written into its
+ * pico8_ke_t, never through its field writer. */
 void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me);
 
 /* Tags `self` as a struct of class `cls` and sets ke's defaults. */

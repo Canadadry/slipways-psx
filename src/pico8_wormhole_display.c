@@ -9,11 +9,8 @@
 #include "pico8_value.h"
 #include "pico8_wormhole.h"
 
-/* Field readers: an absent field, a wrong kind, or a NULL instance all read
- * as the zero/false default. */
-static pico8_fixed_t pico8_mzd_field_fixed(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+static pico8_fixed_t pico8_mzd_fixed(pico8_value_t v) {
+    if (v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -44,19 +41,16 @@ static int pico8_mzd_truthy(pico8_value_t v) {
     return 1;
 }
 
-static pico8_vec_t pico8_mzd_field_ra_of_ij(const pico8_instance_t *self) {
-    pico8_value_t ij_val;
-    if (self == NULL || !pico8_instance_get_field(self, "ij", &ij_val) || ij_val.kind != PICO8_VALUE_REF ||
-        ij_val.as.ref == NULL) {
+static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
+    if (self->ij.kind != PICO8_VALUE_REF || self->ij.as.ref == NULL) {
         return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     }
-    assert(pico8_type_tag_of(ij_val.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
+    assert(pico8_type_tag_of(self->ij.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
            "mz's ij field must hold an entity instance");
-    return pico8_mzd_field_vec((const pico8_instance_t *)ij_val.as.ref, "ra");
+    return pico8_mzd_field_vec((const pico8_instance_t *)self->ij.as.ref, "ra");
 }
 
-void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
-    pico8_value_t me_val;
+void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec_t p) {
     int px;
     int py;
 
@@ -67,14 +61,12 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
 
-    if (pico8_instance_get_field(self, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
-        me_val.as.string != NULL && strcmp(me_val.as.string, "kz") == 0) {
-        pico8_value_t et_val;
-        int has_et = pico8_instance_get_field(self, "et", &et_val) && pico8_mzd_truthy(et_val);
+    if (self->ke.me.kind == PICO8_VALUE_STRING && self->ke.me.as.string != NULL &&
+        strcmp(self->ke.me.as.string, "kz") == 0) {
         pico8_vec_t cp;
 
-        if (!has_et) {
-            pico8_fixed_t oi = pico8_mzd_field_fixed(self, "oi");
+        if (!pico8_mzd_truthy(self->et)) {
+            pico8_fixed_t oi = pico8_mzd_fixed(self->oi);
             if (gfx != NULL && mem != NULL) {
                 pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(oi), 1);
             }
@@ -82,17 +74,15 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
 
         /* Runs whether or not a target was found: the `if not self.et`
          * above guards the ring alone. */
-        cp = pico8_mzd_field_ra_of_ij(self);
+        cp = pico8_mzd_ra_of_ij(self);
         if (gfx != NULL && mem != NULL) {
             pico8_line(gfx, mem, pico8_fixed_flr_int(cp.x), pico8_fixed_flr_int(cp.y), px, py, 1);
             pico8_spr_default(gfx, mem, 7, px - 4, py - 4);
         }
     } else {
-        pico8_fixed_t t = pico8_mzd_field_fixed(self, "t");
-        pico8_fixed_t oi = pico8_mzd_field_fixed(self, "oi");
-        pico8_value_t kk_val;
-        int has_kk = pico8_instance_get_field(self, "kk", &kk_val) && kk_val.kind == PICO8_VALUE_REF &&
-                     kk_val.as.ref != NULL;
+        pico8_fixed_t t = pico8_mzd_fixed(self->ke.t);
+        pico8_fixed_t oi = pico8_mzd_fixed(self->oi);
+        int has_kk = self->kk.kind == PICO8_VALUE_REF && self->kk.as.ref != NULL;
         int dt;
 
         for (dt = 0; dt <= 8; dt += 2) {
@@ -108,9 +98,9 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                     int idx = pico8_fixed_flr_int(pico8_fixed_flr(ratio));
                     pico8_value_t entry;
 
-                    assert(pico8_type_tag_of(kk_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+                    assert(pico8_type_tag_of(self->kk.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
                            "mz's kk colour ramp must be a spec table");
-                    if (pico8_ob_table_get_index((const pico8_ob_table_t *)kk_val.as.ref, idx, &entry) &&
+                    if (pico8_ob_table_get_index((const pico8_ob_table_t *)self->kk.as.ref, idx, &entry) &&
                         entry.kind == PICO8_VALUE_FIXED) {
                         color = pico8_fixed_flr_int(entry.as.fixed);
                     }
