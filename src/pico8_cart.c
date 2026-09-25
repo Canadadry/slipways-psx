@@ -139,7 +139,6 @@ void pico8_cart_shutdown(void) {
 
 void pico8__init(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
-    pico8_value_t eh_val;
 
     assert(pico8_ie_class() != NULL && "pico8_cart_load() must run before _init()");
     assert(pico8_eu_field_value().as.function == pico8_eu_dispatch &&
@@ -154,9 +153,7 @@ void pico8__init(void) {
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
      * and `kc` is cleared. `gy` aliases `eh`'s heap vector, it is not a copy. */
-    if (pico8_ie_class() != NULL && pico8_ob_table_get_name(pico8_ie_class()->defaults, "eh", &eh_val)) {
-        pico8_ob_table_set_name(pico8_ie_class()->defaults, "gy", eh_val);
-    }
+    pico8_ie_set_gy(pico8_ie_eh());
     pico8_msgbox_set_kc(NULL);
 
     (void)pico8_fv_new(NULL);

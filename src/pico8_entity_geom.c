@@ -43,7 +43,7 @@ pico8_value_t pico8_gk(const pico8_instance_t *e, pico8_value_t mp, pico8_value_
     pico8_vec_t point = pico8_vec_sub(pico8_entity_geom_value_vec(chosen), ra);
     pico8_value_t kq;
 
-    if (e != NULL && pico8_instance_get_field(e, "kq", &kq) && kq.kind == PICO8_VALUE_REF && kq.as.ref != NULL) {
+    if (e != NULL && pico8_entity_get_field(e, "kq", &kq) && kq.kind == PICO8_VALUE_REF && kq.as.ref != NULL) {
         return pico8_value_bool(pico8_qz_call((const pico8_qz_box_t *)kq.as.ref, point));
     }
     return pico8_value_bool(0);
