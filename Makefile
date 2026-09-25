@@ -498,7 +498,8 @@ SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 RECORDINGS := \
     tests/fixtures/session_events.json \
     tests/fixtures/long_session_events.json \
-    tests/fixtures/events_recorded_1790198294.json
+    tests/fixtures/events_recorded_1790198294.json \
+    tests/fixtures/trading_hub_session_events.json
 from_title = $(if $(filter $(RECORDINGS),$(1)),--from-title)
 
 ifeq ($(UNAME_S),Darwin)
@@ -535,7 +536,8 @@ FRAMES_EVENTS := \
     tests/fixtures/pause_menu_music_events.json \
     tests/fixtures/geoharvest_burst_events.json \
     tests/fixtures/long_session_events.json \
-    tests/fixtures/events_recorded_1790198294.json
+    tests/fixtures/events_recorded_1790198294.json \
+    tests/fixtures/trading_hub_session_events.json
 
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames
