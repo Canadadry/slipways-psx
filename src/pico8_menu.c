@@ -332,7 +332,7 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
  * uses, not a copy. */
 static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *ju = pico8_ju();
-    pico8_instance_t *built;
+    pico8_fq_t *built;
     (void)self;
     (void)argc;
     (void)arg0;

@@ -365,6 +365,7 @@ static pico8_value_t pico8_jb_ol_dispatch(void *self, int argc, pico8_value_t ar
 static const pico8_struct_class_t g_jb_struct_class = {
     {[PICO8_METHOD_OL] = pico8_jb_ol_dispatch},
     NULL,
+    NULL,
 };
 
 static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {

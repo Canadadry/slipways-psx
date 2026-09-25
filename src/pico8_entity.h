@@ -49,6 +49,11 @@ void pico8_he(pico8_instance_t *e);
  * *out_value untouched, otherwise. */
 int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value);
 
+/* `e[name]=value` on either form: into an instance's own fields, or into
+ * the struct's member `name`. Asserts when the struct has no such member:
+ * a struct never grows a field. */
+void pico8_entity_set_field(void *e, const char *name, pico8_value_t value);
+
 /* Returns 1 and writes *out_value when `e` is non-NULL and has a field
  * named `method_name` (pico8_entity_get_field()) -- calling it with `e`,
  * `argc`, `arg0` and `arg1` when the field is PICO8_VALUE_FUNCTION-kind,

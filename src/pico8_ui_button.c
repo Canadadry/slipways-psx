@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "pico8_audio.h"
 #include "pico8_dispatch_context.h"
@@ -291,14 +292,81 @@ static pico8_value_t pico8_fq_ldown_dispatch(void *self, int argc, pico8_value_t
     (void)argc;
     (void)arg0;
     (void)arg1;
-    return pico8_fq_ldown((pico8_instance_t *)self);
+    return pico8_fq_ldown((pico8_fq_t *)self);
+}
+
+static int pico8_fq_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_fq_t *fq = self;
+    const pico8_value_t *member;
+
+    if (strcmp(name, "fa") == 0) {
+        member = &fq->fa;
+    } else if (strcmp(name, "hd") == 0) {
+        member = &fq->hd;
+    } else if (strcmp(name, "my") == 0) {
+        member = &fq->my;
+    } else if (strcmp(name, "p_") == 0) {
+        member = &fq->p_;
+    } else if (strcmp(name, "m_") == 0) {
+        member = &fq->m_;
+    } else {
+        return pico8_ke_field(self, name, out_value);
+    }
+    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+static int pico8_fq_set_field(void *self, const char *name, pico8_value_t value) {
+    pico8_fq_t *fq = self;
+
+    if (strcmp(name, "m_") != 0) {
+        return 0;
+    }
+    fq->m_ = value;
+    return 1;
+}
+
+static const pico8_struct_class_t g_fq_struct_class = {
+    {[PICO8_METHOD_LDOWN] = pico8_fq_ldown_dispatch},
+    pico8_fq_field,
+    pico8_fq_set_field,
+};
+
+static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_fq_t *self = malloc(sizeof *self);
+    int i;
+
+    pico8_ke_struct_init(&self->ke, &g_fq_struct_class);
+    self->fa = pico8_value_fixed(pico8_fixed_from_int(14));
+    self->hd = pico8_value_fixed(pico8_fixed_from_int(1));
+    self->my = pico8_value_ref(NULL);
+    self->p_ = pico8_value_ref(NULL);
+    self->m_ = pico8_value_ref(NULL);
+    for (i = 0; overrides != NULL && i < overrides->count; i++) {
+        pico8_ob_key_t key = overrides->entries[i].key;
+
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "my") == 0) {
+            self->my = overrides->entries[i].value;
+        } else {
+            assert(0 && "fq: the only measured key is my; another would be a field under no rule of plan-3 "
+                        "section 5 -- stop, do not add a member");
+        }
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("fq");
+#endif
+    pico8_ke_struct_pq(&self->ke);
+    return self;
 }
 
 void pico8_fq_init(void) {
     pico8_fq_shutdown();
     g_fq_class = pico8_class_declare(pico8_ke_class(), "\nfa=14,hd=1,\n");
     PICO8_CLASS_COVERAGE_NAME(g_fq_class, "fq");
-    pico8_ob_table_set_name(g_fq_class->defaults, "ldown", pico8_value_function(pico8_fq_ldown_dispatch));
+    pico8_class_set_struct_new(g_fq_class, pico8_fq_struct_new);
 }
 
 void pico8_fq_shutdown(void) {
@@ -312,19 +380,23 @@ pico8_class_t *pico8_fq_class(void) {
     return g_fq_class;
 }
 
-pico8_instance_t *pico8_fq_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_fq_class, overrides);
+const pico8_struct_class_t *pico8_fq_struct_class(void) {
+    return &g_fq_struct_class;
 }
 
-pico8_value_t pico8_fq_ldown(pico8_instance_t *self) {
+pico8_fq_t *pico8_fq_new(const pico8_ob_table_t *overrides) {
+    return pico8_fq_struct_new(overrides);
+}
+
+pico8_value_t pico8_fq_ldown(pico8_fq_t *self) {
     pico8_value_t my_result;
 
     if (self == NULL) {
         return pico8_value_bool(1);
     }
-    /* TROU-9 */
-    if (pico8_mv(self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
-        pico8_ob_table_set_name(self->fields, "p_", my_result);
+    if (!pico8_mv((pico8_instance_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
+        my_result = pico8_value_ref(NULL);
     }
+    self->p_ = my_result;
     return pico8_value_bool(1);
 }

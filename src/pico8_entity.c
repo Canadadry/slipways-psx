@@ -172,6 +172,22 @@ int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_v
     return header->cls->field(e, name, out_value);
 }
 
+void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
+    const pico8_struct_header_t *header;
+    int written;
+
+    if (pico8_type_tag_of(e) != PICO8_TYPE_TAG_STRUCT) {
+        pico8_ob_table_set_name(((pico8_instance_t *)e)->fields, name, value);
+        return;
+    }
+    header = e;
+    assert(header->cls->set_field != NULL && "entity: a struct a generic writer reaches needs a field writer");
+    written = header->cls->set_field(e, name, value);
+    assert(written && "entity: a generic write names a field this struct has no member for, a field under no "
+                      "rule of plan-3 section 5 -- stop, do not add a member");
+    (void)written;
+}
+
 pico8_instance_t *pico8_lt(pico8_instance_t *e) {
     int i;
     pico8_value_t discard;

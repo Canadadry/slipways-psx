@@ -144,6 +144,7 @@ static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out
 static const pico8_struct_class_t g_mh_struct_class = {
     {[PICO8_METHOD_EV] = pico8_mh_ev_dispatch},
     pico8_mh_field,
+    NULL,
 };
 
 static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
@@ -338,6 +339,7 @@ static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out
 static const pico8_struct_class_t g_iv_struct_class = {
     {[PICO8_METHOD_PH] = pico8_iv_ph_dispatch, [PICO8_METHOD_KJ] = pico8_iv_kj_dispatch},
     pico8_iv_field,
+    NULL,
 };
 
 static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {

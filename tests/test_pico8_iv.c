@@ -226,6 +226,7 @@ static int fake_toast_field(const void *self, const char *name, pico8_value_t *o
 static const pico8_struct_class_t g_fake_toast_class = {
     {[PICO8_METHOD_PH] = fake_toast_ph},
     fake_toast_field,
+    NULL,
 };
 
 static void test_dg_drives_a_ke_struct(void) {

@@ -28,6 +28,8 @@
 #include "../src/pico8_ob.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_score_panel.h"
+#include "../src/pico8_struct.h"
+#include "../src/pico8_type_tag.h"
 
 #define SCORE_PANEL_CLOSE_EVENTS_PATH "tests/fixtures/score_panel_close_events.json"
 
@@ -46,12 +48,11 @@ static int ju_c_(void) {
 
 static int fq_alive(void) {
     const pico8_list_t *hv = pico8_hv();
-    pico8_class_t *fq_class = pico8_fq_class();
     int i;
-    assert(fq_class != NULL);
     for (i = 0; i < hv->count; i++) {
-        pico8_instance_t *e = (pico8_instance_t *)hv->items[i].as.ref;
-        if (e != NULL && e->cls == fq_class) {
+        const void *e = hv->items[i].as.ref;
+        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+            ((const pico8_struct_header_t *)e)->cls == pico8_fq_struct_class()) {
             return 1;
         }
     }

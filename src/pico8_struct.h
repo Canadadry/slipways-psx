@@ -11,6 +11,7 @@ typedef enum {
     PICO8_METHOD_PH,
     PICO8_METHOD_KJ,
     PICO8_METHOD_EV,
+    PICO8_METHOD_LDOWN,
     PICO8_METHOD_COUNT
 } pico8_method_t;
 
@@ -22,6 +23,7 @@ static inline int pico8_method_of(const char *name) {
         [PICO8_METHOD_PH] = "ph",
         [PICO8_METHOD_KJ] = "kj",
         [PICO8_METHOD_EV] = "ev",
+        [PICO8_METHOD_LDOWN] = "ldown",
     };
     int i;
 
@@ -37,12 +39,18 @@ static inline int pico8_method_of(const char *name) {
  * returns 0, leaving *out_value untouched, otherwise. */
 typedef int (*pico8_struct_field_fn)(const void *self, const char *name, pico8_value_t *out_value);
 
+/* Returns 1 when `self` has a member `name` and has written `value` into
+ * it; returns 0, writing nothing, otherwise. */
+typedef int (*pico8_struct_set_field_fn)(void *self, const char *name, pico8_value_t value);
+
 /* One `static const` per converted class. `methods` is indexed by
  * pico8_method_t, NULL where the class has no such method. `field` is NULL
- * only for a class no generic consumer ever reaches. */
+ * only for a class no generic consumer ever reaches, `set_field` for a
+ * class no generic writer ever reaches. */
 typedef struct {
     pico8_value_function_t methods[PICO8_METHOD_COUNT];
     pico8_struct_field_fn field;
+    pico8_struct_set_field_fn set_field;
 } pico8_struct_class_t;
 
 /* First member of every entity struct, and of the parent struct a child

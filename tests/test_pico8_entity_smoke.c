@@ -1,9 +1,15 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "../src/pico8_entity.h"
 
 #include <assert.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/pico8_class.h"
 #include "../src/pico8_fixed.h"
@@ -270,7 +276,7 @@ static void test_ke_pq_registers_via_lt(void) {
     pico8_class_registry_clear();
 }
 
-/* The shape `js`/`nf`/`fq`/`qb` all have: a real `ke` parent, whose pq is
+/* The shape `js`/`nf`/`qb` all have: a real `ke` parent, whose pq is
  * the self-registering `lt`, under a child with a distinct pq of its own.
  * Both must fire. */
 static int g_child_pq_calls = 0;
@@ -440,7 +446,7 @@ typedef struct {
     pico8_struct_header_t header;
 } fake_struct_t;
 
-static const pico8_struct_class_t g_fake_struct_class = {{NULL}, NULL};
+static const pico8_struct_class_t g_fake_struct_class = {{NULL}, NULL, NULL};
 
 static int g_fake_struct_new_calls = 0;
 static const pico8_ob_table_t *g_fake_struct_new_last_overrides = NULL;
@@ -556,9 +562,20 @@ static int fake_child_field(const void *self, const char *name, pico8_value_t *o
     return 1;
 }
 
+static int fake_child_set_field(void *self, const char *name, pico8_value_t value) {
+    fake_ke_child_t *c = self;
+
+    if (strcmp(name, "p_") != 0) {
+        return 0;
+    }
+    c->p_ = value;
+    return 1;
+}
+
 static const pico8_struct_class_t g_fake_child_class = {
     {[PICO8_METHOD_PH] = fake_child_ph},
     fake_child_field,
+    fake_child_set_field,
 };
 
 static fake_ke_child_t *fake_child_new(int fa, int ra, pico8_value_function_t ev, pico8_ob_table_t *nu) {
@@ -693,6 +710,75 @@ static void test_mv_on_a_struct(void) {
     pico8_class_registry_clear();
 }
 
+/* Runs `write` in a child process and reports whether it died of an
+ * assert. */
+static int dies_of_an_assert(void (*write)(void)) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    fflush(stderr);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        if (freopen("/dev/null", "w", stderr) == NULL) {
+            _exit(2);
+        }
+        write();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    return WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT;
+}
+
+static void write_an_unknown_name(void) {
+    fake_ke_child_t *c = fake_child_new(4, 5, NULL, NULL);
+    pico8_entity_set_field(c, "zz", pico8_value_bool(1));
+}
+
+static void write_through_no_writer(void) {
+    fake_struct_t s;
+    s.header.tag = PICO8_TYPE_TAG_STRUCT;
+    s.header.cls = &g_fake_struct_class;
+    pico8_entity_set_field(&s, "p_", pico8_value_bool(1));
+}
+
+/* `e[name]=value` on either form: into an instance's own fields, through a
+ * struct's writer into its member, which its reader then reads back. A
+ * struct never grows a field. */
+static void test_set_field_on_both_forms(void) {
+    pico8_class_t *cls;
+    pico8_instance_t *inst;
+    fake_ke_child_t *c;
+    pico8_value_t v;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    cls = pico8_class_declare(NULL, "");
+    inst = pico8_class_instantiate(cls, NULL);
+    pico8_entity_set_field(inst, "m_", pico8_value_bool(1));
+    assert(pico8_ob_table_get_name(inst->fields, "m_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean);
+    pico8_entity_set_field(inst, "m_", pico8_value_bool(0));
+    assert(pico8_entity_get_field(inst, "m_", &v) && v.kind == PICO8_VALUE_BOOL && !v.as.boolean);
+
+    c = fake_child_new(4, 5, NULL, NULL);
+    assert(!pico8_entity_get_field(c, "p_", &v));
+    pico8_entity_set_field(c, "p_", pico8_value_fixed(pico8_fixed_from_int(3)));
+    assert(c->p_.kind == PICO8_VALUE_FIXED && c->p_.as.fixed == pico8_fixed_from_int(3));
+    assert(pico8_entity_get_field(c, "p_", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(3));
+    pico8_entity_set_field(c, "p_", pico8_value_ref(NULL));
+    assert(!pico8_entity_get_field(c, "p_", &v));
+
+    assert(dies_of_an_assert(write_an_unknown_name));
+    assert(dies_of_an_assert(write_through_no_writer));
+
+    free(c);
+    pico8_instance_free(inst);
+    pico8_class_free(cls);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
@@ -703,6 +789,7 @@ int main(void) {
     test_ke_struct_registers_like_an_instance();
     test_instances_and_structs_mix_in_order();
     test_mv_on_a_struct();
+    test_set_field_on_both_forms();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;

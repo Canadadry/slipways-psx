@@ -45,10 +45,6 @@ static pico8_value_t pico8_jc_field_value(const pico8_instance_t *inst, const ch
     return pico8_value_ref(NULL);
 }
 
-static int pico8_jc_field_truthy(const pico8_instance_t *inst, const char *name) {
-    return pico8_jc_truthy(pico8_jc_field_value(inst, name));
-}
-
 static pico8_instance_t *pico8_jc_field_instance(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v = pico8_jc_field_value(inst, name);
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -89,6 +85,7 @@ void pico8_jc_pq(pico8_instance_t *self) {
 void pico8_jc_hq(pico8_instance_t *self, pico8_value_t mp) {
     pico8_instance_t *ok;
     pico8_instance_t *hovered;
+    pico8_value_t gv_val;
     pico8_value_t re_val;
     pico8_instance_t *qu;
     pico8_instance_t *re;
@@ -104,7 +101,7 @@ void pico8_jc_hq(pico8_instance_t *self, pico8_value_t mp) {
     ok = pico8_ok();
     hovered = pico8_jc_field_instance(ok, "o_");
 
-    if (hovered != NULL && pico8_jc_field_truthy(hovered, "gv")) {
+    if (hovered != NULL && pico8_entity_get_field(hovered, "gv", &gv_val) && pico8_jc_truthy(gv_val)) {
         re_val = pico8_value_ref(hovered);
     } else {
         pico8_instance_t *placeholder = malloc(sizeof *placeholder);
