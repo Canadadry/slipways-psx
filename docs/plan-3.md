@@ -104,7 +104,7 @@ Chemins relatifs à `src/`. « Tests » = tests de régression (§6) réécrits 
 - 1a.9 — `mo` : sans classe (`entity.c:129`), provisoire, remplacée par un `qb` (`bootstrap.c:48`). Tests : `planet_kj_dispatch`.
 - 1a.10 — `mz` (`wormhole.c:270`), `jj` lu sur la classe. Tests : aucun. Découvert à 1a.10 : helpers partagés `bv`/`dl`/`d_` (`probe.c`) et `ks` (`ke.c`), `s.qu` lu par `jo:gv` (`planet_display.c:361`) et `nr:gv` (`planet_family_trade.c:60`).
 - 1a.11 — enveloppe `mz.jj` : sans classe (`wormhole.c:293`). Découvert à 1a.11 : `et.qs` lu par `dl` (`probe.c:219`).
-- 1a.12 — `bg` (`bg.c:69`), `pl` lu sur la classe, `ldown`/`rdown`, `lookup_named("mz"|"g_")` (`bg.c:185-191`). Tests : aucun.
+- 1a.12 — `bg` (`bg.c:69`), `pl` lu sur la classe, `ldown`/`rdown`, `lookup_named("mz"|"g_")` (`bg.c:185-191`). Tests : aucun. Découvert à 1a.12 : `m_` écrit sur `bg` par la boucle de survol `gw` (`ui.c:308,313`) → membre ; `rdown` entre dans l'enum.
 - 1a.13 — `jc` (`slipway.c:392`), instanciée par `lookup_named("jc")` (`planet.c:482,491`, `planet_family_trade.c:104,110`). Tests : aucun.
 - 1a.14 — `ie` (`research_icon.c:281`), `gy`/`id` → état statique (`research_icon.c:158,182`, `cart.c:158`), instancie `ie.ke` (`:198`). Tests : aucun.
 - 1a.15 — enveloppe `ie.ke` (`research_icon.c:68`, `cls` non nul), lit `rr`/`s`.
