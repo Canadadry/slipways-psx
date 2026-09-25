@@ -9,6 +9,7 @@
 #include "../src/pico8_ke.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_value.h"
 
 /* The one integration-shaped check over `ob`/`kv:jr`/`hv`/`cv`/`cg`/`dc`/
@@ -432,12 +433,81 @@ static void test_closure_context_survives_instantiate_field_copy(void) {
     pico8_class_registry_clear();
 }
 
+/* A class with a struct constructor hands instantiation over to it whole:
+ * no instance of its own, no pq of the class chain. */
+typedef struct {
+    pico8_struct_header_t header;
+} fake_struct_t;
+
+static const pico8_value_function_t g_fake_struct_methods[PICO8_METHOD_COUNT] = {NULL};
+
+static int g_fake_struct_new_calls = 0;
+static const pico8_ob_table_t *g_fake_struct_new_last_overrides = NULL;
+static fake_struct_t *g_fake_struct_new_last_result = NULL;
+
+static void *fake_struct_new(const pico8_ob_table_t *overrides) {
+    fake_struct_t *s = malloc(sizeof *s);
+
+    g_fake_struct_new_calls++;
+    g_fake_struct_new_last_overrides = overrides;
+    s->header.tag = PICO8_TYPE_TAG_STRUCT;
+    s->header.methods = g_fake_struct_methods;
+    g_fake_struct_new_last_result = s;
+    return s;
+}
+
+static void test_struct_constructor_takes_over_instantiation(void) {
+    pico8_class_t *cls;
+    pico8_class_t *plain;
+    pico8_ob_table_t *overrides;
+    pico8_instance_t *built;
+    pico8_instance_t *inst;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    g_pq_a_calls = 0;
+
+    cls = pico8_class_declare(NULL, "");
+    pico8_class_set_pq(cls, fake_pq_a);
+    pico8_class_set_struct_new(cls, fake_struct_new);
+
+    overrides = pico8_ob_table_new();
+    pico8_ob_table_set_index(overrides, 1, pico8_value_bool(1));
+    built = pico8_class_instantiate(cls, overrides);
+
+    assert(g_fake_struct_new_calls == 1);
+    assert(g_fake_struct_new_last_overrides == overrides);
+    assert((void *)built == (void *)g_fake_struct_new_last_result);
+    assert(pico8_type_tag_of(built) == PICO8_TYPE_TAG_STRUCT);
+    assert(g_pq_a_calls == 0);
+
+    /* Without a struct constructor, nothing changes. */
+    plain = pico8_class_declare(NULL, "");
+    pico8_class_set_pq(plain, fake_pq_a);
+    inst = pico8_class_instantiate(plain, NULL);
+    assert(pico8_type_tag_of(inst) == PICO8_TYPE_TAG_INSTANCE);
+    assert(g_pq_a_calls == 1);
+    assert(g_fake_struct_new_calls == 1);
+
+    /* A class itself stays untagged: `ie.ke` asserts exactly that. */
+    assert(pico8_type_tag_of(cls) == PICO8_TYPE_TAG_UNKNOWN);
+
+    free(g_fake_struct_new_last_result);
+    pico8_instance_free(inst);
+    pico8_ob_table_free(overrides);
+    pico8_class_free(plain);
+    pico8_class_free(cls);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
     test_real_ke_subclass_with_own_distinct_pq();
     test_mv_two_and_zero_argument_dispatch();
     test_closure_context_survives_instantiate_field_copy();
+    test_struct_constructor_takes_over_instantiation();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;

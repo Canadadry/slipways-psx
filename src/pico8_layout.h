@@ -6,8 +6,15 @@
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
+
+/* Never freed, nor is the list `ls` points at: TROU-7. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t ls;
+} pico8_jb_t;
 
 /* `lq` and `jb` are root classes declared with no spec string and are not
  * ke-descended, so neither ever self-registers into hv/cv/cg. */
@@ -21,7 +28,7 @@ pico8_class_t *pico8_lq_class(void);
 pico8_class_t *pico8_jb_class(void);
 
 pico8_instance_t *pico8_lq_new(const pico8_ob_table_t *overrides);
-pico8_instance_t *pico8_jb_new(const pico8_ob_table_t *overrides);
+pico8_jb_t *pico8_jb_new(const pico8_ob_table_t *overrides);
 
 /* Omitting `a` is numerically the same as `a` of 0, so pico8_lq_ol_default
  * passes 0 rather than carrying a "was it provided" flag. A NULL self draws
@@ -30,8 +37,8 @@ void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
                   pico8_fixed_t a);
 void pico8_lq_ol_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p);
 
-/* A NULL self, or one whose "ls" field is absent, draws nothing -- not even
- * the frame. */
-void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_fixed_t om, pico8_fixed_t a);
+/* A NULL self, or one whose `ls` is nil, draws nothing -- not even the
+ * frame. */
+void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pico8_fixed_t om, pico8_fixed_t a);
 
 #endif

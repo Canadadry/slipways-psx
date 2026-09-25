@@ -128,6 +128,7 @@ pico8_class_t *pico8_class_declare(pico8_class_t *parent, const char *spec) {
     cls->defaults = pico8_ob(spec != NULL ? spec : "", NULL);
     cls->parent = parent;
     cls->pq = NULL;
+    cls->struct_new = NULL;
 #ifdef PICO8_CLASS_COVERAGE
     cls->coverage_name = "";
 #endif
@@ -153,6 +154,10 @@ void pico8_class_free(pico8_class_t *cls) {
 
 void pico8_class_set_pq(pico8_class_t *cls, pico8_class_pq_fn fn) {
     cls->pq = fn;
+}
+
+void pico8_class_set_struct_new(pico8_class_t *cls, pico8_class_struct_new_fn fn) {
+    cls->struct_new = fn;
 }
 
 /* The nearest `pq` at or above `cls`. In the cart this is an ordinary
@@ -250,13 +255,17 @@ const char *pico8_class_coverage_first_unknown(const char *const *known, int kno
 #endif
 
 pico8_instance_t *pico8_class_instantiate(pico8_class_t *cls, const pico8_ob_table_t *overrides) {
-    pico8_instance_t *inst = malloc(sizeof *inst);
+    pico8_instance_t *inst;
     const pico8_class_t *ko;
     pico8_class_pq_fn iy = NULL;
     int i;
 
     assert(cls != NULL && "instantiate: the class must be built first; a NULL one silently yields "
                           "an instance with no defaults and no pq");
+    if (cls->struct_new != NULL) {
+        return (pico8_instance_t *)cls->struct_new(overrides);
+    }
+    inst = malloc(sizeof *inst);
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record(cls->coverage_name);
 #endif

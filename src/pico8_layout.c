@@ -1,5 +1,6 @@
 #include "pico8_layout.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -283,33 +284,31 @@ static int pico8_jb_pq_step(pico8_value_t ln, void *ctx, pico8_value_t *out_valu
     return 1;
 }
 
-static void pico8_jb_pq(pico8_instance_t *self) {
-    pico8_list_t items = pico8_layout_positional_values(self->fields);
+static void pico8_jb_pq(pico8_jb_t *self, const pico8_ob_table_t *overrides) {
+    pico8_list_t items = pico8_layout_positional_values(overrides);
     /* TROU-7 */
     pico8_list_t *ls_heap = malloc(sizeof *ls_heap);
 
     *ls_heap = pico8_nv(&items, pico8_jb_pq_step, NULL);
     pico8_list_free(&items);
 
-    pico8_ob_table_set_name(self->fields, "ls", pico8_value_ref(ls_heap));
+    self->ls = pico8_value_ref(ls_heap);
 }
 
 /* Lua's `#self` is read here as `ls->count`: jb:pq contributes exactly one
  * `ls` entry per positional item, so the two counts never differ. */
-void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_fixed_t om,
+void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pico8_fixed_t om,
                   pico8_fixed_t a) {
-    pico8_value_t ls_val;
     const pico8_list_t *ls;
     pico8_fixed_t h;
     pico8_fixed_t dn;
     pico8_list_iter_t it;
     pico8_value_t entry;
 
-    if (self == NULL || !pico8_instance_get_field(self, "ls", &ls_val) || ls_val.kind != PICO8_VALUE_REF ||
-        ls_val.as.ref == NULL) {
+    if (self == NULL || self->ls.kind != PICO8_VALUE_REF || self->ls.as.ref == NULL) {
         return;
     }
-    ls = PICO8_REF_AS_LIST_CONST(ls_val.as.ref);
+    ls = PICO8_REF_AS_LIST_CONST(self->ls.as.ref);
 
     h = pico8_fixed_add(pico8_fixed_mul(pico8_fixed_from_int(ls->count), pico8_fixed_from_int(8)),
                          pico8_fixed_from_int(2));
@@ -347,6 +346,45 @@ static pico8_value_t pico8_lq_ol_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
+/* An `om` or `a` that is not FIXED falls back to 0. */
+static pico8_value_t pico8_jb_ol_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    pico8_fixed_t om = pico8_fixed_from_int(0);
+    pico8_fixed_t a = pico8_fixed_from_int(0);
+    (void)argc;
+
+    if (arg0.kind == PICO8_VALUE_FIXED) {
+        om = arg0.as.fixed;
+    }
+    if (arg1.kind == PICO8_VALUE_FIXED) {
+        a = arg1.as.fixed;
+    }
+    pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, om, a);
+    return pico8_value_ref(NULL);
+}
+
+static const pico8_value_function_t g_jb_methods[PICO8_METHOD_COUNT] = {
+    [PICO8_METHOD_OL] = pico8_jb_ol_dispatch,
+};
+
+static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_jb_t *self = malloc(sizeof *self);
+    int i;
+
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("jb");
+#endif
+    for (i = 0; overrides != NULL && i < overrides->count; i++) {
+        assert(overrides->entries[i].key.kind != PICO8_OB_KEY_NAME &&
+               "jb: every measured override is positional; a named one would be a field under no rule of "
+               "plan-3 section 5 -- stop, do not add a member");
+    }
+    self->header.tag = PICO8_TYPE_TAG_STRUCT;
+    self->header.methods = g_jb_methods;
+    self->ls = pico8_value_ref(NULL);
+    pico8_jb_pq(self, overrides);
+    return self;
+}
+
 /* "ol" is wired onto lq's defaults as a real function field as well: a
  * grep for pico8_lq_ol misses the pico8_mv("ol") route that jo:kj uses. */
 void pico8_layout_init(void) {
@@ -357,7 +395,7 @@ void pico8_layout_init(void) {
     pico8_ob_table_set_name(g_lq_class->defaults, "ol", pico8_value_function(pico8_lq_ol_dispatch));
     g_jb_class = pico8_class_declare(NULL, NULL);
     PICO8_CLASS_COVERAGE_NAME(g_jb_class, "jb");
-    pico8_class_set_pq(g_jb_class, pico8_jb_pq);
+    pico8_class_set_struct_new(g_jb_class, pico8_jb_struct_new);
 }
 
 void pico8_layout_shutdown(void) {
@@ -383,6 +421,6 @@ pico8_instance_t *pico8_lq_new(const pico8_ob_table_t *overrides) {
     return pico8_class_instantiate(g_lq_class, overrides);
 }
 
-pico8_instance_t *pico8_jb_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_jb_class, overrides);
+pico8_jb_t *pico8_jb_new(const pico8_ob_table_t *overrides) {
+    return pico8_jb_struct_new(overrides);
 }

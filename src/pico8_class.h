@@ -2,6 +2,7 @@
 #define PICO8_CLASS_H
 
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_type_tag.h"
 
 /* `name` is this class's own owned copy of the `fz` entry of `defaults`,
@@ -17,6 +18,11 @@ typedef struct pico8_instance pico8_instance_t;
  * and writes fields through the ordinary class-chain fallback. */
 typedef void (*pico8_class_pq_fn)(pico8_instance_t *instance);
 
+/* Builds a converted class's entity struct from `overrides` (NULL means
+ * none), which it only reads. Returns a struct tagged
+ * PICO8_TYPE_TAG_STRUCT, never freed (TROU-7). */
+typedef void *(*pico8_class_struct_new_fn)(const pico8_ob_table_t *overrides);
+
 struct pico8_class {
     char *name;
     pico8_class_t *parent;
@@ -26,6 +32,8 @@ struct pico8_class {
     /* A string literal, never freed; "" until PICO8_CLASS_COVERAGE_NAME. */
     const char *coverage_name;
 #endif
+    /* NULL until pico8_class_set_struct_new(). */
+    pico8_class_struct_new_fn struct_new;
 };
 
 struct pico8_instance {
@@ -52,6 +60,7 @@ pico8_class_t *pico8_class_declare(pico8_class_t *parent, const char *spec);
 void pico8_class_free(pico8_class_t *cls);
 
 void pico8_class_set_pq(pico8_class_t *cls, pico8_class_pq_fn fn);
+void pico8_class_set_struct_new(pico8_class_t *cls, pico8_class_struct_new_fn fn);
 
 /* Returns the class registered under `name`, or NULL if none ever was.
  * pico8_class_registry_clear() is test-support only: it empties the
@@ -79,7 +88,11 @@ void pico8_class_registry_named_clear(void);
  * while a subclass's own distinct `pq` fires in addition to it,
  * derived-to-base. Class defaults are never copied into the instance.
  * Returns an instance the caller owns; release it with
- * pico8_instance_free(). */
+ * pico8_instance_free().
+ * When `cls` has a struct constructor, returns that constructor's result
+ * instead, untouched: no instance is built, no pq runs and no coverage is
+ * recorded here. The pointer then carries PICO8_TYPE_TAG_STRUCT and must
+ * not be read as an instance before its tag is checked. */
 pico8_instance_t *pico8_class_instantiate(pico8_class_t *cls, const pico8_ob_table_t *overrides);
 
 /* Frees this instance's own fields table. Does NOT touch `cls`

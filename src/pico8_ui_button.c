@@ -178,7 +178,7 @@ void pico8_js_pq(pico8_instance_t *self) {
         !(jb_val.kind == PICO8_VALUE_BOOL && jb_val.as.boolean == 0)) {
         const pico8_ob_table_t *jb_overrides =
             (jb_val.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)jb_val.as.ref : NULL;
-        pico8_instance_t *new_jb;
+        pico8_jb_t *new_jb;
 
         assert((jb_overrides == NULL || pico8_type_tag_of(jb_overrides) == PICO8_TYPE_TAG_OB_TABLE) &&
                "js:pq's jb field must hold a plain spec table");
@@ -217,8 +217,9 @@ void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *sel
 
     if (pico8_instance_get_field(self, "jb", &jb_val) && jb_val.kind == PICO8_VALUE_REF && jb_val.as.ref != NULL &&
         pico8_ui_field_truthy(self, "m_")) {
-        pico8_jb_ol(gfx, mem, (const pico8_instance_t *)jb_val.as.ref, pico8_fixed_from_int(127),
-                    pico8_fixed_from_int(1));
+        assert(pico8_type_tag_of(jb_val.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+               "js:ev: the jb field must hold the jb struct js:pq built, not a spec table");
+        pico8_jb_ol(gfx, mem, (const pico8_jb_t *)jb_val.as.ref, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
     }
 }
 

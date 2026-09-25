@@ -242,10 +242,11 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                 pico8_instance_t wrapper = ie_ke_wrapper(ke_cls);
                 pico8_dl(gfx, mem, &wrapper);
             }
-            /* Unlike `self.ke`, `self.jb` really does hold an instance. */
             if (pico8_instance_get_field(self, "jb", &jb_val) && jb_val.kind == PICO8_VALUE_REF &&
                 jb_val.as.ref != NULL) {
-                pico8_jb_ol(gfx, mem, (const pico8_instance_t *)jb_val.as.ref, pico8_fixed_from_int(0),
+                assert(pico8_type_tag_of(jb_val.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+                       "ie: unlike self.ke, self.jb holds a built jb struct");
+                pico8_jb_ol(gfx, mem, (const pico8_jb_t *)jb_val.as.ref, pico8_fixed_from_int(0),
                             pico8_fixed_from_int(0));
             }
         }
