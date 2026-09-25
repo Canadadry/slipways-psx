@@ -17,6 +17,7 @@ static void pico8_ke_pq_lt(pico8_instance_t *instance) {
 void pico8_ke_init(void) {
     pico8_ke_shutdown();
     g_ke_class = pico8_class_declare(NULL, "\nme=\"ph\",t=0,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_ke_class, "ke");
     pico8_class_set_pq(g_ke_class, pico8_ke_pq_lt);
 }
 

@@ -356,6 +356,7 @@ void pico8_score_panel_init(void) {
         "ou=o(\no(f,13,121,9,fn=\"qr\"),\no(f,37,121,2,fn=\"qr\"),\no(f,13,2,9,fn=\"qr\"),\no(f,29,2,2,fn=\"qr\"),"
         "\no(f,59,2,2,fn=\"qr\"),\no(f,85,2,13,fn=\"qr\"),\no(f,99,2,13,fn=\"qr\"),\n),\n"
         "ed=1,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_pj_class, "pj");
 
     pico8_ob_table_set_name(g_pj_class->defaults, "hb", pico8_value_function(pico8_pj_hb_dispatch));
     pico8_ob_table_set_name(g_pj_class->defaults, "kj", pico8_value_function(pico8_pj_kj_dispatch));

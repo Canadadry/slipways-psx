@@ -114,6 +114,7 @@ static pico8_value_t pico8_js_ldown_dispatch(void *self, int argc, pico8_value_t
 void pico8_js_init(void) {
     pico8_js_shutdown();
     g_js_class = pico8_class_declare(pico8_ke_class(), "\nfa=11,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_js_class, "js");
     pico8_class_set_pq(g_js_class, pico8_js_pq_dispatch);
     pico8_ob_table_set_name(g_js_class->defaults, "hd", pico8_value_function(pico8_js_hd_dispatch));
     pico8_ob_table_set_name(g_js_class->defaults, "ph", pico8_value_function(pico8_js_ph_dispatch));
@@ -295,6 +296,7 @@ static pico8_value_t pico8_fq_ldown_dispatch(void *self, int argc, pico8_value_t
 void pico8_fq_init(void) {
     pico8_fq_shutdown();
     g_fq_class = pico8_class_declare(pico8_ke_class(), "\nfa=14,hd=1,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_fq_class, "fq");
     pico8_ob_table_set_name(g_fq_class->defaults, "ldown", pico8_value_function(pico8_fq_ldown_dispatch));
 }
 

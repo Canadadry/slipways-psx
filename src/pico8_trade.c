@@ -12,6 +12,7 @@ static pico8_class_t *g_trade_class = NULL;
 void pico8_trade_init(void) {
     pico8_trade_shutdown();
     g_trade_class = pico8_class_declare(NULL, NULL);
+    PICO8_CLASS_COVERAGE_NAME(g_trade_class, "trade");
 }
 
 void pico8_trade_shutdown(void) {

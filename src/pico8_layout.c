@@ -352,9 +352,11 @@ static pico8_value_t pico8_lq_ol_dispatch(void *self, int argc, pico8_value_t ar
 void pico8_layout_init(void) {
     pico8_layout_shutdown();
     g_lq_class = pico8_class_declare(NULL, NULL);
+    PICO8_CLASS_COVERAGE_NAME(g_lq_class, "lq");
     pico8_class_set_pq(g_lq_class, pico8_lq_pq);
     pico8_ob_table_set_name(g_lq_class->defaults, "ol", pico8_value_function(pico8_lq_ol_dispatch));
     g_jb_class = pico8_class_declare(NULL, NULL);
+    PICO8_CLASS_COVERAGE_NAME(g_jb_class, "jb");
     pico8_class_set_pq(g_jb_class, pico8_jb_pq);
 }
 

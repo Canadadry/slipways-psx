@@ -75,6 +75,7 @@ void pico8_research_init(void) {
         pico8_class_declare(NULL, "\nmr=o(\"px\",\"lr\",\"fj\",\"ja\",\"i\",\"o\",\"il\",\"dm\"),\n"
                                    "gp=o(\"o\",\"dm\"),\n"
                                    "fk=o(f,2),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_hp_class, "hp");
     pico8_class_set_pq(g_hp_class, pico8_hp_pq);
     pico8_ob_table_set_name(g_hp_class->defaults, "lq", pico8_value_function(pico8_hp_lq_dispatch));
 }

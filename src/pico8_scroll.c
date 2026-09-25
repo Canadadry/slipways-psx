@@ -50,6 +50,7 @@ void pico8_qb_init(void) {
     g_qb_class = pico8_class_declare(pico8_ke_class(),
                                       "\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
                                       "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_qb_class, "qb");
     pico8_ob_table_set_name(g_qb_class->defaults, "ph", pico8_value_function(pico8_qb_ph_dispatch));
     pico8_ob_table_set_name(g_qb_class->defaults, "md", pico8_value_function(pico8_qb_md_dispatch));
 }

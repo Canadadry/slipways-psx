@@ -270,6 +270,7 @@ void pico8_wormhole_init(void) {
     g_mz_class = pico8_class_declare(pico8_ke_class(),
                                       "\nnu=o(\"mz\"),\nme=\"kz\",dw=0,\ndq=\"pr\",\nspawn_snd=52,ik=49,\noi=0,"
                                       "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_mz_class, "mz");
     pico8_class_set_pq(g_mz_class, pico8_mz_pq);
     /* Lua's `mz.hq=bv` is rebound three statements later by `function
      * mz:hq`, so only that second definition is ever reachable. Registering

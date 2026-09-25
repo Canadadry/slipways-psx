@@ -33,6 +33,7 @@ void pico8_nf_init(void) {
     assert(pico8_ob_lookup_constructor('v') != NULL && "nf's spec parses v(0,0) as a vector");
     assert(pico8_ke_class() != NULL && "nf descends from ke");
     g_nf_class = pico8_class_declare(pico8_ke_class(), "\nl=o(),r=o(),ra=v(0,0),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_nf_class, "nf");
     pico8_class_set_pq(g_nf_class, pico8_nf_pq_dispatch);
     pico8_ob_table_set_name(g_nf_class->defaults, "ph", pico8_value_function(pico8_nf_ph_dispatch));
 }

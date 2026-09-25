@@ -1,0 +1,31 @@
+ke  0  0/15  exemptée (abstraite, jamais instanciée directement)
+nl  1  1/15
+os  1  1/15
+fq  3  2/15
+mx  3  1/15
+pm  4  2/15
+fr  5  1/15
+hj  5  1/15
+nr  6  2/15
+ga  7  3/15
+qh  8  3/15
+g_  17  9/15
+bg  19  15/15
+fv  19  15/15
+hy  19  15/15
+pj  19  15/15
+nf  38  15/15
+qb  38  15/15
+ui  38  15/15
+mh  117  10/15
+ie  133  15/15
+mz  146  9/15
+jc  152  6/15
+iv  474  9/15
+hp  510  15/15
+jb  831  15/15
+js  1286  15/15
+jo  1710  15/15
+lq  10718  15/15
+trade  21032  6/15
+couverture: OK -- chaque classe non exemptée est instanciée (15 rejeu(x))

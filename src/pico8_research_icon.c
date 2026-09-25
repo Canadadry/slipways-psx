@@ -279,6 +279,7 @@ void pico8_research_icon_init(void) {
 
     g_ie_class =
         pico8_class_declare(pico8_ke_class(), "\nkq=b(0,0,9,8),\nfa=12,\nid=0,\nra=v(999,999),\neh=v(118,120),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_ie_class, "ie");
 
     pico8_ob_table_set_name(g_ie_class->defaults, "hd", pico8_value_function(pico8_ie_hd_dispatch));
     pico8_ob_table_set_name(g_ie_class->defaults, "hb", pico8_value_function(pico8_ie_hb_dispatch));

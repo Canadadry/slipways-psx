@@ -133,6 +133,7 @@ void pico8_help_init(void) {
         "\npn=5,du=15,\npy=0.0067,pk=1,\nki=17,\nkq=b(-40,78,40,98),\nql=11,fg=5,"
         "\nrb=o(\no(192,0,11,16,4,fn=\"s\"),\no(172,20,107,2,2,fn=\"s\"),"
         "\no(\"need help?\",40,110,13,fn=\"qr\"),\no(\"slipways.net/help\",40,116,5,fn=\"qr\"),\n),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_fv_class, "fv");
     pico8_class_set_pq(g_fv_class, pico8_fv_pq);
     pico8_ob_table_set_name(g_fv_class->defaults, "hd", pico8_value_function(pico8_fv_hd_dispatch));
     pico8_ob_table_set_name(g_fv_class->defaults, "kj", pico8_value_function(pico8_fv_kj_dispatch));

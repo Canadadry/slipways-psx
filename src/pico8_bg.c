@@ -68,6 +68,7 @@ void pico8_bg_init(void) {
     pico8_bg_shutdown();
     g_bg_class = pico8_class_declare(
         pico8_ke_class(), "\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_bg_class, "bg");
     pico8_class_set_pq(g_bg_class, pico8_bg_pq_dispatch);
     pico8_ob_table_set_name(g_bg_class->defaults, "kj", pico8_value_function(pico8_bg_kj_dispatch));
     pico8_ob_table_set_name(g_bg_class->defaults, "ldown", pico8_value_function(pico8_bg_ldown_dispatch));

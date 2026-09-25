@@ -144,6 +144,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
 void pico8_mh_init(void) {
     pico8_mh_shutdown();
     g_mh_class = pico8_class_declare(pico8_ke_class(), "\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_mh_class, "mh");
     pico8_class_set_pq(g_mh_class, pico8_mh_pq);
     pico8_ob_table_set_name(g_mh_class->defaults, "ev", pico8_value_function(pico8_mh_ev_dispatch));
 }
@@ -258,6 +259,7 @@ void pico8_iv_init(void) {
     pico8_iv_shutdown();
     pico8_pi_init();
     g_iv_class = pico8_class_declare(pico8_ke_class(), "\nfa=9,\nl=0,v=v(0,-0.34),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_iv_class, "iv");
     pico8_class_set_pq(g_iv_class, pico8_iv_pq);
     pico8_ob_table_set_name(g_iv_class->defaults, "ph", pico8_value_function(pico8_iv_ph_dispatch));
     pico8_ob_table_set_name(g_iv_class->defaults, "kj", pico8_value_function(pico8_iv_kj_dispatch));

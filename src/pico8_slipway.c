@@ -397,6 +397,7 @@ void pico8_jc_init(void) {
                                                         "dw=0.004,\n"
                                                         "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n"
                                                         "nh=20,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_jc_class, "jc");
     pico8_class_set_pq(g_jc_class, pico8_jc_pq);
     pico8_ob_table_set_name(g_jc_class->defaults, "hq", pico8_value_function(pico8_jc_hq_dispatch));
     pico8_ob_table_set_name(g_jc_class->defaults, "ey", pico8_value_function(pico8_jc_ey_dispatch));

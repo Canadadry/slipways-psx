@@ -318,6 +318,7 @@ void pico8_planet_family_trade_init(void) {
                                       "hz=o(170,170,170,168),\n"
                                       "dw=0.01,\n"
                                       "rr=\"slipgates\",\n");
+    PICO8_CLASS_COVERAGE_NAME(g_nr_class, "nr");
     pico8_ob_table_set_name(g_nr_class->defaults, "gv", pico8_value_function(pico8_nr_gv_dispatch));
     pico8_ob_table_set_name(g_nr_class->defaults, "ldown", pico8_value_function(pico8_nr_ldown_dispatch));
     pico8_ob_table_set_name(g_nr_class->defaults, "hb", pico8_value_function(pico8_nr_hb_dispatch));
@@ -329,6 +330,7 @@ void pico8_planet_family_trade_init(void) {
                                       "rr=\"infraspace\",\n"
                                       "od=25,\n"
                                       "s=78,hz=o(78,78,78,76),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_fr_class, "fr");
 
     g_mx_class = pico8_class_declare(pico8_hj_class(),
                                       "\n"
@@ -344,6 +346,7 @@ void pico8_planet_family_trade_init(void) {
                                       "du=5,\n"
                                       "qo=0.98,ro=-0.07,\n"
                                       "qg=0.07,q_=0.98,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_mx_class, "mx");
     pico8_ob_table_set_name(g_mx_class->defaults, "kf", pico8_value_function(pico8_mx_kf_dispatch));
 }
 

@@ -314,6 +314,7 @@ void pico8_planet_family_init(void) {
                                       "mi=1,\n"
                                       "s=174,\n"
                                       "ba=o(28,18,20,21,22,48),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_qh_class, "qh");
     pico8_ob_table_set_name(g_qh_class->defaults, "hq", pico8_value_function(pico8_bv_dispatch));
     pico8_ob_table_set_name(g_qh_class->defaults, "ly", pico8_value_function(pico8_qh_ly_dispatch));
     pico8_ob_table_set_name(g_qh_class->defaults, "ev", pico8_value_function(pico8_dl_dispatch));
@@ -326,6 +327,7 @@ void pico8_planet_family_init(void) {
                                       "hp=6,s=68,px=o(\"trading hub\",c=13),\n"
                                       "od=20,qw=15,\n"
                                       "ba=o(28,48,18,20,21,22),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_nl_class, "nl");
     pico8_ob_table_set_name(g_nl_class->defaults, "ly", pico8_value_function(pico8_nl_ly_dispatch));
 
     g_os_class = pico8_class_declare(g_qh_class,
@@ -335,6 +337,7 @@ void pico8_planet_family_init(void) {
                                       "qh=f,s=100,\n"
                                       "od=15,\n"
                                       "hs=0.5,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_os_class, "os");
 
     g_hj_class = pico8_class_declare(g_qh_class,
                                       "\n"
@@ -351,6 +354,7 @@ void pico8_planet_family_init(void) {
                                       "du=7.5,\n"
                                       "qo=0.98,ro=-0.07,\n"
                                       "qg=0.07,q_=0.98,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_hj_class, "hj");
     pico8_class_set_pq(g_hj_class, pico8_f_);
     pico8_ob_table_set_name(g_hj_class->defaults, "mm", pico8_value_function(pico8_g__mm));
     pico8_ob_table_set_name(g_hj_class->defaults, "kj", pico8_value_function(pico8_hj_kj_dispatch));
@@ -369,6 +373,7 @@ void pico8_planet_family_init(void) {
                                       "k_=o(1,2,4,9,10,7),\n"
                                       "qo=1.02,ro=-0.0525,\n"
                                       "qg=0.0525,q_=1.02,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_pm_class, "pm");
     pico8_class_set_pq(g_pm_class, pico8_pm_pq);
     pico8_class_register_named("pm", g_pm_class);
 
@@ -388,6 +393,7 @@ void pico8_planet_family_init(void) {
                                       "qg=0,q_=0.9,\n"
                                       "k_=o(1,2,4,9,9,10,10,7,7,7,7,7),\n"
                                       "iu=-0.06,py=6,ms=3,\n");
+    PICO8_CLASS_COVERAGE_NAME(g_ga_class, "ga");
     pico8_class_set_pq(g_ga_class, pico8_ga_pq);
 
     /* `by=o()` parses to an ob_table, but every reader of `by` casts it

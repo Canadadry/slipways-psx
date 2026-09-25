@@ -128,6 +128,9 @@ pico8_class_t *pico8_class_declare(pico8_class_t *parent, const char *spec) {
     cls->defaults = pico8_ob(spec != NULL ? spec : "", NULL);
     cls->parent = parent;
     cls->pq = NULL;
+#ifdef PICO8_CLASS_COVERAGE
+    cls->coverage_name = "";
+#endif
 
     if (pico8_ob_table_get_name(cls->defaults, "fz", &name_val) && name_val.kind == PICO8_VALUE_STRING) {
         name = name_val.as.string;
@@ -169,21 +172,20 @@ static pico8_class_pq_fn pico8_class_effective_pq(const pico8_class_t *cls) {
 
 #ifdef PICO8_CLASS_COVERAGE
 typedef struct {
-    const pico8_class_t *cls;
+    const char *name;
     long count;
 } pico8_class_coverage_entry_t;
 
 static pico8_class_coverage_entry_t *g_coverage = NULL;
 static int g_coverage_count = 0;
 static int g_coverage_capacity = 0;
-static long g_coverage_total = 0;
 
-static void pico8_class_coverage_record(const pico8_class_t *cls) {
+void pico8_class_coverage_record(const char *name) {
     int i;
 
-    g_coverage_total++;
+    assert(name != NULL && "coverage: a NULL name cannot be reported as missing from KNOWN[]");
     for (i = 0; i < g_coverage_count; i++) {
-        if (g_coverage[i].cls == cls) {
+        if (strcmp(g_coverage[i].name, name) == 0) {
             g_coverage[i].count++;
             return;
         }
@@ -197,24 +199,53 @@ static void pico8_class_coverage_record(const pico8_class_t *cls) {
         g_coverage = grown;
         g_coverage_capacity = new_capacity;
     }
-    g_coverage[g_coverage_count].cls = cls;
+    g_coverage[g_coverage_count].name = name;
     g_coverage[g_coverage_count].count = 1;
     g_coverage_count++;
 }
 
-long pico8_class_coverage_count(const pico8_class_t *cls) {
+long pico8_class_coverage_count(const char *name) {
     int i;
 
     for (i = 0; i < g_coverage_count; i++) {
-        if (g_coverage[i].cls == cls) {
+        if (strcmp(g_coverage[i].name, name) == 0) {
             return g_coverage[i].count;
         }
     }
     return 0;
 }
 
-long pico8_class_coverage_total(void) {
-    return g_coverage_total;
+static int pico8_class_coverage_is_known(const char *name, const char *const *known, int known_count) {
+    int i;
+
+    for (i = 0; i < known_count; i++) {
+        if (strcmp(known[i], name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+const char *pico8_class_coverage_first_unknown(const char *const *known, int known_count) {
+    int i;
+
+    for (i = 0; i < g_coverage_count; i++) {
+        if (!pico8_class_coverage_is_known(g_coverage[i].name, known, known_count)) {
+            return g_coverage[i].name;
+        }
+    }
+    for (i = 0; i < g_class_registry_count; i++) {
+        if (g_class_registry[i].name[0] != '\0' &&
+            !pico8_class_coverage_is_known(g_class_registry[i].name, known, known_count)) {
+            return g_class_registry[i].name;
+        }
+    }
+    for (i = 0; i < g_class_named_registry_count; i++) {
+        if (!pico8_class_coverage_is_known(g_class_named_registry[i].name, known, known_count)) {
+            return g_class_named_registry[i].name;
+        }
+    }
+    return NULL;
 }
 #endif
 
@@ -227,7 +258,7 @@ pico8_instance_t *pico8_class_instantiate(pico8_class_t *cls, const pico8_ob_tab
     assert(cls != NULL && "instantiate: the class must be built first; a NULL one silently yields "
                           "an instance with no defaults and no pq");
 #ifdef PICO8_CLASS_COVERAGE
-    pico8_class_coverage_record(cls);
+    pico8_class_coverage_record(cls->coverage_name);
 #endif
 
     /* Only `overrides` is copied in, index-keyed and name-keyed entries

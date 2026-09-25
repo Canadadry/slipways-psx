@@ -22,8 +22,9 @@
 #                       compte les instanciations par classe ; échoue si une
 #                       classe est à 0 hors tools/class_coverage_exempt.txt,
 #                       hors suite
-# make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS), hors
-#                       suite
+# make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS) ; échoue
+#                       aussi si sa sortie diffère de
+#                       tools/class_coverage_net_expected.txt, hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
@@ -320,7 +321,7 @@ $(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c sr
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_class_coverage: $(call objs,tests/test_class_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/screencast_capture_events.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+$(TMP_DIR)/test_class_coverage: $(call coverage_objs,tests/test_class_coverage.c src/pico8_class.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/screencast_capture_events.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_audit: $(call objs,tests/test_float_audit.c) tools/float_audit.sh tools/float_audit_c1.txt | $(TMP_DIR)
@@ -670,21 +671,22 @@ ref-audit: $(REFAUDIT_BINS)
 
 .PHONY: ref-audit
 
-# Seul pico8_class.c change sous le define : le reste vient de l'arbre par
-# défaut, et aucun objet de l'arbre coverage n'est lié ailleurs.
-$(TMP_DIR)/pico8_class_coverage: $(call coverage_objs,src/main_class_coverage.c src/pico8_class.c) $(call objs,$(filter-out src/pico8_class.c,$(ENGINE_SRCS))) | $(TMP_DIR)
+# Tout vient de l'arbre coverage, qui n'est lié qu'ici et dans
+# test_class_coverage : la struct de classe n'y a pas la même forme.
+$(TMP_DIR)/pico8_class_coverage: $(call coverage_objs,src/main_class_coverage.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 DIR ?= tests/fixtures
 CLASS_COVERAGE_EXEMPT := tools/class_coverage_exempt.txt
+CLASS_COVERAGE_NET_EXPECTED := tools/class_coverage_net_expected.txt
 
 class_coverage_recordings = $(foreach e,$(RECORDINGS),--from-title $(e))
 
 class-coverage: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
 	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage '$(DIR)' $(CLASS_COVERAGE_EXEMPT)
 
-class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
-	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage - $(CLASS_COVERAGE_EXEMPT) $(FRAMES_EVENTS)
+class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT) $(CLASS_COVERAGE_NET_EXPECTED)
+	@sh tools/class_coverage.sh $(class_coverage_recordings) --expect $(CLASS_COVERAGE_NET_EXPECTED) ./$(TMP_DIR)/pico8_class_coverage - $(CLASS_COVERAGE_EXEMPT) $(FRAMES_EVENTS)
 
 .PHONY: class-coverage class-coverage-net
 

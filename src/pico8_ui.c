@@ -91,6 +91,7 @@ void pico8_ui_init(void) {
     pico8_pi_init();
 
     g_ui_class = pico8_class_declare(pico8_ke_class(), "\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_ui_class, "ui");
 
     /* `gu()`/`nv()` need a list, not the table `ob()` parses for `le=o()`.
      * The raw table is freed here: nothing else ever sees it. */

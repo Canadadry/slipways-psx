@@ -58,6 +58,7 @@ static void pico8_hy_pq(pico8_instance_t *self) {
 void pico8_economy_init(void) {
     pico8_economy_shutdown();
     g_hy_class = pico8_class_declare(NULL, NULL);
+    PICO8_CLASS_COVERAGE_NAME(g_hy_class, "hy");
     pico8_class_set_pq(g_hy_class, pico8_hy_pq);
 }
 

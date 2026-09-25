@@ -156,6 +156,7 @@ void pico8_jo_init(void) {
                                       "kw=o(mu=0),\n"
                                       "gq=v(0,11),ca=9,\n"
                                       "em=o(f,3,0,-1),\n");
+    PICO8_CLASS_COVERAGE_NAME(g_jo_class, "jo");
     pico8_class_set_pq(g_jo_class, pico8_jo_pq);
     pico8_ob_table_set_name(g_jo_class->defaults, "hd", pico8_value_function(pico8_jo_hd_dispatch));
     pico8_ob_table_set_name(g_jo_class->defaults, "gg", pico8_value_function(pico8_jo_gg_dispatch));

@@ -22,6 +22,10 @@ struct pico8_class {
     pico8_class_t *parent;
     pico8_ob_table_t *defaults;
     pico8_class_pq_fn pq;
+#ifdef PICO8_CLASS_COVERAGE
+    /* A string literal, never freed; "" until PICO8_CLASS_COVERAGE_NAME. */
+    const char *coverage_name;
+#endif
 };
 
 struct pico8_instance {
@@ -90,10 +94,19 @@ void pico8_instance_free(pico8_instance_t *inst);
 int pico8_instance_get_field(const pico8_instance_t *inst, const char *name, pico8_value_t *out_value);
 
 #ifdef PICO8_CLASS_COVERAGE
-/* Counted by class pointer, not by name: a class freed then redeclared at
- * the same address would merge with its predecessor. */
-long pico8_class_coverage_count(const pico8_class_t *cls);
-long pico8_class_coverage_total(void);
+#define PICO8_CLASS_COVERAGE_NAME(cls, literal) ((cls)->coverage_name = (literal))
+
+/* Keeps `name` itself, not a copy: pass a string literal. */
+void pico8_class_coverage_record(const char *name);
+long pico8_class_coverage_count(const char *name);
+/* Returns the first name that is counted, or registered in the `fz`
+ * registry (its shared "" slot excepted), or in the named registry,
+ * without being one of the `known_count` entries of `known`; NULL when
+ * every such name is known. A counted "" is an instantiated class that
+ * was never given a coverage name. */
+const char *pico8_class_coverage_first_unknown(const char *const *known, int known_count);
+#else
+#define PICO8_CLASS_COVERAGE_NAME(cls, literal) ((void)0)
 #endif
 
 #endif
