@@ -11,8 +11,8 @@
  * until pico8_bootstrap_shutdown(). */
 void pico8_jl(void);
 
-/* Frees the `ok` instance, and a placeholder `mo`, through their owning
- * modules, in reverse order; a `qb` `mo` and `je` are never freed.
+/* Frees the `ok` instance through its owning module; `mo` and `je` are
+ * never freed.
  * Idempotent, and safe before the first pico8_jl(). No Lua equivalent. */
 void pico8_bootstrap_shutdown(void);
 

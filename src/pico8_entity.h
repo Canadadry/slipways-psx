@@ -4,19 +4,19 @@
 #include "pico8_class.h"
 #include "pico8_list.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 
-/* (Re)builds every global this module owns -- hv, cv, cg, ci and the
- * placeholder mo -- to a fresh, empty state, freeing the previous build
- * first via pico8_entity_shutdown(). Must run before any of hv, cv, cg,
- * lt, he, dc, mv, ci or mo below is used. pico8_jl() (pico8_bootstrap.c)
- * calls it, then replaces the placeholder mo through
- * pico8_entity_set_mo(). */
+/* (Re)builds hv, cv, cg and ci to a fresh, empty state, freeing the
+ * previous build first via pico8_entity_shutdown(), and puts back the
+ * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc, mv, ci or
+ * mo below is used. pico8_jl() (pico8_bootstrap.c) calls it, then replaces
+ * the placeholder mo through pico8_entity_set_mo(). */
 void pico8_entity_init(void);
 
 /* Releases this module's own bookkeeping (hv/cv/cg's backing arrays, ci's
- * table) and frees the placeholder mo if pico8_mo() still holds it; a
- * `qb` struct is never freed (TROU-7), nor are the entities registered in
+ * table); mo is never freed: the placeholder is static, a `qb` struct in
+ * its place is dropped (TROU-7). Nor are the entities registered in
  * hv/cv/cg, which stay owned by whoever instantiated them. A second
  * call, or a call before the first pico8_entity_init(), is a no-op. */
 void pico8_entity_shutdown(void);
@@ -71,12 +71,15 @@ void pico8_dc(const char *nt);
  * pico8_entity_init()/_shutdown()); callers must not free it. */
 const pico8_ob_table_t *pico8_ci(void);
 
-/* Until pico8_jl() runs, a classless instance with no fields, so that
- * dc()'s `mo:md(ci[o])` has an object to dispatch through; afterwards the
+/* Until pico8_jl() runs, the placeholder struct, with no field and no
+ * method, so that dc()'s `mo:md(ci[o])` has an object to dispatch through;
+ * afterwards the
  * real `qb` struct (pico8_scroll.h). Either form is read and written
  * through pico8_entity_get_field()/pico8_entity_set_field(), never through
  * `->fields`. Callers must not free it. */
 pico8_instance_t *pico8_mo(void);
+
+const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
 
 /* Makes `instance` what pico8_mo() returns. Does NOT free the outgoing
  * one: pico8_jl() can run from inside a dispatch chain that still holds

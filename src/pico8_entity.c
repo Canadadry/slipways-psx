@@ -33,6 +33,27 @@ static pico8_ob_table_t *g_ci = NULL;
 static pico8_instance_t *g_mo = NULL;
 static int g_initialized = 0;
 
+static int pico8_mo_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
+    (void)self;
+    (void)name;
+    (void)out_value;
+    return 0;
+}
+
+static const pico8_struct_class_t g_mo_placeholder_struct_class = {
+    {0},
+    pico8_mo_placeholder_field,
+    NULL,
+};
+
+typedef struct {
+    pico8_struct_header_t header;
+} pico8_mo_placeholder_t;
+
+/* The only one: never allocated, never freed; no field, and no writer, so
+ * a write reaching it stops the run. */
+static pico8_mo_placeholder_t g_mo_placeholder = {{PICO8_TYPE_TAG_STRUCT, &g_mo_placeholder_struct_class}};
+
 /* strdup() is POSIX; this build is -std=c99. */
 static char *pico8_entity_strdup(const char *s) {
     size_t n = strlen(s);
@@ -105,9 +126,6 @@ void pico8_entity_shutdown(void) {
     g_ci = NULL;
 
     /* TROU-7 */
-    if (pico8_type_tag_of(g_mo) == PICO8_TYPE_TAG_INSTANCE) {
-        pico8_instance_free(g_mo);
-    }
     g_mo = NULL;
 
     g_initialized = 0;
@@ -127,13 +145,7 @@ void pico8_entity_init(void) {
 
     g_ci = pico8_ob("0.5,1,1,1,1,1,1,1,1,0,0,0,0,0,0,", NULL);
 
-    /* A classless placeholder, not `mo=qb()`: a real class would have to
-     * be registered in the shared name registry, where it would collide
-     * with whatever else holds the "" slot. */
-    g_mo = malloc(sizeof *g_mo);
-    g_mo->tag = PICO8_TYPE_TAG_INSTANCE;
-    g_mo->fields = pico8_ob_table_new();
-    g_mo->cls = NULL;
+    g_mo = (pico8_instance_t *)&g_mo_placeholder;
 
     g_initialized = 1;
 }
@@ -339,6 +351,10 @@ void pico8_dc(const char *nt) {
 
 const pico8_ob_table_t *pico8_ci(void) {
     return g_ci;
+}
+
+const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void) {
+    return &g_mo_placeholder_struct_class;
 }
 
 pico8_instance_t *pico8_mo(void) {
