@@ -112,7 +112,7 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 
     {
-        pico8_instance_t *made = pico8_mh_new(iw);
+        pico8_mh_t *made = pico8_mh_new(iw);
         (void)made;
     }
 }
@@ -316,7 +316,7 @@ void pico8_pj_ph(pico8_instance_t *self) {
          * non-REF `ed` is never `kc`: the block has to fire on the first
          * eligible tick. Comparing only a REF-valued `ed` silently disables it. */
         if (self != NULL && pico8_instance_get_field(self, "ed", &ed_val) && ed_val.kind == PICO8_VALUE_REF) {
-            ed_equals_kc = (pico8_kc() == (pico8_instance_t *)ed_val.as.ref);
+            ed_equals_kc = ((const void *)pico8_kc() == ed_val.as.ref);
         }
 
         if (c_truthy && !ed_equals_kc) {
@@ -325,7 +325,7 @@ void pico8_pj_ph(pico8_instance_t *self) {
             pico8_pj_ph_ctx_t ctx;
             pico8_list_t iw_list;
             pico8_ob_table_t *iw_table;
-            pico8_instance_t *made;
+            pico8_mh_t *made;
 
             ctx.s = s;
             iw_list = pico8_nv(&bz_list, pico8_pj_ph_map, &ctx);

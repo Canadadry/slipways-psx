@@ -10,6 +10,7 @@ typedef enum {
     PICO8_METHOD_OL,
     PICO8_METHOD_PH,
     PICO8_METHOD_KJ,
+    PICO8_METHOD_EV,
     PICO8_METHOD_COUNT
 } pico8_method_t;
 
@@ -20,6 +21,7 @@ static inline int pico8_method_of(const char *name) {
         [PICO8_METHOD_OL] = "ol",
         [PICO8_METHOD_PH] = "ph",
         [PICO8_METHOD_KJ] = "kj",
+        [PICO8_METHOD_EV] = "ev",
     };
     int i;
 

@@ -17,15 +17,16 @@
 #include "pico8_ui_button.h"
 
 static pico8_class_t *g_mh_class = NULL;
+static pico8_ob_table_t *g_mh_nu = NULL;
 static pico8_class_t *g_iv_class = NULL;
-static pico8_instance_t *g_kc = NULL;
+static pico8_mh_t *g_kc = NULL;
 
-pico8_instance_t *pico8_kc(void) {
+pico8_mh_t *pico8_kc(void) {
     return g_kc;
 }
 
-void pico8_msgbox_set_kc(pico8_instance_t *instance) {
-    g_kc = instance;
+void pico8_msgbox_set_kc(pico8_mh_t *mh) {
+    g_kc = mh;
 }
 
 /* Lua truthiness : seuls nil et false sont faux. La clause REF-NULL n'est pas
@@ -44,14 +45,6 @@ static int pico8_msgbox_truthy(pico8_value_t v) {
 
 /* Field readers: an absent field, a wrong kind, or a NULL instance all read
  * as the zero default. */
-static pico8_fixed_t pico8_msgbox_field_fixed(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
 static pico8_vec_t pico8_msgbox_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -60,27 +53,8 @@ static pico8_vec_t pico8_msgbox_field_vec(const pico8_instance_t *inst, const ch
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-/* `all(self)` over an instance: Lua walks the array part, so `bl(self,nc)`
- * sees the positional entries only. Returns a fresh list the caller must
- * release with pico8_list_free(). */
-static pico8_list_t pico8_msgbox_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
-
-void pico8_mh_pq(pico8_instance_t *self) {
-    pico8_instance_t *previous;
+void pico8_mh_pq(pico8_mh_t *self) {
+    pico8_mh_t *previous;
 
     if (self == NULL) {
         return;
@@ -88,7 +62,7 @@ void pico8_mh_pq(pico8_instance_t *self) {
 
     previous = pico8_kc();
     if (previous != NULL) {
-        pico8_ob_table_set_name(previous->fields, "p_", pico8_value_bool(1));
+        previous->p_ = pico8_value_bool(1);
     }
     pico8_msgbox_set_kc(self);
 }
@@ -97,11 +71,15 @@ static pico8_value_t pico8_mh_ev_dispatch(void *self, int argc, pico8_value_t ar
     (void)argc;
     (void)arg0;
     (void)arg1;
-    pico8_mh_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self);
+    pico8_mh_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mh_t *)self);
     return pico8_value_ref(NULL);
 }
 
-void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
+static pico8_fixed_t pico8_mh_value_fixed(pico8_value_t v) {
+    return v.kind == PICO8_VALUE_FIXED ? v.as.fixed : pico8_fixed_from_int(0);
+}
+
+void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     pico8_fixed_t self_t, rh, t, nc, t3;
     pico8_value_t lh_result;
     int lh_found;
@@ -110,15 +88,14 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
         return;
     }
 
-    self_t = pico8_msgbox_field_fixed(self, "t");
-    rh = pico8_msgbox_field_fixed(self, "rh");
+    self_t = pico8_mh_value_fixed(self->ke.t);
+    rh = pico8_mh_value_fixed(self->rh);
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
-        lh_found = pico8_mv(self, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lh_result);
+        lh_found = pico8_mv((pico8_instance_t *)self, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lh_result);
         if (lh_found && pico8_msgbox_truthy(lh_result)) {
-            pico8_fixed_t new_t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
-            pico8_ob_table_set_name(self->fields, "t", pico8_value_fixed(new_t));
+            self->ke.t = pico8_value_fixed(pico8_fixed_mul(rh, pico8_fixed_from_int(10)));
             t = pico8_fixed_from_int(0);
         }
     }
@@ -129,25 +106,95 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
     nc = pico8_fixed_div(pico8_fixed_neg(t3), pico8_fixed_from_int(9));
 
     if (gfx != NULL && mem != NULL) {
-        pico8_list_t items = pico8_msgbox_positional_values(self->fields);
-        pico8_bl(gfx, mem, &items, nc);
-        pico8_list_free(&items);
+        pico8_bl(gfx, mem, &self->items, nc);
         pico8_camera_reset(gfx);
     }
 
     if (t > PICO8_FIXED_LIT(0x000a8000, 10.5)) {
-        pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(1));
+        self->p_ = pico8_value_bool(1);
         pico8_msgbox_set_kc(NULL);
         assert(pico8_kc() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
     }
 }
 
+static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_mh_t *mh = self;
+    const pico8_value_t *member;
+
+    if (strcmp(name, "nu") == 0) {
+        member = &mh->nu;
+    } else if (strcmp(name, "fa") == 0) {
+        member = &mh->fa;
+    } else if (strcmp(name, "rh") == 0) {
+        member = &mh->rh;
+    } else if (strcmp(name, "lh") == 0) {
+        member = &mh->lh;
+    } else if (strcmp(name, "p_") == 0) {
+        member = &mh->p_;
+    } else {
+        return pico8_ke_field(self, name, out_value);
+    }
+    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+static const pico8_struct_class_t g_mh_struct_class = {
+    {[PICO8_METHOD_EV] = pico8_mh_ev_dispatch},
+    pico8_mh_field,
+};
+
+static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_mh_t *self = malloc(sizeof *self);
+    int i;
+
+    pico8_ke_struct_init(&self->ke, &g_mh_struct_class);
+    self->nu = pico8_value_ref(g_mh_nu);
+    self->fa = pico8_value_fixed(pico8_fixed_from_int(14));
+    self->rh = pico8_value_fixed(pico8_fixed_from_int(5));
+    self->lh = pico8_value_ref(NULL);
+    self->p_ = pico8_value_ref(NULL);
+    pico8_list_init(&self->items);
+    for (i = 0; overrides != NULL && i < overrides->count; i++) {
+        pico8_ob_key_t key = overrides->entries[i].key;
+        pico8_value_t value = overrides->entries[i].value;
+
+        if (key.kind != PICO8_OB_KEY_NAME) {
+            pico8_list_add(&self->items, value);
+        } else if (strcmp(key.name, "rh") == 0) {
+            self->rh = value;
+        } else if (strcmp(key.name, "lh") == 0) {
+            self->lh = value;
+        } else {
+            assert(0 && "mh: every measured key is positional, rh or lh; another would be a field under no rule "
+                        "of plan-3 section 5 -- stop, do not add a member");
+        }
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("mh");
+#endif
+    pico8_mh_pq(self);
+    pico8_ke_struct_pq(&self->ke);
+    return self;
+}
+
 void pico8_mh_init(void) {
+    pico8_ob_table_t *spec;
+    pico8_value_t nu = pico8_value_ref(NULL);
+    int found;
+
     pico8_mh_shutdown();
     g_mh_class = pico8_class_declare(pico8_ke_class(), "\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n");
     PICO8_CLASS_COVERAGE_NAME(g_mh_class, "mh");
-    pico8_class_set_pq(g_mh_class, pico8_mh_pq);
-    pico8_ob_table_set_name(g_mh_class->defaults, "ev", pico8_value_function(pico8_mh_ev_dispatch));
+    pico8_class_set_struct_new(g_mh_class, pico8_mh_struct_new);
+    spec = pico8_ob("\nnu=o(\"mh\"),\n", NULL);
+    found = pico8_ob_table_get_name(spec, "nu", &nu);
+    assert(found && nu.kind == PICO8_VALUE_REF && nu.as.ref != NULL);
+    (void)found;
+    g_mh_nu = nu.as.ref;
+    pico8_ob_table_free(spec);
 }
 
 void pico8_mh_shutdown(void) {
@@ -155,6 +202,8 @@ void pico8_mh_shutdown(void) {
         pico8_class_free(g_mh_class);
         g_mh_class = NULL;
     }
+    pico8_ob_table_free(g_mh_nu);
+    g_mh_nu = NULL;
     pico8_msgbox_set_kc(NULL);
 }
 
@@ -162,8 +211,8 @@ pico8_class_t *pico8_mh_class(void) {
     return g_mh_class;
 }
 
-pico8_instance_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_mh_class, overrides);
+pico8_mh_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
+    return pico8_mh_struct_new(overrides);
 }
 
 static pico8_vec_t g_iv_v = {0, -PICO8_FIXED_LIT(0x0000570a, 0.34)};

@@ -13,30 +13,43 @@
 /* Throughout this module a NULL instance argument is a safe no-op, and an
  * absent or wrong-kind field reads as its zero/false default. */
 
+/* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
+ * through `bl`, in the order the construction table stored them: a table
+ * among them stays shared with the caller. Nothing frees the struct or
+ * its list: TROU-7. `nu` points at one table shared by every mh. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t nu;
+    pico8_value_t fa;
+    pico8_value_t rh;
+    pico8_value_t lh;
+    pico8_value_t p_;
+    pico8_list_t items;
+} pico8_mh_t;
+
 /* The message box currently open, or NULL for none. The setter never frees
- * the instance it replaces: `kc` is a borrowed bookmark into an entity that
- * `lt` registered into `hv`/`cv`/`cg` and that nothing here owns. */
-pico8_instance_t *pico8_kc(void);
-void pico8_msgbox_set_kc(pico8_instance_t *instance);
+ * the box it replaces: `kc` borrows a struct that `lt` registered into
+ * `hv`/`cv`/`cg` and that nothing here owns. */
+pico8_mh_t *pico8_kc(void);
+void pico8_msgbox_set_kc(pico8_mh_t *mh);
 
 void pico8_mh_init(void);
 
-/* Frees the `mh` class and clears `kc`, never any instance. Idempotent, and
- * safe before the first `pico8_mh_init()`. */
+/* Frees the `mh` class and the shared `nu` table and clears `kc`, never any
+ * box. Idempotent, and safe before the first `pico8_mh_init()`. */
 void pico8_mh_shutdown(void);
 
 pico8_class_t *pico8_mh_class(void);
 
-/* `overrides` is copied, not kept; its positional entries become the
- * instance's own `self[1..n]`, the option row `mh:ev` lays out through
- * `bl`. The instance registers itself through `lt`, and nothing frees it. */
-pico8_instance_t *pico8_mh_new(const pico8_ob_table_t *overrides);
+/* `overrides` is read, not kept: its positional entries, `rh` and `lh`
+ * only. The struct registers itself through `lt`, and nothing frees it. */
+pico8_mh_t *pico8_mh_new(const pico8_ob_table_t *overrides);
 
-void pico8_mh_pq(pico8_instance_t *self);
+void pico8_mh_pq(pico8_mh_t *self);
 
 /* A NULL `gfx`/`mem` skips the drawing and the camera reset only; the
  * closing timer and the `kc` bookkeeping still run. */
-void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self);
 
 /* Registers the `pi` constructors first: the class spec holds `v(0,-0.34)`,
  * so `'v'` must resolve when `ob()` parses it, or the field ends up a bare
