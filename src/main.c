@@ -13,7 +13,10 @@
  * existed -- tests/test_pico8_headless_capture.c asserts that.
  *
  * argv[3], optional, is where the text dump goes; absent means
- * tmp/pico8_replay_dump.txt. Giving it requires giving argv[2]. */
+ * tmp/pico8_replay_dump.txt. Giving it requires giving argv[2].
+ *
+ * --from-title, before argv[1], replays a raylib recording: no difficulty
+ * is picked before frame 0. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -29,8 +32,14 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(int argc, char **argv) {
+    int from_title = argc > 1 && strcmp(argv[1], "--from-title") == 0;
+    if (from_title) {
+        argv++;
+        argc--;
+    }
     const char *events_path = (argc > 1) ? argv[1] : "tests/fixtures/session_events.json";
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
@@ -65,14 +74,17 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    /* Entry 2 of bo() is the difficulty every replay starts on; the driver
-     * picks it for the player instead of waiting for a title-screen click. */
-    pico8_value_t difficulty_entry;
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
-    assert(difficulty_entry.kind == PICO8_VALUE_REF);
-    pico8_instance_t *difficulty_button =
-        pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref);
-    pico8_eu(difficulty_button);
+    /* Entry 2 of bo() is the difficulty every scripted replay starts on; the
+     * driver picks it for the player instead of waiting for a title-screen
+     * click. A raylib recording holds that click itself: --from-title. */
+    if (!from_title) {
+        pico8_value_t difficulty_entry;
+        assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
+        assert(difficulty_entry.kind == PICO8_VALUE_REF);
+        pico8_instance_t *difficulty_button =
+            pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref);
+        pico8_eu(difficulty_button);
+    }
 
     int frame_count = input.frame_count;
     pico8_cheat_t cheat;

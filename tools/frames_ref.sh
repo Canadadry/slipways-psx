@@ -1,6 +1,7 @@
 #!/bin/sh
 # usage: frames_ref.sh <outil pico8_frames> <dossier des captures> <dossier des worktrees>
-#                      [<events> <reference .sha256> <empreinte courante> <capture>]...
+#                      [<events> <reference .sha256> <empreinte courante> <capture> <drapeau>]...
+# <drapeau> : --from-title pour un enregistrement raylib, - sinon.
 # Pour chaque rejeu divergent, rejoue le fichier d'evenements au commit qui a
 # pose sa reference et laisse la capture obtenue dans <dossier>/<events>.ref.bin.
 # Rend non nul si une reference n'est pas commitee, si un vieux commit ne
@@ -19,7 +20,7 @@ shift 3
 
 root=$(pwd)
 worktree=
-# Une ligne par rejeu divergent : <commit> <events> <capture>.
+# Une ligne par rejeu divergent : <commit> <events> <capture> <drapeau>.
 pending=$root/$frames_dir/frames-ref.pending
 
 remove_worktree() {
@@ -42,12 +43,13 @@ trap 'exit 143' TERM
 mkdir -p "$root/$frames_dir"
 : > "$pending"
 
-while [ $# -ge 4 ]; do
+while [ $# -ge 5 ]; do
     events=$1
     reference=$2
     current=$3
     capture=$4
-    shift 4
+    flag=$5
+    shift 5
 
     [ -f "$reference" ] || continue
     if [ ! -f "$current" ]; then
@@ -68,7 +70,7 @@ while [ $# -ge 4 ]; do
         echo "frames-ref:   la commiter avant de lancer frames-ref : git status -- $reference" >&2
         exit 1
     fi
-    echo "$commit $events $capture" >> "$pending"
+    echo "$commit $events $capture $flag" >> "$pending"
 done
 
 if [ ! -s "$pending" ]; then
@@ -115,7 +117,8 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
         exit 1
     fi
 
-    while read -r line_commit events capture; do
+    while read -r line_commit events capture flag; do
+        [ "$flag" = - ] && flag=
         [ "$line_commit" = "$commit" ] || continue
         ref_capture=$frames_dir/$events.ref.bin
         mkdir -p "$(dirname "$root/$ref_capture")"
@@ -124,7 +127,7 @@ for commit in $(cut -d' ' -f1 "$pending" | sort -u); do
             echo "frames-ref: $events n'existe pas au commit $commit" >&2
             exit 1
         fi
-        if ! (cd "$worktree" && ./tmp/pico8_replay "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
+        if ! (cd "$worktree" && ./tmp/pico8_replay $flag "$events" "$root/$ref_capture" < /dev/null > /dev/null); then
             rm -f "$root/$ref_capture"
             echo "frames-ref: $events : le rejeu echoue au commit $commit" >&2
             exit 1

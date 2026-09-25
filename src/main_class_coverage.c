@@ -1,7 +1,7 @@
-/* Rejoue argv[1] comme src/main.c, sans capture ni dump, puis imprime une
- * ligne `<classe> <instanciations>` par classe connue et une ligne
- * `inconnue <n>`. Rend 2 si le fichier ne se charge pas : tools/class_coverage.sh
- * le signale alors « illisible ». */
+/* Rejoue argv[1] comme src/main.c (--from-title compris), sans capture ni
+ * dump, puis imprime une ligne `<classe> <instanciations>` par classe connue
+ * et une ligne `inconnue <n>`. Rend 2 si le fichier ne se charge pas :
+ * tools/class_coverage.sh le signale alors « illisible ». */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -34,6 +34,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
     const char *name;
@@ -56,7 +57,12 @@ static const known_class_t KNOWN[] = {
 #define KNOWN_COUNT ((int)(sizeof KNOWN / sizeof KNOWN[0]))
 
 int main(int argc, char **argv) {
-    assert(argc == 2 && "usage: pico8_class_coverage <events.json>");
+    int from_title = argc > 1 && strcmp(argv[1], "--from-title") == 0;
+    if (from_title) {
+        argv++;
+        argc--;
+    }
+    assert(argc == 2 && "usage: pico8_class_coverage [--from-title] <events.json>");
 
     pico8_mem_t mem;
     pico8_mem_init(&mem);
@@ -79,10 +85,12 @@ int main(int argc, char **argv) {
     pico8_cart_load();
     pico8__init();
 
-    pico8_value_t difficulty_entry;
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
-    assert(difficulty_entry.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref));
+    if (!from_title) {
+        pico8_value_t difficulty_entry;
+        assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
+        assert(difficulty_entry.kind == PICO8_VALUE_REF);
+        pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref));
+    }
 
     pico8_cheat_t cheat;
     pico8_cheat_init(&cheat);
