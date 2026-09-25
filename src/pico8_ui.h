@@ -5,6 +5,7 @@
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 
 /* Throughout this module a NULL instance, `gfx` or `mem` argument is a safe
@@ -14,13 +15,13 @@
 /* Calls `pico8_pi_init()` first: the class spec contains `b(10,10,118,118)`,
  * so the 'b' constructor must already be registered when it is parsed. The
  * `le=o()` default is then replaced by a real empty `pico8_list_t`, which is
- * what `gu()`/`nv()` need and not what `ob()` parses. Also builds the
- * field-less `je` that `pico8_ui_set_je()` later replaces. */
+ * what `gu()`/`nv()` need and not what `ob()` parses. Also puts back the
+ * field-less placeholder `je` that `pico8_ui_set_je()` later replaces. */
 void pico8_ui_init(void);
 
-/* Frees the `ui` class, `ok`, and `je` while it is still the placeholder
- * instance: an `nf` struct in its place is dropped, never freed (TROU-7).
- * Idempotent, and safe before the first `pico8_ui_init()`. */
+/* Frees the `ui` class and `ok`; `je` is never freed: the placeholder is
+ * static, an `nf` struct in its place is dropped (TROU-7). Idempotent, and
+ * safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
 
 /* NULL before `pico8_ui_init()` and after `pico8_ui_shutdown()`. Not
@@ -30,11 +31,13 @@ pico8_class_t *pico8_ui_class(void);
 /* `overrides` is copied, not kept, and nothing ever frees the instance. */
 pico8_instance_t *pico8_ui_new(const pico8_ob_table_t *overrides);
 
-/* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is a class-less
- * instance with no fields, so every `je.<field>` read falls back to its
- * default; after `pico8_jl()` it is an `nf` struct (pico8_mouse_reader.h).
- * Read it only through `pico8_entity_get_field()`. */
+/* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder
+ * struct, with no field and no method, so every `je.<field>` read falls back
+ * to its default; after `pico8_jl()` it is an `nf` struct
+ * (pico8_mouse_reader.h). Read it only through `pico8_entity_get_field()`. */
 pico8_instance_t *pico8_je(void);
+
+const pico8_struct_class_t *pico8_je_placeholder_struct_class(void);
 
 /* Makes `instance` the new `je`. The outgoing instance is NOT freed -- see
  * the comment at the definition. NULL goes back to "no je", and passing back

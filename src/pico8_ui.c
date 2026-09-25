@@ -19,6 +19,26 @@ static pico8_class_t *g_ui_class = NULL;
 static pico8_instance_t *g_je = NULL;
 static pico8_instance_t *g_ok = NULL;
 
+static int pico8_je_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
+    (void)self;
+    (void)name;
+    (void)out_value;
+    return 0;
+}
+
+static const pico8_struct_class_t g_je_placeholder_struct_class = {
+    {0},
+    pico8_je_placeholder_field,
+    NULL,
+};
+
+typedef struct {
+    pico8_struct_header_t header;
+} pico8_je_placeholder_t;
+
+/* The only one: never allocated, never freed. */
+static pico8_je_placeholder_t g_je_placeholder = {{PICO8_TYPE_TAG_STRUCT, &g_je_placeholder_struct_class}};
+
 /* Field readers: an absent field, a wrong kind, or a NULL instance all read
  * as the default -- a zero vector here, "no value" for the raw one. */
 static pico8_vec_t pico8_ui_field_vec(const pico8_instance_t *inst, const char *name) {
@@ -108,10 +128,7 @@ void pico8_ui_init(void) {
 
     pico8_ob_table_set_name(g_ui_class->defaults, "ev", pico8_value_function(pico8_ui_ev_dispatch));
 
-    g_je = malloc(sizeof *g_je);
-    g_je->tag = PICO8_TYPE_TAG_INSTANCE;
-    g_je->fields = pico8_ob_table_new();
-    g_je->cls = NULL;
+    g_je = (pico8_instance_t *)&g_je_placeholder;
 }
 
 void pico8_ui_shutdown(void) {
@@ -119,14 +136,15 @@ void pico8_ui_shutdown(void) {
         pico8_class_free(g_ui_class);
         g_ui_class = NULL;
     }
-    if (g_je != NULL && pico8_type_tag_of(g_je) == PICO8_TYPE_TAG_INSTANCE) {
-        pico8_instance_free(g_je);
-    }
     g_je = NULL;
     if (g_ok != NULL) {
         pico8_instance_free(g_ok);
         g_ok = NULL;
     }
+}
+
+const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
+    return &g_je_placeholder_struct_class;
 }
 
 pico8_class_t *pico8_ui_class(void) {
