@@ -71,7 +71,7 @@ static pico8_instance_t *ui_left_held(void) {
 
 static pico8_instance_t *field_instance(pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst == NULL || !pico8_instance_get_field(inst, name, &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+    if (inst == NULL || !pico8_entity_get_field(inst, name, &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
     return (pico8_instance_t *)v.as.ref;
@@ -79,7 +79,7 @@ static pico8_instance_t *field_instance(pico8_instance_t *inst, const char *name
 
 static double field_number(pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst == NULL || !pico8_instance_get_field(inst, name, &v) || v.kind != PICO8_VALUE_FIXED) {
+    if (inst == NULL || !pico8_entity_get_field(inst, name, &v) || v.kind != PICO8_VALUE_FIXED) {
         return 0.0;
     }
     return pico8_fixed_to_double(v.as.fixed);

@@ -1,0 +1,879 @@
+/* The slipway `jc`, read and written only through the dual-form field API
+ * and driven through the real `mv`/`dg`/`dc`/`ok`. The frozen values were
+ * taken on the code where `jc` was still a class instance and must not be
+ * re-taken. */
+
+#define _POSIX_C_SOURCE 200809L
+
+#include <assert.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include "../src/pico8_assets.h"
+#include "../src/pico8_bg.h"
+#include "../src/pico8_bootstrap.h"
+#include "../src/pico8_cart.h"
+#include "../src/pico8_cheat.h"
+#include "../src/pico8_class.h"
+#include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
+#include "../src/pico8_fixed.h"
+#include "../src/pico8_gfx.h"
+#include "../src/pico8_help.h"
+#include "../src/pico8_input.h"
+#include "../src/pico8_list.h"
+#include "../src/pico8_mem.h"
+#include "../src/pico8_ob.h"
+#include "../src/pico8_probe.h"
+#include "../src/pico8_slipway.h"
+#include "../src/pico8_struct.h"
+#include "../src/pico8_type_tag.h"
+#include "../src/pico8_ui.h"
+#include "../src/pico8_ui_button.h"
+#include "../src/pico8_value.h"
+#include "../src/pico8_vec.h"
+#include "../src/pico8_wormhole.h"
+
+#define DRAG "tests/fixtures/slipway_drag_events.json"
+#define HUB "tests/fixtures/trading_hub_session_events.json"
+#define PLAYTHROUGH "tests/fixtures/phase4_playthrough_events.json"
+#define LAST_DRAG_FRAME 202
+
+#define DW_BITS 0x00000106
+#define DRAG_FRAMES 226
+#define DRAG_HASH 0xA712523Fu
+#define HUB_FRAMES 4921
+#define HUB_HASH 0x60651C6Au
+#define PLAYTHROUGH_FRAMES 224
+#define PLAYTHROUGH_HASH 0x67E1695Au
+#define EY_HASH 0xC2A393EEu
+#define HQ_HASH 0xB886CEC5u
+#define EB_HASH 0x8ABEE578u
+#define DRAW_HASH 0xC0A23F6Eu
+#define BV_HASH 0xD5135D83u
+
+static pico8_mem_t mem;
+static pico8_gfx_t gfx;
+static pico8_input_t input;
+static pico8_cheat_t cheat;
+
+static const int want_k_[20] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
+
+static uint32_t fnv(uint32_t h, uint32_t word) {
+    int i;
+    for (i = 0; i < 4; i++) {
+        h ^= (word >> (8 * i)) & 0xFFu;
+        h *= 16777619u;
+    }
+    return h;
+}
+
+static uint32_t fnv_str(uint32_t h, const char *s) {
+    for (; *s != '\0'; s++) {
+        h = fnv(h, (uint32_t)(unsigned char)*s);
+    }
+    return fnv(h, 0xFFu);
+}
+
+static int rank_in(const pico8_list_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int listed(const pico8_list_t *list, const void *e) {
+    return rank_in(list, e) >= 0;
+}
+
+/* The instance reader keeps a field written nil, the struct reader reads a
+ * nil member as absent: nil and absent are one state here. */
+static int lookup(const void *e, const char *name, pico8_value_t *out) {
+    return pico8_entity_get_field(e, name, out) && !(out->kind == PICO8_VALUE_REF && out->as.ref == NULL);
+}
+
+static int has(const void *e, const char *name) {
+    pico8_value_t v;
+    return lookup(e, name, &v);
+}
+
+static pico8_value_t get(const void *e, const char *name) {
+    pico8_value_t v = pico8_value_ref(NULL);
+    (void)pico8_entity_get_field(e, name, &v);
+    return v;
+}
+
+static void *get_ref(const void *e, const char *name) {
+    pico8_value_t v = get(e, name);
+    return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
+}
+
+static pico8_fixed_t must_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static int is_string(const void *e, const char *name, const char *want) {
+    pico8_value_t v;
+    return pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, want) == 0;
+}
+
+/* 0 absent, 1 false, 2 true, 3 other. */
+static uint32_t bool_state(const void *e, const char *name) {
+    pico8_value_t v;
+    if (!lookup(e, name, &v)) {
+        return 0;
+    }
+    if (v.kind == PICO8_VALUE_BOOL) {
+        return v.as.boolean ? 2 : 1;
+    }
+    return 3;
+}
+
+static int is_throwaway(const void *e) {
+    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == NULL;
+}
+
+/* A value by what it is, a referenced entity by its rank in `hv`. */
+static uint32_t fold_value(uint32_t h, pico8_value_t v) {
+    switch (v.kind) {
+    case PICO8_VALUE_BOOL:
+        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
+    case PICO8_VALUE_FIXED:
+        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
+    case PICO8_VALUE_STRING:
+        return fnv_str(fnv(h, 0x57u), v.as.string);
+    case PICO8_VALUE_REF:
+        if (v.as.ref == NULL) {
+            return fnv(h, 0xDEADu);
+        }
+        if (listed(pico8_hv(), v.as.ref)) {
+            return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
+        }
+        return fnv(h, is_throwaway(v.as.ref) ? 0x7Au : 0xEEEEu);
+    default:
+        return fnv(h, 0xF0u);
+    }
+}
+
+static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
+    return fold_value(h, get(e, name));
+}
+
+static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
+    pico8_value_t v;
+    const pico8_vec_t *p;
+    if (!lookup(e, name, &v)) {
+        return fnv(h, 0xDEADu);
+    }
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    p = v.as.ref;
+    h = fnv(h, (uint32_t)p->x);
+    return fnv(h, (uint32_t)p->y);
+}
+
+enum { RE_ABSENT, RE_PLANET, RE_THROWAWAY, RE_OTHER };
+
+static int re_kind(const void *jc) {
+    void *re = get_ref(jc, "re");
+    if (re == NULL) {
+        return RE_ABSENT;
+    }
+    if (listed(pico8_cg("np"), re)) {
+        return RE_PLANET;
+    }
+    if (is_throwaway(re)) {
+        return RE_THROWAWAY;
+    }
+    return RE_OTHER;
+}
+
+enum { ET_ABSENT, ET_FALSE, ET_PLANET, ET_JC, ET_QS, ET_OTHER };
+
+static int et_kind(const void *jc) {
+    pico8_value_t et;
+    if (!lookup(jc, "et", &et)) {
+        return ET_ABSENT;
+    }
+    if (et.kind == PICO8_VALUE_BOOL && !et.as.boolean) {
+        return ET_FALSE;
+    }
+    if (et.kind != PICO8_VALUE_REF || et.as.ref == NULL) {
+        return ET_OTHER;
+    }
+    if (listed(pico8_cg("np"), et.as.ref)) {
+        return ET_PLANET;
+    }
+    if (listed(pico8_cg("jc"), et.as.ref)) {
+        return ET_JC;
+    }
+    if (is_throwaway(et.as.ref) && is_string(et.as.ref, "qs", "-too far-")) {
+        return ET_QS;
+    }
+    return ET_OTHER;
+}
+
+enum { FO_ABSENT, FO_JC, FO_PROBE, FO_MZ, FO_OTHER };
+
+static int holder_kind(const void *e) {
+    void *fo = get_ref(e, "fo");
+    if (fo == NULL) {
+        return FO_ABSENT;
+    }
+    if (listed(pico8_cg("jc"), fo)) {
+        return FO_JC;
+    }
+    if (listed(pico8_cg("g_"), fo)) {
+        return FO_PROBE;
+    }
+    if (listed(pico8_cg("mz"), fo)) {
+        return FO_MZ;
+    }
+    return FO_OTHER;
+}
+
+static int list_count(const void *e, const char *name) {
+    void *l = get_ref(e, name);
+    return l == NULL ? -1 : ((const pico8_list_t *)l)->count;
+}
+
+static uint32_t fold_hg(uint32_t h, const void *jc) {
+    const pico8_ob_table_t *hg = get_ref(jc, "hg");
+    int i;
+    if (hg == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    h = fnv(h, (uint32_t)hg->count);
+    for (i = 0; i < hg->count; i++) {
+        const pico8_ob_entry_t *entry = &hg->entries[i];
+        h = fnv(h, (uint32_t)entry->key.kind);
+        if (entry->key.kind == PICO8_OB_KEY_NAME) {
+            h = fnv_str(h, entry->key.name);
+        } else {
+            h = fnv(h, (uint32_t)entry->key.index);
+        }
+        h = fold_value(h, entry->value);
+    }
+    return h;
+}
+
+static uint32_t fold_jc(uint32_t h, const void *jc) {
+    pico8_value_t et;
+
+    h = fold_field(h, jc, "od");
+    h = fold_field(h, jc, "mt");
+    h = fold_field(h, jc, "fa");
+    h = fold_field(h, jc, "nh");
+    h = fnv(h, bool_state(jc, "p_"));
+    h = fold_field(h, jc, "me");
+    h = fold_field(h, jc, "t");
+    h = fold_field(h, jc, "qu");
+    h = fnv(h, (uint32_t)re_kind(jc));
+    h = fold_field(h, jc, "re");
+    if (re_kind(jc) == RE_THROWAWAY) {
+        h = fold_vec(h, get_ref(jc, "re"), "p");
+    }
+    h = fnv(h, (uint32_t)et_kind(jc));
+    et = get(jc, "et");
+    h = fold_value(h, et);
+    h = fold_field(h, jc, "fo");
+    h = fnv(h, (uint32_t)holder_kind(jc));
+    h = fnv(h, (uint32_t)list_count(jc, "ts"));
+    return fold_hg(h, jc);
+}
+
+static pico8_fixed_t credits(void) {
+    return must_fixed(pico8_fm(), "nz");
+}
+
+static uint32_t fold_planets(uint32_t h, int with_eb) {
+    const pico8_list_t *np = pico8_cg("np");
+    int i;
+
+    for (i = 0; np != NULL && i < np->count; i++) {
+        void *p = np->items[i].as.ref;
+        const pico8_list_t *oe = get_ref(p, "oe");
+        h = fnv(h, (uint32_t)list_count(p, "oe"));
+        h = fold_field(h, p, "fo");
+        h = fnv(h, (uint32_t)holder_kind(p));
+        if (with_eb && oe != NULL) {
+            int j;
+            for (j = 0; j < oe->count; j++) {
+                pico8_value_t out;
+                assert(pico8_mv(oe->items[j].as.ref, "eb", 1, pico8_value_ref(p), pico8_value_ref(NULL), &out));
+                h = fold_value(h, out);
+            }
+        }
+    }
+    return h;
+}
+
+static uint32_t fold_frame(uint32_t h, int with_eb) {
+    const pico8_list_t *jcs = pico8_cg("jc");
+    int i;
+
+    h = fnv(h, (uint32_t)(jcs == NULL ? 0 : jcs->count));
+    for (i = 0; jcs != NULL && i < jcs->count; i++) {
+        h = fold_jc(h, jcs->items[i].as.ref);
+    }
+    h = fnv(h, (uint32_t)rank_in(jcs, get_ref(pico8_ok(), "lheld")));
+    h = fold_planets(h, with_eb);
+    return pico8_fm() == NULL ? fnv(h, 0xDEADu) : fold_field(h, pico8_fm(), "nz");
+}
+
+static void check(const char *label, uint32_t got, uint32_t want) {
+    printf("[%s] 0x%08Xu\n", label, (unsigned)got);
+    fflush(stdout);
+    assert(got == want);
+}
+
+static void check_int(const char *label, int got, int want) {
+    printf("[%s] %d\n", label, got);
+    fflush(stdout);
+    assert(got == want);
+}
+
+static void start_game(const char *events) {
+    pico8_value_t difficulty;
+
+    pico8_input_init(&input);
+    assert(pico8_input_load(&input, events));
+    pico8_dispatch_set_input(&input);
+    pico8__init();
+    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
+    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_cheat_init(&cheat);
+}
+
+/* A raylib recording clicks the difficulty on the title screen itself, and
+ * the drag replay is driven without one, as its regression test does. */
+static void start_from_title(const char *events) {
+    pico8_input_init(&input);
+    assert(pico8_input_load(&input, events));
+    pico8_dispatch_set_input(&input);
+    pico8__init();
+    pico8_cheat_init(&cheat);
+}
+
+static void play_frame(void) {
+    pico8_dispatch_set_input(&input);
+    pico8_cheat_step(&cheat, &input);
+    pico8__update60();
+    pico8__draw();
+    if (input.current_frame + 1 < input.frame_count) {
+        pico8_input_step(&input);
+    }
+}
+
+/* The drag replay to its end: one slipway joining two planets. */
+static void world(void) {
+    int i;
+
+    start_from_title(DRAG);
+    for (i = 0; i < input.frame_count; i++) {
+        play_frame();
+    }
+    assert(pico8_cg("jc") != NULL && pico8_cg("jc")->count == 1);
+}
+
+static void *the_slipway(void) {
+    return pico8_cg("jc")->items[0].as.ref;
+}
+
+static void *build_jc(void *qu) {
+    pico8_class_t *cls = pico8_class_lookup_named("jc");
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    void *made;
+
+    assert(cls != NULL);
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    made = pico8_class_instantiate(cls, overrides);
+    pico8_ob_table_free(overrides);
+    return made;
+}
+
+static pico8_value_t vec_ref(int x, int y) {
+    pico8_vec_t *v = malloc(sizeof *v);
+    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_value_ref(v);
+}
+
+static pico8_value_t vec_ref_fixed(pico8_vec_t at) {
+    pico8_vec_t *v = malloc(sizeof *v);
+    *v = at;
+    return pico8_value_ref(v);
+}
+
+static pico8_vec_t vec_of(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
+}
+
+static pico8_value_t call(void *e, const char *name, pico8_value_t arg0) {
+    pico8_value_t out = pico8_value_ref(NULL);
+    assert(pico8_mv(e, name, 1, arg0, pico8_value_ref(NULL), &out));
+    return out;
+}
+
+/* `jc:hq` reads the hovered entity off `ok.o_`. */
+static void hq_over(void *jc, void *hovered, pico8_value_t mp) {
+    pico8_entity_set_field(pico8_ok(), "o_", pico8_value_ref(hovered));
+    (void)call(jc, "hq", mp);
+}
+
+static void *first_with_me(const char *tag, const char *me) {
+    const pico8_list_t *list = pico8_cg(tag);
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (is_string(list->items[i].as.ref, "me", me)) {
+            return list->items[i].as.ref;
+        }
+    }
+    return NULL;
+}
+
+/* A fresh `jc`: the spec's defaults, ke's `t`, `qu`, and the `ts`/`hg` its
+ * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
+static void check_fresh_jc(const void *jc, const void *qu) {
+    static const char *const absent[] = {"re", "od", "mt", "et", "fo", "p_", "ra", "hd", "ql", "fx", "dq",
+                                         "kz", "ph", "ldown", "gv", "md"};
+    static const char *const methods[] = {"hq", "ey", "eb", "ev", "kj"};
+    pico8_value_t v;
+    const pico8_ob_table_t *k_;
+    const pico8_ob_table_t *hg;
+    size_t i;
+
+    assert(is_string(jc, "me", "kz"));
+    assert(must_fixed(jc, "t") == 0);
+    assert(must_fixed(jc, "fa") == pico8_fixed_from_int(2));
+    assert(pico8_entity_get_field(jc, "fp", &v) && v.kind == PICO8_VALUE_BOOL && !v.as.boolean);
+    assert(must_fixed(jc, "ik") == pico8_fixed_from_int(48));
+    printf("[dw] 0x%08X\n", (unsigned)must_fixed(jc, "dw"));
+    assert(must_fixed(jc, "dw") == (pico8_fixed_t)DW_BITS);
+    assert(must_fixed(jc, "nh") == pico8_fixed_from_int(20));
+
+    k_ = get_ref(jc, "k_");
+    assert(k_ != NULL && k_->count == 20);
+    for (i = 0; i < 20; i++) {
+        pico8_value_t entry;
+        assert(pico8_ob_table_get_index(k_, (int)i + 1, &entry) && entry.kind == PICO8_VALUE_FIXED);
+        assert(entry.as.fixed == pico8_fixed_from_int(want_k_[i]));
+    }
+    assert(pico8_entity_get_field(jc, "nu", &v) && v.kind == PICO8_VALUE_REF);
+    assert(((const pico8_ob_table_t *)v.as.ref)->count == 1);
+    assert(pico8_ob_table_get_index(v.as.ref, 1, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "jc") == 0);
+    assert(get_ref(jc, "qu") == qu);
+
+    assert(list_count(jc, "ts") == 0);
+    hg = get_ref(jc, "hg");
+    assert(hg != NULL && hg->count == 0);
+
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        assert(!has(jc, absent[i]));
+    }
+    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
+        assert(pico8_entity_get_field(jc, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
+    }
+
+    assert(listed(pico8_hv(), jc) && listed(pico8_cv("kj"), jc) && listed(pico8_cv("ev"), jc));
+    assert(listed(pico8_cg("jc"), jc));
+    assert(!listed(pico8_cv("hd"), jc) && !listed(pico8_cv("hk"), jc) && !listed(pico8_cv("hb"), jc));
+}
+
+static void test_construction(void) {
+    void *ly;
+    void *by_ldown;
+    void *by_lookup;
+    pico8_value_t made;
+
+    world();
+    ly = first_with_me("jo", "ly");
+    assert(ly != NULL);
+    made = call(ly, "ldown", pico8_value_ref(NULL));
+    assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
+    by_ldown = made.as.ref;
+    check_fresh_jc(by_ldown, ly);
+    by_lookup = build_jc(ly);
+    check_fresh_jc(by_lookup, ly);
+
+    assert(get_ref(by_ldown, "k_") == get_ref(by_lookup, "k_"));
+    assert(get_ref(by_ldown, "nu") == get_ref(by_lookup, "nu"));
+    assert(get_ref(by_ldown, "ts") != get_ref(by_lookup, "ts"));
+    assert(get_ref(by_ldown, "hg") != get_ref(by_lookup, "hg"));
+}
+
+static void replay(const char *label, const char *events, int from_title, int with_eb, int want_frames,
+                   uint32_t want_hash) {
+    uint32_t h = 2166136261u;
+    int seen = 0;
+    int frames;
+    int i;
+
+    if (from_title) {
+        start_from_title(events);
+    } else {
+        start_game(events);
+    }
+    frames = input.frame_count;
+    for (i = 0; i < frames; i++) {
+        play_frame();
+        h = fold_frame(h, with_eb);
+        if (pico8_cg("jc") != NULL && pico8_cg("jc")->count > 0) {
+            seen++;
+        }
+    }
+    printf("[%s] a jc alive on %d frames\n", label, seen);
+    assert(seen > 0);
+    check_int(label, frames, want_frames);
+    check(label, h, want_hash);
+}
+
+static void test_drag(void) {
+    replay("drag", DRAG, 1, 0, DRAG_FRAMES, DRAG_HASH);
+}
+
+static void test_hub(void) {
+    replay("hub", HUB, 1, 0, HUB_FRAMES, HUB_HASH);
+}
+
+static void test_playthrough(void) {
+    replay("playthrough", PLAYTHROUGH, 0, 1, PLAYTHROUGH_FRAMES, PLAYTHROUGH_HASH);
+}
+
+/* Without a target, `ey` only raises `p_`; with one, the slipway joins both
+ * `oe` and `d_` charges `od`. */
+static void test_ey(void) {
+    uint32_t h = 2166136261u;
+    void *held;
+    void *origin;
+    void *target;
+    void *refused;
+    pico8_fixed_t before;
+    pico8_fixed_t od;
+    int i;
+
+    start_from_title(DRAG);
+    for (i = 0; i <= LAST_DRAG_FRAME; i++) {
+        play_frame();
+    }
+    held = get_ref(pico8_ok(), "lheld");
+    assert(held != NULL && listed(pico8_cg("jc"), held));
+    origin = get_ref(held, "qu");
+    target = get_ref(held, "re");
+    assert(re_kind(held) == RE_PLANET && et_kind(held) == ET_ABSENT);
+    assert(list_count(origin, "oe") == 0 && list_count(target, "oe") == 0);
+    before = credits();
+    od = must_fixed(held, "od");
+    h = fold_jc(h, held);
+
+    refused = build_jc(origin);
+    (void)call(refused, "ey", pico8_value_ref(NULL));
+    assert(bool_state(refused, "p_") == 2 && credits() == before);
+    assert(list_count(origin, "oe") == 0);
+    h = fold_jc(h, refused);
+
+    (void)call(held, "ey", pico8_value_ref(target));
+    assert(must_fixed(held, "nh") == pico8_fixed_from_int(1));
+    assert(get_ref(held, "re") == target);
+    assert(bool_state(held, "p_") == 0);
+    assert(list_count(origin, "oe") == 1 && list_count(target, "oe") == 1);
+    assert(credits() == pico8_fixed_sub(before, od));
+    h = fold_jc(h, held);
+    h = fold_planets(h, 1);
+    h = fnv(h, (uint32_t)credits());
+    check("ey", h, EY_HASH);
+}
+
+/* Beyond range `et` is a fresh `{qs}`; over the pair an existing slipway
+ * already joins, `et` is that slipway; either way its `fo` is the new one. */
+static void test_hq(void) {
+    uint32_t h = 2166136261u;
+    void *old;
+    void *origin;
+    void *target;
+    void *far;
+    void *twin;
+
+    world();
+    old = the_slipway();
+    origin = get_ref(old, "qu");
+    target = get_ref(old, "re");
+
+    far = build_jc(origin);
+    hq_over(far, NULL, vec_ref(-640, -640));
+    assert(re_kind(far) == RE_THROWAWAY && et_kind(far) == ET_QS);
+    assert(get_ref(get_ref(far, "et"), "fo") == far);
+    h = fold_jc(h, far);
+
+    twin = build_jc(origin);
+    hq_over(twin, target, vec_ref_fixed(vec_of(target, "ra")));
+    assert(re_kind(twin) == RE_PLANET && get_ref(twin, "re") == target);
+    assert(et_kind(twin) == ET_JC && get_ref(twin, "et") == old);
+    assert(get_ref(old, "fo") == twin);
+    h = fold_jc(h, twin);
+    h = fold_jc(h, old);
+    check("hq", h, HQ_HASH);
+}
+
+/* `A and B or C`: a falsy `re` falls back to `qu`. */
+static void test_eb(void) {
+    uint32_t h = 2166136261u;
+    void *old;
+    void *origin;
+    void *target;
+    void *fresh;
+
+    world();
+    old = the_slipway();
+    origin = get_ref(old, "qu");
+    target = get_ref(old, "re");
+    fresh = build_jc(origin);
+
+    assert(call(old, "eb", pico8_value_ref(origin)).as.ref == target);
+    assert(call(old, "eb", pico8_value_ref(target)).as.ref == origin);
+    assert(call(fresh, "eb", pico8_value_ref(origin)).as.ref == origin);
+    assert(call(fresh, "eb", pico8_value_ref(target)).as.ref == origin);
+    h = fold_value(h, call(old, "eb", pico8_value_ref(origin)));
+    h = fold_value(h, call(old, "eb", pico8_value_ref(target)));
+    h = fold_value(h, call(fresh, "eb", pico8_value_ref(origin)));
+    h = fold_value(h, call(fresh, "eb", pico8_value_ref(NULL)));
+    check("eb", h, EB_HASH);
+}
+
+static uint32_t screen_hash(void) {
+    uint32_t h = 2166136261u;
+    int i;
+
+    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
+        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
+        h *= 16777619u;
+    }
+    return h;
+}
+
+/* Under the game's camera: the slipway alone on a cleared screen, `fo` cleared after drawing; then a
+ * planet whose `fo` is a slipway, circled at `dw`'s radius. */
+static void test_draw(void) {
+    uint32_t h = 2166136261u;
+    uint32_t blank;
+    uint32_t plain;
+    uint32_t circled;
+    pico8_vec_t mo_ra;
+    void *old;
+    void *origin;
+    int i;
+
+    world();
+    old = the_slipway();
+    origin = get_ref(old, "qu");
+    mo_ra = vec_of(pico8_mo(), "ra");
+    pico8_camera(&gfx, pico8_fixed_flr_int(mo_ra.x), pico8_fixed_flr_int(mo_ra.y));
+    pico8_cls(&mem);
+    blank = screen_hash();
+
+    for (i = 0; i < 3; i++) {
+        pico8_entity_set_field(old, "fo", pico8_value_ref(origin));
+        pico8_cls(&mem);
+        (void)call(old, "kj", pico8_value_ref(NULL));
+        assert(!has(old, "fo"));
+        assert(screen_hash() != blank);
+        h = fnv(h, screen_hash());
+        h = fold_jc(h, old);
+    }
+
+    pico8_cls(&mem);
+    (void)call(origin, "kj", vec_ref_fixed(vec_of(origin, "ra")));
+    plain = screen_hash();
+    pico8_entity_set_field(origin, "fo", pico8_value_ref(old));
+    pico8_cls(&mem);
+    (void)call(origin, "kj", vec_ref_fixed(vec_of(origin, "ra")));
+    circled = screen_hash();
+    assert(!has(origin, "fo"));
+    assert(circled != plain);
+    h = fnv(h, plain);
+    h = fnv(h, circled);
+    check("draw", h, DRAW_HASH);
+}
+
+/* A probe over the slipway targets it and hangs `fo` on it. Its `dw` is
+ * zeroed, as `mz`'s is: every point of this short slipway lies within a
+ * `g_`'s `dw` of one of its own planets, which would win. */
+static void test_bv(void) {
+    uint32_t h = 2166136261u;
+    void *old;
+    void *probe;
+    pico8_vec_t qu;
+    pico8_vec_t re;
+    pico8_value_t out;
+    int k;
+
+    world();
+    old = the_slipway();
+    probe = pico8_class_instantiate(pico8_class_lookup_named("g_"), NULL);
+    assert(probe != NULL);
+    pico8_entity_set_field(probe, "dw", pico8_value_fixed(0));
+    qu = vec_of(get_ref(old, "qu"), "p");
+    re = vec_of(get_ref(old, "re"), "p");
+    for (k = 1; k < 8; k++) {
+        pico8_vec_t at = pico8_vec_add(qu, pico8_vec_div(pico8_vec_mul(pico8_vec_sub(re, qu), pico8_fixed_from_int(k)),
+                                                         pico8_fixed_from_int(8)));
+        assert(pico8_mv(probe, "hq", 2, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))), vec_ref(64, 64),
+                        &out));
+        h = fold_field(h, probe, "et");
+        if (get_ref(probe, "et") == old) {
+            break;
+        }
+    }
+    printf("[bv] on the slipway at %d/8\n", k);
+    assert(get_ref(probe, "et") == old);
+    assert(get_ref(old, "fo") == probe);
+    assert(holder_kind(old) == FO_PROBE);
+    h = fold_jc(h, old);
+    h = fold_field(h, probe, "et");
+    check("bv", h, BV_HASH);
+}
+
+static int is_a_jc_struct(const void *e) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class();
+}
+
+static void must_abort(void (*write)(void *), void *jc) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(jc);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void write_re(void *jc) {
+    pico8_entity_set_field(jc, "re", pico8_value_ref(NULL));
+}
+
+static void write_nh(void *jc) {
+    pico8_entity_set_field(jc, "nh", pico8_value_fixed(0));
+}
+
+static void write_fa(void *jc) {
+    pico8_entity_set_field(jc, "fa", pico8_value_fixed(0));
+}
+
+static void build_with_ra(void *qu) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(NULL));
+    (void)pico8_class_instantiate(pico8_class_lookup_named("jc"), overrides);
+}
+
+/* Built by `jo:ldown`/`nr:ldown` through `lookup_named` or directly, a `jc`
+ * is a struct with its five methods; a generic write of a name other than
+ * `fo`/`p_`, or a construction key other than `qu`, stops the run instead
+ * of growing a member. */
+static void test_jc_is_a_struct(void) {
+    static const char *const methods[] = {"hq", "ey", "eb", "ev", "kj"};
+    static const char *const not_methods[] = {"kz", "ph", "ldown", "rdown", "gv", "md"};
+    void *old;
+    void *jc;
+    void *others[3];
+    pico8_ob_table_t *overrides;
+    void *direct;
+    size_t i;
+
+    world();
+    old = the_slipway();
+    jc = build_jc(get_ref(old, "qu"));
+    overrides = pico8_ob_table_new();
+    pico8_ob_table_set_name(overrides, "qu", get(old, "qu"));
+    direct = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    assert(get_ref(direct, "qu") == get_ref(old, "qu"));
+    assert(is_a_jc_struct(old) && is_a_jc_struct(jc) && is_a_jc_struct(direct));
+    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
+        pico8_value_t m;
+        assert(pico8_entity_get_field(jc, methods[i], &m) && m.kind == PICO8_VALUE_FUNCTION);
+    }
+    for (i = 0; i < sizeof not_methods / sizeof not_methods[0]; i++) {
+        pico8_value_t out;
+        assert(!pico8_mv(jc, not_methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    }
+
+    pico8_entity_set_field(jc, "fo", pico8_value_ref(old));
+    assert(get_ref(jc, "fo") == old);
+    pico8_entity_set_field(jc, "p_", pico8_value_bool(1));
+    assert(bool_state(jc, "p_") == 2);
+    must_abort(write_re, jc);
+    must_abort(write_nh, jc);
+    must_abort(write_fa, jc);
+    must_abort(build_with_ra, get_ref(old, "qu"));
+
+    others[0] = pico8_bg_new(NULL);
+    others[1] = pico8_fq_new(NULL);
+    others[2] = pico8_mz_new(NULL);
+    for (i = 0; i < 3; i++) {
+        assert(!has(others[i], "eb"));
+    }
+}
+
+/* A replay depends on the rnd state: run each scenario in a child forked
+ * right after pico8_cart_load(), as a fresh process would start it. */
+static void in_fresh_child(void (*test)(void)) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        test();
+        fflush(stdout);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+}
+
+int main(void) {
+    pico8_mem_init(&mem);
+    pico8_gfx_init(&gfx);
+    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
+    assert(pico8_load_map_json(&mem, "pico8/map.json"));
+    pico8_input_init(&input);
+    pico8_dispatch_set_gfx(&gfx);
+    pico8_dispatch_set_mem(&mem);
+    pico8_dispatch_set_input(&input);
+
+    pico8_cart_load();
+    in_fresh_child(test_construction);
+    in_fresh_child(test_drag);
+    in_fresh_child(test_hub);
+    in_fresh_child(test_playthrough);
+    in_fresh_child(test_ey);
+    in_fresh_child(test_hq);
+    in_fresh_child(test_eb);
+    in_fresh_child(test_draw);
+    in_fresh_child(test_bv);
+    in_fresh_child(test_jc_is_a_struct);
+
+    printf("test_pico8_jc: all tests passed\n");
+    return 0;
+}

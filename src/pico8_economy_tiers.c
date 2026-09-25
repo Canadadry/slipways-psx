@@ -151,7 +151,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
                 }
                 /* A slipway with no `hg` set is skipped; Lua would error
                  * indexing nil here. */
-                if (!pico8_instance_get_field(w, "hg", &hg_val) || hg_val.kind != PICO8_VALUE_REF ||
+                if (!pico8_entity_get_field(w, "hg", &hg_val) || hg_val.kind != PICO8_VALUE_REF ||
                     hg_val.as.ref == NULL) {
                     continue;
                 }

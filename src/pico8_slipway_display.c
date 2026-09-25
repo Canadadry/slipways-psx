@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_ob.h"
 #include "pico8_value.h"
@@ -21,26 +22,25 @@ static int pico8_jc_display_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Field readers: an absent field, a wrong kind, or a NULL instance or table
- * all read as the zero/false/NULL default. */
-static pico8_value_t pico8_jc_display_field_value(const pico8_instance_t *inst, const char *name) {
+/* Readers: an absent field of another entity, of either form, a wrong
+ * kind, or a NULL entity or table all read as the zero/false/NULL
+ * default. */
+static pico8_value_t pico8_jc_display_entity_value(const void *e, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v)) {
+    if (e != NULL && pico8_entity_get_field(e, name, &v)) {
         return v;
     }
     return pico8_value_ref(NULL);
 }
 
-static pico8_instance_t *pico8_jc_display_field_instance(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v = pico8_jc_display_field_value(inst, name);
+static pico8_instance_t *pico8_jc_display_value_instance(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (pico8_instance_t *)v.as.ref;
     }
     return NULL;
 }
 
-static pico8_fixed_t pico8_jc_display_field_fixed(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v = pico8_jc_display_field_value(inst, name);
+static pico8_fixed_t pico8_jc_display_value_fixed(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
@@ -54,8 +54,8 @@ static pico8_vec_t pico8_jc_display_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_jc_display_field_vec(const pico8_instance_t *inst, const char *name) {
-    return pico8_jc_display_value_vec(pico8_jc_display_field_value(inst, name));
+static pico8_vec_t pico8_jc_display_entity_vec(const void *e, const char *name) {
+    return pico8_jc_display_value_vec(pico8_jc_display_entity_value(e, name));
 }
 
 static pico8_vec_t pico8_jc_display_table_field_vec(const pico8_ob_table_t *table, const char *name) {
@@ -91,7 +91,7 @@ static int pico8_jc_display_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_instance_t *t) {
+void pico8_jc_ch(pico8_jc_t *self, const pico8_instance_t *f, const pico8_instance_t *t) {
     pico8_value_t hg_val;
 
     if (self == NULL) {
@@ -103,16 +103,16 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
         return;
     }
 
-    hg_val = pico8_jc_display_field_value(self, "hg");
+    hg_val = self->hg;
     if (hg_val.kind == PICO8_VALUE_REF && hg_val.as.ref != NULL) {
-        pico8_value_t t_id = pico8_jc_display_field_value(t, "id");
+        pico8_value_t t_id = pico8_jc_display_entity_value(t, "id");
         pico8_value_t hg_entry;
         if (pico8_jc_display_get_by_value((const pico8_ob_table_t *)hg_val.as.ref, t_id, &hg_entry) &&
             pico8_jc_display_truthy(hg_entry)) {
-            pico8_value_t ts_val = pico8_jc_display_field_value(self, "ts");
+            pico8_value_t ts_val = self->ts;
             if (ts_val.kind == PICO8_VALUE_REF && ts_val.as.ref != NULL) {
-                pico8_vec_t f_ra = pico8_jc_display_field_vec(f, "ra");
-                pico8_vec_t t_ra = pico8_jc_display_field_vec(t, "ra");
+                pico8_vec_t f_ra = pico8_jc_display_entity_vec(f, "ra");
+                pico8_vec_t t_ra = pico8_jc_display_entity_vec(t, "ra");
                 pico8_vec_t d = pico8_vec_sub(t_ra, f_ra);
                 pico8_vec_t v = pico8_vec_nn(d);
                 pico8_ob_table_t *particle = pico8_ob_table_new();
@@ -131,7 +131,7 @@ void pico8_jc_ch(pico8_instance_t *self, const pico8_instance_t *f, const pico8_
     }
 }
 
-void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_fixed_t l,
+void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *self, pico8_fixed_t l,
                   pico8_fixed_t h, pico8_fixed_t s, int c) {
     pico8_instance_t *qu;
     pico8_instance_t *re;
@@ -147,13 +147,13 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     assert(s > pico8_fixed_from_int(0) && "jc:lg only ascends: a zero step hangs, a negative one draws nothing");
     assert(gfx != NULL && mem != NULL && "pico8_line dereferences gfx and mem: neither may be NULL here");
 
-    qu = pico8_jc_display_field_instance(self, "qu");
-    re = pico8_jc_display_field_instance(self, "re");
-    t = pico8_jc_display_field_fixed(self, "t");
+    qu = pico8_jc_display_value_instance(self->qu);
+    re = pico8_jc_display_value_instance(self->re);
+    t = pico8_jc_display_value_fixed(self->ke.t);
 
-    qu_pt = pico8_vec_add(pico8_jc_display_field_vec(qu, "ra"),
+    qu_pt = pico8_vec_add(pico8_jc_display_entity_vec(qu, "ra"),
                            pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(126))));
-    re_pt = pico8_vec_add(pico8_jc_display_field_vec(re, "ra"),
+    re_pt = pico8_vec_add(pico8_jc_display_entity_vec(re, "ra"),
                            pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(176))));
 
     for (dx = l; dx <= h; dx = pico8_fixed_add(dx, s)) {
@@ -168,7 +168,7 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
     }
 }
 
-void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
+void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
     pico8_instance_t *qu;
     pico8_instance_t *re;
 
@@ -176,14 +176,14 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
         return;
     }
 
-    qu = pico8_jc_display_field_instance(self, "qu");
-    re = pico8_jc_display_field_instance(self, "re");
+    qu = pico8_jc_display_value_instance(self->qu);
+    re = pico8_jc_display_value_instance(self->re);
 
     if (pico8_gd(qu) || pico8_gd(re)) {
-        pico8_fixed_t nh = pico8_jc_display_field_fixed(self, "nh");
+        pico8_fixed_t nh = pico8_jc_display_value_fixed(self->nh);
         int nh_i = pico8_jc_display_to_int(nh);
         pico8_fixed_t jv = pico8_fixed_from_int(0);
-        pico8_value_t k_val = pico8_jc_display_field_value(self, "k_");
+        pico8_value_t k_val = self->k_;
         int et_or_fo;
         int mt_truthy;
         pico8_fixed_t c;
@@ -201,12 +201,11 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
         }
 
         if (nh < pico8_fixed_from_int(20)) {
-            pico8_ob_table_set_name(self->fields, "nh", pico8_value_fixed(pico8_fixed_add(nh, pico8_fixed_from_int(1))));
+            self->nh = pico8_value_fixed(pico8_fixed_add(nh, pico8_fixed_from_int(1)));
         }
 
-        et_or_fo = pico8_jc_display_truthy(pico8_jc_display_field_value(self, "et")) ||
-                   pico8_jc_display_truthy(pico8_jc_display_field_value(self, "fo"));
-        mt_truthy = pico8_jc_display_truthy(pico8_jc_display_field_value(self, "mt"));
+        et_or_fo = pico8_jc_display_truthy(self->et) || pico8_jc_display_truthy(self->fo);
+        mt_truthy = pico8_jc_display_truthy(self->mt);
 
         c = et_or_fo ? pico8_fixed_from_int(2) : (mt_truthy ? pico8_fixed_from_int(0) : jv);
         bc = mt_truthy ? jv : pico8_fixed_from_int(0);
@@ -218,7 +217,7 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
                     pico8_jc_display_to_int(c));
 
         {
-            pico8_value_t ts_val = pico8_jc_display_field_value(self, "ts");
+            pico8_value_t ts_val = self->ts;
             if (ts_val.kind == PICO8_VALUE_REF && ts_val.as.ref != NULL) {
                 pico8_list_t *ts = PICO8_REF_AS_LIST(ts_val.as.ref);
                 int i;
@@ -266,5 +265,5 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *sel
         pico8_jc_ch(self, re, qu);
     }
 
-    pico8_ob_table_set_name(self->fields, "fo", pico8_value_ref(NULL));
+    self->fo = pico8_value_ref(NULL);
 }

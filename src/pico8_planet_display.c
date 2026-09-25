@@ -568,7 +568,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             pico8_fixed_t radius_f;
             int radius;
 
-            if (pico8_instance_get_field((const pico8_instance_t *)fo_val.as.ref, "dw", &dw_val) &&
+            if (pico8_entity_get_field(fo_val.as.ref, "dw", &dw_val) &&
                 dw_val.kind == PICO8_VALUE_FIXED) {
                 dw = dw_val.as.fixed;
             }

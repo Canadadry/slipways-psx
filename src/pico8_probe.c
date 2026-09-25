@@ -69,7 +69,7 @@ static pico8_vec_t pico8_probe_field_vec(const pico8_instance_t *inst, const cha
 
 static pico8_instance_t *pico8_probe_field_instance(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (pico8_instance_t *)v.as.ref;
     }
     return NULL;
@@ -179,10 +179,10 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_entity_set_field(self, "et", et);
 
     if (pico8_probe_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
-        pico8_instance_t *et_inst = (pico8_instance_t *)et.as.ref;
-        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
-               "bv: et is an instance, real target or class-less throwaway, never a bare table");
-        pico8_ob_table_set_name(et_inst->fields, "fo", pico8_value_ref(self));
+        assert((pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
+                pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+               "bv: et is an entity (a planet or class-less throwaway instance, a jc struct), never a bare table");
+        pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
     }
 }
 
