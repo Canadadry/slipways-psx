@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "pico8_audio.h"
 #include "pico8_collect.h"
@@ -165,16 +166,25 @@ pico8_instance_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
     return pico8_class_instantiate(g_mh_class, overrides);
 }
 
-void pico8_iv_pq(pico8_instance_t *self) {
-    pico8_value_t ra_val;
-    int ra_present;
+static pico8_vec_t g_iv_v = {0, -PICO8_FIXED_LIT(0x0000570a, 0.34)};
 
+static pico8_fixed_t pico8_iv_value_fixed(pico8_value_t v) {
+    return v.kind == PICO8_VALUE_FIXED ? v.as.fixed : pico8_fixed_from_int(0);
+}
+
+static pico8_vec_t pico8_iv_value_vec(pico8_value_t v) {
+    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        return *(const pico8_vec_t *)v.as.ref;
+    }
+    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+}
+
+void pico8_iv_pq(pico8_iv_t *self) {
     if (self == NULL) {
         return;
     }
 
-    ra_present = pico8_instance_get_field(self, "ra", &ra_val);
-    if (!ra_present || !pico8_msgbox_truthy(ra_val)) {
+    if (!pico8_msgbox_truthy(self->ra)) {
         pico8_vec_t je_ra = pico8_msgbox_field_vec(pico8_je(), "ra");
         pico8_vec_t mo_ra = pico8_msgbox_field_vec(pico8_mo(), "ra");
         pico8_vec_t offset = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(5));
@@ -182,44 +192,40 @@ void pico8_iv_pq(pico8_instance_t *self) {
         /* TROU-7 */
         pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);
         *heap_ra = new_ra;
-        pico8_ob_table_set_name(self->fields, "ra", pico8_value_ref(heap_ra));
+        self->ra = pico8_value_ref(heap_ra);
     }
 }
 
-void pico8_iv_ph(pico8_instance_t *self) {
-    pico8_vec_t ra, v, new_ra;
-    pico8_fixed_t l, new_l;
+void pico8_iv_ph(pico8_iv_t *self) {
+    pico8_vec_t new_ra;
+    pico8_fixed_t new_l;
     pico8_vec_t *heap_ra;
 
     if (self == NULL) {
         return;
     }
 
-    ra = pico8_msgbox_field_vec(self, "ra");
-    v = pico8_msgbox_field_vec(self, "v");
-    new_ra = pico8_vec_add(ra, v);
+    new_ra = pico8_vec_add(pico8_iv_value_vec(self->ra), pico8_iv_value_vec(self->v));
     /* TROU-7 */
     heap_ra = malloc(sizeof *heap_ra);
     *heap_ra = new_ra;
-    pico8_ob_table_set_name(self->fields, "ra", pico8_value_ref(heap_ra));
+    self->ra = pico8_value_ref(heap_ra);
 
-    l = pico8_msgbox_field_fixed(self, "l");
-    new_l = pico8_fixed_add(l, PICO8_FIXED_LIT(0x00001999, 0.1));
-    pico8_ob_table_set_name(self->fields, "l", pico8_value_fixed(new_l));
+    new_l = pico8_fixed_add(pico8_iv_value_fixed(self->l), PICO8_FIXED_LIT(0x00001999, 0.1));
+    self->l = pico8_value_fixed(new_l);
 
-    pico8_ob_table_set_name(self->fields, "p_", pico8_value_bool(new_l >= pico8_fixed_from_int(5)));
+    self->p_ = pico8_value_bool(new_l >= pico8_fixed_from_int(5));
 }
 
 static pico8_value_t pico8_iv_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
-    pico8_iv_ph((pico8_instance_t *)self);
+    pico8_iv_ph((pico8_iv_t *)self);
     return pico8_value_ref(NULL);
 }
 
-void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p) {
-    pico8_fixed_t l;
+void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p) {
     pico8_value_t text_val;
     pico8_value_t color_val;
     const char *text = "";
@@ -230,13 +236,14 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_
         return;
     }
 
-    l = pico8_msgbox_field_fixed(self, "l");
-    pico8_dv(mem, l);
+    pico8_dv(mem, pico8_iv_value_fixed(self->l));
 
-    if (pico8_ob_table_get_index(self->fields, 1, &text_val) && text_val.kind == PICO8_VALUE_STRING) {
+    text_val = self->at1;
+    color_val = self->at2;
+    if (text_val.kind == PICO8_VALUE_STRING) {
         text = text_val.as.string;
     }
-    if (pico8_ob_table_get_index(self->fields, 2, &color_val) && color_val.kind == PICO8_VALUE_FIXED) {
+    if (color_val.kind == PICO8_VALUE_FIXED) {
         color = pico8_fixed_flr_int(color_val.as.fixed);
     }
 
@@ -251,8 +258,72 @@ static pico8_value_t pico8_iv_kj_dispatch(void *self, int argc, pico8_value_t ar
                         : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     (void)argc;
     (void)arg1;
-    pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_instance_t *)self, p);
+    pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
     return pico8_value_ref(NULL);
+}
+
+static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_iv_t *iv = self;
+    const pico8_value_t *member;
+
+    if (strcmp(name, "fa") == 0) {
+        member = &iv->fa;
+    } else if (strcmp(name, "l") == 0) {
+        member = &iv->l;
+    } else if (strcmp(name, "v") == 0) {
+        member = &iv->v;
+    } else if (strcmp(name, "ra") == 0) {
+        member = &iv->ra;
+    } else if (strcmp(name, "p_") == 0) {
+        member = &iv->p_;
+    } else {
+        return pico8_ke_field(self, name, out_value);
+    }
+    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+static const pico8_struct_class_t g_iv_struct_class = {
+    {[PICO8_METHOD_PH] = pico8_iv_ph_dispatch, [PICO8_METHOD_KJ] = pico8_iv_kj_dispatch},
+    pico8_iv_field,
+};
+
+static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_iv_t *self = malloc(sizeof *self);
+    int i;
+
+    pico8_ke_struct_init(&self->ke, &g_iv_struct_class);
+    self->fa = pico8_value_fixed(pico8_fixed_from_int(9));
+    self->l = pico8_value_fixed(pico8_fixed_from_int(0));
+    self->v = pico8_value_ref(&g_iv_v);
+    self->ra = pico8_value_ref(NULL);
+    self->p_ = pico8_value_ref(NULL);
+    self->at1 = pico8_value_ref(NULL);
+    self->at2 = pico8_value_ref(NULL);
+    for (i = 0; overrides != NULL && i < overrides->count; i++) {
+        pico8_ob_key_t key = overrides->entries[i].key;
+        pico8_value_t value = overrides->entries[i].value;
+
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
+            self->ra = value;
+        } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 1) {
+            self->at1 = value;
+        } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 2) {
+            self->at2 = value;
+        } else {
+            assert(0 && "iv: every measured key is ra, [1] or [2]; another would be a field under no rule of "
+                        "plan-3 section 5 -- stop, do not add a member");
+        }
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("iv");
+#endif
+    pico8_iv_pq(self);
+    pico8_ke_struct_pq(&self->ke);
+    return self;
 }
 
 void pico8_iv_init(void) {
@@ -260,9 +331,7 @@ void pico8_iv_init(void) {
     pico8_pi_init();
     g_iv_class = pico8_class_declare(pico8_ke_class(), "\nfa=9,\nl=0,v=v(0,-0.34),\n");
     PICO8_CLASS_COVERAGE_NAME(g_iv_class, "iv");
-    pico8_class_set_pq(g_iv_class, pico8_iv_pq);
-    pico8_ob_table_set_name(g_iv_class->defaults, "ph", pico8_value_function(pico8_iv_ph_dispatch));
-    pico8_ob_table_set_name(g_iv_class->defaults, "kj", pico8_value_function(pico8_iv_kj_dispatch));
+    pico8_class_set_struct_new(g_iv_class, pico8_iv_struct_new);
 }
 
 void pico8_iv_shutdown(void) {
@@ -276,8 +345,8 @@ pico8_class_t *pico8_iv_class(void) {
     return g_iv_class;
 }
 
-pico8_instance_t *pico8_iv_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_iv_class, overrides);
+pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides) {
+    return pico8_iv_struct_new(overrides);
 }
 
 typedef struct {

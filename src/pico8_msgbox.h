@@ -3,6 +3,7 @@
 
 #include "pico8_class.h"
 #include "pico8_gfx.h"
+#include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
@@ -42,21 +43,32 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
  * positional table instead of a vector. */
 void pico8_iv_init(void);
 
+/* `at1`/`at2` are the cart's `self[1]` (the text, a string never freed)
+ * and `self[2]` (the forced color). Never freed, nor are the vectors `ra`
+ * points at: TROU-7. `v` points at one vector shared by every iv. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t fa;
+    pico8_value_t l;
+    pico8_value_t v;
+    pico8_value_t ra;
+    pico8_value_t p_;
+    pico8_value_t at1;
+    pico8_value_t at2;
+} pico8_iv_t;
+
 void pico8_iv_shutdown(void);
 pico8_class_t *pico8_iv_class(void);
 
-/* `overrides` is copied, not kept; its positional entries become `self[1]`
- * (the text) and `self[2]` (the forced color). The instance registers
- * itself through `lt`, and nothing frees it. */
-pico8_instance_t *pico8_iv_new(const pico8_ob_table_t *overrides);
+/* `overrides` is read, not kept: `ra`, `[1]` and `[2]` only. The struct
+ * registers itself through `lt`, and nothing frees it. */
+pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides);
 
-void pico8_iv_pq(pico8_instance_t *self);
-void pico8_iv_ph(pico8_instance_t *self);
+void pico8_iv_pq(pico8_iv_t *self);
+void pico8_iv_ph(pico8_iv_t *self);
 
-/* Reads `self[1]`/`self[2]` off the instance's own positional entries, so a
- * class default of the same index is not consulted. A NULL `gfx`/`mem`
- * makes the whole call a no-op. */
-void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p);
+/* A NULL `gfx`/`mem` makes the whole call a no-op. */
+void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p);
 
 /* TROU-7 */
 /* Every item of `bs` must be a REF to a `pico8_ob_table_t`: each one is

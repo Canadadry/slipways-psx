@@ -90,8 +90,8 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
 
     assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
-    assert(direct->header.methods == generic->header.methods);
-    assert(direct->header.methods[PICO8_METHOD_OL] != NULL);
+    assert(direct->header.cls == generic->header.cls);
+    assert(direct->header.cls->methods[PICO8_METHOD_OL] != NULL);
     assert(direct->ls.kind == PICO8_VALUE_REF && pico8_type_tag_of(direct->ls.as.ref) == PICO8_TYPE_TAG_LIST &&
            ((const pico8_list_t *)direct->ls.as.ref)->count == 0);
 
@@ -100,9 +100,9 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     pico8_dispatch_set_mem(&mem);
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    direct->header.methods[PICO8_METHOD_OL]((void *)pico8_jb_new(v.as.ref), 2,
-                                            pico8_value_fixed(pico8_fixed_from_int(127)),
-                                            pico8_value_fixed(pico8_fixed_from_int(1)));
+    direct->header.cls->methods[PICO8_METHOD_OL]((void *)pico8_jb_new(v.as.ref), 2,
+                                                 pico8_value_fixed(pico8_fixed_from_int(127)),
+                                                 pico8_value_fixed(pico8_fixed_from_int(1)));
     check("table ol", screen_hash(), DR_FIRST_ENTRY_HASH);
 }
 

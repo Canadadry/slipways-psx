@@ -73,27 +73,33 @@ void pico8_dg(void) {
         pico8_value_t p_val;
         pico8_value_t t_val;
 
-        assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_INSTANCE) && "hv holds entities only");
+        assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_INSTANCE ||
+                pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
+               "hv holds entities only");
 
         /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
          * name comes from `me` at run time, so no site ever writes `:ly(`
          * and a grep reads them as dead code. */
-        if (pico8_instance_get_field(qc, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING) {
+        if (pico8_entity_get_field(qc, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING) {
             pico8_value_t t_arg;
             pico8_value_t discard;
-            if (!pico8_instance_get_field(qc, "t", &t_arg)) {
+            if (!pico8_entity_get_field(qc, "t", &t_arg)) {
                 t_arg = pico8_value_ref(NULL);
             }
             pico8_mv(qc, me_val.as.string, 1, t_arg, pico8_value_ref(NULL), &discard);
         }
 
-        if (pico8_instance_get_field(qc, "p_", &p_val) && pico8_dg_truthy(p_val)) {
+        if (pico8_entity_get_field(qc, "p_", &p_val) && pico8_dg_truthy(p_val)) {
             pico8_he(qc);
         }
 
-        if (pico8_instance_get_field(qc, "t", &t_val) && t_val.kind == PICO8_VALUE_FIXED) {
-            pico8_ob_table_set_name(qc->fields, "t",
-                                     pico8_value_fixed(pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1))));
+        if (pico8_entity_get_field(qc, "t", &t_val) && t_val.kind == PICO8_VALUE_FIXED) {
+            pico8_value_t t_next = pico8_value_fixed(pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1)));
+            if (pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) {
+                ((pico8_ke_t *)qc)->t = t_next;
+            } else {
+                pico8_ob_table_set_name(qc->fields, "t", t_next);
+            }
         }
     }
 }

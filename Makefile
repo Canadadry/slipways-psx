@@ -372,6 +372,9 @@ $(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA
 $(TMP_DIR)/test_pico8_jb_ol: $(call objs,tests/test_pico8_jb_ol.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_iv: $(call objs,tests/test_pico8_iv.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -504,7 +507,8 @@ UNIT_TESTS := \
     test_pico8_layout_nil_item_draws_nothing \
     test_pico8_rich_planet_exports \
     test_pico8_cheat_code \
-    test_pico8_jb_ol
+    test_pico8_jb_ol \
+    test_pico8_iv
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))

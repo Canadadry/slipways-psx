@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../src/pico8_class.h"
 #include "../src/pico8_fixed.h"
@@ -439,7 +440,7 @@ typedef struct {
     pico8_struct_header_t header;
 } fake_struct_t;
 
-static const pico8_value_function_t g_fake_struct_methods[PICO8_METHOD_COUNT] = {NULL};
+static const pico8_struct_class_t g_fake_struct_class = {{NULL}, NULL};
 
 static int g_fake_struct_new_calls = 0;
 static const pico8_ob_table_t *g_fake_struct_new_last_overrides = NULL;
@@ -451,7 +452,7 @@ static void *fake_struct_new(const pico8_ob_table_t *overrides) {
     g_fake_struct_new_calls++;
     g_fake_struct_new_last_overrides = overrides;
     s->header.tag = PICO8_TYPE_TAG_STRUCT;
-    s->header.methods = g_fake_struct_methods;
+    s->header.cls = &g_fake_struct_class;
     g_fake_struct_new_last_result = s;
     return s;
 }
@@ -501,6 +502,197 @@ static void test_struct_constructor_takes_over_instantiation(void) {
     pico8_class_registry_clear();
 }
 
+/* A ke-descended entity struct built the way a converted class builds one:
+ * ke's part first, then its own members, then its pq, then ke's. `ev` and
+ * `hd` are plain members holding a function and a number, as a class
+ * default would; `ph` is a real entry of its method table. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t fa;
+    pico8_value_t ra;
+    pico8_value_t ev;
+    pico8_value_t hd;
+    pico8_value_t nu;
+    pico8_value_t p_;
+} fake_ke_child_t;
+
+static int g_fake_ph_calls = 0;
+static void *g_fake_ph_last_self = NULL;
+static pico8_value_t g_fake_ph_last_arg;
+
+static pico8_value_t fake_child_ph(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)argc;
+    (void)arg1;
+    g_fake_ph_calls++;
+    g_fake_ph_last_self = self;
+    g_fake_ph_last_arg = arg0;
+    return pico8_value_fixed(pico8_fixed_from_int(77));
+}
+
+static int fake_child_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const fake_ke_child_t *c = self;
+    const pico8_value_t *member = NULL;
+
+    if (strcmp(name, "fa") == 0) {
+        member = &c->fa;
+    } else if (strcmp(name, "ra") == 0) {
+        member = &c->ra;
+    } else if (strcmp(name, "ev") == 0) {
+        member = &c->ev;
+    } else if (strcmp(name, "hd") == 0) {
+        member = &c->hd;
+    } else if (strcmp(name, "nu") == 0) {
+        member = &c->nu;
+    } else if (strcmp(name, "p_") == 0) {
+        member = &c->p_;
+    }
+    if (member == NULL) {
+        return pico8_ke_field(self, name, out_value);
+    }
+    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+static const pico8_struct_class_t g_fake_child_class = {
+    {[PICO8_METHOD_PH] = fake_child_ph},
+    fake_child_field,
+};
+
+static fake_ke_child_t *fake_child_new(int fa, int ra, pico8_value_function_t ev, pico8_ob_table_t *nu) {
+    fake_ke_child_t *c = malloc(sizeof *c);
+
+    pico8_ke_struct_init(&c->ke, &g_fake_child_class);
+    c->fa = pico8_value_fixed(pico8_fixed_from_int(fa));
+    c->ra = pico8_value_fixed(pico8_fixed_from_int(ra));
+    c->ev = ev != NULL ? pico8_value_function(ev) : pico8_value_ref(NULL);
+    c->hd = pico8_value_fixed(pico8_fixed_from_int(1));
+    c->nu = pico8_value_ref(nu);
+    c->p_ = pico8_value_ref(NULL);
+    pico8_ke_struct_pq(&c->ke);
+    return c;
+}
+
+/* ke's struct pq is lt: the struct lands in hv, in cv exactly under the bm
+ * names it carries (a method entry or a non-nil member), and in cg under
+ * its `nu`; he takes it back out of all of them. */
+static void test_ke_struct_registers_like_an_instance(void) {
+    pico8_ob_table_t *nu = pico8_ob_table_new();
+    fake_ke_child_t *c;
+    pico8_value_t v;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    pico8_ob_table_set_index(nu, 1, pico8_value_string("gamma"));
+
+    c = fake_child_new(4, 5, fake_ev_a, nu);
+    assert(pico8_type_tag_of(c) == PICO8_TYPE_TAG_STRUCT);
+    assert(pico8_entity_get_field(c, "me", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ph") == 0);
+    assert(pico8_entity_get_field(c, "t", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
+    assert(!pico8_entity_get_field(c, "p_", &v));
+    assert(!pico8_entity_get_field(c, "kj", &v));
+
+    assert(list_contains_instance(pico8_hv(), (pico8_instance_t *)c));
+    assert(list_contains_instance(pico8_cv("ev"), (pico8_instance_t *)c));
+    assert(list_contains_instance(pico8_cv("hd"), (pico8_instance_t *)c));
+    assert(!list_contains_instance(pico8_cv("kj"), (pico8_instance_t *)c));
+    assert(!list_contains_instance(pico8_cv("hk"), (pico8_instance_t *)c));
+    assert(!list_contains_instance(pico8_cv("hb"), (pico8_instance_t *)c));
+    assert(list_contains_instance(pico8_cg("gamma"), (pico8_instance_t *)c));
+
+    pico8_he((pico8_instance_t *)c);
+    assert(!list_contains_instance(pico8_hv(), (pico8_instance_t *)c));
+    assert(!list_contains_instance(pico8_cv("ev"), (pico8_instance_t *)c));
+    assert(!list_contains_instance(pico8_cv("hd"), (pico8_instance_t *)c));
+    assert(!list_contains_instance(pico8_cg("gamma"), (pico8_instance_t *)c));
+
+    free(c);
+    pico8_ob_table_free(nu);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
+/* Instances and structs registered alternately keep their order in hv and
+ * cv; dc("ev") then walks them by ascending `fa`, passing each its `ra`. */
+static void test_instances_and_structs_mix_in_order(void) {
+    pico8_class_t *cls;
+    pico8_ob_table_t *overrides;
+    pico8_instance_t *a;
+    pico8_instance_t *b;
+    fake_ke_child_t *s;
+    const pico8_list_t *hv;
+    const pico8_list_t *ev;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    cls = pico8_class_declare(NULL, "");
+
+    overrides = pico8_ob_table_new();
+    pico8_ob_table_set_name(overrides, "fa", pico8_value_fixed(pico8_fixed_from_int(7)));
+    pico8_ob_table_set_name(overrides, "ra", pico8_value_fixed(pico8_fixed_from_int(111)));
+    pico8_ob_table_set_name(overrides, "ev", pico8_value_function(fake_ev_a));
+    a = pico8_lt(pico8_class_instantiate(cls, overrides));
+    s = fake_child_new(3, 333, fake_ev_b, NULL);
+    b = pico8_lt(pico8_class_instantiate(cls, overrides));
+
+    hv = pico8_hv();
+    assert(hv->count == 3 && hv->items[0].as.ref == a && hv->items[1].as.ref == s && hv->items[2].as.ref == b);
+    ev = pico8_cv("ev");
+    assert(ev->count == 3 && ev->items[0].as.ref == a && ev->items[1].as.ref == s && ev->items[2].as.ref == b);
+
+    pico8_he(a);
+    g_ev_a_calls = 0;
+    g_ev_b_calls = 0;
+    g_call_order_count = 0;
+    pico8_dc("ev");
+    assert(g_call_order_count == 2 && g_call_order[0] == 'B' && g_call_order[1] == 'A');
+    assert(g_ev_b_last_self == s);
+    assert(g_ev_b_last_arg.kind == PICO8_VALUE_FIXED && g_ev_b_last_arg.as.fixed == pico8_fixed_from_int(333));
+    assert(g_ev_a_last_self == b);
+
+    free(s);
+    pico8_instance_free(a);
+    pico8_instance_free(b);
+    pico8_ob_table_free(overrides);
+    pico8_class_free(cls);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
+/* mv on a struct: a method of its table is called with the struct, a
+ * non-function member comes back as is, a name that is neither is 0 and
+ * leaves the output alone. */
+static void test_mv_on_a_struct(void) {
+    fake_ke_child_t *c;
+    pico8_value_t out;
+
+    pico8_entity_init();
+    pico8_class_registry_clear();
+    c = fake_child_new(4, 5, NULL, NULL);
+
+    g_fake_ph_calls = 0;
+    assert(pico8_mv((pico8_instance_t *)c, "ph", 1, pico8_value_fixed(pico8_fixed_from_int(9)),
+                    pico8_value_ref(NULL), &out));
+    assert(g_fake_ph_calls == 1 && g_fake_ph_last_self == c);
+    assert(g_fake_ph_last_arg.kind == PICO8_VALUE_FIXED && g_fake_ph_last_arg.as.fixed == pico8_fixed_from_int(9));
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(77));
+
+    assert(pico8_mv((pico8_instance_t *)c, "hd", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(1));
+
+    out = pico8_value_fixed(pico8_fixed_from_int(-5));
+    assert(!pico8_mv((pico8_instance_t *)c, "zz", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(!pico8_mv((pico8_instance_t *)c, "kj", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(!pico8_mv((pico8_instance_t *)c, "ev", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(-5));
+
+    free(c);
+    pico8_entity_shutdown();
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
@@ -508,6 +700,9 @@ int main(void) {
     test_mv_two_and_zero_argument_dispatch();
     test_closure_context_survives_instantiate_field_copy();
     test_struct_constructor_takes_over_instantiation();
+    test_ke_struct_registers_like_an_instance();
+    test_instances_and_structs_mix_in_order();
+    test_mv_on_a_struct();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;

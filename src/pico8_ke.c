@@ -1,6 +1,7 @@
 #include "pico8_ke.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
@@ -38,4 +39,33 @@ void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me) {
     }
     pico8_ob_table_set_name(self->fields, "me", me);
     pico8_ob_table_set_name(self->fields, "t", pico8_value_fixed(pico8_fixed_from_int(0)));
+}
+
+void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls) {
+    self->header.tag = PICO8_TYPE_TAG_STRUCT;
+    self->header.cls = cls;
+    self->me = pico8_value_string("ph");
+    self->t = pico8_value_fixed(pico8_fixed_from_int(0));
+}
+
+int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_ke_t *ke = self;
+    const pico8_value_t *member;
+
+    if (strcmp(name, "me") == 0) {
+        member = &ke->me;
+    } else if (strcmp(name, "t") == 0) {
+        member = &ke->t;
+    } else {
+        return 0;
+    }
+    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+void pico8_ke_struct_pq(pico8_ke_t *self) {
+    pico8_lt((pico8_instance_t *)self);
 }

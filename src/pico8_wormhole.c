@@ -63,7 +63,7 @@ static int pico8_mz_pq_ox_predicate(pico8_value_t e, void *ctx) {
         return 0;
     }
     p = (pico8_instance_t *)e.as.ref;
-    if (!pico8_instance_get_field(p, "fx", &fx_val)) {
+    if (!pico8_entity_get_field(p, "fx", &fx_val)) {
         return 0;
     }
     return pico8_mz_truthy(fx_val);

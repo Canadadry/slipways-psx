@@ -362,8 +362,9 @@ static pico8_value_t pico8_jb_ol_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static const pico8_value_function_t g_jb_methods[PICO8_METHOD_COUNT] = {
-    [PICO8_METHOD_OL] = pico8_jb_ol_dispatch,
+static const pico8_struct_class_t g_jb_struct_class = {
+    {[PICO8_METHOD_OL] = pico8_jb_ol_dispatch},
+    NULL,
 };
 
 static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
@@ -379,7 +380,7 @@ static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
                "plan-3 section 5 -- stop, do not add a member");
     }
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
-    self->header.methods = g_jb_methods;
+    self->header.cls = &g_jb_struct_class;
     self->ls = pico8_value_ref(NULL);
     pico8_jb_pq(self, overrides);
     return self;

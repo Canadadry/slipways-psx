@@ -22,7 +22,8 @@ void pico8_entity_init(void);
 void pico8_entity_shutdown(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
- * PICO8_VALUE_REF values whose .as.ref is a pico8_instance_t*. */
+ * PICO8_VALUE_REF values whose .as.ref is a pico8_instance_t* or a
+ * ke-descended struct (pico8_ke.h): read its tag before casting. */
 const pico8_list_t *pico8_hv(void);
 
 /* The entities registered under bm field name `name` ("kj", "ev", "hd",
@@ -37,11 +38,19 @@ const pico8_list_t *pico8_cv(const char *name);
  * lt() call, call pico8_cg() again instead. */
 const pico8_list_t *pico8_cg(const char *tag);
 
+/* `e` (and mv's) may point at a ke-descended struct instead of an
+ * instance: the pointer is read by its tag. */
 pico8_instance_t *pico8_lt(pico8_instance_t *e);
 void pico8_he(pico8_instance_t *e);
 
+/* `e[name]` on either form: returns 1 and writes *out_value when the
+ * instance has the field anywhere on its class chain, or when the struct
+ * has a method by that name or a non-nil field; returns 0, leaving
+ * *out_value untouched, otherwise. */
+int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value);
+
 /* Returns 1 and writes *out_value when `e` is non-NULL and has a field
- * named `method_name` anywhere on its class chain -- calling it with `e`,
+ * named `method_name` (pico8_entity_get_field()) -- calling it with `e`,
  * `argc`, `arg0` and `arg1` when the field is PICO8_VALUE_FUNCTION-kind,
  * using the field's own value as-is otherwise. Returns 0, leaving
  * *out_value untouched, when `e` is NULL or has no such field. `argc`

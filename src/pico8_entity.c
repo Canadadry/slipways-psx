@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_struct.h"
+
 #define PICO8_BM_COUNT 5
 static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "hb"};
 
@@ -153,6 +155,23 @@ const pico8_list_t *pico8_cg(const char *tag) {
     return entry != NULL ? &entry->list : NULL;
 }
 
+int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value) {
+    const pico8_struct_header_t *header;
+    int method;
+
+    if (pico8_type_tag_of(e) != PICO8_TYPE_TAG_STRUCT) {
+        return pico8_instance_get_field(e, name, out_value);
+    }
+    header = e;
+    method = pico8_method_of(name);
+    if (method >= 0 && header->cls->methods[method] != NULL) {
+        *out_value = pico8_value_function(header->cls->methods[method]);
+        return 1;
+    }
+    assert(header->cls->field != NULL && "entity: a struct a generic consumer reaches needs a field reader");
+    return header->cls->field(e, name, out_value);
+}
+
 pico8_instance_t *pico8_lt(pico8_instance_t *e) {
     int i;
     pico8_value_t discard;
@@ -163,14 +182,14 @@ pico8_instance_t *pico8_lt(pico8_instance_t *e) {
     /* `if(e[p])` is ported as a presence test, not as Lua truthiness: a
      * bm field explicitly set to `false` still registers `e` in cv[p]. */
     for (i = 0; i < PICO8_BM_COUNT; i++) {
-        if (pico8_instance_get_field(e, g_cv[i].name, &discard)) {
+        if (pico8_entity_get_field(e, g_cv[i].name, &discard)) {
             pico8_list_add(&g_cv[i].list, pico8_value_ref(e));
         }
     }
 
     /* `.nu` is a table of positional tag strings; an absent one, or a
      * non-string entry, registers nothing, as `all(nil)` would. */
-    if (pico8_instance_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
+    if (pico8_entity_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
         const pico8_ob_table_t *nu_table = nu_val.as.ref;
         for (i = 0; i < nu_table->count; i++) {
             if (nu_table->entries[i].value.kind == PICO8_VALUE_STRING) {
@@ -195,12 +214,12 @@ void pico8_he(pico8_instance_t *e) {
     pico8_list_del(&g_hv, pico8_value_ref(e));
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
-        if (pico8_instance_get_field(e, g_cv[i].name, &discard)) {
+        if (pico8_entity_get_field(e, g_cv[i].name, &discard)) {
             pico8_list_del(&g_cv[i].list, pico8_value_ref(e));
         }
     }
 
-    if (pico8_instance_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
+    if (pico8_entity_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
         const pico8_ob_table_t *nu_table = nu_val.as.ref;
         for (i = 0; i < nu_table->count; i++) {
             if (nu_table->entries[i].value.kind == PICO8_VALUE_STRING) {
@@ -223,7 +242,7 @@ int pico8_mv(pico8_instance_t *e, const char *method_name, int argc, pico8_value
     if (e == NULL) {
         return 0;
     }
-    if (!pico8_instance_get_field(e, method_name, &field_val)) {
+    if (!pico8_entity_get_field(e, method_name, &field_val)) {
         return 0;
     }
 
@@ -251,11 +270,13 @@ void pico8_dc(const char *nt) {
             pico8_value_t fa_val;
             int layer;
 
-            assert(pico8_type_tag_of(qc) == PICO8_TYPE_TAG_INSTANCE && "cv holds entities only");
+            assert((pico8_type_tag_of(qc) == PICO8_TYPE_TAG_INSTANCE ||
+                    pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
+                   "cv holds entities only");
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
              * from every layer, where Lua would error on the nil key. */
-            if (!pico8_instance_get_field(qc, "fa", &fa_val) || fa_val.kind != PICO8_VALUE_FIXED) {
+            if (!pico8_entity_get_field(qc, "fa", &fa_val) || fa_val.kind != PICO8_VALUE_FIXED) {
                 continue;
             }
             layer = pico8_fixed_flr_int(fa_val.as.fixed);
@@ -284,7 +305,7 @@ void pico8_dc(const char *nt) {
 
             /* An absent `.ra` is passed as pico8_value_ref(NULL), this
              * port's stand-in for Lua nil as a call argument. */
-            if (!pico8_instance_get_field(qc, "ra", &ra_val)) {
+            if (!pico8_entity_get_field(qc, "ra", &ra_val)) {
                 ra_val = pico8_value_ref(NULL);
             }
             /* TROU-11 */

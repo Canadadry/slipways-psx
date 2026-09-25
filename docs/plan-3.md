@@ -95,7 +95,7 @@ Chemins relatifs à `src/`. « Tests » = tests de régression (§6) réécrits 
 - 1a.0 — crochet de couverture par nom (§4.2) ; comptes de la porte 0.4 versionnés. Tests : `test_class_coverage`.
 - 1a.1 — `jb` : racine sans fille (`layout.c:357`), champ `ls`. Tests : aucun.
 - 1a.2 — `ke` (`ke.c:19`) **avec** la feuille directe de `ke` de plus petite emprise (mesurée ; candidates : `iv`, `mh`, `fq`, `nf`, `qb`, `mz`, `bg`, `jc`, `ie`, `js`), qui sort alors de la suite de la liste. Tests : `built_planet_panel_nil_row`, `empty_planet_cleared` (`e.me`).
-- 1a.3 — `iv` (`msgbox.c:260`). Tests : aucun.
+- 1a.3 — ~~`iv` (`msgbox.c:260`). Tests : aucun.~~ Sans objet : `iv` a été mesurée feuille de plus petite emprise et convertie dans 1a.2.
 - 1a.4 — `mh` (`msgbox.c:146`), construite avec le défaut muté `pj.ea` (`score_panel_display.c:115`). Tests : aucun.
 - 1a.5 — `fq` (`ui_button.c:297`), méthode `ldown`. Tests : `score_panel_close`.
 - 1a.6 — `nf` (`mouse_reader.c:35`), clé dynamique `je[bt]` (`ui.c:60`) → `l`/`r`. Tests : aucun.

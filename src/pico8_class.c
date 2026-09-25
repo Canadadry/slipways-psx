@@ -316,6 +316,9 @@ void pico8_instance_free(pico8_instance_t *inst) {
 int pico8_instance_get_field(const pico8_instance_t *inst, const char *name, pico8_value_t *out_value) {
     const pico8_class_t *cls;
 
+    assert(pico8_type_tag_of(inst) != PICO8_TYPE_TAG_STRUCT &&
+           "instance_get_field: an entity struct has no fields table; a generic consumer of hv/cv/cg must read "
+           "through pico8_entity_get_field()");
     if (pico8_ob_table_get_name(inst->fields, name, out_value)) {
         return 1;
     }
