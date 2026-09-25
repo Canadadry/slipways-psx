@@ -100,7 +100,7 @@ Chemins relatifs à `src/`. « Tests » = tests de régression (§6) réécrits 
 - 1a.5 — `fq` (`ui_button.c:297`), méthode `ldown`. Tests : `score_panel_close` Découvert à 1a.5 : boucle de survol `gw` (`ui.c`, lecture `fa`, écritures `m_`), `jc:hq` (`slipway.c:107`, `ok.o_.gv`).
 - 1a.6 — `nf` (`mouse_reader.c:35`), clé dynamique `je[bt]` (`ui.c:60`) → `l`/`r`. Tests : aucun. Découvert à 1a.6 : `l`/`r` défauts modifiés en place (`bu`, partagés par tous les `nf`) → état statique.
 - 1a.7 — `je` : sans classe (`ui.c:108`), provisoire, remplacée par un `nf` (`bootstrap.c:49`).
-- 1a.8 — `qb` (`scroll.c:50`). Tests : `planet_kj_dispatch` (`md`).
+- 1a.8 — `qb` (`scroll.c:50`). Tests : `planet_kj_dispatch` (`md`). Découvert à 1a.8 : `mo` lu par `gd` (`entity_geom.c:54`), `ma()` partagée qb/jo (`entity_geom.c:72`), écritures `mo.ma` (`planet_family.c:173`, `ga:pq`) et `mo.v` (`bg.c:225`, `bg:hq`), libération de `mo` (`entity.c:107`).
 - 1a.9 — `mo` : sans classe (`entity.c:129`), provisoire, remplacée par un `qb` (`bootstrap.c:48`). Tests : `planet_kj_dispatch`.
 - 1a.10 — `mz` (`wormhole.c:270`), `jj` lu sur la classe. Tests : aucun.
 - 1a.11 — enveloppe `mz.jj` : sans classe (`wormhole.c:293`).

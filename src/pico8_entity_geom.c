@@ -15,7 +15,7 @@ static pico8_vec_t pico8_entity_geom_zero(void) {
 
 static pico8_vec_t pico8_entity_geom_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
     }
     return pico8_entity_geom_zero();
@@ -30,7 +30,7 @@ static pico8_vec_t pico8_entity_geom_value_vec(pico8_value_t v) {
 
 static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -76,7 +76,7 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_instance_t *e) {
     pico8_fixed_t t = pico8_entity_geom_field_fixed(e, "t");
 
     if (e != NULL) {
-        pico8_ob_table_set_name(e->fields, "ma", pico8_value_fixed(clamped));
+        pico8_entity_set_field(e, "ma", pico8_value_fixed(clamped));
     }
     return pico8_vec_add(p, pico8_vec_qm(clamped, pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00003333, 0.2))));
 }

@@ -15,10 +15,10 @@
 void pico8_entity_init(void);
 
 /* Releases this module's own bookkeeping (hv/cv/cg's backing arrays, ci's
- * table) and frees the instance pico8_mo() currently holds -- but NOT the
- * entities registered in hv/cv/cg, which stay owned by whoever
- * instantiated them. A second call, or a call before the first
- * pico8_entity_init(), is a no-op. */
+ * table) and frees the placeholder mo if pico8_mo() still holds it; a
+ * `qb` struct is never freed (TROU-7), nor are the entities registered in
+ * hv/cv/cg, which stay owned by whoever instantiated them. A second
+ * call, or a call before the first pico8_entity_init(), is a no-op. */
 void pico8_entity_shutdown(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
@@ -73,7 +73,9 @@ const pico8_ob_table_t *pico8_ci(void);
 
 /* Until pico8_jl() runs, a classless instance with no fields, so that
  * dc()'s `mo:md(ci[o])` has an object to dispatch through; afterwards the
- * real `qb` instance. Owned by this module; callers must not free it. */
+ * real `qb` struct (pico8_scroll.h). Either form is read and written
+ * through pico8_entity_get_field()/pico8_entity_set_field(), never through
+ * `->fields`. Callers must not free it. */
 pico8_instance_t *pico8_mo(void);
 
 /* Makes `instance` what pico8_mo() returns. Does NOT free the outgoing

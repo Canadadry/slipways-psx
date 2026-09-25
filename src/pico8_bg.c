@@ -222,7 +222,7 @@ void pico8_bg_hq(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
         /* TROU-7 */
         pico8_vec_t *v_new = malloc(sizeof *v_new);
         *v_new = pico8_vec_sub(mq, rp_vec);
-        pico8_ob_table_set_name(mo->fields, "v", pico8_value_ref(v_new));
+        pico8_entity_set_field(mo, "v", pico8_value_ref(v_new));
     }
 
     pico8_ob_table_set_name(self->fields, "mq", rp);

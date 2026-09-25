@@ -170,7 +170,7 @@ void pico8_ga_pq(pico8_instance_t *self) {
 
     mo = pico8_mo();
     if (mo != NULL) {
-        pico8_ob_table_set_name(mo->fields, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
+        pico8_entity_set_field(mo, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
     }
 }
 

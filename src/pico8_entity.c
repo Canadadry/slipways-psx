@@ -104,7 +104,10 @@ void pico8_entity_shutdown(void) {
     pico8_ob_table_free(g_ci);
     g_ci = NULL;
 
-    pico8_instance_free(g_mo);
+    /* TROU-7 */
+    if (pico8_type_tag_of(g_mo) == PICO8_TYPE_TAG_INSTANCE) {
+        pico8_instance_free(g_mo);
+    }
     g_mo = NULL;
 
     g_initialized = 0;

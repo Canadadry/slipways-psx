@@ -14,6 +14,7 @@
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_scroll.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
@@ -26,16 +27,16 @@ static char g_order[8];
 static int g_order_n = 0;
 
 /* Records the call order, then forwards to the real `pico8_qb_md`, so the
- * order is observed without stubbing the behaviour out. Installed as an
- * instance field on `mo` alone -- instance fields win over the class chain
- * -- so no other `qb` sees it. */
+ * order is observed without stubbing the behaviour out. Installed on `mo`
+ * alone, through a copy of qb's method table whose `md` entry is this spy,
+ * so no other `qb` sees it. */
 static pico8_value_t spy_md(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_fixed_t fy = (arg0.kind == PICO8_VALUE_FIXED) ? arg0.as.fixed : pico8_fixed_from_int(1);
     (void)argc;
     (void)arg1;
     assert(g_order_n < 8);
     g_order[g_order_n++] = 'M';
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_instance_t *)self, fy);
+    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
     return pico8_value_ref(NULL);
 }
 
@@ -52,6 +53,8 @@ static pico8_value_t spy_kj(void *self, int argc, pico8_value_t arg0, pico8_valu
     pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self, p);
     return pico8_value_ref(NULL);
 }
+
+static pico8_struct_class_t g_spied_qb;
 
 static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_mem_t mem;
@@ -100,7 +103,9 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
     pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra_heap));
 
-    pico8_ob_table_set_name(mo->fields, "md", pico8_value_function(spy_md));
+    g_spied_qb = *pico8_qb_struct_class();
+    g_spied_qb.methods[PICO8_METHOD_MD] = spy_md;
+    ((pico8_struct_header_t *)mo)->cls = &g_spied_qb;
     pico8_ob_table_set_name(planet->fields, "kj", pico8_value_function(spy_kj));
 
     /* `kj` paints colour 0, which is also the framebuffer's cleared value,
@@ -138,6 +143,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
 
     assert(pico8_mo() == mo);
 
+    ((pico8_struct_header_t *)mo)->cls = pico8_qb_struct_class();
     pico8_jo_shutdown();
     pico8_bootstrap_shutdown();
 }
