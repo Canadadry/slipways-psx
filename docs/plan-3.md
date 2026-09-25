@@ -65,6 +65,7 @@ Dans cet ordre, chacun bloquant le suivant :
    - liste d'exemptions versionnée, une raison par ligne. Contenu initial : `ke` (abstraite, jamais instanciée directement). **`pm` et `ga` ne sont pas exemptés** ;
    - **hors de `make test`** : lancé à la main, et par l'autopilote aux points prévus ci-dessous ;
    - le contrat de l'outil est « chaque type d'entité est construit au moins une fois », indépendant de la représentation : en 1a, le crochet migre vers les constructeurs de struct, dans le commit de la classe concernée.
+   - avant le premier commit de 1a (étape 1a.0) : le crochet compte par **nom** passé au constructeur, plus par pointeur de classe ; `KNOWN[]` devient la seule liste des noms, et l'outil sort en erreur si un nom compté n'y est pas, ou si un nom des registres `fz`/nommé n'y est pas. Ce commit ne change aucun compte (sortie identique à la porte 0.4).
 3. **Enregistrement humain** — une session raylib qui construit `qh`, `os`, `nl`, `hj`, `nr`, `fr`, `mx` et sonde une protostar (`pm`, qui engendre `ga`). Déposée par l'humain dans le dossier de fixtures de son choix, ajoutée à la liste `FRAMES_EVENTS` du filet, avec son `.sha256` posé par `make frames-baseline`.
 4. **Porte** — `make class-coverage` sur ce dossier : aucune classe à 0 hors exemption, sur un dossier qui ne contient que les rejeux du filet (dans `FRAMES_EVENTS`, `.sha256` versionné) — un rejeu hors filet n'en protège aucune, et `tests/fixtures/` en contient. Le nombre de rejeux lus par l'outil doit égaler le nombre de rejeux du filet dans le dossier : sinon c'est « enregistrement non rejoué » (l'enregistreur nomme `events_recorded_<horodatage>.json`, que le motif `*events.json` de l'outil ne prend pas), que l'autopilote corrige lui-même sans redemander de session. Le code de sortie tranche ensuite. Même règle pour la relance en sortie de 1a. Sinon, l'autopilote s'arrête et demande un nouvel enregistrement.
 
@@ -78,13 +79,64 @@ Transformation mécanique. Chaque classe devient un `struct` dont le premier mem
 
 - **Méthodes** : une table `static const` de pointeurs de fonction par classe ; une surcharge remplace l'entrée héritée. Les méthodes appelées par nom de chaîne (`mv(held,"hq")`, `jz(rm,…)`, `dc(nt)`) passent par un enum de méthode qui indexe cette table.
 - **Clés construites à l'exécution** : `self[bt.."held"]` (`pico8_ui.c:328`) → deux champs `lheld`/`rheld` ; `ldown`/`rdown` côté méthodes. Tout autre site de clé dynamique trouvé est énuméré de même, ou déclenche un arrêt (§7) si l'ensemble des clés n'est pas fini.
-- **Défauts mutés sur la classe** : `ie.gy`, `ie.id` (`pico8_research_icon.c:158,182`, `pico8_cart.c:158`) deviennent un état statique partagé de la classe, jamais un champ d'instance. Même traitement pour tout autre défaut écrit après l'initialisation.
+- **Défauts mutés sur la classe** : `ie.gy`, `ie.id` (`pico8_research_icon.c:158,182`, `pico8_cart.c:158`) deviennent un état statique partagé de la classe, jamais un champ d'instance. Même traitement pour tout autre défaut réaffecté après l'initialisation **ou dont la table pointée est modifiée en place** (connus : `pj.ou`, `pj.ea`, `pj.cr`, `ga.by`) ; la liste des étapes les nomme.
 - **Instances sans classe** : converties comme des classes à part entière, sans parent.
 - **Coexistence** : une instance convertie porte un nouveau tag (`PICO8_TYPE_TAG_STRUCT`) et un pointeur vers sa table de méthodes, dans le même premier emplacement qu'aujourd'hui. `hv`/`cv`/`cg`, `dc`, `mv` traitent les deux formes pendant la migration ; l'ordre d'enregistrement est préservé.
 - **Ordre** : une classe par commit, la parente avant ses filles (`ke` → `jo` → `qh` → …). Les racines sans parent dans n'importe quel ordre.
-- **Premier commit** : une racine sans parent ni fille (liste « racines » du §2), qui prouve la coexistence avant de toucher l'arbre. `ke` ne vient qu'ensuite.
-- **Héritage entre formes** : les filles non converties trouvent leurs champs hérités en remontant `parent`. Une classe convertie garde donc sa `pico8_class_t` enregistrée jusqu'à la conversion de sa dernière fille ; elle n'est supprimée qu'à ce moment-là.
-- **Sortie** : plus aucune `pico8_class_t`/`pico8_instance_t` à l'exécution ; `pico8_class.c` supprimé ; `make class-coverage` relancé sur le dossier de l'étape 0, toujours sans zéro.
+- **Premier commit** : une vraie racine sans parent ni fille (`jb`), qui prouve la coexistence. **Deuxième** : `ke` **dans le même commit** que sa fille directe sans descendance de plus petite emprise (mesurée par le PRD de l'étape), pour que la struct de `ke` soit construite et vue par le filet dès son introduction. Ensuite les autres filles directes sans descendance de `ke`, par emprise croissante ; l'arbre `jo` et `g_`→`fv` après elles ; `ui` et `pj` (clés dynamiques, défauts mutés) en fin de liste.
+- **Héritage entre formes et classes-valeurs** : une classe convertie garde sa `pico8_class_t` enregistrée (registres `fz` et nommé compris) jusqu'à la dernière étape de 1a, qui les supprime toutes avec `pico8_class.c`. Dans le commit de conversion, sa `pico8_class_t` reçoit un pointeur vers le constructeur de struct, et `pico8_class_instantiate` délègue à ce constructeur quand il est posé : `gx[]`, `ie.ke`, `lookup_named` et `kv[hp.cw]` construisent ainsi la forme struct sans être touchés avant la conversion de leur propre classe. Les descendants non convertis trouvent leurs champs hérités en remontant `parent`, qui reste valide.
+- **Accès directs aux défauts** : tout site hors `pico8_class.c` qui lit ou écrit `<classe>->defaults` (grep `->defaults`, ~100 sites dans 22 fichiers) migre dans le commit de cette classe : la valeur passe dans l'état statique de la classe (défaut muté) ou dans la table de méthodes (installation de méthode), et la `pico8_class_t` retenue n'en garde qu'une copie en lecture pour les descendants non convertis.
+- **Sortie** : plus aucune `pico8_class_t`/`pico8_instance_t` à l'exécution ; `pico8_class.c` supprimé ; `make class-coverage-net` toujours sans zéro — vérifié par `grep -rn 'pico8_class_t\|pico8_instance_t\|->defaults\|lookup_named' src/` vide.
+
+#### Étapes de la phase 1a
+
+Chemins relatifs à `src/`. « Tests » = tests de régression (§6) réécrits dans l'étape. L'emprise de 1a.3 à 1a.14 est estimée ; chaque PRD la mesure, et une feuille de plus petite emprise passe devant sans être un écart.
+
+- 1a.0 — crochet de couverture par nom (§4.2) ; comptes de la porte 0.4 versionnés. Tests : `test_class_coverage`.
+- 1a.1 — `jb` : racine sans fille (`layout.c:357`), champ `ls`. Tests : aucun.
+- 1a.2 — `ke` (`ke.c:19`) **avec** la feuille directe de `ke` de plus petite emprise (mesurée ; candidates : `iv`, `mh`, `fq`, `nf`, `qb`, `mz`, `bg`, `jc`, `ie`, `js`), qui sort alors de la suite de la liste. Tests : `built_planet_panel_nil_row`, `empty_planet_cleared` (`e.me`).
+- 1a.3 — `iv` (`msgbox.c:260`). Tests : aucun.
+- 1a.4 — `mh` (`msgbox.c:146`), construite avec le défaut muté `pj.ea` (`score_panel_display.c:115`). Tests : aucun.
+- 1a.5 — `fq` (`ui_button.c:297`), méthode `ldown`. Tests : `score_panel_close`.
+- 1a.6 — `nf` (`mouse_reader.c:35`), clé dynamique `je[bt]` (`ui.c:60`) → `l`/`r`. Tests : aucun.
+- 1a.7 — `je` : sans classe (`ui.c:108`), provisoire, remplacée par un `nf` (`bootstrap.c:49`).
+- 1a.8 — `qb` (`scroll.c:50`). Tests : `planet_kj_dispatch` (`md`).
+- 1a.9 — `mo` : sans classe (`entity.c:129`), provisoire, remplacée par un `qb` (`bootstrap.c:48`). Tests : `planet_kj_dispatch`.
+- 1a.10 — `mz` (`wormhole.c:270`), `jj` lu sur la classe. Tests : aucun.
+- 1a.11 — enveloppe `mz.jj` : sans classe (`wormhole.c:293`).
+- 1a.12 — `bg` (`bg.c:69`), `pl` lu sur la classe, `ldown`/`rdown`, `lookup_named("mz"|"g_")` (`bg.c:185-191`). Tests : aucun.
+- 1a.13 — `jc` (`slipway.c:392`), instanciée par `lookup_named("jc")` (`planet.c:482,491`, `planet_family_trade.c:104,110`). Tests : aucun.
+- 1a.14 — `ie` (`research_icon.c:281`), `gy`/`id` → état statique (`research_icon.c:158,182`, `cart.c:158`), instancie `ie.ke` (`:198`). Tests : aucun.
+- 1a.15 — enveloppe `ie.ke` (`research_icon.c:68`, `cls` non nul), lit `rr`/`s`.
+- 1a.16 — `js` (`ui_button.c:116`), `ldown`, construite par les lignes de `pz()` (`msgbox.c:317`). Tests : `nil_row`, `ga_export_panel_by`, `planet_gh_row_lq`, `rich_planet_exports` (`lq`), `pause_menu_music` (`my`) ; harnais `pico8_js_new` de 13 tests.
+- 1a.17 — `jo` : `ke` (`planet.c:140`), défauts lus `planet_display.c:184,296,532`, `research_display.c:265-266`. Tests : `nil_row`, `empty_planet_cleared`, `planet_gh_row_lq`, `planet_kj_dispatch`, `playability`, `rich_planet_exports`, `slipway_drag`.
+- 1a.18 — `qh` : `jo` (`planet_family.c:306`), `gx[0]`. Tests : `empty_planet_cleared`.
+- 1a.19 — `nl` : `qh` (`planet_family.c:322`), `gx[4]`.
+- 1a.20 — `os` : `qh` (`planet_family.c:331`), `gx[1]`.
+- 1a.21 — `hj` : `qh` (`planet_family.c:339`), `gx[6]`.
+- 1a.22 — `pm` : `hj` (`planet_family.c:358`), via `kv[hp.cw]` (`planet.c:337,351`).
+- 1a.23 — `mx` : `hj` (`planet_family_trade.c:333`), `gx[5]`.
+- 1a.24 — `nr` : `qh` (`planet_family_trade.c:312`), `ldown`, `gx[2]`.
+- 1a.25 — `fr` : `nr` (`planet_family_trade.c:326`), `gx[3]`.
+- 1a.26 — `ga` : `jo` (`planet_family.c:378`), `by` réécrit (`:401-406`), `k_` lu (`:271`), via `kv[hp.cw]`. Tests : `ga_export_panel_by`, `geoharvest_burst`.
+- 1a.27 — `g_` : `ke` (`probe.c:372`). Tests : `probe_mm_rnd_order`.
+- 1a.28 — `fv` : `g_` (`help.c:129`).
+- 1a.29 — `pj` : `ke` (`score_panel.c:348`), défauts mutés en place `ou`/`ea`/`cr` (`score_panel.c:245`, `score_panel_display.c:103-109`, `menu.c:241`). Tests : `game_end`, `score_panel_close`.
+- 1a.30 — enveloppe de `pz()` sur `pj.cr` : sans classe (`menu.c:243`).
+- 1a.31 — `ui` : `ke` (`ui.c:93`), `bt.."held"` → `lheld`/`rheld`, `bt.."down"` → `ldown`/`rdown` (`ui.c:316-352`), `le` réécrit (`:102`), `hw` lu (`probe.c:112`). Tests : `nil_row`, `ga_export_panel_by`, `pause_menu_music`, `planet_gh_row_lq`, `rich_planet_exports`, `tech_screen`, `slipway_drag`.
+- 1a.32 — `trade` : racine (`trade.c:14`).
+- 1a.33 — `hp` : racine (`research.c:75`), `mr`/`gp`/`fk` lus sur la classe, surcharges `ri[p]`, `p` ∈ `hp.mr` (8 clés, `collect.c:215`).
+- 1a.34 — `lq` : racine (`layout.c:354`), champs positionnels → membre liste. Tests : `layout_nil_item_draws_nothing`, `planet_gh_row_lq`, `ga_export_panel_by`, `rich_planet_exports`.
+- 1a.35 — `hy` : racine (`economy.c:60`). Tests : `cheat_code`, `empty_planet_cleared`, `playability`, `slipway_drag`, `game_end`, `geoharvest_burst`, `score_panel_stars`, `tech_screen`.
+- 1a.36 — `fm` : sans classe (`probe.c:385`), provisoire, remplacée par un `hy` (`cart.c:207`). Tests : ceux de 1a.35.
+- 1a.37 — `{}` passé à `nr:gv` : sans classe (`planet_family_trade.c:94`).
+- 1a.38 — `et={}` : sans classe (`probe.c:169`).
+- 1a.39 — `{qs="-too far-"}` : sans classe (`slipway.c:255`).
+- 1a.40 — `re={ra,p}` : sans classe (`slipway.c:112`).
+- 1a.41 — enveloppe de `pz()` sur `g_ha` : sans classe (`menu.c:413`).
+- 1a.42 — suppression de toutes les `pico8_class_t`, de `pico8_class.c` et de `test_pico8_entity_smoke` ; sortie de phase (grep ci-dessus vide, `make class-coverage-net`).
+
+Écarts relevés avec le §2 : `bg`, `g_`, `pj` descendent de `ke` ; `fv` de `g_` ; « research » est `hp` ; vraies racines sans fille : `trade`, `lq`, `jb`, `hy`, `hp` ; 30 classes dans `src/` ; `mo`, `je`, `fm` sont provisoires ; 19 fichiers de test de régression lisent la couche, pas 17.
 
 ### Phase 1b — Types C réels
 
@@ -130,7 +182,8 @@ Un champ est renommé **seulement** si `docs/glossaire-noms.md` en donne le sens
 
 `plan-pilot`, phase après phase, un commit par classe (1a, 1b) ou par groupe (D, 2, 3).
 
-- **Une étape `plan-pilot`** = une classe en 1a/1b, un groupe nommé en D, 2 et 3. La liste ordonnée des étapes d'une phase (classes et instances sans classe en 1a/1b, dans l'ordre du §5 ; groupes en D, 2 et 3) est écrite dans ce plan à l'entrée de la phase, avant son premier commit.
+- **Une étape `plan-pilot`** = une classe en 1a/1b, un groupe nommé en D, 2 et 3. La liste ordonnée des étapes d'une phase (classes et instances sans classe en 1a/1b, dans l'ordre du §5 ; groupes en D, 2 et 3) est écrite dans ce plan à l'entrée de la phase, avant son premier commit ; elle fait foi sur le §2 quand ils divergent, et chaque PRD d'étape reprend sa ligne telle quelle.
+- Chaque commit de 1a passe `make class-coverage-net` (critère du PRD, hors `make test`), avec, pour chaque classe, un compte d'instanciations **égal** à celui de la porte 0.4 (valeurs versionnées à côté des exemptions à l'étape 1a.0).
 - **Nommage des PRD** : `plan3-phase<X>-etape<M>-*.md` (X ∈ `0`, `1a`, `1b`, `D`, `2`, `3`). « La plus haute » s'entend dans l'ordre du plan — `0` < `1a` < `1b` < `D` < `2` < `3`, puis `M` numérique —, jamais dans l'ordre texte des noms. Seuls ces fichiers de `docs/prd/done/` comptent pour trouver l'étape suivante — les `phaseD-*`/`phaseE-*` de Plan 2 n'en sont pas. Les étapes 0.1 et 0.2 sont livrées, 0.3 est humaine : l'autopilote démarre à la porte 0.4, puis au premier commit de 1a.
 
 L'autopilote **s'arrête et demande à l'humain** quand :
@@ -140,6 +193,8 @@ L'autopilote **s'arrête et demande à l'humain** quand :
 - un test de régression de bug devrait être modifié **dans son intention** (pas seulement dans sa façon de lire l'état) pour passer ;
 - la porte de l'étape 0 échoue ;
 - le diff modifie ou supprime un `.sha256` du filet, ou retire une entrée de `FRAMES_EVENTS` (seule exception : l'ajout de l'enregistrement de l'étape 0.3) — `make test` resterait vert.
+
+Un site ou une instance sans classe découvert en cours d'étape et **couvert par une règle existante du §5** n'est pas un arrêt : l'autopilote l'ajoute à la liste des étapes dans le commit qui le traite, avec une ligne « découvert à 1a.M » dans le message de commit. Seul un site qu'aucune règle ne couvre déclenche l'arrêt.
 
 Chacune de ces conditions est écrite dans le PRD de l'étape concernée comme critère que le vérificateur de `prd-autopilot` traduit en `FAILED:` — c'est le seul arrêt que `plan-pilot` honore.
 
