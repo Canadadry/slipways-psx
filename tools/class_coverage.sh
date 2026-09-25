@@ -1,22 +1,40 @@
 #!/bin/sh
-# usage: class_coverage.sh <outil pico8_class_coverage> <dossier> [<exemptions>]
-# Rejoue chaque <dossier>/*events.json (sans descendre dans les sous-dossiers),
-# un processus par rejeu. Rend 1 si une classe est à 0 sans être exemptée.
+# usage: class_coverage.sh [--from-title <events>]... <outil pico8_class_coverage>
+#                          <dossier|-> [<exemptions> [<events>...]]
+# Rejoue chaque <dossier>/*events.json (sans descendre dans les sous-dossiers ;
+# - : aucun), puis chaque <events> nommé, un processus par rejeu. Un fichier
+# nommé par --from-title est rejoué avec ce drapeau. Rend 1 si une classe est
+# à 0 sans être exemptée.
 
 set -u
+
+recordings=
+while [ "${1:-}" = --from-title ]; do
+    recordings="$recordings
+$2"
+    shift 2
+done
 
 tool=$1
 dir=$2
 exempt=${3:-}
+shift 2
+[ $# -gt 0 ] && shift
+
+[ "$dir" = - ] || set -- "$dir"/*events.json "$@"
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/class_coverage.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
 run=0
 crashed=0
-for events in "$dir"/*events.json; do
+for events in "$@"; do
     [ -f "$events" ] || continue
-    "$tool" "$events" > "$work/out" 2> "$work/err"
+    flag=
+    if printf '%s\n' "$recordings" | grep -qxF -- "$events"; then
+        flag=--from-title
+    fi
+    "$tool" $flag "$events" > "$work/out" 2> "$work/err"
     status=$?
     if [ "$status" -eq 2 ]; then
         echo "illisible: $events"

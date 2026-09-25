@@ -18,6 +18,8 @@
 #                       compte les instanciations par classe ; échoue si une
 #                       classe est à 0 hors tools/class_coverage_exempt.txt,
 #                       hors suite
+# make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS), hors
+#                       suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
@@ -287,6 +289,9 @@ $(TMP_DIR)/test_pico8_screencast: $(call objs,tests/test_pico8_screencast.c src/
 $(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_capture.c src/pico8_screencast.c src/pico8_dump.c src/pico8_gfx.c src/pico8_mem.c src/pico8_input.c) $(TMP_DIR)/pico8_replay tests/fixtures/screencast_capture_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_screencast.c src/pico8_dump.c src/pico8_mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -419,7 +424,7 @@ $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_tech_screen $(TMP_DIR)/test_pico8_game_end $(TMP_DIR)/test_pico8_pause_menu_music $(TMP_DIR)/test_pico8_geoharvest_burst $(TMP_DIR)/test_pico8_score_panel_close $(TMP_DIR)/test_pico8_score_panel_stars $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_class_coverage $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_float_grep $(TMP_DIR)/test_float_link $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_probe_mm_rnd_order $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing $(TMP_DIR)/test_pico8_rich_planet_exports $(TMP_DIR)/test_pico8_cheat_code
+unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_tech_screen $(TMP_DIR)/test_pico8_game_end $(TMP_DIR)/test_pico8_pause_menu_music $(TMP_DIR)/test_pico8_geoharvest_burst $(TMP_DIR)/test_pico8_score_panel_close $(TMP_DIR)/test_pico8_score_panel_stars $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_replay_from_title $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_class_coverage $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_float_grep $(TMP_DIR)/test_float_link $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_probe_mm_rnd_order $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing $(TMP_DIR)/test_pico8_rich_planet_exports $(TMP_DIR)/test_pico8_cheat_code
 	./$(TMP_DIR)/test_pico8_mem
 	./$(TMP_DIR)/test_asset_loading
 	./$(TMP_DIR)/test_pico8_gfx
@@ -454,6 +459,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_marker_coherence
 	./$(TMP_DIR)/test_pico8_screencast
 	./$(TMP_DIR)/test_pico8_headless_capture
+	./$(TMP_DIR)/test_pico8_replay_from_title
 	./$(TMP_DIR)/test_pico8_screencast_player
 	./$(TMP_DIR)/test_pico8_frames_tool
 	./$(TMP_DIR)/test_frames_check
@@ -476,7 +482,7 @@ unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pi
 	./$(TMP_DIR)/test_pico8_probe_mm_rnd_order
 
 replay: $(TMP_DIR)/pico8_replay
-	./$(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS)
+	./$(TMP_DIR)/pico8_replay $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS)
 
 test: unit replay frames-check constants-check float-audit float-grep float-guard
 
@@ -487,6 +493,14 @@ SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
 SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 
+# Les enregistrements raylib cliquent eux-mêmes la difficulté sur l'écran
+# titre : tout pilote qui les rejoue passe $(call from_title,<events>).
+RECORDINGS := \
+    tests/fixtures/session_events.json \
+    tests/fixtures/long_session_events.json \
+    tests/fixtures/events_recorded_1790198294.json
+from_title = $(if $(filter $(RECORDINGS),$(1)),--from-title)
+
 ifeq ($(UNAME_S),Darwin)
     SHA256_CMD := shasum -a 256
 else
@@ -494,7 +508,7 @@ else
 endif
 
 $(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS) | $(TMP_DIR)
-	./$(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS) $@
+	./$(TMP_DIR)/pico8_replay $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS) $@
 
 screencast: $(SCREENCAST_BIN)
 
@@ -539,7 +553,7 @@ frames_reference = $(1).sha256
 # captures ne doivent pas tourner en même temps que ces deux tests.
 $(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/pico8_replay $< $@ > /dev/null
+	./$(TMP_DIR)/pico8_replay $(call from_title,$<) $< $@ > /dev/null
 
 # L'affectation porte le code de sortie du sha256, qu'un pipe vers cut perdrait.
 frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
@@ -561,7 +575,7 @@ frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e)))
 	@$(foreach e,$(FRAMES_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "frames: reference posee dans $(call frames_reference,$(e)) : $$(cat $(call frames_reference,$(e)))" && ) true
 
 frames-ref: $(FRAMES_CHECK_PREREQ) $(FRAMES_TOOL) tools/frames_ref.sh
-	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
+	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)) $(or $(call from_title,$(e)),-))
 
 # make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
 # Il répond « quels sites de cast REF ont été atteints, et avec quel tag », en
@@ -616,10 +630,15 @@ $(TMP_DIR)/pico8_class_coverage: $(call coverage_objs,src/main_class_coverage.c 
 DIR ?= tests/fixtures
 CLASS_COVERAGE_EXEMPT := tools/class_coverage_exempt.txt
 
-class-coverage: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
-	@sh tools/class_coverage.sh ./$(TMP_DIR)/pico8_class_coverage '$(DIR)' $(CLASS_COVERAGE_EXEMPT)
+class_coverage_recordings = $(foreach e,$(RECORDINGS),--from-title $(e))
 
-.PHONY: class-coverage
+class-coverage: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
+	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage '$(DIR)' $(CLASS_COVERAGE_EXEMPT)
+
+class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
+	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage - $(CLASS_COVERAGE_EXEMPT) $(FRAMES_EVENTS)
+
+.PHONY: class-coverage class-coverage-net
 
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
@@ -643,7 +662,7 @@ float_audit_records = $(AUDIT_DIR)/$(notdir $(1)).aud
 float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh $(FLOAT_AUDIT_C1)
 	@mkdir -p $(AUDIT_DIR)
 	rm -f $(AUDIT_DIR)/*.aud
-	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(call float_audit_records,$(e)) ./$(TMP_DIR)/pico8_replay_audit $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
+	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(call float_audit_records,$(e)) ./$(TMP_DIR)/pico8_replay_audit $(call from_title,$(e)) $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
 	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(foreach e,$(FRAMES_EVENTS),$(e) $(call float_audit_records,$(e))) -- $(CORE_SRCS)
 
 .PHONY: float-audit
