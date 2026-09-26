@@ -212,12 +212,12 @@ int main(void) {
 
     {
         const pico8_list_t *qh = pico8_cg("qh");
-        pico8_instance_t *lab;
+        const void *lab;
         const pico8_vec_t *lab_ra;
 
         assert(qh != NULL);
         assert(qh->count == 1);
-        lab = (pico8_instance_t *)qh->items[0].as.ref;
+        lab = qh->items[0].as.ref;
         assert(strcmp(state_of(lab), QH_PLACED_STATE) == 0);
 
         lab_ra = vec_field(lab, "ra");

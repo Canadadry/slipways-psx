@@ -66,21 +66,19 @@ static int pico8_jo_truthy(pico8_value_t v) {
     return 1;
 }
 
-static void pico8_jo_pq(pico8_instance_t *self);
-
-static pico8_value_t pico8_jo_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     return pico8_gk((const pico8_instance_t *)self, arg0, arg1);
 }
 
-static pico8_value_t pico8_jo_gg_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_gg_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
     return pico8_jo_gg((const pico8_instance_t *)self);
 }
 
-static pico8_value_t pico8_jo_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
@@ -88,7 +86,7 @@ static pico8_value_t pico8_jo_hb_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_jo_gv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_gv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     const pico8_instance_t *s = NULL;
     (void)argc;
     (void)arg1;
@@ -98,7 +96,7 @@ static pico8_value_t pico8_jo_gv_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_jo_gv((const pico8_instance_t *)self, s);
 }
 
-static pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
@@ -106,7 +104,7 @@ static pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_jo_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     (void)argc;
     (void)arg1;
@@ -117,14 +115,14 @@ static pico8_value_t pico8_jo_kj_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_jo_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
     return pico8_jo_ldown((pico8_instance_t *)self);
 }
 
-static pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_instance_t *sw = NULL;
     (void)argc;
     (void)arg1;
@@ -135,7 +133,7 @@ static pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_jo_trade_proposal_t *lw = NULL;
     (void)argc;
     (void)arg1;
@@ -146,14 +144,14 @@ static pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
     return pico8_value_ref(pico8_jo_ib((pico8_instance_t *)self));
 }
 
-static pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_fixed_t t = pico8_fixed_from_int(0);
     (void)argc;
     (void)arg1;
@@ -240,13 +238,11 @@ static const pico8_struct_class_t g_jo_struct_class = {
     pico8_jo_set_field,
 };
 
-static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
-    pico8_jo_t *self = malloc(sizeof *self);
+void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     size_t i;
-    int k;
 
     assert(g_jo_class != NULL && "pico8_jo_init() must run first");
-    pico8_ke_struct_init(&self->ke, &g_jo_struct_class);
+    pico8_ke_struct_init(&self->ke, cls);
     for (i = 0; i < sizeof g_jo_members / sizeof g_jo_members[0]; i++) {
         *(pico8_value_t *)((char *)self + g_jo_members[i].offset) = pico8_value_ref(NULL);
     }
@@ -257,6 +253,13 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
             *pico8_jo_member(self, g_jo_defaults[i].name) = g_jo_defaults[i].value;
         }
     }
+}
+
+static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_jo_t *self = malloc(sizeof *self);
+    int k;
+
+    pico8_jo_struct_init(self, &g_jo_struct_class);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME &&
@@ -385,7 +388,7 @@ pico8_jo_t *pico8_jo_new(const pico8_ob_table_t *overrides) {
 
 /* `pico8_gb()` is NULL until `pico8_data_init()` has run, and the
  * `pico8_ob_table_get_*` primitives do not guard their table argument. */
-static void pico8_jo_pq(pico8_instance_t *self) {
+void pico8_jo_pq(pico8_instance_t *self) {
     pico8_value_t hp_val;
     pico8_list_t *oe;
 

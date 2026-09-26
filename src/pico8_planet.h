@@ -84,6 +84,29 @@ const pico8_ob_table_t *pico8_jo_em(void);
  * nothing ever frees it. Requires `pico8_jo_init()`. */
 pico8_jo_t *pico8_jo_new(const pico8_ob_table_t *overrides);
 
+/* Sets up an allocated `self` as a bare planet whose descriptor is `cls`:
+ * the 31 members nil, then jo's defaults. Neither runs `jo:pq` nor `lt`:
+ * a daughter's constructor does, after its own defaults. Requires
+ * `pico8_jo_init()`. */
+void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls);
+
+/* jo's pq, the effective pq of a daughter that has none of its own. */
+void pico8_jo_pq(pico8_instance_t *self);
+
+/* The dispatchers jo's descriptor and its class `defaults` hold, for a
+ * daughter's `static const` descriptor to name. */
+pico8_value_t pico8_jo_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_gg_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_gv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+
 /* TROU-7 */
 void pico8_jo_lz(pico8_instance_t *self, pico8_instance_t *hp_instance);
 

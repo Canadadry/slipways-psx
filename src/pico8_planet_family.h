@@ -6,6 +6,8 @@
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
+#include "pico8_planet.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
@@ -23,13 +25,40 @@ void pico8_planet_family_init(void);
  * the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
+/* A laboratory: a bare planet, then qh's own defaults and `et`, which its
+ * own `hq` (`bv`) writes. A default of qh whose name is a member of `jo` or
+ * `ke` (`me`, `nu`, `hf`, `mi`) lives in that member, never in a second
+ * copy here. `nu`, `px` and `ba` hold the very tables of qh's class,
+ * borrowed. Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_jo_t jo;
+    pico8_value_t hp;
+    pico8_value_t px;
+    pico8_value_t dq;
+    pico8_value_t qh;
+    pico8_value_t od;
+    pico8_value_t fp;
+    pico8_value_t dw;
+    pico8_value_t s;
+    pico8_value_t ba;
+    pico8_value_t et;
+} pico8_qh_t;
+
 /* Every accessor below is NULL before `pico8_planet_family_init()` and
- * after `pico8_planet_family_shutdown()`, and each `_new` then yields a
- * class-less instance rather than NULL. `overrides` is copied, not kept;
- * the new instance registers itself into `hv`/`cv`/`cg` through `lt`, and
- * nothing ever frees it. */
+ * after `pico8_planet_family_shutdown()`. `qh`'s class instantiation builds
+ * a pico8_qh_t, while its descendants still inherit the class's defaults
+ * and methods. */
 pico8_class_t *pico8_qh_class(void);
-pico8_instance_t *pico8_qh_new(const pico8_ob_table_t *overrides);
+const pico8_struct_class_t *pico8_qh_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id` only. The new
+ * laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+ * ever frees it. Requires `pico8_planet_family_init()`. */
+pico8_qh_t *pico8_qh_new(const pico8_ob_table_t *overrides);
+
+/* Each `_new` below requires `pico8_planet_family_init()`. `overrides` is
+ * copied, not kept; the new instance registers itself into `hv`/`cv`/`cg`
+ * through `lt`, and nothing ever frees it. */
 
 pico8_class_t *pico8_nl_class(void);
 pico8_instance_t *pico8_nl_new(const pico8_ob_table_t *overrides);

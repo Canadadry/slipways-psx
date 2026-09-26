@@ -425,6 +425,10 @@ static int daughter_of(const void *e) {
                                                pico8_nr_class(), pico8_fr_class(), pico8_ga_class()};
     int d;
 
+    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)e)->cls == pico8_qh_struct_class()) {
+        return QH;
+    }
     if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
         return -1;
     }
@@ -657,7 +661,7 @@ static int is_a_jo_struct(const void *e) {
 /* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
  * the very dispatchers its class installs for the daughters; a generic
  * write outside the 17 measured names, or a construction key other than
- * `id`/`p`/`ra`, stops the run. The daughters stay instances. */
+ * `id`/`p`/`ra`, stops the run. The daughters other than `qh` stay instances. */
 static void test_jo_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr",
                                           "kw", "lq", "m_", "ma", "mi", "nk", "oe", "p_"};
@@ -711,8 +715,8 @@ static void test_jo_is_a_struct(void) {
     }
     jo = pico8_cg("qh");
     assert(jo != NULL && jo->count == 1);
-    assert(pico8_type_tag_of(jo->items[0].as.ref) == PICO8_TYPE_TAG_INSTANCE &&
-           ((const pico8_instance_t *)jo->items[0].as.ref)->cls == pico8_qh_class());
+    assert(pico8_type_tag_of(jo->items[0].as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)jo->items[0].as.ref)->cls == pico8_qh_struct_class());
 }
 
 /* A replay depends on the rnd state: run each scenario in a child forked
