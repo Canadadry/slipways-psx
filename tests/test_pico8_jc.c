@@ -722,7 +722,7 @@ static void test_bv(void) {
     old = the_slipway();
     probe = pico8_class_instantiate(pico8_class_lookup_named("g_"), NULL);
     assert(probe != NULL);
-    pico8_entity_set_field(probe, "dw", pico8_value_fixed(0));
+    ((pico8_g__t *)probe)->dw = pico8_value_fixed(0);
     qu = vec_of(get_ref(old, "qu"), "p");
     re = vec_of(get_ref(old, "re"), "p");
     for (k = 1; k < 8; k++) {

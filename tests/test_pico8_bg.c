@@ -32,6 +32,7 @@
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family_trade.h"
+#include "../src/pico8_probe.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
@@ -380,13 +381,11 @@ static void test_drag(void) {
 static void test_ldown(void) {
     void *bg;
     pico8_value_t out;
-    pico8_class_t *g_class;
     int g_before;
     int mz_before;
 
     start_game(PLAYTHROUGH);
     bg = the_bg();
-    g_class = pico8_class_lookup_named("g_");
     g_before = list_count(pico8_cg("g_"));
     mz_before = list_count(pico8_cg("mz"));
     check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
@@ -394,8 +393,8 @@ static void test_ldown(void) {
 
     assert(pico8_mv(bg, "ldown", 2, vec_ref(1, 1), vec_ref(2, 2), &out));
     assert(out.kind == PICO8_VALUE_REF && out.as.ref != NULL);
-    assert(pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_INSTANCE);
-    assert(((const pico8_instance_t *)out.as.ref)->cls == g_class);
+    assert(pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_STRUCT);
+    assert(((const pico8_struct_header_t *)out.as.ref)->cls == pico8_g__struct_class());
     assert(listed(pico8_cg("g_"), out.as.ref));
 
     assert(pico8_mv(bg, "ldown", 2, vec_ref(1, 1), vec_ref(2, 2), &out));
@@ -561,7 +560,7 @@ static void test_replay_from_title(void) {
     check("title replay", h, TITLE_HASH);
 }
 
-enum { HELD_ABSENT, HELD_G_INSTANCE, HELD_MZ_STRUCT, HELD_OTHER };
+enum { HELD_ABSENT, HELD_G_STRUCT, HELD_MZ_STRUCT, HELD_OTHER };
 
 static uint32_t lheld_kind(void) {
     const void *held = ok_ref("lheld");
@@ -569,9 +568,9 @@ static uint32_t lheld_kind(void) {
     if (held == NULL) {
         return HELD_ABSENT;
     }
-    if (pico8_type_tag_of(held) == PICO8_TYPE_TAG_INSTANCE &&
-        ((const pico8_instance_t *)held)->cls == pico8_class_lookup_named("g_")) {
-        return HELD_G_INSTANCE;
+    if (pico8_type_tag_of(held) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)held)->cls == pico8_g__struct_class()) {
+        return HELD_G_STRUCT;
     }
     if (pico8_type_tag_of(held) == PICO8_TYPE_TAG_STRUCT &&
         ((const pico8_struct_header_t *)held)->cls == pico8_mz_struct_class()) {
@@ -601,7 +600,7 @@ static void test_playthrough(void) {
         h = fnv(h, kind);
     }
     printf("[playthrough] lheld absent %d, g_ %d, mz %d, other %d\n", held[0], held[1], held[2], held[3]);
-    assert(held[HELD_G_INSTANCE] > 0);
+    assert(held[HELD_G_STRUCT] > 0);
     check_int("playthrough frames", frames, PLAYTHROUGH_FRAMES);
     check("playthrough", h, PLAYTHROUGH_HASH);
 }

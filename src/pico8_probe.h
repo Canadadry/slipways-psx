@@ -3,9 +3,11 @@
 
 #include "pico8_class.h"
 #include "pico8_gfx.h"
+#include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
@@ -14,6 +16,36 @@
  * 0/false/the zero vector rather than crashing, and a NULL `gfx`/`mem` skips
  * the draw calls while the rest of the body still runs. */
 
+/* TROU-7 */
+/* `nu` and `k_` are the tables of `g_`'s class, borrowed and shared with
+ * `fv`, never modified; `ra` is the very REF `bv` was passed, aliased. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t nu;
+    pico8_value_t fx;
+    pico8_value_t dq;
+    pico8_value_t od;
+    pico8_value_t fp;
+    pico8_value_t fa;
+    pico8_value_t dw;
+    pico8_value_t py;
+    pico8_value_t ki;
+    pico8_value_t pn;
+    pico8_value_t pk;
+    pico8_value_t fc;
+    pico8_value_t k_;
+    pico8_value_t qo;
+    pico8_value_t ro;
+    pico8_value_t qg;
+    pico8_value_t q_;
+    pico8_value_t du;
+    pico8_value_t qy;
+    pico8_value_t ra;
+    pico8_value_t p;
+    pico8_value_t et;
+    pico8_value_t p_;
+} pico8_g__t;
+
 /* TROU-8 */
 /* Builds the `g_` class and installs the `fm` placeholder. Shuts the module
  * down first, so it is idempotent and any previously handed out
@@ -21,18 +53,19 @@
 void pico8_probe_init(void);
 
 /* Frees the `g_` class and whichever instance `fm` currently holds, never any
- * `g_` instance. Idempotent, and safe before the first `pico8_probe_init()`. */
+ * probe. Idempotent, and safe before the first `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
 /* NULL before `pico8_probe_init()` and after `pico8_probe_shutdown()`. Also
  * reachable as `pico8_class_lookup_named("g_")`. */
 pico8_class_t *pico8_g__class(void);
+const pico8_struct_class_t *pico8_g__struct_class(void);
 
-/* `overrides` is copied, not kept. The new instance registers itself into
- * `hv`/`cv`/`cg` through `lt` (and gets its particle list from `f_`), and
- * nothing ever frees it. Called before `pico8_probe_init()` it yields a
- * class-less instance rather than NULL. */
-pico8_instance_t *pico8_g__new(const pico8_ob_table_t *overrides);
+/* `overrides` (NULL means none) is read, not kept: `pn`, `t`, `du`, `py`
+ * only. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
+ * (and gets its particle list from `f_`), and nothing ever frees it.
+ * Asserts when called before `pico8_probe_init()`. */
+pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides);
 
 /* `fm`. `pico8_probe_init()` installs a class-less placeholder here;
  * `pico8_cart` replaces it with the real `hy` instance. The setter frees the

@@ -25,9 +25,9 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-static pico8_instance_t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du, pico8_fixed_t py) {
+static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du, pico8_fixed_t py) {
     pico8_ob_table_t *overrides = pico8_ob_table_new();
-    pico8_instance_t *probe;
+    pico8_g__t *probe;
 
     pico8_ob_table_set_name(overrides, "pn", pico8_value_fixed(pn));
     pico8_ob_table_set_name(overrides, "t", pico8_value_fixed(t));
@@ -38,15 +38,15 @@ static pico8_instance_t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixe
     return probe;
 }
 
-static pico8_vec_t emitted_particle_p(pico8_instance_t *probe) {
+static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
     pico8_value_t qy_val;
     pico8_value_t particle;
     pico8_value_t p_val;
     pico8_list_iter_t it;
 
-    pico8_ez(probe, pico8_fixed_from_int(1));
+    pico8_ez((pico8_instance_t *)probe, pico8_fixed_from_int(1));
 
-    assert(pico8_instance_get_field(probe, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL);
+    assert(pico8_entity_get_field(probe, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL);
     it = pico8_list_all((const pico8_list_t *)qy_val.as.ref);
     assert(pico8_list_iter_next(&it, &particle) && particle.kind == PICO8_VALUE_REF && particle.as.ref != NULL);
     assert(pico8_ob_table_get_name((const pico8_ob_table_t *)particle.as.ref, "p", &p_val) &&
@@ -59,7 +59,7 @@ static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {
     pico8_fixed_t t = pico8_fixed_from_int(3);
     pico8_fixed_t du = pico8_fixed_from_int(10);
     pico8_fixed_t py = pico8_fixed_from_int(1);
-    pico8_instance_t *probe;
+    pico8_g__t *probe;
     int fds[2];
     pid_t child;
     int status;
