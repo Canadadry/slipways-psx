@@ -245,13 +245,13 @@ static void test_two_years_in_a_row(void) {
     run_check(&run, TWO_YEARS_TICKS, TWO_YEARS_SEQUENCE_HASH, "two years in a row");
 }
 
-static void set_c_(pico8_instance_t *ju, int on) {
-    pico8_ob_table_set_name(ju->fields, "c_", pico8_value_bool(on));
+static void set_c_(pico8_pj_t *ju, int on) {
+    ju->c_ = pico8_value_bool(on);
 }
 
 /* A game started the way the net starts it (`eu()` on `bo[2]`), then `jl()`
  * again: `fm`, `dk` and `ju` stay, `hv` holds only `mo`, `je` and `ok`. */
-static pico8_instance_t *game_ju(void) {
+static pico8_pj_t *game_ju(void) {
     pico8_value_t difficulty;
 
     assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
@@ -265,20 +265,20 @@ static pico8_instance_t *game_ju(void) {
  * of `rh`=3 stays open while `c_`, and is not rebuilt while it is `ed`. */
 static void test_scores_box_follows_c_(void) {
     run_t run;
-    pico8_instance_t *ju = game_ju();
+    pico8_pj_t *ju = game_ju();
     pico8_value_t ed;
     const void *box;
     int built;
     int i;
 
-    pico8_ob_table_set_name(ju->fields, "gz", pico8_value_fixed(pico8_fixed_from_int(0)));
+    ju->gz = pico8_value_fixed(pico8_fixed_from_int(0));
     set_c_(ju, 1);
     run_start(&run);
 
     pico8_pj_ph(ju);
     box = pico8_kc();
     assert(box != NULL);
-    assert(pico8_instance_get_field(ju, "ed", &ed) && ed.kind == PICO8_VALUE_REF && ed.as.ref == box);
+    assert(pico8_entity_get_field(ju, "ed", &ed) && ed.kind == PICO8_VALUE_REF && ed.as.ref == box);
     built = count_of(pico8_cg("mh"));
     track(&run, box);
     run.h = fnv(run.h, draw_hash());

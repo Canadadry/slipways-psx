@@ -47,21 +47,6 @@ static char *pj_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* Reads `pj`'s OWN class-level table -- the one every instance shares, so
- * writing through it mutates `pj.<name>` for all of them. NULL when the
- * class is absent or the field is not a table. */
-static pico8_ob_table_t *pj_class_field_ref_table(const char *name) {
-    pico8_value_t v;
-    const pico8_class_t *cls = pico8_pj_class();
-    if (cls != NULL && cls->defaults != NULL && pico8_ob_table_get_name(cls->defaults, name, &v) &&
-        v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-               "pj's class-level field must hold a plain table");
-        return (pico8_ob_table_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 /* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:
  * `pj.ea.lh` is replaced wholesale by every call that sets it, so only one
  * such closure is ever live. */
@@ -77,8 +62,8 @@ static pico8_value_t pico8_pj_hk_lh_dispatch(void *self, int argc, pico8_value_t
 }
 
 void pico8_pj_hk(pico8_fixed_t yr) {
-    pico8_ob_table_t *iw = pj_class_field_ref_table("ea");
-    const pico8_ob_table_t *gs = pj_class_field_ref_table("gs");
+    pico8_ob_table_t *iw = pico8_pj_ea();
+    const pico8_ob_table_t *gs = pico8_pj_gs();
     pico8_value_t pp = pico8_value_ref(NULL);
     pico8_value_t iw2_val;
     char *yr_str;
@@ -156,15 +141,13 @@ static pico8_ob_table_t *pico8_score_panel_display_list_to_ob_table(const pico8_
 }
 
 static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *ju = pico8_ju();
+    pico8_pj_t *ju = pico8_ju();
     (void)self;
     (void)argc;
     (void)arg0;
     (void)arg1;
     if (ju != NULL) {
-        pico8_value_t c_val;
-        int current = pico8_instance_get_field(ju, "c_", &c_val) && pj_display_truthy(c_val);
-        pico8_ob_table_set_name(pico8_instance_fields(ju), "c_", pico8_value_bool(!current));
+        ju->c_ = pico8_value_bool(!pj_display_truthy(ju->c_));
     }
     return pico8_value_bool(1);
 }
@@ -172,16 +155,12 @@ static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t
 /* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
  * in the cart -- so reading `ju.c_` here IS reading the captured upvalue. */
 static pico8_value_t pico8_pj_ph_lh_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *ju = pico8_ju();
-    pico8_value_t c_val;
+    const pico8_pj_t *ju = pico8_ju();
     (void)self;
     (void)argc;
     (void)arg0;
     (void)arg1;
-    if (ju != NULL && pico8_instance_get_field(ju, "c_", &c_val)) {
-        return pico8_value_bool(pj_display_truthy(c_val));
-    }
-    return pico8_value_bool(0);
+    return pico8_value_bool(ju != NULL && pj_display_truthy(ju->c_));
 }
 
 typedef struct {
@@ -271,11 +250,10 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     return 1;
 }
 
-void pico8_pj_ph(pico8_instance_t *self) {
+void pico8_pj_ph(pico8_pj_t *self) {
     const pico8_instance_t *fm = pico8_fm();
     pico8_value_t hl_val = fm_field_value(fm, "hl");
-    pico8_value_t gz_val;
-    int has_gz = (self != NULL) && pico8_instance_get_field(self, "gz", &gz_val);
+    int has_gz = (self != NULL) && !(self->gz.kind == PICO8_VALUE_REF && self->gz.as.ref == NULL);
 
     if (pj_display_truthy(hl_val) && !has_gz) {
         pico8_ob_table_t *my_init_overrides;
@@ -300,23 +278,21 @@ void pico8_pj_ph(pico8_instance_t *self) {
         pico8_ob_table_free(spec2);
 
         if (self != NULL) {
-            pico8_ob_table_set_name(pico8_instance_fields(self), "c_", pico8_value_bool(1));
-            pico8_ob_table_set_name(pico8_instance_fields(self), "gz", pico8_value_fixed(pico8_fixed_from_int(0)));
-            pico8_ob_table_set_name(pico8_instance_fields(self), "fa", pico8_value_fixed(pico8_fixed_from_int(13)));
+            self->c_ = pico8_value_bool(1);
+            self->gz = pico8_value_fixed(pico8_fixed_from_int(0));
+            self->fa = pico8_value_fixed(pico8_fixed_from_int(13));
         }
     }
 
     {
-        pico8_value_t c_val;
-        int c_truthy = (self != NULL) && pico8_instance_get_field(self, "c_", &c_val) && pj_display_truthy(c_val);
-        pico8_value_t ed_val;
+        int c_truthy = (self != NULL) && pj_display_truthy(self->c_);
         int ed_equals_kc = 0;
 
         /* `self.ed`'s class-level default is the number 1, never a REF, and a
          * non-REF `ed` is never `kc`: the block has to fire on the first
          * eligible tick. Comparing only a REF-valued `ed` silently disables it. */
-        if (self != NULL && pico8_instance_get_field(self, "ed", &ed_val) && ed_val.kind == PICO8_VALUE_REF) {
-            ed_equals_kc = ((const void *)pico8_kc() == ed_val.as.ref);
+        if (self != NULL && self->ed.kind == PICO8_VALUE_REF) {
+            ed_equals_kc = ((const void *)pico8_kc() == self->ed.as.ref);
         }
 
         if (c_truthy && !ed_equals_kc) {
@@ -342,7 +318,7 @@ void pico8_pj_ph(pico8_instance_t *self) {
             pico8_ob_table_free(s);
 
             if (self != NULL) {
-                pico8_ob_table_set_name(pico8_instance_fields(self), "ed", pico8_value_ref(made));
+                self->ed = pico8_value_ref(made);
             }
         }
     }

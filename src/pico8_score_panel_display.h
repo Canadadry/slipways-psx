@@ -3,11 +3,12 @@
 
 #include "pico8_class.h"
 #include "pico8_fixed.h"
+#include "pico8_score_panel.h"
 
 /* `gz` is tested for PRESENCE, not for a non-zero value: the 0 written into
  * it is truthy in Lua, and it is what makes `pj:kj` draw the reveal curtain
  * from that frame on. */
-void pico8_pj_ph(pico8_instance_t *self);
+void pico8_pj_ph(pico8_pj_t *self);
 
 /* `iw[3]` is removed, not merely left unwritten, when `pp` is falsy: a
  * previous year's message would otherwise stay on the box. `iw.lh` is

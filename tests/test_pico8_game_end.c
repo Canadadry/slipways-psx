@@ -44,9 +44,9 @@
 
 static int ju_c_(void) {
     pico8_value_t v;
-    pico8_instance_t *ju = pico8_ju();
+    const void *ju = pico8_ju();
     assert(ju != NULL);
-    return pico8_instance_get_field(ju, "c_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean;
+    return pico8_entity_get_field(ju, "c_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean;
 }
 
 static int fm_yr_is(int year) {

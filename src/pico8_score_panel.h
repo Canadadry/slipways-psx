@@ -4,12 +4,25 @@
 #include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
+#include "pico8_ke.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 
-/* Throughout this module a NULL instance argument is a safe no-op, and an
- * absent or wrong-kind field reads as absent rather than crashing. */
+/* Throughout this module a NULL panel argument is a safe no-op. */
+
+/* TROU-7 */
+/* `gs`, `i_` are the tables of `pj`'s class, borrowed and never modified. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t fa;
+    pico8_value_t gs;
+    pico8_value_t i_;
+    pico8_value_t ed;
+    pico8_value_t c_;
+    pico8_value_t gz;
+} pico8_pj_t;
 
 /* Calls `pico8_pi_init()` first: the `pj` spec and `bz` both contain
  * `v(...)`, so the 'v' constructor must be registered before either spec is
@@ -22,10 +35,22 @@ void pico8_score_panel_shutdown(void);
 
 /* NULL before `pico8_score_panel_init()` and after the shutdown. */
 pico8_class_t *pico8_pj_class(void);
+const pico8_struct_class_t *pico8_pj_struct_class(void);
 
-/* `overrides` is copied, not kept. The new instance registers itself into
- * `hv`/`cv`/`cg` through `lt`, and nothing ever frees it. */
-pico8_instance_t *pico8_pj_new(const pico8_ob_table_t *overrides);
+/* The tables of `pj`'s class, shared by every panel, past and future: `hb`
+ * rewrites `ou`, `hk` rewrites `ea`, `cr()` rewrites `cr`, in place. Owned by
+ * the class; NULL before `pico8_score_panel_init()` and after the shutdown. */
+pico8_ob_table_t *pico8_pj_ou(void);
+pico8_ob_table_t *pico8_pj_ea(void);
+pico8_ob_table_t *pico8_pj_cr(void);
+const pico8_ob_table_t *pico8_pj_i_(void);
+const pico8_ob_table_t *pico8_pj_gs(void);
+
+/* TROU-7 */
+/* `overrides` must be NULL or empty: a key asserts. The panel registers
+ * itself through `lt` into `hv`, `cv.kj`, `cv.hk`, `cv.hb` and no `cg`;
+ * nothing ever frees it. Asserts when called before the init. */
+pico8_pj_t *pico8_pj_new(const pico8_ob_table_t *overrides);
 
 /* Owned by this module, freed by `pico8_score_panel_shutdown()`. */
 const pico8_ob_table_t *pico8_ef(void);
@@ -43,12 +68,12 @@ void pico8_score_panel_set_init(pico8_value_function_t fn);
 
 /* NULL until `eu()` builds the one `pj` instance and sets it here. The
  * setter takes no ownership. */
-pico8_instance_t *pico8_ju(void);
-void pico8_pj_set_ju(pico8_instance_t *instance);
+pico8_pj_t *pico8_ju(void);
+void pico8_pj_set_ju(pico8_pj_t *instance);
 
 void pico8_pj_hb(void);
 
-void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self);
 
 void pico8_eg(void);
 

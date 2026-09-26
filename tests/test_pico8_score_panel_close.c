@@ -38,9 +38,9 @@
 
 static int ju_c_(void) {
     pico8_value_t v;
-    pico8_instance_t *ju = pico8_ju();
+    const void *ju = pico8_ju();
     assert(ju != NULL);
-    if (!pico8_instance_get_field(ju, "c_", &v)) {
+    if (!pico8_entity_get_field(ju, "c_", &v)) {
         return 0;
     }
     return v.kind == PICO8_VALUE_BOOL && v.as.boolean;

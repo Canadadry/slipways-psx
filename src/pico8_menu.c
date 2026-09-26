@@ -49,19 +49,6 @@ static char *cr_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* Borrows `pj`'s class-level `cr` table, which this module then writes into:
- * not a copy, and NULL before pico8_score_panel_init(). */
-static pico8_ob_table_t *pj_cr_table(void) {
-    pico8_class_t *cls = pico8_pj_class();
-    pico8_value_t v;
-    if (cls != NULL && cls->defaults != NULL && pico8_ob_table_get_name(cls->defaults, "cr", &v) &&
-        v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "pj.cr must be a plain spec table");
-        return (pico8_ob_table_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 /* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
  * captured tech entry, read back here off the button `js(b)` copied it to. */
 static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -201,7 +188,7 @@ void pico8_cr(void) {
         pico8_list_add(&bs, pico8_value_ref(extra));
     }
 
-    cr_table = pj_cr_table();
+    cr_table = pico8_pj_cr();
     if (cr_table != NULL) {
         pico8_fixed_t ek_tl = pico8_fixed_from_int(0);
         pico8_value_t ek_tl_val;
@@ -332,14 +319,14 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
 /* `de` is borrowed from pico8_score_panel_display.c: the same table `pj:ph()`
  * uses, not a copy. */
 static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *ju = pico8_ju();
+    pico8_pj_t *ju = pico8_ju();
     pico8_fq_t *built;
     (void)self;
     (void)argc;
     (void)arg0;
     (void)arg1;
     if (ju != NULL) {
-        pico8_ob_table_set_name(pico8_instance_fields(ju), "c_", pico8_value_bool(1));
+        ju->c_ = pico8_value_bool(1);
     }
     built = pico8_fq_new(pico8_de());
     (void)built;
