@@ -335,9 +335,9 @@ static uint32_t fold_processor(uint32_t h, const void *e) {
     }
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_t v;
-        pico8_value_t want = class_value(pico8_qh_class(), methods[i]);
+        pico8_value_function_t want = pico8_qh_struct_class()->methods[pico8_method_of(methods[i])];
         assert(pico8_entity_get_field(e, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-        assert(want.kind == PICO8_VALUE_FUNCTION && v.as.function == want.as.function);
+        assert(want != NULL && v.as.function == want);
     }
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
@@ -613,11 +613,10 @@ static int is_an_os_struct(const void *e) {
 /* Built by `ie:ldown` or pico8_os_new, a processor is a struct whose
  * descriptor is its own but holds qh's very entries, reader and writer: it
  * takes exactly qh's 20 names, and a construction key other than `id` stops
- * the run. qh's other unconverted descendants stay instances. */
+ * the run. */
 static void test_os_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw",
                                           "lq", "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et"};
-    pico8_class_t *const others[] = {pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_os_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;
@@ -651,14 +650,6 @@ static void test_os_is_a_struct(void) {
     {
         void *bare = pico8_os_new(NULL);
         assert(is_an_os_struct(bare) && !has(bare, "id") && has(bare, "oe") && listed(pico8_cg("jo"), bare));
-    }
-    for (i = 0; i < sizeof others / sizeof others[0]; i++) {
-        pico8_ob_table_t *b = pico8_ob_table_new();
-        void *d;
-        pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = pico8_class_instantiate(others[i], b);
-        pico8_ob_table_free(b);
-        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == others[i]);
     }
 }
 

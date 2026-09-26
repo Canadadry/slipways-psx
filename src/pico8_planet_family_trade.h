@@ -29,6 +29,16 @@ typedef struct {
     pico8_value_t rr;
 } pico8_nr_t;
 
+/* An infraspace gate: a slipgate, then fr's own default `mt`, which no
+ * ancestor has a member for. A default of fr whose name is a member of `nr`
+ * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` holds the very
+ * table of fr's class, `nu` and `kq` those of nr's, `px` and `ba` those of
+ * qh's, borrowed. Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_nr_t nr;
+    pico8_value_t mt;
+} pico8_fr_t;
+
 /* A synthesizer: an ascension, then mx's own default `ht`, which no
  * ancestor has a member for. A default of mx whose name is a member of
  * `hj`, `qh` or `jo` (`nu`, `rr`, `hp`, `s`, `px`, `od` and the 11 emitter
@@ -49,11 +59,13 @@ const pico8_struct_class_t *pico8_nr_struct_class(void);
  * `pico8_planet_family_trade_init()`. */
 pico8_nr_t *pico8_nr_new(const pico8_ob_table_t *overrides);
 
-/* Requires `pico8_planet_family_trade_init()`. `overrides` is copied, not
- * kept; the new instance registers itself into `hv`/`cv`/`cg` through `lt`,
- * and nothing ever frees it. */
 pico8_class_t *pico8_fr_class(void);
-pico8_instance_t *pico8_fr_new(const pico8_ob_table_t *overrides);
+const pico8_struct_class_t *pico8_fr_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id` only. The new
+ * infraspace gate registers itself into `hv`/`cv`/`cg` through `lt`, and
+ * nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
+pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_mx_class(void);
 const pico8_struct_class_t *pico8_mx_struct_class(void);
@@ -65,18 +77,18 @@ pico8_mx_t *pico8_mx_new(const pico8_ob_table_t *overrides);
 
 /* Never stores `s`, which may be NULL: `nr:ldown` passes a stack instance
  * it frees as soon as the call returns. */
-pico8_value_t pico8_nr_gv(const pico8_instance_t *self, const pico8_instance_t *s);
+pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_instance_t *s);
 
 /* TROU-6 */
 /* Returns a freshly built `jc` instance, or `gv`'s own false; nothing ever
  * frees the instance. */
-pico8_value_t pico8_nr_ldown(pico8_instance_t *self);
+pico8_value_t pico8_nr_ldown(pico8_nr_t *self);
 
-void pico8_nr_hb(pico8_instance_t *self);
+void pico8_nr_hb(pico8_nr_t *self);
 
 /* Writes the quantity left after forwarding back onto `*lw`, so the caller
  * sees what every hop downstream consumed. */
-void pico8_nr_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw);
+void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw);
 
 void pico8_mx_kf(pico8_mx_t *self, pico8_instance_t *sw);
 

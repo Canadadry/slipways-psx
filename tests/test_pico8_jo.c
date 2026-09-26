@@ -453,6 +453,10 @@ static int daughter_of(const void *e) {
         ((const pico8_struct_header_t *)e)->cls == pico8_nr_struct_class()) {
         return NR;
     }
+    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class()) {
+        return FR;
+    }
     if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
         return -1;
     }

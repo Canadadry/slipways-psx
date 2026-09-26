@@ -335,12 +335,12 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     }
     for (i = 0; i < sizeof inherited_methods / sizeof inherited_methods[0]; i++) {
         pico8_value_t v;
-        pico8_value_t want = class_value(pico8_qh_class(), inherited_methods[i]);
+        pico8_value_function_t want = pico8_qh_struct_class()->methods[pico8_method_of(inherited_methods[i])];
         assert(pico8_entity_get_field(e, inherited_methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-        assert(want.kind == PICO8_VALUE_FUNCTION && v.as.function == want.as.function);
+        assert(want != NULL && v.as.function == want);
     }
     assert(pico8_entity_get_field(e, "ly", &ly) && ly.kind == PICO8_VALUE_FUNCTION);
-    assert(ly.as.function != class_value(pico8_qh_class(), "ly").as.function);
+    assert(ly.as.function != pico8_qh_struct_class()->methods[PICO8_METHOD_LY]);
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
@@ -585,14 +585,13 @@ static int is_an_nl_struct(const void *e) {
 /* Built by `ie:ldown` or pico8_nl_new, a plate is a struct whose descriptor
  * holds qh's very entries but its own `ly`, which nl's class no longer
  * carries; it takes exactly qh's 20 names plus `qw`, and a construction key
- * other than `id` stops the run. A bare `qh` still refuses `qw`; qh's
- * unconverted descendants stay instances. */
+ * other than `id` stops the run. A bare `qh` still refuses `qw`. */
 static void test_nl_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qw"};
-    pico8_class_t *const others[] = {pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_nl_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
+    pico8_value_t v;
     void *a;
     size_t i;
     int j;
@@ -616,10 +615,9 @@ static void test_nl_is_a_struct(void) {
         }
         assert(k < sizeof inherited_methods / sizeof inherited_methods[0]);
     }
-    assert(class_value(pico8_nl_class(), "ly").as.function == class_value(pico8_qh_class(), "ly").as.function);
+    assert(!pico8_class_get_field(pico8_nl_class(), "ly", &v) && !pico8_class_get_field(pico8_qh_class(), "ly", &v));
 
     for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_value_t v;
         pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
         assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
                v.as.fixed == pico8_fixed_from_int((int)i + 1));
@@ -634,14 +632,6 @@ static void test_nl_is_a_struct(void) {
     {
         void *bare = pico8_nl_new(NULL);
         assert(is_an_nl_struct(bare) && !has(bare, "id") && has(bare, "oe") && listed(pico8_cg("jo"), bare));
-    }
-    for (i = 0; i < sizeof others / sizeof others[0]; i++) {
-        pico8_ob_table_t *b = pico8_ob_table_new();
-        void *d;
-        pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = pico8_class_instantiate(others[i], b);
-        pico8_ob_table_free(b);
-        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == others[i]);
     }
 }
 

@@ -146,12 +146,6 @@ static void *class_ref(pico8_class_t *cls, const char *name) {
     return v.as.ref;
 }
 
-static pico8_value_function_t class_function(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
-    assert(v.kind == PICO8_VALUE_FUNCTION && v.as.function != NULL);
-    return v.as.function;
-}
-
 static pico8_value_function_t method(const void *e, const char *name) {
     pico8_value_t v;
     assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
@@ -415,7 +409,7 @@ static uint32_t fold_protostar(uint32_t h, const void *e) {
         if (strcmp(methods[i], "kj") == 0 || strcmp(methods[i], "mm") == 0) {
             assert(got == pico8_hj_struct_class()->methods[pico8_method_of(methods[i])]);
         } else {
-            assert(got == class_function(pico8_qh_class(), methods[i]));
+            assert(got == pico8_qh_struct_class()->methods[pico8_method_of(methods[i])]);
         }
     }
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
@@ -687,14 +681,14 @@ static int is_a_pm_struct(const void *e) {
  * descriptor holds hj's very entries and hj's writer, its reader its own;
  * hj's reader sees the 16 defaults of pm that fall on an inherited member;
  * it takes exactly hj's 21 names, and a construction key other than `p`,
- * `ra`, `id` stops the run. pm's class keeps no `pq` of its own; `fr`,
- * `ga` stay instances. */
+ * `ra`, `id` stops the run. pm's class keeps no `pq` of its own; `ga`
+ * stays an instance. */
 static void test_pm_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
     static const char *const inherited[] = {"me", "nu", "hp", "px", "s",  "py", "ki", "pn",
                                             "pk", "du", "fc", "k_", "qo", "ro", "qg", "q_"};
-    pico8_class_t *const others[] = {pico8_fr_class(), pico8_ga_class()};
+    pico8_class_t *const others[] = {pico8_ga_class()};
     const pico8_struct_class_t *cls = pico8_pm_struct_class();
     const pico8_struct_class_t *hj = pico8_hj_struct_class();
     pico8_vec_t p = vec_xy(40, 50);

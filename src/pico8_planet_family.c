@@ -849,10 +849,6 @@ void pico8_planet_family_init(void) {
                                       "s=174,\n"
                                       "ba=o(28,18,20,21,22,48),\n");
     PICO8_CLASS_COVERAGE_NAME(g_qh_class, "qh");
-    pico8_ob_table_set_name(g_qh_class->defaults, "hq", pico8_value_function(pico8_bv_dispatch));
-    pico8_ob_table_set_name(g_qh_class->defaults, "ly", pico8_value_function(pico8_qh_ly_dispatch));
-    pico8_ob_table_set_name(g_qh_class->defaults, "ev", pico8_value_function(pico8_dl_dispatch));
-    pico8_ob_table_set_name(g_qh_class->defaults, "ey", pico8_value_function(pico8_d__dispatch));
     pico8_class_set_struct_new(g_qh_class, pico8_qh_struct_new);
     for (i = 0; i < sizeof g_qh_defaults / sizeof g_qh_defaults[0]; i++) {
         int found = pico8_class_get_field(g_qh_class, g_qh_defaults[i].name, &g_qh_defaults[i].value);

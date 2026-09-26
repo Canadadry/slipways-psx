@@ -383,7 +383,7 @@ static uint32_t fold_ascension(uint32_t h, const void *e) {
         if (strcmp(methods[i], "kj") == 0 || strcmp(methods[i], "mm") == 0) {
             assert(got == pico8_hj_struct_class()->methods[pico8_method_of(methods[i])]);
         } else {
-            assert(got == class_function(pico8_qh_class(), methods[i]));
+            assert(got == pico8_qh_struct_class()->methods[pico8_method_of(methods[i])]);
         }
     }
     assert(method(e, "kj") != class_function(pico8_qh_class(), "kj"));
@@ -725,13 +725,12 @@ static int is_an_hj_struct(const void *e) {
  * descriptor holds qh's very entries but its own `kj` and `g_`'s `mm`; it
  * takes exactly qh's 20 names plus `qy`, and a construction key other than
  * `id` stops the run. A bare `qh` still refuses `qy`; no other descriptor
- * but pm's and mx's has an `mm`; `fr` stays an instance. */
+ * but pm's and mx's has an `mm`. */
 static void test_hj_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
     const pico8_struct_class_t *const no_mm[] = {pico8_jo_struct_class(), pico8_qh_struct_class(),
                                                  pico8_nl_struct_class(), pico8_os_struct_class()};
-    pico8_class_t *const others[] = {pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_hj_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;
@@ -778,14 +777,6 @@ static void test_hj_is_a_struct(void) {
         pico8_hj_t *bare = pico8_hj_new(NULL);
         assert(is_an_hj_struct(bare) && !has(bare, "id") && has(bare, "oe") && list_size(bare, "qy") == 0 &&
                listed(pico8_cg("hj"), bare));
-    }
-    for (i = 0; i < sizeof others / sizeof others[0]; i++) {
-        pico8_ob_table_t *b = pico8_ob_table_new();
-        void *d;
-        pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = pico8_class_instantiate(others[i], b);
-        pico8_ob_table_free(b);
-        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == others[i]);
     }
 }
 

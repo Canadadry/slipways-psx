@@ -744,14 +744,14 @@ static int is_an_mx_struct(const void *e) {
  * the 17 defaults of mx that fall on an inherited member; it takes exactly
  * hj's 21 names plus `ht`, and a construction key other than `id` stops
  * the run. mx's and hj's classes install none of their functions any
- * more: a lookup on them falls through to jo's; `fr`, `ga` stay
- * instances. */
+ * more: a lookup on them falls through to jo's; `ga` stays an
+ * instance. */
 static void test_mx_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy", "ht"};
     static const char *const inherited[] = {"nu", "rr", "hp", "s",  "px", "od", "py", "ki", "pn",
                                             "pk", "fc", "k_", "du", "qo", "ro", "qg", "q_"};
-    pico8_class_t *const others[] = {pico8_fr_class(), pico8_ga_class()};
+    pico8_class_t *const others[] = {pico8_ga_class()};
     const pico8_struct_class_t *cls = pico8_mx_struct_class();
     const pico8_struct_class_t *hj = pico8_hj_struct_class();
     pico8_value_t v;

@@ -336,9 +336,9 @@ static uint32_t fold_lab(uint32_t h, const void *e) {
     }
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_t v;
-        pico8_value_t want = class_value(pico8_qh_class(), methods[i]);
+        pico8_value_function_t want = pico8_qh_struct_class()->methods[pico8_method_of(methods[i])];
         assert(pico8_entity_get_field(e, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-        assert(want.kind == PICO8_VALUE_FUNCTION && v.as.function == want.as.function);
+        assert(want != NULL && v.as.function == want);
     }
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
@@ -528,6 +528,10 @@ static int descendant_of(const void *e) {
         ((const pico8_struct_header_t *)e)->cls == pico8_nr_struct_class()) {
         return NR;
     }
+    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class()) {
+        return FR;
+    }
     if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
         return -1;
     }
@@ -559,7 +563,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
         pico8_value_t v;
         assert(lookup(d, fns[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-        assert(v.as.function == class_value(pico8_qh_class(), fns[i]).as.function);
+        assert(v.as.function == pico8_qh_struct_class()->methods[pico8_method_of(fns[i])]);
     }
     had_qw = lookup(d, "qw", &qw);
     if (lookup(d, "ra", &ra)) {
@@ -769,14 +773,12 @@ static int is_a_qh_struct(const void *e) {
 }
 
 /* Built by `ie:ldown` or pico8_qh_new, a `qh` is a struct whose descriptor
- * holds jo's very dispatchers and the four functions qh's class installs;
+ * holds jo's very dispatchers and qh's own `hq`, `ev`, `ey`, `ly`;
  * it takes exactly the 17 names of `jo` plus `ra`, `p`, `et`, and a
  * construction key other than `id` stops the run. A bare `jo` still
- * refuses `et`; `nl`, `os`, `hj`, `pm`, `mx` and `nr` are structs under
- * their own descriptors, the other descendants stay instances. */
+ * refuses `et`; every descendant is a struct under its own descriptor. */
 static void test_qh_is_a_struct(void) {
     static const char *const jo_methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
-    static const char *const qh_methods[] = {"hq", "ev", "ey", "ly"};
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw",
                                           "lq", "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et"};
     pico8_class_t *const descendants[] = {pico8_nl_class(), pico8_os_class(), pico8_hj_class(), pico8_pm_class(),
@@ -792,10 +794,6 @@ static void test_qh_is_a_struct(void) {
     for (i = 0; i < sizeof jo_methods / sizeof jo_methods[0]; i++) {
         int m = pico8_method_of(jo_methods[i]);
         assert(cls->methods[m] != NULL && cls->methods[m] == pico8_jo_struct_class()->methods[m]);
-    }
-    for (i = 0; i < sizeof qh_methods / sizeof qh_methods[0]; i++) {
-        assert(cls->methods[pico8_method_of(qh_methods[i])] ==
-               class_value(pico8_qh_class(), qh_methods[i]).as.function);
     }
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
         int k;
@@ -860,7 +858,8 @@ static void test_qh_is_a_struct(void) {
                    ((const pico8_struct_header_t *)d)->cls == pico8_nr_struct_class());
             continue;
         }
-        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == descendants[i]);
+        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
+               ((const pico8_struct_header_t *)d)->cls == pico8_fr_struct_class());
     }
 }
 

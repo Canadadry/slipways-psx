@@ -2,8 +2,7 @@
  * and `pico8_class_get_field(pico8_nr_class()/pico8_qh_class()/
  * pico8_jo_class(), ...)`, built as the shop builds it (`ie:ldown` on
  * `gx[2]`, `id`) and driven through the real `mv`/`dg`/`dc`. Its daughter
- * `fr` reaches nr's four methods through nr's class, so the replays follow
- * both. The frozen values were taken on the code where `nr` was still a
+ * `fr` runs nr's four methods, so the replays follow both. The frozen values were taken on the code where `nr` was still a
  * class instance and must not be re-taken; only test_nr_is_a_struct looks
  * at the form. */
 
@@ -364,7 +363,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
             own |= strcmp(methods[i], own_methods[k]) == 0;
         }
         if (own) {
-            assert(got == class_function(pico8_nr_class(), methods[i]));
+            assert(got == pico8_nr_struct_class()->methods[pico8_method_of(methods[i])]);
             assert(got != qh->methods[pico8_method_of(methods[i])]);
             assert(got != class_function(pico8_jo_class(), methods[i]));
         } else {
@@ -687,9 +686,9 @@ static int is_an_nr_struct(const void *e) {
 }
 
 /* Built by `ie:ldown` or pico8_nr_new, a slipgate is a struct whose
- * descriptor holds qh's very entries but its own `gv`, `ldown`, `hb`, `cn`
- * -- the very functions nr's class still installs, which `fr`, still an
- * instance, reaches; qh's reader sees the 6 defaults of nr that fall on an
+ * descriptor holds qh's very entries but its own `gv`, `ldown`, `hb`, `cn`,
+ * which nr's class no longer installs: a lookup on it falls through to
+ * jo's; qh's reader sees the 6 defaults of nr that fall on an
  * inherited member; it takes exactly qh's 20 names plus `s`, and a
  * construction key other than `id`, `p`, `ra` stops the run. */
 static void test_nr_is_a_struct(void) {
@@ -716,9 +715,9 @@ static void test_nr_is_a_struct(void) {
         for (i = 0; i < sizeof own_methods / sizeof own_methods[0]; i++) {
             if (pico8_method_of(own_methods[i]) == j) {
                 own = 1;
-                assert(cls->methods[j] == class_function(pico8_nr_class(), own_methods[i]));
-                assert(pico8_ob_table_get_name(pico8_nr_class()->defaults, own_methods[i], &v) &&
-                       v.kind == PICO8_VALUE_FUNCTION && v.as.function == cls->methods[j]);
+                assert(!pico8_ob_table_get_name(pico8_nr_class()->defaults, own_methods[i], &v));
+                assert(class_function(pico8_nr_class(), own_methods[i]) ==
+                       class_function(pico8_jo_class(), own_methods[i]));
             }
         }
         assert((cls->methods[j] != NULL) == named);
@@ -737,7 +736,7 @@ static void test_nr_is_a_struct(void) {
                pico8_value_equal(own, class_value(pico8_nr_class(), inherited[i])));
     }
     assert(!qh->field(a, "hz", &v) && cls->field(a, "hz", &v) && !qh->field(a, "rr", &v) && cls->field(a, "rr", &v));
-    assert(pico8_nr_class()->struct_new != NULL && pico8_fr_class()->struct_new == NULL);
+    assert(pico8_nr_class()->struct_new != NULL && pico8_fr_class()->struct_new != NULL);
 
     must_abort(write_hz, a);
     must_abort(write_rr, a);
@@ -759,7 +758,8 @@ static void test_nr_is_a_struct(void) {
         assert(!cls->field(bare, "hz", &v) && !cls->field(bare, "rr", &v));
     }
     fr = build(pico8_fr_class());
-    assert(pico8_type_tag_of(fr) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)fr)->cls == pico8_fr_class());
+    assert(pico8_type_tag_of(fr) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)fr)->cls == pico8_fr_struct_class());
     (void)call(fr, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     assert(get(fr, "s").as.fixed == pico8_fixed_from_int(78));
 }

@@ -49,10 +49,9 @@ static pico8_list_t positional_values(const pico8_ob_table_t *table) {
     return list;
 }
 
-pico8_value_t pico8_nr_gv(const pico8_instance_t *self, const pico8_instance_t *s) {
+pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_instance_t *s) {
     pico8_value_t qu_val = pico8_value_ref(NULL);
     int qu_not_self;
-    pico8_value_t oe_val;
     int oe_count = 0;
 
     if (self == NULL) {
@@ -64,8 +63,8 @@ pico8_value_t pico8_nr_gv(const pico8_instance_t *self, const pico8_instance_t *
     }
     qu_not_self = !(qu_val.kind == PICO8_VALUE_REF && qu_val.as.ref == (const void *)self);
 
-    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe_count = PICO8_REF_AS_LIST_CONST(oe_val.as.ref)->count;
+    if (self->qh.jo.oe.kind == PICO8_VALUE_REF && self->qh.jo.oe.as.ref != NULL) {
+        oe_count = PICO8_REF_AS_LIST_CONST(self->qh.jo.oe.as.ref)->count;
     }
 
     return pico8_value_bool(qu_not_self && oe_count < 3);
@@ -78,10 +77,10 @@ static pico8_value_t pico8_nr_gv_dispatch(void *self, int argc, pico8_value_t ar
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
         s = (const pico8_instance_t *)arg0.as.ref;
     }
-    return pico8_nr_gv((const pico8_instance_t *)self, s);
+    return pico8_nr_gv((const pico8_nr_t *)self, s);
 }
 
-pico8_value_t pico8_nr_ldown(pico8_instance_t *self) {
+pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
     pico8_ob_table_t *empty_fields;
     pico8_instance_t empty;
     pico8_value_t gv_result;
@@ -119,45 +118,42 @@ static pico8_value_t pico8_nr_ldown_dispatch(void *self, int argc, pico8_value_t
     (void)argc;
     (void)arg0;
     (void)arg1;
-    return pico8_nr_ldown((pico8_instance_t *)self);
+    return pico8_nr_ldown((pico8_nr_t *)self);
 }
 
-void pico8_nr_hb(pico8_instance_t *self) {
-    pico8_value_t oe_val;
+void pico8_nr_hb(pico8_nr_t *self) {
     int oe_count = 0;
-    pico8_value_t hz_val;
     pico8_fixed_t s_val = pico8_fixed_from_int(0);
 
     if (self == NULL) {
         return;
     }
 
-    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe_count = PICO8_REF_AS_LIST_CONST(oe_val.as.ref)->count;
+    if (self->qh.jo.oe.kind == PICO8_VALUE_REF && self->qh.jo.oe.as.ref != NULL) {
+        oe_count = PICO8_REF_AS_LIST_CONST(self->qh.jo.oe.as.ref)->count;
     }
 
-    if (pico8_entity_get_field(self, "hz", &hz_val) && hz_val.kind == PICO8_VALUE_REF && hz_val.as.ref != NULL) {
+    if (self->hz.kind == PICO8_VALUE_REF && self->hz.as.ref != NULL) {
         pico8_value_t entry;
-        if (pico8_ob_table_get_index((const pico8_ob_table_t *)hz_val.as.ref, oe_count + 1, &entry) &&
+        if (pico8_ob_table_get_index((const pico8_ob_table_t *)self->hz.as.ref, oe_count + 1, &entry) &&
             entry.kind == PICO8_VALUE_FIXED) {
             s_val = entry.as.fixed;
         }
     }
 
-    pico8_entity_set_field(self, "s", pico8_value_fixed(s_val));
+    self->qh.s = pico8_value_fixed(s_val);
 }
 
 static pico8_value_t pico8_nr_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
     (void)arg0;
     (void)arg1;
-    pico8_nr_hb((pico8_instance_t *)self);
+    pico8_nr_hb((pico8_nr_t *)self);
     return pico8_value_ref(NULL);
 }
 
-void pico8_nr_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
+void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     pico8_instance_t *t;
-    pico8_value_t oe_val;
     const pico8_list_t *oe = NULL;
     pico8_list_iter_t it;
     pico8_value_t w_val;
@@ -167,8 +163,8 @@ void pico8_nr_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     }
     t = lw->t;
 
-    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-        oe = PICO8_REF_AS_LIST_CONST(oe_val.as.ref);
+    if (self->qh.jo.oe.kind == PICO8_VALUE_REF && self->qh.jo.oe.as.ref != NULL) {
+        oe = PICO8_REF_AS_LIST_CONST(self->qh.jo.oe.as.ref);
     }
 
     it = pico8_list_all(oe);
@@ -221,7 +217,7 @@ static pico8_value_t pico8_nr_cn_dispatch(void *self, int argc, pico8_value_t ar
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
         lw = (pico8_jo_trade_proposal_t *)arg0.as.ref;
     }
-    pico8_nr_cn((pico8_instance_t *)self, lw);
+    pico8_nr_cn((pico8_nr_t *)self, lw);
     return pico8_value_ref(NULL);
 }
 
@@ -295,18 +291,26 @@ static const pico8_struct_class_t g_nr_struct_class = {
     pico8_nr_set_field,
 };
 
-static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
-    pico8_nr_t *self = malloc(sizeof *self);
+/* Initializes an allocated pico8_nr_t under `cls`: qh's part, nr's members
+ * nil, nr's defaults. Reads no key, runs neither `pq` nor `lt`, records no
+ * coverage. Requires `pico8_planet_family_trade_init()`. */
+static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls) {
     size_t i;
-    int k;
 
-    assert(g_nr_class != NULL && "pico8_planet_family_trade_init() must run first");
-    pico8_qh_struct_init(&self->qh, &g_nr_struct_class);
+    pico8_qh_struct_init(&self->qh, cls);
     self->hz = pico8_value_ref(NULL);
     self->rr = pico8_value_ref(NULL);
     for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
         *(pico8_value_t *)((char *)self + g_nr_defaults[i].offset) = g_nr_defaults[i].value;
     }
+}
+
+static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_nr_t *self = malloc(sizeof *self);
+    int k;
+
+    assert(g_nr_class != NULL && "pico8_planet_family_trade_init() must run first");
+    pico8_nr_struct_init(self, &g_nr_struct_class);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         pico8_value_t value = overrides->entries[k].value;
@@ -328,6 +332,88 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_instance_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
+    return self;
+}
+
+/* fr's own defaults, read once from its class at init: the very values its
+ * `defaults` holds, tables included. Each lands in the member of that name,
+ * nr's or qh's when it has one. */
+static struct {
+    const char *name;
+    size_t offset;
+    pico8_value_t value;
+} g_fr_defaults[] = {
+    {"mt", offsetof(pico8_fr_t, mt), {0}},    {"rr", offsetof(pico8_fr_t, nr.rr), {0}},
+    {"od", offsetof(pico8_fr_t, nr.qh.od), {0}}, {"s", offsetof(pico8_fr_t, nr.qh.s), {0}},
+    {"hz", offsetof(pico8_fr_t, nr.hz), {0}},
+};
+
+static void pico8_fr_defaults_reset(void) {
+    size_t i;
+    for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
+        g_fr_defaults[i].value = pico8_value_ref(NULL);
+    }
+}
+
+static int pico8_fr_field(const void *self, const char *name, pico8_value_t *out_value) {
+    if (strcmp(name, "mt") == 0) {
+        const pico8_value_t *mt = &((const pico8_fr_t *)self)->mt;
+        if (mt->kind == PICO8_VALUE_REF && mt->as.ref == NULL) {
+            return 0;
+        }
+        *out_value = *mt;
+        return 1;
+    }
+    return pico8_nr_field(self, name, out_value);
+}
+
+static const pico8_struct_class_t g_fr_struct_class = {
+    {
+        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
+        [PICO8_METHOD_KJ] = pico8_jo_kj_dispatch,
+        [PICO8_METHOD_LDOWN] = pico8_nr_ldown_dispatch,
+        [PICO8_METHOD_HB] = pico8_nr_hb_dispatch,
+        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+        [PICO8_METHOD_GV] = pico8_nr_gv_dispatch,
+        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
+        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+        [PICO8_METHOD_CN] = pico8_nr_cn_dispatch,
+        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
+        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+        [PICO8_METHOD_EV] = pico8_dl_dispatch,
+        [PICO8_METHOD_EY] = pico8_d__dispatch,
+        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
+    },
+    pico8_fr_field,
+    pico8_nr_set_field,
+};
+
+static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_fr_t *self = malloc(sizeof *self);
+    size_t i;
+    int k;
+
+    assert(g_fr_class != NULL && "pico8_planet_family_trade_init() must run first");
+    pico8_nr_struct_init(&self->nr, &g_fr_struct_class);
+    self->mt = pico8_value_ref(NULL);
+    for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_fr_defaults[i].offset) = g_fr_defaults[i].value;
+    }
+    for (k = 0; overrides != NULL && k < overrides->count; k++) {
+        pico8_ob_key_t key = overrides->entries[k].key;
+        int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
+
+        assert(measured && "fr: the only measured construction key is id (ie:ldown); another would be a field "
+                           "under no rule of plan-3 section 5 -- stop, do not add a member");
+        (void)measured;
+        self->nr.qh.jo.id = overrides->entries[k].value;
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("fr");
+#endif
+    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_ke_struct_pq(&self->nr.qh.jo.ke);
     return self;
 }
 
@@ -525,10 +611,6 @@ void pico8_planet_family_trade_init(void) {
                                       "dw=0.01,\n"
                                       "rr=\"slipgates\",\n");
     PICO8_CLASS_COVERAGE_NAME(g_nr_class, "nr");
-    pico8_ob_table_set_name(g_nr_class->defaults, "gv", pico8_value_function(pico8_nr_gv_dispatch));
-    pico8_ob_table_set_name(g_nr_class->defaults, "ldown", pico8_value_function(pico8_nr_ldown_dispatch));
-    pico8_ob_table_set_name(g_nr_class->defaults, "hb", pico8_value_function(pico8_nr_hb_dispatch));
-    pico8_ob_table_set_name(g_nr_class->defaults, "cn", pico8_value_function(pico8_nr_cn_dispatch));
     pico8_class_set_struct_new(g_nr_class, pico8_nr_struct_new);
     for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
         int found = pico8_class_get_field(g_nr_class, g_nr_defaults[i].name, &g_nr_defaults[i].value);
@@ -543,6 +625,12 @@ void pico8_planet_family_trade_init(void) {
                                       "od=25,\n"
                                       "s=78,hz=o(78,78,78,76),\n");
     PICO8_CLASS_COVERAGE_NAME(g_fr_class, "fr");
+    pico8_class_set_struct_new(g_fr_class, pico8_fr_struct_new);
+    for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
+        int found = pico8_class_get_field(g_fr_class, g_fr_defaults[i].name, &g_fr_defaults[i].value);
+        assert(found && "fr: every default of the struct is a key of fr's spec");
+        (void)found;
+    }
 
     g_mx_class = pico8_class_declare(pico8_hj_class(),
                                       "\n"
@@ -569,6 +657,7 @@ void pico8_planet_family_trade_init(void) {
 
 void pico8_planet_family_trade_shutdown(void) {
     pico8_mx_defaults_reset();
+    pico8_fr_defaults_reset();
     pico8_nr_defaults_reset();
     if (g_mx_class != NULL) {
         pico8_class_free(g_mx_class);
@@ -600,8 +689,12 @@ pico8_class_t *pico8_fr_class(void) {
     return g_fr_class;
 }
 
-pico8_instance_t *pico8_fr_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_fr_class, overrides);
+const pico8_struct_class_t *pico8_fr_struct_class(void) {
+    return &g_fr_struct_class;
+}
+
+pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides) {
+    return pico8_fr_struct_new(overrides);
 }
 
 pico8_class_t *pico8_mx_class(void) {
