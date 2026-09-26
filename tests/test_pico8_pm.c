@@ -687,14 +687,14 @@ static int is_a_pm_struct(const void *e) {
  * descriptor holds hj's very entries and hj's writer, its reader its own;
  * hj's reader sees the 16 defaults of pm that fall on an inherited member;
  * it takes exactly hj's 21 names, and a construction key other than `p`,
- * `ra`, `id` stops the run. pm's class keeps no `pq` of its own; `nr`,
- * `fr`, `ga` stay instances. */
+ * `ra`, `id` stops the run. pm's class keeps no `pq` of its own; `fr`,
+ * `ga` stay instances. */
 static void test_pm_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
     static const char *const inherited[] = {"me", "nu", "hp", "px", "s",  "py", "ki", "pn",
                                             "pk", "du", "fc", "k_", "qo", "ro", "qg", "q_"};
-    pico8_class_t *const others[] = {pico8_nr_class(), pico8_fr_class(), pico8_ga_class()};
+    pico8_class_t *const others[] = {pico8_fr_class(), pico8_ga_class()};
     const pico8_struct_class_t *cls = pico8_pm_struct_class();
     const pico8_struct_class_t *hj = pico8_hj_struct_class();
     pico8_vec_t p = vec_xy(40, 50);

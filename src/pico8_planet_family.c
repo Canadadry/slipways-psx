@@ -162,10 +162,7 @@ static const pico8_struct_class_t g_qh_struct_class = {
     pico8_qh_set_field,
 };
 
-/* Initializes an allocated pico8_qh_t under `cls`: jo's part, qh's members
- * nil, qh's defaults. Reads no key, runs neither `pq` nor `lt`, records no
- * coverage. */
-static void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
+void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     size_t i;
 
     pico8_jo_struct_init(&self->jo, cls);

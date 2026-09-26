@@ -18,6 +18,17 @@ void pico8_planet_family_trade_init(void);
  * the first `pico8_planet_family_trade_init()`. */
 void pico8_planet_family_trade_shutdown(void);
 
+/* A slipgate: a laboratory, then nr's own defaults `hz` and `rr`, which no
+ * ancestor has a member for. A default of nr whose name is a member of `qh`
+ * or `jo` (`nu`, `kq`, `od`, `fp`, `s`, `dw`) lives in that member. `nu`,
+ * `kq` and `hz` hold the very tables of nr's class, `px` and `ba` those of
+ * qh's, borrowed. Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_qh_t qh;
+    pico8_value_t hz;
+    pico8_value_t rr;
+} pico8_nr_t;
+
 /* A synthesizer: an ascension, then mx's own default `ht`, which no
  * ancestor has a member for. A default of mx whose name is a member of
  * `hj`, `qh` or `jo` (`nu`, `rr`, `hp`, `s`, `px`, `od` and the 11 emitter
@@ -29,12 +40,18 @@ typedef struct {
     pico8_value_t ht;
 } pico8_mx_t;
 
+pico8_class_t *pico8_nr_class(void);
+const pico8_struct_class_t *pico8_nr_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id`, `p`, `ra`, each
+ * optional. The new slipgate registers itself into `hv`/`cv`/`cg` through
+ * `lt`, and nothing ever frees it. Requires
+ * `pico8_planet_family_trade_init()`. */
+pico8_nr_t *pico8_nr_new(const pico8_ob_table_t *overrides);
+
 /* Requires `pico8_planet_family_trade_init()`. `overrides` is copied, not
  * kept; the new instance registers itself into `hv`/`cv`/`cg` through `lt`,
  * and nothing ever frees it. */
-pico8_class_t *pico8_nr_class(void);
-pico8_instance_t *pico8_nr_new(const pico8_ob_table_t *overrides);
-
 pico8_class_t *pico8_fr_class(void);
 pico8_instance_t *pico8_fr_new(const pico8_ob_table_t *overrides);
 

@@ -708,7 +708,7 @@ static void test_geoharvest(void) {
 static void test_gv(void) {
     void *mz;
     void *ly;
-    pico8_instance_t *nr;
+    void *nr;
     pico8_ob_table_t *overrides = pico8_ob_table_new();
     pico8_value_t r;
 

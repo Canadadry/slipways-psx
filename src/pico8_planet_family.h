@@ -106,6 +106,11 @@ typedef struct {
 pico8_class_t *pico8_qh_class(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
+/* Initializes an allocated pico8_qh_t under `cls`: jo's part, qh's members
+ * nil, qh's defaults. Reads no key, runs neither `pq` nor `lt`, records no
+ * coverage. Requires `pico8_planet_family_init()`. */
+void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls);
+
 /* `overrides` (NULL means none) is read, not kept: `id` only. The new
  * laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */

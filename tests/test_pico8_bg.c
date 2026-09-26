@@ -484,7 +484,7 @@ static void *first_with_me(const char *tag, const char *me) {
 static void test_gv(void) {
     void *bg;
     void *ly;
-    pico8_instance_t *nr;
+    void *nr;
     pico8_ob_table_t *overrides = pico8_ob_table_new();
     pico8_value_t r;
     int i;
