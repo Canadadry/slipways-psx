@@ -605,7 +605,7 @@ Seule porte de E : les quatre points du §6. Décisions humaines prises en fin d
 | § | Cible | Code | Résultat sur l'arbre d'E4 | Tenu par |
 |---|---|---|---|---|
 | 6.1 | `make float-grep` | 0 (passe) | `float-grep coeur 119 exclus 30 lignes 0` | `make test` |
-| 6.2 | lien de `tmp/pico8_replay` sans `-lm` ; `make float-link` | 0 (passe) | `float-link objets 62 non-resolus 0` | `make test` (cible `replay`) |
+| 6.2 | lien de `tmp/pico8_replay` sans `-lm` ; `make float-link` | 0 (passe) | `float-link objets 62 non-resolus 0` | `make test` (prérequis de `test_pico8_headless_capture`) |
 | 6.3 | `make float-guard` | 0 (passe) | `garde fichiers 58 en-echec 0` | `make test` |
 | 6.4 | `make frames-ledger` | 0 (passe) | `frames-ledger commits 6 poses 4 divergences 2 erreurs 0` | cible explicite, lancée à la clôture |
 
@@ -622,7 +622,7 @@ Seule porte de E : les quatre points du §6. Décisions humaines prises en fin d
 | § | Point | Résultat final | Verrou |
 |---|---|---|---|
 | 6.1 | aucun `double`/`float` dans le cœur | `float-grep coeur 119 exclus 30 lignes 0` | `make test` (`float-grep`) |
-| 6.2 | la cible de lien du cœur sans `-lm` | `tmp/pico8_replay` lié sans `-lm` ; `float-link objets 62 non-resolus 0` | `make test` (`replay`) |
+| 6.2 | la cible de lien du cœur sans `-lm` | `tmp/pico8_replay` lié sans `-lm` ; `float-link objets 62 non-resolus 0` | `make test` (prérequis de `test_pico8_headless_capture`) |
 | 6.3 | cœur compilé sous `-mgeneral-regs-only` (garde hôte) | `garde fichiers 58 en-echec 0` | `make test` (`float-guard`) |
 | 6.4 | toute divergence justifiée par une ligne du relevé | `frames-ledger commits 6 poses 4 divergences 2 erreurs 0` (C2b bloc A, D1 bloc B) | `make frames-ledger`, lancé à la clôture d'E4 |
 

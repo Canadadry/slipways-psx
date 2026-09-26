@@ -1,11 +1,15 @@
-# make test          -> unit + replay + frames-check
-#                       + constants-check + float-audit + float-grep + float-guard,
-#                       la suite complète
+# Tout tourne en parallèle (-j au nombre de cœurs, sorties regroupées par cible).
+#
+# make test          -> unit + constants-check + float-grep + float-guard, la
+#                       boucle rapide
+# make e2e           -> frames-check + float-audit, les rejeux, en -O2
+# make test-all      -> test + e2e, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
-# make replay        -> rejoue la session humaine dans le moteur headless
+# make replay        -> rejoue la session humaine dans le moteur headless, hors
+#                       suite : frames-check la rejoue déjà
 # make screencast    -> refabrique les pixels de chaque frame du rejeu de la session humaine
 # make frames-check  -> compare le sha256 de la capture de chaque rejeu du filet à
-#                       sa référence <events>.sha256, dans make test
+#                       sa référence <events>.sha256, dans make e2e
 # make frames-baseline -> (re)pose ces références sur le code actuel, jamais par
 #                       make test
 # make frames-ref    -> pour chaque rejeu divergent, rejoue le commit qui a posé
@@ -23,7 +27,7 @@
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
-# make float-audit   -> audit avant/après par site, dans make test : sites C1
+# make float-audit   -> audit avant/après par site, dans make e2e : sites C1
 #                       (tools/float_audit_c1.txt) ancien = nouveau, argument
 #                       >= 0 et atteint ; sites D nouveau = flr. Imprime par
 #                       fichier d'événements la frame du premier ancien != nouveau
@@ -42,7 +46,13 @@
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test raylib-vendor-setup raylib screencast screencast-viewer frames-check frames-baseline frames-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all raylib-vendor-setup raylib screencast screencast-viewer frames-check frames-baseline frames-ref
+
+NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+MAKEFLAGS += -j$(NPROC)
+ifneq ($(filter output-sync,$(.FEATURES)),)
+    MAKEFLAGS += --output-sync=target
+endif
 
 CC ?= cc
 CFLAGS ?= -std=c99 -Wall -Wextra -Werror -g
@@ -51,13 +61,14 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les six.
+# sur ce code, sans rien dire. Ne pas fusionner les sept.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 OBJ_AUDIT_DIR := $(TMP_DIR)/obj-audit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
+OBJ_E2E_DIR := $(TMP_DIR)/obj-e2e
 
 # -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
 # que l'unité de compilation a vraiment ouverts. Le -include en bas du fichier
@@ -68,6 +79,8 @@ UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
 AUDIT_CFLAGS := -DPICO8_FLOAT_AUDIT
 COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
+# Rejeux de make e2e seulement ; les TU restent en -O0, lisibles sous gdb.
+E2E_CFLAGS := -O2
 
 # $(call objs,<liste de .c>) -> les chemins des .o correspondants dans l'arbre
 # concerné. Une cible nomme ses sources une fois ; ses prérequis et sa ligne de
@@ -78,6 +91,7 @@ ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 audit_objs = $(patsubst %.c,$(OBJ_AUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
+e2e_objs = $(patsubst %.c,$(OBJ_E2E_DIR)/%.o,$(1))
 
 # mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
 # d'un répertoire change à chaque fichier écrit dedans, ce qui rebuilderait tout.
@@ -99,11 +113,15 @@ $(OBJ_REFAUDIT_DIR)/%.o: %.c
 
 $(OBJ_AUDIT_DIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(AUDIT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(AUDIT_CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_E2E_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # Closure complète du moteur : tout src/ sauf les deux points d'entrée (main.c,
 # main_raylib.c) et les modules qui ne servent qu'au driver interactif. Utilisée
@@ -361,6 +379,9 @@ REPLAY_SRCS := src/main.c src/pico8_screencast.c $(ENGINE_SRCS)
 $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/pico8_replay_e2e: $(call e2e_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -424,67 +445,93 @@ $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_class.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_list.c src/pico8_mem.c src/pico8_ob.c src/pico8_stash.c src/pico8_str.c src/pico8_value.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-unit: $(TMP_DIR)/test_pico8_mem $(TMP_DIR)/test_asset_loading $(TMP_DIR)/test_pico8_gfx $(TMP_DIR)/test_pico8_input $(TMP_DIR)/test_pico8_dump $(TMP_DIR)/test_pico8_fixed $(TMP_DIR)/test_pico8_fixed_ubsan $(TMP_DIR)/test_pico8_vec $(TMP_DIR)/test_pico8_geom $(TMP_DIR)/test_pico8_value $(TMP_DIR)/test_pico8_list $(TMP_DIR)/test_pico8_str $(TMP_DIR)/test_pico8_ob $(TMP_DIR)/test_pico8_entity_smoke $(TMP_DIR)/test_pico8_stash $(TMP_DIR)/test_pico8_data_init $(TMP_DIR)/test_pico8_planet_kj_dispatch $(TMP_DIR)/test_pico8_demo $(TMP_DIR)/test_pico8_playability $(TMP_DIR)/test_pico8_slipway_drag $(TMP_DIR)/test_pico8_tech_screen $(TMP_DIR)/test_pico8_game_end $(TMP_DIR)/test_pico8_pause_menu_music $(TMP_DIR)/test_pico8_geoharvest_burst $(TMP_DIR)/test_pico8_score_panel_close $(TMP_DIR)/test_pico8_score_panel_stars $(TMP_DIR)/test_pico8_raylib_backend_coords $(TMP_DIR)/test_pico8_replay_source $(TMP_DIR)/test_pico8_recording_continuity $(TMP_DIR)/test_pico8_replay_control $(TMP_DIR)/test_pico8_marker_coherence $(TMP_DIR)/test_pico8_screencast $(TMP_DIR)/test_pico8_headless_capture $(TMP_DIR)/test_pico8_replay_from_title $(TMP_DIR)/test_pico8_screencast_player $(TMP_DIR)/test_pico8_frames_tool $(TMP_DIR)/test_frames_check $(TMP_DIR)/test_class_coverage $(TMP_DIR)/test_float_audit $(TMP_DIR)/test_float_guard $(TMP_DIR)/test_float_grep $(TMP_DIR)/test_float_link $(TMP_DIR)/test_constants_check $(TMP_DIR)/test_pico8_bg_kj $(TMP_DIR)/test_pico8_probe_mm_rnd_order $(TMP_DIR)/test_pico8_top_menubar $(TMP_DIR)/test_pico8_shop_tooltip_fillp $(TMP_DIR)/test_pico8_empty_planet_cleared $(TMP_DIR)/test_pico8_planet_gh_row_lq $(TMP_DIR)/test_pico8_ga_export_panel_by $(TMP_DIR)/test_pico8_built_planet_panel_nil_row $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing $(TMP_DIR)/test_pico8_rich_planet_exports $(TMP_DIR)/test_pico8_cheat_code
-	./$(TMP_DIR)/test_pico8_mem
-	./$(TMP_DIR)/test_asset_loading
-	./$(TMP_DIR)/test_pico8_gfx
-	./$(TMP_DIR)/test_pico8_input
-	./$(TMP_DIR)/test_pico8_dump
-	./$(TMP_DIR)/test_pico8_fixed
-	./$(TMP_DIR)/test_pico8_fixed_ubsan
-	./$(TMP_DIR)/test_pico8_vec
-	./$(TMP_DIR)/test_pico8_geom
-	./$(TMP_DIR)/test_pico8_value
-	./$(TMP_DIR)/test_pico8_list
-	./$(TMP_DIR)/test_pico8_str
-	./$(TMP_DIR)/test_pico8_ob
-	./$(TMP_DIR)/test_pico8_entity_smoke
-	./$(TMP_DIR)/test_pico8_stash
-	./$(TMP_DIR)/test_pico8_data_init
-	./$(TMP_DIR)/test_pico8_planet_kj_dispatch
-	./$(TMP_DIR)/test_pico8_demo
-	./$(TMP_DIR)/test_pico8_playability
-	./$(TMP_DIR)/test_pico8_slipway_drag
-	./$(TMP_DIR)/test_pico8_tech_screen
-	./$(TMP_DIR)/test_pico8_game_end
-	./$(TMP_DIR)/test_pico8_pause_menu_music
-	./$(TMP_DIR)/test_pico8_geoharvest_burst
-	./$(TMP_DIR)/test_pico8_score_panel_close
-	./$(TMP_DIR)/test_pico8_score_panel_stars 1
-	./$(TMP_DIR)/test_pico8_score_panel_stars 2
-	./$(TMP_DIR)/test_pico8_raylib_backend_coords
-	./$(TMP_DIR)/test_pico8_replay_source
-	./$(TMP_DIR)/test_pico8_recording_continuity
-	./$(TMP_DIR)/test_pico8_replay_control
-	./$(TMP_DIR)/test_pico8_marker_coherence
-	./$(TMP_DIR)/test_pico8_screencast
-	./$(TMP_DIR)/test_pico8_headless_capture
-	./$(TMP_DIR)/test_pico8_replay_from_title
-	./$(TMP_DIR)/test_pico8_screencast_player
-	./$(TMP_DIR)/test_pico8_frames_tool
-	./$(TMP_DIR)/test_frames_check
-	./$(TMP_DIR)/test_class_coverage
-	./$(TMP_DIR)/test_float_audit
-	./$(TMP_DIR)/test_float_guard
-	./$(TMP_DIR)/test_float_grep
-	./$(TMP_DIR)/test_float_link
-	./$(TMP_DIR)/test_constants_check
-	./$(TMP_DIR)/test_pico8_bg_kj
-	./$(TMP_DIR)/test_pico8_top_menubar
-	./$(TMP_DIR)/test_pico8_shop_tooltip_fillp
-	./$(TMP_DIR)/test_pico8_empty_planet_cleared
-	ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/test_pico8_planet_gh_row_lq
-	./$(TMP_DIR)/test_pico8_ga_export_panel_by
-	./$(TMP_DIR)/test_pico8_built_planet_panel_nil_row
-	./$(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing
-	./$(TMP_DIR)/test_pico8_rich_planet_exports
-	./$(TMP_DIR)/test_pico8_cheat_code
-	./$(TMP_DIR)/test_pico8_probe_mm_rnd_order
+UNIT_TESTS := \
+    test_pico8_mem \
+    test_asset_loading \
+    test_pico8_gfx \
+    test_pico8_input \
+    test_pico8_dump \
+    test_pico8_fixed \
+    test_pico8_fixed_ubsan \
+    test_pico8_vec \
+    test_pico8_geom \
+    test_pico8_value \
+    test_pico8_list \
+    test_pico8_str \
+    test_pico8_ob \
+    test_pico8_entity_smoke \
+    test_pico8_stash \
+    test_pico8_data_init \
+    test_pico8_planet_kj_dispatch \
+    test_pico8_demo \
+    test_pico8_playability \
+    test_pico8_slipway_drag \
+    test_pico8_tech_screen \
+    test_pico8_game_end \
+    test_pico8_pause_menu_music \
+    test_pico8_geoharvest_burst \
+    test_pico8_score_panel_close \
+    test_pico8_score_panel_stars \
+    test_pico8_raylib_backend_coords \
+    test_pico8_replay_source \
+    test_pico8_recording_continuity \
+    test_pico8_replay_control \
+    test_pico8_marker_coherence \
+    test_pico8_screencast \
+    test_pico8_headless_capture \
+    test_pico8_replay_from_title \
+    test_pico8_screencast_player \
+    test_pico8_frames_tool \
+    test_frames_check \
+    test_class_coverage \
+    test_float_audit \
+    test_float_guard \
+    test_float_grep \
+    test_float_link \
+    test_constants_check \
+    test_pico8_bg_kj \
+    test_pico8_probe_mm_rnd_order \
+    test_pico8_top_menubar \
+    test_pico8_shop_tooltip_fillp \
+    test_pico8_empty_planet_cleared \
+    test_pico8_planet_gh_row_lq \
+    test_pico8_ga_export_panel_by \
+    test_pico8_built_planet_panel_nil_row \
+    test_pico8_layout_nil_item_draws_nothing \
+    test_pico8_rich_planet_exports \
+    test_pico8_cheat_code
 
-replay: $(TMP_DIR)/pico8_replay
-	./$(TMP_DIR)/pico8_replay $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS)
+# Un lancement par TU, en cible à part : c'est ce que -j parallélise.
+UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
-test: unit replay frames-check constants-check float-audit float-grep float-guard
+UNIT_RUNS_SPECIAL := unit-run-test_pico8_score_panel_stars unit-run-test_pico8_planet_gh_row_lq
+
+unit: $(UNIT_RUNS)
+
+$(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
+	./$<
+
+unit-run-test_pico8_score_panel_stars: $(TMP_DIR)/test_pico8_score_panel_stars
+	./$< 1
+	./$< 2
+
+unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
+	ASAN_OPTIONS=detect_leaks=0 ./$<
+
+# Ces deux TU relisent tmp/pico8_replay_dump.txt, le dump par défaut de
+# pico8_replay : sous -j, jamais en même temps.
+unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
+
+.PHONY: $(UNIT_RUNS)
+
+replay: $(TMP_DIR)/pico8_replay_e2e
+	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS)
+
+test: unit constants-check float-grep float-guard
+
+e2e: frames-check float-audit
+
+test-all: test e2e
 
 # ENREGISTREMENT D'ÉCRAN : make screencast rejoue SCREENCAST_EVENTS en écrivant les
 # pixels de chaque frame ; c'est aussi la capture du rejeu de SCREENCAST_EVENTS du filet.
@@ -508,8 +555,8 @@ else
     SHA256_CMD := sha256sum
 endif
 
-$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay $(SCREENCAST_EVENTS) | $(TMP_DIR)
-	./$(TMP_DIR)/pico8_replay $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS) $@
+$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay_e2e $(SCREENCAST_EVENTS) | $(TMP_DIR)
+	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS) $@ $(@:.bin=.dump.txt)
 
 screencast: $(SCREENCAST_BIN)
 
@@ -550,12 +597,11 @@ frames_reference = $(1).sha256
 # compare à la capture de référence.
 .SECONDARY: $(foreach e,$(filter-out $(SCREENCAST_EVENTS),$(FRAMES_EVENTS)),$(call frames_capture,$(e)))
 
-# pico8_replay réécrit toujours tmp/pico8_replay_dump.txt, que relisent
-# test_pico8_headless_capture et test_pico8_frames_tool : sous make -j, ces
-# captures ne doivent pas tourner en même temps que ces deux tests.
-$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
+# Chaque capture a son propre dump texte : le dump par défaut,
+# tmp/pico8_replay_dump.txt, est relu par deux TU qui tournent en parallèle.
+$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay_e2e
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/pico8_replay $(call from_title,$<) $< $@ > /dev/null
+	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$<) $< $@ $(@:.bin=.dump.txt) > /dev/null
 
 # L'affectation porte le code de sortie du sha256, qu'un pipe vers cut perdrait.
 frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
@@ -651,20 +697,21 @@ constants-check: tools/constants_check.sh tools/constants_compare.sh tools/const
 
 AUDIT_DIR := $(TMP_DIR)/audit
 
-# pico8_fixed.c vient de l'arbre par défaut : sous -DPICO8_FLOAT_AUDIT, la
-# macro réécrirait la définition de pico8_fixed_flr_int.
-$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call objs,src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
+# pico8_fixed.c vient de l'arbre e2e, sans le define : sous -DPICO8_FLOAT_AUDIT,
+# la macro réécrirait la définition de pico8_fixed_flr_int.
+$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call e2e_objs,src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 FLOAT_AUDIT_C1 := tools/float_audit_c1.txt
-float_audit_records = $(AUDIT_DIR)/$(notdir $(1)).aud
+float_audit_records = $(AUDIT_DIR)/$(1).aud
 
-# Un fichier d'enregistrements par fichier d'événements, tous effacés avant la
-# passe : un rejeu mort laisse le sien absent, et le rapport échoue.
-float-audit: $(TMP_DIR)/pico8_replay_audit tools/float_audit.sh $(FLOAT_AUDIT_C1)
-	@mkdir -p $(AUDIT_DIR)
-	rm -f $(AUDIT_DIR)/*.aud
-	$(foreach e,$(FRAMES_EVENTS),PICO8_FLOAT_AUDIT_OUT=$(call float_audit_records,$(e)) ./$(TMP_DIR)/pico8_replay_audit $(call from_title,$(e)) $(e) $(AUDIT_DIR)/capture.bin > /dev/null && ) true
+# Le binaire d'audit ajoute à PICO8_FLOAT_AUDIT_OUT sans le vider, d'où le rm.
+$(AUDIT_DIR)/%.aud: % $(TMP_DIR)/pico8_replay_audit
+	@mkdir -p $(@D)
+	@rm -f $@
+	PICO8_FLOAT_AUDIT_OUT=$@ ./$(TMP_DIR)/pico8_replay_audit $(call from_title,$<) $< /dev/null $(@:.aud=.dump.txt) > /dev/null
+
+float-audit: $(foreach e,$(FRAMES_EVENTS),$(call float_audit_records,$(e))) tools/float_audit.sh $(FLOAT_AUDIT_C1)
 	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(foreach e,$(FRAMES_EVENTS),$(e) $(call float_audit_records,$(e))) -- $(CORE_SRCS)
 
 .PHONY: float-audit
@@ -741,3 +788,4 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_AUDIT_DIR)/src/*.d $(OBJ_AUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_E2E_DIR)/src/*.d $(OBJ_E2E_DIR)/tests/*.d)
