@@ -512,6 +512,10 @@ static int descendant_of(const void *e) {
         ((const pico8_struct_header_t *)e)->cls == pico8_os_struct_class()) {
         return OS;
     }
+    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)e)->cls == pico8_hj_struct_class()) {
+        return HJ;
+    }
     if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
         return -1;
     }
@@ -756,8 +760,8 @@ static int is_a_qh_struct(const void *e) {
  * holds jo's very dispatchers and the four functions qh's class installs;
  * it takes exactly the 17 names of `jo` plus `ra`, `p`, `et`, and a
  * construction key other than `id` stops the run. A bare `jo` still
- * refuses `et`; `nl` is a struct under its own descriptor, the other
- * descendants stay instances. */
+ * refuses `et`; `nl`, `os` and `hj` are structs under their own
+ * descriptors, the other descendants stay instances. */
 static void test_qh_is_a_struct(void) {
     static const char *const jo_methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
     static const char *const qh_methods[] = {"hq", "ev", "ey", "ly"};
@@ -822,6 +826,11 @@ static void test_qh_is_a_struct(void) {
         if (descendants[i] == pico8_os_class()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_os_struct_class());
+            continue;
+        }
+        if (descendants[i] == pico8_hj_class()) {
+            assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
+                   ((const pico8_struct_header_t *)d)->cls == pico8_hj_struct_class());
             continue;
         }
         assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == descendants[i]);

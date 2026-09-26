@@ -64,6 +64,29 @@ typedef struct {
     pico8_qh_t qh;
 } pico8_os_t;
 
+/* An ascension: a laboratory, then hj's own emitter defaults and `qy`,
+ * which its own `pq` (`f_`) writes. A default of hj whose name is a member
+ * of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`, `s`) lives in that member.
+ * `nu`, `px` and `k_` hold the very tables of hj's class, `ba` the one of
+ * qh's, borrowed; `qy` is the ascension's own. Nothing frees the struct:
+ * TROU-7. */
+typedef struct {
+    pico8_qh_t qh;
+    pico8_value_t rr;
+    pico8_value_t py;
+    pico8_value_t ki;
+    pico8_value_t pn;
+    pico8_value_t pk;
+    pico8_value_t fc;
+    pico8_value_t k_;
+    pico8_value_t du;
+    pico8_value_t qo;
+    pico8_value_t ro;
+    pico8_value_t qg;
+    pico8_value_t q_;
+    pico8_value_t qy;
+} pico8_hj_t;
+
 /* Every accessor below is NULL before `pico8_planet_family_init()` and
  * after `pico8_planet_family_shutdown()`. `qh`'s class instantiation builds
  * a pico8_qh_t; its unconverted descendants still inherit the class's
@@ -92,12 +115,17 @@ const pico8_struct_class_t *pico8_os_struct_class(void);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides);
 
+pico8_class_t *pico8_hj_class(void);
+const pico8_struct_class_t *pico8_hj_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id` only. The new
+ * ascension registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+ * ever frees it. Requires `pico8_planet_family_init()`. */
+pico8_hj_t *pico8_hj_new(const pico8_ob_table_t *overrides);
+
 /* Each `_new` below requires `pico8_planet_family_init()`. `overrides` is
  * copied, not kept; the new instance registers itself into `hv`/`cv`/`cg`
  * through `lt`, and nothing ever frees it. */
-
-pico8_class_t *pico8_hj_class(void);
-pico8_instance_t *pico8_hj_new(const pico8_ob_table_t *overrides);
 
 /* `pm` and `ga` are the only classes here whose spec sets `fz`, so they are
  * also registered under that name for `pico8_class_lookup_named()` -- the
