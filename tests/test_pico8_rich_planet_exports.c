@@ -89,9 +89,9 @@ static int promote_and_open_panel(pico8_instance_t *planet, int tier, int *has_e
     rows = (const pico8_list_t *)le.as.ref;
     *has_exports = 0;
     for (i = 0; i < rows->count; i++) {
-        const pico8_instance_t *button = (const pico8_instance_t *)rows->items[i].as.ref;
+        const void *button = rows->items[i].as.ref;
         pico8_value_t lq, first;
-        if (button != NULL && pico8_instance_get_field(button, "lq", &lq) && lq.kind == PICO8_VALUE_REF &&
+        if (button != NULL && pico8_entity_get_field(button, "lq", &lq) && lq.kind == PICO8_VALUE_REF &&
             lq.as.ref != NULL &&
             pico8_ob_table_get_index(((const pico8_instance_t *)lq.as.ref)->fields, 1, &first) &&
             first.kind == PICO8_VALUE_STRING && strcmp(first.as.string, "exports:") == 0) {

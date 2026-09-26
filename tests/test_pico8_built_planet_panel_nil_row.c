@@ -84,14 +84,14 @@ static const pico8_list_t *panel_rows(void) {
 /* Row `index`'s first drawable item (`lq[1]`) as a string, or NULL when that
  * item is not a string at all -- which is what a nilled `ep` left behind. */
 static const char *row_first_item_string(const pico8_list_t *rows, int index) {
-    const pico8_instance_t *button;
+    const void *button;
     const pico8_instance_t *lq;
     pico8_value_t lq_val, item;
 
     assert(index >= 0 && index < rows->count);
     assert(rows->items[index].kind == PICO8_VALUE_REF && rows->items[index].as.ref != NULL);
-    button = (const pico8_instance_t *)rows->items[index].as.ref;
-    assert(pico8_instance_get_field(button, "lq", &lq_val));
+    button = rows->items[index].as.ref;
+    assert(pico8_entity_get_field(button, "lq", &lq_val));
     assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
     lq = (const pico8_instance_t *)lq_val.as.ref;
 
@@ -153,7 +153,7 @@ static int sprite0_bottom_row_hits_on_screen(void) {
 
 int main(void) {
     pico8_value_t difficulty_entry;
-    pico8_instance_t *difficulty_button;
+    pico8_js_t *difficulty_button;
     int frame_count;
     int i;
     int built_rows = -1;

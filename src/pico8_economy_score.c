@@ -139,7 +139,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
     const pico8_list_t *by = field_list(pt, "by");
     const pico8_ob_table_t *ct = pico8_ct();
     const pico8_ob_table_t *r = pico8_r();
-    const pico8_ob_table_t *dk = pico8_dk();
+    const pico8_js_t *dk = pico8_dk();
     pico8_value_t pt_mi_val;
     pico8_fixed_t pt_mi = pico8_fixed_from_int(0);
     int has_pt_mi = pico8_instance_get_field(pt, "mi", &pt_mi_val) && pt_mi_val.kind == PICO8_VALUE_FIXED;
@@ -171,7 +171,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                     pico8_value_t trade_val;
                     pico8_value_t oz_mi_val;
 
-                    if (dk != NULL && pico8_ob_table_get_name(dk, "trade", &trade_val) &&
+                    if (dk != NULL && pico8_entity_get_field(dk, "trade", &trade_val) &&
                         trade_val.kind == PICO8_VALUE_FIXED) {
                         trade_mult = trade_val.as.fixed;
                     }
@@ -212,7 +212,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                 if (pico8_ob_table_get_name(kw, "mu", &mu_val) && mu_val.kind == PICO8_VALUE_FIXED) {
                     mu = mu_val.as.fixed;
                 }
-                if (dk != NULL && pico8_ob_table_get_name(dk, "trade", &trade_val) &&
+                if (dk != NULL && pico8_entity_get_field(dk, "trade", &trade_val) &&
                     trade_val.kind == PICO8_VALUE_FIXED) {
                     trade_mult = trade_val.as.fixed;
                 }
@@ -336,12 +336,12 @@ pico8_fixed_t pico8_bf(void) {
     return pico8_fixed_add(h_val, ctx.total);
 }
 
-static const pico8_ob_table_t *g_dk = NULL;
+static const pico8_js_t *g_dk = NULL;
 
-const pico8_ob_table_t *pico8_dk(void) {
+const pico8_js_t *pico8_dk(void) {
     return g_dk;
 }
 
-void pico8_economy_set_dk(const pico8_ob_table_t *dk) {
+void pico8_economy_set_dk(const pico8_js_t *dk) {
     g_dk = dk;
 }

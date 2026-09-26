@@ -121,7 +121,7 @@ int main(void) {
     pico8_gfx_t gfx;
     pico8_input_t input;
     pico8_value_t difficulty_entry;
-    pico8_instance_t *difficulty_button;
+    pico8_js_t *difficulty_button;
     int frame_count;
     int i;
     double prev_credits = PICO8_PLAYABILITY_CREDIT_BASELINE;

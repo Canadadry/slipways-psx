@@ -174,7 +174,7 @@ pico8_value_t pico8_init_dispatch(void *self, int argc, pico8_value_t arg0, pico
  * contributes nothing. */
 static int pico8_eu_ix_map(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     const pico8_ob_table_t *row;
-    pico8_instance_t *made;
+    pico8_js_t *made;
 
     (void)ctx;
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
@@ -186,13 +186,13 @@ static int pico8_eu_ix_map(pico8_value_t e, void *ctx, pico8_value_t *out_value)
     return 1;
 }
 
-void pico8_eu(pico8_instance_t *nj) {
+void pico8_eu(pico8_js_t *nj) {
     pico8_class_t *gx[7];
     int i;
 
     assert(pico8_hy_class() != NULL && pico8_qh_class() != NULL && "pico8_cart_load() must run before eu()");
 
-    pico8_economy_set_dk(nj != NULL ? nj->fields : NULL);
+    pico8_economy_set_dk(nj);
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
@@ -255,7 +255,7 @@ pico8_value_t pico8_eu_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
     (void)argc;
     (void)arg0;
     (void)arg1;
-    pico8_eu((pico8_instance_t *)self);
+    pico8_eu((pico8_js_t *)self);
     return pico8_value_ref(NULL);
 }
 

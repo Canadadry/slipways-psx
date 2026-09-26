@@ -10,30 +10,57 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
-/* `js.hd=gk` is a plain field assignment, not a `function js:hd()`: there is
- * no pico8_js_hd, the hit test is pico8_gk. Because `hd` is a `bm` name, every
- * js instance registers into cv["hd"].
- *
- * Declares the `js` class and wires `pq` plus the hd/ph/ev/kj/ldown dispatch
- * adapters onto its defaults table. */
+/* A button: every key of its construction table, copied (`js(b)`), then
+ * what `js:pq` built from them. `my` and `hb` are closures the table
+ * carried, called as fields; `_cr_t` and `_jo_fe_pt`/`_b`/`_od` are what
+ * the `my` closures of `cr` and `jo:fe` captured, not cart fields. `ra` may
+ * be the vector every button of one `pz` shares: never written through.
+ * Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t fa;
+    pico8_value_t lq;
+    pico8_value_t mb;
+    pico8_value_t kq;
+    pico8_value_t h_;
+    pico8_value_t jb;
+    pico8_value_t ra;
+    pico8_value_t qf;
+    pico8_value_t my;
+    pico8_value_t m_;
+    pico8_value_t hb;
+    pico8_value_t fg;
+    pico8_value_t px;
+    pico8_value_t trade;
+    pico8_value_t en;
+    pico8_value_t _cr_t;
+    pico8_value_t _jo_fe_pt;
+    pico8_value_t _jo_fe_b;
+    pico8_value_t _jo_fe_od;
+} pico8_js_t;
+
+/* Declares the `js` class, whose instantiation builds a pico8_js_t. */
 void pico8_js_init(void);
 void pico8_js_shutdown(void);
 
 pico8_class_t *pico8_js_class(void);
+const pico8_struct_class_t *pico8_js_struct_class(void);
 
-pico8_instance_t *pico8_js_new(const pico8_ob_table_t *overrides);
+/* `overrides` is read, not kept: its measured keys only, positional ones
+ * never. The struct registers itself through `lt`, and nothing frees it. */
+pico8_js_t *pico8_js_new(const pico8_ob_table_t *overrides);
 
-void pico8_js_pq(pico8_instance_t *self);
+void pico8_js_pq(pico8_js_t *self);
 
-void pico8_js_ph(pico8_instance_t *self);
+void pico8_js_ph(pico8_js_t *self);
 
-void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self);
+void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self);
 
-void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self, pico8_vec_t p);
+void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pico8_vec_t p);
 
 /* Always returns true: the click is consumed whether or not a `my` callback
  * was there to run. */
-pico8_value_t pico8_js_ldown(pico8_instance_t *self);
+pico8_value_t pico8_js_ldown(pico8_js_t *self);
 
 /* `my` is the closure the construction table carried, which `mv` calls as
  * a field, not a method. Nothing frees the struct: TROU-7. */

@@ -4,6 +4,7 @@
 #include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_ob.h"
+#include "pico8_ui_button.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
  * zero/false default rather than crashing, and a NULL instance is a safe
@@ -27,10 +28,9 @@ pico8_ob_table_t *pico8_ky(void);
 
 pico8_fixed_t pico8_bf(void);
 
-/* Borrowed, never freed here: it is the field table of the difficulty
- * instance `eu()` was given, and that instance owns it. NULL until `eu()`
- * (pico8_cart.c) calls the setter. */
-const pico8_ob_table_t *pico8_dk(void);
-void pico8_economy_set_dk(const pico8_ob_table_t *dk);
+/* The difficulty button `eu()` was given, borrowed and never freed here;
+ * NULL until `eu()` (pico8_cart.c) calls the setter. */
+const pico8_js_t *pico8_dk(void);
+void pico8_economy_set_dk(const pico8_js_t *dk);
 
 #endif

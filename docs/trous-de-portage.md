@@ -369,3 +369,20 @@ magnitude inférieure à 0.0001. Se tranche par une relance d'une ligne de
 la sonde (reliquat de la Phase A, `docs/plan-2.md`).
 
 Fichier : `src/pico8_value.c`.
+
+## TROU-23 — Une ligne de bouton qui porte `h_` ou `jb` à nil a quand même sa pastille ou son infobulle
+
+Dans le cart, `js:pq` fait `self.h_=self.h_ and lq(self.h_)` et
+`self.jb=self.jb and jb(self.jb)` : une clé nil ne construit rien. Ce port
+construit un `lq` vide, ou un `jb` vide, dès que la ligne porte la clé,
+même à nil (TROU-9 : une clé nommée écrite à nil reste présente). Seul
+`false` n'en construit pas.
+
+Atteint par le filet : la ligne de `jo:fe` d'un bâtiment dont `b:jb()` est
+nil (`hp:jb` quand `ii` est vrai) reçoit une infobulle vide, dessinée au
+survol (`events_recorded_1790198294`, `session_events`). La ligne de
+`jo:gh` sans `kr` recevrait une pastille vide ; aucun rejeu ne l'atteint.
+La struct `js`, où nil vaut absent, garde ce comportement : son
+constructeur remplace une clé `h_` ou `jb` nil par `true`.
+
+Fichier : `src/pico8_ui_button.c`.

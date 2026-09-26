@@ -99,7 +99,7 @@ static int lit_pixels_around(int cx, int cy) {
 
 int main(void) {
     pico8_value_t difficulty_entry;
-    pico8_instance_t *difficulty_button;
+    pico8_js_t *difficulty_button;
     int frame_count;
     int i;
 

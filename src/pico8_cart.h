@@ -2,6 +2,7 @@
 #define PICO8_CART_H
 
 #include "pico8_class.h"
+#include "pico8_ui_button.h"
 #include "pico8_value.h"
 
 /* Declares every class and data table the cart's top-level statements build,
@@ -29,10 +30,10 @@ void pico8__init(void);
  * button, is discarded: `_init()` declares no parameter. */
 pico8_value_t pico8_init_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
-/* Starts a game from the clicked difficulty button `nj`, whose own fields
- * table becomes `dk` (borrowed, not copied); a NULL `nj` gives a NULL `dk`.
+/* Starts a game from the clicked difficulty button `nj`, which becomes `dk`
+ * (borrowed, not copied); a NULL `nj` gives a NULL `dk`.
  * Requires pico8_cart_load(). */
-void pico8_eu(pico8_instance_t *nj);
+void pico8_eu(pico8_js_t *nj);
 
 /* `eu` as a bare function value, for a `bo` entry's `my` field: the dispatch
  * `self` IS `nj`, never an `mv()` extra argument. */

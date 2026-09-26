@@ -412,7 +412,7 @@ static int pico8_pz_step(pico8_value_t e, void *ctx_v, pico8_value_t *out_value)
     pico8_vec_t *qf_heap;
     pico8_value_t ca_val;
     pico8_vec_t gq;
-    pico8_instance_t *made;
+    pico8_js_t *made;
 
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
@@ -514,7 +514,7 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     }
 
     /* TROU-7 */
-    /* The `js` instances built just above stay registered in `hv`/`cv`/`cg`
+    /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
     if (pico8_instance_get_field(p, "ff", &ff_val) && pico8_msgbox_truthy(ff_val) && ok != NULL) {
         pico8_list_t *empty_heap = malloc(sizeof *empty_heap);

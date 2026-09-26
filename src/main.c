@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
         pico8_value_t difficulty_entry;
         assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
         assert(difficulty_entry.kind == PICO8_VALUE_REF);
-        pico8_instance_t *difficulty_button =
+        pico8_js_t *difficulty_button =
             pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref);
         pico8_eu(difficulty_button);
     }

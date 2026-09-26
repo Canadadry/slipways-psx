@@ -10,6 +10,7 @@
 #include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
+#include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_input.h"
 #include "pico8_layout.h"
@@ -62,9 +63,9 @@ static pico8_ob_table_t *pj_cr_table(void) {
 }
 
 /* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
- * captured tech entry, read back here off the row once it is an instance. */
+ * captured tech entry, read back here off the button `js(b)` copied it to. */
 static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *inst = (pico8_instance_t *)self;
+    const void *inst = self;
     pico8_value_t t_val;
     (void)argc;
     (void)arg0;
@@ -72,7 +73,7 @@ static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_
     if (inst == NULL) {
         return pico8_value_ref(NULL);
     }
-    if (pico8_instance_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
+    if (pico8_entity_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
         pico8_hy_kt(pico8_fm(), (const pico8_ob_table_t *)t_val.as.ref);
     }
     return pico8_value_ref(NULL);
@@ -301,7 +302,7 @@ static pico8_value_t pico8_ix2_my_dispatch(void *self, int argc, pico8_value_t a
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
 static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *inst = (pico8_instance_t *)self;
+    void *inst = self;
     pico8_list_t cb_list;
     int cb_count;
     pico8_ob_table_t *overrides;
@@ -323,7 +324,7 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     built = pico8_lq_new(overrides);
     pico8_ob_table_free(overrides);
 
-    pico8_ob_table_set_name(inst->fields, "lq", pico8_value_ref(built));
+    pico8_entity_set_field(inst, "lq", pico8_value_ref(built));
 
     return pico8_value_ref(NULL);
 }

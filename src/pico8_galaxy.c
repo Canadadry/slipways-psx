@@ -59,7 +59,7 @@ void pico8_bw(pico8_fixed_t n) {
     pico8_fixed_t eighth = PICO8_FIXED_LIT(0x00002000, 0.125);
     pico8_fixed_t id;
     const pico8_ob_table_t *df;
-    const pico8_ob_table_t *dk;
+    const pico8_js_t *dk;
     pico8_fixed_t dk_en = pico8_fixed_from_int(0);
     pico8_value_t en_val;
     pico8_list_t hr_list;
@@ -120,7 +120,7 @@ void pico8_bw(pico8_fixed_t n) {
     /* A NULL dk or an absent "en" reads as 0 -- this port's usual
      * absent-field default, not a guess at which difficulty is meant. */
     dk = pico8_dk();
-    if (dk != NULL && pico8_ob_table_get_name(dk, "en", &en_val) && en_val.kind == PICO8_VALUE_FIXED) {
+    if (dk != NULL && pico8_entity_get_field(dk, "en", &en_val) && en_val.kind == PICO8_VALUE_FIXED) {
         dk_en = en_val.as.fixed;
     }
 

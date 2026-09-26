@@ -27,6 +27,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_ui_button.h"
@@ -55,14 +56,14 @@ static pico8_value_t ha_row_my(int row) {
     return my_val;
 }
 
-static pico8_instance_t *ok_hovered(void) {
+static const void *ok_hovered(void) {
     pico8_value_t v;
     pico8_instance_t *ok = pico8_ok();
     assert(ok != NULL);
     if (!pico8_instance_get_field(ok, "o_", &v) || v.kind != PICO8_VALUE_REF) {
         return NULL;
     }
-    return (pico8_instance_t *)v.as.ref;
+    return v.as.ref;
 }
 
 /* 0 when `ok.le` is missing or empty, i.e. no menu is up. */
@@ -122,11 +123,11 @@ int main(void) {
             assert(ok_le_count() == PAUSE_MENU_ROWS);
         } else if (i == MUSIC_ROW_PRESS_FRAME) {
             pico8_value_t music_my = ha_row_my(MUSIC_ROW);
-            pico8_instance_t *hovered = ok_hovered();
+            const void *hovered = ok_hovered();
             pico8_value_t hovered_my;
             assert(music_my.kind == PICO8_VALUE_FUNCTION);
             assert(hovered != NULL);
-            assert(pico8_instance_get_field(hovered, "my", &hovered_my) && hovered_my.kind == PICO8_VALUE_FUNCTION);
+            assert(pico8_entity_get_field(hovered, "my", &hovered_my) && hovered_my.kind == PICO8_VALUE_FUNCTION);
             assert(hovered_my.as.function == music_my.as.function);
             assert(ok_le_count() == 0);
             music_row_pressed = 1;

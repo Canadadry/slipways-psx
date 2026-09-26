@@ -14,6 +14,7 @@
 #include "../src/pico8_cart.h"
 #include "../src/pico8_class.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_list.h"
@@ -38,12 +39,12 @@ static const pico8_list_t *ok_le(void) {
 }
 
 static const pico8_instance_t *button_lq(pico8_value_t button_val) {
-    const pico8_instance_t *button;
+    const void *button;
     pico8_value_t lq_val;
 
     assert(button_val.kind == PICO8_VALUE_REF && button_val.as.ref != NULL);
-    button = (const pico8_instance_t *)button_val.as.ref;
-    assert(pico8_instance_get_field(button, "lq", &lq_val));
+    button = button_val.as.ref;
+    assert(pico8_entity_get_field(button, "lq", &lq_val));
     assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
     return (const pico8_instance_t *)lq_val.as.ref;
 }

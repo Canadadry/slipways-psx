@@ -372,9 +372,9 @@ typedef struct {
 
 /* C has no closures: the three values the Lua `my` callback captures ride
  * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
- * verbatim onto the button instance this bridge is later dispatched on. */
+ * verbatim onto the button this bridge is later dispatched on. */
 static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    const pico8_instance_t *inst = (const pico8_instance_t *)self;
+    const void *inst = self;
     pico8_value_t pt_val;
     pico8_value_t b_val;
     pico8_value_t od_val;
@@ -389,14 +389,14 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
     if (inst == NULL) {
         return pico8_value_ref(NULL);
     }
-    if (pico8_instance_get_field(inst, "_jo_fe_pt", &pt_val) && pt_val.kind == PICO8_VALUE_REF &&
+    if (pico8_entity_get_field(inst, "_jo_fe_pt", &pt_val) && pt_val.kind == PICO8_VALUE_REF &&
         pt_val.as.ref != NULL) {
         pt = (pico8_instance_t *)pt_val.as.ref;
     }
-    if (pico8_instance_get_field(inst, "_jo_fe_b", &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
+    if (pico8_entity_get_field(inst, "_jo_fe_b", &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
         b = (pico8_instance_t *)b_val.as.ref;
     }
-    if (pico8_instance_get_field(inst, "_jo_fe_od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
+    if (pico8_entity_get_field(inst, "_jo_fe_od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
         od = od_val.as.fixed;
     }
 

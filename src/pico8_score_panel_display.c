@@ -228,14 +228,14 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
         const pico8_instance_t *fm = pico8_fm();
         pico8_value_t hl_val = fm_field_value(fm, "hl");
         const char *hl_str = (hl_val.kind == PICO8_VALUE_STRING) ? hl_val.as.string : "current score";
-        const pico8_ob_table_t *dk = pico8_dk();
+        const pico8_js_t *dk = pico8_dk();
         const char *px = "";
         pico8_value_t px_val;
         char *piece1;
         char *piece2;
         char *label;
 
-        if (dk != NULL && pico8_ob_table_get_name(dk, "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
+        if (dk != NULL && pico8_entity_get_field(dk, "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
             px = px_val.as.string;
         }
         piece1 = pj_concat2(hl_str, " (");
@@ -281,8 +281,8 @@ void pico8_pj_ph(pico8_instance_t *self) {
         pico8_ob_table_t *my_init_overrides;
         pico8_ob_table_t *spec1;
         pico8_ob_table_t *spec2;
-        pico8_instance_t *made1;
-        pico8_instance_t *made2;
+        pico8_js_t *made1;
+        pico8_js_t *made2;
 
         (void)pico8_fq_new(NULL);
 
