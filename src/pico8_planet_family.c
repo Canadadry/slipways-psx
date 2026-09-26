@@ -170,19 +170,27 @@ static const pico8_struct_class_t g_qh_struct_class = {
     pico8_qh_set_field,
 };
 
-static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
-    pico8_qh_t *self = malloc(sizeof *self);
+/* Initializes an allocated pico8_qh_t under `cls`: jo's part, qh's members
+ * nil, qh's defaults. Reads no key, runs neither `pq` nor `lt`, records no
+ * coverage. */
+static void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     size_t i;
-    int k;
 
-    assert(g_qh_class != NULL && "pico8_planet_family_init() must run first");
-    pico8_jo_struct_init(&self->jo, &g_qh_struct_class);
+    pico8_jo_struct_init(&self->jo, cls);
     for (i = 0; i < sizeof g_qh_members / sizeof g_qh_members[0]; i++) {
         *(pico8_value_t *)((char *)self + g_qh_members[i].offset) = pico8_value_ref(NULL);
     }
     for (i = 0; i < sizeof g_qh_defaults / sizeof g_qh_defaults[0]; i++) {
         *(pico8_value_t *)((char *)self + g_qh_defaults[i].offset) = g_qh_defaults[i].value;
     }
+}
+
+static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_qh_t *self = malloc(sizeof *self);
+    int k;
+
+    assert(g_qh_class != NULL && "pico8_planet_family_init() must run first");
+    pico8_qh_struct_init(self, &g_qh_struct_class);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
@@ -200,24 +208,73 @@ static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-void pico8_nl_ly(pico8_instance_t *self, pico8_fixed_t t) {
-    pico8_value_t mi_val;
-    int has_mi;
-    pico8_fixed_t mi;
+/* nl's own defaults, read once from its class at init: the very values its
+ * `defaults` holds, tables included. Each lands in the member of that name,
+ * qh's or jo's when it has one. */
+static struct {
+    const char *name;
+    size_t offset;
+    pico8_value_t value;
+} g_nl_defaults[] = {
+    {"nu", offsetof(pico8_nl_t, qh.jo.nu), {0}}, {"rr", offsetof(pico8_nl_t, rr), {0}},
+    {"qh", offsetof(pico8_nl_t, qh.qh), {0}},    {"nl", offsetof(pico8_nl_t, nl), {0}},
+    {"hp", offsetof(pico8_nl_t, qh.hp), {0}},    {"s", offsetof(pico8_nl_t, qh.s), {0}},
+    {"px", offsetof(pico8_nl_t, qh.px), {0}},    {"od", offsetof(pico8_nl_t, qh.od), {0}},
+    {"qw", offsetof(pico8_nl_t, qw), {0}},       {"ba", offsetof(pico8_nl_t, qh.ba), {0}},
+};
 
+static void pico8_nl_defaults_reset(void) {
+    size_t i;
+    for (i = 0; i < sizeof g_nl_defaults / sizeof g_nl_defaults[0]; i++) {
+        g_nl_defaults[i].value = pico8_value_ref(NULL);
+    }
+}
+
+static const struct {
+    const char *name;
+    size_t offset;
+} g_nl_members[] = {
+    {"rr", offsetof(pico8_nl_t, rr)},
+    {"nl", offsetof(pico8_nl_t, nl)},
+    {"qw", offsetof(pico8_nl_t, qw)},
+};
+
+static int pico8_nl_field(const void *self, const char *name, pico8_value_t *out_value) {
+    size_t i;
+
+    for (i = 0; i < sizeof g_nl_members / sizeof g_nl_members[0]; i++) {
+        if (strcmp(name, g_nl_members[i].name) == 0) {
+            const pico8_value_t *member = (const pico8_value_t *)((const char *)self + g_nl_members[i].offset);
+            if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+                return 0;
+            }
+            *out_value = *member;
+            return 1;
+        }
+    }
+    return pico8_qh_struct_class()->field(self, name, out_value);
+}
+
+/* `qw`, which nl's own `ly` writes, then qh's 20 names; 0 for any other. */
+static int pico8_nl_set_field(void *self, const char *name, pico8_value_t value) {
+    if (strcmp(name, "qw") == 0) {
+        ((pico8_nl_t *)self)->qw = value;
+        return 1;
+    }
+    return pico8_qh_struct_class()->set_field(self, name, value);
+}
+
+void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t) {
     if (self == NULL) {
         return;
     }
-    pico8_na(self, t);
+    pico8_na((pico8_instance_t *)self, t);
 
-    has_mi = pico8_entity_get_field(self, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED;
-    assert(has_mi && "nl:ly reads self.mi unguarded, unlike hj:kj");
-    mi = has_mi ? mi_val.as.fixed : pico8_fixed_from_int(0);
-    if (mi >= pico8_fixed_from_int(2)) {
-        pico8_fixed_t qw = pico8_fixed_add(
+    assert(self->qh.jo.mi.kind == PICO8_VALUE_FIXED && "nl:ly reads self.mi unguarded, unlike hj:kj");
+    if (self->qh.jo.mi.kind == PICO8_VALUE_FIXED && self->qh.jo.mi.as.fixed >= pico8_fixed_from_int(2)) {
+        self->qw = pico8_value_fixed(pico8_fixed_add(
             pico8_fixed_from_int(8),
-            pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6)));
-        pico8_entity_set_field(self, "qw", pico8_value_fixed(qw));
+            pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6))));
     }
 }
 
@@ -228,8 +285,60 @@ static pico8_value_t pico8_nl_ly_dispatch(void *self, int argc, pico8_value_t ar
     if (arg0.kind == PICO8_VALUE_FIXED) {
         t = arg0.as.fixed;
     }
-    pico8_nl_ly((pico8_instance_t *)self, t);
+    pico8_nl_ly((pico8_nl_t *)self, t);
     return pico8_value_ref(NULL);
+}
+
+static const pico8_struct_class_t g_nl_struct_class = {
+    {
+        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
+        [PICO8_METHOD_KJ] = pico8_jo_kj_dispatch,
+        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
+        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
+        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
+        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
+        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
+        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+        [PICO8_METHOD_EV] = pico8_dl_dispatch,
+        [PICO8_METHOD_EY] = pico8_d__dispatch,
+        [PICO8_METHOD_LY] = pico8_nl_ly_dispatch,
+    },
+    pico8_nl_field,
+    pico8_nl_set_field,
+};
+
+static void *pico8_nl_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_nl_t *self = malloc(sizeof *self);
+    size_t i;
+    int k;
+
+    assert(g_nl_class != NULL && "pico8_planet_family_init() must run first");
+    pico8_qh_struct_init(&self->qh, &g_nl_struct_class);
+    for (i = 0; i < sizeof g_nl_members / sizeof g_nl_members[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_nl_members[i].offset) = pico8_value_ref(NULL);
+    }
+    for (i = 0; i < sizeof g_nl_defaults / sizeof g_nl_defaults[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_nl_defaults[i].offset) = g_nl_defaults[i].value;
+    }
+    for (k = 0; overrides != NULL && k < overrides->count; k++) {
+        pico8_ob_key_t key = overrides->entries[k].key;
+        int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
+
+        assert(measured && "nl: the only measured construction key is id (ie:ldown); another would be a field "
+                           "under no rule of plan-3 section 5 -- stop, do not add a member");
+        (void)measured;
+        self->qh.jo.id = overrides->entries[k].value;
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("nl");
+#endif
+    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_ke_struct_pq(&self->qh.jo.ke);
+    return self;
 }
 
 void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
@@ -468,7 +577,12 @@ void pico8_planet_family_init(void) {
                                       "od=20,qw=15,\n"
                                       "ba=o(28,48,18,20,21,22),\n");
     PICO8_CLASS_COVERAGE_NAME(g_nl_class, "nl");
-    pico8_ob_table_set_name(g_nl_class->defaults, "ly", pico8_value_function(pico8_nl_ly_dispatch));
+    pico8_class_set_struct_new(g_nl_class, pico8_nl_struct_new);
+    for (i = 0; i < sizeof g_nl_defaults / sizeof g_nl_defaults[0]; i++) {
+        int found = pico8_class_get_field(g_nl_class, g_nl_defaults[i].name, &g_nl_defaults[i].value);
+        assert(found && "nl: every default of the struct is a key of nl's spec");
+        (void)found;
+    }
 
     g_os_class = pico8_class_declare(g_qh_class,
                                       "\n"
@@ -560,6 +674,7 @@ void pico8_planet_family_init(void) {
 
 void pico8_planet_family_shutdown(void) {
     pico8_qh_defaults_reset();
+    pico8_nl_defaults_reset();
     if (g_qh_class != NULL) {
         pico8_class_free(g_qh_class);
         g_qh_class = NULL;
@@ -602,8 +717,12 @@ pico8_class_t *pico8_nl_class(void) {
     return g_nl_class;
 }
 
-pico8_instance_t *pico8_nl_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_nl_class, overrides);
+const pico8_struct_class_t *pico8_nl_struct_class(void) {
+    return &g_nl_struct_class;
+}
+
+pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides) {
+    return pico8_nl_struct_new(overrides);
 }
 
 pico8_class_t *pico8_os_class(void) {

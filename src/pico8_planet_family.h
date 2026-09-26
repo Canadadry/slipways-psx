@@ -44,10 +44,22 @@ typedef struct {
     pico8_value_t et;
 } pico8_qh_t;
 
+/* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
+ * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
+ * or `jo` (`nu`, `qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
+ * `nu`, `px` and `ba` hold the very tables of nl's class, borrowed. Nothing
+ * frees the struct: TROU-7. */
+typedef struct {
+    pico8_qh_t qh;
+    pico8_value_t rr;
+    pico8_value_t nl;
+    pico8_value_t qw;
+} pico8_nl_t;
+
 /* Every accessor below is NULL before `pico8_planet_family_init()` and
  * after `pico8_planet_family_shutdown()`. `qh`'s class instantiation builds
- * a pico8_qh_t, while its descendants still inherit the class's defaults
- * and methods. */
+ * a pico8_qh_t; its unconverted descendants still inherit the class's
+ * defaults and methods. */
 pico8_class_t *pico8_qh_class(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
@@ -56,12 +68,17 @@ const pico8_struct_class_t *pico8_qh_struct_class(void);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_qh_t *pico8_qh_new(const pico8_ob_table_t *overrides);
 
+pico8_class_t *pico8_nl_class(void);
+const pico8_struct_class_t *pico8_nl_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id` only. The new
+ * trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
+ * nothing ever frees it. Requires `pico8_planet_family_init()`. */
+pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides);
+
 /* Each `_new` below requires `pico8_planet_family_init()`. `overrides` is
  * copied, not kept; the new instance registers itself into `hv`/`cv`/`cg`
  * through `lt`, and nothing ever frees it. */
-
-pico8_class_t *pico8_nl_class(void);
-pico8_instance_t *pico8_nl_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_os_class(void);
 pico8_instance_t *pico8_os_new(const pico8_ob_table_t *overrides);
@@ -78,7 +95,7 @@ pico8_instance_t *pico8_pm_new(const pico8_ob_table_t *overrides);
 pico8_class_t *pico8_ga_class(void);
 pico8_instance_t *pico8_ga_new(const pico8_ob_table_t *overrides);
 
-void pico8_nl_ly(pico8_instance_t *self, pico8_fixed_t t);
+void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t);
 
 void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p);
 
