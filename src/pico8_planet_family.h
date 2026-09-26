@@ -87,6 +87,18 @@ typedef struct {
     pico8_value_t qy;
 } pico8_hj_t;
 
+/* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
+ * ancestor has a member for. A default of pm whose name is a member of
+ * `hj`, `qh`, `jo` or `ke` (`me`, `nu`, `hp`, `px`, `s` and the 11 emitter
+ * defaults) lives in that member. `nu`, `px`, `k_` and `ng` hold the very
+ * tables of pm's class, `ba` the one of qh's, borrowed; `qy` is the
+ * protostar's own. Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_hj_t hj;
+    pico8_value_t ng;
+    pico8_value_t fz;
+} pico8_pm_t;
+
 /* Every accessor below is NULL before `pico8_planet_family_init()` and
  * after `pico8_planet_family_shutdown()`. `qh`'s class instantiation builds
  * a pico8_qh_t; its unconverted descendants still inherit the class's
@@ -123,16 +135,21 @@ const pico8_struct_class_t *pico8_hj_struct_class(void);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_hj_t *pico8_hj_new(const pico8_ob_table_t *overrides);
 
-/* Each `_new` below requires `pico8_planet_family_init()`. `overrides` is
- * copied, not kept; the new instance registers itself into `hv`/`cv`/`cg`
- * through `lt`, and nothing ever frees it. */
-
 /* `pm` and `ga` are the only classes here whose spec sets `fz`, so they are
  * also registered under that name for `pico8_class_lookup_named()` -- the
  * two targets `jo:hu`'s dynamic reclass can resolve. */
 pico8_class_t *pico8_pm_class(void);
-pico8_instance_t *pico8_pm_new(const pico8_ob_table_t *overrides);
+const pico8_struct_class_t *pico8_pm_struct_class(void);
 
+/* `overrides` (NULL means none) is read, not kept: `p`, `ra`, `id`, each
+ * optional. The new protostar first spawns its `ga` at `ra + ng`, then
+ * registers itself into `hv`/`cv`/`cg` through `lt`, after that `ga`;
+ * nothing ever frees it. Requires `pico8_planet_family_init()`. */
+pico8_pm_t *pico8_pm_new(const pico8_ob_table_t *overrides);
+
+/* Requires `pico8_planet_family_init()`. `overrides` is copied, not kept;
+ * the new instance registers itself into `hv`/`cv`/`cg` through `lt`, and
+ * nothing ever frees it. */
 pico8_class_t *pico8_ga_class(void);
 pico8_instance_t *pico8_ga_new(const pico8_ob_table_t *overrides);
 
@@ -141,7 +158,7 @@ void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t);
 void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p);
 
 /* TROU-7 */
-void pico8_pm_pq(pico8_instance_t *self);
+void pico8_pm_pq(pico8_pm_t *self);
 
 void pico8_ga_pq(pico8_instance_t *self);
 

@@ -529,14 +529,19 @@ static void test_life(void) {
     check("life", h, LIFE_HASH);
 }
 
-/* A `pm` as `jo:hu` builds it (`p`, `ra`, `id`), or an `mx` by `ie:ldown`
- * on `gx[5]`: still instances, reaching `hj`'s `kj`, `mm` and `f_` through
- * their class chain. */
+/* A `pm` as `jo:hu` builds it (`p`, `ra`, `id`), a struct under its own
+ * descriptor, or an `mx` by `ie:ldown` on `gx[5]`, still an instance
+ * reaching `hj`'s `kj`, `mm` and `f_` through its class chain. */
 static uint32_t fold_heir(uint32_t h, void *e, pico8_class_t *cls) {
     static const char *const scalars[] = {"id", "me", "qh", "rr", "od", "pk", "hp", "s", "py", "pn", "du"};
     size_t i;
 
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == cls);
+    if (cls == pico8_pm_class()) {
+        assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+               ((const pico8_struct_header_t *)e)->cls == pico8_pm_struct_class());
+    } else {
+        assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == cls);
+    }
     assert(is_of(e, cls));
     assert(method(e, "kj") == class_function(pico8_hj_class(), "kj"));
     assert(method(e, "mm") == class_function(pico8_hj_class(), "mm"));
@@ -721,16 +726,16 @@ static int is_an_hj_struct(const void *e) {
 
 /* Built by `ie:ldown` or pico8_hj_new, an ascension is a struct whose
  * descriptor holds qh's very entries but its own `kj` and `g_`'s `mm`, the
- * functions hj's class still installs for `pm` and `mx`; it takes exactly
+ * functions hj's class still installs for `mx`; it takes exactly
  * qh's 20 names plus `qy`, and a construction key other than `id` stops the
- * run. A bare `qh` still refuses `qy`; no other descriptor has an `mm`;
- * `pm`, `mx`, `nr`, `fr` stay instances. */
+ * run. A bare `qh` still refuses `qy`; no other descriptor but pm's has an
+ * `mm`; `mx`, `nr`, `fr` stay instances. */
 static void test_hj_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
     const pico8_struct_class_t *const no_mm[] = {pico8_jo_struct_class(), pico8_qh_struct_class(),
                                                  pico8_nl_struct_class(), pico8_os_struct_class()};
-    pico8_class_t *const others[] = {pico8_pm_class(), pico8_mx_class(), pico8_nr_class(), pico8_fr_class()};
+    pico8_class_t *const others[] = {pico8_mx_class(), pico8_nr_class(), pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_hj_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;
