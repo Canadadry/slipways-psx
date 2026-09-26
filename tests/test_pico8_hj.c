@@ -381,7 +381,7 @@ static uint32_t fold_ascension(uint32_t h, const void *e) {
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_function_t got = method(e, methods[i]);
         if (strcmp(methods[i], "kj") == 0 || strcmp(methods[i], "mm") == 0) {
-            assert(got == class_function(pico8_hj_class(), methods[i]));
+            assert(got == pico8_hj_struct_class()->methods[pico8_method_of(methods[i])]);
         } else {
             assert(got == class_function(pico8_qh_class(), methods[i]));
         }
@@ -529,22 +529,19 @@ static void test_life(void) {
     check("life", h, LIFE_HASH);
 }
 
-/* A `pm` as `jo:hu` builds it (`p`, `ra`, `id`), a struct under its own
- * descriptor, or an `mx` by `ie:ldown` on `gx[5]`, still an instance
- * reaching `hj`'s `kj`, `mm` and `f_` through its class chain. */
+/* A `pm` as `jo:hu` builds it (`p`, `ra`, `id`) or an `mx` by `ie:ldown`
+ * on `gx[5]`, each a struct under its own descriptor holding hj's `kj` and
+ * `mm`. */
 static uint32_t fold_heir(uint32_t h, void *e, pico8_class_t *cls) {
     static const char *const scalars[] = {"id", "me", "qh", "rr", "od", "pk", "hp", "s", "py", "pn", "du"};
     size_t i;
 
-    if (cls == pico8_pm_class()) {
-        assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-               ((const pico8_struct_header_t *)e)->cls == pico8_pm_struct_class());
-    } else {
-        assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == cls);
-    }
+    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls ==
+               (cls == pico8_pm_class() ? pico8_pm_struct_class() : pico8_mx_struct_class()));
     assert(is_of(e, cls));
-    assert(method(e, "kj") == class_function(pico8_hj_class(), "kj"));
-    assert(method(e, "mm") == class_function(pico8_hj_class(), "mm"));
+    assert(method(e, "kj") == pico8_hj_struct_class()->methods[PICO8_METHOD_KJ]);
+    assert(method(e, "mm") == pico8_hj_struct_class()->methods[PICO8_METHOD_MM]);
     assert(list_size(e, "qy") == 0);
     assert(bool_state(e, "qh") == 1);
     for (i = 0; i < sizeof scalars / sizeof scalars[0]; i++) {
@@ -725,17 +722,16 @@ static int is_an_hj_struct(const void *e) {
 }
 
 /* Built by `ie:ldown` or pico8_hj_new, an ascension is a struct whose
- * descriptor holds qh's very entries but its own `kj` and `g_`'s `mm`, the
- * functions hj's class still installs for `mx`; it takes exactly
- * qh's 20 names plus `qy`, and a construction key other than `id` stops the
- * run. A bare `qh` still refuses `qy`; no other descriptor but pm's has an
- * `mm`; `mx`, `nr`, `fr` stay instances. */
+ * descriptor holds qh's very entries but its own `kj` and `g_`'s `mm`; it
+ * takes exactly qh's 20 names plus `qy`, and a construction key other than
+ * `id` stops the run. A bare `qh` still refuses `qy`; no other descriptor
+ * but pm's and mx's has an `mm`; `nr`, `fr` stay instances. */
 static void test_hj_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
     const pico8_struct_class_t *const no_mm[] = {pico8_jo_struct_class(), pico8_qh_struct_class(),
                                                  pico8_nl_struct_class(), pico8_os_struct_class()};
-    pico8_class_t *const others[] = {pico8_mx_class(), pico8_nr_class(), pico8_fr_class()};
+    pico8_class_t *const others[] = {pico8_nr_class(), pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_hj_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;
@@ -756,8 +752,6 @@ static void test_hj_is_a_struct(void) {
         }
     }
     assert(cls->methods[PICO8_METHOD_KJ] != qh->methods[PICO8_METHOD_KJ]);
-    assert(cls->methods[PICO8_METHOD_KJ] == class_function(pico8_hj_class(), "kj"));
-    assert(cls->methods[PICO8_METHOD_MM] == class_function(pico8_hj_class(), "mm"));
     assert(cls->methods[PICO8_METHOD_MM] == class_function(pico8_g__class(), "mm"));
     for (i = 0; i < sizeof no_mm / sizeof no_mm[0]; i++) {
         assert(no_mm[i]->methods[PICO8_METHOD_MM] == NULL);

@@ -430,6 +430,9 @@ $(TMP_DIR)/test_pico8_hj: $(call objs,tests/test_pico8_hj.c $(ENGINE_SRCS)) test
 $(TMP_DIR)/test_pico8_pm: $(call objs,tests/test_pico8_pm.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/session_events.json tests/fixtures/events_recorded_1790198294.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_mx: $(call objs,tests/test_pico8_mx.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/events_recorded_1790198294.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -581,11 +584,12 @@ UNIT_TESTS := \
     test_pico8_nl \
     test_pico8_os \
     test_pico8_hj \
-    test_pico8_pm
+    test_pico8_pm \
+    test_pico8_mx
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 # Les TU à rejeu long (plus de 30 s) tournent dans make e2e, pas make test.
-UNIT_TESTS_SLOW := test_pico8_ie test_pico8_jo test_pico8_qh test_pico8_os test_pico8_hj test_pico8_pm
+UNIT_TESTS_SLOW := test_pico8_ie test_pico8_jo test_pico8_qh test_pico8_os test_pico8_hj test_pico8_pm test_pico8_mx
 
 UNIT_RUNS := $(addprefix unit-run-,$(filter-out $(UNIT_TESTS_SLOW),$(UNIT_TESTS)))
 UNIT_RUNS_SLOW := $(addprefix unit-run-,$(UNIT_TESTS_SLOW))

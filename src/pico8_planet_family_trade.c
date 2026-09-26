@@ -3,16 +3,19 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "pico8_class.h"
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_list.h"
 #include "pico8_ob.h"
+#include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
+#include "pico8_probe.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 
@@ -222,7 +225,7 @@ static pico8_value_t pico8_nr_cn_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-void pico8_mx_kf(pico8_instance_t *self, pico8_instance_t *sw) {
+void pico8_mx_kf(pico8_mx_t *self, pico8_instance_t *sw) {
     pico8_value_t eb_result;
     pico8_instance_t *cp = NULL;
 
@@ -262,34 +265,30 @@ void pico8_mx_kf(pico8_instance_t *self, pico8_instance_t *sw) {
             }
 
             if (pico8_ob_table_get_name(i_table, "qe", &qe_val)) {
-                pico8_value_t ht_val;
                 const pico8_ob_table_t *ht_table = NULL;
 
-                if (pico8_entity_get_field(self, "ht", &ht_val) && ht_val.kind == PICO8_VALUE_REF &&
-                    ht_val.as.ref != NULL) {
-                    ht_table = (const pico8_ob_table_t *)ht_val.as.ref;
+                if (self->ht.kind == PICO8_VALUE_REF && self->ht.as.ref != NULL) {
+                    ht_table = (const pico8_ob_table_t *)self->ht.as.ref;
                 }
                 if (ht_table != NULL) {
                     pico8_list_t ht_list = positional_values(ht_table);
                     int accepted = pico8_gu(&ht_list, qe_val);
                     pico8_list_free(&ht_list);
                     if (accepted) {
-                        pico8_value_t kw_val;
-                        if (pico8_entity_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
-                            kw_val.as.ref != NULL) {
+                        pico8_value_t kw_val = self->hj.qh.jo.kw;
+                        if (kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
                             pico8_ob_table_set_name((pico8_ob_table_t *)kw_val.as.ref, "qe", qe_val);
                         }
-                        /* Instance-level write: the previous `ht` is
-                         * `mx`'s class default, shared by every other
-                         * instance, and must not be freed. */
-                        pico8_entity_set_field(self, "ht", pico8_value_ref(pico8_ob_table_new()));
+                        /* The previous `ht` is mx's class default, shared
+                         * by every other synthesizer: never freed. */
+                        self->ht = pico8_value_ref(pico8_ob_table_new());
                     }
                 }
             }
         }
     }
 
-    pico8_jo_kf(self, sw);
+    pico8_jo_kf((pico8_instance_t *)self, sw);
 }
 
 static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -299,11 +298,112 @@ static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t ar
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
         sw = (pico8_instance_t *)arg0.as.ref;
     }
-    pico8_mx_kf((pico8_instance_t *)self, sw);
+    pico8_mx_kf((pico8_mx_t *)self, sw);
     return pico8_value_ref(NULL);
 }
 
+/* mx's own defaults, read once from its class at init: the very values its
+ * `defaults` holds, tables included. Each lands in the member of that name,
+ * hj's, qh's or jo's when it has one. */
+static struct {
+    const char *name;
+    size_t offset;
+    pico8_value_t value;
+} g_mx_defaults[] = {
+    {"nu", offsetof(pico8_mx_t, hj.qh.jo.nu), {0}}, {"rr", offsetof(pico8_mx_t, hj.rr), {0}},
+    {"hp", offsetof(pico8_mx_t, hj.qh.hp), {0}},    {"s", offsetof(pico8_mx_t, hj.qh.s), {0}},
+    {"px", offsetof(pico8_mx_t, hj.qh.px), {0}},    {"od", offsetof(pico8_mx_t, hj.qh.od), {0}},
+    {"ht", offsetof(pico8_mx_t, ht), {0}},          {"py", offsetof(pico8_mx_t, hj.py), {0}},
+    {"ki", offsetof(pico8_mx_t, hj.ki), {0}},       {"pn", offsetof(pico8_mx_t, hj.pn), {0}},
+    {"pk", offsetof(pico8_mx_t, hj.pk), {0}},       {"fc", offsetof(pico8_mx_t, hj.fc), {0}},
+    {"k_", offsetof(pico8_mx_t, hj.k_), {0}},       {"du", offsetof(pico8_mx_t, hj.du), {0}},
+    {"qo", offsetof(pico8_mx_t, hj.qo), {0}},       {"ro", offsetof(pico8_mx_t, hj.ro), {0}},
+    {"qg", offsetof(pico8_mx_t, hj.qg), {0}},       {"q_", offsetof(pico8_mx_t, hj.q_), {0}},
+};
+
+static void pico8_mx_defaults_reset(void) {
+    size_t i;
+    for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
+        g_mx_defaults[i].value = pico8_value_ref(NULL);
+    }
+}
+
+static int pico8_mx_field(const void *self, const char *name, pico8_value_t *out_value) {
+    if (strcmp(name, "ht") == 0) {
+        const pico8_value_t *ht = &((const pico8_mx_t *)self)->ht;
+        if (ht->kind == PICO8_VALUE_REF && ht->as.ref == NULL) {
+            return 0;
+        }
+        *out_value = *ht;
+        return 1;
+    }
+    return pico8_hj_struct_class()->field(self, name, out_value);
+}
+
+/* `ht`, which mx's own `kf` writes, then hj's 21 names; 0 for any other. */
+static int pico8_mx_set_field(void *self, const char *name, pico8_value_t value) {
+    if (strcmp(name, "ht") == 0) {
+        ((pico8_mx_t *)self)->ht = value;
+        return 1;
+    }
+    return pico8_hj_struct_class()->set_field(self, name, value);
+}
+
+static const pico8_struct_class_t g_mx_struct_class = {
+    {
+        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
+        [PICO8_METHOD_KJ] = pico8_hj_kj_dispatch,
+        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
+        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
+        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
+        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
+        [PICO8_METHOD_KF] = pico8_mx_kf_dispatch,
+        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
+        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+        [PICO8_METHOD_EV] = pico8_dl_dispatch,
+        [PICO8_METHOD_EY] = pico8_d__dispatch,
+        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
+        [PICO8_METHOD_MM] = pico8_g__mm,
+    },
+    pico8_mx_field,
+    pico8_mx_set_field,
+};
+
+static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_mx_t *self = malloc(sizeof *self);
+    size_t i;
+    int k;
+
+    assert(g_mx_class != NULL && "pico8_planet_family_trade_init() must run first");
+    pico8_hj_struct_init(&self->hj, &g_mx_struct_class);
+    self->ht = pico8_value_ref(NULL);
+    for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_mx_defaults[i].offset) = g_mx_defaults[i].value;
+    }
+    for (k = 0; overrides != NULL && k < overrides->count; k++) {
+        pico8_ob_key_t key = overrides->entries[k].key;
+        int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
+
+        assert(measured && "mx: the only measured construction key is id (ie:ldown); another would be a field "
+                           "under no rule of plan-3 section 5 -- stop, do not add a member");
+        (void)measured;
+        self->hj.qh.jo.id = overrides->entries[k].value;
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("mx");
+#endif
+    pico8_f_((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_ke_struct_pq(&self->hj.qh.jo.ke);
+    return self;
+}
+
 void pico8_planet_family_trade_init(void) {
+    size_t i;
+
     assert(pico8_qh_class() != NULL && pico8_hj_class() != NULL &&
            "pico8_planet_family_init() must run first");
     pico8_planet_family_trade_shutdown();
@@ -347,10 +447,16 @@ void pico8_planet_family_trade_init(void) {
                                       "qo=0.98,ro=-0.07,\n"
                                       "qg=0.07,q_=0.98,\n");
     PICO8_CLASS_COVERAGE_NAME(g_mx_class, "mx");
-    pico8_ob_table_set_name(g_mx_class->defaults, "kf", pico8_value_function(pico8_mx_kf_dispatch));
+    pico8_class_set_struct_new(g_mx_class, pico8_mx_struct_new);
+    for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
+        int found = pico8_class_get_field(g_mx_class, g_mx_defaults[i].name, &g_mx_defaults[i].value);
+        assert(found && "mx: every default of the struct is a key of mx's spec");
+        (void)found;
+    }
 }
 
 void pico8_planet_family_trade_shutdown(void) {
+    pico8_mx_defaults_reset();
     if (g_mx_class != NULL) {
         pico8_class_free(g_mx_class);
         g_mx_class = NULL;
@@ -385,6 +491,10 @@ pico8_class_t *pico8_mx_class(void) {
     return g_mx_class;
 }
 
-pico8_instance_t *pico8_mx_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_mx_class, overrides);
+const pico8_struct_class_t *pico8_mx_struct_class(void) {
+    return &g_mx_struct_class;
+}
+
+pico8_mx_t *pico8_mx_new(const pico8_ob_table_t *overrides) {
+    return pico8_mx_struct_new(overrides);
 }

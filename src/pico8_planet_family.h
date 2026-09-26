@@ -135,6 +135,16 @@ const pico8_struct_class_t *pico8_hj_struct_class(void);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_hj_t *pico8_hj_new(const pico8_ob_table_t *overrides);
 
+/* Initializes an allocated pico8_hj_t under `cls`: qh's part, hj's members
+ * nil, hj's defaults. Reads no key, runs neither `pq` nor `lt`, records no
+ * coverage. Requires `pico8_planet_family_init()`. */
+void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls);
+
+/* The dispatchers hj's descriptor holds, for a daughter's `static const`
+ * descriptor to name. */
+pico8_value_t pico8_qh_ly_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+
 /* `pm` and `ga` are the only classes here whose spec sets `fz`, so they are
  * also registered under that name for `pico8_class_lookup_named()` -- the
  * two targets `jo:hu`'s dynamic reclass can resolve. */
@@ -155,7 +165,7 @@ pico8_instance_t *pico8_ga_new(const pico8_ob_table_t *overrides);
 
 void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t);
 
-void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p);
+void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_hj_t *self, pico8_vec_t p);
 
 /* TROU-7 */
 void pico8_pm_pq(pico8_pm_t *self);

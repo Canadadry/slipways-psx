@@ -617,7 +617,7 @@ static int is_an_os_struct(const void *e) {
 static void test_os_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw",
                                           "lq", "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et"};
-    pico8_class_t *const others[] = {pico8_mx_class(), pico8_nr_class(), pico8_fr_class()};
+    pico8_class_t *const others[] = {pico8_nr_class(), pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_os_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;
