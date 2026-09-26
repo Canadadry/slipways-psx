@@ -39,8 +39,8 @@ struct pico8_class {
 struct pico8_instance {
     /* Always PICO8_TYPE_TAG_INSTANCE, and kept first so pico8_type_tag_of()
      * can read it off a bare REF: set by pico8_class_instantiate(), and by
-     * hand by the modules that build a classless instance (`fm`, the
-     * `ie.ke` wrapper, pz()'s row wrappers). */
+     * hand by the modules that build a classless instance (`fm`, pz()'s
+     * row wrappers). */
     pico8_type_tag_t tag;
     pico8_ob_table_t *fields;
     /* NULL for a classless instance: field lookup then sees `fields` only. */
@@ -105,6 +105,11 @@ void pico8_instance_free(pico8_instance_t *inst);
  * that chain, 0 (leaving *out_value untouched) if it is absent
  * everywhere -- pico8_ob_table_get_name's own "absent" convention. */
 int pico8_instance_get_field(const pico8_instance_t *inst, const char *name, pico8_value_t *out_value);
+
+/* Lua's `cls.name`: `cls`'s defaults, then each `parent`'s. Returns 0 and
+ * leaves *out_value untouched when `name` is absent from the whole chain.
+ * `cls` is borrowed; NULL reads as an empty chain. */
+int pico8_class_get_field(const pico8_class_t *cls, const char *name, pico8_value_t *out_value);
 
 #ifdef PICO8_CLASS_COVERAGE
 #define PICO8_CLASS_COVERAGE_NAME(cls, literal) ((cls)->coverage_name = (literal))

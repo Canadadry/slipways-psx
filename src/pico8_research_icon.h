@@ -14,9 +14,8 @@
  * no-op, and a nil or wrong-kind member, or an absent field of `self.ke`,
  * reads as its zero/false default.
  *
- * `self.ke` holds a CLASS, not an instance: reading a field off it goes
- * through the transient wrapper in pico8_research_icon.c, never
- * pico8_instance_get_field() on the class pointer itself. */
+ * `self.ke` holds a CLASS, not an instance: its fields are read off a
+ * `pico8_ie_ke_t`, never pico8_instance_get_field() on the class pointer. */
 
 /* `kq`, `ra` and `eh` point at the objects the module owns, shared by every
  * `ie` and never modified in place; `hb` rebinds `ra` to the cursor. `gy`
@@ -33,6 +32,16 @@ typedef struct {
     pico8_value_t kh;
     pico8_value_t m_;
 } pico8_ie_t;
+
+/* `self.ke` read as Lua reads a class: no parent, never an entity, and no
+ * writer, so a write reaching it stops the run. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t rr;
+    pico8_value_t s;
+    pico8_value_t me;
+    pico8_value_t od;
+} pico8_ie_ke_t;
 
 /* Calls pico8_research_icon_shutdown(), then pico8_pi_init(): `ie`'s spec
  * has `b(...)`/`v(...)` constructors that must already be registered. */
@@ -67,6 +76,11 @@ void pico8_ie_hb(pico8_ie_t *self);
  * a class; bumps the shared `ie.id` either way. Requires
  * pico8_research_icon_init(). `mp` is unused, as in Lua. */
 pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp);
+
+/* By value, one per read: each member copied off the chain of the class
+ * `self.ke` holds, nil when absent there or when `self.ke` is. */
+pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self);
+const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void);
 
 void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec_t p);
 

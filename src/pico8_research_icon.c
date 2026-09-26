@@ -28,10 +28,6 @@ static pico8_ob_table_t *g_ie_spec = NULL;
 static pico8_value_t g_ie_gy = {PICO8_VALUE_REF, {.ref = NULL}};
 static pico8_value_t g_ie_id = {PICO8_VALUE_REF, {.ref = NULL}};
 
-/* Shared by every wrapper below, and safe to share only because
- * pico8_instance_get_field() reads through `fields` and never writes it. */
-static pico8_ob_table_t g_ie_empty_fields = {PICO8_TYPE_TAG_OB_TABLE, NULL, 0, 0};
-
 static int ie_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -70,27 +66,53 @@ static pico8_class_t *ie_self_ke_class(const pico8_ie_t *self) {
     return NULL;
 }
 
-/* A transient, stack-allocated classless instance whose `cls` is the class
- * to read fields off. It cannot be built once and shared: different icons
- * hold different classes in `self.ke`. */
-static pico8_instance_t ie_ke_wrapper(pico8_class_t *cls) {
-    pico8_instance_t wrapper;
-    wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
-    wrapper.fields = &g_ie_empty_fields;
-    wrapper.cls = cls;
-    return wrapper;
-}
+static int pico8_ie_ke_view_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_ie_ke_t *view = self;
+    pico8_value_t value;
 
-/* Reads `self.ke.<name>` through the wrapper's class-chain walk. Returns 0
- * and leaves `*out` untouched when `self.ke` is absent. */
-static int ie_ke_field(const pico8_ie_t *self, const char *name, pico8_value_t *out) {
-    pico8_class_t *cls = ie_self_ke_class(self);
-    pico8_instance_t wrapper;
-    if (cls == NULL) {
+    if (strcmp(name, "rr") == 0) {
+        value = view->rr;
+    } else if (strcmp(name, "s") == 0) {
+        value = view->s;
+    } else if (strcmp(name, "me") == 0) {
+        value = view->me;
+    } else if (strcmp(name, "od") == 0) {
+        value = view->od;
+    } else {
         return 0;
     }
-    wrapper = ie_ke_wrapper(cls);
-    return pico8_instance_get_field(&wrapper, name, out);
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return 0;
+    }
+    *out_value = value;
+    return 1;
+}
+
+static const pico8_struct_class_t g_ie_ke_view_struct_class = {
+    {0},
+    pico8_ie_ke_view_field,
+    NULL,
+};
+
+pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
+    const pico8_class_t *cls = ie_self_ke_class(self);
+    pico8_ie_ke_t view;
+
+    view.header.tag = PICO8_TYPE_TAG_STRUCT;
+    view.header.cls = &g_ie_ke_view_struct_class;
+    view.rr = pico8_value_ref(NULL);
+    view.s = pico8_value_ref(NULL);
+    view.me = pico8_value_ref(NULL);
+    view.od = pico8_value_ref(NULL);
+    (void)pico8_class_get_field(cls, "rr", &view.rr);
+    (void)pico8_class_get_field(cls, "s", &view.s);
+    (void)pico8_class_get_field(cls, "me", &view.me);
+    (void)pico8_class_get_field(cls, "od", &view.od);
+    return view;
+}
+
+const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void) {
+    return &g_ie_ke_view_struct_class;
 }
 
 /* A missing or wrong-kind value reads as the zero vector. */
@@ -102,7 +124,7 @@ static pico8_vec_t ie_value_vec(pico8_value_t v) {
 }
 
 void pico8_ie_hb(pico8_ie_t *self) {
-    pico8_value_t rr_val = pico8_value_ref(NULL);
+    pico8_value_t rr_val;
 
     if (self == NULL) {
         return;
@@ -114,7 +136,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
 
     /* `qh`/`os` never set `rr`, so `rr_val` stays absent for them and
      * pico8_oj() then answers true unconditionally. */
-    ie_ke_field(self, "rr", &rr_val);
+    rr_val = pico8_ie_ke_view(self).rr;
 
     if (!pico8_oj(rr_val)) {
         return;
@@ -187,6 +209,8 @@ static pico8_value_t pico8_ie_ldown_dispatch(void *self, int argc, pico8_value_t
 }
 
 void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec_t p) {
+    pico8_ie_ke_t view;
+
     /* An icon not yet revealed by `ie:hb` draws nothing at all. */
     if (self == NULL || !ie_truthy(self->kh)) {
         return;
@@ -197,24 +221,16 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
 
     pico8_palt(mem, 3, 0);
 
-    {
-        pico8_value_t s_val;
-        int s_id = 0;
-        if (ie_ke_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
-            s_id = ie_to_int(s_val.as.fixed);
-        }
-        pico8_spr_default(gfx, mem, s_id, ie_to_int(p.x), ie_to_int(p.y));
-    }
+    view = pico8_ie_ke_view(self);
+    pico8_spr_default(gfx, mem, view.s.kind == PICO8_VALUE_FIXED ? ie_to_int(view.s.as.fixed) : 0, ie_to_int(p.x),
+                      ie_to_int(p.y));
 
     /* `dl(self.ke)` is not inert: every class `self.ke` can hold inherits
      * `qh`'s `me="kz"`, so `dl` passes its own state check and draws the
      * class-level build cost. */
     if (ie_truthy(self->m_)) {
-        pico8_class_t *ke_cls = ie_self_ke_class(self);
-
-        if (ke_cls != NULL) {
-            pico8_instance_t wrapper = ie_ke_wrapper(ke_cls);
-            pico8_dl(gfx, mem, &wrapper);
+        if (ie_self_ke_class(self) != NULL) {
+            pico8_dl(gfx, mem, (pico8_instance_t *)&view);
         }
         if (self->jb.kind == PICO8_VALUE_REF && self->jb.as.ref != NULL) {
             assert(pico8_type_tag_of(self->jb.as.ref) == PICO8_TYPE_TAG_STRUCT &&

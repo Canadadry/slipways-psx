@@ -64,6 +64,7 @@
 #define DIRECTED_HASH 0xA5C469BDu
 #define DRAW_HASH 0xA740E905u
 #define RESTART_HASH 0xB33A149Au
+#define KE_VIEW_HASH 0xD0C93314u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -638,6 +639,65 @@ static void test_draw(void) {
     check("draw", h, DRAW_HASH);
 }
 
+/* `rr` of each `gx[]` class, in `gx[]` order: nil for `qh` and `os`. */
+static const char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "trade league", "void synthesis",
+                                     "ascension"};
+
+static void invent(const char *rr) {
+    pico8_value_t v;
+    assert(pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "invented", &v) &&
+           v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    pico8_list_add((pico8_list_t *)v.as.ref, pico8_value_string(rr));
+}
+
+/* Per icon, in `gx[]` order: `hb` reveals it exactly when `oj(self.ke.rr)`,
+ * and `kj` draws the held class's sprite `s`, then with `m_` its build cost
+ * `od$` off `dl(self.ke)`. */
+static void test_ke_view(void) {
+    uint32_t h = 2166136261u;
+    void *all[16];
+    int n;
+    int i;
+
+    start_game(PLAYTHROUGH);
+    n = icons(all, 16);
+    check_int("ke view icons", n, 7);
+    for (i = 0; i < n; i++) {
+        uint32_t before;
+        (void)call(all[i], "hb", pico8_value_ref(NULL), pico8_value_ref(NULL));
+        before = bool_state(all[i], "kh");
+        assert(before == (gx_rr[i] == NULL ? 2u : 0u));
+        if (gx_rr[i] != NULL) {
+            invent(gx_rr[i]);
+            (void)call(all[i], "hb", pico8_value_ref(NULL), pico8_value_ref(NULL));
+        }
+        assert(bool_state(all[i], "kh") == 2);
+        h = fnv(h, before);
+        h = fold_icon(h, all[i]);
+    }
+    h = fold_shared(h, all[0]);
+    {
+        /* `dl` prints at `je.ra`, (0,0) here: its label would land off
+         * screen. */
+        pico8_value_t mouse;
+        assert(pico8_entity_get_field(pico8_je(), "ra", &mouse) && mouse.kind == PICO8_VALUE_REF &&
+               mouse.as.ref != NULL);
+        *(pico8_vec_t *)mouse.as.ref = v2(64, 64);
+    }
+    for (i = 0; i < n; i++) {
+        uint32_t plain = draw_alone(all[i]);
+        uint32_t hovered;
+        pico8_entity_set_field(all[i], "m_", pico8_value_bool(1));
+        hovered = draw_alone(all[i]);
+        pico8_entity_set_field(all[i], "m_", pico8_value_bool(0));
+        printf("[ke view] icon %d: 0x%08Xu / 0x%08Xu\n", i, (unsigned)plain, (unsigned)hovered);
+        assert(hovered != plain);
+        h = fnv(h, plain);
+        h = fnv(h, hovered);
+    }
+    check("ke view", h, KE_VIEW_HASH);
+}
+
 /* A second `eu` keeps `gy` and `id` where the last game left them; only
  * `_init` puts `gy` back on `eh`, and nothing resets `id`. */
 static void test_restart(void) {
@@ -790,6 +850,65 @@ static void test_ie_is_a_struct(void) {
     }
 }
 
+static void write_od(void *e) {
+    pico8_entity_set_field(e, "od", pico8_value_fixed(0));
+}
+
+/* `self.ke` read through a struct without parent that carries only the
+ * `rr`/`s`/`me`/`od` of the held class's chain, and no writer. */
+static void test_ke_view_is_a_struct(void) {
+    static const int s[7] = {174, 100, 170, 78, 68, 66, 166};
+    static const int od[7] = {15, 15, 10, 25, 20, 40, 60};
+    static const char *const unknown[] = {"et", "ke", "nu", "hq"};
+    pico8_class_t *classes[7];
+    void *all[16];
+    pico8_ie_ke_t view;
+    int n;
+    int i;
+
+    start_game(PLAYTHROUGH);
+    gx(classes);
+    n = icons(all, 16);
+    check_int("ke view struct icons", n, 7);
+    for (i = 0; i < n; i++) {
+        pico8_value_t v;
+        size_t k;
+
+        assert(get_ref(all[i], "ke") == classes[i]);
+        view = pico8_ie_ke_view(all[i]);
+        assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT &&
+               view.header.cls == pico8_ie_ke_view_struct_class());
+        if (gx_rr[i] == NULL) {
+            assert(!has(&view, "rr"));
+        } else {
+            assert(is_string(&view, "rr", gx_rr[i]));
+        }
+        assert(must_fixed(&view, "s") == pico8_fixed_from_int(s[i]));
+        assert(must_fixed(&view, "od") == pico8_fixed_from_int(od[i]));
+        assert(is_string(&view, "me", "kz"));
+        for (k = 0; k < sizeof unknown / sizeof unknown[0]; k++) {
+            assert(!pico8_entity_get_field(&view, unknown[k], &v));
+        }
+    }
+    must_abort(write_od, &view);
+
+    {
+        pico8_ob_table_t *jb_only = pico8_ob_table_new();
+        void *no_ke;
+        static const char *const members[] = {"rr", "s", "me", "od"};
+        size_t k;
+
+        pico8_ob_table_set_name(jb_only, "jb", pico8_value_ref(pico8_jb_new(NULL)));
+        no_ke = pico8_ie_new(jb_only);
+        pico8_ob_table_free(jb_only);
+        view = pico8_ie_ke_view(no_ke);
+        assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT);
+        for (k = 0; k < sizeof members / sizeof members[0]; k++) {
+            assert(!has(&view, members[k]));
+        }
+    }
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -828,6 +947,8 @@ int main(void) {
     in_fresh_child(test_directed);
     in_fresh_child(test_draw);
     in_fresh_child(test_restart);
+    in_fresh_child(test_ke_view);
+    in_fresh_child(test_ke_view_is_a_struct);
     in_fresh_child(test_ie_is_a_struct);
 
     printf("test_pico8_ie: all tests passed\n");
