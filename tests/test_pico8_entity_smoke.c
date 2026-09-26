@@ -779,6 +779,137 @@ static void test_set_field_on_both_forms(void) {
     pico8_class_registry_clear();
 }
 
+static void read_the_fields_of_a_struct(void) {
+    fake_struct_t s;
+    s.header.tag = PICO8_TYPE_TAG_STRUCT;
+    s.header.cls = &g_fake_struct_class;
+    (void)pico8_instance_fields((const pico8_instance_t *)&s);
+}
+
+/* The accessor hands back an instance's own table, the one a write through
+ * it lands in and get_field reads first; a struct has none and asserts. */
+static void test_instance_fields_accessor(void) {
+    pico8_class_t *cls;
+    pico8_instance_t *inst;
+    pico8_instance_t bare;
+    pico8_value_t v;
+
+    pico8_class_registry_clear();
+    cls = pico8_class_declare(NULL, "\na=1,\n");
+    inst = pico8_class_instantiate(cls, NULL);
+    assert(pico8_instance_fields(inst) == inst->fields);
+    pico8_ob_table_set_name(pico8_instance_fields(inst), "a", pico8_value_fixed(pico8_fixed_from_int(7)));
+    assert(pico8_instance_get_field(inst, "a", &v) && v.kind == PICO8_VALUE_FIXED &&
+           v.as.fixed == pico8_fixed_from_int(7));
+
+    bare.tag = PICO8_TYPE_TAG_INSTANCE;
+    bare.fields = pico8_ob_table_new();
+    bare.cls = NULL;
+    assert(pico8_instance_fields(&bare) == bare.fields);
+    pico8_ob_table_set_name(pico8_instance_fields(&bare), "q", pico8_value_bool(1));
+    assert(pico8_instance_get_field(&bare, "q", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean);
+
+    assert(dies_of_an_assert(read_the_fields_of_a_struct));
+
+    pico8_ob_table_free(bare.fields);
+    pico8_instance_free(inst);
+    pico8_class_free(cls);
+    pico8_class_registry_clear();
+}
+
+static int same_value(pico8_value_t x, pico8_value_t y) {
+    if (x.kind != y.kind) {
+        return 0;
+    }
+    switch (x.kind) {
+    case PICO8_VALUE_FIXED:
+        return x.as.fixed == y.as.fixed;
+    case PICO8_VALUE_STRING:
+        return x.as.string == y.as.string;
+    case PICO8_VALUE_BOOL:
+        return x.as.boolean == y.as.boolean;
+    case PICO8_VALUE_REF:
+        return x.as.ref == y.as.ref;
+    case PICO8_VALUE_FUNCTION:
+        return x.as.function == y.as.function;
+    }
+    return 0;
+}
+
+static void assert_same_read(const pico8_instance_t *inst, const char *name) {
+    pico8_value_t by_instance = pico8_value_fixed(pico8_fixed_from_int(-9));
+    pico8_value_t by_entity = pico8_value_fixed(pico8_fixed_from_int(-9));
+    int found_by_instance = pico8_instance_get_field(inst, name, &by_instance);
+    int found_by_entity = pico8_entity_get_field(inst, name, &by_entity);
+
+    assert(found_by_instance == found_by_entity);
+    assert(same_value(by_instance, by_entity));
+}
+
+/* On an instance the entity API is the single-form one under another name:
+ * same found/absent, same value, a nil of its own masking a default, a
+ * write that overwrites in place or appends in order. */
+static void test_entity_api_matches_instance_api(void) {
+    pico8_class_t *parent;
+    pico8_class_t *child;
+    pico8_instance_t *inst;
+    pico8_instance_t *twin_entity;
+    pico8_instance_t *twin_table;
+    const pico8_ob_table_t *a;
+    const pico8_ob_table_t *b;
+    pico8_value_t v;
+    int own;
+    int i;
+
+    pico8_class_registry_clear();
+    parent = pico8_class_declare(NULL, "\na=1,\n");
+    child = pico8_class_declare(parent, "\na=2,\nb=3,\n");
+    inst = pico8_class_instantiate(child, NULL);
+
+    assert_same_read(inst, "a");
+    assert(pico8_entity_get_field(inst, "a", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(2));
+    assert_same_read(inst, "b");
+    assert(pico8_entity_get_field(inst, "b", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(3));
+    assert_same_read(inst, "z");
+    v = pico8_value_bool(1);
+    assert(!pico8_entity_get_field(inst, "z", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean);
+
+    own = pico8_instance_fields(inst)->count;
+    pico8_entity_set_field(inst, "b", pico8_value_ref(NULL));
+    assert_same_read(inst, "b");
+    assert(pico8_entity_get_field(inst, "b", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == NULL);
+    assert(pico8_instance_fields(inst)->count == own + 1);
+    pico8_entity_set_field(inst, "b", pico8_value_fixed(pico8_fixed_from_int(5)));
+    assert_same_read(inst, "b");
+    assert(pico8_entity_get_field(inst, "b", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(5));
+    assert(pico8_instance_fields(inst)->count == own + 1);
+
+    twin_entity = pico8_class_instantiate(child, NULL);
+    twin_table = pico8_class_instantiate(child, NULL);
+    pico8_entity_set_field(twin_entity, "c", pico8_value_bool(1));
+    pico8_entity_set_field(twin_entity, "a", pico8_value_ref(NULL));
+    pico8_entity_set_field(twin_entity, "c", pico8_value_fixed(pico8_fixed_from_int(4)));
+    pico8_ob_table_set_name(pico8_instance_fields(twin_table), "c", pico8_value_bool(1));
+    pico8_ob_table_set_name(pico8_instance_fields(twin_table), "a", pico8_value_ref(NULL));
+    pico8_ob_table_set_name(pico8_instance_fields(twin_table), "c", pico8_value_fixed(pico8_fixed_from_int(4)));
+    a = pico8_instance_fields(twin_entity);
+    b = pico8_instance_fields(twin_table);
+    assert(a->count == b->count && a->count == 2);
+    for (i = 0; i < a->count; i++) {
+        assert(a->entries[i].key.kind == PICO8_OB_KEY_NAME && b->entries[i].key.kind == PICO8_OB_KEY_NAME);
+        assert(strcmp(a->entries[i].key.name, b->entries[i].key.name) == 0);
+        assert(same_value(a->entries[i].value, b->entries[i].value));
+    }
+    assert(strcmp(a->entries[0].key.name, "c") == 0 && strcmp(a->entries[1].key.name, "a") == 0);
+
+    pico8_instance_free(twin_table);
+    pico8_instance_free(twin_entity);
+    pico8_instance_free(inst);
+    pico8_class_free(child);
+    pico8_class_free(parent);
+    pico8_class_registry_clear();
+}
+
 int main(void) {
     test_entity_dispatch_smoke();
     test_ke_pq_registers_via_lt();
@@ -790,6 +921,8 @@ int main(void) {
     test_instances_and_structs_mix_in_order();
     test_mv_on_a_struct();
     test_set_field_on_both_forms();
+    test_instance_fields_accessor();
+    test_entity_api_matches_instance_api();
 
     printf("test_pico8_entity_smoke: all tests passed\n");
     return 0;

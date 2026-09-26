@@ -106,6 +106,10 @@ void pico8_instance_free(pico8_instance_t *inst);
  * everywhere -- pico8_ob_table_get_name's own "absent" convention. */
 int pico8_instance_get_field(const pico8_instance_t *inst, const char *name, pico8_value_t *out_value);
 
+/* The instance's own fields table, borrowed; never the class chain. `inst`
+ * must not be NULL; an entity struct has no such table and asserts. */
+pico8_ob_table_t *pico8_instance_fields(const pico8_instance_t *inst);
+
 /* Lua's `cls.name`: `cls`'s defaults, then each `parent`'s. Returns 0 and
  * leaves *out_value untouched when `name` is absent from the whole chain.
  * `cls` is borrowed; NULL reads as an empty chain. */

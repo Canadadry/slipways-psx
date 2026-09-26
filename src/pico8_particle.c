@@ -14,7 +14,7 @@
 
 static pico8_fixed_t pico8_particle_field_fixed(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -22,7 +22,7 @@ static pico8_fixed_t pico8_particle_field_fixed(const pico8_instance_t *inst, co
 
 static pico8_vec_t pico8_particle_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -30,7 +30,7 @@ static pico8_vec_t pico8_particle_field_vec(const pico8_instance_t *inst, const 
 
 static pico8_list_t *pico8_particle_field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST(v.as.ref);
     }
     return NULL;
@@ -38,7 +38,7 @@ static pico8_list_t *pico8_particle_field_list(const pico8_instance_t *inst, con
 
 static const pico8_ob_table_t *pico8_particle_field_table(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "particle field read as a table is not one");
         return (const pico8_ob_table_t *)v.as.ref;
     }
@@ -60,13 +60,13 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
 void pico8_f_(pico8_instance_t *self) {
     pico8_list_t *qy;
 
-    if (self == NULL || self->fields == NULL) {
+    if (self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_INSTANCE && pico8_instance_fields(self) == NULL)) {
         return;
     }
 
     qy = malloc(sizeof *qy);
     pico8_list_init(qy);
-    pico8_ob_table_set_name(self->fields, "qy", pico8_value_ref(qy));
+    pico8_entity_set_field(self, "qy", pico8_value_ref(qy));
 }
 
 void pico8_ez(pico8_instance_t *self, pico8_fixed_t n) {

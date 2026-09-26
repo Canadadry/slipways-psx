@@ -148,10 +148,10 @@ static void pico8_hp_pq(pico8_instance_t *self) {
         pico8_ob_table_t *scratch_rc = pico8_ob_table_new();
         pico8_value_t px_val;
 
-        pico8_ho_apply(scratch_rc, mr, &gp_list, self->fields);
+        pico8_ho_apply(scratch_rc, mr, &gp_list, pico8_instance_fields(self));
         pico8_ob_table_free(scratch_rc);
 
-        if (pico8_ob_table_get_name(self->fields, "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
+        if (pico8_ob_table_get_name(pico8_instance_fields(self), "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
             assert(g_gb != NULL && "hp:pq registers itself in gb: build gb before instantiating an hp");
             pico8_ob_table_set_name(g_gb, px_val.as.string, pico8_value_ref(self));
         }
@@ -174,7 +174,7 @@ static void pico8_hp_pq(pico8_instance_t *self) {
         }
         pico8_ob_table_set_index(outer, 2, pico8_value_fixed(pico8_fixed_from_int(32)));
         pico8_ob_table_set_index(outer, 3, pico8_value_ref(inner));
-        pico8_ob_table_set_name(self->fields, "lq", pico8_value_ref(outer));
+        pico8_ob_table_set_name(pico8_instance_fields(self), "lq", pico8_value_ref(outer));
     }
 
     if (pico8_instance_get_field(self, "i", &i_val) && i_val.kind == PICO8_VALUE_STRING && i_val.as.string != NULL) {
@@ -183,7 +183,7 @@ static void pico8_hp_pq(pico8_instance_t *self) {
     new_i = pico8_fi(i_src, pico8_hp_pq_i_step, NULL);
     new_i_heap = malloc(sizeof *new_i_heap);
     *new_i_heap = new_i;
-    pico8_ob_table_set_name(self->fields, "i", pico8_value_ref(new_i_heap));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "i", pico8_value_ref(new_i_heap));
 }
 
 /* `fd` itself is never mutated here, only its nested per-record tables,

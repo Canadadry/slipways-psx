@@ -207,7 +207,7 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
     /* TROU-7 */
     heap_qa = malloc(sizeof *heap_qa);
     *heap_qa = qa;
-    pico8_ob_table_set_name(self->fields, "qa", pico8_value_ref(heap_qa));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "qa", pico8_value_ref(heap_qa));
 
     pico8_ui_gw(mem, self);
 
@@ -227,7 +227,7 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self) {
         }
     }
 
-    pico8_ob_table_set_name(self->fields, "gj", pico8_ui_field_raw(self, "o_"));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "gj", pico8_ui_field_raw(self, "o_"));
 }
 
 /* `(rheld and 9) or (o_ and o_.ql) or self.ql`: a hovered entity whose own
@@ -280,8 +280,8 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
 
     /* TROU-7 */
     ic = pico8_ob_table_new();
-    pico8_ob_table_set_name(self->fields, "ic", pico8_value_ref(ic));
-    pico8_ob_table_set_name(self->fields, "o_", pico8_value_ref(NULL));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "ic", pico8_value_ref(ic));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "o_", pico8_value_ref(NULL));
 
     qa_val = pico8_ui_field_raw(self, "qa");
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
@@ -298,7 +298,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self) {
                 if (pico8_entity_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
                     pico8_ft_index(ic, pico8_ui_to_int(fa_val.as.fixed), pico8_value_ref(e));
                 }
-                pico8_ob_table_set_name(self->fields, "o_", pico8_value_ref(e));
+                pico8_ob_table_set_name(pico8_instance_fields(self), "o_", pico8_value_ref(e));
             }
         }
     }
@@ -347,7 +347,7 @@ void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
         snprintf(down_name, sizeof down_name, "%sdown", bt);
 
         if (pico8_ui_jz(self, down_name, 2, qa_val, je_ra_val, &kv, &kn) && kn.kind == PICO8_VALUE_REF) {
-            pico8_ob_table_set_name(self->fields, ni, kn);
+            pico8_ob_table_set_name(pico8_instance_fields(self), ni, kn);
         }
     }
 
@@ -371,7 +371,7 @@ void pico8_ui_bh(pico8_instance_t *self, const char *bt) {
         }
 
         pico8_mv(held_inst, "ey", 1, ey_arg, pico8_value_ref(NULL), &discard);
-        pico8_ob_table_set_name(self->fields, ni, pico8_value_ref(NULL));
+        pico8_ob_table_set_name(pico8_instance_fields(self), ni, pico8_value_ref(NULL));
     }
 }
 
@@ -447,5 +447,5 @@ void pico8_ui_cj(pico8_instance_t *self) {
     /* TROU-7 */
     heap_le = malloc(sizeof *heap_le);
     pico8_list_init(heap_le);
-    pico8_ob_table_set_name(self->fields, "le", pico8_value_ref(heap_le));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "le", pico8_value_ref(heap_le));
 }

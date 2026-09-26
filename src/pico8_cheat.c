@@ -22,11 +22,11 @@ void pico8_cheat_init(pico8_cheat_t *cheat) {
 
 static void apply(void) {
     pico8_instance_t *fm = pico8_fm();
-    if (fm == NULL || fm->fields == NULL) {
+    if (fm == NULL || pico8_instance_fields(fm) == NULL) {
         return;
     }
-    pico8_ob_table_set_name(fm->fields, "jk", pico8_value_fixed(pico8_fixed_from_int(99)));
-    pico8_ob_table_set_name(fm->fields, "nz", pico8_value_fixed(pico8_fixed_from_int(200)));
+    pico8_ob_table_set_name(pico8_instance_fields(fm), "jk", pico8_value_fixed(pico8_fixed_from_int(99)));
+    pico8_ob_table_set_name(pico8_instance_fields(fm), "nz", pico8_value_fixed(pico8_fixed_from_int(200)));
 }
 
 static int feed(pico8_cheat_t *cheat, int button) {

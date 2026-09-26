@@ -192,7 +192,7 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
     int written;
 
     if (pico8_type_tag_of(e) != PICO8_TYPE_TAG_STRUCT) {
-        pico8_ob_table_set_name(((pico8_instance_t *)e)->fields, name, value);
+        pico8_ob_table_set_name(pico8_instance_fields(e), name, value);
         return;
     }
     header = e;

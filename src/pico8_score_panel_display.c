@@ -164,7 +164,7 @@ static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t
     if (ju != NULL) {
         pico8_value_t c_val;
         int current = pico8_instance_get_field(ju, "c_", &c_val) && pj_display_truthy(c_val);
-        pico8_ob_table_set_name(ju->fields, "c_", pico8_value_bool(!current));
+        pico8_ob_table_set_name(pico8_instance_fields(ju), "c_", pico8_value_bool(!current));
     }
     return pico8_value_bool(1);
 }
@@ -300,9 +300,9 @@ void pico8_pj_ph(pico8_instance_t *self) {
         pico8_ob_table_free(spec2);
 
         if (self != NULL) {
-            pico8_ob_table_set_name(self->fields, "c_", pico8_value_bool(1));
-            pico8_ob_table_set_name(self->fields, "gz", pico8_value_fixed(pico8_fixed_from_int(0)));
-            pico8_ob_table_set_name(self->fields, "fa", pico8_value_fixed(pico8_fixed_from_int(13)));
+            pico8_ob_table_set_name(pico8_instance_fields(self), "c_", pico8_value_bool(1));
+            pico8_ob_table_set_name(pico8_instance_fields(self), "gz", pico8_value_fixed(pico8_fixed_from_int(0)));
+            pico8_ob_table_set_name(pico8_instance_fields(self), "fa", pico8_value_fixed(pico8_fixed_from_int(13)));
         }
     }
 
@@ -342,7 +342,7 @@ void pico8_pj_ph(pico8_instance_t *self) {
             pico8_ob_table_free(s);
 
             if (self != NULL) {
-                pico8_ob_table_set_name(self->fields, "ed", pico8_value_ref(made));
+                pico8_ob_table_set_name(pico8_instance_fields(self), "ed", pico8_value_ref(made));
             }
         }
     }

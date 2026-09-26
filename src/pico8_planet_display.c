@@ -35,7 +35,7 @@ static int pico8_jo_truthy(pico8_value_t v) {
  * as the zero/false/NULL default. */
 static int field_truthy(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
-    if (self == NULL || !pico8_instance_get_field(self, name, &v)) {
+    if (self == NULL || !pico8_entity_get_field(self, name, &v)) {
         return 0;
     }
     return pico8_jo_truthy(v);
@@ -43,7 +43,7 @@ static int field_truthy(const pico8_instance_t *self, const char *name) {
 
 static pico8_fixed_t field_fixed(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
-    if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+    if (self != NULL && pico8_entity_get_field(self, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -51,7 +51,7 @@ static pico8_fixed_t field_fixed(const pico8_instance_t *self, const char *name)
 
 static const pico8_list_t *field_list(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
-    if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (self != NULL && pico8_entity_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
@@ -59,7 +59,7 @@ static const pico8_list_t *field_list(const pico8_instance_t *self, const char *
 
 static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *self, const char *name) {
     pico8_value_t v;
-    if (self != NULL && pico8_instance_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (self != NULL && pico8_entity_get_field(self, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "field read as an ob_table is not one");
         return (const pico8_ob_table_t *)v.as.ref;
     }
@@ -98,10 +98,10 @@ void pico8_jo_hb(pico8_instance_t *self) {
         return;
     }
 
-    if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
         jy_list = PICO8_REF_AS_LIST_CONST(jy_val.as.ref);
     }
-    if (pico8_instance_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
         const pico8_ob_table_t *kw = (const pico8_ob_table_t *)kw_val.as.ref;
         pico8_value_t mu_val;
         if (!pico8_ob_table_get_name(kw, "qe", &qe)) {
@@ -111,13 +111,13 @@ void pico8_jo_hb(pico8_instance_t *self) {
             mu = mu_val.as.fixed;
         }
     }
-    if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
         by_list = PICO8_REF_AS_LIST_CONST(by_val.as.ref);
     }
 
     lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                              pico8_fixed_from_int(0));
-    pico8_ob_table_set_name(self->fields, "lq", pico8_value_ref(lq_result));
+    pico8_entity_set_field(self, "lq", pico8_value_ref(lq_result));
 }
 
 typedef struct {
@@ -174,11 +174,11 @@ void pico8_jo_gh(const pico8_instance_t *self) {
     pico8_list_init(&bs);
 
     bs1 = pico8_ob_table_new();
-    if (pico8_instance_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
+    if (pico8_entity_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
         icon_val = px_val;
     } else {
         pico8_value_t mi_val;
-        if (pico8_instance_get_field(self, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
+        if (pico8_entity_get_field(self, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
             pico8_jo_class() != NULL) {
             pico8_value_t dz_val;
             if (pico8_ob_table_get_name(pico8_jo_class()->defaults, "dz", &dz_val) && dz_val.kind == PICO8_VALUE_REF &&
@@ -190,7 +190,7 @@ void pico8_jo_gh(const pico8_instance_t *self) {
     }
     pico8_ob_table_set_name(bs1, "lq", icon_val);
 
-    if (pico8_instance_get_field(self, "kr", &kr_val) && pico8_jo_truthy(kr_val)) {
+    if (pico8_entity_get_field(self, "kr", &kr_val) && pico8_jo_truthy(kr_val)) {
         pico8_ob_table_t *h_tuple = pico8_ob_table_new();
         int discard_color = 0;
         pico8_fixed_t kr_fixed = (kr_val.kind == PICO8_VALUE_FIXED) ? kr_val.as.fixed : pico8_fixed_from_int(0);
@@ -354,7 +354,7 @@ pico8_value_t pico8_jo_gv(const pico8_instance_t *self, const pico8_instance_t *
     if (self == NULL) {
         return pico8_value_ref(NULL);
     }
-    if (!pico8_instance_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
+    if (!pico8_entity_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
         strcmp(me_val.as.string, "ly") != 0) {
         return pico8_value_ref(NULL);
     }
@@ -492,7 +492,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
      * at the `p` that was passed in. */
     adjusted = pico8_ma(p, self);
 
-    if (pico8_instance_get_field(self, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
+    if (pico8_entity_get_field(self, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
         strcmp(me_val.as.string, "ll") == 0) {
         pico8_fixed_t t = field_fixed(self, "t");
         if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
@@ -512,12 +512,12 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
 
     /* `A and B or C`: a truthy `nk` whose own `s` is absent still falls
      * through to `self.s`, then to the literal 43. */
-    if (pico8_instance_get_field(self, "nk", &nk_val) && pico8_jo_truthy(nk_val) && nk_val.kind == PICO8_VALUE_REF &&
+    if (pico8_entity_get_field(self, "nk", &nk_val) && pico8_jo_truthy(nk_val) && nk_val.kind == PICO8_VALUE_REF &&
         nk_val.as.ref != NULL &&
         pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "s", &s_val) &&
         s_val.kind == PICO8_VALUE_FIXED) {
         spr_index = pico8_fixed_flr_int(s_val.as.fixed);
-    } else if (pico8_instance_get_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
+    } else if (pico8_entity_get_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
         spr_index = pico8_fixed_flr_int(s_val.as.fixed);
     }
     pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
@@ -543,7 +543,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
      * `mv()` resolves the call before returning. */
     {
         pico8_value_t lq_val;
-        if (pico8_instance_get_field(self, "lq", &lq_val) && lq_val.kind == PICO8_VALUE_REF &&
+        if (pico8_entity_get_field(self, "lq", &lq_val) && lq_val.kind == PICO8_VALUE_REF &&
             lq_val.as.ref != NULL) {
             pico8_vec_t offset =
                 pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
@@ -561,7 +561,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
 
     {
         pico8_value_t fo_val;
-        if (pico8_instance_get_field(self, "fo", &fo_val) && pico8_jo_truthy(fo_val) &&
+        if (pico8_entity_get_field(self, "fo", &fo_val) && pico8_jo_truthy(fo_val) &&
             fo_val.kind == PICO8_VALUE_REF && fo_val.as.ref != NULL) {
             pico8_fixed_t dw = pico8_fixed_from_int(0);
             pico8_value_t dw_val;
@@ -581,7 +581,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
             pico8_fillp_transparent(gfx, 0xAAAAu);
             pico8_circfill(gfx, mem, px, py, radius, 2);
             pico8_fillp_reset(gfx);
-            pico8_ob_table_set_name(self->fields, "fo", pico8_value_ref(NULL));
+            pico8_entity_set_field(self, "fo", pico8_value_ref(NULL));
         }
     }
 }

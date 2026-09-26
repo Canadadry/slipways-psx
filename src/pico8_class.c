@@ -323,6 +323,13 @@ int pico8_instance_get_field(const pico8_instance_t *inst, const char *name, pic
     return pico8_class_get_field(inst->cls, name, out_value);
 }
 
+pico8_ob_table_t *pico8_instance_fields(const pico8_instance_t *inst) {
+    assert(pico8_type_tag_of(inst) != PICO8_TYPE_TAG_STRUCT &&
+           "instance_fields: an entity struct has no fields table; read or write it through "
+           "pico8_entity_get_field() / pico8_entity_set_field()");
+    return inst->fields;
+}
+
 int pico8_class_get_field(const pico8_class_t *cls, const char *name, pico8_value_t *out_value) {
     for (; cls != NULL; cls = cls->parent) {
         if (pico8_ob_table_get_name(cls->defaults, name, out_value)) {

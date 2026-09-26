@@ -63,7 +63,7 @@ static pico8_vec_t pico8_mz_value_vec(pico8_value_t v) {
 
 static pico8_vec_t pico8_mz_field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v)) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
         return pico8_mz_value_vec(v);
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -229,7 +229,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
             }
             pt = (pico8_instance_t *)pt_val.as.ref;
 
-            if (pico8_instance_get_field(pt, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
+            if (pico8_entity_get_field(pt, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
                 me_val.as.string != NULL && strcmp(me_val.as.string, "unknown") == 0) {
                 pico8_vec_t pt_p = pico8_mz_field_vec(pt, "p");
                 pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);

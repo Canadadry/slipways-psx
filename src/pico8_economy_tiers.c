@@ -25,7 +25,7 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
 
 static int field_truthy(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst == NULL || !pico8_instance_get_field(inst, name, &v)) {
+    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
     }
     return economy_truthy(v);
@@ -33,7 +33,7 @@ static int field_truthy(const pico8_instance_t *inst, const char *name) {
 
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
@@ -41,7 +41,7 @@ static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *
 
 static pico8_instance_t *field_ref_instance(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (pico8_instance_t *)v.as.ref;
     }
     return NULL;
@@ -82,14 +82,14 @@ static void bd_reset_visit(pico8_instance_t *pt, void *ctx) {
     if (pt == NULL) {
         return;
     }
-    if (pico8_instance_get_field(pt, "cc", &old) && old.kind == PICO8_VALUE_REF && old.as.ref != NULL) {
+    if (pico8_entity_get_field(pt, "cc", &old) && old.kind == PICO8_VALUE_REF && old.as.ref != NULL) {
         pico8_list_free(PICO8_REF_AS_LIST(old.as.ref));
         free(old.as.ref);
     }
     /* TROU-7 */
     cc = malloc(sizeof *cc);
     pico8_list_init(cc);
-    pico8_ob_table_set_name(pt->fields, "cc", pico8_value_ref(cc));
+    pico8_entity_set_field(pt, "cc", pico8_value_ref(cc));
 }
 
 static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
@@ -104,7 +104,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
     if (!pico8_mv(pt, "ib", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &by_val)) {
         by_val = pico8_value_ref(NULL);
     }
-    pico8_ob_table_set_name(pt->fields, "by", by_val);
+    pico8_entity_set_field(pt, "by", by_val);
 
     if (by_val.kind != PICO8_VALUE_REF || by_val.as.ref == NULL) {
         return;
@@ -146,7 +146,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
                     continue;
                 }
                 planet = (pico8_instance_t *)planet_val.as.ref;
-                if (!pico8_instance_get_field(planet, "id", &id_val)) {
+                if (!pico8_entity_get_field(planet, "id", &id_val)) {
                     continue;
                 }
                 /* A slipway with no `hg` set is skipped; Lua would error
@@ -162,7 +162,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
         if (pico8_trade_to(route, &to_val) && to_val.kind == PICO8_VALUE_REF && to_val.as.ref != NULL) {
             pico8_instance_t *dest = (pico8_instance_t *)to_val.as.ref;
             pico8_value_t cc_val;
-            if (pico8_instance_get_field(dest, "cc", &cc_val) && cc_val.kind == PICO8_VALUE_REF &&
+            if (pico8_entity_get_field(dest, "cc", &cc_val) && cc_val.kind == PICO8_VALUE_REF &&
                 cc_val.as.ref != NULL) {
                 pico8_list_add(PICO8_REF_AS_LIST(cc_val.as.ref), e);
             }
@@ -196,7 +196,7 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
         return;
     }
     jw = pico8_dh(pt);
-    has_mi = pico8_instance_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED;
+    has_mi = pico8_entity_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED;
     if (has_mi) {
         mi = mi_val.as.fixed;
     }
@@ -207,7 +207,7 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
             pico8_value_t dm_val;
             if (hn != NULL && pico8_instance_get_field(hn, "dm", &dm_val) && economy_truthy(dm_val)) {
                 pico8_value_t jy_val;
-                if (pico8_instance_get_field(pt, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF &&
+                if (pico8_entity_get_field(pt, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF &&
                     jy_val.as.ref != NULL) {
                     pico8_ob_table_t *entry = pico8_ob_table_new();
                     pico8_ob_table_set_name(entry, "qe", dm_val);
@@ -215,7 +215,7 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
                 }
             }
         }
-        pico8_ob_table_set_name(pt->fields, "mi", pico8_value_fixed(jw));
+        pico8_entity_set_field(pt, "mi", pico8_value_fixed(jw));
         mi = jw;
         *jg = 1;
     }
@@ -237,10 +237,10 @@ static void bb_visit(pico8_instance_t *pt, void *ctx) {
                 if (pico8_ob_table_get_index(po, clamped_idx, &po_val) && po_val.kind == PICO8_VALUE_FIXED) {
                     base = po_val.as.fixed;
                 }
-                if (pico8_instance_get_field(pt, "jh", &jh_val) && jh_val.kind == PICO8_VALUE_FIXED) {
+                if (pico8_entity_get_field(pt, "jh", &jh_val) && jh_val.kind == PICO8_VALUE_FIXED) {
                     jh = jh_val.as.fixed;
                 }
-                if (pico8_instance_get_field(pt, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
+                if (pico8_entity_get_field(pt, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
                     kw_val.as.ref != NULL) {
                     pico8_ob_table_set_name((pico8_ob_table_t *)kw_val.as.ref, "mu",
                                              pico8_value_fixed(pico8_fixed_add(base, jh)));
@@ -266,7 +266,7 @@ pico8_fixed_t pico8_dh(const pico8_instance_t *pt) {
     if (pt == NULL) {
         return pico8_fixed_from_int(0);
     }
-    if (!pico8_instance_get_field(pt, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
+    if (!pico8_entity_get_field(pt, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
         strcmp(me_val.as.string, "ly") != 0) {
         return pico8_fixed_from_int(0);
     }

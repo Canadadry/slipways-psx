@@ -28,7 +28,7 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
 
 static pico8_fixed_t field_fixed(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -36,7 +36,7 @@ static pico8_fixed_t field_fixed(const pico8_instance_t *inst, const char *name)
 
 static int field_truthy(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst == NULL || !pico8_instance_get_field(inst, name, &v)) {
+    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
     }
     return economy_truthy(v);
@@ -44,7 +44,7 @@ static int field_truthy(const pico8_instance_t *inst, const char *name) {
 
 static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (const pico8_ob_table_t *)v.as.ref;
     }
     return NULL;
@@ -52,7 +52,7 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
 
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
@@ -107,7 +107,7 @@ pico8_fixed_t pico8_da(pico8_instance_t *pt) {
         const pico8_ob_table_t *es = pico8_es();
         pico8_value_t mi_val;
         pico8_value_t es_val;
-        if (es != NULL && pico8_instance_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
+        if (es != NULL && pico8_entity_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
             pico8_ob_table_get_index(es, pico8_fixed_flr_int(mi_val.as.fixed), &es_val) &&
             es_val.kind == PICO8_VALUE_FIXED) {
             return es_val.as.fixed;
@@ -142,7 +142,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
     const pico8_js_t *dk = pico8_dk();
     pico8_value_t pt_mi_val;
     pico8_fixed_t pt_mi = pico8_fixed_from_int(0);
-    int has_pt_mi = pico8_instance_get_field(pt, "mi", &pt_mi_val) && pt_mi_val.kind == PICO8_VALUE_FIXED;
+    int has_pt_mi = pico8_entity_get_field(pt, "mi", &pt_mi_val) && pt_mi_val.kind == PICO8_VALUE_FIXED;
     if (has_pt_mi) {
         pt_mi = pt_mi_val.as.fixed;
     }
@@ -182,7 +182,7 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                             ct_pt = v.as.fixed;
                         }
                     }
-                    if (ct != NULL && pico8_instance_get_field(oz, "mi", &oz_mi_val) &&
+                    if (ct != NULL && pico8_entity_get_field(oz, "mi", &oz_mi_val) &&
                         oz_mi_val.kind == PICO8_VALUE_FIXED) {
                         pico8_value_t v;
                         if (pico8_ob_table_get_index(ct, pico8_fixed_flr_int(oz_mi_val.as.fixed), &v) &&
@@ -237,7 +237,7 @@ static void sum_by_mi_visit(pico8_instance_t *pt, void *ctx_) {
     if (!call_gg_truthy(pt) || ctx->table == NULL) {
         return;
     }
-    if (pico8_instance_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
+    if (pico8_entity_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
         pico8_ob_table_get_index(ctx->table, pico8_fixed_flr_int(mi_val.as.fixed), &v) &&
         v.kind == PICO8_VALUE_FIXED) {
         ctx->total = pico8_fixed_add(ctx->total, v.as.fixed);

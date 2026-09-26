@@ -79,7 +79,7 @@ void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw) {
         return;
     }
 
-    if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
         oe = PICO8_REF_AS_LIST(oe_val.as.ref);
     }
     if (oe != NULL) {
@@ -89,9 +89,9 @@ void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw) {
     if (sw != NULL && pico8_mv(sw, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
         eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
         pico8_value_t fx_val;
-        if (pico8_instance_get_field((const pico8_instance_t *)eb_result.as.ref, "fx", &fx_val) &&
+        if (pico8_entity_get_field((const pico8_instance_t *)eb_result.as.ref, "fx", &fx_val) &&
             pico8_jo_truthy(fx_val)) {
-            pico8_ob_table_set_name(self->fields, "fx", pico8_value_bool(1));
+            pico8_entity_set_field(self, "fx", pico8_value_bool(1));
         }
     }
 
@@ -124,12 +124,12 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     have_r_e = pico8_ob_table_get_name(r, "e", &r_e);
     have_r_q = pico8_ob_table_get_name(r, "?", &r_q);
 
-    if (pico8_instance_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
         jy = PICO8_REF_AS_LIST(jy_val.as.ref);
     }
 
     if (have_r_e && pico8_value_equal(t_qe, r_e) &&
-        !(pico8_instance_get_field(self, "jh", &jh_val) && pico8_jo_truthy(jh_val))) {
+        !(pico8_entity_get_field(self, "jh", &jh_val) && pico8_jo_truthy(jh_val))) {
         it = pico8_list_all(jy);
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
@@ -169,10 +169,10 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
 
             merged_heap = malloc(sizeof *merged_heap);
             *merged_heap = merged;
-            pico8_ob_table_set_name(self->fields, "jy", pico8_value_ref(merged_heap));
+            pico8_entity_set_field(self, "jy", pico8_value_ref(merged_heap));
             jy = merged_heap;
         }
-        pico8_ob_table_set_name(self->fields, "jh", pico8_value_fixed(pico8_fixed_from_int(1)));
+        pico8_entity_set_field(self, "jh", pico8_value_fixed(pico8_fixed_from_int(1)));
     }
 
     it = pico8_list_all(jy);
@@ -194,7 +194,7 @@ void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
             const pico8_ob_table_t *ba_table = NULL;
             int accepted = 0;
 
-            if (pico8_instance_get_field(self, "ba", &ba_val) && ba_val.kind == PICO8_VALUE_REF &&
+            if (pico8_entity_get_field(self, "ba", &ba_val) && ba_val.kind == PICO8_VALUE_REF &&
                 ba_val.as.ref != NULL) {
                 ba_table = (const pico8_ob_table_t *)ba_val.as.ref;
             }
@@ -235,14 +235,14 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
         return NULL;
     }
 
-    if (pico8_instance_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "by", &by_val) && by_val.kind == PICO8_VALUE_REF && by_val.as.ref != NULL) {
         ib = PICO8_REF_AS_LIST(by_val.as.ref);
     } else {
         ib = malloc(sizeof *ib);
         pico8_list_init(ib);
     }
 
-    if (pico8_instance_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
         const pico8_ob_table_t *kw = (const pico8_ob_table_t *)kw_val.as.ref;
         pico8_value_t mu_val;
 
@@ -254,7 +254,7 @@ pico8_list_t *pico8_jo_ib(pico8_instance_t *self) {
         }
     }
 
-    if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
         oe = PICO8_REF_AS_LIST_CONST(oe_val.as.ref);
     }
 

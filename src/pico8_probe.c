@@ -46,7 +46,7 @@ static pico8_fixed_t pico8_probe_field_fixed(const pico8_instance_t *inst, const
 
 static int pico8_probe_field_truthy(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst == NULL || !pico8_instance_get_field(inst, name, &v)) {
+    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
     }
     return pico8_probe_truthy(v);
@@ -125,7 +125,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_fixed_t dw;
     pico8_value_t et;
 
-    if (self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_INSTANCE && self->fields == NULL)) {
+    if (self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_INSTANCE && pico8_instance_fields(self) == NULL)) {
         return;
     }
 

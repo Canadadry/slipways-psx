@@ -61,7 +61,7 @@ pico8_value_t pico8_nr_gv(const pico8_instance_t *self, const pico8_instance_t *
     }
     qu_not_self = !(qu_val.kind == PICO8_VALUE_REF && qu_val.as.ref == (const void *)self);
 
-    if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
         oe_count = PICO8_REF_AS_LIST_CONST(oe_val.as.ref)->count;
     }
 
@@ -129,11 +129,11 @@ void pico8_nr_hb(pico8_instance_t *self) {
         return;
     }
 
-    if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
         oe_count = PICO8_REF_AS_LIST_CONST(oe_val.as.ref)->count;
     }
 
-    if (pico8_instance_get_field(self, "hz", &hz_val) && hz_val.kind == PICO8_VALUE_REF && hz_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "hz", &hz_val) && hz_val.kind == PICO8_VALUE_REF && hz_val.as.ref != NULL) {
         pico8_value_t entry;
         if (pico8_ob_table_get_index((const pico8_ob_table_t *)hz_val.as.ref, oe_count + 1, &entry) &&
             entry.kind == PICO8_VALUE_FIXED) {
@@ -141,7 +141,7 @@ void pico8_nr_hb(pico8_instance_t *self) {
         }
     }
 
-    pico8_ob_table_set_name(self->fields, "s", pico8_value_fixed(s_val));
+    pico8_entity_set_field(self, "s", pico8_value_fixed(s_val));
 }
 
 static pico8_value_t pico8_nr_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -164,7 +164,7 @@ void pico8_nr_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw) {
     }
     t = lw->t;
 
-    if (pico8_instance_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
+    if (pico8_entity_get_field(self, "oe", &oe_val) && oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
         oe = PICO8_REF_AS_LIST_CONST(oe_val.as.ref);
     }
 
@@ -238,7 +238,7 @@ void pico8_mx_kf(pico8_instance_t *self, pico8_instance_t *sw) {
         pico8_list_iter_t it;
         pico8_value_t i_val;
 
-        if (pico8_instance_get_field(cp, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
+        if (pico8_entity_get_field(cp, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
             jy = PICO8_REF_AS_LIST_CONST(jy_val.as.ref);
         }
 
@@ -265,7 +265,7 @@ void pico8_mx_kf(pico8_instance_t *self, pico8_instance_t *sw) {
                 pico8_value_t ht_val;
                 const pico8_ob_table_t *ht_table = NULL;
 
-                if (pico8_instance_get_field(self, "ht", &ht_val) && ht_val.kind == PICO8_VALUE_REF &&
+                if (pico8_entity_get_field(self, "ht", &ht_val) && ht_val.kind == PICO8_VALUE_REF &&
                     ht_val.as.ref != NULL) {
                     ht_table = (const pico8_ob_table_t *)ht_val.as.ref;
                 }
@@ -275,14 +275,14 @@ void pico8_mx_kf(pico8_instance_t *self, pico8_instance_t *sw) {
                     pico8_list_free(&ht_list);
                     if (accepted) {
                         pico8_value_t kw_val;
-                        if (pico8_instance_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
+                        if (pico8_entity_get_field(self, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
                             kw_val.as.ref != NULL) {
                             pico8_ob_table_set_name((pico8_ob_table_t *)kw_val.as.ref, "qe", qe_val);
                         }
                         /* Instance-level write: the previous `ht` is
                          * `mx`'s class default, shared by every other
                          * instance, and must not be freed. */
-                        pico8_ob_table_set_name(self->fields, "ht", pico8_value_ref(pico8_ob_table_new()));
+                        pico8_entity_set_field(self, "ht", pico8_value_ref(pico8_ob_table_new()));
                     }
                 }
             }

@@ -278,7 +278,7 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
         pico8_fixed_t capped = fixed_min(gz, PICO8_FIXED_LIT(0x00033333, 3.2));
         pico8_fixed_t h = pico8_fixed_mul(capped, capped);
 
-        pico8_ob_table_set_name(self->fields, "gz", pico8_value_fixed(gz));
+        pico8_ob_table_set_name(pico8_instance_fields(self), "gz", pico8_value_fixed(gz));
         pico8_rk(gfx, mem, pico8_fixed_from_int(0), h, 0);
         /* The cart's only colour-less `rk`: the bottom bar inherits the pen
          * colour the line above leaves behind. Passing a colour here would

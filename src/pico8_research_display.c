@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_entity.h"
 #include "pico8_layout.h"
 #include "pico8_research.h"
 #include "pico8_stash.h"
@@ -310,12 +311,12 @@ pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
         return NULL;
     }
 
-    next_index = pico8_research_display_count_positional(l->fields) + 1;
+    next_index = pico8_research_display_count_positional(pico8_instance_fields(l)) + 1;
     if (pico8_ob_table_get_name(pico8_hp_class()->defaults, "fk", &fk_val)) {
-        pico8_ob_table_set_index(l->fields, next_index++, fk_val);
+        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, fk_val);
     }
     if (pico8_instance_get_field(self, "px", &px_val)) {
-        pico8_ob_table_set_index(l->fields, next_index++, px_val);
+        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, px_val);
     }
 
     return l;
@@ -350,7 +351,7 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
 
-    if (ctx->jo_instance != NULL && pico8_instance_get_field(ctx->jo_instance, "nk", &nk_val) &&
+    if (ctx->jo_instance != NULL && pico8_entity_get_field(ctx->jo_instance, "nk", &nk_val) &&
         nk_val.kind == PICO8_VALUE_REF && nk_val.as.ref != NULL &&
         pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "px", &px_val) &&
         px_val.kind == PICO8_VALUE_STRING) {

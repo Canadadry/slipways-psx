@@ -27,7 +27,7 @@ static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
 
     switch (pico8_type_tag_of(v.as.ref)) {
     case PICO8_TYPE_TAG_INSTANCE:
-        return ((const pico8_instance_t *)v.as.ref)->fields;
+        return pico8_instance_fields((const pico8_instance_t *)v.as.ref);
     case PICO8_TYPE_TAG_OB_TABLE:
         return (const pico8_ob_table_t *)v.as.ref;
     case PICO8_TYPE_TAG_LIST:

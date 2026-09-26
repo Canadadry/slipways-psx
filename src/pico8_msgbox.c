@@ -429,7 +429,7 @@ static int pico8_pz_step(pico8_value_t e, void *ctx_v, pico8_value_t *out_value)
     pico8_ob_table_set_name(b, "qf", pico8_value_ref(qf_heap));
 
     /* TROU-9 */
-    if (pico8_instance_get_field(ctx->p, "ca", &ca_val)) {
+    if (pico8_entity_get_field(ctx->p, "ca", &ca_val)) {
         pico8_ob_table_set_name(b, "fa", ca_val);
     }
 
@@ -459,7 +459,7 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
         return;
     }
 
-    if (pico8_instance_get_field(p, "ep", &ep_val) && pico8_msgbox_truthy(ep_val)) {
+    if (pico8_entity_get_field(p, "ep", &ep_val) && pico8_msgbox_truthy(ep_val)) {
         pico8_ob_table_t *inner = pico8_ob_table_new();
         pico8_ob_table_t *outer = pico8_ob_table_new();
         pico8_list_t prefix_item;
@@ -477,14 +477,14 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
         bs_effective = &merged;
     }
 
-    if (pico8_instance_get_field(p, "eo", &eo_val) && pico8_msgbox_truthy(eo_val)) {
+    if (pico8_entity_get_field(p, "eo", &eo_val) && pico8_msgbox_truthy(eo_val)) {
         rn_arg = eo_val;
     } else {
         rn_arg = pico8_value_fixed(pico8_fixed_from_int(62));
     }
     pico8_rn(rn_arg);
 
-    if (pico8_instance_get_field(p, "hi", &hi_val) && pico8_msgbox_truthy(hi_val) &&
+    if (pico8_entity_get_field(p, "hi", &hi_val) && pico8_msgbox_truthy(hi_val) &&
         hi_val.kind == PICO8_VALUE_REF && hi_val.as.ref != NULL) {
         ra = *(const pico8_vec_t *)hi_val.as.ref;
     } else {
@@ -503,7 +503,7 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     le_heap = malloc(sizeof *le_heap);
     *le_heap = pico8_nv(bs_effective, pico8_pz_step, &ctx);
     if (ok != NULL) {
-        pico8_ob_table_set_name(ok->fields, "le", pico8_value_ref(le_heap));
+        pico8_ob_table_set_name(pico8_instance_fields(ok), "le", pico8_value_ref(le_heap));
     } else {
         pico8_list_free(le_heap);
         free(le_heap);
@@ -516,9 +516,9 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     /* TROU-7 */
     /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
-    if (pico8_instance_get_field(p, "ff", &ff_val) && pico8_msgbox_truthy(ff_val) && ok != NULL) {
+    if (pico8_entity_get_field(p, "ff", &ff_val) && pico8_msgbox_truthy(ff_val) && ok != NULL) {
         pico8_list_t *empty_heap = malloc(sizeof *empty_heap);
         pico8_list_init(empty_heap);
-        pico8_ob_table_set_name(ok->fields, "le", pico8_value_ref(empty_heap));
+        pico8_ob_table_set_name(pico8_instance_fields(ok), "le", pico8_value_ref(empty_heap));
     }
 }

@@ -61,7 +61,7 @@ int pico8_gd(const pico8_instance_t *e) {
 
 void pico8_na(pico8_instance_t *self, pico8_fixed_t t) {
     pico8_value_t ra;
-    if (self != NULL && pico8_instance_get_field(self, "ra", &ra) && ra.kind == PICO8_VALUE_REF && ra.as.ref != NULL) {
+    if (self != NULL && pico8_entity_get_field(self, "ra", &ra) && ra.kind == PICO8_VALUE_REF && ra.as.ref != NULL) {
         pico8_vec_t *ra_vec = (pico8_vec_t *)ra.as.ref;
         pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000147, 0.005))),
                                                PICO8_FIXED_LIT(0x00000f5c, 0.06));

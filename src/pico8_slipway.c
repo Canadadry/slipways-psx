@@ -115,9 +115,9 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
         placeholder->tag = PICO8_TYPE_TAG_INSTANCE;
         placeholder->cls = NULL;
         placeholder->fields = pico8_ob_table_new();
-        pico8_ob_table_set_name(placeholder->fields, "ra", mp);
+        pico8_ob_table_set_name(pico8_instance_fields(placeholder), "ra", mp);
         *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
-        pico8_ob_table_set_name(placeholder->fields, "p", pico8_value_ref(p_heap));
+        pico8_ob_table_set_name(pico8_instance_fields(placeholder), "p", pico8_value_ref(p_heap));
         re_val = pico8_value_ref(placeholder);
     }
     self->re = re_val;
@@ -256,7 +256,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
         placeholder->tag = PICO8_TYPE_TAG_INSTANCE;
         placeholder->cls = NULL;
         placeholder->fields = pico8_ob_table_new();
-        pico8_ob_table_set_name(placeholder->fields, "qs", pico8_value_string("-too far-"));
+        pico8_ob_table_set_name(pico8_instance_fields(placeholder), "qs", pico8_value_string("-too far-"));
         return pico8_value_ref(placeholder);
     }
 

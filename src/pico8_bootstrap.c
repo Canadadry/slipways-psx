@@ -98,7 +98,7 @@ void pico8_dg(void) {
             if (pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) {
                 ((pico8_ke_t *)qc)->t = t_next;
             } else {
-                pico8_ob_table_set_name(qc->fields, "t", t_next);
+                pico8_ob_table_set_name(pico8_instance_fields(qc), "t", t_next);
             }
         }
     }

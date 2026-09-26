@@ -16,7 +16,7 @@ static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
 
 static int field_truthy(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst == NULL || !pico8_instance_get_field(inst, name, &v)) {
+    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
     }
     return economy_truthy(v);
@@ -24,7 +24,7 @@ static int field_truthy(const pico8_instance_t *inst, const char *name) {
 
 static pico8_vec_t field_vec(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -32,7 +32,7 @@ static pico8_vec_t field_vec(const pico8_instance_t *inst, const char *name) {
 
 static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (const pico8_ob_table_t *)v.as.ref;
     }
     return NULL;
@@ -40,7 +40,7 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
 
 static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
     pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;

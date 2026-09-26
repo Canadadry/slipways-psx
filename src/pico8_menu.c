@@ -282,7 +282,7 @@ static pico8_value_t pico8_ix1_my_dispatch(void *self, int argc, pico8_value_t a
     (void)arg0;
     (void)arg1;
     if (fm != NULL) {
-        pico8_ob_table_set_name(fm->fields, "lo", pico8_value_fixed(pico8_fixed_from_int(1)));
+        pico8_ob_table_set_name(pico8_instance_fields(fm), "lo", pico8_value_fixed(pico8_fixed_from_int(1)));
     }
     pico8_hy_hk(fm);
     return pico8_value_ref(NULL);
@@ -339,7 +339,7 @@ static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t a
     (void)arg0;
     (void)arg1;
     if (ju != NULL) {
-        pico8_ob_table_set_name(ju->fields, "c_", pico8_value_bool(1));
+        pico8_ob_table_set_name(pico8_instance_fields(ju), "c_", pico8_value_bool(1));
     }
     built = pico8_fq_new(pico8_de());
     (void)built;

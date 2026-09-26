@@ -185,7 +185,7 @@ static int pico8_lq_pq_step(pico8_value_t f, void *ctx_ptr, pico8_value_t *out_v
 /* ctx.fs starts at 0 where Lua's own `fs` starts nil, so a zero-item lq()
  * yields w=0 here and would error in Lua. No call site builds one. */
 static void pico8_lq_pq(pico8_instance_t *self) {
-    pico8_list_t items = pico8_layout_positional_values(self->fields);
+    pico8_list_t items = pico8_layout_positional_values(pico8_instance_fields(self));
     pico8_lq_pq_ctx_t ctx;
     pico8_list_t *fs_heap;
 
@@ -198,8 +198,8 @@ static void pico8_lq_pq(pico8_instance_t *self) {
     *fs_heap = pico8_nv(&items, pico8_lq_pq_step, &ctx);
     pico8_list_free(&items);
 
-    pico8_ob_table_set_name(self->fields, "fs", pico8_value_ref(fs_heap));
-    pico8_ob_table_set_name(self->fields, "w", pico8_value_fixed(pico8_fixed_sub(ctx.w, ctx.fs)));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "fs", pico8_value_ref(fs_heap));
+    pico8_ob_table_set_name(pico8_instance_fields(self), "w", pico8_value_fixed(pico8_fixed_sub(ctx.w, ctx.fs)));
 }
 
 static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_item_t *item,
