@@ -17,8 +17,8 @@
  * the very tables of jo's class, `kw` until `lz` replaces it: never written
  * through, save `kw` in place as the cart does), its construction keys
  * `id`/`p`/`ra`, then every field jo's functions and the generic writers
- * of `cg.jo` write on it. jo's functions still take a pico8_instance_t *:
- * the daughters reach them. Nothing frees the struct: TROU-7. */
+ * of `cg.jo` write on it. Every planet struct begins with one, so jo's
+ * functions take it for `self`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     pico8_value_t nu;
@@ -66,8 +66,7 @@ void pico8_jo_shutdown(void);
 
 /* NULL before `pico8_jo_init()` and after `pico8_jo_shutdown()`. Also
  * reachable as `pico8_class_lookup_named("jo")`; its instantiation builds
- * a pico8_jo_t, while a daughter still inherits the class's defaults and
- * methods. */
+ * a pico8_jo_t. */
 pico8_class_t *pico8_jo_class(void);
 const pico8_struct_class_t *pico8_jo_struct_class(void);
 
@@ -90,11 +89,10 @@ pico8_jo_t *pico8_jo_new(const pico8_ob_table_t *overrides);
  * `pico8_jo_init()`. */
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls);
 
-/* jo's pq, the effective pq of a daughter that has none of its own. */
-void pico8_jo_pq(pico8_instance_t *self);
+void pico8_jo_pq(pico8_jo_t *self);
 
-/* The dispatchers jo's descriptor and its class `defaults` hold, for a
- * daughter's `static const` descriptor to name. */
+/* The dispatchers jo's descriptor holds, for a daughter's `static const`
+ * descriptor to name. */
 pico8_value_t pico8_jo_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 pico8_value_t pico8_jo_gg_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 pico8_value_t pico8_jo_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
@@ -108,32 +106,32 @@ pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pic
 pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 /* TROU-7 */
-void pico8_jo_lz(pico8_instance_t *self, pico8_instance_t *hp_instance);
+void pico8_jo_lz(pico8_jo_t *self, pico8_instance_t *hp_instance);
 
 /* TROU-3 */
 /* Returns `self.hf` itself when that field is falsy (Lua's `A and B`), a
  * real boolean otherwise -- deliberately not collapsed to a C int. */
-pico8_value_t pico8_jo_gg(const pico8_instance_t *self);
+pico8_value_t pico8_jo_gg(const pico8_jo_t *self);
 
-void pico8_jo_kd(pico8_instance_t *self);
+void pico8_jo_kd(pico8_jo_t *self);
 
 /* No textual `:ll(` call site exists: `dg()` reaches this by state name
- * (`qc[qc.me]`), through the `"ll"` field `pico8_jo_init()` installs. */
-void pico8_jo_ll(pico8_instance_t *self, pico8_fixed_t t);
+ * (`qc[qc.me]`), through the `LL` entry of a planet's descriptor. */
+void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t);
 
 /* In the `hp.cw` branch `self` is marked for removal and the tail of the
  * work lands on a fresh instance the caller never sees -- or on nothing,
  * when no class is registered under `hp.cw`. */
-void pico8_jo_hu(pico8_instance_t *self, pico8_instance_t *hp_instance);
+void pico8_jo_hu(pico8_jo_t *self, pico8_instance_t *hp_instance);
 
-void pico8_jo_hh(pico8_instance_t *self);
+void pico8_jo_hh(pico8_jo_t *self);
 
-void pico8_jo_hk(const pico8_instance_t *self);
+void pico8_jo_hk(const pico8_jo_t *self);
 
 /* TROU-6 */
 /* Returns a freshly built `jc` instance, Lua true, or nil; the caller
  * (`ui:bh`) keeps whatever comes back, and nothing frees the instance. */
-pico8_value_t pico8_jo_ldown(pico8_instance_t *self);
+pico8_value_t pico8_jo_ldown(pico8_jo_t *self);
 
 /* Both take ownership and free the previous generator; NULL is the valid
  * way back to "none", and `pico8_jo_shutdown()` releases whichever is set.

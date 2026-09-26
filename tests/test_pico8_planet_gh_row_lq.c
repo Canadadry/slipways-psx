@@ -110,7 +110,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     planet->gq = pico8_value_ref(gq);
 
     /* The call under test: this is where the overflow happened. */
-    pico8_jo_gh((const pico8_instance_t *)planet);
+    pico8_jo_gh(planet);
 
     le = ok_le();
     /* The icon row, whose "lq" really is an ob_table, plus the "exports:"

@@ -330,7 +330,7 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nr");
 #endif
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
     return self;
 }
@@ -412,7 +412,7 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fr");
 #endif
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->nr.qh.jo.ke);
     return self;
 }
@@ -480,7 +480,7 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_instance_t *sw) {
         }
     }
 
-    pico8_jo_kf((pico8_instance_t *)self, sw);
+    pico8_jo_kf((pico8_jo_t *)self, sw);
 }
 
 static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -588,7 +588,7 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("mx");
 #endif
     pico8_f_((pico8_instance_t *)self);
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
     return self;
 }

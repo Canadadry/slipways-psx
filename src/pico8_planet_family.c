@@ -36,14 +36,6 @@ static int pico8_pf_truthy(pico8_value_t v) {
     return 1;
 }
 
-static pico8_fixed_t pico8_pf_field_fixed(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
 static pico8_vec_t pico8_pf_value_vec(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
@@ -192,7 +184,7 @@ static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("qh");
 #endif
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->jo.ke);
     return self;
 }
@@ -325,7 +317,7 @@ static void *pico8_nl_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nl");
 #endif
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
     return self;
 }
@@ -395,7 +387,7 @@ static void *pico8_os_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("os");
 #endif
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
     return self;
 }
@@ -410,7 +402,7 @@ void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_hj_t *self, pico8_vec
     if (pico8_pf_truthy(mi_val) && mi_val.kind == PICO8_VALUE_FIXED && mi_val.as.fixed >= pico8_fixed_from_int(2)) {
         pico8_ei(gfx, mem, (pico8_instance_t *)self);
     }
-    pico8_jo_kj(gfx, mem, (pico8_instance_t *)self, p);
+    pico8_jo_kj(gfx, mem, (pico8_jo_t *)self, p);
 }
 
 pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -541,7 +533,7 @@ static void *pico8_hj_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("hj");
 #endif
     pico8_f_((pico8_instance_t *)self);
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
     return self;
 }
@@ -551,7 +543,7 @@ void pico8_pm_pq(pico8_pm_t *self) {
     pico8_vec_t *spawn_ra_heap;
     pico8_ob_table_t *defaults;
     pico8_ob_table_t *overrides;
-    pico8_instance_t *spawned;
+    pico8_ga_t *spawned;
 
     if (self == NULL) {
         return;
@@ -686,19 +678,95 @@ static void *pico8_pm_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_pm_pq(self);
     pico8_f_((pico8_instance_t *)self);
-    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
     return self;
 }
 
-void pico8_ga_pq(pico8_instance_t *self) {
+/* ga's own defaults, read once from its class at init, after the swap of
+ * `by`: the very values its `defaults` holds, tables included. Each lands in
+ * the member of that name, jo's when it has one. */
+static struct {
+    const char *name;
+    size_t offset;
+    pico8_value_t value;
+} g_ga_defaults[] = {
+    {"fz", offsetof(pico8_ga_t, fz), {0}},    {"nu", offsetof(pico8_ga_t, jo.nu), {0}},
+    {"hf", offsetof(pico8_ga_t, jo.hf), {0}}, {"by", offsetof(pico8_ga_t, jo.by), {0}},
+    {"kq", offsetof(pico8_ga_t, jo.kq), {0}}, {"fa", offsetof(pico8_ga_t, jo.fa), {0}},
+    {"fc", offsetof(pico8_ga_t, fc), {0}},    {"qo", offsetof(pico8_ga_t, qo), {0}},
+    {"ro", offsetof(pico8_ga_t, ro), {0}},    {"qg", offsetof(pico8_ga_t, qg), {0}},
+    {"q_", offsetof(pico8_ga_t, q_), {0}},    {"k_", offsetof(pico8_ga_t, k_), {0}},
+    {"iu", offsetof(pico8_ga_t, iu), {0}},    {"py", offsetof(pico8_ga_t, py), {0}},
+    {"ms", offsetof(pico8_ga_t, ms), {0}},
+};
+
+static void pico8_ga_defaults_reset(void) {
+    size_t i;
+    for (i = 0; i < sizeof g_ga_defaults / sizeof g_ga_defaults[0]; i++) {
+        g_ga_defaults[i].value = pico8_value_ref(NULL);
+    }
+}
+
+/* The default `name` of ga's class, nil outside init..shutdown. */
+static pico8_value_t pico8_ga_default(const char *name) {
+    size_t i;
+    for (i = 0; i < sizeof g_ga_defaults / sizeof g_ga_defaults[0]; i++) {
+        if (strcmp(g_ga_defaults[i].name, name) == 0) {
+            return g_ga_defaults[i].value;
+        }
+    }
+    return pico8_value_ref(NULL);
+}
+
+static const struct {
+    const char *name;
+    size_t offset;
+} g_ga_members[] = {
+    {"fz", offsetof(pico8_ga_t, fz)}, {"fc", offsetof(pico8_ga_t, fc)}, {"qo", offsetof(pico8_ga_t, qo)},
+    {"ro", offsetof(pico8_ga_t, ro)}, {"qg", offsetof(pico8_ga_t, qg)}, {"q_", offsetof(pico8_ga_t, q_)},
+    {"k_", offsetof(pico8_ga_t, k_)}, {"iu", offsetof(pico8_ga_t, iu)}, {"py", offsetof(pico8_ga_t, py)},
+    {"ms", offsetof(pico8_ga_t, ms)}, {"qy", offsetof(pico8_ga_t, qy)},
+};
+
+static int pico8_ga_field(const void *self, const char *name, pico8_value_t *out_value) {
+    size_t i;
+
+    for (i = 0; i < sizeof g_ga_members / sizeof g_ga_members[0]; i++) {
+        if (strcmp(name, g_ga_members[i].name) == 0) {
+            const pico8_value_t *member = (const pico8_value_t *)((const char *)self + g_ga_members[i].offset);
+            if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+                return 0;
+            }
+            *out_value = *member;
+            return 1;
+        }
+    }
+    return pico8_jo_struct_class()->field(self, name, out_value);
+}
+
+/* `qy`, which ga's own `pq` (`f_`) writes, then jo's 17 names; 0 for any
+ * other. */
+static int pico8_ga_set_field(void *self, const char *name, pico8_value_t value) {
+    if (strcmp(name, "qy") == 0) {
+        ((pico8_ga_t *)self)->qy = value;
+        return 1;
+    }
+    return pico8_jo_struct_class()->set_field(self, name, value);
+}
+
+static pico8_fixed_t pico8_ga_fixed(pico8_value_t v) {
+    return v.kind == PICO8_VALUE_FIXED ? v.as.fixed : pico8_fixed_from_int(0);
+}
+
+void pico8_ga_pq(pico8_ga_t *self) {
     pico8_instance_t *mo;
 
     if (self == NULL) {
         return;
     }
-    pico8_f_(self);
-    pico8_ez(self, pico8_fixed_from_int(140));
+    pico8_f_((pico8_instance_t *)self);
+    pico8_ez((pico8_instance_t *)self, pico8_fixed_from_int(140));
 
     mo = pico8_mo();
     if (mo != NULL) {
@@ -707,7 +775,7 @@ void pico8_ga_pq(pico8_instance_t *self) {
 }
 
 pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *self = (pico8_instance_t *)self_ptr;
+    const pico8_ga_t *self = (const pico8_ga_t *)self_ptr;
     pico8_fixed_t qd;
     pico8_fixed_t ms;
     pico8_fixed_t iu;
@@ -731,9 +799,9 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     }
     p = pico8_vec_qm(qd, pico8_fixed_rnd_default());
 
-    ms = pico8_pf_field_fixed(self, "ms");
-    iu = pico8_pf_field_fixed(self, "iu");
-    py = pico8_pf_field_fixed(self, "py");
+    ms = pico8_ga_fixed(self->ms);
+    iu = pico8_ga_fixed(self->iu);
+    py = pico8_ga_fixed(self->py);
 
     v = pico8_vec_mul(p, ms);
     a = pico8_vec_mul(p, iu);
@@ -753,8 +821,7 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     return pico8_value_ref(particle);
 }
 
-void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
-    pico8_value_t qy_val;
+void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p) {
     const pico8_list_t *qy = NULL;
     pico8_ob_table_t *last_pt = NULL;
     int i;
@@ -765,8 +832,8 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         return;
     }
 
-    if (pico8_entity_get_field(self, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL) {
-        qy = PICO8_REF_AS_LIST_CONST(qy_val.as.ref);
+    if (self->qy.kind == PICO8_VALUE_REF && self->qy.as.ref != NULL) {
+        qy = PICO8_REF_AS_LIST_CONST(self->qy.as.ref);
     }
 
     px = pico8_fixed_flr_int(p.x);
@@ -800,8 +867,9 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
                 l = l_field.as.fixed;
             }
             idx = pico8_fixed_flr_int(pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))));
-            if (g_ga_class != NULL && pico8_ob_table_get_name(g_ga_class->defaults, "k_", &k_val) &&
-                k_val.kind == PICO8_VALUE_REF && k_val.as.ref != NULL &&
+            /* TROU-21 */
+            k_val = pico8_ga_default("k_");
+            if (k_val.kind == PICO8_VALUE_REF && k_val.as.ref != NULL &&
                 pico8_ob_table_get_index((const pico8_ob_table_t *)k_val.as.ref, idx, &k_entry) &&
                 k_entry.kind == PICO8_VALUE_FIXED) {
                 color = pico8_fixed_flr_int(k_entry.as.fixed);
@@ -815,8 +883,8 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
         last_pt = pt;
     }
 
-    pico8_ei(gfx, mem, self);
-    pico8_entity_set_field(self, "p_", pico8_value_bool(last_pt == NULL));
+    pico8_ei(gfx, mem, (pico8_instance_t *)self);
+    self->jo.p_ = pico8_value_bool(last_pt == NULL);
 }
 
 static pico8_value_t pico8_ga_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -826,8 +894,72 @@ static pico8_value_t pico8_ga_kj_dispatch(void *self, int argc, pico8_value_t ar
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
         p = *(const pico8_vec_t *)arg0.as.ref;
     }
-    pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self, p);
+    pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ga_t *)self, p);
     return pico8_value_ref(NULL);
+}
+
+static const pico8_struct_class_t g_ga_struct_class = {
+    {
+        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
+        [PICO8_METHOD_KJ] = pico8_ga_kj_dispatch,
+        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
+        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
+        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
+        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
+        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
+        [PICO8_METHOD_MM] = pico8_ga_mm,
+    },
+    pico8_ga_field,
+    pico8_ga_set_field,
+};
+
+static void *pico8_ga_struct_new(const pico8_ob_table_t *overrides) {
+    static const struct {
+        const char *name;
+        size_t offset;
+    } keys[] = {
+        {"p", offsetof(pico8_ga_t, jo.p)}, {"ra", offsetof(pico8_ga_t, jo.ra)}, {"id", offsetof(pico8_ga_t, jo.id)},
+        {"qo", offsetof(pico8_ga_t, qo)},  {"ro", offsetof(pico8_ga_t, ro)},    {"qg", offsetof(pico8_ga_t, qg)},
+        {"q_", offsetof(pico8_ga_t, q_)},  {"k_", offsetof(pico8_ga_t, k_)},    {"iu", offsetof(pico8_ga_t, iu)},
+        {"py", offsetof(pico8_ga_t, py)},  {"ms", offsetof(pico8_ga_t, ms)},
+    };
+    pico8_ga_t *self = malloc(sizeof *self);
+    size_t i;
+    int k;
+
+    assert(g_ga_class != NULL && "pico8_planet_family_init() must run first");
+    pico8_jo_struct_init(&self->jo, &g_ga_struct_class);
+    for (i = 0; i < sizeof g_ga_members / sizeof g_ga_members[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_ga_members[i].offset) = pico8_value_ref(NULL);
+    }
+    for (i = 0; i < sizeof g_ga_defaults / sizeof g_ga_defaults[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_ga_defaults[i].offset) = g_ga_defaults[i].value;
+    }
+    for (k = 0; overrides != NULL && k < overrides->count; k++) {
+        pico8_ob_key_t key = overrides->entries[k].key;
+        size_t found = sizeof keys / sizeof keys[0];
+
+        for (i = 0; key.kind == PICO8_OB_KEY_NAME && i < sizeof keys / sizeof keys[0]; i++) {
+            if (strcmp(key.name, keys[i].name) == 0) {
+                found = i;
+            }
+        }
+        assert(found < sizeof keys / sizeof keys[0] &&
+               "ga: the only measured construction keys are p, ra, id (jo:hu) and ra, qo, ro, qg, q_, k_, iu, "
+               "py, ms (pm:pq); another would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
+        *(pico8_value_t *)((char *)self + keys[found].offset) = overrides->entries[k].value;
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("ga");
+#endif
+    pico8_ga_pq(self);
+    pico8_jo_pq((pico8_jo_t *)self);
+    pico8_ke_struct_pq(&self->jo.ke);
+    return self;
 }
 
 void pico8_planet_family_init(void) {
@@ -932,9 +1064,8 @@ void pico8_planet_family_init(void) {
         (void)found;
     }
 
-    /* `nu=o()` is empty and wins outright: chain fallback stops at the
-     * first class that defines a field, so no `ga` instance is ever
-     * registered under jo/np/prober in `cg`. This is not a merge. */
+    /* `nu=o()` is empty and replaces jo's `nu` outright, so no burst is
+     * ever registered under jo/np/prober in `cg`. This is not a merge. */
     g_ga_class = pico8_class_declare(pico8_jo_class(),
                                       "\n"
                                       "fz=\"ga\",\n"
@@ -949,7 +1080,7 @@ void pico8_planet_family_init(void) {
                                       "k_=o(1,2,4,9,9,10,10,7,7,7,7,7),\n"
                                       "iu=-0.06,py=6,ms=3,\n");
     PICO8_CLASS_COVERAGE_NAME(g_ga_class, "ga");
-    pico8_class_set_pq(g_ga_class, pico8_ga_pq);
+    pico8_class_set_struct_new(g_ga_class, pico8_ga_struct_new);
 
     /* `by=o()` parses to an ob_table, but every reader of `by` casts it
      * to a list; without this swap the tag check in PICO8_REF_AS_LIST
@@ -968,9 +1099,12 @@ void pico8_planet_family_init(void) {
         pico8_ob_table_free(raw_by);
     }
 
-    pico8_ob_table_set_name(g_ga_class->defaults, "mm", pico8_value_function(pico8_ga_mm));
-    pico8_ob_table_set_name(g_ga_class->defaults, "kj", pico8_value_function(pico8_ga_kj_dispatch));
     pico8_class_register_named("ga", g_ga_class);
+    for (i = 0; i < sizeof g_ga_defaults / sizeof g_ga_defaults[0]; i++) {
+        int found = pico8_class_get_field(g_ga_class, g_ga_defaults[i].name, &g_ga_defaults[i].value);
+        assert(found && "ga: every default of the struct is a key of ga's spec");
+        (void)found;
+    }
 }
 
 void pico8_planet_family_shutdown(void) {
@@ -979,6 +1113,7 @@ void pico8_planet_family_shutdown(void) {
     pico8_os_defaults_reset();
     pico8_hj_defaults_reset();
     pico8_pm_defaults_reset();
+    pico8_ga_defaults_reset();
     if (g_qh_class != NULL) {
         pico8_class_free(g_qh_class);
         g_qh_class = NULL;
@@ -1069,6 +1204,10 @@ pico8_class_t *pico8_ga_class(void) {
     return g_ga_class;
 }
 
-pico8_instance_t *pico8_ga_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_ga_class, overrides);
+const pico8_struct_class_t *pico8_ga_struct_class(void) {
+    return &g_ga_struct_class;
+}
+
+pico8_ga_t *pico8_ga_new(const pico8_ob_table_t *overrides) {
+    return pico8_ga_struct_new(overrides);
 }

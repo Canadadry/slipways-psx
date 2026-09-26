@@ -134,7 +134,7 @@ static int pico8_eg_gg_pred(pico8_value_t e, void *ctx) {
     assert((pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
             pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
            "cg(\"jo\") only ever holds entities");
-    gg = pico8_jo_gg((const pico8_instance_t *)e.as.ref);
+    gg = pico8_jo_gg((const pico8_jo_t *)e.as.ref);
     if (gg.kind == PICO8_VALUE_BOOL && gg.as.boolean == 0) {
         return 0;
     }

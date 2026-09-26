@@ -4,6 +4,7 @@
 #include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_list.h"
+#include "pico8_planet.h"
 #include "pico8_value.h"
 
 /* Throughout this module a NULL instance or NULL proposal argument is a
@@ -26,14 +27,14 @@ struct pico8_jo_trade_proposal {
     pico8_list_t *ib;
 };
 
-void pico8_jo_kf(pico8_instance_t *self, pico8_instance_t *sw);
+void pico8_jo_kf(pico8_jo_t *self, pico8_instance_t *sw);
 
 /* TROU-7 */
-void pico8_jo_cn(pico8_instance_t *self, pico8_jo_trade_proposal_t *lw);
+void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw);
 
 /* TROU-7 */
 /* Returns `self.by` itself when that field holds a list, else a fresh heap
  * list; frees neither, and never writes `self.by` back -- its caller does. */
-pico8_list_t *pico8_jo_ib(pico8_instance_t *self);
+pico8_list_t *pico8_jo_ib(pico8_jo_t *self);
 
 #endif

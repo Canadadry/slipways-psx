@@ -29,6 +29,7 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_planet_family.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
@@ -382,12 +383,12 @@ static void test_replay_from_title(void) {
 
 static int ga_alive(void) {
     const pico8_list_t *hv = pico8_hv();
-    pico8_class_t *ga_class = pico8_class_lookup("ga");
     int i;
 
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i].as.ref;
-        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == ga_class) {
+        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+            ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
             return 1;
         }
     }

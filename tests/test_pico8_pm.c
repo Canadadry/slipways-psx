@@ -681,14 +681,12 @@ static int is_a_pm_struct(const void *e) {
  * descriptor holds hj's very entries and hj's writer, its reader its own;
  * hj's reader sees the 16 defaults of pm that fall on an inherited member;
  * it takes exactly hj's 21 names, and a construction key other than `p`,
- * `ra`, `id` stops the run. pm's class keeps no `pq` of its own; `ga`
- * stays an instance. */
+ * `ra`, `id` stops the run. pm's class keeps no `pq` of its own. */
 static void test_pm_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
     static const char *const inherited[] = {"me", "nu", "hp", "px", "s",  "py", "ki", "pn",
                                             "pk", "du", "fc", "k_", "qo", "ro", "qg", "q_"};
-    pico8_class_t *const others[] = {pico8_ga_class()};
     const pico8_struct_class_t *cls = pico8_pm_struct_class();
     const pico8_struct_class_t *hj = pico8_hj_struct_class();
     pico8_vec_t p = vec_xy(40, 50);
@@ -737,14 +735,6 @@ static void test_pm_is_a_struct(void) {
         pico8_pm_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && !has(bare, "id") && !has(bare, "ra") && has(bare, "oe") &&
                list_size(bare, "qy") == 0 && listed(pico8_cg("jo"), bare));
-    }
-    for (i = 0; i < sizeof others / sizeof others[0]; i++) {
-        pico8_ob_table_t *b = pico8_ob_table_new();
-        void *d;
-        pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = pico8_class_instantiate(others[i], b);
-        pico8_ob_table_free(b);
-        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == others[i]);
     }
 }
 

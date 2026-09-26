@@ -1,6 +1,6 @@
 /* The planet `jo`, read and written only through the dual-form field API
  * and `pico8_class_get_field(pico8_jo_class(), ...)`, and driven through the
- * real `bw`/`dg`/`dc`/`mv`. Its unconverted daughters are read the same way.
+ * real `bw`/`dg`/`dc`/`mv`. Its daughters are read the same way.
  * The frozen values were taken on the code where `jo` was still a class
  * instance and must not be re-taken. */
 
@@ -300,10 +300,8 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     }
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_t v;
-        pico8_value_t want;
         assert(pico8_entity_get_field(e, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-        assert(pico8_class_get_field(pico8_jo_class(), methods[i], &want) && want.kind == PICO8_VALUE_FUNCTION);
-        assert(v.as.function == want.as.function);
+        assert(v.as.function == pico8_jo_struct_class()->methods[pico8_method_of(methods[i])]);
     }
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
@@ -420,11 +418,6 @@ enum { QH, NL, OS, HJ, PM, MX, NR, FR, GA, DAUGHTERS };
 static const char *const daughter_names[DAUGHTERS] = {"qh", "nl", "os", "hj", "pm", "mx", "nr", "fr", "ga"};
 
 static int daughter_of(const void *e) {
-    pico8_class_t *const classes[DAUGHTERS] = {pico8_qh_class(), pico8_nl_class(), pico8_os_class(),
-                                               pico8_hj_class(), pico8_pm_class(), pico8_mx_class(),
-                                               pico8_nr_class(), pico8_fr_class(), pico8_ga_class()};
-    int d;
-
     if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
         ((const pico8_struct_header_t *)e)->cls == pico8_qh_struct_class()) {
         return QH;
@@ -457,13 +450,9 @@ static int daughter_of(const void *e) {
         ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class()) {
         return FR;
     }
-    if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
-        return -1;
-    }
-    for (d = 0; d < DAUGHTERS; d++) {
-        if (((const pico8_instance_t *)e)->cls == classes[d]) {
-            return d;
-        }
+    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
+        return GA;
     }
     return -1;
 }
@@ -687,9 +676,9 @@ static int is_a_jo_struct(const void *e) {
 }
 
 /* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
- * the very dispatchers its class installs for the daughters; a generic
- * write outside the 17 measured names, or a construction key other than
- * `id`/`p`/`ra`, stops the run. The daughters other than `qh` stay instances. */
+ * jo's 11 dispatchers, and its class installs none of them, nor a `pq`; a
+ * generic write outside the 17 measured names, or a construction key other
+ * than `id`/`p`/`ra`, stops the run. */
 static void test_jo_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr",
                                           "kw", "lq", "m_", "ma", "mi", "nk", "oe", "p_"};
@@ -704,10 +693,11 @@ static void test_jo_is_a_struct(void) {
         assert(is_a_jo_struct(jo->items[j].as.ref));
     }
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_t want;
-        assert(pico8_class_get_field(pico8_jo_class(), methods[i], &want) && want.kind == PICO8_VALUE_FUNCTION);
-        assert(pico8_jo_struct_class()->methods[pico8_method_of(methods[i])] == want.as.function);
+        pico8_value_t v;
+        assert(pico8_jo_struct_class()->methods[pico8_method_of(methods[i])] != NULL);
+        assert(!pico8_ob_table_get_name(pico8_jo_class()->defaults, methods[i], &v));
     }
+    assert(pico8_jo_class()->pq == NULL);
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
         if (pico8_jo_struct_class()->methods[j] != NULL) {
             int k;

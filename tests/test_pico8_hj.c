@@ -386,7 +386,7 @@ static uint32_t fold_ascension(uint32_t h, const void *e) {
             assert(got == pico8_qh_struct_class()->methods[pico8_method_of(methods[i])]);
         }
     }
-    assert(method(e, "kj") != class_function(pico8_qh_class(), "kj"));
+    assert(method(e, "kj") != pico8_qh_struct_class()->methods[PICO8_METHOD_KJ]);
     assert(method(e, "mm") == class_function(pico8_g__class(), "mm"));
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));

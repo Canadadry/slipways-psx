@@ -50,7 +50,7 @@ static pico8_value_t spy_kj(void *self, int argc, pico8_value_t arg0, pico8_valu
     }
     assert(g_order_n < 8);
     g_order[g_order_n++] = 'K';
-    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self, p);
+    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
     return pico8_value_ref(NULL);
 }
 

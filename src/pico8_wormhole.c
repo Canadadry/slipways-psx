@@ -234,7 +234,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
                 pico8_vec_t pt_p = pico8_mz_field_vec(pt, "p");
                 pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);
                 if (pico8_vec_qx(diff) < sr) {
-                    pico8_jo_hh(pt);
+                    pico8_jo_hh((pico8_jo_t *)pt);
                 }
             }
         }

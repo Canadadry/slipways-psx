@@ -143,12 +143,6 @@ static void *class_ref(pico8_class_t *cls, const char *name) {
     return v.as.ref;
 }
 
-static pico8_value_function_t class_function(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
-    assert(v.kind == PICO8_VALUE_FUNCTION && v.as.function != NULL);
-    return v.as.function;
-}
-
 static pico8_value_function_t method(const void *e, const char *name) {
     pico8_value_t v;
     assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
@@ -396,7 +390,7 @@ static uint32_t fold_synthesizer(uint32_t h, const void *e) {
         pico8_value_function_t got = method(e, methods[i]);
         if (strcmp(methods[i], "kf") == 0) {
             assert(got != hj->methods[PICO8_METHOD_KF]);
-            assert(got != class_function(pico8_jo_class(), "kf"));
+            assert(got != pico8_jo_struct_class()->methods[PICO8_METHOD_KF]);
         } else {
             assert(got == hj->methods[pico8_method_of(methods[i])]);
         }
@@ -743,15 +737,12 @@ static int is_an_mx_struct(const void *e) {
  * descriptor holds hj's very entries but its own `kf`; hj's reader sees
  * the 17 defaults of mx that fall on an inherited member; it takes exactly
  * hj's 21 names plus `ht`, and a construction key other than `id` stops
- * the run. mx's and hj's classes install none of their functions any
- * more: a lookup on them falls through to jo's; `ga` stays an
- * instance. */
+ * the run. No class of mx's chain installs a function any more. */
 static void test_mx_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy", "ht"};
     static const char *const inherited[] = {"nu", "rr", "hp", "s",  "px", "od", "py", "ki", "pn",
                                             "pk", "fc", "k_", "du", "qo", "ro", "qg", "q_"};
-    pico8_class_t *const others[] = {pico8_ga_class()};
     const pico8_struct_class_t *cls = pico8_mx_struct_class();
     const pico8_struct_class_t *hj = pico8_hj_struct_class();
     pico8_value_t v;
@@ -783,8 +774,8 @@ static void test_mx_is_a_struct(void) {
     }
     assert(!hj->field(a, "ht", &v) && cls->field(a, "ht", &v));
     assert(pico8_mx_class()->struct_new != NULL && pico8_mx_class()->pq == NULL);
-    assert(class_function(pico8_mx_class(), "kf") == class_function(pico8_jo_class(), "kf"));
-    assert(class_function(pico8_hj_class(), "kj") == class_function(pico8_jo_class(), "kj"));
+    assert(!pico8_class_get_field(pico8_mx_class(), "kf", &v));
+    assert(!pico8_class_get_field(pico8_hj_class(), "kj", &v));
     assert(!pico8_class_get_field(pico8_hj_class(), "mm", &v));
     assert(pico8_hj_class()->pq == NULL);
 
@@ -805,14 +796,6 @@ static void test_mx_is_a_struct(void) {
                list_size(bare, "qy") == 0 && listed(pico8_cg("jo"), bare));
         pico8_entity_set_field(bare, "ht", pico8_value_ref(NULL));
         assert(!cls->field(bare, "ht", &v));
-    }
-    for (i = 0; i < sizeof others / sizeof others[0]; i++) {
-        pico8_ob_table_t *b = pico8_ob_table_new();
-        void *d;
-        pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = pico8_class_instantiate(others[i], b);
-        pico8_ob_table_free(b);
-        assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == others[i]);
     }
 }
 

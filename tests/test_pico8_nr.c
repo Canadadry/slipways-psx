@@ -146,12 +146,6 @@ static void *class_ref(pico8_class_t *cls, const char *name) {
     return v.as.ref;
 }
 
-static pico8_value_function_t class_function(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
-    assert(v.kind == PICO8_VALUE_FUNCTION && v.as.function != NULL);
-    return v.as.function;
-}
-
 static pico8_value_function_t method(const void *e, const char *name) {
     pico8_value_t v;
     assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
@@ -365,7 +359,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
         if (own) {
             assert(got == pico8_nr_struct_class()->methods[pico8_method_of(methods[i])]);
             assert(got != qh->methods[pico8_method_of(methods[i])]);
-            assert(got != class_function(pico8_jo_class(), methods[i]));
+            assert(got != pico8_jo_struct_class()->methods[pico8_method_of(methods[i])]);
         } else {
             assert(got == qh->methods[pico8_method_of(methods[i])]);
         }
@@ -687,8 +681,7 @@ static int is_an_nr_struct(const void *e) {
 
 /* Built by `ie:ldown` or pico8_nr_new, a slipgate is a struct whose
  * descriptor holds qh's very entries but its own `gv`, `ldown`, `hb`, `cn`,
- * which nr's class no longer installs: a lookup on it falls through to
- * jo's; qh's reader sees the 6 defaults of nr that fall on an
+ * which no class of its chain installs any more; qh's reader sees the 6 defaults of nr that fall on an
  * inherited member; it takes exactly qh's 20 names plus `s`, and a
  * construction key other than `id`, `p`, `ra` stops the run. */
 static void test_nr_is_a_struct(void) {
@@ -716,8 +709,7 @@ static void test_nr_is_a_struct(void) {
             if (pico8_method_of(own_methods[i]) == j) {
                 own = 1;
                 assert(!pico8_ob_table_get_name(pico8_nr_class()->defaults, own_methods[i], &v));
-                assert(class_function(pico8_nr_class(), own_methods[i]) ==
-                       class_function(pico8_jo_class(), own_methods[i]));
+                assert(!pico8_class_get_field(pico8_nr_class(), own_methods[i], &v));
             }
         }
         assert((cls->methods[j] != NULL) == named);

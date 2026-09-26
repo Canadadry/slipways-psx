@@ -75,9 +75,9 @@ static void boot(pico8_mem_t *mem, pico8_gfx_t *gfx) {
 
 /* Read through the field interface, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static void *planet_by_ref(const pico8_instance_t *planet) {
+static void *planet_by_ref(const pico8_ga_t *planet) {
     pico8_value_t by;
-    assert(pico8_instance_get_field(planet, "by", &by));
+    assert(pico8_entity_get_field(planet, "by", &by));
     assert(by.kind == PICO8_VALUE_REF);
     return by.as.ref;
 }
@@ -85,7 +85,7 @@ static void *planet_by_ref(const pico8_instance_t *planet) {
 static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
-    pico8_instance_t *planet;
+    pico8_ga_t *planet;
     pico8_ob_table_t *kw;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
@@ -106,17 +106,17 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     kw = pico8_ob_table_new();
     pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(2)));
     pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    pico8_ob_table_set_name(planet->fields, "kw", pico8_value_ref(kw));
+    planet->jo.kw = pico8_value_ref(kw);
 
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra));
+    planet->jo.ra = pico8_value_ref(ra);
     gq = malloc(sizeof *gq);
     *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
-    pico8_ob_table_set_name(planet->fields, "gq", pico8_value_ref(gq));
+    planet->jo.gq = pico8_value_ref(gq);
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
-    pico8_jo_gh(planet);
+    pico8_jo_gh(&planet->jo);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         const pico8_instance_t *lq = button_lq(le->items[i]);
@@ -133,7 +133,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     by = planet_by_ref(planet);
     assert(by != NULL);
     /* The contract all six readers assume, on the value actually handed
-     * out. The panel assertions around it pass either way. */
+     * out. Without the `by` swap, `jo:gh`'s REF check aborts first. */
     assert(pico8_type_tag_of(by) == PICO8_TYPE_TAG_LIST);
     route_a = pico8_ob_table_new();
     route_b = pico8_ob_table_new();
@@ -141,7 +141,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_list_add(by, pico8_value_ref(route_b));
 
     exports_lq = NULL;
-    pico8_jo_gh(planet);
+    pico8_jo_gh(&planet->jo);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         const pico8_instance_t *lq = button_lq(le->items[i]);

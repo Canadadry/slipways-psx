@@ -46,6 +46,9 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_planet_family.h"
+#include "../src/pico8_struct.h"
+#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_fixed_test_double.h"
 
@@ -75,23 +78,22 @@ static const pico8_list_t *invented(void) {
 
 /* `ga` sets no `nu`, so it sits in no `cg` bucket: it is looked up in `hv`.
  * Returns NULL when no `ga` is alive. */
-static pico8_instance_t *live_ga(void) {
+static void *live_ga(void) {
     const pico8_list_t *hv = pico8_hv();
-    pico8_class_t *ga_class = pico8_class_lookup("ga");
     int i;
-    assert(ga_class != NULL);
     for (i = 0; i < hv->count; i++) {
-        pico8_instance_t *e = (pico8_instance_t *)hv->items[i].as.ref;
-        if (e != NULL && e->cls == ga_class) {
+        void *e = hv->items[i].as.ref;
+        if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+            ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
             return e;
         }
     }
     return NULL;
 }
 
-static int particle_count(pico8_instance_t *ga) {
+static int particle_count(void *ga) {
     pico8_value_t qy;
-    assert(pico8_instance_get_field(ga, "qy", &qy) && qy.kind == PICO8_VALUE_REF && qy.as.ref != NULL);
+    assert(pico8_entity_get_field(ga, "qy", &qy) && qy.kind == PICO8_VALUE_REF && qy.as.ref != NULL);
     return ((const pico8_list_t *)qy.as.ref)->count;
 }
 
@@ -146,7 +148,7 @@ int main(void) {
             printf("[research] frame=%d geoharvesting invented third, no ga yet, nz=%g\n", i,
                    pico8_fixed_to_double(nz_before));
         } else if (i == HARVEST_FRAME) {
-            pico8_instance_t *ga = live_ga();
+            void *ga = live_ga();
             assert(ga != NULL);
             assert(particle_count(ga) >= GA_KJ_PARTICLE_SLOTS);
             assert(fm_fixed("nz") == pico8_fixed_add(nz_before, pico8_fixed_from_int(HARVEST_PAYOUT)));

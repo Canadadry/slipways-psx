@@ -99,10 +99,31 @@ typedef struct {
     pico8_value_t fz;
 } pico8_pm_t;
 
+/* A particle burst: a bare planet, then ga's own defaults and `qy`, which
+ * its own `pq` (`f_`) writes. A default of ga whose name is a member of
+ * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu`, `kq`,
+ * `by` and `k_` hold the very tables of ga's class, borrowed: `by` is the
+ * one list every burst shares, which `ib` extends in place. A burst spawned
+ * by `pm:pq` holds that call's `k_` instead. Nothing frees the struct:
+ * TROU-7. */
+typedef struct {
+    pico8_jo_t jo;
+    pico8_value_t fz;
+    pico8_value_t fc;
+    pico8_value_t qo;
+    pico8_value_t ro;
+    pico8_value_t qg;
+    pico8_value_t q_;
+    pico8_value_t k_;
+    pico8_value_t iu;
+    pico8_value_t py;
+    pico8_value_t ms;
+    pico8_value_t qy;
+} pico8_ga_t;
+
 /* Every accessor below is NULL before `pico8_planet_family_init()` and
- * after `pico8_planet_family_shutdown()`. `qh`'s class instantiation builds
- * a pico8_qh_t; its unconverted descendants still inherit the class's
- * defaults and methods. */
+ * after `pico8_planet_family_shutdown()`. Each class's instantiation builds
+ * its struct. */
 pico8_class_t *pico8_qh_class(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
@@ -162,11 +183,14 @@ const pico8_struct_class_t *pico8_pm_struct_class(void);
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_pm_t *pico8_pm_new(const pico8_ob_table_t *overrides);
 
-/* Requires `pico8_planet_family_init()`. `overrides` is copied, not kept;
- * the new instance registers itself into `hv`/`cv`/`cg` through `lt`, and
- * nothing ever frees it. */
 pico8_class_t *pico8_ga_class(void);
-pico8_instance_t *pico8_ga_new(const pico8_ob_table_t *overrides);
+const pico8_struct_class_t *pico8_ga_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `p`, `ra`, `id` (jo:hu)
+ * and `qo`, `ro`, `qg`, `q_`, `k_`, `iu`, `py`, `ms` (pm:pq), each optional.
+ * The new burst registers itself into `hv`/`cv`, in no `cg`, through `lt`,
+ * and nothing ever frees it. Requires `pico8_planet_family_init()`. */
+pico8_ga_t *pico8_ga_new(const pico8_ob_table_t *overrides);
 
 void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t);
 
@@ -175,13 +199,13 @@ void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_hj_t *self, pico8_vec
 /* TROU-7 */
 void pico8_pm_pq(pico8_pm_t *self);
 
-void pico8_ga_pq(pico8_instance_t *self);
+void pico8_ga_pq(pico8_ga_t *self);
 
 /* TROU-7 */
 /* Returns a fresh particle record: a REF to a heap table holding heap
  * vectors, which `ez` stores into `self.qy`. */
 pico8_value_t pico8_ga_mm(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
-void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p);
+void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p);
 
 #endif
