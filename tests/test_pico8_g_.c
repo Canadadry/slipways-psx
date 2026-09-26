@@ -2,10 +2,9 @@
  * `pico8_class_get_field(pico8_g__class(), ...)` for spec defaults, built by
  * its three roads (`bg:ldown`, `pico8_g__new(NULL)`, `pico8_g__new` with the
  * 4 keys of probe_mm_rnd_order) and driven through the real `mv`/`dc`/`dg`.
- * Its methods are compared to the public functions. Its daughter `fv`,
- * still a class instance, is read on the title screen. The frozen values
- * were taken on the code where `g_` was still a class instance and must not
- * be re-taken. */
+ * Its methods are compared to the public functions. Its daughter `fv` is
+ * read on the title screen. The frozen values were taken on the code where
+ * `g_` was still a class instance and must not be re-taken. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -658,12 +657,19 @@ static void test_drag(void) {
     check("drag", h, DRAG_HASH);
 }
 
-/* The title screen's `fv`, still a class instance whose parent is `g_`'s
- * class: `nu`, `fx`, `dq`, `ev`, `mm` and the `pq` `f_` found there. */
+/* The help: `g_`'s `nu` and `fa`=10. */
+static int is_help(const void *e) {
+    pico8_value_t fa;
+    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__class(), "nu") && lookup(e, "fa", &fa) &&
+           fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(10);
+}
+
+/* The title screen's `fv`, whose class's parent is `g_`'s class: `nu`,
+ * `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
 static void test_fv(void) {
     uint32_t h = 2166136261u;
     const pico8_list_t *hv;
-    pico8_instance_t *fv = NULL;
+    void *fv = NULL;
     size_t d;
     int i;
 
@@ -673,8 +679,8 @@ static void test_fv(void) {
     pico8__init();
     hv = pico8_hv();
     for (i = 0; i < hv->count; i++) {
-        pico8_instance_t *e = hv->items[i].as.ref;
-        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && e->cls == pico8_fv_class()) {
+        void *e = hv->items[i].as.ref;
+        if (is_help(e)) {
             assert(fv == NULL);
             fv = e;
         }
@@ -692,9 +698,9 @@ static void test_fv(void) {
     assert(method(fv, "hq") == pico8_bv_dispatch);
     assert(method(fv, "ey") == pico8_d__dispatch);
     assert(method(fv, "kj") != pico8_ei_dispatch);
-    assert(pico8_value_equal(get(fv, "kj"), class_value(pico8_fv_class(), "kj")));
-    assert(pico8_value_equal(get(fv, "hd"), class_value(pico8_fv_class(), "hd")));
-    assert(pico8_g__class()->pq == pico8_f_);
+    assert(method(fv, "kj") == pico8_fv_kj_dispatch);
+    assert(method(fv, "hd") != NULL);
+    assert(pico8_g__class()->pq == NULL);
     assert(size_of(fv, "qy") >= 0);
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
     h = fnv(h, (uint32_t)rank_in(hv, fv));
@@ -779,20 +785,15 @@ static int is_a_g__struct(const void *e) {
            ((const pico8_struct_header_t *)e)->cls == pico8_g__struct_class();
 }
 
-/* The class `g_` function installed as `name`. */
-static pico8_value_function_t installed(const char *name) {
-    pico8_value_t v;
-    assert(pico8_ob_table_get_name(pico8_g__class()->defaults, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
-    return v.as.function;
-}
-
 /* Built by any road, a probe is a struct whose descriptor holds the 5
- * functions `g_`'s class still installs for `fv`, and nothing else; it
+ * public functions of `g_`, which its class no longer installs; it
  * takes exactly `qy`, `ra`, `p`, `et`, `p_`, and a construction key outside
- * the 4 measured stops the run. The title's `fv` is still an instance. */
+ * the 4 measured stops the run. The title's `fv` is a struct of its own. */
 static void test_g__is_a_struct(void) {
     static const char *const written[] = {"qy", "ra", "p", "et", "p_"};
     static const char *const entries[] = {"hq", "ey", "ev", "kj", "mm"};
+    static const pico8_value_function_t fns[] = {pico8_bv_dispatch, pico8_d__dispatch, pico8_dl_dispatch,
+                                                  pico8_ei_dispatch, pico8_g__mm};
     const pico8_struct_class_t *cls = pico8_g__struct_class();
     const pico8_list_t *hv;
     void *roads[3];
@@ -811,7 +812,8 @@ static void test_g__is_a_struct(void) {
         int named = 0;
         for (i = 0; i < sizeof entries / sizeof entries[0]; i++) {
             if (j == pico8_method_of(entries[i])) {
-                assert(cls->methods[j] == installed(entries[i]));
+                assert(cls->methods[j] == fns[i]);
+                assert(!pico8_ob_table_get_name(pico8_g__class()->defaults, entries[i], &v));
                 named = 1;
             }
         }
@@ -821,7 +823,7 @@ static void test_g__is_a_struct(void) {
            cls->methods[PICO8_METHOD_EV] == pico8_dl_dispatch && cls->methods[PICO8_METHOD_KJ] == pico8_ei_dispatch &&
            cls->methods[PICO8_METHOD_MM] == pico8_g__mm);
     assert(cls->field != NULL && cls->set_field != NULL);
-    assert(pico8_g__class()->struct_new != NULL && pico8_g__class()->pq == pico8_f_);
+    assert(pico8_g__class()->struct_new != NULL && pico8_g__class()->pq == NULL);
 
     must_abort(write_dw, roads[0]);
     must_abort(write_fx, roads[0]);
@@ -843,12 +845,14 @@ static void test_g__is_a_struct(void) {
     pico8__init();
     hv = pico8_hv();
     for (j = 0; j < hv->count; j++) {
-        const pico8_instance_t *e = hv->items[j].as.ref;
-        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && e->cls == pico8_fv_class()) {
+        const void *e = hv->items[j].as.ref;
+        if (is_help(e)) {
             break;
         }
     }
     assert(j < hv->count);
+    assert(pico8_type_tag_of(hv->items[j].as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)hv->items[j].as.ref)->cls == pico8_fv_struct_class());
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a

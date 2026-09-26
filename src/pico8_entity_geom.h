@@ -12,6 +12,7 @@
  * field reads as the zero vector, as 0, or as a false hit test. */
 /* TROU-15 */
 
+/* `gk`'s `e` and `na`'s `self` are NULL or a struct (asserted). */
 pico8_value_t pico8_gk(const pico8_instance_t *e, pico8_value_t mp, pico8_value_t rp);
 
 int pico8_gd(const pico8_instance_t *e);

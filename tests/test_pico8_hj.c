@@ -141,12 +141,6 @@ static void *class_ref(pico8_class_t *cls, const char *name) {
     return v.as.ref;
 }
 
-static pico8_value_function_t class_function(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
-    assert(v.kind == PICO8_VALUE_FUNCTION && v.as.function != NULL);
-    return v.as.function;
-}
-
 static pico8_value_function_t method(const void *e, const char *name) {
     pico8_value_t v;
     assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
@@ -387,7 +381,7 @@ static uint32_t fold_ascension(uint32_t h, const void *e) {
         }
     }
     assert(method(e, "kj") != pico8_qh_struct_class()->methods[PICO8_METHOD_KJ]);
-    assert(method(e, "mm") == class_function(pico8_g__class(), "mm"));
+    assert(method(e, "mm") == pico8_g__mm);
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
@@ -751,7 +745,7 @@ static void test_hj_is_a_struct(void) {
         }
     }
     assert(cls->methods[PICO8_METHOD_KJ] != qh->methods[PICO8_METHOD_KJ]);
-    assert(cls->methods[PICO8_METHOD_MM] == class_function(pico8_g__class(), "mm"));
+    assert(cls->methods[PICO8_METHOD_MM] == pico8_g__mm);
     for (i = 0; i < sizeof no_mm / sizeof no_mm[0]; i++) {
         assert(no_mm[i]->methods[PICO8_METHOD_MM] == NULL);
     }

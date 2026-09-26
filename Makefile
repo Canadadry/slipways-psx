@@ -445,6 +445,9 @@ $(TMP_DIR)/test_pico8_ga: $(call objs,tests/test_pico8_ga.c $(ENGINE_SRCS)) test
 $(TMP_DIR)/test_pico8_g_: $(call objs,tests/test_pico8_g_.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_fv: $(call objs,tests/test_pico8_fv.c $(ENGINE_SRCS)) tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -601,7 +604,8 @@ UNIT_TESTS := \
     test_pico8_nr \
     test_pico8_fr \
     test_pico8_ga \
-    test_pico8_g_
+    test_pico8_g_ \
+    test_pico8_fv
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 # Les TU à rejeu long (plus de 30 s) tournent dans make e2e, pas make test.

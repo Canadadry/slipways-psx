@@ -37,6 +37,8 @@ static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_instance_t *inst,
 }
 
 pico8_value_t pico8_gk(const pico8_instance_t *e, pico8_value_t mp, pico8_value_t rp) {
+    assert((e == NULL || pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT) &&
+           "gk: e is a struct; no class instance reaches g_'s functions any more");
     pico8_fixed_t fa = pico8_entity_geom_field_fixed(e, "fa");
     pico8_vec_t ra = pico8_entity_geom_field_vec(e, "ra");
     pico8_value_t chosen = (fa >= pico8_fixed_from_int(10)) ? rp : mp;
@@ -61,6 +63,9 @@ int pico8_gd(const pico8_instance_t *e) {
 
 void pico8_na(pico8_instance_t *self, pico8_fixed_t t) {
     pico8_value_t ra;
+
+    assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
+           "na: self is a struct; no class instance reaches g_'s functions any more");
     if (self != NULL && pico8_entity_get_field(self, "ra", &ra) && ra.kind == PICO8_VALUE_REF && ra.as.ref != NULL) {
         pico8_vec_t *ra_vec = (pico8_vec_t *)ra.as.ref;
         pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000147, 0.005))),

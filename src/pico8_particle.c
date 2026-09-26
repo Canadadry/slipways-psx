@@ -60,9 +60,11 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
 void pico8_f_(pico8_instance_t *self) {
     pico8_list_t *qy;
 
-    if (self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_INSTANCE && pico8_instance_fields(self) == NULL)) {
+    if (self == NULL) {
         return;
     }
+    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
+           "f_: self is a struct; no class instance reaches g_'s functions any more");
 
     qy = malloc(sizeof *qy);
     pico8_list_init(qy);
@@ -75,6 +77,8 @@ void pico8_ez(pico8_instance_t *self, pico8_fixed_t n) {
     if (self == NULL) {
         return;
     }
+    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
+           "ez: self is a struct; no class instance reaches g_'s functions any more");
 
     qy = pico8_particle_field_list(self, "qy");
 
@@ -103,6 +107,8 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
     if (self == NULL) {
         return;
     }
+    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
+           "ei: self is a struct; no class instance reaches g_'s functions any more");
 
     fa = pico8_particle_field_fixed(self, "fa");
     if (fa < pico8_fixed_from_int(10) && !pico8_gd(self)) {

@@ -12,9 +12,10 @@
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
- * for the value-returning functions), an absent or wrong-kind field reads as
- * 0/false/the zero vector rather than crashing, and a NULL `gfx`/`mem` skips
- * the draw calls while the rest of the body still runs. */
+ * for the value-returning functions), a non-NULL `self` must be a struct
+ * (asserted), an absent or wrong-kind field reads as 0/false/the zero vector
+ * rather than crashing, and a NULL `gfx`/`mem` skips the draw calls while
+ * the rest of the body still runs. */
 
 /* TROU-7 */
 /* `nu` and `k_` are the tables of `g_`'s class, borrowed and shared with
@@ -61,6 +62,11 @@ void pico8_probe_shutdown(void);
 pico8_class_t *pico8_g__class(void);
 const pico8_struct_class_t *pico8_g__struct_class(void);
 
+/* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 5
+ * written members nil, g_'s 18 defaults. Reads no key, runs neither `pq`
+ * nor `lt`, records no coverage. Requires `pico8_probe_init()`. */
+void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
+
 /* `overrides` (NULL means none) is read, not kept: `pn`, `t`, `du`, `py`
  * only. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
  * (and gets its particle list from `f_`), and nothing ever frees it.
@@ -85,7 +91,8 @@ pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
 
 /* Generic tooltip helper, not probe-specific: also called directly by
  * `jc:hh`, `qh:ph` and the research icon, on entities that are never `g_`.
- * `self` is read, never retained -- one caller passes a stack instance. */
+ * `self` is read, never retained -- one caller passes a struct view on its
+ * stack (`ie.ke`). */
 void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
 
 pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);

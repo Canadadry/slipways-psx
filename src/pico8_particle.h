@@ -9,7 +9,8 @@
 #include "pico8_value.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
- * no-op, and an absent or wrong-kind field reads as its zero default.
+ * no-op, a non-NULL `self` must be a struct (asserted), and an absent or
+ * wrong-kind field reads as its zero default.
  *
  * The C shape of a particle record -- what every `mm` must return, and what
  * `qy` therefore holds -- is this module's own contract, carried by no
@@ -18,9 +19,8 @@
  * case) and "l" (fixed). */
 
 /* TROU-7 */
-/* `pico8_class_pq_fn`-shaped, so `g_.pq=f_`/`hj.pq=f_` port as a direct
- * `pico8_class_set_pq(cls, pico8_f_)` with no adapter. The fresh `qy` list
- * is heap-allocated and owned by the instance, which never frees it. */
+/* The fresh `qy` list is heap-allocated and owned by `self`, which never
+ * frees it. */
 void pico8_f_(pico8_instance_t *self);
 
 /* Appends `self:mm()` records to `self.qy` while `rnd() < n`, subtracting 1

@@ -125,9 +125,11 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_fixed_t dw;
     pico8_value_t et;
 
-    if (self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_INSTANCE && pico8_instance_fields(self) == NULL)) {
+    if (self == NULL) {
         return;
     }
+    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
+           "bv: self is a struct; no class instance reaches g_'s functions any more");
 
     pico8_entity_set_field(self, "ra", mp);
     mp_vec = pico8_probe_value_vec(mp);
@@ -203,6 +205,8 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) 
     if (self == NULL) {
         return;
     }
+    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
+           "dl: self is a struct; no class instance reaches g_'s functions any more");
 
     if (!pico8_entity_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
         me_val.as.string == NULL || strcmp(me_val.as.string, "kz") != 0) {
@@ -265,6 +269,8 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
     if (self == NULL) {
         return pico8_value_ref(NULL);
     }
+    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
+           "d_: self is a struct; no class instance reaches g_'s functions any more");
 
     has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
@@ -331,6 +337,8 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     (void)argc;
     (void)arg0;
     (void)arg1;
+    assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
+           "g_.mm: self is a struct; no class instance reaches g_'s functions any more");
 
     pn = pico8_probe_field_fixed(self, "pn");
     t = pico8_probe_field_fixed(self, "t");
@@ -450,6 +458,20 @@ static const pico8_struct_class_t g_g__struct_class = {
     pico8_g__set_field,
 };
 
+void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
+    size_t i;
+
+    pico8_ke_struct_init(&self->ke, cls);
+    self->qy = pico8_value_ref(NULL);
+    self->ra = pico8_value_ref(NULL);
+    self->p = pico8_value_ref(NULL);
+    self->et = pico8_value_ref(NULL);
+    self->p_ = pico8_value_ref(NULL);
+    for (i = 0; i < sizeof g_g__defaults / sizeof g_g__defaults[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_g__defaults[i].offset) = g_g__defaults[i].value;
+    }
+}
+
 static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
     static const struct {
         const char *name;
@@ -466,15 +488,7 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
 
     assert(g_probe_class != NULL && "pico8_probe_init() must run first");
     self = malloc(sizeof *self);
-    pico8_ke_struct_init(&self->ke, &g_g__struct_class);
-    self->qy = pico8_value_ref(NULL);
-    self->ra = pico8_value_ref(NULL);
-    self->p = pico8_value_ref(NULL);
-    self->et = pico8_value_ref(NULL);
-    self->p_ = pico8_value_ref(NULL);
-    for (i = 0; i < sizeof g_g__defaults / sizeof g_g__defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_g__defaults[i].offset) = g_g__defaults[i].value;
-    }
+    pico8_g__struct_init(self, &g_g__struct_class);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         size_t found = sizeof keys / sizeof keys[0];
@@ -508,14 +522,6 @@ void pico8_probe_init(void) {
         "\nk_=o(1,1,5,13,6),\nqo=1.02,ro=-0.0525,\nqg=0.0525,q_=1.02,\ndu=2,\n");
     PICO8_CLASS_COVERAGE_NAME(g_probe_class, "g_");
     pico8_class_set_struct_new(g_probe_class, pico8_g__struct_new);
-    /* Unused by a probe, which reads its descriptor: they serve `fv`, a
-     * class instance that inherits them. */
-    pico8_class_set_pq(g_probe_class, pico8_f_);
-    pico8_ob_table_set_name(g_probe_class->defaults, "hq", pico8_value_function(pico8_bv_dispatch));
-    pico8_ob_table_set_name(g_probe_class->defaults, "ey", pico8_value_function(pico8_d__dispatch));
-    pico8_ob_table_set_name(g_probe_class->defaults, "ev", pico8_value_function(pico8_dl_dispatch));
-    pico8_ob_table_set_name(g_probe_class->defaults, "kj", pico8_value_function(pico8_ei_dispatch));
-    pico8_ob_table_set_name(g_probe_class->defaults, "mm", pico8_value_function(pico8_g__mm));
     pico8_class_register_named("g_", g_probe_class);
     for (i = 0; i < sizeof g_g__defaults / sizeof g_g__defaults[0]; i++) {
         int found = pico8_class_get_field(g_probe_class, g_g__defaults[i].name, &g_g__defaults[i].value);
