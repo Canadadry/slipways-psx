@@ -2,7 +2,8 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard, la
 #                       boucle rapide
-# make e2e           -> frames-check + float-audit, les rejeux, en -O2
+# make e2e           -> frames-check + float-audit, les rejeux, en -O2, et les
+#                       TU à rejeu long (UNIT_TESTS_SLOW)
 # make test-all      -> test + e2e, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay        -> rejoue la session humaine dans le moteur headless, hors
@@ -583,13 +584,17 @@ UNIT_TESTS := \
     test_pico8_pm
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
-UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
+# Les TU à rejeu long (plus de 30 s) tournent dans make e2e, pas make test.
+UNIT_TESTS_SLOW := test_pico8_ie test_pico8_jo test_pico8_qh test_pico8_os test_pico8_hj test_pico8_pm
+
+UNIT_RUNS := $(addprefix unit-run-,$(filter-out $(UNIT_TESTS_SLOW),$(UNIT_TESTS)))
+UNIT_RUNS_SLOW := $(addprefix unit-run-,$(UNIT_TESTS_SLOW))
 
 UNIT_RUNS_SPECIAL := unit-run-test_pico8_score_panel_stars unit-run-test_pico8_planet_gh_row_lq
 
 unit: $(UNIT_RUNS)
 
-$(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
+$(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS) $(UNIT_RUNS_SLOW)): unit-run-%: $(TMP_DIR)/%
 	./$<
 
 unit-run-test_pico8_score_panel_stars: $(TMP_DIR)/test_pico8_score_panel_stars
@@ -603,14 +608,14 @@ unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
 # pico8_replay : sous -j, jamais en même temps.
 unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
 
-.PHONY: $(UNIT_RUNS)
+.PHONY: $(UNIT_RUNS) $(UNIT_RUNS_SLOW)
 
 replay: $(TMP_DIR)/pico8_replay_e2e
 	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS)
 
 test: unit constants-check float-grep float-guard
 
-e2e: frames-check float-audit
+e2e: frames-check float-audit $(UNIT_RUNS_SLOW)
 
 test-all: test e2e
 
