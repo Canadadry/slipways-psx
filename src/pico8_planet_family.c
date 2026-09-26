@@ -341,6 +341,76 @@ static void *pico8_nl_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
+/* os's own defaults, read once from its class at init: the very values its
+ * `defaults` holds, tables included. Each lands in the member of that name,
+ * qh's or jo's: os has none of its own. */
+static struct {
+    const char *name;
+    size_t offset;
+    pico8_value_t value;
+} g_os_defaults[] = {
+    {"nu", offsetof(pico8_os_t, qh.jo.nu), {0}}, {"hp", offsetof(pico8_os_t, qh.hp), {0}},
+    {"px", offsetof(pico8_os_t, qh.px), {0}},    {"qh", offsetof(pico8_os_t, qh.qh), {0}},
+    {"s", offsetof(pico8_os_t, qh.s), {0}},      {"od", offsetof(pico8_os_t, qh.od), {0}},
+    {"hs", offsetof(pico8_os_t, qh.jo.hs), {0}},
+};
+
+static void pico8_os_defaults_reset(void) {
+    size_t i;
+    for (i = 0; i < sizeof g_os_defaults / sizeof g_os_defaults[0]; i++) {
+        g_os_defaults[i].value = pico8_value_ref(NULL);
+    }
+}
+
+static const pico8_struct_class_t g_os_struct_class = {
+    {
+        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
+        [PICO8_METHOD_KJ] = pico8_jo_kj_dispatch,
+        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
+        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
+        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
+        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
+        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
+        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+        [PICO8_METHOD_EV] = pico8_dl_dispatch,
+        [PICO8_METHOD_EY] = pico8_d__dispatch,
+        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
+    },
+    pico8_qh_field,
+    pico8_qh_set_field,
+};
+
+static void *pico8_os_struct_new(const pico8_ob_table_t *overrides) {
+    pico8_os_t *self = malloc(sizeof *self);
+    size_t i;
+    int k;
+
+    assert(g_os_class != NULL && "pico8_planet_family_init() must run first");
+    pico8_qh_struct_init(&self->qh, &g_os_struct_class);
+    for (i = 0; i < sizeof g_os_defaults / sizeof g_os_defaults[0]; i++) {
+        *(pico8_value_t *)((char *)self + g_os_defaults[i].offset) = g_os_defaults[i].value;
+    }
+    for (k = 0; overrides != NULL && k < overrides->count; k++) {
+        pico8_ob_key_t key = overrides->entries[k].key;
+        int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
+
+        assert(measured && "os: the only measured construction key is id (ie:ldown); another would be a field "
+                           "under no rule of plan-3 section 5 -- stop, do not add a member");
+        (void)measured;
+        self->qh.jo.id = overrides->entries[k].value;
+    }
+#ifdef PICO8_CLASS_COVERAGE
+    pico8_class_coverage_record("os");
+#endif
+    pico8_jo_pq((pico8_instance_t *)self);
+    pico8_ke_struct_pq(&self->qh.jo.ke);
+    return self;
+}
+
 void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pico8_vec_t p) {
     pico8_value_t mi_val;
 
@@ -592,6 +662,12 @@ void pico8_planet_family_init(void) {
                                       "od=15,\n"
                                       "hs=0.5,\n");
     PICO8_CLASS_COVERAGE_NAME(g_os_class, "os");
+    pico8_class_set_struct_new(g_os_class, pico8_os_struct_new);
+    for (i = 0; i < sizeof g_os_defaults / sizeof g_os_defaults[0]; i++) {
+        int found = pico8_class_get_field(g_os_class, g_os_defaults[i].name, &g_os_defaults[i].value);
+        assert(found && "os: every default of the struct is a key of os's spec");
+        (void)found;
+    }
 
     g_hj_class = pico8_class_declare(g_qh_class,
                                       "\n"
@@ -675,6 +751,7 @@ void pico8_planet_family_init(void) {
 void pico8_planet_family_shutdown(void) {
     pico8_qh_defaults_reset();
     pico8_nl_defaults_reset();
+    pico8_os_defaults_reset();
     if (g_qh_class != NULL) {
         pico8_class_free(g_qh_class);
         g_qh_class = NULL;
@@ -729,8 +806,12 @@ pico8_class_t *pico8_os_class(void) {
     return g_os_class;
 }
 
-pico8_instance_t *pico8_os_new(const pico8_ob_table_t *overrides) {
-    return pico8_class_instantiate(g_os_class, overrides);
+const pico8_struct_class_t *pico8_os_struct_class(void) {
+    return &g_os_struct_class;
+}
+
+pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides) {
+    return pico8_os_struct_new(overrides);
 }
 
 pico8_class_t *pico8_hj_class(void) {

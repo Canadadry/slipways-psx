@@ -508,6 +508,10 @@ static int descendant_of(const void *e) {
         ((const pico8_struct_header_t *)e)->cls == pico8_nl_struct_class()) {
         return NL;
     }
+    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        ((const pico8_struct_header_t *)e)->cls == pico8_os_struct_class()) {
+        return OS;
+    }
     if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
         return -1;
     }
@@ -554,7 +558,9 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
         h = fnv(h, 0u);
     }
     h = fold_field(h, d, "qw");
-    pico8_entity_set_field(d, "qw", had_qw ? qw : pico8_value_ref(NULL));
+    if (had_qw) {
+        pico8_entity_set_field(d, "qw", qw);
+    }
     return h;
 }
 
@@ -811,6 +817,11 @@ static void test_qh_is_a_struct(void) {
         if (descendants[i] == pico8_nl_class()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_nl_struct_class());
+            continue;
+        }
+        if (descendants[i] == pico8_os_class()) {
+            assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
+                   ((const pico8_struct_header_t *)d)->cls == pico8_os_struct_class());
             continue;
         }
         assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)d)->cls == descendants[i]);

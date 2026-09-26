@@ -585,13 +585,13 @@ static int is_an_nl_struct(const void *e) {
 /* Built by `ie:ldown` or pico8_nl_new, a plate is a struct whose descriptor
  * holds qh's very entries but its own `ly`, which nl's class no longer
  * carries; it takes exactly qh's 20 names plus `qw`, and a construction key
- * other than `id` stops the run. A bare `qh` still refuses `qw`; qh's other
- * descendants stay instances. */
+ * other than `id` stops the run. A bare `qh` still refuses `qw`; qh's
+ * unconverted descendants stay instances. */
 static void test_nl_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
                                           "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qw"};
-    pico8_class_t *const others[] = {pico8_os_class(), pico8_hj_class(), pico8_pm_class(),
-                                     pico8_mx_class(), pico8_nr_class(), pico8_fr_class()};
+    pico8_class_t *const others[] = {pico8_hj_class(), pico8_pm_class(), pico8_mx_class(), pico8_nr_class(),
+                                     pico8_fr_class()};
     const pico8_struct_class_t *cls = pico8_nl_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;

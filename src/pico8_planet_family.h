@@ -56,6 +56,14 @@ typedef struct {
     pico8_value_t qw;
 } pico8_nl_t;
 
+/* A processor: a laboratory and nothing of its own. Each default of os
+ * lives in the member of that name, qh's (`hp`, `px`, `qh`, `s`, `od`) or
+ * jo's (`nu`, `hs`). `nu` and `px` hold the very tables of os's class, `ba`
+ * the one of qh's, borrowed. Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_qh_t qh;
+} pico8_os_t;
+
 /* Every accessor below is NULL before `pico8_planet_family_init()` and
  * after `pico8_planet_family_shutdown()`. `qh`'s class instantiation builds
  * a pico8_qh_t; its unconverted descendants still inherit the class's
@@ -76,12 +84,17 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides);
 
+pico8_class_t *pico8_os_class(void);
+const pico8_struct_class_t *pico8_os_struct_class(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id` only. The new
+ * processor registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+ * ever frees it. Requires `pico8_planet_family_init()`. */
+pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides);
+
 /* Each `_new` below requires `pico8_planet_family_init()`. `overrides` is
  * copied, not kept; the new instance registers itself into `hv`/`cv`/`cg`
  * through `lt`, and nothing ever frees it. */
-
-pico8_class_t *pico8_os_class(void);
-pico8_instance_t *pico8_os_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_hj_class(void);
 pico8_instance_t *pico8_hj_new(const pico8_ob_table_t *overrides);
