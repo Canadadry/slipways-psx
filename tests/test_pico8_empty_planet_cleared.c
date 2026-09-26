@@ -50,17 +50,17 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static const char *state_of(pico8_instance_t *e) {
+static const char *state_of(const void *e) {
     pico8_value_t v;
-    if (e != NULL && pico8_instance_get_field(e, "me", &v) && v.kind == PICO8_VALUE_STRING) {
+    if (e != NULL && pico8_entity_get_field(e, "me", &v) && v.kind == PICO8_VALUE_STRING) {
         return v.as.string;
     }
     return "(none)";
 }
 
-static const pico8_vec_t *vec_field(pico8_instance_t *e, const char *name) {
+static const pico8_vec_t *vec_field(const void *e, const char *name) {
     pico8_value_t v;
-    if (e != NULL && pico8_instance_get_field(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (e != NULL && pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (const pico8_vec_t *)v.as.ref;
     }
     return NULL;
@@ -151,7 +151,7 @@ int main(void) {
 
             assert(jo != NULL);
             for (j = 0; j < jo->count; j++) {
-                pico8_instance_t *p = (pico8_instance_t *)jo->items[j].as.ref;
+                const void *p = jo->items[j].as.ref;
                 const pico8_vec_t *ra = vec_field(p, "ra");
                 if (ra == NULL) {
                     continue;

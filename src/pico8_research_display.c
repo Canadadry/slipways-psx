@@ -7,6 +7,7 @@
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_layout.h"
+#include "pico8_planet.h"
 #include "pico8_research.h"
 #include "pico8_stash.h"
 #include "pico8_tech_gate.h"
@@ -248,8 +249,6 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
             pico8_fixed_t loop_bound = (jq > pico8_fixed_from_int(1)) ? jq : pico8_fixed_from_int(1);
             int n = pico8_fixed_flr_int(loop_bound);
             int i;
-            pico8_class_t *jo_class;
-            pico8_value_t em_val;
 
             for (i = 1; i <= n; i++) {
                 pico8_ob_table_t *t4 = pico8_ob_table_new();
@@ -263,9 +262,8 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
                 pico8_ob_table_set_index(l, idx++, pico8_value_ref(t4));
             }
 
-            jo_class = pico8_class_lookup_named("jo");
-            if (jo_class != NULL && pico8_ob_table_get_name(jo_class->defaults, "em", &em_val)) {
-                pico8_ob_table_set_index(l, idx++, em_val);
+            if (pico8_jo_em() != NULL) {
+                pico8_ob_table_set_index(l, idx++, pico8_value_ref((void *)pico8_jo_em()));
             } else {
                 pico8_ob_table_set_index(l, idx++, pico8_value_ref(NULL));
             }

@@ -4,12 +4,55 @@
 #include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_gen.h"
+#include "pico8_ke.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
+
+/* A bare planet: jo's own defaults (`dz`, `cq`, `ka`, `em` and `kw` hold
+ * the very tables of jo's class, `kw` until `lz` replaces it: never written
+ * through, save `kw` in place as the cart does), its construction keys
+ * `id`/`p`/`ra`, then every field jo's functions and the generic writers
+ * of `cg.jo` write on it. jo's functions still take a pico8_instance_t *:
+ * the daughters reach them. Nothing frees the struct: TROU-7. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t nu;
+    pico8_value_t hf;
+    pico8_value_t hs;
+    pico8_value_t fa;
+    pico8_value_t kq;
+    pico8_value_t ma;
+    pico8_value_t ka;
+    pico8_value_t dz;
+    pico8_value_t cq;
+    pico8_value_t kw;
+    pico8_value_t gq;
+    pico8_value_t ca;
+    pico8_value_t em;
+    pico8_value_t id;
+    pico8_value_t p;
+    pico8_value_t ra;
+    pico8_value_t oe;
+    pico8_value_t hn;
+    pico8_value_t ep;
+    pico8_value_t jy;
+    pico8_value_t nk;
+    pico8_value_t fx;
+    pico8_value_t lq;
+    pico8_value_t fo;
+    pico8_value_t jh;
+    pico8_value_t p_;
+    pico8_value_t kr;
+    pico8_value_t cc;
+    pico8_value_t by;
+    pico8_value_t mi;
+    pico8_value_t m_;
+} pico8_jo_t;
 
 /* TROU-8 */
 /* Calls `pico8_pi_init()` first: the class spec contains `b(-7,-7,7,7)` and
@@ -22,13 +65,24 @@ void pico8_jo_init(void);
 void pico8_jo_shutdown(void);
 
 /* NULL before `pico8_jo_init()` and after `pico8_jo_shutdown()`. Also
- * reachable as `pico8_class_lookup_named("jo")`. */
+ * reachable as `pico8_class_lookup_named("jo")`; its instantiation builds
+ * a pico8_jo_t, while a daughter still inherits the class's defaults and
+ * methods. */
 pico8_class_t *pico8_jo_class(void);
+const pico8_struct_class_t *pico8_jo_struct_class(void);
 
-/* `overrides` is copied, not kept. The new instance registers itself into
- * `hv`/`cv`/`cg` through `lt`, and nothing ever frees it. Called before
- * `pico8_jo_init()` it yields a class-less instance rather than NULL. */
-pico8_instance_t *pico8_jo_new(const pico8_ob_table_t *overrides);
+/* `jo.dz`, `jo.cq`, `jo.ka`, `jo.em`, read on the class: the table jo's
+ * `defaults` holds, borrowed. NULL before `pico8_jo_init()` and after
+ * `pico8_jo_shutdown()`. */
+const pico8_ob_table_t *pico8_jo_dz(void);
+const pico8_ob_table_t *pico8_jo_cq(void);
+const pico8_ob_table_t *pico8_jo_ka(void);
+const pico8_ob_table_t *pico8_jo_em(void);
+
+/* `overrides` (NULL means none) is read, not kept: `id`, `p` and `ra` only.
+ * The new planet registers itself into `hv`/`cv`/`cg` through `lt`, and
+ * nothing ever frees it. Requires `pico8_jo_init()`. */
+pico8_jo_t *pico8_jo_new(const pico8_ob_table_t *overrides);
 
 /* TROU-7 */
 void pico8_jo_lz(pico8_instance_t *self, pico8_instance_t *hp_instance);

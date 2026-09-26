@@ -21,6 +21,13 @@ typedef enum {
     PICO8_METHOD_EB,
     PICO8_METHOD_HD,
     PICO8_METHOD_HB,
+    PICO8_METHOD_GG,
+    PICO8_METHOD_GV,
+    PICO8_METHOD_HK,
+    PICO8_METHOD_KF,
+    PICO8_METHOD_CN,
+    PICO8_METHOD_IB,
+    PICO8_METHOD_LL,
     PICO8_METHOD_COUNT
 } pico8_method_t;
 
@@ -42,6 +49,13 @@ static inline int pico8_method_of(const char *name) {
         [PICO8_METHOD_EB] = "eb",
         [PICO8_METHOD_HD] = "hd",
         [PICO8_METHOD_HB] = "hb",
+        [PICO8_METHOD_GG] = "gg",
+        [PICO8_METHOD_GV] = "gv",
+        [PICO8_METHOD_HK] = "hk",
+        [PICO8_METHOD_KF] = "kf",
+        [PICO8_METHOD_CN] = "cn",
+        [PICO8_METHOD_IB] = "ib",
+        [PICO8_METHOD_LL] = "ll",
     };
     int i;
 

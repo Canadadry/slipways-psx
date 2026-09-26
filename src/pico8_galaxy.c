@@ -75,7 +75,7 @@ void pico8_bw(pico8_fixed_t n) {
         char *id_num_str;
         char *id_str;
         pico8_ob_table_t *overrides;
-        pico8_instance_t *made;
+        pico8_jo_t *made;
 
         /* cg.jo is empty only on the very first trial: every accepted
          * planet below self-registers into it, so later candidates really

@@ -101,22 +101,22 @@ static const char *row_first_item_string(const pico8_list_t *rows, int index) {
     return item.kind == PICO8_VALUE_STRING ? item.as.string : NULL;
 }
 
-static const char *state_of(const pico8_instance_t *e) {
+static const char *state_of(const void *e) {
     pico8_value_t v;
-    if (e != NULL && pico8_instance_get_field(e, "me", &v) && v.kind == PICO8_VALUE_STRING) {
+    if (e != NULL && pico8_entity_get_field(e, "me", &v) && v.kind == PICO8_VALUE_STRING) {
         return v.as.string;
     }
     return "(none)";
 }
 
-static const pico8_instance_t *planet_by_id(const char *id) {
+static const void *planet_by_id(const char *id) {
     const pico8_list_t *jo = pico8_cg("jo");
     int i;
     assert(jo != NULL);
     for (i = 0; i < jo->count; i++) {
-        const pico8_instance_t *p = (const pico8_instance_t *)jo->items[i].as.ref;
+        const void *p = jo->items[i].as.ref;
         pico8_value_t v;
-        if (pico8_instance_get_field(p, "id", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, id) == 0) {
+        if (pico8_entity_get_field(p, "id", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, id) == 0) {
             return p;
         }
     }
@@ -211,11 +211,11 @@ int main(void) {
         } else if (i == KNOWN_PANEL_FRAME) {
             const pico8_list_t *rows = panel_rows();
 
-            const pico8_instance_t *p1 = planet_by_id("p1");
+            const void *p1 = planet_by_id("p1");
             pico8_value_t ep;
 
             assert(strcmp(state_of(p1), "known") == 0);
-            assert(pico8_instance_get_field(p1, "ep", &ep));
+            assert(pico8_entity_get_field(p1, "ep", &ep));
             assert(ep.kind == PICO8_VALUE_STRING);
             known_planet_ep = ep.as.string;
 

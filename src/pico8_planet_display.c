@@ -179,13 +179,8 @@ void pico8_jo_gh(const pico8_instance_t *self) {
     } else {
         pico8_value_t mi_val;
         if (pico8_entity_get_field(self, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
-            pico8_jo_class() != NULL) {
-            pico8_value_t dz_val;
-            if (pico8_ob_table_get_name(pico8_jo_class()->defaults, "dz", &dz_val) && dz_val.kind == PICO8_VALUE_REF &&
-                dz_val.as.ref != NULL) {
-                pico8_ob_table_get_index((const pico8_ob_table_t *)dz_val.as.ref,
-                                          pico8_fixed_flr_int(mi_val.as.fixed), &icon_val);
-            }
+            pico8_jo_dz() != NULL) {
+            pico8_ob_table_get_index(pico8_jo_dz(), pico8_fixed_flr_int(mi_val.as.fixed), &icon_val);
         }
     }
     pico8_ob_table_set_name(bs1, "lq", icon_val);
@@ -291,14 +286,10 @@ void pico8_jo_gh(const pico8_instance_t *self) {
 
             pico8_list_init(lb);
 
-            if (pico8_jo_class() != NULL) {
-                pico8_value_t cq_val;
-                if (pico8_ob_table_get_name(pico8_jo_class()->defaults, "cq", &cq_val) &&
-                    cq_val.kind == PICO8_VALUE_REF && cq_val.as.ref != NULL) {
-                    pico8_list_t cq_list = pico8_jo_positional_values((const pico8_ob_table_t *)cq_val.as.ref);
-                    makes = pico8_gu(&cq_list, qe_val);
-                    pico8_list_free(&cq_list);
-                }
+            if (pico8_jo_cq() != NULL) {
+                pico8_list_t cq_list = pico8_jo_positional_values(pico8_jo_cq());
+                makes = pico8_gu(&cq_list, qe_val);
+                pico8_list_free(&cq_list);
             }
 
             if (makes) {
@@ -526,12 +517,9 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self, pic
     if (pico8_jo_truthy(pico8_jo_gg(self))) {
         int mi = pico8_fixed_flr_int(field_fixed(self, "mi"));
         int color = 0;
-        pico8_value_t ka_val;
         pico8_value_t ka_entry;
 
-        if (pico8_jo_class() != NULL && pico8_ob_table_get_name(pico8_jo_class()->defaults, "ka", &ka_val) &&
-            ka_val.kind == PICO8_VALUE_REF && ka_val.as.ref != NULL &&
-            pico8_ob_table_get_index((const pico8_ob_table_t *)ka_val.as.ref, mi, &ka_entry) &&
+        if (pico8_jo_ka() != NULL && pico8_ob_table_get_index(pico8_jo_ka(), mi, &ka_entry) &&
             ka_entry.kind == PICO8_VALUE_FIXED) {
             color = pico8_fixed_flr_int(ka_entry.as.fixed);
         }

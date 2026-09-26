@@ -55,11 +55,12 @@ static pico8_value_t spy_kj(void *self, int argc, pico8_value_t arg0, pico8_valu
 }
 
 static pico8_struct_class_t g_spied_qb;
+static pico8_struct_class_t g_spied_jo;
 
 static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
-    pico8_instance_t *planet;
+    pico8_jo_t *planet;
     pico8_instance_t *mo;
     pico8_vec_t *ra_heap;
     int screen_pixel_addr;
@@ -101,12 +102,14 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
      * early return is not taken and the real draw body runs. */
     ra_heap = malloc(sizeof *ra_heap);
     *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
-    pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra_heap));
+    planet->ra = pico8_value_ref(ra_heap);
 
     g_spied_qb = *pico8_qb_struct_class();
     g_spied_qb.methods[PICO8_METHOD_MD] = spy_md;
     ((pico8_struct_header_t *)mo)->cls = &g_spied_qb;
-    pico8_ob_table_set_name(planet->fields, "kj", pico8_value_function(spy_kj));
+    g_spied_jo = *pico8_jo_struct_class();
+    g_spied_jo.methods[PICO8_METHOD_KJ] = spy_kj;
+    planet->ke.header.cls = &g_spied_jo;
 
     /* `kj` paints colour 0, which is also the framebuffer's cleared value,
      * so reading 0 back proves nothing unless the byte held something else
@@ -144,6 +147,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     assert(pico8_mo() == mo);
 
     ((pico8_struct_header_t *)mo)->cls = pico8_qb_struct_class();
+    planet->ke.header.cls = pico8_jo_struct_class();
     pico8_jo_shutdown();
     pico8_bootstrap_shutdown();
 }

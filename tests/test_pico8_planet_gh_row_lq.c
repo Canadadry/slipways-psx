@@ -71,7 +71,7 @@ static int lq_index_is_string(const pico8_instance_t *lq, int index, const char 
 static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
-    pico8_instance_t *planet;
+    pico8_jo_t *planet;
     pico8_ob_table_t *kw;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
@@ -99,18 +99,18 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     kw = pico8_ob_table_new();
     pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(1)));
     pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    pico8_ob_table_set_name(planet->fields, "kw", pico8_value_ref(kw));
+    planet->kw = pico8_value_ref(kw);
 
     /* `jo:gh` reads these for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    pico8_ob_table_set_name(planet->fields, "ra", pico8_value_ref(ra));
+    planet->ra = pico8_value_ref(ra);
     gq = malloc(sizeof *gq);
     *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
-    pico8_ob_table_set_name(planet->fields, "gq", pico8_value_ref(gq));
+    planet->gq = pico8_value_ref(gq);
 
     /* The call under test: this is where the overflow happened. */
-    pico8_jo_gh(planet);
+    pico8_jo_gh((const pico8_instance_t *)planet);
 
     le = ok_le();
     /* The icon row, whose "lq" really is an ob_table, plus the "exports:"

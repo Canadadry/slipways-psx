@@ -411,6 +411,9 @@ $(TMP_DIR)/test_pico8_ie: $(call objs,tests/test_pico8_ie.c $(ENGINE_SRCS)) test
 $(TMP_DIR)/test_pico8_js: $(call objs,tests/test_pico8_js.c $(ENGINE_SRCS)) tests/fixtures/title_click_reasonable.json tests/fixtures/pause_menu_music_events.json tests/fixtures/tech_screen_invent_events.json tests/fixtures/built_planet_panel_events.json tests/fixtures/game_end_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_jo: $(call objs,tests/test_pico8_jo.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json tests/fixtures/empty_planet_cleared_events.json tests/fixtures/slipway_drag_events.json tests/fixtures/phase4_playthrough_events.json tests/fixtures/session_events.json tests/fixtures/events_recorded_1790198294.json tests/fixtures/trading_hub_session_events.json tests/fixtures/long_session_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_planet_kj_dispatch: $(call objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -556,7 +559,8 @@ UNIT_TESTS := \
     test_pico8_jc \
     test_pico8_ie \
     test_pico8_class_chain \
-    test_pico8_js
+    test_pico8_js \
+    test_pico8_jo
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))

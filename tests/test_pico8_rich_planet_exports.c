@@ -47,7 +47,7 @@ static pico8_instance_t *planet_by_id(const char *id) {
     for (i = 0; i < jo->count; i++) {
         pico8_instance_t *p = (pico8_instance_t *)jo->items[i].as.ref;
         pico8_value_t v;
-        if (pico8_instance_get_field(p, "id", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, id) == 0) {
+        if (pico8_entity_get_field(p, "id", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, id) == 0) {
             return p;
         }
     }
@@ -56,7 +56,7 @@ static pico8_instance_t *planet_by_id(const char *id) {
 
 static int kw_mu(const pico8_instance_t *p) {
     pico8_value_t kw, mu;
-    assert(pico8_instance_get_field(p, "kw", &kw) && kw.kind == PICO8_VALUE_REF && kw.as.ref != NULL);
+    assert(pico8_entity_get_field(p, "kw", &kw) && kw.kind == PICO8_VALUE_REF && kw.as.ref != NULL);
     assert(pico8_ob_table_get_name((const pico8_ob_table_t *)kw.as.ref, "mu", &mu));
     assert(mu.kind == PICO8_VALUE_FIXED);
     return pico8_fixed_flr_int(mu.as.fixed);
@@ -71,12 +71,12 @@ static int promote_and_open_panel(pico8_instance_t *planet, int tier, int *has_e
     const pico8_list_t *rows;
     int i;
 
-    pico8_ob_table_set_name(planet->fields, "mi", pico8_value_fixed(pico8_fixed_from_int(tier)));
+    pico8_entity_set_field(planet, "mi", pico8_value_fixed(pico8_fixed_from_int(tier)));
     do {
         pico8_bd();
     } while (pico8_bb());
 
-    assert(pico8_instance_get_field(planet, "jy", &jy) && jy.kind == PICO8_VALUE_REF && jy.as.ref != NULL);
+    assert(pico8_entity_get_field(planet, "jy", &jy) && jy.kind == PICO8_VALUE_REF && jy.as.ref != NULL);
     needs = (const pico8_list_t *)jy.as.ref;
     for (i = 0; i < needs->count; i++) {
         pico8_ob_table_set_name((pico8_ob_table_t *)needs->items[i].as.ref, "gc",

@@ -36,7 +36,7 @@ static double credits_now(void) {
 
 static const pico8_list_t *planet_oe(pico8_instance_t *planet) {
     pico8_value_t oe;
-    if (planet == NULL || !pico8_instance_get_field(planet, "oe", &oe) || oe.kind != PICO8_VALUE_REF ||
+    if (planet == NULL || !pico8_entity_get_field(planet, "oe", &oe) || oe.kind != PICO8_VALUE_REF ||
         oe.as.ref == NULL) {
         return NULL;
     }

@@ -95,8 +95,9 @@ pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_list_t *j_, pico8_value_t *out
         pico8_instance_t *o;
 
         assert(e.kind == PICO8_VALUE_REF &&
-               (e.as.ref == NULL || pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_INSTANCE) &&
-               "ij walks a list of entity instances");
+               (e.as.ref == NULL || pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
+                pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+               "ij walks a list of entities");
         o = (pico8_instance_t *)e.as.ref;
         pico8_vec_t o_p = pico8_entity_geom_field_vec(o, "p");
         pico8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));

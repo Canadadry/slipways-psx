@@ -23,7 +23,7 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_instance_t *self);
 /* A static function of `jo`, not a method: `jo.ex(...)`, never `jo:ex(...)`.
  * Returns a fresh `lq` instance, or NULL when `o` is falsy -- which `jo:hb`
  * does reach, for a planet whose `kw` carries no `qe`. Reads `jo.em` through
- * pico8_class_lookup_named("jo"), so `jo`'s own init must register it. */
+ * pico8_jo_em(), so `jo`'s own init must have run. */
 pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
                                pico8_fixed_t d);
 
