@@ -22,6 +22,31 @@
 static pico8_class_t *g_probe_class = NULL;
 static pico8_instance_t *g_fm = NULL;
 
+static int pico8_fm_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_fm_placeholder_t *fm = self;
+    const pico8_value_t *member = NULL;
+
+    if (strcmp(name, "jk") == 0) {
+        member = &fm->jk;
+    } else if (strcmp(name, "nz") == 0) {
+        member = &fm->nz;
+    }
+    if (member == NULL || (member->kind == PICO8_VALUE_REF && member->as.ref == NULL)) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+static const pico8_struct_class_t g_fm_placeholder_struct_class = {
+    {NULL},
+    pico8_fm_placeholder_field,
+    NULL,
+};
+
+static pico8_fm_placeholder_t g_fm_placeholder = {
+    {PICO8_TYPE_TAG_STRUCT, &g_fm_placeholder_struct_class}, {PICO8_VALUE_REF, {0}}, {PICO8_VALUE_REF, {0}}};
+
 static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -524,18 +549,18 @@ void pico8_probe_init(void) {
         (void)found;
     }
 
-    g_fm = malloc(sizeof *g_fm);
-    g_fm->tag = PICO8_TYPE_TAG_INSTANCE;
-    g_fm->fields = pico8_ob_table_new();
-    g_fm->cls = NULL;
+    g_fm_placeholder.jk = pico8_value_ref(NULL);
+    g_fm_placeholder.nz = pico8_value_ref(NULL);
+    g_fm = (pico8_instance_t *)&g_fm_placeholder;
 }
 
 static void fm_free(pico8_instance_t *fm) {
-    if (fm != NULL && pico8_type_tag_of(fm) == PICO8_TYPE_TAG_STRUCT) {
-        free(fm);
-    } else {
-        pico8_instance_free(fm);
+    if (fm == NULL || fm == (pico8_instance_t *)&g_fm_placeholder) {
+        return;
     }
+    assert(((const pico8_struct_header_t *)fm)->cls == pico8_hy_struct_class() &&
+           "fm: pico8_probe_set_fm only ever stores a hy besides the provisional");
+    free(fm);
 }
 
 void pico8_probe_shutdown(void) {
@@ -560,6 +585,10 @@ pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides) {
     return pico8_g__struct_new(overrides);
 }
 
+const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void) {
+    return &g_fm_placeholder_struct_class;
+}
+
 pico8_instance_t *pico8_fm(void) {
     return g_fm;
 }
@@ -570,7 +599,7 @@ pico8_hy_t *pico8_fm_hy(void) {
     }
     assert(pico8_type_tag_of(g_fm) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)g_fm)->cls == pico8_hy_struct_class() &&
-           "a hy function on the provisional fm was never measured; 1a.36 converts it");
+           "a hy function on the provisional fm calls through a nil fm in the cart");
     return (pico8_hy_t *)g_fm;
 }
 

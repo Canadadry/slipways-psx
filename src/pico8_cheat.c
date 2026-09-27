@@ -1,10 +1,7 @@
 #include "pico8_cheat.h"
 
-#include "pico8_class.h"
 #include "pico8_fixed.h"
-#include "pico8_ob.h"
 #include "pico8_probe.h"
-#include "pico8_type_tag.h"
 #include "pico8_value.h"
 
 #include <stddef.h>
@@ -21,24 +18,23 @@ void pico8_cheat_init(pico8_cheat_t *cheat) {
     cheat->matched = 0;
 }
 
-/* Before `eu()`, `fm` is still the placeholder instance, and the code is
- * typed on the title screen too. */
+/* Before `eu()`, `fm` is still the provisional, and the code is typed on
+ * the title screen too: the cheat writes the provisional there. */
 static void apply(void) {
     pico8_instance_t *fm = pico8_fm();
+    pico8_hy_t *hy;
     if (fm == NULL) {
         return;
     }
-    if (pico8_type_tag_of(fm) == PICO8_TYPE_TAG_STRUCT) {
-        pico8_hy_t *hy = pico8_fm_hy();
-        hy->jk = pico8_value_fixed(pico8_fixed_from_int(99));
-        hy->nz = pico8_value_fixed(pico8_fixed_from_int(200));
+    if (((const pico8_struct_header_t *)fm)->cls == pico8_fm_placeholder_struct_class()) {
+        pico8_fm_placeholder_t *provisional = (pico8_fm_placeholder_t *)fm;
+        provisional->jk = pico8_value_fixed(pico8_fixed_from_int(99));
+        provisional->nz = pico8_value_fixed(pico8_fixed_from_int(200));
         return;
     }
-    if (pico8_instance_fields(fm) == NULL) {
-        return;
-    }
-    pico8_ob_table_set_name(pico8_instance_fields(fm), "jk", pico8_value_fixed(pico8_fixed_from_int(99)));
-    pico8_ob_table_set_name(pico8_instance_fields(fm), "nz", pico8_value_fixed(pico8_fixed_from_int(200)));
+    hy = pico8_fm_hy();
+    hy->jk = pico8_value_fixed(pico8_fixed_from_int(99));
+    hy->nz = pico8_value_fixed(pico8_fixed_from_int(200));
 }
 
 static int feed(pico8_cheat_t *cheat, int button) {

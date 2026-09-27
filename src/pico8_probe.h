@@ -49,13 +49,15 @@ typedef struct {
 } pico8_g__t;
 
 /* TROU-8 */
-/* Builds the `g_` class and installs the `fm` placeholder. Shuts the module
- * down first, so it is idempotent and any previously handed out
- * `pico8_g__class()` pointer is freed by a second call. */
+/* Builds the `g_` class and puts the provisional `fm` back in the slot, its
+ * `jk`/`nz` nil. Shuts the module down first, so it is idempotent and any
+ * previously handed out `pico8_g__class()` pointer is freed by a second
+ * call. */
 void pico8_probe_init(void);
 
-/* Frees the `g_` class and whichever instance `fm` currently holds, never any
- * probe. Idempotent, and safe before the first `pico8_probe_init()`. */
+/* Frees the `g_` class and the `hy` of `fm` if it holds one, never the
+ * provisional, never any probe. Idempotent, and safe before the first
+ * `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
 /* NULL before `pico8_probe_init()` and after `pico8_probe_shutdown()`. Also
@@ -74,12 +76,23 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
  * Asserts when called before `pico8_probe_init()`. */
 pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides);
 
-/* `fm`: the class-less placeholder instance `pico8_probe_init()` installs,
- * then, from `eu()` on, a `hy` struct; read it through
- * pico8_entity_get_field. NULL before init and after shutdown, which several
- * callers test for. The setter takes ownership of the new occupant and frees
- * the previous one by its tag: the placeholder with its table, a `hy` as the
- * struct alone (TROU-7). */
+/* The provisional `fm`: one static struct, never allocated nor freed, with
+ * no method and no writer; `jk`/`nz` are written only by the cheat code, and
+ * set back to nil by every `pico8_probe_init()`. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t jk;
+    pico8_value_t nz;
+} pico8_fm_placeholder_t;
+
+const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
+
+/* `fm`: the provisional, a static struct that has only `jk`/`nz` (written by
+ * the cheat code), which `pico8_probe_init()` installs, then, from `eu()` on,
+ * a `hy` struct; read it through pico8_entity_get_field. NULL before init and
+ * after shutdown, which several callers test for. The setter takes ownership
+ * of the new occupant and frees a previous `hy` as the struct alone
+ * (TROU-7); never the provisional. */
 pico8_instance_t *pico8_fm(void);
 void pico8_probe_set_fm(pico8_instance_t *instance);
 

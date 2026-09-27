@@ -644,7 +644,7 @@ static void test_hy_is_a_struct(void) {
 
     assert(pico8_hy_class()->struct_new != NULL && pico8_hy_class()->pq == NULL);
     pico8__init();
-    assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_INSTANCE);
+    assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)pico8_fm())->cls == pico8_fm_placeholder_struct_class());
     must_abort(fm_hy_on_provisional, NULL);
 
     new_game();
