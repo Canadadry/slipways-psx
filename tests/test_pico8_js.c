@@ -1146,6 +1146,52 @@ static void test_ha_pz_is_a_struct(void) {
     same_as_ha(o, "ca");
 }
 
+static void ha_pz_vec_as_ha(const void *o, const char *name, int x, int y) {
+    pico8_value_t in_table;
+    pico8_value_t out = pico8_value_fixed(0x1234);
+    const pico8_vec_t *vec;
+    assert(pico8_ob_table_get_name(pico8_ha(), name, &in_table));
+    assert(pico8_entity_get_field((void *)o, name, &out) == 1);
+    assert(out.kind == PICO8_VALUE_REF && out.as.ref != NULL && out.as.ref == in_table.as.ref);
+    vec = out.as.ref;
+    assert(vec->x == pico8_fixed_from_int(x) && vec->y == pico8_fixed_from_int(y));
+}
+
+static void ha_pz_ca_is_14(const void *o) {
+    pico8_value_t out = pico8_value_fixed(0x1234);
+    assert(pico8_entity_get_field((void *)o, "ca", &out) == 1);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(14));
+}
+
+static void ha_pz_misses(const pico8_struct_header_t *o, const char *name) {
+    pico8_value_t out = pico8_value_fixed(0x1234);
+    assert(o->cls->field(o, name, &out) == 0);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == 0x1234);
+}
+
+static void test_ha_pz_members_by_name(void) {
+    const pico8_struct_header_t *o;
+
+    start_game(PAUSE);
+    o = pico8_ha_pz();
+    ha_pz_vec_as_ha(o, "hi", 0, 107);
+    ha_pz_vec_as_ha(o, "gq", 0, -11);
+    ha_pz_ca_is_14(o);
+    ha_pz_misses(o, "ra");
+    ha_pz_misses(o, "ep");
+    ha_pz_misses(o, "");
+
+    pico8_menu_shutdown();
+    ha_pz_misses(o, "hi");
+    ha_pz_misses(o, "gq");
+    ha_pz_misses(o, "ca");
+
+    pico8_menu_init();
+    ha_pz_vec_as_ha(o, "hi", 0, 107);
+    ha_pz_vec_as_ha(o, "gq", 0, -11);
+    ha_pz_ca_is_14(o);
+}
+
 static void pz_on_a_table(void *e) {
     pico8_list_t none;
     pico8_list_init(&none);
@@ -1227,6 +1273,7 @@ int main(void) {
     in_fresh_child(test_nil_keys);
     in_fresh_child(test_js_is_a_struct);
     in_fresh_child(test_ha_pz_is_a_struct);
+    in_fresh_child(test_ha_pz_members_by_name);
     in_fresh_child(test_pz_closed);
     in_fresh_child(test_panels_are_structs);
     in_fresh_child(test_pj_are_structs);
