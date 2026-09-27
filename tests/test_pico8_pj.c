@@ -706,13 +706,73 @@ static void test_cr_is_a_struct(void) {
     must_abort(write_ep, cr);
 
     pico8_cr();
-    assert(has(cr, "ep") && cr->ep.kind == PICO8_VALUE_STRING);
+    assert(lookup(cr, "ep", &v) && v.kind == PICO8_VALUE_STRING);
     assert(get_ref(pico8_pj_new(NULL), "cr") == cr);
 
     pico8_score_panel_init();
     assert(pico8_pj_cr() == cr && !has(cr, "ep") && has(cr, "ca"));
     pico8_score_panel_shutdown();
     assert(pico8_pj_cr() == NULL);
+}
+
+static void cr_vec_is_0_11(const void *cr, const char *name, const void *ref) {
+    pico8_value_t v;
+    assert(lookup(cr, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref == ref);
+    assert(vec_of(cr, name).x == 0 && vec_of(cr, name).y == pico8_fixed_from_int(11));
+}
+
+static void cr_ca_is_10(const void *cr) {
+    pico8_value_t v;
+    assert(lookup(cr, "ca", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(10));
+}
+
+static void cr_ep_is(const void *cr, const char *text) {
+    pico8_value_t v;
+    assert(lookup(cr, "ep", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, text) == 0);
+}
+
+static void cr_misses(const pico8_struct_class_t *cls, const void *cr, const char *name) {
+    pico8_value_t out = pico8_value_fixed(0x1234);
+    assert(cls->field(cr, name, &out) == 0);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == 0x1234);
+}
+
+static void test_cr_members_by_name(void) {
+    const pico8_struct_class_t *cls = pico8_pj_cr_struct_class();
+    void *cr;
+    void *hi;
+    void *gq;
+    pico8_value_t v;
+
+    start_game();
+    cr = pico8_pj_cr();
+    hi = get_ref(cr, "hi");
+    gq = get_ref(cr, "gq");
+    assert(hi != NULL && gq != NULL && hi != gq);
+    cr_vec_is_0_11(cr, "hi", hi);
+    cr_vec_is_0_11(cr, "gq", gq);
+    cr_ca_is_10(cr);
+    assert(!lookup(cr, "ep", &v));
+    cr_misses(cls, cr, "ep");
+    cr_misses(cls, cr, "x");
+    cr_misses(cls, cr, "");
+    cr_misses(cls, cr, "eo");
+    cr_misses(cls, cr, "ra");
+
+    pico8_cr();
+    cr_ep_is(cr, "level 1 (0/2)");
+    cr_vec_is_0_11(cr, "hi", hi);
+    cr_vec_is_0_11(cr, "gq", gq);
+    cr_ca_is_10(cr);
+    pico8_cr();
+    cr_ep_is(cr, "level 1 (0/2)");
+
+    pico8_score_panel_init();
+    assert(!lookup(cr, "ep", &v));
+    cr_misses(cls, cr, "ep");
+    cr_vec_is_0_11(cr, "hi", hi);
+    cr_vec_is_0_11(cr, "gq", gq);
+    cr_ca_is_10(cr);
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -751,6 +811,7 @@ int main(void) {
     in_fresh_child(test_cr);
     in_fresh_child(test_pj_is_a_struct);
     in_fresh_child(test_cr_is_a_struct);
+    in_fresh_child(test_cr_members_by_name);
 
     printf("test_pico8_pj: all tests passed\n");
     return 0;

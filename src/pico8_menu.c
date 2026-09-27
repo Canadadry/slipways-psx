@@ -277,7 +277,7 @@ void pico8_cr(void) {
         free(diff1_str);
         free(diff2_str);
 
-        cr->ep = pico8_value_string(ep);
+        cr->ep = ep;
         pico8_pz((const pico8_struct_header_t *)cr, &bs);
     }
 

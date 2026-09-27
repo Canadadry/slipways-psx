@@ -8,6 +8,7 @@
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 /* Throughout this module a NULL panel argument is a safe no-op. */
 
@@ -26,10 +27,10 @@ typedef struct {
 /* `pj.cr`: no parent, never an entity, and no writer. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t hi;
-    pico8_value_t gq;
-    pico8_value_t ca;
-    pico8_value_t ep;
+    pico8_vec_t *hi;
+    pico8_vec_t *gq;
+    pico8_fixed_t ca;
+    const char *ep;
 } pico8_pj_cr_t;
 
 /* Calls `pico8_pi_init()` first: the `pj` spec and `bz` both contain

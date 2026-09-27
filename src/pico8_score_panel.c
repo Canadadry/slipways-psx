@@ -115,23 +115,27 @@ static struct {
 
 static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_pj_cr_t *cr = self;
-    pico8_value_t value;
 
     if (strcmp(name, "hi") == 0) {
-        value = cr->hi;
+        if (cr->hi == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(cr->hi);
     } else if (strcmp(name, "gq") == 0) {
-        value = cr->gq;
+        if (cr->gq == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(cr->gq);
     } else if (strcmp(name, "ca") == 0) {
-        value = cr->ca;
+        *out_value = pico8_value_fixed(cr->ca);
     } else if (strcmp(name, "ep") == 0) {
-        value = cr->ep;
+        if (cr->ep == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(cr->ep);
     } else {
         return 0;
     }
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return 0;
-    }
-    *out_value = value;
     return 1;
 }
 
@@ -147,10 +151,10 @@ static pico8_vec_t g_pj_cr_gq = {0, 11 << PICO8_FIXED_SHIFT};
 
 static pico8_pj_cr_t g_pj_cr = {
     {PICO8_TYPE_TAG_STRUCT, &g_pj_cr_struct_class},
-    {PICO8_VALUE_REF, {.ref = &g_pj_cr_hi}},
-    {PICO8_VALUE_REF, {.ref = &g_pj_cr_gq}},
-    {PICO8_VALUE_FIXED, {.fixed = 10 << PICO8_FIXED_SHIFT}},
-    {PICO8_VALUE_REF, {.ref = NULL}},
+    &g_pj_cr_hi,
+    &g_pj_cr_gq,
+    10 << PICO8_FIXED_SHIFT,
+    NULL,
 };
 
 static void pico8_pj_defaults_reset(void) {
@@ -519,7 +523,7 @@ void pico8_score_panel_init(void) {
                "pj: its 4 table accessors cast these REFs to plain tables, and hb/hk write into ou/ea");
         (void)found;
     }
-    g_pj_cr.ep = pico8_value_ref(NULL);
+    g_pj_cr.ep = NULL;
     g_pj_defaults[PJ_CR].value = pico8_value_ref(&g_pj_cr);
 
     pico8_score_panel_set_init(NULL);
