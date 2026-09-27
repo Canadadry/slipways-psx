@@ -12,4 +12,7 @@ du nombre de labos), le refus d'achat et l'écran « bankrupt ». 69 frames.
 - f52-55 : 7ᵉ labo refusé (56,68) : « -no money- ».
 - f57 : une année de plus : -31 $, écran « bankrupt ».
 
+Remplace la TU `shop_tooltip_fillp` : en f2, l'appui sur l'icône du labo
+affiche sa bulle, au fond rayé par `fillp`.
+
 Relecture humaine dans raylib : à faire.
