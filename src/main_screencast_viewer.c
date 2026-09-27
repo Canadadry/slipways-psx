@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr,
                 "screencast-viewer: usage : %s <fichier de pixels>\n"
-                "screencast-viewer: le fabriquer : make screencast (ecrit tmp/screencast.bin)\n",
+                "screencast-viewer: le fabriquer : make screencast EVENTS=<events.json> (ecrit tmp/screencast.bin)\n",
                 argv[0]);
         return 1;
     }

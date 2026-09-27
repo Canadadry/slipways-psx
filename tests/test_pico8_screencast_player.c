@@ -105,18 +105,18 @@ static void test_each_refusal_names_the_path_and_its_own_reason(void) {
     pico8_screencast_player_format_refusal(PICO8_SCREENCAST_UNREADABLE, "tmp/absent.bin", out, sizeof out);
     assert(strcmp(out,
                   "screencast-viewer: 'tmp/absent.bin' est introuvable ou illisible -- aucune fenetre n'a ete ouverte. "
-                  "Fabriquer les pixels : make screencast") == 0);
+                  "Fabriquer les pixels : make screencast EVENTS=<events.json>") == 0);
 
     pico8_screencast_player_format_refusal(PICO8_SCREENCAST_EMPTY, "tmp/vide.bin", out, sizeof out);
     assert(strcmp(out,
                   "screencast-viewer: 'tmp/vide.bin' est vide -- aucune fenetre n'a ete ouverte. "
-                  "Une capture interrompue avant sa premiere frame donne ce fichier ; la refaire : make screencast") == 0);
+                  "Une capture interrompue avant sa premiere frame donne ce fichier ; la refaire : make screencast EVENTS=<events.json>") == 0);
 
     pico8_screencast_player_format_refusal(PICO8_SCREENCAST_TRUNCATED, "tmp/coupe.bin", out, sizeof out);
     assert(strcmp(out,
                   "screencast-viewer: 'tmp/coupe.bin' est tronque : sa taille n'est pas un multiple de 8192 octets, "
                   "donc il se termine au milieu d'une frame -- aucune fenetre n'a ete ouverte. "
-                  "La refaire : make screencast") == 0);
+                  "La refaire : make screencast EVENTS=<events.json>") == 0);
 }
 
 /* Le meme contrat que pico8_replay_control_format_status : une sortie

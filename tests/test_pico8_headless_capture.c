@@ -12,9 +12,8 @@
  * shell -- est paye sciemment.
  *
  * Effet de bord assume : chaque rejeu lance ici reecrit le dump du
- * pilote avec celui de la fixture courte ; test_pico8_frames_tool le
- * reecrit aussi, et `make replay` le reecrit ensuite avec celui de
- * la session humaine (tests/fixtures/session_events.json). */
+ * pilote avec celui de la fixture courte ; test_pico8_frames_tool et
+ * `make replay EVENTS=...` le reecrivent aussi. */
 
 #include "../src/pico8_dump.h"
 #include "../src/pico8_gfx.h"

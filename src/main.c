@@ -3,10 +3,8 @@
  * It asserts nothing about the game itself -- that is
  * what tests/ is for.
  *
- * argv[1] names the script to replay. The default, events.json at the repo
- * root, is a working recording the player's own session overwrites; it is
- * not a fixture, and nothing should be pinned to its contents. Tests use
- * their own files under tests/fixtures/.
+ * argv[1], required, names the script to replay; without it the driver
+ * prints its usage and exits 2.
  *
  * argv[2], optional, is where each frame's pixels are written. Absent means no
  * capture, and the driver then behaves exactly as it did before capture
@@ -40,7 +38,12 @@ int main(int argc, char **argv) {
         argv++;
         argc--;
     }
-    const char *events_path = (argc > 1) ? argv[1] : "tests/fixtures/session_events.json";
+    if (argc < 2) {
+        fprintf(stderr,
+                "usage: pico8_replay [--from-title] <events.json> [<capture.bin> [<dump.txt>]]\n");
+        return 2;
+    }
+    const char *events_path = argv[1];
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 

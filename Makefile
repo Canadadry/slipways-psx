@@ -5,9 +5,10 @@
 # make e2e           -> frames-check, les rejeux, en -O2
 # make test-all      -> test + e2e, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
-# make replay        -> rejoue la session humaine dans le moteur headless, hors
-#                       suite : frames-check la rejoue déjà
-# make screencast    -> refabrique les pixels de chaque frame du rejeu de la session humaine
+# make replay EVENTS=<events> -> rejoue ce fichier dans le moteur headless, dump
+#                       du framebuffer dans tmp/pico8_replay_dump.txt ; hors suite
+# make screencast EVENTS=<events> -> refabrique les pixels de chaque frame de ce
+#                       rejeu dans tmp/screencast.bin, pour screencast-viewer
 # make frames-check  -> compare le sha256 de la capture de chaque rejeu du filet à
 #                       sa référence <events>.sha256, dans make e2e
 # make frames-baseline -> (re)pose ces références sur le code actuel, jamais par
@@ -16,7 +17,8 @@
 #                       sa référence (git blame), laisse la capture dans
 #                       tmp/frames/<events>.ref.bin et donne la première frame
 #                       divergente ; hors suite
-# make ref-audit     -> diagnostic des casts REF, hors suite
+# make ref-audit     -> diagnostic des casts REF sur les rejeux du filet
+#                       (FRAMES_EVENTS), hors suite
 # make class-coverage DIR=<dossier> -> rejoue chaque *events.json posé directement
 #                       dans DIR (défaut tests/fixtures, sans sous-dossiers) et
 #                       compte les instanciations par classe ; échoue si une
@@ -317,6 +319,9 @@ $(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_ca
 $(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pico8_replay_usage: $(call objs,tests/test_pico8_replay_usage.c) $(TMP_DIR)/pico8_replay | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_screencast.c src/pico8_dump.c src/pico8_mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -490,6 +495,7 @@ UNIT_TESTS := \
     test_pico8_screencast \
     test_pico8_headless_capture \
     test_pico8_replay_from_title \
+    test_pico8_replay_usage \
     test_pico8_screencast_player \
     test_pico8_frames_tool \
     test_frames_check \
@@ -534,8 +540,15 @@ unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
 
 .PHONY: $(UNIT_RUNS)
 
+# Échoue avant toute compilation plutôt que de rejouer un fichier par défaut.
+ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
+    ifeq ($(strip $(EVENTS)),)
+        $(error EVENTS manque : make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
+    endif
+endif
+
 replay: $(TMP_DIR)/pico8_replay_e2e
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS)
+	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(EVENTS)) $(EVENTS)
 
 test: unit constants-check float-grep float-guard
 
@@ -543,9 +556,6 @@ e2e: frames-check
 
 test-all: test e2e
 
-# ENREGISTREMENT D'ÉCRAN : make screencast rejoue SCREENCAST_EVENTS en écrivant les
-# pixels de chaque frame ; c'est aussi la capture du rejeu de SCREENCAST_EVENTS du filet.
-SCREENCAST_EVENTS := tests/fixtures/session_events.json
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
 SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
@@ -565,10 +575,15 @@ else
     SHA256_CMD := sha256sum
 endif
 
-$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay_e2e $(SCREENCAST_EVENTS) | $(TMP_DIR)
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS) $@ $(@:.bin=.dump.txt)
+# Refaite à chaque appel : EVENTS change d'un appel à l'autre sans que make le
+# voie. Cible fichier plutôt que phony, pour que .DELETE_ON_ERROR s'applique.
+$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay_e2e FORCE | $(TMP_DIR)
+	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(EVENTS)) $(EVENTS) $@ $(@:.bin=.dump.txt)
 
 screencast: $(SCREENCAST_BIN)
+
+.PHONY: FORCE
+FORCE:
 
 # Une capture interrompue laisserait un fichier partiel que make croirait à jour,
 # et l'empreinte suivante porterait sur lui.
@@ -580,7 +595,7 @@ screencast: $(SCREENCAST_BIN)
 # Liste explicite : un motif sur tests/fixtures/ ramasserait les fixtures
 # malformées et celles du lecteur d'entrée.
 FRAMES_EVENTS := \
-    $(SCREENCAST_EVENTS) \
+    tests/fixtures/session_events.json \
     tests/fixtures/phase4_playthrough_events.json \
     tests/fixtures/built_planet_panel_events.json \
     tests/fixtures/empty_planet_cleared_events.json \
@@ -599,13 +614,13 @@ FRAMES_EVENTS := \
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames
 
-frames_capture = $(if $(filter $(SCREENCAST_EVENTS),$(1)),$(SCREENCAST_BIN),$(FRAMES_DIR)/$(1).bin)
+frames_capture = $(FRAMES_DIR)/$(1).bin
 frames_current = $(FRAMES_DIR)/$(1).sha256
 frames_reference = $(1).sha256
 
 # Sans .SECONDARY, make effacerait ces captures intermédiaires, que frames-ref
 # compare à la capture de référence.
-.SECONDARY: $(foreach e,$(filter-out $(SCREENCAST_EVENTS),$(FRAMES_EVENTS)),$(call frames_capture,$(e)))
+.SECONDARY: $(foreach e,$(FRAMES_EVENTS),$(call frames_capture,$(e)))
 
 # Chaque capture a son propre dump texte : le dump par défaut,
 # tmp/pico8_replay_dump.txt, est relu par deux TU qui tournent en parallèle.
@@ -617,9 +632,6 @@ $(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay_e2e
 frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
 
 $(FRAMES_DIR)/%.sha256: $(FRAMES_DIR)/%.bin
-	$(frames_hash)
-
-$(call frames_current,$(SCREENCAST_EVENTS)): $(SCREENCAST_BIN)
 	$(frames_hash)
 
 # Un rejeu sans référence n'est ni capturé ni comparé.
@@ -676,7 +688,7 @@ REFAUDIT_BINS := \
 # compare aux sites qu'il grep dans src/, pour qu'un site jamais atteint sorte en
 # NOT COVERED au lieu de manquer en silence.
 ref-audit: $(REFAUDIT_BINS)
-	sh tools/ref_audit_report.sh
+	sh tools/ref_audit_report.sh $(foreach e,$(FRAMES_EVENTS),$(call from_title,$(e)) $(e))
 
 .PHONY: ref-audit
 

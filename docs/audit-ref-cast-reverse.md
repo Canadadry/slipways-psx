@@ -281,6 +281,6 @@ Sortie brute dans `tmp/ref_audit_raw.txt`, rapport dans
 `tmp/ref_audit_report.txt`. La cible est un diagnostic, pas un test : elle
 n'est volontairement pas dans `make test`, parce qu'elle répond à « qu'est-ce
 que les scénarios atteignent » et non à « le port se comporte-t-il bien ».
-Pour étendre la couverture, ajouter un fixture au tableau de
-`tools/ref_audit_report.sh` (le pilote headless prend le chemin en argument)
-ou un binaire au bloc `REFAUDIT_BINS` du Makefile.
+Le script rejoue les fichiers qu'il reçoit en argument ; `make ref-audit` lui
+passe les rejeux du filet (`FRAMES_EVENTS`). Pour étendre la couverture,
+ajouter un rejeu au filet ou un binaire au bloc `REFAUDIT_BINS` du Makefile.
