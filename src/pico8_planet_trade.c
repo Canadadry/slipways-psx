@@ -41,7 +41,7 @@ static pico8_list_t positional_values(const pico8_ob_table_t *table) {
 }
 
 /* Membership by trade equality (same endpoints), not pico8_gu's pointer
- * identity: every candidate offered here is a freshly built instance, which
+ * identity: every candidate offered here is a freshly built route, which
  * identity would never match. NULL-safe on `list`. */
 static int gu_trade(const pico8_list_t *list, pico8_value_t v) {
     pico8_list_iter_t it;
@@ -53,7 +53,7 @@ static int gu_trade(const pico8_list_t *list, pico8_value_t v) {
     it = pico8_list_all(list);
     while (pico8_list_iter_next(&it, &e)) {
         if (e.kind == PICO8_VALUE_REF && v.kind == PICO8_VALUE_REF &&
-            pico8_trade_eq((const pico8_instance_t *)e.as.ref, (const pico8_instance_t *)v.as.ref)) {
+            pico8_trade_eq((const pico8_trade_t *)e.as.ref, (const pico8_trade_t *)v.as.ref)) {
             return 1;
         }
     }
@@ -103,7 +103,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     pico8_value_t r_q = pico8_value_ref(NULL);
     int have_r_e;
     int have_r_q;
-    pico8_instance_t *t;
+    pico8_trade_t *t;
     pico8_value_t t_qe = pico8_value_ref(NULL);
     pico8_list_t *jy = NULL;
     pico8_list_iter_t it;
@@ -114,7 +114,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     }
     t = lw->t;
     if (t != NULL) {
-        pico8_instance_get_field(t, "qe", &t_qe);
+        t_qe = t->qe;
     }
 
     r = pico8_r();
@@ -207,7 +207,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         if (have_qe && pico8_value_equal(t_qe, qe_val) && !(have_r_q && pico8_value_equal(qe_val, r_q))) {
-            pico8_instance_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(NULL));
+            pico8_trade_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(NULL));
             if (lw->kf != NULL) {
                 lw->kf(lw, pico8_value_ref(extended));
             }

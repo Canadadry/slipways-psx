@@ -153,7 +153,7 @@ static pico8_value_t pico8_nr_hb_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
-    pico8_instance_t *t;
+    pico8_trade_t *t;
     const pico8_list_t *oe = NULL;
     pico8_list_iter_t it;
     pico8_value_t w_val;
@@ -170,7 +170,6 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     it = pico8_list_all(oe);
     while (pico8_list_iter_next(&it, &w_val)) {
         pico8_instance_t *w;
-        pico8_value_t t_rl_val;
         const pico8_list_t *t_rl = NULL;
 
         if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
@@ -182,9 +181,8 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
             continue;
         }
 
-        if (t != NULL && pico8_instance_get_field(t, "rl", &t_rl_val) && t_rl_val.kind == PICO8_VALUE_REF &&
-            t_rl_val.as.ref != NULL) {
-            t_rl = PICO8_REF_AS_LIST_CONST(t_rl_val.as.ref);
+        if (t != NULL && t->rl.kind == PICO8_VALUE_REF && t->rl.as.ref != NULL) {
+            t_rl = PICO8_REF_AS_LIST_CONST(t->rl.as.ref);
         }
         if (pico8_gu(t_rl, pico8_value_ref(w))) {
             continue;
@@ -192,7 +190,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_instance_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(w));
+            pico8_trade_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(w));
             pico8_value_t eb_result;
 
             gf.t = extended;

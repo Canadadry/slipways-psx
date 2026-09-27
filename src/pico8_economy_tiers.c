@@ -159,7 +159,8 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
             }
         }
 
-        if (pico8_trade_to(route, &to_val) && to_val.kind == PICO8_VALUE_REF && to_val.as.ref != NULL) {
+        if (pico8_trade_to((const pico8_trade_t *)route, &to_val) && to_val.kind == PICO8_VALUE_REF &&
+            to_val.as.ref != NULL) {
             pico8_instance_t *dest = (pico8_instance_t *)to_val.as.ref;
             pico8_value_t cc_val;
             if (pico8_entity_get_field(dest, "cc", &cc_val) && cc_val.kind == PICO8_VALUE_REF &&
@@ -298,7 +299,7 @@ pico8_fixed_t pico8_dh(const pico8_instance_t *pt) {
                     }
                     im = (pico8_instance_t *)im_val.as.ref;
                     /* TROU-3 */
-                    if (pico8_instance_get_field(im, "qe", &im_qe) && economy_value_equal_content(im_qe, qe_val)) {
+                    if (pico8_entity_get_field(im, "qe", &im_qe) && economy_value_equal_content(im_qe, qe_val)) {
                         gc++;
                     }
                 }

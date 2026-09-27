@@ -3,7 +3,17 @@
 
 #include "pico8_class.h"
 #include "pico8_ob.h"
+#include "pico8_struct.h"
 #include "pico8_value.h"
+
+/* Never freed: TROU-7. `lp`/`rl` are the REFs the overrides held, borrowed,
+ * not copied. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t lp;
+    pico8_value_t rl;
+    pico8_value_t qe;
+} pico8_trade_t;
 
 /* `trade` is a root class declared with no spec string and no `pq`, not
  * ke-descended, so it never self-registers into hv/cv/cg.
@@ -20,21 +30,24 @@ void pico8_trade_shutdown(void);
  * retrievable through pico8_class_lookup(), the class registering under the
  * shared "" name-registry slot. */
 pico8_class_t *pico8_trade_class(void);
+const pico8_struct_class_t *pico8_trade_struct_class(void);
 
-pico8_instance_t *pico8_trade_new(const pico8_ob_table_t *overrides);
+/* Takes only the keys "lp", "rl", "qe", each optional; a missing one is
+ * nil. */
+pico8_trade_t *pico8_trade_new(const pico8_ob_table_t *overrides);
 
 /* Returns 1 and writes *out_value for a non-empty "lp"; returns 0 with
- * *out_value untouched for a NULL self, an absent or non-REF "lp", or an
- * empty one. */
-int pico8_trade_to(const pico8_instance_t *self, pico8_value_t *out_value);
+ * *out_value untouched for a NULL self, or a nil or empty "lp". */
+int pico8_trade_to(const pico8_trade_t *self, pico8_value_t *out_value);
 
-/* Returns a brand-new instance, never mutating self; NULL for a NULL self.
- * An absent "lp"/"rl" on self reads as an empty list. */
-pico8_instance_t *pico8_trade_kg(const pico8_instance_t *self, pico8_value_t np, pico8_value_t jc);
+/* Returns a brand-new route, never mutating self; NULL for a NULL self.
+ * A nil "lp"/"rl" on self reads as an empty list, a nil "qe" as false
+ * (TROU-24). */
+pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_value_t np, pico8_value_t jc);
 
 /* Two trades are equal iff they start (`lp[1]`) and end (`:to()`) at the
  * same planet, compared by pointer identity, whatever lies between. Returns 0
- * for a NULL l/r or an absent, non-REF or empty "lp" on either side. */
-int pico8_trade_eq(const pico8_instance_t *l, const pico8_instance_t *r);
+ * for a NULL l/r or a nil or empty "lp" on either side. */
+int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r);
 
 #endif

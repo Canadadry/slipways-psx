@@ -422,7 +422,7 @@ static void export_to(void *pt, void *oz) {
     pico8_ob_table_t *o = pico8_ob_table_new();
     pico8_list_t *lp = malloc(sizeof *lp);
     pico8_list_t *by = malloc(sizeof *by);
-    pico8_instance_t *t;
+    pico8_trade_t *t;
 
     pico8_list_init(lp);
     pico8_list_add(lp, pico8_value_ref(pt));

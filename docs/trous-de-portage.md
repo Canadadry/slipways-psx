@@ -386,3 +386,19 @@ La struct `js`, où nil vaut absent, garde ce comportement : son
 constructeur remplace une clé `h_` ou `jb` nil par `true`.
 
 Fichier : `src/pico8_ui_button.c`.
+
+## TROU-24 — `trade:kg` donne `qe=false` à la route neuve quand `self.qe` est nil
+
+Dans le cart, `trade:kg` recopie `self.qe` tel quel : nil reste nil. Ce
+port pose `false` quand la route allongée n'a pas de `qe`. Dans la struct
+`trade`, nil et absent ne font qu'un : un `qe` nil, passé explicitement ou
+omis, donne `false`.
+
+Non atteint par le filet : toute route construite par les rejeux a un `qe`
+non nil. `jo:ib` passe pourtant un `qe` nil quand la table `kw` de la planète
+n'a pas de `qe` (`src/pico8_planet_trade.c:242`), jusqu'à `nr:cn` → `kg`.
+Même effondrement nil/absent dans `dh`
+(`src/pico8_economy_tiers.c:302`) : une route au `qe` nil y compte comme
+une route sans `qe`.
+
+Fichier : `src/pico8_trade.c`.

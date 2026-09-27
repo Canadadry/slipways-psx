@@ -157,7 +157,8 @@ pico8_fixed_t pico8_db(const pico8_instance_t *pt) {
                 continue;
             }
             e = (pico8_instance_t *)e_val.as.ref;
-            if (!pico8_trade_to(e, &oz_val) || oz_val.kind != PICO8_VALUE_REF || oz_val.as.ref == NULL) {
+            if (!pico8_trade_to((const pico8_trade_t *)e, &oz_val) || oz_val.kind != PICO8_VALUE_REF ||
+                oz_val.as.ref == NULL) {
                 continue;
             }
             {
