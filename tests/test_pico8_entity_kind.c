@@ -14,6 +14,7 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
@@ -22,13 +23,19 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_research.h"
+#include "../src/pico8_research_icon.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_value.h"
 
 #define KIND_HASH 0xBCF0E60Bu
 
 #define KIND_COUNT 9
+
+#define RAW_PRESENCE_HASH 0xAAA6B4EDu
+#define ABSENT_COUNT 6
+#define BEHAVIOR_HASH 0x0D6BD173u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -217,6 +224,141 @@ static void test_every_cw_is_pm_or_ga(void) {
     assert(with_cw > 0);
 }
 
+#define ICON_COUNT 8
+#define WITNESS 0x1234
+
+static uint32_t ie_screen_hash(void) {
+    uint32_t h = 2166136261u;
+    int i;
+
+    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
+        h = fnv(h, (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i));
+    }
+    return h;
+}
+
+/* 0 absent, 1 false, 2 true, 3 other. */
+static uint32_t ie_bool_state(const void *e, const char *name) {
+    pico8_value_t v;
+    if (!pico8_entity_get_field(e, name, &v)) {
+        return 0;
+    }
+    if (v.kind == PICO8_VALUE_BOOL) {
+        return v.as.boolean ? 2u : 1u;
+    }
+    return 3u;
+}
+
+/* Icons 0..6 hold the `gx` kinds, icon 7 holds none; `pm`/`ga` are in no
+ * `ie`. The view is read by name only, through its raw reader and through
+ * pico8_entity_get_field(). */
+static void test_ie_ke_view_by_name(void) {
+    static const char *const names[] = {"rr", "s", "me", "od", "", "x", "et", "ke", "header", "has_s", "has_od"};
+    const size_t name_count = sizeof names / sizeof names[0];
+    pico8_ie_t *icons[ICON_COUNT];
+    const pico8_struct_class_t *cls = pico8_ie_ke_view_struct_class();
+    uint32_t raw = 2166136261u;
+    uint32_t behavior = 2166136261u;
+    int absent = 0;
+    int i;
+
+    for (i = 0; i < ICON_COUNT; i++) {
+        if (i < 7) {
+            pico8_ob_table_t *overrides = pico8_ob_table_new();
+            pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)kind_of(i)));
+            icons[i] = pico8_ie_new(overrides);
+            pico8_ob_table_free(overrides);
+        } else {
+            icons[i] = pico8_ie_new(NULL);
+        }
+        assert(icons[i] != NULL);
+    }
+
+    for (i = 0; i < ICON_COUNT; i++) {
+        pico8_ie_ke_t view = pico8_ie_ke_view(icons[i]);
+        size_t k;
+        for (k = 0; k < name_count; k++) {
+            pico8_value_t out = pico8_value_fixed(WITNESS);
+            pico8_value_t by_get = pico8_value_fixed(WITNESS);
+            int got = cls->field(&view, names[k], &out);
+            int got_get = pico8_entity_get_field(&view, names[k], &by_get);
+            assert(got == got_get);
+            if (got) {
+                assert(k < 4);
+                assert(!(out.kind == PICO8_VALUE_REF && out.as.ref == NULL));
+                assert((k == 1 || k == 3) ? out.kind == PICO8_VALUE_FIXED
+                                          : (out.kind == PICO8_VALUE_STRING && out.as.string != NULL));
+                assert(by_get.kind == out.kind);
+                assert(out.kind == PICO8_VALUE_FIXED ? by_get.as.fixed == out.as.fixed
+                                                     : by_get.as.string == out.as.string);
+            } else {
+                assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == WITNESS);
+                assert(by_get.kind == PICO8_VALUE_FIXED && by_get.as.fixed == WITNESS);
+                if (k < 4) {
+                    absent++;
+                }
+            }
+            raw = fnv(raw, (uint32_t)i);
+            raw = fold_string(raw, names[k]);
+            raw = fnv(raw, (uint32_t)got);
+            raw = fold_value(raw, out);
+        }
+    }
+    printf("[ie_ke absent] %d\n", absent);
+    assert(absent == ABSENT_COUNT);
+    check("ie_ke raw presence", raw, RAW_PRESENCE_HASH);
+
+    for (i = 0; i < 7; i++) {
+        static const char *const borrowed[] = {"rr", "me"};
+        pico8_ie_ke_t first = pico8_ie_ke_view(icons[i]);
+        pico8_ie_ke_t second = pico8_ie_ke_view(icons[i]);
+        int b;
+        for (b = 0; b < 2; b++) {
+            pico8_value_t from_kind = pico8_value_ref(NULL);
+            pico8_value_t a = pico8_value_ref(NULL);
+            pico8_value_t c = pico8_value_ref(NULL);
+            int in_kind = kind_of(i)->field(borrowed[b], &from_kind);
+            assert(pico8_entity_get_field(&first, borrowed[b], &a) == in_kind);
+            assert(pico8_entity_get_field(&second, borrowed[b], &c) == in_kind);
+            if (in_kind) {
+                assert(from_kind.kind == PICO8_VALUE_STRING);
+                assert(a.as.string == from_kind.as.string && c.as.string == from_kind.as.string);
+            }
+        }
+    }
+
+    {
+        pico8_value_t mouse;
+        assert(pico8_entity_get_field(pico8_je(), "ra", &mouse) && mouse.kind == PICO8_VALUE_REF &&
+               mouse.as.ref != NULL);
+        *(pico8_vec_t *)mouse.as.ref = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+    }
+    for (i = 0; i < ICON_COUNT; i++) {
+        pico8_vec_t origin = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+        uint32_t kh;
+        pico8_ie_hb(icons[i]);
+        kh = ie_bool_state(icons[i], "kh");
+        behavior = fnv(behavior, kh);
+        if (kh == 2) {
+            uint32_t plain;
+            uint32_t hovered;
+            pico8_camera(&gfx, 0, 0);
+            pico8_cls(&mem);
+            pico8_ie_kj(&gfx, &mem, icons[i], origin);
+            plain = ie_screen_hash();
+            pico8_entity_set_field(icons[i], "m_", pico8_value_bool(1));
+            pico8_cls(&mem);
+            pico8_ie_kj(&gfx, &mem, icons[i], origin);
+            hovered = ie_screen_hash();
+            pico8_entity_set_field(icons[i], "m_", pico8_value_bool(0));
+            printf("[ie_ke kj] icon %d: 0x%08Xu / 0x%08Xu\n", i, (unsigned)plain, (unsigned)hovered);
+            behavior = fnv(behavior, plain);
+            behavior = fnv(behavior, hovered);
+        }
+    }
+    check("ie_ke behavior", behavior, BEHAVIOR_HASH);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -232,6 +374,7 @@ int main(void) {
     pico8_jl();
     test_kind_fields_and_build();
     test_kind_reader_is_the_module_default();
+    test_ie_ke_view_by_name();
 
     printf("test_pico8_entity_kind: all tests passed\n");
     return 0;

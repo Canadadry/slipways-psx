@@ -68,24 +68,36 @@ static const pico8_entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
 
 static int pico8_ie_ke_view_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_ie_ke_t *view = self;
-    pico8_value_t value;
 
     if (strcmp(name, "rr") == 0) {
-        value = view->rr;
-    } else if (strcmp(name, "s") == 0) {
-        value = view->s;
-    } else if (strcmp(name, "me") == 0) {
-        value = view->me;
-    } else if (strcmp(name, "od") == 0) {
-        value = view->od;
-    } else {
-        return 0;
+        if (view->rr == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(view->rr);
+        return 1;
     }
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return 0;
+    if (strcmp(name, "s") == 0) {
+        if (!view->has_s) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(view->s);
+        return 1;
     }
-    *out_value = value;
-    return 1;
+    if (strcmp(name, "me") == 0) {
+        if (view->me == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(view->me);
+        return 1;
+    }
+    if (strcmp(name, "od") == 0) {
+        if (!view->has_od) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(view->od);
+        return 1;
+    }
+    return 0;
 }
 
 static const pico8_struct_class_t g_ie_ke_view_struct_class = {
@@ -94,21 +106,51 @@ static const pico8_struct_class_t g_ie_ke_view_struct_class = {
     NULL,
 };
 
+static void ie_ke_take_string(const pico8_entity_kind_t *kind, const char *name, const char **out) {
+    pico8_value_t v = pico8_value_ref(NULL);
+
+    *out = NULL;
+    if (!kind->field(name, &v) || (v.kind == PICO8_VALUE_REF && v.as.ref == NULL)) {
+        return;
+    }
+    assert(v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
+           "ie_ke.rr/me: a chain value neither nil nor a string is off its census row (chaine) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = v.as.string;
+}
+
+static void ie_ke_take_fixed(const pico8_entity_kind_t *kind, const char *name, pico8_fixed_t *out, int *has) {
+    pico8_value_t v = pico8_value_ref(NULL);
+
+    *out = 0;
+    *has = 0;
+    if (!kind->field(name, &v) || (v.kind == PICO8_VALUE_REF && v.as.ref == NULL)) {
+        return;
+    }
+    assert(v.kind == PICO8_VALUE_FIXED &&
+           "ie_ke.s/od: a chain value neither nil nor fixed is off its census row (fixe) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = v.as.fixed;
+    *has = 1;
+}
+
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
     pico8_ie_ke_t view;
 
     view.header.tag = PICO8_TYPE_TAG_STRUCT;
     view.header.cls = &g_ie_ke_view_struct_class;
-    view.rr = pico8_value_ref(NULL);
-    view.s = pico8_value_ref(NULL);
-    view.me = pico8_value_ref(NULL);
-    view.od = pico8_value_ref(NULL);
+    view.rr = NULL;
+    view.s = 0;
+    view.has_s = 0;
+    view.me = NULL;
+    view.od = 0;
+    view.has_od = 0;
     if (kind != NULL) {
-        (void)kind->field("rr", &view.rr);
-        (void)kind->field("s", &view.s);
-        (void)kind->field("me", &view.me);
-        (void)kind->field("od", &view.od);
+        ie_ke_take_string(kind, "rr", &view.rr);
+        ie_ke_take_fixed(kind, "s", &view.s, &view.has_s);
+        ie_ke_take_string(kind, "me", &view.me);
+        ie_ke_take_fixed(kind, "od", &view.od, &view.has_od);
     }
     PICO8_MEMBER_CENSUS_SEE(&view, pico8_ie_ke_t);
     return view;
@@ -127,7 +169,7 @@ static pico8_vec_t ie_value_vec(pico8_value_t v) {
 }
 
 void pico8_ie_hb(pico8_ie_t *self) {
-    pico8_value_t rr_val;
+    const char *rr;
 
     if (self == NULL) {
         return;
@@ -137,11 +179,11 @@ void pico8_ie_hb(pico8_ie_t *self) {
         return;
     }
 
-    /* `qh`/`os` never set `rr`, so `rr_val` stays absent for them and
+    /* `qh`/`os` never set `rr`, so `rr` stays absent for them and
      * pico8_oj() then answers true unconditionally. */
-    rr_val = pico8_ie_ke_view(self).rr;
+    rr = pico8_ie_ke_view(self).rr;
 
-    if (!pico8_oj(rr_val)) {
+    if (!pico8_oj(rr != NULL ? pico8_value_string(rr) : pico8_value_ref(NULL))) {
         return;
     }
 
@@ -225,7 +267,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
     pico8_palt(mem, 3, 0);
 
     view = pico8_ie_ke_view(self);
-    pico8_spr_default(gfx, mem, view.s.kind == PICO8_VALUE_FIXED ? ie_to_int(view.s.as.fixed) : 0, ie_to_int(p.x),
+    pico8_spr_default(gfx, mem, view.has_s ? ie_to_int(view.s) : 0, ie_to_int(p.x),
                       ie_to_int(p.y));
 
     /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits

@@ -11,7 +11,8 @@
 
 /* Throughout this module a NULL `ie` struct, `gfx` or `mem` is a safe
  * no-op, and a nil or wrong-kind member, or an absent field of `self.ke`,
- * reads as its zero/false default.
+ * reads as its zero/false default; a wrong-kind field of `self.ke` stops
+ * the run.
  *
  * `self.ke` holds a `pico8_entity_kind_t`, not an entity: its fields are
  * read off a `pico8_ie_ke_t`, never pico8_entity_get_field() on the kind
@@ -37,10 +38,12 @@ typedef struct {
  * writer, so a write reaching it stops the run. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t rr;
-    pico8_value_t s;
-    pico8_value_t me;
-    pico8_value_t od;
+    const char *rr;
+    pico8_fixed_t s;
+    int has_s; /* 0: `s` is nil, and is then never read */
+    const char *me;
+    pico8_fixed_t od;
+    int has_od; /* 0: `od` is nil, and is then never read */
 } pico8_ie_ke_t;
 
 /* Calls pico8_research_icon_shutdown(), then pico8_pi_init(): `ie`'s spec
@@ -82,7 +85,8 @@ void pico8_ie_hb(pico8_ie_t *self);
 pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp);
 
 /* By value, one per read: each member copied off the chain of the class
- * `self.ke` holds, nil when absent there or when `self.ke` is. */
+ * `self.ke` holds, nil when absent there or when `self.ke` is. `rr` and
+ * `me` are borrowed from the kind's defaults. */
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self);
 const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void);
 
