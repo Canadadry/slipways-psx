@@ -59,6 +59,7 @@
 #define TITLE_RHELD_FRAMES 131
 #define PLAYTHROUGH_FRAMES 224
 #define PLAYTHROUGH_HASH 0x9F387594u
+#define BG_MEMBERS_HASH 0x8410F8B5u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -658,6 +659,211 @@ static void test_bg_is_a_struct(void) {
     assert(!pico8_mv(veil, "rdown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
 }
 
+#define WITNESS 0x1234
+
+/* Reads `name` through the raw reader and through pico8_entity_get_field,
+ * which must agree; a miss leaves the witness intact in both. */
+static uint32_t fold_member(uint32_t h, const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(WITNESS);
+    pico8_value_t gen = pico8_value_fixed(WITNESS);
+    int got_raw = pico8_bg_struct_class()->field(e, name, &raw);
+    int got_gen = pico8_entity_get_field(e, name, &gen);
+
+    assert(got_raw == got_gen && raw.kind == gen.kind);
+    h = fnv(h, (uint32_t)got_raw);
+    h = fnv(h, (uint32_t)raw.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS && gen.as.fixed == WITNESS);
+    } else if (raw.kind == PICO8_VALUE_FIXED) {
+        assert(raw.as.fixed == gen.as.fixed);
+        h = fnv(h, (uint32_t)raw.as.fixed);
+    } else if (raw.kind == PICO8_VALUE_BOOL) {
+        assert(raw.as.boolean == gen.as.boolean);
+        h = fnv(h, (uint32_t)raw.as.boolean);
+    } else if (raw.kind == PICO8_VALUE_STRING) {
+        assert(strcmp(raw.as.string, gen.as.string) == 0);
+        h = fnv(h, (uint32_t)strlen(raw.as.string));
+    } else {
+        assert(raw.kind == PICO8_VALUE_REF && raw.as.ref == gen.as.ref);
+    }
+    if (out != NULL) {
+        *out = raw;
+    }
+    return h;
+}
+
+static uint32_t fold_bg(uint32_t h, const void *bg, const void *want_mq) {
+    static const char *const intruders[] = {"", "x", "M_", "m", "has_m_", "ke", "header", "items"};
+    pico8_value_t v;
+    size_t i;
+
+    h = fold_member(h, bg, "fa", &v);
+    assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1));
+    h = fold_member(h, bg, "hd", &v);
+    assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1));
+    h = fold_member(h, bg, "pl", &v);
+    assert(v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
+    h = fnv(h, (uint32_t)((const pico8_ob_table_t *)v.as.ref)->count);
+    h = fold_member(h, bg, "mq", &v);
+    if (want_mq == NULL) {
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == WITNESS);
+    } else {
+        assert(v.kind == PICO8_VALUE_REF && v.as.ref == want_mq);
+        h = fold_vec(h, bg, "mq");
+    }
+    h = fold_member(h, bg, "m_", NULL);
+    assert(is_string(bg, "me", "ph"));
+    h = fold_member(h, bg, "me", NULL);
+    h = fold_member(h, bg, "t", &v);
+    assert(v.kind == PICO8_VALUE_FIXED);
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        h = fold_member(h, bg, intruders[i], &v);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == WITNESS);
+    }
+    return h;
+}
+
+static uint32_t write_m_(uint32_t h, void *bg, pico8_value_t value, int raw, uint32_t want_state, const void *want_mq) {
+    if (raw) {
+        assert(pico8_bg_struct_class()->set_field(bg, "m_", value) == 1);
+    } else {
+        pico8_entity_set_field(bg, "m_", value);
+    }
+    assert(bool_state(bg, "m_") == want_state);
+    h = fnv(h, bool_state(bg, "m_"));
+    return fold_bg(h, bg, want_mq);
+}
+
+/* Every member read by name on the game's `bg` and on a fresh one; `m_`
+ * written by name (true, false, a false with a zeroed union, nil) and `mq`
+ * through `rdown`/`hq`, its only writers; `gw` sets the hovered `m_`. */
+static void test_bg_members_by_name(void) {
+    static const char *const unwritten[] = {"fa", "hd", "pl", "mq", "me", "t", "", "m_ ", "has_m_"};
+    uint32_t h = 2166136261u;
+    void *a;
+    void *b;
+    pico8_value_t rp1;
+    pico8_value_t rp2;
+    pico8_value_t out;
+    pico8_value_t zero_false;
+    pico8_vec_t v;
+    size_t i;
+
+    start_game(PLAYTHROUGH);
+    a = the_bg();
+    h = fold_bg(h, a, NULL);
+
+    memset(&g_void, 0, sizeof g_void);
+    g_void.mouse_x = 64;
+    g_void.mouse_y = 100;
+    input.frames = &g_void;
+    input.frame_count = 1;
+    input.current_frame = 0;
+    pico8_dispatch_set_input(&input);
+    pico8_dg();
+    pico8_ui_lj(&mem, pico8_ok());
+    assert(ok_ref("o_") == a);
+    assert(bool_state(a, "m_") == 2);
+    h = fold_bg(h, a, NULL);
+
+    b = (void *)pico8_bg_new(NULL);
+    h = fold_bg(h, b, NULL);
+    assert(pl_of(a) == pl_of(b));
+
+    rp1 = vec_ref(3, 4);
+    assert(pico8_mv(b, "rdown", 2, vec_ref(0, 0), rp1, &out));
+    assert(out.kind == PICO8_VALUE_REF && out.as.ref == b);
+    h = fold_bg(h, b, rp1.as.ref);
+    rp2 = vec_ref(5, 9);
+    assert(pico8_mv(b, "hq", 2, vec_ref(0, 0), rp2, &out));
+    v = vec_of(pico8_mo(), "v");
+    assert(v.x == pico8_fixed_from_int(-2) && v.y == pico8_fixed_from_int(-5));
+    h = fold_vec(h, pico8_mo(), "v");
+    h = fold_bg(h, b, rp2.as.ref);
+    assert(pico8_mv(b, "rdown", 2, vec_ref(0, 0), pico8_value_ref(NULL), &out));
+    assert(out.kind == PICO8_VALUE_REF && out.as.ref == b);
+    h = fold_bg(h, b, NULL);
+    assert(pico8_mv(b, "rdown", 2, vec_ref(0, 0), rp1, &out));
+
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    h = write_m_(h, b, pico8_value_bool(1), 0, 2, rp1.as.ref);
+    h = write_m_(h, b, pico8_value_bool(0), 1, 1, rp1.as.ref);
+    h = write_m_(h, b, pico8_value_bool(1), 1, 2, rp1.as.ref);
+    h = write_m_(h, b, zero_false, 1, 1, rp1.as.ref);
+    h = write_m_(h, b, pico8_value_ref(NULL), 0, 0, rp1.as.ref);
+    h = write_m_(h, b, pico8_value_ref(NULL), 0, 0, rp1.as.ref);
+    h = write_m_(h, b, pico8_value_bool(1), 0, 2, rp1.as.ref);
+    h = write_m_(h, b, pico8_value_ref(NULL), 1, 0, rp1.as.ref);
+    h = write_m_(h, b, zero_false, 0, 1, rp1.as.ref);
+
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        assert(pico8_bg_struct_class()->set_field(b, unwritten[i], pico8_value_bool(1)) == 0);
+        assert(bool_state(b, "m_") == 1);
+        h = fold_bg(h, b, rp1.as.ref);
+    }
+    assert(pl_of(a) == pl_of(b));
+    check("bg members", h, BG_MEMBERS_HASH);
+}
+
+static void write_m_by_name(void *e, pico8_value_t v) {
+    pico8_entity_set_field(e, "m_", v);
+}
+
+static void rdown_with(void *e, pico8_value_t v) {
+    pico8_value_t out;
+    (void)pico8_mv(e, "rdown", 2, vec_ref(0, 0), v, &out);
+}
+
+static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(e, v);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* `m_` takes nil or a boolean only, `mq` nil or a vector only; a value
+ * whose whole union is zero is not nil unless it is a REF. */
+static void test_bg_writer_stops_off_row(void) {
+    void *a;
+    void *b;
+    pico8_value_t zero_fixed;
+    pico8_value_t zero_string;
+    pico8_value_t zero_false;
+
+    start_game(PLAYTHROUGH);
+    a = the_bg();
+    b = (void *)pico8_bg_new(NULL);
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    memset(&zero_string, 0, sizeof zero_string);
+    zero_string.kind = PICO8_VALUE_STRING;
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+
+    must_abort_value(b, write_m_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(b, write_m_by_name, zero_fixed);
+    must_abort_value(b, write_m_by_name, zero_string);
+    must_abort_value(b, write_m_by_name, pico8_value_string("x"));
+    must_abort_value(b, write_m_by_name, get(b, "kj"));
+    must_abort_value(b, write_m_by_name, pico8_value_ref(a));
+    must_abort_value(b, write_m_by_name, vec_ref(1, 1));
+
+    must_abort_value(b, rdown_with, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(b, rdown_with, zero_fixed);
+    must_abort_value(b, rdown_with, zero_false);
+    must_abort_value(b, rdown_with, pico8_value_ref(a));
+}
+
 /* A scenario depends on the rnd state: run each in a child forked right
  * after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -697,6 +903,8 @@ int main(void) {
     in_fresh_child(test_replay_from_title);
     in_fresh_child(test_playthrough);
     in_fresh_child(test_bg_is_a_struct);
+    in_fresh_child(test_bg_members_by_name);
+    in_fresh_child(test_bg_writer_stops_off_row);
 
     printf("test_pico8_bg: all tests passed\n");
     return 0;

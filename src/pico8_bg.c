@@ -11,6 +11,7 @@
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_probe.h"
+#include "pico8_type_tag.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
@@ -56,26 +57,61 @@ static pico8_value_t pico8_bg_hq_dispatch(void *self, int argc, pico8_value_t ar
 
 static int pico8_bg_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_bg_t *bg = self;
-    static const struct {
-        const char *name;
-        size_t offset;
-    } members[] = {
-        {"fa", offsetof(pico8_bg_t, fa)}, {"hd", offsetof(pico8_bg_t, hd)}, {"pl", offsetof(pico8_bg_t, pl)},
-        {"mq", offsetof(pico8_bg_t, mq)}, {"m_", offsetof(pico8_bg_t, m_)},
-    };
-    size_t i;
 
-    for (i = 0; i < sizeof members / sizeof members[0]; i++) {
-        if (strcmp(name, members[i].name) == 0) {
-            pico8_value_t value = *(const pico8_value_t *)((const char *)bg + members[i].offset);
-            if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-                return 0;
-            }
-            *out_value = value;
-            return 1;
+    if (strcmp(name, "fa") == 0) {
+        *out_value = pico8_value_fixed(bg->fa);
+        return 1;
+    }
+    if (strcmp(name, "hd") == 0) {
+        *out_value = pico8_value_fixed(bg->hd);
+        return 1;
+    }
+    if (strcmp(name, "pl") == 0) {
+        if (bg->pl == NULL) {
+            return 0;
         }
+        *out_value = pico8_value_ref(bg->pl);
+        return 1;
+    }
+    if (strcmp(name, "mq") == 0) {
+        if (bg->mq == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(bg->mq);
+        return 1;
+    }
+    if (strcmp(name, "m_") == 0) {
+        if (!bg->has_m_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(bg->m_);
+        return 1;
     }
     return pico8_ke_field(self, name, out_value);
+}
+
+static void bg_take_bool(pico8_value_t value, int *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL &&
+           "bg.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of plan-3 "
+           "section 5: stop, do not widen the member");
+    *out = value.as.boolean;
+    *has = 1;
+}
+
+static void bg_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "bg.mq: an rp neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
 }
 
 /* `m_` (the hover loop `gw`): the only name a generic writer ever writes
@@ -84,7 +120,7 @@ static int pico8_bg_set_field(void *self, const char *name, pico8_value_t value)
     pico8_bg_t *bg = self;
 
     if (strcmp(name, "m_") == 0) {
-        bg->m_ = value;
+        bg_take_bool(value, &bg->m_, &bg->has_m_);
         return 1;
     }
     return 0;
@@ -105,11 +141,12 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
     pico8_bg_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_bg_struct_class);
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(1));
-    self->hd = pico8_value_fixed(pico8_fixed_from_int(1));
-    self->pl = pico8_value_ref(g_bg_pl);
-    self->mq = pico8_value_ref(NULL);
-    self->m_ = pico8_value_ref(NULL);
+    self->fa = pico8_fixed_from_int(1);
+    self->hd = pico8_fixed_from_int(1);
+    self->pl = g_bg_pl;
+    self->mq = NULL;
+    self->m_ = 0;
+    self->has_m_ = 0;
     assert((overrides == NULL || overrides->count == 0) &&
            "bg: no construction table was measured; a key would be a field under no rule of plan-3 section 5 "
            "-- stop, do not add a member");
@@ -252,7 +289,7 @@ pico8_value_t pico8_bg_rdown(pico8_bg_t *self, pico8_value_t mp, pico8_value_t r
     (void)mp;
 
     if (self != NULL) {
-        self->mq = rp;
+        bg_take_vec(rp, &self->mq);
     }
     return pico8_value_ref(self);
 }
@@ -270,7 +307,7 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp) {
         return;
     }
 
-    mq = pico8_bg_value_vec(self->mq);
+    mq = pico8_bg_value_vec(pico8_value_ref(self->mq));
     rp_vec = pico8_bg_value_vec(rp);
     mo = pico8_mo();
     if (mo != NULL) {
@@ -280,5 +317,5 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp) {
         pico8_entity_set_field(mo, "v", pico8_value_ref(v_new));
     }
 
-    self->mq = rp;
+    bg_take_vec(rp, &self->mq);
 }

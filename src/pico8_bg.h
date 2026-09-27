@@ -7,6 +7,7 @@
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 /* Throughout this module a NULL `self`, `gfx` or `mem` argument is a safe
  * no-op, and an absent or wrong-kind field reads as absent rather than
@@ -17,11 +18,12 @@
  * modified in place. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t fa;
-    pico8_value_t hd;
-    pico8_value_t pl;
-    pico8_value_t mq;
-    pico8_value_t m_;
+    pico8_fixed_t fa;
+    pico8_fixed_t hd;
+    pico8_ob_table_t *pl;
+    pico8_vec_t *mq;
+    int m_;
+    int has_m_;
 } pico8_bg_t;
 
 void pico8_bg_init(void);
