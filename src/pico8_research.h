@@ -12,28 +12,33 @@
  * `i` and `lq`, tables built here and never freed (TROU-7). */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t mr;
-    pico8_value_t gp;
-    pico8_value_t fk;
-    pico8_value_t px;
-    pico8_value_t lr;
-    pico8_value_t fj;
-    pico8_value_t ja;
-    pico8_value_t i;
-    pico8_value_t o;
-    pico8_value_t il;
-    pico8_value_t dm;
-    pico8_value_t rr;
-    pico8_value_t ii;
-    pico8_value_t cw;
-    pico8_value_t go;
-    pico8_value_t rn;
-    pico8_value_t lq;
+    pico8_ob_table_t *mr;
+    pico8_ob_table_t *gp;
+    pico8_ob_table_t *fk;
+    const char *px;
+    const char *lr;
+    pico8_fixed_t fj;
+    int has_fj; /* 0: `fj` is nil, and is then never read */
+    const char *ja;
+    pico8_list_t *i;
+    pico8_fixed_t o;
+    int has_o; /* 0: `o` is nil, and is then never read */
+    const char *il;
+    int has_il; /* 0: `il` is nil; 1 with `il` NULL: `il` is false */
+    pico8_fixed_t dm;
+    int has_dm; /* 0: `dm` is nil, and is then never read */
+    const char *rr;
+    pico8_fixed_t ii;
+    int has_ii; /* 0: `ii` is nil, and is then never read */
+    const char *cw;
+    const char *go;
+    pico8_fixed_t rn;
+    int has_rn; /* 0: `rn` is nil, and is then never read */
+    pico8_ob_table_t *lq;
 } pico8_hp_t;
 
 /* Throughout this module -- this file and its `_display` sibling -- a NULL
- * project argument is a safe no-op, and a nil or wrong-kind member reads
- * as its zero/false default rather than crashing. */
+ * project argument is a safe no-op. */
 
 /* Calls pico8_research_shutdown() first. */
 void pico8_research_init(void);
@@ -55,6 +60,9 @@ const pico8_struct_class_t *pico8_hp_struct_class(void);
 /* The class's `fk`; nil before pico8_research_init() and after
  * pico8_research_shutdown(). */
 pico8_value_t pico8_hp_fk(void);
+
+/* `il` as the cart holds it: REF NULL when nil or `self` is NULL, BOOL 0, or the STRING. */
+pico8_value_t pico8_hp_il(const pico8_hp_t *self);
 
 /* Aborts unless `self` is NULL or a project. */
 void pico8_hp_assert(const pico8_hp_t *self);

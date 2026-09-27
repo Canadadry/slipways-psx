@@ -11,7 +11,6 @@
 #include "pico8_research.h"
 #include "pico8_stash.h"
 #include "pico8_tech_gate.h"
-#include "pico8_ref_audit.h"
 
 /* Lua truthiness, widened so this port's "absent" filler REF(NULL) is
  * falsy too. */
@@ -59,10 +58,10 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
     pico8_value_t entry;
 
     out[0] = '\0';
-    if (self->i.kind != PICO8_VALUE_REF || self->i.as.ref == NULL) {
+    if (self->i == NULL) {
         return out;
     }
-    i_list = PICO8_REF_AS_LIST_CONST(self->i.as.ref);
+    i_list = self->i;
     it = pico8_list_all(i_list);
     while (pico8_list_iter_next(&it, &entry)) {
         pico8_value_t qe = pico8_value_ref(NULL);
@@ -107,7 +106,7 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self) {
     if (self == NULL) {
         return NULL;
     }
-    if (pico8_research_display_truthy(self->ii)) {
+    if (self->has_ii) {
         return NULL;
     }
 
@@ -117,8 +116,8 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self) {
     pico8_ob_table_set_index(inner, 1, pico8_value_string(it));
     pico8_ob_table_set_index(inner, 2, pico8_value_fixed(pico8_fixed_from_int(13)));
 
-    if (!pico8_research_display_nil(self->o)) {
-        char *o_str = pico8_value_tostr(self->o);
+    if (self->has_o) {
+        char *o_str = pico8_value_tostr(pico8_value_fixed(self->o));
         pico8_value_t iz_o;
 
         if (pico8_ob_table_get_name(pico8_iz(), o_str, &iz_o)) {
@@ -273,8 +272,8 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         return NULL;
     }
 
-    if (self->i.kind == PICO8_VALUE_REF && self->i.as.ref != NULL) {
-        is = PICO8_REF_AS_LIST_CONST(self->i.as.ref);
+    if (self->i != NULL) {
+        is = self->i;
     }
 
     po = pico8_hp_po(self);
@@ -283,7 +282,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         jq = (po1.as.fixed > pico8_fixed_from_int(1)) ? po1.as.fixed : pico8_fixed_from_int(1);
     }
 
-    l = pico8_jo_ex(is, self->o, jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
+    l = pico8_jo_ex(is, self->has_o ? pico8_value_fixed(self->o) : pico8_value_ref(NULL), jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }
@@ -291,8 +290,8 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
     if (!pico8_research_display_nil(pico8_hp_fk())) {
         pico8_list_add(&l->items, pico8_hp_fk());
     }
-    if (!pico8_research_display_nil(self->px)) {
-        pico8_list_add(&l->items, self->px);
+    if (self->px != NULL) {
+        pico8_list_add(&l->items, pico8_value_string(self->px));
     }
 
     return l;
@@ -319,7 +318,7 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     b = e.as.ref;
     pico8_hp_assert(b);
 
-    if (!pico8_oj(b->rr)) {
+    if (!pico8_oj(b->rr != NULL ? pico8_value_string(b->rr) : pico8_value_ref(NULL))) {
         return 0;
     }
 
@@ -330,13 +329,12 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
         px_str = px_val.as.string;
     }
 
-    if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' && b->lr.kind == PICO8_VALUE_STRING &&
-        b->lr.as.string != NULL) {
-        size_t n = strlen(b->lr.as.string);
+    if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' && b->lr != NULL) {
+        size_t n = strlen(b->lr);
         size_t i;
 
         for (i = 0; i < n; i++) {
-            if (b->lr.as.string[i] == px_str[0]) {
+            if (b->lr[i] == px_str[0]) {
                 mg = 1;
                 break;
             }

@@ -26,18 +26,6 @@ static pico8_value_t g_fk = {PICO8_VALUE_REF, {0}};
 static const char *const g_hp_mr_names[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
 static const char *const g_hp_named_keys[] = {"rr", "ii", "cw", "go", "rn"};
 
-static const struct {
-    const char *name;
-    size_t offset;
-} g_hp_members[] = {
-    {"mr", offsetof(pico8_hp_t, mr)}, {"gp", offsetof(pico8_hp_t, gp)}, {"fk", offsetof(pico8_hp_t, fk)},
-    {"px", offsetof(pico8_hp_t, px)}, {"lr", offsetof(pico8_hp_t, lr)}, {"fj", offsetof(pico8_hp_t, fj)},
-    {"ja", offsetof(pico8_hp_t, ja)}, {"i", offsetof(pico8_hp_t, i)},   {"o", offsetof(pico8_hp_t, o)},
-    {"il", offsetof(pico8_hp_t, il)}, {"dm", offsetof(pico8_hp_t, dm)}, {"rr", offsetof(pico8_hp_t, rr)},
-    {"ii", offsetof(pico8_hp_t, ii)}, {"cw", offsetof(pico8_hp_t, cw)}, {"go", offsetof(pico8_hp_t, go)},
-    {"rn", offsetof(pico8_hp_t, rn)}, {"lq", offsetof(pico8_hp_t, lq)},
-};
-
 static int value_is_nil(pico8_value_t v) {
     return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
 }
@@ -93,35 +81,135 @@ static pico8_value_t pico8_hp_lq_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(pico8_hp_lq((pico8_hp_t *)self));
 }
 
-static pico8_value_t *hp_member(pico8_hp_t *self, const char *name) {
-    size_t i;
-    for (i = 0; i < sizeof g_hp_members / sizeof g_hp_members[0]; i++) {
-        if (strcmp(name, g_hp_members[i].name) == 0) {
-            return (pico8_value_t *)((char *)self + g_hp_members[i].offset);
-        }
-    }
-    return NULL;
-}
-
 /* A nil `lq` member falls back to the class's `lq` method, as the cart's
  * `mv(b,"lq")` finds it: the member written by the constructor shadows the
  * method for a project with `ii`. An `lq` entry in the descriptor's methods
  * would be looked up first and invert that. */
 static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_value_t *member = hp_member((pico8_hp_t *)self, name);
+    const pico8_hp_t *hp = self;
 
-    if (member == NULL) {
-        return 0;
+    if (strcmp(name, "mr") == 0) {
+        if (hp->mr == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(hp->mr);
+        return 1;
     }
-    if (value_is_nil(*member)) {
-        if (strcmp(name, "lq") == 0) {
+    if (strcmp(name, "gp") == 0) {
+        if (hp->gp == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(hp->gp);
+        return 1;
+    }
+    if (strcmp(name, "fk") == 0) {
+        if (hp->fk == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(hp->fk);
+        return 1;
+    }
+    if (strcmp(name, "px") == 0) {
+        if (hp->px == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(hp->px);
+        return 1;
+    }
+    if (strcmp(name, "lr") == 0) {
+        if (hp->lr == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(hp->lr);
+        return 1;
+    }
+    if (strcmp(name, "fj") == 0) {
+        if (!hp->has_fj) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(hp->fj);
+        return 1;
+    }
+    if (strcmp(name, "ja") == 0) {
+        if (hp->ja == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(hp->ja);
+        return 1;
+    }
+    if (strcmp(name, "i") == 0) {
+        if (hp->i == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(hp->i);
+        return 1;
+    }
+    if (strcmp(name, "o") == 0) {
+        if (!hp->has_o) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(hp->o);
+        return 1;
+    }
+    if (strcmp(name, "il") == 0) {
+        pico8_value_t v = pico8_hp_il(hp);
+        if (value_is_nil(v)) {
+            return 0;
+        }
+        *out_value = v;
+        return 1;
+    }
+    if (strcmp(name, "dm") == 0) {
+        if (!hp->has_dm) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(hp->dm);
+        return 1;
+    }
+    if (strcmp(name, "rr") == 0) {
+        if (hp->rr == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(hp->rr);
+        return 1;
+    }
+    if (strcmp(name, "ii") == 0) {
+        if (!hp->has_ii) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(hp->ii);
+        return 1;
+    }
+    if (strcmp(name, "cw") == 0) {
+        if (hp->cw == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(hp->cw);
+        return 1;
+    }
+    if (strcmp(name, "go") == 0) {
+        if (hp->go == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(hp->go);
+        return 1;
+    }
+    if (strcmp(name, "rn") == 0) {
+        if (!hp->has_rn) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(hp->rn);
+        return 1;
+    }
+    if (strcmp(name, "lq") == 0) {
+        if (hp->lq == NULL) {
             *out_value = pico8_value_function(pico8_hp_lq_dispatch);
             return 1;
         }
-        return 0;
+        *out_value = pico8_value_ref(hp->lq);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    return 0;
 }
 
 static const pico8_struct_class_t g_hp_struct_class = {
@@ -142,6 +230,50 @@ static int hp_accepts_key(pico8_ob_key_t key) {
         }
     }
     return 0;
+}
+
+static void hp_take_string(const pico8_ob_table_t *ri, const char *name, const char **out) {
+    pico8_value_t v;
+
+    *out = NULL;
+    if (!pico8_ob_table_get_name(ri, name, &v) || value_is_nil(v)) {
+        return;
+    }
+    assert(v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
+           "hp.px/lr/ja/rr/cw/go: a key neither nil nor a string is off its census row (chaine) -- a field under "
+           "no rule of plan-3 section 5: stop, do not widen the member");
+    *out = v.as.string;
+}
+
+static void hp_take_fixed(const pico8_ob_table_t *ri, const char *name, pico8_fixed_t *out, int *has) {
+    pico8_value_t v;
+
+    *out = 0;
+    *has = 0;
+    if (!pico8_ob_table_get_name(ri, name, &v) || value_is_nil(v)) {
+        return;
+    }
+    assert(v.kind == PICO8_VALUE_FIXED &&
+           "hp.fj/o/dm/ii/rn: a key neither nil nor fixed is off its census row (fixe) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = v.as.fixed;
+    *has = 1;
+}
+
+static void hp_take_il(const pico8_ob_table_t *ri, const char **out, int *has) {
+    pico8_value_t v;
+
+    *out = NULL;
+    *has = 0;
+    if (!pico8_ob_table_get_name(ri, "il", &v) || value_is_nil(v)) {
+        return;
+    }
+    assert(((v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) ||
+            (v.kind == PICO8_VALUE_STRING && v.as.string != NULL)) &&
+           "hp.il: a key neither nil, false nor a string is off its census row (bool,chaine) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = v.kind == PICO8_VALUE_STRING ? v.as.string : NULL;
+    *has = 1;
 }
 
 /* Contributes a `{qe=r[c]}` wrapper for every character, never skipping
@@ -174,18 +306,38 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
     pico8_list_t gp_list;
     pico8_list_t new_i;
     pico8_list_t *new_i_heap;
+    pico8_value_t raw_i;
     const char *i_src = "";
-    size_t n;
     int k;
 
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_hp_struct_class;
-    for (n = 0; n < sizeof g_hp_members / sizeof g_hp_members[0]; n++) {
-        *hp_member(self, g_hp_members[n].name) = pico8_value_ref(NULL);
-    }
-    self->mr = g_mr;
-    self->gp = g_gp;
-    self->fk = g_fk;
+    self->mr = NULL;
+    self->gp = NULL;
+    self->fk = NULL;
+    self->px = NULL;
+    self->lr = NULL;
+    self->fj = 0;
+    self->has_fj = 0;
+    self->ja = NULL;
+    self->i = NULL;
+    self->o = 0;
+    self->has_o = 0;
+    self->il = NULL;
+    self->has_il = 0;
+    self->dm = 0;
+    self->has_dm = 0;
+    self->rr = NULL;
+    self->ii = 0;
+    self->has_ii = 0;
+    self->cw = NULL;
+    self->go = NULL;
+    self->rn = 0;
+    self->has_rn = 0;
+    self->lq = NULL;
+    self->mr = g_mr.as.ref;
+    self->gp = g_gp.as.ref;
+    self->fk = g_fk.as.ref;
 
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
@@ -203,46 +355,65 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ho_apply(scratch_rc, g_mr.as.ref, &gp_list, ri);
     pico8_ob_table_free(scratch_rc);
     pico8_list_free(&gp_list);
-    for (n = 0; n < sizeof g_hp_mr_names / sizeof g_hp_mr_names[0]; n++) {
-        (void)pico8_ob_table_get_name(ri, g_hp_mr_names[n], hp_member(self, g_hp_mr_names[n]));
-    }
-    for (n = 0; n < sizeof g_hp_named_keys / sizeof g_hp_named_keys[0]; n++) {
-        (void)pico8_ob_table_get_name(ri, g_hp_named_keys[n], hp_member(self, g_hp_named_keys[n]));
+    hp_take_string(ri, "px", &self->px);
+    hp_take_string(ri, "lr", &self->lr);
+    hp_take_fixed(ri, "fj", &self->fj, &self->has_fj);
+    hp_take_string(ri, "ja", &self->ja);
+    hp_take_fixed(ri, "o", &self->o, &self->has_o);
+    hp_take_il(ri, &self->il, &self->has_il);
+    hp_take_fixed(ri, "dm", &self->dm, &self->has_dm);
+    hp_take_string(ri, "rr", &self->rr);
+    hp_take_fixed(ri, "ii", &self->ii, &self->has_ii);
+    hp_take_string(ri, "cw", &self->cw);
+    hp_take_string(ri, "go", &self->go);
+    hp_take_fixed(ri, "rn", &self->rn, &self->has_rn);
+    if (!pico8_ob_table_get_name(ri, "i", &raw_i)) {
+        raw_i = pico8_value_ref(NULL);
     }
     pico8_ob_table_free(ri);
 
-    if (self->px.kind == PICO8_VALUE_STRING) {
+    if (self->px != NULL) {
         assert(g_gb != NULL && "hp:pq registers itself in gb: build gb before instantiating an hp");
-        pico8_ob_table_set_name(g_gb, self->px.as.string, pico8_value_ref(self));
+        pico8_ob_table_set_name(g_gb, self->px, pico8_value_ref(self));
     }
 
-    if (pico8_research_truthy(self->ii)) {
+    if (self->has_ii) {
         pico8_ob_table_t *inner = pico8_ob_table_new();
         pico8_ob_table_t *outer = pico8_ob_table_new();
 
-        pico8_ob_table_set_index(inner, 1, self->ii);
+        pico8_ob_table_set_index(inner, 1, pico8_value_fixed(self->ii));
         pico8_ob_table_set_index(inner, 2, pico8_value_fixed(pico8_fixed_from_int(8)));
-        if (!value_is_nil(self->px)) {
-            pico8_ob_table_set_index(outer, 1, self->px);
+        if (self->px != NULL) {
+            pico8_ob_table_set_index(outer, 1, pico8_value_string(self->px));
         }
         pico8_ob_table_set_index(outer, 2, pico8_value_fixed(pico8_fixed_from_int(32)));
         pico8_ob_table_set_index(outer, 3, pico8_value_ref(inner));
-        self->lq = pico8_value_ref(outer);
+        self->lq = outer;
     }
 
-    if (self->i.kind == PICO8_VALUE_STRING && self->i.as.string != NULL) {
-        i_src = self->i.as.string;
+    if (raw_i.kind == PICO8_VALUE_STRING && raw_i.as.string != NULL) {
+        i_src = raw_i.as.string;
     }
     new_i = pico8_fi(i_src, pico8_hp_pq_i_step, NULL);
     new_i_heap = malloc(sizeof *new_i_heap);
     *new_i_heap = new_i;
-    self->i = pico8_value_ref(new_i_heap);
+    self->i = new_i_heap;
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hp");
 #endif
     PICO8_MEMBER_CENSUS_SEE(self, pico8_hp_t);
     return self;
+}
+
+pico8_value_t pico8_hp_il(const pico8_hp_t *self) {
+    if (self == NULL || !self->has_il) {
+        return pico8_value_ref(NULL);
+    }
+    if (self->il == NULL) {
+        return pico8_value_bool(0);
+    }
+    return pico8_value_string(self->il);
 }
 
 void pico8_hp_assert(const pico8_hp_t *self) {
@@ -371,17 +542,21 @@ static int pico8_research_lookup(const pico8_ob_table_t *table, pico8_value_t ke
 
 const pico8_ob_table_t *pico8_hp_po(const pico8_hp_t *self) {
     pico8_value_t qp_val;
+    pico8_value_t il;
     const pico8_ob_table_t *qp = NULL;
 
     pico8_hp_assert(self);
     if (self == NULL) {
         return NULL;
     }
-    if (pico8_research_lookup(pico8_hc(), self->ja, &qp_val) && qp_val.kind == PICO8_VALUE_REF) {
+    if (pico8_research_lookup(pico8_hc(), self->ja != NULL ? pico8_value_string(self->ja) : pico8_value_ref(NULL),
+                              &qp_val) &&
+        qp_val.kind == PICO8_VALUE_REF) {
         qp = qp_val.as.ref;
     }
 
-    if (pico8_research_truthy(self->il) && pico8_oj(self->il) && qp != NULL) {
+    il = pico8_hp_il(self);
+    if (pico8_research_truthy(il) && pico8_oj(il) && qp != NULL) {
         pico8_value_t mc_val;
 
         if (pico8_ob_table_get_name(qp, "mc", &mc_val)) {
@@ -397,16 +572,18 @@ const pico8_ob_table_t *pico8_hp_po(const pico8_hp_t *self) {
 
 pico8_fixed_t pico8_hp_od(const pico8_hp_t *self) {
     pico8_fixed_t od = pico8_fixed_from_int(0);
+    pico8_value_t il;
     int has_ii;
 
     pico8_hp_assert(self);
-    if (self != NULL && self->fj.kind == PICO8_VALUE_FIXED) {
-        od = self->fj.as.fixed;
+    il = pico8_hp_il(self);
+    if (self != NULL && self->has_fj) {
+        od = self->fj;
     }
-    if (self != NULL && pico8_research_truthy(self->il) && pico8_oj(self->il)) {
+    if (self != NULL && pico8_research_truthy(il) && pico8_oj(il)) {
         od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x00018000, 1.5));
     }
-    has_ii = self != NULL && pico8_research_truthy(self->ii);
+    has_ii = self != NULL && self->has_ii;
     if (!has_ii && pico8_oj(pico8_value_string("nanomaterials"))) {
         od = pico8_fixed_mul(od, PICO8_FIXED_LIT(0x0000d999, 0.85));
     }

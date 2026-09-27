@@ -205,13 +205,12 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
     if (!has_mi || jw > mi) {
         if (has_mi && mi == pico8_fixed_from_int(1)) {
             pico8_hp_t *hn = (pico8_hp_t *)field_ref_instance(pt, "hn");
-            if (hn != NULL && !(hn->dm.kind == PICO8_VALUE_REF && hn->dm.as.ref == NULL) &&
-                economy_truthy(hn->dm)) {
+            if (hn != NULL && hn->has_dm) {
                 pico8_value_t jy_val;
                 if (pico8_entity_get_field(pt, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF &&
                     jy_val.as.ref != NULL) {
                     pico8_ob_table_t *entry = pico8_ob_table_new();
-                    pico8_ob_table_set_name(entry, "qe", hn->dm);
+                    pico8_ob_table_set_name(entry, "qe", pico8_value_fixed(hn->dm));
                     pico8_list_add(PICO8_REF_AS_LIST(jy_val.as.ref), pico8_value_ref(entry));
                 }
             }

@@ -56,6 +56,10 @@
 #define INSTALL_HASH 0x3158A685u
 #define BUILT_REPLAY_HASH 0x7004D233u
 #define GEOHARVEST_REPLAY_HASH 0xB3DFE52Du
+#define RAW_PRESENCE_HASH 0x6AC3DFD6u
+#define IL_STRING_COUNT 6
+#define IL_FALSE_COUNT 4
+#define IL_ABSENT_COUNT 24
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -662,6 +666,177 @@ static void test_hp_is_a_struct(void) {
     must_abort(hu_on_other, pico8_ok());
 }
 
+static const char *const hp_members[] = {"mr", "gp", "fk", "px", "lr", "fj", "ja", "i", "o",
+                                         "il", "dm", "rr", "ii", "cw", "go", "rn", "lq"};
+static const char *const hp_intruders[] = {"", "x", "hp", "me", "has_ii", "has_il", "il_is_bool"};
+
+/* The descriptor's reader, with a witness in `out`: 0 must leave it. */
+static int raw_read(const void *e, const char *name, pico8_value_t *out) {
+    int got;
+    *out = pico8_value_fixed(0x1234);
+    got = pico8_hp_struct_class()->field(e, name, out);
+    assert(got || (out->kind == PICO8_VALUE_FIXED && out->as.fixed == 0x1234));
+    return got;
+}
+
+static int census_kind(const char *name, pico8_value_kind_t kind) {
+    if (strcmp(name, "mr") == 0 || strcmp(name, "gp") == 0 || strcmp(name, "fk") == 0 || strcmp(name, "i") == 0) {
+        return kind == PICO8_VALUE_REF;
+    }
+    if (strcmp(name, "fj") == 0 || strcmp(name, "o") == 0 || strcmp(name, "dm") == 0 || strcmp(name, "ii") == 0 ||
+        strcmp(name, "rn") == 0) {
+        return kind == PICO8_VALUE_FIXED;
+    }
+    if (strcmp(name, "il") == 0) {
+        return kind == PICO8_VALUE_BOOL || kind == PICO8_VALUE_STRING;
+    }
+    if (strcmp(name, "lq") == 0) {
+        return kind == PICO8_VALUE_REF || kind == PICO8_VALUE_FUNCTION;
+    }
+    return kind == PICO8_VALUE_STRING;
+}
+
+static const char *record_string(const pico8_ob_table_t *rec, int index, const char *name) {
+    pico8_value_t v;
+    int got = name != NULL ? pico8_ob_table_get_name(rec, name, &v) : pico8_ob_table_get_index(rec, index, &v);
+    return got && v.kind == PICO8_VALUE_STRING ? v.as.string : NULL;
+}
+
+/* Every member of every project read by name, as the reader answers it:
+ * present with a kind of its census row, or absent with `out` untouched;
+ * strings the very pointers of `fd`'s record; the REFs stable; and `hn`/
+ * `_jo_fe_b` still pointing at a project of `gb`. */
+static void test_hp_members_by_name(void) {
+    uint32_t h = 2166136261u;
+    int il_string = 0;
+    int il_false = 0;
+    int il_absent = 0;
+    const pico8_ob_table_t *fd = pico8_fd();
+    pico8_hp_t *bare = pico8_hp_new(NULL);
+    pico8_value_t v;
+    pico8_value_t w;
+    size_t n;
+    int k;
+    int f;
+
+    for (n = 0; n < sizeof hp_members / sizeof hp_members[0]; n++) {
+        const char *m = hp_members[n];
+        if (strcmp(m, "mr") == 0 || strcmp(m, "gp") == 0 || strcmp(m, "fk") == 0) {
+            assert(raw_read(bare, m, &v) && v.kind == PICO8_VALUE_REF && raw_read(project(1), m, &w) &&
+                   v.as.ref == w.as.ref);
+        } else if (strcmp(m, "i") == 0) {
+            assert(raw_read(bare, m, &v) && v.kind == PICO8_VALUE_REF &&
+                   pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST && ((const pico8_list_t *)v.as.ref)->count == 0);
+        } else if (strcmp(m, "lq") == 0) {
+            assert(raw_read(bare, m, &v) && v.kind == PICO8_VALUE_FUNCTION);
+        } else {
+            assert(!raw_read(bare, m, &v));
+        }
+    }
+    assert(raw_read(bare, "fk", &v) && v.as.ref == pico8_hp_fk().as.ref);
+    for (n = 0; n < sizeof hp_intruders / sizeof hp_intruders[0]; n++) {
+        assert(!raw_read(bare, hp_intruders[n], &v));
+        assert(!raw_read(project(1), hp_intruders[n], &v));
+    }
+
+    k = 0;
+    for (f = 0; f < fd->count; f++) {
+        const pico8_ob_table_t *rec;
+        void *b;
+        if (fd->entries[f].key.kind != PICO8_OB_KEY_INDEX || fd->entries[f].value.kind != PICO8_VALUE_REF ||
+            fd->entries[f].value.as.ref == NULL) {
+            continue;
+        }
+        rec = fd->entries[f].value.as.ref;
+        b = project(++k);
+        for (n = 0; n < sizeof hp_members / sizeof hp_members[0]; n++) {
+            int got = raw_read(b, hp_members[n], &v);
+            h = fnv(h, (uint32_t)k);
+            h = fnv(h, (uint32_t)n);
+            h = fnv(h, (uint32_t)got);
+            if (got) {
+                assert(!(v.kind == PICO8_VALUE_REF && v.as.ref == NULL));
+                assert(census_kind(hp_members[n], v.kind));
+                h = fnv(h, (uint32_t)v.kind);
+            }
+        }
+        if (!raw_read(b, "il", &v)) {
+            il_absent++;
+        } else if (v.kind == PICO8_VALUE_BOOL) {
+            assert(v.as.boolean == 0);
+            il_false++;
+        } else {
+            il_string++;
+            assert(v.as.string == record_string(rec, 7, NULL));
+        }
+        assert(raw_read(b, "px", &v) == (record_string(rec, 1, NULL) != NULL));
+        assert(record_string(rec, 1, NULL) == NULL || v.as.string == record_string(rec, 1, NULL));
+        assert(raw_read(b, "lr", &v) == (record_string(rec, 2, NULL) != NULL));
+        assert(record_string(rec, 2, NULL) == NULL || v.as.string == record_string(rec, 2, NULL));
+        assert(raw_read(b, "ja", &v) == (record_string(rec, 4, NULL) != NULL));
+        assert(record_string(rec, 4, NULL) == NULL || v.as.string == record_string(rec, 4, NULL));
+        assert(raw_read(b, "rr", &v) == (record_string(rec, 0, "rr") != NULL));
+        assert(record_string(rec, 0, "rr") == NULL || v.as.string == record_string(rec, 0, "rr"));
+        assert(raw_read(b, "cw", &v) == (record_string(rec, 0, "cw") != NULL));
+        assert(record_string(rec, 0, "cw") == NULL || v.as.string == record_string(rec, 0, "cw"));
+        assert(raw_read(b, "go", &v) == (record_string(rec, 0, "go") != NULL));
+        assert(record_string(rec, 0, "go") == NULL || v.as.string == record_string(rec, 0, "go"));
+        for (n = 0; n < sizeof hp_members / sizeof hp_members[0]; n++) {
+            const char *m = hp_members[n];
+            if (strcmp(m, "i") == 0 || strcmp(m, "lq") == 0 || strcmp(m, "mr") == 0 || strcmp(m, "gp") == 0 ||
+                strcmp(m, "fk") == 0) {
+                assert(raw_read(b, m, &v) && raw_read(b, m, &w) && v.kind == w.kind);
+                assert(v.kind == PICO8_VALUE_FUNCTION || v.as.ref == w.as.ref);
+            }
+        }
+        if (raw_read(b, "ii", &v)) {
+            assert(raw_read(b, "lq", &v) && v.kind == PICO8_VALUE_REF);
+            assert(pico8_mv(b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &w) &&
+                   w.kind == PICO8_VALUE_REF && w.as.ref == v.as.ref);
+        }
+    }
+    check_count("members by name: projects", k, GB_COUNT);
+    check("members by name: raw presence", h, RAW_PRESENCE_HASH);
+    check_count("members by name: il string", il_string, IL_STRING_COUNT);
+    check_count("members by name: il false", il_false, IL_FALSE_COUNT);
+    check_count("members by name: il absent", il_absent, IL_ABSENT_COUNT);
+
+    {
+        void *ordinary;
+        int rank;
+        void *a;
+        int i;
+        int seen = 0;
+
+        start_game(BUILT);
+        ordinary = project_with(NULL, 0);
+        rank = gb_rank(ordinary);
+        a = new_planet("p911", 10, 12);
+        pico8_jo_lz(a, ordinary);
+        assert(get_ref(a, "hn") == ordinary && gb_rank(ordinary) == rank);
+
+        for (i = 0; i < input.frame_count && !seen; i++) {
+            const pico8_list_t *hv;
+            int j;
+            play_frame(i);
+            hv = pico8_hv();
+            for (j = 0; j < hv->count && !seen; j++) {
+                void *target;
+                if (hv->items[j].kind != PICO8_VALUE_REF || hv->items[j].as.ref == NULL ||
+                    !pico8_entity_get_field(hv->items[j].as.ref, "_jo_fe_b", &v) || v.kind != PICO8_VALUE_REF ||
+                    v.as.ref == NULL) {
+                    continue;
+                }
+                target = v.as.ref;
+                assert(gb_rank(target) >= 1);
+                assert(pico8_hp_od(target) == pico8_hp_od(project(gb_rank(target))));
+                seen = 1;
+            }
+        }
+        check_count("members by name: _jo_fe_b seen", seen, 1);
+    }
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -697,6 +872,7 @@ int main(void) {
     in_fresh_child(test_built_replay);
     in_fresh_child(test_geoharvest_replay);
     in_fresh_child(test_hp_is_a_struct);
+    in_fresh_child(test_hp_members_by_name);
     in_fresh_child(test_rebuild_and_shutdown);
 
     printf("test_pico8_hp: all tests passed\n");

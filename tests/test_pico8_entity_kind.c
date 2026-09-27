@@ -202,16 +202,15 @@ static void test_every_cw_is_pm_or_ga(void) {
     assert(gb != NULL && gb->count > 0);
     for (k = 0; k < gb->count; k++) {
         const pico8_hp_t *hp;
-        pico8_value_t cw;
+        const char *cw;
 
         assert(gb->entries[k].value.kind == PICO8_VALUE_REF && gb->entries[k].value.as.ref != NULL);
         hp = gb->entries[k].value.as.ref;
         cw = hp->cw;
-        if (cw.kind == PICO8_VALUE_REF && cw.as.ref == NULL) {
+        if (cw == NULL) {
             continue;
         }
-        assert(cw.kind == PICO8_VALUE_STRING &&
-               (strcmp(cw.as.string, "pm") == 0 || strcmp(cw.as.string, "ga") == 0));
+        assert(strcmp(cw, "pm") == 0 || strcmp(cw, "ga") == 0);
         with_cw++;
     }
     printf("[cw] %d of %d researches\n", with_cw, gb->count);
