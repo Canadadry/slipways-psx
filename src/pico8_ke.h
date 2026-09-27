@@ -9,7 +9,7 @@
  * tests. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t me;
+    const char *me;
     pico8_value_t t;
 } pico8_ke_t;
 
@@ -30,7 +30,8 @@ int pico8_ke_ready(void);
 int pico8_ke_default(const char *name, pico8_value_t *out_value);
 
 /* A NULL `self` is a no-op; any other `self` must be a struct. `me` and
- * `t` are written into its pico8_ke_t, never through its field writer. */
+ * `t` are written into its pico8_ke_t, never through its field writer.
+ * `me` is nil or a non-NULL string, borrowed; anything else aborts. */
 void pico8_ke_ks(pico8_struct_header_t *self, pico8_value_t me);
 
 /* Tags `self` as a struct of class `cls` and sets ke's defaults. */

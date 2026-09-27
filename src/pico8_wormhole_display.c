@@ -62,8 +62,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
 
-    if (self->ke.me.kind == PICO8_VALUE_STRING && self->ke.me.as.string != NULL &&
-        strcmp(self->ke.me.as.string, "kz") == 0) {
+    if (self->ke.me != NULL && strcmp(self->ke.me, "kz") == 0) {
         pico8_vec_t cp;
 
         if (!pico8_mzd_truthy(self->et)) {

@@ -36,12 +36,15 @@ static struct {
     const char *name;
     pico8_value_t value;
 } g_jo_defaults[] = {
-    {"nu", {0}}, {"me", {0}}, {"hf", {0}}, {"hs", {0}}, {"fa", {0}}, {"kq", {0}}, {"ma", {0}},
+    {"nu", {0}}, {"hf", {0}}, {"hs", {0}}, {"fa", {0}}, {"kq", {0}}, {"ma", {0}},
     {"ka", {0}}, {"dz", {0}}, {"cq", {0}}, {"kw", {0}}, {"gq", {0}}, {"ca", {0}}, {"em", {0}},
 };
 
+static const char *g_jo_me = NULL;
+
 static void pico8_jo_defaults_reset(void) {
     size_t i;
+    g_jo_me = NULL;
     for (i = 0; i < sizeof g_jo_defaults / sizeof g_jo_defaults[0]; i++) {
         g_jo_defaults[i].value = pico8_value_ref(NULL);
     }
@@ -253,12 +256,9 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
         *(pico8_value_t *)((char *)self + g_jo_members[i].offset) = pico8_value_ref(NULL);
     }
     for (i = 0; i < sizeof g_jo_defaults / sizeof g_jo_defaults[0]; i++) {
-        if (strcmp(g_jo_defaults[i].name, "me") == 0) {
-            self->ke.me = g_jo_defaults[i].value;
-        } else {
-            *pico8_jo_member(self, g_jo_defaults[i].name) = g_jo_defaults[i].value;
-        }
+        *pico8_jo_member(self, g_jo_defaults[i].name) = g_jo_defaults[i].value;
     }
+    self->ke.me = g_jo_me;
 }
 
 static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
@@ -287,6 +287,8 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_jo_init(void) {
     size_t i;
+    pico8_value_t me;
+    int me_found;
 
     pico8_jo_shutdown();
     pico8_pi_init();
@@ -314,6 +316,11 @@ void pico8_jo_init(void) {
         assert(found && "jo: every default of the struct is a key of jo's spec");
         (void)found;
     }
+    me_found = pico8_jo_default("me", &me);
+    assert(me_found && me.kind == PICO8_VALUE_STRING && me.as.string != NULL &&
+           "jo: me, a default of the struct, is a key of jo's spec and a string (chaine)");
+    (void)me_found;
+    g_jo_me = me.as.string;
 }
 
 void pico8_jo_shutdown(void) {
@@ -451,7 +458,6 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
 pico8_value_t pico8_jo_gg(const pico8_jo_t *self) {
     pico8_value_t hf_val;
-    pico8_value_t me_val;
 
     if (self == NULL || !pico8_jo_present(self->hf)) {
         return pico8_value_ref(NULL);
@@ -460,11 +466,7 @@ pico8_value_t pico8_jo_gg(const pico8_jo_t *self) {
     if (!pico8_jo_truthy(hf_val)) {
         return hf_val;
     }
-    me_val = self->ke.me;
-    if (me_val.kind == PICO8_VALUE_STRING) {
-        return pico8_value_bool(strcmp(me_val.as.string, "ly") == 0);
-    }
-    return pico8_value_bool(0);
+    return pico8_value_bool(self->ke.me != NULL && strcmp(self->ke.me, "ly") == 0);
 }
 
 void pico8_jo_kd(pico8_jo_t *self) {
@@ -646,17 +648,17 @@ void pico8_jo_hk(const pico8_jo_t *self) {
 }
 
 pico8_value_t pico8_jo_ldown(pico8_jo_t *self) {
-    pico8_value_t me_val;
+    const char *me_val;
 
-    if (self == NULL || self->ke.me.kind != PICO8_VALUE_STRING) {
+    if (self == NULL || self->ke.me == NULL) {
         return pico8_value_ref(NULL);
     }
     me_val = self->ke.me;
-    if (strcmp(me_val.as.string, "known") == 0) {
+    if (strcmp(me_val, "known") == 0) {
         pico8_jo_fe(self);
         return pico8_value_bool(1);
     }
-    if (strcmp(me_val.as.string, "ly") == 0) {
+    if (strcmp(me_val, "ly") == 0) {
         pico8_jc_t *made;
         pico8_ob_table_t *overrides;
 

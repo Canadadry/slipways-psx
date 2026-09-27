@@ -29,20 +29,31 @@ int pico8_ke_default(const char *name, pico8_value_t *out_value) {
     return g_ke_spec != NULL && pico8_ob_table_get_name(g_ke_spec, name, out_value);
 }
 
+static void ke_take_string(pico8_value_t value, const char **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
+           "ke.me: a write neither nil nor a string is off its census row (chaine) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.string;
+}
+
 void pico8_ke_ks(pico8_struct_header_t *self, pico8_value_t me) {
     if (self == NULL) {
         return;
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "ke:ks: self is a struct; no class instance descends from ke any more");
-    ((pico8_ke_t *)self)->me = me;
+    ke_take_string(me, &((pico8_ke_t *)self)->me);
     ((pico8_ke_t *)self)->t = pico8_value_fixed(pico8_fixed_from_int(0));
 }
 
 void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls) {
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = cls;
-    self->me = pico8_value_string("ph");
+    self->me = "ph";
     self->t = pico8_value_fixed(pico8_fixed_from_int(0));
 }
 
@@ -51,8 +62,13 @@ int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value)
     const pico8_value_t *member;
 
     if (strcmp(name, "me") == 0) {
-        member = &ke->me;
-    } else if (strcmp(name, "t") == 0) {
+        if (ke->me == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(ke->me);
+        return 1;
+    }
+    if (strcmp(name, "t") == 0) {
         member = &ke->t;
     } else {
         return 0;

@@ -33,7 +33,16 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
+#include "../src/pico8_mouse_reader.h"
+#include "../src/pico8_msgbox.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
+#include "../src/pico8_planet_family_trade.h"
+#include "../src/pico8_probe.h"
+#include "../src/pico8_research_icon.h"
+#include "../src/pico8_score_panel.h"
+#include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
@@ -41,6 +50,7 @@
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_wormhole.h"
 
 #define DRAG "tests/fixtures/slipway_drag_events.json"
 #define TECH "tests/fixtures/tech_screen_invent_events.json"
@@ -57,6 +67,7 @@
 #define STALE_HASH 0x5B066E86u
 #define DRAG_REPLAY_HASH 0xA3868481u
 #define TECH_REPLAY_HASH 0xAB5A4DE6u
+#define KE_ME_HASH 0x691ED215u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -740,6 +751,196 @@ static void test_ke_closed(void) {
     pico8_ke_ks(NULL, pico8_value_string("ph"));
 }
 
+static int me_of(const void *e, const char *name, pico8_value_t *out) {
+    const pico8_struct_header_t *header = e;
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t got = pico8_value_fixed(0x1234);
+    int raw_found = header->cls->field(e, name, &raw);
+    int found = pico8_entity_get_field(e, name, &got);
+
+    assert(raw_found == found);
+    if (!found) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        assert(got.kind == PICO8_VALUE_FIXED && got.as.fixed == 0x1234);
+        return 0;
+    }
+    assert(raw.kind == got.kind && pico8_value_equal(raw, got));
+    *out = got;
+    return 1;
+}
+
+static uint32_t fold_string(uint32_t h, const char *s) {
+    for (; *s != '\0'; s++) {
+        h = fnv(h, (uint32_t)(unsigned char)*s);
+    }
+    return fnv(h, 0u);
+}
+
+static const char *spec_me(int (*reader)(const char *, pico8_value_t *)) {
+    pico8_value_t v;
+
+    assert(reader("me", &v) && v.kind == PICO8_VALUE_STRING);
+    return v.as.string;
+}
+
+static int identity_of(const char *s) {
+    if (s == spec_me(pico8_ke_default)) {
+        return 1;
+    }
+    if (s == spec_me(pico8_jo_default)) {
+        return 2;
+    }
+    if (s == spec_me(pico8_qh_default)) {
+        return 3;
+    }
+    if (s == spec_me(pico8_pm_default)) {
+        return 4;
+    }
+    return 0;
+}
+
+static uint32_t fold_ks_back(uint32_t h, void *e) {
+    pico8_value_t v;
+
+    assert(me_of(e, "t", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
+    return fnv(h, (uint32_t)v.as.fixed);
+}
+
+static void test_ke_me_by_name(void) {
+    static const char *const want[24] = {"ph", "ph",      "ph", "ph", "unknown", "kz", "kz", "kz",
+                                         "kz", "ly",      "unknown", "kz", "kz", "kz", "ph", "ph",
+                                         "ph", "ph",      "ph", "kz", "ph", "ph", "ph", "kz"};
+    static const int identity[24] = {0, 0, 0, 0, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    static const char *const intruders[] = {"", "m", "mee", "me ", "has_me", "ke"};
+    char s[] = "ll";
+    void *e[24];
+    const pico8_list_t *hv;
+    pico8_value_t v;
+    pico8_value_t through_hj;
+    uint32_t h = 2166136261u;
+    size_t i;
+
+    (void)start_game(DRAG);
+    hv = pico8_hv();
+    assert(hv != NULL);
+    h = fnv(h, (uint32_t)hv->count);
+    for (i = 0; i < (size_t)hv->count; i++) {
+        assert(hv->items[i].kind == PICO8_VALUE_REF);
+        if (me_of(hv->items[i].as.ref, "me", &v)) {
+            h = fnv(fnv(h, 1u), (uint32_t)v.kind);
+            h = v.kind == PICO8_VALUE_STRING ? fold_string(h, v.as.string) : h;
+        } else {
+            h = fnv(h, 0u);
+        }
+    }
+
+    e[0] = pico8_bg_new(NULL);
+    e[1] = pico8_nf_new(NULL);
+    e[2] = pico8_mh_new(NULL);
+    e[3] = pico8_iv_new(NULL);
+    e[4] = pico8_jo_new(NULL);
+    e[5] = pico8_qh_new(NULL);
+    e[6] = pico8_nl_new(NULL);
+    e[7] = pico8_os_new(NULL);
+    e[8] = pico8_hj_new(NULL);
+    e[9] = pico8_pm_new(NULL);
+    e[10] = pico8_ga_new(NULL);
+    e[11] = pico8_nr_new(NULL);
+    e[12] = pico8_fr_new(NULL);
+    e[13] = pico8_mx_new(NULL);
+    e[14] = pico8_g__new(NULL);
+    e[15] = pico8_fv_new(NULL);
+    e[16] = pico8_ie_new(NULL);
+    e[17] = pico8_pj_new(NULL);
+    e[18] = pico8_qb_new(NULL);
+    e[19] = pico8_jc_new(NULL);
+    e[20] = pico8_ui_new(NULL);
+    e[21] = pico8_js_new(NULL);
+    e[22] = pico8_fq_new(NULL);
+    e[23] = pico8_mz_new(NULL);
+    for (i = 0; i < 24; i++) {
+        assert(me_of(e[i], "me", &v) && v.kind == PICO8_VALUE_STRING && v.as.string != NULL);
+        assert(strcmp(v.as.string, want[i]) == 0);
+        assert(identity_of(v.as.string) == identity[i]);
+        h = fold_string(fnv(h, (uint32_t)v.kind), v.as.string);
+        h = fnv(h, (uint32_t)identity_of(v.as.string));
+    }
+
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        v = pico8_value_fixed(0x1234);
+        assert(pico8_ke_field(e[0], intruders[i], &v) == 0);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+        h = fnv(h, 0u);
+    }
+
+    pico8_ke_ks(e[0], pico8_value_string(s));
+    assert(me_of(e[0], "me", &v) && v.kind == PICO8_VALUE_STRING && v.as.string == s);
+    h = fold_ks_back(fold_string(fnv(h, 1u), v.as.string), e[0]);
+    pico8_ke_ks(e[0], pico8_value_ref(NULL));
+    assert(!me_of(e[0], "me", &v));
+    h = fold_ks_back(fnv(h, 0u), e[0]);
+    pico8_ke_ks(e[0], pico8_value_string("ph"));
+    assert(me_of(e[0], "me", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ph") == 0);
+    h = fold_ks_back(fold_string(fnv(h, 1u), v.as.string), e[0]);
+
+    pico8_ke_ks(e[9], pico8_value_string(s));
+    assert(me_of(e[9], "me", &v) && v.kind == PICO8_VALUE_STRING && v.as.string == s);
+    assert(pico8_hj_struct_class()->field(e[9], "me", &through_hj) && pico8_value_equal(v, through_hj));
+    h = fold_ks_back(fold_string(fnv(h, 1u), v.as.string), e[9]);
+
+    check("ke_me", h, KE_ME_HASH);
+}
+
+static void ks_fixed(void *e) {
+    pico8_ke_ks(e, pico8_value_fixed(pico8_fixed_from_int(1)));
+}
+
+static void ks_true(void *e) {
+    pico8_ke_ks(e, pico8_value_bool(1));
+}
+
+static void ks_false(void *e) {
+    pico8_ke_ks(e, pico8_value_bool(0));
+}
+
+static void ks_zero_false(void *e) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = PICO8_VALUE_BOOL;
+    pico8_ke_ks(e, v);
+}
+
+static void ks_zero_fixed(void *e) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = PICO8_VALUE_FIXED;
+    pico8_ke_ks(e, v);
+}
+
+static void ks_struct(void *e) {
+    pico8_ke_ks(e, pico8_value_ref(e));
+}
+
+static void ks_null_string(void *e) {
+    pico8_ke_ks(e, pico8_value_string(NULL));
+}
+
+static void test_ke_ks_stops_off_row(void) {
+    void *bg;
+
+    (void)start_game(DRAG);
+    bg = pico8_bg_new(NULL);
+    must_abort(ks_fixed, bg);
+    must_abort(ks_true, bg);
+    must_abort(ks_false, bg);
+    must_abort(ks_zero_false, bg);
+    must_abort(ks_zero_fixed, bg);
+    must_abort(ks_struct, bg);
+    must_abort(ks_null_string, bg);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -782,6 +983,8 @@ int main(void) {
     in_fresh_child(test_tech_replay);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ke_closed);
+    in_fresh_child(test_ke_me_by_name);
+    in_fresh_child(test_ke_ks_stops_off_row);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

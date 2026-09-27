@@ -351,7 +351,7 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
     pico8_mz_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_mz_struct_class);
-    self->ke.me = pico8_value_string("kz");
+    self->ke.me = "kz";
     self->nu = pico8_value_ref(g_mz_nu);
     self->dw = pico8_value_fixed(pico8_fixed_from_int(0));
     self->dq = pico8_value_string("pr");

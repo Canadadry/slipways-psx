@@ -268,7 +268,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(e->fa.kind == PICO8_VALUE_FIXED && e->fa.as.fixed == parsed.as.fixed);
     assert(pico8_iv_default("l", &parsed));
     assert(e->l.kind == PICO8_VALUE_FIXED && e->l.as.fixed == parsed.as.fixed);
-    assert(e->ke.me.kind == PICO8_VALUE_STRING && strcmp(e->ke.me.as.string, "ph") == 0);
+    assert(e->ke.me != NULL && strcmp(e->ke.me, "ph") == 0);
     assert(e->ke.t.kind == PICO8_VALUE_FIXED && e->ke.t.as.fixed == 0);
     assert(((const pico8_iv_t *)build(NULL, "y", 7))->v.as.ref == e->v.as.ref);
 }

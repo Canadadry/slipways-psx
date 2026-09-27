@@ -336,14 +336,14 @@ void pico8_jo_gh(const pico8_jo_t *self) {
 }
 
 pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
-    pico8_value_t me_val;
+    const char *me_val;
     pico8_value_t qu_val;
 
     if (self == NULL) {
         return pico8_value_ref(NULL);
     }
     me_val = self->ke.me;
-    if (me_val.kind != PICO8_VALUE_STRING || strcmp(me_val.as.string, "ly") != 0) {
+    if (me_val == NULL || strcmp(me_val, "ly") != 0) {
         return pico8_value_ref(NULL);
     }
     if (s != NULL && pico8_entity_get_field(s, "qu", &qu_val) && qu_val.kind == PICO8_VALUE_REF &&
@@ -465,7 +465,7 @@ void pico8_jo_fe(pico8_jo_t *self) {
 
 void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
     pico8_vec_t adjusted;
-    pico8_value_t me_val;
+    const char *me_val;
     int px;
     int py;
     int spr_index = 43;
@@ -481,7 +481,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     adjusted = pico8_ma(p, (pico8_struct_header_t *)self);
 
     me_val = self->ke.me;
-    if (me_val.kind == PICO8_VALUE_STRING && strcmp(me_val.as.string, "ll") == 0) {
+    if (me_val != NULL && strcmp(me_val, "ll") == 0) {
         pico8_fixed_t t = fixed_of(self->ke.t);
         if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
             return;

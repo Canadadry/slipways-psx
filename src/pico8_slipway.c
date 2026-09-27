@@ -546,7 +546,7 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_jc_struct_class);
-    self->ke.me = pico8_value_string("kz");
+    self->ke.me = "kz";
     self->nu = pico8_value_ref(g_jc_nu);
     self->fa = pico8_value_fixed(pico8_fixed_from_int(2));
     self->fp = pico8_value_bool(0);
