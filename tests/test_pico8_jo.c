@@ -1,8 +1,7 @@
-/* The planet `jo`, read and written only through the dual-form field API
- * and `pico8_class_get_field(pico8_jo_class(), ...)`, and driven through the
- * real `bw`/`dg`/`dc`/`mv`. Its daughters are read the same way.
- * The frozen values were taken on the code where `jo` was still a class
- * instance and must not be re-taken. */
+/* The planet `jo`, read and written only through the dual-form field API and
+ * `pico8_jo_default()`, and driven through the real `bw`/`dg`/`dc`/`mv`. Its
+ * daughters are read the same way. The frozen values were taken on the code
+ * where `jo` was still a class instance and must not be re-taken. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -140,7 +139,7 @@ static void *get_ref(const void *e, const char *name) {
 
 static void *class_ref(const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(pico8_jo_class(), name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(pico8_jo_default(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
 
@@ -695,9 +694,9 @@ static void test_jo_is_a_struct(void) {
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_t v;
         assert(pico8_jo_struct_class()->methods[pico8_method_of(methods[i])] != NULL);
-        assert(!pico8_ob_table_get_name(pico8_jo_class()->defaults, methods[i], &v));
+        assert(!pico8_jo_default(methods[i], &v));
     }
-    assert(pico8_jo_class()->pq == NULL);
+    assert(pico8_jo_ready());
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
         if (pico8_jo_struct_class()->methods[j] != NULL) {
             int k;

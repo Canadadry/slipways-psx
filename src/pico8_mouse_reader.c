@@ -78,7 +78,7 @@ void pico8_nf_init(void) {
     pico8_nf_shutdown();
     pico8_pi_init();
     assert(pico8_ob_lookup_constructor('v') != NULL && "nf's spec parses v(0,0) as a vector");
-    assert(pico8_ke_class() != NULL && "nf descends from ke");
+    assert(pico8_ke_ready() && "nf descends from ke");
     g_nf_spec = pico8_ob("\nl=o(),r=o(),ra=v(0,0),\n", NULL);
     g_nf_l = pico8_ob_table_new();
     g_nf_r = pico8_ob_table_new();

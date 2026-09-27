@@ -29,10 +29,10 @@ void pico8_jl(void) {
 
     pico8_entity_init();
 
-    /* Build once, never rebuild: every class pico8_cart_load() built holds
-     * a `.parent` into `ke`, which a second `ke` would leave dangling.
-     * `ke` must exist before `qb`/`nf`/`ui`, whose inits assert it. */
-    if (pico8_ke_class() == NULL) {
+    /* Build once, never rebuild: a second parse of ke's spec would free the
+     * values pico8_ke_default() already handed out. `ke` must exist before
+     * `qb`/`nf`/`ui`, whose inits assert it. */
+    if (!pico8_ke_ready()) {
         pico8_ke_init();
     }
     if (!pico8_qb_ready()) {

@@ -1,10 +1,10 @@
 /* The synthesizer `mx`, read and written only through the dual-form field
- * API and `pico8_class_get_field(pico8_mx_class()/pico8_hj_class()/
- * pico8_qh_class()/pico8_jo_class(), ...)`, built as the shop builds it
- * (`ie:ldown` on `gx[5]`, `id`) and driven through the real `mv`/`dg`/`dc`
- * and a slipway's `ey`. The frozen values were taken on the code where `mx`
- * was still a class instance and must not be re-taken; only
- * test_mx_is_a_struct looks at the form. */
+ * API and `pico8_mx_default()`, `pico8_hj_default()`, `pico8_qh_default()`
+ * and `pico8_jo_default()`, built as the shop builds it (`ie:ldown` on
+ * `gx[5]`, `id`) and driven through the real `mv`/`dg`/`dc` and a slipway's
+ * `ey`. The frozen values were taken on the code where `mx` was still a
+ * class instance and must not be re-taken; only test_mx_is_a_struct looks at
+ * the form. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -132,14 +132,14 @@ static void *get_ref(const void *e, const char *name) {
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-static pico8_value_t class_value(pico8_class_t *cls, const char *name) {
+static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v));
+    assert(default_of(name, &v));
     return v;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
+    pico8_value_t v = class_value(default_of, name);
     assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
@@ -221,7 +221,7 @@ static uint32_t fold_kw(uint32_t h, const void *e) {
     assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
     h = pico8_ob_table_get_name(kw.as.ref, "qe", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
     h = pico8_ob_table_get_name(kw.as.ref, "mu", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_class(), "kw")));
+    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_default, "kw")));
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -341,7 +341,7 @@ static void *build_synthesizer(void) {
 /* `mx` sets its own `px`: an entity whose `px` is the very table of mx's
  * class is a synthesizer, recognized by what it reads, not by its form. */
 static int is_mx(const void *e) {
-    return e != NULL && get_ref(e, "px") == class_ref(pico8_mx_class(), "px");
+    return e != NULL && get_ref(e, "px") == class_ref(pico8_mx_default, "px");
 }
 
 /* The entry count of the `ht` table, -1 when absent. */
@@ -351,7 +351,7 @@ static int ht_size(const void *e) {
 }
 
 static int ht_is_the_class_one(const void *e) {
-    return get_ref(e, "ht") == class_ref(pico8_mx_class(), "ht");
+    return get_ref(e, "ht") == class_ref(pico8_mx_default, "ht");
 }
 
 /* A synthesizer as `ie:ldown`, `f_` and `jo:pq` left it: its scalars (the
@@ -400,15 +400,15 @@ static uint32_t fold_synthesizer(uint32_t h, const void *e) {
         assert(!has(e, absent[i]));
     }
     for (i = 0; i < sizeof mx_tables / sizeof mx_tables[0]; i++) {
-        assert(get_ref(e, mx_tables[i]) == class_ref(pico8_mx_class(), mx_tables[i]));
+        assert(get_ref(e, mx_tables[i]) == class_ref(pico8_mx_default, mx_tables[i]));
     }
-    assert(get_ref(e, "nu") != class_ref(pico8_hj_class(), "nu"));
-    assert(get_ref(e, "k_") != class_ref(pico8_hj_class(), "k_"));
-    assert(get_ref(e, "ba") == class_ref(pico8_qh_class(), "ba"));
+    assert(get_ref(e, "nu") != class_ref(pico8_hj_default, "nu"));
+    assert(get_ref(e, "k_") != class_ref(pico8_hj_default, "k_"));
+    assert(get_ref(e, "ba") == class_ref(pico8_qh_default, "ba"));
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_class(), jo_tables[i]));
+        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_class(), "kw"));
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
     assert(pico8_ob_table_get_index(pico8_gb(), 5, &gb5) && gb5.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb5.as.ref);
     h = fold_kw(h, e);
@@ -592,8 +592,8 @@ static void test_synthesis(void) {
     assert(!ht_is_the_class_one(s) && ht_size(s) == 0);
     assert(pico8_ob_table_get_name(get_ref(s, "kw"), "qe", &qe) && qe.kind == PICO8_VALUE_FIXED &&
            qe.as.fixed == pico8_fixed_from_int(20));
-    assert(((const pico8_ob_table_t *)class_ref(pico8_mx_class(), "ht"))->count == 4);
-    assert(!pico8_ob_table_get_name(class_ref(pico8_jo_class(), "kw"), "qe", &qe) ||
+    assert(((const pico8_ob_table_t *)class_ref(pico8_mx_default, "ht"))->count == 4);
+    assert(!pico8_ob_table_get_name(class_ref(pico8_jo_default, "kw"), "qe", &qe) ||
            !(qe.kind == PICO8_VALUE_FIXED && qe.as.fixed == pico8_fixed_from_int(20)));
     h = fold_kf(h, s);
     fresh = get_ref(s, "ht");
@@ -774,11 +774,11 @@ static void test_mx_is_a_struct(void) {
         assert(pico8_value_equal(own, through_hj));
     }
     assert(!hj->field(a, "ht", &v) && cls->field(a, "ht", &v));
-    assert(pico8_mx_class()->struct_new != NULL && pico8_mx_class()->pq == NULL);
-    assert(!pico8_class_get_field(pico8_mx_class(), "kf", &v));
-    assert(!pico8_class_get_field(pico8_hj_class(), "kj", &v));
-    assert(!pico8_class_get_field(pico8_hj_class(), "mm", &v));
-    assert(pico8_hj_class()->pq == NULL);
+    assert(pico8_mx_ready());
+    assert(!pico8_mx_default("kf", &v));
+    assert(!pico8_hj_default("kj", &v));
+    assert(!pico8_hj_default("mm", &v));
+    assert(pico8_hj_ready());
 
     must_abort(write_ng, a);
     must_abort(write_fz, a);

@@ -1,8 +1,8 @@
-/* The laboratory `qh`, read and written only through the dual-form field
- * API and `pico8_class_get_field(pico8_qh_class()/pico8_jo_class(), ...)`,
- * and driven through the real `ie:ldown`/`mv`/`dg`. Its unconverted
- * descendants are read the same way. The frozen values were taken on the
- * code where `qh` was still a class instance and must not be re-taken. */
+/* The laboratory `qh`, read and written only through the dual-form field API
+ * and `pico8_qh_default()` and `pico8_jo_default()`, and driven through the
+ * real `ie:ldown`/`mv`/`dg`. Its unconverted descendants are read the same
+ * way. The frozen values were taken on the code where `qh` was still a class
+ * instance and must not be re-taken. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -135,14 +135,14 @@ static void *get_ref(const void *e, const char *name) {
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-static pico8_value_t class_value(pico8_class_t *cls, const char *name) {
+static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v));
+    assert(default_of(name, &v));
     return v;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
+    pico8_value_t v = class_value(default_of, name);
     assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
@@ -227,7 +227,7 @@ static uint32_t fold_kw(uint32_t h, const void *e) {
     assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
     h = pico8_ob_table_get_name(kw.as.ref, "qe", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
     h = pico8_ob_table_get_name(kw.as.ref, "mu", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_class(), "kw")));
+    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_default, "kw")));
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -353,12 +353,12 @@ static uint32_t fold_lab(uint32_t h, const void *e) {
         assert(!has(e, absent[i]));
     }
     for (i = 0; i < sizeof qh_tables / sizeof qh_tables[0]; i++) {
-        assert(get_ref(e, qh_tables[i]) == class_ref(pico8_qh_class(), qh_tables[i]));
+        assert(get_ref(e, qh_tables[i]) == class_ref(pico8_qh_default, qh_tables[i]));
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_class(), jo_tables[i]));
+        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_class(), "kw"));
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
     assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb1) && gb1.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb1.as.ref);
     h = fold_kw(h, e);
@@ -508,11 +508,6 @@ enum { NL, OS, HJ, PM, MX, NR, FR, DESCENDANTS };
 static const char *const descendant_names[DESCENDANTS] = {"nl", "os", "hj", "pm", "mx", "nr", "fr"};
 
 static int descendant_of(const void *e) {
-    pico8_class_t *const classes[DESCENDANTS] = {pico8_nl_class(), pico8_os_class(), pico8_hj_class(),
-                                                 pico8_pm_class(), pico8_mx_class(), pico8_nr_class(),
-                                                 pico8_fr_class()};
-    int d;
-
     if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
         ((const pico8_struct_header_t *)e)->cls == pico8_nl_struct_class()) {
         return NL;
@@ -541,14 +536,6 @@ static int descendant_of(const void *e) {
         ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class()) {
         return FR;
     }
-    if (e == NULL || pico8_type_tag_of(e) != PICO8_TYPE_TAG_INSTANCE) {
-        return -1;
-    }
-    for (d = 0; d < DESCENDANTS; d++) {
-        if (((const pico8_instance_t *)e)->cls == classes[d]) {
-            return d;
-        }
-    }
     return -1;
 }
 
@@ -567,7 +554,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
         h = fold_field(h, d, inherited[i]);
     }
     for (i = 0; i < sizeof qh_tables / sizeof qh_tables[0]; i++) {
-        h = fnv(h, (uint32_t)(get_ref(d, qh_tables[i]) == class_ref(pico8_qh_class(), qh_tables[i])));
+        h = fnv(h, (uint32_t)(get_ref(d, qh_tables[i]) == class_ref(pico8_qh_default, qh_tables[i])));
     }
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
         pico8_value_t v;
@@ -790,8 +777,8 @@ static void test_qh_is_a_struct(void) {
     static const char *const jo_methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw",
                                           "lq", "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et"};
-    pico8_class_t *const descendants[] = {pico8_nl_class(), pico8_os_class(), pico8_hj_class(), pico8_pm_class(),
-                                          pico8_mx_class(), pico8_nr_class(), pico8_fr_class()};
+    const pico8_entity_kind_t *const descendants[] = {pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(), pico8_pm_kind(),
+                                                      pico8_mx_kind(), pico8_nr_kind(), pico8_fr_kind()};
     const pico8_struct_class_t *cls = pico8_qh_struct_class();
     void *a;
     size_t i;
@@ -835,34 +822,34 @@ static void test_qh_is_a_struct(void) {
         pico8_ob_table_t *b = pico8_ob_table_new();
         void *d;
         pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = pico8_class_instantiate(descendants[i], b);
+        d = descendants[i]->new_entity(b);
         pico8_ob_table_free(b);
-        if (descendants[i] == pico8_nl_class()) {
+        if (descendants[i] == pico8_nl_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_nl_struct_class());
             continue;
         }
-        if (descendants[i] == pico8_os_class()) {
+        if (descendants[i] == pico8_os_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_os_struct_class());
             continue;
         }
-        if (descendants[i] == pico8_hj_class()) {
+        if (descendants[i] == pico8_hj_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_hj_struct_class());
             continue;
         }
-        if (descendants[i] == pico8_pm_class()) {
+        if (descendants[i] == pico8_pm_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_pm_struct_class());
             continue;
         }
-        if (descendants[i] == pico8_mx_class()) {
+        if (descendants[i] == pico8_mx_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_mx_struct_class());
             continue;
         }
-        if (descendants[i] == pico8_nr_class()) {
+        if (descendants[i] == pico8_nr_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_nr_struct_class());
             continue;

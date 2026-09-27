@@ -53,7 +53,7 @@ void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
     pico8_ke_init();
-    assert(pico8_ke_class() != NULL && "ke must be declared before every ke-descended class");
+    assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
     pico8_nf_init();
     pico8_ui_init();
@@ -79,10 +79,10 @@ void pico8_cart_load(void) {
     pico8_jo_init();
     pico8_jc_init();
     pico8_planet_family_init();
-    assert(pico8_qh_class()->parent == pico8_jo_class() && pico8_ga_class()->parent == pico8_jo_class() &&
+    assert(pico8_qh_ready() && pico8_ga_ready() && pico8_jo_ready() &&
            "qh and ga extend jo: pico8_jo_init() must run first");
     pico8_planet_family_trade_init();
-    assert(pico8_nr_class()->parent == pico8_qh_class() && pico8_mx_class()->parent == pico8_hj_class() &&
+    assert(pico8_nr_ready() && pico8_mx_ready() && pico8_qh_ready() && pico8_hj_ready() &&
            "nr extends qh and mx extends hj: pico8_planet_family_init() must run first");
     pico8_wormhole_init();
 
@@ -91,7 +91,6 @@ void pico8_cart_load(void) {
     pico8_score_panel_init();
     pico8_research_icon_init();
     pico8_menu_init();
-    assert(pico8_jo_class()->parent == pico8_ke_class() && "ke must be declared before every ke-descended class");
 
     pico8_help_set_eu(pico8_eu_dispatch);
     pico8_score_panel_set_init(pico8_init_dispatch);
@@ -140,8 +139,6 @@ void pico8__init(void) {
 
     pico8_cu(mem);
     pico8_jl();
-    assert(pico8_jo_class()->parent == pico8_ke_class() &&
-           "jl() must not rebuild ke: every class pico8_cart_load() built holds a .parent into it");
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
      * and `kc` is cleared. `gy` aliases `eh`'s heap vector, it is not a copy. */
@@ -182,7 +179,7 @@ void pico8_eu(pico8_js_t *nj) {
     const pico8_entity_kind_t *gx[7];
     int i;
 
-    assert(pico8_hy_ready() && pico8_qh_class() != NULL && "pico8_cart_load() must run before eu()");
+    assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
 
     pico8_economy_set_dk(nj);
 

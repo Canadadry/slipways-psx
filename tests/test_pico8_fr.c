@@ -1,9 +1,9 @@
 /* The infraspace gate `fr`, read and written only through the dual-form
- * field API and `pico8_class_get_field(pico8_fr_class()/pico8_nr_class()/
- * pico8_qh_class()/pico8_jo_class(), ...)` for spec defaults, built as the
- * shop builds it (`ie:ldown` on `gx[3]`, `id`) and driven through the real
- * `mv`/`dg`/`dc`. Its methods are compared to those of a slipgate built in
- * the same game. The frozen values were taken on the code where `fr` was
+ * field API and `pico8_fr_default()`, `pico8_nr_default()`,
+ * `pico8_qh_default()` and `pico8_jo_default()` for spec defaults, built as
+ * the shop builds it (`ie:ldown` on `gx[3]`, `id`) and driven through the
+ * real `mv`/`dg`/`dc`. Its methods are compared to those of a slipgate built
+ * in the same game. The frozen values were taken on the code where `fr` was
  * still a class instance and must not be re-taken. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -124,14 +124,14 @@ static void *get_ref(const void *e, const char *name) {
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-static pico8_value_t class_value(pico8_class_t *cls, const char *name) {
+static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v));
+    assert(default_of(name, &v));
     return v;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
+    pico8_value_t v = class_value(default_of, name);
     assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
@@ -268,7 +268,7 @@ static void *build(const pico8_entity_kind_t *kind) {
 /* `hz` is never written on an entity: one whose `hz` is the very table of
  * fr's class is an infraspace gate, whatever its form. */
 static int is_a_gate(const void *e) {
-    return get_ref(e, "hz") == class_ref(pico8_fr_class(), "hz");
+    return get_ref(e, "hz") == class_ref(pico8_fr_default, "hz");
 }
 
 static void *build_gate(void) {
@@ -313,17 +313,17 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
-    assert(get_ref(e, "hz") != class_ref(pico8_nr_class(), "hz"));
+    assert(get_ref(e, "hz") != class_ref(pico8_nr_default, "hz"));
     for (i = 0; i < sizeof nr_tables / sizeof nr_tables[0]; i++) {
-        assert(get_ref(e, nr_tables[i]) == class_ref(pico8_nr_class(), nr_tables[i]));
+        assert(get_ref(e, nr_tables[i]) == class_ref(pico8_nr_default, nr_tables[i]));
     }
     for (i = 0; i < sizeof qh_tables / sizeof qh_tables[0]; i++) {
-        assert(get_ref(e, qh_tables[i]) == class_ref(pico8_qh_class(), qh_tables[i]));
+        assert(get_ref(e, qh_tables[i]) == class_ref(pico8_qh_default, qh_tables[i]));
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_class(), jo_tables[i]));
+        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_class(), "kw"));
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
     assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb1) && gb1.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb1.as.ref);
     h = fnv(h, (uint32_t)list_size(e, "oe"));
@@ -579,15 +579,15 @@ static void test_fr_is_a_struct(void) {
         pico8_value_t through_nr;
         assert(cls->field(a, inherited[i], &own) && nr->field(a, inherited[i], &through_nr));
         assert(pico8_value_equal(own, through_nr) &&
-               pico8_value_equal(own, class_value(pico8_fr_class(), inherited[i])));
+               pico8_value_equal(own, class_value(pico8_fr_default, inherited[i])));
     }
     assert(!nr->field(a, "mt", &v) && cls->field(a, "mt", &v));
-    assert(pico8_fr_class()->struct_new != NULL);
+    assert(pico8_fr_ready());
     for (i = 0; i < 4; i++) {
         static const char *const nr_installed[] = {"gv", "ldown", "hb", "cn"};
         static const char *const qh_installed[] = {"hq", "ly", "ev", "ey"};
-        assert(!pico8_ob_table_get_name(pico8_nr_class()->defaults, nr_installed[i], &v));
-        assert(!pico8_ob_table_get_name(pico8_qh_class()->defaults, qh_installed[i], &v));
+        assert(!pico8_nr_default(nr_installed[i], &v));
+        assert(!pico8_qh_default(qh_installed[i], &v));
     }
 
     must_abort(write_mt, a);

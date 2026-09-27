@@ -25,13 +25,13 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ref_audit.h"
 
-static pico8_class_t *g_jo_class = NULL;
+static pico8_ob_table_t *g_jo_spec = NULL;
 
 static pico8_gn_state_t *g_jo_oc = NULL;
 static pico8_jf_state_t *g_jo_ir = NULL;
 
-/* jo's own defaults, read once from its class at init: the very values its
- * `defaults` holds, tables included (the same REF: `kw` is written in place
+/* jo's own defaults, read once through pico8_jo_default() at init: the very
+ * values its spec holds, tables included (the same REF: `kw` is written in place
  * by `bb` and `mx:kf`). Never a table outside init..shutdown. */
 static struct {
     const char *name;
@@ -248,7 +248,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     size_t i;
 
-    assert(g_jo_class != NULL && "pico8_jo_init() must run first");
+    assert(g_jo_spec != NULL && "pico8_jo_init() must run first");
     pico8_ke_struct_init(&self->ke, cls);
     for (i = 0; i < sizeof g_jo_members / sizeof g_jo_members[0]; i++) {
         *(pico8_value_t *)((char *)self + g_jo_members[i].offset) = pico8_value_ref(NULL);
@@ -290,29 +290,27 @@ void pico8_jo_init(void) {
 
     pico8_jo_shutdown();
     pico8_pi_init();
-    g_jo_class = pico8_class_declare(pico8_ke_class(),
-                                      "\n"
-                                      "nu=o(\"jo\",\"np\",\"prober\"),\n"
-                                      "me=\"unknown\",\n"
-                                      "hf=1,hs=1,\n"
-                                      "fa=6,\n"
-                                      "kq=b(-7,-7,7,7),\n"
-                                      "ma=0,\n"
-                                      "ka=o(2,3,9,12),\n"
-                                      "dz=o(\n"
-                                      "o(\"unhappy\",c=8),\n"
-                                      "o(\"content\",c=3),\n"
-                                      "o(\"prosperous\",c=9),\n"
-                                      "o(\"rich\",c=12),\n"
-                                      "),\n"
-                                      "cq=o(12,36,24,25),\n"
-                                      "kw=o(mu=0),\n"
-                                      "gq=v(0,11),ca=9,\n"
-                                      "em=o(f,3,0,-1),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_jo_class, "jo");
-    pico8_class_set_struct_new(g_jo_class, pico8_jo_struct_new);
+    g_jo_spec = pico8_ob("\n"
+                         "nu=o(\"jo\",\"np\",\"prober\"),\n"
+                         "me=\"unknown\",\n"
+                         "hf=1,hs=1,\n"
+                         "fa=6,\n"
+                         "kq=b(-7,-7,7,7),\n"
+                         "ma=0,\n"
+                         "ka=o(2,3,9,12),\n"
+                         "dz=o(\n"
+                         "o(\"unhappy\",c=8),\n"
+                         "o(\"content\",c=3),\n"
+                         "o(\"prosperous\",c=9),\n"
+                         "o(\"rich\",c=12),\n"
+                         "),\n"
+                         "cq=o(12,36,24,25),\n"
+                         "kw=o(mu=0),\n"
+                         "gq=v(0,11),ca=9,\n"
+                         "em=o(f,3,0,-1),\n",
+                         NULL);
     for (i = 0; i < sizeof g_jo_defaults / sizeof g_jo_defaults[0]; i++) {
-        int found = pico8_class_get_field(g_jo_class, g_jo_defaults[i].name, &g_jo_defaults[i].value);
+        int found = pico8_jo_default(g_jo_defaults[i].name, &g_jo_defaults[i].value);
         assert(found && "jo: every default of the struct is a key of jo's spec");
         (void)found;
     }
@@ -320,10 +318,8 @@ void pico8_jo_init(void) {
 
 void pico8_jo_shutdown(void) {
     pico8_jo_defaults_reset();
-    if (g_jo_class != NULL) {
-        pico8_class_free(g_jo_class);
-        g_jo_class = NULL;
-    }
+    pico8_ob_table_free(g_jo_spec);
+    g_jo_spec = NULL;
     if (g_jo_oc != NULL) {
         pico8_gn_free(g_jo_oc);
         g_jo_oc = NULL;
@@ -350,8 +346,13 @@ void pico8_jo_set_ir(pico8_jf_state_t *ir) {
     g_jo_ir = ir;
 }
 
-pico8_class_t *pico8_jo_class(void) {
-    return g_jo_class;
+int pico8_jo_ready(void) {
+    return g_jo_spec != NULL;
+}
+
+int pico8_jo_default(const char *name, pico8_value_t *out_value) {
+    return g_jo_spec != NULL &&
+           (pico8_ob_table_get_name(g_jo_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_ob_table_t *pico8_jo_dz(void) {

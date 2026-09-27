@@ -1,10 +1,10 @@
 /* The particle burst `ga`, read and written only through the dual-form field
- * API and `pico8_class_get_field(pico8_ga_class()/pico8_jo_class()/
- * pico8_pm_class(), ...)` for spec defaults, built by its three roads
- * (`jo:hu` on the harvest recipe, `pm:pq`, `pico8_ga_new(NULL)`) and driven
- * through the real `mv`/`dc`. jo's methods are named by
- * `pico8_jo_struct_class()`. The frozen values were taken on the code where
- * `ga` was still a class instance and must not be re-taken. */
+ * API and `pico8_ga_default()`, `pico8_jo_default()` and
+ * `pico8_pm_default()` for spec defaults, built by its three roads (`jo:hu`
+ * on the harvest recipe, `pm:pq`, `pico8_ga_new(NULL)`) and driven through
+ * the real `mv`/`dc`. jo's methods are named by `pico8_jo_struct_class()`.
+ * The frozen values were taken on the code where `ga` was still a class
+ * instance and must not be re-taken. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -122,14 +122,14 @@ static void *get_ref(const void *e, const char *name) {
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-static pico8_value_t class_value(pico8_class_t *cls, const char *name) {
+static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v));
+    assert(default_of(name, &v));
     return v;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
+    pico8_value_t v = class_value(default_of, name);
     assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
@@ -376,18 +376,18 @@ static uint32_t fold_burst(uint32_t h, const void *e, int from_pm) {
     for (i = 0; i < sizeof absent_methods / sizeof absent_methods[0]; i++) {
         assert(!has(e, absent_methods[i]));
     }
-    assert(get_ref(e, "nu") == class_ref(pico8_ga_class(), "nu"));
-    assert(get_ref(e, "kq") == class_ref(pico8_ga_class(), "kq"));
-    assert(get_ref(e, "by") == class_ref(pico8_ga_class(), "by"));
+    assert(get_ref(e, "nu") == class_ref(pico8_ga_default, "nu"));
+    assert(get_ref(e, "kq") == class_ref(pico8_ga_default, "kq"));
+    assert(get_ref(e, "by") == class_ref(pico8_ga_default, "by"));
     assert(pico8_type_tag_of(get_ref(e, "by")) == PICO8_TYPE_TAG_LIST);
     if (from_pm) {
-        assert(get_ref(e, "k_") != class_ref(pico8_ga_class(), "k_"));
-        assert(get_ref(e, "k_") != class_ref(pico8_pm_class(), "k_"));
+        assert(get_ref(e, "k_") != class_ref(pico8_ga_default, "k_"));
+        assert(get_ref(e, "k_") != class_ref(pico8_pm_default, "k_"));
     } else {
-        assert(get_ref(e, "k_") == class_ref(pico8_ga_class(), "k_"));
+        assert(get_ref(e, "k_") == class_ref(pico8_ga_default, "k_"));
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_class(), jo_tables[i]));
+        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -715,17 +715,17 @@ static void test_ga_is_a_struct(void) {
     for (i = 0; i < sizeof on_jo / sizeof on_jo[0]; i++) {
         pico8_value_t through_jo;
         assert(jo->field(roads[0], on_jo[i], &through_jo));
-        assert(pico8_value_equal(through_jo, class_value(pico8_ga_class(), on_jo[i])));
+        assert(pico8_value_equal(through_jo, class_value(pico8_ga_default, on_jo[i])));
     }
     assert(!jo->field(roads[0], "ms", &v) && cls->field(roads[0], "ms", &v));
-    assert(pico8_ga_class()->pq == NULL && pico8_ga_class()->struct_new != NULL);
-    assert(!pico8_ob_table_get_name(pico8_ga_class()->defaults, "mm", &v));
-    assert(!pico8_ob_table_get_name(pico8_ga_class()->defaults, "kj", &v));
+    assert(pico8_ga_ready());
+    assert(!pico8_ga_default("mm", &v));
+    assert(!pico8_ga_default("kj", &v));
     for (i = 0; i < sizeof inherited / sizeof inherited[0]; i++) {
-        assert(!pico8_ob_table_get_name(pico8_jo_class()->defaults, inherited[i], &v));
+        assert(!pico8_jo_default(inherited[i], &v));
     }
-    assert(!pico8_ob_table_get_name(pico8_jo_class()->defaults, "kj", &v));
-    assert(pico8_jo_class()->pq == NULL);
+    assert(!pico8_jo_default("kj", &v));
+    assert(pico8_jo_ready());
 
     must_abort(write_fz, roads[0]);
     must_abort(write_k_, roads[0]);

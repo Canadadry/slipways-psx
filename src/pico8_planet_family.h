@@ -16,19 +16,19 @@
  * wrong-kind field reads as its zero/false default rather than crashing. */
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first: the class specs contain `v(1,0)` and
+/* Calls `pico8_pi_init()` first: the specs contain `v(1,0)` and
  * `b(0,0,-1,-1)`, so the 'v'/'b' constructors must already be registered
  * when the spec strings are parsed. */
 void pico8_planet_family_init(void);
 
-/* Frees the six classes, never any instance. Idempotent, and safe before
+/* Frees the six specs, never any instance. Idempotent, and safe before
  * the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
 /* A laboratory: a bare planet, then qh's own defaults and `et`, which its
  * own `hq` (`bv`) writes. A default of qh whose name is a member of `jo` or
  * `ke` (`me`, `nu`, `hf`, `mi`) lives in that member, never in a second
- * copy here. `nu`, `px` and `ba` hold the very tables of qh's class,
+ * copy here. `nu`, `px` and `ba` hold the very tables of qh's spec,
  * borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
@@ -47,7 +47,7 @@ typedef struct {
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
  * or `jo` (`nu`, `qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
- * `nu`, `px` and `ba` hold the very tables of nl's class, borrowed. Nothing
+ * `nu`, `px` and `ba` hold the very tables of nl's spec, borrowed. Nothing
  * frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
@@ -58,7 +58,7 @@ typedef struct {
 
 /* A processor: a laboratory and nothing of its own. Each default of os
  * lives in the member of that name, qh's (`hp`, `px`, `qh`, `s`, `od`) or
- * jo's (`nu`, `hs`). `nu` and `px` hold the very tables of os's class, `ba`
+ * jo's (`nu`, `hs`). `nu` and `px` hold the very tables of os's spec, `ba`
  * the one of qh's, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
@@ -67,7 +67,7 @@ typedef struct {
 /* An ascension: a laboratory, then hj's own emitter defaults and `qy`,
  * which its own `pq` (`f_`) writes. A default of hj whose name is a member
  * of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`, `s`) lives in that member.
- * `nu`, `px` and `k_` hold the very tables of hj's class, `ba` the one of
+ * `nu`, `px` and `k_` hold the very tables of hj's spec, `ba` the one of
  * qh's, borrowed; `qy` is the ascension's own. Nothing frees the struct:
  * TROU-7. */
 typedef struct {
@@ -91,7 +91,7 @@ typedef struct {
  * ancestor has a member for. A default of pm whose name is a member of
  * `hj`, `qh`, `jo` or `ke` (`me`, `nu`, `hp`, `px`, `s` and the 11 emitter
  * defaults) lives in that member. `nu`, `px`, `k_` and `ng` hold the very
- * tables of pm's class, `ba` the one of qh's, borrowed; `qy` is the
+ * tables of pm's spec, `ba` the one of qh's, borrowed; `qy` is the
  * protostar's own. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
@@ -102,7 +102,7 @@ typedef struct {
 /* A particle burst: a bare planet, then ga's own defaults and `qy`, which
  * its own `pq` (`f_`) writes. A default of ga whose name is a member of
  * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu`, `kq`,
- * `by` and `k_` hold the very tables of ga's class, borrowed: `by` is the
+ * `by` and `k_` hold the very tables of ga's spec, borrowed: `by` is the
  * one list every burst shares, which `ib` extends in place. A burst spawned
  * by `pm:pq` holds that call's `k_` instead. Nothing frees the struct:
  * TROU-7. */
@@ -121,11 +121,14 @@ typedef struct {
     pico8_value_t qy;
 } pico8_ga_t;
 
-/* Every `_class` accessor below is NULL before `pico8_planet_family_init()`
- * and after `pico8_planet_family_shutdown()`; each class's instantiation
- * builds its struct. A `_kind` accessor is never NULL, but its reader finds
- * nothing outside that span. */
-pico8_class_t *pico8_qh_class(void);
+/* Every `_ready` below is 1 from `pico8_planet_family_init()` to
+ * `pico8_planet_family_shutdown()`, 0 otherwise. Every `_default` reads that
+ * kind's spec, then its parent's reader (qh, ga: jo; nl, os, hj: qh; pm:
+ * hj); 0 when absent, or when not ready. A REF is borrowed from the spec,
+ * valid until the shutdown. A `_kind` accessor is never NULL, and its reader
+ * is that `_default`. */
+int pico8_qh_ready(void);
+int pico8_qh_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
@@ -139,7 +142,8 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_qh_t *pico8_qh_new(const pico8_ob_table_t *overrides);
 
-pico8_class_t *pico8_nl_class(void);
+int pico8_nl_ready(void);
+int pico8_nl_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_nl_kind(void);
 const pico8_struct_class_t *pico8_nl_struct_class(void);
 
@@ -148,7 +152,8 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides);
 
-pico8_class_t *pico8_os_class(void);
+int pico8_os_ready(void);
+int pico8_os_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);
 
@@ -157,7 +162,8 @@ const pico8_struct_class_t *pico8_os_struct_class(void);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides);
 
-pico8_class_t *pico8_hj_class(void);
+int pico8_hj_ready(void);
+int pico8_hj_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_hj_kind(void);
 const pico8_struct_class_t *pico8_hj_struct_class(void);
 
@@ -178,7 +184,8 @@ pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pic
 
 /* `pm` and `ga` are the only classes here whose spec sets `fz`: the two
  * kinds `jo:hu`'s `kv[hp.cw]` can resolve. */
-pico8_class_t *pico8_pm_class(void);
+int pico8_pm_ready(void);
+int pico8_pm_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_pm_kind(void);
 const pico8_struct_class_t *pico8_pm_struct_class(void);
 
@@ -188,7 +195,8 @@ const pico8_struct_class_t *pico8_pm_struct_class(void);
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_pm_t *pico8_pm_new(const pico8_ob_table_t *overrides);
 
-pico8_class_t *pico8_ga_class(void);
+int pico8_ga_ready(void);
+int pico8_ga_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_ga_kind(void);
 const pico8_struct_class_t *pico8_ga_struct_class(void);
 

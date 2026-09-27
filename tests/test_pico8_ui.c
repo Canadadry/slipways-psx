@@ -733,10 +733,12 @@ static void dg_over_instance(void *e) {
 /* `ui` was the last class instance to descend from `ke`: `ks` and `dg` take
  * structs only, and a `ke` instance built by hand is refused by both. */
 static void test_ke_closed(void) {
-    pico8_instance_t *made;
+    pico8_instance_t handmade = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
+    pico8_instance_t *made = &handmade;
 
     (void)start_game(DRAG);
-    made = pico8_class_instantiate(pico8_ke_class(), NULL);
+    handmade.fields = pico8_ob_table_new();
+    pico8_lt(made);
     assert(pico8_type_tag_of(made) == PICO8_TYPE_TAG_INSTANCE);
     must_abort(ks_on_instance, made);
     must_abort(dg_over_instance, made);

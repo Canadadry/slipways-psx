@@ -14,23 +14,16 @@ typedef struct {
     pico8_value_t t;
 } pico8_ke_t;
 
-/* ke's pq is lt itself, which is what makes every ke-descended entity
- * register into hv/cv/cg the moment it is built -- an instance through
- * pico8_class_instantiate's pq walk, a struct through
- * pico8_ke_struct_pq(): a class that does not descend from ke is never
- * visited by dc() or dg(). */
+/* Parses ke's spec (`me`, `t`). Shuts the module down first. */
 void pico8_ke_init(void);
 
-/* Frees the class. Every class declared against it keeps a `parent`
- * pointer, so a rebuild must redeclare those too -- pico8_jl()
- * (pico8_bootstrap.c) builds ke once and never again for that reason. */
+/* Frees the spec, and with it every value pico8_ke_default() handed out:
+ * pico8_jl() (pico8_bootstrap.c) parses it once and never again for that
+ * reason. Idempotent, and safe before the first pico8_ke_init(). */
 void pico8_ke_shutdown(void);
 
-/* NULL before pico8_ke_init(), and after pico8_ke_shutdown(). ke's spec
- * sets no `fz`, so it registers under the shared "" slot and
- * pico8_class_lookup() will not find it: this accessor is the only
- * reliable way to reach it. */
-pico8_class_t *pico8_ke_class(void);
+/* 1 from pico8_ke_init() to pico8_ke_shutdown(), 0 otherwise. */
+int pico8_ke_ready(void);
 
 /* ke's spec default `name`, the end of every ke-descended module's default
  * reader; 0 when absent or before pico8_ke_init(). A REF is borrowed from

@@ -19,9 +19,8 @@
 #include "../src/pico8_vec.h"
 
 /* `dc("kj")`'s `mo:md(ci[o])` special case, which needs both a real `mo`
- * and a real entity registered under "kj" to run at all. Kept out of
- * `test_pico8_entity_smoke.c` so that file's small dependency graph stays
- * small: proving this needs `jl()`, a real `jo` and real gfx/mem. */
+ * and a real entity registered under "kj" to run at all: `jl()`, a real
+ * `jo` and real gfx/mem. */
 
 static char g_order[8];
 static int g_order_n = 0;

@@ -13,7 +13,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_class.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
@@ -157,26 +156,28 @@ static void test_kind_fields_and_build(void) {
     check("kind", h, KIND_HASH);
 }
 
-static pico8_class_t *class_of(int i) {
+typedef int (*default_fn)(const char *name, pico8_value_t *out_value);
+
+static default_fn default_of(int i) {
     switch (i) {
     case 0:
-        return pico8_qh_class();
+        return pico8_qh_default;
     case 1:
-        return pico8_os_class();
+        return pico8_os_default;
     case 2:
-        return pico8_nr_class();
+        return pico8_nr_default;
     case 3:
-        return pico8_fr_class();
+        return pico8_fr_default;
     case 4:
-        return pico8_nl_class();
+        return pico8_nl_default;
     case 5:
-        return pico8_mx_class();
+        return pico8_mx_default;
     case 6:
-        return pico8_hj_class();
+        return pico8_hj_default;
     case 7:
-        return pico8_pm_class();
+        return pico8_pm_default;
     default:
-        return pico8_ga_class();
+        return pico8_ga_default;
     }
 }
 
@@ -198,8 +199,8 @@ static int same_value(pico8_value_t a, pico8_value_t b) {
     }
 }
 
-/* Each kind's reader serves exactly what its class chain serves, the very
- * string and REF included, and pico8_type_tag_of() reads a kind UNKNOWN. */
+/* Each kind's reader serves exactly what its module's default chain
+ * serves, the very string and REF included, and pico8_type_tag_of() reads a kind UNKNOWN. */
 static void test_kind_reader_is_the_class_chain(void) {
     static const char *const names[] = {"rr", "s", "me", "od", "hp", "px", "nu", "fz", "ng", "by", "zz"};
     int i;
@@ -212,7 +213,7 @@ static void test_kind_reader_is_the_class_chain(void) {
             pico8_value_t from_class = pico8_value_fixed(0x5A5A);
             int found = kind_field(i, names[n], &from_kind);
 
-            assert(found == pico8_class_get_field(class_of(i), names[n], &from_class));
+            assert(found == default_of(i)(names[n], &from_class));
             assert(same_value(from_kind, from_class));
         }
     }

@@ -366,9 +366,6 @@ $(TMP_DIR)/test_pico8_str: $(call objs,tests/test_pico8_str.c src/pico8_str.c) |
 $(TMP_DIR)/test_pico8_ob: $(call objs,tests/test_pico8_ob.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_entity_smoke: $(call objs,tests/test_pico8_entity_smoke.c src/pico8_entity.c src/pico8_class.c src/pico8_ke.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_class_chain: $(call objs,tests/test_pico8_class_chain.c src/pico8_class.c src/pico8_ob.c src/pico8_list.c src/pico8_value.c src/pico8_str.c src/pico8_fixed.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -427,6 +424,9 @@ $(TMP_DIR)/test_pico8_entity_kind: $(call objs,tests/test_pico8_entity_kind.c $(
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_spec_defaults: $(call objs,tests/test_pico8_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_jo_spec_defaults: $(call objs,tests/test_pico8_jo_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_nl: $(call objs,tests/test_pico8_nl.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
@@ -571,7 +571,6 @@ UNIT_TESTS := \
     test_pico8_list \
     test_pico8_str \
     test_pico8_ob \
-    test_pico8_entity_smoke \
     test_pico8_stash \
     test_pico8_data_init \
     test_pico8_planet_kj_dispatch \
@@ -631,6 +630,7 @@ UNIT_TESTS := \
     test_pico8_nl \
     test_pico8_entity_kind \
     test_pico8_spec_defaults \
+    test_pico8_jo_spec_defaults \
     test_pico8_os \
     test_pico8_hj \
     test_pico8_pm \

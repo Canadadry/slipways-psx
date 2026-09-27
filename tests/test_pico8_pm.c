@@ -1,10 +1,10 @@
-/* The protostar `pm`, read and written only through the dual-form field
- * API and `pico8_class_get_field(pico8_pm_class()/pico8_hj_class()/
- * pico8_qh_class()/pico8_jo_class()/pico8_ga_class(), ...)`, built as
- * `jo:hu` builds it (`kv["pm"]` on `p`, `ra`, `id`) and driven through the
- * real `mv`/`dg`/`dc`. The frozen values were taken on the code where `pm`
- * was still a class instance and must not be re-taken; only
- * test_pm_is_a_struct looks at the form. */
+/* The protostar `pm`, read and written only through the dual-form field API
+ * and `pico8_pm_default()`, `pico8_hj_default()`, `pico8_qh_default()`,
+ * `pico8_jo_default()` and `pico8_ga_default()`, built as `jo:hu` builds it
+ * (`kv["pm"]` on `p`, `ra`, `id`) and driven through the real
+ * `mv`/`dg`/`dc`. The frozen values were taken on the code where `pm` was
+ * still a class instance and must not be re-taken; only test_pm_is_a_struct
+ * looks at the form. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -134,14 +134,14 @@ static void *get_ref(const void *e, const char *name) {
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-static pico8_value_t class_value(pico8_class_t *cls, const char *name) {
+static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v));
+    assert(default_of(name, &v));
     return v;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
+    pico8_value_t v = class_value(default_of, name);
     assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
@@ -223,7 +223,7 @@ static uint32_t fold_kw(uint32_t h, const void *e) {
     assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
     h = pico8_ob_table_get_name(kw.as.ref, "qe", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
     h = pico8_ob_table_get_name(kw.as.ref, "mu", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_class(), "kw")));
+    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_default, "kw")));
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -334,7 +334,7 @@ static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const 
 /* `pm` sets its own `px`: an entity whose `px` is the very table of pm's
  * class is a protostar, recognized by what it reads, not by its form. */
 static int is_pm(const void *e) {
-    return e != NULL && get_ref(e, "px") == class_ref(pico8_pm_class(), "px");
+    return e != NULL && get_ref(e, "px") == class_ref(pico8_pm_default, "px");
 }
 
 static int is_ga(const void *e) {
@@ -416,15 +416,15 @@ static uint32_t fold_protostar(uint32_t h, const void *e) {
         assert(!has(e, absent[i]));
     }
     for (i = 0; i < sizeof pm_tables / sizeof pm_tables[0]; i++) {
-        assert(get_ref(e, pm_tables[i]) == class_ref(pico8_pm_class(), pm_tables[i]));
+        assert(get_ref(e, pm_tables[i]) == class_ref(pico8_pm_default, pm_tables[i]));
     }
-    assert(get_ref(e, "nu") != class_ref(pico8_hj_class(), "nu"));
-    assert(get_ref(e, "k_") != class_ref(pico8_hj_class(), "k_"));
-    assert(get_ref(e, "ba") == class_ref(pico8_qh_class(), "ba"));
+    assert(get_ref(e, "nu") != class_ref(pico8_hj_default, "nu"));
+    assert(get_ref(e, "k_") != class_ref(pico8_hj_default, "k_"));
+    assert(get_ref(e, "ba") == class_ref(pico8_qh_default, "ba"));
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_class(), jo_tables[i]));
+        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_class(), "kw"));
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
     assert(pico8_ob_table_get_index(pico8_gb(), 3, &gb3) && gb3.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb3.as.ref);
     h = fold_kw(h, e);
@@ -713,7 +713,7 @@ static void test_pm_is_a_struct(void) {
         assert(cls->field(a, inherited[i], &own) && hj->field(a, inherited[i], &through_hj));
         assert(pico8_value_equal(own, through_hj));
     }
-    assert(pico8_pm_class()->pq == NULL && pico8_pm_class()->struct_new != NULL);
+    assert(pico8_pm_ready());
 
     must_abort(write_ng, a);
     must_abort(write_fz, a);

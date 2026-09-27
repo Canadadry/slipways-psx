@@ -113,7 +113,7 @@ void pico8_qb_init(void) {
     pico8_qb_shutdown();
     pico8_pi_init();
     assert(pico8_ob_lookup_constructor('v') != NULL && "qb's spec parses v(...) as vectors");
-    assert(pico8_ke_class() != NULL && "qb descends from ke");
+    assert(pico8_ke_ready() && "qb descends from ke");
     g_qb_spec = pico8_ob("\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
                          "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n",
                          NULL);

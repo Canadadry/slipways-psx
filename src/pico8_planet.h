@@ -15,7 +15,7 @@
  * reads as absent rather than crashing. */
 
 /* A bare planet: jo's own defaults (`dz`, `cq`, `ka`, `em` and `kw` hold
- * the very tables of jo's class, `kw` until `lz` replaces it: never written
+ * the very tables of jo's spec, `kw` until `lz` replaces it: never written
  * through, save `kw` in place as the cart does), its construction keys
  * `id`/`p`/`ra`, then every field jo's functions and the generic writers
  * of `cg.jo` write on it. Every planet struct begins with one, so jo's
@@ -56,22 +56,25 @@ typedef struct {
 } pico8_jo_t;
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first: the class spec contains `b(-7,-7,7,7)` and
+/* Calls `pico8_pi_init()` first: the spec contains `b(-7,-7,7,7)` and
  * `v(0,11)`, so the 'b'/'v' constructors must already be registered when
  * the spec string is parsed. */
 void pico8_jo_init(void);
 
-/* Frees the `jo` class and the `oc`/`ir` generators, never any `jo`
+/* Frees the `jo` spec and the `oc`/`ir` generators, never any `jo`
  * instance. Idempotent, and safe before the first `pico8_jo_init()`. */
 void pico8_jo_shutdown(void);
 
-/* NULL before `pico8_jo_init()` and after `pico8_jo_shutdown()`; its
- * instantiation builds a pico8_jo_t. */
-pico8_class_t *pico8_jo_class(void);
+/* 1 from `pico8_jo_init()` to `pico8_jo_shutdown()`, 0 otherwise. */
+int pico8_jo_ready(void);
+
+/* `jo`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until `pico8_jo_shutdown()`. */
+int pico8_jo_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_jo_struct_class(void);
 
-/* `jo.dz`, `jo.cq`, `jo.ka`, `jo.em`, read on the class: the table jo's
- * `defaults` holds, borrowed. NULL before `pico8_jo_init()` and after
+/* `jo.dz`, `jo.cq`, `jo.ka`, `jo.em`: the table jo's spec holds,
+ * borrowed. NULL before `pico8_jo_init()` and after
  * `pico8_jo_shutdown()`. */
 const pico8_ob_table_t *pico8_jo_dz(void);
 const pico8_ob_table_t *pico8_jo_cq(void);
