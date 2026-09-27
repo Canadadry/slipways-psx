@@ -50,6 +50,7 @@
 #define LIFE_HASH 0xDDBCC765u
 #define REPLAY_HASH 0xBB8AD732u
 #define CR_HASH 0x7D1C5B1Fu
+#define PJ_MEMBERS_HASH 0xD786BEE2u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -670,7 +671,7 @@ static void test_pj_is_a_struct(void) {
     }
     assert(pico8_pj_ou() == class_ref("ou") && pico8_pj_ea() == class_ref("ea") && pico8_pj_cr() == get_ref(ju, "cr"));
     assert(pico8_pj_i_() == class_ref("i_") && pico8_pj_gs() == class_ref("gs"));
-    assert(ju->gs.as.ref == class_ref("gs") && ju->i_.as.ref == class_ref("i_"));
+    assert(get_ref(ju, "gs") == class_ref("gs") && get_ref(ju, "i_") == class_ref("i_"));
 
     must_abort(write_c_, ju);
     must_abort(build_with_named_key, NULL);
@@ -777,6 +778,175 @@ static void test_cr_members_by_name(void) {
     cr_ca_is_10(cr);
 }
 
+/* The raw reader and the entity reader agree; a miss leaves the witness. */
+static uint32_t pj_read(uint32_t h, const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t via = pico8_value_fixed(0x1234);
+    int got = pico8_pj_struct_class()->field(e, name, &raw);
+
+    assert(pico8_entity_get_field(e, name, &via) == got);
+    assert(pico8_value_equal(raw, via));
+    if (!got) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+    }
+    h = fnv(h, (uint32_t)got);
+    h = fnv(h, (uint32_t)raw.kind);
+    if (raw.kind == PICO8_VALUE_FIXED) {
+        h = fnv(h, (uint32_t)raw.as.fixed);
+    } else if (raw.kind == PICO8_VALUE_BOOL) {
+        h = fnv(h, (uint32_t)raw.as.boolean);
+    }
+    *out = raw;
+    return h;
+}
+
+static uint32_t pj_fixed_is(uint32_t h, const void *e, const char *name, pico8_fixed_t want) {
+    pico8_value_t v;
+    h = pj_read(h, e, name, &v);
+    assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == want);
+    return h;
+}
+
+static uint32_t pj_bool_is(uint32_t h, const void *e, const char *name, int want) {
+    pico8_value_t v;
+    h = pj_read(h, e, name, &v);
+    assert(v.kind == PICO8_VALUE_BOOL && v.as.boolean == want);
+    return h;
+}
+
+static uint32_t pj_absent(uint32_t h, const void *e, const char *name) {
+    pico8_value_t v;
+    h = pj_read(h, e, name, &v);
+    assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+    return h;
+}
+
+static uint32_t pj_ref_is(uint32_t h, const void *e, const char *name, const void *want, pico8_type_tag_t tag) {
+    pico8_value_t v;
+    h = pj_read(h, e, name, &v);
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    h = fnv(h, (uint32_t)(v.as.ref == want));
+    h = fnv(h, (uint32_t)(pico8_type_tag_of(v.as.ref) == tag));
+    assert(v.as.ref == want && pico8_type_tag_of(v.as.ref) == tag);
+    return h;
+}
+
+static uint32_t pj_fresh(uint32_t h, const void *e) {
+    static const char *const strangers[] = {"",   "x",  "ED",     "e",      "ed ", "has_c_",
+                                            "has_gz", "c", "ke", "header", "member"};
+    pico8_value_t v;
+    size_t i;
+
+    h = pj_fixed_is(h, e, "fa", pico8_fixed_from_int(10));
+    h = pj_ref_is(h, e, "gs", class_ref("gs"), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "gs", pico8_pj_gs(), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "i_", class_ref("i_"), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "i_", pico8_pj_i_(), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_fixed_is(h, e, "ed", pico8_fixed_from_int(1));
+    h = pj_absent(h, e, "c_");
+    h = pj_absent(h, e, "gz");
+    h = pj_ref_is(h, e, "ou", pico8_pj_ou(), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "ea", pico8_pj_ea(), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "cr", pico8_pj_cr(), PICO8_TYPE_TAG_STRUCT);
+    h = pj_read(h, e, "me", &v);
+    assert(v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ph") == 0);
+    h = pj_read(h, e, "t", &v);
+    for (i = 0; i < sizeof strangers / sizeof strangers[0]; i++) {
+        h = pj_absent(h, e, strangers[i]);
+    }
+    return h;
+}
+
+static void write_c_nil(void *e) {
+    pico8_entity_set_field(e, "c_", nil());
+}
+
+static void write_ed_zero_false(void *e) {
+    pico8_value_t v;
+    memset(&v, 0, sizeof v);
+    v.kind = PICO8_VALUE_BOOL;
+    pico8_entity_set_field(e, "ed", v);
+}
+
+static void write_gz_zero_fixed(void *e) {
+    pico8_value_t v;
+    memset(&v, 0, sizeof v);
+    v.kind = PICO8_VALUE_FIXED;
+    pico8_entity_set_field(e, "gz", v);
+}
+
+static void write_fa(void *e) {
+    pico8_entity_set_field(e, "fa", pico8_value_fixed(pico8_fixed_from_int(3)));
+}
+
+static pico8_value_t ix3_my(void) {
+    pico8_value_t row;
+    pico8_value_t my;
+    assert(pico8_ob_table_get_index(pico8_ix(), 3, &row) && row.kind == PICO8_VALUE_REF);
+    assert(pico8_ob_table_get_name((const pico8_ob_table_t *)row.as.ref, "my", &my) &&
+           my.kind == PICO8_VALUE_FUNCTION);
+    return my.as.function(NULL, 0, nil(), nil());
+}
+
+/* The six members by name on a fresh panel, then through `de.my`, `ix[3].my`,
+ * `ph` with `kc` NULL, and `kj`; no writer by name. */
+static void test_pj_members_by_name(void) {
+    uint32_t h = 2166136261u;
+    void *ju = start_game();
+    void *b = pico8_pj_new(NULL);
+    void *ed;
+    int boxes;
+    int i;
+
+    assert(b != ju);
+    h = pj_fresh(h, ju);
+    h = pj_fresh(h, b);
+
+    (void)de_my();
+    h = pj_bool_is(h, ju, "c_", 1);
+    (void)de_my();
+    h = pj_bool_is(h, ju, "c_", 0);
+    (void)ix3_my();
+    h = pj_bool_is(h, ju, "c_", 1);
+    h = pj_absent(h, b, "c_");
+
+    pico8_msgbox_set_kc(NULL);
+    pico8_fm_hy()->hl = "final score";
+    pico8_fm_hy()->has_hl = 1;
+    (void)call(ju, "ph", 0, nil());
+    h = pj_bool_is(h, ju, "c_", 1);
+    h = pj_fixed_is(h, ju, "gz", 0);
+    h = pj_fixed_is(h, ju, "fa", pico8_fixed_from_int(13));
+    assert(pico8_kc() != NULL);
+    h = pj_ref_is(h, ju, "ed", pico8_kc(), PICO8_TYPE_TAG_STRUCT);
+    ed = pico8_kc();
+    h = pj_fixed_is(h, b, "fa", pico8_fixed_from_int(10));
+    h = pj_fixed_is(h, b, "ed", pico8_fixed_from_int(1));
+    h = pj_absent(h, b, "c_");
+    h = pj_absent(h, b, "gz");
+    boxes = count_of(pico8_cg("mh"));
+    h = fnv(h, (uint32_t)boxes);
+
+    (void)call(ju, "ph", 0, nil());
+    assert(count_of(pico8_cg("mh")) == boxes);
+    h = pj_ref_is(h, ju, "ed", ed, PICO8_TYPE_TAG_STRUCT);
+
+    for (i = 0; i < 3; i++) {
+        (void)call(ju, "kj", 0, nil());
+    }
+    h = pj_fixed_is(h, ju, "gz", PICO8_FIXED_LIT(0x00009999, 0.6));
+    h = pj_fixed_is(h, ju, "fa", pico8_fixed_from_int(13));
+    h = pj_ref_is(h, ju, "ed", ed, PICO8_TYPE_TAG_STRUCT);
+    h = pj_bool_is(h, ju, "c_", 1);
+
+    assert(pico8_pj_struct_class()->set_field == NULL);
+    must_abort(write_c_nil, ju);
+    must_abort(write_ed_zero_false, ju);
+    must_abort(write_gz_zero_fixed, ju);
+    must_abort(write_fa, ju);
+    check("pj members", h, PJ_MEMBERS_HASH);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -814,6 +984,7 @@ int main(void) {
     in_fresh_child(test_pj_is_a_struct);
     in_fresh_child(test_cr_is_a_struct);
     in_fresh_child(test_cr_members_by_name);
+    in_fresh_child(test_pj_members_by_name);
 
     printf("test_pico8_pj: all tests passed\n");
     return 0;

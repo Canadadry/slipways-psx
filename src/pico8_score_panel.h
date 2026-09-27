@@ -5,6 +5,7 @@
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
+#include "pico8_msgbox.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -13,15 +14,18 @@
 /* Throughout this module a NULL panel argument is a safe no-op. */
 
 /* TROU-7 */
-/* `gs`, `i_` are the tables of `pj`'s class, borrowed and never modified. */
+/* `gs`, `i_` are the tables of `pj`'s class, borrowed and never modified.
+ * `ed` NULL reads as the spec's fixed 1, never nil. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t fa;
-    pico8_value_t gs;
-    pico8_value_t i_;
-    pico8_value_t ed;
-    pico8_value_t c_;
-    pico8_value_t gz;
+    pico8_fixed_t fa;
+    pico8_ob_table_t *gs;
+    pico8_ob_table_t *i_;
+    pico8_mh_t *ed;
+    int c_;
+    int has_c_;
+    pico8_fixed_t gz;
+    int has_gz;
 } pico8_pj_t;
 
 /* `pj.cr`: no parent, never an entity, and no writer. */
@@ -67,6 +71,9 @@ const pico8_ob_table_t *pico8_pj_gs(void);
  * itself through `lt` into `hv`, `cv.kj`, `cv.hk`, `cv.hb` and no `cg`;
  * nothing ever frees it. Asserts when called before the init. */
 pico8_pj_t *pico8_pj_new(const pico8_ob_table_t *overrides);
+
+/* REF NULL for a NULL panel. */
+pico8_value_t pico8_pj_ed(const pico8_pj_t *self);
 
 /* Owned by this module, freed by `pico8_score_panel_shutdown()`. */
 const pico8_ob_table_t *pico8_ef(void);

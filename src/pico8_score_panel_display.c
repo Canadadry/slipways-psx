@@ -147,7 +147,8 @@ static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t
     (void)arg0;
     (void)arg1;
     if (ju != NULL) {
-        ju->c_ = pico8_value_bool(!pj_display_truthy(ju->c_));
+        ju->c_ = !(ju->has_c_ && ju->c_);
+        ju->has_c_ = 1;
     }
     return pico8_value_bool(1);
 }
@@ -160,7 +161,7 @@ static pico8_value_t pico8_pj_ph_lh_dispatch(void *self, int argc, pico8_value_t
     (void)argc;
     (void)arg0;
     (void)arg1;
-    return pico8_value_bool(ju != NULL && pj_display_truthy(ju->c_));
+    return pico8_value_bool(ju != NULL && ju->has_c_ && ju->c_);
 }
 
 typedef struct {
@@ -253,7 +254,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
 void pico8_pj_ph(pico8_pj_t *self) {
     const pico8_struct_header_t *fm = pico8_fm();
     pico8_value_t hl_val = fm_field_value(fm, "hl");
-    int has_gz = (self != NULL) && !(self->gz.kind == PICO8_VALUE_REF && self->gz.as.ref == NULL);
+    int has_gz = self != NULL && self->has_gz;
 
     if (pj_display_truthy(hl_val) && !has_gz) {
         pico8_ob_table_t *my_init_overrides;
@@ -278,21 +279,23 @@ void pico8_pj_ph(pico8_pj_t *self) {
         pico8_ob_table_free(spec2);
 
         if (self != NULL) {
-            self->c_ = pico8_value_bool(1);
-            self->gz = pico8_value_fixed(pico8_fixed_from_int(0));
-            self->fa = pico8_value_fixed(pico8_fixed_from_int(13));
+            self->c_ = 1;
+            self->has_c_ = 1;
+            self->gz = 0;
+            self->has_gz = 1;
+            self->fa = pico8_fixed_from_int(13);
         }
     }
 
     {
-        int c_truthy = (self != NULL) && pj_display_truthy(self->c_);
+        int c_truthy = self != NULL && self->has_c_ && self->c_;
         int ed_equals_kc = 0;
 
         /* `self.ed`'s class-level default is the number 1, never a REF, and a
          * non-REF `ed` is never `kc`: the block has to fire on the first
          * eligible tick. Comparing only a REF-valued `ed` silently disables it. */
-        if (self != NULL && self->ed.kind == PICO8_VALUE_REF) {
-            ed_equals_kc = ((const void *)pico8_kc() == self->ed.as.ref);
+        if (self != NULL) {
+            ed_equals_kc = self->ed != NULL && pico8_kc() == self->ed;
         }
 
         if (c_truthy && !ed_equals_kc) {
@@ -318,7 +321,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
             pico8_ob_table_free(s);
 
             if (self != NULL) {
-                self->ed = pico8_value_ref(made);
+                self->ed = made;
             }
         }
     }

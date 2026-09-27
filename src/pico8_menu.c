@@ -373,7 +373,8 @@ static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t a
     (void)arg0;
     (void)arg1;
     if (ju != NULL) {
-        ju->c_ = pico8_value_bool(1);
+        ju->c_ = 1;
+        ju->has_c_ = 1;
     }
     built = pico8_fq_new(pico8_de());
     (void)built;

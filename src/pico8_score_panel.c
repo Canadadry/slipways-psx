@@ -96,21 +96,15 @@ static char *pj_concat2(const char *a, const char *b) {
     return out;
 }
 
-enum { PJ_FA, PJ_EA, PJ_GS, PJ_CR, PJ_I_, PJ_OU, PJ_ED };
+enum { PJ_EA, PJ_GS, PJ_CR, PJ_I_, PJ_OU };
 
-/* pj's 7 spec defaults, read once at init from its spec (the spec's REFs,
- * never re-parsed), except `cr`, which is `g_pj_cr`. `ea`,
- * `cr` and `ou` have no member. */
+/* pj's class state, read once at init from its spec (the spec's REFs,
+ * never re-parsed), except `cr`, which is `g_pj_cr`. */
 static struct {
     const char *name;
-    int member;
-    size_t offset;
     pico8_value_t value;
 } g_pj_defaults[] = {
-    [PJ_FA] = {"fa", 1, offsetof(pico8_pj_t, fa), {0}}, [PJ_EA] = {"ea", 0, 0, {0}},
-    [PJ_GS] = {"gs", 1, offsetof(pico8_pj_t, gs), {0}}, [PJ_CR] = {"cr", 0, 0, {0}},
-    [PJ_I_] = {"i_", 1, offsetof(pico8_pj_t, i_), {0}}, [PJ_OU] = {"ou", 0, 0, {0}},
-    [PJ_ED] = {"ed", 1, offsetof(pico8_pj_t, ed), {0}},
+    [PJ_EA] = {"ea", {0}}, [PJ_GS] = {"gs", {0}}, [PJ_CR] = {"cr", {0}}, [PJ_I_] = {"i_", {0}}, [PJ_OU] = {"ou", {0}},
 };
 
 static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -355,12 +349,12 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
     pico8_list_free(&ou_list);
     pico8_list_free(&combined);
 
-    if (self != NULL && self->gz.kind == PICO8_VALUE_FIXED) {
-        pico8_fixed_t gz = pico8_fixed_add(self->gz.as.fixed, PICO8_FIXED_LIT(0x00003333, 0.2));
+    if (self != NULL && self->has_gz) {
+        pico8_fixed_t gz = pico8_fixed_add(self->gz, PICO8_FIXED_LIT(0x00003333, 0.2));
         pico8_fixed_t capped = fixed_min(gz, PICO8_FIXED_LIT(0x00033333, 3.2));
         pico8_fixed_t h = pico8_fixed_mul(capped, capped);
 
-        self->gz = pico8_value_fixed(gz);
+        self->gz = gz;
         pico8_rk(gfx, mem, pico8_fixed_from_int(0), h, 0);
         /* The cart's only colour-less `rk`: the bottom bar inherits the pen
          * colour the line above leaves behind. Passing a colour here would
@@ -397,18 +391,21 @@ static pico8_value_t pico8_pj_ph_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
+pico8_value_t pico8_pj_ed(const pico8_pj_t *self) {
+    if (self == NULL) {
+        return pico8_value_ref(NULL);
+    }
+    if (self->ed == NULL) {
+        return pico8_value_fixed(pico8_fixed_from_int(1));
+    }
+    return pico8_value_ref(self->ed);
+}
+
 /* `ou`, `ea`, `cr` read off a panel answer the shared state, as the class
  * chain did. */
 static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out_value) {
-    static const struct {
-        const char *name;
-        size_t offset;
-    } members[] = {
-        {"fa", offsetof(pico8_pj_t, fa)}, {"gs", offsetof(pico8_pj_t, gs)}, {"i_", offsetof(pico8_pj_t, i_)},
-        {"ed", offsetof(pico8_pj_t, ed)}, {"c_", offsetof(pico8_pj_t, c_)}, {"gz", offsetof(pico8_pj_t, gz)},
-    };
+    const pico8_pj_t *pj = self;
     pico8_value_t value;
-    size_t i;
 
     if (strcmp(name, "ou") == 0) {
         value = g_pj_defaults[PJ_OU].value;
@@ -416,16 +413,32 @@ static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out
         value = g_pj_defaults[PJ_EA].value;
     } else if (strcmp(name, "cr") == 0) {
         value = g_pj_defaults[PJ_CR].value;
+    } else if (strcmp(name, "fa") == 0) {
+        value = pico8_value_fixed(pj->fa);
+    } else if (strcmp(name, "gs") == 0) {
+        if (pj->gs == NULL) {
+            return 0;
+        }
+        value = pico8_value_ref(pj->gs);
+    } else if (strcmp(name, "i_") == 0) {
+        if (pj->i_ == NULL) {
+            return 0;
+        }
+        value = pico8_value_ref(pj->i_);
+    } else if (strcmp(name, "ed") == 0) {
+        value = pico8_pj_ed(pj);
+    } else if (strcmp(name, "c_") == 0) {
+        if (!pj->has_c_) {
+            return 0;
+        }
+        value = pico8_value_bool(pj->c_);
+    } else if (strcmp(name, "gz") == 0) {
+        if (!pj->has_gz) {
+            return 0;
+        }
+        value = pico8_value_fixed(pj->gz);
     } else {
-        for (i = 0; i < sizeof members / sizeof members[0]; i++) {
-            if (strcmp(name, members[i].name) == 0) {
-                break;
-            }
-        }
-        if (i == sizeof members / sizeof members[0]) {
-            return pico8_ke_field(self, name, out_value);
-        }
-        value = *(const pico8_value_t *)((const char *)self + members[i].offset);
+        return pico8_ke_field(self, name, out_value);
     }
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
         return 0;
@@ -447,18 +460,18 @@ static const pico8_struct_class_t g_pj_struct_class = {
 
 static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     pico8_pj_t *self;
-    size_t i;
 
     assert(g_pj_spec != NULL && "pico8_score_panel_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_pj_struct_class);
-    self->c_ = pico8_value_ref(NULL);
-    self->gz = pico8_value_ref(NULL);
-    for (i = 0; i < sizeof g_pj_defaults / sizeof g_pj_defaults[0]; i++) {
-        if (g_pj_defaults[i].member) {
-            *(pico8_value_t *)((char *)self + g_pj_defaults[i].offset) = g_pj_defaults[i].value;
-        }
-    }
+    self->fa = pico8_fixed_from_int(10);
+    self->gs = pj_default_table(PJ_GS);
+    self->i_ = pj_default_table(PJ_I_);
+    self->ed = NULL;
+    self->c_ = 0;
+    self->has_c_ = 0;
+    self->gz = 0;
+    self->has_gz = 0;
     assert((overrides == NULL || overrides->count == 0) &&
            "pj: the only measured road is pico8_pj_new(NULL) (cart.c); a construction key would be a field under "
            "no rule of plan-3 section 5 -- stop, do not add a member");
@@ -517,7 +530,7 @@ void pico8_score_panel_init(void) {
         pico8_value_t *v = &g_pj_defaults[i].value;
         int found = pico8_pj_default(g_pj_defaults[i].name, v);
         assert(found && "pj: every default of the struct is a key of pj's spec");
-        assert((i == PJ_FA || i == PJ_ED || i == PJ_CR ||
+        assert((i == PJ_CR ||
                 (v->kind == PICO8_VALUE_REF && v->as.ref != NULL &&
                  pico8_type_tag_of(v->as.ref) == PICO8_TYPE_TAG_OB_TABLE)) &&
                "pj: its 4 table accessors cast these REFs to plain tables, and hb/hk write into ou/ea");

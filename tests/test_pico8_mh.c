@@ -253,7 +253,8 @@ static void test_two_years_in_a_row(void) {
 }
 
 static void set_c_(pico8_pj_t *ju, int on) {
-    ju->c_ = pico8_value_bool(on);
+    ju->c_ = on;
+    ju->has_c_ = 1;
 }
 
 /* A game started the way the net starts it (`eu()` on `bo[2]`), then `jl()`
@@ -278,7 +279,8 @@ static void test_scores_box_follows_c_(void) {
     int built;
     int i;
 
-    ju->gz = pico8_value_fixed(pico8_fixed_from_int(0));
+    ju->gz = pico8_fixed_from_int(0);
+    ju->has_gz = 1;
     set_c_(ju, 1);
     run_start(&run);
 
