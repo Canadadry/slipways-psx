@@ -33,6 +33,7 @@
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
+#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
@@ -48,8 +49,8 @@ static const pico8_list_t *ok_le(void) {
 }
 
 /* A button's `lq` field, after `js:pq()` replaced the raw row override
- * with a real `lq` instance. */
-static const pico8_instance_t *button_lq(pico8_value_t button_val) {
+ * with a real row. */
+static const pico8_lq_t *button_lq(pico8_value_t button_val) {
     const void *button;
     pico8_value_t lq_val;
 
@@ -57,12 +58,21 @@ static const pico8_instance_t *button_lq(pico8_value_t button_val) {
     button = button_val.as.ref;
     assert(pico8_entity_get_field(button, "lq", &lq_val));
     assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
-    return (const pico8_instance_t *)lq_val.as.ref;
+    return (const pico8_lq_t *)lq_val.as.ref;
 }
 
-static int lq_index_is_string(const pico8_instance_t *lq, int index, const char *expected) {
+/* The row's item at 1-based `index`, as a table lookup would find it. */
+static int lq_item(const pico8_lq_t *lq, int index, pico8_value_t *out) {
+    if (index < 1 || index > lq->items.count) {
+        return 0;
+    }
+    *out = lq->items.items[index - 1];
+    return 1;
+}
+
+static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {
     pico8_value_t v;
-    if (!pico8_ob_table_get_index(lq->fields, index, &v)) {
+    if (!lq_item(lq, index, &v)) {
         return 0;
     }
     return v.kind == PICO8_VALUE_STRING && v.as.string != NULL && strcmp(v.as.string, expected) == 0;
@@ -76,7 +86,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_vec_t *ra;
     pico8_vec_t *gq;
     const pico8_list_t *le;
-    const pico8_instance_t *exports_lq = NULL;
+    const pico8_lq_t *exports_lq = NULL;
     pico8_value_t entry;
     int i;
 
@@ -118,8 +128,8 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(le->count >= 2);
 
     for (i = 0; i < le->count; i++) {
-        const pico8_instance_t *lq = button_lq(le->items[i]);
-        assert(lq->cls == pico8_lq_class());
+        const pico8_lq_t *lq = button_lq(le->items[i]);
+        assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == pico8_lq_struct_class());
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }
@@ -132,17 +142,17 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(lq_index_is_string(exports_lq, 1, "exports:"));
     assert(lq_index_is_string(exports_lq, 2, "0/1"));
 
-    assert(pico8_ob_table_get_index(exports_lq->fields, 3, &entry));
+    assert(lq_item(exports_lq, 3, &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref == (void *)kw);
 
-    assert(pico8_ob_table_get_index(exports_lq->fields, 4, &entry));
+    assert(lq_item(exports_lq, 4, &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
 
     /* No phantom fifth item from an over-long copy loop. */
-    assert(!pico8_ob_table_get_index(exports_lq->fields, 5, &entry));
+    assert(!lq_item(exports_lq, 5, &entry));
 
     /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
-    assert(pico8_instance_get_field(exports_lq, "fs", &entry));
+    assert(pico8_entity_get_field(exports_lq, "fs", &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
     assert(((const pico8_list_t *)entry.as.ref)->count == 4);
 }

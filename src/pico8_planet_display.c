@@ -93,7 +93,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
     const pico8_list_t *by_list;
     pico8_value_t qe = pico8_value_ref(NULL);
     pico8_fixed_t mu = pico8_fixed_from_int(0);
-    pico8_instance_t *lq_result;
+    pico8_lq_t *lq_result;
 
     if (self == NULL) {
         return;
@@ -536,8 +536,9 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
             pico8_value_t a_val = pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5));
             pico8_value_t discard;
             int dispatched;
-            assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
-                   "jo.lq must be an lq instance");
+            assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+                   ((const pico8_struct_header_t *)lq_val.as.ref)->cls == pico8_lq_struct_class() &&
+                   "jo.lq must be the row jo.ex built");
             dispatched = pico8_mv((pico8_instance_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
             assert(dispatched && "lq must expose \"ol\" as an mv()-dispatchable field");
             (void)dispatched;

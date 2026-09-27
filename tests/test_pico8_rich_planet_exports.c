@@ -24,6 +24,7 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_cheat.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -62,6 +63,15 @@ static int kw_mu(const pico8_instance_t *p) {
     return pico8_fixed_flr_int(mu.as.fixed);
 }
 
+/* The row's first item, as `lq[1]` finds it. */
+static int row_first(const pico8_lq_t *lq, pico8_value_t *out) {
+    if (lq->items.count < 1) {
+        return 0;
+    }
+    *out = lq->items.items[0];
+    return 1;
+}
+
 /* Sets the tier, runs the economy tick to a fixed point, marks every need as
  * received and rebuilds the panel. Returns kw.mu; *has_exports tells whether
  * some panel row leads with "exports:". */
@@ -92,8 +102,7 @@ static int promote_and_open_panel(pico8_instance_t *planet, int tier, int *has_e
         const void *button = rows->items[i].as.ref;
         pico8_value_t lq, first;
         if (button != NULL && pico8_entity_get_field(button, "lq", &lq) && lq.kind == PICO8_VALUE_REF &&
-            lq.as.ref != NULL &&
-            pico8_ob_table_get_index(((const pico8_instance_t *)lq.as.ref)->fields, 1, &first) &&
+            lq.as.ref != NULL && row_first(lq.as.ref, &first) &&
             first.kind == PICO8_VALUE_STRING && strcmp(first.as.string, "exports:") == 0) {
             *has_exports = 1;
         }

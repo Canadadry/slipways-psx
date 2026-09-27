@@ -101,11 +101,11 @@ static int pixels_drawn(void) {
     return n;
 }
 
-/* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real `lq` instance holding one
+/* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one
  * positional item, rendered onto a cleared screen. */
 static void render_one_item(pico8_value_t item) {
     pico8_ob_table_t *overrides = pico8_ob_table_new();
-    pico8_instance_t *line;
+    pico8_lq_t *line;
 
     pico8_ob_table_set_index(overrides, 1, item);
     line = pico8_lq_new(overrides);

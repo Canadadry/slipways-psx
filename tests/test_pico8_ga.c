@@ -29,6 +29,7 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -457,12 +458,22 @@ static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t, int depth) {
     return fnv(h, (uint32_t)t->count);
 }
 
-/* The row `jo:ex` built into `lq`. */
-static uint32_t fold_lq(uint32_t h, const void *e) {
-    const pico8_instance_t *lq = get_ref(e, "lq");
+static pico8_ob_table_t *row_view(const void *lq) {
+    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
+    return pico8_lq_table_view(lq);
+}
 
-    assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_INSTANCE);
-    return fold_table(h, lq->fields, 1);
+/* The row `jo:ex` built into `lq`, through its table view. */
+static uint32_t fold_lq(uint32_t h, const void *e) {
+    const void *lq = get_ref(e, "lq");
+    pico8_ob_table_t *view;
+
+    assert(lq != NULL);
+    view = row_view(lq);
+    h = fold_table(h, view, 1);
+    pico8_ob_table_free(view);
+    return h;
 }
 
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */

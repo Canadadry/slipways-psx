@@ -35,6 +35,7 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_cheat.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -85,7 +86,7 @@ static const pico8_list_t *panel_rows(void) {
  * item is not a string at all -- which is what a nilled `ep` left behind. */
 static const char *row_first_item_string(const pico8_list_t *rows, int index) {
     const void *button;
-    const pico8_instance_t *lq;
+    const pico8_lq_t *lq;
     pico8_value_t lq_val, item;
 
     assert(index >= 0 && index < rows->count);
@@ -93,11 +94,12 @@ static const char *row_first_item_string(const pico8_list_t *rows, int index) {
     button = rows->items[index].as.ref;
     assert(pico8_entity_get_field(button, "lq", &lq_val));
     assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
-    lq = (const pico8_instance_t *)lq_val.as.ref;
+    lq = (const pico8_lq_t *)lq_val.as.ref;
 
-    if (!pico8_ob_table_get_index(lq->fields, 1, &item)) {
+    if (lq->items.count < 1) {
         return NULL;
     }
+    item = lq->items.items[0];
     return item.kind == PICO8_VALUE_STRING ? item.as.string : NULL;
 }
 

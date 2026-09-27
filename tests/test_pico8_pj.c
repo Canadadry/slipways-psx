@@ -28,6 +28,7 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
@@ -141,6 +142,20 @@ static uint32_t bool_state(const void *e, const char *name) {
         return v.as.boolean ? 2 : 1;
     }
     return 3;
+}
+
+static int is_lq(const void *e) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_lq_struct_class();
+}
+
+static int row_count(const void *lq) {
+    return ((const pico8_lq_t *)lq)->items.count;
+}
+
+static pico8_value_t row_item(const void *lq, int i) {
+    assert(i >= 0 && i < row_count(lq));
+    return ((const pico8_lq_t *)lq)->items.items[i];
 }
 
 static uint32_t fold_value(uint32_t h, pico8_value_t v);
@@ -516,19 +531,15 @@ static pico8_vec_t vec_of(const void *e, const char *name) {
 
 /* A row's `lq` as `js:pq` built it: its `w`, its `c`, its positional items. */
 static uint32_t fold_lq(uint32_t h, const void *lq) {
-    const pico8_ob_table_t *fields;
     int i;
 
-    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_INSTANCE);
+    assert(is_lq(lq));
     h = fold_field(h, lq, "w");
     h = fold_field(h, lq, "c");
-    fields = pico8_instance_fields(lq);
-    for (i = 0; i < fields->count; i++) {
-        if (fields->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_value_t item = fields->entries[i].value;
-            h = fnv(h, (uint32_t)fields->entries[i].key.index);
-            h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
-        }
+    for (i = 0; i < row_count(lq); i++) {
+        pico8_value_t item = row_item(lq, i);
+        h = fnv(h, (uint32_t)(i + 1));
+        h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
     }
     return h;
 }
@@ -548,7 +559,8 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     h = fnv(h, (uint32_t)le->count);
     lq = get_ref(le->items[0].as.ref, "lq");
     assert(lq != NULL && get_fixed(lq, "c") == pico8_fixed_from_int(13));
-    *head = string_at(pico8_instance_fields(lq), 1);
+    assert(row_count(lq) > 0 && row_item(lq, 0).kind == PICO8_VALUE_STRING);
+    *head = row_item(lq, 0).as.string;
     h = fnv_str(h, *head);
     ra = get_ref(le->items[0].as.ref, "ra");
     for (i = 0; i < le->count; i++) {

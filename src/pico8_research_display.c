@@ -47,22 +47,6 @@ static pico8_list_t pico8_research_display_positional_values(const pico8_ob_tabl
     return list;
 }
 
-/* Lua's `#t` for a table built purely positionally. */
-static int pico8_research_display_count_positional(const pico8_ob_table_t *table) {
-    int i;
-    int count = 0;
-
-    if (table == NULL) {
-        return 0;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            count++;
-        }
-    }
-    return count;
-}
-
 /* Returns a newly heap-allocated, NUL-terminated string the caller owns
  * and must free(). */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {
@@ -148,7 +132,7 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self) {
     return outer;
 }
 
-pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
+pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
                                pico8_fixed_t d) {
     pico8_ob_table_t *l;
     int lc;
@@ -157,7 +141,7 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
     int ml_count;
     int pe;
     int idx = 1;
-    pico8_instance_t *result;
+    pico8_lq_t *result;
 
     if (!pico8_research_display_truthy(o)) {
         return NULL;
@@ -277,13 +261,12 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
     return result;
 }
 
-pico8_instance_t *pico8_hp_lq(pico8_hp_t *self) {
+pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
     pico8_value_t po1;
     pico8_fixed_t jq;
     const pico8_list_t *is = NULL;
     const pico8_ob_table_t *po;
-    pico8_instance_t *l;
-    int next_index;
+    pico8_lq_t *l;
 
     pico8_hp_assert(self);
     if (self == NULL || pico8_hp_class() == NULL) {
@@ -305,12 +288,11 @@ pico8_instance_t *pico8_hp_lq(pico8_hp_t *self) {
         return NULL;
     }
 
-    next_index = pico8_research_display_count_positional(pico8_instance_fields(l)) + 1;
     if (!pico8_research_display_nil(pico8_hp_fk())) {
-        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, pico8_hp_fk());
+        pico8_list_add(&l->items, pico8_hp_fk());
     }
     if (!pico8_research_display_nil(self->px)) {
-        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, self->px);
+        pico8_list_add(&l->items, self->px);
     }
 
     return l;

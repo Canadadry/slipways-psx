@@ -175,7 +175,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     pico8_value_t s_val;
     char *s_str;
     pico8_value_t ra_val = pico8_value_ref(NULL);
-    pico8_instance_t *lq_inst;
+    pico8_lq_t *lq_inst;
     pico8_ob_table_t *wrapped;
 
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {

@@ -17,40 +17,37 @@
 static pico8_class_t *g_js_class = NULL;
 static pico8_class_t *g_fq_class = NULL;
 
+static int pico8_js_is_lq(const void *ref) {
+    return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)ref)->cls == pico8_lq_struct_class();
+}
+
 /* The overrides table `lq(x)` copies from: NULL when the field is absent or
- * holds no REF, else the REF itself (borrowed) for an instance or a table, or
- * a freshly allocated one for a list. All three shapes reach this field. */
+ * holds no REF, else the REF itself (borrowed) for a table, a freshly
+ * allocated one for a list, or the row's table view for a row, which the
+ * caller frees. All three shapes reach this field. */
 static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
     if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
+    if (pico8_js_is_lq(v.as.ref)) {
+        return pico8_lq_table_view((const pico8_lq_t *)v.as.ref);
+    }
 
     switch (pico8_type_tag_of(v.as.ref)) {
-    case PICO8_TYPE_TAG_INSTANCE:
-        return pico8_instance_fields((const pico8_instance_t *)v.as.ref);
     case PICO8_TYPE_TAG_OB_TABLE:
         return (const pico8_ob_table_t *)v.as.ref;
     case PICO8_TYPE_TAG_LIST:
         /* TROU-7 */
         return pico8_ob_table_from_list(PICO8_REF_AS_LIST_CONST(v.as.ref));
     default:
-        assert(0 && "untagged REF reached js:pq's lq()/h_() argument");
+        assert(0 && "untagged or unmeasured REF reached js:pq's lq()/h_() argument");
         return NULL;
     }
 }
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
-}
-
-/* An `lq` instance's field: absent, a wrong kind or a NULL instance read as
- * 0. */
-static pico8_fixed_t pico8_ui_field_fixed(const pico8_instance_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_instance_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
 }
 
 static int pico8_js_truthy(pico8_value_t v) {
@@ -234,21 +231,32 @@ pico8_js_t *pico8_js_new(const pico8_ob_table_t *overrides) {
     return pico8_js_struct_new(overrides);
 }
 
+/* `lq(x)` of the cart: a row passed in is copied through its table view,
+ * freed once the copy is built. */
+static pico8_lq_t *pico8_js_lq(pico8_value_t v) {
+    const pico8_ob_table_t *overrides = pico8_js_lq_arg_table(v);
+    pico8_lq_t *built = pico8_lq_new(overrides);
+
+    if (v.kind == PICO8_VALUE_REF && pico8_js_is_lq(v.as.ref)) {
+        pico8_ob_table_free((pico8_ob_table_t *)overrides);
+    }
+    return built;
+}
+
 void pico8_js_pq(pico8_js_t *self) {
-    pico8_instance_t *new_lq;
-    pico8_value_t w_val;
+    pico8_lq_t *new_lq;
     pico8_fixed_t mb;
 
     if (self == NULL) {
         return;
     }
 
-    new_lq = pico8_lq_new(pico8_js_lq_arg_table(self->lq));
+    new_lq = pico8_js_lq(self->lq);
     self->lq = pico8_value_ref(new_lq);
 
     mb = pico8_fixed_from_int(2);
-    if (pico8_instance_get_field(new_lq, "w", &w_val) && w_val.kind == PICO8_VALUE_FIXED) {
-        mb = pico8_fixed_add(w_val.as.fixed, mb);
+    if (new_lq->w.kind == PICO8_VALUE_FIXED) {
+        mb = pico8_fixed_add(new_lq->w.as.fixed, mb);
     }
     self->mb = pico8_value_fixed(mb);
 
@@ -256,7 +264,7 @@ void pico8_js_pq(pico8_js_t *self) {
         pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), mb, pico8_fixed_from_int(11)));
 
     if (pico8_js_truthy(self->h_)) {
-        self->h_ = pico8_value_ref(pico8_lq_new(pico8_js_lq_arg_table(self->h_)));
+        self->h_ = pico8_value_ref(pico8_js_lq(self->h_));
     }
 
     if (pico8_js_truthy(self->jb)) {
@@ -333,18 +341,17 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
 
     if (self->lq.kind == PICO8_VALUE_REF && self->lq.as.ref != NULL) {
         pico8_vec_t off = pico8_vec_add(p, pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2)));
-        pico8_lq_ol_default(gfx, mem, (const pico8_instance_t *)self->lq.as.ref, off);
+        pico8_lq_ol_default(gfx, mem, (const pico8_lq_t *)self->lq.as.ref, off);
     }
 
     if (self->h_.kind == PICO8_VALUE_REF && self->h_.as.ref != NULL) {
-        const pico8_instance_t *c = (const pico8_instance_t *)self->h_.as.ref;
-        pico8_fixed_t c_w = pico8_ui_field_fixed(c, "w");
-        pico8_value_t bg_val;
+        const pico8_lq_t *c = (const pico8_lq_t *)self->h_.as.ref;
+        pico8_fixed_t c_w = c->w.kind == PICO8_VALUE_FIXED ? c->w.as.fixed : pico8_fixed_from_int(0);
         int bg = 2;
         pico8_fixed_t x2 = pico8_fixed_add(qt, c_w);
 
-        if (pico8_instance_get_field(c, "bg", &bg_val) && bg_val.kind == PICO8_VALUE_FIXED) {
-            bg = pico8_ui_to_int(bg_val.as.fixed);
+        if (c->bg.kind == PICO8_VALUE_FIXED) {
+            bg = pico8_ui_to_int(c->bg.as.fixed);
         }
         pico8_rectfill(gfx, mem, pico8_ui_to_int(qt) + 3, iy_p + 1, pico8_ui_to_int(x2) + 4, iy_dn, bg);
 

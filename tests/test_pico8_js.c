@@ -209,6 +209,20 @@ static int in_gb(const void *e) {
     return 0;
 }
 
+static int is_lq(const void *e) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_lq_struct_class();
+}
+
+static int row_count(const void *lq) {
+    return ((const pico8_lq_t *)lq)->items.count;
+}
+
+static pico8_value_t row_item(const void *lq, int i) {
+    assert(i >= 0 && i < row_count(lq));
+    return ((const pico8_lq_t *)lq)->items.items[i];
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -235,25 +249,22 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     }
 }
 
-/* An `lq` instance by its width and its positional items. */
+/* A row by its width and its positional items. */
 static uint32_t fold_lq(uint32_t h, const void *lq) {
-    const pico8_ob_table_t *fields;
     int i;
 
-    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)lq)->cls == pico8_lq_class());
+    assert(is_lq(lq));
     h = fold_value(h, get(lq, "w"));
-    fields = ((const pico8_instance_t *)lq)->fields;
-    for (i = 0; i < fields->count; i++) {
-        if (fields->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_value_t item = fields->entries[i].value;
-            h = fnv(h, (uint32_t)fields->entries[i].key.index);
-            h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
-        }
+    for (i = 0; i < row_count(lq); i++) {
+        pico8_value_t item = row_item(lq, i);
+        h = fnv(h, (uint32_t)(i + 1));
+        h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
     }
     return h;
 }
 
-/* Absent, `false`, or what it holds: an `lq` instance, a `jb` struct. */
+/* Absent, `false`, or what it holds: a row, a `jb` struct. A row folds by
+ * the tag of the class-instance form these values were frozen on. */
 static uint32_t fold_built(uint32_t h, const void *b, const char *name) {
     pico8_value_t v;
     if (!lookup(b, name, &v)) {
@@ -262,10 +273,10 @@ static uint32_t fold_built(uint32_t h, const void *b, const char *name) {
     if (v.kind != PICO8_VALUE_REF) {
         return fold_value(fnv(h, 0xA1u), v);
     }
-    h = fnv(fnv(h, 0xA2u), (uint32_t)pico8_type_tag_of(v.as.ref));
-    if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_INSTANCE) {
-        h = fold_lq(h, v.as.ref);
+    if (is_lq(v.as.ref)) {
+        return fold_lq(fnv(fnv(h, 0xA2u), (uint32_t)PICO8_TYPE_TAG_INSTANCE), v.as.ref);
     }
+    h = fnv(fnv(h, 0xA2u), (uint32_t)pico8_type_tag_of(v.as.ref));
     return h;
 }
 
@@ -788,9 +799,11 @@ static void test_ldown(void) {
 }
 
 static uint32_t lq_first(const void *b) {
-    const pico8_instance_t *lq = get_ref(b, "lq");
+    const void *lq = get_ref(b, "lq");
     pico8_value_t v;
-    assert(pico8_ob_table_get_index(lq->fields, 1, &v) && v.kind == PICO8_VALUE_FIXED);
+    assert(row_count(lq) > 0);
+    v = row_item(lq, 0);
+    assert(v.kind == PICO8_VALUE_FIXED);
     return (uint32_t)pico8_fixed_flr_int(v.as.fixed);
 }
 
@@ -951,7 +964,7 @@ static void test_nil_keys(void) {
     nil_keys = pico8_js_new(b);
     pico8_ob_table_free(b);
     assert(!has(no_keys, "h_") && !has(no_keys, "jb"));
-    assert(pico8_type_tag_of(get_ref(nil_keys, "h_")) == PICO8_TYPE_TAG_INSTANCE);
+    assert(is_lq(get_ref(nil_keys, "h_")));
     assert(must_fixed(get_ref(nil_keys, "h_"), "w") == 0);
     assert(pico8_type_tag_of(get_ref(nil_keys, "jb")) == PICO8_TYPE_TAG_STRUCT);
 }

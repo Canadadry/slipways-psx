@@ -133,7 +133,7 @@ static pico8_value_t pico8_pi_vec_v_constructor(pico8_value_t a1, pico8_value_t 
  * `self`, a2 as the position vector and a3 as the alignment factor. */
 static pico8_value_t pico8_pi_ld_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
                                               pico8_value_t a5) {
-    const pico8_instance_t *self = (a1.kind == PICO8_VALUE_REF) ? (const pico8_instance_t *)a1.as.ref : NULL;
+    const pico8_lq_t *self = (a1.kind == PICO8_VALUE_REF) ? (const pico8_lq_t *)a1.as.ref : NULL;
     pico8_vec_t p = (a2.kind == PICO8_VALUE_REF && a2.as.ref != NULL)
                         ? *(const pico8_vec_t *)a2.as.ref
                         : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));

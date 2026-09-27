@@ -402,3 +402,30 @@ Même effondrement nil/absent dans `dh`
 une route sans `qe`.
 
 Fichier : `src/pico8_trade.c`.
+
+## TROU-25 — La rangée « score 0 » du panneau de fin a un trou, le port en dessine les deux éléments
+
+La ligne `o("",score=0,ra=v(64,21),c=5)` de `bz` (lua.lua:803) n'a qu'un
+positionnel, l'indice 1. `pj:ph` (lua.lua:885-891) lui écrit `st[3]` (la
+chaîne de TROU-13), puis réécrit `st[1]`, et la passe à `lq`. La rangée
+porte donc les indices 1 et 3, sans 2.
+
+`lq:pq` la parcourt par `nv`, donc `all(self)` (lua.lua:289-290), qui
+s'arrête à la bordure `#t`. Le port, lui, prend toutes les clés d'indice dans
+l'ordre croissant (`pico8_layout_positional_values`) et resserre le trou :
+le membre `items` de la rangée garde les deux éléments, `fs` en a deux, et
+`w` compte les deux. Le centrage de la rangée (`a=0.5`, par `pi.ld`) en
+dépend. Atteint par le filet (`game_end`, 4 constructions).
+
+Vérifié dans la source du cart : la ligne de `bz`, l'ordre des écritures de
+`pj:ph` et le parcours par `all` de `lq:pq`. Non vérifié sur PICO-8 : la
+valeur de `#t` pour cette table. Dans l'implémentation de Lua 5.2, une
+table construite avec `[1]` puis complétée en `[3]` a une bordure de 1, et
+`all` ne verrait que l'indice 1 ; PICO-8 peut rendre 3, l'autre
+bordure valide (`t[1]` n'étant pas nil, 0 n'en est pas une).
+
+Préexistant : l'instance de `lq` parcourait déjà toutes les clés d'indice.
+La conversion en struct (plan 3, étape 1a.34) préserve l'écart.
+
+Fichiers : `src/pico8_layout.c` (constructeur de `lq`),
+`src/pico8_score_panel_display.c`.

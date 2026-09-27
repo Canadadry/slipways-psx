@@ -288,7 +288,7 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     pico8_list_t cb_list;
     int cb_count;
     pico8_ob_table_t *overrides;
-    pico8_instance_t *built;
+    pico8_lq_t *built;
     (void)argc;
     (void)arg0;
     (void)arg1;

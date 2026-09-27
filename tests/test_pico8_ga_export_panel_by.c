@@ -17,6 +17,7 @@
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -38,7 +39,7 @@ static const pico8_list_t *ok_le(void) {
     return (const pico8_list_t *)le.as.ref;
 }
 
-static const pico8_instance_t *button_lq(pico8_value_t button_val) {
+static const pico8_lq_t *button_lq(pico8_value_t button_val) {
     const void *button;
     pico8_value_t lq_val;
 
@@ -46,18 +47,19 @@ static const pico8_instance_t *button_lq(pico8_value_t button_val) {
     button = button_val.as.ref;
     assert(pico8_entity_get_field(button, "lq", &lq_val));
     assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
-    return (const pico8_instance_t *)lq_val.as.ref;
+    return (const pico8_lq_t *)lq_val.as.ref;
 }
 
-static const char *lq_index_string(const pico8_instance_t *lq, int index) {
+static const char *lq_index_string(const pico8_lq_t *lq, int index) {
     pico8_value_t v;
-    if (!pico8_ob_table_get_index(lq->fields, index, &v)) {
+    if (index < 1 || index > lq->items.count) {
         return NULL;
     }
+    v = lq->items.items[index - 1];
     return (v.kind == PICO8_VALUE_STRING) ? v.as.string : NULL;
 }
 
-static int lq_index_is_string(const pico8_instance_t *lq, int index, const char *expected) {
+static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {
     const char *s = lq_index_string(lq, index);
     return s != NULL && strcmp(s, expected) == 0;
 }
@@ -93,7 +95,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_ob_table_t *route_a;
     pico8_ob_table_t *route_b;
     const pico8_list_t *le;
-    const pico8_instance_t *exports_lq = NULL;
+    const pico8_lq_t *exports_lq = NULL;
     int i;
 
     boot(&mem, &gfx);
@@ -119,7 +121,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_jo_gh(&planet->jo);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_instance_t *lq = button_lq(le->items[i]);
+        const pico8_lq_t *lq = button_lq(le->items[i]);
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }
@@ -144,7 +146,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_jo_gh(&planet->jo);
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_instance_t *lq = button_lq(le->items[i]);
+        const pico8_lq_t *lq = button_lq(le->items[i]);
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }

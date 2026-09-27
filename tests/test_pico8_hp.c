@@ -29,6 +29,7 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -204,12 +205,23 @@ static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     return fold_value(h, v, 4);
 }
 
-/* An `lq` instance: its fields table, positionals and names alike. */
-static uint32_t fold_lq_instance(uint32_t h, pico8_instance_t *l) {
+static pico8_ob_table_t *row_view(const void *lq) {
+    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
+    return pico8_lq_table_view(lq);
+}
+
+/* A row through its table view, positionals and names alike. */
+static uint32_t fold_lq_instance(uint32_t h, const void *l) {
+    pico8_ob_table_t *view;
+
     if (l == NULL) {
         return fnv(h, 0xDEADu);
     }
-    return fold_value(h, pico8_value_ref(pico8_instance_fields(l)), 4);
+    view = row_view(l);
+    h = fold_value(h, pico8_value_ref(view), 4);
+    pico8_ob_table_free(view);
+    return h;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
