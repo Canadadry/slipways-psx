@@ -31,7 +31,7 @@
 #include "../src/pico8_cart.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_class.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_ob.h"

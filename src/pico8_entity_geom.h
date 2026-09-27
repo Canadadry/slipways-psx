@@ -1,7 +1,7 @@
 #ifndef PICO8_ENTITY_GEOM_H
 #define PICO8_ENTITY_GEOM_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_list.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"

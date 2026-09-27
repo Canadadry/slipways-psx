@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "pico8_audio.h"
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"

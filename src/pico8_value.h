@@ -5,7 +5,7 @@
 
 /* The one tagged value type every value slot in this port is built on: a
  * list element (pico8_list.h), an ob() table entry (pico8_ob.h), an
- * entity field (pico8_class.h). Lua has a single dynamically-typed value
+ * entity field (pico8_struct.h). Lua has a single dynamically-typed value
  * and this stands in for it, rather than each consumer inventing its own
  * tagged union.
  *

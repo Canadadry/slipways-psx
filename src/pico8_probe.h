@@ -1,7 +1,6 @@
 #ifndef PICO8_PROBE_H
 #define PICO8_PROBE_H
 
-#include "pico8_class.h"
 #include "pico8_economy.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"

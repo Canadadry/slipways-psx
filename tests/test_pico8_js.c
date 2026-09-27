@@ -19,7 +19,6 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
-#include "../src/pico8_class.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy_score.h"
@@ -1155,10 +1154,12 @@ static void pz_on_a_table(void *e) {
 
 /* `pz` takes a struct or NULL: an ob table stops it. */
 static void test_pz_closed(void) {
+    pico8_ob_table_t *table = pico8_ob_table_new();
     pico8_list_t none;
 
     start_game(PAUSE);
-    must_abort(pz_on_a_table, pico8_ob_table_new());
+    must_abort(pz_on_a_table, table);
+    pico8_ob_table_free(table);
     pico8_list_init(&none);
     pico8_pz(NULL, &none);
 }

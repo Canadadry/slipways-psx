@@ -17,7 +17,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_class.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_fixed.h"

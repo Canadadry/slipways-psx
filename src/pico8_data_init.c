@@ -89,7 +89,7 @@ void pico8_data_init(pico8_mem_t *mem) {
     g_fd = pico8_ob(decoded, NULL);
     free(decoded);
 
-    /* The hp class must exist before build_gb instantiates one. */
+    /* hp must be ready before build_gb builds one. */
     pico8_research_init();
     pico8_research_build_gb(g_fd);
 

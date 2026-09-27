@@ -2,7 +2,7 @@
  * dump, puis imprime une ligne `<classe> <instanciations>` par nom de
  * KNOWN[]. Rend 2 si le fichier ne se charge pas : tools/class_coverage.sh
  * le signale alors « illisible ». Rend 3, le nom fautif sur stderr, si un
- * nom compté ou inscrit à un registre de classes manque à KNOWN[]. */
+ * nom compté manque à KNOWN[]. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -11,7 +11,7 @@
 #include "pico8_cheat.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
-#include "pico8_class.h"
+#include "pico8_coverage.h"
 #include "pico8_help.h"
 #include "pico8_ui_button.h"
 

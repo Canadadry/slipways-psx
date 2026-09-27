@@ -1,7 +1,7 @@
 #ifndef PICO8_SLIPWAY_DISPLAY_H
 #define PICO8_SLIPWAY_DISPLAY_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
 #include "pico8_mem.h"

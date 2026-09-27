@@ -1,7 +1,6 @@
 #ifndef PICO8_RESEARCH_ICON_H
 #define PICO8_RESEARCH_ICON_H
 
-#include "pico8_class.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"

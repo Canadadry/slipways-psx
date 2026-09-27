@@ -181,41 +181,14 @@ static default_fn default_of(int i) {
     }
 }
 
-static int same_value(pico8_value_t a, pico8_value_t b) {
-    if (a.kind != b.kind) {
-        return 0;
-    }
-    switch (a.kind) {
-    case PICO8_VALUE_FIXED:
-        return a.as.fixed == b.as.fixed;
-    case PICO8_VALUE_STRING:
-        return a.as.string == b.as.string;
-    case PICO8_VALUE_BOOL:
-        return a.as.boolean == b.as.boolean;
-    case PICO8_VALUE_REF:
-        return a.as.ref == b.as.ref;
-    default:
-        return 0;
-    }
-}
-
-/* Each kind's reader serves exactly what its module's default chain
- * serves, the very string and REF included, and pico8_type_tag_of() reads a kind UNKNOWN. */
-static void test_kind_reader_is_the_class_chain(void) {
-    static const char *const names[] = {"rr", "s", "me", "od", "hp", "px", "nu", "fz", "ng", "by", "zz"};
+/* Each kind reads its defaults through its module's own default chain, and
+ * pico8_type_tag_of() reads a kind UNKNOWN. */
+static void test_kind_reader_is_the_module_default(void) {
     int i;
-    size_t n;
 
     for (i = 0; i < KIND_COUNT; i++) {
         assert(pico8_type_tag_of(kind_of(i)) == PICO8_TYPE_TAG_UNKNOWN);
-        for (n = 0; n < sizeof names / sizeof names[0]; n++) {
-            pico8_value_t from_kind = pico8_value_fixed(0x5A5A);
-            pico8_value_t from_class = pico8_value_fixed(0x5A5A);
-            int found = kind_field(i, names[n], &from_kind);
-
-            assert(found == default_of(i)(names[n], &from_class));
-            assert(same_value(from_kind, from_class));
-        }
+        assert(kind_of(i)->field == default_of(i));
     }
 }
 
@@ -259,7 +232,7 @@ int main(void) {
     test_every_cw_is_pm_or_ga();
     pico8_jl();
     test_kind_fields_and_build();
-    test_kind_reader_is_the_class_chain();
+    test_kind_reader_is_the_module_default();
 
     printf("test_pico8_entity_kind: all tests passed\n");
     return 0;

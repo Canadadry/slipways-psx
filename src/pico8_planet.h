@@ -1,7 +1,6 @@
 #ifndef PICO8_PLANET_H
 #define PICO8_PLANET_H
 
-#include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"

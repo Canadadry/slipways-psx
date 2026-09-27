@@ -1,7 +1,7 @@
 #ifndef PICO8_ECONOMY_SCORE_H
 #define PICO8_ECONOMY_SCORE_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_ob.h"
 #include "pico8_ui_button.h"

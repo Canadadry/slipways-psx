@@ -19,7 +19,7 @@
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_entity.h"
-#include "../src/pico8_class.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_help.h"

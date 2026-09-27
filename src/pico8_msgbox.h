@@ -1,7 +1,7 @@
 #ifndef PICO8_MSGBOX_H
 #define PICO8_MSGBOX_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"

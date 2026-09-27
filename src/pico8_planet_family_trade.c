@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_list.h"

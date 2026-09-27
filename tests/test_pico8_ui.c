@@ -23,7 +23,6 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
-#include "../src/pico8_class.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -737,6 +736,7 @@ static void test_ke_closed(void) {
     (void)start_game(DRAG);
     must_abort(ks_on_a_table, table);
     must_abort(lt_a_table, table);
+    pico8_ob_table_free(table);
     pico8_ke_ks(NULL, pico8_value_string("ph"));
 }
 

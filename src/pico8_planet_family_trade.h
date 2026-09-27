@@ -1,7 +1,6 @@
 #ifndef PICO8_PLANET_FAMILY_TRADE_H
 #define PICO8_PLANET_FAMILY_TRADE_H
 
-#include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_ob.h"
 #include "pico8_planet_family.h"

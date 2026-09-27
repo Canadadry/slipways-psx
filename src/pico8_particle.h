@@ -1,7 +1,7 @@
 #ifndef PICO8_PARTICLE_H
 #define PICO8_PARTICLE_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_gfx.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"

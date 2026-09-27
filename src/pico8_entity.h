@@ -1,7 +1,6 @@
 #ifndef PICO8_ENTITY_H
 #define PICO8_ENTITY_H
 
-#include "pico8_class.h"
 #include "pico8_list.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"

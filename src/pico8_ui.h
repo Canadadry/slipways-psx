@@ -1,7 +1,6 @@
 #ifndef PICO8_UI_H
 #define PICO8_UI_H
 
-#include "pico8_class.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"

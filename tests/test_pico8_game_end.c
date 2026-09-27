@@ -31,7 +31,7 @@
 #include "../src/pico8_ob.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_entity.h"
-#include "../src/pico8_class.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_fixed.h"

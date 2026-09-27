@@ -1,8 +1,8 @@
 /* tools/class_coverage.sh, le corps de `make class-coverage`, sur un dossier
- * fabrique : un rejeu court valide et un fichier malforme. Puis le crochet de
- * couverture de la couche de classes, seul. */
+ * fabrique : un rejeu court valide et un fichier malforme. Puis le compteur de
+ * couverture, seul. */
 
-#include "../src/pico8_class.h"
+#include "../src/pico8_coverage.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -87,51 +87,20 @@ static void test_expect_missing_file_fails(void) {
     assert(run_with("--expect " DIR "/absent.txt", EXEMPT) != 0);
 }
 
-static void clear_registries(void) {
-    pico8_class_registry_clear();
-    pico8_class_registry_named_clear();
-}
-
-/* Les cas s'enchainent dans un seul processus : les comptes s'accumulent,
- * seuls les registres sont vides entre eux. La classe sans nom vient en
- * dernier, "" restant compte ensuite. */
+/* Les cas s'enchainent dans un seul processus : les comptes s'accumulent.
+ * Le nom "" vient en dernier, restant compte ensuite. */
 static void test_coverage_hook_first_unknown_name(void) {
     static const char *const known_aa[] = {"aa"};
 
-    clear_registries();
-    pico8_class_t *aa = pico8_class_declare(NULL, NULL);
-    PICO8_CLASS_COVERAGE_NAME(aa, "aa");
-    pico8_instance_free(pico8_class_instantiate(aa, NULL));
-    pico8_instance_free(pico8_class_instantiate(aa, NULL));
+    pico8_class_coverage_record("aa");
+    pico8_class_coverage_record("aa");
     assert(pico8_class_coverage_count("aa") == 2);
     assert(pico8_class_coverage_count("zz") == 0);
     assert(pico8_class_coverage_first_unknown(known_aa, 1) == NULL);
     assert(strcmp(pico8_class_coverage_first_unknown(NULL, 0), "aa") == 0);
 
-    pico8_class_register_named("bb", aa);
-    assert(strcmp(pico8_class_coverage_first_unknown(known_aa, 1), "bb") == 0);
-
-    clear_registries();
-    pico8_class_t *cc = pico8_class_declare(NULL, "\nfz=\"cc\",\n");
-    PICO8_CLASS_COVERAGE_NAME(cc, "aa");
-    assert(strcmp(pico8_class_coverage_first_unknown(known_aa, 1), "cc") == 0);
-
-    clear_registries();
-    pico8_class_t *unnamed_fz = pico8_class_declare(NULL, NULL);
-    PICO8_CLASS_COVERAGE_NAME(unnamed_fz, "aa");
-    assert(pico8_class_lookup("") == unnamed_fz);
-    assert(pico8_class_coverage_first_unknown(known_aa, 1) == NULL);
-
-    clear_registries();
-    pico8_class_t *nameless = pico8_class_declare(NULL, NULL);
-    pico8_instance_free(pico8_class_instantiate(nameless, NULL));
+    pico8_class_coverage_record("");
     assert(strcmp(pico8_class_coverage_first_unknown(known_aa, 1), "") == 0);
-
-    clear_registries();
-    pico8_class_free(aa);
-    pico8_class_free(cc);
-    pico8_class_free(unnamed_fz);
-    pico8_class_free(nameless);
 }
 
 int main(void) {

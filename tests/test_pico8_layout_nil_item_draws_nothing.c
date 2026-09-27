@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "../src/pico8_assets.h"
-#include "../src/pico8_class.h"
+#include "../src/pico8_struct.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_hud.h"

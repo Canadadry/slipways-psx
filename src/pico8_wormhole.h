@@ -1,7 +1,6 @@
 #ifndef PICO8_WORMHOLE_H
 #define PICO8_WORMHOLE_H
 
-#include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"

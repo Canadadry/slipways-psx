@@ -1,7 +1,6 @@
 #ifndef PICO8_MOUSE_READER_H
 #define PICO8_MOUSE_READER_H
 
-#include "pico8_class.h"
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"

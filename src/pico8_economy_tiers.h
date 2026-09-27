@@ -1,7 +1,7 @@
 #ifndef PICO8_ECONOMY_TIERS_H
 #define PICO8_ECONOMY_TIERS_H
 
-#include "pico8_class.h"
+#include "pico8_struct.h"
 #include "pico8_fixed.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its

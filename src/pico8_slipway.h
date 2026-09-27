@@ -1,7 +1,6 @@
 #ifndef PICO8_SLIPWAY_H
 #define PICO8_SLIPWAY_H
 
-#include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_ke.h"
 #include "pico8_struct.h"

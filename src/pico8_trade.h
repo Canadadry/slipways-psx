@@ -1,7 +1,6 @@
 #ifndef PICO8_TRADE_H
 #define PICO8_TRADE_H
 
-#include "pico8_class.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"

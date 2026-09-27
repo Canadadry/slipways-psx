@@ -13,12 +13,12 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `kv` | `pico8_class_*` | le système de classes lui-même ; `kv:jr(spec)` déclare une classe |
-| `jr` | `pico8_class_declare` | déclare une sous-classe à partir d'une spec `[[...]]` |
-| `ke` | `pico8_ke_class` | classe racine : toute entité du jeu en descend |
+| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` |
+| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; le port parse la spec à l'init du module de la classe, et `pico8_X_default` la lit, puis la parente |
+| `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
-| `pq` | `pico8_class_set_pq` | constructeur supplémentaire, appelé à l'instanciation |
-| `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` |
+| `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
+| `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`) |
 | `me` | champ `"me"` | nom de l'état/icône courant d'une entité |
 | `t` | champ `"t"` | compteur de frames de l'état courant |
 | `mv(e,rm,...)` | `pico8_mv` | dispatch : résout `e[rm]`, l'appelle si c'est une fonction, sinon rend la valeur |
@@ -106,7 +106,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `nf` | `pico8_nf_class` | classe lectrice de la souris uniquement (pas du D-pad) |
+| `nf` | `pico8_nf_t` | classe lectrice de la souris uniquement (pas du D-pad) |
 | `nf:pq` | `pico8_nf_pq` | `poke(0x5f2d,1)` : active le rapport souris devkit de PICO-8 |
 | `nf:ph` | `pico8_nf_ph` | lit la position souris et les fronts des deux boutons |
 | `je` | — | le singleton `nf` |
@@ -128,7 +128,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `trade` | `pico8_trade_class` | une route commerciale : chaîne de planètes `lp`, slipways `rl`, ressource `qe` |
+| `trade` | `pico8_trade_t` | une route commerciale : chaîne de planètes `lp`, slipways `rl`, ressource `qe` |
 | `lp`, `rl`, `qe` | champs | planètes de la route / slipways / ressource transportée |
 | `trade:to()` | `pico8_trade_to` | dernière planète de la route |
 | `trade:kg(np,jc)` | `pico8_trade_kg` | rend une **nouvelle** route allongée d'une planète et d'un slipway |
@@ -169,7 +169,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `oj(px)` | `pico8_oj` | le prérequis `px` est-il débloqué (`px` absent = pas de prérequis, donc vrai) |
 | `ov(px,lk,mc)` | `pico8_ov` | rend `mc` si `px` est débloqué et `mc` non faux, sinon `lk` |
-| `hp` | `pico8_hp_class` | classe d'un projet de recherche |
+| `hp` | `pico8_hp_t` | classe d'un projet de recherche |
 | `fm` | `pico8_fm` | le singleton économie (instance `hy`) |
 | `invented` | champ de `fm` | liste des technologies déjà débloquées |
 
@@ -177,7 +177,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `hy` | `pico8_hy_class` | classe économie ; `fm = hy()` est son unique instance, construite par `eu()` |
+| `hy` | `pico8_hy_t` | classe économie ; `fm = hy()` est son unique instance, construite par `eu()` |
 | `hy:nx(hx)` | `pico8_hy_nx` | avance l'horloge de `hx` ticks, recalcule, et déclenche une « année » au seuil `ov("time compression",12,15)` |
 | `hy:hk()` | `pico8_hy_hk` | tick d'année : revenu → crédits, points de recherche, année +1, puis `:hk(année)` à toutes les entités inscrites sous `hk` |
 | `hy:lu(jt)` | `pico8_hy_lu` | dépense `jt` si les crédits suffisent, sinon affiche « -no money- » et échoue |
@@ -278,7 +278,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `bg` | `pico8_bg_class` | le fond : champ d'étoiles et glisser-caméra |
+| `bg` | `pico8_bg_t` | le fond : champ d'étoiles et glisser-caméra |
 | `bg:pq` | `pico8_bg_pq` | peint les 32×32 tuiles du fond avec un bruit lissé ; 0,4 % de chances d'un amas brillant par case |
 | `bg:kj` | `pico8_bg_kj` | dessine la carte, une grille pointillée tous les 32 px, puis une bordure |
 | `bg:ldown` | `pico8_bg_ldown` | clic gauche sur le vide : lance une sonde `g_`, ou un trou de ver `mz` si une sonde est déjà en vol |
@@ -290,7 +290,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `g_` | `pico8_g__class` | la sonde que le joueur lance depuis le vide |
+| `g_` | `pico8_g__t` | la sonde que le joueur lance depuis le vide |
 | `bv(self,mp,rp)` | `pico8_bv` | suit la souris et choisit la cible `et` : planète proche, sinon slipway sous le curseur, sinon rien |
 | `dl(self)` | `pico8_dl` | info-bulle près du curseur — générique, aussi appelée par `jc:hh` et `qh:ph` |
 | `d_(self)` | `pico8_d_` | valide la cible : paie via `fm:lu`, avance l'horloge, sinon marque la sonde pour destruction |
@@ -306,7 +306,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `ui` | `pico8_ui_class` | le répartiteur de survol et de clics ; `ok` est son singleton |
+| `ui` | `pico8_ui_t` | le répartiteur de survol et de clics ; `ok` est son singleton |
 | `ui:lj` | `pico8_ui_lj` | une frame d'interface : position monde de la souris, survol, puis les deux boutons |
 | `ui:ev` | `pico8_ui_ev` | dessine le curseur : sprite de l'entité survolée, ou celui par défaut |
 | `ui:gw` | `pico8_ui_gw` | teste le survol de toutes les entités inscrites sous `hd` et les range par couche |
@@ -336,7 +336,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `jo` | `pico8_jo_class` | la planète de base : toute planète de la carte en est une, ou une sous-classe |
+| `jo` | `pico8_jo_t` | la planète de base : toute planète de la carte en est une, ou une sous-classe |
 | `jo:lz(hp)` | `pico8_jo_lz` | installe un projet de recherche : fixe `hn`, **efface `ep`**, dérive les besoins `jy` et la production `kw` |
 | `jo:gg()` | `pico8_jo_gg` | la planète est-elle colonisée et prospère (`hf` vrai et état `ly`) |
 | `jo:kd()` | `pico8_jo_kd` | relance le halo de particules à son maximum |
@@ -378,7 +378,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `mz` | `pico8_mz_class` | le pliage d'espace : révèle les planètes autour de son trajet |
+| `mz` | `pico8_mz_t` | le pliage d'espace : révèle les planètes autour de son trajet |
 | `mz:pq` | `pico8_mz_pq` | à la création, liste dans `ox` toutes les entités dont le champ `fx` est vrai, c'est-à-dire les points d'ancrage possibles |
 | `mz:hq` | `pico8_mz_hq` | redéfinit `bv` : suit la souris et cherche un ancrage assez proche |
 | `mz:kz` | `pico8_mz_kz` | état d'approche, avant validation |
@@ -392,7 +392,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `jc` | `pico8_jc_class` | un slipway : le lien commercial entre deux planètes |
+| `jc` | `pico8_jc_t` | un slipway : le lien commercial entre deux planètes |
 | `jc:pq` | `pico8_jc_pq` | initialise `ts` (points lumineux en transit) et `hg` (planètes desservies) |
 | `jc:hq` | `pico8_jc_hq` | glisse l'extrémité libre à la souris |
 | `jc:ey` | `pico8_jc_ey` | valide la construction et la paie |
@@ -408,28 +408,28 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `mh` | `pico8_mh_class` | boîte de message |
-| `iv` | `pico8_iv_class` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
+| `mh` | `pico8_mh_t` | boîte de message |
+| `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
-| `lq` | `pico8_lq_class` | une rangée d'icônes mise en page |
-| `jb` | `pico8_jb_class` | une bulle d'info |
+| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page |
+| `jb` | `pico8_jb_t` | une bulle d'info |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
-| `js` | `pico8_js_class` | un bouton cliquable |
-| `fq` | `pico8_fq_class` | fond modal : attrape tous les clics derrière une boîte |
+| `js` | `pico8_js_t` | un bouton cliquable |
+| `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton |
 | `bo` | `pico8_bo` | les options de difficulté de l'écran-titre |
 | `ix` | — | les 4 boutons du menu de la vue galaxie |
 | `ha` | — | le menu pause : recommencer, musique, bruitages, aide |
-| `fv` | `pico8_fv_class` | l'écran d'aide ; étend `g_` |
-| `pj` | `pico8_pj_class` | le panneau de score ; `ju` est son singleton |
+| `fv` | `pico8_fv_t` | l'écran d'aide ; étend `g_` |
+| `pj` | `pico8_pj_t` | le panneau de score ; `ju` est son singleton |
 | `eg()` | `pico8_eg` | recalcule la palette du panneau de score selon l'avancement |
-| `ie` | `pico8_ie_class` | icône d'amélioration de planète ; `ie:hb` la révèle quand sa techno est acquise, `ie:ldown` construit la classe correspondante |
+| `ie` | `pico8_ie_t` | icône d'amélioration de planète ; `ie:hb` la révèle quand sa techno est acquise, `ie:ldown` construit la classe correspondante |
 
 ## Recherche
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `hp` | `pico8_hp_class` | un projet de recherche |
+| `hp` | `pico8_hp_t` | un projet de recherche |
 | `hp:po()` | `pico8_hp_po` | table de production du projet, par palier |
 | `hp:od()` | `pico8_hp_od` | coût du projet, réduit par les technologies acquises |
 | `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée |

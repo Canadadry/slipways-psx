@@ -1,7 +1,6 @@
 #ifndef PICO8_HELP_H
 #define PICO8_HELP_H
 
-#include "pico8_class.h"
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
