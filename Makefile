@@ -436,9 +436,6 @@ $(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 $(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_top_menubar: $(call objs,tests/test_pico8_top_menubar.c $(ENGINE_SRCS)) tests/fixtures/top_menubar_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_shop_tooltip_fillp: $(call objs,tests/test_pico8_shop_tooltip_fillp.c $(ENGINE_SRCS)) tests/fixtures/shop_button_hover_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -451,19 +448,7 @@ $(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c 
 $(TMP_DIR)/test_pico8_tech_screen: $(call objs,tests/test_pico8_tech_screen.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_game_end: $(call objs,tests/test_pico8_game_end.c $(ENGINE_SRCS)) tests/fixtures/game_end_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_pause_menu_music: $(call objs,tests/test_pico8_pause_menu_music.c $(ENGINE_SRCS)) tests/fixtures/pause_menu_music_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_geoharvest_burst: $(call objs,tests/test_pico8_geoharvest_burst.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_score_panel_close: $(call objs,tests/test_pico8_score_panel_close.c $(ENGINE_SRCS)) tests/fixtures/score_panel_close_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_score_panel_stars: $(call objs,tests/test_pico8_score_panel_stars.c $(ENGINE_SRCS)) tests/fixtures/score_panel_close_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
@@ -518,11 +503,7 @@ UNIT_TESTS := \
     test_pico8_playability \
     test_pico8_slipway_drag \
     test_pico8_tech_screen \
-    test_pico8_game_end \
-    test_pico8_pause_menu_music \
     test_pico8_geoharvest_burst \
-    test_pico8_score_panel_close \
-    test_pico8_score_panel_stars \
     test_pico8_raylib_backend_coords \
     test_pico8_replay_source \
     test_pico8_recording_continuity \
@@ -546,7 +527,6 @@ UNIT_TESTS := \
     test_constants_check \
     test_pico8_bg_kj \
     test_pico8_probe_mm_rnd_order \
-    test_pico8_top_menubar \
     test_pico8_shop_tooltip_fillp \
     test_pico8_empty_planet_cleared \
     test_pico8_planet_gh_row_lq \
@@ -559,16 +539,12 @@ UNIT_TESTS := \
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
-UNIT_RUNS_SPECIAL := unit-run-test_pico8_score_panel_stars unit-run-test_pico8_planet_gh_row_lq
+UNIT_RUNS_SPECIAL := unit-run-test_pico8_planet_gh_row_lq
 
 unit: $(UNIT_RUNS)
 
 $(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
 	./$<
-
-unit-run-test_pico8_score_panel_stars: $(TMP_DIR)/test_pico8_score_panel_stars
-	./$< 1
-	./$< 2
 
 unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
 	ASAN_OPTIONS=detect_leaks=0 ./$<

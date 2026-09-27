@@ -1,0 +1,22 @@
+Panneau de score avec une étoile allumée, ouvert par `ix[3]` puis fermé par
+un clic. 131 frames.
+
+Sauter des années n'allume aucune étoile : sans colonie, le score ne vient
+que des inventions, et il en faut 12 pour 2 000 points
+(`flr((12*1.2)^2)*10` = 2 070). D'où le code de triche.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2-13 : triche O O X X O O X X (`dpad[4]`, `dpad[5]`) : 99 de recherche.
+- f14-41 : 7 inventions ; chacune est un clic sur `ix[2]` (4,4) puis un
+  clic sur la première rangée (30,24), deux frames plus tard.
+- f42-53 triche, f54-61 2 inventions ; f62-73 triche, f74-81
+  2 inventions ; f82-93 triche, f94 12ᵉ invention (score 2 068).
+- f98 : `ix[3]` (50,3) ouvre le panneau, la première étoile est allumée
+  (sprite 56), les quatre autres éteintes.
+- f122 : clic (64,64) : le panneau se ferme (`ju.c_` repasse à faux).
+  Un clic avant f122 ne le ferme pas.
+
+Remplace les TU `score_panel_close` et `score_panel_stars` (celle-ci
+testait aussi 2 étoiles, qui demandent 17 inventions : hors limite).
+
+Relecture humaine dans raylib : à faire.

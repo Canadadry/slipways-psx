@@ -1,0 +1,13 @@
+Fin de partie par le temps : 25 années sautées, écran « final score »,
+« again? ». 63 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2-50 : 25 clics sur `ix[1]` (118,0), un toutes les deux frames ; au
+  dernier, l'année 3426 affiche le panneau « final score ».
+- f52, f54, f56 : trois clics de plus sur `ix[1]` tombent sur le panneau,
+  l'année reste 3426.
+- f58 : « again? » (64,105) : `_init`, retour à l'écran titre.
+
+Remplace la TU `game_end`.
+
+Relecture humaine dans raylib : à faire.

@@ -1,0 +1,14 @@
+« restart » du menu pause : retour au titre, puis une autre difficulté.
+18 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : `ix[4]` (2,119) ouvre la pause.
+- f7 : « restart » (10,112) : `_init`, retour à l'écran titre.
+- f12 : clic « challenging » (60,86) ; f13-17 : nouvelle partie, barre du
+  haut à JAN 3401, 0 technologie.
+
+Remplace aussi la TU `top_menubar` : le scénario « écran titre » du
+catalogue n'ajoutait aucune ligne, et ces dernières frames montrent la même
+barre.
+
+Relecture humaine dans raylib : à faire.

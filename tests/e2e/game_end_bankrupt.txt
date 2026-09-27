@@ -1,0 +1,15 @@
+Fin de partie par la ruine : des labos (15 $, 2 mois, entretien au carré
+du nombre de labos), le refus d'achat et l'écran « bankrupt ». 69 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2-26 : 5 labos, chacun glissé depuis l'icône (122,124) jusqu'à (24,20),
+  (104,20), (56,36), (72,52), (104,84) : 25 $ restent, mois 11.
+- f27-38 : triche O O X X O O X X : 200 $. Sans elle, l'année qui passe au
+  6ᵉ labo met la caisse sous 3 $ avant tout refus d'achat.
+- f39-42 : 6ᵉ labo (72,100) : le mois passe 12, l'année passe par le temps
+  (`hy:nx`), 149 $ après l'entretien de 36 $.
+- f44, 46, 48, 50 : 4 années sautées (`ix[1]`) : 5 $.
+- f52-55 : 7ᵉ labo refusé (56,68) : « -no money- ».
+- f57 : une année de plus : -31 $, écran « bankrupt ».
+
+Relecture humaine dans raylib : à faire.
