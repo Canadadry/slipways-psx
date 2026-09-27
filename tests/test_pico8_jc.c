@@ -58,6 +58,7 @@
 #define BV_HASH 0xD5135D83u
 #define TOO_FAR_HASH 0x5C5FF603u
 #define MOUSE_POINT_HASH 0x4E87C0C4u
+#define MEMBERS_HASH 0x27A294B4u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -1070,6 +1071,102 @@ static void test_mouse_point_is_a_struct(void) {
     assert(p.x == 0 && p.y == 0);
 }
 
+/* Reads `ra` and `p` through the raw reader and the entity reader, which must
+ * agree; a miss leaves the witness as it was. */
+static int read_member(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t via = pico8_value_fixed(0x1234);
+    int got_raw = pico8_jc_mouse_point_struct_class()->field(e, name, &raw);
+    int got_via = pico8_entity_get_field(e, name, &via);
+    assert(got_raw == got_via && raw.kind == via.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+    } else {
+        assert(raw.kind != PICO8_VALUE_REF || raw.as.ref == via.as.ref);
+    }
+    *out = raw;
+    return got_raw;
+}
+
+static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
+    pico8_value_t v;
+    int got = read_member(e, name, &v);
+    h = fnv(h, (uint32_t)got);
+    h = fnv(h, (uint32_t)v.kind);
+    if (got && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        const pico8_vec_t *p = v.as.ref;
+        h = fnv(h, (uint32_t)p->x);
+        h = fnv(h, (uint32_t)p->y);
+    }
+    return h;
+}
+
+static void test_mouse_point_members_by_name(void) {
+    static const char *const intruders[] = {"", "x", "mt", "id", "re", "fo", "header", "has_ra"};
+    uint32_t h = 2166136261u;
+    pico8_value_t m1;
+    pico8_value_t m2;
+    pico8_value_t v;
+    pico8_vec_t p1;
+    void *origin;
+    void *a;
+    void *b;
+    void *r1;
+    void *r2;
+    void *rb;
+    void *p1_at;
+    size_t i;
+
+    world();
+    origin = get_ref(the_slipway(), "qu");
+    a = build_jc(origin);
+    m1 = vec_ref(-640, -640);
+    hq_over(a, NULL, m1);
+    r1 = get_ref(a, "re");
+    assert(is_throwaway(r1));
+    assert(read_member(r1, "ra", &v) == 1 && v.kind == PICO8_VALUE_REF && v.as.ref == m1.as.ref);
+    assert(read_member(r1, "p", &v) == 1 && v.kind == PICO8_VALUE_REF && v.as.ref != NULL && v.as.ref != m1.as.ref);
+    p1_at = v.as.ref;
+    p1 = *(const pico8_vec_t *)p1_at;
+    assert(same_vec(p1, pico8_vec_div(*(const pico8_vec_t *)m1.as.ref, pico8_fixed_from_int(128))));
+    assert(read_member(r1, "p", &v) == 1 && v.as.ref == p1_at);
+    h = fold_member(h, r1, "ra");
+    h = fold_member(h, r1, "p");
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        assert(read_member(r1, intruders[i], &v) == 0);
+        h = fold_member(h, r1, intruders[i]);
+    }
+
+    hq_over(a, NULL, pico8_value_ref(NULL));
+    r2 = get_ref(a, "re");
+    assert(is_throwaway(r2) && r2 != r1);
+    assert(read_member(r2, "ra", &v) == 0);
+    assert(read_member(r2, "p", &v) == 1 && v.kind == PICO8_VALUE_REF && v.as.ref != NULL && v.as.ref != p1_at);
+    assert(((const pico8_vec_t *)v.as.ref)->x == 0 && ((const pico8_vec_t *)v.as.ref)->y == 0);
+    h = fold_member(h, r2, "ra");
+    h = fold_member(h, r2, "p");
+
+    m2 = vec_ref(40, -24);
+    hq_over(a, NULL, m2);
+    b = build_jc(origin);
+    hq_over(b, NULL, m1);
+    rb = get_ref(b, "re");
+    assert(is_throwaway(rb) && rb != r1 && rb != r2 && rb != get_ref(a, "re"));
+    assert(read_member(get_ref(a, "re"), "ra", &v) == 1 && v.as.ref == m2.as.ref);
+    assert(read_member(get_ref(a, "re"), "p", &v) == 1 && v.as.ref != p1_at);
+    h = fold_member(h, get_ref(a, "re"), "ra");
+    h = fold_member(h, get_ref(a, "re"), "p");
+    assert(read_member(rb, "ra", &v) == 1 && v.as.ref == m1.as.ref);
+    assert(read_member(rb, "p", &v) == 1 && v.as.ref != p1_at && same_vec(*(const pico8_vec_t *)v.as.ref, p1));
+    h = fold_member(h, rb, "ra");
+    h = fold_member(h, rb, "p");
+    assert(read_member(r1, "ra", &v) == 1 && v.as.ref == m1.as.ref);
+    assert(read_member(r1, "p", &v) == 1 && v.as.ref == p1_at && same_vec(*(const pico8_vec_t *)p1_at, p1));
+    h = fold_member(h, r1, "ra");
+    h = fold_member(h, r1, "p");
+    check("mouse point members", h, MEMBERS_HASH);
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -1113,6 +1210,7 @@ int main(void) {
     in_fresh_child(test_jc_is_a_struct);
     in_fresh_child(test_too_far_is_a_struct);
     in_fresh_child(test_mouse_point_is_a_struct);
+    in_fresh_child(test_mouse_point_members_by_name);
 
     printf("test_pico8_jc: all tests passed\n");
     return 0;

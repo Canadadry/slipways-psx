@@ -74,26 +74,38 @@ static pico8_jc_too_far_t g_jc_too_far = {{PICO8_TYPE_TAG_STRUCT, &g_jc_too_far_
  * never freed, nor its `p`; `ra` is the caller's `mp` itself, not a copy. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t ra;
-    pico8_value_t p;
+    pico8_vec_t *ra;
+    pico8_vec_t *p;
 } pico8_jc_mouse_point_t;
 
 static int pico8_jc_mouse_point_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_jc_mouse_point_t *point = self;
-    const pico8_value_t *member;
 
     if (strcmp(name, "ra") == 0) {
-        member = &point->ra;
-    } else if (strcmp(name, "p") == 0) {
-        member = &point->p;
-    } else {
-        return 0;
+        if (point->ra == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(point->ra);
+        return 1;
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
+    if (strcmp(name, "p") == 0) {
+        if (point->p == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(point->p);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    return 0;
+}
+
+static pico8_vec_t *pico8_jc_mouse_point_take_ra(pico8_value_t mp) {
+    if (mp.kind == PICO8_VALUE_REF && mp.as.ref == NULL) {
+        return NULL;
+    }
+    assert(mp.kind == PICO8_VALUE_REF && pico8_type_tag_of(mp.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "jc_mouse_point.ra: an mp neither nil nor a vector ref is off its census row (ref:autre) -- a field under "
+           "no rule of plan-3 section 5: stop, do not widen the member");
+    return mp.as.ref;
 }
 
 static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
@@ -189,9 +201,9 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
         point->header.tag = PICO8_TYPE_TAG_STRUCT;
         point->header.cls = &g_jc_mouse_point_struct_class;
-        point->ra = mp;
+        point->ra = pico8_jc_mouse_point_take_ra(mp);
         *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
-        point->p = pico8_value_ref(p_heap);
+        point->p = p_heap;
         PICO8_MEMBER_CENSUS_SEE(point, pico8_jc_mouse_point_t);
         re_val = pico8_value_ref(point);
     }
