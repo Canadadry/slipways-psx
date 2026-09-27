@@ -30,7 +30,11 @@ static int pico8_nf_field(const void *self, const char *name, pico8_value_t *out
     pico8_value_t value;
 
     if (strcmp(name, "ra") == 0) {
-        value = nf->ra;
+        if (nf->ra == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(nf->ra);
+        return 1;
     } else if (strcmp(name, "l") == 0) {
         value = pico8_value_ref(g_nf_l);
     } else if (strcmp(name, "r") == 0) {
@@ -62,7 +66,7 @@ static void *pico8_nf_struct_new(const pico8_ob_table_t *overrides) {
     pico8_nf_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_nf_struct_class);
-    self->ra = pico8_value_ref(&g_nf_ra);
+    self->ra = &g_nf_ra;
     assert((overrides == NULL || overrides->count == 0) &&
            "nf: no construction table was measured; a key would be a field under no rule of plan-3 section 5 "
            "-- stop, do not add a member");
@@ -121,7 +125,7 @@ void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self) {
     /* TROU-7 */
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(pico8_stat(input, 32)), pico8_fixed_from_int(pico8_stat(input, 33)));
-    self->ra = pico8_value_ref(ra);
+    self->ra = ra;
 
     if (g_nf_l != NULL) {
         pico8_bu(input, g_nf_l, 1);

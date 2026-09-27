@@ -105,7 +105,7 @@ static void fresh_world(void) {
     pico8_jl();
     *mouse = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     assert(pico8_type_tag_of(pico8_je()) == PICO8_TYPE_TAG_STRUCT);
-    ((pico8_nf_t *)pico8_je())->ra = pico8_value_ref(mouse);
+    ((pico8_nf_t *)pico8_je())->ra = mouse;
 }
 
 static void *build(const pico8_vec_t *ra, const char *text, int color) {

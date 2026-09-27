@@ -7,6 +7,7 @@
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 /* Throughout this module a NULL struct, `mem` or `input` argument is a
  * safe no-op. */
@@ -16,7 +17,7 @@
  * TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t ra;
+    pico8_vec_t *ra;
 } pico8_nf_t;
 
 /* Calls pico8_pi_init() first: the spec holds `v(0,0)`, so the 'v'

@@ -8,8 +8,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/pico8_assets.h"
+#include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
@@ -33,6 +37,7 @@
 #define TITLE_REPLAY "tests/fixtures/trading_hub_session_events.json"
 #define TITLE_FRAMES 180
 #define TITLE_HASH 0xBDC26772u
+#define NF_MEMBERS_HASH 0x8D1F75D8u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -333,6 +338,172 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     assert(l_built.as.ref != r_built.as.ref);
 }
 
+#define WITNESS 0x1234
+
+/* Reads `name` through the raw reader and through pico8_entity_get_field,
+ * which must agree; a miss leaves the witness intact in both. */
+static uint32_t fold_member(uint32_t h, const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(WITNESS);
+    pico8_value_t gen = pico8_value_fixed(WITNESS);
+    int got_raw = pico8_nf_struct_class()->field(e, name, &raw);
+    int got_gen = pico8_entity_get_field(e, name, &gen);
+
+    assert(got_raw == got_gen && raw.kind == gen.kind);
+    h = fnv(h, (uint32_t)got_raw);
+    h = fnv(h, (uint32_t)raw.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS && gen.as.fixed == WITNESS);
+    } else if (raw.kind == PICO8_VALUE_FIXED) {
+        assert(raw.as.fixed == gen.as.fixed);
+        h = fnv(h, (uint32_t)raw.as.fixed);
+    } else if (raw.kind == PICO8_VALUE_STRING) {
+        assert(strcmp(raw.as.string, gen.as.string) == 0);
+        h = fnv(h, (uint32_t)strlen(raw.as.string));
+    } else {
+        assert(raw.kind == PICO8_VALUE_REF && raw.as.ref == gen.as.ref);
+    }
+    if (out != NULL) {
+        *out = raw;
+    }
+    return h;
+}
+
+/* `ra` present, a vector the type tag does not know, folded by value; its
+ * address is returned for the caller to judge. */
+static uint32_t fold_ra(uint32_t h, const void *e, const void **addr) {
+    pico8_value_t v;
+    const pico8_vec_t *ra;
+
+    h = fold_member(h, e, "ra", &v);
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
+    ra = v.as.ref;
+    h = fnv(h, (uint32_t)ra->x);
+    h = fnv(h, (uint32_t)ra->y);
+    *addr = ra;
+    return h;
+}
+
+static uint32_t fold_nf(uint32_t h, const void *e, const void **ra_addr) {
+    static const char *const intruders[] = {"", "x", "RA", "p", "v", "ke", "header", "has_ra"};
+    pico8_value_t v;
+    pico8_value_t l;
+    pico8_value_t r;
+    size_t i;
+
+    h = fold_ra(h, e, ra_addr);
+    h = fold_member(h, e, "l", &l);
+    h = fold_member(h, e, "r", &r);
+    assert(l.kind == PICO8_VALUE_REF && r.kind == PICO8_VALUE_REF && l.as.ref != r.as.ref);
+    assert(l.as.ref == button("l") && r.as.ref == button("r"));
+    h = fold_member(h, e, "me", NULL);
+    h = fold_member(h, e, "t", NULL);
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        h = fold_member(h, e, intruders[i], &v);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == WITNESS);
+    }
+    return h;
+}
+
+static void must_abort(void *e, const char *name, pico8_value_t value) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        pico8_entity_set_field(e, name, value);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static pico8_value_t vec_ref(int x, int y) {
+    pico8_vec_t *p = malloc(sizeof *p);
+
+    *p = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_value_ref(p);
+}
+
+/* `ra` read by name on `je` and on fresh nfs, which all share one zero
+ * vector unlike the spec's; `ph` rebinds a fresh vector each call and
+ * leaves the old one intact; `bg.mq` keeps the very vector `je.ra` hands
+ * out; no name can be written. */
+static void test_nf_members_by_name(void) {
+    uint32_t h = 2166136261u;
+    void *je;
+    void *a;
+    void *b;
+    void *bg;
+    const void *ra_je;
+    const void *ra_a;
+    const void *ra_b;
+    const void *ra_prev;
+    pico8_value_t spec_ra;
+    pico8_value_t r;
+    pico8_value_t out;
+    pico8_value_t zero_false;
+    pico8_value_t zero_fixed;
+    int i;
+
+    pico8_jl();
+    je = pico8_je();
+    a = pico8_nf_new(NULL);
+    b = pico8_nf_new(NULL);
+    h = fold_nf(h, je, &ra_je);
+    h = fold_nf(h, a, &ra_a);
+    h = fold_nf(h, b, &ra_b);
+    assert(ra_je == ra_a && ra_a == ra_b);
+    assert(((const pico8_vec_t *)ra_a)->x == 0 && ((const pico8_vec_t *)ra_a)->y == 0);
+    assert(pico8_nf_default("ra", &spec_ra) && spec_ra.kind == PICO8_VALUE_REF);
+    assert(spec_ra.as.ref != NULL && spec_ra.as.ref != ra_a);
+
+    frame(0, 17, 93, 0);
+    frame(1, 101, 5, 0);
+    script(2);
+    ra_prev = ra_b;
+    for (i = 0; i < 2; i++) {
+        pico8_nf_ph(&input, a);
+        h = fold_nf(h, a, &ra_a);
+        assert(ra_a != ra_b && ra_a != ra_prev && ra_a != spec_ra.as.ref);
+        assert(((const pico8_vec_t *)ra_a)->x == pico8_fixed_from_int(g_frames[i].mouse_x));
+        assert(((const pico8_vec_t *)ra_a)->y == pico8_fixed_from_int(g_frames[i].mouse_y));
+        if (i == 1) {
+            assert(((const pico8_vec_t *)ra_prev)->x == pico8_fixed_from_int(17));
+            assert(((const pico8_vec_t *)ra_prev)->y == pico8_fixed_from_int(93));
+        }
+        ra_prev = ra_a;
+        h = fold_nf(h, b, &ra_b);
+        assert(ra_b == ra_je && ((const pico8_vec_t *)ra_b)->x == 0 && ((const pico8_vec_t *)ra_b)->y == 0);
+        if (i == 0) {
+            pico8_input_step(&input);
+        }
+    }
+    unscript();
+
+    bg = (void *)pico8_bg_new(NULL);
+    assert(pico8_entity_get_field(je, "ra", &r) && r.kind == PICO8_VALUE_REF);
+    assert(pico8_mv(bg, "rdown", 2, vec_ref(0, 0), r, &out));
+    assert(pico8_entity_get_field(bg, "mq", &out) && out.kind == PICO8_VALUE_REF && out.as.ref == ra_je);
+    h = fold_nf(h, je, &ra_je);
+    assert(ra_je == out.as.ref);
+
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    must_abort(je, "ra", pico8_value_ref(NULL));
+    must_abort(je, "ra", vec_ref(1, 1));
+    must_abort(je, "ra", zero_false);
+    must_abort(je, "ra", zero_fixed);
+    h = fold_nf(h, je, &ra_je);
+    assert(ra_je == out.as.ref);
+    check("nf members", h, NF_MEMBERS_HASH);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -352,6 +523,7 @@ int main(void) {
     test_placeholder_je();
     test_replay_from_title();
     test_nf_is_a_struct_sharing_its_buttons();
+    test_nf_members_by_name();
 
     printf("test_pico8_nf: all tests passed\n");
     return 0;
