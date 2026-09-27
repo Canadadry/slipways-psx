@@ -326,7 +326,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     pico8_ob_table_set_name(b, "id", pico8_value_string(id));
     pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(x / 2, y / 2)));
     pico8_ob_table_set_name(b, "ra", vec_ref(near_mo(x, y)));
-    pm = pico8_class_instantiate(pico8_class_lookup_named("pm"), b);
+    pm = pico8_pm_new(b);
     pico8_ob_table_free(b);
     at = rank_in(pico8_hv(), pm);
     assert(at >= 1 && is_ga(pico8_hv()->items[at - 1].as.ref));

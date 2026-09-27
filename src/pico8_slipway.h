@@ -41,8 +41,7 @@ void pico8_jc_init(void);
  * Idempotent, and safe before the first `pico8_jc_init()`. */
 void pico8_jc_shutdown(void);
 
-/* NULL before pico8_jc_init(), and again after pico8_jc_shutdown(). Also
- * reachable as `pico8_class_lookup_named("jc")`. */
+/* NULL before pico8_jc_init(), and again after pico8_jc_shutdown(). */
 pico8_class_t *pico8_jc_class(void);
 const pico8_struct_class_t *pico8_jc_struct_class(void);
 

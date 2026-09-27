@@ -238,9 +238,7 @@ static void world(void) {
 }
 
 static void *build_mz(void) {
-    pico8_class_t *cls = pico8_class_lookup_named("mz");
-    assert(cls != NULL);
-    return pico8_class_instantiate(cls, NULL);
+    return pico8_mz_new(NULL);
 }
 
 static pico8_value_t vec_ref(int x, int y) {
@@ -815,7 +813,7 @@ static int is_an_mz_struct(const void *e) {
     return is_a_struct_of(e, pico8_mz_struct_class());
 }
 
-/* Built through `bg:ldown`'s `lookup_named` or directly, an `mz` is a
+/* Built through `bg:ldown` or directly, an `mz` is a
  * struct with its six methods; the `jj` wrapper is a struct too, the very
  * object of the `jj` member, and has no writer; a generic write of a name
  * other than `ra`/`p`/`et`/`p_` stops the run instead of growing a

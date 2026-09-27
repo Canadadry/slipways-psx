@@ -39,6 +39,7 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
@@ -308,23 +309,23 @@ static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg
     return out;
 }
 
-/* The research icon whose `ke` is `cls`. */
-static void *icon_of(pico8_class_t *cls) {
+/* The research icon whose `ke` is `kind`. */
+static void *icon_of(const pico8_entity_kind_t *kind) {
     const pico8_list_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i].as.ref;
         pico8_value_t ke;
-        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == cls) {
+        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == kind) {
             return e;
         }
     }
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `cls`, as the shop does. */
-static void *build(pico8_class_t *cls) {
-    void *icon = icon_of(cls);
+/* `ie:ldown` on the icon of `kind`, as the shop does. */
+static void *build(const pico8_entity_kind_t *kind) {
+    void *icon = icon_of(kind);
     pico8_value_t made;
 
     assert(icon != NULL);
@@ -334,7 +335,7 @@ static void *build(pico8_class_t *cls) {
 }
 
 static void *build_synthesizer(void) {
-    return build(pico8_mx_class());
+    return build(pico8_mx_kind());
 }
 
 /* `mx` sets its own `px`: an entity whose `px` is the very table of mx's
@@ -531,7 +532,7 @@ static void *join(void *qu, void *synthesizer) {
     void *jc;
 
     pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    jc = pico8_class_instantiate(pico8_class_lookup_named("jc"), overrides);
+    jc = pico8_jc_new(overrides);
     pico8_ob_table_free(overrides);
     assert(jc != NULL);
     set_credits(999);
@@ -576,7 +577,7 @@ static void test_synthesis(void) {
     pico8_value_t qe;
 
     start_game(EMPTY);
-    home = build(pico8_hj_class());
+    home = build(pico8_hj_kind());
     s = build_synthesizer();
     assert(ht_is_the_class_one(s) && ht_size(s) == 4);
 

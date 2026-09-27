@@ -51,8 +51,7 @@ void pico8_wormhole_init(void);
  * `pico8_wormhole_init()`. */
 void pico8_wormhole_shutdown(void);
 
-/* NULL before `pico8_wormhole_init()` and after `pico8_wormhole_shutdown()`.
- * Also reachable as `pico8_class_lookup_named("mz")`. */
+/* NULL before `pico8_wormhole_init()` and after `pico8_wormhole_shutdown()`. */
 pico8_class_t *pico8_mz_class(void);
 const pico8_struct_class_t *pico8_mz_struct_class(void);
 

@@ -233,11 +233,14 @@ DATA_ENGINE_SRCS := \
     src/pico8_pi.c \
     src/pico8_planet.c \
     src/pico8_planet_display.c \
+    src/pico8_planet_family.c \
     src/pico8_planet_trade.c \
     src/pico8_probe.c \
     src/pico8_research.c \
     src/pico8_research_display.c \
     src/pico8_scroll.c \
+    src/pico8_slipway.c \
+    src/pico8_slipway_display.c \
     src/pico8_stash.c \
     src/pico8_str.c \
     src/pico8_tech_gate.c \
@@ -245,7 +248,9 @@ DATA_ENGINE_SRCS := \
     src/pico8_ui.c \
     src/pico8_ui_button.c \
     src/pico8_value.c \
-    src/pico8_vec.c
+    src/pico8_vec.c \
+    src/pico8_wormhole.c \
+    src/pico8_wormhole_display.c
 
 # Libs système de raylib, pour les deux cibles raylib ; tout le reste est du C
 # portable sans link spécifique à l'OS.
@@ -416,6 +421,9 @@ $(TMP_DIR)/test_pico8_jo: $(call objs,tests/test_pico8_jo.c $(ENGINE_SRCS)) test
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_qh: $(call objs,tests/test_pico8_qh.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/session_events.json tests/fixtures/events_recorded_1790198294.json tests/fixtures/trading_hub_session_events.json tests/fixtures/long_session_events.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
+$(TMP_DIR)/test_pico8_entity_kind: $(call objs,tests/test_pico8_entity_kind.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_nl: $(call objs,tests/test_pico8_nl.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
@@ -618,6 +626,7 @@ UNIT_TESTS := \
     test_pico8_jo \
     test_pico8_qh \
     test_pico8_nl \
+    test_pico8_entity_kind \
     test_pico8_os \
     test_pico8_hj \
     test_pico8_pm \

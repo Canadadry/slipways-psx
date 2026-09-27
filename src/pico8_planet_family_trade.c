@@ -16,6 +16,7 @@
 #include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
 #include "pico8_probe.h"
+#include "pico8_slipway.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 
@@ -103,9 +104,8 @@ static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{PICO8_TYPE_TAG_STRUCT, 
 
 pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
     pico8_value_t gv_result;
-    pico8_class_t *jc_class;
     pico8_ob_table_t *overrides;
-    pico8_instance_t *made;
+    pico8_jc_t *made;
 
     if (self == NULL) {
         return pico8_value_ref(NULL);
@@ -117,13 +117,10 @@ pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
         return gv_result;
     }
 
-    jc_class = pico8_class_lookup_named("jc");
-    if (jc_class == NULL) {
-        return pico8_value_ref(NULL);
-    }
+    assert(pico8_jc_class() != NULL && "pico8_jc_init() must run before nr:ldown builds a jc");
     overrides = pico8_ob_table_new();
     pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
-    made = pico8_class_instantiate(jc_class, overrides);
+    made = pico8_jc_new(overrides);
     pico8_ob_table_free(overrides);
     return pico8_value_ref(made);
 }
@@ -689,6 +686,16 @@ pico8_class_t *pico8_nr_class(void) {
     return g_nr_class;
 }
 
+static int pico8_nr_kind_field(const char *name, pico8_value_t *out_value) {
+    return pico8_class_get_field(g_nr_class, name, out_value);
+}
+
+static const pico8_entity_kind_t g_nr_kind = {pico8_nr_struct_new, pico8_nr_kind_field};
+
+const pico8_entity_kind_t *pico8_nr_kind(void) {
+    return &g_nr_kind;
+}
+
 const pico8_struct_class_t *pico8_nr_struct_class(void) {
     return &g_nr_struct_class;
 }
@@ -701,6 +708,16 @@ pico8_class_t *pico8_fr_class(void) {
     return g_fr_class;
 }
 
+static int pico8_fr_kind_field(const char *name, pico8_value_t *out_value) {
+    return pico8_class_get_field(g_fr_class, name, out_value);
+}
+
+static const pico8_entity_kind_t g_fr_kind = {pico8_fr_struct_new, pico8_fr_kind_field};
+
+const pico8_entity_kind_t *pico8_fr_kind(void) {
+    return &g_fr_kind;
+}
+
 const pico8_struct_class_t *pico8_fr_struct_class(void) {
     return &g_fr_struct_class;
 }
@@ -711,6 +728,16 @@ pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides) {
 
 pico8_class_t *pico8_mx_class(void) {
     return g_mx_class;
+}
+
+static int pico8_mx_kind_field(const char *name, pico8_value_t *out_value) {
+    return pico8_class_get_field(g_mx_class, name, out_value);
+}
+
+static const pico8_entity_kind_t g_mx_kind = {pico8_mx_struct_new, pico8_mx_kind_field};
+
+const pico8_entity_kind_t *pico8_mx_kind(void) {
+    return &g_mx_kind;
 }
 
 const pico8_struct_class_t *pico8_mx_struct_class(void) {

@@ -305,7 +305,7 @@ static void *qh_icon(void) {
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i].as.ref;
         pico8_value_t ke;
-        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == pico8_qh_class()) {
+        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == pico8_qh_kind()) {
             return e;
         }
     }

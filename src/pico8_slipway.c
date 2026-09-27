@@ -576,7 +576,6 @@ void pico8_jc_init(void) {
                                                         "nh=20,\n");
     PICO8_CLASS_COVERAGE_NAME(g_jc_class, "jc");
     pico8_class_set_struct_new(g_jc_class, pico8_jc_struct_new);
-    pico8_class_register_named("jc", g_jc_class);
 
     spec = pico8_ob("\nnu=o(\"jc\"),\nk_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n", NULL);
     g_jc_nu = pico8_jc_spec_table(spec, "nu");

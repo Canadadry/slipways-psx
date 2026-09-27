@@ -10,7 +10,9 @@
 #include "pico8_fixed.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"
+#include "pico8_probe.h"
 #include "pico8_vec.h"
+#include "pico8_wormhole.h"
 
 static pico8_class_t *g_bg_class = NULL;
 static pico8_ob_table_t *g_bg_pl = NULL;
@@ -229,21 +231,19 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
 pico8_value_t pico8_bg_ldown(pico8_bg_t *self, pico8_value_t mp) {
     const pico8_list_t *g_tag;
     int count;
-    pico8_class_t *cls;
-    pico8_instance_t *made;
+    void *made;
 
     (void)self;
     (void)mp;
 
     g_tag = pico8_cg("g_");
     count = (g_tag != NULL) ? g_tag->count : 0;
-    cls = pico8_class_lookup_named(count > 0 ? "mz" : "g_");
-
-    if (cls == NULL) {
-        return pico8_value_ref(NULL);
+    if (count > 0) {
+        assert(pico8_mz_class() != NULL && "pico8_wormhole_init() must run before bg:ldown builds an mz");
+        made = pico8_mz_new(NULL);
+    } else {
+        made = pico8_g__new(NULL);
     }
-
-    made = pico8_class_instantiate(cls, NULL);
     return pico8_value_ref(made);
 }
 

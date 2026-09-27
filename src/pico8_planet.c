@@ -17,9 +17,11 @@
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_planet_display.h"
+#include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
+#include "pico8_slipway.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ref_audit.h"
 
@@ -309,7 +311,6 @@ void pico8_jo_init(void) {
                                       "em=o(f,3,0,-1),\n");
     PICO8_CLASS_COVERAGE_NAME(g_jo_class, "jo");
     pico8_class_set_struct_new(g_jo_class, pico8_jo_struct_new);
-    pico8_class_register_named("jo", g_jo_class);
     for (i = 0; i < sizeof g_jo_defaults / sizeof g_jo_defaults[0]; i++) {
         int found = pico8_class_get_field(g_jo_class, g_jo_defaults[i].name, &g_jo_defaults[i].value);
         assert(found && "jo: every default of the struct is a key of jo's spec");
@@ -479,6 +480,28 @@ void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t) {
     self->p_ = pico8_value_bool(t > pico8_fixed_from_int(60));
 }
 
+/* `kv`, indexed by `fz`: `pm` and `ga` are the only kinds whose spec sets
+ * one. */
+static const struct {
+    const char *fz;
+    const pico8_entity_kind_t *(*kind)(void);
+} g_kv[] = {
+    {"pm", pico8_pm_kind},
+    {"ga", pico8_ga_kind},
+};
+
+/* NULL when no kind has `fz`. */
+static const pico8_entity_kind_t *jo_kv(const char *fz) {
+    size_t i;
+
+    for (i = 0; i < sizeof g_kv / sizeof g_kv[0]; i++) {
+        if (strcmp(g_kv[i].fz, fz) == 0) {
+            return g_kv[i].kind();
+        }
+    }
+    return NULL;
+}
+
 void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     pico8_jo_t *working_self;
     pico8_fixed_t fp = pico8_fixed_from_int(2);
@@ -491,13 +514,13 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
     if (hp_instance != NULL && pico8_jo_truthy(hp_instance->cw)) {
         pico8_value_t cw_val = hp_instance->cw;
-        pico8_class_t *target_class = NULL;
+        const pico8_entity_kind_t *target_kind = NULL;
         pico8_ob_table_t *overrides;
 
         self->p_ = pico8_value_bool(1);
 
         if (cw_val.kind == PICO8_VALUE_STRING) {
-            target_class = pico8_class_lookup_named(cw_val.as.string);
+            target_kind = jo_kv(cw_val.as.string);
         }
 
         overrides = pico8_ob_table_new();
@@ -511,8 +534,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
             pico8_ob_table_set_name(overrides, "id", self->id);
         }
 
-        working_self =
-            (target_class != NULL) ? (pico8_jo_t *)pico8_class_instantiate(target_class, overrides) : NULL;
+        working_self = (target_kind != NULL) ? (pico8_jo_t *)target_kind->new_entity(overrides) : NULL;
         pico8_ob_table_free(overrides);
     } else if (hp_instance != NULL && pico8_jo_truthy(hp_instance->go)) {
         pico8_value_t go_val = hp_instance->go;
@@ -644,16 +666,13 @@ pico8_value_t pico8_jo_ldown(pico8_jo_t *self) {
         return pico8_value_bool(1);
     }
     if (strcmp(me_val.as.string, "ly") == 0) {
-        pico8_class_t *jc_class = pico8_class_lookup_named("jc");
-        pico8_instance_t *made;
+        pico8_jc_t *made;
         pico8_ob_table_t *overrides;
 
-        if (jc_class == NULL) {
-            return pico8_value_ref(NULL);
-        }
+        assert(pico8_jc_class() != NULL && "pico8_jc_init() must run before jo:ldown builds a jc");
         overrides = pico8_ob_table_new();
         pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
-        made = pico8_class_instantiate(jc_class, overrides);
+        made = pico8_jc_new(overrides);
         pico8_ob_table_free(overrides);
         return pico8_value_ref(made);
     }

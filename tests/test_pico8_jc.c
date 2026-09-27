@@ -401,13 +401,11 @@ static void *the_slipway(void) {
 }
 
 static void *build_jc(void *qu) {
-    pico8_class_t *cls = pico8_class_lookup_named("jc");
     pico8_ob_table_t *overrides = pico8_ob_table_new();
     void *made;
 
-    assert(cls != NULL);
     pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    made = pico8_class_instantiate(cls, overrides);
+    made = pico8_jc_new(overrides);
     pico8_ob_table_free(overrides);
     return made;
 }
@@ -870,7 +868,7 @@ static void test_bv(void) {
 
     world();
     old = the_slipway();
-    probe = pico8_class_instantiate(pico8_class_lookup_named("g_"), NULL);
+    probe = pico8_g__new(NULL);
     assert(probe != NULL);
     ((pico8_g__t *)probe)->dw = pico8_value_fixed(0);
     qu = vec_of(get_ref(old, "qu"), "p");
@@ -932,10 +930,10 @@ static void build_with_ra(void *qu) {
 
     pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
     pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(NULL));
-    (void)pico8_class_instantiate(pico8_class_lookup_named("jc"), overrides);
+    (void)pico8_jc_new(overrides);
 }
 
-/* Built by `jo:ldown`/`nr:ldown` through `lookup_named` or directly, a `jc`
+/* Built by `jo:ldown`/`nr:ldown` or directly, a `jc`
  * is a struct with its five methods; a generic write of a name other than
  * `fo`/`p_`, or a construction key other than `qu`, stops the run instead
  * of growing a member. */

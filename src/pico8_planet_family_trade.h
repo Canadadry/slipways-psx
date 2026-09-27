@@ -51,6 +51,7 @@ typedef struct {
 } pico8_mx_t;
 
 pico8_class_t *pico8_nr_class(void);
+const pico8_entity_kind_t *pico8_nr_kind(void);
 const pico8_struct_class_t *pico8_nr_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id`, `p`, `ra`, each
@@ -60,6 +61,7 @@ const pico8_struct_class_t *pico8_nr_struct_class(void);
 pico8_nr_t *pico8_nr_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_fr_class(void);
+const pico8_entity_kind_t *pico8_fr_kind(void);
 const pico8_struct_class_t *pico8_fr_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id` only. The new
@@ -68,6 +70,7 @@ const pico8_struct_class_t *pico8_fr_struct_class(void);
 pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_mx_class(void);
+const pico8_entity_kind_t *pico8_mx_kind(void);
 const pico8_struct_class_t *pico8_mx_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id` only. The new

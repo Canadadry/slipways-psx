@@ -325,7 +325,7 @@ static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const 
     if (id != NULL) {
         pico8_ob_table_set_name(b, "id", pico8_value_string(id));
     }
-    made = pico8_class_instantiate(pico8_class_lookup_named("pm"), b);
+    made = pico8_pm_new(b);
     pico8_ob_table_free(b);
     assert(made != NULL);
     return made;

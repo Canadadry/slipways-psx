@@ -240,23 +240,23 @@ static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg
     return out;
 }
 
-/* The research icon whose `ke` is `cls`. */
-static void *icon_of(pico8_class_t *cls) {
+/* The research icon whose `ke` is `kind`. */
+static void *icon_of(const pico8_entity_kind_t *kind) {
     const pico8_list_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i].as.ref;
         pico8_value_t ke;
-        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == cls) {
+        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == kind) {
             return e;
         }
     }
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `cls`, as the shop does. */
-static void *build(pico8_class_t *cls) {
-    void *icon = icon_of(cls);
+/* `ie:ldown` on the icon of `kind`, as the shop does. */
+static void *build(const pico8_entity_kind_t *kind) {
+    void *icon = icon_of(kind);
     pico8_value_t made;
 
     assert(icon != NULL);
@@ -272,7 +272,7 @@ static int is_a_gate(const void *e) {
 }
 
 static void *build_gate(void) {
-    void *e = build(pico8_fr_class());
+    void *e = build(pico8_fr_kind());
     assert(is_a_gate(e));
     return e;
 }
@@ -349,7 +349,7 @@ static void test_built(void) {
 
     start_game(EMPTY);
     a = build_gate();
-    slipgate = build(pico8_nr_class());
+    slipgate = build(pico8_nr_kind());
     b = build_gate();
     assert(a != b && get_ref(a, "oe") != get_ref(b, "oe") && get_ref(a, "kw") != get_ref(b, "kw"));
     h = fold_gate(h, a, slipgate);
@@ -482,7 +482,7 @@ static void test_life(void) {
 
     h = fold_route(h, placed);
     assert(get(placed, "mt").as.fixed == pico8_fixed_from_int(1));
-    slipgate = build(pico8_nr_class());
+    slipgate = build(pico8_nr_kind());
     place(slipgate, 40, 108);
     h = fold_route(h, slipgate);
     assert(!has(slipgate, "mt"));

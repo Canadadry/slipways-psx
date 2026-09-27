@@ -121,10 +121,12 @@ typedef struct {
     pico8_value_t qy;
 } pico8_ga_t;
 
-/* Every accessor below is NULL before `pico8_planet_family_init()` and
- * after `pico8_planet_family_shutdown()`. Each class's instantiation builds
- * its struct. */
+/* Every `_class` accessor below is NULL before `pico8_planet_family_init()`
+ * and after `pico8_planet_family_shutdown()`; each class's instantiation
+ * builds its struct. A `_kind` accessor is never NULL, but its reader finds
+ * nothing outside that span. */
 pico8_class_t *pico8_qh_class(void);
+const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
 /* Initializes an allocated pico8_qh_t under `cls`: jo's part, qh's members
@@ -138,6 +140,7 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls);
 pico8_qh_t *pico8_qh_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_nl_class(void);
+const pico8_entity_kind_t *pico8_nl_kind(void);
 const pico8_struct_class_t *pico8_nl_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id` only. The new
@@ -146,6 +149,7 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
 pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_os_class(void);
+const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id` only. The new
@@ -154,6 +158,7 @@ const pico8_struct_class_t *pico8_os_struct_class(void);
 pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_hj_class(void);
+const pico8_entity_kind_t *pico8_hj_kind(void);
 const pico8_struct_class_t *pico8_hj_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id` only. The new
@@ -171,10 +176,10 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls);
 pico8_value_t pico8_qh_ly_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
-/* `pm` and `ga` are the only classes here whose spec sets `fz`, so they are
- * also registered under that name for `pico8_class_lookup_named()` -- the
- * two targets `jo:hu`'s dynamic reclass can resolve. */
+/* `pm` and `ga` are the only classes here whose spec sets `fz`: the two
+ * kinds `jo:hu`'s `kv[hp.cw]` can resolve. */
 pico8_class_t *pico8_pm_class(void);
+const pico8_entity_kind_t *pico8_pm_kind(void);
 const pico8_struct_class_t *pico8_pm_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `p`, `ra`, `id`, each
@@ -184,6 +189,7 @@ const pico8_struct_class_t *pico8_pm_struct_class(void);
 pico8_pm_t *pico8_pm_new(const pico8_ob_table_t *overrides);
 
 pico8_class_t *pico8_ga_class(void);
+const pico8_entity_kind_t *pico8_ga_kind(void);
 const pico8_struct_class_t *pico8_ga_struct_class(void);
 
 /* `overrides` (NULL means none) is read, not kept: `p`, `ra`, `id` (jo:hu)

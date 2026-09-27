@@ -55,13 +55,13 @@ static char *ie_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* Returns the CLASS held in `self.ke`, or NULL when the member is nil or
+/* Returns the kind held in `self.ke`, or NULL when the member is nil or
  * holds no REF. The result is borrowed. */
-static pico8_class_t *ie_self_ke_class(const pico8_ie_t *self) {
+static const pico8_entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
     if (self != NULL && self->ke.kind == PICO8_VALUE_REF && self->ke.as.ref != NULL) {
         assert(pico8_type_tag_of(self->ke.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-               "ie.ke holds a class, not an instance or a table");
-        return (pico8_class_t *)self->ke.as.ref;
+               "ie.ke holds a kind, not an entity or a table");
+        return (const pico8_entity_kind_t *)self->ke.as.ref;
     }
     return NULL;
 }
@@ -95,7 +95,7 @@ static const pico8_struct_class_t g_ie_ke_view_struct_class = {
 };
 
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
-    const pico8_class_t *cls = ie_self_ke_class(self);
+    const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
     pico8_ie_ke_t view;
 
     view.header.tag = PICO8_TYPE_TAG_STRUCT;
@@ -104,10 +104,12 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     view.s = pico8_value_ref(NULL);
     view.me = pico8_value_ref(NULL);
     view.od = pico8_value_ref(NULL);
-    (void)pico8_class_get_field(cls, "rr", &view.rr);
-    (void)pico8_class_get_field(cls, "s", &view.s);
-    (void)pico8_class_get_field(cls, "me", &view.me);
-    (void)pico8_class_get_field(cls, "od", &view.od);
+    if (kind != NULL) {
+        (void)kind->field("rr", &view.rr);
+        (void)kind->field("s", &view.s);
+        (void)kind->field("me", &view.me);
+        (void)kind->field("od", &view.od);
+    }
     return view;
 }
 
@@ -169,11 +171,11 @@ static pico8_value_t pico8_ie_hb_dispatch(void *self, int argc, pico8_value_t ar
 
 pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
     pico8_fixed_t new_id;
-    pico8_class_t *ke_cls;
+    const pico8_entity_kind_t *ke_kind;
     char *id_num_str;
     char *id_str;
     pico8_ob_table_t *overrides;
-    pico8_instance_t *made;
+    void *made;
 
     (void)mp;
 
@@ -182,8 +184,8 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
                              pico8_fixed_from_int(1));
     g_ie_id = pico8_value_fixed(new_id);
 
-    ke_cls = ie_self_ke_class(self);
-    if (ke_cls == NULL) {
+    ke_kind = ie_self_ke_kind(self);
+    if (ke_kind == NULL) {
         return pico8_value_ref(NULL);
     }
 
@@ -191,12 +193,12 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
     id_str = ie_concat2("s", id_num_str);
     free(id_num_str);
 
-    /* pico8_class_instantiate() shallow-copies each entry, so `overrides`
-     * is freed right after -- but `id_str` is not: the new instance's "id"
-     * field keeps that exact pointer. */
+    /* The constructor copies each entry, so `overrides` is freed right
+     * after -- but `id_str` is not: the new planet's `id` keeps that exact
+     * pointer. */
     overrides = pico8_ob_table_new();
     pico8_ob_table_set_name(overrides, "id", pico8_value_string(id_str));
-    made = pico8_class_instantiate(ke_cls, overrides);
+    made = ke_kind->new_entity(overrides);
     pico8_ob_table_free(overrides);
 
     return pico8_value_ref(made);
@@ -225,11 +227,11 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
     pico8_spr_default(gfx, mem, view.s.kind == PICO8_VALUE_FIXED ? ie_to_int(view.s.as.fixed) : 0, ie_to_int(p.x),
                       ie_to_int(p.y));
 
-    /* `dl(self.ke)` is not inert: every class `self.ke` can hold inherits
+    /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits
      * `qh`'s `me="kz"`, so `dl` passes its own state check and draws the
-     * class-level build cost. */
+     * kind-level build cost. */
     if (ie_truthy(self->m_)) {
-        if (ie_self_ke_class(self) != NULL) {
+        if (ie_self_ke_kind(self) != NULL) {
             pico8_dl(gfx, mem, (pico8_instance_t *)&view);
         }
         if (self->jb.kind == PICO8_VALUE_REF && self->jb.as.ref != NULL) {

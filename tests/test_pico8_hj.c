@@ -315,23 +315,23 @@ static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg
     return out;
 }
 
-/* The research icon whose `ke` is `cls`. */
-static void *icon_of(pico8_class_t *cls) {
+/* The research icon whose `ke` is `kind`. */
+static void *icon_of(const pico8_entity_kind_t *kind) {
     const pico8_list_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i].as.ref;
         pico8_value_t ke;
-        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == cls) {
+        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == kind) {
             return e;
         }
     }
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `cls`, as the shop does. */
-static void *build(pico8_class_t *cls) {
-    void *icon = icon_of(cls);
+/* `ie:ldown` on the icon of `kind`, as the shop does. */
+static void *build(const pico8_entity_kind_t *kind) {
+    void *icon = icon_of(kind);
     pico8_value_t made;
 
     assert(icon != NULL);
@@ -341,7 +341,7 @@ static void *build(pico8_class_t *cls) {
 }
 
 static void *build_ascension(void) {
-    return build(pico8_hj_class());
+    return build(pico8_hj_kind());
 }
 
 /* `pm` and `mx` each set their own `px`: an entity whose `px` is the very
@@ -561,11 +561,11 @@ static void test_heirs(void) {
     void *mx;
 
     start_game(EMPTY);
-    mx = build(pico8_mx_class());
+    mx = build(pico8_mx_kind());
     pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(40, 50)));
     pico8_ob_table_set_name(b, "ra", vec_ref(vec_xy(7700, 7600)));
     pico8_ob_table_set_name(b, "id", pico8_value_string("s77"));
-    pm = pico8_class_instantiate(pico8_class_lookup_named("pm"), b);
+    pm = pico8_pm_new(b);
     pico8_ob_table_free(b);
 
     assert(strcmp(get(pm, "rr").as.string, "ascension") == 0 && bool_state(pm, "pk") == 1);

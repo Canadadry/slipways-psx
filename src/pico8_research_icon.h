@@ -14,8 +14,9 @@
  * no-op, and a nil or wrong-kind member, or an absent field of `self.ke`,
  * reads as its zero/false default.
  *
- * `self.ke` holds a CLASS, not an instance: its fields are read off a
- * `pico8_ie_ke_t`, never pico8_instance_get_field() on the class pointer. */
+ * `self.ke` holds a `pico8_entity_kind_t`, not an entity: its fields are
+ * read off a `pico8_ie_ke_t`, never pico8_entity_get_field() on the kind
+ * pointer. */
 
 /* `kq`, `ra` and `eh` point at the objects the module owns, shared by every
  * `ie` and never modified in place; `hb` rebinds `ra` to the cursor. `gy`
@@ -55,7 +56,7 @@ void pico8_research_icon_shutdown(void);
 pico8_class_t *pico8_ie_class(void);
 const pico8_struct_class_t *pico8_ie_struct_class(void);
 
-/* `overrides` is read, not kept, and may hold `ke` (a planet-upgrade class)
+/* `overrides` is read, not kept, and may hold `ke` (a planet-upgrade kind)
  * and `jb` (a tooltip struct) only, both borrowed. The struct registers
  * itself into `hv`/`cv` through `lt`, and nothing frees it. */
 pico8_ie_t *pico8_ie_new(const pico8_ob_table_t *overrides);

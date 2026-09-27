@@ -185,7 +185,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     }
 }
 
-/* An icon is the one entity of `cv.hb` whose `ke` holds a class, not an
+/* An icon is the one entity of `cv.hb` whose `ke` holds a kind, not an
  * entity: there is no `cg.ie`. */
 static int is_icon(const void *e) {
     pico8_value_t ke;
@@ -219,14 +219,14 @@ static int icon_rank(const void *e) {
     return -1;
 }
 
-static void gx(pico8_class_t *out[7]) {
-    out[0] = pico8_qh_class();
-    out[1] = pico8_os_class();
-    out[2] = pico8_nr_class();
-    out[3] = pico8_fr_class();
-    out[4] = pico8_nl_class();
-    out[5] = pico8_mx_class();
-    out[6] = pico8_hj_class();
+static void gx(const pico8_entity_kind_t *out[7]) {
+    out[0] = pico8_qh_kind();
+    out[1] = pico8_os_kind();
+    out[2] = pico8_nr_kind();
+    out[3] = pico8_fr_kind();
+    out[4] = pico8_nl_kind();
+    out[5] = pico8_mx_kind();
+    out[6] = pico8_hj_kind();
 }
 
 /* `gy` and `id` read off any icon: the cursor and counter every icon
@@ -310,11 +310,11 @@ static const pico8_ob_table_t *dr_row(int i) {
     return row.as.ref;
 }
 
-static void *build_icon(pico8_class_t *ke, pico8_jb_t *jb) {
+static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
     pico8_ob_table_t *overrides = pico8_ob_table_new();
     void *made;
 
-    pico8_ob_table_set_name(overrides, "ke", pico8_value_ref(ke));
+    pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)ke));
     pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(jb));
     made = pico8_class_instantiate(pico8_ie_class(), overrides);
     pico8_ob_table_free(overrides);
@@ -370,7 +370,7 @@ static uint32_t check_fresh_icon(uint32_t h, const void *icon, const void *ke, c
 
 static void test_construction(void) {
     uint32_t h = 2166136261u;
-    pico8_class_t *classes[7];
+    const pico8_entity_kind_t *classes[7];
     void *all[16];
     void *a;
     void *b;
@@ -789,7 +789,7 @@ static void build_with_ra(void *ke) {
 static void test_ie_is_a_struct(void) {
     static const char *const methods[] = {"hd", "hb", "kj", "ldown"};
     static const char *const not_methods[] = {"ph", "ev", "hk", "rdown", "gv", "eb"};
-    pico8_class_t *classes[7];
+    const pico8_entity_kind_t *classes[7];
     void *all[16];
     void *built;
     void *others[4];
@@ -833,7 +833,7 @@ static void test_ie_is_a_struct(void) {
     must_abort(write_ra, built);
     must_abort(write_gy, built);
     must_abort(write_id, built);
-    must_abort(build_with_ra, classes[0]);
+    must_abort(build_with_ra, (void *)classes[0]);
 
     others[0] = pico8_bg_new(NULL);
     others[1] = pico8_fq_new(NULL);
@@ -860,7 +860,7 @@ static void test_ke_view_is_a_struct(void) {
     static const int s[7] = {174, 100, 170, 78, 68, 66, 166};
     static const int od[7] = {15, 15, 10, 25, 20, 40, 60};
     static const char *const unknown[] = {"et", "ke", "nu", "hq"};
-    pico8_class_t *classes[7];
+    const pico8_entity_kind_t *classes[7];
     void *all[16];
     pico8_ie_ke_t view;
     int n;

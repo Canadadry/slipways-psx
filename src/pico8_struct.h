@@ -3,6 +3,7 @@
 
 #include <string.h>
 
+#include "pico8_ob.h"
 #include "pico8_type_tag.h"
 #include "pico8_value.h"
 
@@ -96,5 +97,15 @@ typedef struct {
     pico8_type_tag_t tag;
     const pico8_struct_class_t *cls;
 } pico8_struct_header_t;
+
+/* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one
+ * `static const` per kind, never freed, whose first member is no tag, so
+ * pico8_type_tag_of() reads it UNKNOWN. `new_entity` is the kind's
+ * pico8_X_new(). `field` reads the kind's defaults; it returns 0, leaving
+ * *out_value untouched, when `name` is absent from the whole chain. */
+typedef struct {
+    void *(*new_entity)(const pico8_ob_table_t *overrides);
+    int (*field)(const char *name, pico8_value_t *out_value);
+} pico8_entity_kind_t;
 
 #endif

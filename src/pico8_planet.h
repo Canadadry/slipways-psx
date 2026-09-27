@@ -65,9 +65,8 @@ void pico8_jo_init(void);
  * instance. Idempotent, and safe before the first `pico8_jo_init()`. */
 void pico8_jo_shutdown(void);
 
-/* NULL before `pico8_jo_init()` and after `pico8_jo_shutdown()`. Also
- * reachable as `pico8_class_lookup_named("jo")`; its instantiation builds
- * a pico8_jo_t. */
+/* NULL before `pico8_jo_init()` and after `pico8_jo_shutdown()`; its
+ * instantiation builds a pico8_jo_t. */
 pico8_class_t *pico8_jo_class(void);
 const pico8_struct_class_t *pico8_jo_struct_class(void);
 
@@ -121,8 +120,8 @@ void pico8_jo_kd(pico8_jo_t *self);
 void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t);
 
 /* In the `hp.cw` branch `self` is marked for removal and the tail of the
- * work lands on a fresh instance the caller never sees -- or on nothing,
- * when no class is registered under `hp.cw`. */
+ * work lands on a fresh planet the caller never sees -- or on nothing,
+ * when `hp.cw` is neither "pm" nor "ga". */
 void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
 void pico8_jo_hh(pico8_jo_t *self);

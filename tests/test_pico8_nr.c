@@ -270,23 +270,23 @@ static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg
     return out;
 }
 
-/* The research icon whose `ke` is `cls`. */
-static void *icon_of(pico8_class_t *cls) {
+/* The research icon whose `ke` is `kind`. */
+static void *icon_of(const pico8_entity_kind_t *kind) {
     const pico8_list_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i].as.ref;
         pico8_value_t ke;
-        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == cls) {
+        if (lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF && ke.as.ref == kind) {
             return e;
         }
     }
     return NULL;
 }
 
-/* `ie:ldown` on the icon of `cls`, as the shop does. */
-static void *build(pico8_class_t *cls) {
-    void *icon = icon_of(cls);
+/* `ie:ldown` on the icon of `kind`, as the shop does. */
+static void *build(const pico8_entity_kind_t *kind) {
+    void *icon = icon_of(kind);
     pico8_value_t made;
 
     assert(icon != NULL);
@@ -296,7 +296,7 @@ static void *build(pico8_class_t *cls) {
 }
 
 static void *build_slipgate(void) {
-    return build(pico8_nr_class());
+    return build(pico8_nr_kind());
 }
 
 enum { NR, FR };
@@ -512,7 +512,7 @@ static void test_life(void) {
     h = fold_field(h, placed, "s");
     h = fold_economy(h, placed);
 
-    fr = build(pico8_fr_class());
+    fr = build(pico8_fr_kind());
     assert(gate_kind(fr) == FR);
     h = fold_field(h, fr, "s");
     (void)call(fr, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
@@ -749,7 +749,7 @@ static void test_nr_is_a_struct(void) {
         bare->rr = pico8_value_ref(NULL);
         assert(!cls->field(bare, "hz", &v) && !cls->field(bare, "rr", &v));
     }
-    fr = build(pico8_fr_class());
+    fr = build(pico8_fr_kind());
     assert(pico8_type_tag_of(fr) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)fr)->cls == pico8_fr_struct_class());
     (void)call(fr, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));

@@ -572,7 +572,6 @@ void pico8_probe_init(void) {
         "\nk_=o(1,1,5,13,6),\nqo=1.02,ro=-0.0525,\nqg=0.0525,q_=1.02,\ndu=2,\n");
     PICO8_CLASS_COVERAGE_NAME(g_probe_class, "g_");
     pico8_class_set_struct_new(g_probe_class, pico8_g__struct_new);
-    pico8_class_register_named("g_", g_probe_class);
     for (i = 0; i < sizeof g_g__defaults / sizeof g_g__defaults[0]; i++) {
         int found = pico8_class_get_field(g_probe_class, g_g__defaults[i].name, &g_g__defaults[i].value);
         assert(found && "g_: every default of the struct is a key of g_'s spec");

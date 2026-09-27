@@ -187,7 +187,7 @@ static int pico8_eu_ix_map(pico8_value_t e, void *ctx, pico8_value_t *out_value)
 }
 
 void pico8_eu(pico8_js_t *nj) {
-    pico8_class_t *gx[7];
+    const pico8_entity_kind_t *gx[7];
     int i;
 
     assert(pico8_hy_class() != NULL && pico8_qh_class() != NULL && "pico8_cart_load() must run before eu()");
@@ -220,13 +220,13 @@ void pico8_eu(pico8_js_t *nj) {
         pico8_list_free(&ix_items);
     }
 
-    gx[0] = pico8_qh_class();
-    gx[1] = pico8_os_class();
-    gx[2] = pico8_nr_class();
-    gx[3] = pico8_fr_class();
-    gx[4] = pico8_nl_class();
-    gx[5] = pico8_mx_class();
-    gx[6] = pico8_hj_class();
+    gx[0] = pico8_qh_kind();
+    gx[1] = pico8_os_kind();
+    gx[2] = pico8_nr_kind();
+    gx[3] = pico8_fr_kind();
+    gx[4] = pico8_nl_kind();
+    gx[5] = pico8_mx_kind();
+    gx[6] = pico8_hj_kind();
 
     for (i = 0; i < 7; i++) {
         pico8_value_t dr_val;
@@ -241,7 +241,7 @@ void pico8_eu(pico8_js_t *nj) {
         jb = pico8_jb_new(dr_entry);
 
         overrides = pico8_ob_table_new();
-        pico8_ob_table_set_name(overrides, "ke", pico8_value_ref(gx[i]));
+        pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)gx[i]));
         pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(jb));
         (void)pico8_ie_new(overrides);
         pico8_ob_table_free(overrides);

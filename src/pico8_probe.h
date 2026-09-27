@@ -60,8 +60,7 @@ void pico8_probe_init(void);
  * `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
-/* NULL before `pico8_probe_init()` and after `pico8_probe_shutdown()`. Also
- * reachable as `pico8_class_lookup_named("g_")`. */
+/* NULL before `pico8_probe_init()` and after `pico8_probe_shutdown()`. */
 pico8_class_t *pico8_g__class(void);
 const pico8_struct_class_t *pico8_g__struct_class(void);
 

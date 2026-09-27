@@ -398,7 +398,6 @@ void pico8_wormhole_init(void) {
                                       "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n");
     PICO8_CLASS_COVERAGE_NAME(g_mz_class, "mz");
     pico8_class_set_struct_new(g_mz_class, pico8_mz_struct_new);
-    pico8_class_register_named("mz", g_mz_class);
 
     spec = pico8_ob("\nnu=o(\"mz\"),\nkk=o(7,7,6,13,5,1,1,1,0),\n", NULL);
     g_mz_nu = pico8_mz_spec_table(spec, "nu");
