@@ -1,6 +1,8 @@
 #ifndef PICO8_TRADE_H
 #define PICO8_TRADE_H
 
+#include "pico8_fixed.h"
+#include "pico8_list.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -9,9 +11,11 @@
  * not copied. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t lp;
-    pico8_value_t rl;
-    pico8_value_t qe;
+    pico8_list_t *lp;
+    pico8_list_t *rl;
+    pico8_fixed_t qe;
+    int has_qe;     /* 0: `qe` is nil, and `qe` is then never read */
+    int qe_is_bool; /* 1: `qe` holds a boolean (0/1), 0: a fixed; read only when `has_qe` */
 } pico8_trade_t;
 
 /* `trade` is a root class with an empty spec and no `pq`, not
@@ -36,6 +40,10 @@ const pico8_struct_class_t *pico8_trade_struct_class(void);
 /* Takes only the keys "lp", "rl", "qe", each optional; a missing one is
  * nil. */
 pico8_trade_t *pico8_trade_new(const pico8_ob_table_t *overrides);
+
+/* "qe" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "qe" or a
+ * NULL self. */
+pico8_value_t pico8_trade_qe(const pico8_trade_t *self);
 
 /* Returns 1 and writes *out_value for a non-empty "lp"; returns 0 with
  * *out_value untouched for a NULL self, or a nil or empty "lp". */

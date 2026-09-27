@@ -559,6 +559,92 @@ static void test_trade_is_a_struct(void) {
     must_abort(eq_right_other, pico8_ok());
 }
 
+static pico8_trade_t *trade_of(pico8_list_t *lp, pico8_list_t *rl, int with_qe, pico8_value_t qe) {
+    pico8_ob_table_t *o = pico8_ob_table_new();
+    pico8_trade_t *t;
+    pico8_ob_table_set_name(o, "lp", lp != NULL ? ref(lp) : nil());
+    pico8_ob_table_set_name(o, "rl", rl != NULL ? ref(rl) : nil());
+    if (with_qe) {
+        pico8_ob_table_set_name(o, "qe", qe);
+    }
+    t = pico8_trade_new(o);
+    pico8_ob_table_free(o);
+    return t;
+}
+
+static void trade_misses(const pico8_trade_t *t, const char *name) {
+    const pico8_struct_class_t *cls = pico8_trade_struct_class();
+    pico8_value_t out = pico8_value_fixed(0x1234);
+
+    assert(cls->field(t, name, &out) == 0);
+    assert(pico8_entity_get_field(t, name, &out) == 0);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == 0x1234);
+}
+
+static void trade_qe_is(const pico8_trade_t *t, pico8_value_t want) {
+    pico8_value_t out = pico8_value_ref(NULL);
+
+    assert(pico8_entity_get_field(t, "qe", &out) == 1);
+    assert(out.kind == want.kind);
+    if (want.kind == PICO8_VALUE_FIXED) {
+        assert(out.as.fixed == want.as.fixed);
+    } else {
+        assert(out.as.boolean == want.as.boolean);
+    }
+}
+
+static void trade_list_is(const pico8_trade_t *t, const char *name, const pico8_list_t *want) {
+    pico8_value_t out = pico8_value_ref(NULL);
+
+    assert(pico8_entity_get_field(t, name, &out) == 1);
+    assert(out.kind == PICO8_VALUE_REF && out.as.ref == want);
+    assert(pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_LIST);
+}
+
+static void test_trade_members_by_name(void) {
+    pico8_trade_t *g = game_route();
+    pico8_list_t *lp = list_of(0, NULL);
+    pico8_list_t *rl = list_of(0, NULL);
+    pico8_value_t v;
+    pico8_trade_t *t;
+
+    assert(pico8_entity_get_field(g, "lp", &v) == 1 && v.kind == PICO8_VALUE_REF);
+    assert(v.as.ref != NULL && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST);
+    assert(pico8_entity_get_field(g, "rl", &v) == 1 && v.kind == PICO8_VALUE_REF);
+    assert(v.as.ref != NULL && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST);
+    assert(pico8_entity_get_field(g, "qe", &v) == 1 && v.kind == PICO8_VALUE_FIXED);
+    trade_misses(g, "to");
+    trade_misses(g, "x");
+    trade_misses(g, "");
+
+    t = trade_of(lp, rl, 1, pico8_value_fixed(pico8_fixed_from_int(14)));
+    trade_list_is(t, "lp", lp);
+    trade_list_is(t, "rl", rl);
+    trade_qe_is(t, pico8_value_fixed(pico8_fixed_from_int(14)));
+    trade_qe_is(trade_of(lp, rl, 1, pico8_value_fixed(0)), pico8_value_fixed(0));
+    trade_qe_is(trade_of(lp, rl, 1, pico8_value_bool(1)), pico8_value_bool(1));
+    trade_qe_is(trade_of(lp, rl, 1, pico8_value_bool(0)), pico8_value_bool(0));
+    trade_misses(trade_of(lp, rl, 1, nil()), "qe");
+    trade_misses(trade_of(lp, rl, 0, nil()), "qe");
+
+    t = trade_of(NULL, NULL, 0, nil());
+    trade_misses(t, "lp");
+    trade_misses(t, "rl");
+    trade_misses(t, "qe");
+    trade_misses(t, "to");
+    trade_misses(t, "x");
+    trade_misses(t, "");
+    t = pico8_trade_new(NULL);
+    trade_misses(t, "lp");
+    trade_misses(t, "rl");
+    trade_misses(t, "qe");
+
+    trade_qe_is(pico8_trade_kg(trade_of(lp, rl, 1, pico8_value_fixed(0)), nil(), nil()), pico8_value_fixed(0));
+    trade_qe_is(pico8_trade_kg(trade_of(lp, rl, 1, pico8_value_bool(1)), nil(), nil()), pico8_value_bool(1));
+    trade_qe_is(pico8_trade_kg(trade_of(lp, rl, 1, nil()), nil(), nil()), pico8_value_bool(0));
+    trade_qe_is(pico8_trade_kg(trade_of(NULL, NULL, 0, nil()), nil(), nil()), pico8_value_bool(0));
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -595,6 +681,7 @@ int main(void) {
     in_fresh_child(test_built_replay);
     in_fresh_child(test_hub_replay);
     in_fresh_child(test_trade_is_a_struct);
+    in_fresh_child(test_trade_members_by_name);
 
     printf("test_pico8_trade: all tests passed\n");
     return 0;

@@ -192,8 +192,8 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
             continue;
         }
 
-        if (t != NULL && t->rl.kind == PICO8_VALUE_REF && t->rl.as.ref != NULL) {
-            t_rl = PICO8_REF_AS_LIST_CONST(t->rl.as.ref);
+        if (t != NULL && t->rl != NULL) {
+            t_rl = t->rl;
         }
         if (pico8_gu(t_rl, pico8_value_ref(w))) {
             continue;

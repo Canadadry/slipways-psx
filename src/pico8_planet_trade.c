@@ -114,7 +114,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     }
     t = lw->t;
     if (t != NULL) {
-        t_qe = t->qe;
+        t_qe = pico8_trade_qe(t);
     }
 
     r = pico8_r();
