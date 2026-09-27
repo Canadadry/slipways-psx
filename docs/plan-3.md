@@ -155,7 +155,13 @@ Struct par struct, chaque membre `pico8_value_t` prend son type C (`pico8_fixed_
 - **Nil** : un indicateur de présence **uniquement** là où le code observe nil (test de vérité, `mv` qui rend 0 sur champ absent, affectation `= nil`). Rappel : en Lua `0` est vrai, donc un fixe à 0 n'est pas nil. Pas de valeur sentinelle.
 - Les REF deviennent des pointeurs typés : les sites de `pico8_ref_audit.h` disparaissent au fil de l'eau.
 - **Recensement (1b.0)** : outil seul, aucune struct typée, sur le modèle de l'étape 0.2 et du build `-DPICO8_CLASS_COVERAGE`. Un build à drapeau recense, par (struct, membre), l'ensemble des genres de `pico8_value_t` écrits et si nil est observé par un lecteur (test de vérité, `mv` qui rend 0, `= nil`). Crochets : init des structs, écrivains `set_field`, lecteurs `*_truthy` et par nom, les ~24 sites à table d'offsets `*(pico8_value_t *)((char *)self + offset)`. Passé sur les rejeux de `FRAMES_EVENTS` et `make test`. Sortie : une table versionnée, et la durée du rejeu ASan+UBSan (§7). Un membre sans genre observé est signalé : son PRD ajoute une caractérisation dirigée avant de le typer.
-- **Coexistence** : la règle qui dit comment un lecteur ou un écrivain par nom voit un membre typé est fixée une fois, avant 1b.1 — décidée à l'écriture de la liste, par un agent `guideline`, pas par le PRD de 1b.1. Elle garantit que présent/absent, valeur et identité de REF lus par `pico8_entity_get_field` restent identiques à 1a. Tout site par nom laissé en place est noté dans « Découvert à 1b.N » avec l'étape qui le ferme, ou marqué survivant à 1b.
+- **Coexistence** (fixée à l'écriture de la liste, agent `guideline`) : le `field`/`set_field` du descripteur est le seul point de conversion ; les sites par nom (`pico8_entity_get_field`/`set_field`, `*_truthy`, `src/` et `tests/`) ne changent pas.
+  - Lecture : le membre typé est rendu emballé, du genre qu'il aurait eu en 1a, un pointeur (REF, chaîne, fonction) repassé tel quel ; absent exactement là où 1a rendait 0 — pointeur NULL, ou indicateur de présence faux.
+  - Écriture : l'écrivain déballe ; nil éteint la présence ; un genre hors de la ligne de recensement du membre est un `assert` (arrêt « champ sans règle », §7).
+  - Tables d'offsets (`members[]`, `defaults[]`, `pico8_X_member`) : elles ne listent que des `pico8_value_t`. Le commit qui type un membre l'en retire partout, tables des filles comprises (`offsetof(fille, parent.m)`), et l'initialise par affectation typée ; un défaut REF garde la même REF.
+  - Présence : un membre non pointeur lisible par nom (`l`) qui peut valoir nil (nil observé, ou tenu) garde un indicateur, sauf preuve du PRD qu'aucune lecture par nom ne le voit nil.
+  - Garantit : présent/absent, valeur et identité de REF lus par nom identiques à 1a ; aucune écriture `*(pico8_value_t *)` sur un membre typé. Vérifié à chaque étape par `grep -n 'offsetof(pico8_T_t, \([a-z0-9_]*\.\)*m)' src/` vide (m typé, T la struct et ses filles) et la mutation (2) du §7.
+  - Un site par nom remplacé par un accès direct est noté dans « Découvert à 1b.N » ; les autres survivent à 1b.
 - **Pilote (1b.1)** : la plus petite struct dont la ligne de recensement mêle au moins un fixe simple, un membre à nil observé et un membre REF. Son « Découvert à 1b.1 » fixe le patron (disposition du membre typé, indicateur de présence, écriture à l'init, emballage du lecteur) ; les PRD suivants le citent, et s'en écarter est une « lecture nouvelle d'une règle » (§7).
 - **Liste** : chaque ligne porte son empreinte mesurée (fichiers de `src/` et `tests/` qui lisent ou écrivent ses membres) ; une ligne de plus de ~40 fichiers est découpée dans la liste elle-même, par groupe de membres (1b.Na, 1b.Nb…).
 - **Sortie** : aucune struct d'entité ne contient de `pico8_value_t` — constaté par une commande nommée : un script qui parcourt les typedefs de struct d'entité (premier membre `pico8_struct_header_t` ou struct d'entité enchâssée) et liste tout membre `pico8_value_t` ; sortie vide. Le même script sert de compteur de progrès à chaque étape.
@@ -164,7 +170,55 @@ Struct par struct, chaque membre `pico8_value_t` prend son type C (`pico8_fixed_
 
 - 1b.0 — recensement des membres (outil seul, aucune struct typée) ; table versionnée, durée du rejeu ASan+UBSan mesurée, script de sortie (puce **Sortie**) écrit et son compte initial noté. Découvert à 1b.0 : lecture nouvelle de la puce **Recensement** — au lieu de crocheter chaque écrivain, le build `-DPICO8_MEMBER_CENSUS` (`src/pico8_member_census.c/.h`) observe les membres en quatre points : fin de chacun des 29 constructeurs et des 11 objets à en-tête hors constructeur (`PICO8_MEMBER_CENSUS_SEE`, 40 sites), lecture et écriture par nom (`pico8_entity_get_field`/`set_field`), fin de `pico8__update60` et de `pico8__draw` sur `hv` ; les sites à table d'offsets ne sont pas crochetés, et ils sont 39 (dans 14 fichiers, 382 entrées `offsetof`), pas ~24 ; angle mort accepté : un genre écrit directement puis écrasé avant l'observation suivante ; les tests de nil faits directement sur un membre viennent d'une moitié statique (grep, rattachée par nom, `stat?` quand plusieurs typedefs portent le nom). Script de sortie : `make value-members` (`tools/entity_value_members.sh`), compte initial **270** membres `pico8_value_t` dans 41 typedefs d'entité (37 à membres) ; `lq.items`/`mh.items` (`pico8_list_t`) hors compte. Table : `tools/member_census.txt`, réécrite par `make member-census` (hors suite, ~1,5 min seule, 4 min sous charge ; passe réduite `CENSUS_EVENTS=<un rejeu> CENSUS_UNIT= CENSUS_TABLE=tmp/census/m.txt`), une entrée de la liste et pas un oracle ; résumé : 270 lignes, sans genre 5 (`fv.m_`, `fm_placeholder.jk`/`nz`, `jc_too_far.qs`/`fo`), nil observé 120, nil tenu seulement 27, lecteurs muets 0, 15 rejeux, 47 TU. ASan+UBSan : `make sanitize-net` (arbre `obj-sanitize`, `-O2`, `detect_leaks=0` pour TROU-7), 15 propres ; construction à froid 11 s, rejeux seuls 221 s sur machine libre (445 s sous la charge de `make e2e` en parallèle), sous le seuil de 5 min : **chaque étape 1b lance `make sanitize-net`**.
 
-La suite de la liste est écrite après 1b.0, à partir de sa table.
+Écrite après 1b.0, à partir de `tools/member_census.txt`. Chemins relatifs à `src/` ; la position donnée est le premier membre du typedef. Compteur de progrès : `make value-members`, **270** à 1b.0 ; chaque ligne donne le compte attendu après elle.
+
+Empreinte (mesurée à l'écriture, chaque PRD la remesure) : fichiers de `src/*.[ch]` et `tests/*.[ch]`, union de deux greps sur les membres `m` de la struct (colonne `membre`) — accès direct : le fichier nomme `pico8_T_t` pour T la struct ou une fille qui l'enchâsse, et contient `->m`/`.m` non suivi de `(`, ou `offsetof(pico8_T_t, …m)` ; par nom : une ligne qui contient `_field` ou `_truthy` porte `"m"`. Majorant : un nom court partagé (`ra`, `fa`, `p`) compte partout où il est lu par nom.
+
+Ordre : le pilote ; les racines, cible de REF avant la struct qui la pointe ; `ke` ; ses feuilles par empreinte croissante ; l'arbre `jo` parente avant filles ; `g_` → `fv` ; puis les structs dont les REF pointent vers les précédentes (`js`, `jc`, `mz`, `ui` en dernier). Typer un membre d'une parente touche les tables de défauts des filles ; typer celui d'une fille ne touche pas la parente — d'où l'exception du pilote. « Sans genre » : membre sans genre observé, son PRD ajoute une caractérisation dirigée avant de le typer. « Genres mêlés » : le type est à trancher par le PRD sur la ligne de recensement.
+
+- 1b.1 — `mh` (`msgbox.h:22`), **pilote** : 5 membres, à égalité avec `bg` et `qb`, la plus petite qui mêle fixes simples (`fa`, `rh`, jamais nil), nil observé par preuve directe (`lh`, `p_` : `lu`, la lecture par nom a rendu 0 — celui de `bg.m_` n'est que `stat?`, partagé par 6 typedefs) et REF (`nu`) ; `ha_pz`, `trade`, `pj_cr` (3-4 membres) n'ont pas de fixe simple. `items` (`pico8_list_t`) hors compte. Empreinte 19 (src 8, tests 11). Compte : 265.
+- 1b.2 — `jb` (`layout.h:16`), `ls`, cible de `ie.jb`/`js.jb`. Empreinte 2 (1, 1). Compte : 264.
+- 1b.3 — `mz_jj` (`wormhole.h:19`), `qs`, cible de `mz.jj`. Empreinte 4 (2, 2). Compte : 263.
+- 1b.4 — `ha_pz` (`menu.c:34`), accès par nom seul (typedef d'un `.c`, pas de table d'offsets). Empreinte 4 (2, 2). Compte : 260.
+- 1b.5 — `trade` (`trade.h:12`), `qe` tenu, lu par nom. Empreinte 6 (5, 1). Compte : 257.
+- 1b.6 — `pj_cr` (`score_panel.h:29`). Empreinte 7 (3, 4). Compte : 253.
+- 1b.7 — `hy` (`economy.h:17`), genres mêlés `hl`. Empreinte 23 (7, 16). Compte : 242.
+- 1b.8 — `fm_placeholder` (`probe.h:86`), **`jk`, `nz` sans genre** (écrits par la triche sur l'écran titre, hors filet). Empreinte 15 (4, 11). Compte : 240.
+- 1b.9 — `hp` (`research.h:15`), genres mêlés `il`, cible de `jo.hn`/`js._jo_fe_b`. Empreinte 20 (10, 10). Compte : 223.
+- 1b.10 — `lq` (`layout.h:26`), genres mêlés `bg`, cible de `jo.lq`/`js.lq`/`js.h_` ; `items` hors compte. Empreinte 27 (11, 16). Compte : 217.
+- 1b.11 — `ie_ke` (`research_icon.h:40`). Empreinte 26 (7, 19). Compte : 213.
+- 1b.12 — `jc_mouse_point` (`slipway.c:77`), accès par nom seul, cible de `jc.re`. Empreinte 21 (11, 10). Compte : 211.
+- 1b.13 — `jc_too_far` (`slipway.c:32`), accès par nom seul, **`qs`, `fo` sans genre**. Empreinte 5 (2, 3). Compte : 209.
+- 1b.14 — `ke` (`ke.h:12`), empreinte 42 (19, 23), découpée :
+- 1b.14a — `ke.me`, défaut réécrit dans les tables de toutes les filles. Empreinte 34 (14, 20). Compte : 208.
+- 1b.14b — `ke.t`. Empreinte 32 (13, 19). Compte : 207.
+- 1b.15 — `bg` (`bg.h:20`), `m_` écrit par nom (`gw`). Empreinte 16 (6, 10). Compte : 202.
+- 1b.16 — `pj` (`score_panel.h:18`), genres mêlés `ed` (fixe ou REF vers `mh`, 1b.1). Empreinte 17 (7, 10). Compte : 196.
+- 1b.17 — `nf` (`mouse_reader.h:19`), `ra`. Empreinte 20 (10, 10). Compte : 195.
+- 1b.18 — `fq` (`ui_button.h:72`), `m_` écrit par nom. Empreinte 22 (10, 12). Compte : 190.
+- 1b.19 — `qb` (`scroll.h:21`), `v`/`ma` écrits par nom. Empreinte 26 (12, 14). Compte : 185.
+- 1b.20 — `ie` (`research_icon.h:26`), `jb` → 1b.2, `m_` écrit par nom. Empreinte 26 (10, 16). Compte : 177.
+- 1b.21 — `iv` (`msgbox.h:69`). Empreinte 30 (11, 19). Compte : 170.
+- 1b.22 — `bv_et` (`probe.c:52`), accès par nom seul, `fo` écrit par nom, cible de `qh.et`/`mz.et`. Empreinte 5 (2, 3). Compte : 169.
+- 1b.23 — `jo` (`planet.h:24`), 31 membres, empreinte 58 (26, 32), découpée ; chaque groupe retire ses membres des tables de défauts des 9 filles :
+- 1b.23a — défauts et tables de classe : `nu`, `hf` (genres mêlés), `hs`, `kq`, `ka`, `dz`, `cq`, `kw`, `em`, `hn` (→ 1b.9), `nk`, `fa`. Empreinte 30 (14, 16). Compte : 157.
+- 1b.23b — position : `ra`, `p` (écrits par nom), `gq`, `ca`. Empreinte 26 (13, 13). Compte : 153.
+- 1b.23c — état lu : `id`, `oe`, `ep`, `jy`, `fx`, `lq` (→ 1b.10), `jh`, `p_`. Empreinte 36 (14, 22). Compte : 145.
+- 1b.23d — membres des écrivains génériques : `kr`, `cc`, `by`, `mi`, `m_`, `fo` (REF vers 9 typedefs), `ma`. Empreinte 34 (12, 22). Compte : 138.
+- 1b.24 — `qh` (`planet_family.h:34`), genres mêlés `qh`, `et` (bool ou REF vers 8 typedefs, dont `bv_et`, 1b.22). Empreinte 21 (8, 13). Compte : 128.
+- 1b.25 — `nl` (`planet_family.h:53`). Empreinte 5 (2, 3). Compte : 125.
+- 1b.26 — `hj` (`planet_family.h:74`), genres mêlés `pk`, `qy` écrit par nom. Empreinte 9 (5, 4). Compte : 112.
+- 1b.27 — `pm` (`planet_family.h:97`). Empreinte 1 (1, 0). Compte : 110.
+- 1b.28 — `mx` (`planet_family_trade.h:49`), `ht`. Empreinte 2 (1, 1). Compte : 109.
+- 1b.29 — `ga` (`planet_family.h:110`), `qy` écrit par nom. Empreinte 7 (4, 3). Compte : 98.
+- 1b.30 — `nr` (`planet_family_trade.h:27`). Empreinte 4 (1, 3). Compte : 96.
+- 1b.31 — `fr` (`planet_family_trade.h:38`), `mt`. Empreinte 4 (2, 2). Compte : 95.
+- 1b.32 — `g_` (`probe.h:25`), `et` genres mêlés (bool ou REF vers `jo`), 5 membres écrits par nom. Empreinte 39 (14, 25). Compte : 72.
+- 1b.33 — `fv` (`help.h:21`), **`m_` sans genre** (écrit par `gw` sur `cv.hd`). Empreinte 9 (4, 5). Compte : 62.
+- 1b.34 — `js` (`ui_button.h:20`), genres mêlés `h_`, `my` ; REF vers `lq` (1b.10), `jb` (1b.2), `jo` (1b.23), `hp` (1b.9). Empreinte 38 (15, 23). Compte : 43.
+- 1b.35 — `jc` (`slipway.h:19`), REF multiples `qu`, `re` (dont `jc_mouse_point`, 1b.12), `et`, `fo`. Empreinte 30 (14, 16). Compte : 27.
+- 1b.36 — `mz` (`wormhole.h:27`), `jj` → 1b.3, genres mêlés `et`, REF multiple `ij`, 4 membres écrits par nom. Empreinte 36 (13, 23). Compte : 10.
+- 1b.37 — `ui` (`ui.h:21`), `o_`/`gj`/`lheld`/`rheld` pointent vers presque toutes les structs précédentes. Empreinte 25 (6, 19). Compte : 0. Sortie de phase : `make value-members` vide, `make class-coverage-net` identique à `tools/class_coverage_net_expected.txt`, `make sanitize-net` propre.
 
 ### Phase D — Données
 
