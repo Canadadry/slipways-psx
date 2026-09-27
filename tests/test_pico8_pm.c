@@ -682,8 +682,8 @@ static int is_a_pm_struct(const void *e) {
  * it takes exactly hj's 21 names, and a construction key other than `p`,
  * `ra`, `id` stops the run. pm's class keeps no `pq` of its own. */
 static void test_pm_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
-                                          "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
+    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr", "lq",
+                                          "m_", "ma", "mi", "oe", "p_", "ra", "p",  "et", "qy"};
     static const char *const inherited[] = {"me", "nu", "hp", "px", "s",  "py", "ki", "pn",
                                             "pk", "du", "fc", "k_", "qo", "ro", "qg", "q_"};
     const pico8_struct_class_t *cls = pico8_pm_struct_class();

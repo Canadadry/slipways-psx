@@ -733,8 +733,8 @@ static int is_an_hj_struct(const void *e) {
  * `id` stops the run. A bare `qh` still refuses `qy`; no other descriptor
  * but pm's and mx's has an `mm`. */
 static void test_hj_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
-                                          "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy"};
+    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr", "lq",
+                                          "m_", "ma", "mi", "oe", "p_", "ra", "p",  "et", "qy"};
     const pico8_struct_class_t *const no_mm[] = {pico8_jo_struct_class(), pico8_qh_struct_class(),
                                                  pico8_nl_struct_class(), pico8_os_struct_class()};
     const pico8_struct_class_t *cls = pico8_hj_struct_class();

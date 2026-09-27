@@ -62,14 +62,6 @@ static const pico8_list_t *list_of(pico8_value_t v) {
     return NULL;
 }
 
-static const pico8_ob_table_t *table_of(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "field read as an ob_table is not one");
-        return (const pico8_ob_table_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 /* The returned list borrows the table's values: the caller frees the list,
  * never the table. */
 static pico8_list_t pico8_jo_positional_values(const pico8_ob_table_t *table) {
@@ -100,8 +92,8 @@ void pico8_jo_hb(pico8_jo_t *self) {
     }
 
     jy_list = list_of(self->jy);
-    if (self->kw.kind == PICO8_VALUE_REF && self->kw.as.ref != NULL) {
-        const pico8_ob_table_t *kw = (const pico8_ob_table_t *)self->kw.as.ref;
+    if (self->kw != NULL) {
+        const pico8_ob_table_t *kw = self->kw;
         pico8_value_t mu_val;
         if (!pico8_ob_table_get_name(kw, "qe", &qe)) {
             qe = pico8_value_ref(NULL);
@@ -223,7 +215,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
     } else {
         pico8_fixed_t mi_fixed = fixed_of(self->mi);
-        const pico8_ob_table_t *kw = table_of(self->kw);
+        const pico8_ob_table_t *kw = self->kw;
         pico8_value_t kw_qe = pico8_value_ref(NULL);
         pico8_value_t r_w;
         int qe_is_r_w;
@@ -265,7 +257,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
 
     {
-        const pico8_ob_table_t *kw = table_of(self->kw);
+        const pico8_ob_table_t *kw = self->kw;
         pico8_fixed_t mu = pico8_fixed_from_int(0);
         pico8_value_t qe_val = pico8_value_ref(NULL);
 
@@ -469,7 +461,6 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     int px;
     int py;
     int spr_index = 43;
-    pico8_value_t nk_val;
     pico8_value_t s_val;
 
     if (self == NULL || !pico8_gd((const pico8_struct_header_t *)self)) {
@@ -500,11 +491,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
 
     /* `A and B or C`: a truthy `nk` whose own `s` is absent still falls
      * through to `self.s`, then to the literal 43. */
-    nk_val = self->nk;
-    if (pico8_jo_truthy(nk_val) && nk_val.kind == PICO8_VALUE_REF &&
-        nk_val.as.ref != NULL &&
-        pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "s", &s_val) &&
-        s_val.kind == PICO8_VALUE_FIXED) {
+    if (self->nk != NULL && pico8_ob_table_get_name(self->nk, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
         spr_index = pico8_fixed_flr_int(s_val.as.fixed);
     } else if (pico8_entity_get_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
         spr_index = pico8_fixed_flr_int(s_val.as.fixed);

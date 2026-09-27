@@ -109,7 +109,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     kw = pico8_ob_table_new();
     pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(1)));
     pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    planet->kw = pico8_value_ref(kw);
+    planet->kw = kw;
 
     /* `jo:gh` reads these for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);

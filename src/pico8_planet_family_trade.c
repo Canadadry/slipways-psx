@@ -486,9 +486,9 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
                     int accepted = pico8_gu(&ht_list, qe_val);
                     pico8_list_free(&ht_list);
                     if (accepted) {
-                        pico8_value_t kw_val = self->hj.qh.jo.kw;
-                        if (kw_val.kind == PICO8_VALUE_REF && kw_val.as.ref != NULL) {
-                            pico8_ob_table_set_name((pico8_ob_table_t *)kw_val.as.ref, "qe", qe_val);
+                        pico8_ob_table_t *kw = self->hj.qh.jo.kw;
+                        if (kw != NULL) {
+                            pico8_ob_table_set_name(kw, "qe", qe_val);
                         }
                         /* The previous `ht` is mx's spec default, shared
                          * by every other synthesizer: never freed. */

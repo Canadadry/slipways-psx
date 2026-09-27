@@ -684,8 +684,8 @@ static int is_a_ga_struct(const void *e) {
  * and jo's 17 names, and a construction key outside the 11 measured stops
  * the run. Neither ga's class nor jo's installs a function or a `pq`. */
 static void test_ga_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr",
-                                          "kw", "lq", "m_", "ma", "mi", "nk", "oe", "p_", "qy"};
+    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr",
+                                          "lq", "m_", "ma", "mi", "oe", "p_", "qy"};
     static const char *const on_jo[] = {"nu", "hf", "by", "kq", "fa"};
     const pico8_struct_class_t *cls = pico8_ga_struct_class();
     const pico8_struct_class_t *jo = pico8_jo_struct_class();

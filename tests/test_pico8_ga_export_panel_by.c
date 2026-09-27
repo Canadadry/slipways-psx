@@ -108,7 +108,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     kw = pico8_ob_table_new();
     pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(2)));
     pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    planet->jo.kw = pico8_value_ref(kw);
+    planet->jo.kw = kw;
 
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));

@@ -678,8 +678,8 @@ static int is_a_jo_struct(const void *e) {
  * generic write outside the 17 measured names, or a construction key other
  * than `id`/`p`/`ra`, stops the run. */
 static void test_jo_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr",
-                                          "kw", "lq", "m_", "ma", "mi", "nk", "oe", "p_"};
+    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr",
+                                          "lq", "m_", "ma", "mi", "oe", "p_"};
     const pico8_list_t *jo;
     void *a;
     size_t i;

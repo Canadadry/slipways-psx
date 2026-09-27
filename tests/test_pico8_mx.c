@@ -739,8 +739,8 @@ static int is_an_mx_struct(const void *e) {
  * hj's 21 names plus `ht`, and a construction key other than `id` stops
  * the run. No class of mx's chain installs a function any more. */
 static void test_mx_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw", "lq",
-                                          "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et", "qy", "ht"};
+    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr", "lq",
+                                          "m_", "ma", "mi", "oe", "p_", "ra", "p",  "et", "qy", "ht"};
     static const char *const inherited[] = {"nu", "rr", "hp", "s",  "px", "od", "py", "ki", "pn",
                                             "pk", "fc", "k_", "du", "qo", "ro", "qg", "q_"};
     const pico8_struct_class_t *cls = pico8_mx_struct_class();

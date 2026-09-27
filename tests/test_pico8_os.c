@@ -627,8 +627,8 @@ static int is_an_os_struct(const void *e) {
  * takes exactly qh's 20 names, and a construction key other than `id` stops
  * the run. */
 static void test_os_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "hn", "jh", "jy", "kr", "kw",
-                                          "lq", "m_", "ma", "mi", "nk", "oe", "p_", "ra", "p",  "et"};
+    static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr",
+                                          "lq", "m_", "ma", "mi", "oe", "p_", "ra", "p",  "et"};
     const pico8_struct_class_t *cls = pico8_os_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;

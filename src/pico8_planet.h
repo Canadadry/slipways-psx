@@ -32,7 +32,7 @@ typedef struct {
     pico8_ob_table_t *ka;
     pico8_ob_table_t *dz;
     pico8_ob_table_t *cq;
-    pico8_value_t kw;
+    pico8_ob_table_t *kw;
     pico8_value_t gq;
     pico8_value_t ca;
     pico8_ob_table_t *em;
@@ -40,10 +40,10 @@ typedef struct {
     pico8_value_t p;
     pico8_value_t ra;
     pico8_value_t oe;
-    pico8_value_t hn;
+    pico8_hp_t *hn;
     pico8_value_t ep;
     pico8_value_t jy;
-    pico8_value_t nk;
+    pico8_ob_table_t *nk;
     pico8_value_t fx;
     pico8_value_t lq;
     pico8_value_t fo;

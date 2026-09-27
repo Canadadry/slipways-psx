@@ -235,8 +235,8 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         pico8_list_init(ib);
     }
 
-    if (self->kw.kind == PICO8_VALUE_REF && self->kw.as.ref != NULL) {
-        const pico8_ob_table_t *kw = (const pico8_ob_table_t *)self->kw.as.ref;
+    if (self->kw != NULL) {
+        const pico8_ob_table_t *kw = self->kw;
         pico8_value_t mu_val;
 
         if (!pico8_ob_table_get_name(kw, "qe", &qe)) {
