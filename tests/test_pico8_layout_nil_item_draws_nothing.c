@@ -4,15 +4,15 @@
  * default w=6 of layout width, invisible rather than absent. The trap this
  * pins is kept at the guard itself, in src/pico8_layout.c.
  *
- * WHY THIS TEST EXISTS beside tests/test_pico8_built_planet_panel_nil_row.c,
- * which reproduces the reported bug end to end: that one pins only the
- * msgbox half of the fix (`pz()`'s own `if p.ep then`). Measured when the
- * bug was fixed -- reverting src/pico8_layout.c's REF(NULL) clause on its
- * own left the whole suite green, because once `pz()` stops building the
- * bogus row no nil ever reaches `lq:mn` again: the single nil in the entire
- * replay corpus (the 9729-frame events.json plus this file's sibling
- * 278-frame fixture) was manufactured by the msgbox bug itself. Without this
- * test the `lq:mn` guard is correct today and free to rot the moment another
+ * WHY THIS TEST EXISTS beside the e2e tests/e2e/colony_panel.json, which
+ * replays the reported bug end to end: that one pins only the msgbox half
+ * of the fix (`pz()`'s own `if p.ep then`). Measured when the bug was fixed
+ * -- reverting src/pico8_layout.c's REF(NULL) clause on its own left the
+ * whole suite green, because once `pz()` stops building the bogus row no
+ * nil ever reaches `lq:mn` again: the single nil in the entire replay
+ * corpus (the 9729-frame events.json plus the 278-frame built_planet_panel
+ * fixture) was manufactured by the msgbox bug itself. Without this test
+ * the `lq:mn` guard is correct today and free to rot the moment another
  * caller hands `lq()` a nil item.
  *
  * `pico8_lq_mn` is static to src/pico8_layout.c, so this test never names

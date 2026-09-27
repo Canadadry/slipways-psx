@@ -1,0 +1,10 @@
+Caméra : glisser au clic droit, puis D-pad tenu jusqu'à la butée.
+19 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : clic droit en (117,117) (`bg:rdown`) ; f3 : tenu en (11,11)
+  (`bg:hq`) : la caméra passe de (192,192) à (298,298) ; relâché f4.
+- f5-18 : D-pad droite + bas tenu (`qb:ph`) : la caméra atteint la butée
+  (320,320) en f16 et y reste.
+
+Relecture humaine dans raylib : à faire.

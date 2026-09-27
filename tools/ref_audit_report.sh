@@ -54,10 +54,7 @@ while [ $# -gt 0 ]; do
         shift
     fi
 done
-for bin in tmp/test_pico8_playability_refaudit \
-           tmp/test_pico8_slipway_drag_refaudit \
-           tmp/test_pico8_empty_planet_cleared_refaudit \
-           tmp/test_pico8_planet_gh_row_lq_refaudit \
+for bin in tmp/test_pico8_planet_gh_row_lq_refaudit \
            tmp/test_pico8_data_init_refaudit \
            tmp/test_pico8_planet_kj_dispatch_refaudit \
            tmp/test_pico8_ga_export_panel_by_refaudit; do

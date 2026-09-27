@@ -433,25 +433,10 @@ $(TMP_DIR)/pico8_replay_e2e: $(call e2e_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 $(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_shop_tooltip_fillp: $(call objs,tests/test_pico8_shop_tooltip_fillp.c $(ENGINE_SRCS)) tests/fixtures/shop_button_hover_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_tech_screen: $(call objs,tests/test_pico8_tech_screen.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_geoharvest_burst: $(call objs,tests/test_pico8_geoharvest_burst.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Sous ASan, et sans jumeau non instrumenté : le crash visé dépend de la
@@ -464,13 +449,7 @@ $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet
 $(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(DATA_ENGINE_SRCS) src/pico8_planet_family.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_built_planet_panel_nil_row.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_rich_planet_exports: $(call objs,tests/test_pico8_rich_planet_exports.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_cheat_code: $(call objs,tests/test_pico8_cheat_code.c $(ENGINE_SRCS)) tests/fixtures/cheat_code_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_rnd_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -500,10 +479,6 @@ UNIT_TESTS := \
     test_pico8_data_init \
     test_pico8_planet_kj_dispatch \
     test_pico8_demo \
-    test_pico8_playability \
-    test_pico8_slipway_drag \
-    test_pico8_tech_screen \
-    test_pico8_geoharvest_burst \
     test_pico8_raylib_backend_coords \
     test_pico8_replay_source \
     test_pico8_recording_continuity \
@@ -528,13 +503,10 @@ UNIT_TESTS := \
     test_pico8_bg_kj \
     test_pico8_probe_mm_rnd_order \
     test_pico8_shop_tooltip_fillp \
-    test_pico8_empty_planet_cleared \
     test_pico8_planet_gh_row_lq \
     test_pico8_ga_export_panel_by \
-    test_pico8_built_planet_panel_nil_row \
     test_pico8_layout_nil_item_draws_nothing \
-    test_pico8_rich_planet_exports \
-    test_pico8_cheat_code
+    test_pico8_rich_planet_exports
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
@@ -701,15 +673,6 @@ e2e-fast-baseline: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).sh
 $(TMP_DIR)/pico8_replay_refaudit: $(call refaudit_objs,src/main.c src/pico8_screencast.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_playability_refaudit: $(call refaudit_objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_slipway_drag_refaudit: $(call refaudit_objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit: $(call refaudit_objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
 $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit: $(call refaudit_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -724,9 +687,6 @@ $(TMP_DIR)/test_pico8_ga_export_panel_by_refaudit: $(call refaudit_objs,tests/te
 
 REFAUDIT_BINS := \
     $(TMP_DIR)/pico8_replay_refaudit \
-    $(TMP_DIR)/test_pico8_playability_refaudit \
-    $(TMP_DIR)/test_pico8_slipway_drag_refaudit \
-    $(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit \
     $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit \
     $(TMP_DIR)/test_pico8_data_init_refaudit \
     $(TMP_DIR)/test_pico8_planet_kj_dispatch_refaudit \

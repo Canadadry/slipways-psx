@@ -4,10 +4,9 @@
  * `mc` key that table also holds. Its panel therefore still shows an
  * "exports:" row at tier 4, as it does at tier 3.
  *
- * Reuses tests/fixtures/built_planet_panel_events.json (see
- * tests/test_pico8_built_planet_panel_nil_row.c) to reach a colonized "p27"
- * through the real update/draw chain, then installs the project and drives
- * the economy tick the way src/pico8_economy.c does. */
+ * Reuses tests/fixtures/built_planet_panel_events.json to reach a colonized
+ * "p27" through the real update/draw chain, then installs the project and
+ * drives the economy tick the way src/pico8_economy.c does. */
 
 #include <assert.h>
 #include <stdio.h>

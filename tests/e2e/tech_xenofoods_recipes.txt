@@ -1,0 +1,14 @@
+« xenofoods » avec la triche, puis le menu d'une planète earth-like :
+recettes améliorées (`hp:po`, branche `mc`) et coût ×1,5 (`hp:od`).
+53 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2-13 : triche O O X X O O X X : 99 de recherche.
+- f14-28 : trois inventions sur la première rangée (4,4 puis 30,24) :
+  « space folding », « geneseeds » (ère 2), « xenofoods ».
+- f29 : sonde `g_` en (55,50) ; f31-46 : `mz` tenu en (35,50), relâché
+  f47 : « p40 » (28,44) est earth-like.
+- f49 : clic sur « p40 » : menu de construction aux recettes améliorées ;
+  f51-52 : menu affiché.
+
+Relecture humaine dans raylib : à faire.
