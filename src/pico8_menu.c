@@ -144,7 +144,7 @@ void pico8_cr(void) {
     const pico8_ob_table_t *ek;
     pico8_list_t cb_list;
     pico8_list_t bs;
-    pico8_ob_table_t *cr_table;
+    pico8_pj_cr_t *cr;
 
     if (fm != NULL && pico8_instance_get_field(fm, "ew", &tl_val) && tl_val.kind == PICO8_VALUE_FIXED) {
         tl = tl_val.as.fixed;
@@ -188,8 +188,8 @@ void pico8_cr(void) {
         pico8_list_add(&bs, pico8_value_ref(extra));
     }
 
-    cr_table = pico8_pj_cr();
-    if (cr_table != NULL) {
+    cr = pico8_pj_cr();
+    if (cr != NULL) {
         pico8_fixed_t ek_tl = pico8_fixed_from_int(0);
         pico8_value_t ek_tl_val;
         char *tl_str;
@@ -199,7 +199,6 @@ void pico8_cr(void) {
         char *tmp2;
         char *tmp3;
         char *ep;
-        pico8_instance_t wrapper;
 
         if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(tl), &ek_tl_val) &&
             ek_tl_val.kind == PICO8_VALUE_FIXED) {
@@ -226,12 +225,8 @@ void pico8_cr(void) {
         free(diff1_str);
         free(diff2_str);
 
-        pico8_ob_table_set_name(cr_table, "ep", pico8_value_string(ep));
-
-        wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
-        wrapper.fields = cr_table;
-        wrapper.cls = NULL;
-        pico8_pz(&wrapper, &bs);
+        cr->ep = pico8_value_string(ep);
+        pico8_pz((const pico8_instance_t *)cr, &bs);
     }
 
     pico8_list_free(&bs);

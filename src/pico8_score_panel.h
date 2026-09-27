@@ -24,6 +24,15 @@ typedef struct {
     pico8_value_t gz;
 } pico8_pj_t;
 
+/* `pj.cr`: no parent, never an entity, and no writer. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t hi;
+    pico8_value_t gq;
+    pico8_value_t ca;
+    pico8_value_t ep;
+} pico8_pj_cr_t;
+
 /* Calls `pico8_pi_init()` first: the `pj` spec and `bz` both contain
  * `v(...)`, so the 'v' constructor must be registered before either spec is
  * parsed. Builds `ef` and `bz` alongside the class. */
@@ -37,12 +46,15 @@ void pico8_score_panel_shutdown(void);
 pico8_class_t *pico8_pj_class(void);
 const pico8_struct_class_t *pico8_pj_struct_class(void);
 
-/* The tables of `pj`'s class, shared by every panel, past and future: `hb`
- * rewrites `ou`, `hk` rewrites `ea`, `cr()` rewrites `cr`, in place. Owned by
- * the class; NULL before `pico8_score_panel_init()` and after the shutdown. */
+/* Shared by every panel, past and future: `hb` rewrites `ou`, `hk` rewrites
+ * `ea`, in place; the tables are owned by the class. `cr` is the one static
+ * `pico8_pj_cr_t`, never freed, whose `ep` `cr()` rewrites and the init
+ * resets to nil. All NULL before `pico8_score_panel_init()` and after the
+ * shutdown. */
 pico8_ob_table_t *pico8_pj_ou(void);
 pico8_ob_table_t *pico8_pj_ea(void);
-pico8_ob_table_t *pico8_pj_cr(void);
+pico8_pj_cr_t *pico8_pj_cr(void);
+const pico8_struct_class_t *pico8_pj_cr_struct_class(void);
 const pico8_ob_table_t *pico8_pj_i_(void);
 const pico8_ob_table_t *pico8_pj_gs(void);
 

@@ -2,8 +2,8 @@
  * on a game started as the net starts it), read only through the dual-form
  * field API and `pico8_class_get_field(pico8_pj_class(), ...)` for spec
  * defaults, and driven through the real `mv`/`cr()`/`de.my`. The frozen
- * values were taken on the code where `pj` was still a class instance and
- * must not be re-taken. */
+ * values were taken on the code where `pj` was still a class instance (and
+ * `CR_HASH` where `pj.cr` was still a table) and must not be re-taken. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -38,8 +38,10 @@
 #include "../src/pico8_score_panel_display.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
+#include "../src/pico8_vec.h"
 
 #define RECORDING "tests/fixtures/game_end_events.json"
 
@@ -47,14 +49,16 @@
 #define SHARED_HASH 0xAC16627Bu
 #define LIFE_HASH 0xDDBCC765u
 #define REPLAY_HASH 0xBB8AD732u
+#define CR_HASH 0x7D1C5B1Fu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 static pico8_cheat_t cheat;
 
-/* The 5 tables of pj's spec, read on the class by the cart. */
-static const char *const tables[] = {"ea", "gs", "cr", "i_", "ou"};
+/* 4 of the 5 tables of pj's spec, read on the class by the cart; the 5th,
+ * `cr`, is its own struct. */
+static const char *const tables[] = {"ea", "gs", "i_", "ou"};
 static const char *const absent[] = {"c_", "gz", "ra", "p_", "nu", "fx", "hd", "ev"};
 static const char *const methods[] = {"kj", "ph", "hb", "hk"};
 static const char *const tags[] = {"jo", "g_", "qh", "jc", "mz", "mh", "np", "hj", "prober", "nr", "bg"};
@@ -183,6 +187,26 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
 static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     pico8_value_t v;
     return lookup(e, name, &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
+}
+
+/* `cr` read off a panel, folded as `fold_field` folded the spec table it
+ * was: its entries in spec order, then their count. */
+static uint32_t fold_cr_field(uint32_t h, const void *e) {
+    static const char *const names[] = {"hi", "gq", "ca", "ep"};
+    const void *cr = get_ref(e, "cr");
+    int count = 0;
+    size_t i;
+
+    assert(cr != NULL);
+    h = fnv(fnv(h, 1u), 0x7Au);
+    for (i = 0; i < sizeof names / sizeof names[0]; i++) {
+        pico8_value_t v;
+        if (lookup(cr, names[i], &v)) {
+            h = fold_value(fnv_str(h, names[i]), v);
+            count++;
+        }
+    }
+    return fnv(h, (uint32_t)count);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -337,6 +361,10 @@ static void test_built(void) {
     for (i = 0; i < sizeof tables / sizeof tables[0]; i++) {
         assert(get_ref(ju, tables[i]) == class_ref(tables[i]));
         h = fold_field(h, ju, tables[i]);
+        if (i == 1) {
+            assert(get_ref(ju, "cr") == pico8_pj_cr());
+            h = fold_cr_field(h, ju);
+        }
     }
     check("built", h, BUILT_HASH);
 }
@@ -355,6 +383,7 @@ static void test_shared(void) {
     for (i = 0; i < sizeof tables / sizeof tables[0]; i++) {
         assert(get_ref(other, tables[i]) == get_ref(ju, tables[i]));
     }
+    assert(get_ref(other, "cr") == get_ref(ju, "cr"));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), other));
 
     (void)call(ju, "hb", 0, nil());
@@ -387,7 +416,7 @@ static void test_life(void) {
     uint32_t h = 2166136261u;
     void *ju = start_game();
     const pico8_ob_table_t *ea = get_ref(ju, "ea");
-    const pico8_ob_table_t *cr = get_ref(ju, "cr");
+    const void *cr = get_ref(ju, "cr");
     static const int years[] = {3425, 3400, 3401};
     pico8_value_t ep;
     int fq_before;
@@ -409,8 +438,8 @@ static void test_life(void) {
     assert(has_index(ea, 3) == 0 && has_name(ea, "lh"));
 
     pico8_cr();
-    assert(get_ref(ju, "cr") == cr && cr == class_ref("cr"));
-    assert(pico8_ob_table_get_name(cr, "ep", &ep) && ep.kind == PICO8_VALUE_STRING);
+    assert(get_ref(ju, "cr") == cr && cr == pico8_pj_cr());
+    assert(lookup(cr, "ep", &ep) && ep.kind == PICO8_VALUE_STRING);
     h = fnv_str(h, ep.as.string);
 
     for (i = 0; i < 2; i++) {
@@ -474,6 +503,97 @@ static void test_replay(void) {
     check("replay", h, REPLAY_HASH);
 }
 
+/* `pj.cr` read as `pz` reads it. */
+static int cr_get(const void *cr, const char *name, pico8_value_t *out) {
+    return lookup(cr, name, out);
+}
+
+static pico8_vec_t vec_of(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(lookup(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
+}
+
+/* A row's `lq` as `js:pq` built it: its `w`, its `c`, its positional items. */
+static uint32_t fold_lq(uint32_t h, const void *lq) {
+    const pico8_ob_table_t *fields;
+    int i;
+
+    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_INSTANCE);
+    h = fold_field(h, lq, "w");
+    h = fold_field(h, lq, "c");
+    fields = pico8_instance_fields(lq);
+    for (i = 0; i < fields->count; i++) {
+        if (fields->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
+            pico8_value_t item = fields->entries[i].value;
+            h = fnv(h, (uint32_t)fields->entries[i].key.index);
+            h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
+        }
+    }
+    return h;
+}
+
+/* What `pz(pj.cr, bs)` left in `ok.le`: the `ep` head row, then one row per
+ * tech, all at `fa` = `ca`, sharing one `ra` = `hi`, `qf` stepped by `gq`. */
+static uint32_t fold_cr_le(uint32_t h, const char **head) {
+    const pico8_list_t *le;
+    pico8_value_t v;
+    const void *lq;
+    const void *ra;
+    int i;
+
+    assert(lookup(pico8_ok(), "le", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    le = v.as.ref;
+    assert(le->count >= 2);
+    h = fnv(h, (uint32_t)le->count);
+    lq = get_ref(le->items[0].as.ref, "lq");
+    assert(lq != NULL && get_fixed(lq, "c") == pico8_fixed_from_int(13));
+    *head = string_at(pico8_instance_fields(lq), 1);
+    h = fnv_str(h, *head);
+    ra = get_ref(le->items[0].as.ref, "ra");
+    for (i = 0; i < le->count; i++) {
+        const void *b = le->items[i].as.ref;
+        pico8_vec_t qf = vec_of(b, "qf");
+        assert(get_ref(b, "ra") == ra);
+        assert(get_fixed(b, "fa") == pico8_fixed_from_int(10));
+        assert(qf.x == 0 && qf.y == pico8_fixed_from_int(11 * (i + 1)));
+        h = fold_field(h, b, "fa");
+        h = fnv(fnv(h, (uint32_t)qf.x), (uint32_t)qf.y);
+        h = fold_lq(h, get_ref(b, "lq"));
+    }
+    assert(vec_of(le->items[0].as.ref, "ra").x == 0 &&
+           vec_of(le->items[0].as.ref, "ra").y == pico8_fixed_from_int(11));
+    return h;
+}
+
+/* `cr()` twice on one game, then on the next game started in the same
+ * process: one shared `pj.cr`, `ep` absent until the first `cr()` and kept
+ * across games, the same head row each time. */
+static void test_cr(void) {
+    uint32_t h = 2166136261u;
+    void *ju = start_game();
+    void *cr = get_ref(ju, "cr");
+    const char *head1;
+    const char *head2;
+    pico8_value_t ep;
+
+    assert(cr != NULL && !cr_get(cr, "ep", &ep));
+    pico8_cr();
+    h = fold_cr_le(h, &head1);
+    assert(cr_get(cr, "ep", &ep) && ep.kind == PICO8_VALUE_STRING && strcmp(ep.as.string, head1) == 0);
+    pico8_cr();
+    h = fold_cr_le(h, &head2);
+    assert(strcmp(head1, head2) == 0);
+    assert(get_ref(pico8_pj_new(NULL), "cr") == cr);
+
+    ju = start_game();
+    assert(get_ref(ju, "cr") == cr);
+    assert(cr_get(cr, "ep", &ep) && strcmp(ep.as.string, head2) == 0);
+    pico8_cr();
+    h = fold_cr_le(h, &head1);
+    check("cr", h, CR_HASH);
+}
+
 static void must_abort(void (*write)(void *), void *e) {
     pid_t child;
     int status;
@@ -535,13 +655,53 @@ static void test_pj_is_a_struct(void) {
     for (i = 0; i < sizeof spec / sizeof spec[0]; i++) {
         assert(pico8_ob_table_get_name(pico8_pj_class()->defaults, spec[i], &v));
     }
-    assert(pico8_pj_ou() == class_ref("ou") && pico8_pj_ea() == class_ref("ea") && pico8_pj_cr() == class_ref("cr"));
+    assert(pico8_pj_ou() == class_ref("ou") && pico8_pj_ea() == class_ref("ea") && pico8_pj_cr() == get_ref(ju, "cr"));
     assert(pico8_pj_i_() == class_ref("i_") && pico8_pj_gs() == class_ref("gs"));
     assert(ju->gs.as.ref == class_ref("gs") && ju->i_.as.ref == class_ref("i_"));
 
     must_abort(write_c_, ju);
     must_abort(build_with_named_key, NULL);
     must_abort(build_with_positional_key, NULL);
+}
+
+static void write_ep(void *e) {
+    pico8_entity_set_field(e, "ep", pico8_value_string("level 1"));
+}
+
+/* `pj.cr` is one static struct without method nor writer, holding `hi`,
+ * `gq`, `ca` and, once `cr()` ran, `ep`; the init resets `ep`, the shutdown
+ * hides it. */
+static void test_cr_is_a_struct(void) {
+    static const char *const never[] = {"eo", "ra", "ff", "fo", "nu", "lq", "fa"};
+    const pico8_struct_class_t *cls = pico8_pj_cr_struct_class();
+    void *ju = start_game();
+    pico8_pj_cr_t *cr = pico8_pj_cr();
+    pico8_value_t v;
+    size_t i;
+    int j;
+
+    assert(cr != NULL && get_ref(ju, "cr") == cr && is_of(cr, cls));
+    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
+        assert(cls->methods[j] == NULL);
+    }
+    assert(cls->field != NULL && cls->set_field == NULL);
+    assert(lookup(cr, "hi", &v) && v.kind == PICO8_VALUE_REF);
+    assert(lookup(cr, "gq", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != get_ref(cr, "hi"));
+    assert(lookup(cr, "ca", &v) && pico8_value_equal(v, pico8_value_fixed(pico8_fixed_from_int(10))));
+    assert(!has(cr, "ep"));
+    for (i = 0; i < sizeof never / sizeof never[0]; i++) {
+        assert(!has(cr, never[i]));
+    }
+    must_abort(write_ep, cr);
+
+    pico8_cr();
+    assert(has(cr, "ep") && cr->ep.kind == PICO8_VALUE_STRING);
+    assert(get_ref(pico8_pj_new(NULL), "cr") == cr);
+
+    pico8_score_panel_init();
+    assert(pico8_pj_cr() == cr && !has(cr, "ep") && has(cr, "ca"));
+    pico8_score_panel_shutdown();
+    assert(pico8_pj_cr() == NULL);
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -577,7 +737,9 @@ int main(void) {
     in_fresh_child(test_shared);
     in_fresh_child(test_life);
     in_fresh_child(test_replay);
+    in_fresh_child(test_cr);
     in_fresh_child(test_pj_is_a_struct);
+    in_fresh_child(test_cr_is_a_struct);
 
     printf("test_pico8_pj: all tests passed\n");
     return 0;

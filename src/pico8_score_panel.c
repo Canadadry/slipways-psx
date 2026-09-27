@@ -98,8 +98,9 @@ static char *pj_concat2(const char *a, const char *b) {
 
 enum { PJ_FA, PJ_EA, PJ_GS, PJ_CR, PJ_I_, PJ_OU, PJ_ED };
 
-/* pj's 7 spec defaults, read once from its class's own table at init: the
- * class's REFs, never re-parsed. `ea`, `cr`, `ou` have no member. */
+/* pj's 7 spec defaults, read once at init from its class's own table (the
+ * class's REFs, never re-parsed), except `cr`, which is `g_pj_cr`. `ea`,
+ * `cr` and `ou` have no member. */
 static struct {
     const char *name;
     int member;
@@ -110,6 +111,46 @@ static struct {
     [PJ_GS] = {"gs", 1, offsetof(pico8_pj_t, gs), {0}}, [PJ_CR] = {"cr", 0, 0, {0}},
     [PJ_I_] = {"i_", 1, offsetof(pico8_pj_t, i_), {0}}, [PJ_OU] = {"ou", 0, 0, {0}},
     [PJ_ED] = {"ed", 1, offsetof(pico8_pj_t, ed), {0}},
+};
+
+static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_pj_cr_t *cr = self;
+    pico8_value_t value;
+
+    if (strcmp(name, "hi") == 0) {
+        value = cr->hi;
+    } else if (strcmp(name, "gq") == 0) {
+        value = cr->gq;
+    } else if (strcmp(name, "ca") == 0) {
+        value = cr->ca;
+    } else if (strcmp(name, "ep") == 0) {
+        value = cr->ep;
+    } else {
+        return 0;
+    }
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return 0;
+    }
+    *out_value = value;
+    return 1;
+}
+
+static const pico8_struct_class_t g_pj_cr_struct_class = {
+    {0},
+    pico8_pj_cr_field,
+    NULL,
+};
+
+/* Two vectors, as the spec's two `v(0,11)`. */
+static pico8_vec_t g_pj_cr_hi = {0, 11 << PICO8_FIXED_SHIFT};
+static pico8_vec_t g_pj_cr_gq = {0, 11 << PICO8_FIXED_SHIFT};
+
+static pico8_pj_cr_t g_pj_cr = {
+    {PICO8_TYPE_TAG_STRUCT, &g_pj_cr_struct_class},
+    {PICO8_VALUE_REF, {.ref = &g_pj_cr_hi}},
+    {PICO8_VALUE_REF, {.ref = &g_pj_cr_gq}},
+    {PICO8_VALUE_FIXED, {.fixed = 10 << PICO8_FIXED_SHIFT}},
+    {PICO8_VALUE_REF, {.ref = NULL}},
 };
 
 static void pico8_pj_defaults_reset(void) {
@@ -131,8 +172,12 @@ pico8_ob_table_t *pico8_pj_ea(void) {
     return pj_default_table(PJ_EA);
 }
 
-pico8_ob_table_t *pico8_pj_cr(void) {
-    return pj_default_table(PJ_CR);
+pico8_pj_cr_t *pico8_pj_cr(void) {
+    return g_pj_defaults[PJ_CR].value.as.ref;
+}
+
+const pico8_struct_class_t *pico8_pj_cr_struct_class(void) {
+    return &g_pj_cr_struct_class;
 }
 
 const pico8_ob_table_t *pico8_pj_i_(void) {
@@ -350,8 +395,8 @@ static pico8_value_t pico8_pj_ph_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* `ou`, `ea`, `cr` read off a panel answer the class's shared tables, as
- * the class chain did. */
+/* `ou`, `ea`, `cr` read off a panel answer the shared state, as the class
+ * chain did. */
 static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out_value) {
     static const struct {
         const char *name;
@@ -472,12 +517,14 @@ void pico8_score_panel_init(void) {
         pico8_value_t *v = &g_pj_defaults[i].value;
         int found = pico8_ob_table_get_name(g_pj_class->defaults, g_pj_defaults[i].name, v);
         assert(found && "pj: every default of the struct is a key of pj's spec");
-        assert((i == PJ_FA || i == PJ_ED ||
+        assert((i == PJ_FA || i == PJ_ED || i == PJ_CR ||
                 (v->kind == PICO8_VALUE_REF && v->as.ref != NULL &&
                  pico8_type_tag_of(v->as.ref) == PICO8_TYPE_TAG_OB_TABLE)) &&
-               "pj: its 5 accessors cast these REFs to plain tables, and hb/hk/cr() write into ou/ea/cr");
+               "pj: its 4 table accessors cast these REFs to plain tables, and hb/hk write into ou/ea");
         (void)found;
     }
+    g_pj_cr.ep = pico8_value_ref(NULL);
+    g_pj_defaults[PJ_CR].value = pico8_value_ref(&g_pj_cr);
 
     pico8_score_panel_set_init(NULL);
     g_ju = NULL;
