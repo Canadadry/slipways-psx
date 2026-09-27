@@ -24,6 +24,17 @@
 #                       hors suite
 # make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS), hors
 #                       suite
+# make line-coverage EVENTS="<events>..." -> lignes exécutées par ces rejeux
+#                       (pilote instrumenté gcov), une `fichier:ligne` par ligne,
+#                       dans tmp/line_coverage.txt ; hors suite
+# make line-coverage-contrib EVENTS=<events> OTHERS="<events>..." -> les lignes
+#                       que EVENTS couvre et qu'aucun de OTHERS ne couvre (le
+#                       critère de garde), dans tmp/line_coverage_contrib.txt ;
+#                       hors suite
+# make line-coverage-reference-check -> recalcule la couverture de lignes du
+#                       filet (FRAMES_EVENTS) et la compare à la référence figée
+#                       tools/line_coverage_reference.txt, plusieurs minutes,
+#                       hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
@@ -57,13 +68,14 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les six.
+# sur ce code, sans rien dire. Ne pas fusionner les sept.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 OBJ_E2E_DIR := $(TMP_DIR)/obj-e2e
+OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 
 # -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
 # que l'unité de compilation a vraiment ouverts. Le -include en bas du fichier
@@ -75,6 +87,7 @@ REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
 COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
 # Rejeux de make e2e seulement ; les TU restent en -O0, lisibles sous gdb.
 E2E_CFLAGS := -O2
+GCOV_CFLAGS := --coverage
 
 # $(call objs,<liste de .c>) -> les chemins des .o correspondants dans l'arbre
 # concerné. Une cible nomme ses sources une fois ; ses prérequis et sa ligne de
@@ -85,6 +98,7 @@ ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 e2e_objs = $(patsubst %.c,$(OBJ_E2E_DIR)/%.o,$(1))
+gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 
 # mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
 # d'un répertoire change à chaque fichier écrit dedans, ce qui rebuilderait tout.
@@ -111,6 +125,10 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 $(OBJ_E2E_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_GCOV_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(GCOV_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # Closure complète du moteur : tout src/ sauf les deux points d'entrée (main.c,
 # main_raylib.c) et les modules qui ne servent qu'au driver interactif. Utilisée
@@ -312,6 +330,9 @@ $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frame
 $(TMP_DIR)/test_class_coverage: $(call objs,tests/test_class_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/screencast_capture_events.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -367,6 +388,9 @@ $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 
 $(TMP_DIR)/pico8_replay_e2e: $(call e2e_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
@@ -470,6 +494,7 @@ UNIT_TESTS := \
     test_pico8_frames_tool \
     test_frames_check \
     test_class_coverage \
+    test_line_coverage \
     test_float_guard \
     test_float_grep \
     test_float_link \
@@ -673,6 +698,40 @@ class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CL
 
 .PHONY: class-coverage class-coverage-net
 
+LINE_COVERAGE := sh tools/line_coverage.sh
+LINE_COVERAGE_COVER := $(LINE_COVERAGE) cover ./$(TMP_DIR)/pico8_replay_gcov $(OBJ_GCOV_DIR)
+# Écrite une fois, sur le filet qui contenait encore les longs enregistrements
+# et le raccourci de difficulté : on ne la recalcule pas, on la compare.
+LINE_COVERAGE_REFERENCE := tools/line_coverage_reference.txt
+# Une ligne `fichier:ligne raison` par ligne de la référence qu'aucun rejeu
+# court n'atteint, éditée à la main.
+LINE_COVERAGE_UNREACHABLE := tools/line_coverage_unreachable.txt
+
+line_coverage_args = $(foreach e,$(1),$(call from_title,$(e)) $(e))
+
+line-coverage: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
+	@$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(EVENTS)) > $(TMP_DIR)/line_coverage.txt
+	@echo "couverture de lignes: $$(wc -l < $(TMP_DIR)/line_coverage.txt) ligne(s) dans $(TMP_DIR)/line_coverage.txt"
+
+line-coverage-contrib: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
+	@$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(EVENTS)) > $(TMP_DIR)/line_coverage_self.txt
+	@$(if $(strip $(OTHERS)),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(OTHERS)),:) > $(TMP_DIR)/line_coverage_others.txt
+	@$(LINE_COVERAGE) contrib $(TMP_DIR)/line_coverage_self.txt $(TMP_DIR)/line_coverage_others.txt > $(TMP_DIR)/line_coverage_contrib.txt
+	@echo "apport de $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) ligne(s) dans $(TMP_DIR)/line_coverage_contrib.txt"
+
+line-coverage-reference-check: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE)
+	@$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(FRAMES_EVENTS)) > $(TMP_DIR)/line_coverage_net.txt
+	@$(LINE_COVERAGE) diff $(LINE_COVERAGE_REFERENCE) $(TMP_DIR)/line_coverage_net.txt > $(TMP_DIR)/line_coverage_lost.txt
+	@$(LINE_COVERAGE) diff $(TMP_DIR)/line_coverage_net.txt $(LINE_COVERAGE_REFERENCE) > $(TMP_DIR)/line_coverage_new.txt
+	@if [ -s $(TMP_DIR)/line_coverage_lost.txt ] || [ -s $(TMP_DIR)/line_coverage_new.txt ]; then \
+	    sed 's/^/référence seulement: /' $(TMP_DIR)/line_coverage_lost.txt; \
+	    sed 's/^/filet seulement: /' $(TMP_DIR)/line_coverage_new.txt; \
+	    echo "référence: ÉCHEC -- le filet ne rend plus $(LINE_COVERAGE_REFERENCE)"; exit 1; \
+	fi
+	@echo "référence: OK -- le filet rend les $$(wc -l < $(LINE_COVERAGE_REFERENCE)) ligne(s) de $(LINE_COVERAGE_REFERENCE)"
+
+.PHONY: line-coverage line-coverage-contrib line-coverage-reference-check
+
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
 	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check \
@@ -752,3 +811,4 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_E2E_DIR)/src/*.d $(OBJ_E2E_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_GCOV_DIR)/src/*.d $(OBJ_GCOV_DIR)/tests/*.d)
