@@ -62,7 +62,8 @@ void pico8_mh_pq(pico8_mh_t *self) {
 
     previous = pico8_kc();
     if (previous != NULL) {
-        previous->p_ = pico8_value_bool(1);
+        previous->p_ = 1;
+        previous->has_p_ = 1;
     }
     pico8_msgbox_set_kc(self);
 }
@@ -89,7 +90,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     }
 
     self_t = pico8_mh_value_fixed(self->ke.t);
-    rh = pico8_mh_value_fixed(self->rh);
+    rh = self->rh;
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
@@ -112,7 +113,8 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     }
 
     if (t > PICO8_FIXED_LIT(0x000a8000, 10.5)) {
-        self->p_ = pico8_value_bool(1);
+        self->p_ = 1;
+        self->has_p_ = 1;
         pico8_msgbox_set_kc(NULL);
         assert(pico8_kc() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
     }
@@ -120,25 +122,29 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
 
 static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_mh_t *mh = self;
-    const pico8_value_t *member;
 
     if (strcmp(name, "nu") == 0) {
-        member = &mh->nu;
+        if (mh->nu == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(mh->nu);
     } else if (strcmp(name, "fa") == 0) {
-        member = &mh->fa;
+        *out_value = pico8_value_fixed(mh->fa);
     } else if (strcmp(name, "rh") == 0) {
-        member = &mh->rh;
+        *out_value = pico8_value_fixed(mh->rh);
     } else if (strcmp(name, "lh") == 0) {
-        member = &mh->lh;
+        if (mh->lh == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_function(mh->lh);
     } else if (strcmp(name, "p_") == 0) {
-        member = &mh->p_;
+        if (!mh->has_p_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(mh->p_);
     } else {
         return pico8_ke_field(self, name, out_value);
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
-    }
-    *out_value = *member;
     return 1;
 }
 
@@ -153,11 +159,12 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_mh_struct_class);
-    self->nu = pico8_value_ref(g_mh_nu);
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(14));
-    self->rh = pico8_value_fixed(pico8_fixed_from_int(5));
-    self->lh = pico8_value_ref(NULL);
-    self->p_ = pico8_value_ref(NULL);
+    self->nu = g_mh_nu;
+    self->fa = pico8_fixed_from_int(14);
+    self->rh = pico8_fixed_from_int(5);
+    self->lh = NULL;
+    self->p_ = 0;
+    self->has_p_ = 0;
     pico8_list_init(&self->items);
     for (i = 0; overrides != NULL && i < overrides->count; i++) {
         pico8_ob_key_t key = overrides->entries[i].key;
@@ -166,9 +173,19 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
         if (key.kind != PICO8_OB_KEY_NAME) {
             pico8_list_add(&self->items, value);
         } else if (strcmp(key.name, "rh") == 0) {
-            self->rh = value;
+            assert(value.kind == PICO8_VALUE_FIXED &&
+                   "mh.rh: a nil or non-fixed key is off its census row (fixe, never nil) and rh has no presence "
+                   "flag -- a field under no rule of plan-3 section 5: stop, do not widen the member");
+            self->rh = value.as.fixed;
         } else if (strcmp(key.name, "lh") == 0) {
-            self->lh = value;
+            if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+                self->lh = NULL;
+            } else {
+                assert(value.kind == PICO8_VALUE_FUNCTION &&
+                       "mh.lh: a key neither nil nor a function is off its census row (fonction) -- a field under "
+                       "no rule of plan-3 section 5: stop, do not widen the member");
+                self->lh = value.as.function;
+            }
         } else {
             assert(0 && "mh: every measured key is positional, rh or lh; another would be a field under no rule "
                         "of plan-3 section 5 -- stop, do not add a member");

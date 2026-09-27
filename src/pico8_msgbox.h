@@ -19,11 +19,12 @@
  * its list: TROU-7. `nu` points at one table shared by every mh. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t nu;
-    pico8_value_t fa;
-    pico8_value_t rh;
-    pico8_value_t lh;
-    pico8_value_t p_;
+    pico8_ob_table_t *nu;
+    pico8_fixed_t fa;
+    pico8_fixed_t rh;
+    pico8_value_function_t lh; /* NULL: `lh` is nil */
+    int p_;
+    int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
     pico8_list_t items;
 } pico8_mh_t;
 

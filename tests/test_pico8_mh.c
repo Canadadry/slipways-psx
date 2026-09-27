@@ -3,11 +3,17 @@
  * `dg`/`dc("ev")`. The sequence and screen hashes were taken on the code
  * where `mh` was still a class instance and must not be re-taken. */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <assert.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
@@ -37,6 +43,7 @@
 #define TWO_YEARS_SEQUENCE_HASH 0xFB1D13D2u
 #define SCORES_TICKS 113
 #define SCORES_SEQUENCE_HASH 0x048C43C1u
+#define MEMBERS_BY_NAME_HASH 0xE307F5E9u
 
 #define MAX_BOXES 4
 
@@ -362,6 +369,154 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(!pico8_mv(generic, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
 }
 
+static const char *const MEMBER_NAMES[] = {"nu", "fa", "rh", "lh", "p_"};
+
+static uint32_t fold_member(uint32_t h, const void *e, const char *name, const void *nu, pico8_value_function_t lh) {
+    pico8_value_t v = pico8_value_fixed(0x5A5A);
+
+    if (!pico8_entity_get_field(e, name, &v)) {
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x5A5A);
+        return fnv(h, 0xDEADu);
+    }
+    h = fnv(h, (uint32_t)v.kind);
+    switch (v.kind) {
+    case PICO8_VALUE_FIXED:
+        return fnv(h, (uint32_t)v.as.fixed);
+    case PICO8_VALUE_BOOL:
+        return fnv(h, (uint32_t)v.as.boolean);
+    case PICO8_VALUE_REF:
+        return fnv(h, (uint32_t)(v.as.ref == nu));
+    case PICO8_VALUE_FUNCTION:
+        return fnv(h, (uint32_t)(v.as.function == lh));
+    default:
+        return fnv(h, 0xBADu);
+    }
+}
+
+static int has_member(const void *e, const char *name, pico8_value_t *out) {
+    *out = pico8_value_fixed(0x5A5A);
+    if (pico8_entity_get_field(e, name, out)) {
+        return 1;
+    }
+    assert(out->kind == PICO8_VALUE_FIXED && out->as.fixed == 0x5A5A);
+    return 0;
+}
+
+/* The five members, read by name only, on a box with no key, on one with
+ * `rh` and `lh` keys, and on the first once the second has closed it. */
+static void test_mh_members_by_name(void) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    void *a;
+    void *b;
+    const void *nu;
+    const pico8_ob_table_t *tags;
+    pico8_value_t v;
+    pico8_value_t out;
+    uint32_t h = 2166136261u;
+    int calls;
+    int i;
+
+    pico8_jl();
+    a = pico8_mh_new(NULL);
+
+    assert(has_member(a, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(14));
+    assert(has_member(a, "rh", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(5));
+    assert(has_member(a, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    nu = v.as.ref;
+    tags = nu;
+    assert(pico8_type_tag_of(tags) == PICO8_TYPE_TAG_OB_TABLE);
+    assert(tags->count == 1 && tags->entries[0].key.kind != PICO8_OB_KEY_NAME &&
+           tags->entries[0].value.kind == PICO8_VALUE_STRING && strcmp(tags->entries[0].value.as.string, "mh") == 0);
+    assert(!has_member(a, "lh", &v));
+    assert(!has_member(a, "p_", &v));
+    assert(!pico8_mv(a, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(listed(pico8_hv(), a) && listed(pico8_cv("ev"), a) && listed(pico8_cg("mh"), a));
+    assert(pico8_kc() == a);
+
+    pico8_ob_table_set_name(overrides, "rh", pico8_value_fixed(pico8_fixed_from_int(3)));
+    pico8_ob_table_set_name(overrides, "lh", pico8_value_function(counting_lh));
+    b = pico8_mh_new(overrides);
+    pico8_ob_table_free(overrides);
+
+    assert(pico8_type_tag_of(b) == PICO8_TYPE_TAG_STRUCT);
+    assert(has_member(b, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == nu);
+    assert(has_member(b, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(14));
+    assert(has_member(b, "rh", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(3));
+    assert(has_member(b, "lh", &v) && v.kind == PICO8_VALUE_FUNCTION && v.as.function == counting_lh);
+    calls = g_lh_calls;
+    assert(pico8_mv(b, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(g_lh_calls == calls + 1);
+    assert(!has_member(b, "p_", &v));
+    assert(has_member(a, "p_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 1);
+    assert(pico8_kc() == b);
+
+    for (i = 0; i < 5; i++) {
+        h = fold_member(h, a, MEMBER_NAMES[i], nu, counting_lh);
+        h = fold_member(h, b, MEMBER_NAMES[i], nu, counting_lh);
+    }
+    printf("[members by name] hash=0x%08Xu\n", (unsigned)h);
+    fflush(stdout);
+    assert(h == MEMBERS_BY_NAME_HASH);
+}
+
+/* A nil `lh` key leaves the box without `lh`, as a box built with no key. */
+static void test_mh_nil_lh_key_reads_absent(void) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    void *box;
+    pico8_value_t v;
+    pico8_value_t out;
+
+    pico8_jl();
+    pico8_ob_table_set_name(overrides, "lh", pico8_value_ref(NULL));
+    box = pico8_mh_new(overrides);
+    pico8_ob_table_free(overrides);
+    assert(!has_member(box, "lh", &v));
+    assert(!pico8_mv(box, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+}
+
+static void must_abort(void (*build)(void)) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        build();
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void build_with_key(const char *name, pico8_value_t value) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+
+    pico8_ob_table_set_name(overrides, name, value);
+    (void)pico8_mh_new(overrides);
+}
+
+static void build_rh_string(void) {
+    build_with_key("rh", pico8_value_string("3"));
+}
+
+static void build_rh_nil(void) {
+    build_with_key("rh", pico8_value_ref(NULL));
+}
+
+static void build_lh_fixed(void) {
+    build_with_key("lh", pico8_value_fixed(pico8_fixed_from_int(1)));
+}
+
+/* A construction key of a kind off `mh`'s census row stops the build. */
+static void test_mh_rejects_off_row_keys(void) {
+    pico8_jl();
+    must_abort(build_rh_string);
+    must_abort(build_rh_nil);
+    must_abort(build_lh_fixed);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -381,6 +536,9 @@ int main(void) {
     test_scores_box_follows_c_();
     test_defaults_match_the_parsed_spec();
     test_mh_is_a_struct_registered_under_ev();
+    test_mh_members_by_name();
+    test_mh_nil_lh_key_reads_absent();
+    test_mh_rejects_off_row_keys();
 
     printf("test_pico8_mh: all tests passed\n");
     return 0;
