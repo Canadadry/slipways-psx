@@ -428,7 +428,7 @@ static pico8_value_t call(void *e, const char *name, pico8_value_t arg0) {
 
 /* `jc:hq` reads the hovered entity off `ok.o_`. */
 static void hq_over(void *jc, void *hovered, pico8_value_t mp) {
-    pico8_entity_set_field(pico8_ok(), "o_", pico8_value_ref(hovered));
+    pico8_ok()->o_ = pico8_value_ref(hovered);
     (void)call(jc, "hq", mp);
 }
 

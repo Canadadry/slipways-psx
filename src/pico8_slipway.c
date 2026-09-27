@@ -89,7 +89,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
 }
 
 void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
-    pico8_instance_t *ok;
+    pico8_ui_t *ok;
     pico8_instance_t *hovered;
     pico8_value_t gv_val;
     pico8_value_t re_val;

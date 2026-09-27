@@ -58,9 +58,9 @@ static pico8_value_t ha_row_my(int row) {
 
 static const void *ok_hovered(void) {
     pico8_value_t v;
-    pico8_instance_t *ok = pico8_ok();
+    const void *ok = pico8_ok();
     assert(ok != NULL);
-    if (!pico8_instance_get_field(ok, "o_", &v) || v.kind != PICO8_VALUE_REF) {
+    if (!pico8_entity_get_field(ok, "o_", &v) || v.kind != PICO8_VALUE_REF) {
         return NULL;
     }
     return v.as.ref;
@@ -69,9 +69,9 @@ static const void *ok_hovered(void) {
 /* 0 when `ok.le` is missing or empty, i.e. no menu is up. */
 static int ok_le_count(void) {
     pico8_value_t v;
-    pico8_instance_t *ok = pico8_ok();
+    const void *ok = pico8_ok();
     assert(ok != NULL);
-    if (!pico8_instance_get_field(ok, "le", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+    if (!pico8_entity_get_field(ok, "le", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return 0;
     }
     return ((const pico8_list_t *)v.as.ref)->count;

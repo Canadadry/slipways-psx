@@ -73,10 +73,10 @@ static int screen_px(int x, int y) {
 
 /* The rows `pz()` just built, as the panel singleton holds them. */
 static const pico8_list_t *panel_rows(void) {
-    pico8_instance_t *ok = pico8_ok();
+    const void *ok = pico8_ok();
     pico8_value_t le;
     assert(ok != NULL);
-    assert(pico8_instance_get_field(ok, "le", &le));
+    assert(pico8_entity_get_field(ok, "le", &le));
     assert(le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
     return (const pico8_list_t *)le.as.ref;
 }

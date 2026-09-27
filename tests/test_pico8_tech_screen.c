@@ -65,8 +65,8 @@ static int invented_count(void) {
 
 static const pico8_list_t *ok_le(void) {
     pico8_value_t v;
-    pico8_instance_t *ok = pico8_ok();
-    if (ok == NULL || !pico8_instance_get_field(ok, "le", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+    const void *ok = pico8_ok();
+    if (ok == NULL || !pico8_entity_get_field(ok, "le", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
     return (const pico8_list_t *)v.as.ref;

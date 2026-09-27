@@ -450,7 +450,7 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     pico8_vec_t ra;
     pico8_pz_ctx_t ctx;
     pico8_list_t *le_heap;
-    pico8_instance_t *ok;
+    pico8_ui_t *ok;
     pico8_value_t eo_val;
     pico8_value_t rn_arg;
     pico8_value_t ff_val;
@@ -503,7 +503,7 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     le_heap = malloc(sizeof *le_heap);
     *le_heap = pico8_nv(bs_effective, pico8_pz_step, &ctx);
     if (ok != NULL) {
-        pico8_ob_table_set_name(pico8_instance_fields(ok), "le", pico8_value_ref(le_heap));
+        ok->le = pico8_value_ref(le_heap);
     } else {
         pico8_list_free(le_heap);
         free(le_heap);
@@ -519,6 +519,6 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     if (pico8_entity_get_field(p, "ff", &ff_val) && pico8_msgbox_truthy(ff_val) && ok != NULL) {
         pico8_list_t *empty_heap = malloc(sizeof *empty_heap);
         pico8_list_init(empty_heap);
-        pico8_ob_table_set_name(pico8_instance_fields(ok), "le", pico8_value_ref(empty_heap));
+        ok->le = pico8_value_ref(empty_heap);
     }
 }

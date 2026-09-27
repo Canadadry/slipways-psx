@@ -119,7 +119,7 @@ static void test_gd_on_placeholder(void) {
 /* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
  * run: `qa` is `je.ra + mo.ra`. */
 static void test_lj_on_placeholder(void) {
-    pico8_instance_t *ok;
+    pico8_ui_t *ok;
     pico8_value_t v;
     const pico8_vec_t *qa;
 

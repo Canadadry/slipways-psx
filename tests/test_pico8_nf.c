@@ -246,7 +246,7 @@ static void test_nf_init_starts_the_tables_afresh(void) {
 /* Before `jl()`, `je` is the field-less placeholder: no buttons, no `ra`,
  * and `ok`'s frame dispatches no press. */
 static void test_placeholder_je(void) {
-    pico8_instance_t *ok;
+    pico8_ui_t *ok;
     pico8_vec_t ra;
     pico8_value_t v;
 

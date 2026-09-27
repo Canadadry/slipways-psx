@@ -94,7 +94,7 @@ static void test_placeholder_after_cart_load(void) {
 /* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
  * run: no press, `qa` is `mo.ra` alone. */
 static void test_lj_on_placeholder(void) {
-    pico8_instance_t *ok;
+    pico8_ui_t *ok;
     pico8_value_t v;
     const pico8_vec_t *qa;
 

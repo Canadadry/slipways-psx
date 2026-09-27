@@ -100,20 +100,15 @@ static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     return pico8_geom_be(qu_p, re_p, ctx->self_p, PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
-/* `hw` is read off the `ui` class defaults, not off `ok`; an absent class or
- * an absent/wrong-kind box reads as "the point is not inside the panel". */
+/* `hw` is read off the `ui` class, not off `ok`; no class reads as "the
+ * point is not inside the panel". */
 static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
-    pico8_class_t *ui_class = pico8_ui_class();
-    pico8_value_t hw_val;
+    const pico8_qz_box_t *hw = pico8_ui_hw();
 
-    if (ui_class == NULL || ui_class->defaults == NULL) {
+    if (hw == NULL) {
         return 0;
     }
-    if (!pico8_ob_table_get_name(ui_class->defaults, "hw", &hw_val) || hw_val.kind != PICO8_VALUE_REF ||
-        hw_val.as.ref == NULL) {
-        return 0;
-    }
-    return pico8_qz_call((const pico8_qz_box_t *)hw_val.as.ref, rp);
+    return pico8_qz_call(hw, rp);
 }
 
 void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {

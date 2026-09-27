@@ -61,9 +61,9 @@ static int total_oe(void) {
 }
 
 static pico8_instance_t *ui_left_held(void) {
-    pico8_instance_t *ok = pico8_ok();
+    const void *ok = pico8_ok();
     pico8_value_t v;
-    if (ok == NULL || !pico8_instance_get_field(ok, "lheld", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+    if (ok == NULL || !pico8_entity_get_field(ok, "lheld", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
     return (pico8_instance_t *)v.as.ref;

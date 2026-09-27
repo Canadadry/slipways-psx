@@ -39,10 +39,10 @@
 
 /* The `js` button instances `pz()` just built. */
 static const pico8_list_t *ok_le(void) {
-    pico8_instance_t *ok = pico8_ok();
+    const void *ok = pico8_ok();
     pico8_value_t le;
     assert(ok != NULL);
-    assert(pico8_instance_get_field(ok, "le", &le));
+    assert(pico8_entity_get_field(ok, "le", &le));
     assert(le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
     return (const pico8_list_t *)le.as.ref;
 }

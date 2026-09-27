@@ -25,7 +25,7 @@ static int pico8_dg_truthy(pico8_value_t v) {
 void pico8_jl(void) {
     pico8_qb_t *real_mo;
     pico8_nf_t *real_je;
-    pico8_instance_t *real_ok;
+    pico8_ui_t *real_ok;
 
     pico8_entity_init();
 
@@ -73,9 +73,8 @@ void pico8_dg(void) {
         pico8_value_t p_val;
         pico8_value_t t_val;
 
-        assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_INSTANCE ||
-                pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
-               "hv holds entities only");
+        assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
+               "hv holds structs only; no class instance descends from ke any more");
 
         /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
          * name comes from `me` at run time, so no site ever writes `:ly(`
@@ -94,12 +93,7 @@ void pico8_dg(void) {
         }
 
         if (pico8_entity_get_field(qc, "t", &t_val) && t_val.kind == PICO8_VALUE_FIXED) {
-            pico8_value_t t_next = pico8_value_fixed(pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1)));
-            if (pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) {
-                ((pico8_ke_t *)qc)->t = t_next;
-            } else {
-                pico8_ob_table_set_name(pico8_instance_fields(qc), "t", t_next);
-            }
+            ((pico8_ke_t *)qc)->t = pico8_value_fixed(pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1)));
         }
     }
 }

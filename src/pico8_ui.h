@@ -2,15 +2,34 @@
 #define PICO8_UI_H
 
 #include "pico8_class.h"
+#include "pico8_geom.h"
 #include "pico8_gfx.h"
+#include "pico8_ke.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
-/* Throughout this module a NULL instance, `gfx` or `mem` argument is a safe
- * no-op, and an absent or wrong-kind field reads as absent rather than
- * crashing. */
+/* Throughout this module a NULL `ui`, `gfx` or `mem` argument is a safe
+ * no-op, and an absent or wrong-kind field of another entity (`je`, `mo`,
+ * `o_`) reads as absent rather than crashing. */
+
+/* TROU-7 */
+/* `le` of a new `ui` is the class's own empty list, shared until `cj` or
+ * `pz` replaces it; `hw` is the class's box, borrowed. */
+typedef struct {
+    pico8_ke_t ke;
+    pico8_value_t ql;
+    pico8_value_t fa;
+    pico8_value_t le;
+    pico8_value_t hw;
+    pico8_value_t qa;
+    pico8_value_t ic;
+    pico8_value_t o_;
+    pico8_value_t gj;
+    pico8_value_t lheld;
+    pico8_value_t rheld;
+} pico8_ui_t;
 
 /* Calls `pico8_pi_init()` first: the class spec contains `b(10,10,118,118)`,
  * so the 'b' constructor must already be registered when it is parsed. The
@@ -27,9 +46,16 @@ void pico8_ui_shutdown(void);
 /* NULL before `pico8_ui_init()` and after `pico8_ui_shutdown()`. Not
  * reachable through `pico8_class_lookup()`. */
 pico8_class_t *pico8_ui_class(void);
+const pico8_struct_class_t *pico8_ui_struct_class(void);
 
-/* `overrides` is copied, not kept, and nothing ever frees the instance. */
-pico8_instance_t *pico8_ui_new(const pico8_ob_table_t *overrides);
+/* The box of the class, read by `bv`; NULL before `pico8_ui_init()` and
+ * after `pico8_ui_shutdown()`. */
+const pico8_qz_box_t *pico8_ui_hw(void);
+
+/* `overrides` must be NULL or empty: a key asserts. The `ui` registers
+ * itself through `lt` into `hv` and `cv.ev`, no `cg`; only the current
+ * `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts before the init. */
+pico8_ui_t *pico8_ui_new(const pico8_ob_table_t *overrides);
 
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder
  * struct, with no field and no method, so every `je.<field>` read falls back
@@ -46,31 +72,31 @@ void pico8_ui_set_je(pico8_instance_t *instance);
 
 /* NULL until `pico8_jl()` (pico8_bootstrap.c) calls `pico8_ui_set_ok()`, and
  * again after `pico8_ui_shutdown()`. */
-pico8_instance_t *pico8_ok(void);
+pico8_ui_t *pico8_ok(void);
 
 /* Same ownership rule as `pico8_ui_set_je()`. */
-void pico8_ui_set_ok(pico8_instance_t *instance);
+void pico8_ui_set_ok(pico8_ui_t *ui);
 
 /* Called once per frame by `pico8__update60()` (pico8_cart.c). `mem` is an
  * explicit parameter because that call is direct, not routed through
  * `mv()`/`dc()` and their shared dispatch context. */
-void pico8_ui_lj(pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self);
 
-void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_instance_t *self);
+void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *self);
 
-void pico8_ui_gw(pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self);
 
-/* `bt` is "l" or "r", concatenated at runtime into the field name
- * "lheld"/"rheld" and the method name "ldown"/"rdown". */
-void pico8_ui_bh(pico8_instance_t *self, const char *bt);
+/* `bt` is "l" or "r", anything else asserts: it picks the member
+ * `lheld`/`rheld` and the method `ldown`/`rdown`. */
+void pico8_ui_bh(pico8_ui_t *self, const char *bt);
 
 /* Lua's `{kv=h,kn=kn}` result, written out: returns 1 and fills `*out_kv`
  * and `*out_kn` on the first truthy answer, or 0 leaving both untouched when
  * nothing answers. `argc`/`arg0`/`arg1` are forwarded to each candidate
  * unchanged. */
-int pico8_ui_jz(pico8_instance_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
+int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
                 pico8_instance_t **out_kv, pico8_value_t *out_kn);
 
-void pico8_ui_cj(pico8_instance_t *self);
+void pico8_ui_cj(pico8_ui_t *self);
 
 #endif

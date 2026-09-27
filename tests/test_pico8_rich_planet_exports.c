@@ -85,7 +85,7 @@ static int promote_and_open_panel(pico8_instance_t *planet, int tier, int *has_e
 
     pico8_jo_gh((const pico8_jo_t *)planet);
 
-    assert(pico8_instance_get_field(pico8_ok(), "le", &le) && le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
+    assert(pico8_entity_get_field(pico8_ok(), "le", &le) && le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
     rows = (const pico8_list_t *)le.as.ref;
     *has_exports = 0;
     for (i = 0; i < rows->count; i++) {
