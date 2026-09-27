@@ -34,6 +34,8 @@
 #include "../src/pico8_ob.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
+#include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
@@ -42,6 +44,7 @@
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_wormhole.h"
 
 #define DRAG "tests/fixtures/slipway_drag_events.json"
 
@@ -56,6 +59,7 @@
 #define DRAG_HASH 0xBF801C2Fu
 #define DRAG_PROBES 2
 #define FV_HASH 0xE9230D69u
+#define BV_ET_MEMBERS_HASH 0x2E520916u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -921,6 +925,216 @@ static void test_bv_et_is_a_struct(void) {
     assert(!has(et, "fo"));
 }
 
+/* `fo` of the throwaway target read by the raw reader and by name, which
+ * agree; absent leaves the witness untouched. Returns presence, then kind,
+ * then the rank in `holders` of the REF read (-1 off the list). */
+static uint32_t fold_bv_et_fo(uint32_t h, void *t, void *const *holders, int n, void *want) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t named = pico8_value_fixed(0x1234);
+    int got_raw = pico8_bv_et_struct_class()->field(t, "fo", &raw);
+    int got_named = pico8_entity_get_field(t, "fo", &named);
+    int i;
+
+    assert(got_raw == got_named && raw.kind == named.kind);
+    if (!got_raw) {
+        assert(want == NULL && raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        assert(named.kind == PICO8_VALUE_FIXED && named.as.fixed == 0x1234);
+        return fnv(fnv(h, 0), 0);
+    }
+    assert(raw.kind == PICO8_VALUE_REF && raw.as.ref == want && named.as.ref == want);
+    for (i = 0; i < n && holders[i] != raw.as.ref; i++) {
+    }
+    h = fnv(h, 1);
+    h = fnv(h, (uint32_t)raw.kind);
+    return fnv(h, (uint32_t)(i < n ? i : -1));
+}
+
+static void *bv_et_target(void **holder_out, void **jc_out, pico8_vec_t *at_out) {
+    void *a;
+    void *t;
+    pico8_vec_t middle;
+
+    start_game(DRAG);
+    a = ldown();
+    *jc_out = a_slipway(&middle);
+    *at_out = pico8_vec_add(middle, vec_xy(0, 3));
+    (void)call(a, "hq", 2, mouse_at(*at_out), vec_ref(vec_xy(2, 2)));
+    t = get_ref(a, "et");
+    assert(is_bv_target(t));
+    *holder_out = a;
+    return t;
+}
+
+/* The state of `mz`'s `et` after its `hq`: absent, the throwaway target,
+ * the `jj` wrapper, another value. */
+static uint32_t mz_et_state(const void *mz, const void *t) {
+    pico8_value_t et;
+
+    if (!lookup(mz, "et", &et)) {
+        return 0;
+    }
+    if (et.kind != PICO8_VALUE_REF) {
+        return 10 + (uint32_t)et.kind;
+    }
+    if (et.as.ref == t) {
+        return 1;
+    }
+    if (et.as.ref == (const void *)pico8_mz_jj_wrapper()) {
+        return 2;
+    }
+    return 3;
+}
+
+/* `fo` by name with each of the eleven classes whose `hq` runs `bv`: the
+ * census row, plus `fv`, `nl`, `pm`. */
+static void test_bv_et_members_by_name(void) {
+    static const char *const strangers[] = {"", "x", "FO", "fo ", "qs", "et", "header", "cls"};
+    static const char *const unwritten[] = {"qs", "et", "", "fo ", "FO"};
+    const pico8_struct_class_t *want_cls[11];
+    void *holders[11];
+    void *a;
+    void *t;
+    void *jc;
+    pico8_vec_t at;
+    pico8_value_t zero_ref;
+    uint32_t h = 2166136261u;
+    size_t i;
+    int k;
+
+    t = bv_et_target(&a, &jc, &at);
+
+    h = fold_bv_et_fo(h, t, &a, 1, a);
+    for (i = 0; i < sizeof strangers / sizeof strangers[0]; i++) {
+        pico8_value_t raw = pico8_value_fixed(0x1234);
+        pico8_value_t named = pico8_value_fixed(0x1234);
+        int got_raw = pico8_bv_et_struct_class()->field(t, strangers[i], &raw);
+        int got_named = pico8_entity_get_field(t, strangers[i], &named);
+        assert(!got_raw && !got_named);
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        assert(named.kind == PICO8_VALUE_FIXED && named.as.fixed == 0x1234);
+        h = fnv(h, (uint32_t)got_raw);
+    }
+
+    holders[0] = a;
+    holders[1] = pico8_fv_new(NULL);
+    holders[2] = pico8_mz_new(NULL);
+    holders[3] = pico8_qh_new(NULL);
+    holders[4] = pico8_nl_new(NULL);
+    holders[5] = pico8_os_new(NULL);
+    holders[6] = pico8_hj_new(NULL);
+    holders[7] = pico8_pm_new(NULL);
+    holders[8] = pico8_nr_new(NULL);
+    holders[9] = pico8_fr_new(NULL);
+    holders[10] = pico8_mx_new(NULL);
+    want_cls[0] = pico8_g__struct_class();
+    want_cls[1] = pico8_fv_struct_class();
+    want_cls[2] = pico8_mz_struct_class();
+    want_cls[3] = pico8_qh_struct_class();
+    want_cls[4] = pico8_nl_struct_class();
+    want_cls[5] = pico8_os_struct_class();
+    want_cls[6] = pico8_hj_struct_class();
+    want_cls[7] = pico8_pm_struct_class();
+    want_cls[8] = pico8_nr_struct_class();
+    want_cls[9] = pico8_fr_struct_class();
+    want_cls[10] = pico8_mx_struct_class();
+    for (k = 0; k < 11; k++) {
+        assert(pico8_type_tag_of(holders[k]) == PICO8_TYPE_TAG_STRUCT &&
+               ((const pico8_struct_header_t *)holders[k])->cls == want_cls[k]);
+    }
+
+    for (k = 0; k < 11; k++) {
+        (void)call(holders[k], "hq", 2, mouse_at(at), vec_ref(vec_xy(2, 2)));
+        h = fold_bv_et_fo(h, t, holders, 11, holders[k]);
+        if (k == 2) {
+            h = fnv(h, mz_et_state(holders[k], t));
+        } else {
+            assert(get_ref(holders[k], "et") == t);
+        }
+    }
+
+    for (k = 10; k >= 0; k--) {
+        pico8_entity_set_field(t, "fo", pico8_value_ref(holders[k]));
+        h = fold_bv_et_fo(h, t, holders, 11, holders[k]);
+        h = fnv(h, (uint32_t)pico8_bv_et_struct_class()->set_field(t, "fo", pico8_value_ref(a)));
+        h = fold_bv_et_fo(h, t, holders, 11, a);
+    }
+    pico8_entity_set_field(t, "fo", pico8_value_ref(NULL));
+    h = fold_bv_et_fo(h, t, holders, 11, NULL);
+    memset(&zero_ref, 0, sizeof zero_ref);
+    zero_ref.kind = PICO8_VALUE_REF;
+    pico8_entity_set_field(t, "fo", zero_ref);
+    h = fold_bv_et_fo(h, t, holders, 11, NULL);
+    pico8_entity_set_field(t, "fo", pico8_value_ref(NULL));
+    h = fold_bv_et_fo(h, t, holders, 11, NULL);
+    pico8_entity_set_field(t, "fo", pico8_value_ref(holders[0]));
+    h = fold_bv_et_fo(h, t, holders, 11, holders[0]);
+
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        h = fnv(h, (uint32_t)pico8_bv_et_struct_class()->set_field(t, unwritten[i], pico8_value_ref(a)));
+        h = fold_bv_et_fo(h, t, holders, 11, holders[0]);
+    }
+
+    assert(get_ref(a, "et") == t);
+    check("bv_et members", h, BV_ET_MEMBERS_HASH);
+}
+
+static void write_fo_by_name(void *e, pico8_value_t v) {
+    pico8_entity_set_field(e, "fo", v);
+}
+
+static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(e, v);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* `fo` takes nil or an object whose `hq` runs `bv` only. */
+static void test_bv_et_writer_stops_off_row(void) {
+    pico8_value_t zero_fixed;
+    pico8_value_t zero_false;
+    pico8_value_t zero_string;
+    pico8_value_t zero_function;
+    pico8_vec_t at;
+    void *a;
+    void *t;
+    void *jc;
+
+    t = bv_et_target(&a, &jc, &at);
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    memset(&zero_string, 0, sizeof zero_string);
+    zero_string.kind = PICO8_VALUE_STRING;
+    memset(&zero_function, 0, sizeof zero_function);
+    zero_function.kind = PICO8_VALUE_FUNCTION;
+
+    must_abort_value(t, write_fo_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(t, write_fo_by_name, zero_fixed);
+    must_abort_value(t, write_fo_by_name, pico8_value_bool(1));
+    must_abort_value(t, write_fo_by_name, zero_false);
+    must_abort_value(t, write_fo_by_name, pico8_value_string("x"));
+    must_abort_value(t, write_fo_by_name, zero_string);
+    must_abort_value(t, write_fo_by_name, zero_function);
+    must_abort_value(t, write_fo_by_name, vec_ref(vec_xy(1, 1)));
+    must_abort_value(t, write_fo_by_name, pico8_value_ref(pico8_ob_table_new()));
+    must_abort_value(t, write_fo_by_name, pico8_value_ref((void *)pico8_hv()));
+    must_abort_value(t, write_fo_by_name, get(jc, "qu"));
+    must_abort_value(t, write_fo_by_name, pico8_value_ref(jc));
+    must_abort_value(t, write_fo_by_name, pico8_value_ref(t));
+    must_abort_value(t, write_fo_by_name, pico8_value_ref(pico8_mz_jj_wrapper()));
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -959,6 +1173,8 @@ int main(void) {
     in_fresh_child(test_fv);
     in_fresh_child(test_g__is_a_struct);
     in_fresh_child(test_bv_et_is_a_struct);
+    in_fresh_child(test_bv_et_members_by_name);
+    in_fresh_child(test_bv_et_writer_stops_off_row);
 
     printf("test_pico8_g_: all tests passed\n");
     return 0;

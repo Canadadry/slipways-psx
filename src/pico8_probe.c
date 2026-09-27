@@ -18,6 +18,7 @@
 #include "pico8_ke.h"
 #include "pico8_particle.h"
 #include "pico8_ui.h"
+#include "pico8_wormhole.h"
 
 static pico8_ob_table_t *g_g__spec = NULL;
 static pico8_struct_header_t *g_fm = NULL;
@@ -53,27 +54,47 @@ static pico8_fm_placeholder_t g_fm_placeholder = {
 
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t fo;
+    pico8_struct_header_t *fo;
 } pico8_bv_et_t;
 
 static int pico8_bv_et_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_bv_et_t *et = self;
 
-    if (strcmp(name, "fo") != 0 || (et->fo.kind == PICO8_VALUE_REF && et->fo.as.ref == NULL)) {
-        return 0;
+    if (strcmp(name, "fo") == 0) {
+        if (et->fo == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(et->fo);
+        return 1;
     }
-    *out_value = et->fo;
-    return 1;
+    return 0;
+}
+
+static int bv_et_is_holder_class(const pico8_struct_class_t *cls) {
+    return cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch || cls == pico8_mz_struct_class();
+}
+
+static void bv_et_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           bv_et_is_holder_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
+           "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, "
+           "mx) is off its census row (ref: to those holders) -- a field under no rule of plan-3 section 5: stop, "
+           "do not widen the member");
+    *out = value.as.ref;
 }
 
 static int pico8_bv_et_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_bv_et_t *et = self;
 
-    if (strcmp(name, "fo") != 0) {
-        return 0;
+    if (strcmp(name, "fo") == 0) {
+        bv_et_take_holder(value, &et->fo);
+        return 1;
     }
-    et->fo = value;
-    return 1;
+    return 0;
 }
 
 static const pico8_struct_class_t g_bv_et_struct_class = {
@@ -84,7 +105,7 @@ static const pico8_struct_class_t g_bv_et_struct_class = {
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
-static pico8_bv_et_t g_bv_et = {{PICO8_TYPE_TAG_STRUCT, &g_bv_et_struct_class}, {PICO8_VALUE_REF, {0}}};
+static pico8_bv_et_t g_bv_et = {{PICO8_TYPE_TAG_STRUCT, &g_bv_et_struct_class}, NULL};
 
 static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
