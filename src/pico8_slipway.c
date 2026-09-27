@@ -27,6 +27,49 @@ static pico8_class_t *g_jc_class = NULL;
 static pico8_ob_table_t *g_jc_nu = NULL;
 static pico8_ob_table_t *g_jc_k_ = NULL;
 
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t qs;
+    pico8_value_t fo;
+} pico8_jc_too_far_t;
+
+static int pico8_jc_too_far_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_jc_too_far_t *too_far = self;
+
+    if (strcmp(name, "qs") == 0) {
+        *out_value = too_far->qs;
+        return 1;
+    }
+    if (strcmp(name, "fo") != 0 || (too_far->fo.kind == PICO8_VALUE_REF && too_far->fo.as.ref == NULL)) {
+        return 0;
+    }
+    *out_value = too_far->fo;
+    return 1;
+}
+
+static int pico8_jc_too_far_set_field(void *self, const char *name, pico8_value_t value) {
+    pico8_jc_too_far_t *too_far = self;
+
+    if (strcmp(name, "fo") != 0) {
+        return 0;
+    }
+    too_far->fo = value;
+    return 1;
+}
+
+static const pico8_struct_class_t g_jc_too_far_struct_class = {
+    {NULL},
+    pico8_jc_too_far_field,
+    pico8_jc_too_far_set_field,
+};
+
+/* The `{qs="-too far-"}` `jc:ce` returns beyond range: never allocated,
+ * never freed; `qs` is fixed, only `fo` is written, and the next `hq`
+ * overwrites it. */
+static pico8_jc_too_far_t g_jc_too_far = {{PICO8_TYPE_TAG_STRUCT, &g_jc_too_far_struct_class},
+                                          {PICO8_VALUE_STRING, {.string = "-too far-"}},
+                                          {PICO8_VALUE_REF, {0}}};
+
 /* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
 static int pico8_jc_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -136,7 +179,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     if (pico8_jc_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
         assert((pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
                 pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
-               "jc:ce must yield an entity to hang `fo` on: a planet or `{qs}` instance, or a jc struct");
+               "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
         pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
     }
 
@@ -252,12 +295,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     threshold = (ov_result.kind == PICO8_VALUE_FIXED) ? ov_result.as.fixed : pico8_fixed_from_int(0);
 
     if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {
-        pico8_instance_t *placeholder = malloc(sizeof *placeholder);
-        placeholder->tag = PICO8_TYPE_TAG_INSTANCE;
-        placeholder->cls = NULL;
-        placeholder->fields = pico8_ob_table_new();
-        pico8_ob_table_set_name(pico8_instance_fields(placeholder), "qs", pico8_value_string("-too far-"));
-        return pico8_value_ref(placeholder);
+        return pico8_value_ref(&g_jc_too_far);
     }
 
     {
@@ -536,4 +574,8 @@ const pico8_struct_class_t *pico8_jc_struct_class(void) {
 
 pico8_jc_t *pico8_jc_new(const pico8_ob_table_t *overrides) {
     return pico8_jc_struct_new(overrides);
+}
+
+const pico8_struct_class_t *pico8_jc_too_far_struct_class(void) {
+    return &g_jc_too_far_struct_class;
 }

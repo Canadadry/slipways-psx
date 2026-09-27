@@ -60,7 +60,7 @@ void pico8_jc_pq(pico8_jc_t *self);
 /* Rebinds `self.re` every frame: the hovered entity when it answers to
  * `gv`, otherwise a fresh classless `{ra,p}` instance. Also rebinds `od`,
  * `mt`, `et` and `fa`, and points the `fo` of whatever `ce()` found -- a
- * planet, another `jc` struct or a `{qs}` instance -- back at this
+ * planet, another `jc` struct or the static `{qs}` struct -- back at this
  * slipway. */
 void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp);
 
@@ -68,10 +68,11 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp);
  * endpoints are registered on success. */
 void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re);
 
-/* TROU-7 */
 /* Returns the existing slipway to reuse, the first planet or slipway in
- * the way, a fresh `{qs="-too far-"}` instance, or nothing. */
+ * the way, the one static `{qs="-too far-"}` struct, or nothing. */
 pico8_value_t pico8_jc_ce(pico8_jc_t *self);
+
+const pico8_struct_class_t *pico8_jc_too_far_struct_class(void);
 
 pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_instance_t *jo_instance);
 

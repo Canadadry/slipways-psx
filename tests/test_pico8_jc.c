@@ -57,6 +57,7 @@
 #define EB_HASH 0x8ABEE578u
 #define DRAW_HASH 0xC0A23F6Eu
 #define BV_HASH 0xD5135D83u
+#define TOO_FAR_HASH 0x5C5FF603u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -144,6 +145,12 @@ static int is_throwaway(const void *e) {
     return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == NULL;
 }
 
+static int is_too_far(const void *e) {
+    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_jc_too_far_struct_class() &&
+           is_string(e, "qs", "-too far-");
+}
+
 /* A value by what it is, a referenced entity by its rank in `hv`. */
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
@@ -160,7 +167,8 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         if (listed(pico8_hv(), v.as.ref)) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
         }
-        return fnv(h, is_throwaway(v.as.ref) ? 0x7Au : 0xEEEEu);
+        /* The frozen hashes folded the `{qs}` as a class-less throwaway. */
+        return fnv(h, is_too_far(v.as.ref) || is_throwaway(v.as.ref) ? 0x7Au : 0xEEEEu);
     default:
         return fnv(h, 0xF0u);
     }
@@ -217,7 +225,7 @@ static int et_kind(const void *jc) {
     if (listed(pico8_cg("jc"), et.as.ref)) {
         return ET_JC;
     }
-    if (is_throwaway(et.as.ref) && is_string(et.as.ref, "qs", "-too far-")) {
+    if (is_too_far(et.as.ref)) {
         return ET_QS;
     }
     return ET_OTHER;
@@ -706,6 +714,84 @@ static void test_draw(void) {
     check("draw", h, DRAW_HASH);
 }
 
+/* Beyond range: `kj` draws the line under the game's camera, `ev` writes
+ * `qs` at the mouse where one with another `et` draws a sprite and one
+ * without writes its cost, and `ey` onto a real planet is refused without
+ * spending or joining anything. */
+static void test_too_far(void) {
+    uint32_t h = 2166136261u;
+    uint32_t blank;
+    uint32_t too_far;
+    uint32_t sprite;
+    uint32_t costed;
+    pico8_vec_t mo_ra;
+    pico8_vec_t mouse;
+    pico8_value_t nh;
+    pico8_fixed_t before;
+    void *old;
+    void *origin;
+    void *target;
+    void *far;
+    void *twin;
+    void *near;
+    void *re;
+
+    world();
+    old = the_slipway();
+    origin = get_ref(old, "qu");
+    target = get_ref(old, "re");
+    far = build_jc(origin);
+    hq_over(far, NULL, vec_ref(-640, -640));
+    assert(re_kind(far) == RE_THROWAWAY && et_kind(far) == ET_QS);
+    assert(et_kind(old) == ET_ABSENT);
+    mo_ra = vec_of(pico8_mo(), "ra");
+    pico8_camera(&gfx, pico8_fixed_flr_int(mo_ra.x), pico8_fixed_flr_int(mo_ra.y));
+    pico8_cls(&mem);
+    blank = screen_hash();
+
+    (void)call(far, "kj", pico8_value_ref(NULL));
+    assert(screen_hash() != blank);
+    h = fnv(h, screen_hash());
+
+    twin = build_jc(origin);
+    hq_over(twin, target, vec_ref_fixed(vec_of(target, "ra")));
+    assert(et_kind(twin) == ET_JC);
+    near = build_jc(origin);
+    hq_over(near, NULL, vec_ref_fixed(pico8_vec_add(vec_of(origin, "ra"), pico8_vec_v(pico8_fixed_from_int(16), 0))));
+    assert(re_kind(near) == RE_THROWAWAY && et_kind(near) == ET_ABSENT && has(near, "od"));
+    mouse = vec_of(pico8_je(), "ra");
+    pico8_camera(&gfx, pico8_fixed_flr_int(mouse.x) - 64, pico8_fixed_flr_int(mouse.y) - 64);
+    pico8_cls(&mem);
+    (void)call(far, "ev", pico8_value_ref(NULL));
+    too_far = screen_hash();
+    pico8_cls(&mem);
+    (void)call(twin, "ev", pico8_value_ref(NULL));
+    sprite = screen_hash();
+    pico8_cls(&mem);
+    (void)call(near, "ev", pico8_value_ref(NULL));
+    costed = screen_hash();
+    assert(too_far != blank && sprite != blank && costed != blank);
+    assert(too_far != sprite && too_far != costed);
+    h = fnv(h, too_far);
+    h = fnv(h, sprite);
+    h = fnv(h, costed);
+
+    before = credits();
+    nh = get(far, "nh");
+    re = get_ref(far, "re");
+    assert(list_count(origin, "oe") == 1 && list_count(target, "oe") == 1);
+    (void)call(far, "ey", pico8_value_ref(target));
+    assert(bool_state(far, "p_") == 2);
+    assert(credits() == before);
+    assert(list_count(origin, "oe") == 1 && list_count(target, "oe") == 1);
+    assert(get_ref(far, "re") == re && re_kind(far) == RE_THROWAWAY);
+    assert(pico8_value_equal(get(far, "nh"), nh));
+    assert(et_kind(far) == ET_QS);
+    h = fold_jc(h, far);
+    h = fnv(h, (uint32_t)credits());
+    check("too far", h, TOO_FAR_HASH);
+}
+
 /* A probe over the slipway targets it and hangs `fo` on it. Its `dw` is
  * zeroed, as `mz`'s is: every point of this short slipway lies within a
  * `g_`'s `dw` of one of its own planets, which would win. */
@@ -834,6 +920,50 @@ static void test_jc_is_a_struct(void) {
     }
 }
 
+static void write_qs(void *e) {
+    pico8_entity_set_field(e, "qs", pico8_value_string("-too far-"));
+}
+
+static void write_ra(void *e) {
+    pico8_entity_set_field(e, "ra", pico8_value_ref(NULL));
+}
+
+/* Beyond range, every `jc` gets the same struct: `qs` fixed, `fo` the last
+ * `hq` to write it, no method, and a write of another name stops the run. */
+static void test_too_far_is_a_struct(void) {
+    static const char *const absent[] = {"ra", "p", "me", "nu", "t", "hq", "ev", "kj"};
+    static const char *const not_methods[] = {"hq", "ev", "kj"};
+    void *origin;
+    void *far;
+    void *other;
+    void *et;
+    size_t i;
+
+    world();
+    origin = get_ref(the_slipway(), "qu");
+    far = build_jc(origin);
+    hq_over(far, NULL, vec_ref(-640, -640));
+    et = get_ref(far, "et");
+    assert(is_too_far(et) && get_ref(et, "fo") == far);
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        assert(!has(et, absent[i]));
+    }
+    for (i = 0; i < sizeof not_methods / sizeof not_methods[0]; i++) {
+        pico8_value_t out;
+        assert(!pico8_mv(et, not_methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    }
+
+    other = build_jc(origin);
+    hq_over(other, NULL, vec_ref(-640, -640));
+    assert(get_ref(other, "et") == et && get_ref(et, "fo") == other);
+
+    must_abort(write_qs, et);
+    must_abort(write_ra, et);
+    pico8_entity_set_field(et, "fo", pico8_value_ref(NULL));
+    assert(!has(et, "fo"));
+    assert(is_string(et, "qs", "-too far-"));
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -872,7 +1002,9 @@ int main(void) {
     in_fresh_child(test_eb);
     in_fresh_child(test_draw);
     in_fresh_child(test_bv);
+    in_fresh_child(test_too_far);
     in_fresh_child(test_jc_is_a_struct);
+    in_fresh_child(test_too_far_is_a_struct);
 
     printf("test_pico8_jc: all tests passed\n");
     return 0;
