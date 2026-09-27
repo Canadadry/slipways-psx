@@ -257,9 +257,7 @@ void pico8_js_pq(pico8_js_t *self) {
     self->lq = pico8_value_ref(new_lq);
 
     mb = pico8_fixed_from_int(2);
-    if (new_lq->w.kind == PICO8_VALUE_FIXED) {
-        mb = pico8_fixed_add(new_lq->w.as.fixed, mb);
-    }
+    mb = pico8_fixed_add(new_lq->w, mb);
     self->mb = pico8_value_fixed(mb);
 
     self->kq = pico8_value_ref(
@@ -348,12 +346,12 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
 
     if (self->h_.kind == PICO8_VALUE_REF && self->h_.as.ref != NULL) {
         const pico8_lq_t *c = (const pico8_lq_t *)self->h_.as.ref;
-        pico8_fixed_t c_w = c->w.kind == PICO8_VALUE_FIXED ? c->w.as.fixed : pico8_fixed_from_int(0);
+        pico8_fixed_t c_w = c->w;
         int bg = 2;
         pico8_fixed_t x2 = pico8_fixed_add(qt, c_w);
 
-        if (c->bg.kind == PICO8_VALUE_FIXED) {
-            bg = pico8_ui_to_int(c->bg.as.fixed);
+        if (c->has_bg && !c->bg_is_bool) {
+            bg = pico8_ui_to_int(c->bg);
         }
         pico8_rectfill(gfx, mem, pico8_ui_to_int(qt) + 3, iy_p + 1, pico8_ui_to_int(x2) + 4, iy_dn, bg);
 

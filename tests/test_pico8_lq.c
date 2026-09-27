@@ -48,6 +48,11 @@
 #define HP_LQ_HASH 0x9071EEC9u
 #define CALLS_HASH 0x26A3DB53u
 #define REPLAY_HASH 0xB2458D77u
+#define RAW_PRESENCE_HASH 0x8AE888A5u
+#define REPLAY_PRESENCE_HASH 0xF855B4B1u
+#define BG_FIXED_COUNT 1
+#define BG_FALSE_COUNT 0
+#define BG_ABSENT_COUNT 12
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -691,6 +696,201 @@ static void test_lq_is_a_struct(void) {
     must_abort(button_on_other, pico8_ok());
 }
 
+static const char *const g_lq_names[] = {"c",  "bg", "score", "ra",    "fs",    "w",     "",
+                                         "x",  "lq", "items", "ol",    "has_c", "has_bg", "bg_is_bool"};
+
+/* One raw read: 1 with a kind of the member's census row, or 0 with the
+ * witness left in `out`; never 1 with REF NULL. */
+static uint32_t fold_raw(uint32_t h, const void *lq, const char *name) {
+    const pico8_value_t witness = pico8_value_fixed(0x1234);
+    pico8_value_t out = witness;
+    int got = pico8_lq_struct_class()->field(lq, name, &out);
+
+    h = fnv(h, (uint32_t)got);
+    if (!got) {
+        assert(out.kind == witness.kind && out.as.fixed == witness.as.fixed);
+        return h;
+    }
+    assert(!(out.kind == PICO8_VALUE_REF && out.as.ref == NULL));
+    h = fnv(h, (uint32_t)out.kind);
+    if (strcmp(name, "c") == 0 || strcmp(name, "score") == 0 || strcmp(name, "w") == 0) {
+        assert(out.kind == PICO8_VALUE_FIXED);
+        h = fnv(h, (uint32_t)out.as.fixed);
+    } else if (strcmp(name, "bg") == 0) {
+        assert(out.kind == PICO8_VALUE_FIXED || out.kind == PICO8_VALUE_BOOL);
+        h = fnv(h, out.kind == PICO8_VALUE_FIXED ? (uint32_t)out.as.fixed : (uint32_t)out.as.boolean);
+    } else if (strcmp(name, "ra") == 0) {
+        assert(out.kind == PICO8_VALUE_REF && pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
+    } else {
+        assert(strcmp(name, "fs") == 0 && out.kind == PICO8_VALUE_REF &&
+               pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_LIST);
+        h = fnv(h, (uint32_t)((const pico8_list_t *)out.as.ref)->count);
+    }
+    return h;
+}
+
+static uint32_t fold_raw_row(uint32_t h, const void *lq) {
+    size_t n;
+    for (n = 0; n < sizeof g_lq_names / sizeof g_lq_names[0]; n++) {
+        h = fold_raw(h, lq, g_lq_names[n]);
+    }
+    return h;
+}
+
+static int same_value(const void *a, const void *b, const char *name) {
+    pico8_value_t va;
+    pico8_value_t vb;
+    int ga = lookup(a, name, &va);
+    int gb = lookup(b, name, &vb);
+    return ga == gb && (!ga || pico8_value_equal(va, vb));
+}
+
+/* The copy has the source's c, bg (kind kept), score and `ra` at the same
+ * address, and a `fs` of its own. */
+static void check_copy(const void *src, const void *copy) {
+    assert(copy != NULL && copy != src);
+    assert(same_value(src, copy, "c") && same_value(src, copy, "bg") && same_value(src, copy, "score"));
+    assert(get_ref(src, "ra") == get_ref(copy, "ra"));
+    assert(get_ref(copy, "fs") != NULL && get_ref(copy, "fs") != get_ref(src, "fs"));
+}
+
+static int is_row(const void *p) {
+    return p != NULL && pico8_type_tag_of(p) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)p)->cls == pico8_lq_struct_class();
+}
+
+static int bg_fixed, bg_false, bg_absent, targets;
+
+/* Same address twice by name, `ol` through mv(), then its raw reads. */
+static uint32_t fold_target(uint32_t h, const void *holder, const char *name) {
+    void *row = get_ref(holder, name);
+    pico8_value_t v;
+    pico8_value_t discard;
+
+    if (!is_row(row)) {
+        return h;
+    }
+    targets++;
+    assert(get_ref(holder, name) == row);
+    assert(pico8_mv(row, "ol", 2, vec_ref(vec_xy(64, 60)), pico8_value_fixed(0), &discard));
+    if (!lookup(row, "bg", &v)) {
+        bg_absent++;
+    } else if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
+        bg_false++;
+    } else {
+        assert(v.kind == PICO8_VALUE_FIXED);
+        bg_fixed++;
+    }
+    return fold_raw_row(h, row);
+}
+
+/* Each of the six members, and names that are not members, read by the raw
+ * reader on built rows and on every row the built-planet replay reaches at
+ * its last frame; pointer identity of `ra`/`fs` and through copies. Taken on
+ * the code where the members were still pico8_value_t. */
+static void test_lq_members_by_name(void) {
+    pico8_value_t a[] = {str("hi"), num(12)};
+    pico8_value_t ra = vec_ref(vec_xy(3, 4));
+    pico8_value_t nil = pico8_value_ref(NULL);
+    pico8_ob_table_t *t;
+    const void *rows[6];
+    const void *bare;
+    const pico8_list_t *le;
+    const pico8_list_t *hv;
+    pico8_ob_table_t *spec;
+    pico8_ob_table_t *view;
+    uint32_t h = 2166136261u;
+    size_t n;
+    int i;
+
+    start_game(BUILT);
+    for (i = 0; i < input.frame_count; i++) {
+        pico8_dispatch_set_input(&input);
+        pico8_cheat_step(&cheat, &input);
+        pico8__update60();
+        pico8__draw();
+        if (i < input.frame_count - 1) {
+            pico8_input_step(&input);
+        }
+    }
+    hv = pico8_hv();
+    for (i = 0; i < hv->count; i++) {
+        const void *e = hv->items[i].as.ref;
+        if (e != NULL) {
+            h = fold_target(h, e, "lq");
+        }
+    }
+    le = get_ref(pico8_ok(), "le");
+    assert(le != NULL);
+    for (i = 0; i < le->count; i++) {
+        const void *button = le->items[i].as.ref;
+        if (button != NULL && pico8_type_tag_of(button) == PICO8_TYPE_TAG_STRUCT &&
+            ((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class()) {
+            h = fold_target(h, button, "lq");
+            h = fold_target(h, button, "h_");
+        }
+    }
+    printf("  replay rows: %d, bg fixed %d, false %d, absent %d\n", targets, bg_fixed, bg_false, bg_absent);
+    assert(targets > 0);
+    assert(bg_fixed == BG_FIXED_COUNT && bg_false == BG_FALSE_COUNT && bg_absent == BG_ABSENT_COUNT);
+    check("replay presence", h, REPLAY_PRESENCE_HASH);
+
+    h = 2166136261u;
+    bare = pico8_lq_new(NULL);
+    h = fold_raw_row(h, bare);
+    assert(get_ref(bare, "fs") != NULL && ((const pico8_list_t *)get_ref(bare, "fs"))->count == 0);
+
+    t = positionals(2, a);
+    pico8_ob_table_set_name(t, "c", num(9));
+    pico8_ob_table_set_name(t, "score", num(0));
+    pico8_ob_table_set_name(t, "bg", num(8));
+    pico8_ob_table_set_name(t, "ra", ra);
+    rows[0] = pico8_lq_new(t);
+    pico8_ob_table_free(t);
+    t = positionals(2, a);
+    pico8_ob_table_set_name(t, "bg", pico8_value_bool(0));
+    pico8_ob_table_set_name(t, "score", num(3));
+    rows[1] = pico8_lq_new(t);
+    pico8_ob_table_free(t);
+    t = positionals(1, a);
+    rows[2] = pico8_lq_new(t);
+    pico8_ob_table_free(t);
+    t = positionals(2, a);
+    pico8_ob_table_set_name(t, "c", nil);
+    pico8_ob_table_set_name(t, "bg", nil);
+    pico8_ob_table_set_name(t, "score", nil);
+    pico8_ob_table_set_name(t, "ra", nil);
+    pico8_ob_table_set_name(t, "fs", nil);
+    rows[3] = pico8_lq_new(t);
+    pico8_ob_table_free(t);
+    for (n = 0; n < 4; n++) {
+        h = fnv(h, (uint32_t)n);
+        h = fold_raw_row(h, rows[n]);
+    }
+    assert(get_ref(rows[0], "ra") == ra.as.ref);
+    assert(get_ref(rows[0], "fs") == get_ref(rows[0], "fs"));
+
+    spec = pico8_ob_table_new();
+    pico8_ob_table_set_name(spec, "lq", pico8_value_ref((void *)rows[0]));
+    check_copy(rows[0], get_ref(pico8_js_new(spec), "lq"));
+    pico8_ob_table_free(spec);
+    spec = pico8_ob_table_new();
+    pico8_ob_table_set_name(spec, "lq", pico8_value_ref((void *)rows[1]));
+    rows[4] = get_ref(pico8_js_new(spec), "lq");
+    pico8_ob_table_free(spec);
+    check_copy(rows[1], rows[4]);
+    view = pico8_lq_table_view(rows[0]);
+    rows[5] = pico8_lq_new(view);
+    pico8_ob_table_free(view);
+    check_copy(rows[0], rows[5]);
+    for (n = 4; n < 6; n++) {
+        h = fnv(h, (uint32_t)n);
+        h = fold_raw_row(h, rows[n]);
+    }
+    check("raw presence", h, RAW_PRESENCE_HASH);
+
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -726,6 +926,7 @@ int main(void) {
     in_fresh_child(test_calls);
     in_fresh_child(test_replay);
     in_fresh_child(test_lq_is_a_struct);
+    in_fresh_child(test_lq_members_by_name);
 
     printf("test_pico8_lq: all tests passed\n");
     return 0;

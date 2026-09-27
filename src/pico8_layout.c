@@ -9,7 +9,6 @@
 #include "pico8_dispatch_context.h"
 #include "pico8_hud.h"
 #include "pico8_list.h"
-#include "pico8_ref_audit.h"
 
 /* C has no closures, so lq:mn bakes the draw its Lua counterpart returns as a
  * closure into this tagged struct instead. Private to this file. */
@@ -134,8 +133,8 @@ static void pico8_lq_mn(const pico8_lq_t *self, pico8_value_t f, pico8_lq_item_t
     if (f.kind == PICO8_VALUE_STRING && f.as.string != NULL) {
         pico8_fixed_t c = pico8_fixed_from_int(6);
 
-        if (self != NULL && pico8_layout_truthy(self->c) && self->c.kind == PICO8_VALUE_FIXED) {
-            c = self->c.as.fixed;
+        if (self != NULL && self->has_c) {
+            c = self->c;
         }
         out_item->kind = PICO8_LQ_ITEM_TEXT;
         out_item->text = f.as.string;
@@ -195,8 +194,8 @@ static void pico8_lq_pq(pico8_lq_t *self) {
     fs_heap = malloc(sizeof *fs_heap);
     *fs_heap = pico8_nv(&self->items, pico8_lq_pq_step, &ctx);
 
-    self->fs = pico8_value_ref(fs_heap);
-    self->w = pico8_value_fixed(pico8_fixed_sub(ctx.w, ctx.fs));
+    self->fs = fs_heap;
+    self->w = pico8_fixed_sub(ctx.w, ctx.fs);
 }
 
 static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_item_t *item,
@@ -223,7 +222,7 @@ static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, cons
 }
 
 void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *self, pico8_vec_t p, pico8_fixed_t a) {
-    pico8_fixed_t w = pico8_fixed_from_int(0);
+    pico8_fixed_t w;
     pico8_list_iter_t it;
     pico8_value_t entry;
 
@@ -233,15 +232,13 @@ void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *sel
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT && self->header.cls == &g_lq_struct_class &&
            "lq:ol: every row reaching it (jo.lq, js.lq/h_, jb.ls, pi.ld) is an lq; anything else would be read "
            "through the wrong layout");
-    if (self->w.kind == PICO8_VALUE_FIXED) {
-        w = self->w.as.fixed;
-    }
+    w = self->w;
     p = pico8_vec_sub(p, pico8_vec_v(pico8_fixed_mul(a, w), pico8_fixed_from_int(0)));
 
-    if (self->fs.kind != PICO8_VALUE_REF || self->fs.as.ref == NULL) {
+    if (self->fs == NULL) {
         return;
     }
-    it = pico8_list_all(PICO8_REF_AS_LIST_CONST(self->fs.as.ref));
+    it = pico8_list_all(self->fs);
     while (pico8_list_iter_next(&it, &entry)) {
         if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
             pico8_lq_ol_item_draw(gfx, mem, (const pico8_lq_item_t *)entry.as.ref, p);
@@ -359,36 +356,57 @@ static pico8_value_t pico8_jb_ol_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static const struct {
-    const char *name;
-    size_t offset;
-} g_lq_members[] = {
-    {"c", offsetof(pico8_lq_t, c)},   {"bg", offsetof(pico8_lq_t, bg)}, {"score", offsetof(pico8_lq_t, score)},
-    {"ra", offsetof(pico8_lq_t, ra)}, {"fs", offsetof(pico8_lq_t, fs)}, {"w", offsetof(pico8_lq_t, w)},
-};
-
-static pico8_value_t *lq_member(pico8_lq_t *self, const char *name) {
-    size_t i;
-    for (i = 0; i < sizeof g_lq_members / sizeof g_lq_members[0]; i++) {
-        if (strcmp(name, g_lq_members[i].name) == 0) {
-            return (pico8_value_t *)((char *)self + g_lq_members[i].offset);
-        }
+pico8_value_t pico8_lq_bg(const pico8_lq_t *self) {
+    if (self == NULL || !self->has_bg) {
+        return pico8_value_ref(NULL);
     }
-    return NULL;
-}
-
-static int lq_is_nil(pico8_value_t v) {
-    return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
+    return self->bg_is_bool ? pico8_value_bool(self->bg) : pico8_value_fixed(self->bg);
 }
 
 static int pico8_lq_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_value_t *member = lq_member((pico8_lq_t *)self, name);
+    const pico8_lq_t *lq = self;
 
-    if (member == NULL || lq_is_nil(*member)) {
-        return 0;
+    if (strcmp(name, "c") == 0) {
+        if (!lq->has_c) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(lq->c);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    if (strcmp(name, "bg") == 0) {
+        pico8_value_t v = pico8_lq_bg(lq);
+        if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
+            return 0;
+        }
+        *out_value = v;
+        return 1;
+    }
+    if (strcmp(name, "score") == 0) {
+        if (!lq->has_score) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(lq->score);
+        return 1;
+    }
+    if (strcmp(name, "ra") == 0) {
+        if (lq->ra == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(lq->ra);
+        return 1;
+    }
+    if (strcmp(name, "fs") == 0) {
+        if (lq->fs == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(lq->fs);
+        return 1;
+    }
+    if (strcmp(name, "w") == 0) {
+        *out_value = pico8_value_fixed(lq->w);
+        return 1;
+    }
+    return 0;
 }
 
 static const pico8_struct_class_t g_lq_struct_class = {
@@ -397,26 +415,109 @@ static const pico8_struct_class_t g_lq_struct_class = {
     NULL,
 };
 
+static int value_is_nil(pico8_value_t v) {
+    return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
+}
+
+static void lq_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value_is_nil(value)) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "lq.c/score: a key neither nil nor fixed is off its census row (fixe) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
+    *has = 1;
+}
+
+static void lq_take_bg(pico8_value_t value, pico8_lq_t *self) {
+    self->bg = 0;
+    self->has_bg = 0;
+    self->bg_is_bool = 0;
+    if (value_is_nil(value)) {
+        return;
+    }
+    if (value.kind == PICO8_VALUE_FIXED) {
+        self->bg = value.as.fixed;
+        self->has_bg = 1;
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL &&
+           "lq.bg: a key neither nil, fixed nor boolean is off its census row (bool,fixe) -- a field under no rule "
+           "of plan-3 section 5: stop, do not widen the member");
+    self->bg = value.as.boolean;
+    self->has_bg = 1;
+    self->bg_is_bool = 1;
+}
+
+static void lq_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value_is_nil(value)) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "lq.ra: a key neither nil nor a vector is off its census row (ref:autre) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void lq_take_list(pico8_value_t value, pico8_list_t **out) {
+    *out = NULL;
+    if (value_is_nil(value)) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
+           "lq.fs: a key neither nil nor a list is off its census row (ref:liste) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void lq_take_w(pico8_value_t value, pico8_fixed_t *out) {
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "lq.w: a key neither fixed nor ever nil is off its census row (fixe, nil jamais) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
+}
+
 /* TROU-7 */
 static void *pico8_lq_struct_new(const pico8_ob_table_t *overrides) {
     pico8_lq_t *self = malloc(sizeof *self);
-    size_t n;
     int k;
 
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_lq_struct_class;
-    for (n = 0; n < sizeof g_lq_members / sizeof g_lq_members[0]; n++) {
-        *lq_member(self, g_lq_members[n].name) = pico8_value_ref(NULL);
-    }
+    self->c = 0;
+    self->has_c = 0;
+    self->bg = 0;
+    self->has_bg = 0;
+    self->bg_is_bool = 0;
+    self->score = 0;
+    self->has_score = 0;
+    self->ra = NULL;
+    self->fs = NULL;
+    self->w = 0;
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
-        pico8_value_t *member = key.kind == PICO8_OB_KEY_NAME ? lq_member(self, key.name) : NULL;
+        pico8_value_t value = overrides->entries[k].value;
 
-        assert((key.kind == PICO8_OB_KEY_INDEX || member != NULL) &&
-               "lq: every measured row passes positionals and c, bg, score, ra, fs, w; a named key other than "
-               "c/bg/score/ra/fs/w would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
-        if (member != NULL) {
-            *member = overrides->entries[k].value;
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "c") == 0) {
+            lq_take_fixed(value, &self->c, &self->has_c);
+        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "bg") == 0) {
+            lq_take_bg(value, self);
+        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "score") == 0) {
+            lq_take_fixed(value, &self->score, &self->has_score);
+        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
+            lq_take_vec(value, &self->ra);
+        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "fs") == 0) {
+            lq_take_list(value, &self->fs);
+        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "w") == 0) {
+            lq_take_w(value, &self->w);
+        } else {
+            assert(key.kind == PICO8_OB_KEY_INDEX &&
+                   "lq: every measured row passes positionals and c, bg, score, ra, fs, w; a named key other than "
+                   "c/bg/score/ra/fs/w would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
         }
     }
     /* TROU-25 */
@@ -430,23 +531,28 @@ static void *pico8_lq_struct_new(const pico8_ob_table_t *overrides) {
 }
 
 pico8_ob_table_t *pico8_lq_table_view(const pico8_lq_t *self) {
-    static const char *const named[] = {"c", "bg", "score", "ra"};
     pico8_ob_table_t *view = pico8_ob_table_new();
-    int k = PICO8_REF_AS_LIST_CONST(self->fs.as.ref)->count;
+    pico8_value_t bg = pico8_lq_bg(self);
+    int k = self->fs->count;
     int i;
-    size_t n;
 
     for (i = 0; i < k; i++) {
         pico8_ob_table_set_index(view, i + 1, self->items.items[i]);
     }
-    for (n = 0; n < sizeof named / sizeof named[0]; n++) {
-        pico8_value_t v = *lq_member((pico8_lq_t *)self, named[n]);
-        if (!lq_is_nil(v)) {
-            pico8_ob_table_set_name(view, named[n], v);
-        }
+    if (self->has_c) {
+        pico8_ob_table_set_name(view, "c", pico8_value_fixed(self->c));
     }
-    pico8_ob_table_set_name(view, "fs", self->fs);
-    pico8_ob_table_set_name(view, "w", self->w);
+    if (!(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL)) {
+        pico8_ob_table_set_name(view, "bg", bg);
+    }
+    if (self->has_score) {
+        pico8_ob_table_set_name(view, "score", pico8_value_fixed(self->score));
+    }
+    if (self->ra != NULL) {
+        pico8_ob_table_set_name(view, "ra", pico8_value_ref(self->ra));
+    }
+    pico8_ob_table_set_name(view, "fs", pico8_value_ref(self->fs));
+    pico8_ob_table_set_name(view, "w", pico8_value_fixed(self->w));
     for (i = k; i < self->items.count; i++) {
         pico8_ob_table_set_index(view, i + 1, self->items.items[i]);
     }

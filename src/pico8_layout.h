@@ -18,17 +18,22 @@ typedef struct {
 
 /* `items` is the cart's `self[1..n]` in ascending index order, holes
  * closed up: the sequence `lq:pq` walks. Its values are borrowed from the
- * overrides, tables shared as the cart's copy shares them. Nothing frees
- * the row, `items`, or `fs` and its entries: TROU-7. */
+ * overrides, tables shared as the cart's copy shares them. `ra` is the
+ * vector the overrides held, borrowed, never copied. Nothing frees the row,
+ * `items`, or `fs` and its entries: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     pico8_list_t items;
-    pico8_value_t c;
-    pico8_value_t bg;
-    pico8_value_t score;
-    pico8_value_t ra;
-    pico8_value_t fs;
-    pico8_value_t w;
+    pico8_fixed_t c;
+    int has_c; /* 0: `c` is nil, and `c` is then never read */
+    pico8_fixed_t bg;
+    int has_bg;     /* 0: `bg` is nil, and `bg` is then never read */
+    int bg_is_bool; /* 1: `bg` holds a boolean (0/1), 0: a fixed; read only when `has_bg` */
+    pico8_fixed_t score;
+    int has_score; /* 0: `score` is nil, and `score` is then never read */
+    pico8_vec_t *ra;
+    pico8_list_t *fs;
+    pico8_fixed_t w;
 } pico8_lq_t;
 
 /* `lq` and `jb` are root classes with an empty spec and are not
@@ -53,6 +58,10 @@ int pico8_jb_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_lq_struct_class(void);
 
 pico8_lq_t *pico8_lq_new(const pico8_ob_table_t *overrides);
+
+/* "bg" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "bg" or a
+ * NULL self. */
+pico8_value_t pico8_lq_bg(const pico8_lq_t *self);
 
 /* A fresh table the caller frees with pico8_ob_table_free(), its values
  * shared with the row, never copied. Keys in the order the cart's copy
