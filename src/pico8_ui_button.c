@@ -382,36 +382,71 @@ static pico8_value_t pico8_fq_ldown_dispatch(void *self, int argc, pico8_value_t
 
 static int pico8_fq_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_fq_t *fq = self;
-    const pico8_value_t *member;
 
     if (strcmp(name, "fa") == 0) {
-        member = &fq->fa;
-    } else if (strcmp(name, "hd") == 0) {
-        member = &fq->hd;
-    } else if (strcmp(name, "my") == 0) {
-        member = &fq->my;
-    } else if (strcmp(name, "p_") == 0) {
-        member = &fq->p_;
-    } else if (strcmp(name, "m_") == 0) {
-        member = &fq->m_;
-    } else {
-        return pico8_ke_field(self, name, out_value);
+        *out_value = pico8_value_fixed(fq->fa);
+        return 1;
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
+    if (strcmp(name, "hd") == 0) {
+        *out_value = pico8_value_fixed(fq->hd);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    if (strcmp(name, "my") == 0) {
+        if (fq->my == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_function(fq->my);
+        return 1;
+    }
+    if (strcmp(name, "p_") == 0) {
+        if (!fq->has_p_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(fq->p_);
+        return 1;
+    }
+    if (strcmp(name, "m_") == 0) {
+        if (!fq->has_m_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(fq->m_);
+        return 1;
+    }
+    return pico8_ke_field(self, name, out_value);
+}
+
+static void fq_take_bool(pico8_value_t value, int *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL && "fq.m_/p_: a write neither nil nor a boolean is off its census row "
+                                             "(bool) -- a field under no rule of plan-3 section 5: stop, do not "
+                                             "widen the member");
+    *out = value.as.boolean;
+    *has = 1;
+}
+
+static void fq_take_function(pico8_value_t value, pico8_value_function_t *out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_FUNCTION && value.as.function != NULL &&
+           "fq.my: a key neither nil nor a non-NULL function is off its census row (fonction) -- a field under "
+           "no rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.function;
 }
 
 static int pico8_fq_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_fq_t *fq = self;
 
-    if (strcmp(name, "m_") != 0) {
-        return 0;
+    if (strcmp(name, "m_") == 0) {
+        fq_take_bool(value, &fq->m_, &fq->has_m_);
+        return 1;
     }
-    fq->m_ = value;
-    return 1;
+    return 0;
 }
 
 static const pico8_struct_class_t g_fq_struct_class = {
@@ -425,16 +460,18 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_fq_struct_class);
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(14));
-    self->hd = pico8_value_fixed(pico8_fixed_from_int(1));
-    self->my = pico8_value_ref(NULL);
-    self->p_ = pico8_value_ref(NULL);
-    self->m_ = pico8_value_ref(NULL);
+    self->fa = pico8_fixed_from_int(14);
+    self->hd = pico8_fixed_from_int(1);
+    self->my = NULL;
+    self->p_ = 0;
+    self->has_p_ = 0;
+    self->m_ = 0;
+    self->has_m_ = 0;
     for (i = 0; overrides != NULL && i < overrides->count; i++) {
         pico8_ob_key_t key = overrides->entries[i].key;
 
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "my") == 0) {
-            self->my = overrides->entries[i].value;
+            fq_take_function(overrides->entries[i].value, &self->my);
         } else {
             assert(0 && "fq: the only measured key is my; another would be a field under no rule of plan-3 "
                         "section 5 -- stop, do not add a member");
@@ -484,6 +521,6 @@ pico8_value_t pico8_fq_ldown(pico8_fq_t *self) {
     if (!pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
         my_result = pico8_value_ref(NULL);
     }
-    self->p_ = my_result;
+    fq_take_bool(my_result, &self->p_, &self->has_p_);
     return pico8_value_bool(1);
 }

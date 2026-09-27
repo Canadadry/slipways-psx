@@ -4,10 +4,14 @@
  * code where `fq` was still a class instance and must not be re-taken. */
 
 #include <assert.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
@@ -40,6 +44,7 @@
 #define SCORE_PANEL_CLOSE_HASH 0xD27CD6EBu
 #define GAME_END_FRAMES 74
 #define GAME_END_HASH 0xE0F8CA4Du
+#define FQ_MEMBERS_HASH 0x76872F8Du
 
 #define LDOWN_TICK 5
 #define IDLE_TICKS 30
@@ -398,6 +403,249 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     assert(pico8_entity_get_field(built, "my", &out) && out.kind == PICO8_VALUE_FUNCTION);
 }
 
+static pico8_value_t g_script[8];
+static int g_script_len = 0;
+static int g_script_calls = 0;
+
+static pico8_value_t scripted_my(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)self;
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    assert(g_script_calls < g_script_len);
+    return g_script[g_script_calls++];
+}
+
+static void *veil_with_key(pico8_value_t my) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    void *veil;
+
+    pico8_ob_table_set_name(overrides, "my", my);
+    veil = pico8_fq_new(overrides);
+    pico8_ob_table_free(overrides);
+    return veil;
+}
+
+/* Raw reader and entity reader must agree; a miss leaves the witness. */
+static uint32_t fold_raw(uint32_t h, const void *e, const char *name) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t via = pico8_value_fixed(0x1234);
+    int got_raw = pico8_fq_struct_class()->field(e, name, &raw);
+    int got_via = pico8_entity_get_field(e, name, &via);
+
+    assert(got_raw == got_via);
+    assert(raw.kind == via.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        return fnv(h, 0xDEADu);
+    }
+    h = fnv(h, (uint32_t)raw.kind);
+    if (raw.kind == PICO8_VALUE_FIXED) {
+        assert(raw.as.fixed == via.as.fixed);
+        return fnv(h, (uint32_t)raw.as.fixed);
+    }
+    if (raw.kind == PICO8_VALUE_BOOL) {
+        assert(raw.as.boolean == via.as.boolean);
+        return fnv(h, (uint32_t)raw.as.boolean);
+    }
+    if (raw.kind == PICO8_VALUE_FUNCTION) {
+        assert(raw.as.function == via.as.function);
+    }
+    if (raw.kind == PICO8_VALUE_STRING) {
+        assert(strcmp(raw.as.string, via.as.string) == 0);
+        h = fnv(h, (uint32_t)strlen(raw.as.string));
+    }
+    return h;
+}
+
+static uint32_t fold_members(uint32_t h, const void *e) {
+    static const char *const names[] = {"fa", "hd", "my", "p_", "m_", "me", "t"};
+    size_t i;
+
+    for (i = 0; i < sizeof names / sizeof names[0]; i++) {
+        h = fold_raw(h, e, names[i]);
+    }
+    return h;
+}
+
+static pico8_value_t zero_of(pico8_value_kind_t kind) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = kind;
+    return v;
+}
+
+static void must_abort(void *e, const char *name) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        pico8_entity_set_field(e, name, pico8_value_bool(1));
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* Every member of a bare, a built and a nil-keyed veil read by name; `p_`
+ * through `ldown` only; `m_` written by name. */
+static void test_fq_members_by_name(void) {
+    static const char *const intruders[] = {"", "x", "M_", "P_", "m", "p", "has_m_", "has_p_", "ke", "header"};
+    static const char *const unwritten[] = {"fa", "hd", "my", "p_", "me", "t", "", "m_ ", "has_m_", "has_p_"};
+    const pico8_ob_table_t *de;
+    pico8_value_t de_my;
+    pico8_value_t got;
+    void *bare;
+    void *built;
+    void *nil_key;
+    void *scripted;
+    uint32_t h = 2166136261u;
+    uint32_t before;
+    size_t i;
+    int step;
+
+    pico8_jl();
+    de = pico8_de();
+    assert(pico8_ob_table_get_name(de, "my", &de_my) && de_my.kind == PICO8_VALUE_FUNCTION);
+    bare = pico8_fq_new(NULL);
+    built = pico8_fq_new(de);
+    nil_key = veil_with_key(pico8_value_ref(NULL));
+
+    h = fold_members(h, bare);
+    h = fold_members(h, built);
+    h = fold_members(h, nil_key);
+    assert(pico8_entity_get_field(built, "my", &got) && got.kind == PICO8_VALUE_FUNCTION &&
+           got.as.function == de_my.as.function);
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        h = fold_raw(h, bare, intruders[i]);
+        h = fold_raw(h, built, intruders[i]);
+    }
+
+    h = fnv(h, (uint32_t)ldown(bare));
+    h = fold_members(h, bare);
+
+    g_script[0] = pico8_value_bool(1);
+    g_script[1] = pico8_value_ref(NULL);
+    g_script[2] = zero_of(PICO8_VALUE_BOOL);
+    g_script[3] = pico8_value_bool(0);
+    g_script[4] = pico8_value_bool(1);
+    g_script_len = 5;
+    g_script_calls = 0;
+    scripted = veil_with_key(pico8_value_function(scripted_my));
+    for (step = 0; step < g_script_len; step++) {
+        h = fnv(h, (uint32_t)ldown(scripted));
+        h = fnv(h, (uint32_t)g_script_calls);
+        h = fold_members(h, scripted);
+    }
+    assert(g_script_calls == 5);
+
+    pico8_entity_set_field(bare, "m_", pico8_value_bool(1));
+    h = fold_members(h, bare);
+    h = fnv(h, (uint32_t)pico8_fq_struct_class()->set_field(bare, "m_", pico8_value_bool(0)));
+    h = fold_members(h, bare);
+    {
+        pico8_value_t writes[6];
+
+        writes[0] = zero_of(PICO8_VALUE_BOOL);
+        writes[1] = pico8_value_ref(NULL);
+        writes[2] = pico8_value_ref(NULL);
+        writes[3] = pico8_value_bool(1);
+        writes[4] = pico8_value_ref(NULL);
+        writes[5] = zero_of(PICO8_VALUE_BOOL);
+        for (step = 0; step < 6; step++) {
+            h = fnv(h, (uint32_t)pico8_fq_struct_class()->set_field(bare, "m_", writes[step]));
+            h = fold_members(h, bare);
+        }
+    }
+
+    before = fold_members(2166136261u, bare);
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        h = fnv(h, (uint32_t)pico8_fq_struct_class()->set_field(bare, unwritten[i], pico8_value_bool(1)));
+        assert(fold_members(2166136261u, bare) == before);
+    }
+    h = fold_members(h, bare);
+    must_abort(bare, "p_");
+    must_abort(bare, "my");
+    must_abort(bare, "fa");
+    must_abort(bare, "hd");
+    check("fq members", h, FQ_MEMBERS_HASH);
+}
+
+static void write_m_by_name(void *e, pico8_value_t v) {
+    pico8_entity_set_field(e, "m_", v);
+}
+
+static void ldown_returning(void *e, pico8_value_t v) {
+    void *veil;
+    (void)e;
+    g_script[0] = v;
+    g_script_len = 1;
+    g_script_calls = 0;
+    veil = veil_with_key(pico8_value_function(scripted_my));
+    (void)ldown(veil);
+}
+
+static void build_with_key(void *e, pico8_value_t v) {
+    (void)e;
+    (void)veil_with_key(v);
+}
+
+static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(e, v);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* `m_` and `p_` take nil or a boolean only, the `my` key nil or a non-NULL
+ * function only; a value whose whole union is zero is not nil unless it is
+ * a REF. */
+static void test_fq_writer_stops_off_row(void) {
+    pico8_value_t one = pico8_value_fixed(pico8_fixed_from_int(1));
+    void *bare;
+    void *other;
+
+    pico8_jl();
+    bare = pico8_fq_new(NULL);
+    other = pico8_fq_new(NULL);
+
+    must_abort_value(bare, write_m_by_name, one);
+    must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_FIXED));
+    must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_STRING));
+    must_abort_value(bare, write_m_by_name, pico8_value_string("x"));
+    must_abort_value(bare, write_m_by_name, pico8_value_function(counting_my));
+    must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_FUNCTION));
+    must_abort_value(bare, write_m_by_name, pico8_value_ref(other));
+    must_abort_value(bare, write_m_by_name, pico8_value_ref((void *)pico8_de()));
+
+    must_abort_value(bare, ldown_returning, one);
+    must_abort_value(bare, ldown_returning, zero_of(PICO8_VALUE_FIXED));
+    must_abort_value(bare, ldown_returning, zero_of(PICO8_VALUE_STRING));
+    must_abort_value(bare, ldown_returning, pico8_value_string("x"));
+    must_abort_value(bare, ldown_returning, pico8_value_ref(other));
+
+    must_abort_value(bare, build_with_key, one);
+    must_abort_value(bare, build_with_key, zero_of(PICO8_VALUE_FIXED));
+    must_abort_value(bare, build_with_key, zero_of(PICO8_VALUE_BOOL));
+    must_abort_value(bare, build_with_key, zero_of(PICO8_VALUE_FUNCTION));
+    must_abort_value(bare, build_with_key, pico8_value_string("x"));
+    must_abort_value(bare, build_with_key, pico8_value_ref(other));
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -420,6 +668,8 @@ int main(void) {
     test_hover_loop_on_the_veil();
     test_defaults_match_the_parsed_spec();
     test_fq_is_a_struct_registered_under_hd();
+    test_fq_members_by_name();
+    test_fq_writer_stops_off_row();
 
     printf("test_pico8_fq: all tests passed\n");
     return 0;

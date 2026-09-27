@@ -69,11 +69,13 @@ pico8_value_t pico8_js_ldown(pico8_js_t *self);
  * a field, not a method. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t fa;
-    pico8_value_t hd;
-    pico8_value_t my;
-    pico8_value_t p_;
-    pico8_value_t m_;
+    pico8_fixed_t fa;
+    pico8_fixed_t hd;
+    pico8_value_function_t my;
+    int p_;
+    int has_p_;
+    int m_;
+    int has_m_;
 } pico8_fq_t;
 
 void pico8_fq_init(void);
