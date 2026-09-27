@@ -2,7 +2,6 @@
 
 #include "pico8_fixed.h"
 #include "pico8_probe.h"
-#include "pico8_value.h"
 
 #include <stddef.h>
 
@@ -28,8 +27,10 @@ static void apply(void) {
     }
     if (((const pico8_struct_header_t *)fm)->cls == pico8_fm_placeholder_struct_class()) {
         pico8_fm_placeholder_t *provisional = (pico8_fm_placeholder_t *)fm;
-        provisional->jk = pico8_value_fixed(pico8_fixed_from_int(99));
-        provisional->nz = pico8_value_fixed(pico8_fixed_from_int(200));
+        provisional->jk = pico8_fixed_from_int(99);
+        provisional->has_jk = 1;
+        provisional->nz = pico8_fixed_from_int(200);
+        provisional->has_nz = 1;
         return;
     }
     hy = pico8_fm_hy();

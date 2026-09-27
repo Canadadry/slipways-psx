@@ -24,18 +24,22 @@ static pico8_struct_header_t *g_fm = NULL;
 
 static int pico8_fm_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_fm_placeholder_t *fm = self;
-    const pico8_value_t *member = NULL;
 
     if (strcmp(name, "jk") == 0) {
-        member = &fm->jk;
-    } else if (strcmp(name, "nz") == 0) {
-        member = &fm->nz;
+        if (fm->has_jk == 0) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(fm->jk);
+        return 1;
     }
-    if (member == NULL || (member->kind == PICO8_VALUE_REF && member->as.ref == NULL)) {
-        return 0;
+    if (strcmp(name, "nz") == 0) {
+        if (fm->has_nz == 0) {
+            return 0;
+        }
+        *out_value = pico8_value_fixed(fm->nz);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    return 0;
 }
 
 static const pico8_struct_class_t g_fm_placeholder_struct_class = {
@@ -45,7 +49,7 @@ static const pico8_struct_class_t g_fm_placeholder_struct_class = {
 };
 
 static pico8_fm_placeholder_t g_fm_placeholder = {
-    {PICO8_TYPE_TAG_STRUCT, &g_fm_placeholder_struct_class}, {PICO8_VALUE_REF, {0}}, {PICO8_VALUE_REF, {0}}};
+    {PICO8_TYPE_TAG_STRUCT, &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
 
 typedef struct {
     pico8_struct_header_t header;
@@ -576,8 +580,10 @@ void pico8_probe_init(void) {
         (void)found;
     }
 
-    g_fm_placeholder.jk = pico8_value_ref(NULL);
-    g_fm_placeholder.nz = pico8_value_ref(NULL);
+    g_fm_placeholder.jk = 0;
+    g_fm_placeholder.has_jk = 0;
+    g_fm_placeholder.nz = 0;
+    g_fm_placeholder.has_nz = 0;
     g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
     PICO8_MEMBER_CENSUS_SEE(&g_fm_placeholder, pico8_fm_placeholder_t);
     PICO8_MEMBER_CENSUS_SEE(&g_bv_et, pico8_bv_et_t);

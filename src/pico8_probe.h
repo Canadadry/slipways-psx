@@ -83,8 +83,10 @@ pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides);
  * set back to nil by every `pico8_probe_init()`. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t jk;
-    pico8_value_t nz;
+    pico8_fixed_t jk;
+    int has_jk; /* 0: `jk` is nil, and is then never read */
+    pico8_fixed_t nz;
+    int has_nz; /* 0: `nz` is nil, and is then never read */
 } pico8_fm_placeholder_t;
 
 const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);

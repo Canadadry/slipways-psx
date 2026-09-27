@@ -199,6 +199,61 @@ static void test_fm_is_a_struct(void) {
     assert(((const pico8_struct_header_t *)pico8_fm())->cls == pico8_hy_struct_class());
 }
 
+/* The raw reader, not `lookup`: a member present but nil or 0 shows here. */
+static void assert_raw_absent(const char *name) {
+    const pico8_struct_class_t *cls = pico8_fm_placeholder_struct_class();
+    pico8_value_t out = pico8_value_fixed(0x1234);
+    assert(cls->field(pico8_fm(), name, &out) == 0);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == 0x1234);
+    assert(pico8_entity_get_field(pico8_fm(), name, &out) == 0);
+}
+
+static void assert_raw_fixed(const char *name, int n) {
+    const pico8_struct_class_t *cls = pico8_fm_placeholder_struct_class();
+    pico8_value_t out = pico8_value_fixed(0x1234);
+    assert(cls->field(pico8_fm(), name, &out) == 1);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(n));
+}
+
+static void assert_raw_others_absent(void) {
+    int n;
+    for (n = 0; n < OTHER_COUNT; n++) {
+        assert_raw_absent(others[n]);
+    }
+    assert_raw_absent("");
+    assert_raw_absent("x");
+}
+
+static void test_fm_members_by_name(void) {
+    void *provisional;
+
+    pico8__init();
+    provisional = pico8_fm();
+    assert_raw_absent("jk");
+    assert_raw_absent("nz");
+    assert_raw_others_absent();
+
+    assert(type_cheat() == 1);
+    assert_raw_fixed("jk", 99);
+    assert_raw_fixed("nz", 200);
+    assert_raw_others_absent();
+
+    pico8_probe_init();
+    assert(pico8_fm() == provisional);
+    assert_raw_absent("jk");
+    assert_raw_absent("nz");
+
+    assert(type_cheat() == 1);
+    assert_raw_fixed("jk", 99);
+    assert_raw_fixed("nz", 200);
+
+    pico8_probe_shutdown();
+    assert(type_cheat() == 1 && pico8_fm() == NULL);
+    pico8_probe_init();
+    assert_raw_absent("jk");
+    assert_raw_absent("nz");
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -234,6 +289,7 @@ int main(void) {
     in_fresh_child(test_cycle);
     in_fresh_child(test_replacement);
     in_fresh_child(test_fm_is_a_struct);
+    in_fresh_child(test_fm_members_by_name);
     printf("test_pico8_fm: ok\n");
     return 0;
 }
