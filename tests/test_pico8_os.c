@@ -159,6 +159,11 @@ static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
     return fnv(h, (uint32_t)p->y);
 }
 
+static int is_bv_target(const void *e) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -175,6 +180,10 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (listed(pico8_hv(), v.as.ref)) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
+        }
+        /* The frozen hashes folded the INSTANCE tag the throwaway had. */
+        if (is_bv_target(v.as.ref)) {
+            return fnv(fnv(h, 0xEEEEu), (uint32_t)PICO8_TYPE_TAG_INSTANCE);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:

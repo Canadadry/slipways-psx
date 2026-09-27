@@ -159,6 +159,11 @@ static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
     return fnv(h, (uint32_t)p->y);
 }
 
+static int is_bv_target(const void *e) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -175,6 +180,10 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (listed(pico8_hv(), v.as.ref)) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
+        }
+        /* The frozen hashes folded the INSTANCE tag the throwaway had. */
+        if (is_bv_target(v.as.ref)) {
+            return fnv(fnv(h, 0xEEEEu), (uint32_t)PICO8_TYPE_TAG_INSTANCE);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:
@@ -416,8 +425,8 @@ static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
     return fnv(h, (uint32_t)v.as.fixed);
 }
 
-/* The kind of the probe's `et`: absent, `false`, a planet, a slipway, a
- * class-less throwaway. */
+/* The kind of the probe's `et`: absent, `false`, a planet, a slipway, the
+ * throwaway struct. */
 static uint32_t et_kind(const void *e) {
     pico8_value_t et;
     const void *ref;
@@ -438,7 +447,7 @@ static uint32_t et_kind(const void *e) {
         ((const pico8_struct_header_t *)ref)->cls == pico8_jc_struct_class()) {
         return 3;
     }
-    assert(pico8_type_tag_of(ref) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)ref)->cls == NULL);
+    assert(is_bv_target(ref));
     return 4;
 }
 
@@ -597,6 +606,33 @@ static void test_ey_off(void) {
     h = fold_field(h, a, "t");
     h = fold_field(h, pico8_fm(), "nz");
     check("ey off", h, EY_OFF_HASH);
+}
+
+/* `ey` over the void, off the panel: `et` is the throwaway target, which is
+ * truthy, so the drop is refused (`p_`, nil returned) and costs nothing. */
+static void test_ey_void(void) {
+    void *a;
+    pico8_vec_t middle;
+    pico8_value_t nz;
+    pico8_value_t me;
+    pico8_value_t out;
+
+    start_game(DRAG);
+    a = ldown();
+    (void)a_slipway(&middle);
+    (void)call(a, "hq", 2, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    assert(et_kind(a) == 4);
+    assert(get_ref(get_ref(a, "et"), "fo") == a);
+    assert(!has(a, "p_"));
+    nz = get(pico8_fm(), "nz");
+    me = get(a, "me");
+    out = call(a, "ey", 0, nil(), nil());
+    assert(out.kind == PICO8_VALUE_REF && out.as.ref == NULL);
+    assert(pico8_value_equal(get(a, "p_"), pico8_value_bool(1)));
+    assert(pico8_value_equal(get(pico8_fm(), "nz"), nz));
+    assert(pico8_value_equal(get(a, "me"), me));
+    assert(et_kind(a) == 4);
+    printf("[ey void] refused\n");
 }
 
 /* The slipway drag fixture, started as main.c starts it: per frame, each
@@ -766,6 +802,10 @@ static void write_me(void *e) {
     write_fixed(e, "me");
 }
 
+static void write_qs(void *e) {
+    write_fixed(e, "qs");
+}
+
 static void build_with_unknown_key(void *e) {
     pico8_ob_table_t *b = pico8_ob_table_new();
     (void)e;
@@ -855,6 +895,29 @@ static void test_g__is_a_struct(void) {
            ((const pico8_struct_header_t *)hv->items[j].as.ref)->cls == pico8_fv_struct_class());
 }
 
+/* The throwaway target is a struct that keeps `fo` only: no method, no
+ * other field, and a write of another name stops the run. */
+static void test_bv_et_is_a_struct(void) {
+    static const char *const absent[] = {"qs", "hq", "ev", "p", "me"};
+    void *a;
+    void *et;
+    pico8_vec_t middle;
+    size_t i;
+
+    start_game(DRAG);
+    a = ldown();
+    (void)a_slipway(&middle);
+    (void)call(a, "hq", 2, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    et = get_ref(a, "et");
+    assert(is_bv_target(et) && get_ref(et, "fo") == a);
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        assert(!has(et, absent[i]));
+    }
+    must_abort(write_qs, et);
+    pico8_entity_set_field(et, "fo", pico8_value_ref(NULL));
+    assert(!has(et, "fo"));
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -888,9 +951,11 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_ey_on);
     in_fresh_child(test_ey_off);
+    in_fresh_child(test_ey_void);
     in_fresh_child(test_drag);
     in_fresh_child(test_fv);
     in_fresh_child(test_g__is_a_struct);
+    in_fresh_child(test_bv_et_is_a_struct);
 
     printf("test_pico8_g_: all tests passed\n");
     return 0;

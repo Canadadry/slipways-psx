@@ -157,6 +157,11 @@ static uint32_t fold_string(uint32_t h, const void *e, const char *name) {
 
 enum { ET_ABSENT, ET_FALSE, ET_JJ, ET_JC, ET_JO, ET_THROWAWAY, ET_OTHER };
 
+static int is_bv_target(const void *e) {
+    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
+}
+
 static int et_kind(const void *mz) {
     pico8_value_t et;
     if (!pico8_entity_get_field(mz, "et", &et)) {
@@ -177,8 +182,7 @@ static int et_kind(const void *mz) {
     if (listed(pico8_cg("jo"), et.as.ref)) {
         return ET_JO;
     }
-    if (pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE &&
-        ((const pico8_instance_t *)et.as.ref)->cls == NULL) {
+    if (is_bv_target(et.as.ref)) {
         return ET_THROWAWAY;
     }
     return ET_OTHER;

@@ -103,11 +103,14 @@ pico8_hy_t *pico8_fm_hy(void);
 /* TROU-7 */
 /* `mp` is stored into `ra` by REF identity, not copied: the caller's vector
  * stays aliased. `et` ends in one of three states -- a real target, a
- * class-less throwaway instance, or literal `false` -- of which only `false`
- * is falsy; collapsing the throwaway to nil would change `d_`. */
+ * static struct with no readable field but `fo`, or literal `false` -- of
+ * which only `false` is falsy; collapsing the throwaway to nil would change
+ * `d_`. */
 void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp);
 
 pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+
+const pico8_struct_class_t *pico8_bv_et_struct_class(void);
 
 /* Generic tooltip helper, not probe-specific: also called directly by
  * `jc:hh`, `qh:ph` and the research icon, on entities that are never `g_`.

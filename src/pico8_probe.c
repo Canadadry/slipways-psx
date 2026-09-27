@@ -47,6 +47,41 @@ static const pico8_struct_class_t g_fm_placeholder_struct_class = {
 static pico8_fm_placeholder_t g_fm_placeholder = {
     {PICO8_TYPE_TAG_STRUCT, &g_fm_placeholder_struct_class}, {PICO8_VALUE_REF, {0}}, {PICO8_VALUE_REF, {0}}};
 
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t fo;
+} pico8_bv_et_t;
+
+static int pico8_bv_et_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_bv_et_t *et = self;
+
+    if (strcmp(name, "fo") != 0 || (et->fo.kind == PICO8_VALUE_REF && et->fo.as.ref == NULL)) {
+        return 0;
+    }
+    *out_value = et->fo;
+    return 1;
+}
+
+static int pico8_bv_et_set_field(void *self, const char *name, pico8_value_t value) {
+    pico8_bv_et_t *et = self;
+
+    if (strcmp(name, "fo") != 0) {
+        return 0;
+    }
+    et->fo = value;
+    return 1;
+}
+
+static const pico8_struct_class_t g_bv_et_struct_class = {
+    {NULL},
+    pico8_bv_et_field,
+    pico8_bv_et_set_field,
+};
+
+/* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
+ * never freed; only `fo` is written, and the next `bv` overwrites it. */
+static pico8_bv_et_t g_bv_et = {{PICO8_TYPE_TAG_STRUCT, &g_bv_et_struct_class}, {PICO8_VALUE_REF, {0}}};
+
 static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -186,12 +221,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
         } else {
             pico8_vec_t rp_vec = pico8_probe_value_vec(rp);
             if (!pico8_probe_ui_hw_call(rp_vec)) {
-                /* TROU-7 */
-                pico8_instance_t *empty = malloc(sizeof *empty);
-                empty->tag = PICO8_TYPE_TAG_INSTANCE;
-                empty->fields = pico8_ob_table_new();
-                empty->cls = NULL;
-                et = pico8_value_ref(empty);
+                et = pico8_value_ref(&g_bv_et);
             } else {
                 et = pico8_value_bool(0);
             }
@@ -203,7 +233,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     if (pico8_probe_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
         assert((pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
                 pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
-               "bv: et is an entity (a planet or class-less throwaway instance, a jc struct), never a bare table");
+               "bv: et is an entity (a planet, a jc, the static throwaway struct), never a bare table");
         pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
     }
 }
@@ -609,4 +639,8 @@ void pico8_probe_set_fm(pico8_instance_t *instance) {
     }
     fm_free(g_fm);
     g_fm = instance;
+}
+
+const pico8_struct_class_t *pico8_bv_et_struct_class(void) {
+    return &g_bv_et_struct_class;
 }
