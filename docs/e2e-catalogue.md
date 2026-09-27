@@ -1,7 +1,21 @@
 # Catalogue des scénarios e2e
 
-**Statut : à valider par l'humain.** Aucun fichier d'événements n'est écrit
-avant cette validation (étape 9 de `docs/prd/triage/e2e-rapide.md`).
+**Statut : validé par l'humain le 2026-09-27**, avec les décisions ci-dessous,
+qui priment sur le reste du document.
+
+## Décisions de l'humain
+
+1. **Triche admise** dans les scénarios de technologie : elle existe pour ça.
+2. **Structure proposée ici** : un scénario par code propre, les types de
+   planète en pilote de deux.
+3. **Pas de TU à état capturé** pour `score_panel_stars` et
+   `rich_planet_exports` : elles deviennent des e2e. Les étoiles du panneau
+   de score s'atteignent en sautant des années (clic en haut à droite) ; le
+   palier rich est affaire de graine et de technologie.
+4. **14 TU** à convertir.
+5. **Noms anglais**, dans la continuité des fixtures ; les noms du tableau
+   sont traduits à l'écriture des fichiers.
+6. **Ordre de jeu libre.**
 
 Chaque scénario deviendra `tests/e2e/<nom>.json`, accompagné de `<nom>.txt`
 (ce qu'il fait, frames des actions clés) et de `<nom>.json.sha256`. Tous
