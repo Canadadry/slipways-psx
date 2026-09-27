@@ -863,6 +863,43 @@ static void test_mz_is_a_struct(void) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
+static void test_jj_qs_by_name(void) {
+    static const char *const absent[] = {"fo", "jj", ""};
+    const pico8_struct_class_t *cls = pico8_mz_jj_struct_class();
+    void *wrapper = (void *)pico8_mz_jj_wrapper();
+    pico8_value_t witness = pico8_value_fixed(0x1234);
+    pico8_value_t out;
+    pico8_value_t again;
+    pico8_value_t jj;
+    void *mz_a;
+    void *mz_b;
+    size_t i;
+    int k;
+
+    assert(cls->field != NULL && cls->set_field == NULL);
+
+    out = witness;
+    assert(pico8_entity_get_field(wrapper, "qs", &out) == 1);
+    assert(out.kind == PICO8_VALUE_STRING && strcmp(out.as.string, "-too far-") == 0);
+    assert(pico8_entity_get_field(wrapper, "qs", &again) == 1 && again.as.string == out.as.string);
+
+    start_game(PLAYTHROUGH);
+    mz_a = pico8_mz_new(NULL);
+    mz_b = pico8_mz_new(NULL);
+    assert(mz_a != mz_b);
+    for (k = 0; k < 2; k++) {
+        assert(pico8_entity_get_field(k == 0 ? mz_a : mz_b, "jj", &jj) && jj.kind == PICO8_VALUE_REF);
+        assert(pico8_entity_get_field(jj.as.ref, "qs", &again) == 1);
+        assert(again.kind == PICO8_VALUE_STRING && again.as.string == out.as.string);
+    }
+
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        out = witness;
+        assert(cls->field(wrapper, absent[i], &out) == 0);
+        assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == 0x1234);
+    }
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -904,6 +941,7 @@ int main(void) {
     in_fresh_child(test_gv);
     in_fresh_child(test_jj_wrapper);
     in_fresh_child(test_mz_is_a_struct);
+    in_fresh_child(test_jj_qs_by_name);
 
     printf("test_pico8_mz: all tests passed\n");
     return 0;

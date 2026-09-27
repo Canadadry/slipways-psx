@@ -16,7 +16,7 @@
 /* `mz.jj`: no parent, never an entity, and no writer. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t qs;
+    const char *qs;
 } pico8_mz_jj_t;
 
 /* `nu` and `kk` point at the tables the module owns, `jj` at the one

@@ -25,7 +25,10 @@ static int pico8_mz_jj_field(const void *self, const char *name, pico8_value_t *
     const pico8_mz_jj_t *jj = self;
 
     if (strcmp(name, "qs") == 0) {
-        *out_value = jj->qs;
+        if (jj->qs == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(jj->qs);
         return 1;
     }
     return 0;
@@ -41,7 +44,7 @@ static const pico8_struct_class_t g_mz_jj_struct_class = {
  * reaching it stops the run. */
 static pico8_mz_jj_t g_mz_jj_wrapper = {
     {PICO8_TYPE_TAG_STRUCT, &g_mz_jj_struct_class},
-    {PICO8_VALUE_STRING, {.string = "-too far-"}},
+    "-too far-",
 };
 
 static int pico8_mz_truthy(pico8_value_t v) {
