@@ -525,13 +525,19 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     }
 }
 
+static void g__take_fixed(pico8_value_t value, pico8_fixed_t *out) {
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "g_.ke.t: a construction key that is not a fixed is off its census row (fixe, never nil) -- a field "
+           "under no rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
+}
+
 static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
     static const struct {
         const char *name;
         size_t offset;
     } keys[] = {
         {"pn", offsetof(pico8_g__t, pn)},
-        {"t", offsetof(pico8_g__t, ke.t)},
         {"du", offsetof(pico8_g__t, du)},
         {"py", offsetof(pico8_g__t, py)},
     };
@@ -546,6 +552,10 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
         pico8_ob_key_t key = overrides->entries[k].key;
         size_t found = sizeof keys / sizeof keys[0];
 
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "t") == 0) {
+            g__take_fixed(overrides->entries[k].value, &self->ke.t);
+            continue;
+        }
         for (i = 0; key.kind == PICO8_OB_KEY_NAME && i < sizeof keys / sizeof keys[0]; i++) {
             if (strcmp(key.name, keys[i].name) == 0) {
                 found = i;

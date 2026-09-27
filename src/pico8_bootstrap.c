@@ -93,7 +93,7 @@ void pico8_dg(void) {
         }
 
         if (pico8_entity_get_field(qc, "t", &t_val) && t_val.kind == PICO8_VALUE_FIXED) {
-            ((pico8_ke_t *)qc)->t = pico8_value_fixed(pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1)));
+            ((pico8_ke_t *)qc)->t = pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1));
         }
     }
 }

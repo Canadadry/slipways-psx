@@ -149,7 +149,7 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *sel
 
     qu = pico8_jc_display_value_instance(self->qu);
     re = pico8_jc_display_value_instance(self->re);
-    t = pico8_jc_display_value_fixed(self->ke.t);
+    t = self->ke.t;
 
     qu_pt = pico8_vec_add(pico8_jc_display_entity_vec(qu, "ra"),
                            pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(126))));

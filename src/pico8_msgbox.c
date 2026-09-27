@@ -76,10 +76,6 @@ static pico8_value_t pico8_mh_ev_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_fixed_t pico8_mh_value_fixed(pico8_value_t v) {
-    return v.kind == PICO8_VALUE_FIXED ? v.as.fixed : pico8_fixed_from_int(0);
-}
-
 void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     pico8_fixed_t self_t, rh, t, nc, t3;
     pico8_value_t lh_result;
@@ -89,7 +85,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
         return;
     }
 
-    self_t = pico8_mh_value_fixed(self->ke.t);
+    self_t = self->ke.t;
     rh = self->rh;
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
@@ -97,7 +93,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
         lh_found =
             pico8_mv((pico8_struct_header_t *)self, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lh_result);
         if (lh_found && pico8_msgbox_truthy(lh_result)) {
-            self->ke.t = pico8_value_fixed(pico8_fixed_mul(rh, pico8_fixed_from_int(10)));
+            self->ke.t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
             t = pico8_fixed_from_int(0);
         }
     }

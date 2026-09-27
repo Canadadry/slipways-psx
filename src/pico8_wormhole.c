@@ -176,16 +176,14 @@ static pico8_value_t pico8_mz_kz_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 void pico8_mz_ey(pico8_mz_t *self) {
-    pico8_fixed_t t = pico8_fixed_from_int(0);
+    pico8_fixed_t t;
     int result;
 
     if (self == NULL) {
         return;
     }
 
-    if (self->ke.t.kind == PICO8_VALUE_FIXED) {
-        t = self->ke.t.as.fixed;
-    }
+    t = self->ke.t;
 
     /* The `or` short-circuits: `d_`'s side effects must not run before tick
      * 15, so this call cannot be hoisted out of the else branch. */

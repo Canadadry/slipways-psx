@@ -482,7 +482,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
 
     me_val = self->ke.me;
     if (me_val != NULL && strcmp(me_val, "ll") == 0) {
-        pico8_fixed_t t = fixed_of(self->ke.t);
+        pico8_fixed_t t = self->ke.t;
         if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
             return;
         }

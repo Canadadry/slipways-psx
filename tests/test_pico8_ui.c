@@ -68,6 +68,7 @@
 #define DRAG_REPLAY_HASH 0xA3868481u
 #define TECH_REPLAY_HASH 0xAB5A4DE6u
 #define KE_ME_HASH 0x691ED215u
+#define KE_T_HASH 0x5DB51DEEu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -941,6 +942,155 @@ static void test_ke_ks_stops_off_row(void) {
     must_abort(ks_null_string, bg);
 }
 
+static uint32_t fold_t(uint32_t h, const void *e) {
+    pico8_value_t v;
+
+    assert(me_of(e, "t", &v) && v.kind == PICO8_VALUE_FIXED);
+    return fnv(fnv(h, (uint32_t)v.kind), (uint32_t)v.as.fixed);
+}
+
+static uint32_t fold_hv_t(uint32_t h) {
+    const pico8_list_t *hv = pico8_hv();
+    int i;
+
+    assert(hv != NULL);
+    h = fnv(h, (uint32_t)hv->count);
+    for (i = 0; i < hv->count; i++) {
+        assert(hv->items[i].kind == PICO8_VALUE_REF);
+        h = fold_t(h, hv->items[i].as.ref);
+    }
+    return h;
+}
+
+static void assert_fixed_by_name(const void *e, const char *name, int want) {
+    pico8_value_t v;
+
+    assert(me_of(e, name, &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(want));
+}
+
+static void test_ke_t_by_name(void) {
+    static const char *const intruders[] = {"", "T", "tt", "t ", "has_t", "ke"};
+    void *e[24];
+    pico8_ob_table_t *b;
+    void *keyed;
+    void *zero;
+    pico8_value_t v;
+    pico8_value_t through_hj;
+    uint32_t h = 2166136261u;
+    size_t i;
+
+    (void)start_game(DRAG);
+    h = fold_hv_t(h);
+    pico8_dg();
+    h = fold_hv_t(h);
+
+    e[0] = pico8_bg_new(NULL);
+    e[1] = pico8_nf_new(NULL);
+    e[2] = pico8_mh_new(NULL);
+    e[3] = pico8_iv_new(NULL);
+    e[4] = pico8_jo_new(NULL);
+    e[5] = pico8_qh_new(NULL);
+    e[6] = pico8_nl_new(NULL);
+    e[7] = pico8_os_new(NULL);
+    e[8] = pico8_hj_new(NULL);
+    e[9] = pico8_pm_new(NULL);
+    e[10] = pico8_ga_new(NULL);
+    e[11] = pico8_nr_new(NULL);
+    e[12] = pico8_fr_new(NULL);
+    e[13] = pico8_mx_new(NULL);
+    e[14] = pico8_g__new(NULL);
+    e[15] = pico8_fv_new(NULL);
+    e[16] = pico8_ie_new(NULL);
+    e[17] = pico8_pj_new(NULL);
+    e[18] = pico8_qb_new(NULL);
+    e[19] = pico8_jc_new(NULL);
+    e[20] = pico8_ui_new(NULL);
+    e[21] = pico8_js_new(NULL);
+    e[22] = pico8_fq_new(NULL);
+    e[23] = pico8_mz_new(NULL);
+    for (i = 0; i < 24; i++) {
+        assert_fixed_by_name(e[i], "t", 0);
+        h = fold_t(h, e[i]);
+    }
+
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        v = pico8_value_fixed(0x1234);
+        assert(pico8_ke_field(e[0], intruders[i], &v) == 0);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+        h = fnv(h, 0u);
+    }
+
+    b = pico8_ob_table_new();
+    pico8_ob_table_set_name(b, "pn", pico8_value_fixed(pico8_fixed_from_int(7)));
+    pico8_ob_table_set_name(b, "t", pico8_value_fixed(pico8_fixed_from_int(3)));
+    pico8_ob_table_set_name(b, "du", pico8_value_fixed(pico8_fixed_from_int(10)));
+    pico8_ob_table_set_name(b, "py", pico8_value_fixed(pico8_fixed_from_int(1)));
+    keyed = pico8_g__new(b);
+    assert_fixed_by_name(keyed, "t", 3);
+    assert_fixed_by_name(keyed, "pn", 7);
+    assert_fixed_by_name(keyed, "du", 10);
+    assert_fixed_by_name(keyed, "py", 1);
+    h = fold_t(h, keyed);
+
+    b = pico8_ob_table_new();
+    pico8_ob_table_set_name(b, "t", pico8_value_fixed(0));
+    zero = pico8_g__new(b);
+    assert_fixed_by_name(zero, "t", 0);
+    h = fold_t(h, zero);
+
+    pico8_ke_ks(keyed, pico8_value_string("ll"));
+    assert_fixed_by_name(keyed, "t", 0);
+    assert(me_of(keyed, "me", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ll") == 0);
+    h = fold_string(fold_t(h, keyed), v.as.string);
+
+    pico8_ke_ks(e[9], pico8_value_string("ll"));
+    assert_fixed_by_name(e[9], "t", 0);
+    assert(me_of(e[9], "t", &v) && pico8_hj_struct_class()->field(e[9], "t", &through_hj) &&
+           pico8_value_equal(v, through_hj));
+    h = fold_t(h, e[9]);
+
+    check("ke_t", h, KE_T_HASH);
+}
+
+static void g__with_t_key(void *value) {
+    pico8_ob_table_t *b = pico8_ob_table_new();
+
+    pico8_ob_table_set_name(b, "t", *(const pico8_value_t *)value);
+    (void)pico8_g__new(b);
+}
+
+static void test_g__t_key_stops_off_row(void) {
+    pico8_value_t zero_false;
+    pico8_value_t zero_fixed;
+    pico8_value_t v;
+    pico8_ob_table_t *b;
+    void *made;
+
+    (void)start_game(DRAG);
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    v = pico8_value_ref(NULL);
+    must_abort(g__with_t_key, &v);
+    must_abort(g__with_t_key, &zero_false);
+    v = pico8_value_bool(0);
+    must_abort(g__with_t_key, &v);
+    v = pico8_value_bool(1);
+    must_abort(g__with_t_key, &v);
+    v = pico8_value_string("3");
+    must_abort(g__with_t_key, &v);
+    v = pico8_value_string(NULL);
+    must_abort(g__with_t_key, &v);
+    v = pico8_value_ref(pico8_bg_new(NULL));
+    must_abort(g__with_t_key, &v);
+
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    b = pico8_ob_table_new();
+    pico8_ob_table_set_name(b, "t", zero_fixed);
+    made = pico8_g__new(b);
+    assert_fixed_by_name(made, "t", 0);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -985,6 +1135,8 @@ int main(void) {
     in_fresh_child(test_ke_closed);
     in_fresh_child(test_ke_me_by_name);
     in_fresh_child(test_ke_ks_stops_off_row);
+    in_fresh_child(test_ke_t_by_name);
+    in_fresh_child(test_g__t_key_stops_off_row);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

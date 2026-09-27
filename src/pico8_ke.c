@@ -47,19 +47,18 @@ void pico8_ke_ks(pico8_struct_header_t *self, pico8_value_t me) {
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "ke:ks: self is a struct; no class instance descends from ke any more");
     ke_take_string(me, &((pico8_ke_t *)self)->me);
-    ((pico8_ke_t *)self)->t = pico8_value_fixed(pico8_fixed_from_int(0));
+    ((pico8_ke_t *)self)->t = pico8_fixed_from_int(0);
 }
 
 void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls) {
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = cls;
     self->me = "ph";
-    self->t = pico8_value_fixed(pico8_fixed_from_int(0));
+    self->t = pico8_fixed_from_int(0);
 }
 
 int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_ke_t *ke = self;
-    const pico8_value_t *member;
 
     if (strcmp(name, "me") == 0) {
         if (ke->me == NULL) {
@@ -69,15 +68,10 @@ int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value)
         return 1;
     }
     if (strcmp(name, "t") == 0) {
-        member = &ke->t;
-    } else {
-        return 0;
+        *out_value = pico8_value_fixed(ke->t);
+        return 1;
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
-    }
-    *out_value = *member;
-    return 1;
+    return 0;
 }
 
 void pico8_ke_struct_pq(pico8_ke_t *self) {

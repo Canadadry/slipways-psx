@@ -80,7 +80,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
             pico8_spr_default(gfx, mem, 7, px - 4, py - 4);
         }
     } else {
-        pico8_fixed_t t = pico8_mzd_fixed(self->ke.t);
+        pico8_fixed_t t = self->ke.t;
         pico8_fixed_t oi = pico8_mzd_fixed(self->oi);
         int has_kk = self->kk.kind == PICO8_VALUE_REF && self->kk.as.ref != NULL;
         int dt;

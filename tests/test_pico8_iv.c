@@ -243,13 +243,13 @@ static void test_dg_drives_a_ke_struct(void) {
     for (i = 0; i < 2; i++) {
         pico8_dg();
         assert(g_fake_ph_calls == i + 1 && g_fake_ph_last_t == pico8_fixed_from_int(i));
-        assert(f->ke.t.kind == PICO8_VALUE_FIXED && f->ke.t.as.fixed == pico8_fixed_from_int(i + 1));
+        assert(f->ke.t == pico8_fixed_from_int(i + 1));
         assert(listed(pico8_hv(), f));
     }
     pico8_dg();
     assert(g_fake_ph_calls == 3 && g_fake_ph_last_t == pico8_fixed_from_int(2));
     assert(!listed(pico8_hv(), f));
-    assert(f->ke.t.as.fixed == pico8_fixed_from_int(3));
+    assert(f->ke.t == pico8_fixed_from_int(3));
 }
 
 /* The struct's defaults are, bit for bit, what the spec parser makes of
@@ -269,7 +269,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(pico8_iv_default("l", &parsed));
     assert(e->l.kind == PICO8_VALUE_FIXED && e->l.as.fixed == parsed.as.fixed);
     assert(e->ke.me != NULL && strcmp(e->ke.me, "ph") == 0);
-    assert(e->ke.t.kind == PICO8_VALUE_FIXED && e->ke.t.as.fixed == 0);
+    assert(e->ke.t == 0);
     assert(((const pico8_iv_t *)build(NULL, "y", 7))->v.as.ref == e->v.as.ref);
 }
 
