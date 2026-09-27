@@ -37,6 +37,16 @@
 #                       filet (FRAMES_EVENTS) et la compare à la référence figée
 #                       tools/line_coverage_reference.txt, plusieurs minutes,
 #                       hors suite
+# make e2e-fast      -> frames-check sur les nouveaux e2e de tests/e2e/, depuis
+#                       l'écran titre, avec le binaire -O0 de make test ;
+#                       échoue aussi si un e2e n'a pas son .txt et son
+#                       .json.sha256 ou dépasse 180 frames (600 s'il est listé
+#                       dans tools/e2e_long_exceptions.txt) ; hors suite
+# make e2e-fast-baseline -> (re)pose les .json.sha256 de tests/e2e/
+# make e2e-gap       -> les lignes de tools/line_coverage_reference.txt
+#                       qu'e2e-fast ne couvre pas, moins
+#                       tools/line_coverage_unreachable.txt ; échoue tant que
+#                       l'écart n'est pas nul, hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
@@ -338,6 +348,9 @@ $(TMP_DIR)/test_class_coverage: $(call objs,tests/test_class_coverage.c) $(TMP_D
 $(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -501,6 +514,7 @@ UNIT_TESTS := \
     test_frames_check \
     test_class_coverage \
     test_line_coverage \
+    test_e2e_limits \
     test_float_guard \
     test_float_grep \
     test_float_link \
@@ -567,7 +581,15 @@ RECORDINGS := \
     tests/fixtures/long_session_events.json \
     tests/fixtures/events_recorded_1790198294.json \
     tests/fixtures/trading_hub_session_events.json
-from_title = $(if $(filter $(RECORDINGS),$(1)),--from-title)
+# Les nouveaux e2e : <nom>.json (même format qu'un enregistrement raylib),
+# <nom>.txt (ce que fait le rejeu, frames des actions clés) et
+# <nom>.json.sha256. Tous partent de l'écran titre.
+E2E_FAST_DIR := tests/e2e
+E2E_FAST_EVENTS := $(sort $(wildcard $(E2E_FAST_DIR)/*.json))
+# Une ligne `<events> raison` par e2e admis jusqu'à 600 frames au lieu de 180.
+E2E_FAST_EXCEPTIONS := tools/e2e_long_exceptions.txt
+
+from_title = $(if $(filter $(RECORDINGS) $(E2E_FAST_EVENTS),$(1)),--from-title)
 
 ifeq ($(UNAME_S),Darwin)
     SHA256_CMD := shasum -a 256
@@ -646,6 +668,31 @@ frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e)))
 
 frames-ref: $(FRAMES_CHECK_PREREQ) $(FRAMES_TOOL) tools/frames_ref.sh
 	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)) $(or $(call from_title,$(e)),-))
+
+# Le binaire -O0 de make test, pas celui de make e2e : pas de second arbre à
+# compiler, et lisible sous gdb.
+E2E_FAST_FRAMES_DIR := $(TMP_DIR)/frames-fast
+
+.SECONDARY: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).bin)
+
+$(E2E_FAST_FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
+	@mkdir -p $(@D)
+	./$(TMP_DIR)/pico8_replay $(call from_title,$<) $< $@ $(@:.bin=.dump.txt) > /dev/null
+
+$(E2E_FAST_FRAMES_DIR)/%.sha256: $(E2E_FAST_FRAMES_DIR)/%.bin
+	$(frames_hash)
+
+e2e-fast: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).sha256) tools/e2e_limits.sh tools/frames_check.sh $(E2E_FAST_EXCEPTIONS)
+	@status=0; \
+	sh tools/e2e_limits.sh $(E2E_FAST_EXCEPTIONS) $(E2E_FAST_EVENTS) || status=1; \
+	FRAMES_BASELINE=e2e-fast-baseline sh tools/frames_check.sh $(foreach e,$(E2E_FAST_EVENTS),$(e) $(call frames_reference,$(e)) $(E2E_FAST_FRAMES_DIR)/$(e).sha256) || status=1; \
+	echo "e2e-fast: $(words $(E2E_FAST_EVENTS)) e2e dans $(E2E_FAST_DIR)"; \
+	exit $$status
+
+e2e-fast-baseline: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).sha256)
+	@$(foreach e,$(E2E_FAST_EVENTS),cp $(E2E_FAST_FRAMES_DIR)/$(e).sha256 $(call frames_reference,$(e)) && echo "e2e-fast: reference posee dans $(call frames_reference,$(e))" && ) true
+
+.PHONY: e2e-fast e2e-fast-baseline
 
 # make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
 # Il répond « quels sites de cast REF ont été atteints, et avec quel tag », en
@@ -742,7 +789,19 @@ line-coverage-reference-check: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.
 	fi
 	@echo "référence: OK -- le filet rend les $$(wc -l < $(LINE_COVERAGE_REFERENCE)) ligne(s) de $(LINE_COVERAGE_REFERENCE)"
 
-.PHONY: line-coverage line-coverage-contrib line-coverage-reference-check
+# Sans e2e, l'ensemble couvert est vide : l'écart est toute la référence.
+e2e-gap: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE)
+	@$(if $(E2E_FAST_EVENTS),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(E2E_FAST_EVENTS)),:) > $(TMP_DIR)/line_coverage_e2e_fast.txt
+	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e_fast.txt > $(TMP_DIR)/line_coverage_gap.txt
+	@sed 's/^/manque: /' $(TMP_DIR)/line_coverage_gap.txt
+	@n=$$(wc -l < $(TMP_DIR)/line_coverage_gap.txt | tr -d ' '); \
+	if [ "$$n" -ne 0 ]; then \
+	    echo "écart: $$n ligne(s) de $(LINE_COVERAGE_REFERENCE) ni couvertes par e2e-fast ($(words $(E2E_FAST_EVENTS)) e2e) ni dans $(LINE_COVERAGE_UNREACHABLE), dans $(TMP_DIR)/line_coverage_gap.txt"; \
+	    exit 1; \
+	fi
+	@echo "écart: nul -- e2e-fast couvre toute la référence hors $(LINE_COVERAGE_UNREACHABLE)"
+
+.PHONY: line-coverage line-coverage-contrib line-coverage-reference-check e2e-gap
 
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)

@@ -1,9 +1,12 @@
 #!/bin/sh
 # usage: frames_check.sh [<events> <reference .sha256> <empreinte courante>]...
 # Rend 0 si aucune reference posee ne diverge ; tous les rejeux sont examines
-# avant de conclure.
+# avant de conclure. FRAMES_BASELINE : la cible qui pose les references,
+# nommee dans les conseils (defaut frames-baseline).
 
 set -u
+
+baseline=${FRAMES_BASELINE:-frames-baseline}
 
 failed=0
 while [ $# -ge 3 ]; do
@@ -14,7 +17,7 @@ while [ $# -ge 3 ]; do
 
     if [ ! -f "$reference" ]; then
         echo "frames: $events : aucune reference ($reference absent) -- rien capture ni compare."
-        echo "frames:   pour la poser sur le code actuel : make frames-baseline"
+        echo "frames:   pour la poser sur le code actuel : make $baseline"
         continue
     fi
     if [ ! -f "$current" ]; then
@@ -36,7 +39,7 @@ while [ $# -ge 3 ]; do
         echo "frames:   attendue ($reference) : $attendue"
         echo "frames:   obtenue  ($current) : $obtenue"
         echo "frames:   reconstruire la reference et trouver la premiere frame : make frames-ref"
-        echo "frames:   si la divergence est voulue : make frames-baseline"
+        echo "frames:   si la divergence est voulue : make $baseline"
     } >&2
 done
 

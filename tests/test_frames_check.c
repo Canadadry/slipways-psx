@@ -108,6 +108,17 @@ static void test_missing_reference_is_not_compared_and_says_how_to_set_it(void) 
     free(log);
 }
 
+/* e2e-fast pose ses references par une autre cible : le conseil la nomme. */
+static void test_baseline_target_named_by_environment(void) {
+    reset();
+    write_hash(B_REF, HASH_X);
+    assert(system("FRAMES_BASELINE=e2e-fast-baseline " SCRIPT ARGS " > " LOG " 2>&1") != 0);
+    char *log = read_log();
+    assert(strstr(log, "make e2e-fast-baseline") != NULL);
+    assert(strstr(log, "make frames-baseline") == NULL);
+    free(log);
+}
+
 /* Un rejeu qui n'a rien produit ne passe pas pour juste. */
 static void test_missing_current_hash_fails(void) {
     reset();
@@ -128,6 +139,7 @@ int main(void) {
     test_only_the_divergent_replay_is_named();
     test_missing_reference_is_not_compared_and_says_how_to_set_it();
     test_missing_current_hash_fails();
+    test_baseline_target_named_by_environment();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frames_check: all tests passed\n");
     return 0;

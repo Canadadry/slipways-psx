@@ -2,6 +2,7 @@
 # usage: line_coverage.sh cover <pilote gcov> <arbre gcov> [--from-title] <events>...
 #        line_coverage.sh diff <ensemble> <ensemble>
 #        line_coverage.sh contrib <ensemble> [<ensemble>...]
+#        line_coverage.sh gap <référence> <inatteignables> <ensemble>
 # Un ensemble : une ligne `fichier:ligne` par ligne source exécutée, triée.
 # cover : l'union des lignes couvertes par les rejeux, un processus par
 #   fichier ; --from-title ne vaut que pour le fichier qui le suit. Rend 1,
@@ -9,6 +10,8 @@
 # diff : les lignes du premier ensemble absentes du second (l'écart).
 # contrib : les lignes du premier ensemble qu'aucun des autres ne couvre
 #   (l'apport d'un fichier).
+# gap : les lignes de la référence ni couvertes par l'ensemble ni listées dans
+#   les inatteignables (`fichier:ligne raison`, seul le premier champ compte).
 
 set -u
 
@@ -29,6 +32,18 @@ minus() {
     awk -v first="$first" '
         FILENAME != first { seen[$0] = 1; next }
         !($0 in seen)' "$@" "$first" | sorted
+}
+
+gap() {
+    for set in "$@"; do
+        if [ ! -f "$set" ]; then
+            echo "ensemble absent: $set" >&2
+            exit 1
+        fi
+    done
+    awk -v reference="$1" '
+        FILENAME != reference { if (NF) seen[$1] = 1; next }
+        !($0 in seen)' "$2" "$3" "$1" | sorted
 }
 
 cover() {
@@ -126,8 +141,13 @@ case "${1:-}" in
         [ $# -ge 1 ] || { echo "usage: $0 contrib <ensemble> [<ensemble>...]" >&2; exit 1; }
         minus "$@"
         ;;
+    gap)
+        shift
+        [ $# -eq 3 ] || { echo "usage: $0 gap <référence> <inatteignables> <ensemble>" >&2; exit 1; }
+        gap "$@"
+        ;;
     *)
-        sed -n '2,4s/^# //p' "$0" >&2
+        sed -n '2,5s/^# //p' "$0" >&2
         exit 1
         ;;
 esac

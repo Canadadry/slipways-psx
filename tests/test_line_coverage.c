@@ -127,6 +127,33 @@ static void test_set_operation_on_missing_set_fails(void) {
     assert(run(SCRIPT " contrib " DIR "/absent.lines " DIR "/a.lines", DIR "/out.lines") != 0);
 }
 
+/* L'ecart : la reference moins les lignes couvertes et moins les inatteignables,
+ * dont seul le premier champ `fichier:ligne` compte. */
+static void test_gap_removes_covered_and_unreachable_lines(void) {
+    write_file(DIR "/ref.lines", "src/a.c:1\nsrc/a.c:2\nsrc/b.c:10\nsrc/c.c:5\n");
+    write_file(DIR "/covered.lines", "src/a.c:1\nsrc/z.c:9\n");
+    write_file(DIR "/unreachable.txt", "src/c.c:5 jamais en 600 frames\n");
+    assert(run(SCRIPT " gap " DIR "/ref.lines " DIR "/unreachable.txt " DIR "/covered.lines",
+               DIR "/out.lines") == 0);
+    assert(strcmp(read_file(DIR "/out.lines"), "src/a.c:2\nsrc/b.c:10\n") == 0);
+}
+
+/* Aucun e2e : l'ensemble couvert est vide, l'ecart est toute la reference. */
+static void test_gap_of_empty_covered_set_is_whole_reference(void) {
+    write_file(DIR "/ref.lines", "src/a.c:1\nsrc/b.c:10\n");
+    write_file(DIR "/covered.lines", "");
+    write_file(DIR "/unreachable.txt", "");
+    assert(run(SCRIPT " gap " DIR "/ref.lines " DIR "/unreachable.txt " DIR "/covered.lines",
+               DIR "/out.lines") == 0);
+    assert(strcmp(read_file(DIR "/out.lines"), "src/a.c:1\nsrc/b.c:10\n") == 0);
+}
+
+static void test_gap_with_missing_set_fails(void) {
+    assert(run(SCRIPT " gap " DIR "/ref.lines " DIR "/absent.txt " DIR "/covered.lines",
+               DIR "/out.lines") != 0);
+    assert(strstr(read_file(LOG), DIR "/absent.txt") != NULL);
+}
+
 int main(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR) == 0);
     write_fixtures();
@@ -137,6 +164,9 @@ int main(void) {
     test_diff_returns_lines_of_first_set_missing_from_second();
     test_contrib_returns_lines_no_other_set_covers();
     test_set_operation_on_missing_set_fails();
+    test_gap_removes_covered_and_unreachable_lines();
+    test_gap_of_empty_covered_set_is_whole_reference();
+    test_gap_with_missing_set_fails();
     assert(system("rm -rf " DIR) == 0);
     printf("test_line_coverage: all tests passed\n");
     return 0;
