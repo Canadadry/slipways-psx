@@ -69,6 +69,7 @@
 #define TECH_REPLAY_HASH 0xAB5A4DE6u
 #define KE_ME_HASH 0x691ED215u
 #define KE_T_HASH 0x5DB51DEEu
+#define JO_MEMBERS_HASH 0x62CB3FF0u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -1109,6 +1110,147 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+static const char *const jo_names[12] = {"nu", "hf", "hs", "fa", "kq", "ka", "dz", "cq", "kw", "em", "hn", "nk"};
+
+typedef int (*jo_spec_reader_t)(const char *, pico8_value_t *);
+
+/* 1: the pointer of jo's spec; 2: the one of `own`, the spec of the genre that
+ * holds its own default; 0: any other. */
+static int jo_identity(const char *name, const void *ref, jo_spec_reader_t own) {
+    pico8_value_t d;
+
+    if (pico8_jo_default(name, &d) && d.kind == PICO8_VALUE_REF && d.as.ref == ref) {
+        return 1;
+    }
+    if (own != NULL && own(name, &d) && d.kind == PICO8_VALUE_REF && d.as.ref == ref) {
+        return 2;
+    }
+    return 0;
+}
+
+static uint32_t fold_jo_member(uint32_t h, const void *e, const char *name, jo_spec_reader_t own, pico8_value_t *out,
+                               int *identity) {
+    pico8_value_t v;
+
+    *identity = -1;
+    if (!me_of(e, name, &v)) {
+        return fnv(h, 0u);
+    }
+    h = fnv(fnv(h, 1u), (uint32_t)v.kind);
+    if (v.kind == PICO8_VALUE_FIXED) {
+        h = fnv(h, (uint32_t)v.as.fixed);
+    } else if (v.kind == PICO8_VALUE_BOOL) {
+        h = fnv(h, (uint32_t)v.as.boolean);
+    } else if (v.kind == PICO8_VALUE_REF) {
+        *identity = jo_identity(name, v.as.ref, own);
+        h = fnv(h, (uint32_t)*identity);
+    }
+    *out = v;
+    return h;
+}
+
+static int jo_accessor_is(const char *name, const pico8_ob_table_t *got) {
+    pico8_value_t d;
+
+    return got != NULL && pico8_jo_default(name, &d) && d.kind == PICO8_VALUE_REF && d.as.ref == got;
+}
+
+static int jo_tree(const void *e) {
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
+
+    return cls == pico8_jo_struct_class() || cls == pico8_qh_struct_class() || cls == pico8_nl_struct_class() ||
+           cls == pico8_os_struct_class() || cls == pico8_hj_struct_class() || cls == pico8_pm_struct_class() ||
+           cls == pico8_ga_struct_class() || cls == pico8_nr_struct_class() || cls == pico8_fr_struct_class() ||
+           cls == pico8_mx_struct_class();
+}
+
+static void test_jo_members_by_name(void) {
+    static const jo_spec_reader_t own[10] = {NULL,           pico8_qh_default, pico8_nl_default, pico8_os_default,
+                                             pico8_hj_default, pico8_pm_default, pico8_ga_default, pico8_nr_default,
+                                             pico8_nr_default, pico8_mx_default};
+    static const int nu_identity[10] = {1, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+    static const int kq_identity[10] = {1, 1, 1, 1, 1, 1, 2, 2, 2, 1};
+    static const int lz_at_pq[10] = {0, 1, 1, 1, 1, 1, 0, 1, 1, 1};
+    static const char *const intruders[] = {"", "n", "nuu", "hf ", "hf_is_bool", "has_hf", "jo"};
+    const pico8_list_t *hv;
+    void *e[10];
+    pico8_value_t v;
+    int identity;
+    uint32_t h = 2166136261u;
+    size_t i;
+    size_t m;
+
+    (void)start_game(DRAG);
+    hv = pico8_hv();
+    assert(hv != NULL);
+    h = fnv(h, (uint32_t)hv->count);
+    for (i = 0; i < (size_t)hv->count; i++) {
+        assert(hv->items[i].kind == PICO8_VALUE_REF);
+        if (!jo_tree(hv->items[i].as.ref)) {
+            h = fnv(h, 7u);
+            continue;
+        }
+        for (m = 0; m < 12; m++) {
+            h = fold_jo_member(h, hv->items[i].as.ref, jo_names[m], NULL, &v, &identity);
+        }
+    }
+
+    e[0] = pico8_jo_new(NULL);
+    e[1] = pico8_qh_new(NULL);
+    e[2] = pico8_nl_new(NULL);
+    e[3] = pico8_os_new(NULL);
+    e[4] = pico8_hj_new(NULL);
+    e[5] = pico8_pm_new(NULL);
+    e[6] = pico8_ga_new(NULL);
+    e[7] = pico8_nr_new(NULL);
+    e[8] = pico8_fr_new(NULL);
+    e[9] = pico8_mx_new(NULL);
+    for (i = 0; i < 10; i++) {
+        for (m = 0; m < 12; m++) {
+            const char *n = jo_names[m];
+
+            v = pico8_value_fixed(0x1234);
+            h = fold_jo_member(h, e[i], n, own[i], &v, &identity);
+            if (strcmp(n, "hf") == 0) {
+                assert(i == 0 ? v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1)
+                              : v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+            } else if (strcmp(n, "hs") == 0) {
+                assert(v.kind == PICO8_VALUE_FIXED);
+                assert(v.as.fixed == (i == 3 ? pico8_fixed_from_int(1) / 2 : pico8_fixed_from_int(1)));
+            } else if (strcmp(n, "fa") == 0) {
+                assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(i == 6 ? 3 : 6));
+            } else if (strcmp(n, "nu") == 0) {
+                assert(v.kind == PICO8_VALUE_REF && identity == nu_identity[i]);
+            } else if (strcmp(n, "kq") == 0) {
+                assert(v.kind == PICO8_VALUE_REF && identity == kq_identity[i]);
+                assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
+            } else if (strcmp(n, "hn") == 0) {
+                assert(lz_at_pq[i] ? v.kind == PICO8_VALUE_REF && identity == 0
+                                   : identity == -1 && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+            } else if (strcmp(n, "nk") == 0) {
+                assert(identity == -1 && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+            } else {
+                assert(v.kind == PICO8_VALUE_REF && identity == (strcmp(n, "kw") == 0 && lz_at_pq[i] ? 0 : 1));
+                assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
+            }
+        }
+    }
+
+    assert(jo_accessor_is("dz", pico8_jo_dz()));
+    assert(jo_accessor_is("cq", pico8_jo_cq()));
+    assert(jo_accessor_is("ka", pico8_jo_ka()));
+    assert(jo_accessor_is("em", pico8_jo_em()));
+
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        v = pico8_value_fixed(0x1234);
+        assert(pico8_jo_struct_class()->field(e[0], intruders[i], &v) == 0);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+        h = fnv(h, 0u);
+    }
+
+    check("jo_members", h, JO_MEMBERS_HASH);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -1137,6 +1279,7 @@ int main(void) {
     in_fresh_child(test_ke_ks_stops_off_row);
     in_fresh_child(test_ke_t_by_name);
     in_fresh_child(test_g__t_key_stops_off_row);
+    in_fresh_child(test_jo_members_by_name);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

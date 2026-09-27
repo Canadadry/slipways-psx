@@ -18,6 +18,7 @@
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
+#include "pico8_type_tag.h"
 #include "pico8_ref_audit.h"
 
 static pico8_ob_table_t *g_nr_spec = NULL;
@@ -238,14 +239,19 @@ static struct {
     size_t offset;
     pico8_value_t value;
 } g_nr_defaults[] = {
-    {"nu", offsetof(pico8_nr_t, qh.jo.nu), {0}}, {"od", offsetof(pico8_nr_t, qh.od), {0}},
-    {"fp", offsetof(pico8_nr_t, qh.fp), {0}},    {"kq", offsetof(pico8_nr_t, qh.jo.kq), {0}},
+    {"od", offsetof(pico8_nr_t, qh.od), {0}},
+    {"fp", offsetof(pico8_nr_t, qh.fp), {0}},
     {"s", offsetof(pico8_nr_t, qh.s), {0}},      {"hz", offsetof(pico8_nr_t, hz), {0}},
     {"dw", offsetof(pico8_nr_t, qh.dw), {0}},    {"rr", offsetof(pico8_nr_t, rr), {0}},
 };
 
+static pico8_ob_table_t *g_nr_nu = NULL;
+static pico8_qz_box_t *g_nr_kq = NULL;
+
 static void pico8_nr_defaults_reset(void) {
     size_t i;
+    g_nr_nu = NULL;
+    g_nr_kq = NULL;
     for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
         g_nr_defaults[i].value = pico8_value_ref(NULL);
     }
@@ -312,6 +318,8 @@ static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *c
     for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
         *(pico8_value_t *)((char *)self + g_nr_defaults[i].offset) = g_nr_defaults[i].value;
     }
+    self->qh.jo.nu = g_nr_nu;
+    self->qh.jo.kq = g_nr_kq;
 }
 
 static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
@@ -513,7 +521,7 @@ static struct {
     size_t offset;
     pico8_value_t value;
 } g_mx_defaults[] = {
-    {"nu", offsetof(pico8_mx_t, hj.qh.jo.nu), {0}}, {"rr", offsetof(pico8_mx_t, hj.rr), {0}},
+    {"rr", offsetof(pico8_mx_t, hj.rr), {0}},
     {"hp", offsetof(pico8_mx_t, hj.qh.hp), {0}},    {"s", offsetof(pico8_mx_t, hj.qh.s), {0}},
     {"px", offsetof(pico8_mx_t, hj.qh.px), {0}},    {"od", offsetof(pico8_mx_t, hj.qh.od), {0}},
     {"ht", offsetof(pico8_mx_t, ht), {0}},          {"py", offsetof(pico8_mx_t, hj.py), {0}},
@@ -524,8 +532,11 @@ static struct {
     {"qg", offsetof(pico8_mx_t, hj.qg), {0}},       {"q_", offsetof(pico8_mx_t, hj.q_), {0}},
 };
 
+static pico8_ob_table_t *g_mx_nu = NULL;
+
 static void pico8_mx_defaults_reset(void) {
     size_t i;
+    g_mx_nu = NULL;
     for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
         g_mx_defaults[i].value = pico8_value_ref(NULL);
     }
@@ -586,6 +597,7 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
         *(pico8_value_t *)((char *)self + g_mx_defaults[i].offset) = g_mx_defaults[i].value;
     }
+    self->hj.qh.jo.nu = g_mx_nu;
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
@@ -605,8 +617,26 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
+static pico8_ob_table_t *family_trade_default_table(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+           "nr/mx.nu: a default of the struct is a key of its spec and a table (ref:table)");
+    (void)found;
+    return v.as.ref;
+}
+
+static pico8_qz_box_t *family_trade_default_box(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "nr.kq: a default of the struct is a key of nr's spec and a box b() (ref:autre)");
+    (void)found;
+    return v.as.ref;
+}
+
 void pico8_planet_family_trade_init(void) {
     size_t i;
+    pico8_value_t v;
+    int found;
 
     assert(pico8_qh_ready() && pico8_hj_ready() &&
            "pico8_planet_family_init() must run first");
@@ -627,6 +657,10 @@ void pico8_planet_family_trade_init(void) {
         assert(found && "nr: every default of the struct is a key of nr's spec");
         (void)found;
     }
+    found = pico8_nr_default("nu", &v);
+    g_nr_nu = family_trade_default_table(found, v);
+    found = pico8_nr_default("kq", &v);
+    g_nr_kq = family_trade_default_box(found, v);
 
     g_fr_spec = pico8_ob("\n"
                          "mt=1,\n"
@@ -659,6 +693,8 @@ void pico8_planet_family_trade_init(void) {
         assert(found && "mx: every default of the struct is a key of mx's spec");
         (void)found;
     }
+    found = pico8_mx_default("nu", &v);
+    g_mx_nu = family_trade_default_table(found, v);
     PICO8_MEMBER_CENSUS_SEE(&g_nr_ldown_empty, pico8_nr_ldown_empty_t);
 }
 

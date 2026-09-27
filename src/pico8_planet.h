@@ -3,6 +3,7 @@
 
 #include "pico8_fixed.h"
 #include "pico8_gen.h"
+#include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_ob.h"
 #include "pico8_research.h"
@@ -21,19 +22,20 @@
  * functions take it for `self`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t nu;
-    pico8_value_t hf;
-    pico8_value_t hs;
-    pico8_value_t fa;
-    pico8_value_t kq;
+    pico8_ob_table_t *nu;
+    pico8_fixed_t hf;
+    int hf_is_bool; /* 1: `hf` holds a boolean (0/1), 0: a fixed */
+    pico8_fixed_t hs;
+    pico8_fixed_t fa;
+    pico8_qz_box_t *kq;
     pico8_value_t ma;
-    pico8_value_t ka;
-    pico8_value_t dz;
-    pico8_value_t cq;
+    pico8_ob_table_t *ka;
+    pico8_ob_table_t *dz;
+    pico8_ob_table_t *cq;
     pico8_value_t kw;
     pico8_value_t gq;
     pico8_value_t ca;
-    pico8_value_t em;
+    pico8_ob_table_t *em;
     pico8_value_t id;
     pico8_value_t p;
     pico8_value_t ra;
@@ -109,6 +111,9 @@ pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pic
 
 /* TROU-7 */
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
+
+/* `hf` as a value: a boolean or a fixed, per `hf_is_bool`; nil for a NULL `self`. */
+pico8_value_t pico8_jo_hf(const pico8_jo_t *self);
 
 /* TROU-3 */
 /* Returns `self.hf` itself when that field is falsy (Lua's `A and B`), a
