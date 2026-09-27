@@ -306,6 +306,17 @@ for k in muets differees nil-par-nom hors-membre; do
         "$(awk -F'\t' -v k=$k '$1 == "S" && $2 == k { s += $3 } END { print s + 0 }' "$WORK/replay.txt")" \
         "$(awk -F'\t' -v k=$k '$1 == "S" && $2 == k { s += $3 } END { print s + 0 }' "$WORK/unit.txt")" >> "$REPORT"
 done
+sum_s() {
+    awk -F'\t' -v k="$1" '$1 == "S" && $2 == k { s += $3 } END { print s + 0 }' "$WORK/replay.txt" "$WORK/unit.txt"
+}
+n_children=$(sum_s fils)
+n_inherited=$(sum_s fils-herites)
+n_reset=$(sum_s fils-remis)
+n_stops=$(sum_s arrets)
+if [ "$n_inherited" -ne "$n_reset" ]; then
+    fail "fils : $n_inherited fils ont hérité d'un recensement démarré, $n_reset seulement remis à zéro au fork"
+fi
+echo "fils : $n_children (hérités $n_inherited, remis $n_reset) ; arrêts : $n_stops" | tee -a "$REPORT"
 awk -F'\t' '$1 == "M" && $5 ~ /o/ { print "cibles struct tronquées : " $2 "." $3 }' "$WORK/replay.txt" "$WORK/unit.txt" | sort -u >> "$REPORT"
 
 # Static half: nil tests and `= nil` made directly on a member.

@@ -616,7 +616,7 @@ static void test_nl_is_a_struct(void) {
     }
     assert(!pico8_nl_default("ly", &v) && !pico8_qh_default("ly", &v));
 
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
+    PICO8_MEMBER_CENSUS_STOP() for (i = 0; i < sizeof written / sizeof written[0]; i++) {
         pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
         assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
                v.as.fixed == pico8_fixed_from_int((int)i + 1));
@@ -645,7 +645,7 @@ static pid_t spawn(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        _exit(0);
+        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
     }
     return child;
 }

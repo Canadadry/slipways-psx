@@ -736,7 +736,7 @@ static void test_ga_is_a_struct(void) {
     must_abort(write_ht, roads[0]);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
+    PICO8_MEMBER_CENSUS_STOP() for (i = 0; i < sizeof written / sizeof written[0]; i++) {
         pico8_entity_set_field(roads[2], written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
         assert(lookup(roads[2], written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
                v.as.fixed == pico8_fixed_from_int((int)i + 1));
@@ -757,7 +757,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        _exit(0);
+        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

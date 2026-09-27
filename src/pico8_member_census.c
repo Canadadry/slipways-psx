@@ -2,6 +2,7 @@
 
 #ifdef PICO8_MEMBER_CENSUS
 #define _POSIX_C_SOURCE 200112L
+#include <pthread.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,6 +91,10 @@ static long g_by_name_nil;
 static long g_outside;
 static long g_overflow;
 static int g_started;
+static long g_start_pid;
+static int g_forked;
+static int g_stopped;
+static int g_child_exit;
 
 static void report_error(const char *what, const char *a, const char *b) {
     if (g_error_count < MAX_ERRORS) {
@@ -207,7 +212,32 @@ static void dump(void) {
     fprintf(f, "S\thors-membre\t%ld\n", g_outside);
     fprintf(f, "S\tdebordements\t%ld\n", g_overflow);
     fprintf(f, "S\terreurs\t%d\n", g_error_count);
+    if (g_stopped) {
+        fprintf(f, "S\tarrets\t1\n");
+    }
+    if (g_child_exit) {
+        int inherited = g_start_pid != (long)getpid();
+
+        fprintf(f, "S\tfils\t1\n");
+        fprintf(f, "S\tfils-herites\t%d\n", inherited);
+        fprintf(f, "S\tfils-remis\t%d\n", inherited && g_forked);
+    }
     fclose(f);
+}
+
+/* In the child: the observation counters restart from zero, so that a
+ * child's dump does not count its parent's again; unions, descriptors and
+ * pending reads stay. */
+static void reset_in_child(void) {
+    memset(g_seen, 0, sizeof g_seen);
+    g_muted = 0;
+    g_deferred = 0;
+    g_by_name_nil = 0;
+    g_outside = 0;
+    g_overflow = 0;
+    g_error_count = 0;
+    g_unknown_count = 0;
+    g_forked = 1;
 }
 
 static void start(void) {
@@ -218,6 +248,7 @@ static void start(void) {
         return;
     }
     g_started = 1;
+    g_start_pid = (long)getpid();
     for (i = 0; i < TYPEDEF_COUNT; i++) {
         g_first[i] = -1;
     }
@@ -229,6 +260,19 @@ static void start(void) {
         g_count[td]++;
     }
     atexit(dump);
+    pthread_atfork(NULL, NULL, reset_in_child);
+}
+
+void pico8_member_census_child_exit(int code) {
+    if (g_started) {
+        g_child_exit = 1;
+        dump();
+    }
+    _exit(code);
+}
+
+void pico8_member_census_stop(void) {
+    g_stopped = 1;
 }
 
 static int td_by_name(const char *typedef_name) {
@@ -430,6 +474,9 @@ void pico8_member_census_see(const void *obj, const char *typedef_name) {
     int td;
     int known;
 
+    if (g_stopped) {
+        return;
+    }
     start();
     td = td_by_name(typedef_name);
     if (td < 0) {
@@ -460,6 +507,9 @@ int pico8_member_census_read(const void *e, const char *name, int found, const v
     int td;
     int m;
 
+    if (g_stopped) {
+        return found;
+    }
     start();
     td = td_of_cls(cls);
     if (td < 0) {
@@ -482,6 +532,9 @@ void pico8_member_census_write(const void *e, const char *name, const void *valu
     int td;
     int m;
 
+    if (g_stopped) {
+        return;
+    }
     start();
     td = td_of_cls(cls);
     if (td < 0) {
@@ -500,6 +553,9 @@ void pico8_member_census_walk(const void *hv) {
     const pico8_list_t *list = hv;
     int i;
 
+    if (g_stopped) {
+        return;
+    }
     start();
     for (i = 0; i < list->count; i++) {
         const pico8_value_t *v = &list->items[i];
