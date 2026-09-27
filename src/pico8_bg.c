@@ -118,6 +118,7 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_bg_pq(pico8_dispatch_mem(), self);
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_bg_t);
     return self;
 }
 

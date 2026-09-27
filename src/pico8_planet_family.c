@@ -186,6 +186,7 @@ static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_qh_t);
     return self;
 }
 
@@ -319,6 +320,7 @@ static void *pico8_nl_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_nl_t);
     return self;
 }
 
@@ -389,6 +391,7 @@ static void *pico8_os_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_os_t);
     return self;
 }
 
@@ -535,6 +538,7 @@ static void *pico8_hj_struct_new(const pico8_ob_table_t *overrides) {
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_hj_t);
     return self;
 }
 
@@ -680,6 +684,7 @@ static void *pico8_pm_struct_new(const pico8_ob_table_t *overrides) {
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_pm_t);
     return self;
 }
 
@@ -960,6 +965,7 @@ static void *pico8_ga_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ga_pq(self);
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_ga_t);
     return self;
 }
 

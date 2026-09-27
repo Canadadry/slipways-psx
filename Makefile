@@ -26,6 +26,17 @@
 # make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS) ; échoue
 #                       aussi si sa sortie diffère de
 #                       tools/class_coverage_net_expected.txt, hors suite
+# make value-members -> liste les membres pico8_value_t des structs d'entité
+#                       et leur nombre (tools/entity_value_members.sh) ; la
+#                       phase 1b sort sur une liste vide, hors suite
+# make member-census -> rejoue FRAMES_EVENTS et CENSUS_UNIT_TESTS sous
+#                       -DPICO8_MEMBER_CENSUS dans tmp/census et réécrit
+#                       tools/member_census.txt ; échoue sur l'intégrité de
+#                       l'outil, jamais sur le contenu, hors suite. Passe
+#                       réduite : CENSUS_EVENTS=<un rejeu> CENSUS_UNIT=
+#                       CENSUS_TABLE=tmp/census/m.txt
+# make sanitize-net  -> rejoue FRAMES_EVENTS sous ASan+UBSan (-O2),
+#                       critère « sortie propre », hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
@@ -63,7 +74,7 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les sept.
+# sur ce code, sans rien dire. Ne pas fusionner les huit.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
@@ -71,6 +82,7 @@ OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 OBJ_AUDIT_DIR := $(TMP_DIR)/obj-audit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 OBJ_E2E_DIR := $(TMP_DIR)/obj-e2e
+OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 
 # -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
 # que l'unité de compilation a vraiment ouverts. Le -include en bas du fichier
@@ -94,6 +106,7 @@ refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 audit_objs = $(patsubst %.c,$(OBJ_AUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 e2e_objs = $(patsubst %.c,$(OBJ_E2E_DIR)/%.o,$(1))
+sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
 
 # mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
 # d'un répertoire change à chaque fichier écrit dedans, ce qui rebuilderait tout.
@@ -124,6 +137,10 @@ $(OBJ_COVERAGE_DIR)/%.o: %.c
 $(OBJ_E2E_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+$(OBJ_SANITIZE_DIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # Closure complète du moteur : tout src/ sauf les deux points d'entrée (main.c,
 # main_raylib.c) et les modules qui ne servent qu'au driver interactif. Utilisée
@@ -159,6 +176,7 @@ ENGINE_SRCS := \
     src/pico8_layout.c \
     src/pico8_list.c \
     src/pico8_mem.c \
+    src/pico8_member_census.c \
     src/pico8_menu.c \
     src/pico8_mouse.c \
     src/pico8_mouse_reader.c \
@@ -224,6 +242,7 @@ DATA_ENGINE_SRCS := \
     src/pico8_layout.c \
     src/pico8_list.c \
     src/pico8_mem.c \
+    src/pico8_member_census.c \
     src/pico8_mouse.c \
     src/pico8_mouse_reader.c \
     src/pico8_msgbox.c \
@@ -835,6 +854,106 @@ class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CL
 
 .PHONY: class-coverage class-coverage-net
 
+value-members: tools/entity_value_members.sh
+	@sh tools/entity_value_members.sh
+
+.PHONY: value-members
+
+# Les TU de UNIT_TESTS qui lient ENGINE_SRCS ou DATA_ENGINE_SRCS, moins
+# UNIT_TESTS_SLOW.
+CENSUS_UNIT_TESTS := \
+    test_pico8_data_init \
+    test_pico8_jb_ol \
+    test_pico8_iv \
+    test_pico8_mh \
+    test_pico8_fq \
+    test_pico8_nf \
+    test_pico8_je \
+    test_pico8_mo \
+    test_pico8_qb \
+    test_pico8_mz \
+    test_pico8_bg \
+    test_pico8_jc \
+    test_pico8_js \
+    test_pico8_entity_kind \
+    test_pico8_spec_defaults \
+    test_pico8_jo_spec_defaults \
+    test_pico8_nl \
+    test_pico8_fr \
+    test_pico8_ga \
+    test_pico8_g_ \
+    test_pico8_fv \
+    test_pico8_pj \
+    test_pico8_ui \
+    test_pico8_trade \
+    test_pico8_hp \
+    test_pico8_lq \
+    test_pico8_hy \
+    test_pico8_fm \
+    test_pico8_planet_kj_dispatch \
+    test_pico8_playability \
+    test_pico8_top_menubar \
+    test_pico8_shop_tooltip_fillp \
+    test_pico8_bg_kj \
+    test_pico8_slipway_drag \
+    test_pico8_tech_screen \
+    test_pico8_game_end \
+    test_pico8_pause_menu_music \
+    test_pico8_geoharvest_burst \
+    test_pico8_score_panel_close \
+    test_pico8_score_panel_stars \
+    test_pico8_empty_planet_cleared \
+    test_pico8_planet_gh_row_lq \
+    test_pico8_ga_export_panel_by \
+    test_pico8_built_planet_panel_nil_row \
+    test_pico8_rich_planet_exports \
+    test_pico8_cheat_code \
+    test_pico8_probe_mm_rnd_order
+
+CENSUS_TMP := tmp/census
+CENSUS_EVENTS ?= $(FRAMES_EVENTS)
+CENSUS_UNIT ?= $(CENSUS_UNIT_TESTS)
+CENSUS_TABLE ?= tools/member_census.txt
+CENSUS_CFLAGS := -DPICO8_MEMBER_CENSUS -I src -I $(CENSUS_TMP)/gen
+
+# La table générée n'est réécrite que si elle change : l'objet du recensement en
+# dépend par son .d. Le make récursif construit tout dans tmp/census ; les
+# rejeux posent leur propre dossier de sortie, les TU héritent de celui-ci.
+member-census: tools/entity_value_members.sh tools/member_census.sh
+	@mkdir -p $(CENSUS_TMP)/gen
+	@sh tools/entity_value_members.sh --c-table > $(CENSUS_TMP)/gen/table.new
+	@cmp -s $(CENSUS_TMP)/gen/table.new $(CENSUS_TMP)/gen/pico8_member_census_table.h || mv $(CENSUS_TMP)/gen/table.new $(CENSUS_TMP)/gen/pico8_member_census_table.h
+	@rm -rf $(CENSUS_TMP)/raw && mkdir -p $(CENSUS_TMP)/raw/replay $(CENSUS_TMP)/raw/unit
+	PICO8_MEMBER_CENSUS_OUT=$(CURDIR)/$(CENSUS_TMP)/raw/unit $(MAKE) --no-print-directory TMP_DIR=$(CENSUS_TMP) CFLAGS="$(CFLAGS) $(CENSUS_CFLAGS)" \
+	    census-runs CENSUS_EVENTS="$(CENSUS_EVENTS)" CENSUS_UNIT="$(CENSUS_UNIT)"
+	sh tools/member_census.sh $(CENSUS_TABLE) $(CENSUS_TMP) $(words $(CENSUS_EVENTS)) $(words $(CENSUS_UNIT))
+
+CENSUS_REPLAYS := $(addprefix census-replay-,$(CENSUS_EVENTS))
+
+census-runs: $(CENSUS_REPLAYS) $(addprefix unit-run-,$(CENSUS_UNIT))
+
+$(CENSUS_REPLAYS): census-replay-%: % $(TMP_DIR)/pico8_replay_e2e
+	@mkdir -p $(CENSUS_TMP)/dump/$(<D)
+	PICO8_MEMBER_CENSUS_OUT=$(CURDIR)/$(CENSUS_TMP)/raw/replay ./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$<) $< /dev/null $(CENSUS_TMP)/dump/$<.dump.txt > /dev/null
+
+.PHONY: member-census census-runs $(CENSUS_REPLAYS)
+
+# detect_leaks=0 : les entités ne sont jamais libérées (TROU-7).
+$(TMP_DIR)/pico8_replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^)
+
+SANITIZE_DIR := $(TMP_DIR)/sanitize
+SANITIZE_RUNS := $(addprefix sanitize-run-,$(FRAMES_EVENTS))
+
+$(SANITIZE_RUNS): sanitize-run-%: % $(TMP_DIR)/pico8_replay_sanitize
+	@mkdir -p $(SANITIZE_DIR)/$(<D)
+	@ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/pico8_replay_sanitize $(call from_title,$<) $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< sale"; exit 1; }
+
+sanitize-net: $(SANITIZE_RUNS)
+	@echo "sanitize: $(words $(SANITIZE_RUNS)) propre(s)"
+
+.PHONY: sanitize-net $(SANITIZE_RUNS)
+
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
 	@sh tools/constants_check.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c $(TMP_DIR)/constants_check \
@@ -936,3 +1055,4 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_AUDIT_DIR)/src/*.d $(OBJ_AUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_E2E_DIR)/src/*.d $(OBJ_E2E_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_SANITIZE_DIR)/src/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)

@@ -62,6 +62,7 @@ static void *pico8_trade_struct_new(const pico8_ob_table_t *overrides) {
                                  "would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
         *member = overrides->entries[i].value;
     }
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_trade_t);
     return self;
 }
 

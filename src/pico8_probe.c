@@ -557,6 +557,7 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_f_((pico8_struct_header_t *)self);
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_g__t);
     return self;
 }
 
@@ -578,6 +579,8 @@ void pico8_probe_init(void) {
     g_fm_placeholder.jk = pico8_value_ref(NULL);
     g_fm_placeholder.nz = pico8_value_ref(NULL);
     g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
+    PICO8_MEMBER_CENSUS_SEE(&g_fm_placeholder, pico8_fm_placeholder_t);
+    PICO8_MEMBER_CENSUS_SEE(&g_bv_et, pico8_bv_et_t);
 }
 
 static void fm_free(pico8_struct_header_t *fm) {

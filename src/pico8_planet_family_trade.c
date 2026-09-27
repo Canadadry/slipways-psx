@@ -341,6 +341,7 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_nr_t);
     return self;
 }
 
@@ -423,6 +424,7 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->nr.qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_fr_t);
     return self;
 }
 
@@ -599,6 +601,7 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_mx_t);
     return self;
 }
 
@@ -656,6 +659,7 @@ void pico8_planet_family_trade_init(void) {
         assert(found && "mx: every default of the struct is a key of mx's spec");
         (void)found;
     }
+    PICO8_MEMBER_CENSUS_SEE(&g_nr_ldown_empty, pico8_nr_ldown_empty_t);
 }
 
 void pico8_planet_family_trade_shutdown(void) {

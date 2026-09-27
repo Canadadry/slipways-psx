@@ -282,6 +282,7 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_jo_t);
     return self;
 }
 

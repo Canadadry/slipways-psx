@@ -241,6 +241,7 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hp");
 #endif
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_hp_t);
     return self;
 }
 

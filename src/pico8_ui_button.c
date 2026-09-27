@@ -202,6 +202,7 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_js_pq(self);
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_js_t);
     return self;
 }
 
@@ -445,6 +446,7 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("fq");
 #endif
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_fq_t);
     return self;
 }
 

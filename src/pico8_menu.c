@@ -515,6 +515,7 @@ void pico8_menu_init(void) {
     if (row != NULL) {
         pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_ix4_my_dispatch));
     }
+    PICO8_MEMBER_CENSUS_SEE(&g_ha_pz, pico8_ha_pz_t);
 }
 
 void pico8_menu_shutdown(void) {

@@ -207,6 +207,7 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     pico8_fv_pq(self);
     pico8_f_((pico8_struct_header_t *)self);
     pico8_ke_struct_pq(&self->g_.ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_fv_t);
     return self;
 }
 

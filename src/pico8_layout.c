@@ -425,6 +425,7 @@ static void *pico8_lq_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("lq");
 #endif
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_lq_t);
     return self;
 }
 
@@ -474,6 +475,7 @@ static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
     self->header.cls = &g_jb_struct_class;
     self->ls = pico8_value_ref(NULL);
     pico8_jb_pq(self, overrides);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_jb_t);
     return self;
 }
 

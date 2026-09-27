@@ -106,6 +106,7 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("qb");
 #endif
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_qb_t);
     return self;
 }
 

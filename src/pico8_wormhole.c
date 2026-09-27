@@ -374,6 +374,7 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_mz_pq(self);
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_mz_t);
     return self;
 }
 
@@ -401,6 +402,7 @@ void pico8_wormhole_init(void) {
     g_mz_nu = pico8_mz_spec_table(spec, "nu");
     g_mz_kk = pico8_mz_spec_table(spec, "kk");
     pico8_ob_table_free(spec);
+    PICO8_MEMBER_CENSUS_SEE(&g_mz_jj_wrapper, pico8_mz_jj_t);
 }
 
 void pico8_wormhole_shutdown(void) {

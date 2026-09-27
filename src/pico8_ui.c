@@ -192,6 +192,7 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("ui");
 #endif
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_ui_t);
     return self;
 }
 
@@ -226,6 +227,7 @@ void pico8_ui_init(void) {
            "ui: lj/cj read le as a list, shared by every new ui until its cj or pz; pico8_ui_hw() casts hw to a box");
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
+    PICO8_MEMBER_CENSUS_SEE(&g_je_placeholder, pico8_je_placeholder_t);
 }
 
 void pico8_ui_shutdown(void) {

@@ -110,6 +110,7 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
         (void)kind->field("me", &view.me);
         (void)kind->field("od", &view.od);
     }
+    PICO8_MEMBER_CENSUS_SEE(&view, pico8_ie_ke_t);
     return view;
 }
 
@@ -363,6 +364,7 @@ static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("ie");
 #endif
     pico8_ke_struct_pq(&self->ke_base);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_ie_t);
     return self;
 }
 

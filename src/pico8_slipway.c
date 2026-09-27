@@ -192,6 +192,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
         point->ra = mp;
         *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
         point->p = pico8_value_ref(p_heap);
+        PICO8_MEMBER_CENSUS_SEE(point, pico8_jc_mouse_point_t);
         re_val = pico8_value_ref(point);
     }
     self->re = re_val;
@@ -547,6 +548,7 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jc_pq(self);
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_jc_t);
     return self;
 }
 
@@ -579,6 +581,7 @@ void pico8_jc_init(void) {
     g_jc_nu = pico8_jc_spec_table(spec, "nu");
     g_jc_k_ = pico8_jc_spec_table(spec, "k_");
     pico8_ob_table_free(spec);
+    PICO8_MEMBER_CENSUS_SEE(&g_jc_too_far, pico8_jc_too_far_t);
 }
 
 void pico8_jc_shutdown(void) {

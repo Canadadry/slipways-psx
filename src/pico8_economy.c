@@ -110,6 +110,7 @@ static void *pico8_hy_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hy");
 #endif
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_hy_t);
     return self;
 }
 

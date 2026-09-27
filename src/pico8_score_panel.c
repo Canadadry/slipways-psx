@@ -462,6 +462,7 @@ static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("pj");
 #endif
     pico8_ke_struct_pq(&self->ke);
+    PICO8_MEMBER_CENSUS_SEE(self, pico8_pj_t);
     return self;
 }
 
@@ -525,6 +526,7 @@ void pico8_score_panel_init(void) {
     g_ju = NULL;
 
     pico8_score_panel_display_init();
+    PICO8_MEMBER_CENSUS_SEE(&g_pj_cr, pico8_pj_cr_t);
 }
 
 void pico8_score_panel_shutdown(void) {
