@@ -618,6 +618,10 @@ const pico8_struct_class_t *pico8_lq_struct_class(void) {
     return &g_lq_struct_class;
 }
 
+const pico8_struct_class_t *pico8_jb_struct_class(void) {
+    return &g_jb_struct_class;
+}
+
 pico8_lq_t *pico8_lq_new(const pico8_ob_table_t *overrides) {
     return pico8_lq_struct_new(overrides);
 }

@@ -1,7 +1,6 @@
 #include "pico8_research_icon.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -32,18 +31,6 @@ static int ie_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-/* Lua truthiness -- fixed 0 included -- widened so this port's "absent"
- * filler REF(NULL) is falsy too. */
-static int ie_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 /* Returns a newly heap-allocated string the caller owns and must free(). */
 static char *ie_concat2(const char *a, const char *b) {
     size_t la = strlen(a);
@@ -55,15 +42,10 @@ static char *ie_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* Returns the kind held in `self.ke`, or NULL when the member is nil or
- * holds no REF. The result is borrowed. */
+/* Returns the kind held in `self.ke`, or NULL when the member is nil. The
+ * result is borrowed. */
 static const pico8_entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
-    if (self != NULL && self->ke.kind == PICO8_VALUE_REF && self->ke.as.ref != NULL) {
-        assert(pico8_type_tag_of(self->ke.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-               "ie.ke holds a kind, not an entity or a table");
-        return (const pico8_entity_kind_t *)self->ke.as.ref;
-    }
-    return NULL;
+    return self != NULL ? self->ke : NULL;
 }
 
 static int pico8_ie_ke_view_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -160,6 +142,17 @@ const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void) {
     return &g_ie_ke_view_struct_class;
 }
 
+static void ie_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "ie.ra: a gy neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
 /* A missing or wrong-kind value reads as the zero vector. */
 static pico8_vec_t ie_value_vec(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -175,7 +168,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
         return;
     }
 
-    if (ie_truthy(self->kh)) {
+    if (self->has_kh && self->kh) {
         return;
     }
 
@@ -192,8 +185,9 @@ void pico8_ie_hb(pico8_ie_t *self) {
     /* `self.ra` takes the REF `ie.gy` holds now. The `-=` below rebinds
      * `ie.gy` to a fresh vector rather than writing through the old one, so
      * this snapshot survives it. */
-    self->ra = g_ie_gy;
-    self->kh = pico8_value_bool(1);
+    ie_take_vec(g_ie_gy, &self->ra);
+    self->kh = 1;
+    self->has_kh = 1;
 
     {
         pico8_vec_t current = ie_value_vec(g_ie_gy);
@@ -257,7 +251,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
     pico8_ie_ke_t view;
 
     /* An icon not yet revealed by `ie:hb` draws nothing at all. */
-    if (self == NULL || !ie_truthy(self->kh)) {
+    if (self == NULL || !(self->has_kh && self->kh)) {
         return;
     }
     if (gfx == NULL || mem == NULL) {
@@ -273,15 +267,12 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
     /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits
      * `qh`'s `me="kz"`, so `dl` passes its own state check and draws the
      * kind-level build cost. */
-    if (ie_truthy(self->m_)) {
+    if (self->has_m_ && self->m_) {
         if (ie_self_ke_kind(self) != NULL) {
             pico8_dl(gfx, mem, (pico8_struct_header_t *)&view);
         }
-        if (self->jb.kind == PICO8_VALUE_REF && self->jb.as.ref != NULL) {
-            assert(pico8_type_tag_of(self->jb.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-                   "ie: unlike self.ke, self.jb holds a built jb struct");
-            pico8_jb_ol(gfx, mem, (const pico8_jb_t *)self->jb.as.ref, pico8_fixed_from_int(0),
-                        pico8_fixed_from_int(0));
+        if (self->jb != NULL) {
+            pico8_jb_ol(gfx, mem, self->jb, pico8_fixed_from_int(0), pico8_fixed_from_int(0));
         }
     }
 
@@ -310,31 +301,59 @@ static pico8_value_t pico8_ie_hd_dispatch(void *self, int argc, pico8_value_t ar
  * chain did. */
 static int pico8_ie_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_ie_t *ie = self;
-    static const struct {
-        const char *name;
-        size_t offset;
-    } members[] = {
-        {"kq", offsetof(pico8_ie_t, kq)}, {"fa", offsetof(pico8_ie_t, fa)}, {"ra", offsetof(pico8_ie_t, ra)},
-        {"eh", offsetof(pico8_ie_t, eh)}, {"ke", offsetof(pico8_ie_t, ke)}, {"jb", offsetof(pico8_ie_t, jb)},
-        {"kh", offsetof(pico8_ie_t, kh)}, {"m_", offsetof(pico8_ie_t, m_)},
-    };
     pico8_value_t value;
-    size_t i;
 
     if (strcmp(name, "gy") == 0) {
         value = g_ie_gy;
     } else if (strcmp(name, "id") == 0) {
         value = g_ie_id;
+    } else if (strcmp(name, "kq") == 0) {
+        if (ie->kq == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(ie->kq);
+        return 1;
+    } else if (strcmp(name, "fa") == 0) {
+        *out_value = pico8_value_fixed(ie->fa);
+        return 1;
+    } else if (strcmp(name, "ra") == 0) {
+        if (ie->ra == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(ie->ra);
+        return 1;
+    } else if (strcmp(name, "eh") == 0) {
+        if (ie->eh == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(ie->eh);
+        return 1;
+    } else if (strcmp(name, "ke") == 0) {
+        if (ie->ke == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref((void *)ie->ke);
+        return 1;
+    } else if (strcmp(name, "jb") == 0) {
+        if (ie->jb == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(ie->jb);
+        return 1;
+    } else if (strcmp(name, "kh") == 0) {
+        if (!ie->has_kh) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(ie->kh);
+        return 1;
+    } else if (strcmp(name, "m_") == 0) {
+        if (!ie->has_m_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(ie->m_);
+        return 1;
     } else {
-        for (i = 0; i < sizeof members / sizeof members[0]; i++) {
-            if (strcmp(name, members[i].name) == 0) {
-                break;
-            }
-        }
-        if (i == sizeof members / sizeof members[0]) {
-            return pico8_ke_field(self, name, out_value);
-        }
-        value = *(const pico8_value_t *)((const char *)ie + members[i].offset);
+        return pico8_ke_field(self, name, out_value);
     }
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
         return 0;
@@ -343,16 +362,29 @@ static int pico8_ie_field(const void *self, const char *name, pico8_value_t *out
     return 1;
 }
 
+static void ie_take_bool(pico8_value_t value, int *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL &&
+           "ie.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of plan-3 "
+           "section 5: stop, do not widen the member");
+    *out = value.as.boolean;
+    *has = 1;
+}
+
 /* `m_` (the hover loop, on `ok.o_` and `ok.gj`): the only name a generic
  * writer ever writes on an `ie`. */
 static int pico8_ie_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_ie_t *ie = self;
 
-    if (strcmp(name, "m_") != 0) {
-        return 0;
+    if (strcmp(name, "m_") == 0) {
+        ie_take_bool(value, &ie->m_, &ie->has_m_);
+        return 1;
     }
-    ie->m_ = value;
-    return 1;
+    return 0;
 }
 
 static const pico8_struct_class_t g_ie_struct_class = {
@@ -376,19 +408,44 @@ static pico8_value_t pico8_ie_spec_ref(const char *name) {
     return v;
 }
 
+static void ie_take_kind(pico8_value_t value, const pico8_entity_kind_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "ie.ke: a key neither nil nor a kind is off its census row (ref:autre) -- a field under no rule of plan-3 "
+           "section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void ie_take_jb(pico8_value_t value, pico8_jb_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jb_struct_class() &&
+           "ie.jb: a key neither nil nor a jb is off its census row (ref:pico8_jb_t) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
 static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ie_t *self = malloc(sizeof *self);
     int i;
 
     pico8_ke_struct_init(&self->ke_base, &g_ie_struct_class);
-    self->kq = pico8_ie_spec_ref("kq");
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(12));
-    self->ra = pico8_ie_spec_ref("ra");
-    self->eh = pico8_ie_spec_ref("eh");
-    self->ke = pico8_value_ref(NULL);
-    self->jb = pico8_value_ref(NULL);
-    self->kh = pico8_value_ref(NULL);
-    self->m_ = pico8_value_ref(NULL);
+    self->kq = pico8_ie_spec_ref("kq").as.ref;
+    self->fa = pico8_fixed_from_int(12);
+    self->ra = pico8_ie_spec_ref("ra").as.ref;
+    self->eh = pico8_ie_spec_ref("eh").as.ref;
+    self->ke = NULL;
+    self->jb = NULL;
+    self->kh = 0;
+    self->has_kh = 0;
+    self->m_ = 0;
+    self->has_m_ = 0;
     for (i = 0; overrides != NULL && i < overrides->count; i++) {
         pico8_ob_key_t key = overrides->entries[i].key;
         int is_ke = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ke") == 0;
@@ -397,9 +454,9 @@ static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
         assert((is_ke || is_jb) && "ie: the only measured construction keys are ke and jb (eu); another would be "
                                    "a field under no rule of plan-3 section 5 -- stop, do not add a member");
         if (is_ke) {
-            self->ke = overrides->entries[i].value;
+            ie_take_kind(overrides->entries[i].value, &self->ke);
         } else {
-            self->jb = overrides->entries[i].value;
+            ie_take_jb(overrides->entries[i].value, &self->jb);
         }
     }
 #ifdef PICO8_CLASS_COVERAGE

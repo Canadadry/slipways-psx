@@ -1,8 +1,10 @@
 #ifndef PICO8_RESEARCH_ICON_H
 #define PICO8_RESEARCH_ICON_H
 
+#include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
+#include "pico8_layout.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
@@ -10,9 +12,9 @@
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL `ie` struct, `gfx` or `mem` is a safe
- * no-op, and a nil or wrong-kind member, or an absent field of `self.ke`,
- * reads as its zero/false default; a wrong-kind field of `self.ke` stops
- * the run.
+ * no-op, and a nil member, or an absent field of `self.ke`, reads as its
+ * zero/false default; a wrong-kind write, construction key or field of
+ * `self.ke` stops the run.
  *
  * `self.ke` holds a `pico8_entity_kind_t`, not an entity: its fields are
  * read off a `pico8_ie_ke_t`, never pico8_entity_get_field() on the kind
@@ -24,14 +26,16 @@
  * struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke_base;
-    pico8_value_t kq;
-    pico8_value_t fa;
-    pico8_value_t ra;
-    pico8_value_t eh;
-    pico8_value_t ke;
-    pico8_value_t jb;
-    pico8_value_t kh;
-    pico8_value_t m_;
+    pico8_qz_box_t *kq;
+    pico8_fixed_t fa;
+    pico8_vec_t *ra;
+    pico8_vec_t *eh;
+    const pico8_entity_kind_t *ke;
+    pico8_jb_t *jb;
+    int kh;
+    int has_kh; /* 0: `kh` is nil, and is then never read */
+    int m_;
+    int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_ie_t;
 
 /* `self.ke` read as Lua reads a class: no parent, never an entity, and no

@@ -4,20 +4,28 @@
  * frozen value was taken on the code where these were still classes and
  * must not be re-taken. */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <assert.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet_family.h"
@@ -28,6 +36,7 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_value.h"
+#include "../src/pico8_vec.h"
 
 #define KIND_HASH 0xBCF0E60Bu
 
@@ -359,6 +368,398 @@ static void test_ie_ke_view_by_name(void) {
     check("ie_ke behavior", behavior, BEHAVIOR_HASH);
 }
 
+#define IE_MEMBERS_HASH 0xBFE9C2FAu
+
+static uint32_t g_ie_members = 2166136261u;
+
+/* Reads through the raw reader and pico8_entity_get_field(), which must
+ * agree; a miss leaves the witness untouched. */
+static int ie_read(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(WITNESS);
+    pico8_value_t by_get = pico8_value_fixed(WITNESS);
+    int got = pico8_ie_struct_class()->field(e, name, &raw);
+    int got_get = pico8_entity_get_field(e, name, &by_get);
+
+    assert(got == got_get);
+    assert(raw.kind == by_get.kind);
+    if (!got) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS);
+        assert(by_get.kind == PICO8_VALUE_FIXED && by_get.as.fixed == WITNESS);
+    } else {
+        assert(!(raw.kind == PICO8_VALUE_REF && raw.as.ref == NULL));
+        assert(raw.kind != PICO8_VALUE_REF || raw.as.ref == by_get.as.ref);
+    }
+    *out = raw;
+    return got;
+}
+
+static const void *ie_ref(const void *e, const char *name) {
+    pico8_value_t v;
+    if (!ie_read(e, name, &v)) {
+        return NULL;
+    }
+    assert(v.kind == PICO8_VALUE_REF);
+    return v.as.ref;
+}
+
+static void ie_fold(uint32_t word) {
+    g_ie_members = fnv(g_ie_members, word);
+}
+
+static void ie_fold_vec(const void *p) {
+    const pico8_vec_t *v = p;
+    ie_fold(p != NULL);
+    if (v != NULL) {
+        ie_fold((uint32_t)v->x);
+        ie_fold((uint32_t)v->y);
+    }
+}
+
+static void ie_fold_kq(const void *e) {
+    static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
+                                   {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
+    const pico8_qz_box_t *kq = ie_ref(e, "kq");
+    size_t i;
+
+    assert(kq != NULL);
+    for (i = 0; i < sizeof probe / sizeof probe[0]; i++) {
+        ie_fold((uint32_t)pico8_qz_call(
+            kq, pico8_vec_v(pico8_fixed_from_int(probe[i][0]), pico8_fixed_from_int(probe[i][1]))));
+    }
+}
+
+static void ie_fold_names(const void *e) {
+    static const char *const names[] = {"kq", "fa", "ra", "eh", "ke", "jb", "kh", "m_", "me", "t", "gy",
+                                        "id", "",   "KQ", "x",  "has_kh", "has_m_", "ke_base", "header",
+                                        "members", "m"};
+    size_t k;
+
+    for (k = 0; k < sizeof names / sizeof names[0]; k++) {
+        pico8_value_t v;
+        int got = ie_read(e, names[k], &v);
+        g_ie_members = fold_string(g_ie_members, names[k]);
+        ie_fold((uint32_t)got);
+        g_ie_members = fold_value(g_ie_members, v);
+        if (k >= 12) {
+            assert(!got);
+        }
+    }
+    ie_fold_kq(e);
+    ie_fold_vec(ie_ref(e, "ra"));
+    ie_fold_vec(ie_ref(e, "eh"));
+    ie_fold_vec(ie_ref(e, "gy"));
+}
+
+static pico8_ie_t *ie_with(int set_ke, pico8_value_t ke, int set_jb, pico8_value_t jb) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_ie_t *e;
+
+    if (set_ke) {
+        pico8_ob_table_set_name(overrides, "ke", ke);
+    }
+    if (set_jb) {
+        pico8_ob_table_set_name(overrides, "jb", jb);
+    }
+    e = pico8_ie_new(overrides);
+    pico8_ob_table_free(overrides);
+    assert(e != NULL);
+    return e;
+}
+
+static void must_abort(void *e, const char *name) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        pico8_entity_set_field(e, name, pico8_value_bool(1));
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static uint32_t ie_kj_hash(pico8_ie_t *e) {
+    pico8_camera(&gfx, 0, 0);
+    pico8_cls(&mem);
+    pico8_ie_kj(&gfx, &mem, e, pico8_vec_v(pico8_fixed_from_int(20), pico8_fixed_from_int(30)));
+    return ie_screen_hash();
+}
+
+static pico8_jb_t *ie_jb(void) {
+    pico8_value_t row;
+    assert(pico8_ob_table_get_index(pico8_dr(), 3, &row) && row.kind == PICO8_VALUE_REF && row.as.ref != NULL);
+    return pico8_jb_new(row.as.ref);
+}
+
+/* `kq`, `ra`, `eh` are the module's, shared by every icon; `kh` and `m_`
+ * read absent until written, `false` read present. */
+static void test_ie_members_by_name(void) {
+    static const char *const unwritten[] = {"kq", "fa", "ra", "eh", "ke", "jb", "kh", "gy",
+                                            "id", "me", "t",  "",   "m_ ", "has_m_"};
+    pico8_jb_t *J = ie_jb();
+    const pico8_entity_kind_t *qh = pico8_qh_kind();
+    pico8_ie_t *a = ie_with(1, pico8_value_ref((void *)qh), 1, pico8_value_ref(J));
+    pico8_ie_t *b = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+    pico8_ie_t *n = ie_with(1, pico8_value_ref(NULL), 1, pico8_value_ref(NULL));
+    pico8_ie_t *all[3];
+    pico8_value_t v;
+    pico8_value_t zero_false;
+    const void *spec_ra = ie_ref(a, "ra");
+    const void *spec_kq = ie_ref(a, "kq");
+    const void *spec_eh = ie_ref(a, "eh");
+    const void *gy;
+    int i;
+    size_t k;
+
+    all[0] = a;
+    all[1] = b;
+    all[2] = n;
+    assert(spec_ra != NULL && spec_kq != NULL && spec_eh != NULL && spec_ra != spec_eh);
+    assert(spec_eh == pico8_ie_eh().as.ref);
+    for (i = 0; i < 3; i++) {
+        assert(ie_ref(all[i], "kq") == spec_kq && ie_ref(all[i], "ra") == spec_ra && ie_ref(all[i], "eh") == spec_eh);
+        assert(ie_read(all[i], "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(12));
+        assert(ie_read(all[i], "me", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ph") == 0);
+        assert(ie_read(all[i], "t", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
+        assert(ie_bool_state(all[i], "kh") == 0 && ie_bool_state(all[i], "m_") == 0);
+        ie_fold_names(all[i]);
+    }
+    assert(ie_ref(a, "ke") == (const void *)qh && ie_ref(a, "jb") == (const void *)J);
+    assert(ie_ref(b, "ke") == NULL && ie_ref(b, "jb") == NULL);
+    assert(ie_ref(n, "ke") == NULL && ie_ref(n, "jb") == NULL);
+
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    {
+        struct {
+            int raw;
+            pico8_value_t value;
+            uint32_t want;
+        } steps[7];
+        steps[0].raw = 0, steps[0].value = pico8_value_bool(1), steps[0].want = 2;
+        steps[1].raw = 1, steps[1].value = pico8_value_bool(0), steps[1].want = 1;
+        steps[2].raw = 1, steps[2].value = zero_false, steps[2].want = 1;
+        steps[3].raw = 1, steps[3].value = pico8_value_ref(NULL), steps[3].want = 0;
+        steps[4].raw = 0, steps[4].value = pico8_value_ref(NULL), steps[4].want = 0;
+        steps[5].raw = 1, steps[5].value = pico8_value_bool(1), steps[5].want = 2;
+        steps[6].raw = 0, steps[6].value = pico8_value_ref(NULL), steps[6].want = 0;
+        for (i = 0; i < 7; i++) {
+            if (steps[i].raw) {
+                assert(pico8_ie_struct_class()->set_field(a, "m_", steps[i].value) == 1);
+            } else {
+                pico8_entity_set_field(a, "m_", steps[i].value);
+            }
+            assert(ie_bool_state(a, "m_") == steps[i].want);
+            assert(ie_bool_state(a, "kh") == 0 && ie_bool_state(b, "m_") == 0);
+            assert(ie_ref(a, "kq") == spec_kq && ie_ref(a, "ra") == spec_ra && ie_ref(a, "eh") == spec_eh);
+            assert(ie_ref(a, "ke") == (const void *)qh && ie_ref(a, "jb") == (const void *)J);
+            ie_fold_names(a);
+        }
+    }
+
+    pico8_ie_set_gy(pico8_value_ref(NULL));
+    pico8_ie_hb(b);
+    assert(ie_bool_state(b, "kh") == 2 && ie_ref(b, "ra") == NULL);
+    gy = ie_ref(b, "gy");
+    assert(gy != NULL);
+    ie_fold_names(b);
+    pico8_ie_hb(b);
+    assert(ie_bool_state(b, "kh") == 2 && ie_ref(b, "ra") == NULL && ie_ref(b, "gy") == gy);
+    {
+        pico8_ie_t *c = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+        pico8_ie_t *d = ie_with(1, pico8_value_ref((void *)pico8_nr_kind()), 0, pico8_value_ref(NULL));
+        pico8_ie_t *e;
+        pico8_ie_t *f = ie_with(0, pico8_value_ref(NULL), 1, pico8_value_ref(J));
+        uint32_t d_kh;
+
+        pico8_ie_hb(c);
+        assert(ie_bool_state(c, "kh") == 2 && ie_ref(c, "ra") == gy && ie_ref(c, "gy") != gy);
+        ie_fold_names(c);
+        gy = ie_ref(c, "gy");
+        pico8_ie_hb(a);
+        assert(ie_bool_state(a, "kh") == 2 && ie_ref(a, "ra") == gy && ie_ref(a, "gy") != gy);
+        ie_fold_names(a);
+        gy = ie_ref(a, "gy");
+        pico8_ie_hb(d);
+        d_kh = ie_bool_state(d, "kh");
+        ie_fold(d_kh);
+        if (d_kh == 0) {
+            assert(ie_ref(d, "ra") == spec_ra && ie_ref(d, "gy") == gy);
+        }
+        ie_fold_names(d);
+        pico8_ie_set_gy(pico8_ie_eh());
+        e = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+        pico8_ie_hb(e);
+        assert(ie_ref(e, "ra") == spec_eh);
+        ie_fold_names(e);
+
+        {
+            pico8_ie_t *fresh = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+            uint32_t empty = ie_kj_hash(fresh);
+            uint32_t h;
+            pico8_cls(&mem);
+            assert(empty == ie_screen_hash());
+            ie_fold(empty);
+            ie_fold(ie_kj_hash(c));
+            pico8_entity_set_field(c, "m_", pico8_value_bool(1));
+            ie_fold(ie_kj_hash(c));
+            ie_fold(ie_kj_hash(a));
+            pico8_entity_set_field(a, "m_", pico8_value_bool(1));
+            h = ie_kj_hash(a);
+            printf("[ie members kj] a hovered 0x%08Xu\n", (unsigned)h);
+            ie_fold(h);
+            pico8_entity_set_field(a, "m_", pico8_value_bool(0));
+            ie_fold(ie_kj_hash(a));
+            pico8_ie_hb(f);
+            pico8_entity_set_field(f, "m_", pico8_value_bool(1));
+            h = ie_kj_hash(f);
+            printf("[ie members kj] f hovered 0x%08Xu\n", (unsigned)h);
+            ie_fold(h);
+        }
+    }
+
+    {
+        pico8_value_t id_before;
+        pico8_value_t id_after;
+        pico8_value_t made;
+        pico8_value_t made_id;
+        assert(ie_read(a, "id", &id_before) && id_before.kind == PICO8_VALUE_FIXED);
+        made = pico8_ie_ldown(a, pico8_value_ref(NULL));
+        assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
+        assert(pico8_entity_get_field(made.as.ref, "id", &made_id) && made_id.kind == PICO8_VALUE_STRING &&
+               made_id.as.string[0] == 's');
+        g_ie_members = fold_string(g_ie_members, made_id.as.string);
+        assert(ie_read(b, "id", &id_after) && id_after.as.fixed == id_before.as.fixed + pico8_fixed_from_int(1));
+        made = pico8_ie_ldown(b, pico8_value_ref(NULL));
+        assert(made.kind == PICO8_VALUE_REF && made.as.ref == NULL);
+        assert(ie_read(a, "id", &id_after) && id_after.as.fixed == id_before.as.fixed + pico8_fixed_from_int(2));
+        ie_fold((uint32_t)id_after.as.fixed);
+    }
+
+    for (k = 0; k < sizeof unwritten / sizeof unwritten[0]; k++) {
+        assert(pico8_ie_struct_class()->set_field(a, unwritten[k], pico8_value_bool(1)) == 0);
+        ie_fold_names(a);
+    }
+    assert(ie_ref(a, "ke") == (const void *)qh && ie_ref(a, "jb") == (const void *)J);
+    must_abort(a, "ke");
+    must_abort(a, "jb");
+    must_abort(a, "kq");
+    must_abort(a, "fa");
+
+    check("ie members", g_ie_members, IE_MEMBERS_HASH);
+}
+
+static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(e, v);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void write_m_by_name(void *e, pico8_value_t v) {
+    pico8_entity_set_field(e, "m_", v);
+}
+
+static void build_with_ke(void *e, pico8_value_t v) {
+    (void)e;
+    (void)ie_with(1, v, 0, pico8_value_ref(NULL));
+}
+
+static void build_with_jb(void *e, pico8_value_t v) {
+    (void)e;
+    (void)ie_with(0, pico8_value_ref(NULL), 1, v);
+}
+
+static void hb_from_gy(void *e, pico8_value_t v) {
+    (void)e;
+    pico8_ie_set_gy(v);
+    pico8_ie_hb(ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL)));
+}
+
+/* `m_` takes nil or a boolean, the `ke` key nil or a kind, the `jb` key nil
+ * or a jb, `ra` nil or a vector off `ie.gy`; a value whose whole union is
+ * zero is not nil unless it is a REF. */
+static void test_ie_writer_stops_off_row(void) {
+    pico8_ie_t *a = ie_with(1, pico8_value_ref((void *)pico8_qh_kind()), 0, pico8_value_ref(NULL));
+    pico8_ie_t *other = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+    pico8_vec_t *vec = malloc(sizeof *vec);
+    pico8_value_t zero_fixed;
+    pico8_value_t zero_false;
+    pico8_value_t zero_string;
+    pico8_value_t zero_function;
+    pico8_value_t hb;
+    pico8_value_t table = pico8_value_ref(pico8_ob_table_new());
+    pico8_value_t list = pico8_value_ref((void *)pico8_hv());
+    pico8_value_t kind = pico8_value_ref((void *)pico8_qh_kind());
+    pico8_value_t vref;
+    pico8_value_t lq = pico8_value_ref(pico8_lq_new(NULL));
+
+    *vec = pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1));
+    vref = pico8_value_ref(vec);
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    memset(&zero_string, 0, sizeof zero_string);
+    zero_string.kind = PICO8_VALUE_STRING;
+    memset(&zero_function, 0, sizeof zero_function);
+    zero_function.kind = PICO8_VALUE_FUNCTION;
+    assert(pico8_entity_get_field(a, "hb", &hb) && hb.kind == PICO8_VALUE_FUNCTION);
+
+    must_abort_value(a, write_m_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(a, write_m_by_name, zero_fixed);
+    must_abort_value(a, write_m_by_name, zero_string);
+    must_abort_value(a, write_m_by_name, zero_function);
+    must_abort_value(a, write_m_by_name, pico8_value_string("x"));
+    must_abort_value(a, write_m_by_name, hb);
+    must_abort_value(a, write_m_by_name, vref);
+    must_abort_value(a, write_m_by_name, table);
+    must_abort_value(a, write_m_by_name, list);
+    must_abort_value(a, write_m_by_name, pico8_value_ref(other));
+    must_abort_value(a, write_m_by_name, kind);
+
+    must_abort_value(NULL, build_with_ke, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(NULL, build_with_ke, zero_fixed);
+    must_abort_value(NULL, build_with_ke, zero_false);
+    must_abort_value(NULL, build_with_ke, zero_string);
+    must_abort_value(NULL, build_with_ke, zero_function);
+    must_abort_value(NULL, build_with_ke, pico8_value_string("x"));
+    must_abort_value(NULL, build_with_ke, pico8_value_ref(other));
+    must_abort_value(NULL, build_with_ke, table);
+    must_abort_value(NULL, build_with_ke, list);
+
+    must_abort_value(NULL, build_with_jb, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(NULL, build_with_jb, zero_fixed);
+    must_abort_value(NULL, build_with_jb, zero_false);
+    must_abort_value(NULL, build_with_jb, zero_string);
+    must_abort_value(NULL, build_with_jb, zero_function);
+    must_abort_value(NULL, build_with_jb, pico8_value_string("x"));
+    must_abort_value(NULL, build_with_jb, kind);
+    must_abort_value(NULL, build_with_jb, vref);
+    must_abort_value(NULL, build_with_jb, table);
+    must_abort_value(NULL, build_with_jb, pico8_value_ref(other));
+    must_abort_value(NULL, build_with_jb, lq);
+
+    must_abort_value(NULL, hb_from_gy, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(NULL, hb_from_gy, zero_fixed);
+    must_abort_value(NULL, hb_from_gy, zero_false);
+    must_abort_value(NULL, hb_from_gy, table);
+    must_abort_value(NULL, hb_from_gy, pico8_value_ref(other));
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -375,6 +776,8 @@ int main(void) {
     test_kind_fields_and_build();
     test_kind_reader_is_the_module_default();
     test_ie_ke_view_by_name();
+    test_ie_members_by_name();
+    test_ie_writer_stops_off_row();
 
     printf("test_pico8_entity_kind: all tests passed\n");
     return 0;

@@ -56,6 +56,7 @@ int pico8_jb_ready(void);
 int pico8_jb_default(const char *name, pico8_value_t *out_value);
 
 const pico8_struct_class_t *pico8_lq_struct_class(void);
+const pico8_struct_class_t *pico8_jb_struct_class(void);
 
 pico8_lq_t *pico8_lq_new(const pico8_ob_table_t *overrides);
 
