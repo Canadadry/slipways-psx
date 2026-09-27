@@ -390,7 +390,7 @@ static pico8_fixed_t credits(void) {
 }
 
 static void set_credits(int n) {
-    pico8_entity_set_field(pico8_fm(), "nz", pico8_value_fixed(pico8_fixed_from_int(n)));
+    pico8_fm_hy()->nz = pico8_value_fixed(pico8_fixed_from_int(n));
 }
 
 static uint32_t fold_ra_y(uint32_t h, const void *e) {

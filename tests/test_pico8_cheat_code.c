@@ -21,6 +21,7 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_ui_button.h"
@@ -35,7 +36,7 @@
 static pico8_fixed_t fm_fixed(const char *name) {
     pico8_value_t v;
     assert(pico8_fm() != NULL);
-    assert(pico8_instance_get_field(pico8_fm(), name, &v));
+    assert(pico8_entity_get_field(pico8_fm(), name, &v));
     assert(v.kind == PICO8_VALUE_FIXED);
     return v.as.fixed;
 }
@@ -81,8 +82,8 @@ int main(void) {
         pico8_dispatch_set_input(&input);
 
         if (i == RESET_FRAME) {
-            pico8_ob_table_set_name(pico8_fm()->fields, "jk", pico8_value_fixed(pico8_fixed_from_int(0)));
-            pico8_ob_table_set_name(pico8_fm()->fields, "nz", pico8_value_fixed(pico8_fixed_from_int(0)));
+            pico8_fm_hy()->jk = pico8_value_fixed(pico8_fixed_from_int(0));
+            pico8_fm_hy()->nz = pico8_value_fixed(pico8_fixed_from_int(0));
         }
 
         int fired = pico8_cheat_step(&cheat, &input);

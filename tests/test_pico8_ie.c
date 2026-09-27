@@ -645,7 +645,7 @@ static const char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "tra
 
 static void invent(const char *rr) {
     pico8_value_t v;
-    assert(pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "invented", &v) &&
+    assert(pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "invented", &v) &&
            v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     pico8_list_add((pico8_list_t *)v.as.ref, pico8_value_string(rr));
 }

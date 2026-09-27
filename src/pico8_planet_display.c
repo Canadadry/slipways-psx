@@ -389,7 +389,7 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
     }
 
     assert(pt != NULL && "jo:fe's my callback lost its captured planet");
-    if (pico8_hy_lu(pico8_fm(), od)) {
+    if (pico8_hy_lu(pico8_fm_hy(), od)) {
         pico8_jo_hu(pt, b);
     }
     return pico8_value_ref(NULL);

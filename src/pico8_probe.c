@@ -258,7 +258,7 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
     pico8_value_t et_val;
     int has_et;
     pico8_value_t od_val = pico8_value_ref(NULL);
-    pico8_instance_t *fm;
+    pico8_hy_t *fm;
     int lu_ok = 0;
 
     if (self == NULL) {
@@ -269,7 +269,7 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
 
     has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
-    fm = pico8_fm();
+    fm = pico8_fm_hy();
     if (!has_et) {
         pico8_fixed_t jt = pico8_fixed_from_int(0);
         (void)pico8_entity_get_field(self, "od", &od_val);
@@ -298,7 +298,7 @@ pico8_value_t pico8_d_(pico8_instance_t *self) {
         if (fp_val.kind == PICO8_VALUE_FIXED) {
             hx = fp_val.as.fixed;
         }
-        pico8_hy_nx(pico8_fm(), hx);
+        pico8_hy_nx(pico8_fm_hy(), hx);
 
         if (!pico8_entity_get_field(self, "ik", &ik_val) || !pico8_probe_truthy(ik_val)) {
             ik_val = pico8_value_fixed(pico8_fixed_from_int(54));
@@ -530,16 +530,22 @@ void pico8_probe_init(void) {
     g_fm->cls = NULL;
 }
 
+static void fm_free(pico8_instance_t *fm) {
+    if (fm != NULL && pico8_type_tag_of(fm) == PICO8_TYPE_TAG_STRUCT) {
+        free(fm);
+    } else {
+        pico8_instance_free(fm);
+    }
+}
+
 void pico8_probe_shutdown(void) {
     pico8_g__defaults_reset();
     if (g_probe_class != NULL) {
         pico8_class_free(g_probe_class);
         g_probe_class = NULL;
     }
-    if (g_fm != NULL) {
-        pico8_instance_free(g_fm);
-        g_fm = NULL;
-    }
+    fm_free(g_fm);
+    g_fm = NULL;
 }
 
 pico8_class_t *pico8_g__class(void) {
@@ -558,10 +564,20 @@ pico8_instance_t *pico8_fm(void) {
     return g_fm;
 }
 
+pico8_hy_t *pico8_fm_hy(void) {
+    if (g_fm == NULL) {
+        return NULL;
+    }
+    assert(pico8_type_tag_of(g_fm) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)g_fm)->cls == pico8_hy_struct_class() &&
+           "a hy function on the provisional fm was never measured; 1a.36 converts it");
+    return (pico8_hy_t *)g_fm;
+}
+
 void pico8_probe_set_fm(pico8_instance_t *instance) {
     if (g_fm == instance) {
         return;
     }
-    pico8_instance_free(g_fm);
+    fm_free(g_fm);
     g_fm = instance;
 }

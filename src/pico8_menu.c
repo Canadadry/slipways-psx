@@ -61,7 +61,7 @@ static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_
         return pico8_value_ref(NULL);
     }
     if (pico8_entity_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
-        pico8_hy_kt(pico8_fm(), (const pico8_ob_table_t *)t_val.as.ref);
+        pico8_hy_kt(pico8_fm_hy(), (const pico8_ob_table_t *)t_val.as.ref);
     }
     return pico8_value_ref(NULL);
 }
@@ -146,10 +146,10 @@ void pico8_cr(void) {
     pico8_list_t bs;
     pico8_pj_cr_t *cr;
 
-    if (fm != NULL && pico8_instance_get_field(fm, "ew", &tl_val) && tl_val.kind == PICO8_VALUE_FIXED) {
+    if (fm != NULL && pico8_entity_get_field(fm, "ew", &tl_val) && tl_val.kind == PICO8_VALUE_FIXED) {
         tl = tl_val.as.fixed;
     }
-    if (fm != NULL && pico8_instance_get_field(fm, "invented", &invented_val) &&
+    if (fm != NULL && pico8_entity_get_field(fm, "invented", &invented_val) &&
         invented_val.kind == PICO8_VALUE_REF && invented_val.as.ref != NULL) {
         gr = PICO8_REF_AS_LIST_CONST(invented_val.as.ref)->count;
     }
@@ -258,13 +258,13 @@ static pico8_list_t pico8_menu_positional_values(const pico8_ob_table_t *table) 
 }
 
 static pico8_value_t pico8_ix1_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *fm = pico8_fm();
+    pico8_hy_t *fm = pico8_fm_hy();
     (void)self;
     (void)argc;
     (void)arg0;
     (void)arg1;
     if (fm != NULL) {
-        pico8_ob_table_set_name(pico8_instance_fields(fm), "lo", pico8_value_fixed(pico8_fixed_from_int(1)));
+        fm->lo = pico8_value_fixed(pico8_fixed_from_int(1));
     }
     pico8_hy_hk(fm);
     return pico8_value_ref(NULL);

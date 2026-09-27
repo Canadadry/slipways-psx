@@ -2,6 +2,7 @@
 #define PICO8_PROBE_H
 
 #include "pico8_class.h"
+#include "pico8_economy.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
@@ -73,12 +74,18 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
  * Asserts when called before `pico8_probe_init()`. */
 pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides);
 
-/* `fm`. `pico8_probe_init()` installs a class-less placeholder here;
- * `pico8_cart` replaces it with the real `hy` instance. The setter frees the
- * previous instance and takes ownership of the new one; NULL before init and
- * after shutdown, which several callers test for. */
+/* `fm`: the class-less placeholder instance `pico8_probe_init()` installs,
+ * then, from `eu()` on, a `hy` struct; read it through
+ * pico8_entity_get_field. NULL before init and after shutdown, which several
+ * callers test for. The setter takes ownership of the new occupant and frees
+ * the previous one by its tag: the placeholder with its table, a `hy` as the
+ * struct alone (TROU-7). */
 pico8_instance_t *pico8_fm(void);
 void pico8_probe_set_fm(pico8_instance_t *instance);
+
+/* The `hy` of `fm`, NULL when the slot is empty; asserts on the
+ * placeholder. */
+pico8_hy_t *pico8_fm_hy(void);
 
 /* TROU-7 */
 /* `mp` is stored into `ra` by REF identity, not copied: the caller's vector

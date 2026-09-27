@@ -30,7 +30,7 @@ static int pj_display_truthy(pico8_value_t v) {
 
 static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name) {
     pico8_value_t v;
-    if (fm != NULL && pico8_instance_get_field(fm, name, &v)) {
+    if (fm != NULL && pico8_entity_get_field(fm, name, &v)) {
         return v;
     }
     return pico8_value_ref(NULL);

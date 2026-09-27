@@ -4,6 +4,7 @@
 
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
+#include "pico8_entity.h"
 #include "pico8_ob.h"
 #include "pico8_probe.h"
 #include "pico8_ref_audit.h"
@@ -45,10 +46,8 @@ int pico8_oj(pico8_value_t px) {
     if (!pico8_tech_gate_truthy(px)) {
         return 1;
     }
-    if (pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "invented", &invented) &&
+    if (pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "invented", &invented) &&
         invented.kind == PICO8_VALUE_REF) {
-        /* pico8_hy_pq is the only writer of "invented", and it swaps the
-         * spec string's `invented=o()` table for a real heap list. */
         invented_list = PICO8_REF_AS_LIST_CONST(invented.as.ref);
     }
     /* TROU-3 */
@@ -78,7 +77,7 @@ pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
     }
 
     if (t != NULL && pico8_ob_table_get_name(t, "nk", &nk_val) && pico8_fm() != NULL &&
-        pico8_instance_get_field(pico8_fm(), "fu", &fu_val) && fu_val.kind == PICO8_VALUE_REF &&
+        pico8_entity_get_field(pico8_fm(), "fu", &fu_val) && fu_val.kind == PICO8_VALUE_REF &&
         fu_val.as.ref != NULL) {
         const pico8_ob_table_t *fu_table = fu_val.as.ref;
         pico8_value_t v;
@@ -122,14 +121,14 @@ static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
     }
     t = e.as.ref;
 
-    if (pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "jk", &jk_val) &&
+    if (pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "jk", &jk_val) &&
         jk_val.kind == PICO8_VALUE_FIXED) {
         jk = jk_val.as.fixed;
     }
     affordable = pico8_gi(t) <= jk;
     pico8_ob_table_set_name(t, "e_", pico8_value_bool(affordable));
 
-    if (pico8_fm() != NULL && pico8_instance_get_field(pico8_fm(), "ew", &ew_val) &&
+    if (pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "ew", &ew_val) &&
         ew_val.kind == PICO8_VALUE_FIXED) {
         ew = ew_val.as.fixed;
     }

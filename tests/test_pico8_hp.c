@@ -394,7 +394,7 @@ static uint32_t fold_functions(uint32_t h) {
 static void invent(const char *px) {
     pico8_ob_table_t *t = pico8_ob_table_new();
     pico8_ob_table_set_name(t, "px", pico8_value_string(px));
-    pico8_hy_kt(pico8_fm(), t);
+    pico8_hy_kt(pico8_fm_hy(), t);
     assert(pico8_oj(pico8_value_string(px)));
 }
 

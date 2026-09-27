@@ -540,7 +540,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
         }
     }
 
-    pico8_hy_nx(pico8_fm(), fp);
+    pico8_hy_nx(pico8_fm_hy(), fp);
 
     if (hp_instance != NULL && pico8_jo_truthy(hp_instance->rn)) {
         pico8_rn(hp_instance->rn);

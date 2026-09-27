@@ -518,7 +518,7 @@ static void test_ey(void) {
     broke = build_mz();
     until_t(broke, 15);
     hq(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
-    pico8_entity_set_field(pico8_fm(), "nz", pico8_value_fixed(pico8_fixed_from_int(2)));
+    pico8_fm_hy()->nz = pico8_value_fixed(pico8_fixed_from_int(2));
     ey(broke);
     assert(is_string(broke, "me", "kz") && bool_state(broke, "p_") == 2);
     assert(credits() == pico8_fixed_from_int(2));

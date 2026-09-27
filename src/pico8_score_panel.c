@@ -51,7 +51,7 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
 
 static pico8_fixed_t fm_field_fixed(const pico8_instance_t *fm, const char *name) {
     pico8_value_t v;
-    if (fm != NULL && pico8_instance_get_field(fm, name, &v) && v.kind == PICO8_VALUE_FIXED) {
+    if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
     }
     return pico8_fixed_from_int(0);
@@ -59,7 +59,7 @@ static pico8_fixed_t fm_field_fixed(const pico8_instance_t *fm, const char *name
 
 static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name) {
     pico8_value_t v;
-    if (fm != NULL && pico8_instance_get_field(fm, name, &v)) {
+    if (fm != NULL && pico8_entity_get_field(fm, name, &v)) {
         return v;
     }
     return pico8_value_ref(NULL);
@@ -67,7 +67,7 @@ static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name
 
 static const pico8_ob_table_t *fm_field_ref_table(const pico8_instance_t *fm, const char *name) {
     pico8_value_t v;
-    if (fm != NULL && pico8_instance_get_field(fm, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+    if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (const pico8_ob_table_t *)v.as.ref;
     }
     return NULL;

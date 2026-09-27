@@ -201,7 +201,7 @@ void pico8_eu(pico8_js_t *nj) {
     pico8_bw(pico8_fixed_from_int(90));
 
     /* TROU-7 */
-    pico8_probe_set_fm(pico8_hy_new(NULL));
+    pico8_probe_set_fm((pico8_instance_t *)pico8_hy_new(NULL));
     pico8_pj_set_ju(pico8_pj_new(NULL));
 
     if (pico8_ix() != NULL) {
@@ -247,8 +247,8 @@ void pico8_eu(pico8_js_t *nj) {
         pico8_ob_table_free(overrides);
     }
 
-    assert(pico8_fm() != NULL && "fm must be the real hy instance before fm:lj()");
-    pico8_hy_lj(pico8_fm());
+    assert(pico8_fm_hy() != NULL && "fm must be the hy of this game before fm:lj()");
+    pico8_hy_lj(pico8_fm_hy());
 }
 
 pico8_value_t pico8_eu_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {

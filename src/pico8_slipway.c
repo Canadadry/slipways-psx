@@ -180,7 +180,7 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re) {
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
         (void)qu_registered;
         (void)re_registered;
-        pico8_hy_nx(pico8_fm(), pico8_fixed_from_int(1));
+        pico8_hy_nx(pico8_fm_hy(), pico8_fixed_from_int(1));
     }
 }
 
