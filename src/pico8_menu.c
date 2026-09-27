@@ -29,6 +29,48 @@
 static pico8_ob_table_t *g_ix = NULL;
 static pico8_ob_table_t *g_ha = NULL;
 
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t hi;
+    pico8_value_t gq;
+    pico8_value_t ca;
+} pico8_ha_pz_t;
+
+static int pico8_ha_pz_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_ha_pz_t *o = self;
+    pico8_value_t value;
+
+    if (strcmp(name, "hi") == 0) {
+        value = o->hi;
+    } else if (strcmp(name, "gq") == 0) {
+        value = o->gq;
+    } else if (strcmp(name, "ca") == 0) {
+        value = o->ca;
+    } else {
+        return 0;
+    }
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return 0;
+    }
+    *out_value = value;
+    return 1;
+}
+
+static const pico8_struct_class_t g_ha_pz_struct_class = {
+    {0},
+    pico8_ha_pz_field,
+    NULL,
+};
+
+/* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`
+ * at `g_ha`'s own values, `pico8_menu_shutdown()` resets them to nil. */
+static pico8_ha_pz_t g_ha_pz = {
+    {PICO8_TYPE_TAG_STRUCT, &g_ha_pz_struct_class},
+    {PICO8_VALUE_REF, {.ref = NULL}},
+    {PICO8_VALUE_REF, {.ref = NULL}},
+    {PICO8_VALUE_REF, {.ref = NULL}},
+};
+
 static int cr_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -362,13 +404,11 @@ static pico8_value_t pico8_ha4_my_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
-/* `ha` is passed to `pz` as both the layout holder and the row list, so the
- * stack wrapper borrows it as `->fields` while its positional entries go in
- * as `bs`. The wrapper never outlives the call. */
+/* `pz(ha,ha)`: `ha`'s rows go in as `bs`, and `p` is `g_ha_pz`, which
+ * borrows `ha`'s `hi`/`gq`/`ca`. */
 static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_ob_table_t *row;
     pico8_list_t bs;
-    pico8_instance_t wrapper;
     (void)self;
     (void)argc;
     (void)arg0;
@@ -393,10 +433,7 @@ static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t a
 
     if (g_ha != NULL) {
         bs = pico8_menu_positional_values(g_ha);
-        wrapper.tag = PICO8_TYPE_TAG_INSTANCE;
-        wrapper.fields = g_ha;
-        wrapper.cls = NULL;
-        pico8_pz(&wrapper, &bs);
+        pico8_pz((const pico8_instance_t *)&g_ha_pz, &bs);
         pico8_list_free(&bs);
     }
 
@@ -409,6 +446,14 @@ const pico8_ob_table_t *pico8_ix(void) {
 
 const pico8_ob_table_t *pico8_ha(void) {
     return g_ha;
+}
+
+const void *pico8_ha_pz(void) {
+    return g_ha != NULL ? &g_ha_pz : NULL;
+}
+
+const pico8_struct_class_t *pico8_ha_pz_struct_class(void) {
+    return &g_ha_pz_struct_class;
 }
 
 void pico8_menu_init(void) {
@@ -442,6 +487,16 @@ void pico8_menu_init(void) {
                      "hi=v(0,107),gq=v(0,-11),\n"
                      "ca=14,\n",
                      NULL);
+    {
+        int found = pico8_ob_table_get_name(g_ha, "hi", &g_ha_pz.hi) &&
+                    pico8_ob_table_get_name(g_ha, "gq", &g_ha_pz.gq) &&
+                    pico8_ob_table_get_name(g_ha, "ca", &g_ha_pz.ca);
+        assert(found && g_ha_pz.hi.kind == PICO8_VALUE_REF && g_ha_pz.hi.as.ref != NULL &&
+               g_ha_pz.gq.kind == PICO8_VALUE_REF && g_ha_pz.gq.as.ref != NULL &&
+               g_ha_pz.ca.kind == PICO8_VALUE_FIXED &&
+               "menu: pz reads hi/gq as vectors and ca as a fixed off ha's own spec");
+        (void)found;
+    }
 
     row = pico8_menu_index_table(g_ix, 1);
     if (row != NULL) {
@@ -467,6 +522,9 @@ void pico8_menu_shutdown(void) {
         pico8_ob_table_free(g_ix);
         g_ix = NULL;
     }
+    g_ha_pz.hi = pico8_value_ref(NULL);
+    g_ha_pz.gq = pico8_value_ref(NULL);
+    g_ha_pz.ca = pico8_value_ref(NULL);
     if (g_ha != NULL) {
         pico8_ob_table_free(g_ha);
         g_ha = NULL;

@@ -86,9 +86,8 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
 /* TROU-7 */
 /* Every item of `bs` must be a REF to a `pico8_ob_table_t`: each one is
  * mutated in place, then turned into a `js` instance stored in `ok.le`. The
- * list itself stays the caller's, its tables become the instances'. `p` may
- * be a classless field-bag -- a stack `pico8_instance_t` with `cls` NULL --
- * which is how `pz(ha,ha)` passes a plain table. */
+ * list itself stays the caller's, its tables become the instances'. `p` is
+ * NULL (a no-op) or a struct whose descriptor has a field reader. */
 void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs);
 
 #endif

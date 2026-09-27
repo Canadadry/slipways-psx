@@ -33,6 +33,7 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
+#include "../src/pico8_msgbox.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
@@ -1080,6 +1081,86 @@ static void test_js_is_a_struct(void) {
     }
 }
 
+static void write_hi(void *e) {
+    pico8_entity_set_field(e, "hi", pico8_value_ref(NULL));
+}
+
+static void write_ca(void *e) {
+    pico8_entity_set_field(e, "ca", pico8_value_fixed(0));
+}
+
+static void write_ep(void *e) {
+    pico8_entity_set_field(e, "ep", pico8_value_string("x"));
+}
+
+static void same_as_ha(const void *o, const char *name) {
+    pico8_value_t in_table;
+    pico8_value_t in_struct;
+    assert(pico8_ob_table_get_name(pico8_ha(), name, &in_table));
+    assert(lookup(o, name, &in_struct));
+    assert(in_struct.kind == in_table.kind);
+    if (in_table.kind == PICO8_VALUE_REF) {
+        assert(in_table.as.ref != NULL && in_struct.as.ref == in_table.as.ref);
+    } else {
+        assert(in_table.kind == PICO8_VALUE_FIXED && in_struct.as.fixed == in_table.as.fixed);
+    }
+}
+
+/* What `ix[4].my` hands `pz` as `p`: a struct without method or writer
+ * whose `hi`/`gq`/`ca` are `ha`'s own, for as long as `ha` lives. */
+static void test_ha_pz_is_a_struct(void) {
+    static const char *const absent[] = {"ep", "eo", "ra", "ff", "fo", "nu", "my"};
+    const pico8_struct_header_t *o;
+    pico8_value_t v;
+    size_t i;
+
+    start_game(PAUSE);
+    o = pico8_ha_pz();
+    assert(o != NULL && o->tag == PICO8_TYPE_TAG_STRUCT && o->cls == pico8_ha_pz_struct_class());
+    for (i = 0; i < PICO8_METHOD_COUNT; i++) {
+        assert(o->cls->methods[i] == NULL);
+    }
+    assert(o->cls->set_field == NULL);
+    assert(!pico8_mv((void *)o, "ph", 0, nil(), nil(), &v));
+    assert(!pico8_mv((void *)o, "my", 0, nil(), nil(), &v));
+    same_as_ha(o, "hi");
+    same_as_ha(o, "gq");
+    same_as_ha(o, "ca");
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        assert(!has(o, absent[i]));
+    }
+    must_abort(write_hi, (void *)o);
+    must_abort(write_ca, (void *)o);
+    must_abort(write_ep, (void *)o);
+
+    pico8_menu_shutdown();
+    assert(pico8_ha_pz() == NULL);
+    assert(!has(o, "hi") && !has(o, "gq") && !has(o, "ca"));
+    pico8_menu_init();
+    assert(pico8_ha_pz() == o);
+    same_as_ha(o, "hi");
+    same_as_ha(o, "gq");
+    same_as_ha(o, "ca");
+}
+
+static void pz_on_an_instance(void *e) {
+    pico8_list_t none;
+    pico8_list_init(&none);
+    pico8_pz(e, &none);
+}
+
+/* No caller hands `pz` a class instance any more: one stops it. */
+static void test_pz_closed(void) {
+    pico8_instance_t handmade = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
+    pico8_list_t none;
+
+    start_game(PAUSE);
+    handmade.fields = pico8_ob_table_new();
+    must_abort(pz_on_an_instance, &handmade);
+    pico8_list_init(&none);
+    pico8_pz(NULL, &none);
+}
+
 static void test_panels_are_structs(void) {
     run_to(BUILT, KNOWN_PANEL_FRAME);
     assert(all_buttons_are_structs() >= 2);
@@ -1142,6 +1223,8 @@ int main(void) {
     in_fresh_child(test_draw);
     in_fresh_child(test_nil_keys);
     in_fresh_child(test_js_is_a_struct);
+    in_fresh_child(test_ha_pz_is_a_struct);
+    in_fresh_child(test_pz_closed);
     in_fresh_child(test_panels_are_structs);
     in_fresh_child(test_pj_are_structs);
 

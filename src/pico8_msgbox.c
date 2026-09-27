@@ -458,6 +458,8 @@ void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
     if (p == NULL) {
         return;
     }
+    assert(pico8_type_tag_of(p) == PICO8_TYPE_TAG_STRUCT &&
+           "pz: p is a struct; no class instance reaches pz any more");
 
     if (pico8_entity_get_field(p, "ep", &ep_val) && pico8_msgbox_truthy(ep_val)) {
         pico8_ob_table_t *inner = pico8_ob_table_new();
