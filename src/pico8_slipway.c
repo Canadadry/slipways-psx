@@ -29,32 +29,50 @@ static pico8_ob_table_t *g_jc_k_ = NULL;
 
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t qs;
-    pico8_value_t fo;
+    const char *qs;
+    pico8_jc_t *fo;
 } pico8_jc_too_far_t;
 
 static int pico8_jc_too_far_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_jc_too_far_t *too_far = self;
 
     if (strcmp(name, "qs") == 0) {
-        *out_value = too_far->qs;
+        if (too_far->qs == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(too_far->qs);
         return 1;
     }
-    if (strcmp(name, "fo") != 0 || (too_far->fo.kind == PICO8_VALUE_REF && too_far->fo.as.ref == NULL)) {
-        return 0;
+    if (strcmp(name, "fo") == 0) {
+        if (too_far->fo == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(too_far->fo);
+        return 1;
     }
-    *out_value = too_far->fo;
-    return 1;
+    return 0;
+}
+
+static void jc_too_far_take_jc(pico8_value_t value, pico8_jc_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jc_struct_class() &&
+           "jc_too_far.fo: a write neither nil nor a jc is off its census row (ref:pico8_jc_t) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
 }
 
 static int pico8_jc_too_far_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_jc_too_far_t *too_far = self;
 
-    if (strcmp(name, "fo") != 0) {
-        return 0;
+    if (strcmp(name, "fo") == 0) {
+        jc_too_far_take_jc(value, &too_far->fo);
+        return 1;
     }
-    too_far->fo = value;
-    return 1;
+    return 0;
 }
 
 static const pico8_struct_class_t g_jc_too_far_struct_class = {
@@ -66,9 +84,7 @@ static const pico8_struct_class_t g_jc_too_far_struct_class = {
 /* The `{qs="-too far-"}` `jc:ce` returns beyond range: never allocated,
  * never freed; `qs` is fixed, only `fo` is written, and the next `hq`
  * overwrites it. */
-static pico8_jc_too_far_t g_jc_too_far = {{PICO8_TYPE_TAG_STRUCT, &g_jc_too_far_struct_class},
-                                          {PICO8_VALUE_STRING, {.string = "-too far-"}},
-                                          {PICO8_VALUE_REF, {0}}};
+static pico8_jc_too_far_t g_jc_too_far = {{PICO8_TYPE_TAG_STRUCT, &g_jc_too_far_struct_class}, "-too far-", NULL};
 
 /* The `{ra,p}` `jc:hq` hangs on `re` over nothing: a fresh one per call,
  * never freed, nor its `p`; `ra` is the caller's `mp` itself, not a copy. */

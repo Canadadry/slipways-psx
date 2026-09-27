@@ -59,6 +59,7 @@
 #define TOO_FAR_HASH 0x5C5FF603u
 #define MOUSE_POINT_HASH 0x4E87C0C4u
 #define MEMBERS_HASH 0x27A294B4u
+#define FAR_MEMBERS_HASH 0xF9A84A48u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -1167,6 +1168,143 @@ static void test_mouse_point_members_by_name(void) {
     check("mouse point members", h, MEMBERS_HASH);
 }
 
+/* Reads `qs` and `fo` through the raw reader and the entity reader, which must
+ * agree; a miss leaves the witness as it was. */
+static int read_far(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t via = pico8_value_fixed(0x1234);
+    int got_raw = pico8_jc_too_far_struct_class()->field(e, name, &raw);
+    int got_via = pico8_entity_get_field(e, name, &via);
+    assert(got_raw == got_via && raw.kind == via.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+    } else if (raw.kind == PICO8_VALUE_REF) {
+        assert(raw.as.ref == via.as.ref);
+    } else if (raw.kind == PICO8_VALUE_STRING) {
+        assert(raw.as.string == via.as.string);
+    }
+    *out = raw;
+    return got_raw;
+}
+
+static uint32_t fold_far(uint32_t h, const void *e, const char *name) {
+    pico8_value_t v;
+    int got = read_far(e, name, &v);
+    return fold_value(fnv(h, (uint32_t)got), v);
+}
+
+static void test_too_far_members_by_name(void) {
+    static const char *const intruders[] = {"", "x", "ra", "p", "et", "header", "has_fo"};
+    static const char *const unwritten[] = {"qs", "ra", "", "fo "};
+    const pico8_struct_class_t *cls = pico8_jc_too_far_struct_class();
+    uint32_t h = 2166136261u;
+    const char *qs_at;
+    pico8_value_t v;
+    void *origin;
+    void *a;
+    void *b;
+    void *c;
+    void *et;
+    size_t i;
+
+    world();
+    origin = get_ref(the_slipway(), "qu");
+    a = build_jc(origin);
+    hq_over(a, NULL, vec_ref(-640, -640));
+    et = get_ref(a, "et");
+    assert(is_too_far(et));
+    assert(read_far(et, "qs", &v) == 1 && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "-too far-") == 0);
+    qs_at = v.as.string;
+    assert(read_far(et, "qs", &v) == 1 && v.as.string == qs_at);
+    assert(read_far(et, "fo", &v) == 1 && v.kind == PICO8_VALUE_REF && v.as.ref == a);
+    h = fold_far(h, et, "qs");
+    h = fold_far(h, et, "fo");
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        assert(read_far(et, intruders[i], &v) == 0);
+        h = fold_far(h, et, intruders[i]);
+    }
+
+    b = build_jc(origin);
+    pico8_entity_set_field(et, "fo", pico8_value_ref(b));
+    assert(read_far(et, "fo", &v) == 1 && v.kind == PICO8_VALUE_REF && v.as.ref == b);
+    h = fold_far(h, et, "fo");
+    assert(cls->set_field(et, "fo", pico8_value_ref(a)) == 1);
+    assert(read_far(et, "fo", &v) == 1 && v.kind == PICO8_VALUE_REF && v.as.ref == a);
+    h = fold_far(h, et, "fo");
+    pico8_entity_set_field(et, "fo", pico8_value_ref(NULL));
+    assert(read_far(et, "fo", &v) == 0);
+    h = fold_far(h, et, "fo");
+    assert(read_far(et, "qs", &v) == 1 && v.as.string == qs_at);
+    pico8_entity_set_field(et, "fo", pico8_value_ref(b));
+    assert(read_far(et, "fo", &v) == 1 && v.as.ref == b);
+    h = fold_far(h, et, "fo");
+
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        assert(cls->set_field(et, unwritten[i], pico8_value_fixed(pico8_fixed_from_int(1))) == 0);
+    }
+    assert(read_far(et, "qs", &v) == 1 && v.as.string == qs_at);
+    assert(read_far(et, "fo", &v) == 1 && v.as.ref == b);
+    h = fold_far(h, et, "qs");
+    h = fold_far(h, et, "fo");
+
+    c = build_jc(origin);
+    hq_over(c, NULL, vec_ref(-640, -640));
+    assert(get_ref(c, "et") == et);
+    assert(read_far(et, "fo", &v) == 1 && v.as.ref == c);
+    h = fold_far(h, et, "fo");
+    check("too far members", h, FAR_MEMBERS_HASH);
+}
+
+static void *g_planet;
+
+static void write_fo_fixed(void *e) {
+    pico8_entity_set_field(e, "fo", pico8_value_fixed(pico8_fixed_from_int(1)));
+}
+
+static void write_fo_false(void *e) {
+    pico8_entity_set_field(e, "fo", pico8_value_bool(0));
+}
+
+/* A false whose whole union is zero: its `as.ref` reads as NULL, so a
+ * nil test that forgets to check the kind would take it for nil. */
+static void write_fo_zero_false(void *e) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = PICO8_VALUE_BOOL;
+    pico8_entity_set_field(e, "fo", v);
+}
+
+static void write_fo_string(void *e) {
+    pico8_entity_set_field(e, "fo", pico8_value_string("x"));
+}
+
+static void write_fo_planet(void *e) {
+    pico8_entity_set_field(e, "fo", pico8_value_ref(g_planet));
+}
+
+static void write_fo_vec(void *e) {
+    pico8_entity_set_field(e, "fo", vec_ref(1, 1));
+}
+
+static void test_too_far_writer_stops_off_row(void) {
+    void *a;
+    void *et;
+
+    world();
+    g_planet = get_ref(the_slipway(), "qu");
+    a = build_jc(g_planet);
+    hq_over(a, NULL, vec_ref(-640, -640));
+    et = get_ref(a, "et");
+    assert(is_too_far(et));
+    must_abort(write_fo_fixed, et);
+    must_abort(write_fo_false, et);
+    must_abort(write_fo_zero_false, et);
+    must_abort(write_fo_string, et);
+    must_abort(write_fo_planet, et);
+    must_abort(write_fo_vec, et);
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -1211,6 +1349,8 @@ int main(void) {
     in_fresh_child(test_too_far_is_a_struct);
     in_fresh_child(test_mouse_point_is_a_struct);
     in_fresh_child(test_mouse_point_members_by_name);
+    in_fresh_child(test_too_far_members_by_name);
+    in_fresh_child(test_too_far_writer_stops_off_row);
 
     printf("test_pico8_jc: all tests passed\n");
     return 0;
