@@ -58,7 +58,7 @@ void pico8_jc_pq(pico8_jc_t *self);
 
 /* TROU-7 */
 /* Rebinds `self.re` every frame: the hovered entity when it answers to
- * `gv`, otherwise a fresh classless `{ra,p}` instance. Also rebinds `od`,
+ * `gv`, otherwise a fresh `{ra,p}` struct, never freed. Also rebinds `od`,
  * `mt`, `et` and `fa`, and points the `fo` of whatever `ce()` found -- a
  * planet, another `jc` struct or the static `{qs}` struct -- back at this
  * slipway. */
@@ -73,6 +73,8 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re);
 pico8_value_t pico8_jc_ce(pico8_jc_t *self);
 
 const pico8_struct_class_t *pico8_jc_too_far_struct_class(void);
+
+const pico8_struct_class_t *pico8_jc_mouse_point_struct_class(void);
 
 pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_instance_t *jo_instance);
 

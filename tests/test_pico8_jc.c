@@ -58,6 +58,7 @@
 #define DRAW_HASH 0xC0A23F6Eu
 #define BV_HASH 0xD5135D83u
 #define TOO_FAR_HASH 0x5C5FF603u
+#define MOUSE_POINT_HASH 0x4E87C0C4u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -142,7 +143,8 @@ static uint32_t bool_state(const void *e, const char *name) {
 }
 
 static int is_throwaway(const void *e) {
-    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_INSTANCE && ((const pico8_instance_t *)e)->cls == NULL;
+    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)e)->cls == pico8_jc_mouse_point_struct_class();
 }
 
 static int is_too_far(const void *e) {
@@ -792,6 +794,68 @@ static void test_too_far(void) {
     check("too far", h, TOO_FAR_HASH);
 }
 
+static int same_vec(pico8_vec_t a, pico8_vec_t b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+/* Over nothing, each `hq` hangs a fresh `{ra,p}` on `re`: `ra` the very
+ * `mp` it got, `p` its own `mp/128`, registered nowhere; a later `hq`, of
+ * this `jc` or another, leaves an earlier one as it was. */
+static void test_hq_mouse_point(void) {
+    uint32_t h = 2166136261u;
+    pico8_value_t m1;
+    pico8_value_t m2;
+    pico8_vec_t p1;
+    void *origin;
+    void *target;
+    void *a;
+    void *b;
+    void *r1;
+    void *r2;
+    void *rb;
+
+    world();
+    origin = get_ref(the_slipway(), "qu");
+    target = get_ref(the_slipway(), "re");
+    a = build_jc(origin);
+    m1 = vec_ref(-640, -640);
+    hq_over(a, NULL, m1);
+    r1 = get_ref(a, "re");
+    assert(r1 != NULL && re_kind(a) == RE_THROWAWAY);
+    assert(get_ref(r1, "ra") == m1.as.ref);
+    p1 = vec_of(r1, "p");
+    assert(same_vec(p1, pico8_vec_div(vec_of(r1, "ra"), pico8_fixed_from_int(128))));
+    assert(get_ref(r1, "p") != m1.as.ref);
+    assert(!listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
+    assert(!has(r1, "mt") && !has(r1, "id"));
+    h = fnv(h, (uint32_t)p1.x);
+    h = fnv(h, (uint32_t)p1.y);
+    h = fold_jc(h, a);
+
+    m2 = vec_ref(40, -24);
+    hq_over(a, NULL, m2);
+    r2 = get_ref(a, "re");
+    assert(r2 != NULL && r2 != r1 && re_kind(a) == RE_THROWAWAY);
+    assert(get_ref(r2, "ra") == m2.as.ref && get_ref(r1, "ra") == m1.as.ref);
+    assert(same_vec(vec_of(r1, "p"), p1));
+    assert(!same_vec(vec_of(r2, "p"), p1));
+    h = fold_jc(h, a);
+
+    b = build_jc(origin);
+    hq_over(b, NULL, m1);
+    rb = get_ref(b, "re");
+    assert(rb != NULL && rb != r1 && rb != r2 && get_ref(a, "re") == r2);
+    assert(get_ref(rb, "ra") == m1.as.ref && same_vec(vec_of(rb, "p"), p1));
+    h = fold_jc(h, b);
+
+    hq_over(a, target, vec_ref_fixed(vec_of(target, "ra")));
+    assert(get_ref(a, "re") == target && re_kind(a) == RE_PLANET);
+    assert(get_ref(r1, "ra") == m1.as.ref && same_vec(vec_of(r1, "p"), p1));
+    assert(get_ref(r2, "ra") == m2.as.ref && get_ref(rb, "ra") == m1.as.ref);
+    h = fold_jc(h, a);
+    check("mouse point", h, MOUSE_POINT_HASH);
+}
+
 /* A probe over the slipway targets it and hangs `fo` on it. Its `dw` is
  * zeroed, as `mz`'s is: every point of this short slipway lies within a
  * `g_`'s `dw` of one of its own planets, which would win. */
@@ -964,6 +1028,51 @@ static void test_too_far_is_a_struct(void) {
     assert(is_string(et, "qs", "-too far-"));
 }
 
+static void write_p(void *e) {
+    pico8_entity_set_field(e, "p", pico8_value_ref(NULL));
+}
+
+static void write_fo(void *e) {
+    pico8_entity_set_field(e, "fo", pico8_value_ref(NULL));
+}
+
+/* Over nothing, `re` is a `{ra,p}` struct: those two members only, no
+ * method, no generic write; a nil `mp` leaves `ra` absent and `p` zero. */
+static void test_mouse_point_is_a_struct(void) {
+    static const char *const absent[] = {"mt", "id", "qs", "fo", "me", "nu", "t", "kf", "eb", "hq"};
+    static const char *const not_methods[] = {"kf", "hq", "eb"};
+    void *origin;
+    void *jc;
+    void *re;
+    pico8_vec_t p;
+    size_t i;
+
+    world();
+    origin = get_ref(the_slipway(), "qu");
+    jc = build_jc(origin);
+    hq_over(jc, NULL, vec_ref(-640, -640));
+    re = get_ref(jc, "re");
+    assert(re != NULL && pico8_type_tag_of(re) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)re)->cls == pico8_jc_mouse_point_struct_class());
+    assert(has(re, "ra") && has(re, "p"));
+    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
+        assert(!has(re, absent[i]));
+    }
+    for (i = 0; i < sizeof not_methods / sizeof not_methods[0]; i++) {
+        pico8_value_t out;
+        assert(!pico8_mv(re, not_methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    }
+    must_abort(write_ra, re);
+    must_abort(write_p, re);
+    must_abort(write_fo, re);
+
+    hq_over(jc, NULL, pico8_value_ref(NULL));
+    re = get_ref(jc, "re");
+    assert(is_throwaway(re) && !has(re, "ra"));
+    p = vec_of(re, "p");
+    assert(p.x == 0 && p.y == 0);
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -1003,8 +1112,10 @@ int main(void) {
     in_fresh_child(test_draw);
     in_fresh_child(test_bv);
     in_fresh_child(test_too_far);
+    in_fresh_child(test_hq_mouse_point);
     in_fresh_child(test_jc_is_a_struct);
     in_fresh_child(test_too_far_is_a_struct);
+    in_fresh_child(test_mouse_point_is_a_struct);
 
     printf("test_pico8_jc: all tests passed\n");
     return 0;

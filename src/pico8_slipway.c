@@ -70,6 +70,38 @@ static pico8_jc_too_far_t g_jc_too_far = {{PICO8_TYPE_TAG_STRUCT, &g_jc_too_far_
                                           {PICO8_VALUE_STRING, {.string = "-too far-"}},
                                           {PICO8_VALUE_REF, {0}}};
 
+/* The `{ra,p}` `jc:hq` hangs on `re` over nothing: a fresh one per call,
+ * never freed, nor its `p`; `ra` is the caller's `mp` itself, not a copy. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t ra;
+    pico8_value_t p;
+} pico8_jc_mouse_point_t;
+
+static int pico8_jc_mouse_point_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_jc_mouse_point_t *point = self;
+    const pico8_value_t *member;
+
+    if (strcmp(name, "ra") == 0) {
+        member = &point->ra;
+    } else if (strcmp(name, "p") == 0) {
+        member = &point->p;
+    } else {
+        return 0;
+    }
+    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        return 0;
+    }
+    *out_value = *member;
+    return 1;
+}
+
+static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
+    {NULL},
+    pico8_jc_mouse_point_field,
+    NULL,
+};
+
 /* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
 static int pico8_jc_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -153,15 +185,14 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     if (hovered != NULL && pico8_entity_get_field(hovered, "gv", &gv_val) && pico8_jc_truthy(gv_val)) {
         re_val = pico8_value_ref(hovered);
     } else {
-        pico8_instance_t *placeholder = malloc(sizeof *placeholder);
+        pico8_jc_mouse_point_t *point = malloc(sizeof *point);
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
-        placeholder->tag = PICO8_TYPE_TAG_INSTANCE;
-        placeholder->cls = NULL;
-        placeholder->fields = pico8_ob_table_new();
-        pico8_ob_table_set_name(pico8_instance_fields(placeholder), "ra", mp);
+        point->header.tag = PICO8_TYPE_TAG_STRUCT;
+        point->header.cls = &g_jc_mouse_point_struct_class;
+        point->ra = mp;
         *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
-        pico8_ob_table_set_name(pico8_instance_fields(placeholder), "p", pico8_value_ref(p_heap));
-        re_val = pico8_value_ref(placeholder);
+        point->p = pico8_value_ref(p_heap);
+        re_val = pico8_value_ref(point);
     }
     self->re = re_val;
 
@@ -578,4 +609,8 @@ pico8_jc_t *pico8_jc_new(const pico8_ob_table_t *overrides) {
 
 const pico8_struct_class_t *pico8_jc_too_far_struct_class(void) {
     return &g_jc_too_far_struct_class;
+}
+
+const pico8_struct_class_t *pico8_jc_mouse_point_struct_class(void) {
+    return &g_jc_mouse_point_struct_class;
 }
