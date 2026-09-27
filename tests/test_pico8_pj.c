@@ -411,7 +411,8 @@ static void test_shared(void) {
     assert(has_index(ea, 3) && has_name(ea, "lh"));
     h = fold_field(h, other, "ea");
 
-    pico8_fm_hy()->hl = pico8_value_string("final score");
+    pico8_fm_hy()->hl = "final score";
+    pico8_fm_hy()->has_hl = 1;
     (void)call(ju, "ph", 0, nil());
     assert(get_fixed(ju, "fa") == pico8_fixed_from_int(13));
     assert(bool_state(ju, "c_") == 2);
@@ -464,7 +465,8 @@ static void test_life(void) {
 
     fq_before = fq_count();
     js_before = js15_count();
-    pico8_fm_hy()->hl = pico8_value_string("final score");
+    pico8_fm_hy()->hl = "final score";
+    pico8_fm_hy()->has_hl = 1;
     (void)call(ju, "ph", 0, nil());
     assert(bool_state(ju, "c_") == 2);
     assert(get_fixed(ju, "gz") == 0);

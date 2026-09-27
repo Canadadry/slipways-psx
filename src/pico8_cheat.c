@@ -33,8 +33,8 @@ static void apply(void) {
         return;
     }
     hy = pico8_fm_hy();
-    hy->jk = pico8_value_fixed(pico8_fixed_from_int(99));
-    hy->nz = pico8_value_fixed(pico8_fixed_from_int(200));
+    hy->jk = pico8_fixed_from_int(99);
+    hy->nz = pico8_fixed_from_int(200);
 }
 
 static int feed(pico8_cheat_t *cheat, int button) {

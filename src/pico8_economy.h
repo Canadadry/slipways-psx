@@ -6,25 +6,26 @@
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
-/* Throughout this module a NULL `self` is a safe no-op, and an absent or
- * wrong-kind field reads as its zero/false default rather than crashing. */
+/* Throughout this module a NULL `self` is a safe no-op. */
 
 /* The economy, one per game. Nothing here frees it: pico8_probe_set_fm()
  * and pico8_probe_shutdown() free the struct alone, never `invented`, `po`
  * nor `fu` (TROU-7). `hl` is absent before the first pico8_hy_lj(). */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t nz;
-    pico8_value_t ge;
-    pico8_value_t jk;
-    pico8_value_t ew;
-    pico8_value_t invented;
-    pico8_value_t lo;
-    pico8_value_t yr;
-    pico8_value_t po;
-    pico8_value_t fu;
-    pico8_value_t happiness;
-    pico8_value_t hl;
+    pico8_fixed_t nz;
+    pico8_fixed_t ge;
+    pico8_fixed_t jk;
+    pico8_fixed_t ew;
+    pico8_list_t *invented;
+    pico8_fixed_t lo;
+    pico8_fixed_t yr;
+    pico8_ob_table_t *po;
+    pico8_ob_table_t *fu;
+    pico8_fixed_t happiness;
+    int has_happiness; /* 0: `happiness` is nil, and is then never read */
+    const char *hl;
+    int has_hl; /* 0: `hl` is nil; 1 with `hl` NULL: `hl` is false */
 } pico8_hy_t;
 
 /* Parses the `hy` spec only. The singleton `fm=hy()` is built later, by
@@ -40,6 +41,10 @@ int pico8_hy_ready(void);
  * borrowed from the spec, valid until pico8_economy_shutdown(). */
 int pico8_hy_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_hy_struct_class(void);
+
+/* `hl` as 1a held it: REF NULL when nil or `self` is NULL, BOOL(0) when
+ * false, else the STRING of the same pointer. */
+pico8_value_t pico8_hy_hl(const pico8_hy_t *self);
 
 /* Takes no key. The caller owns the struct until pico8_probe_set_fm()
  * takes it. */

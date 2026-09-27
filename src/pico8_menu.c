@@ -316,7 +316,7 @@ static pico8_value_t pico8_ix1_my_dispatch(void *self, int argc, pico8_value_t a
     (void)arg0;
     (void)arg1;
     if (fm != NULL) {
-        fm->lo = pico8_value_fixed(pico8_fixed_from_int(1));
+        fm->lo = pico8_fixed_from_int(1);
     }
     pico8_hy_hk(fm);
     return pico8_value_ref(NULL);

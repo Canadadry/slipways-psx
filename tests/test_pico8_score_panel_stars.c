@@ -111,9 +111,10 @@ int main(int argc, char **argv) {
             for (k = 0; k < 10; k++) {
                 pico8_list_add(invented, pico8_value_fixed(pico8_fixed_from_int(0)));
             }
-            pico8_fm_hy()->invented = pico8_value_ref(invented);
+            pico8_fm_hy()->invented = invented;
         }
-        pico8_fm_hy()->happiness = pico8_value_fixed(pico8_fixed_from_int(happiness));
+        pico8_fm_hy()->happiness = pico8_fixed_from_int(happiness);
+        pico8_fm_hy()->has_happiness = 1;
         if (i == FORCE_FRAME) {
             assert(ky_stars() == stars);
         }

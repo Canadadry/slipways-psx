@@ -82,8 +82,8 @@ int main(void) {
         pico8_dispatch_set_input(&input);
 
         if (i == RESET_FRAME) {
-            pico8_fm_hy()->jk = pico8_value_fixed(pico8_fixed_from_int(0));
-            pico8_fm_hy()->nz = pico8_value_fixed(pico8_fixed_from_int(0));
+            pico8_fm_hy()->jk = pico8_fixed_from_int(0);
+            pico8_fm_hy()->nz = pico8_fixed_from_int(0);
         }
 
         int fired = pico8_cheat_step(&cheat, &input);

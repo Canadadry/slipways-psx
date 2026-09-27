@@ -399,7 +399,7 @@ static pico8_fixed_t credits(void) {
 }
 
 static void set_credits(int n) {
-    pico8_fm_hy()->nz = pico8_value_fixed(pico8_fixed_from_int(n));
+    pico8_fm_hy()->nz = pico8_fixed_from_int(n);
 }
 
 /* What `bv` left on a laboratory: `ra` (the very REF passed), `p`, and

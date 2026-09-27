@@ -70,13 +70,14 @@ static pico8_hy_t *fm_self(void) {
 
 static void fm_set(const char *name, pico8_value_t v) {
     pico8_hy_t *fm = pico8_fm_hy();
+    assert(v.kind == PICO8_VALUE_FIXED);
     if (strcmp(name, "nz") == 0) {
-        fm->nz = v;
+        fm->nz = v.as.fixed;
     } else if (strcmp(name, "jk") == 0) {
-        fm->jk = v;
+        fm->jk = v.as.fixed;
     } else {
         assert(strcmp(name, "yr") == 0);
-        fm->yr = v;
+        fm->yr = v.as.fixed;
     }
 }
 
@@ -666,6 +667,133 @@ static void test_hy_is_a_struct(void) {
     assert(pico8_fm() == NULL && pico8_fm_hy() == NULL);
 }
 
+#define WITNESS 0x1234
+
+static void read_present(const void *e, const char *name, pico8_value_t *out) {
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
+    out->kind = PICO8_VALUE_FIXED;
+    out->as.fixed = WITNESS;
+    assert(cls->field(e, name, out));
+}
+
+static void read_absent(const void *e, const char *name) {
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
+    pico8_value_t out;
+    out.kind = PICO8_VALUE_FIXED;
+    out.as.fixed = WITNESS;
+    assert(cls->field(e, name, &out) == 0);
+    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == WITNESS);
+}
+
+static void assert_fixed(const void *e, const char *name, int n) {
+    pico8_value_t v;
+    read_present(e, name, &v);
+    assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(n));
+}
+
+static void *read_ref(const void *e, const char *name) {
+    pico8_value_t v;
+    read_present(e, name, &v);
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+static void assert_hl_false(const void *e) {
+    pico8_value_t v;
+    read_present(e, "hl", &v);
+    assert(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+}
+
+static void assert_hl_string(const void *e, const char *s) {
+    pico8_value_t v;
+    read_present(e, "hl", &v);
+    assert(v.kind == PICO8_VALUE_STRING && v.as.string != NULL && strcmp(v.as.string, s) == 0);
+}
+
+static void cheat_sequence(void) {
+    static const int presses[] = {4, 4, 5, 5, 4, 4, 5, 5};
+    pico8_input_frame_t frames[16];
+    pico8_input_t pad;
+    int fired = 0;
+    int i;
+
+    memset(frames, 0, sizeof frames);
+    for (i = 0; i < 8; i++) {
+        frames[2 * i].dpad[presses[i]] = 1;
+    }
+    pad.frames = frames;
+    pad.frame_count = 16;
+    pico8_cheat_init(&cheat);
+    for (pad.current_frame = 0; pad.current_frame < 16; pad.current_frame++) {
+        fired += pico8_cheat_step(&cheat, &pad);
+    }
+    assert(fired == 1);
+}
+
+static void test_hy_members_by_name(void) {
+    static const char *const unknown[] = {"x", "", "hk", "kr", "jo"};
+    void *bare;
+    void *po;
+    void *fu;
+    pico8_list_t *invented;
+    int before;
+    pico8_value_t v;
+    size_t k;
+
+    pico8__init();
+    bare = pico8_hy_new(NULL);
+    assert_fixed(bare, "nz", 100);
+    assert_fixed(bare, "ge", 0);
+    assert_fixed(bare, "jk", 0);
+    assert_fixed(bare, "ew", 1);
+    assert_fixed(bare, "lo", 1);
+    assert_fixed(bare, "yr", 3401);
+    invented = read_ref(bare, "invented");
+    assert(pico8_type_tag_of(invented) == PICO8_TYPE_TAG_LIST && invented->count == 0);
+    read_absent(bare, "po");
+    read_absent(bare, "fu");
+    read_absent(bare, "happiness");
+    read_absent(bare, "hl");
+
+    new_game();
+    po = read_ref(pico8_fm(), "po");
+    fu = read_ref(pico8_fm(), "fu");
+    read_present(pico8_fm(), "happiness", &v);
+    assert(v.kind == PICO8_VALUE_FIXED);
+    assert_hl_false(pico8_fm());
+    assert(read_ref(pico8_fm(), "invented") == read_ref(pico8_fm(), "invented"));
+    for (k = 0; k < sizeof unknown / sizeof unknown[0]; k++) {
+        read_absent(pico8_fm(), unknown[k]);
+    }
+
+    assert(read_ref(pico8_fm(), "po") == po && read_ref(pico8_fm(), "fu") == fu);
+    pico8_hy_lj(fm_self());
+    assert(read_ref(pico8_fm(), "po") != po && read_ref(pico8_fm(), "fu") != fu);
+    invented = read_ref(pico8_fm(), "invented");
+    before = invented->count;
+    pico8_hy_kt(fm_self(), tech("t1", 0));
+    assert(read_ref(pico8_fm(), "invented") == invented && invented->count == before + 1);
+
+    fm_set("yr", pico8_value_fixed(pico8_fixed_from_int(3426)));
+    pico8_hy_lj(fm_self());
+    assert_hl_string(pico8_fm(), "final score");
+    fm_set("yr", pico8_value_fixed(pico8_fixed_from_int(3425)));
+    pico8_hy_lj(fm_self());
+    assert_hl_false(pico8_fm());
+    new_game();
+    fm_set("nz", pico8_value_fixed(pico8_fixed_from_int(2)));
+    pico8_hy_lj(fm_self());
+    assert_hl_string(pico8_fm(), "bankrupt");
+    fm_set("nz", pico8_value_fixed(pico8_fixed_from_int(3)));
+    pico8_hy_lj(fm_self());
+    assert_hl_false(pico8_fm());
+
+    new_game();
+    cheat_sequence();
+    assert_fixed(pico8_fm(), "jk", 99);
+    assert_fixed(pico8_fm(), "nz", 200);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -705,6 +833,7 @@ int main(void) {
     in_fresh_child(test_tech_replay);
     in_fresh_child(test_game_end_replay);
     in_fresh_child(test_hy_is_a_struct);
+    in_fresh_child(test_hy_members_by_name);
 
     printf("test_pico8_hy: all tests passed\n");
     return 0;
