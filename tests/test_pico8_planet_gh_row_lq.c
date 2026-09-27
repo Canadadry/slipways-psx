@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/pico8_assets.h"
-#include "../src/pico8_cart.h"
+#include "../src/pico8_bootstrap.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_class.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_fixed.h"
@@ -33,6 +33,7 @@
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_ui.h"
+#include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
@@ -67,6 +68,22 @@ static int lq_index_is_string(const pico8_instance_t *lq, int index, const char 
     return v.kind == PICO8_VALUE_STRING && v.as.string != NULL && strcmp(v.as.string, expected) == 0;
 }
 
+/* What `jo:gh` reaches when the cart calls it, built without a boot: `r`
+ * (from pico8_data_init), the jo/lq/js classes, and the `ok` singleton `pz()`
+ * fills. */
+static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
+    pico8_mem_init(mem);
+    pico8_gfx_init(gfx);
+    pico8_dispatch_set_gfx(gfx);
+    pico8_dispatch_set_mem(mem);
+
+    pico8_data_init(mem);
+    pico8_jl();
+    pico8_layout_init();
+    pico8_js_init();
+    pico8_jo_init();
+}
+
 static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
@@ -79,15 +96,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_value_t entry;
     int i;
 
-    pico8_mem_init(&mem);
-    pico8_gfx_init(&gfx);
-    assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_dispatch_set_gfx(&gfx);
-    pico8_dispatch_set_mem(&mem);
-
-    pico8_cart_load();
-    pico8__init();
+    setup_panel_state(&mem, &gfx);
 
     planet = pico8_jo_new(NULL);
     assert(planet != NULL);
