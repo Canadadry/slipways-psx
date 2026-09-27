@@ -80,9 +80,28 @@ static pico8_value_t pico8_nr_gv_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_nr_gv((const pico8_nr_t *)self, s);
 }
 
+static int pico8_nr_ldown_empty_field(const void *self, const char *name, pico8_value_t *out_value) {
+    (void)self;
+    (void)name;
+    (void)out_value;
+    return 0;
+}
+
+static const pico8_struct_class_t g_nr_ldown_empty_struct_class = {
+    {0},
+    pico8_nr_ldown_empty_field,
+    NULL,
+};
+
+typedef struct {
+    pico8_struct_header_t header;
+} pico8_nr_ldown_empty_t;
+
+/* The `{}` `nr:ldown` hands to `nr:gv`: never allocated, never freed; no
+ * field, and no writer, so a write reaching it stops the run. */
+static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{PICO8_TYPE_TAG_STRUCT, &g_nr_ldown_empty_struct_class}};
+
 pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
-    pico8_ob_table_t *empty_fields;
-    pico8_instance_t empty;
     pico8_value_t gv_result;
     pico8_class_t *jc_class;
     pico8_ob_table_t *overrides;
@@ -92,12 +111,7 @@ pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
         return pico8_value_ref(NULL);
     }
 
-    empty_fields = pico8_ob_table_new();
-    empty.tag = PICO8_TYPE_TAG_INSTANCE;
-    empty.fields = empty_fields;
-    empty.cls = NULL;
-    gv_result = pico8_nr_gv(self, &empty);
-    pico8_ob_table_free(empty_fields);
+    gv_result = pico8_nr_gv(self, (const pico8_instance_t *)&g_nr_ldown_empty);
 
     if (!pico8_pft_truthy(gv_result)) {
         return gv_result;
