@@ -114,10 +114,10 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     /* `jo:gh` reads these for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    planet->ra = pico8_value_ref(ra);
+    planet->ra = ra;
     gq = malloc(sizeof *gq);
     *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
-    planet->gq = pico8_value_ref(gq);
+    planet->gq = gq;
 
     /* The call under test: this is where the overflow happened. */
     pico8_jo_gh(planet);

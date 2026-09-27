@@ -322,6 +322,18 @@ static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *c
     self->qh.jo.kq = g_nr_kq;
 }
 
+static void family_trade_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "jo.ra/p: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule "
+           "of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
 static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
     pico8_nr_t *self = malloc(sizeof *self);
     int k;
@@ -335,9 +347,9 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0) {
             self->qh.jo.id = value;
         } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "p") == 0) {
-            self->qh.jo.p = value;
+            family_trade_take_vec(value, &self->qh.jo.p);
         } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
-            self->qh.jo.ra = value;
+            family_trade_take_vec(value, &self->qh.jo.ra);
         } else {
             assert(0 && "nr: the only measured construction keys are id (ie:ldown), p and ra (test_pico8_mz, "
                         "test_pico8_bg); another would be a field under no rule of plan-3 section 5 -- stop, do "

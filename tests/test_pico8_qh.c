@@ -779,7 +779,7 @@ static int is_a_qh_struct(const void *e) {
 static void test_qh_is_a_struct(void) {
     static const char *const jo_methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr",
-                                          "lq", "m_", "ma", "mi", "oe", "p_", "ra", "p",  "et"};
+                                          "lq", "m_", "ma", "mi", "oe", "p_", "et"};
     const pico8_entity_kind_t *const descendants[] = {pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(), pico8_pm_kind(),
                                                       pico8_mx_kind(), pico8_nr_kind(), pico8_fr_kind()};
     const pico8_struct_class_t *cls = pico8_qh_struct_class();

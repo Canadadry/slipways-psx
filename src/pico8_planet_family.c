@@ -122,6 +122,18 @@ static int pico8_qh_field(const void *self, const char *name, pico8_value_t *out
     return 1;
 }
 
+static void family_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "jo.ra/p: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule "
+           "of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
 /* `et`, `ra`, `p`, which qh's own `hq` (`bv`) writes, then jo's 17 names;
  * 0 for any other. */
 static int pico8_qh_set_field(void *self, const char *name, pico8_value_t value) {
@@ -132,11 +144,11 @@ static int pico8_qh_set_field(void *self, const char *name, pico8_value_t value)
         return 1;
     }
     if (strcmp(name, "ra") == 0) {
-        qh->jo.ra = value;
+        family_take_vec(value, &qh->jo.ra);
         return 1;
     }
     if (strcmp(name, "p") == 0) {
-        qh->jo.p = value;
+        family_take_vec(value, &qh->jo.p);
         return 1;
     }
     return pico8_jo_struct_class()->set_field(self, name, value);
@@ -581,7 +593,7 @@ void pico8_pm_pq(pico8_pm_t *self) {
         return;
     }
 
-    spawn_ra = pico8_vec_add(pico8_pf_value_vec(self->hj.qh.jo.ra), pico8_pf_value_vec(self->ng));
+    spawn_ra = pico8_vec_add(pico8_pf_value_vec(pico8_value_ref(self->hj.qh.jo.ra)), pico8_pf_value_vec(self->ng));
     spawn_ra_heap = malloc(sizeof *spawn_ra_heap);
     *spawn_ra_heap = spawn_ra;
 
@@ -705,9 +717,9 @@ static void *pico8_pm_struct_new(const pico8_ob_table_t *overrides) {
                "pm: the only measured construction keys are p, ra, id (jo:hu); another would be a field "
                "under no rule of plan-3 section 5 -- stop, do not add a member");
         if (is_p) {
-            self->hj.qh.jo.p = overrides->entries[k].value;
+            family_take_vec(overrides->entries[k].value, &self->hj.qh.jo.p);
         } else if (is_ra) {
-            self->hj.qh.jo.ra = overrides->entries[k].value;
+            family_take_vec(overrides->entries[k].value, &self->hj.qh.jo.ra);
         } else {
             self->hj.qh.jo.id = overrides->entries[k].value;
         }
@@ -973,10 +985,9 @@ static void *pico8_ga_struct_new(const pico8_ob_table_t *overrides) {
         const char *name;
         size_t offset;
     } keys[] = {
-        {"p", offsetof(pico8_ga_t, jo.p)}, {"ra", offsetof(pico8_ga_t, jo.ra)}, {"id", offsetof(pico8_ga_t, jo.id)},
-        {"qo", offsetof(pico8_ga_t, qo)},  {"ro", offsetof(pico8_ga_t, ro)},    {"qg", offsetof(pico8_ga_t, qg)},
-        {"q_", offsetof(pico8_ga_t, q_)},  {"k_", offsetof(pico8_ga_t, k_)},    {"iu", offsetof(pico8_ga_t, iu)},
-        {"py", offsetof(pico8_ga_t, py)},  {"ms", offsetof(pico8_ga_t, ms)},
+        {"id", offsetof(pico8_ga_t, jo.id)}, {"qo", offsetof(pico8_ga_t, qo)}, {"ro", offsetof(pico8_ga_t, ro)},
+        {"qg", offsetof(pico8_ga_t, qg)},    {"q_", offsetof(pico8_ga_t, q_)}, {"k_", offsetof(pico8_ga_t, k_)},
+        {"iu", offsetof(pico8_ga_t, iu)},    {"py", offsetof(pico8_ga_t, py)}, {"ms", offsetof(pico8_ga_t, ms)},
     };
     pico8_ga_t *self = malloc(sizeof *self);
     size_t i;
@@ -999,6 +1010,14 @@ static void *pico8_ga_struct_new(const pico8_ob_table_t *overrides) {
         pico8_ob_key_t key = overrides->entries[k].key;
         size_t found = sizeof keys / sizeof keys[0];
 
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "p") == 0) {
+            family_take_vec(overrides->entries[k].value, &self->jo.p);
+            continue;
+        }
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
+            family_take_vec(overrides->entries[k].value, &self->jo.ra);
+            continue;
+        }
         for (i = 0; key.kind == PICO8_OB_KEY_NAME && i < sizeof keys / sizeof keys[0]; i++) {
             if (strcmp(key.name, keys[i].name) == 0) {
                 found = i;

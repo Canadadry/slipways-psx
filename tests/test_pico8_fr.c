@@ -554,7 +554,7 @@ static int is_an_fr_struct(const void *e) {
  * nr's nor qh's class installs a function any more. */
 static void test_fr_is_a_struct(void) {
     static const char *const written[] = {"by", "cc", "ep", "fo", "fx", "jh", "jy", "kr", "lq",
-                                          "m_", "ma", "mi", "oe", "p_", "ra", "p",  "et", "s"};
+                                          "m_", "ma", "mi", "oe", "p_", "et", "s"};
     static const char *const inherited[] = {"rr", "hz", "od", "s"};
     const pico8_struct_class_t *cls = pico8_fr_struct_class();
     const pico8_struct_class_t *nr = pico8_nr_struct_class();

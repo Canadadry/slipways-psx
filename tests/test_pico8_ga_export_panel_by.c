@@ -112,10 +112,10 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
 
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    planet->jo.ra = pico8_value_ref(ra);
+    planet->jo.ra = ra;
     gq = malloc(sizeof *gq);
     *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
-    planet->jo.gq = pico8_value_ref(gq);
+    planet->jo.gq = gq;
 
     /* A fresh `ga` exports nothing, against a capacity of `kw.mu`. */
     pico8_jo_gh(&planet->jo);

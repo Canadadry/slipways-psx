@@ -26,6 +26,7 @@
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
+#include "../src/pico8_entity_geom.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
@@ -73,6 +74,7 @@
 #define KE_T_HASH 0x5DB51DEEu
 #define JO_MEMBERS_HASH 0x62CB3FF0u
 #define JO_WRITTEN_HASH 0x20E44B74u
+#define JO_POSITION_HASH 0x05B358F1u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -1405,6 +1407,258 @@ static void test_jo_writer_stops_off_row(void) {
     }
 }
 
+static pico8_vec_t *heap_vec(int x, int y) {
+    pico8_vec_t *v = malloc(sizeof *v);
+
+    v->x = pico8_fixed_from_int(x);
+    v->y = pico8_fixed_from_int(y);
+    return v;
+}
+
+/* Presence, then `x`/`y` of a vector field; asserts the same pointer as
+ * `want` when `want` is not NULL. */
+static uint32_t fold_position(uint32_t h, const void *e, const char *name, const void *want) {
+    pico8_value_t v;
+
+    if (!me_of(e, name, &v)) {
+        assert(want == NULL);
+        return fnv(h, 0u);
+    }
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
+    assert(want == NULL || v.as.ref == want);
+    return fold_vec(fnv(h, 1u), *(const pico8_vec_t *)v.as.ref);
+}
+
+static uint32_t fold_jo_position(uint32_t h, const void *e) {
+    pico8_value_t v;
+    pico8_value_t d;
+
+    h = fold_position(h, e, "p", NULL);
+    h = fold_position(h, e, "ra", NULL);
+    h = fold_position(h, e, "gq", NULL);
+    assert(me_of(e, "gq", &v) && pico8_jo_default("gq", &d));
+    h = fnv(h, (uint32_t)(v.as.ref == d.as.ref));
+    assert(me_of(e, "ca", &v) && v.kind == PICO8_VALUE_FIXED);
+    return fnv(h, (uint32_t)v.as.fixed);
+}
+
+static void *last_of_class(const pico8_struct_class_t *cls) {
+    const pico8_list_t *hv = pico8_hv();
+    int i;
+
+    for (i = hv->count - 1; i >= 0; i--) {
+        if (hv->items[i].kind == PICO8_VALUE_REF && hv->items[i].as.ref != NULL &&
+            pico8_type_tag_of(hv->items[i].as.ref) == PICO8_TYPE_TAG_STRUCT &&
+            ((const pico8_struct_header_t *)hv->items[i].as.ref)->cls == cls) {
+            return hv->items[i].as.ref;
+        }
+    }
+    return NULL;
+}
+
+static void *position_new(int k, const pico8_ob_table_t *b) {
+    switch (k) {
+    case 0:
+        return pico8_jo_new(b);
+    case 1:
+        return pico8_pm_new(b);
+    case 2:
+        return pico8_ga_new(b);
+    default:
+        return pico8_nr_new(b);
+    }
+}
+
+static void test_jo_position_by_name(void) {
+    static const char *const intruders[] = {"", "r", "raa", "p ", "P", "gq_", "has_ca", "ca_is_bool"};
+    const pico8_list_t *hv;
+    void *e[10];
+    void *made;
+    pico8_vec_t *pv = heap_vec(3, 4);
+    pico8_vec_t *rv = heap_vec(384, 512);
+    pico8_vec_t before;
+    pico8_ob_table_t *b;
+    pico8_value_t v;
+    pico8_value_t d;
+    pico8_hp_t *to_pm = NULL;
+    uint32_t h = 2166136261u;
+    size_t i;
+    int k;
+
+    (void)start_game(DRAG);
+    hv = pico8_hv();
+    h = fnv(h, (uint32_t)hv->count);
+    for (i = 0; i < (size_t)hv->count; i++) {
+        assert(hv->items[i].kind == PICO8_VALUE_REF);
+        h = jo_tree(hv->items[i].as.ref) ? fold_jo_position(h, hv->items[i].as.ref) : fnv(h, 7u);
+    }
+
+    e[0] = pico8_jo_new(NULL);
+    e[1] = pico8_qh_new(NULL);
+    e[2] = pico8_nl_new(NULL);
+    e[3] = pico8_os_new(NULL);
+    e[4] = pico8_hj_new(NULL);
+    e[5] = pico8_pm_new(NULL);
+    e[6] = pico8_ga_new(NULL);
+    e[7] = pico8_nr_new(NULL);
+    e[8] = pico8_fr_new(NULL);
+    e[9] = pico8_mx_new(NULL);
+    assert(pico8_jo_default("gq", &d) && d.kind == PICO8_VALUE_REF && d.as.ref != NULL);
+    for (i = 0; i < 10; i++) {
+        h = fold_jo_position(h, e[i]);
+        assert(me_of(e[i], "gq", &v) && v.as.ref == d.as.ref);
+        assert(((const pico8_vec_t *)v.as.ref)->x == 0 && ((const pico8_vec_t *)v.as.ref)->y == pico8_fixed_from_int(11));
+        assert(me_of(e[i], "ca", &v) && v.as.fixed == pico8_fixed_from_int(9));
+    }
+    assert(!me_of(e[0], "p", &v) && !me_of(e[0], "ra", &v));
+
+    for (k = 0; k < 4; k++) {
+        b = pico8_ob_table_new();
+        pico8_ob_table_set_name(b, "p", pico8_value_ref(pv));
+        pico8_ob_table_set_name(b, "ra", pico8_value_ref(rv));
+        made = position_new(k, b);
+        h = fold_position(h, made, "p", pv);
+        h = fold_position(h, made, "ra", rv);
+        b = pico8_ob_table_new();
+        pico8_ob_table_set_name(b, "p", pico8_value_ref(NULL));
+        made = position_new(k, b);
+        h = fold_position(h, made, "p", NULL);
+        h = fnv(h, (uint32_t)me_of(made, "p", &v));
+    }
+
+    for (i = 0; i < 10; i++) {
+        const pico8_struct_header_t *header = e[i];
+        int takes = i != 0 && i != 6;
+        pico8_vec_t *w = heap_vec((int)i, 7);
+        pico8_value_t old_p;
+        int had_p = me_of(e[i], "p", &old_p);
+
+        assert(header->cls->set_field(e[i], "ra", pico8_value_ref(w)) == takes);
+        assert(header->cls->set_field(e[i], "p", pico8_value_ref(w)) == takes);
+        if (!takes) {
+            assert(me_of(e[i], "p", &v) == had_p && (!had_p || v.as.ref == old_p.as.ref));
+            h = fnv(h, 9u);
+            continue;
+        }
+        h = fold_position(h, e[i], "ra", w);
+        h = fold_position(h, e[i], "p", w);
+        pico8_entity_set_field(e[i], "ra", pico8_value_ref(NULL));
+        pico8_entity_set_field(e[i], "p", pico8_value_ref(NULL));
+        h = fnv(h, (uint32_t)me_of(e[i], "ra", &v));
+        h = fnv(h, (uint32_t)me_of(e[i], "p", &v));
+    }
+
+    pico8_bv(e[1], pico8_value_ref(rv), pico8_value_ref(heap_vec(1, 1)));
+    h = fold_position(h, e[1], "ra", rv);
+    assert(me_of(e[1], "p", &v) && v.as.ref != rv);
+    h = fold_position(h, e[1], "p", v.as.ref);
+    assert(((const pico8_vec_t *)v.as.ref)->x == pico8_fixed_from_int(3));
+    before = *rv;
+    pico8_na(e[1], pico8_fixed_from_int(20));
+    h = fold_position(h, e[1], "ra", rv);
+    assert(rv->x == before.x && rv->y != before.y);
+
+    for (k = 1; pico8_ob_table_get_index(pico8_gb(), k, &v); k++) {
+        pico8_hp_t *hp = v.as.ref;
+
+        if (hp->cw != NULL && strcmp(hp->cw, "pm") == 0) {
+            to_pm = hp;
+            break;
+        }
+    }
+    assert(to_pm != NULL);
+    b = pico8_ob_table_new();
+    pico8_ob_table_set_name(b, "p", pico8_value_ref(pv));
+    pico8_ob_table_set_name(b, "ra", pico8_value_ref(rv));
+    made = pico8_jo_new(b);
+    pico8_jo_hu(made, to_pm);
+    made = last_of_class(pico8_pm_struct_class());
+    assert(made != NULL);
+    h = fold_position(h, made, "p", pv);
+    h = fold_position(h, made, "ra", rv);
+
+    b = pico8_ob_table_new();
+    pico8_ob_table_set_name(b, "ra", pico8_value_ref(rv));
+    (void)pico8_pm_new(b);
+    made = last_of_class(pico8_ga_struct_class());
+    h = fnv(h, (uint32_t)(made != NULL));
+    if (made != NULL) {
+        h = fold_position(h, made, "ra", NULL);
+        assert(me_of(made, "ra", &v) && v.as.ref != rv);
+    }
+
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        v = pico8_value_fixed(0x1234);
+        assert(pico8_jo_struct_class()->field(e[0], intruders[i], &v) == 0);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+        h = fnv(h, 0u);
+    }
+
+    check("jo_position", h, JO_POSITION_HASH);
+}
+
+static int g_position_new;
+static const char *g_position_key;
+
+static void build_off_row(void *e) {
+    pico8_ob_table_t *b = pico8_ob_table_new();
+
+    (void)e;
+    pico8_ob_table_set_name(b, g_position_key, g_off_row_value);
+    (void)position_new(g_position_new, b);
+}
+
+static void test_jo_position_stops_off_row(void) {
+    static const char *const names[2] = {"ra", "p"};
+    pico8_value_t off_row[10];
+    void *e[3];
+    size_t n_off;
+    size_t i;
+    size_t k;
+    size_t m;
+
+    (void)start_game(DRAG);
+    e[0] = pico8_qh_new(NULL);
+    e[1] = pico8_pm_new(NULL);
+    e[2] = pico8_nr_new(NULL);
+    for (i = 0; i < 3; i++) {
+        n_off = 0;
+        off_row[n_off++] = pico8_value_fixed(pico8_fixed_from_int(1));
+        off_row[n_off++] = pico8_value_bool(1);
+        off_row[n_off++] = pico8_value_string("x");
+        off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
+        off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
+        off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
+        off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
+        off_row[n_off++] = pico8_value_ref(pico8_ob_table_new());
+        off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
+        off_row[n_off++] = pico8_value_ref(e[i]);
+        for (m = 0; m < 2; m++) {
+            g_off_row_name = names[m];
+            for (k = 0; k < n_off; k++) {
+                g_off_row_value = off_row[k];
+                must_abort(write_off_row, e[i]);
+            }
+        }
+    }
+    for (i = 0; i < 4; i++) {
+        g_position_new = (int)i;
+        n_off = 0;
+        off_row[n_off++] = pico8_value_fixed(pico8_fixed_from_int(1));
+        off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
+        off_row[n_off++] = pico8_value_ref(pico8_ob_table_new());
+        off_row[n_off++] = pico8_value_ref(e[0]);
+        for (m = 0; m < 2; m++) {
+            g_position_key = names[1 - m];
+            for (k = 0; k < n_off; k++) {
+                g_off_row_value = off_row[k];
+                must_abort(build_off_row, NULL);
+            }
+        }
+    }
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -1436,6 +1690,8 @@ int main(void) {
     in_fresh_child(test_jo_members_by_name);
     in_fresh_child(test_jo_written_by_name);
     in_fresh_child(test_jo_writer_stops_off_row);
+    in_fresh_child(test_jo_position_by_name);
+    in_fresh_child(test_jo_position_stops_off_row);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

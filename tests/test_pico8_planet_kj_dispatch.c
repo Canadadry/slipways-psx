@@ -100,7 +100,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
      * early return is not taken and the real draw body runs. */
     ra_heap = malloc(sizeof *ra_heap);
     *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
-    planet->ra = pico8_value_ref(ra_heap);
+    planet->ra = ra_heap;
 
     g_spied_qb = *pico8_qb_struct_class();
     g_spied_qb.methods[PICO8_METHOD_MD] = spy_md;

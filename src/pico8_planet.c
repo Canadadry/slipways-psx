@@ -37,7 +37,7 @@ static struct {
     const char *name;
     pico8_value_t value;
 } g_jo_defaults[] = {
-    {"ma", {0}}, {"gq", {0}}, {"ca", {0}},
+    {"ma", {0}},
 };
 
 static const char *g_jo_me = NULL;
@@ -54,6 +54,8 @@ static pico8_ob_table_t *g_jo_cq = NULL;
  * and `mx:kf` until `lz` gives the planet a fresh one. */
 static pico8_ob_table_t *g_jo_kw = NULL;
 static pico8_ob_table_t *g_jo_em = NULL;
+static pico8_vec_t *g_jo_gq = NULL;
+static pico8_fixed_t g_jo_ca = 0;
 
 static void pico8_jo_defaults_reset(void) {
     size_t i;
@@ -69,6 +71,8 @@ static void pico8_jo_defaults_reset(void) {
     g_jo_cq = NULL;
     g_jo_kw = NULL;
     g_jo_em = NULL;
+    g_jo_gq = NULL;
+    g_jo_ca = 0;
     for (i = 0; i < sizeof g_jo_defaults / sizeof g_jo_defaults[0]; i++) {
         g_jo_defaults[i].value = pico8_value_ref(NULL);
     }
@@ -90,9 +94,17 @@ static pico8_qz_box_t *jo_default_box(int found, pico8_value_t v) {
     return v.as.ref;
 }
 
+static pico8_vec_t *jo_default_vec(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "jo.gq: a default of the struct is a key of jo's spec and a vector v() (ref:autre)");
+    (void)found;
+    return v.as.ref;
+}
+
 static pico8_fixed_t jo_default_fixed(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "jo.hs/fa: a default of the struct is a key of jo's spec and a fixed (fixe)");
+           "jo.hs/fa/ca: a default of the struct is a key of jo's spec and a fixed (fixe)");
     (void)found;
     return v.as.fixed;
 }
@@ -220,9 +232,7 @@ static const struct {
     const char *name;
     size_t offset;
 } g_jo_members[] = {
-    {"ma", offsetof(pico8_jo_t, ma)}, {"gq", offsetof(pico8_jo_t, gq)}, {"ca", offsetof(pico8_jo_t, ca)},
-    {"id", offsetof(pico8_jo_t, id)}, {"p", offsetof(pico8_jo_t, p)},   {"ra", offsetof(pico8_jo_t, ra)},
-    {"oe", offsetof(pico8_jo_t, oe)}, {"ep", offsetof(pico8_jo_t, ep)}, {"jy", offsetof(pico8_jo_t, jy)},
+    {"ma", offsetof(pico8_jo_t, ma)}, {"id", offsetof(pico8_jo_t, id)}, {"oe", offsetof(pico8_jo_t, oe)}, {"ep", offsetof(pico8_jo_t, ep)}, {"jy", offsetof(pico8_jo_t, jy)},
     {"fx", offsetof(pico8_jo_t, fx)}, {"lq", offsetof(pico8_jo_t, lq)}, {"fo", offsetof(pico8_jo_t, fo)},
     {"jh", offsetof(pico8_jo_t, jh)}, {"p_", offsetof(pico8_jo_t, p_)}, {"kr", offsetof(pico8_jo_t, kr)},
     {"cc", offsetof(pico8_jo_t, cc)}, {"by", offsetof(pico8_jo_t, by)}, {"mi", offsetof(pico8_jo_t, mi)},
@@ -263,6 +273,26 @@ static void jo_take_hp(pico8_value_t value, pico8_hp_t **out) {
            "jo.hn: a write neither nil nor a project hp is off its census row (ref:pico8_hp_t) -- a field under no "
            "rule of plan-3 section 5: stop, do not widen the member");
     *out = value.as.ref;
+}
+
+static void jo_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "jo.ra/p: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule "
+           "of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static int jo_field_vec(pico8_vec_t *v, pico8_value_t *out_value) {
+    if (v == NULL) {
+        return 0;
+    }
+    *out_value = pico8_value_ref(v);
+    return 1;
 }
 
 static int jo_field_table(pico8_ob_table_t *t, pico8_value_t *out_value) {
@@ -311,8 +341,21 @@ static int pico8_jo_field(const void *self, const char *name, pico8_value_t *out
     if (strcmp(name, "kw") == 0) {
         return jo_field_table(jo->kw, out_value);
     }
+    if (strcmp(name, "gq") == 0) {
+        return jo_field_vec(jo->gq, out_value);
+    }
+    if (strcmp(name, "ca") == 0) {
+        *out_value = pico8_value_fixed(jo->ca);
+        return 1;
+    }
     if (strcmp(name, "em") == 0) {
         return jo_field_table(jo->em, out_value);
+    }
+    if (strcmp(name, "p") == 0) {
+        return jo_field_vec(jo->p, out_value);
+    }
+    if (strcmp(name, "ra") == 0) {
+        return jo_field_vec(jo->ra, out_value);
     }
     if (strcmp(name, "hn") == 0) {
         if (jo->hn == NULL) {
@@ -404,7 +447,11 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     self->dz = g_jo_dz;
     self->cq = g_jo_cq;
     self->kw = g_jo_kw;
+    self->gq = g_jo_gq;
+    self->ca = g_jo_ca;
     self->em = g_jo_em;
+    self->p = NULL;
+    self->ra = NULL;
     self->hn = NULL;
     self->nk = NULL;
     self->ke.me = g_jo_me;
@@ -423,7 +470,13 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "jo: the only measured construction keys are id, p and ra (bw); another would be a "
                            "field under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        *pico8_jo_member(self, key.name) = overrides->entries[k].value;
+        if (strcmp(key.name, "p") == 0) {
+            jo_take_vec(overrides->entries[k].value, &self->p);
+        } else if (strcmp(key.name, "ra") == 0) {
+            jo_take_vec(overrides->entries[k].value, &self->ra);
+        } else {
+            *pico8_jo_member(self, key.name) = overrides->entries[k].value;
+        }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("jo");
@@ -487,6 +540,10 @@ void pico8_jo_init(void) {
     g_jo_kw = jo_default_table(found, v);
     found = pico8_jo_default("em", &v);
     g_jo_em = jo_default_table(found, v);
+    found = pico8_jo_default("gq", &v);
+    g_jo_gq = jo_default_vec(found, v);
+    found = pico8_jo_default("ca", &v);
+    g_jo_ca = jo_default_fixed(found, v);
     me_found = pico8_jo_default("me", &me);
     assert(me_found && me.kind == PICO8_VALUE_STRING && me.as.string != NULL &&
            "jo: me, a default of the struct, is a key of jo's spec and a string (chaine)");
@@ -705,11 +762,11 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
         target_kind = jo_kv(hp_instance->cw);
 
         overrides = pico8_ob_table_new();
-        if (pico8_jo_present(self->p)) {
-            pico8_ob_table_set_name(overrides, "p", self->p);
+        if (self->p != NULL) {
+            pico8_ob_table_set_name(overrides, "p", pico8_value_ref(self->p));
         }
-        if (pico8_jo_present(self->ra)) {
-            pico8_ob_table_set_name(overrides, "ra", self->ra);
+        if (self->ra != NULL) {
+            pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(self->ra));
         }
         if (pico8_jo_present(self->id)) {
             pico8_ob_table_set_name(overrides, "id", self->id);
@@ -812,8 +869,8 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         int color = 0;
         char *text;
 
-        if (pico8_jo_present(self->ra)) {
-            pico8_ob_table_set_name(overrides, "ra", self->ra);
+        if (self->ra != NULL) {
+            pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(self->ra));
         }
         text = pico8_ne(kr_val.kind == PICO8_VALUE_FIXED ? kr_val.as.fixed : pico8_fixed_from_int(0), 10, "$",
                         &color);
