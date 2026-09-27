@@ -123,14 +123,14 @@ static pico8_value_t pico8_jc_entity_value(const void *e, const char *name) {
     return pico8_value_ref(NULL);
 }
 
-static pico8_instance_t *pico8_jc_value_instance(pico8_value_t v) {
+static pico8_struct_header_t *pico8_jc_value_instance(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_instance_t *)v.as.ref;
+        return (pico8_struct_header_t *)v.as.ref;
     }
     return NULL;
 }
 
-static pico8_instance_t *pico8_jc_entity_instance(const void *e, const char *name) {
+static pico8_struct_header_t *pico8_jc_entity_instance(const void *e, const char *name) {
     return pico8_jc_value_instance(pico8_jc_entity_value(e, name));
 }
 
@@ -165,11 +165,11 @@ void pico8_jc_pq(pico8_jc_t *self) {
 
 void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     pico8_ui_t *ok;
-    pico8_instance_t *hovered;
+    pico8_struct_header_t *hovered;
     pico8_value_t gv_val;
     pico8_value_t re_val;
-    pico8_instance_t *qu;
-    pico8_instance_t *re;
+    pico8_struct_header_t *qu;
+    pico8_struct_header_t *re;
     pico8_fixed_t od;
     pico8_value_t qu_mt;
     pico8_value_t mt_val;
@@ -197,7 +197,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     self->re = re_val;
 
     qu = pico8_jc_value_instance(self->qu);
-    re = (re_val.kind == PICO8_VALUE_REF) ? (pico8_instance_t *)re_val.as.ref : NULL;
+    re = (re_val.kind == PICO8_VALUE_REF) ? (pico8_struct_header_t *)re_val.as.ref : NULL;
     od = pico8_dj(qu, re);
     self->od = pico8_value_fixed(od);
 
@@ -208,8 +208,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     et = pico8_jc_ce(self);
     self->et = et;
     if (pico8_jc_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
-        assert((pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
-                pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT &&
                "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
         pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
     }
@@ -218,7 +217,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
                                         : pico8_value_fixed(pico8_fixed_from_int(4));
 }
 
-void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re) {
+void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
     int should_fail;
 
     if (self == NULL) {
@@ -227,7 +226,7 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re) {
 
     /* `d_()` charges the player and advances the clock, so it must stay
      * behind the `re == NULL` short-circuit. */
-    should_fail = (re == NULL) || !pico8_jc_truthy(pico8_d_((pico8_instance_t *)self));
+    should_fail = (re == NULL) || !pico8_jc_truthy(pico8_d_((pico8_struct_header_t *)self));
     if (should_fail) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
@@ -244,7 +243,7 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re) {
     self->re = pico8_value_ref(re);
 
     {
-        pico8_instance_t *qu = pico8_jc_value_instance(self->qu);
+        pico8_struct_header_t *qu = pico8_jc_value_instance(self->qu);
         pico8_value_t discard;
         int qu_registered;
         int re_registered;
@@ -267,12 +266,12 @@ typedef struct {
  * exactly 0 or 1), so `qu` and `re` never match themselves here. */
 static int pico8_jc_ce_np_predicate(pico8_value_t e, void *ctx_ptr) {
     const pico8_jc_ce_np_ctx_t *ctx = (const pico8_jc_ce_np_ctx_t *)ctx_ptr;
-    pico8_instance_t *n;
+    pico8_struct_header_t *n;
 
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
-    n = (pico8_instance_t *)e.as.ref;
+    n = (pico8_struct_header_t *)e.as.ref;
     return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_entity_vec(n, "p"), PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
@@ -298,15 +297,15 @@ static int pico8_jc_ce_jc_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
     {
-        pico8_instance_t *sw_qu = pico8_jc_entity_instance(sw, "qu");
-        pico8_instance_t *sw_re = pico8_jc_entity_instance(sw, "re");
+        pico8_struct_header_t *sw_qu = pico8_jc_entity_instance(sw, "qu");
+        pico8_struct_header_t *sw_re = pico8_jc_entity_instance(sw, "re");
         return pico8_geom_cl(ctx->sp, ctx->dp, pico8_jc_entity_vec(sw_qu, "p"), pico8_jc_entity_vec(sw_re, "p"));
     }
 }
 
 pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
-    pico8_instance_t *qu;
-    pico8_instance_t *re;
+    pico8_struct_header_t *qu;
+    pico8_struct_header_t *re;
     pico8_vec_t sp;
     pico8_vec_t dp;
     pico8_value_t ov_result;
@@ -335,7 +334,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
             pico8_list_iter_t it = pico8_list_all(PICO8_REF_AS_LIST_CONST(oe_val.as.ref));
             pico8_value_t w_val;
             while (pico8_list_iter_next(&it, &w_val)) {
-                pico8_instance_t *w;
+                pico8_struct_header_t *w;
                 pico8_value_t eb_result;
                 if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
                     continue;
@@ -343,7 +342,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
                 assert(pico8_type_tag_of(w_val.as.ref) == PICO8_TYPE_TAG_STRUCT &&
                        ((const pico8_struct_header_t *)w_val.as.ref)->cls == pico8_jc_struct_class() &&
                        "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
-                w = (pico8_instance_t *)w_val.as.ref;
+                w = (pico8_struct_header_t *)w_val.as.ref;
                 if (pico8_mv(w, "eb", 1, pico8_value_ref(qu), pico8_value_ref(NULL), &eb_result) &&
                     pico8_value_equal(eb_result, pico8_value_ref(re))) {
                     return w_val;
@@ -380,8 +379,8 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     }
 }
 
-pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_instance_t *jo_instance) {
-    pico8_instance_t *qu;
+pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance) {
+    pico8_struct_header_t *qu;
     pico8_value_t re_val;
 
     if (self == NULL) {
@@ -400,8 +399,8 @@ pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_instance_t *jo_ins
 }
 
 void pico8_jc_ev(pico8_jc_t *self) {
-    pico8_instance_t *qu;
-    pico8_instance_t *re;
+    pico8_struct_header_t *qu;
+    pico8_struct_header_t *re;
 
     if (self == NULL) {
         return;
@@ -410,7 +409,7 @@ void pico8_jc_ev(pico8_jc_t *self) {
     qu = pico8_jc_value_instance(self->qu);
     re = pico8_jc_value_instance(self->re);
     if (qu != re) {
-        pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self);
+        pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
     }
 }
 
@@ -422,22 +421,22 @@ static pico8_value_t pico8_jc_hq_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 static pico8_value_t pico8_jc_ey_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *re = NULL;
+    pico8_struct_header_t *re = NULL;
     (void)argc;
     (void)arg1;
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        re = (pico8_instance_t *)arg0.as.ref;
+        re = (pico8_struct_header_t *)arg0.as.ref;
     }
     pico8_jc_ey((pico8_jc_t *)self, re);
     return pico8_value_ref(NULL);
 }
 
 static pico8_value_t pico8_jc_eb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    const pico8_instance_t *jo_instance = NULL;
+    const pico8_struct_header_t *jo_instance = NULL;
     (void)argc;
     (void)arg1;
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        jo_instance = (const pico8_instance_t *)arg0.as.ref;
+        jo_instance = (const pico8_struct_header_t *)arg0.as.ref;
     }
     return pico8_jc_eb((const pico8_jc_t *)self, jo_instance);
 }

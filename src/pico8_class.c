@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* An instance's tag, which pico8_type_tag_of() reads as UNKNOWN: no
+ * entity accessor takes an instance any more. */
+#define PICO8_CLASS_INSTANCE_TAG 0x9E5C1451u
+
 typedef struct {
     char *name;
     pico8_class_t *cls;
@@ -272,7 +276,7 @@ pico8_instance_t *pico8_class_instantiate(pico8_class_t *cls, const pico8_ob_tab
 
     /* Only `overrides` is copied in, index-keyed and name-keyed entries
      * alike; class defaults stay on the class. */
-    inst->tag = PICO8_TYPE_TAG_INSTANCE;
+    inst->tag = PICO8_CLASS_INSTANCE_TAG;
     inst->fields = pico8_ob_table_new();
     inst->cls = cls;
 

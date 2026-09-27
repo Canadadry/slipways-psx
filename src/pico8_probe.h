@@ -96,8 +96,8 @@ const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
  * after shutdown, which several callers test for. The setter takes ownership
  * of the new occupant and frees a previous `hy` as the struct alone
  * (TROU-7); never the provisional. */
-pico8_instance_t *pico8_fm(void);
-void pico8_probe_set_fm(pico8_instance_t *instance);
+pico8_struct_header_t *pico8_fm(void);
+void pico8_probe_set_fm(pico8_struct_header_t *instance);
 
 /* The `hy` of `fm`, NULL when the slot is empty; asserts on the
  * placeholder. */
@@ -109,7 +109,7 @@ pico8_hy_t *pico8_fm_hy(void);
  * static struct with no readable field but `fo`, or literal `false` -- of
  * which only `false` is falsy; collapsing the throwaway to nil would change
  * `d_`. */
-void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp);
+void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp);
 
 pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
@@ -119,13 +119,13 @@ const pico8_struct_class_t *pico8_bv_et_struct_class(void);
  * `jc:hh`, `qh:ph` and the research icon, on entities that are never `g_`.
  * `self` is read, never retained -- one caller passes a struct view on its
  * stack (`ie.ke`). */
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
 
 pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 /* Returns Lua true on the success branch, nil on the other; `jc:ey` consumes
  * that result. */
-pico8_value_t pico8_d_(pico8_instance_t *self);
+pico8_value_t pico8_d_(pico8_struct_header_t *self);
 
 pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 

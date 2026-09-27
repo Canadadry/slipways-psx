@@ -26,7 +26,7 @@
 #define RELEASE_FRAME 203
 
 static double credits_now(void) {
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     pico8_value_t nz;
     if (fm != NULL && pico8_entity_get_field(fm, "nz", &nz) && nz.kind == PICO8_VALUE_FIXED) {
         return pico8_fixed_to_double(nz.as.fixed);
@@ -34,7 +34,7 @@ static double credits_now(void) {
     return 0.0;
 }
 
-static const pico8_list_t *planet_oe(pico8_instance_t *planet) {
+static const pico8_list_t *planet_oe(pico8_struct_header_t *planet) {
     pico8_value_t oe;
     if (planet == NULL || !pico8_entity_get_field(planet, "oe", &oe) || oe.kind != PICO8_VALUE_REF ||
         oe.as.ref == NULL) {
@@ -43,7 +43,7 @@ static const pico8_list_t *planet_oe(pico8_instance_t *planet) {
     return (const pico8_list_t *)oe.as.ref;
 }
 
-static int oe_count(pico8_instance_t *planet) {
+static int oe_count(pico8_struct_header_t *planet) {
     const pico8_list_t *oe = planet_oe(planet);
     return oe != NULL ? oe->count : 0;
 }
@@ -55,29 +55,29 @@ static int total_oe(void) {
         return 0;
     }
     for (i = 0; i < jo->count; i++) {
-        total += oe_count((pico8_instance_t *)jo->items[i].as.ref);
+        total += oe_count((pico8_struct_header_t *)jo->items[i].as.ref);
     }
     return total;
 }
 
-static pico8_instance_t *ui_left_held(void) {
+static pico8_struct_header_t *ui_left_held(void) {
     const void *ok = pico8_ok();
     pico8_value_t v;
     if (ok == NULL || !pico8_entity_get_field(ok, "lheld", &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
-    return (pico8_instance_t *)v.as.ref;
+    return (pico8_struct_header_t *)v.as.ref;
 }
 
-static pico8_instance_t *field_instance(pico8_instance_t *inst, const char *name) {
+static pico8_struct_header_t *field_instance(pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst == NULL || !pico8_entity_get_field(inst, name, &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
-    return (pico8_instance_t *)v.as.ref;
+    return (pico8_struct_header_t *)v.as.ref;
 }
 
-static double field_number(pico8_instance_t *inst, const char *name) {
+static double field_number(pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst == NULL || !pico8_entity_get_field(inst, name, &v) || v.kind != PICO8_VALUE_FIXED) {
         return 0.0;
@@ -92,8 +92,8 @@ int main(void) {
     int frame_count;
     int i;
 
-    pico8_instance_t *origin = NULL;
-    pico8_instance_t *target = NULL;
+    pico8_struct_header_t *origin = NULL;
+    pico8_struct_header_t *target = NULL;
     double price = 0.0;
     double credits_before = 0.0;
     int targets_found = 0;
@@ -126,7 +126,7 @@ int main(void) {
         pico8__draw();
 
         if (i == LAST_DRAG_FRAME) {
-            pico8_instance_t *held = ui_left_held();
+            pico8_struct_header_t *held = ui_left_held();
 
             assert(held != NULL);
             origin = field_instance(held, "qu");
@@ -150,7 +150,7 @@ int main(void) {
             assert(oe_count(origin) == 1);
 
             for (j = 0; j < jo->count; j++) {
-                pico8_instance_t *p = (pico8_instance_t *)jo->items[j].as.ref;
+                pico8_struct_header_t *p = (pico8_struct_header_t *)jo->items[j].as.ref;
                 if (p == origin) {
                     continue;
                 }

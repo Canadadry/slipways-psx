@@ -14,7 +14,7 @@
 
 /* TROU-7 */
 /* Appends one particle table to `self.ts`, which owns it from then on. */
-void pico8_jc_ch(pico8_jc_t *self, const pico8_instance_t *f, const pico8_instance_t *t);
+void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_struct_header_t *t);
 
 /* The nested loops only ascend: `s` must be positive. */
 void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *self, pico8_fixed_t l,

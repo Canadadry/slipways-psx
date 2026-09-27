@@ -87,7 +87,7 @@ pico8_mx_t *pico8_mx_new(const pico8_ob_table_t *overrides);
 
 /* Never stores `s`, which may be NULL: `nr:ldown` passes a static struct
  * with no field. */
-pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_instance_t *s);
+pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s);
 
 /* TROU-6 */
 /* Returns a freshly built `jc` instance, or `gv`'s own false; nothing ever
@@ -100,6 +100,6 @@ void pico8_nr_hb(pico8_nr_t *self);
  * sees what every hop downstream consumed. */
 void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw);
 
-void pico8_mx_kf(pico8_mx_t *self, pico8_instance_t *sw);
+void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw);
 
 #endif

@@ -63,14 +63,14 @@
 
 static pico8_fixed_t fm_fixed(const char *name) {
     pico8_value_t v;
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     assert(fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_FIXED);
     return v.as.fixed;
 }
 
 static const pico8_list_t *invented(void) {
     pico8_value_t v;
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     assert(fm != NULL && pico8_entity_get_field(fm, "invented", &v) && v.kind == PICO8_VALUE_REF &&
            v.as.ref != NULL);
     return (const pico8_list_t *)v.as.ref;

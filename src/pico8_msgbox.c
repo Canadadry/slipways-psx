@@ -45,7 +45,7 @@ static int pico8_msgbox_truthy(pico8_value_t v) {
 
 /* Field readers: an absent field, a wrong kind, or a NULL instance all read
  * as the zero default. */
-static pico8_vec_t pico8_msgbox_field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t pico8_msgbox_field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
@@ -93,7 +93,8 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
-        lh_found = pico8_mv((pico8_instance_t *)self, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lh_result);
+        lh_found =
+            pico8_mv((pico8_struct_header_t *)self, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lh_result);
         if (lh_found && pico8_msgbox_truthy(lh_result)) {
             self->ke.t = pico8_value_fixed(pico8_fixed_mul(rh, pico8_fixed_from_int(10)));
             t = pico8_fixed_from_int(0);
@@ -403,7 +404,7 @@ pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides) {
 }
 
 typedef struct {
-    const pico8_instance_t *p;
+    const pico8_struct_header_t *p;
     pico8_vec_t bp;
     pico8_vec_t *ra_heap;
 } pico8_pz_ctx_t;
@@ -443,7 +444,7 @@ static int pico8_pz_step(pico8_value_t e, void *ctx_v, pico8_value_t *out_value)
     return 1;
 }
 
-void pico8_pz(const pico8_instance_t *p, const pico8_list_t *bs) {
+void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
     pico8_value_t ep_val;
     const pico8_list_t *bs_effective = bs;
     pico8_list_t merged;

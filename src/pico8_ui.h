@@ -64,14 +64,14 @@ pico8_ui_t *pico8_ui_new(const pico8_ob_table_t *overrides);
  * struct, with no field and no method, so every `je.<field>` read falls back
  * to its default; after `pico8_jl()` it is an `nf` struct
  * (pico8_mouse_reader.h). Read it only through `pico8_entity_get_field()`. */
-pico8_instance_t *pico8_je(void);
+pico8_struct_header_t *pico8_je(void);
 
 const pico8_struct_class_t *pico8_je_placeholder_struct_class(void);
 
 /* Makes `instance` the new `je`. The outgoing instance is NOT freed -- see
  * the comment at the definition. NULL goes back to "no je", and passing back
  * the current `pico8_je()` is a no-op. */
-void pico8_ui_set_je(pico8_instance_t *instance);
+void pico8_ui_set_je(pico8_struct_header_t *instance);
 
 /* NULL until `pico8_jl()` (pico8_bootstrap.c) calls `pico8_ui_set_ok()`, and
  * again after `pico8_ui_shutdown()`. */
@@ -98,7 +98,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt);
  * nothing answers. `argc`/`arg0`/`arg1` are forwarded to each candidate
  * unchanged. */
 int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
-                pico8_instance_t **out_kv, pico8_value_t *out_kn);
+                pico8_struct_header_t **out_kv, pico8_value_t *out_kn);
 
 void pico8_ui_cj(pico8_ui_t *self);
 

@@ -70,7 +70,7 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_value_
     }
 }
 
-void pico8_jo_kf(pico8_jo_t *self, pico8_instance_t *sw) {
+void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
     pico8_list_t *oe = NULL;
     pico8_value_t eb_result;
 
@@ -88,7 +88,7 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_instance_t *sw) {
     if (sw != NULL && pico8_mv(sw, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
         eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
         pico8_value_t fx_val;
-        if (pico8_entity_get_field((const pico8_instance_t *)eb_result.as.ref, "fx", &fx_val) &&
+        if (pico8_entity_get_field((const pico8_struct_header_t *)eb_result.as.ref, "fx", &fx_val) &&
             pico8_jo_truthy(fx_val)) {
             self->fx = pico8_value_bool(1);
         }
@@ -253,7 +253,7 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
 
     it = pico8_list_all(oe);
     while (pico8_list_iter_next(&it, &w_val)) {
-        pico8_instance_t *w;
+        pico8_struct_header_t *w;
         pico8_jo_trade_proposal_t lw;
         pico8_ob_table_t *overrides;
         pico8_list_t *lp_list;
@@ -263,7 +263,7 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
             continue;
         }
-        w = (pico8_instance_t *)w_val.as.ref;
+        w = (pico8_struct_header_t *)w_val.as.ref;
 
         lp_list = malloc(sizeof *lp_list);
         pico8_list_init(lp_list);
@@ -295,7 +295,7 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         if (pico8_mv(w, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
             eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
             pico8_value_t discard;
-            pico8_mv((pico8_instance_t *)eb_result.as.ref, "cn", 1, pico8_value_ref(&lw), pico8_value_ref(NULL),
+            pico8_mv((pico8_struct_header_t *)eb_result.as.ref, "cn", 1, pico8_value_ref(&lw), pico8_value_ref(NULL),
                      &discard);
         }
     }

@@ -69,7 +69,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp);
 
 /* A NULL `re`, or a `d_()` that refuses, only raises `self.p_`; both
  * endpoints are registered on success. */
-void pico8_jc_ey(pico8_jc_t *self, pico8_instance_t *re);
+void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re);
 
 /* Returns the existing slipway to reuse, the first planet or slipway in
  * the way, the one static `{qs="-too far-"}` struct, or nothing. */
@@ -79,7 +79,7 @@ const pico8_struct_class_t *pico8_jc_too_far_struct_class(void);
 
 const pico8_struct_class_t *pico8_jc_mouse_point_struct_class(void);
 
-pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_instance_t *jo_instance);
+pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance);
 
 void pico8_jc_ev(pico8_jc_t *self);
 

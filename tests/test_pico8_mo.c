@@ -1,5 +1,5 @@
 /* The placeholder `mo` that pico8_entity_init() leaves until `jl()` replaces
- * it with a `qb`, read only through the dual-form field API. The frozen
+ * it with a `qb`, read only through the by-name field API. The frozen
  * values were taken on the code where the placeholder was still a
  * class-less instance and must not be re-taken. */
 
@@ -60,7 +60,7 @@ static int listed(const pico8_list_t *list, const void *e) {
 static void assert_placeholder(void) {
     const char *names[] = {"ra", "p", "v", "ma", "pc", "me", "t", "nu", "md", "ph", "kj"};
     const char *buckets[] = {"kj", "ev", "hd", "hk", "hb"};
-    pico8_instance_t *mo = pico8_mo();
+    pico8_struct_header_t *mo = pico8_mo();
     pico8_value_t v;
     int i;
 
@@ -93,27 +93,38 @@ static void test_placeholder_after_init(void) {
     assert(!listed(pico8_hv(), pico8_mo()));
 }
 
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_value_t ra;
+} ra_only_t;
+
+static int ra_only_field(const void *self, const char *name, pico8_value_t *out_value) {
+    if (strcmp(name, "ra") != 0) {
+        return 0;
+    }
+    *out_value = ((const ra_only_t *)self)->ra;
+    return 1;
+}
+
+static const pico8_struct_class_t g_ra_only_class = {{0}, ra_only_field, NULL};
+
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
 static void test_gd_on_placeholder(void) {
     pico8_vec_t near_ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_vec_t far_ra = pico8_vec_v(pico8_fixed_from_int(64 + 77), pico8_fixed_from_int(64));
-    pico8_instance_t near_e = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
-    pico8_instance_t far_e = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
+    ra_only_t near_e = {{PICO8_TYPE_TAG_STRUCT, &g_ra_only_class}, {PICO8_VALUE_REF, {0}}};
+    ra_only_t far_e = {{PICO8_TYPE_TAG_STRUCT, &g_ra_only_class}, {PICO8_VALUE_REF, {0}}};
     int near_hit;
     int far_hit;
 
     pico8_entity_init();
-    near_e.fields = pico8_ob_table_new();
-    far_e.fields = pico8_ob_table_new();
-    pico8_ob_table_set_name(near_e.fields, "ra", pico8_value_ref(&near_ra));
-    pico8_ob_table_set_name(far_e.fields, "ra", pico8_value_ref(&far_ra));
-    near_hit = pico8_gd(&near_e);
-    far_hit = pico8_gd(&far_e);
+    near_e.ra = pico8_value_ref(&near_ra);
+    far_e.ra = pico8_value_ref(&far_ra);
+    near_hit = pico8_gd(&near_e.header);
+    far_hit = pico8_gd(&far_e.header);
     printf("[gd] near %d far %d\n", near_hit, far_hit);
     fflush(stdout);
     assert(near_hit == GD_NEAR && far_hit == GD_FAR);
-    pico8_ob_table_free(near_e.fields);
-    pico8_ob_table_free(far_e.fields);
 }
 
 /* `ok`'s frame on the placeholder, `ok` built by hand since `jl()` has not
@@ -193,6 +204,56 @@ static void test_placeholder_is_a_struct(void) {
     pico8_bootstrap_shutdown();
 }
 
+static void must_abort(void (*fn)(void *), void *e) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        fn(e);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void get_ra(void *e) {
+    pico8_value_t v;
+    (void)pico8_entity_get_field(e, "ra", &v);
+}
+
+static void set_ra(void *e) {
+    pico8_entity_set_field(e, "ra", pico8_value_ref(NULL));
+}
+
+static void mv_md(void *e) {
+    pico8_value_t v;
+    (void)pico8_mv(e, "md", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v);
+}
+
+/* The by-name accessors take entity structs only: an ob table, even one
+ * holding the asked field, or a list stops the run instead of being read
+ * as an entity. */
+static void test_accessors_refuse_a_table(void) {
+    static void (*const fns[])(void *) = {get_ra, set_ra, mv_md};
+    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2));
+    pico8_ob_table_t *table = pico8_ob_table_new();
+    pico8_list_t list;
+    size_t i;
+
+    pico8_list_init(&list);
+    pico8_ob_table_set_name(table, "ra", pico8_value_ref(&ra));
+    pico8_ob_table_set_name(table, "md", pico8_value_fixed(pico8_fixed_from_int(1)));
+    for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
+        must_abort(fns[i], table);
+        must_abort(fns[i], &list);
+    }
+    pico8_ob_table_free(table);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -211,6 +272,7 @@ int main(void) {
     test_shutdown_and_init_cycle();
     test_replaced_by_jl();
     test_placeholder_is_a_struct();
+    test_accessors_refuse_a_table();
 
     printf("test_pico8_mo: all tests passed\n");
     return 0;

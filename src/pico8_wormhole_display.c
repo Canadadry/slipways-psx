@@ -24,7 +24,7 @@ static pico8_vec_t pico8_mzd_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_mzd_field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t pico8_mzd_field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
         return pico8_mzd_value_vec(v);
@@ -46,10 +46,9 @@ static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
     if (self->ij.kind != PICO8_VALUE_REF || self->ij.as.ref == NULL) {
         return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     }
-    assert((pico8_type_tag_of(self->ij.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
-            pico8_type_tag_of(self->ij.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+    assert(pico8_type_tag_of(self->ij.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            "mz's ij field must hold an entity");
-    return pico8_mzd_field_vec((const pico8_instance_t *)self->ij.as.ref, "ra");
+    return pico8_mzd_field_vec((const pico8_struct_header_t *)self->ij.as.ref, "ra");
 }
 
 void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec_t p) {

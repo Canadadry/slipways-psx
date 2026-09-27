@@ -12,14 +12,14 @@
 
 /* `pt` is non-const, unlike this module's other formulas, because `pt:gg()`
  * goes through pico8_mv(), which takes a mutable instance. */
-pico8_fixed_t pico8_da(pico8_instance_t *pt);
+pico8_fixed_t pico8_da(pico8_struct_header_t *pt);
 
 /* Lua passes the raw method value `jo.gg` as `jp`'s predicate, which calls
  * it as `e:gg()`; the mv() dispatch here is that same call, not an
  * approximation of it. */
 pico8_fixed_t pico8_cz(void);
 
-pico8_fixed_t pico8_db(const pico8_instance_t *pt);
+pico8_fixed_t pico8_db(const pico8_struct_header_t *pt);
 
 /* Returns a fresh 6-entry positional table the caller owns and must
  * release with pico8_ob_table_free(). Entry 4 is a heap string that the

@@ -41,12 +41,12 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static pico8_instance_t *planet_by_id(const char *id) {
+static pico8_struct_header_t *planet_by_id(const char *id) {
     const pico8_list_t *jo = pico8_cg("jo");
     int i;
     assert(jo != NULL);
     for (i = 0; i < jo->count; i++) {
-        pico8_instance_t *p = (pico8_instance_t *)jo->items[i].as.ref;
+        pico8_struct_header_t *p = (pico8_struct_header_t *)jo->items[i].as.ref;
         pico8_value_t v;
         if (pico8_entity_get_field(p, "id", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, id) == 0) {
             return p;
@@ -55,7 +55,7 @@ static pico8_instance_t *planet_by_id(const char *id) {
     return NULL;
 }
 
-static int kw_mu(const pico8_instance_t *p) {
+static int kw_mu(const pico8_struct_header_t *p) {
     pico8_value_t kw, mu;
     assert(pico8_entity_get_field(p, "kw", &kw) && kw.kind == PICO8_VALUE_REF && kw.as.ref != NULL);
     assert(pico8_ob_table_get_name((const pico8_ob_table_t *)kw.as.ref, "mu", &mu));
@@ -75,7 +75,7 @@ static int row_first(const pico8_lq_t *lq, pico8_value_t *out) {
 /* Sets the tier, runs the economy tick to a fixed point, marks every need as
  * received and rebuilds the panel. Returns kw.mu; *has_exports tells whether
  * some panel row leads with "exports:". */
-static int promote_and_open_panel(pico8_instance_t *planet, int tier, int *has_exports) {
+static int promote_and_open_panel(pico8_struct_header_t *planet, int tier, int *has_exports) {
     pico8_value_t jy, le;
     const pico8_list_t *needs;
     const pico8_list_t *rows;
@@ -112,7 +112,7 @@ static int promote_and_open_panel(pico8_instance_t *planet, int tier, int *has_e
 
 int main(void) {
     pico8_value_t difficulty_entry, mine;
-    pico8_instance_t *p27;
+    pico8_struct_header_t *p27;
     int i, mu3, mu4, exports3, exports4;
 
     pico8_mem_init(&mem);

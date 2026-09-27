@@ -49,7 +49,7 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-static pico8_fixed_t fm_field_fixed(const pico8_instance_t *fm, const char *name) {
+static pico8_fixed_t fm_field_fixed(const pico8_struct_header_t *fm, const char *name) {
     pico8_value_t v;
     if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
@@ -57,7 +57,7 @@ static pico8_fixed_t fm_field_fixed(const pico8_instance_t *fm, const char *name
     return pico8_fixed_from_int(0);
 }
 
-static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name) {
+static pico8_value_t fm_field_value(const pico8_struct_header_t *fm, const char *name) {
     pico8_value_t v;
     if (fm != NULL && pico8_entity_get_field(fm, name, &v)) {
         return v;
@@ -65,7 +65,7 @@ static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name
     return pico8_value_ref(NULL);
 }
 
-static const pico8_ob_table_t *fm_field_ref_table(const pico8_instance_t *fm, const char *name) {
+static const pico8_ob_table_t *fm_field_ref_table(const pico8_struct_header_t *fm, const char *name) {
     pico8_value_t v;
     if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (const pico8_ob_table_t *)v.as.ref;
@@ -212,9 +212,7 @@ static int pico8_eg_gg_pred(pico8_value_t e, void *ctx) {
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
-    assert((pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
-            pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
-           "cg(\"jo\") only ever holds entities");
+    assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT && "cg(\"jo\") only ever holds entities");
     gg = pico8_jo_gg((const pico8_jo_t *)e.as.ref);
     if (gg.kind == PICO8_VALUE_BOOL && gg.as.boolean == 0) {
         return 0;
@@ -258,7 +256,7 @@ void pico8_eg(void) {
 }
 
 void pico8_pj_hb(void) {
-    const pico8_instance_t *fm = pico8_fm();
+    const pico8_struct_header_t *fm = pico8_fm();
     pico8_fixed_t fm_ge = fm_field_fixed(fm, "ge");
     pico8_fixed_t fm_nz = fm_field_fixed(fm, "nz");
     pico8_value_t fm_jk = fm_field_value(fm, "jk");

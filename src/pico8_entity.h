@@ -22,8 +22,8 @@ void pico8_entity_init(void);
 void pico8_entity_shutdown(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
- * PICO8_VALUE_REF values whose .as.ref is a pico8_instance_t* or a
- * ke-descended struct (pico8_ke.h): read its tag before casting. */
+ * PICO8_VALUE_REF values whose .as.ref is a ke-descended struct
+ * (pico8_ke.h). */
 const pico8_list_t *pico8_hv(void);
 
 /* The entities registered under bm field name `name` ("kj", "ev", "hd",
@@ -38,20 +38,18 @@ const pico8_list_t *pico8_cv(const char *name);
  * lt() call, call pico8_cg() again instead. */
 const pico8_list_t *pico8_cg(const char *tag);
 
-/* `e` (and mv's) may point at a ke-descended struct instead of an
- * instance: the pointer is read by its tag. */
-pico8_instance_t *pico8_lt(pico8_instance_t *e);
-void pico8_he(pico8_instance_t *e);
+pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
+void pico8_he(pico8_struct_header_t *e);
 
-/* `e[name]` on either form: returns 1 and writes *out_value when the
- * instance has the field anywhere on its class chain, or when the struct
- * has a method by that name or a non-nil field; returns 0, leaving
- * *out_value untouched, otherwise. */
+/* `e[name]`: returns 1 and writes *out_value when the struct `e` has a
+ * method by that name or a non-nil field; returns 0, leaving *out_value
+ * untouched, otherwise. Asserts that `e` is an entity struct: an ob table
+ * or a list REF passed as an entity stops the run. */
 int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value);
 
-/* `e[name]=value` on either form: into an instance's own fields, or into
- * the struct's member `name`. Asserts when the struct has no such member:
- * a struct never grows a field. */
+/* `e[name]=value` into the struct's member `name`. Asserts, as
+ * pico8_entity_get_field() does, that `e` is an entity struct, and that it
+ * has such a member: a struct never grows a field. */
 void pico8_entity_set_field(void *e, const char *name, pico8_value_t value);
 
 /* Returns 1 and writes *out_value when `e` is non-NULL and has a field
@@ -61,7 +59,7 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value);
  * *out_value untouched, when `e` is NULL or has no such field. `argc`
  * says how many of arg0/arg1 are real; a caller passes
  * pico8_value_ref(NULL) for the slots it does not cover. */
-int pico8_mv(pico8_instance_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
+int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
              pico8_value_t *out_value);
 
 void pico8_dc(const char *nt);
@@ -74,10 +72,10 @@ const pico8_ob_table_t *pico8_ci(void);
 /* Until pico8_jl() runs, the placeholder struct, with no field and no
  * method, so that dc()'s `mo:md(ci[o])` has an object to dispatch through;
  * afterwards the
- * real `qb` struct (pico8_scroll.h). Either form is read and written
- * through pico8_entity_get_field()/pico8_entity_set_field(), never through
- * `->fields`. Callers must not free it. */
-pico8_instance_t *pico8_mo(void);
+ * real `qb` struct (pico8_scroll.h). Either is read and written through
+ * pico8_entity_get_field()/pico8_entity_set_field(). Callers must not free
+ * it. */
+pico8_struct_header_t *pico8_mo(void);
 
 const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
 
@@ -85,6 +83,6 @@ const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
  * one: pico8_jl() can run from inside a dispatch chain that still holds
  * the old mo, and freeing it there is a use-after-free. NULL is a valid
  * "no mo"; passing back the current pico8_mo() is a no-op. */
-void pico8_entity_set_mo(pico8_instance_t *instance);
+void pico8_entity_set_mo(pico8_struct_header_t *instance);
 
 #endif

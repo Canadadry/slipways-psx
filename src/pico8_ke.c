@@ -29,7 +29,7 @@ int pico8_ke_default(const char *name, pico8_value_t *out_value) {
     return g_ke_spec != NULL && pico8_ob_table_get_name(g_ke_spec, name, out_value);
 }
 
-void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me) {
+void pico8_ke_ks(pico8_struct_header_t *self, pico8_value_t me) {
     if (self == NULL) {
         return;
     }
@@ -65,5 +65,5 @@ int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value)
 }
 
 void pico8_ke_struct_pq(pico8_ke_t *self) {
-    pico8_lt((pico8_instance_t *)self);
+    pico8_lt((pico8_struct_header_t *)self);
 }

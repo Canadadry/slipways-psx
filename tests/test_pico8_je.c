@@ -65,7 +65,7 @@ static int registered(const void *e, int entity_live) {
  * no method answers; nothing registers it. */
 static void assert_placeholder(int entity_live) {
     const char *names[] = {"ra", "l", "r", "me", "t", "ph"};
-    pico8_instance_t *je = pico8_je();
+    pico8_struct_header_t *je = pico8_je();
     pico8_value_t v;
     int i;
 

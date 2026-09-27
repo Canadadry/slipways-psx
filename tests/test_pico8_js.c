@@ -56,6 +56,10 @@
 #define KNOWN_PANEL_FRAME 245
 #define BUILT_PANEL_FRAME 277
 
+/* The tag class instances carried, which the frozen hashes fold: any
+ * other value moves every *_HASH. */
+#define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
 #define TITLE_HASH 0xB044B5F2u
 #define EU_HASH 0x08EB17A6u
 #define PAUSE_HASH 0xF715AAC0u
@@ -242,7 +246,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
         }
         if (in_gb(v.as.ref)) {
-            return fnv(fnv(h, 0xEEEEu), (uint32_t)PICO8_TYPE_TAG_INSTANCE);
+            return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:
@@ -275,7 +279,7 @@ static uint32_t fold_built(uint32_t h, const void *b, const char *name) {
         return fold_value(fnv(h, 0xA1u), v);
     }
     if (is_lq(v.as.ref)) {
-        return fold_lq(fnv(fnv(h, 0xA2u), (uint32_t)PICO8_TYPE_TAG_INSTANCE), v.as.ref);
+        return fold_lq(fnv(fnv(h, 0xA2u), FROZEN_INSTANCE_TAG), v.as.ref);
     }
     h = fnv(fnv(h, 0xA2u), (uint32_t)pico8_type_tag_of(v.as.ref));
     return h;
@@ -1143,20 +1147,18 @@ static void test_ha_pz_is_a_struct(void) {
     same_as_ha(o, "ca");
 }
 
-static void pz_on_an_instance(void *e) {
+static void pz_on_a_table(void *e) {
     pico8_list_t none;
     pico8_list_init(&none);
     pico8_pz(e, &none);
 }
 
-/* No caller hands `pz` a class instance any more: one stops it. */
+/* `pz` takes a struct or NULL: an ob table stops it. */
 static void test_pz_closed(void) {
-    pico8_instance_t handmade = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
     pico8_list_t none;
 
     start_game(PAUSE);
-    handmade.fields = pico8_ob_table_new();
-    must_abort(pz_on_an_instance, &handmade);
+    must_abort(pz_on_a_table, pico8_ob_table_new());
     pico8_list_init(&none);
     pico8_pz(NULL, &none);
 }

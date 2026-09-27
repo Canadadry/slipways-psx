@@ -32,7 +32,7 @@ int pico8_ke_default(const char *name, pico8_value_t *out_value);
 
 /* A NULL `self` is a no-op; any other `self` must be a struct. `me` and
  * `t` are written into its pico8_ke_t, never through its field writer. */
-void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me);
+void pico8_ke_ks(pico8_struct_header_t *self, pico8_value_t me);
 
 /* Tags `self` as a struct of class `cls` and sets ke's defaults. */
 void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls);

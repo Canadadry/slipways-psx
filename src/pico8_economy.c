@@ -222,7 +222,7 @@ void pico8_hy_hk(pico8_hy_t *self) {
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
                 pico8_value_t discard;
-                pico8_mv((pico8_instance_t *)e.as.ref, "hk", 1, pico8_value_fixed(new_yr), pico8_value_ref(NULL),
+                pico8_mv((pico8_struct_header_t *)e.as.ref, "hk", 1, pico8_value_fixed(new_yr), pico8_value_ref(NULL),
                          &discard);
             }
         }
@@ -306,7 +306,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
         it = pico8_list_all(jo_list);
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                pico8_instance_t *p = (pico8_instance_t *)e.as.ref;
+                pico8_struct_header_t *p = (pico8_struct_header_t *)e.as.ref;
                 pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
                 pico8_entity_set_field(p, "kr", pico8_value_fixed(kr));
                 dd = pico8_fixed_add(dd, kr);
@@ -343,7 +343,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
             while (pico8_list_iter_next(&it2, &e2)) {
                 if (e2.kind == PICO8_VALUE_REF && e2.as.ref != NULL) {
                     pico8_value_t discard;
-                    pico8_mv((pico8_instance_t *)e2.as.ref, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL),
+                    pico8_mv((pico8_struct_header_t *)e2.as.ref, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL),
                              &discard);
                 }
             }

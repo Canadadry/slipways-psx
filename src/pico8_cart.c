@@ -190,7 +190,7 @@ void pico8_eu(pico8_js_t *nj) {
     pico8_bw(pico8_fixed_from_int(90));
 
     /* TROU-7 */
-    pico8_probe_set_fm((pico8_instance_t *)pico8_hy_new(NULL));
+    pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new(NULL));
     pico8_pj_set_ju(pico8_pj_new(NULL));
 
     if (pico8_ix() != NULL) {

@@ -14,7 +14,7 @@ static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
     return (a > b) ? a : b;
 }
 
-static int field_truthy(const pico8_instance_t *inst, const char *name) {
+static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
@@ -22,7 +22,7 @@ static int field_truthy(const pico8_instance_t *inst, const char *name) {
     return economy_truthy(v);
 }
 
-static pico8_vec_t field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
@@ -30,7 +30,7 @@ static pico8_vec_t field_vec(const pico8_instance_t *inst, const char *name) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, const char *name) {
+static const pico8_ob_table_t *field_ref_table(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return (const pico8_ob_table_t *)v.as.ref;
@@ -38,7 +38,7 @@ static const pico8_ob_table_t *field_ref_table(const pico8_instance_t *inst, con
     return NULL;
 }
 
-static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
+static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
@@ -69,7 +69,7 @@ static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_
     return 0;
 }
 
-typedef void (*cg_visit_fn)(pico8_instance_t *e, void *ctx);
+typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     const pico8_list_t *list = pico8_cg(tag);
@@ -81,7 +81,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     it = pico8_list_all(list);
     while (pico8_list_iter_next(&it, &e)) {
         if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-            fn((pico8_instance_t *)e.as.ref, ctx);
+            fn((pico8_struct_header_t *)e.as.ref, ctx);
         }
     }
 }
@@ -98,7 +98,7 @@ pico8_ob_table_t *pico8_cm(pico8_fixed_t jm) {
     return p;
 }
 
-static void bx_visit(pico8_instance_t *pt, void *ctx) {
+static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_ob_table_t *p = (pico8_ob_table_t *)ctx;
     const pico8_ob_table_t *kw;
     pico8_value_t qe_val;
@@ -128,7 +128,7 @@ pico8_ob_table_t *pico8_bx(void) {
     return p;
 }
 
-static void ck_visit(pico8_instance_t *l, void *ctx) {
+static void ck_visit(pico8_struct_header_t *l, void *ctx) {
     pico8_ob_table_t *d = (pico8_ob_table_t *)ctx;
     const pico8_list_t *jy = field_list(l, "jy");
     const pico8_ob_table_t *last;
@@ -161,7 +161,7 @@ pico8_ob_table_t *pico8_ck(void) {
     return d;
 }
 
-pico8_fixed_t pico8_dj(const pico8_instance_t *pb, const pico8_instance_t *to) {
+pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to) {
     pico8_vec_t diff = pico8_vec_sub(field_vec(to, "p"), field_vec(pb, "p"));
     pico8_fixed_t len_sq = pico8_vec_len_sq(diff);
     pico8_fixed_t x = pico8_fixed_div(len_sq, pico8_bq());

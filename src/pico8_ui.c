@@ -16,7 +16,7 @@
 #include "pico8_ref_audit.h"
 
 static pico8_ob_table_t *g_ui_spec = NULL;
-static pico8_instance_t *g_je = NULL;
+static pico8_struct_header_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
 
 enum { UI_QL, UI_FA, UI_LE, UI_HW };
@@ -67,7 +67,7 @@ static pico8_je_placeholder_t g_je_placeholder = {{PICO8_TYPE_TAG_STRUCT, &g_je_
 
 /* Field readers: an absent field, a wrong kind, or a NULL instance all read
  * as the default -- a zero vector here, "no value" for the raw one. */
-static pico8_vec_t pico8_ui_field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t pico8_ui_field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
@@ -75,7 +75,7 @@ static pico8_vec_t pico8_ui_field_vec(const pico8_instance_t *inst, const char *
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_value_t pico8_ui_field_raw(const pico8_instance_t *inst, const char *name) {
+static pico8_value_t pico8_ui_field_raw(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
         return v;
@@ -225,7 +225,7 @@ void pico8_ui_init(void) {
            g_ui_defaults[UI_HW].value.kind == PICO8_VALUE_REF && g_ui_defaults[UI_HW].value.as.ref != NULL &&
            "ui: lj/cj read le as a list, shared by every new ui until its cj or pz; pico8_ui_hw() casts hw to a box");
 
-    g_je = (pico8_instance_t *)&g_je_placeholder;
+    g_je = (pico8_struct_header_t *)&g_je_placeholder;
 }
 
 void pico8_ui_shutdown(void) {
@@ -260,7 +260,7 @@ pico8_ui_t *pico8_ui_new(const pico8_ob_table_t *overrides) {
     return pico8_ui_struct_new(overrides);
 }
 
-pico8_instance_t *pico8_je(void) {
+pico8_struct_header_t *pico8_je(void) {
     return g_je;
 }
 
@@ -268,7 +268,7 @@ pico8_instance_t *pico8_je(void) {
  * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
  * whose `self` is still the old `ok` after the callback returns -- freeing
  * here is a use-after-free. */
-void pico8_ui_set_je(pico8_instance_t *instance) {
+void pico8_ui_set_je(pico8_struct_header_t *instance) {
     if (instance == g_je) {
         return;
     }
@@ -344,7 +344,7 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
         spr_id = 9;
     } else {
         if (self->o_.kind == PICO8_VALUE_REF && self->o_.as.ref != NULL) {
-            pico8_value_t ql_val = pico8_ui_field_raw((const pico8_instance_t *)self->o_.as.ref, "ql");
+            pico8_value_t ql_val = pico8_ui_field_raw((const pico8_struct_header_t *)self->o_.as.ref, "ql");
             if (ql_val.kind != PICO8_VALUE_FIXED) {
                 ql_val = self->ql;
             }
@@ -387,7 +387,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     hd_bucket = pico8_cv("hd");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
-            pico8_instance_t *e = hd_bucket->items[i].as.ref;
+            pico8_struct_header_t *e = hd_bucket->items[i].as.ref;
             pico8_value_t hit_out;
 
             /* TROU-11 */
@@ -412,7 +412,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     if (o_val.kind == PICO8_VALUE_REF && o_val.as.ref != NULL) {
-        pico8_value_t fg_val = pico8_ui_field_raw((const pico8_instance_t *)o_val.as.ref, "fg");
+        pico8_value_t fg_val = pico8_ui_field_raw((const pico8_struct_header_t *)o_val.as.ref, "fg");
         poke_val = (fg_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(fg_val.as.fixed) : 0;
     } else {
         int prev = pico8_peek(mem, 0x5f80);
@@ -425,7 +425,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     pico8_value_t *held;
     const char *down;
     pico8_value_t held_val;
-    pico8_instance_t *held_inst = NULL;
+    pico8_struct_header_t *held_inst = NULL;
     pico8_value_t qa_val;
     pico8_value_t je_ra_val;
     pico8_value_t discard;
@@ -447,7 +447,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
 
     if (pico8_ui_je_button_field_bool(bt, "jn")) {
-        pico8_instance_t *kv = NULL;
+        pico8_struct_header_t *kv = NULL;
         pico8_value_t kn;
 
         if (pico8_ui_jz(self, down, 2, qa_val, je_ra_val, &kv, &kn) && kn.kind == PICO8_VALUE_REF) {
@@ -458,13 +458,13 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     held_val = *held;
     if (held_val.kind == PICO8_VALUE_REF && held_val.as.ref != NULL) {
         /* TROU-6 */
-        held_inst = (pico8_instance_t *)held_val.as.ref;
+        held_inst = (pico8_struct_header_t *)held_val.as.ref;
     }
 
     pico8_mv(held_inst, "hq", 2, qa_val, je_ra_val, &discard);
 
     if (pico8_ui_je_button_field_bool(bt, "hm") && held_inst != NULL) {
-        pico8_instance_t *nw_kv = NULL;
+        pico8_struct_header_t *nw_kv = NULL;
         pico8_value_t nw_kn;
         pico8_value_t ey_arg = pico8_value_ref(NULL);
 
@@ -483,7 +483,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
  * is the dispatch priority between overlapping entities, not an arbitrary
  * walk. */
 int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
-                pico8_instance_t **out_kv, pico8_value_t *out_kn) {
+                pico8_struct_header_t **out_kv, pico8_value_t *out_kn) {
     int mf;
     const pico8_ob_table_t *ic;
 
@@ -508,7 +508,7 @@ int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, 
         bucket = PICO8_REF_AS_LIST_CONST(bucket_val.as.ref);
 
         for (i = 0; i < bucket->count; i++) {
-            pico8_instance_t *h = bucket->items[i].as.ref;
+            pico8_struct_header_t *h = bucket->items[i].as.ref;
             pico8_value_t kn;
 
             if (pico8_mv(h, rm, argc, arg0, arg1, &kn) && pico8_ui_truthy(kn)) {
@@ -529,7 +529,7 @@ static int pico8_ui_cj_he_mapper(pico8_value_t e, void *ctx, pico8_value_t *out_
     (void)ctx;
     (void)out_value;
     if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        pico8_he((pico8_instance_t *)e.as.ref);
+        pico8_he((pico8_struct_header_t *)e.as.ref);
     }
     return 0;
 }

@@ -51,14 +51,14 @@ static int ju_c_(void) {
 
 static int fm_yr_is(int year) {
     pico8_value_t v;
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     assert(fm != NULL && pico8_entity_get_field(fm, "yr", &v) && v.kind == PICO8_VALUE_FIXED);
     return v.as.fixed == pico8_fixed_from_int(year);
 }
 
 static const char *fm_hl(void) {
     pico8_value_t v;
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     assert(fm != NULL);
     if (!pico8_entity_get_field(fm, "hl", &v) || v.kind != PICO8_VALUE_STRING) {
         return NULL;

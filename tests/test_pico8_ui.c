@@ -446,7 +446,7 @@ static void test_hover(void) {
 static void test_layers(void) {
     uint32_t h = 2166136261u;
     void *ok = start_game(DRAG);
-    pico8_instance_t *kv = NULL;
+    pico8_struct_header_t *kv = NULL;
     pico8_value_t kn;
     pico8_value_t qa;
     pico8_value_t ra;
@@ -721,27 +721,22 @@ static void test_ui_is_a_struct(void) {
     must_abort(bh_on_x, ok);
 }
 
-static void ks_on_instance(void *e) {
+static void ks_on_a_table(void *e) {
     pico8_ke_ks(e, pico8_value_string("ph"));
 }
 
-static void dg_over_instance(void *e) {
-    assert(listed(pico8_hv(), e));
-    pico8_dg();
+static void lt_a_table(void *e) {
+    pico8_lt(e);
 }
 
-/* `ui` was the last class instance to descend from `ke`: `ks` and `dg` take
- * structs only, and a `ke` instance built by hand is refused by both. */
+/* `ks` takes a struct or NULL, and nothing but a struct enters `hv` for
+ * `dg` to walk: an ob table is refused by `ks` and by `lt`. */
 static void test_ke_closed(void) {
-    pico8_instance_t handmade = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
-    pico8_instance_t *made = &handmade;
+    pico8_ob_table_t *table = pico8_ob_table_new();
 
     (void)start_game(DRAG);
-    handmade.fields = pico8_ob_table_new();
-    pico8_lt(made);
-    assert(pico8_type_tag_of(made) == PICO8_TYPE_TAG_INSTANCE);
-    must_abort(ks_on_instance, made);
-    must_abort(dg_over_instance, made);
+    must_abort(ks_on_a_table, table);
+    must_abort(lt_a_table, table);
     pico8_ke_ks(NULL, pico8_value_string("ph"));
 }
 

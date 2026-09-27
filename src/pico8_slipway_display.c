@@ -33,9 +33,9 @@ static pico8_value_t pico8_jc_display_entity_value(const void *e, const char *na
     return pico8_value_ref(NULL);
 }
 
-static pico8_instance_t *pico8_jc_display_value_instance(pico8_value_t v) {
+static pico8_struct_header_t *pico8_jc_display_value_instance(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_instance_t *)v.as.ref;
+        return (pico8_struct_header_t *)v.as.ref;
     }
     return NULL;
 }
@@ -91,7 +91,7 @@ static int pico8_jc_display_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-void pico8_jc_ch(pico8_jc_t *self, const pico8_instance_t *f, const pico8_instance_t *t) {
+void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_struct_header_t *t) {
     pico8_value_t hg_val;
 
     if (self == NULL) {
@@ -133,8 +133,8 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_instance_t *f, const pico8_instan
 
 void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *self, pico8_fixed_t l,
                   pico8_fixed_t h, pico8_fixed_t s, int c) {
-    pico8_instance_t *qu;
-    pico8_instance_t *re;
+    pico8_struct_header_t *qu;
+    pico8_struct_header_t *re;
     pico8_fixed_t t;
     pico8_vec_t qu_pt;
     pico8_vec_t re_pt;
@@ -169,8 +169,8 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *sel
 }
 
 void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
-    pico8_instance_t *qu;
-    pico8_instance_t *re;
+    pico8_struct_header_t *qu;
+    pico8_struct_header_t *re;
 
     if (self == NULL) {
         return;

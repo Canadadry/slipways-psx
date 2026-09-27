@@ -37,10 +37,8 @@ struct pico8_class {
 };
 
 struct pico8_instance {
-    /* Always PICO8_TYPE_TAG_INSTANCE, and kept first so pico8_type_tag_of()
-     * can read it off a bare REF: set by pico8_class_instantiate(), and by
-     * hand by the modules that build a classless instance (`fm`, pz()'s
-     * row wrappers). */
+    /* Set by pico8_class_instantiate() to a value no shape of
+     * pico8_type_tag.h uses: pico8_type_tag_of() reads UNKNOWN. */
     pico8_type_tag_t tag;
     pico8_ob_table_t *fields;
     /* NULL for a classless instance: field lookup then sees `fields` only. */

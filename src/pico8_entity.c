@@ -30,7 +30,7 @@ static int g_cg_capacity = 0;
 
 static pico8_list_t g_hv;
 static pico8_ob_table_t *g_ci = NULL;
-static pico8_instance_t *g_mo = NULL;
+static pico8_struct_header_t *g_mo = NULL;
 static int g_initialized = 0;
 
 static int pico8_mo_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -145,7 +145,7 @@ void pico8_entity_init(void) {
 
     g_ci = pico8_ob("0.5,1,1,1,1,1,1,1,1,0,0,0,0,0,0,", NULL);
 
-    g_mo = (pico8_instance_t *)&g_mo_placeholder;
+    g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
 
     g_initialized = 1;
 }
@@ -174,9 +174,8 @@ int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_v
     const pico8_struct_header_t *header;
     int method;
 
-    if (pico8_type_tag_of(e) != PICO8_TYPE_TAG_STRUCT) {
-        return pico8_instance_get_field(e, name, out_value);
-    }
+    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           "entity: e is an entity struct; an ob table or list REF passed as an entity would be read as one");
     header = e;
     method = pico8_method_of(name);
     if (method >= 0 && header->cls->methods[method] != NULL) {
@@ -191,10 +190,8 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
     const pico8_struct_header_t *header;
     int written;
 
-    if (pico8_type_tag_of(e) != PICO8_TYPE_TAG_STRUCT) {
-        pico8_ob_table_set_name(pico8_instance_fields(e), name, value);
-        return;
-    }
+    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           "entity: e is an entity struct; an ob table or list REF passed as an entity would be written as one");
     header = e;
     assert(header->cls->set_field != NULL && "entity: a struct a generic writer reaches needs a field writer");
     written = header->cls->set_field(e, name, value);
@@ -203,7 +200,7 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
     (void)written;
 }
 
-pico8_instance_t *pico8_lt(pico8_instance_t *e) {
+pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
     int i;
     pico8_value_t discard;
     pico8_value_t nu_val;
@@ -236,7 +233,7 @@ pico8_instance_t *pico8_lt(pico8_instance_t *e) {
 /* `e` must be unregistered under exactly the fields and tags it was
  * registered under: a bm field or a `.nu` entry changed since lt()
  * leaves `e` in a list this never removes it from. */
-void pico8_he(pico8_instance_t *e) {
+void pico8_he(pico8_struct_header_t *e) {
     int i;
     pico8_value_t discard;
     pico8_value_t nu_val;
@@ -265,7 +262,7 @@ void pico8_he(pico8_instance_t *e) {
     }
 }
 
-int pico8_mv(pico8_instance_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
+int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
              pico8_value_t *out_value) {
     pico8_value_t field_val;
 
@@ -297,13 +294,11 @@ void pico8_dc(const char *nt) {
     bucket_src = pico8_cv(nt);
     if (bucket_src != NULL) {
         for (i = 0; i < bucket_src->count; i++) {
-            pico8_instance_t *qc = bucket_src->items[i].as.ref;
+            pico8_struct_header_t *qc = bucket_src->items[i].as.ref;
             pico8_value_t fa_val;
             int layer;
 
-            assert((pico8_type_tag_of(qc) == PICO8_TYPE_TAG_INSTANCE ||
-                    pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
-                   "cv holds entities only");
+            assert(pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT && "cv holds entities only");
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
              * from every layer, where Lua would error on the nil key. */
@@ -330,7 +325,7 @@ void pico8_dc(const char *nt) {
         }
 
         for (i = 0; i < bucket->count; i++) {
-            pico8_instance_t *qc = bucket->items[i].as.ref;
+            pico8_struct_header_t *qc = bucket->items[i].as.ref;
             pico8_value_t ra_val;
             pico8_value_t discard;
 
@@ -357,13 +352,13 @@ const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void) {
     return &g_mo_placeholder_struct_class;
 }
 
-pico8_instance_t *pico8_mo(void) {
+pico8_struct_header_t *pico8_mo(void) {
     return g_mo;
 }
 
-/* See pico8_entity.h's own comment on this declaration: the outgoing
- * instance is deliberately leaked rather than freed. */
-void pico8_entity_set_mo(pico8_instance_t *instance) {
+/* See pico8_entity.h's own comment on this declaration: the outgoing mo
+ * is deliberately leaked rather than freed. */
+void pico8_entity_set_mo(pico8_struct_header_t *instance) {
     if (instance == g_mo) {
         return;
     }

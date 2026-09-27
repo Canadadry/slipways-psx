@@ -50,7 +50,7 @@ static pico8_list_t positional_values(const pico8_ob_table_t *table) {
     return list;
 }
 
-pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_instance_t *s) {
+pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s) {
     pico8_value_t qu_val = pico8_value_ref(NULL);
     int qu_not_self;
     int oe_count = 0;
@@ -72,11 +72,11 @@ pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_instance_t *s) {
 }
 
 static pico8_value_t pico8_nr_gv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    const pico8_instance_t *s = NULL;
+    const pico8_struct_header_t *s = NULL;
     (void)argc;
     (void)arg1;
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        s = (const pico8_instance_t *)arg0.as.ref;
+        s = (const pico8_struct_header_t *)arg0.as.ref;
     }
     return pico8_nr_gv((const pico8_nr_t *)self, s);
 }
@@ -111,7 +111,7 @@ pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
         return pico8_value_ref(NULL);
     }
 
-    gv_result = pico8_nr_gv(self, (const pico8_instance_t *)&g_nr_ldown_empty);
+    gv_result = pico8_nr_gv(self, (const pico8_struct_header_t *)&g_nr_ldown_empty);
 
     if (!pico8_pft_truthy(gv_result)) {
         return gv_result;
@@ -180,13 +180,13 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 
     it = pico8_list_all(oe);
     while (pico8_list_iter_next(&it, &w_val)) {
-        pico8_instance_t *w;
+        pico8_struct_header_t *w;
         const pico8_list_t *t_rl = NULL;
 
         if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
             continue;
         }
-        w = (pico8_instance_t *)w_val.as.ref;
+        w = (pico8_struct_header_t *)w_val.as.ref;
 
         if (lw->mu <= pico8_fixed_from_int(0)) {
             continue;
@@ -211,8 +211,8 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
                 /* `&gf` is a stack address passed to a dispatched `cn`:
                  * safe only while no `cn` implementation stores its
                  * proposal. */
-                pico8_mv((pico8_instance_t *)eb_result.as.ref, "cn", 1, pico8_value_ref(&gf), pico8_value_ref(NULL),
-                         &discard);
+                pico8_mv((pico8_struct_header_t *)eb_result.as.ref, "cn", 1, pico8_value_ref(&gf),
+                         pico8_value_ref(NULL), &discard);
             }
             lw->mu = gf.mu;
         }
@@ -426,14 +426,14 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-void pico8_mx_kf(pico8_mx_t *self, pico8_instance_t *sw) {
+void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
     pico8_value_t eb_result;
-    pico8_instance_t *cp = NULL;
+    pico8_struct_header_t *cp = NULL;
 
     if (self != NULL && sw != NULL &&
         pico8_mv(sw, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
         eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
-        cp = (pico8_instance_t *)eb_result.as.ref;
+        cp = (pico8_struct_header_t *)eb_result.as.ref;
     }
 
     if (cp != NULL) {
@@ -493,11 +493,11 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_instance_t *sw) {
 }
 
 static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *sw = NULL;
+    pico8_struct_header_t *sw = NULL;
     (void)argc;
     (void)arg1;
     if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        sw = (pico8_instance_t *)arg0.as.ref;
+        sw = (pico8_struct_header_t *)arg0.as.ref;
     }
     pico8_mx_kf((pico8_mx_t *)self, sw);
     return pico8_value_ref(NULL);
@@ -596,7 +596,7 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mx");
 #endif
-    pico8_f_((pico8_instance_t *)self);
+    pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
     return self;

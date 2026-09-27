@@ -232,7 +232,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
      * kind-level build cost. */
     if (ie_truthy(self->m_)) {
         if (ie_self_ke_kind(self) != NULL) {
-            pico8_dl(gfx, mem, (pico8_instance_t *)&view);
+            pico8_dl(gfx, mem, (pico8_struct_header_t *)&view);
         }
         if (self->jb.kind == PICO8_VALUE_REF && self->jb.as.ref != NULL) {
             assert(pico8_type_tag_of(self->jb.as.ref) == PICO8_TYPE_TAG_STRUCT &&
@@ -260,7 +260,7 @@ static pico8_value_t pico8_ie_kj_dispatch(void *self, int argc, pico8_value_t ar
 /* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
 static pico8_value_t pico8_ie_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
-    return pico8_gk((const pico8_instance_t *)self, arg0, arg1);
+    return pico8_gk((const pico8_struct_header_t *)self, arg0, arg1);
 }
 
 /* `gy` and `id` read off an icon answer the shared state, as the class

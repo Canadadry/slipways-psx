@@ -49,8 +49,8 @@ void pico8_jl(void) {
     real_je = pico8_nf_new(NULL);
     real_ok = pico8_ui_new(NULL);
 
-    pico8_entity_set_mo((pico8_instance_t *)real_mo);
-    pico8_ui_set_je((pico8_instance_t *)real_je);
+    pico8_entity_set_mo((pico8_struct_header_t *)real_mo);
+    pico8_ui_set_je((pico8_struct_header_t *)real_je);
     pico8_ui_set_ok(real_ok);
 }
 
@@ -68,7 +68,7 @@ void pico8_dg(void) {
 
     /* TROU-5 */
     for (i = 0; i < hv->count; i++) {
-        pico8_instance_t *qc = hv->items[i].as.ref;
+        pico8_struct_header_t *qc = hv->items[i].as.ref;
         pico8_value_t me_val;
         pico8_value_t p_val;
         pico8_value_t t_val;

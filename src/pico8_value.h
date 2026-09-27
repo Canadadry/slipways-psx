@@ -28,10 +28,10 @@ typedef struct pico8_value pico8_value_t;
 /* An entity method: a field like .kj/.ev/.hd/.hk/.hb, called as
  * `entity[nt](entity,entity.ra)` by dc()/mv() (pico8_entity.h).
  *
- * `self` is a `void *`, not a pico8_instance_t *, because pico8_value.h
- * sits below pico8_class.h in the include graph (pico8_class.h ->
- * pico8_ob.h -> here) and must not depend upward on it; pico8_entity.c
- * casts `self` back itself. Do not "fix" the type.
+ * `self` is a `void *`, not a pico8_struct_header_t *, because pico8_value.h
+ * sits below pico8_struct.h in the include graph (pico8_struct.h -> here)
+ * and must not depend upward on it; pico8_entity.c casts `self` back
+ * itself. Do not "fix" the type.
  *
  * A fixed argument list, not a variadic one: no dispatch site in the cart
  * passes more than two extra arguments. A dispatched function must check

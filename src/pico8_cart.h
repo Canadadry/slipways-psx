@@ -5,21 +5,20 @@
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
 
-/* Declares every class and data table the cart's top-level statements build,
- * which real Lua runs once before `_init()`. Reads the cart memory through
- * pico8_dispatch_mem(): the caller must have set a `mem` with
- * pico8_load_map_json() already run against it, otherwise the cart data
- * tables are simply not built and every other class still is. A second call
- * frees and rebuilds every class, so it dangles the `cls` pointer of every
- * instance the previous one left alive.
+/* Parses every module's spec and builds every data table the cart's
+ * top-level statements build, which real Lua runs once before `_init()`.
+ * Reads the cart memory through pico8_dispatch_mem(): the caller must have
+ * set a `mem` with pico8_load_map_json() already run against it, otherwise
+ * the cart data tables are simply not built and every spec still is. A
+ * second call frees and reparses every spec, so it dangles every default
+ * REF a struct built before it still holds.
  *
  * The asserts in its body cover the ordering constraints that were found;
  * an adjacency they do not cover is not thereby free. Re-derive before
  * inserting an `_init()`. */
 void pico8_cart_load(void);
 
-/* Frees everything pico8_cart_load() built, in reverse order so a class is
- * never freed while a later one still holds a `.parent` into it. Idempotent,
+/* Frees everything pico8_cart_load() built, in reverse order. Idempotent,
  * and safe before the first pico8_cart_load(). No Lua equivalent. */
 void pico8_cart_shutdown(void);
 

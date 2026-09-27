@@ -48,6 +48,10 @@
 #define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
 #define RECORDED "tests/fixtures/events_recorded_1790198294.json"
 
+/* The tag class instances carried, which the frozen hashes fold: any
+ * other value moves every *_HASH. */
+#define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
 #define BUILT_HASH 0x3F7BD05Au
 #define LIFE_HASH 0xD3BC6FC2u
 #define HEIRS_HASH 0xB8D3FBCCu
@@ -195,7 +199,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         /* The frozen hashes folded the INSTANCE tag the throwaway had. */
         if (is_bv_target(v.as.ref)) {
-            return fnv(fnv(h, 0xEEEEu), (uint32_t)PICO8_TYPE_TAG_INSTANCE);
+            return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:

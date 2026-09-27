@@ -68,7 +68,7 @@ static const pico8_vec_t *vec_field(const void *e, const char *name) {
 
 static double credits_now(void) {
     pico8_value_t nz;
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     if (fm != NULL && pico8_entity_get_field(fm, "nz", &nz) && nz.kind == PICO8_VALUE_FIXED) {
         return pico8_fixed_to_double(nz.as.fixed);
     }

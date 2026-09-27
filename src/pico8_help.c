@@ -57,7 +57,7 @@ void pico8_help_set_eu(pico8_value_function_t fn) {
 
 static pico8_value_t pico8_fv_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
-    return pico8_gk((const pico8_instance_t *)self, arg0, arg1);
+    return pico8_gk((const pico8_struct_header_t *)self, arg0, arg1);
 }
 
 void pico8_fv_pq(pico8_fv_t *self) {
@@ -76,7 +76,7 @@ void pico8_fv_pq(pico8_fv_t *self) {
 
     if (self != NULL) {
         pico8_list_t items = pico8_help_positional_values(g_bo);
-        pico8_pz((const pico8_instance_t *)self, &items);
+        pico8_pz((const pico8_struct_header_t *)self, &items);
         pico8_list_free(&items);
     }
 }
@@ -86,7 +86,7 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
 
     (void)p;
 
-    pico8_ei(gfx, mem, (pico8_instance_t *)self);
+    pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
 
     if (self != NULL && self->rb.kind == PICO8_VALUE_REF && self->rb.as.ref != NULL) {
         assert(pico8_type_tag_of(self->rb.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
@@ -205,7 +205,7 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("fv");
 #endif
     pico8_fv_pq(self);
-    pico8_f_((pico8_instance_t *)self);
+    pico8_f_((pico8_struct_header_t *)self);
     pico8_ke_struct_pq(&self->g_.ke);
     return self;
 }

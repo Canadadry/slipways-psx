@@ -261,7 +261,7 @@ pico8_value_t pico8_bg_rdown(pico8_bg_t *self, pico8_value_t mp, pico8_value_t r
 void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_vec_t mq;
     pico8_vec_t rp_vec;
-    pico8_instance_t *mo;
+    pico8_struct_header_t *mo;
 
     (void)mp;
 

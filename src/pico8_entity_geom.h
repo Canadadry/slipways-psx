@@ -13,16 +13,16 @@
 /* TROU-15 */
 
 /* `gk`'s `e` and `na`'s `self` are NULL or a struct (asserted). */
-pico8_value_t pico8_gk(const pico8_instance_t *e, pico8_value_t mp, pico8_value_t rp);
+pico8_value_t pico8_gk(const pico8_struct_header_t *e, pico8_value_t mp, pico8_value_t rp);
 
-int pico8_gd(const pico8_instance_t *e);
+int pico8_gd(const pico8_struct_header_t *e);
 
 /* Mutates the pico8_vec_t `self.ra` points at, in place: every other holder
  * of that vector -- the `iv` toast `jo:hk` builds from `self.ra` -- sees the
  * bob. Rebinding the field to a fresh vector, as `qb:kj` does, would not. */
-void pico8_na(pico8_instance_t *self, pico8_fixed_t t);
+void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t);
 
-pico8_vec_t pico8_ma(pico8_vec_t p, pico8_instance_t *e);
+pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e);
 
 /* Reads every element of `j_` as an entity instance. `*out_nearest` is
  * pico8_value_ref(NULL) -- Lua's nil -- when `j_` is NULL, empty, or holds

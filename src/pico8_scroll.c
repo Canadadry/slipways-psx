@@ -198,7 +198,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     self->v = pico8_value_ref(v_new);
 
     ra_new = malloc(sizeof *ra_new);
-    *ra_new = pico8_ma(p, (pico8_instance_t *)self);
+    *ra_new = pico8_ma(p, (pico8_struct_header_t *)self);
     self->ra = pico8_value_ref(ra_new);
 }
 

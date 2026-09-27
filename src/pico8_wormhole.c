@@ -61,7 +61,7 @@ static pico8_vec_t pico8_mz_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_mz_field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t pico8_mz_field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
         return pico8_mz_value_vec(v);
@@ -70,13 +70,13 @@ static pico8_vec_t pico8_mz_field_vec(const pico8_instance_t *inst, const char *
 }
 
 static int pico8_mz_pq_ox_predicate(pico8_value_t e, void *ctx) {
-    pico8_instance_t *p;
+    pico8_struct_header_t *p;
     pico8_value_t fx_val;
     (void)ctx;
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
-    p = (pico8_instance_t *)e.as.ref;
+    p = (pico8_struct_header_t *)e.as.ref;
     if (!pico8_entity_get_field(p, "fx", &fx_val)) {
         return 0;
     }
@@ -106,7 +106,7 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_value_t threshold_val;
     pico8_fixed_t threshold;
 
-    pico8_bv((pico8_instance_t *)self, mp, rp);
+    pico8_bv((pico8_struct_header_t *)self, mp, rp);
     if (self == NULL) {
         return;
     }
@@ -189,7 +189,7 @@ void pico8_mz_ey(pico8_mz_t *self) {
     if (t < pico8_fixed_from_int(15)) {
         result = 1;
     } else {
-        result = !pico8_mz_truthy(pico8_d_((pico8_instance_t *)self));
+        result = !pico8_mz_truthy(pico8_d_((pico8_struct_header_t *)self));
     }
 
     self->p_ = pico8_value_bool(result);
@@ -221,13 +221,13 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
             pico8_value_t pt_val = jo_list->items[i];
-            pico8_instance_t *pt;
+            pico8_struct_header_t *pt;
             pico8_value_t me_val;
 
             if (pt_val.kind != PICO8_VALUE_REF || pt_val.as.ref == NULL) {
                 continue;
             }
-            pt = (pico8_instance_t *)pt_val.as.ref;
+            pt = (pico8_struct_header_t *)pt_val.as.ref;
 
             if (pico8_entity_get_field(pt, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
                 me_val.as.string != NULL && strcmp(me_val.as.string, "unknown") == 0) {

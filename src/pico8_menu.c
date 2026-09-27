@@ -177,7 +177,7 @@ static pico8_ob_table_t *pico8_menu_list_to_ob_table(const pico8_list_t *list) {
 }
 
 void pico8_cr(void) {
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     pico8_fixed_t tl = pico8_fixed_from_int(0);
     int gr = 0;
     pico8_fixed_t qi = pico8_fixed_from_int(0);
@@ -268,7 +268,7 @@ void pico8_cr(void) {
         free(diff2_str);
 
         cr->ep = pico8_value_string(ep);
-        pico8_pz((const pico8_instance_t *)cr, &bs);
+        pico8_pz((const pico8_struct_header_t *)cr, &bs);
     }
 
     pico8_list_free(&bs);
@@ -433,7 +433,7 @@ static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t a
 
     if (g_ha != NULL) {
         bs = pico8_menu_positional_values(g_ha);
-        pico8_pz((const pico8_instance_t *)&g_ha_pz, &bs);
+        pico8_pz((const pico8_struct_header_t *)&g_ha_pz, &bs);
         pico8_list_free(&bs);
     }
 

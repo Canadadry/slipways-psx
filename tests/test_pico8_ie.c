@@ -478,9 +478,6 @@ static void replay(const char *label, const char *events, int from_title, int wa
             pico8_value_t id;
             if (lookup(held, "id", &id) && id.kind == PICO8_VALUE_STRING && id.as.string[0] == 's' &&
                 is_icon(hovered)) {
-                if (pico8_type_tag_of(held) == PICO8_TYPE_TAG_INSTANCE) {
-                    assert(((const pico8_instance_t *)held)->cls == get_ref(hovered, "ke"));
-                }
                 printf("[%s] frame %d: %s placed from icon %d\n", label, i, id.as.string, icon_rank(hovered));
                 h = fnv_str(h, id.as.string);
                 placed++;
@@ -555,14 +552,10 @@ static void test_directed(void) {
     made = call(all[0], "ldown", pico8_value_ref(NULL), pico8_value_ref(NULL));
     assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
     assert(is_string(made.as.ref, "id", "s1"));
-    assert(pico8_type_tag_of(made.as.ref) != PICO8_TYPE_TAG_INSTANCE ||
-           ((const pico8_instance_t *)made.as.ref)->cls == get_ref(all[0], "ke"));
     assert(must_fixed(all[n - 1], "id") == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
     h = fold_value(h, get(made.as.ref, "id"));
     made = call(all[n - 1], "ldown", pico8_value_ref(NULL), pico8_value_ref(NULL));
     assert(is_string(made.as.ref, "id", "s2"));
-    assert(pico8_type_tag_of(made.as.ref) != PICO8_TYPE_TAG_INSTANCE ||
-           ((const pico8_instance_t *)made.as.ref)->cls == get_ref(all[n - 1], "ke"));
     assert(must_fixed(all[0], "id") == pico8_fixed_add(id0, pico8_fixed_from_int(2)));
     h = fold_value(h, get(made.as.ref, "id"));
     h = fold_shared(h, all[3]);

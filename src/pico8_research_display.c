@@ -300,7 +300,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
 
 /* The filter closure's captured upvalue. */
 typedef struct {
-    const pico8_instance_t *jo_instance;
+    const pico8_struct_header_t *jo_instance;
 } pico8_bj_ctx_t;
 
 /* `jo.nk.px` is one character wide by construction, so `k==jo.nk.px` is a
@@ -345,7 +345,7 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     return mg;
 }
 
-pico8_list_t pico8_bj(const pico8_instance_t *jo_instance) {
+pico8_list_t pico8_bj(const pico8_struct_header_t *jo_instance) {
     pico8_list_t items = pico8_research_display_positional_values(pico8_gb());
     pico8_bj_ctx_t ctx;
     pico8_list_t result;

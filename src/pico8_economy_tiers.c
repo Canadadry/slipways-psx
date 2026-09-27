@@ -23,7 +23,7 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-static int field_truthy(const pico8_instance_t *inst, const char *name) {
+static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
@@ -31,7 +31,7 @@ static int field_truthy(const pico8_instance_t *inst, const char *name) {
     return economy_truthy(v);
 }
 
-static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *name) {
+static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
@@ -39,10 +39,10 @@ static const pico8_list_t *field_list(const pico8_instance_t *inst, const char *
     return NULL;
 }
 
-static pico8_instance_t *field_ref_instance(const pico8_instance_t *inst, const char *name) {
+static pico8_struct_header_t *field_ref_instance(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_instance_t *)v.as.ref;
+        return (pico8_struct_header_t *)v.as.ref;
     }
     return NULL;
 }
@@ -58,7 +58,7 @@ static void set_by_value(pico8_ob_table_t *table, pico8_value_t key, pico8_value
     }
 }
 
-typedef void (*cg_visit_fn)(pico8_instance_t *e, void *ctx);
+typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     const pico8_list_t *list = pico8_cg(tag);
@@ -70,12 +70,12 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     it = pico8_list_all(list);
     while (pico8_list_iter_next(&it, &e)) {
         if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-            fn((pico8_instance_t *)e.as.ref, ctx);
+            fn((pico8_struct_header_t *)e.as.ref, ctx);
         }
     }
 }
 
-static void bd_reset_visit(pico8_instance_t *pt, void *ctx) {
+static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_value_t old;
     pico8_list_t *cc;
     (void)ctx;
@@ -92,7 +92,7 @@ static void bd_reset_visit(pico8_instance_t *pt, void *ctx) {
     pico8_entity_set_field(pt, "cc", pico8_value_ref(cc));
 }
 
-static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
+static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_value_t by_val;
     pico8_list_iter_t it;
     pico8_value_t e;
@@ -112,7 +112,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
 
     it = pico8_list_all(PICO8_REF_AS_LIST_CONST(by_val.as.ref));
     while (pico8_list_iter_next(&it, &e)) {
-        pico8_instance_t *route;
+        pico8_struct_header_t *route;
         const pico8_list_t *rl;
         const pico8_list_t *lp;
         pico8_value_t to_val;
@@ -121,23 +121,23 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
         if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
             continue;
         }
-        route = (pico8_instance_t *)e.as.ref;
+        route = (pico8_struct_header_t *)e.as.ref;
         rl = field_list(route, "rl");
         lp = field_list(route, "lp");
 
         if (rl != NULL && lp != NULL) {
             for (i = 0; i < rl->count; i++) {
                 pico8_value_t w_val = rl->items[i];
-                pico8_instance_t *w;
+                pico8_struct_header_t *w;
                 pico8_value_t hg_val;
                 pico8_value_t planet_val;
-                pico8_instance_t *planet;
+                pico8_struct_header_t *planet;
                 pico8_value_t id_val;
 
                 if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
                     continue;
                 }
-                w = (pico8_instance_t *)w_val.as.ref;
+                w = (pico8_struct_header_t *)w_val.as.ref;
                 if (i + 1 >= lp->count) {
                     continue;
                 }
@@ -145,7 +145,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
                 if (planet_val.kind != PICO8_VALUE_REF || planet_val.as.ref == NULL) {
                     continue;
                 }
-                planet = (pico8_instance_t *)planet_val.as.ref;
+                planet = (pico8_struct_header_t *)planet_val.as.ref;
                 if (!pico8_entity_get_field(planet, "id", &id_val)) {
                     continue;
                 }
@@ -161,7 +161,7 @@ static void bd_route_visit(pico8_instance_t *pt, void *ctx) {
 
         if (pico8_trade_to((const pico8_trade_t *)route, &to_val) && to_val.kind == PICO8_VALUE_REF &&
             to_val.as.ref != NULL) {
-            pico8_instance_t *dest = (pico8_instance_t *)to_val.as.ref;
+            pico8_struct_header_t *dest = (pico8_struct_header_t *)to_val.as.ref;
             pico8_value_t cc_val;
             if (pico8_entity_get_field(dest, "cc", &cc_val) && cc_val.kind == PICO8_VALUE_REF &&
                 cc_val.as.ref != NULL) {
@@ -186,7 +186,7 @@ static int ob_sequence_length(const pico8_ob_table_t *t) {
     return n;
 }
 
-static void bb_visit(pico8_instance_t *pt, void *ctx) {
+static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
     int *jg = (int *)ctx;
     pico8_fixed_t jw;
     pico8_value_t mi_val;
@@ -257,7 +257,7 @@ int pico8_bb(void) {
     return jg;
 }
 
-pico8_fixed_t pico8_dh(const pico8_instance_t *pt) {
+pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     pico8_value_t me_val;
     const pico8_list_t *jy;
     const pico8_list_t *cc;
@@ -292,12 +292,12 @@ pico8_fixed_t pico8_dh(const pico8_instance_t *pt) {
             if (cc != NULL) {
                 for (j = 0; j < cc->count; j++) {
                     pico8_value_t im_val = cc->items[j];
-                    pico8_instance_t *im;
+                    pico8_struct_header_t *im;
                     pico8_value_t im_qe;
                     if (im_val.kind != PICO8_VALUE_REF || im_val.as.ref == NULL) {
                         continue;
                     }
-                    im = (pico8_instance_t *)im_val.as.ref;
+                    im = (pico8_struct_header_t *)im_val.as.ref;
                     /* TROU-3 */
                     if (pico8_entity_get_field(im, "qe", &im_qe) && economy_value_equal_content(im_qe, qe_val)) {
                         gc++;

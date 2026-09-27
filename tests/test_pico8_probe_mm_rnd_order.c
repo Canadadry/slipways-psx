@@ -44,7 +44,7 @@ static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
     pico8_value_t p_val;
     pico8_list_iter_t it;
 
-    pico8_ez((pico8_instance_t *)probe, pico8_fixed_from_int(1));
+    pico8_ez((pico8_struct_header_t *)probe, pico8_fixed_from_int(1));
 
     assert(pico8_entity_get_field(probe, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL);
     it = pico8_list_all((const pico8_list_t *)qy_val.as.ref);

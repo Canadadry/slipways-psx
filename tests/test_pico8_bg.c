@@ -430,7 +430,7 @@ static void test_hover(void) {
     uint32_t h = 2166136261u;
     void *bg;
     void *veil;
-    pico8_instance_t *kv = NULL;
+    pico8_struct_header_t *kv = NULL;
     pico8_value_t kn;
 
     start_game(PLAYTHROUGH);

@@ -13,7 +13,7 @@ static pico8_vec_t pico8_entity_geom_zero(void) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_entity_geom_field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t pico8_entity_geom_field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
@@ -28,7 +28,7 @@ static pico8_vec_t pico8_entity_geom_value_vec(pico8_value_t v) {
     return pico8_entity_geom_zero();
 }
 
-static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_instance_t *inst, const char *name) {
+static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
@@ -36,7 +36,7 @@ static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_instance_t *inst,
     return pico8_fixed_from_int(0);
 }
 
-pico8_value_t pico8_gk(const pico8_instance_t *e, pico8_value_t mp, pico8_value_t rp) {
+pico8_value_t pico8_gk(const pico8_struct_header_t *e, pico8_value_t mp, pico8_value_t rp) {
     assert((e == NULL || pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT) &&
            "gk: e is a struct; no class instance reaches g_'s functions any more");
     pico8_fixed_t fa = pico8_entity_geom_field_fixed(e, "fa");
@@ -51,7 +51,7 @@ pico8_value_t pico8_gk(const pico8_instance_t *e, pico8_value_t mp, pico8_value_
     return pico8_value_bool(0);
 }
 
-int pico8_gd(const pico8_instance_t *e) {
+int pico8_gd(const pico8_struct_header_t *e) {
     pico8_vec_t e_ra = pico8_entity_geom_field_vec(e, "ra");
     pico8_vec_t mo_ra = pico8_entity_geom_field_vec(pico8_mo(), "ra");
     pico8_fixed_t sixty_four = pico8_fixed_from_int(64);
@@ -61,7 +61,7 @@ int pico8_gd(const pico8_instance_t *e) {
            pico8_fixed_abs(pico8_fixed_sub(pico8_fixed_sub(e_ra.y, mo_ra.y), sixty_four)) <= seventy_six;
 }
 
-void pico8_na(pico8_instance_t *self, pico8_fixed_t t) {
+void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_value_t ra;
 
     assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
@@ -74,7 +74,7 @@ void pico8_na(pico8_instance_t *self, pico8_fixed_t t) {
     }
 }
 
-pico8_vec_t pico8_ma(pico8_vec_t p, pico8_instance_t *e) {
+pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     pico8_fixed_t ma = pico8_entity_geom_field_fixed(e, "ma");
     pico8_fixed_t decremented = pico8_fixed_sub(ma, PICO8_FIXED_LIT(0x00001999, 0.1));
     pico8_fixed_t clamped = (decremented > 0) ? decremented : 0;
@@ -97,13 +97,12 @@ pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_list_t *j_, pico8_value_t *out
     }
     it = pico8_list_all(j_);
     while (pico8_list_iter_next(&it, &e)) {
-        pico8_instance_t *o;
+        pico8_struct_header_t *o;
 
         assert(e.kind == PICO8_VALUE_REF &&
-               (e.as.ref == NULL || pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
-                pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+               (e.as.ref == NULL || pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
                "ij walks a list of entities");
-        o = (pico8_instance_t *)e.as.ref;
+        o = (pico8_struct_header_t *)e.as.ref;
         pico8_vec_t o_p = pico8_entity_geom_field_vec(o, "p");
         pico8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));
         int same_position = (p.x == o_p.x && p.y == o_p.y);

@@ -20,7 +20,7 @@
 #include "pico8_ui.h"
 
 static pico8_ob_table_t *g_g__spec = NULL;
-static pico8_instance_t *g_fm = NULL;
+static pico8_struct_header_t *g_fm = NULL;
 
 static int pico8_fm_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_fm_placeholder_t *fm = self;
@@ -96,7 +96,7 @@ static int pico8_probe_truthy(pico8_value_t v) {
     return 1;
 }
 
-static pico8_fixed_t pico8_probe_field_fixed(const pico8_instance_t *inst, const char *name) {
+static pico8_fixed_t pico8_probe_field_fixed(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
         return v.as.fixed;
@@ -104,7 +104,7 @@ static pico8_fixed_t pico8_probe_field_fixed(const pico8_instance_t *inst, const
     return pico8_fixed_from_int(0);
 }
 
-static int pico8_probe_field_truthy(const pico8_instance_t *inst, const char *name) {
+static int pico8_probe_field_truthy(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
@@ -119,7 +119,7 @@ static pico8_vec_t pico8_probe_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_probe_field_vec(const pico8_instance_t *inst, const char *name) {
+static pico8_vec_t pico8_probe_field_vec(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
         return pico8_probe_value_vec(v);
@@ -127,10 +127,10 @@ static pico8_vec_t pico8_probe_field_vec(const pico8_instance_t *inst, const cha
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_instance_t *pico8_probe_field_instance(const pico8_instance_t *inst, const char *name) {
+static pico8_struct_header_t *pico8_probe_field_instance(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_instance_t *)v.as.ref;
+        return (pico8_struct_header_t *)v.as.ref;
     }
     return NULL;
 }
@@ -141,16 +141,16 @@ typedef struct {
 
 static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
-    pico8_instance_t *sw;
-    pico8_instance_t *qu;
-    pico8_instance_t *re;
+    pico8_struct_header_t *sw;
+    pico8_struct_header_t *qu;
+    pico8_struct_header_t *re;
     pico8_vec_t qu_p;
     pico8_vec_t re_p;
 
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
-    sw = (pico8_instance_t *)e.as.ref;
+    sw = (pico8_struct_header_t *)e.as.ref;
 
     qu = pico8_probe_field_instance(sw, "qu");
     re = pico8_probe_field_instance(sw, "re");
@@ -171,7 +171,7 @@ static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
     return pico8_qz_call(hw, rp);
 }
 
-void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
+void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
     pico8_vec_t *p_heap;
@@ -231,8 +231,7 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
     pico8_entity_set_field(self, "et", et);
 
     if (pico8_probe_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
-        assert((pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_INSTANCE ||
-                pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT &&
                "bv: et is an entity (a planet, a jc, the static throwaway struct), never a bare table");
         pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
     }
@@ -240,11 +239,11 @@ void pico8_bv(pico8_instance_t *self, pico8_value_t mp, pico8_value_t rp) {
 
 pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)argc;
-    pico8_bv((pico8_instance_t *)self, arg0, arg1);
+    pico8_bv((pico8_struct_header_t *)self, arg0, arg1);
     return pico8_value_ref(NULL);
 }
 
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self) {
+void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
     pico8_value_t me_val;
     pico8_vec_t mp;
     const char *display = "";
@@ -305,11 +304,11 @@ pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
     (void)argc;
     (void)arg0;
     (void)arg1;
-    pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_instance_t *)self);
+    pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
     return pico8_value_ref(NULL);
 }
 
-pico8_value_t pico8_d_(pico8_instance_t *self) {
+pico8_value_t pico8_d_(pico8_struct_header_t *self) {
     pico8_value_t et_val;
     int has_et;
     pico8_value_t od_val = pico8_value_ref(NULL);
@@ -372,11 +371,11 @@ pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_
     (void)argc;
     (void)arg0;
     (void)arg1;
-    return pico8_d_((pico8_instance_t *)self);
+    return pico8_d_((pico8_struct_header_t *)self);
 }
 
 pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_instance_t *self = (pico8_instance_t *)self_ptr;
+    pico8_struct_header_t *self = (pico8_struct_header_t *)self_ptr;
     pico8_fixed_t pn, t, du, py, ki;
     pico8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
@@ -556,7 +555,7 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("g_");
 #endif
-    pico8_f_((pico8_instance_t *)self);
+    pico8_f_((pico8_struct_header_t *)self);
     pico8_ke_struct_pq(&self->ke);
     return self;
 }
@@ -578,11 +577,11 @@ void pico8_probe_init(void) {
 
     g_fm_placeholder.jk = pico8_value_ref(NULL);
     g_fm_placeholder.nz = pico8_value_ref(NULL);
-    g_fm = (pico8_instance_t *)&g_fm_placeholder;
+    g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
 }
 
-static void fm_free(pico8_instance_t *fm) {
-    if (fm == NULL || fm == (pico8_instance_t *)&g_fm_placeholder) {
+static void fm_free(pico8_struct_header_t *fm) {
+    if (fm == NULL || fm == (pico8_struct_header_t *)&g_fm_placeholder) {
         return;
     }
     assert(((const pico8_struct_header_t *)fm)->cls == pico8_hy_struct_class() &&
@@ -619,7 +618,7 @@ const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void) {
     return &g_fm_placeholder_struct_class;
 }
 
-pico8_instance_t *pico8_fm(void) {
+pico8_struct_header_t *pico8_fm(void) {
     return g_fm;
 }
 
@@ -633,7 +632,7 @@ pico8_hy_t *pico8_fm_hy(void) {
     return (pico8_hy_t *)g_fm;
 }
 
-void pico8_probe_set_fm(pico8_instance_t *instance) {
+void pico8_probe_set_fm(pico8_struct_header_t *instance) {
     if (g_fm == instance) {
         return;
     }

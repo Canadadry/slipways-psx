@@ -25,7 +25,7 @@ pico8_ob_table_t *pico8_bx(void);
 pico8_ob_table_t *pico8_ck(void);
 
 /* `#(to.p-pb.p)` is the SQUARED distance, not the Euclidean one. */
-pico8_fixed_t pico8_dj(const pico8_instance_t *pb, const pico8_instance_t *to);
+pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to);
 
 /* An absent `cg.jc` counts as zero slipways. */
 pico8_fixed_t pico8_bk(void);

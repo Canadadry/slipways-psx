@@ -652,14 +652,13 @@ static void call_na(void *e) {
     pico8_na(e, pico8_fixed_from_int(1));
 }
 
-/* `g_`'s class keeps only its spec, and `g_`'s functions take a struct or
- * NULL as `self`: a class-less instance, as test_pico8_mo builds one, stops
- * each of them. */
+/* `g_`'s spec holds no method, and `g_`'s functions take a struct or NULL
+ * as `self`: an ob table stops each of them. */
 static void test_g__closed(void) {
     static const char *const installs[] = {"hq", "ey", "ev", "kj", "mm"};
     static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
                                           call_dl, call_d_, call_gk, call_na};
-    pico8_instance_t handmade = {PICO8_TYPE_TAG_INSTANCE, NULL, NULL};
+    pico8_ob_table_t *table = pico8_ob_table_new();
     pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_value_t v;
     size_t i;
@@ -669,11 +668,10 @@ static void test_g__closed(void) {
     for (i = 0; i < sizeof installs / sizeof installs[0]; i++) {
         assert(!pico8_g__default(installs[i], &v));
     }
-    handmade.fields = pico8_ob_table_new();
-    pico8_ob_table_set_name(handmade.fields, "ra", pico8_value_ref(&ra));
-    pico8_ob_table_set_name(handmade.fields, "fa", pico8_value_fixed(pico8_fixed_from_int(10)));
+    pico8_ob_table_set_name(table, "ra", pico8_value_ref(&ra));
+    pico8_ob_table_set_name(table, "fa", pico8_value_fixed(pico8_fixed_from_int(10)));
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
-        must_abort(fns[i], &handmade);
+        must_abort(fns[i], table);
         fns[i](NULL);
     }
 }

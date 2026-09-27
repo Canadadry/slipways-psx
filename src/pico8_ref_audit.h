@@ -163,9 +163,6 @@ static inline const void *pico8_ref_audit_note(const char *file, int line, const
     case PICO8_TYPE_TAG_OB_TABLE:
         site->n_ob_table++;
         break;
-    case PICO8_TYPE_TAG_INSTANCE:
-        site->n_instance++;
-        break;
     default:
         site->n_unknown++;
         break;

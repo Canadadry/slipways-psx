@@ -242,7 +242,7 @@ static void test_hover_loop_on_the_veil(void) {
     pico8_value_t difficulty;
     pico8_value_t kn;
     pico8_value_t m_;
-    pico8_instance_t *kv = NULL;
+    pico8_struct_header_t *kv = NULL;
     void *veil;
 
     assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);

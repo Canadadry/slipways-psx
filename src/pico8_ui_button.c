@@ -84,7 +84,7 @@ static pico8_value_t pico8_js_kj_dispatch(void *self, int argc, pico8_value_t ar
 static pico8_value_t pico8_js_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_value_t mp = arg0;
     pico8_value_t rp = (argc >= 2) ? arg1 : arg0;
-    return pico8_gk((const pico8_instance_t *)self, mp, rp);
+    return pico8_gk((const pico8_struct_header_t *)self, mp, rp);
 }
 
 static pico8_value_t pico8_js_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -369,7 +369,7 @@ pico8_value_t pico8_js_ldown(pico8_js_t *self) {
     int has_my = self != NULL && pico8_js_truthy(self->my);
 
     pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
-    pico8_mv((pico8_instance_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &discard);
+    pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &discard);
 
     return pico8_value_bool(1);
 }
@@ -481,7 +481,7 @@ pico8_value_t pico8_fq_ldown(pico8_fq_t *self) {
     if (self == NULL) {
         return pico8_value_bool(1);
     }
-    if (!pico8_mv((pico8_instance_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
+    if (!pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
         my_result = pico8_value_ref(NULL);
     }
     self->p_ = my_result;

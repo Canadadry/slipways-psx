@@ -28,7 +28,7 @@ struct pico8_jo_trade_proposal {
     pico8_list_t *ib;
 };
 
-void pico8_jo_kf(pico8_jo_t *self, pico8_instance_t *sw);
+void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw);
 
 /* TROU-7 */
 void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw);

@@ -33,6 +33,6 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
  * naming the planet the projects are offered on. Returns a new list the
  * caller owns and must release with pico8_list_free(). A `jo_instance`
  * without `.nk.px` matches nothing. */
-pico8_list_t pico8_bj(const pico8_instance_t *jo_instance);
+pico8_list_t pico8_bj(const pico8_struct_header_t *jo_instance);
 
 #endif

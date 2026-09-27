@@ -21,18 +21,18 @@
 /* TROU-7 */
 /* The fresh `qy` list is heap-allocated and owned by `self`, which never
  * frees it. */
-void pico8_f_(pico8_instance_t *self);
+void pico8_f_(pico8_struct_header_t *self);
 
 /* Appends `self:mm()` records to `self.qy` while `rnd() < n`, subtracting 1
  * from `n` each turn: a fractional `n` genuinely has a chance of spawning
  * one more particle than `flr(n)`. A `self` whose class chain has no `mm`
  * adds nothing. */
-void pico8_ez(pico8_instance_t *self, pico8_fixed_t n);
+void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n);
 
 /* Takes gfx/mem explicitly, for the classes whose own `kj` calls it as a
  * plain function; `pico8_ei_dispatch` below is the same work reached
  * through a `kj` field, reading both from the dispatch context instead. */
-void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_instance_t *self);
+void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
 
 /* `argc`/`arg0`/`arg1` are never read: `ei` declares only `self`, so Lua
  * drops the `entity.ra` argument `dc()` passes. */

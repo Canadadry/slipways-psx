@@ -46,6 +46,10 @@
 
 #define DRAG "tests/fixtures/slipway_drag_events.json"
 
+/* The tag class instances carried, which the frozen hashes fold: any
+ * other value moves every *_HASH. */
+#define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
 #define BUILT_HASH 0xD5E726A8u
 #define LIFE_HASH 0x26179978u
 #define EY_ON_HASH 0x7D81D210u
@@ -183,7 +187,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         /* The frozen hashes folded the INSTANCE tag the throwaway had. */
         if (is_bv_target(v.as.ref)) {
-            return fnv(fnv(h, 0xEEEEu), (uint32_t)PICO8_TYPE_TAG_INSTANCE);
+            return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:

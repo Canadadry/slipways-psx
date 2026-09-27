@@ -28,7 +28,7 @@ static int pj_display_truthy(pico8_value_t v) {
     return 1;
 }
 
-static pico8_value_t fm_field_value(const pico8_instance_t *fm, const char *name) {
+static pico8_value_t fm_field_value(const pico8_struct_header_t *fm, const char *name) {
     pico8_value_t v;
     if (fm != NULL && pico8_entity_get_field(fm, name, &v)) {
         return v;
@@ -204,7 +204,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     pico8_ob_table_set_index(st, 3, pico8_value_string(s_str));
 
     if (score_i == 0) {
-        const pico8_instance_t *fm = pico8_fm();
+        const pico8_struct_header_t *fm = pico8_fm();
         pico8_value_t hl_val = fm_field_value(fm, "hl");
         const char *hl_str = (hl_val.kind == PICO8_VALUE_STRING) ? hl_val.as.string : "current score";
         const pico8_js_t *dk = pico8_dk();
@@ -251,7 +251,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
 }
 
 void pico8_pj_ph(pico8_pj_t *self) {
-    const pico8_instance_t *fm = pico8_fm();
+    const pico8_struct_header_t *fm = pico8_fm();
     pico8_value_t hl_val = fm_field_value(fm, "hl");
     int has_gz = (self != NULL) && !(self->gz.kind == PICO8_VALUE_REF && self->gz.as.ref == NULL);
 

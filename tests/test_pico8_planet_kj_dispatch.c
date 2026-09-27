@@ -60,7 +60,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
     pico8_jo_t *planet;
-    pico8_instance_t *mo;
+    pico8_struct_header_t *mo;
     pico8_vec_t *ra_heap;
     int screen_pixel_addr;
     unsigned char pixel_before;

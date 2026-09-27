@@ -21,7 +21,7 @@ void pico8_cheat_init(pico8_cheat_t *cheat) {
 /* Before `eu()`, `fm` is still the provisional, and the code is typed on
  * the title screen too: the cheat writes the provisional there. */
 static void apply(void) {
-    pico8_instance_t *fm = pico8_fm();
+    pico8_struct_header_t *fm = pico8_fm();
     pico8_hy_t *hy;
     if (fm == NULL) {
         return;

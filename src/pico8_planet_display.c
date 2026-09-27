@@ -331,11 +331,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         }
     }
 
-    pico8_pz((const pico8_instance_t *)self, &bs);
+    pico8_pz((const pico8_struct_header_t *)self, &bs);
     pico8_list_free(&bs);
 }
 
-pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_instance_t *s) {
+pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
     pico8_value_t me_val;
     pico8_value_t qu_val;
 
@@ -411,7 +411,7 @@ static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_v
 
     row = pico8_ob_table_new();
 
-    if (pico8_mv((pico8_instance_t *)b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
+    if (pico8_mv((pico8_struct_header_t *)b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
         pico8_ob_table_set_name(row, "lq", lq_val);
     } else {
         assert(0 && "hp must expose \"lq\" as an mv()-dispatchable field");
@@ -454,12 +454,12 @@ void pico8_jo_fe(pico8_jo_t *self) {
         return;
     }
 
-    bj_list = pico8_bj((const pico8_instance_t *)self);
+    bj_list = pico8_bj((const pico8_struct_header_t *)self);
     ctx.self = self;
     rows = pico8_nv(&bj_list, pico8_jo_fe_step, &ctx);
     pico8_list_free(&bj_list);
 
-    pico8_pz((const pico8_instance_t *)self, &rows);
+    pico8_pz((const pico8_struct_header_t *)self, &rows);
     pico8_list_free(&rows);
 }
 
@@ -472,13 +472,13 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     pico8_value_t nk_val;
     pico8_value_t s_val;
 
-    if (self == NULL || !pico8_gd((const pico8_instance_t *)self)) {
+    if (self == NULL || !pico8_gd((const pico8_struct_header_t *)self)) {
         return;
     }
 
     /* Also decays `self.ma`. Everything below draws at `adjusted`, never
      * at the `p` that was passed in. */
-    adjusted = pico8_ma(p, (pico8_instance_t *)self);
+    adjusted = pico8_ma(p, (pico8_struct_header_t *)self);
 
     me_val = self->ke.me;
     if (me_val.kind == PICO8_VALUE_STRING && strcmp(me_val.as.string, "ll") == 0) {
@@ -539,7 +539,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
             assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)lq_val.as.ref)->cls == pico8_lq_struct_class() &&
                    "jo.lq must be the row jo.ex built");
-            dispatched = pico8_mv((pico8_instance_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
+            dispatched = pico8_mv((pico8_struct_header_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
             assert(dispatched && "lq must expose \"ol\" as an mv()-dispatchable field");
             (void)dispatched;
         }
