@@ -41,12 +41,12 @@ static int run_grep(const char *sources) {
 }
 
 /* Un coeur sans flottant : core.c inclut core.h ; audit.h n'est inclus que
- * sous PICO8_FLOAT_AUDIT, donc hors du coeur, et exclu avec main.c. */
+ * sous PICO8_HOST_BUILD, donc hors du coeur, et exclu avec main.c. */
 static void setup(void) {
     assert(system("rm -rf " DIR " && mkdir -p " SRC) == 0);
     write_file(SRC "/core.c",
                "#include \"core.h\"\n"
-               "#ifdef PICO8_FLOAT_AUDIT\n#include \"audit.h\"\n#endif\n"
+               "#ifdef PICO8_HOST_BUILD\n#include \"audit.h\"\n#endif\n"
                "int core_half(int x) { return x / 2; }\n");
     write_file(SRC "/core.h", "int core_half(int x);\n");
     write_file(SRC "/audit.h", "double audit_value(void);\n");

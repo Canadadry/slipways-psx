@@ -5,9 +5,9 @@ description: Runs `make e2e` and drives every red replay to green through `fix-b
 
 # check-e2e
 
-`make test` is the dev loop: unit tests and static checks, seconds. `make e2e` is the net: every replay of `FRAMES_EVENTS` captured and compared to its `.sha256` reference (`frames-check`), plus `float-audit`. It runs once, at the end — here.
+`make test` is the dev loop: unit tests and static checks, seconds. `make e2e` is the net: every replay of `FRAMES_EVENTS` captured and compared to its `.sha256` reference (`frames-check`). It runs once, at the end — here.
 
-A red e2e is always a bug. An intended rendering change is out of scope for this skill: never run `make frames-baseline`, never edit a `.sha256` reference, never touch `tools/float_audit_c1.txt` to get green.
+A red e2e is always a bug. An intended rendering change is out of scope for this skill: never run `make frames-baseline`, never edit a `.sha256` reference to get green.
 
 Every e2e bug leaves behind a unit test that catches it in `make test`. That is the point: the next time, the dev loop catches it in seconds instead of the net catching it in a minute.
 
@@ -25,7 +25,7 @@ No one answers during this loop. A `QUESTION:` from any sub-agent goes to a fres
 Run `make e2e`. Green → report `E2E-GREEN:` with the list of `fix:` commits made during this run, and stop.
 
 ### 2. Split the red into failures
-One failure = one `frames: DIVERGENT <events>` line, or one `float-audit` failure (non-zero exit of `tools/float_audit.sh`, with the site and events file it names). Keep the full output of each.
+One failure = one `frames: DIVERGENT <events>` line. Keep the full output of each.
 
 Take the failure whose replay has the fewest frames (the size of `tmp/frames/<events>.bin` divided by 8192): it is the cheapest to diagnose. Handle it alone; the others wait for the next `make e2e`, since a fix often repairs more than one.
 

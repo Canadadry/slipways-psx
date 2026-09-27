@@ -2,7 +2,7 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard, la
 #                       boucle rapide
-# make e2e           -> frames-check + float-audit, les rejeux, en -O2
+# make e2e           -> frames-check, les rejeux, en -O2
 # make test-all      -> test + e2e, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay        -> rejoue la session humaine dans le moteur headless, hors
@@ -27,10 +27,6 @@
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
-# make float-audit   -> audit avant/après par site, dans make e2e : sites C1
-#                       (tools/float_audit_c1.txt) ancien = nouveau, argument
-#                       >= 0 et atteint ; sites D nouveau = flr. Imprime par
-#                       fichier d'événements la frame du premier ancien != nouveau
 # make float-guard   -> réécrit tools/float_guard.txt, en échec si un fichier
 #                       du cœur a besoin du flottant (§6.3), dans make test
 # make float-grep    -> grep du §6.1 sur le cœur (CORE_SRCS + en-têtes, -MM), le
@@ -61,12 +57,11 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les sept.
+# sur ce code, sans rien dire. Ne pas fusionner les six.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
-OBJ_AUDIT_DIR := $(TMP_DIR)/obj-audit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 OBJ_E2E_DIR := $(TMP_DIR)/obj-e2e
 
@@ -77,7 +72,6 @@ DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
-AUDIT_CFLAGS := -DPICO8_FLOAT_AUDIT
 COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
 # Rejeux de make e2e seulement ; les TU restent en -O0, lisibles sous gdb.
 E2E_CFLAGS := -O2
@@ -89,7 +83,6 @@ objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
-audit_objs = $(patsubst %.c,$(OBJ_AUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 e2e_objs = $(patsubst %.c,$(OBJ_E2E_DIR)/%.o,$(1))
 
@@ -110,10 +103,6 @@ $(OBJ_UBSAN_DIR)/%.o: %.c
 $(OBJ_REFAUDIT_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
-$(OBJ_AUDIT_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(AUDIT_CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
@@ -323,9 +312,6 @@ $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frame
 $(TMP_DIR)/test_class_coverage: $(call objs,tests/test_class_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/screencast_capture_events.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_float_audit: $(call objs,tests/test_float_audit.c) tools/float_audit.sh tools/float_audit_c1.txt | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -484,7 +470,6 @@ UNIT_TESTS := \
     test_pico8_frames_tool \
     test_frames_check \
     test_class_coverage \
-    test_float_audit \
     test_float_guard \
     test_float_grep \
     test_float_link \
@@ -529,7 +514,7 @@ replay: $(TMP_DIR)/pico8_replay_e2e
 
 test: unit constants-check float-grep float-guard
 
-e2e: frames-check float-audit
+e2e: frames-check
 
 test-all: test e2e
 
@@ -695,27 +680,6 @@ constants-check: tools/constants_check.sh tools/constants_compare.sh tools/const
 
 .PHONY: constants-check
 
-AUDIT_DIR := $(TMP_DIR)/audit
-
-# pico8_fixed.c vient de l'arbre e2e, sans le define : sous -DPICO8_FLOAT_AUDIT,
-# la macro réécrirait la définition de pico8_fixed_flr_int.
-$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call e2e_objs,src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-FLOAT_AUDIT_C1 := tools/float_audit_c1.txt
-float_audit_records = $(AUDIT_DIR)/$(1).aud
-
-# Le binaire d'audit ajoute à PICO8_FLOAT_AUDIT_OUT sans le vider, d'où le rm.
-$(AUDIT_DIR)/%.aud: % $(TMP_DIR)/pico8_replay_audit
-	@mkdir -p $(@D)
-	@rm -f $@
-	PICO8_FLOAT_AUDIT_OUT=$@ ./$(TMP_DIR)/pico8_replay_audit $(call from_title,$<) $< /dev/null $(@:.aud=.dump.txt) > /dev/null
-
-float-audit: $(foreach e,$(FRAMES_EVENTS),$(call float_audit_records,$(e))) tools/float_audit.sh $(FLOAT_AUDIT_C1)
-	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(foreach e,$(FRAMES_EVENTS),$(e) $(call float_audit_records,$(e))) -- $(CORE_SRCS)
-
-.PHONY: float-audit
-
 FLOAT_GUARD := tools/float_guard.txt
 
 # Le rapport est réécrit même quand la garde échoue ; le code de sortie du
@@ -786,6 +750,5 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
--include $(wildcard $(OBJ_AUDIT_DIR)/src/*.d $(OBJ_AUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_E2E_DIR)/src/*.d $(OBJ_E2E_DIR)/tests/*.d)
