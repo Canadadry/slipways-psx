@@ -63,17 +63,20 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self);
 void pico8_iv_init(void);
 
 /* `at1`/`at2` are the cart's `self[1]` (the text, a string never freed)
- * and `self[2]` (the forced color). Never freed, nor are the vectors `ra`
- * points at: TROU-7. `v` points at one vector shared by every iv. */
+ * and `self[2]` (the forced color). `at1` NULL is nil; a missing `[2]`
+ * leaves `at2` at 0, the color `kj` gave nil. Never freed, nor are the
+ * vectors `ra` points at: TROU-7. `v` points at one vector shared by every
+ * iv. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t fa;
-    pico8_value_t l;
-    pico8_value_t v;
-    pico8_value_t ra;
-    pico8_value_t p_;
-    pico8_value_t at1;
-    pico8_value_t at2;
+    pico8_fixed_t fa;
+    pico8_fixed_t l;
+    pico8_vec_t *v;
+    pico8_vec_t *ra;
+    int p_;
+    int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
+    const char *at1;
+    pico8_fixed_t at2;
 } pico8_iv_t;
 
 void pico8_iv_shutdown(void);

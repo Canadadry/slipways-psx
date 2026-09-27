@@ -265,8 +265,8 @@ static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class
         h = fnv(h, (uint32_t)pico8_type_tag_of(e));
         if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == iv_cls) {
             const pico8_iv_t *iv = e;
-            h = fold_value(h, iv->at1, 0);
-            h = fold_value(h, iv->at2, 0);
+            h = fold_value(h, iv->at1 != NULL ? pico8_value_string(iv->at1) : pico8_value_ref(NULL), 0);
+            h = fold_value(h, pico8_value_fixed(iv->at2), 0);
         }
     }
     return h;
@@ -402,7 +402,7 @@ static void test_lu(void) {
     from = pico8_hv()->count;
     h = lu_step(h, fm_self(), 101, 0, iv_cls);
     assert(get_fixed(pico8_fm(), "nz") == pico8_fixed_from_int(100) && pico8_hv()->count == from + 1);
-    assert(strcmp(((const pico8_iv_t *)pico8_hv()->items[from].as.ref)->at1.as.string, "-no money-") == 0);
+    assert(strcmp(((const pico8_iv_t *)pico8_hv()->items[from].as.ref)->at1, "-no money-") == 0);
 
     from = pico8_hv()->count;
     h = lu_step(h, fm_self(), 0, 1, iv_cls);

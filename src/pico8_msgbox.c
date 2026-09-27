@@ -234,13 +234,9 @@ pico8_mh_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
 
 static pico8_vec_t g_iv_v = {0, -PICO8_FIXED_LIT(0x0000570a, 0.34)};
 
-static pico8_fixed_t pico8_iv_value_fixed(pico8_value_t v) {
-    return v.kind == PICO8_VALUE_FIXED ? v.as.fixed : pico8_fixed_from_int(0);
-}
-
-static pico8_vec_t pico8_iv_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
+static pico8_vec_t pico8_iv_vec_or_zero(const pico8_vec_t *p) {
+    if (p != NULL) {
+        return *p;
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
@@ -250,7 +246,7 @@ void pico8_iv_pq(pico8_iv_t *self) {
         return;
     }
 
-    if (!pico8_msgbox_truthy(self->ra)) {
+    if (self->ra == NULL) {
         pico8_vec_t je_ra = pico8_msgbox_field_vec(pico8_je(), "ra");
         pico8_vec_t mo_ra = pico8_msgbox_field_vec(pico8_mo(), "ra");
         pico8_vec_t offset = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(5));
@@ -258,7 +254,7 @@ void pico8_iv_pq(pico8_iv_t *self) {
         /* TROU-7 */
         pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);
         *heap_ra = new_ra;
-        self->ra = pico8_value_ref(heap_ra);
+        self->ra = heap_ra;
     }
 }
 
@@ -271,16 +267,17 @@ void pico8_iv_ph(pico8_iv_t *self) {
         return;
     }
 
-    new_ra = pico8_vec_add(pico8_iv_value_vec(self->ra), pico8_iv_value_vec(self->v));
+    new_ra = pico8_vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(self->v));
     /* TROU-7 */
     heap_ra = malloc(sizeof *heap_ra);
     *heap_ra = new_ra;
-    self->ra = pico8_value_ref(heap_ra);
+    self->ra = heap_ra;
 
-    new_l = pico8_fixed_add(pico8_iv_value_fixed(self->l), PICO8_FIXED_LIT(0x00001999, 0.1));
-    self->l = pico8_value_fixed(new_l);
+    new_l = pico8_fixed_add(self->l, PICO8_FIXED_LIT(0x00001999, 0.1));
+    self->l = new_l;
 
-    self->p_ = pico8_value_bool(new_l >= pico8_fixed_from_int(5));
+    self->p_ = new_l >= pico8_fixed_from_int(5);
+    self->has_p_ = 1;
 }
 
 static pico8_value_t pico8_iv_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -292,26 +289,18 @@ static pico8_value_t pico8_iv_ph_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p) {
-    pico8_value_t text_val;
-    pico8_value_t color_val;
-    const char *text = "";
-    int color = 0;
+    const char *text;
+    int color;
     pico8_fixed_t a_center = PICO8_FIXED_LIT(0x00008000, 0.5);
 
     if (self == NULL || gfx == NULL || mem == NULL) {
         return;
     }
 
-    pico8_dv(mem, pico8_iv_value_fixed(self->l));
+    pico8_dv(mem, self->l);
 
-    text_val = self->at1;
-    color_val = self->at2;
-    if (text_val.kind == PICO8_VALUE_STRING) {
-        text = text_val.as.string;
-    }
-    if (color_val.kind == PICO8_VALUE_FIXED) {
-        color = pico8_fixed_flr_int(color_val.as.fixed);
-    }
+    text = self->at1 != NULL ? self->at1 : "";
+    color = pico8_fixed_flr_int(self->at2);
 
     pico8_io(gfx, mem, text, p.x, p.y, color, &a_center);
 
@@ -330,26 +319,37 @@ static pico8_value_t pico8_iv_kj_dispatch(void *self, int argc, pico8_value_t ar
 
 static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_iv_t *iv = self;
-    const pico8_value_t *member;
 
     if (strcmp(name, "fa") == 0) {
-        member = &iv->fa;
-    } else if (strcmp(name, "l") == 0) {
-        member = &iv->l;
-    } else if (strcmp(name, "v") == 0) {
-        member = &iv->v;
-    } else if (strcmp(name, "ra") == 0) {
-        member = &iv->ra;
-    } else if (strcmp(name, "p_") == 0) {
-        member = &iv->p_;
-    } else {
-        return pico8_ke_field(self, name, out_value);
+        *out_value = pico8_value_fixed(iv->fa);
+        return 1;
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
+    if (strcmp(name, "l") == 0) {
+        *out_value = pico8_value_fixed(iv->l);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    if (strcmp(name, "v") == 0) {
+        if (iv->v == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(iv->v);
+        return 1;
+    }
+    if (strcmp(name, "ra") == 0) {
+        if (iv->ra == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(iv->ra);
+        return 1;
+    }
+    if (strcmp(name, "p_") == 0) {
+        if (!iv->has_p_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(iv->p_);
+        return 1;
+    }
+    return pico8_ke_field(self, name, out_value);
 }
 
 static const pico8_struct_class_t g_iv_struct_class = {
@@ -358,28 +358,58 @@ static const pico8_struct_class_t g_iv_struct_class = {
     NULL,
 };
 
+static void iv_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "iv.ra: a key neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void iv_take_string(pico8_value_t value, const char **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
+           "iv.at1: a key neither nil nor a string is off its census row (chaine) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.string;
+}
+
+static void iv_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "iv.at2: a key that is not a fixed is off its census row (fixe) and at2 has no presence flag -- a field "
+           "under no rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
+}
+
 static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
     pico8_iv_t *self = malloc(sizeof *self);
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_iv_struct_class);
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(9));
-    self->l = pico8_value_fixed(pico8_fixed_from_int(0));
-    self->v = pico8_value_ref(&g_iv_v);
-    self->ra = pico8_value_ref(NULL);
-    self->p_ = pico8_value_ref(NULL);
-    self->at1 = pico8_value_ref(NULL);
-    self->at2 = pico8_value_ref(NULL);
+    self->fa = pico8_fixed_from_int(9);
+    self->l = pico8_fixed_from_int(0);
+    self->v = &g_iv_v;
+    self->ra = NULL;
+    self->p_ = 0;
+    self->has_p_ = 0;
+    self->at1 = NULL;
+    self->at2 = pico8_fixed_from_int(0);
     for (i = 0; overrides != NULL && i < overrides->count; i++) {
         pico8_ob_key_t key = overrides->entries[i].key;
         pico8_value_t value = overrides->entries[i].value;
 
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
-            self->ra = value;
+            iv_take_vec(value, &self->ra);
         } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 1) {
-            self->at1 = value;
+            iv_take_string(value, &self->at1);
         } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 2) {
-            self->at2 = value;
+            iv_take_fixed(value, &self->at2);
         } else {
             assert(0 && "iv: every measured key is ra, [1] or [2]; another would be a field under no rule of "
                         "plan-3 section 5 -- stop, do not add a member");
