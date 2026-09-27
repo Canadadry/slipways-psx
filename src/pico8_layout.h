@@ -32,16 +32,24 @@ typedef struct {
     pico8_value_t w;
 } pico8_lq_t;
 
-/* `lq` and `jb` are root classes declared with no spec string and are not
+/* `lq` and `jb` are root classes with an empty spec and are not
  * ke-descended, so neither ever self-registers into hv/cv/cg. */
 void pico8_layout_init(void);
 void pico8_layout_shutdown(void);
 
-/* NULL before pico8_layout_init() and after pico8_layout_shutdown(). Neither
- * class is retrievable through pico8_class_lookup(): both register under the
- * shared "" name-registry slot. */
-pico8_class_t *pico8_lq_class(void);
-pico8_class_t *pico8_jb_class(void);
+/* 1 from pico8_layout_init() to pico8_layout_shutdown(), 0 otherwise. */
+int pico8_lq_ready(void);
+
+/* `lq`'s spec default `name`; 0 when absent, or when not ready. A REF is
+ * borrowed from the spec, valid until pico8_layout_shutdown(). */
+int pico8_lq_default(const char *name, pico8_value_t *out_value);
+
+/* 1 from pico8_layout_init() to pico8_layout_shutdown(), 0 otherwise. */
+int pico8_jb_ready(void);
+
+/* `jb`'s spec default `name`; 0 when absent, or when not ready. A REF is
+ * borrowed from the spec, valid until pico8_layout_shutdown(). */
+int pico8_jb_default(const char *name, pico8_value_t *out_value);
 
 const pico8_struct_class_t *pico8_lq_struct_class(void);
 

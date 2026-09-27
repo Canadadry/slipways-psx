@@ -15,7 +15,7 @@ typedef struct {
     pico8_value_t qe;
 } pico8_trade_t;
 
-/* `trade` is a root class declared with no spec string and no `pq`, not
+/* `trade` is a root class with an empty spec and no `pq`, not
  * ke-descended, so it never self-registers into hv/cv/cg.
  *
  * This port has no operator overloading, so `trade.ns.__eq` is the plain
@@ -26,10 +26,12 @@ typedef struct {
 void pico8_trade_init(void);
 void pico8_trade_shutdown(void);
 
-/* NULL before pico8_trade_init() and after pico8_trade_shutdown(); not
- * retrievable through pico8_class_lookup(), the class registering under the
- * shared "" name-registry slot. */
-pico8_class_t *pico8_trade_class(void);
+/* 1 from pico8_trade_init() to pico8_trade_shutdown(), 0 otherwise. */
+int pico8_trade_ready(void);
+
+/* `trade`'s spec default `name`; 0 when absent, or when not ready. A REF is
+ * borrowed from the spec, valid until pico8_trade_shutdown(). */
+int pico8_trade_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_trade_struct_class(void);
 
 /* Takes only the keys "lp", "rl", "qe", each optional; a missing one is

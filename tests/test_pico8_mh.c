@@ -308,10 +308,10 @@ static void test_defaults_match_the_parsed_spec(void) {
 
     pico8_jl();
     box = year_box(3400);
-    assert(pico8_ob_table_get_name(pico8_mh_class()->defaults, "fa", &parsed));
+    assert(pico8_mh_default("fa", &parsed));
     assert(pico8_entity_get_field(box, "fa", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
     assert(got.as.fixed == pico8_fixed_from_int(14));
-    assert(pico8_ob_table_get_name(pico8_mh_class()->defaults, "rh", &parsed));
+    assert(pico8_mh_default("rh", &parsed));
     assert(pico8_entity_get_field(box, "rh", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
     assert(got.as.fixed == pico8_fixed_from_int(5));
     assert(pico8_entity_get_field(box, "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref != NULL);
@@ -347,7 +347,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     pico8_jl();
     from_pj = year_box(3400);
     pico8_ob_table_set_name(overrides, "lh", pico8_value_function(counting_lh));
-    generic = pico8_class_instantiate(pico8_mh_class(), overrides);
+    generic = pico8_mh_new(overrides);
     pico8_ob_table_free(overrides);
 
     assert(pico8_type_tag_of(from_pj) == PICO8_TYPE_TAG_STRUCT);

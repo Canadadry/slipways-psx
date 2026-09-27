@@ -16,7 +16,7 @@
 #include "pico8_struct.h"
 #include "pico8_type_tag.h"
 
-static pico8_class_t *g_fv_class = NULL;
+static pico8_ob_table_t *g_fv_spec = NULL;
 static pico8_ob_table_t *g_bo = NULL;
 
 /* Returns a new, heap-backed list the caller owns and must release with
@@ -112,7 +112,7 @@ pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pic
     return pico8_value_ref(NULL);
 }
 
-/* fv's 22 spec defaults, read once from its class's own table at init: the
+/* fv's 22 spec defaults, read once through pico8_fv_default() at init: the
  * 13 that override g_'s land in g_'s members. */
 static struct {
     const char *name;
@@ -191,7 +191,7 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     pico8_fv_t *self;
     size_t i;
 
-    assert(g_fv_class != NULL && "pico8_help_init() must run first");
+    assert(g_fv_spec != NULL && "pico8_help_init() must run first");
     self = malloc(sizeof *self);
     pico8_g__struct_init(&self->g_, &g_fv_struct_class);
     self->m_ = pico8_value_ref(NULL);
@@ -216,7 +216,7 @@ void pico8_help_init(void) {
     size_t i;
 
     assert(pico8_ob_lookup_constructor('v') != NULL && "pico8_help_init() runs after pico8_pi_init()");
-    assert(pico8_g__class() != NULL && "pico8_help_init() runs after pico8_probe_init()");
+    assert(pico8_g__ready() && "pico8_help_init() runs after pico8_probe_init()");
 
     pico8_help_shutdown();
 
@@ -226,17 +226,14 @@ void pico8_help_init(void) {
                      "o(lq=o(52,\"tough       \"),px=\"tough\",\ntrade=4,en=-0.2),\n",
                      NULL);
 
-    g_fv_class = pico8_class_declare(
-        pico8_g__class(),
-        "\nfa=10,ra=v(64,28),\nhi=v(34,56),\nca=11,\ngq=v(0,11),\neo=-1,\nff=1,\nfc=5,"
-        "\nk_=o(0,1,1,2,4,9,10,9,4,2,1,1,1),\nqo=1.02,ro=-0.007,\nqg=0.007,q_=1.02,"
-        "\npn=5,du=15,\npy=0.0067,pk=1,\nki=17,\nkq=b(-40,78,40,98),\nql=11,fg=5,"
-        "\nrb=o(\no(192,0,11,16,4,fn=\"s\"),\no(172,20,107,2,2,fn=\"s\"),"
-        "\no(\"need help?\",40,110,13,fn=\"qr\"),\no(\"slipways.net/help\",40,116,5,fn=\"qr\"),\n),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_fv_class, "fv");
-    pico8_class_set_struct_new(g_fv_class, pico8_fv_struct_new);
+    g_fv_spec = pico8_ob("\nfa=10,ra=v(64,28),\nhi=v(34,56),\nca=11,\ngq=v(0,11),\neo=-1,\nff=1,\nfc=5,"
+                         "\nk_=o(0,1,1,2,4,9,10,9,4,2,1,1,1),\nqo=1.02,ro=-0.007,\nqg=0.007,q_=1.02,"
+                         "\npn=5,du=15,\npy=0.0067,pk=1,\nki=17,\nkq=b(-40,78,40,98),\nql=11,fg=5,"
+                         "\nrb=o(\no(192,0,11,16,4,fn=\"s\"),\no(172,20,107,2,2,fn=\"s\"),"
+                         "\no(\"need help?\",40,110,13,fn=\"qr\"),\no(\"slipways.net/help\",40,116,5,fn=\"qr\"),\n),\n",
+                         NULL);
     for (i = 0; i < sizeof g_fv_defaults / sizeof g_fv_defaults[0]; i++) {
-        int found = pico8_ob_table_get_name(g_fv_class->defaults, g_fv_defaults[i].name, &g_fv_defaults[i].value);
+        int found = pico8_fv_default(g_fv_defaults[i].name, &g_fv_defaults[i].value);
         assert(found && "fv: every default of the struct is a key of fv's spec");
         (void)found;
     }
@@ -246,10 +243,8 @@ void pico8_help_init(void) {
 
 void pico8_help_shutdown(void) {
     pico8_fv_defaults_reset();
-    if (g_fv_class != NULL) {
-        pico8_class_free(g_fv_class);
-        g_fv_class = NULL;
-    }
+    pico8_ob_table_free(g_fv_spec);
+    g_fv_spec = NULL;
     if (g_bo != NULL) {
         pico8_ob_table_free(g_bo);
         g_bo = NULL;
@@ -257,8 +252,13 @@ void pico8_help_shutdown(void) {
     pico8_help_set_eu(NULL);
 }
 
-pico8_class_t *pico8_fv_class(void) {
-    return g_fv_class;
+int pico8_fv_ready(void) {
+    return g_fv_spec != NULL;
+}
+
+int pico8_fv_default(const char *name, pico8_value_t *out_value) {
+    return g_fv_spec != NULL &&
+           (pico8_ob_table_get_name(g_fv_spec, name, out_value) || pico8_g__default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_fv_struct_class(void) {

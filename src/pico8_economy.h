@@ -28,14 +28,18 @@ typedef struct {
     pico8_value_t hl;
 } pico8_hy_t;
 
-/* Builds the `hy` class only. The singleton `fm=hy()` is built later, by
+/* Parses the `hy` spec only. The singleton `fm=hy()` is built later, by
  * `eu()` (pico8_cart.c), which hands it to pico8_probe_set_fm(). Calls
  * pico8_economy_shutdown() first. */
 void pico8_economy_init(void);
 void pico8_economy_shutdown(void);
 
-/* NULL before pico8_economy_init() and after pico8_economy_shutdown(). */
-pico8_class_t *pico8_hy_class(void);
+/* 1 from pico8_economy_init() to pico8_economy_shutdown(), 0 otherwise. */
+int pico8_hy_ready(void);
+
+/* `hy`'s spec default `name`; 0 when absent, or when not ready. A REF is
+ * borrowed from the spec, valid until pico8_economy_shutdown(). */
+int pico8_hy_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_hy_struct_class(void);
 
 /* Takes no key. The caller owns the struct until pico8_probe_set_fm()

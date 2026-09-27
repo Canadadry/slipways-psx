@@ -261,13 +261,13 @@ static void test_defaults_match_the_parsed_spec(void) {
 
     fresh_world();
     e = build(NULL, "x", 7);
-    assert(pico8_ob_table_get_name(pico8_iv_class()->defaults, "v", &parsed) && parsed.kind == PICO8_VALUE_REF);
+    assert(pico8_iv_default("v", &parsed) && parsed.kind == PICO8_VALUE_REF);
     assert(e->v.kind == PICO8_VALUE_REF && e->v.as.ref != NULL);
     assert(((const pico8_vec_t *)e->v.as.ref)->x == ((const pico8_vec_t *)parsed.as.ref)->x);
     assert(((const pico8_vec_t *)e->v.as.ref)->y == ((const pico8_vec_t *)parsed.as.ref)->y);
-    assert(pico8_ob_table_get_name(pico8_iv_class()->defaults, "fa", &parsed));
+    assert(pico8_iv_default("fa", &parsed));
     assert(e->fa.kind == PICO8_VALUE_FIXED && e->fa.as.fixed == parsed.as.fixed);
-    assert(pico8_ob_table_get_name(pico8_iv_class()->defaults, "l", &parsed));
+    assert(pico8_iv_default("l", &parsed));
     assert(e->l.kind == PICO8_VALUE_FIXED && e->l.as.fixed == parsed.as.fixed);
     assert(e->ke.me.kind == PICO8_VALUE_STRING && strcmp(e->ke.me.as.string, "ph") == 0);
     assert(e->ke.t.kind == PICO8_VALUE_FIXED && e->ke.t.as.fixed == 0);
@@ -286,7 +286,7 @@ static void test_iv_is_a_struct_registered_under_kj(void) {
     fresh_world();
     pico8_ob_table_set_index(overrides, 1, pico8_value_string("z"));
     direct = build(NULL, "z", 7);
-    generic = pico8_class_instantiate(pico8_iv_class(), overrides);
+    generic = pico8_iv_new(overrides);
     pico8_ob_table_free(overrides);
 
     assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);

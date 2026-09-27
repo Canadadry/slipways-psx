@@ -551,12 +551,12 @@ static void test_rebuild_and_shutdown(void) {
     test_gb();
 
     pico8_research_shutdown();
-    assert(pico8_gb() == NULL && pico8_hp_class() == NULL);
+    assert(pico8_gb() == NULL && !pico8_hp_ready());
     assert(pico8_hp_fk().kind == PICO8_VALUE_REF && pico8_hp_fk().as.ref == NULL);
     pico8_research_shutdown();
 
     pico8_research_init();
-    assert(pico8_hp_class() != NULL && pico8_hp_fk().as.ref != NULL);
+    assert(pico8_hp_ready() && pico8_hp_fk().as.ref != NULL);
     pico8_research_build_gb(pico8_fd());
     test_gb();
 }
@@ -637,8 +637,8 @@ static void test_hp_is_a_struct(void) {
         assert(cls->methods[j] == NULL);
     }
     assert(cls->field != NULL && cls->set_field == NULL);
-    assert(pico8_hp_class()->struct_new != NULL && pico8_hp_class()->pq == NULL);
-    assert(!pico8_ob_table_get_name(pico8_hp_class()->defaults, "lq", &v));
+    assert(pico8_hp_ready());
+    assert(!pico8_hp_default("lq", &v));
     assert(lookup(b, "fk", &v) && v.kind == pico8_hp_fk().kind && v.as.ref == pico8_hp_fk().as.ref);
 
     bare = pico8_hp_new(NULL);

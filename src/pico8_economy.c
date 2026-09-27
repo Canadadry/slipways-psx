@@ -16,7 +16,7 @@
 #include "pico8_ref_audit.h"
 #include "pico8_type_tag.h"
 
-static pico8_class_t *g_hy_class = NULL;
+static pico8_ob_table_t *g_hy_spec = NULL;
 
 static pico8_value_t *hy_member(pico8_hy_t *self, const char *name) {
     if (strcmp(name, "nz") == 0) {
@@ -121,20 +121,20 @@ static void assert_hy(const pico8_hy_t *self) {
 
 void pico8_economy_init(void) {
     pico8_economy_shutdown();
-    g_hy_class = pico8_class_declare(NULL, NULL);
-    PICO8_CLASS_COVERAGE_NAME(g_hy_class, "hy");
-    pico8_class_set_struct_new(g_hy_class, pico8_hy_struct_new);
+    g_hy_spec = pico8_ob("", NULL);
 }
 
 void pico8_economy_shutdown(void) {
-    if (g_hy_class != NULL) {
-        pico8_class_free(g_hy_class);
-        g_hy_class = NULL;
-    }
+    pico8_ob_table_free(g_hy_spec);
+    g_hy_spec = NULL;
 }
 
-pico8_class_t *pico8_hy_class(void) {
-    return g_hy_class;
+int pico8_hy_ready(void) {
+    return g_hy_spec != NULL;
+}
+
+int pico8_hy_default(const char *name, pico8_value_t *out_value) {
+    return g_hy_spec != NULL && pico8_ob_table_get_name(g_hy_spec, name, out_value);
 }
 
 const pico8_struct_class_t *pico8_hy_struct_class(void) {

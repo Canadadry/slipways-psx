@@ -27,13 +27,16 @@ typedef struct {
 
 void pico8_bg_init(void);
 
-/* Frees the `bg` class and the module's `pl` table, never any `bg`.
+/* Frees the `bg` spec and the module's `pl` table, never any `bg`.
  * Idempotent, and safe before the first `pico8_bg_init()`. */
 void pico8_bg_shutdown(void);
 
-/* NULL before `pico8_bg_init()` and after `pico8_bg_shutdown()`. Not
- * reachable through `pico8_class_lookup()`. */
-pico8_class_t *pico8_bg_class(void);
+/* 1 from pico8_bg_init() to pico8_bg_shutdown(), 0 otherwise. */
+int pico8_bg_ready(void);
+
+/* `bg`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_bg_shutdown(). */
+int pico8_bg_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_bg_struct_class(void);
 
 /* `overrides` is read, not kept, and must be NULL or empty. The struct

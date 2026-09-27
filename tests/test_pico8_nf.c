@@ -320,7 +320,7 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
 
     pico8_jl();
     built = pico8_nf_new(NULL);
-    generic = pico8_class_instantiate(pico8_nf_class(), NULL);
+    generic = pico8_nf_new(NULL);
 
     assert(is_an_nf_struct(built) && is_an_nf_struct(generic) && is_an_nf_struct(pico8_je()));
     assert(listed(pico8_hv(), built) && !in_any_cv(built));

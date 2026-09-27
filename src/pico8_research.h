@@ -39,14 +39,18 @@ typedef struct {
 /* Calls pico8_research_shutdown() first. */
 void pico8_research_init(void);
 
-/* Frees every project `gb` still holds, then `gb` and the class.
+/* Frees every project `gb` still holds, then `gb` and hp's spec.
  * Walks `gb`'s positional entries only: its named `gb[px]` entries alias
  * the same projects, so freeing both would free them twice. Idempotent, and
  * safe before the first pico8_research_init(). */
 void pico8_research_shutdown(void);
 
-/* NULL before pico8_research_init() and after pico8_research_shutdown(). */
-pico8_class_t *pico8_hp_class(void);
+/* 1 from pico8_research_init() to pico8_research_shutdown(), 0 otherwise. */
+int pico8_hp_ready(void);
+
+/* `hp`'s spec default `name`; 0 when absent, or when not ready. A REF is
+ * borrowed from the spec, valid until pico8_research_shutdown(). */
+int pico8_hp_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_hp_struct_class(void);
 
 /* The class's `fk`; nil before pico8_research_init() and after

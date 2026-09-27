@@ -10,7 +10,7 @@
 #include "pico8_pi.h"
 #include "pico8_vec.h"
 
-static pico8_class_t *g_nf_class = NULL;
+static pico8_ob_table_t *g_nf_spec = NULL;
 static pico8_ob_table_t *g_nf_l = NULL;
 static pico8_ob_table_t *g_nf_r = NULL;
 static pico8_vec_t g_nf_ra = {0, 0};
@@ -79,26 +79,27 @@ void pico8_nf_init(void) {
     pico8_pi_init();
     assert(pico8_ob_lookup_constructor('v') != NULL && "nf's spec parses v(0,0) as a vector");
     assert(pico8_ke_class() != NULL && "nf descends from ke");
-    g_nf_class = pico8_class_declare(pico8_ke_class(), "\nl=o(),r=o(),ra=v(0,0),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_nf_class, "nf");
-    pico8_class_set_struct_new(g_nf_class, pico8_nf_struct_new);
+    g_nf_spec = pico8_ob("\nl=o(),r=o(),ra=v(0,0),\n", NULL);
     g_nf_l = pico8_ob_table_new();
     g_nf_r = pico8_ob_table_new();
 }
 
 void pico8_nf_shutdown(void) {
-    if (g_nf_class != NULL) {
-        pico8_class_free(g_nf_class);
-        g_nf_class = NULL;
-    }
+    pico8_ob_table_free(g_nf_spec);
+    g_nf_spec = NULL;
     pico8_ob_table_free(g_nf_l);
     pico8_ob_table_free(g_nf_r);
     g_nf_l = NULL;
     g_nf_r = NULL;
 }
 
-pico8_class_t *pico8_nf_class(void) {
-    return g_nf_class;
+int pico8_nf_ready(void) {
+    return g_nf_spec != NULL;
+}
+
+int pico8_nf_default(const char *name, pico8_value_t *out_value) {
+    return g_nf_spec != NULL &&
+           (pico8_ob_table_get_name(g_nf_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_nf_struct_class(void) {

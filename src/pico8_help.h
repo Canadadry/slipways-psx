@@ -31,14 +31,19 @@ typedef struct {
     pico8_value_t m_;
 } pico8_fv_t;
 
-/* Builds the `fv` class and `bo`; `pico8_help_shutdown()` frees both and is
+/* Parses `fv`'s spec and builds `bo`; `pico8_help_shutdown()` frees both and is
  * called first by an init, so both are idempotent. Both also reset `eu` to
  * the placeholder, so the real one must be installed after every init. */
 void pico8_help_init(void);
 void pico8_help_shutdown(void);
 
-/* NULL before `pico8_help_init()` and after `pico8_help_shutdown()`. */
-pico8_class_t *pico8_fv_class(void);
+/* 1 from pico8_help_init() to pico8_help_shutdown(), 0 otherwise. */
+int pico8_fv_ready(void);
+
+/* `fv`'s spec default `name`, then g_'s, then ke's; 0 when absent, or when
+ * not ready. A REF is borrowed from the spec, valid until
+ * pico8_help_shutdown(). */
+int pico8_fv_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_fv_struct_class(void);
 
 /* TROU-8 */

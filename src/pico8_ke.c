@@ -34,6 +34,10 @@ pico8_class_t *pico8_ke_class(void) {
     return g_ke_class;
 }
 
+int pico8_ke_default(const char *name, pico8_value_t *out_value) {
+    return pico8_class_get_field(g_ke_class, name, out_value);
+}
+
 void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me) {
     if (self == NULL) {
         return;

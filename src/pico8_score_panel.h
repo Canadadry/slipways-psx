@@ -35,15 +35,19 @@ typedef struct {
 
 /* Calls `pico8_pi_init()` first: the `pj` spec and `bz` both contain
  * `v(...)`, so the 'v' constructor must be registered before either spec is
- * parsed. Builds `ef` and `bz` alongside the class. */
+ * parsed. Builds `ef` and `bz` alongside the spec. */
 void pico8_score_panel_init(void);
 
-/* Frees the `pj` class, `ef` and `bz`. Resets `ju` to NULL without freeing
+/* Frees the `pj` spec, `ef` and `bz`. Resets `ju` to NULL without freeing
  * the instance it named: `ju` is a bookmark, `hv` owns the entity. */
 void pico8_score_panel_shutdown(void);
 
-/* NULL before `pico8_score_panel_init()` and after the shutdown. */
-pico8_class_t *pico8_pj_class(void);
+/* 1 from pico8_score_panel_init() to pico8_score_panel_shutdown(), 0 otherwise. */
+int pico8_pj_ready(void);
+
+/* `pj`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_score_panel_shutdown(). */
+int pico8_pj_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_pj_struct_class(void);
 
 /* Shared by every panel, past and future: `hb` rewrites `ou`, `hk` rewrites

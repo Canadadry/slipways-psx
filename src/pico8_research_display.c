@@ -269,7 +269,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
     pico8_lq_t *l;
 
     pico8_hp_assert(self);
-    if (self == NULL || pico8_hp_class() == NULL) {
+    if (self == NULL || !pico8_hp_ready()) {
         return NULL;
     }
 

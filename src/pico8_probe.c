@@ -19,7 +19,7 @@
 #include "pico8_particle.h"
 #include "pico8_ui.h"
 
-static pico8_class_t *g_probe_class = NULL;
+static pico8_ob_table_t *g_g__spec = NULL;
 static pico8_instance_t *g_fm = NULL;
 
 static int pico8_fm_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -424,8 +424,8 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     return pico8_value_ref(particle);
 }
 
-/* g_'s 18 spec defaults, read once from its class at init: the very values
- * its `defaults` holds, `nu` and `k_` included. */
+/* g_'s 18 spec defaults, read once through pico8_g__default() at init: the
+ * very values its spec holds, `nu` and `k_` included. */
 static struct {
     const char *name;
     size_t offset;
@@ -536,7 +536,7 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
     size_t i;
     int k;
 
-    assert(g_probe_class != NULL && "pico8_probe_init() must run first");
+    assert(g_g__spec != NULL && "pico8_probe_init() must run first");
     self = malloc(sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
@@ -566,14 +566,12 @@ void pico8_probe_init(void) {
 
     pico8_probe_shutdown();
 
-    g_probe_class = pico8_class_declare(
-        pico8_ke_class(),
+    g_g__spec = pico8_ob(
         "\nnu=o(\"g_\",\"prober\"),\nfx=1,\ndq=\"ly\",\nod=0,fp=f,\nfa=2,\ndw=0.025,\npy=0.06,ki=9,\npn=3,pk=1,\nfc=1,"
-        "\nk_=o(1,1,5,13,6),\nqo=1.02,ro=-0.0525,\nqg=0.0525,q_=1.02,\ndu=2,\n");
-    PICO8_CLASS_COVERAGE_NAME(g_probe_class, "g_");
-    pico8_class_set_struct_new(g_probe_class, pico8_g__struct_new);
+        "\nk_=o(1,1,5,13,6),\nqo=1.02,ro=-0.0525,\nqg=0.0525,q_=1.02,\ndu=2,\n",
+        NULL);
     for (i = 0; i < sizeof g_g__defaults / sizeof g_g__defaults[0]; i++) {
-        int found = pico8_class_get_field(g_probe_class, g_g__defaults[i].name, &g_g__defaults[i].value);
+        int found = pico8_g__default(g_g__defaults[i].name, &g_g__defaults[i].value);
         assert(found && "g_: every default of the struct is a key of g_'s spec");
         (void)found;
     }
@@ -594,16 +592,19 @@ static void fm_free(pico8_instance_t *fm) {
 
 void pico8_probe_shutdown(void) {
     pico8_g__defaults_reset();
-    if (g_probe_class != NULL) {
-        pico8_class_free(g_probe_class);
-        g_probe_class = NULL;
-    }
+    pico8_ob_table_free(g_g__spec);
+    g_g__spec = NULL;
     fm_free(g_fm);
     g_fm = NULL;
 }
 
-pico8_class_t *pico8_g__class(void) {
-    return g_probe_class;
+int pico8_g__ready(void) {
+    return g_g__spec != NULL;
+}
+
+int pico8_g__default(const char *name, pico8_value_t *out_value) {
+    return g_g__spec != NULL &&
+           (pico8_ob_table_get_name(g_g__spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_g__struct_class(void) {

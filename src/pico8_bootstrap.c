@@ -31,17 +31,17 @@ void pico8_jl(void) {
 
     /* Build once, never rebuild: every class pico8_cart_load() built holds
      * a `.parent` into `ke`, which a second `ke` would leave dangling.
-     * `ke` must exist before `qb`/`nf`/`ui` declare themselves against it. */
+     * `ke` must exist before `qb`/`nf`/`ui`, whose inits assert it. */
     if (pico8_ke_class() == NULL) {
         pico8_ke_init();
     }
-    if (pico8_qb_class() == NULL) {
+    if (!pico8_qb_ready()) {
         pico8_qb_init();
     }
-    if (pico8_nf_class() == NULL) {
+    if (!pico8_nf_ready()) {
         pico8_nf_init();
     }
-    if (pico8_ui_class() == NULL) {
+    if (!pico8_ui_ready()) {
         pico8_ui_init();
     }
 

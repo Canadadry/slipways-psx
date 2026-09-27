@@ -15,7 +15,7 @@
 #include "pico8_probe.h"
 #include "pico8_tech_gate.h"
 
-static pico8_class_t *g_ie_class = NULL;
+static pico8_ob_table_t *g_ie_chain_spec = NULL;
 
 /* Owns the `kq` box and the `ra`/`eh` vectors every `ie` points at;
  * the shutdown frees the three with it. */
@@ -144,7 +144,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
         return;
     }
 
-    assert(g_ie_class != NULL && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
+    assert(g_ie_chain_spec != NULL && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
 
     /* `self.ra` takes the REF `ie.gy` holds now. The `-=` below rebinds
      * `ie.gy` to a fresh vector rather than writing through the old one, so
@@ -179,7 +179,7 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
 
     (void)mp;
 
-    assert(g_ie_class != NULL && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
+    assert(g_ie_chain_spec != NULL && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
     new_id = pico8_fixed_add(g_ie_id.kind == PICO8_VALUE_FIXED ? g_ie_id.as.fixed : pico8_fixed_from_int(0),
                              pico8_fixed_from_int(1));
     g_ie_id = pico8_value_fixed(new_id);
@@ -371,10 +371,7 @@ void pico8_research_icon_init(void) {
 
     pico8_pi_init();
 
-    g_ie_class =
-        pico8_class_declare(pico8_ke_class(), "\nkq=b(0,0,9,8),\nfa=12,\nid=0,\nra=v(999,999),\neh=v(118,120),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_ie_class, "ie");
-    pico8_class_set_struct_new(g_ie_class, pico8_ie_struct_new);
+    g_ie_chain_spec = pico8_ob("\nkq=b(0,0,9,8),\nfa=12,\nid=0,\nra=v(999,999),\neh=v(118,120),\n", NULL);
 
     g_ie_spec = pico8_ob("\nkq=b(0,0,9,8),\nra=v(999,999),\neh=v(118,120),\n", NULL);
     g_ie_gy = pico8_value_ref(NULL);
@@ -383,10 +380,8 @@ void pico8_research_icon_init(void) {
 
 /* TROU-7 */
 void pico8_research_icon_shutdown(void) {
-    if (g_ie_class != NULL) {
-        pico8_class_free(g_ie_class);
-        g_ie_class = NULL;
-    }
+    pico8_ob_table_free(g_ie_chain_spec);
+    g_ie_chain_spec = NULL;
     if (g_ie_spec != NULL) {
         int i;
         for (i = 0; i < g_ie_spec->count; i++) {
@@ -398,8 +393,13 @@ void pico8_research_icon_shutdown(void) {
     g_ie_gy = pico8_value_ref(NULL);
 }
 
-pico8_class_t *pico8_ie_class(void) {
-    return g_ie_class;
+int pico8_ie_ready(void) {
+    return g_ie_chain_spec != NULL;
+}
+
+int pico8_ie_default(const char *name, pico8_value_t *out_value) {
+    return g_ie_chain_spec != NULL &&
+           (pico8_ob_table_get_name(g_ie_chain_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_ie_struct_class(void) {

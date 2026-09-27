@@ -48,12 +48,16 @@ typedef struct {
  * has `b(...)`/`v(...)` constructors that must already be registered. */
 void pico8_research_icon_init(void);
 
-/* Frees the `ie` class and the module's `kq` box and `ra`/`eh` vectors,
+/* Frees the `ie` spec and the module's `kq` box and `ra`/`eh` vectors,
  * never any `ie`, and clears `ie.gy`. Idempotent. */
 void pico8_research_icon_shutdown(void);
 
-/* NULL before pico8_research_icon_init() and after the shutdown. */
-pico8_class_t *pico8_ie_class(void);
+/* 1 from pico8_research_icon_init() to pico8_research_icon_shutdown(), 0 otherwise. */
+int pico8_ie_ready(void);
+
+/* `ie`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_research_icon_shutdown(). */
+int pico8_ie_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_ie_struct_class(void);
 
 /* `overrides` is read, not kept, and may hold `ke` (a planet-upgrade kind)

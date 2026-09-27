@@ -357,10 +357,10 @@ static void test_defaults_match_the_parsed_spec(void) {
 
     pico8_jl();
     veil = pico8_fq_new(NULL);
-    assert(pico8_ob_table_get_name(pico8_fq_class()->defaults, "fa", &parsed));
+    assert(pico8_fq_default("fa", &parsed));
     assert(pico8_entity_get_field(veil, "fa", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
     assert(got.as.fixed == pico8_fixed_from_int(14));
-    assert(pico8_ob_table_get_name(pico8_fq_class()->defaults, "hd", &parsed));
+    assert(pico8_fq_default("hd", &parsed));
     assert(pico8_entity_get_field(veil, "hd", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
     assert(got.as.fixed == pico8_fixed_from_int(1));
     assert(pico8_entity_get_field(veil, "me", &got) && got.kind == PICO8_VALUE_STRING && strcmp(got.as.string, "ph") == 0);
@@ -384,7 +384,7 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
 
     pico8_jl();
     built = pico8_fq_new(pico8_de());
-    generic = pico8_class_instantiate(pico8_fq_class(), NULL);
+    generic = pico8_fq_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
     assert(listed(pico8_hv(), built) && listed(pico8_cv("hd"), built));

@@ -49,19 +49,23 @@ typedef struct {
 } pico8_g__t;
 
 /* TROU-8 */
-/* Builds the `g_` class and puts the provisional `fm` back in the slot, its
+/* Parses `g_`'s spec and puts the provisional `fm` back in the slot, its
  * `jk`/`nz` nil. Shuts the module down first, so it is idempotent and any
- * previously handed out `pico8_g__class()` pointer is freed by a second
+ * REF previously handed out by pico8_g__default() is freed by a second
  * call. */
 void pico8_probe_init(void);
 
-/* Frees the `g_` class and the `hy` of `fm` if it holds one, never the
+/* Frees the `g_` spec and the `hy` of `fm` if it holds one, never the
  * provisional, never any probe. Idempotent, and safe before the first
  * `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
-/* NULL before `pico8_probe_init()` and after `pico8_probe_shutdown()`. */
-pico8_class_t *pico8_g__class(void);
+/* 1 from pico8_probe_init() to pico8_probe_shutdown(), 0 otherwise. */
+int pico8_g__ready(void);
+
+/* `g_`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_probe_shutdown(). */
+int pico8_g__default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_g__struct_class(void);
 
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 5

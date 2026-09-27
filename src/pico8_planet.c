@@ -669,7 +669,7 @@ pico8_value_t pico8_jo_ldown(pico8_jo_t *self) {
         pico8_jc_t *made;
         pico8_ob_table_t *overrides;
 
-        assert(pico8_jc_class() != NULL && "pico8_jc_init() must run before jo:ldown builds a jc");
+        assert(pico8_jc_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
         overrides = pico8_ob_table_new();
         pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
         made = pico8_jc_new(overrides);

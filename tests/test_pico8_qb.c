@@ -469,7 +469,7 @@ static void test_qb_is_a_struct(void) {
     int status;
 
     pico8_jl();
-    generic = pico8_class_instantiate(pico8_qb_class(), NULL);
+    generic = pico8_qb_new(NULL);
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);

@@ -648,8 +648,8 @@ static void test_lq_is_a_struct(void) {
         assert((cls->methods[i] != NULL) == (i == PICO8_METHOD_OL));
     }
     assert(cls->field != NULL && cls->set_field == NULL);
-    assert(pico8_lq_class()->struct_new != NULL && pico8_lq_class()->pq == NULL);
-    assert(!pico8_ob_table_get_name(pico8_lq_class()->defaults, "ol", &v));
+    assert(pico8_lq_ready());
+    assert(!pico8_lq_default("ol", &v));
     assert(lookup(lq, "c", &v) && v.as.fixed == pico8_fixed_from_int(9));
     assert(!lookup(lq, "bg", &v) && !lookup(lq, "items", &v));
     assert(lookup(lq, "ol", &v) && v.kind == PICO8_VALUE_FUNCTION);

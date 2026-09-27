@@ -10,7 +10,7 @@
 #include "pico8_ref_audit.h"
 #include "pico8_type_tag.h"
 
-static pico8_class_t *g_trade_class = NULL;
+static pico8_ob_table_t *g_trade_spec = NULL;
 
 static pico8_value_t *trade_member(pico8_trade_t *self, const char *name) {
     if (strcmp(name, "lp") == 0) {
@@ -74,20 +74,20 @@ static void assert_trade(const pico8_trade_t *self) {
 
 void pico8_trade_init(void) {
     pico8_trade_shutdown();
-    g_trade_class = pico8_class_declare(NULL, NULL);
-    PICO8_CLASS_COVERAGE_NAME(g_trade_class, "trade");
-    pico8_class_set_struct_new(g_trade_class, pico8_trade_struct_new);
+    g_trade_spec = pico8_ob("", NULL);
 }
 
 void pico8_trade_shutdown(void) {
-    if (g_trade_class != NULL) {
-        pico8_class_free(g_trade_class);
-        g_trade_class = NULL;
-    }
+    pico8_ob_table_free(g_trade_spec);
+    g_trade_spec = NULL;
 }
 
-pico8_class_t *pico8_trade_class(void) {
-    return g_trade_class;
+int pico8_trade_ready(void) {
+    return g_trade_spec != NULL;
+}
+
+int pico8_trade_default(const char *name, pico8_value_t *out_value) {
+    return g_trade_spec != NULL && pico8_ob_table_get_name(g_trade_spec, name, out_value);
 }
 
 const pico8_struct_class_t *pico8_trade_struct_class(void) {

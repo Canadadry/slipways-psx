@@ -38,14 +38,17 @@ typedef struct {
  * field-less placeholder `je` that `pico8_ui_set_je()` later replaces. */
 void pico8_ui_init(void);
 
-/* Frees the `ui` class and `ok`; `je` is never freed: the placeholder is
+/* Frees the `ui` spec and `ok`; `je` is never freed: the placeholder is
  * static, an `nf` struct in its place is dropped (TROU-7). Idempotent, and
  * safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
 
-/* NULL before `pico8_ui_init()` and after `pico8_ui_shutdown()`. Not
- * reachable through `pico8_class_lookup()`. */
-pico8_class_t *pico8_ui_class(void);
+/* 1 from pico8_ui_init() to pico8_ui_shutdown(), 0 otherwise. */
+int pico8_ui_ready(void);
+
+/* `ui`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_ui_shutdown(). */
+int pico8_ui_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_ui_struct_class(void);
 
 /* The box of the class, read by `bv`; NULL before `pico8_ui_init()` and

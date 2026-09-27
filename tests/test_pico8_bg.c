@@ -288,7 +288,7 @@ static void test_construction(void) {
     check_fresh_bg(from_eu);
     built = (void *)pico8_bg_new(NULL);
     check_fresh_bg(built);
-    generic = (void *)pico8_class_instantiate(pico8_bg_class(), NULL);
+    generic = (void *)pico8_bg_new(NULL);
     check_fresh_bg(generic);
     assert(pico8_cg("bg") == NULL);
     assert(pl_of(from_eu) == pl_of(built) && pl_of(built) == pl_of(generic));
@@ -642,7 +642,7 @@ static void test_bg_is_a_struct(void) {
     start_game(PLAYTHROUGH);
     from_eu = the_bg();
     built = (void *)pico8_bg_new(NULL);
-    generic = (void *)pico8_class_instantiate(pico8_bg_class(), NULL);
+    generic = (void *)pico8_bg_new(NULL);
     assert(is_a_bg_struct(from_eu) && is_a_bg_struct(built) && is_a_bg_struct(generic));
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         assert(pico8_entity_get_field(built, methods[i], &out) && out.kind == PICO8_VALUE_FUNCTION);

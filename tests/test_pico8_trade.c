@@ -547,8 +547,8 @@ static void test_trade_is_a_struct(void) {
         assert(cls->methods[j] == NULL);
     }
     assert(cls->field != NULL && cls->set_field == NULL);
-    assert(pico8_trade_class()->struct_new != NULL && pico8_trade_class()->pq == NULL);
-    assert(pico8_class_instantiate(pico8_trade_class(), NULL) != NULL);
+    assert(pico8_trade_ready());
+    assert(pico8_trade_new(NULL) != NULL);
 
     must_abort(write_qe, g);
     must_abort(build_with_named_key, NULL);

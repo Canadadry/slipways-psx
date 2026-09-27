@@ -17,7 +17,7 @@
 #include "pico8_wormhole_display.h"
 #include "pico8_ref_audit.h"
 
-static pico8_class_t *g_mz_class = NULL;
+static pico8_ob_table_t *g_mz_spec = NULL;
 static pico8_ob_table_t *g_mz_nu = NULL;
 static pico8_ob_table_t *g_mz_kk = NULL;
 
@@ -393,11 +393,9 @@ void pico8_wormhole_init(void) {
 
     pico8_wormhole_shutdown();
 
-    g_mz_class = pico8_class_declare(pico8_ke_class(),
-                                      "\nnu=o(\"mz\"),\nme=\"kz\",dw=0,\ndq=\"pr\",\nspawn_snd=52,ik=49,\noi=0,"
-                                      "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_mz_class, "mz");
-    pico8_class_set_struct_new(g_mz_class, pico8_mz_struct_new);
+    g_mz_spec = pico8_ob("\nnu=o(\"mz\"),\nme=\"kz\",dw=0,\ndq=\"pr\",\nspawn_snd=52,ik=49,\noi=0,"
+                         "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n",
+                         NULL);
 
     spec = pico8_ob("\nnu=o(\"mz\"),\nkk=o(7,7,6,13,5,1,1,1,0),\n", NULL);
     g_mz_nu = pico8_mz_spec_table(spec, "nu");
@@ -406,18 +404,21 @@ void pico8_wormhole_init(void) {
 }
 
 void pico8_wormhole_shutdown(void) {
-    if (g_mz_class != NULL) {
-        pico8_class_free(g_mz_class);
-        g_mz_class = NULL;
-    }
+    pico8_ob_table_free(g_mz_spec);
+    g_mz_spec = NULL;
     pico8_ob_table_free(g_mz_nu);
     g_mz_nu = NULL;
     pico8_ob_table_free(g_mz_kk);
     g_mz_kk = NULL;
 }
 
-pico8_class_t *pico8_mz_class(void) {
-    return g_mz_class;
+int pico8_mz_ready(void) {
+    return g_mz_spec != NULL;
+}
+
+int pico8_mz_default(const char *name, pico8_value_t *out_value) {
+    return g_mz_spec != NULL &&
+           (pico8_ob_table_get_name(g_mz_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_mz_struct_class(void) {

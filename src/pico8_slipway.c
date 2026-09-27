@@ -23,7 +23,7 @@
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
-static pico8_class_t *g_jc_class = NULL;
+static pico8_ob_table_t *g_jc_spec = NULL;
 static pico8_ob_table_t *g_jc_nu = NULL;
 static pico8_ob_table_t *g_jc_k_ = NULL;
 
@@ -566,16 +566,15 @@ void pico8_jc_init(void) {
     pico8_ob_table_t *spec;
 
     pico8_jc_shutdown();
-    g_jc_class = pico8_class_declare(pico8_ke_class(), "\n"
-                                                        "nu=o(\"jc\"),\n"
-                                                        "me=\"kz\",\n"
-                                                        "fa=2,\n"
-                                                        "fp=f,ik=48,\n"
-                                                        "dw=0.004,\n"
-                                                        "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n"
-                                                        "nh=20,\n");
-    PICO8_CLASS_COVERAGE_NAME(g_jc_class, "jc");
-    pico8_class_set_struct_new(g_jc_class, pico8_jc_struct_new);
+    g_jc_spec = pico8_ob("\n"
+                         "nu=o(\"jc\"),\n"
+                         "me=\"kz\",\n"
+                         "fa=2,\n"
+                         "fp=f,ik=48,\n"
+                         "dw=0.004,\n"
+                         "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n"
+                         "nh=20,\n",
+                         NULL);
 
     spec = pico8_ob("\nnu=o(\"jc\"),\nk_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n", NULL);
     g_jc_nu = pico8_jc_spec_table(spec, "nu");
@@ -584,18 +583,21 @@ void pico8_jc_init(void) {
 }
 
 void pico8_jc_shutdown(void) {
-    if (g_jc_class != NULL) {
-        pico8_class_free(g_jc_class);
-        g_jc_class = NULL;
-    }
+    pico8_ob_table_free(g_jc_spec);
+    g_jc_spec = NULL;
     pico8_ob_table_free(g_jc_nu);
     g_jc_nu = NULL;
     pico8_ob_table_free(g_jc_k_);
     g_jc_k_ = NULL;
 }
 
-pico8_class_t *pico8_jc_class(void) {
-    return g_jc_class;
+int pico8_jc_ready(void) {
+    return g_jc_spec != NULL;
+}
+
+int pico8_jc_default(const char *name, pico8_value_t *out_value) {
+    return g_jc_spec != NULL &&
+           (pico8_ob_table_get_name(g_jc_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_jc_struct_class(void) {

@@ -46,13 +46,17 @@ typedef struct {
 
 void pico8_wormhole_init(void);
 
-/* Frees the `mz` class and the module's `nu`/`kk` tables, never any `mz`
+/* Frees the `mz` spec and the module's `nu`/`kk` tables, never any `mz`
  * nor the `jj` wrapper. Idempotent, and safe before the first
  * `pico8_wormhole_init()`. */
 void pico8_wormhole_shutdown(void);
 
-/* NULL before `pico8_wormhole_init()` and after `pico8_wormhole_shutdown()`. */
-pico8_class_t *pico8_mz_class(void);
+/* 1 from pico8_wormhole_init() to pico8_wormhole_shutdown(), 0 otherwise. */
+int pico8_mz_ready(void);
+
+/* `mz`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_wormhole_shutdown(). */
+int pico8_mz_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_mz_struct_class(void);
 
 /* `overrides` is read, not kept, and must be NULL or empty. The struct

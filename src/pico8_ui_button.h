@@ -39,11 +39,15 @@ typedef struct {
     pico8_value_t _jo_fe_od;
 } pico8_js_t;
 
-/* Declares the `js` class, whose instantiation builds a pico8_js_t. */
 void pico8_js_init(void);
 void pico8_js_shutdown(void);
 
-pico8_class_t *pico8_js_class(void);
+/* 1 from pico8_js_init() to pico8_js_shutdown(), 0 otherwise. */
+int pico8_js_ready(void);
+
+/* `js`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_js_shutdown(). */
+int pico8_js_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_js_struct_class(void);
 
 /* `overrides` is read, not kept: its measured keys only, positional ones
@@ -73,10 +77,15 @@ typedef struct {
     pico8_value_t m_;
 } pico8_fq_t;
 
-/* Declares the `fq` class, whose instantiation builds a pico8_fq_t. */
 void pico8_fq_init(void);
 void pico8_fq_shutdown(void);
-pico8_class_t *pico8_fq_class(void);
+
+/* 1 from pico8_fq_init() to pico8_fq_shutdown(), 0 otherwise. */
+int pico8_fq_ready(void);
+
+/* `fq`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_fq_shutdown(). */
+int pico8_fq_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_fq_struct_class(void);
 
 /* `overrides` is read, not kept: `my` only. The struct registers itself

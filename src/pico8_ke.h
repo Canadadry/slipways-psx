@@ -32,6 +32,11 @@ void pico8_ke_shutdown(void);
  * reliable way to reach it. */
 pico8_class_t *pico8_ke_class(void);
 
+/* ke's spec default `name`, the end of every ke-descended module's default
+ * reader; 0 when absent or before pico8_ke_init(). A REF is borrowed from
+ * the spec, valid until pico8_ke_shutdown(). */
+int pico8_ke_default(const char *name, pico8_value_t *out_value);
+
 /* A NULL `self` is a no-op; any other `self` must be a struct. `me` and
  * `t` are written into its pico8_ke_t, never through its field writer. */
 void pico8_ke_ks(pico8_instance_t *self, pico8_value_t me);

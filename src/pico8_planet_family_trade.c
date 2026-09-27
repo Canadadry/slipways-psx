@@ -117,7 +117,7 @@ pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
         return gv_result;
     }
 
-    assert(pico8_jc_class() != NULL && "pico8_jc_init() must run before nr:ldown builds a jc");
+    assert(pico8_jc_ready() && "pico8_jc_init() must run before nr:ldown builds a jc");
     overrides = pico8_ob_table_new();
     pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
     made = pico8_jc_new(overrides);

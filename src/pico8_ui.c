@@ -15,14 +15,14 @@
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
-static pico8_class_t *g_ui_class = NULL;
+static pico8_ob_table_t *g_ui_spec = NULL;
 static pico8_instance_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
 
 enum { UI_QL, UI_FA, UI_LE, UI_HW };
 
-/* ui's 4 spec defaults, read once from its class's own table at init, after
- * the swap of `le`: the class's REFs, never re-parsed. */
+/* ui's 4 spec defaults, read once from its spec at init, after the swap of
+ * `le`: the spec's REFs, never re-parsed. */
 static struct {
     const char *name;
     size_t offset;
@@ -173,7 +173,7 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ui_t *self;
     size_t i;
 
-    assert(g_ui_class != NULL && "pico8_ui_init() must run first");
+    assert(g_ui_spec != NULL && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_ui_struct_class);
     for (i = 0; i < sizeof g_ui_defaults / sizeof g_ui_defaults[0]; i++) {
@@ -204,22 +204,19 @@ void pico8_ui_init(void) {
     pico8_ui_shutdown();
     pico8_pi_init();
 
-    g_ui_class = pico8_class_declare(pico8_ke_class(), "\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_ui_class, "ui");
+    g_ui_spec = pico8_ob("\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n", NULL);
 
     /* `gu()`/`nv()` need a list, not the table `ob()` parses for `le=o()`.
      * The raw table is freed here: nothing else ever sees it. */
-    if (pico8_ob_table_get_name(g_ui_class->defaults, "le", &le_val) && le_val.kind == PICO8_VALUE_REF) {
+    if (pico8_ob_table_get_name(g_ui_spec, "le", &le_val) && le_val.kind == PICO8_VALUE_REF) {
         raw_le = (pico8_ob_table_t *)le_val.as.ref;
     }
     heap_le = malloc(sizeof *heap_le);
     pico8_list_init(heap_le);
-    pico8_ob_table_set_name(g_ui_class->defaults, "le", pico8_value_ref(heap_le));
+    pico8_ob_table_set_name(g_ui_spec, "le", pico8_value_ref(heap_le));
     pico8_ob_table_free(raw_le);
-
-    pico8_class_set_struct_new(g_ui_class, pico8_ui_struct_new);
     for (i = 0; i < sizeof g_ui_defaults / sizeof g_ui_defaults[0]; i++) {
-        int found = pico8_ob_table_get_name(g_ui_class->defaults, g_ui_defaults[i].name, &g_ui_defaults[i].value);
+        int found = pico8_ui_default(g_ui_defaults[i].name, &g_ui_defaults[i].value);
         assert(found && "ui: every default of the struct is a key of ui's spec");
         (void)found;
     }
@@ -233,10 +230,8 @@ void pico8_ui_init(void) {
 
 void pico8_ui_shutdown(void) {
     pico8_ui_defaults_reset();
-    if (g_ui_class != NULL) {
-        pico8_class_free(g_ui_class);
-        g_ui_class = NULL;
-    }
+    pico8_ob_table_free(g_ui_spec);
+    g_ui_spec = NULL;
     g_je = NULL;
     if (g_ok != NULL) {
         free(g_ok);
@@ -248,8 +243,13 @@ const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
     return &g_je_placeholder_struct_class;
 }
 
-pico8_class_t *pico8_ui_class(void) {
-    return g_ui_class;
+int pico8_ui_ready(void) {
+    return g_ui_spec != NULL;
+}
+
+int pico8_ui_default(const char *name, pico8_value_t *out_value) {
+    return g_ui_spec != NULL &&
+           (pico8_ob_table_get_name(g_ui_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_ui_struct_class(void) {

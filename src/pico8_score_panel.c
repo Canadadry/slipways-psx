@@ -22,7 +22,7 @@
 #include "pico8_type_tag.h"
 #include "pico8_vec.h"
 
-static pico8_class_t *g_pj_class = NULL;
+static pico8_ob_table_t *g_pj_spec = NULL;
 static pico8_ob_table_t *g_ef = NULL;
 static pico8_ob_table_t *g_bz = NULL;
 static pico8_pj_t *g_ju = NULL;
@@ -98,8 +98,8 @@ static char *pj_concat2(const char *a, const char *b) {
 
 enum { PJ_FA, PJ_EA, PJ_GS, PJ_CR, PJ_I_, PJ_OU, PJ_ED };
 
-/* pj's 7 spec defaults, read once at init from its class's own table (the
- * class's REFs, never re-parsed), except `cr`, which is `g_pj_cr`. `ea`,
+/* pj's 7 spec defaults, read once at init from its spec (the spec's REFs,
+ * never re-parsed), except `cr`, which is `g_pj_cr`. `ea`,
  * `cr` and `ou` have no member. */
 static struct {
     const char *name;
@@ -447,7 +447,7 @@ static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     pico8_pj_t *self;
     size_t i;
 
-    assert(g_pj_class != NULL && "pico8_score_panel_init() must run first");
+    assert(g_pj_spec != NULL && "pico8_score_panel_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_pj_struct_class);
     self->c_ = pico8_value_ref(NULL);
@@ -499,8 +499,7 @@ void pico8_score_panel_init(void) {
                      "o(score=6,ra=v(64,82)),\n",
                      NULL);
 
-    g_pj_class = pico8_class_declare(
-        pico8_ke_class(),
+    g_pj_spec = pico8_ob(
         "\nfa=10,\nea=o(\no(42,43,1,fn=\"br\"),\no(\"\",64,40,6,0.5,fn=\"qr\"),\n),\n"
         "gs=o(\no(\"last year!\",64,48,9,0.5,fn=\"qr\"),\no(\"2 years remain\",64,48,2,0.5,fn=\"qr\"),\nf,f,\n"
         "o(\"5 years remain\",64,48,2,0.5,fn=\"qr\"),\n),\n"
@@ -509,13 +508,11 @@ void pico8_score_panel_init(void) {
         "\no(81,-3,117,fn=\"rf\"),\n),\n"
         "ou=o(\no(f,13,121,9,fn=\"qr\"),\no(f,37,121,2,fn=\"qr\"),\no(f,13,2,9,fn=\"qr\"),\no(f,29,2,2,fn=\"qr\"),"
         "\no(f,59,2,2,fn=\"qr\"),\no(f,85,2,13,fn=\"qr\"),\no(f,99,2,13,fn=\"qr\"),\n),\n"
-        "ed=1,\n");
-    PICO8_CLASS_COVERAGE_NAME(g_pj_class, "pj");
-
-    pico8_class_set_struct_new(g_pj_class, pico8_pj_struct_new);
+        "ed=1,\n",
+        NULL);
     for (i = 0; i < sizeof g_pj_defaults / sizeof g_pj_defaults[0]; i++) {
         pico8_value_t *v = &g_pj_defaults[i].value;
-        int found = pico8_ob_table_get_name(g_pj_class->defaults, g_pj_defaults[i].name, v);
+        int found = pico8_pj_default(g_pj_defaults[i].name, v);
         assert(found && "pj: every default of the struct is a key of pj's spec");
         assert((i == PJ_FA || i == PJ_ED || i == PJ_CR ||
                 (v->kind == PICO8_VALUE_REF && v->as.ref != NULL &&
@@ -535,10 +532,8 @@ void pico8_score_panel_init(void) {
 void pico8_score_panel_shutdown(void) {
     pico8_score_panel_display_shutdown();
     pico8_pj_defaults_reset();
-    if (g_pj_class != NULL) {
-        pico8_class_free(g_pj_class);
-        g_pj_class = NULL;
-    }
+    pico8_ob_table_free(g_pj_spec);
+    g_pj_spec = NULL;
     if (g_ef != NULL) {
         pico8_ob_table_free(g_ef);
         g_ef = NULL;
@@ -551,8 +546,13 @@ void pico8_score_panel_shutdown(void) {
     g_ju = NULL;
 }
 
-pico8_class_t *pico8_pj_class(void) {
-    return g_pj_class;
+int pico8_pj_ready(void) {
+    return g_pj_spec != NULL;
+}
+
+int pico8_pj_default(const char *name, pico8_value_t *out_value) {
+    return g_pj_spec != NULL &&
+           (pico8_ob_table_get_name(g_pj_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_pj_struct_class(void) {

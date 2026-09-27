@@ -53,12 +53,10 @@ void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
     pico8_ke_init();
+    assert(pico8_ke_class() != NULL && "ke must be declared before every ke-descended class");
     pico8_qb_init();
     pico8_nf_init();
     pico8_ui_init();
-    assert(pico8_ke_class() != NULL && pico8_qb_class()->parent == pico8_ke_class() &&
-           pico8_nf_class()->parent == pico8_ke_class() && pico8_ui_class()->parent == pico8_ke_class() &&
-           "ke must be declared before every ke-descended class");
 
     pico8_layout_init();
     pico8_pi_init();
@@ -89,17 +87,11 @@ void pico8_cart_load(void) {
     pico8_wormhole_init();
 
     pico8_help_init();
-    assert(pico8_fv_class()->parent == pico8_g__class() && "fv extends g_: pico8_probe_init() must run first");
+    assert(pico8_fv_ready() && pico8_g__ready() && "fv extends g_: pico8_probe_init() must run first");
     pico8_score_panel_init();
     pico8_research_icon_init();
     pico8_menu_init();
-    assert(pico8_js_class()->parent == pico8_ke_class() && pico8_fq_class()->parent == pico8_ke_class() &&
-           pico8_bg_class()->parent == pico8_ke_class() && pico8_mh_class()->parent == pico8_ke_class() &&
-           pico8_iv_class()->parent == pico8_ke_class() && pico8_g__class()->parent == pico8_ke_class() &&
-           pico8_jo_class()->parent == pico8_ke_class() && pico8_jc_class()->parent == pico8_ke_class() &&
-           pico8_mz_class()->parent == pico8_ke_class() && pico8_pj_class()->parent == pico8_ke_class() &&
-           pico8_ie_class()->parent == pico8_ke_class() &&
-           "ke must be declared before every ke-descended class");
+    assert(pico8_jo_class()->parent == pico8_ke_class() && "ke must be declared before every ke-descended class");
 
     pico8_help_set_eu(pico8_eu_dispatch);
     pico8_score_panel_set_init(pico8_init_dispatch);
@@ -140,7 +132,7 @@ void pico8_cart_shutdown(void) {
 void pico8__init(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
 
-    assert(pico8_ie_class() != NULL && "pico8_cart_load() must run before _init()");
+    assert(pico8_ie_ready() && "pico8_cart_load() must run before _init()");
     assert(pico8_eu_field_value().as.function == pico8_eu_dispatch &&
            pico8_init_field_value().as.function == pico8_init_dispatch &&
            "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
@@ -190,7 +182,7 @@ void pico8_eu(pico8_js_t *nj) {
     const pico8_entity_kind_t *gx[7];
     int i;
 
-    assert(pico8_hy_class() != NULL && pico8_qh_class() != NULL && "pico8_cart_load() must run before eu()");
+    assert(pico8_hy_ready() && pico8_qh_class() != NULL && "pico8_cart_load() must run before eu()");
 
     pico8_economy_set_dk(nj);
 

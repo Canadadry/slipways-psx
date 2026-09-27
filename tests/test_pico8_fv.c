@@ -1,6 +1,6 @@
 /* The help screen `fv`, built by its only road (`pico8__init()` on the
  * title screen, `pico8_fv_new(NULL)`), read only through the dual-form field
- * API and `pico8_class_get_field(pico8_fv_class()/pico8_g__class(), ...)`
+ * API and `pico8_fv_default()`/`pico8_g__default()`
  * for spec defaults, and driven through the real `mv`/`dc`/`dg`/`lj`. Its
  * methods are compared to the public functions. The frozen values were
  * taken on the code where `fv` was still a class instance and must not be
@@ -122,9 +122,9 @@ static pico8_fixed_t get_fixed(const void *e, const char *name) {
     return v.as.fixed;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(default_of(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
 
@@ -276,7 +276,7 @@ static void play_frame(int i) {
 /* The help, whatever its form: `g_`'s `nu` and `fa`=10 (a probe has 2). */
 static int is_help(const void *e) {
     pico8_value_t fa;
-    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__class(), "nu") && lookup(e, "fa", &fa) &&
+    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__default, "nu") && lookup(e, "fa", &fa) &&
            fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(10);
 }
 
@@ -333,7 +333,7 @@ static void test_built(void) {
     assert(get_fixed(fv, "fa") == pico8_fixed_from_int(10));
     assert(get_fixed(fv, "ki") == pico8_fixed_from_int(17));
     assert(get_fixed(fv, "ca") == pico8_fixed_from_int(11));
-    assert(get_ref(fv, "nu") == class_ref(pico8_g__class(), "nu"));
+    assert(get_ref(fv, "nu") == class_ref(pico8_g__default, "nu"));
     for (i = 0; i < sizeof own / sizeof own[0]; i++) {
         assert(has(fv, own[i]));
         h = fold_field(h, fv, own[i]);
@@ -347,9 +347,9 @@ static void test_built(void) {
     h = fold_vec(h, fv, "gq");
     h = fold_box(h, fv, "kq");
     for (i = 0; i < sizeof tables / sizeof tables[0]; i++) {
-        assert(get_ref(fv, tables[i]) == class_ref(pico8_fv_class(), tables[i]));
+        assert(get_ref(fv, tables[i]) == class_ref(pico8_fv_default, tables[i]));
     }
-    assert(get_ref(fv, "k_") != class_ref(pico8_g__class(), "k_"));
+    assert(get_ref(fv, "k_") != class_ref(pico8_g__default, "k_"));
     h = fold_field(h, fv, "me");
     h = fold_field(h, fv, "t");
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
@@ -596,9 +596,9 @@ static void test_fv_is_a_struct(void) {
     }
     assert(cls->field != NULL && cls->set_field != NULL);
     assert(cls->field != g_->field && cls->set_field != g_->set_field);
-    assert(pico8_fv_class()->struct_new != NULL && pico8_fv_class()->pq == NULL);
-    assert(!pico8_ob_table_get_name(pico8_fv_class()->defaults, "hd", &v));
-    assert(!pico8_ob_table_get_name(pico8_fv_class()->defaults, "kj", &v));
+    assert(pico8_fv_ready());
+    assert(!pico8_fv_default("hd", &v));
+    assert(!pico8_fv_default("kj", &v));
 
     must_abort(write_fa, fv);
     must_abort(write_hi, fv);
@@ -665,9 +665,9 @@ static void test_g__closed(void) {
     size_t i;
 
     start_title(RECORDING);
-    assert(pico8_g__class()->pq == NULL && pico8_g__class()->struct_new != NULL);
+    assert(pico8_g__ready());
     for (i = 0; i < sizeof installs / sizeof installs[0]; i++) {
-        assert(!pico8_ob_table_get_name(pico8_g__class()->defaults, installs[i], &v));
+        assert(!pico8_g__default(installs[i], &v));
     }
     handmade.fields = pico8_ob_table_new();
     pico8_ob_table_set_name(handmade.fields, "ra", pico8_value_ref(&ra));

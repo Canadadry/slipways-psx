@@ -11,7 +11,7 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
-static pico8_class_t *g_qb_class = NULL;
+static pico8_ob_table_t *g_qb_spec = NULL;
 static pico8_ob_table_t *g_qb_pc = NULL;
 static pico8_vec_t g_qb_v = {0, 0};
 static pico8_vec_t g_qb_p = {0, 0};
@@ -114,27 +114,28 @@ void pico8_qb_init(void) {
     pico8_pi_init();
     assert(pico8_ob_lookup_constructor('v') != NULL && "qb's spec parses v(...) as vectors");
     assert(pico8_ke_class() != NULL && "qb descends from ke");
-    g_qb_class = pico8_class_declare(pico8_ke_class(),
-                                      "\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
-                                      "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_qb_class, "qb");
-    pico8_class_set_struct_new(g_qb_class, pico8_qb_struct_new);
+    g_qb_spec = pico8_ob("\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
+                         "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n",
+                         NULL);
     g_qb_pc = pico8_ob("v(-1,0),v(1,0),v(0,-1),v(0,1),", NULL);
     g_qb_p = pico8_vec_v(pico8_fixed_from_int(192), pico8_fixed_from_int(192));
     g_qb_ra = pico8_vec_v(pico8_fixed_from_int(192), pico8_fixed_from_int(192));
 }
 
 void pico8_qb_shutdown(void) {
-    if (g_qb_class != NULL) {
-        pico8_class_free(g_qb_class);
-        g_qb_class = NULL;
-    }
+    pico8_ob_table_free(g_qb_spec);
+    g_qb_spec = NULL;
     pico8_ob_table_free(g_qb_pc);
     g_qb_pc = NULL;
 }
 
-pico8_class_t *pico8_qb_class(void) {
-    return g_qb_class;
+int pico8_qb_ready(void) {
+    return g_qb_spec != NULL;
+}
+
+int pico8_qb_default(const char *name, pico8_value_t *out_value) {
+    return g_qb_spec != NULL &&
+           (pico8_ob_table_get_name(g_qb_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_qb_struct_class(void) {

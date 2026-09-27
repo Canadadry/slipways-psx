@@ -37,12 +37,16 @@ typedef struct {
 
 void pico8_jc_init(void);
 
-/* Frees the `jc` class and the module's `nu`/`k_` tables, never any `jc`.
+/* Frees the `jc` spec and the module's `nu`/`k_` tables, never any `jc`.
  * Idempotent, and safe before the first `pico8_jc_init()`. */
 void pico8_jc_shutdown(void);
 
-/* NULL before pico8_jc_init(), and again after pico8_jc_shutdown(). */
-pico8_class_t *pico8_jc_class(void);
+/* 1 from pico8_jc_init() to pico8_jc_shutdown(), 0 otherwise. */
+int pico8_jc_ready(void);
+
+/* `jc`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_jc_shutdown(). */
+int pico8_jc_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_jc_struct_class(void);
 
 /* `overrides` is read, not kept, and may hold `qu` only. The struct

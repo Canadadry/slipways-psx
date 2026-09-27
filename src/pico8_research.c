@@ -12,13 +12,13 @@
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
-static pico8_class_t *g_hp_class = NULL;
+static pico8_ob_table_t *g_hp_spec = NULL;
 static pico8_ob_table_t *g_gb = NULL;
 /* Borrowed from `fd`'s backing storage, never copied or freed here. */
 static const char *g_rr = NULL;
 
-/* `hp.mr`, `hp.gp`, `hp.fk`, read once from the class's own table at init:
- * the class's REFs, never re-parsed. Nil outside init/shutdown. */
+/* `hp.mr`, `hp.gp`, `hp.fk`, read once from hp's spec at init: the spec's
+ * REFs, never re-parsed. Nil outside init/shutdown. */
 static pico8_value_t g_mr = {PICO8_VALUE_REF, {0}};
 static pico8_value_t g_gp = {PICO8_VALUE_REF, {0}};
 static pico8_value_t g_fk = {PICO8_VALUE_REF, {0}};
@@ -262,15 +262,13 @@ void pico8_research_init(void) {
     size_t n;
 
     pico8_research_shutdown();
-    g_hp_class =
-        pico8_class_declare(NULL, "\nmr=o(\"px\",\"lr\",\"fj\",\"ja\",\"i\",\"o\",\"il\",\"dm\"),\n"
-                                   "gp=o(\"o\",\"dm\"),\n"
-                                   "fk=o(f,2),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_hp_class, "hp");
-    pico8_class_set_struct_new(g_hp_class, pico8_hp_struct_new);
+    g_hp_spec = pico8_ob("\nmr=o(\"px\",\"lr\",\"fj\",\"ja\",\"i\",\"o\",\"il\",\"dm\"),\n"
+                         "gp=o(\"o\",\"dm\"),\n"
+                         "fk=o(f,2),\n",
+                         NULL);
 
     for (n = 0; n < sizeof defaults / sizeof defaults[0]; n++) {
-        int found = pico8_ob_table_get_name(g_hp_class->defaults, defaults[n].name, defaults[n].value);
+        int found = pico8_hp_default(defaults[n].name, defaults[n].value);
         assert(found && defaults[n].value->kind == PICO8_VALUE_REF && defaults[n].value->as.ref != NULL &&
                pico8_type_tag_of(defaults[n].value->as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
                "hp: mr, gp, fk are tables of hp's spec, read by every construction and by lq");
@@ -297,14 +295,16 @@ void pico8_research_shutdown(void) {
     g_mr = pico8_value_ref(NULL);
     g_gp = pico8_value_ref(NULL);
     g_fk = pico8_value_ref(NULL);
-    if (g_hp_class != NULL) {
-        pico8_class_free(g_hp_class);
-        g_hp_class = NULL;
-    }
+    pico8_ob_table_free(g_hp_spec);
+    g_hp_spec = NULL;
 }
 
-pico8_class_t *pico8_hp_class(void) {
-    return g_hp_class;
+int pico8_hp_ready(void) {
+    return g_hp_spec != NULL;
+}
+
+int pico8_hp_default(const char *name, pico8_value_t *out_value) {
+    return g_hp_spec != NULL && pico8_ob_table_get_name(g_hp_spec, name, out_value);
 }
 
 const pico8_struct_class_t *pico8_hp_struct_class(void) {

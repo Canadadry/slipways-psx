@@ -1,6 +1,6 @@
 /* The score panel `pj`, built by its only road (`eu()`, `pico8_pj_new(NULL)`,
  * on a game started as the net starts it), read only through the dual-form
- * field API and `pico8_class_get_field(pico8_pj_class(), ...)` for spec
+ * field API and `pico8_pj_default(...)` for spec
  * defaults, and driven through the real `mv`/`cr()`/`de.my`. The frozen
  * values were taken on the code where `pj` was still a class instance (and
  * `CR_HASH` where `pj.cr` was still a table) and must not be re-taken. */
@@ -128,7 +128,7 @@ static pico8_fixed_t get_fixed(const void *e, const char *name) {
 
 static void *class_ref(const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(pico8_pj_class(), name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(pico8_pj_default(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
 
@@ -660,12 +660,12 @@ static void test_pj_is_a_struct(void) {
         }
     }
     assert(cls->field != NULL && cls->set_field == NULL);
-    assert(pico8_pj_class()->struct_new != NULL && pico8_pj_class()->pq == NULL);
+    assert(pico8_pj_ready());
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        assert(!pico8_ob_table_get_name(pico8_pj_class()->defaults, methods[i], &v));
+        assert(!pico8_pj_default(methods[i], &v));
     }
     for (i = 0; i < sizeof spec / sizeof spec[0]; i++) {
-        assert(pico8_ob_table_get_name(pico8_pj_class()->defaults, spec[i], &v));
+        assert(pico8_pj_default(spec[i], &v));
     }
     assert(pico8_pj_ou() == class_ref("ou") && pico8_pj_ea() == class_ref("ea") && pico8_pj_cr() == get_ref(ju, "cr"));
     assert(pico8_pj_i_() == class_ref("i_") && pico8_pj_gs() == class_ref("gs"));

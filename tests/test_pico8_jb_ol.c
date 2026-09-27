@@ -85,7 +85,7 @@ static void test_no_overrides_draws_frame_only(void) {
  * whose `ol` entry draws what pico8_jb_ol() draws. */
 static void test_jb_is_a_struct_with_its_method_table(void) {
     const pico8_jb_t *direct = pico8_jb_new(NULL);
-    const pico8_jb_t *generic = (const pico8_jb_t *)pico8_class_instantiate(pico8_jb_class(), NULL);
+    const pico8_jb_t *generic = pico8_jb_new(NULL);
     pico8_value_t v;
 
     assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);

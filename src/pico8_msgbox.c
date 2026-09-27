@@ -16,9 +16,9 @@
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 
-static pico8_class_t *g_mh_class = NULL;
+static pico8_ob_table_t *g_mh_spec = NULL;
 static pico8_ob_table_t *g_mh_nu = NULL;
-static pico8_class_t *g_iv_class = NULL;
+static pico8_ob_table_t *g_iv_spec = NULL;
 static pico8_mh_t *g_kc = NULL;
 
 pico8_mh_t *pico8_kc(void) {
@@ -187,9 +187,7 @@ void pico8_mh_init(void) {
     int found;
 
     pico8_mh_shutdown();
-    g_mh_class = pico8_class_declare(pico8_ke_class(), "\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n");
-    PICO8_CLASS_COVERAGE_NAME(g_mh_class, "mh");
-    pico8_class_set_struct_new(g_mh_class, pico8_mh_struct_new);
+    g_mh_spec = pico8_ob("\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n", NULL);
     spec = pico8_ob("\nnu=o(\"mh\"),\n", NULL);
     found = pico8_ob_table_get_name(spec, "nu", &nu);
     assert(found && nu.kind == PICO8_VALUE_REF && nu.as.ref != NULL);
@@ -199,17 +197,20 @@ void pico8_mh_init(void) {
 }
 
 void pico8_mh_shutdown(void) {
-    if (g_mh_class != NULL) {
-        pico8_class_free(g_mh_class);
-        g_mh_class = NULL;
-    }
+    pico8_ob_table_free(g_mh_spec);
+    g_mh_spec = NULL;
     pico8_ob_table_free(g_mh_nu);
     g_mh_nu = NULL;
     pico8_msgbox_set_kc(NULL);
 }
 
-pico8_class_t *pico8_mh_class(void) {
-    return g_mh_class;
+int pico8_mh_ready(void) {
+    return g_mh_spec != NULL;
+}
+
+int pico8_mh_default(const char *name, pico8_value_t *out_value) {
+    return g_mh_spec != NULL &&
+           (pico8_ob_table_get_name(g_mh_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 pico8_mh_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
@@ -380,20 +381,21 @@ static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
 void pico8_iv_init(void) {
     pico8_iv_shutdown();
     pico8_pi_init();
-    g_iv_class = pico8_class_declare(pico8_ke_class(), "\nfa=9,\nl=0,v=v(0,-0.34),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_iv_class, "iv");
-    pico8_class_set_struct_new(g_iv_class, pico8_iv_struct_new);
+    g_iv_spec = pico8_ob("\nfa=9,\nl=0,v=v(0,-0.34),\n", NULL);
 }
 
 void pico8_iv_shutdown(void) {
-    if (g_iv_class != NULL) {
-        pico8_class_free(g_iv_class);
-        g_iv_class = NULL;
-    }
+    pico8_ob_table_free(g_iv_spec);
+    g_iv_spec = NULL;
 }
 
-pico8_class_t *pico8_iv_class(void) {
-    return g_iv_class;
+int pico8_iv_ready(void) {
+    return g_iv_spec != NULL;
+}
+
+int pico8_iv_default(const char *name, pico8_value_t *out_value) {
+    return g_iv_spec != NULL &&
+           (pico8_ob_table_get_name(g_iv_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides) {

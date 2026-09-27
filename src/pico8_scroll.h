@@ -33,12 +33,15 @@ typedef struct {
  * camera into hv/cv/cg. */
 void pico8_qb_init(void);
 
-/* Frees the class and the `pc` table. */
+/* Frees the spec and the `pc` table. */
 void pico8_qb_shutdown(void);
 
-/* NULL before pico8_qb_init() and after pico8_qb_shutdown(). Not
- * reachable through pico8_class_lookup(). */
-pico8_class_t *pico8_qb_class(void);
+/* 1 from pico8_qb_init() to pico8_qb_shutdown(), 0 otherwise. */
+int pico8_qb_ready(void);
+
+/* `qb`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_qb_shutdown(). */
+int pico8_qb_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_qb_struct_class(void);
 
 /* `overrides` is read, not kept, and must be NULL or empty. The struct

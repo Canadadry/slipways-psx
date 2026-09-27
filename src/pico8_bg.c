@@ -14,7 +14,7 @@
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
-static pico8_class_t *g_bg_class = NULL;
+static pico8_ob_table_t *g_bg_spec = NULL;
 static pico8_ob_table_t *g_bg_pl = NULL;
 
 static int pico8_bg_to_int(pico8_fixed_t x) {
@@ -125,24 +125,24 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
  * only the plain numbers of `pl=o(...)`. */
 void pico8_bg_init(void) {
     pico8_bg_shutdown();
-    g_bg_class = pico8_class_declare(
-        pico8_ke_class(), "\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n");
-    PICO8_CLASS_COVERAGE_NAME(g_bg_class, "bg");
-    pico8_class_set_struct_new(g_bg_class, pico8_bg_struct_new);
+    g_bg_spec = pico8_ob("\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n", NULL);
     g_bg_pl = pico8_ob("0,0,0,72,73,74,75,88,89,90,91,88,91,89,91,", NULL);
 }
 
 void pico8_bg_shutdown(void) {
-    if (g_bg_class != NULL) {
-        pico8_class_free(g_bg_class);
-        g_bg_class = NULL;
-    }
+    pico8_ob_table_free(g_bg_spec);
+    g_bg_spec = NULL;
     pico8_ob_table_free(g_bg_pl);
     g_bg_pl = NULL;
 }
 
-pico8_class_t *pico8_bg_class(void) {
-    return g_bg_class;
+int pico8_bg_ready(void) {
+    return g_bg_spec != NULL;
+}
+
+int pico8_bg_default(const char *name, pico8_value_t *out_value) {
+    return g_bg_spec != NULL &&
+           (pico8_ob_table_get_name(g_bg_spec, name, out_value) || pico8_ke_default(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_bg_struct_class(void) {
@@ -239,7 +239,7 @@ pico8_value_t pico8_bg_ldown(pico8_bg_t *self, pico8_value_t mp) {
     g_tag = pico8_cg("g_");
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
-        assert(pico8_mz_class() != NULL && "pico8_wormhole_init() must run before bg:ldown builds an mz");
+        assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
         made = pico8_mz_new(NULL);
     } else {
         made = pico8_g__new(NULL);

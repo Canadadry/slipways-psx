@@ -35,11 +35,16 @@ void pico8_msgbox_set_kc(pico8_mh_t *mh);
 
 void pico8_mh_init(void);
 
-/* Frees the `mh` class and the shared `nu` table and clears `kc`, never any
+/* Frees the `mh` spec and the shared `nu` table and clears `kc`, never any
  * box. Idempotent, and safe before the first `pico8_mh_init()`. */
 void pico8_mh_shutdown(void);
 
-pico8_class_t *pico8_mh_class(void);
+/* 1 from pico8_mh_init() to pico8_mh_shutdown(), 0 otherwise. */
+int pico8_mh_ready(void);
+
+/* `mh`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_mh_shutdown(). */
+int pico8_mh_default(const char *name, pico8_value_t *out_value);
 
 /* `overrides` is read, not kept: its positional entries, `rh` and `lh`
  * only. The struct registers itself through `lt`, and nothing frees it. */
@@ -71,7 +76,13 @@ typedef struct {
 } pico8_iv_t;
 
 void pico8_iv_shutdown(void);
-pico8_class_t *pico8_iv_class(void);
+
+/* 1 from pico8_iv_init() to pico8_iv_shutdown(), 0 otherwise. */
+int pico8_iv_ready(void);
+
+/* `iv`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
+ * REF is borrowed from the spec, valid until pico8_iv_shutdown(). */
+int pico8_iv_default(const char *name, pico8_value_t *out_value);
 
 /* `overrides` is read, not kept: `ra`, `[1]` and `[2]` only. The struct
  * registers itself through `lt`, and nothing frees it. */

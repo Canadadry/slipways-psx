@@ -1,5 +1,5 @@
 /* The probe `g_`, read and written only through the dual-form field API and
- * `pico8_class_get_field(pico8_g__class(), ...)` for spec defaults, built by
+ * `pico8_g__default(...)` for spec defaults, built by
  * its three roads (`bg:ldown`, `pico8_g__new(NULL)`, `pico8_g__new` with the
  * 4 keys of probe_mm_rnd_order) and driven through the real `mv`/`dc`/`dg`.
  * Its methods are compared to the public functions. Its daughter `fv` is
@@ -124,14 +124,14 @@ static void *get_ref(const void *e, const char *name) {
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-static pico8_value_t class_value(pico8_class_t *cls, const char *name) {
+static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(cls, name, &v));
+    assert(default_of(name, &v));
     return v;
 }
 
-static void *class_ref(pico8_class_t *cls, const char *name) {
-    pico8_value_t v = class_value(cls, name);
+static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
+    pico8_value_t v = class_value(default_of, name);
     assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
@@ -318,7 +318,7 @@ static void *the_bg(void) {
 /* A probe, whatever its form: `g_`'s `nu` and `fa`=2 (an `fv` has 10). */
 static int is_probe(const void *e) {
     pico8_value_t fa;
-    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__class(), "nu") && lookup(e, "fa", &fa) &&
+    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__default, "nu") && lookup(e, "fa", &fa) &&
            fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(2);
 }
 
@@ -361,8 +361,8 @@ static uint32_t fold_probe(uint32_t h, const void *e) {
     }
     h = fold_table(h, get_ref(e, "nu"));
     h = fold_table(h, get_ref(e, "k_"));
-    assert(get_ref(e, "nu") == class_ref(pico8_g__class(), "nu"));
-    assert(get_ref(e, "k_") == class_ref(pico8_g__class(), "k_"));
+    assert(get_ref(e, "nu") == class_ref(pico8_g__default, "nu"));
+    assert(get_ref(e, "k_") == class_ref(pico8_g__default, "k_"));
     h = fnv(h, (uint32_t)size_of(e, "qy"));
     assert(size_of(e, "qy") == 0);
     for (i = 0; i < sizeof not_yet / sizeof not_yet[0]; i++) {
@@ -402,7 +402,7 @@ static void test_built(void) {
     assert(a != b && b != c && a != c);
     assert(get_ref(a, "qy") != get_ref(b, "qy") && get_ref(b, "qy") != get_ref(c, "qy"));
     assert(get(a, "fa").as.fixed == pico8_fixed_from_int(2) && get(a, "ki").as.fixed == pico8_fixed_from_int(9));
-    assert(get(a, "dw").as.fixed == class_value(pico8_g__class(), "dw").as.fixed);
+    assert(get(a, "dw").as.fixed == class_value(pico8_g__default, "dw").as.fixed);
     assert(get(c, "pn").as.fixed == pico8_fixed_from_int(7) && get(c, "t").as.fixed == pico8_fixed_from_int(3) &&
            get(c, "du").as.fixed == pico8_fixed_from_int(10) && get(c, "py").as.fixed == pico8_fixed_from_int(1));
     assert(get(b, "pn").as.fixed == pico8_fixed_from_int(3) && get(b, "t").as.fixed == pico8_fixed_from_int(0));
@@ -696,7 +696,7 @@ static void test_drag(void) {
 /* The help: `g_`'s `nu` and `fa`=10. */
 static int is_help(const void *e) {
     pico8_value_t fa;
-    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__class(), "nu") && lookup(e, "fa", &fa) &&
+    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__default, "nu") && lookup(e, "fa", &fa) &&
            fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(10);
 }
 
@@ -722,13 +722,13 @@ static void test_fv(void) {
         }
     }
     assert(fv != NULL && !is_probe(fv));
-    assert(pico8_fv_class()->parent == pico8_g__class());
-    assert(get_ref(fv, "nu") == class_ref(pico8_g__class(), "nu"));
+    assert(class_ref(pico8_fv_default, "nu") == class_ref(pico8_g__default, "nu"));
+    assert(get_ref(fv, "nu") == class_ref(pico8_g__default, "nu"));
     assert(get(fv, "fx").as.fixed == pico8_fixed_from_int(1));
     assert(is_string(fv, "dq", "ly"));
     assert(get(fv, "fa").as.fixed == pico8_fixed_from_int(10));
-    assert(get_ref(fv, "k_") == class_ref(pico8_fv_class(), "k_"));
-    assert(get_ref(fv, "k_") != class_ref(pico8_g__class(), "k_"));
+    assert(get_ref(fv, "k_") == class_ref(pico8_fv_default, "k_"));
+    assert(get_ref(fv, "k_") != class_ref(pico8_g__default, "k_"));
     assert(method(fv, "ev") == pico8_dl_dispatch);
     assert(method(fv, "mm") == pico8_g__mm);
     assert(method(fv, "hq") == pico8_bv_dispatch);
@@ -736,7 +736,7 @@ static void test_fv(void) {
     assert(method(fv, "kj") != pico8_ei_dispatch);
     assert(method(fv, "kj") == pico8_fv_kj_dispatch);
     assert(method(fv, "hd") != NULL);
-    assert(pico8_g__class()->pq == NULL);
+    assert(pico8_g__ready());
     assert(size_of(fv, "qy") >= 0);
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
     h = fnv(h, (uint32_t)rank_in(hv, fv));
@@ -853,7 +853,7 @@ static void test_g__is_a_struct(void) {
         for (i = 0; i < sizeof entries / sizeof entries[0]; i++) {
             if (j == pico8_method_of(entries[i])) {
                 assert(cls->methods[j] == fns[i]);
-                assert(!pico8_ob_table_get_name(pico8_g__class()->defaults, entries[i], &v));
+                assert(!pico8_g__default(entries[i], &v));
                 named = 1;
             }
         }
@@ -863,7 +863,7 @@ static void test_g__is_a_struct(void) {
            cls->methods[PICO8_METHOD_EV] == pico8_dl_dispatch && cls->methods[PICO8_METHOD_KJ] == pico8_ei_dispatch &&
            cls->methods[PICO8_METHOD_MM] == pico8_g__mm);
     assert(cls->field != NULL && cls->set_field != NULL);
-    assert(pico8_g__class()->struct_new != NULL && pico8_g__class()->pq == NULL);
+    assert(pico8_g__ready());
 
     must_abort(write_dw, roads[0]);
     must_abort(write_fx, roads[0]);

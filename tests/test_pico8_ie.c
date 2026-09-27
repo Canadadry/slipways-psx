@@ -316,7 +316,7 @@ static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
 
     pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)ke));
     pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(jb));
-    made = pico8_class_instantiate(pico8_ie_class(), overrides);
+    made = pico8_ie_new(overrides);
     pico8_ob_table_free(overrides);
     return made;
 }
@@ -779,7 +779,7 @@ static void build_with_ra(void *ke) {
     pico8_ob_table_set_name(overrides, "ke", pico8_value_ref(ke));
     pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(pico8_jb_new(NULL)));
     pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(NULL));
-    (void)pico8_class_instantiate(pico8_ie_class(), overrides);
+    (void)pico8_ie_new(overrides);
 }
 
 /* Built by `eu` or directly, an `ie` is a struct with its four methods; a

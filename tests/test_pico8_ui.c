@@ -1,7 +1,7 @@
 /* The click dispatcher `ui`, the singleton `ok`, built by its only road
  * (`jl()`, `pico8_ui_new(NULL)`, on a game started as the net starts it),
  * read only through the dual-form field API and
- * `pico8_class_get_field(pico8_ui_class(), ...)` for spec defaults, and
+ * `pico8_ui_default(...)` for spec defaults, and
  * driven through the real `dg`/`lj`/`ev`/`jz`/`cj`/`pz`. The frozen values
  * were taken on the code where `ui` was still a class instance and must not
  * be re-taken. */
@@ -116,7 +116,7 @@ static pico8_fixed_t get_fixed(const void *e, const char *name) {
 
 static void *class_ref(const char *name) {
     pico8_value_t v;
-    assert(pico8_class_get_field(pico8_ui_class(), name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(pico8_ui_default(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
 
@@ -705,10 +705,10 @@ static void test_ui_is_a_struct(void) {
         assert((cls->methods[j] != NULL) == (j == PICO8_METHOD_EV));
     }
     assert(cls->field != NULL && cls->set_field == NULL);
-    assert(pico8_ui_class()->struct_new != NULL && pico8_ui_class()->pq == NULL);
-    assert(!pico8_ob_table_get_name(pico8_ui_class()->defaults, "ev", &v));
+    assert(pico8_ui_ready());
+    assert(!pico8_ui_default("ev", &v));
     for (i = 0; i < sizeof spec / sizeof spec[0]; i++) {
-        assert(pico8_ob_table_get_name(pico8_ui_class()->defaults, spec[i], &v));
+        assert(pico8_ui_default(spec[i], &v));
     }
     assert((const void *)pico8_ui_hw() == class_ref("hw") && ok->hw.as.ref == class_ref("hw"));
     assert(ok->le.as.ref == class_ref("le"));
