@@ -13,7 +13,7 @@
 /* Never freed, nor is the list `ls` points at: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t ls;
+    pico8_list_t *ls;
 } pico8_jb_t;
 
 /* `items` is the cart's `self[1..n]` in ascending index order, holes

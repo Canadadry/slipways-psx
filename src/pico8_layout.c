@@ -289,7 +289,7 @@ static void pico8_jb_pq(pico8_jb_t *self, const pico8_ob_table_t *overrides) {
     *ls_heap = pico8_nv(&items, pico8_jb_pq_step, NULL);
     pico8_list_free(&items);
 
-    self->ls = pico8_value_ref(ls_heap);
+    self->ls = ls_heap;
 }
 
 /* Lua's `#self` is read here as `ls->count`: jb:pq contributes exactly one
@@ -302,10 +302,10 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pic
     pico8_list_iter_t it;
     pico8_value_t entry;
 
-    if (self == NULL || self->ls.kind != PICO8_VALUE_REF || self->ls.as.ref == NULL) {
+    if (self == NULL || self->ls == NULL) {
         return;
     }
-    ls = PICO8_REF_AS_LIST_CONST(self->ls.as.ref);
+    ls = self->ls;
 
     h = pico8_fixed_add(pico8_fixed_mul(pico8_fixed_from_int(ls->count), pico8_fixed_from_int(8)),
                          pico8_fixed_from_int(2));
@@ -473,7 +473,7 @@ static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
     }
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_jb_struct_class;
-    self->ls = pico8_value_ref(NULL);
+    self->ls = NULL;
     pico8_jb_pq(self, overrides);
     PICO8_MEMBER_CENSUS_SEE(self, pico8_jb_t);
     return self;

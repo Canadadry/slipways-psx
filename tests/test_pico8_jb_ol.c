@@ -10,6 +10,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_hud.h"
@@ -24,6 +25,8 @@
 #define DR_FIRST_ENTRY_HASH 0x8B2796B5u
 #define BARE_STRINGS_HASH 0x2B14E741u
 #define NO_OVERRIDES_HASH 0x47B9E645u
+#define DR_ALL_BY_NAME_HASH 0x71C88A4Eu
+#define MIXED_BY_NAME_HASH 0xC5324FA0u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -91,8 +94,7 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
     assert(direct->header.cls == generic->header.cls);
     assert(direct->header.cls->methods[PICO8_METHOD_OL] != NULL);
-    assert(direct->ls.kind == PICO8_VALUE_REF && pico8_type_tag_of(direct->ls.as.ref) == PICO8_TYPE_TAG_LIST &&
-           ((const pico8_list_t *)direct->ls.as.ref)->count == 0);
+    assert(direct->ls != NULL && pico8_type_tag_of(direct->ls) == PICO8_TYPE_TAG_LIST && direct->ls->count == 0);
 
     assert(pico8_ob_table_get_index(pico8_dr(), 1, &v) && v.kind == PICO8_VALUE_REF);
     pico8_dispatch_set_gfx(&gfx);
@@ -103,6 +105,57 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
                                                  pico8_value_fixed(pico8_fixed_from_int(127)),
                                                  pico8_value_fixed(pico8_fixed_from_int(1)));
     check("table ol", screen_hash(), DR_FIRST_ENTRY_HASH);
+}
+
+/* Reads `jb` only by name -- `ol` through the method table, then its
+ * pixels -- so it holds on either layout of `ls`. */
+static uint32_t draw_by_name(const pico8_ob_table_t *overrides, pico8_fixed_t om, pico8_fixed_t a) {
+    pico8_value_t out;
+    uint32_t blank;
+    uint32_t got;
+
+    pico8_gfx_init(&gfx);
+    pico8_cls(&mem);
+    blank = screen_hash();
+    assert(pico8_mv(&pico8_jb_new(overrides)->header, "ol", 2, pico8_value_fixed(om), pico8_value_fixed(a), &out));
+    got = screen_hash();
+    assert(got != blank);
+    return got;
+}
+
+static void test_jb_state_by_name(void) {
+    pico8_jb_t *jb = pico8_jb_new(NULL);
+    const pico8_struct_class_t *cls = jb->header.cls;
+    pico8_ob_table_t *mixed = pico8_ob_table_new();
+    pico8_ob_table_t *row = pico8_ob_table_new();
+    pico8_value_t v;
+    uint32_t h = 2166136261u;
+    int i;
+
+    assert(pico8_entity_get_field(jb, "ol", &v));
+    assert(v.kind == PICO8_VALUE_FUNCTION && v.as.function == cls->methods[PICO8_METHOD_OL]);
+    assert(cls->field == NULL && cls->set_field == NULL);
+
+    pico8_dispatch_set_gfx(&gfx);
+    pico8_dispatch_set_mem(&mem);
+    for (i = 1; i <= 7; i++) {
+        assert(pico8_ob_table_get_index(pico8_dr(), i, &v) && v.kind == PICO8_VALUE_REF);
+        h ^= draw_by_name(v.as.ref, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
+        h *= 16777619u;
+    }
+    printf("[dr all by name] 0x%08Xu\n", (unsigned)h);
+    fflush(stdout);
+    assert(h == DR_ALL_BY_NAME_HASH);
+
+    pico8_ob_table_set_index(row, 1, pico8_value_string("gamma"));
+    pico8_ob_table_set_index(mixed, 1, pico8_value_string("alpha"));
+    pico8_ob_table_set_index(mixed, 2, pico8_value_ref(row));
+    pico8_ob_table_set_index(mixed, 3, pico8_value_fixed(pico8_fixed_from_int(5)));
+    pico8_ob_table_set_index(mixed, 5, pico8_value_string("delta"));
+    h = draw_by_name(mixed, pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00008000, 0.5));
+    printf("[mixed by name] 0x%08Xu\n", (unsigned)h);
+    fflush(stdout);
+    assert(h == MIXED_BY_NAME_HASH);
 }
 
 int main(void) {
@@ -117,6 +170,7 @@ int main(void) {
     test_bare_strings_draw_as_before();
     test_no_overrides_draws_frame_only();
     test_jb_is_a_struct_with_its_method_table();
+    test_jb_state_by_name();
 
     printf("test_pico8_jb_ol: all tests passed\n");
     return 0;
