@@ -367,7 +367,7 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
     pico8_value_t b_val;
     pico8_value_t od_val;
     pico8_jo_t *pt = NULL;
-    pico8_instance_t *b = NULL;
+    pico8_hp_t *b = NULL;
     pico8_fixed_t od = pico8_fixed_from_int(0);
 
     (void)argc;
@@ -382,7 +382,7 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
         pt = (pico8_jo_t *)pt_val.as.ref;
     }
     if (pico8_entity_get_field(inst, "_jo_fe_b", &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
-        b = (pico8_instance_t *)b_val.as.ref;
+        b = b_val.as.ref;
     }
     if (pico8_entity_get_field(inst, "_jo_fe_od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
         od = od_val.as.fixed;
@@ -397,7 +397,7 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
 
 static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_value) {
     const pico8_jo_fe_ctx_t *ctx = (const pico8_jo_fe_ctx_t *)ctx_ptr;
-    pico8_instance_t *b;
+    pico8_hp_t *b;
     pico8_fixed_t od;
     pico8_ob_table_t *row;
     pico8_value_t lq_val;
@@ -406,12 +406,12 @@ static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_v
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
-    b = (pico8_instance_t *)e.as.ref;
+    b = e.as.ref;
     od = pico8_hp_od(b);
 
     row = pico8_ob_table_new();
 
-    if (pico8_mv(b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
+    if (pico8_mv((pico8_instance_t *)b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
         pico8_ob_table_set_name(row, "lq", lq_val);
     } else {
         assert(0 && "hp must expose \"lq\" as an mv()-dispatchable field");

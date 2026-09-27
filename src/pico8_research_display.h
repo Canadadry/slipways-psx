@@ -5,6 +5,7 @@
 #include "pico8_fixed.h"
 #include "pico8_list.h"
 #include "pico8_ob.h"
+#include "pico8_research.h"
 #include "pico8_value.h"
 
 /* TROU-7 */
@@ -12,12 +13,12 @@
  * entries appended after construction miss the `fs`/`w` `lq:pq` computed,
  * so `lq:ol` skips them -- but `js:pq` rebuilds an `lq` from this whole
  * fields table, where they do appear. */
-pico8_instance_t *pico8_hp_lq(pico8_instance_t *self);
+pico8_instance_t *pico8_hp_lq(pico8_hp_t *self);
 
 /* TROU-7 */
 /* Returns a fresh table the caller never frees, or NULL when `self.ii` is
  * truthy. Its entry 1 holds a heap string nothing ever frees either. */
-pico8_ob_table_t *pico8_hp_jb(const pico8_instance_t *self);
+pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self);
 
 /* TROU-7 */
 /* A static function of `jo`, not a method: `jo.ex(...)`, never `jo:ex(...)`.

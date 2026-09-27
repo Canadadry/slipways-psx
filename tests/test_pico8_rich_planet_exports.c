@@ -137,7 +137,7 @@ int main(void) {
     p27 = planet_by_id("p27");
     assert(p27 != NULL);
     assert(pico8_ob_table_get_name(pico8_gb(), "mine", &mine) && mine.kind == PICO8_VALUE_REF);
-    pico8_jo_lz((pico8_jo_t *)p27, (pico8_instance_t *)mine.as.ref);
+    pico8_jo_lz((pico8_jo_t *)p27, (pico8_hp_t *)mine.as.ref);
 
     mu3 = promote_and_open_panel(p27, 3, &exports3);
     mu4 = promote_and_open_panel(p27, 4, &exports4);

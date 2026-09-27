@@ -404,7 +404,7 @@ void pico8_jo_pq(pico8_jo_t *self) {
             }
         }
         if (found && target.kind == PICO8_VALUE_REF && target.as.ref != NULL) {
-            pico8_jo_lz(self, (pico8_instance_t *)target.as.ref);
+            pico8_jo_lz(self, target.as.ref);
         }
     }
 }
@@ -418,13 +418,12 @@ static int pico8_jo_lz_mw_step(pico8_value_t e, void *ctx, pico8_value_t *out_va
     return 0;
 }
 
-void pico8_jo_lz(pico8_jo_t *self, pico8_instance_t *hp_instance) {
-    pico8_value_t i_val;
-    pico8_value_t o_val;
+void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     pico8_list_t jy;
     pico8_list_t *jy_heap;
     pico8_ob_table_t *kw;
 
+    pico8_hp_assert(hp_instance);
     if (self == NULL) {
         return;
     }
@@ -433,17 +432,16 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_instance_t *hp_instance) {
     self->ep = pico8_value_ref(NULL);
 
     pico8_list_init(&jy);
-    if (hp_instance != NULL && pico8_instance_get_field(hp_instance, "i", &i_val) &&
-        i_val.kind == PICO8_VALUE_REF && i_val.as.ref != NULL) {
-        jy = pico8_nv(PICO8_REF_AS_LIST_CONST(i_val.as.ref), pico8_jo_lz_mw_step, NULL);
+    if (hp_instance != NULL && hp_instance->i.kind == PICO8_VALUE_REF && hp_instance->i.as.ref != NULL) {
+        jy = pico8_nv(PICO8_REF_AS_LIST_CONST(hp_instance->i.as.ref), pico8_jo_lz_mw_step, NULL);
     }
     jy_heap = malloc(sizeof *jy_heap);
     *jy_heap = jy;
     self->jy = pico8_value_ref(jy_heap);
 
     kw = pico8_ob_table_new();
-    if (hp_instance != NULL && pico8_instance_get_field(hp_instance, "o", &o_val)) {
-        pico8_ob_table_set_name(kw, "qe", o_val);
+    if (hp_instance != NULL && pico8_jo_present(hp_instance->o)) {
+        pico8_ob_table_set_name(kw, "qe", hp_instance->o);
     }
     pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(0)));
     self->kw = pico8_value_ref(kw);
@@ -481,19 +479,18 @@ void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t) {
     self->p_ = pico8_value_bool(t > pico8_fixed_from_int(60));
 }
 
-void pico8_jo_hu(pico8_jo_t *self, pico8_instance_t *hp_instance) {
+void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     pico8_jo_t *working_self;
     pico8_fixed_t fp = pico8_fixed_from_int(2);
-    pico8_value_t cw_val;
-    pico8_value_t go_val;
-    pico8_value_t rn_val;
 
+    pico8_hp_assert(hp_instance);
     if (self == NULL) {
         return;
     }
     working_self = self;
 
-    if (hp_instance != NULL && pico8_instance_get_field(hp_instance, "cw", &cw_val) && pico8_jo_truthy(cw_val)) {
+    if (hp_instance != NULL && pico8_jo_truthy(hp_instance->cw)) {
+        pico8_value_t cw_val = hp_instance->cw;
         pico8_class_t *target_class = NULL;
         pico8_ob_table_t *overrides;
 
@@ -517,8 +514,8 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_instance_t *hp_instance) {
         working_self =
             (target_class != NULL) ? (pico8_jo_t *)pico8_class_instantiate(target_class, overrides) : NULL;
         pico8_ob_table_free(overrides);
-    } else if (hp_instance != NULL && pico8_instance_get_field(hp_instance, "go", &go_val) &&
-               pico8_jo_truthy(go_val)) {
+    } else if (hp_instance != NULL && pico8_jo_truthy(hp_instance->go)) {
+        pico8_value_t go_val = hp_instance->go;
         pico8_value_t nk_val = pico8_value_ref(NULL);
         int found = 0;
 
@@ -545,8 +542,8 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_instance_t *hp_instance) {
 
     pico8_hy_nx(pico8_fm(), fp);
 
-    if (hp_instance != NULL && pico8_instance_get_field(hp_instance, "rn", &rn_val) && pico8_jo_truthy(rn_val)) {
-        pico8_rn(rn_val);
+    if (hp_instance != NULL && pico8_jo_truthy(hp_instance->rn)) {
+        pico8_rn(hp_instance->rn);
     } else {
         pico8_rn(pico8_value_fixed(pico8_fixed_from_int(55)));
     }

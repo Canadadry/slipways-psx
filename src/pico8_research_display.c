@@ -25,6 +25,10 @@ static int pico8_research_display_truthy(pico8_value_t v) {
     return 1;
 }
 
+static int pico8_research_display_nil(pico8_value_t v) {
+    return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
+}
+
 /* Returns a new, heap-backed list the caller owns and must release with
  * pico8_list_free(). */
 static pico8_list_t pico8_research_display_positional_values(const pico8_ob_table_t *table) {
@@ -61,8 +65,7 @@ static int pico8_research_display_count_positional(const pico8_ob_table_t *table
 
 /* Returns a newly heap-allocated, NUL-terminated string the caller owns
  * and must free(). */
-static char *pico8_hp_jb_join(const pico8_instance_t *self) {
-    pico8_value_t i_val;
+static char *pico8_hp_jb_join(const pico8_hp_t *self) {
     const pico8_list_t *i_list;
     size_t cap = 16;
     size_t len = 0;
@@ -72,10 +75,10 @@ static char *pico8_hp_jb_join(const pico8_instance_t *self) {
     pico8_value_t entry;
 
     out[0] = '\0';
-    if (!pico8_instance_get_field(self, "i", &i_val) || i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
+    if (self->i.kind != PICO8_VALUE_REF || self->i.as.ref == NULL) {
         return out;
     }
-    i_list = PICO8_REF_AS_LIST_CONST(i_val.as.ref);
+    i_list = PICO8_REF_AS_LIST_CONST(self->i.as.ref);
     it = pico8_list_all(i_list);
     while (pico8_list_iter_next(&it, &entry)) {
         pico8_value_t qe = pico8_value_ref(NULL);
@@ -111,17 +114,16 @@ static char *pico8_hp_jb_join(const pico8_instance_t *self) {
     return out;
 }
 
-pico8_ob_table_t *pico8_hp_jb(const pico8_instance_t *self) {
-    pico8_value_t ii_val;
+pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self) {
     char *it;
     pico8_ob_table_t *inner;
     pico8_ob_table_t *outer;
-    pico8_value_t o_val;
 
+    pico8_hp_assert(self);
     if (self == NULL) {
         return NULL;
     }
-    if (pico8_instance_get_field(self, "ii", &ii_val) && pico8_research_display_truthy(ii_val)) {
+    if (pico8_research_display_truthy(self->ii)) {
         return NULL;
     }
 
@@ -131,8 +133,8 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_instance_t *self) {
     pico8_ob_table_set_index(inner, 1, pico8_value_string(it));
     pico8_ob_table_set_index(inner, 2, pico8_value_fixed(pico8_fixed_from_int(13)));
 
-    if (pico8_instance_get_field(self, "o", &o_val)) {
-        char *o_str = pico8_value_tostr(o_val);
+    if (!pico8_research_display_nil(self->o)) {
+        char *o_str = pico8_value_tostr(self->o);
         pico8_value_t iz_o;
 
         if (pico8_ob_table_get_name(pico8_iz(), o_str, &iz_o)) {
@@ -275,27 +277,21 @@ pico8_instance_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fix
     return result;
 }
 
-pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
-    pico8_value_t i_val;
-    pico8_value_t o_val;
+pico8_instance_t *pico8_hp_lq(pico8_hp_t *self) {
     pico8_value_t po1;
     pico8_fixed_t jq;
     const pico8_list_t *is = NULL;
     const pico8_ob_table_t *po;
     pico8_instance_t *l;
-    pico8_value_t fk_val;
-    pico8_value_t px_val;
     int next_index;
 
+    pico8_hp_assert(self);
     if (self == NULL || pico8_hp_class() == NULL) {
         return NULL;
     }
 
-    if (pico8_instance_get_field(self, "i", &i_val) && i_val.kind == PICO8_VALUE_REF && i_val.as.ref != NULL) {
-        is = PICO8_REF_AS_LIST_CONST(i_val.as.ref);
-    }
-    if (!pico8_instance_get_field(self, "o", &o_val)) {
-        o_val = pico8_value_ref(NULL);
+    if (self->i.kind == PICO8_VALUE_REF && self->i.as.ref != NULL) {
+        is = PICO8_REF_AS_LIST_CONST(self->i.as.ref);
     }
 
     po = pico8_hp_po(self);
@@ -304,17 +300,17 @@ pico8_instance_t *pico8_hp_lq(pico8_instance_t *self) {
         jq = (po1.as.fixed > pico8_fixed_from_int(1)) ? po1.as.fixed : pico8_fixed_from_int(1);
     }
 
-    l = pico8_jo_ex(is, o_val, jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
+    l = pico8_jo_ex(is, self->o, jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }
 
     next_index = pico8_research_display_count_positional(pico8_instance_fields(l)) + 1;
-    if (pico8_ob_table_get_name(pico8_hp_class()->defaults, "fk", &fk_val)) {
-        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, fk_val);
+    if (!pico8_research_display_nil(pico8_hp_fk())) {
+        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, pico8_hp_fk());
     }
-    if (pico8_instance_get_field(self, "px", &px_val)) {
-        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, px_val);
+    if (!pico8_research_display_nil(self->px)) {
+        pico8_ob_table_set_index(pico8_instance_fields(l), next_index++, self->px);
     }
 
     return l;
@@ -329,9 +325,7 @@ typedef struct {
  * plain char comparison here -- no string identity involved. */
 static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     pico8_bj_ctx_t *ctx = ctx_ptr;
-    pico8_instance_t *b;
-    pico8_value_t rr_val;
-    pico8_value_t lr_val;
+    const pico8_hp_t *b;
     pico8_value_t nk_val;
     pico8_value_t px_val;
     const char *px_str = NULL;
@@ -341,11 +335,9 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
     b = e.as.ref;
+    pico8_hp_assert(b);
 
-    if (!pico8_instance_get_field(b, "rr", &rr_val)) {
-        rr_val = pico8_value_ref(NULL);
-    }
-    if (!pico8_oj(rr_val)) {
+    if (!pico8_oj(b->rr)) {
         return 0;
     }
 
@@ -356,14 +348,13 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
         px_str = px_val.as.string;
     }
 
-    if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' &&
-        pico8_instance_get_field(b, "lr", &lr_val) && lr_val.kind == PICO8_VALUE_STRING &&
-        lr_val.as.string != NULL) {
-        size_t n = strlen(lr_val.as.string);
+    if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' && b->lr.kind == PICO8_VALUE_STRING &&
+        b->lr.as.string != NULL) {
+        size_t n = strlen(b->lr.as.string);
         size_t i;
 
         for (i = 0; i < n; i++) {
-            if (lr_val.as.string[i] == px_str[0]) {
+            if (b->lr.as.string[i] == px_str[0]) {
                 mg = 1;
                 break;
             }

@@ -35,6 +35,7 @@
 #include "../src/pico8_menu.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_research.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_type_tag.h"
@@ -195,6 +196,19 @@ static uint32_t fn_index(pico8_value_function_t fn) {
     return (uint32_t)seen_count++;
 }
 
+/* A research project folds by the tag of the class-instance form these
+ * values were frozen on, whatever its form now. */
+static int in_gb(const void *e) {
+    const pico8_ob_table_t *gb = pico8_gb();
+    int i;
+    for (i = 0; gb != NULL && i < gb->count; i++) {
+        if (gb->entries[i].value.kind == PICO8_VALUE_REF && gb->entries[i].value.as.ref == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -211,6 +225,9 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (listed(pico8_hv(), v.as.ref)) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
+        }
+        if (in_gb(v.as.ref)) {
+            return fnv(fnv(h, 0xEEEEu), (uint32_t)PICO8_TYPE_TAG_INSTANCE);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:

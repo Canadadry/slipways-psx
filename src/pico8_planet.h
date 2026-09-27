@@ -6,6 +6,7 @@
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_ob.h"
+#include "pico8_research.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -106,7 +107,7 @@ pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pic
 pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 /* TROU-7 */
-void pico8_jo_lz(pico8_jo_t *self, pico8_instance_t *hp_instance);
+void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
 /* TROU-3 */
 /* Returns `self.hf` itself when that field is falsy (Lua's `A and B`), a
@@ -122,7 +123,7 @@ void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t);
 /* In the `hp.cw` branch `self` is marked for removal and the tail of the
  * work lands on a fresh instance the caller never sees -- or on nothing,
  * when no class is registered under `hp.cw`. */
-void pico8_jo_hu(pico8_jo_t *self, pico8_instance_t *hp_instance);
+void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
 void pico8_jo_hh(pico8_jo_t *self);
 
