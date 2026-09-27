@@ -47,6 +47,20 @@
 #                       qu'e2e-fast ne couvre pas, moins
 #                       tools/line_coverage_unreachable.txt ; échoue tant que
 #                       l'écart n'est pas nul, hors suite
+# make minimize EVENTS=<events> OUT=<sortie> -> minimise ce rejeu (joué depuis
+#                       l'écran titre, SHORTCUT=1 pour le raccourci) : étage
+#                       mécanique (tools/minimize.sh), puis passe guidée tant
+#                       que la couverture de lignes reste celle de l'entrée,
+#                       un rejeu gcov par candidat, lent ; MECHANICAL=1 :
+#                       l'étage mécanique seul ; MIN_CHUNK=<n> : tranches
+#                       d'au moins n frames ; hors suite
+# make e2e-cleanup   -> la passe de nettoyage finale sur tests/e2e/ : liste,
+#                       du plus long au plus court, les e2e dont les lignes
+#                       sont couvertes par les autres restants ; ne supprime
+#                       rien, hors suite
+# make e2e-judge EVENTS=<events> -> les lignes que ce rejeu (depuis le titre)
+#                       ajoute aux e2e de tests/e2e/ ; échoue s'il n'en ajoute
+#                       aucune, hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
@@ -351,6 +365,15 @@ $(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR
 $(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_e2e_cleanup: $(call objs,tests/test_e2e_cleanup.c) tools/e2e_cleanup.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/pico8_minimize: $(call objs,src/main_minimize.c src/pico8_minimize.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_pico8_minimize: $(call objs,tests/test_pico8_minimize.c src/pico8_minimize.c src/pico8_input.c) $(TMP_DIR)/pico8_minimize tools/minimize.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -515,6 +538,8 @@ UNIT_TESTS := \
     test_class_coverage \
     test_line_coverage \
     test_e2e_limits \
+    test_pico8_minimize \
+    test_e2e_cleanup \
     test_float_guard \
     test_float_grep \
     test_float_link \
@@ -802,6 +827,44 @@ e2e-gap: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REF
 	@echo "écart: nul -- e2e-fast couvre toute la référence hors $(LINE_COVERAGE_UNREACHABLE)"
 
 .PHONY: line-coverage line-coverage-contrib line-coverage-reference-check e2e-gap
+
+ifneq ($(filter minimize,$(MAKECMDGOALS)),)
+    ifeq ($(and $(strip $(EVENTS)),$(strip $(OUT))),)
+        $(error EVENTS ou OUT manque : make minimize EVENTS=<events.json> OUT=<sortie.json>)
+    endif
+endif
+ifneq ($(filter e2e-judge,$(MAKECMDGOALS)),)
+    ifeq ($(strip $(EVENTS)),)
+        $(error EVENTS manque : make e2e-judge EVENTS=<events.json>)
+    endif
+endif
+
+# Le rejeu d'un fichier à minimiser part de l'écran titre, comme tout
+# nouvel e2e ; SHORTCUT=1 garde le raccourci de difficulté.
+MINIMIZE_ORACLE := $(LINE_COVERAGE_COVER) $(if $(SHORTCUT),,--from-title)
+
+minimize: $(TMP_DIR)/pico8_minimize $(TMP_DIR)/pico8_replay_gcov tools/minimize.sh tools/line_coverage.sh
+	@sh tools/minimize.sh ./$(TMP_DIR)/pico8_minimize $(if $(MIN_CHUNK),--min-chunk $(MIN_CHUNK)) $(EVENTS) $(OUT) $(if $(MECHANICAL),,$(MINIMIZE_ORACLE))
+	@echo "minimize: $(EVENTS) -> $(OUT), $$(./$(TMP_DIR)/pico8_minimize count $(OUT)) frame(s)"
+
+E2E_CLEANUP_DIR := $(TMP_DIR)/e2e_cleanup
+
+e2e-cleanup: $(TMP_DIR)/pico8_minimize $(TMP_DIR)/pico8_replay_gcov tools/e2e_cleanup.sh tools/line_coverage.sh
+	@rm -rf $(E2E_CLEANUP_DIR) && mkdir -p $(E2E_CLEANUP_DIR)
+	@$(foreach e,$(E2E_FAST_EVENTS),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(e)) > $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines && ) true
+	@$(if $(E2E_FAST_EVENTS),sh tools/e2e_cleanup.sh $(foreach e,$(E2E_FAST_EVENTS),$(e) $$(./$(TMP_DIR)/pico8_minimize count $(e)) $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines),:) > $(E2E_CLEANUP_DIR)/remove.txt
+	@sed 's/^/à retirer: /' $(E2E_CLEANUP_DIR)/remove.txt
+	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') fichier(s) à retirer sur $(words $(E2E_FAST_EVENTS)), rien n'est supprimé"
+
+e2e-judge: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
+	@$(LINE_COVERAGE_COVER) $(if $(SHORTCUT),,--from-title) $(EVENTS) > $(TMP_DIR)/e2e_judge_self.txt
+	@$(if $(filter-out $(EVENTS),$(E2E_FAST_EVENTS)),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(filter-out $(EVENTS),$(E2E_FAST_EVENTS))),:) > $(TMP_DIR)/e2e_judge_others.txt
+	@$(LINE_COVERAGE) contrib $(TMP_DIR)/e2e_judge_self.txt $(TMP_DIR)/e2e_judge_others.txt > $(TMP_DIR)/e2e_judge_contrib.txt
+	@n=$$(wc -l < $(TMP_DIR)/e2e_judge_contrib.txt | tr -d ' '); \
+	echo "e2e-judge: $(EVENTS) ajoute $$n ligne(s) à e2e-fast, dans $(TMP_DIR)/e2e_judge_contrib.txt"; \
+	[ "$$n" -gt 0 ]
+
+.PHONY: minimize e2e-cleanup e2e-judge
 
 # Les sources du cœur, où le comparateur lit les appels PICO8_FIXED_LIT.
 constants-check: tools/constants_check.sh tools/constants_compare.sh tools/constants_expected_ecarts.txt tools/probe_out.txt src/pico8_fixed.c src/pico8_fixed.h $(CORE_SRCS) | $(TMP_DIR)
