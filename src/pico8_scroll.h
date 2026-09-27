@@ -8,21 +8,22 @@
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 /* Throughout this module a NULL struct, `gfx` or `input` argument is a
- * safe no-op, and a nil or wrong-kind vector member reads as the zero
- * vector rather than crashing. */
+ * safe no-op, and a nil (NULL) vector member reads as the zero vector
+ * rather than crashing. */
 
 /* `v`, `p` and `ra` start on vectors every qb shares, `pc` on the
  * direction table the module owns: none is ever modified in place, only
  * rebound. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t v;
-    pico8_value_t ma;
-    pico8_value_t p;
-    pico8_value_t ra;
-    pico8_value_t pc;
+    pico8_vec_t *v;
+    pico8_fixed_t ma;
+    pico8_vec_t *p;
+    pico8_vec_t *ra;
+    pico8_ob_table_t *pc;
 } pico8_qb_t;
 
 /* Calls pico8_pi_init() first: the spec holds `v(...)`, so the 'v'

@@ -47,6 +47,7 @@
 #define GEOHARVEST_GA_FRAME 205
 #define GEOHARVEST_WINDOW 60
 #define GEOHARVEST_HASH 0x38A9D79Du
+#define QB_MEMBERS_HASH 0x5D708DDBu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -488,6 +489,319 @@ static void test_qb_is_a_struct(void) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
+
+#define WITNESS 0x1234
+
+static int same_value(pico8_value_t a, pico8_value_t b) {
+    if (a.kind != b.kind) {
+        return 0;
+    }
+    switch (a.kind) {
+    case PICO8_VALUE_FIXED:
+        return a.as.fixed == b.as.fixed;
+    case PICO8_VALUE_BOOL:
+        return a.as.boolean == b.as.boolean;
+    case PICO8_VALUE_STRING:
+        return strcmp(a.as.string, b.as.string) == 0;
+    case PICO8_VALUE_FUNCTION:
+        return a.as.function == b.as.function;
+    default:
+        return a.as.ref == b.as.ref;
+    }
+}
+
+/* The raw reader and pico8_entity_get_field must agree; on 0 both leave
+ * the witness untouched. */
+static int get2(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(WITNESS);
+    pico8_value_t via = pico8_value_fixed(WITNESS);
+    int r = pico8_qb_struct_class()->field(e, name, &raw);
+    int g = pico8_entity_get_field(e, name, &via);
+
+    assert(r == g);
+    if (!r) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS);
+        assert(via.kind == PICO8_VALUE_FIXED && via.as.fixed == WITNESS);
+        return 0;
+    }
+    assert(same_value(raw, via));
+    *out = raw;
+    return 1;
+}
+
+static const void *ref2(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(get2(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
+    pico8_value_t v;
+
+    if (!get2(e, name, &v)) {
+        return fnv(h, 0xDEADu);
+    }
+    h = fnv(h, (uint32_t)v.kind);
+    if (v.kind == PICO8_VALUE_FIXED) {
+        return fnv(h, (uint32_t)v.as.fixed);
+    }
+    if (v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN) {
+        const pico8_vec_t *p = v.as.ref;
+        h = fnv(h, (uint32_t)p->x);
+        return fnv(h, (uint32_t)p->y);
+    }
+    if (v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
+        return fnv(h, (uint32_t)((const pico8_ob_table_t *)v.as.ref)->count);
+    }
+    return h;
+}
+
+static uint32_t fold_all(uint32_t h, const void *e) {
+    const char *names[] = {"v", "ma", "p", "ra", "pc", "me", "t"};
+    int i;
+
+    for (i = 0; i < 7; i++) {
+        h = fold_member(h, e, names[i]);
+    }
+    return h;
+}
+
+typedef struct {
+    int has_v;
+    const void *v;
+    pico8_value_t ma;
+    const void *p;
+    const void *ra;
+    int has_pc;
+    const void *pc;
+} qb_seen_t;
+
+static qb_seen_t seen(const void *e) {
+    qb_seen_t s;
+    pico8_value_t x;
+
+    s.has_v = get2(e, "v", &x);
+    s.v = s.has_v ? x.as.ref : NULL;
+    assert(get2(e, "ma", &s.ma));
+    s.p = ref2(e, "p");
+    s.ra = ref2(e, "ra");
+    s.has_pc = get2(e, "pc", &x);
+    s.pc = s.has_pc ? x.as.ref : NULL;
+    return s;
+}
+
+static void same_but_v(qb_seen_t a, qb_seen_t b) {
+    assert(same_value(a.ma, b.ma) && a.p == b.p && a.ra == b.ra && a.has_pc == b.has_pc && a.pc == b.pc);
+}
+
+static void same_but_ma(qb_seen_t a, qb_seen_t b) {
+    assert(a.has_v == b.has_v && a.v == b.v && a.p == b.p && a.ra == b.ra && a.has_pc == b.has_pc && a.pc == b.pc);
+}
+
+static pico8_value_t heap_vec(int x, int y) {
+    pico8_vec_t *v = malloc(sizeof *v);
+    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    return pico8_value_ref(v);
+}
+
+static void must_abort(void *e, const char *name) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        pico8_entity_set_field(e, name, pico8_value_fixed(pico8_fixed_from_int(1)));
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* Every member by name on `jl()`'s `mo` and a second qb: shared defaults,
+ * `v` written nil then a vector, `ma` written a zero-union fixed, `ph` over
+ * a nil `v`, the raw writer on names it does not write, `pc` absent when
+ * the module table is gone. */
+static void test_qb_members_by_name(void) {
+    const char *intruders[] = {"", "V", "x", "q", "has_v", "has_ma", "ke", "header", "pa", "m"};
+    const char *unwritten[] = {"p", "ra", "pc", "me", "t", "", "V", "ma ", "has_v"};
+    const pico8_struct_set_field_fn raw_set = pico8_qb_struct_class()->set_field;
+    uint32_t h = 2166136261u;
+    pico8_value_t x;
+    pico8_value_t spec_pc;
+    pico8_value_t zero_fixed;
+    pico8_value_t va;
+    pico8_value_t vb;
+    qb_seen_t s0;
+    qb_seen_t s1;
+    const void *shared_v;
+    void *a;
+    void *b;
+    void *c;
+    unsigned i;
+    pico8_value_t out;
+
+    pico8_jl();
+    unscript();
+    a = pico8_mo();
+    b = pico8_qb_new(NULL);
+    h = fold_all(h, a);
+    h = fold_all(h, b);
+    assert(ref2(a, "v") == ref2(b, "v") && ref2(a, "p") == ref2(b, "p"));
+    assert(ref2(a, "ra") == ref2(b, "ra") && ref2(a, "pc") == ref2(b, "pc"));
+    assert(ref2(a, "p") != ref2(a, "ra"));
+    assert(pico8_qb_default("pc", &spec_pc) && spec_pc.kind == PICO8_VALUE_REF);
+    assert(spec_pc.as.ref != ref2(a, "pc"));
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        h = fnv(h, (uint32_t)get2(b, intruders[i], &x));
+    }
+    shared_v = ref2(a, "v");
+
+    s0 = seen(b);
+    va = heap_vec(3, 4);
+    pico8_entity_set_field(b, "v", va);
+    assert(ref2(b, "v") == va.as.ref);
+    same_but_v(s0, seen(b));
+    h = fold_member(h, b, "v");
+    h = fnv(h, (uint32_t)raw_set(b, "v", pico8_value_ref(NULL)));
+    assert(!get2(b, "v", &x));
+    h = fnv(h, (uint32_t)raw_set(b, "v", pico8_value_ref(NULL)));
+    assert(!get2(b, "v", &x));
+    same_but_v(s0, seen(b));
+    vb = heap_vec(-2, 5);
+    pico8_entity_set_field(b, "v", vb);
+    assert(ref2(b, "v") == vb.as.ref);
+    same_but_v(s0, seen(b));
+    h = fold_member(h, b, "v");
+    assert(ref2(a, "v") == shared_v);
+
+    s0 = seen(b);
+    pico8_entity_set_field(b, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
+    h = fold_member(h, b, "ma");
+    same_but_ma(s0, seen(b));
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    h = fnv(h, (uint32_t)raw_set(b, "ma", zero_fixed));
+    assert(get2(b, "ma", &x) && x.kind == PICO8_VALUE_FIXED && x.as.fixed == 0);
+    h = fold_member(h, b, "ma");
+    pico8_entity_set_field(b, "ma", pico8_value_fixed(pico8_fixed_from_int(-1)));
+    h = fold_member(h, b, "ma");
+    pico8_entity_set_field(b, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
+    h = fold_member(h, b, "ma");
+    same_but_ma(s0, seen(b));
+
+    raw_set(b, "v", pico8_value_ref(NULL));
+    s0 = seen(b);
+    assert(!s0.has_v);
+    assert(pico8_mv(b, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    s1 = seen(b);
+    assert(s1.has_v && s1.v != shared_v && s1.v != vb.as.ref);
+    assert(s1.p != s0.p && s1.ra != s0.ra && s1.p != s1.ra && s1.pc == s0.pc);
+    assert(s1.ma.as.fixed < pico8_fixed_from_int(3) && s1.ma.as.fixed > 0);
+    h = fold_all(h, b);
+    assert(pico8_mv(b, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    s0 = seen(b);
+    assert(s0.v != s1.v && s0.p != s1.p && s0.ra != s1.ra);
+    h = fold_all(h, b);
+
+    s0 = seen(b);
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        int r = raw_set(b, unwritten[i], pico8_value_fixed(pico8_fixed_from_int(1)));
+        assert(r == 0);
+        h = fnv(h, (uint32_t)r);
+    }
+    s1 = seen(b);
+    same_but_v(s0, s1);
+    same_but_ma(s0, s1);
+    h = fold_all(h, b);
+    must_abort(b, "ra");
+    must_abort(b, "pc");
+
+    pico8_qb_shutdown();
+    c = pico8_qb_new(NULL);
+    assert(!get2(c, "pc", &x));
+    h = fold_all(h, c);
+    pico8_jl();
+    check("qb members", h, QB_MEMBERS_HASH);
+}
+
+static void write_v_by_name(void *e, pico8_value_t v) {
+    pico8_entity_set_field(e, "v", v);
+}
+
+static void write_ma_by_name(void *e, pico8_value_t v) {
+    pico8_entity_set_field(e, "ma", v);
+}
+
+static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(e, v);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* `v` takes nil or a vector only, `ma` a fixed only -- nil included, `ma`
+ * has no nil state; a value whose whole union is zero is not nil unless it
+ * is a REF. */
+static void test_qb_writer_stops_off_row(void) {
+    pico8_value_t zero_fixed;
+    pico8_value_t zero_false;
+    pico8_value_t zero_string;
+    pico8_value_t zero_function;
+    pico8_value_t zero_ref;
+    pico8_value_t ph;
+    void *a;
+    void *b;
+
+    pico8_jl();
+    a = pico8_mo();
+    b = pico8_qb_new(NULL);
+    assert(pico8_entity_get_field(b, "ph", &ph) && ph.kind == PICO8_VALUE_FUNCTION);
+    memset(&zero_fixed, 0, sizeof zero_fixed);
+    zero_fixed.kind = PICO8_VALUE_FIXED;
+    memset(&zero_false, 0, sizeof zero_false);
+    zero_false.kind = PICO8_VALUE_BOOL;
+    memset(&zero_string, 0, sizeof zero_string);
+    zero_string.kind = PICO8_VALUE_STRING;
+    memset(&zero_function, 0, sizeof zero_function);
+    zero_function.kind = PICO8_VALUE_FUNCTION;
+    memset(&zero_ref, 0, sizeof zero_ref);
+    zero_ref.kind = PICO8_VALUE_REF;
+
+    must_abort_value(b, write_v_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
+    must_abort_value(b, write_v_by_name, zero_fixed);
+    must_abort_value(b, write_v_by_name, zero_false);
+    must_abort_value(b, write_v_by_name, zero_string);
+    must_abort_value(b, write_v_by_name, zero_function);
+    must_abort_value(b, write_v_by_name, pico8_value_bool(1));
+    must_abort_value(b, write_v_by_name, pico8_value_string("x"));
+    must_abort_value(b, write_v_by_name, ph);
+    must_abort_value(b, write_v_by_name, pico8_value_ref((void *)ref_of(b, "pc")));
+    must_abort_value(b, write_v_by_name, pico8_value_ref((void *)pico8_hv()));
+    must_abort_value(b, write_v_by_name, pico8_value_ref(a));
+
+    must_abort_value(b, write_ma_by_name, zero_ref);
+    must_abort_value(b, write_ma_by_name, pico8_value_ref(NULL));
+    must_abort_value(b, write_ma_by_name, zero_false);
+    must_abort_value(b, write_ma_by_name, zero_string);
+    must_abort_value(b, write_ma_by_name, zero_function);
+    must_abort_value(b, write_ma_by_name, pico8_value_bool(1));
+    must_abort_value(b, write_ma_by_name, pico8_value_string("x"));
+    must_abort_value(b, write_ma_by_name, heap_vec(1, 1));
+    must_abort_value(b, write_ma_by_name, pico8_value_ref(a));
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -509,6 +823,8 @@ int main(void) {
     test_second_jl();
     test_placeholder_mo();
     test_qb_is_a_struct();
+    test_qb_members_by_name();
+    test_qb_writer_stops_off_row();
 
     printf("test_pico8_qb: all tests passed\n");
     return 0;

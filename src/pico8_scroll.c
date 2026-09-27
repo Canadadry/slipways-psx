@@ -17,10 +17,10 @@ static pico8_vec_t g_qb_v = {0, 0};
 static pico8_vec_t g_qb_p = {0, 0};
 static pico8_vec_t g_qb_ra = {0, 0};
 
-/* Nil and wrong-kind both read as the zero vector. */
-static pico8_vec_t pico8_qb_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
+/* NULL reads as the zero vector. */
+static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
+    if (v != NULL) {
+        return *v;
     }
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
@@ -47,26 +47,58 @@ static pico8_value_t pico8_qb_md_dispatch(void *self, int argc, pico8_value_t ar
 
 static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_qb_t *qb = self;
-    pico8_value_t value;
 
     if (strcmp(name, "v") == 0) {
-        value = qb->v;
-    } else if (strcmp(name, "ma") == 0) {
-        value = qb->ma;
-    } else if (strcmp(name, "p") == 0) {
-        value = qb->p;
-    } else if (strcmp(name, "ra") == 0) {
-        value = qb->ra;
-    } else if (strcmp(name, "pc") == 0) {
-        value = qb->pc;
-    } else {
-        return pico8_ke_field(self, name, out_value);
+        if (qb->v == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(qb->v);
+        return 1;
     }
+    if (strcmp(name, "ma") == 0) {
+        *out_value = pico8_value_fixed(qb->ma);
+        return 1;
+    }
+    if (strcmp(name, "p") == 0) {
+        if (qb->p == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(qb->p);
+        return 1;
+    }
+    if (strcmp(name, "ra") == 0) {
+        if (qb->ra == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(qb->ra);
+        return 1;
+    }
+    if (strcmp(name, "pc") == 0) {
+        if (qb->pc == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(qb->pc);
+        return 1;
+    }
+    return pico8_ke_field(self, name, out_value);
+}
+
+static void qb_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return 0;
+        return;
     }
-    *out_value = value;
-    return 1;
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "qb.v: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void qb_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "qb.ma: a write that is not a fixed is off its census row (fixe, never nil) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
 }
 
 /* `ma` (ma(), ga:pq) and `v` (bg:hq): the only names a generic writer ever
@@ -74,14 +106,15 @@ static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out
 static int pico8_qb_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_qb_t *qb = self;
 
-    if (strcmp(name, "ma") == 0) {
-        qb->ma = value;
-    } else if (strcmp(name, "v") == 0) {
-        qb->v = value;
-    } else {
-        return 0;
+    if (strcmp(name, "v") == 0) {
+        qb_take_vec(value, &qb->v);
+        return 1;
     }
-    return 1;
+    if (strcmp(name, "ma") == 0) {
+        qb_take_fixed(value, &qb->ma);
+        return 1;
+    }
+    return 0;
 }
 
 static const pico8_struct_class_t g_qb_struct_class = {
@@ -94,11 +127,11 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
     pico8_qb_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_qb_struct_class);
-    self->v = pico8_value_ref(&g_qb_v);
-    self->ma = pico8_value_fixed(0);
-    self->p = pico8_value_ref(&g_qb_p);
-    self->ra = pico8_value_ref(&g_qb_ra);
-    self->pc = pico8_value_ref(g_qb_pc);
+    self->v = &g_qb_v;
+    self->ma = pico8_fixed_from_int(0);
+    self->p = &g_qb_p;
+    self->ra = &g_qb_ra;
+    self->pc = g_qb_pc;
     assert((overrides == NULL || overrides->count == 0) &&
            "qb: no construction table was measured; a key would be a field under no rule of plan-3 section 5 "
            "-- stop, do not add a member");
@@ -161,9 +194,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
         return;
     }
 
-    if (self->pc.kind == PICO8_VALUE_REF && self->pc.as.ref != NULL) {
-        pc_table = (const pico8_ob_table_t *)self->pc.as.ref;
-    }
+    pc_table = self->pc;
 
     for (b = 0; b <= 3; b++) {
         int btn_p1 = pico8_btn(input, b);
@@ -195,12 +226,12 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     *p_new = p;
     v_new = malloc(sizeof *v_new);
     *v_new = v;
-    self->p = pico8_value_ref(p_new);
-    self->v = pico8_value_ref(v_new);
+    self->p = p_new;
+    self->v = v_new;
 
     ra_new = malloc(sizeof *ra_new);
     *ra_new = pico8_ma(p, (pico8_struct_header_t *)self);
-    self->ra = pico8_value_ref(ra_new);
+    self->ra = ra_new;
 }
 
 void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy) {
