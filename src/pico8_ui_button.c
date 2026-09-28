@@ -1,7 +1,6 @@
 #include "pico8_ui_button.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -94,53 +93,255 @@ static pico8_value_t pico8_js_ldown_dispatch(void *self, int argc, pico8_value_t
     return pico8_js_ldown(self);
 }
 
-static const struct {
-    const char *name;
-    size_t offset;
-} g_js_members[] = {
-    {"fa", offsetof(pico8_js_t, fa)},
-    {"lq", offsetof(pico8_js_t, lq)},
-    {"mb", offsetof(pico8_js_t, mb)},
-    {"kq", offsetof(pico8_js_t, kq)},
-    {"h_", offsetof(pico8_js_t, h_)},
-    {"jb", offsetof(pico8_js_t, jb)},
-    {"ra", offsetof(pico8_js_t, ra)},
-    {"qf", offsetof(pico8_js_t, qf)},
-    {"my", offsetof(pico8_js_t, my)},
-    {"m_", offsetof(pico8_js_t, m_)},
-    {"hb", offsetof(pico8_js_t, hb)},
-    {"fg", offsetof(pico8_js_t, fg)},
-    {"px", offsetof(pico8_js_t, px)},
-    {"trade", offsetof(pico8_js_t, trade)},
-    {"en", offsetof(pico8_js_t, en)},
-    {"_cr_t", offsetof(pico8_js_t, _cr_t)},
-    {"_jo_fe_pt", offsetof(pico8_js_t, _jo_fe_pt)},
-    {"_jo_fe_b", offsetof(pico8_js_t, _jo_fe_b)},
-    {"_jo_fe_od", offsetof(pico8_js_t, _jo_fe_od)},
-};
-
-/* The member named `name`, or NULL when a `js` has none. */
-static pico8_value_t *pico8_js_member(const pico8_js_t *js, const char *name) {
-    size_t i;
-    for (i = 0; i < sizeof g_js_members / sizeof g_js_members[0]; i++) {
-        if (strcmp(name, g_js_members[i].name) == 0) {
-            return (pico8_value_t *)((const char *)js + g_js_members[i].offset);
-        }
+pico8_value_t pico8_js_h_(const pico8_js_t *self) {
+    if (self == NULL || !self->has_h_) {
+        return pico8_value_ref(NULL);
     }
-    return NULL;
+    if (self->h_ == NULL) {
+        return pico8_value_bool(0);
+    }
+    return pico8_value_ref(self->h_);
+}
+
+pico8_value_t pico8_js_my(const pico8_js_t *self) {
+    if (self == NULL || !self->has_my) {
+        return pico8_value_ref(NULL);
+    }
+    if (self->my == NULL) {
+        return pico8_value_bool(0);
+    }
+    return pico8_value_function(self->my);
+}
+
+static int js_ref_field(void *ref, pico8_value_t *out_value) {
+    if (ref == NULL) {
+        return 0;
+    }
+    *out_value = pico8_value_ref(ref);
+    return 1;
+}
+
+static int js_fixed_field(pico8_fixed_t fixed, int has, pico8_value_t *out_value) {
+    if (!has) {
+        return 0;
+    }
+    *out_value = pico8_value_fixed(fixed);
+    return 1;
+}
+
+static int js_value_field(pico8_value_t v, pico8_value_t *out_value) {
+    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
+        return 0;
+    }
+    *out_value = v;
+    return 1;
 }
 
 static int pico8_js_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_value_t *member = pico8_js_member(self, name);
+    const pico8_js_t *js = self;
 
-    if (member == NULL) {
-        return pico8_ke_field(self, name, out_value);
+    if (strcmp(name, "fa") == 0) {
+        *out_value = pico8_value_fixed(js->fa);
+        return 1;
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
+    if (strcmp(name, "lq") == 0) {
+        return js_ref_field(js->lq, out_value);
     }
-    *out_value = *member;
-    return 1;
+    if (strcmp(name, "mb") == 0) {
+        *out_value = pico8_value_fixed(js->mb);
+        return 1;
+    }
+    if (strcmp(name, "kq") == 0) {
+        return js_ref_field(js->kq, out_value);
+    }
+    if (strcmp(name, "h_") == 0) {
+        return js_value_field(pico8_js_h_(js), out_value);
+    }
+    if (strcmp(name, "jb") == 0) {
+        return js_ref_field(js->jb, out_value);
+    }
+    if (strcmp(name, "ra") == 0) {
+        return js_ref_field(js->ra, out_value);
+    }
+    if (strcmp(name, "qf") == 0) {
+        return js_ref_field(js->qf, out_value);
+    }
+    if (strcmp(name, "my") == 0) {
+        return js_value_field(pico8_js_my(js), out_value);
+    }
+    if (strcmp(name, "m_") == 0) {
+        if (!js->has_m_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(js->m_);
+        return 1;
+    }
+    if (strcmp(name, "hb") == 0) {
+        if (js->hb == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_function(js->hb);
+        return 1;
+    }
+    if (strcmp(name, "fg") == 0) {
+        return js_fixed_field(js->fg, js->has_fg, out_value);
+    }
+    if (strcmp(name, "px") == 0) {
+        if (js->px == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(js->px);
+        return 1;
+    }
+    if (strcmp(name, "trade") == 0) {
+        return js_fixed_field(js->trade, js->has_trade, out_value);
+    }
+    if (strcmp(name, "en") == 0) {
+        return js_fixed_field(js->en, js->has_en, out_value);
+    }
+    if (strcmp(name, "_cr_t") == 0) {
+        return js_ref_field(js->_cr_t, out_value);
+    }
+    if (strcmp(name, "_jo_fe_pt") == 0) {
+        return js_ref_field(js->_jo_fe_pt, out_value);
+    }
+    if (strcmp(name, "_jo_fe_b") == 0) {
+        return js_ref_field(js->_jo_fe_b, out_value);
+    }
+    if (strcmp(name, "_jo_fe_od") == 0) {
+        return js_fixed_field(js->_jo_fe_od, js->has__jo_fe_od, out_value);
+    }
+    return pico8_ke_field(self, name, out_value);
+}
+
+static void button_take_bool(pico8_value_t value, int *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL &&
+           "fq.m_/p_, js.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.boolean;
+    *has = 1;
+}
+
+static void button_take_function(pico8_value_t value, pico8_value_function_t *out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_FUNCTION && value.as.function != NULL &&
+           "fq.my, js.hb: a key neither nil nor a non-NULL function is off its census row (fonction) -- a field "
+           "under no rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.function;
+}
+
+static void button_take_my(pico8_value_t value, pico8_value_function_t *out, int *has) {
+    *out = NULL;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(((value.kind == PICO8_VALUE_BOOL && value.as.boolean == 0) ||
+            (value.kind == PICO8_VALUE_FUNCTION && value.as.function != NULL)) &&
+           "js.my: a key neither nil, false, nor a non-NULL function is off its census row (bool,fonction) -- a "
+           "field under no rule of plan-3 section 5: stop, do not widen the member");
+    if (value.kind == PICO8_VALUE_FUNCTION) {
+        *out = value.as.function;
+    }
+    *has = 1;
+}
+
+static void button_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "js.fg/trade/en/_jo_fe_od: a key neither nil nor a fixed is off its census row (fixe) -- a field under "
+           "no rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
+    *has = 1;
+}
+
+static void button_take_fa(pico8_value_t value, pico8_fixed_t *out) {
+    assert(value.kind == PICO8_VALUE_FIXED && "js.fa: a key that is not a fixed is off its census row (fixe, never "
+                                              "nil) -- a field under no rule of plan-3 section 5: stop, do not "
+                                              "widen the member");
+    *out = value.as.fixed;
+}
+
+static void button_take_vec(pico8_value_t value, pico8_vec_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "js.ra/qf: a key neither nil nor a vector ref is off its census row (ref:autre) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void button_take_string(pico8_value_t value, const char **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
+           "js.px: a key neither nil nor a string is off its census row (chaine) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.string;
+}
+
+static void button_take_table(pico8_value_t value, pico8_ob_table_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+           "js._cr_t: a key neither nil nor a table is off its census row (ref:table) -- a field under no rule "
+           "of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void button_take_jo(pico8_value_t value, pico8_jo_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jo_struct_class() &&
+           "js._jo_fe_pt: a key neither nil nor a jo is off its census row (ref:pico8_jo_t) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void button_take_hp(pico8_value_t value, pico8_hp_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_hp_struct_class() &&
+           "js._jo_fe_b: a key neither nil nor an hp is off its census row (ref:pico8_hp_t) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void button_take_lq(pico8_value_t value, pico8_lq_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL && pico8_js_is_lq(value.as.ref) &&
+           "js.lq: a write neither nil nor an lq row is off its census row (ref:pico8_lq_t) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
 }
 
 /* `m_` (the hover loop) and `lq` (`ix[2].hb`): the only names a generic
@@ -148,14 +349,15 @@ static int pico8_js_field(const void *self, const char *name, pico8_value_t *out
 static int pico8_js_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_js_t *js = self;
 
-    if (strcmp(name, "m_") == 0) {
-        js->m_ = value;
-    } else if (strcmp(name, "lq") == 0) {
-        js->lq = value;
-    } else {
-        return 0;
+    if (strcmp(name, "lq") == 0) {
+        button_take_lq(value, &js->lq);
+        return 1;
     }
-    return 1;
+    if (strcmp(name, "m_") == 0) {
+        button_take_bool(value, &js->m_, &js->has_m_);
+        return 1;
+    }
+    return 0;
 }
 
 static const pico8_struct_class_t g_js_struct_class = {
@@ -172,35 +374,90 @@ static const pico8_struct_class_t g_js_struct_class = {
 
 static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
     pico8_js_t *self = malloc(sizeof *self);
-    size_t i;
+    pico8_value_t lq_arg = pico8_value_ref(NULL);
+    pico8_value_t h__arg = pico8_value_ref(NULL);
+    pico8_value_t jb_arg = pico8_value_ref(NULL);
     int k;
 
     pico8_ke_struct_init(&self->ke, &g_js_struct_class);
-    for (i = 0; i < sizeof g_js_members / sizeof g_js_members[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_js_members[i].offset) = pico8_value_ref(NULL);
-    }
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(11));
+    self->lq = NULL;
+    self->mb = 0;
+    self->kq = NULL;
+    self->h_ = NULL;
+    self->has_h_ = 0;
+    self->jb = NULL;
+    self->ra = NULL;
+    self->qf = NULL;
+    self->my = NULL;
+    self->has_my = 0;
+    self->m_ = 0;
+    self->has_m_ = 0;
+    self->hb = NULL;
+    self->fg = 0;
+    self->has_fg = 0;
+    self->px = NULL;
+    self->trade = 0;
+    self->has_trade = 0;
+    self->en = 0;
+    self->has_en = 0;
+    self->_cr_t = NULL;
+    self->_jo_fe_pt = NULL;
+    self->_jo_fe_b = NULL;
+    self->_jo_fe_od = 0;
+    self->has__jo_fe_od = 0;
+    self->fa = pico8_fixed_from_int(11);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
-        pico8_value_t *member = NULL;
+        pico8_value_t value = overrides->entries[k].value;
+        const char *name = key.kind == PICO8_OB_KEY_NAME ? key.name : "";
 
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "mb") != 0 && strcmp(key.name, "kq") != 0 &&
-            strcmp(key.name, "m_") != 0) {
-            member = pico8_js_member(self, key.name);
-        }
-        assert(member != NULL && "js: the only measured construction keys are fa, lq, h_, jb, ra, qf, my, hb, fg, "
-                                 "px, trade, en, _cr_t and _jo_fe_pt/_b/_od; another would be a field under no rule "
-                                 "of plan-3 section 5 -- stop, do not add a member");
-        *member = overrides->entries[k].value;
-        if ((member == &self->h_ || member == &self->jb) && member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+        if ((strcmp(name, "h_") == 0 || strcmp(name, "jb") == 0) && value.kind == PICO8_VALUE_REF &&
+            value.as.ref == NULL) {
             /* TROU-23 */
-            *member = pico8_value_bool(1);
+            value = pico8_value_bool(1);
+        }
+        if (strcmp(name, "fa") == 0) {
+            button_take_fa(value, &self->fa);
+        } else if (strcmp(name, "lq") == 0) {
+            lq_arg = value;
+        } else if (strcmp(name, "h_") == 0) {
+            h__arg = value;
+        } else if (strcmp(name, "jb") == 0) {
+            jb_arg = value;
+        } else if (strcmp(name, "ra") == 0) {
+            button_take_vec(value, &self->ra);
+        } else if (strcmp(name, "qf") == 0) {
+            button_take_vec(value, &self->qf);
+        } else if (strcmp(name, "my") == 0) {
+            button_take_my(value, &self->my, &self->has_my);
+        } else if (strcmp(name, "hb") == 0) {
+            button_take_function(value, &self->hb);
+        } else if (strcmp(name, "fg") == 0) {
+            button_take_fixed(value, &self->fg, &self->has_fg);
+        } else if (strcmp(name, "px") == 0) {
+            button_take_string(value, &self->px);
+        } else if (strcmp(name, "trade") == 0) {
+            button_take_fixed(value, &self->trade, &self->has_trade);
+        } else if (strcmp(name, "en") == 0) {
+            button_take_fixed(value, &self->en, &self->has_en);
+        } else if (strcmp(name, "_cr_t") == 0) {
+            button_take_table(value, &self->_cr_t);
+        } else if (strcmp(name, "_jo_fe_pt") == 0) {
+            button_take_jo(value, &self->_jo_fe_pt);
+        } else if (strcmp(name, "_jo_fe_b") == 0) {
+            button_take_hp(value, &self->_jo_fe_b);
+        } else if (strcmp(name, "_jo_fe_od") == 0) {
+            button_take_fixed(value, &self->_jo_fe_od, &self->has__jo_fe_od);
+        } else {
+            assert(0 && "js: the only measured construction keys are fa, lq, h_, jb, ra, qf, my, hb, fg, "
+                        "px, trade, en, _cr_t and _jo_fe_pt/_b/_od; another would be a field under no rule "
+                        "of plan-3 section 5 -- stop, do not add a member");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("js");
 #endif
-    pico8_js_pq(self);
+    pico8_js_pq(self, lq_arg, h__arg, jb_arg);
     pico8_ke_struct_pq(&self->ke);
     PICO8_MEMBER_CENSUS_SEE(self, pico8_js_t);
     return self;
@@ -245,35 +502,33 @@ static pico8_lq_t *pico8_js_lq(pico8_value_t v) {
     return built;
 }
 
-void pico8_js_pq(pico8_js_t *self) {
-    pico8_lq_t *new_lq;
-    pico8_fixed_t mb;
-
+void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, pico8_value_t h_, pico8_value_t jb) {
     if (self == NULL) {
         return;
     }
 
-    new_lq = pico8_js_lq(self->lq);
-    self->lq = pico8_value_ref(new_lq);
+    self->lq = pico8_js_lq(lq);
+    self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
+    self->kq = pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
 
-    mb = pico8_fixed_from_int(2);
-    mb = pico8_fixed_add(new_lq->w, mb);
-    self->mb = pico8_value_fixed(mb);
-
-    self->kq = pico8_value_ref(
-        pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), mb, pico8_fixed_from_int(11)));
-
-    if (pico8_js_truthy(self->h_)) {
-        self->h_ = pico8_value_ref(pico8_js_lq(self->h_));
+    if (pico8_js_truthy(h_)) {
+        self->h_ = pico8_js_lq(h_);
+        self->has_h_ = 1;
+    } else if (h_.kind == PICO8_VALUE_BOOL) {
+        self->h_ = NULL;
+        self->has_h_ = 1;
     }
 
-    if (pico8_js_truthy(self->jb)) {
+    if (pico8_js_truthy(jb)) {
         const pico8_ob_table_t *jb_overrides =
-            (self->jb.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)self->jb.as.ref : NULL;
+            (jb.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)jb.as.ref : NULL;
 
         assert((jb_overrides == NULL || pico8_type_tag_of(jb_overrides) == PICO8_TYPE_TAG_OB_TABLE) &&
                "js:pq's jb field must hold a plain spec table");
-        self->jb = pico8_value_ref(pico8_jb_new(jb_overrides));
+        self->jb = pico8_jb_new(jb_overrides);
+    } else if (jb.kind == PICO8_VALUE_BOOL) {
+        assert(0 && "js.jb: a key false is off its census row (ref:pico8_jb_t) -- a field under no rule of plan-3 "
+                    "section 5: stop, do not widen the member");
     }
 }
 
@@ -282,18 +537,16 @@ void pico8_js_ph(pico8_js_t *self) {
         return;
     }
 
-    if (self->qf.kind == PICO8_VALUE_REF && self->qf.as.ref != NULL) {
-        pico8_vec_t qf = *(const pico8_vec_t *)self->qf.as.ref;
-        pico8_vec_t ra = (self->ra.kind == PICO8_VALUE_REF && self->ra.as.ref != NULL)
-                             ? *(const pico8_vec_t *)self->ra.as.ref
-                             : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    if (self->qf != NULL) {
+        pico8_vec_t qf = *self->qf;
+        pico8_vec_t ra = self->ra != NULL ? *self->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
         pico8_vec_t d = pico8_vec_sub(qf, ra);
         pico8_fixed_t len_sq = pico8_vec_len_sq(d);
         pico8_vec_t delta = (len_sq <= pico8_fixed_from_int(1)) ? d : pico8_vec_mul(d, PICO8_FIXED_LIT(0x00006666, 0.4));
         /* TROU-7 */
         pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);
         *heap_ra = pico8_vec_add(ra, delta);
-        self->ra = pico8_value_ref(heap_ra);
+        self->ra = heap_ra;
     }
 }
 
@@ -302,10 +555,8 @@ void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self) {
         return;
     }
 
-    if (self->jb.kind == PICO8_VALUE_REF && self->jb.as.ref != NULL && pico8_js_truthy(self->m_)) {
-        assert(pico8_type_tag_of(self->jb.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-               "js:ev: the jb field must hold the jb struct js:pq built, not a spec table");
-        pico8_jb_ol(gfx, mem, (const pico8_jb_t *)self->jb.as.ref, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
+    if (self->jb != NULL && self->has_m_ && self->m_) {
+        pico8_jb_ol(gfx, mem, self->jb, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
     }
 }
 
@@ -324,11 +575,11 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
         return;
     }
 
-    mb = self->mb.kind == PICO8_VALUE_FIXED ? self->mb.as.fixed : pico8_fixed_from_int(0);
+    mb = self->mb;
     qt = pico8_fixed_sub(pico8_fixed_add(p.x, mb), pico8_fixed_from_int(1));
     dn = pico8_fixed_add(p.y, pico8_fixed_from_int(9));
-    has_my = pico8_js_truthy(self->my);
-    m_flag = pico8_js_truthy(self->m_);
+    has_my = self->my != NULL;
+    m_flag = self->has_m_ && self->m_;
 
     ix_p = pico8_ui_to_int(p.x);
     iy_p = pico8_ui_to_int(p.y);
@@ -339,13 +590,13 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
     pico8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_dn, has_my ? (m_flag ? 12 : 13) : 5);
     pico8_rectfill(gfx, mem, ix_p, iy_p, ix_qt, iy_p, has_my ? 6 : 5);
 
-    if (self->lq.kind == PICO8_VALUE_REF && self->lq.as.ref != NULL) {
+    if (self->lq != NULL) {
         pico8_vec_t off = pico8_vec_add(p, pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2)));
-        pico8_lq_ol_default(gfx, mem, (const pico8_lq_t *)self->lq.as.ref, off);
+        pico8_lq_ol_default(gfx, mem, self->lq, off);
     }
 
-    if (self->h_.kind == PICO8_VALUE_REF && self->h_.as.ref != NULL) {
-        const pico8_lq_t *c = (const pico8_lq_t *)self->h_.as.ref;
+    if (self->h_ != NULL) {
+        const pico8_lq_t *c = self->h_;
         pico8_fixed_t c_w = c->w;
         int bg = 2;
         pico8_fixed_t x2 = pico8_fixed_add(qt, c_w);
@@ -365,7 +616,7 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
 
 pico8_value_t pico8_js_ldown(pico8_js_t *self) {
     pico8_value_t discard;
-    int has_my = self != NULL && pico8_js_truthy(self->my);
+    int has_my = self != NULL && self->my != NULL;
 
     pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
     pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &discard);
@@ -415,35 +666,11 @@ static int pico8_fq_field(const void *self, const char *name, pico8_value_t *out
     return pico8_ke_field(self, name, out_value);
 }
 
-static void fq_take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL && "fq.m_/p_: a write neither nil nor a boolean is off its census row "
-                                             "(bool) -- a field under no rule of plan-3 section 5: stop, do not "
-                                             "widen the member");
-    *out = value.as.boolean;
-    *has = 1;
-}
-
-static void fq_take_function(pico8_value_t value, pico8_value_function_t *out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_FUNCTION && value.as.function != NULL &&
-           "fq.my: a key neither nil nor a non-NULL function is off its census row (fonction) -- a field under "
-           "no rule of plan-3 section 5: stop, do not widen the member");
-    *out = value.as.function;
-}
-
 static int pico8_fq_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_fq_t *fq = self;
 
     if (strcmp(name, "m_") == 0) {
-        fq_take_bool(value, &fq->m_, &fq->has_m_);
+        button_take_bool(value, &fq->m_, &fq->has_m_);
         return 1;
     }
     return 0;
@@ -471,7 +698,7 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
         pico8_ob_key_t key = overrides->entries[i].key;
 
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "my") == 0) {
-            fq_take_function(overrides->entries[i].value, &self->my);
+            button_take_function(overrides->entries[i].value, &self->my);
         } else {
             assert(0 && "fq: the only measured key is my; another would be a field under no rule of plan-3 "
                         "section 5 -- stop, do not add a member");
@@ -521,6 +748,6 @@ pico8_value_t pico8_fq_ldown(pico8_fq_t *self) {
     if (!pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
         my_result = pico8_value_ref(NULL);
     }
-    fq_take_bool(my_result, &self->p_, &self->has_p_);
+    button_take_bool(my_result, &self->p_, &self->has_p_);
     return pico8_value_bool(1);
 }
