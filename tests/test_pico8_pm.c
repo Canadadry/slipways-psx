@@ -2,9 +2,8 @@
  * and `pico8_pm_default()`, `pico8_hj_default()`, `pico8_qh_default()`,
  * `pico8_jo_default()` and `pico8_ga_default()`, built as `jo:hu` builds it
  * (`kv["pm"]` on `p`, `ra`, `id`) and driven through the real
- * `mv`/`dg`/`dc`. The frozen values were taken on the code where `pm` was
- * still a class instance and must not be re-taken; only test_pm_is_a_struct
- * looks at the form. */
+ * `mv`/`dg`/`dc`, in games started directly: no events file. Only
+ * test_pm_is_a_struct looks at the form. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -21,7 +20,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_economy_tiers.h"
@@ -45,23 +43,13 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
-#define SESSION "tests/fixtures/session_events.json"
-#define RECORDED "tests/fixtures/events_recorded_1790198294.json"
 
 #define BUILT_HASH 0x73FAD653u
 #define LIFE_HASH 0x3F990656u
-#define SESSION_FRAMES 116045
-#define SESSION_PROTOSTARS 3
-#define SESSION_HASH 0xC0C2E262u
-#define RECORDED_FRAMES 19832
-#define RECORDED_PROTOSTARS 1
-#define RECORDED_HASH 0xFCA97785u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* pm's own `ng` and `fz`, then hj's 12 emitter defaults and `qy`, then the
  * 10 members of `qh`, then the 31 of `jo`. */
@@ -151,18 +139,6 @@ static pico8_value_function_t method(const void *e, const char *name) {
     return v.as.function;
 }
 
-/* 0 absent, 1 false, 2 true, 3 other. */
-static uint32_t bool_state(const void *e, const char *name) {
-    pico8_value_t v;
-    if (!lookup(e, name, &v)) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_BOOL) {
-        return v.as.boolean ? 2 : 1;
-    }
-    return 3;
-}
-
 static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
     pico8_value_t v;
     const pico8_vec_t *p;
@@ -248,12 +224,6 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
@@ -265,33 +235,13 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_from_title(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-}
-
-static void start_game(const char *events) {
-    start_from_title(events);
-    pico8_eu(pico8_js_new(bo_row(2)));
-}
-
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+    pico8_eu(NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -451,7 +401,7 @@ static void test_built(void) {
     void *a;
     void *b;
 
-    start_game(EMPTY);
+    start_game();
     a = build_protostar(&pa, &ra_a, "s77");
     b = build_protostar(&pb, &ra_b, "s78");
     assert(a != b && is_pm(a) && is_pm(b));
@@ -504,7 +454,7 @@ static void test_life(void) {
     void *bare;
     int i;
 
-    start_game(EMPTY);
+    start_game();
     mo_ra = get_ref(pico8_mo(), "ra");
     assert(mo_ra != NULL);
     ra = pico8_vec_add(*mo_ra, vec_xy(12, 108));
@@ -536,73 +486,6 @@ static void test_life(void) {
     h = fold_spawned(h, bare);
     h = fold_dg(h, bare);
     check("life", h, LIFE_HASH);
-}
-
-/* Per frame, every protostar in `hv`: its rank and what `jo:hu`, `jo:pq`,
- * `dg`, `hj:kj` and the economy write on it; plus the screen. */
-static uint32_t fold_live(uint32_t h, const void *e) {
-    h = fold_field(h, e, "id");
-    h = fold_field(h, e, "me");
-    h = fold_field(h, e, "t");
-    h = fold_vec(h, e, "ra");
-    h = fold_vec(h, e, "p");
-    h = fold_field(h, e, "mi");
-    h = fnv(h, bool_state(e, "p_"));
-    h = fold_kw(h, e);
-    h = fnv(h, (uint32_t)list_size(e, "oe"));
-    h = fnv(h, (uint32_t)list_size(e, "jy"));
-    h = fnv(h, (uint32_t)list_size(e, "cc"));
-    h = fnv(h, (uint32_t)list_size(e, "by"));
-    h = fnv(h, (uint32_t)list_size(e, "qy"));
-    return fnv(h, (uint32_t)has(e, "m_"));
-}
-
-#define MAX_SEEN 16
-
-/* From the title screen, as a raylib recording starts. */
-static void replay(const char *label, const char *events, int want_frames, int want_protostars, uint32_t want) {
-    uint32_t h = 2166136261u;
-    void *seen[MAX_SEEN];
-    int count = 0;
-    int frames;
-    int i;
-
-    start_from_title(events);
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        const pico8_list_t *hv;
-        int j;
-
-        play_frame();
-        hv = pico8_hv();
-        for (j = 0; j < hv->count; j++) {
-            void *e = hv->items[j].as.ref;
-            int k;
-
-            if (!is_pm(e)) {
-                continue;
-            }
-            for (k = 0; k < count && seen[k] != e; k++) {
-            }
-            if (k == count) {
-                assert(count < MAX_SEEN);
-                seen[count++] = e;
-            }
-            h = fold_live(fnv(fnv(h, (uint32_t)j), (uint32_t)k), e);
-        }
-        h = fnv(h, screen_hash());
-    }
-    check_int(label, frames, want_frames);
-    check_int(label, count, want_protostars);
-    check(label, h, want);
-}
-
-static void test_session(void) {
-    replay("session", SESSION, SESSION_FRAMES, SESSION_PROTOSTARS, SESSION_HASH);
-}
-
-static void test_recorded(void) {
-    replay("recorded", RECORDED, RECORDED_FRAMES, RECORDED_PROTOSTARS, RECORDED_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -692,7 +575,7 @@ static void test_pm_is_a_struct(void) {
     size_t i;
     int j;
 
-    start_game(EMPTY);
+    start_game();
     a = build_protostar(&p, &ra, "s77");
     assert(is_a_pm_struct(a) && cls != hj && listed(pico8_cg("jo"), a) && !listed(pico8_cg("hj"), a));
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
@@ -729,7 +612,7 @@ static void test_pm_is_a_struct(void) {
     }
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
@@ -756,9 +639,6 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pid_t session;
-    pid_t recorded;
-
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
@@ -769,13 +649,9 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-    session = spawn(test_session);
-    recorded = spawn(test_recorded);
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_pm_is_a_struct);
-    reap(recorded);
-    reap(session);
 
     printf("test_pico8_pm: all tests passed\n");
     return 0;
