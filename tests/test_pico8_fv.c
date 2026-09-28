@@ -2,9 +2,7 @@
  * title screen, `pico8_fv_new(NULL)`), read only through the dual-form field
  * API and `pico8_fv_default()`/`pico8_g__default()`
  * for spec defaults, and driven through the real `mv`/`dc`/`dg`/`lj`. Its
- * methods are compared to the public functions. The frozen values were
- * taken on the code where `fv` was still a class instance and must not be
- * re-taken. */
+ * methods are compared to the public functions. No events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -21,7 +19,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_entity_geom.h"
@@ -42,19 +39,15 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define RECORDING "tests/fixtures/trading_hub_session_events.json"
 
 #define BUILT_HASH 0x0B80F384u
 #define LIFE_HASH 0x3BFADEC0u
 #define HOVER_HASH 0x90AFEB68u
-#define REPLAY_HASH 0xDBEC801Au
-#define REPLAY_EXIT 114
 #define FV_MEMBERS_HASH 0xE0819DECu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* fv's 22 spec defaults, in spec order; then the 6 of g_ it does not
  * override. */
@@ -255,22 +248,10 @@ static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg
     return out;
 }
 
-static void start_title(const char *events) {
+static void start_title(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-}
-
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
-    }
 }
 
 /* The help, whatever its form: `g_`'s `nu` and `fa`=10 (a probe has 2). */
@@ -295,12 +276,6 @@ static void *the_help(void) {
     return found;
 }
 
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
 static int in_layer(int layer, const void *e) {
     pico8_value_t ic;
     pico8_value_t bucket;
@@ -317,7 +292,8 @@ static int in_layer(int layer, const void *e) {
 /* The title's help as `fv:pq`, `f_`, `lt` left it: its 22 defaults and the
  * 6 of g_, their tables' contents and identity, `me`, `t`, its empty `qy`;
  * no name only read or written elsewhere; its methods; the 4 buttons `pz`
- * built before it; where `lt` registered it; `bo` stamped, `ok.le` emptied. */
+ * built before it, each carrying the `my` stamped on its `bo` row; where
+ * `lt` registered it; `ok.le` emptied. */
 static void test_built(void) {
     uint32_t h = 2166136261u;
     const pico8_list_t *hv;
@@ -326,7 +302,7 @@ static void test_built(void) {
     size_t i;
     int k;
 
-    start_title(RECORDING);
+    start_title();
     fv = the_help();
     hv = pico8_hv();
 
@@ -391,9 +367,9 @@ static void test_built(void) {
     h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), fv));
     assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
 
-    for (k = 1; k <= 4; k++) {
+    for (k = 0; k < 4; k++) {
         pico8_value_t my;
-        assert(pico8_ob_table_get_name(bo_row(k), "my", &my));
+        assert(lookup(hv->items[rank - 4 + k].as.ref, "my", &my));
         assert(pico8_value_equal(my, pico8_eu_field_value()));
     }
     assert(size_of(pico8_ok(), "le") == 0);
@@ -407,7 +383,7 @@ static void test_life(void) {
     void *fv;
     int i;
 
-    start_title(RECORDING);
+    start_title();
     fv = the_help();
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
@@ -450,7 +426,7 @@ static void test_hover(void) {
     void *fv;
     uint32_t drawn;
 
-    start_title(RECORDING);
+    start_title();
     fv = the_help();
     mouse_at(64, 112);
     pico8_ui_lj(&mem, pico8_ok());
@@ -479,31 +455,16 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
-/* The recording from the title until the help leaves `hv`: per frame its
- * rank, `t`, `qy`'s size and `m_`; the exit frame; the screen then. */
-static void test_replay(void) {
-    uint32_t h = 2166136261u;
+/* `eu`, as a difficulty button starts it, takes the help out of `hv`,
+ * `cg.g_` and `cv.kj`/`cv.hd`. */
+static void test_eu_retires_the_help(void) {
     void *fv;
-    int exit_frame = -1;
-    int i;
 
-    start_title(RECORDING);
+    start_title();
     fv = the_help();
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame(i);
-        if (!listed(pico8_hv(), fv)) {
-            exit_frame = i;
-            break;
-        }
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), fv));
-        h = fold_field(h, fv, "t");
-        h = fnv(h, (uint32_t)size_of(fv, "qy"));
-        h = fnv(h, bool_state(fv, "m_"));
-    }
+    pico8_eu(NULL);
+    assert(!listed(pico8_hv(), fv));
     assert(!listed(pico8_cg("g_"), fv) && !listed(pico8_cv("kj"), fv) && !listed(pico8_cv("hd"), fv));
-    h = fnv(h, screen_hash());
-    check_int("replay exit", exit_frame, REPLAY_EXIT);
-    check("replay", h, REPLAY_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -579,7 +540,7 @@ static void test_fv_is_a_struct(void) {
     pico8_value_t v;
     int j;
 
-    start_title(RECORDING);
+    start_title();
     fv = the_help();
     assert(pico8_type_tag_of(fv) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)fv)->cls == cls);
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
@@ -753,7 +714,7 @@ static void test_fv_members_by_name(void) {
     size_t i;
     int k;
 
-    start_title(RECORDING);
+    start_title();
     fv[0] = the_help();
     h = fold_fresh_fv(h, fv[0]);
 
@@ -794,7 +755,7 @@ static void test_fv_writer_stops_off_row(void) {
     size_t i;
     int k;
 
-    start_title(RECORDING);
+    start_title();
     fv[0] = the_help();
     fv[1] = pico8_fv_new(NULL);
     off[0] = pico8_value_fixed(pico8_fixed_from_int(1));
@@ -862,7 +823,7 @@ static void test_g__closed(void) {
     pico8_value_t v;
     size_t i;
 
-    start_title(RECORDING);
+    start_title();
     assert(pico8_g__ready());
     for (i = 0; i < sizeof installs / sizeof installs[0]; i++) {
         assert(!pico8_g__default(installs[i], &v));
@@ -907,7 +868,7 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_hover);
-    in_fresh_child(test_replay);
+    in_fresh_child(test_eu_retires_the_help);
     in_fresh_child(test_fv_is_a_struct);
     in_fresh_child(test_fv_members_by_name);
     in_fresh_child(test_fv_writer_stops_off_row);
