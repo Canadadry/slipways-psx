@@ -53,10 +53,6 @@ const pico8_struct_class_t *pico8_fv_struct_class(void);
  * frees it. Asserts when called before `pico8_help_init()`. */
 pico8_fv_t *pico8_fv_new(const pico8_ob_table_t *overrides);
 
-/* Owned by this module and only borrowed by callers: built by
- * `pico8_help_init()`, freed by `pico8_help_shutdown()`, NULL in between. */
-const pico8_ob_table_t *pico8_bo(void);
-
 /* `pico8_eu_field_value()` always returns a PICO8_VALUE_FUNCTION value: an
  * inert placeholder until `pico8_help_set_eu()` installs the real `eu`, which
  * `pico8_help_set_eu(NULL)` puts back. */

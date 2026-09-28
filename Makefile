@@ -8,9 +8,7 @@
 #                       e2e n'a pas son .txt et son .json.sha256 ou dépasse
 #                       180 frames (600 s'il est listé dans
 #                       tools/e2e_long_exceptions.txt)
-# make unit-slow     -> les TU à rejeu long (UNIT_TESTS_SLOW), hors make test et
-#                       make e2e, dans make test-all
-# make test-all      -> test + e2e + unit-slow, la suite complète
+# make test-all      -> test + e2e, la suite complète
 # make gif           -> gif/<nom>.gif pour chaque e2e de tests/e2e/ : sa capture
 #                       à l'échelle 3, la souris de l'event dessinée par-dessus ;
 #                       hors suite
@@ -452,10 +450,10 @@ $(TMP_DIR)/test_pico8_iv: $(call objs,tests/test_pico8_iv.c $(ENGINE_SRCS)) | $(
 $(TMP_DIR)/test_pico8_mh: $(call objs,tests/test_pico8_mh.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fq: $(call objs,tests/test_pico8_fq.c $(ENGINE_SRCS)) tests/fixtures/score_panel_close_events.json tests/fixtures/game_end_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fq: $(call objs,tests/test_pico8_fq.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nf: $(call objs,tests/test_pico8_nf.c $(ENGINE_SRCS)) tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_nf: $(call objs,tests/test_pico8_nf.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_je: $(call objs,tests/test_pico8_je.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -464,28 +462,28 @@ $(TMP_DIR)/test_pico8_je: $(call objs,tests/test_pico8_je.c $(ENGINE_SRCS)) | $(
 $(TMP_DIR)/test_pico8_mo: $(call objs,tests/test_pico8_mo.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_qb: $(call objs,tests/test_pico8_qb.c $(ENGINE_SRCS)) tests/fixtures/long_session_events.json tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_qb: $(call objs,tests/test_pico8_qb.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mz: $(call objs,tests/test_pico8_mz.c $(ENGINE_SRCS)) tests/fixtures/phase4_playthrough_events.json tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_mz: $(call objs,tests/test_pico8_mz.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_bg: $(call objs,tests/test_pico8_bg.c $(ENGINE_SRCS)) tests/fixtures/phase4_playthrough_events.json tests/fixtures/long_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_bg: $(call objs,tests/test_pico8_bg.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jc: $(call objs,tests/test_pico8_jc.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json tests/fixtures/trading_hub_session_events.json tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_jc: $(call objs,tests/test_pico8_jc.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ie: $(call objs,tests/test_pico8_ie.c $(ENGINE_SRCS)) tests/fixtures/events_recorded_1790198294.json tests/fixtures/trading_hub_session_events.json tests/fixtures/long_session_events.json tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ie: $(call objs,tests/test_pico8_ie.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_js: $(call objs,tests/test_pico8_js.c $(ENGINE_SRCS)) tests/fixtures/title_click_reasonable.json tests/fixtures/pause_menu_music_events.json tests/fixtures/tech_screen_invent_events.json tests/fixtures/built_planet_panel_events.json tests/fixtures/game_end_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_js: $(call objs,tests/test_pico8_js.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_jo: $(call objs,tests/test_pico8_jo.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json tests/fixtures/empty_planet_cleared_events.json tests/fixtures/slipway_drag_events.json tests/fixtures/phase4_playthrough_events.json tests/fixtures/session_events.json tests/fixtures/events_recorded_1790198294.json tests/fixtures/trading_hub_session_events.json tests/fixtures/long_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_jo: $(call objs,tests/test_pico8_jo.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_qh: $(call objs,tests/test_pico8_qh.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/session_events.json tests/fixtures/events_recorded_1790198294.json tests/fixtures/trading_hub_session_events.json tests/fixtures/long_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_qh: $(call objs,tests/test_pico8_qh.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_entity_kind: $(call objs,tests/test_pico8_entity_kind.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -497,52 +495,52 @@ $(TMP_DIR)/test_pico8_spec_defaults: $(call objs,tests/test_pico8_spec_defaults.
 $(TMP_DIR)/test_pico8_jo_spec_defaults: $(call objs,tests/test_pico8_jo_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nl: $(call objs,tests/test_pico8_nl.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_nl: $(call objs,tests/test_pico8_nl.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_os: $(call objs,tests/test_pico8_os.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/long_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_os: $(call objs,tests/test_pico8_os.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hj: $(call objs,tests/test_pico8_hj.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/events_recorded_1790198294.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_hj: $(call objs,tests/test_pico8_hj.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_pm: $(call objs,tests/test_pico8_pm.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/session_events.json tests/fixtures/events_recorded_1790198294.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_pm: $(call objs,tests/test_pico8_pm.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_mx: $(call objs,tests/test_pico8_mx.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/events_recorded_1790198294.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_mx: $(call objs,tests/test_pico8_mx.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_nr: $(call objs,tests/test_pico8_nr.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/session_events.json tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_nr: $(call objs,tests/test_pico8_nr.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fr: $(call objs,tests/test_pico8_fr.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fr: $(call objs,tests/test_pico8_fr.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ga: $(call objs,tests/test_pico8_ga.c $(ENGINE_SRCS)) tests/fixtures/empty_planet_cleared_events.json tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ga: $(call objs,tests/test_pico8_ga.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_g_: $(call objs,tests/test_pico8_g_.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_g_: $(call objs,tests/test_pico8_g_.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_fv: $(call objs,tests/test_pico8_fv.c $(ENGINE_SRCS)) tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_fv: $(call objs,tests/test_pico8_fv.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_pj: $(call objs,tests/test_pico8_pj.c $(ENGINE_SRCS)) tests/fixtures/game_end_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_pj: $(call objs,tests/test_pico8_pj.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ui: $(call objs,tests/test_pico8_ui.c $(ENGINE_SRCS)) tests/fixtures/slipway_drag_events.json tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ui: $(call objs,tests/test_pico8_ui.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_trade: $(call objs,tests/test_pico8_trade.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json tests/fixtures/trading_hub_session_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_trade: $(call objs,tests/test_pico8_trade.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hp: $(call objs,tests/test_pico8_hp.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_hp: $(call objs,tests/test_pico8_hp.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_lq: $(call objs,tests/test_pico8_lq.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_lq: $(call objs,tests/test_pico8_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_hy: $(call objs,tests/test_pico8_hy.c $(ENGINE_SRCS)) tests/fixtures/tech_screen_invent_events.json tests/fixtures/game_end_events.json tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_hy: $(call objs,tests/test_pico8_hy.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_fm: $(call objs,tests/test_pico8_fm.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -666,17 +664,13 @@ UNIT_TESTS := \
     test_pico8_fm
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
-# Les TU à rejeu long (plus de 30 s) tournent dans make unit-slow, pas make test.
-UNIT_TESTS_SLOW := test_pico8_ie test_pico8_jo test_pico8_qh test_pico8_os test_pico8_hj test_pico8_pm test_pico8_mx test_pico8_nr
-
-UNIT_RUNS := $(addprefix unit-run-,$(filter-out $(UNIT_TESTS_SLOW),$(UNIT_TESTS)))
-UNIT_RUNS_SLOW := $(addprefix unit-run-,$(UNIT_TESTS_SLOW))
+UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
 UNIT_RUNS_SPECIAL := unit-run-test_pico8_planet_gh_row_lq
 
 unit: $(UNIT_RUNS)
 
-$(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS) $(UNIT_RUNS_SLOW)): unit-run-%: $(TMP_DIR)/%
+$(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
 	./$<
 
 unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
@@ -686,7 +680,7 @@ unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
 # pico8_replay : sous -j, jamais en même temps.
 unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
 
-.PHONY: $(UNIT_RUNS) $(UNIT_RUNS_SLOW)
+.PHONY: $(UNIT_RUNS)
 
 # Échoue avant toute compilation plutôt que de rejouer un fichier par défaut.
 ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
@@ -700,11 +694,7 @@ replay: $(TMP_DIR)/pico8_replay
 
 test: unit constants-check float-grep float-guard data-guard
 
-unit-slow: $(UNIT_RUNS_SLOW)
-
-.PHONY: unit-slow
-
-test-all: test e2e unit-slow
+test-all: test e2e
 
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
@@ -929,8 +919,7 @@ data-guard: tools/entity_value_members.sh tools/data_residue.sh
 
 .PHONY: data-residue data-guard
 
-# Les TU de UNIT_TESTS qui lient ENGINE_SRCS ou DATA_ENGINE_SRCS, moins
-# UNIT_TESTS_SLOW.
+# Les TU de UNIT_TESTS qui lient ENGINE_SRCS ou DATA_ENGINE_SRCS.
 CENSUS_UNIT_TESTS := \
     test_pico8_data_init \
     test_pico8_jb_ol \
@@ -944,11 +933,19 @@ CENSUS_UNIT_TESTS := \
     test_pico8_mz \
     test_pico8_bg \
     test_pico8_jc \
+    test_pico8_ie \
     test_pico8_js \
+    test_pico8_jo \
+    test_pico8_qh \
     test_pico8_entity_kind \
     test_pico8_spec_defaults \
     test_pico8_jo_spec_defaults \
     test_pico8_nl \
+    test_pico8_os \
+    test_pico8_hj \
+    test_pico8_pm \
+    test_pico8_mx \
+    test_pico8_nr \
     test_pico8_fr \
     test_pico8_ga \
     test_pico8_g_ \

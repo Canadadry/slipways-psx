@@ -427,7 +427,3 @@ const pico8_struct_class_t *pico8_fv_struct_class(void) {
 pico8_fv_t *pico8_fv_new(const pico8_ob_table_t *overrides) {
     return pico8_fv_struct_new(overrides);
 }
-
-const pico8_ob_table_t *pico8_bo(void) {
-    return g_bo;
-}
