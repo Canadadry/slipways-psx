@@ -21,9 +21,9 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_mouse.h"
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_msgbox.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
@@ -40,7 +40,7 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static pico8_ob_table_t *nf_l_of(void *nf) {
+static pico8_nf_button_t *nf_l_of(void *nf) {
     pico8_value_t v;
     assert(pico8_entity_get_field(nf, "l", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
@@ -50,23 +50,24 @@ static pico8_ob_table_t *nf_l_of(void *nf) {
  * leaves their state alone: a mark written into `nf`'s `l` and into the
  * shared `le` survives it; `qb` stays ready throughout. */
 static void test_second_jl_keeps_specs(void) {
-    pico8_ob_table_t *nf_l = nf_l_of(pico8_je());
+    pico8_nf_button_t *nf_l = nf_l_of(pico8_je());
     pico8_list_t *ui_le = pico8_ui_le_shared();
     pico8_value_t mark = pico8_value_fixed(0x7777);
-    pico8_value_t v;
+    int hm = nf_l->hm;
     int ui_count;
 
     assert(pico8_qb_ready());
-    pico8_ob_table_set_name(nf_l, "mark", mark);
+    nf_l->hm = 0x7777;
     pico8_list_add(ui_le, mark);
     ui_count = ui_le->count;
 
     pico8_jl();
 
     assert(pico8_qb_ready());
-    assert(nf_l_of(pico8_je()) == nf_l && pico8_ob_table_get_name(nf_l_of(pico8_je()), "mark", &v));
+    assert(nf_l_of(pico8_je()) == nf_l && nf_l_of(pico8_je())->hm == 0x7777);
     assert(pico8_ui_le_shared() == ui_le && pico8_ui_le_shared()->count == ui_count);
     assert(pico8_list_del(ui_le, mark));
+    nf_l->hm = hm;
 }
 
 /* A fresh bg starts on bg's generated defaults and ke's; ready until its
