@@ -1,9 +1,9 @@
 /* The spec defaults of the 7 modules outside the `jo` tree that still parse
  * one, read only through the shared readers spec_field()/is_ready() and a
  * fresh struct of each; the interface classes, whose defaults are generated,
- * each against their own data. test_spec_defaults() and
- * test_struct_defaults() hold values frozen on the code where these were
- * still classes and must not be re-taken. */
+ * each against their own data. A frozen hash of test_spec_defaults() or
+ * test_struct_defaults() is re-taken only with a probe that rebuilds the old
+ * fold on the new data and gets the old value back. */
 
 #include <assert.h>
 #include <stdint.h>
