@@ -629,7 +629,7 @@ static void test_harvested_world(void) {
  * projects; shutdown leaves no class and no `gb`, `fk` still the generated
  * row; init again, then a rebuild, gives them once more. */
 static void test_rebuild_and_shutdown(void) {
-    pico8_research_build_gb(pico8_fd());
+    pico8_research_build_gb();
     test_gb();
 
     pico8_research_shutdown();
@@ -639,7 +639,7 @@ static void test_rebuild_and_shutdown(void) {
 
     pico8_research_init();
     assert(pico8_hp_ready() && pico8_hp_fk() == &pico8_hp_fk_row);
-    pico8_research_build_gb(pico8_fd());
+    pico8_research_build_gb();
     test_gb();
 }
 
@@ -663,18 +663,41 @@ static void write_px(void *e) {
     pico8_entity_set_field(e, "px", pico8_value_string("x"));
 }
 
-static void build_with_named_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+static void build_with_header(void *e) {
+    pico8_fd_entry_t header = {0};
+    pico8_hp_keys_t keys = {0};
+
     (void)e;
-    pico8_ob_table_set_name(b, "x", pico8_value_bool(1));
-    (void)pico8_hp_new(b);
+    header.header = "x";
+    keys.ri = &header;
+    (void)pico8_hp_new(&keys);
 }
 
-static void build_with_positional_9(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+static void build_with_o_missing_from_r(void *e) {
+    pico8_fd_entry_t ri = {0};
+    pico8_hp_keys_t keys = {0};
+
     (void)e;
-    pico8_ob_table_set_index(b, 9, pico8_value_bool(1));
-    (void)pico8_hp_new(b);
+    ri.npos = 6;
+    ri.px = "x";
+    ri.lr = "y";
+    ri.fj = 1;
+    ri.ja = "z";
+    ri.i = "";
+    ri.o = "not a key of r";
+    keys.ri = &ri;
+    (void)pico8_hp_new(&keys);
+}
+
+static void build_with_ii_and_no_px(void *e) {
+    pico8_fd_entry_t ri = {0};
+    pico8_hp_keys_t keys = {0};
+
+    (void)e;
+    ri.has_ii = 1;
+    ri.ii = 3;
+    keys.ri = &ri;
+    (void)pico8_hp_new(&keys);
 }
 
 static void od_on_other(void *e) {
@@ -702,9 +725,9 @@ static void hu_on_other(void *e) {
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its
- * `mr`/`gp`/`fk` the class's; it takes no key but the positionals 1-8 and
- * rr, ii, cw, go, rn, and its functions refuse anything that is not a
- * project. With no key, only `mr`/`gp`/`fk`, an empty `i` and the `lq`
+ * `mr`/`gp`/`fk` the class's; a header entry, a value `gp` maps that `r`
+ * lacks, or `ii` without `px` stops its construction, and its functions
+ * refuse anything that is not a project. With no key, only `mr`/`gp`/`fk`, an empty `i` and the `lq`
  * method. */
 static void test_hp_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_hp_struct_class();
@@ -735,8 +758,9 @@ static void test_hp_is_a_struct(void) {
 
     start_game();
     must_abort(write_px, b);
-    must_abort(build_with_named_key, NULL);
-    must_abort(build_with_positional_9, NULL);
+    must_abort(build_with_header, NULL);
+    must_abort(build_with_o_missing_from_r, NULL);
+    must_abort(build_with_ii_and_no_px, NULL);
     must_abort(od_on_other, pico8_ok());
     must_abort(po_on_other, pico8_ok());
     must_abort(jb_on_other, pico8_ok());
@@ -775,22 +799,28 @@ static int member_kind_ok(const char *name, pico8_value_kind_t kind) {
     return kind == PICO8_VALUE_STRING;
 }
 
-static const char *record_string(const pico8_ob_table_t *rec, int index, const char *name) {
-    pico8_value_t v;
-    int got = name != NULL ? pico8_ob_table_get_name(rec, name, &v) : pico8_ob_table_get_index(rec, index, &v);
-    return got && v.kind == PICO8_VALUE_STRING ? v.as.string : NULL;
+static const char *record_string(const pico8_fd_entry_t *rec, int index, const char *name) {
+    const char *const strings[8] = {rec->px, rec->lr, NULL, rec->ja, rec->i, rec->o, rec->il, rec->dm};
+
+    if (name != NULL) {
+        return strcmp(name, "cw") == 0 ? rec->cw : strcmp(name, "go") == 0 ? rec->go : NULL;
+    }
+    if (index < 1 || index > rec->npos || (index == 7 && rec->il_false)) {
+        return NULL;
+    }
+    return strings[index - 1];
 }
 
 /* Every member of every project read by name, as the reader answers it:
  * present with a kind the member holds, or absent with `out` untouched;
- * strings the very pointers of `fd`'s record; the REFs stable; and `hn`/
+ * strings the very pointers of `fd`'s record, `rr` of its last header; the REFs stable; and `hn`/
  * `_jo_fe_b` still pointing at a project of `gb`. */
 static void test_hp_members_by_name(void) {
     uint32_t h = 2166136261u;
     int il_string = 0;
     int il_false = 0;
     int il_absent = 0;
-    const pico8_ob_table_t *fd = pico8_fd();
+    const char *rr = NULL;
     pico8_hp_t *bare = pico8_hp_new(NULL);
     pico8_value_t v;
     pico8_value_t w;
@@ -819,14 +849,13 @@ static void test_hp_members_by_name(void) {
     }
 
     k = 0;
-    for (f = 0; f < fd->count; f++) {
-        const pico8_ob_table_t *rec;
+    for (f = 0; f < PICO8_FD_COUNT; f++) {
+        const pico8_fd_entry_t *rec = &pico8_fd_table[f];
         void *b;
-        if (fd->entries[f].key.kind != PICO8_OB_KEY_INDEX || fd->entries[f].value.kind != PICO8_VALUE_REF ||
-            fd->entries[f].value.as.ref == NULL) {
+        if (rec->header != NULL) {
+            rr = rec->header;
             continue;
         }
-        rec = fd->entries[f].value.as.ref;
         b = project(++k);
         for (n = 0; n < sizeof hp_members / sizeof hp_members[0]; n++) {
             int got = raw_read(b, hp_members[n], &v);
@@ -854,8 +883,8 @@ static void test_hp_members_by_name(void) {
         assert(record_string(rec, 2, NULL) == NULL || v.as.string == record_string(rec, 2, NULL));
         assert(raw_read(b, "ja", &v) == (record_string(rec, 4, NULL) != NULL));
         assert(record_string(rec, 4, NULL) == NULL || v.as.string == record_string(rec, 4, NULL));
-        assert(raw_read(b, "rr", &v) == (record_string(rec, 0, "rr") != NULL));
-        assert(record_string(rec, 0, "rr") == NULL || v.as.string == record_string(rec, 0, "rr"));
+        assert(raw_read(b, "rr", &v) == (rr != NULL));
+        assert(rr == NULL || v.as.string == rr);
         assert(raw_read(b, "cw", &v) == (record_string(rec, 0, "cw") != NULL));
         assert(record_string(rec, 0, "cw") == NULL || v.as.string == record_string(rec, 0, "cw"));
         assert(raw_read(b, "go", &v) == (record_string(rec, 0, "go") != NULL));

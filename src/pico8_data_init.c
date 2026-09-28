@@ -9,7 +9,6 @@
 #include "pico8_research.h"
 #include "pico8_vec.h"
 
-static pico8_ob_table_t *g_fd = NULL;
 static pico8_ob_table_t *g_nb = NULL;
 
 /* Each view below is a fresh heap table, in the parsed table's entry order,
@@ -61,50 +60,6 @@ static pico8_value_t data_init_vec(int x, int y) {
 
     *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
     return pico8_value_ref(v);
-}
-
-static pico8_ob_table_t *data_init_fd_view(void) {
-    pico8_ob_table_t *fd = pico8_ob_table_new();
-    int i;
-
-    for (i = 0; i < PICO8_FD_COUNT; i++) {
-        const pico8_fd_entry_t *e = &pico8_fd_table[i];
-        const char *const strings[8] = {e->px, e->lr, NULL, e->ja, e->i, e->o, e->il, e->dm};
-        pico8_ob_table_t *ri;
-        int p;
-
-        if (e->header != NULL) {
-            pico8_ob_table_set_index(fd, i + 1, pico8_value_string(e->header));
-            continue;
-        }
-        ri = pico8_ob_table_new();
-        for (p = 0; p < e->npos; p++) {
-            pico8_value_t v;
-
-            if (p == 2) {
-                v = pico8_value_fixed(pico8_fixed_from_int(e->fj));
-            } else if (p == 6 && e->il_false) {
-                v = pico8_value_bool(0);
-            } else {
-                v = pico8_value_string(strings[p]);
-            }
-            pico8_ob_table_set_index(ri, p + 1, v);
-        }
-        if (e->has_ii) {
-            pico8_ob_table_set_name(ri, "ii", pico8_value_fixed(pico8_fixed_from_int(e->ii)));
-        }
-        if (e->go != NULL) {
-            pico8_ob_table_set_name(ri, "go", pico8_value_string(e->go));
-        }
-        if (e->cw != NULL) {
-            pico8_ob_table_set_name(ri, "cw", pico8_value_string(e->cw));
-        }
-        if (e->has_rn) {
-            pico8_ob_table_set_name(ri, "rn", pico8_value_fixed(pico8_fixed_from_int(e->rn)));
-        }
-        pico8_ob_table_set_index(fd, i + 1, pico8_value_ref(ri));
-    }
-    return fd;
 }
 
 /* A record sits both at its position and under its px name, one shared
@@ -217,12 +172,9 @@ pico8_ob_table_t *pico8_bz_view(void) {
 void pico8_data_init(pico8_mem_t *mem) {
     (void)mem;
 
-    pico8_ob_table_free(g_fd);
-    g_fd = data_init_fd_view();
-
     /* hp must be ready before build_gb builds one. */
     pico8_research_init();
-    pico8_research_build_gb(g_fd);
+    pico8_research_build_gb();
 
     pico8_ob_table_free(g_nb);
     g_nb = data_init_nb_view();
@@ -230,14 +182,8 @@ void pico8_data_init(pico8_mem_t *mem) {
 
 void pico8_data_shutdown(void) {
     pico8_research_shutdown();
-    pico8_ob_table_free(g_fd);
-    g_fd = NULL;
     pico8_ob_table_free(g_nb);
     g_nb = NULL;
-}
-
-const pico8_ob_table_t *pico8_fd(void) {
-    return g_fd;
 }
 
 const pico8_ob_table_t *pico8_nb(void) {

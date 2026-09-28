@@ -23,6 +23,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_g__keys_t` (`pico8_probe.h`) | les clés d'une sonde `g_` (seul le TU `probe_mm_rnd_order` et le chemin (c) de `test_pico8_g_` en passent) : `t` (`ke.t`, défaut 0, sans drapeau), `pn`, `du`, `py` sous `has_pn`/`has_du`/`has_py` (défauts non nuls : une clé à 0 les remplace) |
 | — | `pico8_ie_keys_t` (`pico8_research_icon.h`) | les clés d'une icône de recherche `ie` que construit `eu` : `ke` (la sorte), `jb` (l'infobulle), NULL = nil |
 | — | `pico8_trade_keys_t` (`pico8_trade.h`) | les clés d'une route `trade` (`jo:ib`, `trade:kg`) : `lp`, `rl` (NULL = nil) et le triple `qe` du membre (`has_qe`, `qe_is_bool`, `qe`) |
+| — | `pico8_hp_keys_t` (`pico8_research.h`) | les clés d'un projet `hp` : `ri`, un enregistrement de `pico8_fd_table` (jamais une entrée-titre ; `hp` lui applique `ho` : positions nommées par `mr`, `gp` traduit par `r`), et `rr`, la catégorie (NULL = nil) |
 | `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; plus aucune classe n'a de spec parsée : ses clés sont `pico8_X_start`, que son constructeur lit, l'héritage passant par le constructeur de la parente |
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
 | — | `pico8_X_kind_field` | le `field` d'une sorte de l'arbre `jo` : `rr`, `s`, `me`, `od` seulement, depuis `pico8_X_start` de la classe qui les pose, puis la parente ; fin `pico8_jo_kind_field` |
@@ -131,7 +132,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `df` | `pico8_df_table`, `pico8_df_lookup(px)` (`df[px]`) | catalogue des types de planète, tiré au sort par `bw()` |
 | `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
-| `fd` | `pico8_fd_table` ; vue ob `pico8_fd` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; la vue est la table ob que `build_gb` reçoit |
+| `fd` | `pico8_fd_table` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; `build_gb` la parcourt |
 | `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
 | `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
 | `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
@@ -286,6 +287,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `la(a,b)` | `pico8_la` | concatène deux listes |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
+| — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `pico8_ho_apply` et par `hp` |
 | `tostr(v)` | `pico8_value_tostr` | conversion en chaîne ; 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris

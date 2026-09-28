@@ -175,7 +175,7 @@ char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
     return result;
 }
 
-static int ho_gp_has(const pico8_str_seq_t *gp, const char *p) {
+int pico8_ho_gp_has(const pico8_str_seq_t *gp, const char *p) {
     int j;
 
     for (j = 0; gp != NULL && j < gp->count; j++) {
@@ -200,7 +200,7 @@ void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_str_seq_t *mr, const pico8
             continue;
         }
 
-        if (ho_gp_has(gp, p)) {
+        if (pico8_ho_gp_has(gp, p)) {
             /* `r[ri[i]]`: the raw value is the key. r only has named keys, so
              * a number never finds an entry and the raw value stays. */
             int qe;

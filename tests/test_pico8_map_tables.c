@@ -263,40 +263,66 @@ static void test_nb_view_matches_the_decoded_table_after_its_pass(const pico8_me
     }
 }
 
-static void test_fd_view_matches_the_decoded_table_plus_rr(const pico8_mem_t *mem) {
+/* Position `p` (1..npos) of a record of `pico8_fd_table`, as `ob()` decodes
+ * it: `fj` a number, `il` false under `il_false`, every other a string. */
+static pico8_value_t fd_position(const pico8_fd_entry_t *e, int p) {
+    const char *const strings[8] = {e->px, e->lr, NULL, e->ja, e->i, e->o, e->il, e->dm};
+
+    if (p == 3) {
+        return pico8_value_fixed(pico8_fixed_from_int(e->fj));
+    }
+    if (p == 7 && e->il_false) {
+        return pico8_value_bool(0);
+    }
+    return pico8_value_string(strings[p - 1]);
+}
+
+static int fd_named_equal(const pico8_ob_table_t *want, const char *name, int has, pico8_value_t got,
+                          const char *path) {
+    pico8_value_t v;
+    char sub[48];
+
+    snprintf(sub, sizeof sub, "%s.%s", path, name);
+    if (!has) {
+        return !pico8_ob_table_get_name(want, name, &v);
+    }
+    return pico8_ob_table_get_name(want, name, &v) && values_equal(got, v, sub);
+}
+
+static void test_fd_table_matches_the_decoded_table(const pico8_mem_t *mem) {
     pico8_ob_table_t *ref = decode(mem, 8494);
-    const pico8_ob_table_t *fd = pico8_fd();
-    const char *rr = NULL;
     int records = 0;
     int i;
 
     assert(ref->count == PICO8_FD_COUNT);
-    assert(fd->count == ref->count);
     for (i = 0; i < ref->count; i++) {
+        const pico8_fd_entry_t *e = &pico8_fd_table[i];
         pico8_value_t want = ref->entries[i].value;
-        pico8_value_t got = fd->entries[i].value;
         char path[32];
 
-        assert(fd->entries[i].key.kind == PICO8_OB_KEY_INDEX && fd->entries[i].key.index == i + 1);
+        assert(ref->entries[i].key.kind == PICO8_OB_KEY_INDEX && ref->entries[i].key.index == i + 1);
         snprintf(path, sizeof path, "fd[%d]", i + 1);
         if (want.kind == PICO8_VALUE_STRING) {
-            assert(values_equal(got, want, path));
-            rr = got.as.string;
+            assert(e->header != NULL && values_equal(pico8_value_string(e->header), want, path));
         } else {
-            const pico8_ob_table_t *view;
-            const pico8_ob_entry_t *last;
+            const pico8_ob_table_t *rec;
+            int named = e->has_ii + (e->go != NULL) + (e->cw != NULL) + e->has_rn;
+            int p;
 
-            assert(want.kind == PICO8_VALUE_REF && got.kind == PICO8_VALUE_REF);
-            view = got.as.ref;
-            assert(view->count == ((const pico8_ob_table_t *)want.as.ref)->count + 1);
-            assert(tables_equal(view, want.as.ref, view->count - 1, path));
-            last = &view->entries[view->count - 1];
-            assert(last->key.kind == PICO8_OB_KEY_NAME && strcmp(last->key.name, "rr") == 0);
-            if (rr == NULL) {
-                assert(last->value.kind == PICO8_VALUE_REF && last->value.as.ref == NULL);
-            } else {
-                assert(last->value.kind == PICO8_VALUE_STRING && last->value.as.string == rr);
+            assert(e->header == NULL && want.kind == PICO8_VALUE_REF && want.as.ref != NULL);
+            rec = want.as.ref;
+            assert(e->npos >= 1 && e->npos <= 8 && rec->count == e->npos + named);
+            for (p = 1; p <= e->npos; p++) {
+                pico8_value_t v;
+                char sub[48];
+
+                snprintf(sub, sizeof sub, "%s[%d]", path, p);
+                assert(pico8_ob_table_get_index(rec, p, &v) && values_equal(fd_position(e, p), v, sub));
             }
+            assert(fd_named_equal(rec, "ii", e->has_ii, pico8_value_fixed(pico8_fixed_from_int(e->ii)), path));
+            assert(fd_named_equal(rec, "go", e->go != NULL, pico8_value_string(e->go), path));
+            assert(fd_named_equal(rec, "cw", e->cw != NULL, pico8_value_string(e->cw), path));
+            assert(fd_named_equal(rec, "rn", e->has_rn, pico8_value_fixed(pico8_fixed_from_int(e->rn)), path));
             records++;
         }
     }
@@ -1625,7 +1651,7 @@ int main(void) {
     pico8_data_init(&mem);
     test_dr_view_matches_the_decoded_table(&mem);
     test_nb_view_matches_the_decoded_table_after_its_pass(&mem);
-    test_fd_view_matches_the_decoded_table_plus_rr(&mem);
+    test_fd_table_matches_the_decoded_table(&mem);
     pico8_data_shutdown();
 
     printf("test_pico8_map_tables: all tests passed\n");

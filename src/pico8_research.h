@@ -11,7 +11,7 @@
 /* A research project of `gb`. Freed only by pico8_research_shutdown(),
  * through `gb`'s positional entries. `mr`, `gp`, `fk` point at
  * `pico8_hp_mr_names`, `pico8_hp_gp_names`, `pico8_hp_fk_row`; the other
- * members are borrowed from `fd`'s records and from `r`, except `i`, a
+ * members are borrowed from `pico8_fd_table` and from `r`, except `i`, a
  * list built here and never freed (TROU-7), and `lq`, which points at
  * `lq_own` (its third item `lq_inner`) or is NULL. The struct is never
  * copied: `lq` points into it. */
@@ -71,17 +71,22 @@ pico8_value_t pico8_hp_il(const pico8_hp_t *self);
 /* Aborts unless `self` is NULL or a project. */
 void pico8_hp_assert(const pico8_hp_t *self);
 
-/* Takes only the positionals 1-8 and the keys "rr", "ii", "cw", "go",
- * "rn", each optional. Registers the new project into `gb` under its `px`,
- * so pico8_research_build_gb() must have built `gb` first. */
-pico8_hp_t *pico8_hp_new(const pico8_ob_table_t *overrides);
+/* The keys of `pico8_hp_new`, read, not kept: a record of `pico8_fd_table`,
+ * never a header (NULL: no positional, nor `ii`, `cw`, `go`, `rn`), and the
+ * `rr` category (NULL: nil). Their strings are borrowed. */
+typedef struct {
+    const pico8_fd_entry_t *ri;
+    const char *rr;
+} pico8_hp_keys_t;
 
-/* Rebuilds `gb` from `fd`, freeing whatever a previous call left. A bare
- * string entry of `fd` sets the running `rr` category every later record is
- * tagged with. `fd`'s strings are borrowed, never copied, so `fd` must
- * outlive `gb` -- pico8_data_shutdown() frees them in that order. A NULL
- * `fd` leaves `gb` empty. */
-void pico8_research_build_gb(const pico8_ob_table_t *fd);
+/* `keys` NULL means none. Registers the new project into `gb` under its
+ * `px`, so pico8_research_build_gb() must have built `gb` first. */
+pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys);
+
+/* Rebuilds `gb` from `pico8_fd_table`, freeing whatever a previous call
+ * left. A header entry sets the running `rr` category every later record is
+ * tagged with. */
+void pico8_research_build_gb(void);
 
 /* Owned by this module; callers must not free it. */
 const pico8_ob_table_t *pico8_gb(void);

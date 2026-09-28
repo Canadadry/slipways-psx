@@ -9,6 +9,7 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_research.h"
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     pico8_mem_t mem;
@@ -24,7 +25,9 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     assert(pico8_hc_lookup("qh+") != NULL);
     assert(pico8_hc_lookup("does-not-exist") == NULL);
 
-    assert(pico8_fd()->count == 42);
+    assert(PICO8_FD_COUNT == 42);
+    assert(pico8_ob_table_get_index(pico8_gb(), 34, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(!pico8_ob_table_get_index(pico8_gb(), 35, &v));
 
     assert(PICO8_DR_COUNT == 7);
     assert(pico8_dr_table[0].count > 0 && pico8_dr_table[0].items[0].row != NULL);
