@@ -1,6 +1,7 @@
 #ifndef PICO8_UI_H
 #define PICO8_UI_H
 
+#include "pico8_bg.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
@@ -18,16 +19,16 @@
  * `pz` replaces it; `hw` is the class's box, borrowed. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t ql;
-    pico8_value_t fa;
-    pico8_value_t le;
-    pico8_value_t hw;
-    pico8_value_t qa;
-    pico8_value_t ic;
-    pico8_value_t o_;
-    pico8_value_t gj;
-    pico8_value_t lheld;
-    pico8_value_t rheld;
+    pico8_fixed_t ql;
+    pico8_fixed_t fa;
+    pico8_list_t *le;
+    pico8_qz_box_t *hw;
+    pico8_vec_t *qa;
+    pico8_ob_table_t *ic;
+    pico8_struct_header_t *o_; /* borrowed, never freed */
+    pico8_struct_header_t *gj; /* borrowed, never freed */
+    pico8_struct_header_t *lheld; /* borrowed, never freed */
+    pico8_bg_t *rheld; /* borrowed, never freed */
 } pico8_ui_t;
 
 /* Calls `pico8_pi_init()` first: the class spec contains `b(10,10,118,118)`,

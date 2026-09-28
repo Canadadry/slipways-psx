@@ -87,6 +87,7 @@
 #define HJ_MEMBERS_HASH 0x50DF104Cu
 #define PM_MEMBERS_HASH 0xAE0F61DEu
 #define MX_MEMBERS_HASH 0x696C3254u
+#define UI_MEMBERS_HASH 0x04206F34u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -739,15 +740,287 @@ static void test_ui_is_a_struct(void) {
     for (i = 0; i < sizeof spec / sizeof spec[0]; i++) {
         assert(pico8_ui_default(spec[i], &v));
     }
-    assert((const void *)pico8_ui_hw() == class_ref("hw") && ok->hw.as.ref == class_ref("hw"));
-    assert(ok->le.as.ref == class_ref("le"));
+    assert((const void *)pico8_ui_hw() == class_ref("hw") && ok->hw == class_ref("hw"));
+    assert(ok->le == class_ref("le"));
     other = pico8_ui_new(NULL);
-    assert(is_of(other, cls) && other->le.as.ref == class_ref("le") && other->hw.as.ref == class_ref("hw"));
+    assert(is_of(other, cls) && other->le == class_ref("le") && other->hw == class_ref("hw"));
 
     must_abort(write_o_, ok);
     must_abort(build_with_named_key, NULL);
     must_abort(build_with_positional_key, NULL);
     must_abort(bh_on_x, ok);
+}
+
+static const char *const ui_names[10] = {"ql", "fa", "le", "hw", "qa", "ic", "o_", "gj", "lheld", "rheld"};
+
+static int read_ui(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t via = pico8_value_fixed(0x1234);
+    int got_raw = pico8_ui_struct_class()->field(e, name, &raw);
+    int got_via = pico8_entity_get_field(e, name, &via);
+    assert(got_raw == got_via && raw.kind == via.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        assert(via.kind == PICO8_VALUE_FIXED && via.as.fixed == 0x1234);
+    } else if (raw.kind == PICO8_VALUE_REF) {
+        assert(raw.as.ref != NULL && raw.as.ref == via.as.ref);
+    } else {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == via.as.fixed);
+    }
+    *out = raw;
+    return got_raw;
+}
+
+static void *ui_ref(const void *ui, const char *name) {
+    pico8_value_t v;
+    if (!read_ui(ui, name, &v)) {
+        return NULL;
+    }
+    assert(v.kind == PICO8_VALUE_REF);
+    return v.as.ref;
+}
+
+static uint32_t fold_new_ui(uint32_t h, const void *ui) {
+    pico8_value_t v;
+    size_t i;
+
+    assert(read_ui(ui, "ql", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(58));
+    assert(read_ui(ui, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(15));
+    assert(ui_ref(ui, "le") == class_ref("le") && ((const pico8_list_t *)ui_ref(ui, "le"))->count == 0);
+    assert(ui_ref(ui, "hw") == class_ref("hw") && ui_ref(ui, "hw") == (const void *)pico8_ui_hw());
+    assert(pico8_type_tag_of(ui_ref(ui, "le")) == PICO8_TYPE_TAG_LIST);
+    assert(pico8_type_tag_of(ui_ref(ui, "hw")) == PICO8_TYPE_TAG_UNKNOWN);
+    for (i = 4; i < 10; i++) {
+        assert(!read_ui(ui, ui_names[i], &v));
+    }
+    h = fnv(h, (uint32_t)pico8_ui_hw()->xl);
+    h = fnv(h, (uint32_t)pico8_ui_hw()->yb);
+    return fnv(h, (uint32_t)rank_in(pico8_hv(), ui));
+}
+
+typedef struct {
+    pico8_struct_header_t header;
+} giver_t;
+
+static pico8_value_t g_given;
+static int g_giver_hovered = 1;
+
+static pico8_value_t giver_down(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)self;
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    return g_given;
+}
+
+static int giver_field(const void *self, const char *name, pico8_value_t *out_value) {
+    (void)self;
+    if (strcmp(name, "hd") == 0) {
+        *out_value = g_giver_hovered ? pico8_value_fixed(pico8_fixed_from_int(1)) : pico8_value_bool(0);
+        return 1;
+    }
+    if (strcmp(name, "fa") == 0) {
+        *out_value = pico8_value_fixed(pico8_fixed_from_int(15));
+        return 1;
+    }
+    return 0;
+}
+
+static int giver_set_field(void *self, const char *name, pico8_value_t value) {
+    (void)self;
+    (void)value;
+    return strcmp(name, "m_") == 0;
+}
+
+static const pico8_struct_class_t g_giver_class = {
+    {
+        [PICO8_METHOD_LDOWN] = giver_down,
+        [PICO8_METHOD_RDOWN] = giver_down,
+    },
+    giver_field,
+    giver_set_field,
+};
+
+static giver_t g_giver = {{PICO8_TYPE_TAG_STRUCT, &g_giver_class}};
+
+static void press(void *ok, int buttons) {
+    mouse_at(64, 100, 0);
+    pico8_ui_lj(&mem, ok);
+    mouse_at(64, 100, buttons);
+    pico8_ui_lj(&mem, ok);
+}
+
+static void release(void *ok) {
+    mouse_at(64, 100, 0);
+    pico8_ui_lj(&mem, ok);
+}
+
+static uint32_t fold_given_lheld(uint32_t h, void *ok, void *given) {
+    g_given = pico8_value_ref(given);
+    press(ok, 1);
+    assert(ui_ref(ok, "lheld") == given && ui_ref(ok, "rheld") == NULL);
+    h = fnv(h, (uint32_t)rank_in(pico8_hv(), given));
+    release(ok);
+    assert(ui_ref(ok, "lheld") == NULL);
+    return h;
+}
+
+static const char *g_write_name;
+
+static void write_named(void *e) {
+    pico8_entity_set_field(e, g_write_name, pico8_value_ref(NULL));
+}
+
+static void test_ui_members_by_name(void) {
+    static const char *const intruders[] = {"", "q", "le ", "LE", "held", "l", "r", "has_le", "header", "ke", "o"};
+    uint32_t h = 2166136261u;
+    pico8_ui_t *ok = start_game(DRAG);
+    void *made[10];
+    void *qa;
+    void *ic;
+    void *le;
+    pico8_vec_t want;
+    pico8_value_t v;
+    size_t i;
+
+    h = fold_new_ui(h, ok);
+    h = fold_new_ui(h, pico8_ui_new(NULL));
+
+    mouse_at(64, 100, 0);
+    pico8_ui_lj(&mem, ok);
+    want = pico8_vec_add(vec_of(pico8_je(), "ra"), vec_of(pico8_mo(), "ra"));
+    qa = ui_ref(ok, "qa");
+    ic = ui_ref(ok, "ic");
+    assert(qa != NULL && ((pico8_vec_t *)qa)->x == want.x && ((pico8_vec_t *)qa)->y == want.y);
+    assert(ic != NULL && pico8_type_tag_of(ic) == PICO8_TYPE_TAG_OB_TABLE);
+    assert(ui_ref(ok, "o_") == the_bg() && ui_ref(ok, "gj") == ui_ref(ok, "o_"));
+    assert(ui_ref(ok, "le") == class_ref("le") && ui_ref(ok, "lheld") == NULL && ui_ref(ok, "rheld") == NULL);
+    h = fold_vec(h, *(pico8_vec_t *)qa);
+    h = fold_layers(h, ok);
+    pico8_ui_lj(&mem, ok);
+    assert(ui_ref(ok, "qa") != qa && ui_ref(ok, "ic") != ic && ui_ref(ok, "gj") == the_bg());
+
+    press(ok, 1);
+    assert(is_of(ui_ref(ok, "lheld"), pico8_g__struct_class()));
+    h = fnv(h, (uint32_t)rank_in(pico8_hv(), ui_ref(ok, "lheld")));
+    release(ok);
+    assert(ui_ref(ok, "lheld") == NULL);
+    press(ok, 1);
+    assert(is_of(ui_ref(ok, "lheld"), pico8_g__struct_class()));
+    h = fnv(h, (uint32_t)rank_in(pico8_hv(), ui_ref(ok, "lheld")));
+    release(ok);
+    assert(ui_ref(ok, "lheld") == NULL);
+
+    press(ok, 2);
+    assert(ui_ref(ok, "rheld") == the_bg() && ui_ref(ok, "lheld") == NULL);
+    h = fnv(h, cursor_is(9));
+    release(ok);
+    assert(ui_ref(ok, "rheld") == NULL);
+    h = fnv(h, cursor_is(58));
+
+    pico8_lt(&g_giver.header);
+    made[0] = pico8_qh_new(NULL);
+    made[1] = pico8_os_new(NULL);
+    made[2] = pico8_nl_new(NULL);
+    made[3] = pico8_hj_new(NULL);
+    made[4] = pico8_nr_new(NULL);
+    made[5] = pico8_fr_new(NULL);
+    made[6] = pico8_mx_new(NULL);
+    made[7] = pico8_g__new(NULL);
+    made[8] = pico8_mz_new(NULL);
+    made[9] = pico8_jc_new(NULL);
+    for (i = 0; i < 10; i++) {
+        h = fold_given_lheld(h, ok, made[i]);
+    }
+    g_given = pico8_value_ref(the_bg());
+    press(ok, 2);
+    assert(ui_ref(ok, "rheld") == the_bg() && ui_ref(ok, "lheld") == NULL);
+    h = fnv(h, cursor_is(9));
+    release(ok);
+    assert(ui_ref(ok, "rheld") == NULL);
+    g_given = pico8_value_ref(NULL);
+
+    le = ui_ref(ok, "le");
+    call_row_my(pico8_ix(), 4);
+    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != class_ref("le"));
+    assert(pico8_type_tag_of(ui_ref(ok, "le")) == PICO8_TYPE_TAG_LIST);
+    assert(((const pico8_list_t *)ui_ref(ok, "le"))->count > 0);
+    h = fnv(h, (uint32_t)((const pico8_list_t *)ui_ref(ok, "le"))->count);
+    le = ui_ref(ok, "le");
+    (void)pico8_fv_new(NULL);
+    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != class_ref("le"));
+    assert(((const pico8_list_t *)ui_ref(ok, "le"))->count == 0);
+    le = ui_ref(ok, "le");
+    pico8_ui_cj(ok);
+    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != class_ref("le"));
+    assert(((const pico8_list_t *)ui_ref(ok, "le"))->count == 0);
+
+    for (i = 0; i < 10; i++) {
+        g_write_name = ui_names[i];
+        must_abort(write_named, ok);
+    }
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        v = pico8_value_fixed(0x1234);
+        assert(!pico8_ui_struct_class()->field(ok, intruders[i], &v));
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+    }
+    h = fnv(h, (uint32_t)pico8_hv()->count);
+    g_giver_hovered = 0;
+    for (i = 0; i < 10; i++) {
+        pico8_he(made[i]);
+    }
+    pico8_he(the_bg());
+    pico8_ui_lj(&mem, ok);
+    assert(ui_ref(ok, "o_") == NULL && ui_ref(ok, "gj") == NULL);
+    check("ui members", h, UI_MEMBERS_HASH);
+}
+
+static int g_hold_buttons;
+
+static void hold_given(void *ok) {
+    press(ok, g_hold_buttons);
+}
+
+static void test_ui_held_stops_off_row(void) {
+    pico8_ui_t *ok = start_game(DRAG);
+    pico8_vec_t *vec = malloc(sizeof *vec);
+    void *left[11];
+    void *right[9];
+    size_t i;
+
+    *vec = pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2));
+    pico8_lt(&g_giver.header);
+    left[0] = pico8_pm_new(NULL);
+    left[1] = pico8_ga_new(NULL);
+    left[2] = pico8_cg("jo")->items[0].as.ref;
+    left[3] = the_bg();
+    left[4] = pico8_fv_new(NULL);
+    left[5] = pico8_js_new(NULL);
+    left[6] = pico8_ie_new(NULL);
+    left[7] = pico8_mz_jj_wrapper();
+    left[8] = pico8_ob_table_new();
+    left[9] = (void *)pico8_hv();
+    left[10] = vec;
+    right[0] = pico8_jc_new(NULL);
+    right[1] = pico8_g__new(NULL);
+    right[2] = pico8_mz_new(NULL);
+    right[3] = pico8_qh_new(NULL);
+    right[4] = left[2];
+    right[5] = left[4];
+    right[6] = left[8];
+    right[7] = left[9];
+    right[8] = vec;
+
+    g_hold_buttons = 1;
+    for (i = 0; i < 11; i++) {
+        g_given = pico8_value_ref(left[i]);
+        must_abort(hold_given, ok);
+    }
+    g_hold_buttons = 2;
+    for (i = 0; i < 9; i++) {
+        g_given = pico8_value_ref(right[i]);
+        must_abort(hold_given, ok);
+    }
 }
 
 static void ks_on_a_table(void *e) {
@@ -3244,6 +3517,8 @@ int main(void) {
     in_fresh_child(test_drag_replay);
     in_fresh_child(test_tech_replay);
     in_fresh_child(test_ui_is_a_struct);
+    in_fresh_child(test_ui_members_by_name);
+    in_fresh_child(test_ui_held_stops_off_row);
     in_fresh_child(test_ke_closed);
     in_fresh_child(test_ke_me_by_name);
     in_fresh_child(test_ke_ks_stops_off_row);

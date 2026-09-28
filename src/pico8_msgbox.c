@@ -553,7 +553,7 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
     le_heap = malloc(sizeof *le_heap);
     *le_heap = pico8_nv(bs_effective, pico8_pz_step, &ctx);
     if (ok != NULL) {
-        ok->le = pico8_value_ref(le_heap);
+        ok->le = le_heap;
     } else {
         pico8_list_free(le_heap);
         free(le_heap);
@@ -569,6 +569,6 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
     if (pico8_entity_get_field(p, "ff", &ff_val) && pico8_msgbox_truthy(ff_val) && ok != NULL) {
         pico8_list_t *empty_heap = malloc(sizeof *empty_heap);
         pico8_list_init(empty_heap);
-        ok->le = pico8_value_ref(empty_heap);
+        ok->le = empty_heap;
     }
 }

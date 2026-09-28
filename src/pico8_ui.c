@@ -1,7 +1,6 @@
 #include "pico8_ui.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,38 +10,34 @@
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_pi.h"
+#include "pico8_planet_family.h"
+#include "pico8_probe.h"
+#include "pico8_slipway.h"
 #include "pico8_type_tag.h"
 #include "pico8_vec.h"
+#include "pico8_wormhole.h"
 #include "pico8_ref_audit.h"
 
 static pico8_ob_table_t *g_ui_spec = NULL;
 static pico8_struct_header_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
 
-enum { UI_QL, UI_FA, UI_LE, UI_HW };
-
 /* ui's 4 spec defaults, read once from its spec at init, after the swap of
  * `le`: the spec's REFs, never re-parsed. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_ui_defaults[] = {
-    [UI_QL] = {"ql", offsetof(pico8_ui_t, ql), {0}},
-    [UI_FA] = {"fa", offsetof(pico8_ui_t, fa), {0}},
-    [UI_LE] = {"le", offsetof(pico8_ui_t, le), {0}},
-    [UI_HW] = {"hw", offsetof(pico8_ui_t, hw), {0}},
-};
+static pico8_fixed_t g_ui_ql;
+static pico8_fixed_t g_ui_fa;
+static pico8_list_t *g_ui_le;
+static pico8_qz_box_t *g_ui_hw;
 
 static void pico8_ui_defaults_reset(void) {
-    size_t i;
-    for (i = 0; i < sizeof g_ui_defaults / sizeof g_ui_defaults[0]; i++) {
-        g_ui_defaults[i].value = pico8_value_ref(NULL);
-    }
+    g_ui_ql = 0;
+    g_ui_fa = 0;
+    g_ui_le = NULL;
+    g_ui_hw = NULL;
 }
 
 const pico8_qz_box_t *pico8_ui_hw(void) {
-    return (const pico8_qz_box_t *)g_ui_defaults[UI_HW].value.as.ref;
+    return g_ui_hw;
 }
 
 static int pico8_je_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -131,34 +126,50 @@ static pico8_value_t pico8_ui_ev_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static int pico8_ui_field(const void *self, const char *name, pico8_value_t *out_value) {
-    static const struct {
-        const char *name;
-        size_t offset;
-    } members[] = {
-        {"ql", offsetof(pico8_ui_t, ql)}, {"fa", offsetof(pico8_ui_t, fa)},
-        {"le", offsetof(pico8_ui_t, le)}, {"hw", offsetof(pico8_ui_t, hw)},
-        {"qa", offsetof(pico8_ui_t, qa)}, {"ic", offsetof(pico8_ui_t, ic)},
-        {"o_", offsetof(pico8_ui_t, o_)}, {"gj", offsetof(pico8_ui_t, gj)},
-        {"lheld", offsetof(pico8_ui_t, lheld)}, {"rheld", offsetof(pico8_ui_t, rheld)},
-    };
-    const pico8_value_t *member;
-    size_t i;
-
-    for (i = 0; i < sizeof members / sizeof members[0]; i++) {
-        if (strcmp(name, members[i].name) == 0) {
-            break;
-        }
-    }
-    if (i == sizeof members / sizeof members[0]) {
-        return pico8_ke_field(self, name, out_value);
-    }
-    member = (const pico8_value_t *)((const char *)self + members[i].offset);
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
+static int ui_ref_field(void *ref, pico8_value_t *out_value) {
+    if (ref == NULL) {
         return 0;
     }
-    *out_value = *member;
+    *out_value = pico8_value_ref(ref);
     return 1;
+}
+
+static int pico8_ui_field(const void *self, const char *name, pico8_value_t *out_value) {
+    const pico8_ui_t *ui = self;
+
+    if (strcmp(name, "ql") == 0) {
+        *out_value = pico8_value_fixed(ui->ql);
+        return 1;
+    }
+    if (strcmp(name, "fa") == 0) {
+        *out_value = pico8_value_fixed(ui->fa);
+        return 1;
+    }
+    if (strcmp(name, "le") == 0) {
+        return ui_ref_field(ui->le, out_value);
+    }
+    if (strcmp(name, "hw") == 0) {
+        return ui_ref_field(ui->hw, out_value);
+    }
+    if (strcmp(name, "qa") == 0) {
+        return ui_ref_field(ui->qa, out_value);
+    }
+    if (strcmp(name, "ic") == 0) {
+        return ui_ref_field(ui->ic, out_value);
+    }
+    if (strcmp(name, "o_") == 0) {
+        return ui_ref_field(ui->o_, out_value);
+    }
+    if (strcmp(name, "gj") == 0) {
+        return ui_ref_field(ui->gj, out_value);
+    }
+    if (strcmp(name, "lheld") == 0) {
+        return ui_ref_field(ui->lheld, out_value);
+    }
+    if (strcmp(name, "rheld") == 0) {
+        return ui_ref_field(ui->rheld, out_value);
+    }
+    return pico8_ke_field(self, name, out_value);
 }
 
 static const pico8_struct_class_t g_ui_struct_class = {
@@ -171,20 +182,20 @@ static const pico8_struct_class_t g_ui_struct_class = {
 
 static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ui_t *self;
-    size_t i;
 
     assert(g_ui_spec != NULL && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_ui_struct_class);
-    for (i = 0; i < sizeof g_ui_defaults / sizeof g_ui_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_ui_defaults[i].offset) = g_ui_defaults[i].value;
-    }
-    self->qa = pico8_value_ref(NULL);
-    self->ic = pico8_value_ref(NULL);
-    self->o_ = pico8_value_ref(NULL);
-    self->gj = pico8_value_ref(NULL);
-    self->lheld = pico8_value_ref(NULL);
-    self->rheld = pico8_value_ref(NULL);
+    self->ql = g_ui_ql;
+    self->fa = g_ui_fa;
+    self->le = g_ui_le;
+    self->hw = g_ui_hw;
+    self->qa = NULL;
+    self->ic = NULL;
+    self->o_ = NULL;
+    self->gj = NULL;
+    self->lheld = NULL;
+    self->rheld = NULL;
     assert((overrides == NULL || overrides->count == 0) &&
            "ui: the only measured road is pico8_ui_new(NULL) (jl); a construction key would be a field under "
            "no rule of plan-3 section 5 -- stop, do not add a member");
@@ -196,11 +207,35 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
+static pico8_fixed_t ui_default_fixed(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_FIXED &&
+           "ui.ql/fa: a default of the struct is a key of ui's spec and a fixed (fixe)");
+    (void)found;
+    return v.as.fixed;
+}
+
+static pico8_list_t *ui_default_list(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST &&
+           "ui.le: a default of the struct is a key of ui's spec and the list that replaced o() (ref:liste)");
+    (void)found;
+    return v.as.ref;
+}
+
+static pico8_qz_box_t *ui_default_box(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "ui.hw: a default of the struct is a key of ui's spec and a box b() (ref:autre)");
+    (void)found;
+    return v.as.ref;
+}
+
 void pico8_ui_init(void) {
     pico8_ob_table_t *raw_le = NULL;
     pico8_value_t le_val;
     pico8_list_t *heap_le;
-    size_t i;
+    pico8_value_t v;
+    int found;
 
     pico8_ui_shutdown();
     pico8_pi_init();
@@ -216,15 +251,14 @@ void pico8_ui_init(void) {
     pico8_list_init(heap_le);
     pico8_ob_table_set_name(g_ui_spec, "le", pico8_value_ref(heap_le));
     pico8_ob_table_free(raw_le);
-    for (i = 0; i < sizeof g_ui_defaults / sizeof g_ui_defaults[0]; i++) {
-        int found = pico8_ui_default(g_ui_defaults[i].name, &g_ui_defaults[i].value);
-        assert(found && "ui: every default of the struct is a key of ui's spec");
-        (void)found;
-    }
-    assert(g_ui_defaults[UI_LE].value.kind == PICO8_VALUE_REF &&
-           pico8_type_tag_of(g_ui_defaults[UI_LE].value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           g_ui_defaults[UI_HW].value.kind == PICO8_VALUE_REF && g_ui_defaults[UI_HW].value.as.ref != NULL &&
-           "ui: lj/cj read le as a list, shared by every new ui until its cj or pz; pico8_ui_hw() casts hw to a box");
+    found = pico8_ui_default("ql", &v);
+    g_ui_ql = ui_default_fixed(found, v);
+    found = pico8_ui_default("fa", &v);
+    g_ui_fa = ui_default_fixed(found, v);
+    found = pico8_ui_default("le", &v);
+    g_ui_le = ui_default_list(found, v);
+    found = pico8_ui_default("hw", &v);
+    g_ui_hw = ui_default_box(found, v);
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
     PICO8_MEMBER_CENSUS_SEE(&g_je_placeholder, pico8_je_placeholder_t);
@@ -292,7 +326,7 @@ void pico8_ui_set_ok(pico8_ui_t *ui) {
 /* `le` is read before gw()/bh() run: the `self.le == le` test further down
  * is a pointer identity check against the list this frame started with. */
 void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
-    void *le_ptr_before = NULL;
+    pico8_list_t *le_ptr_before;
     int le_count;
     pico8_vec_t qa;
     pico8_vec_t *heap_qa;
@@ -302,30 +336,25 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
         return;
     }
 
-    if (self->le.kind == PICO8_VALUE_REF && self->le.as.ref != NULL) {
-        le_ptr_before = self->le.as.ref;
-        le_count = PICO8_REF_AS_LIST_CONST(self->le.as.ref)->count;
-    } else {
-        le_count = 0;
-    }
+    le_ptr_before = self->le;
+    le_count = self->le != NULL ? self->le->count : 0;
 
     qa = pico8_vec_add(pico8_ui_field_vec(g_je, "ra"), pico8_ui_field_vec(pico8_mo(), "ra"));
     /* TROU-7 */
     heap_qa = malloc(sizeof *heap_qa);
     *heap_qa = qa;
-    self->qa = pico8_value_ref(heap_qa);
+    self->qa = heap_qa;
 
     pico8_ui_gw(mem, self);
 
-    hit = (le_count == 0) || pico8_gu(PICO8_REF_AS_LIST_CONST(le_ptr_before), self->o_);
+    hit = (le_count == 0) || pico8_gu(le_ptr_before, pico8_value_ref(self->o_));
     if (hit) {
         pico8_ui_bh(self, "l");
     }
 
     pico8_ui_bh(self, "r");
 
-    if (pico8_ui_je_button_field_bool("l", "jn") && self->le.kind == PICO8_VALUE_REF &&
-        self->le.as.ref == le_ptr_before) {
+    if (pico8_ui_je_button_field_bool("l", "jn") && self->le == le_ptr_before) {
         pico8_ui_cj(self);
     }
 
@@ -342,19 +371,13 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
         return;
     }
 
-    if (pico8_ui_truthy(self->rheld)) {
+    if (self->rheld != NULL) {
         spr_id = 9;
+    } else if (self->o_ != NULL) {
+        pico8_value_t ql_val = pico8_ui_field_raw(self->o_, "ql");
+        spr_id = (ql_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(ql_val.as.fixed) : pico8_ui_to_int(self->ql);
     } else {
-        if (self->o_.kind == PICO8_VALUE_REF && self->o_.as.ref != NULL) {
-            pico8_value_t ql_val = pico8_ui_field_raw((const pico8_struct_header_t *)self->o_.as.ref, "ql");
-            if (ql_val.kind != PICO8_VALUE_FIXED) {
-                ql_val = self->ql;
-            }
-            spr_id = (ql_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(ql_val.as.fixed) : 0;
-        } else {
-            pico8_value_t ql_val = self->ql;
-            spr_id = (ql_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(ql_val.as.fixed) : 0;
-        }
+        spr_id = pico8_ui_to_int(self->ql);
     }
 
     je_ra = pico8_ui_field_vec(g_je, "ra");
@@ -369,8 +392,6 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     pico8_value_t qa_val;
     pico8_value_t je_ra_val;
     const pico8_list_t *hd_bucket;
-    pico8_value_t gj_val;
-    pico8_value_t o_val;
     int i;
     int poke_val;
 
@@ -380,10 +401,10 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
 
     /* TROU-7 */
     ic = pico8_ob_table_new();
-    self->ic = pico8_value_ref(ic);
-    self->o_ = pico8_value_ref(NULL);
+    self->ic = ic;
+    self->o_ = NULL;
 
-    qa_val = self->qa;
+    qa_val = pico8_value_ref(self->qa);
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
 
     hd_bucket = pico8_cv("hd");
@@ -398,23 +419,21 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
                 if (pico8_entity_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
                     pico8_ft_index(ic, pico8_ui_to_int(fa_val.as.fixed), pico8_value_ref(e));
                 }
-                self->o_ = pico8_value_ref(e);
+                self->o_ = e;
             }
         }
     }
 
-    gj_val = self->gj;
-    if (gj_val.kind == PICO8_VALUE_REF && gj_val.as.ref != NULL) {
-        pico8_entity_set_field(gj_val.as.ref, "m_", pico8_value_bool(0));
+    if (self->gj != NULL) {
+        pico8_entity_set_field(self->gj, "m_", pico8_value_bool(0));
     }
 
-    o_val = self->o_;
-    if (o_val.kind == PICO8_VALUE_REF && o_val.as.ref != NULL) {
-        pico8_entity_set_field(o_val.as.ref, "m_", pico8_value_bool(1));
+    if (self->o_ != NULL) {
+        pico8_entity_set_field(self->o_, "m_", pico8_value_bool(1));
     }
 
-    if (o_val.kind == PICO8_VALUE_REF && o_val.as.ref != NULL) {
-        pico8_value_t fg_val = pico8_ui_field_raw((const pico8_struct_header_t *)o_val.as.ref, "fg");
+    if (self->o_ != NULL) {
+        pico8_value_t fg_val = pico8_ui_field_raw(self->o_, "fg");
         poke_val = (fg_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(fg_val.as.fixed) : 0;
     } else {
         int prev = pico8_peek(mem, 0x5f80);
@@ -423,11 +442,40 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     pico8_poke(mem, 0x5f80, (unsigned char)poke_val);
 }
 
+static int ui_is_held_class(const pico8_struct_class_t *cls) {
+    return cls == pico8_jc_struct_class() || cls == pico8_g__struct_class() || cls == pico8_mz_struct_class() ||
+           (cls->methods[PICO8_METHOD_LY] != NULL && cls != pico8_pm_struct_class());
+}
+
+static void ui_take_held(pico8_value_t value, pico8_struct_header_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ui_is_held_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
+           "ui.lheld: a value neither nil nor what an ldown hands over (a jc; a g_ or an mz from bg; a qh, os, nr, "
+           "fr, nl, mx or hj from an ie) is off its census row (ref: to those) -- a field under no rule of plan-3 "
+           "section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
+static void ui_take_bg(pico8_value_t value, pico8_bg_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_bg_struct_class() &&
+           "ui.rheld: a value neither nil nor the bg that rdown hands over is off its census row (ref:pico8_bg_t) "
+           "-- a field under no rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
 void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
-    pico8_value_t *held;
+    int l;
     const char *down;
-    pico8_value_t held_val;
-    pico8_struct_header_t *held_inst = NULL;
+    pico8_struct_header_t *held_inst;
     pico8_value_t qa_val;
     pico8_value_t je_ra_val;
     pico8_value_t discard;
@@ -438,14 +486,9 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
            "ui:bh: plan-3 section 5 enumerates bt as l or r only; another key is an unmeasured field -- stop");
-    if (bt[0] == 'l') {
-        held = &self->lheld;
-        down = "ldown";
-    } else {
-        held = &self->rheld;
-        down = "rdown";
-    }
-    qa_val = self->qa;
+    l = bt[0] == 'l';
+    down = l ? "ldown" : "rdown";
+    qa_val = pico8_value_ref(self->qa);
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
 
     if (pico8_ui_je_button_field_bool(bt, "jn")) {
@@ -453,15 +496,16 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
         pico8_value_t kn;
 
         if (pico8_ui_jz(self, down, 2, qa_val, je_ra_val, &kv, &kn) && kn.kind == PICO8_VALUE_REF) {
-            *held = kn;
+            /* TROU-6 */
+            if (l) {
+                ui_take_held(kn, &self->lheld);
+            } else {
+                ui_take_bg(kn, &self->rheld);
+            }
         }
     }
 
-    held_val = *held;
-    if (held_val.kind == PICO8_VALUE_REF && held_val.as.ref != NULL) {
-        /* TROU-6 */
-        held_inst = (pico8_struct_header_t *)held_val.as.ref;
-    }
+    held_inst = l ? self->lheld : (self->rheld != NULL ? &self->rheld->ke.header : NULL);
 
     pico8_mv(held_inst, "hq", 2, qa_val, je_ra_val, &discard);
 
@@ -472,12 +516,17 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 
         /* `ey`'s argument is the entity `jz` found, not a field read on
          * `held`: no object in this cart carries a "kv" field. */
-        if (pico8_ui_jz(self, "gv", 1, held_val, pico8_value_ref(NULL), &nw_kv, &nw_kn) && nw_kv != NULL) {
+        if (pico8_ui_jz(self, "gv", 1, pico8_value_ref(held_inst), pico8_value_ref(NULL), &nw_kv, &nw_kn) &&
+            nw_kv != NULL) {
             ey_arg = pico8_value_ref(nw_kv);
         }
 
         pico8_mv(held_inst, "ey", 1, ey_arg, pico8_value_ref(NULL), &discard);
-        *held = pico8_value_ref(NULL);
+        if (l) {
+            self->lheld = NULL;
+        } else {
+            self->rheld = NULL;
+        }
     }
 }
 
@@ -493,10 +542,10 @@ int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, 
         return 0;
     }
 
-    if (self->ic.kind != PICO8_VALUE_REF || self->ic.as.ref == NULL) {
+    if (self->ic == NULL) {
         return 0;
     }
-    ic = (const pico8_ob_table_t *)self->ic.as.ref;
+    ic = self->ic;
 
     for (mf = 15; mf >= 0; mf--) {
         pico8_value_t bucket_val;
@@ -543,13 +592,13 @@ void pico8_ui_cj(pico8_ui_t *self) {
         return;
     }
 
-    if (self->le.kind == PICO8_VALUE_REF && self->le.as.ref != NULL) {
-        pico8_list_t discarded = pico8_nv(PICO8_REF_AS_LIST_CONST(self->le.as.ref), pico8_ui_cj_he_mapper, NULL);
+    if (self->le != NULL) {
+        pico8_list_t discarded = pico8_nv(self->le, pico8_ui_cj_he_mapper, NULL);
         pico8_list_free(&discarded);
     }
 
     /* TROU-7 */
     heap_le = malloc(sizeof *heap_le);
     pico8_list_init(heap_le);
-    self->le = pico8_value_ref(heap_le);
+    self->le = heap_le;
 }
