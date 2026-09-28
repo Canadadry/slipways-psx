@@ -32,3 +32,6 @@ src/pico8_screencast_player.c | visualiseur d'enregistrement
 src/pico8_screencast_player.h | visualiseur d'enregistrement
 src/pico8_session_recorder.c | rejeu et enregistrement de session du driver interactif
 src/pico8_session_recorder.h | rejeu et enregistrement de session du driver interactif
+src/main_gif.c | point d'entree de l'outil pico8_gif de make gif, outil d'hote
+src/pico8_gif.c | encodeur GIF de make gif, outil d'hote
+src/pico8_gif.h | encodeur GIF de make gif, en-tete de pico8_gif.c

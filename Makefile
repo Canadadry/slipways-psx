@@ -9,6 +9,9 @@
 #                       180 frames (600 s'il est listé dans
 #                       tools/e2e_long_exceptions.txt)
 # make test-all      -> test + e2e, la suite complète
+# make gif           -> gif/<nom>.gif pour chaque e2e de tests/e2e/ : sa capture
+#                       à l'échelle 3, la souris de l'event dessinée par-dessus ;
+#                       hors suite
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay EVENTS=<events> -> rejoue ce fichier dans le moteur headless, dump
 #                       du framebuffer dans tmp/pico8_replay_dump.txt ; hors suite
@@ -70,7 +73,7 @@
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -369,6 +372,12 @@ $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_lin
 $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/pico8_gif: $(call objs,src/main_gif.c src/pico8_gif.c src/pico8_palette.c src/pico8_screencast.c src/pico8_mem.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_pico8_gif: $(call objs,tests/test_pico8_gif.c src/pico8_gif.c src/pico8_palette.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -463,6 +472,7 @@ UNIT_TESTS := \
     test_pico8_replay_from_title \
     test_pico8_replay_usage \
     test_pico8_screencast_player \
+    test_pico8_gif \
     test_pico8_frames_tool \
     test_frames_check \
     test_class_coverage \
@@ -578,6 +588,15 @@ e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh 
 	sh tools/frames_check.sh $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e))) || status=1; \
 	echo "e2e: $(words $(E2E_EVENTS)) e2e dans $(E2E_DIR)"; \
 	exit $$status
+
+GIF_DIR := gif
+
+gif: $(foreach e,$(E2E_EVENTS),$(GIF_DIR)/$(basename $(notdir $(e))).gif)
+	@echo "gif: $(words $(E2E_EVENTS)) GIF dans $(GIF_DIR)/, $$(du -ch $(GIF_DIR)/*.gif | tail -1 | cut -f1)"
+
+$(GIF_DIR)/%.gif: $(call frames_capture,$(E2E_DIR)/%.json) $(E2E_DIR)/%.json $(TMP_DIR)/pico8_gif
+	@mkdir -p $(@D)
+	./$(TMP_DIR)/pico8_gif $< $(E2E_DIR)/$*.json $@
 
 e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
 	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference posee dans $(call frames_reference,$(e))" && ) true
