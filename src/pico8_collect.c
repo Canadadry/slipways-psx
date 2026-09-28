@@ -6,26 +6,6 @@
 
 #include "pico8_map_tables.h"
 
-pico8_ob_table_t *pico8_qj(pico8_ob_table_t *o, const pico8_ob_table_t *mr) {
-    int i;
-    if (mr != NULL) {
-        for (i = 0; i < mr->count; i++) {
-            pico8_ob_key_t key = mr->entries[i].key;
-            if (key.kind == PICO8_OB_KEY_NAME) {
-                pico8_ob_table_set_name(o, key.name, mr->entries[i].value);
-            } else {
-                pico8_ob_table_set_index(o, key.index, mr->entries[i].value);
-            }
-        }
-    }
-    return o;
-}
-
-pico8_ob_table_t *pico8_mw(const pico8_ob_table_t *o) {
-    pico8_ob_table_t *t = pico8_ob_table_new();
-    return pico8_qj(t, o);
-}
-
 /* TROU-3 */
 int pico8_gu(const pico8_list_t *qk, pico8_value_t kb) {
     pico8_list_iter_t it;

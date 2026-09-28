@@ -70,39 +70,6 @@ static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
     return t;
 }
 
-/* A want record as `lq:mn` reads it, `{qe=x}` for a truthy `x`, else a row
- * with no item. One shared row per `x`, a resource of `r`. */
-static pico8_value_t jo_gh_record_tuple(pico8_value_t e) {
-    static const pico8_jb_row_t none = {0};
-    static pico8_jb_row_t rows[PICO8_R_COUNT];
-    static int count = 0;
-    pico8_value_t qe = pico8_value_ref(NULL);
-    int i;
-
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return e;
-    }
-    pico8_ob_table_get_name((const pico8_ob_table_t *)e.as.ref, "qe", &qe);
-    if (!pico8_jo_truthy(qe)) {
-        return pico8_value_ref((void *)&none);
-    }
-    assert(qe.kind == PICO8_VALUE_FIXED && "a want record's qe is a resource of r, never a boolean");
-    for (i = 0; i < count && rows[i].qe != qe.as.fixed; i++) {
-    }
-    if (i == count) {
-        assert(count < PICO8_R_COUNT && "a want record's qe is a resource of r: r has no more");
-        rows[count] = (pico8_jb_row_t){.has_qe = 1, .qe = qe.as.fixed};
-        count++;
-    }
-    return pico8_value_ref(&rows[i]);
-}
-
-static int pico8_jo_gh_tuple_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
-    (void)ctx;
-    *out_value = jo_gh_record_tuple(e);
-    return 1;
-}
-
 void pico8_jo_hb(pico8_jo_t *self) {
     const pico8_list_t *jy_list;
     const pico8_list_t *by_list;
@@ -139,15 +106,14 @@ static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
     int j;
 
     if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        pico8_value_t gc_val;
-        if (pico8_ob_table_get_name((const pico8_ob_table_t *)e.as.ref, "gc", &gc_val) &&
-            gc_val.kind == PICO8_VALUE_FIXED) {
-            gc = gc_val.as.fixed;
+        const pico8_jy_t *i = e.as.ref;
+        if (i->has_gc) {
+            gc = i->gc;
         }
     }
     count = pico8_fixed_flr_int(gc);
     for (j = 0; j < count; j++) {
-        pico8_list_add(ctx->ji, jo_gh_record_tuple(e));
+        pico8_list_add(ctx->ji, e);
     }
     return gc == pico8_fixed_from_int(0);
 }
@@ -221,13 +187,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
 
     if (jx.count > 0) {
         pico8_list_t prefix;
-        pico8_list_t shown = pico8_nv(&jx, pico8_jo_gh_tuple_step, NULL);
         pico8_list_t *merged = malloc(sizeof *merged);
         pico8_list_init(&prefix);
         pico8_list_add(&prefix, pico8_value_string("needs:"));
-        *merged = pico8_la(&prefix, &shown);
+        *merged = pico8_la(&prefix, &jx);
         pico8_list_free(&prefix);
-        pico8_list_free(&shown);
         pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
     } else {
         pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
@@ -246,13 +210,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             if (field_truthy(self, "qh")) {
                 pico8_list_t last_only;
                 pico8_list_init(&last_only);
-                pico8_list_add(&last_only, jo_gh_record_tuple(jy->items[jy->count - 1]));
+                pico8_list_add(&last_only, jy->items[jy->count - 1]);
                 *merged = pico8_la(&prefix, &last_only);
                 pico8_list_free(&last_only);
             } else {
-                pico8_list_t shown = pico8_nv(jy, pico8_jo_gh_tuple_step, NULL);
-                *merged = pico8_la(&prefix, &shown);
-                pico8_list_free(&shown);
+                *merged = pico8_la(&prefix, jy);
             }
             pico8_list_free(&prefix);
             pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));

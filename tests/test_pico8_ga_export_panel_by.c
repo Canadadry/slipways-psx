@@ -20,10 +20,10 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
+#include "../src/pico8_trade.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
@@ -99,8 +99,8 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_vec_t *ra;
     pico8_vec_t *gq;
     pico8_list_t *by;
-    pico8_ob_table_t *route_a;
-    pico8_ob_table_t *route_b;
+    pico8_trade_t *route_a;
+    pico8_trade_t *route_b;
     const pico8_list_t *le;
     const pico8_lq_t *exports_lq = NULL;
     int i;
@@ -144,8 +144,8 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     /* The contract all six readers assume, on the value actually handed
      * out. Without the `by` swap, ga's init aborts first. */
     assert(pico8_type_tag_of(by) == PICO8_TYPE_TAG_LIST);
-    route_a = pico8_ob_table_new();
-    route_b = pico8_ob_table_new();
+    route_a = pico8_trade_new(NULL);
+    route_b = pico8_trade_new(NULL);
     pico8_list_add(by, pico8_value_ref(route_a));
     pico8_list_add(by, pico8_value_ref(route_b));
 

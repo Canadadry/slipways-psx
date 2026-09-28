@@ -241,7 +241,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Champ | Sens |
 |---|---|
 | `mi` | palier de développement |
-| `jy` | besoins de la planète, une liste de `{qe=ressource}` |
+| `jy` | besoins de la planète, une liste de `{qe=ressource}` : chacun un `pico8_jy_t` (`pico8_research.h` : `row.has_qe`/`row.qe`, que `lq:mn` lit comme la table `{qe=…}`, puis `gc` sous `has_gc`) |
 | `cc` | routes commerciales arrivant sur la planète |
 | `by` | routes partant de la planète (résultat de `jo:ib()`) ; sur `ga`, la liste partagée par la classe, `g_ga_by_shared` de `pico8_planet_family.c`, vidée à chaque init |
 | `kw` | production : `{qe=ressource, mu=quantité}` (`pico8_kw_t`, `jo.kw`). `mu` est aussi le dénominateur du « 0/2 » affiché : la capacité en routes d'export. Une planète nue pointe `g_jo_kw_shared`, remis à `*pico8_jo_start.kw` à chaque init |
@@ -280,8 +280,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `qj(o,mr)` | `pico8_qj` | fusionne `mr` dans `o` ; `mr` gagne sur les clés partagées |
-| `mw(o)` | `pico8_mw` | copie superficielle |
+| `qj(o,mr)` | — | fusionne `mr` dans `o` ; `mr` gagne sur les clés partagées |
+| `mw(o)` | — | copie superficielle ; celle d'un besoin par `jo:lz` copie le `pico8_jy_t` |
 | `gu(qk,kb)` | `pico8_gu` | `kb` est-il dans la liste `qk` (identité de pointeur) |
 | — | `pico8_gu_content` | même chose, mais les chaînes sont comparées par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua |
 | `jp(qk,ow)` | `pico8_jp` | filtre |
@@ -621,7 +621,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `mc` | sur une entrée de `hc`, le nom de l'entrée améliorée que `hp:po` substitue |
 | `ii` | marqueur « ce projet est une technologie » : supprime la bulle, fait écrire un `lq` **donnée** au lieu d'une méthode (`const pico8_jb_row_t *lq` → `lq_own`, tenu dans le `pico8_hp_t`) |
 | `lr` | codes de type de planète qu'un projet accepte, comparés à `jo.nk.px` |
-| `i` | ressources requises, développées en liste de `{qe=…}` |
+| `i` | ressources requises, développées en liste de `{qe=…}` (`pico8_jy_t`, un par caractère, `qe` nil hors de `r`) |
 | `o` | ressource produite |
 | `dm` | routé par `gp` comme `o` ; aucun lecteur trouvé |
 | `fk` | l'entrée `{false,2}` que `hp:lq` ajoute en fin de rangée ; `pico8_hp_fk_row` |

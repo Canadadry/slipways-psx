@@ -208,7 +208,7 @@ static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
 
 /* The frozen hashes were taken when rows were ob views: these are the
  * bytes a view folded for its tag and its two kinds of key. */
-enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1 };
+enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1, VIEW_LIST_TAG = 0x9E5C1157u };
 
 static uint32_t fold_view_head(uint32_t h, int count) {
     h = fnv(h, (uint32_t)PICO8_VALUE_REF);
@@ -450,7 +450,7 @@ static void test_gb(void) {
         for (j = 0; j < i_list->count; j++) {
             pico8_value_t qe = pico8_value_ref(NULL);
             assert(i_list->items[j].kind == PICO8_VALUE_REF);
-            (void)pico8_ob_table_get_name(i_list->items[j].as.ref, "qe", &qe);
+            qe = pico8_jy_qe(i_list->items[j].as.ref);
             h = fold_value(h, qe, 0);
         }
         assert(lookup(b, "lq", &v));
@@ -602,6 +602,29 @@ static uint32_t fold_kw(uint32_t h, const void *p) {
     return fnv(h, (uint32_t)k->mu);
 }
 
+/* A planet's `jy`, folded as fold_value folded the list of tables it was:
+ * each want, `qe` (nil included), then `gc` when written. */
+static uint32_t fold_jy(uint32_t h, const void *p) {
+    const pico8_list_t *jy = get_ref(p, "jy");
+    int i;
+
+    if (jy == NULL) {
+        return fnv(h, 0xFFFFFFFFu);
+    }
+    h = fnv(fnv(h, (uint32_t)PICO8_VALUE_REF), (uint32_t)VIEW_LIST_TAG);
+    h = fnv(h, (uint32_t)jy->count);
+    for (i = 0; i < jy->count; i++) {
+        const pico8_jy_t *want = jy->items[i].as.ref;
+
+        h = fold_view_head(h, 1 + (want->has_gc != 0));
+        h = fold_value(fold_view_name(h, "qe"), pico8_jy_qe(want), 2);
+        if (want->has_gc) {
+            h = fold_value(fold_view_name(h, "gc"), pico8_value_fixed(want->gc), 2);
+        }
+    }
+    return h;
+}
+
 static uint32_t fold_planet(uint32_t h, const void *p) {
     static const char *const names[] = {"ep", "jy", "kw", "me", "fx", "p_", "ma"};
     size_t n;
@@ -610,12 +633,51 @@ static uint32_t fold_planet(uint32_t h, const void *p) {
     h = fnv(h, (uint32_t)gb_rank(get_ref(p, "hn")));
     h = fnv(h, (uint32_t)has(p, "hn"));
     for (n = 0; n < sizeof names / sizeof names[0]; n++) {
-        h = strcmp(names[n], "kw") == 0 ? fold_kw(h, p) : fold_field(h, p, names[n]);
+        if (strcmp(names[n], "kw") == 0) {
+            h = fold_kw(h, p);
+        } else {
+            h = strcmp(names[n], "jy") == 0 ? fold_jy(h, p) : fold_field(h, p, names[n]);
+        }
     }
     h = lookup(p, "nk", &nk) && nk.kind == PICO8_VALUE_REF
             ? fnv(h, (uint32_t)((const pico8_df_entry_t *)nk.as.ref - pico8_df_table))
             : fnv(h, 0xFFFFFFFFu);
     return fnv(h, (uint32_t)rank_in(pico8_hv(), p));
+}
+
+/* `hp:pq` makes a want per character of `i`, one of a character outside
+ * `r` wanting no resource; `jo:lz` copies each want, never shares it. */
+static void test_wants(void) {
+    pico8_fd_entry_t ri = {0};
+    pico8_hp_keys_t keys = {0};
+    const pico8_list_t *jy;
+    pico8_hp_t *b;
+    void *a;
+    int p;
+    int k;
+
+    start_game();
+    ri.npos = 5;
+    ri.px = "x";
+    ri.lr = "y";
+    ri.fj = 1;
+    ri.ja = "z";
+    ri.i = "pz";
+    keys.ri = &ri;
+    b = pico8_hp_new(&keys);
+    assert(b->i->count == 2 && pico8_r_lookup("p", &p));
+    assert(((const pico8_jy_t *)b->i->items[0].as.ref)->row.has_qe);
+    assert(((const pico8_jy_t *)b->i->items[0].as.ref)->row.qe == pico8_fixed_from_int(p));
+    assert(!((const pico8_jy_t *)b->i->items[1].as.ref)->row.has_qe);
+
+    a = new_planet("p950", 12, 16);
+    pico8_jo_lz(a, b);
+    jy = get_ref(a, "jy");
+    assert(jy != NULL && jy->count == 2);
+    for (k = 0; k < 2; k++) {
+        assert(jy->items[k].as.ref != b->i->items[k].as.ref);
+        assert(memcmp(jy->items[k].as.ref, b->i->items[k].as.ref, sizeof(pico8_jy_t)) == 0);
+    }
 }
 
 static void test_install(void) {
@@ -1146,6 +1208,7 @@ int main(void) {
     in_fresh_child(test_gb);
     in_fresh_child(test_functions);
     in_fresh_child(test_install);
+    in_fresh_child(test_wants);
     in_fresh_child(test_built_world);
     in_fresh_child(test_harvested_world);
     in_fresh_child(test_hp_is_a_struct);

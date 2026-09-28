@@ -52,7 +52,7 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         size_t add_len;
 
         if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
-            pico8_ob_table_get_name((const pico8_ob_table_t *)entry.as.ref, "qe", &qe);
+            qe = pico8_jy_qe(entry.as.ref);
         }
         num_str = pico8_value_tostr(qe);
         iz_name = pico8_iz_lookup(num_str);
@@ -172,17 +172,13 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
         while (pico8_list_iter_next(&it, &entry)) {
             pico8_jo_ex_tuple_t *tuple = pico8_jo_ex_tuple(3);
             pico8_value_t qe = pico8_value_ref(NULL);
-            pico8_value_t gc;
             int gc_zero = 0;
 
             if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
-                const pico8_ob_table_t *i_table = entry.as.ref;
+                const pico8_jy_t *i = entry.as.ref;
 
-                pico8_ob_table_get_name(i_table, "qe", &qe);
-                if (pico8_ob_table_get_name(i_table, "gc", &gc) && gc.kind == PICO8_VALUE_FIXED &&
-                    gc.as.fixed == 0) {
-                    gc_zero = 1;
-                }
+                qe = pico8_jy_qe(i);
+                gc_zero = i->has_gc && i->gc == 0;
             }
             assert((qe.kind == PICO8_VALUE_FIXED || (qe.kind == PICO8_VALUE_REF && qe.as.ref == NULL)) &&
                    "a want record's qe is a resource of r or nil");

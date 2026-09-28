@@ -702,10 +702,15 @@ void pico8_jo_pq(pico8_jo_t *self) {
     }
 }
 
+/* `mw(i)`: a copy of the want, never shared with `hp.i`. */
 static int pico8_jo_lz_mw_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     (void)ctx;
     if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        *out_value = pico8_value_ref(pico8_mw((const pico8_ob_table_t *)e.as.ref));
+        pico8_jy_t *copy = malloc(sizeof *copy);
+
+        assert(copy != NULL);
+        *copy = *(const pico8_jy_t *)e.as.ref;
+        *out_value = pico8_value_ref(copy);
         return 1;
     }
     return 0;

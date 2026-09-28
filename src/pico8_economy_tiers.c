@@ -190,8 +190,7 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
                 pico8_value_t jy_val;
                 if (pico8_entity_get_field(pt, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF &&
                     jy_val.as.ref != NULL) {
-                    pico8_ob_table_t *entry = pico8_ob_table_new();
-                    pico8_ob_table_set_name(entry, "qe", pico8_value_fixed(hn->dm));
+                    pico8_jy_t *entry = pico8_jy_new(&hn->dm);
                     pico8_list_add(PICO8_REF_AS_LIST(jy_val.as.ref), pico8_value_ref(entry));
                 }
             }
@@ -254,7 +253,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     if (jy != NULL) {
         for (i = 0; i < jy->count; i++) {
             pico8_value_t i_val = jy->items[i];
-            pico8_ob_table_t *i_table;
+            pico8_jy_t *want;
             pico8_value_t qe_val;
             int gc = 0;
             int j;
@@ -262,10 +261,8 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
             if (i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
                 continue;
             }
-            i_table = (pico8_ob_table_t *)i_val.as.ref;
-            if (!pico8_ob_table_get_name(i_table, "qe", &qe_val)) {
-                continue;
-            }
+            want = i_val.as.ref;
+            qe_val = pico8_jy_qe(want);
             if (cc != NULL) {
                 for (j = 0; j < cc->count; j++) {
                     pico8_value_t im_val = cc->items[j];
@@ -281,7 +278,8 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
                     }
                 }
             }
-            pico8_ob_table_set_name(i_table, "gc", pico8_value_fixed(pico8_fixed_from_int(gc)));
+            want->has_gc = 1;
+            want->gc = pico8_fixed_from_int(gc);
             jd = pico8_fixed_mul(jd, pico8_fixed_from_int(gc));
         }
     }
@@ -295,14 +293,12 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         if (jy != NULL) {
             for (i = 0; i < jy->count; i++) {
                 pico8_value_t i_val = jy->items[i];
-                const pico8_ob_table_t *i_table;
-                pico8_value_t gc_val;
+                const pico8_jy_t *want;
                 if (i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
                     continue;
                 }
-                i_table = (const pico8_ob_table_t *)i_val.as.ref;
-                if (pico8_ob_table_get_name(i_table, "gc", &gc_val) && gc_val.kind == PICO8_VALUE_FIXED &&
-                    gc_val.as.fixed > pico8_fixed_from_int(0)) {
+                want = i_val.as.ref;
+                if (want->has_gc && want->gc > pico8_fixed_from_int(0)) {
                     count++;
                 }
             }
@@ -314,11 +310,9 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         if (jy != NULL && jy->count > 0) {
             pico8_value_t last_val = jy->items[jy->count - 1];
             if (last_val.kind == PICO8_VALUE_REF && last_val.as.ref != NULL) {
-                const pico8_ob_table_t *last_table = (const pico8_ob_table_t *)last_val.as.ref;
-                pico8_value_t gc_val;
-                if (pico8_ob_table_get_name(last_table, "gc", &gc_val) && gc_val.kind == PICO8_VALUE_FIXED) {
-                    return fixed_min(pico8_fixed_add(gc_val.as.fixed, pico8_fixed_from_int(1)),
-                                      pico8_fixed_from_int(4));
+                const pico8_jy_t *last = last_val.as.ref;
+                if (last->has_gc) {
+                    return fixed_min(pico8_fixed_add(last->gc, pico8_fixed_from_int(1)), pico8_fixed_from_int(4));
                 }
             }
         }

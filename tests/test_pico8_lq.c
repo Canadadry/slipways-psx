@@ -695,6 +695,68 @@ static void test_planet_panel(void) {
     check("panel", fnv(h, screen_hash()), PANEL_HASH);
 }
 
+/* The row of `ok.le` whose first item is `head`, NULL when none. */
+static const pico8_lq_t *panel_row(const char *head) {
+    const pico8_list_t *le = get_ref(pico8_ok(), "le");
+    int i;
+
+    for (i = 0; le != NULL && i < le->count; i++) {
+        const pico8_lq_t *lq = get_ref(le->items[i].as.ref, "lq");
+        pico8_value_t v;
+
+        if (lq != NULL && lq->items.count > 0) {
+            v = lq->items.items[0];
+            if (v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, head) == 0) {
+                return lq;
+            }
+        }
+    }
+    return NULL;
+}
+
+/* A planet whose every want arrives lists each under "wants more:", and
+ * `gc` times under "receives:", as the `{qe=x}` `lq:mn` reads: a want of a
+ * resource draws it 5 wide, a want of none nothing, 6 wide. */
+static void test_gh_wants_more(void) {
+    pico8_fixed_t ore = pico8_fixed_from_int(21);
+    pico8_jy_t *a = pico8_jy_new(&ore);
+    pico8_jy_t *b = pico8_jy_new(NULL);
+    pico8_list_t *jy = malloc(sizeof *jy);
+    pico8_jo_t *planet;
+    const pico8_lq_t *wants;
+    const pico8_lq_t *receives;
+    pico8_vec_t *gq;
+
+    start_game();
+    a->has_gc = 1;
+    a->gc = pico8_fixed_from_int(1);
+    b->has_gc = 1;
+    b->gc = pico8_fixed_from_int(2);
+    pico8_list_init(jy);
+    pico8_list_add(jy, pico8_value_ref(a));
+    pico8_list_add(jy, pico8_value_ref(b));
+    planet = pico8_jo_new(NULL);
+    planet->jy = jy;
+    planet->has_mi = 1;
+    planet->mi = pico8_fixed_from_int(1);
+    planet->ra = malloc(sizeof *planet->ra);
+    *planet->ra = vec_xy(64, 64);
+    gq = malloc(sizeof *gq);
+    *gq = vec_xy(0, 9);
+    planet->gq = gq;
+    pico8_jo_gh(planet);
+
+    wants = panel_row("wants more:");
+    receives = panel_row("receives:");
+    assert(wants != NULL && receives != NULL && panel_row("needs:") == NULL);
+    assert(wants->items.count == 4 && receives->items.count == 5);
+    assert(wants->items.items[1].as.ref == &a->row && wants->items.items[2].as.ref == &b->row);
+    assert(receives->items.items[1].as.ref == &a->row && receives->items.items[2].as.ref == &b->row &&
+           receives->items.items[3].as.ref == &b->row);
+    printf("  wants more: w=%d, receives: w=%d\n", pico8_fixed_flr_int(wants->w), pico8_fixed_flr_int(receives->w));
+    assert(wants->w == pico8_fixed_from_int(64) && receives->w == pico8_fixed_from_int(64));
+}
+
 static void must_abort(void (*write)(void *), void *e) {
     pid_t child;
     int status;
@@ -1018,6 +1080,7 @@ int main(void) {
     in_fresh_child(test_hp_lq_and_copy);
     in_fresh_child(test_calls);
     in_fresh_child(test_planet_panel);
+    in_fresh_child(test_gh_wants_more);
     in_fresh_child(test_lq_is_a_struct);
     in_fresh_child(test_lq_members_by_name);
 

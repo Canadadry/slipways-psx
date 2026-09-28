@@ -7,15 +7,6 @@
 #include "pico8_ob.h"
 #include "pico8_value.h"
 
-/* Merges `mr` into `o` in place and returns `o`; `mr` may be NULL (nothing
- * to merge). The merge is shallow, so `o` and `mr` then share whatever
- * their REF and STRING values point at. */
-pico8_ob_table_t *pico8_qj(pico8_ob_table_t *o, const pico8_ob_table_t *mr);
-
-/* Returns a new table, shallow, that the caller owns and releases with
- * pico8_ob_table_free(). */
-pico8_ob_table_t *pico8_mw(const pico8_ob_table_t *o);
-
 /* TROU-3 */
 /* A NULL `qk` is a member of nothing rather than an error, mirroring
  * all(nil). */

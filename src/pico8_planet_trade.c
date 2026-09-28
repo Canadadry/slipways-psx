@@ -7,7 +7,6 @@
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_map_tables.h"
-#include "pico8_ob.h"
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
@@ -113,21 +112,11 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         it = pico8_list_all(jy);
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                const pico8_ob_table_t *i_table;
-                pico8_value_t gc_val;
-                pico8_value_t qe_val;
-                pico8_fixed_t gc = pico8_fixed_from_int(0);
+                const pico8_jy_t *i = e.as.ref;
+                pico8_fixed_t gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
                 int qe_is_r_q;
 
-                assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-                       "a jy entry read as a want record is not a table");
-                i_table = (const pico8_ob_table_t *)e.as.ref;
-
-                if (pico8_ob_table_get_name(i_table, "gc", &gc_val) && gc_val.kind == PICO8_VALUE_FIXED) {
-                    gc = gc_val.as.fixed;
-                }
-                qe_is_r_q = have_r_q && pico8_ob_table_get_name(i_table, "qe", &qe_val) &&
-                            pico8_value_equal(qe_val, r_q);
+                qe_is_r_q = have_r_q && pico8_value_equal(pico8_jy_qe(i), r_q);
                 if (gc == pico8_fixed_from_int(0) && !qe_is_r_q) {
                     pico8_list_del(jy, e);
                     break;
@@ -136,12 +125,12 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         {
-            pico8_ob_table_t *fresh = pico8_ob_table_new();
+            pico8_fixed_t e_qe = r_e.as.fixed;
+            pico8_jy_t *fresh = pico8_jy_new(&e_qe);
             pico8_list_t prefix;
             pico8_list_t merged;
             pico8_list_t *merged_heap;
 
-            pico8_ob_table_set_name(fresh, "qe", r_e);
             pico8_list_init(&prefix);
             pico8_list_add(&prefix, pico8_value_ref(fresh));
             merged = pico8_la(&prefix, jy);
@@ -158,19 +147,16 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
     it = pico8_list_all(jy);
     while (pico8_list_iter_next(&it, &e)) {
-        pico8_ob_table_t *i_table;
+        pico8_jy_t *i;
         pico8_value_t qe_val;
-        int have_qe;
 
         if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
             continue;
         }
-        assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-               "a jy entry read as a want record is not a table");
-        i_table = (pico8_ob_table_t *)e.as.ref;
-        have_qe = pico8_ob_table_get_name(i_table, "qe", &qe_val);
+        i = e.as.ref;
+        qe_val = pico8_jy_qe(i);
 
-        if (have_qe && have_r_q && pico8_value_equal(qe_val, r_q)) {
+        if (have_r_q && pico8_value_equal(qe_val, r_q)) {
             pico8_value_t ba_val;
             int accepted = 0;
 
@@ -180,13 +166,14 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
                            pico8_int_seq_has_fixed((const pico8_int_seq_t *)ba_val.as.ref, t_qe.as.fixed);
             }
             if (accepted) {
-                pico8_ob_table_set_name(i_table, "qe", t_qe);
+                assert(t_qe.kind == PICO8_VALUE_FIXED && "a want's qe is a resource of r, never a boolean");
+                i->row.has_qe = 1;
+                i->row.qe = t_qe.as.fixed;
                 qe_val = t_qe;
-                have_qe = 1;
             }
         }
 
-        if (have_qe && pico8_value_equal(t_qe, qe_val) && !(have_r_q && pico8_value_equal(qe_val, r_q))) {
+        if (pico8_value_equal(t_qe, qe_val) && !(have_r_q && pico8_value_equal(qe_val, r_q))) {
             pico8_trade_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(NULL));
             if (lw->kf != NULL) {
                 lw->kf(lw, pico8_value_ref(extended));

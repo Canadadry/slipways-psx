@@ -23,6 +23,8 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
+#include "../src/pico8_planet_trade.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_input.h"
@@ -599,6 +601,41 @@ static void test_trade_members_by_name(void) {
     trade_qe_is(pico8_trade_kg(trade_of(NULL, NULL, 0, 0, 0), nil(), nil()), pico8_value_bool(0));
 }
 
+static int g_kf_calls = 0;
+
+static void count_kf(pico8_jo_trade_proposal_t *self, pico8_value_t a) {
+    (void)self;
+    (void)a;
+    g_kf_calls++;
+}
+
+/* A want of any resource (`r["?"]`) takes the resource of a trade its
+ * planet accepts (`ba`), then answers that trade once. */
+static void test_cn_wildcard_want(void) {
+    pico8_trade_keys_t keys = {0};
+    pico8_jo_trade_proposal_t lw = {0};
+    pico8_list_t *jy = malloc(sizeof *jy);
+    pico8_qh_t *qh;
+    pico8_jy_t *want;
+    pico8_fixed_t any;
+    int any_qe;
+
+    start_game();
+    assert(pico8_r_lookup("?", &any_qe));
+    any = pico8_fixed_from_int(any_qe);
+    want = pico8_jy_new(&any);
+    pico8_list_init(jy);
+    pico8_list_add(jy, pico8_value_ref(want));
+    qh = pico8_qh_new(NULL);
+    qh->jo.jy = jy;
+    keys.has_qe = 1;
+    keys.qe = pico8_fixed_from_int(qh->ba->items[0]);
+    lw.t = pico8_trade_new(&keys);
+    lw.kf = count_kf;
+    pico8_jo_cn(&qh->jo, &lw);
+    assert(want->row.has_qe && want->row.qe == keys.qe && g_kf_calls == 1);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -634,6 +671,7 @@ int main(void) {
     in_fresh_child(test_eq);
     in_fresh_child(test_trade_is_a_struct);
     in_fresh_child(test_trade_members_by_name);
+    in_fresh_child(test_cn_wildcard_want);
 
     printf("test_pico8_trade: all tests passed\n");
     return 0;

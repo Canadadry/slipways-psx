@@ -280,24 +280,19 @@ static void hp_ho(pico8_hp_t *self, const pico8_fd_entry_t *ri, const char **i_s
     }
 }
 
-/* Contributes a `{qe=r[c]}` wrapper for every character, never skipping
- * one: the Lua table constructor is non-nil even when `r[c]` is absent. */
-static int pico8_hp_pq_i_step(char c, int i, void *ctx, pico8_value_t *out_value) {
-    pico8_ob_table_t *wrapper = pico8_ob_table_new();
-    pico8_value_t qe = pico8_value_ref(NULL);
-    int r_qe;
-    char key[2];
+pico8_value_t pico8_jy_qe(const pico8_jy_t *i) {
+    return i->row.has_qe ? pico8_value_fixed(i->row.qe) : pico8_value_ref(NULL);
+}
 
-    (void)i;
-    (void)ctx;
-    key[0] = c;
-    key[1] = '\0';
-    if (pico8_r_lookup(key, &r_qe)) {
-        qe = pico8_value_fixed(pico8_fixed_from_int(r_qe));
+pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe) {
+    pico8_jy_t *i = calloc(1, sizeof *i);
+
+    assert(i != NULL);
+    if (qe != NULL) {
+        i->row.has_qe = 1;
+        i->row.qe = *qe;
     }
-    pico8_ob_table_set_name(wrapper, "qe", qe);
-    *out_value = pico8_value_ref(wrapper);
-    return 1;
+    return i;
 }
 
 /* TROU-7 */
@@ -305,9 +300,9 @@ static int pico8_hp_pq_i_step(char c, int i, void *ctx, pico8_value_t *out_value
  * real `gb[px]` must hold the struct. */
 static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     pico8_hp_t *self = malloc(sizeof *self);
-    pico8_list_t new_i;
     pico8_list_t *new_i_heap;
     const char *i_src = "";
+    size_t c;
 
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_hp_struct_class;
@@ -375,9 +370,22 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
         self->lq = &self->lq_own;
     }
 
-    new_i = pico8_fi(i_src, pico8_hp_pq_i_step, NULL);
+    /* A want for every character, never skipping one: the Lua table
+     * constructor is non-nil even when `r[c]` is absent. */
     new_i_heap = malloc(sizeof *new_i_heap);
-    *new_i_heap = new_i;
+    pico8_list_init(new_i_heap);
+    for (c = 0; i_src[c] != '\0'; c++) {
+        char key[2] = {i_src[c], '\0'};
+        int r_qe;
+        pico8_fixed_t qe;
+
+        if (pico8_r_lookup(key, &r_qe)) {
+            qe = pico8_fixed_from_int(r_qe);
+            pico8_list_add(new_i_heap, pico8_value_ref(pico8_jy_new(&qe)));
+        } else {
+            pico8_list_add(new_i_heap, pico8_value_ref(pico8_jy_new(NULL)));
+        }
+    }
     self->i = new_i_heap;
 
 #ifdef PICO8_CLASS_COVERAGE

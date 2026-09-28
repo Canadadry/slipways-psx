@@ -522,7 +522,8 @@ static void test_lj(void) {
     pico8_jo_t *maker;
     pico8_qh_t *needer;
     pico8_list_t needs;
-    pico8_ob_table_t *need = pico8_ob_table_new();
+    pico8_fixed_t need_qe = pico8_fixed_from_int(99);
+    pico8_jy_t *need = pico8_jy_new(&need_qe);
     pico8_fixed_t made;
     pico8_fixed_t now;
     pico8_fixed_t qe;
@@ -577,7 +578,6 @@ static void test_lj(void) {
     needer = pico8_qh_new(NULL);
     pico8_list_init(&needs);
     pico8_list_add(&needs, pico8_value_ref(need));
-    pico8_ob_table_set_name(need, "qe", pico8_value_fixed(pico8_fixed_from_int(99)));
     needer->jo.jy = &needs;
     pico8_hy_lj(fm_self());
     assert(pico8_qe_map_get(fu, pico8_fixed_from_int(99), &now) && now == pico8_fixed_from_int(1) - 0x2666);

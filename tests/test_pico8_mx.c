@@ -492,11 +492,12 @@ static void *join(void *qu, void *synthesizer) {
 /* `mx:kf` reads the other end's `jy`: one row per resource, `gc` its
  * count of suppliers. */
 static void give_row(void *e, int qe) {
-    pico8_ob_table_t *row = pico8_ob_table_new();
+    pico8_fixed_t want_qe = pico8_fixed_from_int(qe);
+    pico8_jy_t *row = pico8_jy_new(&want_qe);
     pico8_list_t *jy = malloc(sizeof *jy);
 
-    pico8_ob_table_set_name(row, "gc", pico8_value_fixed(pico8_fixed_from_int(0)));
-    pico8_ob_table_set_name(row, "qe", pico8_value_fixed(pico8_fixed_from_int(qe)));
+    row->has_gc = 1;
+    row->gc = pico8_fixed_from_int(0);
     pico8_list_init(jy);
     pico8_list_add(jy, pico8_value_ref(row));
     pico8_entity_set_field(e, "jy", pico8_value_ref(jy));

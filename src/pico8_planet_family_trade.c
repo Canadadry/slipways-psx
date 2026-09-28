@@ -8,7 +8,6 @@
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_list.h"
-#include "pico8_ob.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
@@ -380,29 +379,24 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
 
         it = pico8_list_all(jy);
         while (pico8_list_iter_next(&it, &i_val)) {
-            const pico8_ob_table_t *i_table;
-            pico8_value_t gc_val;
-            pico8_fixed_t gc = pico8_fixed_from_int(0);
-            pico8_value_t qe_val;
+            const pico8_jy_t *i;
+            pico8_fixed_t gc;
 
             if (i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
                 continue;
             }
-            i_table = (const pico8_ob_table_t *)i_val.as.ref;
+            i = i_val.as.ref;
 
-            if (pico8_ob_table_get_name(i_table, "gc", &gc_val) && gc_val.kind == PICO8_VALUE_FIXED) {
-                gc = gc_val.as.fixed;
-            }
+            gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
             if (gc != pico8_fixed_from_int(0)) {
                 continue;
             }
 
-            if (pico8_ob_table_get_name(i_table, "qe", &qe_val) && self->ht != NULL &&
-                qe_val.kind == PICO8_VALUE_FIXED && pico8_int_seq_has_fixed(self->ht, qe_val.as.fixed)) {
+            if (i->row.has_qe && self->ht != NULL && pico8_int_seq_has_fixed(self->ht, i->row.qe)) {
                 pico8_kw_t *kw = self->hj.qh.jo.kw;
                 if (kw != NULL) {
                     kw->has_qe = 1;
-                    kw->qe = qe_val.as.fixed;
+                    kw->qe = i->row.qe;
                 }
                 self->ht = &g_mx_ht_spent;
             }

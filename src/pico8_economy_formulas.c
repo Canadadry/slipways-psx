@@ -5,6 +5,7 @@
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
+#include "pico8_research.h"
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
@@ -130,9 +131,8 @@ void pico8_bx(pico8_qe_map_t *out) {
 static void ck_visit(pico8_struct_header_t *l, void *ctx) {
     pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
     const pico8_list_t *jy = field_list(l, "jy");
-    const pico8_ob_table_t *last;
+    const pico8_jy_t *last;
     pico8_value_t last_val;
-    pico8_value_t qe_val;
     pico8_fixed_t current;
 
     if (jy == NULL || jy->count == 0) {
@@ -142,16 +142,16 @@ static void ck_visit(pico8_struct_header_t *l, void *ctx) {
     if (last_val.kind != PICO8_VALUE_REF || last_val.as.ref == NULL) {
         return;
     }
-    last = (const pico8_ob_table_t *)last_val.as.ref;
-    if (!pico8_ob_table_get_name(last, "qe", &qe_val) || qe_val.kind != PICO8_VALUE_FIXED) {
+    last = last_val.as.ref;
+    if (!last->row.has_qe) {
         return;
     }
     /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
      * is a resource `r` never listed, treated as that same seed. */
-    if (!pico8_qe_map_get(d, qe_val.as.fixed, &current)) {
+    if (!pico8_qe_map_get(d, last->row.qe, &current)) {
         current = pico8_fixed_from_int(1);
     }
-    pico8_qe_map_set(d, qe_val.as.fixed, pico8_fixed_sub(current, PICO8_FIXED_LIT(0x00002666, 0.15)));
+    pico8_qe_map_set(d, last->row.qe, pico8_fixed_sub(current, PICO8_FIXED_LIT(0x00002666, 0.15)));
 }
 
 void pico8_ck(pico8_qe_map_t *out) {

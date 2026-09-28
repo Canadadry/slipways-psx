@@ -5,7 +5,6 @@
 #include "pico8_fixed.h"
 #include "pico8_list.h"
 #include "pico8_map_tables.h"
-#include "pico8_ob.h"
 #include "pico8_value.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
