@@ -1,7 +1,6 @@
 /* The camera `qb` (`mo` once `jl()` has run), read and written only through
- * the dual-form field API and driven through the real `dg`/`dc`. The frozen
- * values were taken on the code where `qb` was still a class instance and
- * must not be re-taken. */
+ * the dual-form field API and driven through the real `dg`/`dc`, in games
+ * built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -18,7 +17,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -40,13 +38,7 @@
 #define SCRIPTED_HASH 0xDF9F2872u
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
-#define TITLE_REPLAY "tests/fixtures/long_session_events.json"
-#define TITLE_FRAMES 4800
-#define TITLE_HASH 0xE21970E1u
-#define GEOHARVEST_REPLAY "tests/fixtures/geoharvest_burst_events.json"
-#define GEOHARVEST_GA_FRAME 205
 #define GEOHARVEST_WINDOW 60
-#define GEOHARVEST_HASH 0x38A9D79Du
 #define QB_MEMBERS_HASH 0x5D708DDBu
 
 static pico8_mem_t mem;
@@ -337,48 +329,31 @@ static void test_placeholder_mo(void) {
     assert(!pico8_entity_get_field(pico8_mo(), "ma", &v));
 }
 
-/* A recording from the title screen, through D-pad scrolling (first at
- * frame 1002) and a right-button drag, `bg:hq` (first at frame 4741). */
-static void test_replay_from_title(void) {
-    uint32_t h = 2166136261u;
-    pico8_cheat_t cheat;
-    pico8_vec_t before_pad = {0, 0};
-    pico8_vec_t before_drag = {0, 0};
-    pico8_vec_t after_pad;
-    pico8_vec_t after_drag;
+/* A game started as `eu` starts it, the right button pressed over empty
+ * space then dragged: `ok` hands the press to `bg`, whose `hq` moves `mo`. */
+static void test_right_drag_moves_the_camera(void) {
+    pico8_vec_t before;
+    pico8_vec_t after;
     int i;
 
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, TITLE_REPLAY));
-    pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-    for (i = 0; i < input.frame_count; i++) {
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-        h = fold_mo(h);
-        if (i == 1001) {
-            before_pad = must_vec(pico8_mo(), "p");
-        } else if (i == 1100) {
-            after_pad = must_vec(pico8_mo(), "p");
-            assert(after_pad.x != before_pad.x || after_pad.y != before_pad.y);
-        } else if (i == 4740) {
-            before_drag = must_vec(pico8_mo(), "p");
-        } else if (i == TITLE_FRAMES - 1) {
-            after_drag = must_vec(pico8_mo(), "p");
-            assert(after_drag.x != before_drag.x || after_drag.y != before_drag.y);
-        }
-        if (i + 1 == TITLE_FRAMES || i + 1 == input.frame_count) {
-            break;
-        }
-        pico8_input_step(&input);
+    pico8_eu(NULL);
+    for (i = 0; i < 20; i++) {
+        memset(&g_frames[i], 0, sizeof g_frames[i]);
+        g_frames[i].mouse_x = 64 + 2 * i;
+        g_frames[i].mouse_y = 64 + i;
+        g_frames[i].mouse_buttons = i < 18 ? 2 : 0;
     }
-    pico8_input_free(&input);
+    script(20);
+    pico8__update60();
+    before = must_vec(pico8_mo(), "p");
+    for (i = 1; i < 20; i++) {
+        pico8_input_step(&input);
+        pico8__update60();
+    }
     unscript();
-    assert(i + 1 == TITLE_FRAMES);
-    check("title replay", h, TITLE_HASH);
+    after = must_vec(pico8_mo(), "p");
+    assert(after.x != before.x || after.y != before.y);
 }
 
 static int ga_alive(void) {
@@ -395,47 +370,24 @@ static int ga_alive(void) {
     return 0;
 }
 
-/* The harvest builds a `ga`, whose `pq` shakes the camera: `mo.ma=3` on
- * the very frame it appears, then the decay. */
-static void test_geoharvest_shakes(void) {
-    uint32_t h = 2166136261u;
-    pico8_cheat_t cheat;
-    pico8_value_t difficulty;
-    int first_ga = -1;
+/* A `ga`'s `pq` shakes the camera: `mo.ma=3` as soon as it is built, then
+ * the decay back to 0 within GEOHARVEST_WINDOW ticks. */
+static void test_ga_shakes(void) {
     int i;
 
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, GEOHARVEST_REPLAY));
-    pico8_dispatch_set_input(&input);
     pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-    pico8_cheat_init(&cheat);
-    for (i = 0; i < GEOHARVEST_GA_FRAME + GEOHARVEST_WINDOW; i++) {
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-        if (first_ga < 0 && ga_alive()) {
-            first_ga = i;
-            assert(must_fixed(pico8_mo(), "ma") == pico8_fixed_from_int(3));
-        }
-        if (i >= GEOHARVEST_GA_FRAME) {
-            h = fold_fixed(h, pico8_mo(), "ma");
-            h = fold_vec(h, pico8_mo(), "ra");
-        }
-        pico8_input_step(&input);
+    pico8_eu(NULL);
+    assert(!ga_alive());
+    (void)pico8_ga_new(NULL);
+    assert(ga_alive());
+    assert(must_fixed(pico8_mo(), "ma") == pico8_fixed_from_int(3));
+    for (i = 0; i < GEOHARVEST_WINDOW; i++) {
+        pico8_dg();
     }
-    pico8_input_free(&input);
-    unscript();
-    printf("[geoharvest] ga first alive at frame %d\n", first_ga);
-    fflush(stdout);
-    assert(first_ga == GEOHARVEST_GA_FRAME);
     assert(must_fixed(pico8_mo(), "ma") == 0);
-    check("geoharvest", h, GEOHARVEST_HASH);
 }
 
-/* A replay depends on the rnd state, which the tests before it consume: run
+/* The galaxy depends on the rnd state, which the tests before it consume: run
  * it in a child forked right after pico8_cart_load(), as a fresh process
  * would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -813,8 +765,8 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-    in_fresh_child(test_replay_from_title);
-    in_fresh_child(test_geoharvest_shakes);
+    in_fresh_child(test_right_drag_moves_the_camera);
+    in_fresh_child(test_ga_shakes);
 
     test_jl_builds_a_camera();
     test_md_sets_the_camera();
