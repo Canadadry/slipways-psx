@@ -754,7 +754,7 @@ static void test_lq_is_a_struct(void) {
 static const char *const g_lq_names[] = {"c",  "bg", "score", "ra",    "fs",    "w",     "",
                                          "x",  "lq", "items", "ol",    "has_c", "has_bg", "bg_is_bool"};
 
-/* One raw read: 1 with a kind of the member's census row, or 0 with the
+/* One raw read: 1 with a kind the member holds, or 0 with the
  * witness left in `out`; never 1 with REF NULL. */
 static uint32_t fold_raw(uint32_t h, const void *lq, const char *name) {
     const pico8_value_t witness = pico8_value_fixed(0x1234);
@@ -949,7 +949,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

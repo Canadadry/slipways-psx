@@ -699,7 +699,6 @@ static void test_ga_is_a_struct(void) {
     must_abort(write_ht, roads[0]);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP()
     ((pico8_ga_t *)roads[2])->fz = NULL;
     assert(!cls->field(roads[2], "fz", &v) && !is_ga(roads[2]));
 }
@@ -949,7 +948,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

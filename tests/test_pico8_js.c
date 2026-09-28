@@ -1591,7 +1591,7 @@ static uint32_t in_fresh_part(uint32_t (*part)(void)) {
         n = write(fd[1], &got, sizeof got);
         assert(n == (ssize_t)sizeof got);
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     close(fd[1]);
     n = read(fd[0], &got, sizeof got);
@@ -1635,7 +1635,7 @@ static void stops_on(void (*write)(void *), void *e, const char *name, const pic
     }
 }
 
-/* A value off a name's census row stops the run, a zeroed union included:
+/* A value outside a member's type stops the run, a zeroed union included:
  * the writer's `m_` and `lq`, every construction key but `lq` and `h_`,
  * and `jb` false. */
 static void test_js_writer_stops_off_row(void) {
@@ -1886,7 +1886,7 @@ static void in_fresh_child(void (*test)(void)) {
         seen_count = 0;
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

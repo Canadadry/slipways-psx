@@ -426,8 +426,7 @@ static void lq_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "lq.c/score: a key neither nil nor fixed is off its census row (fixe) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "lq.c/score: a key neither nil nor fixed does not fit the member's type -- stop, do not widen the member");
     *out = value.as.fixed;
     *has = 1;
 }
@@ -445,8 +444,8 @@ static void lq_take_bg(pico8_value_t value, pico8_lq_t *self) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "lq.bg: a key neither nil, fixed nor boolean is off its census row (bool,fixe) -- a field under no rule "
-           "of plan-3 section 5: stop, do not widen the member");
+           "lq.bg: a key neither nil, fixed nor boolean does not fit the member's type "
+           "-- stop, do not widen the member");
     self->bg = value.as.boolean;
     self->has_bg = 1;
     self->bg_is_bool = 1;
@@ -458,8 +457,7 @@ static void lq_take_vec(pico8_value_t value, pico8_vec_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "lq.ra: a key neither nil nor a vector is off its census row (ref:autre) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "lq.ra: a key neither nil nor a vector does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -469,15 +467,13 @@ static void lq_take_list(pico8_value_t value, pico8_list_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "lq.fs: a key neither nil nor a list is off its census row (ref:liste) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "lq.fs: a key neither nil nor a list does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
 static void lq_take_w(pico8_value_t value, pico8_fixed_t *out) {
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "lq.w: a key neither fixed nor ever nil is off its census row (fixe, nil jamais) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "lq.w: a key neither fixed nor ever nil does not fit the member's type -- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -516,8 +512,8 @@ static void *pico8_lq_struct_new(const pico8_ob_table_t *overrides) {
             lq_take_w(value, &self->w);
         } else {
             assert(key.kind == PICO8_OB_KEY_INDEX &&
-                   "lq: every measured row passes positionals and c, bg, score, ra, fs, w; a named key other than "
-                   "c/bg/score/ra/fs/w would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
+                   "lq: every row passes positionals and c, bg, score, ra, fs, w; a named key other than "
+                   "c/bg/score/ra/fs/w has no member -- stop, do not add one");
         }
     }
     /* TROU-25 */
@@ -526,7 +522,6 @@ static void *pico8_lq_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("lq");
 #endif
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_lq_t);
     return self;
 }
 
@@ -574,14 +569,12 @@ static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     for (i = 0; overrides != NULL && i < overrides->count; i++) {
         assert(overrides->entries[i].key.kind != PICO8_OB_KEY_NAME &&
-               "jb: every measured override is positional; a named one would be a field under no rule of "
-               "plan-3 section 5 -- stop, do not add a member");
+               "jb: every override is positional; a named one has no member -- stop, do not add one");
     }
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_jb_struct_class;
     self->ls = NULL;
     pico8_jb_pq(self, overrides);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_jb_t);
     return self;
 }
 

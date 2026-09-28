@@ -35,8 +35,7 @@ static void ke_take_string(pico8_value_t value, const char **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
-           "ke.me: a write neither nil nor a string is off its census row (chaine) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "ke.me: a write neither nil nor a string does not fit the member's type -- stop, do not widen the member");
     *out = value.as.string;
 }
 

@@ -218,8 +218,7 @@ static void jo_take_table(pico8_value_t value, pico8_ob_table_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "jo.kw/nk: a write neither nil nor a table is off its census row (ref:table) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.kw/nk: a write neither nil nor a table does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -231,8 +230,8 @@ static void jo_take_hp(pico8_value_t value, pico8_hp_t **out) {
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_hp_struct_class() &&
-           "jo.hn: a write neither nil nor a project hp is off its census row (ref:pico8_hp_t) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "jo.hn: a write neither nil nor a project hp does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -243,8 +242,8 @@ static void jo_take_vec(pico8_value_t value, pico8_vec_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jo.ra/p: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule "
-           "of plan-3 section 5: stop, do not widen the member");
+           "jo.ra/p: a write neither nil nor a vector ref does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -254,8 +253,8 @@ static void jo_take_string(pico8_value_t value, const char **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
-           "jo.id/ep: a write neither nil nor a string is off its census row (chaine) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.id/ep: a write neither nil nor a string does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.string;
 }
 
@@ -266,8 +265,8 @@ static void jo_take_list(pico8_value_t value, pico8_list_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "jo.oe/jy/cc/by: a write neither nil nor a list is off its census row (ref:liste) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.oe/jy/cc/by: a write neither nil nor a list does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -278,8 +277,8 @@ static void jo_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "jo.fx/p_/m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.fx/p_/m_: a write neither nil nor a boolean does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.boolean != 0;
     *has = 1;
 }
@@ -291,8 +290,8 @@ static void jo_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "jo.jh/kr/mi: a write neither nil nor a number is off its census row (fixe) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.jh/kr/mi: a write neither nil nor a number does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.fixed;
     *has = 1;
 }
@@ -305,15 +304,14 @@ static void jo_take_lq(pico8_value_t value, pico8_lq_t **out) {
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_lq_struct_class() &&
-           "jo.lq: a write neither nil nor a layout row lq is off its census row (ref:pico8_lq_t) -- a field under "
-           "no rule of plan-3 section 5: stop, do not widen the member");
+           "jo.lq: a write neither nil nor a layout row lq does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
 static void jo_take_ma(pico8_value_t value, pico8_fixed_t *out) {
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "jo.ma: a write that is not a fixed is off its census row (fixe, never nil) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.ma: a write that is not a fixed does not fit the member's type -- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -328,9 +326,8 @@ static void jo_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            jo_is_fo_holder_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) or a "
-           "jc is off its census row (ref: to those holders) -- a field under no rule of plan-3 section 5: stop, do "
-           "not widen the member");
+           "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) or a jc "
+           "does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -659,8 +656,8 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
         int measured = key.kind == PICO8_OB_KEY_NAME &&
                        (strcmp(key.name, "id") == 0 || strcmp(key.name, "p") == 0 || strcmp(key.name, "ra") == 0);
 
-        assert(measured && "jo: the only measured construction keys are id, p and ra (bw); another would be a "
-                           "field under no rule of plan-3 section 5 -- stop, do not add a member");
+        assert(measured && "jo: the only construction keys are id, p and ra (bw); another key has no member "
+                           "-- stop, do not add one");
         (void)measured;
         if (strcmp(key.name, "p") == 0) {
             jo_take_vec(overrides->entries[k].value, &self->p);
@@ -675,7 +672,6 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq(self);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_jo_t);
     return self;
 }
 

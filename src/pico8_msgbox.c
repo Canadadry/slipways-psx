@@ -170,21 +170,20 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
             pico8_list_add(&self->items, value);
         } else if (strcmp(key.name, "rh") == 0) {
             assert(value.kind == PICO8_VALUE_FIXED &&
-                   "mh.rh: a nil or non-fixed key is off its census row (fixe, never nil) and rh has no presence "
-                   "flag -- a field under no rule of plan-3 section 5: stop, do not widen the member");
+                   "mh.rh: a nil or non-fixed key does not fit the member's type and rh has no presence flag "
+                   "-- stop, do not widen the member");
             self->rh = value.as.fixed;
         } else if (strcmp(key.name, "lh") == 0) {
             if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
                 self->lh = NULL;
             } else {
                 assert(value.kind == PICO8_VALUE_FUNCTION &&
-                       "mh.lh: a key neither nil nor a function is off its census row (fonction) -- a field under "
-                       "no rule of plan-3 section 5: stop, do not widen the member");
+                       "mh.lh: a key neither nil nor a function does not fit the member's type "
+                       "-- stop, do not widen the member");
                 self->lh = value.as.function;
             }
         } else {
-            assert(0 && "mh: every measured key is positional, rh or lh; another would be a field under no rule "
-                        "of plan-3 section 5 -- stop, do not add a member");
+            assert(0 && "mh: every key is positional, rh or lh; another key has no member -- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -192,7 +191,6 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_mh_pq(self);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_mh_t);
     return self;
 }
 
@@ -364,8 +362,7 @@ static void iv_take_vec(pico8_value_t value, pico8_vec_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "iv.ra: a key neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "iv.ra: a key neither nil nor a vector ref does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -375,15 +372,14 @@ static void iv_take_string(pico8_value_t value, const char **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
-           "iv.at1: a key neither nil nor a string is off its census row (chaine) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "iv.at1: a key neither nil nor a string does not fit the member's type -- stop, do not widen the member");
     *out = value.as.string;
 }
 
 static void iv_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "iv.at2: a key that is not a fixed is off its census row (fixe) and at2 has no presence flag -- a field "
-           "under no rule of plan-3 section 5: stop, do not widen the member");
+           "iv.at2: a key that is not a fixed does not fit the member's type and at2 has no presence flag "
+           "-- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -411,8 +407,7 @@ static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
         } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 2) {
             iv_take_fixed(value, &self->at2);
         } else {
-            assert(0 && "iv: every measured key is ra, [1] or [2]; another would be a field under no rule of "
-                        "plan-3 section 5 -- stop, do not add a member");
+            assert(0 && "iv: every key is ra, [1] or [2]; another key has no member -- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -420,7 +415,6 @@ static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_iv_pq(self);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_iv_t);
     return self;
 }
 

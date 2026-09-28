@@ -251,7 +251,6 @@ pico8_value_t pico8_eu_dispatch(void *self, int argc, pico8_value_t arg0, pico8_
 void pico8__update60(void) {
     pico8_dg();
     pico8_ui_lj(pico8_dispatch_mem(), pico8_ok());
-    PICO8_MEMBER_CENSUS_WALK(pico8_hv());
 }
 
 void pico8__draw(void) {
@@ -261,5 +260,4 @@ void pico8__draw(void) {
     pico8_dv_default(mem);
     pico8_dc("kj");
     pico8_dc("ev");
-    PICO8_MEMBER_CENSUS_WALK(pico8_hv());
 }

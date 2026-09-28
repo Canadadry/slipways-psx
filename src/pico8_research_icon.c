@@ -96,8 +96,8 @@ static void ie_ke_take_string(const pico8_entity_kind_t *kind, const char *name,
         return;
     }
     assert(v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "ie_ke.rr/me: a chain value neither nil nor a string is off its census row (chaine) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "ie_ke.rr/me: a chain value neither nil nor a string does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = v.as.string;
 }
 
@@ -110,8 +110,8 @@ static void ie_ke_take_fixed(const pico8_entity_kind_t *kind, const char *name, 
         return;
     }
     assert(v.kind == PICO8_VALUE_FIXED &&
-           "ie_ke.s/od: a chain value neither nil nor fixed is off its census row (fixe) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "ie_ke.s/od: a chain value neither nil nor fixed does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = v.as.fixed;
     *has = 1;
 }
@@ -134,7 +134,6 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
         ie_ke_take_string(kind, "me", &view.me);
         ie_ke_take_fixed(kind, "od", &view.od, &view.has_od);
     }
-    PICO8_MEMBER_CENSUS_SEE(&view, pico8_ie_ke_t);
     return view;
 }
 
@@ -148,8 +147,7 @@ static void ie_take_vec(pico8_value_t value, pico8_vec_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "ie.ra: a gy neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "ie.ra: a gy neither nil nor a vector ref does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -369,8 +367,7 @@ static void ie_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "ie.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of plan-3 "
-           "section 5: stop, do not widen the member");
+           "ie.m_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
     *out = value.as.boolean;
     *has = 1;
 }
@@ -414,8 +411,7 @@ static void ie_take_kind(pico8_value_t value, const pico8_entity_kind_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "ie.ke: a key neither nil nor a kind is off its census row (ref:autre) -- a field under no rule of plan-3 "
-           "section 5: stop, do not widen the member");
+           "ie.ke: a key neither nil nor a kind does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -426,8 +422,7 @@ static void ie_take_jb(pico8_value_t value, pico8_jb_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jb_struct_class() &&
-           "ie.jb: a key neither nil nor a jb is off its census row (ref:pico8_jb_t) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "ie.jb: a key neither nil nor a jb does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -451,8 +446,8 @@ static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
         int is_ke = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ke") == 0;
         int is_jb = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "jb") == 0;
 
-        assert((is_ke || is_jb) && "ie: the only measured construction keys are ke and jb (eu); another would be "
-                                   "a field under no rule of plan-3 section 5 -- stop, do not add a member");
+        assert((is_ke || is_jb) && "ie: the only construction keys are ke and jb (eu); another key has no member "
+                                   "-- stop, do not add one");
         if (is_ke) {
             ie_take_kind(overrides->entries[i].value, &self->ke);
         } else {
@@ -463,7 +458,6 @@ static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
     pico8_class_coverage_record("ie");
 #endif
     pico8_ke_struct_pq(&self->ke_base);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_ie_t);
     return self;
 }
 

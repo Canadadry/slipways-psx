@@ -68,14 +68,12 @@ static void *pico8_nf_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ke_struct_init(&self->ke, &g_nf_struct_class);
     self->ra = &g_nf_ra;
     assert((overrides == NULL || overrides->count == 0) &&
-           "nf: no construction table was measured; a key would be a field under no rule of plan-3 section 5 "
-           "-- stop, do not add a member");
+           "nf: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nf");
 #endif
     pico8_nf_pq(pico8_dispatch_mem());
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_nf_t);
     return self;
 }
 

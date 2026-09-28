@@ -146,7 +146,6 @@ void pico8_entity_init(void) {
     g_ci = pico8_ob("0.5,1,1,1,1,1,1,1,1,0,0,0,0,0,0,", NULL);
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
-    PICO8_MEMBER_CENSUS_SEE(&g_mo_placeholder, pico8_mo_placeholder_t);
 
     g_initialized = 1;
 }
@@ -184,7 +183,7 @@ int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_v
         return 1;
     }
     assert(header->cls->field != NULL && "entity: a struct a generic consumer reaches needs a field reader");
-    return PICO8_MEMBER_CENSUS_READ(e, name, header->cls->field(e, name, out_value), out_value);
+    return header->cls->field(e, name, out_value);
 }
 
 void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
@@ -196,9 +195,8 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
     header = e;
     assert(header->cls->set_field != NULL && "entity: a struct a generic writer reaches needs a field writer");
     written = header->cls->set_field(e, name, value);
-    PICO8_MEMBER_CENSUS_WRITE(e, name, value);
-    assert(written && "entity: a generic write names a field this struct has no member for, a field under no "
-                      "rule of plan-3 section 5 -- stop, do not add a member");
+    assert(written && "entity: a generic write names a field this struct has no member for "
+                      "-- stop, do not add a member");
     (void)written;
 }
 

@@ -100,7 +100,7 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
 static const pico8_ob_table_t *pico8_ui_je_button_table(const char *bt) {
     pico8_value_t b_val;
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
-           "je[bt]: plan-3 section 5 enumerates bt as l or r only; another key is an unmeasured field -- stop");
+           "je[bt]: bt is l or r only; another button has no state table -- stop");
     if (pico8_entity_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
         assert(pico8_type_tag_of(b_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
                "je's per-button state must be a plain table");
@@ -197,13 +197,11 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     self->lheld = NULL;
     self->rheld = NULL;
     assert((overrides == NULL || overrides->count == 0) &&
-           "ui: the only measured road is pico8_ui_new(NULL) (jl); a construction key would be a field under "
-           "no rule of plan-3 section 5 -- stop, do not add a member");
+           "ui: the only road is pico8_ui_new(NULL) (jl); a construction key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ui");
 #endif
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_ui_t);
     return self;
 }
 
@@ -261,7 +259,6 @@ void pico8_ui_init(void) {
     g_ui_hw = ui_default_box(found, v);
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
-    PICO8_MEMBER_CENSUS_SEE(&g_je_placeholder, pico8_je_placeholder_t);
 }
 
 void pico8_ui_shutdown(void) {
@@ -454,9 +451,8 @@ static void ui_take_held(pico8_value_t value, pico8_struct_header_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ui_is_held_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "ui.lheld: a value neither nil nor what an ldown hands over (a jc; a g_ or an mz from bg; a qh, os, nr, "
-           "fr, nl, mx or hj from an ie) is off its census row (ref: to those) -- a field under no rule of plan-3 "
-           "section 5: stop, do not widen the member");
+           "ui.lheld: a value neither nil nor what an ldown hands over (a jc; a g_ or an mz from bg; a qh, os, nr, fr, "
+           "nl, mx or hj from an ie) does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -467,8 +463,8 @@ static void ui_take_bg(pico8_value_t value, pico8_bg_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_bg_struct_class() &&
-           "ui.rheld: a value neither nil nor the bg that rdown hands over is off its census row (ref:pico8_bg_t) "
-           "-- a field under no rule of plan-3 section 5: stop, do not widen the member");
+           "ui.rheld: a value neither nil nor the bg that rdown hands over does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -485,7 +481,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     }
 
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
-           "ui:bh: plan-3 section 5 enumerates bt as l or r only; another key is an unmeasured field -- stop");
+           "ui:bh: bt is l or r only; another button has no state table -- stop");
     l = bt[0] == 'l';
     down = l ? "ldown" : "rdown";
     qa_val = pico8_value_ref(self->qa);

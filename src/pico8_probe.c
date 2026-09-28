@@ -82,9 +82,8 @@ static void bv_et_take_holder(pico8_value_t value, pico8_struct_header_t **out) 
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            bv_et_is_holder_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, "
-           "mx) is off its census row (ref: to those holders) -- a field under no rule of plan-3 section 5: stop, "
-           "do not widen the member");
+           "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, mx) "
+           "does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -608,8 +607,7 @@ static void g__take_list(pico8_value_t value, pico8_list_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "g_.qy: a write neither nil nor a list is off its census row (ref:liste) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "g_.qy: a write neither nil nor a list does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -620,8 +618,8 @@ static void g__take_vec(pico8_value_t value, pico8_vec_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "g_.ra/p: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule "
-           "of plan-3 section 5: stop, do not widen the member");
+           "g_.ra/p: a write neither nil nor a vector ref does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -641,9 +639,8 @@ static void g__take_target(pico8_value_t value, pico8_struct_header_t **out, int
     assert(((value.kind == PICO8_VALUE_BOOL && value.as.boolean == 0) ||
             (value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
              g__is_target_class(((const pico8_struct_header_t *)value.as.ref)->cls))) &&
-           "g_.et: a write neither nil, false, nor what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a "
-           "jc, or bv's throwaway target) is off its census row (bool,ref: to those targets) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "g_.et: a write neither nil, false, nor what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, "
+           "or bv's throwaway target) does not fit the member's type -- stop, do not widen the member");
     *out = value.kind == PICO8_VALUE_REF ? value.as.ref : NULL;
     *has = 1;
 }
@@ -655,8 +652,7 @@ static void g__take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "g_.p_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "g_.p_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
     *out = value.as.boolean != 0;
     *has = 1;
 }
@@ -731,8 +727,8 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
 
 static void g__take_fixed(pico8_value_t value, pico8_fixed_t *out) {
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "g_.ke.t/pn/du/py: a construction key that is not a fixed is off its census row (fixe, never nil) -- a "
-           "field under no rule of plan-3 section 5: stop, do not widen the member");
+           "g_.ke.t/pn/du/py: a construction key that is not a fixed does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -756,8 +752,8 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
         } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "py") == 0) {
             g__take_fixed(value, &self->py);
         } else {
-            assert(0 && "g_: the only measured construction keys are pn, t, du, py (probe_mm_rnd_order); another "
-                        "would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
+            assert(0 && "g_: the only construction keys are pn, t, du, py (probe_mm_rnd_order); another key has no "
+                        "member -- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -765,7 +761,6 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_f_((pico8_struct_header_t *)self);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_g__t);
     return self;
 }
 
@@ -850,8 +845,6 @@ void pico8_probe_init(void) {
     g_fm_placeholder.nz = 0;
     g_fm_placeholder.has_nz = 0;
     g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
-    PICO8_MEMBER_CENSUS_SEE(&g_fm_placeholder, pico8_fm_placeholder_t);
-    PICO8_MEMBER_CENSUS_SEE(&g_bv_et, pico8_bv_et_t);
 }
 
 static void fm_free(pico8_struct_header_t *fm) {

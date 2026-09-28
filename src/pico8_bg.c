@@ -97,8 +97,7 @@ static void bg_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "bg.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of plan-3 "
-           "section 5: stop, do not widen the member");
+           "bg.m_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
     *out = value.as.boolean;
     *has = 1;
 }
@@ -109,8 +108,7 @@ static void bg_take_vec(pico8_value_t value, pico8_vec_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "bg.mq: an rp neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "bg.mq: an rp neither nil nor a vector ref does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -148,14 +146,12 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
     self->m_ = 0;
     self->has_m_ = 0;
     assert((overrides == NULL || overrides->count == 0) &&
-           "bg: no construction table was measured; a key would be a field under no rule of plan-3 section 5 "
-           "-- stop, do not add a member");
+           "bg: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("bg");
 #endif
     pico8_bg_pq(pico8_dispatch_mem(), self);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_bg_t);
     return self;
 }
 

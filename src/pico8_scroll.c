@@ -89,15 +89,14 @@ static void qb_take_vec(pico8_value_t value, pico8_vec_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "qb.v: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "qb.v: a write neither nil nor a vector ref does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
 static void qb_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "qb.ma: a write that is not a fixed is off its census row (fixe, never nil) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "qb.ma: a write that is not a fixed does not fit the member's type -- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -133,13 +132,11 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
     self->ra = &g_qb_ra;
     self->pc = g_qb_pc;
     assert((overrides == NULL || overrides->count == 0) &&
-           "qb: no construction table was measured; a key would be a field under no rule of plan-3 section 5 "
-           "-- stop, do not add a member");
+           "qb: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("qb");
 #endif
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_qb_t);
     return self;
 }
 

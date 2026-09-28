@@ -266,8 +266,7 @@ static int pico8_nr_field(const void *self, const char *name, pico8_value_t *out
 
 static void family_trade_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "qh.s: a write that is not a fixed is off its census row (fixe, never nil) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "qh.s: a write that is not a fixed does not fit the member's type -- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -323,8 +322,7 @@ static void family_trade_take_string(pico8_value_t value, const char **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
-           "jo.id: a write neither nil nor a string is off its census row (chaine) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jo.id: a write neither nil nor a string does not fit the member's type -- stop, do not widen the member");
     *out = value.as.string;
 }
 
@@ -335,8 +333,8 @@ static void family_trade_take_vec(pico8_value_t value, pico8_vec_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jo.ra/p: a write neither nil nor a vector ref is off its census row (ref:autre) -- a field under no rule "
-           "of plan-3 section 5: stop, do not widen the member");
+           "jo.ra/p: a write neither nil nor a vector ref does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -357,9 +355,8 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
         } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
             family_trade_take_vec(value, &self->qh.jo.ra);
         } else {
-            assert(0 && "nr: the only measured construction keys are id (ie:ldown), p and ra (test_pico8_mz, "
-                        "test_pico8_bg); another would be a field under no rule of plan-3 section 5 -- stop, do "
-                        "not add a member");
+            assert(0 && "nr: the only construction keys are id (ie:ldown), p and ra (test_pico8_mz, test_pico8_bg); "
+                        "another key has no member -- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -367,7 +364,6 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_nr_t);
     return self;
 }
 
@@ -430,8 +426,8 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
 
-        assert(measured && "fr: the only measured construction key is id (ie:ldown); another would be a field "
-                           "under no rule of plan-3 section 5 -- stop, do not add a member");
+        assert(measured && "fr: the only construction key is id (ie:ldown); another key has no member "
+                           "-- stop, do not add one");
         (void)measured;
         family_trade_take_string(overrides->entries[k].value, &self->nr.qh.jo.id);
     }
@@ -440,7 +436,6 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->nr.qh.jo.ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_fr_t);
     return self;
 }
 
@@ -580,8 +575,7 @@ static void family_trade_take_table(pico8_value_t value, pico8_ob_table_t **out)
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "mx.ht: a write neither nil nor a table is off its census row (ref:table) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "mx.ht: a write neither nil nor a table does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -646,8 +640,8 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
 
-        assert(measured && "mx: the only measured construction key is id (ie:ldown); another would be a field "
-                           "under no rule of plan-3 section 5 -- stop, do not add a member");
+        assert(measured && "mx: the only construction key is id (ie:ldown); another key has no member "
+                           "-- stop, do not add one");
         (void)measured;
         family_trade_take_string(overrides->entries[k].value, &self->hj.qh.jo.id);
     }
@@ -657,7 +651,6 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_mx_t);
     return self;
 }
 
@@ -803,7 +796,6 @@ void pico8_planet_family_trade_init(void) {
     g_mx_q_ = family_trade_default_fixed(found, v);
     found = pico8_mx_default("ht", &v);
     g_mx_ht = family_trade_default_table(found, v);
-    PICO8_MEMBER_CENSUS_SEE(&g_nr_ldown_empty, pico8_nr_ldown_empty_t);
 }
 
 void pico8_planet_family_trade_shutdown(void) {

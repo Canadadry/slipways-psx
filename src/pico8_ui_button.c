@@ -221,8 +221,8 @@ static void button_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "fq.m_/p_, js.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "fq.m_/p_, js.m_: a write neither nil nor a boolean does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.boolean;
     *has = 1;
 }
@@ -233,8 +233,8 @@ static void button_take_function(pico8_value_t value, pico8_value_function_t *ou
         return;
     }
     assert(value.kind == PICO8_VALUE_FUNCTION && value.as.function != NULL &&
-           "fq.my, js.hb: a key neither nil nor a non-NULL function is off its census row (fonction) -- a field "
-           "under no rule of plan-3 section 5: stop, do not widen the member");
+           "fq.my, js.hb: a key neither nil nor a non-NULL function does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.function;
 }
 
@@ -246,8 +246,8 @@ static void button_take_my(pico8_value_t value, pico8_value_function_t *out, int
     }
     assert(((value.kind == PICO8_VALUE_BOOL && value.as.boolean == 0) ||
             (value.kind == PICO8_VALUE_FUNCTION && value.as.function != NULL)) &&
-           "js.my: a key neither nil, false, nor a non-NULL function is off its census row (bool,fonction) -- a "
-           "field under no rule of plan-3 section 5: stop, do not widen the member");
+           "js.my: a key neither nil, false, nor a non-NULL function does not fit the member's type "
+           "-- stop, do not widen the member");
     if (value.kind == PICO8_VALUE_FUNCTION) {
         *out = value.as.function;
     }
@@ -261,16 +261,15 @@ static void button_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has)
         return;
     }
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "js.fg/trade/en/_jo_fe_od: a key neither nil nor a fixed is off its census row (fixe) -- a field under "
-           "no rule of plan-3 section 5: stop, do not widen the member");
+           "js.fg/trade/en/_jo_fe_od: a key neither nil nor a fixed does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.fixed;
     *has = 1;
 }
 
 static void button_take_fa(pico8_value_t value, pico8_fixed_t *out) {
-    assert(value.kind == PICO8_VALUE_FIXED && "js.fa: a key that is not a fixed is off its census row (fixe, never "
-                                              "nil) -- a field under no rule of plan-3 section 5: stop, do not "
-                                              "widen the member");
+    assert(value.kind == PICO8_VALUE_FIXED && "js.fa: a key that is not a fixed does not fit the member's type "
+                                              "-- stop, do not widen the member");
     *out = value.as.fixed;
 }
 
@@ -281,8 +280,8 @@ static void button_take_vec(pico8_value_t value, pico8_vec_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "js.ra/qf: a key neither nil nor a vector ref is off its census row (ref:autre) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "js.ra/qf: a key neither nil nor a vector ref does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -292,8 +291,7 @@ static void button_take_string(pico8_value_t value, const char **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
-           "js.px: a key neither nil nor a string is off its census row (chaine) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "js.px: a key neither nil nor a string does not fit the member's type -- stop, do not widen the member");
     *out = value.as.string;
 }
 
@@ -304,8 +302,7 @@ static void button_take_table(pico8_value_t value, pico8_ob_table_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
            pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "js._cr_t: a key neither nil nor a table is off its census row (ref:table) -- a field under no rule "
-           "of plan-3 section 5: stop, do not widen the member");
+           "js._cr_t: a key neither nil nor a table does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -316,8 +313,7 @@ static void button_take_jo(pico8_value_t value, pico8_jo_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jo_struct_class() &&
-           "js._jo_fe_pt: a key neither nil nor a jo is off its census row (ref:pico8_jo_t) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "js._jo_fe_pt: a key neither nil nor a jo does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -328,8 +324,7 @@ static void button_take_hp(pico8_value_t value, pico8_hp_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_hp_struct_class() &&
-           "js._jo_fe_b: a key neither nil nor an hp is off its census row (ref:pico8_hp_t) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "js._jo_fe_b: a key neither nil nor an hp does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -339,8 +334,7 @@ static void button_take_lq(pico8_value_t value, pico8_lq_t **out) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL && pico8_js_is_lq(value.as.ref) &&
-           "js.lq: a write neither nil nor an lq row is off its census row (ref:pico8_lq_t) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "js.lq: a write neither nil nor an lq row does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -449,9 +443,8 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
         } else if (strcmp(name, "_jo_fe_od") == 0) {
             button_take_fixed(value, &self->_jo_fe_od, &self->has__jo_fe_od);
         } else {
-            assert(0 && "js: the only measured construction keys are fa, lq, h_, jb, ra, qf, my, hb, fg, "
-                        "px, trade, en, _cr_t and _jo_fe_pt/_b/_od; another would be a field under no rule "
-                        "of plan-3 section 5 -- stop, do not add a member");
+            assert(0 && "js: the only construction keys are fa, lq, h_, jb, ra, qf, my, hb, fg, px, trade, en, _cr_t "
+                        "and _jo_fe_pt/_b/_od; another key has no member -- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -459,7 +452,6 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_js_pq(self, lq_arg, h__arg, jb_arg);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_js_t);
     return self;
 }
 
@@ -527,8 +519,7 @@ void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, pico8_value_t h_, pico8_val
                "js:pq's jb field must hold a plain spec table");
         self->jb = pico8_jb_new(jb_overrides);
     } else if (jb.kind == PICO8_VALUE_BOOL) {
-        assert(0 && "js.jb: a key false is off its census row (ref:pico8_jb_t) -- a field under no rule of plan-3 "
-                    "section 5: stop, do not widen the member");
+        assert(0 && "js.jb: a key false does not fit the member's type -- stop, do not widen the member");
     }
 }
 
@@ -700,15 +691,13 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "my") == 0) {
             button_take_function(overrides->entries[i].value, &self->my);
         } else {
-            assert(0 && "fq: the only measured key is my; another would be a field under no rule of plan-3 "
-                        "section 5 -- stop, do not add a member");
+            assert(0 && "fq: the only key is my; another key has no member -- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fq");
 #endif
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_fq_t);
     return self;
 }
 

@@ -67,12 +67,6 @@
 #                       vide, hors suite
 # make data-guard    -> make value-members vide, aucun offsetof dans src/,
 #                       catégories de DATA_RESIDUE_GUARD à 0, dans make test
-# make member-census -> rejoue les e2e de tests/e2e/ et CENSUS_UNIT_TESTS sous
-#                       -DPICO8_MEMBER_CENSUS dans tmp/census et réécrit
-#                       tools/member_census.txt ; échoue sur l'intégrité de
-#                       l'outil, jamais sur le contenu, hors suite. Passe
-#                       réduite : CENSUS_EVENTS=<un rejeu> CENSUS_UNIT=
-#                       CENSUS_TABLE=tmp/census/m.txt
 # make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
 #                       critère « sortie propre », hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
@@ -203,7 +197,6 @@ ENGINE_SRCS := \
     src/pico8_layout.c \
     src/pico8_list.c \
     src/pico8_mem.c \
-    src/pico8_member_census.c \
     src/pico8_menu.c \
     src/pico8_mouse.c \
     src/pico8_mouse_reader.c \
@@ -269,7 +262,6 @@ DATA_ENGINE_SRCS := \
     src/pico8_layout.c \
     src/pico8_list.c \
     src/pico8_mem.c \
-    src/pico8_member_census.c \
     src/pico8_mouse.c \
     src/pico8_mouse_reader.c \
     src/pico8_msgbox.c \
@@ -918,78 +910,6 @@ data-guard: tools/entity_value_members.sh tools/data_residue.sh
 	fi
 
 .PHONY: data-residue data-guard
-
-# Les TU de UNIT_TESTS qui lient ENGINE_SRCS ou DATA_ENGINE_SRCS.
-CENSUS_UNIT_TESTS := \
-    test_pico8_data_init \
-    test_pico8_jb_ol \
-    test_pico8_iv \
-    test_pico8_mh \
-    test_pico8_fq \
-    test_pico8_nf \
-    test_pico8_je \
-    test_pico8_mo \
-    test_pico8_qb \
-    test_pico8_mz \
-    test_pico8_bg \
-    test_pico8_jc \
-    test_pico8_ie \
-    test_pico8_js \
-    test_pico8_jo \
-    test_pico8_qh \
-    test_pico8_entity_kind \
-    test_pico8_spec_defaults \
-    test_pico8_jo_spec_defaults \
-    test_pico8_nl \
-    test_pico8_os \
-    test_pico8_hj \
-    test_pico8_pm \
-    test_pico8_mx \
-    test_pico8_nr \
-    test_pico8_fr \
-    test_pico8_ga \
-    test_pico8_g_ \
-    test_pico8_fv \
-    test_pico8_pj \
-    test_pico8_ui \
-    test_pico8_trade \
-    test_pico8_hp \
-    test_pico8_lq \
-    test_pico8_hy \
-    test_pico8_fm \
-    test_pico8_planet_kj_dispatch \
-    test_pico8_bg_kj \
-    test_pico8_planet_gh_row_lq \
-    test_pico8_ga_export_panel_by \
-    test_pico8_probe_mm_rnd_order
-
-CENSUS_TMP := tmp/census
-CENSUS_EVENTS ?= $(E2E_EVENTS)
-CENSUS_UNIT ?= $(CENSUS_UNIT_TESTS)
-CENSUS_TABLE ?= tools/member_census.txt
-CENSUS_CFLAGS := -DPICO8_MEMBER_CENSUS -I src -I $(CENSUS_TMP)/gen
-
-# La table générée n'est réécrite que si elle change : l'objet du recensement en
-# dépend par son .d. Le make récursif construit tout dans tmp/census ; les
-# rejeux posent leur propre dossier de sortie, les TU héritent de celui-ci.
-member-census: tools/entity_value_members.sh tools/member_census.sh
-	@mkdir -p $(CENSUS_TMP)/gen
-	@sh tools/entity_value_members.sh --c-table > $(CENSUS_TMP)/gen/table.new
-	@cmp -s $(CENSUS_TMP)/gen/table.new $(CENSUS_TMP)/gen/pico8_member_census_table.h || mv $(CENSUS_TMP)/gen/table.new $(CENSUS_TMP)/gen/pico8_member_census_table.h
-	@rm -rf $(CENSUS_TMP)/raw && mkdir -p $(CENSUS_TMP)/raw/replay $(CENSUS_TMP)/raw/unit
-	PICO8_MEMBER_CENSUS_OUT=$(CURDIR)/$(CENSUS_TMP)/raw/unit $(MAKE) --no-print-directory TMP_DIR=$(CENSUS_TMP) CFLAGS="$(CFLAGS) $(CENSUS_CFLAGS)" \
-	    census-runs CENSUS_EVENTS="$(CENSUS_EVENTS)" CENSUS_UNIT="$(CENSUS_UNIT)"
-	sh tools/member_census.sh $(CENSUS_TABLE) $(CENSUS_TMP) $(words $(CENSUS_EVENTS)) $(words $(CENSUS_UNIT))
-
-CENSUS_REPLAYS := $(addprefix census-replay-,$(CENSUS_EVENTS))
-
-census-runs: $(CENSUS_REPLAYS) $(addprefix unit-run-,$(CENSUS_UNIT))
-
-$(CENSUS_REPLAYS): census-replay-%: % $(TMP_DIR)/pico8_replay
-	@mkdir -p $(CENSUS_TMP)/dump/$(<D)
-	PICO8_MEMBER_CENSUS_OUT=$(CURDIR)/$(CENSUS_TMP)/raw/replay ./$(TMP_DIR)/pico8_replay $< /dev/null $(CENSUS_TMP)/dump/$<.dump.txt > /dev/null
-
-.PHONY: member-census census-runs $(CENSUS_REPLAYS)
 
 # detect_leaks=0 : les entités ne sont jamais libérées (TROU-7).
 $(TMP_DIR)/pico8_replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)

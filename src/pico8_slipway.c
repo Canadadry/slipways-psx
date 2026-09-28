@@ -61,8 +61,8 @@ static void jc_too_far_take_jc(pico8_value_t value, pico8_jc_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jc_struct_class() &&
-           "jc_too_far.fo: a write neither nil nor a jc is off its census row (ref:pico8_jc_t) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "jc_too_far.fo: a write neither nil nor a jc does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -120,8 +120,8 @@ static pico8_vec_t *pico8_jc_mouse_point_take_ra(pico8_value_t mp) {
         return NULL;
     }
     assert(mp.kind == PICO8_VALUE_REF && pico8_type_tag_of(mp.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jc_mouse_point.ra: an mp neither nil nor a vector ref is off its census row (ref:autre) -- a field under "
-           "no rule of plan-3 section 5: stop, do not widen the member");
+           "jc_mouse_point.ra: an mp neither nil nor a vector ref does not fit the member's type "
+           "-- stop, do not widen the member");
     return mp.as.ref;
 }
 
@@ -181,8 +181,8 @@ static void jc_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_FIXED &&
-           "jc.mt: an mt read off qu or re neither nil nor a fixed is off its census row (fixe) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "jc.mt: an mt read off qu or re neither nil nor a fixed does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.fixed;
     *has = 1;
 }
@@ -229,7 +229,6 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
         point->ra = pico8_jc_mouse_point_take_ra(mp);
         *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
         point->p = p_heap;
-        PICO8_MEMBER_CENSUS_SEE(point, pico8_jc_mouse_point_t);
         self->re = (pico8_struct_header_t *)point;
     }
 
@@ -566,9 +565,8 @@ static void jc_take_endpoint(pico8_value_t value, pico8_struct_header_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            jc_is_endpoint_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
-           "is off its census row (ref: to those planets) -- a field under no rule of plan-3 section 5: stop, do "
-           "not widen the member");
+           "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) does not "
+           "fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -584,10 +582,8 @@ static void jc_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
            jc_is_fo_holder_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, nl, "
-           "os, hj, pm, nr, fr, mx; an mz; another jc) "
-           "is off its census row (ref: to those holders) -- a field under no rule of plan-3 section 5: stop, do "
-           "not widen the member");
+           "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, nl, os, "
+           "hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -598,8 +594,7 @@ static void jc_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "jc.p_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "jc.p_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
     *out = value.as.boolean != 0;
     *has = 1;
 }
@@ -663,8 +658,8 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "qu") == 0) {
             jc_take_endpoint(overrides->entries[i].value, &self->qu);
         } else {
-            assert(0 && "jc: the only measured construction key is qu (jo:ldown, nr:ldown); another would be a field "
-                        "under no rule of plan-3 section 5 -- stop, do not add a member");
+            assert(0 && "jc: the only construction key is qu (jo:ldown, nr:ldown); another key has no member "
+                        "-- stop, do not add one");
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -672,7 +667,6 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
 #endif
     pico8_jc_pq(self);
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_jc_t);
     return self;
 }
 
@@ -705,7 +699,6 @@ void pico8_jc_init(void) {
     g_jc_nu = pico8_jc_spec_table(spec, "nu");
     g_jc_k_ = pico8_jc_spec_table(spec, "k_");
     pico8_ob_table_free(spec);
-    PICO8_MEMBER_CENSUS_SEE(&g_jc_too_far, pico8_jc_too_far_t);
 }
 
 void pico8_jc_shutdown(void) {

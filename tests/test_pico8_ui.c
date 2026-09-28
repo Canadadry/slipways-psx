@@ -1437,7 +1437,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
@@ -1997,7 +1997,7 @@ static uint32_t fold_str(uint32_t h, const char *s) {
 }
 
 /* Presence, then the content of each of the 8 state members, each asserted
- * in the genre of its census row. */
+ * in the member's type. */
 static uint32_t fold_jo_state(uint32_t h, const void *e) {
     size_t m;
 
@@ -2295,7 +2295,7 @@ static void build_id_off_row(void *e) {
     (void)tree_new(g_state_new, b);
 }
 
-/* 1 when `v` is in the genre of the census row of `name`. */
+/* 1 when `v` is in the type of the member `name`. */
 static int state_in_row(const char *name, pico8_value_t v) {
     if (strcmp(name, "fx") == 0 || strcmp(name, "p_") == 0) {
         return v.kind == PICO8_VALUE_BOOL;
@@ -2396,7 +2396,7 @@ static void *fo_holder_new(int k) {
 }
 
 /* Presence, then the content of each of the 7 members written by the
- * generic writers, each asserted in the genre of its census row. */
+ * generic writers, each asserted in the member's type. */
 static uint32_t fold_jo_gen(uint32_t h, const void *e) {
     size_t m;
 

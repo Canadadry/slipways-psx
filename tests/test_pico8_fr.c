@@ -599,7 +599,6 @@ static void test_fr_is_a_struct(void) {
     must_abort(write_ht, a);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP()
     {
         pico8_fr_t *bare = pico8_fr_new(NULL);
         assert(is_an_fr_struct(bare) && is_a_gate(bare) && !has(bare, "id") && has(bare, "oe") && has(bare, "kw"));
@@ -728,7 +727,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

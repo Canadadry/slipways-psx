@@ -225,8 +225,7 @@ static void help_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "fv.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of plan-3 "
-           "section 5: stop, do not widen the member");
+           "fv.m_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
     *out = value.as.boolean;
     *has = 1;
 }
@@ -285,15 +284,14 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     self->fg = g_fv_fg;
     self->rb = g_fv_rb;
     assert((overrides == NULL || overrides->count == 0) &&
-           "fv: the only measured road is pico8_fv_new(NULL) (cart.c); a construction key would be a field under "
-           "no rule of plan-3 section 5 -- stop, do not add a member");
+           "fv: the only road is pico8_fv_new(NULL) (cart.c); a construction key has no member "
+           "-- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fv");
 #endif
     pico8_fv_pq(self);
     pico8_f_((pico8_struct_header_t *)self);
     pico8_ke_struct_pq(&self->g_.ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_fv_t);
     return self;
 }
 

@@ -473,13 +473,12 @@ static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     self->gz = 0;
     self->has_gz = 0;
     assert((overrides == NULL || overrides->count == 0) &&
-           "pj: the only measured road is pico8_pj_new(NULL) (cart.c); a construction key would be a field under "
-           "no rule of plan-3 section 5 -- stop, do not add a member");
+           "pj: the only road is pico8_pj_new(NULL) (cart.c); a construction key has no member "
+           "-- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("pj");
 #endif
     pico8_ke_struct_pq(&self->ke);
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_pj_t);
     return self;
 }
 
@@ -543,7 +542,6 @@ void pico8_score_panel_init(void) {
     g_ju = NULL;
 
     pico8_score_panel_display_init();
-    PICO8_MEMBER_CENSUS_SEE(&g_pj_cr, pico8_pj_cr_t);
 }
 
 void pico8_score_panel_shutdown(void) {

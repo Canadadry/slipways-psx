@@ -109,8 +109,7 @@ static void *pico8_hy_struct_new(const pico8_ob_table_t *overrides) {
     self->hl = NULL;
     self->has_hl = 0;
     assert((overrides == NULL || overrides->count == 0) &&
-           "hy: every measured construction passes no key; a key here would be a field under no rule of "
-           "plan-3 section 5 -- stop, do not add a member");
+           "hy: every construction passes no key; a key has no member -- stop, do not add one");
 
     self->nz = pico8_fixed_from_int(100);
     self->ge = pico8_fixed_from_int(0);
@@ -126,7 +125,6 @@ static void *pico8_hy_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hy");
 #endif
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_hy_t);
     return self;
 }
 

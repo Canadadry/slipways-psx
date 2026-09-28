@@ -510,7 +510,6 @@ static void test_nl_is_a_struct(void) {
     }
     assert(!pico8_nl_default("ly", &v) && !pico8_qh_default("ly", &v));
 
-    PICO8_MEMBER_CENSUS_STOP()
     must_abort(write_rr, a);
     must_abort(write_nl, a);
     must_abort(write_hp, a);
@@ -663,7 +662,7 @@ static pid_t spawn(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     return child;
 }

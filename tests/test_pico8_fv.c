@@ -569,7 +569,6 @@ static void test_fv_is_a_struct(void) {
     must_abort(write_me, fv);
     must_abort(build_with_named_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP()
 }
 
 static const char *const fv_names[] = {"hi", "ca", "gq", "eo", "ff", "kq", "ql", "fg", "rb", "m_"};
@@ -848,7 +847,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

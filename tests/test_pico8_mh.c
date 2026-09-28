@@ -508,7 +508,7 @@ static void build_lh_fixed(void) {
     build_with_key("lh", pico8_value_fixed(pico8_fixed_from_int(1)));
 }
 
-/* A construction key of a kind off `mh`'s census row stops the build. */
+/* A construction key of a kind outside the member's type stops the build. */
 static void test_mh_rejects_off_row_keys(void) {
     pico8_jl();
     must_abort(build_rh_string);

@@ -795,7 +795,6 @@ static void test_g__is_a_struct(void) {
     must_abort(write_me, roads[0]);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP()
     ((pico8_g__t *)roads[1])->fa = 0;
     assert(cls->field(roads[1], "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0 && !is_probe(roads[1]));
 
@@ -896,7 +895,7 @@ static uint32_t mz_et_state(const void *mz, const void *t) {
 }
 
 /* `fo` by name with each of the eleven classes whose `hq` runs `bv`: the
- * census row, plus `fv`, `nl`, `pm`. */
+ * classes of the typed member, plus `fv`, `nl`, `pm`. */
 static void test_bv_et_members_by_name(void) {
     static const char *const strangers[] = {"", "x", "FO", "fo ", "qs", "et", "header", "cls"};
     static const char *const unwritten[] = {"qs", "et", "", "fo ", "FO"};
@@ -1466,7 +1465,7 @@ static void must_abort_all(void *e, const char *name, void (*write)(void *, pico
     }
 }
 
-/* Each written member takes nil or its census row only, the construction
+/* Each written member takes nil or a value of its type only, the construction
  * keys a fixed only; `fv` delegates `et` and `p_` to g_'s writer. */
 static void test_g__writer_stops_off_row(void) {
     static const char *const keys[3] = {"pn", "du", "py"};
@@ -1564,7 +1563,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

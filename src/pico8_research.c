@@ -240,8 +240,8 @@ static void hp_take_string(const pico8_ob_table_t *ri, const char *name, const c
         return;
     }
     assert(v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "hp.px/lr/ja/rr/cw/go: a key neither nil nor a string is off its census row (chaine) -- a field under "
-           "no rule of plan-3 section 5: stop, do not widen the member");
+           "hp.px/lr/ja/rr/cw/go: a key neither nil nor a string does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = v.as.string;
 }
 
@@ -254,8 +254,8 @@ static void hp_take_fixed(const pico8_ob_table_t *ri, const char *name, pico8_fi
         return;
     }
     assert(v.kind == PICO8_VALUE_FIXED &&
-           "hp.fj/o/dm/ii/rn: a key neither nil nor fixed is off its census row (fixe) -- a field under no rule of "
-           "plan-3 section 5: stop, do not widen the member");
+           "hp.fj/o/dm/ii/rn: a key neither nil nor fixed does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = v.as.fixed;
     *has = 1;
 }
@@ -270,8 +270,8 @@ static void hp_take_il(const pico8_ob_table_t *ri, const char **out, int *has) {
     }
     assert(((v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) ||
             (v.kind == PICO8_VALUE_STRING && v.as.string != NULL)) &&
-           "hp.il: a key neither nil, false nor a string is off its census row (bool,chaine) -- a field under no "
-           "rule of plan-3 section 5: stop, do not widen the member");
+           "hp.il: a key neither nil, false nor a string does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = v.kind == PICO8_VALUE_STRING ? v.as.string : NULL;
     *has = 1;
 }
@@ -341,9 +341,8 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
 
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
-        assert(hp_accepts_key(key) && "hp: every measured record of fd passes only positionals 1-8 and rr, ii, cw, "
-                                      "go, rn; another key would be a field under no rule of plan-3 section 5 -- "
-                                      "stop, do not add a member");
+        assert(hp_accepts_key(key) && "hp: every record of fd passes only positionals 1-8 and rr, ii, cw, go, rn; "
+                                      "another key has no member -- stop, do not add one");
         if (key.kind == PICO8_OB_KEY_INDEX) {
             pico8_ob_table_set_index(ri, key.index, overrides->entries[k].value);
         } else {
@@ -402,7 +401,6 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hp");
 #endif
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_hp_t);
     return self;
 }
 

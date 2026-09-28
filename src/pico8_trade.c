@@ -56,8 +56,7 @@ static pico8_list_t *trade_list_key(pico8_value_t value) {
         return NULL;
     }
     assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "trade.lp/rl: a key neither nil nor a list is off its census row (ref:liste) -- a field under no rule "
-           "of plan-3 section 5: stop, do not widen the member");
+           "trade.lp/rl: a key neither nil nor a list does not fit the member's type -- stop, do not widen the member");
     return value.as.ref;
 }
 
@@ -94,18 +93,17 @@ static void *pico8_trade_struct_new(const pico8_ob_table_t *overrides) {
                 self->qe_is_bool = 0;
             } else {
                 assert(value.kind == PICO8_VALUE_BOOL &&
-                       "trade.qe: a key neither nil, fixed nor boolean is off its census row (bool,fixe) -- a field "
-                       "under no rule of plan-3 section 5: stop, do not widen the member");
+                       "trade.qe: a key neither nil, fixed nor boolean does not fit the member's type "
+                       "-- stop, do not widen the member");
                 self->qe = value.as.boolean;
                 self->has_qe = 1;
                 self->qe_is_bool = 1;
             }
         } else {
-            assert(0 && "trade: every measured construction passes only lp, rl, qe; another key "
-                        "would be a field under no rule of plan-3 section 5 -- stop, do not add a member");
+            assert(0 && "trade: every construction passes only lp, rl, qe; another key has no member "
+                        "-- stop, do not add one");
         }
     }
-    PICO8_MEMBER_CENSUS_SEE(self, pico8_trade_t);
     return self;
 }
 

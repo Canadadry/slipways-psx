@@ -660,7 +660,7 @@ static void test_draw(void) {
     pico8_cls(&mem);
     blank = screen_hash();
 
-    PICO8_MEMBER_CENSUS_STOP() for (i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++) {
         pico8_entity_set_field(old, "fo", pico8_value_ref(old));
         pico8_cls(&mem);
         (void)call(old, "kj", pico8_value_ref(NULL));
@@ -1708,7 +1708,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);

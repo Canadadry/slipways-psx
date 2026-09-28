@@ -740,7 +740,7 @@ static int raw_read(const void *e, const char *name, pico8_value_t *out) {
     return got;
 }
 
-static int census_kind(const char *name, pico8_value_kind_t kind) {
+static int member_kind_ok(const char *name, pico8_value_kind_t kind) {
     if (strcmp(name, "mr") == 0 || strcmp(name, "gp") == 0 || strcmp(name, "fk") == 0 || strcmp(name, "i") == 0) {
         return kind == PICO8_VALUE_REF;
     }
@@ -764,7 +764,7 @@ static const char *record_string(const pico8_ob_table_t *rec, int index, const c
 }
 
 /* Every member of every project read by name, as the reader answers it:
- * present with a kind of its census row, or absent with `out` untouched;
+ * present with a kind the member holds, or absent with `out` untouched;
  * strings the very pointers of `fd`'s record; the REFs stable; and `hn`/
  * `_jo_fe_b` still pointing at a project of `gb`. */
 static void test_hp_members_by_name(void) {
@@ -817,7 +817,7 @@ static void test_hp_members_by_name(void) {
             h = fnv(h, (uint32_t)got);
             if (got) {
                 assert(!(v.kind == PICO8_VALUE_REF && v.as.ref == NULL));
-                assert(census_kind(hp_members[n], v.kind));
+                assert(member_kind_ok(hp_members[n], v.kind));
                 h = fnv(h, (uint32_t)v.kind);
             }
         }
@@ -911,7 +911,7 @@ static void in_fresh_child(void (*test)(void)) {
     if (child == 0) {
         test();
         fflush(stdout);
-        PICO8_MEMBER_CENSUS_CHILD_EXIT(0);
+        _exit(0);
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
