@@ -1486,21 +1486,18 @@ static uint32_t members_title_and_game(void) {
 }
 
 static uint32_t members_research(void) {
-    const pico8_ob_table_t *nb = pico8_nb();
     const pico8_list_t *le;
     uint32_t h = 2166136261u;
     int dear = 0;
     int affordable = 0;
     int i;
 
-    for (i = 0; i < nb->count; i++) {
-        pico8_value_t oy;
-        assert(nb->entries[i].value.kind == PICO8_VALUE_REF);
-        if (pico8_ob_table_get_name(nb->entries[i].value.as.ref, "oy", &oy)) {
-            assert(oy.kind == PICO8_VALUE_REF && pico8_type_tag_of(oy.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-        }
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        assert(pico8_nb_table[i].oy != NULL);
     }
-    h = fnv(h, (uint32_t)nb->count);
+    /* The frozen hash folded the count of the old nb table: each record
+     * under its rank and under its px. */
+    h = fnv(h, (uint32_t)(2 * PICO8_NB_COUNT));
 
     tech_screen();
     le = ok_le();
@@ -1846,6 +1843,38 @@ static void test_pz_fa_only_from_ca(void) {
     assert(ok_le()->count == 1 && must_fixed(ok_le()->items[0].as.ref, "fa") == pico8_fixed_from_int(14));
 }
 
+/* `cb` writes `e_` for every entry, kept or not; `pico8_data_init` forgets
+ * them all. */
+static void test_cb_writes_every_e_(void) {
+    pico8_list_t kept;
+    pico8_fixed_t jk;
+    int dropped_affordable = 0;
+    int i;
+
+    start_game();
+    pico8_fm_hy()->jk = pico8_fixed_from_int(12);
+    jk = must_fixed(pico8_fm(), "jk");
+    kept = pico8_cb(nil());
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        const pico8_nb_entry_t *t = &pico8_nb_table[i];
+        int affordable = pico8_gi_nb(t) <= jk;
+        int k;
+        int is_kept = 0;
+
+        assert(pico8_nb_e_(t) == affordable);
+        for (k = 0; k < kept.count; k++) {
+            is_kept |= kept.items[k].as.ref == t;
+        }
+        dropped_affordable += affordable && !is_kept;
+    }
+    pico8_list_free(&kept);
+    assert(dropped_affordable > 0);
+    pico8_data_init();
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        assert(pico8_nb_e_(&pico8_nb_table[i]) == 0);
+    }
+}
+
 /* `pz` takes a struct or NULL: an ob table stops it. */
 static void test_pz_closed(void) {
     pico8_ob_table_t *table = pico8_ob_table_new();
@@ -1918,6 +1947,7 @@ int main(void) {
     in_fresh_child(test_ha_pz_members_by_name);
     in_fresh_child(test_pz_closed);
     in_fresh_child(test_pz_fa_only_from_ca);
+    in_fresh_child(test_cb_writes_every_e_);
     in_fresh_child(test_panels_are_structs);
     in_fresh_child(test_pj_are_structs);
 

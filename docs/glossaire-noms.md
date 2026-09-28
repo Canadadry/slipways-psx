@@ -136,7 +136,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `fd` | `pico8_fd_table` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; `build_gb` la parcourt |
 | `gb` | `pico8_gb_at`, `pico8_gb_find`, `pico8_gb_count` | les instances `hp` construites depuis `fd` : `gb[k]` par rang (tableau fixe de `pico8_research.c`), `gb[px]` le dernier projet enregistré sous ce `px` (plusieurs le partagent) |
 | `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
-| `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
+| `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) | liste des technologies, décodée depuis l'adresse 10457 ; `cb()` en rend des entrées et en écrit les `e_` (`pico8_nb_e_`, tableau statique remis par `pico8_data_init`) ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
 | `ek` | `pico8_ek_table` (`pico8_game_data.h`) | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
 ## Commerce
@@ -460,7 +460,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée |
 | `gb` | `pico8_gb_at`, `pico8_gb_find` | tous les projets construits depuis `fd`, par rang ou par `px` |
 | `cb(bi)` | `pico8_cb` | les technologies affichables ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
-| `gi(t)` | `pico8_gi` (enregistrement de la vue), `pico8_gi_nb` (entrée de `pico8_nb_table`, lue par `hy:kt`) | coût en points de recherche d'une technologie |
+| `gi(t)` | `pico8_gi_nb` (entrée de `pico8_nb_table`, lue par `cr` et `hy:kt`) | coût en points de recherche d'une technologie |
 
 ## Particules
 
@@ -573,7 +573,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `ht` | ressources qu'un `mx` sait synthétiser (`pico8_mx_ht_seq`, puis une séquence vide une fois une ressource acceptée) |
 | `hz` | sprite choisi selon le nombre de connexions (`nr`, `fr` : `pico8_nr_hz_seq`, `pico8_fr_hz_seq`) |
 | `oy` | contenu de l'infobulle d'une technologie |
-| `e_` | « finançable », posé par `cb()` ; toujours un booléen |
+| `e_` | « finançable », posé par `cb()` ; toujours un booléen (`pico8_nb_e_`) |
 | `lv` | ère d'une technologie, comparée à `fm.ew` |
 | `en` | champ de réglage d'une entrée de `bo`, à côté de `trade` |
 

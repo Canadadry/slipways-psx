@@ -13,7 +13,6 @@
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     pico8_mem_t mem;
-    pico8_value_t v;
 
     pico8_mem_init(&mem);
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
@@ -37,31 +36,15 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
         assert(strcmp(title->items[0].s, "-lab-") == 0);
     }
 
-    assert(pico8_nb()->count == 38);
-    assert(pico8_ob_table_get_index(pico8_nb(), 1, &v));
-    assert(v.kind == PICO8_VALUE_REF);
+    assert(PICO8_NB_COUNT == 19);
     {
-        const pico8_ob_table_t *tech = v.as.ref;
-        pico8_value_t field;
+        const pico8_nb_entry_t *tech = &pico8_nb_table[0];
 
-        assert(pico8_ob_table_get_name(tech, "px", &field));
-        assert(field.kind == PICO8_VALUE_STRING);
-        assert(strcmp(field.as.string, "space folding") == 0);
-
-        assert(pico8_ob_table_get_name(tech, "lv", &field));
-        assert(field.kind == PICO8_VALUE_FIXED);
-        assert(field.as.fixed == pico8_fixed_from_int(1));
-
-        assert(pico8_ob_table_get_name(tech, "nk", &field));
-        assert(field.kind == PICO8_VALUE_FIXED);
-        assert(field.as.fixed == pico8_fixed_from_int(22));
-
-        assert(pico8_ob_table_get_name(tech, "od", &field));
-        assert(field.kind == PICO8_VALUE_FIXED);
-        assert(field.as.fixed == pico8_fixed_from_int(4));
-
-        assert(pico8_ob_table_get_name(tech, "oy", &field));
-        assert(field.kind == PICO8_VALUE_REF);
+        assert(strcmp(tech->px, "space folding") == 0);
+        assert(tech->lv == 1);
+        assert(tech->nk == 22);
+        assert(tech->od == 4);
+        assert(tech->oy != NULL);
     }
 
     pico8_data_shutdown();

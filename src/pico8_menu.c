@@ -7,7 +7,6 @@
 #include "pico8_audio.h"
 #include "pico8_struct.h"
 #include "pico8_collect.h"
-#include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_entity.h"
@@ -22,7 +21,6 @@
 #include "pico8_score_panel.h"
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"
-#include "pico8_type_tag.h"
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -91,16 +89,6 @@ static pico8_ha_pz_t g_ha_pz = {
     0,
 };
 
-static int cr_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 static char *cr_concat2(const char *a, const char *b) {
     size_t la = strlen(a);
     size_t lb = strlen(b);
@@ -142,24 +130,17 @@ typedef struct {
 /* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
  * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
 static void pico8_cr_step(pico8_value_t e, pico8_cr_row_t *b) {
-    pico8_ob_table_t *t;
+    const pico8_nb_entry_t *t;
     static const pico8_jb_item_t pair_items[] = {{.n = 24}, {.n = 5}};
     static const pico8_jb_row_t pair = {.count = 2, .items = pair_items};
-    pico8_value_t nk_val = pico8_value_ref(NULL);
-    pico8_value_t px_val = pico8_value_ref(NULL);
-    pico8_value_t e_val;
-    const pico8_nb_entry_t *entry;
     pico8_fixed_t gi_result;
     char *gi_str;
 
-    assert(e.kind == PICO8_VALUE_REF && pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "cb() must yield plain nb entries");
-    t = (pico8_ob_table_t *)e.as.ref;
+    assert(e.kind == PICO8_VALUE_REF && e.as.ref != NULL && "cb() yields entries of pico8_nb_table");
+    t = e.as.ref;
 
-    pico8_ob_table_get_name(t, "nk", &nk_val);
-    pico8_ob_table_get_name(t, "px", &px_val);
-    b->lq_items[0] = nk_val;
-    b->lq_items[1] = px_val;
+    b->lq_items[0] = pico8_value_fixed(pico8_fixed_from_int(t->nk));
+    b->lq_items[1] = pico8_value_string(t->px);
     b->lq.items = b->lq_items;
     b->lq.count = 2;
     b->lq.has_c = 1;
@@ -167,7 +148,7 @@ static void pico8_cr_step(pico8_value_t e, pico8_cr_row_t *b) {
     b->row.lq = pico8_value_ref(NULL);
     b->row.lq_row = &b->lq;
 
-    gi_result = pico8_gi(t);
+    gi_result = pico8_gi_nb(t);
     gi_str = pico8_value_tostr(pico8_value_fixed(gi_result));
 
     b->h_items[0] = pico8_value_ref((void *)&pair);
@@ -178,15 +159,13 @@ static void pico8_cr_step(pico8_value_t e, pico8_cr_row_t *b) {
     b->row.h_ = pico8_value_ref(NULL);
     b->row.h_row = &b->h;
 
-    entry = px_val.kind == PICO8_VALUE_STRING ? pico8_nb_lookup(px_val.as.string) : NULL;
-    assert(entry != NULL && "cb() yields records of the nb view, each an entry of pico8_nb_table by its px");
     b->row.has_jb = 1;
     b->row.jb = pico8_value_ref(NULL);
-    b->row.jb_row = entry->oy;
+    b->row.jb_row = t->oy;
 
     b->row.has_my = 1;
-    if (pico8_ob_table_get_name(t, "e_", &e_val) && cr_truthy(e_val)) {
-        b->row._cr_t = entry;
+    if (pico8_nb_e_(t)) {
+        b->row._cr_t = t;
         b->row.my = pico8_cr_row_my_dispatch;
     }
 }

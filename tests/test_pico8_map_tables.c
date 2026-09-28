@@ -332,19 +332,38 @@ static pico8_ob_table_t *nb_reference(const pico8_mem_t *mem) {
     return nb;
 }
 
-static void test_nb_view_matches_the_decoded_table_after_its_pass(const pico8_mem_t *mem) {
+/* Each entry of `pico8_nb_table` against its record of the decoded table
+ * after the pass: `px`, `lv`, `nk` (the key), `od`, `oy` at 1..5, then `px`,
+ * `lv`, `nk` (routed through r), `od`, `oy` by name; the record also under
+ * its px. */
+static void test_nb_table_matches_the_decoded_table_after_its_pass(const pico8_mem_t *mem) {
     pico8_ob_table_t *ref = nb_reference(mem);
-    const pico8_ob_table_t *nb = pico8_nb();
     int i;
 
     assert(ref->count == 2 * PICO8_NB_COUNT);
-    assert(nb->count == ref->count);
-    assert(tables_equal(nb, ref, ref->count, "nb"));
     for (i = 0; i < PICO8_NB_COUNT; i++) {
-        const pico8_ob_table_t *record = nb->entries[i].value.as.ref;
+        const pico8_nb_entry_t *e = &pico8_nb_table[i];
+        const pico8_ob_table_t *record = ref->entries[i].value.as.ref;
+        const pico8_ob_key_t *key = &ref->entries[PICO8_NB_COUNT + i].key;
+        char path[16];
+        pico8_value_t v;
 
-        assert(nb->entries[PICO8_NB_COUNT + i].value.as.ref == record);
+        snprintf(path, sizeof path, "nb[%d]", i + 1);
+        assert(ref->entries[i].key.kind == PICO8_OB_KEY_INDEX && ref->entries[i].key.index == i + 1);
+        assert(key->kind == PICO8_OB_KEY_NAME && strcmp(key->name, e->px) == 0);
+        assert(ref->entries[PICO8_NB_COUNT + i].value.as.ref == record);
         assert(record->count == 10);
+        assert(pico8_ob_table_get_index(record, 1, &v) && values_equal(pico8_value_string(e->px), v, path));
+        assert(pico8_ob_table_get_index(record, 2, &v) &&
+               values_equal(pico8_value_fixed(pico8_fixed_from_int(e->lv)), v, path));
+        assert(pico8_ob_table_get_index(record, 3, &v) && values_equal(pico8_value_string(e->nk_key), v, path));
+        assert(pico8_ob_table_get_index(record, 4, &v) &&
+               values_equal(pico8_value_fixed(pico8_fixed_from_int(e->od)), v, path));
+        assert(row_equal(e->oy, parsed_row(record, 5), 0, path));
+        assert(pico8_ob_table_get_name(record, "px", &v) && values_equal(pico8_value_string(e->px), v, path));
+        assert(named_fixed_equal(record, "lv", pico8_fixed_from_int(e->lv), path));
+        assert(named_fixed_equal(record, "nk", pico8_fixed_from_int(e->nk), path));
+        assert(named_fixed_equal(record, "od", pico8_fixed_from_int(e->od), path));
         assert(strcmp(record->entries[9].key.name, "oy") == 0);
         assert(record->entries[9].value.as.ref == record->entries[4].value.as.ref);
     }
@@ -1754,7 +1773,7 @@ int main(void) {
 
     pico8_data_init();
     test_dr_view_matches_the_decoded_table(&mem);
-    test_nb_view_matches_the_decoded_table_after_its_pass(&mem);
+    test_nb_table_matches_the_decoded_table_after_its_pass(&mem);
     test_fd_table_matches_the_decoded_table(&mem);
     pico8_data_shutdown();
 
