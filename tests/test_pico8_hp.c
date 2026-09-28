@@ -1,8 +1,7 @@
 /* The research project `hp`, the 34 entries of `gb` built at cart load, read
  * only through pico8_entity_get_field, pico8_mv and `po`/`od`/`jb`/`lq`, then
- * installed on fresh planets by `jo:lz`/`jo:hu` and seen through two short
- * replays. The frozen values were taken on the code where `hp` was still a
- * class instance and must not be re-taken. */
+ * installed on fresh planets by `jo:lz`/`jo:hu` and in games built directly:
+ * no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
@@ -33,9 +31,11 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_display.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_type_tag.h"
@@ -44,8 +44,11 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define BUILT "tests/fixtures/built_planet_panel_events.json"
-#define GEOHARVEST "tests/fixtures/geoharvest_burst_events.json"
+/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
+ * project with an `o` and no `i`, which exports to any planet a slipway
+ * joins it to. */
+#define COLONY 12
+#define EXPORTER 3
 
 #define GB_COUNT 34
 #define GB_NAMED 26
@@ -54,8 +57,8 @@
 #define FUNCTIONS_HASH 0x538CF904u
 #define FUNCTIONS_INVENTED_HASH 0xA64C8C0Fu
 #define INSTALL_HASH 0x3158A685u
-#define BUILT_REPLAY_HASH 0x7004D233u
-#define GEOHARVEST_REPLAY_HASH 0xB3DFE52Du
+#define BUILT_WORLD_HASH 0xDF3A48A1u
+#define HARVESTED_WORLD_HASH 0xE7F2768Cu
 #define RAW_PRESENCE_HASH 0x6AC3DFD6u
 #define IL_STRING_COUNT 6
 #define IL_FALSE_COUNT 4
@@ -64,7 +67,6 @@
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static const char *const own[] = {"px", "lr", "fj", "ja", "o", "il", "dm", "rr", "ii", "cw", "go", "rn"};
 static const char *const absent[] = {"me", "nu", "fa", "id", "hp"};
@@ -250,26 +252,72 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-/* A game started as the net starts it: `eu()` on `bo[2]` before frame 0. */
-static void start_game(const char *events) {
-    pico8_value_t difficulty;
-
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_eu(NULL);
 }
 
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
+}
+
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+static pico8_fixed_t must_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+/* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
+ * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
+ * hovered planet off `ok.o_`), then left to settle. */
+static void built_world(void) {
+    const pico8_list_t *jos;
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *qu;
+    void *re = NULL;
+    void *jc;
+    int i;
+
+    start_game();
+    jos = pico8_cg("jo");
+    assert(jos != NULL && jos->count > 1);
+    qu = jos->items[0].as.ref;
+    for (i = 1; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
+            re = e;
+        }
+    }
+    pico8_jo_hu(qu, project(COLONY));
+    pico8_jo_hu(re, project(EXPORTER));
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
+    }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    for (i = 0; i < 120; i++) {
+        pico8_dg();
     }
 }
 
@@ -405,7 +453,7 @@ static void test_functions(void) {
     pico8_value_t il;
     int k;
 
-    start_game(BUILT);
+    start_game();
     assert(!pico8_oj(pico8_value_string("nanomaterials")));
     check("functions", fold_functions(2166136261u), FUNCTIONS_HASH);
 
@@ -482,7 +530,7 @@ static void test_install(void) {
     void *go_project;
     int nth;
 
-    start_game(BUILT);
+    start_game();
     ordinary = project_with(NULL, 0);
 
     a = new_planet("p901", 10, 12);
@@ -520,17 +568,15 @@ static void test_install(void) {
     check("install", h, INSTALL_HASH);
 }
 
-/* At the last frame, each planet of `cg.jo`: the rank in `gb` of its `hn`;
- * then the screen. */
-static uint32_t replay(const char *events) {
+/* Each planet of `cg.jo`: the rank in `gb` of its `hn`; then the screen,
+ * once a frame is played and drawn. */
+static uint32_t fold_world(void) {
     uint32_t h = 2166136261u;
     const pico8_list_t *jo;
     int i;
 
-    start_game(events);
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame(i);
-    }
+    pico8__update60();
+    pico8__draw();
     jo = pico8_cg("jo");
     for (i = 0; jo != NULL && i < jo->count; i++) {
         h = fnv(h, (uint32_t)gb_rank(get_ref(jo->items[i].as.ref, "hn")));
@@ -538,12 +584,27 @@ static uint32_t replay(const char *events) {
     return fnv(h, screen_hash());
 }
 
-static void test_built_replay(void) {
-    check("built replay", replay(BUILT), BUILT_REPLAY_HASH);
+static void test_built_world(void) {
+    built_world();
+    check("built world", fold_world(), BUILT_WORLD_HASH);
 }
 
-static void test_geoharvest_replay(void) {
-    check("geoharvest replay", replay(GEOHARVEST), GEOHARVEST_REPLAY_HASH);
+/* A discovered planet harvested (`cw` "ga"): `jo:hu` swaps it for a `ga`. */
+static void test_harvested_world(void) {
+    const pico8_struct_header_t *last;
+    void *p;
+    int i;
+
+    start_game();
+    p = pico8_cg("jo")->items[0].as.ref;
+    pico8_jo_hh(p);
+    pico8_jo_hu(p, project_with("cw", 1));
+    last = pico8_hv()->items[pico8_hv()->count - 1].as.ref;
+    assert(pico8_type_tag_of(last) == PICO8_TYPE_TAG_STRUCT && last->cls == pico8_ga_struct_class());
+    for (i = 0; i < 60; i++) {
+        pico8_dg();
+    }
+    check("harvested world", fold_world(), HARVESTED_WORLD_HASH);
 }
 
 /* `gb` rebuilt from `fd` frees the projects it held and gives the same
@@ -654,7 +715,7 @@ static void test_hp_is_a_struct(void) {
         assert(!has(bare, own[n]));
     }
 
-    start_game(BUILT);
+    start_game();
     must_abort(write_px, b);
     must_abort(build_with_named_key, NULL);
     must_abort(build_with_positional_9, NULL);
@@ -805,20 +866,21 @@ static void test_hp_members_by_name(void) {
         void *ordinary;
         int rank;
         void *a;
-        int i;
         int seen = 0;
 
-        start_game(BUILT);
+        start_game();
         ordinary = project_with(NULL, 0);
         rank = gb_rank(ordinary);
         a = new_planet("p911", 10, 12);
         pico8_jo_lz(a, ordinary);
         assert(get_ref(a, "hn") == ordinary && gb_rank(ordinary) == rank);
 
-        for (i = 0; i < input.frame_count && !seen; i++) {
+        a = pico8_cg("jo")->items[0].as.ref;
+        pico8_jo_hh(a);
+        (void)pico8_jo_ldown(a);
+        {
             const pico8_list_t *hv;
             int j;
-            play_frame(i);
             hv = pico8_hv();
             for (j = 0; j < hv->count && !seen; j++) {
                 void *target;
@@ -869,8 +931,8 @@ int main(void) {
     in_fresh_child(test_gb);
     in_fresh_child(test_functions);
     in_fresh_child(test_install);
-    in_fresh_child(test_built_replay);
-    in_fresh_child(test_geoharvest_replay);
+    in_fresh_child(test_built_world);
+    in_fresh_child(test_harvested_world);
     in_fresh_child(test_hp_is_a_struct);
     in_fresh_child(test_hp_members_by_name);
     in_fresh_child(test_rebuild_and_shutdown);
