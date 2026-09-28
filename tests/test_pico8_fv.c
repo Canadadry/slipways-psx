@@ -49,6 +49,7 @@
 #define HOVER_HASH 0x90AFEB68u
 #define REPLAY_HASH 0xDBEC801Au
 #define REPLAY_EXIT 114
+#define FV_MEMBERS_HASH 0xE0819DECu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -568,15 +569,14 @@ static void build_with_positional_key(void *e) {
 }
 
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited
- * entries and holds its own `kj`, `hd`; it takes exactly `m_` and `g_`'s 5
- * written names, and no construction key. Its class keeps only its spec. */
+ * entries and holds its own `kj`, `hd`; a write of a name that is neither
+ * `m_` nor one of `g_`'s 5 stops, as does any construction key. Its class
+ * keeps only its spec. */
 static void test_fv_is_a_struct(void) {
-    static const char *const written[] = {"m_"};
     const pico8_struct_class_t *cls = pico8_fv_struct_class();
     const pico8_struct_class_t *g_ = pico8_g__struct_class();
     void *fv;
     pico8_value_t v;
-    size_t i;
     int j;
 
     start_title(RECORDING);
@@ -608,10 +608,210 @@ static void test_fv_is_a_struct(void) {
     must_abort(write_me, fv);
     must_abort(build_with_named_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP() for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_entity_set_field(fv, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(fv, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
+    PICO8_MEMBER_CENSUS_STOP()
+}
+
+static const char *const fv_names[] = {"hi", "ca", "gq", "eo", "ff", "kq", "ql", "fg", "rb", "m_"};
+
+static pico8_value_t zero_union(pico8_value_kind_t kind) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = kind;
+    return v;
+}
+
+/* The raw reader and the name reader agree; absent leaves both witnesses
+ * untouched. */
+static int read_both(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t named = pico8_value_fixed(0x1234);
+    int got_raw = pico8_fv_struct_class()->field(e, name, &raw);
+    int got_named = pico8_entity_get_field(e, name, &named);
+
+    assert(got_raw == got_named);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        assert(named.kind == PICO8_VALUE_FIXED && named.as.fixed == 0x1234);
+        return 0;
+    }
+    assert(pico8_value_equal(raw, named));
+    *out = raw;
+    return 1;
+}
+
+static void assert_same(const void *e, const char *name, pico8_value_t want) {
+    pico8_value_t v;
+
+    assert(read_both(e, name, &v) && pico8_value_equal(v, want));
+}
+
+static void assert_absent(const void *e, const char *name) {
+    pico8_value_t v;
+
+    assert(!read_both(e, name, &v));
+}
+
+/* The 10 names by both readers: presence, kind, value; vectors and the box
+ * by content, never by address. */
+static uint32_t fold_fv_members(uint32_t h, const void *e) {
+    size_t i;
+
+    for (i = 0; i < sizeof fv_names / sizeof fv_names[0]; i++) {
+        const char *name = fv_names[i];
+        pico8_value_t v;
+
+        if (!read_both(e, name, &v)) {
+            h = fnv(h, 0u);
+            continue;
+        }
+        h = fnv(fnv(h, 1u), (uint32_t)v.kind);
+        if (strcmp(name, "hi") == 0 || strcmp(name, "gq") == 0) {
+            h = fold_vec(h, e, name);
+        } else if (strcmp(name, "kq") == 0) {
+            h = fold_box(h, e, name);
+        } else {
+            h = fold_value(h, v);
+        }
+    }
+    return h;
+}
+
+/* A fresh help: its 4 tables at the spec's pointers, its 5 fixed at the
+ * spec's values, `m_` absent. */
+static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
+    static const char *const refs[] = {"hi", "gq", "kq", "rb"};
+    size_t i;
+
+    for (i = 0; i < sizeof refs / sizeof refs[0]; i++) {
+        assert_same(e, refs[i], pico8_value_ref(class_ref(pico8_fv_default, refs[i])));
+    }
+    assert(pico8_type_tag_of(class_ref(pico8_fv_default, "rb")) == PICO8_TYPE_TAG_OB_TABLE);
+    assert_same(e, "ca", pico8_value_fixed(pico8_fixed_from_int(11)));
+    assert_same(e, "eo", pico8_value_fixed(pico8_fixed_from_int(-1)));
+    assert_same(e, "ff", pico8_value_fixed(pico8_fixed_from_int(1)));
+    assert_same(e, "ql", pico8_value_fixed(pico8_fixed_from_int(11)));
+    assert_same(e, "fg", pico8_value_fixed(pico8_fixed_from_int(5)));
+    assert_absent(e, "m_");
+    return fold_fv_members(h, e);
+}
+
+static void write_m_(void *e, pico8_value_t v) {
+    assert(pico8_fv_struct_class()->set_field(e, "m_", v) == 1);
+    pico8_entity_set_field(e, "m_", v);
+}
+
+/* `m_` takes true, false (a zeroed union too) and nil; nil puts out any
+ * state. The 9 defaults and any other name are no writer's: the raw writer
+ * returns 0 and touches nothing. */
+static uint32_t fold_written_by_name(uint32_t h, void *e) {
+    static const char *const unwritten[] = {"hi", "ca", "gq", "eo", "ff", "kq", "ql", "fg",
+                                            "rb", "",   "M_", "m_ ", "m",  "has_m_"};
+    size_t i;
+
+    write_m_(e, pico8_value_bool(1));
+    assert_same(e, "m_", pico8_value_bool(1));
+    h = fold_fv_members(h, e);
+    write_m_(e, pico8_value_bool(0));
+    assert_same(e, "m_", pico8_value_bool(0));
+    h = fold_fv_members(h, e);
+    write_m_(e, pico8_value_bool(1));
+    write_m_(e, zero_union(PICO8_VALUE_BOOL));
+    assert_same(e, "m_", pico8_value_bool(0));
+    h = fold_fv_members(h, e);
+    write_m_(e, pico8_value_bool(1));
+    write_m_(e, pico8_value_ref(NULL));
+    assert_absent(e, "m_");
+    h = fold_fv_members(h, e);
+    write_m_(e, pico8_value_bool(0));
+    write_m_(e, pico8_value_ref(NULL));
+    assert_absent(e, "m_");
+    write_m_(e, pico8_value_ref(NULL));
+    assert_absent(e, "m_");
+    h = fold_fv_members(h, e);
+
+    write_m_(e, pico8_value_bool(1));
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        uint32_t before = fold_fv_members(2166136261u, e);
+        int got = pico8_fv_struct_class()->set_field(e, unwritten[i], pico8_value_fixed(pico8_fixed_from_int(9)));
+        assert(got == 0);
+        assert(fold_fv_members(2166136261u, e) == before);
+        h = fnv(h, (uint32_t)got);
+    }
+    assert_same(e, "m_", pico8_value_bool(1));
+    return fold_fv_members(h, e);
+}
+
+/* The title's help and a `pico8_fv_new(NULL)`, by name only: fresh; `gw`
+ * hovering and leaving the title's; every write of `m_`; the names no
+ * writer takes; strangers to the reader. */
+static void test_fv_members_by_name(void) {
+    static const char *const strangers[] = {"", "h", "hi ", "HI", "m__", "has_m_", "rb_", "kq2"};
+    uint32_t h = 2166136261u;
+    void *fv[2];
+    pico8_value_t v;
+    size_t i;
+    int k;
+
+    start_title(RECORDING);
+    fv[0] = the_help();
+    h = fold_fresh_fv(h, fv[0]);
+
+    mouse_at(64, 112);
+    pico8_ui_lj(&mem, pico8_ok());
+    assert(get_ref(pico8_ok(), "o_") == fv[0]);
+    assert_same(fv[0], "m_", pico8_value_bool(1));
+    h = fold_fv_members(h, fv[0]);
+    mouse_at(64, 10);
+    pico8_ui_lj(&mem, pico8_ok());
+    assert_same(fv[0], "m_", pico8_value_bool(0));
+    h = fold_fv_members(h, fv[0]);
+
+    fv[1] = pico8_fv_new(NULL);
+    assert(fv[1] != fv[0]);
+    h = fold_fresh_fv(h, fv[1]);
+
+    for (k = 0; k < 2; k++) {
+        h = fold_written_by_name(h, fv[k]);
+        for (i = 0; i < sizeof strangers / sizeof strangers[0]; i++) {
+            assert(!read_both(fv[k], strangers[i], &v));
+            h = fnv(h, 0u);
+        }
+    }
+    check("fv members", h, FV_MEMBERS_HASH);
+}
+
+static pico8_value_t g_off_row;
+
+static void write_off_row(void *e) {
+    pico8_entity_set_field(e, "m_", g_off_row);
+}
+
+/* `m_` takes nil or a boolean only, a zeroed union included. */
+static void test_fv_writer_stops_off_row(void) {
+    pico8_value_t off[10];
+    void *fv[2];
+    size_t i;
+    int k;
+
+    start_title(RECORDING);
+    fv[0] = the_help();
+    fv[1] = pico8_fv_new(NULL);
+    off[0] = pico8_value_fixed(pico8_fixed_from_int(1));
+    off[1] = zero_union(PICO8_VALUE_FIXED);
+    off[2] = pico8_value_string("x");
+    off[3] = zero_union(PICO8_VALUE_STRING);
+    off[4] = zero_union(PICO8_VALUE_FUNCTION);
+    off[5] = pico8_value_ref(pico8_ob_table_new());
+    off[6] = vec_ref(1, 1);
+    off[7] = pico8_value_ref((void *)pico8_hv());
+    off[8] = pico8_value_ref(pico8_g__new(NULL));
+    for (k = 0; k < 2; k++) {
+        off[9] = pico8_value_ref(fv[1 - k]);
+        for (i = 0; i < sizeof off / sizeof off[0]; i++) {
+            g_off_row = off[i];
+            must_abort(write_off_row, fv[k]);
+        }
     }
 }
 
@@ -709,6 +909,8 @@ int main(void) {
     in_fresh_child(test_hover);
     in_fresh_child(test_replay);
     in_fresh_child(test_fv_is_a_struct);
+    in_fresh_child(test_fv_members_by_name);
+    in_fresh_child(test_fv_writer_stops_off_row);
     in_fresh_child(test_g__closed);
 
     printf("test_pico8_fv: all tests passed\n");

@@ -1,7 +1,6 @@
 #include "pico8_help.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -88,10 +87,8 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
 
-    if (self != NULL && self->rb.kind == PICO8_VALUE_REF && self->rb.as.ref != NULL) {
-        assert(pico8_type_tag_of(self->rb.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-               "fv's rb field must hold a plain spec table");
-        rb_table = (const pico8_ob_table_t *)self->rb.as.ref;
+    if (self != NULL && self->rb != NULL) {
+        rb_table = self->rb;
     }
 
     if (gfx != NULL && mem != NULL) {
@@ -112,18 +109,6 @@ pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pic
     return pico8_value_ref(NULL);
 }
 
-/* fv's 9 own spec defaults, read once through pico8_fv_default() at init;
- * the 13 that override g_'s members are unpacked into the statics below. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_fv_defaults[] = {
-    {"hi", offsetof(pico8_fv_t, hi), {0}}, {"ca", offsetof(pico8_fv_t, ca), {0}}, {"gq", offsetof(pico8_fv_t, gq), {0}},
-    {"eo", offsetof(pico8_fv_t, eo), {0}}, {"ff", offsetof(pico8_fv_t, ff), {0}}, {"kq", offsetof(pico8_fv_t, kq), {0}},
-    {"ql", offsetof(pico8_fv_t, ql), {0}}, {"fg", offsetof(pico8_fv_t, fg), {0}}, {"rb", offsetof(pico8_fv_t, rb), {0}},
-};
-
 static pico8_fixed_t g_fv_fa = 0;
 static pico8_vec_t *g_fv_ra = NULL;
 static pico8_fixed_t g_fv_fc = 0;
@@ -137,12 +122,17 @@ static pico8_fixed_t g_fv_du = 0;
 static pico8_fixed_t g_fv_py = 0;
 static pico8_fixed_t g_fv_pk = 0;
 static pico8_fixed_t g_fv_ki = 0;
+static pico8_vec_t *g_fv_hi = NULL;
+static pico8_fixed_t g_fv_ca = 0;
+static pico8_vec_t *g_fv_gq = NULL;
+static pico8_fixed_t g_fv_eo = 0;
+static pico8_fixed_t g_fv_ff = 0;
+static pico8_qz_box_t *g_fv_kq = NULL;
+static pico8_fixed_t g_fv_ql = 0;
+static pico8_fixed_t g_fv_fg = 0;
+static pico8_ob_table_t *g_fv_rb = NULL;
 
 static void pico8_fv_defaults_reset(void) {
-    size_t i;
-    for (i = 0; i < sizeof g_fv_defaults / sizeof g_fv_defaults[0]; i++) {
-        g_fv_defaults[i].value = pico8_value_ref(NULL);
-    }
     g_fv_fa = 0;
     g_fv_ra = NULL;
     g_fv_fc = 0;
@@ -156,38 +146,96 @@ static void pico8_fv_defaults_reset(void) {
     g_fv_py = 0;
     g_fv_pk = 0;
     g_fv_ki = 0;
+    g_fv_hi = NULL;
+    g_fv_ca = 0;
+    g_fv_gq = NULL;
+    g_fv_eo = 0;
+    g_fv_ff = 0;
+    g_fv_kq = NULL;
+    g_fv_ql = 0;
+    g_fv_fg = 0;
+    g_fv_rb = NULL;
 }
 
-static const struct {
-    const char *name;
-    size_t offset;
-} g_fv_members[] = {
-    {"hi", offsetof(pico8_fv_t, hi)}, {"ca", offsetof(pico8_fv_t, ca)}, {"gq", offsetof(pico8_fv_t, gq)},
-    {"eo", offsetof(pico8_fv_t, eo)}, {"ff", offsetof(pico8_fv_t, ff)}, {"kq", offsetof(pico8_fv_t, kq)},
-    {"ql", offsetof(pico8_fv_t, ql)}, {"fg", offsetof(pico8_fv_t, fg)}, {"rb", offsetof(pico8_fv_t, rb)},
-    {"m_", offsetof(pico8_fv_t, m_)},
-};
-
 static int pico8_fv_field(const void *self, const char *name, pico8_value_t *out_value) {
-    size_t i;
+    const pico8_fv_t *fv = self;
 
-    for (i = 0; i < sizeof g_fv_members / sizeof g_fv_members[0]; i++) {
-        if (strcmp(name, g_fv_members[i].name) == 0) {
-            const pico8_value_t *member = (const pico8_value_t *)((const char *)self + g_fv_members[i].offset);
-            if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-                return 0;
-            }
-            *out_value = *member;
-            return 1;
+    if (strcmp(name, "hi") == 0) {
+        if (fv->hi == NULL) {
+            return 0;
         }
+        *out_value = pico8_value_ref(fv->hi);
+        return 1;
+    }
+    if (strcmp(name, "ca") == 0) {
+        *out_value = pico8_value_fixed(fv->ca);
+        return 1;
+    }
+    if (strcmp(name, "gq") == 0) {
+        if (fv->gq == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(fv->gq);
+        return 1;
+    }
+    if (strcmp(name, "eo") == 0) {
+        *out_value = pico8_value_fixed(fv->eo);
+        return 1;
+    }
+    if (strcmp(name, "ff") == 0) {
+        *out_value = pico8_value_fixed(fv->ff);
+        return 1;
+    }
+    if (strcmp(name, "kq") == 0) {
+        if (fv->kq == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(fv->kq);
+        return 1;
+    }
+    if (strcmp(name, "ql") == 0) {
+        *out_value = pico8_value_fixed(fv->ql);
+        return 1;
+    }
+    if (strcmp(name, "fg") == 0) {
+        *out_value = pico8_value_fixed(fv->fg);
+        return 1;
+    }
+    if (strcmp(name, "rb") == 0) {
+        if (fv->rb == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(fv->rb);
+        return 1;
+    }
+    if (strcmp(name, "m_") == 0) {
+        if (!fv->has_m_) {
+            return 0;
+        }
+        *out_value = pico8_value_bool(fv->m_);
+        return 1;
     }
     return pico8_g__struct_class()->field(self, name, out_value);
+}
+
+static void help_take_bool(pico8_value_t value, int *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL &&
+           "fv.m_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of plan-3 "
+           "section 5: stop, do not widen the member");
+    *out = value.as.boolean;
+    *has = 1;
 }
 
 /* `m_` (`gw`, hovering the help), then g_'s 5; 0 for any other. */
 static int pico8_fv_set_field(void *self, const char *name, pico8_value_t value) {
     if (strcmp(name, "m_") == 0) {
-        ((pico8_fv_t *)self)->m_ = value;
+        pico8_fv_t *fv = self;
+        help_take_bool(value, &fv->m_, &fv->has_m_);
         return 1;
     }
     return pico8_g__struct_class()->set_field(self, name, value);
@@ -208,15 +256,12 @@ static const pico8_struct_class_t g_fv_struct_class = {
 
 static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     pico8_fv_t *self;
-    size_t i;
 
     assert(g_fv_spec != NULL && "pico8_help_init() must run first");
     self = malloc(sizeof *self);
     pico8_g__struct_init(&self->g_, &g_fv_struct_class);
-    self->m_ = pico8_value_ref(NULL);
-    for (i = 0; i < sizeof g_fv_defaults / sizeof g_fv_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_fv_defaults[i].offset) = g_fv_defaults[i].value;
-    }
+    self->m_ = 0;
+    self->has_m_ = 0;
     self->g_.fa = g_fv_fa;
     self->g_.ra = g_fv_ra;
     self->g_.fc = g_fv_fc;
@@ -230,6 +275,15 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     self->g_.py = g_fv_py;
     self->g_.pk = g_fv_pk;
     self->g_.ki = g_fv_ki;
+    self->hi = g_fv_hi;
+    self->ca = g_fv_ca;
+    self->gq = g_fv_gq;
+    self->eo = g_fv_eo;
+    self->ff = g_fv_ff;
+    self->kq = g_fv_kq;
+    self->ql = g_fv_ql;
+    self->fg = g_fv_fg;
+    self->rb = g_fv_rb;
     assert((overrides == NULL || overrides->count == 0) &&
            "fv: the only measured road is pico8_fv_new(NULL) (cart.c); a construction key would be a field under "
            "no rule of plan-3 section 5 -- stop, do not add a member");
@@ -245,7 +299,8 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
 
 static pico8_fixed_t help_default_fixed(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "fv.fa/fc/qo/ro/qg/q_/pn/du/py/pk/ki: a default of the struct is a key of fv's spec and a fixed (fixe)");
+           "fv.fa/fc/qo/ro/qg/q_/pn/du/py/pk/ki/ca/eo/ff/ql/fg: a default of the struct is a key of fv's spec "
+           "and a fixed (fixe)");
     (void)found;
     return v.as.fixed;
 }
@@ -253,7 +308,7 @@ static pico8_fixed_t help_default_fixed(int found, pico8_value_t v) {
 static pico8_vec_t *help_default_vec(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "fv.ra: a default of the struct is a key of fv's spec and a vector v() (ref:autre)");
+           "fv.ra/hi/gq: a default of the struct is a key of fv's spec and a vector v() (ref:autre)");
     (void)found;
     return v.as.ref;
 }
@@ -261,7 +316,15 @@ static pico8_vec_t *help_default_vec(int found, pico8_value_t v) {
 static pico8_ob_table_t *help_default_table(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "fv.k_: a default of the struct is a key of fv's spec and a table (ref:table)");
+           "fv.k_/rb: a default of the struct is a key of fv's spec and a table (ref:table)");
+    (void)found;
+    return v.as.ref;
+}
+
+static pico8_qz_box_t *help_default_box(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "fv.kq: a default of the struct is a key of fv's spec and a box b() (ref:autre)");
     (void)found;
     return v.as.ref;
 }
@@ -270,7 +333,6 @@ static pico8_ob_table_t *help_default_table(int found, pico8_value_t v) {
  * extends `g_`, not `ke`: both preconditions are asserted, not repaired. */
 void pico8_help_init(void) {
     pico8_value_t v;
-    size_t i;
     int found;
 
     assert(pico8_ob_lookup_constructor('v') != NULL && "pico8_help_init() runs after pico8_pi_init()");
@@ -290,11 +352,24 @@ void pico8_help_init(void) {
                          "\nrb=o(\no(192,0,11,16,4,fn=\"s\"),\no(172,20,107,2,2,fn=\"s\"),"
                          "\no(\"need help?\",40,110,13,fn=\"qr\"),\no(\"slipways.net/help\",40,116,5,fn=\"qr\"),\n),\n",
                          NULL);
-    for (i = 0; i < sizeof g_fv_defaults / sizeof g_fv_defaults[0]; i++) {
-        found = pico8_fv_default(g_fv_defaults[i].name, &g_fv_defaults[i].value);
-        assert(found && "fv: every default of the struct is a key of fv's spec");
-        (void)found;
-    }
+    found = pico8_fv_default("hi", &v);
+    g_fv_hi = help_default_vec(found, v);
+    found = pico8_fv_default("ca", &v);
+    g_fv_ca = help_default_fixed(found, v);
+    found = pico8_fv_default("gq", &v);
+    g_fv_gq = help_default_vec(found, v);
+    found = pico8_fv_default("eo", &v);
+    g_fv_eo = help_default_fixed(found, v);
+    found = pico8_fv_default("ff", &v);
+    g_fv_ff = help_default_fixed(found, v);
+    found = pico8_fv_default("kq", &v);
+    g_fv_kq = help_default_box(found, v);
+    found = pico8_fv_default("ql", &v);
+    g_fv_ql = help_default_fixed(found, v);
+    found = pico8_fv_default("fg", &v);
+    g_fv_fg = help_default_fixed(found, v);
+    found = pico8_fv_default("rb", &v);
+    g_fv_rb = help_default_table(found, v);
     found = pico8_fv_default("fa", &v);
     g_fv_fa = help_default_fixed(found, v);
     found = pico8_fv_default("ra", &v);

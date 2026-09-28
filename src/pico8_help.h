@@ -2,6 +2,7 @@
 #define PICO8_HELP_H
 
 #include "pico8_fixed.h"
+#include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
@@ -18,16 +19,17 @@
  * borrowed and never modified; `nu` is `g_`'s. */
 typedef struct {
     pico8_g__t g_;
-    pico8_value_t hi;
-    pico8_value_t ca;
-    pico8_value_t gq;
-    pico8_value_t eo;
-    pico8_value_t ff;
-    pico8_value_t kq;
-    pico8_value_t ql;
-    pico8_value_t fg;
-    pico8_value_t rb;
-    pico8_value_t m_;
+    pico8_vec_t *hi;
+    pico8_fixed_t ca;
+    pico8_vec_t *gq;
+    pico8_fixed_t eo;
+    pico8_fixed_t ff;
+    pico8_qz_box_t *kq;
+    pico8_fixed_t ql;
+    pico8_fixed_t fg;
+    pico8_ob_table_t *rb;
+    int m_;
+    int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_fv_t;
 
 /* Parses `fv`'s spec and builds `bo`; `pico8_help_shutdown()` frees both and is
