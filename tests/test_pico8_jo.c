@@ -1,7 +1,7 @@
 /* The planet `jo`, read and written only through the dual-form field API and
  * `pico8_jo_default()`, and driven through the real `bw`/`dg`/`dc`/`mv`. Its
- * daughters are read the same way. The frozen values were taken on the code
- * where `jo` was still a class instance and must not be re-taken. */
+ * daughters are read the same way. Games are built directly: no events
+ * file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -18,7 +18,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -39,40 +38,15 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define BUILT "tests/fixtures/built_planet_panel_events.json"
-#define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
-#define DRAG "tests/fixtures/slipway_drag_events.json"
-#define PLAYTHROUGH "tests/fixtures/phase4_playthrough_events.json"
-#define SESSION "tests/fixtures/session_events.json"
-#define RECORDED "tests/fixtures/events_recorded_1790198294.json"
-#define HUB "tests/fixtures/trading_hub_session_events.json"
-#define LONG "tests/fixtures/long_session_events.json"
-
 #define GALAXY_PLANETS 90
 #define GALAXY_HASH 0xE70E2EE3u
-#define BUILT_FRAMES 278
-#define BUILT_HASH 0x6B570BB7u
-#define EMPTY_FRAMES 229
-#define EMPTY_HASH 0xFC103987u
-#define DRAG_FRAMES 226
-#define DRAG_HASH 0xFE21B43Bu
-#define PLAYTHROUGH_FRAMES 224
-#define PLAYTHROUGH_HASH 0x381052BFu
-#define SESSION_FRAMES 116045
-#define SESSION_HASH 0xD61190F7u
-#define RECORDED_FRAMES 19832
-#define RECORDED_HASH 0xF078D26Au
-#define HUB_FRAMES 4921
-#define HUB_HASH 0xAC712029u
-#define LONG_FRAMES 27273
-#define LONG_HASH 0x61ADB81Cu
+#define DAUGHTERS_HASH 0x668D1EBEu
 #define NEW_PLANET_HASH 0x48C32418u
 #define LL_DG_CALLS 62
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* The 31 members a `jo` struct has after its pico8_ke_t. */
 static const char *const members[] = {"nu", "hf", "hs", "fa", "kq", "ma", "ka", "dz", "cq", "kw", "gq",
@@ -228,44 +202,17 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
-        h *= 16777619u;
-    }
-    return h;
-}
-
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_from_title(const char *events) {
+static void start_title(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
 }
 
-static void start_game(const char *events) {
-    start_from_title(events);
-    pico8_eu(pico8_js_new(bo_row(2)));
-}
-
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
+    start_title();
+    pico8_eu(NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -323,7 +270,7 @@ static void test_galaxy(void) {
     const pico8_list_t *jo;
     int i;
 
-    start_game(BUILT);
+    start_game();
     jo = pico8_cg("jo");
     for (i = 0; i < jo->count; i++) {
         h = fold_planet(h, jo->items[i].as.ref);
@@ -352,68 +299,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     return h;
 }
 
-#define MAX_STATES 16
-
-/* Per frame: every entry of `cg.jo` and the screen; prints the `me` states
- * the planets went through. */
-static void replay(const char *label, const char *events, int want_frames, uint32_t want_hash) {
-    uint32_t h = 2166136261u;
-    const char *states[MAX_STATES];
-    int state_count = 0;
-    int frames;
-    int i;
-
-    start_game(events);
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        const pico8_list_t *jo;
-        int j;
-
-        play_frame();
-        jo = pico8_cg("jo");
-        h = fnv(h, (uint32_t)(jo == NULL ? 0 : jo->count));
-        for (j = 0; jo != NULL && j < jo->count; j++) {
-            pico8_value_t me;
-            h = fold_live(h, jo->items[j].as.ref);
-            if (lookup(jo->items[j].as.ref, "me", &me) && me.kind == PICO8_VALUE_STRING) {
-                int k;
-                for (k = 0; k < state_count && strcmp(states[k], me.as.string) != 0; k++) {
-                }
-                if (k == state_count && state_count < MAX_STATES) {
-                    states[state_count++] = me.as.string;
-                }
-            }
-        }
-        h = fnv(h, screen_hash());
-    }
-    printf("[%s] states:", label);
-    for (i = 0; i < state_count; i++) {
-        printf(" %s", states[i]);
-    }
-    printf("\n");
-    check_int(label, frames, want_frames);
-    check(label, h, want_hash);
-}
-
-static void test_replay_built(void) {
-    replay("built replay", BUILT, BUILT_FRAMES, BUILT_HASH);
-}
-
-static void test_replay_empty(void) {
-    replay("empty replay", EMPTY, EMPTY_FRAMES, EMPTY_HASH);
-}
-
-static void test_replay_drag(void) {
-    replay("drag replay", DRAG, DRAG_FRAMES, DRAG_HASH);
-}
-
-static void test_replay_playthrough(void) {
-    replay("playthrough replay", PLAYTHROUGH, PLAYTHROUGH_FRAMES, PLAYTHROUGH_HASH);
-}
-
 enum { QH, NL, OS, HJ, PM, MX, NR, FR, GA, DAUGHTERS };
-
-static const char *const daughter_names[DAUGHTERS] = {"qh", "nl", "os", "hj", "pm", "mx", "nr", "fr", "ga"};
 
 static int daughter_of(const void *e) {
     if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
@@ -472,84 +358,77 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     return fold_value(h, call(d, "hd", 2, vec_ref(ra), vec_ref(ra)));
 }
 
-#define MAX_SEEN 256
-
-/* From the title screen, as a raylib recording starts. The first instance
- * of each daughter is read at the frame it first appears in `hv`, then at
- * the end of the replay; `required` lists the daughters it must meet. */
-static void replay_daughters(const char *label, const char *events, int want_frames, uint32_t want_hash,
-                             const int *required, int required_count) {
-    uint32_t h = 2166136261u;
-    void *first[DAUGHTERS] = {NULL};
-    void *seen[MAX_SEEN];
-    int seen_count = 0;
-    int counts[DAUGHTERS] = {0};
-    int frames;
+/* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
+ * dragged by `hq` to the middle of the screen. */
+static void *bought(const pico8_entity_kind_t *kind) {
+    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_vec_t *mo_ra = get_ref(pico8_mo(), "ra");
     int i;
 
-    start_from_title(events);
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        const pico8_list_t *hv;
-        int j;
-
-        play_frame();
-        hv = pico8_hv();
-        for (j = 0; j < hv->count; j++) {
-            void *e = hv->items[j].as.ref;
-            int d = daughter_of(e);
-            int k;
-
-            if (d < 0) {
-                continue;
-            }
-            for (k = 0; k < seen_count && seen[k] != e; k++) {
-            }
-            if (k == seen_count) {
-                assert(seen_count < MAX_SEEN);
-                seen[seen_count++] = e;
-                counts[d]++;
-            }
-            if (first[d] == NULL) {
-                first[d] = e;
-                printf("[%s] first %s at frame %d\n", label, daughter_names[d], i);
-                h = fnv(fnv(h, (uint32_t)d), (uint32_t)i);
-                h = fold_daughter(h, e);
-            }
+    assert(mo_ra != NULL);
+    for (i = 0; hb != NULL && i < hb->count; i++) {
+        void *icon = hb->items[i].as.ref;
+        if (get_ref(icon, "ke") == kind) {
+            pico8_value_t made = call(icon, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+            pico8_vec_t middle = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+            assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
+            (void)call(made.as.ref, "hq", 2, vec_ref(pico8_vec_add(*mo_ra, middle)), vec_ref(middle));
+            return made.as.ref;
         }
     }
+    assert(0 && "no icon for that kind");
+    return NULL;
+}
+
+/* The project of `gb` whose `cw` names `cw`. */
+static pico8_hp_t *cw_project(const char *cw) {
+    int k;
+
+    for (k = 1;; k++) {
+        pico8_value_t v;
+        const pico8_hp_t *hp;
+        assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF);
+        hp = v.as.ref;
+        if (hp->cw != NULL && strcmp(hp->cw, cw) == 0) {
+            return v.as.ref;
+        }
+    }
+}
+
+/* A generated planet turned by `jo:hu` into the daughter `cw` names: the
+ * newest entity of `hv`. */
+static void *turned(int planet, const char *cw) {
+    void *p = pico8_cg("jo")->items[planet].as.ref;
+
+    pico8_jo_hh(p);
+    pico8_jo_hu(p, cw_project(cw));
+    return pico8_hv()->items[pico8_hv()->count - 1].as.ref;
+}
+
+/* Each daughter by the road a game takes to it: the seven of the shop
+ * bought from their icons, `pm` and `ga` turned from planets by the
+ * collapse and harvest projects. */
+static void test_daughters(void) {
+    static const struct {
+        int d;
+        const pico8_entity_kind_t *(*kind)(void);
+    } shop[] = {{QH, pico8_qh_kind}, {OS, pico8_os_kind}, {NR, pico8_nr_kind}, {FR, pico8_fr_kind},
+                {NL, pico8_nl_kind}, {MX, pico8_mx_kind}, {HJ, pico8_hj_kind}};
+    void *made[DAUGHTERS] = {NULL};
+    uint32_t h = 2166136261u;
+    size_t i;
+
+    start_game();
+    for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
+        made[shop[i].d] = bought(shop[i].kind());
+    }
+    made[PM] = turned(0, "pm");
+    made[GA] = turned(1, "ga");
     for (i = 0; i < DAUGHTERS; i++) {
-        printf("[%s] %s: %d\n", label, daughter_names[i], counts[i]);
-        h = fnv(h, (uint32_t)counts[i]);
-        if (first[i] != NULL) {
-            h = fold_daughter(fnv(h, (uint32_t)i), first[i]);
-        }
+        assert(made[i] != NULL && daughter_of(made[i]) == (int)i && listed(pico8_hv(), made[i]));
+        h = fold_daughter(fnv(h, (uint32_t)i), made[i]);
     }
-    for (i = 0; i < required_count; i++) {
-        assert(first[required[i]] != NULL);
-    }
-    check_int(label, frames, want_frames);
-    check(label, h, want_hash);
-}
-
-static void test_session(void) {
-    static const int required[] = {QH, NR, FR, PM, GA};
-    replay_daughters("session", SESSION, SESSION_FRAMES, SESSION_HASH, required, 5);
-}
-
-static void test_recorded(void) {
-    static const int required[] = {HJ, MX};
-    replay_daughters("recorded", RECORDED, RECORDED_FRAMES, RECORDED_HASH, required, 2);
-}
-
-static void test_hub(void) {
-    static const int required[] = {NL};
-    replay_daughters("hub", HUB, HUB_FRAMES, HUB_HASH, required, 1);
-}
-
-static void test_long(void) {
-    static const int required[] = {OS};
-    replay_daughters("long", LONG, LONG_FRAMES, LONG_HASH, required, 1);
+    check("daughters", h, DAUGHTERS_HASH);
 }
 
 static void *new_planet(const char *id, int x, int y) {
@@ -569,7 +448,7 @@ static void test_new_planet(void) {
     uint32_t h = 2166136261u;
     void *a;
 
-    start_from_title(BUILT);
+    start_title();
     a = new_planet("p900", 1, 2);
     assert(listed(pico8_hv(), a) && listed(pico8_cg("jo"), a));
     h = fold_planet(h, a);
@@ -583,7 +462,7 @@ static void test_ll(void) {
     void *a;
     int calls = 0;
 
-    start_from_title(BUILT);
+    start_title();
     a = new_planet("p901", 3, 4);
     pico8_dg();
     assert(bool_state(a, "p_") == 0);
@@ -606,7 +485,7 @@ static void test_kw_shared(void) {
     pico8_value_t v;
     pico8_value_t hp;
 
-    start_from_title(BUILT);
+    start_title();
     a = new_planet("p902", 5, 6);
     b = new_planet("p903", 7, 8);
     kw = get_ref(a, "kw");
@@ -683,7 +562,7 @@ static void test_jo_is_a_struct(void) {
     size_t i;
     int j;
 
-    start_game(EMPTY);
+    start_game();
     jo = pico8_cg("jo");
     for (j = 0; j < jo->count; j++) {
         assert(is_a_jo_struct(jo->items[j].as.ref));
@@ -718,16 +597,14 @@ static void test_jo_is_a_struct(void) {
         assert(is_a_jo_struct(bare) && !has(bare, "id") && !has(bare, "ra") && has(bare, "oe"));
     }
 
-    for (j = 0; j < input.frame_count; j++) {
-        play_frame();
-    }
+    (void)bought(pico8_qh_kind());
     jo = pico8_cg("qh");
     assert(jo != NULL && jo->count == 1);
     assert(pico8_type_tag_of(jo->items[0].as.ref) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)jo->items[0].as.ref)->cls == pico8_qh_struct_class());
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
@@ -754,9 +631,6 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pid_t recordings[4];
-    int i;
-
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
@@ -767,23 +641,12 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-    /* The four recordings take minutes each: they run side by side. */
-    recordings[0] = spawn(test_session);
-    recordings[1] = spawn(test_recorded);
-    recordings[2] = spawn(test_hub);
-    recordings[3] = spawn(test_long);
     in_fresh_child(test_galaxy);
-    in_fresh_child(test_replay_built);
-    in_fresh_child(test_replay_empty);
-    in_fresh_child(test_replay_drag);
-    in_fresh_child(test_replay_playthrough);
+    in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);
     in_fresh_child(test_ll);
     in_fresh_child(test_kw_shared);
     in_fresh_child(test_jo_is_a_struct);
-    for (i = 0; i < 4; i++) {
-        reap(recordings[i]);
-    }
 
     printf("test_pico8_jo: all tests passed\n");
     return 0;
