@@ -91,7 +91,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
         return;
     }
 
-    jy_list = list_of(self->jy);
+    jy_list = self->jy;
     if (self->kw != NULL) {
         const pico8_ob_table_t *kw = self->kw;
         pico8_value_t mu_val;
@@ -106,7 +106,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
 
     lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                              pico8_fixed_from_int(0));
-    self->lq = pico8_value_ref(lq_result);
+    self->lq = lq_result;
 }
 
 typedef struct {
@@ -202,7 +202,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_list_add(ji, pico8_value_string("receives:"));
     ctx.ji = ji;
 
-    jy = list_of(self->jy);
+    jy = self->jy;
     jx = pico8_jp(jy, pico8_jo_gh_jp_step, &ctx);
 
     if (jx.count > 0) {
@@ -515,18 +515,14 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     /* `offset` is a stack vector handed over by address: safe only because
      * `mv()` resolves the call before returning. */
     {
-        pico8_value_t lq_val = self->lq;
-        if (lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL) {
+        if (self->lq != NULL) {
             pico8_vec_t offset =
                 pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
             pico8_value_t offset_val = pico8_value_ref(&offset);
             pico8_value_t a_val = pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5));
             pico8_value_t discard;
             int dispatched;
-            assert(pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-                   ((const pico8_struct_header_t *)lq_val.as.ref)->cls == pico8_lq_struct_class() &&
-                   "jo.lq must be the row jo.ex built");
-            dispatched = pico8_mv((pico8_struct_header_t *)lq_val.as.ref, "ol", 2, offset_val, a_val, &discard);
+            dispatched = pico8_mv((pico8_struct_header_t *)self->lq, "ol", 2, offset_val, a_val, &discard);
             assert(dispatched && "lq must expose \"ol\" as an mv()-dispatchable field");
             (void)dispatched;
         }

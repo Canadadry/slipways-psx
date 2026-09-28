@@ -122,6 +122,17 @@ static int pico8_qh_field(const void *self, const char *name, pico8_value_t *out
     return 1;
 }
 
+static void family_take_string(pico8_value_t value, const char **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
+           "jo.id: a write neither nil nor a string is off its census row (chaine) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.string;
+}
+
 static void family_take_vec(pico8_value_t value, pico8_vec_t **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
@@ -205,7 +216,7 @@ static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "qh: the only measured construction key is id (ie:ldown); another would be a field "
                            "under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        self->jo.id = overrides->entries[k].value;
+        family_take_string(overrides->entries[k].value, &self->jo.id);
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("qh");
@@ -343,7 +354,7 @@ static void *pico8_nl_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "nl: the only measured construction key is id (ie:ldown); another would be a field "
                            "under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        self->qh.jo.id = overrides->entries[k].value;
+        family_take_string(overrides->entries[k].value, &self->qh.jo.id);
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nl");
@@ -420,7 +431,7 @@ static void *pico8_os_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "os: the only measured construction key is id (ie:ldown); another would be a field "
                            "under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        self->qh.jo.id = overrides->entries[k].value;
+        family_take_string(overrides->entries[k].value, &self->qh.jo.id);
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("os");
@@ -570,7 +581,7 @@ static void *pico8_hj_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "hj: the only measured construction key is id (ie:ldown); another would be a field "
                            "under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        self->qh.jo.id = overrides->entries[k].value;
+        family_take_string(overrides->entries[k].value, &self->qh.jo.id);
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hj");
@@ -721,7 +732,7 @@ static void *pico8_pm_struct_new(const pico8_ob_table_t *overrides) {
         } else if (is_ra) {
             family_take_vec(overrides->entries[k].value, &self->hj.qh.jo.ra);
         } else {
-            self->hj.qh.jo.id = overrides->entries[k].value;
+            family_take_string(overrides->entries[k].value, &self->hj.qh.jo.id);
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -947,7 +958,8 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
     }
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
-    self->jo.p_ = pico8_value_bool(last_pt == NULL);
+    self->jo.p_ = last_pt == NULL;
+    self->jo.has_p_ = 1;
 }
 
 static pico8_value_t pico8_ga_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -985,9 +997,9 @@ static void *pico8_ga_struct_new(const pico8_ob_table_t *overrides) {
         const char *name;
         size_t offset;
     } keys[] = {
-        {"id", offsetof(pico8_ga_t, jo.id)}, {"qo", offsetof(pico8_ga_t, qo)}, {"ro", offsetof(pico8_ga_t, ro)},
-        {"qg", offsetof(pico8_ga_t, qg)},    {"q_", offsetof(pico8_ga_t, q_)}, {"k_", offsetof(pico8_ga_t, k_)},
-        {"iu", offsetof(pico8_ga_t, iu)},    {"py", offsetof(pico8_ga_t, py)}, {"ms", offsetof(pico8_ga_t, ms)},
+        {"qo", offsetof(pico8_ga_t, qo)}, {"ro", offsetof(pico8_ga_t, ro)}, {"qg", offsetof(pico8_ga_t, qg)},
+        {"q_", offsetof(pico8_ga_t, q_)}, {"k_", offsetof(pico8_ga_t, k_)}, {"iu", offsetof(pico8_ga_t, iu)},
+        {"py", offsetof(pico8_ga_t, py)}, {"ms", offsetof(pico8_ga_t, ms)},
     };
     pico8_ga_t *self = malloc(sizeof *self);
     size_t i;
@@ -1016,6 +1028,10 @@ static void *pico8_ga_struct_new(const pico8_ob_table_t *overrides) {
         }
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
             family_take_vec(overrides->entries[k].value, &self->jo.ra);
+            continue;
+        }
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0) {
+            family_take_string(overrides->entries[k].value, &self->jo.id);
             continue;
         }
         for (i = 0; key.kind == PICO8_OB_KEY_NAME && i < sizeof keys / sizeof keys[0]; i++) {

@@ -65,9 +65,7 @@ pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s
     }
     qu_not_self = !(qu_val.kind == PICO8_VALUE_REF && qu_val.as.ref == (const void *)self);
 
-    if (self->qh.jo.oe.kind == PICO8_VALUE_REF && self->qh.jo.oe.as.ref != NULL) {
-        oe_count = PICO8_REF_AS_LIST_CONST(self->qh.jo.oe.as.ref)->count;
-    }
+    oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
 
     return pico8_value_bool(qu_not_self && oe_count < 3);
 }
@@ -141,9 +139,7 @@ void pico8_nr_hb(pico8_nr_t *self) {
         return;
     }
 
-    if (self->qh.jo.oe.kind == PICO8_VALUE_REF && self->qh.jo.oe.as.ref != NULL) {
-        oe_count = PICO8_REF_AS_LIST_CONST(self->qh.jo.oe.as.ref)->count;
-    }
+    oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
 
     if (self->hz.kind == PICO8_VALUE_REF && self->hz.as.ref != NULL) {
         pico8_value_t entry;
@@ -175,9 +171,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     }
     t = lw->t;
 
-    if (self->qh.jo.oe.kind == PICO8_VALUE_REF && self->qh.jo.oe.as.ref != NULL) {
-        oe = PICO8_REF_AS_LIST_CONST(self->qh.jo.oe.as.ref);
-    }
+    oe = self->qh.jo.oe;
 
     it = pico8_list_all(oe);
     while (pico8_list_iter_next(&it, &w_val)) {
@@ -322,6 +316,17 @@ static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *c
     self->qh.jo.kq = g_nr_kq;
 }
 
+static void family_trade_take_string(pico8_value_t value, const char **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
+           "jo.id: a write neither nil nor a string is off its census row (chaine) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.string;
+}
+
 static void family_trade_take_vec(pico8_value_t value, pico8_vec_t **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
@@ -345,7 +350,7 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
         pico8_value_t value = overrides->entries[k].value;
 
         if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0) {
-            self->qh.jo.id = value;
+            family_trade_take_string(value, &self->qh.jo.id);
         } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "p") == 0) {
             family_trade_take_vec(value, &self->qh.jo.p);
         } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
@@ -437,7 +442,7 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "fr: the only measured construction key is id (ie:ldown); another would be a field "
                            "under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        self->nr.qh.jo.id = overrides->entries[k].value;
+        family_trade_take_string(overrides->entries[k].value, &self->nr.qh.jo.id);
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fr");
@@ -617,7 +622,7 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
         assert(measured && "mx: the only measured construction key is id (ie:ldown); another would be a field "
                            "under no rule of plan-3 section 5 -- stop, do not add a member");
         (void)measured;
-        self->hj.qh.jo.id = overrides->entries[k].value;
+        family_trade_take_string(overrides->entries[k].value, &self->hj.qh.jo.id);
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mx");

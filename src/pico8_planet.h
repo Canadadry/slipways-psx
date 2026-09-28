@@ -5,6 +5,7 @@
 #include "pico8_gen.h"
 #include "pico8_geom.h"
 #include "pico8_ke.h"
+#include "pico8_layout.h"
 #include "pico8_ob.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
@@ -36,19 +37,22 @@ typedef struct {
     pico8_vec_t *gq;
     pico8_fixed_t ca;
     pico8_ob_table_t *em;
-    pico8_value_t id;
+    const char *id;
     pico8_vec_t *p;
     pico8_vec_t *ra;
-    pico8_value_t oe;
+    pico8_list_t *oe;
     pico8_hp_t *hn;
-    pico8_value_t ep;
-    pico8_value_t jy;
+    const char *ep;
+    pico8_list_t *jy;
     pico8_ob_table_t *nk;
-    pico8_value_t fx;
-    pico8_value_t lq;
+    int fx;
+    int has_fx;
+    pico8_lq_t *lq;
     pico8_value_t fo;
-    pico8_value_t jh;
-    pico8_value_t p_;
+    pico8_fixed_t jh;
+    int has_jh;
+    int p_;
+    int has_p_;
     pico8_value_t kr;
     pico8_value_t cc;
     pico8_value_t by;

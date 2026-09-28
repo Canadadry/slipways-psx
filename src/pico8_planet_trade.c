@@ -78,9 +78,7 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
         return;
     }
 
-    if (self->oe.kind == PICO8_VALUE_REF && self->oe.as.ref != NULL) {
-        oe = PICO8_REF_AS_LIST(self->oe.as.ref);
-    }
+    oe = self->oe;
     if (oe != NULL) {
         pico8_list_add(oe, pico8_value_ref(sw));
     }
@@ -90,7 +88,8 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
         pico8_value_t fx_val;
         if (pico8_entity_get_field((const pico8_struct_header_t *)eb_result.as.ref, "fx", &fx_val) &&
             pico8_jo_truthy(fx_val)) {
-            self->fx = pico8_value_bool(1);
+            self->fx = 1;
+            self->has_fx = 1;
         }
     }
 
@@ -121,11 +120,9 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     have_r_e = pico8_ob_table_get_name(r, "e", &r_e);
     have_r_q = pico8_ob_table_get_name(r, "?", &r_q);
 
-    if (self->jy.kind == PICO8_VALUE_REF && self->jy.as.ref != NULL) {
-        jy = PICO8_REF_AS_LIST(self->jy.as.ref);
-    }
+    jy = self->jy;
 
-    if (have_r_e && pico8_value_equal(t_qe, r_e) && !pico8_jo_truthy(self->jh)) {
+    if (have_r_e && pico8_value_equal(t_qe, r_e) && !self->has_jh) {
         it = pico8_list_all(jy);
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
@@ -165,10 +162,11 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
             merged_heap = malloc(sizeof *merged_heap);
             *merged_heap = merged;
-            self->jy = pico8_value_ref(merged_heap);
+            self->jy = merged_heap;
             jy = merged_heap;
         }
-        self->jh = pico8_value_fixed(pico8_fixed_from_int(1));
+        self->jh = pico8_fixed_from_int(1);
+        self->has_jh = 1;
     }
 
     it = pico8_list_all(jy);
@@ -247,9 +245,7 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         }
     }
 
-    if (self->oe.kind == PICO8_VALUE_REF && self->oe.as.ref != NULL) {
-        oe = PICO8_REF_AS_LIST_CONST(self->oe.as.ref);
-    }
+    oe = self->oe;
 
     it = pico8_list_all(oe);
     while (pico8_list_iter_next(&it, &w_val)) {
