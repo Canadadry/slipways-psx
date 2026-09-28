@@ -19,6 +19,9 @@ Look in `docs/prd/done/` (create it if missing) for the highest `phase<N>-etape<
 ### 2. Write its PRD
 Spawn a fresh agent running the `to-prd` skill. See [prd-prompt.md](prd-prompt.md) for the exact prompt template — it must hand over the step verbatim as the agent's context (satisfying `to-prd`'s "don't interview, synthesize what you know"), redirect every `to-prd` "check with the user" checkpoint to a fresh `guideline` agent, name the output `phase<N>-etape<M>-<slug>.md` in `docs/prd/triage/`, and constrain scope to this one step — chunk internally via `to-prd`'s own "Implementation Chunks" if the step is too big for one TDD cycle, never merge steps.
 
+### 2b. Write the next PRD in parallel
+While step N is being implemented or verified, spawn the PRD agent for step N+1 in the background — it only reads and greps, so it never conflicts with the implementer. Its prompt adds: step N is not done yet; every assumption about N's outcome (file shapes, counts, deviations) is an explicit hypothesis labelled `H-<N>-k`; list the sections to re-check once N's plan note exists; read nothing uncommitted. It writes to `docs/prd/next/`, not `docs/prd/triage/`, so step 3's "only this step's PRD in the queue" still holds. When N graduates, compare the `H-<N>-k` hypotheses with N's final plan note and commit: all hold → move the PRD to `docs/prd/triage/`; any fails → send the same agent back to update the PRD first. Never start N+1's implementation before N graduates.
+
 ### 3. Run it
 Invoke `prd-autopilot` as-is — don't reimplement its cycle. Only this step's PRD (and its own internal chunks, if any) sits in `docs/prd/triage/`, so "run until the queue is empty" naturally stops after this one step. Have it move the graduated PRD to `docs/prd/done/`, keeping the `phase<N>-etape<M>-<slug>.md` filename — step 1 of the next cycle depends on that filename surviving.
 
