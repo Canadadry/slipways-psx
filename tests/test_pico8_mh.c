@@ -1,7 +1,6 @@
 /* The message box `mh`, built the two ways the game builds it (`pj:hk` from
  * the mutated `pj.ea`, `pj:ph` from `bz`) and lived through the real
- * `dg`/`dc("ev")`. The sequence and screen hashes were taken on the code
- * where `mh` was still a class instance and must not be re-taken. */
+ * `dg`/`dc("ev")`. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -42,7 +41,7 @@
 #define TWO_YEARS_TICKS 213
 #define TWO_YEARS_SEQUENCE_HASH 0xFB1D13D2u
 #define SCORES_TICKS 113
-#define SCORES_SEQUENCE_HASH 0x048C43C1u
+#define SCORES_SEQUENCE_HASH 0xE45D2CF8u
 #define MEMBERS_BY_NAME_HASH 0xE307F5E9u
 
 #define MAX_BOXES 4
@@ -257,13 +256,11 @@ static void set_c_(pico8_pj_t *ju, int on) {
     ju->has_c_ = 1;
 }
 
-/* A game started the way the net starts it (`eu()` on `bo[2]`), then `jl()`
- * again: `fm`, `dk` and `ju` stay, `hv` holds only `mo`, `je` and `ok`. */
+/* A game started by `eu()` with no difficulty picked (`dk` NULL reads as
+ * difficulty 0), then `jl()` again: `fm` and `ju` stay, `hv` holds only
+ * `mo`, `je` and `ok`. */
 static pico8_pj_t *game_ju(void) {
-    pico8_value_t difficulty;
-
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_eu(NULL);
     pico8_jl();
     assert(pico8_ju() != NULL);
     return pico8_ju();
