@@ -11,7 +11,7 @@
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
-static pico8_ob_table_t *g_hp_spec = NULL;
+static int g_hp_up = 0;
 static pico8_ob_table_t *g_gb = NULL;
 /* Borrowed from `fd`'s backing storage, never copied or freed here. */
 static const char *g_rr = NULL;
@@ -327,9 +327,9 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
     self->rn = 0;
     self->has_rn = 0;
     self->lq = NULL;
-    self->mr = &pico8_hp_mr_names;
-    self->gp = &pico8_hp_gp_names;
-    self->fk = &pico8_hp_fk_row;
+    self->mr = pico8_hp_start.mr;
+    self->gp = pico8_hp_start.gp;
+    self->fk = pico8_hp_start.fk;
 
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
@@ -414,10 +414,7 @@ void pico8_hp_assert(const pico8_hp_t *self) {
 /* A root class: no parent, so it never self-registers into hv/cv/cg. */
 void pico8_research_init(void) {
     pico8_research_shutdown();
-    g_hp_spec = pico8_ob("\nmr=o(\"px\",\"lr\",\"fj\",\"ja\",\"i\",\"o\",\"il\",\"dm\"),\n"
-                         "gp=o(\"o\",\"dm\"),\n"
-                         "fk=o(f,2),\n",
-                         NULL);
+    g_hp_up = 1;
 }
 
 void pico8_research_shutdown(void) {
@@ -425,16 +422,11 @@ void pico8_research_shutdown(void) {
     pico8_ob_table_free(g_gb);
     g_gb = NULL;
     g_rr = NULL;
-    pico8_ob_table_free(g_hp_spec);
-    g_hp_spec = NULL;
+    g_hp_up = 0;
 }
 
 int pico8_hp_ready(void) {
-    return g_hp_spec != NULL;
-}
-
-int pico8_hp_default(const char *name, pico8_value_t *out_value) {
-    return g_hp_spec != NULL && pico8_ob_table_get_name(g_hp_spec, name, out_value);
+    return g_hp_up;
 }
 
 const pico8_struct_class_t *pico8_hp_struct_class(void) {
@@ -442,7 +434,7 @@ const pico8_struct_class_t *pico8_hp_struct_class(void) {
 }
 
 const pico8_jb_row_t *pico8_hp_fk(void) {
-    return &pico8_hp_fk_row;
+    return pico8_hp_start.fk;
 }
 
 pico8_hp_t *pico8_hp_new(const pico8_ob_table_t *overrides) {

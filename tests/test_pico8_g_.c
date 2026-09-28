@@ -1,5 +1,5 @@
-/* The probe `g_`, read and written only through the dual-form field API and
- * `pico8_g__default(...)` for spec defaults, built by
+/* The probe `g_`, read and written only through the dual-form field API,
+ * its defaults compared to `pico8_g__start`/`pico8_fv_start`, built by
  * its three roads (`bg:ldown`, `pico8_g__new(NULL)`, `pico8_g__new` with the
  * 4 keys of probe_mm_rnd_order) and driven through the real `mv`/`dc`/`dg`.
  * Its methods are compared to the public functions. Its daughter `fv` is
@@ -125,12 +125,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v));
-    return v;
 }
 
 static int is_string(const void *e, const char *name, const char *want) {
@@ -399,7 +393,7 @@ static void test_built(void) {
     assert(a != b && b != c && a != c);
     assert(get_ref(a, "qy") != get_ref(b, "qy") && get_ref(b, "qy") != get_ref(c, "qy"));
     assert(get(a, "fa").as.fixed == pico8_fixed_from_int(2) && get(a, "ki").as.fixed == pico8_fixed_from_int(9));
-    assert(get(a, "dw").as.fixed == class_value(pico8_g__default, "dw").as.fixed);
+    assert(get(a, "dw").as.fixed == pico8_g__start.dw);
     assert(get(c, "pn").as.fixed == pico8_fixed_from_int(7) && get(c, "t").as.fixed == pico8_fixed_from_int(3) &&
            get(c, "du").as.fixed == pico8_fixed_from_int(10) && get(c, "py").as.fixed == pico8_fixed_from_int(1));
     assert(get(b, "pn").as.fixed == pico8_fixed_from_int(3) && get(b, "t").as.fixed == pico8_fixed_from_int(0));
@@ -789,7 +783,6 @@ static void test_g__is_a_struct(void) {
         for (i = 0; i < sizeof entries / sizeof entries[0]; i++) {
             if (j == pico8_method_of(entries[i])) {
                 assert(cls->methods[j] == fns[i]);
-                assert(!pico8_g__default(entries[i], &v));
                 named = 1;
             }
         }
@@ -1061,9 +1054,6 @@ static void test_bv_et_writer_stops_off_row(void) {
 
 static const char *const g__names[23] = {"nu", "fx", "dq", "od", "fp", "fa", "dw", "py", "ki", "pn", "pk", "fc",
                                          "k_", "qo", "ro", "qg", "q_", "du", "qy", "ra", "p",  "et", "p_"};
-/* The 13 defaults of fv's spec that are members of g_. */
-static const char *const fv_over[13] = {"fa", "ra", "fc", "k_", "qo", "ro", "qg",
-                                        "q_", "pn", "du", "py", "pk", "ki"};
 
 static pico8_value_t zero_union(pico8_value_kind_t kind) {
     pico8_value_t v;
@@ -1235,21 +1225,30 @@ static void assert_absent(const void *e, const char *name) {
     assert(!read_both(e, name, &v));
 }
 
-/* A fresh probe: g_'s spec at the very pointers but for the keys, an
- * empty `qy` of its own, nothing `bv`/`d_` write. */
+/* A fresh probe: `pico8_g__start` at the very pointers but for the keys,
+ * an empty `qy` of its own, nothing `bv`/`d_` write. */
 static uint32_t fold_fresh_probe(uint32_t h, const void *e, int keyed) {
-    size_t i;
+    const pico8_g__t *g_ = e;
 
     h = fold_g__all(h, e);
-    for (i = 0; i < 18; i++) {
-        int key = strcmp(g__names[i], "pn") == 0 || strcmp(g__names[i], "du") == 0 || strcmp(g__names[i], "py") == 0;
-        int typed = strcmp(g__names[i], "nu") == 0 || strcmp(g__names[i], "k_") == 0;
-        if (!(keyed && key) && !typed) {
-            assert_same(e, g__names[i], class_value(pico8_g__default, g__names[i]));
-        }
-    }
-    assert(get_ref(e, "nu") == &pico8_g__nu_tags);
-    assert(get_ref(e, "k_") == &pico8_g__k__seq);
+    assert(g_->fx == pico8_g__start.fx);
+    assert(g_->dq == pico8_g__start.dq);
+    assert(g_->od == pico8_g__start.od);
+    assert(g_->fp == pico8_g__start.fp);
+    assert(g_->fa == pico8_g__start.fa);
+    assert(g_->dw == pico8_g__start.dw);
+    assert(keyed || g_->py == pico8_g__start.py);
+    assert(g_->ki == pico8_g__start.ki);
+    assert(keyed || g_->pn == pico8_g__start.pn);
+    assert(g_->pk == pico8_g__start.pk);
+    assert(g_->fc == pico8_g__start.fc);
+    assert(g_->qo == pico8_g__start.qo);
+    assert(g_->ro == pico8_g__start.ro);
+    assert(g_->qg == pico8_g__start.qg);
+    assert(g_->q_ == pico8_g__start.q_);
+    assert(keyed || g_->du == pico8_g__start.du);
+    assert(get_ref(e, "nu") == pico8_g__start.nu && pico8_g__start.nu == &pico8_g__nu_tags);
+    assert(get_ref(e, "k_") == pico8_g__start.k_ && pico8_g__start.k_ == &pico8_g__k__seq);
     assert(size_of(e, "qy") == 0);
     assert_absent(e, "ra");
     assert_absent(e, "p");
@@ -1258,25 +1257,32 @@ static uint32_t fold_fresh_probe(uint32_t h, const void *e, int keyed) {
     return h;
 }
 
-/* A fresh fv: its 13 overriding defaults from fv's spec, the other 5 from
- * g_'s, at the very pointers. */
+/* A fresh fv: its 13 overriding defaults from `pico8_fv_start`, `ra` its
+ * very vector, the other 5 from `pico8_g__start`. */
 static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
-    size_t i;
+    const pico8_g__t *g_ = e;
 
     h = fold_g__all(h, e);
-    for (i = 0; i < 18; i++) {
-        size_t k;
-        int over = 0;
-        for (k = 0; k < sizeof fv_over / sizeof fv_over[0]; k++) {
-            over = over || strcmp(fv_over[k], g__names[i]) == 0;
-        }
-        if (strcmp(g__names[i], "nu") != 0 && strcmp(g__names[i], "k_") != 0) {
-            assert_same(e, g__names[i], class_value(over ? pico8_fv_default : pico8_g__default, g__names[i]));
-        }
-    }
-    assert_same(e, "ra", class_value(pico8_fv_default, "ra"));
-    assert(get_ref(e, "nu") == &pico8_g__nu_tags);
-    assert(get_ref(e, "k_") == &pico8_fv_k__seq);
+    assert(g_->fa == pico8_fv_start.fa);
+    assert(g_->ra == &pico8_fv_start.ra);
+    assert_same(e, "ra", pico8_value_ref((void *)&pico8_fv_start.ra));
+    assert(g_->fc == pico8_fv_start.fc);
+    assert(g_->qo == pico8_fv_start.qo);
+    assert(g_->ro == pico8_fv_start.ro);
+    assert(g_->qg == pico8_fv_start.qg);
+    assert(g_->q_ == pico8_fv_start.q_);
+    assert(g_->pn == pico8_fv_start.pn);
+    assert(g_->du == pico8_fv_start.du);
+    assert(g_->py == pico8_fv_start.py);
+    assert(g_->pk == pico8_fv_start.pk);
+    assert(g_->ki == pico8_fv_start.ki);
+    assert(g_->fx == pico8_g__start.fx);
+    assert(g_->dq == pico8_g__start.dq);
+    assert(g_->od == pico8_g__start.od);
+    assert(g_->fp == pico8_g__start.fp);
+    assert(g_->dw == pico8_g__start.dw);
+    assert(get_ref(e, "nu") == pico8_g__start.nu);
+    assert(get_ref(e, "k_") == pico8_fv_start.k_ && pico8_fv_start.k_ == &pico8_fv_k__seq);
     assert(size_of(e, "qy") >= 0);
     assert_absent(e, "p");
     assert_absent(e, "et");

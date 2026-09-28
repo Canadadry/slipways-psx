@@ -16,7 +16,7 @@
 
 /* TROU-7 */
 /* `gs` points at `pico8_pj_gs_row`, `i_` at `pico8_pj_i__row`. `ed` NULL
- * reads as the spec's fixed 1, never nil. */
+ * reads as `pico8_pj_start.ed`, never nil. */
 typedef struct {
     pico8_ke_t ke;
     pico8_fixed_t fa;
@@ -29,30 +29,27 @@ typedef struct {
     int has_gz;
 } pico8_pj_t;
 
-/* `pj.cr`: no parent, never an entity, and no writer. */
+/* `pj.cr`: no parent, never an entity, and no writer. `hi`, `gq` point at
+ * `pico8_pj_cr_start`'s. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_vec_t *hi;
-    pico8_vec_t *gq;
+    const pico8_vec_t *hi;
+    const pico8_vec_t *gq;
     pico8_fixed_t ca;
     const char *ep;
 } pico8_pj_cr_t;
 
-/* Calls `pico8_pi_init()` first: the `pj` spec contains `v(...)`, so the
- * 'v' constructor must be registered before it is parsed. Builds `bz`
- * alongside the spec. */
+/* Calls `pico8_pi_init()` first. Builds `bz`, and `ou`/`ea` from
+ * `pico8_pj_ou_row`/`pico8_pj_ea_row`. */
 void pico8_score_panel_init(void);
 
-/* Frees the `pj` spec and `bz`. Resets `ju` to NULL without freeing
- * the instance it named: `ju` is a bookmark, `hv` owns the entity. */
+/* Frees `bz`; drops `ou`/`ea` without freeing them. Resets `ju` to
+ * NULL without freeing the instance it named: `ju` is a bookmark, `hv` owns
+ * the entity. */
 void pico8_score_panel_shutdown(void);
 
 /* 1 from pico8_score_panel_init() to pico8_score_panel_shutdown(), 0 otherwise. */
 int pico8_pj_ready(void);
-
-/* `pj`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until pico8_score_panel_shutdown(). */
-int pico8_pj_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_pj_struct_class(void);
 
 /* Shared by every panel, past and future: `hb` rewrites `ou`, `hk` rewrites

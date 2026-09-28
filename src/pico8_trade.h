@@ -31,10 +31,6 @@ void pico8_trade_shutdown(void);
 
 /* 1 from pico8_trade_init() to pico8_trade_shutdown(), 0 otherwise. */
 int pico8_trade_ready(void);
-
-/* `trade`'s spec default `name`; 0 when absent, or when not ready. A REF is
- * borrowed from the spec, valid until pico8_trade_shutdown(). */
-int pico8_trade_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_trade_struct_class(void);
 
 /* Takes only the keys "lp", "rl", "qe", each optional; a missing one is

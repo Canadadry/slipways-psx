@@ -769,6 +769,12 @@ static const char *const PJ_SRC =
     "o(f,99,2,13,fn=\"qr\"),\n"
     "),\n"
     "ed=1,\n";
+/* ie's class string, then the second string its module parsed for the
+ * objects it lends every icon; hy and trade parsed an empty string. */
+static const char *const IE_SRC = "\nkq=b(0,0,9,8),\nfa=12,\nid=0,\nra=v(999,999),\neh=v(118,120),\n";
+static const char *const IE_OBJECTS_SRC = "\nkq=b(0,0,9,8),\nra=v(999,999),\neh=v(118,120),\n";
+static const char *const HY_SRC = "";
+static const char *const TRADE_SRC = "";
 
 /* The table `ref` holds under `key`. */
 static const pico8_ob_table_t *member_of(const pico8_ob_table_t *ref, const char *key) {
@@ -1032,6 +1038,112 @@ static void test_ke_and_interface_starts_match_the_parsed_class_strings(void) {
     assert(number_at(jc, "nh") == pico8_jc_start.nh);
 }
 
+static void check_box(const pico8_qz_box_t *parsed, const pico8_qz_box_t *start) {
+    assert(parsed->xl == start->xl && parsed->yt == start->yt);
+    assert(parsed->xr == start->xr && parsed->yb == start->yb);
+}
+
+/* Both ways, as above, for g_, fv, hp, ie (and the objects its module
+ * lends), pj, hy and trade. */
+static void test_probe_help_research_panel_starts_match_the_parsed_class_strings(void) {
+    pico8_ob_table_t *g_ = parse(G__SRC);
+    pico8_ob_table_t *fv = parse(FV_SRC);
+    pico8_ob_table_t *hp = parse(HP_SRC);
+    pico8_ob_table_t *ie = parse(IE_SRC);
+    pico8_ob_table_t *ie_objects = parse(IE_OBJECTS_SRC);
+    pico8_ob_table_t *pj = parse(PJ_SRC);
+    const pico8_ob_table_t *cr;
+    pico8_value_t v;
+
+    assert(g_->count == 18);
+    assert(pico8_g__start.nu == &pico8_g__nu_tags);
+    check_member_tags(g_, pico8_g__start.nu);
+    assert(number_at(g_, "fx") == pico8_g__start.fx);
+    assert(strcmp(string_at(g_, "dq"), pico8_g__start.dq) == 0);
+    assert(number_at(g_, "od") == pico8_g__start.od);
+    assert(pico8_ob_table_get_name(g_, "fp", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+    assert(pico8_g__start.fp == 0);
+    assert(number_at(g_, "fa") == pico8_g__start.fa);
+    assert(number_at(g_, "dw") == pico8_g__start.dw);
+    assert(number_at(g_, "py") == pico8_g__start.py);
+    assert(number_at(g_, "ki") == pico8_g__start.ki);
+    assert(number_at(g_, "pn") == pico8_g__start.pn);
+    assert(number_at(g_, "pk") == pico8_g__start.pk);
+    assert(number_at(g_, "fc") == pico8_g__start.fc);
+    assert(pico8_g__start.k_ == &pico8_g__k__seq);
+    check_member_seq(g_, "k_", pico8_g__start.k_);
+    assert(number_at(g_, "qo") == pico8_g__start.qo);
+    assert(number_at(g_, "ro") == pico8_g__start.ro);
+    assert(number_at(g_, "qg") == pico8_g__start.qg);
+    assert(number_at(g_, "q_") == pico8_g__start.q_);
+    assert(number_at(g_, "du") == pico8_g__start.du);
+
+    assert(fv->count == 22);
+    assert(number_at(fv, "fa") == pico8_fv_start.fa);
+    check_vec(vec_at(fv, "ra"), &pico8_fv_start.ra);
+    check_vec(vec_at(fv, "hi"), &pico8_fv_start.hi);
+    assert(number_at(fv, "ca") == pico8_fv_start.ca);
+    check_vec(vec_at(fv, "gq"), &pico8_fv_start.gq);
+    assert(number_at(fv, "eo") == pico8_fv_start.eo);
+    assert(number_at(fv, "ff") == pico8_fv_start.ff);
+    assert(number_at(fv, "fc") == pico8_fv_start.fc);
+    assert(pico8_fv_start.k_ == &pico8_fv_k__seq);
+    check_member_seq(fv, "k_", pico8_fv_start.k_);
+    assert(number_at(fv, "qo") == pico8_fv_start.qo);
+    assert(number_at(fv, "ro") == pico8_fv_start.ro);
+    assert(number_at(fv, "qg") == pico8_fv_start.qg);
+    assert(number_at(fv, "q_") == pico8_fv_start.q_);
+    assert(number_at(fv, "pn") == pico8_fv_start.pn);
+    assert(number_at(fv, "du") == pico8_fv_start.du);
+    assert(number_at(fv, "py") == pico8_fv_start.py);
+    assert(number_at(fv, "pk") == pico8_fv_start.pk);
+    assert(number_at(fv, "ki") == pico8_fv_start.ki);
+    check_box(box_at(fv, "kq"), &pico8_fv_start.kq);
+    assert(number_at(fv, "ql") == pico8_fv_start.ql);
+    assert(number_at(fv, "fg") == pico8_fv_start.fg);
+    assert(pico8_fv_start.rb == &pico8_fv_rb_row);
+    check_row(member_of(fv, "rb"), pico8_fv_start.rb, "fv.rb");
+
+    assert(hp->count == 3);
+    assert(pico8_hp_start.mr == &pico8_hp_mr_names);
+    check_names(member_of(hp, "mr"), pico8_hp_start.mr);
+    assert(pico8_hp_start.gp == &pico8_hp_gp_names);
+    check_names(member_of(hp, "gp"), pico8_hp_start.gp);
+    assert(pico8_hp_start.fk == &pico8_hp_fk_row);
+    check_row(member_of(hp, "fk"), pico8_hp_start.fk, "hp.fk");
+
+    assert(ie->count == 5);
+    check_box(box_at(ie, "kq"), &pico8_ie_start.kq);
+    assert(number_at(ie, "fa") == pico8_ie_start.fa);
+    assert(number_at(ie, "id") == pico8_ie_start.id);
+    check_vec(vec_at(ie, "ra"), &pico8_ie_start.ra);
+    check_vec(vec_at(ie, "eh"), &pico8_ie_start.eh);
+    assert(ie_objects->count == 3);
+    check_box(box_at(ie_objects, "kq"), &pico8_ie_start.kq);
+    check_vec(vec_at(ie_objects, "ra"), &pico8_ie_start.ra);
+    check_vec(vec_at(ie_objects, "eh"), &pico8_ie_start.eh);
+
+    assert(pj->count == 7);
+    assert(number_at(pj, "fa") == pico8_pj_start.fa);
+    assert(pico8_pj_start.ea == &pico8_pj_ea_row);
+    check_row(member_of(pj, "ea"), pico8_pj_start.ea, "pj.ea");
+    assert(pico8_pj_start.gs == &pico8_pj_gs_row);
+    check_row(member_of(pj, "gs"), pico8_pj_start.gs, "pj.gs");
+    assert(pico8_pj_start.cr == &pico8_pj_cr_start);
+    cr = member_of(pj, "cr");
+    assert(cr->count == 3);
+    check_vec(vec_at(cr, "hi"), &pico8_pj_start.cr->hi);
+    check_vec(vec_at(cr, "gq"), &pico8_pj_start.cr->gq);
+    assert(number_at(cr, "ca") == pico8_pj_start.cr->ca);
+    assert(pico8_pj_start.i_ == &pico8_pj_i__row);
+    check_row(member_of(pj, "i_"), pico8_pj_start.i_, "pj.i_");
+    assert(pico8_pj_start.ou == &pico8_pj_ou_row);
+    check_row(member_of(pj, "ou"), pico8_pj_start.ou, "pj.ou");
+    assert(number_at(pj, "ed") == pico8_pj_start.ed);
+
+    assert(parse(HY_SRC)->count == 0 && parse(TRADE_SRC)->count == 0);
+}
+
 static void test_rows_match_the_parsed_literals(void) {
     pico8_ob_table_t *fv = parse(FV_SRC);
     pico8_ob_table_t *hp = parse(HP_SRC);
@@ -1121,6 +1233,7 @@ int main(void) {
     test_jo_tree_data_matches_the_parsed_class_literals();
     test_other_classes_data_matches_the_parsed_literals();
     test_ke_and_interface_starts_match_the_parsed_class_strings();
+    test_probe_help_research_panel_starts_match_the_parsed_class_strings();
     test_rows_match_the_parsed_literals();
     test_row_view_writes_fixed_items_then_c_then_fn();
     test_nb_lookup_finds_each_px();

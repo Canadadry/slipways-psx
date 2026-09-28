@@ -14,11 +14,7 @@
 #include "pico8_probe.h"
 #include "pico8_tech_gate.h"
 
-static pico8_ob_table_t *g_ie_chain_spec = NULL;
-
-/* Owns the `kq` box and the `ra`/`eh` vectors every `ie` points at;
- * the shutdown frees the three with it. */
-static pico8_ob_table_t *g_ie_spec = NULL;
+static int g_ie_up = 0;
 
 /* `ie.gy`, `ie.id`: mutated on the class by the cart, so one cursor and one
  * counter shared by every icon, never a member. `gy` is rebound, never
@@ -141,7 +137,7 @@ const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void) {
     return &g_ie_ke_view_struct_class;
 }
 
-static void ie_take_vec(pico8_value_t value, pico8_vec_t **out) {
+static void ie_take_vec(pico8_value_t value, const pico8_vec_t **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
         return;
@@ -178,7 +174,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
         return;
     }
 
-    assert(g_ie_chain_spec != NULL && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
+    assert(g_ie_up && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
 
     /* `self.ra` takes the REF `ie.gy` holds now. The `-=` below rebinds
      * `ie.gy` to a fresh vector rather than writing through the old one, so
@@ -214,7 +210,7 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
 
     (void)mp;
 
-    assert(g_ie_chain_spec != NULL && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
+    assert(g_ie_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
     new_id = pico8_fixed_add(g_ie_id.kind == PICO8_VALUE_FIXED ? g_ie_id.as.fixed : pico8_fixed_from_int(0),
                              pico8_fixed_from_int(1));
     g_ie_id = pico8_value_fixed(new_id);
@@ -309,7 +305,7 @@ static int pico8_ie_field(const void *self, const char *name, pico8_value_t *out
         if (ie->kq == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(ie->kq);
+        *out_value = pico8_value_ref((void *)ie->kq);
         return 1;
     } else if (strcmp(name, "fa") == 0) {
         *out_value = pico8_value_fixed(ie->fa);
@@ -318,13 +314,13 @@ static int pico8_ie_field(const void *self, const char *name, pico8_value_t *out
         if (ie->ra == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(ie->ra);
+        *out_value = pico8_value_ref((void *)ie->ra);
         return 1;
     } else if (strcmp(name, "eh") == 0) {
         if (ie->eh == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(ie->eh);
+        *out_value = pico8_value_ref((void *)ie->eh);
         return 1;
     } else if (strcmp(name, "ke") == 0) {
         if (ie->ke == NULL) {
@@ -395,16 +391,6 @@ static const pico8_struct_class_t g_ie_struct_class = {
     pico8_ie_set_field,
 };
 
-static pico8_value_t pico8_ie_spec_ref(const char *name) {
-    pico8_value_t v = pico8_value_ref(NULL);
-    int found = g_ie_spec != NULL && pico8_ob_table_get_name(g_ie_spec, name, &v);
-
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           "pico8_research_icon_init() must run before an ie is built: kq, ra and eh are the module's");
-    (void)found;
-    return v;
-}
-
 static void ie_take_kind(pico8_value_t value, const pico8_entity_kind_t **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
@@ -430,11 +416,12 @@ static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ie_t *self = malloc(sizeof *self);
     int i;
 
+    assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
     pico8_ke_struct_init(&self->ke_base, &g_ie_struct_class);
-    self->kq = pico8_ie_spec_ref("kq").as.ref;
-    self->fa = pico8_fixed_from_int(12);
-    self->ra = pico8_ie_spec_ref("ra").as.ref;
-    self->eh = pico8_ie_spec_ref("eh").as.ref;
+    self->kq = &pico8_ie_start.kq;
+    self->fa = pico8_ie_start.fa;
+    self->ra = &pico8_ie_start.ra;
+    self->eh = &pico8_ie_start.eh;
     self->ke = NULL;
     self->jb = NULL;
     self->kh = 0;
@@ -466,35 +453,19 @@ void pico8_research_icon_init(void) {
 
     pico8_pi_init();
 
-    g_ie_chain_spec = pico8_ob("\nkq=b(0,0,9,8),\nfa=12,\nid=0,\nra=v(999,999),\neh=v(118,120),\n", NULL);
-
-    g_ie_spec = pico8_ob("\nkq=b(0,0,9,8),\nra=v(999,999),\neh=v(118,120),\n", NULL);
+    g_ie_up = 1;
     g_ie_gy = pico8_value_ref(NULL);
-    g_ie_id = pico8_value_fixed(pico8_fixed_from_int(0));
+    g_ie_id = pico8_value_fixed(pico8_ie_start.id);
 }
 
 /* TROU-7 */
 void pico8_research_icon_shutdown(void) {
-    pico8_ob_table_free(g_ie_chain_spec);
-    g_ie_chain_spec = NULL;
-    if (g_ie_spec != NULL) {
-        int i;
-        for (i = 0; i < g_ie_spec->count; i++) {
-            free(g_ie_spec->entries[i].value.as.ref);
-        }
-        pico8_ob_table_free(g_ie_spec);
-        g_ie_spec = NULL;
-    }
+    g_ie_up = 0;
     g_ie_gy = pico8_value_ref(NULL);
 }
 
 int pico8_ie_ready(void) {
-    return g_ie_chain_spec != NULL;
-}
-
-int pico8_ie_default(const char *name, pico8_value_t *out_value) {
-    return g_ie_chain_spec != NULL &&
-           (pico8_ob_table_get_name(g_ie_chain_spec, name, out_value) || pico8_ke_start_field(name, out_value));
+    return g_ie_up;
 }
 
 const pico8_struct_class_t *pico8_ie_struct_class(void) {
@@ -506,7 +477,7 @@ pico8_ie_t *pico8_ie_new(const pico8_ob_table_t *overrides) {
 }
 
 pico8_value_t pico8_ie_eh(void) {
-    return g_ie_spec == NULL ? pico8_value_ref(NULL) : pico8_ie_spec_ref("eh");
+    return g_ie_up ? pico8_value_ref((void *)&pico8_ie_start.eh) : pico8_value_ref(NULL);
 }
 
 void pico8_ie_set_gy(pico8_value_t gy) {

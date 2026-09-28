@@ -9,7 +9,7 @@
 #include "pico8_list.h"
 #include "pico8_type_tag.h"
 
-static pico8_ob_table_t *g_trade_spec = NULL;
+static int g_trade_up = 0;
 
 pico8_value_t pico8_trade_qe(const pico8_trade_t *self) {
     if (self == NULL || !self->has_qe) {
@@ -116,20 +116,15 @@ static void assert_trade(const pico8_trade_t *self) {
 
 void pico8_trade_init(void) {
     pico8_trade_shutdown();
-    g_trade_spec = pico8_ob("", NULL);
+    g_trade_up = 1;
 }
 
 void pico8_trade_shutdown(void) {
-    pico8_ob_table_free(g_trade_spec);
-    g_trade_spec = NULL;
+    g_trade_up = 0;
 }
 
 int pico8_trade_ready(void) {
-    return g_trade_spec != NULL;
-}
-
-int pico8_trade_default(const char *name, pico8_value_t *out_value) {
-    return g_trade_spec != NULL && pico8_ob_table_get_name(g_trade_spec, name, out_value);
+    return g_trade_up;
 }
 
 const pico8_struct_class_t *pico8_trade_struct_class(void) {

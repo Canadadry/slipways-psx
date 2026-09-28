@@ -298,7 +298,7 @@ static uint32_t fold_kq(uint32_t h, const void *icon) {
     return h;
 }
 
-/* A fresh icon: `kq`/`fa`/`ra`/`eh` off the spec, ke's `me`/`t`, the two
+/* A fresh icon: `kq`/`fa`/`ra`/`eh` those of `pico8_ie_start`, ke's `me`/`t`, the two
  * construction keys, and nothing written by `hb` or the hover loop yet. */
 static uint32_t check_fresh_icon(uint32_t h, const void *icon, const void *ke, const void *jb) {
     static const char *const absent[] = {"kh", "m_", "p_", "nu", "fx", "ph", "ev", "hk", "rdown", "gv", "hq", "md"};
@@ -309,6 +309,10 @@ static uint32_t check_fresh_icon(uint32_t h, const void *icon, const void *ke, c
     assert(is_string(icon, "me", "ph"));
     assert(must_fixed(icon, "t") == 0);
     assert(must_fixed(icon, "fa") == pico8_fixed_from_int(12));
+    assert(must_fixed(icon, "fa") == pico8_ie_start.fa);
+    assert(get_ref(icon, "kq") == &pico8_ie_start.kq);
+    assert(get_ref(icon, "ra") == &pico8_ie_start.ra);
+    assert(get_ref(icon, "eh") == &pico8_ie_start.eh);
     assert(vec_of(icon, "ra").x == pico8_fixed_from_int(999) && vec_of(icon, "ra").y == pico8_fixed_from_int(999));
     assert(vec_of(icon, "eh").x == pico8_fixed_from_int(118) && vec_of(icon, "eh").y == pico8_fixed_from_int(120));
     assert(get_ref(icon, "ke") == ke);

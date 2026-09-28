@@ -1,12 +1,8 @@
-/* The spec defaults of the 7 modules outside the `jo` tree that still parse
- * one, read only through the shared readers spec_field()/is_ready() and a
- * fresh struct of each; the interface classes, whose defaults are generated,
- * each against their own data. A frozen hash of test_spec_defaults() or
- * test_struct_defaults() is re-taken only with a probe that rebuilds the old
- * fold on the new data and gets the old value back. */
+/* The generated defaults each class outside the `jo` tree starts on, each
+ * against its own data: a fresh struct of each module, then its ready cycle.
+ * No shared reader, no table of modules. */
 
 #include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +11,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
 #include "../src/pico8_entity.h"
@@ -36,360 +31,14 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_wormhole.h"
 
-#define READY_HASH 0x05313C64u
-#define SPEC_HASH 0x067B24A6u
-#define STRUCT_HASH 0x1A95E7B2u
-
-enum {
-    M_TRADE,
-    M_HY,
-    M_HP,
-    M_PJ,
-    M_IE,
-    M_G_,
-    M_FV,
-    MODULE_COUNT
-};
-
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-
-static int spec_field(int i, const char *name, pico8_value_t *out) {
-    switch (i) {
-    case M_TRADE:
-        return pico8_trade_default(name, out);
-    case M_HY:
-        return pico8_hy_default(name, out);
-    case M_HP:
-        return pico8_hp_default(name, out);
-    case M_PJ:
-        return pico8_pj_default(name, out);
-    case M_IE:
-        return pico8_ie_default(name, out);
-    case M_G_:
-        return pico8_g__default(name, out);
-    default:
-        return pico8_fv_default(name, out);
-    }
-}
-
-static int is_ready(int i) {
-    switch (i) {
-    case M_TRADE:
-        return pico8_trade_ready();
-    case M_HY:
-        return pico8_hy_ready();
-    case M_HP:
-        return pico8_hp_ready();
-    case M_PJ:
-        return pico8_pj_ready();
-    case M_IE:
-        return pico8_ie_ready();
-    case M_G_:
-        return pico8_g__ready();
-    default:
-        return pico8_fv_ready();
-    }
-}
-
-static void *build(int i) {
-    switch (i) {
-    case M_TRADE:
-        return pico8_trade_new(NULL);
-    case M_HY:
-        return pico8_hy_new(NULL);
-    case M_HP:
-        return pico8_hp_new(NULL);
-    case M_PJ:
-        return pico8_pj_new(NULL);
-    case M_IE:
-        return pico8_ie_new(NULL);
-    case M_G_:
-        return pico8_g__new(NULL);
-    default:
-        return pico8_fv_new(NULL);
-    }
-}
-
-static void shutdown_of(int i) {
-    switch (i) {
-    case M_TRADE:
-        pico8_trade_shutdown();
-        break;
-    case M_HY:
-        pico8_economy_shutdown();
-        break;
-    case M_HP:
-        pico8_research_shutdown();
-        break;
-    case M_PJ:
-        pico8_score_panel_shutdown();
-        break;
-    case M_IE:
-        pico8_research_icon_shutdown();
-        break;
-    case M_G_:
-        pico8_probe_shutdown();
-        break;
-    default:
-        pico8_help_shutdown();
-        break;
-    }
-}
-
-/* Every key of the 7 specs, ke's two, and names absent from all of them. */
-static const char *const NAMES[] = {
-    "mr", "gp",  "fk", "fa", "ea", "gs", "cr",        "i_", "ou", "ed", "hd", "l",  "r",  "ra", "v",  "ma", "p",
-    "pc", "nu",  "rh", "ql", "le", "hw", "kq",        "id", "eh", "pl", "me", "dw", "dq", "ik", "oi", "od", "fp",
-    "kk", "jj",  "k_", "nh", "fx", "py", "ki",        "pn", "pk", "fc", "qo", "ro", "qg", "q_", "du", "hi", "ca",
-    "gq", "eo",  "ff", "fg", "rb", "t",  "spawn_snd", "fz", "zz", "lq", "ev", "ol", "kj",
-};
-
-#define NAME_COUNT ((int)(sizeof NAMES / sizeof NAMES[0]))
-
-static uint32_t fnv(uint32_t h, uint32_t word) {
-    int i;
-    for (i = 0; i < 4; i++) {
-        h ^= (word >> (8 * i)) & 0xFFu;
-        h *= 16777619u;
-    }
-    return h;
-}
-
-static uint32_t fold_string(uint32_t h, const char *s) {
-    for (; *s != '\0'; s++) {
-        h = fnv(h, (uint32_t)(unsigned char)*s);
-    }
-    return fnv(h, 0xFFFFFFFFu);
-}
-
-/* A REF folds as its tag, and its entry count when it is a table or a
- * list: never its address. */
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    h = fnv(h, (uint32_t)v.kind);
-    switch (v.kind) {
-    case PICO8_VALUE_FIXED:
-        return fnv(h, (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fold_string(h, v.as.string);
-    case PICO8_VALUE_BOOL:
-        return fnv(h, (uint32_t)v.as.boolean);
-    case PICO8_VALUE_REF:
-        if (v.as.ref == NULL) {
-            return fnv(h, 0u);
-        }
-        h = fnv(h, (uint32_t)pico8_type_tag_of(v.as.ref) + 1u);
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            h = fnv(h, (uint32_t)((const pico8_ob_table_t *)v.as.ref)->count);
-        } else if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {
-            h = fnv(h, (uint32_t)((const pico8_list_t *)v.as.ref)->count);
-        }
-        return h;
-    default:
-        return h;
-    }
-}
-
-static int same_value(pico8_value_t a, pico8_value_t b) {
-    if (a.kind != b.kind) {
-        return 0;
-    }
-    switch (a.kind) {
-    case PICO8_VALUE_FIXED:
-        return a.as.fixed == b.as.fixed;
-    case PICO8_VALUE_STRING:
-        return a.as.string == b.as.string;
-    case PICO8_VALUE_BOOL:
-        return a.as.boolean == b.as.boolean;
-    case PICO8_VALUE_REF:
-        return a.as.ref == b.as.ref;
-    default:
-        return 0;
-    }
-}
-
-static int tags_equal(const pico8_ob_table_t *t, const pico8_str_seq_t *tags) {
-    int j;
-
-    if (t->count != tags->count) {
-        return 0;
-    }
-    for (j = 0; j < tags->count; j++) {
-        if (t->entries[j].key.kind != PICO8_OB_KEY_INDEX || t->entries[j].value.kind != PICO8_VALUE_STRING ||
-            strcmp(t->entries[j].value.as.string, tags->items[j]) != 0) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int ints_equal(const pico8_ob_table_t *t, const pico8_int_seq_t *seq) {
-    int j;
-
-    if (t->count != seq->count) {
-        return 0;
-    }
-    for (j = 0; j < seq->count; j++) {
-        if (t->entries[j].key.kind != PICO8_OB_KEY_INDEX || t->entries[j].value.kind != PICO8_VALUE_FIXED ||
-            t->entries[j].value.as.fixed != pico8_fixed_from_int(seq->items[j])) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-/* Entry by entry, nested tables included; strings by content. */
-static int tables_same(const pico8_ob_table_t *a, const pico8_ob_table_t *b) {
-    int j;
-
-    if (a->count != b->count) {
-        return 0;
-    }
-    for (j = 0; j < a->count; j++) {
-        const pico8_ob_entry_t *x = &a->entries[j];
-        const pico8_ob_entry_t *y = &b->entries[j];
-
-        if (x->key.kind != y->key.kind || (x->key.kind == PICO8_OB_KEY_INDEX && x->key.index != y->key.index) ||
-            (x->key.kind == PICO8_OB_KEY_NAME && strcmp(x->key.name, y->key.name) != 0) ||
-            x->value.kind != y->value.kind) {
-            return 0;
-        }
-        if ((x->value.kind == PICO8_VALUE_FIXED && x->value.as.fixed != y->value.as.fixed) ||
-            (x->value.kind == PICO8_VALUE_BOOL && x->value.as.boolean != y->value.as.boolean) ||
-            (x->value.kind == PICO8_VALUE_STRING && strcmp(x->value.as.string, y->value.as.string) != 0) ||
-            (x->value.kind == PICO8_VALUE_REF && !tables_same(x->value.as.ref, y->value.as.ref))) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int row_equal(const pico8_ob_table_t *t, const pico8_jb_row_t *row) {
-    pico8_ob_table_t *view = pico8_jb_row_view(row);
-    int equal = tables_same(t, view);
-
-    pico8_ob_table_free(view);
-    return equal;
-}
-
-/* same_value(), plus the converted table members of a module whose struct
- * took them from its spec: a spec table and the struct's untagged REF are
- * the same default when that REF is the data generated from the spec that
- * answered, whose content must then agree. */
-static int same_default(int i, const char *name, pico8_value_t spec, pico8_value_t made) {
-    if (spec.kind == PICO8_VALUE_REF && made.kind == PICO8_VALUE_REF && spec.as.ref != NULL &&
-        pico8_type_tag_of(spec.as.ref) == PICO8_TYPE_TAG_OB_TABLE && made.as.ref != spec.as.ref) {
-        if ((i == M_G_ || i == M_FV) && strcmp(name, "nu") == 0 && made.as.ref == &pico8_g__nu_tags) {
-            assert(tags_equal(spec.as.ref, &pico8_g__nu_tags));
-            return 1;
-        }
-        if (i == M_G_ && strcmp(name, "k_") == 0 && made.as.ref == &pico8_g__k__seq) {
-            assert(ints_equal(spec.as.ref, &pico8_g__k__seq));
-            return 1;
-        }
-        if (i == M_FV && strcmp(name, "k_") == 0 && made.as.ref == &pico8_fv_k__seq) {
-            assert(ints_equal(spec.as.ref, &pico8_fv_k__seq));
-            return 1;
-        }
-        if (i == M_FV && strcmp(name, "rb") == 0 && made.as.ref == &pico8_fv_rb_row) {
-            assert(row_equal(spec.as.ref, &pico8_fv_rb_row));
-            return 1;
-        }
-        if (i == M_HP && strcmp(name, "mr") == 0 && made.as.ref == &pico8_hp_mr_names) {
-            assert(tags_equal(spec.as.ref, &pico8_hp_mr_names));
-            return 1;
-        }
-        if (i == M_HP && strcmp(name, "gp") == 0 && made.as.ref == &pico8_hp_gp_names) {
-            assert(tags_equal(spec.as.ref, &pico8_hp_gp_names));
-            return 1;
-        }
-        if (i == M_HP && strcmp(name, "fk") == 0 && made.as.ref == &pico8_hp_fk_row) {
-            assert(row_equal(spec.as.ref, &pico8_hp_fk_row));
-            return 1;
-        }
-        if (i == M_PJ && strcmp(name, "gs") == 0 && made.as.ref == &pico8_pj_gs_row) {
-            assert(row_equal(spec.as.ref, &pico8_pj_gs_row));
-            return 1;
-        }
-        if (i == M_PJ && strcmp(name, "i_") == 0 && made.as.ref == &pico8_pj_i__row) {
-            assert(row_equal(spec.as.ref, &pico8_pj_i__row));
-            return 1;
-        }
-    }
-    return same_value(spec, made);
-}
-
-static void check(const char *label, uint32_t got, uint32_t want) {
-    printf("[%s] 0x%08Xu\n", label, (unsigned)got);
-    fflush(stdout);
-    assert(got == want);
-}
-
-static uint32_t fold_ready(uint32_t h) {
-    int i;
-    for (i = 0; i < MODULE_COUNT; i++) {
-        h = fnv(h, (uint32_t)is_ready(i));
-    }
-    return h;
-}
-
-/* Each module's defaults by name, its parent's included, absent included. */
-static void test_spec_defaults(void) {
-    uint32_t h = 2166136261u;
-    int i;
-    int n;
-
-    for (i = 0; i < MODULE_COUNT; i++) {
-        for (n = 0; n < NAME_COUNT; n++) {
-            pico8_value_t v = pico8_value_fixed(0x5A5A);
-            int found = spec_field(i, NAMES[n], &v);
-
-            h = fnv(h, (uint32_t)found);
-            if (found) {
-                h = fold_value(h, v);
-            } else {
-                assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x5A5A);
-            }
-        }
-        h = fnv(h, (uint32_t)i);
-    }
-    check("spec", h, SPEC_HASH);
-}
-
-/* A fresh struct of each module against its defaults: which names it
- * serves, and which of them are the very value or REF of the spec. */
-static void test_struct_defaults(void) {
-    uint32_t h = 2166136261u;
-    int i;
-    int n;
-
-    for (i = 0; i < MODULE_COUNT; i++) {
-        void *made = build(i);
-        int readable = made != NULL && ((const pico8_struct_header_t *)made)->cls->field != NULL;
-
-        h = fnv(h, (uint32_t)(made != NULL));
-        h = fnv(h, (uint32_t)readable);
-        for (n = 0; readable && n < NAME_COUNT; n++) {
-            pico8_value_t from_spec = pico8_value_fixed(0x5A5A);
-            pico8_value_t from_struct = pico8_value_fixed(0x5A5A);
-            int in_spec = spec_field(i, NAMES[n], &from_spec);
-            int in_struct = pico8_entity_get_field(made, NAMES[n], &from_struct);
-
-            h = fnv(h, (uint32_t)in_spec);
-            h = fnv(h, (uint32_t)in_struct);
-            h = fnv(h, (uint32_t)(in_spec && in_struct && same_default(i, NAMES[n], from_spec, from_struct)));
-        }
-        h = fnv(h, (uint32_t)i);
-    }
-    check("struct", h, STRUCT_HASH);
-}
 
 static pico8_ob_table_t *nf_l_of(void *nf) {
     pico8_value_t v;
@@ -478,10 +127,139 @@ static void test_layout_ready(void) {
     assert(!pico8_lq_ready() && !pico8_jb_ready());
 }
 
-int main(void) {
-    uint32_t ready = 2166136261u;
-    int i;
+/* A fresh fv: fv's own generated defaults over g_'s, ke's under both. */
+static void test_fv_defaults_and_ready(void) {
+    pico8_fv_t *fv = pico8_fv_new(NULL);
 
+    assert(fv->g_.fa == pico8_fv_start.fa);
+    assert(fv->g_.ra->x == pico8_fv_start.ra.x && fv->g_.ra->y == pico8_fv_start.ra.y);
+    assert(fv->g_.fc == pico8_fv_start.fc);
+    assert(fv->g_.k_ == pico8_fv_start.k_);
+    assert(fv->g_.qo == pico8_fv_start.qo);
+    assert(fv->g_.ro == pico8_fv_start.ro);
+    assert(fv->g_.qg == pico8_fv_start.qg);
+    assert(fv->g_.q_ == pico8_fv_start.q_);
+    assert(fv->g_.pn == pico8_fv_start.pn);
+    assert(fv->g_.du == pico8_fv_start.du);
+    assert(fv->g_.py == pico8_fv_start.py);
+    assert(fv->g_.pk == pico8_fv_start.pk);
+    assert(fv->g_.ki == pico8_fv_start.ki);
+    assert(fv->g_.nu == pico8_g__start.nu);
+    assert(fv->g_.fx == pico8_g__start.fx);
+    assert(strcmp(fv->g_.dq, pico8_g__start.dq) == 0);
+    assert(fv->g_.od == pico8_g__start.od);
+    assert(fv->g_.fp == pico8_g__start.fp);
+    assert(fv->g_.dw == pico8_g__start.dw);
+    assert(fv->hi->x == pico8_fv_start.hi.x && fv->hi->y == pico8_fv_start.hi.y);
+    assert(fv->ca == pico8_fv_start.ca);
+    assert(fv->gq->x == pico8_fv_start.gq.x && fv->gq->y == pico8_fv_start.gq.y);
+    assert(fv->eo == pico8_fv_start.eo);
+    assert(fv->ff == pico8_fv_start.ff);
+    assert(fv->kq->xl == pico8_fv_start.kq.xl && fv->kq->yt == pico8_fv_start.kq.yt);
+    assert(fv->kq->xr == pico8_fv_start.kq.xr && fv->kq->yb == pico8_fv_start.kq.yb);
+    assert(fv->ql == pico8_fv_start.ql);
+    assert(fv->fg == pico8_fv_start.fg);
+    assert(fv->rb == pico8_fv_start.rb);
+    assert(fv->g_.ke.me == pico8_ke_start.me && fv->g_.ke.t == pico8_ke_start.t);
+    assert(pico8_fv_ready());
+    pico8_help_shutdown();
+    assert(!pico8_fv_ready());
+}
+
+/* A fresh probe: g_'s generated defaults and ke's; no `ra` yet. */
+static void test_g__defaults_and_ready(void) {
+    pico8_g__t *g_ = pico8_g__new(NULL);
+
+    assert(g_->nu == pico8_g__start.nu);
+    assert(g_->fx == pico8_g__start.fx);
+    assert(strcmp(g_->dq, pico8_g__start.dq) == 0);
+    assert(g_->od == pico8_g__start.od);
+    assert(g_->fp == pico8_g__start.fp);
+    assert(g_->fa == pico8_g__start.fa);
+    assert(g_->dw == pico8_g__start.dw);
+    assert(g_->py == pico8_g__start.py);
+    assert(g_->ki == pico8_g__start.ki);
+    assert(g_->pn == pico8_g__start.pn);
+    assert(g_->pk == pico8_g__start.pk);
+    assert(g_->fc == pico8_g__start.fc);
+    assert(g_->k_ == pico8_g__start.k_);
+    assert(g_->qo == pico8_g__start.qo);
+    assert(g_->ro == pico8_g__start.ro);
+    assert(g_->qg == pico8_g__start.qg);
+    assert(g_->q_ == pico8_g__start.q_);
+    assert(g_->du == pico8_g__start.du);
+    assert(g_->ra == NULL);
+    assert(g_->ke.me == pico8_ke_start.me && g_->ke.t == pico8_ke_start.t);
+    assert(pico8_g__ready());
+    pico8_probe_shutdown();
+    assert(!pico8_g__ready());
+}
+
+static void test_hp_defaults_and_ready(void) {
+    pico8_hp_t *hp = pico8_hp_new(NULL);
+
+    assert(hp->mr == pico8_hp_start.mr);
+    assert(hp->gp == pico8_hp_start.gp);
+    assert(hp->fk == pico8_hp_start.fk);
+    assert(pico8_hp_ready());
+    pico8_research_shutdown();
+    assert(!pico8_hp_ready());
+}
+
+/* `kq`, `ra`, `eh` hold ie's generated box and vectors. */
+static void test_ie_defaults_and_ready(void) {
+    pico8_ie_t *ie = pico8_ie_new(NULL);
+
+    assert(ie->kq->xl == pico8_ie_start.kq.xl && ie->kq->yt == pico8_ie_start.kq.yt);
+    assert(ie->kq->xr == pico8_ie_start.kq.xr && ie->kq->yb == pico8_ie_start.kq.yb);
+    assert(ie->fa == pico8_ie_start.fa);
+    assert(ie->ra->x == pico8_ie_start.ra.x && ie->ra->y == pico8_ie_start.ra.y);
+    assert(ie->eh->x == pico8_ie_start.eh.x && ie->eh->y == pico8_ie_start.eh.y);
+    assert(ie->ke_base.me == pico8_ke_start.me && ie->ke_base.t == pico8_ke_start.t);
+    assert(pico8_ie_ready());
+    pico8_research_icon_shutdown();
+    assert(!pico8_ie_ready());
+}
+
+/* `ed` absent reads as pj's generated `ed`; `cr` holds pj's generated
+ * record. */
+static void test_pj_defaults_and_ready(void) {
+    pico8_pj_t *pj = pico8_pj_new(NULL);
+    const pico8_pj_cr_t *cr = pico8_pj_cr();
+
+    assert(pj->fa == pico8_pj_start.fa);
+    assert(pj->gs == pico8_pj_start.gs);
+    assert(pj->i_ == pico8_pj_start.i_);
+    assert(pj->ed == NULL && pico8_pj_ed(pj).as.fixed == pico8_pj_start.ed);
+    assert(cr->hi->x == pico8_pj_start.cr->hi.x && cr->hi->y == pico8_pj_start.cr->hi.y);
+    assert(cr->gq->x == pico8_pj_start.cr->gq.x && cr->gq->y == pico8_pj_start.cr->gq.y);
+    assert(cr->ca == pico8_pj_start.cr->ca);
+    assert(pj->ke.me == pico8_ke_start.me && pj->ke.t == pico8_ke_start.t);
+    assert(pico8_pj_ready());
+    pico8_score_panel_shutdown();
+    assert(!pico8_pj_ready());
+}
+
+/* hy and trade: an empty spec, a root struct. */
+static void test_hy_ready(void) {
+    pico8_hy_t *hy = pico8_hy_new(NULL);
+
+    assert(hy->header.cls == pico8_hy_struct_class());
+    assert(pico8_hy_ready());
+    pico8_economy_shutdown();
+    assert(!pico8_hy_ready());
+}
+
+static void test_trade_ready(void) {
+    pico8_trade_t *trade = pico8_trade_new(NULL);
+
+    assert(trade->header.cls == pico8_trade_struct_class());
+    assert(pico8_trade_ready());
+    pico8_trade_shutdown();
+    assert(!pico8_trade_ready());
+}
+
+int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
@@ -491,26 +269,29 @@ int main(void) {
     pico8_dispatch_set_mem(&mem);
     pico8_dispatch_set_input(&input);
 
-    ready = fold_ready(ready);
+    assert(!pico8_trade_ready());
+    assert(!pico8_hy_ready());
+    assert(!pico8_hp_ready());
+    assert(!pico8_pj_ready());
+    assert(!pico8_ie_ready());
+    assert(!pico8_g__ready());
+    assert(!pico8_fv_ready());
     pico8_cart_load();
-    ready = fold_ready(ready);
     pico8_jl();
-    ready = fold_ready(ready);
 
-    test_spec_defaults();
-    test_struct_defaults();
     test_second_jl_keeps_specs();
     test_bg_defaults_and_ready();
     test_js_defaults_and_ready();
     test_qb_defaults_and_ready();
     test_mz_defaults_and_ready();
     test_layout_ready();
-
-    for (i = MODULE_COUNT - 1; i >= 0; i--) {
-        shutdown_of(i);
-        ready = fold_ready(ready);
-    }
-    check("ready", ready, READY_HASH);
+    test_fv_defaults_and_ready();
+    test_g__defaults_and_ready();
+    test_hp_defaults_and_ready();
+    test_ie_defaults_and_ready();
+    test_pj_defaults_and_ready();
+    test_hy_ready();
+    test_trade_ready();
 
     printf("test_pico8_spec_defaults: all tests passed\n");
     return 0;

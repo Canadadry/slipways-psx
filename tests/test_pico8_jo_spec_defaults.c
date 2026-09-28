@@ -444,8 +444,8 @@ static void test_struct_defaults(void) {
 }
 
 /* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves it
- * alone: `t`, which only ke sets, and ke's `me`, which `g_` inherits, are
- * still the very values of before, those of `pico8_ke_start`. */
+ * alone: `t`, which only ke sets, and ke's `me` are still the very values
+ * of before, those of `pico8_ke_start`. */
 static void test_second_jl_keeps_ke(void) {
     pico8_value_t me_before;
     pico8_value_t t_before;
@@ -458,7 +458,6 @@ static void test_second_jl_keeps_ke(void) {
         assert(spec_field(i, "t", &v) && same_value(v, t_before));
     }
     assert(spec_field(M_KE, "me", &v) && same_value(v, me_before));
-    assert(pico8_g__default("me", &v) && same_value(v, me_before));
     assert(strcmp(pico8_ke_start.me, "ph") == 0 && pico8_ke_start.t == 0);
 }
 

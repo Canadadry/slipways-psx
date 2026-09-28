@@ -1379,7 +1379,6 @@ static uint32_t members_title_and_game(void) {
     void *nj;
     void *plain;
     void *my_false;
-    pico8_value_t ca;
     pico8_value_t px;
     int n = 0;
     int i;
@@ -1393,8 +1392,7 @@ static uint32_t members_title_and_game(void) {
             assert(n < 4);
             title[n++] = e;
             assert(read_both(e, "px", &px) && px.kind == PICO8_VALUE_STRING);
-            assert(pico8_fv_default("ca", &ca));
-            assert_same(e, "fa", ca);
+            assert_same(e, "fa", pico8_value_fixed(pico8_fv_start.ca));
             h = fold_js_members(h, e);
         }
     }

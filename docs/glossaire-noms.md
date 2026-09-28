@@ -14,8 +14,10 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` |
-| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; le port parse la spec à l'init du module de la classe, et `pico8_X_default` la lit, puis la parente — sauf pour `ke` et les classes d'interface (`bg`, `ui`, `js`, `fq`, `lq`, `jb`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`), qui n'ont plus de spec parsée ; au bout de la chaîne, `pico8_ke_start_field` lit `pico8_ke_start` par nom |
-| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc` (`lq` et `jb` ont une spec vide) |
+| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; seul l'arbre `jo` garde une spec parsée à l'init de son module, que `pico8_X_default` lit, puis la parente ; au bout de la chaîne, `pico8_ke_start_field` lit `pico8_ke_start` par nom. Les autres classes n'ont plus de spec parsée |
+| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
+| — | `pico8_pj_cr_start`, `pico8_pj_ou_row`, `pico8_pj_ea_row` | les tables `cr`, `ou`, `ea` de la spec de `pj`, générées ; `g_pj_cr` prend ses valeurs de la première |
+| — | `g_pj_ou`, `g_pj_ea` (`pico8_score_panel.c`) | les tables d'état `ou`/`ea` de `pj`, construites une fois par init depuis leurs rangées générées, jamais libérées |
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
@@ -562,13 +564,13 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 
 | Nom | Sens |
 |---|---|
-| `ea` | la rangée du bandeau d'année, réécrite par `pj:hk` |
+| `ea` | la rangée du bandeau d'année, réécrite par `pj:hk` ; `g_pj_ea`, construite depuis `pico8_pj_ea_row` |
 | `gs` | messages de compte à rebours, indexés par `3426 - yr` ; `pico8_pj_gs_row` |
-| `i_`, `ou` | rangées du cadre (`pico8_pj_i__row`) / les 7 afficheurs réécrits par `pj:hb` |
+| `i_`, `ou` | rangées du cadre (`pico8_pj_i__row`) / les 7 afficheurs réécrits par `pj:hb` (`g_pj_ou`, construite depuis `pico8_pj_ou_row`) |
 | `ed` | la dernière boîte construite par le panneau, comparée à `kc` |
 | `gz` | compteur du rideau de fin, testé par **présence** et non par valeur |
 | `c_` | « panneau visible », basculé par le `my` de `de` |
-| `gy`, `eh` | sur la classe `ie` : `eh` est la valeur de repos, `gy` la valeur courante partagée par toute la classe. `_init()` fait `gy = eh` à chaque démarrage, `ie:hb` réécrit `gy` |
+| `gy`, `eh` | sur la classe `ie` : `eh` est la valeur de repos (`pico8_ie_start.eh`), `gy` la valeur courante partagée par toute la classe. `_init()` fait `gy = eh` à chaque démarrage, `ie:hb` réécrit `gy` |
 | `nj` | le bouton de difficulté cliqué, dont la table de champs **devient** `dk` |
 
 ### Sonde et validation
@@ -588,7 +590,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 |---|---|
 | `hp` | la **classe** d'un projet de recherche — mais sur une sous-classe de planète, un **nombre** de 1 à 6 : l'index du projet correspondant, lu par `jo:hu` |
 | `nk` | l'aléa courant d'une planète — mais sur une entrée de `nb`, l'**icône** de la technologie |
-| `cr` | l'écran de l'arbre technologique — mais `pj.cr` est un bloc de mise en page |
+| `cr` | l'écran de l'arbre technologique — mais `pj.cr` est un bloc de mise en page (`g_pj_cr`, valeurs de `pico8_pj_cr_start`) |
 | `ij` | la fonction « plus proche voisin » — mais sur `mz`, le champ qui retient l'ancrage choisi |
 | `l` | la durée de vie d'une particule — mais sur `iv`, l'avancement du fondu |
 
@@ -609,7 +611,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (`pico8_hp_mr_names`, `pico8_hp_gp_names`) — c'est `gp` qui rend `o`/`dm` identiques au pointeur de `r`, donc qui justifie l'exception de TROU-3 |
 | `ke` (sur `ie`) | la **classe** d'amélioration que l'icône construit, pas une instance |
 | `kh` | drapeau d'instance « icône déjà révélée » |
-| `id` (sur `ie`) | compteur de classe, source de l'override de sprite |
+| `id` (sur `ie`) | compteur de classe, source de l'override de sprite ; repart de `pico8_ie_start.id` à chaque init |
 | `jo.em` | l'entrée d'espacement que `jo.ex` ajoute après chaque élément |
 
 ### Locales du parseur et de la boucle d'entités

@@ -724,13 +724,13 @@ static void test_hp_is_a_struct(void) {
     }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_hp_ready());
-    assert(!pico8_hp_default("lq", &v));
     assert(lookup(b, "fk", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == pico8_hp_fk());
 
     bare = pico8_hp_new(NULL);
     assert(pico8_type_tag_of(bare) == PICO8_TYPE_TAG_STRUCT && bare->header.cls == cls);
     assert(get_ref(bare, "mr") == get_ref(b, "mr") && get_ref(bare, "gp") == get_ref(b, "gp"));
     assert(get_ref(bare, "fk") == get_ref(b, "fk"));
+    assert(bare->mr == pico8_hp_start.mr && bare->gp == pico8_hp_start.gp && bare->fk == pico8_hp_start.fk);
     assert(get_ref(bare, "i") != NULL && ((const pico8_list_t *)get_ref(bare, "i"))->count == 0);
     assert(lookup(bare, "lq", &v) && v.kind == PICO8_VALUE_FUNCTION);
     for (n = 0; n < sizeof own / sizeof own[0]; n++) {

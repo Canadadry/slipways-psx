@@ -34,7 +34,7 @@ typedef struct {
     int has_hl; /* 0: `hl` is nil; 1 with `hl` NULL: `hl` is false */
 } pico8_hy_t;
 
-/* Parses the `hy` spec only. The singleton `fm=hy()` is built later, by
+/* Marks the module ready only. The singleton `fm=hy()` is built later, by
  * `eu()` (pico8_cart.c), which hands it to pico8_probe_set_fm(). Calls
  * pico8_economy_shutdown() first. */
 void pico8_economy_init(void);
@@ -42,10 +42,6 @@ void pico8_economy_shutdown(void);
 
 /* 1 from pico8_economy_init() to pico8_economy_shutdown(), 0 otherwise. */
 int pico8_hy_ready(void);
-
-/* `hy`'s spec default `name`; 0 when absent, or when not ready. A REF is
- * borrowed from the spec, valid until pico8_economy_shutdown(). */
-int pico8_hy_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_hy_struct_class(void);
 
 /* `hl` as 1a held it: REF NULL when nil or `self` is NULL, BOOL(0) when

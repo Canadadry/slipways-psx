@@ -15,17 +15,17 @@
  * no-op, and an absent or wrong-kind field reads as absent. */
 
 /* TROU-7 */
-/* `ra`, `hi`, `gq`, `kq` are the tables of `fv`'s class, borrowed and never
- * modified; `k_` points at `pico8_fv_k__seq`, `rb` at `pico8_fv_rb_row`,
- * `nu` is `g_`'s. */
+/* `ra`, `hi`, `gq`, `kq` point at `pico8_fv_start`'s, shared by every help;
+ * `k_` points at `pico8_fv_k__seq`, `rb` at `pico8_fv_rb_row`, `nu` is
+ * `g_`'s. */
 typedef struct {
     pico8_g__t g_;
-    pico8_vec_t *hi;
+    const pico8_vec_t *hi;
     pico8_fixed_t ca;
-    pico8_vec_t *gq;
+    const pico8_vec_t *gq;
     pico8_fixed_t eo;
     pico8_fixed_t ff;
-    pico8_qz_box_t *kq;
+    const pico8_qz_box_t *kq;
     pico8_fixed_t ql;
     pico8_fixed_t fg;
     const pico8_jb_row_t *rb;
@@ -33,19 +33,14 @@ typedef struct {
     int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_fv_t;
 
-/* Parses `fv`'s spec and builds `bo`; `pico8_help_shutdown()` frees both and is
- * called first by an init, so both are idempotent. Both also reset `eu` to
- * the placeholder, so the real one must be installed after every init. */
+/* Builds `bo`; `pico8_help_shutdown()` frees it and is called first by an
+ * init, so both are idempotent. Both also reset `eu` to the placeholder, so
+ * the real one must be installed after every init. */
 void pico8_help_init(void);
 void pico8_help_shutdown(void);
 
 /* 1 from pico8_help_init() to pico8_help_shutdown(), 0 otherwise. */
 int pico8_fv_ready(void);
-
-/* `fv`'s spec default `name`, then g_'s, then ke's; 0 when absent, or when
- * not ready. A REF is borrowed from the spec, valid until
- * pico8_help_shutdown(). */
-int pico8_fv_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_fv_struct_class(void);
 
 /* TROU-8 */

@@ -24,7 +24,7 @@
 #include "pico8_type_tag.h"
 #include "pico8_vec.h"
 
-static pico8_ob_table_t *g_pj_spec = NULL;
+static int g_pj_up = 0;
 static pico8_ob_table_t *g_bz = NULL;
 static pico8_pj_t *g_ju = NULL;
 
@@ -85,18 +85,11 @@ static char *pj_concat2(const char *a, const char *b) {
     return out;
 }
 
-enum { PJ_EA, PJ_CR, PJ_OU };
-
-/* pj's class state, read once at init from its spec (the spec's REFs,
- * never re-parsed), except `cr`, which is `g_pj_cr`. */
-static struct {
-    const char *name;
-    pico8_value_t value;
-} g_pj_defaults[] = {
-    [PJ_EA] = {"ea", {0}},
-    [PJ_CR] = {"cr", {0}},
-    [PJ_OU] = {"ou", {0}},
-};
+/* TROU-7 */
+/* pj's class state `ou` and `ea`, built once per init from their generated
+ * rows and rewritten in place by `hb`/`hk`; never freed. */
+static pico8_ob_table_t *g_pj_ou = NULL;
+static pico8_ob_table_t *g_pj_ea = NULL;
 
 static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_pj_cr_t *cr = self;
@@ -105,12 +98,12 @@ static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *
         if (cr->hi == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(cr->hi);
+        *out_value = pico8_value_ref((void *)cr->hi);
     } else if (strcmp(name, "gq") == 0) {
         if (cr->gq == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(cr->gq);
+        *out_value = pico8_value_ref((void *)cr->gq);
     } else if (strcmp(name, "ca") == 0) {
         *out_value = pico8_value_fixed(cr->ca);
     } else if (strcmp(name, "ep") == 0) {
@@ -130,39 +123,24 @@ static const pico8_struct_class_t g_pj_cr_struct_class = {
     NULL,
 };
 
-/* Two vectors, as the spec's two `v(0,11)`. */
-static pico8_vec_t g_pj_cr_hi = {0, 11 << PICO8_FIXED_SHIFT};
-static pico8_vec_t g_pj_cr_gq = {0, 11 << PICO8_FIXED_SHIFT};
-
 static pico8_pj_cr_t g_pj_cr = {
     {PICO8_TYPE_TAG_STRUCT, &g_pj_cr_struct_class},
-    &g_pj_cr_hi,
-    &g_pj_cr_gq,
-    10 << PICO8_FIXED_SHIFT,
+    &pico8_pj_cr_start.hi,
+    &pico8_pj_cr_start.gq,
+    0,
     NULL,
 };
 
-static void pico8_pj_defaults_reset(void) {
-    size_t i;
-    for (i = 0; i < sizeof g_pj_defaults / sizeof g_pj_defaults[0]; i++) {
-        g_pj_defaults[i].value = pico8_value_ref(NULL);
-    }
-}
-
-static pico8_ob_table_t *pj_default_table(int which) {
-    return (pico8_ob_table_t *)g_pj_defaults[which].value.as.ref;
-}
-
 pico8_ob_table_t *pico8_pj_ou(void) {
-    return pj_default_table(PJ_OU);
+    return g_pj_ou;
 }
 
 pico8_ob_table_t *pico8_pj_ea(void) {
-    return pj_default_table(PJ_EA);
+    return g_pj_ea;
 }
 
 pico8_pj_cr_t *pico8_pj_cr(void) {
-    return g_pj_defaults[PJ_CR].value.as.ref;
+    return g_pj_up ? &g_pj_cr : NULL;
 }
 
 const pico8_struct_class_t *pico8_pj_cr_struct_class(void) {
@@ -170,11 +148,11 @@ const pico8_struct_class_t *pico8_pj_cr_struct_class(void) {
 }
 
 const pico8_jb_row_t *pico8_pj_i_(void) {
-    return &pico8_pj_i__row;
+    return pico8_pj_start.i_;
 }
 
 const pico8_jb_row_t *pico8_pj_gs(void) {
-    return &pico8_pj_gs_row;
+    return pico8_pj_start.gs;
 }
 
 static pico8_value_t pico8_pj_init_placeholder(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -373,7 +351,7 @@ pico8_value_t pico8_pj_ed(const pico8_pj_t *self) {
         return pico8_value_ref(NULL);
     }
     if (self->ed == NULL) {
-        return pico8_value_fixed(pico8_fixed_from_int(1));
+        return pico8_value_fixed(pico8_pj_start.ed);
     }
     return pico8_value_ref(self->ed);
 }
@@ -385,11 +363,11 @@ static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out
     pico8_value_t value;
 
     if (strcmp(name, "ou") == 0) {
-        value = g_pj_defaults[PJ_OU].value;
+        value = pico8_value_ref(g_pj_ou);
     } else if (strcmp(name, "ea") == 0) {
-        value = g_pj_defaults[PJ_EA].value;
+        value = pico8_value_ref(g_pj_ea);
     } else if (strcmp(name, "cr") == 0) {
-        value = g_pj_defaults[PJ_CR].value;
+        value = pico8_value_ref(pico8_pj_cr());
     } else if (strcmp(name, "fa") == 0) {
         value = pico8_value_fixed(pj->fa);
     } else if (strcmp(name, "gs") == 0) {
@@ -438,12 +416,12 @@ static const pico8_struct_class_t g_pj_struct_class = {
 static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     pico8_pj_t *self;
 
-    assert(g_pj_spec != NULL && "pico8_score_panel_init() must run first");
+    assert(g_pj_up && "pico8_score_panel_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_pj_struct_class);
-    self->fa = pico8_fixed_from_int(10);
-    self->gs = &pico8_pj_gs_row;
-    self->i_ = &pico8_pj_i__row;
+    self->fa = pico8_pj_start.fa;
+    self->gs = pico8_pj_start.gs;
+    self->i_ = pico8_pj_start.i_;
     self->ed = NULL;
     self->c_ = 0;
     self->has_c_ = 0;
@@ -460,37 +438,17 @@ static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
 }
 
 void pico8_score_panel_init(void) {
-    size_t i;
-
     pico8_score_panel_shutdown();
 
     pico8_pi_init();
 
     g_bz = pico8_bz_view();
 
-    g_pj_spec = pico8_ob(
-        "\nfa=10,\nea=o(\no(42,43,1,fn=\"br\"),\no(\"\",64,40,6,0.5,fn=\"qr\"),\n),\n"
-        "gs=o(\no(\"last year!\",64,48,9,0.5,fn=\"qr\"),\no(\"2 years remain\",64,48,2,0.5,fn=\"qr\"),\nf,f,\n"
-        "o(\"5 years remain\",64,48,2,0.5,fn=\"qr\"),\n),\n"
-        "cr=o(\nhi=v(0,11),gq=v(0,11),ca=10,\n),\n"
-        "i_=o(\no(126,127,1,fn=\"br\"),\no(0,1,1,fn=\"br\"),\no(8,118,34,fn=\"rf\"),\no(0,-3,26,fn=\"rf\"),"
-        "\no(81,-3,117,fn=\"rf\"),\n),\n"
-        "ou=o(\no(f,13,121,9,fn=\"qr\"),\no(f,37,121,2,fn=\"qr\"),\no(f,13,2,9,fn=\"qr\"),\no(f,29,2,2,fn=\"qr\"),"
-        "\no(f,59,2,2,fn=\"qr\"),\no(f,85,2,13,fn=\"qr\"),\no(f,99,2,13,fn=\"qr\"),\n),\n"
-        "ed=1,\n",
-        NULL);
-    for (i = 0; i < sizeof g_pj_defaults / sizeof g_pj_defaults[0]; i++) {
-        pico8_value_t *v = &g_pj_defaults[i].value;
-        int found = pico8_pj_default(g_pj_defaults[i].name, v);
-        assert(found && "pj: every default of the struct is a key of pj's spec");
-        assert((i == PJ_CR ||
-                (v->kind == PICO8_VALUE_REF && v->as.ref != NULL &&
-                 pico8_type_tag_of(v->as.ref) == PICO8_TYPE_TAG_OB_TABLE)) &&
-               "pj: its table accessors cast these REFs to plain tables, and hb/hk write into ou/ea");
-        (void)found;
-    }
+    g_pj_up = 1;
+    g_pj_ou = pico8_jb_row_view(pico8_pj_start.ou);
+    g_pj_ea = pico8_jb_row_view(pico8_pj_start.ea);
+    g_pj_cr.ca = pico8_pj_start.cr->ca;
     g_pj_cr.ep = NULL;
-    g_pj_defaults[PJ_CR].value = pico8_value_ref(&g_pj_cr);
 
     pico8_score_panel_set_init(NULL);
     g_ju = NULL;
@@ -500,9 +458,10 @@ void pico8_score_panel_init(void) {
 
 void pico8_score_panel_shutdown(void) {
     pico8_score_panel_display_shutdown();
-    pico8_pj_defaults_reset();
-    pico8_ob_table_free(g_pj_spec);
-    g_pj_spec = NULL;
+    g_pj_up = 0;
+    /* TROU-7 */
+    g_pj_ou = NULL;
+    g_pj_ea = NULL;
     if (g_bz != NULL) {
         pico8_ob_table_free(g_bz);
         g_bz = NULL;
@@ -512,12 +471,7 @@ void pico8_score_panel_shutdown(void) {
 }
 
 int pico8_pj_ready(void) {
-    return g_pj_spec != NULL;
-}
-
-int pico8_pj_default(const char *name, pico8_value_t *out_value) {
-    return g_pj_spec != NULL &&
-           (pico8_ob_table_get_name(g_pj_spec, name, out_value) || pico8_ke_start_field(name, out_value));
+    return g_pj_up;
 }
 
 const pico8_struct_class_t *pico8_pj_struct_class(void) {

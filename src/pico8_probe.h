@@ -42,7 +42,7 @@ typedef struct {
     pico8_fixed_t q_;
     pico8_fixed_t du;
     pico8_list_t *qy;
-    pico8_vec_t *ra;
+    const pico8_vec_t *ra;
     pico8_vec_t *p;
     pico8_struct_header_t *et; /* borrowed, never freed */
     int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
@@ -55,28 +55,21 @@ typedef struct {
 pico8_value_t pico8_g__et(const pico8_g__t *self);
 
 /* TROU-8 */
-/* Parses `g_`'s spec and puts the provisional `fm` back in the slot, its
- * `jk`/`nz` nil. Shuts the module down first, so it is idempotent and any
- * REF previously handed out by pico8_g__default() is freed by a second
- * call. */
+/* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
+ * module down first, so it is idempotent. */
 void pico8_probe_init(void);
 
-/* Frees the `g_` spec and the `hy` of `fm` if it holds one, never the
- * provisional, never any probe. Idempotent, and safe before the first
- * `pico8_probe_init()`. */
+/* Frees the `hy` of `fm` if it holds one, never the provisional, never any
+ * probe. Idempotent, and safe before the first `pico8_probe_init()`. */
 void pico8_probe_shutdown(void);
 
 /* 1 from pico8_probe_init() to pico8_probe_shutdown(), 0 otherwise. */
 int pico8_g__ready(void);
-
-/* `g_`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until pico8_probe_shutdown(). */
-int pico8_g__default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_g__struct_class(void);
 
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 5
- * written members nil, g_'s 18 defaults. Reads no key, runs neither `pq`
- * nor `lt`, records no coverage. Requires `pico8_probe_init()`. */
+ * written members nil, g_'s 18 defaults from `pico8_g__start`. Reads no
+ * key, runs neither `pq` nor `lt`, records no coverage. */
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
 
 /* `overrides` (NULL means none) is read, not kept: `pn`, `t`, `du`, `py`

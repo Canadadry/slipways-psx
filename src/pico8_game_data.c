@@ -303,6 +303,38 @@ static const pico8_jb_item_t pj_i__items[] = {{.row = &pj_i__1}, {.row = &pj_i__
     {.row = &pj_i__4}, {.row = &pj_i__5}};
 const pico8_jb_row_t pico8_pj_i__row = {.count = 5, .items = pj_i__items};
 
+static const pico8_jb_item_t pj_ea_1_items[] = {{.n = 42}, {.n = 43}, {.n = 1}};
+static const pico8_jb_row_t pj_ea_1 = {.count = 3, .items = pj_ea_1_items, .fn = "br"};
+static const pico8_jb_item_t pj_ea_2_items[] = {{.s = ""}, {.n = 64}, {.n = 40}, {.n = 6},
+    {.is_fixed = 1, .fixed = 0x8000}};
+static const pico8_jb_row_t pj_ea_2 = {.count = 5, .items = pj_ea_2_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ea_items[] = {{.row = &pj_ea_1}, {.row = &pj_ea_2}};
+const pico8_jb_row_t pico8_pj_ea_row = {.count = 2, .items = pj_ea_items};
+
+static const pico8_jb_item_t pj_ou_1_items[] = {{.is_false = 1}, {.n = 13}, {.n = 121}, {.n = 9}};
+static const pico8_jb_row_t pj_ou_1 = {.count = 4, .items = pj_ou_1_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_2_items[] = {{.is_false = 1}, {.n = 37}, {.n = 121}, {.n = 2}};
+static const pico8_jb_row_t pj_ou_2 = {.count = 4, .items = pj_ou_2_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_3_items[] = {{.is_false = 1}, {.n = 13}, {.n = 2}, {.n = 9}};
+static const pico8_jb_row_t pj_ou_3 = {.count = 4, .items = pj_ou_3_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_4_items[] = {{.is_false = 1}, {.n = 29}, {.n = 2}, {.n = 2}};
+static const pico8_jb_row_t pj_ou_4 = {.count = 4, .items = pj_ou_4_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_5_items[] = {{.is_false = 1}, {.n = 59}, {.n = 2}, {.n = 2}};
+static const pico8_jb_row_t pj_ou_5 = {.count = 4, .items = pj_ou_5_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_6_items[] = {{.is_false = 1}, {.n = 85}, {.n = 2}, {.n = 13}};
+static const pico8_jb_row_t pj_ou_6 = {.count = 4, .items = pj_ou_6_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_7_items[] = {{.is_false = 1}, {.n = 99}, {.n = 2}, {.n = 13}};
+static const pico8_jb_row_t pj_ou_7 = {.count = 4, .items = pj_ou_7_items, .fn = "qr"};
+static const pico8_jb_item_t pj_ou_items[] = {{.row = &pj_ou_1}, {.row = &pj_ou_2}, {.row = &pj_ou_3},
+    {.row = &pj_ou_4}, {.row = &pj_ou_5}, {.row = &pj_ou_6}, {.row = &pj_ou_7}};
+const pico8_jb_row_t pico8_pj_ou_row = {.count = 7, .items = pj_ou_items};
+
+const pico8_pj_cr_start_t pico8_pj_cr_start = {
+    .hi = {0x0, 0xb0000},
+    .gq = {0x0, 0xb0000},
+    .ca = 0xa0000,
+};
+
 const char pico8_mz_jj_qs[] = "-too far-";
 
 const pico8_ke_start_t pico8_ke_start = {
@@ -378,6 +410,76 @@ const pico8_jc_start_t pico8_jc_start = {
     .dw = 0x106,
     .k_ = &pico8_jc_k__seq,
     .nh = 0x140000,
+};
+
+const pico8_g__start_t pico8_g__start = {
+    .nu = &pico8_g__nu_tags,
+    .fx = 0x10000,
+    .dq = "ly",
+    .od = 0x0,
+    .fp = 0,
+    .fa = 0x20000,
+    .dw = 0x666,
+    .py = 0xf5c,
+    .ki = 0x90000,
+    .pn = 0x30000,
+    .pk = 0x10000,
+    .fc = 0x10000,
+    .k_ = &pico8_g__k__seq,
+    .qo = 0x1051e,
+    .ro = -0xd70,
+    .qg = 0xd70,
+    .q_ = 0x1051e,
+    .du = 0x20000,
+};
+
+const pico8_fv_start_t pico8_fv_start = {
+    .fa = 0xa0000,
+    .ra = {0x400000, 0x1c0000},
+    .hi = {0x220000, 0x380000},
+    .ca = 0xb0000,
+    .gq = {0x0, 0xb0000},
+    .eo = -0x10000,
+    .ff = 0x10000,
+    .fc = 0x50000,
+    .k_ = &pico8_fv_k__seq,
+    .qo = 0x1051e,
+    .ro = -0x1ca,
+    .qg = 0x1ca,
+    .q_ = 0x1051e,
+    .pn = 0x50000,
+    .du = 0xf0000,
+    .py = 0x1b6,
+    .pk = 0x10000,
+    .ki = 0x110000,
+    .kq = {-0x280000, 0x4e0000, 0x280000, 0x620000},
+    .ql = 0xb0000,
+    .fg = 0x50000,
+    .rb = &pico8_fv_rb_row,
+};
+
+const pico8_hp_start_t pico8_hp_start = {
+    .mr = &pico8_hp_mr_names,
+    .gp = &pico8_hp_gp_names,
+    .fk = &pico8_hp_fk_row,
+};
+
+const pico8_ie_start_t pico8_ie_start = {
+    .kq = {0x0, 0x0, 0x90000, 0x80000},
+    .fa = 0xc0000,
+    .id = 0x0,
+    .ra = {0x3e70000, 0x3e70000},
+    .eh = {0x760000, 0x780000},
+};
+
+const pico8_pj_start_t pico8_pj_start = {
+    .fa = 0xa0000,
+    .ea = &pico8_pj_ea_row,
+    .gs = &pico8_pj_gs_row,
+    .cr = &pico8_pj_cr_start,
+    .i_ = &pico8_pj_i__row,
+    .ou = &pico8_pj_ou_row,
+    .ed = 0x10000,
 };
 
 int pico8_int_seq_at(const int *seq, int count, int i, int *out) {

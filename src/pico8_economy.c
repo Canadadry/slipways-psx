@@ -15,7 +15,7 @@
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
-static pico8_ob_table_t *g_hy_spec = NULL;
+static int g_hy_up = 0;
 
 static int pico8_hy_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_hy_t *hy = self;
@@ -138,20 +138,15 @@ static void assert_hy(const pico8_hy_t *self) {
 
 void pico8_economy_init(void) {
     pico8_economy_shutdown();
-    g_hy_spec = pico8_ob("", NULL);
+    g_hy_up = 1;
 }
 
 void pico8_economy_shutdown(void) {
-    pico8_ob_table_free(g_hy_spec);
-    g_hy_spec = NULL;
+    g_hy_up = 0;
 }
 
 int pico8_hy_ready(void) {
-    return g_hy_spec != NULL;
-}
-
-int pico8_hy_default(const char *name, pico8_value_t *out_value) {
-    return g_hy_spec != NULL && pico8_ob_table_get_name(g_hy_spec, name, out_value);
+    return g_hy_up;
 }
 
 const pico8_struct_class_t *pico8_hy_struct_class(void) {

@@ -1,7 +1,7 @@
 /* The help screen `fv`, built by its only road (`pico8__init()` on the
  * title screen, `pico8_fv_new(NULL)`), read only through the dual-form field
- * API and `pico8_fv_default()`/`pico8_g__default()`
- * for spec defaults, and driven through the real `mv`/`dc`/`dg`/`lj`. Its
+ * API, its defaults compared to `pico8_fv_start`, and driven through the
+ * real `mv`/`dc`/`dg`/`lj`. Its
  * methods are compared to the public functions. No events file. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -55,7 +55,6 @@ static pico8_input_t input;
 static const char *const own[] = {"fa", "ra", "hi", "ca", "gq", "eo", "ff", "fc", "k_", "qo", "ro",
                                   "qg", "q_", "pn", "du", "py", "pk", "ki", "kq", "ql", "fg", "rb"};
 static const char *const inherited[] = {"nu", "fx", "dq", "od", "fp", "dw"};
-static const char *const tables[] = {"ra", "hi", "gq", "kq"};
 static const char *const absent[] = {"m_", "ep", "p", "et", "p_", "hk", "hb", "ph", "ldown", "fo", "ma"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -114,12 +113,6 @@ static pico8_fixed_t get_fixed(const void *e, const char *name) {
     pico8_value_t v;
     assert(lookup(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
     return v.as.fixed;
-}
-
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 static pico8_value_function_t method(const void *e, const char *name) {
@@ -350,9 +343,10 @@ static void test_built(void) {
     h = fold_vec(h, fv, "hi");
     h = fold_vec(h, fv, "gq");
     h = fold_box(h, fv, "kq");
-    for (i = 0; i < sizeof tables / sizeof tables[0]; i++) {
-        assert(get_ref(fv, tables[i]) == class_ref(pico8_fv_default, tables[i]));
-    }
+    assert(get_ref(fv, "ra") == &pico8_fv_start.ra);
+    assert(get_ref(fv, "hi") == &pico8_fv_start.hi);
+    assert(get_ref(fv, "gq") == &pico8_fv_start.gq);
+    assert(get_ref(fv, "kq") == &pico8_fv_start.kq);
     assert(get_ref(fv, "k_") == &pico8_fv_k__seq);
     assert(get_ref(fv, "k_") != &pico8_g__k__seq);
     assert(get_ref(fv, "rb") == &pico8_fv_rb_row);
@@ -598,13 +592,12 @@ static void build_with_positional_key(void *e) {
 
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited
  * entries and holds its own `kj`, `hd`; a write of a name that is neither
- * `m_` nor one of `g_`'s 5 stops, as does any construction key. Its class
- * keeps only its spec. */
+ * `m_` nor one of `g_`'s 5 stops, as does any construction key. Ready
+ * from its init to its shutdown. */
 static void test_fv_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_fv_struct_class();
     const pico8_struct_class_t *g_ = pico8_g__struct_class();
     void *fv;
-    pico8_value_t v;
     int j;
 
     start_title();
@@ -624,8 +617,6 @@ static void test_fv_is_a_struct(void) {
     assert(cls->field != NULL && cls->set_field != NULL);
     assert(cls->field != g_->field && cls->set_field != g_->set_field);
     assert(pico8_fv_ready());
-    assert(!pico8_fv_default("hd", &v));
-    assert(!pico8_fv_default("kj", &v));
 
     must_abort(write_fa, fv);
     must_abort(write_hi, fv);
@@ -636,6 +627,10 @@ static void test_fv_is_a_struct(void) {
     must_abort(write_me, fv);
     must_abort(build_with_named_key, NULL);
     must_abort(build_with_positional_key, NULL);
+    pico8_help_shutdown();
+    assert(!pico8_fv_ready());
+    pico8_help_init();
+    assert(pico8_fv_ready());
 }
 
 static const char *const fv_names[] = {"hi", "ca", "gq", "eo", "ff", "kq", "ql", "fg", "rb", "m_"};
@@ -704,15 +699,12 @@ static uint32_t fold_fv_members(uint32_t h, const void *e) {
     return h;
 }
 
-/* A fresh help: its 3 tables at the spec's pointers, `rb` the generated
- * row, its 5 fixed at the spec's values, `m_` absent. */
+/* A fresh help: its 3 tables `pico8_fv_start`'s own, `rb` the generated
+ * row, its 5 fixed at the cart's values, `m_` absent. */
 static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
-    static const char *const refs[] = {"hi", "gq", "kq"};
-    size_t i;
-
-    for (i = 0; i < sizeof refs / sizeof refs[0]; i++) {
-        assert_same(e, refs[i], pico8_value_ref(class_ref(pico8_fv_default, refs[i])));
-    }
+    assert_same(e, "hi", pico8_value_ref((void *)&pico8_fv_start.hi));
+    assert_same(e, "gq", pico8_value_ref((void *)&pico8_fv_start.gq));
+    assert_same(e, "kq", pico8_value_ref((void *)&pico8_fv_start.kq));
     assert_same(e, "rb", pico8_value_ref((void *)&pico8_fv_rb_row));
     assert_same(e, "ca", pico8_value_fixed(pico8_fixed_from_int(11)));
     assert_same(e, "eo", pico8_value_fixed(pico8_fixed_from_int(-1)));
@@ -878,22 +870,17 @@ static void call_na(void *e) {
     pico8_na(e, pico8_fixed_from_int(1));
 }
 
-/* `g_`'s spec holds no method, and `g_`'s functions take a struct or NULL
- * as `self`: an ob table stops each of them. */
+/* `g_`'s functions take a struct or NULL as `self`: an ob table stops each
+ * of them. */
 static void test_g__closed(void) {
-    static const char *const installs[] = {"hq", "ey", "ev", "kj", "mm"};
     static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
                                           call_dl, call_d_, call_gk, call_na};
     pico8_ob_table_t *table = pico8_ob_table_new();
     pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    pico8_value_t v;
     size_t i;
 
     start_title();
     assert(pico8_g__ready());
-    for (i = 0; i < sizeof installs / sizeof installs[0]; i++) {
-        assert(!pico8_g__default(installs[i], &v));
-    }
     pico8_ob_table_set_name(table, "ra", pico8_value_ref(&ra));
     pico8_ob_table_set_name(table, "fa", pico8_value_fixed(pico8_fixed_from_int(10)));
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
