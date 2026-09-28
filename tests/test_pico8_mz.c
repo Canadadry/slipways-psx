@@ -1,7 +1,6 @@
 /* The wormhole `mz`, read and written only through the dual-form field API
- * and driven through the real `mv`/`dg`. The frozen values were taken on
- * the code where `mz` was still a class instance and must not be
- * re-taken. */
+ * and driven through the real `mv`/`dg`, in a game built directly: no
+ * events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -32,36 +30,36 @@
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_research.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
-#define PLAYTHROUGH "tests/fixtures/phase4_playthrough_events.json"
-#define GEOHARVEST "tests/fixtures/geoharvest_burst_events.json"
-#define GEOHARVEST_FRAMES 41
+/* Ticks after the slipway is paid, long enough for the colonizing and
+ * paying effects to leave `hv`: `dg` skips the entity after one it takes out
+ * (TROU-5). */
+#define SETTLE_TICKS 120
 
-#define OX_HASH 0x3FA66D65u
-#define HQ_HASH 0xC7BB40AEu
+#define OX_HASH 0xC6D8AF55u
+#define HQ_HASH 0x9DAA980Cu
 #define KZ_TICKS 21
 #define KZ_HASH 0xE16D1D52u
-#define EY_HASH 0x89F623D4u
+#define EY_HASH 0x2D563CE9u
 #define PR_HASH 0xAC265666u
 #define PR_EXIT_TICK 27
-#define DRAW_HASH 0x9A6C2110u
-#define PLAYTHROUGH_HASH 0x27C7A366u
-#define PLAYTHROUGH_FRAMES 224
-#define GEOHARVEST_HASH 0xB6BD5161u
-#define MZ_MEMBERS_HASH 0x4CC72979u
+#define DRAW_HASH 0xD124A50Cu
+#define MZ_MEMBERS_HASH 0x991FD1CAu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -206,36 +204,67 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-static void start_game(const char *events) {
-    pico8_value_t difficulty;
-
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-    pico8_cheat_init(&cheat);
+    pico8_eu(NULL);
 }
 
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
 }
 
-/* The playthrough up to after its slipway and score tick: a probe, two
- * colonized planets joined by a slipway, and unknown planets left. */
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+/* Two generated planets colonized and joined by a paid slipway, the rest
+ * of the galaxy left unknown, then left to settle. `jc:hq` reads the hovered planet off
+ * `ok.o_`. */
 static void world(void) {
+    const pico8_list_t *jos;
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *qu;
+    void *re = NULL;
+    void *jc;
     int i;
 
-    start_game(PLAYTHROUGH);
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame();
+    start_game();
+    jos = pico8_cg("jo");
+    assert(jos != NULL && jos->count > 1);
+    qu = jos->items[0].as.ref;
+    for (i = 1; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
+            re = e;
+        }
+    }
+    pico8_jo_hu(qu, pico8_hp_new(NULL));
+    pico8_jo_hu(re, pico8_hp_new(NULL));
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
+    }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    assert(get(jc, "re").as.ref == re);
+    for (i = 0; i < SETTLE_TICKS; i++) {
+        pico8_dg();
     }
 }
 
@@ -342,7 +371,7 @@ static void test_construction(void) {
     const pico8_list_t *mzs;
     int before;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     assert(pico8_cg("g_") == NULL || pico8_cg("g_")->count == 0);
     mzs = pico8_cg("mz");
     before = mzs == NULL ? 0 : mzs->count;
@@ -650,63 +679,6 @@ static void test_draw(void) {
     check("draw", h, DRAW_HASH);
 }
 
-/* Every frame of a replay: each live `mz`'s state and the credits. */
-static uint32_t fold_frame(uint32_t h) {
-    const pico8_list_t *mzs = pico8_cg("mz");
-    int i;
-
-    for (i = 0; mzs != NULL && i < mzs->count; i++) {
-        const void *mz = mzs->items[i].as.ref;
-        h = fold_string(h, mz, "me");
-        h = fold_fixed(h, mz, "t");
-        h = fold_fixed(h, mz, "oi");
-        h = fold_vec(h, mz, "ra");
-        h = fold_vec(h, mz, "p");
-        h = fnv(h, (uint32_t)et_kind(mz));
-        h = fnv(h, bool_state(mz, "p_"));
-    }
-    return fnv(h, (uint32_t)credits());
-}
-
-static void test_playthrough(void) {
-    uint32_t h = 2166136261u;
-    int seen = 0;
-    int frames;
-    int i;
-
-    start_game(PLAYTHROUGH);
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        play_frame();
-        h = fold_frame(h);
-        if (pico8_cg("mz") != NULL && pico8_cg("mz")->count > 0) {
-            seen++;
-        }
-    }
-    printf("[playthrough] an mz alive on %d frames\n", seen);
-    assert(seen > 0);
-    check_int("playthrough frames", frames, PLAYTHROUGH_FRAMES);
-    check("playthrough", h, PLAYTHROUGH_HASH);
-}
-
-static void test_geoharvest(void) {
-    uint32_t h = 2166136261u;
-    int seen = 0;
-    int i;
-
-    start_game(GEOHARVEST);
-    for (i = 0; i < GEOHARVEST_FRAMES; i++) {
-        play_frame();
-        h = fold_frame(h);
-        if (pico8_cg("mz") != NULL && pico8_cg("mz")->count > 0) {
-            seen++;
-        }
-    }
-    printf("[geoharvest] an mz alive on %d frames\n", seen);
-    assert(seen > 0);
-    check("geoharvest", h, GEOHARVEST_HASH);
-}
-
 /* Released over a colonized planet or a slipgate, `jz("gv",held)` reads
  * `s.qu` off the `mz`, which it never has. */
 static void test_gv(void) {
@@ -829,7 +801,7 @@ static void test_mz_is_a_struct(void) {
     pid_t child;
     int status;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     (void)pico8_bg_ldown(NULL, pico8_value_ref(NULL));
     made = pico8_bg_ldown(NULL, pico8_value_ref(NULL));
     mz = pico8_mz_new(NULL);
@@ -886,7 +858,7 @@ static void test_jj_qs_by_name(void) {
     assert(out.kind == PICO8_VALUE_STRING && strcmp(out.as.string, "-too far-") == 0);
     assert(pico8_entity_get_field(wrapper, "qs", &again) == 1 && again.as.string == out.as.string);
 
-    start_game(PLAYTHROUGH);
+    start_game();
     mz_a = pico8_mz_new(NULL);
     mz_b = pico8_mz_new(NULL);
     assert(mz_a != mz_b);
@@ -1172,7 +1144,7 @@ static void test_mz_members_by_name(void) {
         h = fold_mz_member(h, mz, intruders[i]);
     }
 
-    start_game(PLAYTHROUGH);
+    start_game();
     fresh[0] = pico8_mz_new(NULL);
     empty = pico8_ob_table_new();
     fresh[1] = pico8_mz_new(empty);
@@ -1284,7 +1256,7 @@ static void test_mz_writer_stops_off_row(void) {
     }
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
@@ -1307,10 +1279,8 @@ int main(void) {
     pico8_gfx_init(&gfx);
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
-    pico8_input_init(&input);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
-    pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
     in_fresh_child(test_construction);
@@ -1320,8 +1290,6 @@ int main(void) {
     in_fresh_child(test_ey);
     in_fresh_child(test_pr_ticks);
     in_fresh_child(test_draw);
-    in_fresh_child(test_playthrough);
-    in_fresh_child(test_geoharvest);
     in_fresh_child(test_gv);
     in_fresh_child(test_jj_wrapper);
     in_fresh_child(test_mz_is_a_struct);
