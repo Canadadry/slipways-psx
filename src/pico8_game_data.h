@@ -3,6 +3,7 @@
 
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
+#include "pico8_vec.h"
 
 enum {
     PICO8_ES_COUNT = 4,
@@ -31,6 +32,11 @@ typedef struct {
     int count;
     const char *const *items;
 } pico8_str_seq_t;
+
+typedef struct {
+    int count;
+    const pico8_vec_t *items;
+} pico8_vec_seq_t;
 
 /* qe is only meaningful when has_qe is set. */
 typedef struct {
@@ -140,6 +146,19 @@ extern const pico8_int_seq_t pico8_pm_ga_k__seq;
 extern const pico8_int_seq_t pico8_nr_hz_seq;
 extern const pico8_int_seq_t pico8_fr_hz_seq;
 extern const pico8_int_seq_t pico8_mx_ht_seq;
+
+/* The table members of the other classes, one object per class that sets it. */
+extern const pico8_str_seq_t pico8_mh_nu_tags;
+/* g_'s nu is fv's too: fv never sets its own. */
+extern const pico8_str_seq_t pico8_g__nu_tags;
+extern const pico8_int_seq_t pico8_g__k__seq;
+extern const pico8_int_seq_t pico8_fv_k__seq;
+extern const pico8_str_seq_t pico8_jc_nu_tags;
+extern const pico8_int_seq_t pico8_jc_k__seq;
+extern const pico8_str_seq_t pico8_mz_nu_tags;
+extern const pico8_int_seq_t pico8_mz_kk_seq;
+extern const pico8_int_seq_t pico8_bg_pl_seq;
+extern const pico8_vec_seq_t pico8_qb_pc_vecs;
 
 /* Lua's seq[i], 1-based: returns 1 and writes *out when 1 <= i <= count,
  * 0 and leaves *out untouched otherwise. */

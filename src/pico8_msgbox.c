@@ -17,7 +17,6 @@
 #include "pico8_ui_button.h"
 
 static pico8_ob_table_t *g_mh_spec = NULL;
-static pico8_ob_table_t *g_mh_nu = NULL;
 static pico8_ob_table_t *g_iv_spec = NULL;
 static pico8_mh_t *g_kc = NULL;
 
@@ -123,7 +122,7 @@ static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out
         if (mh->nu == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(mh->nu);
+        *out_value = pico8_value_ref((void *)mh->nu);
     } else if (strcmp(name, "fa") == 0) {
         *out_value = pico8_value_fixed(mh->fa);
     } else if (strcmp(name, "rh") == 0) {
@@ -155,7 +154,7 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_mh_struct_class);
-    self->nu = g_mh_nu;
+    self->nu = &pico8_mh_nu_tags;
     self->fa = pico8_fixed_from_int(14);
     self->rh = pico8_fixed_from_int(5);
     self->lh = NULL;
@@ -195,25 +194,13 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
 }
 
 void pico8_mh_init(void) {
-    pico8_ob_table_t *spec;
-    pico8_value_t nu = pico8_value_ref(NULL);
-    int found;
-
     pico8_mh_shutdown();
     g_mh_spec = pico8_ob("\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n", NULL);
-    spec = pico8_ob("\nnu=o(\"mh\"),\n", NULL);
-    found = pico8_ob_table_get_name(spec, "nu", &nu);
-    assert(found && nu.kind == PICO8_VALUE_REF && nu.as.ref != NULL);
-    (void)found;
-    g_mh_nu = nu.as.ref;
-    pico8_ob_table_free(spec);
 }
 
 void pico8_mh_shutdown(void) {
     pico8_ob_table_free(g_mh_spec);
     g_mh_spec = NULL;
-    pico8_ob_table_free(g_mh_nu);
-    g_mh_nu = NULL;
     pico8_msgbox_set_kc(NULL);
 }
 

@@ -54,7 +54,7 @@ static pico8_input_t input;
 static const char *const own[] = {"fa", "ra", "hi", "ca", "gq", "eo", "ff", "fc", "k_", "qo", "ro",
                                   "qg", "q_", "pn", "du", "py", "pk", "ki", "kq", "ql", "fg", "rb"};
 static const char *const inherited[] = {"nu", "fx", "dq", "od", "fp", "dw"};
-static const char *const tables[] = {"ra", "hi", "gq", "k_", "kq", "rb"};
+static const char *const tables[] = {"ra", "hi", "gq", "kq", "rb"};
 static const char *const absent[] = {"m_", "ep", "p", "et", "p_", "hk", "hb", "ph", "ldown", "fo", "ma"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -154,6 +154,28 @@ static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
     return fnv(h, (uint32_t)t->count);
 }
 
+/* A tag sequence as fold_table folds a table of the same positionals. */
+static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
+    int i;
+
+    for (i = 0; i < s->count; i++) {
+        h = fnv(h, (uint32_t)(i + 1));
+        h = fold_value(h, pico8_value_string(s->items[i]));
+    }
+    return fnv(h, (uint32_t)s->count);
+}
+
+/* An integer sequence as fold_table folds a table of the same positionals. */
+static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
+    int i;
+
+    for (i = 0; i < s->count; i++) {
+        h = fnv(h, (uint32_t)(i + 1));
+        h = fold_value(h, pico8_value_fixed(pico8_fixed_from_int(s->items[i])));
+    }
+    return fnv(h, (uint32_t)s->count);
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -173,6 +195,12 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
             return fold_table(fnv(h, 0x7Au), v.as.ref);
+        }
+        if (v.as.ref == (const void *)&pico8_g__nu_tags) {
+            return fold_tags(fnv(h, 0x7Au), v.as.ref);
+        }
+        if (v.as.ref == (const void *)&pico8_fv_k__seq) {
+            return fold_seq(fnv(h, 0x7Au), v.as.ref);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:
@@ -257,7 +285,7 @@ static void start_title(void) {
 /* The help, whatever its form: `g_`'s `nu` and `fa`=10 (a probe has 2). */
 static int is_help(const void *e) {
     pico8_value_t fa;
-    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__default, "nu") && lookup(e, "fa", &fa) &&
+    return e != NULL && get_ref(e, "nu") == &pico8_g__nu_tags && lookup(e, "fa", &fa) &&
            fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(10);
 }
 
@@ -309,7 +337,7 @@ static void test_built(void) {
     assert(get_fixed(fv, "fa") == pico8_fixed_from_int(10));
     assert(get_fixed(fv, "ki") == pico8_fixed_from_int(17));
     assert(get_fixed(fv, "ca") == pico8_fixed_from_int(11));
-    assert(get_ref(fv, "nu") == class_ref(pico8_g__default, "nu"));
+    assert(get_ref(fv, "nu") == &pico8_g__nu_tags);
     for (i = 0; i < sizeof own / sizeof own[0]; i++) {
         assert(has(fv, own[i]));
         h = fold_field(h, fv, own[i]);
@@ -325,7 +353,8 @@ static void test_built(void) {
     for (i = 0; i < sizeof tables / sizeof tables[0]; i++) {
         assert(get_ref(fv, tables[i]) == class_ref(pico8_fv_default, tables[i]));
     }
-    assert(get_ref(fv, "k_") != class_ref(pico8_g__default, "k_"));
+    assert(get_ref(fv, "k_") == &pico8_fv_k__seq);
+    assert(get_ref(fv, "k_") != &pico8_g__k__seq);
     h = fold_field(h, fv, "me");
     h = fold_field(h, fv, "t");
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
@@ -457,6 +486,43 @@ static void test_hover(void) {
 
 /* `eu`, as a difficulty button starts it, takes the help out of `hv`,
  * `cg.g_` and `cv.kj`/`cv.hd`. */
+/* A particle of the help is drawn in the help's own `k_`: at `l`=6.5, less
+ * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. A
+ * button built just before it has neither `k_` nor `qy`: nothing drawn. */
+static void test_particle_takes_the_help_palette(void) {
+    pico8_ob_table_t *particle = pico8_ob_table_new();
+    pico8_list_t *qy;
+    pico8_vec_t *zero_p = malloc(sizeof *zero_p);
+    pico8_vec_t *zero_v = malloc(sizeof *zero_v);
+    pico8_vec_t ra;
+    void *fv;
+    void *button;
+    uint32_t before;
+    int at;
+
+    start_title();
+    fv = the_help();
+    button = pico8_hv()->items[rank_in(pico8_hv(), fv) - 1].as.ref;
+    assert(!has(button, "k_") && !has(button, "qy") && get_fixed(button, "fa") >= pico8_fixed_from_int(10));
+    before = screen_hash();
+    pico8_ei(&gfx, &mem, button);
+    assert(screen_hash() == before);
+    ra = *(const pico8_vec_t *)get_ref(fv, "ra");
+    *zero_p = pico8_vec_v(0, 0);
+    *zero_v = pico8_vec_v(0, 0);
+    pico8_ob_table_set_name(particle, "p", pico8_value_ref(zero_p));
+    pico8_ob_table_set_name(particle, "v", pico8_value_ref(zero_v));
+    pico8_ob_table_set_name(particle, "l", pico8_value_fixed(PICO8_FIXED_LIT(0x00068000, 6.5)));
+    qy = get_ref(fv, "qy");
+    qy->count = 0;
+    pico8_list_add(qy, pico8_value_ref(particle));
+    pico8_camera_reset(&gfx);
+    at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
+    pico8_poke(&mem, at, 3);
+    pico8_ei(&gfx, &mem, fv);
+    assert(pico8_peek(&mem, at) == pico8_fv_k__seq.items[5] && pico8_fv_k__seq.items[5] == 9);
+}
+
 static void test_eu_retires_the_help(void) {
     void *fv;
 
@@ -867,6 +933,7 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_hover);
+    in_fresh_child(test_particle_takes_the_help_palette);
     in_fresh_child(test_eu_retires_the_help);
     in_fresh_child(test_fv_is_a_struct);
     in_fresh_child(test_fv_members_by_name);

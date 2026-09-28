@@ -37,20 +37,13 @@ static pico8_list_t *pico8_particle_field_list(const pico8_struct_header_t *inst
     return NULL;
 }
 
-/* `k_` is an ob table for g_ and fv, a pico8_int_seq_t for the jo tree:
- * sets at most one of *table and *seq, neither when absent. */
-static void pico8_particle_field_k_(const pico8_struct_header_t *inst, const pico8_ob_table_t **table,
-                                    const pico8_int_seq_t **seq) {
+/* NULL when absent. */
+static const pico8_int_seq_t *pico8_particle_field_k_(const pico8_struct_header_t *inst) {
     pico8_value_t v;
-    *table = NULL;
-    *seq = NULL;
     if (inst != NULL && pico8_entity_get_field(inst, "k_", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            *table = (const pico8_ob_table_t *)v.as.ref;
-        } else {
-            *seq = (const pico8_int_seq_t *)v.as.ref;
-        }
+        return (const pico8_int_seq_t *)v.as.ref;
     }
+    return NULL;
 }
 
 /* Lua truthiness, sans la clause REF-NULL et sans assert : à l'unique site
@@ -108,8 +101,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     pico8_fixed_t qg;
     pico8_fixed_t ro;
     pico8_fixed_t q_;
-    const pico8_ob_table_t *cs;
-    const pico8_int_seq_t *cs_seq;
+    const pico8_int_seq_t *cs;
     pico8_list_t *qy;
     int i;
 
@@ -131,7 +123,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     qg = pico8_particle_field_fixed(self, "qg");
     ro = pico8_particle_field_fixed(self, "ro");
     q_ = pico8_particle_field_fixed(self, "q_");
-    pico8_particle_field_k_(self, &cs, &cs_seq);
+    cs = pico8_particle_field_k_(self);
 
     qy = pico8_particle_field_list(self, "qy");
     if (qy != NULL) {
@@ -206,13 +198,10 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
                 int px = pico8_particle_to_int(pico8_fixed_add(cx, new_pos->x));
                 int py = pico8_particle_to_int(pico8_fixed_add(cy, new_pos->y));
                 int col = 0;
-                pico8_value_t col_value;
                 int idx = pico8_particle_to_int(pico8_fixed_flr(new_l));
 
-                if (cs != NULL && pico8_ob_table_get_index(cs, idx, &col_value) && col_value.kind == PICO8_VALUE_FIXED) {
-                    col = pico8_particle_to_int(col_value.as.fixed);
-                } else if (cs_seq != NULL) {
-                    pico8_int_seq_at(cs_seq->items, cs_seq->count, idx, &col);
+                if (cs != NULL) {
+                    pico8_int_seq_at(cs->items, cs->count, idx, &col);
                 }
 
                 pico8_pset(gfx, mem, px, py, col);

@@ -448,7 +448,6 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     return pico8_value_ref(particle);
 }
 
-static pico8_ob_table_t *g_g__nu = NULL;
 static pico8_fixed_t g_g__fx = 0;
 static const char *g_g__dq = NULL;
 static pico8_fixed_t g_g__od = 0;
@@ -460,7 +459,6 @@ static pico8_fixed_t g_g__ki = 0;
 static pico8_fixed_t g_g__pn = 0;
 static pico8_fixed_t g_g__pk = 0;
 static pico8_fixed_t g_g__fc = 0;
-static pico8_ob_table_t *g_g__k_ = NULL;
 static pico8_fixed_t g_g__qo = 0;
 static pico8_fixed_t g_g__ro = 0;
 static pico8_fixed_t g_g__qg = 0;
@@ -468,7 +466,6 @@ static pico8_fixed_t g_g__q_ = 0;
 static pico8_fixed_t g_g__du = 0;
 
 static void pico8_g__defaults_reset(void) {
-    g_g__nu = NULL;
     g_g__fx = 0;
     g_g__dq = NULL;
     g_g__od = 0;
@@ -480,7 +477,6 @@ static void pico8_g__defaults_reset(void) {
     g_g__pn = 0;
     g_g__pk = 0;
     g_g__fc = 0;
-    g_g__k_ = NULL;
     g_g__qo = 0;
     g_g__ro = 0;
     g_g__qg = 0;
@@ -498,11 +494,11 @@ pico8_value_t pico8_g__et(const pico8_g__t *self) {
     return pico8_value_ref(self->et);
 }
 
-static int g__ref_field(void *ref, pico8_value_t *out_value) {
+static int g__ref_field(const void *ref, pico8_value_t *out_value) {
     if (ref == NULL) {
         return 0;
     }
-    *out_value = pico8_value_ref(ref);
+    *out_value = pico8_value_ref((void *)ref);
     return 1;
 }
 
@@ -705,7 +701,7 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->has_et = 0;
     self->p_ = 0;
     self->has_p_ = 0;
-    self->nu = g_g__nu;
+    self->nu = &pico8_g__nu_tags;
     self->fx = g_g__fx;
     self->dq = g_g__dq;
     self->od = g_g__od;
@@ -717,7 +713,7 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->pn = g_g__pn;
     self->pk = g_g__pk;
     self->fc = g_g__fc;
-    self->k_ = g_g__k_;
+    self->k_ = &pico8_g__k__seq;
     self->qo = g_g__qo;
     self->ro = g_g__ro;
     self->qg = g_g__qg;
@@ -764,14 +760,6 @@ static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-static pico8_ob_table_t *g__default_table(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "g_.nu/k_: a default of the struct is a key of g_'s spec and a table (ref:table)");
-    (void)found;
-    return v.as.ref;
-}
-
 static const char *g__default_string(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
            "g_.dq: a default of the struct is a key of g_'s spec and a string (chaine)");
@@ -803,8 +791,6 @@ void pico8_probe_init(void) {
         "\nnu=o(\"g_\",\"prober\"),\nfx=1,\ndq=\"ly\",\nod=0,fp=f,\nfa=2,\ndw=0.025,\npy=0.06,ki=9,\npn=3,pk=1,\nfc=1,"
         "\nk_=o(1,1,5,13,6),\nqo=1.02,ro=-0.0525,\nqg=0.0525,q_=1.02,\ndu=2,\n",
         NULL);
-    found = pico8_g__default("nu", &v);
-    g_g__nu = g__default_table(found, v);
     found = pico8_g__default("fx", &v);
     g_g__fx = g__default_fixed(found, v);
     found = pico8_g__default("dq", &v);
@@ -827,8 +813,6 @@ void pico8_probe_init(void) {
     g_g__pk = g__default_fixed(found, v);
     found = pico8_g__default("fc", &v);
     g_g__fc = g__default_fixed(found, v);
-    found = pico8_g__default("k_", &v);
-    g_g__k_ = g__default_table(found, v);
     found = pico8_g__default("qo", &v);
     g_g__qo = g__default_fixed(found, v);
     found = pico8_g__default("ro", &v);

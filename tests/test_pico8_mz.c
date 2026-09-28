@@ -323,8 +323,8 @@ static void *first_with_me(const char *tag, const char *me) {
  * `ox`, registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_mz(const void *mz) {
     pico8_value_t v;
-    const pico8_ob_table_t *kk;
-    const pico8_ob_table_t *nu;
+    const pico8_int_seq_t *kk;
+    const pico8_str_seq_t *nu;
     const void *jj;
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
@@ -342,15 +342,13 @@ static void check_fresh_mz(const void *mz) {
 
     assert(pico8_entity_get_field(mz, "kk", &v) && v.kind == PICO8_VALUE_REF);
     kk = v.as.ref;
-    assert(kk->count == 9);
+    assert(kk == &pico8_mz_kk_seq && kk->count == 9);
     for (i = 0; i < 9; i++) {
-        pico8_value_t entry;
-        assert(pico8_ob_table_get_index(kk, i + 1, &entry) && entry.kind == PICO8_VALUE_FIXED);
-        assert(entry.as.fixed == pico8_fixed_from_int(want_kk[i]));
+        assert(kk->items[i] == want_kk[i]);
     }
     assert(pico8_entity_get_field(mz, "nu", &v) && v.kind == PICO8_VALUE_REF);
     nu = v.as.ref;
-    assert(pico8_ob_table_get_index(nu, 1, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "mz") == 0);
+    assert(nu == &pico8_mz_nu_tags && nu->count == 1 && strcmp(nu->items[0], "mz") == 0);
     assert(pico8_entity_get_field(mz, "jj", &v) && v.kind == PICO8_VALUE_REF);
     jj = v.as.ref;
     assert(pico8_entity_get_field(jj, "qs", &v) && v.kind == PICO8_VALUE_STRING &&
@@ -923,6 +921,12 @@ static int mz_bool(const void *mz, const char *name, int want) {
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
+    if (ref == (const void *)&pico8_mz_nu_tags) {
+        return fnv(fnv(h, 0x7Au), (uint32_t)pico8_mz_nu_tags.count);
+    }
+    if (ref == (const void *)&pico8_mz_kk_seq) {
+        return fnv(fnv(h, 0x7Au), (uint32_t)pico8_mz_kk_seq.count);
+    }
     switch (pico8_type_tag_of(ref)) {
     case PICO8_TYPE_TAG_STRUCT:
         if (ref == (const void *)pico8_mz_jj_wrapper()) {

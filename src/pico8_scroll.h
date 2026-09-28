@@ -2,6 +2,7 @@
 #define PICO8_SCROLL_H
 
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_input.h"
 #include "pico8_ke.h"
@@ -14,16 +15,15 @@
  * safe no-op, and a nil (NULL) vector member reads as the zero vector
  * rather than crashing. */
 
-/* `v`, `p` and `ra` start on vectors every qb shares, `pc` on the
- * direction table the module owns: none is ever modified in place, only
- * rebound. Nothing frees the struct: TROU-7. */
+/* `v`, `p` and `ra` start on vectors every qb shares, `pc` on
+ * `pico8_qb_pc_vecs`: none is ever modified in place, only rebound. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     pico8_vec_t *v;
     pico8_fixed_t ma;
     pico8_vec_t *p;
     pico8_vec_t *ra;
-    pico8_ob_table_t *pc;
+    const pico8_vec_seq_t *pc;
 } pico8_qb_t;
 
 /* Calls pico8_pi_init() first: the spec holds `v(...)`, so the 'v'
@@ -33,7 +33,7 @@ typedef struct {
  * camera into hv/cv/cg. */
 void pico8_qb_init(void);
 
-/* Frees the spec and the `pc` table. */
+/* Frees the spec. */
 void pico8_qb_shutdown(void);
 
 /* 1 from pico8_qb_init() to pico8_qb_shutdown(), 0 otherwise. */

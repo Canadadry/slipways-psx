@@ -471,7 +471,8 @@ static void check_fresh_jc(const void *jc, const void *qu) {
                                          "kz", "ph", "ldown", "gv", "md"};
     static const char *const methods[] = {"hq", "ey", "eb", "ev", "kj"};
     pico8_value_t v;
-    const pico8_ob_table_t *k_;
+    const pico8_int_seq_t *k_;
+    const pico8_str_seq_t *nu;
     const pico8_ob_table_t *hg;
     size_t i;
 
@@ -485,15 +486,13 @@ static void check_fresh_jc(const void *jc, const void *qu) {
     assert(must_fixed(jc, "nh") == pico8_fixed_from_int(20));
 
     k_ = get_ref(jc, "k_");
-    assert(k_ != NULL && k_->count == 20);
+    assert(k_ == &pico8_jc_k__seq && k_->count == 20);
     for (i = 0; i < 20; i++) {
-        pico8_value_t entry;
-        assert(pico8_ob_table_get_index(k_, (int)i + 1, &entry) && entry.kind == PICO8_VALUE_FIXED);
-        assert(entry.as.fixed == pico8_fixed_from_int(want_k_[i]));
+        assert(k_->items[i] == want_k_[i]);
     }
     assert(pico8_entity_get_field(jc, "nu", &v) && v.kind == PICO8_VALUE_REF);
-    assert(((const pico8_ob_table_t *)v.as.ref)->count == 1);
-    assert(pico8_ob_table_get_index(v.as.ref, 1, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "jc") == 0);
+    nu = v.as.ref;
+    assert(nu == &pico8_jc_nu_tags && nu->count == 1 && strcmp(nu->items[0], "jc") == 0);
     assert(get_ref(jc, "qu") == qu);
 
     assert(list_count(jc, "ts") == 0);

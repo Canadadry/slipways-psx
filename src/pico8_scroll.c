@@ -12,7 +12,6 @@
 #include "pico8_vec.h"
 
 static pico8_ob_table_t *g_qb_spec = NULL;
-static pico8_ob_table_t *g_qb_pc = NULL;
 static pico8_vec_t g_qb_v = {0, 0};
 static pico8_vec_t g_qb_p = {0, 0};
 static pico8_vec_t g_qb_ra = {0, 0};
@@ -77,7 +76,7 @@ static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out
         if (qb->pc == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(qb->pc);
+        *out_value = pico8_value_ref((void *)qb->pc);
         return 1;
     }
     return pico8_ke_field(self, name, out_value);
@@ -130,7 +129,7 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
     self->ma = pico8_fixed_from_int(0);
     self->p = &g_qb_p;
     self->ra = &g_qb_ra;
-    self->pc = g_qb_pc;
+    self->pc = &pico8_qb_pc_vecs;
     assert((overrides == NULL || overrides->count == 0) &&
            "qb: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
@@ -148,7 +147,6 @@ void pico8_qb_init(void) {
     g_qb_spec = pico8_ob("\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
                          "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n",
                          NULL);
-    g_qb_pc = pico8_ob("v(-1,0),v(1,0),v(0,-1),v(0,1),", NULL);
     g_qb_p = pico8_vec_v(pico8_fixed_from_int(192), pico8_fixed_from_int(192));
     g_qb_ra = pico8_vec_v(pico8_fixed_from_int(192), pico8_fixed_from_int(192));
 }
@@ -156,8 +154,6 @@ void pico8_qb_init(void) {
 void pico8_qb_shutdown(void) {
     pico8_ob_table_free(g_qb_spec);
     g_qb_spec = NULL;
-    pico8_ob_table_free(g_qb_pc);
-    g_qb_pc = NULL;
 }
 
 int pico8_qb_ready(void) {
@@ -179,7 +175,7 @@ pico8_qb_t *pico8_qb_new(const pico8_ob_table_t *overrides) {
 
 void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
     pico8_vec_t ip = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    const pico8_ob_table_t *pc_table = NULL;
+    const pico8_vec_seq_t *pc = NULL;
     pico8_vec_t p;
     pico8_vec_t v;
     pico8_vec_t *p_new;
@@ -191,7 +187,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
         return;
     }
 
-    pc_table = self->pc;
+    pc = self->pc;
 
     for (b = 0; b <= 3; b++) {
         int btn_p1 = pico8_btn(input, b);
@@ -200,10 +196,8 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
 
         if (btn_p1 || btn_p2) {
             pico8_vec_t dir = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-            pico8_value_t dir_val;
-            if (pc_table != NULL && pico8_ob_table_get_index(pc_table, b + 1, &dir_val) &&
-                dir_val.kind == PICO8_VALUE_REF && dir_val.as.ref != NULL) {
-                dir = *(const pico8_vec_t *)dir_val.as.ref;
+            if (pc != NULL && b < pc->count) {
+                dir = pc->items[b];
             }
             ip = pico8_vec_add(ip, pico8_vec_mul(dir, pico8_fixed_from_int(3)));
         }

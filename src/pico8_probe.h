@@ -2,6 +2,7 @@
 #define PICO8_PROBE_H
 
 #include "pico8_economy.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
@@ -18,11 +19,11 @@
  * the rest of the body still runs. */
 
 /* TROU-7 */
-/* `nu` and `k_` are the tables of `g_`'s class, borrowed and shared with
- * `fv`, never modified; `ra` is the very REF `bv` was passed, aliased. */
+/* `nu` points at `pico8_g__nu_tags` (for `fv` too), `k_` at `pico8_g__k__seq`
+ * (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv` was passed, aliased. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_ob_table_t *nu;
+    const pico8_str_seq_t *nu;
     pico8_fixed_t fx;
     const char *dq;
     pico8_fixed_t od;
@@ -34,7 +35,7 @@ typedef struct {
     pico8_fixed_t pn;
     pico8_fixed_t pk;
     pico8_fixed_t fc;
-    pico8_ob_table_t *k_;
+    const pico8_int_seq_t *k_;
     pico8_fixed_t qo;
     pico8_fixed_t ro;
     pico8_fixed_t qg;

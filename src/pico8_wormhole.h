@@ -2,6 +2,7 @@
 #define PICO8_WORMHOLE_H
 
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
@@ -19,12 +20,12 @@ typedef struct {
     const char *qs;
 } pico8_mz_jj_t;
 
-/* `nu` and `kk` point at the tables the module owns, `jj` at the one
- * `pico8_mz_jj_t`; all shared by every `mz` and never modified in place.
+/* `nu` points at `pico8_mz_nu_tags`, `kk` at `pico8_mz_kk_seq`, `jj` at the
+ * one `pico8_mz_jj_t`; all shared by every `mz` and never modified in place.
  * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_ob_table_t *nu;
+    const pico8_str_seq_t *nu;
     pico8_fixed_t dw;
     const char *dq;
     pico8_fixed_t spawn_snd;
@@ -33,7 +34,7 @@ typedef struct {
     pico8_fixed_t od;
     pico8_fixed_t fp;
     pico8_fixed_t fa;
-    pico8_ob_table_t *kk;
+    const pico8_int_seq_t *kk;
     pico8_mz_jj_t *jj;
     pico8_list_t *ox;
     pico8_vec_t *ra;
@@ -51,9 +52,8 @@ pico8_value_t pico8_mz_et(const pico8_mz_t *self);
 
 void pico8_wormhole_init(void);
 
-/* Frees the `mz` spec and the module's `nu`/`kk` tables, never any `mz`
- * nor the `jj` wrapper. Idempotent, and safe before the first
- * `pico8_wormhole_init()`. */
+/* Frees the `mz` spec, never any `mz` nor the `jj` wrapper. Idempotent,
+ * and safe before the first `pico8_wormhole_init()`. */
 void pico8_wormhole_shutdown(void);
 
 /* 1 from pico8_wormhole_init() to pico8_wormhole_shutdown(), 0 otherwise. */

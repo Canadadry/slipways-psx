@@ -2,6 +2,7 @@
 #define PICO8_MSGBOX_H
 
 #include "pico8_struct.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
@@ -16,10 +17,10 @@
 /* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
  * through `bl`, in the order the construction table stored them: a table
  * among them stays shared with the caller. Nothing frees the struct or
- * its list: TROU-7. `nu` points at one table shared by every mh. */
+ * its list: TROU-7. `nu` points at `pico8_mh_nu_tags`. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_ob_table_t *nu;
+    const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     pico8_fixed_t rh;
     pico8_value_function_t lh; /* NULL: `lh` is nil */
@@ -36,7 +37,7 @@ void pico8_msgbox_set_kc(pico8_mh_t *mh);
 
 void pico8_mh_init(void);
 
-/* Frees the `mh` spec and the shared `nu` table and clears `kc`, never any
+/* Frees the `mh` spec and clears `kc`, never any
  * box. Idempotent, and safe before the first `pico8_mh_init()`. */
 void pico8_mh_shutdown(void);
 

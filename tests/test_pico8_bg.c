@@ -224,7 +224,7 @@ static const void *pl_of(const void *bg) {
 static void check_fresh_bg(const void *bg) {
     static const char *const absent[] = {"mq", "m_", "ra", "p_", "nu", "fg", "ql", "qu", "gv", "ey", "fx", "ph"};
     static const char *const methods[] = {"kj", "ldown", "rdown", "hq"};
-    const pico8_ob_table_t *pl;
+    const pico8_int_seq_t *pl;
     size_t i;
 
     assert(is_string(bg, "me", "ph"));
@@ -232,11 +232,9 @@ static void check_fresh_bg(const void *bg) {
     assert(must_fixed(bg, "fa") == pico8_fixed_from_int(1));
     assert(must_fixed(bg, "hd") == pico8_fixed_from_int(1));
     pl = pl_of(bg);
-    assert(pico8_type_tag_of(pl) == PICO8_TYPE_TAG_OB_TABLE && pl->count == 15);
+    assert(pl == &pico8_bg_pl_seq && pl->count == 15);
     for (i = 0; i < 15; i++) {
-        pico8_value_t entry;
-        assert(pico8_ob_table_get_index(pl, (int)i + 1, &entry) && entry.kind == PICO8_VALUE_FIXED);
-        assert(entry.as.fixed == pico8_fixed_from_int(want_pl[i]));
+        assert(pl->items[i] == want_pl[i]);
     }
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(bg, absent[i]));
@@ -652,8 +650,8 @@ static uint32_t fold_bg(uint32_t h, const void *bg, const void *want_mq) {
     h = fold_member(h, bg, "hd", &v);
     assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1));
     h = fold_member(h, bg, "pl", &v);
-    assert(v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    h = fnv(h, (uint32_t)((const pico8_ob_table_t *)v.as.ref)->count);
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref == &pico8_bg_pl_seq);
+    h = fnv(h, (uint32_t)pico8_bg_pl_seq.count);
     h = fold_member(h, bg, "mq", &v);
     if (want_mq == NULL) {
         assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == WITNESS);

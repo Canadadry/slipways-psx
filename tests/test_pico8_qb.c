@@ -39,7 +39,7 @@
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
-#define QB_MEMBERS_HASH 0x5D708DDBu
+#define QB_MEMBERS_HASH 0x7382517Bu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -177,17 +177,15 @@ static void pad(int i, int left, int right, int up, int down) {
     g_frames[i].dpad[3] = down;
 }
 
-static int is_vec(pico8_value_t v, int x, int y) {
-    const pico8_vec_t *p = v.as.ref;
-    return v.kind == PICO8_VALUE_REF && p != NULL && p->x == pico8_fixed_from_int(x) && p->y == pico8_fixed_from_int(y);
+static int is_vec(pico8_vec_t v, int x, int y) {
+    return v.x == pico8_fixed_from_int(x) && v.y == pico8_fixed_from_int(y);
 }
 
 /* `jl()` builds `mo`: in hv only, the spec's defaults, ke's `me`/`t`, `pc`
  * in the order left, right, up, down, and `p`/`ra` two distinct vectors. */
 static void check_fresh_mo(const void *mo) {
-    const pico8_ob_table_t *pc;
+    const pico8_vec_seq_t *pc;
     pico8_value_t me;
-    pico8_value_t d;
     pico8_vec_t p = must_vec(mo, "p");
     pico8_vec_t ra = must_vec(mo, "ra");
     pico8_vec_t v = must_vec(mo, "v");
@@ -202,11 +200,11 @@ static void check_fresh_mo(const void *mo) {
     assert(ref_of(mo, "p") != ref_of(mo, "ra"));
 
     pc = ref_of(mo, "pc");
-    assert(pico8_type_tag_of(pc) == PICO8_TYPE_TAG_OB_TABLE && pc->count == 4);
-    assert(pico8_ob_table_get_index(pc, 1, &d) && is_vec(d, -1, 0));
-    assert(pico8_ob_table_get_index(pc, 2, &d) && is_vec(d, 1, 0));
-    assert(pico8_ob_table_get_index(pc, 3, &d) && is_vec(d, 0, -1));
-    assert(pico8_ob_table_get_index(pc, 4, &d) && is_vec(d, 0, 1));
+    assert(pc == &pico8_qb_pc_vecs && pc->count == 4);
+    assert(is_vec(pc->items[0], -1, 0));
+    assert(is_vec(pc->items[1], 1, 0));
+    assert(is_vec(pc->items[2], 0, -1));
+    assert(is_vec(pc->items[3], 0, 1));
 }
 
 static void test_jl_builds_a_camera(void) {
@@ -497,6 +495,9 @@ static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
     if (v.kind == PICO8_VALUE_FIXED) {
         return fnv(h, (uint32_t)v.as.fixed);
     }
+    if (v.kind == PICO8_VALUE_REF && v.as.ref == (const void *)&pico8_qb_pc_vecs) {
+        return fnv(h, (uint32_t)pico8_qb_pc_vecs.count);
+    }
     if (v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN) {
         const pico8_vec_t *p = v.as.ref;
         h = fnv(h, (uint32_t)p->x);
@@ -574,15 +575,14 @@ static void must_abort(void *e, const char *name) {
 
 /* Every member by name on `jl()`'s `mo` and a second qb: shared defaults,
  * `v` written nil then a vector, `ma` written a zero-union fixed, `ph` over
- * a nil `v`, the raw writer on names it does not write, `pc` absent when
- * the module table is gone. */
+ * a nil `v`, the raw writer on names it does not write, `pc` still the
+ * generated data after a shutdown. */
 static void test_qb_members_by_name(void) {
     const char *intruders[] = {"", "V", "x", "q", "has_v", "has_ma", "ke", "header", "pa", "m"};
     const char *unwritten[] = {"p", "ra", "pc", "me", "t", "", "V", "ma ", "has_v"};
     const pico8_struct_set_field_fn raw_set = pico8_qb_struct_class()->set_field;
     uint32_t h = 2166136261u;
     pico8_value_t x;
-    pico8_value_t spec_pc;
     pico8_value_t zero_fixed;
     pico8_value_t va;
     pico8_value_t vb;
@@ -604,8 +604,7 @@ static void test_qb_members_by_name(void) {
     assert(ref2(a, "v") == ref2(b, "v") && ref2(a, "p") == ref2(b, "p"));
     assert(ref2(a, "ra") == ref2(b, "ra") && ref2(a, "pc") == ref2(b, "pc"));
     assert(ref2(a, "p") != ref2(a, "ra"));
-    assert(pico8_qb_default("pc", &spec_pc) && spec_pc.kind == PICO8_VALUE_REF);
-    assert(spec_pc.as.ref != ref2(a, "pc"));
+    assert(ref2(a, "pc") == &pico8_qb_pc_vecs);
     for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
         h = fnv(h, (uint32_t)get2(b, intruders[i], &x));
     }
@@ -673,7 +672,7 @@ static void test_qb_members_by_name(void) {
 
     pico8_qb_shutdown();
     c = pico8_qb_new(NULL);
-    assert(!get2(c, "pc", &x));
+    assert(ref2(c, "pc") == &pico8_qb_pc_vecs);
     h = fold_all(h, c);
     pico8_jl();
     check("qb members", h, QB_MEMBERS_HASH);
@@ -739,7 +738,7 @@ static void test_qb_writer_stops_off_row(void) {
     must_abort_value(b, write_v_by_name, pico8_value_bool(1));
     must_abort_value(b, write_v_by_name, pico8_value_string("x"));
     must_abort_value(b, write_v_by_name, ph);
-    must_abort_value(b, write_v_by_name, pico8_value_ref((void *)ref_of(b, "pc")));
+    must_abort_value(b, write_v_by_name, pico8_value_ref(pico8_ob_table_new()));
     must_abort_value(b, write_v_by_name, pico8_value_ref((void *)pico8_hv()));
     must_abort_value(b, write_v_by_name, pico8_value_ref(a));
 

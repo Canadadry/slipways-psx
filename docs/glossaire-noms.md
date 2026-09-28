@@ -31,7 +31,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `he(e)` | `pico8_he` | retire une entité de `hv`/`cv`/`cg` |
 | `ci` | `pico8_ci_table` (`pico8_game_data.h`) | facteur de mélange de palette par couche, lu par la branche `kj` de `dc` |
 | `jl()` | `pico8_jl` | (re)construit les singletons du jeu : `mo=qb()`, `je=nf()`, `ok=ui()` |
-| `nu` | champ `"nu"` ; dans l'arbre `jo`, `const pico8_str_seq_t *nu` → `pico8_X_nu_tags` (`pico8_game_data.h`) | étiquettes d'une classe, ce par quoi `cg` l'indexe |
+| `nu` | champ `"nu"` ; `const pico8_str_seq_t *nu` → `pico8_X_nu_tags` (`pico8_game_data.h` ; `fv` pointe `pico8_g__nu_tags`) | étiquettes d'une classe, ce par quoi `cg` l'indexe |
 
 ## Mémoire cart et données encodées
 
@@ -149,7 +149,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `qb:ph` | `pico8_qb_ph` | défilement au D-pad avec inertie, position bornée à [-64, 320] |
 | `qb:md(fy)` | `pico8_qb_md` | applique la caméra, `ra` multiplié par le facteur de parallaxe `fy` |
-| `pc` | champ | les 4 vecteurs directions unitaires du D-pad |
+| `pc` | champ ; `const pico8_vec_seq_t *pc` → `pico8_qb_pc_vecs` | les 4 vecteurs directions unitaires du D-pad |
 | `v` (champ de `qb`) | — | vélocité de la caméra, distinct du constructeur `v(x,y)` |
 
 ## Composition graphique
@@ -283,7 +283,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `bg:kj` | `pico8_bg_kj` | dessine la carte, une grille pointillée tous les 32 px, puis une bordure |
 | `bg:ldown` | `pico8_bg_ldown` | clic gauche sur le vide : lance une sonde `g_`, ou un trou de ver `mz` si une sonde est déjà en vol |
 | `bg:rdown`, `bg:hq` | `pico8_bg_rdown`, `pico8_bg_hq` | glisser-caméra au clic droit : le déplacement de la souris devient la vélocité `mo.v` |
-| `pl` | champ de `bg` | les 15 tuiles parmi lesquelles le fond est tiré |
+| `pl` | champ de `bg` ; `const pico8_int_seq_t *pl` → `pico8_bg_pl_seq` | les 15 tuiles parmi lesquelles le fond est tiré |
 | `mq` | champ de `bg` | dernière position souris mémorisée pendant un glissé |
 
 ## La sonde `g_`
@@ -415,7 +415,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jb` | `pico8_jb_t` | une bulle d'info |
 | — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, et `px`, `dz`, `em` de l'arbre `jo` : une rangée de chaînes, de nombres, de faux (`is_false`) et de rangées, avec son `c` éventuel |
 | — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`) |
-| — | `pico8_int_seq_t`, `pico8_str_seq_t` | séquence d'entiers, liste d'étiquettes, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
+| — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
 | `js` | `pico8_js_t` | un bouton cliquable |
@@ -513,10 +513,10 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | Nom | Sens |
 |---|---|
 | `oi` | rayon du cercle en expansion d'un trou de ver |
-| `kk` | rampe de 9 couleurs indexée par le rayon relatif (voir TROU-12) |
+| `kk` | rampe de 9 couleurs indexée par le rayon relatif (voir TROU-12) ; `pico8_mz_kk_seq` |
 | `qy` | liste de particules vivantes |
 | `pn`, `pk`, `du`, `py`, `ki` | forme d'une particule : tranches angulaires, rotation d'un quart de tour, rayon de base, facteur de vélocité, durée de vie |
-| `k_` | palette de la traînée de particules (arbre `jo` : `pico8_X_k__seq` ; celle que `pm:pq` passe à son `ga` : `pico8_pm_ga_k__seq`) |
+| `k_` | palette de la traînée de particules, `const pico8_int_seq_t *` : `pico8_X_k__seq` (`g_`, `fv`, `jc`, arbre `jo`) ; celle que `pm:pq` passe à son `ga` : `pico8_pm_ga_k__seq` |
 | `l` (sur `iv`) | avancement du fondu, 0 → 5 ; sert d'indice de bloc de palette et déclenche `p_` à 5 |
 | `qw` | index de bloc de palette du sprite ; posé par `nl`, absent = 0 |
 | `s` | identifiant de sprite |

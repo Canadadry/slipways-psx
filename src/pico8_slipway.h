@@ -2,6 +2,7 @@
 #define PICO8_SLIPWAY_H
 
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_ke.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -11,17 +12,17 @@
  * an absent or wrong-kind field of another entity, reads as absent rather
  * than crashing. */
 
-/* `nu` and `k_` point at the tables the module owns, shared by every `jc`
- * and never modified in place; `ts` and `hg` are this slipway's own,
- * made by `pico8_jc_pq`. Nothing frees the struct: TROU-7. */
+/* `nu` points at `pico8_jc_nu_tags`, `k_` at `pico8_jc_k__seq`; `ts` and
+ * `hg` are this slipway's own, made by `pico8_jc_pq`. Nothing frees the
+ * struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_ob_table_t *nu;
+    const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     int fp;
     pico8_fixed_t ik;
     pico8_fixed_t dw;
-    pico8_ob_table_t *k_;
+    const pico8_int_seq_t *k_;
     pico8_fixed_t nh;
     pico8_struct_header_t *qu; /* borrowed, never freed */
     pico8_list_t *ts;
@@ -39,7 +40,7 @@ typedef struct {
 
 void pico8_jc_init(void);
 
-/* Frees the `jc` spec and the module's `nu`/`k_` tables, never any `jc`.
+/* Frees the `jc` spec, never any `jc`.
  * Idempotent, and safe before the first `pico8_jc_init()`. */
 void pico8_jc_shutdown(void);
 

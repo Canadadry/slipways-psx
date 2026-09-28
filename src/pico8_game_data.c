@@ -225,6 +225,36 @@ const pico8_int_seq_t pico8_fr_hz_seq = {4, fr_hz_items};
 static const int mx_ht_items[] = {28, 20, 21, 22};
 const pico8_int_seq_t pico8_mx_ht_seq = {4, mx_ht_items};
 
+static const char *const mh_nu_items[] = {"mh"};
+const pico8_str_seq_t pico8_mh_nu_tags = {1, mh_nu_items};
+
+static const char *const g__nu_items[] = {"g_", "prober"};
+const pico8_str_seq_t pico8_g__nu_tags = {2, g__nu_items};
+
+static const int g__k__items[] = {1, 1, 5, 13, 6};
+const pico8_int_seq_t pico8_g__k__seq = {5, g__k__items};
+
+static const int fv_k__items[] = {0, 1, 1, 2, 4, 9, 10, 9, 4, 2, 1, 1, 1};
+const pico8_int_seq_t pico8_fv_k__seq = {13, fv_k__items};
+
+static const char *const jc_nu_items[] = {"jc"};
+const pico8_str_seq_t pico8_jc_nu_tags = {1, jc_nu_items};
+
+static const int jc_k__items[] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
+const pico8_int_seq_t pico8_jc_k__seq = {20, jc_k__items};
+
+static const char *const mz_nu_items[] = {"mz"};
+const pico8_str_seq_t pico8_mz_nu_tags = {1, mz_nu_items};
+
+static const int mz_kk_items[] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
+const pico8_int_seq_t pico8_mz_kk_seq = {9, mz_kk_items};
+
+static const int bg_pl_items[] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
+const pico8_int_seq_t pico8_bg_pl_seq = {15, bg_pl_items};
+
+static const pico8_vec_t qb_pc_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
+const pico8_vec_seq_t pico8_qb_pc_vecs = {4, qb_pc_items};
+
 int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {

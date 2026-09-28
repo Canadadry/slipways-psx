@@ -330,6 +330,60 @@ static int same_value(pico8_value_t a, pico8_value_t b) {
     }
 }
 
+static int tags_equal(const pico8_ob_table_t *t, const pico8_str_seq_t *tags) {
+    int j;
+
+    if (t->count != tags->count) {
+        return 0;
+    }
+    for (j = 0; j < tags->count; j++) {
+        if (t->entries[j].key.kind != PICO8_OB_KEY_INDEX || t->entries[j].value.kind != PICO8_VALUE_STRING ||
+            strcmp(t->entries[j].value.as.string, tags->items[j]) != 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int ints_equal(const pico8_ob_table_t *t, const pico8_int_seq_t *seq) {
+    int j;
+
+    if (t->count != seq->count) {
+        return 0;
+    }
+    for (j = 0; j < seq->count; j++) {
+        if (t->entries[j].key.kind != PICO8_OB_KEY_INDEX || t->entries[j].value.kind != PICO8_VALUE_FIXED ||
+            t->entries[j].value.as.fixed != pico8_fixed_from_int(seq->items[j])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* same_value(), plus the converted table members of a module whose struct
+ * took them from its spec: a spec table and the struct's untagged REF are
+ * the same default when that REF is the data generated from the spec that
+ * answered, whose content must then agree. The modules that parsed them
+ * apart (bg, qb, mh, jc, mz) never held the spec's table and stay apart. */
+static int same_default(int i, const char *name, pico8_value_t spec, pico8_value_t made) {
+    if (spec.kind == PICO8_VALUE_REF && made.kind == PICO8_VALUE_REF && spec.as.ref != NULL &&
+        pico8_type_tag_of(spec.as.ref) == PICO8_TYPE_TAG_OB_TABLE && made.as.ref != spec.as.ref) {
+        if ((i == M_G_ || i == M_FV) && strcmp(name, "nu") == 0 && made.as.ref == &pico8_g__nu_tags) {
+            assert(tags_equal(spec.as.ref, &pico8_g__nu_tags));
+            return 1;
+        }
+        if (i == M_G_ && strcmp(name, "k_") == 0 && made.as.ref == &pico8_g__k__seq) {
+            assert(ints_equal(spec.as.ref, &pico8_g__k__seq));
+            return 1;
+        }
+        if (i == M_FV && strcmp(name, "k_") == 0 && made.as.ref == &pico8_fv_k__seq) {
+            assert(ints_equal(spec.as.ref, &pico8_fv_k__seq));
+            return 1;
+        }
+    }
+    return same_value(spec, made);
+}
+
 static void check(const char *label, uint32_t got, uint32_t want) {
     printf("[%s] 0x%08Xu\n", label, (unsigned)got);
     fflush(stdout);
@@ -388,7 +442,7 @@ static void test_struct_defaults(void) {
 
             h = fnv(h, (uint32_t)in_spec);
             h = fnv(h, (uint32_t)in_struct);
-            h = fnv(h, (uint32_t)(in_spec && in_struct && same_value(from_spec, from_struct)));
+            h = fnv(h, (uint32_t)(in_spec && in_struct && same_default(i, NAMES[n], from_spec, from_struct)));
         }
         h = fnv(h, (uint32_t)i);
     }

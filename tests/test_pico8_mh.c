@@ -304,13 +304,13 @@ static void test_scores_box_follows_c_(void) {
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows c_");
 }
 
-/* The box's defaults are what the spec parser makes of mh's spec string,
- * which the class still carries. */
+/* The box's `fa`/`rh` are what the spec parser makes of mh's spec string,
+ * which the class still carries; its `nu` is the generated tags. */
 static void test_defaults_match_the_parsed_spec(void) {
     const void *box;
     pico8_value_t got;
     pico8_value_t parsed;
-    const pico8_ob_table_t *nu;
+    const pico8_str_seq_t *nu;
 
     pico8_jl();
     box = year_box(3400);
@@ -322,8 +322,8 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(got.as.fixed == pico8_fixed_from_int(5));
     assert(pico8_entity_get_field(box, "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref != NULL);
     nu = got.as.ref;
-    assert(nu->count == 1 && nu->entries[0].value.kind == PICO8_VALUE_STRING);
-    assert(strcmp(nu->entries[0].value.as.string, "mh") == 0);
+    assert(nu == &pico8_mh_nu_tags && nu->count == 1);
+    assert(strcmp(nu->items[0], "mh") == 0);
     assert(pico8_entity_get_field(year_box(3400), "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref == nu);
     assert(pico8_entity_get_field(box, "me", &got) && got.kind == PICO8_VALUE_STRING && strcmp(got.as.string, "ph") == 0);
 }
@@ -408,7 +408,7 @@ static void test_mh_members_by_name(void) {
     void *a;
     void *b;
     const void *nu;
-    const pico8_ob_table_t *tags;
+    const pico8_str_seq_t *tags;
     pico8_value_t v;
     pico8_value_t out;
     uint32_t h = 2166136261u;
@@ -423,9 +423,8 @@ static void test_mh_members_by_name(void) {
     assert(has_member(a, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     nu = v.as.ref;
     tags = nu;
-    assert(pico8_type_tag_of(tags) == PICO8_TYPE_TAG_OB_TABLE);
-    assert(tags->count == 1 && tags->entries[0].key.kind != PICO8_OB_KEY_NAME &&
-           tags->entries[0].value.kind == PICO8_VALUE_STRING && strcmp(tags->entries[0].value.as.string, "mh") == 0);
+    assert(tags == &pico8_mh_nu_tags);
+    assert(tags->count == 1 && strcmp(tags->items[0], "mh") == 0);
     assert(!has_member(a, "lh", &v));
     assert(!has_member(a, "p_", &v));
     assert(!pico8_mv(a, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));

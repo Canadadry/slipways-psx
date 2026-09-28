@@ -16,7 +16,6 @@
 #include "pico8_wormhole.h"
 
 static pico8_ob_table_t *g_bg_spec = NULL;
-static pico8_ob_table_t *g_bg_pl = NULL;
 
 static int pico8_bg_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -70,7 +69,7 @@ static int pico8_bg_field(const void *self, const char *name, pico8_value_t *out
         if (bg->pl == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(bg->pl);
+        *out_value = pico8_value_ref((void *)bg->pl);
         return 1;
     }
     if (strcmp(name, "mq") == 0) {
@@ -141,7 +140,7 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ke_struct_init(&self->ke, &g_bg_struct_class);
     self->fa = pico8_fixed_from_int(1);
     self->hd = pico8_fixed_from_int(1);
-    self->pl = g_bg_pl;
+    self->pl = &pico8_bg_pl_seq;
     self->mq = NULL;
     self->m_ = 0;
     self->has_m_ = 0;
@@ -160,14 +159,11 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
 void pico8_bg_init(void) {
     pico8_bg_shutdown();
     g_bg_spec = pico8_ob("\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n", NULL);
-    g_bg_pl = pico8_ob("0,0,0,72,73,74,75,88,89,90,91,88,91,89,91,", NULL);
 }
 
 void pico8_bg_shutdown(void) {
     pico8_ob_table_free(g_bg_spec);
     g_bg_spec = NULL;
-    pico8_ob_table_free(g_bg_pl);
-    g_bg_pl = NULL;
 }
 
 int pico8_bg_ready(void) {
@@ -194,12 +190,10 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
     int vs_set[32];
     pico8_fixed_t vh = pico8_fixed_from_int(0);
     pico8_jf_state_t *oh;
-    const pico8_ob_table_t *pl_table = g_bg_pl;
+    const pico8_int_seq_t *pl = self != NULL && self->pl != NULL ? self->pl : &pico8_bg_pl_seq;
     int x, y;
 
-    (void)self;
-
-    if (mem == NULL || pl_table == NULL) {
+    if (mem == NULL) {
         return;
     }
 
@@ -227,13 +221,9 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
             } else {
                 pico8_fixed_t idx_f = pico8_fixed_flr(pico8_fixed_add(vh, pico8_fixed_rnd(pico8_fixed_from_int(4))));
                 int idx = pico8_bg_to_int(idx_f);
-                pico8_value_t pl_entry;
 
                 tile = 0;
-                if (pico8_ob_table_get_index(pl_table, idx, &pl_entry) &&
-                    pl_entry.kind == PICO8_VALUE_FIXED) {
-                    tile = pico8_bg_to_int(pl_entry.as.fixed);
-                }
+                pico8_int_seq_at(pl->items, pl->count, idx, &tile);
             }
 
             pico8_mset(mem, x, y, tile);

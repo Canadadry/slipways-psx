@@ -210,24 +210,13 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
         }
     }
 
-    /* `.nu` is a table of positional tag strings (mh, g_, jc, mz) or a
-     * pico8_str_seq_t (the jo tree); an absent one, or a non-string entry,
-     * registers nothing, as `all(nil)` would. */
+    /* `.nu` is a pico8_str_seq_t; an absent one registers nothing, as
+     * `all(nil)` would. */
     if (pico8_entity_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
-        if (pico8_type_tag_of(nu_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            const pico8_ob_table_t *nu_table = nu_val.as.ref;
-            for (i = 0; i < nu_table->count; i++) {
-                if (nu_table->entries[i].value.kind == PICO8_VALUE_STRING) {
-                    pico8_cg_entry_t *bucket = pico8_cg_find_or_create(nu_table->entries[i].value.as.string);
-                    pico8_list_add(&bucket->list, pico8_value_ref(e));
-                }
-            }
-        } else {
-            const pico8_str_seq_t *tags = nu_val.as.ref;
-            for (i = 0; i < tags->count; i++) {
-                pico8_cg_entry_t *bucket = pico8_cg_find_or_create(tags->items[i]);
-                pico8_list_add(&bucket->list, pico8_value_ref(e));
-            }
+        const pico8_str_seq_t *tags = nu_val.as.ref;
+        for (i = 0; i < tags->count; i++) {
+            pico8_cg_entry_t *bucket = pico8_cg_find_or_create(tags->items[i]);
+            pico8_list_add(&bucket->list, pico8_value_ref(e));
         }
     }
 
@@ -252,25 +241,13 @@ void pico8_he(pico8_struct_header_t *e) {
     }
 
     /* A tag never lt()'d has no bucket; Lua would error on indexing it,
-     * this port does nothing. Same two forms of `.nu` as lt(). */
+     * this port does nothing. */
     if (pico8_entity_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
-        if (pico8_type_tag_of(nu_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            const pico8_ob_table_t *nu_table = nu_val.as.ref;
-            for (i = 0; i < nu_table->count; i++) {
-                if (nu_table->entries[i].value.kind == PICO8_VALUE_STRING) {
-                    pico8_cg_entry_t *bucket = pico8_cg_find(nu_table->entries[i].value.as.string);
-                    if (bucket != NULL) {
-                        pico8_list_del(&bucket->list, pico8_value_ref(e));
-                    }
-                }
-            }
-        } else {
-            const pico8_str_seq_t *tags = nu_val.as.ref;
-            for (i = 0; i < tags->count; i++) {
-                pico8_cg_entry_t *bucket = pico8_cg_find(tags->items[i]);
-                if (bucket != NULL) {
-                    pico8_list_del(&bucket->list, pico8_value_ref(e));
-                }
+        const pico8_str_seq_t *tags = nu_val.as.ref;
+        for (i = 0; i < tags->count; i++) {
+            pico8_cg_entry_t *bucket = pico8_cg_find(tags->items[i]);
+            if (bucket != NULL) {
+                pico8_list_del(&bucket->list, pico8_value_ref(e));
             }
         }
     }

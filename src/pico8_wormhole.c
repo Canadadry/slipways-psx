@@ -17,8 +17,6 @@
 #include "pico8_wormhole_display.h"
 
 static pico8_ob_table_t *g_mz_spec = NULL;
-static pico8_ob_table_t *g_mz_nu = NULL;
-static pico8_ob_table_t *g_mz_kk = NULL;
 
 static int pico8_mz_jj_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_mz_jj_t *jj = self;
@@ -285,11 +283,11 @@ pico8_value_t pico8_mz_et(const pico8_mz_t *self) {
     return pico8_value_ref(self->et);
 }
 
-static int mz_ref_field(void *ref, pico8_value_t *out_value) {
+static int mz_ref_field(const void *ref, pico8_value_t *out_value) {
     if (ref == NULL) {
         return 0;
     }
-    *out_value = pico8_value_ref(ref);
+    *out_value = pico8_value_ref((void *)ref);
     return 1;
 }
 
@@ -459,7 +457,7 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
 
     pico8_ke_struct_init(&self->ke, &g_mz_struct_class);
     self->ke.me = "kz";
-    self->nu = g_mz_nu;
+    self->nu = &pico8_mz_nu_tags;
     self->dw = pico8_fixed_from_int(0);
     self->dq = "pr";
     self->spawn_snd = pico8_fixed_from_int(52);
@@ -468,7 +466,7 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
     self->od = pico8_fixed_from_int(3);
     self->fp = pico8_fixed_from_int(1);
     self->fa = pico8_fixed_from_int(5);
-    self->kk = g_mz_kk;
+    self->kk = &pico8_mz_kk_seq;
     self->jj = &g_mz_jj_wrapper;
     self->ox = NULL;
     self->ra = NULL;
@@ -488,39 +486,17 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-static pico8_ob_table_t *pico8_mz_spec_table(const pico8_ob_table_t *spec, const char *name) {
-    pico8_value_t v = pico8_value_ref(NULL);
-    int found = pico8_ob_table_get_name(spec, name, &v);
-
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "mz's nu and kk spec entries must parse to tables (the spec's trailing comma is load-bearing)");
-    (void)found;
-    return (pico8_ob_table_t *)v.as.ref;
-}
-
 void pico8_wormhole_init(void) {
-    pico8_ob_table_t *spec;
-
     pico8_wormhole_shutdown();
 
     g_mz_spec = pico8_ob("\nnu=o(\"mz\"),\nme=\"kz\",dw=0,\ndq=\"pr\",\nspawn_snd=52,ik=49,\noi=0,"
                          "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n",
                          NULL);
-
-    spec = pico8_ob("\nnu=o(\"mz\"),\nkk=o(7,7,6,13,5,1,1,1,0),\n", NULL);
-    g_mz_nu = pico8_mz_spec_table(spec, "nu");
-    g_mz_kk = pico8_mz_spec_table(spec, "kk");
-    pico8_ob_table_free(spec);
 }
 
 void pico8_wormhole_shutdown(void) {
     pico8_ob_table_free(g_mz_spec);
     g_mz_spec = NULL;
-    pico8_ob_table_free(g_mz_nu);
-    g_mz_nu = NULL;
-    pico8_ob_table_free(g_mz_kk);
-    g_mz_kk = NULL;
 }
 
 int pico8_mz_ready(void) {

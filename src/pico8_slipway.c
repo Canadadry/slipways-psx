@@ -25,8 +25,6 @@
 #include "pico8_ref_audit.h"
 
 static pico8_ob_table_t *g_jc_spec = NULL;
-static pico8_ob_table_t *g_jc_nu = NULL;
-static pico8_ob_table_t *g_jc_k_ = NULL;
 
 typedef struct {
     pico8_struct_header_t header;
@@ -479,11 +477,11 @@ static pico8_value_t pico8_jc_kj_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static int jc_ref_field(void *ref, pico8_value_t *out_value) {
+static int jc_ref_field(const void *ref, pico8_value_t *out_value) {
     if (ref == NULL) {
         return 0;
     }
-    *out_value = pico8_value_ref(ref);
+    *out_value = pico8_value_ref((void *)ref);
     return 1;
 }
 
@@ -633,12 +631,12 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
 
     pico8_ke_struct_init(&self->ke, &g_jc_struct_class);
     self->ke.me = "kz";
-    self->nu = g_jc_nu;
+    self->nu = &pico8_jc_nu_tags;
     self->fa = pico8_fixed_from_int(2);
     self->fp = 0;
     self->ik = pico8_fixed_from_int(48);
     self->dw = PICO8_FIXED_LIT(0x00000106, 0.004);
-    self->k_ = g_jc_k_;
+    self->k_ = &pico8_jc_k__seq;
     self->nh = pico8_fixed_from_int(20);
     self->qu = NULL;
     self->ts = NULL;
@@ -670,20 +668,7 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-static pico8_ob_table_t *pico8_jc_spec_table(const pico8_ob_table_t *spec, const char *name) {
-    pico8_value_t v = pico8_value_ref(NULL);
-    int found = pico8_ob_table_get_name(spec, name, &v);
-
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "jc's nu and k_ spec entries must parse to tables (the spec's trailing comma is load-bearing)");
-    (void)found;
-    return (pico8_ob_table_t *)v.as.ref;
-}
-
 void pico8_jc_init(void) {
-    pico8_ob_table_t *spec;
-
     pico8_jc_shutdown();
     g_jc_spec = pico8_ob("\n"
                          "nu=o(\"jc\"),\n"
@@ -694,20 +679,11 @@ void pico8_jc_init(void) {
                          "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n"
                          "nh=20,\n",
                          NULL);
-
-    spec = pico8_ob("\nnu=o(\"jc\"),\nk_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n", NULL);
-    g_jc_nu = pico8_jc_spec_table(spec, "nu");
-    g_jc_k_ = pico8_jc_spec_table(spec, "k_");
-    pico8_ob_table_free(spec);
 }
 
 void pico8_jc_shutdown(void) {
     pico8_ob_table_free(g_jc_spec);
     g_jc_spec = NULL;
-    pico8_ob_table_free(g_jc_nu);
-    g_jc_nu = NULL;
-    pico8_ob_table_free(g_jc_k_);
-    g_jc_k_ = NULL;
 }
 
 int pico8_jc_ready(void) {

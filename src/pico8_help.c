@@ -113,7 +113,6 @@ pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pic
 static pico8_fixed_t g_fv_fa = 0;
 static pico8_vec_t *g_fv_ra = NULL;
 static pico8_fixed_t g_fv_fc = 0;
-static pico8_ob_table_t *g_fv_k_ = NULL;
 static pico8_fixed_t g_fv_qo = 0;
 static pico8_fixed_t g_fv_ro = 0;
 static pico8_fixed_t g_fv_qg = 0;
@@ -137,7 +136,6 @@ static void pico8_fv_defaults_reset(void) {
     g_fv_fa = 0;
     g_fv_ra = NULL;
     g_fv_fc = 0;
-    g_fv_k_ = NULL;
     g_fv_qo = 0;
     g_fv_ro = 0;
     g_fv_qg = 0;
@@ -265,7 +263,7 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     self->g_.fa = g_fv_fa;
     self->g_.ra = g_fv_ra;
     self->g_.fc = g_fv_fc;
-    self->g_.k_ = g_fv_k_;
+    self->g_.k_ = &pico8_fv_k__seq;
     self->g_.qo = g_fv_qo;
     self->g_.ro = g_fv_ro;
     self->g_.qg = g_fv_qg;
@@ -315,7 +313,7 @@ static pico8_vec_t *help_default_vec(int found, pico8_value_t v) {
 static pico8_ob_table_t *help_default_table(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "fv.k_/rb: a default of the struct is a key of fv's spec and a table (ref:table)");
+           "fv.rb: a default of the struct is a key of fv's spec and a table (ref:table)");
     (void)found;
     return v.as.ref;
 }
@@ -371,8 +369,6 @@ void pico8_help_init(void) {
     g_fv_ra = help_default_vec(found, v);
     found = pico8_fv_default("fc", &v);
     g_fv_fc = help_default_fixed(found, v);
-    found = pico8_fv_default("k_", &v);
-    g_fv_k_ = help_default_table(found, v);
     found = pico8_fv_default("qo", &v);
     g_fv_qo = help_default_fixed(found, v);
     found = pico8_fv_default("ro", &v);

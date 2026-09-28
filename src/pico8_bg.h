@@ -1,6 +1,7 @@
 #ifndef PICO8_BG_H
 #define PICO8_BG_H
 
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
@@ -14,13 +15,12 @@
  * crashing. `hd=1` is flat data, not a method: `bg` always answers the hover
  * test, since nothing lies behind the background to miss. */
 
-/* `pl` points at the table the module owns, shared by every `bg` and never
- * modified in place. Nothing frees the struct: TROU-7. */
+/* `pl` points at `pico8_bg_pl_seq`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     pico8_fixed_t fa;
     pico8_fixed_t hd;
-    pico8_ob_table_t *pl;
+    const pico8_int_seq_t *pl;
     pico8_vec_t *mq;
     int m_;
     int has_m_;
@@ -28,7 +28,7 @@ typedef struct {
 
 void pico8_bg_init(void);
 
-/* Frees the `bg` spec and the module's `pl` table, never any `bg`.
+/* Frees the `bg` spec, never any `bg`.
  * Idempotent, and safe before the first `pico8_bg_init()`. */
 void pico8_bg_shutdown(void);
 
@@ -44,7 +44,7 @@ const pico8_struct_class_t *pico8_bg_struct_class(void);
  * registers itself into `hv`/`cv` through `lt`, and nothing frees it. */
 pico8_bg_t *pico8_bg_new(const pico8_ob_table_t *overrides);
 
-/* `pl` is the module's table, as `bg.pl` rather than `self.pl` in the
+/* `pl` is `self`'s, or `pico8_bg_pl_seq` for a NULL `self`: `bg.pl` in the
  * cart. An index outside `pl`'s 1..15 range -- which extreme `vh` values
  * can produce, unchecked in the cart too -- paints tile 0. */
 void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self);

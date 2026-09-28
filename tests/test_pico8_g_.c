@@ -54,9 +54,9 @@
 #define LIFE_HASH 0x26179978u
 #define EY_ON_HASH 0x7D81D210u
 #define EY_OFF_HASH 0x196FE04Du
-#define FV_HASH 0xE9230D69u
+#define FV_HASH 0xA5CD3A2Du
 #define BV_ET_MEMBERS_HASH 0x2E520916u
-#define G__MEMBERS_HASH 0x90C4FE7Du
+#define G__MEMBERS_HASH 0x545D7F21u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -133,12 +133,6 @@ static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *
     return v;
 }
 
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v = class_value(default_of, name);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
-}
-
 static int is_string(const void *e, const char *name, const char *want) {
     pico8_value_t v;
     return lookup(e, name, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, want) == 0;
@@ -210,6 +204,28 @@ static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
         h = fold_value(h, t->entries[i].value);
     }
     return fnv(h, (uint32_t)t->count);
+}
+
+/* A tag sequence as fold_table folds a table of the same positionals. */
+static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
+    int i;
+
+    for (i = 0; i < s->count; i++) {
+        h = fnv(h, (uint32_t)(i + 1));
+        h = fold_value(h, pico8_value_string(s->items[i]));
+    }
+    return fnv(h, (uint32_t)s->count);
+}
+
+/* An integer sequence as fold_table folds a table of the same positionals. */
+static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
+    int i;
+
+    for (i = 0; i < s->count; i++) {
+        h = fnv(h, (uint32_t)(i + 1));
+        h = fold_value(h, pico8_value_fixed(pico8_fixed_from_int(s->items[i])));
+    }
+    return fnv(h, (uint32_t)s->count);
 }
 
 /* The item count of a list field, -1 when absent. */
@@ -299,7 +315,7 @@ static void *the_bg(void) {
 /* A probe, whatever its form: `g_`'s `nu` and `fa`=2 (an `fv` has 10). */
 static int is_probe(const void *e) {
     pico8_value_t fa;
-    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__default, "nu") && lookup(e, "fa", &fa) &&
+    return e != NULL && get_ref(e, "nu") == &pico8_g__nu_tags && lookup(e, "fa", &fa) &&
            fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(2);
 }
 
@@ -340,10 +356,10 @@ static uint32_t fold_probe(uint32_t h, const void *e) {
     for (i = 0; i < sizeof defaults / sizeof defaults[0]; i++) {
         assert(has(e, defaults[i]));
     }
-    h = fold_table(h, get_ref(e, "nu"));
-    h = fold_table(h, get_ref(e, "k_"));
-    assert(get_ref(e, "nu") == class_ref(pico8_g__default, "nu"));
-    assert(get_ref(e, "k_") == class_ref(pico8_g__default, "k_"));
+    h = fold_tags(h, get_ref(e, "nu"));
+    h = fold_seq(h, get_ref(e, "k_"));
+    assert(get_ref(e, "nu") == &pico8_g__nu_tags);
+    assert(get_ref(e, "k_") == &pico8_g__k__seq);
     h = fnv(h, (uint32_t)size_of(e, "qy"));
     assert(size_of(e, "qy") == 0);
     for (i = 0; i < sizeof not_yet / sizeof not_yet[0]; i++) {
@@ -619,7 +635,7 @@ static void test_ey_void(void) {
 /* The help: `g_`'s `nu` and `fa`=10. */
 static int is_help(const void *e) {
     pico8_value_t fa;
-    return e != NULL && get_ref(e, "nu") == class_ref(pico8_g__default, "nu") && lookup(e, "fa", &fa) &&
+    return e != NULL && get_ref(e, "nu") == &pico8_g__nu_tags && lookup(e, "fa", &fa) &&
            fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(10);
 }
 
@@ -644,13 +660,12 @@ static void test_fv(void) {
         }
     }
     assert(fv != NULL && !is_probe(fv));
-    assert(class_ref(pico8_fv_default, "nu") == class_ref(pico8_g__default, "nu"));
-    assert(get_ref(fv, "nu") == class_ref(pico8_g__default, "nu"));
+    assert(get_ref(fv, "nu") == &pico8_g__nu_tags);
     assert(get(fv, "fx").as.fixed == pico8_fixed_from_int(1));
     assert(is_string(fv, "dq", "ly"));
     assert(get(fv, "fa").as.fixed == pico8_fixed_from_int(10));
-    assert(get_ref(fv, "k_") == class_ref(pico8_fv_default, "k_"));
-    assert(get_ref(fv, "k_") != class_ref(pico8_g__default, "k_"));
+    assert(get_ref(fv, "k_") == &pico8_fv_k__seq);
+    assert(get_ref(fv, "k_") != &pico8_g__k__seq);
     assert(method(fv, "ev") == pico8_dl_dispatch);
     assert(method(fv, "mm") == pico8_g__mm);
     assert(method(fv, "hq") == pico8_bv_dispatch);
@@ -1175,6 +1190,12 @@ static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
         return fnv_str(h, v.as.string);
     case PICO8_VALUE_REF:
         assert(v.as.ref != NULL);
+        if (v.as.ref == (const void *)&pico8_g__nu_tags) {
+            return fold_tags(h, v.as.ref);
+        }
+        if (v.as.ref == (const void *)&pico8_g__k__seq || v.as.ref == (const void *)&pico8_fv_k__seq) {
+            return fold_seq(h, v.as.ref);
+        }
         h = fnv(h, (uint32_t)pico8_type_tag_of(v.as.ref));
         switch (pico8_type_tag_of(v.as.ref)) {
         case PICO8_TYPE_TAG_LIST:
@@ -1222,10 +1243,13 @@ static uint32_t fold_fresh_probe(uint32_t h, const void *e, int keyed) {
     h = fold_g__all(h, e);
     for (i = 0; i < 18; i++) {
         int key = strcmp(g__names[i], "pn") == 0 || strcmp(g__names[i], "du") == 0 || strcmp(g__names[i], "py") == 0;
-        if (!(keyed && key)) {
+        int typed = strcmp(g__names[i], "nu") == 0 || strcmp(g__names[i], "k_") == 0;
+        if (!(keyed && key) && !typed) {
             assert_same(e, g__names[i], class_value(pico8_g__default, g__names[i]));
         }
     }
+    assert(get_ref(e, "nu") == &pico8_g__nu_tags);
+    assert(get_ref(e, "k_") == &pico8_g__k__seq);
     assert(size_of(e, "qy") == 0);
     assert_absent(e, "ra");
     assert_absent(e, "p");
@@ -1246,10 +1270,13 @@ static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
         for (k = 0; k < sizeof fv_over / sizeof fv_over[0]; k++) {
             over = over || strcmp(fv_over[k], g__names[i]) == 0;
         }
-        assert_same(e, g__names[i], class_value(over ? pico8_fv_default : pico8_g__default, g__names[i]));
+        if (strcmp(g__names[i], "nu") != 0 && strcmp(g__names[i], "k_") != 0) {
+            assert_same(e, g__names[i], class_value(over ? pico8_fv_default : pico8_g__default, g__names[i]));
+        }
     }
     assert_same(e, "ra", class_value(pico8_fv_default, "ra"));
-    assert(get_ref(e, "k_") != class_ref(pico8_g__default, "k_"));
+    assert(get_ref(e, "nu") == &pico8_g__nu_tags);
+    assert(get_ref(e, "k_") == &pico8_fv_k__seq);
     assert(size_of(e, "qy") >= 0);
     assert_absent(e, "p");
     assert_absent(e, "et");
