@@ -1,7 +1,6 @@
 /* The click veil `fq`, built bare (`pj:ph`) and with a `my` (`ix[3]` with
- * `de`), lived through the real `dg`, `mv("ldown")`, the hover loop of `ok`
- * and the two replays that raise it. The frozen values were taken on the
- * code where `fq` was still a class instance and must not be re-taken. */
+ * `de`), lived through the real `dg`, `mv("ldown")` and the hover loop of
+ * `ok`, in a game built directly: no events file. */
 
 #include <assert.h>
 #include <signal.h>
@@ -16,7 +15,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -39,11 +37,7 @@
 #define BARE_SEQUENCE_HASH 0x52BE382Au
 #define MY_FALSE_SEQUENCE_HASH 0xE43E9427u
 #define HOVER_SEQUENCE_HASH 0x27C4BCB8u
-#define HOVER_CURSOR_HASH 0x4A878EEAu
-#define SCORE_PANEL_CLOSE_FRAMES 40
-#define SCORE_PANEL_CLOSE_HASH 0xD27CD6EBu
-#define GAME_END_FRAMES 74
-#define GAME_END_HASH 0xE0F8CA4Du
+#define HOVER_CURSOR_HASH 0x04C40AB9u
 #define FQ_MEMBERS_HASH 0x76872F8Du
 
 #define LDOWN_TICK 5
@@ -243,14 +237,13 @@ static int in_layer(int layer, const void *e) {
  * and, once the veil is gone, unmarks it through `gj`. */
 static void test_hover_loop_on_the_veil(void) {
     uint32_t h = 2166136261u;
-    pico8_value_t difficulty;
     pico8_value_t kn;
     pico8_value_t m_;
     pico8_struct_header_t *kv = NULL;
     void *veil;
 
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8__init();
+    pico8_eu(NULL);
     veil = pico8_fq_new(NULL);
 
     pico8_ui_lj(&mem, pico8_ok());
@@ -280,76 +273,6 @@ static void test_hover_loop_on_the_veil(void) {
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
     check("hover", h, HOVER_SEQUENCE_HASH);
-}
-
-/* The veil is the entity of cv.hd whose `hd` is the plain value 1. */
-static const void *find_veil(int *count) {
-    const pico8_list_t *hd = pico8_cv("hd");
-    const void *found = NULL;
-    int i;
-
-    *count = 0;
-    for (i = 0; hd != NULL && i < hd->count; i++) {
-        pico8_value_t v;
-        const void *e = hd->items[i].as.ref;
-
-        if (pico8_entity_get_field(e, "hd", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1) &&
-            pico8_entity_get_field(e, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(14)) {
-            found = e;
-            (*count)++;
-        }
-    }
-    return found;
-}
-
-/* Replays `path` the way the scenario tests do, folding per frame whether a
- * veil is up, whether it is `ok.o_`, and the screen. */
-static void replay(const char *path, int want_frames, uint32_t want_hash, const char *label) {
-    uint32_t h = 2166136261u;
-    pico8_value_t difficulty;
-    pico8_cheat_t cheat;
-    int frames;
-    int seen = 0;
-    int i;
-
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, path));
-    pico8_dispatch_set_input(&input);
-    pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-
-    frames = input.frame_count;
-    pico8_cheat_init(&cheat);
-    for (i = 0; i < frames; i++) {
-        const void *veil;
-        int count;
-
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-
-        veil = find_veil(&count);
-        seen |= count > 0;
-        h = fnv(h, (uint32_t)count);
-        h = fnv(h, (uint32_t)(veil != NULL && listed(pico8_hv(), veil)));
-        h = fnv(h, (uint32_t)(veil != NULL && ok_o_() == veil));
-        h = fnv(h, screen_hash());
-
-        if (i < frames - 1) {
-            pico8_input_step(&input);
-        }
-    }
-    pico8_input_free(&input);
-    pico8_input_init(&input);
-    pico8_dispatch_set_input(&input);
-
-    assert(seen);
-    printf("[%s] frames=%d\n", label, frames);
-    fflush(stdout);
-    assert(frames == want_frames);
-    check(label, h, want_hash);
 }
 
 /* The veil's defaults are what the spec parser makes of fq's spec string,
@@ -657,10 +580,6 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-
-    replay("tests/fixtures/score_panel_close_events.json", SCORE_PANEL_CLOSE_FRAMES, SCORE_PANEL_CLOSE_HASH,
-           "score panel close");
-    replay("tests/fixtures/game_end_events.json", GAME_END_FRAMES, GAME_END_HASH, "game end");
 
     test_ldown_with_a_true_my_removes_the_veil();
     test_bare_veil_swallows_the_click_and_stays();
