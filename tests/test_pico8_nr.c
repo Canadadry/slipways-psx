@@ -477,14 +477,14 @@ static void test_life(void) {
     assert(gate_kind(bare) == NR && !has(bare, "id") && has(bare, "oe") && has(bare, "kw"));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("nr"), bare));
     {
-        pico8_ob_table_t *b = pico8_ob_table_new();
+        pico8_jo_keys_t keys;
         pico8_value_t p = vec_ref(vec_xy(3, 4));
         pico8_value_t ra = vec_ref(vec_xy(5, 6));
         void *with;
-        pico8_ob_table_set_name(b, "p", p);
-        pico8_ob_table_set_name(b, "ra", ra);
-        with = pico8_nr_new(b);
-        pico8_ob_table_free(b);
+        keys.id = NULL;
+        keys.p = p.as.ref;
+        keys.ra = ra.as.ref;
+        with = pico8_nr_new(&keys);
         assert(get_ref(with, "p") == p.as.ref && get_ref(with, "ra") == ra.as.ref && !has(with, "id"));
         h = fnv(h, (uint32_t)rank_in(pico8_hv(), with));
     }
@@ -531,20 +531,6 @@ static void write_ht(void *e) {
     write_fixed(e, "ht");
 }
 
-static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "hp", pico8_value_fixed(pico8_fixed_from_int(1)));
-    (void)pico8_nr_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_nr_new(b);
-}
-
 static int is_an_nr_struct(const void *e) {
     return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)e)->cls == pico8_nr_struct_class();
@@ -553,8 +539,7 @@ static int is_an_nr_struct(const void *e) {
 /* Built by `ie:ldown` or pico8_nr_new, a slipgate is a struct whose
  * descriptor holds qh's very entries but its own `gv`, `ldown`, `hb`, `cn`,
  * which no class of its chain installs any more; qh's reader sees the 6 defaults of nr that fall on an
- * inherited member; it takes exactly qh's 20 names plus `s`, and a
- * construction key other than `id`, `p`, `ra` stops the run. */
+ * inherited member; it takes exactly qh's 20 names plus `s`. */
 static void test_nr_is_a_struct(void) {
     static const char *const inherited[] = {"nu", "kq", "od", "fp", "s", "dw"};
     pico8_value_t inherited_want[6];
@@ -609,8 +594,6 @@ static void test_nr_is_a_struct(void) {
     must_abort(write_mt, a);
     must_abort(write_qw, a);
     must_abort(write_ht, a);
-    must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     {
         pico8_nr_t *bare = pico8_nr_new(NULL);
         assert(is_an_nr_struct(bare) && !has(bare, "id") && has(bare, "oe") && has(bare, "kw"));

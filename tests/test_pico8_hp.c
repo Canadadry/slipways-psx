@@ -488,17 +488,14 @@ static pico8_vec_t vec_xy(int x, int y) {
 
 /* A bare planet on `id`/`p`/`ra`, `ra` offset from `mo`'s. */
 static void *new_planet(const char *id, int x, int y) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     const pico8_vec_t *mo_ra = get_ref(pico8_mo(), "ra");
-    void *made;
 
     assert(mo_ra != NULL);
-    pico8_ob_table_set_name(b, "id", pico8_value_string(id));
-    pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(x / 2, y / 2)));
-    pico8_ob_table_set_name(b, "ra", vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y))));
-    made = pico8_jo_new(b);
-    pico8_ob_table_free(b);
-    return made;
+    keys.id = id;
+    keys.p = vec_ref(vec_xy(x / 2, y / 2)).as.ref;
+    keys.ra = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y))).as.ref;
+    return pico8_jo_new(&keys);
 }
 
 /* The first project that has `name` (or has none of cw/go/ii for NULL). */

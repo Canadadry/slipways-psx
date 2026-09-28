@@ -13,7 +13,10 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` (`fz` : `pico8_pm_start.fz`, `pico8_ga_start.fz`) |
+| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` (`fz` : `pico8_pm_start.fz`, `pico8_ga_start.fz`) ; le `new_entity` d'une sorte prend un `pico8_jo_keys_t` |
+| `kv:jr` : `mw(ob)` | `pico8_jo_keys_t` (`pico8_struct.h`) | les clés de construction de l'arbre `jo`, que le constructeur de classe copie dans l'instance : `id`, `p`, `ra`, NULL = absente (une clé nil n'existe pas) ; `qh`, `nl`, `os`, `hj`, `fr`, `mx` ne prennent que `id` |
+| — | `pico8_ga_keys_t` (`pico8_planet_family.h`) | les clés de `ga` : celles de `jo` (`jo:hu`), puis `pq`, le groupe que passe `pm:pq` (NULL : défauts de `ga`) |
+| — | `pico8_ga_pq_keys_t`, `pico8_pm_ga_pq_keys` (`pico8_game_data.h`) | les clés que `pm:pq` passe au `ga` qu'il fait naître, hors `ra` : `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` et `k_`, générées depuis la chaîne du cart |
 | `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; plus aucune classe n'a de spec parsée : ses clés sont `pico8_X_start`, que son constructeur lit, l'héritage passant par le constructeur de la parente |
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
 | — | `pico8_X_kind_field` | le `field` d'une sorte de l'arbre `jo` : `rr`, `s`, `me`, `od` seulement, depuis `pico8_X_start` de la classe qui les pose, puis la parente ; fin `pico8_jo_kind_field` |
@@ -522,7 +525,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `kk` | rampe de 9 couleurs indexée par le rayon relatif (voir TROU-12) ; `pico8_mz_kk_seq` |
 | `qy` | liste de particules vivantes |
 | `pn`, `pk`, `du`, `py`, `ki` | forme d'une particule : tranches angulaires, rotation d'un quart de tour, rayon de base, facteur de vélocité, durée de vie |
-| `k_` | palette de la traînée de particules, `const pico8_int_seq_t *` : `pico8_X_k__seq` (`g_`, `fv`, `jc`, arbre `jo`) ; celle que `pm:pq` passe à son `ga` : `pico8_pm_ga_k__seq` |
+| `k_` | palette de la traînée de particules, `const pico8_int_seq_t *` : `pico8_X_k__seq` (`g_`, `fv`, `jc`, arbre `jo`) ; celle que `pm:pq` passe à son `ga` : `pico8_pm_ga_k__seq`, pointée par `pico8_pm_ga_pq_keys` |
 | `l` (sur `iv`) | avancement du fondu, 0 → 5 ; sert d'indice de bloc de palette et déclenche `p_` à 5 |
 | `qw` | index de bloc de palette du sprite ; posé par `nl`, absent = 0 |
 | `s` | identifiant de sprite |

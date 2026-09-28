@@ -4,7 +4,6 @@
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_planet.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -147,37 +146,37 @@ const pico8_struct_class_t *pico8_qh_struct_class(void);
  * coverage. Requires `pico8_planet_family_init()`. */
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls);
 
-/* `overrides` (NULL means none) is read, not kept: `id` only. The new
- * laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
+ * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_qh_t *pico8_qh_new(const pico8_ob_table_t *overrides);
+pico8_qh_t *pico8_qh_new(const pico8_jo_keys_t *keys);
 
 int pico8_nl_ready(void);
 const pico8_entity_kind_t *pico8_nl_kind(void);
 const pico8_struct_class_t *pico8_nl_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id` only. The new
- * trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
+/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
+ * NULL. The new trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides);
+pico8_nl_t *pico8_nl_new(const pico8_jo_keys_t *keys);
 
 int pico8_os_ready(void);
 const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id` only. The new
- * processor registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
+ * NULL. The new processor registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides);
+pico8_os_t *pico8_os_new(const pico8_jo_keys_t *keys);
 
 int pico8_hj_ready(void);
 const pico8_entity_kind_t *pico8_hj_kind(void);
 const pico8_struct_class_t *pico8_hj_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id` only. The new
- * ascension registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
+ * NULL. The new ascension registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_hj_t *pico8_hj_new(const pico8_ob_table_t *overrides);
+pico8_hj_t *pico8_hj_new(const pico8_jo_keys_t *keys);
 
 /* Initializes an allocated pico8_hj_t under `cls`: qh's part, hj's members
  * nil, hj's defaults. Reads no key, runs neither `pq` nor `lt`, records no
@@ -195,21 +194,27 @@ int pico8_pm_ready(void);
 const pico8_entity_kind_t *pico8_pm_kind(void);
 const pico8_struct_class_t *pico8_pm_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `p`, `ra`, `id`, each
- * optional. The new protostar first spawns its `ga` at `ra + ng`, then
- * registers itself into `hv`/`cv`/`cg` through `lt`, after that `ga`;
- * nothing ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_pm_t *pico8_pm_new(const pico8_ob_table_t *overrides);
+/* `keys` (NULL means none) is read, not kept. The new protostar first
+ * spawns its `ga` at `ra + ng`, then registers itself into `hv`/`cv`/`cg`
+ * through `lt`, after that `ga`; nothing ever frees it. Requires
+ * `pico8_planet_family_init()`. */
+pico8_pm_t *pico8_pm_new(const pico8_jo_keys_t *keys);
 
 int pico8_ga_ready(void);
 const pico8_entity_kind_t *pico8_ga_kind(void);
 const pico8_struct_class_t *pico8_ga_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `p`, `ra`, `id` (jo:hu)
- * and `qo`, `ro`, `qg`, `q_`, `k_`, `iu`, `py`, `ms` (pm:pq), each optional.
- * The new burst registers itself into `hv`/`cv`, in no `cg`, through `lt`,
- * and nothing ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_ga_t *pico8_ga_new(const pico8_ob_table_t *overrides);
+/* A burst's construction keys: `jo`'s (jo:hu), then the group pm:pq passes
+ * (`pq` NULL: ga's own defaults stand; its `k_` NULL: `k_` is nil). */
+typedef struct {
+    pico8_jo_keys_t jo;
+    const pico8_ga_pq_keys_t *pq;
+} pico8_ga_keys_t;
+
+/* `keys` (NULL means none) is read, not kept. The new burst registers
+ * itself into `hv`/`cv`, in no `cg`, through `lt`, and nothing ever frees
+ * it. Requires `pico8_planet_family_init()`. */
+pico8_ga_t *pico8_ga_new(const pico8_ga_keys_t *keys);
 
 void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t);
 

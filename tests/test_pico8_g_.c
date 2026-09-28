@@ -451,6 +451,7 @@ static void *a_planet(void) {
 /* A slipway between two bare planets far from each other and from the
  * rest, its `re` set directly; its middle is the returned point. */
 static void *a_slipway(pico8_vec_t *middle) {
+    pico8_jo_keys_t keys;
     pico8_ob_table_t *b;
     void *qu;
     void *re;
@@ -459,16 +460,13 @@ static void *a_slipway(pico8_vec_t *middle) {
     pico8_vec_t qu_p = pico8_vec_add(base, vec_xy(0, 1));
     pico8_vec_t re_p = pico8_vec_add(base, vec_xy(1, 1));
 
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "p", vec_ref(qu_p));
-    pico8_ob_table_set_name(b, "id", pico8_value_string("s91"));
-    qu = pico8_jo_new(b);
-    pico8_ob_table_free(b);
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "p", vec_ref(re_p));
-    pico8_ob_table_set_name(b, "id", pico8_value_string("s92"));
-    re = pico8_jo_new(b);
-    pico8_ob_table_free(b);
+    keys.p = vec_ref(qu_p).as.ref;
+    keys.ra = NULL;
+    keys.id = "s91";
+    qu = pico8_jo_new(&keys);
+    keys.p = vec_ref(re_p).as.ref;
+    keys.id = "s92";
+    re = pico8_jo_new(&keys);
     b = pico8_ob_table_new();
     pico8_ob_table_set_name(b, "qu", pico8_value_ref(qu));
     jc = pico8_jc_new(b);
@@ -1097,16 +1095,15 @@ static void write_by_name(void *e, const char *name, pico8_value_t v) {
 /* A fresh planet of the k-th class of `cg.np`: jo, then qh, nl, os, hj, pm,
  * nr, fr, mx, at `at`. */
 static void *np_target_at(int k, pico8_vec_t at) {
-    pico8_ob_table_t *b;
+    pico8_jo_keys_t keys;
     void *t;
 
     switch (k) {
     case 0:
-        b = pico8_ob_table_new();
-        pico8_ob_table_set_name(b, "p", vec_ref(at));
-        t = pico8_jo_new(b);
-        pico8_ob_table_free(b);
-        return t;
+        keys.id = NULL;
+        keys.p = vec_ref(at).as.ref;
+        keys.ra = NULL;
+        return pico8_jo_new(&keys);
     case 1:
         t = pico8_qh_new(NULL);
         break;

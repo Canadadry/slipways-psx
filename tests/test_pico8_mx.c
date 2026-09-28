@@ -597,17 +597,12 @@ static void write_nl(void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     (void)e;
-    pico8_ob_table_set_name(b, "hp", pico8_value_fixed(pico8_fixed_from_int(1)));
-    (void)pico8_mx_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_mx_new(b);
+    keys.id = NULL;
+    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.ra = NULL;
+    (void)pico8_mx_new(&keys);
 }
 
 static int is_an_mx_struct(const void *e) {
@@ -661,7 +656,6 @@ static void test_mx_is_a_struct(void) {
     must_abort(write_qw, a);
     must_abort(write_nl, a);
     must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     {
         pico8_mx_t *bare = pico8_mx_new(NULL);
         assert(is_an_mx_struct(bare) && !has(bare, "id") && has(bare, "oe") && has(bare, "kw") &&

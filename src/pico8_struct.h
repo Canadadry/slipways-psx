@@ -7,6 +7,7 @@
 #include "pico8_ob.h"
 #include "pico8_type_tag.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 typedef enum {
     PICO8_METHOD_OL,
@@ -99,13 +100,23 @@ typedef struct {
     const pico8_struct_class_t *cls;
 } pico8_struct_header_t;
 
+/* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).
+ * NULL: the key is absent, which is what a nil key is in the cart. The
+ * constructor reads the struct, never keeps it, and adopts the string and
+ * vectors it points at, without copying them. */
+typedef struct {
+    const char *id;
+    pico8_vec_t *p;
+    pico8_vec_t *ra;
+} pico8_jo_keys_t;
+
 /* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one
  * `static const` per kind, never freed, whose first member is no tag, so
  * pico8_type_tag_of() reads it UNKNOWN. `new_entity` is the kind's
  * pico8_X_new(). `field` reads the kind's defaults; it returns 0, leaving
  * *out_value untouched, when `name` is absent from the whole chain. */
 typedef struct {
-    void *(*new_entity)(const pico8_ob_table_t *overrides);
+    void *(*new_entity)(const pico8_jo_keys_t *keys);
     int (*field)(const char *name, pico8_value_t *out_value);
 } pico8_entity_kind_t;
 

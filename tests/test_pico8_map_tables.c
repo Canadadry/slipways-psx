@@ -1376,6 +1376,22 @@ static void test_jo_tree_starts_match_the_parsed_class_strings(void) {
 }
 
 /* What a kind serves as `name`, the one read of a kind in this file. */
+/* Both ways: the eight keys the string parses to are the eight fields. */
+static void test_pm_pq_keys_match_the_parsed_literal(void) {
+    pico8_ob_table_t *pq = parse(PM_PQ_KEYS_SRC);
+
+    assert(pq->count == 8);
+    assert(number_at(pq, "qo") == pico8_pm_ga_pq_keys.qo);
+    assert(number_at(pq, "ro") == pico8_pm_ga_pq_keys.ro);
+    assert(number_at(pq, "qg") == pico8_pm_ga_pq_keys.qg);
+    assert(number_at(pq, "q_") == pico8_pm_ga_pq_keys.q_);
+    assert(number_at(pq, "iu") == pico8_pm_ga_pq_keys.iu);
+    assert(number_at(pq, "py") == pico8_pm_ga_pq_keys.py);
+    assert(number_at(pq, "ms") == pico8_pm_ga_pq_keys.ms);
+    assert(pico8_pm_ga_pq_keys.k_ == &pico8_pm_ga_k__seq);
+    check_member_seq(pq, "k_", pico8_pm_ga_pq_keys.k_);
+}
+
 static int kind_answer(const pico8_entity_kind_t *kind, const char *name, pico8_value_t *out) {
     return kind->field(name, out);
 }
@@ -1584,6 +1600,7 @@ int main(void) {
     test_probe_help_research_panel_starts_match_the_parsed_class_strings();
     test_jo_tree_starts_match_the_parsed_class_strings();
     test_jo_tree_strings_are_distinct_objects();
+    test_pm_pq_keys_match_the_parsed_literal();
     pico8_jo_init();
     pico8_planet_family_init();
     pico8_planet_family_trade_init();

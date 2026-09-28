@@ -605,17 +605,12 @@ static void write_et(void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     (void)e;
-    pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(1, 1)));
-    (void)pico8_qh_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_qh_new(b);
+    keys.id = NULL;
+    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.ra = NULL;
+    (void)pico8_qh_new(&keys);
 }
 
 static int is_a_qh_struct(const void *e) {
@@ -660,17 +655,17 @@ static void test_qh_is_a_struct(void) {
     must_abort(write_od, a);
     must_abort(write_et, pico8_jo_new(NULL));
     must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     {
         void *bare = pico8_qh_new(NULL);
         assert(is_a_qh_struct(bare) && !has(bare, "id") && has(bare, "oe") && listed(pico8_cg("qh"), bare));
     }
     for (i = 0; i < sizeof descendants / sizeof descendants[0]; i++) {
-        pico8_ob_table_t *b = pico8_ob_table_new();
+        pico8_jo_keys_t keys;
         void *d;
-        pico8_ob_table_set_name(b, "id", pico8_value_string("s99"));
-        d = descendants[i]->new_entity(b);
-        pico8_ob_table_free(b);
+        keys.id = "s99";
+        keys.p = NULL;
+        keys.ra = NULL;
+        d = descendants[i]->new_entity(&keys);
         if (descendants[i] == pico8_nl_kind()) {
             assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_STRUCT &&
                    ((const pico8_struct_header_t *)d)->cls == pico8_nl_struct_class());

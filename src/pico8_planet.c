@@ -175,18 +175,6 @@ static void jo_take_hp(pico8_value_t value, pico8_hp_t **out) {
     *out = value.as.ref;
 }
 
-static void jo_take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jo.ra/p: a write neither nil nor a vector ref does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
 static void jo_take_string(pico8_value_t value, const char **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
@@ -587,25 +575,19 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     self->ke.me = pico8_jo_start.me;
 }
 
-static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
     pico8_jo_t *self = malloc(sizeof *self);
-    int k;
 
     pico8_jo_struct_init(self, &g_jo_struct_class);
-    for (k = 0; overrides != NULL && k < overrides->count; k++) {
-        pico8_ob_key_t key = overrides->entries[k].key;
-        int measured = key.kind == PICO8_OB_KEY_NAME &&
-                       (strcmp(key.name, "id") == 0 || strcmp(key.name, "p") == 0 || strcmp(key.name, "ra") == 0);
-
-        assert(measured && "jo: the only construction keys are id, p and ra (bw); another key has no member "
-                           "-- stop, do not add one");
-        (void)measured;
-        if (strcmp(key.name, "p") == 0) {
-            jo_take_vec(overrides->entries[k].value, &self->p);
-        } else if (strcmp(key.name, "ra") == 0) {
-            jo_take_vec(overrides->entries[k].value, &self->ra);
-        } else {
-            jo_take_string(overrides->entries[k].value, &self->id);
+    if (keys != NULL) {
+        if (keys->p != NULL) {
+            self->p = keys->p;
+        }
+        if (keys->ra != NULL) {
+            self->ra = keys->ra;
+        }
+        if (keys->id != NULL) {
+            self->id = keys->id;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -690,8 +672,8 @@ const pico8_struct_class_t *pico8_jo_struct_class(void) {
     return &g_jo_struct_class;
 }
 
-pico8_jo_t *pico8_jo_new(const pico8_ob_table_t *overrides) {
-    return pico8_jo_struct_new(overrides);
+pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
+    return pico8_jo_struct_new(keys);
 }
 
 /* `pico8_gb()` is NULL until `pico8_data_init()` has run, and the
@@ -833,26 +815,18 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
     if (hp_instance != NULL && hp_instance->cw != NULL) {
         const pico8_entity_kind_t *target_kind = NULL;
-        pico8_ob_table_t *overrides;
+        pico8_jo_keys_t keys;
 
         self->p_ = 1;
         self->has_p_ = 1;
 
         target_kind = jo_kv(hp_instance->cw);
 
-        overrides = pico8_ob_table_new();
-        if (self->p != NULL) {
-            pico8_ob_table_set_name(overrides, "p", pico8_value_ref(self->p));
-        }
-        if (self->ra != NULL) {
-            pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(self->ra));
-        }
-        if (self->id != NULL) {
-            pico8_ob_table_set_name(overrides, "id", pico8_value_string(self->id));
-        }
+        keys.p = self->p;
+        keys.ra = self->ra;
+        keys.id = self->id;
 
-        working_self = (target_kind != NULL) ? (pico8_jo_t *)target_kind->new_entity(overrides) : NULL;
-        pico8_ob_table_free(overrides);
+        working_self = (target_kind != NULL) ? (pico8_jo_t *)target_kind->new_entity(&keys) : NULL;
     } else if (hp_instance != NULL && hp_instance->go != NULL) {
         self->nk = pico8_df_lookup(hp_instance->go);
     } else {

@@ -382,6 +382,18 @@ typedef struct {
     pico8_fixed_t ms;
 } pico8_ga_start_t;
 
+/* The keys pm:pq passes to the ga it spawns, besides `ra`. */
+typedef struct {
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    pico8_fixed_t iu;
+    pico8_fixed_t py;
+    pico8_fixed_t ms;
+    const pico8_int_seq_t *k_;
+} pico8_ga_pq_keys_t;
+
 typedef struct {
     const pico8_str_seq_t *nu;
     pico8_fixed_t od;
@@ -521,6 +533,7 @@ extern const pico8_os_start_t pico8_os_start;
 extern const pico8_hj_start_t pico8_hj_start;
 extern const pico8_pm_start_t pico8_pm_start;
 extern const pico8_ga_start_t pico8_ga_start;
+extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
 extern const pico8_nr_start_t pico8_nr_start;
 extern const pico8_fr_start_t pico8_fr_start;
 extern const pico8_mx_start_t pico8_mx_start;

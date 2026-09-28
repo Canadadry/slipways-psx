@@ -618,6 +618,17 @@ const pico8_ga_start_t pico8_ga_start = {
     .ms = 0x30000,
 };
 
+const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys = {
+    .qo = 0xf850,
+    .ro = -0x2020,
+    .qg = 0x2020,
+    .q_ = 0xf850,
+    .iu = -0x24e,
+    .py = 0x90000,
+    .ms = 0x18000,
+    .k_ = &pico8_pm_ga_k__seq,
+};
+
 const pico8_nr_start_t pico8_nr_start = {
     .nu = &pico8_nr_nu_tags,
     .od = 0xa0000,

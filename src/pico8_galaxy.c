@@ -56,7 +56,7 @@ void pico8_bw(pico8_fixed_t n) {
         pico8_value_t nearest;
         char *id_num_str;
         char *id_str;
-        pico8_ob_table_t *overrides;
+        pico8_jo_keys_t keys;
         pico8_jo_t *made;
 
         /* cg.jo is empty only on the very first trial: every accepted
@@ -83,18 +83,14 @@ void pico8_bw(pico8_fixed_t n) {
         id_str = pico8_bw_concat2("p", id_num_str);
         free(id_num_str);
 
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_name(overrides, "id", pico8_value_string(id_str));
-        pico8_ob_table_set_name(overrides, "p", pico8_value_ref(p_heap));
-        pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(ra_heap));
+        keys.id = id_str;
+        keys.p = p_heap;
+        keys.ra = ra_heap;
 
-        /* Built for the side effect of self-registering into hv/cv/cg;
-         * `overrides` is freed right after, its entries having been
-         * shallow-copied into the instance's own fields. */
+        /* Built for the side effect of self-registering into hv/cv/cg. */
         /* TROU-7 */
-        made = pico8_jo_new(overrides);
+        made = pico8_jo_new(&keys);
         (void)made;
-        pico8_ob_table_free(overrides);
     }
 
     /* A NULL dk or an absent "en" reads as 0 -- this port's usual

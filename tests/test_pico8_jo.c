@@ -427,16 +427,12 @@ static void test_daughters(void) {
 }
 
 static void *new_planet(const char *id, int x, int y) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    void *made;
+    pico8_jo_keys_t keys;
 
-    pico8_ob_table_set_name(b, "id", pico8_value_string(id));
-    pico8_ob_table_set_name(b, "p", vec_ref(pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y))));
-    pico8_ob_table_set_name(b, "ra",
-                            vec_ref(pico8_vec_v(pico8_fixed_from_int(x * 128), pico8_fixed_from_int(y * 128))));
-    made = pico8_jo_new(b);
-    pico8_ob_table_free(b);
-    return made;
+    keys.id = id;
+    keys.p = vec_ref(pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y))).as.ref;
+    keys.ra = vec_ref(pico8_vec_v(pico8_fixed_from_int(x * 128), pico8_fixed_from_int(y * 128))).as.ref;
+    return pico8_jo_new(&keys);
 }
 
 static void test_new_planet(void) {
@@ -555,20 +551,6 @@ static void write_hp(void *e) {
     pico8_entity_set_field(e, "hp", pico8_value_fixed(pico8_fixed_from_int(1)));
 }
 
-static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "hp", pico8_value_fixed(pico8_fixed_from_int(1)));
-    (void)pico8_jo_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_jo_new(b);
-}
-
 static int is_a_jo_struct(const void *e) {
     return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jo_struct_class();
@@ -576,8 +558,7 @@ static int is_a_jo_struct(const void *e) {
 
 /* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
  * jo's 11 dispatchers, and its class installs none of them, nor a `pq`; a
- * generic write outside the 17 measured names, or a construction key other
- * than `id`/`p`/`ra`, stops the run. */
+ * generic write outside the 17 measured names stops the run. */
 static void test_jo_is_a_struct(void) {
     const pico8_list_t *jo;
     void *a;
@@ -610,8 +591,6 @@ static void test_jo_is_a_struct(void) {
     must_abort(write_ra, a);
     must_abort(write_id, a);
     must_abort(write_hp, a);
-    must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     {
         void *bare = pico8_jo_new(NULL);
         assert(is_a_jo_struct(bare) && !has(bare, "id") && !has(bare, "ra") && has(bare, "oe"));

@@ -520,17 +520,16 @@ static uint32_t fold_heir(uint32_t h, void *e, const pico8_struct_class_t *cls) 
 
 static void test_heirs(void) {
     uint32_t h = 2166136261u;
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     void *pm;
     void *mx;
 
     start_game();
     mx = build(pico8_mx_kind());
-    pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(40, 50)));
-    pico8_ob_table_set_name(b, "ra", vec_ref(vec_xy(7700, 7600)));
-    pico8_ob_table_set_name(b, "id", pico8_value_string("s77"));
-    pm = pico8_pm_new(b);
-    pico8_ob_table_free(b);
+    keys.p = vec_ref(vec_xy(40, 50)).as.ref;
+    keys.ra = vec_ref(vec_xy(7700, 7600)).as.ref;
+    keys.id = "s77";
+    pm = pico8_pm_new(&keys);
 
     assert(strcmp(get(pm, "rr").as.string, "ascension") == 0 && bool_state(pm, "pk") == 1);
     assert(get(pm, "od").as.fixed == pico8_fixed_from_int(60));
@@ -593,17 +592,12 @@ static void write_qy(void *e) {
 }
 
 static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     (void)e;
-    pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(1, 1)));
-    (void)pico8_hj_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_hj_new(b);
+    keys.id = NULL;
+    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.ra = NULL;
+    (void)pico8_hj_new(&keys);
 }
 
 static int is_an_hj_struct(const void *e) {
@@ -654,7 +648,6 @@ static void test_hj_is_a_struct(void) {
     must_abort(write_ht, a);
     must_abort(write_qy, pico8_qh_new(NULL));
     must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     {
         pico8_hj_t *bare = pico8_hj_new(NULL);
         assert(is_an_hj_struct(bare) && !has(bare, "id") && has(bare, "oe") && list_size(bare, "qy") == 0 &&

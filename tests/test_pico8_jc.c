@@ -1392,13 +1392,12 @@ static void check_fresh_members(const void *jc, const void *qu, const void *like
 }
 
 static void *bare_jo(pico8_vec_t p) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    void *jo;
+    pico8_jo_keys_t keys;
 
-    pico8_ob_table_set_name(b, "p", vec_ref_fixed(p));
-    jo = pico8_jo_new(b);
-    pico8_ob_table_free(b);
-    return jo;
+    keys.id = NULL;
+    keys.p = vec_ref_fixed(p).as.ref;
+    keys.ra = NULL;
+    return pico8_jo_new(&keys);
 }
 
 static pico8_vec_t units(int x, int y) {

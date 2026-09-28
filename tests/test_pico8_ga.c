@@ -287,16 +287,15 @@ static void *harvest_recipe(void) {
 /* Road (a): a bare planet on `id`/`p`/`ra`, harvested by `jo:hu`; the burst
  * is the one `hv` gained. */
 static void *harvest(int x, int y, const char *id) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     void *planet;
     void *made;
     int before = pico8_hv()->count;
 
-    pico8_ob_table_set_name(b, "id", pico8_value_string(id));
-    pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(x / 2, y / 2)));
-    pico8_ob_table_set_name(b, "ra", vec_ref(near_mo(x, y)));
-    planet = pico8_jo_new(b);
-    pico8_ob_table_free(b);
+    keys.id = id;
+    keys.p = vec_ref(vec_xy(x / 2, y / 2)).as.ref;
+    keys.ra = vec_ref(near_mo(x, y)).as.ref;
+    planet = pico8_jo_new(&keys);
     assert(!is_ga(planet) && pico8_hv()->count == before + 1);
     pico8_jo_hu(planet, harvest_recipe());
     made = ga_from(before + 1);
@@ -308,15 +307,14 @@ static void *harvest(int x, int y, const char *id) {
 /* Road (b): `kv["pm"]` on `p`/`ra`/`id`; its burst is registered just
  * before the protostar. */
 static void *spawn(int x, int y, const char *id, void **protostar) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     void *pm;
     int at;
 
-    pico8_ob_table_set_name(b, "id", pico8_value_string(id));
-    pico8_ob_table_set_name(b, "p", vec_ref(vec_xy(x / 2, y / 2)));
-    pico8_ob_table_set_name(b, "ra", vec_ref(near_mo(x, y)));
-    pm = pico8_pm_new(b);
-    pico8_ob_table_free(b);
+    keys.id = id;
+    keys.p = vec_ref(vec_xy(x / 2, y / 2)).as.ref;
+    keys.ra = vec_ref(near_mo(x, y)).as.ref;
+    pm = pico8_pm_new(&keys);
     at = rank_in(pico8_hv(), pm);
     assert(at >= 1 && is_ga(pico8_hv()->items[at - 1].as.ref));
     if (protostar != NULL) {
@@ -626,20 +624,6 @@ static void write_ht(void *e) {
     write_fixed(e, "ht");
 }
 
-static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "fa", pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_ga_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_ga_new(b);
-}
-
 static int is_a_ga_struct(const void *e) {
     return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class();
@@ -648,8 +632,8 @@ static int is_a_ga_struct(const void *e) {
 /* Built by any road, a burst is a struct whose descriptor holds jo's very
  * entries but its own `kj`, plus its own `mm`; jo's reader sees the 5
  * defaults of ga that fall on one of jo's members; it takes exactly `qy`
- * and jo's 17 names, and a construction key outside the 11 measured stops
- * the run. Neither ga's class nor jo's installs a function or a `pq`. */
+ * and jo's 17 names. Neither ga's class nor jo's installs a function or a
+ * `pq`. */
 static void test_ga_is_a_struct(void) {
     static const char *const on_jo[] = {"nu", "hf", "by", "kq", "fa"};
     pico8_value_t on_jo_want[5];
@@ -699,8 +683,6 @@ static void test_ga_is_a_struct(void) {
     must_abort(write_ra, roads[0]);
     must_abort(write_id, roads[0]);
     must_abort(write_ht, roads[0]);
-    must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     ((pico8_ga_t *)roads[2])->fz = NULL;
     assert(!cls->field(roads[2], "fz", &v) && !is_ga(roads[2]));
 }
@@ -798,7 +780,8 @@ static void test_ga_members_by_name(void) {
     pico8_list_t *fresh;
     static const int k_items[] = {5, 6};
     static const pico8_int_seq_t k_ = {2, k_items};
-    pico8_ob_table_t *b;
+    pico8_ga_pq_keys_t pq;
+    pico8_ga_keys_t keys;
     pico8_value_t v;
     size_t i;
     size_t r;
@@ -821,12 +804,19 @@ static void test_ga_members_by_name(void) {
            read_ref(roads[1], "qy") != read_ref(roads[2], "qy") &&
            read_ref(roads[0], "qy") != read_ref(roads[2], "qy"));
 
-    b = pico8_ob_table_new();
-    for (i = 0; i < sizeof keyed / sizeof keyed[0]; i++) {
-        pico8_ob_table_set_name(b, keyed_names[i], pico8_value_fixed(pico8_fixed_from_int(keyed[i])));
-    }
-    pico8_ob_table_set_name(b, "k_", pico8_value_ref((void *)&k_));
-    keyed_ga = pico8_ga_new(b);
+    pq.qo = pico8_fixed_from_int(keyed[0]);
+    pq.ro = pico8_fixed_from_int(keyed[1]);
+    pq.qg = pico8_fixed_from_int(keyed[2]);
+    pq.q_ = pico8_fixed_from_int(keyed[3]);
+    pq.iu = pico8_fixed_from_int(keyed[4]);
+    pq.py = pico8_fixed_from_int(keyed[5]);
+    pq.ms = pico8_fixed_from_int(keyed[6]);
+    pq.k_ = &k_;
+    keys.jo.id = NULL;
+    keys.jo.p = NULL;
+    keys.jo.ra = NULL;
+    keys.pq = &pq;
+    keyed_ga = pico8_ga_new(&keys);
     for (i = 0; i < sizeof keyed / sizeof keyed[0]; i++) {
         assert(read_fixed(keyed_ga, keyed_names[i]) == pico8_fixed_from_int(keyed[i]));
     }
@@ -835,9 +825,8 @@ static void test_ga_members_by_name(void) {
     for (i = 0; i < sizeof ga_own / sizeof ga_own[0]; i++) {
         h = fold_member(h, keyed_ga, ga_own[i]);
     }
-    pico8_ob_table_set_name(b, "k_", pico8_value_ref(NULL));
-    nil_k = pico8_ga_new(b);
-    pico8_ob_table_free(b);
+    pq.k_ = NULL;
+    nil_k = pico8_ga_new(&keys);
     assert(!read_both(nil_k, "k_", &v));
     h = fold_member(h, nil_k, "k_");
 
@@ -881,13 +870,6 @@ static void write_off_row(void *e) {
     pico8_entity_set_field(e, g_off_row_name, g_off_row_value);
 }
 
-static void build_off_row(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, g_off_row_name, g_off_row_value);
-    (void)pico8_ga_new(b);
-}
-
 static pico8_value_t zero_union(pico8_value_kind_t kind) {
     pico8_value_t v;
 
@@ -896,13 +878,9 @@ static pico8_value_t zero_union(pico8_value_kind_t kind) {
     return v;
 }
 
-/* `qy` takes nil or a list and nothing else; a fixed construction key takes
- * a fixed and nothing else, nil included; `k_` takes nil or a table. */
+/* `qy` takes nil or a list and nothing else. */
 static void test_ga_writer_stops_off_row(void) {
-    static const char *const key_names[] = {"qo", "ms", "iu", "py", "k_", "k_", "k_"};
     pico8_value_t off_row[11];
-    pico8_value_t off_key[7];
-    pico8_list_t *list;
     void *roads[3];
     size_t n_off;
     size_t i;
@@ -930,21 +908,6 @@ static void test_ga_writer_stops_off_row(void) {
             g_off_row_value = off_row[i];
             must_abort(write_off_row, roads[r]);
         }
-    }
-
-    list = malloc(sizeof *list);
-    pico8_list_init(list);
-    off_key[0] = pico8_value_string("x");
-    off_key[1] = pico8_value_bool(1);
-    off_key[2] = zero_union(PICO8_VALUE_BOOL);
-    off_key[3] = pico8_value_ref(NULL);
-    off_key[4] = pico8_value_ref(list);
-    off_key[5] = pico8_value_fixed(pico8_fixed_from_int(1));
-    off_key[6] = zero_union(PICO8_VALUE_STRING);
-    for (i = 0; i < sizeof off_key / sizeof off_key[0]; i++) {
-        g_off_row_name = key_names[i];
-        g_off_row_value = off_key[i];
-        must_abort(build_off_row, NULL);
     }
 }
 

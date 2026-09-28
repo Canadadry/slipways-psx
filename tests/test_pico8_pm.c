@@ -258,20 +258,19 @@ static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg
 
 /* `kv["pm"]` as `jo:hu` calls it: `p`, `ra`, `id`, each only when given. */
 static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const char *id) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     void *made;
 
+    keys.p = NULL;
+    keys.ra = NULL;
     if (p != NULL) {
-        pico8_ob_table_set_name(b, "p", vec_ref(*p));
+        keys.p = vec_ref(*p).as.ref;
     }
     if (ra != NULL) {
-        pico8_ob_table_set_name(b, "ra", vec_ref(*ra));
+        keys.ra = vec_ref(*ra).as.ref;
     }
-    if (id != NULL) {
-        pico8_ob_table_set_name(b, "id", pico8_value_string(id));
-    }
-    made = pico8_pm_new(b);
-    pico8_ob_table_free(b);
+    keys.id = id;
+    made = pico8_pm_new(&keys);
     assert(made != NULL);
     return made;
 }
@@ -539,20 +538,6 @@ static void write_ht(void *e) {
     write_fixed(e, "ht");
 }
 
-static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "hp", pico8_value_fixed(pico8_fixed_from_int(1)));
-    (void)pico8_pm_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_pm_new(b);
-}
-
 static int is_a_pm_struct(const void *e) {
     return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)e)->cls == pico8_pm_struct_class();
@@ -561,8 +546,7 @@ static int is_a_pm_struct(const void *e) {
 /* Built by `kv["pm"]` or pico8_pm_new, a protostar is a struct whose
  * descriptor holds hj's very entries and hj's writer, its reader its own;
  * hj's reader sees the 16 defaults of pm that fall on an inherited member;
- * it takes exactly hj's 21 names, and a construction key other than `p`,
- * `ra`, `id` stops the run. pm's class keeps no `pq` of its own. */
+ * it takes exactly hj's 21 names. pm's class keeps no `pq` of its own. */
 static void test_pm_is_a_struct(void) {
     static const char *const inherited[] = {"me", "nu", "hp", "px", "s",  "py", "ki", "pn",
                                             "pk", "du", "fc", "k_", "qo", "ro", "qg", "q_"};
@@ -602,8 +586,6 @@ static void test_pm_is_a_struct(void) {
     must_abort(write_id, a);
     must_abort(write_qw, a);
     must_abort(write_ht, a);
-    must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     {
         pico8_pm_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && !has(bare, "id") && !has(bare, "ra") && has(bare, "oe") &&

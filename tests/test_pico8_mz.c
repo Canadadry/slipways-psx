@@ -683,7 +683,7 @@ static void test_gv(void) {
     void *mz;
     void *ly;
     void *nr;
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_jo_keys_t keys;
     pico8_value_t r;
 
     world();
@@ -693,10 +693,10 @@ static void test_gv(void) {
     r = pico8_jo_gv(ly, mz);
     assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
 
-    pico8_ob_table_set_name(overrides, "p", get(ly, "p"));
-    pico8_ob_table_set_name(overrides, "ra", get(ly, "ra"));
-    nr = pico8_nr_new(overrides);
-    pico8_ob_table_free(overrides);
+    keys.id = NULL;
+    keys.p = get(ly, "p").as.ref;
+    keys.ra = get(ly, "ra").as.ref;
+    nr = pico8_nr_new(&keys);
     r = pico8_nr_gv(nr, mz);
     assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
 }

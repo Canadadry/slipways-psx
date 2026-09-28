@@ -7,7 +7,6 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
-#include "pico8_ob.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -93,10 +92,10 @@ const pico8_jb_row_t *pico8_jo_em(void);
  * `{mu=0}`. */
 pico8_kw_t *pico8_jo_shared_kw(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id`, `p` and `ra` only.
- * The new planet registers itself into `hv`/`cv`/`cg` through `lt`, and
- * nothing ever frees it. Requires `pico8_jo_init()`. */
-pico8_jo_t *pico8_jo_new(const pico8_ob_table_t *overrides);
+/* `keys` (NULL means none) is read, not kept. The new planet registers
+ * itself into `hv`/`cv`/`cg` through `lt`, and nothing ever frees it.
+ * Requires `pico8_jo_init()`. */
+pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
 
 /* Sets up an allocated `self` as a bare planet whose descriptor is `cls`:
  * the 31 members nil, then jo's defaults. Neither runs `jo:pq` nor `lt`:

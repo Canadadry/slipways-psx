@@ -205,7 +205,7 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
     const pico8_entity_kind_t *ke_kind;
     char *id_num_str;
     char *id_str;
-    pico8_ob_table_t *overrides;
+    pico8_jo_keys_t keys;
     void *made;
 
     (void)mp;
@@ -224,13 +224,12 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
     id_str = ie_concat2("s", id_num_str);
     free(id_num_str);
 
-    /* The constructor copies each entry, so `overrides` is freed right
-     * after -- but `id_str` is not: the new planet's `id` keeps that exact
+    /* `id_str` is not freed: the new planet's `id` keeps that exact
      * pointer. */
-    overrides = pico8_ob_table_new();
-    pico8_ob_table_set_name(overrides, "id", pico8_value_string(id_str));
-    made = ke_kind->new_entity(overrides);
-    pico8_ob_table_free(overrides);
+    keys.id = id_str;
+    keys.p = NULL;
+    keys.ra = NULL;
+    made = ke_kind->new_entity(&keys);
 
     return pico8_value_ref(made);
 }

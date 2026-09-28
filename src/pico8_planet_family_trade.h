@@ -2,7 +2,6 @@
 #define PICO8_PLANET_FAMILY_TRADE_H
 
 #include "pico8_fixed.h"
-#include "pico8_ob.h"
 #include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
 #include "pico8_struct.h"
@@ -56,29 +55,28 @@ int pico8_nr_ready(void);
 const pico8_entity_kind_t *pico8_nr_kind(void);
 const pico8_struct_class_t *pico8_nr_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id`, `p`, `ra`, each
- * optional. The new slipgate registers itself into `hv`/`cv`/`cg` through
- * `lt`, and nothing ever frees it. Requires
- * `pico8_planet_family_trade_init()`. */
-pico8_nr_t *pico8_nr_new(const pico8_ob_table_t *overrides);
+/* `keys` (NULL means none) is read, not kept. The new slipgate registers
+ * itself into `hv`/`cv`/`cg` through `lt`, and nothing ever frees it.
+ * Requires `pico8_planet_family_trade_init()`. */
+pico8_nr_t *pico8_nr_new(const pico8_jo_keys_t *keys);
 
 int pico8_fr_ready(void);
 const pico8_entity_kind_t *pico8_fr_kind(void);
 const pico8_struct_class_t *pico8_fr_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id` only. The new
- * infraspace gate registers itself into `hv`/`cv`/`cg` through `lt`, and
- * nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
-pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides);
+/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
+ * NULL. The new infraspace gate registers itself into `hv`/`cv`/`cg` through
+ * `lt`, and nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
+pico8_fr_t *pico8_fr_new(const pico8_jo_keys_t *keys);
 
 int pico8_mx_ready(void);
 const pico8_entity_kind_t *pico8_mx_kind(void);
 const pico8_struct_class_t *pico8_mx_struct_class(void);
 
-/* `overrides` (NULL means none) is read, not kept: `id` only. The new
- * synthesizer registers itself into `hv`/`cv`/`cg` through `lt`, and
- * nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
-pico8_mx_t *pico8_mx_new(const pico8_ob_table_t *overrides);
+/* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
+ * NULL. The new synthesizer registers itself into `hv`/`cv`/`cg` through
+ * `lt`, and nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
+pico8_mx_t *pico8_mx_new(const pico8_jo_keys_t *keys);
 
 /* Never stores `s`, which may be NULL: `nr:ldown` passes a static struct
  * with no field. */
