@@ -586,7 +586,7 @@ static int is_an_nl_struct(const void *e) {
  * carries; it takes exactly qh's 20 names plus `qw`, and a construction key
  * other than `id` stops the run. A bare `qh` still refuses `qw`. */
 static void test_nl_is_a_struct(void) {
-    static const char *const written[] = {"et", "qw"};
+    static const char *const written[] = {"qw"};
     const pico8_struct_class_t *cls = pico8_nl_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     pico8_value_t v;

@@ -31,17 +31,27 @@ void pico8_planet_family_shutdown(void);
  * borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
-    pico8_value_t hp;
-    pico8_value_t px;
-    pico8_value_t dq;
-    pico8_value_t qh;
-    pico8_value_t od;
-    pico8_value_t fp;
-    pico8_value_t dw;
-    pico8_value_t s;
-    pico8_value_t ba;
-    pico8_value_t et;
+    pico8_fixed_t hp;
+    pico8_ob_table_t *px;
+    const char *dq;
+    pico8_fixed_t qh;
+    int qh_is_bool; /* 1: `qh` holds a boolean (0/1), 0: a fixed */
+    pico8_fixed_t od;
+    pico8_fixed_t fp;
+    pico8_fixed_t dw;
+    pico8_fixed_t s;
+    pico8_ob_table_t *ba;
+    pico8_struct_header_t *et; /* borrowed, never freed */
+    int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
 } pico8_qh_t;
+
+/* `qh` as a value: a boolean when `qh_is_bool`, a fixed otherwise; REF NULL
+ * when `self` is NULL. */
+pico8_value_t pico8_qh_qh(const pico8_qh_t *self);
+
+/* `et` as a value: REF NULL when `self` is NULL or `et` is absent, `false`
+ * when present and NULL, a REF to the target otherwise. */
+pico8_value_t pico8_qh_et(const pico8_qh_t *self);
 
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`

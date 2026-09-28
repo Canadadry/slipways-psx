@@ -778,7 +778,6 @@ static int is_a_qh_struct(const void *e) {
  * refuses `et`; every descendant is a struct under its own descriptor. */
 static void test_qh_is_a_struct(void) {
     static const char *const jo_methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
-    static const char *const written[] = {"et"};
     const pico8_entity_kind_t *const descendants[] = {pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(), pico8_pm_kind(),
                                                       pico8_mx_kind(), pico8_nr_kind(), pico8_fr_kind()};
     const pico8_struct_class_t *cls = pico8_qh_struct_class();
@@ -803,12 +802,6 @@ static void test_qh_is_a_struct(void) {
         assert(k < (int)(sizeof methods / sizeof methods[0]));
     }
 
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_value_t v;
-        pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
     must_abort(write_hp, a);
     must_abort(write_id, a);
     must_abort(write_s, a);

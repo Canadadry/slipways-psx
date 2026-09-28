@@ -553,7 +553,6 @@ static int is_an_fr_struct(const void *e) {
  * names, and a construction key other than `id` stops the run. Neither
  * nr's nor qh's class installs a function any more. */
 static void test_fr_is_a_struct(void) {
-    static const char *const written[] = {"et", "s"};
     static const char *const inherited[] = {"rr", "hz", "od", "s"};
     const pico8_struct_class_t *cls = pico8_fr_struct_class();
     const pico8_struct_class_t *nr = pico8_nr_struct_class();
@@ -595,11 +594,7 @@ static void test_fr_is_a_struct(void) {
     must_abort(write_ht, a);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP() for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
+    PICO8_MEMBER_CENSUS_STOP()
     {
         pico8_fr_t *bare = pico8_fr_new(NULL);
         assert(is_an_fr_struct(bare) && is_a_gate(bare) && !has(bare, "id") && has(bare, "oe") && has(bare, "kw"));

@@ -627,7 +627,6 @@ static int is_an_os_struct(const void *e) {
  * takes exactly qh's 20 names, and a construction key other than `id` stops
  * the run. */
 static void test_os_is_a_struct(void) {
-    static const char *const written[] = {"et"};
     const pico8_struct_class_t *cls = pico8_os_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     void *a;
@@ -645,12 +644,6 @@ static void test_os_is_a_struct(void) {
     }
     assert(cls->field == qh->field && cls->set_field == qh->set_field);
 
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_value_t v;
-        pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
     must_abort(write_qw, a);
     must_abort(write_rr, a);
     must_abort(write_hs, a);
