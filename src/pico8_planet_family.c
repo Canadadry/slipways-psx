@@ -293,19 +293,9 @@ static void *pico8_qh_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-/* nl's own defaults, read once through pico8_nl_default() at init: the very
- * values its spec holds, tables included. Each lands in the member of that
- * name, qh's or jo's when it has one. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_nl_defaults[] = {
-    {"rr", offsetof(pico8_nl_t, rr), {0}},
-    {"nl", offsetof(pico8_nl_t, nl), {0}},
-    {"qw", offsetof(pico8_nl_t, qw), {0}},
-};
-
+static const char *g_nl_rr = NULL;
+static pico8_fixed_t g_nl_nl = 0;
+static pico8_fixed_t g_nl_qw = 0;
 static pico8_ob_table_t *g_nl_nu = NULL;
 static pico8_fixed_t g_nl_qh = 0;
 static int g_nl_qh_is_bool = 0;
@@ -316,7 +306,9 @@ static pico8_fixed_t g_nl_od = 0;
 static pico8_ob_table_t *g_nl_ba = NULL;
 
 static void pico8_nl_defaults_reset(void) {
-    size_t i;
+    g_nl_rr = NULL;
+    g_nl_nl = 0;
+    g_nl_qw = 0;
     g_nl_nu = NULL;
     g_nl_qh = 0;
     g_nl_qh_is_bool = 0;
@@ -325,40 +317,40 @@ static void pico8_nl_defaults_reset(void) {
     g_nl_px = NULL;
     g_nl_od = 0;
     g_nl_ba = NULL;
-    for (i = 0; i < sizeof g_nl_defaults / sizeof g_nl_defaults[0]; i++) {
-        g_nl_defaults[i].value = pico8_value_ref(NULL);
-    }
 }
 
-static const struct {
-    const char *name;
-    size_t offset;
-} g_nl_members[] = {
-    {"rr", offsetof(pico8_nl_t, rr)},
-    {"nl", offsetof(pico8_nl_t, nl)},
-    {"qw", offsetof(pico8_nl_t, qw)},
-};
-
 static int pico8_nl_field(const void *self, const char *name, pico8_value_t *out_value) {
-    size_t i;
+    const pico8_nl_t *nl = self;
 
-    for (i = 0; i < sizeof g_nl_members / sizeof g_nl_members[0]; i++) {
-        if (strcmp(name, g_nl_members[i].name) == 0) {
-            const pico8_value_t *member = (const pico8_value_t *)((const char *)self + g_nl_members[i].offset);
-            if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-                return 0;
-            }
-            *out_value = *member;
-            return 1;
+    if (strcmp(name, "rr") == 0) {
+        if (nl->rr == NULL) {
+            return 0;
         }
+        *out_value = pico8_value_string(nl->rr);
+        return 1;
+    }
+    if (strcmp(name, "nl") == 0) {
+        *out_value = pico8_value_fixed(nl->nl);
+        return 1;
+    }
+    if (strcmp(name, "qw") == 0) {
+        *out_value = pico8_value_fixed(nl->qw);
+        return 1;
     }
     return pico8_qh_struct_class()->field(self, name, out_value);
+}
+
+static void family_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "nl.qw: a write that is not a fixed is off its census row (fixe, never nil) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
 }
 
 /* `qw`, which nl's own `ly` writes, then qh's 20 names; 0 for any other. */
 static int pico8_nl_set_field(void *self, const char *name, pico8_value_t value) {
     if (strcmp(name, "qw") == 0) {
-        ((pico8_nl_t *)self)->qw = value;
+        family_take_fixed(value, &((pico8_nl_t *)self)->qw);
         return 1;
     }
     return pico8_qh_struct_class()->set_field(self, name, value);
@@ -372,9 +364,8 @@ void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t) {
 
     assert(self->qh.jo.has_mi && "nl:ly reads self.mi unguarded, unlike hj:kj");
     if (self->qh.jo.has_mi && self->qh.jo.mi >= pico8_fixed_from_int(2)) {
-        self->qw = pico8_value_fixed(pico8_fixed_add(
-            pico8_fixed_from_int(8),
-            pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6))));
+        self->qw = pico8_fixed_add(pico8_fixed_from_int(8),
+                                   pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6)));
     }
 }
 
@@ -413,17 +404,13 @@ static const pico8_struct_class_t g_nl_struct_class = {
 
 static void *pico8_nl_struct_new(const pico8_ob_table_t *overrides) {
     pico8_nl_t *self = malloc(sizeof *self);
-    size_t i;
     int k;
 
     assert(g_nl_spec != NULL && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(&self->qh, &g_nl_struct_class);
-    for (i = 0; i < sizeof g_nl_members / sizeof g_nl_members[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_nl_members[i].offset) = pico8_value_ref(NULL);
-    }
-    for (i = 0; i < sizeof g_nl_defaults / sizeof g_nl_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_nl_defaults[i].offset) = g_nl_defaults[i].value;
-    }
+    self->rr = g_nl_rr;
+    self->nl = g_nl_nl;
+    self->qw = g_nl_qw;
     self->qh.qh = g_nl_qh;
     self->qh.qh_is_bool = g_nl_qh_is_bool;
     self->qh.hp = g_nl_hp;
@@ -1177,7 +1164,7 @@ static pico8_qz_box_t *family_default_box(int found, pico8_value_t v) {
 
 static pico8_fixed_t family_default_fixed(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "os.hs, ga.fa, qh.mi, qh/nl/os/hj/pm.hp, qh/nl/os/hj.od, qh.fp/dw, qh/nl/os/hj/pm.s: a default of the "
+           "os.hs, ga.fa, qh.mi, nl.nl/qw, qh/nl/os/hj/pm.hp, qh/nl/os/hj.od, qh.fp/dw, qh/nl/os/hj/pm.s: a default of the "
            "struct is a key of its spec and a fixed (fixe)");
     (void)found;
     return v.as.fixed;
@@ -1202,7 +1189,7 @@ static pico8_fixed_t family_default_hf(int found, pico8_value_t v, int *is_bool)
 
 static const char *family_default_string(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "qh.dq: a default of the struct is a key of qh's spec and a string (chaine)");
+           "qh.dq, nl.rr: a default of the struct is a key of its spec and a string (chaine)");
     (void)found;
     return v.as.string;
 }
@@ -1266,11 +1253,12 @@ void pico8_planet_family_init(void) {
                          "od=20,qw=15,\n"
                          "ba=o(28,48,18,20,21,22),\n",
                          NULL);
-    for (i = 0; i < sizeof g_nl_defaults / sizeof g_nl_defaults[0]; i++) {
-        int found = pico8_nl_default(g_nl_defaults[i].name, &g_nl_defaults[i].value);
-        assert(found && "nl: every default of the struct is a key of nl's spec");
-        (void)found;
-    }
+    found = pico8_nl_default("rr", &v);
+    g_nl_rr = family_default_string(found, v);
+    found = pico8_nl_default("nl", &v);
+    g_nl_nl = family_default_fixed(found, v);
+    found = pico8_nl_default("qw", &v);
+    g_nl_qw = family_default_fixed(found, v);
     found = pico8_nl_default("nu", &v);
     g_nl_nu = family_default_table(found, v);
     found = pico8_nl_default("qh", &v);

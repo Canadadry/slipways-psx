@@ -56,13 +56,13 @@ pico8_value_t pico8_qh_et(const pico8_qh_t *self);
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
  * or `jo` (`nu`, `qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
- * `nu`, `px` and `ba` hold the very tables of nl's spec, borrowed. Nothing
- * frees the struct: TROU-7. */
+ * `nu`, `px` and `ba` hold the very tables of nl's spec, `rr` its very
+ * string, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    pico8_value_t rr;
-    pico8_value_t nl;
-    pico8_value_t qw;
+    const char *rr;
+    pico8_fixed_t nl;
+    pico8_fixed_t qw;
 } pico8_nl_t;
 
 /* A processor: a laboratory and nothing of its own. Each default of os
