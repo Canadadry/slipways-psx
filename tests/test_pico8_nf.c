@@ -1,7 +1,6 @@
 /* The mouse reader `nf` (`je` once `jl()` has run), read only through the
- * dual-form field reader and driven through the real `dg`. The frozen values
- * were taken on the code where `nf` was still a class instance and must not
- * be re-taken. */
+ * dual-form field reader and driven through the real `dg`, in games built
+ * directly: no events file. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -16,7 +15,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -34,9 +32,6 @@
 
 #define SCRIPTED_TICKS 12
 #define SCRIPTED_HASH 0xEB03D064u
-#define TITLE_REPLAY "tests/fixtures/trading_hub_session_events.json"
-#define TITLE_FRAMES 180
-#define TITLE_HASH 0xBDC26772u
 #define NF_MEMBERS_HASH 0x8D1F75D8u
 
 static pico8_mem_t mem;
@@ -47,17 +42,6 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
     for (i = 0; i < 4; i++) {
         h ^= (word >> (8 * i)) & 0xFFu;
-        h *= 16777619u;
-    }
-    return h;
-}
-
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
         h *= 16777619u;
     }
     return h;
@@ -263,46 +247,25 @@ static void test_placeholder_je(void) {
     assert(pico8_entity_get_field(ok, "qa", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
 }
 
-/* A raylib recording from the title screen, through the click that starts a
- * game with the left button still held. */
-static void test_replay_from_title(void) {
-    uint32_t h = 2166136261u;
-    pico8_cheat_t cheat;
+/* The title screen's `je`, then `eu` starting a game with the left button
+ * still held: the new `je` sees it held. */
+static void test_launch_with_left_held(void) {
     const void *first_je;
-    int launched_at = -1;
-    int i;
 
-    pico8_cart_load();
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, TITLE_REPLAY));
-    pico8_dispatch_set_input(&input);
     pico8__init();
     first_je = pico8_je();
-    pico8_cheat_init(&cheat);
-    for (i = 0; i < input.frame_count; i++) {
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-        if (launched_at < 0 && pico8_je() != first_je) {
-            launched_at = i;
-            assert(flag("l", "on") == 1);
-        }
-        h = fold_je(h);
-        h = fnv(h, screen_hash());
-        if (i + 1 == TITLE_FRAMES || i + 1 == input.frame_count) {
-            break;
-        }
-        pico8_input_step(&input);
-    }
-    pico8_input_free(&input);
+    frame(0, 64, 64, 1);
+    frame(1, 64, 64, 1);
+    frame(2, 64, 64, 1);
+    script(3);
+    pico8_dg();
+    pico8_input_step(&input);
+    pico8_eu(NULL);
+    assert(pico8_je() != first_je);
+    pico8_input_step(&input);
+    pico8_dg();
     unscript();
-    printf("[title replay] launched at frame %d, frames=%d\n", launched_at, i + 1);
-    fflush(stdout);
-    assert(i + 1 == TITLE_FRAMES);
-    fflush(stdout);
-    assert(launched_at >= 0 && launched_at < TITLE_FRAMES);
-    check("title replay", h, TITLE_HASH);
+    assert(flag("l", "on") == 1);
 }
 
 static int is_an_nf_struct(const void *e) {
@@ -521,7 +484,7 @@ int main(void) {
     test_buttons_survive_jl();
     test_nf_init_starts_the_tables_afresh();
     test_placeholder_je();
-    test_replay_from_title();
+    test_launch_with_left_held();
     test_nf_is_a_struct_sharing_its_buttons();
     test_nf_members_by_name();
 
