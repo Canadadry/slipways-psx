@@ -41,10 +41,10 @@ pattern() {
     esac
 }
 
-# Ces six _default sont des variantes a argument omis du cart, pas des defauts
+# Ces sept _default sont des variantes a argument omis du cart, pas des defauts
 # de classe : les compter rendrait spec impossible a eteindre. Pas de \b ici,
 # le sed BSD ne le connait pas.
-SPEC_EXCLUSION='s/pico8_(spr|fixed_rnd|dv|io|lq_ol|bl)_default//g'
+SPEC_EXCLUSION='s/pico8_(spr|fixed_rnd|dv|io|lq_ol|bl|rk)_default//g'
 
 mode=count
 checked=
