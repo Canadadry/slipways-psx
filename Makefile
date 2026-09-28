@@ -1,7 +1,7 @@
 # Tout tourne en parallèle (-j au nombre de cœurs, sorties regroupées par cible).
 #
-# make test          -> unit + constants-check + float-grep + float-guard, la
-#                       boucle rapide
+# make test          -> unit + constants-check + float-grep + float-guard +
+#                       data-guard, la boucle rapide
 # make e2e           -> rejoue chaque e2e de tests/e2e/ depuis l'écran titre,
 #                       avec le binaire -O0 de make test, et compare le sha256
 #                       de sa capture à <nom>.json.sha256 ; échoue aussi si un
@@ -62,7 +62,13 @@
 #                       hors suite
 # make value-members -> liste les membres pico8_value_t des structs d'entité
 #                       et leur nombre (tools/entity_value_members.sh) ; la
-#                       phase 1b sort sur une liste vide, hors suite
+#                       phase 1b sort sur une liste vide, hors suite ; data-guard
+#                       en fait la garde
+# make data-residue  -> compte le résidu de données par catégorie
+#                       (tools/data_residue.sh) ; la phase D sort sur une sortie
+#                       vide, hors suite
+# make data-guard    -> make value-members vide, aucun offsetof dans src/,
+#                       catégories de DATA_RESIDUE_GUARD à 0, dans make test
 # make member-census -> rejoue les e2e de tests/e2e/ et CENSUS_UNIT_TESTS sous
 #                       -DPICO8_MEMBER_CENSUS dans tmp/census et réécrit
 #                       tools/member_census.txt ; échoue sur l'intégrité de
@@ -395,6 +401,9 @@ $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_g
 $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_grep.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_data_residue: $(call objs,tests/test_data_residue.c) tools/data_residue.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -612,6 +621,7 @@ UNIT_TESTS := \
     test_e2e_cleanup \
     test_float_guard \
     test_float_grep \
+    test_data_residue \
     test_float_link \
     test_constants_check \
     test_pico8_bg_kj \
@@ -688,7 +698,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard
+test: unit constants-check float-grep float-guard data-guard
 
 unit-slow: $(UNIT_RUNS_SLOW)
 
@@ -897,6 +907,27 @@ value-members: tools/entity_value_members.sh
 	@sh tools/entity_value_members.sh
 
 .PHONY: value-members
+
+# Catégories du compteur tombées à 0, séparées par des virgules.
+DATA_RESIDUE_GUARD :=
+
+data-residue: tools/data_residue.sh
+	@sh tools/data_residue.sh
+
+# grep rend 1 quand rien ne correspond ; au-delà, c'est une erreur.
+data-guard: tools/entity_value_members.sh tools/data_residue.sh
+	@sh tools/entity_value_members.sh --check
+	@status=0; grep -rn offsetof src/ || status=$$?; \
+	if [ $$status -eq 0 ]; then echo "data-guard : offsetof dans src/"; exit 1; fi; \
+	[ $$status -eq 1 ] || exit $$status; \
+	echo "offsetof dans src/ : 0"
+	@if [ -n "$(DATA_RESIDUE_GUARD)" ]; then \
+	    sh tools/data_residue.sh --check $(DATA_RESIDUE_GUARD) src tests; \
+	else \
+	    echo "catégories gardées : aucune"; \
+	fi
+
+.PHONY: data-residue data-guard
 
 # Les TU de UNIT_TESTS qui lient ENGINE_SRCS ou DATA_ENGINE_SRCS, moins
 # UNIT_TESTS_SLOW.
