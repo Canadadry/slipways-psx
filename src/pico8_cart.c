@@ -142,7 +142,7 @@ void pico8__init(void) {
     pico8_ie_set_gy(pico8_ie_eh());
     pico8_msgbox_set_kc(NULL);
 
-    (void)pico8_fv_new(NULL);
+    (void)pico8_fv_new();
     /* TROU-10 */
     pico8_music(0);
 }
@@ -187,8 +187,8 @@ void pico8_eu(pico8_js_t *nj) {
     pico8_bw(pico8_fixed_from_int(90));
 
     /* TROU-7 */
-    pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new(NULL));
-    pico8_pj_set_ju(pico8_pj_new(NULL));
+    pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new());
+    pico8_pj_set_ju(pico8_pj_new());
 
     if (pico8_ix() != NULL) {
         pico8_list_t ix_items;
@@ -215,16 +215,11 @@ void pico8_eu(pico8_js_t *nj) {
     gx[6] = pico8_hj_kind();
 
     for (i = 0; i < 7; i++) {
-        pico8_ob_table_t *overrides;
-        pico8_jb_t *jb;
+        pico8_ie_keys_t keys = {0};
 
-        jb = pico8_jb_new(&pico8_dr_table[i]);
-
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)gx[i]));
-        pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(jb));
-        (void)pico8_ie_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.ke = gx[i];
+        keys.jb = pico8_jb_new(&pico8_dr_table[i]);
+        (void)pico8_ie_new(&keys);
     }
 
     assert(pico8_fm_hy() != NULL && "fm must be the hy of this game before fm:lj()");

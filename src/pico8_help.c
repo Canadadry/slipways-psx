@@ -203,7 +203,7 @@ static const pico8_struct_class_t g_fv_struct_class = {
     pico8_fv_set_field,
 };
 
-static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_fv_struct_new(void) {
     pico8_fv_t *self;
 
     assert(g_fv_up && "pico8_help_init() must run first");
@@ -233,9 +233,6 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     self->ql = pico8_fv_start.ql;
     self->fg = pico8_fv_start.fg;
     self->rb = pico8_fv_start.rb;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "fv: the only road is pico8_fv_new(NULL) (cart.c); a construction key has no member "
-           "-- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fv");
 #endif
@@ -277,6 +274,6 @@ const pico8_struct_class_t *pico8_fv_struct_class(void) {
     return &g_fv_struct_class;
 }
 
-pico8_fv_t *pico8_fv_new(const pico8_ob_table_t *overrides) {
-    return pico8_fv_struct_new(overrides);
+pico8_fv_t *pico8_fv_new(void) {
+    return pico8_fv_struct_new();
 }

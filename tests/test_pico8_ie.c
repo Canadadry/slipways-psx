@@ -29,7 +29,6 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
@@ -273,14 +272,11 @@ static const pico8_jb_row_t *dr_row(int i) {
 }
 
 static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    void *made;
+    pico8_ie_keys_t keys = {0};
 
-    pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)ke));
-    pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(jb));
-    made = pico8_ie_new(overrides);
-    pico8_ob_table_free(overrides);
-    return made;
+    keys.ke = ke;
+    keys.jb = jb;
+    return pico8_ie_new(&keys);
 }
 
 /* The `kq` box by which of a ring of points around its corners it holds. */
@@ -665,18 +661,9 @@ static void write_id(void *e) {
     pico8_entity_set_field(e, "id", pico8_value_fixed(0));
 }
 
-static void build_with_ra(void *ke) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-
-    pico8_ob_table_set_name(overrides, "ke", pico8_value_ref(ke));
-    pico8_ob_table_set_name(overrides, "jb", pico8_value_ref(pico8_jb_new(NULL)));
-    pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(NULL));
-    (void)pico8_ie_new(overrides);
-}
-
 /* Built by `eu` or directly, an `ie` is a struct with its four methods; a
- * generic write of a name other than `m_`, or a construction key other
- * than `ke`/`jb`, stops the run instead of growing a member. `hd` stays the
+ * generic write of a name other than `m_` stops the run instead of growing
+ * a member. `hd` stays the
  * plain `1` of `fq` and `bg`, and no other struct answers to `hb`. */
 static void test_ie_is_a_struct(void) {
     static const char *const methods[] = {"hd", "hb", "kj", "ldown"};
@@ -709,13 +696,12 @@ static void test_ie_is_a_struct(void) {
     pico8_entity_set_field(built, "m_", pico8_value_bool(1));
     assert(bool_state(built, "m_") == 2);
     {
-        pico8_ob_table_t *jb_only = pico8_ob_table_new();
+        pico8_ie_keys_t jb_only = {0};
         void *no_ke;
         pico8_fixed_t id0 = must_fixed(built, "id");
 
-        pico8_ob_table_set_name(jb_only, "jb", pico8_value_ref(pico8_jb_new(NULL)));
-        no_ke = pico8_ie_new(jb_only);
-        pico8_ob_table_free(jb_only);
+        jb_only.jb = pico8_jb_new(NULL);
+        no_ke = pico8_ie_new(&jb_only);
         assert(is_an_ie_struct(no_ke) && !has(no_ke, "ke"));
         assert(must_fixed(no_ke, "id") == id0);
         (void)call(no_ke, "ldown", pico8_value_ref(NULL), pico8_value_ref(NULL));
@@ -725,7 +711,6 @@ static void test_ie_is_a_struct(void) {
     must_abort(write_ra, built);
     must_abort(write_gy, built);
     must_abort(write_id, built);
-    must_abort(build_with_ra, (void *)classes[0]);
 
     others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
@@ -785,14 +770,13 @@ static void test_ke_view_is_a_struct(void) {
     must_abort(write_od, &view);
 
     {
-        pico8_ob_table_t *jb_only = pico8_ob_table_new();
+        pico8_ie_keys_t jb_only = {0};
         void *no_ke;
         static const char *const members[] = {"rr", "s", "me", "od"};
         size_t k;
 
-        pico8_ob_table_set_name(jb_only, "jb", pico8_value_ref(pico8_jb_new(NULL)));
-        no_ke = pico8_ie_new(jb_only);
-        pico8_ob_table_free(jb_only);
+        jb_only.jb = pico8_jb_new(NULL);
+        no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
         assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT);
         for (k = 0; k < sizeof members / sizeof members[0]; k++) {

@@ -26,16 +26,16 @@
 #include "../src/pico8_vec.h"
 
 static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du, pico8_fixed_t py) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    pico8_g__t *probe;
+    pico8_g__keys_t keys = {0};
 
-    pico8_ob_table_set_name(overrides, "pn", pico8_value_fixed(pn));
-    pico8_ob_table_set_name(overrides, "t", pico8_value_fixed(t));
-    pico8_ob_table_set_name(overrides, "du", pico8_value_fixed(du));
-    pico8_ob_table_set_name(overrides, "py", pico8_value_fixed(py));
-    probe = pico8_g__new(overrides);
-    pico8_ob_table_free(overrides);
-    return probe;
+    keys.has_pn = 1;
+    keys.pn = pn;
+    keys.t = t;
+    keys.has_du = 1;
+    keys.du = du;
+    keys.has_py = 1;
+    keys.py = py;
+    return pico8_g__new(&keys);
 }
 
 static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {

@@ -417,7 +417,7 @@ static void test_shared(void) {
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), le_of(ok)->items[0].as.ref));
     assert(pico8_ui_le_shared() == le && le->count == 0);
 
-    (void)pico8_fv_new(NULL);
+    (void)pico8_fv_new();
     assert(le_of(ok)->count == 0 && get_ref(ok, "le") != le);
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("shared", h, SHARED_HASH);
@@ -954,7 +954,7 @@ static void test_ui_members_by_name(void) {
     assert(((const pico8_list_t *)ui_ref(ok, "le"))->count > 0);
     h = fnv(h, (uint32_t)((const pico8_list_t *)ui_ref(ok, "le"))->count);
     le = ui_ref(ok, "le");
-    (void)pico8_fv_new(NULL);
+    (void)pico8_fv_new();
     assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != pico8_ui_le_shared());
     assert(((const pico8_list_t *)ui_ref(ok, "le"))->count == 0);
     le = ui_ref(ok, "le");
@@ -1001,7 +1001,7 @@ static void test_ui_held_stops_off_row(void) {
     left[1] = pico8_ga_new(NULL);
     left[2] = pico8_cg("jo")->items[0].as.ref;
     left[3] = the_bg();
-    left[4] = pico8_fv_new(NULL);
+    left[4] = pico8_fv_new();
     left[5] = pico8_js_new(NULL);
     left[6] = pico8_ie_new(NULL);
     left[7] = pico8_mz_jj_wrapper();
@@ -1141,9 +1141,9 @@ static void test_ke_me_by_name(void) {
     e[12] = pico8_fr_new(NULL);
     e[13] = pico8_mx_new(NULL);
     e[14] = pico8_g__new(NULL);
-    e[15] = pico8_fv_new(NULL);
+    e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
-    e[17] = pico8_pj_new(NULL);
+    e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
     e[19] = pico8_jc_new(NULL);
     e[20] = pico8_ui_new();
@@ -1262,7 +1262,8 @@ static void assert_fixed_by_name(const void *e, const char *name, int want) {
 static void test_ke_t_by_name(void) {
     static const char *const intruders[] = {"", "T", "tt", "t ", "has_t", "ke"};
     void *e[24];
-    pico8_ob_table_t *b;
+    pico8_g__keys_t keyed_keys = {0};
+    pico8_g__keys_t zero_keys = {0};
     void *keyed;
     void *zero;
     pico8_value_t v;
@@ -1290,9 +1291,9 @@ static void test_ke_t_by_name(void) {
     e[12] = pico8_fr_new(NULL);
     e[13] = pico8_mx_new(NULL);
     e[14] = pico8_g__new(NULL);
-    e[15] = pico8_fv_new(NULL);
+    e[15] = pico8_fv_new();
     e[16] = pico8_ie_new(NULL);
-    e[17] = pico8_pj_new(NULL);
+    e[17] = pico8_pj_new();
     e[18] = pico8_qb_new();
     e[19] = pico8_jc_new(NULL);
     e[20] = pico8_ui_new();
@@ -1311,22 +1312,26 @@ static void test_ke_t_by_name(void) {
         h = fnv(h, 0u);
     }
 
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "pn", pico8_value_fixed(pico8_fixed_from_int(7)));
-    pico8_ob_table_set_name(b, "t", pico8_value_fixed(pico8_fixed_from_int(3)));
-    pico8_ob_table_set_name(b, "du", pico8_value_fixed(pico8_fixed_from_int(10)));
-    pico8_ob_table_set_name(b, "py", pico8_value_fixed(pico8_fixed_from_int(1)));
-    keyed = pico8_g__new(b);
+    keyed_keys.has_pn = 1;
+    keyed_keys.pn = pico8_fixed_from_int(7);
+    keyed_keys.t = pico8_fixed_from_int(3);
+    keyed_keys.has_du = 1;
+    keyed_keys.du = pico8_fixed_from_int(10);
+    keyed_keys.has_py = 1;
+    keyed_keys.py = pico8_fixed_from_int(1);
+    keyed = pico8_g__new(&keyed_keys);
     assert_fixed_by_name(keyed, "t", 3);
     assert_fixed_by_name(keyed, "pn", 7);
     assert_fixed_by_name(keyed, "du", 10);
     assert_fixed_by_name(keyed, "py", 1);
     h = fold_t(h, keyed);
 
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "t", pico8_value_fixed(0));
-    zero = pico8_g__new(b);
+    zero_keys.t = 0;
+    zero = pico8_g__new(&zero_keys);
     assert_fixed_by_name(zero, "t", 0);
+    assert(get_fixed(zero, "pn") == pico8_g__start.pn);
+    assert(get_fixed(zero, "du") == pico8_g__start.du);
+    assert(get_fixed(zero, "py") == pico8_g__start.py);
     h = fold_t(h, zero);
 
     pico8_ke_ks(keyed, pico8_value_string("ll"));
@@ -1343,42 +1348,13 @@ static void test_ke_t_by_name(void) {
     check("ke_t", h, KE_T_HASH);
 }
 
-static void g__with_t_key(void *value) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-
-    pico8_ob_table_set_name(b, "t", *(const pico8_value_t *)value);
-    (void)pico8_g__new(b);
-}
-
 static void test_g__t_key_stops_off_row(void) {
-    pico8_value_t zero_false;
-    pico8_value_t zero_fixed;
-    pico8_value_t v;
-    pico8_ob_table_t *b;
+    pico8_g__keys_t keys = {0};
     void *made;
 
     (void)start_game();
-    memset(&zero_false, 0, sizeof zero_false);
-    zero_false.kind = PICO8_VALUE_BOOL;
-    v = pico8_value_ref(NULL);
-    must_abort(g__with_t_key, &v);
-    must_abort(g__with_t_key, &zero_false);
-    v = pico8_value_bool(0);
-    must_abort(g__with_t_key, &v);
-    v = pico8_value_bool(1);
-    must_abort(g__with_t_key, &v);
-    v = pico8_value_string("3");
-    must_abort(g__with_t_key, &v);
-    v = pico8_value_string(NULL);
-    must_abort(g__with_t_key, &v);
-    v = pico8_value_ref(pico8_bg_new());
-    must_abort(g__with_t_key, &v);
-
-    memset(&zero_fixed, 0, sizeof zero_fixed);
-    zero_fixed.kind = PICO8_VALUE_FIXED;
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "t", zero_fixed);
-    made = pico8_g__new(b);
+    keys.t = 0;
+    made = pico8_g__new(&keys);
     assert_fixed_by_name(made, "t", 0);
 }
 
@@ -2339,7 +2315,7 @@ static void *fo_holder_new(int k) {
     case 0:
         return pico8_g__new(NULL);
     case 1:
-        return pico8_fv_new(NULL);
+        return pico8_fv_new();
     case 10:
         return pico8_jc_new(NULL);
     default:
@@ -2535,7 +2511,7 @@ static void test_jo_writers_by_name(void) {
     assert(!me_of(planet, "fo", &v));
 
     for (k = 0; k < 2; k++) {
-        const pico8_struct_header_t *p = k == 0 ? (void *)pico8_pm_new(NULL) : (void *)pico8_fv_new(NULL);
+        const pico8_struct_header_t *p = k == 0 ? (void *)pico8_pm_new(NULL) : (void *)pico8_fv_new();
 
         (void)p->cls->methods[PICO8_METHOD_HQ]((void *)p, 2, pico8_value_ref(at), pico8_value_ref(at));
         holder = ref_of(planet, "fo");
@@ -2970,7 +2946,7 @@ static void test_qh_writer_stops_off_row(void) {
     off_row[n_off++] = pico8_value_ref(vec);
     off_row[n_off++] = pico8_value_ref(pico8_ga_new(NULL));
     off_row[n_off++] = pico8_value_ref(pico8_g__new(NULL));
-    off_row[n_off++] = pico8_value_ref(pico8_fv_new(NULL));
+    off_row[n_off++] = pico8_value_ref(pico8_fv_new());
     off_row[n_off++] = pico8_value_ref(pico8_mz_new());
     off_row[n_off++] = pico8_value_ref(the_bg());
     off_row[n_off++] = pico8_value_ref(pico8_ok());

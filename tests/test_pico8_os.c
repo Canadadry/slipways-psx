@@ -407,7 +407,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 /* `pt.by` holding one export from `pt` to `oz`, as `jo:ib` leaves it: a
  * trade whose `lp` starts at `pt` and ends at `oz`. */
 static void export_to(void *pt, void *oz) {
-    pico8_ob_table_t *o = pico8_ob_table_new();
+    pico8_trade_keys_t keys = {0};
     pico8_list_t *lp = malloc(sizeof *lp);
     pico8_list_t *by = malloc(sizeof *by);
     pico8_trade_t *t;
@@ -415,8 +415,8 @@ static void export_to(void *pt, void *oz) {
     pico8_list_init(lp);
     pico8_list_add(lp, pico8_value_ref(pt));
     pico8_list_add(lp, pico8_value_ref(oz));
-    pico8_ob_table_set_name(o, "lp", pico8_value_ref(lp));
-    t = pico8_trade_new(o);
+    keys.lp = lp;
+    t = pico8_trade_new(&keys);
     pico8_list_init(by);
     pico8_list_add(by, pico8_value_ref(t));
     pico8_entity_set_field(pt, "by", pico8_value_ref(by));

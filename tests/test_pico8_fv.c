@@ -1,5 +1,5 @@
 /* The help screen `fv`, built by its only road (`pico8__init()` on the
- * title screen, `pico8_fv_new(NULL)`), read only through the dual-form field
+ * title screen, `pico8_fv_new()`), read only through the dual-form field
  * API, its defaults compared to `pico8_fv_start`, and driven through the
  * real `mv`/`dc`/`dg`/`lj`. Its
  * methods are compared to the public functions. No events file. */
@@ -576,24 +576,9 @@ static void write_me(void *e) {
     write_fixed(e, "me");
 }
 
-static void build_with_named_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "fa", pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_fv_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_fv_new(b);
-}
-
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited
  * entries and holds its own `kj`, `hd`; a write of a name that is neither
- * `m_` nor one of `g_`'s 5 stops, as does any construction key. Ready
- * from its init to its shutdown. */
+ * `m_` nor one of `g_`'s 5 stops. Ready from its init to its shutdown. */
 static void test_fv_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_fv_struct_class();
     const pico8_struct_class_t *g_ = pico8_g__struct_class();
@@ -625,8 +610,6 @@ static void test_fv_is_a_struct(void) {
     must_abort(write_nu, fv);
     must_abort(write_fo, fv);
     must_abort(write_me, fv);
-    must_abort(build_with_named_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
     pico8_help_init();
@@ -761,7 +744,7 @@ static uint32_t fold_written_by_name(uint32_t h, void *e) {
     return fold_fv_members(h, e);
 }
 
-/* The title's help and a `pico8_fv_new(NULL)`, by name only: fresh; `gw`
+/* The title's help and a `pico8_fv_new()`, by name only: fresh; `gw`
  * hovering and leaving the title's; every write of `m_`; the names no
  * writer takes; strangers to the reader. */
 static void test_fv_members_by_name(void) {
@@ -786,7 +769,7 @@ static void test_fv_members_by_name(void) {
     assert_same(fv[0], "m_", pico8_value_bool(0));
     h = fold_fv_members(h, fv[0]);
 
-    fv[1] = pico8_fv_new(NULL);
+    fv[1] = pico8_fv_new();
     assert(fv[1] != fv[0]);
     h = fold_fresh_fv(h, fv[1]);
 
@@ -815,7 +798,7 @@ static void test_fv_writer_stops_off_row(void) {
 
     start_title();
     fv[0] = the_help();
-    fv[1] = pico8_fv_new(NULL);
+    fv[1] = pico8_fv_new();
     off[0] = pico8_value_fixed(pico8_fixed_from_int(1));
     off[1] = zero_union(PICO8_VALUE_FIXED);
     off[2] = pico8_value_string("x");

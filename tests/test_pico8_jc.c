@@ -1532,7 +1532,7 @@ static void test_jc_members_by_name(void) {
     h = fold_jc_members(h, far);
 
     holders[0] = pico8_g__new(NULL);
-    holders[1] = pico8_fv_new(NULL);
+    holders[1] = pico8_fv_new();
     holders[2] = pico8_mz_new();
     holders[3] = pico8_qh_new(NULL);
     holders[4] = pico8_nl_new(NULL);

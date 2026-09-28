@@ -129,7 +129,7 @@ static void test_layout_ready(void) {
 
 /* A fresh fv: fv's own generated defaults over g_'s, ke's under both. */
 static void test_fv_defaults_and_ready(void) {
-    pico8_fv_t *fv = pico8_fv_new(NULL);
+    pico8_fv_t *fv = pico8_fv_new();
 
     assert(fv->g_.fa == pico8_fv_start.fa);
     assert(fv->g_.ra->x == pico8_fv_start.ra.x && fv->g_.ra->y == pico8_fv_start.ra.y);
@@ -224,7 +224,7 @@ static void test_ie_defaults_and_ready(void) {
 /* `ed` absent reads as pj's generated `ed`; `cr` holds pj's generated
  * record. */
 static void test_pj_defaults_and_ready(void) {
-    pico8_pj_t *pj = pico8_pj_new(NULL);
+    pico8_pj_t *pj = pico8_pj_new();
     const pico8_pj_cr_t *cr = pico8_pj_cr();
 
     assert(pj->fa == pico8_pj_start.fa);
@@ -242,7 +242,7 @@ static void test_pj_defaults_and_ready(void) {
 
 /* hy and trade: an empty spec, a root struct. */
 static void test_hy_ready(void) {
-    pico8_hy_t *hy = pico8_hy_new(NULL);
+    pico8_hy_t *hy = pico8_hy_new();
 
     assert(hy->header.cls == pico8_hy_struct_class());
     assert(pico8_hy_ready());

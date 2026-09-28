@@ -89,7 +89,7 @@ static const pico8_struct_class_t g_hy_struct_class = {
     NULL,
 };
 
-static void *pico8_hy_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_hy_struct_new(void) {
     pico8_hy_t *self = malloc(sizeof *self);
     pico8_list_t *invented;
 
@@ -110,8 +110,6 @@ static void *pico8_hy_struct_new(const pico8_ob_table_t *overrides) {
     self->has_happiness = 0;
     self->hl = NULL;
     self->has_hl = 0;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "hy: every construction passes no key; a key has no member -- stop, do not add one");
 
     self->nz = pico8_fixed_from_int(100);
     self->ge = pico8_fixed_from_int(0);
@@ -163,8 +161,8 @@ pico8_value_t pico8_hy_hl(const pico8_hy_t *self) {
     return pico8_value_string(self->hl);
 }
 
-pico8_hy_t *pico8_hy_new(const pico8_ob_table_t *overrides) {
-    return pico8_hy_struct_new(overrides);
+pico8_hy_t *pico8_hy_new(void) {
+    return pico8_hy_struct_new();
 }
 
 void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx) {

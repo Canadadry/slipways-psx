@@ -44,10 +44,10 @@ int pico8_fv_ready(void);
 const pico8_struct_class_t *pico8_fv_struct_class(void);
 
 /* TROU-8 */
-/* `overrides` must be NULL or empty: a key asserts. The help inherits `g_`'s
- * `nu`, so `lt` registers it into `cg.g_` and `cg.prober` too; nothing ever
- * frees it. Asserts when called before `pico8_help_init()`. */
-pico8_fv_t *pico8_fv_new(const pico8_ob_table_t *overrides);
+/* The help inherits `g_`'s `nu`, so `lt` registers it into `cg.g_` and
+ * `cg.prober` too; nothing ever frees it. Asserts when called before
+ * `pico8_help_init()`. */
+pico8_fv_t *pico8_fv_new(void);
 
 /* `pico8_eu_field_value()` always returns a PICO8_VALUE_FUNCTION value: an
  * inert placeholder until `pico8_help_set_eu()` installs the real `eu`, which

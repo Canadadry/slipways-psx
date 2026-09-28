@@ -390,30 +390,8 @@ static const pico8_struct_class_t g_ie_struct_class = {
     pico8_ie_set_field,
 };
 
-static void ie_take_kind(pico8_value_t value, const pico8_entity_kind_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "ie.ke: a key neither nil nor a kind does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void ie_take_jb(pico8_value_t value, pico8_jb_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_jb_struct_class() &&
-           "ie.jb: a key neither nil nor a jb does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     pico8_ie_t *self = malloc(sizeof *self);
-    int i;
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
     pico8_ke_struct_init(&self->ke_base, &g_ie_struct_class);
@@ -427,18 +405,9 @@ static void *pico8_ie_struct_new(const pico8_ob_table_t *overrides) {
     self->has_kh = 0;
     self->m_ = 0;
     self->has_m_ = 0;
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        pico8_ob_key_t key = overrides->entries[i].key;
-        int is_ke = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ke") == 0;
-        int is_jb = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "jb") == 0;
-
-        assert((is_ke || is_jb) && "ie: the only construction keys are ke and jb (eu); another key has no member "
-                                   "-- stop, do not add one");
-        if (is_ke) {
-            ie_take_kind(overrides->entries[i].value, &self->ke);
-        } else {
-            ie_take_jb(overrides->entries[i].value, &self->jb);
-        }
+    if (keys != NULL) {
+        self->ke = keys->ke;
+        self->jb = keys->jb;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ie");
@@ -471,8 +440,8 @@ const pico8_struct_class_t *pico8_ie_struct_class(void) {
     return &g_ie_struct_class;
 }
 
-pico8_ie_t *pico8_ie_new(const pico8_ob_table_t *overrides) {
-    return pico8_ie_struct_new(overrides);
+pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
+    return pico8_ie_struct_new(keys);
 }
 
 pico8_value_t pico8_ie_eh(void) {

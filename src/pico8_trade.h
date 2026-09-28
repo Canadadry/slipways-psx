@@ -3,11 +3,10 @@
 
 #include "pico8_fixed.h"
 #include "pico8_list.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
-/* Never freed: TROU-7. `lp`/`rl` are the REFs the overrides held, borrowed,
+/* Never freed: TROU-7. `lp`/`rl` are the REFs the keys held, borrowed,
  * not copied. */
 typedef struct {
     pico8_struct_header_t header;
@@ -33,9 +32,18 @@ void pico8_trade_shutdown(void);
 int pico8_trade_ready(void);
 const pico8_struct_class_t *pico8_trade_struct_class(void);
 
-/* Takes only the keys "lp", "rl", "qe", each optional; a missing one is
- * nil. */
-pico8_trade_t *pico8_trade_new(const pico8_ob_table_t *overrides);
+/* The keys of `pico8_trade_new`, read, not kept: `lp`/`rl` NULL are nil;
+ * `has_qe`, `qe_is_bool`, `qe` as in `pico8_trade_t`, all 0 for a nil `qe`. */
+typedef struct {
+    pico8_list_t *lp;
+    pico8_list_t *rl;
+    pico8_fixed_t qe;
+    int has_qe;
+    int qe_is_bool;
+} pico8_trade_keys_t;
+
+/* `keys` NULL means none: every member nil. */
+pico8_trade_t *pico8_trade_new(const pico8_trade_keys_t *keys);
 
 /* "qe" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "qe" or a
  * NULL self. */

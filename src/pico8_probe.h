@@ -72,11 +72,23 @@ const pico8_struct_class_t *pico8_g__struct_class(void);
  * key, runs neither `pq` nor `lt`, records no coverage. */
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
 
-/* `overrides` (NULL means none) is read, not kept: `pn`, `t`, `du`, `py`
- * only. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
+/* The keys of `pico8_g__new`, read, not kept. `t` is `ke.t`, whose default
+ * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
+ * needs its `has_` flag. */
+typedef struct {
+    pico8_fixed_t t;
+    int has_pn;
+    pico8_fixed_t pn;
+    int has_du;
+    pico8_fixed_t du;
+    int has_py;
+    pico8_fixed_t py;
+} pico8_g__keys_t;
+
+/* `keys` NULL means none. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
  * (and gets its particle list from `f_`), and nothing ever frees it.
  * Asserts when called before `pico8_probe_init()`. */
-pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides);
+pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
 
 /* The provisional `fm`: one static struct, never allocated nor freed, with
  * no method and no writer; `jk`/`nz` are written only by the cheat code, and

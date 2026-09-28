@@ -314,10 +314,10 @@ static void test_ie_ke_view_by_name(void) {
 
     for (i = 0; i < ICON_COUNT; i++) {
         if (i < 7) {
-            pico8_ob_table_t *overrides = pico8_ob_table_new();
-            pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)kind_of(i)));
-            icons[i] = pico8_ie_new(overrides);
-            pico8_ob_table_free(overrides);
+            pico8_ie_keys_t keys = {0};
+
+            keys.ke = kind_of(i);
+            icons[i] = pico8_ie_new(&keys);
         } else {
             icons[i] = pico8_ie_new(NULL);
         }
@@ -491,18 +491,13 @@ static void ie_fold_names(const void *e) {
     ie_fold_vec(ie_ref(e, "gy"));
 }
 
-static pico8_ie_t *ie_with(int set_ke, pico8_value_t ke, int set_jb, pico8_value_t jb) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+static pico8_ie_t *ie_with(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
+    pico8_ie_keys_t keys = {0};
     pico8_ie_t *e;
 
-    if (set_ke) {
-        pico8_ob_table_set_name(overrides, "ke", ke);
-    }
-    if (set_jb) {
-        pico8_ob_table_set_name(overrides, "jb", jb);
-    }
-    e = pico8_ie_new(overrides);
-    pico8_ob_table_free(overrides);
+    keys.ke = ke;
+    keys.jb = jb;
+    e = pico8_ie_new(&keys);
     assert(e != NULL);
     return e;
 }
@@ -541,9 +536,9 @@ static void test_ie_members_by_name(void) {
                                             "id", "me", "t",  "",   "m_ ", "has_m_"};
     pico8_jb_t *J = ie_jb();
     const pico8_entity_kind_t *qh = pico8_qh_kind();
-    pico8_ie_t *a = ie_with(1, pico8_value_ref((void *)qh), 1, pico8_value_ref(J));
-    pico8_ie_t *b = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
-    pico8_ie_t *n = ie_with(1, pico8_value_ref(NULL), 1, pico8_value_ref(NULL));
+    pico8_ie_t *a = ie_with(qh, J);
+    pico8_ie_t *b = ie_with(NULL, NULL);
+    pico8_ie_t *n = ie_with(NULL, NULL);
     pico8_ie_t *all[3];
     pico8_value_t v;
     pico8_value_t zero_false;
@@ -609,10 +604,10 @@ static void test_ie_members_by_name(void) {
     pico8_ie_hb(b);
     assert(ie_bool_state(b, "kh") == 2 && ie_ref(b, "ra") == NULL && ie_ref(b, "gy") == gy);
     {
-        pico8_ie_t *c = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
-        pico8_ie_t *d = ie_with(1, pico8_value_ref((void *)pico8_nr_kind()), 0, pico8_value_ref(NULL));
+        pico8_ie_t *c = ie_with(NULL, NULL);
+        pico8_ie_t *d = ie_with(pico8_nr_kind(), NULL);
         pico8_ie_t *e;
-        pico8_ie_t *f = ie_with(0, pico8_value_ref(NULL), 1, pico8_value_ref(J));
+        pico8_ie_t *f = ie_with(NULL, J);
         uint32_t d_kh;
 
         pico8_ie_hb(c);
@@ -631,13 +626,13 @@ static void test_ie_members_by_name(void) {
         }
         ie_fold_names(d);
         pico8_ie_set_gy(pico8_ie_eh());
-        e = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+        e = ie_with(NULL, NULL);
         pico8_ie_hb(e);
         assert(ie_ref(e, "ra") == spec_eh);
         ie_fold_names(e);
 
         {
-            pico8_ie_t *fresh = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+            pico8_ie_t *fresh = ie_with(NULL, NULL);
             uint32_t empty = ie_kj_hash(fresh);
             uint32_t h;
             pico8_cls(&mem);
@@ -712,28 +707,17 @@ static void write_m_by_name(void *e, pico8_value_t v) {
     pico8_entity_set_field(e, "m_", v);
 }
 
-static void build_with_ke(void *e, pico8_value_t v) {
-    (void)e;
-    (void)ie_with(1, v, 0, pico8_value_ref(NULL));
-}
-
-static void build_with_jb(void *e, pico8_value_t v) {
-    (void)e;
-    (void)ie_with(0, pico8_value_ref(NULL), 1, v);
-}
-
 static void hb_from_gy(void *e, pico8_value_t v) {
     (void)e;
     pico8_ie_set_gy(v);
-    pico8_ie_hb(ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL)));
+    pico8_ie_hb(ie_with(NULL, NULL));
 }
 
-/* `m_` takes nil or a boolean, the `ke` key nil or a kind, the `jb` key nil
- * or a jb, `ra` nil or a vector off `ie.gy`; a value whose whole union is
+/* `m_` takes nil or a boolean, `ra` nil or a vector off `ie.gy`; a value whose whole union is
  * zero is not nil unless it is a REF. */
 static void test_ie_writer_stops_off_row(void) {
-    pico8_ie_t *a = ie_with(1, pico8_value_ref((void *)pico8_qh_kind()), 0, pico8_value_ref(NULL));
-    pico8_ie_t *other = ie_with(0, pico8_value_ref(NULL), 0, pico8_value_ref(NULL));
+    pico8_ie_t *a = ie_with(pico8_qh_kind(), NULL);
+    pico8_ie_t *other = ie_with(NULL, NULL);
     pico8_vec_t *vec = malloc(sizeof *vec);
     pico8_value_t zero_fixed;
     pico8_value_t zero_false;
@@ -744,7 +728,6 @@ static void test_ie_writer_stops_off_row(void) {
     pico8_value_t list = pico8_value_ref((void *)pico8_hv());
     pico8_value_t kind = pico8_value_ref((void *)pico8_qh_kind());
     pico8_value_t vref;
-    pico8_value_t lq = pico8_value_ref(pico8_lq_new(NULL));
 
     *vec = pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1));
     vref = pico8_value_ref(vec);
@@ -770,27 +753,6 @@ static void test_ie_writer_stops_off_row(void) {
     must_abort_value(a, write_m_by_name, pico8_value_ref(other));
     must_abort_value(a, write_m_by_name, kind);
 
-    must_abort_value(NULL, build_with_ke, pico8_value_fixed(pico8_fixed_from_int(1)));
-    must_abort_value(NULL, build_with_ke, zero_fixed);
-    must_abort_value(NULL, build_with_ke, zero_false);
-    must_abort_value(NULL, build_with_ke, zero_string);
-    must_abort_value(NULL, build_with_ke, zero_function);
-    must_abort_value(NULL, build_with_ke, pico8_value_string("x"));
-    must_abort_value(NULL, build_with_ke, pico8_value_ref(other));
-    must_abort_value(NULL, build_with_ke, table);
-    must_abort_value(NULL, build_with_ke, list);
-
-    must_abort_value(NULL, build_with_jb, pico8_value_fixed(pico8_fixed_from_int(1)));
-    must_abort_value(NULL, build_with_jb, zero_fixed);
-    must_abort_value(NULL, build_with_jb, zero_false);
-    must_abort_value(NULL, build_with_jb, zero_string);
-    must_abort_value(NULL, build_with_jb, zero_function);
-    must_abort_value(NULL, build_with_jb, pico8_value_string("x"));
-    must_abort_value(NULL, build_with_jb, kind);
-    must_abort_value(NULL, build_with_jb, vref);
-    must_abort_value(NULL, build_with_jb, table);
-    must_abort_value(NULL, build_with_jb, pico8_value_ref(other));
-    must_abort_value(NULL, build_with_jb, lq);
 
     must_abort_value(NULL, hb_from_gy, pico8_value_fixed(pico8_fixed_from_int(1)));
     must_abort_value(NULL, hb_from_gy, zero_fixed);

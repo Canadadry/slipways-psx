@@ -4,7 +4,6 @@
 #include "pico8_economy_formulas.h"
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -50,7 +49,7 @@ pico8_value_t pico8_hy_hl(const pico8_hy_t *self);
 
 /* Takes no key. The caller owns the struct until pico8_probe_set_fm()
  * takes it. */
-pico8_hy_t *pico8_hy_new(const pico8_ob_table_t *overrides);
+pico8_hy_t *pico8_hy_new(void);
 
 void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx);
 

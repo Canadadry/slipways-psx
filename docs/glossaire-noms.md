@@ -20,6 +20,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_iv_keys_t` (`pico8_msgbox.h`) | les clés d'un toast `iv` : `ra`, `at1` (`[1]`, le texte), `at2` (`[2]`, la couleur) ; NULL ou 0 = absente |
 | — | `pico8_jc_keys_t` (`pico8_slipway.h`) | la clé `qu` d'un slipway `jc`, planète de départ (NULL = nil) |
 | — | `pico8_fq_keys_t` (`pico8_ui_button.h`) | la clé `my` d'un fond modal `fq` (NULL = nil) |
+| — | `pico8_g__keys_t` (`pico8_probe.h`) | les clés d'une sonde `g_` (seul le TU `probe_mm_rnd_order` et le chemin (c) de `test_pico8_g_` en passent) : `t` (`ke.t`, défaut 0, sans drapeau), `pn`, `du`, `py` sous `has_pn`/`has_du`/`has_py` (défauts non nuls : une clé à 0 les remplace) |
+| — | `pico8_ie_keys_t` (`pico8_research_icon.h`) | les clés d'une icône de recherche `ie` que construit `eu` : `ke` (la sorte), `jb` (l'infobulle), NULL = nil |
+| — | `pico8_trade_keys_t` (`pico8_trade.h`) | les clés d'une route `trade` (`jo:ib`, `trade:kg`) : `lp`, `rl` (NULL = nil) et le triple `qe` du membre (`has_qe`, `qe_is_bool`, `qe`) |
 | `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; plus aucune classe n'a de spec parsée : ses clés sont `pico8_X_start`, que son constructeur lit, l'héritage passant par le constructeur de la parente |
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
 | — | `pico8_X_kind_field` | le `field` d'une sorte de l'arbre `jo` : `rr`, `s`, `me`, `od` seulement, depuis `pico8_X_start` de la classe qui les pose, puis la parente ; fin `pico8_jo_kind_field` |

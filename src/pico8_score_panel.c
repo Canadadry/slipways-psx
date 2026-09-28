@@ -413,7 +413,7 @@ static const pico8_struct_class_t g_pj_struct_class = {
     NULL,
 };
 
-static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_pj_struct_new(void) {
     pico8_pj_t *self;
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
@@ -427,9 +427,6 @@ static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     self->has_c_ = 0;
     self->gz = 0;
     self->has_gz = 0;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "pj: the only road is pico8_pj_new(NULL) (cart.c); a construction key has no member "
-           "-- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("pj");
 #endif
@@ -478,8 +475,8 @@ const pico8_struct_class_t *pico8_pj_struct_class(void) {
     return &g_pj_struct_class;
 }
 
-pico8_pj_t *pico8_pj_new(const pico8_ob_table_t *overrides) {
-    return pico8_pj_struct_new(overrides);
+pico8_pj_t *pico8_pj_new(void) {
+    return pico8_pj_struct_new();
 }
 
 const pico8_ob_table_t *pico8_bz(void) {

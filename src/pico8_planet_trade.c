@@ -198,7 +198,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
 pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
     pico8_list_t *ib;
-    pico8_value_t qe = pico8_value_ref(NULL);
+    pico8_trade_keys_t keys = {0};
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     const pico8_list_t *oe = NULL;
     pico8_list_iter_t it;
@@ -217,7 +217,8 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
 
     if (self->kw != NULL) {
         if (self->kw->has_qe) {
-            qe = pico8_value_fixed(self->kw->qe);
+            keys.has_qe = 1;
+            keys.qe = self->kw->qe;
         }
         mu = self->kw->mu;
     }
@@ -228,7 +229,6 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
     while (pico8_list_iter_next(&it, &w_val)) {
         pico8_struct_header_t *w;
         pico8_jo_trade_proposal_t lw;
-        pico8_ob_table_t *overrides;
         pico8_list_t *lp_list;
         pico8_list_t *rl_list;
         pico8_value_t eb_result;
@@ -245,13 +245,9 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         pico8_list_init(rl_list);
         pico8_list_add(rl_list, pico8_value_ref(w));
 
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_name(overrides, "lp", pico8_value_ref(lp_list));
-        pico8_ob_table_set_name(overrides, "rl", pico8_value_ref(rl_list));
-        pico8_ob_table_set_name(overrides, "qe", qe);
-
-        lw.t = pico8_trade_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.lp = lp_list;
+        keys.rl = rl_list;
+        lw.t = pico8_trade_new(&keys);
         /* Recomputed each iteration: an earlier proposal's `kf` may already
          * have grown `ib`. */
         lw.mu = mu - pico8_fixed_from_int(ib->count);

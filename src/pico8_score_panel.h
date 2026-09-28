@@ -66,10 +66,10 @@ const pico8_jb_row_t *pico8_pj_i_(void);
 const pico8_jb_row_t *pico8_pj_gs(void);
 
 /* TROU-7 */
-/* `overrides` must be NULL or empty: a key asserts. The panel registers
- * itself through `lt` into `hv`, `cv.kj`, `cv.hk`, `cv.hb` and no `cg`;
- * nothing ever frees it. Asserts when called before the init. */
-pico8_pj_t *pico8_pj_new(const pico8_ob_table_t *overrides);
+/* The panel registers itself through `lt` into `hv`, `cv.kj`, `cv.hk`,
+ * `cv.hb` and no `cg`; nothing ever frees it. Asserts when called before the
+ * init. */
+pico8_pj_t *pico8_pj_new(void);
 
 /* REF NULL for a NULL panel. */
 pico8_value_t pico8_pj_ed(const pico8_pj_t *self);

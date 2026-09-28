@@ -336,7 +336,7 @@ static void test_construction(void) {
     int n;
 
     pico8__init();
-    bare = pico8_hy_new(NULL);
+    bare = pico8_hy_new();
     for (n = 0; n < NAME_COUNT; n++) {
         assert(has(bare, names[n]) == (n < 7));
         h = fold_field(h, bare, names[n]);
@@ -680,13 +680,6 @@ static void write_nz(void *e) {
     pico8_entity_set_field(e, "nz", pico8_value_fixed(pico8_fixed_from_int(1)));
 }
 
-static void build_with_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "x", pico8_value_bool(1));
-    (void)pico8_hy_new(b);
-}
-
 static void lu_on_other(void *e) {
     (void)pico8_hy_lu(e, pico8_fixed_from_int(1));
 }
@@ -718,11 +711,10 @@ static void test_hy_is_a_struct(void) {
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(!has(pico8_fm(), "hk") && !has(pico8_fm(), "x"));
 
-    bare = pico8_hy_new(NULL);
+    bare = pico8_hy_new();
     assert(pico8_type_tag_of(bare) == PICO8_TYPE_TAG_STRUCT && bare->header.cls == cls);
 
     must_abort(write_nz, pico8_fm());
-    must_abort(build_with_key, NULL);
     must_abort(lu_on_other, pico8_ok());
 
     pico8_probe_shutdown();
@@ -803,7 +795,7 @@ static void test_hy_members_by_name(void) {
     size_t k;
 
     pico8__init();
-    bare = pico8_hy_new(NULL);
+    bare = pico8_hy_new();
     assert_fixed(bare, "nz", 100);
     assert_fixed(bare, "ge", 0);
     assert_fixed(bare, "jk", 0);

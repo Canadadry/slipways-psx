@@ -51,18 +51,8 @@ static const pico8_struct_class_t g_trade_struct_class = {
     NULL,
 };
 
-static pico8_list_t *trade_list_key(pico8_value_t value) {
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return NULL;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "trade.lp/rl: a key neither nil nor a list does not fit the member's type -- stop, do not widen the member");
-    return value.as.ref;
-}
-
-static void *pico8_trade_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
     pico8_trade_t *self = malloc(sizeof *self);
-    int i;
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
@@ -74,35 +64,16 @@ static void *pico8_trade_struct_new(const pico8_ob_table_t *overrides) {
     self->qe = 0;
     self->has_qe = 0;
     self->qe_is_bool = 0;
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        pico8_ob_key_t key = overrides->entries[i].key;
-        pico8_value_t value = overrides->entries[i].value;
-
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "lp") == 0) {
-            self->lp = trade_list_key(value);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "rl") == 0) {
-            self->rl = trade_list_key(value);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "qe") == 0) {
-            if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-                self->qe = 0;
-                self->has_qe = 0;
-                self->qe_is_bool = 0;
-            } else if (value.kind == PICO8_VALUE_FIXED) {
-                self->qe = value.as.fixed;
-                self->has_qe = 1;
-                self->qe_is_bool = 0;
-            } else {
-                assert(value.kind == PICO8_VALUE_BOOL &&
-                       "trade.qe: a key neither nil, fixed nor boolean does not fit the member's type "
-                       "-- stop, do not widen the member");
-                self->qe = value.as.boolean;
-                self->has_qe = 1;
-                self->qe_is_bool = 1;
-            }
-        } else {
-            assert(0 && "trade: every construction passes only lp, rl, qe; another key has no member "
-                        "-- stop, do not add one");
-        }
+    if (keys != NULL) {
+        assert((!keys->qe_is_bool || keys->qe == 0 || keys->qe == 1) &&
+               "trade.qe: a boolean key holds 0 or 1; `pico8_trade_qe` would read any other as a fixed");
+        assert((keys->has_qe || (!keys->qe_is_bool && keys->qe == 0)) &&
+               "trade.qe: a nil key carries neither a kind nor a value; the member reads 0 for nil");
+        self->lp = keys->lp;
+        self->rl = keys->rl;
+        self->qe = keys->qe;
+        self->has_qe = keys->has_qe;
+        self->qe_is_bool = keys->qe_is_bool;
     }
     return self;
 }
@@ -131,8 +102,8 @@ const pico8_struct_class_t *pico8_trade_struct_class(void) {
     return &g_trade_struct_class;
 }
 
-pico8_trade_t *pico8_trade_new(const pico8_ob_table_t *overrides) {
-    return pico8_trade_struct_new(overrides);
+pico8_trade_t *pico8_trade_new(const pico8_trade_keys_t *keys) {
+    return pico8_trade_struct_new(keys);
 }
 
 int pico8_trade_to(const pico8_trade_t *self, pico8_value_t *out_value) {
@@ -160,7 +131,7 @@ static int value_is_nil(pico8_value_t v) {
 /* `{np}`/`{jc}` are built as one-element stack lists, freed once pico8_la has
  * copied their element into the heap lp/rl lists it returns. */
 pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_value_t np, pico8_value_t jc) {
-    pico8_value_t qe_val;
+    pico8_trade_keys_t keys = {0};
     pico8_list_t empty_lp;
     pico8_list_t empty_rl;
     const pico8_list_t *lp;
@@ -169,8 +140,6 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_value_t np, pico8
     pico8_list_t jc_list;
     pico8_list_t *new_lp;
     pico8_list_t *new_rl;
-    pico8_ob_table_t *overrides;
-    pico8_trade_t *result;
 
     assert_trade(self);
     if (self == NULL) {
@@ -182,7 +151,9 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_value_t np, pico8
     lp = self->lp != NULL ? self->lp : &empty_lp;
     rl = self->rl != NULL ? self->rl : &empty_rl;
     /* TROU-24 */
-    qe_val = self->has_qe ? pico8_trade_qe(self) : pico8_value_bool(0);
+    keys.has_qe = 1;
+    keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
+    keys.qe = self->has_qe ? self->qe : 0;
 
     pico8_list_init(&np_list);
     if (!value_is_nil(np)) {
@@ -202,14 +173,9 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_value_t np, pico8
     pico8_list_free(&np_list);
     pico8_list_free(&jc_list);
 
-    overrides = pico8_ob_table_new();
-    pico8_ob_table_set_name(overrides, "lp", pico8_value_ref(new_lp));
-    pico8_ob_table_set_name(overrides, "rl", pico8_value_ref(new_rl));
-    pico8_ob_table_set_name(overrides, "qe", qe_val);
-
-    result = pico8_trade_new(overrides);
-    pico8_ob_table_free(overrides);
-    return result;
+    keys.lp = new_lp;
+    keys.rl = new_rl;
+    return pico8_trade_new(&keys);
 }
 
 int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {

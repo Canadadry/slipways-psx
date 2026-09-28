@@ -6,7 +6,6 @@
 #include "pico8_ke.h"
 #include "pico8_layout.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -60,10 +59,16 @@ void pico8_research_icon_shutdown(void);
 int pico8_ie_ready(void);
 const pico8_struct_class_t *pico8_ie_struct_class(void);
 
-/* `overrides` is read, not kept, and may hold `ke` (a planet-upgrade kind)
- * and `jb` (a tooltip struct) only, both borrowed. The struct registers
- * itself into `hv`/`cv` through `lt`, and nothing frees it. */
-pico8_ie_t *pico8_ie_new(const pico8_ob_table_t *overrides);
+/* The keys of `pico8_ie_new`, read, not kept; NULL is nil. `ke` (a
+ * planet-upgrade kind) and `jb` (a tooltip struct) are borrowed. */
+typedef struct {
+    const pico8_entity_kind_t *ke;
+    pico8_jb_t *jb;
+} pico8_ie_keys_t;
+
+/* `keys` NULL means none. The struct registers itself into `hv`/`cv` through
+ * `lt`, and nothing frees it. */
+pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys);
 
 /* `ie.eh`, `pico8_ie_start.eh`, for `_init` to point `ie.gy` at: an alias,
  * not a copy. Absent before pico8_research_icon_init() and after the

@@ -688,35 +688,22 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->du = pico8_g__start.du;
 }
 
-static void g__take_fixed(pico8_value_t value, pico8_fixed_t *out) {
-    assert(value.kind == PICO8_VALUE_FIXED &&
-           "g_.ke.t/pn/du/py: a construction key that is not a fixed does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.fixed;
-}
-
-static void *pico8_g__struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_g__t *self;
-    int k;
 
     assert(g_g__up && "pico8_probe_init() must run first");
     self = malloc(sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class);
-    for (k = 0; overrides != NULL && k < overrides->count; k++) {
-        pico8_ob_key_t key = overrides->entries[k].key;
-        pico8_value_t value = overrides->entries[k].value;
-
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "t") == 0) {
-            g__take_fixed(value, &self->ke.t);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "pn") == 0) {
-            g__take_fixed(value, &self->pn);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "du") == 0) {
-            g__take_fixed(value, &self->du);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "py") == 0) {
-            g__take_fixed(value, &self->py);
-        } else {
-            assert(0 && "g_: the only construction keys are pn, t, du, py (probe_mm_rnd_order); another key has no "
-                        "member -- stop, do not add one");
+    if (keys != NULL) {
+        self->ke.t = keys->t;
+        if (keys->has_pn) {
+            self->pn = keys->pn;
+        }
+        if (keys->has_du) {
+            self->du = keys->du;
+        }
+        if (keys->has_py) {
+            self->py = keys->py;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -762,8 +749,8 @@ const pico8_struct_class_t *pico8_g__struct_class(void) {
     return &g_g__struct_class;
 }
 
-pico8_g__t *pico8_g__new(const pico8_ob_table_t *overrides) {
-    return pico8_g__struct_new(overrides);
+pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {
+    return pico8_g__struct_new(keys);
 }
 
 const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void) {

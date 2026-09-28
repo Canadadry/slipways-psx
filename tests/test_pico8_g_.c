@@ -325,16 +325,16 @@ static void *ldown(void) {
 
 /* Road (c): the 4 keys of probe_mm_rnd_order. */
 static void *keyed(void) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    void *made;
+    pico8_g__keys_t keys = {0};
 
-    pico8_ob_table_set_name(b, "pn", pico8_value_fixed(pico8_fixed_from_int(7)));
-    pico8_ob_table_set_name(b, "t", pico8_value_fixed(pico8_fixed_from_int(3)));
-    pico8_ob_table_set_name(b, "du", pico8_value_fixed(pico8_fixed_from_int(10)));
-    pico8_ob_table_set_name(b, "py", pico8_value_fixed(pico8_fixed_from_int(1)));
-    made = pico8_g__new(b);
-    pico8_ob_table_free(b);
-    return made;
+    keys.has_pn = 1;
+    keys.pn = pico8_fixed_from_int(7);
+    keys.t = pico8_fixed_from_int(3);
+    keys.has_du = 1;
+    keys.du = pico8_fixed_from_int(10);
+    keys.has_py = 1;
+    keys.py = pico8_fixed_from_int(1);
+    return pico8_g__new(&keys);
 }
 
 /* A probe as its road and `f_`, `lt` left it: its 18 defaults, `me`, `t`,
@@ -733,29 +733,14 @@ static void write_qs(void *e) {
     write_fixed(e, "qs");
 }
 
-static void build_with_unknown_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "ki", pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_g__new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_g__new(b);
-}
-
 static int is_a_g__struct(const void *e) {
     return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
            ((const pico8_struct_header_t *)e)->cls == pico8_g__struct_class();
 }
 
 /* Built by any road, a probe is a struct whose descriptor holds the 5
- * public functions of `g_`, which its class no longer installs; a
- * construction key outside the 4 measured stops the run. The title's `fv`
- * is a struct of its own. */
+ * public functions of `g_`, which its class no longer installs. The title's
+ * `fv` is a struct of its own. */
 static void test_g__is_a_struct(void) {
     static const char *const entries[] = {"hq", "ey", "ev", "kj", "mm"};
     static const pico8_value_function_t fns[] = {pico8_bv_dispatch, pico8_d__dispatch, pico8_dl_dispatch,
@@ -797,8 +782,6 @@ static void test_g__is_a_struct(void) {
     must_abort(write_fo, roads[0]);
     must_abort(write_m_, roads[0]);
     must_abort(write_me, roads[0]);
-    must_abort(build_with_unknown_key, NULL);
-    must_abort(build_with_positional_key, NULL);
     ((pico8_g__t *)roads[1])->fa = 0;
     assert(cls->field(roads[1], "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0 && !is_probe(roads[1]));
 
@@ -929,7 +912,7 @@ static void test_bv_et_members_by_name(void) {
     }
 
     holders[0] = a;
-    holders[1] = pico8_fv_new(NULL);
+    holders[1] = pico8_fv_new();
     holders[2] = pico8_mz_new();
     holders[3] = pico8_qh_new(NULL);
     holders[4] = pico8_nl_new(NULL);
@@ -1360,7 +1343,7 @@ static void test_g__members_by_name(void) {
     static const char *const strangers[] = {"", "n", "nu ", "NU", "et_", "has_et", "has_p_", "p__", "q"};
     uint32_t h = 2166136261u;
     const pico8_list_t *hv;
-    pico8_ob_table_t *b;
+    pico8_g__keys_t zero_keys = {0};
     void *targets[11];
     void *fv[2] = {NULL, NULL};
     void *probe[3];
@@ -1379,7 +1362,7 @@ static void test_g__members_by_name(void) {
             fv[0] = hv->items[k].as.ref;
         }
     }
-    fv[1] = pico8_fv_new(NULL);
+    fv[1] = pico8_fv_new();
     for (k = 0; k < 2; k++) {
         assert(fv[k] != NULL && is_of(fv[k], pico8_fv_struct_class()));
         h = fold_fresh_fv(h, fv[k]);
@@ -1432,12 +1415,13 @@ static void test_g__members_by_name(void) {
     }
     h = fold_fresh_probe(h, e, 0);
 
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "pn", zero_union(PICO8_VALUE_FIXED));
-    pico8_ob_table_set_name(b, "du", zero_union(PICO8_VALUE_FIXED));
-    pico8_ob_table_set_name(b, "py", zero_union(PICO8_VALUE_FIXED));
-    e = pico8_g__new(b);
-    pico8_ob_table_free(b);
+    zero_keys.has_pn = 1;
+    zero_keys.pn = 0;
+    zero_keys.has_du = 1;
+    zero_keys.du = 0;
+    zero_keys.has_py = 1;
+    zero_keys.py = 0;
+    e = pico8_g__new(&zero_keys);
     assert_same(e, "pn", pico8_value_fixed(0));
     assert_same(e, "du", pico8_value_fixed(0));
     assert_same(e, "py", pico8_value_fixed(0));
@@ -1475,14 +1459,6 @@ static void write_off_row(void *e, pico8_value_t v) {
     pico8_entity_set_field(e, g_off_row_name, v);
 }
 
-static void build_with_off_row_key(void *e, pico8_value_t v) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-
-    (void)e;
-    pico8_ob_table_set_name(b, g_off_row_name, v);
-    (void)pico8_g__new(b);
-}
-
 static void must_abort_all(void *e, const char *name, void (*write)(void *, pico8_value_t), const pico8_value_t *off,
                            size_t n) {
     size_t i;
@@ -1493,10 +1469,9 @@ static void must_abort_all(void *e, const char *name, void (*write)(void *, pico
     }
 }
 
-/* Each written member takes nil or a value of its type only, the construction
- * keys a fixed only; `fv` delegates `et` and `p_` to g_'s writer. */
+/* Each written member takes nil or a value of its type only; `fv` delegates
+ * `et` and `p_` to g_'s writer. */
 static void test_g__writer_stops_off_row(void) {
-    static const char *const keys[3] = {"pn", "du", "py"};
     pico8_value_t off[20];
     pico8_value_t structs[8];
     pico8_value_t vec;
@@ -1510,7 +1485,7 @@ static void test_g__writer_stops_off_row(void) {
 
     start_game();
     holders[0] = pico8_g__new(NULL);
-    holders[1] = pico8_fv_new(NULL);
+    holders[1] = pico8_fv_new();
     jc = a_slipway(&middle);
     vec = vec_ref(vec_xy(1, 1));
     assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb_1) && gb_1.kind == PICO8_VALUE_REF);
@@ -1543,7 +1518,7 @@ static void test_g__writer_stops_off_row(void) {
     off[n++] = vec;
     structs[0] = pico8_value_ref(pico8_ga_new(NULL));
     structs[1] = pico8_value_ref(pico8_g__new(NULL));
-    structs[2] = pico8_value_ref(pico8_fv_new(NULL));
+    structs[2] = pico8_value_ref(pico8_fv_new());
     structs[3] = pico8_value_ref(pico8_mz_new());
     structs[4] = pico8_value_ref(the_bg());
     structs[5] = pico8_value_ref(pico8_ok());
@@ -1564,18 +1539,6 @@ static void test_g__writer_stops_off_row(void) {
     off[n++] = vec;
     for (i = 0; i < 2; i++) {
         must_abort_all(holders[i], "p_", write_off_row, off, n);
-    }
-
-    n = 0;
-    off[n++] = pico8_value_ref(NULL);
-    off[n++] = pico8_value_bool(1);
-    off[n++] = zero_union(PICO8_VALUE_BOOL);
-    off[n++] = pico8_value_string("x");
-    off[n++] = zero_union(PICO8_VALUE_STRING);
-    off[n++] = zero_union(PICO8_VALUE_FUNCTION);
-    off[n++] = pico8_value_ref(pico8_ob_table_new());
-    for (i = 0; i < 3; i++) {
-        must_abort_all(NULL, keys[i], build_with_off_row_key, off, n);
     }
 }
 

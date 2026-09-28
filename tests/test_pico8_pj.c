@@ -1,4 +1,4 @@
-/* The score panel `pj`, built by its only road (`eu()`, `pico8_pj_new(NULL)`,
+/* The score panel `pj`, built by its only road (`eu()`, `pico8_pj_new()`,
  * on a game started directly: no events file), read only through the
  * dual-form field API, its defaults compared to `pico8_pj_start`, and
  * driven through the real `mv`/`cr()`/`de.my`. */
@@ -372,7 +372,7 @@ static void test_built(void) {
 static void test_shared(void) {
     uint32_t h = 2166136261u;
     void *ju = start_game();
-    void *other = pico8_pj_new(NULL);
+    void *other = pico8_pj_new();
     const pico8_ob_table_t *ea;
     size_t i;
 
@@ -557,7 +557,7 @@ static void test_cr(void) {
     pico8_cr();
     h = fold_cr_le(h, &head2);
     assert(strcmp(head1, head2) == 0);
-    assert(get_ref(pico8_pj_new(NULL), "cr") == cr);
+    assert(get_ref(pico8_pj_new(), "cr") == cr);
 
     ju = start_game();
     assert(get_ref(ju, "cr") == cr);
@@ -585,20 +585,6 @@ static void must_abort(void (*write)(void *), void *e) {
 
 static void write_c_(void *e) {
     pico8_entity_set_field(e, "c_", pico8_value_bool(1));
-}
-
-static void build_with_named_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_name(b, "fa", pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_pj_new(b);
-}
-
-static void build_with_positional_key(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
-    (void)e;
-    pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_pj_new(b);
 }
 
 /* Right after the init, before any `hb`/`hk`, `ou` and `ea` hold what
@@ -648,8 +634,6 @@ static void test_pj_is_a_struct(void) {
     assert(get_ref(ju, "gs") == &pico8_pj_gs_row && get_ref(ju, "i_") == &pico8_pj_i__row);
 
     must_abort(write_c_, ju);
-    must_abort(build_with_named_key, NULL);
-    must_abort(build_with_positional_key, NULL);
 }
 
 static void write_ep(void *e) {
@@ -684,7 +668,7 @@ static void test_cr_is_a_struct(void) {
 
     pico8_cr();
     assert(lookup(cr, "ep", &v) && v.kind == PICO8_VALUE_STRING);
-    assert(get_ref(pico8_pj_new(NULL), "cr") == cr);
+    assert(get_ref(pico8_pj_new(), "cr") == cr);
 
     pico8_score_panel_init();
     assert(pico8_pj_cr() == cr && !has(cr, "ep") && has(cr, "ca"));
@@ -869,7 +853,7 @@ static pico8_value_t ix3_my(void) {
 static void test_pj_members_by_name(void) {
     uint32_t h = 2166136261u;
     void *ju = start_game();
-    void *b = pico8_pj_new(NULL);
+    void *b = pico8_pj_new();
     void *ed;
     int boxes;
     int i;
