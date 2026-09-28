@@ -226,8 +226,8 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         return NULL;
     }
 
-    if (self->by.kind == PICO8_VALUE_REF && self->by.as.ref != NULL) {
-        ib = PICO8_REF_AS_LIST(self->by.as.ref);
+    if (self->by != NULL) {
+        ib = self->by;
     } else {
         ib = malloc(sizeof *ib);
         pico8_list_init(ib);

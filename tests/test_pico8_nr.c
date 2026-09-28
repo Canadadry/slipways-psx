@@ -684,7 +684,7 @@ static int is_an_nr_struct(const void *e) {
  * inherited member; it takes exactly qh's 20 names plus `s`, and a
  * construction key other than `id`, `p`, `ra` stops the run. */
 static void test_nr_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "fo", "kr", "m_", "ma", "mi", "et", "s"};
+    static const char *const written[] = {"et", "s"};
     static const char *const inherited[] = {"nu", "kq", "od", "fp", "s", "dw"};
     const pico8_struct_class_t *cls = pico8_nr_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();

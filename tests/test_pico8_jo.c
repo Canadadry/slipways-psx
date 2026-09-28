@@ -678,7 +678,6 @@ static int is_a_jo_struct(const void *e) {
  * generic write outside the 17 measured names, or a construction key other
  * than `id`/`p`/`ra`, stops the run. */
 static void test_jo_is_a_struct(void) {
-    static const char *const written[] = {"by", "cc", "fo", "kr", "m_", "ma", "mi"};
     const pico8_list_t *jo;
     void *a;
     size_t i;
@@ -709,12 +708,6 @@ static void test_jo_is_a_struct(void) {
 
     a = new_planet("p904", 9, 10);
     assert(is_a_jo_struct(a));
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_value_t v;
-        pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
     must_abort(write_ra, a);
     must_abort(write_id, a);
     must_abort(write_hp, a);

@@ -25,6 +25,8 @@
 #include "../src/pico8_cheat.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy.h"
+#include "../src/pico8_economy_tiers.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_entity_geom.h"
 #include "../src/pico8_fixed.h"
@@ -43,6 +45,7 @@
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
+#include "../src/pico8_planet_trade.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
@@ -78,6 +81,7 @@
 #define JO_WRITTEN_HASH 0x20E44B74u
 #define JO_POSITION_HASH 0x05B358F1u
 #define JO_STATE_HASH 0xCE748C3Fu
+#define JO_WRITERS_HASH 0xBAFA7F3Au
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -2038,6 +2042,347 @@ static void test_jo_state_stops_off_row(void) {
     }
 }
 
+static const char *const gen_names[7] = {"ma", "fo", "kr", "cc", "by", "mi", "m_"};
+
+/* The 11 classes that may hold a planet's `fo`: the 10 whose `hq` runs `bv`,
+ * and `jc`. Index in this list, or an assert. */
+static uint32_t fo_holder_index(const void *holder) {
+    const pico8_struct_class_t *const holders[11] = {
+        pico8_g__struct_class(), pico8_fv_struct_class(), pico8_qh_struct_class(), pico8_nl_struct_class(),
+        pico8_os_struct_class(), pico8_hj_struct_class(), pico8_pm_struct_class(), pico8_nr_struct_class(),
+        pico8_fr_struct_class(), pico8_mx_struct_class(), pico8_jc_struct_class()};
+    uint32_t i;
+
+    assert(pico8_type_tag_of(holder) == PICO8_TYPE_TAG_STRUCT);
+    for (i = 0; i < 11; i++) {
+        if (((const pico8_struct_header_t *)holder)->cls == holders[i]) {
+            return i;
+        }
+    }
+    assert(0 && "jo.fo holds one of the 11 admitted classes");
+    return 99;
+}
+
+static void *fo_holder_new(int k) {
+    switch (k) {
+    case 0:
+        return pico8_g__new(NULL);
+    case 1:
+        return pico8_fv_new(NULL);
+    case 10:
+        return pico8_jc_new(NULL);
+    default:
+        return tree_new(k == 6 ? 5 : k == 7 ? 7 : k == 8 ? 8 : k == 9 ? 9 : k - 1, NULL);
+    }
+}
+
+/* Presence, then the content of each of the 7 members written by the
+ * generic writers, each asserted in the genre of its census row. */
+static uint32_t fold_jo_gen(uint32_t h, const void *e) {
+    size_t m;
+
+    for (m = 0; m < 7; m++) {
+        const char *n = gen_names[m];
+        pico8_value_t v;
+
+        if (!me_of(e, n, &v)) {
+            h = fnv(h, 0u);
+            continue;
+        }
+        h = fnv(fnv(h, 1u), (uint32_t)v.kind);
+        if (strcmp(n, "ma") == 0 || strcmp(n, "kr") == 0 || strcmp(n, "mi") == 0) {
+            assert(v.kind == PICO8_VALUE_FIXED);
+            h = fnv(h, (uint32_t)v.as.fixed);
+        } else if (strcmp(n, "m_") == 0) {
+            assert(v.kind == PICO8_VALUE_BOOL);
+            h = fnv(h, (uint32_t)v.as.boolean);
+        } else if (strcmp(n, "fo") == 0) {
+            assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+            h = fnv(h, fo_holder_index(v.as.ref));
+        } else {
+            assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+            assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST);
+            h = fnv(h, (uint32_t)((const pico8_list_t *)v.as.ref)->count);
+        }
+    }
+    return h;
+}
+
+static uint32_t fold_hv_gen(uint32_t h) {
+    const pico8_list_t *hv = pico8_hv();
+    int i;
+
+    h = fnv(h, (uint32_t)hv->count);
+    for (i = 0; i < hv->count; i++) {
+        assert(hv->items[i].kind == PICO8_VALUE_REF);
+        h = jo_tree(hv->items[i].as.ref) ? fold_jo_gen(h, hv->items[i].as.ref) : fnv(h, 7u);
+    }
+    return h;
+}
+
+static void *ref_of(const void *e, const char *name) {
+    pico8_value_t v;
+
+    return me_of(e, name, &v) && v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
+}
+
+static void test_jo_writers_by_name(void) {
+    static const int writer_of[6] = {0, 1, 5, 6, 7, 8};
+    static const char *const intruders[] = {"", "m", "ma ", "M_", "fo_", "has_kr", "has_mi", "has_m_", "kr_", "cc "};
+    pico8_list_t *l = malloc(sizeof *l);
+    const pico8_list_t *jos;
+    pico8_value_t v;
+    pico8_value_t d;
+    void *e[10];
+    void *made;
+    void *planet;
+    void *holder;
+    pico8_vec_t *at;
+    uint32_t h = 2166136261u;
+    size_t i;
+    size_t j;
+    int k;
+    int x;
+    int y;
+    int before;
+
+    (void)start_game(DRAG);
+    h = fold_hv_gen(h);
+
+    for (i = 0; i < 10; i++) {
+        e[i] = tree_new((int)i, NULL);
+        h = fold_jo_gen(h, e[i]);
+        assert(me_of(e[i], "ma", &v) && v.kind == PICO8_VALUE_FIXED);
+        assert(!me_of(e[i], "kr", &v) && !me_of(e[i], "cc", &v) && !me_of(e[i], "fo", &v));
+        assert(!me_of(e[i], "m_", &v));
+        h = fnv(h, (uint32_t)me_of(e[i], "mi", &v));
+        h = fnv(h, (uint32_t)me_of(e[i], "by", &v));
+    }
+    assert(pico8_ga_default("by", &d) && d.kind == PICO8_VALUE_REF);
+    assert(ref_of(e[6], "by") == d.as.ref);
+    made = pico8_ga_new(NULL);
+    assert(ref_of(made, "by") == d.as.ref);
+
+    pico8_list_init(l);
+    for (i = 0; i < 6; i++) {
+        void *w = e[writer_of[i]];
+        const pico8_struct_header_t *header = w;
+        void *own_by = ref_of(w, "by");
+
+        write_by_name(w, "ma", pico8_value_fixed(pico8_fixed_from_int(2)));
+        h = fold_flag(h, w, "ma", PICO8_VALUE_FIXED);
+        for (j = 0; j < 2; j++) {
+            const char *n = j == 0 ? "kr" : "mi";
+
+            write_by_name(w, n, pico8_value_fixed(pico8_fixed_from_int(3)));
+            h = fold_flag(h, w, n, PICO8_VALUE_FIXED);
+            write_by_name(w, n, zero_union(PICO8_VALUE_FIXED));
+            h = fold_flag(h, w, n, PICO8_VALUE_FIXED);
+            assert(me_of(w, n, &v) && v.as.fixed == 0);
+            write_by_name(w, n, pico8_value_ref(NULL));
+            h = fold_flag(h, w, n, PICO8_VALUE_FIXED);
+            assert(!me_of(w, n, &v));
+        }
+        write_by_name(w, "m_", pico8_value_bool(1));
+        h = fold_flag(h, w, "m_", PICO8_VALUE_BOOL);
+        write_by_name(w, "m_", pico8_value_bool(0));
+        h = fold_flag(h, w, "m_", PICO8_VALUE_BOOL);
+        assert(me_of(w, "m_", &v) && v.as.boolean == 0);
+        write_by_name(w, "m_", zero_union(PICO8_VALUE_BOOL));
+        h = fold_flag(h, w, "m_", PICO8_VALUE_BOOL);
+        assert(me_of(w, "m_", &v) && v.as.boolean == 0);
+        write_by_name(w, "m_", pico8_value_ref(NULL));
+        h = fold_flag(h, w, "m_", PICO8_VALUE_BOOL);
+        assert(!me_of(w, "m_", &v));
+        for (j = 0; j < 2; j++) {
+            const char *n = j == 0 ? "cc" : "by";
+
+            write_by_name(w, n, pico8_value_ref(l));
+            h = fold_same(h, w, n, l);
+            write_by_name(w, n, pico8_value_ref(NULL));
+            h = fold_same(h, w, n, NULL);
+        }
+        for (k = 0; k < 11; k++) {
+            holder = fo_holder_new(k);
+            h = fnv(h, fo_holder_index(holder));
+            write_by_name(w, "fo", pico8_value_ref(holder));
+            h = fold_same(h, w, "fo", holder);
+        }
+        write_by_name(w, "fo", pico8_value_ref(NULL));
+        h = fold_same(h, w, "fo", NULL);
+        assert(header->cls->set_field(w, "id", pico8_value_string("p42")) == 0);
+        if (own_by != NULL) {
+            write_by_name(w, "by", pico8_value_ref(own_by));
+        }
+        h = fold_jo_gen(h, w);
+    }
+
+    pico8_hy_lj(pico8_fm_hy());
+    h = fold_hv_gen(h);
+    jos = pico8_cg("jo");
+    assert(jos != NULL);
+    pico8_bd();
+    jos = pico8_cg("jo");
+    for (k = 0; k < jos->count; k++) {
+        assert(ref_of(jos->items[k].as.ref, "cc") != NULL);
+        if (is_of(jos->items[k].as.ref, pico8_ga_struct_class())) {
+            assert(ref_of(jos->items[k].as.ref, "by") == d.as.ref);
+        }
+    }
+    h = fold_hv_gen(h);
+    h = fnv(h, (uint32_t)pico8_bb());
+    h = fold_hv_gen(h);
+
+    mouse_at(64, 100, 0);
+    pico8_ui_lj(&mem, pico8_ok());
+    planet = planet_on_screen(&x, &y);
+    mouse_at(x, y, 0);
+    pico8_ui_lj(&mem, pico8_ok());
+    h = fold_flag(h, planet, "m_", PICO8_VALUE_BOOL);
+    assert(me_of(planet, "m_", &v) && v.as.boolean == 1);
+    pico8_ui_lj(&mem, pico8_ok());
+    mouse_at(x + 40 > 127 ? x - 40 : x + 40, y, 0);
+    pico8_ui_lj(&mem, pico8_ok());
+    h = fold_flag(h, planet, "m_", PICO8_VALUE_BOOL);
+    assert(me_of(planet, "m_", &v) && v.as.boolean == 0);
+
+    pico8_jo_kd(planet);
+    h = fold_flag(h, planet, "ma", PICO8_VALUE_FIXED);
+    for (k = 0; k < 15; k++) {
+        (void)pico8_ma(vec_of(planet, "ra"), planet);
+        h = fold_flag(h, planet, "ma", PICO8_VALUE_FIXED);
+    }
+
+    at = heap_vec(0, 0);
+    *at = vec_of(planet, "ra");
+    pico8_bv(e[1], pico8_value_ref(at), pico8_value_ref(at));
+    holder = ref_of(planet, "fo");
+    h = fnv(h, (uint32_t)(holder != NULL));
+    assert(holder == NULL || holder == e[1]);
+    h = fold_hv_gen(h);
+    pico8_jo_kj(&gfx, &mem, planet, *at);
+    assert(!me_of(planet, "fo", &v));
+
+    for (k = 0; k < 2; k++) {
+        const pico8_struct_header_t *p = k == 0 ? (void *)pico8_pm_new(NULL) : (void *)pico8_fv_new(NULL);
+
+        (void)p->cls->methods[PICO8_METHOD_HQ]((void *)p, 2, pico8_value_ref(at), pico8_value_ref(at));
+        holder = ref_of(planet, "fo");
+        h = fnv(h, holder == NULL ? 99u : fo_holder_index(holder));
+        write_by_name(planet, "fo", pico8_value_ref((void *)p));
+        h = fold_same(h, planet, "fo", p);
+        write_by_name(planet, "fo", pico8_value_ref(NULL));
+    }
+
+    for (k = 0; k < 3; k++) {
+        write_by_name(planet, "kr", k == 0   ? pico8_value_fixed(pico8_fixed_from_int(5))
+                                    : k == 1 ? pico8_value_ref(NULL)
+                                             : pico8_value_fixed(0));
+        before = pico8_hv()->count;
+        pico8_jo_hk(planet);
+        h = fnv(h, (uint32_t)(pico8_hv()->count - before));
+        assert((pico8_hv()->count - before == 1) == (k == 0));
+    }
+    made = pico8_jo_new(NULL);
+    h = fnv(h, (uint32_t)pico8_jo_ib(made)->count);
+    assert(!me_of(made, "by", &v));
+    made = pico8_ga_new(NULL);
+    assert(pico8_jo_ib(made) == d.as.ref);
+
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        v = pico8_value_fixed(0x1234);
+        assert(pico8_jo_struct_class()->field(e[0], intruders[i], &v) == 0);
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x1234);
+        h = fnv(h, 0u);
+    }
+
+    for (i = 0; (int)i < input.frame_count; i++) {
+        play_frame((int)i);
+    }
+    h = fold_hv_gen(h);
+    made = last_of_class(pico8_jc_struct_class());
+    h = fnv(h, (uint32_t)(made != NULL));
+    if (made != NULL) {
+        jos = pico8_cg("jo");
+        for (k = 0; k < jos->count; k++) {
+            write_by_name(jos->items[k].as.ref, "fo", pico8_value_ref(NULL));
+        }
+        pico8_jc_hq(made, pico8_value_ref(at));
+        for (k = 0; k < jos->count; k++) {
+            holder = ref_of(jos->items[k].as.ref, "fo");
+            h = fnv(h, (uint32_t)(holder != NULL));
+            assert(holder == NULL || holder == made);
+        }
+    }
+
+    check("jo_writers", h, JO_WRITERS_HASH);
+}
+
+static const char *const g_gen_off_names[7] = {"ma", "kr", "mi", "m_", "cc", "by", "fo"};
+
+static void test_jo_writers_stop_off_row(void) {
+    pico8_value_t off_row[20];
+    pico8_vec_t *vec = heap_vec(1, 2);
+    void *e[3];
+    size_t n_off;
+    size_t i;
+    size_t k;
+    size_t m;
+
+    (void)start_game(DRAG);
+    e[0] = pico8_jo_new(NULL);
+    e[1] = pico8_pm_new(NULL);
+    e[2] = pico8_ga_new(NULL);
+    for (i = 0; i < 3; i++) {
+        for (m = 0; m < 7; m++) {
+            const char *n = g_gen_off_names[m];
+
+            n_off = 0;
+            if (strcmp(n, "ma") == 0) {
+                off_row[n_off++] = pico8_value_ref(NULL);
+            }
+            if (strcmp(n, "m_") != 0) {
+                off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
+            }
+            if (strcmp(n, "ma") != 0 && strcmp(n, "kr") != 0 && strcmp(n, "mi") != 0) {
+                off_row[n_off++] = pico8_value_fixed(pico8_fixed_from_int(1));
+                off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
+            }
+            if (strcmp(n, "cc") != 0 && strcmp(n, "by") != 0 && strcmp(n, "m_") != 0) {
+                off_row[n_off++] = pico8_value_bool(1);
+            }
+            if (strcmp(n, "cc") != 0 && strcmp(n, "by") != 0) {
+                off_row[n_off++] = pico8_value_string("x");
+            }
+            off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
+            off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
+            off_row[n_off++] = pico8_value_ref(pico8_ob_table_new());
+            if (strcmp(n, "kr") == 0 || strcmp(n, "mi") == 0 || strcmp(n, "fo") == 0) {
+                off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
+            }
+            if (strcmp(n, "cc") == 0 || strcmp(n, "by") == 0 || strcmp(n, "fo") == 0) {
+                off_row[n_off++] = pico8_value_ref(vec);
+            }
+            if (strcmp(n, "cc") == 0 || strcmp(n, "by") == 0) {
+                off_row[n_off++] = pico8_value_ref(e[i]);
+            }
+            if (strcmp(n, "fo") == 0) {
+                off_row[n_off++] = pico8_value_ref(pico8_mz_new(NULL));
+                off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
+                off_row[n_off++] = pico8_value_ref(pico8_ga_new(NULL));
+                off_row[n_off++] = pico8_value_ref(gb_project(0));
+                off_row[n_off++] = pico8_value_ref(the_bg());
+                off_row[n_off++] = pico8_value_ref(pico8_ok());
+            }
+            g_off_row_name = n;
+            for (k = 0; k < n_off; k++) {
+                g_off_row_value = off_row[k];
+                must_abort(write_off_row, e[i]);
+            }
+        }
+    }
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -2073,6 +2418,8 @@ int main(void) {
     in_fresh_child(test_jo_position_stops_off_row);
     in_fresh_child(test_jo_state_by_name);
     in_fresh_child(test_jo_state_stops_off_row);
+    in_fresh_child(test_jo_writers_by_name);
+    in_fresh_child(test_jo_writers_stop_off_row);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

@@ -50,18 +50,6 @@ static pico8_fixed_t field_fixed(const pico8_jo_t *self, const char *name) {
     return pico8_fixed_from_int(0);
 }
 
-/* Readers of a member: nil or a wrong kind reads as the zero/NULL default. */
-static pico8_fixed_t fixed_of(pico8_value_t v) {
-    return v.kind == PICO8_VALUE_FIXED ? v.as.fixed : pico8_fixed_from_int(0);
-}
-
-static const pico8_list_t *list_of(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return PICO8_REF_AS_LIST_CONST(v.as.ref);
-    }
-    return NULL;
-}
-
 /* The returned list borrows the table's values: the caller frees the list,
  * never the table. */
 static pico8_list_t pico8_jo_positional_values(const pico8_ob_table_t *table) {
@@ -102,7 +90,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
             mu = mu_val.as.fixed;
         }
     }
-    by_list = list_of(self->by);
+    by_list = self->by;
 
     lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
                              pico8_fixed_from_int(0));
@@ -148,7 +136,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_ob_table_t *bs1;
     pico8_value_t px_val;
     pico8_value_t icon_val = pico8_value_ref(NULL);
-    pico8_value_t kr_val;
     pico8_value_t h_field;
     pico8_list_t *ji;
     pico8_jo_gh_ctx_t ctx;
@@ -166,19 +153,16 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     if (pico8_entity_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
         icon_val = px_val;
     } else {
-        pico8_value_t mi_val = self->mi;
-        if (mi_val.kind == PICO8_VALUE_FIXED && pico8_jo_dz() != NULL) {
-            pico8_ob_table_get_index(pico8_jo_dz(), pico8_fixed_flr_int(mi_val.as.fixed), &icon_val);
+        if (self->has_mi && pico8_jo_dz() != NULL) {
+            pico8_ob_table_get_index(pico8_jo_dz(), pico8_fixed_flr_int(self->mi), &icon_val);
         }
     }
     pico8_ob_table_set_name(bs1, "lq", icon_val);
 
-    kr_val = self->kr;
-    if (pico8_jo_truthy(kr_val)) {
+    if (self->has_kr) {
         pico8_ob_table_t *h_tuple = pico8_ob_table_new();
         int discard_color = 0;
-        pico8_fixed_t kr_fixed = (kr_val.kind == PICO8_VALUE_FIXED) ? kr_val.as.fixed : pico8_fixed_from_int(0);
-        char *text = pico8_ne(kr_fixed, 0, NULL, &discard_color);
+        char *text = pico8_ne(self->kr, 0, NULL, &discard_color);
         size_t text_len = strlen(text);
         char *with_suffix = malloc(text_len + 2);
         memcpy(with_suffix, text, text_len);
@@ -187,8 +171,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         free(text);
         pico8_ob_table_set_index(h_tuple, 1, pico8_value_string(with_suffix));
         pico8_ob_table_set_name(h_tuple, "bg",
-                                 (kr_val.kind == PICO8_VALUE_FIXED && kr_val.as.fixed >= pico8_fixed_from_int(0))
-                                     ? pico8_value_fixed(pico8_fixed_from_int(1))
+                                 self->kr >= pico8_fixed_from_int(0) ? pico8_value_fixed(pico8_fixed_from_int(1))
                                      : pico8_value_bool(0));
         h_field = pico8_value_ref(h_tuple);
     } else {
@@ -214,7 +197,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         pico8_list_free(&prefix);
         pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
     } else {
-        pico8_fixed_t mi_fixed = fixed_of(self->mi);
+        pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
         const pico8_ob_table_t *kw = self->kw;
         pico8_value_t kw_qe = pico8_value_ref(NULL);
         pico8_value_t r_w;
@@ -286,7 +269,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 pico8_list_add(lb, pico8_value_string("makes:"));
                 pico8_list_add(lb, pico8_value_string(mu_str));
             } else {
-                const pico8_list_t *by = list_of(self->by);
+                const pico8_list_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
                 char *count_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(by_count)));
                 char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));
@@ -500,7 +483,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     pico8_dv_default(mem);
 
     if (pico8_jo_truthy(pico8_jo_gg(self))) {
-        int mi = pico8_fixed_flr_int(fixed_of(self->mi));
+        int mi = pico8_fixed_flr_int(self->has_mi ? self->mi : pico8_fixed_from_int(0));
         int color = 0;
         pico8_value_t ka_entry;
 
@@ -529,14 +512,13 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     }
 
     {
-        pico8_value_t fo_val = self->fo;
-        if (pico8_jo_truthy(fo_val) && fo_val.kind == PICO8_VALUE_REF && fo_val.as.ref != NULL) {
+        if (self->fo != NULL) {
             pico8_fixed_t dw = pico8_fixed_from_int(0);
             pico8_value_t dw_val;
             pico8_fixed_t radius_f;
             int radius;
 
-            if (pico8_entity_get_field(fo_val.as.ref, "dw", &dw_val) &&
+            if (pico8_entity_get_field(self->fo, "dw", &dw_val) &&
                 dw_val.kind == PICO8_VALUE_FIXED) {
                 dw = dw_val.as.fixed;
             }
@@ -549,7 +531,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
             pico8_fillp_transparent(gfx, 0xAAAAu);
             pico8_circfill(gfx, mem, px, py, radius, 2);
             pico8_fillp_reset(gfx);
-            self->fo = pico8_value_ref(NULL);
+            self->fo = NULL;
         }
     }
 }

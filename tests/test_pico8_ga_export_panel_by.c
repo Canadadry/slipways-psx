@@ -135,7 +135,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     by = planet_by_ref(planet);
     assert(by != NULL);
     /* The contract all six readers assume, on the value actually handed
-     * out. Without the `by` swap, `jo:gh`'s REF check aborts first. */
+     * out. Without the `by` swap, ga's init aborts first. */
     assert(pico8_type_tag_of(by) == PICO8_TYPE_TAG_LIST);
     route_a = pico8_ob_table_new();
     route_b = pico8_ob_table_new();

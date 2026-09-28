@@ -29,7 +29,7 @@ typedef struct {
     pico8_fixed_t hs;
     pico8_fixed_t fa;
     pico8_qz_box_t *kq;
-    pico8_value_t ma;
+    pico8_fixed_t ma;
     pico8_ob_table_t *ka;
     pico8_ob_table_t *dz;
     pico8_ob_table_t *cq;
@@ -48,16 +48,19 @@ typedef struct {
     int fx;
     int has_fx;
     pico8_lq_t *lq;
-    pico8_value_t fo;
+    pico8_struct_header_t *fo;
     pico8_fixed_t jh;
     int has_jh;
     int p_;
     int has_p_;
-    pico8_value_t kr;
-    pico8_value_t cc;
-    pico8_value_t by;
-    pico8_value_t mi;
-    pico8_value_t m_;
+    pico8_fixed_t kr;
+    int has_kr;
+    pico8_list_t *cc;
+    pico8_list_t *by;
+    pico8_fixed_t mi;
+    int has_mi;
+    int m_;
+    int has_m_;
 } pico8_jo_t;
 
 /* TROU-8 */
