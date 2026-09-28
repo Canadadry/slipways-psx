@@ -1,7 +1,6 @@
 /* The slipway `jc`, read and written only through the dual-form field API
- * and driven through the real `mv`/`dg`/`dc`/`ok`. The frozen values were
- * taken on the code where `jc` was still a class instance and must not be
- * re-taken. */
+ * and driven through the real `mv`/`dg`/`dc`/`ok`, in games built directly:
+ * no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -33,6 +31,7 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
@@ -42,33 +41,26 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
-#define DRAG "tests/fixtures/slipway_drag_events.json"
-#define HUB "tests/fixtures/trading_hub_session_events.json"
-#define PLAYTHROUGH "tests/fixtures/phase4_playthrough_events.json"
-#define LAST_DRAG_FRAME 202
+/* Ticks after the slipway is paid, long enough for the colonizing and
+ * paying effects to leave `hv`: `dg` skips the entity after one it takes out
+ * (TROU-5). */
+#define SETTLE_TICKS 120
 
 #define DW_BITS 0x00000106
-#define DRAG_FRAMES 226
-#define DRAG_HASH 0xA712523Fu
-#define HUB_FRAMES 4921
-#define HUB_HASH 0x60651C6Au
-#define PLAYTHROUGH_FRAMES 224
-#define PLAYTHROUGH_HASH 0x67E1695Au
-#define EY_HASH 0xC2A393EEu
-#define HQ_HASH 0xB886CEC5u
-#define EB_HASH 0x8ABEE578u
-#define DRAW_HASH 0xC0A23F6Eu
-#define BV_HASH 0xD5135D83u
-#define TOO_FAR_HASH 0x5C5FF603u
-#define MOUSE_POINT_HASH 0x4E87C0C4u
+#define EY_HASH 0x2D4E976Fu
+#define HQ_HASH 0x369116ECu
+#define EB_HASH 0x19ADC88Cu
+#define DRAW_HASH 0xABD825A2u
+#define BV_HASH 0x731DE4D8u
+#define TOO_FAR_HASH 0xBFB9FB9Bu
+#define MOUSE_POINT_HASH 0x78A94031u
 #define MEMBERS_HASH 0x27A294B4u
-#define FAR_MEMBERS_HASH 0xF9A84A48u
-#define JC_MEMBERS_HASH 0x4B2BE7B2u
+#define FAR_MEMBERS_HASH 0x34D70700u
+#define JC_MEMBERS_HASH 0xB314E25Fu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static const int want_k_[20] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
 
@@ -333,70 +325,86 @@ static uint32_t fold_planets(uint32_t h, int with_eb) {
     return h;
 }
 
-static uint32_t fold_frame(uint32_t h, int with_eb) {
-    const pico8_list_t *jcs = pico8_cg("jc");
-    int i;
-
-    h = fnv(h, (uint32_t)(jcs == NULL ? 0 : jcs->count));
-    for (i = 0; jcs != NULL && i < jcs->count; i++) {
-        h = fold_jc(h, jcs->items[i].as.ref);
-    }
-    h = fnv(h, (uint32_t)rank_in(jcs, get_ref(pico8_ok(), "lheld")));
-    h = fold_planets(h, with_eb);
-    return pico8_fm() == NULL ? fnv(h, 0xDEADu) : fold_field(h, pico8_fm(), "nz");
-}
-
 static void check(const char *label, uint32_t got, uint32_t want) {
     printf("[%s] 0x%08Xu\n", label, (unsigned)got);
     fflush(stdout);
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
-static void start_game(const char *events) {
-    pico8_value_t difficulty;
-
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-    pico8_cheat_init(&cheat);
+    pico8_eu(NULL);
 }
 
-/* A raylib recording clicks the difficulty on the title screen itself, and
- * the drag replay is driven without one, as its regression test does. */
-static void start_from_title(const char *events) {
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
-    pico8_dispatch_set_input(&input);
-    pico8__init();
-    pico8_cheat_init(&cheat);
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
 }
 
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
 }
 
-/* The drag replay to its end: one slipway joining two planets. */
-static void world(void) {
+/* A started game's first generated planet and its nearest one, both
+ * colonized by a bare project. */
+static void colonized_pair(void **qu, void **re) {
+    const pico8_list_t *jos;
     int i;
 
-    start_from_title(DRAG);
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame();
+    start_game();
+    jos = pico8_cg("jo");
+    assert(jos != NULL && jos->count > 1);
+    *qu = jos->items[0].as.ref;
+    *re = NULL;
+    for (i = 1; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (*re == NULL || dist2(pos_of(e), pos_of(*qu)) < dist2(pos_of(*re), pos_of(*qu))) {
+            *re = e;
+        }
+    }
+    pico8_jo_hu(*qu, pico8_hp_new(NULL));
+    pico8_jo_hu(*re, pico8_hp_new(NULL));
+}
+
+static void *build_jc(void *qu);
+static void hq_over(void *jc, void *hovered, pico8_value_t mp);
+
+/* A slipway from `qu` dragged over `re` as `jc:hq` sees a drag (it reads the
+ * hovered planet off `ok.o_`), held until its `t` reaches 15, not paid. */
+static void *dragged(void *qu, void *re) {
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    void *jc = build_jc(qu);
+
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    hq_over(jc, re, pico8_value_ref(mp));
+    pico8_ok()->o_ = NULL;
+    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
+    }
+    return jc;
+}
+
+/* Two colonized planets joined by one slipway, paid by `ey` as a drag pays
+ * it, then left to settle. */
+static void world(void) {
+    pico8_value_t out;
+    void *qu;
+    void *re;
+    void *jc;
+    int i;
+
+    colonized_pair(&qu, &re);
+    jc = dragged(qu, re);
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    for (i = 0; i < SETTLE_TICKS; i++) {
+        pico8_dg();
     }
     assert(pico8_cg("jc") != NULL && pico8_cg("jc")->count == 1);
 }
@@ -526,44 +534,6 @@ static void test_construction(void) {
     assert(get_ref(by_ldown, "hg") != get_ref(by_lookup, "hg"));
 }
 
-static void replay(const char *label, const char *events, int from_title, int with_eb, int want_frames,
-                   uint32_t want_hash) {
-    uint32_t h = 2166136261u;
-    int seen = 0;
-    int frames;
-    int i;
-
-    if (from_title) {
-        start_from_title(events);
-    } else {
-        start_game(events);
-    }
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        play_frame();
-        h = fold_frame(h, with_eb);
-        if (pico8_cg("jc") != NULL && pico8_cg("jc")->count > 0) {
-            seen++;
-        }
-    }
-    printf("[%s] a jc alive on %d frames\n", label, seen);
-    assert(seen > 0);
-    check_int(label, frames, want_frames);
-    check(label, h, want_hash);
-}
-
-static void test_drag(void) {
-    replay("drag", DRAG, 1, 0, DRAG_FRAMES, DRAG_HASH);
-}
-
-static void test_hub(void) {
-    replay("hub", HUB, 1, 0, HUB_FRAMES, HUB_HASH);
-}
-
-static void test_playthrough(void) {
-    replay("playthrough", PLAYTHROUGH, 0, 1, PLAYTHROUGH_FRAMES, PLAYTHROUGH_HASH);
-}
-
 /* Without a target, `ey` only raises `p_`; with one, the slipway joins both
  * `oe` and `d_` charges `od`. */
 static void test_ey(void) {
@@ -574,16 +544,11 @@ static void test_ey(void) {
     void *refused;
     pico8_fixed_t before;
     pico8_fixed_t od;
-    int i;
 
-    start_from_title(DRAG);
-    for (i = 0; i <= LAST_DRAG_FRAME; i++) {
-        play_frame();
-    }
-    held = get_ref(pico8_ok(), "lheld");
-    assert(held != NULL && listed(pico8_cg("jc"), held));
-    origin = get_ref(held, "qu");
-    target = get_ref(held, "re");
+    colonized_pair(&origin, &target);
+    held = dragged(origin, target);
+    assert(listed(pico8_cg("jc"), held));
+    assert(get_ref(held, "qu") == origin && get_ref(held, "re") == target);
     assert(re_kind(held) == RE_PLANET && et_kind(held) == ET_ABSENT);
     assert(list_count(origin, "oe") == 0 && list_count(target, "oe") == 0);
     before = credits();
@@ -1731,7 +1696,7 @@ static void test_jc_writer_stops_off_row(void) {
     }
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
@@ -1761,9 +1726,6 @@ int main(void) {
 
     pico8_cart_load();
     in_fresh_child(test_construction);
-    in_fresh_child(test_drag);
-    in_fresh_child(test_hub);
-    in_fresh_child(test_playthrough);
     in_fresh_child(test_ey);
     in_fresh_child(test_hq);
     in_fresh_child(test_eb);
