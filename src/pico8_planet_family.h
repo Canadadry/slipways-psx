@@ -123,17 +123,17 @@ typedef struct {
  * TROU-7. */
 typedef struct {
     pico8_jo_t jo;
-    pico8_value_t fz;
-    pico8_value_t fc;
-    pico8_value_t qo;
-    pico8_value_t ro;
-    pico8_value_t qg;
-    pico8_value_t q_;
-    pico8_value_t k_;
-    pico8_value_t iu;
-    pico8_value_t py;
-    pico8_value_t ms;
-    pico8_value_t qy;
+    const char *fz;
+    pico8_fixed_t fc;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    pico8_ob_table_t *k_;
+    pico8_fixed_t iu;
+    pico8_fixed_t py;
+    pico8_fixed_t ms;
+    pico8_list_t *qy;
 } pico8_ga_t;
 
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to

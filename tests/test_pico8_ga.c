@@ -32,6 +32,7 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
@@ -48,6 +49,7 @@
 #define BUILT_HASH 0xEA365129u
 #define LIFE_HASH 0x85D7319Eu
 #define BURST_HASH 0xF73B9F9Fu
+#define GA_MEMBERS_HASH 0x9DE58769u
 #define BURST_BIRTH 205
 #define BURST_DEATH 289
 
@@ -684,7 +686,6 @@ static int is_a_ga_struct(const void *e) {
  * and jo's 17 names, and a construction key outside the 11 measured stops
  * the run. Neither ga's class nor jo's installs a function or a `pq`. */
 static void test_ga_is_a_struct(void) {
-    static const char *const written[] = {"qy"};
     static const char *const on_jo[] = {"nu", "hf", "by", "kq", "fa"};
     const pico8_struct_class_t *cls = pico8_ga_struct_class();
     const pico8_struct_class_t *jo = pico8_jo_struct_class();
@@ -735,13 +736,242 @@ static void test_ga_is_a_struct(void) {
     must_abort(write_ht, roads[0]);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    PICO8_MEMBER_CENSUS_STOP() for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_entity_set_field(roads[2], written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(roads[2], written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
-    ((pico8_ga_t *)roads[2])->fz = pico8_value_ref(NULL);
+    PICO8_MEMBER_CENSUS_STOP()
+    ((pico8_ga_t *)roads[2])->fz = NULL;
     assert(!cls->field(roads[2], "fz", &v) && !is_ga(roads[2]));
+}
+
+#define WITNESS 0x1234
+
+static int same_value(pico8_value_t a, pico8_value_t b) {
+    if (a.kind != b.kind) {
+        return 0;
+    }
+    switch (a.kind) {
+    case PICO8_VALUE_FIXED:
+        return a.as.fixed == b.as.fixed;
+    case PICO8_VALUE_BOOL:
+        return a.as.boolean == b.as.boolean;
+    case PICO8_VALUE_STRING:
+        return a.as.string == b.as.string;
+    case PICO8_VALUE_FUNCTION:
+        return a.as.function == b.as.function;
+    default:
+        return a.as.ref == b.as.ref;
+    }
+}
+
+/* The raw reader of ga's descriptor and the name API agree on presence,
+ * kind, value and pointer; on absence both leave the witness untouched. */
+static int read_both(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(WITNESS);
+    pico8_value_t named = pico8_value_fixed(WITNESS);
+    int got_raw = pico8_ga_struct_class()->field(e, name, &raw);
+    int got_named = pico8_entity_get_field(e, name, &named);
+
+    assert(got_raw == got_named && same_value(raw, named));
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS);
+    }
+    *out = raw;
+    return got_raw;
+}
+
+static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
+    pico8_value_t v;
+    if (!read_both(e, name, &v)) {
+        return fnv(h, 0u);
+    }
+    h = fold_value(fnv(h, 1u), v);
+    if (v.kind == PICO8_VALUE_REF) {
+        h = fnv(h, (uint32_t)size_of(e, name));
+    }
+    return h;
+}
+
+static void *read_ref(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(read_both(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+static pico8_fixed_t read_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(read_both(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static void assert_spec_defaults(const void *e) {
+    pico8_value_t v;
+    assert(read_both(e, "fz", &v) && v.kind == PICO8_VALUE_STRING &&
+           v.as.string == class_value(pico8_ga_default, "fz").as.string);
+    assert(read_both(e, "fc", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
+    assert(pico8_type_tag_of(read_ref(e, "qy")) == PICO8_TYPE_TAG_LIST);
+}
+
+static void test_ga_members_by_name(void) {
+    static const char *const intruders[] = {"", "q", "qy ", "QY", "k", "k__", "fz_", "m"};
+    static const pico8_fixed_t keyed[] = {0, 2, 3, -1, 5, 7, 4};
+    static const char *const keyed_names[] = {"qo", "ro", "qg", "q_", "iu", "py", "ms"};
+    const pico8_struct_class_t *cls = pico8_ga_struct_class();
+    uint32_t h = 2166136261u;
+    void *roads[3];
+    void *keyed_ga;
+    void *nil_k;
+    void *jo;
+    void *own_qy;
+    pico8_list_t *fresh;
+    pico8_ob_table_t *k_;
+    pico8_ob_table_t *b;
+    pico8_value_t v;
+    size_t i;
+    size_t r;
+
+    start_game(EMPTY);
+    roads[0] = harvest(40, 40, "s91");
+    roads[1] = spawn(80, 70, "s92", NULL);
+    roads[2] = pico8_ga_new(NULL);
+    for (r = 0; r < 3; r++) {
+        for (i = 0; i < sizeof ga_own / sizeof ga_own[0]; i++) {
+            h = fold_member(h, roads[r], ga_own[i]);
+        }
+        assert_spec_defaults(roads[r]);
+    }
+    assert(read_ref(roads[0], "k_") == class_ref(pico8_ga_default, "k_"));
+    assert(read_ref(roads[2], "k_") == class_ref(pico8_ga_default, "k_"));
+    assert(read_ref(roads[1], "k_") != class_ref(pico8_ga_default, "k_") && size_of(roads[1], "k_") == 13);
+    assert(read_ref(roads[0], "qy") != read_ref(roads[1], "qy") &&
+           read_ref(roads[1], "qy") != read_ref(roads[2], "qy") &&
+           read_ref(roads[0], "qy") != read_ref(roads[2], "qy"));
+
+    b = pico8_ob_table_new();
+    for (i = 0; i < sizeof keyed / sizeof keyed[0]; i++) {
+        pico8_ob_table_set_name(b, keyed_names[i], pico8_value_fixed(pico8_fixed_from_int(keyed[i])));
+    }
+    k_ = pico8_ob_table_new();
+    pico8_ob_table_set_index(k_, 1, pico8_value_fixed(pico8_fixed_from_int(5)));
+    pico8_ob_table_set_index(k_, 2, pico8_value_fixed(pico8_fixed_from_int(6)));
+    pico8_ob_table_set_name(b, "k_", pico8_value_ref(k_));
+    keyed_ga = pico8_ga_new(b);
+    for (i = 0; i < sizeof keyed / sizeof keyed[0]; i++) {
+        assert(read_fixed(keyed_ga, keyed_names[i]) == pico8_fixed_from_int(keyed[i]));
+    }
+    assert(read_ref(keyed_ga, "k_") == k_);
+    assert_spec_defaults(keyed_ga);
+    for (i = 0; i < sizeof ga_own / sizeof ga_own[0]; i++) {
+        h = fold_member(h, keyed_ga, ga_own[i]);
+    }
+    pico8_ob_table_set_name(b, "k_", pico8_value_ref(NULL));
+    nil_k = pico8_ga_new(b);
+    pico8_ob_table_free(b);
+    assert(!read_both(nil_k, "k_", &v));
+    h = fold_member(h, nil_k, "k_");
+
+    own_qy = read_ref(roads[2], "qy");
+    fresh = malloc(sizeof *fresh);
+    pico8_list_init(fresh);
+    assert(cls->set_field(roads[2], "qy", pico8_value_ref(fresh)) == 1);
+    assert(read_ref(roads[2], "qy") == fresh);
+    pico8_entity_set_field(roads[2], "qy", pico8_value_ref(NULL));
+    assert(!read_both(roads[2], "qy", &v) && !has(roads[2], "qy"));
+    h = fold_member(h, roads[2], "qy");
+    pico8_entity_set_field(roads[2], "qy", pico8_value_ref(own_qy));
+    assert(read_ref(roads[2], "qy") == own_qy);
+    for (i = 0; i < sizeof ga_own / sizeof ga_own[0]; i++) {
+        pico8_value_t before;
+        pico8_value_t after;
+        if (strcmp(ga_own[i], "qy") == 0) {
+            continue;
+        }
+        assert(read_both(roads[2], ga_own[i], &before));
+        assert(cls->set_field(roads[2], ga_own[i], pico8_value_fixed(pico8_fixed_from_int(9))) == 0);
+        assert(read_both(roads[2], ga_own[i], &after) && same_value(before, after));
+    }
+    pico8_ez((pico8_struct_header_t *)roads[2], pico8_fixed_from_int(2));
+    h = fnv(h, (uint32_t)size_of(roads[2], "qy"));
+
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        assert(!read_both(roads[0], intruders[i], &v));
+    }
+    jo = pico8_jo_new(NULL);
+    for (i = 0; i < sizeof ga_own / sizeof ga_own[0]; i++) {
+        assert(!has(jo, ga_own[i]));
+    }
+    check("members", h, GA_MEMBERS_HASH);
+}
+
+static const char *g_off_row_name;
+static pico8_value_t g_off_row_value;
+
+static void write_off_row(void *e) {
+    pico8_entity_set_field(e, g_off_row_name, g_off_row_value);
+}
+
+static void build_off_row(void *e) {
+    pico8_ob_table_t *b = pico8_ob_table_new();
+    (void)e;
+    pico8_ob_table_set_name(b, g_off_row_name, g_off_row_value);
+    (void)pico8_ga_new(b);
+}
+
+static pico8_value_t zero_union(pico8_value_kind_t kind) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = kind;
+    return v;
+}
+
+/* `qy` takes nil or a list and nothing else; a fixed construction key takes
+ * a fixed and nothing else, nil included; `k_` takes nil or a table. */
+static void test_ga_writer_stops_off_row(void) {
+    static const char *const key_names[] = {"qo", "ms", "iu", "py", "k_", "k_", "k_"};
+    pico8_value_t off_row[11];
+    pico8_value_t off_key[7];
+    pico8_list_t *list;
+    void *roads[3];
+    size_t n_off;
+    size_t i;
+    size_t r;
+
+    start_game(EMPTY);
+    roads[0] = harvest(40, 40, "s93");
+    roads[1] = spawn(80, 70, "s94", NULL);
+    roads[2] = pico8_ga_new(NULL);
+    n_off = 0;
+    off_row[n_off++] = pico8_value_fixed(pico8_fixed_from_int(1));
+    off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
+    off_row[n_off++] = pico8_value_bool(1);
+    off_row[n_off++] = pico8_value_bool(0);
+    off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
+    off_row[n_off++] = pico8_value_string("x");
+    off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
+    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
+    off_row[n_off++] = pico8_value_ref(pico8_ob_table_new());
+    off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
+    off_row[n_off++] = vec_ref(vec_xy(1, 1));
+    g_off_row_name = "qy";
+    for (r = 0; r < 3; r++) {
+        for (i = 0; i < n_off; i++) {
+            g_off_row_value = off_row[i];
+            must_abort(write_off_row, roads[r]);
+        }
+    }
+
+    list = malloc(sizeof *list);
+    pico8_list_init(list);
+    off_key[0] = pico8_value_string("x");
+    off_key[1] = pico8_value_bool(1);
+    off_key[2] = zero_union(PICO8_VALUE_BOOL);
+    off_key[3] = pico8_value_ref(NULL);
+    off_key[4] = pico8_value_ref(list);
+    off_key[5] = pico8_value_fixed(pico8_fixed_from_int(1));
+    off_key[6] = zero_union(PICO8_VALUE_STRING);
+    for (i = 0; i < sizeof off_key / sizeof off_key[0]; i++) {
+        g_off_row_name = key_names[i];
+        g_off_row_value = off_key[i];
+        must_abort(build_off_row, NULL);
+    }
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -777,6 +1007,8 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_burst);
     in_fresh_child(test_ga_is_a_struct);
+    in_fresh_child(test_ga_members_by_name);
+    in_fresh_child(test_ga_writer_stops_off_row);
 
     printf("test_pico8_ga: all tests passed\n");
     return 0;
