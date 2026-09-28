@@ -86,6 +86,7 @@
 #define QH_MEMBERS_HASH 0x3C7BAF9Bu
 #define HJ_MEMBERS_HASH 0x50DF104Cu
 #define PM_MEMBERS_HASH 0xAE0F61DEu
+#define MX_MEMBERS_HASH 0x696C3254u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -3065,6 +3066,161 @@ static void test_hj_writer_stops_off_row(void) {
     }
 }
 
+static uint32_t fold_mx_ht(uint32_t h, const void *e) {
+    pico8_value_t v;
+    pico8_value_t d;
+    pico8_value_t x;
+    const pico8_ob_table_t *ht;
+    int j;
+
+    if (!me_of(e, "ht", &v)) {
+        return fnv(h, 0xA0u);
+    }
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    ht = v.as.ref;
+    assert(pico8_mx_default("ht", &d) && d.kind == PICO8_VALUE_REF && d.as.ref != NULL);
+    h = fnv(h, (uint32_t)(d.as.ref == ht));
+    h = fnv(h, (uint32_t)ht->count);
+    for (j = 1; j <= ht->count; j++) {
+        h = fnv(h, pico8_ob_table_get_index(ht, j, &x) && x.kind == PICO8_VALUE_FIXED ? (uint32_t)x.as.fixed : 0xA1u);
+    }
+    return h;
+}
+
+static uint32_t fold_mx_kw_qe(uint32_t h, const void *e) {
+    const pico8_ob_table_t *kw = get_ref(e, "kw");
+    pico8_value_t qe;
+
+    assert(kw != NULL);
+    if (!pico8_ob_table_get_name(kw, "qe", &qe)) {
+        return fnv(h, 0xA2u);
+    }
+    assert(qe.kind == PICO8_VALUE_FIXED);
+    return fnv(h, (uint32_t)qe.as.fixed);
+}
+
+/* `jc:ey` from `qu` to `mx` runs `mx:kf`, which reads the one row of
+ * `qu`'s `jy`. */
+static void mx_join_row(void *qu, void *mx, int qe) {
+    pico8_ob_table_t *row = pico8_ob_table_new();
+    pico8_list_t *jy = malloc(sizeof *jy);
+    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_value_t out;
+    void *jc;
+
+    pico8_ob_table_set_name(row, "gc", pico8_value_fixed(0));
+    pico8_ob_table_set_name(row, "qe", pico8_value_fixed(pico8_fixed_from_int(qe)));
+    pico8_list_init(jy);
+    pico8_list_add(jy, pico8_value_ref(row));
+    pico8_entity_set_field(qu, "jy", pico8_value_ref(jy));
+    pico8_ob_table_set_name(b, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(b);
+    pico8_ob_table_free(b);
+    pico8_fm_hy()->nz = pico8_fixed_from_int(999);
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(mx), pico8_value_ref(NULL), &out));
+}
+
+static void test_mx_members_by_name(void) {
+    static const char *const strangers[] = {"", "h", "ht ", "HT", "ht_", "hz"};
+    void *fresh[2];
+    void *others[4];
+    void *home;
+    const void *spec;
+    const void *swapped;
+    pico8_value_t v;
+    pico8_value_t d;
+    uint32_t h = 2166136261u;
+    size_t n;
+    int k;
+
+    (void)start_game(DRAG);
+    fresh[0] = pico8_mx_new(NULL);
+    {
+        pico8_ob_table_t *b = pico8_ob_table_new();
+        pico8_ob_table_set_name(b, "id", pico8_value_string("s88"));
+        fresh[1] = pico8_mx_new(b);
+        pico8_ob_table_free(b);
+    }
+    assert(pico8_mx_default("ht", &d) && d.kind == PICO8_VALUE_REF);
+    spec = d.as.ref;
+    for (k = 0; k < 2; k++) {
+        assert(get_ref(fresh[k], "ht") == spec);
+        h = fold_mx_ht(fnv(h, (uint32_t)k), fresh[k]);
+    }
+
+    home = pico8_hj_new(NULL);
+    mx_join_row(home, fresh[0], 7);
+    assert(get_ref(fresh[0], "ht") == spec);
+    h = fold_mx_kw_qe(fold_mx_ht(h, fresh[0]), fresh[0]);
+    mx_join_row(home, fresh[0], 20);
+    swapped = get_ref(fresh[0], "ht");
+    assert(swapped != NULL && swapped != spec && ((const pico8_ob_table_t *)spec)->count == 4);
+    h = fold_mx_kw_qe(fold_mx_ht(h, fresh[0]), fresh[0]);
+    mx_join_row(home, fresh[0], 21);
+    assert(get_ref(fresh[0], "ht") == swapped);
+    h = fold_mx_kw_qe(fold_mx_ht(h, fresh[0]), fresh[0]);
+    assert(get_ref(fresh[1], "ht") == spec);
+    h = fold_mx_ht(h, fresh[1]);
+
+    {
+        const pico8_struct_header_t *header = fresh[1];
+        pico8_ob_table_t *t = pico8_ob_table_new();
+
+        h = fnv(h, (uint32_t)header->cls->set_field(fresh[1], "ht", pico8_value_ref(NULL)));
+        h = fold_mx_ht(h, fresh[1]);
+        h = fnv(h, (uint32_t)header->cls->set_field(fresh[1], "ht", pico8_value_ref(t)));
+        assert(get_ref(fresh[1], "ht") == t);
+        h = fold_mx_ht(h, fresh[1]);
+        pico8_entity_set_field(fresh[1], "ht", pico8_value_ref(NULL));
+        mx_join_row(home, fresh[1], 20);
+        h = fold_mx_kw_qe(fold_mx_ht(h, fresh[1]), fresh[1]);
+    }
+
+    for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {
+        h = fnv(h, (uint32_t)me_of(fresh[0], strangers[n], &v));
+    }
+    others[0] = pico8_hj_new(NULL);
+    others[1] = pico8_pm_new(NULL);
+    others[2] = pico8_nr_new(NULL);
+    others[3] = pico8_fr_new(NULL);
+    for (k = 0; k < 4; k++) {
+        h = fnv(h, (uint32_t)me_of(others[k], "ht", &v));
+    }
+
+    check("mx_members", h, MX_MEMBERS_HASH);
+}
+
+static void test_mx_writer_stops_off_row(void) {
+    pico8_value_t off_row[11];
+    void *e;
+    size_t n_off;
+    size_t k;
+    pico8_vec_t *vec = malloc(sizeof *vec);
+    pico8_list_t *list = malloc(sizeof *list);
+
+    (void)start_game(DRAG);
+    *vec = qh_at(1, 1);
+    pico8_list_init(list);
+    e = pico8_mx_new(NULL);
+    n_off = 0;
+    off_row[n_off++] = pico8_value_fixed(pico8_fixed_from_int(1));
+    off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
+    off_row[n_off++] = pico8_value_bool(1);
+    off_row[n_off++] = pico8_value_bool(0);
+    off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
+    off_row[n_off++] = pico8_value_string("x");
+    off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
+    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
+    off_row[n_off++] = pico8_value_ref(list);
+    off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
+    off_row[n_off++] = pico8_value_ref(vec);
+    g_off_row_name = "ht";
+    for (k = 0; k < n_off; k++) {
+        g_off_row_value = off_row[k];
+        must_abort(write_off_row, e);
+    }
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -3107,6 +3263,8 @@ int main(void) {
     in_fresh_child(test_hj_members_by_name);
     in_fresh_child(test_hj_writer_stops_off_row);
     in_fresh_child(test_pm_members_by_name);
+    in_fresh_child(test_mx_members_by_name);
+    in_fresh_child(test_mx_writer_stops_off_row);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

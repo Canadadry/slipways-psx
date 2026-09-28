@@ -518,9 +518,7 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
             if (pico8_ob_table_get_name(i_table, "qe", &qe_val)) {
                 const pico8_ob_table_t *ht_table = NULL;
 
-                if (self->ht.kind == PICO8_VALUE_REF && self->ht.as.ref != NULL) {
-                    ht_table = (const pico8_ob_table_t *)self->ht.as.ref;
-                }
+                ht_table = self->ht;
                 if (ht_table != NULL) {
                     pico8_list_t ht_list = positional_values(ht_table);
                     int accepted = pico8_gu(&ht_list, qe_val);
@@ -532,7 +530,7 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
                         }
                         /* The previous `ht` is mx's spec default, shared
                          * by every other synthesizer: never freed. */
-                        self->ht = pico8_value_ref(pico8_ob_table_new());
+                        self->ht = pico8_ob_table_new();
                     }
                 }
             }
@@ -553,17 +551,6 @@ static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* mx's own defaults, read once through pico8_mx_default() at init: the very
- * values its spec holds, tables included. Each lands in the member of that
- * name, hj's, qh's or jo's when it has one. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_mx_defaults[] = {
-    {"ht", offsetof(pico8_mx_t, ht), {0}},
-};
-
 static pico8_ob_table_t *g_mx_nu = NULL;
 static pico8_fixed_t g_mx_hp = 0;
 static pico8_fixed_t g_mx_s = 0;
@@ -582,9 +569,9 @@ static pico8_fixed_t g_mx_qo = 0;
 static pico8_fixed_t g_mx_ro = 0;
 static pico8_fixed_t g_mx_qg = 0;
 static pico8_fixed_t g_mx_q_ = 0;
+static pico8_ob_table_t *g_mx_ht = NULL;
 
 static void pico8_mx_defaults_reset(void) {
-    size_t i;
     g_mx_nu = NULL;
     g_mx_hp = 0;
     g_mx_s = 0;
@@ -603,27 +590,37 @@ static void pico8_mx_defaults_reset(void) {
     g_mx_ro = 0;
     g_mx_qg = 0;
     g_mx_q_ = 0;
-    for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
-        g_mx_defaults[i].value = pico8_value_ref(NULL);
-    }
+    g_mx_ht = NULL;
 }
 
 static int pico8_mx_field(const void *self, const char *name, pico8_value_t *out_value) {
     if (strcmp(name, "ht") == 0) {
-        const pico8_value_t *ht = &((const pico8_mx_t *)self)->ht;
-        if (ht->kind == PICO8_VALUE_REF && ht->as.ref == NULL) {
+        pico8_ob_table_t *ht = ((const pico8_mx_t *)self)->ht;
+        if (ht == NULL) {
             return 0;
         }
-        *out_value = *ht;
+        *out_value = pico8_value_ref(ht);
         return 1;
     }
     return pico8_hj_struct_class()->field(self, name, out_value);
 }
 
+static void family_trade_take_table(pico8_value_t value, pico8_ob_table_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
+           "mx.ht: a write neither nil nor a table is off its census row (ref:table) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.ref;
+}
+
 /* `ht`, which mx's own `kf` writes, then hj's 21 names; 0 for any other. */
 static int pico8_mx_set_field(void *self, const char *name, pico8_value_t value) {
     if (strcmp(name, "ht") == 0) {
-        ((pico8_mx_t *)self)->ht = value;
+        family_trade_take_table(value, &((pico8_mx_t *)self)->ht);
         return 1;
     }
     return pico8_hj_struct_class()->set_field(self, name, value);
@@ -654,15 +651,11 @@ static const pico8_struct_class_t g_mx_struct_class = {
 
 static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     pico8_mx_t *self = malloc(sizeof *self);
-    size_t i;
     int k;
 
     assert(g_mx_spec != NULL && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(&self->hj, &g_mx_struct_class);
-    self->ht = pico8_value_ref(NULL);
-    for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_mx_defaults[i].offset) = g_mx_defaults[i].value;
-    }
+    self->ht = g_mx_ht;
     self->hj.rr = g_mx_rr;
     self->hj.py = g_mx_py;
     self->hj.ki = g_mx_ki;
@@ -703,7 +696,7 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
 static pico8_ob_table_t *family_trade_default_table(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "nr/mx.nu, mx.px, mx.k_: a default of the struct is a key of its spec and a table (ref:table)");
+           "nr/mx.nu, mx.px, mx.ht, mx.k_: a default of the struct is a key of its spec and a table (ref:table)");
     (void)found;
     return v.as.ref;
 }
@@ -806,11 +799,6 @@ void pico8_planet_family_trade_init(void) {
                          "qo=0.98,ro=-0.07,\n"
                          "qg=0.07,q_=0.98,\n",
                          NULL);
-    for (i = 0; i < sizeof g_mx_defaults / sizeof g_mx_defaults[0]; i++) {
-        int found = pico8_mx_default(g_mx_defaults[i].name, &g_mx_defaults[i].value);
-        assert(found && "mx: every default of the struct is a key of mx's spec");
-        (void)found;
-    }
     found = pico8_mx_default("nu", &v);
     g_mx_nu = family_trade_default_table(found, v);
     found = pico8_mx_default("hp", &v);
@@ -845,6 +833,8 @@ void pico8_planet_family_trade_init(void) {
     g_mx_qg = family_trade_default_fixed(found, v);
     found = pico8_mx_default("q_", &v);
     g_mx_q_ = family_trade_default_fixed(found, v);
+    found = pico8_mx_default("ht", &v);
+    g_mx_ht = family_trade_default_table(found, v);
     PICO8_MEMBER_CENSUS_SEE(&g_nr_ldown_empty, pico8_nr_ldown_empty_t);
 }
 

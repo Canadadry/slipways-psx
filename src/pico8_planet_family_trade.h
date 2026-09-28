@@ -46,7 +46,7 @@ typedef struct {
  * for a fresh table it never frees. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
-    pico8_value_t ht;
+    pico8_ob_table_t *ht;
 } pico8_mx_t;
 
 /* As in pico8_planet_family.h: `_ready` from
