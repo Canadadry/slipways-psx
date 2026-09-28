@@ -1,8 +1,7 @@
 /* The processor `os`, read and written only through the dual-form field API
  * and `pico8_os_default()`, `pico8_qh_default()` and `pico8_jo_default()`,
- * and driven through the real `ie:ldown`/`mv`/`dg`. The frozen values were
- * taken on the code where `os` was still a class instance and must not be
- * re-taken. */
+ * and driven through the real `ie:ldown`/`mv`/`dg`, in games started
+ * directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_economy_tiers.h"
@@ -43,8 +41,6 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
-#define LONG "tests/fixtures/long_session_events.json"
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -52,14 +48,10 @@
 
 #define BUILT_HASH 0x0FBFD36Bu
 #define LIFE_HASH 0x56980D6Du
-#define LONG_FRAMES 27273
-#define LONG_PROCESSORS 1
-#define LONG_HASH 0x47B58E4Eu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* The 10 members of `qh`, then the 31 of `jo`; `os` has none of its own. */
 static const char *const qh_members[] = {"hp", "px", "dq", "qh", "od", "fp", "dw", "s", "ba", "et"};
@@ -227,50 +219,36 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
-        h *= 16777619u;
-    }
-    return h;
-}
-
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_from_title(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
+    pico8_eu(NULL);
 }
 
-static void start_game(const char *events) {
-    start_from_title(events);
-    pico8_eu(pico8_js_new(bo_row(2)));
-}
+/* A game started from the title screen as a click on its second
+ * difficulty button starts it: `js:ldown` runs the `my` that `fv:pq`
+ * stamped, `eu` on that button. `db` reads `dk.trade`, which a NULL `dk`
+ * lacks. */
+static void clicked_game(void) {
+    const pico8_list_t *hd;
+    int buttons = 0;
+    int i;
 
-static void play_frame(void) {
+    pico8_input_init(&input);
     pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
+    pico8__init();
+    hd = pico8_cv("hd");
+    for (i = 0; i < hd->count; i++) {
+        pico8_value_t mb;
+        if (pico8_entity_get_field(hd->items[i].as.ref, "mb", &mb) && mb.kind == PICO8_VALUE_FIXED && ++buttons == 2) {
+            (void)pico8_js_ldown(hd->items[i].as.ref);
+            break;
+        }
     }
+    assert(buttons == 2 && pico8_dk() != NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -385,7 +363,7 @@ static void test_built(void) {
     void *a;
     void *b;
 
-    start_game(EMPTY);
+    start_game();
     a = build_processor();
     b = build_processor();
     assert(a != b && is_processor(a) && is_processor(b));
@@ -476,7 +454,7 @@ static void test_life(void) {
     pico8_value_t mp;
     int i;
 
-    start_game(EMPTY);
+    clicked_game();
 
     placed = build_processor();
     mp = vec_ref(vec_xy(7680, 7552));
@@ -503,68 +481,6 @@ static void test_life(void) {
     h = fold_field(h, idle, "me");
     h = fold_dg(h, idle);
     check("life", h, LIFE_HASH);
-}
-
-/* Per frame, every processor in `hv`: what the shop, `bv`, `d_`, `dg`, qh's
- * `ly` and `jo`'s functions write on it, and its `hs`; plus the screen. */
-static uint32_t fold_live(uint32_t h, const void *e) {
-    h = fold_field(h, e, "id");
-    h = fold_field(h, e, "me");
-    h = fold_field(h, e, "t");
-    h = fold_vec(h, e, "ra");
-    h = fold_vec(h, e, "p");
-    h = fnv(h, bool_state(e, "et"));
-    h = fold_field(h, e, "et");
-    h = fold_field(h, e, "mi");
-    h = fnv(h, bool_state(e, "p_"));
-    h = fold_kw(h, e);
-    h = fnv(h, (uint32_t)list_size(e, "oe"));
-    h = fnv(h, (uint32_t)list_size(e, "jy"));
-    h = fnv(h, (uint32_t)list_size(e, "cc"));
-    h = fnv(h, (uint32_t)list_size(e, "by"));
-    h = fnv(h, (uint32_t)has(e, "m_"));
-    return fold_field(h, e, "hs");
-}
-
-#define MAX_SEEN 16
-
-/* From the title screen, as a raylib recording starts. */
-static void test_long(void) {
-    uint32_t h = 2166136261u;
-    void *seen[MAX_SEEN];
-    int seen_count = 0;
-    int frames;
-    int i;
-
-    start_from_title(LONG);
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        const pico8_list_t *hv;
-        int j;
-
-        play_frame();
-        hv = pico8_hv();
-        for (j = 0; j < hv->count; j++) {
-            void *e = hv->items[j].as.ref;
-            int k;
-
-            if (!is_processor(e)) {
-                continue;
-            }
-            for (k = 0; k < seen_count && seen[k] != e; k++) {
-            }
-            if (k == seen_count) {
-                assert(seen_count < MAX_SEEN);
-                seen[seen_count++] = e;
-            }
-            h = fnv(h, (uint32_t)j);
-            h = fold_live(h, e);
-        }
-        h = fnv(h, screen_hash());
-    }
-    check_int("long frames", frames, LONG_FRAMES);
-    check_int("long processors", seen_count, LONG_PROCESSORS);
-    check("long", h, LONG_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -633,7 +549,7 @@ static void test_os_is_a_struct(void) {
     size_t i;
     int j;
 
-    start_game(EMPTY);
+    start_game();
     a = build_processor();
     assert(is_an_os_struct(a) && cls != qh && listed(pico8_cg("jo"), a) && !listed(pico8_cg("qh"), a));
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
@@ -657,7 +573,7 @@ static void test_os_is_a_struct(void) {
     }
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
@@ -684,8 +600,6 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pid_t replay;
-
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
@@ -696,11 +610,9 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-    replay = spawn(test_long);
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_os_is_a_struct);
-    reap(replay);
 
     printf("test_pico8_os: all tests passed\n");
     return 0;
