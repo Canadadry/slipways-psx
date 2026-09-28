@@ -22,8 +22,8 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_mouse.h"
 #include "../src/pico8_mouse_reader.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
@@ -69,27 +69,27 @@ static int in_any_cv(const void *e) {
     return 0;
 }
 
-/* NULL when `je` has no such field or it is not a table. */
-static const pico8_ob_table_t *button(const char *bt) {
+/* NULL when `je` has no such field. */
+static const pico8_nf_button_t *button(const char *bt) {
     pico8_value_t v;
 
     if (!pico8_entity_get_field(pico8_je(), bt, &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return NULL;
     }
-    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
     return v.as.ref;
 }
 
 /* -1 absent, else the boolean. */
 static int flag(const char *bt, const char *name) {
-    const pico8_ob_table_t *b = button(bt);
-    pico8_value_t v;
+    const pico8_nf_button_t *b = button(bt);
 
-    if (b == NULL || !pico8_ob_table_get_name(b, name, &v)) {
+    if (b == NULL || !b->has_on) {
         return -1;
     }
-    assert(v.kind == PICO8_VALUE_BOOL);
-    return v.as.boolean;
+    if (strcmp(name, "on") == 0) {
+        return b->on;
+    }
+    return strcmp(name, "jn") == 0 ? b->jn : b->hm;
 }
 
 static int ra_of_je(pico8_vec_t *out) {
@@ -196,7 +196,7 @@ static void test_scripted_ticks(void) {
 /* Every `nf` shares the two button tables: a left button held across `jl()`
  * gives the new `je` no fresh press. */
 static void test_buttons_survive_jl(void) {
-    const pico8_ob_table_t *l_before;
+    const pico8_nf_button_t *l_before;
 
     pico8_jl();
     frame(0, 40, 40, 1);

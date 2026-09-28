@@ -18,7 +18,7 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     pico8_mem_init(&mem);
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
 
-    pico8_data_init(&mem);
+    pico8_data_init();
 
     assert(PICO8_HC_COUNT == 6);
     assert(pico8_hc_lookup("f-") != NULL);

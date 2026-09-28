@@ -159,7 +159,7 @@ int main(void) {
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
     assert(pico8_load_map_json(&mem, "pico8/map.json"));
     pico8_cu(&mem);
-    pico8_data_init(&mem);
+    pico8_data_init();
     pico8_layout_init();
 
     test_dr_entry_draws_as_before();

@@ -71,7 +71,7 @@ void pico8_cart_load(void) {
 
     mem = pico8_dispatch_mem();
     if (mem != NULL) {
-        pico8_data_init(mem);
+        pico8_data_init();
     }
 
     pico8_jo_init();

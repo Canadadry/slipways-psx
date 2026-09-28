@@ -3,7 +3,6 @@
 
 #include "pico8_struct.h"
 #include "pico8_fixed.h"
-#include "pico8_ob.h"
 #include "pico8_ui_button.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
@@ -21,10 +20,17 @@ pico8_fixed_t pico8_cz(void);
 
 pico8_fixed_t pico8_db(const pico8_struct_header_t *pt);
 
-/* Returns a fresh 6-entry positional table the caller owns and must
- * release with pico8_ob_table_free(). Entry 4 is a heap string that the
- * table does not own and freeing the table does not release. */
-pico8_ob_table_t *pico8_ky(void);
+/* `ky()`'s six results, `s[1..6]` in the cart, in that order. */
+typedef struct {
+    pico8_fixed_t di;
+    pico8_fixed_t gl;
+    pico8_fixed_t el;
+    char *happiness; /* TROU-7: heap, never freed */
+    pico8_fixed_t total;
+    pico8_fixed_t tier;
+} pico8_ky_t;
+
+pico8_ky_t pico8_ky(void);
 
 pico8_fixed_t pico8_bf(void);
 

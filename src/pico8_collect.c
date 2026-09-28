@@ -5,33 +5,6 @@
 #include <string.h>
 
 #include "pico8_map_tables.h"
-#include "pico8_ref_audit.h"
-
-void pico8_ft_index(pico8_ob_table_t *rc, int nt, pico8_value_t pu) {
-    pico8_value_t bucket_value;
-    pico8_list_t *bucket;
-    if (pico8_ob_table_get_index(rc, nt, &bucket_value)) {
-        bucket = PICO8_REF_AS_LIST(bucket_value.as.ref);
-    } else {
-        bucket = malloc(sizeof *bucket);
-        pico8_list_init(bucket);
-        pico8_ob_table_set_index(rc, nt, pico8_value_ref(bucket));
-    }
-    pico8_list_add(bucket, pu);
-}
-
-void pico8_ft_name(pico8_ob_table_t *rc, const char *nt, pico8_value_t pu) {
-    pico8_value_t bucket_value;
-    pico8_list_t *bucket;
-    if (pico8_ob_table_get_name(rc, nt, &bucket_value)) {
-        bucket = PICO8_REF_AS_LIST(bucket_value.as.ref);
-    } else {
-        bucket = malloc(sizeof *bucket);
-        pico8_list_init(bucket);
-        pico8_ob_table_set_name(rc, nt, pico8_value_ref(bucket));
-    }
-    pico8_list_add(bucket, pu);
-}
 
 pico8_ob_table_t *pico8_qj(pico8_ob_table_t *o, const pico8_ob_table_t *mr) {
     int i;

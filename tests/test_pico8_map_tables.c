@@ -1648,7 +1648,7 @@ int main(void) {
     test_nb_lookup_finds_each_px();
     test_qe_map_keeps_one_entry_per_key_in_order();
 
-    pico8_data_init(&mem);
+    pico8_data_init();
     test_dr_view_matches_the_decoded_table(&mem);
     test_nb_view_matches_the_decoded_table_after_its_pass(&mem);
     test_fd_table_matches_the_decoded_table(&mem);

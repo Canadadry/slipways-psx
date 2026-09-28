@@ -9,6 +9,7 @@
 #include "pico8_entity.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
+#include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
 #include "pico8_probe.h"
@@ -86,27 +87,28 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-/* je[bt] (bt "l" or "r"): NULL when `je` has no such button-state table,
+/* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
  * which is the case for the field-less placeholder. */
-static const pico8_ob_table_t *pico8_ui_je_button_table(const char *bt) {
+static const pico8_nf_button_t *pico8_ui_je_button_table(const char *bt) {
     pico8_value_t b_val;
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
            "je[bt]: bt is l or r only; another button has no state table -- stop");
     if (pico8_entity_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
-        assert(pico8_type_tag_of(b_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-               "je's per-button state must be a plain table");
-        return (const pico8_ob_table_t *)b_val.as.ref;
+        return (const pico8_nf_button_t *)b_val.as.ref;
     }
     return NULL;
 }
 
 static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
-    const pico8_ob_table_t *b = pico8_ui_je_button_table(bt);
-    pico8_value_t v;
-    if (b != NULL && pico8_ob_table_get_name(b, field, &v) && v.kind == PICO8_VALUE_BOOL) {
-        return v.as.boolean;
+    const pico8_nf_button_t *b = pico8_ui_je_button_table(bt);
+    if (b == NULL || !b->has_on) {
+        return 0;
     }
-    return 0;
+    if (strcmp(field, "jn") == 0) {
+        return b->jn;
+    }
+    assert(strcmp(field, "hm") == 0 && "je[bt]: only jn and hm are read");
+    return b->hm;
 }
 
 static pico8_value_t pico8_ui_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {

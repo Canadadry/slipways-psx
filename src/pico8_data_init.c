@@ -169,9 +169,7 @@ pico8_ob_table_t *pico8_bz_view(void) {
     return bz;
 }
 
-void pico8_data_init(pico8_mem_t *mem) {
-    (void)mem;
-
+void pico8_data_init(void) {
     /* hp must be ready before build_gb builds one. */
     pico8_research_init();
     pico8_research_build_gb();

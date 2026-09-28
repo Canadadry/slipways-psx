@@ -6,7 +6,6 @@
 
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
-#include "pico8_ob.h"
 #include "pico8_value.h"
 #include "pico8_wormhole.h"
 

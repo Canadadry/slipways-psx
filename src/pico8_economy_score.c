@@ -222,7 +222,7 @@ static char *concat_percent(const char *s) {
     return out;
 }
 
-pico8_ob_table_t *pico8_ky(void) {
+pico8_ky_t pico8_ky(void) {
     sum_by_mi_ctx_t di_ctx;
     pico8_fixed_t gl = pico8_fixed_from_int(0);
     pico8_fixed_t base;
@@ -233,7 +233,7 @@ pico8_ob_table_t *pico8_ky(void) {
     int invented_count = (invented != NULL) ? invented->count : 0;
     const pico8_qe_map_t *fm_po = field_qe_map(pico8_fm(), "po");
     char *happiness_str;
-    pico8_ob_table_t *result;
+    pico8_ky_t result;
 
     di_ctx.total = pico8_fixed_from_int(0);
     di_ctx.seq = pico8_b__table;
@@ -257,17 +257,15 @@ pico8_ob_table_t *pico8_ky(void) {
 
     happiness_str = pico8_value_tostr(pico8_value_fixed(happiness));
 
-    result = pico8_ob_table_new();
-    pico8_ob_table_set_index(result, 1, pico8_value_fixed(di_ctx.total));
-    pico8_ob_table_set_index(result, 2, pico8_value_fixed(gl));
-    pico8_ob_table_set_index(result, 3, pico8_value_fixed(el));
+    result.di = di_ctx.total;
+    result.gl = gl;
+    result.el = el;
     /* TROU-7 */
-    pico8_ob_table_set_index(result, 4, pico8_value_string(concat_percent(happiness_str)));
+    result.happiness = concat_percent(happiness_str);
     free(happiness_str);
-    pico8_ob_table_set_index(result, 5, pico8_value_fixed(total));
-    pico8_ob_table_set_index(
-        result, 6, pico8_value_fixed(fixed_min(pico8_fixed_flr(pico8_fixed_div(total, pico8_fixed_from_int(2000))),
-                                                pico8_fixed_from_int(5))));
+    result.total = total;
+    result.tier = fixed_min(pico8_fixed_flr(pico8_fixed_div(total, pico8_fixed_from_int(2000))),
+                            pico8_fixed_from_int(5));
     return result;
 }
 

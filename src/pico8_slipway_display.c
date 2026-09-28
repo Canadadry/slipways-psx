@@ -6,13 +6,11 @@
 
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
-#include "pico8_ob.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Readers: an absent field of another entity, of either form, a wrong
- * kind, or a NULL entity or table all read as the zero/false/NULL
- * default. */
+ * kind, or a NULL entity all read as the zero/false/NULL default. */
 static pico8_value_t pico8_jc_display_entity_value(const void *e, const char *name) {
     pico8_value_t v;
     if (e != NULL && pico8_entity_get_field(e, name, &v)) {
@@ -30,22 +28,6 @@ static pico8_vec_t pico8_jc_display_value_vec(pico8_value_t v) {
 
 static pico8_vec_t pico8_jc_display_entity_vec(const void *e, const char *name) {
     return pico8_jc_display_value_vec(pico8_jc_display_entity_value(e, name));
-}
-
-static pico8_vec_t pico8_jc_display_table_field_vec(const pico8_ob_table_t *table, const char *name) {
-    pico8_value_t v = pico8_value_ref(NULL);
-    if (table != NULL) {
-        pico8_ob_table_get_name(table, name, &v);
-    }
-    return pico8_jc_display_value_vec(v);
-}
-
-static pico8_fixed_t pico8_jc_display_table_field_fixed(const pico8_ob_table_t *table, const char *name) {
-    pico8_value_t v;
-    if (table != NULL && pico8_ob_table_get_name(table, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
 }
 
 static int pico8_jc_display_to_int(pico8_fixed_t x) {
@@ -70,15 +52,12 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
                 pico8_vec_t t_ra = pico8_jc_display_entity_vec(t, "ra");
                 pico8_vec_t d = pico8_vec_sub(t_ra, f_ra);
                 pico8_vec_t v = pico8_vec_nn(d);
-                pico8_ob_table_t *particle = pico8_ob_table_new();
-                pico8_vec_t *ra_heap = malloc(sizeof *ra_heap);
-                pico8_vec_t *v_heap = malloc(sizeof *v_heap);
+                pico8_ts_t *particle = malloc(sizeof *particle);
 
-                *ra_heap = pico8_vec_add(f_ra, pico8_vec_pa(v));
-                pico8_ob_table_set_name(particle, "ra", pico8_value_ref(ra_heap));
-                *v_heap = v;
-                pico8_ob_table_set_name(particle, "v", pico8_value_ref(v_heap));
-                pico8_ob_table_set_name(particle, "l", pico8_value_fixed(pico8_vec_qx(d)));
+                assert(particle != NULL);
+                particle->ra = pico8_vec_add(f_ra, pico8_vec_pa(v));
+                particle->v = v;
+                particle->l = pico8_vec_qx(d);
 
                 pico8_list_add(self->ts, pico8_value_ref(particle));
             }
@@ -175,27 +154,20 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
                 int i;
                 for (i = 0; i < ts->count; i++) {
                     pico8_value_t t_val = ts->items[i];
-                    pico8_ob_table_t *t;
-                    pico8_vec_t ra;
-                    pico8_vec_t v;
+                    pico8_ts_t *t;
                     pico8_vec_t new_ra;
-                    pico8_vec_t *heap_ra;
                     pico8_fixed_t new_l;
 
                     if (t_val.kind != PICO8_VALUE_REF || t_val.as.ref == NULL) {
                         continue;
                     }
-                    t = (pico8_ob_table_t *)t_val.as.ref;
+                    t = (pico8_ts_t *)t_val.as.ref;
 
-                    ra = pico8_jc_display_table_field_vec(t, "ra");
-                    v = pico8_jc_display_table_field_vec(t, "v");
-                    new_ra = pico8_vec_add(ra, v);
-                    heap_ra = malloc(sizeof *heap_ra);
-                    *heap_ra = new_ra;
-                    pico8_ob_table_set_name(t, "ra", pico8_value_ref(heap_ra));
+                    new_ra = pico8_vec_add(t->ra, t->v);
+                    t->ra = new_ra;
 
-                    new_l = pico8_fixed_sub(pico8_jc_display_table_field_fixed(t, "l"), pico8_fixed_from_int(1));
-                    pico8_ob_table_set_name(t, "l", pico8_value_fixed(new_l));
+                    new_l = pico8_fixed_sub(t->l, pico8_fixed_from_int(1));
+                    t->l = new_l;
 
                     /* No `else` in the Lua: an expired particle is removed
                      * and still drawn once more at its final position. */

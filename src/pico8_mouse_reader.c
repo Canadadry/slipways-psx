@@ -12,8 +12,8 @@
 #include "pico8_vec.h"
 
 static int g_nf_up = 0;
-static pico8_ob_table_t *g_nf_l = NULL;
-static pico8_ob_table_t *g_nf_r = NULL;
+static pico8_nf_button_t g_nf_l;
+static pico8_nf_button_t g_nf_r;
 /* Not `&pico8_nf_start.ra`: two TUs write `je.ra` in place. */
 static pico8_vec_t g_nf_ra;
 
@@ -38,9 +38,9 @@ static int pico8_nf_field(const void *self, const char *name, pico8_value_t *out
         *out_value = pico8_value_ref(nf->ra);
         return 1;
     } else if (strcmp(name, "l") == 0) {
-        value = pico8_value_ref(g_nf_l);
+        value = pico8_value_ref(g_nf_up ? &g_nf_l : NULL);
     } else if (strcmp(name, "r") == 0) {
-        value = pico8_value_ref(g_nf_r);
+        value = pico8_value_ref(g_nf_up ? &g_nf_r : NULL);
     } else {
         return pico8_ke_field(self, name, out_value);
     }
@@ -83,16 +83,12 @@ void pico8_nf_init(void) {
     assert(pico8_ke_ready() && "nf descends from ke");
     g_nf_up = 1;
     g_nf_ra = pico8_nf_start.ra;
-    g_nf_l = pico8_ob_table_new();
-    g_nf_r = pico8_ob_table_new();
+    memset(&g_nf_l, 0, sizeof g_nf_l);
+    memset(&g_nf_r, 0, sizeof g_nf_r);
 }
 
 void pico8_nf_shutdown(void) {
     g_nf_up = 0;
-    pico8_ob_table_free(g_nf_l);
-    pico8_ob_table_free(g_nf_r);
-    g_nf_l = NULL;
-    g_nf_r = NULL;
 }
 
 int pico8_nf_ready(void) {
@@ -119,10 +115,8 @@ void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self) {
     *ra = pico8_vec_v(pico8_fixed_from_int(pico8_stat(input, 32)), pico8_fixed_from_int(pico8_stat(input, 33)));
     self->ra = ra;
 
-    if (g_nf_l != NULL) {
-        pico8_bu(input, g_nf_l, 1);
-    }
-    if (g_nf_r != NULL) {
-        pico8_bu(input, g_nf_r, 6);
+    if (g_nf_up) {
+        pico8_bu(input, &g_nf_l, 1);
+        pico8_bu(input, &g_nf_r, 6);
     }
 }

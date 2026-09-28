@@ -20,6 +20,8 @@
 #include "../src/pico8_cart.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy.h"
+#include "../src/pico8_economy_score.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
@@ -925,6 +927,26 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* `ky()` on a started game with ten techs invented and a happiness of 1:
+ * no planet scores yet, so `s[5]` is the techs' part and `s[6]` its tier. */
+static void test_ky_reads_invented_and_happiness(void) {
+    pico8_hy_t *fm;
+    pico8_ky_t s;
+    int i;
+
+    (void)start_game();
+    fm = pico8_fm_hy();
+    for (i = 0; i < 10; i++) {
+        pico8_list_add(fm->invented, pico8_value_fixed(pico8_fixed_from_int(i)));
+    }
+    fm->happiness = pico8_fixed_from_int(1);
+    fm->has_happiness = 1;
+    s = pico8_ky();
+    assert(s.di == 0 && s.gl == 0 && s.el == pico8_fixed_from_int(1430));
+    assert(strcmp(s.happiness, "1%") == 0);
+    assert(s.total == pico8_fixed_from_int(14) && s.tier == 0);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -945,6 +967,7 @@ int main(void) {
     in_fresh_child(test_cr_is_a_struct);
     in_fresh_child(test_cr_members_by_name);
     in_fresh_child(test_pj_members_by_name);
+    in_fresh_child(test_ky_reads_invented_and_happiness);
 
     printf("test_pico8_pj: all tests passed\n");
     return 0;

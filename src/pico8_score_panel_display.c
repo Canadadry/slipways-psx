@@ -169,8 +169,28 @@ static pico8_value_t pico8_pj_ph_lh_dispatch(void *self, int argc, pico8_value_t
 }
 
 typedef struct {
-    const pico8_ob_table_t *s;
+    const pico8_ky_t *s;
 } pico8_pj_ph_ctx_t;
+
+/* `s[i]`: absent outside 1..6. */
+static pico8_value_t pico8_pj_ph_s_at(const pico8_ky_t *s, int i) {
+    switch (i) {
+    case 1:
+        return pico8_value_fixed(s->di);
+    case 2:
+        return pico8_value_fixed(s->gl);
+    case 3:
+        return pico8_value_fixed(s->el);
+    case 4:
+        return pico8_value_string(s->happiness);
+    case 5:
+        return pico8_value_fixed(s->total);
+    case 6:
+        return pico8_value_fixed(s->tier);
+    default:
+        return pico8_value_ref(NULL);
+    }
+}
 
 static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_value) {
     const pico8_pj_ph_ctx_t *ctx = (const pico8_pj_ph_ctx_t *)ctx_ptr;
@@ -197,10 +217,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
 
     score_i = pico8_fixed_flr_int(score_val.as.fixed);
 
-    s_val = pico8_value_ref(NULL);
-    if (ctx->s != NULL) {
-        pico8_ob_table_get_index(ctx->s, score_i, &s_val);
-    }
+    s_val = pico8_pj_ph_s_at(ctx->s, score_i);
     /* `s[0]` is genuinely absent for score 0, and this port has no nil to
      * format: `pico8_value_tostr` renders the absent filler as "", which
      * PICO-8's own tostr would not. */
@@ -231,14 +248,9 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
     }
 
     if (score_i == 6) {
-        pico8_value_t s6_val = pico8_value_fixed(pico8_fixed_from_int(0));
         int i;
-        if (ctx->s != NULL) {
-            pico8_ob_table_get_index(ctx->s, 6, &s6_val);
-        }
-        assert(s6_val.kind == PICO8_VALUE_FIXED && "ky() returns a numeric tier at s[6]");
         for (i = 1; i <= 5; i++) {
-            int icon = (i <= pico8_fixed_flr_int(s6_val.as.fixed)) ? 56 : 57;
+            int icon = (i <= pico8_fixed_flr_int(ctx->s->tier)) ? 56 : 57;
             pico8_ob_table_set_index(st, i, pico8_value_fixed(pico8_fixed_from_int(icon)));
         }
     }
@@ -303,14 +315,14 @@ void pico8_pj_ph(pico8_pj_t *self) {
         }
 
         if (c_truthy && !ed_equals_kc) {
-            pico8_ob_table_t *s = pico8_ky();
+            pico8_ky_t s = pico8_ky();
             pico8_list_t bz_list = pico8_score_panel_display_positional_values(pico8_bz());
             pico8_pj_ph_ctx_t ctx;
             pico8_list_t iw_list;
             pico8_ob_table_t *iw_table;
             pico8_mh_t *made;
 
-            ctx.s = s;
+            ctx.s = &s;
             iw_list = pico8_nv(&bz_list, pico8_pj_ph_map, &ctx);
             pico8_list_free(&bz_list);
 
@@ -322,7 +334,6 @@ void pico8_pj_ph(pico8_pj_t *self) {
 
             made = pico8_mh_new_table(iw_table);
             pico8_ob_table_free(iw_table);
-            pico8_ob_table_free(s);
 
             if (self != NULL) {
                 self->ed = made;

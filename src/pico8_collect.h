@@ -7,13 +7,6 @@
 #include "pico8_ob.h"
 #include "pico8_value.h"
 
-/* Appends `pu` to the bucket `rc[nt]`, creating it if absent. A bucket is a
- * heap-allocated pico8_list_t that `rc` only borrows, through a
- * PICO8_VALUE_REF, and never frees. Two entry points because `nt` is a
- * number at some call sites and a string at others. */
-void pico8_ft_index(pico8_ob_table_t *rc, int nt, pico8_value_t pu);
-void pico8_ft_name(pico8_ob_table_t *rc, const char *nt, pico8_value_t pu);
-
 /* Merges `mr` into `o` in place and returns `o`; `mr` may be NULL (nothing
  * to merge). The merge is shallow, so `o` and `mr` then share whatever
  * their REF and STRING values point at. */

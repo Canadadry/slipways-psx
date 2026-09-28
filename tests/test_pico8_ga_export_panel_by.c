@@ -74,7 +74,7 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
     pico8_dispatch_set_gfx(gfx);
     pico8_dispatch_set_mem(mem);
 
-    pico8_data_init(mem);
+    pico8_data_init();
     pico8_jl();
     pico8_layout_init();
     pico8_js_init();

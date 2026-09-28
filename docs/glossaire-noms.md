@@ -67,6 +67,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `bu(qn,oa)` | `pico8_bu` | détection de front d'un bouton souris : remplit `on`/`jn`/`hm` (tenu / vient d'être pressé / vient d'être relâché) depuis `stat(34)` |
+| `nf.l`, `nf.r` | `pico8_nf_button_t` (`pico8_mouse.h`) | l'état d'un bouton souris, que `bu` réécrit à chaque frame : `on`, `jn`, `hm`, absents (`has_on` à 0) avant le premier `bu` ; deux statiques de `pico8_mouse_reader.c`, remis à `pico8_nf_init` |
 | `on`, `jn`, `hm` | champs | bouton tenu / front descendant / front montant |
 | `ih` | `pico8_ih` | drapeau « son coupé », basculé par la rangée « toggle sfx » du **menu pause** |
 | `rn(no)` | `pico8_rn` | joue le sfx `no` si `no` est vrai et `ih` faux |
@@ -231,6 +232,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `cz()` | `pico8_cz` | entretien global, quadratique en nombre de planètes |
 | `db(pt)` | `pico8_db` | revenu commercial d'une planète |
 | `ky()` | `pico8_ky` | détail du score final : développement, recherche, technologies, total, palier |
+| `s` (rendu de `ky()`) | `pico8_ky_t` (`pico8_economy_score.h`) | `s[1..6]` : `di`, `gl`, `el`, `happiness` (chaîne « N% »), `total`, `tier` |
 | `bf()` | `pico8_bf` | score de bonheur |
 | `dk` | `pico8_dk` | la table de difficulté choisie au lancement ; `dk.trade` module tous les revenus |
 
@@ -418,6 +420,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jc:kj` | `pico8_jc_kj` | dessine la ligne, avec une légère ondulation temporelle aux deux bouts |
 | `qu`, `re` | champs | les deux extrémités du slipway |
 | `ts` | champ | points lumineux en transit |
+| — | `pico8_ts_t` (`pico8_slipway_display.h`) | un point de `ts` : `ra` avance de `v` et `l` décompte à chaque frame |
 | `hg` | champ ; `pico8_jc_hg_t *hg` → `hg_own` (90 `id` au plus, `pico8_jc_hg_add`/`pico8_jc_hg_has`) | ensemble des planètes que ce slipway dessert |
 
 ## Boîtes, boutons et menus

@@ -2,15 +2,13 @@
 #define PICO8_DATA_INIT_H
 
 #include "pico8_map_tables.h"
-#include "pico8_mem.h"
 #include "pico8_ob.h"
 
 /* The cart's one-shot top-level data build, in the source's own order. It
  * also runs pico8_research_init() before pico8_research_build_gb(), which
- * needs the hp class to exist. `mem` is not read: nb is built
- * from pico8_map_tables.h. Safe to call more
+ * needs the hp class to exist. Safe to call more
  * than once -- it frees a previous build first. */
-void pico8_data_init(pico8_mem_t *mem);
+void pico8_data_init(void);
 
 /* Tears down gb and the hp class too, since pico8_data_init() built them.
  * Safe to call more than once, or before the first pico8_data_init(). */
