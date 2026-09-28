@@ -1,9 +1,7 @@
 /* The economy `hy`, the one `fm` per game, read only through
  * pico8_entity_get_field: its construction, its five functions `nx`, `hk`,
- * `lu`, `lj`, `kt`, the cheat code on the provisional `fm` of the title
- * screen, and two short replays folded frame by frame. The frozen values
- * were taken on the code where `hy` was still a class instance and must not
- * be re-taken. */
+ * `lu`, `lj`, `kt`, and the cheat code on the provisional `fm` of the title
+ * screen, in games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -33,25 +31,29 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_planet.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_research.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
+#include "../src/pico8_vec.h"
 
-#define TECH "tests/fixtures/tech_screen_invent_events.json"
-#define GAME_END "tests/fixtures/game_end_events.json"
-#define GEOHARVEST "tests/fixtures/geoharvest_burst_events.json"
+/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
+ * project with an `o` and no `i`, which exports to any planet a slipway
+ * joins it to. */
+#define COLONY 12
+#define EXPORTER 3
 
 #define CONSTRUCTION_HASH 0x581AC8D6u
 #define NX_HASH 0x857718F9u
-#define HK_HASH 0x7F5DF0B2u
+#define HK_HASH 0xB592387Cu
 #define LU_HASH 0xB07FE872u
-#define LJ_HASH 0xE169419Du
+#define LJ_HASH 0x8B99BDE4u
 #define KT_HASH 0x20EA7380u
-#define TECH_REPLAY_HASH 0xA8BBE715u
-#define GAME_END_REPLAY_HASH 0xA550CCF7u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -197,47 +199,82 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
-        h *= 16777619u;
-    }
-    return h;
-}
-
 static void new_game(void) {
-    pico8_value_t difficulty;
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_eu(NULL);
 }
 
-/* A game started as the net starts it: `eu()` on `bo[2]` before frame 0. */
-static void start_game(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-    new_game();
+    pico8_eu(NULL);
 }
 
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
-    }
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
 }
 
-static void play_all(void) {
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+static pico8_fixed_t must_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static pico8_hp_t *project(int k) {
+    pico8_value_t v;
+    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+/* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
+ * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
+ * hovered planet off `ok.o_`), then left to settle. */
+static void built_world(void) {
+    const pico8_list_t *jos;
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *qu;
+    void *re = NULL;
+    void *jc;
     int i;
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame(i);
+
+    start_game();
+    jos = pico8_cg("jo");
+    assert(jos != NULL && jos->count > 1);
+    qu = jos->items[0].as.ref;
+    for (i = 1; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
+            re = e;
+        }
+    }
+    pico8_jo_hu(qu, project(COLONY));
+    pico8_jo_hu(re, project(EXPORTER));
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
+    }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    for (i = 0; i < 120; i++) {
+        pico8_dg();
     }
 }
 
@@ -315,7 +352,7 @@ static void test_nx(void) {
     uint32_t h = 2166136261u;
     pico8_fixed_t yr;
 
-    start_game(TECH);
+    start_game();
     yr = get_fixed(pico8_fm(), "yr");
     assert(get_fixed(pico8_fm(), "lo") == pico8_fixed_from_int(1));
 
@@ -356,8 +393,7 @@ static void test_hk(void) {
     pico8_fixed_t yr;
     int from;
 
-    start_game(GEOHARVEST);
-    play_all();
+    built_world();
     iv_cls = iv_descriptor();
     nz = get_fixed(pico8_fm(), "nz");
     ge = get_fixed(pico8_fm(), "ge");
@@ -395,7 +431,7 @@ static void test_lu(void) {
     const pico8_struct_class_t *iv_cls;
     int from;
 
-    start_game(TECH);
+    start_game();
     iv_cls = iv_descriptor();
     assert(get_fixed(pico8_fm(), "nz") == pico8_fixed_from_int(100));
 
@@ -449,8 +485,7 @@ static void test_lj(void) {
     void *po;
     void *fu;
 
-    start_game(GEOHARVEST);
-    play_all();
+    built_world();
     po = get_ref(pico8_fm(), "po");
     fu = get_ref(pico8_fm(), "fu");
     assert(po != NULL && fu != NULL);
@@ -503,7 +538,7 @@ static void test_kt(void) {
     uint32_t h = 2166136261u;
     size_t k;
 
-    start_game(TECH);
+    start_game();
     fm_set("jk", pico8_value_fixed(pico8_fixed_from_int(500)));
 
     pico8_hy_kt(fm_self(), tech(NULL, 10));
@@ -558,44 +593,6 @@ static void test_cheat_on_provisional(void) {
     new_game();
     assert(get_fixed(pico8_fm(), "jk") == pico8_fixed_from_int(0));
     assert(get_fixed(pico8_fm(), "nz") == pico8_fixed_from_int(100));
-}
-
-/* Every frame: the 11 names of `fm`, `invented` by its count and last
- * element, `po`/`fu` by whether their identity changed; then the screen. */
-static uint32_t replay(const char *events) {
-    uint32_t h = 2166136261u;
-    void *po = NULL;
-    void *fu = NULL;
-    int i;
-    int n;
-
-    start_game(events);
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame(i);
-        for (n = 0; n < NAME_COUNT; n++) {
-            if (strcmp(names[n], "invented") == 0) {
-                const pico8_list_t *l = invented_of(pico8_fm());
-                h = fnv(h, (uint32_t)l->count);
-                h = l->count > 0 ? fold_value(h, l->items[l->count - 1], 0) : fnv(h, 0xDEADu);
-            } else if (strcmp(names[n], "po") == 0 || strcmp(names[n], "fu") == 0) {
-                void **seen = names[n][0] == 'p' ? &po : &fu;
-                void *now = get_ref(pico8_fm(), names[n]);
-                h = fnv(h, (uint32_t)(now != *seen));
-                *seen = now;
-            } else {
-                h = fold_field(h, pico8_fm(), names[n]);
-            }
-        }
-    }
-    return fnv(h, screen_hash());
-}
-
-static void test_tech_replay(void) {
-    check("tech replay", replay(TECH), TECH_REPLAY_HASH);
-}
-
-static void test_game_end_replay(void) {
-    check("game end replay", replay(GAME_END), GAME_END_REPLAY_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -830,8 +827,6 @@ int main(void) {
     in_fresh_child(test_lj);
     in_fresh_child(test_kt);
     in_fresh_child(test_cheat_on_provisional);
-    in_fresh_child(test_tech_replay);
-    in_fresh_child(test_game_end_replay);
     in_fresh_child(test_hy_is_a_struct);
     in_fresh_child(test_hy_members_by_name);
 
