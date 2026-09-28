@@ -141,9 +141,9 @@ void pico8_nr_hb(pico8_nr_t *self) {
 
     oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
 
-    if (self->hz.kind == PICO8_VALUE_REF && self->hz.as.ref != NULL) {
+    if (self->hz != NULL) {
         pico8_value_t entry;
-        if (pico8_ob_table_get_index((const pico8_ob_table_t *)self->hz.as.ref, oe_count + 1, &entry) &&
+        if (pico8_ob_table_get_index(self->hz, oe_count + 1, &entry) &&
             entry.kind == PICO8_VALUE_FIXED) {
             s_val = entry.as.fixed;
         }
@@ -225,54 +225,44 @@ static pico8_value_t pico8_nr_cn_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-/* nr's own defaults, read once through pico8_nr_default() at init: the very
- * values its spec holds, tables included. Each lands in the member of that
- * name, qh's or jo's when it has one. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_nr_defaults[] = {
-    {"hz", offsetof(pico8_nr_t, hz), {0}},
-    {"rr", offsetof(pico8_nr_t, rr), {0}},
-};
-
 static pico8_ob_table_t *g_nr_nu = NULL;
 static pico8_qz_box_t *g_nr_kq = NULL;
 static pico8_fixed_t g_nr_od = 0;
 static pico8_fixed_t g_nr_fp = 0;
 static pico8_fixed_t g_nr_s = 0;
 static pico8_fixed_t g_nr_dw = 0;
+static pico8_ob_table_t *g_nr_hz = NULL;
+static const char *g_nr_rr = NULL;
 
 static void pico8_nr_defaults_reset(void) {
-    size_t i;
     g_nr_nu = NULL;
     g_nr_kq = NULL;
     g_nr_od = 0;
     g_nr_fp = 0;
     g_nr_s = 0;
     g_nr_dw = 0;
-    for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
-        g_nr_defaults[i].value = pico8_value_ref(NULL);
-    }
+    g_nr_hz = NULL;
+    g_nr_rr = NULL;
 }
 
 static int pico8_nr_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_nr_t *nr = self;
-    const pico8_value_t *member = NULL;
 
     if (strcmp(name, "hz") == 0) {
-        member = &nr->hz;
-    } else if (strcmp(name, "rr") == 0) {
-        member = &nr->rr;
-    } else {
-        return pico8_qh_struct_class()->field(self, name, out_value);
+        if (nr->hz == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_ref(nr->hz);
+        return 1;
     }
-    if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-        return 0;
+    if (strcmp(name, "rr") == 0) {
+        if (nr->rr == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(nr->rr);
+        return 1;
     }
-    *out_value = *member;
-    return 1;
+    return pico8_qh_struct_class()->field(self, name, out_value);
 }
 
 static void family_trade_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
@@ -317,14 +307,9 @@ static const pico8_struct_class_t g_nr_struct_class = {
  * nil, nr's defaults. Reads no key, runs neither `pq` nor `lt`, records no
  * coverage. Requires `pico8_planet_family_trade_init()`. */
 static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls) {
-    size_t i;
-
     pico8_qh_struct_init(&self->qh, cls);
-    self->hz = pico8_value_ref(NULL);
-    self->rr = pico8_value_ref(NULL);
-    for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_nr_defaults[i].offset) = g_nr_defaults[i].value;
-    }
+    self->hz = g_nr_hz;
+    self->rr = g_nr_rr;
     self->qh.od = g_nr_od;
     self->qh.fp = g_nr_fp;
     self->qh.s = g_nr_s;
@@ -388,24 +373,26 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
 }
 
 /* fr's own defaults, read once through pico8_fr_default() at init: the very
- * values its spec holds, tables included. Each lands in the member of that
- * name, nr's or qh's when it has one. */
+ * values its spec holds. */
 static struct {
     const char *name;
     size_t offset;
     pico8_value_t value;
 } g_fr_defaults[] = {
-    {"mt", offsetof(pico8_fr_t, mt), {0}},    {"rr", offsetof(pico8_fr_t, nr.rr), {0}},
-    {"hz", offsetof(pico8_fr_t, nr.hz), {0}},
+    {"mt", offsetof(pico8_fr_t, mt), {0}},
 };
 
 static pico8_fixed_t g_fr_od = 0;
 static pico8_fixed_t g_fr_s = 0;
+static pico8_ob_table_t *g_fr_hz = NULL;
+static const char *g_fr_rr = NULL;
 
 static void pico8_fr_defaults_reset(void) {
     size_t i;
     g_fr_od = 0;
     g_fr_s = 0;
+    g_fr_hz = NULL;
+    g_fr_rr = NULL;
     for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
         g_fr_defaults[i].value = pico8_value_ref(NULL);
     }
@@ -456,6 +443,8 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
     for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
         *(pico8_value_t *)((char *)self + g_fr_defaults[i].offset) = g_fr_defaults[i].value;
     }
+    self->nr.hz = g_fr_hz;
+    self->nr.rr = g_fr_rr;
     self->nr.qh.od = g_fr_od;
     self->nr.qh.s = g_fr_s;
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
@@ -696,7 +685,8 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
 static pico8_ob_table_t *family_trade_default_table(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "nr/mx.nu, mx.px, mx.ht, mx.k_: a default of the struct is a key of its spec and a table (ref:table)");
+           "nr/mx.nu, nr/fr.hz, mx.px, mx.ht, mx.k_: a default of the struct is a key of its spec and a table "
+           "(ref:table)");
     (void)found;
     return v.as.ref;
 }
@@ -719,7 +709,7 @@ static pico8_fixed_t family_trade_default_fixed(int found, pico8_value_t v) {
 
 static const char *family_trade_default_string(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "mx.rr: a default of the struct is a key of mx's spec and a string (chaine)");
+           "nr/fr/mx.rr: a default of the struct is a key of its spec and a string (chaine)");
     (void)found;
     return v.as.string;
 }
@@ -751,11 +741,6 @@ void pico8_planet_family_trade_init(void) {
                          "dw=0.01,\n"
                          "rr=\"slipgates\",\n",
                          NULL);
-    for (i = 0; i < sizeof g_nr_defaults / sizeof g_nr_defaults[0]; i++) {
-        int found = pico8_nr_default(g_nr_defaults[i].name, &g_nr_defaults[i].value);
-        assert(found && "nr: every default of the struct is a key of nr's spec");
-        (void)found;
-    }
     found = pico8_nr_default("nu", &v);
     g_nr_nu = family_trade_default_table(found, v);
     found = pico8_nr_default("kq", &v);
@@ -768,6 +753,10 @@ void pico8_planet_family_trade_init(void) {
     g_nr_s = family_trade_default_fixed(found, v);
     found = pico8_nr_default("dw", &v);
     g_nr_dw = family_trade_default_fixed(found, v);
+    found = pico8_nr_default("hz", &v);
+    g_nr_hz = family_trade_default_table(found, v);
+    found = pico8_nr_default("rr", &v);
+    g_nr_rr = family_trade_default_string(found, v);
 
     g_fr_spec = pico8_ob("\n"
                          "mt=1,\n"
@@ -784,6 +773,10 @@ void pico8_planet_family_trade_init(void) {
     g_fr_od = family_trade_default_fixed(found, v);
     found = pico8_fr_default("s", &v);
     g_fr_s = family_trade_default_fixed(found, v);
+    found = pico8_fr_default("hz", &v);
+    g_fr_hz = family_trade_default_table(found, v);
+    found = pico8_fr_default("rr", &v);
+    g_fr_rr = family_trade_default_string(found, v);
 
     g_mx_spec = pico8_ob("\n"
                          "nu=o(\"jo\",\"np\",\"prober\"),\n"

@@ -736,8 +736,8 @@ static void test_nr_is_a_struct(void) {
     {
         pico8_nr_t *bare = pico8_nr_new(NULL);
         assert(is_an_nr_struct(bare) && !has(bare, "id") && has(bare, "oe") && has(bare, "kw"));
-        bare->hz = pico8_value_ref(NULL);
-        bare->rr = pico8_value_ref(NULL);
+        bare->hz = NULL;
+        bare->rr = NULL;
         assert(!cls->field(bare, "hz", &v) && !cls->field(bare, "rr", &v));
     }
     fr = build(pico8_fr_kind());

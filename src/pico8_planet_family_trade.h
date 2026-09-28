@@ -24,8 +24,8 @@ void pico8_planet_family_trade_shutdown(void);
  * qh's, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    pico8_value_t hz;
-    pico8_value_t rr;
+    pico8_ob_table_t *hz;
+    const char *rr;
 } pico8_nr_t;
 
 /* An infraspace gate: a slipgate, then fr's own default `mt`, which no

@@ -48,6 +48,7 @@
 
 #define BUILT_HASH 0xA5047E01u
 #define LIFE_HASH 0x8B3BFBB2u
+#define NR_MEMBERS_HASH 0xFB75FC85u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -604,6 +605,90 @@ static void test_fr_is_a_struct(void) {
     }
 }
 
+/* The value both readers give, the raw one leaving its witness untouched
+ * when it answers 0; 0 when absent. */
+static int read_both(const void *e, const char *name, pico8_value_t *out) {
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
+    pico8_value_t raw = pico8_value_fixed((pico8_fixed_t)0x1234);
+    pico8_value_t named;
+    int found = cls->field(e, name, &raw);
+
+    assert(found || (raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == (pico8_fixed_t)0x1234));
+    assert(pico8_entity_get_field(e, name, &named) == found);
+    assert(!found || pico8_value_equal(raw, named));
+    *out = raw;
+    return found;
+}
+
+static uint32_t fold_nr_members(uint32_t h, const void *e, int (*default_of)(const char *, pico8_value_t *)) {
+    pico8_value_t v;
+    const pico8_ob_table_t *hz;
+    int i;
+
+    assert(read_both(e, "hz", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == class_ref(default_of, "hz"));
+    hz = v.as.ref;
+    h = fnv(h, (uint32_t)hz->count);
+    for (i = 1; i <= 4; i++) {
+        pico8_value_t entry;
+        assert(pico8_ob_table_get_index(hz, i, &entry));
+        h = fold_value(h, entry);
+    }
+    assert(read_both(e, "rr", &v) && v.kind == PICO8_VALUE_STRING &&
+           v.as.string == class_value(default_of, "rr").as.string);
+    return fold_value(h, v);
+}
+
+static uint32_t fold_hb(uint32_t h, void *e) {
+    pico8_value_t oe = get(e, "oe");
+    int i;
+
+    for (i = 0; i <= 3; i++) {
+        pico8_entity_set_field(e, "oe", list_of(i, e));
+        pico8_value_t entry;
+        (void)call(e, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        assert(pico8_ob_table_get_index(get_ref(e, "hz"), i + 1, &entry) &&
+               pico8_value_equal(entry, get(e, "s")));
+        h = fold_field(h, e, "s");
+    }
+    pico8_entity_set_field(e, "oe", oe);
+    return h;
+}
+
+static void test_nr_members_by_name(void) {
+    static const char *const strangers[] = {"", "h", "hz ", "HZ", "hz_", "r", "rr ", "RR"};
+    void *slipgates[2];
+    void *gates[2];
+    pico8_value_t v;
+    uint32_t h = 2166136261u;
+    size_t n;
+    int k;
+
+    start_game(EMPTY);
+    slipgates[0] = pico8_nr_new(NULL);
+    slipgates[1] = build(pico8_nr_kind());
+    gates[0] = pico8_fr_new(NULL);
+    gates[1] = build_gate();
+    for (k = 0; k < 2; k++) {
+        h = fold_nr_members(h, slipgates[k], pico8_nr_default);
+        h = fold_nr_members(h, gates[k], pico8_fr_default);
+    }
+    assert(get_ref(slipgates[0], "hz") == get_ref(slipgates[1], "hz"));
+    assert(get_ref(gates[0], "hz") == get_ref(gates[1], "hz"));
+    assert(get_ref(slipgates[0], "hz") != get_ref(gates[0], "hz"));
+
+    h = fold_hb(h, slipgates[0]);
+    h = fold_hb(h, gates[0]);
+
+    for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {
+        h = fnv(h, (uint32_t)read_both(slipgates[0], strangers[n], &v));
+        h = fnv(h, (uint32_t)read_both(gates[0], strangers[n], &v));
+    }
+    assert(!pico8_qh_struct_class()->field(slipgates[0], "hz", &v));
+    assert(!pico8_qh_struct_class()->field(slipgates[0], "rr", &v));
+
+    check("nr_members", h, NR_MEMBERS_HASH);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -636,6 +721,7 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_fr_is_a_struct);
+    in_fresh_child(test_nr_members_by_name);
 
     printf("test_pico8_fr: all tests passed\n");
     return 0;
