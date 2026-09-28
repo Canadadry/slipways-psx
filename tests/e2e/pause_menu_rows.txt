@@ -1,0 +1,11 @@
+Les trois rangées du menu pause qui ne quittent pas la partie. 25 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : `ix[4]` (2,119) ouvre la pause ; f7 : « toggle music » (10,102),
+  le menu se ferme.
+- f9 : pause ; f14 : « toggle sfx » (10,92), le menu se ferme.
+- f16 : pause ; f21 : « how to play? » (10,83), le menu se ferme.
+
+Remplace la TU `pause_menu_music`.
+
+Relecture humaine dans raylib : à faire.

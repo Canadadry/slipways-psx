@@ -1,0 +1,15 @@
+Boîtes de message retenues par `lh` : « 5 years remain », puis le
+panneau de score, chacune laissée à son terme. 159 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2-41 : 20 clics sur `ix[1]` (118,0) : année 3421, la boîte de l'année
+  porte « 5 years remain » (`pj:hk`) et se retient 90 ticks par son
+  `lh`.
+- f42-90 : attente ; la boîte arrive au bout de son entrée et interroge
+  `lh` (`mh:ev`), qui la retient.
+- f91 : `ix[3]` (50,3) ouvre le panneau de score, sa boîte remplace la
+  précédente ; son `lh` la retient tant que le panneau est ouvert.
+- f122 : clic (64,64) : le panneau se ferme ; f124-158 : la boîte sort
+  et se retire d'elle-même (`p_`, `kc` remis à nil).
+
+Relecture humaine dans raylib : à faire.

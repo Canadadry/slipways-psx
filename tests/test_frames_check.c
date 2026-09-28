@@ -1,4 +1,4 @@
-/* tools/frames_check.sh, le corps de `make frames-check`, sur des empreintes
+/* tools/frames_check.sh, la comparaison d'empreintes de `make e2e`, sur des empreintes
  * fabriquees : il se teste par ce qu'il doit empecher. */
 
 #include <assert.h>
@@ -79,7 +79,7 @@ static void test_every_divergent_replay_is_named_with_both_hashes(void) {
     assert(strstr(log, HASH_X) != NULL);
     assert(strstr(log, HASH_A) != NULL);
     assert(strstr(log, HASH_B) != NULL);
-    assert(strstr(log, "make frames-ref") != NULL);
+    assert(strstr(log, "make e2e-ref") != NULL);
     free(log);
 }
 
@@ -102,7 +102,7 @@ static void test_missing_reference_is_not_compared_and_says_how_to_set_it(void) 
     assert(run_check() == 0);
     char *log = read_log();
     assert(strstr(log, A_REF) != NULL);
-    assert(strstr(log, "make frames-baseline") != NULL);
+    assert(strstr(log, "make e2e-baseline") != NULL);
     assert(strstr(log, A_EVENTS " : conforme") == NULL);
     assert(strstr(log, B_EVENTS " : conforme") != NULL);
     free(log);

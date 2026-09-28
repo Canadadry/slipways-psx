@@ -14,7 +14,15 @@
 # the run: each instrumented binary records, per site, which type tag
 # actually arrived. Joining the two is the point -- a site present in the
 # grep but absent from the run is reported NOT COVERED, never "safe".
+#
+# Arguments: the replays to run, each from the title screen (`make
+# ref-audit` passes the e2e of tests/e2e). At least one.
 set -e
+
+if [ $# -eq 0 ]; then
+    echo "usage: $0 <events.json>..." >&2
+    exit 2
+fi
 
 ROOT=$(dirname "$0")/..
 cd "$ROOT"
@@ -25,7 +33,7 @@ rm -f "$OUT"
 export PICO8_REF_AUDIT_OUT="$OUT"
 
 run() {
-    printf '  running %s %s\n' "$1" "$2"
+    printf '  running %s\n' "$*"
     # A non-zero exit is reported but not fatal: this script measures
     # coverage, `make test` is what judges correctness. Do read it,
     # though -- a binary that died on abort() (a failed assert, a
@@ -36,23 +44,10 @@ run() {
 }
 
 echo "== running instrumented binaries =="
-# One replay driver over every recorded events.json in the repo: six
-# scenarios for the price of one build.
-# Enregistrement raylib : sa difficulté se clique sur l'écran titre.
-run ./tmp/pico8_replay_refaudit --from-title tests/fixtures/session_events.json
-for fixture in tests/fixtures/phase4_playthrough_events.json \
-               tests/fixtures/slipway_drag_events.json \
-               tests/fixtures/empty_planet_cleared_events.json \
-               tests/fixtures/top_menubar_events.json \
-               tests/fixtures/shop_button_hover_events.json; do
-    if [ -f "$fixture" ]; then
-        run ./tmp/pico8_replay_refaudit "$fixture"
-    fi
+for events in "$@"; do
+    run ./tmp/pico8_replay_refaudit "$events"
 done
-for bin in tmp/test_pico8_playability_refaudit \
-           tmp/test_pico8_slipway_drag_refaudit \
-           tmp/test_pico8_empty_planet_cleared_refaudit \
-           tmp/test_pico8_planet_gh_row_lq_refaudit \
+for bin in tmp/test_pico8_planet_gh_row_lq_refaudit \
            tmp/test_pico8_data_init_refaudit \
            tmp/test_pico8_planet_kj_dispatch_refaudit \
            tmp/test_pico8_ga_export_panel_by_refaudit; do

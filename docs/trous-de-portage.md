@@ -342,10 +342,9 @@ de la classe, `k_=o(1,2,4,9,9,10,10,7,7,7,7,7)` (lua.lua:1077). Ce port lit
 `k_` dans les valeurs par défaut de la classe `ga`, jamais dans l'instance :
 l'éclat d'une protoétoile prend la palette de l'éclat ordinaire.
 
-Probable, pas vérifié contre PICO-8. Non atteint par le filet :
-`pico8_pm_pq` n'est exécuté par aucun rejeu de `FRAMES_EVENTS` (couverture
-de D0b). Le `ga` de `geoharvest_burst` naît de l'action « harvest » et n'a
-pas de `k_` propre ; il ne voit donc pas l'écart.
+Probable, pas vérifié contre PICO-8. `pico8_pm_pq` est exécuté par l'e2e
+`tests/e2e/tech_starbirth_protostar.json` : son empreinte fige le rendu du
+port, écart compris.
 
 Trouvé en convertissant les casts de `pico8_ga_kj` (plan 2, D0b).
 

@@ -2,48 +2,78 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard, la
 #                       boucle rapide
-# make e2e           -> frames-check + float-audit, les rejeux, en -O2, et les
-#                       TU à rejeu long (UNIT_TESTS_SLOW)
-# make test-all      -> test + e2e, la suite complète
+# make e2e           -> rejoue chaque e2e de tests/e2e/ depuis l'écran titre,
+#                       avec le binaire -O0 de make test, et compare le sha256
+#                       de sa capture à <nom>.json.sha256 ; échoue aussi si un
+#                       e2e n'a pas son .txt et son .json.sha256 ou dépasse
+#                       180 frames (600 s'il est listé dans
+#                       tools/e2e_long_exceptions.txt)
+# make unit-slow     -> les TU à rejeu long (UNIT_TESTS_SLOW), hors make test et
+#                       make e2e, dans make test-all
+# make test-all      -> test + e2e + unit-slow, la suite complète
+# make gif           -> gif/<nom>.gif pour chaque e2e de tests/e2e/ : sa capture
+#                       à l'échelle 3, la souris de l'event dessinée par-dessus ;
+#                       hors suite
 # make unit          -> les binaires de tests/, compilés et lancés
-# make replay        -> rejoue la session humaine dans le moteur headless, hors
-#                       suite : frames-check la rejoue déjà
-# make screencast    -> refabrique les pixels de chaque frame du rejeu de la session humaine
-# make frames-check  -> compare le sha256 de la capture de chaque rejeu du filet à
-#                       sa référence <events>.sha256, dans make e2e
-# make frames-baseline -> (re)pose ces références sur le code actuel, jamais par
-#                       make test
-# make frames-ref    -> pour chaque rejeu divergent, rejoue le commit qui a posé
+# make replay EVENTS=<events> -> rejoue ce fichier dans le moteur headless, dump
+#                       du framebuffer dans tmp/pico8_replay_dump.txt ; hors suite
+# make screencast EVENTS=<events> -> refabrique les pixels de chaque frame de ce
+#                       rejeu dans tmp/screencast.bin, pour screencast-viewer
+# make e2e-baseline  -> (re)pose les .json.sha256 de tests/e2e/ sur le code
+#                       actuel, jamais par make test
+# make e2e-ref       -> pour chaque e2e divergent, rejoue le commit qui a posé
 #                       sa référence (git blame), laisse la capture dans
 #                       tmp/frames/<events>.ref.bin et donne la première frame
 #                       divergente ; hors suite
-# make ref-audit     -> diagnostic des casts REF, hors suite
-# make class-coverage DIR=<dossier> -> rejoue chaque *events.json posé directement
-#                       dans DIR (défaut tests/fixtures, sans sous-dossiers) et
-#                       compte les instanciations par classe ; échoue si une
-#                       classe est à 0 hors tools/class_coverage_exempt.txt,
+# make ref-audit     -> diagnostic des casts REF sur les e2e de tests/e2e/,
 #                       hors suite
-# make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS) ; échoue
-#                       aussi si sa sortie diffère de
-#                       tools/class_coverage_net_expected.txt, hors suite
+# make class-coverage [DIR=<dossier>] -> rejoue les e2e de tests/e2e/ (avec
+#                       DIR : chaque *events.json posé directement dans DIR,
+#                       sans sous-dossiers) et compte les instanciations par
+#                       classe ; échoue si une classe est à 0 hors
+#                       tools/class_coverage_exempt.txt, hors suite
+# make line-coverage EVENTS="<events>..." -> lignes exécutées par ces rejeux
+#                       (pilote instrumenté gcov), une `fichier:ligne` par ligne,
+#                       dans tmp/line_coverage.txt ; hors suite
+# make line-coverage-contrib EVENTS=<events> OTHERS="<events>..." -> les lignes
+#                       que EVENTS couvre et qu'aucun de OTHERS ne couvre (le
+#                       critère de garde), dans tmp/line_coverage_contrib.txt ;
+#                       hors suite
+# make e2e-gap       -> les lignes de tools/line_coverage_reference.txt
+#                       que make e2e ne couvre pas, moins
+#                       tools/line_coverage_unreachable.txt ; échoue tant que
+#                       l'écart n'est pas nul, hors suite
+# make minimize EVENTS=<events> OUT=<sortie> -> minimise ce rejeu (joué depuis
+#                       l'écran titre) : étage
+#                       mécanique (tools/minimize.sh), puis passe guidée tant
+#                       que la couverture de lignes reste celle de l'entrée,
+#                       un rejeu gcov par candidat, lent ; MECHANICAL=1 :
+#                       l'étage mécanique seul ; MIN_CHUNK=<n> : tranches
+#                       d'au moins n frames ; hors suite
+# make e2e-cleanup   -> la passe de nettoyage finale sur tests/e2e/ : liste,
+#                       du plus long au plus court, les e2e dont les lignes
+#                       sont couvertes par les autres restants ; ne supprime
+#                       rien, hors suite
+# make e2e-judge EVENTS=<events> -> les lignes que ce rejeu (depuis le titre)
+#                       ajoute aux e2e de tests/e2e/ ; échoue s'il n'en ajoute
+#                       aucune, hors suite
+# make class-coverage-net -> idem sur les e2e de tests/e2e/ ; échoue aussi si
+#                       sa sortie diffère de tools/class_coverage_net_expected.txt,
+#                       hors suite
 # make value-members -> liste les membres pico8_value_t des structs d'entité
 #                       et leur nombre (tools/entity_value_members.sh) ; la
 #                       phase 1b sort sur une liste vide, hors suite
-# make member-census -> rejoue FRAMES_EVENTS et CENSUS_UNIT_TESTS sous
+# make member-census -> rejoue les e2e de tests/e2e/ et CENSUS_UNIT_TESTS sous
 #                       -DPICO8_MEMBER_CENSUS dans tmp/census et réécrit
 #                       tools/member_census.txt ; échoue sur l'intégrité de
 #                       l'outil, jamais sur le contenu, hors suite. Passe
 #                       réduite : CENSUS_EVENTS=<un rejeu> CENSUS_UNIT=
 #                       CENSUS_TABLE=tmp/census/m.txt
-# make sanitize-net  -> rejoue FRAMES_EVENTS sous ASan+UBSan (-O2),
+# make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
 #                       critère « sortie propre », hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
 #                       (tools/probe_out.txt) ; échoue si les écarts ne sont pas
 #                       exactement tools/constants_expected_ecarts.txt, dans make test
-# make float-audit   -> audit avant/après par site, dans make e2e : sites C1
-#                       (tools/float_audit_c1.txt) ancien = nouveau, argument
-#                       >= 0 et atteint ; sites D nouveau = flr. Imprime par
-#                       fichier d'événements la frame du premier ancien != nouveau
 # make float-guard   -> réécrit tools/float_guard.txt, en échec si un fichier
 #                       du cœur a besoin du flottant (§6.3), dans make test
 # make float-grep    -> grep du §6.1 sur le cœur (CORE_SRCS + en-têtes, -MM), le
@@ -59,7 +89,7 @@
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all raylib-vendor-setup raylib screencast screencast-viewer frames-check frames-baseline frames-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all gif raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -74,14 +104,13 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les huit.
+# sur ce code, sans rien dire. Ne pas fusionner les sept.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
-OBJ_AUDIT_DIR := $(TMP_DIR)/obj-audit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
-OBJ_E2E_DIR := $(TMP_DIR)/obj-e2e
+OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 
 # -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
@@ -91,10 +120,9 @@ DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
-AUDIT_CFLAGS := -DPICO8_FLOAT_AUDIT
 COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
-# Rejeux de make e2e seulement ; les TU restent en -O0, lisibles sous gdb.
-E2E_CFLAGS := -O2
+GCOV_CFLAGS := --coverage
+SANITIZE_OPT_CFLAGS := -O2
 
 # $(call objs,<liste de .c>) -> les chemins des .o correspondants dans l'arbre
 # concerné. Une cible nomme ses sources une fois ; ses prérequis et sa ligne de
@@ -103,9 +131,8 @@ objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
-audit_objs = $(patsubst %.c,$(OBJ_AUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
-e2e_objs = $(patsubst %.c,$(OBJ_E2E_DIR)/%.o,$(1))
+gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
 
 # mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
@@ -126,21 +153,17 @@ $(OBJ_REFAUDIT_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-$(OBJ_AUDIT_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(AUDIT_CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
-$(OBJ_E2E_DIR)/%.o: %.c
+$(OBJ_GCOV_DIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(GCOV_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 $(OBJ_SANITIZE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) $(SANITIZE_OPT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # Closure complète du moteur : tout src/ sauf les deux points d'entrée (main.c,
 # main_raylib.c) et les modules qui ne servent qu'au driver interactif. Utilisée
@@ -335,6 +358,9 @@ $(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_ca
 $(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_pico8_replay_usage: $(call objs,tests/test_pico8_replay_usage.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_screencast.c src/pico8_dump.c src/pico8_mem.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -345,10 +371,22 @@ $(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c sr
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_class_coverage: $(call coverage_objs,tests/test_class_coverage.c src/pico8_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/screencast_capture_events.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+$(TMP_DIR)/test_class_coverage: $(call coverage_objs,tests/test_class_coverage.c src/pico8_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/title_click_forgiving.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_float_audit: $(call objs,tests/test_float_audit.c) tools/float_audit.sh tools/float_audit_c1.txt | $(TMP_DIR)
+$(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_e2e_limits: $(call objs,tests/test_e2e_limits.c) tools/e2e_limits.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_e2e_cleanup: $(call objs,tests/test_e2e_cleanup.c) tools/e2e_cleanup.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/pico8_minimize: $(call objs,src/main_minimize.c src/pico8_minimize.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_pico8_minimize: $(call objs,tests/test_pico8_minimize.c src/pico8_minimize.c src/pico8_input.c) $(TMP_DIR)/pico8_minimize tools/minimize.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_float_guard: $(call objs,tests/test_float_guard.c) tools/float_guard.sh | $(TMP_DIR)
@@ -361,6 +399,12 @@ $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_lin
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_constants_check: $(call objs,tests/test_constants_check.c) tools/constants_compare.sh tools/constants_check.sh src/pico8_fixed.c src/pico8_fixed.h | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/pico8_gif: $(call objs,src/main_gif.c src/pico8_gif.c src/pico8_palette.c src/pico8_screencast.c src/pico8_mem.c src/pico8_input.c) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
+$(TMP_DIR)/test_pico8_gif: $(call objs,tests/test_pico8_gif.c src/pico8_gif.c src/pico8_palette.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_screencast_player: $(call objs,tests/test_pico8_screencast_player.c src/pico8_screencast_player.c src/pico8_palette.c) | $(TMP_DIR)
@@ -506,62 +550,20 @@ REPLAY_SRCS := src/main.c src/pico8_screencast.c $(ENGINE_SRCS)
 $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/pico8_replay_e2e: $(call e2e_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/test_pico8_playability: $(call objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_top_menubar: $(call objs,tests/test_pico8_top_menubar.c $(ENGINE_SRCS)) tests/fixtures/top_menubar_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_shop_tooltip_fillp: $(call objs,tests/test_pico8_shop_tooltip_fillp.c $(ENGINE_SRCS)) tests/fixtures/shop_button_hover_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+$(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) $(GCOV_CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_slipway_drag: $(call objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_tech_screen: $(call objs,tests/test_pico8_tech_screen.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/tech_screen_invent_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_game_end: $(call objs,tests/test_pico8_game_end.c $(ENGINE_SRCS)) tests/fixtures/game_end_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_pause_menu_music: $(call objs,tests/test_pico8_pause_menu_music.c $(ENGINE_SRCS)) tests/fixtures/pause_menu_music_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_geoharvest_burst: $(call objs,tests/test_pico8_geoharvest_burst.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/geoharvest_burst_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_score_panel_close: $(call objs,tests/test_pico8_score_panel_close.c $(ENGINE_SRCS)) tests/fixtures/score_panel_close_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_score_panel_stars: $(call objs,tests/test_pico8_score_panel_stars.c $(ENGINE_SRCS)) tests/fixtures/score_panel_close_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_empty_planet_cleared: $(call objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 # Sous ASan, et sans jumeau non instrumenté : le crash visé dépend de la
 # disposition de l'allocateur (le même rejeu sort 139 en -O0 et 0 en -O1), donc
 # seul le débordement lui-même est un oracle fiable. detect_leaks=0 au lancement,
 # ce port fuit par conception.
-$(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet_gh_row_lq.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_built_planet_panel_nil_row: $(call objs,tests/test_pico8_built_planet_panel_nil_row.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_rich_planet_exports: $(call objs,tests/test_pico8_rich_planet_exports.c $(ENGINE_SRCS)) tests/fixtures/built_planet_panel_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_cheat_code: $(call objs,tests/test_pico8_cheat_code.c $(ENGINE_SRCS)) tests/fixtures/cheat_code_events.json | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_ga_export_panel_by: $(call objs,tests/test_pico8_ga_export_panel_by.c $(DATA_ENGINE_SRCS) src/pico8_planet_family.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_rnd_order.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -590,14 +592,6 @@ UNIT_TESTS := \
     test_pico8_data_init \
     test_pico8_planet_kj_dispatch \
     test_pico8_demo \
-    test_pico8_playability \
-    test_pico8_slipway_drag \
-    test_pico8_tech_screen \
-    test_pico8_game_end \
-    test_pico8_pause_menu_music \
-    test_pico8_geoharvest_burst \
-    test_pico8_score_panel_close \
-    test_pico8_score_panel_stars \
     test_pico8_raylib_backend_coords \
     test_pico8_replay_source \
     test_pico8_recording_continuity \
@@ -606,26 +600,25 @@ UNIT_TESTS := \
     test_pico8_screencast \
     test_pico8_headless_capture \
     test_pico8_replay_from_title \
+    test_pico8_replay_usage \
     test_pico8_screencast_player \
+    test_pico8_gif \
     test_pico8_frames_tool \
     test_frames_check \
     test_class_coverage \
-    test_float_audit \
+    test_line_coverage \
+    test_e2e_limits \
+    test_pico8_minimize \
+    test_e2e_cleanup \
     test_float_guard \
     test_float_grep \
     test_float_link \
     test_constants_check \
     test_pico8_bg_kj \
     test_pico8_probe_mm_rnd_order \
-    test_pico8_top_menubar \
-    test_pico8_shop_tooltip_fillp \
-    test_pico8_empty_planet_cleared \
     test_pico8_planet_gh_row_lq \
     test_pico8_ga_export_panel_by \
-    test_pico8_built_planet_panel_nil_row \
     test_pico8_layout_nil_item_draws_nothing \
-    test_pico8_rich_planet_exports \
-    test_pico8_cheat_code \
     test_pico8_jb_ol \
     test_pico8_iv \
     test_pico8_mh \
@@ -663,22 +656,18 @@ UNIT_TESTS := \
     test_pico8_fm
 
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
-# Les TU à rejeu long (plus de 30 s) tournent dans make e2e, pas make test.
+# Les TU à rejeu long (plus de 30 s) tournent dans make unit-slow, pas make test.
 UNIT_TESTS_SLOW := test_pico8_ie test_pico8_jo test_pico8_qh test_pico8_os test_pico8_hj test_pico8_pm test_pico8_mx test_pico8_nr
 
 UNIT_RUNS := $(addprefix unit-run-,$(filter-out $(UNIT_TESTS_SLOW),$(UNIT_TESTS)))
 UNIT_RUNS_SLOW := $(addprefix unit-run-,$(UNIT_TESTS_SLOW))
 
-UNIT_RUNS_SPECIAL := unit-run-test_pico8_score_panel_stars unit-run-test_pico8_planet_gh_row_lq
+UNIT_RUNS_SPECIAL := unit-run-test_pico8_planet_gh_row_lq
 
 unit: $(UNIT_RUNS)
 
 $(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS) $(UNIT_RUNS_SLOW)): unit-run-%: $(TMP_DIR)/%
 	./$<
-
-unit-run-test_pico8_score_panel_stars: $(TMP_DIR)/test_pico8_score_panel_stars
-	./$< 1
-	./$< 2
 
 unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
 	ASAN_OPTIONS=detect_leaks=0 ./$<
@@ -689,30 +678,35 @@ unit-run-test_pico8_frames_tool: | unit-run-test_pico8_headless_capture
 
 .PHONY: $(UNIT_RUNS) $(UNIT_RUNS_SLOW)
 
-replay: $(TMP_DIR)/pico8_replay_e2e
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS)
+# Échoue avant toute compilation plutôt que de rejouer un fichier par défaut.
+ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
+    ifeq ($(strip $(EVENTS)),)
+        $(error EVENTS manque : make $(filter replay screencast,$(MAKECMDGOALS)) EVENTS=<events.json>)
+    endif
+endif
+
+replay: $(TMP_DIR)/pico8_replay
+	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard
 
-e2e: frames-check float-audit $(UNIT_RUNS_SLOW)
+unit-slow: $(UNIT_RUNS_SLOW)
 
-test-all: test e2e
+.PHONY: unit-slow
 
-# ENREGISTREMENT D'ÉCRAN : make screencast rejoue SCREENCAST_EVENTS en écrivant les
-# pixels de chaque frame ; c'est aussi la capture du rejeu de SCREENCAST_EVENTS du filet.
-SCREENCAST_EVENTS := tests/fixtures/session_events.json
+test-all: test e2e unit-slow
+
 SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
 SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 
-# Les enregistrements raylib cliquent eux-mêmes la difficulté sur l'écran
-# titre : tout pilote qui les rejoue passe $(call from_title,<events>).
-RECORDINGS := \
-    tests/fixtures/session_events.json \
-    tests/fixtures/long_session_events.json \
-    tests/fixtures/events_recorded_1790198294.json \
-    tests/fixtures/trading_hub_session_events.json
-from_title = $(if $(filter $(RECORDINGS),$(1)),--from-title)
+# Les e2e : <nom>.json (même format qu'un enregistrement raylib), <nom>.txt
+# (ce que fait le rejeu, frames des actions clés) et <nom>.json.sha256. Tous
+# partent de l'écran titre.
+E2E_DIR := tests/e2e
+E2E_EVENTS := $(sort $(wildcard $(E2E_DIR)/*.json))
+# Une ligne `<events> raison` par e2e admis jusqu'à 600 frames au lieu de 180.
+E2E_EXCEPTIONS := tools/e2e_long_exceptions.txt
 
 ifeq ($(UNAME_S),Darwin)
     SHA256_CMD := shasum -a 256
@@ -720,53 +714,40 @@ else
     SHA256_CMD := sha256sum
 endif
 
-$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay_e2e $(SCREENCAST_EVENTS) | $(TMP_DIR)
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(SCREENCAST_EVENTS)) $(SCREENCAST_EVENTS) $@ $(@:.bin=.dump.txt)
+# Refaite à chaque appel : EVENTS change d'un appel à l'autre sans que make le
+# voie. Cible fichier plutôt que phony, pour que .DELETE_ON_ERROR s'applique.
+$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay FORCE | $(TMP_DIR)
+	./$(TMP_DIR)/pico8_replay $(EVENTS) $@ $(@:.bin=.dump.txt)
 
 screencast: $(SCREENCAST_BIN)
+
+.PHONY: FORCE
+FORCE:
 
 # Une capture interrompue laisserait un fichier partiel que make croirait à jour,
 # et l'empreinte suivante porterait sur lui.
 .DELETE_ON_ERROR:
 
-# FILET (docs/plan-2.md §5) : le sha256 de la capture de chaque fichier
-# d'événements, versionné à côté de lui sous <events>.sha256. La capture est la
-# concaténation brute des frames : son empreinte couvre aussi leur nombre.
-# Liste explicite : un motif sur tests/fixtures/ ramasserait les fixtures
-# malformées et celles du lecteur d'entrée.
-FRAMES_EVENTS := \
-    $(SCREENCAST_EVENTS) \
-    tests/fixtures/phase4_playthrough_events.json \
-    tests/fixtures/built_planet_panel_events.json \
-    tests/fixtures/empty_planet_cleared_events.json \
-    tests/fixtures/slipway_drag_events.json \
-    tests/fixtures/shop_button_hover_events.json \
-    tests/fixtures/screencast_capture_events.json \
-    tests/fixtures/top_menubar_events.json \
-    tests/fixtures/tech_screen_invent_events.json \
-    tests/fixtures/game_end_events.json \
-    tests/fixtures/pause_menu_music_events.json \
-    tests/fixtures/geoharvest_burst_events.json \
-    tests/fixtures/long_session_events.json \
-    tests/fixtures/events_recorded_1790198294.json \
-    tests/fixtures/trading_hub_session_events.json
-
+# Le sha256 de la capture de chaque e2e, versionné à côté de lui sous
+# <events>.sha256. La capture est la concaténation brute des frames : son
+# empreinte couvre aussi leur nombre. Le binaire -O0 de make test : pas de
+# second arbre à compiler, et lisible sous gdb.
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames
 
-frames_capture = $(if $(filter $(SCREENCAST_EVENTS),$(1)),$(SCREENCAST_BIN),$(FRAMES_DIR)/$(1).bin)
+frames_capture = $(FRAMES_DIR)/$(1).bin
 frames_current = $(FRAMES_DIR)/$(1).sha256
 frames_reference = $(1).sha256
 
-# Sans .SECONDARY, make effacerait ces captures intermédiaires, que frames-ref
+# Sans .SECONDARY, make effacerait ces captures intermédiaires, que e2e-ref
 # compare à la capture de référence.
-.SECONDARY: $(foreach e,$(filter-out $(SCREENCAST_EVENTS),$(FRAMES_EVENTS)),$(call frames_capture,$(e)))
+.SECONDARY: $(foreach e,$(E2E_EVENTS),$(call frames_capture,$(e)))
 
 # Chaque capture a son propre dump texte : le dump par défaut,
 # tmp/pico8_replay_dump.txt, est relu par deux TU qui tournent en parallèle.
-$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay_e2e
+$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$<) $< $@ $(@:.bin=.dump.txt) > /dev/null
+	./$(TMP_DIR)/pico8_replay $< $@ $(@:.bin=.dump.txt) > /dev/null
 
 # L'affectation porte le code de sortie du sha256, qu'un pipe vers cut perdrait.
 frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
@@ -774,35 +755,32 @@ frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
 $(FRAMES_DIR)/%.sha256: $(FRAMES_DIR)/%.bin
 	$(frames_hash)
 
-$(call frames_current,$(SCREENCAST_EVENTS)): $(SCREENCAST_BIN)
-	$(frames_hash)
+e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh tools/frames_check.sh $(E2E_EXCEPTIONS)
+	@status=0; \
+	sh tools/e2e_limits.sh $(E2E_EXCEPTIONS) $(E2E_EVENTS) || status=1; \
+	sh tools/frames_check.sh $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e))) || status=1; \
+	echo "e2e: $(words $(E2E_EVENTS)) e2e dans $(E2E_DIR)"; \
+	exit $$status
 
-# Un rejeu sans référence n'est ni capturé ni comparé.
-FRAMES_CHECK_PREREQ := $(foreach e,$(FRAMES_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e))))
-FRAMES_TRIPLETS := $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)))
+GIF_DIR := gif
 
-frames-check: $(FRAMES_CHECK_PREREQ) tools/frames_check.sh
-	@sh tools/frames_check.sh $(FRAMES_TRIPLETS)
+gif: $(foreach e,$(E2E_EVENTS),$(GIF_DIR)/$(basename $(notdir $(e))).gif)
+	@echo "gif: $(words $(E2E_EVENTS)) GIF dans $(GIF_DIR)/, $$(du -ch $(GIF_DIR)/*.gif | tail -1 | cut -f1)"
 
-frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e)))
-	@$(foreach e,$(FRAMES_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "frames: reference posee dans $(call frames_reference,$(e)) : $$(cat $(call frames_reference,$(e)))" && ) true
+$(GIF_DIR)/%.gif: $(call frames_capture,$(E2E_DIR)/%.json) $(E2E_DIR)/%.json $(TMP_DIR)/pico8_gif
+	@mkdir -p $(@D)
+	./$(TMP_DIR)/pico8_gif $< $(E2E_DIR)/$*.json $@
 
-frames-ref: $(FRAMES_CHECK_PREREQ) $(FRAMES_TOOL) tools/frames_ref.sh
-	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)) $(or $(call from_title,$(e)),-))
+e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
+	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference posee dans $(call frames_reference,$(e))" && ) true
+
+e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
+	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
 # make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
 # Il répond « quels sites de cast REF ont été atteints, et avec quel tag », en
 # rejouant les binaires ci-dessous compilés avec -DPICO8_REF_AUDIT.
 $(TMP_DIR)/pico8_replay_refaudit: $(call refaudit_objs,src/main.c src/pico8_screencast.c $(ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_playability_refaudit: $(call refaudit_objs,tests/test_pico8_playability.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/phase4_playthrough_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_slipway_drag_refaudit: $(call refaudit_objs,tests/test_pico8_slipway_drag.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/slipway_drag_events.json | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit: $(call refaudit_objs,tests/test_pico8_empty_planet_cleared.c $(ENGINE_SRCS) src/pico8_fixed_test_double.c) tests/fixtures/empty_planet_cleared_events.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit: $(call refaudit_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -819,9 +797,6 @@ $(TMP_DIR)/test_pico8_ga_export_panel_by_refaudit: $(call refaudit_objs,tests/te
 
 REFAUDIT_BINS := \
     $(TMP_DIR)/pico8_replay_refaudit \
-    $(TMP_DIR)/test_pico8_playability_refaudit \
-    $(TMP_DIR)/test_pico8_slipway_drag_refaudit \
-    $(TMP_DIR)/test_pico8_empty_planet_cleared_refaudit \
     $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit \
     $(TMP_DIR)/test_pico8_data_init_refaudit \
     $(TMP_DIR)/test_pico8_planet_kj_dispatch_refaudit \
@@ -831,7 +806,7 @@ REFAUDIT_BINS := \
 # compare aux sites qu'il grep dans src/, pour qu'un site jamais atteint sorte en
 # NOT COVERED au lieu de manquer en silence.
 ref-audit: $(REFAUDIT_BINS)
-	sh tools/ref_audit_report.sh
+	sh tools/ref_audit_report.sh $(E2E_EVENTS)
 
 .PHONY: ref-audit
 
@@ -840,19 +815,83 @@ ref-audit: $(REFAUDIT_BINS)
 $(TMP_DIR)/pico8_class_coverage: $(call coverage_objs,src/main_class_coverage.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-DIR ?= tests/fixtures
 CLASS_COVERAGE_EXEMPT := tools/class_coverage_exempt.txt
 CLASS_COVERAGE_NET_EXPECTED := tools/class_coverage_net_expected.txt
 
-class_coverage_recordings = $(foreach e,$(RECORDINGS),--from-title $(e))
-
 class-coverage: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
-	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage '$(DIR)' $(CLASS_COVERAGE_EXEMPT)
+	@sh tools/class_coverage.sh ./$(TMP_DIR)/pico8_class_coverage '$(or $(DIR),-)' $(CLASS_COVERAGE_EXEMPT) $(if $(DIR),,$(E2E_EVENTS))
 
 class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT) $(CLASS_COVERAGE_NET_EXPECTED)
-	@sh tools/class_coverage.sh $(class_coverage_recordings) --expect $(CLASS_COVERAGE_NET_EXPECTED) ./$(TMP_DIR)/pico8_class_coverage - $(CLASS_COVERAGE_EXEMPT) $(FRAMES_EVENTS)
+	@sh tools/class_coverage.sh --expect $(CLASS_COVERAGE_NET_EXPECTED) ./$(TMP_DIR)/pico8_class_coverage - $(CLASS_COVERAGE_EXEMPT) $(E2E_EVENTS)
 
 .PHONY: class-coverage class-coverage-net
+
+LINE_COVERAGE := sh tools/line_coverage.sh
+LINE_COVERAGE_COVER := $(LINE_COVERAGE) cover ./$(TMP_DIR)/pico8_replay_gcov $(OBJ_GCOV_DIR)
+# Écrite une fois, sur l'ancien filet de longs enregistrements : on ne la
+# recalcule pas, on la compare.
+LINE_COVERAGE_REFERENCE := tools/line_coverage_reference.txt
+# Une ligne `fichier:ligne raison` par ligne de la référence qu'aucun rejeu
+# court n'atteint, éditée à la main.
+LINE_COVERAGE_UNREACHABLE := tools/line_coverage_unreachable.txt
+
+line-coverage: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
+	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage.txt
+	@echo "couverture de lignes: $$(wc -l < $(TMP_DIR)/line_coverage.txt) ligne(s) dans $(TMP_DIR)/line_coverage.txt"
+
+line-coverage-contrib: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
+	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage_self.txt
+	@$(if $(strip $(OTHERS)),$(LINE_COVERAGE_COVER) $(OTHERS),:) > $(TMP_DIR)/line_coverage_others.txt
+	@$(LINE_COVERAGE) contrib $(TMP_DIR)/line_coverage_self.txt $(TMP_DIR)/line_coverage_others.txt > $(TMP_DIR)/line_coverage_contrib.txt
+	@echo "apport de $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) ligne(s) dans $(TMP_DIR)/line_coverage_contrib.txt"
+
+# Sans e2e, l'ensemble couvert est vide : l'écart est toute la référence.
+e2e-gap: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE)
+	@$(if $(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(E2E_EVENTS),:) > $(TMP_DIR)/line_coverage_e2e.txt
+	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e.txt > $(TMP_DIR)/line_coverage_gap.txt
+	@sed 's/^/manque: /' $(TMP_DIR)/line_coverage_gap.txt
+	@n=$$(wc -l < $(TMP_DIR)/line_coverage_gap.txt | tr -d ' '); \
+	if [ "$$n" -ne 0 ]; then \
+	    echo "écart: $$n ligne(s) de $(LINE_COVERAGE_REFERENCE) ni couvertes par make e2e ($(words $(E2E_EVENTS)) e2e) ni dans $(LINE_COVERAGE_UNREACHABLE), dans $(TMP_DIR)/line_coverage_gap.txt"; \
+	    exit 1; \
+	fi
+	@echo "écart: nul -- make e2e couvre toute la référence hors $(LINE_COVERAGE_UNREACHABLE)"
+
+.PHONY: line-coverage line-coverage-contrib e2e-gap
+
+ifneq ($(filter minimize,$(MAKECMDGOALS)),)
+    ifeq ($(and $(strip $(EVENTS)),$(strip $(OUT))),)
+        $(error EVENTS ou OUT manque : make minimize EVENTS=<events.json> OUT=<sortie.json>)
+    endif
+endif
+ifneq ($(filter e2e-judge,$(MAKECMDGOALS)),)
+    ifeq ($(strip $(EVENTS)),)
+        $(error EVENTS manque : make e2e-judge EVENTS=<events.json>)
+    endif
+endif
+
+minimize: $(TMP_DIR)/pico8_minimize $(TMP_DIR)/pico8_replay_gcov tools/minimize.sh tools/line_coverage.sh
+	@sh tools/minimize.sh ./$(TMP_DIR)/pico8_minimize $(if $(MIN_CHUNK),--min-chunk $(MIN_CHUNK)) $(EVENTS) $(OUT) $(if $(MECHANICAL),,$(LINE_COVERAGE_COVER))
+	@echo "minimize: $(EVENTS) -> $(OUT), $$(./$(TMP_DIR)/pico8_minimize count $(OUT)) frame(s)"
+
+E2E_CLEANUP_DIR := $(TMP_DIR)/e2e_cleanup
+
+e2e-cleanup: $(TMP_DIR)/pico8_minimize $(TMP_DIR)/pico8_replay_gcov tools/e2e_cleanup.sh tools/line_coverage.sh
+	@rm -rf $(E2E_CLEANUP_DIR) && mkdir -p $(E2E_CLEANUP_DIR)
+	@$(foreach e,$(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(e) > $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines && ) true
+	@$(if $(E2E_EVENTS),sh tools/e2e_cleanup.sh $(foreach e,$(E2E_EVENTS),$(e) $$(./$(TMP_DIR)/pico8_minimize count $(e)) $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines),:) > $(E2E_CLEANUP_DIR)/remove.txt
+	@sed 's/^/à retirer: /' $(E2E_CLEANUP_DIR)/remove.txt
+	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') fichier(s) à retirer sur $(words $(E2E_EVENTS)), rien n'est supprimé"
+
+e2e-judge: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
+	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/e2e_judge_self.txt
+	@$(if $(filter-out $(EVENTS),$(E2E_EVENTS)),$(LINE_COVERAGE_COVER) $(filter-out $(EVENTS),$(E2E_EVENTS)),:) > $(TMP_DIR)/e2e_judge_others.txt
+	@$(LINE_COVERAGE) contrib $(TMP_DIR)/e2e_judge_self.txt $(TMP_DIR)/e2e_judge_others.txt > $(TMP_DIR)/e2e_judge_contrib.txt
+	@n=$$(wc -l < $(TMP_DIR)/e2e_judge_contrib.txt | tr -d ' '); \
+	echo "e2e-judge: $(EVENTS) ajoute $$n ligne(s) à make e2e, dans $(TMP_DIR)/e2e_judge_contrib.txt"; \
+	[ "$$n" -gt 0 ]
+
+.PHONY: minimize e2e-cleanup e2e-judge
 
 value-members: tools/entity_value_members.sh
 	@sh tools/entity_value_members.sh
@@ -891,27 +930,13 @@ CENSUS_UNIT_TESTS := \
     test_pico8_hy \
     test_pico8_fm \
     test_pico8_planet_kj_dispatch \
-    test_pico8_playability \
-    test_pico8_top_menubar \
-    test_pico8_shop_tooltip_fillp \
     test_pico8_bg_kj \
-    test_pico8_slipway_drag \
-    test_pico8_tech_screen \
-    test_pico8_game_end \
-    test_pico8_pause_menu_music \
-    test_pico8_geoharvest_burst \
-    test_pico8_score_panel_close \
-    test_pico8_score_panel_stars \
-    test_pico8_empty_planet_cleared \
     test_pico8_planet_gh_row_lq \
     test_pico8_ga_export_panel_by \
-    test_pico8_built_planet_panel_nil_row \
-    test_pico8_rich_planet_exports \
-    test_pico8_cheat_code \
     test_pico8_probe_mm_rnd_order
 
 CENSUS_TMP := tmp/census
-CENSUS_EVENTS ?= $(FRAMES_EVENTS)
+CENSUS_EVENTS ?= $(E2E_EVENTS)
 CENSUS_UNIT ?= $(CENSUS_UNIT_TESTS)
 CENSUS_TABLE ?= tools/member_census.txt
 CENSUS_CFLAGS := -DPICO8_MEMBER_CENSUS -I src -I $(CENSUS_TMP)/gen
@@ -932,9 +957,9 @@ CENSUS_REPLAYS := $(addprefix census-replay-,$(CENSUS_EVENTS))
 
 census-runs: $(CENSUS_REPLAYS) $(addprefix unit-run-,$(CENSUS_UNIT))
 
-$(CENSUS_REPLAYS): census-replay-%: % $(TMP_DIR)/pico8_replay_e2e
+$(CENSUS_REPLAYS): census-replay-%: % $(TMP_DIR)/pico8_replay
 	@mkdir -p $(CENSUS_TMP)/dump/$(<D)
-	PICO8_MEMBER_CENSUS_OUT=$(CURDIR)/$(CENSUS_TMP)/raw/replay ./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$<) $< /dev/null $(CENSUS_TMP)/dump/$<.dump.txt > /dev/null
+	PICO8_MEMBER_CENSUS_OUT=$(CURDIR)/$(CENSUS_TMP)/raw/replay ./$(TMP_DIR)/pico8_replay $< /dev/null $(CENSUS_TMP)/dump/$<.dump.txt > /dev/null
 
 .PHONY: member-census census-runs $(CENSUS_REPLAYS)
 
@@ -943,11 +968,11 @@ $(TMP_DIR)/pico8_replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_D
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^)
 
 SANITIZE_DIR := $(TMP_DIR)/sanitize
-SANITIZE_RUNS := $(addprefix sanitize-run-,$(FRAMES_EVENTS))
+SANITIZE_RUNS := $(addprefix sanitize-run-,$(E2E_EVENTS))
 
 $(SANITIZE_RUNS): sanitize-run-%: % $(TMP_DIR)/pico8_replay_sanitize
 	@mkdir -p $(SANITIZE_DIR)/$(<D)
-	@ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/pico8_replay_sanitize $(call from_title,$<) $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< sale"; exit 1; }
+	@ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/pico8_replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< sale"; exit 1; }
 
 sanitize-net: $(SANITIZE_RUNS)
 	@echo "sanitize: $(words $(SANITIZE_RUNS)) propre(s)"
@@ -960,27 +985,6 @@ constants-check: tools/constants_check.sh tools/constants_compare.sh tools/const
 	    $(CORE_SRCS)
 
 .PHONY: constants-check
-
-AUDIT_DIR := $(TMP_DIR)/audit
-
-# pico8_fixed.c vient de l'arbre e2e, sans le define : sous -DPICO8_FLOAT_AUDIT,
-# la macro réécrirait la définition de pico8_fixed_flr_int.
-$(TMP_DIR)/pico8_replay_audit: $(call audit_objs,src/main.c src/pico8_screencast.c src/pico8_float_audit.c $(filter-out src/pico8_fixed.c,$(ENGINE_SRCS))) $(call e2e_objs,src/pico8_fixed.c src/pico8_fixed_test_double.c) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-FLOAT_AUDIT_C1 := tools/float_audit_c1.txt
-float_audit_records = $(AUDIT_DIR)/$(1).aud
-
-# Le binaire d'audit ajoute à PICO8_FLOAT_AUDIT_OUT sans le vider, d'où le rm.
-$(AUDIT_DIR)/%.aud: % $(TMP_DIR)/pico8_replay_audit
-	@mkdir -p $(@D)
-	@rm -f $@
-	PICO8_FLOAT_AUDIT_OUT=$@ ./$(TMP_DIR)/pico8_replay_audit $(call from_title,$<) $< /dev/null $(@:.aud=.dump.txt) > /dev/null
-
-float-audit: $(foreach e,$(FRAMES_EVENTS),$(call float_audit_records,$(e))) tools/float_audit.sh $(FLOAT_AUDIT_C1)
-	sh tools/float_audit.sh $(FLOAT_AUDIT_C1) $(foreach e,$(FRAMES_EVENTS),$(e) $(call float_audit_records,$(e))) -- $(CORE_SRCS)
-
-.PHONY: float-audit
 
 FLOAT_GUARD := tools/float_guard.txt
 
@@ -1052,7 +1056,6 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
--include $(wildcard $(OBJ_AUDIT_DIR)/src/*.d $(OBJ_AUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_E2E_DIR)/src/*.d $(OBJ_E2E_DIR)/tests/*.d)
+-include $(wildcard $(OBJ_GCOV_DIR)/src/*.d $(OBJ_GCOV_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)

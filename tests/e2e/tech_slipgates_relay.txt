@@ -1,0 +1,22 @@
+« slipgates » avec la triche : un slipgate posé entre une mine et une
+forgeworld relaie le commerce. 111 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50) ; f11-27 : `mz` tenu en (80,55) : « p27 »
+  (88,37) minérale, « p48 » (78,73) forgeworld.
+- f35, f37 : « p27 » en « mine » ; f39, f41 : « p48 » en « nanotech ».
+- f43-54 : triche O O X X O O X X : 99 de recherche.
+- f55-66 : « space folding », « geneseeds » (première rangée (30,24)),
+  puis « slipgates » (deuxième rangée (30,33)).
+- f67-70 : slipgate glissé de son icône (102,124) en (83,55).
+- f71-74 : slipway de « p27 » au slipgate (`nr:gv`, `nr:hb`) ;
+  f75-78 : slipway tiré du slipgate (`nr:ldown`) vers « p48 ».
+- f79 : saut d'année `ix[1]` (118,0) : l'ore de « p27 » traverse le
+  slipgate (`nr:cn`), « p48 » passe content.
+- f81-100 : points de transit sur les slipways, jusqu'à leur disparition.
+- f101 : panneau de « p48 », servie et content, revenu positif :
+  « content », « wants more: », « receives: », « exports: ».
+- f105, f107 : le premier clic sur `ix[1]` ferme le panneau, le second
+  saute une année.
+
+Relecture humaine dans raylib : à faire.

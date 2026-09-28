@@ -1,0 +1,17 @@
+« trade league » avec la triche : un trading hub reçoit deux ressources
+différentes et passe au niveau 2. 83 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50) ; f11-27 : `mz` tenu en (80,55) : « p27 »
+  (88,37) minérale, « p48 » (78,73) forgeworld.
+- f35, f37 : « p27 » en « mine » ; f39, f41 : « p48 » en « nanotech ».
+- f43-54 : triche O O X X O O X X : 99 de recherche.
+- f55-66 : « space folding », « geneseeds » (première rangée (30,24)),
+  puis « trade league » (quatrième rangée (30,50)).
+- f67-70 : trading hub glissé de son icône (102,124) en (100,62).
+- f71-78 : slipways de « p27 » puis de « p48 » vers le hub.
+- f79 : saut d'année `ix[1]` (118,0) : le hub reçoit ore et tech
+  (`dh`, branche `nl`), niveau 2 ; son `nl:ly` accélère la pulsation
+  (f81-82).
+
+Relecture humaine dans raylib : à faire.

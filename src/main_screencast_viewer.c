@@ -4,7 +4,7 @@
  *
  * Il n'ouvre rien en ecriture, nulle part : un aller-retour par le
  * visualiseur qui changerait un octet ferait diverger l'empreinte de
- * `make frames-check`. C'est pourquoi il n'appelle pas
+ * `make e2e`. C'est pourquoi il n'appelle pas
  * pico8_raylib_backend_init()/present() -- init() ouvre un enregistrement
  * de session et present() lit la memoire d'un jeu qui tourne. Les deux
  * seules fonctions du backend qu'il emprunte sont celles qui ne recoivent
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr,
                 "screencast-viewer: usage : %s <fichier de pixels>\n"
-                "screencast-viewer: le fabriquer : make screencast (ecrit tmp/screencast.bin)\n",
+                "screencast-viewer: le fabriquer : make screencast EVENTS=<events.json> (ecrit tmp/screencast.bin)\n",
                 argv[0]);
         return 1;
     }

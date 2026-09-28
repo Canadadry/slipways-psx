@@ -1,28 +1,20 @@
 #!/bin/sh
-# usage: class_coverage.sh [--from-title <events>]... [--expect <référence>]
+# usage: class_coverage.sh [--expect <référence>]
 #                          <outil pico8_class_coverage> <dossier|->
 #                          [<exemptions> [<events>...]]
 # Rejoue chaque <dossier>/*events.json (sans descendre dans les sous-dossiers ;
-# - : aucun), puis chaque <events> nommé, un processus par rejeu. Un fichier
-# nommé par --from-title est rejoué avec ce drapeau. Rend 1 si une classe est
-# à 0 sans être exemptée, ou, avec --expect, si la sortie diffère octet pour
-# octet de <référence> (absente comprise).
+# - : aucun), puis chaque <events> nommé, un processus par rejeu, depuis
+# l'écran titre. Rend 1 si une classe est à 0 sans être exemptée, ou, avec
+# --expect, si la sortie diffère octet pour octet de <référence> (absente
+# comprise).
 
 set -u
 
-recordings=
 expect=
-while :; do
-    case "${1:-}" in
-    --from-title)
-        recordings="$recordings
-$2"
-        ;;
-    --expect) expect=$2 ;;
-    *) break ;;
-    esac
+if [ "${1:-}" = --expect ]; then
+    expect=$2
     shift 2
-done
+fi
 
 tool=$1
 dir=$2
@@ -40,11 +32,7 @@ report() {
     crashed=0
     for events in "$@"; do
         [ -f "$events" ] || continue
-        flag=
-        if printf '%s\n' "$recordings" | grep -qxF -- "$events"; then
-            flag=--from-title
-        fi
-        "$tool" $flag "$events" > "$work/out" 2> "$work/err"
+        "$tool" "$events" > "$work/out" 2> "$work/err"
         status=$?
         if [ "$status" -eq 2 ]; then
             echo "illisible: $events"

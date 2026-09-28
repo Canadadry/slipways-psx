@@ -40,18 +40,18 @@ void pico8_screencast_player_format_refusal(pico8_screencast_status_t status, co
     case PICO8_SCREENCAST_UNREADABLE:
         snprintf(out, out_size,
                  "screencast-viewer: '%s' est introuvable ou illisible -- aucune fenetre n'a ete ouverte. "
-                 "Fabriquer les pixels : make screencast", path);
+                 "Fabriquer les pixels : make screencast EVENTS=<events.json>", path);
         break;
     case PICO8_SCREENCAST_EMPTY:
         snprintf(out, out_size,
                  "screencast-viewer: '%s' est vide -- aucune fenetre n'a ete ouverte. "
-                 "Une capture interrompue avant sa premiere frame donne ce fichier ; la refaire : make screencast", path);
+                 "Une capture interrompue avant sa premiere frame donne ce fichier ; la refaire : make screencast EVENTS=<events.json>", path);
         break;
     case PICO8_SCREENCAST_TRUNCATED:
         snprintf(out, out_size,
                  "screencast-viewer: '%s' est tronque : sa taille n'est pas un multiple de %d octets, "
                  "donc il se termine au milieu d'une frame -- aucune fenetre n'a ete ouverte. "
-                 "La refaire : make screencast", path, PICO8_SCREENCAST_FRAME_BYTES);
+                 "La refaire : make screencast EVENTS=<events.json>", path, PICO8_SCREENCAST_FRAME_BYTES);
         break;
     case PICO8_SCREENCAST_OK:
     default:

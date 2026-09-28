@@ -14,7 +14,7 @@ while [ $# -ge 3 ]; do
 
     if [ ! -f "$reference" ]; then
         echo "frames: $events : aucune reference ($reference absent) -- rien capture ni compare."
-        echo "frames:   pour la poser sur le code actuel : make frames-baseline"
+        echo "frames:   pour la poser sur le code actuel : make e2e-baseline"
         continue
     fi
     if [ ! -f "$current" ]; then
@@ -35,8 +35,8 @@ while [ $# -ge 3 ]; do
         echo "frames: DIVERGENT $events -- le port ne dessine plus la meme chose."
         echo "frames:   attendue ($reference) : $attendue"
         echo "frames:   obtenue  ($current) : $obtenue"
-        echo "frames:   reconstruire la reference et trouver la premiere frame : make frames-ref"
-        echo "frames:   si la divergence est voulue : make frames-baseline"
+        echo "frames:   reconstruire la reference et trouver la premiere frame : make e2e-ref"
+        echo "frames:   si la divergence est voulue : make e2e-baseline"
     } >&2
 done
 

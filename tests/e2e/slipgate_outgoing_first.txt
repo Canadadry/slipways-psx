@@ -1,0 +1,19 @@
+Slipgate relié d'abord vers le client, puis depuis la mine : l'ore
+s'épuise avant la fin du tour des slipways du slipgate. 85 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50) ; f11-27 : `mz` tenu en (80,55) : « p27 »
+  (88,37) minérale, « p48 » (78,73) forgeworld.
+- f35, f37 : « p27 » en « mine » ; f39, f41 : « p48 » en « nanotech ».
+- f43-54 : triche O O X X O O X X : 99 de recherche.
+- f55-66 : « space folding », « geneseeds », puis « slipgates ».
+- f67-70 : slipgate glissé de son icône (102,124) en (83,55).
+- f71-74 : slipway du slipgate vers « p48 », en premier.
+- f75-78 : slipway de « p27 » au slipgate : `nr:cn` parcourt `oe` dans
+  l'ordre de pose, « p48 » prend la seule unité d'ore, puis la slipway
+  entrante trouve `mu` à 0 (`continue`). Le revenu passe de -2 à +2.
+- f79-84 : attente.
+
+Pas besoin de saut d'année ni de deux clients : l'ordre de pose suffit.
+
+Relecture humaine dans raylib : à faire.
