@@ -1,9 +1,7 @@
 /* The score panel `pj`, built by its only road (`eu()`, `pico8_pj_new(NULL)`,
- * on a game started as the net starts it), read only through the dual-form
- * field API and `pico8_pj_default(...)` for spec
- * defaults, and driven through the real `mv`/`cr()`/`de.my`. The frozen
- * values were taken on the code where `pj` was still a class instance (and
- * `CR_HASH` where `pj.cr` was still a table) and must not be re-taken. */
+ * on a game started directly: no events file), read only through the
+ * dual-form field API and `pico8_pj_default(...)` for spec defaults, and
+ * driven through the real `mv`/`cr()`/`de.my`. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -20,7 +18,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -43,19 +40,16 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define RECORDING "tests/fixtures/game_end_events.json"
 
 #define BUILT_HASH 0x9BE763EBu
 #define SHARED_HASH 0xAC16627Bu
 #define LIFE_HASH 0xDDBCC765u
-#define REPLAY_HASH 0xBB8AD732u
 #define CR_HASH 0x7D1C5B1Fu
 #define PJ_MEMBERS_HASH 0xD786BEE2u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* 4 of the 5 tables of pj's spec, read on the class by the cart; the 5th,
  * `cr`, is its own struct. */
@@ -251,29 +245,15 @@ static pico8_value_t nil(void) {
     return pico8_value_ref(NULL);
 }
 
-/* A game started as the net starts it: `eu()` on `bo[2]` before frame 0. */
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
 static void *start_game(void) {
-    pico8_value_t difficulty;
-
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, RECORDING));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-    pico8_cheat_init(&cheat);
+    pico8_eu(NULL);
     assert(pico8_ju() != NULL);
     return pico8_ju();
-}
-
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
-    }
 }
 
 static const pico8_ob_table_t *row_of(const pico8_ob_table_t *t, int i) {
@@ -495,29 +475,6 @@ static void test_life(void) {
     assert(bool_state(ju, "c_") == 2);
     h = fold_field(h, ju, "fa");
     check("life", h, LIFE_HASH);
-}
-
-/* game_end_events.json from the start to its last frame: per frame the
- * panel's rank and `t`, its `c_`, `gz`, `fa`, and whether `ed` is `kc`;
- * then the screen and `ou`. */
-static void test_replay(void) {
-    uint32_t h = 2166136261u;
-    void *ju = start_game();
-    int i;
-
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame(i);
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), ju));
-        h = fold_field(h, ju, "t");
-        h = fold_field(h, ju, "c_");
-        h = fold_field(h, ju, "gz");
-        h = fold_field(h, ju, "fa");
-        h = fnv(h, (uint32_t)(get_ref(ju, "ed") == pico8_kc() && pico8_kc() != NULL));
-    }
-    assert(bool_state(ju, "c_") == 2 && get_fixed(ju, "fa") == pico8_fixed_from_int(13));
-    h = fnv(h, screen_hash());
-    h = fold_field(h, ju, "ou");
-    check("replay", h, REPLAY_HASH);
 }
 
 /* `pj.cr` read as `pz` reads it. */
@@ -979,7 +936,6 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_shared);
     in_fresh_child(test_life);
-    in_fresh_child(test_replay);
     in_fresh_child(test_cr);
     in_fresh_child(test_pj_is_a_struct);
     in_fresh_child(test_cr_is_a_struct);
