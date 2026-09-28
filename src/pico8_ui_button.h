@@ -7,7 +7,6 @@
 #include "pico8_layout.h"
 #include "pico8_map_tables.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
@@ -59,15 +58,20 @@ const pico8_struct_class_t *pico8_js_struct_class(void);
 
 /* The cart's keys of a button, each typed as the member it fills (NULL
  * or an unset flag: absent). `lq`, `h_` and `jb` are the sources `js:pq`
- * copies a row or a `jb` from: a table, a list, an `lq` row, or nil. */
+ * copies a row or a `jb` from: the row `lq_row`, `h_row`, `jb_row` when set
+ * (read during the construction, not kept), else a list, an `lq` row, true,
+ * false or nil. */
 typedef struct {
     int has_fa; /* 0: `fa` keeps `pico8_js_start.fa` */
     pico8_fixed_t fa;
     pico8_value_t lq;
+    const pico8_lq_keys_t *lq_row;
     int has_h_; /* present: a nil `h_` builds an empty row (TROU-23), false none */
     pico8_value_t h_;
+    const pico8_lq_keys_t *h_row;
     int has_jb; /* present: a nil `jb` builds an empty `jb` (TROU-23) */
     pico8_value_t jb;
+    const pico8_jb_row_t *jb_row;
     pico8_vec_t *ra;
     pico8_vec_t *qf;
     int has_my; /* present, and a NULL `my` is `false` */
@@ -91,11 +95,6 @@ typedef struct {
  * through `lt`, and nothing frees it. */
 pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys);
 
-/* A button received as a table: its named keys as `pico8_js_keys_t` holds
- * them, a key present at nil included; a positional or another name
- * asserts. The table is read, never kept; its values are borrowed. */
-pico8_js_t *pico8_js_new_table(const pico8_ob_table_t *overrides);
-
 /* `h_` as a value: REF NULL when `self` is NULL or `h_` is absent, `false`
  * when present and NULL, a REF to the row otherwise. */
 pico8_value_t pico8_js_h_(const pico8_js_t *self);
@@ -105,8 +104,10 @@ pico8_value_t pico8_js_h_(const pico8_js_t *self);
 pico8_value_t pico8_js_my(const pico8_js_t *self);
 
 /* `lq`, `h_`, `jb` are the row's construction values `js:pq` builds the
- * members from, TROU-23 already applied; borrowed, never kept. */
-void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, pico8_value_t h_, pico8_value_t jb);
+ * members from, TROU-23 already applied; `lq_row`, `h_row`, `jb_row`, when
+ * set, the rows it builds them from instead. All borrowed, never kept. */
+void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, const pico8_lq_keys_t *lq_row, pico8_value_t h_,
+                 const pico8_lq_keys_t *h_row, pico8_value_t jb, const pico8_jb_row_t *jb_row);
 
 void pico8_js_ph(pico8_js_t *self);
 

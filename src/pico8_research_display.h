@@ -5,21 +5,20 @@
 #include "pico8_fixed.h"
 #include "pico8_layout.h"
 #include "pico8_list.h"
-#include "pico8_ob.h"
 #include "pico8_research.h"
 #include "pico8_value.h"
 
 /* TROU-7 */
 /* Returns a fresh row, or NULL when pico8_jo_ex() does. The two items
  * appended to `items` after construction miss the `fs`/`w` `lq:pq`
- * computed, so `lq:ol` skips them -- but `js:pq` rebuilds a row from its
- * table view, where they do appear. */
+ * computed, so `lq:ol` skips them -- but `js:pq`'s copy of the row, built
+ * from all its items, draws them. */
 pico8_lq_t *pico8_hp_lq(pico8_hp_t *self);
 
 /* TROU-7 */
-/* Returns a fresh table the caller never frees, or NULL when `self.ii` is
- * truthy. Its entry 1 holds a heap string nothing ever frees either. */
-pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self);
+/* Returns a fresh row of one line, never freed, or NULL when `self.ii` is
+ * truthy. The line's first item is a heap string nothing frees either. */
+const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self);
 
 /* TROU-7 */
 /* A static function of `jo`, not a method: `jo.ex(...)`, never `jo:ex(...)`.

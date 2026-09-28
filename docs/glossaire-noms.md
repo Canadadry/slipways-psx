@@ -429,22 +429,22 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `mh` | `pico8_mh_t` | boîte de message ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, chacun un article de `bl`, `rh`, `lh`) |
 | `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
-| `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
-| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) ; une table reçue passe par `pico8_lq_new_table` |
+| `pz(self,bs)` | `pico8_pz` | construit une boîte à partir des clés de ses boutons (`pico8_js_keys_t`, un tableau et son compte) et remplit `ok.le` avec ses icônes cliquables |
+| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) |
+| — | `pico8_lq_keys_of_row` | les clés d'une rangée générée : ses items (une sous-rangée, un tuple, en REF vers elle) et son `c` |
 | `lq(row)` | `pico8_lq_keys_of` | les clés d'où `js:pq` recopie une rangée : tous ses items dans l'ordre, empruntés, et ses `c`, `bg`, `score`, `ra` |
-| `jb` | `pico8_jb_t` | une bulle d'info ; ses clés sont ses lignes, une rangée générée `pico8_jb_row_t` (`dr`) ; une table reçue passe par `pico8_jb_new_table` |
+| `jb` | `pico8_jb_t` | une bulle d'info ; ses clés sont ses lignes, une rangée générée `pico8_jb_row_t` (`dr`, `oy` de `nb`, `hp:jb`) |
 | — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, `px`, `dz`, `em` de l'arbre `jo`, `rb` de `fv`, `gs`, `i_` de `pj`, `fk` et `lq` de `hp` : une rangée de chaînes, de nombres entiers (`n`) ou non (`is_fixed`, `fixed`), de faux (`is_false`), de rangées et de pointeurs (`is_ref`, `ref` ; NULL : nil), avec son `c`, son `fn` et son `qe` éventuels. Est aussi la forme d'un article de `bl` et d'un tuple de `lq:mn` (`{f,w,qw,qv}`, ou `{qe=x}` lu `{x,5}`) |
-| — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t` (une sous-rangée y reste la rangée générée, un tuple), pour les sources de ligne de `js` encore reçues en table |
 | — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | — | `pico8_qe_map_t` | une table par ressource (`po`, `fu`) : clés `qe` entières, ordre d'insertion, 16 au plus ; `pico8_qe_map_get`/`_set` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
-| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` restent des sources de rangée `pico8_value_t`) ; une table reçue (`pz`, `eu`, `pj:ph`) passe par `pico8_js_new_table` |
+| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` : une rangée par ses clés `lq_row`/`h_row` ou sa rangée générée `jb_row`, sinon une liste, un `lq` ou nil) |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton |
-| `bo` | `pico8_bo_table` (typée), `g_bo` (vue ob, static, `pico8_help.c`, construite par `pico8_bo_view`) | les options de difficulté de l'écran-titre |
-| `ix` | `pico8_ix_table` (typée), `pico8_ix()` (vue ob, `pico8_ix_view`) | les 4 boutons du menu de la vue galaxie |
-| `ha` | `pico8_ha_table`, `pico8_ha_tail` (typées), `pico8_ha()` (vue ob, `pico8_ha_view`) | le menu pause : recommencer, musique, bruitages, aide |
+| `bo` | `pico8_bo_table` (typée ; `fv:pq` en construit les clés des boutons) | les options de difficulté de l'écran-titre |
+| `ix` | `pico8_ix_table` (typée), `pico8_ix_button(i)`, `pico8_ix_my(i)` | les 4 boutons du menu de la vue galaxie |
+| `ha` | `pico8_ha_table`, `pico8_ha_tail` (typées), `pico8_ha_pz()` (le `p` de `pz`) | le menu pause : recommencer, musique, bruitages, aide |
 | `fv` | `pico8_fv_t` | l'écran d'aide ; étend `g_` |
 | `pj` | `pico8_pj_t` | le panneau de score ; `ju` est son singleton |
 | `eg()` | `pico8_eg` | recalcule la palette du panneau de score selon l'avancement |
@@ -517,11 +517,11 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `ju` | `pico8_ju` | le singleton du panneau de score, instance de `pj` |
 | `cr()` | `pico8_cr` | l'écran de l'arbre technologique |
 | `ef` | `pico8_ef_table` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
-| `bz` | `pico8_bz_table` (typée), `pico8_bz()` (`pico8_bz_row_t`, copies statiques que `pj:ph` réécrit, remises à l'init) | les rangées du détail de score |
-| `de` | `pico8_de` | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau. Il ne doit y en avoir qu'une |
+| `bz` | `pico8_bz_table` (typée), `pico8_pj_bz()` (`pico8_bz_row_t`, copies statiques que `pj:ph` réécrit, remises à l'init) | les rangées du détail de score |
+| `de` | — | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau ; le port n'en garde que la fonction |
 | `de.my` | `pico8_de_my` | la fonction que porte `de`, seule clé que `fq(de)` de `ix[3]` lit |
-| `ix` | `pico8_ix_table`, `pico8_ix()` | les 4 boutons de la vue galaxie |
-| `ha` | `pico8_ha_table`, `pico8_ha()` | le menu pause |
+| `ix` | `pico8_ix_table`, `pico8_ix_button(i)` | les 4 boutons de la vue galaxie |
+| `ha` | `pico8_ha_table`, `pico8_ha_pz()` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |
 | `je` | `pico8_je` | le singleton lecteur de souris, instance de `nf` |
 

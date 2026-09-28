@@ -17,25 +17,6 @@
 #include "pico8_type_tag.h"
 
 static int g_fv_up = 0;
-static pico8_ob_table_t *g_bo = NULL;
-
-/* Returns a new, heap-backed list the caller owns and must release with
- * pico8_list_free(). */
-static pico8_list_t pico8_help_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
 
 static pico8_value_t pico8_fv_eu_placeholder(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     (void)self;
@@ -60,25 +41,35 @@ static pico8_value_t pico8_fv_hd_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_gk((const pico8_struct_header_t *)self, arg0, arg1);
 }
 
+/* The most items a row of `bo` holds. */
+#define PICO8_BO_ROW_CAP 4
+
+/* `pz(self, bo)`, each row's `my` the `eu` of this game. */
 void pico8_fv_pq(pico8_fv_t *self) {
+    pico8_js_keys_t bs[PICO8_BO_COUNT];
+    pico8_lq_keys_t lq[PICO8_BO_COUNT];
+    pico8_value_t items[PICO8_BO_COUNT][PICO8_BO_ROW_CAP];
     int i;
 
-    if (g_bo != NULL) {
-        for (i = 0; i < g_bo->count; i++) {
-            if (g_bo->entries[i].key.kind == PICO8_OB_KEY_INDEX && g_bo->entries[i].value.kind == PICO8_VALUE_REF &&
-                g_bo->entries[i].value.as.ref != NULL) {
-                pico8_ob_table_t *d = (pico8_ob_table_t *)g_bo->entries[i].value.as.ref;
-                assert(pico8_type_tag_of(d) == PICO8_TYPE_TAG_OB_TABLE && "bo's rows must be plain spec tables");
-                pico8_ob_table_set_name(d, "my", pico8_eu_field_value());
-            }
-        }
+    if (self == NULL) {
+        return;
     }
+    for (i = 0; i < PICO8_BO_COUNT; i++) {
+        const pico8_bo_entry_t *e = &pico8_bo_table[i];
 
-    if (self != NULL) {
-        pico8_list_t items = pico8_help_positional_values(g_bo);
-        pico8_pz((const pico8_struct_header_t *)self, &items);
-        pico8_list_free(&items);
+        memset(&bs[i], 0, sizeof bs[i]);
+        lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_BO_ROW_CAP);
+        bs[i].lq = pico8_value_ref(NULL);
+        bs[i].lq_row = &lq[i];
+        bs[i].px = e->px;
+        bs[i].has_trade = 1;
+        bs[i].trade = pico8_fixed_from_int(e->trade);
+        bs[i].has_en = 1;
+        bs[i].en = e->en;
+        bs[i].has_my = 1;
+        bs[i].my = pico8_eu_field_value().as.function;
     }
+    pico8_pz((const pico8_struct_header_t *)self, bs, PICO8_BO_COUNT);
 }
 
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec_t p) {
@@ -253,8 +244,6 @@ void pico8_help_init(void) {
 
     pico8_help_shutdown();
 
-    g_bo = pico8_bo_view();
-
     g_fv_up = 1;
 
     pico8_help_set_eu(NULL);
@@ -262,10 +251,6 @@ void pico8_help_init(void) {
 
 void pico8_help_shutdown(void) {
     g_fv_up = 0;
-    if (g_bo != NULL) {
-        pico8_ob_table_free(g_bo);
-        g_bo = NULL;
-    }
     pico8_help_set_eu(NULL);
 }
 

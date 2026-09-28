@@ -369,46 +369,35 @@ typedef struct {
     pico8_vec_t *ra_heap;
 } pico8_pz_ctx_t;
 
-static int pico8_pz_step(pico8_value_t e, void *ctx_v, pico8_value_t *out_value) {
-    pico8_pz_ctx_t *ctx = ctx_v;
-    pico8_ob_table_t *b;
-    pico8_vec_t *qf_heap;
+/* One row of `bs` onto a copy of its keys: the shared `ra`, its own `qf`,
+ * `fa` from `p.ca`; then the button. */
+static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row) {
+    pico8_js_keys_t b = *row;
     pico8_value_t ca_val;
     pico8_vec_t gq;
-    pico8_js_t *made;
-
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
-    }
-    assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_OB_TABLE && "pz's bs items must be plain spec tables");
-    b = (pico8_ob_table_t *)e.as.ref;
 
     /* Every item's "ra" is the same vector object, as in Lua -- not a copy
      * per item. */
-    pico8_ob_table_set_name(b, "ra", pico8_value_ref(ctx->ra_heap));
+    b.ra = ctx->ra_heap;
 
-    qf_heap = malloc(sizeof *qf_heap);
-    *qf_heap = ctx->bp;
-    pico8_ob_table_set_name(b, "qf", pico8_value_ref(qf_heap));
+    b.qf = malloc(sizeof *b.qf);
+    *b.qf = ctx->bp;
 
     /* TROU-9 */
     if (pico8_entity_get_field(ctx->p, "ca", &ca_val)) {
-        pico8_ob_table_set_name(b, "fa", ca_val);
+        assert(ca_val.kind == PICO8_VALUE_FIXED && "js.fa: a `ca` that is not a fixed does not fit the member's type");
+        b.fa = ca_val.as.fixed;
+        b.has_fa = 1;
     }
 
     gq = pico8_msgbox_field_vec(ctx->p, "gq");
     ctx->bp = pico8_vec_add(ctx->bp, gq);
 
-    made = pico8_js_new_table(b);
-    *out_value = pico8_value_ref(made);
-    return 1;
+    return pico8_js_new(&b);
 }
 
-void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
+void pico8_pz(const pico8_struct_header_t *p, const pico8_js_keys_t *bs, int n) {
     pico8_value_t ep_val;
-    const pico8_list_t *bs_effective = bs;
-    pico8_list_t merged;
-    int merged_built = 0;
     pico8_value_t hi_val;
     pico8_vec_t ra;
     pico8_pz_ctx_t ctx;
@@ -417,6 +406,10 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
     pico8_value_t eo_val;
     pico8_value_t rn_arg;
     pico8_value_t ff_val;
+    pico8_js_keys_t ep_row = {0};
+    pico8_lq_keys_t ep_lq = {0};
+    int has_ep;
+    int i;
 
     if (p == NULL) {
         return;
@@ -424,22 +417,14 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
     assert(pico8_type_tag_of(p) == PICO8_TYPE_TAG_STRUCT &&
            "pz: p is a struct; no class instance reaches pz any more");
 
-    if (pico8_entity_get_field(p, "ep", &ep_val) && pico8_msgbox_truthy(ep_val)) {
-        pico8_ob_table_t *inner = pico8_ob_table_new();
-        pico8_ob_table_t *outer = pico8_ob_table_new();
-        pico8_list_t prefix_item;
-
-        pico8_ob_table_set_index(inner, 1, ep_val);
-        pico8_ob_table_set_name(inner, "c", pico8_value_fixed(pico8_fixed_from_int(13)));
-        pico8_ob_table_set_name(outer, "lq", pico8_value_ref(inner));
-
-        pico8_list_init(&prefix_item);
-        pico8_list_add(&prefix_item, pico8_value_ref(outer));
-
-        merged = pico8_la(&prefix_item, bs);
-        pico8_list_free(&prefix_item);
-        merged_built = 1;
-        bs_effective = &merged;
+    has_ep = pico8_entity_get_field(p, "ep", &ep_val) && pico8_msgbox_truthy(ep_val);
+    if (has_ep) {
+        ep_lq.items = &ep_val;
+        ep_lq.count = 1;
+        ep_lq.has_c = 1;
+        ep_lq.c = pico8_fixed_from_int(13);
+        ep_row.lq = pico8_value_ref(NULL);
+        ep_row.lq_row = &ep_lq;
     }
 
     if (pico8_entity_get_field(p, "eo", &eo_val) && pico8_msgbox_truthy(eo_val)) {
@@ -466,16 +451,18 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs) {
 
     /* TROU-7 */
     le_heap = malloc(sizeof *le_heap);
-    *le_heap = pico8_nv(bs_effective, pico8_pz_step, &ctx);
+    pico8_list_init(le_heap);
+    if (has_ep) {
+        pico8_list_add(le_heap, pico8_value_ref(pico8_pz_step(&ctx, &ep_row)));
+    }
+    for (i = 0; i < n; i++) {
+        pico8_list_add(le_heap, pico8_value_ref(pico8_pz_step(&ctx, &bs[i])));
+    }
     if (ok != NULL) {
         ok->le = le_heap;
     } else {
         pico8_list_free(le_heap);
         free(le_heap);
-    }
-
-    if (merged_built) {
-        pico8_list_free(&merged);
     }
 
     /* TROU-7 */

@@ -7,7 +7,7 @@
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
+#include "pico8_ui_button.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
@@ -110,10 +110,9 @@ void pico8_iv_ph(pico8_iv_t *self);
 void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p);
 
 /* TROU-7 */
-/* Every item of `bs` must be a REF to a `pico8_ob_table_t`: each one is
- * mutated in place, then turned into a `js` instance stored in `ok.le`. The
- * list itself stays the caller's, its tables become the instances'. `p` is
- * NULL (a no-op) or a struct whose descriptor has a field reader. */
-void pico8_pz(const pico8_struct_header_t *p, const pico8_list_t *bs);
+/* The `n` rows of `bs` are the keys of `ok.le`'s buttons, each read on a
+ * copy that gets `ra`, `qf` and `fa`; `bs` stays the caller's, unchanged.
+ * `p` is NULL (a no-op) or a struct whose descriptor has a field reader. */
+void pico8_pz(const pico8_struct_header_t *p, const pico8_js_keys_t *bs, int n);
 
 #endif

@@ -45,38 +45,6 @@ static int pico8_layout_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Collects `table`'s PICO8_OB_KEY_INDEX entries in ascending index order, as
- * Lua's all() walks them — not insertion order: pj:ph writes the star row's
- * st[3] before st[1..5]. Returns a new list the caller owns and must release
- * with pico8_list_free(). */
-static pico8_list_t pico8_layout_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-    int have_last = 0;
-    int last = 0;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (;;) {
-        int next = -1;
-        for (i = 0; i < table->count; i++) {
-            if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX &&
-                (!have_last || table->entries[i].key.index > last) &&
-                (next < 0 || table->entries[i].key.index < table->entries[next].key.index)) {
-                next = i;
-            }
-        }
-        if (next < 0) {
-            return list;
-        }
-        pico8_list_add(&list, table->entries[next].value);
-        last = table->entries[next].key.index;
-        have_last = 1;
-    }
-}
-
 /* A nested row has no value form here: tuples and lines hold scalars. */
 static pico8_value_t pico8_jb_item_value(const pico8_jb_item_t *item) {
     assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
@@ -257,30 +225,7 @@ void pico8_lq_ol_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_l
     pico8_lq_ol(gfx, mem, self, p, pico8_fixed_from_int(0));
 }
 
-/* A bare string `ln` becomes a one-item lq; any other REF is passed to lq as
- * the table it already is. Any other kind builds an empty lq. */
-static int pico8_jb_pq_step(pico8_value_t ln, void *ctx, pico8_value_t *out_value) {
-    pico8_lq_t *line;
-
-    (void)ctx;
-
-    if (ln.kind == PICO8_VALUE_STRING) {
-        pico8_lq_keys_t keys = {0};
-
-        keys.items = &ln;
-        keys.count = 1;
-        line = pico8_lq_new(&keys);
-    } else if (ln.kind == PICO8_VALUE_REF) {
-        line = pico8_lq_new_table((const pico8_ob_table_t *)ln.as.ref);
-    } else {
-        line = pico8_lq_new(NULL);
-    }
-
-    *out_value = pico8_value_ref(line);
-    return 1;
-}
-
-/* The line `pico8_jb_pq_step` builds from this item's table form. */
+/* The line `jb:pq` builds from one item of its row. */
 static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
     pico8_lq_keys_t keys = {0};
     pico8_value_t s;
@@ -449,52 +394,6 @@ static const pico8_struct_class_t g_lq_struct_class = {
     NULL,
 };
 
-static int value_is_nil(pico8_value_t v) {
-    return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
-}
-
-static void lq_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value_is_nil(value)) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_FIXED &&
-           "lq.c/score: a key neither nil nor fixed does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.fixed;
-    *has = 1;
-}
-
-static void lq_take_bg(pico8_value_t value, pico8_lq_keys_t *keys) {
-    keys->bg = 0;
-    keys->has_bg = 0;
-    keys->bg_is_bool = 0;
-    if (value_is_nil(value)) {
-        return;
-    }
-    if (value.kind == PICO8_VALUE_FIXED) {
-        keys->bg = value.as.fixed;
-        keys->has_bg = 1;
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "lq.bg: a key neither nil, fixed nor boolean does not fit the member's type "
-           "-- stop, do not widen the member");
-    keys->bg = value.as.boolean;
-    keys->has_bg = 1;
-    keys->bg_is_bool = 1;
-}
-
-static void lq_take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value_is_nil(value)) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "lq.ra: a key neither nil nor a vector does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
 /* TROU-7 */
 static void *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
     pico8_lq_t *self = malloc(sizeof *self);
@@ -539,6 +438,23 @@ static void *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
     return self;
 }
 
+pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_value_t *items, int cap) {
+    pico8_lq_keys_t keys = {0};
+    int i;
+
+    assert(row->count <= cap && row->fn == NULL && !row->has_qe &&
+           "lq: a row passes positionals and c; fn or qe has no member -- stop, do not add one");
+    for (i = 0; i < row->count; i++) {
+        items[i] = row->items[i].row != NULL ? pico8_value_ref((void *)row->items[i].row)
+                                             : pico8_jb_item_value(&row->items[i]);
+    }
+    keys.items = items;
+    keys.count = row->count;
+    keys.has_c = row->has_c;
+    keys.c = pico8_fixed_from_int(row->c);
+    return keys;
+}
+
 pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row) {
     pico8_lq_keys_t keys;
 
@@ -553,68 +469,6 @@ pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row) {
     keys.score = row->score;
     keys.ra = row->ra;
     return keys;
-}
-
-pico8_lq_t *pico8_lq_new_table(const pico8_ob_table_t *overrides) {
-    pico8_lq_keys_t keys = {0};
-    pico8_list_t items;
-    pico8_lq_t *built;
-    int k;
-
-    for (k = 0; overrides != NULL && k < overrides->count; k++) {
-        pico8_ob_key_t key = overrides->entries[k].key;
-        pico8_value_t value = overrides->entries[k].value;
-
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "c") == 0) {
-            lq_take_fixed(value, &keys.c, &keys.has_c);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "bg") == 0) {
-            lq_take_bg(value, &keys);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "score") == 0) {
-            lq_take_fixed(value, &keys.score, &keys.has_score);
-        } else if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
-            lq_take_vec(value, &keys.ra);
-        } else {
-            assert(key.kind == PICO8_OB_KEY_INDEX &&
-                   "lq: every row passes positionals and c, bg, score, ra; a named key other than "
-                   "c/bg/score/ra has no member -- stop, do not add one");
-        }
-    }
-    /* TROU-25 */
-    items = pico8_layout_positional_values(overrides);
-    keys.items = items.items;
-    keys.count = items.count;
-    built = pico8_lq_new(&keys);
-    pico8_list_free(&items);
-    return built;
-}
-
-pico8_ob_table_t *pico8_lq_table_view(const pico8_lq_t *self) {
-    pico8_ob_table_t *view = pico8_ob_table_new();
-    pico8_value_t bg = pico8_lq_bg(self);
-    int k = self->fs->count;
-    int i;
-
-    for (i = 0; i < k; i++) {
-        pico8_ob_table_set_index(view, i + 1, self->items.items[i]);
-    }
-    if (self->has_c) {
-        pico8_ob_table_set_name(view, "c", pico8_value_fixed(self->c));
-    }
-    if (!(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL)) {
-        pico8_ob_table_set_name(view, "bg", bg);
-    }
-    if (self->has_score) {
-        pico8_ob_table_set_name(view, "score", pico8_value_fixed(self->score));
-    }
-    if (self->ra != NULL) {
-        pico8_ob_table_set_name(view, "ra", pico8_value_ref(self->ra));
-    }
-    pico8_ob_table_set_name(view, "fs", pico8_value_ref(self->fs));
-    pico8_ob_table_set_name(view, "w", pico8_value_fixed(self->w));
-    for (i = k; i < self->items.count; i++) {
-        pico8_ob_table_set_index(view, i + 1, self->items.items[i]);
-    }
-    return view;
 }
 
 static const pico8_struct_class_t g_jb_struct_class = {
@@ -643,24 +497,6 @@ static void *pico8_jb_struct_new(const pico8_jb_row_t *row) {
            "jb: every line is positional; a named key has no member -- stop, do not add one");
     self = pico8_jb_struct_alloc();
     pico8_jb_pq(self, row);
-    return self;
-}
-
-pico8_jb_t *pico8_jb_new_table(const pico8_ob_table_t *overrides) {
-    pico8_jb_t *self;
-    pico8_list_t items;
-    int i;
-
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        assert(overrides->entries[i].key.kind != PICO8_OB_KEY_NAME &&
-               "jb: every override is positional; a named one has no member -- stop, do not add one");
-    }
-    self = pico8_jb_struct_alloc();
-    items = pico8_layout_positional_values(overrides);
-    /* TROU-7 */
-    self->ls = malloc(sizeof *self->ls);
-    *self->ls = pico8_nv(&items, pico8_jb_pq_step, NULL);
-    pico8_list_free(&items);
     return self;
 }
 

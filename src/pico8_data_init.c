@@ -7,7 +7,6 @@
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_research.h"
-#include "pico8_vec.h"
 
 static pico8_ob_table_t *g_nb = NULL;
 
@@ -59,19 +58,6 @@ static pico8_ob_table_t *data_init_row_view(const pico8_jb_row_t *row, int lines
     return t;
 }
 
-pico8_ob_table_t *pico8_jb_row_view(const pico8_jb_row_t *row) {
-    return data_init_row_view(row, 0);
-}
-
-/* A fresh heap vector per call, as the v() constructor allocated one per
- * parse; never freed. */
-static pico8_value_t data_init_vec(int x, int y) {
-    pico8_vec_t *v = malloc(sizeof *v);
-
-    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(v);
-}
-
 /* A record sits both at its position and under its px name, one shared
  * table, as nb_mr leaves it: tech_gate's write to e_ shows through both. */
 static pico8_ob_table_t *data_init_nb_view(void) {
@@ -101,58 +87,6 @@ static pico8_ob_table_t *data_init_nb_view(void) {
         pico8_ob_table_set_name(nb, pico8_nb_table[i].px, pico8_value_ref(records[i]));
     }
     return nb;
-}
-
-pico8_ob_table_t *pico8_ix_view(void) {
-    pico8_ob_table_t *ix = pico8_ob_table_new();
-    int i;
-
-    for (i = 0; i < PICO8_IX_COUNT; i++) {
-        const pico8_ix_entry_t *e = &pico8_ix_table[i];
-        pico8_ob_table_t *ri = pico8_ob_table_new();
-
-        pico8_ob_table_set_name(ri, "ra", data_init_vec(e->ra_x, e->ra_y));
-        pico8_ob_table_set_name(ri, "lq", pico8_value_ref(pico8_jb_row_view(e->lq)));
-        pico8_ob_table_set_index(ix, i + 1, pico8_value_ref(ri));
-    }
-    return ix;
-}
-
-pico8_ob_table_t *pico8_ha_view(void) {
-    pico8_ob_table_t *ha = pico8_ob_table_new();
-    int i;
-
-    for (i = 0; i < PICO8_HA_COUNT; i++) {
-        const pico8_ha_entry_t *e = &pico8_ha_table[i];
-        pico8_ob_table_t *ri = pico8_ob_table_new();
-
-        pico8_ob_table_set_name(ri, "lq", pico8_value_ref(pico8_jb_row_view(e->lq)));
-        if (e->has_fg) {
-            pico8_ob_table_set_name(ri, "fg", pico8_value_fixed(pico8_fixed_from_int(e->fg)));
-        }
-        pico8_ob_table_set_index(ha, i + 1, pico8_value_ref(ri));
-    }
-    pico8_ob_table_set_name(ha, "hi", data_init_vec(pico8_ha_tail.hi_x, pico8_ha_tail.hi_y));
-    pico8_ob_table_set_name(ha, "gq", data_init_vec(pico8_ha_tail.gq_x, pico8_ha_tail.gq_y));
-    pico8_ob_table_set_name(ha, "ca", pico8_value_fixed(pico8_fixed_from_int(pico8_ha_tail.ca)));
-    return ha;
-}
-
-pico8_ob_table_t *pico8_bo_view(void) {
-    pico8_ob_table_t *bo = pico8_ob_table_new();
-    int i;
-
-    for (i = 0; i < PICO8_BO_COUNT; i++) {
-        const pico8_bo_entry_t *e = &pico8_bo_table[i];
-        pico8_ob_table_t *ri = pico8_ob_table_new();
-
-        pico8_ob_table_set_name(ri, "lq", pico8_value_ref(pico8_jb_row_view(e->lq)));
-        pico8_ob_table_set_name(ri, "px", pico8_value_string(e->px));
-        pico8_ob_table_set_name(ri, "trade", pico8_value_fixed(pico8_fixed_from_int(e->trade)));
-        pico8_ob_table_set_name(ri, "en", pico8_value_fixed(e->en));
-        pico8_ob_table_set_index(bo, i + 1, pico8_value_ref(ri));
-    }
-    return bo;
 }
 
 void pico8_data_init(void) {

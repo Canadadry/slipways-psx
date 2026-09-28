@@ -6,7 +6,6 @@
 #include "pico8_list.h"
 #include "pico8_map_tables.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -70,10 +69,10 @@ typedef struct {
 /* `keys` is read, not kept (NULL: none). */
 pico8_lq_t *pico8_lq_new(const pico8_lq_keys_t *keys);
 
-/* A row received as a table: its positionals by ascending index, `c`, `bg`,
- * `score`, `ra`; any other name asserts. The table is read, never kept; its
- * values are borrowed. */
-pico8_lq_t *pico8_lq_new_table(const pico8_ob_table_t *overrides);
+/* The keys of a generated row, its items written into `items` (`cap` of
+ * them at most; a nested row, a tuple, as a REF to it) and its `c`. `items`
+ * must outlive the keys. */
+pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_value_t *items, int cap);
 
 /* The keys the copy `lq(row)` is built from, by value, nothing allocated:
  * every item of `row` in order (borrowed), its `c`, `bg`, `score`, `ra`. */
@@ -83,21 +82,9 @@ pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row);
  * NULL self. */
 pico8_value_t pico8_lq_bg(const pico8_lq_t *self);
 
-/* A fresh table the caller frees with pico8_ob_table_free(), its values
- * shared with the row, never copied. Keys in the order the cart's copy
- * `mw` finds them: the positionals `pq` saw at 1..k (k = the count of
- * `fs`), then `c`, `bg`, `score`, `ra` when not nil, `fs`, `w`, then the
- * positionals added after `pq` at k+1... */
-pico8_ob_table_t *pico8_lq_table_view(const pico8_lq_t *self);
-
 /* One line per item of `row` (NULL: no line): a string makes a one-item
  * row, a row its scalar items and its `c`, any other item an empty row. */
 pico8_jb_t *pico8_jb_new(const pico8_jb_row_t *row);
-
-/* A `jb` received as a table: one line per positional, a string a one-item
- * row, a table a row read by `pico8_lq_new_table`, anything else an empty
- * row; a named key asserts. The table is read, never kept. */
-pico8_jb_t *pico8_jb_new_table(const pico8_ob_table_t *overrides);
 
 /* Omitting `a` is numerically the same as `a` of 0, so pico8_lq_ol_default
  * passes 0 rather than carrying a "was it provided" flag. A NULL self draws

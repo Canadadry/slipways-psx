@@ -15,7 +15,6 @@
 #include "pico8_score_panel.h"
 #include "pico8_ui_button.h"
 
-static pico8_ob_table_t *g_de = NULL;
 
 /* Lua truthiness: only `false` and this port's absent filler `ref(NULL)`
  * read as falsy -- 0 does not. */
@@ -337,7 +336,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
 
         if (c_truthy && !ed_equals_kc) {
             pico8_ky_t s = pico8_ky();
-            pico8_bz_row_t *bz = pico8_bz();
+            pico8_bz_row_t *bz = pico8_pj_bz();
             pico8_pj_ph_ctx_t ctx;
             pico8_value_t iw[PICO8_BZ_COUNT];
             pico8_mh_keys_t keys = {0};
@@ -365,20 +364,10 @@ void pico8_pj_ph(pico8_pj_t *self) {
 
 void pico8_score_panel_display_init(void) {
     pico8_score_panel_display_shutdown();
-    g_de = pico8_ob_table_new();
-    pico8_ob_table_set_name(g_de, "my", pico8_value_function(pico8_pj_de_my_dispatch));
     g_pj_hk_lh_t = 0;
 }
 
 void pico8_score_panel_display_shutdown(void) {
-    if (g_de != NULL) {
-        pico8_ob_table_free(g_de);
-        g_de = NULL;
-    }
-}
-
-const pico8_ob_table_t *pico8_de(void) {
-    return g_de;
 }
 
 pico8_value_function_t pico8_de_my(void) {

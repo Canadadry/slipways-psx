@@ -502,7 +502,7 @@ pico8_pj_t *pico8_pj_new(void) {
     return pico8_pj_struct_new();
 }
 
-pico8_bz_row_t *pico8_bz(void) {
+pico8_bz_row_t *pico8_pj_bz(void) {
     return g_pj_up ? g_bz : NULL;
 }
 

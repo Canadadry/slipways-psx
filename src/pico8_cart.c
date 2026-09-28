@@ -27,7 +27,6 @@
 #include "pico8_menu.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_msgbox.h"
-#include "pico8_ob.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_planet_family.h"
@@ -156,22 +155,6 @@ pico8_value_t pico8_init_dispatch(void *self, int argc, pico8_value_t arg0, pico
     return pico8_value_ref(NULL);
 }
 
-/* `nv(ix,js)`'s per-element adapter: an entry that is not a REF to a table
- * contributes nothing. */
-static int pico8_eu_ix_map(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
-    const pico8_ob_table_t *row;
-    pico8_js_t *made;
-
-    (void)ctx;
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
-    }
-    row = (const pico8_ob_table_t *)e.as.ref;
-    made = pico8_js_new_table(row);
-    *out_value = pico8_value_ref(made);
-    return 1;
-}
-
 void pico8_eu(pico8_js_t *nj) {
     const pico8_entity_kind_t *gx[7];
     int i;
@@ -190,20 +173,12 @@ void pico8_eu(pico8_js_t *nj) {
     pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
 
-    if (pico8_ix() != NULL) {
-        pico8_list_t ix_items;
-        pico8_list_t mapped;
+    if (pico8_ha_pz() != NULL) {
         int j;
 
-        pico8_list_init(&ix_items);
-        for (j = 0; j < pico8_ix()->count; j++) {
-            if (pico8_ix()->entries[j].key.kind == PICO8_OB_KEY_INDEX) {
-                pico8_list_add(&ix_items, pico8_ix()->entries[j].value);
-            }
+        for (j = 1; j <= PICO8_IX_COUNT; j++) {
+            (void)pico8_ix_button(j);
         }
-        mapped = pico8_nv(&ix_items, pico8_eu_ix_map, NULL);
-        pico8_list_free(&mapped);
-        pico8_list_free(&ix_items);
     }
 
     gx[0] = pico8_qh_kind();

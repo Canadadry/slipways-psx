@@ -107,7 +107,7 @@ pico8_value_t pico8_pj_ed(const pico8_pj_t *self);
 
 /* The PICO8_BZ_COUNT rows of `bz`, statics of this module: every `pj:ph()`
  * run rewrites them in place. NULL before the init and after the shutdown. */
-pico8_bz_row_t *pico8_bz(void);
+pico8_bz_row_t *pico8_pj_bz(void);
 
 /* Always a valid FUNCTION value: an inert placeholder until the real
  * `_init` bridge is installed, which a NULL argument resets. A button built

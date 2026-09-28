@@ -1679,22 +1679,6 @@ static void test_rows_match_the_parsed_literals(void) {
     check_row(member_of(pj, "i_"), &pico8_pj_i__row, "pj.i_");
 }
 
-/* A non-integer item keeps its bits; fn comes after c. */
-static void test_row_view_writes_fixed_items_then_c_then_fn(void) {
-    static const pico8_jb_item_t items[] = {{.is_fixed = 1, .fixed = 0x8000}, {.n = 2}};
-    static const pico8_jb_row_t row = {.count = 2, .items = items, .has_c = 1, .c = 7, .fn = "qr"};
-    pico8_ob_table_t *view = pico8_jb_row_view(&row);
-    pico8_value_t v;
-
-    assert(view->count == 4);
-    assert(positional_fixed(view, 0) == 0x8000 && positional_fixed(view, 1) == pico8_fixed_from_int(2));
-    assert(view->entries[2].key.kind == PICO8_OB_KEY_NAME && strcmp(view->entries[2].key.name, "c") == 0);
-    assert(view->entries[3].key.kind == PICO8_OB_KEY_NAME && strcmp(view->entries[3].key.name, "fn") == 0);
-    assert(pico8_ob_table_get_name(view, "c", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x70000);
-    assert(pico8_ob_table_get_name(view, "fn", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "qr") == 0);
-    pico8_ob_table_free(view);
-}
-
 static void test_nb_lookup_finds_each_px(void) {
     int i;
 
@@ -1765,7 +1749,6 @@ int main(void) {
     test_kinds_serve_what_the_chain_of_parses_serves();
     test_kinds_answer_nothing_once_down();
     test_rows_match_the_parsed_literals();
-    test_row_view_writes_fixed_items_then_c_then_fn();
     test_nb_lookup_finds_each_px();
     test_qe_map_keeps_one_entry_per_key_in_order();
 

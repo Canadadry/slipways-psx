@@ -17,7 +17,6 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_value.h"
@@ -68,13 +67,10 @@ static void test_dr_entry_draws_as_before(void) {
 
 /* The research icon's call, on bare strings, each a one-item row. */
 static void test_bare_strings_draw_as_before(void) {
-    pico8_ob_table_t *spec = pico8_ob_table_new();
+    static const pico8_jb_item_t items[] = {{.s = "alpha"}, {.s = "beta 42"}};
+    static const pico8_jb_row_t spec = {.count = 2, .items = items};
 
-    pico8_ob_table_set_index(spec, 1, pico8_value_string("alpha"));
-    pico8_ob_table_set_index(spec, 2, pico8_value_string("beta 42"));
-    check("bare", draw_jb(pico8_jb_new_table(spec), pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
-          BARE_STRINGS_HASH);
-    pico8_ob_table_free(spec);
+    check("bare", draw_jb(pico8_jb_new(&spec), pico8_fixed_from_int(0), pico8_fixed_from_int(0)), BARE_STRINGS_HASH);
 }
 
 /* No line: an empty `ls`, so only the frame. */
@@ -123,8 +119,10 @@ static uint32_t draw_by_name(pico8_jb_t *jb, pico8_fixed_t om, pico8_fixed_t a) 
 static void test_jb_state_by_name(void) {
     pico8_jb_t *jb = pico8_jb_new(NULL);
     const pico8_struct_class_t *cls = jb->header.cls;
-    pico8_ob_table_t *mixed = pico8_ob_table_new();
-    pico8_ob_table_t *row = pico8_ob_table_new();
+    static const pico8_jb_item_t row_items[] = {{.s = "gamma"}};
+    static const pico8_jb_row_t row = {.count = 1, .items = row_items};
+    static const pico8_jb_item_t mixed_items[] = {{.s = "alpha"}, {.row = &row}, {.n = 5}, {.s = "delta"}};
+    static const pico8_jb_row_t mixed = {.count = 4, .items = mixed_items};
     pico8_value_t v;
     uint32_t h = 2166136261u;
     int i;
@@ -143,12 +141,7 @@ static void test_jb_state_by_name(void) {
     fflush(stdout);
     assert(h == DR_ALL_BY_NAME_HASH);
 
-    pico8_ob_table_set_index(row, 1, pico8_value_string("gamma"));
-    pico8_ob_table_set_index(mixed, 1, pico8_value_string("alpha"));
-    pico8_ob_table_set_index(mixed, 2, pico8_value_ref(row));
-    pico8_ob_table_set_index(mixed, 3, pico8_value_fixed(pico8_fixed_from_int(5)));
-    pico8_ob_table_set_index(mixed, 5, pico8_value_string("delta"));
-    h = draw_by_name(pico8_jb_new_table(mixed), pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00008000, 0.5));
+    h = draw_by_name(pico8_jb_new(&mixed), pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00008000, 0.5));
     printf("[mixed by name] 0x%08Xu\n", (unsigned)h);
     fflush(stdout);
     assert(h == MIXED_BY_NAME_HASH);

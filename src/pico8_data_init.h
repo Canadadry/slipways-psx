@@ -18,17 +18,4 @@ void pico8_data_shutdown(void);
  * pico8_data_init(). */
 const pico8_ob_table_t *pico8_nb(void);
 
-/* Each returns a fresh ob view of its pico8_game_data.h table, in the entry
- * order ob() gave it, with a fresh heap vector for every ra, hi and gq. The
- * caller owns the top table only (pico8_ob_table_free()); nested tables,
- * strings and vectors are never freed. */
-pico8_ob_table_t *pico8_ix_view(void);
-pico8_ob_table_t *pico8_ha_view(void);
-pico8_ob_table_t *pico8_bo_view(void);
-
-/* A fresh ob view of `row`: its positionals (false as Lua false, a nested
- * row, a tuple of `lq:mn`, as a REF to the generated row itself), then `c`,
- * then `fn`. The caller owns the table (pico8_ob_table_free()). */
-pico8_ob_table_t *pico8_jb_row_view(const pico8_jb_row_t *row);
-
 #endif

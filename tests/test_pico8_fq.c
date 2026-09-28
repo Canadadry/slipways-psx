@@ -414,7 +414,6 @@ static void must_abort(void *e, const char *name) {
 static void test_fq_members_by_name(void) {
     static const char *const intruders[] = {"", "x", "M_", "P_", "m", "p", "has_m_", "has_p_", "ke", "header"};
     static const char *const unwritten[] = {"fa", "hd", "my", "p_", "me", "t", "", "m_ ", "has_m_", "has_p_"};
-    const pico8_ob_table_t *de;
     pico8_fq_keys_t keys = {0};
     pico8_value_t de_my;
     pico8_value_t got;
@@ -428,8 +427,7 @@ static void test_fq_members_by_name(void) {
     int step;
 
     pico8_jl();
-    de = pico8_de();
-    assert(pico8_ob_table_get_name(de, "my", &de_my) && de_my.kind == PICO8_VALUE_FUNCTION);
+    de_my = pico8_value_function(pico8_de_my());
     bare = pico8_fq_new(NULL);
     keys.my = pico8_de_my();
     built = pico8_fq_new(&keys);
@@ -529,6 +527,7 @@ static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico
  * zero is not nil unless it is a REF. */
 static void test_fq_writer_stops_off_row(void) {
     pico8_value_t one = pico8_value_fixed(pico8_fixed_from_int(1));
+    static const pico8_jb_row_t plain = {0};
     void *bare;
     void *other;
 
@@ -543,7 +542,7 @@ static void test_fq_writer_stops_off_row(void) {
     must_abort_value(bare, write_m_by_name, pico8_value_function(counting_my));
     must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_FUNCTION));
     must_abort_value(bare, write_m_by_name, pico8_value_ref(other));
-    must_abort_value(bare, write_m_by_name, pico8_value_ref((void *)pico8_de()));
+    must_abort_value(bare, write_m_by_name, pico8_value_ref((void *)&plain));
 
     must_abort_value(bare, ldown_returning, one);
     must_abort_value(bare, ldown_returning, zero_of(PICO8_VALUE_FIXED));

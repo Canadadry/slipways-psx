@@ -360,9 +360,7 @@ static int js15_count(void) {
 }
 
 static pico8_value_t de_my(void) {
-    pico8_value_t my;
-    assert(pico8_ob_table_get_name(pico8_de(), "my", &my) && my.kind == PICO8_VALUE_FUNCTION);
-    return my.as.function(NULL, 0, nil(), nil());
+    return pico8_de_my()(NULL, 0, nil(), nil());
 }
 
 /* The game's panel as `eu()` and `lt` left it: where it registered, its
@@ -898,12 +896,7 @@ static void write_fa(void *e) {
 }
 
 static pico8_value_t ix3_my(void) {
-    pico8_value_t row;
-    pico8_value_t my;
-    assert(pico8_ob_table_get_index(pico8_ix(), 3, &row) && row.kind == PICO8_VALUE_REF);
-    assert(pico8_ob_table_get_name((const pico8_ob_table_t *)row.as.ref, "my", &my) &&
-           my.kind == PICO8_VALUE_FUNCTION);
-    return my.as.function(NULL, 0, nil(), nil());
+    return pico8_ix_my(3)(NULL, 0, nil(), nil());
 }
 
 /* The six members by name on a fresh panel, then through `de.my`, `ix[3].my`,

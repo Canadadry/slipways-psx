@@ -15,12 +15,8 @@ void pico8_pj_ph(pico8_pj_t *self);
  * deliberately left stale in that same case, as in the Lua. */
 void pico8_pj_hk(pico8_fixed_t yr);
 
-/* `de` is built once by the init and freed by the shutdown. */
 void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);
-
-/* The cart's one `de` table, borrowed: `pj:ph` parses `spec2` over it. */
-const pico8_ob_table_t *pico8_de(void);
 
 /* The function `de.my` holds: `fq(de)` of `ix[3]` reads nothing else. */
 pico8_value_function_t pico8_de_my(void);

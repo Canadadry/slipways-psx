@@ -386,12 +386,8 @@ static pico8_value_t nil(void) {
     return pico8_value_ref(NULL);
 }
 
-static void call_row_my(const pico8_ob_table_t *t, int i) {
-    pico8_value_t row;
-    pico8_value_t my;
-    assert(pico8_ob_table_get_index(t, i, &row) && row.kind == PICO8_VALUE_REF && row.as.ref != NULL);
-    assert(pico8_ob_table_get_name(row.as.ref, "my", &my) && my.kind == PICO8_VALUE_FUNCTION);
-    (void)my.as.function(NULL, 0, nil(), nil());
+static void call_ix_my(int i) {
+    (void)pico8_ix_my(i)(NULL, 0, nil(), nil());
 }
 
 /* A second `ui` shares the class's empty `le` until its own `cj`; `pz`
@@ -411,7 +407,7 @@ static void test_shared(void) {
     assert(get_ref(other, "le") != le && le_of(other)->count == 0);
     assert(get_ref(ok, "le") == le && pico8_ui_le_shared() == le && le->count == 0);
 
-    call_row_my(pico8_ix(), 4);
+    call_ix_my(4);
     assert(get_ref(ok, "le") != le && get_ref(other, "le") != get_ref(ok, "le"));
     h = fnv(h, (uint32_t)le_of(ok)->count);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), le_of(ok)->items[0].as.ref));
@@ -655,7 +651,7 @@ static void test_cj(void) {
     int count;
     int i;
 
-    call_row_my(pico8_ix(), 4);
+    call_ix_my(4);
     le = le_of(ok);
     count = le->count;
     assert(count > 0);
@@ -948,7 +944,7 @@ static void test_ui_members_by_name(void) {
     g_given = pico8_value_ref(NULL);
 
     le = ui_ref(ok, "le");
-    call_row_my(pico8_ix(), 4);
+    call_ix_my(4);
     assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != pico8_ui_le_shared());
     assert(pico8_type_tag_of(ui_ref(ok, "le")) == PICO8_TYPE_TAG_LIST);
     assert(((const pico8_list_t *)ui_ref(ok, "le"))->count > 0);

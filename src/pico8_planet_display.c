@@ -118,20 +118,36 @@ static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
     return gc == pico8_fixed_from_int(0);
 }
 
-/* One `bs` row in the `{lq=...,h_=...}` shape `pz()` expects. The row owns
- * nothing: `lq_list` must outlive it. */
-static pico8_ob_table_t *pico8_jo_gh_row(pico8_list_t *lq_list) {
-    pico8_ob_table_t *row = pico8_ob_table_new();
-    pico8_ob_table_set_name(row, "lq", pico8_value_ref(lq_list));
-    return row;
+/* The most items an icon row of `jo:gh`, or an `lq` row of `jo:fe`, holds. */
+#define PICO8_JO_ROW_CAP 8
+
+/* The most rows `jo:gh` passes to `pz`: the icon, needs or wants more,
+ * receives, makes or exports. */
+#define PICO8_JO_GH_ROWS 4
+
+/* TROU-7 */
+/* `s` followed by `$`: a fresh string, never freed; `s` itself is freed. */
+static char *jo_dollar(char *s) {
+    size_t len = strlen(s);
+    char *with_suffix = malloc(len + 2);
+
+    assert(with_suffix != NULL);
+    memcpy(with_suffix, s, len);
+    with_suffix[len] = '$';
+    with_suffix[len + 1] = '\0';
+    free(s);
+    return with_suffix;
 }
 
 void pico8_jo_gh(const pico8_jo_t *self) {
-    pico8_list_t bs;
-    pico8_ob_table_t *bs1;
+    pico8_js_keys_t bs[PICO8_JO_GH_ROWS];
+    pico8_lq_keys_t icon;
+    pico8_value_t icon_items[PICO8_JO_ROW_CAP];
+    pico8_lq_keys_t h_keys;
+    pico8_value_t h_item;
+    int n = 0;
     pico8_value_t px_val;
-    pico8_value_t icon_val = pico8_value_ref(NULL);
-    pico8_value_t h_field;
+    const pico8_jb_row_t *icon_row = NULL;
     pico8_list_t *ji;
     pico8_jo_gh_ctx_t ctx;
     const pico8_list_t *jy;
@@ -142,40 +158,36 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         return;
     }
 
-    pico8_list_init(&bs);
-
-    bs1 = pico8_ob_table_new();
+    memset(bs, 0, sizeof bs);
     if (pico8_entity_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
-        icon_val = pico8_value_ref(pico8_jb_row_view((const pico8_jb_row_t *)px_val.as.ref));
+        icon_row = px_val.as.ref;
     } else if (self->has_mi) {
         int mi = pico8_fixed_flr_int(self->mi);
 
         if (mi >= 1 && mi <= PICO8_JO_DZ_COUNT) {
-            icon_val = pico8_value_ref(pico8_jb_row_view(&pico8_jo_dz()[mi - 1]));
+            icon_row = &pico8_jo_dz()[mi - 1];
         }
     }
-    pico8_ob_table_set_name(bs1, "lq", icon_val);
-
-    if (self->has_kr) {
-        pico8_ob_table_t *h_tuple = pico8_ob_table_new();
-        int discard_color = 0;
-        char *text = pico8_ne(self->kr, 0, NULL, &discard_color);
-        size_t text_len = strlen(text);
-        char *with_suffix = malloc(text_len + 2);
-        memcpy(with_suffix, text, text_len);
-        with_suffix[text_len] = '$';
-        with_suffix[text_len + 1] = '\0';
-        free(text);
-        pico8_ob_table_set_index(h_tuple, 1, pico8_value_string(with_suffix));
-        pico8_ob_table_set_name(h_tuple, "bg",
-                                 self->kr >= pico8_fixed_from_int(0) ? pico8_value_fixed(pico8_fixed_from_int(1))
-                                     : pico8_value_bool(0));
-        h_field = pico8_value_ref(h_tuple);
-    } else {
-        h_field = pico8_value_ref(NULL);
+    bs[0].lq = pico8_value_ref(NULL);
+    if (icon_row != NULL) {
+        icon = pico8_lq_keys_of_row(icon_row, icon_items, PICO8_JO_ROW_CAP);
+        bs[0].lq_row = &icon;
     }
-    pico8_ob_table_set_name(bs1, "h_", h_field);
-    pico8_list_add(&bs, pico8_value_ref(bs1));
+    bs[0].has_h_ = 1;
+    bs[0].h_ = pico8_value_ref(NULL);
+    if (self->has_kr) {
+        int discard_color = 0;
+
+        h_item = pico8_value_string(jo_dollar(pico8_ne(self->kr, 0, NULL, &discard_color)));
+        memset(&h_keys, 0, sizeof h_keys);
+        h_keys.items = &h_item;
+        h_keys.count = 1;
+        h_keys.has_bg = 1;
+        h_keys.bg_is_bool = self->kr < pico8_fixed_from_int(0);
+        h_keys.bg = self->kr >= pico8_fixed_from_int(0) ? pico8_fixed_from_int(1) : 0;
+        bs[0].h_row = &h_keys;
+    }
+    n = 1;
 
     ji = malloc(sizeof *ji);
     pico8_list_init(ji);
@@ -192,7 +204,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         pico8_list_add(&prefix, pico8_value_string("needs:"));
         *merged = pico8_la(&prefix, &jx);
         pico8_list_free(&prefix);
-        pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
+        bs[n++].lq = pico8_value_ref(merged);
     } else {
         pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
         pico8_value_t kw_qe = jo_kw_qe(self->kw);
@@ -217,7 +229,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 *merged = pico8_la(&prefix, jy);
             }
             pico8_list_free(&prefix);
-            pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(merged)));
+            bs[n++].lq = pico8_value_ref(merged);
         }
     }
     pico8_list_free(&jx);
@@ -226,7 +238,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
      * nothing; Lua's `add(t,nil)` is a no-op, so there is no row at all,
      * not a row holding false. */
     if (ji->count >= 2) {
-        pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(ji)));
+        bs[n++].lq = pico8_value_ref(ji);
     } else {
         pico8_list_free(ji);
         free(ji);
@@ -264,29 +276,20 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 pico8_list_add(lb, pico8_value_string(combined));
             }
             pico8_list_add(lb, pico8_value_ref((void *)jo_kw_tuple(kw)));
-            pico8_list_add(&bs, pico8_value_ref(pico8_jo_gh_row(lb)));
+            bs[n++].lq = pico8_value_ref(lb);
         }
     }
 
-    /* From the second row on: the first row's `lq` is a single icon value,
-     * not a list. */
-    for (i = 1; i < bs.count; i++) {
-        pico8_value_t row_val = bs.items[i];
-        if (row_val.kind == PICO8_VALUE_REF && row_val.as.ref != NULL) {
-            pico8_ob_table_t *row = (pico8_ob_table_t *)row_val.as.ref;
-            pico8_value_t lq_val;
-            if (pico8_ob_table_get_name(row, "lq", &lq_val) && lq_val.kind == PICO8_VALUE_REF &&
-                lq_val.as.ref != NULL) {
-                static const pico8_jb_item_t gap_items[] = {{.is_false = 1}, {.n = 1}};
-                static const pico8_jb_row_t gap = {.count = 2, .items = gap_items};
+    /* From the second row on: the first row's `lq` is a single icon, not a
+     * list. */
+    for (i = 1; i < n; i++) {
+        static const pico8_jb_item_t gap_items[] = {{.is_false = 1}, {.n = 1}};
+        static const pico8_jb_row_t gap = {.count = 2, .items = gap_items};
 
-                pico8_list_add(PICO8_REF_AS_LIST(lq_val.as.ref), pico8_value_ref((void *)&gap));
-            }
-        }
+        pico8_list_add(PICO8_REF_AS_LIST(bs[i].lq.as.ref), pico8_value_ref((void *)&gap));
     }
 
-    pico8_pz((const pico8_struct_header_t *)self, &bs);
-    pico8_list_free(&bs);
+    pico8_pz((const pico8_struct_header_t *)self, bs, n);
 }
 
 pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
@@ -307,10 +310,6 @@ pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s
     }
     return pico8_value_bool(1);
 }
-
-typedef struct {
-    pico8_jo_t *self;
-} pico8_jo_fe_ctx_t;
 
 /* C has no closures: the three values the Lua `my` callback captures ride
  * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
@@ -349,76 +348,84 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
     return pico8_value_ref(NULL);
 }
 
-static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_value) {
-    const pico8_jo_fe_ctx_t *ctx = (const pico8_jo_fe_ctx_t *)ctx_ptr;
-    pico8_hp_t *b;
-    pico8_fixed_t od;
-    pico8_ob_table_t *row;
+/* One button of `jo:fe`: its keys and the rows they point at, alive until
+ * `pz` returns. */
+typedef struct {
+    pico8_lq_keys_t lq;
+    pico8_value_t lq_items[PICO8_JO_ROW_CAP];
+    pico8_lq_keys_t h;
+    pico8_value_t h_item;
+} pico8_jo_fe_row_t;
+
+static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *keys, pico8_jo_fe_row_t *row) {
+    pico8_fixed_t od = pico8_hp_od(b);
     pico8_value_t lq_val;
-    pico8_value_t h_val;
 
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
-    }
-    b = e.as.ref;
-    od = pico8_hp_od(b);
-
-    row = pico8_ob_table_new();
-
+    memset(keys, 0, sizeof *keys);
     if (pico8_mv((pico8_struct_header_t *)b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
         if (lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL &&
             pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_UNKNOWN) {
-            lq_val = pico8_value_ref(pico8_jb_row_view(lq_val.as.ref));
+            row->lq = pico8_lq_keys_of_row(lq_val.as.ref, row->lq_items, PICO8_JO_ROW_CAP);
+            keys->lq_row = &row->lq;
+            lq_val = pico8_value_ref(NULL);
         }
-        pico8_ob_table_set_name(row, "lq", lq_val);
+        keys->lq = lq_val;
     } else {
         assert(0 && "hp must expose \"lq\" as an mv()-dispatchable field");
     }
 
+    keys->has_h_ = 1;
+    keys->h_ = pico8_value_bool(0);
     if (od > pico8_fixed_from_int(0)) {
-        pico8_ob_table_t *h_tuple = pico8_ob_table_new();
-        char *od_str = pico8_value_tostr(pico8_value_fixed(od));
-        size_t od_len = strlen(od_str);
-        char *with_suffix = malloc(od_len + 2);
-        memcpy(with_suffix, od_str, od_len);
-        with_suffix[od_len] = '$';
-        with_suffix[od_len + 1] = '\0';
-        free(od_str);
-        pico8_ob_table_set_index(h_tuple, 1, pico8_value_string(with_suffix));
-        pico8_ob_table_set_name(h_tuple, "c", pico8_value_fixed(pico8_fixed_from_int(13)));
-        h_val = pico8_value_ref(h_tuple);
-    } else {
-        h_val = pico8_value_bool(0);
+        row->h_item = pico8_value_string(jo_dollar(pico8_value_tostr(pico8_value_fixed(od))));
+        memset(&row->h, 0, sizeof row->h);
+        row->h.items = &row->h_item;
+        row->h.count = 1;
+        row->h.has_c = 1;
+        row->h.c = pico8_fixed_from_int(13);
+        keys->h_ = pico8_value_ref(NULL);
+        keys->h_row = &row->h;
     }
-    pico8_ob_table_set_name(row, "h_", h_val);
 
-    pico8_ob_table_set_name(row, "_jo_fe_pt", pico8_value_ref((void *)ctx->self));
-    pico8_ob_table_set_name(row, "_jo_fe_b", pico8_value_ref(b));
-    pico8_ob_table_set_name(row, "_jo_fe_od", pico8_value_fixed(od));
-    pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_jo_fe_my_dispatch));
-
-    pico8_ob_table_set_name(row, "jb", pico8_value_ref(pico8_hp_jb(b)));
-
-    *out_value = pico8_value_ref(row);
-    return 1;
+    keys->_jo_fe_pt = self;
+    keys->_jo_fe_b = b;
+    keys->has__jo_fe_od = 1;
+    keys->_jo_fe_od = od;
+    keys->has_my = 1;
+    keys->my = pico8_jo_fe_my_dispatch;
+    keys->has_jb = 1;
+    keys->jb = pico8_value_ref(NULL);
+    keys->jb_row = pico8_hp_jb(b);
 }
 
 void pico8_jo_fe(pico8_jo_t *self) {
     pico8_list_t bj_list;
-    pico8_list_t rows;
-    pico8_jo_fe_ctx_t ctx;
+    pico8_js_keys_t *bs;
+    pico8_jo_fe_row_t *rows;
+    int n = 0;
+    int i;
 
     if (self == NULL) {
         return;
     }
 
     bj_list = pico8_bj((const pico8_struct_header_t *)self);
-    ctx.self = self;
-    rows = pico8_nv(&bj_list, pico8_jo_fe_step, &ctx);
+    bs = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *bs);
+    rows = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *rows);
+    assert(bs != NULL && rows != NULL);
+    for (i = 0; i < bj_list.count; i++) {
+        pico8_value_t e = bj_list.items[i];
+
+        if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
+            pico8_jo_fe_keys(self, e.as.ref, &bs[n], &rows[n]);
+            n++;
+        }
+    }
     pico8_list_free(&bj_list);
 
-    pico8_pz((const pico8_struct_header_t *)self, &rows);
-    pico8_list_free(&rows);
+    pico8_pz((const pico8_struct_header_t *)self, bs, n);
+    free(bs);
+    free(rows);
 }
 
 void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
