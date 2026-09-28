@@ -491,7 +491,7 @@ static void *a_slipway(pico8_vec_t *middle) {
     pico8_ob_table_set_name(b, "qu", pico8_value_ref(qu));
     jc = pico8_jc_new(b);
     pico8_ob_table_free(b);
-    ((pico8_jc_t *)jc)->re = pico8_value_ref(re);
+    ((pico8_jc_t *)jc)->re = re;
     *middle = pico8_vec_div(pico8_vec_add(qu_p, re_p), pico8_fixed_from_int(2));
     return jc;
 }

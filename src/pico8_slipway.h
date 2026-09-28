@@ -16,22 +16,25 @@
  * made by `pico8_jc_pq`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t nu;
-    pico8_value_t fa;
-    pico8_value_t fp;
-    pico8_value_t ik;
-    pico8_value_t dw;
-    pico8_value_t k_;
-    pico8_value_t nh;
-    pico8_value_t qu;
-    pico8_value_t ts;
-    pico8_value_t hg;
-    pico8_value_t re;
-    pico8_value_t od;
-    pico8_value_t mt;
-    pico8_value_t et;
-    pico8_value_t fo;
-    pico8_value_t p_;
+    pico8_ob_table_t *nu;
+    pico8_fixed_t fa;
+    int fp;
+    pico8_fixed_t ik;
+    pico8_fixed_t dw;
+    pico8_ob_table_t *k_;
+    pico8_fixed_t nh;
+    pico8_struct_header_t *qu; /* borrowed, never freed */
+    pico8_list_t *ts;
+    pico8_ob_table_t *hg;
+    pico8_struct_header_t *re; /* borrowed, never freed */
+    pico8_fixed_t od;
+    int has_od; /* 0: `od` is nil, and is then never read */
+    pico8_fixed_t mt;
+    int has_mt;                /* 0: `mt` is nil, and is then never read */
+    pico8_struct_header_t *et; /* borrowed, never freed */
+    pico8_struct_header_t *fo; /* borrowed, never freed */
+    int p_;
+    int has_p_; /* 0: `p_` is nil, and is then never read */
 } pico8_jc_t;
 
 void pico8_jc_init(void);

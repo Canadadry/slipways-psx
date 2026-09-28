@@ -1,7 +1,6 @@
 #include "pico8_slipway.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,12 +14,14 @@
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_ob.h"
+#include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_slipway_display.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
+#include "pico8_wormhole.h"
 #include "pico8_ref_audit.h"
 
 static pico8_ob_table_t *g_jc_spec = NULL;
@@ -173,6 +174,19 @@ static pico8_vec_t pico8_jc_entity_vec(const void *e, const char *name) {
     return pico8_jc_value_vec(pico8_jc_entity_value(e, name));
 }
 
+static void jc_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_FIXED &&
+           "jc.mt: an mt read off qu or re neither nil nor a fixed is off its census row (fixe) -- a field under no "
+           "rule of plan-3 section 5: stop, do not widen the member");
+    *out = value.as.fixed;
+    *has = 1;
+}
+
 void pico8_jc_pq(pico8_jc_t *self) {
     pico8_list_t *ts;
     pico8_ob_table_t *hg;
@@ -185,23 +199,18 @@ void pico8_jc_pq(pico8_jc_t *self) {
 
     ts = malloc(sizeof *ts);
     pico8_list_init(ts);
-    self->ts = pico8_value_ref(ts);
+    self->ts = ts;
 
     hg = pico8_ob_table_new();
-    self->hg = pico8_value_ref(hg);
+    self->hg = hg;
 }
 
 void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     pico8_ui_t *ok;
     pico8_struct_header_t *hovered;
     pico8_value_t gv_val;
-    pico8_value_t re_val;
-    pico8_struct_header_t *qu;
-    pico8_struct_header_t *re;
-    pico8_fixed_t od;
     pico8_value_t qu_mt;
     pico8_value_t mt_val;
-    pico8_value_t et;
 
     if (self == NULL) {
         return;
@@ -211,7 +220,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     hovered = pico8_jc_entity_instance(ok, "o_");
 
     if (hovered != NULL && pico8_entity_get_field(hovered, "gv", &gv_val) && pico8_jc_truthy(gv_val)) {
-        re_val = pico8_value_ref(hovered);
+        self->re = hovered;
     } else {
         pico8_jc_mouse_point_t *point = malloc(sizeof *point);
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
@@ -221,29 +230,24 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
         *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
         point->p = p_heap;
         PICO8_MEMBER_CENSUS_SEE(point, pico8_jc_mouse_point_t);
-        re_val = pico8_value_ref(point);
+        self->re = (pico8_struct_header_t *)point;
     }
-    self->re = re_val;
 
-    qu = pico8_jc_value_instance(self->qu);
-    re = (re_val.kind == PICO8_VALUE_REF) ? (pico8_struct_header_t *)re_val.as.ref : NULL;
-    od = pico8_dj(qu, re);
-    self->od = pico8_value_fixed(od);
+    self->od = pico8_dj(self->qu, self->re);
+    self->has_od = 1;
 
-    qu_mt = pico8_jc_entity_value(qu, "mt");
-    mt_val = pico8_jc_truthy(qu_mt) ? qu_mt : pico8_jc_entity_value(re, "mt");
-    self->mt = mt_val;
+    qu_mt = pico8_jc_entity_value(self->qu, "mt");
+    mt_val = pico8_jc_truthy(qu_mt) ? qu_mt : pico8_jc_entity_value(self->re, "mt");
+    jc_take_fixed(mt_val, &self->mt, &self->has_mt);
 
-    et = pico8_jc_ce(self);
-    self->et = et;
-    if (pico8_jc_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
-        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+    self->et = pico8_jc_value_instance(pico8_jc_ce(self));
+    if (self->et != NULL) {
+        assert(pico8_type_tag_of(self->et) == PICO8_TYPE_TAG_STRUCT &&
                "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
-        pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
+        pico8_entity_set_field(self->et, "fo", pico8_value_ref(self));
     }
 
-    self->fa = pico8_jc_truthy(mt_val) ? pico8_value_fixed(pico8_fixed_from_int(2))
-                                        : pico8_value_fixed(pico8_fixed_from_int(4));
+    self->fa = self->has_mt ? pico8_fixed_from_int(2) : pico8_fixed_from_int(4);
 }
 
 void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
@@ -264,15 +268,16 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
         if (input != NULL && pico8_stat(input, 19) == 50) {
             pico8_rn(pico8_value_fixed(pico8_fixed_from_int(-1)));
         }
-        self->p_ = pico8_value_bool(1);
+        self->p_ = 1;
+        self->has_p_ = 1;
         return;
     }
 
-    self->nh = pico8_value_fixed(pico8_fixed_from_int(1));
-    self->re = pico8_value_ref(re);
+    self->nh = pico8_fixed_from_int(1);
+    self->re = re;
 
     {
-        pico8_struct_header_t *qu = pico8_jc_value_instance(self->qu);
+        pico8_struct_header_t *qu = self->qu;
         pico8_value_t discard;
         int qu_registered;
         int re_registered;
@@ -344,8 +349,8 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
         return pico8_value_ref(NULL);
     }
 
-    qu = pico8_jc_value_instance(self->qu);
-    re = pico8_jc_value_instance(self->re);
+    qu = self->qu;
+    re = self->re;
     sp = pico8_jc_entity_vec(qu, "p");
     dp = pico8_jc_entity_vec(re, "p");
 
@@ -392,7 +397,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
         np_ctx.dp = dp;
         jc_ctx.sp = sp;
         jc_ctx.dp = dp;
-        jc_ctx.self_mt = self->mt;
+        jc_ctx.self_mt = self->has_mt ? pico8_value_fixed(self->mt) : pico8_value_ref(NULL);
 
         part1 = pico8_jp(pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
         part2 = pico8_jp(pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);
@@ -409,35 +414,24 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
 }
 
 pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance) {
-    pico8_struct_header_t *qu;
-    pico8_value_t re_val;
-
     if (self == NULL) {
         return pico8_value_ref(NULL);
     }
 
-    qu = pico8_jc_value_instance(self->qu);
-    re_val = self->re;
-
     /* `A and B or C`: a falsy `self.re` falls through to `self.qu`, so this
      * is not a plain ternary. */
-    if (jo_instance == qu && pico8_jc_truthy(re_val)) {
-        return re_val;
+    if (jo_instance == self->qu && self->re != NULL) {
+        return pico8_value_ref(self->re);
     }
-    return pico8_value_ref(qu);
+    return pico8_value_ref(self->qu);
 }
 
 void pico8_jc_ev(pico8_jc_t *self) {
-    pico8_struct_header_t *qu;
-    pico8_struct_header_t *re;
-
     if (self == NULL) {
         return;
     }
 
-    qu = pico8_jc_value_instance(self->qu);
-    re = pico8_jc_value_instance(self->re);
-    if (qu != re) {
+    if (self->qu != self->re) {
         pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
     }
 }
@@ -486,47 +480,144 @@ static pico8_value_t pico8_jc_kj_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
+static int jc_ref_field(void *ref, pico8_value_t *out_value) {
+    if (ref == NULL) {
+        return 0;
+    }
+    *out_value = pico8_value_ref(ref);
+    return 1;
+}
+
+static int jc_fixed_field(pico8_fixed_t x, int has, pico8_value_t *out_value) {
+    if (!has) {
+        return 0;
+    }
+    *out_value = pico8_value_fixed(x);
+    return 1;
+}
+
 static int pico8_jc_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_jc_t *jc = self;
-    static const struct {
-        const char *name;
-        size_t offset;
-    } members[] = {
-        {"nu", offsetof(pico8_jc_t, nu)}, {"fa", offsetof(pico8_jc_t, fa)}, {"fp", offsetof(pico8_jc_t, fp)},
-        {"ik", offsetof(pico8_jc_t, ik)}, {"dw", offsetof(pico8_jc_t, dw)}, {"k_", offsetof(pico8_jc_t, k_)},
-        {"nh", offsetof(pico8_jc_t, nh)}, {"qu", offsetof(pico8_jc_t, qu)}, {"ts", offsetof(pico8_jc_t, ts)},
-        {"hg", offsetof(pico8_jc_t, hg)}, {"re", offsetof(pico8_jc_t, re)}, {"od", offsetof(pico8_jc_t, od)},
-        {"mt", offsetof(pico8_jc_t, mt)}, {"et", offsetof(pico8_jc_t, et)}, {"fo", offsetof(pico8_jc_t, fo)},
-        {"p_", offsetof(pico8_jc_t, p_)},
-    };
-    size_t i;
 
-    for (i = 0; i < sizeof members / sizeof members[0]; i++) {
-        if (strcmp(name, members[i].name) == 0) {
-            pico8_value_t value = *(const pico8_value_t *)((const char *)jc + members[i].offset);
-            if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-                return 0;
-            }
-            *out_value = value;
-            return 1;
+    if (strcmp(name, "nu") == 0) {
+        return jc_ref_field(jc->nu, out_value);
+    }
+    if (strcmp(name, "fa") == 0) {
+        return jc_fixed_field(jc->fa, 1, out_value);
+    }
+    if (strcmp(name, "fp") == 0) {
+        *out_value = pico8_value_bool(jc->fp);
+        return 1;
+    }
+    if (strcmp(name, "ik") == 0) {
+        return jc_fixed_field(jc->ik, 1, out_value);
+    }
+    if (strcmp(name, "dw") == 0) {
+        return jc_fixed_field(jc->dw, 1, out_value);
+    }
+    if (strcmp(name, "k_") == 0) {
+        return jc_ref_field(jc->k_, out_value);
+    }
+    if (strcmp(name, "nh") == 0) {
+        return jc_fixed_field(jc->nh, 1, out_value);
+    }
+    if (strcmp(name, "qu") == 0) {
+        return jc_ref_field(jc->qu, out_value);
+    }
+    if (strcmp(name, "ts") == 0) {
+        return jc_ref_field(jc->ts, out_value);
+    }
+    if (strcmp(name, "hg") == 0) {
+        return jc_ref_field(jc->hg, out_value);
+    }
+    if (strcmp(name, "re") == 0) {
+        return jc_ref_field(jc->re, out_value);
+    }
+    if (strcmp(name, "od") == 0) {
+        return jc_fixed_field(jc->od, jc->has_od, out_value);
+    }
+    if (strcmp(name, "mt") == 0) {
+        return jc_fixed_field(jc->mt, jc->has_mt, out_value);
+    }
+    if (strcmp(name, "et") == 0) {
+        return jc_ref_field(jc->et, out_value);
+    }
+    if (strcmp(name, "fo") == 0) {
+        return jc_ref_field(jc->fo, out_value);
+    }
+    if (strcmp(name, "p_") == 0) {
+        if (!jc->has_p_) {
+            return 0;
         }
+        *out_value = pico8_value_bool(jc->p_);
+        return 1;
     }
     return pico8_ke_field(self, name, out_value);
 }
 
-/* `fo` (bv, and jc:hq of another jc) and `p_` (d_): the only names a
- * generic writer ever writes on a `jc`. */
+static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
+    return cls->methods[PICO8_METHOD_LY] != NULL || cls == pico8_jo_struct_class();
+}
+
+static void jc_take_endpoint(pico8_value_t value, pico8_struct_header_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           jc_is_endpoint_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
+           "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
+           "is off its census row (ref: to those planets) -- a field under no rule of plan-3 section 5: stop, do "
+           "not widen the member");
+    *out = value.as.ref;
+}
+
+static int jc_is_fo_holder_class(const pico8_struct_class_t *cls) {
+    return cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch || cls == pico8_jc_struct_class() ||
+           cls == pico8_mz_struct_class();
+}
+
+static void jc_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
+    *out = NULL;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+           jc_is_fo_holder_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
+           "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, nl, "
+           "os, hj, pm, nr, fr, mx; an mz; another jc) "
+           "is off its census row (ref: to those holders) -- a field under no rule of plan-3 section 5: stop, do "
+           "not widen the member");
+    *out = value.as.ref;
+}
+
+static void jc_take_bool(pico8_value_t value, int *out, int *has) {
+    *out = 0;
+    *has = 0;
+    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+        return;
+    }
+    assert(value.kind == PICO8_VALUE_BOOL &&
+           "jc.p_: a write neither nil nor a boolean is off its census row (bool) -- a field under no rule of "
+           "plan-3 section 5: stop, do not widen the member");
+    *out = value.as.boolean != 0;
+    *has = 1;
+}
+
+/* `fo` (bv, of a probe, a planet or an mz, and jc:hq of another jc) and
+ * `p_` (d_): the only names a generic writer ever writes on a `jc`. */
 static int pico8_jc_set_field(void *self, const char *name, pico8_value_t value) {
     pico8_jc_t *jc = self;
 
     if (strcmp(name, "fo") == 0) {
-        jc->fo = value;
-    } else if (strcmp(name, "p_") == 0) {
-        jc->p_ = value;
-    } else {
-        return 0;
+        jc_take_holder(value, &jc->fo);
+        return 1;
     }
-    return 1;
+    if (strcmp(name, "p_") == 0) {
+        jc_take_bool(value, &jc->p_, &jc->has_p_);
+        return 1;
+    }
+    return 0;
 }
 
 static const pico8_struct_class_t g_jc_struct_class = {
@@ -547,29 +638,34 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
 
     pico8_ke_struct_init(&self->ke, &g_jc_struct_class);
     self->ke.me = "kz";
-    self->nu = pico8_value_ref(g_jc_nu);
-    self->fa = pico8_value_fixed(pico8_fixed_from_int(2));
-    self->fp = pico8_value_bool(0);
-    self->ik = pico8_value_fixed(pico8_fixed_from_int(48));
-    self->dw = pico8_value_fixed(PICO8_FIXED_LIT(0x00000106, 0.004));
-    self->k_ = pico8_value_ref(g_jc_k_);
-    self->nh = pico8_value_fixed(pico8_fixed_from_int(20));
-    self->qu = pico8_value_ref(NULL);
-    self->ts = pico8_value_ref(NULL);
-    self->hg = pico8_value_ref(NULL);
-    self->re = pico8_value_ref(NULL);
-    self->od = pico8_value_ref(NULL);
-    self->mt = pico8_value_ref(NULL);
-    self->et = pico8_value_ref(NULL);
-    self->fo = pico8_value_ref(NULL);
-    self->p_ = pico8_value_ref(NULL);
+    self->nu = g_jc_nu;
+    self->fa = pico8_fixed_from_int(2);
+    self->fp = 0;
+    self->ik = pico8_fixed_from_int(48);
+    self->dw = PICO8_FIXED_LIT(0x00000106, 0.004);
+    self->k_ = g_jc_k_;
+    self->nh = pico8_fixed_from_int(20);
+    self->qu = NULL;
+    self->ts = NULL;
+    self->hg = NULL;
+    self->re = NULL;
+    self->od = 0;
+    self->has_od = 0;
+    self->mt = 0;
+    self->has_mt = 0;
+    self->et = NULL;
+    self->fo = NULL;
+    self->p_ = 0;
+    self->has_p_ = 0;
     for (i = 0; overrides != NULL && i < overrides->count; i++) {
         pico8_ob_key_t key = overrides->entries[i].key;
 
-        assert(key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "qu") == 0 &&
-               "jc: the only measured construction key is qu (jo:ldown, nr:ldown); another would be a field "
-               "under no rule of plan-3 section 5 -- stop, do not add a member");
-        self->qu = overrides->entries[i].value;
+        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "qu") == 0) {
+            jc_take_endpoint(overrides->entries[i].value, &self->qu);
+        } else {
+            assert(0 && "jc: the only measured construction key is qu (jo:ldown, nr:ldown); another would be a field "
+                        "under no rule of plan-3 section 5 -- stop, do not add a member");
+        }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("jc");
