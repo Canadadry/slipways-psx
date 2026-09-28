@@ -57,9 +57,44 @@ void pico8_js_shutdown(void);
 int pico8_js_ready(void);
 const pico8_struct_class_t *pico8_js_struct_class(void);
 
-/* `overrides` is read, not kept: its measured keys only, positional ones
- * never. The struct registers itself through `lt`, and nothing frees it. */
-pico8_js_t *pico8_js_new(const pico8_ob_table_t *overrides);
+/* The cart's keys of a button, each typed as the member it fills (NULL
+ * or an unset flag: absent). `lq`, `h_` and `jb` are the sources `js:pq`
+ * copies a row or a `jb` from: a table, a list, an `lq` row, or nil. */
+typedef struct {
+    int has_fa; /* 0: `fa` keeps `pico8_js_start.fa` */
+    pico8_fixed_t fa;
+    pico8_value_t lq;
+    int has_h_; /* present: a nil `h_` builds an empty row (TROU-23), false none */
+    pico8_value_t h_;
+    int has_jb; /* present: a nil `jb` builds an empty `jb` (TROU-23) */
+    pico8_value_t jb;
+    pico8_vec_t *ra;
+    pico8_vec_t *qf;
+    int has_my; /* present, and a NULL `my` is `false` */
+    pico8_value_function_t my;
+    pico8_value_function_t hb;
+    int has_fg;
+    pico8_fixed_t fg;
+    const char *px;
+    int has_trade;
+    pico8_fixed_t trade;
+    int has_en;
+    pico8_fixed_t en;
+    const pico8_nb_entry_t *_cr_t;
+    pico8_jo_t *_jo_fe_pt;
+    pico8_hp_t *_jo_fe_b;
+    int has__jo_fe_od;
+    pico8_fixed_t _jo_fe_od;
+} pico8_js_keys_t;
+
+/* `keys` is read, not kept (NULL: none). The struct registers itself
+ * through `lt`, and nothing frees it. */
+pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys);
+
+/* A button received as a table: its named keys as `pico8_js_keys_t` holds
+ * them, a key present at nil included; a positional or another name
+ * asserts. The table is read, never kept; its values are borrowed. */
+pico8_js_t *pico8_js_new_table(const pico8_ob_table_t *overrides);
 
 /* `h_` as a value: REF NULL when `self` is NULL or `h_` is absent, `false`
  * when present and NULL, a REF to the row otherwise. */

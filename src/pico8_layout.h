@@ -4,6 +4,7 @@
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
 #include "pico8_list.h"
+#include "pico8_map_tables.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
@@ -18,8 +19,8 @@ typedef struct {
 
 /* `items` is the cart's `self[1..n]` in ascending index order, holes
  * closed up: the sequence `lq:pq` walks. Its values are borrowed from the
- * overrides, tables shared as the cart's copy shares them. `ra` is the
- * vector the overrides held, borrowed, never copied. Nothing frees the row,
+ * keys, tables shared as the cart's copy shares them. `ra` is the vector
+ * the keys held, borrowed, never copied. Nothing frees the row,
  * `items`, or `fs` and its entries: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
@@ -50,7 +51,33 @@ int pico8_jb_ready(void);
 const pico8_struct_class_t *pico8_lq_struct_class(void);
 const pico8_struct_class_t *pico8_jb_struct_class(void);
 
-pico8_lq_t *pico8_lq_new(const pico8_ob_table_t *overrides);
+/* The cart's keys of a row. `items` are its positionals in order, copied
+ * into `lq.items` (the values themselves borrowed); `c`, `bg` and `score`
+ * count under their flags, `ra` NULL is nil. */
+typedef struct {
+    const pico8_value_t *items;
+    int count;
+    int has_c;
+    pico8_fixed_t c;
+    int has_bg;
+    int bg_is_bool; /* read only when `has_bg`, as in `pico8_lq_t` */
+    pico8_fixed_t bg;
+    int has_score;
+    pico8_fixed_t score;
+    pico8_vec_t *ra;
+} pico8_lq_keys_t;
+
+/* `keys` is read, not kept (NULL: none). */
+pico8_lq_t *pico8_lq_new(const pico8_lq_keys_t *keys);
+
+/* A row received as a table: its positionals by ascending index, `c`, `bg`,
+ * `score`, `ra`; any other name asserts. The table is read, never kept; its
+ * values are borrowed. */
+pico8_lq_t *pico8_lq_new_table(const pico8_ob_table_t *overrides);
+
+/* The keys the copy `lq(row)` is built from, by value, nothing allocated:
+ * every item of `row` in order (borrowed), its `c`, `bg`, `score`, `ra`. */
+pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row);
 
 /* "bg" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "bg" or a
  * NULL self. */
@@ -62,7 +89,15 @@ pico8_value_t pico8_lq_bg(const pico8_lq_t *self);
  * `fs`), then `c`, `bg`, `score`, `ra` when not nil, `fs`, `w`, then the
  * positionals added after `pq` at k+1... */
 pico8_ob_table_t *pico8_lq_table_view(const pico8_lq_t *self);
-pico8_jb_t *pico8_jb_new(const pico8_ob_table_t *overrides);
+
+/* One line per item of `row` (NULL: no line): a string makes a one-item
+ * row, a row its scalar items and its `c`, any other item an empty row. */
+pico8_jb_t *pico8_jb_new(const pico8_jb_row_t *row);
+
+/* A `jb` received as a table: one line per positional, a string a one-item
+ * row, a table a row read by `pico8_lq_new_table`, anything else an empty
+ * row; a named key asserts. The table is read, never kept. */
+pico8_jb_t *pico8_jb_new_table(const pico8_ob_table_t *overrides);
 
 /* Omitting `a` is numerically the same as `a` of 0, so pico8_lq_ol_default
  * passes 0 rather than carrying a "was it provided" flag. A NULL self draws

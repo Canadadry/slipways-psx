@@ -26,21 +26,12 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
 
     assert(pico8_fd()->count == 42);
 
-    assert(pico8_dr()->count == 7);
-    assert(pico8_ob_table_get_index(pico8_dr(), 1, &v));
-    assert(v.kind == PICO8_VALUE_REF);
+    assert(PICO8_DR_COUNT == 7);
+    assert(pico8_dr_table[0].count > 0 && pico8_dr_table[0].items[0].row != NULL);
     {
-        const pico8_ob_table_t *entry = v.as.ref;
-        pico8_value_t title_row;
-        assert(pico8_ob_table_get_index(entry, 1, &title_row));
-        assert(title_row.kind == PICO8_VALUE_REF);
-        {
-            const pico8_ob_table_t *title = title_row.as.ref;
-            pico8_value_t title_text;
-            assert(pico8_ob_table_get_index(title, 1, &title_text));
-            assert(title_text.kind == PICO8_VALUE_STRING);
-            assert(strcmp(title_text.as.string, "-lab-") == 0);
-        }
+        const pico8_jb_row_t *title = pico8_dr_table[0].items[0].row;
+        assert(title->count > 0 && title->items[0].s != NULL);
+        assert(strcmp(title->items[0].s, "-lab-") == 0);
     }
 
     assert(pico8_nb()->count == 38);

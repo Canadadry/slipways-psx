@@ -206,10 +206,21 @@ static void test_hc_matches_the_decoded_table_in_order(const pico8_mem_t *mem) {
 
 static void test_dr_view_matches_the_decoded_table(const pico8_mem_t *mem) {
     pico8_ob_table_t *ref = decode(mem, 9807);
+    int i;
 
     assert(ref->count == PICO8_DR_COUNT);
-    assert(pico8_dr()->count == ref->count);
-    assert(tables_equal(pico8_dr(), ref, ref->count, "dr"));
+    for (i = 0; i < PICO8_DR_COUNT; i++) {
+        pico8_ob_table_t *view = pico8_jb_row_view(&pico8_dr_table[i]);
+        const pico8_ob_table_t *want;
+        char path[16];
+
+        assert(ref->entries[i].key.kind == PICO8_OB_KEY_INDEX && ref->entries[i].key.index == i + 1);
+        assert(ref->entries[i].value.kind == PICO8_VALUE_REF);
+        want = ref->entries[i].value.as.ref;
+        snprintf(path, sizeof path, "dr[%d]", i + 1);
+        assert(tables_equal(view, want, want->count, path));
+        pico8_ob_table_free(view);
+    }
 }
 
 /* The cart's nb_mr pass, redone on the decoded table: each record gains px,

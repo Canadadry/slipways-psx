@@ -248,7 +248,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
         }
     }
 
-    result = pico8_lq_new(l);
+    result = pico8_lq_new_table(l);
     pico8_ob_table_free(l);
     return result;
 }

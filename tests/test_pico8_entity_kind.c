@@ -531,9 +531,7 @@ static uint32_t ie_kj_hash(pico8_ie_t *e) {
 }
 
 static pico8_jb_t *ie_jb(void) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_dr(), 3, &row) && row.kind == PICO8_VALUE_REF && row.as.ref != NULL);
-    return pico8_jb_new(row.as.ref);
+    return pico8_jb_new(&pico8_dr_table[2]);
 }
 
 /* `kq`, `ra`, `eh` are the module's, shared by every icon; `kh` and `m_`

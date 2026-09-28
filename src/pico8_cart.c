@@ -167,7 +167,7 @@ static int pico8_eu_ix_map(pico8_value_t e, void *ctx, pico8_value_t *out_value)
         return 0;
     }
     row = (const pico8_ob_table_t *)e.as.ref;
-    made = pico8_js_new(row);
+    made = pico8_js_new_table(row);
     *out_value = pico8_value_ref(made);
     return 1;
 }
@@ -215,16 +215,10 @@ void pico8_eu(pico8_js_t *nj) {
     gx[6] = pico8_hj_kind();
 
     for (i = 0; i < 7; i++) {
-        pico8_value_t dr_val;
-        const pico8_ob_table_t *dr_entry = NULL;
         pico8_ob_table_t *overrides;
         pico8_jb_t *jb;
 
-        if (pico8_dr() != NULL && pico8_ob_table_get_index(pico8_dr(), i + 1, &dr_val) &&
-            dr_val.kind == PICO8_VALUE_REF && dr_val.as.ref != NULL) {
-            dr_entry = (const pico8_ob_table_t *)dr_val.as.ref;
-        }
-        jb = pico8_jb_new(dr_entry);
+        jb = pico8_jb_new(&pico8_dr_table[i]);
 
         overrides = pico8_ob_table_new();
         pico8_ob_table_set_name(overrides, "ke", pico8_value_ref((void *)gx[i]));

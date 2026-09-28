@@ -267,10 +267,9 @@ static pico8_vec_t v2(int x, int y) {
     return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
 }
 
-static const pico8_ob_table_t *dr_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_dr(), i + 1, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
+static const pico8_jb_row_t *dr_row(int i) {
+    assert(i < PICO8_DR_COUNT);
+    return &pico8_dr_table[i];
 }
 
 static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {

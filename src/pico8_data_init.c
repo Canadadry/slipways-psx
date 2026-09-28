@@ -10,7 +10,6 @@
 #include "pico8_vec.h"
 
 static pico8_ob_table_t *g_fd = NULL;
-static pico8_ob_table_t *g_dr = NULL;
 static pico8_ob_table_t *g_nb = NULL;
 
 /* Each view below is a fresh heap table, in the parsed table's entry order,
@@ -106,16 +105,6 @@ static pico8_ob_table_t *data_init_fd_view(void) {
         pico8_ob_table_set_index(fd, i + 1, pico8_value_ref(ri));
     }
     return fd;
-}
-
-static pico8_ob_table_t *data_init_dr_view(void) {
-    pico8_ob_table_t *dr = pico8_ob_table_new();
-    int i;
-
-    for (i = 0; i < PICO8_DR_COUNT; i++) {
-        pico8_ob_table_set_index(dr, i + 1, pico8_value_ref(pico8_jb_row_view(&pico8_dr_table[i])));
-    }
-    return dr;
 }
 
 /* A record sits both at its position and under its px name, one shared
@@ -235,9 +224,6 @@ void pico8_data_init(pico8_mem_t *mem) {
     pico8_research_init();
     pico8_research_build_gb(g_fd);
 
-    pico8_ob_table_free(g_dr);
-    g_dr = data_init_dr_view();
-
     pico8_ob_table_free(g_nb);
     g_nb = data_init_nb_view();
 }
@@ -246,18 +232,12 @@ void pico8_data_shutdown(void) {
     pico8_research_shutdown();
     pico8_ob_table_free(g_fd);
     g_fd = NULL;
-    pico8_ob_table_free(g_dr);
-    g_dr = NULL;
     pico8_ob_table_free(g_nb);
     g_nb = NULL;
 }
 
 const pico8_ob_table_t *pico8_fd(void) {
     return g_fd;
-}
-
-const pico8_ob_table_t *pico8_dr(void) {
-    return g_dr;
 }
 
 const pico8_ob_table_t *pico8_nb(void) {

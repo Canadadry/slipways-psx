@@ -21,30 +21,6 @@ static int pico8_js_is_lq(const void *ref) {
            ((const pico8_struct_header_t *)ref)->cls == pico8_lq_struct_class();
 }
 
-/* The overrides table `lq(x)` copies from: NULL when the field is absent or
- * holds no REF, else the REF itself (borrowed) for a table, a freshly
- * allocated one for a list, or the row's table view for a row, which the
- * caller frees. All three shapes reach this field. */
-static const pico8_ob_table_t *pico8_js_lq_arg_table(pico8_value_t v) {
-    if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
-        return NULL;
-    }
-    if (pico8_js_is_lq(v.as.ref)) {
-        return pico8_lq_table_view((const pico8_lq_t *)v.as.ref);
-    }
-
-    switch (pico8_type_tag_of(v.as.ref)) {
-    case PICO8_TYPE_TAG_OB_TABLE:
-        return (const pico8_ob_table_t *)v.as.ref;
-    case PICO8_TYPE_TAG_LIST:
-        /* TROU-7 */
-        return pico8_ob_table_from_list(PICO8_REF_AS_LIST_CONST(v.as.ref));
-    default:
-        assert(0 && "untagged or unmeasured REF reached js:pq's lq()/h_() argument");
-        return NULL;
-    }
-}
-
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -367,12 +343,11 @@ static const pico8_struct_class_t g_js_struct_class = {
     pico8_js_set_field,
 };
 
-static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_js_t *self = malloc(sizeof *self);
     pico8_value_t lq_arg = pico8_value_ref(NULL);
     pico8_value_t h__arg = pico8_value_ref(NULL);
     pico8_value_t jb_arg = pico8_value_ref(NULL);
-    int k;
 
     pico8_ke_struct_init(&self->ke, &g_js_struct_class);
     self->lq = NULL;
@@ -401,52 +376,41 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
     self->_jo_fe_od = 0;
     self->has__jo_fe_od = 0;
     self->fa = pico8_js_start.fa;
-    for (k = 0; overrides != NULL && k < overrides->count; k++) {
-        pico8_ob_key_t key = overrides->entries[k].key;
-        pico8_value_t value = overrides->entries[k].value;
-        const char *name = key.kind == PICO8_OB_KEY_NAME ? key.name : "";
-
-        if ((strcmp(name, "h_") == 0 || strcmp(name, "jb") == 0) && value.kind == PICO8_VALUE_REF &&
-            value.as.ref == NULL) {
-            /* TROU-23 */
-            value = pico8_value_bool(1);
+    if (keys != NULL) {
+        if (keys->has_fa) {
+            self->fa = keys->fa;
         }
-        if (strcmp(name, "fa") == 0) {
-            button_take_fa(value, &self->fa);
-        } else if (strcmp(name, "lq") == 0) {
-            lq_arg = value;
-        } else if (strcmp(name, "h_") == 0) {
-            h__arg = value;
-        } else if (strcmp(name, "jb") == 0) {
-            jb_arg = value;
-        } else if (strcmp(name, "ra") == 0) {
-            button_take_vec(value, &self->ra);
-        } else if (strcmp(name, "qf") == 0) {
-            button_take_vec(value, &self->qf);
-        } else if (strcmp(name, "my") == 0) {
-            button_take_my(value, &self->my, &self->has_my);
-        } else if (strcmp(name, "hb") == 0) {
-            button_take_function(value, &self->hb);
-        } else if (strcmp(name, "fg") == 0) {
-            button_take_fixed(value, &self->fg, &self->has_fg);
-        } else if (strcmp(name, "px") == 0) {
-            button_take_string(value, &self->px);
-        } else if (strcmp(name, "trade") == 0) {
-            button_take_fixed(value, &self->trade, &self->has_trade);
-        } else if (strcmp(name, "en") == 0) {
-            button_take_fixed(value, &self->en, &self->has_en);
-        } else if (strcmp(name, "_cr_t") == 0) {
-            button_take_nb(value, &self->_cr_t);
-        } else if (strcmp(name, "_jo_fe_pt") == 0) {
-            button_take_jo(value, &self->_jo_fe_pt);
-        } else if (strcmp(name, "_jo_fe_b") == 0) {
-            button_take_hp(value, &self->_jo_fe_b);
-        } else if (strcmp(name, "_jo_fe_od") == 0) {
-            button_take_fixed(value, &self->_jo_fe_od, &self->has__jo_fe_od);
-        } else {
-            assert(0 && "js: the only construction keys are fa, lq, h_, jb, ra, qf, my, hb, fg, px, trade, en, _cr_t "
-                        "and _jo_fe_pt/_b/_od; another key has no member -- stop, do not add one");
+        lq_arg = keys->lq;
+        if (keys->has_h_) {
+            h__arg = keys->h_;
         }
+        if (keys->has_jb) {
+            jb_arg = keys->jb;
+        }
+        /* TROU-23 */
+        if (keys->has_h_ && h__arg.kind == PICO8_VALUE_REF && h__arg.as.ref == NULL) {
+            h__arg = pico8_value_bool(1);
+        }
+        if (keys->has_jb && jb_arg.kind == PICO8_VALUE_REF && jb_arg.as.ref == NULL) {
+            jb_arg = pico8_value_bool(1);
+        }
+        self->ra = keys->ra;
+        self->qf = keys->qf;
+        self->my = keys->my;
+        self->has_my = keys->has_my;
+        self->hb = keys->hb;
+        self->fg = keys->fg;
+        self->has_fg = keys->has_fg;
+        self->px = keys->px;
+        self->trade = keys->trade;
+        self->has_trade = keys->has_trade;
+        self->en = keys->en;
+        self->has_en = keys->has_en;
+        self->_cr_t = keys->_cr_t;
+        self->_jo_fe_pt = keys->_jo_fe_pt;
+        self->_jo_fe_b = keys->_jo_fe_b;
+        self->_jo_fe_od = keys->_jo_fe_od;
+        self->has__jo_fe_od = keys->has__jo_fe_od;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("js");
@@ -473,20 +437,90 @@ const pico8_struct_class_t *pico8_js_struct_class(void) {
     return &g_js_struct_class;
 }
 
-pico8_js_t *pico8_js_new(const pico8_ob_table_t *overrides) {
-    return pico8_js_struct_new(overrides);
+pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
+    return pico8_js_struct_new(keys);
 }
 
-/* `lq(x)` of the cart: a row passed in is copied through its table view,
- * freed once the copy is built. */
-static pico8_lq_t *pico8_js_lq(pico8_value_t v) {
-    const pico8_ob_table_t *overrides = pico8_js_lq_arg_table(v);
-    pico8_lq_t *built = pico8_lq_new(overrides);
+pico8_js_t *pico8_js_new_table(const pico8_ob_table_t *overrides) {
+    pico8_js_keys_t keys = {0};
+    int k;
 
-    if (v.kind == PICO8_VALUE_REF && pico8_js_is_lq(v.as.ref)) {
-        pico8_ob_table_free((pico8_ob_table_t *)overrides);
+    keys.lq = pico8_value_ref(NULL);
+    for (k = 0; overrides != NULL && k < overrides->count; k++) {
+        pico8_ob_key_t key = overrides->entries[k].key;
+        pico8_value_t value = overrides->entries[k].value;
+        const char *name = key.kind == PICO8_OB_KEY_NAME ? key.name : "";
+
+        if (strcmp(name, "fa") == 0) {
+            button_take_fa(value, &keys.fa);
+            keys.has_fa = 1;
+        } else if (strcmp(name, "lq") == 0) {
+            keys.lq = value;
+        } else if (strcmp(name, "h_") == 0) {
+            keys.h_ = value;
+            keys.has_h_ = 1;
+        } else if (strcmp(name, "jb") == 0) {
+            keys.jb = value;
+            keys.has_jb = 1;
+        } else if (strcmp(name, "ra") == 0) {
+            button_take_vec(value, &keys.ra);
+        } else if (strcmp(name, "qf") == 0) {
+            button_take_vec(value, &keys.qf);
+        } else if (strcmp(name, "my") == 0) {
+            button_take_my(value, &keys.my, &keys.has_my);
+        } else if (strcmp(name, "hb") == 0) {
+            button_take_function(value, &keys.hb);
+        } else if (strcmp(name, "fg") == 0) {
+            button_take_fixed(value, &keys.fg, &keys.has_fg);
+        } else if (strcmp(name, "px") == 0) {
+            button_take_string(value, &keys.px);
+        } else if (strcmp(name, "trade") == 0) {
+            button_take_fixed(value, &keys.trade, &keys.has_trade);
+        } else if (strcmp(name, "en") == 0) {
+            button_take_fixed(value, &keys.en, &keys.has_en);
+        } else if (strcmp(name, "_cr_t") == 0) {
+            button_take_nb(value, &keys._cr_t);
+        } else if (strcmp(name, "_jo_fe_pt") == 0) {
+            button_take_jo(value, &keys._jo_fe_pt);
+        } else if (strcmp(name, "_jo_fe_b") == 0) {
+            button_take_hp(value, &keys._jo_fe_b);
+        } else if (strcmp(name, "_jo_fe_od") == 0) {
+            button_take_fixed(value, &keys._jo_fe_od, &keys.has__jo_fe_od);
+        } else {
+            assert(0 && "js: the only construction keys are fa, lq, h_, jb, ra, qf, my, hb, fg, px, trade, en, _cr_t "
+                        "and _jo_fe_pt/_b/_od; another key has no member -- stop, do not add one");
+        }
     }
-    return built;
+    return pico8_js_new(&keys);
+}
+
+/* `lq(x)` of the cart: a table is read by `pico8_lq_new_table`, a list
+ * gives its elements, nil included, as the positionals, a row is copied
+ * from its keys; anything else not a REF builds an empty row. */
+static pico8_lq_t *pico8_js_lq(pico8_value_t v) {
+    pico8_lq_keys_t keys = {0};
+
+    if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+        return pico8_lq_new(NULL);
+    }
+    if (pico8_js_is_lq(v.as.ref)) {
+        keys = pico8_lq_keys_of((const pico8_lq_t *)v.as.ref);
+        return pico8_lq_new(&keys);
+    }
+    switch (pico8_type_tag_of(v.as.ref)) {
+    case PICO8_TYPE_TAG_OB_TABLE:
+        return pico8_lq_new_table((const pico8_ob_table_t *)v.as.ref);
+    case PICO8_TYPE_TAG_LIST: {
+        const pico8_list_t *list = PICO8_REF_AS_LIST_CONST(v.as.ref);
+
+        keys.items = list->items;
+        keys.count = list->count;
+        return pico8_lq_new(&keys);
+    }
+    default:
+        assert(0 && "untagged or unmeasured REF reached js:pq's lq()/h_() argument");
+        return NULL;
+    }
 }
 
 void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, pico8_value_t h_, pico8_value_t jb) {
@@ -506,13 +540,12 @@ void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, pico8_value_t h_, pico8_val
         self->has_h_ = 1;
     }
 
-    if (pico8_js_truthy(jb)) {
-        const pico8_ob_table_t *jb_overrides =
-            (jb.kind == PICO8_VALUE_REF) ? (const pico8_ob_table_t *)jb.as.ref : NULL;
-
-        assert((jb_overrides == NULL || pico8_type_tag_of(jb_overrides) == PICO8_TYPE_TAG_OB_TABLE) &&
+    if (pico8_js_truthy(jb) && jb.kind == PICO8_VALUE_REF) {
+        assert(pico8_type_tag_of(jb.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
                "js:pq's jb field must hold a plain spec table");
-        self->jb = pico8_jb_new(jb_overrides);
+        self->jb = pico8_jb_new_table((const pico8_ob_table_t *)jb.as.ref);
+    } else if (pico8_js_truthy(jb)) {
+        self->jb = pico8_jb_new(NULL);
     } else if (jb.kind == PICO8_VALUE_BOOL) {
         assert(0 && "js.jb: a key false does not fit the member's type -- stop, do not widen the member");
     }

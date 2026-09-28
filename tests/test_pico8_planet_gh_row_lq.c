@@ -1,8 +1,9 @@
-/* A display row's "lq" holds a `pico8_list_t*` where `js:pq()` passes it on
- * as class overrides, i.e. as a `pico8_ob_table_t*`. Lua has one table
- * type and this port has two: before the type tag the structs were
- * ABI-compatible but element-incompatible, so the copy loop walked 32-byte
- * entries over a 16-byte-element array and overflowed the allocation.
+/* A display row's "lq" holds a `pico8_list_t*`, whose elements `js:pq()`
+ * takes as the row's positionals; the bug read it as a `pico8_ob_table_t*`.
+ * Lua has one table type and this port has two: before the type tag the
+ * structs were ABI-compatible but element-incompatible, so the copy loop
+ * walked 32-byte entries over a 16-byte-element array and overflowed the
+ * allocation.
  *
  * Built under AddressSanitizer, because the resulting SIGSEGV depends on
  * allocator layout and is not a sound oracle: on the replay that reported

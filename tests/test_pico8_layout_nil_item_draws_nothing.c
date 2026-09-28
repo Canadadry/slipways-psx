@@ -104,13 +104,13 @@ static int pixels_drawn(void) {
 /* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one
  * positional item, rendered onto a cleared screen. */
 static void render_one_item(pico8_value_t item) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_lq_keys_t keys = {0};
     pico8_lq_t *line;
 
-    pico8_ob_table_set_index(overrides, 1, item);
-    line = pico8_lq_new(overrides);
-    pico8_ob_table_free(overrides);
-    assert(line != NULL);
+    keys.items = &item;
+    keys.count = 1;
+    line = pico8_lq_new(&keys);
+    assert(line != NULL && line->items.count == 1);
 
     pico8_cls(&mem);
     pico8_lq_ol_default(&gfx, &mem, line, pico8_vec_v(pico8_fixed_from_int(DRAW_X), pico8_fixed_from_int(DRAW_Y)));

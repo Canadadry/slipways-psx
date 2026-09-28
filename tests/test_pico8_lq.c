@@ -257,7 +257,7 @@ static uint32_t fold_row(uint32_t h, const void *lq) {
 
 /* Builds the row, folds it, frees the overrides it was built from. */
 static uint32_t fold_built_from(uint32_t h, const char *label, pico8_ob_table_t *t) {
-    const void *lq = pico8_lq_new(t);
+    const void *lq = pico8_lq_new_table(t);
     uint32_t one = fold_row(2166136261u, lq);
 
     printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, pico8_fixed_flr_int(w_of(lq)), fs_count(lq), row_count(lq),
@@ -427,7 +427,7 @@ static void test_hp_lq_and_copy(void) {
         h = fold_row(h, lq);
 
         pico8_ob_table_set_name(spec, "lq", pico8_value_ref(lq));
-        button = pico8_js_new(spec);
+        button = pico8_js_new_table(spec);
         pico8_ob_table_free(spec);
         copy = get_ref(button, "lq");
         assert(copy != NULL && copy != lq);
@@ -456,7 +456,7 @@ static void test_hp_lq_and_copy(void) {
         pico8_ob_table_set_name(h_t, "bg", a == 0 ? num(8) : pico8_value_bool(0));
         pico8_ob_table_set_name(spec, "lq", pico8_value_ref(lq_t));
         pico8_ob_table_set_name(spec, "h_", pico8_value_ref(h_t));
-        button = pico8_js_new(spec);
+        button = pico8_js_new_table(spec);
         h = fold_row(h, get_ref(button, "lq"));
         h_ = get_ref(button, "h_");
         assert(h_ != NULL);
@@ -492,7 +492,7 @@ static void test_calls(void) {
     uint32_t want;
 
     pico8_ob_table_set_name(t, "c", num(11));
-    lq = pico8_lq_new(t);
+    lq = pico8_lq_new_table(t);
 
     want = drawn_by_ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
     h = fnv(h, want);
@@ -668,7 +668,7 @@ static void build_with_named_key(void *e) {
     pico8_ob_table_t *t = pico8_ob_table_new();
     (void)e;
     pico8_ob_table_set_name(t, "x", pico8_value_bool(1));
-    (void)pico8_lq_new(t);
+    (void)pico8_lq_new_table(t);
 }
 
 static void ol_on_other(void *e) {
@@ -678,12 +678,12 @@ static void ol_on_other(void *e) {
 static void button_on_other(void *e) {
     pico8_ob_table_t *spec = pico8_ob_table_new();
     pico8_ob_table_set_name(spec, "lq", pico8_value_ref(e));
-    (void)pico8_js_new(spec);
+    (void)pico8_js_new_table(spec);
 }
 
 /* A row is a struct whose descriptor has `ol` and a reader, no other method
  * and no writer; the class keeps no `pq` and no `ol` default. It takes no
- * named key but c, bg, score, ra, fs, w, and `ol` refuses anything that is
+ * named key but c, bg, score, ra, and `ol` refuses anything that is
  * not a row, as `js:pq` refuses another struct. The table view of an
  * `hp:lq` row lists the positionals `pq` saw, `fs`, `w`, then the two added
  * after; the named keys come between the positionals and `fs`. */
@@ -699,7 +699,7 @@ static void test_lq_is_a_struct(void) {
     int i;
 
     pico8_ob_table_set_name(t, "c", num(9));
-    lq = pico8_lq_new(t);
+    lq = pico8_lq_new_table(t);
     pico8_ob_table_free(t);
     assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == cls);
     for (i = 0; i < PICO8_METHOD_COUNT; i++) {
@@ -733,7 +733,7 @@ static void test_lq_is_a_struct(void) {
     pico8_ob_table_set_name(t, "ra", vec_ref(vec_xy(1, 2)));
     pico8_ob_table_set_name(t, "score", num(4));
     pico8_ob_table_set_name(t, "bg", pico8_value_bool(0));
-    view = pico8_lq_table_view(pico8_lq_new(t));
+    view = pico8_lq_table_view(pico8_lq_new_table(t));
     pico8_ob_table_free(t);
     assert(view->count == 7);
     assert(view->entries[0].key.kind == PICO8_OB_KEY_INDEX && view->entries[0].key.index == 1);
@@ -851,7 +851,7 @@ static void test_lq_members_by_name(void) {
     const pico8_list_t *le;
     const pico8_list_t *hv;
     pico8_ob_table_t *spec;
-    pico8_ob_table_t *view;
+    pico8_lq_keys_t keys;
     uint32_t h = 2166136261u;
     size_t n;
     int i;
@@ -889,23 +889,22 @@ static void test_lq_members_by_name(void) {
     pico8_ob_table_set_name(t, "score", num(0));
     pico8_ob_table_set_name(t, "bg", num(8));
     pico8_ob_table_set_name(t, "ra", ra);
-    rows[0] = pico8_lq_new(t);
+    rows[0] = pico8_lq_new_table(t);
     pico8_ob_table_free(t);
     t = positionals(2, a);
     pico8_ob_table_set_name(t, "bg", pico8_value_bool(0));
     pico8_ob_table_set_name(t, "score", num(3));
-    rows[1] = pico8_lq_new(t);
+    rows[1] = pico8_lq_new_table(t);
     pico8_ob_table_free(t);
     t = positionals(1, a);
-    rows[2] = pico8_lq_new(t);
+    rows[2] = pico8_lq_new_table(t);
     pico8_ob_table_free(t);
     t = positionals(2, a);
     pico8_ob_table_set_name(t, "c", nil);
     pico8_ob_table_set_name(t, "bg", nil);
     pico8_ob_table_set_name(t, "score", nil);
     pico8_ob_table_set_name(t, "ra", nil);
-    pico8_ob_table_set_name(t, "fs", nil);
-    rows[3] = pico8_lq_new(t);
+    rows[3] = pico8_lq_new_table(t);
     pico8_ob_table_free(t);
     for (n = 0; n < 4; n++) {
         h = fnv(h, (uint32_t)n);
@@ -916,16 +915,15 @@ static void test_lq_members_by_name(void) {
 
     spec = pico8_ob_table_new();
     pico8_ob_table_set_name(spec, "lq", pico8_value_ref((void *)rows[0]));
-    check_copy(rows[0], get_ref(pico8_js_new(spec), "lq"));
+    check_copy(rows[0], get_ref(pico8_js_new_table(spec), "lq"));
     pico8_ob_table_free(spec);
     spec = pico8_ob_table_new();
     pico8_ob_table_set_name(spec, "lq", pico8_value_ref((void *)rows[1]));
-    rows[4] = get_ref(pico8_js_new(spec), "lq");
+    rows[4] = get_ref(pico8_js_new_table(spec), "lq");
     pico8_ob_table_free(spec);
     check_copy(rows[1], rows[4]);
-    view = pico8_lq_table_view(rows[0]);
-    rows[5] = pico8_lq_new(view);
-    pico8_ob_table_free(view);
+    keys = pico8_lq_keys_of(rows[0]);
+    rows[5] = pico8_lq_new(&keys);
     check_copy(rows[0], rows[5]);
     for (n = 4; n < 6; n++) {
         h = fnv(h, (uint32_t)n);

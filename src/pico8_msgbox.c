@@ -149,7 +149,7 @@ static const pico8_struct_class_t g_mh_struct_class = {
     NULL,
 };
 
-static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     pico8_mh_t *self = malloc(sizeof *self);
     int i;
 
@@ -161,29 +161,14 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
     self->p_ = 0;
     self->has_p_ = 0;
     pico8_list_init(&self->items);
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        pico8_ob_key_t key = overrides->entries[i].key;
-        pico8_value_t value = overrides->entries[i].value;
-
-        if (key.kind != PICO8_OB_KEY_NAME) {
-            pico8_list_add(&self->items, value);
-        } else if (strcmp(key.name, "rh") == 0) {
-            assert(value.kind == PICO8_VALUE_FIXED &&
-                   "mh.rh: a nil or non-fixed key does not fit the member's type and rh has no presence flag "
-                   "-- stop, do not widen the member");
-            self->rh = value.as.fixed;
-        } else if (strcmp(key.name, "lh") == 0) {
-            if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-                self->lh = NULL;
-            } else {
-                assert(value.kind == PICO8_VALUE_FUNCTION &&
-                       "mh.lh: a key neither nil nor a function does not fit the member's type "
-                       "-- stop, do not widen the member");
-                self->lh = value.as.function;
-            }
-        } else {
-            assert(0 && "mh: every key is positional, rh or lh; another key has no member -- stop, do not add one");
+    if (keys != NULL) {
+        for (i = 0; i < keys->count; i++) {
+            pico8_list_add(&self->items, keys->items[i]);
         }
+        if (keys->has_rh) {
+            self->rh = keys->rh;
+        }
+        self->lh = keys->lh;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mh");
@@ -207,8 +192,47 @@ int pico8_mh_ready(void) {
     return g_mh_up;
 }
 
-pico8_mh_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
-    return pico8_mh_struct_new(overrides);
+pico8_mh_t *pico8_mh_new(const pico8_mh_keys_t *keys) {
+    return pico8_mh_struct_new(keys);
+}
+
+pico8_mh_t *pico8_mh_new_table(const pico8_ob_table_t *overrides) {
+    pico8_mh_keys_t keys = {0};
+    pico8_list_t items;
+    pico8_mh_t *built;
+    int i;
+
+    pico8_list_init(&items);
+    for (i = 0; overrides != NULL && i < overrides->count; i++) {
+        pico8_ob_key_t key = overrides->entries[i].key;
+        pico8_value_t value = overrides->entries[i].value;
+
+        if (key.kind != PICO8_OB_KEY_NAME) {
+            pico8_list_add(&items, value);
+        } else if (strcmp(key.name, "rh") == 0) {
+            assert(value.kind == PICO8_VALUE_FIXED &&
+                   "mh.rh: a nil or non-fixed key does not fit the member's type and rh has no presence flag "
+                   "-- stop, do not widen the member");
+            keys.rh = value.as.fixed;
+            keys.has_rh = 1;
+        } else if (strcmp(key.name, "lh") == 0) {
+            if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
+                keys.lh = NULL;
+            } else {
+                assert(value.kind == PICO8_VALUE_FUNCTION &&
+                       "mh.lh: a key neither nil nor a function does not fit the member's type "
+                       "-- stop, do not widen the member");
+                keys.lh = value.as.function;
+            }
+        } else {
+            assert(0 && "mh: every key is positional, rh or lh; another key has no member -- stop, do not add one");
+        }
+    }
+    keys.items = items.items;
+    keys.count = items.count;
+    built = pico8_mh_new(&keys);
+    pico8_list_free(&items);
+    return built;
 }
 
 static pico8_vec_t pico8_iv_vec_or_zero(const pico8_vec_t *p) {
@@ -414,7 +438,7 @@ static int pico8_pz_step(pico8_value_t e, void *ctx_v, pico8_value_t *out_value)
     gq = pico8_msgbox_field_vec(ctx->p, "gq");
     ctx->bp = pico8_vec_add(ctx->bp, gq);
 
-    made = pico8_js_new(b);
+    made = pico8_js_new_table(b);
     *out_value = pico8_value_ref(made);
     return 1;
 }

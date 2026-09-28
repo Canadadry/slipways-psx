@@ -101,7 +101,7 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 
     {
-        pico8_mh_t *made = pico8_mh_new(iw);
+        pico8_mh_t *made = pico8_mh_new_table(iw);
         (void)made;
     }
 }
@@ -245,7 +245,7 @@ static int pico8_pj_ph_map(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_va
 
     pico8_ob_table_get_name(st, "ra", &ra_val);
     /* TROU-7 */
-    lq_inst = pico8_lq_new(st);
+    lq_inst = pico8_lq_new_table(st);
     wrapped = pico8_ob_table_new();
     pico8_ob_table_set_index(wrapped, 1, pico8_value_ref(lq_inst));
     pico8_ob_table_set_index(wrapped, 2, ra_val);
@@ -273,12 +273,12 @@ void pico8_pj_ph(pico8_pj_t *self) {
         pico8_ob_table_set_name(my_init_overrides, "my", pico8_init_field_value());
         spec1 = pico8_ob("\nfa=15,\nra=v(51,100),\nlq=o(\" again? \"),\n", my_init_overrides);
         pico8_ob_table_free(my_init_overrides);
-        made1 = pico8_js_new(spec1);
+        made1 = pico8_js_new_table(spec1);
         (void)made1;
         pico8_ob_table_free(spec1);
 
         spec2 = pico8_ob("\nfa=15,\nra=v(39,100),\nlq=o(o(10,7)),\n", g_de);
-        made2 = pico8_js_new(spec2);
+        made2 = pico8_js_new_table(spec2);
         (void)made2;
         pico8_ob_table_free(spec2);
 
@@ -320,7 +320,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
             pico8_ob_table_set_name(iw_table, "rh", pico8_value_fixed(pico8_fixed_from_int(3)));
             pico8_ob_table_set_name(iw_table, "lh", pico8_value_function(pico8_pj_ph_lh_dispatch));
 
-            made = pico8_mh_new(iw_table);
+            made = pico8_mh_new_table(iw_table);
             pico8_ob_table_free(iw_table);
             pico8_ob_table_free(s);
 

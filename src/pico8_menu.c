@@ -337,7 +337,8 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     void *inst = self;
     pico8_list_t cb_list;
     int cb_count;
-    pico8_ob_table_t *overrides;
+    pico8_value_t item;
+    pico8_lq_keys_t keys = {0};
     pico8_lq_t *built;
     (void)argc;
     (void)arg0;
@@ -351,10 +352,10 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     cb_count = cb_list.count;
     pico8_list_free(&cb_list);
 
-    overrides = pico8_ob_table_new();
-    pico8_ob_table_set_index(overrides, 1, pico8_value_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37)));
-    built = pico8_lq_new(overrides);
-    pico8_ob_table_free(overrides);
+    item = pico8_value_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
+    keys.items = &item;
+    keys.count = 1;
+    built = pico8_lq_new(&keys);
 
     pico8_entity_set_field(inst, "lq", pico8_value_ref(built));
 

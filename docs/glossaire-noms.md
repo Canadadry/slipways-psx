@@ -419,18 +419,19 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `mh` | `pico8_mh_t` | boîte de message |
+| `mh` | `pico8_mh_t` | boîte de message ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, `rh`, `lh`) ; une table reçue passe par `pico8_mh_new_table` |
 | `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
-| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page |
-| `jb` | `pico8_jb_t` | une bulle d'info |
+| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) ; une table reçue passe par `pico8_lq_new_table` |
+| `lq(row)` | `pico8_lq_keys_of` | les clés d'où `js:pq` recopie une rangée : tous ses items dans l'ordre, empruntés, et ses `c`, `bg`, `score`, `ra` |
+| `jb` | `pico8_jb_t` | une bulle d'info ; ses clés sont ses lignes, une rangée générée `pico8_jb_row_t` (`dr`) ; une table reçue passe par `pico8_jb_new_table` |
 | — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, `px`, `dz`, `em` de l'arbre `jo`, `rb` de `fv`, `gs`, `i_` de `pj`, `fk` et `lq` de `hp` : une rangée de chaînes, de nombres entiers (`n`) ou non (`is_fixed`, `fixed`), de faux (`is_false`) et de rangées, avec son `c` et son `fn` éventuels |
 | — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`, `bl`, `mh`) |
 | — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | — | `pico8_qe_map_t` | une table par ressource (`po`, `fu`) : clés `qe` entières, ordre d'insertion, 16 au plus ; `pico8_qe_map_get`/`_set` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
-| `js` | `pico8_js_t` | un bouton cliquable |
+| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` restent des sources de rangée `pico8_value_t`) ; une table reçue (`pz`, `eu`, `pj:ph`) passe par `pico8_js_new_table` |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton |
 | `bo` | `pico8_bo_table` (typée), `g_bo` (vue ob, static, `pico8_help.c`, construite par `pico8_bo_view`) | les options de difficulté de l'écran-titre |

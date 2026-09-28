@@ -381,8 +381,10 @@ Atteint par le filet : la ligne de `jo:fe` d'un bâtiment dont `b:jb()` est
 nil (`hp:jb` quand `ii` est vrai) reçoit une infobulle vide, dessinée au
 survol (`events_recorded_1790198294`, `session_events`). La ligne de
 `jo:gh` sans `kr` recevrait une pastille vide ; aucun rejeu ne l'atteint.
-La struct `js`, où nil vaut absent, garde ce comportement : son
-constructeur remplace une clé `h_` ou `jb` nil par `true`.
+La struct `js`, où nil vaut absent, garde ce comportement : la présence
+d'une clé `h_` ou `jb` nil est portée par `has_h_`/`has_jb` de
+`pico8_js_keys_t` (posés par `pico8_js_new_table`), et le constructeur de
+`js` remplace alors la valeur nil par `true`.
 
 Fichier : `src/pico8_ui_button.c`.
 

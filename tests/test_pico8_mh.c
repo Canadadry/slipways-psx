@@ -346,7 +346,7 @@ static pico8_value_t counting_lh(void *self, int argc, pico8_value_t arg0, pico8
  * `ph` for `dg` to call. */
 static void test_mh_is_a_struct_registered_under_ev(void) {
     const char *others[] = {"kj", "hd", "hk", "hb"};
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_mh_keys_t keys = {0};
     const void *from_pj;
     void *generic;
     pico8_value_t out;
@@ -354,9 +354,8 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
 
     pico8_jl();
     from_pj = year_box(3400);
-    pico8_ob_table_set_name(overrides, "lh", pico8_value_function(counting_lh));
-    generic = pico8_mh_new(overrides);
-    pico8_ob_table_free(overrides);
+    keys.lh = counting_lh;
+    generic = pico8_mh_new(&keys);
 
     assert(pico8_type_tag_of(from_pj) == PICO8_TYPE_TAG_STRUCT);
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
@@ -406,7 +405,7 @@ static int has_member(const void *e, const char *name, pico8_value_t *out) {
 /* The five members, read by name only, on a box with no key, on one with
  * `rh` and `lh` keys, and on the first once the second has closed it. */
 static void test_mh_members_by_name(void) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_mh_keys_t keys = {0};
     void *a;
     void *b;
     const void *nu;
@@ -433,10 +432,10 @@ static void test_mh_members_by_name(void) {
     assert(listed(pico8_hv(), a) && listed(pico8_cv("ev"), a) && listed(pico8_cg("mh"), a));
     assert(pico8_kc() == a);
 
-    pico8_ob_table_set_name(overrides, "rh", pico8_value_fixed(pico8_fixed_from_int(3)));
-    pico8_ob_table_set_name(overrides, "lh", pico8_value_function(counting_lh));
-    b = pico8_mh_new(overrides);
-    pico8_ob_table_free(overrides);
+    keys.has_rh = 1;
+    keys.rh = pico8_fixed_from_int(3);
+    keys.lh = counting_lh;
+    b = pico8_mh_new(&keys);
 
     assert(pico8_type_tag_of(b) == PICO8_TYPE_TAG_STRUCT);
     assert(has_member(b, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == nu);
@@ -468,7 +467,7 @@ static void test_mh_nil_lh_key_reads_absent(void) {
 
     pico8_jl();
     pico8_ob_table_set_name(overrides, "lh", pico8_value_ref(NULL));
-    box = pico8_mh_new(overrides);
+    box = pico8_mh_new_table(overrides);
     pico8_ob_table_free(overrides);
     assert(!has_member(box, "lh", &v));
     assert(!pico8_mv(box, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
@@ -494,7 +493,7 @@ static void build_with_key(const char *name, pico8_value_t value) {
     pico8_ob_table_t *overrides = pico8_ob_table_new();
 
     pico8_ob_table_set_name(overrides, name, value);
-    (void)pico8_mh_new(overrides);
+    (void)pico8_mh_new_table(overrides);
 }
 
 static void build_rh_string(void) {

@@ -42,10 +42,10 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static uint32_t draw_jb(const pico8_ob_table_t *overrides, pico8_fixed_t om, pico8_fixed_t a) {
+static uint32_t draw_jb(const pico8_jb_t *jb, pico8_fixed_t om, pico8_fixed_t a) {
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    pico8_jb_ol(&gfx, &mem, pico8_jb_new(overrides), om, a);
+    pico8_jb_ol(&gfx, &mem, jb, om, a);
     return screen_hash();
 }
 
@@ -62,25 +62,24 @@ static void check(const char *label, uint32_t got, uint32_t want) {
 
 /* `js:ev`'s call, on the cart's own first `dr` entry. */
 static void test_dr_entry_draws_as_before(void) {
-    pico8_value_t v;
-
-    assert(pico8_ob_table_get_index(pico8_dr(), 1, &v) && v.kind == PICO8_VALUE_REF);
-    check("dr[1]", draw_jb(v.as.ref, pico8_fixed_from_int(127), pico8_fixed_from_int(1)), DR_FIRST_ENTRY_HASH);
+    check("dr[1]", draw_jb(pico8_jb_new(&pico8_dr_table[0]), pico8_fixed_from_int(127), pico8_fixed_from_int(1)),
+          DR_FIRST_ENTRY_HASH);
 }
 
-/* The research icon's call, on bare strings that `jb:pq` wraps as `{ln}`. */
+/* The research icon's call, on bare strings, each a one-item row. */
 static void test_bare_strings_draw_as_before(void) {
     pico8_ob_table_t *spec = pico8_ob_table_new();
 
     pico8_ob_table_set_index(spec, 1, pico8_value_string("alpha"));
     pico8_ob_table_set_index(spec, 2, pico8_value_string("beta 42"));
-    check("bare", draw_jb(spec, pico8_fixed_from_int(0), pico8_fixed_from_int(0)), BARE_STRINGS_HASH);
+    check("bare", draw_jb(pico8_jb_new_table(spec), pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
+          BARE_STRINGS_HASH);
     pico8_ob_table_free(spec);
 }
 
-/* No overrides: an empty `ls`, so only the frame. */
+/* No line: an empty `ls`, so only the frame. */
 static void test_no_overrides_draws_frame_only(void) {
-    check("none", draw_jb(NULL, pico8_fixed_from_int(60), pico8_fixed_from_int(0)), NO_OVERRIDES_HASH);
+    check("none", draw_jb(pico8_jb_new(NULL), pico8_fixed_from_int(60), pico8_fixed_from_int(0)), NO_OVERRIDES_HASH);
 }
 
 /* Both constructions give the struct form, sharing `jb`'s method table,
@@ -88,7 +87,6 @@ static void test_no_overrides_draws_frame_only(void) {
 static void test_jb_is_a_struct_with_its_method_table(void) {
     const pico8_jb_t *direct = pico8_jb_new(NULL);
     const pico8_jb_t *generic = pico8_jb_new(NULL);
-    pico8_value_t v;
 
     assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
@@ -96,12 +94,11 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     assert(direct->header.cls->methods[PICO8_METHOD_OL] != NULL);
     assert(direct->ls != NULL && pico8_type_tag_of(direct->ls) == PICO8_TYPE_TAG_LIST && direct->ls->count == 0);
 
-    assert(pico8_ob_table_get_index(pico8_dr(), 1, &v) && v.kind == PICO8_VALUE_REF);
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    direct->header.cls->methods[PICO8_METHOD_OL]((void *)pico8_jb_new(v.as.ref), 2,
+    direct->header.cls->methods[PICO8_METHOD_OL]((void *)pico8_jb_new(&pico8_dr_table[0]), 2,
                                                  pico8_value_fixed(pico8_fixed_from_int(127)),
                                                  pico8_value_fixed(pico8_fixed_from_int(1)));
     check("table ol", screen_hash(), DR_FIRST_ENTRY_HASH);
@@ -109,7 +106,7 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
 
 /* Reads `jb` only by name -- `ol` through the method table, then its
  * pixels -- so it holds on either layout of `ls`. */
-static uint32_t draw_by_name(const pico8_ob_table_t *overrides, pico8_fixed_t om, pico8_fixed_t a) {
+static uint32_t draw_by_name(pico8_jb_t *jb, pico8_fixed_t om, pico8_fixed_t a) {
     pico8_value_t out;
     uint32_t blank;
     uint32_t got;
@@ -117,7 +114,7 @@ static uint32_t draw_by_name(const pico8_ob_table_t *overrides, pico8_fixed_t om
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
     blank = screen_hash();
-    assert(pico8_mv(&pico8_jb_new(overrides)->header, "ol", 2, pico8_value_fixed(om), pico8_value_fixed(a), &out));
+    assert(pico8_mv(&jb->header, "ol", 2, pico8_value_fixed(om), pico8_value_fixed(a), &out));
     got = screen_hash();
     assert(got != blank);
     return got;
@@ -139,8 +136,7 @@ static void test_jb_state_by_name(void) {
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     for (i = 1; i <= 7; i++) {
-        assert(pico8_ob_table_get_index(pico8_dr(), i, &v) && v.kind == PICO8_VALUE_REF);
-        h ^= draw_by_name(v.as.ref, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
+        h ^= draw_by_name(pico8_jb_new(&pico8_dr_table[i - 1]), pico8_fixed_from_int(127), pico8_fixed_from_int(1));
         h *= 16777619u;
     }
     printf("[dr all by name] 0x%08Xu\n", (unsigned)h);
@@ -152,7 +148,7 @@ static void test_jb_state_by_name(void) {
     pico8_ob_table_set_index(mixed, 2, pico8_value_ref(row));
     pico8_ob_table_set_index(mixed, 3, pico8_value_fixed(pico8_fixed_from_int(5)));
     pico8_ob_table_set_index(mixed, 5, pico8_value_string("delta"));
-    h = draw_by_name(mixed, pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00008000, 0.5));
+    h = draw_by_name(pico8_jb_new_table(mixed), pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00008000, 0.5));
     printf("[mixed by name] 0x%08Xu\n", (unsigned)h);
     fflush(stdout);
     assert(h == MIXED_BY_NAME_HASH);

@@ -728,7 +728,7 @@ static uint32_t screen_hash(void) {
 
 static void *build(const char *spec, const pico8_ob_table_t *extra) {
     pico8_ob_table_t *b = pico8_ob(spec, extra);
-    void *made = pico8_js_new(b);
+    void *made = pico8_js_new_table(b);
     pico8_ob_table_free(b);
     return made;
 }
@@ -902,9 +902,8 @@ static uint32_t draw_alone(void *b) {
 }
 
 static const pico8_ob_table_t *dr_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_dr(), i + 1, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
+    assert(i < PICO8_DR_COUNT);
+    return pico8_jb_row_view(&pico8_dr_table[i]);
 }
 
 /* One button at a time on a cleared screen: `my` absent, present, hovered,
@@ -961,10 +960,10 @@ static void test_nil_keys(void) {
 
     start_game();
     pico8_ob_table_set_name(b, "lq", pico8_value_ref(NULL));
-    no_keys = pico8_js_new(b);
+    no_keys = pico8_js_new_table(b);
     pico8_ob_table_set_name(b, "h_", pico8_value_ref(NULL));
     pico8_ob_table_set_name(b, "jb", pico8_value_ref(NULL));
-    nil_keys = pico8_js_new(b);
+    nil_keys = pico8_js_new_table(b);
     pico8_ob_table_free(b);
     assert(!has(no_keys, "h_") && !has(no_keys, "jb"));
     assert(is_lq(get_ref(nil_keys, "h_")));
@@ -1024,21 +1023,21 @@ static void build_with_unknown_key(void *e) {
     pico8_ob_table_t *b = pico8_ob_table_new();
     (void)e;
     pico8_ob_table_set_name(b, "zz", pico8_value_fixed(pico8_fixed_from_int(1)));
-    (void)pico8_js_new(b);
+    (void)pico8_js_new_table(b);
 }
 
 static void build_with_positional_key(void *e) {
     pico8_ob_table_t *b = pico8_ob_table_new();
     (void)e;
     pico8_ob_table_set_index(b, 1, pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_js_new(b);
+    (void)pico8_js_new_table(b);
 }
 
 static void build_with_mb(void *e) {
     pico8_ob_table_t *b = pico8_ob_table_new();
     (void)e;
     pico8_ob_table_set_name(b, "mb", pico8_value_fixed(pico8_fixed_from_int(3)));
-    (void)pico8_js_new(b);
+    (void)pico8_js_new_table(b);
 }
 
 /* Built by any producer, a `js` is a struct with the five methods of its
@@ -1077,7 +1076,7 @@ static void test_js_is_a_struct(void) {
     must_abort(build_with_mb, NULL);
     {
         pico8_ob_table_t *empty = pico8_ob_table_new();
-        void *bare = pico8_js_new(empty);
+        void *bare = pico8_js_new_table(empty);
         pico8_ob_table_free(empty);
         assert(is_a_js_struct(bare) && must_fixed(bare, "fa") == pico8_fixed_from_int(11) && !has(bare, "my"));
     }
@@ -1309,7 +1308,7 @@ static void *built_with(const char *name, pico8_value_t v) {
     void *made;
 
     pico8_ob_table_set_name(b, name, v);
-    made = pico8_js_new(b);
+    made = pico8_js_new_table(b);
     pico8_ob_table_free(b);
     return made;
 }
@@ -1413,7 +1412,7 @@ static uint32_t members_title_and_game(void) {
 
     fresh[0] = pico8_js_new(NULL);
     extra = pico8_ob_table_new();
-    fresh[1] = pico8_js_new(extra);
+    fresh[1] = pico8_js_new_table(extra);
     pico8_ob_table_free(extra);
     for (k = 0; k < 2; k++) {
         const void *lq = read_ref(fresh[k], "lq");
