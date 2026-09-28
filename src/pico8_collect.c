@@ -88,21 +88,6 @@ pico8_list_t pico8_la(const pico8_list_t *a, const pico8_list_t *b) {
     return t;
 }
 
-/* TROU-4 */
-pico8_value_t pico8_oo(pico8_ob_constructor_fn fn, const pico8_ob_table_t *a) {
-    if (fn != NULL) {
-        pico8_value_t absent = pico8_value_ref(NULL);
-        pico8_value_t a1 = absent, a2 = absent, a3 = absent, a4 = absent, a5 = absent;
-        pico8_ob_table_get_index(a, 1, &a1);
-        pico8_ob_table_get_index(a, 2, &a2);
-        pico8_ob_table_get_index(a, 3, &a3);
-        pico8_ob_table_get_index(a, 4, &a4);
-        pico8_ob_table_get_index(a, 5, &a5);
-        return fn(a1, a2, a3, a4, a5);
-    }
-    return pico8_value_ref((void *)a);
-}
-
 /* TROU-3 */
 int pico8_gu_content(const pico8_list_t *qk, pico8_value_t kb) {
     pico8_list_iter_t it;

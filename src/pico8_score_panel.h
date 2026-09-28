@@ -6,8 +6,8 @@
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
+#include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -39,13 +39,44 @@ typedef struct {
     const char *ep;
 } pico8_pj_cr_t;
 
-/* Calls `pico8_pi_init()` first. Builds `bz`, and `ou`/`ea` from
- * `pico8_pj_ou_row`/`pico8_pj_ea_row`. */
+/* `pj.ou`: a copy of `pico8_pj_ou_row` whose sub-rows `hb` rewrites
+ * (item 1 of each), each an article of `bl`. */
+typedef struct {
+    pico8_jb_row_t row;
+    pico8_jb_item_t items[7];
+    pico8_jb_row_t subs[7];
+    pico8_jb_item_t sub_items[7][4];
+} pico8_pj_ou_t;
+
+/* `pj.ea`: `row` holds `ea[1]`, `ea[2]` (a copy of its generated row whose
+ * item 1 `hk` rewrites) and `ea[3]` when set (a row of `gs`); `lh` NULL is
+ * nil. */
+typedef struct {
+    pico8_jb_row_t row;
+    pico8_jb_item_t items[3];
+    pico8_jb_row_t second;
+    pico8_jb_item_t second_items[5];
+    pico8_value_function_t lh;
+} pico8_pj_ea_t;
+
+/* A row of `bz`, a copy of its entry of `pico8_bz_table`. Without a score it
+ * is an article of `bl` (`row`, never rewritten); with one, `pj:ph`
+ * rewrites its positions, `has[i]` saying which hold a value, and makes it
+ * a line (`ra` its position). */
+typedef struct {
+    pico8_jb_row_t row;
+    pico8_jb_item_t items[5];
+    int has[5];
+    pico8_vec_t ra;
+    const pico8_bz_entry_t *e;
+} pico8_bz_row_t;
+
+/* Calls `pico8_pi_init()` first. Resets `bz`, `ou` and `ea` to their
+ * generated rows. */
 void pico8_score_panel_init(void);
 
-/* Frees `bz`; drops `ou`/`ea` without freeing them. Resets `ju` to
- * NULL without freeing the instance it named: `ju` is a bookmark, `hv` owns
- * the entity. */
+/* Resets `ju` to NULL without freeing the instance it named: `ju` is a
+ * bookmark, `hv` owns the entity. */
 void pico8_score_panel_shutdown(void);
 
 /* 1 from pico8_score_panel_init() to pico8_score_panel_shutdown(), 0 otherwise. */
@@ -53,12 +84,12 @@ int pico8_pj_ready(void);
 const pico8_struct_class_t *pico8_pj_struct_class(void);
 
 /* Shared by every panel, past and future: `hb` rewrites `ou`, `hk` rewrites
- * `ea`, in place; the tables are owned by the class. `cr` is the one static
+ * `ea`, in place; both are statics of this module. `cr` is the one static
  * `pico8_pj_cr_t`, never freed, whose `ep` `cr()` rewrites and the init
  * resets to nil. All NULL before `pico8_score_panel_init()` and after the
  * shutdown. */
-pico8_ob_table_t *pico8_pj_ou(void);
-pico8_ob_table_t *pico8_pj_ea(void);
+pico8_pj_ou_t *pico8_pj_ou(void);
+pico8_pj_ea_t *pico8_pj_ea(void);
 pico8_pj_cr_t *pico8_pj_cr(void);
 const pico8_struct_class_t *pico8_pj_cr_struct_class(void);
 /* `pico8_pj_i__row`, `pico8_pj_gs_row`: never NULL. */
@@ -74,10 +105,9 @@ pico8_pj_t *pico8_pj_new(void);
 /* REF NULL for a NULL panel. */
 pico8_value_t pico8_pj_ed(const pico8_pj_t *self);
 
-/* Owned by this module, freed by `pico8_score_panel_shutdown()`. Its rows
- * are rewritten in place by every `pj:ph()` run -- they are the shared
- * originals, never copies. */
-const pico8_ob_table_t *pico8_bz(void);
+/* The PICO8_BZ_COUNT rows of `bz`, statics of this module: every `pj:ph()`
+ * run rewrites them in place. NULL before the init and after the shutdown. */
+pico8_bz_row_t *pico8_bz(void);
 
 /* Always a valid FUNCTION value: an inert placeholder until the real
  * `_init` bridge is installed, which a NULL argument resets. A button built
@@ -89,6 +119,10 @@ void pico8_score_panel_set_init(pico8_value_function_t fn);
  * setter takes no ownership. */
 pico8_pj_t *pico8_ju(void);
 void pico8_pj_set_ju(pico8_pj_t *instance);
+
+/* The item `hb`, `hk` and `ph` write for `v`: a string (borrowed), a number,
+ * false, or nil for REF NULL; any other value asserts. */
+pico8_jb_item_t pico8_pj_item_of(pico8_value_t v);
 
 void pico8_pj_hb(void);
 

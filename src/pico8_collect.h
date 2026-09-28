@@ -38,13 +38,6 @@ pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx);
  * caller releases with pico8_list_free(). Neither argument may be NULL. */
 pico8_list_t pico8_la(const pico8_list_t *a, const pico8_list_t *b);
 
-/* TROU-4 */
-/* With `fn` NULL the result is `a` itself wrapped as a REF, so `a`'s
- * identity and lifetime stay the caller's; otherwise it is whatever `fn`
- * returns, called with a[1]..a[5], each missing slot being
- * pico8_value_ref(NULL). */
-pico8_value_t pico8_oo(pico8_ob_constructor_fn fn, const pico8_ob_table_t *a);
-
 /* TROU-3 */
 /* Membership as pico8_gu, except that two PICO8_VALUE_STRINGs are compared
  * by content. */

@@ -149,12 +149,57 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     }
 }
 
+/* The frozen hashes were taken when tuples were ob tables: these are the
+ * bytes a table folded for its tag and its two kinds of key. */
+enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1 };
+
+static uint32_t fold_tuple_name(uint32_t h, const char *name) {
+    return fold_value(fnv(h, (uint32_t)VIEW_NAME_KEY), pico8_value_string(name), 0);
+}
+
+static pico8_value_t tuple_item_value(const pico8_jb_item_t *item) {
+    if (item->s != NULL) {
+        return pico8_value_string(item->s);
+    }
+    if (item->is_false) {
+        return pico8_value_bool(0);
+    }
+    if (item->is_ref) {
+        return pico8_value_ref((void *)item->ref);
+    }
+    return pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+}
+
+/* A tuple folded as fold_value folded the table it was: items, then `qe`,
+ * then `c`. */
+static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t, int depth) {
+    int i;
+
+    h = fnv(fnv(h, (uint32_t)PICO8_VALUE_REF), (uint32_t)VIEW_TAG);
+    if (depth <= 0) {
+        return h;
+    }
+    h = fnv(h, (uint32_t)(t->count + (t->has_qe != 0) + (t->has_c != 0)));
+    for (i = 0; i < t->count; i++) {
+        h = fnv(fnv(h, (uint32_t)VIEW_INDEX_KEY), (uint32_t)(i + 1));
+        h = fold_value(h, tuple_item_value(&t->items[i]), depth - 1);
+    }
+    if (t->has_qe) {
+        h = fold_value(fold_tuple_name(h, "qe"), pico8_value_fixed(t->qe), depth - 1);
+    }
+    if (t->has_c) {
+        h = fold_value(fold_tuple_name(h, "c"), pico8_value_fixed(pico8_fixed_from_int(t->c)), depth - 1);
+    }
+    return h;
+}
+
 static uint32_t fold_positionals(uint32_t h, const void *lq) {
     int n = row_count(lq);
     int i;
     h = fnv(h, (uint32_t)n);
     for (i = 0; i < n; i++) {
-        h = fold_value(h, row_item(lq, i), 2);
+        pico8_value_t v = row_item(lq, i);
+        h = v.kind == PICO8_VALUE_REF && v.as.ref != NULL ? fold_tuple(h, v.as.ref, 2) : fold_value(h, v, 2);
     }
     return h;
 }
@@ -224,12 +269,16 @@ static pico8_value_t str(const char *s) {
     return pico8_value_string(s);
 }
 
-static pico8_value_t table_of(int n, const pico8_value_t *items) {
-    pico8_ob_table_t *t = pico8_ob_table_new();
+/* A tuple of numbers, never freed. */
+static pico8_value_t tuple_of(int n, const int *items) {
+    pico8_jb_row_t *t = calloc(1, sizeof *t);
+    pico8_jb_item_t *it = calloc((size_t)n, sizeof *it);
     int i;
     for (i = 0; i < n; i++) {
-        pico8_ob_table_set_index(t, i + 1, items[i]);
+        it[i].n = items[i];
     }
+    t->count = n;
+    t->items = it;
     return pico8_value_ref(t);
 }
 
@@ -299,14 +348,15 @@ static void test_constructions(void) {
         h = fold_built_from(h, "sprite", positionals(1, a));
     }
     {
-        pico8_value_t f[] = {num(12), num(10), num(3), num(1)};
-        pico8_value_t a[] = {table_of(4, f)};
+        static const int f[] = {12, 10, 3, 1};
+        pico8_value_t a[] = {tuple_of(4, f)};
         h = fold_built_from(h, "spr w qw qv", positionals(1, a));
     }
     {
-        pico8_ob_table_t *qe = pico8_ob_table_new();
+        pico8_jb_row_t *qe = calloc(1, sizeof *qe);
         pico8_value_t a[1];
-        pico8_ob_table_set_name(qe, "qe", num(14));
+        qe->has_qe = 1;
+        qe->qe = pico8_fixed_from_int(14);
         a[0] = pico8_value_ref(qe);
         h = fold_built_from(h, "qe", positionals(1, a));
     }
@@ -319,8 +369,8 @@ static void test_constructions(void) {
         h = fold_built_from(h, "nil", positionals(1, a));
     }
     {
-        pico8_value_t f[] = {num(13), num(8)};
-        pico8_value_t a[] = {str("a"), num(12), table_of(2, f), pico8_value_bool(0), str("bc"), pico8_value_ref(NULL),
+        static const int f[] = {13, 8};
+        pico8_value_t a[] = {str("a"), num(12), tuple_of(2, f), pico8_value_bool(0), str("bc"), pico8_value_ref(NULL),
                              num(40)};
         t = positionals(7, a);
         pico8_ob_table_set_name(t, "c", num(9));
@@ -480,12 +530,13 @@ static uint32_t drawn_by_ol(const void *lq, pico8_vec_t at, pico8_fixed_t a) {
 /* `mv(lq,"ol",p,a)` as `jo:kj` calls it and `{lq,ra,0.5,fn="ld"}` as
  * `pj:ph` hands it to `bl`, each drawing what `ol` draws. */
 static void test_calls(void) {
-    pico8_value_t f[] = {num(13), num(8)};
-    pico8_value_t a[] = {str("hi"), num(12), table_of(2, f)};
+    static const int f[] = {13, 8};
+    pico8_value_t a[] = {str("hi"), num(12), tuple_of(2, f)};
     pico8_ob_table_t *t = positionals(3, a);
     void *lq;
     pico8_value_t discard;
-    pico8_ob_table_t *entry;
+    pico8_jb_item_t entry_items[3];
+    pico8_jb_row_t entry = {0};
     pico8_list_t rb;
     uint32_t h = 2166136261u;
     uint32_t want;
@@ -501,13 +552,14 @@ static void test_calls(void) {
                     &discard));
     assert(screen_hash() == want);
 
-    entry = pico8_ob_table_new();
-    pico8_ob_table_set_index(entry, 1, pico8_value_ref(lq));
-    pico8_ob_table_set_index(entry, 2, vec_ref(vec_xy(64, 30)));
-    pico8_ob_table_set_index(entry, 3, pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)));
-    pico8_ob_table_set_name(entry, "fn", str("ld"));
+    entry_items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq};
+    entry_items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = vec_ref(vec_xy(64, 30)).as.ref};
+    entry_items[2] = (pico8_jb_item_t){.is_fixed = 1, .fixed = PICO8_FIXED_LIT(0x00008000, 0.5)};
+    entry.count = 3;
+    entry.items = entry_items;
+    entry.fn = "ld";
     pico8_list_init(&rb);
-    pico8_list_add(&rb, pico8_value_ref(entry));
+    pico8_list_add(&rb, pico8_value_ref(&entry));
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
     pico8_bl_default(&gfx, &mem, &rb);

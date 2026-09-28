@@ -77,6 +77,24 @@ static pico8_list_t pico8_layout_positional_values(const pico8_ob_table_t *table
     }
 }
 
+/* A nested row has no value form here: tuples and lines hold scalars. */
+static pico8_value_t pico8_jb_item_value(const pico8_jb_item_t *item) {
+    assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
+    if (item->s != NULL) {
+        return pico8_value_string(item->s);
+    }
+    if (item->is_false) {
+        return pico8_value_bool(0);
+    }
+    if (item->is_ref) {
+        return pico8_value_ref((void *)item->ref);
+    }
+    if (item->is_fixed) {
+        return pico8_value_fixed(item->fixed);
+    }
+    return pico8_value_fixed(pico8_fixed_from_int(item->n));
+}
+
 /* Writes out_item plus mn's second and third Lua return values (out_w,
  * out_qv). `self` may be NULL; it is only read for the TEXT branch's colour.
  * A non-FIXED f[2]/f[3]/f[4] reads as 0. */
@@ -88,31 +106,25 @@ static void pico8_lq_mn(const pico8_lq_t *self, pico8_value_t f, pico8_lq_item_t
     pico8_fixed_t qv = pico8_fixed_from_int(0);
 
     if (f.kind == PICO8_VALUE_REF && f.as.ref != NULL) {
-        /* An item REF is read as an ob_table without interrogating its tag. A
-         * list arriving here would be walked at the wrong stride, quietly: see
-         * pico8_type_tag.h. */
-        const pico8_ob_table_t *orig = f.as.ref;
-        const pico8_ob_table_t *t;
-        pico8_ob_table_t *wrap = NULL;
-        pico8_value_t qe;
+        /* An item REF is a tuple `{f,w,qw,qv}` or a `{qe=x}`, read without
+         * interrogating its tag: a list or a table arriving here would be
+         * read at the wrong layout, quietly. */
+        const pico8_jb_row_t *t = f.as.ref;
+        const pico8_jb_item_t wrap[] = {{.is_fixed = 1, .fixed = t->qe}, {.n = 5}};
+        const pico8_jb_item_t *items = t->has_qe ? wrap : t->items;
+        int count = t->has_qe ? 2 : t->count;
         pico8_value_t f1, f2, f3, f4;
-        int have_f1, have_f2, have_f3, have_f4;
+        int have_f1 = count >= 1;
+        int have_f2 = count >= 2;
+        int have_f3 = count >= 3;
+        int have_f4 = count >= 4;
 
-        if (pico8_ob_table_get_name(orig, "qe", &qe) && pico8_layout_truthy(qe)) {
-            wrap = pico8_ob_table_new();
-            pico8_ob_table_set_index(wrap, 1, qe);
-            pico8_ob_table_set_index(wrap, 2, pico8_value_fixed(pico8_fixed_from_int(5)));
-            t = wrap;
-        } else {
-            t = orig;
-        }
+        f1 = have_f1 ? pico8_jb_item_value(&items[0]) : pico8_value_bool(0);
+        f2 = have_f2 ? pico8_jb_item_value(&items[1]) : pico8_value_bool(0);
+        f3 = have_f3 ? pico8_jb_item_value(&items[2]) : pico8_value_bool(0);
+        f4 = have_f4 ? pico8_jb_item_value(&items[3]) : pico8_value_bool(0);
 
-        have_f1 = pico8_ob_table_get_index(t, 1, &f1);
-        have_f2 = pico8_ob_table_get_index(t, 2, &f2);
-        have_f3 = pico8_ob_table_get_index(t, 3, &f3);
-        have_f4 = pico8_ob_table_get_index(t, 4, &f4);
-
-        f = have_f1 ? f1 : pico8_value_bool(0);
+        f = f1;
         if (have_f2 && f2.kind == PICO8_VALUE_FIXED) {
             w = f2.as.fixed;
         }
@@ -122,10 +134,6 @@ static void pico8_lq_mn(const pico8_lq_t *self, pico8_value_t f, pico8_lq_item_t
         if (have_f4 && pico8_layout_truthy(f4)) {
             have_qv = 1;
             qv = (f4.kind == PICO8_VALUE_FIXED) ? f4.as.fixed : pico8_fixed_from_int(0);
-        }
-
-        if (wrap != NULL) {
-            pico8_ob_table_free(wrap);
         }
     }
 
@@ -270,20 +278,6 @@ static int pico8_jb_pq_step(pico8_value_t ln, void *ctx, pico8_value_t *out_valu
 
     *out_value = pico8_value_ref(line);
     return 1;
-}
-
-static pico8_value_t pico8_jb_item_value(const pico8_jb_item_t *item) {
-    assert(item->row == NULL && "jb: a line holds scalar items only; a row inside a line has no reader here");
-    if (item->s != NULL) {
-        return pico8_value_string(item->s);
-    }
-    if (item->is_false) {
-        return pico8_value_bool(0);
-    }
-    if (item->is_fixed) {
-        return pico8_value_fixed(item->fixed);
-    }
-    return pico8_value_fixed(pico8_fixed_from_int(item->n));
 }
 
 /* The line `pico8_jb_pq_step` builds from this item's table form. */

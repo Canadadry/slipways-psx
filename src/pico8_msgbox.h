@@ -44,9 +44,9 @@ void pico8_mh_shutdown(void);
 /* 1 from pico8_mh_init() to pico8_mh_shutdown(), 0 otherwise. */
 int pico8_mh_ready(void);
 
-/* The cart's keys of a message box: `items` its positionals in order (the
- * values borrowed, a table among them stays shared), `rh` under its flag,
- * `lh` NULL for nil. */
+/* The cart's keys of a message box: `items` its positionals in order, each
+ * a REF to an article of `bl` (borrowed, never copied), `rh` under its
+ * flag, `lh` NULL for nil. */
 typedef struct {
     const pico8_value_t *items;
     int count;
@@ -58,11 +58,6 @@ typedef struct {
 /* `keys` is read, not kept (NULL: none). The struct registers itself
  * through `lt`, and nothing frees it. */
 pico8_mh_t *pico8_mh_new(const pico8_mh_keys_t *keys);
-
-/* A message box received as a table: its positionals in the table's entry
- * order, `rh` (a fixed) and `lh` (nil or a function); another name
- * asserts. The table is read, never kept; its values are borrowed. */
-pico8_mh_t *pico8_mh_new_table(const pico8_ob_table_t *overrides);
 
 void pico8_mh_pq(pico8_mh_t *self);
 

@@ -32,7 +32,8 @@ typedef struct {
 
 /* An item is the string s when s is non-NULL, the row when row is non-NULL,
  * Lua false when is_false is set, the number `fixed` when is_fixed is set
- * (the bits ob() returned for a non-integer), the number n otherwise. */
+ * (the bits ob() returned for a non-integer), the pointer `ref` when is_ref
+ * is set (NULL: nil; never set by generated data), the number n otherwise. */
 typedef struct pico8_jb_row pico8_jb_row_t;
 typedef struct {
     const char *s;
@@ -41,15 +42,21 @@ typedef struct {
     int is_false;
     int is_fixed;
     pico8_fixed_t fixed;
+    int is_ref;
+    const void *ref;
 } pico8_jb_item_t;
 
-/* c is only meaningful when has_c is set; fn is NULL when absent. */
+/* c is only meaningful when has_c is set; fn is NULL when absent; qe, the
+ * key of a `{qe=x}` that `lq:mn` draws as `{x,5}`, only when has_qe is set
+ * (never by generated data). */
 struct pico8_jb_row {
     int count;
     const pico8_jb_item_t *items;
     int has_c;
     int c;
     const char *fn;
+    int has_qe;
+    pico8_fixed_t qe;
 };
 
 /* A non-NULL header makes the entry a bare string, the rr of the records that

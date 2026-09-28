@@ -128,7 +128,8 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     pico8_ob_table_t *row;
     pico8_ob_table_t *lq_table;
     pico8_ob_table_t *h_table;
-    pico8_ob_table_t *pair_table;
+    static const pico8_jb_item_t pair_items[] = {{.n = 24}, {.n = 5}};
+    static const pico8_jb_row_t pair = {.count = 2, .items = pair_items};
     pico8_value_t nk_val = pico8_value_ref(NULL);
     pico8_value_t px_val = pico8_value_ref(NULL);
     pico8_value_t oy_val;
@@ -153,15 +154,11 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     pico8_ob_table_set_name(lq_table, "c", pico8_value_fixed(pico8_fixed_from_int(6)));
     pico8_ob_table_set_name(row, "lq", pico8_value_ref(lq_table));
 
-    pair_table = pico8_ob_table_new();
-    pico8_ob_table_set_index(pair_table, 1, pico8_value_fixed(pico8_fixed_from_int(24)));
-    pico8_ob_table_set_index(pair_table, 2, pico8_value_fixed(pico8_fixed_from_int(5)));
-
     gi_result = pico8_gi(t);
     gi_str = pico8_value_tostr(pico8_value_fixed(gi_result));
 
     h_table = pico8_ob_table_new();
-    pico8_ob_table_set_index(h_table, 1, pico8_value_ref(pair_table));
+    pico8_ob_table_set_index(h_table, 1, pico8_value_ref((void *)&pair));
     pico8_ob_table_set_index(h_table, 2, pico8_value_string(gi_str));
     pico8_ob_table_set_name(row, "h_", pico8_value_ref(h_table));
 

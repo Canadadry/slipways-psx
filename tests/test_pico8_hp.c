@@ -206,22 +206,107 @@ static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     return fold_value(h, v, 4);
 }
 
-static pico8_ob_table_t *row_view(const void *lq) {
-    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
-    return pico8_lq_table_view(lq);
+/* The frozen hashes were taken when rows were ob views: these are the
+ * bytes a view folded for its tag and its two kinds of key. */
+enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1 };
+
+static uint32_t fold_view_head(uint32_t h, int count) {
+    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)VIEW_TAG);
+    return fnv(h, (uint32_t)count);
 }
 
-/* A row through its table view, positionals and names alike. */
+static uint32_t fold_view_index(uint32_t h, int i) {
+    return fnv(fnv(h, (uint32_t)VIEW_INDEX_KEY), (uint32_t)i);
+}
+
+static uint32_t fold_view_name(uint32_t h, const char *name) {
+    return fold_value(fnv(h, (uint32_t)VIEW_NAME_KEY), pico8_value_string(name), 0);
+}
+
+static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row, int depth);
+
+static uint32_t fold_item(uint32_t h, const pico8_jb_item_t *item, int depth) {
+    if (item->row != NULL) {
+        return fold_row(h, item->row, depth);
+    }
+    if (item->s != NULL) {
+        return fold_value(h, pico8_value_string(item->s), depth);
+    }
+    if (item->is_false) {
+        return fold_value(h, pico8_value_bool(0), depth);
+    }
+    if (item->is_ref) {
+        return fold_value(h, pico8_value_ref((void *)item->ref), depth);
+    }
+    return fold_value(h, pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n)), depth);
+}
+
+/* A generated or built row, folded as fold_value folded its view: items,
+ * then `c`, then `fn`. */
+static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row, int depth) {
+    int i;
+
+    if (depth <= 0) {
+        return fnv(fnv(h, (uint32_t)PICO8_VALUE_REF), (uint32_t)VIEW_TAG);
+    }
+    h = fold_view_head(h, row->count + (row->has_c != 0) + (row->fn != NULL));
+    for (i = 0; i < row->count; i++) {
+        h = fold_item(fold_view_index(h, i + 1), &row->items[i], depth - 1);
+    }
+    if (row->has_c) {
+        h = fold_value(fold_view_name(h, "c"), pico8_value_fixed(pico8_fixed_from_int(row->c)), depth - 1);
+    }
+    if (row->fn != NULL) {
+        h = fold_value(fold_view_name(h, "fn"), pico8_value_string(row->fn), depth - 1);
+    }
+    return h;
+}
+
+/* A row's positional, a tuple when a REF. */
+static uint32_t fold_lq_item(uint32_t h, pico8_value_t v, int depth) {
+    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        return fold_row(h, v.as.ref, depth);
+    }
+    return fold_value(h, v, depth);
+}
+
+/* A row folded as fold_value folded its table view: its first `#fs`
+ * positionals, then `c`, `bg`, `score`, `ra`, `fs`, `w`, then the rest. */
 static uint32_t fold_lq_instance(uint32_t h, const void *l) {
-    pico8_ob_table_t *view;
+    const pico8_lq_t *lq = l;
+    pico8_value_t bg;
+    int k;
+    int i;
 
     if (l == NULL) {
         return fnv(h, 0xDEADu);
     }
-    view = row_view(l);
-    h = fold_value(h, pico8_value_ref(view), 4);
-    pico8_ob_table_free(view);
+    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == pico8_lq_struct_class());
+    bg = pico8_lq_bg(lq);
+    k = lq->fs->count;
+    h = fold_view_head(h, lq->items.count + (lq->has_c != 0) + !(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL) +
+                              (lq->has_score != 0) + (lq->ra != NULL) + 2);
+    for (i = 0; i < k; i++) {
+        h = fold_lq_item(fold_view_index(h, i + 1), lq->items.items[i], 3);
+    }
+    if (lq->has_c) {
+        h = fold_value(fold_view_name(h, "c"), pico8_value_fixed(lq->c), 3);
+    }
+    if (!(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL)) {
+        h = fold_value(fold_view_name(h, "bg"), bg, 3);
+    }
+    if (lq->has_score) {
+        h = fold_value(fold_view_name(h, "score"), pico8_value_fixed(lq->score), 3);
+    }
+    if (lq->ra != NULL) {
+        h = fold_value(fold_view_name(h, "ra"), pico8_value_ref(lq->ra), 3);
+    }
+    h = fold_value(fold_view_name(h, "fs"), pico8_value_ref(lq->fs), 3);
+    h = fold_value(fold_view_name(h, "w"), pico8_value_fixed(lq->w), 3);
+    for (i = k; i < lq->items.count; i++) {
+        h = fold_lq_item(fold_view_index(h, i + 1), lq->items.items[i], 3);
+    }
     return h;
 }
 
@@ -371,11 +456,10 @@ static void test_gb(void) {
         assert(lookup(b, "lq", &v));
         h = fnv(h, (uint32_t)v.kind);
         if (v.kind == PICO8_VALUE_REF) {
-            const pico8_ob_table_t *lq = pico8_jb_row_view(v.as.ref);
-            pico8_value_t e;
+            const pico8_jb_row_t *lq = v.as.ref;
             assert(v.as.ref == &((const pico8_hp_t *)b)->lq_own && has(b, "ii"));
             for (j = 1; j <= 3; j++) {
-                h = pico8_ob_table_get_index(lq, j, &e) ? fold_value(h, e, 2) : fnv(h, 0xFFFFFFFFu);
+                h = j <= lq->count ? fold_item(h, &lq->items[j - 1], 2) : fnv(h, 0xFFFFFFFFu);
             }
         } else {
             assert(v.kind == PICO8_VALUE_FUNCTION && !has(b, "ii"));
@@ -401,7 +485,7 @@ static void test_gb(void) {
     assert(mr == &pico8_hp_mr_names && gp == &pico8_hp_gp_names && fk == &pico8_hp_fk_row);
     d = fold_names(d, mr);
     d = fold_names(d, gp);
-    d = fold_value(d, pico8_value_ref(pico8_jb_row_view(fk)), 2);
+    d = fold_row(d, fk, 2);
     check("gb", h, GB_HASH);
     check("mr gp fk", d, DEFAULTS_HASH);
 }

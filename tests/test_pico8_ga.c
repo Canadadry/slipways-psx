@@ -426,40 +426,79 @@ static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
     return fnv(h, (uint32_t)v.as.fixed);
 }
 
-/* A table's entries, in order, nested tables one level down. */
-static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t, int depth) {
+/* A tuple of `lq:mn` as fold_table folded the table it was: items, `qe`,
+ * `c`, then the entry count. */
+static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
     int i;
 
     for (i = 0; i < t->count; i++) {
-        const pico8_ob_key_t *key = &t->entries[i].key;
-        pico8_value_t v = t->entries[i].value;
-        h = key->kind == PICO8_OB_KEY_NAME ? fnv_str(h, key->name) : fnv(h, (uint32_t)key->index);
-        if (depth > 0 && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            h = fold_table(h, v.as.ref, depth - 1);
+        const pico8_jb_item_t *item = &t->items[i];
+
+        h = fnv(h, (uint32_t)(i + 1));
+        if (item->s != NULL) {
+            h = fold_value(h, pico8_value_string(item->s));
+        } else if (item->is_false) {
+            h = fold_value(h, pico8_value_bool(0));
+        } else if (item->is_ref) {
+            h = fold_value(h, pico8_value_ref((void *)item->ref));
         } else {
-            h = fold_value(h, v);
+            h = fold_value(h, pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n)));
         }
     }
-    return fnv(h, (uint32_t)t->count);
+    if (t->has_qe) {
+        h = fold_value(fnv_str(h, "qe"), pico8_value_fixed(t->qe));
+    }
+    if (t->has_c) {
+        h = fold_value(fnv_str(h, "c"), pico8_value_fixed(pico8_fixed_from_int(t->c)));
+    }
+    return fnv(h, (uint32_t)(t->count + (t->has_qe != 0) + (t->has_c != 0)));
 }
 
-static pico8_ob_table_t *row_view(const void *lq) {
-    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
-    return pico8_lq_table_view(lq);
+static uint32_t fold_lq_positional(uint32_t h, const pico8_lq_t *lq, int i) {
+    pico8_value_t v = lq->items.items[i];
+
+    h = fnv(h, (uint32_t)(i + 1));
+    return v.kind == PICO8_VALUE_REF && v.as.ref != NULL ? fold_tuple(h, v.as.ref) : fold_value(h, v);
 }
 
-/* The row `jo:ex` built into `lq`, through its table view. */
+/* The row `jo:ex` built into `lq`, as fold_table folded its table view: its
+ * first `#fs` positionals, `c`, `bg`, `score`, `ra`, `fs`, `w`, the rest. */
 static uint32_t fold_lq(uint32_t h, const void *e) {
-    const void *lq = get_ref(e, "lq");
-    pico8_ob_table_t *view;
+    const pico8_lq_t *lq = get_ref(e, "lq");
+    pico8_value_t bg;
+    int n = 0;
+    int k;
+    int i;
 
-    assert(lq != NULL);
-    view = row_view(lq);
-    h = fold_table(h, view, 1);
-    pico8_ob_table_free(view);
-    return h;
+    assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
+           lq->header.cls == pico8_lq_struct_class());
+    bg = pico8_lq_bg(lq);
+    k = lq->fs->count;
+    for (i = 0; i < k; i++) {
+        h = fold_lq_positional(h, lq, i);
+    }
+    if (lq->has_c) {
+        h = fold_value(fnv_str(h, "c"), pico8_value_fixed(lq->c));
+        n++;
+    }
+    if (!(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL)) {
+        h = fold_value(fnv_str(h, "bg"), bg);
+        n++;
+    }
+    if (lq->has_score) {
+        h = fold_value(fnv_str(h, "score"), pico8_value_fixed(lq->score));
+        n++;
+    }
+    if (lq->ra != NULL) {
+        h = fold_value(fnv_str(h, "ra"), pico8_value_ref(lq->ra));
+        n++;
+    }
+    h = fold_value(fnv_str(h, "fs"), pico8_value_ref(lq->fs));
+    h = fold_value(fnv_str(h, "w"), pico8_value_fixed(lq->w));
+    for (i = k; i < lq->items.count; i++) {
+        h = fold_lq_positional(h, lq, i);
+    }
+    return fnv(h, (uint32_t)(lq->items.count + n + 2));
 }
 
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */

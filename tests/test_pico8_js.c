@@ -899,11 +899,6 @@ static uint32_t draw_alone(void *b) {
     return screen_hash();
 }
 
-static const pico8_ob_table_t *dr_row(int i) {
-    assert(i < PICO8_DR_COUNT);
-    return pico8_jb_row_view(&pico8_dr_table[i]);
-}
-
 /* One button at a time on a cleared screen: `my` absent, present, hovered,
  * with a price `h_`, a tooltip `jb` shown only when hovered, and an `h_`
  * left `false` (a free building of `jo:fe`). */
@@ -926,10 +921,8 @@ static void test_draw(void) {
     pico8_ob_table_set_name(extra, "h_", pico8_value_bool(0));
     free_ = build("\nra=v(10,20),\nlq=o(\"plain\"),\n", extra);
     pico8_ob_table_free(extra);
-    extra = pico8_ob_table_new();
-    pico8_ob_table_set_name(extra, "jb", pico8_value_ref((void *)dr_row(0)));
-    tooltip = build("\nra=v(10,20),\nlq=o(\"plain\"),\n", extra);
-    pico8_ob_table_free(extra);
+    tooltip = build("\nra=v(10,20),\nlq=o(\"plain\"),\n", NULL);
+    ((pico8_js_t *)tooltip)->jb = pico8_jb_new(&pico8_dr_table[0]);
 
     px[0] = draw_alone(plain);
     px[1] = draw_alone(with_my);

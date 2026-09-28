@@ -24,6 +24,7 @@
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_game_data.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
@@ -150,6 +151,7 @@ static pico8_value_t row_item(const void *lq, int i) {
 }
 
 static uint32_t fold_value(uint32_t h, pico8_value_t v);
+static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row);
 
 /* A table's entries, in order, nested tables included. */
 static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
@@ -162,6 +164,55 @@ static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
         h = fold_value(h, t->entries[i].value);
     }
     return fnv(h, (uint32_t)t->count);
+}
+
+static pico8_value_t item_value(const pico8_jb_item_t *item) {
+    if (item->s != NULL) {
+        return pico8_value_string(item->s);
+    }
+    if (item->is_false) {
+        return pico8_value_bool(0);
+    }
+    if (item->is_ref) {
+        return pico8_value_ref((void *)item->ref);
+    }
+    return pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+}
+
+/* A row's items as fold_table folded its view (a nested row as a nested
+ * table), then `c`, then `fn`; `extra` more entries follow, the caller's. */
+static uint32_t fold_row_entries(uint32_t h, const pico8_jb_row_t *row) {
+    int i;
+
+    for (i = 0; i < row->count; i++) {
+        h = fnv(h, (uint32_t)(i + 1));
+        h = row->items[i].row != NULL ? fold_row(fnv(h, 0x7Au), row->items[i].row)
+                                      : fold_value(h, item_value(&row->items[i]));
+    }
+    if (row->has_c) {
+        h = fold_value(fnv_str(h, "c"), pico8_value_fixed(pico8_fixed_from_int(row->c)));
+    }
+    if (row->fn != NULL) {
+        h = fold_value(fnv_str(h, "fn"), pico8_value_string(row->fn));
+    }
+    return h;
+}
+
+static int row_entries(const pico8_jb_row_t *row) {
+    return row->count + (row->has_c != 0) + (row->fn != NULL);
+}
+
+static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
+    return fnv(fold_row_entries(h, row), (uint32_t)row_entries(row));
+}
+
+/* `ea` as fold_table folded its view: its positionals, then `lh`. */
+static uint32_t fold_ea(uint32_t h, const pico8_pj_ea_t *ea) {
+    h = fold_row_entries(h, &ea->row);
+    if (ea->lh != NULL) {
+        h = fold_value(fnv_str(h, "lh"), pico8_value_function(ea->lh));
+    }
+    return fnv(h, (uint32_t)(row_entries(&ea->row) + (ea->lh != NULL)));
 }
 
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
@@ -185,7 +236,13 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
             return fold_table(fnv(h, 0x7Au), v.as.ref);
         }
         if (v.as.ref == (const void *)&pico8_pj_gs_row || v.as.ref == (const void *)&pico8_pj_i__row) {
-            return fold_table(fnv(h, 0x7Au), pico8_jb_row_view(v.as.ref));
+            return fold_row(fnv(h, 0x7Au), v.as.ref);
+        }
+        if (v.as.ref == (const void *)pico8_pj_ou()) {
+            return fold_row(fnv(h, 0x7Au), &pico8_pj_ou()->row);
+        }
+        if (v.as.ref == (const void *)pico8_pj_ea()) {
+            return fold_ea(fnv(h, 0x7Au), v.as.ref);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:
@@ -256,39 +313,25 @@ static void *start_game(void) {
     return pico8_ju();
 }
 
-static const pico8_ob_table_t *row_of(const pico8_ob_table_t *t, int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(t, i, &row) && row.kind == PICO8_VALUE_REF && row.as.ref != NULL);
-    return row.as.ref;
+static const pico8_jb_row_t *row_of(const pico8_jb_row_t *t, int i) {
+    assert(i <= t->count && t->items[i - 1].row != NULL);
+    return t->items[i - 1].row;
 }
 
-static const char *string_at(const pico8_ob_table_t *t, int i) {
-    pico8_value_t v;
-    assert(pico8_ob_table_get_index(t, i, &v) && v.kind == PICO8_VALUE_STRING);
-    return v.as.string;
+static const char *string_at(const pico8_jb_row_t *t, int i) {
+    assert(i <= t->count && t->items[i - 1].s != NULL);
+    return t->items[i - 1].s;
 }
 
 /* The 7 `ou[i][1]` as `hb` wrote them. */
 static uint32_t fold_ou_heads(uint32_t h, const void *e) {
-    const pico8_ob_table_t *ou = get_ref(e, "ou");
+    const pico8_pj_ou_t *ou = get_ref(e, "ou");
     int i;
 
     for (i = 1; i <= 7; i++) {
-        pico8_value_t head = nil();
-        (void)pico8_ob_table_get_index(row_of(ou, i), 1, &head);
-        h = fold_value(h, head);
+        h = fold_value(h, item_value(&row_of(&ou->row, i)->items[0]));
     }
     return h;
-}
-
-static int has_name(const pico8_ob_table_t *t, const char *name) {
-    pico8_value_t v;
-    return pico8_ob_table_get_name(t, name, &v);
-}
-
-static int has_index(const pico8_ob_table_t *t, int i) {
-    pico8_value_t v;
-    return pico8_ob_table_get_index(t, i, &v);
 }
 
 static int is_of(const void *e, const pico8_struct_class_t *cls) {
@@ -375,7 +418,7 @@ static void test_shared(void) {
     uint32_t h = 2166136261u;
     void *ju = start_game();
     void *other = pico8_pj_new();
-    const pico8_ob_table_t *ea;
+    const pico8_pj_ea_t *ea;
     size_t i;
 
     assert(other != NULL && other != ju);
@@ -387,13 +430,12 @@ static void test_shared(void) {
 
     (void)call(ju, "hb", 0, nil());
     h = fold_ou_heads(h, other);
-    assert(strcmp(string_at(row_of(get_ref(other, "ou"), 1), 1), string_at(row_of(get_ref(ju, "ou"), 1), 1)) ==
-           0);
+    assert(strcmp(string_at(row_of(get_ref(other, "ou"), 1), 1), string_at(row_of(get_ref(ju, "ou"), 1), 1)) == 0);
 
     (void)call(ju, "hk", 1, pico8_value_fixed(pico8_fixed_from_int(3425)));
     ea = get_ref(other, "ea");
-    assert(strcmp(string_at(row_of(ea, 2), 1), "year 3425") == 0);
-    assert(has_index(ea, 3) && has_name(ea, "lh"));
+    assert(strcmp(string_at(row_of(&ea->row, 2), 1), "year 3425") == 0);
+    assert(ea->row.count == 3 && ea->lh != NULL);
     h = fold_field(h, other, "ea");
 
     pico8_fm_hy()->hl = "final score";
@@ -415,7 +457,7 @@ static void test_shared(void) {
 static void test_life(void) {
     uint32_t h = 2166136261u;
     void *ju = start_game();
-    const pico8_ob_table_t *ea = get_ref(ju, "ea");
+    const pico8_pj_ea_t *ea = get_ref(ju, "ea");
     const void *cr = get_ref(ju, "cr");
     static const int years[] = {3425, 3400, 3401};
     pico8_value_t ep;
@@ -429,13 +471,13 @@ static void test_life(void) {
 
     for (i = 0; i < sizeof years / sizeof years[0]; i++) {
         (void)call(ju, "hk", 1, pico8_value_fixed(pico8_fixed_from_int(years[i])));
-        h = fnv(h, (uint32_t)has_index(ea, 3));
-        h = fnv(h, (uint32_t)has_name(ea, "lh"));
-        h = fnv_str(h, string_at(row_of(ea, 2), 1));
+        h = fnv(h, (uint32_t)(ea->row.count >= 3));
+        h = fnv(h, (uint32_t)(ea->lh != NULL));
+        h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
         h = fnv(h, (uint32_t)count_of(pico8_cg("mh")));
         h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_kc()));
     }
-    assert(has_index(ea, 3) == 0 && has_name(ea, "lh"));
+    assert(ea->row.count == 2 && ea->lh != NULL);
 
     pico8_cr();
     assert(get_ref(ju, "cr") == cr && cr == pico8_pj_cr());
@@ -589,26 +631,40 @@ static void write_c_(void *e) {
     pico8_entity_set_field(e, "c_", pico8_value_bool(1));
 }
 
+static pico8_value_t pico8_pj_ea_lh_witness(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+    (void)self;
+    (void)argc;
+    (void)arg0;
+    (void)arg1;
+    return pico8_value_bool(1);
+}
+
 /* Right after the init, before any `hb`/`hk`, `ou` and `ea` hold what
- * their generated rows hold; each init builds them afresh. */
+ * their generated rows hold, and are copies of them; each init resets what
+ * `hb`/`hk` wrote. */
 static void test_ou_ea_start_as_their_rows(void) {
-    pico8_ob_table_t *ou_view = pico8_jb_row_view(&pico8_pj_ou_row);
-    pico8_ob_table_t *ea_view = pico8_jb_row_view(&pico8_pj_ea_row);
-    pico8_ob_table_t *ou;
+    pico8_pj_ou_t *ou;
 
     pico8_score_panel_init();
     ou = pico8_pj_ou();
-    assert(ou != NULL && pico8_pj_ea() != NULL && ou != ou_view && pico8_pj_ea() != ea_view);
-    assert(fold_table(0u, ou) == fold_table(0u, ou_view));
-    assert(fold_table(0u, pico8_pj_ea()) == fold_table(0u, ea_view));
+    assert(ou != NULL && pico8_pj_ea() != NULL);
+    assert(&ou->row != &pico8_pj_ou_row && &pico8_pj_ea()->row != &pico8_pj_ea_row);
+    assert(fold_row(0u, &ou->row) == fold_row(0u, &pico8_pj_ou_row));
+    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &pico8_pj_ea_row) && pico8_pj_ea()->lh == NULL);
     assert(pico8_pj_start.ou == &pico8_pj_ou_row && pico8_pj_start.ea == &pico8_pj_ea_row);
+    ou->sub_items[0][0] = (pico8_jb_item_t){.s = "written"};
+    pico8_pj_ea()->second_items[0] = (pico8_jb_item_t){.s = "year 3425"};
+    pico8_pj_ea()->items[2] = (pico8_jb_item_t){.row = &pico8_pj_gs_row};
+    pico8_pj_ea()->row.count = 3;
+    pico8_pj_ea()->lh = pico8_pj_ea_lh_witness;
+    assert(fold_row(0u, &ou->row) != fold_row(0u, &pico8_pj_ou_row));
+    assert(fold_row(0u, &pico8_pj_ea()->row) != fold_row(0u, &pico8_pj_ea_row));
     pico8_score_panel_init();
-    assert(pico8_pj_ou() != ou);
-    assert(fold_table(0u, pico8_pj_ou()) == fold_table(0u, ou_view));
+    assert(pico8_pj_ou() == ou);
+    assert(fold_row(0u, &pico8_pj_ou()->row) == fold_row(0u, &pico8_pj_ou_row));
+    assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &pico8_pj_ea_row) && pico8_pj_ea()->lh == NULL);
     pico8_score_panel_shutdown();
     assert(pico8_pj_ou() == NULL && pico8_pj_ea() == NULL);
-    pico8_ob_table_free(ou_view);
-    pico8_ob_table_free(ea_view);
 }
 
 /* The game's panel is a struct whose descriptor holds exactly `hb`, `kj`,
@@ -807,8 +863,8 @@ static uint32_t pj_fresh(uint32_t h, const void *e) {
     h = pj_fixed_is(h, e, "ed", pico8_fixed_from_int(1));
     h = pj_absent(h, e, "c_");
     h = pj_absent(h, e, "gz");
-    h = pj_ref_is(h, e, "ou", pico8_pj_ou(), PICO8_TYPE_TAG_OB_TABLE);
-    h = pj_ref_is(h, e, "ea", pico8_pj_ea(), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "ou", pico8_pj_ou(), PICO8_TYPE_TAG_UNKNOWN);
+    h = pj_ref_is(h, e, "ea", pico8_pj_ea(), PICO8_TYPE_TAG_UNKNOWN);
     h = pj_ref_is(h, e, "cr", pico8_pj_cr(), PICO8_TYPE_TAG_STRUCT);
     h = pj_read(h, e, "me", &v);
     assert(v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ph") == 0);
@@ -947,6 +1003,46 @@ static void test_ky_reads_invented_and_happiness(void) {
     assert(s.total == pico8_fixed_from_int(14) && s.tier == 0);
 }
 
+/* Item `i` (1-based) of the line that `ph` put in the box's row `k`
+ * (0-based), an article `ld`. */
+static pico8_value_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
+    const pico8_jb_row_t *ld;
+    const pico8_lq_t *lq;
+
+    assert(k < mh->items.count && mh->items.items[k].kind == PICO8_VALUE_REF);
+    ld = mh->items.items[k].as.ref;
+    assert(ld->fn != NULL && strcmp(ld->fn, "ld") == 0 && ld->items[0].is_ref);
+    lq = ld->items[0].ref;
+    assert(i <= lq->items.count);
+    return lq->items.items[i - 1];
+}
+
+/* `ph` shows `ky()`: the score-5 row (box row 10) carries `s[5]`, the total,
+ * and the tier row (11) lights `s[6]` of its five icons. */
+static void test_ph_rows_show_ky(void) {
+    void *ju = start_game();
+    pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_mh_t *mh;
+    pico8_value_t total;
+    int i;
+
+    for (i = 0; i < 10; i++) {
+        pico8_list_add(fm->invented, pico8_value_fixed(pico8_fixed_from_int(i)));
+    }
+    fm->happiness = pico8_fixed_from_int(1);
+    fm->has_happiness = 1;
+    fm->hl = "final score";
+    fm->has_hl = 1;
+    (void)call(ju, "ph", 0, nil());
+    mh = pico8_kc();
+    assert(mh != NULL && mh->items.count == PICO8_BZ_COUNT);
+    total = ph_row_item(mh, 10, 3);
+    assert(total.kind == PICO8_VALUE_STRING && strcmp(total.as.string, "14") == 0);
+    for (i = 1; i <= 5; i++) {
+        assert(pico8_value_equal(ph_row_item(mh, 11, i), pico8_value_fixed(pico8_fixed_from_int(57))));
+    }
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -968,6 +1064,7 @@ int main(void) {
     in_fresh_child(test_cr_members_by_name);
     in_fresh_child(test_pj_members_by_name);
     in_fresh_child(test_ky_reads_invented_and_happiness);
+    in_fresh_child(test_ph_rows_show_ky);
 
     printf("test_pico8_pj: all tests passed\n");
     return 0;

@@ -25,11 +25,10 @@ const pico8_ob_table_t *pico8_nb(void);
 pico8_ob_table_t *pico8_ix_view(void);
 pico8_ob_table_t *pico8_ha_view(void);
 pico8_ob_table_t *pico8_bo_view(void);
-pico8_ob_table_t *pico8_bz_view(void);
 
 /* A fresh ob view of `row`: its positionals (false as Lua false, a nested
- * row as its own fresh view), then `c`, then `fn`. The caller owns the top
- * table only; nested views are never freed. */
+ * row, a tuple of `lq:mn`, as a REF to the generated row itself), then `c`,
+ * then `fn`. The caller owns the table (pico8_ob_table_free()). */
 pico8_ob_table_t *pico8_jb_row_view(const pico8_jb_row_t *row);
 
 #endif

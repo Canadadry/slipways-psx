@@ -11,10 +11,14 @@
 
 static pico8_ob_table_t *g_nb = NULL;
 
+static pico8_ob_table_t *data_init_row_view(const pico8_jb_row_t *row, int lines);
+
 /* Each view below is a fresh heap table, in the parsed table's entry order,
  * that the caller owns (top table only: nested ones are never freed). */
 
-static void data_init_row_items(pico8_ob_table_t *t, const pico8_jb_row_t *row) {
+/* A nested row is a tuple of `lq:mn`, passed as the generated row itself,
+ * or with `lines` a line of `jb`, passed as its own view. */
+static void data_init_row_items(pico8_ob_table_t *t, const pico8_jb_row_t *row, int lines) {
     int i;
 
     for (i = 0; i < row->count; i++) {
@@ -23,8 +27,10 @@ static void data_init_row_items(pico8_ob_table_t *t, const pico8_jb_row_t *row) 
 
         if (item->s != NULL) {
             v = pico8_value_string(item->s);
+        } else if (item->row != NULL && lines) {
+            v = pico8_value_ref(data_init_row_view(item->row, 1));
         } else if (item->row != NULL) {
-            v = pico8_value_ref(pico8_jb_row_view(item->row));
+            v = pico8_value_ref((void *)item->row);
         } else if (item->is_false) {
             v = pico8_value_bool(0);
         } else if (item->is_fixed) {
@@ -45,12 +51,16 @@ static void data_init_row_named(pico8_ob_table_t *t, const pico8_jb_row_t *row) 
     }
 }
 
-pico8_ob_table_t *pico8_jb_row_view(const pico8_jb_row_t *row) {
+static pico8_ob_table_t *data_init_row_view(const pico8_jb_row_t *row, int lines) {
     pico8_ob_table_t *t = pico8_ob_table_new();
 
-    data_init_row_items(t, row);
+    data_init_row_items(t, row, lines);
     data_init_row_named(t, row);
     return t;
+}
+
+pico8_ob_table_t *pico8_jb_row_view(const pico8_jb_row_t *row) {
+    return data_init_row_view(row, 0);
 }
 
 /* A fresh heap vector per call, as the v() constructor allocated one per
@@ -72,7 +82,7 @@ static pico8_ob_table_t *data_init_nb_view(void) {
     for (i = 0; i < PICO8_NB_COUNT; i++) {
         const pico8_nb_entry_t *e = &pico8_nb_table[i];
         pico8_ob_table_t *ri = pico8_ob_table_new();
-        pico8_value_t oy = pico8_value_ref(pico8_jb_row_view(e->oy));
+        pico8_value_t oy = pico8_value_ref(data_init_row_view(e->oy, 1));
 
         pico8_ob_table_set_index(ri, 1, pico8_value_string(e->px));
         pico8_ob_table_set_index(ri, 2, pico8_value_fixed(pico8_fixed_from_int(e->lv)));
@@ -143,30 +153,6 @@ pico8_ob_table_t *pico8_bo_view(void) {
         pico8_ob_table_set_index(bo, i + 1, pico8_value_ref(ri));
     }
     return bo;
-}
-
-pico8_ob_table_t *pico8_bz_view(void) {
-    pico8_ob_table_t *bz = pico8_ob_table_new();
-    int i;
-
-    for (i = 0; i < PICO8_BZ_COUNT; i++) {
-        const pico8_bz_entry_t *e = &pico8_bz_table[i];
-        pico8_ob_table_t *ri = pico8_ob_table_new();
-
-        data_init_row_items(ri, &e->row);
-        if (e->fn != NULL) {
-            pico8_ob_table_set_name(ri, "fn", pico8_value_string(e->fn));
-        }
-        if (e->has_score) {
-            pico8_ob_table_set_name(ri, "score", pico8_value_fixed(pico8_fixed_from_int(e->score)));
-        }
-        if (e->has_ra) {
-            pico8_ob_table_set_name(ri, "ra", data_init_vec(e->ra_x, e->ra_y));
-        }
-        data_init_row_named(ri, &e->row);
-        pico8_ob_table_set_index(bz, i + 1, pico8_value_ref(ri));
-    }
-    return bz;
 }
 
 void pico8_data_init(void) {

@@ -87,12 +87,15 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
 
     if (gfx != NULL && mem != NULL) {
-        pico8_ob_table_t *rb_view = self != NULL && self->rb != NULL ? pico8_jb_row_view(self->rb) : NULL;
-        pico8_list_t items = pico8_help_positional_values(rb_view);
+        pico8_list_t items;
+        int i;
 
+        pico8_list_init(&items);
+        for (i = 0; self != NULL && self->rb != NULL && i < self->rb->count; i++) {
+            pico8_list_add(&items, pico8_value_ref((void *)self->rb->items[i].row));
+        }
         pico8_bl_default(gfx, mem, &items);
         pico8_list_free(&items);
-        pico8_ob_table_free(rb_view);
     }
 }
 

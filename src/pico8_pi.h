@@ -4,29 +4,33 @@
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
 #include "pico8_list.h"
+#include "pico8_map_tables.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 
 /* `pi` has two consumers needing two lookups: ob() indexes it by a single
  * character (pico8_ob_register_constructor, pico8_ob.h), bl() by the whole
  * string an entity holds in `.fn`. This module owns the string-keyed one. */
+
+/* Draws article `e` of `bl()` from its items, `e[1]..e[5]` in the cart. */
+typedef void (*pico8_pi_fn)(const pico8_jb_row_t *e);
 
 /* Fixed capacity: every registration happens once, from pico8_pi_init().
  * A name of 8 characters or more would be truncated on the way in and
  * never found again by pico8_pi_dispatch_lookup(). */
 #define PICO8_PI_DISPATCH_CAPACITY 8
 
-void pico8_pi_dispatch_register(const char *name, pico8_ob_constructor_fn fn);
+void pico8_pi_dispatch_register(const char *name, pico8_pi_fn fn);
 
 /* NULL when `name` was never registered. */
-pico8_ob_constructor_fn pico8_pi_dispatch_lookup(const char *name);
+pico8_pi_fn pico8_pi_dispatch_lookup(const char *name);
 
 /* Test-support only (no cart equivalent): resets the table to empty. */
 void pico8_pi_dispatch_clear(void);
 
-/* Every element of `rb` must be a PICO8_VALUE_REF to a pico8_ob_table_t:
- * oo() unpacks a[1]..a[5] positionally out of it. An element with no
- * `.fn`, or one naming an unregistered constructor, draws nothing.
+/* Every element of `rb` must be a PICO8_VALUE_REF to an article, a
+ * `const pico8_jb_row_t *` whose `fn` names its drawing function. An
+ * article with no `fn`, or one naming an unregistered function, draws
+ * nothing.
  *
  * pico8_bl_default is the `nc == nil` case, where the camera-shake branch
  * never runs at all. `gfx`/`mem` are borrowed, and also stashed in this

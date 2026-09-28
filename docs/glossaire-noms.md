@@ -28,7 +28,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
 | — | `pico8_X_kind_field` | le `field` d'une sorte de l'arbre `jo` : `rr`, `s`, `me`, `od` seulement, depuis `pico8_X_start` de la classe qui les pose, puis la parente ; fin `pico8_jo_kind_field` |
 | — | `pico8_pj_cr_start`, `pico8_pj_ou_row`, `pico8_pj_ea_row` | les tables `cr`, `ou`, `ea` de la spec de `pj`, générées ; `g_pj_cr` prend ses valeurs de la première |
-| — | `g_pj_ou`, `g_pj_ea` (`pico8_score_panel.c`) | les tables d'état `ou`/`ea` de `pj`, construites une fois par init depuis leurs rangées générées, jamais libérées |
+| — | `g_pj_ou`, `g_pj_ea` (`pico8_pj_ou_t`, `pico8_pj_ea_t`, `pico8_score_panel.c`) | l'état `ou`/`ea` de `pj` : copies statiques de leurs rangées générées (items et sous-rangées), remises à chaque init |
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
@@ -260,9 +260,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `ob(qs,mr)` | `pico8_ob` | analyse une spec compacte (`"x=-1,y=-1,c=0,"`) en table, puis y fusionne `mr` ; **la virgule finale est obligatoire**, sans elle le dernier champ est perdu |
 | `fi(qs,fn)` | `pico8_fi` | applique `fn` à chaque caractère et collecte les résultats non nuls |
-| `pi` | `pico8_ob_register_constructor` | table des constructeurs appelables depuis une spec : `b`→`qz`, `v`→`v`, `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol`. Depuis une spec, seule la première lettre est atteignable ; les noms longs ne le sont que par `bl()` |
-| `oo(fn,a)` | `pico8_oo` | appelle le constructeur `fn` avec les 5 premières entrées positionnelles, ou rend `a` tel quel |
-| `bl(rb,nc)` | `pico8_bl` | dessine chaque rangée de `rb` via le constructeur `pi` que nomme son champ `fn`, avec une secousse de caméra `nc` alternée. C'est le second consommateur de `pi` |
+| `pi` | `pico8_ob_register_constructor` ; `pico8_pi_dispatch_register` | table des constructeurs appelables depuis une spec : `b`→`qz`, `v`→`v`, `s`→`spr` ; et des fonctions de dessin de `bl()`, `pico8_pi_fn` (un article) : `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol` |
+| `oo(fn,a)` | — | appelle `fn` avec les 5 premières entrées positionnelles de `a` : dans `bl`, la fonction de `pi` lit elle-même les items de l'article |
+| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (`const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le second consommateur de `pi` |
 | `fn`, `rb`, `nc` | — ; `rb` de `fv` : `const pico8_jb_row_t *rb` → `pico8_fv_rb_row` | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
 | `oa` | — | masque de bouton passé à `bu()` : 1 pour le gauche, 6 pour le droit |
 
@@ -427,14 +427,14 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `mh` | `pico8_mh_t` | boîte de message ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, `rh`, `lh`) ; une table reçue passe par `pico8_mh_new_table` |
+| `mh` | `pico8_mh_t` | boîte de message ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, chacun un article de `bl`, `rh`, `lh`) |
 | `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
 | `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) ; une table reçue passe par `pico8_lq_new_table` |
 | `lq(row)` | `pico8_lq_keys_of` | les clés d'où `js:pq` recopie une rangée : tous ses items dans l'ordre, empruntés, et ses `c`, `bg`, `score`, `ra` |
 | `jb` | `pico8_jb_t` | une bulle d'info ; ses clés sont ses lignes, une rangée générée `pico8_jb_row_t` (`dr`) ; une table reçue passe par `pico8_jb_new_table` |
-| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, `px`, `dz`, `em` de l'arbre `jo`, `rb` de `fv`, `gs`, `i_` de `pj`, `fk` et `lq` de `hp` : une rangée de chaînes, de nombres entiers (`n`) ou non (`is_fixed`, `fixed`), de faux (`is_false`) et de rangées, avec son `c` et son `fn` éventuels |
-| — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`, `bl`, `mh`) |
+| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, `px`, `dz`, `em` de l'arbre `jo`, `rb` de `fv`, `gs`, `i_` de `pj`, `fk` et `lq` de `hp` : une rangée de chaînes, de nombres entiers (`n`) ou non (`is_fixed`, `fixed`), de faux (`is_false`), de rangées et de pointeurs (`is_ref`, `ref` ; NULL : nil), avec son `c`, son `fn` et son `qe` éventuels. Est aussi la forme d'un article de `bl` et d'un tuple de `lq:mn` (`{f,w,qw,qv}`, ou `{qe=x}` lu `{x,5}`) |
+| — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t` (une sous-rangée y reste la rangée générée, un tuple), pour les sources de ligne de `js` encore reçues en table |
 | — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | — | `pico8_qe_map_t` | une table par ressource (`po`, `fu`) : clés `qe` entières, ordre d'insertion, 16 au plus ; `pico8_qe_map_get`/`_set` |
@@ -517,7 +517,7 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `ju` | `pico8_ju` | le singleton du panneau de score, instance de `pj` |
 | `cr()` | `pico8_cr` | l'écran de l'arbre technologique |
 | `ef` | `pico8_ef_table` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
-| `bz` | `pico8_bz_table` (typée), `pico8_bz()` (vue ob, `pico8_bz_view`) | les rangées du détail de score |
+| `bz` | `pico8_bz_table` (typée), `pico8_bz()` (`pico8_bz_row_t`, copies statiques que `pj:ph` réécrit, remises à l'init) | les rangées du détail de score |
 | `de` | `pico8_de` | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau. Il ne doit y en avoir qu'une |
 | `de.my` | `pico8_de_my` | la fonction que porte `de`, seule clé que `fq(de)` de `ix[3]` lit |
 | `ix` | `pico8_ix_table`, `pico8_ix()` | les 4 boutons de la vue galaxie |
@@ -581,9 +581,9 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 
 | Nom | Sens |
 |---|---|
-| `ea` | la rangée du bandeau d'année, réécrite par `pj:hk` ; `g_pj_ea`, construite depuis `pico8_pj_ea_row` |
+| `ea` | la rangée du bandeau d'année, réécrite par `pj:hk` ; `pico8_pj_ea_t` (`g_pj_ea`, copie de `pico8_pj_ea_row` remise à l'init, et son `lh`) |
 | `gs` | messages de compte à rebours, indexés par `3426 - yr` ; `pico8_pj_gs_row` |
-| `i_`, `ou` | rangées du cadre (`pico8_pj_i__row`) / les 7 afficheurs réécrits par `pj:hb` (`g_pj_ou`, construite depuis `pico8_pj_ou_row`) |
+| `i_`, `ou` | rangées du cadre (`pico8_pj_i__row`) / les 7 afficheurs réécrits par `pj:hb` (`g_pj_ou`, copie de `pico8_pj_ou_row` remise à l'init) |
 | `ed` | la dernière boîte construite par le panneau, comparée à `kc` |
 | `gz` | compteur du rideau de fin, testé par **présence** et non par valeur |
 | `c_` | « panneau visible », basculé par le `my` de `de` |

@@ -133,6 +133,95 @@ static int tables_equal(const pico8_ob_table_t *a, const pico8_ob_table_t *b, in
     return 1;
 }
 
+static int row_equal(const pico8_jb_row_t *row, const pico8_ob_table_t *want, int extra, const char *path);
+
+/* `want`'s entry `name` against a fixed: 0 when absent or different. */
+static int named_fixed_equal(const pico8_ob_table_t *want, const char *name, pico8_fixed_t got, const char *path) {
+    pico8_value_t v;
+
+    if (!pico8_ob_table_get_name(want, name, &v)) {
+        fprintf(stderr, "%s.%s: absent\n", path, name);
+        return 0;
+    }
+    return values_equal(pico8_value_fixed(got), v, path);
+}
+
+static int named_vec_equal(const pico8_ob_table_t *want, const char *name, int x, int y, const char *path) {
+    pico8_vec_t got = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
+    pico8_value_t v;
+
+    if (!pico8_ob_table_get_name(want, name, &v)) {
+        fprintf(stderr, "%s.%s: absent\n", path, name);
+        return 0;
+    }
+    return vecs_equal(pico8_value_ref(&got), v, path);
+}
+
+static int named_row_equal(const pico8_ob_table_t *want, const char *name, const pico8_jb_row_t *row,
+                           const char *path) {
+    pico8_value_t v;
+
+    if (!pico8_ob_table_get_name(want, name, &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+        fprintf(stderr, "%s.%s: no table\n", path, name);
+        return 0;
+    }
+    return row_equal(row, v.as.ref, 0, path);
+}
+
+/* A generated row against the table ob() parsed: each item at its index
+ * (a nested row against the nested table), then `c` and `fn` by name;
+ * `want` holds `extra` more named entries, the caller's to compare. */
+static int row_equal(const pico8_jb_row_t *row, const pico8_ob_table_t *want, int extra, const char *path) {
+    pico8_value_t v;
+    int i;
+
+    if (want->count != row->count + (row->has_c != 0) + (row->fn != NULL) + extra) {
+        fprintf(stderr, "%s: count %d != %d\n", path, want->count, row->count);
+        return 0;
+    }
+    for (i = 0; i < row->count; i++) {
+        const pico8_jb_item_t *item = &row->items[i];
+        char sub[256];
+        int same;
+
+        snprintf(sub, sizeof sub, "%s[%d]", path, i + 1);
+        if (!pico8_ob_table_get_index(want, i + 1, &v)) {
+            fprintf(stderr, "%s: absent\n", sub);
+            return 0;
+        }
+        if (item->row != NULL) {
+            same = v.kind == PICO8_VALUE_REF && v.as.ref != NULL && row_equal(item->row, v.as.ref, 0, sub);
+        } else if (item->s != NULL) {
+            same = values_equal(pico8_value_string(item->s), v, sub);
+        } else if (item->is_false) {
+            same = values_equal(pico8_value_bool(0), v, sub);
+        } else {
+            pico8_fixed_t n = item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n);
+
+            same = values_equal(pico8_value_fixed(n), v, sub);
+        }
+        if (!same) {
+            return 0;
+        }
+    }
+    if (row->has_c && !named_fixed_equal(want, "c", pico8_fixed_from_int(row->c), path)) {
+        return 0;
+    }
+    if (row->fn != NULL &&
+        !(pico8_ob_table_get_name(want, "fn", &v) && values_equal(pico8_value_string(row->fn), v, path))) {
+        return 0;
+    }
+    return !row->has_qe;
+}
+
+/* `want`'s positional `i` (1-based), the table of one parsed row. */
+static const pico8_ob_table_t *parsed_row(const pico8_ob_table_t *want, int i) {
+    pico8_value_t v;
+
+    assert(pico8_ob_table_get_index(want, i, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
 static void test_r_matches_the_decoded_table_in_order(const pico8_mem_t *mem) {
     pico8_ob_table_t *ref = decode(mem, 8192);
     int qe = -1;
@@ -210,7 +299,6 @@ static void test_dr_view_matches_the_decoded_table(const pico8_mem_t *mem) {
 
     assert(ref->count == PICO8_DR_COUNT);
     for (i = 0; i < PICO8_DR_COUNT; i++) {
-        pico8_ob_table_t *view = pico8_jb_row_view(&pico8_dr_table[i]);
         const pico8_ob_table_t *want;
         char path[16];
 
@@ -218,8 +306,7 @@ static void test_dr_view_matches_the_decoded_table(const pico8_mem_t *mem) {
         assert(ref->entries[i].value.kind == PICO8_VALUE_REF);
         want = ref->entries[i].value.as.ref;
         snprintf(path, sizeof path, "dr[%d]", i + 1);
-        assert(tables_equal(view, want, want->count, path));
-        pico8_ob_table_free(view);
+        assert(row_equal(&pico8_dr_table[i], want, 0, path));
     }
 }
 
@@ -570,28 +657,66 @@ static void test_gn_pools_df_entries_by_their_r(void) {
     pico8_list_free(&hr);
 }
 
-static void check_view(pico8_ob_table_t *view, const char *src, const char *name) {
-    pico8_ob_table_t *ref = parse(src);
+static void test_ix_bo_bz_match_their_parsed_literal(void) {
+    pico8_ob_table_t *ix = parse(IX_SRC);
+    pico8_ob_table_t *bo = parse(BO_SRC);
+    pico8_ob_table_t *bz = parse(BZ_SRC);
+    int i;
 
-    assert(view->count == ref->count);
-    assert(tables_equal(view, ref, ref->count, name));
-    pico8_ob_table_free(view);
+    assert(ix->count == PICO8_IX_COUNT);
+    for (i = 0; i < PICO8_IX_COUNT; i++) {
+        const pico8_ix_entry_t *e = &pico8_ix_table[i];
+        const pico8_ob_table_t *want = parsed_row(ix, i + 1);
+
+        assert(want->count == 2);
+        assert(named_vec_equal(want, "ra", e->ra_x, e->ra_y, "ix"));
+        assert(named_row_equal(want, "lq", e->lq, "ix.lq"));
+    }
+    assert(bo->count == PICO8_BO_COUNT);
+    for (i = 0; i < PICO8_BO_COUNT; i++) {
+        const pico8_bo_entry_t *e = &pico8_bo_table[i];
+        const pico8_ob_table_t *want = parsed_row(bo, i + 1);
+        pico8_value_t px;
+
+        assert(want->count == 4);
+        assert(named_row_equal(want, "lq", e->lq, "bo.lq"));
+        assert(pico8_ob_table_get_name(want, "px", &px) && values_equal(pico8_value_string(e->px), px, "bo.px"));
+        assert(named_fixed_equal(want, "trade", pico8_fixed_from_int(e->trade), "bo"));
+        assert(named_fixed_equal(want, "en", e->en, "bo"));
+    }
+    assert(bz->count == PICO8_BZ_COUNT);
+    for (i = 0; i < PICO8_BZ_COUNT; i++) {
+        const pico8_bz_entry_t *e = &pico8_bz_table[i];
+        pico8_jb_row_t row = e->row;
+        const pico8_ob_table_t *want = parsed_row(bz, i + 1);
+
+        row.fn = e->fn;
+        assert(row_equal(&row, want, (e->has_score != 0) + (e->has_ra != 0), "bz"));
+        assert(!e->has_score || named_fixed_equal(want, "score", pico8_fixed_from_int(e->score), "bz"));
+        assert(!e->has_ra || named_vec_equal(want, "ra", e->ra_x, e->ra_y, "bz"));
+    }
+    pico8_ob_table_free(ix);
+    pico8_ob_table_free(bo);
+    pico8_ob_table_free(bz);
 }
 
-static void test_ix_bo_bz_views_match_their_parsed_literal(void) {
-    check_view(pico8_ix_view(), IX_SRC, "ix");
-    check_view(pico8_bo_view(), BO_SRC, "bo");
-    check_view(pico8_bz_view(), BZ_SRC, "bz");
-}
+static void test_ha_matches_its_parsed_literal(void) {
+    pico8_ob_table_t *ha = parse(HA_SRC);
+    int i;
 
-static void test_ha_view_matches_its_parsed_literal_with_two_vectors(void) {
-    pico8_ob_table_t *ha = pico8_ha_view();
-    pico8_value_t hi;
-    pico8_value_t gq;
+    assert(ha->count == PICO8_HA_COUNT + 3);
+    for (i = 0; i < PICO8_HA_COUNT; i++) {
+        const pico8_ha_entry_t *e = &pico8_ha_table[i];
+        const pico8_ob_table_t *want = parsed_row(ha, i + 1);
 
-    assert(pico8_ob_table_get_name(ha, "hi", &hi) && pico8_ob_table_get_name(ha, "gq", &gq));
-    assert(hi.as.ref != gq.as.ref);
-    check_view(ha, HA_SRC, "ha");
+        assert(want->count == 1 + (e->has_fg != 0));
+        assert(named_row_equal(want, "lq", e->lq, "ha.lq"));
+        assert(!e->has_fg || named_fixed_equal(want, "fg", pico8_fixed_from_int(e->fg), "ha"));
+    }
+    assert(named_vec_equal(ha, "hi", pico8_ha_tail.hi_x, pico8_ha_tail.hi_y, "ha"));
+    assert(named_vec_equal(ha, "gq", pico8_ha_tail.gq_x, pico8_ha_tail.gq_y, "ha"));
+    assert(named_fixed_equal(ha, "ca", pico8_fixed_from_int(pico8_ha_tail.ca), "ha"));
+    pico8_ob_table_free(ha);
 }
 
 /* The start tree's class literals, byte for byte: planet.c (jo),
@@ -855,11 +980,7 @@ static void check_member_tags(const pico8_ob_table_t *ref, const pico8_str_seq_t
 }
 
 static void check_row(const pico8_ob_table_t *t, const pico8_jb_row_t *row, const char *path) {
-    pico8_ob_table_t *view = pico8_jb_row_view(row);
-
-    assert(view->count == t->count);
-    assert(tables_equal(view, t, t->count, path));
-    pico8_ob_table_free(view);
+    assert(row_equal(row, t, 0, path));
 }
 
 static void test_jo_tree_data_matches_the_parsed_class_literals(void) {
@@ -1626,8 +1747,8 @@ int main(void) {
 
     pico8_pi_init();
     test_leaf_tables_match_their_parsed_literal_in_order();
-    test_ix_bo_bz_views_match_their_parsed_literal();
-    test_ha_view_matches_its_parsed_literal_with_two_vectors();
+    test_ix_bo_bz_match_their_parsed_literal();
+    test_ha_matches_its_parsed_literal();
     test_df_table_matches_the_parsed_table_after_its_pass();
     test_gn_pools_df_entries_by_their_r();
     test_int_seq_has_fixed_keeps_gu_on_integers();

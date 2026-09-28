@@ -101,7 +101,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_gfx_t gfx;
     pico8_jo_t *planet;
     static pico8_kw_t kw;
-    pico8_value_t kw_field;
+    const pico8_jb_row_t *kw_row;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
     const pico8_list_t *le;
@@ -148,17 +148,15 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(exports_lq != NULL);
 
     /* The four items the row holds, in order and at the right element
-     * stride: "exports:", "<#by>/<mu>", a table of `kw`, and the `{false,1}`
-     * tuple `jo:gh` appends to every row after the first. */
+     * stride: "exports:", "<#by>/<mu>", the `{qe=kw.qe}` of `kw`, and the
+     * `{false,1}` tuple `jo:gh` appends to every row after the first. */
     assert(lq_index_is_string(exports_lq, 1, "exports:"));
     assert(lq_index_is_string(exports_lq, 2, "0/1"));
 
     assert(lq_item(exports_lq, 3, &entry));
-    assert(entry.kind == PICO8_VALUE_REF && pico8_type_tag_of(entry.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    assert(pico8_ob_table_get_name(entry.as.ref, "qe", &kw_field) && kw_field.kind == PICO8_VALUE_FIXED &&
-           kw_field.as.fixed == pico8_fixed_from_int(99));
-    assert(pico8_ob_table_get_name(entry.as.ref, "mu", &kw_field) && kw_field.kind == PICO8_VALUE_FIXED &&
-           kw_field.as.fixed == pico8_fixed_from_int(1));
+    assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
+    kw_row = entry.as.ref;
+    assert(kw_row->has_qe && kw_row->qe == pico8_fixed_from_int(99) && kw_row->count == 0);
 
     assert(lq_item(exports_lq, 4, &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);

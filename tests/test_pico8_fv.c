@@ -170,6 +170,34 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
     return fnv(h, (uint32_t)s->count);
 }
 
+/* A generated row as fold_table folded its view: items (a nested row as a
+ * nested table), then `c`, then `fn`, then the entry count. */
+static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
+    int i;
+
+    for (i = 0; i < row->count; i++) {
+        const pico8_jb_item_t *item = &row->items[i];
+
+        h = fnv(h, (uint32_t)(i + 1));
+        if (item->row != NULL) {
+            h = fold_row(fnv(h, 0x7Au), item->row);
+        } else if (item->s != NULL) {
+            h = fold_value(h, pico8_value_string(item->s));
+        } else if (item->is_false) {
+            h = fold_value(h, pico8_value_bool(0));
+        } else {
+            h = fold_value(h, pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n)));
+        }
+    }
+    if (row->has_c) {
+        h = fold_value(fnv_str(h, "c"), pico8_value_fixed(pico8_fixed_from_int(row->c)));
+    }
+    if (row->fn != NULL) {
+        h = fold_value(fnv_str(h, "fn"), pico8_value_string(row->fn));
+    }
+    return fnv(h, (uint32_t)(row->count + (row->has_c != 0) + (row->fn != NULL)));
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -197,7 +225,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
             return fold_seq(fnv(h, 0x7Au), v.as.ref);
         }
         if (v.as.ref == (const void *)&pico8_fv_rb_row) {
-            return fold_table(fnv(h, 0x7Au), pico8_jb_row_view(v.as.ref));
+            return fold_row(fnv(h, 0x7Au), v.as.ref);
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:

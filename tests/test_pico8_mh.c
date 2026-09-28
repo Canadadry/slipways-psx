@@ -5,13 +5,11 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <assert.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "../src/pico8_assets.h"
@@ -27,7 +25,6 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_msgbox.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
 #include "../src/pico8_type_tag.h"
@@ -458,62 +455,19 @@ static void test_mh_members_by_name(void) {
     assert(h == MEMBERS_BY_NAME_HASH);
 }
 
-/* A nil `lh` key leaves the box without `lh`, as a box built with no key. */
+/* A nil `lh` key (NULL) leaves the box without `lh`, as a box built with no
+ * key. */
 static void test_mh_nil_lh_key_reads_absent(void) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_mh_keys_t keys = {0};
     void *box;
     pico8_value_t v;
     pico8_value_t out;
 
     pico8_jl();
-    pico8_ob_table_set_name(overrides, "lh", pico8_value_ref(NULL));
-    box = pico8_mh_new_table(overrides);
-    pico8_ob_table_free(overrides);
+    keys.lh = NULL;
+    box = pico8_mh_new(&keys);
     assert(!has_member(box, "lh", &v));
     assert(!pico8_mv(box, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-}
-
-static void must_abort(void (*build)(void)) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        build();
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-static void build_with_key(const char *name, pico8_value_t value) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-
-    pico8_ob_table_set_name(overrides, name, value);
-    (void)pico8_mh_new_table(overrides);
-}
-
-static void build_rh_string(void) {
-    build_with_key("rh", pico8_value_string("3"));
-}
-
-static void build_rh_nil(void) {
-    build_with_key("rh", pico8_value_ref(NULL));
-}
-
-static void build_lh_fixed(void) {
-    build_with_key("lh", pico8_value_fixed(pico8_fixed_from_int(1)));
-}
-
-/* A construction key of a kind outside the member's type stops the build. */
-static void test_mh_rejects_off_row_keys(void) {
-    pico8_jl();
-    must_abort(build_rh_string);
-    must_abort(build_rh_nil);
-    must_abort(build_lh_fixed);
 }
 
 int main(void) {
@@ -537,7 +491,6 @@ int main(void) {
     test_mh_is_a_struct_registered_under_ev();
     test_mh_members_by_name();
     test_mh_nil_lh_key_reads_absent();
-    test_mh_rejects_off_row_keys();
 
     printf("test_pico8_mh: all tests passed\n");
     return 0;

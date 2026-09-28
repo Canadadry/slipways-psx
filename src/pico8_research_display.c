@@ -1,5 +1,6 @@
 #include "pico8_research_display.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,6 +111,25 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self) {
     return outer;
 }
 
+/* A tuple of `lq:mn` and its items, in one block, never freed (TROU-7). */
+typedef struct {
+    pico8_jb_row_t row;
+    pico8_jb_item_t items[4];
+} pico8_jo_ex_tuple_t;
+
+static pico8_jo_ex_tuple_t *pico8_jo_ex_tuple(int count) {
+    pico8_jo_ex_tuple_t *t = calloc(1, sizeof *t);
+
+    assert(t != NULL);
+    t->row.count = count;
+    t->row.items = t->items;
+    return t;
+}
+
+static pico8_jb_item_t pico8_jo_ex_fixed(pico8_fixed_t x) {
+    return (pico8_jb_item_t){.is_fixed = 1, .fixed = x};
+}
+
 pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
                                pico8_fixed_t d) {
     pico8_ob_table_t *l;
@@ -150,7 +170,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
         pico8_value_t entry;
 
         while (pico8_list_iter_next(&it, &entry)) {
-            pico8_ob_table_t *tuple = pico8_ob_table_new();
+            pico8_jo_ex_tuple_t *tuple = pico8_jo_ex_tuple(3);
             pico8_value_t qe = pico8_value_ref(NULL);
             pico8_value_t gc;
             int gc_zero = 0;
@@ -164,43 +184,44 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
                     gc_zero = 1;
                 }
             }
-            pico8_ob_table_set_index(tuple, 1, qe);
-            pico8_ob_table_set_index(
-                tuple, 2, pico8_value_fixed(pico8_fixed_sub(pico8_fixed_from_int(3), pico8_fixed_from_int(lc))));
+            assert((qe.kind == PICO8_VALUE_FIXED || (qe.kind == PICO8_VALUE_REF && qe.as.ref == NULL)) &&
+                   "a want record's qe is a resource of r or nil");
+            tuple->items[0] = qe.kind == PICO8_VALUE_FIXED ? pico8_jo_ex_fixed(qe.as.fixed)
+                                                           : (pico8_jb_item_t){.is_ref = 1};
+            tuple->items[1] = pico8_jo_ex_fixed(pico8_fixed_sub(pico8_fixed_from_int(3), pico8_fixed_from_int(lc)));
             /* Lua's `i.gc~=0 and 0 or 7`: gc==0 -> 7, gc~=0 or absent -> 0.
              * 0 is truthy in Lua, so it is NOT "gc==0 -> 0". */
-            pico8_ob_table_set_index(tuple, 3, pico8_value_fixed(pico8_fixed_from_int(gc_zero ? 7 : 0)));
-            pico8_ob_table_set_index(l, idx++, pico8_value_ref(tuple));
+            tuple->items[2] = pico8_jo_ex_fixed(pico8_fixed_from_int(gc_zero ? 7 : 0));
+            pico8_ob_table_set_index(l, idx++, pico8_value_ref(&tuple->row));
         }
     }
 
     if (is_count > 0) {
-        pico8_ob_table_t *t1 = pico8_ob_table_new();
-        pico8_ob_table_t *t2 = pico8_ob_table_new();
+        pico8_jo_ex_tuple_t *t1 = pico8_jo_ex_tuple(2);
+        pico8_jo_ex_tuple_t *t2 = pico8_jo_ex_tuple(2);
         int use_35 = (d == pico8_fixed_from_int(1)) || pe;
 
-        pico8_ob_table_set_index(t1, 1, pico8_value_bool(0));
-        pico8_ob_table_set_index(t1, 2, pico8_value_fixed(pico8_fixed_add(d, pico8_fixed_from_int(lc))));
-        pico8_ob_table_set_index(l, idx++, pico8_value_ref(t1));
+        t1->items[0] = (pico8_jb_item_t){.is_false = 1};
+        t1->items[1] = pico8_jo_ex_fixed(pico8_fixed_add(d, pico8_fixed_from_int(lc)));
+        pico8_ob_table_set_index(l, idx++, pico8_value_ref(&t1->row));
 
         if (use_35) {
-            pico8_ob_table_set_index(t2, 1, pico8_value_fixed(pico8_fixed_from_int(35)));
-            pico8_ob_table_set_index(t2, 2, pico8_value_fixed(pico8_fixed_add(pico8_fixed_from_int(2), d)));
+            t2->items[0] = pico8_jo_ex_fixed(pico8_fixed_from_int(35));
+            t2->items[1] = pico8_jo_ex_fixed(pico8_fixed_add(pico8_fixed_from_int(2), d));
         } else {
-            pico8_ob_table_set_index(t2, 1, pico8_value_fixed(pico8_fixed_from_int(32)));
-            pico8_ob_table_set_index(t2, 2, pico8_value_fixed(pico8_fixed_from_int(5)));
+            t2->items[0] = pico8_jo_ex_fixed(pico8_fixed_from_int(32));
+            t2->items[1] = pico8_jo_ex_fixed(pico8_fixed_from_int(5));
         }
-        pico8_ob_table_set_index(l, idx++, pico8_value_ref(t2));
+        pico8_ob_table_set_index(l, idx++, pico8_value_ref(&t2->row));
     }
 
     if (jq > pico8_fixed_from_int(5)) {
         char *jq_str = pico8_value_tostr(pico8_value_fixed(jq));
-        pico8_ob_table_t *t3 = pico8_ob_table_new();
+        static const pico8_jb_item_t t3_items[] = {{.is_false = 1}, {.n = -4}};
+        static const pico8_jb_row_t t3 = {.count = 2, .items = t3_items};
 
         pico8_ob_table_set_index(l, idx++, pico8_value_string(jq_str));
-        pico8_ob_table_set_index(t3, 1, pico8_value_bool(0));
-        pico8_ob_table_set_index(t3, 2, pico8_value_fixed(pico8_fixed_from_int(-4)));
-        pico8_ob_table_set_index(l, idx++, pico8_value_ref(t3));
+        pico8_ob_table_set_index(l, idx++, pico8_value_ref((void *)&t3));
         pico8_ob_table_set_name(l, "c", pico8_value_fixed(pico8_fixed_from_int(13)));
         jq = pico8_fixed_from_int(1);
     }
@@ -215,18 +236,19 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
             int i;
 
             for (i = 1; i <= n; i++) {
-                pico8_ob_table_t *t4 = pico8_ob_table_new();
+                pico8_jo_ex_tuple_t *t4 = pico8_jo_ex_tuple(4);
                 pico8_fixed_t i_fixed = pico8_fixed_from_int(i);
                 int within = (i_fixed <= jq) && (i_fixed > mj);
 
-                pico8_ob_table_set_index(t4, 1, qq);
-                pico8_ob_table_set_index(t4, 2, pico8_value_fixed(pico8_fixed_from_int(6)));
-                pico8_ob_table_set_index(t4, 3, pico8_value_fixed(pico8_fixed_from_int(within ? 0 : 7)));
-                pico8_ob_table_set_index(t4, 4, pico8_value_fixed(pico8_fixed_from_int(pe ? -4 : -3)));
-                pico8_ob_table_set_index(l, idx++, pico8_value_ref(t4));
+                assert(qq.kind == PICO8_VALUE_FIXED && "ml holds sprite numbers");
+                t4->items[0] = pico8_jo_ex_fixed(qq.as.fixed);
+                t4->items[1] = pico8_jo_ex_fixed(pico8_fixed_from_int(6));
+                t4->items[2] = pico8_jo_ex_fixed(pico8_fixed_from_int(within ? 0 : 7));
+                t4->items[3] = pico8_jo_ex_fixed(pico8_fixed_from_int(pe ? -4 : -3));
+                pico8_ob_table_set_index(l, idx++, pico8_value_ref(&t4->row));
             }
 
-            pico8_ob_table_set_index(l, idx++, pico8_value_ref(pico8_jb_row_view(pico8_jo_em())));
+            pico8_ob_table_set_index(l, idx++, pico8_value_ref((void *)pico8_jo_em()));
         }
     }
 
@@ -262,7 +284,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         return NULL;
     }
 
-    pico8_list_add(&l->items, pico8_value_ref(pico8_jb_row_view(pico8_hp_fk())));
+    pico8_list_add(&l->items, pico8_value_ref((void *)pico8_hp_fk()));
     if (self->px != NULL) {
         pico8_list_add(&l->items, pico8_value_string(self->px));
     }

@@ -25,26 +25,8 @@
 #include "pico8_vec.h"
 
 static int g_pj_up = 0;
-static pico8_ob_table_t *g_bz = NULL;
+static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];
 static pico8_pj_t *g_ju = NULL;
-
-/* Returns a new list the caller owns and must release with
- * pico8_list_free(). */
-static pico8_list_t pico8_score_panel_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
@@ -85,11 +67,23 @@ static char *pj_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* TROU-7 */
-/* pj's class state `ou` and `ea`, built once per init from their generated
- * rows and rewritten in place by `hb`/`hk`; never freed. */
-static pico8_ob_table_t *g_pj_ou = NULL;
-static pico8_ob_table_t *g_pj_ea = NULL;
+/* pj's class state `ou` and `ea`, reset by each init to their generated
+ * rows and rewritten in place by `hb`/`hk`. */
+static pico8_pj_ou_t g_pj_ou;
+static pico8_pj_ea_t g_pj_ea;
+
+/* Copies `src` into `dst` and its item storage (`cap` items), `fn` and `c`
+ * included; nested rows stay the generated ones. */
+static void pj_row_copy(pico8_jb_row_t *dst, pico8_jb_item_t *items, int cap, const pico8_jb_row_t *src) {
+    int i;
+
+    assert(src->count <= cap && "a copied row of pj holds no more items than its generated row");
+    for (i = 0; i < src->count; i++) {
+        items[i] = src->items[i];
+    }
+    *dst = *src;
+    dst->items = items;
+}
 
 static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_pj_cr_t *cr = self;
@@ -131,12 +125,12 @@ static pico8_pj_cr_t g_pj_cr = {
     NULL,
 };
 
-pico8_ob_table_t *pico8_pj_ou(void) {
-    return g_pj_ou;
+pico8_pj_ou_t *pico8_pj_ou(void) {
+    return g_pj_up ? &g_pj_ou : NULL;
 }
 
-pico8_ob_table_t *pico8_pj_ea(void) {
-    return g_pj_ea;
+pico8_pj_ea_t *pico8_pj_ea(void) {
+    return g_pj_up ? &g_pj_ea : NULL;
 }
 
 pico8_pj_cr_t *pico8_pj_cr(void) {
@@ -213,6 +207,22 @@ void pico8_eg(void) {
     }
 }
 
+pico8_jb_item_t pico8_pj_item_of(pico8_value_t v) {
+    switch (v.kind) {
+    case PICO8_VALUE_STRING:
+        return (pico8_jb_item_t){.s = v.as.string};
+    case PICO8_VALUE_FIXED:
+        return (pico8_jb_item_t){.is_fixed = 1, .fixed = v.as.fixed};
+    case PICO8_VALUE_BOOL:
+        assert(!v.as.boolean && "pj writes a string, a number, false or nil into an item");
+        return (pico8_jb_item_t){.is_false = 1};
+    default:
+        assert(v.kind == PICO8_VALUE_REF && v.as.ref == NULL &&
+               "pj writes a string, a number, false or nil into an item");
+        return (pico8_jb_item_t){.is_ref = 1};
+    }
+}
+
 void pico8_pj_hb(void) {
     const pico8_struct_header_t *fm = pico8_fm();
     pico8_fixed_t fm_ge = fm_field_fixed(fm, "ge");
@@ -222,7 +232,7 @@ void pico8_pj_hb(void) {
     pico8_fixed_t fm_lo = fm_field_fixed(fm, "lo");
     pico8_value_t fm_yr = fm_field_value(fm, "yr");
     const pico8_qe_map_t *fm_po = fm_field_qe_map(fm, "po");
-    pico8_ob_table_t *ou_table;
+    pico8_pj_ou_t *ou_state;
     pico8_value_t ou[7];
     char *cf;
     char *nz_str;
@@ -265,17 +275,11 @@ void pico8_pj_hb(void) {
 
     ou[6] = fm_yr;
 
-    ou_table = pico8_pj_ou();
-    if (ou_table != NULL) {
+    ou_state = pico8_pj_ou();
+    if (ou_state != NULL) {
         for (i = 0; i < 7; i++) {
-            pico8_value_t sub_val;
-            if (pico8_ob_table_get_index(ou_table, i + 1, &sub_val) && sub_val.kind == PICO8_VALUE_REF &&
-                sub_val.as.ref != NULL) {
-                assert(pico8_type_tag_of(sub_val.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-                       "pj.ou rows must hold plain tables");
-                /* TROU-7 */
-                pico8_ob_table_set_index((pico8_ob_table_t *)sub_val.as.ref, 1, ou[i]);
-            }
+            /* TROU-7 */
+            ou_state->sub_items[i][0] = pico8_pj_item_of(ou[i]);
         }
     }
 
@@ -292,17 +296,22 @@ static pico8_value_t pico8_pj_hb_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
-    pico8_ob_table_t *i_view = pico8_jb_row_view(pico8_pj_i_());
-    pico8_list_t i_list = pico8_score_panel_positional_values(i_view);
-    pico8_list_t ou_list = pico8_score_panel_positional_values(pico8_pj_ou());
-    pico8_list_t combined = pico8_la(&i_list, &ou_list);
+    const pico8_jb_row_t *i_ = pico8_pj_i_();
+    pico8_pj_ou_t *ou_state = pico8_pj_ou();
+    pico8_list_t combined;
+    int i;
+
+    pico8_list_init(&combined);
+    for (i = 0; i < i_->count; i++) {
+        pico8_list_add(&combined, pico8_value_ref((void *)i_->items[i].row));
+    }
+    for (i = 0; ou_state != NULL && i < ou_state->row.count; i++) {
+        pico8_list_add(&combined, pico8_value_ref((void *)ou_state->row.items[i].row));
+    }
 
     pico8_bl_default(gfx, mem, &combined);
 
-    pico8_list_free(&i_list);
-    pico8_list_free(&ou_list);
     pico8_list_free(&combined);
-    pico8_ob_table_free(i_view);
 
     if (self != NULL && self->has_gz) {
         pico8_fixed_t gz = pico8_fixed_add(self->gz, PICO8_FIXED_LIT(0x00003333, 0.2));
@@ -363,9 +372,9 @@ static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out
     pico8_value_t value;
 
     if (strcmp(name, "ou") == 0) {
-        value = pico8_value_ref(g_pj_ou);
+        value = pico8_value_ref(pico8_pj_ou());
     } else if (strcmp(name, "ea") == 0) {
-        value = pico8_value_ref(g_pj_ea);
+        value = pico8_value_ref(pico8_pj_ea());
     } else if (strcmp(name, "cr") == 0) {
         value = pico8_value_ref(pico8_pj_cr());
     } else if (strcmp(name, "fa") == 0) {
@@ -435,15 +444,36 @@ static void *pico8_pj_struct_new(void) {
 }
 
 void pico8_score_panel_init(void) {
+    int i;
+
     pico8_score_panel_shutdown();
 
     pico8_pi_init();
 
-    g_bz = pico8_bz_view();
+    for (i = 0; i < PICO8_BZ_COUNT; i++) {
+        const pico8_bz_entry_t *e = &pico8_bz_table[i];
+        pico8_bz_row_t *b = &g_bz[i];
+        int k;
+
+        pj_row_copy(&b->row, b->items, 5, &e->row);
+        b->row.fn = e->fn;
+        for (k = 0; k < 5; k++) {
+            b->has[k] = k < e->row.count;
+        }
+        b->ra = pico8_vec_v(pico8_fixed_from_int(e->ra_x), pico8_fixed_from_int(e->ra_y));
+        b->e = e;
+    }
 
     g_pj_up = 1;
-    g_pj_ou = pico8_jb_row_view(pico8_pj_start.ou);
-    g_pj_ea = pico8_jb_row_view(pico8_pj_start.ea);
+    pj_row_copy(&g_pj_ou.row, g_pj_ou.items, 7, pico8_pj_start.ou);
+    for (i = 0; i < g_pj_ou.row.count; i++) {
+        pj_row_copy(&g_pj_ou.subs[i], g_pj_ou.sub_items[i], 4, pico8_pj_start.ou->items[i].row);
+        g_pj_ou.items[i].row = &g_pj_ou.subs[i];
+    }
+    pj_row_copy(&g_pj_ea.row, g_pj_ea.items, 3, pico8_pj_start.ea);
+    pj_row_copy(&g_pj_ea.second, g_pj_ea.second_items, 5, pico8_pj_start.ea->items[1].row);
+    g_pj_ea.items[1].row = &g_pj_ea.second;
+    g_pj_ea.lh = NULL;
     g_pj_cr.ca = pico8_pj_start.cr->ca;
     g_pj_cr.ep = NULL;
 
@@ -456,13 +486,6 @@ void pico8_score_panel_init(void) {
 void pico8_score_panel_shutdown(void) {
     pico8_score_panel_display_shutdown();
     g_pj_up = 0;
-    /* TROU-7 */
-    g_pj_ou = NULL;
-    g_pj_ea = NULL;
-    if (g_bz != NULL) {
-        pico8_ob_table_free(g_bz);
-        g_bz = NULL;
-    }
     pico8_score_panel_set_init(NULL);
     g_ju = NULL;
 }
@@ -479,8 +502,8 @@ pico8_pj_t *pico8_pj_new(void) {
     return pico8_pj_struct_new();
 }
 
-const pico8_ob_table_t *pico8_bz(void) {
-    return g_bz;
+pico8_bz_row_t *pico8_bz(void) {
+    return g_pj_up ? g_bz : NULL;
 }
 
 pico8_pj_t *pico8_ju(void) {
