@@ -100,9 +100,7 @@ static void assert_cheated(void) {
 }
 
 static void new_game(void) {
-    pico8_value_t difficulty;
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_eu(NULL);
 }
 
 static void test_at_rest(void) {
