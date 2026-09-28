@@ -134,7 +134,7 @@ static void test_lj_on_placeholder(void) {
     const pico8_vec_t *qa;
 
     pico8_entity_init();
-    ok = pico8_ui_new(NULL);
+    ok = pico8_ui_new();
     pico8_ui_lj(&mem, ok);
     assert(pico8_entity_get_field(ok, "qa", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     qa = v.as.ref;

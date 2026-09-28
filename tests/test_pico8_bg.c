@@ -254,9 +254,9 @@ static void test_construction(void) {
     start_game();
     from_eu = the_bg();
     check_fresh_bg(from_eu);
-    built = (void *)pico8_bg_new(NULL);
+    built = (void *)pico8_bg_new();
     check_fresh_bg(built);
-    generic = (void *)pico8_bg_new(NULL);
+    generic = (void *)pico8_bg_new();
     check_fresh_bg(generic);
     assert(pico8_cg("bg") == NULL);
     assert(pl_of(from_eu) == pl_of(built) && pl_of(built) == pl_of(generic));
@@ -300,7 +300,7 @@ static void test_map(void) {
     check("map", first, MAP_HASH);
     check_int("map stars", stars, MAP_STARS);
     check_int("map zeros", zeros, MAP_ZEROS);
-    (void)pico8_bg_new(NULL);
+    (void)pico8_bg_new();
     check("second map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
@@ -475,7 +475,7 @@ static void test_draw(void) {
     void *bg;
 
     pico8_jl();
-    bg = (void *)pico8_bg_new(NULL);
+    bg = (void *)pico8_bg_new();
     assert(list_count(pico8_cv("kj")) == 1 && listed(pico8_cv("kj"), bg));
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
@@ -585,8 +585,8 @@ static void test_bg_is_a_struct(void) {
 
     start_game();
     from_eu = the_bg();
-    built = (void *)pico8_bg_new(NULL);
-    generic = (void *)pico8_bg_new(NULL);
+    built = (void *)pico8_bg_new();
+    generic = (void *)pico8_bg_new();
     assert(is_a_bg_struct(from_eu) && is_a_bg_struct(built) && is_a_bg_struct(generic));
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         assert(pico8_entity_get_field(built, methods[i], &out) && out.kind == PICO8_VALUE_FUNCTION);
@@ -710,7 +710,7 @@ static void test_bg_members_by_name(void) {
     assert(bool_state(a, "m_") == 2);
     h = fold_bg(h, a, NULL);
 
-    b = (void *)pico8_bg_new(NULL);
+    b = (void *)pico8_bg_new();
     h = fold_bg(h, b, NULL);
     assert(pl_of(a) == pl_of(b));
 
@@ -786,7 +786,7 @@ static void test_bg_writer_stops_off_row(void) {
 
     start_game();
     a = the_bg();
-    b = (void *)pico8_bg_new(NULL);
+    b = (void *)pico8_bg_new();
     memset(&zero_fixed, 0, sizeof zero_fixed);
     zero_fixed.kind = PICO8_VALUE_FIXED;
     memset(&zero_string, 0, sizeof zero_string);

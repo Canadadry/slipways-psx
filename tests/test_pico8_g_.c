@@ -932,7 +932,7 @@ static void test_bv_et_members_by_name(void) {
 
     holders[0] = a;
     holders[1] = pico8_fv_new(NULL);
-    holders[2] = pico8_mz_new(NULL);
+    holders[2] = pico8_mz_new();
     holders[3] = pico8_qh_new(NULL);
     holders[4] = pico8_nl_new(NULL);
     holders[5] = pico8_os_new(NULL);
@@ -1546,7 +1546,7 @@ static void test_g__writer_stops_off_row(void) {
     structs[0] = pico8_value_ref(pico8_ga_new(NULL));
     structs[1] = pico8_value_ref(pico8_g__new(NULL));
     structs[2] = pico8_value_ref(pico8_fv_new(NULL));
-    structs[3] = pico8_value_ref(pico8_mz_new(NULL));
+    structs[3] = pico8_value_ref(pico8_mz_new());
     structs[4] = pico8_value_ref(the_bg());
     structs[5] = pico8_value_ref(pico8_ok());
     structs[6] = gb_1;

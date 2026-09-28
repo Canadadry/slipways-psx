@@ -269,7 +269,7 @@ static void world(void) {
 }
 
 static void *build_mz(void) {
-    return pico8_mz_new(NULL);
+    return pico8_mz_new();
 }
 
 static pico8_value_t vec_ref(int x, int y) {
@@ -383,7 +383,7 @@ static void test_construction(void) {
     assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
     check_fresh_mz(made.as.ref);
     check_fresh_mz(build_mz());
-    check_fresh_mz(pico8_mz_new(NULL));
+    check_fresh_mz(pico8_mz_new());
 }
 
 static uint32_t fold_ox(uint32_t h, const void *mz) {
@@ -802,7 +802,7 @@ static void test_mz_is_a_struct(void) {
     start_game();
     (void)pico8_bg_ldown(NULL, pico8_value_ref(NULL));
     made = pico8_bg_ldown(NULL, pico8_value_ref(NULL));
-    mz = pico8_mz_new(NULL);
+    mz = pico8_mz_new();
     assert(is_an_mz_struct(made.as.ref) && is_an_mz_struct(build_mz()) && is_an_mz_struct(mz));
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_t m;
@@ -857,8 +857,8 @@ static void test_jj_qs_by_name(void) {
     assert(pico8_entity_get_field(wrapper, "qs", &again) == 1 && again.as.string == out.as.string);
 
     start_game();
-    mz_a = pico8_mz_new(NULL);
-    mz_b = pico8_mz_new(NULL);
+    mz_a = pico8_mz_new();
+    mz_b = pico8_mz_new();
     assert(mz_a != mz_b);
     for (k = 0; k < 2; k++) {
         assert(pico8_entity_get_field(k == 0 ? mz_a : mz_b, "jj", &jj) && jj.kind == PICO8_VALUE_REF);
@@ -1011,7 +1011,6 @@ static void test_mz_members_by_name(void) {
     const pico8_struct_class_t *cls = pico8_mz_struct_class();
     uint32_t h = 2166136261u;
     uint32_t before;
-    pico8_ob_table_t *empty;
     pico8_value_t mp;
     pico8_value_t v;
     pico8_vec_t want_p;
@@ -1149,10 +1148,8 @@ static void test_mz_members_by_name(void) {
     }
 
     start_game();
-    fresh[0] = pico8_mz_new(NULL);
-    empty = pico8_ob_table_new();
-    fresh[1] = pico8_mz_new(empty);
-    pico8_ob_table_free(empty);
+    fresh[0] = pico8_mz_new();
+    fresh[1] = pico8_mz_new();
     (void)pico8_bg_ldown(NULL, pico8_value_ref(NULL));
     fresh[2] = pico8_bg_ldown(NULL, pico8_value_ref(NULL)).as.ref;
     for (k = 0; k < 3; k++) {
@@ -1244,7 +1241,7 @@ static void test_mz_writer_stops_off_row(void) {
                                      pico8_value_ref(pico8_qh_new(NULL)),
                                      pico8_value_ref(pico8_g__new(NULL)),
                                      other,
-                                     pico8_value_ref(pico8_bg_new(NULL))};
+                                     pico8_value_ref(pico8_bg_new())};
         stops_on(mz, "et", off, sizeof off / sizeof off[0]);
     }
     {

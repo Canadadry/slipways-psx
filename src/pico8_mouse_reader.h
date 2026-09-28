@@ -4,7 +4,6 @@
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -32,10 +31,9 @@ void pico8_nf_shutdown(void);
 int pico8_nf_ready(void);
 const pico8_struct_class_t *pico8_nf_struct_class(void);
 
-/* `overrides` is read, not kept, and must be NULL or empty. The struct
- * enables devkit mouse reporting, registers itself through `lt`, and
- * nothing frees it. */
-pico8_nf_t *pico8_nf_new(const pico8_ob_table_t *overrides);
+/* The struct enables devkit mouse reporting, registers itself through `lt`,
+ * and nothing frees it. */
+pico8_nf_t *pico8_nf_new(void);
 
 /* Rebinds `self.ra` to a fresh heap vector holding the mouse position,
  * then runs bu() over the shared `l`/`r` tables, which are mutated in

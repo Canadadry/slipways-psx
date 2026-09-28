@@ -972,9 +972,9 @@ static void test_jc_is_a_struct(void) {
     must_abort(write_fa, jc);
     must_abort(build_with_ra, get_ref(old, "qu"));
 
-    others[0] = pico8_bg_new(NULL);
+    others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
-    others[2] = pico8_mz_new(NULL);
+    others[2] = pico8_mz_new();
     for (i = 0; i < 3; i++) {
         assert(!has(others[i], "eb"));
     }
@@ -1552,7 +1552,7 @@ static void test_jc_members_by_name(void) {
 
     holders[0] = pico8_g__new(NULL);
     holders[1] = pico8_fv_new(NULL);
-    holders[2] = pico8_mz_new(NULL);
+    holders[2] = pico8_mz_new();
     holders[3] = pico8_qh_new(NULL);
     holders[4] = pico8_nl_new(NULL);
     holders[5] = pico8_os_new(NULL);
@@ -1690,7 +1690,7 @@ static void test_jc_writer_stops_off_row(void) {
                                      vec,
                                      jo,
                                      ga,
-                                     pico8_value_ref(pico8_bg_new(NULL)),
+                                     pico8_value_ref(pico8_bg_new()),
                                      qs,
                                      point};
         stops_on(write_off_row, old, "fo", off, sizeof off / sizeof off[0]);
@@ -1716,7 +1716,7 @@ static void test_jc_writer_stops_off_row(void) {
                                      vec,
                                      ga,
                                      pico8_value_ref(pico8_g__new(NULL)),
-                                     pico8_value_ref(pico8_mz_new(NULL)),
+                                     pico8_value_ref(pico8_mz_new()),
                                      other,
                                      point};
         stops_on(build_off_row, NULL, "qu", off, sizeof off / sizeof off[0]);

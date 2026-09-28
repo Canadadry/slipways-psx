@@ -60,10 +60,9 @@ void pico8_wormhole_shutdown(void);
 int pico8_mz_ready(void);
 const pico8_struct_class_t *pico8_mz_struct_class(void);
 
-/* `overrides` is read, not kept, and must be NULL or empty. The struct
- * registers itself into `hv`/`cv`/`cg` through `lt`, and nothing frees
- * it. */
-pico8_mz_t *pico8_mz_new(const pico8_ob_table_t *overrides);
+/* The struct registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
+ * frees it. */
+pico8_mz_t *pico8_mz_new(void);
 
 /* The one `mz.jj`, shared by every `mz`: static, never NULL, never
  * freed, and without a writer, so a write reaching it stops the run. */

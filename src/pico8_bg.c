@@ -134,7 +134,7 @@ static const pico8_struct_class_t g_bg_struct_class = {
     pico8_bg_set_field,
 };
 
-static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_bg_struct_new(void) {
     pico8_bg_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_bg_struct_class);
@@ -144,8 +144,6 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
     self->mq = NULL;
     self->m_ = 0;
     self->has_m_ = 0;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "bg: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("bg");
 #endif
@@ -171,8 +169,8 @@ const pico8_struct_class_t *pico8_bg_struct_class(void) {
     return &g_bg_struct_class;
 }
 
-pico8_bg_t *pico8_bg_new(const pico8_ob_table_t *overrides) {
-    return pico8_bg_struct_new(overrides);
+pico8_bg_t *pico8_bg_new(void) {
+    return pico8_bg_struct_new();
 }
 
 /* `vs[x] or 1` is only ever taken on row y=0; every later row reads back the
@@ -256,7 +254,7 @@ pico8_value_t pico8_bg_ldown(pico8_bg_t *self, pico8_value_t mp) {
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
         assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
-        made = pico8_mz_new(NULL);
+        made = pico8_mz_new();
     } else {
         made = pico8_g__new(NULL);
     }

@@ -6,7 +6,6 @@
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -66,10 +65,10 @@ const pico8_qz_box_t *pico8_ui_hw(void);
  * emptied (not freed) by each `pico8_ui_init()`. */
 pico8_list_t *pico8_ui_le_shared(void);
 
-/* `overrides` must be NULL or empty: a key asserts. The `ui` registers
- * itself through `lt` into `hv` and `cv.ev`, no `cg`; only the current
- * `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts before the init. */
-pico8_ui_t *pico8_ui_new(const pico8_ob_table_t *overrides);
+/* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`;
+ * only the current `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts
+ * before the init. */
+pico8_ui_t *pico8_ui_new(void);
 
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder
  * struct, with no field and no method, so every `je.<field>` read falls back

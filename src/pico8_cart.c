@@ -183,7 +183,7 @@ void pico8_eu(pico8_js_t *nj) {
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
     pico8_jl();
-    (void)pico8_bg_new(NULL);
+    (void)pico8_bg_new();
     pico8_bw(pico8_fixed_from_int(90));
 
     /* TROU-7 */

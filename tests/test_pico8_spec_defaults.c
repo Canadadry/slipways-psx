@@ -72,7 +72,7 @@ static void test_second_jl_keeps_specs(void) {
 /* A fresh bg starts on bg's generated defaults and ke's; ready until its
  * shutdown. */
 static void test_bg_defaults_and_ready(void) {
-    pico8_bg_t *bg = pico8_bg_new(NULL);
+    pico8_bg_t *bg = pico8_bg_new();
 
     assert(bg->fa == pico8_bg_start.fa && bg->hd == pico8_bg_start.hd);
     assert(bg->pl == pico8_bg_start.pl && bg->pl == &pico8_bg_pl_seq);
@@ -94,7 +94,7 @@ static void test_js_defaults_and_ready(void) {
 
 /* `v`, `p` and `ra` are the generated vectors themselves. */
 static void test_qb_defaults_and_ready(void) {
-    pico8_qb_t *qb = pico8_qb_new(NULL);
+    pico8_qb_t *qb = pico8_qb_new();
 
     assert(qb->v == &pico8_qb_start.v && qb->p == &pico8_qb_start.p && qb->ra == &pico8_qb_start.ra);
     assert(qb->ma == pico8_qb_start.ma && qb->pc == pico8_qb_start.pc && qb->pc == &pico8_qb_pc_vecs);
@@ -106,7 +106,7 @@ static void test_qb_defaults_and_ready(void) {
 
 /* mz's own `me` replaces ke's; `jj` holds the generated `qs`. */
 static void test_mz_defaults_and_ready(void) {
-    pico8_mz_t *mz = pico8_mz_new(NULL);
+    pico8_mz_t *mz = pico8_mz_new();
 
     assert(mz->ke.me == pico8_mz_start.me && strcmp(mz->ke.me, "kz") == 0 && mz->ke.t == pico8_ke_start.t);
     assert(mz->nu == pico8_mz_start.nu && mz->kk == pico8_mz_start.kk);

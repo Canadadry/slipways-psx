@@ -419,7 +419,7 @@ static void test_qb_is_a_struct(void) {
     int status;
 
     pico8_jl();
-    generic = pico8_qb_new(NULL);
+    generic = pico8_qb_new();
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
@@ -598,7 +598,7 @@ static void test_qb_members_by_name(void) {
     pico8_jl();
     unscript();
     a = pico8_mo();
-    b = pico8_qb_new(NULL);
+    b = pico8_qb_new();
     h = fold_all(h, a);
     h = fold_all(h, b);
     assert(ref2(a, "v") == ref2(b, "v") && ref2(a, "p") == ref2(b, "p"));
@@ -671,7 +671,7 @@ static void test_qb_members_by_name(void) {
     must_abort(b, "pc");
 
     pico8_qb_shutdown();
-    c = pico8_qb_new(NULL);
+    c = pico8_qb_new();
     assert(ref2(c, "pc") == &pico8_qb_pc_vecs);
     h = fold_all(h, c);
     pico8_jl();
@@ -717,7 +717,7 @@ static void test_qb_writer_stops_off_row(void) {
 
     pico8_jl();
     a = pico8_mo();
-    b = pico8_qb_new(NULL);
+    b = pico8_qb_new();
     assert(pico8_entity_get_field(b, "ph", &ph) && ph.kind == PICO8_VALUE_FUNCTION);
     memset(&zero_fixed, 0, sizeof zero_fixed);
     zero_fixed.kind = PICO8_VALUE_FIXED;

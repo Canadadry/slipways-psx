@@ -5,7 +5,6 @@
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -37,9 +36,9 @@ int pico8_bg_ready(void);
 
 const pico8_struct_class_t *pico8_bg_struct_class(void);
 
-/* `overrides` is read, not kept, and must be NULL or empty. The struct
- * registers itself into `hv`/`cv` through `lt`, and nothing frees it. */
-pico8_bg_t *pico8_bg_new(const pico8_ob_table_t *overrides);
+/* The struct registers itself into `hv`/`cv` through `lt`, and nothing
+ * frees it. */
+pico8_bg_t *pico8_bg_new(void);
 
 /* `pl` is `self`'s, or `pico8_bg_pl_seq` for a NULL `self`: `bg.pl` in the
  * cart. An index outside `pl`'s 1..15 range -- which extreme `vh` values

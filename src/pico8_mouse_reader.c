@@ -64,13 +64,11 @@ static void pico8_nf_pq(pico8_mem_t *mem) {
     pico8_poke(mem, 0x5f2d, 1);
 }
 
-static void *pico8_nf_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_nf_struct_new(void) {
     pico8_nf_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_nf_struct_class);
     self->ra = &g_nf_ra;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "nf: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nf");
 #endif
@@ -105,8 +103,8 @@ const pico8_struct_class_t *pico8_nf_struct_class(void) {
     return &g_nf_struct_class;
 }
 
-pico8_nf_t *pico8_nf_new(const pico8_ob_table_t *overrides) {
-    return pico8_nf_struct_new(overrides);
+pico8_nf_t *pico8_nf_new(void) {
+    return pico8_nf_struct_new();
 }
 
 void pico8_nf_ph(const pico8_input_t *input, pico8_nf_t *self) {

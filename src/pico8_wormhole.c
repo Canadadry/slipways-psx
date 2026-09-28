@@ -452,7 +452,7 @@ static const pico8_struct_class_t g_mz_struct_class = {
     pico8_mz_set_field,
 };
 
-static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_mz_struct_new(void) {
     pico8_mz_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_mz_struct_class);
@@ -476,8 +476,6 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
     self->ij = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "mz: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mz");
 #endif
@@ -503,8 +501,8 @@ const pico8_struct_class_t *pico8_mz_struct_class(void) {
     return &g_mz_struct_class;
 }
 
-pico8_mz_t *pico8_mz_new(const pico8_ob_table_t *overrides) {
-    return pico8_mz_struct_new(overrides);
+pico8_mz_t *pico8_mz_new(void) {
+    return pico8_mz_struct_new();
 }
 
 pico8_mz_jj_t *pico8_mz_jj_wrapper(void) {

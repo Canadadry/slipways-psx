@@ -241,7 +241,7 @@ static void test_placeholder_je(void) {
     pico8_jl();
     pico8_ui_init();
     assert(button("l") == NULL && button("r") == NULL && !ra_of_je(&ra));
-    ok = pico8_ui_new(NULL);
+    ok = pico8_ui_new();
     pico8_ui_lj(&mem, ok);
     assert(!pico8_entity_get_field(ok, "lheld", &v) && !pico8_entity_get_field(ok, "rheld", &v));
     assert(pico8_entity_get_field(ok, "qa", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
@@ -286,8 +286,8 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     pico8_value_t r_generic;
 
     pico8_jl();
-    built = pico8_nf_new(NULL);
-    generic = pico8_nf_new(NULL);
+    built = pico8_nf_new();
+    generic = pico8_nf_new();
 
     assert(is_an_nf_struct(built) && is_an_nf_struct(generic) && is_an_nf_struct(pico8_je()));
     assert(listed(pico8_hv(), built) && !in_any_cv(built));
@@ -413,8 +413,8 @@ static void test_nf_members_by_name(void) {
 
     pico8_jl();
     je = pico8_je();
-    a = pico8_nf_new(NULL);
-    b = pico8_nf_new(NULL);
+    a = pico8_nf_new();
+    b = pico8_nf_new();
     h = fold_nf(h, je, &ra_je);
     h = fold_nf(h, a, &ra_a);
     h = fold_nf(h, b, &ra_b);
@@ -447,7 +447,7 @@ static void test_nf_members_by_name(void) {
     }
     unscript();
 
-    bg = (void *)pico8_bg_new(NULL);
+    bg = (void *)pico8_bg_new();
     assert(pico8_entity_get_field(je, "ra", &r) && r.kind == PICO8_VALUE_REF);
     assert(pico8_mv(bg, "rdown", 2, vec_ref(0, 0), r, &out));
     assert(pico8_entity_get_field(bg, "mq", &out) && out.kind == PICO8_VALUE_REF && out.as.ref == ra_je);

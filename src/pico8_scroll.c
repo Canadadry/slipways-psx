@@ -118,7 +118,7 @@ static const pico8_struct_class_t g_qb_struct_class = {
     pico8_qb_set_field,
 };
 
-static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_qb_struct_new(void) {
     pico8_qb_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_qb_struct_class);
@@ -127,8 +127,6 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
     self->p = &pico8_qb_start.p;
     self->ra = &pico8_qb_start.ra;
     self->pc = pico8_qb_start.pc;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "qb: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("qb");
 #endif
@@ -155,8 +153,8 @@ const pico8_struct_class_t *pico8_qb_struct_class(void) {
     return &g_qb_struct_class;
 }
 
-pico8_qb_t *pico8_qb_new(const pico8_ob_table_t *overrides) {
-    return pico8_qb_struct_new(overrides);
+pico8_qb_t *pico8_qb_new(void) {
+    return pico8_qb_struct_new();
 }
 
 void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {

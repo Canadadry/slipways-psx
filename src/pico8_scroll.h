@@ -6,7 +6,6 @@
 #include "pico8_gfx.h"
 #include "pico8_input.h"
 #include "pico8_ke.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -38,9 +37,8 @@ void pico8_qb_shutdown(void);
 int pico8_qb_ready(void);
 const pico8_struct_class_t *pico8_qb_struct_class(void);
 
-/* `overrides` is read, not kept, and must be NULL or empty. The struct
- * registers itself through `lt`, and nothing frees it. */
-pico8_qb_t *pico8_qb_new(const pico8_ob_table_t *overrides);
+/* The struct registers itself through `lt`, and nothing frees it. */
+pico8_qb_t *pico8_qb_new(void);
 
 /* Rebinds `p`, `v` and `ra` to fresh heap vectors each tick -- these are
  * whole-member writes, not component mutations, so no earlier reader of

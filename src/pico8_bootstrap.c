@@ -44,9 +44,9 @@ void pico8_jl(void) {
         pico8_ui_init();
     }
 
-    real_mo = pico8_qb_new(NULL);
-    real_je = pico8_nf_new(NULL);
-    real_ok = pico8_ui_new(NULL);
+    real_mo = pico8_qb_new();
+    real_je = pico8_nf_new();
+    real_ok = pico8_ui_new();
 
     pico8_entity_set_mo((pico8_struct_header_t *)real_mo);
     pico8_ui_set_je((pico8_struct_header_t *)real_je);

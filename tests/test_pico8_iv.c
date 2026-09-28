@@ -191,7 +191,7 @@ static void test_mz_scan_skips_a_live_toast(void) {
 
     fresh_world();
     e = build(&ra, "+1$", 11);
-    mz = pico8_mz_new(NULL);
+    mz = pico8_mz_new();
     assert(pico8_entity_get_field(mz, "ox", &ox) && ox.kind == PICO8_VALUE_REF && ox.as.ref != NULL);
     assert(!listed((const pico8_list_t *)ox.as.ref, e));
     assert(((const pico8_list_t *)ox.as.ref)->count == 0);

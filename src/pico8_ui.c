@@ -171,7 +171,7 @@ static const pico8_struct_class_t g_ui_struct_class = {
     NULL,
 };
 
-static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_ui_struct_new(void) {
     pico8_ui_t *self;
     int i;
 
@@ -192,8 +192,6 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     self->gj = NULL;
     self->lheld = NULL;
     self->rheld = NULL;
-    assert((overrides == NULL || overrides->count == 0) &&
-           "ui: the only road is pico8_ui_new(NULL) (jl); a construction key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ui");
 #endif
@@ -231,8 +229,8 @@ const pico8_struct_class_t *pico8_ui_struct_class(void) {
     return &g_ui_struct_class;
 }
 
-pico8_ui_t *pico8_ui_new(const pico8_ob_table_t *overrides) {
-    return pico8_ui_struct_new(overrides);
+pico8_ui_t *pico8_ui_new(void) {
+    return pico8_ui_struct_new();
 }
 
 pico8_struct_header_t *pico8_je(void) {

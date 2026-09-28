@@ -728,10 +728,10 @@ static void test_ie_is_a_struct(void) {
     must_abort(write_id, built);
     must_abort(build_with_ra, (void *)classes[0]);
 
-    others[0] = pico8_bg_new(NULL);
+    others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
     others[2] = pico8_jc_new(NULL);
-    others[3] = pico8_mz_new(NULL);
+    others[3] = pico8_mz_new();
     for (i = 0; i < 2; i++) {
         pico8_value_t hd;
         assert(pico8_entity_get_field(others[i], "hd", &hd) && hd.kind == PICO8_VALUE_FIXED &&

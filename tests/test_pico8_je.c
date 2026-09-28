@@ -99,7 +99,7 @@ static void test_lj_on_placeholder(void) {
 
     pico8_entity_init();
     assert_placeholder(1);
-    ok = pico8_ui_new(NULL);
+    ok = pico8_ui_new();
     pico8_ui_lj(&mem, ok);
     assert(!pico8_entity_get_field(ok, "lheld", &v) && !pico8_entity_get_field(ok, "rheld", &v));
     assert(pico8_entity_get_field(ok, "qa", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
