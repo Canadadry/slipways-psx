@@ -1,0 +1,17 @@
+Saut d'année avec une colonie hors de l'écran : pas de toast de revenu.
+50 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50) ; f9-25 : `mz` tenu en (80,55) : « p27 »
+  (88,37) xeno.
+- f33, f35 : « p27 » en « colony ». Une colonie fraîche ne rapporte pas
+  0 : sans commerce, elle paie son entretien, `kr` = -1.
+- f39-41 : clic droit glissé de (117,117) à (11,11) : la caméra passe de
+  (192,192) à (298,298), « p27 » sort de l'écran.
+- f44 : saut d'année `ix[1]` (118,0) : `jo:hk` de « p27 » a un `kr` non
+  nul mais `gd` est faux, pas de toast « -1$ ».
+
+La ligne visée (`planet.c:447`) est ce retour sur `gd`, pas le cas
+`kr` = 0, déjà couvert par les planètes inconnues.
+
+Relecture humaine dans raylib : à faire.

@@ -1,5 +1,5 @@
 /* tools/class_coverage.sh, le corps de `make class-coverage`, sur un dossier
- * fabrique : un rejeu court valide et un fichier malforme. */
+ * fabrique : un rejeu court depuis l'ecran titre et un fichier malforme. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -59,7 +59,7 @@ static void test_exempting_every_zero_class_passes(void) {
 
 int main(void) {
     assert(system("rm -rf " DIR " && mkdir -p " DIR "/replays") == 0);
-    assert(system("cp tests/fixtures/screencast_capture_events.json " DIR "/replays/short_events.json") == 0);
+    assert(system("cp tests/fixtures/title_click_forgiving.json " DIR "/replays/short_events.json") == 0);
     assert(system("cp tests/fixtures/events_malformed_missing_field.json " DIR "/replays/bad_events.json") == 0);
     test_short_replay_and_malformed_file();
     test_exempting_every_zero_class_passes();

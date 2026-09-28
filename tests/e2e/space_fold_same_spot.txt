@@ -1,0 +1,13 @@
+Pliage d'espace tenu sur la sonde elle-même : pas d'ancrage, refusé.
+32 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50).
+- f9-25 : `mz` tenu au même pixel (55,50) : la seule entité `fx` est la
+  sonde, à la même position, `ij` ne trouve rien ; `et` posé
+  (« -too far- »), le trait vers l'ancrage part de (0,0).
+- f25 : relâché après 15 ticks : `d_` rend nil (pas de paiement),
+  `mz:ey` détruit le pliage ; l'argent reste à 100 $.
+- f26-31 : attente.
+
+Relecture humaine dans raylib : à faire.

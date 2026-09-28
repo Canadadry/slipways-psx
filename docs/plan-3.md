@@ -48,7 +48,7 @@ Plus des **instances sans classe** construites à la main : `mo`, `je`, le `fm` 
 
 ## 3. Invariant de toutes les phases
 
-**Après chaque commit, `make test` passe et tous les `*.sha256` du filet sont identiques (`make frames-check` conforme).** Aucun re-baseline dans ce plan. Un changement de rendu voulu n'appartient pas à ce plan.
+**Après chaque commit, `make test` passe et tous les `*.sha256` du filet sont identiques (`make e2e` conforme).** Aucun re-baseline dans ce plan. Un changement de rendu voulu n'appartient pas à ce plan.
 
 Le filet compare l'écran, pas l'état : une erreur sur une valeur jamais affichée pendant les frames enregistrées lui échappe. C'est accepté (décision de cadrage) ; la couverture de l'étape 0 réduit le risque, elle ne l'annule pas.
 
@@ -66,7 +66,7 @@ Dans cet ordre, chacun bloquant le suivant :
    - **hors de `make test`** : lancé à la main, et par l'autopilote aux points prévus ci-dessous ;
    - le contrat de l'outil est « chaque type d'entité est construit au moins une fois », indépendant de la représentation : en 1a, le crochet migre vers les constructeurs de struct, dans le commit de la classe concernée.
 3. **Enregistrement humain** — une session raylib qui construit `qh`, `os`, `nl`, `hj`, `nr`, `fr`, `mx` et sonde une protostar (`pm`, qui engendre `ga`). Déposée par l'humain dans le dossier de fixtures de son choix, ajoutée à la liste `FRAMES_EVENTS` du filet, avec son `.sha256` posé par `make frames-baseline`.
-4. **Porte** — `make class-coverage` sur ce dossier : aucune classe à 0 hors exemption, sur un dossier qui ne contient que les rejeux du filet (dans `FRAMES_EVENTS`, `.sha256` versionné) — un rejeu hors filet n'en protège aucune, et `tests/fixtures/` en contient. Le nombre de rejeux lus par l'outil doit égaler le nombre de rejeux du filet dans le dossier : sinon c'est « enregistrement non rejoué » (l'enregistreur nomme `events_recorded_<horodatage>.json`, que le motif `*events.json` de l'outil ne prend pas), que l'autopilote corrige lui-même sans redemander de session. Le code de sortie tranche ensuite. Même règle pour la relance en sortie de 1a. Sinon, l'autopilote s'arrête et demande un nouvel enregistrement.
+4. **Porte** — `make class-coverage` sur ce dossier : aucune classe à 0 hors exemption, sur un dossier qui ne contient que les rejeux du filet (dans `FRAMES_EVENTS`, `.sha256` versionné) — un rejeu hors filet n'en protège aucune, et `tests/fixtures/` en contient. Le nombre de rejeux lus par l'outil doit égaler le nombre de rejeux du filet dans le dossier : sinon c'est « enregistrement non rejoué » (l'enregistreur nomme `events_recorded_<horodatage>.json`, que le motif `*events.json` de l'outil ne prend pas), que l'autopilote corrige lui-même sans redemander de session. Le code de sortie tranche ensuite. Même règle pour la relance en sortie de 1a. Sinon, l'autopilote s'arrête et demande un nouvel enregistrement. Depuis la fin du chantier e2e rapide, le filet est `tests/e2e/` et la porte est `make class-coverage` sans `DIR`.
 
 Mesure de cadrage (12 rejeux du filet, avant l'étape 0) : à 0 → `ke`, `nl`, `os`, `hj`, `pm`, `nr`, `fr`, `mx` ; rares → `qh` 4, `ga` 1, `fq` 1 ; les 19 autres entre 15 et 1 350.
 
@@ -139,7 +139,7 @@ L'autopilote **s'arrête et demande à l'humain** quand :
 - un champ ne tombe sous aucune règle (§5 : clé dynamique à ensemble non fini ; en phase 2, champ ni archétype ni état, ou groupe au classement ambigu) ;
 - un test de régression de bug devrait être modifié **dans son intention** (pas seulement dans sa façon de lire l'état) pour passer ;
 - la porte de l'étape 0 échoue ;
-- le diff modifie ou supprime un `.sha256` du filet, ou retire une entrée de `FRAMES_EVENTS` (seule exception : l'ajout de l'enregistrement de l'étape 0.3) — `make test` resterait vert.
+- le diff modifie ou supprime un `.sha256` du filet, ou retire un e2e de `tests/e2e/` — `make test` resterait vert.
 
 Chacune de ces conditions est écrite dans le PRD de l'étape concernée comme critère que le vérificateur de `prd-autopilot` traduit en `FAILED:` — c'est le seul arrêt que `plan-pilot` honore.
 

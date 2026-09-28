@@ -12,9 +12,8 @@
  * shell -- est paye sciemment.
  *
  * Effet de bord assume : chaque rejeu lance ici reecrit le dump du
- * pilote avec celui de la fixture courte ; test_pico8_frames_tool le
- * reecrit aussi, et `make replay` le reecrit ensuite avec celui de
- * la session humaine (tests/fixtures/session_events.json). */
+ * pilote avec celui de la fixture courte ; test_pico8_frames_tool et
+ * `make replay EVENTS=...` le reecrivent aussi. */
 
 #include "../src/pico8_dump.h"
 #include "../src/pico8_gfx.h"
@@ -198,7 +197,7 @@ static void test_capturing_changes_nothing_the_replay_produces(void) {
  * s'inverse ici parce que personne ne joue : un fichier tronque
  * produirait silencieusement une empreinte fausse, c'est-a-dire un faux
  * rouge indiscernable d'une regression. Un pilote qui aurait continue
- * sans capturer aurait rendu 0, et `make frames-check` aurait
+ * sans capturer aurait rendu 0, et `make e2e` aurait
  * calcule une empreinte sur le fichier d'un rejeu precedent.
  *
  * Le message est assertionne, pas seulement le code de sortie : il est

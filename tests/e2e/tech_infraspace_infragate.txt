@@ -1,0 +1,18 @@
+« infraspace » avec la triche : un infragate et son slipway, puis un
+slipway ordinaire tracé à côté. 89 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50) ; f11-27 : `mz` tenu en (80,55) : « p27 »
+  (88,37) minérale, « p48 » (78,73) forgeworld.
+- f35, f37 : « p27 » en « mine » ; f39, f41 : « p48 » en « nanotech ».
+- f43-54 : triche : 99 de recherche.
+- f55-70 : quatre inventions sur la première rangée (30,24) ; l'ère
+  passe à 3.
+- f71 : écran techno ; f74 : cinquième rangée (30,58), prise une frame
+  après l'ouverture : « infraspace ».
+- f76-79 : infragate glissé de son icône (92,124) en (100,60).
+- f80-83 : slipway de « p27 » à l'infragate (`mt`=1).
+- f84-87 : slipway ordinaire de « p27 » à « p48 » : `jc:ce` écarte le
+  slipway de l'infragate, qui n'est pas sur le même plan (`mt`).
+
+Relecture humaine dans raylib : à faire.

@@ -10,12 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/pico8_assets.h"
-#include "../src/pico8_cart.h"
+#include "../src/pico8_bootstrap.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_class.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
+#include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
@@ -24,6 +25,7 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
+#include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
@@ -61,15 +63,21 @@ static int lq_index_is_string(const pico8_instance_t *lq, int index, const char 
     return s != NULL && strcmp(s, expected) == 0;
 }
 
-static void boot(pico8_mem_t *mem, pico8_gfx_t *gfx) {
+/* What `jo:gh` reaches when the cart calls it on a `ga`, built without a
+ * boot: `r` (from pico8_data_init), the jo/ga/lq/js classes, and the `ok`
+ * singleton `pz()` fills. */
+static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
     pico8_mem_init(mem);
     pico8_gfx_init(gfx);
-    assert(pico8_load_gfx_json(mem, "pico8/gfx.json"));
-    assert(pico8_load_map_json(mem, "pico8/map.json"));
     pico8_dispatch_set_gfx(gfx);
     pico8_dispatch_set_mem(mem);
-    pico8_cart_load();
-    pico8__init();
+
+    pico8_data_init(mem);
+    pico8_jl();
+    pico8_layout_init();
+    pico8_js_init();
+    pico8_jo_init();
+    pico8_planet_family_init();
 }
 
 /* Read through the field interface, not the class defaults, so the test
@@ -95,7 +103,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     const pico8_instance_t *exports_lq = NULL;
     int i;
 
-    boot(&mem, &gfx);
+    setup_panel_state(&mem, &gfx);
 
     planet = pico8_ga_new(NULL);
     assert(planet != NULL);

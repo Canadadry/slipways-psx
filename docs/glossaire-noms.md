@@ -417,7 +417,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `js` | `pico8_js_class` | un bouton cliquable |
 | `fq` | `pico8_fq_class` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton |
-| `bo` | `pico8_bo` | les options de difficulté de l'écran-titre |
+| `bo` | `g_bo` (static, `pico8_help.c`) | les options de difficulté de l'écran-titre |
 | `ix` | — | les 4 boutons du menu de la vue galaxie |
 | `ha` | — | le menu pause : recommencer, musique, bruitages, aide |
 | `fv` | `pico8_fv_class` | l'écran d'aide ; étend `g_` |

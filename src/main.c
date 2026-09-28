@@ -3,10 +3,8 @@
  * It asserts nothing about the game itself -- that is
  * what tests/ is for.
  *
- * argv[1] names the script to replay. The default, events.json at the repo
- * root, is a working recording the player's own session overwrites; it is
- * not a fixture, and nothing should be pinned to its contents. Tests use
- * their own files under tests/fixtures/.
+ * argv[1], required, names the script to replay; without it the driver
+ * prints its usage and exits 2.
  *
  * argv[2], optional, is where each frame's pixels are written. Absent means no
  * capture, and the driver then behaves exactly as it did before capture
@@ -15,8 +13,9 @@
  * argv[3], optional, is where the text dump goes; absent means
  * tmp/pico8_replay_dump.txt. Giving it requires giving argv[2].
  *
- * --from-title, before argv[1], replays a raylib recording: no difficulty
- * is picked before frame 0. */
+ * Every replay starts on the title screen: the file itself clicks the
+ * difficulty. The driver takes no option; an argument starting with '-'
+ * gets the usage and exit 2. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -27,20 +26,16 @@
 #include "pico8_screencast.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
-#include "pico8_help.h"
-#include "pico8_ui_button.h"
 
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
 
 int main(int argc, char **argv) {
-    int from_title = argc > 1 && strcmp(argv[1], "--from-title") == 0;
-    if (from_title) {
-        argv++;
-        argc--;
+    if (argc < 2 || argv[1][0] == '-') {
+        fprintf(stderr, "usage: pico8_replay <events.json> [<capture.bin> [<dump.txt>]]\n");
+        return 2;
     }
-    const char *events_path = (argc > 1) ? argv[1] : "tests/fixtures/session_events.json";
+    const char *events_path = argv[1];
     const char *capture_path = (argc > 2) ? argv[2] : NULL;
     const char *dump_path = (argc > 3) ? argv[3] : "tmp/pico8_replay_dump.txt";
 
@@ -72,18 +67,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de capture '%s'\n",
                 capture_path);
         return 1;
-    }
-
-    /* Entry 2 of bo() is the difficulty every scripted replay starts on; the
-     * driver picks it for the player instead of waiting for a title-screen
-     * click. A raylib recording holds that click itself: --from-title. */
-    if (!from_title) {
-        pico8_value_t difficulty_entry;
-        assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty_entry));
-        assert(difficulty_entry.kind == PICO8_VALUE_REF);
-        pico8_instance_t *difficulty_button =
-            pico8_js_new((const pico8_ob_table_t *)difficulty_entry.as.ref);
-        pico8_eu(difficulty_button);
     }
 
     int frame_count = input.frame_count;

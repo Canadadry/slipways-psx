@@ -1,0 +1,15 @@
+Planète vide : révélée, elle s'efface puis libère la place d'un labo.
+100 frames.
+
+- f0 : clic « reasonable » sur l'écran titre (60,74).
+- f2 : sonde `g_` en (55,50) ; f4-19 : `mz` tenu en (40,70), relâché f20 :
+  « p34 » (31,84) est minérale, « p40 » (28,44) est vide (état `ll`).
+- f21-24 : un labo glissé depuis l'icône (122,124) sur « p34 » : refusé,
+  la caisse reste à 97 $.
+- f25-94 : attente ; « p40 » s'efface (`jo:ll`, plus de 60 ticks) et
+  disparaît en f95.
+- f95-98 : un labo glissé à la place de « p40 » (28,44) : posé, 15 $.
+
+Remplace la TU `empty_planet_cleared`.
+
+Relecture humaine dans raylib : à faire.
