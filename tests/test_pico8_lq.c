@@ -708,7 +708,6 @@ static void test_lq_is_a_struct(void) {
     }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_lq_ready());
-    assert(!pico8_lq_default("ol", &v));
     assert(lookup(lq, "c", &v) && v.as.fixed == pico8_fixed_from_int(9));
     assert(!lookup(lq, "bg", &v) && !lookup(lq, "items", &v));
     assert(lookup(lq, "ol", &v) && v.kind == PICO8_VALUE_FUNCTION);

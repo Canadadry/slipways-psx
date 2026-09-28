@@ -20,21 +20,16 @@ typedef struct {
     pico8_vec_t *ra;
 } pico8_nf_t;
 
-/* Calls pico8_pi_init() first: the spec holds `v(0,0)`, so the 'v'
- * constructor must already be registered when it is parsed, and requires
- * pico8_ke_init() to have run -- both are asserted, not repaired. Starts
- * the shared `l`/`r` tables afresh, as rebuilding the class did in the cart. */
+/* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
+ * asserted, not repaired. Starts the shared `l`/`r` tables afresh, as
+ * rebuilding the class did in the cart. */
 void pico8_nf_init(void);
 
-/* Frees the spec and the shared `l`/`r` tables. */
+/* Frees the shared `l`/`r` tables. */
 void pico8_nf_shutdown(void);
 
 /* 1 from pico8_nf_init() to pico8_nf_shutdown(), 0 otherwise. */
 int pico8_nf_ready(void);
-
-/* `nf`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until pico8_nf_shutdown(). */
-int pico8_nf_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_nf_struct_class(void);
 
 /* `overrides` is read, not kept, and must be NULL or empty. The struct

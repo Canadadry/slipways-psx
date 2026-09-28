@@ -1,7 +1,7 @@
 /* The click dispatcher `ui`, the singleton `ok`, built by its only road
  * (`jl()`, `pico8_ui_new(NULL)`, on a game started directly: no events
- * file), read only through the dual-form field API and
- * `pico8_ui_default(...)` for spec defaults, and
+ * file), read only through the dual-form field API and compared with the
+ * generated `pico8_ui_start` and `pico8_ui_le_shared()`, and
  * driven through the real `dg`/`lj`/`ev`/`jz`/`cj`/`pz`. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -137,12 +137,6 @@ static pico8_fixed_t get_fixed(const void *e, const char *name) {
     pico8_value_t v;
     assert(lookup(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
     return v.as.fixed;
-}
-
-static void *class_ref(const char *name) {
-    pico8_value_t v;
-    assert(pico8_ui_default(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 /* 0 absent, 1 false, 2 true, 3 anything else. */
@@ -383,9 +377,9 @@ static void test_built(void) {
     }
     assert(lookup(ok, "ev", &v) && v.kind == PICO8_VALUE_FUNCTION);
 
-    assert(get_ref(ok, "le") == class_ref("le"));
-    assert(get_ref(ok, "hw") == class_ref("hw"));
-    assert(pico8_type_tag_of(class_ref("le")) == PICO8_TYPE_TAG_LIST && le_of(ok)->count == 0);
+    assert(get_ref(ok, "le") == pico8_ui_le_shared());
+    assert(get_ref(ok, "hw") == &pico8_ui_start.hw);
+    assert(pico8_type_tag_of(pico8_ui_le_shared()) == PICO8_TYPE_TAG_LIST && le_of(ok)->count == 0);
     check("built", h, BUILT_HASH);
 }
 
@@ -410,19 +404,19 @@ static void test_shared(void) {
     const pico8_list_t *le = get_ref(ok, "le");
 
     assert(other != NULL && other != ok);
-    assert(get_ref(other, "le") == le && le == class_ref("le"));
+    assert(get_ref(other, "le") == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), other));
     h = fnv(h, (uint32_t)rank_in(pico8_cv("ev"), other));
 
     pico8_ui_cj(other);
     assert(get_ref(other, "le") != le && le_of(other)->count == 0);
-    assert(get_ref(ok, "le") == le && class_ref("le") == le && le->count == 0);
+    assert(get_ref(ok, "le") == le && pico8_ui_le_shared() == le && le->count == 0);
 
     call_row_my(pico8_ix(), 4);
     assert(get_ref(ok, "le") != le && get_ref(other, "le") != get_ref(ok, "le"));
     h = fnv(h, (uint32_t)le_of(ok)->count);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), le_of(ok)->items[0].as.ref));
-    assert(class_ref("le") == le && le->count == 0);
+    assert(pico8_ui_le_shared() == le && le->count == 0);
 
     (void)pico8_fv_new(NULL);
     assert(le_of(ok)->count == 0 && get_ref(ok, "le") != le);
@@ -449,7 +443,7 @@ static void test_fresh(void) {
     h = fold_entity_field(h, ok, "o_");
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     h = fnv(h, cursor_is(58));
-    assert(get_ref(ok, "le") == class_ref("le"));
+    assert(get_ref(ok, "le") == pico8_ui_le_shared());
     check("fresh", h, FRESH_HASH);
 }
 
@@ -672,7 +666,7 @@ static void test_cj(void) {
     }
     h = fnv(h, (uint32_t)pico8_hv()->count);
     pico8_ui_cj(pico8_ok());
-    assert(get_ref(ok, "le") != le && le_of(ok)->count == 0 && get_ref(ok, "le") != class_ref("le"));
+    assert(get_ref(ok, "le") != le && le_of(ok)->count == 0 && get_ref(ok, "le") != pico8_ui_le_shared());
     for (i = 0; i < count; i++) {
         assert(!listed(pico8_hv(), le->items[i].as.ref));
     }
@@ -708,7 +702,7 @@ static void test_stale(void) {
     assert(get_ref(old, "le") != le && le_of(old)->count == 0);
     assert(!has(pico8_ok(), "gj") && !has(pico8_ok(), "qa"));
     h = fnv(h, (uint32_t)le_of(pico8_ok())->count);
-    h = fnv(h, (uint32_t)(get_ref(pico8_ok(), "le") == class_ref("le")));
+    h = fnv(h, (uint32_t)(get_ref(pico8_ok(), "le") == pico8_ui_le_shared()));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_ok()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("stale", h, STALE_HASH);
@@ -753,15 +747,12 @@ static void bh_on_x(void *e) {
 }
 
 /* The game's `ok` is a struct whose descriptor holds only `ev` and no
- * writer; it takes no construction key and no button but `l`/`r`. Its
- * class keeps only its spec, whose `le`/`hw` every new `ui` borrows. */
+ * writer; it takes no construction key and no button but `l`/`r`. Every
+ * new `ui` starts on the class's generated defaults and its shared `le`. */
 static void test_ui_is_a_struct(void) {
-    static const char *const spec[] = {"ql", "fa", "le", "hw"};
     const pico8_struct_class_t *cls = pico8_ui_struct_class();
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other;
-    pico8_value_t v;
-    size_t i;
     int j;
 
     assert(is_of(ok, cls));
@@ -770,14 +761,11 @@ static void test_ui_is_a_struct(void) {
     }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_ui_ready());
-    assert(!pico8_ui_default("ev", &v));
-    for (i = 0; i < sizeof spec / sizeof spec[0]; i++) {
-        assert(pico8_ui_default(spec[i], &v));
-    }
-    assert((const void *)pico8_ui_hw() == class_ref("hw") && ok->hw == class_ref("hw"));
-    assert(ok->le == class_ref("le"));
+    assert(ok->ql == pico8_ui_start.ql && ok->fa == pico8_ui_start.fa);
+    assert(pico8_ui_hw() == &pico8_ui_start.hw && ok->hw == &pico8_ui_start.hw);
+    assert(ok->le == pico8_ui_le_shared() && ok->le->count == 0);
     other = pico8_ui_new(NULL);
-    assert(is_of(other, cls) && other->le == class_ref("le") && other->hw == class_ref("hw"));
+    assert(is_of(other, cls) && other->le == pico8_ui_le_shared() && other->hw == &pico8_ui_start.hw);
 
     must_abort(write_o_, ok);
     must_abort(build_with_named_key, NULL);
@@ -820,8 +808,8 @@ static uint32_t fold_new_ui(uint32_t h, const void *ui) {
 
     assert(read_ui(ui, "ql", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(58));
     assert(read_ui(ui, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(15));
-    assert(ui_ref(ui, "le") == class_ref("le") && ((const pico8_list_t *)ui_ref(ui, "le"))->count == 0);
-    assert(ui_ref(ui, "hw") == class_ref("hw") && ui_ref(ui, "hw") == (const void *)pico8_ui_hw());
+    assert(ui_ref(ui, "le") == pico8_ui_le_shared() && ((const pico8_list_t *)ui_ref(ui, "le"))->count == 0);
+    assert(ui_ref(ui, "hw") == &pico8_ui_start.hw && ui_ref(ui, "hw") == (const void *)pico8_ui_hw());
     assert(pico8_type_tag_of(ui_ref(ui, "le")) == PICO8_TYPE_TAG_LIST);
     assert(pico8_type_tag_of(ui_ref(ui, "hw")) == PICO8_TYPE_TAG_UNKNOWN);
     for (i = 4; i < 10; i++) {
@@ -928,7 +916,7 @@ static void test_ui_members_by_name(void) {
     assert(qa != NULL && ((pico8_vec_t *)qa)->x == want.x && ((pico8_vec_t *)qa)->y == want.y);
     assert(ic == &ok->ic_own && ok->ic_own.layer_count == PICO8_UI_IC_LAYERS);
     assert(ui_ref(ok, "o_") == the_bg() && ui_ref(ok, "gj") == ui_ref(ok, "o_"));
-    assert(ui_ref(ok, "le") == class_ref("le") && ui_ref(ok, "lheld") == NULL && ui_ref(ok, "rheld") == NULL);
+    assert(ui_ref(ok, "le") == pico8_ui_le_shared() && ui_ref(ok, "lheld") == NULL && ui_ref(ok, "rheld") == NULL);
     h = fold_vec(h, *(pico8_vec_t *)qa);
     h = fold_layers(h, ok);
     pico8_list_add(&ok->ic_own.layers[7], pico8_value_ref(the_bg()));
@@ -978,17 +966,17 @@ static void test_ui_members_by_name(void) {
 
     le = ui_ref(ok, "le");
     call_row_my(pico8_ix(), 4);
-    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != class_ref("le"));
+    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != pico8_ui_le_shared());
     assert(pico8_type_tag_of(ui_ref(ok, "le")) == PICO8_TYPE_TAG_LIST);
     assert(((const pico8_list_t *)ui_ref(ok, "le"))->count > 0);
     h = fnv(h, (uint32_t)((const pico8_list_t *)ui_ref(ok, "le"))->count);
     le = ui_ref(ok, "le");
     (void)pico8_fv_new(NULL);
-    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != class_ref("le"));
+    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != pico8_ui_le_shared());
     assert(((const pico8_list_t *)ui_ref(ok, "le"))->count == 0);
     le = ui_ref(ok, "le");
     pico8_ui_cj(ok);
-    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != class_ref("le"));
+    assert(ui_ref(ok, "le") != NULL && ui_ref(ok, "le") != le && ui_ref(ok, "le") != pico8_ui_le_shared());
     assert(((const pico8_list_t *)ui_ref(ok, "le"))->count == 0);
 
     for (i = 0; i < 10; i++) {

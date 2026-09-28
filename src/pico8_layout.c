@@ -28,9 +28,8 @@ typedef struct {
                               * not by pico8_lq_mn */
 } pico8_lq_item_t;
 
-static pico8_ob_table_t *g_lq_spec = NULL;
+static int g_layout_up = 0;
 static const pico8_struct_class_t g_lq_struct_class;
-static pico8_ob_table_t *g_jb_spec = NULL;
 
 /* Lua truthiness : seuls nil et false sont faux. La clause REF-NULL n'est pas
  * optionnelle — un test qui ne rejette que BOOL false rend nil vrai, et le
@@ -580,31 +579,19 @@ static void *pico8_jb_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_layout_init(void) {
     pico8_layout_shutdown();
-    g_lq_spec = pico8_ob("", NULL);
-    g_jb_spec = pico8_ob("", NULL);
+    g_layout_up = 1;
 }
 
 void pico8_layout_shutdown(void) {
-    pico8_ob_table_free(g_lq_spec);
-    g_lq_spec = NULL;
-    pico8_ob_table_free(g_jb_spec);
-    g_jb_spec = NULL;
+    g_layout_up = 0;
 }
 
 int pico8_lq_ready(void) {
-    return g_lq_spec != NULL;
-}
-
-int pico8_lq_default(const char *name, pico8_value_t *out_value) {
-    return g_lq_spec != NULL && pico8_ob_table_get_name(g_lq_spec, name, out_value);
+    return g_layout_up;
 }
 
 int pico8_jb_ready(void) {
-    return g_jb_spec != NULL;
-}
-
-int pico8_jb_default(const char *name, pico8_value_t *out_value) {
-    return g_jb_spec != NULL && pico8_ob_table_get_name(g_jb_spec, name, out_value);
+    return g_layout_up;
 }
 
 const pico8_struct_class_t *pico8_lq_struct_class(void) {

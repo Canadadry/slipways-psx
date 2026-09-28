@@ -304,28 +304,30 @@ static void test_scores_box_follows_c_(void) {
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows c_");
 }
 
-/* The box's `fa`/`rh` are what the spec parser makes of mh's spec string,
- * which the class still carries; its `nu` is the generated tags. */
+/* The box's `fa`/`rh`/`nu` are the class's generated defaults. */
 static void test_defaults_match_the_parsed_spec(void) {
     const void *box;
     pico8_value_t got;
-    pico8_value_t parsed;
     const pico8_str_seq_t *nu;
 
     pico8_jl();
     box = year_box(3400);
-    assert(pico8_mh_default("fa", &parsed));
-    assert(pico8_entity_get_field(box, "fa", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
+    assert(pico8_entity_get_field(box, "fa", &got) && got.kind == PICO8_VALUE_FIXED);
+    assert(got.as.fixed == pico8_mh_start.fa);
     assert(got.as.fixed == pico8_fixed_from_int(14));
-    assert(pico8_mh_default("rh", &parsed));
-    assert(pico8_entity_get_field(box, "rh", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
+    assert(pico8_entity_get_field(box, "rh", &got) && got.kind == PICO8_VALUE_FIXED);
+    assert(got.as.fixed == pico8_mh_start.rh);
     assert(got.as.fixed == pico8_fixed_from_int(5));
     assert(pico8_entity_get_field(box, "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref != NULL);
     nu = got.as.ref;
-    assert(nu == &pico8_mh_nu_tags && nu->count == 1);
+    assert(nu == pico8_mh_start.nu && nu == &pico8_mh_nu_tags && nu->count == 1);
     assert(strcmp(nu->items[0], "mh") == 0);
     assert(pico8_entity_get_field(year_box(3400), "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref == nu);
     assert(pico8_entity_get_field(box, "me", &got) && got.kind == PICO8_VALUE_STRING && strcmp(got.as.string, "ph") == 0);
+    assert(pico8_mh_ready());
+    pico8_mh_shutdown();
+    assert(!pico8_mh_ready());
+    pico8_mh_init();
 }
 
 static int g_lh_calls = 0;

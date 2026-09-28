@@ -24,8 +24,8 @@ typedef struct {
 } pico8_ui_ic_t;
 
 /* TROU-7 */
-/* `le` of a new `ui` is the class's own empty list, shared until `cj` or
- * `pz` replaces it; `hw` is the class's box, borrowed. `ic` is NULL until
+/* `le` of a new `ui` is `pico8_ui_le_shared()`, until `cj` or `pz`
+ * replaces it; `hw` is `&pico8_ui_start.hw`. `ic` is NULL until
  * the first `gw`, then points at `ic_own`, which every `gw` empties and
  * refills. */
 typedef struct {
@@ -33,7 +33,7 @@ typedef struct {
     pico8_fixed_t ql;
     pico8_fixed_t fa;
     pico8_list_t *le;
-    pico8_qz_box_t *hw;
+    const pico8_qz_box_t *hw;
     pico8_vec_t *qa;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
@@ -43,14 +43,12 @@ typedef struct {
     pico8_bg_t *rheld; /* borrowed, never freed */
 } pico8_ui_t;
 
-/* Calls `pico8_pi_init()` first: the class spec contains `b(10,10,118,118)`,
- * so the 'b' constructor must already be registered when it is parsed. The
- * `le=o()` default is then replaced by a real empty `pico8_list_t`, which is
- * what `gu()`/`nv()` need and not what `ob()` parses. Also puts back the
- * field-less placeholder `je` that `pico8_ui_set_je()` later replaces. */
+/* Calls `pico8_pi_init()` and empties `pico8_ui_le_shared()`. Also puts
+ * back the field-less placeholder `je` that `pico8_ui_set_je()` later
+ * replaces. */
 void pico8_ui_init(void);
 
-/* Frees the `ui` spec and `ok`; `je` is never freed: the placeholder is
+/* Frees `ok`; `je` is never freed: the placeholder is
  * static, an `nf` struct in its place is dropped (TROU-7). Idempotent, and
  * safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
@@ -58,14 +56,15 @@ void pico8_ui_shutdown(void);
 /* 1 from pico8_ui_init() to pico8_ui_shutdown(), 0 otherwise. */
 int pico8_ui_ready(void);
 
-/* `ui`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until pico8_ui_shutdown(). */
-int pico8_ui_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_ui_struct_class(void);
 
-/* The box of the class, read by `bv`; NULL before `pico8_ui_init()` and
- * after `pico8_ui_shutdown()`. */
+/* The box of the class, read by `bv`: `&pico8_ui_start.hw`, NULL before
+ * `pico8_ui_init()` and after `pico8_ui_shutdown()`. */
 const pico8_qz_box_t *pico8_ui_hw(void);
+
+/* The empty list every new `ui` starts with as `le`: static, never freed,
+ * emptied (not freed) by each `pico8_ui_init()`. */
+pico8_list_t *pico8_ui_le_shared(void);
 
 /* `overrides` must be NULL or empty: a key asserts. The `ui` registers
  * itself through `lt` into `hv` and `cv.ev`, no `cg`; only the current

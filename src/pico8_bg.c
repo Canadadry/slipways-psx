@@ -15,7 +15,7 @@
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
-static pico8_ob_table_t *g_bg_spec = NULL;
+static int g_bg_up = 0;
 
 static int pico8_bg_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -138,9 +138,9 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
     pico8_bg_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_bg_struct_class);
-    self->fa = pico8_fixed_from_int(1);
-    self->hd = pico8_fixed_from_int(1);
-    self->pl = &pico8_bg_pl_seq;
+    self->fa = pico8_bg_start.fa;
+    self->hd = pico8_bg_start.hd;
+    self->pl = pico8_bg_start.pl;
     self->mq = NULL;
     self->m_ = 0;
     self->has_m_ = 0;
@@ -154,25 +154,17 @@ static void *pico8_bg_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-/* No `pico8_pi_init()` needed: the spec holds no nested `v(...)`/`b(...)`,
- * only the plain numbers of `pl=o(...)`. */
 void pico8_bg_init(void) {
     pico8_bg_shutdown();
-    g_bg_spec = pico8_ob("\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n", NULL);
+    g_bg_up = 1;
 }
 
 void pico8_bg_shutdown(void) {
-    pico8_ob_table_free(g_bg_spec);
-    g_bg_spec = NULL;
+    g_bg_up = 0;
 }
 
 int pico8_bg_ready(void) {
-    return g_bg_spec != NULL;
-}
-
-int pico8_bg_default(const char *name, pico8_value_t *out_value) {
-    return g_bg_spec != NULL &&
-           (pico8_ob_table_get_name(g_bg_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_bg_up;
 }
 
 const pico8_struct_class_t *pico8_bg_struct_class(void) {

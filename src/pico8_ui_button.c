@@ -13,8 +13,8 @@
 #include "pico8_layout.h"
 #include "pico8_ref_audit.h"
 
-static pico8_ob_table_t *g_js_spec = NULL;
-static pico8_ob_table_t *g_fq_spec = NULL;
+static int g_js_up = 0;
+static int g_fq_up = 0;
 
 static int pico8_js_is_lq(const void *ref) {
     return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT &&
@@ -400,7 +400,7 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
     self->_jo_fe_b = NULL;
     self->_jo_fe_od = 0;
     self->has__jo_fe_od = 0;
-    self->fa = pico8_fixed_from_int(11);
+    self->fa = pico8_js_start.fa;
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         pico8_value_t value = overrides->entries[k].value;
@@ -458,21 +458,15 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_js_init(void) {
     pico8_js_shutdown();
-    g_js_spec = pico8_ob("\nfa=11,\n", NULL);
+    g_js_up = 1;
 }
 
 void pico8_js_shutdown(void) {
-    pico8_ob_table_free(g_js_spec);
-    g_js_spec = NULL;
+    g_js_up = 0;
 }
 
 int pico8_js_ready(void) {
-    return g_js_spec != NULL;
-}
-
-int pico8_js_default(const char *name, pico8_value_t *out_value) {
-    return g_js_spec != NULL &&
-           (pico8_ob_table_get_name(g_js_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_js_up;
 }
 
 const pico8_struct_class_t *pico8_js_struct_class(void) {
@@ -679,8 +673,8 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_fq_struct_class);
-    self->fa = pico8_fixed_from_int(14);
-    self->hd = pico8_fixed_from_int(1);
+    self->fa = pico8_fq_start.fa;
+    self->hd = pico8_fq_start.hd;
     self->my = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
@@ -704,21 +698,15 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_fq_init(void) {
     pico8_fq_shutdown();
-    g_fq_spec = pico8_ob("\nfa=14,hd=1,\n", NULL);
+    g_fq_up = 1;
 }
 
 void pico8_fq_shutdown(void) {
-    pico8_ob_table_free(g_fq_spec);
-    g_fq_spec = NULL;
+    g_fq_up = 0;
 }
 
 int pico8_fq_ready(void) {
-    return g_fq_spec != NULL;
-}
-
-int pico8_fq_default(const char *name, pico8_value_t *out_value) {
-    return g_fq_spec != NULL &&
-           (pico8_ob_table_get_name(g_fq_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_fq_up;
 }
 
 const pico8_struct_class_t *pico8_fq_struct_class(void) {

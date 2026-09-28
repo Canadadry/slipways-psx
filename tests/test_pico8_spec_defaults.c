@@ -1,7 +1,9 @@
-/* The spec defaults of the 19 modules outside the `jo` tree, read only
- * through the shared readers spec_field()/is_ready() and a fresh struct of
- * each. test_spec_defaults() and test_struct_defaults() hold values frozen
- * on the code where these were still classes and must not be re-taken. */
+/* The spec defaults of the 7 modules outside the `jo` tree that still parse
+ * one, read only through the shared readers spec_field()/is_ready() and a
+ * fresh struct of each; the interface classes, whose defaults are generated,
+ * each against their own data. test_spec_defaults() and
+ * test_struct_defaults() hold values frozen on the code where these were
+ * still classes and must not be re-taken. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -40,28 +42,16 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_wormhole.h"
 
-#define READY_HASH 0x1DAB5885u
-#define SPEC_HASH 0x85C1D9B5u
-#define STRUCT_HASH 0x7BA6CB86u
+#define READY_HASH 0x05313C64u
+#define SPEC_HASH 0x067B24A6u
+#define STRUCT_HASH 0xEA770012u
 
 enum {
     M_TRADE,
-    M_LQ,
-    M_JB,
     M_HY,
     M_HP,
     M_PJ,
-    M_JS,
-    M_FQ,
-    M_NF,
-    M_QB,
-    M_MH,
-    M_IV,
-    M_UI,
     M_IE,
-    M_BG,
-    M_MZ,
-    M_JC,
     M_G_,
     M_FV,
     MODULE_COUNT
@@ -75,38 +65,14 @@ static int spec_field(int i, const char *name, pico8_value_t *out) {
     switch (i) {
     case M_TRADE:
         return pico8_trade_default(name, out);
-    case M_LQ:
-        return pico8_lq_default(name, out);
-    case M_JB:
-        return pico8_jb_default(name, out);
     case M_HY:
         return pico8_hy_default(name, out);
     case M_HP:
         return pico8_hp_default(name, out);
     case M_PJ:
         return pico8_pj_default(name, out);
-    case M_JS:
-        return pico8_js_default(name, out);
-    case M_FQ:
-        return pico8_fq_default(name, out);
-    case M_NF:
-        return pico8_nf_default(name, out);
-    case M_QB:
-        return pico8_qb_default(name, out);
-    case M_MH:
-        return pico8_mh_default(name, out);
-    case M_IV:
-        return pico8_iv_default(name, out);
-    case M_UI:
-        return pico8_ui_default(name, out);
     case M_IE:
         return pico8_ie_default(name, out);
-    case M_BG:
-        return pico8_bg_default(name, out);
-    case M_MZ:
-        return pico8_mz_default(name, out);
-    case M_JC:
-        return pico8_jc_default(name, out);
     case M_G_:
         return pico8_g__default(name, out);
     default:
@@ -118,38 +84,14 @@ static int is_ready(int i) {
     switch (i) {
     case M_TRADE:
         return pico8_trade_ready();
-    case M_LQ:
-        return pico8_lq_ready();
-    case M_JB:
-        return pico8_jb_ready();
     case M_HY:
         return pico8_hy_ready();
     case M_HP:
         return pico8_hp_ready();
     case M_PJ:
         return pico8_pj_ready();
-    case M_JS:
-        return pico8_js_ready();
-    case M_FQ:
-        return pico8_fq_ready();
-    case M_NF:
-        return pico8_nf_ready();
-    case M_QB:
-        return pico8_qb_ready();
-    case M_MH:
-        return pico8_mh_ready();
-    case M_IV:
-        return pico8_iv_ready();
-    case M_UI:
-        return pico8_ui_ready();
     case M_IE:
         return pico8_ie_ready();
-    case M_BG:
-        return pico8_bg_ready();
-    case M_MZ:
-        return pico8_mz_ready();
-    case M_JC:
-        return pico8_jc_ready();
     case M_G_:
         return pico8_g__ready();
     default:
@@ -161,38 +103,14 @@ static void *build(int i) {
     switch (i) {
     case M_TRADE:
         return pico8_trade_new(NULL);
-    case M_LQ:
-        return pico8_lq_new(NULL);
-    case M_JB:
-        return pico8_jb_new(NULL);
     case M_HY:
         return pico8_hy_new(NULL);
     case M_HP:
         return pico8_hp_new(NULL);
     case M_PJ:
         return pico8_pj_new(NULL);
-    case M_JS:
-        return pico8_js_new(NULL);
-    case M_FQ:
-        return pico8_fq_new(NULL);
-    case M_NF:
-        return pico8_nf_new(NULL);
-    case M_QB:
-        return pico8_qb_new(NULL);
-    case M_MH:
-        return pico8_mh_new(NULL);
-    case M_IV:
-        return pico8_iv_new(NULL);
-    case M_UI:
-        return pico8_ui_new(NULL);
     case M_IE:
         return pico8_ie_new(NULL);
-    case M_BG:
-        return pico8_bg_new(NULL);
-    case M_MZ:
-        return pico8_mz_new(NULL);
-    case M_JC:
-        return NULL;
     case M_G_:
         return pico8_g__new(NULL);
     default:
@@ -205,10 +123,6 @@ static void shutdown_of(int i) {
     case M_TRADE:
         pico8_trade_shutdown();
         break;
-    case M_LQ:
-    case M_JB:
-        pico8_layout_shutdown();
-        break;
     case M_HY:
         pico8_economy_shutdown();
         break;
@@ -218,38 +132,8 @@ static void shutdown_of(int i) {
     case M_PJ:
         pico8_score_panel_shutdown();
         break;
-    case M_JS:
-        pico8_js_shutdown();
-        break;
-    case M_FQ:
-        pico8_fq_shutdown();
-        break;
-    case M_NF:
-        pico8_nf_shutdown();
-        break;
-    case M_QB:
-        pico8_qb_shutdown();
-        break;
-    case M_MH:
-        pico8_mh_shutdown();
-        break;
-    case M_IV:
-        pico8_iv_shutdown();
-        break;
-    case M_UI:
-        pico8_ui_shutdown();
-        break;
     case M_IE:
         pico8_research_icon_shutdown();
-        break;
-    case M_BG:
-        pico8_bg_shutdown();
-        break;
-    case M_MZ:
-        pico8_wormhole_shutdown();
-        break;
-    case M_JC:
-        pico8_jc_shutdown();
         break;
     case M_G_:
         pico8_probe_shutdown();
@@ -260,7 +144,7 @@ static void shutdown_of(int i) {
     }
 }
 
-/* Every key of the 19 specs, ke's two, and names absent from all. */
+/* Every key of the 7 specs, ke's two, and names absent from all of them. */
 static const char *const NAMES[] = {
     "mr", "gp",  "fk", "fa", "ea", "gs", "cr",        "i_", "ou", "ed", "hd", "l",  "r",  "ra", "v",  "ma", "p",
     "pc", "nu",  "rh", "ql", "le", "hw", "kq",        "id", "eh", "pl", "me", "dw", "dq", "ik", "oi", "od", "fp",
@@ -398,8 +282,7 @@ static int row_equal(const pico8_ob_table_t *t, const pico8_jb_row_t *row) {
 /* same_value(), plus the converted table members of a module whose struct
  * took them from its spec: a spec table and the struct's untagged REF are
  * the same default when that REF is the data generated from the spec that
- * answered, whose content must then agree. The modules that parsed them
- * apart (bg, qb, mh, jc, mz) never held the spec's table and stay apart. */
+ * answered, whose content must then agree. */
 static int same_default(int i, const char *name, pico8_value_t spec, pico8_value_t made) {
     if (spec.kind == PICO8_VALUE_REF && made.kind == PICO8_VALUE_REF && spec.as.ref != NULL &&
         pico8_type_tag_of(spec.as.ref) == PICO8_TYPE_TAG_OB_TABLE && made.as.ref != spec.as.ref) {
@@ -508,33 +391,91 @@ static void test_struct_defaults(void) {
     check("struct", h, STRUCT_HASH);
 }
 
-static void *spec_ref(int i, const char *name) {
+static pico8_ob_table_t *nf_l_of(void *nf) {
     pico8_value_t v;
-    assert(spec_field(i, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(pico8_entity_get_field(nf, "l", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     return v.as.ref;
 }
 
 /* The second `jl()` (the one `eu` runs) finds `qb`, `nf` and `ui` ready and
- * leaves their specs alone: a mark written into each survives it. */
+ * leaves their state alone: a mark written into `nf`'s `l` and into the
+ * shared `le` survives it; `qb` stays ready throughout. */
 static void test_second_jl_keeps_specs(void) {
-    pico8_ob_table_t *qb_pc = spec_ref(M_QB, "pc");
-    pico8_ob_table_t *nf_l = spec_ref(M_NF, "l");
-    pico8_list_t *ui_le = spec_ref(M_UI, "le");
+    pico8_ob_table_t *nf_l = nf_l_of(pico8_je());
+    pico8_list_t *ui_le = pico8_ui_le_shared();
     pico8_value_t mark = pico8_value_fixed(0x7777);
     pico8_value_t v;
     int ui_count;
 
-    pico8_ob_table_set_name(qb_pc, "mark", mark);
+    assert(pico8_qb_ready());
     pico8_ob_table_set_name(nf_l, "mark", mark);
     pico8_list_add(ui_le, mark);
     ui_count = ui_le->count;
 
     pico8_jl();
 
-    assert(spec_ref(M_QB, "pc") == qb_pc && pico8_ob_table_get_name(spec_ref(M_QB, "pc"), "mark", &v));
-    assert(spec_ref(M_NF, "l") == nf_l && pico8_ob_table_get_name(spec_ref(M_NF, "l"), "mark", &v));
-    assert(spec_ref(M_UI, "le") == ui_le && ((pico8_list_t *)spec_ref(M_UI, "le"))->count == ui_count);
+    assert(pico8_qb_ready());
+    assert(nf_l_of(pico8_je()) == nf_l && pico8_ob_table_get_name(nf_l_of(pico8_je()), "mark", &v));
+    assert(pico8_ui_le_shared() == ui_le && pico8_ui_le_shared()->count == ui_count);
     assert(pico8_list_del(ui_le, mark));
+}
+
+/* A fresh bg starts on bg's generated defaults and ke's; ready until its
+ * shutdown. */
+static void test_bg_defaults_and_ready(void) {
+    pico8_bg_t *bg = pico8_bg_new(NULL);
+
+    assert(bg->fa == pico8_bg_start.fa && bg->hd == pico8_bg_start.hd);
+    assert(bg->pl == pico8_bg_start.pl && bg->pl == &pico8_bg_pl_seq);
+    assert(strcmp(bg->ke.me, "ph") == 0 && bg->ke.t == 0);
+    assert(pico8_bg_ready());
+    pico8_bg_shutdown();
+    assert(!pico8_bg_ready());
+}
+
+static void test_js_defaults_and_ready(void) {
+    pico8_js_t *js = pico8_js_new(NULL);
+
+    assert(js->fa == pico8_js_start.fa);
+    assert(strcmp(js->ke.me, "ph") == 0 && js->ke.t == 0);
+    assert(pico8_js_ready());
+    pico8_js_shutdown();
+    assert(!pico8_js_ready());
+}
+
+/* `v`, `p` and `ra` are the generated vectors themselves. */
+static void test_qb_defaults_and_ready(void) {
+    pico8_qb_t *qb = pico8_qb_new(NULL);
+
+    assert(qb->v == &pico8_qb_start.v && qb->p == &pico8_qb_start.p && qb->ra == &pico8_qb_start.ra);
+    assert(qb->ma == pico8_qb_start.ma && qb->pc == pico8_qb_start.pc && qb->pc == &pico8_qb_pc_vecs);
+    assert(strcmp(qb->ke.me, "ph") == 0 && qb->ke.t == 0);
+    assert(pico8_qb_ready());
+    pico8_qb_shutdown();
+    assert(!pico8_qb_ready());
+}
+
+/* mz's own `me` replaces ke's; `jj` holds the generated `qs`. */
+static void test_mz_defaults_and_ready(void) {
+    pico8_mz_t *mz = pico8_mz_new(NULL);
+
+    assert(mz->ke.me == pico8_mz_start.me && strcmp(mz->ke.me, "kz") == 0 && mz->ke.t == 0);
+    assert(mz->nu == pico8_mz_start.nu && mz->kk == pico8_mz_start.kk);
+    assert(mz->dw == pico8_mz_start.dw && mz->dq == pico8_mz_start.dq);
+    assert(mz->spawn_snd == pico8_mz_start.spawn_snd && mz->ik == pico8_mz_start.ik);
+    assert(mz->oi == pico8_mz_start.oi);
+    assert(mz->od == pico8_mz_start.od && mz->od == pico8_fixed_from_int(3));
+    assert(mz->fp == pico8_mz_start.fp && mz->fa == pico8_mz_start.fa);
+    assert(mz->jj == pico8_mz_jj_wrapper() && mz->jj->qs == pico8_mz_jj_qs);
+    assert(pico8_mz_ready());
+    pico8_wormhole_shutdown();
+    assert(!pico8_mz_ready());
+}
+
+static void test_layout_ready(void) {
+    assert(pico8_lq_ready() && pico8_jb_ready());
+    pico8_layout_shutdown();
+    assert(!pico8_lq_ready() && !pico8_jb_ready());
 }
 
 int main(void) {
@@ -559,6 +500,11 @@ int main(void) {
     test_spec_defaults();
     test_struct_defaults();
     test_second_jl_keeps_specs();
+    test_bg_defaults_and_ready();
+    test_js_defaults_and_ready();
+    test_qb_defaults_and_ready();
+    test_mz_defaults_and_ready();
+    test_layout_ready();
 
     for (i = MODULE_COUNT - 1; i >= 0; i--) {
         shutdown_of(i);

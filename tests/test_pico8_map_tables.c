@@ -706,21 +706,28 @@ static const char *const FV_SRC =
     "o(\"need help?\",40,110,13,fn=\"qr\"),\n"
     "o(\"slipways.net/help\",40,116,5,fn=\"qr\"),\n"
     "),\n";
-static const char *const BG_PL_SRC =
-    "0,0,0,72,73,74,75,88,89,90,91,88,91,89,91,";
-static const char *const QB_PC_SRC =
-    "v(-1,0),v(1,0),v(0,-1),v(0,1),";
-static const char *const MH_SRC =
-    "\n"
-    "nu=o(\"mh\"),\n";
-static const char *const JC_SRC =
-    "\n"
-    "nu=o(\"jc\"),\n"
-    "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n";
-static const char *const MZ_SRC =
-    "\n"
-    "nu=o(\"mz\"),\n"
-    "kk=o(7,7,6,13,5,1,1,1,0),\n";
+/* The class strings the interface modules parsed at init, byte for byte. */
+static const char *const BG_SRC = "\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n";
+static const char *const UI_SRC = "\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n";
+static const char *const JS_SRC = "\nfa=11,\n";
+static const char *const FQ_SRC = "\nfa=14,hd=1,\n";
+static const char *const LQ_SRC = "";
+static const char *const JB_SRC = "";
+static const char *const QB_SRC = "\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
+                                  "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n";
+static const char *const NF_SRC = "\nl=o(),r=o(),ra=v(0,0),\n";
+static const char *const MH_SRC = "\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n";
+static const char *const IV_SRC = "\nfa=9,\nl=0,v=v(0,-0.34),\n";
+static const char *const MZ_SRC = "\nnu=o(\"mz\"),\nme=\"kz\",dw=0,\ndq=\"pr\",\nspawn_snd=52,ik=49,\noi=0,"
+                                  "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n";
+static const char *const JC_SRC = "\n"
+                                  "nu=o(\"jc\"),\n"
+                                  "me=\"kz\",\n"
+                                  "fa=2,\n"
+                                  "fp=f,ik=48,\n"
+                                  "dw=0.004,\n"
+                                  "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n"
+                                  "nh=20,\n";
 
 static const char *const HP_SRC =
     "\n"
@@ -870,8 +877,8 @@ static void test_jo_tree_data_matches_the_parsed_class_literals(void) {
 static void test_other_classes_data_matches_the_parsed_literals(void) {
     pico8_ob_table_t *g_ = parse(G__SRC);
     pico8_ob_table_t *fv = parse(FV_SRC);
-    pico8_ob_table_t *bg_pl = parse(BG_PL_SRC);
-    pico8_ob_table_t *qb_pc = parse(QB_PC_SRC);
+    pico8_ob_table_t *bg = parse(BG_SRC);
+    const pico8_ob_table_t *qb_pc = member_of(parse(QB_SRC), "pc");
     pico8_ob_table_t *mh = parse(MH_SRC);
     pico8_ob_table_t *jc = parse(JC_SRC);
     pico8_ob_table_t *mz = parse(MZ_SRC);
@@ -888,7 +895,7 @@ static void test_other_classes_data_matches_the_parsed_literals(void) {
     check_member_seq(fv, "k_", &pico8_fv_k__seq);
     check_member_seq(jc, "k_", &pico8_jc_k__seq);
     check_member_seq(mz, "kk", &pico8_mz_kk_seq);
-    check_seq(bg_pl, &pico8_bg_pl_seq);
+    check_member_seq(bg, "pl", &pico8_bg_pl_seq);
 
     assert(qb_pc->count == pico8_qb_pc_vecs.count && pico8_qb_pc_vecs.count == 4);
     for (i = 0; i < pico8_qb_pc_vecs.count; i++) {
@@ -899,6 +906,124 @@ static void test_other_classes_data_matches_the_parsed_literals(void) {
         parsed = qb_pc->entries[i].value.as.ref;
         assert(parsed->x == pico8_qb_pc_vecs.items[i].x && parsed->y == pico8_qb_pc_vecs.items[i].y);
     }
+}
+
+/* The parsed value under `key`, of the kind asked for. */
+static pico8_fixed_t number_at(const pico8_ob_table_t *t, const char *key) {
+    pico8_value_t v;
+
+    assert(pico8_ob_table_get_name(t, key, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static const char *string_at(const pico8_ob_table_t *t, const char *key) {
+    pico8_value_t v;
+
+    assert(pico8_ob_table_get_name(t, key, &v) && v.kind == PICO8_VALUE_STRING);
+    return v.as.string;
+}
+
+/* v(...) and b(...) both parse to an untagged REF. */
+static const pico8_vec_t *vec_at(const pico8_ob_table_t *t, const char *key) {
+    pico8_value_t v;
+
+    assert(pico8_ob_table_get_name(t, key, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+static const pico8_qz_box_t *box_at(const pico8_ob_table_t *t, const char *key) {
+    pico8_value_t v;
+
+    assert(pico8_ob_table_get_name(t, key, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+static void check_vec(const pico8_vec_t *parsed, const pico8_vec_t *start) {
+    assert(parsed->x == start->x && parsed->y == start->y);
+}
+
+/* Both ways: every key the string parses to is one of the class's generated
+ * fields (or one of the empty tables its module holds), equal to it, and the
+ * key count is the number of fields checked. */
+static void test_interface_starts_match_the_parsed_class_strings(void) {
+    pico8_ob_table_t *bg = parse(BG_SRC);
+    pico8_ob_table_t *ui = parse(UI_SRC);
+    pico8_ob_table_t *js = parse(JS_SRC);
+    pico8_ob_table_t *fq = parse(FQ_SRC);
+    pico8_ob_table_t *qb = parse(QB_SRC);
+    pico8_ob_table_t *nf = parse(NF_SRC);
+    pico8_ob_table_t *mh = parse(MH_SRC);
+    pico8_ob_table_t *iv = parse(IV_SRC);
+    pico8_ob_table_t *mz = parse(MZ_SRC);
+    pico8_ob_table_t *jc = parse(JC_SRC);
+    const pico8_qz_box_t *hw;
+    const pico8_ob_table_t *jj;
+    pico8_value_t v;
+
+    assert(bg->count == 3);
+    assert(number_at(bg, "fa") == pico8_bg_start.fa && number_at(bg, "hd") == pico8_bg_start.hd);
+    assert(pico8_bg_start.pl == &pico8_bg_pl_seq);
+    check_member_seq(bg, "pl", pico8_bg_start.pl);
+
+    assert(ui->count == 4);
+    assert(number_at(ui, "ql") == pico8_ui_start.ql && number_at(ui, "fa") == pico8_ui_start.fa);
+    assert(member_of(ui, "le")->count == 0);
+    hw = box_at(ui, "hw");
+    assert(hw->xl == pico8_ui_start.hw.xl && hw->yt == pico8_ui_start.hw.yt);
+    assert(hw->xr == pico8_ui_start.hw.xr && hw->yb == pico8_ui_start.hw.yb);
+
+    assert(js->count == 1 && number_at(js, "fa") == pico8_js_start.fa);
+
+    assert(fq->count == 2);
+    assert(number_at(fq, "fa") == pico8_fq_start.fa && number_at(fq, "hd") == pico8_fq_start.hd);
+
+    assert(parse(LQ_SRC)->count == 0 && parse(JB_SRC)->count == 0);
+
+    assert(qb->count == 5);
+    check_vec(vec_at(qb, "v"), &pico8_qb_start.v);
+    assert(number_at(qb, "ma") == pico8_qb_start.ma);
+    check_vec(vec_at(qb, "p"), &pico8_qb_start.p);
+    check_vec(vec_at(qb, "ra"), &pico8_qb_start.ra);
+    assert(pico8_qb_start.pc == &pico8_qb_pc_vecs && member_of(qb, "pc")->count == pico8_qb_start.pc->count);
+
+    assert(nf->count == 3);
+    assert(member_of(nf, "l")->count == 0 && member_of(nf, "r")->count == 0);
+    check_vec(vec_at(nf, "ra"), &pico8_nf_start.ra);
+
+    assert(mh->count == 3);
+    assert(pico8_mh_start.nu == &pico8_mh_nu_tags);
+    check_member_tags(mh, pico8_mh_start.nu);
+    assert(number_at(mh, "fa") == pico8_mh_start.fa && number_at(mh, "rh") == pico8_mh_start.rh);
+
+    assert(iv->count == 3);
+    assert(number_at(iv, "fa") == pico8_iv_start.fa && number_at(iv, "l") == pico8_iv_start.l);
+    check_vec(vec_at(iv, "v"), &pico8_iv_start.v);
+
+    assert(mz->count == 12);
+    assert(pico8_mz_start.nu == &pico8_mz_nu_tags);
+    check_member_tags(mz, pico8_mz_start.nu);
+    assert(strcmp(string_at(mz, "me"), pico8_mz_start.me) == 0);
+    assert(number_at(mz, "dw") == pico8_mz_start.dw);
+    assert(strcmp(string_at(mz, "dq"), pico8_mz_start.dq) == 0);
+    assert(number_at(mz, "spawn_snd") == pico8_mz_start.spawn_snd && number_at(mz, "ik") == pico8_mz_start.ik);
+    assert(number_at(mz, "oi") == pico8_mz_start.oi && number_at(mz, "od") == pico8_mz_start.od);
+    assert(number_at(mz, "fp") == pico8_mz_start.fp && number_at(mz, "fa") == pico8_mz_start.fa);
+    assert(pico8_mz_start.kk == &pico8_mz_kk_seq);
+    check_member_seq(mz, "kk", pico8_mz_start.kk);
+    jj = member_of(mz, "jj");
+    assert(jj->count == 1 && strcmp(string_at(jj, "qs"), pico8_mz_jj_qs) == 0);
+
+    assert(jc->count == 8);
+    assert(pico8_jc_start.nu == &pico8_jc_nu_tags);
+    check_member_tags(jc, pico8_jc_start.nu);
+    assert(strcmp(string_at(jc, "me"), pico8_jc_start.me) == 0);
+    assert(number_at(jc, "fa") == pico8_jc_start.fa);
+    assert(pico8_ob_table_get_name(jc, "fp", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
+    assert(pico8_jc_start.fp == 0);
+    assert(number_at(jc, "ik") == pico8_jc_start.ik && number_at(jc, "dw") == pico8_jc_start.dw);
+    assert(pico8_jc_start.k_ == &pico8_jc_k__seq);
+    check_member_seq(jc, "k_", pico8_jc_start.k_);
+    assert(number_at(jc, "nh") == pico8_jc_start.nh);
 }
 
 static void test_rows_match_the_parsed_literals(void) {
@@ -989,6 +1114,7 @@ int main(void) {
     test_int_seq_has_fixed_keeps_gu_on_integers();
     test_jo_tree_data_matches_the_parsed_class_literals();
     test_other_classes_data_matches_the_parsed_literals();
+    test_interface_starts_match_the_parsed_class_strings();
     test_rows_match_the_parsed_literals();
     test_row_view_writes_fixed_items_then_c_then_fn();
     test_nb_lookup_finds_each_px();

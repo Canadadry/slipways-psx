@@ -2,6 +2,7 @@
 #define PICO8_GAME_DATA_H
 
 #include "pico8_fixed.h"
+#include "pico8_geom.h"
 #include "pico8_map_tables.h"
 #include "pico8_vec.h"
 
@@ -99,6 +100,79 @@ typedef struct {
     int ra_y;
 } pico8_bz_entry_t;
 
+/* The values a new instance of a class starts with: exactly the keys of the
+ * class's spec, ke's left out, under the struct's own member types. */
+typedef struct {
+    pico8_fixed_t fa;
+    pico8_fixed_t hd;
+    const pico8_int_seq_t *pl;
+} pico8_bg_start_t;
+
+typedef struct {
+    pico8_fixed_t ql;
+    pico8_fixed_t fa;
+    pico8_qz_box_t hw;
+} pico8_ui_start_t;
+
+typedef struct {
+    pico8_fixed_t fa;
+} pico8_js_start_t;
+
+typedef struct {
+    pico8_fixed_t fa;
+    pico8_fixed_t hd;
+} pico8_fq_start_t;
+
+typedef struct {
+    pico8_vec_t v;
+    pico8_fixed_t ma;
+    pico8_vec_t p;
+    pico8_vec_t ra;
+    const pico8_vec_seq_t *pc;
+} pico8_qb_start_t;
+
+typedef struct {
+    pico8_vec_t ra;
+} pico8_nf_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    pico8_fixed_t fa;
+    pico8_fixed_t rh;
+} pico8_mh_start_t;
+
+typedef struct {
+    pico8_fixed_t fa;
+    pico8_fixed_t l;
+    pico8_vec_t v;
+} pico8_iv_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    const char *me;
+    pico8_fixed_t dw;
+    const char *dq;
+    pico8_fixed_t spawn_snd;
+    pico8_fixed_t ik;
+    pico8_fixed_t oi;
+    pico8_fixed_t od;
+    pico8_fixed_t fp;
+    pico8_fixed_t fa;
+    const pico8_int_seq_t *kk;
+} pico8_mz_start_t;
+
+/* fp is the spec's false. */
+typedef struct {
+    const pico8_str_seq_t *nu;
+    const char *me;
+    pico8_fixed_t fa;
+    int fp;
+    pico8_fixed_t ik;
+    pico8_fixed_t dw;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t nh;
+} pico8_jc_start_t;
+
 extern const int pico8_es_table[PICO8_ES_COUNT];
 extern const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
 extern const int pico8_b__table[PICO8_B__COUNT];
@@ -166,6 +240,21 @@ extern const pico8_jb_row_t pico8_hp_fk_row;
 extern const pico8_jb_row_t pico8_fv_rb_row;
 extern const pico8_jb_row_t pico8_pj_gs_row;
 extern const pico8_jb_row_t pico8_pj_i__row;
+
+/* lq and jb have an empty spec, hence no object; ui.le, nf.l and nf.r are
+ * empty tables, held by their module. */
+extern const pico8_bg_start_t pico8_bg_start;
+extern const pico8_ui_start_t pico8_ui_start;
+extern const pico8_js_start_t pico8_js_start;
+extern const pico8_fq_start_t pico8_fq_start;
+extern const pico8_qb_start_t pico8_qb_start;
+extern const pico8_nf_start_t pico8_nf_start;
+extern const pico8_mh_start_t pico8_mh_start;
+extern const pico8_iv_start_t pico8_iv_start;
+extern const pico8_mz_start_t pico8_mz_start;
+extern const pico8_jc_start_t pico8_jc_start;
+/* mz.jj's qs: the table jj=o(qs=...) of mz's spec. */
+extern const char pico8_mz_jj_qs[];
 
 /* Lua's seq[i], 1-based: returns 1 and writes *out when 1 <= i <= count,
  * 0 and leaves *out untouched otherwise. */

@@ -16,7 +16,7 @@
 #include "pico8_tech_gate.h"
 #include "pico8_wormhole_display.h"
 
-static pico8_ob_table_t *g_mz_spec = NULL;
+static int g_mz_up = 0;
 
 static int pico8_mz_jj_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_mz_jj_t *jj = self;
@@ -41,7 +41,7 @@ static const pico8_struct_class_t g_mz_jj_struct_class = {
  * reaching it stops the run. */
 static pico8_mz_jj_t g_mz_jj_wrapper = {
     {PICO8_TYPE_TAG_STRUCT, &g_mz_jj_struct_class},
-    "-too far-",
+    pico8_mz_jj_qs,
 };
 
 static int pico8_mz_truthy(pico8_value_t v) {
@@ -456,17 +456,17 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
     pico8_mz_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_mz_struct_class);
-    self->ke.me = "kz";
-    self->nu = &pico8_mz_nu_tags;
-    self->dw = pico8_fixed_from_int(0);
-    self->dq = "pr";
-    self->spawn_snd = pico8_fixed_from_int(52);
-    self->ik = pico8_fixed_from_int(49);
-    self->oi = pico8_fixed_from_int(0);
-    self->od = pico8_fixed_from_int(3);
-    self->fp = pico8_fixed_from_int(1);
-    self->fa = pico8_fixed_from_int(5);
-    self->kk = &pico8_mz_kk_seq;
+    self->ke.me = pico8_mz_start.me;
+    self->nu = pico8_mz_start.nu;
+    self->dw = pico8_mz_start.dw;
+    self->dq = pico8_mz_start.dq;
+    self->spawn_snd = pico8_mz_start.spawn_snd;
+    self->ik = pico8_mz_start.ik;
+    self->oi = pico8_mz_start.oi;
+    self->od = pico8_mz_start.od;
+    self->fp = pico8_mz_start.fp;
+    self->fa = pico8_mz_start.fa;
+    self->kk = pico8_mz_start.kk;
     self->jj = &g_mz_jj_wrapper;
     self->ox = NULL;
     self->ra = NULL;
@@ -488,24 +488,15 @@ static void *pico8_mz_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_wormhole_init(void) {
     pico8_wormhole_shutdown();
-
-    g_mz_spec = pico8_ob("\nnu=o(\"mz\"),\nme=\"kz\",dw=0,\ndq=\"pr\",\nspawn_snd=52,ik=49,\noi=0,"
-                         "\nod=3,fp=1,\nfa=5,\nkk=o(7,7,6,13,5,1,1,1,0),\njj=o(qs=\"-too far-\"),\n",
-                         NULL);
+    g_mz_up = 1;
 }
 
 void pico8_wormhole_shutdown(void) {
-    pico8_ob_table_free(g_mz_spec);
-    g_mz_spec = NULL;
+    g_mz_up = 0;
 }
 
 int pico8_mz_ready(void) {
-    return g_mz_spec != NULL;
-}
-
-int pico8_mz_default(const char *name, pico8_value_t *out_value) {
-    return g_mz_spec != NULL &&
-           (pico8_ob_table_get_name(g_mz_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_mz_up;
 }
 
 const pico8_struct_class_t *pico8_mz_struct_class(void) {

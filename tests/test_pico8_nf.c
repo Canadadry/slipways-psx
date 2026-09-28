@@ -391,8 +391,8 @@ static pico8_value_t vec_ref(int x, int y) {
     return pico8_value_ref(p);
 }
 
-/* `ra` read by name on `je` and on fresh nfs, which all share one zero
- * vector unlike the spec's; `ph` rebinds a fresh vector each call and
+/* `ra` read by name on `je` and on fresh nfs, which all share one copy of
+ * the zero vector `pico8_nf_start.ra`; `ph` rebinds a fresh vector each call and
  * leaves the old one intact; `bg.mq` keeps the very vector `je.ra` hands
  * out; no name can be written. */
 static void test_nf_members_by_name(void) {
@@ -405,7 +405,6 @@ static void test_nf_members_by_name(void) {
     const void *ra_a;
     const void *ra_b;
     const void *ra_prev;
-    pico8_value_t spec_ra;
     pico8_value_t r;
     pico8_value_t out;
     pico8_value_t zero_false;
@@ -421,8 +420,9 @@ static void test_nf_members_by_name(void) {
     h = fold_nf(h, b, &ra_b);
     assert(ra_je == ra_a && ra_a == ra_b);
     assert(((const pico8_vec_t *)ra_a)->x == 0 && ((const pico8_vec_t *)ra_a)->y == 0);
-    assert(pico8_nf_default("ra", &spec_ra) && spec_ra.kind == PICO8_VALUE_REF);
-    assert(spec_ra.as.ref != NULL && spec_ra.as.ref != ra_a);
+    assert(ra_a != (const void *)&pico8_nf_start.ra);
+    assert(((const pico8_vec_t *)ra_a)->x == pico8_nf_start.ra.x);
+    assert(((const pico8_vec_t *)ra_a)->y == pico8_nf_start.ra.y);
 
     frame(0, 17, 93, 0);
     frame(1, 101, 5, 0);
@@ -431,7 +431,7 @@ static void test_nf_members_by_name(void) {
     for (i = 0; i < 2; i++) {
         pico8_nf_ph(&input, a);
         h = fold_nf(h, a, &ra_a);
-        assert(ra_a != ra_b && ra_a != ra_prev && ra_a != spec_ra.as.ref);
+        assert(ra_a != ra_b && ra_a != ra_prev && ra_a != (const void *)&pico8_nf_start.ra);
         assert(((const pico8_vec_t *)ra_a)->x == pico8_fixed_from_int(g_frames[i].mouse_x));
         assert(((const pico8_vec_t *)ra_a)->y == pico8_fixed_from_int(g_frames[i].mouse_y));
         if (i == 1) {

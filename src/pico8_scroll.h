@@ -15,33 +15,27 @@
  * safe no-op, and a nil (NULL) vector member reads as the zero vector
  * rather than crashing. */
 
-/* `v`, `p` and `ra` start on vectors every qb shares, `pc` on
- * `pico8_qb_pc_vecs`: none is ever modified in place, only rebound. Nothing frees the struct: TROU-7. */
+/* `v`, `p` and `ra` start on the vectors of `pico8_qb_start`, which every qb
+ * shares, `pc` on `pico8_qb_pc_vecs`: none is ever modified in place, only
+ * rebound. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_vec_t *v;
+    const pico8_vec_t *v;
     pico8_fixed_t ma;
-    pico8_vec_t *p;
-    pico8_vec_t *ra;
+    const pico8_vec_t *p;
+    const pico8_vec_t *ra;
     const pico8_vec_seq_t *pc;
 } pico8_qb_t;
 
-/* Calls pico8_pi_init() first: the spec holds `v(...)`, so the 'v'
- * constructor must already be registered when it is parsed, and requires
- * pico8_ke_init() to have run -- both are asserted, not repaired. qb has
- * no `pq` of its own; it inherits ke's, which is what registers the
- * camera into hv/cv/cg. */
+/* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --
+ * asserted, not repaired. qb has no `pq` of its own; it inherits ke's,
+ * which is what registers the camera into hv/cv/cg. */
 void pico8_qb_init(void);
 
-/* Frees the spec. */
 void pico8_qb_shutdown(void);
 
 /* 1 from pico8_qb_init() to pico8_qb_shutdown(), 0 otherwise. */
 int pico8_qb_ready(void);
-
-/* `qb`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until pico8_qb_shutdown(). */
-int pico8_qb_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_qb_struct_class(void);
 
 /* `overrides` is read, not kept, and must be NULL or empty. The struct

@@ -24,7 +24,7 @@
 #include "pico8_wormhole.h"
 #include "pico8_ref_audit.h"
 
-static pico8_ob_table_t *g_jc_spec = NULL;
+static int g_jc_up = 0;
 
 typedef struct {
     pico8_struct_header_t header;
@@ -654,14 +654,14 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_jc_struct_class);
-    self->ke.me = "kz";
-    self->nu = &pico8_jc_nu_tags;
-    self->fa = pico8_fixed_from_int(2);
-    self->fp = 0;
-    self->ik = pico8_fixed_from_int(48);
-    self->dw = PICO8_FIXED_LIT(0x00000106, 0.004);
-    self->k_ = &pico8_jc_k__seq;
-    self->nh = pico8_fixed_from_int(20);
+    self->ke.me = pico8_jc_start.me;
+    self->nu = pico8_jc_start.nu;
+    self->fa = pico8_jc_start.fa;
+    self->fp = pico8_jc_start.fp;
+    self->ik = pico8_jc_start.ik;
+    self->dw = pico8_jc_start.dw;
+    self->k_ = pico8_jc_start.k_;
+    self->nh = pico8_jc_start.nh;
     self->qu = NULL;
     self->ts = NULL;
     self->hg = NULL;
@@ -694,29 +694,15 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_jc_init(void) {
     pico8_jc_shutdown();
-    g_jc_spec = pico8_ob("\n"
-                         "nu=o(\"jc\"),\n"
-                         "me=\"kz\",\n"
-                         "fa=2,\n"
-                         "fp=f,ik=48,\n"
-                         "dw=0.004,\n"
-                         "k_=o(0,0,7,7,10,10,9,9,9,9,9,9,9,9,4,4,4,2,2,1),\n"
-                         "nh=20,\n",
-                         NULL);
+    g_jc_up = 1;
 }
 
 void pico8_jc_shutdown(void) {
-    pico8_ob_table_free(g_jc_spec);
-    g_jc_spec = NULL;
+    g_jc_up = 0;
 }
 
 int pico8_jc_ready(void) {
-    return g_jc_spec != NULL;
-}
-
-int pico8_jc_default(const char *name, pico8_value_t *out_value) {
-    return g_jc_spec != NULL &&
-           (pico8_ob_table_get_name(g_jc_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_jc_up;
 }
 
 const pico8_struct_class_t *pico8_jc_struct_class(void) {

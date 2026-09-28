@@ -11,10 +11,7 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
-static pico8_ob_table_t *g_qb_spec = NULL;
-static pico8_vec_t g_qb_v = {0, 0};
-static pico8_vec_t g_qb_p = {0, 0};
-static pico8_vec_t g_qb_ra = {0, 0};
+static int g_qb_up = 0;
 
 /* NULL reads as the zero vector. */
 static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
@@ -51,7 +48,7 @@ static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out
         if (qb->v == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(qb->v);
+        *out_value = pico8_value_ref((void *)qb->v);
         return 1;
     }
     if (strcmp(name, "ma") == 0) {
@@ -62,14 +59,14 @@ static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out
         if (qb->p == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(qb->p);
+        *out_value = pico8_value_ref((void *)qb->p);
         return 1;
     }
     if (strcmp(name, "ra") == 0) {
         if (qb->ra == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(qb->ra);
+        *out_value = pico8_value_ref((void *)qb->ra);
         return 1;
     }
     if (strcmp(name, "pc") == 0) {
@@ -82,7 +79,7 @@ static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out
     return pico8_ke_field(self, name, out_value);
 }
 
-static void qb_take_vec(pico8_value_t value, pico8_vec_t **out) {
+static void qb_take_vec(pico8_value_t value, const pico8_vec_t **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
         return;
@@ -125,11 +122,11 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
     pico8_qb_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->ke, &g_qb_struct_class);
-    self->v = &g_qb_v;
-    self->ma = pico8_fixed_from_int(0);
-    self->p = &g_qb_p;
-    self->ra = &g_qb_ra;
-    self->pc = &pico8_qb_pc_vecs;
+    self->v = &pico8_qb_start.v;
+    self->ma = pico8_qb_start.ma;
+    self->p = &pico8_qb_start.p;
+    self->ra = &pico8_qb_start.ra;
+    self->pc = pico8_qb_start.pc;
     assert((overrides == NULL || overrides->count == 0) &&
            "qb: takes no construction table; a key has no member -- stop, do not add one");
 #ifdef PICO8_CLASS_COVERAGE
@@ -142,27 +139,16 @@ static void *pico8_qb_struct_new(const pico8_ob_table_t *overrides) {
 void pico8_qb_init(void) {
     pico8_qb_shutdown();
     pico8_pi_init();
-    assert(pico8_ob_lookup_constructor('v') != NULL && "qb's spec parses v(...) as vectors");
     assert(pico8_ke_ready() && "qb descends from ke");
-    g_qb_spec = pico8_ob("\nv=v(0,0),ma=0,p=v(192,192),ra=v(192,192),"
-                         "pc=o(v(-1,0),v(1,0),v(0,-1),v(0,1)),\n",
-                         NULL);
-    g_qb_p = pico8_vec_v(pico8_fixed_from_int(192), pico8_fixed_from_int(192));
-    g_qb_ra = pico8_vec_v(pico8_fixed_from_int(192), pico8_fixed_from_int(192));
+    g_qb_up = 1;
 }
 
 void pico8_qb_shutdown(void) {
-    pico8_ob_table_free(g_qb_spec);
-    g_qb_spec = NULL;
+    g_qb_up = 0;
 }
 
 int pico8_qb_ready(void) {
-    return g_qb_spec != NULL;
-}
-
-int pico8_qb_default(const char *name, pico8_value_t *out_value) {
-    return g_qb_spec != NULL &&
-           (pico8_ob_table_get_name(g_qb_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_qb_up;
 }
 
 const pico8_struct_class_t *pico8_qb_struct_class(void) {

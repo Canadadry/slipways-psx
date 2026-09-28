@@ -260,27 +260,26 @@ static void test_dg_drives_a_ke_struct(void) {
     assert(f->ke.t == pico8_fixed_from_int(3));
 }
 
-/* The struct's defaults are, bit for bit, what the spec parser makes of
- * iv's spec string, which the class still carries. */
+/* The struct's defaults are, bit for bit, the class's generated defaults;
+ * its `v` is the generated vector itself. */
 static void test_defaults_match_the_parsed_spec(void) {
     const pico8_iv_t *e;
-    pico8_value_t parsed;
     pico8_value_t v;
 
     fresh_world();
     e = build(NULL, "x", 7);
-    assert(pico8_iv_default("v", &parsed) && parsed.kind == PICO8_VALUE_REF);
     v = field((void *)e, "v");
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL && v.as.ref != parsed.as.ref);
-    assert(((const pico8_vec_t *)v.as.ref)->x == ((const pico8_vec_t *)parsed.as.ref)->x);
-    assert(((const pico8_vec_t *)v.as.ref)->y == ((const pico8_vec_t *)parsed.as.ref)->y);
-    assert(pico8_iv_default("fa", &parsed) && parsed.kind == PICO8_VALUE_FIXED);
-    assert(field_fixed((void *)e, "fa") == parsed.as.fixed);
-    assert(pico8_iv_default("l", &parsed) && parsed.kind == PICO8_VALUE_FIXED);
-    assert(field_fixed((void *)e, "l") == parsed.as.fixed);
+    assert(v.kind == PICO8_VALUE_REF && v.as.ref == &pico8_iv_start.v);
+    assert(pico8_iv_start.v.x == 0 && pico8_iv_start.v.y == -0x570a);
+    assert(field_fixed((void *)e, "fa") == pico8_iv_start.fa);
+    assert(field_fixed((void *)e, "l") == pico8_iv_start.l);
     assert(e->ke.me != NULL && strcmp(e->ke.me, "ph") == 0);
     assert(e->ke.t == 0);
     assert(field(build(NULL, "y", 7), "v").as.ref == v.as.ref);
+    assert(pico8_iv_ready());
+    pico8_iv_shutdown();
+    assert(!pico8_iv_ready());
+    pico8_iv_init();
 }
 
 /* Built directly or through its class, an iv is a struct that lands in hv

@@ -16,8 +16,8 @@
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 
-static pico8_ob_table_t *g_mh_spec = NULL;
-static pico8_ob_table_t *g_iv_spec = NULL;
+static int g_mh_up = 0;
+static int g_iv_up = 0;
 static pico8_mh_t *g_kc = NULL;
 
 pico8_mh_t *pico8_kc(void) {
@@ -154,9 +154,9 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_mh_struct_class);
-    self->nu = &pico8_mh_nu_tags;
-    self->fa = pico8_fixed_from_int(14);
-    self->rh = pico8_fixed_from_int(5);
+    self->nu = pico8_mh_start.nu;
+    self->fa = pico8_mh_start.fa;
+    self->rh = pico8_mh_start.rh;
     self->lh = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
@@ -195,29 +195,21 @@ static void *pico8_mh_struct_new(const pico8_ob_table_t *overrides) {
 
 void pico8_mh_init(void) {
     pico8_mh_shutdown();
-    g_mh_spec = pico8_ob("\nnu=o(\"mh\"),\nfa=14,\nrh=5,\n", NULL);
+    g_mh_up = 1;
 }
 
 void pico8_mh_shutdown(void) {
-    pico8_ob_table_free(g_mh_spec);
-    g_mh_spec = NULL;
+    g_mh_up = 0;
     pico8_msgbox_set_kc(NULL);
 }
 
 int pico8_mh_ready(void) {
-    return g_mh_spec != NULL;
-}
-
-int pico8_mh_default(const char *name, pico8_value_t *out_value) {
-    return g_mh_spec != NULL &&
-           (pico8_ob_table_get_name(g_mh_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_mh_up;
 }
 
 pico8_mh_t *pico8_mh_new(const pico8_ob_table_t *overrides) {
     return pico8_mh_struct_new(overrides);
 }
-
-static pico8_vec_t g_iv_v = {0, -PICO8_FIXED_LIT(0x0000570a, 0.34)};
 
 static pico8_vec_t pico8_iv_vec_or_zero(const pico8_vec_t *p) {
     if (p != NULL) {
@@ -317,7 +309,7 @@ static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out
         if (iv->v == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(iv->v);
+        *out_value = pico8_value_ref((void *)iv->v);
         return 1;
     }
     if (strcmp(name, "ra") == 0) {
@@ -375,9 +367,9 @@ static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
     int i;
 
     pico8_ke_struct_init(&self->ke, &g_iv_struct_class);
-    self->fa = pico8_fixed_from_int(9);
-    self->l = pico8_fixed_from_int(0);
-    self->v = &g_iv_v;
+    self->fa = pico8_iv_start.fa;
+    self->l = pico8_iv_start.l;
+    self->v = &pico8_iv_start.v;
     self->ra = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
@@ -408,21 +400,15 @@ static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
 void pico8_iv_init(void) {
     pico8_iv_shutdown();
     pico8_pi_init();
-    g_iv_spec = pico8_ob("\nfa=9,\nl=0,v=v(0,-0.34),\n", NULL);
+    g_iv_up = 1;
 }
 
 void pico8_iv_shutdown(void) {
-    pico8_ob_table_free(g_iv_spec);
-    g_iv_spec = NULL;
+    g_iv_up = 0;
 }
 
 int pico8_iv_ready(void) {
-    return g_iv_spec != NULL;
-}
-
-int pico8_iv_default(const char *name, pico8_value_t *out_value) {
-    return g_iv_spec != NULL &&
-           (pico8_ob_table_get_name(g_iv_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_iv_up;
 }
 
 pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides) {

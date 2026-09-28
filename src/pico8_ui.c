@@ -18,26 +18,17 @@
 #include "pico8_wormhole.h"
 #include "pico8_ref_audit.h"
 
-static pico8_ob_table_t *g_ui_spec = NULL;
+static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
-
-/* ui's 4 spec defaults, read once from its spec at init, after the swap of
- * `le`: the spec's REFs, never re-parsed. */
-static pico8_fixed_t g_ui_ql;
-static pico8_fixed_t g_ui_fa;
-static pico8_list_t *g_ui_le;
-static pico8_qz_box_t *g_ui_hw;
-
-static void pico8_ui_defaults_reset(void) {
-    g_ui_ql = 0;
-    g_ui_fa = 0;
-    g_ui_le = NULL;
-    g_ui_hw = NULL;
-}
+static pico8_list_t g_shared_le;
 
 const pico8_qz_box_t *pico8_ui_hw(void) {
-    return g_ui_hw;
+    return g_ui_up ? &pico8_ui_start.hw : NULL;
+}
+
+pico8_list_t *pico8_ui_le_shared(void) {
+    return &g_shared_le;
 }
 
 static int pico8_je_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -149,7 +140,7 @@ static int pico8_ui_field(const void *self, const char *name, pico8_value_t *out
         return ui_ref_field(ui->le, out_value);
     }
     if (strcmp(name, "hw") == 0) {
-        return ui_ref_field(ui->hw, out_value);
+        return ui_ref_field((void *)ui->hw, out_value);
     }
     if (strcmp(name, "qa") == 0) {
         return ui_ref_field(ui->qa, out_value);
@@ -184,13 +175,13 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ui_t *self;
     int i;
 
-    assert(g_ui_spec != NULL && "pico8_ui_init() must run first");
+    assert(g_ui_up && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_ui_struct_class);
-    self->ql = g_ui_ql;
-    self->fa = g_ui_fa;
-    self->le = g_ui_le;
-    self->hw = g_ui_hw;
+    self->ql = pico8_ui_start.ql;
+    self->fa = pico8_ui_start.fa;
+    self->le = &g_shared_le;
+    self->hw = &pico8_ui_start.hw;
     self->qa = NULL;
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
@@ -210,66 +201,17 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-static pico8_fixed_t ui_default_fixed(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "ui.ql/fa: a default of the struct is a key of ui's spec and a fixed (fixe)");
-    (void)found;
-    return v.as.fixed;
-}
-
-static pico8_list_t *ui_default_list(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "ui.le: a default of the struct is a key of ui's spec and the list that replaced o() (ref:liste)");
-    (void)found;
-    return v.as.ref;
-}
-
-static pico8_qz_box_t *ui_default_box(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "ui.hw: a default of the struct is a key of ui's spec and a box b() (ref:autre)");
-    (void)found;
-    return v.as.ref;
-}
-
 void pico8_ui_init(void) {
-    pico8_ob_table_t *raw_le = NULL;
-    pico8_value_t le_val;
-    pico8_list_t *heap_le;
-    pico8_value_t v;
-    int found;
-
     pico8_ui_shutdown();
     pico8_pi_init();
-
-    g_ui_spec = pico8_ob("\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n", NULL);
-
-    /* `gu()`/`nv()` need a list, not the table `ob()` parses for `le=o()`.
-     * The raw table is freed here: nothing else ever sees it. */
-    if (pico8_ob_table_get_name(g_ui_spec, "le", &le_val) && le_val.kind == PICO8_VALUE_REF) {
-        raw_le = (pico8_ob_table_t *)le_val.as.ref;
-    }
-    heap_le = malloc(sizeof *heap_le);
-    pico8_list_init(heap_le);
-    pico8_ob_table_set_name(g_ui_spec, "le", pico8_value_ref(heap_le));
-    pico8_ob_table_free(raw_le);
-    found = pico8_ui_default("ql", &v);
-    g_ui_ql = ui_default_fixed(found, v);
-    found = pico8_ui_default("fa", &v);
-    g_ui_fa = ui_default_fixed(found, v);
-    found = pico8_ui_default("le", &v);
-    g_ui_le = ui_default_list(found, v);
-    found = pico8_ui_default("hw", &v);
-    g_ui_hw = ui_default_box(found, v);
+    pico8_list_init(&g_shared_le);
+    g_ui_up = 1;
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
 }
 
 void pico8_ui_shutdown(void) {
-    pico8_ui_defaults_reset();
-    pico8_ob_table_free(g_ui_spec);
-    g_ui_spec = NULL;
+    g_ui_up = 0;
     g_je = NULL;
     if (g_ok != NULL) {
         free(g_ok);
@@ -282,12 +224,7 @@ const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
 }
 
 int pico8_ui_ready(void) {
-    return g_ui_spec != NULL;
-}
-
-int pico8_ui_default(const char *name, pico8_value_t *out_value) {
-    return g_ui_spec != NULL &&
-           (pico8_ob_table_get_name(g_ui_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_ui_up;
 }
 
 const pico8_struct_class_t *pico8_ui_struct_class(void) {

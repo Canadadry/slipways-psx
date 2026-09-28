@@ -14,7 +14,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` |
-| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; le port parse la spec à l'init du module de la classe, et `pico8_X_default` la lit, puis la parente |
+| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; le port parse la spec à l'init du module de la classe, et `pico8_X_default` la lit, puis la parente — sauf pour les classes d'interface (`bg`, `ui`, `js`, `fq`, `lq`, `jb`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`), qui n'ont plus de spec parsée |
+| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` à part ; `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc` (`lq` et `jb` ont une spec vide) |
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
@@ -150,7 +151,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `qb:ph` | `pico8_qb_ph` | défilement au D-pad avec inertie, position bornée à [-64, 320] |
 | `qb:md(fy)` | `pico8_qb_md` | applique la caméra, `ra` multiplié par le facteur de parallaxe `fy` |
 | `pc` | champ ; `const pico8_vec_seq_t *pc` → `pico8_qb_pc_vecs` | les 4 vecteurs directions unitaires du D-pad |
-| `v` (champ de `qb`) | — | vélocité de la caméra, distinct du constructeur `v(x,y)` |
+| `v` (champ de `qb`) | — ; `const pico8_vec_t *v` → `&pico8_qb_start.v` au départ | vélocité de la caméra, distinct du constructeur `v(x,y)` |
+| `p`, `ra` (champs de `qb`) | `const pico8_vec_t *` → `&pico8_qb_start.p`, `&pico8_qb_start.ra` au départ | position de la caméra (`p`), et celle que `md` applique (`ra`) |
 
 ## Composition graphique
 
@@ -317,9 +319,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `o_`, `gj` | champs | entité survolée cette frame / la frame précédente |
 | `m_` | champ | drapeau « je suis survolée », posé et retiré par `gw` |
 | `ic` | champ ; `pico8_ui_ic_t *ic` → `ic_own` (16 couches vidées par chaque `gw`) | seaux d'entités survolées, indexés par couche `fa` |
-| `le` | champ | entités éphémères, détruites en bloc par `cj` |
-| `hw` | champ | boîte du panneau principal, `b(10,10,118,118)` |
-| `ql` | champ | sprite de curseur |
+| `le` | champ ; `pico8_ui_le_shared()` au départ (liste statique de `ui.c`) | entités éphémères, détruites en bloc par `cj` |
+| `hw` | champ ; `const pico8_qz_box_t *hw` → `&pico8_ui_start.hw` | boîte du panneau principal, `b(10,10,118,118)` |
+| `ql` | champ ; défaut `pico8_ui_start.ql` | sprite de curseur |
 | `lheld`, `rheld` | champs | entité tenue par le bouton gauche / droit |
 | `ok` | `pico8_ok` | le singleton `ui` |
 
@@ -576,7 +578,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `np` | étiquette `nu` portée par toutes les planètes ; `bv` cherche la plus proche dans `cg("np")` |
 | `fp` | nombre de ticks que `d_` transmet à `fm:nx` ; `g_` le pose à faux, d'où le repli 0 |
 | `ik` | sprite d'état lu par `dl`, et numéro de sfx à la validation réussie |
-| `jj` | la pseudo-cible « -too far- » posée dans `et` quand aucun ancrage n'est assez proche |
+| `jj` | la pseudo-cible « -too far- » posée dans `et` quand aucun ancrage n'est assez proche ; son `qs` est `pico8_mz_jj_qs` |
 | `ij` (champ) | l'ancrage retenu par `mz:hq` — homonyme de la fonction `ij`, qui cherche le plus proche voisin |
 | `spawn_snd` | posé à 52 dans la spec de `mz`, aucun lecteur (audio hors périmètre) |
 

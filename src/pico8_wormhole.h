@@ -52,16 +52,12 @@ pico8_value_t pico8_mz_et(const pico8_mz_t *self);
 
 void pico8_wormhole_init(void);
 
-/* Frees the `mz` spec, never any `mz` nor the `jj` wrapper. Idempotent,
- * and safe before the first `pico8_wormhole_init()`. */
+/* Never frees any `mz` nor the `jj` wrapper. Idempotent, and safe before
+ * the first `pico8_wormhole_init()`. */
 void pico8_wormhole_shutdown(void);
 
 /* 1 from pico8_wormhole_init() to pico8_wormhole_shutdown(), 0 otherwise. */
 int pico8_mz_ready(void);
-
-/* `mz`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until pico8_wormhole_shutdown(). */
-int pico8_mz_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_mz_struct_class(void);
 
 /* `overrides` is read, not kept, and must be NULL or empty. The struct

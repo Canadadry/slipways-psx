@@ -271,23 +271,25 @@ static void test_hover_loop_on_the_veil(void) {
     check("hover", h, HOVER_SEQUENCE_HASH);
 }
 
-/* The veil's defaults are what the spec parser makes of fq's spec string,
- * which the class still carries. */
+/* The veil's defaults are the class's generated defaults. */
 static void test_defaults_match_the_parsed_spec(void) {
     void *veil;
     pico8_value_t got;
-    pico8_value_t parsed;
 
     pico8_jl();
     veil = pico8_fq_new(NULL);
-    assert(pico8_fq_default("fa", &parsed));
-    assert(pico8_entity_get_field(veil, "fa", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
+    assert(pico8_entity_get_field(veil, "fa", &got) && got.kind == PICO8_VALUE_FIXED);
+    assert(got.as.fixed == pico8_fq_start.fa);
     assert(got.as.fixed == pico8_fixed_from_int(14));
-    assert(pico8_fq_default("hd", &parsed));
-    assert(pico8_entity_get_field(veil, "hd", &got) && got.kind == PICO8_VALUE_FIXED && got.as.fixed == parsed.as.fixed);
+    assert(pico8_entity_get_field(veil, "hd", &got) && got.kind == PICO8_VALUE_FIXED);
+    assert(got.as.fixed == pico8_fq_start.hd);
     assert(got.as.fixed == pico8_fixed_from_int(1));
     assert(pico8_entity_get_field(veil, "me", &got) && got.kind == PICO8_VALUE_STRING && strcmp(got.as.string, "ph") == 0);
     assert(!pico8_entity_get_field(veil, "my", &got));
+    assert(pico8_fq_ready());
+    pico8_fq_shutdown();
+    assert(!pico8_fq_ready());
+    pico8_fq_init();
 }
 
 static int is_a_veil_struct(const void *e) {

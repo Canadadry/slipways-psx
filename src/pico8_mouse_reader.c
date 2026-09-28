@@ -6,14 +6,16 @@
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
+#include "pico8_game_data.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_vec.h"
 
-static pico8_ob_table_t *g_nf_spec = NULL;
+static int g_nf_up = 0;
 static pico8_ob_table_t *g_nf_l = NULL;
 static pico8_ob_table_t *g_nf_r = NULL;
-static pico8_vec_t g_nf_ra = {0, 0};
+/* Not `&pico8_nf_start.ra`: two TUs write `je.ra` in place. */
+static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * arg0 is the frame counter, which nf:ph does not read. */
@@ -80,16 +82,15 @@ static void *pico8_nf_struct_new(const pico8_ob_table_t *overrides) {
 void pico8_nf_init(void) {
     pico8_nf_shutdown();
     pico8_pi_init();
-    assert(pico8_ob_lookup_constructor('v') != NULL && "nf's spec parses v(0,0) as a vector");
     assert(pico8_ke_ready() && "nf descends from ke");
-    g_nf_spec = pico8_ob("\nl=o(),r=o(),ra=v(0,0),\n", NULL);
+    g_nf_up = 1;
+    g_nf_ra = pico8_nf_start.ra;
     g_nf_l = pico8_ob_table_new();
     g_nf_r = pico8_ob_table_new();
 }
 
 void pico8_nf_shutdown(void) {
-    pico8_ob_table_free(g_nf_spec);
-    g_nf_spec = NULL;
+    g_nf_up = 0;
     pico8_ob_table_free(g_nf_l);
     pico8_ob_table_free(g_nf_r);
     g_nf_l = NULL;
@@ -97,12 +98,7 @@ void pico8_nf_shutdown(void) {
 }
 
 int pico8_nf_ready(void) {
-    return g_nf_spec != NULL;
-}
-
-int pico8_nf_default(const char *name, pico8_value_t *out_value) {
-    return g_nf_spec != NULL &&
-           (pico8_ob_table_get_name(g_nf_spec, name, out_value) || pico8_ke_default(name, out_value));
+    return g_nf_up;
 }
 
 const pico8_struct_class_t *pico8_nf_struct_class(void) {
