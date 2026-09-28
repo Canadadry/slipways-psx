@@ -1144,6 +1144,234 @@ static void test_probe_help_research_panel_starts_match_the_parsed_class_strings
     assert(parse(HY_SRC)->count == 0 && parse(TRADE_SRC)->count == 0);
 }
 
+/* The fixed-or-false pair of hf, qh and pk: false is {0, 1}. */
+static void check_pair(const pico8_ob_table_t *t, const char *key, pico8_fixed_t start, int start_is_bool) {
+    pico8_value_t v;
+
+    assert(pico8_ob_table_get_name(t, key, &v));
+    if (v.kind == PICO8_VALUE_BOOL) {
+        assert(v.as.boolean == 0 && start == 0 && start_is_bool == 1);
+    } else {
+        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == start && start_is_bool == 0);
+    }
+}
+
+/* ob() gave each string token its own allocation: no string field of the jo
+ * tree shares a pointer with another string of the generated data. */
+static void test_jo_tree_strings_are_distinct_objects(void) {
+    const char *const tree[] = {pico8_jo_start.me, pico8_qh_start.me, pico8_qh_start.dq, pico8_nl_start.rr,
+        pico8_hj_start.rr, pico8_pm_start.fz, pico8_pm_start.me, pico8_ga_start.fz, pico8_nr_start.rr,
+        pico8_fr_start.rr, pico8_mx_start.rr};
+    const char *const others[] = {pico8_ke_start.me, pico8_mz_start.me, pico8_mz_start.dq, pico8_jc_start.me,
+        pico8_g__start.dq, pico8_mz_jj_qs};
+    int n = (int)(sizeof tree / sizeof tree[0]);
+    int i;
+    int j;
+
+    for (i = 0; i < n; i++) {
+        for (j = i + 1; j < n; j++) {
+            assert(tree[i] != tree[j]);
+        }
+        for (j = 0; j < (int)(sizeof others / sizeof others[0]); j++) {
+            assert(tree[i] != others[j]);
+        }
+    }
+}
+
+/* Both ways, as above, for the jo tree: each class's own keys only. */
+static void test_jo_tree_starts_match_the_parsed_class_strings(void) {
+    pico8_ob_table_t *jo = parse(JO_SRC);
+    pico8_ob_table_t *qh = parse(QH_SRC);
+    pico8_ob_table_t *nl = parse(NL_SRC);
+    pico8_ob_table_t *os = parse(OS_SRC);
+    pico8_ob_table_t *hj = parse(HJ_SRC);
+    pico8_ob_table_t *pm = parse(PM_SRC);
+    pico8_ob_table_t *ga = parse(GA_SRC);
+    pico8_ob_table_t *nr = parse(NR_SRC);
+    pico8_ob_table_t *fr = parse(FR_SRC);
+    pico8_ob_table_t *mx = parse(MX_SRC);
+    const pico8_ob_table_t *kw;
+    int i;
+
+    assert(jo->count == 14);
+    assert(pico8_jo_start.nu == &pico8_jo_nu_tags);
+    check_member_tags(jo, pico8_jo_start.nu);
+    assert(strcmp(string_at(jo, "me"), pico8_jo_start.me) == 0);
+    check_pair(jo, "hf", pico8_jo_start.hf, pico8_jo_start.hf_is_bool);
+    assert(number_at(jo, "hs") == pico8_jo_start.hs);
+    assert(number_at(jo, "fa") == pico8_jo_start.fa);
+    check_box(box_at(jo, "kq"), &pico8_jo_start.kq);
+    assert(number_at(jo, "ma") == pico8_jo_start.ma);
+    assert(pico8_jo_start.ka == &pico8_jo_ka_seq);
+    check_member_seq(jo, "ka", pico8_jo_start.ka);
+    assert(pico8_jo_start.dz == pico8_jo_dz_rows && member_of(jo, "dz")->count == PICO8_JO_DZ_COUNT);
+    for (i = 0; i < PICO8_JO_DZ_COUNT; i++) {
+        check_row(member_of(jo, "dz")->entries[i].value.as.ref, &pico8_jo_start.dz[i], "jo.dz");
+    }
+    assert(pico8_jo_start.cq == &pico8_jo_cq_seq);
+    check_member_seq(jo, "cq", pico8_jo_start.cq);
+    assert(pico8_jo_start.kw == &pico8_jo_kw_start);
+    kw = member_of(jo, "kw");
+    assert(kw->count == 1 && number_at(kw, "mu") == pico8_jo_start.kw->mu && !pico8_jo_start.kw->has_qe);
+    check_vec(vec_at(jo, "gq"), &pico8_jo_start.gq);
+    assert(number_at(jo, "ca") == pico8_jo_start.ca);
+    assert(pico8_jo_start.em == &pico8_jo_em_row);
+    check_row(member_of(jo, "em"), pico8_jo_start.em, "jo.em");
+
+    assert(qh->count == 13);
+    assert(pico8_qh_start.nu == &pico8_qh_nu_tags);
+    check_member_tags(qh, pico8_qh_start.nu);
+    assert(number_at(qh, "hp") == pico8_qh_start.hp);
+    assert(pico8_qh_start.px == &pico8_qh_px_row);
+    check_row(member_of(qh, "px"), pico8_qh_start.px, "qh.px");
+    assert(strcmp(string_at(qh, "me"), pico8_qh_start.me) == 0);
+    assert(strcmp(string_at(qh, "dq"), pico8_qh_start.dq) == 0);
+    check_pair(qh, "hf", pico8_qh_start.hf, pico8_qh_start.hf_is_bool);
+    check_pair(qh, "qh", pico8_qh_start.qh, pico8_qh_start.qh_is_bool);
+    assert(number_at(qh, "od") == pico8_qh_start.od);
+    assert(number_at(qh, "fp") == pico8_qh_start.fp);
+    assert(number_at(qh, "dw") == pico8_qh_start.dw);
+    assert(number_at(qh, "mi") == pico8_qh_start.mi);
+    assert(number_at(qh, "s") == pico8_qh_start.s);
+    assert(pico8_qh_start.ba == &pico8_qh_ba_seq);
+    check_member_seq(qh, "ba", pico8_qh_start.ba);
+
+    assert(nl->count == 10);
+    assert(pico8_nl_start.nu == &pico8_nl_nu_tags);
+    check_member_tags(nl, pico8_nl_start.nu);
+    assert(strcmp(string_at(nl, "rr"), pico8_nl_start.rr) == 0);
+    check_pair(nl, "qh", pico8_nl_start.qh, pico8_nl_start.qh_is_bool);
+    assert(number_at(nl, "nl") == pico8_nl_start.nl);
+    assert(number_at(nl, "hp") == pico8_nl_start.hp);
+    assert(number_at(nl, "s") == pico8_nl_start.s);
+    assert(pico8_nl_start.px == &pico8_nl_px_row);
+    check_row(member_of(nl, "px"), pico8_nl_start.px, "nl.px");
+    assert(number_at(nl, "od") == pico8_nl_start.od);
+    assert(number_at(nl, "qw") == pico8_nl_start.qw);
+    assert(pico8_nl_start.ba == &pico8_nl_ba_seq);
+    check_member_seq(nl, "ba", pico8_nl_start.ba);
+
+    assert(os->count == 7);
+    assert(pico8_os_start.nu == &pico8_os_nu_tags);
+    check_member_tags(os, pico8_os_start.nu);
+    assert(number_at(os, "hp") == pico8_os_start.hp);
+    assert(pico8_os_start.px == &pico8_os_px_row);
+    check_row(member_of(os, "px"), pico8_os_start.px, "os.px");
+    check_pair(os, "qh", pico8_os_start.qh, pico8_os_start.qh_is_bool);
+    assert(number_at(os, "s") == pico8_os_start.s);
+    assert(number_at(os, "od") == pico8_os_start.od);
+    assert(number_at(os, "hs") == pico8_os_start.hs);
+
+    assert(hj->count == 18);
+    assert(pico8_hj_start.nu == &pico8_hj_nu_tags);
+    check_member_tags(hj, pico8_hj_start.nu);
+    assert(strcmp(string_at(hj, "rr"), pico8_hj_start.rr) == 0);
+    assert(number_at(hj, "hp") == pico8_hj_start.hp);
+    check_pair(hj, "qh", pico8_hj_start.qh, pico8_hj_start.qh_is_bool);
+    assert(pico8_hj_start.px == &pico8_hj_px_row);
+    check_row(member_of(hj, "px"), pico8_hj_start.px, "hj.px");
+    assert(number_at(hj, "od") == pico8_hj_start.od);
+    assert(number_at(hj, "s") == pico8_hj_start.s);
+    assert(number_at(hj, "py") == pico8_hj_start.py);
+    assert(number_at(hj, "ki") == pico8_hj_start.ki);
+    assert(number_at(hj, "pn") == pico8_hj_start.pn);
+    check_pair(hj, "pk", pico8_hj_start.pk, pico8_hj_start.pk_is_bool);
+    assert(number_at(hj, "fc") == pico8_hj_start.fc);
+    assert(pico8_hj_start.k_ == &pico8_hj_k__seq);
+    check_member_seq(hj, "k_", pico8_hj_start.k_);
+    assert(number_at(hj, "du") == pico8_hj_start.du);
+    assert(number_at(hj, "qo") == pico8_hj_start.qo);
+    assert(number_at(hj, "ro") == pico8_hj_start.ro);
+    assert(number_at(hj, "qg") == pico8_hj_start.qg);
+    assert(number_at(hj, "q_") == pico8_hj_start.q_);
+
+    assert(pm->count == 18);
+    assert(strcmp(string_at(pm, "fz"), pico8_pm_start.fz) == 0);
+    assert(pico8_pm_start.nu == &pico8_pm_nu_tags);
+    check_member_tags(pm, pico8_pm_start.nu);
+    assert(number_at(pm, "hp") == pico8_pm_start.hp);
+    assert(pico8_pm_start.px == &pico8_pm_px_row);
+    check_row(member_of(pm, "px"), pico8_pm_start.px, "pm.px");
+    assert(strcmp(string_at(pm, "me"), pico8_pm_start.me) == 0);
+    assert(number_at(pm, "s") == pico8_pm_start.s);
+    assert(number_at(pm, "py") == pico8_pm_start.py);
+    assert(number_at(pm, "ki") == pico8_pm_start.ki);
+    assert(number_at(pm, "pn") == pico8_pm_start.pn);
+    check_pair(pm, "pk", pico8_pm_start.pk, pico8_pm_start.pk_is_bool);
+    check_vec(vec_at(pm, "ng"), &pico8_pm_start.ng);
+    assert(number_at(pm, "du") == pico8_pm_start.du);
+    assert(number_at(pm, "fc") == pico8_pm_start.fc);
+    assert(pico8_pm_start.k_ == &pico8_pm_k__seq);
+    check_member_seq(pm, "k_", pico8_pm_start.k_);
+    assert(number_at(pm, "qo") == pico8_pm_start.qo);
+    assert(number_at(pm, "ro") == pico8_pm_start.ro);
+    assert(number_at(pm, "qg") == pico8_pm_start.qg);
+    assert(number_at(pm, "q_") == pico8_pm_start.q_);
+
+    assert(ga->count == 15);
+    assert(strcmp(string_at(ga, "fz"), pico8_ga_start.fz) == 0);
+    assert(pico8_ga_start.nu == &pico8_ga_nu_tags);
+    check_member_tags(ga, pico8_ga_start.nu);
+    check_pair(ga, "hf", pico8_ga_start.hf, pico8_ga_start.hf_is_bool);
+    assert(member_of(ga, "by")->count == 0);
+    check_box(box_at(ga, "kq"), &pico8_ga_start.kq);
+    assert(number_at(ga, "fa") == pico8_ga_start.fa);
+    assert(number_at(ga, "fc") == pico8_ga_start.fc);
+    assert(number_at(ga, "qo") == pico8_ga_start.qo);
+    assert(number_at(ga, "ro") == pico8_ga_start.ro);
+    assert(number_at(ga, "qg") == pico8_ga_start.qg);
+    assert(number_at(ga, "q_") == pico8_ga_start.q_);
+    assert(pico8_ga_start.k_ == &pico8_ga_k__seq);
+    check_member_seq(ga, "k_", pico8_ga_start.k_);
+    assert(number_at(ga, "iu") == pico8_ga_start.iu);
+    assert(number_at(ga, "py") == pico8_ga_start.py);
+    assert(number_at(ga, "ms") == pico8_ga_start.ms);
+
+    assert(nr->count == 8);
+    assert(pico8_nr_start.nu == &pico8_nr_nu_tags);
+    check_member_tags(nr, pico8_nr_start.nu);
+    assert(number_at(nr, "od") == pico8_nr_start.od);
+    assert(number_at(nr, "fp") == pico8_nr_start.fp);
+    check_box(box_at(nr, "kq"), &pico8_nr_start.kq);
+    assert(number_at(nr, "s") == pico8_nr_start.s);
+    assert(pico8_nr_start.hz == &pico8_nr_hz_seq);
+    check_member_seq(nr, "hz", pico8_nr_start.hz);
+    assert(number_at(nr, "dw") == pico8_nr_start.dw);
+    assert(strcmp(string_at(nr, "rr"), pico8_nr_start.rr) == 0);
+
+    assert(fr->count == 5);
+    assert(number_at(fr, "mt") == pico8_fr_start.mt);
+    assert(strcmp(string_at(fr, "rr"), pico8_fr_start.rr) == 0);
+    assert(number_at(fr, "od") == pico8_fr_start.od);
+    assert(number_at(fr, "s") == pico8_fr_start.s);
+    assert(pico8_fr_start.hz == &pico8_fr_hz_seq);
+    check_member_seq(fr, "hz", pico8_fr_start.hz);
+
+    assert(mx->count == 18);
+    assert(pico8_mx_start.nu == &pico8_mx_nu_tags);
+    check_member_tags(mx, pico8_mx_start.nu);
+    assert(strcmp(string_at(mx, "rr"), pico8_mx_start.rr) == 0);
+    assert(number_at(mx, "hp") == pico8_mx_start.hp);
+    assert(number_at(mx, "s") == pico8_mx_start.s);
+    assert(pico8_mx_start.px == &pico8_mx_px_row);
+    check_row(member_of(mx, "px"), pico8_mx_start.px, "mx.px");
+    assert(number_at(mx, "od") == pico8_mx_start.od);
+    assert(pico8_mx_start.ht == &pico8_mx_ht_seq);
+    check_member_seq(mx, "ht", pico8_mx_start.ht);
+    assert(number_at(mx, "py") == pico8_mx_start.py);
+    assert(number_at(mx, "ki") == pico8_mx_start.ki);
+    assert(number_at(mx, "pn") == pico8_mx_start.pn);
+    check_pair(mx, "pk", pico8_mx_start.pk, pico8_mx_start.pk_is_bool);
+    assert(number_at(mx, "fc") == pico8_mx_start.fc);
+    assert(pico8_mx_start.k_ == &pico8_mx_k__seq);
+    check_member_seq(mx, "k_", pico8_mx_start.k_);
+    assert(number_at(mx, "du") == pico8_mx_start.du);
+    assert(number_at(mx, "qo") == pico8_mx_start.qo);
+    assert(number_at(mx, "ro") == pico8_mx_start.ro);
+    assert(number_at(mx, "qg") == pico8_mx_start.qg);
+    assert(number_at(mx, "q_") == pico8_mx_start.q_);
+}
+
 static void test_rows_match_the_parsed_literals(void) {
     pico8_ob_table_t *fv = parse(FV_SRC);
     pico8_ob_table_t *hp = parse(HP_SRC);
@@ -1234,6 +1462,8 @@ int main(void) {
     test_other_classes_data_matches_the_parsed_literals();
     test_ke_and_interface_starts_match_the_parsed_class_strings();
     test_probe_help_research_panel_starts_match_the_parsed_class_strings();
+    test_jo_tree_starts_match_the_parsed_class_strings();
+    test_jo_tree_strings_are_distinct_objects();
     test_rows_match_the_parsed_literals();
     test_row_view_writes_fixed_items_then_c_then_fn();
     test_nb_lookup_finds_each_px();

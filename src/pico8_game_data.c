@@ -482,6 +482,183 @@ const pico8_pj_start_t pico8_pj_start = {
     .ed = 0x10000,
 };
 
+static const char jo_me_text[] = "unknown";
+static const char qh_me_text[] = "kz";
+static const char qh_dq_text[] = "ly";
+static const char nl_rr_text[] = "trade league";
+static const char hj_rr_text[] = "ascension";
+static const char pm_fz_text[] = "pm";
+static const char pm_me_text[] = "ly";
+static const char ga_fz_text[] = "ga";
+static const char nr_rr_text[] = "slipgates";
+static const char fr_rr_text[] = "infraspace";
+static const char mx_rr_text[] = "void synthesis";
+
+const pico8_jo_start_t pico8_jo_start = {
+    .nu = &pico8_jo_nu_tags,
+    .me = jo_me_text,
+    .hf = 0x10000,
+    .hf_is_bool = 0,
+    .hs = 0x10000,
+    .fa = 0x60000,
+    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .ma = 0x0,
+    .ka = &pico8_jo_ka_seq,
+    .dz = pico8_jo_dz_rows,
+    .cq = &pico8_jo_cq_seq,
+    .kw = &pico8_jo_kw_start,
+    .gq = {0x0, 0xb0000},
+    .ca = 0x90000,
+    .em = &pico8_jo_em_row,
+};
+
+const pico8_qh_start_t pico8_qh_start = {
+    .nu = &pico8_qh_nu_tags,
+    .hp = 0x10000,
+    .px = &pico8_qh_px_row,
+    .me = qh_me_text,
+    .dq = qh_dq_text,
+    .hf = 0,
+    .hf_is_bool = 1,
+    .qh = 0x10000,
+    .qh_is_bool = 0,
+    .od = 0xf0000,
+    .fp = 0x20000,
+    .dw = 0x666,
+    .mi = 0x10000,
+    .s = 0xae0000,
+    .ba = &pico8_qh_ba_seq,
+};
+
+const pico8_nl_start_t pico8_nl_start = {
+    .nu = &pico8_nl_nu_tags,
+    .rr = nl_rr_text,
+    .qh = 0,
+    .qh_is_bool = 1,
+    .nl = 0x10000,
+    .hp = 0x60000,
+    .s = 0x440000,
+    .px = &pico8_nl_px_row,
+    .od = 0x140000,
+    .qw = 0xf0000,
+    .ba = &pico8_nl_ba_seq,
+};
+
+const pico8_os_start_t pico8_os_start = {
+    .nu = &pico8_os_nu_tags,
+    .hp = 0x40000,
+    .px = &pico8_os_px_row,
+    .qh = 0,
+    .qh_is_bool = 1,
+    .s = 0x640000,
+    .od = 0xf0000,
+    .hs = 0x8000,
+};
+
+const pico8_hj_start_t pico8_hj_start = {
+    .nu = &pico8_hj_nu_tags,
+    .rr = hj_rr_text,
+    .hp = 0x20000,
+    .qh = 0,
+    .qh_is_bool = 1,
+    .px = &pico8_hj_px_row,
+    .od = 0x3c0000,
+    .s = 0xa60000,
+    .py = 0x1eb8,
+    .ki = 0x90000,
+    .pn = 0x50000,
+    .pk = 0x10000,
+    .pk_is_bool = 0,
+    .fc = 0x8000,
+    .k_ = &pico8_hj_k__seq,
+    .du = 0x78000,
+    .qo = 0xfae0,
+    .ro = -0x11ec,
+    .qg = 0x11ea,
+    .q_ = 0xfae0,
+};
+
+const pico8_pm_start_t pico8_pm_start = {
+    .fz = pm_fz_text,
+    .nu = &pico8_pm_nu_tags,
+    .hp = 0x30000,
+    .px = &pico8_pm_px_row,
+    .me = pm_me_text,
+    .s = 0x620000,
+    .py = 0xf5c,
+    .ki = 0x90000,
+    .pn = 0x80000,
+    .pk = 0,
+    .pk_is_bool = 1,
+    .ng = {0x10000, 0x0},
+    .du = 0x20000,
+    .fc = 0x10000,
+    .k_ = &pico8_pm_k__seq,
+    .qo = 0x1051e,
+    .ro = -0xd70,
+    .qg = 0xd70,
+    .q_ = 0x1051e,
+};
+
+const pico8_ga_start_t pico8_ga_start = {
+    .fz = ga_fz_text,
+    .nu = &pico8_ga_nu_tags,
+    .hf = 0,
+    .hf_is_bool = 1,
+    .kq = {0x0, 0x0, -0x10000, -0x10000},
+    .fa = 0x30000,
+    .fc = 0x0,
+    .qo = 0xe666,
+    .ro = 0x0,
+    .qg = 0x0,
+    .q_ = 0xe666,
+    .k_ = &pico8_ga_k__seq,
+    .iu = -0xf5c,
+    .py = 0x60000,
+    .ms = 0x30000,
+};
+
+const pico8_nr_start_t pico8_nr_start = {
+    .nu = &pico8_nr_nu_tags,
+    .od = 0xa0000,
+    .fp = 0x10000,
+    .kq = {-0x40000, -0x40000, 0x50000, 0x50000},
+    .s = 0xaa0000,
+    .hz = &pico8_nr_hz_seq,
+    .dw = 0x28e,
+    .rr = nr_rr_text,
+};
+
+const pico8_fr_start_t pico8_fr_start = {
+    .mt = 0x10000,
+    .rr = fr_rr_text,
+    .od = 0x190000,
+    .s = 0x4e0000,
+    .hz = &pico8_fr_hz_seq,
+};
+
+const pico8_mx_start_t pico8_mx_start = {
+    .nu = &pico8_mx_nu_tags,
+    .rr = mx_rr_text,
+    .hp = 0x50000,
+    .s = 0x420000,
+    .px = &pico8_mx_px_row,
+    .od = 0x280000,
+    .ht = &pico8_mx_ht_seq,
+    .py = 0x1eb8,
+    .ki = 0x90000,
+    .pn = 0x50000,
+    .pk = 0x10000,
+    .pk_is_bool = 0,
+    .fc = 0x4ccc,
+    .k_ = &pico8_mx_k__seq,
+    .du = 0x50000,
+    .qo = 0xfae0,
+    .ro = -0x11ec,
+    .qg = 0x11ea,
+    .q_ = 0xfae0,
+};
+
 int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {

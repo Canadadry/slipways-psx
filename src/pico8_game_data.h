@@ -256,6 +256,173 @@ typedef struct {
     pico8_fixed_t ed;
 } pico8_pj_start_t;
 
+/* The jo tree: each class's own keys only, the inherited ones are its parent's;
+ * ga.by, an empty state list, is held by its module. */
+typedef struct {
+    const pico8_str_seq_t *nu;
+    const char *me;
+    pico8_fixed_t hf;
+    int hf_is_bool;
+    pico8_fixed_t hs;
+    pico8_fixed_t fa;
+    pico8_qz_box_t kq;
+    pico8_fixed_t ma;
+    const pico8_int_seq_t *ka;
+    const pico8_jb_row_t *dz;
+    const pico8_int_seq_t *cq;
+    const pico8_kw_t *kw;
+    pico8_vec_t gq;
+    pico8_fixed_t ca;
+    const pico8_jb_row_t *em;
+} pico8_jo_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    pico8_fixed_t hp;
+    const pico8_jb_row_t *px;
+    const char *me;
+    const char *dq;
+    pico8_fixed_t hf;
+    int hf_is_bool;
+    pico8_fixed_t qh;
+    int qh_is_bool;
+    pico8_fixed_t od;
+    pico8_fixed_t fp;
+    pico8_fixed_t dw;
+    pico8_fixed_t mi;
+    pico8_fixed_t s;
+    const pico8_int_seq_t *ba;
+} pico8_qh_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    const char *rr;
+    pico8_fixed_t qh;
+    int qh_is_bool;
+    pico8_fixed_t nl;
+    pico8_fixed_t hp;
+    pico8_fixed_t s;
+    const pico8_jb_row_t *px;
+    pico8_fixed_t od;
+    pico8_fixed_t qw;
+    const pico8_int_seq_t *ba;
+} pico8_nl_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    pico8_fixed_t hp;
+    const pico8_jb_row_t *px;
+    pico8_fixed_t qh;
+    int qh_is_bool;
+    pico8_fixed_t s;
+    pico8_fixed_t od;
+    pico8_fixed_t hs;
+} pico8_os_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    const char *rr;
+    pico8_fixed_t hp;
+    pico8_fixed_t qh;
+    int qh_is_bool;
+    const pico8_jb_row_t *px;
+    pico8_fixed_t od;
+    pico8_fixed_t s;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pn;
+    pico8_fixed_t pk;
+    int pk_is_bool;
+    pico8_fixed_t fc;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t du;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+} pico8_hj_start_t;
+
+typedef struct {
+    const char *fz;
+    const pico8_str_seq_t *nu;
+    pico8_fixed_t hp;
+    const pico8_jb_row_t *px;
+    const char *me;
+    pico8_fixed_t s;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pn;
+    pico8_fixed_t pk;
+    int pk_is_bool;
+    pico8_vec_t ng;
+    pico8_fixed_t du;
+    pico8_fixed_t fc;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+} pico8_pm_start_t;
+
+typedef struct {
+    const char *fz;
+    const pico8_str_seq_t *nu;
+    pico8_fixed_t hf;
+    int hf_is_bool;
+    pico8_qz_box_t kq;
+    pico8_fixed_t fa;
+    pico8_fixed_t fc;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t iu;
+    pico8_fixed_t py;
+    pico8_fixed_t ms;
+} pico8_ga_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    pico8_fixed_t od;
+    pico8_fixed_t fp;
+    pico8_qz_box_t kq;
+    pico8_fixed_t s;
+    const pico8_int_seq_t *hz;
+    pico8_fixed_t dw;
+    const char *rr;
+} pico8_nr_start_t;
+
+typedef struct {
+    pico8_fixed_t mt;
+    const char *rr;
+    pico8_fixed_t od;
+    pico8_fixed_t s;
+    const pico8_int_seq_t *hz;
+} pico8_fr_start_t;
+
+typedef struct {
+    const pico8_str_seq_t *nu;
+    const char *rr;
+    pico8_fixed_t hp;
+    pico8_fixed_t s;
+    const pico8_jb_row_t *px;
+    pico8_fixed_t od;
+    const pico8_int_seq_t *ht;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pn;
+    pico8_fixed_t pk;
+    int pk_is_bool;
+    pico8_fixed_t fc;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t du;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+} pico8_mx_start_t;
+
 extern const int pico8_es_table[PICO8_ES_COUNT];
 extern const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
 extern const int pico8_b__table[PICO8_B__COUNT];
@@ -347,6 +514,16 @@ extern const pico8_hp_start_t pico8_hp_start;
 /* ie's class keys, and the kq, ra, eh every icon points at. */
 extern const pico8_ie_start_t pico8_ie_start;
 extern const pico8_pj_start_t pico8_pj_start;
+extern const pico8_jo_start_t pico8_jo_start;
+extern const pico8_qh_start_t pico8_qh_start;
+extern const pico8_nl_start_t pico8_nl_start;
+extern const pico8_os_start_t pico8_os_start;
+extern const pico8_hj_start_t pico8_hj_start;
+extern const pico8_pm_start_t pico8_pm_start;
+extern const pico8_ga_start_t pico8_ga_start;
+extern const pico8_nr_start_t pico8_nr_start;
+extern const pico8_fr_start_t pico8_fr_start;
+extern const pico8_mx_start_t pico8_mx_start;
 /* mz.jj's qs: the table jj=o(qs=...) of mz's spec. */
 extern const char pico8_mz_jj_qs[];
 
