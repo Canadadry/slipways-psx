@@ -72,7 +72,7 @@
 #define LEFT_HASH 0xBD9BC256u
 #define CJ_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
-#define KE_ME_HASH 0x691ED215u
+#define KE_ME_HASH 0xD2ED2BC5u
 #define KE_T_HASH 0x5DB51DEEu
 #define JO_MEMBERS_HASH 0x62CB3FF0u
 #define JO_WRITTEN_HASH 0x20E44B74u
@@ -1100,7 +1100,7 @@ static const char *spec_me(int (*reader)(const char *, pico8_value_t *)) {
 }
 
 static int identity_of(const char *s) {
-    if (s == spec_me(pico8_ke_default)) {
+    if (s == pico8_ke_start.me) {
         return 1;
     }
     if (s == spec_me(pico8_jo_default)) {
@@ -1126,7 +1126,7 @@ static void test_ke_me_by_name(void) {
     static const char *const want[24] = {"ph", "ph",      "ph", "ph", "unknown", "kz", "kz", "kz",
                                          "kz", "ly",      "unknown", "kz", "kz", "kz", "ph", "ph",
                                          "ph", "ph",      "ph", "kz", "ph", "ph", "ph", "kz"};
-    static const int identity[24] = {0, 0, 0, 0, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
     static const char *const intruders[] = {"", "m", "mee", "me ", "has_me", "ke"};
     char s[] = "ll";
     void *e[24];

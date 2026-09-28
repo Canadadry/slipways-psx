@@ -14,8 +14,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` |
-| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; le port parse la spec à l'init du module de la classe, et `pico8_X_default` la lit, puis la parente — sauf pour les classes d'interface (`bg`, `ui`, `js`, `fq`, `lq`, `jb`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`), qui n'ont plus de spec parsée |
-| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` à part ; `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc` (`lq` et `jb` ont une spec vide) |
+| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; le port parse la spec à l'init du module de la classe, et `pico8_X_default` la lit, puis la parente — sauf pour `ke` et les classes d'interface (`bg`, `ui`, `js`, `fq`, `lq`, `jb`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`), qui n'ont plus de spec parsée ; au bout de la chaîne, `pico8_ke_start_field` lit `pico8_ke_start` par nom |
+| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc` (`lq` et `jb` ont une spec vide) |
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |

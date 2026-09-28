@@ -103,6 +103,11 @@ typedef struct {
 /* The values a new instance of a class starts with: exactly the keys of the
  * class's spec, ke's left out, under the struct's own member types. */
 typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+} pico8_ke_start_t;
+
+typedef struct {
     pico8_fixed_t fa;
     pico8_fixed_t hd;
     const pico8_int_seq_t *pl;
@@ -243,6 +248,7 @@ extern const pico8_jb_row_t pico8_pj_i__row;
 
 /* lq and jb have an empty spec, hence no object; ui.le, nf.l and nf.r are
  * empty tables, held by their module. */
+extern const pico8_ke_start_t pico8_ke_start;
 extern const pico8_bg_start_t pico8_bg_start;
 extern const pico8_ui_start_t pico8_ui_start;
 extern const pico8_js_start_t pico8_js_start;

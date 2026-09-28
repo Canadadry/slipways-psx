@@ -494,7 +494,7 @@ int pico8_ie_ready(void) {
 
 int pico8_ie_default(const char *name, pico8_value_t *out_value) {
     return g_ie_chain_spec != NULL &&
-           (pico8_ob_table_get_name(g_ie_chain_spec, name, out_value) || pico8_ke_default(name, out_value));
+           (pico8_ob_table_get_name(g_ie_chain_spec, name, out_value) || pico8_ke_start_field(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_ie_struct_class(void) {

@@ -854,7 +854,7 @@ int pico8_g__ready(void) {
 
 int pico8_g__default(const char *name, pico8_value_t *out_value) {
     return g_g__spec != NULL &&
-           (pico8_ob_table_get_name(g_g__spec, name, out_value) || pico8_ke_default(name, out_value));
+           (pico8_ob_table_get_name(g_g__spec, name, out_value) || pico8_ke_start_field(name, out_value));
 }
 
 const pico8_struct_class_t *pico8_g__struct_class(void) {

@@ -47,7 +47,7 @@ static pico8_input_t input;
 static int spec_field(int i, const char *name, pico8_value_t *out) {
     switch (i) {
     case M_KE:
-        return pico8_ke_default(name, out);
+        return pico8_ke_start_field(name, out);
     case M_JO:
         return pico8_jo_default(name, out);
     case M_QH:
@@ -443,9 +443,9 @@ static void test_struct_defaults(void) {
     check("struct", h, STRUCT_HASH);
 }
 
-/* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves its
- * spec alone: `t`, which only ke's spec sets, and ke's `me`, which `g_`
- * inherits, are still the very values of before. */
+/* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves it
+ * alone: `t`, which only ke sets, and ke's `me`, which `g_` inherits, are
+ * still the very values of before, those of `pico8_ke_start`. */
 static void test_second_jl_keeps_ke(void) {
     pico8_value_t me_before;
     pico8_value_t t_before;
@@ -459,6 +459,7 @@ static void test_second_jl_keeps_ke(void) {
     }
     assert(spec_field(M_KE, "me", &v) && same_value(v, me_before));
     assert(pico8_g__default("me", &v) && same_value(v, me_before));
+    assert(strcmp(pico8_ke_start.me, "ph") == 0 && pico8_ke_start.t == 0);
 }
 
 int main(void) {

@@ -29,9 +29,8 @@ void pico8_jl(void) {
 
     pico8_entity_init();
 
-    /* Build once, never rebuild: a second parse of ke's spec would free the
-     * values pico8_ke_default() already handed out. `ke` must exist before
-     * `qb`/`nf`/`ui`, whose inits assert it. */
+    /* Build once, never rebuild. `ke` must exist before `qb`/`nf`/`ui`,
+     * whose inits assert it. */
     if (!pico8_ke_ready()) {
         pico8_ke_init();
     }

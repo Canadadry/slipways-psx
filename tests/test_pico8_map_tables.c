@@ -706,7 +706,9 @@ static const char *const FV_SRC =
     "o(\"need help?\",40,110,13,fn=\"qr\"),\n"
     "o(\"slipways.net/help\",40,116,5,fn=\"qr\"),\n"
     "),\n";
-/* The class strings the interface modules parsed at init, byte for byte. */
+/* The class strings ke and the interface modules parsed at init, byte for
+ * byte. */
+static const char *const KE_SRC = "\nme=\"ph\",t=0,\n";
 static const char *const BG_SRC = "\nfa=1,hd=1,pl=o(0,0,0,72,73,74,75,88,89,90,91,88,91,89,91),\n";
 static const char *const UI_SRC = "\nql=58,fa=15,le=o(),hw=b(10,10,118,118),\n";
 static const char *const JS_SRC = "\nfa=11,\n";
@@ -945,7 +947,8 @@ static void check_vec(const pico8_vec_t *parsed, const pico8_vec_t *start) {
 /* Both ways: every key the string parses to is one of the class's generated
  * fields (or one of the empty tables its module holds), equal to it, and the
  * key count is the number of fields checked. */
-static void test_interface_starts_match_the_parsed_class_strings(void) {
+static void test_ke_and_interface_starts_match_the_parsed_class_strings(void) {
+    pico8_ob_table_t *ke = parse(KE_SRC);
     pico8_ob_table_t *bg = parse(BG_SRC);
     pico8_ob_table_t *ui = parse(UI_SRC);
     pico8_ob_table_t *js = parse(JS_SRC);
@@ -959,6 +962,9 @@ static void test_interface_starts_match_the_parsed_class_strings(void) {
     const pico8_qz_box_t *hw;
     const pico8_ob_table_t *jj;
     pico8_value_t v;
+
+    assert(ke->count == 2);
+    assert(strcmp(string_at(ke, "me"), pico8_ke_start.me) == 0 && number_at(ke, "t") == pico8_ke_start.t);
 
     assert(bg->count == 3);
     assert(number_at(bg, "fa") == pico8_bg_start.fa && number_at(bg, "hd") == pico8_bg_start.hd);
@@ -1114,7 +1120,7 @@ int main(void) {
     test_int_seq_has_fixed_keeps_gu_on_integers();
     test_jo_tree_data_matches_the_parsed_class_literals();
     test_other_classes_data_matches_the_parsed_literals();
-    test_interface_starts_match_the_parsed_class_strings();
+    test_ke_and_interface_starts_match_the_parsed_class_strings();
     test_rows_match_the_parsed_literals();
     test_row_view_writes_fixed_items_then_c_then_fn();
     test_nb_lookup_finds_each_px();

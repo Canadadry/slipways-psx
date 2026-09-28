@@ -44,7 +44,7 @@
 
 #define READY_HASH 0x05313C64u
 #define SPEC_HASH 0x067B24A6u
-#define STRUCT_HASH 0xEA770012u
+#define STRUCT_HASH 0x1A95E7B2u
 
 enum {
     M_TRADE,
@@ -427,7 +427,7 @@ static void test_bg_defaults_and_ready(void) {
 
     assert(bg->fa == pico8_bg_start.fa && bg->hd == pico8_bg_start.hd);
     assert(bg->pl == pico8_bg_start.pl && bg->pl == &pico8_bg_pl_seq);
-    assert(strcmp(bg->ke.me, "ph") == 0 && bg->ke.t == 0);
+    assert(bg->ke.me == pico8_ke_start.me && bg->ke.t == pico8_ke_start.t);
     assert(pico8_bg_ready());
     pico8_bg_shutdown();
     assert(!pico8_bg_ready());
@@ -437,7 +437,7 @@ static void test_js_defaults_and_ready(void) {
     pico8_js_t *js = pico8_js_new(NULL);
 
     assert(js->fa == pico8_js_start.fa);
-    assert(strcmp(js->ke.me, "ph") == 0 && js->ke.t == 0);
+    assert(js->ke.me == pico8_ke_start.me && js->ke.t == pico8_ke_start.t);
     assert(pico8_js_ready());
     pico8_js_shutdown();
     assert(!pico8_js_ready());
@@ -449,7 +449,7 @@ static void test_qb_defaults_and_ready(void) {
 
     assert(qb->v == &pico8_qb_start.v && qb->p == &pico8_qb_start.p && qb->ra == &pico8_qb_start.ra);
     assert(qb->ma == pico8_qb_start.ma && qb->pc == pico8_qb_start.pc && qb->pc == &pico8_qb_pc_vecs);
-    assert(strcmp(qb->ke.me, "ph") == 0 && qb->ke.t == 0);
+    assert(qb->ke.me == pico8_ke_start.me && qb->ke.t == pico8_ke_start.t);
     assert(pico8_qb_ready());
     pico8_qb_shutdown();
     assert(!pico8_qb_ready());
@@ -459,7 +459,7 @@ static void test_qb_defaults_and_ready(void) {
 static void test_mz_defaults_and_ready(void) {
     pico8_mz_t *mz = pico8_mz_new(NULL);
 
-    assert(mz->ke.me == pico8_mz_start.me && strcmp(mz->ke.me, "kz") == 0 && mz->ke.t == 0);
+    assert(mz->ke.me == pico8_mz_start.me && strcmp(mz->ke.me, "kz") == 0 && mz->ke.t == pico8_ke_start.t);
     assert(mz->nu == pico8_mz_start.nu && mz->kk == pico8_mz_start.kk);
     assert(mz->dw == pico8_mz_start.dw && mz->dq == pico8_mz_start.dq);
     assert(mz->spawn_snd == pico8_mz_start.spawn_snd && mz->ik == pico8_mz_start.ik);
