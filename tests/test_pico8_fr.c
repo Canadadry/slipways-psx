@@ -3,8 +3,7 @@
  * `pico8_qh_default()` and `pico8_jo_default()` for spec defaults, built as
  * the shop builds it (`ie:ldown` on `gx[3]`, `id`) and driven through the
  * real `mv`/`dg`/`dc`. Its methods are compared to those of a slipgate built
- * in the same game. The frozen values were taken on the code where `fr` was
- * still a class instance and must not be re-taken. */
+ * in the same game, started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -21,7 +20,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_economy_tiers.h"
@@ -44,7 +42,6 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
 
 #define BUILT_HASH 0xA5047E01u
 #define LIFE_HASH 0x8B3BFBB2u
@@ -54,7 +51,6 @@
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* fr's own `mt`, then nr's `hz` and `rr`, the 10 members of `qh`, the 31
  * of `jo`. */
@@ -210,19 +206,11 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_game(const char *events) {
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
-    pico8_dispatch_set_input(&input);
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8__init();
-    pico8_cheat_init(&cheat);
-    pico8_eu(pico8_js_new(bo_row(2)));
+    pico8_eu(NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -348,7 +336,7 @@ static void test_built(void) {
     void *slipgate;
     void *b;
 
-    start_game(EMPTY);
+    start_game();
     a = build_gate();
     slipgate = build(pico8_nr_kind());
     b = build_gate();
@@ -437,7 +425,7 @@ static void test_life(void) {
     pico8_value_t oe;
     int i;
 
-    start_game(EMPTY);
+    start_game();
     idle = build_gate();
     h = fold_field(h, idle, "me");
     h = fold_dg(h, idle);
@@ -579,7 +567,7 @@ static void test_fr_is_a_struct(void) {
     int j;
     int named = 0;
 
-    start_game(EMPTY);
+    start_game();
     a = build_gate();
     assert(is_an_fr_struct(a) && cls != nr && listed(pico8_cg("nr"), a));
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
@@ -664,7 +652,7 @@ static void test_nr_members_by_name(void) {
     size_t n;
     int k;
 
-    start_game(EMPTY);
+    start_game();
     slipgates[0] = pico8_nr_new(NULL);
     slipgates[1] = build(pico8_nr_kind());
     gates[0] = pico8_fr_new(NULL);
@@ -706,7 +694,7 @@ static void test_fr_mt_by_name(void) {
     size_t n;
     int k;
 
-    start_game(EMPTY);
+    start_game();
     gates[0] = pico8_fr_new(NULL);
     gates[1] = build_gate();
     for (k = 0; k < 2; k++) {
