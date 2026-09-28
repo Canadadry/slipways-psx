@@ -47,7 +47,7 @@
 #include "pico8_wormhole.h"
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
- * inits of their own (stash/research, score-panel display); listing those
+ * inits of their own (research, score-panel display); listing those
  * here would run them twice. */
 void pico8_cart_load(void) {
     pico8_mem_t *mem;

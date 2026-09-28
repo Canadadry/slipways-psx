@@ -417,14 +417,14 @@ static uint32_t fold_functions(uint32_t h) {
 
     for (k = 1; k <= GB_COUNT; k++) {
         void *b = project(k);
-        const pico8_ob_table_t *po = pico8_hp_po(b);
+        const pico8_hc_entry_t *po = pico8_hp_po(b);
         pico8_ob_table_t *jb = pico8_hp_jb(b);
         pico8_value_t member;
         pico8_value_t via_mv;
         uint32_t lq_h;
 
         h = fnv(h, (uint32_t)k);
-        h = fnv(h, (uint32_t)(po == NULL ? -2 : entry_of(pico8_hc(), po)));
+        h = fnv(h, (uint32_t)(po == NULL ? -2 : (int)(po - pico8_hc_table)));
         h = fnv(h, (uint32_t)pico8_hp_od(b));
         h = jb == NULL ? fnv(h, 0xDEADu) : fold_value(h, pico8_value_ref(jb), 4);
         assert((jb == NULL) == has(b, "ii"));

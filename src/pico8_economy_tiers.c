@@ -176,16 +176,6 @@ void pico8_bd(void) {
     for_each_cg("jo", bd_route_visit, NULL);
 }
 
-/* Lua's `#t`: `count` would also tally named keys, and hc["-"] carries mc. */
-static int ob_sequence_length(const pico8_ob_table_t *t) {
-    pico8_value_t v;
-    int n = 0;
-    while (pico8_ob_table_get_index(t, n + 1, &v)) {
-        n++;
-    }
-    return n;
-}
-
 static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
     int *jg = (int *)ctx;
     pico8_fixed_t jw;
@@ -223,19 +213,17 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
     if (mi != pico8_fixed_from_int(0)) {
         pico8_hp_t *hn = (pico8_hp_t *)field_ref_instance(pt, "hn");
         if (hn != NULL) {
-            const pico8_ob_table_t *po = pico8_hp_po(hn);
+            const pico8_hc_entry_t *po = pico8_hp_po(hn);
             if (po != NULL) {
                 int idx = pico8_fixed_flr_int(mi);
-                int po_len = ob_sequence_length(po);
-                int clamped_idx = (idx < po_len) ? idx : po_len;
-                pico8_value_t po_val;
+                int clamped_idx = (idx < po->count) ? idx : po->count;
                 pico8_fixed_t base = pico8_fixed_from_int(0);
                 pico8_fixed_t jh = pico8_fixed_from_int(0);
                 pico8_value_t jh_val;
                 pico8_value_t kw_val;
 
-                if (pico8_ob_table_get_index(po, clamped_idx, &po_val) && po_val.kind == PICO8_VALUE_FIXED) {
-                    base = po_val.as.fixed;
+                if (clamped_idx >= 1) {
+                    base = pico8_fixed_from_int(po->values[clamped_idx - 1]);
                 }
                 if (pico8_entity_get_field(pt, "jh", &jh_val) && jh_val.kind == PICO8_VALUE_FIXED) {
                     jh = jh_val.as.fixed;

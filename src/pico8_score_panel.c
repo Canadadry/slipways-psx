@@ -12,12 +12,12 @@
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
+#include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_score_panel_display.h"
-#include "pico8_stash.h"
 #include "pico8_struct.h"
 #include "pico8_type_tag.h"
 #include "pico8_vec.h"
@@ -262,7 +262,6 @@ void pico8_pj_hb(void) {
     pico8_fixed_t fm_lo = fm_field_fixed(fm, "lo");
     pico8_value_t fm_yr = fm_field_value(fm, "yr");
     const pico8_ob_table_t *fm_po = fm_field_ref_table(fm, "po");
-    const pico8_ob_table_t *r = pico8_r();
     pico8_ob_table_t *ou_table;
     pico8_value_t ou[7];
     char *cf;
@@ -283,11 +282,12 @@ void pico8_pj_hb(void) {
     ou[2] = fm_jk;
 
     {
-        pico8_value_t k_key;
+        int k_key;
         pico8_value_t po_val = pico8_value_fixed(pico8_fixed_from_int(0));
-        if (r != NULL && pico8_ob_table_get_name(r, "k", &k_key)) {
+        if (pico8_r_lookup("k", &k_key)) {
             pico8_value_t looked;
-            if (get_by_value(fm_po, k_key, &looked) && looked.kind == PICO8_VALUE_FIXED) {
+            if (get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(k_key)), &looked) &&
+                looked.kind == PICO8_VALUE_FIXED) {
                 po_val = looked;
             }
         }

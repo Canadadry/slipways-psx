@@ -39,8 +39,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `gt` | `PICO8_GT` | alphabet de 51 caractères de `unstash` |
 | `unstash(pd)` | `pico8_unstash` | décode une chaîne depuis la mémoire cart, un octet = un index dans `gt`, l'octet 0 termine |
-| `r` | `pico8_r` | table décodée depuis l'adresse 8192 |
-| `iz` | `pico8_iz` | table décodée depuis l'adresse 8259 |
+| `r` | `pico8_r_table`, `pico8_r_lookup` ; `pico8_r` (décodée par `pico8_stash_init`) | table décodée depuis l'adresse 8192 |
+| `iz` | `pico8_iz_table`, `pico8_iz_lookup` ; `pico8_iz` (décodée par `pico8_stash_init`) | table décodée depuis l'adresse 8259 |
 | `es` | `pico8_es` | table de correspondance de `da()` |
 | `ct` | `pico8_ct` | bonus par palier du partenaire commercial, lu par `db()` |
 | `b_` | `pico8_b_` | table de score de `ky()` |
@@ -117,11 +117,11 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `df` | `pico8_df` | catalogue des types de planète, tiré au sort par `bw()` |
-| `hc` | `pico8_hc` | données lues par `hp:po()` |
-| `fd` | `pico8_fd` | données des projets de recherche, source de `gb` |
+| `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
+| `fd` | `pico8_fd_table` ; vue ob `pico8_fd` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; la vue est la table ob que `build_gb` reçoit |
 | `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
-| `dr` | `pico8_dr` | les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
-| `nb` | `pico8_nb` | liste des technologies, lue et mutée par `cb()`/`gi()` |
+| `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
+| `nb` | `pico8_nb_table` ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` |
 | `ek` | `pico8_ek` | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
 ## Commerce
@@ -413,6 +413,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
 | `lq` | `pico8_lq_t` | une rangée d'icônes mise en page |
 | `jb` | `pico8_jb_t` | une bulle d'info |
+| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`) : une rangée de chaînes, de nombres et de rangées, avec son `c` éventuel |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
 | `js` | `pico8_js_t` | un bouton cliquable |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |

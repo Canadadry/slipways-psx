@@ -11,12 +11,12 @@
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_hud.h"
+#include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_research_display.h"
-#include "pico8_stash.h"
 #include "pico8_ref_audit.h"
 #include "pico8_type_tag.h"
 
@@ -200,14 +200,14 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
         const pico8_ob_table_t *kw = self->kw;
         pico8_value_t kw_qe = pico8_value_ref(NULL);
-        pico8_value_t r_w;
+        int r_w;
         int qe_is_r_w;
 
         if (kw != NULL) {
             pico8_ob_table_get_name(kw, "qe", &kw_qe);
         }
         /* TROU-3 */
-        qe_is_r_w = pico8_ob_table_get_name(pico8_r(), "w", &r_w) && pico8_value_equal(kw_qe, r_w);
+        qe_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(kw_qe, pico8_value_fixed(pico8_fixed_from_int(r_w)));
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
             pico8_list_t prefix;

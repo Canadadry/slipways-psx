@@ -2,7 +2,7 @@
 
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
-#include "pico8_stash.h"
+#include "pico8_map_tables.h"
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
@@ -87,13 +87,10 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 }
 
 pico8_ob_table_t *pico8_cm(pico8_fixed_t jm) {
-    const pico8_ob_table_t *r = pico8_r();
     pico8_ob_table_t *p = pico8_ob_table_new();
     int i;
-    if (r != NULL) {
-        for (i = 0; i < r->count; i++) {
-            set_by_value(p, r->entries[i].value, pico8_value_fixed(jm));
-        }
+    for (i = 0; i < PICO8_R_COUNT; i++) {
+        set_by_value(p, pico8_value_fixed(pico8_fixed_from_int(pico8_r_table[i].qe)), pico8_value_fixed(jm));
     }
     return p;
 }

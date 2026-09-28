@@ -2,6 +2,7 @@
 #define PICO8_RESEARCH_H
 
 #include "pico8_fixed.h"
+#include "pico8_map_tables.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -82,9 +83,9 @@ void pico8_research_build_gb(const pico8_ob_table_t *fd);
 /* Owned by this module; callers must not free it. */
 const pico8_ob_table_t *pico8_gb(void);
 
-/* Returns an `hc` entry borrowed from `hc`'s own storage, never a copy, or
- * NULL when `self.ja` does not resolve to one. */
-const pico8_ob_table_t *pico8_hp_po(const pico8_hp_t *self);
+/* Returns an entry of pico8_hc_table, never a copy, or NULL when `self.ja`
+ * does not resolve to one. */
+const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self);
 
 pico8_fixed_t pico8_hp_od(const pico8_hp_t *self);
 

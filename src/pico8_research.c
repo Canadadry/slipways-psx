@@ -8,7 +8,6 @@
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
 #include "pico8_research_display.h"
-#include "pico8_stash.h"
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
@@ -280,15 +279,16 @@ static void hp_take_il(const pico8_ob_table_t *ri, const char **out, int *has) {
  * one: the Lua table constructor is non-nil even when `r[c]` is absent. */
 static int pico8_hp_pq_i_step(char c, int i, void *ctx, pico8_value_t *out_value) {
     pico8_ob_table_t *wrapper = pico8_ob_table_new();
-    pico8_value_t qe;
+    pico8_value_t qe = pico8_value_ref(NULL);
+    int r_qe;
     char key[2];
 
     (void)i;
     (void)ctx;
     key[0] = c;
     key[1] = '\0';
-    if (!pico8_ob_table_get_name(pico8_r(), key, &qe)) {
-        qe = pico8_value_ref(NULL);
+    if (pico8_r_lookup(key, &r_qe)) {
+        qe = pico8_value_fixed(pico8_fixed_from_int(r_qe));
     }
     pico8_ob_table_set_name(wrapper, "qe", qe);
     *out_value = pico8_value_ref(wrapper);
@@ -523,46 +523,24 @@ const pico8_ob_table_t *pico8_gb(void) {
     return g_gb;
 }
 
-/* `hc[key]`, where the key's Lua type is only known at runtime: a FIXED
- * key indexes, a STRING key names. */
-static int pico8_research_lookup(const pico8_ob_table_t *table, pico8_value_t key, pico8_value_t *out) {
-    if (table == NULL) {
-        return 0;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
-    }
-    if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        return pico8_ob_table_get_name(table, key.as.string, out);
-    }
-    return 0;
-}
-
-const pico8_ob_table_t *pico8_hp_po(const pico8_hp_t *self) {
-    pico8_value_t qp_val;
+const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self) {
     pico8_value_t il;
-    const pico8_ob_table_t *qp = NULL;
+    const pico8_hc_entry_t *qp = NULL;
 
     pico8_hp_assert(self);
     if (self == NULL) {
         return NULL;
     }
-    if (pico8_research_lookup(pico8_hc(), self->ja != NULL ? pico8_value_string(self->ja) : pico8_value_ref(NULL),
-                              &qp_val) &&
-        qp_val.kind == PICO8_VALUE_REF) {
-        qp = qp_val.as.ref;
+    if (self->ja != NULL) {
+        qp = pico8_hc_lookup(self->ja);
     }
 
     il = pico8_hp_il(self);
-    if (pico8_research_truthy(il) && pico8_oj(il) && qp != NULL) {
-        pico8_value_t mc_val;
+    if (pico8_research_truthy(il) && pico8_oj(il) && qp != NULL && qp->mc != NULL) {
+        const pico8_hc_entry_t *hc_mc = pico8_hc_lookup(qp->mc);
 
-        if (pico8_ob_table_get_name(qp, "mc", &mc_val)) {
-            pico8_value_t hc_mc;
-
-            if (pico8_research_lookup(pico8_hc(), mc_val, &hc_mc) && hc_mc.kind == PICO8_VALUE_REF) {
-                return hc_mc.as.ref;
-            }
+        if (hc_mc != NULL) {
+            return hc_mc;
         }
     }
     return qp;

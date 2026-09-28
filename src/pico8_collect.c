@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_stash.h"
+#include "pico8_map_tables.h"
 #include "pico8_ref_audit.h"
 
 void pico8_ft_index(pico8_ob_table_t *rc, int nt, pico8_value_t pu) {
@@ -176,7 +176,6 @@ char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
 }
 
 void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico8_list_t *gp, pico8_ob_table_t *ri) {
-    const pico8_ob_table_t *r = pico8_r();
     pico8_value_t px_val;
     int i;
 
@@ -201,13 +200,13 @@ void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico
         }
 
         if (pico8_gu_content(gp, p_val)) {
-            /* `r[ri[i]]`: the raw value is the key, a number indexing `r` by
-             * index and a string indexing it by name. */
+            /* `r[ri[i]]`: the raw value is the key. r only has named keys, so
+             * a number never finds an entry and the raw value stays. */
+            int qe;
+
             new_value = raw;
-            if (raw.kind == PICO8_VALUE_FIXED) {
-                pico8_ob_table_get_index(r, pico8_fixed_flr_int(raw.as.fixed), &new_value);
-            } else if (raw.kind == PICO8_VALUE_STRING) {
-                pico8_ob_table_get_name(r, raw.as.string, &new_value);
+            if (raw.kind == PICO8_VALUE_STRING && pico8_r_lookup(raw.as.string, &qe)) {
+                new_value = pico8_value_fixed(pico8_fixed_from_int(qe));
             }
         } else {
             new_value = raw;

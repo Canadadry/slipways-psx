@@ -6,8 +6,8 @@
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
+#include "pico8_map_tables.h"
 #include "pico8_probe.h"
-#include "pico8_stash.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 
@@ -138,7 +138,6 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     pico8_fixed_t total = pico8_fixed_from_int(0);
     const pico8_list_t *by = field_list(pt, "by");
     const pico8_ob_table_t *ct = pico8_ct();
-    const pico8_ob_table_t *r = pico8_r();
     const pico8_js_t *dk = pico8_dk();
     pico8_value_t pt_mi_val;
     pico8_fixed_t pt_mi = pico8_fixed_from_int(0);
@@ -200,12 +199,12 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
 
     {
         const pico8_ob_table_t *kw = field_ref_table(pt, "kw");
-        if (kw != NULL && r != NULL) {
+        if (kw != NULL) {
             pico8_value_t qe_val;
-            pico8_value_t w_val;
+            int w;
             /* TROU-3 */
-            if (pico8_ob_table_get_name(kw, "qe", &qe_val) && pico8_ob_table_get_name(r, "w", &w_val) &&
-                economy_value_equal_content(qe_val, w_val)) {
+            if (pico8_ob_table_get_name(kw, "qe", &qe_val) && pico8_r_lookup("w", &w) &&
+                economy_value_equal_content(qe_val, pico8_value_fixed(pico8_fixed_from_int(w)))) {
                 pico8_fixed_t mu = pico8_fixed_from_int(0);
                 pico8_value_t mu_val;
                 pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
@@ -263,7 +262,6 @@ pico8_ob_table_t *pico8_ky(void) {
     pico8_fixed_t happiness = field_fixed(pico8_fm(), "happiness");
     const pico8_list_t *invented = field_list(pico8_fm(), "invented");
     int invented_count = (invented != NULL) ? invented->count : 0;
-    const pico8_ob_table_t *r = pico8_r();
     const pico8_ob_table_t *fm_po = field_ref_table(pico8_fm(), "po");
     char *happiness_str;
     pico8_ob_table_t *result;
@@ -272,10 +270,10 @@ pico8_ob_table_t *pico8_ky(void) {
     di_ctx.table = pico8_b_();
     for_each_cg("jo", sum_by_mi_visit, &di_ctx);
 
-    if (fm_po != NULL && r != NULL) {
-        pico8_value_t p_val;
+    if (fm_po != NULL) {
+        int p;
         pico8_value_t gl_val;
-        if (pico8_ob_table_get_name(r, "p", &p_val) && get_by_value(fm_po, p_val, &gl_val) &&
+        if (pico8_r_lookup("p", &p) && get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(p)), &gl_val) &&
             gl_val.kind == PICO8_VALUE_FIXED) {
             gl = pico8_fixed_mul(gl_val.as.fixed, pico8_fixed_from_int(40));
         }
@@ -306,23 +304,22 @@ pico8_ob_table_t *pico8_ky(void) {
 
 pico8_fixed_t pico8_bf(void) {
     const pico8_ob_table_t *fm_po = field_ref_table(pico8_fm(), "po");
-    const pico8_ob_table_t *r = pico8_r();
     const pico8_ob_table_t *co = pico8_co();
     pico8_fixed_t r_h = pico8_fixed_from_int(0);
     pico8_fixed_t r_w = pico8_fixed_from_int(0);
     pico8_fixed_t h_val;
     sum_by_mi_ctx_t ctx;
 
-    if (fm_po != NULL && r != NULL) {
-        pico8_value_t h_key;
-        pico8_value_t w_key;
+    if (fm_po != NULL) {
+        int h_key;
+        int w_key;
         pico8_value_t hv;
         pico8_value_t wv;
-        if (pico8_ob_table_get_name(r, "h", &h_key) && get_by_value(fm_po, h_key, &hv) &&
+        if (pico8_r_lookup("h", &h_key) && get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(h_key)), &hv) &&
             hv.kind == PICO8_VALUE_FIXED) {
             r_h = hv.as.fixed;
         }
-        if (pico8_ob_table_get_name(r, "w", &w_key) && get_by_value(fm_po, w_key, &wv) &&
+        if (pico8_r_lookup("w", &w_key) && get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(w_key)), &wv) &&
             wv.kind == PICO8_VALUE_FIXED) {
             r_w = wv.as.fixed;
         }

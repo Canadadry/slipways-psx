@@ -7,6 +7,7 @@
 
 #include "../src/pico8_assets.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_map_tables.h"
 #include "../src/pico8_mem.h"
 
 static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
@@ -18,12 +19,10 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
 
     pico8_data_init(&mem);
 
-    assert(pico8_hc()->count == 6);
-    assert(pico8_ob_table_get_name(pico8_hc(), "f-", &v));
-    assert(v.kind == PICO8_VALUE_REF);
-    assert(pico8_ob_table_get_name(pico8_hc(), "qh+", &v));
-    assert(v.kind == PICO8_VALUE_REF);
-    assert(!pico8_ob_table_get_name(pico8_hc(), "does-not-exist", &v));
+    assert(PICO8_HC_COUNT == 6);
+    assert(pico8_hc_lookup("f-") != NULL);
+    assert(pico8_hc_lookup("qh+") != NULL);
+    assert(pico8_hc_lookup("does-not-exist") == NULL);
 
     assert(pico8_fd()->count == 42);
 
@@ -41,7 +40,6 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
             assert(pico8_ob_table_get_index(title, 1, &title_text));
             assert(title_text.kind == PICO8_VALUE_STRING);
             assert(strcmp(title_text.as.string, "-lab-") == 0);
-            free((void *)title_text.as.string);
         }
     }
 
@@ -55,7 +53,6 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
         assert(pico8_ob_table_get_name(tech, "px", &field));
         assert(field.kind == PICO8_VALUE_STRING);
         assert(strcmp(field.as.string, "space folding") == 0);
-        free((void *)field.as.string);
 
         assert(pico8_ob_table_get_name(tech, "lv", &field));
         assert(field.kind == PICO8_VALUE_FIXED);

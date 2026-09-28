@@ -10,8 +10,8 @@
 #include "pico8_economy_score.h"
 #include "pico8_economy_tiers.h"
 #include "pico8_entity.h"
+#include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
-#include "pico8_stash.h"
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
@@ -201,7 +201,6 @@ void pico8_hy_hk(pico8_hy_t *self) {
     pico8_fixed_t jk;
     pico8_fixed_t new_yr;
     pico8_fixed_t po_rk = pico8_fixed_from_int(0);
-    const pico8_ob_table_t *r = pico8_r();
     const pico8_list_t *hk_list;
     pico8_list_iter_t it;
     pico8_value_t e;
@@ -215,19 +214,12 @@ void pico8_hy_hk(pico8_hy_t *self) {
     ge = self->ge;
     jk = self->jk;
 
-    if (self->po != NULL && r != NULL) {
-        pico8_value_t k_val;
+    if (self->po != NULL) {
+        int k;
         pico8_value_t rk_val;
-        if (pico8_ob_table_get_name(r, "k", &k_val)) {
-            int found = 0;
-            if (k_val.kind == PICO8_VALUE_FIXED) {
-                found = pico8_ob_table_get_index(self->po, pico8_fixed_flr_int(k_val.as.fixed), &rk_val);
-            } else if (k_val.kind == PICO8_VALUE_STRING && k_val.as.string != NULL) {
-                found = pico8_ob_table_get_name(self->po, k_val.as.string, &rk_val);
-            }
-            if (found && rk_val.kind == PICO8_VALUE_FIXED) {
-                po_rk = rk_val.as.fixed;
-            }
+        if (pico8_r_lookup("k", &k) && pico8_ob_table_get_index(self->po, k, &rk_val) &&
+            rk_val.kind == PICO8_VALUE_FIXED) {
+            po_rk = rk_val.as.fixed;
         }
     }
 

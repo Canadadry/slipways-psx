@@ -7,9 +7,9 @@
 #include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_layout.h"
+#include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
-#include "pico8_stash.h"
 #include "pico8_tech_gate.h"
 
 /* Lua truthiness, widened so this port's "absent" filler REF(NULL) is
@@ -66,7 +66,7 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
     while (pico8_list_iter_next(&it, &entry)) {
         pico8_value_t qe = pico8_value_ref(NULL);
         char *num_str;
-        pico8_value_t iz_val;
+        const char *iz_name;
         const char *piece = "";
         size_t piece_len;
         size_t add_len;
@@ -75,9 +75,9 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
             pico8_ob_table_get_name((const pico8_ob_table_t *)entry.as.ref, "qe", &qe);
         }
         num_str = pico8_value_tostr(qe);
-        if (pico8_ob_table_get_name(pico8_iz(), num_str, &iz_val) && iz_val.kind == PICO8_VALUE_STRING &&
-            iz_val.as.string != NULL) {
-            piece = iz_val.as.string;
+        iz_name = pico8_iz_lookup(num_str);
+        if (iz_name != NULL) {
+            piece = iz_name;
         }
         free(num_str);
 
@@ -118,10 +118,10 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self) {
 
     if (self->has_o) {
         char *o_str = pico8_value_tostr(pico8_value_fixed(self->o));
-        pico8_value_t iz_o;
+        const char *iz_o = pico8_iz_lookup(o_str);
 
-        if (pico8_ob_table_get_name(pico8_iz(), o_str, &iz_o)) {
-            pico8_ob_table_set_index(inner, 3, iz_o);
+        if (iz_o != NULL) {
+            pico8_ob_table_set_index(inner, 3, pico8_value_string(iz_o));
         }
         free(o_str);
     }
@@ -150,9 +150,9 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
     lc = (is_count >= 3) ? 1 : 0;
 
     {
-        pico8_value_t r_w;
+        int r_w;
         /* TROU-3 */
-        int o_is_r_w = pico8_ob_table_get_name(pico8_r(), "w", &r_w) && pico8_value_equal(o, r_w);
+        int o_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(o, pico8_value_fixed(pico8_fixed_from_int(r_w)));
 
         if (o_is_r_w) {
             ml[0] = pico8_value_fixed(pico8_fixed_from_int(25));
@@ -261,10 +261,9 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
 }
 
 pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
-    pico8_value_t po1;
     pico8_fixed_t jq;
     const pico8_list_t *is = NULL;
-    const pico8_ob_table_t *po;
+    const pico8_hc_entry_t *po;
     pico8_lq_t *l;
 
     pico8_hp_assert(self);
@@ -278,8 +277,9 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
 
     po = pico8_hp_po(self);
     jq = pico8_fixed_from_int(1);
-    if (po != NULL && pico8_ob_table_get_index(po, 1, &po1) && po1.kind == PICO8_VALUE_FIXED) {
-        jq = (po1.as.fixed > pico8_fixed_from_int(1)) ? po1.as.fixed : pico8_fixed_from_int(1);
+    if (po != NULL && po->count >= 1) {
+        pico8_fixed_t po1 = pico8_fixed_from_int(po->values[0]);
+        jq = (po1 > pico8_fixed_from_int(1)) ? po1 : pico8_fixed_from_int(1);
     }
 
     l = pico8_jo_ex(is, self->has_o ? pico8_value_fixed(self->o) : pico8_value_ref(NULL), jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));

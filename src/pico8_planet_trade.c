@@ -6,9 +6,9 @@
 
 #include "pico8_collect.h"
 #include "pico8_entity.h"
+#include "pico8_map_tables.h"
 #include "pico8_ob.h"
 #include "pico8_planet.h"
-#include "pico8_stash.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 
@@ -97,7 +97,7 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
 }
 
 void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
-    const pico8_ob_table_t *r;
+    int qe;
     pico8_value_t r_e = pico8_value_ref(NULL);
     pico8_value_t r_q = pico8_value_ref(NULL);
     int have_r_e;
@@ -116,9 +116,14 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         t_qe = pico8_trade_qe(t);
     }
 
-    r = pico8_r();
-    have_r_e = pico8_ob_table_get_name(r, "e", &r_e);
-    have_r_q = pico8_ob_table_get_name(r, "?", &r_q);
+    have_r_e = pico8_r_lookup("e", &qe);
+    if (have_r_e) {
+        r_e = pico8_value_fixed(pico8_fixed_from_int(qe));
+    }
+    have_r_q = pico8_r_lookup("?", &qe);
+    if (have_r_q) {
+        r_q = pico8_value_fixed(pico8_fixed_from_int(qe));
+    }
 
     jy = self->jy;
 
