@@ -226,8 +226,8 @@ void pico8_pm_pq(pico8_pm_t *self);
 void pico8_ga_pq(pico8_ga_t *self);
 
 /* TROU-7 */
-/* Returns a fresh particle record: a REF to a heap table holding heap
- * vectors, which `ez` stores into `self.qy`. */
+/* Returns a REF to a freshly allocated `pico8_qy_t` (`has_a` 1), one
+ * allocation, which `ez` stores into `self.qy`. */
 pico8_value_t pico8_ga_mm(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p);

@@ -470,6 +470,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ez(self,n)` | `pico8_ez` | engendre des particules en appelant `self:mm()`, avec une probabilité décroissante |
 | `ei(self)` | `pico8_ei` | avance et dessine les particules, retire celles dont la durée de vie est épuisée |
 | `qy` | champ | liste de particules |
+| élément de `qy` : `{p,v,a,l}` | `pico8_qy_t` (`pico8_particle.h`) | une particule : position `p`, vitesse `v`, accélération `a` (sous `has_a`, absente pour `g_`), durée de vie `l` ; allouée une fois par `mm`, mise à jour en place par `ei` |
 | `mm` | méthode | forme d'une nouvelle particule ; chaque classe émettrice a la sienne |
 
 ## Amorçage et boucle de jeu

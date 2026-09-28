@@ -7,7 +7,6 @@
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -143,9 +142,8 @@ pico8_value_t pico8_d_(pico8_struct_header_t *self);
 pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 /* TROU-7 */
-/* Returns a REF to a freshly allocated particle table ("p"/"v"/"l", the two
- * vectors heap-allocated too); `ez` appends it to `qy` and nothing ever frees
- * it. */
+/* Returns a REF to a freshly allocated `pico8_qy_t` (`has_a` 0), one
+ * allocation; `ez` appends it to `qy` and nothing ever frees it. */
 pico8_value_t pico8_g__mm(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 #endif

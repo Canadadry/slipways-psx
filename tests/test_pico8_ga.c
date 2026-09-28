@@ -411,19 +411,15 @@ static void test_built(void) {
 }
 
 static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
-    static const char *const vecs[] = {"p", "v", "a"};
-    pico8_value_t v;
-    size_t i;
+    const pico8_qy_t *q;
 
-    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL && pico8_type_tag_of(pt.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    for (i = 0; i < sizeof vecs / sizeof vecs[0]; i++) {
-        const pico8_vec_t *p;
-        assert(pico8_ob_table_get_name(pt.as.ref, vecs[i], &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-        p = v.as.ref;
-        h = fnv(fnv(h, (uint32_t)p->x), (uint32_t)p->y);
-    }
-    assert(pico8_ob_table_get_name(pt.as.ref, "l", &v) && v.kind == PICO8_VALUE_FIXED);
-    return fnv(h, (uint32_t)v.as.fixed);
+    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL);
+    q = pt.as.ref;
+    assert(q->has_a);
+    h = fnv(fnv(h, (uint32_t)q->p.x), (uint32_t)q->p.y);
+    h = fnv(fnv(h, (uint32_t)q->v.x), (uint32_t)q->v.y);
+    h = fnv(fnv(h, (uint32_t)q->a.x), (uint32_t)q->a.y);
+    return fnv(h, (uint32_t)q->l);
 }
 
 /* A tuple of `lq:mn` as fold_table folded the table it was: items, `qe`,
@@ -607,6 +603,42 @@ static void test_burst(void) {
         assert(frames < 600);
     }
     check_int("burst frames", frames, BURST_FRAMES);
+}
+
+/* `ei` moves a particle of `qy` in place: `p` by the old `v`, `v` turned
+ * (its second row reads the x just written), then accelerated by `a`, and
+ * `l` less 0.14. A protostar's burst turns (`qg` is not 0). */
+static void test_ei_moves_a_particle_in_place(void) {
+    static pico8_qy_t particle;
+    pico8_vec_t p0 = vec_xy(3, -2);
+    pico8_vec_t v0 = pico8_vec_v(PICO8_FIXED_LIT(0x00018000, 1.5), PICO8_FIXED_LIT(0x00004000, 0.25));
+    pico8_vec_t a0 = pico8_vec_v(PICO8_FIXED_LIT(0x00002000, 0.125), PICO8_FIXED_LIT(0xFFFF8000, -0.5));
+    pico8_list_t *qy;
+    pico8_fixed_t vx;
+    pico8_fixed_t vy;
+    void *e;
+
+    start_game();
+    e = spawn(84, 60, "s73", NULL);
+    assert(get(e, "qg").as.fixed != 0);
+    particle.p = p0;
+    particle.v = v0;
+    particle.has_a = 1;
+    particle.a = a0;
+    particle.l = pico8_fixed_from_int(5);
+    qy = get_ref(e, "qy");
+    qy->count = 0;
+    pico8_list_add(qy, pico8_value_ref(&particle));
+
+    pico8_ei(&gfx, &mem, e);
+
+    vx = pico8_fixed_add(pico8_fixed_mul(get(e, "qo").as.fixed, v0.x), pico8_fixed_mul(get(e, "ro").as.fixed, v0.y));
+    vy = pico8_fixed_add(pico8_fixed_mul(get(e, "qg").as.fixed, vx), pico8_fixed_mul(get(e, "q_").as.fixed, v0.y));
+    assert(qy->count >= 1 && qy->items[0].as.ref == (void *)&particle);
+    assert(particle.p.x == pico8_fixed_add(p0.x, v0.x) && particle.p.y == pico8_fixed_add(p0.y, v0.y));
+    assert(particle.v.x == pico8_fixed_add(vx, a0.x) && particle.v.y == pico8_fixed_add(vy, a0.y));
+    assert(particle.a.x == a0.x && particle.a.y == a0.y);
+    assert(particle.l == pico8_fixed_sub(pico8_fixed_from_int(5), PICO8_FIXED_LIT(0x000023d7, 0.14)));
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -980,6 +1012,7 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_burst);
+    in_fresh_child(test_ei_moves_a_particle_in_place);
     in_fresh_child(test_ga_is_a_struct);
     in_fresh_child(test_ga_members_by_name);
     in_fresh_child(test_ga_writer_stops_off_row);

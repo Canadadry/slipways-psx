@@ -46,13 +46,6 @@ static const pico8_int_seq_t *pico8_particle_field_k_(const pico8_struct_header_
     return NULL;
 }
 
-/* Lua truthiness, sans la clause REF-NULL et sans assert : à l'unique site
- * d'appel, la conjonction suivante rejette déjà un `a` nil. L'absence est
- * inatteignable par construction, pas seulement inobservée. */
-static int pico8_particle_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
 static int pico8_particle_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -129,76 +122,39 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     if (qy != NULL) {
         for (i = 0; i < qy->count; i++) {
             pico8_value_t p_value = qy->items[i];
-            pico8_ob_table_t *p;
-            pico8_value_t v_value;
-            pico8_vec_t *v_ptr;
+            pico8_qy_t *p;
             pico8_vec_t pv;
-            pico8_value_t p_pos_value;
-            pico8_vec_t p_pos;
-            pico8_vec_t *new_pos;
-            pico8_fixed_t new_x;
-            pico8_fixed_t new_y;
-            pico8_value_t a_value;
-            pico8_value_t l_value;
-            pico8_fixed_t old_l;
-            pico8_fixed_t new_l;
 
             if (p_value.kind != PICO8_VALUE_REF || p_value.as.ref == NULL) {
                 continue;
             }
-            assert(pico8_type_tag_of(p_value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-                   "a qy element is a particle record; see pico8_particle.h for its shape");
-            p = (pico8_ob_table_t *)p_value.as.ref;
+            p = (pico8_qy_t *)p_value.as.ref;
+            pv = p->v;
 
-            if (!pico8_ob_table_get_name(p, "v", &v_value) || v_value.kind != PICO8_VALUE_REF || v_value.as.ref == NULL) {
-                continue;
-            }
-            v_ptr = (pico8_vec_t *)v_value.as.ref;
-            pv = *v_ptr;
+            p->p = pico8_vec_add(p->p, pv);
 
-            if (pico8_ob_table_get_name(p, "p", &p_pos_value) && p_pos_value.kind == PICO8_VALUE_REF &&
-                p_pos_value.as.ref != NULL) {
-                p_pos = *(const pico8_vec_t *)p_pos_value.as.ref;
-            } else {
-                p_pos = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-            }
-            /* TROU-7 */
-            new_pos = malloc(sizeof *new_pos);
-            *new_pos = pico8_vec_add(p_pos, pv);
-            pico8_ob_table_set_name(p, "p", pico8_value_ref(new_pos));
-
-            new_x = pico8_fixed_add(pico8_fixed_mul(qo, pv.x), pico8_fixed_mul(ro, pv.y));
-            v_ptr->x = new_x;
+            p->v.x = pico8_fixed_add(pico8_fixed_mul(qo, pv.x), pico8_fixed_mul(ro, pv.y));
             /* In Lua `pv` aliases `p.v`, so the second row reads the x
              * just written. Passing the snapshot's `pv.x` here instead
              * would be a silent divergence. */
-            new_y = pico8_fixed_add(pico8_fixed_mul(qg, v_ptr->x), pico8_fixed_mul(q_, pv.y));
-            v_ptr->y = new_y;
+            p->v.y = pico8_fixed_add(pico8_fixed_mul(qg, p->v.x), pico8_fixed_mul(q_, pv.y));
 
-            if (pico8_ob_table_get_name(p, "a", &a_value) && pico8_particle_truthy(a_value) &&
-                a_value.kind == PICO8_VALUE_REF && a_value.as.ref != NULL) {
-                pico8_vec_t *new_v = malloc(sizeof *new_v);
-                *new_v = pico8_vec_add(*v_ptr, *(const pico8_vec_t *)a_value.as.ref);
-                pico8_ob_table_set_name(p, "v", pico8_value_ref(new_v));
+            if (p->has_a) {
+                p->v = pico8_vec_add(p->v, p->a);
             }
 
-            old_l = pico8_fixed_from_int(0);
-            if (pico8_ob_table_get_name(p, "l", &l_value) && l_value.kind == PICO8_VALUE_FIXED) {
-                old_l = l_value.as.fixed;
-            }
-            new_l = pico8_fixed_sub(old_l, PICO8_FIXED_LIT(0x000023d7, 0.14));
-            pico8_ob_table_set_name(p, "l", pico8_value_fixed(new_l));
+            p->l = pico8_fixed_sub(p->l, PICO8_FIXED_LIT(0x000023d7, 0.14));
 
-            if (new_l <= pico8_fixed_from_int(1)) {
+            if (p->l <= pico8_fixed_from_int(1)) {
                 /* The Lua loop is `pairs()`, not `all()`: the element
                  * that slides into the vacated slot is skipped this
                  * frame. Reproduced by never compensating the index. */
                 pico8_list_del(qy, p_value);
             } else {
-                int px = pico8_particle_to_int(pico8_fixed_add(cx, new_pos->x));
-                int py = pico8_particle_to_int(pico8_fixed_add(cy, new_pos->y));
+                int px = pico8_particle_to_int(pico8_fixed_add(cx, p->p.x));
+                int py = pico8_particle_to_int(pico8_fixed_add(cy, p->p.y));
                 int col = 0;
-                int idx = pico8_particle_to_int(pico8_fixed_flr(new_l));
+                int idx = pico8_particle_to_int(pico8_fixed_flr(p->l));
 
                 if (cs != NULL) {
                     pico8_int_seq_at(cs->items, cs->count, idx, &col);

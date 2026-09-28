@@ -29,7 +29,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
@@ -199,19 +198,14 @@ static uint32_t fold_kw(uint32_t h, const void *e) {
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
 static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
-    static const char *const vecs[] = {"p", "v"};
-    pico8_value_t v;
-    size_t i;
+    const pico8_qy_t *q;
 
-    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL && pico8_type_tag_of(pt.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    for (i = 0; i < sizeof vecs / sizeof vecs[0]; i++) {
-        const pico8_vec_t *p;
-        assert(pico8_ob_table_get_name(pt.as.ref, vecs[i], &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-        p = v.as.ref;
-        h = fnv(fnv(h, (uint32_t)p->x), (uint32_t)p->y);
-    }
-    assert(pico8_ob_table_get_name(pt.as.ref, "l", &v) && v.kind == PICO8_VALUE_FIXED);
-    return fnv(h, (uint32_t)v.as.fixed);
+    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL);
+    q = pt.as.ref;
+    assert(!q->has_a);
+    h = fnv(fnv(h, (uint32_t)q->p.x), (uint32_t)q->p.y);
+    h = fnv(fnv(h, (uint32_t)q->v.x), (uint32_t)q->v.y);
+    return fnv(h, (uint32_t)q->l);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {

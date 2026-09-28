@@ -19,7 +19,6 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_ke.h"
 #include "../src/pico8_list.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_value.h"
@@ -41,7 +40,6 @@ static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du
 static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
     pico8_value_t qy_val;
     pico8_value_t particle;
-    pico8_value_t p_val;
     pico8_list_iter_t it;
 
     pico8_ez((pico8_struct_header_t *)probe, pico8_fixed_from_int(1));
@@ -49,9 +47,7 @@ static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
     assert(pico8_entity_get_field(probe, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL);
     it = pico8_list_all((const pico8_list_t *)qy_val.as.ref);
     assert(pico8_list_iter_next(&it, &particle) && particle.kind == PICO8_VALUE_REF && particle.as.ref != NULL);
-    assert(pico8_ob_table_get_name((const pico8_ob_table_t *)particle.as.ref, "p", &p_val) &&
-           p_val.kind == PICO8_VALUE_REF && p_val.as.ref != NULL);
-    return *(const pico8_vec_t *)p_val.as.ref;
+    return ((const pico8_qy_t *)particle.as.ref)->p;
 }
 
 static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {

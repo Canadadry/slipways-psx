@@ -11,7 +11,6 @@
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_ke.h"
-#include "pico8_ob.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
@@ -786,10 +785,7 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     pico8_vec_t p;
     pico8_vec_t v;
     pico8_vec_t a;
-    pico8_ob_table_t *particle;
-    pico8_vec_t *p_heap;
-    pico8_vec_t *v_heap;
-    pico8_vec_t *a_heap;
+    pico8_qy_t *particle;
 
     (void)argc;
     (void)arg0;
@@ -809,24 +805,19 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     v = pico8_vec_mul(p, ms);
     a = pico8_vec_mul(p, iu);
 
-    particle = pico8_ob_table_new();
-    p_heap = malloc(sizeof *p_heap);
-    *p_heap = p;
-    v_heap = malloc(sizeof *v_heap);
-    *v_heap = v;
-    a_heap = malloc(sizeof *a_heap);
-    *a_heap = a;
-    pico8_ob_table_set_name(particle, "p", pico8_value_ref(p_heap));
-    pico8_ob_table_set_name(particle, "v", pico8_value_ref(v_heap));
-    pico8_ob_table_set_name(particle, "a", pico8_value_ref(a_heap));
-    pico8_ob_table_set_name(particle, "l", pico8_value_fixed(pico8_fixed_add(pico8_fixed_rnd(py), py)));
+    particle = malloc(sizeof *particle);
+    particle->p = p;
+    particle->v = v;
+    particle->has_a = 1;
+    particle->a = a;
+    particle->l = pico8_fixed_add(pico8_fixed_rnd(py), py);
 
     return pico8_value_ref(particle);
 }
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p) {
     const pico8_list_t *qy = NULL;
-    pico8_ob_table_t *last_pt = NULL;
+    const pico8_qy_t *last_pt = NULL;
     int i;
     int px;
     int py;
@@ -841,37 +832,26 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
     py = pico8_fixed_flr_int(p.y);
 
     for (i = 1; i <= 3; i++) {
-        pico8_ob_table_t *pt = NULL;
+        const pico8_qy_t *pt = NULL;
 
         if (qy != NULL && i <= qy->count) {
             pico8_value_t entry = qy->items[i - 1];
             if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
-                pt = (pico8_ob_table_t *)entry.as.ref;
+                pt = (const pico8_qy_t *)entry.as.ref;
             }
         }
 
         if (pt != NULL) {
-            pico8_value_t p_field;
-            pico8_vec_t pt_p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-            pico8_value_t l_field;
-            pico8_fixed_t l = pico8_fixed_from_int(0);
             int idx;
             int color = 0;
             int k_entry;
 
-            if (pico8_ob_table_get_name(pt, "p", &p_field) && p_field.kind == PICO8_VALUE_REF &&
-                p_field.as.ref != NULL) {
-                pt_p = *(const pico8_vec_t *)p_field.as.ref;
-            }
-            if (pico8_ob_table_get_name(pt, "l", &l_field) && l_field.kind == PICO8_VALUE_FIXED) {
-                l = l_field.as.fixed;
-            }
-            idx = pico8_fixed_flr_int(pico8_fixed_flr(pico8_fixed_div(l, pico8_fixed_from_int(2))));
+            idx = pico8_fixed_flr_int(pico8_fixed_flr(pico8_fixed_div(pt->l, pico8_fixed_from_int(2))));
             /* TROU-21 */
             if (pico8_int_seq_at(pico8_ga_k__seq.items, pico8_ga_k__seq.count, idx, &k_entry)) {
                 color = k_entry;
             }
-            pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(pico8_vec_qx(pt_p)), color);
+            pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(pico8_vec_qx(pt->p)), color);
         }
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot

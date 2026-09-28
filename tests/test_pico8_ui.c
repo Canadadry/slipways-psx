@@ -3037,17 +3037,14 @@ static uint32_t fold_hj_all(uint32_t h, const void *e, int rank) {
 }
 
 static uint32_t fold_hj_particle(uint32_t h, pico8_value_t pt) {
-    static const char *const vecs[] = {"p", "v"};
-    pico8_value_t v;
-    size_t i;
+    const pico8_qy_t *q;
 
-    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL && pico8_type_tag_of(pt.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    for (i = 0; i < 2; i++) {
-        assert(pico8_ob_table_get_name(pt.as.ref, vecs[i], &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-        h = fold_vec(h, *(const pico8_vec_t *)v.as.ref);
-    }
-    assert(pico8_ob_table_get_name(pt.as.ref, "l", &v) && v.kind == PICO8_VALUE_FIXED);
-    return fnv(h, (uint32_t)v.as.fixed);
+    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL);
+    q = pt.as.ref;
+    assert(!q->has_a);
+    h = fold_vec(h, q->p);
+    h = fold_vec(h, q->v);
+    return fnv(h, (uint32_t)q->l);
 }
 
 static uint32_t fold_hj_qy(uint32_t h, const void *e) {

@@ -513,10 +513,8 @@ static void test_hover(void) {
  * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. A
  * button built just before it has neither `k_` nor `qy`: nothing drawn. */
 static void test_particle_takes_the_help_palette(void) {
-    pico8_ob_table_t *particle = pico8_ob_table_new();
+    static pico8_qy_t particle;
     pico8_list_t *qy;
-    pico8_vec_t *zero_p = malloc(sizeof *zero_p);
-    pico8_vec_t *zero_v = malloc(sizeof *zero_v);
     pico8_vec_t ra;
     void *fv;
     void *button;
@@ -531,14 +529,13 @@ static void test_particle_takes_the_help_palette(void) {
     pico8_ei(&gfx, &mem, button);
     assert(screen_hash() == before);
     ra = *(const pico8_vec_t *)get_ref(fv, "ra");
-    *zero_p = pico8_vec_v(0, 0);
-    *zero_v = pico8_vec_v(0, 0);
-    pico8_ob_table_set_name(particle, "p", pico8_value_ref(zero_p));
-    pico8_ob_table_set_name(particle, "v", pico8_value_ref(zero_v));
-    pico8_ob_table_set_name(particle, "l", pico8_value_fixed(PICO8_FIXED_LIT(0x00068000, 6.5)));
+    particle.p = pico8_vec_v(0, 0);
+    particle.v = pico8_vec_v(0, 0);
+    particle.has_a = 0;
+    particle.l = PICO8_FIXED_LIT(0x00068000, 6.5);
     qy = get_ref(fv, "qy");
     qy->count = 0;
-    pico8_list_add(qy, pico8_value_ref(particle));
+    pico8_list_add(qy, pico8_value_ref(&particle));
     pico8_camera_reset(&gfx);
     at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
     pico8_poke(&mem, at, 3);

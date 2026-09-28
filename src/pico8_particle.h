@@ -5,18 +5,23 @@
 #include "pico8_gfx.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_value.h"
+#include "pico8_vec.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
  * no-op, a non-NULL `self` must be a struct (asserted), and an absent or
- * wrong-kind field reads as its zero default.
- *
- * The C shape of a particle record -- what every `mm` must return, and what
- * `qy` therefore holds -- is this module's own contract, carried by no
- * name: a REF to a heap `pico8_ob_table_t` with "p" and "v" (REFs to heap
- * `pico8_vec_t`), an optional "a" (same shape; absent is a real, checked
- * case) and "l" (fixed). */
+ * wrong-kind field reads as its zero default. */
+
+/* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` returns a REF to
+ * one on the heap, `ei` updates it in place, nothing frees it. `has_a` is 0
+ * for `g_`'s particles, whose `a` is absent and never read. */
+typedef struct {
+    pico8_vec_t p;
+    pico8_vec_t v;
+    int has_a;
+    pico8_vec_t a;
+    pico8_fixed_t l;
+} pico8_qy_t;
 
 /* TROU-7 */
 /* The fresh `qy` list is heap-allocated and owned by `self`, which never

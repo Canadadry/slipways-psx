@@ -404,9 +404,7 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     pico8_fixed_t pn, t, du, py, ki;
     pico8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
-    pico8_ob_table_t *particle;
-    pico8_vec_t *p_heap;
-    pico8_vec_t *v_heap;
+    pico8_qy_t *particle;
 
     (void)argc;
     (void)arg0;
@@ -436,14 +434,12 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     }
 
     /* TROU-7 */
-    particle = pico8_ob_table_new();
-    p_heap = malloc(sizeof *p_heap);
-    *p_heap = p;
-    v_heap = malloc(sizeof *v_heap);
-    *v_heap = v;
-    pico8_ob_table_set_name(particle, "p", pico8_value_ref(p_heap));
-    pico8_ob_table_set_name(particle, "v", pico8_value_ref(v_heap));
-    pico8_ob_table_set_name(particle, "l", pico8_value_fixed(ki));
+    particle = malloc(sizeof *particle);
+    particle->p = p;
+    particle->v = v;
+    particle->has_a = 0;
+    particle->a = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    particle->l = ki;
 
     return pico8_value_ref(particle);
 }
