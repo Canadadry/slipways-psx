@@ -15,6 +15,9 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_pi.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
+#include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_stash.h"
 #include "../src/pico8_vec.h"
 
@@ -1372,6 +1375,123 @@ static void test_jo_tree_starts_match_the_parsed_class_strings(void) {
     assert(number_at(mx, "q_") == pico8_mx_start.q_);
 }
 
+/* What a kind serves as `name`, the one read of a kind in this file. */
+static int kind_answer(const pico8_entity_kind_t *kind, const char *name, pico8_value_t *out) {
+    return kind->field(name, out);
+}
+
+/* The reference: `name` in the chain's own parses, the class's first. */
+static int chain_lookup(pico8_ob_table_t *const *chain, int n, const char *name, pico8_value_t *out) {
+    int i;
+
+    for (i = 0; i < n; i++) {
+        if (pico8_ob_table_get_name(chain[i], name, out)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* The four names ie reads: presence, kind, bits, string content; an absent
+ * one leaves the output untouched. Any other name is refused. */
+static void check_kind(const pico8_entity_kind_t *kind, pico8_ob_table_t *const *chain, int n) {
+    static const char *const read_by_ie[] = {"rr", "s", "me", "od"};
+    static const char *const others[] = {"kq", "nu", "t"};
+    size_t i;
+
+    for (i = 0; i < sizeof read_by_ie / sizeof read_by_ie[0]; i++) {
+        pico8_value_t got = pico8_value_fixed(0x5A5A);
+        pico8_value_t want;
+
+        if (chain_lookup(chain, n, read_by_ie[i], &want)) {
+            assert(kind_answer(kind, read_by_ie[i], &got) && got.kind == want.kind);
+            assert(want.kind != PICO8_VALUE_FIXED || got.as.fixed == want.as.fixed);
+            assert(want.kind != PICO8_VALUE_STRING || strcmp(got.as.string, want.as.string) == 0);
+        } else {
+            assert(!kind_answer(kind, read_by_ie[i], &got));
+            assert(got.kind == PICO8_VALUE_FIXED && got.as.fixed == 0x5A5A);
+        }
+    }
+    for (i = 0; i < sizeof others / sizeof others[0]; i++) {
+        pico8_value_t got = pico8_value_fixed(0x5A5A);
+
+        assert(!kind_answer(kind, others[i], &got));
+    }
+}
+
+/* Each kind of the jo tree against the parses of its class's chain. */
+static void test_kinds_serve_what_the_chain_of_parses_serves(void) {
+    pico8_ob_table_t *jo = parse(JO_SRC);
+    pico8_ob_table_t *qh = parse(QH_SRC);
+    pico8_ob_table_t *nl = parse(NL_SRC);
+    pico8_ob_table_t *os = parse(OS_SRC);
+    pico8_ob_table_t *hj = parse(HJ_SRC);
+    pico8_ob_table_t *pm = parse(PM_SRC);
+    pico8_ob_table_t *ga = parse(GA_SRC);
+    pico8_ob_table_t *nr = parse(NR_SRC);
+    pico8_ob_table_t *fr = parse(FR_SRC);
+    pico8_ob_table_t *mx = parse(MX_SRC);
+
+    {
+        pico8_ob_table_t *const chain[] = {qh, jo};
+        check_kind(pico8_qh_kind(), chain, 2);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {nl, qh, jo};
+        check_kind(pico8_nl_kind(), chain, 3);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {os, qh, jo};
+        check_kind(pico8_os_kind(), chain, 3);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {hj, qh, jo};
+        check_kind(pico8_hj_kind(), chain, 3);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {pm, hj, qh, jo};
+        check_kind(pico8_pm_kind(), chain, 4);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {ga, jo};
+        check_kind(pico8_ga_kind(), chain, 2);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {nr, qh, jo};
+        check_kind(pico8_nr_kind(), chain, 3);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {fr, nr, qh, jo};
+        check_kind(pico8_fr_kind(), chain, 4);
+    }
+    {
+        pico8_ob_table_t *const chain[] = {mx, hj, qh, jo};
+        check_kind(pico8_mx_kind(), chain, 4);
+    }
+}
+
+/* A kind whose module, or an ancestor's, is down answers nothing and
+ * leaves the output untouched. Shuts the three modules down. */
+static void test_kinds_answer_nothing_once_down(void) {
+    pico8_value_t got = pico8_value_fixed(0x5A5A);
+
+    pico8_planet_family_trade_shutdown();
+    assert(!kind_answer(pico8_nr_kind(), "rr", &got));
+    assert(!kind_answer(pico8_fr_kind(), "rr", &got));
+    assert(!kind_answer(pico8_mx_kind(), "rr", &got));
+    assert(got.kind == PICO8_VALUE_FIXED && got.as.fixed == 0x5A5A);
+    pico8_jo_shutdown();
+    assert(!kind_answer(pico8_ga_kind(), "me", &got));
+    pico8_planet_family_shutdown();
+    assert(!kind_answer(pico8_qh_kind(), "s", &got));
+    assert(!kind_answer(pico8_nl_kind(), "rr", &got));
+    assert(!kind_answer(pico8_os_kind(), "s", &got));
+    assert(!kind_answer(pico8_hj_kind(), "rr", &got));
+    assert(!kind_answer(pico8_pm_kind(), "s", &got));
+    assert(!kind_answer(pico8_ga_kind(), "me", &got));
+    assert(got.kind == PICO8_VALUE_FIXED && got.as.fixed == 0x5A5A);
+}
+
 static void test_rows_match_the_parsed_literals(void) {
     pico8_ob_table_t *fv = parse(FV_SRC);
     pico8_ob_table_t *hp = parse(HP_SRC);
@@ -1464,6 +1584,11 @@ int main(void) {
     test_probe_help_research_panel_starts_match_the_parsed_class_strings();
     test_jo_tree_starts_match_the_parsed_class_strings();
     test_jo_tree_strings_are_distinct_objects();
+    pico8_jo_init();
+    pico8_planet_family_init();
+    pico8_planet_family_trade_init();
+    test_kinds_serve_what_the_chain_of_parses_serves();
+    test_kinds_answer_nothing_once_down();
     test_rows_match_the_parsed_literals();
     test_row_view_writes_fixed_items_then_c_then_fn();
     test_nb_lookup_finds_each_px();

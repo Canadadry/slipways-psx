@@ -15,13 +15,11 @@
  * wrong-kind field reads as its zero/false default rather than crashing. */
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first: the specs contain `v(1,0)` and
- * `b(0,0,-1,-1)`, so the 'v'/'b' constructors must already be registered
- * when the spec strings are parsed. */
+/* Calls `pico8_pi_init()` first. */
 void pico8_planet_family_init(void);
 
-/* Frees the six specs, never any instance. Idempotent, and safe before
- * the first `pico8_planet_family_init()`. */
+/* Frees nothing, no instance nor ga's shared `by`. Idempotent, and safe
+ * before the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
 /* A laboratory: a bare planet, then qh's own defaults and `et`, which its
@@ -56,8 +54,8 @@ pico8_value_t pico8_qh_et(const pico8_qh_t *self);
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
  * or `jo` (`nu`, `qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
- * `nu`, `px` and `ba` point at nl's generated data, `rr` is its spec's
- * very string, borrowed. Nothing frees the struct: TROU-7. */
+ * `nu`, `px`, `ba` and `rr` point at nl's generated data. Nothing frees
+ * the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
     const char *rr;
@@ -76,9 +74,9 @@ typedef struct {
 /* An ascension: a laboratory, then hj's own emitter defaults and `qy`,
  * which its own `pq` (`f_`) writes. A default of hj whose name is a member
  * of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`, `s`) lives in that member.
- * `nu`, `px` and `k_` point at hj's generated data, `ba` at qh's, `rr` is
- * its spec's very string, borrowed; `qy` is the ascension's own, NULL
- * until `f_`, never freed. Nothing frees the struct: TROU-7. */
+ * `nu`, `px`, `k_` and `rr` point at hj's generated data, `ba` at qh's;
+ * `qy` is the ascension's own, NULL until `f_`, never freed. Nothing frees
+ * the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
     const char *rr;
@@ -104,23 +102,22 @@ pico8_value_t pico8_hj_pk(const pico8_hj_t *self);
 /* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
  * ancestor has a member for. A default of pm whose name is a member of
  * `hj`, `qh`, `jo` or `ke` (`me`, `nu`, `hp`, `px`, `s` and the 11 emitter
- * defaults) lives in that member. `nu`, `px` and `k_` point at pm's
- * generated data, `ba` at qh's; `ng` and `fz` are its spec's very vector
- * and string, borrowed; `qy` is the protostar's own. Nothing frees the
- * struct: TROU-7. */
+ * defaults) lives in that member. `nu`, `px`, `k_`, `ng` and `fz` point
+ * at pm's generated data, `ba` at qh's; `qy` is the protostar's own.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
-    pico8_vec_t *ng;
+    const pico8_vec_t *ng;
     const char *fz;
 } pico8_pm_t;
 
 /* A particle burst: a bare planet, then ga's own defaults and `qy`, which
  * its own `pq` (`f_`) writes. A default of ga whose name is a member of
- * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu` and `k_`
- * point at ga's generated data; `kq` and `by` are its spec's very values,
- * borrowed: `by` is the one list every burst shares, which `ib` extends in
- * place. A burst spawned by `pm:pq` points `k_` at pico8_pm_ga_k__seq
- * instead. Nothing frees the struct: TROU-7. */
+ * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu`, `k_`,
+ * `kq` and `fz` point at ga's generated data; `by` is the one list every
+ * burst shares, which `ib` extends in place and each init empties. A burst
+ * spawned by `pm:pq` points `k_` at pico8_pm_ga_k__seq instead. Nothing
+ * frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
     const char *fz;
@@ -137,13 +134,11 @@ typedef struct {
 } pico8_ga_t;
 
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to
- * `pico8_planet_family_shutdown()`, 0 otherwise. Every `_default` reads that
- * kind's spec, then its parent's reader (qh, ga: jo; nl, os, hj: qh; pm:
- * hj); 0 when absent, or when not ready. A REF is borrowed from the spec,
- * valid until the shutdown. A `_kind` accessor is never NULL, and its reader
- * is that `_default`. */
+ * `pico8_planet_family_shutdown()`, 0 otherwise. A `_kind` accessor is never
+ * NULL; its reader answers `rr`, `s`, `me` and `od` only, from the
+ * generated defaults of the class that sets each, then its parent's (qh,
+ * ga: jo; nl, os, hj: qh; pm: hj); 0 for any other name, or when not ready. */
 int pico8_qh_ready(void);
-int pico8_qh_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
@@ -158,7 +153,6 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls);
 pico8_qh_t *pico8_qh_new(const pico8_ob_table_t *overrides);
 
 int pico8_nl_ready(void);
-int pico8_nl_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_nl_kind(void);
 const pico8_struct_class_t *pico8_nl_struct_class(void);
 
@@ -168,7 +162,6 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
 pico8_nl_t *pico8_nl_new(const pico8_ob_table_t *overrides);
 
 int pico8_os_ready(void);
-int pico8_os_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);
 
@@ -178,7 +171,6 @@ const pico8_struct_class_t *pico8_os_struct_class(void);
 pico8_os_t *pico8_os_new(const pico8_ob_table_t *overrides);
 
 int pico8_hj_ready(void);
-int pico8_hj_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_hj_kind(void);
 const pico8_struct_class_t *pico8_hj_struct_class(void);
 
@@ -200,7 +192,6 @@ pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pic
 /* `pm` and `ga` are the only classes here whose spec sets `fz`: the two
  * kinds `jo:hu`'s `kv[hp.cw]` can resolve. */
 int pico8_pm_ready(void);
-int pico8_pm_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_pm_kind(void);
 const pico8_struct_class_t *pico8_pm_struct_class(void);
 
@@ -211,7 +202,6 @@ const pico8_struct_class_t *pico8_pm_struct_class(void);
 pico8_pm_t *pico8_pm_new(const pico8_ob_table_t *overrides);
 
 int pico8_ga_ready(void);
-int pico8_ga_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_ga_kind(void);
 const pico8_struct_class_t *pico8_ga_struct_class(void);
 

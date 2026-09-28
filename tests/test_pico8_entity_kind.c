@@ -172,40 +172,81 @@ static void test_kind_fields_and_build(void) {
     check("kind", h, KIND_HASH);
 }
 
-typedef int (*default_fn)(const char *name, pico8_value_t *out_value);
+/* The string kind `i` serves as `name`: the very pointer. */
+static const char *kind_string(int i, const char *name) {
+    pico8_value_t v = pico8_value_fixed(0x5A5A);
 
-static default_fn default_of(int i) {
-    switch (i) {
-    case 0:
-        return pico8_qh_default;
-    case 1:
-        return pico8_os_default;
-    case 2:
-        return pico8_nr_default;
-    case 3:
-        return pico8_fr_default;
-    case 4:
-        return pico8_nl_default;
-    case 5:
-        return pico8_mx_default;
-    case 6:
-        return pico8_hj_default;
-    case 7:
-        return pico8_pm_default;
-    default:
-        return pico8_ga_default;
-    }
+    assert(kind_field(i, name, &v) && v.kind == PICO8_VALUE_STRING);
+    return v.as.string;
 }
 
-/* Each kind reads its defaults through its module's own default chain, and
- * pico8_type_tag_of() reads a kind UNKNOWN. */
-static void test_kind_reader_is_the_module_default(void) {
+static pico8_fixed_t kind_fixed(int i, const char *name) {
+    pico8_value_t v = pico8_value_fixed(0x5A5A);
+
+    assert(kind_field(i, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static int kind_has(int i, const char *name) {
+    pico8_value_t v = pico8_value_fixed(0x5A5A);
+    int found = kind_field(i, name, &v);
+
+    assert(found || (v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x5A5A));
+    return found;
+}
+
+/* Each kind serves the generated default of the class that sets each name,
+ * and pico8_type_tag_of() reads a kind UNKNOWN. */
+static void test_kind_reader_serves_the_generated_defaults(void) {
     int i;
 
     for (i = 0; i < KIND_COUNT; i++) {
         assert(pico8_type_tag_of(kind_of(i)) == PICO8_TYPE_TAG_UNKNOWN);
-        assert(kind_of(i)->field == default_of(i));
     }
+    assert(!kind_has(0, "rr"));
+    assert(kind_fixed(0, "s") == pico8_qh_start.s);
+    assert(kind_string(0, "me") == pico8_qh_start.me);
+    assert(kind_fixed(0, "od") == pico8_qh_start.od);
+
+    assert(!kind_has(1, "rr"));
+    assert(kind_fixed(1, "s") == pico8_os_start.s);
+    assert(kind_string(1, "me") == pico8_qh_start.me);
+    assert(kind_fixed(1, "od") == pico8_os_start.od);
+
+    assert(kind_string(2, "rr") == pico8_nr_start.rr);
+    assert(kind_fixed(2, "s") == pico8_nr_start.s);
+    assert(kind_string(2, "me") == pico8_qh_start.me);
+    assert(kind_fixed(2, "od") == pico8_nr_start.od);
+
+    assert(kind_string(3, "rr") == pico8_fr_start.rr);
+    assert(kind_fixed(3, "s") == pico8_fr_start.s);
+    assert(kind_string(3, "me") == pico8_qh_start.me);
+    assert(kind_fixed(3, "od") == pico8_fr_start.od);
+
+    assert(kind_string(4, "rr") == pico8_nl_start.rr);
+    assert(kind_fixed(4, "s") == pico8_nl_start.s);
+    assert(kind_string(4, "me") == pico8_qh_start.me);
+    assert(kind_fixed(4, "od") == pico8_nl_start.od);
+
+    assert(kind_string(5, "rr") == pico8_mx_start.rr);
+    assert(kind_fixed(5, "s") == pico8_mx_start.s);
+    assert(kind_string(5, "me") == pico8_qh_start.me);
+    assert(kind_fixed(5, "od") == pico8_mx_start.od);
+
+    assert(kind_string(6, "rr") == pico8_hj_start.rr);
+    assert(kind_fixed(6, "s") == pico8_hj_start.s);
+    assert(kind_string(6, "me") == pico8_qh_start.me);
+    assert(kind_fixed(6, "od") == pico8_hj_start.od);
+
+    assert(kind_string(7, "rr") == pico8_hj_start.rr);
+    assert(kind_fixed(7, "s") == pico8_pm_start.s);
+    assert(kind_string(7, "me") == pico8_pm_start.me);
+    assert(kind_fixed(7, "od") == pico8_hj_start.od);
+
+    assert(!kind_has(8, "rr"));
+    assert(!kind_has(8, "s"));
+    assert(kind_string(8, "me") == pico8_jo_start.me);
+    assert(!kind_has(8, "od"));
 }
 
 /* `kv[hp.cw]` only ever sees "pm" or "ga": every research of `gb` carries
@@ -774,7 +815,7 @@ int main(void) {
     test_every_cw_is_pm_or_ga();
     pico8_jl();
     test_kind_fields_and_build();
-    test_kind_reader_is_the_module_default();
+    test_kind_reader_serves_the_generated_defaults();
     test_ie_ke_view_by_name();
     test_ie_members_by_name();
     test_ie_writer_stops_off_row();

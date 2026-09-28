@@ -435,7 +435,8 @@ $(TMP_DIR)/test_pico8_stash: $(call objs,tests/test_pico8_stash.c src/pico8_stas
 $(TMP_DIR)/test_pico8_data_init: $(call objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
-$(TMP_DIR)/test_pico8_map_tables: $(call objs,tests/test_pico8_map_tables.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_map_tables: $(call objs,tests/test_pico8_map_tables.c $(DATA_ENGINE_SRCS) \
+    src/pico8_planet_family_trade.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
 $(TMP_DIR)/test_pico8_jb_ol: $(call objs,tests/test_pico8_jb_ol.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
@@ -897,7 +898,7 @@ value-members: tools/entity_value_members.sh
 .PHONY: value-members
 
 # Catégories du compteur tombées à 0, séparées par des virgules.
-DATA_RESIDUE_GUARD :=
+DATA_RESIDUE_GUARD := spec
 
 data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh

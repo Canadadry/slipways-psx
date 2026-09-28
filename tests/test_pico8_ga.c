@@ -1,6 +1,5 @@
 /* The particle burst `ga`, read and written only through the dual-form field
- * API and `pico8_ga_default()`, `pico8_jo_default()` and
- * `pico8_pm_default()` for spec defaults, built by its three roads (`jo:hu`
+ * API and the generated defaults (pico8_game_data.h), built by its three roads (`jo:hu`
  * on the harvest recipe, `pm:pq`, `pico8_ga_new(NULL)`) and driven through
  * the real `mv`/`dc`. jo's methods are named by `pico8_jo_struct_class()`.
  * No events file. */
@@ -63,7 +62,6 @@ static const char *const absent_methods[] = {"ol", "ph", "ev", "md", "hq", "ey",
 static const char *const not_ga[] = {"hp", "jy", "kr", "qu", "ht", "et", "ng", "du"};
 static const char *const tags[] = {"jo", "np", "prober", "hj", "qh"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const jo_tables[] = {"gq"};
 
 /* A table member of the jo tree and the generated data it points at. */
 typedef struct {
@@ -123,18 +121,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v));
-    return v;
-}
-
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v = class_value(default_of, name);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 static pico8_value_function_t method(const void *e, const char *name) {
@@ -380,8 +366,7 @@ static uint32_t fold_burst(uint32_t h, const void *e, int from_pm) {
         assert(!has(e, absent_methods[i]));
     }
     assert(get_ref(e, "nu") == &pico8_ga_nu_tags);
-    assert(get_ref(e, "kq") == class_ref(pico8_ga_default, "kq"));
-    assert(get_ref(e, "by") == class_ref(pico8_ga_default, "by"));
+    assert(get_ref(e, "kq") == &pico8_ga_start.kq);
     assert(pico8_type_tag_of(get_ref(e, "by")) == PICO8_TYPE_TAG_LIST);
     if (from_pm) {
         assert(get_ref(e, "k_") != &pico8_ga_k__seq);
@@ -389,9 +374,7 @@ static uint32_t fold_burst(uint32_t h, const void *e, int from_pm) {
     } else {
         assert(get_ref(e, "k_") == &pico8_ga_k__seq);
     }
-    for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
-    }
+    assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
         assert(get_ref(e, jo_data[i].name) == (jo_data[i].data != NULL ? jo_data[i].data : pico8_jo_shared_kw()));
     }
@@ -423,6 +406,7 @@ static void test_built(void) {
     assert(a != b && b != c && a != c);
     assert(get_ref(a, "qy") != get_ref(b, "qy") && get_ref(b, "qy") != get_ref(c, "qy"));
     assert(get_ref(a, "oe") != get_ref(b, "oe"));
+    assert(get_ref(a, "by") == get_ref(b, "by") && get_ref(b, "by") == get_ref(c, "by"));
     assert(!has(c, "ra") && !has(c, "p") && !has(c, "id"));
     assert(get(a, "fa").as.fixed == pico8_fixed_from_int(3) && get(a, "ms").as.fixed == pico8_fixed_from_int(3));
     assert(pico8_value_equal(get(a, "hf"), pico8_value_bool(0)));
@@ -668,6 +652,7 @@ static int is_a_ga_struct(const void *e) {
  * the run. Neither ga's class nor jo's installs a function or a `pq`. */
 static void test_ga_is_a_struct(void) {
     static const char *const on_jo[] = {"nu", "hf", "by", "kq", "fa"};
+    pico8_value_t on_jo_want[5];
     const pico8_struct_class_t *cls = pico8_ga_struct_class();
     const pico8_struct_class_t *jo = pico8_jo_struct_class();
     void *roads[3];
@@ -692,20 +677,18 @@ static void test_ga_is_a_struct(void) {
         }
     }
     assert(cls->field != jo->field && cls->set_field != jo->set_field);
+    on_jo_want[0] = pico8_value_ref((void *)&pico8_ga_nu_tags);
+    on_jo_want[1] = pico8_value_bool(0);
+    on_jo_want[2] = pico8_value_ref(((const pico8_ga_t *)roads[2])->jo.by);
+    on_jo_want[3] = pico8_value_ref((void *)&pico8_ga_start.kq);
+    on_jo_want[4] = pico8_value_fixed(pico8_ga_start.fa);
     for (i = 0; i < sizeof on_jo / sizeof on_jo[0]; i++) {
         pico8_value_t through_jo;
         assert(jo->field(roads[0], on_jo[i], &through_jo));
-        assert(pico8_value_equal(through_jo, strcmp(on_jo[i], "nu") == 0 ? pico8_value_ref((void *)&pico8_ga_nu_tags)
-                                                                   : class_value(pico8_ga_default, on_jo[i])));
+        assert(pico8_value_equal(through_jo, on_jo_want[i]));
     }
     assert(!jo->field(roads[0], "ms", &v) && cls->field(roads[0], "ms", &v));
     assert(pico8_ga_ready());
-    assert(!pico8_ga_default("mm", &v));
-    assert(!pico8_ga_default("kj", &v));
-    for (i = 0; i < sizeof inherited / sizeof inherited[0]; i++) {
-        assert(!pico8_jo_default(inherited[i], &v));
-    }
-    assert(!pico8_jo_default("kj", &v));
     assert(pico8_jo_ready());
 
     must_abort(write_fz, roads[0]);
@@ -796,7 +779,7 @@ static pico8_fixed_t read_fixed(const void *e, const char *name) {
 static void assert_spec_defaults(const void *e) {
     pico8_value_t v;
     assert(read_both(e, "fz", &v) && v.kind == PICO8_VALUE_STRING &&
-           v.as.string == class_value(pico8_ga_default, "fz").as.string);
+           v.as.string == pico8_ga_start.fz);
     assert(read_both(e, "fc", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
     assert(pico8_type_tag_of(read_ref(e, "qy")) == PICO8_TYPE_TAG_LIST);
 }

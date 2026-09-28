@@ -24,14 +24,6 @@ int pico8_ke_ready(void) {
     return g_ke_up;
 }
 
-int pico8_ke_start_field(const char *name, pico8_value_t *out_value) {
-    pico8_ke_t start;
-
-    start.me = pico8_ke_start.me;
-    start.t = pico8_ke_start.t;
-    return pico8_ke_field(&start, name, out_value);
-}
-
 static void ke_take_string(pico8_value_t value, const char **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {

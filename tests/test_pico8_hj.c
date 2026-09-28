@@ -1,6 +1,5 @@
 /* The ascension `hj`, read and written only through the dual-form field API
- * and `pico8_hj_default()`, `pico8_qh_default()`, `pico8_jo_default()`,
- * `pico8_pm_default()` and `pico8_mx_default()`, and driven through the real
+ * and the generated defaults (pico8_game_data.h), and driven through the real
  * `ie:ldown`/`mv`/`dg`/`dc`, in games started directly: no events file.
  * Only test_hj_is_a_struct looks at the form. */
 
@@ -67,7 +66,6 @@ static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"hj", "jo", "np", "prober"};
-static const char *const jo_tables[] = {"kq", "gq"};
 
 /* A table member of the jo tree and the generated data it points at. */
 typedef struct {
@@ -129,18 +127,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v));
-    return v;
-}
-
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v = class_value(default_of, name);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 static pico8_value_function_t method(const void *e, const char *name) {
@@ -377,9 +363,8 @@ static uint32_t fold_ascension(uint32_t h, const void *e) {
     assert(get_ref(e, "nu") != &pico8_qh_nu_tags);
     assert(get_ref(e, "px") != &pico8_qh_px_row);
     assert(get_ref(e, "ba") == &pico8_qh_ba_seq);
-    for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
-    }
+    assert(get_ref(e, "kq") == &pico8_jo_start.kq);
+    assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
@@ -515,14 +500,13 @@ static void test_life(void) {
 /* A `pm` as `jo:hu` builds it (`p`, `ra`, `id`) or an `mx` by `ie:ldown`
  * on `gx[5]`, each a struct under its own descriptor holding hj's `kj` and
  * `mm`. */
-static uint32_t fold_heir(uint32_t h, void *e, int (*default_of)(const char *, pico8_value_t *)) {
+static uint32_t fold_heir(uint32_t h, void *e, const pico8_struct_class_t *cls) {
     static const char *const scalars[] = {"id", "me", "qh", "rr", "od", "pk", "hp", "s", "py", "pn", "du"};
     size_t i;
 
     assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)e)->cls ==
-               (default_of == pico8_pm_default ? pico8_pm_struct_class() : pico8_mx_struct_class()));
-    assert(is_of(e, default_of == pico8_pm_default ? &pico8_pm_px_row : &pico8_mx_px_row));
+           ((const pico8_struct_header_t *)e)->cls == cls);
+    assert(is_of(e, cls == pico8_pm_struct_class() ? &pico8_pm_px_row : &pico8_mx_px_row));
     assert(method(e, "kj") == pico8_hj_struct_class()->methods[PICO8_METHOD_KJ]);
     assert(method(e, "mm") == pico8_hj_struct_class()->methods[PICO8_METHOD_MM]);
     assert(list_size(e, "qy") == 0);
@@ -551,8 +535,8 @@ static void test_heirs(void) {
     assert(strcmp(get(pm, "rr").as.string, "ascension") == 0 && bool_state(pm, "pk") == 1);
     assert(get(pm, "od").as.fixed == pico8_fixed_from_int(60));
     assert(strcmp(get(mx, "rr").as.string, "void synthesis") == 0);
-    h = fold_heir(h, pm, pico8_pm_default);
-    h = fold_heir(h, mx, pico8_mx_default);
+    h = fold_heir(h, pm, pico8_pm_struct_class());
+    h = fold_heir(h, mx, pico8_mx_struct_class());
     check("heirs", h, HEIRS_HASH);
 }
 

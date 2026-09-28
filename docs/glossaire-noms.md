@@ -13,9 +13,10 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` |
-| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; seul l'arbre `jo` garde une spec parsée à l'init de son module, que `pico8_X_default` lit, puis la parente ; au bout de la chaîne, `pico8_ke_start_field` lit `pico8_ke_start` par nom. Les autres classes n'ont plus de spec parsée |
-| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
+| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` (`fz` : `pico8_pm_start.fz`, `pico8_ga_start.fz`) |
+| `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; plus aucune classe n'a de spec parsée : ses clés sont `pico8_X_start`, que son constructeur lit, l'héritage passant par le constructeur de la parente |
+| — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
+| — | `pico8_X_kind_field` | le `field` d'une sorte de l'arbre `jo` : `rr`, `s`, `me`, `od` seulement, depuis `pico8_X_start` de la classe qui les pose, puis la parente ; fin `pico8_jo_kind_field` |
 | — | `pico8_pj_cr_start`, `pico8_pj_ou_row`, `pico8_pj_ea_row` | les tables `cr`, `ou`, `ea` de la spec de `pj`, générées ; `g_pj_cr` prend ses valeurs de la première |
 | — | `g_pj_ou`, `g_pj_ea` (`pico8_score_panel.c`) | les tables d'état `ou`/`ea` de `pj`, construites une fois par init depuis leurs rangées générées, jamais libérées |
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
@@ -230,8 +231,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `mi` | palier de développement |
 | `jy` | besoins de la planète, une liste de `{qe=ressource}` |
 | `cc` | routes commerciales arrivant sur la planète |
-| `by` | routes partant de la planète (résultat de `jo:ib()`) |
-| `kw` | production : `{qe=ressource, mu=quantité}` (`pico8_kw_t`, `jo.kw`). `mu` est aussi le dénominateur du « 0/2 » affiché : la capacité en routes d'export |
+| `by` | routes partant de la planète (résultat de `jo:ib()`) ; sur `ga`, la liste partagée par la classe, `g_ga_by_shared` de `pico8_planet_family.c`, vidée à chaque init |
+| `kw` | production : `{qe=ressource, mu=quantité}` (`pico8_kw_t`, `jo.kw`). `mu` est aussi le dénominateur du « 0/2 » affiché : la capacité en routes d'export. Une planète nue pointe `g_jo_kw_shared`, remis à `*pico8_jo_start.kw` à chaque init |
 | `hf` | la planète est un hub |
 | `hs` | multiplicateur de revenu commercial ; 1 par défaut, 0,5 sur une planète colonisée |
 | `jh` | bonus de production ajouté à `kw.mu`, posé une seule fois par `jo:cn` |

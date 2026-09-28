@@ -22,10 +22,6 @@ void pico8_ke_shutdown(void);
 /* 1 from pico8_ke_init() to pico8_ke_shutdown(), 0 otherwise. */
 int pico8_ke_ready(void);
 
-/* pico8_ke_field() on a ke holding `pico8_ke_start`: the end of the default
- * readers that still chain to ke. Answers whether or not ke is ready. */
-int pico8_ke_start_field(const char *name, pico8_value_t *out_value);
-
 /* A NULL `self` is a no-op; any other `self` must be a struct. `me` and
  * `t` are written into its pico8_ke_t, never through its field writer.
  * `me` is nil or a non-NULL string, borrowed; anything else aborts. */

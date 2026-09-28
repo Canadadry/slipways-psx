@@ -1,6 +1,5 @@
 /* The protostar `pm`, read and written only through the dual-form field API
- * and `pico8_pm_default()`, `pico8_hj_default()`, `pico8_qh_default()`,
- * `pico8_jo_default()` and `pico8_ga_default()`, built as `jo:hu` builds it
+ * and the generated defaults (pico8_game_data.h), built as `jo:hu` builds it
  * (`kv["pm"]` on `p`, `ra`, `id`) and driven through the real
  * `mv`/`dg`/`dc`, in games started directly: no events file. Only
  * test_pm_is_a_struct looks at the form. */
@@ -65,8 +64,6 @@ static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
-static const char *const pm_tables[] = {"ng"};
-static const char *const jo_tables[] = {"kq", "gq"};
 
 /* A table member of the jo tree and the generated data it points at. */
 typedef struct {
@@ -129,18 +126,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v));
-    return v;
-}
-
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v = class_value(default_of, name);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 static pico8_value_function_t method(const void *e, const char *name) {
@@ -375,18 +360,15 @@ static uint32_t fold_protostar(uint32_t h, const void *e) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
-    for (i = 0; i < sizeof pm_tables / sizeof pm_tables[0]; i++) {
-        assert(get_ref(e, pm_tables[i]) == class_ref(pico8_pm_default, pm_tables[i]));
-    }
+    assert(get_ref(e, "ng") == &pico8_pm_start.ng);
     for (i = 0; i < sizeof pm_data / sizeof pm_data[0]; i++) {
         assert(get_ref(e, pm_data[i].name) == pm_data[i].data);
     }
     assert(get_ref(e, "nu") != &pico8_hj_nu_tags);
     assert(get_ref(e, "k_") != &pico8_hj_k__seq);
     assert(get_ref(e, "ba") == &pico8_qh_ba_seq);
-    for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
-    }
+    assert(get_ref(e, "kq") == &pico8_jo_start.kq);
+    assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }

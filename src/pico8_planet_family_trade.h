@@ -9,19 +9,18 @@
 #include "pico8_value.h"
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first: `nr`'s spec contains `b(-4,-4,5,5)`, so
- * the 'b' constructor must already be registered when it is parsed. */
+/* Calls `pico8_pi_init()` first. */
 void pico8_planet_family_trade_init(void);
 
-/* Frees the three specs, never any instance. Idempotent, and safe before
- * the first `pico8_planet_family_trade_init()`. */
+/* Frees nothing, no instance. Idempotent, and safe before the first
+ * `pico8_planet_family_trade_init()`. */
 void pico8_planet_family_trade_shutdown(void);
 
 /* A slipgate: a laboratory, then nr's own defaults `hz` and `rr`, which no
  * ancestor has a member for. A default of nr whose name is a member of `qh`
- * or `jo` (`nu`, `kq`, `od`, `fp`, `s`, `dw`) lives in that member. `nu`
- * and `hz` point at nr's generated data, `px` and `ba` at qh's; `kq` is its
- * spec's very box, borrowed. Nothing frees the struct: TROU-7. */
+ * or `jo` (`nu`, `kq`, `od`, `fp`, `s`, `dw`) lives in that member. `nu`,
+ * `hz`, `kq` and `rr` point at nr's generated data, `px` and `ba` at qh's.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
     const pico8_int_seq_t *hz;
@@ -30,9 +29,9 @@ typedef struct {
 
 /* An infraspace gate: a slipgate, then fr's own default `mt`, which no
  * ancestor has a member for. A default of fr whose name is a member of `nr`
- * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` points at fr's
- * generated data, `nu` at nr's, `px` and `ba` at qh's; `kq` is nr's spec's
- * very box, borrowed. Nothing frees the struct: TROU-7. */
+ * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` and `rr` point
+ * at fr's generated data, `nu` and `kq` at nr's, `px` and `ba` at qh's.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_nr_t nr;
     pico8_fixed_t mt;
@@ -50,11 +49,10 @@ typedef struct {
 } pico8_mx_t;
 
 /* As in pico8_planet_family.h: `_ready` from
- * `pico8_planet_family_trade_init()` to its shutdown, `_default` reads the
- * kind's spec then its parent's reader (nr: qh, fr: nr, mx: hj), a REF
- * borrowed until the shutdown; each `_kind` reader is that `_default`. */
+ * `pico8_planet_family_trade_init()` to its shutdown; each `_kind` reader
+ * answers `rr`, `s`, `me`, `od` from the generated defaults, then its
+ * parent's (nr: qh, fr: nr, mx: hj). */
 int pico8_nr_ready(void);
-int pico8_nr_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_nr_kind(void);
 const pico8_struct_class_t *pico8_nr_struct_class(void);
 
@@ -65,7 +63,6 @@ const pico8_struct_class_t *pico8_nr_struct_class(void);
 pico8_nr_t *pico8_nr_new(const pico8_ob_table_t *overrides);
 
 int pico8_fr_ready(void);
-int pico8_fr_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_fr_kind(void);
 const pico8_struct_class_t *pico8_fr_struct_class(void);
 
@@ -75,7 +72,6 @@ const pico8_struct_class_t *pico8_fr_struct_class(void);
 pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides);
 
 int pico8_mx_ready(void);
-int pico8_mx_default(const char *name, pico8_value_t *out_value);
 const pico8_entity_kind_t *pico8_mx_kind(void);
 const pico8_struct_class_t *pico8_mx_struct_class(void);
 

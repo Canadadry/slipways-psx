@@ -16,8 +16,8 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* A bare planet: jo's own defaults (`nu`, `ka`, `dz`, `cq` and `em` point
- * at jo's generated data in pico8_game_data.h; `kw` points at the one kw
+/* A bare planet: jo's own defaults (`nu`, `kq`, `ka`, `dz`, `cq`, `gq` and
+ * `em` point at jo's generated data in pico8_game_data.h; `kw` points at the one kw
  * every bare planet shares, written in place by `bb` and `mx:kf`, until `lz`
  * points it at the planet's own `kw_own`), its construction keys
  * `id`/`p`/`ra`, then every field jo's functions and the generic writers
@@ -30,13 +30,13 @@ typedef struct {
     int hf_is_bool; /* 1: `hf` holds a boolean (0/1), 0: a fixed */
     pico8_fixed_t hs;
     pico8_fixed_t fa;
-    pico8_qz_box_t *kq;
+    const pico8_qz_box_t *kq;
     pico8_fixed_t ma;
     const pico8_int_seq_t *ka;
     const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
     const pico8_int_seq_t *cq;
     pico8_kw_t *kw;
-    pico8_vec_t *gq;
+    const pico8_vec_t *gq;
     pico8_fixed_t ca;
     const pico8_jb_row_t *em;
     const char *id;
@@ -67,21 +67,19 @@ typedef struct {
 } pico8_jo_t;
 
 /* TROU-8 */
-/* Calls `pico8_pi_init()` first: the spec contains `b(-7,-7,7,7)` and
- * `v(0,11)`, so the 'b'/'v' constructors must already be registered when
- * the spec string is parsed. */
+/* Calls `pico8_pi_init()` first. */
 void pico8_jo_init(void);
 
-/* Frees the `jo` spec and the `oc`/`ir` generators, never any `jo`
- * instance. Idempotent, and safe before the first `pico8_jo_init()`. */
+/* Frees the `oc`/`ir` generators, never any `jo` instance. Idempotent, and
+ * safe before the first `pico8_jo_init()`. */
 void pico8_jo_shutdown(void);
 
 /* 1 from `pico8_jo_init()` to `pico8_jo_shutdown()`, 0 otherwise. */
 int pico8_jo_ready(void);
 
-/* `jo`'s spec default `name`, then ke's; 0 when absent, or when not ready. A
- * REF is borrowed from the spec, valid until `pico8_jo_shutdown()`. */
-int pico8_jo_default(const char *name, pico8_value_t *out_value);
+/* The end of the `field` of the jo tree's kinds: `me`, from pico8_jo_start;
+ * 0 for any other name, or when not ready. */
+int pico8_jo_kind_field(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_jo_struct_class(void);
 
 /* `jo.dz` (PICO8_JO_DZ_COUNT rows), `jo.cq`, `jo.ka`, `jo.em`: jo's

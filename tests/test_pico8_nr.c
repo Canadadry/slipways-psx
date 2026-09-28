@@ -1,6 +1,5 @@
 /* The slipgate `nr`, read and written only through the dual-form field API
- * and `pico8_nr_default()`, `pico8_qh_default()` and `pico8_jo_default()`,
- * built as the shop builds it (`ie:ldown` on `gx[2]`, `id`) and driven
+ * and the generated defaults (pico8_game_data.h), built as the shop builds it (`ie:ldown` on `gx[2]`, `id`) and driven
  * through the real `mv`/`dg`/`dc`, in games started directly: no events file.
  * Only test_nr_is_a_struct looks at the form. */
 
@@ -62,8 +61,6 @@ static const char *const own_methods[] = {"gv", "ldown", "hb", "cn"};
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb", "mm"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"nr", "np", "prober"};
-static const char *const nr_tables[] = {"kq"};
-static const char *const jo_tables[] = {"gq"};
 
 /* A table member of the jo tree and the generated data it points at. */
 typedef struct {
@@ -125,18 +122,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v));
-    return v;
-}
-
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v = class_value(default_of, name);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 static pico8_value_function_t method(const void *e, const char *name) {
@@ -334,20 +319,16 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
-    for (i = 0; i < sizeof nr_tables / sizeof nr_tables[0]; i++) {
-        assert(get_ref(e, nr_tables[i]) == class_ref(pico8_nr_default, nr_tables[i]));
-    }
+    assert(get_ref(e, "kq") == &pico8_nr_start.kq);
     for (i = 0; i < sizeof nr_data / sizeof nr_data[0]; i++) {
         assert(get_ref(e, nr_data[i].name) == nr_data[i].data);
     }
     assert(get_ref(e, "nu") != &pico8_qh_nu_tags);
-    assert(get_ref(e, "kq") != class_ref(pico8_jo_default, "kq"));
+    assert(get_ref(e, "kq") != &pico8_jo_start.kq);
     for (i = 0; i < sizeof qh_data / sizeof qh_data[0]; i++) {
         assert(get_ref(e, qh_data[i].name) == qh_data[i].data);
     }
-    for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
-    }
+    assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
@@ -576,6 +557,7 @@ static int is_an_nr_struct(const void *e) {
  * construction key other than `id`, `p`, `ra` stops the run. */
 static void test_nr_is_a_struct(void) {
     static const char *const inherited[] = {"nu", "kq", "od", "fp", "s", "dw"};
+    pico8_value_t inherited_want[6];
     const pico8_struct_class_t *cls = pico8_nr_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
     pico8_value_t v;
@@ -596,7 +578,6 @@ static void test_nr_is_a_struct(void) {
         for (i = 0; i < sizeof own_methods / sizeof own_methods[0]; i++) {
             if (pico8_method_of(own_methods[i]) == j) {
                 own = 1;
-                assert(!pico8_nr_default(own_methods[i], &v));
             }
         }
         assert((cls->methods[j] != NULL) == named);
@@ -607,13 +588,18 @@ static void test_nr_is_a_struct(void) {
         }
     }
     assert(cls->field != qh->field && cls->set_field != qh->set_field);
+    inherited_want[0] = pico8_value_ref((void *)&pico8_nr_nu_tags);
+    inherited_want[1] = pico8_value_ref((void *)&pico8_nr_start.kq);
+    inherited_want[2] = pico8_value_fixed(pico8_nr_start.od);
+    inherited_want[3] = pico8_value_fixed(pico8_nr_start.fp);
+    inherited_want[4] = pico8_value_fixed(pico8_nr_start.s);
+    inherited_want[5] = pico8_value_fixed(pico8_nr_start.dw);
     for (i = 0; i < sizeof inherited / sizeof inherited[0]; i++) {
         pico8_value_t own;
         pico8_value_t through_qh;
         assert(cls->field(a, inherited[i], &own) && qh->field(a, inherited[i], &through_qh));
         assert(pico8_value_equal(own, through_qh) &&
-               pico8_value_equal(own, strcmp(inherited[i], "nu") == 0 ? pico8_value_ref((void *)&pico8_nr_nu_tags)
-                                                              : class_value(pico8_nr_default, inherited[i])));
+               pico8_value_equal(own, inherited_want[i]));
     }
     assert(!qh->field(a, "hz", &v) && cls->field(a, "hz", &v) && !qh->field(a, "rr", &v) && cls->field(a, "rr", &v));
     assert(pico8_nr_ready() && pico8_fr_ready());

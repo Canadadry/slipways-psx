@@ -1092,24 +1092,17 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0u);
 }
 
-static const char *spec_me(int (*reader)(const char *, pico8_value_t *)) {
-    pico8_value_t v;
-
-    assert(reader("me", &v) && v.kind == PICO8_VALUE_STRING);
-    return v.as.string;
-}
-
 static int identity_of(const char *s) {
     if (s == pico8_ke_start.me) {
         return 1;
     }
-    if (s == spec_me(pico8_jo_default)) {
+    if (s == pico8_jo_start.me) {
         return 2;
     }
-    if (s == spec_me(pico8_qh_default)) {
+    if (s == pico8_qh_start.me) {
         return 3;
     }
-    if (s == spec_me(pico8_pm_default)) {
+    if (s == pico8_pm_start.me) {
         return 4;
     }
     return 0;
@@ -1426,8 +1419,6 @@ static void in_fresh_child(void (*test)(void)) {
 
 static const char *const jo_names[12] = {"nu", "hf", "hs", "fa", "kq", "ka", "dz", "cq", "kw", "em", "hn", "nk"};
 
-typedef int (*jo_spec_reader_t)(const char *, pico8_value_t *);
-
 /* The generated data (pico8_game_data.h) a bare planet's table member
  * `name` points at; NULL for any other name. */
 static const void *jo_member_data(const char *name) {
@@ -1468,27 +1459,26 @@ static uint32_t data_entries(const char *name, const void *data) {
     return (uint32_t)((const pico8_int_seq_t *)data)->count;
 }
 
-/* 1: jo's own default; 2: the one of `own`, the spec of the genre that
- * holds its own default (`own_nu`, its generated `nu`, for that name); 0:
- * any other. A converted name other than `nu` is never a genre's own. */
-static int jo_identity(const char *name, const void *ref, jo_spec_reader_t own, const void *own_nu) {
+/* 1: jo's own default; 2: the genre's own generated `nu` (`own_nu`) or
+ * `kq` (`own_kq`), NULL when the genre sets none; 0: any other. */
+static int jo_identity(const char *name, const void *ref, const void *own_kq, const void *own_nu) {
     const void *jo_data = jo_member_data(name);
-    pico8_value_t d;
 
     if (jo_data != NULL ? jo_data == ref
-                        : pico8_jo_default(name, &d) && d.kind == PICO8_VALUE_REF && d.as.ref == ref) {
+                        : (strcmp(name, "kq") == 0 && ref == &pico8_jo_start.kq) ||
+                              (strcmp(name, "gq") == 0 && ref == &pico8_jo_start.gq)) {
         return 1;
     }
     if (strcmp(name, "nu") == 0) {
         return own_nu != NULL && own_nu == ref ? 2 : 0;
     }
-    if (own != NULL && jo_data == NULL && own(name, &d) && d.kind == PICO8_VALUE_REF && d.as.ref == ref) {
+    if (own_kq != NULL && strcmp(name, "kq") == 0 && own_kq == ref) {
         return 2;
     }
     return 0;
 }
 
-static uint32_t fold_jo_member(uint32_t h, const void *e, const char *name, jo_spec_reader_t own, const void *own_nu,
+static uint32_t fold_jo_member(uint32_t h, const void *e, const char *name, const void *own_kq, const void *own_nu,
                                pico8_value_t *out,
                                int *identity) {
     pico8_value_t v;
@@ -1503,7 +1493,7 @@ static uint32_t fold_jo_member(uint32_t h, const void *e, const char *name, jo_s
     } else if (v.kind == PICO8_VALUE_BOOL) {
         h = fnv(h, (uint32_t)v.as.boolean);
     } else if (v.kind == PICO8_VALUE_REF) {
-        *identity = jo_identity(name, v.as.ref, own, own_nu);
+        *identity = jo_identity(name, v.as.ref, own_kq, own_nu);
         h = fnv(h, (uint32_t)*identity);
     }
     *out = v;
@@ -1524,9 +1514,8 @@ static int jo_tree(const void *e) {
 }
 
 static void test_jo_members_by_name(void) {
-    static const jo_spec_reader_t own[10] = {NULL,           pico8_qh_default, pico8_nl_default, pico8_os_default,
-                                             pico8_hj_default, pico8_pm_default, pico8_ga_default, pico8_nr_default,
-                                             pico8_nr_default, pico8_mx_default};
+    static const void *const own_kq[10] = {NULL, NULL, NULL, NULL, NULL, NULL, &pico8_ga_start.kq, &pico8_nr_start.kq,
+                                           &pico8_nr_start.kq, NULL};
     static const void *const own_nu[10] = {NULL,           &pico8_qh_nu_tags, &pico8_nl_nu_tags, &pico8_os_nu_tags,
                                            &pico8_hj_nu_tags, &pico8_pm_nu_tags, &pico8_ga_nu_tags, &pico8_nr_nu_tags,
                                            &pico8_nr_nu_tags, &pico8_mx_nu_tags};
@@ -1572,7 +1561,7 @@ static void test_jo_members_by_name(void) {
             const char *n = jo_names[m];
 
             v = pico8_value_fixed(0x1234);
-            h = fold_jo_member(h, e[i], n, own[i], own_nu[i], &v, &identity);
+            h = fold_jo_member(h, e[i], n, own_kq[i], own_nu[i], &v, &identity);
             if (strcmp(n, "hf") == 0) {
                 assert(i == 0 ? v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1)
                               : v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
@@ -1791,13 +1780,12 @@ static uint32_t fold_position(uint32_t h, const void *e, const char *name, const
 
 static uint32_t fold_jo_position(uint32_t h, const void *e) {
     pico8_value_t v;
-    pico8_value_t d;
 
     h = fold_position(h, e, "p", NULL);
     h = fold_position(h, e, "ra", NULL);
     h = fold_position(h, e, "gq", NULL);
-    assert(me_of(e, "gq", &v) && pico8_jo_default("gq", &d));
-    h = fnv(h, (uint32_t)(v.as.ref == d.as.ref));
+    assert(me_of(e, "gq", &v));
+    h = fnv(h, (uint32_t)(v.as.ref == &pico8_jo_start.gq));
     assert(me_of(e, "ca", &v) && v.kind == PICO8_VALUE_FIXED);
     return fnv(h, (uint32_t)v.as.fixed);
 }
@@ -1839,7 +1827,6 @@ static void test_jo_position_by_name(void) {
     pico8_vec_t before;
     pico8_ob_table_t *b;
     pico8_value_t v;
-    pico8_value_t d;
     pico8_hp_t *to_pm = NULL;
     uint32_t h = 2166136261u;
     size_t i;
@@ -1863,10 +1850,9 @@ static void test_jo_position_by_name(void) {
     e[7] = pico8_nr_new(NULL);
     e[8] = pico8_fr_new(NULL);
     e[9] = pico8_mx_new(NULL);
-    assert(pico8_jo_default("gq", &d) && d.kind == PICO8_VALUE_REF && d.as.ref != NULL);
     for (i = 0; i < 10; i++) {
         h = fold_jo_position(h, e[i]);
-        assert(me_of(e[i], "gq", &v) && v.as.ref == d.as.ref);
+        assert(me_of(e[i], "gq", &v) && v.as.ref == &pico8_jo_start.gq);
         assert(((const pico8_vec_t *)v.as.ref)->x == 0 && ((const pico8_vec_t *)v.as.ref)->y == pico8_fixed_from_int(11));
         assert(me_of(e[i], "ca", &v) && v.as.fixed == pico8_fixed_from_int(9));
     }
@@ -2482,7 +2468,7 @@ static void test_jo_writers_by_name(void) {
     pico8_list_t *l = malloc(sizeof *l);
     const pico8_list_t *jos;
     pico8_value_t v;
-    pico8_value_t d;
+    const void *class_by;
     void *e[10];
     void *made;
     void *planet;
@@ -2508,10 +2494,10 @@ static void test_jo_writers_by_name(void) {
         h = fnv(h, (uint32_t)me_of(e[i], "mi", &v));
         h = fnv(h, (uint32_t)me_of(e[i], "by", &v));
     }
-    assert(pico8_ga_default("by", &d) && d.kind == PICO8_VALUE_REF);
-    assert(ref_of(e[6], "by") == d.as.ref);
+    class_by = ref_of(e[6], "by");
+    assert(class_by != NULL);
     made = pico8_ga_new(NULL);
-    assert(ref_of(made, "by") == d.as.ref);
+    assert(ref_of(made, "by") == class_by);
 
     pico8_list_init(l);
     for (i = 0; i < 6; i++) {
@@ -2576,7 +2562,7 @@ static void test_jo_writers_by_name(void) {
     for (k = 0; k < jos->count; k++) {
         assert(ref_of(jos->items[k].as.ref, "cc") != NULL);
         if (is_of(jos->items[k].as.ref, pico8_ga_struct_class())) {
-            assert(ref_of(jos->items[k].as.ref, "by") == d.as.ref);
+            assert(ref_of(jos->items[k].as.ref, "by") == class_by);
         }
     }
     h = fold_hv_gen(h);
@@ -2637,7 +2623,7 @@ static void test_jo_writers_by_name(void) {
     h = fnv(h, (uint32_t)pico8_jo_ib(made)->count);
     assert(!me_of(made, "by", &v));
     made = pico8_ga_new(NULL);
-    assert(pico8_jo_ib(made) == d.as.ref);
+    assert(pico8_jo_ib(made) == class_by);
 
     for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
         v = pico8_value_fixed(0x1234);
@@ -2731,8 +2717,6 @@ static void test_jo_writers_stop_off_row(void) {
     }
 }
 
-typedef int (*qh_spec_reader_t)(const char *, pico8_value_t *);
-
 static const char *const qh_names[10] = {"hp", "px", "dq", "qh", "od", "fp", "dw", "s", "ba", "et"};
 
 static void *qh_tree_new(int k) {
@@ -2756,29 +2740,16 @@ static void *qh_tree_new(int k) {
     }
 }
 
-static qh_spec_reader_t qh_tree_reader(int k) {
-    static const qh_spec_reader_t readers[8] = {pico8_qh_default, pico8_nl_default, pico8_os_default,
-                                                pico8_hj_default, pico8_pm_default, pico8_nr_default,
-                                                pico8_fr_default, pico8_mx_default};
-    return readers[k];
-}
-
-/* The generated `px` or `ba` a member of qh's tree takes from `own`, one of
- * qh_tree_reader()'s readers. */
-static const void *qh_tree_data(qh_spec_reader_t own, const char *name) {
+/* The generated `px` or `ba` of the member of qh's tree of qh_tree_new()
+ * rank `rank`. */
+static const void *qh_tree_data(int rank, const char *name) {
     static const void *const px[8] = {&pico8_qh_px_row, &pico8_nl_px_row, &pico8_os_px_row, &pico8_hj_px_row,
                                       &pico8_pm_px_row, &pico8_qh_px_row, &pico8_qh_px_row, &pico8_mx_px_row};
     static const void *const ba[8] = {&pico8_qh_ba_seq, &pico8_nl_ba_seq, &pico8_qh_ba_seq, &pico8_qh_ba_seq,
                                       &pico8_qh_ba_seq, &pico8_qh_ba_seq, &pico8_qh_ba_seq, &pico8_qh_ba_seq};
-    int k;
 
-    for (k = 0; k < 8; k++) {
-        if (qh_tree_reader(k) == own) {
-            return strcmp(name, "px") == 0 ? px[k] : ba[k];
-        }
-    }
-    assert(0 && "own is one of qh's tree");
-    return NULL;
+    assert(rank >= 0 && rank < 8 && "rank is one of qh's tree");
+    return strcmp(name, "px") == 0 ? px[rank] : ba[rank];
 }
 
 static int qh_tree_rank(const void *e) {
@@ -2834,9 +2805,9 @@ static uint32_t et_state(const void *e) {
     return 2u + (uint32_t)et_target_rank(v.as.ref);
 }
 
-static uint32_t fold_qh_member(uint32_t h, const void *e, const char *name, qh_spec_reader_t own) {
+/* `rank`: qh_tree_new()'s, -1 for none. */
+static uint32_t fold_qh_member(uint32_t h, const void *e, const char *name, int rank) {
     pico8_value_t v;
-    pico8_value_t d;
 
     if (strcmp(name, "et") == 0) {
         return fnv(h, 100u + et_state(e));
@@ -2851,10 +2822,10 @@ static uint32_t fold_qh_member(uint32_t h, const void *e, const char *name, qh_s
     case PICO8_VALUE_BOOL:
         return fnv(h, (uint32_t)v.as.boolean);
     case PICO8_VALUE_STRING:
-        assert(own != NULL && own(name, &d) && d.kind == PICO8_VALUE_STRING && d.as.string == v.as.string);
+        assert(rank >= 0 && strcmp(name, "dq") == 0 && v.as.string == pico8_qh_start.dq);
         return fold_string(h, v.as.string);
     case PICO8_VALUE_REF:
-        assert(own != NULL && qh_tree_data(own, name) == v.as.ref);
+        assert(rank >= 0 && qh_tree_data(rank, name) == v.as.ref);
         assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
         return fnv(h, data_entries(name, v.as.ref));
     default:
@@ -2863,11 +2834,11 @@ static uint32_t fold_qh_member(uint32_t h, const void *e, const char *name, qh_s
     }
 }
 
-static uint32_t fold_qh_all(uint32_t h, const void *e, qh_spec_reader_t own) {
+static uint32_t fold_qh_all(uint32_t h, const void *e, int rank) {
     size_t i;
 
     for (i = 0; i < 10; i++) {
-        h = fold_qh_member(h, e, qh_names[i], own);
+        h = fold_qh_member(h, e, qh_names[i], rank);
     }
     return h;
 }
@@ -2880,7 +2851,7 @@ static uint32_t fold_hv_qh(uint32_t h) {
         int k = qh_tree_rank(hv->items[i].as.ref);
         if (k >= 0) {
             h = fnv(h, (uint32_t)k);
-            h = fold_qh_all(h, hv->items[i].as.ref, qh_tree_reader(k));
+            h = fold_qh_all(h, hv->items[i].as.ref, k);
         }
     }
     return h;
@@ -2939,7 +2910,7 @@ static void test_qh_members_by_name(void) {
         (void)start_game();
         fresh[k] = qh_tree_new(k);
         h = fnv(h, (uint32_t)k);
-        h = fold_qh_all(h, fresh[k], qh_tree_reader(k));
+        h = fold_qh_all(h, fresh[k], k);
         assert(et_state(fresh[k]) == 0);
     }
 
@@ -3014,7 +2985,7 @@ static void test_qh_members_by_name(void) {
             for (n = 0; n < sizeof raw_refused / sizeof raw_refused[0]; n++) {
                 h = fnv(h, (uint32_t)header->cls->set_field(e, raw_refused[n], pico8_value_fixed(7)));
             }
-            h = fold_qh_all(h, e, qh_tree_reader(0));
+            h = fold_qh_all(h, e, 0);
         }
     }
 
@@ -3023,13 +2994,13 @@ static void test_qh_members_by_name(void) {
         const pico8_struct_header_t *header = e;
 
         write_by_name(e, "s", pico8_value_fixed(pico8_fixed_from_int(3)));
-        h = fold_qh_member(h, e, "s", NULL);
+        h = fold_qh_member(h, e, "s", -1);
         write_by_name(e, "s", zero_union(PICO8_VALUE_FIXED));
         assert(me_of(e, "s", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
-        h = fold_qh_member(h, e, "s", NULL);
+        h = fold_qh_member(h, e, "s", -1);
         h = fnv(h, (uint32_t)header->cls->set_field(e, "od", pico8_value_fixed(7)));
         assert(pico8_mv(e, "hb", 0, nil(), nil(), &v));
-        h = fold_qh_member(h, e, "s", NULL);
+        h = fold_qh_member(h, e, "s", -1);
     }
 
     for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {
@@ -3106,24 +3077,10 @@ static void *hj_tree_new(int k) {
     return k == 0 ? (void *)pico8_hj_new(NULL) : k == 1 ? (void *)pico8_pm_new(NULL) : (void *)pico8_mx_new(NULL);
 }
 
-static qh_spec_reader_t hj_tree_reader(int k) {
-    static const qh_spec_reader_t readers[3] = {pico8_hj_default, pico8_pm_default, pico8_mx_default};
-    return readers[k];
-}
-
-/* The generated `k_` of hj, pm, mx, by hj_tree_reader() rank. */
+/* The generated `k_` of hj, pm, mx, by hj_tree_new() rank. */
 static const pico8_int_seq_t *hj_tree_k_(int k) {
     static const pico8_int_seq_t *const k_[3] = {&pico8_hj_k__seq, &pico8_pm_k__seq, &pico8_mx_k__seq};
     return k_[k];
-}
-
-static int hj_tree_rank_of(qh_spec_reader_t own) {
-    int k;
-
-    for (k = 0; k < 3 && hj_tree_reader(k) != own; k++) {
-    }
-    assert(k < 3 && "own is one of hj's tree");
-    return k;
 }
 
 /* -1 when `qy` is absent. */
@@ -3137,9 +3094,9 @@ static int hj_qy_size(const void *e) {
     return ((const pico8_list_t *)v.as.ref)->count;
 }
 
-static uint32_t fold_hj_member(uint32_t h, const void *e, const char *name, qh_spec_reader_t own) {
+/* `rank`: hj_tree_new()'s, -1 for none. */
+static uint32_t fold_hj_member(uint32_t h, const void *e, const char *name, int rank) {
     pico8_value_t v;
-    pico8_value_t d;
 
     if (!me_of(e, name, &v)) {
         return fnv(h, 0u);
@@ -3151,13 +3108,14 @@ static uint32_t fold_hj_member(uint32_t h, const void *e, const char *name, qh_s
     case PICO8_VALUE_BOOL:
         return fnv(h, (uint32_t)v.as.boolean);
     case PICO8_VALUE_STRING:
-        assert(own(name, &d) && d.kind == PICO8_VALUE_STRING && d.as.string == v.as.string);
+        assert(rank >= 0 && strcmp(name, "rr") == 0 &&
+               v.as.string == (rank == 2 ? pico8_mx_start.rr : pico8_hj_start.rr));
         return fold_string(h, v.as.string);
     case PICO8_VALUE_REF:
         if (strcmp(name, "qy") == 0) {
             return fnv(h, (uint32_t)hj_qy_size(e));
         }
-        assert(strcmp(name, "k_") == 0 && hj_tree_k_(hj_tree_rank_of(own)) == v.as.ref);
+        assert(strcmp(name, "k_") == 0 && rank >= 0 && hj_tree_k_(rank) == v.as.ref);
         assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
         return fnv(h, data_entries(name, v.as.ref));
     default:
@@ -3166,11 +3124,11 @@ static uint32_t fold_hj_member(uint32_t h, const void *e, const char *name, qh_s
     }
 }
 
-static uint32_t fold_hj_all(uint32_t h, const void *e, qh_spec_reader_t own) {
+static uint32_t fold_hj_all(uint32_t h, const void *e, int rank) {
     size_t i;
 
     for (i = 0; i < 13; i++) {
-        h = fold_hj_member(h, e, hj_names[i], own);
+        h = fold_hj_member(h, e, hj_names[i], rank);
     }
     return h;
 }
@@ -3212,7 +3170,6 @@ static void test_hj_members_by_name(void) {
     void *fresh[4];
     void *qy_of[4];
     pico8_value_t v;
-    pico8_value_t d;
     uint32_t h = 2166136261u;
     int k;
     int j;
@@ -3222,7 +3179,7 @@ static void test_hj_members_by_name(void) {
     for (k = 0; k < 3; k++) {
         fresh[k] = hj_tree_new(k);
         h = fnv(h, (uint32_t)k);
-        h = fold_hj_all(h, fresh[k], hj_tree_reader(k));
+        h = fold_hj_all(h, fresh[k], k);
     }
     {
         pico8_ob_table_t *b = pico8_ob_table_new();
@@ -3231,13 +3188,13 @@ static void test_hj_members_by_name(void) {
         pico8_ob_table_set_name(b, "id", pico8_value_string("s77"));
         fresh[3] = pico8_pm_new(b);
         pico8_ob_table_free(b);
-        h = fold_hj_all(h, fresh[3], pico8_pm_default);
+        h = fold_hj_all(h, fresh[3], 1);
     }
     for (k = 0; k < 4; k++) {
         int g = k == 3 ? 1 : k;
 
         assert(me_of(fresh[k], "rr", &v) && v.kind == PICO8_VALUE_STRING);
-        assert(pico8_hj_default("rr", &d) && (g == 2 || v.as.string == d.as.string));
+        assert(g == 2 || v.as.string == pico8_hj_start.rr);
         assert(me_of(fresh[k], "k_", &v) && v.kind == PICO8_VALUE_REF);
         assert(hj_tree_k_(g) == v.as.ref);
         assert((g == 0) == (&pico8_hj_k__seq == v.as.ref));
@@ -3269,7 +3226,7 @@ static void test_hj_members_by_name(void) {
             h = fold_hj_qy(h, e);
             assert(get_ref(e, "qy") == qy_of[0]);
         }
-        h = fold_hj_all(h, e, hj_tree_reader(k));
+        h = fold_hj_all(h, e, k);
     }
 
     (void)start_game();
@@ -3283,18 +3240,18 @@ static void test_hj_members_by_name(void) {
         pico8_list_init(mine);
         write_by_name(e, "qy", pico8_value_ref(mine));
         assert(get_ref(e, "qy") == mine);
-        h = fold_hj_member(h, e, "qy", NULL);
+        h = fold_hj_member(h, e, "qy", -1);
         write_by_name(e, "qy", pico8_value_ref((void *)hv));
         assert(get_ref(e, "qy") == hv);
         write_by_name(e, "qy", pico8_value_ref(NULL));
         assert(!me_of(e, "qy", &v) && hj_qy_size(e) == -1);
-        h = fold_hj_member(h, e, "qy", NULL);
+        h = fold_hj_member(h, e, "qy", -1);
         write_by_name(e, "qy", pico8_value_ref(born));
         assert(get_ref(e, "qy") == born);
         for (n = 0; n < 12; n++) {
             h = fnv(h, (uint32_t)header->cls->set_field(e, hj_names[n], pico8_value_fixed(7)));
         }
-        h = fold_hj_all(h, e, hj_tree_reader(k));
+        h = fold_hj_all(h, e, k);
     }
 
     for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {
@@ -3311,11 +3268,11 @@ static uint32_t fold_pm_own(uint32_t h, const void *e) {
 
     assert(me_of(e, "ng", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
     ng = v.as.ref;
-    assert(pico8_pm_default("ng", &d) && d.kind == PICO8_VALUE_REF && d.as.ref == ng);
+    assert(ng == &pico8_pm_start.ng);
     assert(ng->x == pico8_fixed_from_int(1) && ng->y == 0);
     h = fold_vec(h, *ng);
     assert(me_of(e, "fz", &v) && v.kind == PICO8_VALUE_STRING && v.as.string != NULL);
-    assert(pico8_pm_default("fz", &d) && d.kind == PICO8_VALUE_STRING && d.as.string == v.as.string);
+    assert(v.as.string == pico8_pm_start.fz);
     assert(strcmp(v.as.string, "pm") == 0);
     for (d.as.string = v.as.string; *d.as.string != '\0'; d.as.string++) {
         h = fnv(h, (uint32_t)(unsigned char)*d.as.string);

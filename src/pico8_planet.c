@@ -24,66 +24,14 @@
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
-static pico8_ob_table_t *g_jo_spec = NULL;
+static int g_jo_up = 0;
 
 static pico8_gn_state_t *g_jo_oc = NULL;
 static pico8_jf_state_t *g_jo_ir = NULL;
 
-static const char *g_jo_me = NULL;
-static pico8_fixed_t g_jo_hf = 0;
-static int g_jo_hf_is_bool = 0;
-static pico8_fixed_t g_jo_hs = 0;
-static pico8_fixed_t g_jo_fa = 0;
-static pico8_qz_box_t *g_jo_kq = NULL;
-static pico8_fixed_t g_jo_ma = 0;
 /* Shared by every bare planet: written in place by `bb` and `mx:kf` until
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
-static pico8_vec_t *g_jo_gq = NULL;
-static pico8_fixed_t g_jo_ca = 0;
-
-static void pico8_jo_defaults_reset(void) {
-    g_jo_me = NULL;
-    g_jo_hf = 0;
-    g_jo_hf_is_bool = 0;
-    g_jo_hs = 0;
-    g_jo_fa = 0;
-    g_jo_kq = NULL;
-    g_jo_ma = 0;
-    g_jo_gq = NULL;
-    g_jo_ca = 0;
-}
-
-static pico8_qz_box_t *jo_default_box(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jo.kq: a default of the struct is a key of jo's spec and a box b() (ref:autre)");
-    (void)found;
-    return v.as.ref;
-}
-
-static pico8_vec_t *jo_default_vec(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jo.gq: a default of the struct is a key of jo's spec and a vector v() (ref:autre)");
-    (void)found;
-    return v.as.ref;
-}
-
-static pico8_fixed_t jo_default_fixed(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "jo.hs/fa/ca/ma: a default of the struct is a key of jo's spec and a fixed (fixe)");
-    (void)found;
-    return v.as.fixed;
-}
-
-static pico8_fixed_t jo_default_hf(int found, pico8_value_t v, int *is_bool) {
-    assert(found && (v.kind == PICO8_VALUE_FIXED || v.kind == PICO8_VALUE_BOOL) &&
-           "jo.hf: a default of the struct is a key of jo's spec and a fixed or a boolean (bool,fixe)");
-    (void)found;
-    *is_bool = v.kind == PICO8_VALUE_BOOL;
-    return v.kind == PICO8_VALUE_BOOL ? (pico8_fixed_t)(v.as.boolean != 0) : v.as.fixed;
-}
 
 static int pico8_jo_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -339,11 +287,11 @@ static int jo_field_list(pico8_list_t *l, pico8_value_t *out_value) {
     return 1;
 }
 
-static int jo_field_vec(pico8_vec_t *v, pico8_value_t *out_value) {
+static int jo_field_vec(const pico8_vec_t *v, pico8_value_t *out_value) {
     if (v == NULL) {
         return 0;
     }
-    *out_value = pico8_value_ref(v);
+    *out_value = pico8_value_ref((void *)v);
     return 1;
 }
 
@@ -377,7 +325,7 @@ static int pico8_jo_field(const void *self, const char *name, pico8_value_t *out
         if (jo->kq == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(jo->kq);
+        *out_value = pico8_value_ref((void *)jo->kq);
         return 1;
     }
     if (strcmp(name, "ma") == 0) {
@@ -595,22 +543,22 @@ static const pico8_struct_class_t g_jo_struct_class = {
 };
 
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
-    assert(g_jo_spec != NULL && "pico8_jo_init() must run first");
+    assert(g_jo_up && "pico8_jo_init() must run first");
     pico8_ke_struct_init(&self->ke, cls);
-    self->nu = &pico8_jo_nu_tags;
-    self->hf = g_jo_hf;
-    self->hf_is_bool = g_jo_hf_is_bool;
-    self->hs = g_jo_hs;
-    self->fa = g_jo_fa;
-    self->kq = g_jo_kq;
-    self->ma = g_jo_ma;
-    self->ka = &pico8_jo_ka_seq;
-    self->dz = pico8_jo_dz_rows;
-    self->cq = &pico8_jo_cq_seq;
+    self->nu = pico8_jo_start.nu;
+    self->hf = pico8_jo_start.hf;
+    self->hf_is_bool = pico8_jo_start.hf_is_bool;
+    self->hs = pico8_jo_start.hs;
+    self->fa = pico8_jo_start.fa;
+    self->kq = &pico8_jo_start.kq;
+    self->ma = pico8_jo_start.ma;
+    self->ka = pico8_jo_start.ka;
+    self->dz = pico8_jo_start.dz;
+    self->cq = pico8_jo_start.cq;
     self->kw = &g_jo_kw_shared;
-    self->gq = g_jo_gq;
-    self->ca = g_jo_ca;
-    self->em = &pico8_jo_em_row;
+    self->gq = &pico8_jo_start.gq;
+    self->ca = pico8_jo_start.ca;
+    self->em = pico8_jo_start.em;
     self->id = NULL;
     self->p = NULL;
     self->ra = NULL;
@@ -635,8 +583,8 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     self->has_mi = 0;
     self->m_ = 0;
     self->has_m_ = 0;
-    self->kw_own = pico8_jo_kw_start;
-    self->ke.me = g_jo_me;
+    self->kw_own = *pico8_jo_start.kw;
+    self->ke.me = pico8_jo_start.me;
 }
 
 static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
@@ -669,58 +617,14 @@ static void *pico8_jo_struct_new(const pico8_ob_table_t *overrides) {
 }
 
 void pico8_jo_init(void) {
-    pico8_value_t me;
-    pico8_value_t v;
-    int me_found;
-    int found;
-
     pico8_jo_shutdown();
     pico8_pi_init();
-    g_jo_spec = pico8_ob("\n"
-                         "nu=o(\"jo\",\"np\",\"prober\"),\n"
-                         "me=\"unknown\",\n"
-                         "hf=1,hs=1,\n"
-                         "fa=6,\n"
-                         "kq=b(-7,-7,7,7),\n"
-                         "ma=0,\n"
-                         "ka=o(2,3,9,12),\n"
-                         "dz=o(\n"
-                         "o(\"unhappy\",c=8),\n"
-                         "o(\"content\",c=3),\n"
-                         "o(\"prosperous\",c=9),\n"
-                         "o(\"rich\",c=12),\n"
-                         "),\n"
-                         "cq=o(12,36,24,25),\n"
-                         "kw=o(mu=0),\n"
-                         "gq=v(0,11),ca=9,\n"
-                         "em=o(f,3,0,-1),\n",
-                         NULL);
-    g_jo_kw_shared = pico8_jo_kw_start;
-    found = pico8_jo_default("hf", &v);
-    g_jo_hf = jo_default_hf(found, v, &g_jo_hf_is_bool);
-    found = pico8_jo_default("hs", &v);
-    g_jo_hs = jo_default_fixed(found, v);
-    found = pico8_jo_default("fa", &v);
-    g_jo_fa = jo_default_fixed(found, v);
-    found = pico8_jo_default("kq", &v);
-    g_jo_kq = jo_default_box(found, v);
-    found = pico8_jo_default("ma", &v);
-    g_jo_ma = jo_default_fixed(found, v);
-    found = pico8_jo_default("gq", &v);
-    g_jo_gq = jo_default_vec(found, v);
-    found = pico8_jo_default("ca", &v);
-    g_jo_ca = jo_default_fixed(found, v);
-    me_found = pico8_jo_default("me", &me);
-    assert(me_found && me.kind == PICO8_VALUE_STRING && me.as.string != NULL &&
-           "jo: me, a default of the struct, is a key of jo's spec and a string (chaine)");
-    (void)me_found;
-    g_jo_me = me.as.string;
+    g_jo_up = 1;
+    g_jo_kw_shared = *pico8_jo_start.kw;
 }
 
 void pico8_jo_shutdown(void) {
-    pico8_jo_defaults_reset();
-    pico8_ob_table_free(g_jo_spec);
-    g_jo_spec = NULL;
+    g_jo_up = 0;
     if (g_jo_oc != NULL) {
         pico8_gn_free(g_jo_oc);
         g_jo_oc = NULL;
@@ -748,12 +652,18 @@ void pico8_jo_set_ir(pico8_jf_state_t *ir) {
 }
 
 int pico8_jo_ready(void) {
-    return g_jo_spec != NULL;
+    return g_jo_up;
 }
 
-int pico8_jo_default(const char *name, pico8_value_t *out_value) {
-    return g_jo_spec != NULL &&
-           (pico8_ob_table_get_name(g_jo_spec, name, out_value) || pico8_ke_start_field(name, out_value));
+int pico8_jo_kind_field(const char *name, pico8_value_t *out_value) {
+    if (!g_jo_up) {
+        return 0;
+    }
+    if (strcmp(name, "me") == 0) {
+        *out_value = pico8_value_string(pico8_jo_start.me);
+        return 1;
+    }
+    return 0;
 }
 
 const pico8_jb_row_t *pico8_jo_dz(void) {

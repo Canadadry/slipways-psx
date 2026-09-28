@@ -1,5 +1,5 @@
 /* The planet `jo`, read and written only through the dual-form field API and
- * `pico8_jo_default()`, and driven through the real `bw`/`dg`/`dc`/`mv`. Its
+ * its generated defaults (pico8_game_data.h), and driven through the real `bw`/`dg`/`dc`/`mv`. Its
  * daughters are read the same way. Games are built directly: no events
  * file. */
 
@@ -56,7 +56,6 @@ static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk
 static const char *const absent[] = {"ev", "ph", "ly", "rdown", "hq", "ey", "md"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
-static const char *const class_refs[] = {"kq", "gq"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -108,12 +107,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static void *class_ref(const char *name) {
-    pico8_value_t v;
-    assert(pico8_jo_default(name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 /* 0 absent, 1 false, 2 true, 3 other. */
@@ -252,9 +245,8 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
-    for (i = 0; i < sizeof class_refs / sizeof class_refs[0]; i++) {
-        assert(get_ref(e, class_refs[i]) == class_ref(class_refs[i]));
-    }
+    assert(get_ref(e, "kq") == &pico8_jo_start.kq);
+    assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     assert(get_ref(e, "nu") == &pico8_jo_nu_tags && get_ref(e, "kw") == pico8_jo_shared_kw() &&
            get_ref(e, "em") == &pico8_jo_em_row);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
@@ -598,9 +590,7 @@ static void test_jo_is_a_struct(void) {
         assert(is_a_jo_struct(jo->items[j].as.ref));
     }
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_t v;
         assert(pico8_jo_struct_class()->methods[pico8_method_of(methods[i])] != NULL);
-        assert(!pico8_jo_default(methods[i], &v));
     }
     assert(pico8_jo_ready());
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {

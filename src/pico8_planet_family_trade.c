@@ -23,9 +23,7 @@
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
 static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
 
-static pico8_ob_table_t *g_nr_spec = NULL;
-static pico8_ob_table_t *g_fr_spec = NULL;
-static pico8_ob_table_t *g_mx_spec = NULL;
+static int g_family_trade_up = 0;
 
 static int pico8_pft_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -210,22 +208,6 @@ static pico8_value_t pico8_nr_cn_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_qz_box_t *g_nr_kq = NULL;
-static pico8_fixed_t g_nr_od = 0;
-static pico8_fixed_t g_nr_fp = 0;
-static pico8_fixed_t g_nr_s = 0;
-static pico8_fixed_t g_nr_dw = 0;
-static const char *g_nr_rr = NULL;
-
-static void pico8_nr_defaults_reset(void) {
-    g_nr_kq = NULL;
-    g_nr_od = 0;
-    g_nr_fp = 0;
-    g_nr_s = 0;
-    g_nr_dw = 0;
-    g_nr_rr = NULL;
-}
-
 static int pico8_nr_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_nr_t *nr = self;
 
@@ -288,14 +270,14 @@ static const pico8_struct_class_t g_nr_struct_class = {
  * coverage. Requires `pico8_planet_family_trade_init()`. */
 static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls) {
     pico8_qh_struct_init(&self->qh, cls);
-    self->hz = &pico8_nr_hz_seq;
-    self->rr = g_nr_rr;
-    self->qh.od = g_nr_od;
-    self->qh.fp = g_nr_fp;
-    self->qh.s = g_nr_s;
-    self->qh.dw = g_nr_dw;
-    self->qh.jo.nu = &pico8_nr_nu_tags;
-    self->qh.jo.kq = g_nr_kq;
+    self->hz = pico8_nr_start.hz;
+    self->rr = pico8_nr_start.rr;
+    self->qh.od = pico8_nr_start.od;
+    self->qh.fp = pico8_nr_start.fp;
+    self->qh.s = pico8_nr_start.s;
+    self->qh.dw = pico8_nr_start.dw;
+    self->qh.jo.nu = pico8_nr_start.nu;
+    self->qh.jo.kq = &pico8_nr_start.kq;
 }
 
 static void family_trade_take_string(pico8_value_t value, const char **out) {
@@ -324,7 +306,7 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
     pico8_nr_t *self = malloc(sizeof *self);
     int k;
 
-    assert(g_nr_spec != NULL && "pico8_planet_family_trade_init() must run first");
+    assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_nr_struct_class);
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
@@ -347,18 +329,6 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->qh.jo.ke);
     return self;
-}
-
-static pico8_fixed_t g_fr_od = 0;
-static pico8_fixed_t g_fr_s = 0;
-static const char *g_fr_rr = NULL;
-static pico8_fixed_t g_fr_mt = 0;
-
-static void pico8_fr_defaults_reset(void) {
-    g_fr_od = 0;
-    g_fr_s = 0;
-    g_fr_rr = NULL;
-    g_fr_mt = 0;
 }
 
 static int pico8_fr_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -395,13 +365,13 @@ static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
     pico8_fr_t *self = malloc(sizeof *self);
     int k;
 
-    assert(g_fr_spec != NULL && "pico8_planet_family_trade_init() must run first");
+    assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(&self->nr, &g_fr_struct_class);
-    self->mt = g_fr_mt;
-    self->nr.hz = &pico8_fr_hz_seq;
-    self->nr.rr = g_fr_rr;
-    self->nr.qh.od = g_fr_od;
-    self->nr.qh.s = g_fr_s;
+    self->mt = pico8_fr_start.mt;
+    self->nr.hz = pico8_fr_start.hz;
+    self->nr.rr = pico8_fr_start.rr;
+    self->nr.qh.od = pico8_fr_start.od;
+    self->nr.qh.s = pico8_fr_start.s;
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
@@ -484,40 +454,6 @@ static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_value_ref(NULL);
 }
 
-static pico8_fixed_t g_mx_hp = 0;
-static pico8_fixed_t g_mx_s = 0;
-static pico8_fixed_t g_mx_od = 0;
-static const char *g_mx_rr = NULL;
-static pico8_fixed_t g_mx_py = 0;
-static pico8_fixed_t g_mx_ki = 0;
-static pico8_fixed_t g_mx_pn = 0;
-static pico8_fixed_t g_mx_pk = 0;
-static int g_mx_pk_is_bool = 0;
-static pico8_fixed_t g_mx_fc = 0;
-static pico8_fixed_t g_mx_du = 0;
-static pico8_fixed_t g_mx_qo = 0;
-static pico8_fixed_t g_mx_ro = 0;
-static pico8_fixed_t g_mx_qg = 0;
-static pico8_fixed_t g_mx_q_ = 0;
-
-static void pico8_mx_defaults_reset(void) {
-    g_mx_hp = 0;
-    g_mx_s = 0;
-    g_mx_od = 0;
-    g_mx_rr = NULL;
-    g_mx_py = 0;
-    g_mx_ki = 0;
-    g_mx_pn = 0;
-    g_mx_pk = 0;
-    g_mx_pk_is_bool = 0;
-    g_mx_fc = 0;
-    g_mx_du = 0;
-    g_mx_qo = 0;
-    g_mx_ro = 0;
-    g_mx_qg = 0;
-    g_mx_q_ = 0;
-}
-
 static int pico8_mx_field(const void *self, const char *name, pico8_value_t *out_value) {
     if (strcmp(name, "ht") == 0) {
         const pico8_int_seq_t *ht = ((const pico8_mx_t *)self)->ht;
@@ -578,27 +514,27 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     pico8_mx_t *self = malloc(sizeof *self);
     int k;
 
-    assert(g_mx_spec != NULL && "pico8_planet_family_trade_init() must run first");
+    assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(&self->hj, &g_mx_struct_class);
-    self->ht = &pico8_mx_ht_seq;
-    self->hj.rr = g_mx_rr;
-    self->hj.py = g_mx_py;
-    self->hj.ki = g_mx_ki;
-    self->hj.pn = g_mx_pn;
-    self->hj.pk = g_mx_pk;
-    self->hj.pk_is_bool = g_mx_pk_is_bool;
-    self->hj.fc = g_mx_fc;
-    self->hj.k_ = &pico8_mx_k__seq;
-    self->hj.du = g_mx_du;
-    self->hj.qo = g_mx_qo;
-    self->hj.ro = g_mx_ro;
-    self->hj.qg = g_mx_qg;
-    self->hj.q_ = g_mx_q_;
-    self->hj.qh.hp = g_mx_hp;
-    self->hj.qh.s = g_mx_s;
-    self->hj.qh.px = &pico8_mx_px_row;
-    self->hj.qh.od = g_mx_od;
-    self->hj.qh.jo.nu = &pico8_mx_nu_tags;
+    self->ht = pico8_mx_start.ht;
+    self->hj.rr = pico8_mx_start.rr;
+    self->hj.py = pico8_mx_start.py;
+    self->hj.ki = pico8_mx_start.ki;
+    self->hj.pn = pico8_mx_start.pn;
+    self->hj.pk = pico8_mx_start.pk;
+    self->hj.pk_is_bool = pico8_mx_start.pk_is_bool;
+    self->hj.fc = pico8_mx_start.fc;
+    self->hj.k_ = pico8_mx_start.k_;
+    self->hj.du = pico8_mx_start.du;
+    self->hj.qo = pico8_mx_start.qo;
+    self->hj.ro = pico8_mx_start.ro;
+    self->hj.qg = pico8_mx_start.qg;
+    self->hj.q_ = pico8_mx_start.q_;
+    self->hj.qh.hp = pico8_mx_start.hp;
+    self->hj.qh.s = pico8_mx_start.s;
+    self->hj.qh.px = pico8_mx_start.px;
+    self->hj.qh.od = pico8_mx_start.od;
+    self->hj.qh.jo.nu = pico8_mx_start.nu;
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
         int measured = key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "id") == 0;
@@ -617,149 +553,42 @@ static void *pico8_mx_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-static pico8_qz_box_t *family_trade_default_box(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "nr.kq: a default of the struct is a key of nr's spec and a box b() (ref:autre)");
-    (void)found;
-    return v.as.ref;
-}
-
-static pico8_fixed_t family_trade_default_fixed(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "nr/fr/mx.od, nr.fp/dw, nr/fr/mx.s, fr.mt, mx.hp, mx.py/ki/pn/fc/du/qo/ro/qg/q_: a default of the struct "
-           "is a key of its spec and a fixed (fixe)");
-    (void)found;
-    return v.as.fixed;
-}
-
-static const char *family_trade_default_string(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "nr/fr/mx.rr: a default of the struct is a key of its spec and a string (chaine)");
-    (void)found;
-    return v.as.string;
-}
-
-static pico8_fixed_t family_trade_default_hf(int found, pico8_value_t v, int *is_bool) {
-    assert(found && (v.kind == PICO8_VALUE_FIXED || v.kind == PICO8_VALUE_BOOL) &&
-           "mx.pk: a default of the struct is a key of mx's spec and a fixed or a boolean (bool,fixe)");
-    (void)found;
-    *is_bool = v.kind == PICO8_VALUE_BOOL;
-    return v.kind == PICO8_VALUE_BOOL ? (pico8_fixed_t)(v.as.boolean != 0) : v.as.fixed;
-}
-
 void pico8_planet_family_trade_init(void) {
-    pico8_value_t v;
-    int found;
-
     assert(pico8_qh_ready() && pico8_hj_ready() &&
            "pico8_planet_family_init() must run first");
     pico8_planet_family_trade_shutdown();
     pico8_pi_init();
-
-    g_nr_spec = pico8_ob("\n"
-                         "nu=o(\"nr\",\"np\",\"prober\"),\n"
-                         "od=10,fp=1,\n"
-                         "kq=b(-4,-4,5,5),\n"
-                         "s=170,\n"
-                         "hz=o(170,170,170,168),\n"
-                         "dw=0.01,\n"
-                         "rr=\"slipgates\",\n",
-                         NULL);
-    found = pico8_nr_default("kq", &v);
-    g_nr_kq = family_trade_default_box(found, v);
-    found = pico8_nr_default("od", &v);
-    g_nr_od = family_trade_default_fixed(found, v);
-    found = pico8_nr_default("fp", &v);
-    g_nr_fp = family_trade_default_fixed(found, v);
-    found = pico8_nr_default("s", &v);
-    g_nr_s = family_trade_default_fixed(found, v);
-    found = pico8_nr_default("dw", &v);
-    g_nr_dw = family_trade_default_fixed(found, v);
-    found = pico8_nr_default("rr", &v);
-    g_nr_rr = family_trade_default_string(found, v);
-
-    g_fr_spec = pico8_ob("\n"
-                         "mt=1,\n"
-                         "rr=\"infraspace\",\n"
-                         "od=25,\n"
-                         "s=78,hz=o(78,78,78,76),\n",
-                         NULL);
-    found = pico8_fr_default("od", &v);
-    g_fr_od = family_trade_default_fixed(found, v);
-    found = pico8_fr_default("s", &v);
-    g_fr_s = family_trade_default_fixed(found, v);
-    found = pico8_fr_default("rr", &v);
-    g_fr_rr = family_trade_default_string(found, v);
-    found = pico8_fr_default("mt", &v);
-    g_fr_mt = family_trade_default_fixed(found, v);
-
-    g_mx_spec = pico8_ob("\n"
-                         "nu=o(\"jo\",\"np\",\"prober\"),\n"
-                         "rr=\"void synthesis\",\n"
-                         "hp=5,s=66,px=o(\"synthesizer\",c=13),\n"
-                         "od=40,\n"
-                         "ht=o(28,20,21,22),\n"
-                         "py=0.12,ki=9,\n"
-                         "pn=5,pk=1,\n"
-                         "fc=0.3,\n"
-                         "k_=o(1,1,5,5,3,3,3,5,5,1),\n"
-                         "du=5,\n"
-                         "qo=0.98,ro=-0.07,\n"
-                         "qg=0.07,q_=0.98,\n",
-                         NULL);
-    found = pico8_mx_default("hp", &v);
-    g_mx_hp = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("s", &v);
-    g_mx_s = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("od", &v);
-    g_mx_od = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("rr", &v);
-    g_mx_rr = family_trade_default_string(found, v);
-    found = pico8_mx_default("py", &v);
-    g_mx_py = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("ki", &v);
-    g_mx_ki = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("pn", &v);
-    g_mx_pn = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("pk", &v);
-    g_mx_pk = family_trade_default_hf(found, v, &g_mx_pk_is_bool);
-    found = pico8_mx_default("fc", &v);
-    g_mx_fc = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("du", &v);
-    g_mx_du = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("qo", &v);
-    g_mx_qo = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("ro", &v);
-    g_mx_ro = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("qg", &v);
-    g_mx_qg = family_trade_default_fixed(found, v);
-    found = pico8_mx_default("q_", &v);
-    g_mx_q_ = family_trade_default_fixed(found, v);
+    g_family_trade_up = 1;
 }
 
 void pico8_planet_family_trade_shutdown(void) {
-    pico8_mx_defaults_reset();
-    pico8_fr_defaults_reset();
-    pico8_nr_defaults_reset();
-    pico8_ob_table_free(g_mx_spec);
-    g_mx_spec = NULL;
-    pico8_ob_table_free(g_fr_spec);
-    g_fr_spec = NULL;
-    pico8_ob_table_free(g_nr_spec);
-    g_nr_spec = NULL;
+    g_family_trade_up = 0;
 }
 
 int pico8_nr_ready(void) {
-    return g_nr_spec != NULL;
+    return g_family_trade_up;
 }
 
-int pico8_nr_default(const char *name, pico8_value_t *out_value) {
-    return g_nr_spec != NULL &&
-           (pico8_ob_table_get_name(g_nr_spec, name, out_value) || pico8_qh_default(name, out_value));
+static int pico8_nr_kind_field(const char *name, pico8_value_t *out_value) {
+    if (!g_family_trade_up) {
+        return 0;
+    }
+    if (strcmp(name, "rr") == 0) {
+        *out_value = pico8_value_string(pico8_nr_start.rr);
+        return 1;
+    }
+    if (strcmp(name, "s") == 0) {
+        *out_value = pico8_value_fixed(pico8_nr_start.s);
+        return 1;
+    }
+    if (strcmp(name, "od") == 0) {
+        *out_value = pico8_value_fixed(pico8_nr_start.od);
+        return 1;
+    }
+    return pico8_qh_kind()->field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_nr_kind = {pico8_nr_struct_new, pico8_nr_default};
+static const pico8_entity_kind_t g_nr_kind = {pico8_nr_struct_new, pico8_nr_kind_field};
 
 const pico8_entity_kind_t *pico8_nr_kind(void) {
     return &g_nr_kind;
@@ -774,15 +603,29 @@ pico8_nr_t *pico8_nr_new(const pico8_ob_table_t *overrides) {
 }
 
 int pico8_fr_ready(void) {
-    return g_fr_spec != NULL;
+    return g_family_trade_up;
 }
 
-int pico8_fr_default(const char *name, pico8_value_t *out_value) {
-    return g_fr_spec != NULL &&
-           (pico8_ob_table_get_name(g_fr_spec, name, out_value) || pico8_nr_default(name, out_value));
+static int pico8_fr_kind_field(const char *name, pico8_value_t *out_value) {
+    if (!g_family_trade_up) {
+        return 0;
+    }
+    if (strcmp(name, "rr") == 0) {
+        *out_value = pico8_value_string(pico8_fr_start.rr);
+        return 1;
+    }
+    if (strcmp(name, "s") == 0) {
+        *out_value = pico8_value_fixed(pico8_fr_start.s);
+        return 1;
+    }
+    if (strcmp(name, "od") == 0) {
+        *out_value = pico8_value_fixed(pico8_fr_start.od);
+        return 1;
+    }
+    return pico8_nr_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_fr_kind = {pico8_fr_struct_new, pico8_fr_default};
+static const pico8_entity_kind_t g_fr_kind = {pico8_fr_struct_new, pico8_fr_kind_field};
 
 const pico8_entity_kind_t *pico8_fr_kind(void) {
     return &g_fr_kind;
@@ -797,15 +640,29 @@ pico8_fr_t *pico8_fr_new(const pico8_ob_table_t *overrides) {
 }
 
 int pico8_mx_ready(void) {
-    return g_mx_spec != NULL;
+    return g_family_trade_up;
 }
 
-int pico8_mx_default(const char *name, pico8_value_t *out_value) {
-    return g_mx_spec != NULL &&
-           (pico8_ob_table_get_name(g_mx_spec, name, out_value) || pico8_hj_default(name, out_value));
+static int pico8_mx_kind_field(const char *name, pico8_value_t *out_value) {
+    if (!g_family_trade_up) {
+        return 0;
+    }
+    if (strcmp(name, "rr") == 0) {
+        *out_value = pico8_value_string(pico8_mx_start.rr);
+        return 1;
+    }
+    if (strcmp(name, "s") == 0) {
+        *out_value = pico8_value_fixed(pico8_mx_start.s);
+        return 1;
+    }
+    if (strcmp(name, "od") == 0) {
+        *out_value = pico8_value_fixed(pico8_mx_start.od);
+        return 1;
+    }
+    return pico8_hj_kind()->field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_mx_kind = {pico8_mx_struct_new, pico8_mx_default};
+static const pico8_entity_kind_t g_mx_kind = {pico8_mx_struct_new, pico8_mx_kind_field};
 
 const pico8_entity_kind_t *pico8_mx_kind(void) {
     return &g_mx_kind;

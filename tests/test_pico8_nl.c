@@ -1,6 +1,5 @@
 /* The trading hub `nl`, read and written only through the dual-form field
- * API and `pico8_nl_default()`, `pico8_qh_default()` and
- * `pico8_jo_default()`, and driven through the real `ie:ldown`/`mv`/`dg`, in
+ * API and the generated defaults (pico8_game_data.h), and driven through the real `ie:ldown`/`mv`/`dg`, in
  * games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -60,7 +59,6 @@ static const char *const inherited_methods[] = {"hd", "kj", "ldown", "hb", "gg",
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
-static const char *const jo_tables[] = {"kq", "gq"};
 
 /* A table member of the jo tree and the generated data it points at. */
 typedef struct {
@@ -124,18 +122,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_t class_value(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v;
-    assert(default_of(name, &v));
-    return v;
-}
-
-static void *class_ref(int (*default_of)(const char *, pico8_value_t *), const char *name) {
-    pico8_value_t v = class_value(default_of, name);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
 }
 
 /* 0 absent, 1 false, 2 true, 3 other. */
@@ -315,9 +301,8 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
         assert(get_ref(e, nl_data[i].name) == nl_data[i].data);
         assert(get_ref(e, qh_data[i].name) != qh_data[i].data);
     }
-    for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
-        assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
-    }
+    assert(get_ref(e, "kq") == &pico8_jo_start.kq);
+    assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
@@ -499,7 +484,6 @@ static int is_an_nl_struct(const void *e) {
 static void test_nl_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_nl_struct_class();
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
-    pico8_value_t v;
     void *a;
     size_t i;
     int j;
@@ -523,7 +507,6 @@ static void test_nl_is_a_struct(void) {
         }
         assert(k < sizeof inherited_methods / sizeof inherited_methods[0]);
     }
-    assert(!pico8_nl_default("ly", &v) && !pico8_qh_default("ly", &v));
 
     must_abort(write_rr, a);
     must_abort(write_nl, a);
@@ -567,7 +550,7 @@ static uint32_t fold_own(uint32_t h, const void *e) {
 
 static void assert_spec_rr(const void *e) {
     assert(get(e, "rr").kind == PICO8_VALUE_STRING &&
-           get(e, "rr").as.string == class_value(pico8_nl_default, "rr").as.string);
+           get(e, "rr").as.string == pico8_nl_start.rr);
 }
 
 static void test_nl_members_by_name(void) {
