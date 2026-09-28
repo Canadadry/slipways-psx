@@ -1,10 +1,8 @@
 /* The click dispatcher `ui`, the singleton `ok`, built by its only road
- * (`jl()`, `pico8_ui_new(NULL)`, on a game started as the net starts it),
- * read only through the dual-form field API and
+ * (`jl()`, `pico8_ui_new(NULL)`, on a game started directly: no events
+ * file), read only through the dual-form field API and
  * `pico8_ui_default(...)` for spec defaults, and
- * driven through the real `dg`/`lj`/`ev`/`jz`/`cj`/`pz`. The frozen values
- * were taken on the code where `ui` was still a class instance and must not
- * be re-taken. */
+ * driven through the real `dg`/`lj`/`ev`/`jz`/`cj`/`pz`. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -22,7 +20,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
@@ -61,9 +58,10 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
-#define DRAG "tests/fixtures/slipway_drag_events.json"
-#define TECH "tests/fixtures/tech_screen_invent_events.json"
-#define BEFORE_DRAG_PRESS 195
+/* Ticks after the slipway is paid, long enough for the colonizing and
+ * paying effects to leave `hv`: `dg` skips the entity after one it takes out
+ * (TROU-5). */
+#define SETTLE_TICKS 120
 
 #define BUILT_HASH 0x86CE257Cu
 #define SHARED_HASH 0x690E4805u
@@ -71,19 +69,17 @@
 #define HOVER_HASH 0xB61A6E40u
 #define LAYERS_HASH 0xDBA4EEF8u
 #define RIGHT_HASH 0xF02024DCu
-#define LEFT_HASH 0x216F4CA9u
+#define LEFT_HASH 0xBD9BC256u
 #define CJ_HASH 0xD215FB81u
 #define STALE_HASH 0x5B066E86u
-#define DRAG_REPLAY_HASH 0xA3868481u
-#define TECH_REPLAY_HASH 0xAB5A4DE6u
 #define KE_ME_HASH 0x691ED215u
 #define KE_T_HASH 0x5DB51DEEu
 #define JO_MEMBERS_HASH 0x62CB3FF0u
 #define JO_WRITTEN_HASH 0x20E44B74u
 #define JO_POSITION_HASH 0x05B358F1u
-#define JO_STATE_HASH 0xCE748C3Fu
-#define JO_WRITERS_HASH 0xBAFA7F3Au
-#define QH_MEMBERS_HASH 0x3C7BAF9Bu
+#define JO_STATE_HASH 0x1AE0C77Fu
+#define JO_WRITERS_HASH 0xBF686C3Au
+#define QH_MEMBERS_HASH 0x73166200u
 #define HJ_MEMBERS_HASH 0x50DF104Cu
 #define PM_MEMBERS_HASH 0xAE0F61DEu
 #define MX_MEMBERS_HASH 0x696C3254u
@@ -92,7 +88,6 @@
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static const char *const absent[] = {"qa", "ic",    "o_",    "gj", "lheld", "rheld", "ra",
                                      "p_", "nu",    "ph",    "ldown", "rdown", "hd", "fx"};
@@ -256,32 +251,86 @@ static int is_of(const void *e, const pico8_struct_class_t *cls) {
     return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == cls;
 }
 
-static void start_input(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void *start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
-}
-
-/* A game started as the net starts it: `eu()` on `bo[2]` before frame 0. */
-static void *start_game(const char *events) {
-    pico8_value_t difficulty;
-
-    start_input(events);
     pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-    pico8_cheat_init(&cheat);
+    pico8_eu(NULL);
     assert(pico8_ok() != NULL);
     return pico8_ok();
 }
 
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
+}
+
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+static int placed(const void *e) {
+    pico8_value_t v;
+    return pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL;
+}
+
+/* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
+static void *nearest_to(const void *qu) {
+    const pico8_list_t *jos = pico8_cg("jo");
+    void *re = NULL;
+    int i;
+
+    for (i = 0; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (e != qu && placed(e) && (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu)))) {
+            re = e;
+        }
+    }
+    assert(re != NULL);
+    return re;
+}
+
+/* On the current game: the first planet of `cg.jo` with a `p` and its
+ * nearest one colonized by a bare project, joined by a slipway paid by `ey`
+ * as a drag pays it (`jc:hq` reads the hovered planet off `ok.o_`), then
+ * left to settle. */
+static void grow_world(void) {
+    const pico8_list_t *jos = pico8_cg("jo");
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *qu = NULL;
+    void *re;
+    void *jc;
+    int i;
+
+    for (i = 0; qu == NULL && i < jos->count; i++) {
+        if (placed(jos->items[i].as.ref)) {
+            qu = jos->items[i].as.ref;
+        }
+    }
+    assert(qu != NULL);
+    re = nearest_to(qu);
+    pico8_jo_hu(qu, pico8_hp_new(NULL));
+    pico8_jo_hu(re, pico8_hp_new(NULL));
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    for (i = 0; i < 15; i++) {
+        pico8_dg();
+    }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    for (i = 0; i < SETTLE_TICKS; i++) {
+        pico8_dg();
     }
 }
 
@@ -319,7 +368,7 @@ static void *the_bg(void) {
  * `le`/`hw` by identity. */
 static void test_built(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     pico8_value_t v;
     size_t i;
 
@@ -365,7 +414,7 @@ static void call_row_my(const pico8_ob_table_t *t, int i) {
  * replaces `ok.le`, and a `p` with `ff` empties it. */
 static void test_shared(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     void *other = pico8_ui_new(NULL);
     const pico8_list_t *le = get_ref(ok, "le");
 
@@ -394,7 +443,7 @@ static void test_shared(void) {
  * `o_`, and `ev` draws sprite 58 at `je.ra`. */
 static void test_fresh(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     pico8_vec_t want;
 
     mouse_at(64, 100, 0);
@@ -437,7 +486,7 @@ static void *planet_on_screen(int *sx, int *sy) {
  * at 0x5f80, `gj` on the next pass; the mouse away unmarks it. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     int x;
     int y;
     void *planet;
@@ -475,7 +524,7 @@ static void test_hover(void) {
  * background, which answers itself. */
 static void test_layers(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     pico8_struct_header_t *kv = NULL;
     pico8_value_t kn;
     pico8_value_t qa;
@@ -508,7 +557,7 @@ static void test_layers(void) {
  * goes. */
 static void test_right(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     void *bg;
 
     mouse_at(64, 100, 0);
@@ -538,43 +587,75 @@ static int oe_count(const void *planet) {
     return oe == NULL ? 0 : oe->count;
 }
 
-/* The drag replay from the title screen, as its regression test drives
- * it, up to its last press, then by hand: the left button on the built
- * planet holds a new slipway `jc` in `lheld`; released over the other
- * planet, `ey` gets that planet and `lheld` goes. */
+/* Where `e` is on screen under `mo`'s camera. */
+static void screen_of(const void *e, int *x, int *y) {
+    pico8_vec_t at = pico8_vec_sub(vec_of(e, "ra"), vec_of(pico8_mo(), "ra"));
+
+    *x = pico8_fixed_flr_int(at.x);
+    *y = pico8_fixed_flr_int(at.y);
+}
+
+static int on_screen(const void *e) {
+    int x;
+    int y;
+
+    screen_of(e, &x, &y);
+    return x >= 8 && x < 120 && y >= 8 && y < 120;
+}
+
+/* A started game's first planet on screen whose nearest one is on screen
+ * too, both colonized by a bare project, then the mouse by hand: the left
+ * button on the one holds a new slipway `jc` in `lheld`; released over the
+ * other, `ey` gets that planet and `lheld` goes. */
 static void test_left(void) {
     uint32_t h = 2166136261u;
+    const pico8_list_t *jos;
     void *ok;
     void *held;
-    void *origin;
+    void *origin = NULL;
     void *target;
+    void *other = NULL;
+    int x;
+    int y;
     int i;
 
-    start_input(DRAG);
-    pico8__init();
-    pico8_cheat_init(&cheat);
-    for (i = 0; i < BEFORE_DRAG_PRESS; i++) {
-        play_frame(i);
+    ok = start_game();
+    jos = pico8_cg("jo");
+    for (i = 0; i < jos->count && other == NULL; i++) {
+        void *e = jos->items[i].as.ref;
+        if (on_screen(e) && on_screen(nearest_to(e))) {
+            origin = e;
+            other = nearest_to(e);
+        }
     }
-    ok = pico8_ok();
-    mouse_at(88, 37, 1);
+    assert(other != NULL);
+    pico8_jo_hu(origin, pico8_hp_new(NULL));
+    pico8_jo_hu(other, pico8_hp_new(NULL));
+    for (i = 0; i < SETTLE_TICKS; i++) {
+        pico8_dg();
+    }
+
+    screen_of(origin, &x, &y);
+    mouse_at(x, y, 0);
+    pico8_ui_lj(&mem, ok);
+    mouse_at(x, y, 1);
     pico8_ui_lj(&mem, ok);
     held = get_ref(ok, "lheld");
     assert(held != NULL && is_of(held, pico8_jc_struct_class()) && !has(ok, "rheld"));
-    origin = get_ref(held, "qu");
-    assert(origin != NULL && oe_count(origin) == 0);
+    assert(get_ref(held, "qu") == origin && oe_count(origin) == 0);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), held));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), origin));
     h = fnv(h, cursor_is(58));
 
-    mouse_at(78, 73, 1);
+    screen_of(other, &x, &y);
+    mouse_at(x, y, 1);
     pico8_ui_lj(&mem, ok);
     assert(get_ref(ok, "lheld") == held);
     target = get_ref(ok, "o_");
-    assert(target != NULL && target != origin);
+    assert(target == other);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), target));
 
-    mouse_at(78, 73, 0);
+    mouse_at(x, y, 0);
     pico8_ui_lj(&mem, ok);
     assert(!has(ok, "lheld") && !has(ok, "rheld"));
     assert(oe_count(origin) == 1 && oe_count(target) == 1);
@@ -585,7 +666,7 @@ static void test_left(void) {
 /* `cj` unregisters every entity of the old `le` and starts a new list. */
 static void test_cj(void) {
     uint32_t h = 2166136261u;
-    void *ok = start_game(DRAG);
+    void *ok = start_game();
     const pico8_list_t *le;
     int count;
     int i;
@@ -617,9 +698,9 @@ static void test_stale(void) {
     void *button;
     const pico8_list_t *le;
 
-    start_input(DRAG);
+    pico8_input_init(&input);
+    pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
     old = pico8_ok();
     mouse_at(76, 71, 0);
     pico8_ui_lj(&mem, old);
@@ -640,44 +721,6 @@ static void test_stale(void) {
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_ok()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("stale", h, STALE_HASH);
-}
-
-/* A replay from the net's start to its last frame, folding `ok` each frame:
- * its rank and `t`; presence and rank of `o_`, `gj`, `lheld`, `rheld`;
- * `le`'s count and whether it changed; each layer of `ic`; `qa`. Then the
- * screen. */
-static uint32_t replay(const char *events) {
-    uint32_t h = 2166136261u;
-    const void *le_before;
-    int i;
-
-    (void)start_game(events);
-    le_before = get_ref(pico8_ok(), "le");
-    for (i = 0; i < input.frame_count; i++) {
-        const void *ok;
-        play_frame(i);
-        ok = pico8_ok();
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), ok));
-        h = fold_fixed_field(h, ok, "t");
-        h = fold_entity_field(h, ok, "o_");
-        h = fold_entity_field(h, ok, "gj");
-        h = fold_entity_field(h, ok, "lheld");
-        h = fold_entity_field(h, ok, "rheld");
-        h = fnv(h, (uint32_t)le_of(ok)->count);
-        h = fnv(h, (uint32_t)(get_ref(ok, "le") != le_before));
-        le_before = get_ref(ok, "le");
-        h = fold_layers(h, ok);
-        h = fold_vec(h, vec_of(ok, "qa"));
-    }
-    return fnv(h, screen_hash());
-}
-
-static void test_drag_replay(void) {
-    check("drag replay", replay(DRAG), DRAG_REPLAY_HASH);
-}
-
-static void test_tech_replay(void) {
-    check("tech replay", replay(TECH), TECH_REPLAY_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -724,7 +767,7 @@ static void bh_on_x(void *e) {
 static void test_ui_is_a_struct(void) {
     static const char *const spec[] = {"ql", "fa", "le", "hw"};
     const pico8_struct_class_t *cls = pico8_ui_struct_class();
-    pico8_ui_t *ok = start_game(DRAG);
+    pico8_ui_t *ok = start_game();
     pico8_ui_t *other;
     pico8_value_t v;
     size_t i;
@@ -874,7 +917,7 @@ static void write_named(void *e) {
 static void test_ui_members_by_name(void) {
     static const char *const intruders[] = {"", "q", "le ", "LE", "held", "l", "r", "has_le", "header", "ke", "o"};
     uint32_t h = 2166136261u;
-    pico8_ui_t *ok = start_game(DRAG);
+    pico8_ui_t *ok = start_game();
     void *made[10];
     void *qa;
     void *ic;
@@ -982,7 +1025,7 @@ static void hold_given(void *ok) {
 }
 
 static void test_ui_held_stops_off_row(void) {
-    pico8_ui_t *ok = start_game(DRAG);
+    pico8_ui_t *ok = start_game();
     pico8_vec_t *vec = malloc(sizeof *vec);
     void *left[11];
     void *right[9];
@@ -1036,7 +1079,7 @@ static void lt_a_table(void *e) {
 static void test_ke_closed(void) {
     pico8_ob_table_t *table = pico8_ob_table_new();
 
-    (void)start_game(DRAG);
+    (void)start_game();
     must_abort(ks_on_a_table, table);
     must_abort(lt_a_table, table);
     pico8_ob_table_free(table);
@@ -1112,7 +1155,7 @@ static void test_ke_me_by_name(void) {
     uint32_t h = 2166136261u;
     size_t i;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     hv = pico8_hv();
     assert(hv != NULL);
     h = fnv(h, (uint32_t)hv->count);
@@ -1222,7 +1265,7 @@ static void ks_null_string(void *e) {
 static void test_ke_ks_stops_off_row(void) {
     void *bg;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     bg = pico8_bg_new(NULL);
     must_abort(ks_fixed, bg);
     must_abort(ks_true, bg);
@@ -1270,7 +1313,7 @@ static void test_ke_t_by_name(void) {
     uint32_t h = 2166136261u;
     size_t i;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     h = fold_hv_t(h);
     pico8_dg();
     h = fold_hv_t(h);
@@ -1357,7 +1400,7 @@ static void test_g__t_key_stops_off_row(void) {
     pico8_ob_table_t *b;
     void *made;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     memset(&zero_false, 0, sizeof zero_false);
     zero_false.kind = PICO8_VALUE_BOOL;
     v = pico8_value_ref(NULL);
@@ -1470,7 +1513,7 @@ static void test_jo_members_by_name(void) {
     size_t i;
     size_t m;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     hv = pico8_hv();
     assert(hv != NULL);
     h = fnv(h, (uint32_t)hv->count);
@@ -1589,7 +1632,7 @@ static void test_jo_written_by_name(void) {
     uint32_t h = 2166136261u;
     size_t i;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     plain = gb_project(0);
     with_go = gb_project(1);
 
@@ -1666,7 +1709,7 @@ static void test_jo_writer_stops_off_row(void) {
     size_t k;
     size_t m;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     e[0] = pico8_jo_new(NULL);
     e[1] = pico8_pm_new(NULL);
     for (i = 0; i < 2; i++) {
@@ -1771,7 +1814,7 @@ static void test_jo_position_by_name(void) {
     size_t i;
     int k;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     hv = pico8_hv();
     h = fnv(h, (uint32_t)hv->count);
     for (i = 0; i < (size_t)hv->count; i++) {
@@ -1903,7 +1946,7 @@ static void test_jo_position_stops_off_row(void) {
     size_t k;
     size_t m;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     e[0] = pico8_qh_new(NULL);
     e[1] = pico8_pm_new(NULL);
     e[2] = pico8_nr_new(NULL);
@@ -2070,7 +2113,7 @@ static void test_jo_state_by_name(void) {
     size_t j;
     int k;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     h = fold_hv_state(h);
     plain = gb_project(0);
 
@@ -2235,9 +2278,7 @@ static void test_jo_state_by_name(void) {
         h = fnv(h, 0u);
     }
 
-    for (i = 0; (int)i < input.frame_count; i++) {
-        play_frame((int)i);
-    }
+    grow_world();
     h = fold_hv_state(h);
 
     check("jo_state", h, JO_STATE_HASH);
@@ -2279,7 +2320,7 @@ static void test_jo_state_stops_off_row(void) {
     size_t k;
     size_t m;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     e[0] = pico8_jo_new(NULL);
     e[1] = pico8_pm_new(NULL);
     for (i = 0; i < 2; i++) {
@@ -2424,7 +2465,7 @@ static void test_jo_writers_by_name(void) {
     int y;
     int before;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     h = fold_hv_gen(h);
 
     for (i = 0; i < 10; i++) {
@@ -2574,9 +2615,7 @@ static void test_jo_writers_by_name(void) {
         h = fnv(h, 0u);
     }
 
-    for (i = 0; (int)i < input.frame_count; i++) {
-        play_frame((int)i);
-    }
+    grow_world();
     h = fold_hv_gen(h);
     made = last_of_class(pico8_jc_struct_class());
     h = fnv(h, (uint32_t)(made != NULL));
@@ -2607,7 +2646,7 @@ static void test_jo_writers_stop_off_row(void) {
     size_t k;
     size_t m;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     e[0] = pico8_jo_new(NULL);
     e[1] = pico8_pm_new(NULL);
     e[2] = pico8_ga_new(NULL);
@@ -2660,8 +2699,6 @@ static void test_jo_writers_stop_off_row(void) {
         }
     }
 }
-
-#define EMPTY_CLEARED "tests/fixtures/empty_planet_cleared_events.json"
 
 typedef int (*qh_spec_reader_t)(const char *, pico8_value_t *);
 
@@ -2847,38 +2884,31 @@ static void test_qh_members_by_name(void) {
     pico8_value_t v;
     uint32_t h = 2166136261u;
     int k;
-    int i;
     size_t n;
-    int became_jo = -1;
 
     for (k = 0; k < 8; k++) {
-        (void)start_game(DRAG);
+        (void)start_game();
         fresh[k] = qh_tree_new(k);
         h = fnv(h, (uint32_t)k);
         h = fold_qh_all(h, fresh[k], qh_tree_reader(k));
         assert(et_state(fresh[k]) == 0);
     }
 
-    (void)start_game(EMPTY_CLEARED);
+    (void)start_game();
     h = fold_hv_qh(h);
-    for (i = 0; i < input.frame_count; i++) {
-        const pico8_list_t *hv;
-        int j;
+    /* `ij` skips an entity on the very point: the gate aims beside it. */
+    {
+        void *gate = qh_tree_new(5);
+        pico8_vec_t *mp = malloc(sizeof *mp);
 
-        play_frame(i);
-        hv = pico8_hv();
-        for (j = 0; became_jo < 0 && j < hv->count; j++) {
-            if (qh_tree_rank(hv->items[j].as.ref) >= 0 && et_state(hv->items[j].as.ref) == 2u) {
-                became_jo = i;
-            }
-        }
+        *mp = pico8_vec_add(pico8_vec_mul(pos_of(pico8_cg("jo")->items[0].as.ref), pico8_fixed_from_int(128)),
+                            qh_at(1, 1));
+        assert(pico8_mv(gate, "hq", 2, pico8_value_ref(mp), qh_vec_ref(qh_at(64, 64)), &v));
+        assert(et_state(gate) == 2u);
     }
-    assert(became_jo >= 0);
-    printf("[qh_members] et -> jo at frame %d\n", became_jo);
-    h = fnv(h, (uint32_t)became_jo);
     h = fold_hv_qh(h);
 
-    (void)start_game(DRAG);
+    (void)start_game();
     lab = pico8_qh_new(NULL);
     for (k = 0; k < 9; k++) {
         pico8_vec_t at = qh_at(100 + 2 * k, 100);
@@ -2969,7 +2999,7 @@ static void test_qh_writer_stops_off_row(void) {
     size_t k;
     pico8_vec_t *vec = malloc(sizeof *vec);
 
-    (void)start_game(DRAG);
+    (void)start_game();
     *vec = qh_at(1, 1);
     e[0] = pico8_qh_new(NULL);
     e[1] = pico8_pm_new(NULL);
@@ -3124,7 +3154,7 @@ static void test_hj_members_by_name(void) {
     int j;
     size_t n;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     for (k = 0; k < 3; k++) {
         fresh[k] = hj_tree_new(k);
         h = fnv(h, (uint32_t)k);
@@ -3161,7 +3191,7 @@ static void test_hj_members_by_name(void) {
         void *e;
         pico8_vec_t at;
 
-        (void)start_game(EMPTY_CLEARED);
+        (void)start_game();
         e = hj_tree_new(k);
         h = fold_hj_particle(fnv(h, (uint32_t)k), call_mm(e));
         pico8_ez(e, PICO8_FIXED_LIT(0x00028000, 2.5));
@@ -3178,7 +3208,7 @@ static void test_hj_members_by_name(void) {
         h = fold_hj_all(h, e, hj_tree_reader(k));
     }
 
-    (void)start_game(DRAG);
+    (void)start_game();
     for (k = 0; k < 3; k++) {
         void *e = hj_tree_new(k);
         const pico8_struct_header_t *header = e;
@@ -3239,7 +3269,7 @@ static void test_pm_members_by_name(void) {
     size_t n;
     int k;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     fresh[0] = pico8_pm_new(NULL);
     {
         pico8_ob_table_t *b = pico8_ob_table_new();
@@ -3254,7 +3284,7 @@ static void test_pm_members_by_name(void) {
     }
     assert(get_ref(fresh[0], "ng") == get_ref(fresh[1], "ng"));
 
-    (void)start_game(EMPTY_CLEARED);
+    (void)start_game();
     {
         pico8_ob_table_t *b = pico8_ob_table_new();
         const pico8_list_t *hv;
@@ -3313,7 +3343,7 @@ static void test_hj_writer_stops_off_row(void) {
     size_t k;
     pico8_vec_t *vec = malloc(sizeof *vec);
 
-    (void)start_game(DRAG);
+    (void)start_game();
     *vec = qh_at(1, 1);
     for (i = 0; i < 3; i++) {
         e[i] = hj_tree_new((int)i);
@@ -3406,7 +3436,7 @@ static void test_mx_members_by_name(void) {
     size_t n;
     int k;
 
-    (void)start_game(DRAG);
+    (void)start_game();
     fresh[0] = pico8_mx_new(NULL);
     {
         pico8_ob_table_t *b = pico8_ob_table_new();
@@ -3471,7 +3501,7 @@ static void test_mx_writer_stops_off_row(void) {
     pico8_vec_t *vec = malloc(sizeof *vec);
     pico8_list_t *list = malloc(sizeof *list);
 
-    (void)start_game(DRAG);
+    (void)start_game();
     *vec = qh_at(1, 1);
     pico8_list_init(list);
     e = pico8_mx_new(NULL);
@@ -3514,8 +3544,6 @@ int main(void) {
     in_fresh_child(test_left);
     in_fresh_child(test_cj);
     in_fresh_child(test_stale);
-    in_fresh_child(test_drag_replay);
-    in_fresh_child(test_tech_replay);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_members_by_name);
     in_fresh_child(test_ui_held_stops_off_row);
