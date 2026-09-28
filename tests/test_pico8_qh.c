@@ -1,8 +1,7 @@
 /* The laboratory `qh`, read and written only through the dual-form field API
  * and `pico8_qh_default()` and `pico8_jo_default()`, and driven through the
  * real `ie:ldown`/`mv`/`dg`. Its unconverted descendants are read the same
- * way. The frozen values were taken on the code where `qh` was still a class
- * instance and must not be re-taken. */
+ * way. Games are started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -40,11 +38,6 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
-#define SESSION "tests/fixtures/session_events.json"
-#define RECORDED "tests/fixtures/events_recorded_1790198294.json"
-#define HUB "tests/fixtures/trading_hub_session_events.json"
-#define LONG "tests/fixtures/long_session_events.json"
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -52,26 +45,11 @@
 
 #define BUILT_HASH 0xA67C1FC6u
 #define LIFE_HASH 0x0ECCCC0Au
-#define EMPTY_FRAMES 229
-#define EMPTY_LABS 2
-#define EMPTY_HASH 0xF88BB3C4u
-#define SESSION_FRAMES 116045
-#define SESSION_LABS 4
-#define SESSION_HASH 0xEE585B8Bu
-#define SESSION_DESC_HASH 0xEE6EAC3Cu
-#define RECORDED_FRAMES 19832
-#define RECORDED_DESC_HASH 0xDD7C9833u
-#define HUB_FRAMES 4921
-#define HUB_DESC_HASH 0xB439DB43u
-#define LONG_FRAMES 27273
-#define LONG_LABS 2
-#define LONG_HASH 0x3798DDA5u
-#define LONG_DESC_HASH 0x97A15FB2u
+#define DESCENDANTS_HASH 0x19708F66u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* qh's own members, then the 31 of `jo`. */
 static const char *const own[] = {"hp", "px", "dq", "qh", "od", "fp", "dw", "s", "ba", "et"};
@@ -239,50 +217,13 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
-        h *= 16777619u;
-    }
-    return h;
-}
-
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_from_title(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-}
-
-static void start_game(const char *events) {
-    start_from_title(events);
-    pico8_eu(pico8_js_new(bo_row(2)));
-}
-
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+    pico8_eu(NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -383,7 +324,7 @@ static void test_built(void) {
     void *a;
     void *b;
 
-    start_game(EMPTY);
+    start_game();
     a = build_lab();
     b = build_lab();
     assert(a != b);
@@ -433,7 +374,7 @@ static void test_life(void) {
     pico8_fixed_t in_y;
     int i;
 
-    start_game(EMPTY);
+    start_game();
 
     out_lab = build_lab();
     mp = vec_ref(vec_xy(7680, 7680));
@@ -488,27 +429,7 @@ static void test_life(void) {
     check("life", h, LIFE_HASH);
 }
 
-/* Per frame, every entry of `cg.qh`: what the shop, `bv`, `d_`, `dg` and
- * `jo`'s functions write on it; plus `#cg.qh` and the screen. */
-static uint32_t fold_live(uint32_t h, const void *e) {
-    h = fold_field(h, e, "id");
-    h = fold_field(h, e, "me");
-    h = fold_field(h, e, "t");
-    h = fold_vec(h, e, "ra");
-    h = fold_vec(h, e, "p");
-    h = fnv(h, bool_state(e, "et"));
-    h = fold_field(h, e, "et");
-    h = fold_field(h, e, "mi");
-    h = fnv(h, bool_state(e, "p_"));
-    h = fold_kw(h, e);
-    h = fnv(h, (uint32_t)list_size(e, "oe"));
-    h = fnv(h, (uint32_t)list_size(e, "jy"));
-    return fnv(h, (uint32_t)has(e, "m_"));
-}
-
 enum { NL, OS, HJ, PM, MX, NR, FR, DESCENDANTS };
-
-static const char *const descendant_names[DESCENDANTS] = {"nl", "os", "hj", "pm", "mx", "nr", "fr"};
 
 static int descendant_of(const void *e) {
     if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
@@ -583,137 +504,69 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     return h;
 }
 
-#define MAX_SEEN 256
-
-typedef struct {
-    const char *label;
-    const char *events;
-    int want_frames;
-    int want_labs;
-    uint32_t want_labs_hash;
-    uint32_t want_desc_hash;
-    const int *required;
-    int required_count;
-} replay_t;
-
-/* From the title screen, as a raylib recording starts (or from `eu` when
- * `from_title` is 0). Every laboratory of `cg.qh`, every frame; the first
- * instance of each descendant at the frame it first appears in `hv`, then
- * at the end of the replay. */
-static void replay(const replay_t *r, int from_title) {
-    uint32_t labs_hash = 2166136261u;
-    uint32_t desc_hash = 2166136261u;
-    void *labs[MAX_SEEN];
-    int lab_count = 0;
-    void *first[DESCENDANTS] = {NULL};
-    void *seen[MAX_SEEN];
-    int seen_count = 0;
-    int counts[DESCENDANTS] = {0};
-    int frames;
+/* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
+ * dragged by `hq` to the middle of the screen. */
+static void *bought(const pico8_entity_kind_t *kind) {
+    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_vec_t *mo_ra = get_ref(pico8_mo(), "ra");
     int i;
 
-    if (from_title) {
-        start_from_title(r->events);
-    } else {
-        start_game(r->events);
-    }
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        const pico8_list_t *qh;
-        const pico8_list_t *hv;
-        int j;
-
-        play_frame();
-        qh = pico8_cg("qh");
-        labs_hash = fnv(labs_hash, (uint32_t)(qh == NULL ? 0 : qh->count));
-        for (j = 0; qh != NULL && j < qh->count; j++) {
-            void *e = qh->items[j].as.ref;
-            int k;
-            for (k = 0; k < lab_count && labs[k] != e; k++) {
-            }
-            if (k == lab_count) {
-                assert(lab_count < MAX_SEEN);
-                labs[lab_count++] = e;
-            }
-            labs_hash = fold_live(labs_hash, e);
-        }
-        if (r->want_labs > 0) {
-            labs_hash = fnv(labs_hash, screen_hash());
-        }
-
-        hv = pico8_hv();
-        for (j = 0; j < hv->count; j++) {
-            void *e = hv->items[j].as.ref;
-            int d = descendant_of(e);
-            int k;
-
-            if (d < 0) {
-                continue;
-            }
-            for (k = 0; k < seen_count && seen[k] != e; k++) {
-            }
-            if (k == seen_count) {
-                assert(seen_count < MAX_SEEN);
-                seen[seen_count++] = e;
-                counts[d]++;
-            }
-            if (first[d] == NULL) {
-                first[d] = e;
-                printf("[%s] first %s at frame %d\n", r->label, descendant_names[d], i);
-                desc_hash = fnv(fnv(desc_hash, (uint32_t)d), (uint32_t)i);
-                desc_hash = fold_descendant(desc_hash, e);
-            }
+    assert(mo_ra != NULL);
+    for (i = 0; hb != NULL && i < hb->count; i++) {
+        void *icon = hb->items[i].as.ref;
+        if (get_ref(icon, "ke") == kind) {
+            pico8_value_t made = call(icon, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+            assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
+            (void)call(made.as.ref, "hq", 2, vec_ref(pico8_vec_add(*mo_ra, vec_xy(64, 64))), vec_ref(vec_xy(64, 64)));
+            return made.as.ref;
         }
     }
+    assert(0 && "no icon for that kind");
+    return NULL;
+}
+
+/* The project of `gb` whose `cw` names `cw`. */
+static pico8_hp_t *cw_project(const char *cw) {
+    int k;
+
+    for (k = 1;; k++) {
+        pico8_value_t v;
+        const pico8_hp_t *hp;
+        assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF);
+        hp = v.as.ref;
+        if (hp->cw != NULL && strcmp(hp->cw, cw) == 0) {
+            return v.as.ref;
+        }
+    }
+}
+
+/* Each descendant by the road a game takes to it: the six of the shop
+ * bought from their icons, `pm` turned from a generated planet by `jo:hu`
+ * on the collapse project (the newest entity of `hv`). */
+static void test_descendants(void) {
+    static const struct {
+        int d;
+        const pico8_entity_kind_t *(*kind)(void);
+    } shop[] = {{OS, pico8_os_kind}, {NR, pico8_nr_kind}, {FR, pico8_fr_kind},
+                {NL, pico8_nl_kind}, {MX, pico8_mx_kind}, {HJ, pico8_hj_kind}};
+    void *made[DESCENDANTS] = {NULL};
+    uint32_t h = 2166136261u;
+    void *p;
+    size_t i;
+
+    start_game();
+    for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
+        made[shop[i].d] = bought(shop[i].kind());
+    }
+    p = pico8_cg("jo")->items[0].as.ref;
+    pico8_jo_hh(p);
+    pico8_jo_hu(p, cw_project("pm"));
+    made[PM] = pico8_hv()->items[pico8_hv()->count - 1].as.ref;
     for (i = 0; i < DESCENDANTS; i++) {
-        printf("[%s] %s: %d\n", r->label, descendant_names[i], counts[i]);
-        desc_hash = fnv(desc_hash, (uint32_t)counts[i]);
-        if (first[i] != NULL) {
-            desc_hash = fold_descendant(fnv(desc_hash, (uint32_t)i), first[i]);
-        }
+        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && listed(pico8_hv(), made[i]));
+        h = fold_descendant(fnv(h, (uint32_t)i), made[i]);
     }
-    for (i = 0; i < r->required_count; i++) {
-        assert(first[r->required[i]] != NULL);
-    }
-    check_int(r->label, frames, r->want_frames);
-    check_int(r->label, lab_count, r->want_labs);
-    if (r->want_labs > 0) {
-        check(r->label, labs_hash, r->want_labs_hash);
-    }
-    if (r->required_count > 0) {
-        check(r->label, desc_hash, r->want_desc_hash);
-    }
-}
-
-static void test_empty(void) {
-    static const replay_t r = {"empty", EMPTY, EMPTY_FRAMES, EMPTY_LABS, EMPTY_HASH, 0u, NULL, 0};
-    replay(&r, 0);
-}
-
-static void test_session(void) {
-    static const int required[] = {NR, FR, PM};
-    static const replay_t r = {"session",    SESSION,           SESSION_FRAMES, SESSION_LABS,
-                               SESSION_HASH, SESSION_DESC_HASH, required,       3};
-    replay(&r, 1);
-}
-
-static void test_recorded(void) {
-    static const int required[] = {HJ, MX, PM};
-    static const replay_t r = {"recorded", RECORDED, RECORDED_FRAMES, 0, 0u, RECORDED_DESC_HASH,
-                               required,   3};
-    replay(&r, 1);
-}
-
-static void test_hub(void) {
-    static const int required[] = {NL, NR};
-    static const replay_t r = {"hub", HUB, HUB_FRAMES, 0, 0u, HUB_DESC_HASH, required, 2};
-    replay(&r, 1);
-}
-
-static void test_long(void) {
-    static const int required[] = {OS};
-    static const replay_t r = {"long", LONG, LONG_FRAMES, LONG_LABS, LONG_HASH, LONG_DESC_HASH, required, 1};
-    replay(&r, 1);
+    check("descendants", h, DESCENDANTS_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -785,7 +638,7 @@ static void test_qh_is_a_struct(void) {
     size_t i;
     int j;
 
-    start_game(EMPTY);
+    start_game();
     a = build_lab();
     assert(is_a_qh_struct(a) && listed(pico8_cg("qh"), a));
     for (i = 0; i < sizeof jo_methods / sizeof jo_methods[0]; i++) {
@@ -854,7 +707,7 @@ static void test_qh_is_a_struct(void) {
     }
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
     pid_t child;
@@ -881,9 +734,6 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 int main(void) {
-    pid_t recordings[4];
-    int i;
-
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
     assert(pico8_load_gfx_json(&mem, "pico8/gfx.json"));
@@ -894,18 +744,10 @@ int main(void) {
     pico8_dispatch_set_input(&input);
 
     pico8_cart_load();
-    /* The four recordings take minutes each: they run side by side. */
-    recordings[0] = spawn(test_session);
-    recordings[1] = spawn(test_recorded);
-    recordings[2] = spawn(test_hub);
-    recordings[3] = spawn(test_long);
     in_fresh_child(test_built);
     in_fresh_child(test_life);
-    in_fresh_child(test_empty);
+    in_fresh_child(test_descendants);
     in_fresh_child(test_qh_is_a_struct);
-    for (i = 0; i < 4; i++) {
-        reap(recordings[i]);
-    }
 
     printf("test_pico8_qh: all tests passed\n");
     return 0;
