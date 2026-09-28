@@ -1375,7 +1375,6 @@ static void test_jo_tree_starts_match_the_parsed_class_strings(void) {
     assert(number_at(mx, "q_") == pico8_mx_start.q_);
 }
 
-/* What a kind serves as `name`, the one read of a kind in this file. */
 /* Both ways: the eight keys the string parses to are the eight fields. */
 static void test_pm_pq_keys_match_the_parsed_literal(void) {
     pico8_ob_table_t *pq = parse(PM_PQ_KEYS_SRC);
@@ -1392,6 +1391,7 @@ static void test_pm_pq_keys_match_the_parsed_literal(void) {
     check_member_seq(pq, "k_", pico8_pm_ga_pq_keys.k_);
 }
 
+/* What a kind serves as `name`, the one read of a kind in this file. */
 static int kind_answer(const pico8_entity_kind_t *kind, const char *name, pico8_value_t *out) {
     return kind->field(name, out);
 }
