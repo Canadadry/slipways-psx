@@ -1,8 +1,7 @@
 /* The laid-out row `lq`, read only through pico8_entity_get_field, its
  * pixels and row_count/row_item: direct constructions, `jo.ex`, `hp:lq` and
- * the copy `js:pq` makes of it, `ol` through mv() and `pi.ld`, and a short
- * replay. The frozen values were taken on the code where `lq` was still a
- * class instance and must not be re-taken. */
+ * the copy `js:pq` makes of it, `ol` through mv() and `pi.ld`, and a built
+ * planet's panel in a game built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
@@ -32,8 +30,11 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_pi.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_display.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
@@ -41,23 +42,26 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define BUILT "tests/fixtures/built_planet_panel_events.json"
+/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
+ * project with an `o` and no `i`, which exports to any planet a slipway
+ * joins it to. */
+#define COLONY 12
+#define EXPORTER 3
 
 #define CONSTRUCTIONS_HASH 0xF3436F4Du
 #define JO_EX_HASH 0xA122C4CCu
 #define HP_LQ_HASH 0x9071EEC9u
 #define CALLS_HASH 0x26A3DB53u
-#define REPLAY_HASH 0xB2458D77u
+#define PANEL_HASH 0xDA5A7F3Eu
 #define RAW_PRESENCE_HASH 0x8AE888A5u
-#define REPLAY_PRESENCE_HASH 0xF855B4B1u
-#define BG_FIXED_COUNT 1
-#define BG_FALSE_COUNT 0
-#define BG_ABSENT_COUNT 12
+#define PANEL_PRESENCE_HASH 0x8278CD73u
+#define BG_FIXED_COUNT 0
+#define BG_FALSE_COUNT 1
+#define BG_ABSENT_COUNT 14
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -400,7 +404,7 @@ static void test_jo_ex(void) {
     check("jo.ex", h, JO_EX_HASH);
 }
 
-static void start_game(const char *events);
+static void start_game(void);
 
 /* `hp:lq` appends `fk` and `px` after `pq`: `fs` and `w` do not see them,
  * the copy `js:pq` makes of the row does. Then two buttons with an `h_`,
@@ -410,7 +414,7 @@ static void test_hp_lq_and_copy(void) {
     uint32_t h = 2166136261u;
     size_t a;
 
-    start_game(BUILT);
+    start_game();
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
         void *lq = pico8_hp_lq(project(ks[a]));
         pico8_ob_table_t *spec = pico8_ob_table_new();
@@ -525,17 +529,77 @@ static void test_calls(void) {
     check("calls", h, CALLS_HASH);
 }
 
-/* A game started as the net starts it: `eu()` on `bo[2]` before frame 0. */
-static void start_game(const char *events) {
-    pico8_value_t difficulty;
-
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_eu(NULL);
+}
+
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
+}
+
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+static pico8_fixed_t must_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+/* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
+ * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
+ * hovered planet off `ok.o_`), left to settle; then the colony's panel,
+ * `jo:gh`, up and drawn. */
+static void built_planet_panel(void) {
+    const pico8_list_t *jos;
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *qu;
+    void *re = NULL;
+    void *jc;
+    int i;
+
+    start_game();
+    jos = pico8_cg("jo");
+    assert(jos != NULL && jos->count > 1);
+    qu = jos->items[0].as.ref;
+    for (i = 1; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
+            re = e;
+        }
+    }
+    pico8_jo_hu(qu, project(COLONY));
+    pico8_jo_hu(re, project(EXPORTER));
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
+    }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    for (i = 0; i < 120; i++) {
+        pico8_dg();
+    }
+    pico8_jo_gh(qu);
+    pico8__update60();
+    pico8__draw();
 }
 
 static uint32_t fold_button_row(uint32_t h, const void *button, const char *name) {
@@ -556,24 +620,15 @@ static uint32_t fold_button_row(uint32_t h, const void *button, const char *name
     return h;
 }
 
-/* At the last frame of the built-planet panel replay, every button of
- * `ok.le`: its `lq` and `h_`; then the screen. */
-static void test_replay(void) {
+/* With a built planet's panel up, every button of `ok.le`: its `lq` and
+ * `h_`; then the screen. */
+static void test_planet_panel(void) {
     uint32_t h = 2166136261u;
     const pico8_list_t *le;
     int buttons = 0;
     int i;
 
-    start_game(BUILT);
-    for (i = 0; i < input.frame_count; i++) {
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-        if (i < input.frame_count - 1) {
-            pico8_input_step(&input);
-        }
-    }
+    built_planet_panel();
     le = get_ref(pico8_ok(), "le");
     assert(le != NULL);
     for (i = 0; i < le->count; i++) {
@@ -585,9 +640,9 @@ static void test_replay(void) {
             h = fold_button_row(h, button, "h_");
         }
     }
-    printf("  replay buttons: %d\n", buttons);
+    printf("  panel buttons: %d\n", buttons);
     assert(buttons > 0);
-    check("replay", fnv(h, screen_hash()), REPLAY_HASH);
+    check("panel", fnv(h, screen_hash()), PANEL_HASH);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -658,7 +713,7 @@ static void test_lq_is_a_struct(void) {
     assert(!lookup(lq, "bg", &v) && !lookup(lq, "items", &v));
     assert(lookup(lq, "ol", &v) && v.kind == PICO8_VALUE_FUNCTION);
 
-    start_game(BUILT);
+    start_game();
     row = pico8_hp_lq(project(1));
     k = fs_count(row);
     assert(row_count(row) == k + 2);
@@ -785,8 +840,8 @@ static uint32_t fold_target(uint32_t h, const void *holder, const char *name) {
 }
 
 /* Each of the six members, and names that are not members, read by the raw
- * reader on built rows and on every row the built-planet replay reaches at
- * its last frame; pointer identity of `ra`/`fs` and through copies. Taken on
+ * reader on built rows and on every row reachable with a built planet's
+ * panel up; pointer identity of `ra`/`fs` and through copies. Taken on
  * the code where the members were still pico8_value_t. */
 static void test_lq_members_by_name(void) {
     pico8_value_t a[] = {str("hi"), num(12)};
@@ -803,16 +858,7 @@ static void test_lq_members_by_name(void) {
     size_t n;
     int i;
 
-    start_game(BUILT);
-    for (i = 0; i < input.frame_count; i++) {
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-        if (i < input.frame_count - 1) {
-            pico8_input_step(&input);
-        }
-    }
+    built_planet_panel();
     hv = pico8_hv();
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i].as.ref;
@@ -830,10 +876,10 @@ static void test_lq_members_by_name(void) {
             h = fold_target(h, button, "h_");
         }
     }
-    printf("  replay rows: %d, bg fixed %d, false %d, absent %d\n", targets, bg_fixed, bg_false, bg_absent);
+    printf("  panel rows: %d, bg fixed %d, false %d, absent %d\n", targets, bg_fixed, bg_false, bg_absent);
     assert(targets > 0);
     assert(bg_fixed == BG_FIXED_COUNT && bg_false == BG_FALSE_COUNT && bg_absent == BG_ABSENT_COUNT);
-    check("replay presence", h, REPLAY_PRESENCE_HASH);
+    check("panel presence", h, PANEL_PRESENCE_HASH);
 
     h = 2166136261u;
     bare = pico8_lq_new(NULL);
@@ -924,7 +970,7 @@ int main(void) {
     in_fresh_child(test_jo_ex);
     in_fresh_child(test_hp_lq_and_copy);
     in_fresh_child(test_calls);
-    in_fresh_child(test_replay);
+    in_fresh_child(test_planet_panel);
     in_fresh_child(test_lq_is_a_struct);
     in_fresh_child(test_lq_members_by_name);
 
