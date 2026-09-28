@@ -10,13 +10,6 @@
 #include "pico8_value.h"
 #include "pico8_wormhole.h"
 
-static pico8_fixed_t pico8_mzd_fixed(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
 static pico8_vec_t pico8_mzd_value_vec(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
         return *(const pico8_vec_t *)v.as.ref;
@@ -43,12 +36,10 @@ static int pico8_mzd_truthy(pico8_value_t v) {
 }
 
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
-    if (self->ij.kind != PICO8_VALUE_REF || self->ij.as.ref == NULL) {
+    if (self->ij == NULL) {
         return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     }
-    assert(pico8_type_tag_of(self->ij.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           "mz's ij field must hold an entity");
-    return pico8_mzd_field_vec((const pico8_struct_header_t *)self->ij.as.ref, "ra");
+    return pico8_mzd_field_vec(self->ij, "ra");
 }
 
 void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec_t p) {
@@ -65,8 +56,8 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     if (self->ke.me != NULL && strcmp(self->ke.me, "kz") == 0) {
         pico8_vec_t cp;
 
-        if (!pico8_mzd_truthy(self->et)) {
-            pico8_fixed_t oi = pico8_mzd_fixed(self->oi);
+        if (!pico8_mzd_truthy(pico8_mz_et(self))) {
+            pico8_fixed_t oi = self->oi;
             if (gfx != NULL && mem != NULL) {
                 pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(oi), 1);
             }
@@ -81,8 +72,8 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
         }
     } else {
         pico8_fixed_t t = self->ke.t;
-        pico8_fixed_t oi = pico8_mzd_fixed(self->oi);
-        int has_kk = self->kk.kind == PICO8_VALUE_REF && self->kk.as.ref != NULL;
+        pico8_fixed_t oi = self->oi;
+        int has_kk = self->kk != NULL;
         int dt;
 
         for (dt = 0; dt <= 8; dt += 2) {
@@ -98,9 +89,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
                     int idx = pico8_fixed_flr_int(pico8_fixed_flr(ratio));
                     pico8_value_t entry;
 
-                    assert(pico8_type_tag_of(self->kk.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-                           "mz's kk colour ramp must be a spec table");
-                    if (pico8_ob_table_get_index((const pico8_ob_table_t *)self->kk.as.ref, idx, &entry) &&
+                    if (pico8_ob_table_get_index(self->kk, idx, &entry) &&
                         entry.kind == PICO8_VALUE_FIXED) {
                         color = pico8_fixed_flr_int(entry.as.fixed);
                     }

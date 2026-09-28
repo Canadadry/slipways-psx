@@ -30,8 +30,10 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet_display.h"
+#include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
@@ -54,6 +56,7 @@
 #define PLAYTHROUGH_HASH 0x27C7A366u
 #define PLAYTHROUGH_FRAMES 224
 #define GEOHARVEST_HASH 0xB6BD5161u
+#define MZ_MEMBERS_HASH 0x4CC72979u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -900,6 +903,387 @@ static void test_jj_qs_by_name(void) {
     }
 }
 
+static const char *const mz_names[17] = {"nu", "dw", "dq", "spawn_snd", "ik", "oi", "od", "fp", "fa",
+                                         "kk", "jj", "ox", "ra", "p",         "et", "ij", "p_"};
+
+static pico8_value_t zero_union(pico8_value_kind_t kind) {
+    pico8_value_t v;
+
+    memset(&v, 0, sizeof v);
+    v.kind = kind;
+    return v;
+}
+
+static int read_mz(const void *e, const char *name, pico8_value_t *out) {
+    pico8_value_t raw = pico8_value_fixed(0x1234);
+    pico8_value_t via = pico8_value_fixed(0x1234);
+    int got_raw = pico8_mz_struct_class()->field(e, name, &raw);
+    int got_via = pico8_entity_get_field(e, name, &via);
+    assert(got_raw == got_via && raw.kind == via.kind);
+    if (!got_raw) {
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        assert(via.kind == PICO8_VALUE_FIXED && via.as.fixed == 0x1234);
+    } else if (raw.kind == PICO8_VALUE_REF) {
+        assert(raw.as.ref != NULL && raw.as.ref == via.as.ref);
+    } else if (raw.kind == PICO8_VALUE_STRING) {
+        assert(raw.as.string != NULL && raw.as.string == via.as.string);
+    } else if (raw.kind == PICO8_VALUE_FIXED) {
+        assert(raw.as.fixed == via.as.fixed);
+    } else if (raw.kind == PICO8_VALUE_BOOL) {
+        assert(raw.as.boolean == via.as.boolean);
+    }
+    *out = raw;
+    return got_raw;
+}
+
+static void *mz_ref(const void *mz, const char *name) {
+    pico8_value_t v;
+    if (!read_mz(mz, name, &v)) {
+        return NULL;
+    }
+    assert(v.kind == PICO8_VALUE_REF);
+    return v.as.ref;
+}
+
+static int mz_bool(const void *mz, const char *name, int want) {
+    pico8_value_t v;
+    return read_mz(mz, name, &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == want;
+}
+
+static uint32_t fold_ref(uint32_t h, const void *ref) {
+    switch (pico8_type_tag_of(ref)) {
+    case PICO8_TYPE_TAG_STRUCT:
+        if (ref == (const void *)pico8_mz_jj_wrapper()) {
+            return fnv(h, 0xA11u);
+        }
+        if (is_bv_target(ref)) {
+            return fnv(h, 0xB0u);
+        }
+        return fnv(fnv(h, 0x57u), (uint32_t)rank_in(pico8_hv(), ref));
+    case PICO8_TYPE_TAG_LIST:
+        return fnv(fnv(h, 0x11u), (uint32_t)((const pico8_list_t *)ref)->count);
+    case PICO8_TYPE_TAG_OB_TABLE:
+        return fnv(fnv(h, 0x7Au), (uint32_t)((const pico8_ob_table_t *)ref)->count);
+    default:
+        h = fnv(h, (uint32_t)((const pico8_vec_t *)ref)->x);
+        return fnv(h, (uint32_t)((const pico8_vec_t *)ref)->y);
+    }
+}
+
+static uint32_t fold_mz_member(uint32_t h, const void *mz, const char *name) {
+    pico8_value_t v;
+    int got = read_mz(mz, name, &v);
+    h = fnv(h, (uint32_t)got);
+    h = fnv(h, (uint32_t)v.kind);
+    switch (v.kind) {
+    case PICO8_VALUE_FIXED:
+        return fnv(h, (uint32_t)v.as.fixed);
+    case PICO8_VALUE_BOOL:
+        return fnv(h, (uint32_t)v.as.boolean);
+    case PICO8_VALUE_STRING:
+        return fnv_str(h, v.as.string);
+    case PICO8_VALUE_REF:
+        return fold_ref(h, v.as.ref);
+    default:
+        return fnv(h, 0xF0u);
+    }
+}
+
+static uint32_t fold_mz_members(uint32_t h, const void *mz) {
+    size_t i;
+    for (i = 0; i < 17; i++) {
+        h = fold_mz_member(h, mz, mz_names[i]);
+    }
+    return h;
+}
+
+static void check_fresh_members(const void *mz, const void *like) {
+    static const char *const unset[] = {"ra", "p", "et", "ij", "p_"};
+    static const struct {
+        const char *name;
+        int value;
+    } fixed[] = {{"dw", 0}, {"spawn_snd", 52}, {"ik", 49}, {"oi", 0}, {"od", 3}, {"fp", 1}, {"fa", 5}};
+    pico8_value_t v;
+    pico8_value_t dq;
+    size_t i;
+
+    assert(mz_ref(mz, "nu") != NULL && mz_ref(mz, "nu") == mz_ref(like, "nu"));
+    assert(mz_ref(mz, "kk") != NULL && mz_ref(mz, "kk") == mz_ref(like, "kk"));
+    assert(mz_ref(mz, "jj") == (void *)pico8_mz_jj_wrapper() && mz_ref(like, "jj") == mz_ref(mz, "jj"));
+    assert(read_mz(mz, "dq", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "pr") == 0);
+    assert(read_mz(like, "dq", &dq) && dq.as.string == v.as.string);
+    assert(mz_ref(mz, "ox") != NULL && (mz == like || mz_ref(mz, "ox") != mz_ref(like, "ox")));
+    for (i = 0; i < sizeof fixed / sizeof fixed[0]; i++) {
+        assert(read_mz(mz, fixed[i].name, &v) && v.kind == PICO8_VALUE_FIXED);
+        assert(v.as.fixed == pico8_fixed_from_int(fixed[i].value));
+    }
+    for (i = 0; i < sizeof unset / sizeof unset[0]; i++) {
+        assert(!read_mz(mz, unset[i], &v));
+    }
+}
+
+static pico8_vec_t slipway_mid(const void *jc) {
+    return pico8_vec_mul(
+        pico8_vec_div(pico8_vec_add(vec_of(get(jc, "qu").as.ref, "p"), vec_of(get(jc, "re").as.ref, "p")),
+                      pico8_fixed_from_int(2)),
+        pico8_fixed_from_int(128));
+}
+
+static void test_mz_members_by_name(void) {
+    static const char *const unwritten[] = {"", "RA", "p ", "et_", "has_et", "has_p_", "fo", "qu"};
+    static const char *const intruders[] = {"", "q", "et ", "ET", "has_et", "has_p_", "header", "ke", "fo", "qs"};
+    const pico8_struct_class_t *cls = pico8_mz_struct_class();
+    uint32_t h = 2166136261u;
+    uint32_t before;
+    pico8_ob_table_t *empty;
+    pico8_value_t mp;
+    pico8_value_t v;
+    pico8_vec_t want_p;
+    void *jc;
+    void *mz;
+    void *throwaway;
+    void *fresh[3];
+    void *targets[3];
+    const pico8_list_t *ox;
+    size_t i;
+    int k;
+
+    world();
+    jc = pico8_cg("jc")->items[0].as.ref;
+    mz = build_mz();
+    mp = vec_ref_fixed(slipway_mid(jc));
+    hq(mz, mp, vec_ref(64, 64));
+    assert(mz_ref(mz, "ra") == mp.as.ref);
+    want_p = pico8_vec_div(*(const pico8_vec_t *)mp.as.ref, pico8_fixed_from_int(128));
+    assert(mz_ref(mz, "p") != NULL && mz_ref(mz, "p") != mp.as.ref);
+    assert(vec_of(mz, "p").x == want_p.x && vec_of(mz, "p").y == want_p.y);
+    assert(mz_ref(mz, "et") == jc);
+    ox = mz_ref(mz, "ox");
+    assert(mz_ref(mz, "ij") != NULL && listed(ox, mz_ref(mz, "ij")));
+    h = fold_mz_members(h, mz);
+    hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
+    assert(mz_ref(mz, "et") == (void *)pico8_mz_jj_wrapper());
+    h = fold_mz_members(h, mz);
+    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    assert(mz_bool(mz, "et", 0));
+    h = fold_mz_members(h, mz);
+    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(2, 2));
+    throwaway = mz_ref(mz, "et");
+    assert(throwaway != NULL && is_bv_target(throwaway));
+    assert(mz_ref(mz, "ij") != NULL && listed(ox, mz_ref(mz, "ij")));
+    h = fold_mz_members(h, mz);
+
+    mz = build_mz();
+    pico8_dg();
+    assert(read_mz(mz, "oi", &v) && v.kind == PICO8_VALUE_FIXED);
+    ey(mz);
+    assert(mz_bool(mz, "p_", 1));
+    h = fold_mz_members(h, mz);
+    mz = build_mz();
+    until_t(mz, 15);
+    hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
+    ey(mz);
+    assert(mz_bool(mz, "p_", 0));
+    h = fold_mz_member(h, mz, "p_");
+    mz = paid_mz_on_unknown();
+    pico8_dg();
+    assert(mz_bool(mz, "p_", 0));
+    h = fold_mz_member(h, mz, "p_");
+
+    mz = build_mz();
+    for (k = 0; k < 2; k++) {
+        const char *name = k == 0 ? "ra" : "p";
+        pico8_value_t a = vec_ref(3, 4);
+        pico8_value_t b = vec_ref(5, 6);
+
+        pico8_entity_set_field(mz, name, a);
+        assert(mz_ref(mz, name) == a.as.ref);
+        h = fold_mz_member(h, mz, name);
+        assert(cls->set_field(mz, name, b) == 1);
+        assert(mz_ref(mz, name) == b.as.ref);
+        pico8_entity_set_field(mz, name, pico8_value_ref(NULL));
+        assert(!read_mz(mz, name, &v));
+        pico8_entity_set_field(mz, name, a);
+        pico8_entity_set_field(mz, name, zero_union(PICO8_VALUE_REF));
+        assert(!read_mz(mz, name, &v));
+        h = fold_mz_member(h, mz, name);
+    }
+    pico8_entity_set_field(mz, "et", pico8_value_bool(0));
+    assert(mz_bool(mz, "et", 0));
+    pico8_entity_set_field(mz, "et", pico8_value_ref(NULL));
+    assert(!read_mz(mz, "et", &v));
+    pico8_entity_set_field(mz, "et", zero_union(PICO8_VALUE_BOOL));
+    assert(mz_bool(mz, "et", 0));
+    h = fold_mz_member(h, mz, "et");
+    targets[0] = jc;
+    targets[1] = throwaway;
+    targets[2] = (void *)pico8_mz_jj_wrapper();
+    for (k = 0; k < 3; k++) {
+        pico8_entity_set_field(mz, "et", pico8_value_ref(targets[k]));
+        assert(mz_ref(mz, "et") == targets[k]);
+        h = fold_mz_member(h, mz, "et");
+        assert(cls->set_field(mz, "et", pico8_value_ref(targets[(k + 1) % 3])) == 1);
+        assert(mz_ref(mz, "et") == targets[(k + 1) % 3]);
+        pico8_entity_set_field(mz, "et", pico8_value_ref(NULL));
+        assert(!read_mz(mz, "et", &v));
+    }
+    pico8_entity_set_field(mz, "et", pico8_value_ref(jc));
+    pico8_entity_set_field(mz, "et", zero_union(PICO8_VALUE_REF));
+    assert(!read_mz(mz, "et", &v));
+
+    pico8_entity_set_field(mz, "p_", pico8_value_bool(1));
+    assert(mz_bool(mz, "p_", 1));
+    h = fold_mz_member(h, mz, "p_");
+    pico8_entity_set_field(mz, "p_", pico8_value_ref(NULL));
+    assert(!read_mz(mz, "p_", &v));
+    pico8_entity_set_field(mz, "p_", pico8_value_bool(0));
+    assert(mz_bool(mz, "p_", 0));
+    h = fold_mz_member(h, mz, "p_");
+    pico8_entity_set_field(mz, "p_", pico8_value_ref(NULL));
+    assert(!read_mz(mz, "p_", &v));
+    pico8_entity_set_field(mz, "p_", zero_union(PICO8_VALUE_BOOL));
+    assert(mz_bool(mz, "p_", 0));
+    h = fold_mz_member(h, mz, "p_");
+    pico8_entity_set_field(mz, "p_", pico8_value_ref(NULL));
+    pico8_entity_set_field(mz, "p_", pico8_value_ref(NULL));
+    assert(!read_mz(mz, "p_", &v));
+    h = fold_mz_member(h, mz, "p_");
+
+    pico8_entity_set_field(mz, "ra", vec_ref(7, 8));
+    pico8_entity_set_field(mz, "p", vec_ref(9, 10));
+    pico8_entity_set_field(mz, "et", pico8_value_ref(throwaway));
+    pico8_entity_set_field(mz, "p_", pico8_value_bool(1));
+    before = fold_mz_members(2166136261u, mz);
+    for (i = 0; i < 17; i++) {
+        if (strcmp(mz_names[i], "ra") != 0 && strcmp(mz_names[i], "p") != 0 && strcmp(mz_names[i], "et") != 0 &&
+            strcmp(mz_names[i], "p_") != 0) {
+            assert(cls->set_field(mz, mz_names[i], pico8_value_fixed(pico8_fixed_from_int(9))) == 0);
+        }
+    }
+    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
+        assert(cls->set_field(mz, unwritten[i], pico8_value_fixed(pico8_fixed_from_int(9))) == 0);
+    }
+    assert(fold_mz_members(2166136261u, mz) == before);
+    h = fnv(h, before);
+    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
+        pico8_value_t raw = pico8_value_fixed(0x1234);
+        assert(cls->field(mz, intruders[i], &raw) == 0);
+        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == 0x1234);
+        h = fold_mz_member(h, mz, intruders[i]);
+    }
+
+    start_game(PLAYTHROUGH);
+    fresh[0] = pico8_mz_new(NULL);
+    empty = pico8_ob_table_new();
+    fresh[1] = pico8_mz_new(empty);
+    pico8_ob_table_free(empty);
+    (void)pico8_bg_ldown(NULL, pico8_value_ref(NULL));
+    fresh[2] = pico8_bg_ldown(NULL, pico8_value_ref(NULL)).as.ref;
+    for (k = 0; k < 3; k++) {
+        check_fresh_members(fresh[k], fresh[0]);
+        h = fold_mz_members(h, fresh[k]);
+    }
+    assert(((const pico8_list_t *)mz_ref(fresh[0], "ox"))->count == 0);
+    hq(fresh[0], vec_ref(64, 64), vec_ref(64, 64));
+    assert(!read_mz(fresh[0], "ij", &v));
+    assert(mz_ref(fresh[0], "ra") != NULL && mz_ref(fresh[0], "p") != NULL && read_mz(fresh[0], "et", &v));
+    h = fold_mz_members(h, fresh[0]);
+    check("mz members", h, MZ_MEMBERS_HASH);
+}
+
+static pico8_value_t g_off_row;
+static const char *g_off_name;
+
+static void must_abort(void (*write)(void *), void *mz) {
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(freopen("/dev/null", "w", stderr) != NULL);
+        write(mz);
+        _exit(0);
+    }
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void write_off_row(void *mz) {
+    pico8_entity_set_field(mz, g_off_name, g_off_row);
+}
+
+static void stops_on(void *mz, const char *name, const pico8_value_t *off, size_t n) {
+    size_t i;
+
+    g_off_name = name;
+    for (i = 0; i < n; i++) {
+        g_off_row = off[i];
+        must_abort(write_off_row, mz);
+    }
+}
+
+static void test_mz_writer_stops_off_row(void) {
+    pico8_value_t table;
+    pico8_value_t list;
+    pico8_value_t vec;
+    pico8_value_t jo;
+    pico8_value_t other;
+    void *mz;
+
+    world();
+    mz = build_mz();
+    table = pico8_value_ref(pico8_ob_table_new());
+    list = pico8_value_ref((void *)pico8_hv());
+    vec = vec_ref(1, 1);
+    jo = pico8_cg("jo")->items[0];
+    other = pico8_value_ref(build_mz());
+    {
+        const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)),
+                                     zero_union(PICO8_VALUE_FIXED),
+                                     pico8_value_bool(1),
+                                     zero_union(PICO8_VALUE_BOOL),
+                                     pico8_value_string("x"),
+                                     zero_union(PICO8_VALUE_STRING),
+                                     zero_union(PICO8_VALUE_FUNCTION),
+                                     table,
+                                     list,
+                                     jo,
+                                     other};
+        stops_on(mz, "ra", off, sizeof off / sizeof off[0]);
+        stops_on(mz, "p", off, sizeof off / sizeof off[0]);
+    }
+    {
+        const pico8_value_t off[] = {pico8_value_bool(1),
+                                     pico8_value_fixed(pico8_fixed_from_int(1)),
+                                     zero_union(PICO8_VALUE_FIXED),
+                                     pico8_value_string("x"),
+                                     zero_union(PICO8_VALUE_STRING),
+                                     zero_union(PICO8_VALUE_FUNCTION),
+                                     table,
+                                     list,
+                                     vec,
+                                     jo,
+                                     pico8_value_ref(pico8_qh_new(NULL)),
+                                     pico8_value_ref(pico8_g__new(NULL)),
+                                     other,
+                                     pico8_value_ref(pico8_bg_new(NULL))};
+        stops_on(mz, "et", off, sizeof off / sizeof off[0]);
+    }
+    {
+        const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)),
+                                     zero_union(PICO8_VALUE_FIXED),
+                                     pico8_value_string("x"),
+                                     zero_union(PICO8_VALUE_STRING),
+                                     zero_union(PICO8_VALUE_FUNCTION),
+                                     table,
+                                     vec,
+                                     other};
+        stops_on(mz, "p_", off, sizeof off / sizeof off[0]);
+    }
+}
+
 /* A replay depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -942,6 +1326,8 @@ int main(void) {
     in_fresh_child(test_jj_wrapper);
     in_fresh_child(test_mz_is_a_struct);
     in_fresh_child(test_jj_qs_by_name);
+    in_fresh_child(test_mz_members_by_name);
+    in_fresh_child(test_mz_writer_stops_off_row);
 
     printf("test_pico8_mz: all tests passed\n");
     return 0;

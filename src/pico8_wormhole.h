@@ -24,24 +24,30 @@ typedef struct {
  * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t nu;
-    pico8_value_t dw;
-    pico8_value_t dq;
-    pico8_value_t spawn_snd;
-    pico8_value_t ik;
-    pico8_value_t oi;
-    pico8_value_t od;
-    pico8_value_t fp;
-    pico8_value_t fa;
-    pico8_value_t kk;
-    pico8_value_t jj;
-    pico8_value_t ox;
-    pico8_value_t ra;
-    pico8_value_t p;
-    pico8_value_t et;
-    pico8_value_t ij;
-    pico8_value_t p_;
+    pico8_ob_table_t *nu;
+    pico8_fixed_t dw;
+    const char *dq;
+    pico8_fixed_t spawn_snd;
+    pico8_fixed_t ik;
+    pico8_fixed_t oi;
+    pico8_fixed_t od;
+    pico8_fixed_t fp;
+    pico8_fixed_t fa;
+    pico8_ob_table_t *kk;
+    pico8_mz_jj_t *jj;
+    pico8_list_t *ox;
+    pico8_vec_t *ra;
+    pico8_vec_t *p;
+    pico8_struct_header_t *et; /* borrowed, never freed */
+    int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
+    pico8_struct_header_t *ij; /* borrowed, never freed */
+    int p_;
+    int has_p_; /* 0: `p_` is nil, and is then never read */
 } pico8_mz_t;
+
+/* `et` as a value: REF NULL when `self` is NULL or `et` is absent, `false`
+ * when present and NULL, a REF to the target otherwise. */
+pico8_value_t pico8_mz_et(const pico8_mz_t *self);
 
 void pico8_wormhole_init(void);
 
