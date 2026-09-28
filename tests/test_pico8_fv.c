@@ -571,7 +571,7 @@ static void build_with_positional_key(void *e) {
  * entries and holds its own `kj`, `hd`; it takes exactly `m_` and `g_`'s 5
  * written names, and no construction key. Its class keeps only its spec. */
 static void test_fv_is_a_struct(void) {
-    static const char *const written[] = {"m_", "qy", "ra", "p", "et", "p_"};
+    static const char *const written[] = {"m_"};
     const pico8_struct_class_t *cls = pico8_fv_struct_class();
     const pico8_struct_class_t *g_ = pico8_g__struct_class();
     void *fv;

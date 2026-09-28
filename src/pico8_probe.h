@@ -22,30 +22,36 @@
  * `fv`, never modified; `ra` is the very REF `bv` was passed, aliased. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t nu;
-    pico8_value_t fx;
-    pico8_value_t dq;
-    pico8_value_t od;
-    pico8_value_t fp;
-    pico8_value_t fa;
-    pico8_value_t dw;
-    pico8_value_t py;
-    pico8_value_t ki;
-    pico8_value_t pn;
-    pico8_value_t pk;
-    pico8_value_t fc;
-    pico8_value_t k_;
-    pico8_value_t qo;
-    pico8_value_t ro;
-    pico8_value_t qg;
-    pico8_value_t q_;
-    pico8_value_t du;
-    pico8_value_t qy;
-    pico8_value_t ra;
-    pico8_value_t p;
-    pico8_value_t et;
-    pico8_value_t p_;
+    pico8_ob_table_t *nu;
+    pico8_fixed_t fx;
+    const char *dq;
+    pico8_fixed_t od;
+    int fp;
+    pico8_fixed_t fa;
+    pico8_fixed_t dw;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pn;
+    pico8_fixed_t pk;
+    pico8_fixed_t fc;
+    pico8_ob_table_t *k_;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    pico8_fixed_t du;
+    pico8_list_t *qy;
+    pico8_vec_t *ra;
+    pico8_vec_t *p;
+    pico8_struct_header_t *et; /* borrowed, never freed */
+    int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
+    int p_;
+    int has_p_; /* 0: `p_` is nil, and is then never read */
 } pico8_g__t;
+
+/* `et` as a value: REF NULL when `self` is NULL or `et` is absent, `false`
+ * when present and NULL, a REF to the target otherwise. */
+pico8_value_t pico8_g__et(const pico8_g__t *self);
 
 /* TROU-8 */
 /* Parses `g_`'s spec and puts the provisional `fm` back in the slot, its
