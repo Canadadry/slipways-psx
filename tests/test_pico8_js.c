@@ -1646,7 +1646,7 @@ static void test_js_writer_stops_off_row(void) {
     vec = vec_ref(1, 1);
     list = pico8_value_ref((void *)pico8_hv());
     js = pico8_value_ref(ix[1]);
-    hp = pico8_value_ref(pico8_gb_at(1));
+    hp = pico8_value_ref(pico8_gb_find(""));
     assert(hp.as.ref != NULL);
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),

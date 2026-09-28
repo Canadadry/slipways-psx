@@ -484,7 +484,7 @@ static void test_kw_shared(void) {
     assert(pico8_jo_shared_kw()->mu == pico8_fixed_from_int(7));
 
     assert(pico8_gb_count() > 0);
-    hp = pico8_value_ref(pico8_gb_at(1));
+    hp = pico8_value_ref(pico8_gb_find(""));
     assert(hp.as.ref != NULL);
     pico8_jo_lz(a, hp.as.ref);
     assert(get_ref(a, "kw") != NULL && get_ref(a, "kw") != pico8_jo_shared_kw());

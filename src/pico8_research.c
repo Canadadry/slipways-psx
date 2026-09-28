@@ -17,7 +17,9 @@ static int g_hp_up = 0;
 static pico8_hp_t *g_gb[PICO8_FD_COUNT];
 static int g_gb_count = 0;
 /* `gb[px]`: the last project registered under each `px` (several share
- * one), built by `build_gb` or not. 0 until `build_gb`. */
+ * one), built by `build_gb` or not. 0 until `build_gb`. `px` is the hp's own
+ * pointer, borrowed, never copied: it must outlive the hp (every caller
+ * passes a string of `pico8_fd_table`). */
 static struct {
     const char *px;
     pico8_hp_t *hp;
