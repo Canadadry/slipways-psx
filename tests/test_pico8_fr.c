@@ -49,6 +49,7 @@
 #define BUILT_HASH 0xA5047E01u
 #define LIFE_HASH 0x8B3BFBB2u
 #define NR_MEMBERS_HASH 0xFB75FC85u
+#define FR_MT_HASH 0x996A3A04u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -548,6 +549,21 @@ static int is_an_fr_struct(const void *e) {
            ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class();
 }
 
+/* The value both readers give, the raw one leaving its witness untouched
+ * when it answers 0; 0 when absent. */
+static int read_both(const void *e, const char *name, pico8_value_t *out) {
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
+    pico8_value_t raw = pico8_value_fixed((pico8_fixed_t)0x1234);
+    pico8_value_t named;
+    int found = cls->field(e, name, &raw);
+
+    assert(found || (raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == (pico8_fixed_t)0x1234));
+    assert(pico8_entity_get_field(e, name, &named) == found);
+    assert(!found || pico8_value_equal(raw, named));
+    *out = raw;
+    return found;
+}
+
 /* Built by `ie:ldown` or pico8_fr_new, a gate is a struct whose descriptor
  * holds nr's very entries and writer; nr's reader sees the 4 defaults of fr
  * that fall on an inherited member, not `mt`; it takes exactly nr's 21
@@ -600,24 +616,9 @@ static void test_fr_is_a_struct(void) {
         pico8_fr_t *bare = pico8_fr_new(NULL);
         assert(is_an_fr_struct(bare) && is_a_gate(bare) && !has(bare, "id") && has(bare, "oe") && has(bare, "kw"));
         assert(listed(pico8_cg("nr"), bare));
-        bare->mt = pico8_value_ref(NULL);
-        assert(!cls->field(bare, "mt", &v));
+        bare->mt = 0;
+        assert(read_both(bare, "mt", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0);
     }
-}
-
-/* The value both readers give, the raw one leaving its witness untouched
- * when it answers 0; 0 when absent. */
-static int read_both(const void *e, const char *name, pico8_value_t *out) {
-    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
-    pico8_value_t raw = pico8_value_fixed((pico8_fixed_t)0x1234);
-    pico8_value_t named;
-    int found = cls->field(e, name, &raw);
-
-    assert(found || (raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == (pico8_fixed_t)0x1234));
-    assert(pico8_entity_get_field(e, name, &named) == found);
-    assert(!found || pico8_value_equal(raw, named));
-    *out = raw;
-    return found;
 }
 
 static uint32_t fold_nr_members(uint32_t h, const void *e, int (*default_of)(const char *, pico8_value_t *)) {
@@ -689,6 +690,44 @@ static void test_nr_members_by_name(void) {
     check("nr_members", h, NR_MEMBERS_HASH);
 }
 
+static uint32_t fold_mt(uint32_t h, const void *e) {
+    pico8_value_t v;
+
+    assert(read_both(e, "mt", &v) && pico8_value_equal(v, class_value(pico8_fr_default, "mt")));
+    return fold_value(h, v);
+}
+
+static void test_fr_mt_by_name(void) {
+    static const char *const strangers[] = {"", "m", "mt ", "MT", "mt_", "t"};
+    void *gates[2];
+    void *placed;
+    pico8_value_t v;
+    uint32_t h = 2166136261u;
+    size_t n;
+    int k;
+
+    start_game(EMPTY);
+    gates[0] = pico8_fr_new(NULL);
+    gates[1] = build_gate();
+    for (k = 0; k < 2; k++) {
+        h = fold_mt(h, gates[k]);
+    }
+    h = fnv(h, (uint32_t)read_both(pico8_nr_new(NULL), "mt", &v));
+
+    placed = build_gate();
+    place(placed, 12, 108);
+    (void)call(placed, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    h = fold_mt(h, placed);
+    (void)call(placed, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    h = fold_mt(h, placed);
+
+    for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {
+        h = fnv(h, (uint32_t)read_both(gates[0], strangers[n], &v));
+    }
+
+    check("fr_mt", h, FR_MT_HASH);
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -722,6 +761,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_fr_is_a_struct);
     in_fresh_child(test_nr_members_by_name);
+    in_fresh_child(test_fr_mt_by_name);
 
     printf("test_pico8_fr: all tests passed\n");
     return 0;

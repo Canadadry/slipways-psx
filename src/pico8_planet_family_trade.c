@@ -1,7 +1,6 @@
 #include "pico8_planet_family_trade.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -372,39 +371,23 @@ static void *pico8_nr_struct_new(const pico8_ob_table_t *overrides) {
     return self;
 }
 
-/* fr's own defaults, read once through pico8_fr_default() at init: the very
- * values its spec holds. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_fr_defaults[] = {
-    {"mt", offsetof(pico8_fr_t, mt), {0}},
-};
-
 static pico8_fixed_t g_fr_od = 0;
 static pico8_fixed_t g_fr_s = 0;
 static pico8_ob_table_t *g_fr_hz = NULL;
 static const char *g_fr_rr = NULL;
+static pico8_fixed_t g_fr_mt = 0;
 
 static void pico8_fr_defaults_reset(void) {
-    size_t i;
     g_fr_od = 0;
     g_fr_s = 0;
     g_fr_hz = NULL;
     g_fr_rr = NULL;
-    for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
-        g_fr_defaults[i].value = pico8_value_ref(NULL);
-    }
+    g_fr_mt = 0;
 }
 
 static int pico8_fr_field(const void *self, const char *name, pico8_value_t *out_value) {
     if (strcmp(name, "mt") == 0) {
-        const pico8_value_t *mt = &((const pico8_fr_t *)self)->mt;
-        if (mt->kind == PICO8_VALUE_REF && mt->as.ref == NULL) {
-            return 0;
-        }
-        *out_value = *mt;
+        *out_value = pico8_value_fixed(((const pico8_fr_t *)self)->mt);
         return 1;
     }
     return pico8_nr_field(self, name, out_value);
@@ -434,15 +417,11 @@ static const pico8_struct_class_t g_fr_struct_class = {
 
 static void *pico8_fr_struct_new(const pico8_ob_table_t *overrides) {
     pico8_fr_t *self = malloc(sizeof *self);
-    size_t i;
     int k;
 
     assert(g_fr_spec != NULL && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(&self->nr, &g_fr_struct_class);
-    self->mt = pico8_value_ref(NULL);
-    for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_fr_defaults[i].offset) = g_fr_defaults[i].value;
-    }
+    self->mt = g_fr_mt;
     self->nr.hz = g_fr_hz;
     self->nr.rr = g_fr_rr;
     self->nr.qh.od = g_fr_od;
@@ -701,8 +680,8 @@ static pico8_qz_box_t *family_trade_default_box(int found, pico8_value_t v) {
 
 static pico8_fixed_t family_trade_default_fixed(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_FIXED &&
-           "nr/fr/mx.od, nr.fp/dw, nr/fr/mx.s, mx.hp, mx.py/ki/pn/fc/du/qo/ro/qg/q_: a default of the struct is a "
-           "key of its spec and a fixed (fixe)");
+           "nr/fr/mx.od, nr.fp/dw, nr/fr/mx.s, fr.mt, mx.hp, mx.py/ki/pn/fc/du/qo/ro/qg/q_: a default of the struct "
+           "is a key of its spec and a fixed (fixe)");
     (void)found;
     return v.as.fixed;
 }
@@ -723,7 +702,6 @@ static pico8_fixed_t family_trade_default_hf(int found, pico8_value_t v, int *is
 }
 
 void pico8_planet_family_trade_init(void) {
-    size_t i;
     pico8_value_t v;
     int found;
 
@@ -764,11 +742,6 @@ void pico8_planet_family_trade_init(void) {
                          "od=25,\n"
                          "s=78,hz=o(78,78,78,76),\n",
                          NULL);
-    for (i = 0; i < sizeof g_fr_defaults / sizeof g_fr_defaults[0]; i++) {
-        int found = pico8_fr_default(g_fr_defaults[i].name, &g_fr_defaults[i].value);
-        assert(found && "fr: every default of the struct is a key of fr's spec");
-        (void)found;
-    }
     found = pico8_fr_default("od", &v);
     g_fr_od = family_trade_default_fixed(found, v);
     found = pico8_fr_default("s", &v);
@@ -777,6 +750,8 @@ void pico8_planet_family_trade_init(void) {
     g_fr_hz = family_trade_default_table(found, v);
     found = pico8_fr_default("rr", &v);
     g_fr_rr = family_trade_default_string(found, v);
+    found = pico8_fr_default("mt", &v);
+    g_fr_mt = family_trade_default_fixed(found, v);
 
     g_mx_spec = pico8_ob("\n"
                          "nu=o(\"jo\",\"np\",\"prober\"),\n"

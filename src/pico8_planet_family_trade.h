@@ -35,7 +35,7 @@ typedef struct {
  * qh's, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_nr_t nr;
-    pico8_value_t mt;
+    pico8_fixed_t mt;
 } pico8_fr_t;
 
 /* A synthesizer: an ascension, then mx's own default `ht`, which no
