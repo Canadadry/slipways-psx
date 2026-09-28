@@ -27,12 +27,12 @@ void pico8_planet_family_shutdown(void);
 /* A laboratory: a bare planet, then qh's own defaults and `et`, which its
  * own `hq` (`bv`) writes. A default of qh whose name is a member of `jo` or
  * `ke` (`me`, `nu`, `hf`, `mi`) lives in that member, never in a second
- * copy here. `nu`, `px` and `ba` hold the very tables of qh's spec,
- * borrowed. Nothing frees the struct: TROU-7. */
+ * copy here. `nu`, `px` and `ba` point at qh's generated data
+ * (pico8_game_data.h). Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
     pico8_fixed_t hp;
-    pico8_ob_table_t *px;
+    const pico8_jb_row_t *px;
     const char *dq;
     pico8_fixed_t qh;
     int qh_is_bool; /* 1: `qh` holds a boolean (0/1), 0: a fixed */
@@ -40,7 +40,7 @@ typedef struct {
     pico8_fixed_t fp;
     pico8_fixed_t dw;
     pico8_fixed_t s;
-    pico8_ob_table_t *ba;
+    const pico8_int_seq_t *ba;
     pico8_struct_header_t *et; /* borrowed, never freed */
     int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
 } pico8_qh_t;
@@ -56,8 +56,8 @@ pico8_value_t pico8_qh_et(const pico8_qh_t *self);
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
  * or `jo` (`nu`, `qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
- * `nu`, `px` and `ba` hold the very tables of nl's spec, `rr` its very
- * string, borrowed. Nothing frees the struct: TROU-7. */
+ * `nu`, `px` and `ba` point at nl's generated data, `rr` is its spec's
+ * very string, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
     const char *rr;
@@ -67,8 +67,8 @@ typedef struct {
 
 /* A processor: a laboratory and nothing of its own. Each default of os
  * lives in the member of that name, qh's (`hp`, `px`, `qh`, `s`, `od`) or
- * jo's (`nu`, `hs`). `nu` and `px` hold the very tables of os's spec, `ba`
- * the one of qh's, borrowed. Nothing frees the struct: TROU-7. */
+ * jo's (`nu`, `hs`). `nu` and `px` point at os's generated data, `ba` at
+ * qh's. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
 } pico8_os_t;
@@ -76,8 +76,8 @@ typedef struct {
 /* An ascension: a laboratory, then hj's own emitter defaults and `qy`,
  * which its own `pq` (`f_`) writes. A default of hj whose name is a member
  * of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`, `s`) lives in that member.
- * `nu`, `px` and `k_` hold the very tables of hj's spec, `rr` its very
- * string, `ba` the one of qh's, borrowed; `qy` is the ascension's own, NULL
+ * `nu`, `px` and `k_` point at hj's generated data, `ba` at qh's, `rr` is
+ * its spec's very string, borrowed; `qy` is the ascension's own, NULL
  * until `f_`, never freed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
@@ -88,7 +88,7 @@ typedef struct {
     pico8_fixed_t pk;
     int pk_is_bool; /* 1: `pk` holds a boolean (0/1), 0: a fixed */
     pico8_fixed_t fc;
-    pico8_ob_table_t *k_;
+    const pico8_int_seq_t *k_;
     pico8_fixed_t du;
     pico8_fixed_t qo;
     pico8_fixed_t ro;
@@ -104,10 +104,10 @@ pico8_value_t pico8_hj_pk(const pico8_hj_t *self);
 /* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
  * ancestor has a member for. A default of pm whose name is a member of
  * `hj`, `qh`, `jo` or `ke` (`me`, `nu`, `hp`, `px`, `s` and the 11 emitter
- * defaults) lives in that member. `nu`, `px` and `k_` hold the very
- * tables of pm's spec, `ng` its very vector and `fz` its very string, `ba`
- * the table of qh's, borrowed; `qy` is the protostar's own. Nothing frees
- * the struct: TROU-7. */
+ * defaults) lives in that member. `nu`, `px` and `k_` point at pm's
+ * generated data, `ba` at qh's; `ng` and `fz` are its spec's very vector
+ * and string, borrowed; `qy` is the protostar's own. Nothing frees the
+ * struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
     pico8_vec_t *ng;
@@ -116,11 +116,11 @@ typedef struct {
 
 /* A particle burst: a bare planet, then ga's own defaults and `qy`, which
  * its own `pq` (`f_`) writes. A default of ga whose name is a member of
- * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu`, `kq`,
- * `by` and `k_` hold the very tables of ga's spec, borrowed: `by` is the
- * one list every burst shares, which `ib` extends in place. A burst spawned
- * by `pm:pq` holds that call's `k_` instead. Nothing frees the struct:
- * TROU-7. */
+ * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu` and `k_`
+ * point at ga's generated data; `kq` and `by` are its spec's very values,
+ * borrowed: `by` is the one list every burst shares, which `ib` extends in
+ * place. A burst spawned by `pm:pq` points `k_` at pico8_pm_ga_k__seq
+ * instead. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
     const char *fz;
@@ -129,7 +129,7 @@ typedef struct {
     pico8_fixed_t ro;
     pico8_fixed_t qg;
     pico8_fixed_t q_;
-    pico8_ob_table_t *k_;
+    const pico8_int_seq_t *k_;
     pico8_fixed_t iu;
     pico8_fixed_t py;
     pico8_fixed_t ms;

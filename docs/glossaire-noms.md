@@ -31,7 +31,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `he(e)` | `pico8_he` | retire une entité de `hv`/`cv`/`cg` |
 | `ci` | `pico8_ci_table` (`pico8_game_data.h`) | facteur de mélange de palette par couche, lu par la branche `kj` de `dc` |
 | `jl()` | `pico8_jl` | (re)construit les singletons du jeu : `mo=qb()`, `je=nf()`, `ok=ui()` |
-| `nu` | champ `"nu"` | étiquettes d'une classe, ce par quoi `cg` l'indexe |
+| `nu` | champ `"nu"` ; dans l'arbre `jo`, `const pico8_str_seq_t *nu` → `pico8_X_nu_tags` (`pico8_game_data.h`) | étiquettes d'une classe, ce par quoi `cg` l'indexe |
 
 ## Mémoire cart et données encodées
 
@@ -116,7 +116,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `df` | `pico8_df_table` (typée), `pico8_df()` (vue ob) | catalogue des types de planète, tiré au sort par `bw()` |
+| `df` | `pico8_df_table`, `pico8_df_lookup(px)` (`df[px]`) | catalogue des types de planète, tiré au sort par `bw()` |
 | `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
 | `fd` | `pico8_fd_table` ; vue ob `pico8_fd` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; la vue est la table ob que `build_gb` reçoit |
 | `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
@@ -227,7 +227,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jy` | besoins de la planète, une liste de `{qe=ressource}` |
 | `cc` | routes commerciales arrivant sur la planète |
 | `by` | routes partant de la planète (résultat de `jo:ib()`) |
-| `kw` | production : `{qe=ressource, mu=quantité}`. `mu` est aussi le dénominateur du « 0/2 » affiché : la capacité en routes d'export |
+| `kw` | production : `{qe=ressource, mu=quantité}` (`pico8_kw_t`, `jo.kw`). `mu` est aussi le dénominateur du « 0/2 » affiché : la capacité en routes d'export |
 | `hf` | la planète est un hub |
 | `hs` | multiplicateur de revenu commercial ; 1 par défaut, 0,5 sur une planète colonisée |
 | `jh` | bonus de production ajouté à `kw.mu`, posé une seule fois par `jo:cn` |
@@ -355,9 +355,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jo:ib()` | `pico8_jo_ib` | reconstruit la liste des routes commerciales acceptées |
 | `jo.ex(…)` | `pico8_jo_ex` | fonction **statique**, pas une méthode : construit une rangée d'icônes de ressources |
 | `jo.oc`, `jo.ir` | `pico8_jo_set_oc/_ir` | générateurs partagés par toute la classe, posés une fois par `bw()` |
-| `nk` | champ | aléa courant de la planète |
+| `nk` | `const pico8_df_entry_t *nk` | aléa courant de la planète : une entrée de `df` |
 | `oe` | champ | slipways branchés sur la planète |
-| `px` | champ | nom affiché |
+| `px` | champ ; dans l'arbre `jo`, `const pico8_jb_row_t *px` → `pico8_X_px_row` | nom affiché |
 | `rr` | champ | technologie requise pour débloquer cette classe de planète |
 
 ### Les sous-classes de planète
@@ -413,7 +413,10 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
 | `lq` | `pico8_lq_t` | une rangée d'icônes mise en page |
 | `jb` | `pico8_jb_t` | une bulle d'info |
-| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz` : une rangée de chaînes, de nombres, de faux (`is_false`) et de rangées, avec son `c` éventuel |
+| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, et `px`, `dz`, `em` de l'arbre `jo` : une rangée de chaînes, de nombres, de faux (`is_false`) et de rangées, avec son `c` éventuel |
+| — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`) |
+| — | `pico8_int_seq_t`, `pico8_str_seq_t` | séquence d'entiers, liste d'étiquettes, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
+| — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
 | `js` | `pico8_js_t` | un bouton cliquable |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
@@ -513,12 +516,13 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `kk` | rampe de 9 couleurs indexée par le rayon relatif (voir TROU-12) |
 | `qy` | liste de particules vivantes |
 | `pn`, `pk`, `du`, `py`, `ki` | forme d'une particule : tranches angulaires, rotation d'un quart de tour, rayon de base, facteur de vélocité, durée de vie |
-| `k_` | palette de la traînée de particules |
+| `k_` | palette de la traînée de particules (arbre `jo` : `pico8_X_k__seq` ; celle que `pm:pq` passe à son `ga` : `pico8_pm_ga_k__seq`) |
 | `l` (sur `iv`) | avancement du fondu, 0 → 5 ; sert d'indice de bloc de palette et déclenche `p_` à 5 |
 | `qw` | index de bloc de palette du sprite ; posé par `nl`, absent = 0 |
 | `s` | identifiant de sprite |
-| `ka` | couleur de l'anneau d'une planète colonisée, indexée par `mi` |
-| `dz` | les quatre tuples d'état `unhappy`/`content`/`prosperous`/`rich`, indexés par `mi` |
+| `ka` | couleur de l'anneau d'une planète colonisée, indexée par `mi` (`pico8_jo_ka_seq`) |
+| `dz` | les quatre tuples d'état `unhappy`/`content`/`prosperous`/`rich`, indexés par `mi` (`pico8_jo_dz_rows`) |
+| `em` | l'élément que `jo.ex` ajoute en fin de rangée (`pico8_jo_em_row` : faux, 3, 0, -1) |
 | `ng` | décalage de position du `ga` engendré par `pm` |
 
 ### Boîtes, rangées, mise en page
@@ -542,10 +546,10 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | Nom | Sens |
 |---|---|
 | `gc` | combien de routes arrivées satisfont déjà ce besoin ; posé par `dh`, absent = 0 |
-| `cq` | les quatre ressources qu'une planète « makes: » au lieu d'« exports: » |
-| `ba` | ressources qu'une sous-classe accepte, lues par `jo:cn` |
-| `ht` | ressources qu'un `mx` sait synthétiser |
-| `hz` | sprite choisi selon le nombre de connexions (`nr`, `fr`) |
+| `cq` | les quatre ressources qu'une planète « makes: » au lieu d'« exports: » (`pico8_jo_cq_seq`) |
+| `ba` | ressources qu'une sous-classe accepte, lues par `jo:cn` (`pico8_qh_ba_seq`, `pico8_nl_ba_seq`) |
+| `ht` | ressources qu'un `mx` sait synthétiser (`pico8_mx_ht_seq`, puis une séquence vide une fois une ressource acceptée) |
+| `hz` | sprite choisi selon le nombre de connexions (`nr`, `fr` : `pico8_nr_hz_seq`, `pico8_fr_hz_seq`) |
 | `oy` | contenu de l'infobulle d'une technologie |
 | `e_` | « finançable », posé par `cb()` ; toujours un booléen |
 | `lv` | ère d'une technologie, comparée à `fm.ew` |

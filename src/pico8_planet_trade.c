@@ -22,24 +22,6 @@ static int pico8_jo_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* The returned list is by value and borrows its values: the caller frees
- * it with pico8_list_free. */
-static pico8_list_t positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
-
 /* Membership by trade equality (same endpoints), not pico8_gu's pointer
  * identity: every candidate offered here is a freshly built route, which
  * identity would never match. NULL-safe on `list`. */
@@ -190,17 +172,12 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
         if (have_qe && have_r_q && pico8_value_equal(qe_val, r_q)) {
             pico8_value_t ba_val;
-            const pico8_ob_table_t *ba_table = NULL;
             int accepted = 0;
 
             if (pico8_entity_get_field(self, "ba", &ba_val) && ba_val.kind == PICO8_VALUE_REF &&
                 ba_val.as.ref != NULL) {
-                ba_table = (const pico8_ob_table_t *)ba_val.as.ref;
-            }
-            if (ba_table != NULL) {
-                pico8_list_t ba_list = positional_values(ba_table);
-                accepted = pico8_gu(&ba_list, t_qe);
-                pico8_list_free(&ba_list);
+                accepted = t_qe.kind == PICO8_VALUE_FIXED &&
+                           pico8_int_seq_has_fixed((const pico8_int_seq_t *)ba_val.as.ref, t_qe.as.fixed);
             }
             if (accepted) {
                 pico8_ob_table_set_name(i_table, "qe", t_qe);
@@ -239,15 +216,10 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
     }
 
     if (self->kw != NULL) {
-        const pico8_ob_table_t *kw = self->kw;
-        pico8_value_t mu_val;
-
-        if (!pico8_ob_table_get_name(kw, "qe", &qe)) {
-            qe = pico8_value_ref(NULL);
+        if (self->kw->has_qe) {
+            qe = pico8_value_fixed(self->kw->qe);
         }
-        if (pico8_ob_table_get_name(kw, "mu", &mu_val) && mu_val.kind == PICO8_VALUE_FIXED) {
-            mu = mu_val.as.fixed;
-        }
+        mu = self->kw->mu;
     }
 
     oe = self->oe;

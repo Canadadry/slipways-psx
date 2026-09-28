@@ -33,6 +33,7 @@
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
+#include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_struct.h"
@@ -44,7 +45,7 @@
 
 #define BUILT_HASH 0xEA365129u
 #define LIFE_HASH 0x85D7319Eu
-#define GA_MEMBERS_HASH 0x9DE58769u
+#define GA_MEMBERS_HASH 0xF15FD5ADu
 #define BURST_FRAMES 86
 
 static pico8_mem_t mem;
@@ -62,7 +63,15 @@ static const char *const absent_methods[] = {"ol", "ph", "ev", "md", "hq", "ey",
 static const char *const not_ga[] = {"hp", "jy", "kr", "qu", "ht", "et", "ng", "du"};
 static const char *const tags[] = {"jo", "np", "prober", "hj", "qh"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-static const char *const jo_tables[] = {"kw", "em", "ka", "dz", "cq", "gq"};
+static const char *const jo_tables[] = {"gq"};
+
+/* A table member of the jo tree and the generated data it points at. */
+typedef struct {
+    const char *name;
+    const void *data;
+} member_data_t;
+static const member_data_t jo_data[] = {{"kw", NULL},
+    {"em", &pico8_jo_em_row}, {"ka", &pico8_jo_ka_seq}, {"dz", pico8_jo_dz_rows}, {"cq", &pico8_jo_cq_seq}};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -185,6 +194,12 @@ static int size_of(const void *e, const char *name) {
         return -1;
     }
     assert(v.kind == PICO8_VALUE_REF);
+    if (strcmp(name, "k_") == 0) {
+        return ((const pico8_int_seq_t *)v.as.ref)->count;
+    }
+    if (strcmp(name, "nu") == 0) {
+        return ((const pico8_str_seq_t *)v.as.ref)->count;
+    }
     if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {
         return ((const pico8_list_t *)v.as.ref)->count;
     }
@@ -364,18 +379,21 @@ static uint32_t fold_burst(uint32_t h, const void *e, int from_pm) {
     for (i = 0; i < sizeof absent_methods / sizeof absent_methods[0]; i++) {
         assert(!has(e, absent_methods[i]));
     }
-    assert(get_ref(e, "nu") == class_ref(pico8_ga_default, "nu"));
+    assert(get_ref(e, "nu") == &pico8_ga_nu_tags);
     assert(get_ref(e, "kq") == class_ref(pico8_ga_default, "kq"));
     assert(get_ref(e, "by") == class_ref(pico8_ga_default, "by"));
     assert(pico8_type_tag_of(get_ref(e, "by")) == PICO8_TYPE_TAG_LIST);
     if (from_pm) {
-        assert(get_ref(e, "k_") != class_ref(pico8_ga_default, "k_"));
-        assert(get_ref(e, "k_") != class_ref(pico8_pm_default, "k_"));
+        assert(get_ref(e, "k_") != &pico8_ga_k__seq);
+        assert(get_ref(e, "k_") != &pico8_pm_k__seq);
     } else {
-        assert(get_ref(e, "k_") == class_ref(pico8_ga_default, "k_"));
+        assert(get_ref(e, "k_") == &pico8_ga_k__seq);
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
         assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
+    }
+    for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
+        assert(get_ref(e, jo_data[i].name) == (jo_data[i].data != NULL ? jo_data[i].data : pico8_jo_shared_kw()));
     }
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -487,7 +505,7 @@ static void test_life(void) {
     void *c;
     void *pm;
     pico8_list_t *by;
-    pico8_ob_table_t *kw;
+    static pico8_kw_t kw;
     uint32_t row;
     int hv_count;
     int i;
@@ -529,10 +547,10 @@ static void test_life(void) {
     (void)call(a, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     h = fold_field(h, a, "lq");
     assert(!has(a, "lq"));
-    kw = pico8_ob_table_new();
-    pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(2)));
-    pico8_ob_table_set_name(kw, "qe", pico8_value_fixed(pico8_fixed_from_int(12)));
-    pico8_entity_set_field(a, "kw", pico8_value_ref(kw));
+    kw.has_qe = 1;
+    kw.qe = pico8_fixed_from_int(12);
+    kw.mu = pico8_fixed_from_int(2);
+    pico8_entity_set_field(a, "kw", pico8_value_ref(&kw));
     (void)call(a, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     row = fold_lq(2166136261u, a);
     h = fnv(h, row);
@@ -677,7 +695,8 @@ static void test_ga_is_a_struct(void) {
     for (i = 0; i < sizeof on_jo / sizeof on_jo[0]; i++) {
         pico8_value_t through_jo;
         assert(jo->field(roads[0], on_jo[i], &through_jo));
-        assert(pico8_value_equal(through_jo, class_value(pico8_ga_default, on_jo[i])));
+        assert(pico8_value_equal(through_jo, strcmp(on_jo[i], "nu") == 0 ? pico8_value_ref((void *)&pico8_ga_nu_tags)
+                                                                   : class_value(pico8_ga_default, on_jo[i])));
     }
     assert(!jo->field(roads[0], "ms", &v) && cls->field(roads[0], "ms", &v));
     assert(pico8_ga_ready());
@@ -744,7 +763,18 @@ static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
     if (!read_both(e, name, &v)) {
         return fnv(h, 0u);
     }
-    h = fold_value(fnv(h, 1u), v);
+    if (strcmp(name, "k_") == 0) {
+        /* A pico8_int_seq_t has no tag to fold: its items stand in. */
+        const pico8_int_seq_t *seq = v.as.ref;
+        int j;
+
+        h = fnv(h, 1u);
+        for (j = 0; j < seq->count; j++) {
+            h = fnv(h, (uint32_t)seq->items[j]);
+        }
+    } else {
+        h = fold_value(fnv(h, 1u), v);
+    }
     if (v.kind == PICO8_VALUE_REF) {
         h = fnv(h, (uint32_t)size_of(e, name));
     }
@@ -783,7 +813,8 @@ static void test_ga_members_by_name(void) {
     void *jo;
     void *own_qy;
     pico8_list_t *fresh;
-    pico8_ob_table_t *k_;
+    static const int k_items[] = {5, 6};
+    static const pico8_int_seq_t k_ = {2, k_items};
     pico8_ob_table_t *b;
     pico8_value_t v;
     size_t i;
@@ -799,9 +830,10 @@ static void test_ga_members_by_name(void) {
         }
         assert_spec_defaults(roads[r]);
     }
-    assert(read_ref(roads[0], "k_") == class_ref(pico8_ga_default, "k_"));
-    assert(read_ref(roads[2], "k_") == class_ref(pico8_ga_default, "k_"));
-    assert(read_ref(roads[1], "k_") != class_ref(pico8_ga_default, "k_") && size_of(roads[1], "k_") == 13);
+    assert(read_ref(roads[0], "k_") == &pico8_ga_k__seq);
+    assert(read_ref(roads[2], "k_") == &pico8_ga_k__seq);
+    assert(read_ref(roads[1], "k_") != &pico8_ga_k__seq && size_of(roads[1], "k_") == 13);
+    assert(read_ref(roads[1], "k_") == &pico8_pm_ga_k__seq);
     assert(read_ref(roads[0], "qy") != read_ref(roads[1], "qy") &&
            read_ref(roads[1], "qy") != read_ref(roads[2], "qy") &&
            read_ref(roads[0], "qy") != read_ref(roads[2], "qy"));
@@ -810,15 +842,12 @@ static void test_ga_members_by_name(void) {
     for (i = 0; i < sizeof keyed / sizeof keyed[0]; i++) {
         pico8_ob_table_set_name(b, keyed_names[i], pico8_value_fixed(pico8_fixed_from_int(keyed[i])));
     }
-    k_ = pico8_ob_table_new();
-    pico8_ob_table_set_index(k_, 1, pico8_value_fixed(pico8_fixed_from_int(5)));
-    pico8_ob_table_set_index(k_, 2, pico8_value_fixed(pico8_fixed_from_int(6)));
-    pico8_ob_table_set_name(b, "k_", pico8_value_ref(k_));
+    pico8_ob_table_set_name(b, "k_", pico8_value_ref((void *)&k_));
     keyed_ga = pico8_ga_new(b);
     for (i = 0; i < sizeof keyed / sizeof keyed[0]; i++) {
         assert(read_fixed(keyed_ga, keyed_names[i]) == pico8_fixed_from_int(keyed[i]));
     }
-    assert(read_ref(keyed_ga, "k_") == k_);
+    assert(read_ref(keyed_ga, "k_") == &k_);
     assert_spec_defaults(keyed_ga);
     for (i = 0; i < sizeof ga_own / sizeof ga_own[0]; i++) {
         h = fold_member(h, keyed_ga, ga_own[i]);

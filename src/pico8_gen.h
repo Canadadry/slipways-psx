@@ -36,9 +36,9 @@ typedef struct {
     void *r_ctx;
 } pico8_gn_state_t;
 
-/* `hr`'s entries must be PICO8_VALUE_REF-wrapped pico8_ob_table_t records,
- * never class instances: `.r` is read with pico8_ob_table_get_name. `hr`
- * itself is copied out, not retained. The state is the caller's, to
+/* `hr`'s entries must be PICO8_VALUE_REF-wrapped pico8_df_entry_t
+ * (pico8_game_data.h), whose `r` is the weight. `hr` itself is copied out,
+ * not retained. The state is the caller's, to
  * release with pico8_gn_free -- which frees the ticket pool but never
  * `r_ctx`, left to whoever built it. pico8_gn_next hands back `hr`'s own
  * value, undecoded. */

@@ -19,20 +19,20 @@ void pico8_planet_family_trade_shutdown(void);
 
 /* A slipgate: a laboratory, then nr's own defaults `hz` and `rr`, which no
  * ancestor has a member for. A default of nr whose name is a member of `qh`
- * or `jo` (`nu`, `kq`, `od`, `fp`, `s`, `dw`) lives in that member. `nu`,
- * `kq` and `hz` hold the very tables of nr's spec, `px` and `ba` those of
- * qh's, borrowed. Nothing frees the struct: TROU-7. */
+ * or `jo` (`nu`, `kq`, `od`, `fp`, `s`, `dw`) lives in that member. `nu`
+ * and `hz` point at nr's generated data, `px` and `ba` at qh's; `kq` is its
+ * spec's very box, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    pico8_ob_table_t *hz;
+    const pico8_int_seq_t *hz;
     const char *rr;
 } pico8_nr_t;
 
 /* An infraspace gate: a slipgate, then fr's own default `mt`, which no
  * ancestor has a member for. A default of fr whose name is a member of `nr`
- * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` holds the very
- * table of fr's spec, `nu` and `kq` those of nr's, `px` and `ba` those of
- * qh's, borrowed. Nothing frees the struct: TROU-7. */
+ * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` points at fr's
+ * generated data, `nu` at nr's, `px` and `ba` at qh's; `kq` is nr's spec's
+ * very box, borrowed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_nr_t nr;
     pico8_fixed_t mt;
@@ -41,12 +41,12 @@ typedef struct {
 /* A synthesizer: an ascension, then mx's own default `ht`, which no
  * ancestor has a member for. A default of mx whose name is a member of
  * `hj`, `qh` or `jo` (`nu`, `rr`, `hp`, `s`, `px`, `od` and the 11 emitter
- * defaults) lives in that member. `nu`, `px`, `ht` and `k_` hold the very
- * tables of mx's spec, `ba` the one of qh's, borrowed; `mx:kf` swaps `ht`
- * for a fresh table it never frees. Nothing frees the struct: TROU-7. */
+ * defaults) lives in that member. `nu`, `px`, `ht` and `k_` point at mx's
+ * generated data, `ba` at qh's; `mx:kf` points `ht` at an empty sequence
+ * once it accepts a resource. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
-    pico8_ob_table_t *ht;
+    const pico8_int_seq_t *ht;
 } pico8_mx_t;
 
 /* As in pico8_planet_family.h: `_ready` from

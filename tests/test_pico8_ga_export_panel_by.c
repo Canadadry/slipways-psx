@@ -95,7 +95,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
     pico8_ga_t *planet;
-    pico8_ob_table_t *kw;
+    static pico8_kw_t kw;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
     pico8_list_t *by;
@@ -110,12 +110,12 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     planet = pico8_ga_new(NULL);
     assert(planet != NULL);
 
-    /* "x" is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
+    /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the "exports:" row, not the "makes:" one. */
-    kw = pico8_ob_table_new();
-    pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(2)));
-    pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    planet->jo.kw = kw;
+    kw.has_qe = 1;
+    kw.qe = pico8_fixed_from_int(99);
+    kw.mu = pico8_fixed_from_int(2);
+    planet->jo.kw = &kw;
 
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));

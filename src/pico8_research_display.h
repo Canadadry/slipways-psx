@@ -24,8 +24,7 @@ pico8_ob_table_t *pico8_hp_jb(const pico8_hp_t *self);
 /* TROU-7 */
 /* A static function of `jo`, not a method: `jo.ex(...)`, never `jo:ex(...)`.
  * Returns a fresh row, or NULL when `o` is falsy -- which `jo:hb`
- * does reach, for a planet whose `kw` carries no `qe`. Reads `jo.em` through
- * pico8_jo_em(), so `jo`'s own init must have run. */
+ * does reach, for a planet whose `kw` carries no `qe`. */
 pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
                          pico8_fixed_t d);
 

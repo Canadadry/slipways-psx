@@ -56,7 +56,7 @@
 #define DEFAULTS_HASH 0x6DDA7FDEu
 #define FUNCTIONS_HASH 0x538CF904u
 #define FUNCTIONS_INVENTED_HASH 0xA64C8C0Fu
-#define INSTALL_HASH 0x3158A685u
+#define INSTALL_HASH 0xE9A9797Cu
 #define BUILT_WORLD_HASH 0xDF3A48A1u
 #define HARVESTED_WORLD_HASH 0xE7F2768Cu
 #define RAW_PRESENCE_HASH 0x6AC3DFD6u
@@ -84,17 +84,6 @@ static int rank_in(const pico8_list_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-/* The entry index in `t` whose value is the REF `e`, -1 when none is. */
-static int entry_of(const pico8_ob_table_t *t, const void *e) {
-    int i;
-    for (i = 0; t != NULL && i < t->count; i++) {
-        if (t->entries[i].value.kind == PICO8_VALUE_REF && t->entries[i].value.as.ref == e) {
             return i;
         }
     }
@@ -508,6 +497,20 @@ static void *project_with(const char *name, int nth) {
     return NULL;
 }
 
+/* `kw` by content: a pico8_kw_t has no tag to fold. */
+static uint32_t fold_kw(uint32_t h, const void *p) {
+    pico8_value_t kw;
+    const pico8_kw_t *k;
+
+    if (!lookup(p, "kw", &kw)) {
+        return fnv(h, 0xFFFFFFFFu);
+    }
+    k = kw.as.ref;
+    h = fnv(h, 1u);
+    h = k->has_qe ? fnv(fnv(h, 1u), (uint32_t)k->qe) : fnv(h, 0u);
+    return fnv(h, (uint32_t)k->mu);
+}
+
 static uint32_t fold_planet(uint32_t h, const void *p) {
     static const char *const names[] = {"ep", "jy", "kw", "me", "fx", "p_", "ma"};
     size_t n;
@@ -516,10 +519,11 @@ static uint32_t fold_planet(uint32_t h, const void *p) {
     h = fnv(h, (uint32_t)gb_rank(get_ref(p, "hn")));
     h = fnv(h, (uint32_t)has(p, "hn"));
     for (n = 0; n < sizeof names / sizeof names[0]; n++) {
-        h = fold_field(h, p, names[n]);
+        h = strcmp(names[n], "kw") == 0 ? fold_kw(h, p) : fold_field(h, p, names[n]);
     }
-    h = lookup(p, "nk", &nk) && nk.kind == PICO8_VALUE_REF ? fnv(h, (uint32_t)entry_of(pico8_df(), nk.as.ref))
-                                                            : fnv(h, 0xFFFFFFFFu);
+    h = lookup(p, "nk", &nk) && nk.kind == PICO8_VALUE_REF
+            ? fnv(h, (uint32_t)((const pico8_df_entry_t *)nk.as.ref - pico8_df_table))
+            : fnv(h, 0xFFFFFFFFu);
     return fnv(h, (uint32_t)rank_in(pico8_hv(), p));
 }
 

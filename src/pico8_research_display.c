@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_data_init.h"
 #include "pico8_entity.h"
 #include "pico8_layout.h"
 #include "pico8_map_tables.h"
@@ -247,11 +248,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t j
                 pico8_ob_table_set_index(l, idx++, pico8_value_ref(t4));
             }
 
-            if (pico8_jo_em() != NULL) {
-                pico8_ob_table_set_index(l, idx++, pico8_value_ref((void *)pico8_jo_em()));
-            } else {
-                pico8_ob_table_set_index(l, idx++, pico8_value_ref(NULL));
-            }
+            pico8_ob_table_set_index(l, idx++, pico8_value_ref(pico8_jb_row_view(pico8_jo_em())));
         }
     }
 
@@ -308,7 +305,6 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     pico8_bj_ctx_t *ctx = ctx_ptr;
     const pico8_hp_t *b;
     pico8_value_t nk_val;
-    pico8_value_t px_val;
     const char *px_str = NULL;
     int mg = 0;
 
@@ -323,10 +319,8 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     }
 
     if (ctx->jo_instance != NULL && pico8_entity_get_field(ctx->jo_instance, "nk", &nk_val) &&
-        nk_val.kind == PICO8_VALUE_REF && nk_val.as.ref != NULL &&
-        pico8_ob_table_get_name((const pico8_ob_table_t *)nk_val.as.ref, "px", &px_val) &&
-        px_val.kind == PICO8_VALUE_STRING) {
-        px_str = px_val.as.string;
+        nk_val.kind == PICO8_VALUE_REF && nk_val.as.ref != NULL) {
+        px_str = ((const pico8_df_entry_t *)nk_val.as.ref)->px;
     }
 
     if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' && b->lr != NULL) {

@@ -62,9 +62,18 @@ static const char *const own_methods[] = {"gv", "ldown", "hb", "cn"};
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb", "mm"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"nr", "np", "prober"};
-static const char *const nr_tables[] = {"nu", "kq", "hz"};
-static const char *const qh_tables[] = {"px", "ba"};
-static const char *const jo_tables[] = {"em", "ka", "dz", "cq", "gq"};
+static const char *const nr_tables[] = {"kq"};
+static const char *const jo_tables[] = {"gq"};
+
+/* A table member of the jo tree and the generated data it points at. */
+typedef struct {
+    const char *name;
+    const void *data;
+} member_data_t;
+static const member_data_t jo_data[] = {
+    {"em", &pico8_jo_em_row}, {"ka", &pico8_jo_ka_seq}, {"dz", pico8_jo_dz_rows}, {"cq", &pico8_jo_cq_seq}};
+static const member_data_t nr_data[] = {{"nu", &pico8_nr_nu_tags}, {"hz", &pico8_nr_hz_seq}};
+static const member_data_t qh_data[] = {{"px", &pico8_qh_px_row}, {"ba", &pico8_qh_ba_seq}};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -267,10 +276,10 @@ static int gate_kind(const void *e) {
     if (hz == NULL) {
         return -1;
     }
-    if (hz == class_ref(pico8_nr_default, "hz")) {
+    if (hz == &pico8_nr_hz_seq) {
         return NR;
     }
-    if (hz == class_ref(pico8_fr_default, "hz")) {
+    if (hz == &pico8_fr_hz_seq) {
         return FR;
     }
     return -1;
@@ -294,7 +303,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
         h = fold_field(h, e, scalars[i]);
     }
     h = fold_vec(h, e, "gq");
-    h = fnv(h, (uint32_t)((const pico8_ob_table_t *)get_ref(e, "hz"))->count);
+    h = fnv(h, (uint32_t)((const pico8_int_seq_t *)get_ref(e, "hz"))->count);
     for (i = 0; i < sizeof nr_members / sizeof nr_members[0]; i++) {
         h = fnv(h, (uint32_t)has(e, nr_members[i]));
     }
@@ -328,15 +337,21 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     for (i = 0; i < sizeof nr_tables / sizeof nr_tables[0]; i++) {
         assert(get_ref(e, nr_tables[i]) == class_ref(pico8_nr_default, nr_tables[i]));
     }
-    assert(get_ref(e, "nu") != class_ref(pico8_qh_default, "nu"));
+    for (i = 0; i < sizeof nr_data / sizeof nr_data[0]; i++) {
+        assert(get_ref(e, nr_data[i].name) == nr_data[i].data);
+    }
+    assert(get_ref(e, "nu") != &pico8_qh_nu_tags);
     assert(get_ref(e, "kq") != class_ref(pico8_jo_default, "kq"));
-    for (i = 0; i < sizeof qh_tables / sizeof qh_tables[0]; i++) {
-        assert(get_ref(e, qh_tables[i]) == class_ref(pico8_qh_default, qh_tables[i]));
+    for (i = 0; i < sizeof qh_data / sizeof qh_data[0]; i++) {
+        assert(get_ref(e, qh_data[i].name) == qh_data[i].data);
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
         assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
+    for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
+        assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
+    }
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
     assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb1) && gb1.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb1.as.ref);
     h = fnv(h, (uint32_t)list_size(e, "oe"));
@@ -597,7 +612,8 @@ static void test_nr_is_a_struct(void) {
         pico8_value_t through_qh;
         assert(cls->field(a, inherited[i], &own) && qh->field(a, inherited[i], &through_qh));
         assert(pico8_value_equal(own, through_qh) &&
-               pico8_value_equal(own, class_value(pico8_nr_default, inherited[i])));
+               pico8_value_equal(own, strcmp(inherited[i], "nu") == 0 ? pico8_value_ref((void *)&pico8_nr_nu_tags)
+                                                              : class_value(pico8_nr_default, inherited[i])));
     }
     assert(!qh->field(a, "hz", &v) && cls->field(a, "hz", &v) && !qh->field(a, "rr", &v) && cls->field(a, "rr", &v));
     assert(pico8_nr_ready() && pico8_fr_ready());

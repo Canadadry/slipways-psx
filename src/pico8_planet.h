@@ -2,6 +2,7 @@
 #define PICO8_PLANET_H
 
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_gen.h"
 #include "pico8_geom.h"
 #include "pico8_ke.h"
@@ -15,28 +16,29 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* A bare planet: jo's own defaults (`dz`, `cq`, `ka`, `em` and `kw` hold
- * the very tables of jo's spec, `kw` until `lz` replaces it: never written
- * through, save `kw` in place as the cart does), its construction keys
+/* A bare planet: jo's own defaults (`nu`, `ka`, `dz`, `cq` and `em` point
+ * at jo's generated data in pico8_game_data.h; `kw` points at the one kw
+ * every bare planet shares, written in place by `bb` and `mx:kf`, until `lz`
+ * points it at the planet's own `kw_own`), its construction keys
  * `id`/`p`/`ra`, then every field jo's functions and the generic writers
  * of `cg.jo` write on it. Every planet struct begins with one, so jo's
  * functions take it for `self`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_ob_table_t *nu;
+    const pico8_str_seq_t *nu;
     pico8_fixed_t hf;
     int hf_is_bool; /* 1: `hf` holds a boolean (0/1), 0: a fixed */
     pico8_fixed_t hs;
     pico8_fixed_t fa;
     pico8_qz_box_t *kq;
     pico8_fixed_t ma;
-    pico8_ob_table_t *ka;
-    pico8_ob_table_t *dz;
-    pico8_ob_table_t *cq;
-    pico8_ob_table_t *kw;
+    const pico8_int_seq_t *ka;
+    const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
+    const pico8_int_seq_t *cq;
+    pico8_kw_t *kw;
     pico8_vec_t *gq;
     pico8_fixed_t ca;
-    pico8_ob_table_t *em;
+    const pico8_jb_row_t *em;
     const char *id;
     pico8_vec_t *p;
     pico8_vec_t *ra;
@@ -44,7 +46,7 @@ typedef struct {
     pico8_hp_t *hn;
     const char *ep;
     pico8_list_t *jy;
-    pico8_ob_table_t *nk;
+    const pico8_df_entry_t *nk;
     int fx;
     int has_fx;
     pico8_lq_t *lq;
@@ -61,6 +63,7 @@ typedef struct {
     int has_mi;
     int m_;
     int has_m_;
+    pico8_kw_t kw_own; /* never a field by name */
 } pico8_jo_t;
 
 /* TROU-8 */
@@ -81,13 +84,16 @@ int pico8_jo_ready(void);
 int pico8_jo_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_jo_struct_class(void);
 
-/* `jo.dz`, `jo.cq`, `jo.ka`, `jo.em`: the table jo's spec holds,
- * borrowed. NULL before `pico8_jo_init()` and after
- * `pico8_jo_shutdown()`. */
-const pico8_ob_table_t *pico8_jo_dz(void);
-const pico8_ob_table_t *pico8_jo_cq(void);
-const pico8_ob_table_t *pico8_jo_ka(void);
-const pico8_ob_table_t *pico8_jo_em(void);
+/* `jo.dz` (PICO8_JO_DZ_COUNT rows), `jo.cq`, `jo.ka`, `jo.em`: jo's
+ * generated data, never NULL, init or not. */
+const pico8_jb_row_t *pico8_jo_dz(void);
+const pico8_int_seq_t *pico8_jo_cq(void);
+const pico8_int_seq_t *pico8_jo_ka(void);
+const pico8_jb_row_t *pico8_jo_em(void);
+
+/* The `kw` every bare planet points at; each `pico8_jo_init()` resets it to
+ * `{mu=0}`. */
+pico8_kw_t *pico8_jo_shared_kw(void);
 
 /* `overrides` (NULL means none) is read, not kept: `id`, `p` and `ra` only.
  * The new planet registers itself into `hv`/`cv`/`cg` through `lt`, and

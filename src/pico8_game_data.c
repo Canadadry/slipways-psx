@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 const int pico8_es_table[PICO8_ES_COUNT] = {1, 0, 1, 2};
 
@@ -128,6 +129,102 @@ const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT] = {
     {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_ra = 1, .ra_x = 64, .ra_y = 82},
 };
 
+static const char *const jo_nu_items[] = {"jo", "np", "prober"};
+const pico8_str_seq_t pico8_jo_nu_tags = {3, jo_nu_items};
+
+static const char *const qh_nu_items[] = {"qh", "jo", "np", "prober"};
+const pico8_str_seq_t pico8_qh_nu_tags = {4, qh_nu_items};
+
+static const char *const nl_nu_items[] = {"jo", "np", "prober"};
+const pico8_str_seq_t pico8_nl_nu_tags = {3, nl_nu_items};
+
+static const char *const os_nu_items[] = {"jo", "np", "prober"};
+const pico8_str_seq_t pico8_os_nu_tags = {3, os_nu_items};
+
+static const char *const hj_nu_items[] = {"hj", "jo", "np", "prober"};
+const pico8_str_seq_t pico8_hj_nu_tags = {4, hj_nu_items};
+
+static const char *const pm_nu_items[] = {"jo", "np", "prober"};
+const pico8_str_seq_t pico8_pm_nu_tags = {3, pm_nu_items};
+
+const pico8_str_seq_t pico8_ga_nu_tags = {0, NULL};
+
+static const char *const nr_nu_items[] = {"nr", "np", "prober"};
+const pico8_str_seq_t pico8_nr_nu_tags = {3, nr_nu_items};
+
+static const char *const mx_nu_items[] = {"jo", "np", "prober"};
+const pico8_str_seq_t pico8_mx_nu_tags = {3, mx_nu_items};
+
+static const int jo_ka_items[] = {2, 3, 9, 12};
+const pico8_int_seq_t pico8_jo_ka_seq = {4, jo_ka_items};
+
+static const pico8_jb_item_t jo_dz_1_items[] = {{.s = "unhappy"}};
+static const pico8_jb_item_t jo_dz_2_items[] = {{.s = "content"}};
+static const pico8_jb_item_t jo_dz_3_items[] = {{.s = "prosperous"}};
+static const pico8_jb_item_t jo_dz_4_items[] = {{.s = "rich"}};
+const pico8_jb_row_t pico8_jo_dz_rows[PICO8_JO_DZ_COUNT] = {
+    {.count = 1, .items = jo_dz_1_items, .has_c = 1, .c = 8},
+    {.count = 1, .items = jo_dz_2_items, .has_c = 1, .c = 3},
+    {.count = 1, .items = jo_dz_3_items, .has_c = 1, .c = 9},
+    {.count = 1, .items = jo_dz_4_items, .has_c = 1, .c = 12},
+};
+
+static const int jo_cq_items[] = {12, 36, 24, 25};
+const pico8_int_seq_t pico8_jo_cq_seq = {4, jo_cq_items};
+
+const pico8_kw_t pico8_jo_kw_start = {0, 0x0, 0x0};
+
+static const pico8_jb_item_t jo_em_items[] = {{.is_false = 1}, {.n = 3}, {.n = 0}, {.n = -1}};
+const pico8_jb_row_t pico8_jo_em_row = {.count = 4, .items = jo_em_items};
+
+static const pico8_jb_item_t qh_px_items[] = {{.s = "laboratory"}};
+const pico8_jb_row_t pico8_qh_px_row = {.count = 1, .items = qh_px_items, .has_c = 1, .c = 13};
+
+static const pico8_jb_item_t nl_px_items[] = {{.s = "trading hub"}};
+const pico8_jb_row_t pico8_nl_px_row = {.count = 1, .items = nl_px_items, .has_c = 1, .c = 13};
+
+static const pico8_jb_item_t os_px_items[] = {{.s = "processor"}};
+const pico8_jb_row_t pico8_os_px_row = {.count = 1, .items = os_px_items, .has_c = 1, .c = 13};
+
+static const pico8_jb_item_t hj_px_items[] = {{.s = "ascension nr"}};
+const pico8_jb_row_t pico8_hj_px_row = {.count = 1, .items = hj_px_items, .has_c = 1, .c = 13};
+
+static const pico8_jb_item_t pm_px_items[] = {{.s = "protostar"}};
+const pico8_jb_row_t pico8_pm_px_row = {.count = 1, .items = pm_px_items, .has_c = 1, .c = 13};
+
+static const pico8_jb_item_t mx_px_items[] = {{.s = "synthesizer"}};
+const pico8_jb_row_t pico8_mx_px_row = {.count = 1, .items = mx_px_items, .has_c = 1, .c = 13};
+
+static const int qh_ba_items[] = {28, 18, 20, 21, 22, 48};
+const pico8_int_seq_t pico8_qh_ba_seq = {6, qh_ba_items};
+
+static const int nl_ba_items[] = {28, 48, 18, 20, 21, 22};
+const pico8_int_seq_t pico8_nl_ba_seq = {6, nl_ba_items};
+
+static const int hj_k__items[] = {1, 13, 12, 12, 12, 13, 13, 5, 1, 1, 1};
+const pico8_int_seq_t pico8_hj_k__seq = {11, hj_k__items};
+
+static const int pm_k__items[] = {1, 2, 4, 9, 10, 7};
+const pico8_int_seq_t pico8_pm_k__seq = {6, pm_k__items};
+
+static const int mx_k__items[] = {1, 1, 5, 5, 3, 3, 3, 5, 5, 1};
+const pico8_int_seq_t pico8_mx_k__seq = {10, mx_k__items};
+
+static const int ga_k__items[] = {1, 2, 4, 9, 9, 10, 10, 7, 7, 7, 7, 7};
+const pico8_int_seq_t pico8_ga_k__seq = {12, ga_k__items};
+
+static const int pm_ga_k__items[] = {1, 2, 8, 14, 14, 14, 14, 8, 8, 2, 2, 1, 1};
+const pico8_int_seq_t pico8_pm_ga_k__seq = {13, pm_ga_k__items};
+
+static const int nr_hz_items[] = {170, 170, 170, 168};
+const pico8_int_seq_t pico8_nr_hz_seq = {4, nr_hz_items};
+
+static const int fr_hz_items[] = {78, 78, 78, 76};
+const pico8_int_seq_t pico8_fr_hz_seq = {4, fr_hz_items};
+
+static const int mx_ht_items[] = {28, 20, 21, 22};
+const pico8_int_seq_t pico8_mx_ht_seq = {4, mx_ht_items};
+
 int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {
@@ -144,6 +241,31 @@ int pico8_fixed_seq_at(const pico8_fixed_t *seq, int count, int i, pico8_fixed_t
     }
     *out = seq[i - 1];
     return 1;
+}
+
+int pico8_int_seq_has_fixed(const pico8_int_seq_t *seq, pico8_fixed_t v) {
+    int i;
+
+    for (i = 0; i < seq->count; i++) {
+        if (pico8_fixed_from_int(seq->items[i]) == v) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+const pico8_df_entry_t *pico8_df_lookup(const char *px) {
+    int i;
+
+    if (px == NULL) {
+        return NULL;
+    }
+    for (i = 0; i < PICO8_DF_COUNT; i++) {
+        if (strcmp(pico8_df_table[i].px, px) == 0) {
+            return &pico8_df_table[i];
+        }
+    }
+    return NULL;
 }
 
 pico8_fixed_t pico8_bn(void) {

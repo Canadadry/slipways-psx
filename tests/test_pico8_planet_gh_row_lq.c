@@ -99,7 +99,8 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_mem_t mem;
     pico8_gfx_t gfx;
     pico8_jo_t *planet;
-    pico8_ob_table_t *kw;
+    static pico8_kw_t kw;
+    pico8_value_t kw_field;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
     const pico8_list_t *le;
@@ -112,13 +113,13 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     planet = pico8_jo_new(NULL);
     assert(planet != NULL);
 
-    /* "x" is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
+    /* 99 is deliberately not one of `jo.cq`'s resources, so `jo:gh` takes
      * the else branch and builds the 4-item "exports:" row rather than the
      * 3-item "makes:" one. */
-    kw = pico8_ob_table_new();
-    pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(1)));
-    pico8_ob_table_set_name(kw, "qe", pico8_value_string("x"));
-    planet->kw = kw;
+    kw.has_qe = 1;
+    kw.qe = pico8_fixed_from_int(99);
+    kw.mu = pico8_fixed_from_int(1);
+    planet->kw = &kw;
 
     /* `jo:gh` reads these for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
@@ -146,13 +147,17 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(exports_lq != NULL);
 
     /* The four items the row holds, in order and at the right element
-     * stride: "exports:", "<#by>/<mu>", the `kw` table, and the `{false,1}`
+     * stride: "exports:", "<#by>/<mu>", a table of `kw`, and the `{false,1}`
      * tuple `jo:gh` appends to every row after the first. */
     assert(lq_index_is_string(exports_lq, 1, "exports:"));
     assert(lq_index_is_string(exports_lq, 2, "0/1"));
 
     assert(lq_item(exports_lq, 3, &entry));
-    assert(entry.kind == PICO8_VALUE_REF && entry.as.ref == (void *)kw);
+    assert(entry.kind == PICO8_VALUE_REF && pico8_type_tag_of(entry.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
+    assert(pico8_ob_table_get_name(entry.as.ref, "qe", &kw_field) && kw_field.kind == PICO8_VALUE_FIXED &&
+           kw_field.as.fixed == pico8_fixed_from_int(99));
+    assert(pico8_ob_table_get_name(entry.as.ref, "mu", &kw_field) && kw_field.kind == PICO8_VALUE_FIXED &&
+           kw_field.as.fixed == pico8_fixed_from_int(1));
 
     assert(lq_item(exports_lq, 4, &entry));
     assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);

@@ -30,10 +30,10 @@ static pico8_vec_t field_vec(const pico8_struct_header_t *inst, const char *name
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static const pico8_ob_table_t *field_ref_table(const pico8_struct_header_t *inst, const char *name) {
+static const pico8_kw_t *field_kw(const pico8_struct_header_t *inst) {
     pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_ob_table_t *)v.as.ref;
+    if (inst != NULL && pico8_entity_get_field(inst, "kw", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        return (const pico8_kw_t *)v.as.ref;
     }
     return NULL;
 }
@@ -97,22 +97,20 @@ pico8_ob_table_t *pico8_cm(pico8_fixed_t jm) {
 
 static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_ob_table_t *p = (pico8_ob_table_t *)ctx;
-    const pico8_ob_table_t *kw;
+    const pico8_kw_t *kw;
     pico8_value_t qe_val;
-    pico8_value_t mu_val;
     pico8_value_t current;
-    pico8_fixed_t mu = pico8_fixed_from_int(0);
+    pico8_fixed_t mu;
 
     if (!field_truthy(pt, "jy")) {
         return;
     }
-    kw = field_ref_table(pt, "kw");
-    if (kw == NULL || !pico8_ob_table_get_name(kw, "qe", &qe_val)) {
+    kw = field_kw(pt);
+    if (kw == NULL || !kw->has_qe) {
         return;
     }
-    if (pico8_ob_table_get_name(kw, "mu", &mu_val) && mu_val.kind == PICO8_VALUE_FIXED) {
-        mu = mu_val.as.fixed;
-    }
+    qe_val = pico8_value_fixed(kw->qe);
+    mu = kw->mu;
     if (!get_by_value(p, qe_val, &current) || current.kind != PICO8_VALUE_FIXED) {
         current = pico8_value_fixed(pico8_fixed_from_int(0));
     }

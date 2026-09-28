@@ -60,8 +60,19 @@ static const char *const inherited_methods[] = {"hd", "kj", "ldown", "hb", "gg",
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
-static const char *const nl_tables[] = {"nu", "px", "ba"};
-static const char *const jo_tables[] = {"kq", "em", "ka", "dz", "cq", "gq"};
+static const char *const jo_tables[] = {"kq", "gq"};
+
+/* A table member of the jo tree and the generated data it points at. */
+typedef struct {
+    const char *name;
+    const void *data;
+} member_data_t;
+static const member_data_t jo_data[] = {
+    {"em", &pico8_jo_em_row}, {"ka", &pico8_jo_ka_seq}, {"dz", pico8_jo_dz_rows}, {"cq", &pico8_jo_cq_seq}};
+static const member_data_t nl_data[] = {
+    {"nu", &pico8_nl_nu_tags}, {"px", &pico8_nl_px_row}, {"ba", &pico8_nl_ba_seq}};
+static const member_data_t qh_data[] = {
+    {"nu", &pico8_qh_nu_tags}, {"px", &pico8_qh_px_row}, {"ba", &pico8_qh_ba_seq}};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -191,14 +202,15 @@ static int list_size(const void *e, const char *name) {
 
 static uint32_t fold_kw(uint32_t h, const void *e) {
     pico8_value_t kw;
-    pico8_value_t v;
+    const pico8_kw_t *k;
     if (!lookup(e, "kw", &kw)) {
         return fnv(h, 0xA0u);
     }
-    assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    h = pico8_ob_table_get_name(kw.as.ref, "qe", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    h = pico8_ob_table_get_name(kw.as.ref, "mu", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    return fnv(h, (uint32_t)(kw.as.ref == class_ref(pico8_jo_default, "kw")));
+    assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
+    k = kw.as.ref;
+    h = k->has_qe ? fold_value(fnv(h, 1u), pico8_value_fixed(k->qe)) : fnv(h, 0u);
+    h = fold_value(fnv(h, 1u), pico8_value_fixed(k->mu));
+    return fnv(h, (uint32_t)(kw.as.ref == pico8_jo_shared_kw()));
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -299,14 +311,17 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
-    for (i = 0; i < sizeof nl_tables / sizeof nl_tables[0]; i++) {
-        assert(get_ref(e, nl_tables[i]) == class_ref(pico8_nl_default, nl_tables[i]));
-        assert(get_ref(e, nl_tables[i]) != class_ref(pico8_qh_default, nl_tables[i]));
+    for (i = 0; i < sizeof nl_data / sizeof nl_data[0]; i++) {
+        assert(get_ref(e, nl_data[i].name) == nl_data[i].data);
+        assert(get_ref(e, qh_data[i].name) != qh_data[i].data);
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
         assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
+    for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
+        assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
+    }
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
     assert(pico8_ob_table_get_index(pico8_gb(), 6, &gb6) && gb6.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb6.as.ref);
     h = fold_kw(h, e);

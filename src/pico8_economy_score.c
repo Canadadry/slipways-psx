@@ -15,13 +15,6 @@ static int economy_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
 }
 
-static int economy_value_equal_content(pico8_value_t a, pico8_value_t b) {
-    if (a.kind == PICO8_VALUE_STRING && b.kind == PICO8_VALUE_STRING) {
-        return strcmp(a.as.string, b.as.string) == 0;
-    }
-    return pico8_value_equal(a, b);
-}
-
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
@@ -187,20 +180,18 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     }
 
     {
-        const pico8_ob_table_t *kw = field_ref_table(pt, "kw");
+        pico8_value_t kw_val;
+        const pico8_kw_t *kw = NULL;
+        if (pt != NULL && pico8_entity_get_field(pt, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF) {
+            kw = kw_val.as.ref;
+        }
         if (kw != NULL) {
-            pico8_value_t qe_val;
             int w;
             /* TROU-3 */
-            if (pico8_ob_table_get_name(kw, "qe", &qe_val) && pico8_r_lookup("w", &w) &&
-                economy_value_equal_content(qe_val, pico8_value_fixed(pico8_fixed_from_int(w)))) {
-                pico8_fixed_t mu = pico8_fixed_from_int(0);
-                pico8_value_t mu_val;
+            if (kw->has_qe && pico8_r_lookup("w", &w) && kw->qe == pico8_fixed_from_int(w)) {
+                pico8_fixed_t mu = kw->mu;
                 pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
                 pico8_value_t trade_val;
-                if (pico8_ob_table_get_name(kw, "mu", &mu_val) && mu_val.kind == PICO8_VALUE_FIXED) {
-                    mu = mu_val.as.fixed;
-                }
                 if (dk != NULL && pico8_entity_get_field(dk, "trade", &trade_val) &&
                     trade_val.kind == PICO8_VALUE_FIXED) {
                     trade_mult = trade_val.as.fixed;

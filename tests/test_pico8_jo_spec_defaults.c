@@ -13,6 +13,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -214,6 +215,146 @@ static int same_value(pico8_value_t a, pico8_value_t b) {
     }
 }
 
+/* The generated data module `m` sets for the table member `name`
+ * (pico8_game_data.h); NULL when `m` sets none. */
+static const void *generated(int m, const char *name) {
+    static const struct {
+        int m;
+        const char *name;
+        const void *data;
+    } table[] = {
+        {M_JO, "nu", &pico8_jo_nu_tags}, {M_QH, "nu", &pico8_qh_nu_tags}, {M_NL, "nu", &pico8_nl_nu_tags},
+        {M_OS, "nu", &pico8_os_nu_tags}, {M_HJ, "nu", &pico8_hj_nu_tags}, {M_PM, "nu", &pico8_pm_nu_tags},
+        {M_GA, "nu", &pico8_ga_nu_tags}, {M_NR, "nu", &pico8_nr_nu_tags}, {M_MX, "nu", &pico8_mx_nu_tags},
+        {M_JO, "ka", &pico8_jo_ka_seq},  {M_JO, "dz", pico8_jo_dz_rows},   {M_JO, "cq", &pico8_jo_cq_seq},
+        {M_JO, "em", &pico8_jo_em_row},  {M_QH, "px", &pico8_qh_px_row},  {M_NL, "px", &pico8_nl_px_row},
+        {M_OS, "px", &pico8_os_px_row},  {M_HJ, "px", &pico8_hj_px_row},  {M_PM, "px", &pico8_pm_px_row},
+        {M_MX, "px", &pico8_mx_px_row},  {M_QH, "ba", &pico8_qh_ba_seq},  {M_NL, "ba", &pico8_nl_ba_seq},
+        {M_HJ, "k_", &pico8_hj_k__seq},  {M_PM, "k_", &pico8_pm_k__seq},  {M_MX, "k_", &pico8_mx_k__seq},
+        {M_GA, "k_", &pico8_ga_k__seq},  {M_NR, "hz", &pico8_nr_hz_seq},  {M_FR, "hz", &pico8_fr_hz_seq},
+        {M_MX, "ht", &pico8_mx_ht_seq},
+    };
+    size_t k;
+
+    if (m == M_JO && strcmp(name, "kw") == 0) {
+        return pico8_jo_shared_kw();
+    }
+    for (k = 0; k < sizeof table / sizeof table[0]; k++) {
+        if (table[k].m == m && strcmp(table[k].name, name) == 0) {
+            return table[k].data;
+        }
+    }
+    return NULL;
+}
+
+/* The module whose own spec holds the value module `i` serves as `name`. */
+static int answering(int i, const char *name, pico8_value_t v) {
+    pico8_value_t up;
+
+    while (PARENT[i] >= 0 && spec_field(PARENT[i], name, &up) && same_value(up, v)) {
+        i = PARENT[i];
+    }
+    return i;
+}
+
+static int positional_ints_equal(const pico8_ob_table_t *t, const int *items, int count) {
+    int j;
+
+    if (t->count != count) {
+        return 0;
+    }
+    for (j = 0; j < count; j++) {
+        if (t->entries[j].key.kind != PICO8_OB_KEY_INDEX || t->entries[j].value.kind != PICO8_VALUE_FIXED ||
+            t->entries[j].value.as.fixed != pico8_fixed_from_int(items[j])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* Scalars only: every row of the jo tree holds strings, numbers or false. */
+static int tables_equal(const pico8_ob_table_t *a, const pico8_ob_table_t *b) {
+    int j;
+
+    if (a->count != b->count) {
+        return 0;
+    }
+    for (j = 0; j < a->count; j++) {
+        const pico8_ob_entry_t *x = &a->entries[j];
+        const pico8_ob_entry_t *y = &b->entries[j];
+
+        if (x->key.kind != y->key.kind || (x->key.kind == PICO8_OB_KEY_INDEX && x->key.index != y->key.index) ||
+            (x->key.kind == PICO8_OB_KEY_NAME && strcmp(x->key.name, y->key.name) != 0) ||
+            x->value.kind != y->value.kind) {
+            return 0;
+        }
+        if ((x->value.kind == PICO8_VALUE_FIXED && x->value.as.fixed != y->value.as.fixed) ||
+            (x->value.kind == PICO8_VALUE_BOOL && x->value.as.boolean != y->value.as.boolean) ||
+            (x->value.kind == PICO8_VALUE_STRING && strcmp(x->value.as.string, y->value.as.string) != 0) ||
+            x->value.kind == PICO8_VALUE_REF) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int row_equal(const pico8_ob_table_t *t, const pico8_jb_row_t *row) {
+    pico8_ob_table_t *view = pico8_jb_row_view(row);
+    int equal = tables_equal(t, view);
+
+    pico8_ob_table_free(view);
+    return equal;
+}
+
+/* Asserts that the generated `data` holds what the spec table `t` holds. */
+static void assert_same_content(const char *name, const pico8_ob_table_t *t, const void *data) {
+    int j;
+
+    if (strcmp(name, "nu") == 0) {
+        const pico8_str_seq_t *tags = data;
+        assert(t->count == tags->count);
+        for (j = 0; j < tags->count; j++) {
+            assert(t->entries[j].value.kind == PICO8_VALUE_STRING &&
+                   strcmp(t->entries[j].value.as.string, tags->items[j]) == 0);
+        }
+    } else if (strcmp(name, "px") == 0 || strcmp(name, "em") == 0) {
+        assert(row_equal(t, data));
+    } else if (strcmp(name, "dz") == 0) {
+        assert(t->count == PICO8_JO_DZ_COUNT);
+        for (j = 0; j < PICO8_JO_DZ_COUNT; j++) {
+            assert(t->entries[j].value.kind == PICO8_VALUE_REF &&
+                   row_equal(t->entries[j].value.as.ref, &((const pico8_jb_row_t *)data)[j]));
+        }
+    } else if (strcmp(name, "kw") == 0) {
+        const pico8_kw_t *kw = data;
+        pico8_value_t mu;
+        assert(t->count == 1 && pico8_ob_table_get_name(t, "mu", &mu) && !kw->has_qe && mu.as.fixed == kw->mu);
+    } else {
+        const pico8_int_seq_t *seq = data;
+        assert(positional_ints_equal(t, seq->items, seq->count));
+    }
+}
+
+/* same_value(), plus the converted table members: a spec table and a
+ * struct's untagged REF are the same default when that REF is the data
+ * generated from the spec that answered; their content must then agree. */
+static int same_default(int i, const char *name, pico8_value_t from_spec, pico8_value_t from_struct) {
+    const void *data;
+
+    if (from_spec.kind != PICO8_VALUE_REF || from_struct.kind != PICO8_VALUE_REF || from_spec.as.ref == NULL ||
+        from_struct.as.ref == NULL || pico8_type_tag_of(from_spec.as.ref) != PICO8_TYPE_TAG_OB_TABLE ||
+        pico8_type_tag_of(from_struct.as.ref) != PICO8_TYPE_TAG_UNKNOWN) {
+        return same_value(from_spec, from_struct);
+    }
+    data = generated(answering(i, name, from_spec), name);
+    assert(data != NULL && "an untagged struct member stands for a generated table");
+    if (from_struct.as.ref != data) {
+        return 0;
+    }
+    assert_same_content(name, from_spec.as.ref, data);
+    return 1;
+}
+
 static void check(const char *label, uint32_t got, uint32_t want) {
     printf("[%s] 0x%08Xu\n", label, (unsigned)got);
     fflush(stdout);
@@ -295,7 +436,7 @@ static void test_struct_defaults(void) {
 
             h = fnv(h, (uint32_t)in_spec);
             h = fnv(h, (uint32_t)in_struct);
-            h = fnv(h, (uint32_t)(in_spec && in_struct && same_value(from_spec, from_struct)));
+            h = fnv(h, (uint32_t)(in_spec && in_struct && same_default(i, NAMES[n], from_spec, from_struct)));
         }
         h = fnv(h, (uint32_t)i);
     }

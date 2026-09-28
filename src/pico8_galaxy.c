@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_data_init.h"
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
+#include "pico8_game_data.h"
 #include "pico8_gen.h"
 #include "pico8_planet.h"
 #include "pico8_value.h"
@@ -28,24 +28,6 @@ static char *pico8_bw_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* Returns a new list the caller owns and must release with
- * pico8_list_free(); a NULL table yields an empty one. */
-static pico8_list_t pico8_bw_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
-
 /* Adapts pico8_jf_next to pico8_gn_random_fn's ctx shape: `ctx` is always
  * the pico8_jf_state_t this file passes alongside it. */
 static pico8_fixed_t pico8_bw_gn_r(void *ctx) {
@@ -58,7 +40,7 @@ void pico8_bw(pico8_fixed_t n) {
     pico8_fixed_t two_seventy_five = PICO8_FIXED_LIT(0x0002c000, 2.75);
     pico8_fixed_t eighth = PICO8_FIXED_LIT(0x00002000, 0.125);
     pico8_fixed_t id;
-    const pico8_ob_table_t *df;
+    int i;
     const pico8_js_t *dk;
     pico8_fixed_t dk_en = pico8_fixed_from_int(0);
     pico8_value_t en_val;
@@ -115,8 +97,6 @@ void pico8_bw(pico8_fixed_t n) {
         pico8_ob_table_free(overrides);
     }
 
-    df = pico8_df();
-
     /* A NULL dk or an absent "en" reads as 0 -- this port's usual
      * absent-field default, not a guess at which difficulty is meant. */
     dk = pico8_dk();
@@ -124,7 +104,10 @@ void pico8_bw(pico8_fixed_t n) {
         dk_en = en_val.as.fixed;
     }
 
-    hr_list = pico8_bw_positional_values(df);
+    pico8_list_init(&hr_list);
+    for (i = 0; i < PICO8_DF_COUNT; i++) {
+        pico8_list_add(&hr_list, pico8_value_ref((void *)&pico8_df_table[i]));
+    }
     new_oc_r_ctx = pico8_jf(PICO8_FIXED_LIT(0x00008000, 0.5), dk_en);
     oc_state = pico8_gn(&hr_list, pico8_fixed_from_int(2), pico8_bw_gn_r, new_oc_r_ctx);
     pico8_list_free(&hr_list);

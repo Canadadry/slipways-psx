@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-#include "pico8_ob.h"
+#include "pico8_game_data.h"
 
 pico8_jf_state_t *pico8_jf(pico8_fixed_t n_, pico8_fixed_t b) {
     pico8_jf_state_t *state = malloc(sizeof *state);
@@ -60,15 +60,11 @@ pico8_gn_state_t *pico8_gn(const pico8_list_t *hr, pico8_fixed_t og, pico8_gn_ra
 
     it = pico8_list_all(hr);
     while (pico8_list_iter_next(&it, &e)) {
-        const pico8_ob_table_t *entity = (const pico8_ob_table_t *)e.as.ref;
-        pico8_value_t weight_val;
+        const pico8_df_entry_t *entity = (const pico8_df_entry_t *)e.as.ref;
         pico8_fixed_t count_fixed;
         int count, n;
 
-        if (!pico8_ob_table_get_name(entity, "r", &weight_val) || weight_val.kind != PICO8_VALUE_FIXED) {
-            continue;
-        }
-        count_fixed = pico8_fixed_flr(pico8_fixed_mul(weight_val.as.fixed, og));
+        count_fixed = pico8_fixed_flr(pico8_fixed_mul(entity->r, og));
         count = pico8_fixed_flr_int(count_fixed);
         for (n = 1; n <= count; n++) {
             pico8_list_add(&state->oc, e);

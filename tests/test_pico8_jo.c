@@ -56,7 +56,7 @@ static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk
 static const char *const absent[] = {"ev", "ph", "ly", "rdown", "hq", "ey", "md"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
-static const char *const class_refs[] = {"nu", "kq", "kw", "gq", "em"};
+static const char *const class_refs[] = {"kq", "gq"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -180,14 +180,15 @@ static int list_size(const void *e, const char *name) {
 
 static uint32_t fold_kw(uint32_t h, const void *e) {
     pico8_value_t kw;
-    pico8_value_t v;
+    const pico8_kw_t *k;
     if (!lookup(e, "kw", &kw)) {
         return fnv(h, 0xA0u);
     }
-    assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    h = pico8_ob_table_get_name(kw.as.ref, "qe", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    h = pico8_ob_table_get_name(kw.as.ref, "mu", &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
-    return fnv(h, (uint32_t)(kw.as.ref == class_ref("kw")));
+    assert(kw.kind == PICO8_VALUE_REF && pico8_type_tag_of(kw.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
+    k = kw.as.ref;
+    h = k->has_qe ? fold_value(fnv(h, 1u), pico8_value_fixed(k->qe)) : fnv(h, 0u);
+    h = fold_value(fnv(h, 1u), pico8_value_fixed(k->mu));
+    return fnv(h, (uint32_t)(kw.as.ref == pico8_jo_shared_kw()));
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -254,6 +255,8 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     for (i = 0; i < sizeof class_refs / sizeof class_refs[0]; i++) {
         assert(get_ref(e, class_refs[i]) == class_ref(class_refs[i]));
     }
+    assert(get_ref(e, "nu") == &pico8_jo_nu_tags && get_ref(e, "kw") == pico8_jo_shared_kw() &&
+           get_ref(e, "em") == &pico8_jo_em_row);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
@@ -349,7 +352,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 
     h = fold_field(h, d, "ca");
     h = fold_vec(h, d, "gq");
-    assert(get_ref(d, "em") == class_ref("em"));
+    assert(get_ref(d, "em") == &pico8_jo_em_row);
     h = fold_value(h, call(d, "gg", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)));
     assert(lookup(d, "ra", &ra_val) && ra_val.kind == PICO8_VALUE_REF);
     ra = *(const pico8_vec_t *)ra_val.as.ref;
@@ -476,33 +479,60 @@ static void test_ll(void) {
     check_int("ll dg calls", calls, LL_DG_CALLS);
 }
 
-/* `kw` of a planet that never ran `lz` is the class's own table: an
- * in-place write to it is seen by every such planet and by the class. */
+/* `kw` of a planet that never ran `lz` is the class's shared one: an
+ * in-place write to it is seen by every such planet and by the class, until
+ * the next pico8_jo_init() puts it back to `{mu=0}`. */
 static void test_kw_shared(void) {
     void *a;
     void *b;
-    pico8_ob_table_t *kw;
-    pico8_value_t v;
+    pico8_kw_t *kw;
     pico8_value_t hp;
 
     start_title();
     a = new_planet("p902", 5, 6);
     b = new_planet("p903", 7, 8);
     kw = get_ref(a, "kw");
-    assert(kw == class_ref("kw") && get_ref(b, "kw") == kw);
-    pico8_ob_table_set_name(kw, "mu", pico8_value_fixed(pico8_fixed_from_int(7)));
-    assert(pico8_ob_table_get_name(get_ref(b, "kw"), "mu", &v) && v.kind == PICO8_VALUE_FIXED &&
-           v.as.fixed == pico8_fixed_from_int(7));
-    assert(pico8_ob_table_get_name(class_ref("kw"), "mu", &v) && v.as.fixed == pico8_fixed_from_int(7));
+    assert(kw == pico8_jo_shared_kw() && get_ref(b, "kw") == kw);
+    kw->mu = pico8_fixed_from_int(7);
+    assert(((const pico8_kw_t *)get_ref(b, "kw"))->mu == pico8_fixed_from_int(7));
+    assert(pico8_jo_shared_kw()->mu == pico8_fixed_from_int(7));
 
     assert(pico8_gb() != NULL && pico8_gb()->count > 0);
     hp = pico8_gb()->entries[0].value;
     assert(hp.kind == PICO8_VALUE_REF && hp.as.ref != NULL);
     pico8_jo_lz(a, hp.as.ref);
-    assert(get_ref(a, "kw") != NULL && get_ref(a, "kw") != class_ref("kw"));
-    assert(pico8_ob_table_get_name(get_ref(a, "kw"), "mu", &v) && v.as.fixed == pico8_fixed_from_int(0));
-    assert(get_ref(b, "kw") == class_ref("kw"));
+    assert(get_ref(a, "kw") != NULL && get_ref(a, "kw") != pico8_jo_shared_kw());
+    assert(((const pico8_kw_t *)get_ref(a, "kw"))->mu == pico8_fixed_from_int(0));
+    assert(get_ref(b, "kw") == pico8_jo_shared_kw());
     assert(get_ref(a, "hn") == hp.as.ref && list_size(a, "jy") >= 0);
+
+    kw->has_qe = 1;
+    kw->qe = pico8_fixed_from_int(28);
+    pico8_jo_init();
+    assert(get_ref(b, "kw") == pico8_jo_shared_kw());
+    assert(!kw->has_qe && kw->mu == pico8_fixed_from_int(0));
+}
+
+/* `jo:hh` takes `df.ll` itself on a roll of `jo.ir()` under 0.45, and its
+ * `me` for the planet's state; any other draw is a `jo.oc()` entry, and
+ * `known`. */
+static void test_hh_takes_ll(void) {
+    char id[8];
+    int took_ll = 0;
+    int i;
+
+    start_game();
+    for (i = 0; i < 20 && !took_ll; i++) {
+        pico8_jo_t *p;
+
+        snprintf(id, sizeof id, "p%d", 950 + i);
+        p = new_planet(id, i, i);
+        pico8_jo_hh(p);
+        assert(p->nk != NULL && p->ep == p->nk->d);
+        took_ll = p->nk == pico8_df_lookup("ll");
+        assert(strcmp(p->ke.me, took_ll ? "ll" : "known") == 0);
+    }
+    assert(took_ll);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -582,8 +612,8 @@ static void test_jo_is_a_struct(void) {
         }
     }
 
-    assert(pico8_jo_dz() == class_ref("dz") && pico8_jo_cq() == class_ref("cq") && pico8_jo_ka() == class_ref("ka") &&
-           pico8_jo_em() == class_ref("em"));
+    assert(pico8_jo_dz() == pico8_jo_dz_rows && pico8_jo_cq() == &pico8_jo_cq_seq &&
+           pico8_jo_ka() == &pico8_jo_ka_seq && pico8_jo_em() == &pico8_jo_em_row);
 
     a = new_planet("p904", 9, 10);
     assert(is_a_jo_struct(a));
@@ -646,6 +676,7 @@ int main(void) {
     in_fresh_child(test_new_planet);
     in_fresh_child(test_ll);
     in_fresh_child(test_kw_shared);
+    in_fresh_child(test_hh_takes_ll);
     in_fresh_child(test_jo_is_a_struct);
 
     printf("test_pico8_jo: all tests passed\n");

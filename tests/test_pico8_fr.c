@@ -64,9 +64,17 @@ static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk
 static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb", "mm"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"nr", "np", "prober"};
-static const char *const nr_tables[] = {"nu", "kq"};
-static const char *const qh_tables[] = {"px", "ba"};
-static const char *const jo_tables[] = {"em", "ka", "dz", "cq", "gq"};
+static const char *const nr_tables[] = {"kq"};
+static const char *const jo_tables[] = {"gq"};
+
+/* A table member of the jo tree and the generated data it points at. */
+typedef struct {
+    const char *name;
+    const void *data;
+} member_data_t;
+static const member_data_t jo_data[] = {
+    {"em", &pico8_jo_em_row}, {"ka", &pico8_jo_ka_seq}, {"dz", pico8_jo_dz_rows}, {"cq", &pico8_jo_cq_seq}};
+static const member_data_t qh_data[] = {{"px", &pico8_qh_px_row}, {"ba", &pico8_qh_ba_seq}};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -257,7 +265,7 @@ static void *build(const pico8_entity_kind_t *kind) {
 /* `hz` is never written on an entity: one whose `hz` is the very table of
  * fr's class is an infraspace gate, whatever its form. */
 static int is_a_gate(const void *e) {
-    return get_ref(e, "hz") == class_ref(pico8_fr_default, "hz");
+    return get_ref(e, "hz") == &pico8_fr_hz_seq;
 }
 
 static void *build_gate(void) {
@@ -283,7 +291,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
         h = fold_field(h, e, scalars[i]);
     }
     h = fold_vec(h, e, "gq");
-    h = fnv(h, (uint32_t)((const pico8_ob_table_t *)get_ref(e, "hz"))->count);
+    h = fnv(h, (uint32_t)((const pico8_int_seq_t *)get_ref(e, "hz"))->count);
     for (i = 0; i < sizeof gate_members / sizeof gate_members[0]; i++) {
         h = fnv(h, (uint32_t)has(e, gate_members[i]));
     }
@@ -302,17 +310,21 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
-    assert(get_ref(e, "hz") != class_ref(pico8_nr_default, "hz"));
+    assert(get_ref(e, "hz") != &pico8_nr_hz_seq);
     for (i = 0; i < sizeof nr_tables / sizeof nr_tables[0]; i++) {
         assert(get_ref(e, nr_tables[i]) == class_ref(pico8_nr_default, nr_tables[i]));
     }
-    for (i = 0; i < sizeof qh_tables / sizeof qh_tables[0]; i++) {
-        assert(get_ref(e, qh_tables[i]) == class_ref(pico8_qh_default, qh_tables[i]));
+    assert(get_ref(e, "nu") == &pico8_nr_nu_tags);
+    for (i = 0; i < sizeof qh_data / sizeof qh_data[0]; i++) {
+        assert(get_ref(e, qh_data[i].name) == qh_data[i].data);
     }
     for (i = 0; i < sizeof jo_tables / sizeof jo_tables[0]; i++) {
         assert(get_ref(e, jo_tables[i]) == class_ref(pico8_jo_default, jo_tables[i]));
     }
-    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != class_ref(pico8_jo_default, "kw"));
+    for (i = 0; i < sizeof jo_data / sizeof jo_data[0]; i++) {
+        assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
+    }
+    assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
     assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb1) && gb1.kind == PICO8_VALUE_REF);
     assert(get_ref(e, "hn") == gb1.as.ref);
     h = fnv(h, (uint32_t)list_size(e, "oe"));
@@ -581,7 +593,8 @@ static void test_fr_is_a_struct(void) {
         pico8_value_t through_nr;
         assert(cls->field(a, inherited[i], &own) && nr->field(a, inherited[i], &through_nr));
         assert(pico8_value_equal(own, through_nr) &&
-               pico8_value_equal(own, class_value(pico8_fr_default, inherited[i])));
+               pico8_value_equal(own, strcmp(inherited[i], "hz") == 0 ? pico8_value_ref((void *)&pico8_fr_hz_seq)
+                                                              : class_value(pico8_fr_default, inherited[i])));
     }
     assert(!nr->field(a, "mt", &v) && cls->field(a, "mt", &v));
     assert(pico8_fr_ready());
@@ -610,16 +623,17 @@ static void test_fr_is_a_struct(void) {
 
 static uint32_t fold_nr_members(uint32_t h, const void *e, int (*default_of)(const char *, pico8_value_t *)) {
     pico8_value_t v;
-    const pico8_ob_table_t *hz;
+    const pico8_int_seq_t *hz;
     int i;
 
-    assert(read_both(e, "hz", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == class_ref(default_of, "hz"));
+    assert(read_both(e, "hz", &v) && v.kind == PICO8_VALUE_REF &&
+           v.as.ref == (default_of == pico8_fr_default ? &pico8_fr_hz_seq : &pico8_nr_hz_seq));
     hz = v.as.ref;
     h = fnv(h, (uint32_t)hz->count);
     for (i = 1; i <= 4; i++) {
-        pico8_value_t entry;
-        assert(pico8_ob_table_get_index(hz, i, &entry));
-        h = fold_value(h, entry);
+        int entry;
+        assert(pico8_int_seq_at(hz->items, hz->count, i, &entry));
+        h = fold_value(h, pico8_value_fixed(pico8_fixed_from_int(entry)));
     }
     assert(read_both(e, "rr", &v) && v.kind == PICO8_VALUE_STRING &&
            v.as.string == class_value(default_of, "rr").as.string);
@@ -632,10 +646,11 @@ static uint32_t fold_hb(uint32_t h, void *e) {
 
     for (i = 0; i <= 3; i++) {
         pico8_entity_set_field(e, "oe", list_of(i, e));
-        pico8_value_t entry;
+        const pico8_int_seq_t *hz = get_ref(e, "hz");
+        int entry;
         (void)call(e, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-        assert(pico8_ob_table_get_index(get_ref(e, "hz"), i + 1, &entry) &&
-               pico8_value_equal(entry, get(e, "s")));
+        assert(pico8_int_seq_at(hz->items, hz->count, i + 1, &entry) &&
+               pico8_value_equal(pico8_value_fixed(pico8_fixed_from_int(entry)), get(e, "s")));
         h = fold_field(h, e, "s");
     }
     pico8_entity_set_field(e, "oe", oe);

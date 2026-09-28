@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "pico8_entity.h"
+#include "pico8_game_data.h"
 #include "pico8_research.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
@@ -230,8 +231,7 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
                 }
                 if (pico8_entity_get_field(pt, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
                     kw_val.as.ref != NULL) {
-                    pico8_ob_table_set_name((pico8_ob_table_t *)kw_val.as.ref, "mu",
-                                             pico8_value_fixed(pico8_fixed_add(base, jh)));
+                    ((pico8_kw_t *)kw_val.as.ref)->mu = pico8_fixed_add(base, jh);
                 }
             }
         }
