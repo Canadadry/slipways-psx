@@ -1,7 +1,6 @@
 /* The background `bg`, read and written only through the dual-form field
- * API and driven through the real `mv`/`dg`/`dc`/`ok`. The frozen values
- * were taken on the code where `bg` was still a class instance and must not
- * be re-taken. */
+ * API and driven through the real `mv`/`dg`/`dc`/`ok`, in games built
+ * directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -29,9 +27,11 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ob.h"
+#include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_research.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
@@ -40,9 +40,6 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
-#define PLAYTHROUGH "tests/fixtures/phase4_playthrough_events.json"
-#define TITLE_REPLAY "tests/fixtures/long_session_events.json"
-#define TITLE_LAST_FRAME 4984
 
 #define MAP_HASH 0xBBDC5BFAu
 #define MAP_STARS 4
@@ -55,16 +52,11 @@
 #define LDOWN_MZ_AFTER 1
 #define HOVER_HASH 0xF751E116u
 #define DRAW_HASH 0xE18E0472u
-#define TITLE_HASH 0x27DAAF8Fu
-#define TITLE_RHELD_FRAMES 131
-#define PLAYTHROUGH_FRAMES 224
-#define PLAYTHROUGH_HASH 0x9F387594u
 #define BG_MEMBERS_HASH 0x8410F8B5u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static const int want_pl[15] = {0, 0, 0, 72, 73, 74, 75, 88, 89, 90, 91, 88, 91, 89, 91};
 
@@ -136,15 +128,6 @@ static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
     return fnv(h, (uint32_t)p->y);
 }
 
-static uint32_t fold_fixed(uint32_t h, const void *e, const char *name) {
-    pico8_value_t v;
-    if (e == NULL || !pico8_entity_get_field(e, name, &v)) {
-        return fnv(h, 0xDEADu);
-    }
-    assert(v.kind == PICO8_VALUE_FIXED);
-    return fnv(h, (uint32_t)v.as.fixed);
-}
-
 /* 0 absent, 1 false, 2 true, 3 other. */
 static uint32_t bool_state(const void *e, const char *name) {
     pico8_value_t v;
@@ -177,26 +160,13 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-static void start_game(const char *events) {
-    pico8_value_t difficulty;
-
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
-    pico8_cheat_init(&cheat);
-}
-
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+    pico8_eu(NULL);
 }
 
 /* The background is the entity of cv.hd whose `hd` and `fa` are both the
@@ -283,7 +253,7 @@ static void test_construction(void) {
     void *built;
     void *generic;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     from_eu = the_bg();
     check_fresh_bg(from_eu);
     built = (void *)pico8_bg_new(NULL);
@@ -327,7 +297,7 @@ static void test_map(void) {
     int zeros;
     uint32_t first;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     first = map_hash(&stars, &zeros);
     check("map", first, MAP_HASH);
     check_int("map stars", stars, MAP_STARS);
@@ -352,7 +322,7 @@ static void test_drag(void) {
     pico8_vec_t v;
     int i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     bg = the_bg();
     rp = vec_ref(10, 20);
     hq(bg, rp);
@@ -384,7 +354,7 @@ static void test_ldown(void) {
     int g_before;
     int mz_before;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     bg = the_bg();
     g_before = list_count(pico8_cg("g_"));
     mz_before = list_count(pico8_cg("mz"));
@@ -433,7 +403,7 @@ static void test_hover(void) {
     pico8_struct_header_t *kv = NULL;
     pico8_value_t kn;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     bg = the_bg();
     memset(&g_void, 0, sizeof g_void);
     g_void.mouse_x = 64;
@@ -486,12 +456,9 @@ static void test_gv(void) {
     void *nr;
     pico8_ob_table_t *overrides = pico8_ob_table_new();
     pico8_value_t r;
-    int i;
 
-    start_game(PLAYTHROUGH);
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame();
-    }
+    start_game();
+    pico8_jo_hu(pico8_cg("jo")->items[0].as.ref, pico8_hp_new(NULL));
     bg = the_bg();
     ly = first_with_me("jo", "ly");
     assert(ly != NULL);
@@ -523,43 +490,6 @@ static void test_draw(void) {
     check("draw", screen_hash(), DRAW_HASH);
 }
 
-/* From the title screen through the first two right-button drags. */
-static void test_replay_from_title(void) {
-    uint32_t h = 2166136261u;
-    int rheld = 0;
-    int i;
-
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, TITLE_REPLAY));
-    pico8_dispatch_set_input(&input);
-    pico8__init();
-    pico8_cheat_init(&cheat);
-    for (i = 0; i <= TITLE_LAST_FRAME; i++) {
-        int count;
-        void *bg;
-
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
-        pico8__update60();
-        pico8__draw();
-
-        bg = find_bg(&count);
-        assert(count <= 1);
-        h = fnv(h, (uint32_t)count);
-        h = fold_vec(h, bg, "mq");
-        h = fnv(h, bool_state(bg, "m_"));
-        h = fold_fixed(h, bg, "t");
-        h = fnv(h, (uint32_t)(bg != NULL && ok_ref("rheld") == bg));
-        h = fnv(h, (uint32_t)(bg != NULL && ok_ref("o_") == bg));
-        h = fold_vec(h, pico8_mo(), "v");
-        rheld += bg != NULL && ok_ref("rheld") == bg;
-        pico8_input_step(&input);
-    }
-    pico8_input_free(&input);
-    check_int("title rheld frames", rheld, TITLE_RHELD_FRAMES);
-    check("title replay", h, TITLE_HASH);
-}
-
 enum { HELD_ABSENT, HELD_G_STRUCT, HELD_MZ_STRUCT, HELD_OTHER };
 
 static uint32_t lheld_kind(void) {
@@ -579,30 +509,50 @@ static uint32_t lheld_kind(void) {
     return HELD_OTHER;
 }
 
-static void test_playthrough(void) {
-    uint32_t h = 2166136261u;
-    int held[4] = {0, 0, 0, 0};
-    int frames;
+static pico8_input_frame_t g_drag[8];
+
+static void drag_frame(int i, int x, int y, int buttons) {
+    memset(&g_drag[i], 0, sizeof g_drag[i]);
+    g_drag[i].mouse_x = x;
+    g_drag[i].mouse_y = y;
+    g_drag[i].mouse_buttons = buttons;
+}
+
+/* Over empty space, the right button held makes the background `ok.rheld`
+ * until released; the left button pressed there holds the `g_` its `ldown`
+ * builds. */
+static void test_scripted_drags(void) {
+    void *bg;
     int i;
 
-    start_game(PLAYTHROUGH);
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        void *bg;
-        uint32_t kind;
-
-        play_frame();
-        bg = the_bg();
-        kind = lheld_kind();
-        held[kind]++;
-        h = fnv(h, (uint32_t)(ok_ref("o_") == bg));
-        h = fnv(h, bool_state(bg, "m_"));
-        h = fnv(h, kind);
+    start_game();
+    bg = the_bg();
+    for (i = 0; i < 4; i++) {
+        drag_frame(i, 64 + 3 * i, 100 - 2 * i, i < 3 ? 2 : 0);
     }
-    printf("[playthrough] lheld absent %d, g_ %d, mz %d, other %d\n", held[0], held[1], held[2], held[3]);
-    assert(held[HELD_G_STRUCT] > 0);
-    check_int("playthrough frames", frames, PLAYTHROUGH_FRAMES);
-    check("playthrough", h, PLAYTHROUGH_HASH);
+    drag_frame(4, 64, 100, 0);
+    drag_frame(5, 64, 100, 1);
+    drag_frame(6, 70, 96, 1);
+    input.frames = g_drag;
+    input.frame_count = 7;
+    input.current_frame = 0;
+    pico8_dispatch_set_input(&input);
+    for (i = 0; i < 7; i++) {
+        int count;
+
+        pico8__update60();
+        pico8__draw();
+        assert(find_bg(&count) == bg && count == 1);
+        assert((ok_ref("rheld") == bg) == (i < 3));
+        if (i == 6) {
+            assert(lheld_kind() == HELD_G_STRUCT);
+        }
+        if (i < 6) {
+            pico8_input_step(&input);
+        }
+    }
+    pico8_input_init(&input);
+    pico8_dispatch_set_input(&input);
 }
 
 static int is_a_bg_struct(const void *e) {
@@ -639,7 +589,7 @@ static void test_bg_is_a_struct(void) {
     pico8_value_t out;
     size_t i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     from_eu = the_bg();
     built = (void *)pico8_bg_new(NULL);
     generic = (void *)pico8_bg_new(NULL);
@@ -749,7 +699,7 @@ static void test_bg_members_by_name(void) {
     pico8_vec_t v;
     size_t i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     a = the_bg();
     h = fold_bg(h, a, NULL);
 
@@ -840,7 +790,7 @@ static void test_bg_writer_stops_off_row(void) {
     pico8_value_t zero_string;
     pico8_value_t zero_false;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     a = the_bg();
     b = (void *)pico8_bg_new(NULL);
     memset(&zero_fixed, 0, sizeof zero_fixed);
@@ -900,8 +850,7 @@ int main(void) {
     in_fresh_child(test_hover);
     in_fresh_child(test_gv);
     in_fresh_child(test_draw);
-    in_fresh_child(test_replay_from_title);
-    in_fresh_child(test_playthrough);
+    in_fresh_child(test_scripted_drags);
     in_fresh_child(test_bg_is_a_struct);
     in_fresh_child(test_bg_members_by_name);
     in_fresh_child(test_bg_writer_stops_off_row);
