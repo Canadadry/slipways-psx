@@ -751,7 +751,7 @@ void pico8_pm_pq(pico8_pm_t *self) {
         return;
     }
 
-    spawn_ra = pico8_vec_add(pico8_pf_value_vec(pico8_value_ref(self->hj.qh.jo.ra)), pico8_pf_value_vec(self->ng));
+    spawn_ra = pico8_vec_add(pico8_pf_value_vec(pico8_value_ref(self->hj.qh.jo.ra)), pico8_pf_value_vec(pico8_value_ref(self->ng)));
     spawn_ra_heap = malloc(sizeof *spawn_ra_heap);
     *spawn_ra_heap = spawn_ra;
 
@@ -771,18 +771,8 @@ void pico8_pm_pq(pico8_pm_t *self) {
     pico8_ob_table_free(overrides);
 }
 
-/* pm's own defaults, read once through pico8_pm_default() at init: the very
- * values its spec holds, tables included. Each lands in the member of that
- * name, hj's, qh's or jo's when it has one. */
-static struct {
-    const char *name;
-    size_t offset;
-    pico8_value_t value;
-} g_pm_defaults[] = {
-    {"fz", offsetof(pico8_pm_t, fz), {0}},
-    {"ng", offsetof(pico8_pm_t, ng), {0}},
-};
-
+static pico8_vec_t *g_pm_ng = NULL;
+static const char *g_pm_fz = NULL;
 static const char *g_pm_me = NULL;
 static pico8_ob_table_t *g_pm_nu = NULL;
 static pico8_fixed_t g_pm_hp = 0;
@@ -802,7 +792,8 @@ static pico8_fixed_t g_pm_qg = 0;
 static pico8_fixed_t g_pm_q_ = 0;
 
 static void pico8_pm_defaults_reset(void) {
-    size_t i;
+    g_pm_ng = NULL;
+    g_pm_fz = NULL;
     g_pm_me = NULL;
     g_pm_nu = NULL;
     g_pm_hp = 0;
@@ -820,31 +811,24 @@ static void pico8_pm_defaults_reset(void) {
     g_pm_ro = 0;
     g_pm_qg = 0;
     g_pm_q_ = 0;
-    for (i = 0; i < sizeof g_pm_defaults / sizeof g_pm_defaults[0]; i++) {
-        g_pm_defaults[i].value = pico8_value_ref(NULL);
-    }
 }
 
-static const struct {
-    const char *name;
-    size_t offset;
-} g_pm_members[] = {
-    {"ng", offsetof(pico8_pm_t, ng)},
-    {"fz", offsetof(pico8_pm_t, fz)},
-};
-
 static int pico8_pm_field(const void *self, const char *name, pico8_value_t *out_value) {
-    size_t i;
+    const pico8_pm_t *pm = self;
 
-    for (i = 0; i < sizeof g_pm_members / sizeof g_pm_members[0]; i++) {
-        if (strcmp(name, g_pm_members[i].name) == 0) {
-            const pico8_value_t *member = (const pico8_value_t *)((const char *)self + g_pm_members[i].offset);
-            if (member->kind == PICO8_VALUE_REF && member->as.ref == NULL) {
-                return 0;
-            }
-            *out_value = *member;
-            return 1;
+    if (strcmp(name, "ng") == 0) {
+        if (pm->ng == NULL) {
+            return 0;
         }
+        *out_value = pico8_value_ref(pm->ng);
+        return 1;
+    }
+    if (strcmp(name, "fz") == 0) {
+        if (pm->fz == NULL) {
+            return 0;
+        }
+        *out_value = pico8_value_string(pm->fz);
+        return 1;
     }
     return pico8_hj_field(self, name, out_value);
 }
@@ -875,17 +859,12 @@ static const pico8_struct_class_t g_pm_struct_class = {
 
 static void *pico8_pm_struct_new(const pico8_ob_table_t *overrides) {
     pico8_pm_t *self = malloc(sizeof *self);
-    size_t i;
     int k;
 
     assert(g_pm_spec != NULL && "pico8_planet_family_init() must run first");
     pico8_hj_struct_init(&self->hj, &g_pm_struct_class);
-    for (i = 0; i < sizeof g_pm_members / sizeof g_pm_members[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_pm_members[i].offset) = pico8_value_ref(NULL);
-    }
-    for (i = 0; i < sizeof g_pm_defaults / sizeof g_pm_defaults[0]; i++) {
-        *(pico8_value_t *)((char *)self + g_pm_defaults[i].offset) = g_pm_defaults[i].value;
-    }
+    self->ng = g_pm_ng;
+    self->fz = g_pm_fz;
     self->hj.py = g_pm_py;
     self->hj.ki = g_pm_ki;
     self->hj.pn = g_pm_pn;
@@ -1258,6 +1237,14 @@ static pico8_qz_box_t *family_default_box(int found, pico8_value_t v) {
     return v.as.ref;
 }
 
+static pico8_vec_t *family_default_vec(int found, pico8_value_t v) {
+    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
+           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "pm.ng: a default of the struct is a key of pm's spec and a vector v() (ref:autre)");
+    (void)found;
+    return v.as.ref;
+}
+
 static pico8_fixed_t family_default_fixed(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_FIXED &&
            "os.hs, ga.fa, qh.mi, nl.nl/qw, qh/nl/os/hj/pm.hp, qh/nl/os/hj.od, qh.fp/dw, qh/nl/os/hj/pm.s, "
@@ -1285,7 +1272,7 @@ static pico8_fixed_t family_default_hf(int found, pico8_value_t v, int *is_bool)
 
 static const char *family_default_string(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "qh.dq, nl/hj.rr: a default of the struct is a key of its spec and a string (chaine)");
+           "qh.dq, nl/hj.rr, pm.fz: a default of the struct is a key of its spec and a string (chaine)");
     (void)found;
     return v.as.string;
 }
@@ -1458,11 +1445,10 @@ void pico8_planet_family_init(void) {
                          "qo=1.02,ro=-0.0525,\n"
                          "qg=0.0525,q_=1.02,\n",
                          NULL);
-    for (i = 0; i < sizeof g_pm_defaults / sizeof g_pm_defaults[0]; i++) {
-        int found = pico8_pm_default(g_pm_defaults[i].name, &g_pm_defaults[i].value);
-        assert(found && "pm: every default of the struct is a key of pm's spec");
-        (void)found;
-    }
+    found = pico8_pm_default("ng", &v);
+    g_pm_ng = family_default_vec(found, v);
+    found = pico8_pm_default("fz", &v);
+    g_pm_fz = family_default_string(found, v);
     found = pico8_pm_default("py", &v);
     g_pm_py = family_default_fixed(found, v);
     found = pico8_pm_default("ki", &v);

@@ -104,13 +104,14 @@ pico8_value_t pico8_hj_pk(const pico8_hj_t *self);
 /* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
  * ancestor has a member for. A default of pm whose name is a member of
  * `hj`, `qh`, `jo` or `ke` (`me`, `nu`, `hp`, `px`, `s` and the 11 emitter
- * defaults) lives in that member. `nu`, `px`, `k_` and `ng` hold the very
- * tables of pm's spec, `ba` the one of qh's, borrowed; `qy` is the
- * protostar's own. Nothing frees the struct: TROU-7. */
+ * defaults) lives in that member. `nu`, `px` and `k_` hold the very
+ * tables of pm's spec, `ng` its very vector and `fz` its very string, `ba`
+ * the table of qh's, borrowed; `qy` is the protostar's own. Nothing frees
+ * the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
-    pico8_value_t ng;
-    pico8_value_t fz;
+    pico8_vec_t *ng;
+    const char *fz;
 } pico8_pm_t;
 
 /* A particle burst: a bare planet, then ga's own defaults and `qy`, which

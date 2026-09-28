@@ -85,6 +85,7 @@
 #define JO_WRITERS_HASH 0xBAFA7F3Au
 #define QH_MEMBERS_HASH 0x3C7BAF9Bu
 #define HJ_MEMBERS_HASH 0x50DF104Cu
+#define PM_MEMBERS_HASH 0xAE0F61DEu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -2935,6 +2936,101 @@ static void test_hj_members_by_name(void) {
     check("hj_members", h, HJ_MEMBERS_HASH);
 }
 
+static uint32_t fold_pm_own(uint32_t h, const void *e) {
+    pico8_value_t v;
+    pico8_value_t d;
+    const pico8_vec_t *ng;
+
+    assert(me_of(e, "ng", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    ng = v.as.ref;
+    assert(pico8_pm_default("ng", &d) && d.kind == PICO8_VALUE_REF && d.as.ref == ng);
+    assert(ng->x == pico8_fixed_from_int(1) && ng->y == 0);
+    h = fold_vec(h, *ng);
+    assert(me_of(e, "fz", &v) && v.kind == PICO8_VALUE_STRING && v.as.string != NULL);
+    assert(pico8_pm_default("fz", &d) && d.kind == PICO8_VALUE_STRING && d.as.string == v.as.string);
+    assert(strcmp(v.as.string, "pm") == 0);
+    for (d.as.string = v.as.string; *d.as.string != '\0'; d.as.string++) {
+        h = fnv(h, (uint32_t)(unsigned char)*d.as.string);
+    }
+    return h;
+}
+
+static void test_pm_members_by_name(void) {
+    static const char *const strangers[] = {"", "n", "ng ", "NG", "fz_", "f"};
+    static const char *const own[] = {"ng", "fz"};
+    void *fresh[2];
+    void *others[2];
+    pico8_value_t v;
+    uint32_t h = 2166136261u;
+    size_t n;
+    int k;
+
+    (void)start_game(DRAG);
+    fresh[0] = pico8_pm_new(NULL);
+    {
+        pico8_ob_table_t *b = pico8_ob_table_new();
+        pico8_ob_table_set_name(b, "p", qh_vec_ref(qh_at(40, 50)));
+        pico8_ob_table_set_name(b, "ra", qh_vec_ref(qh_at(7700, 7600)));
+        pico8_ob_table_set_name(b, "id", pico8_value_string("s77"));
+        fresh[1] = pico8_pm_new(b);
+        pico8_ob_table_free(b);
+    }
+    for (k = 0; k < 2; k++) {
+        h = fold_pm_own(fnv(h, (uint32_t)k), fresh[k]);
+    }
+    assert(get_ref(fresh[0], "ng") == get_ref(fresh[1], "ng"));
+
+    (void)start_game(EMPTY_CLEARED);
+    {
+        pico8_ob_table_t *b = pico8_ob_table_new();
+        const pico8_list_t *hv;
+        const pico8_struct_header_t *g;
+        const pico8_vec_t *gra;
+        const pico8_vec_t *ra;
+        const pico8_vec_t *ng;
+        void *e;
+        int at;
+
+        pico8_ob_table_set_name(b, "ra", qh_vec_ref(qh_at(7650, 7720)));
+        e = pico8_pm_new(b);
+        pico8_ob_table_free(b);
+        hv = pico8_hv();
+        at = rank_in(hv, e);
+        assert(at >= 1);
+        g = hv->items[at - 1].as.ref;
+        assert(g->cls == pico8_ga_struct_class());
+        gra = get_ref(g, "ra");
+        ra = get_ref(e, "ra");
+        ng = get_ref(e, "ng");
+        assert(gra != NULL && ra != NULL && ng != NULL && gra != ra && gra != ng);
+        assert(gra->x == pico8_fixed_add(ra->x, ng->x) && gra->y == pico8_fixed_add(ra->y, ng->y));
+        h = fold_vec(h, *gra);
+        h = fold_pm_own(h, e);
+    }
+
+    for (k = 0; k < 2; k++) {
+        const pico8_struct_header_t *header = fresh[k];
+
+        for (n = 0; n < 2; n++) {
+            h = fnv(h, (uint32_t)header->cls->set_field(fresh[k], own[n], pico8_value_fixed(9)));
+        }
+        h = fold_pm_own(h, fresh[k]);
+    }
+
+    for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {
+        h = fnv(h, (uint32_t)me_of(fresh[0], strangers[n], &v));
+    }
+    others[0] = pico8_hj_new(NULL);
+    others[1] = pico8_mx_new(NULL);
+    for (k = 0; k < 2; k++) {
+        for (n = 0; n < 2; n++) {
+            h = fnv(h, (uint32_t)me_of(others[k], own[n], &v));
+        }
+    }
+
+    check("pm_members", h, PM_MEMBERS_HASH);
+}
+
 static void test_hj_writer_stops_off_row(void) {
     pico8_value_t off_row[12];
     void *e[3];
@@ -3010,6 +3106,7 @@ int main(void) {
     in_fresh_child(test_qh_writer_stops_off_row);
     in_fresh_child(test_hj_members_by_name);
     in_fresh_child(test_hj_writer_stops_off_row);
+    in_fresh_child(test_pm_members_by_name);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;
