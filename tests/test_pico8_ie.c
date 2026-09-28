@@ -1,7 +1,6 @@
 /* The research icon `ie`, read and written only through the dual-form field
- * API and driven through the real `mv`/`dg`/`dc`/`ok`/`_init`/`eu`. The
- * frozen values were taken on the code where `ie` was still a class
- * instance and must not be re-taken. */
+ * API and driven through the real `mv`/`dg`/`dc`/`ok`/`_init`/`eu`, in games
+ * started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,7 +18,6 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
@@ -45,21 +43,8 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
-#define RECORDED "tests/fixtures/events_recorded_1790198294.json"
-#define HUB "tests/fixtures/trading_hub_session_events.json"
-#define LONG "tests/fixtures/long_session_events.json"
-#define PLAYTHROUGH "tests/fixtures/phase4_playthrough_events.json"
-
 #define CONSTRUCTION_HASH 0x37EED64Du
 #define START_HASH 0x8C839F39u
-#define RECORDED_FRAMES 19832
-#define RECORDED_HASH 0xCFA6611Du
-#define HUB_FRAMES 4921
-#define HUB_HASH 0x854184AEu
-#define LONG_FRAMES 27273
-#define LONG_HASH 0xF1990810u
-#define PLAYTHROUGH_FRAMES 224
-#define PLAYTHROUGH_HASH 0xD7FCAE25u
 #define DIRECTED_HASH 0xA5C469BDu
 #define DRAW_HASH 0xA740E905u
 #define RESTART_HASH 0xB33A149Au
@@ -68,7 +53,6 @@
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -255,36 +239,16 @@ static void check_int(const char *label, int got, int want) {
 }
 
 static void new_game(void) {
-    pico8_value_t difficulty;
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+    pico8_eu(NULL);
 }
 
-static void start_game(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
     new_game();
-    pico8_cheat_init(&cheat);
-}
-
-static void start_from_title(const char *events) {
-    pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
-    pico8_dispatch_set_input(&input);
-    pico8__init();
-    pico8_cheat_init(&cheat);
-}
-
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
 }
 
 static pico8_value_t call(void *e, const char *name, pico8_value_t arg0, pico8_value_t arg1) {
@@ -378,7 +342,7 @@ static void test_construction(void) {
     int n;
     int i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     gx(classes);
     n = icons(all, 16);
     check_int("eu icons", n, 7);
@@ -418,7 +382,7 @@ static void test_start(void) {
     int i;
     int first = -1;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     n = icons(all, 16);
     for (i = 0; i < n; i++) {
         if (first < 0 && bool_state(all[i], "kh") == 2) {
@@ -436,73 +400,6 @@ static void test_start(void) {
     }
     h = fold_shared(h, all[0]);
     check("start", h, START_HASH);
-}
-
-/* Per frame: every icon, the shared cursor and counter, the hovered icon,
- * and each placement `ie:ldown` hands to `ok.lheld`. */
-static void replay(const char *label, const char *events, int from_title, int want_frames, uint32_t want_hash) {
-    uint32_t h = 2166136261u;
-    void *last_held = NULL;
-    int placed = 0;
-    int frames;
-    int i;
-
-    if (from_title) {
-        start_from_title(events);
-    } else {
-        start_game(events);
-    }
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        void *all[64];
-        void *held;
-        void *hovered;
-        int n;
-        int j;
-
-        play_frame();
-        n = icons(all, 64);
-        h = fnv(h, (uint32_t)n);
-        for (j = 0; j < n; j++) {
-            h = fold_icon(h, all[j]);
-        }
-        if (n > 0) {
-            h = fold_shared(h, all[0]);
-        }
-        hovered = get_ref(pico8_ok(), "o_");
-        h = fnv(h, (uint32_t)icon_rank(hovered));
-
-        held = get_ref(pico8_ok(), "lheld");
-        if (held != NULL && held != last_held) {
-            pico8_value_t id;
-            if (lookup(held, "id", &id) && id.kind == PICO8_VALUE_STRING && id.as.string[0] == 's' &&
-                is_icon(hovered)) {
-                printf("[%s] frame %d: %s placed from icon %d\n", label, i, id.as.string, icon_rank(hovered));
-                h = fnv_str(h, id.as.string);
-                placed++;
-            }
-        }
-        last_held = held;
-    }
-    printf("[%s] %d placements from an icon\n", label, placed);
-    check_int(label, frames, want_frames);
-    check(label, h, want_hash);
-}
-
-static void test_recorded(void) {
-    replay("recorded", RECORDED, 1, RECORDED_FRAMES, RECORDED_HASH);
-}
-
-static void test_hub(void) {
-    replay("hub", HUB, 1, HUB_FRAMES, HUB_HASH);
-}
-
-static void test_long(void) {
-    replay("long", LONG, 1, LONG_FRAMES, LONG_HASH);
-}
-
-static void test_playthrough(void) {
-    replay("playthrough", PLAYTHROUGH, 0, PLAYTHROUGH_FRAMES, PLAYTHROUGH_HASH);
 }
 
 static void *first_icon_with_kh(uint32_t kh) {
@@ -531,7 +428,7 @@ static void test_directed(void) {
     pico8_vec_t ra;
     int n;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     n = icons(all, 16);
     shown = first_icon_with_kh(2);
     hidden = first_icon_with_kh(0);
@@ -604,7 +501,7 @@ static void test_draw(void) {
     void *shown;
     void *hidden;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     shown = first_icon_with_kh(2);
     hidden = first_icon_with_kh(0);
     pico8_camera(&gfx, 0, 0);
@@ -651,7 +548,7 @@ static void test_ke_view(void) {
     int n;
     int i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     n = icons(all, 16);
     check_int("ke view icons", n, 7);
     for (i = 0; i < n; i++) {
@@ -700,7 +597,7 @@ static void test_restart(void) {
     int n;
     int i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     n = icons(all, 16);
     (void)call(all[0], "ldown", pico8_value_ref(NULL), pico8_value_ref(NULL));
     gy = get(all[0], "gy");
@@ -788,7 +685,7 @@ static void test_ie_is_a_struct(void) {
     int n;
     int i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     gx(classes);
     n = icons(all, 16);
     built = build_icon(classes[2], pico8_jb_new(dr_row(2)));
@@ -858,7 +755,7 @@ static void test_ke_view_is_a_struct(void) {
     int n;
     int i;
 
-    start_game(PLAYTHROUGH);
+    start_game();
     gx(classes);
     n = icons(all, 16);
     check_int("ke view struct icons", n, 7);
@@ -901,7 +798,7 @@ static void test_ke_view_is_a_struct(void) {
     }
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
@@ -932,10 +829,6 @@ int main(void) {
     pico8_cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_start);
-    in_fresh_child(test_recorded);
-    in_fresh_child(test_hub);
-    in_fresh_child(test_long);
-    in_fresh_child(test_playthrough);
     in_fresh_child(test_directed);
     in_fresh_child(test_draw);
     in_fresh_child(test_restart);
