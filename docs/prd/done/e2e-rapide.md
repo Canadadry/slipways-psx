@@ -1,7 +1,7 @@
 ---
 title: "e2e rapide : des rejeux courts depuis l'écran titre, choisis par la couverture de lignes"
 description: "Ramener make e2e sous 20 s de rejeu en remplaçant les longs enregistrements et les raccourcis par des rejeux courts, joués depuis l'écran titre, dont chacun ajoute de la couverture de lignes."
-status: needs-triage
+status: done
 ---
 
 ## Problem Statement
