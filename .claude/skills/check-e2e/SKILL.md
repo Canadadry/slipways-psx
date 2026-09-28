@@ -5,11 +5,11 @@ description: Runs `make e2e` and drives every red replay to green through `fix-b
 
 # check-e2e
 
-`make test` is the dev loop: unit tests and static checks, seconds. `make e2e` is the net: every replay of `FRAMES_EVENTS` captured and compared to its `.sha256` reference (`frames-check`). It runs once, at the end — here.
+`make test` is the dev loop: unit tests and static checks, seconds. `make e2e` is the net: every e2e of `tests/e2e/`, replayed from the title screen, captured and compared to its `.json.sha256` reference, about a second. It runs once, at the end — here.
 
-A red e2e is always a bug. An intended rendering change is out of scope for this skill: never run `make frames-baseline`, never edit a `.sha256` reference to get green.
+A red e2e is always a bug. An intended rendering change is out of scope for this skill: never run `make e2e-baseline`, never edit a `.sha256` reference to get green.
 
-Every e2e bug leaves behind a unit test that catches it in `make test`. That is the point: the next time, the dev loop catches it in seconds instead of the net catching it in a minute.
+Every e2e bug leaves behind a unit test that catches it in `make test`. That is the point: the next time, the dev loop catches it in seconds instead of the net catching it later.
 
 ## Rule #1 — never wait on the human
 
@@ -33,9 +33,9 @@ Take the failure whose replay has the fewest frames (the size of `tmp/frames/<ev
 Invoke the `fix-bug` skill in place. Its argument is a bug report you write, containing:
 
 - **Symptom**, verbatim: the `make e2e` output for this failure, nothing paraphrased.
-- **Reproduction**: the replay command — `./tmp/pico8_replay_e2e [--from-title] <events> <capture> <dump>` (`--from-title` for the files in the Makefile's `RECORDINGS`), and `make frames-ref` for the first divergent frame against the commit that set the reference.
+- **Reproduction**: the replay command — `./tmp/pico8_replay <events> <capture> <dump>` — and `make e2e-ref` for the first divergent frame against the commit that set the reference. The `.txt` next to each e2e says what it does and at which frames.
 - **Constraints on the fix**, to be carried into every stage:
-  - The RED test is a **unit test run by `make test`**, registered in the Makefile's `UNIT_TESTS`. Never a new replay in `FRAMES_EVENTS`.
+  - The RED test is a **unit test run by `make test`**, registered in the Makefile's `UNIT_TESTS`. Never a new e2e in `tests/e2e/`.
   - Its cost is **negligible**: it builds the minimal state that reaches the cause, it does not replay a recorded session, and it runs well under 50 ms. Needing a long event sequence to go red is the sign the real cause has not been found — go back to diagnosis, don't ship it.
   - The fix turns **both** the new test and `make e2e` green.
   - A divergence is a bug. Never re-baseline, never edit a `.sha256`.
@@ -45,7 +45,7 @@ Invoke the `fix-bug` skill in place. Its argument is a bug report you write, con
 When `fix-bug` proposes its commit, check each point yourself, with commands you run:
 
 1. The diff adds (or extends) a test under `tests/`, and its binary is in `UNIT_TESTS`.
-2. That test does not read any file of `RECORDINGS` and runs under 50 ms (time `./tmp/<test>`).
+2. That test does not replay any file of `tests/e2e/` and runs under 50 ms (time `./tmp/<test>`).
 3. It **fails on the pre-fix code**: in a throwaway `git worktree` of `HEAD` under `tmp/`, apply only the diff's `tests/` and `Makefile` changes, build and run the test — it must fail. Then it passes on the working tree.
 4. `make test` and `make e2e` are green, and the failure you handed over no longer appears.
 

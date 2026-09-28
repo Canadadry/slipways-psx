@@ -4,6 +4,9 @@ Critère de garde de `docs/prd/triage/e2e-rapide.md` : partir de l'écran
 titre, tenir en 180 frames après minimisation (600 en exception listée),
 ajouter au moins une ligne. Mesuré le 2026-09-27 sur le conteneur (4 cœurs).
 
+Historique : tous ces rejeux, et le raccourci de difficulté, sont retirés du
+dépôt depuis la fin du chantier ; `make e2e` ne rejoue que `tests/e2e/`.
+
 ## Partent du titre (RECORDINGS)
 
 | rejeu | brut | étage mécanique | passe guidée | entre ? |

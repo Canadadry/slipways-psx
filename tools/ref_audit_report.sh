@@ -15,12 +15,12 @@
 # actually arrived. Joining the two is the point -- a site present in the
 # grep but absent from the run is reported NOT COVERED, never "safe".
 #
-# Arguments: the replays to run, each optionally preceded by --from-title
-# (`make ref-audit` passes the net, FRAMES_EVENTS). At least one.
+# Arguments: the replays to run, each from the title screen (`make
+# ref-audit` passes the e2e of tests/e2e). At least one.
 set -e
 
 if [ $# -eq 0 ]; then
-    echo "usage: $0 [--from-title] <events.json> [[--from-title] <events.json>]..." >&2
+    echo "usage: $0 <events.json>..." >&2
     exit 2
 fi
 
@@ -44,15 +44,8 @@ run() {
 }
 
 echo "== running instrumented binaries =="
-while [ $# -gt 0 ]; do
-    if [ "$1" = --from-title ]; then
-        [ $# -ge 2 ] || { echo "$0: --from-title without an events file" >&2; exit 2; }
-        run ./tmp/pico8_replay_refaudit --from-title "$2"
-        shift 2
-    else
-        run ./tmp/pico8_replay_refaudit "$1"
-        shift
-    fi
+for events in "$@"; do
+    run ./tmp/pico8_replay_refaudit "$events"
 done
 for bin in tmp/test_pico8_planet_gh_row_lq_refaudit \
            tmp/test_pico8_data_init_refaudit \

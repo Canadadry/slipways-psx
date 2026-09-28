@@ -1,12 +1,12 @@
 #!/bin/sh
-# usage: line_coverage.sh cover <pilote gcov> <arbre gcov> [--from-title] <events>...
+# usage: line_coverage.sh cover <pilote gcov> <arbre gcov> <events>...
 #        line_coverage.sh diff <ensemble> <ensemble>
 #        line_coverage.sh contrib <ensemble> [<ensemble>...]
 #        line_coverage.sh gap <référence> <inatteignables> <ensemble>
 # Un ensemble : une ligne `fichier:ligne` par ligne source exécutée, triée.
 # cover : l'union des lignes couvertes par les rejeux, un processus par
-#   fichier ; --from-title ne vaut que pour le fichier qui le suit. Rend 1,
-#   sans rien écrire sur la sortie, si un fichier manque ou si un rejeu échoue.
+#   fichier, chacun depuis l'écran titre. Rend 1, sans rien écrire sur la
+#   sortie, si un fichier manque ou si un rejeu échoue.
 # diff : les lignes du premier ensemble absentes du second (l'écart).
 # contrib : les lignes du premier ensemble qu'aucun des autres ne couvre
 #   (l'apport d'un fichier).
@@ -65,12 +65,7 @@ cover() {
 
     i=0
     failed=0
-    flag=
     for arg in "$@"; do
-        if [ "$arg" = --from-title ]; then
-            flag=--from-title
-            continue
-        fi
         i=$((i + 1))
         printf '%s\n' "$arg" > "$work/$i.events"
         if [ ! -f "$arg" ]; then
@@ -79,11 +74,10 @@ cover() {
         else
             (
                 GCOV_PREFIX="$work/$i" GCOV_PREFIX_STRIP=$strip \
-                    "$tool" $flag "$arg" /dev/null "$work/$i.dump" > /dev/null 2> "$work/$i.err"
+                    "$tool" "$arg" /dev/null "$work/$i.dump" > /dev/null 2> "$work/$i.err"
                 echo $? > "$work/$i.status"
             ) &
         fi
-        flag=
     done
     wait
 
@@ -128,7 +122,7 @@ cover() {
 case "${1:-}" in
     cover)
         shift
-        [ $# -ge 2 ] || { echo "usage: $0 cover <pilote gcov> <arbre gcov> [--from-title] <events>..." >&2; exit 1; }
+        [ $# -ge 2 ] || { echo "usage: $0 cover <pilote gcov> <arbre gcov> <events>..." >&2; exit 1; }
         cover "$@"
         ;;
     diff)

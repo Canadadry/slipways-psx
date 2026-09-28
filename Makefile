@@ -2,30 +2,31 @@
 #
 # make test          -> unit + constants-check + float-grep + float-guard, la
 #                       boucle rapide
-# make e2e           -> frames-check, les rejeux, en -O2
+# make e2e           -> rejoue chaque e2e de tests/e2e/ depuis l'écran titre,
+#                       avec le binaire -O0 de make test, et compare le sha256
+#                       de sa capture à <nom>.json.sha256 ; échoue aussi si un
+#                       e2e n'a pas son .txt et son .json.sha256 ou dépasse
+#                       180 frames (600 s'il est listé dans
+#                       tools/e2e_long_exceptions.txt)
 # make test-all      -> test + e2e, la suite complète
 # make unit          -> les binaires de tests/, compilés et lancés
 # make replay EVENTS=<events> -> rejoue ce fichier dans le moteur headless, dump
 #                       du framebuffer dans tmp/pico8_replay_dump.txt ; hors suite
 # make screencast EVENTS=<events> -> refabrique les pixels de chaque frame de ce
 #                       rejeu dans tmp/screencast.bin, pour screencast-viewer
-# make frames-check  -> compare le sha256 de la capture de chaque rejeu du filet à
-#                       sa référence <events>.sha256, dans make e2e
-# make frames-baseline -> (re)pose ces références sur le code actuel, jamais par
-#                       make test
-# make frames-ref    -> pour chaque rejeu divergent, rejoue le commit qui a posé
+# make e2e-baseline  -> (re)pose les .json.sha256 de tests/e2e/ sur le code
+#                       actuel, jamais par make test
+# make e2e-ref       -> pour chaque e2e divergent, rejoue le commit qui a posé
 #                       sa référence (git blame), laisse la capture dans
 #                       tmp/frames/<events>.ref.bin et donne la première frame
 #                       divergente ; hors suite
-# make ref-audit     -> diagnostic des casts REF sur les rejeux du filet
-#                       (FRAMES_EVENTS), hors suite
-# make class-coverage DIR=<dossier> -> rejoue chaque *events.json posé directement
-#                       dans DIR (défaut tests/fixtures, sans sous-dossiers) et
-#                       compte les instanciations par classe ; échoue si une
-#                       classe est à 0 hors tools/class_coverage_exempt.txt,
+# make ref-audit     -> diagnostic des casts REF sur les e2e de tests/e2e/,
 #                       hors suite
-# make class-coverage-net -> idem sur les rejeus du filet (FRAMES_EVENTS), hors
-#                       suite
+# make class-coverage [DIR=<dossier>] -> rejoue les e2e de tests/e2e/ (avec
+#                       DIR : chaque *events.json posé directement dans DIR,
+#                       sans sous-dossiers) et compte les instanciations par
+#                       classe ; échoue si une classe est à 0 hors
+#                       tools/class_coverage_exempt.txt, hors suite
 # make line-coverage EVENTS="<events>..." -> lignes exécutées par ces rejeux
 #                       (pilote instrumenté gcov), une `fichier:ligne` par ligne,
 #                       dans tmp/line_coverage.txt ; hors suite
@@ -33,22 +34,12 @@
 #                       que EVENTS couvre et qu'aucun de OTHERS ne couvre (le
 #                       critère de garde), dans tmp/line_coverage_contrib.txt ;
 #                       hors suite
-# make line-coverage-reference-check -> recalcule la couverture de lignes du
-#                       filet (FRAMES_EVENTS) et la compare à la référence figée
-#                       tools/line_coverage_reference.txt, plusieurs minutes,
-#                       hors suite
-# make e2e-fast      -> frames-check sur les nouveaux e2e de tests/e2e/, depuis
-#                       l'écran titre, avec le binaire -O0 de make test ;
-#                       échoue aussi si un e2e n'a pas son .txt et son
-#                       .json.sha256 ou dépasse 180 frames (600 s'il est listé
-#                       dans tools/e2e_long_exceptions.txt) ; hors suite
-# make e2e-fast-baseline -> (re)pose les .json.sha256 de tests/e2e/
 # make e2e-gap       -> les lignes de tools/line_coverage_reference.txt
-#                       qu'e2e-fast ne couvre pas, moins
+#                       que make e2e ne couvre pas, moins
 #                       tools/line_coverage_unreachable.txt ; échoue tant que
 #                       l'écart n'est pas nul, hors suite
 # make minimize EVENTS=<events> OUT=<sortie> -> minimise ce rejeu (joué depuis
-#                       l'écran titre, SHORTCUT=1 pour le raccourci) : étage
+#                       l'écran titre) : étage
 #                       mécanique (tools/minimize.sh), puis passe guidée tant
 #                       que la couverture de lignes reste celle de l'entrée,
 #                       un rejeu gcov par candidat, lent ; MECHANICAL=1 :
@@ -79,7 +70,7 @@
 #                       (les deux exigent make raylib-vendor-setup au préalable)
 # make psx-hello     -> projet PSX de test (nécessite psn00bsdk-toolchain-setup)
 
-.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all raylib-vendor-setup raylib screencast screencast-viewer frames-check frames-baseline frames-ref
+.PHONY: psn00bsdk-toolchain-setup psx-hello psx-hello-clean unit replay test e2e test-all raylib-vendor-setup raylib screencast screencast-viewer e2e-baseline e2e-ref
 
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 MAKEFLAGS += -j$(NPROC)
@@ -94,13 +85,12 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les sept.
+# sur ce code, sans rien dire. Ne pas fusionner les six.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
 OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
-OBJ_E2E_DIR := $(TMP_DIR)/obj-e2e
 OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 
 # -MMD -MP : le compilateur écrit, à côté de chaque objet, la liste des en-têtes
@@ -111,8 +101,6 @@ ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
 REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
 COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
-# Rejeux de make e2e seulement ; les TU restent en -O0, lisibles sous gdb.
-E2E_CFLAGS := -O2
 GCOV_CFLAGS := --coverage
 
 # $(call objs,<liste de .c>) -> les chemins des .o correspondants dans l'arbre
@@ -123,7 +111,6 @@ asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
 refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
-e2e_objs = $(patsubst %.c,$(OBJ_E2E_DIR)/%.o,$(1))
 gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 
 # mkdir -p $(@D) dans la recette plutôt qu'un répertoire en prérequis : le mtime
@@ -147,10 +134,6 @@ $(OBJ_REFAUDIT_DIR)/%.o: %.c
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(COVERAGE_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
-$(OBJ_E2E_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(E2E_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 $(OBJ_GCOV_DIR)/%.o: %.c
 	@mkdir -p $(@D)
@@ -343,7 +326,7 @@ $(TMP_DIR)/test_pico8_headless_capture: $(call objs,tests/test_pico8_headless_ca
 $(TMP_DIR)/test_pico8_replay_from_title: $(call objs,tests/test_pico8_replay_from_title.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json tests/fixtures/title_click_reasonable.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_pico8_replay_usage: $(call objs,tests/test_pico8_replay_usage.c) $(TMP_DIR)/pico8_replay | $(TMP_DIR)
+$(TMP_DIR)/test_pico8_replay_usage: $(call objs,tests/test_pico8_replay_usage.c) $(TMP_DIR)/pico8_replay tests/fixtures/title_click_forgiving.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/pico8_frames: $(call objs,src/main_frames.c src/pico8_screencast.c src/pico8_dump.c src/pico8_mem.c) | $(TMP_DIR)
@@ -356,7 +339,7 @@ $(TMP_DIR)/test_pico8_frames_tool: $(call objs,tests/test_pico8_frames_tool.c sr
 $(TMP_DIR)/test_frames_check: $(call objs,tests/test_frames_check.c) tools/frames_check.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-$(TMP_DIR)/test_class_coverage: $(call objs,tests/test_class_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/screencast_capture_events.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
+$(TMP_DIR)/test_class_coverage: $(call objs,tests/test_class_coverage.c) $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh tests/fixtures/title_click_forgiving.json tests/fixtures/events_malformed_missing_field.json | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/test_line_coverage: $(call objs,tests/test_line_coverage.c) $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh | $(TMP_DIR)
@@ -425,9 +408,6 @@ $(TMP_DIR)/test_pico8_demo: $(call objs,tests/test_pico8_demo.c src/pico8_mem.c 
 REPLAY_SRCS := src/main.c src/pico8_screencast.c $(ENGINE_SRCS)
 
 $(TMP_DIR)/pico8_replay: $(call objs,$(REPLAY_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
-
-$(TMP_DIR)/pico8_replay_e2e: $(call e2e_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
 $(TMP_DIR)/pico8_replay_gcov: $(call gcov_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
@@ -526,12 +506,10 @@ ifneq ($(filter replay screencast,$(MAKECMDGOALS)),)
     endif
 endif
 
-replay: $(TMP_DIR)/pico8_replay_e2e
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(EVENTS)) $(EVENTS)
+replay: $(TMP_DIR)/pico8_replay
+	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
 test: unit constants-check float-grep float-guard
-
-e2e: frames-check
 
 test-all: test e2e
 
@@ -539,22 +517,13 @@ SCREENCAST_BIN := $(TMP_DIR)/screencast.bin
 
 SCREENCAST_VIEWER_BIN := $(TMP_DIR)/screencast_viewer
 
-# Les enregistrements raylib cliquent eux-mêmes la difficulté sur l'écran
-# titre : tout pilote qui les rejoue passe $(call from_title,<events>).
-RECORDINGS := \
-    tests/fixtures/session_events.json \
-    tests/fixtures/long_session_events.json \
-    tests/fixtures/events_recorded_1790198294.json \
-    tests/fixtures/trading_hub_session_events.json
-# Les nouveaux e2e : <nom>.json (même format qu'un enregistrement raylib),
-# <nom>.txt (ce que fait le rejeu, frames des actions clés) et
-# <nom>.json.sha256. Tous partent de l'écran titre.
-E2E_FAST_DIR := tests/e2e
-E2E_FAST_EVENTS := $(sort $(wildcard $(E2E_FAST_DIR)/*.json))
+# Les e2e : <nom>.json (même format qu'un enregistrement raylib), <nom>.txt
+# (ce que fait le rejeu, frames des actions clés) et <nom>.json.sha256. Tous
+# partent de l'écran titre.
+E2E_DIR := tests/e2e
+E2E_EVENTS := $(sort $(wildcard $(E2E_DIR)/*.json))
 # Une ligne `<events> raison` par e2e admis jusqu'à 600 frames au lieu de 180.
-E2E_FAST_EXCEPTIONS := tools/e2e_long_exceptions.txt
-
-from_title = $(if $(filter $(RECORDINGS) $(E2E_FAST_EVENTS),$(1)),--from-title)
+E2E_EXCEPTIONS := tools/e2e_long_exceptions.txt
 
 ifeq ($(UNAME_S),Darwin)
     SHA256_CMD := shasum -a 256
@@ -564,8 +533,8 @@ endif
 
 # Refaite à chaque appel : EVENTS change d'un appel à l'autre sans que make le
 # voie. Cible fichier plutôt que phony, pour que .DELETE_ON_ERROR s'applique.
-$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay_e2e FORCE | $(TMP_DIR)
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$(EVENTS)) $(EVENTS) $@ $(@:.bin=.dump.txt)
+$(SCREENCAST_BIN): $(TMP_DIR)/pico8_replay FORCE | $(TMP_DIR)
+	./$(TMP_DIR)/pico8_replay $(EVENTS) $@ $(@:.bin=.dump.txt)
 
 screencast: $(SCREENCAST_BIN)
 
@@ -576,28 +545,10 @@ FORCE:
 # et l'empreinte suivante porterait sur lui.
 .DELETE_ON_ERROR:
 
-# FILET (docs/plan-2.md §5) : le sha256 de la capture de chaque fichier
-# d'événements, versionné à côté de lui sous <events>.sha256. La capture est la
-# concaténation brute des frames : son empreinte couvre aussi leur nombre.
-# Liste explicite : un motif sur tests/fixtures/ ramasserait les fixtures
-# malformées et celles du lecteur d'entrée.
-FRAMES_EVENTS := \
-    tests/fixtures/session_events.json \
-    tests/fixtures/phase4_playthrough_events.json \
-    tests/fixtures/built_planet_panel_events.json \
-    tests/fixtures/empty_planet_cleared_events.json \
-    tests/fixtures/slipway_drag_events.json \
-    tests/fixtures/shop_button_hover_events.json \
-    tests/fixtures/screencast_capture_events.json \
-    tests/fixtures/top_menubar_events.json \
-    tests/fixtures/tech_screen_invent_events.json \
-    tests/fixtures/game_end_events.json \
-    tests/fixtures/pause_menu_music_events.json \
-    tests/fixtures/geoharvest_burst_events.json \
-    tests/fixtures/long_session_events.json \
-    tests/fixtures/events_recorded_1790198294.json \
-    tests/fixtures/trading_hub_session_events.json
-
+# Le sha256 de la capture de chaque e2e, versionné à côté de lui sous
+# <events>.sha256. La capture est la concaténation brute des frames : son
+# empreinte couvre aussi leur nombre. Le binaire -O0 de make test : pas de
+# second arbre à compiler, et lisible sous gdb.
 FRAMES_TOOL := $(TMP_DIR)/pico8_frames
 FRAMES_DIR := $(TMP_DIR)/frames
 
@@ -605,15 +556,15 @@ frames_capture = $(FRAMES_DIR)/$(1).bin
 frames_current = $(FRAMES_DIR)/$(1).sha256
 frames_reference = $(1).sha256
 
-# Sans .SECONDARY, make effacerait ces captures intermédiaires, que frames-ref
+# Sans .SECONDARY, make effacerait ces captures intermédiaires, que e2e-ref
 # compare à la capture de référence.
-.SECONDARY: $(foreach e,$(FRAMES_EVENTS),$(call frames_capture,$(e)))
+.SECONDARY: $(foreach e,$(E2E_EVENTS),$(call frames_capture,$(e)))
 
 # Chaque capture a son propre dump texte : le dump par défaut,
 # tmp/pico8_replay_dump.txt, est relu par deux TU qui tournent en parallèle.
-$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay_e2e
+$(FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
 	@mkdir -p $(@D)
-	./$(TMP_DIR)/pico8_replay_e2e $(call from_title,$<) $< $@ $(@:.bin=.dump.txt) > /dev/null
+	./$(TMP_DIR)/pico8_replay $< $@ $(@:.bin=.dump.txt) > /dev/null
 
 # L'affectation porte le code de sortie du sha256, qu'un pipe vers cut perdrait.
 frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
@@ -621,43 +572,18 @@ frames_hash = @mkdir -p $(@D); h=$$($(SHA256_CMD) $<) && echo "$${h%% *}" > $@
 $(FRAMES_DIR)/%.sha256: $(FRAMES_DIR)/%.bin
 	$(frames_hash)
 
-# Un rejeu sans référence n'est ni capturé ni comparé.
-FRAMES_CHECK_PREREQ := $(foreach e,$(FRAMES_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e))))
-FRAMES_TRIPLETS := $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)))
-
-frames-check: $(FRAMES_CHECK_PREREQ) tools/frames_check.sh
-	@sh tools/frames_check.sh $(FRAMES_TRIPLETS)
-
-frames-baseline: $(foreach e,$(FRAMES_EVENTS),$(call frames_current,$(e)))
-	@$(foreach e,$(FRAMES_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "frames: reference posee dans $(call frames_reference,$(e)) : $$(cat $(call frames_reference,$(e)))" && ) true
-
-frames-ref: $(FRAMES_CHECK_PREREQ) $(FRAMES_TOOL) tools/frames_ref.sh
-	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(FRAMES_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)) $(or $(call from_title,$(e)),-))
-
-# Le binaire -O0 de make test, pas celui de make e2e : pas de second arbre à
-# compiler, et lisible sous gdb.
-E2E_FAST_FRAMES_DIR := $(TMP_DIR)/frames-fast
-
-.SECONDARY: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).bin)
-
-$(E2E_FAST_FRAMES_DIR)/%.bin: % $(TMP_DIR)/pico8_replay
-	@mkdir -p $(@D)
-	./$(TMP_DIR)/pico8_replay $(call from_title,$<) $< $@ $(@:.bin=.dump.txt) > /dev/null
-
-$(E2E_FAST_FRAMES_DIR)/%.sha256: $(E2E_FAST_FRAMES_DIR)/%.bin
-	$(frames_hash)
-
-e2e-fast: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).sha256) tools/e2e_limits.sh tools/frames_check.sh $(E2E_FAST_EXCEPTIONS)
+e2e: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e))) tools/e2e_limits.sh tools/frames_check.sh $(E2E_EXCEPTIONS)
 	@status=0; \
-	sh tools/e2e_limits.sh $(E2E_FAST_EXCEPTIONS) $(E2E_FAST_EVENTS) || status=1; \
-	FRAMES_BASELINE=e2e-fast-baseline sh tools/frames_check.sh $(foreach e,$(E2E_FAST_EVENTS),$(e) $(call frames_reference,$(e)) $(E2E_FAST_FRAMES_DIR)/$(e).sha256) || status=1; \
-	echo "e2e-fast: $(words $(E2E_FAST_EVENTS)) e2e dans $(E2E_FAST_DIR)"; \
+	sh tools/e2e_limits.sh $(E2E_EXCEPTIONS) $(E2E_EVENTS) || status=1; \
+	sh tools/frames_check.sh $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e))) || status=1; \
+	echo "e2e: $(words $(E2E_EVENTS)) e2e dans $(E2E_DIR)"; \
 	exit $$status
 
-e2e-fast-baseline: $(foreach e,$(E2E_FAST_EVENTS),$(E2E_FAST_FRAMES_DIR)/$(e).sha256)
-	@$(foreach e,$(E2E_FAST_EVENTS),cp $(E2E_FAST_FRAMES_DIR)/$(e).sha256 $(call frames_reference,$(e)) && echo "e2e-fast: reference posee dans $(call frames_reference,$(e))" && ) true
+e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
+	@$(foreach e,$(E2E_EVENTS),cp $(call frames_current,$(e)) $(call frames_reference,$(e)) && echo "e2e: reference posee dans $(call frames_reference,$(e))" && ) true
 
-.PHONY: e2e-fast e2e-fast-baseline
+e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
+	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
 # make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
 # Il répond « quels sites de cast REF ont été atteints, et avec quel tag », en
@@ -688,7 +614,7 @@ REFAUDIT_BINS := \
 # compare aux sites qu'il grep dans src/, pour qu'un site jamais atteint sorte en
 # NOT COVERED au lieu de manquer en silence.
 ref-audit: $(REFAUDIT_BINS)
-	sh tools/ref_audit_report.sh $(foreach e,$(FRAMES_EVENTS),$(call from_title,$(e)) $(e))
+	sh tools/ref_audit_report.sh $(E2E_EVENTS)
 
 .PHONY: ref-audit
 
@@ -697,64 +623,45 @@ ref-audit: $(REFAUDIT_BINS)
 $(TMP_DIR)/pico8_class_coverage: $(call coverage_objs,src/main_class_coverage.c src/pico8_class.c) $(call objs,$(filter-out src/pico8_class.c,$(ENGINE_SRCS))) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
-DIR ?= tests/fixtures
 CLASS_COVERAGE_EXEMPT := tools/class_coverage_exempt.txt
 
-class_coverage_recordings = $(foreach e,$(RECORDINGS),--from-title $(e))
-
 class-coverage: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
-	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage '$(DIR)' $(CLASS_COVERAGE_EXEMPT)
+	@sh tools/class_coverage.sh ./$(TMP_DIR)/pico8_class_coverage '$(or $(DIR),-)' $(CLASS_COVERAGE_EXEMPT) $(if $(DIR),,$(E2E_EVENTS))
 
-class-coverage-net: $(TMP_DIR)/pico8_class_coverage tools/class_coverage.sh $(CLASS_COVERAGE_EXEMPT)
-	@sh tools/class_coverage.sh $(class_coverage_recordings) ./$(TMP_DIR)/pico8_class_coverage - $(CLASS_COVERAGE_EXEMPT) $(FRAMES_EVENTS)
-
-.PHONY: class-coverage class-coverage-net
+.PHONY: class-coverage
 
 LINE_COVERAGE := sh tools/line_coverage.sh
 LINE_COVERAGE_COVER := $(LINE_COVERAGE) cover ./$(TMP_DIR)/pico8_replay_gcov $(OBJ_GCOV_DIR)
-# Écrite une fois, sur le filet qui contenait encore les longs enregistrements
-# et le raccourci de difficulté : on ne la recalcule pas, on la compare.
+# Écrite une fois, sur l'ancien filet de longs enregistrements : on ne la
+# recalcule pas, on la compare.
 LINE_COVERAGE_REFERENCE := tools/line_coverage_reference.txt
 # Une ligne `fichier:ligne raison` par ligne de la référence qu'aucun rejeu
 # court n'atteint, éditée à la main.
 LINE_COVERAGE_UNREACHABLE := tools/line_coverage_unreachable.txt
 
-line_coverage_args = $(foreach e,$(1),$(call from_title,$(e)) $(e))
-
 line-coverage: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(EVENTS)) > $(TMP_DIR)/line_coverage.txt
+	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage.txt
 	@echo "couverture de lignes: $$(wc -l < $(TMP_DIR)/line_coverage.txt) ligne(s) dans $(TMP_DIR)/line_coverage.txt"
 
 line-coverage-contrib: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(EVENTS)) > $(TMP_DIR)/line_coverage_self.txt
-	@$(if $(strip $(OTHERS)),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(OTHERS)),:) > $(TMP_DIR)/line_coverage_others.txt
+	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/line_coverage_self.txt
+	@$(if $(strip $(OTHERS)),$(LINE_COVERAGE_COVER) $(OTHERS),:) > $(TMP_DIR)/line_coverage_others.txt
 	@$(LINE_COVERAGE) contrib $(TMP_DIR)/line_coverage_self.txt $(TMP_DIR)/line_coverage_others.txt > $(TMP_DIR)/line_coverage_contrib.txt
 	@echo "apport de $(EVENTS): $$(wc -l < $(TMP_DIR)/line_coverage_contrib.txt) ligne(s) dans $(TMP_DIR)/line_coverage_contrib.txt"
 
-line-coverage-reference-check: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE)
-	@$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(FRAMES_EVENTS)) > $(TMP_DIR)/line_coverage_net.txt
-	@$(LINE_COVERAGE) diff $(LINE_COVERAGE_REFERENCE) $(TMP_DIR)/line_coverage_net.txt > $(TMP_DIR)/line_coverage_lost.txt
-	@$(LINE_COVERAGE) diff $(TMP_DIR)/line_coverage_net.txt $(LINE_COVERAGE_REFERENCE) > $(TMP_DIR)/line_coverage_new.txt
-	@if [ -s $(TMP_DIR)/line_coverage_lost.txt ] || [ -s $(TMP_DIR)/line_coverage_new.txt ]; then \
-	    sed 's/^/référence seulement: /' $(TMP_DIR)/line_coverage_lost.txt; \
-	    sed 's/^/filet seulement: /' $(TMP_DIR)/line_coverage_new.txt; \
-	    echo "référence: ÉCHEC -- le filet ne rend plus $(LINE_COVERAGE_REFERENCE)"; exit 1; \
-	fi
-	@echo "référence: OK -- le filet rend les $$(wc -l < $(LINE_COVERAGE_REFERENCE)) ligne(s) de $(LINE_COVERAGE_REFERENCE)"
-
 # Sans e2e, l'ensemble couvert est vide : l'écart est toute la référence.
 e2e-gap: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE)
-	@$(if $(E2E_FAST_EVENTS),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(E2E_FAST_EVENTS)),:) > $(TMP_DIR)/line_coverage_e2e_fast.txt
-	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e_fast.txt > $(TMP_DIR)/line_coverage_gap.txt
+	@$(if $(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(E2E_EVENTS),:) > $(TMP_DIR)/line_coverage_e2e.txt
+	@$(LINE_COVERAGE) gap $(LINE_COVERAGE_REFERENCE) $(LINE_COVERAGE_UNREACHABLE) $(TMP_DIR)/line_coverage_e2e.txt > $(TMP_DIR)/line_coverage_gap.txt
 	@sed 's/^/manque: /' $(TMP_DIR)/line_coverage_gap.txt
 	@n=$$(wc -l < $(TMP_DIR)/line_coverage_gap.txt | tr -d ' '); \
 	if [ "$$n" -ne 0 ]; then \
-	    echo "écart: $$n ligne(s) de $(LINE_COVERAGE_REFERENCE) ni couvertes par e2e-fast ($(words $(E2E_FAST_EVENTS)) e2e) ni dans $(LINE_COVERAGE_UNREACHABLE), dans $(TMP_DIR)/line_coverage_gap.txt"; \
+	    echo "écart: $$n ligne(s) de $(LINE_COVERAGE_REFERENCE) ni couvertes par make e2e ($(words $(E2E_EVENTS)) e2e) ni dans $(LINE_COVERAGE_UNREACHABLE), dans $(TMP_DIR)/line_coverage_gap.txt"; \
 	    exit 1; \
 	fi
-	@echo "écart: nul -- e2e-fast couvre toute la référence hors $(LINE_COVERAGE_UNREACHABLE)"
+	@echo "écart: nul -- make e2e couvre toute la référence hors $(LINE_COVERAGE_UNREACHABLE)"
 
-.PHONY: line-coverage line-coverage-contrib line-coverage-reference-check e2e-gap
+.PHONY: line-coverage line-coverage-contrib e2e-gap
 
 ifneq ($(filter minimize,$(MAKECMDGOALS)),)
     ifeq ($(and $(strip $(EVENTS)),$(strip $(OUT))),)
@@ -767,29 +674,25 @@ ifneq ($(filter e2e-judge,$(MAKECMDGOALS)),)
     endif
 endif
 
-# Le rejeu d'un fichier à minimiser part de l'écran titre, comme tout
-# nouvel e2e ; SHORTCUT=1 garde le raccourci de difficulté.
-MINIMIZE_ORACLE := $(LINE_COVERAGE_COVER) $(if $(SHORTCUT),,--from-title)
-
 minimize: $(TMP_DIR)/pico8_minimize $(TMP_DIR)/pico8_replay_gcov tools/minimize.sh tools/line_coverage.sh
-	@sh tools/minimize.sh ./$(TMP_DIR)/pico8_minimize $(if $(MIN_CHUNK),--min-chunk $(MIN_CHUNK)) $(EVENTS) $(OUT) $(if $(MECHANICAL),,$(MINIMIZE_ORACLE))
+	@sh tools/minimize.sh ./$(TMP_DIR)/pico8_minimize $(if $(MIN_CHUNK),--min-chunk $(MIN_CHUNK)) $(EVENTS) $(OUT) $(if $(MECHANICAL),,$(LINE_COVERAGE_COVER))
 	@echo "minimize: $(EVENTS) -> $(OUT), $$(./$(TMP_DIR)/pico8_minimize count $(OUT)) frame(s)"
 
 E2E_CLEANUP_DIR := $(TMP_DIR)/e2e_cleanup
 
 e2e-cleanup: $(TMP_DIR)/pico8_minimize $(TMP_DIR)/pico8_replay_gcov tools/e2e_cleanup.sh tools/line_coverage.sh
 	@rm -rf $(E2E_CLEANUP_DIR) && mkdir -p $(E2E_CLEANUP_DIR)
-	@$(foreach e,$(E2E_FAST_EVENTS),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(e)) > $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines && ) true
-	@$(if $(E2E_FAST_EVENTS),sh tools/e2e_cleanup.sh $(foreach e,$(E2E_FAST_EVENTS),$(e) $$(./$(TMP_DIR)/pico8_minimize count $(e)) $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines),:) > $(E2E_CLEANUP_DIR)/remove.txt
+	@$(foreach e,$(E2E_EVENTS),$(LINE_COVERAGE_COVER) $(e) > $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines && ) true
+	@$(if $(E2E_EVENTS),sh tools/e2e_cleanup.sh $(foreach e,$(E2E_EVENTS),$(e) $$(./$(TMP_DIR)/pico8_minimize count $(e)) $(E2E_CLEANUP_DIR)/$(notdir $(e)).lines),:) > $(E2E_CLEANUP_DIR)/remove.txt
 	@sed 's/^/à retirer: /' $(E2E_CLEANUP_DIR)/remove.txt
-	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') fichier(s) à retirer sur $(words $(E2E_FAST_EVENTS)), rien n'est supprimé"
+	@echo "e2e-cleanup: $$(wc -l < $(E2E_CLEANUP_DIR)/remove.txt | tr -d ' ') fichier(s) à retirer sur $(words $(E2E_EVENTS)), rien n'est supprimé"
 
 e2e-judge: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
-	@$(LINE_COVERAGE_COVER) $(if $(SHORTCUT),,--from-title) $(EVENTS) > $(TMP_DIR)/e2e_judge_self.txt
-	@$(if $(filter-out $(EVENTS),$(E2E_FAST_EVENTS)),$(LINE_COVERAGE_COVER) $(call line_coverage_args,$(filter-out $(EVENTS),$(E2E_FAST_EVENTS))),:) > $(TMP_DIR)/e2e_judge_others.txt
+	@$(LINE_COVERAGE_COVER) $(EVENTS) > $(TMP_DIR)/e2e_judge_self.txt
+	@$(if $(filter-out $(EVENTS),$(E2E_EVENTS)),$(LINE_COVERAGE_COVER) $(filter-out $(EVENTS),$(E2E_EVENTS)),:) > $(TMP_DIR)/e2e_judge_others.txt
 	@$(LINE_COVERAGE) contrib $(TMP_DIR)/e2e_judge_self.txt $(TMP_DIR)/e2e_judge_others.txt > $(TMP_DIR)/e2e_judge_contrib.txt
 	@n=$$(wc -l < $(TMP_DIR)/e2e_judge_contrib.txt | tr -d ' '); \
-	echo "e2e-judge: $(EVENTS) ajoute $$n ligne(s) à e2e-fast, dans $(TMP_DIR)/e2e_judge_contrib.txt"; \
+	echo "e2e-judge: $(EVENTS) ajoute $$n ligne(s) à make e2e, dans $(TMP_DIR)/e2e_judge_contrib.txt"; \
 	[ "$$n" -gt 0 ]
 
 .PHONY: minimize e2e-cleanup e2e-judge
@@ -872,5 +775,4 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
--include $(wildcard $(OBJ_E2E_DIR)/src/*.d $(OBJ_E2E_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_GCOV_DIR)/src/*.d $(OBJ_GCOV_DIR)/tests/*.d)

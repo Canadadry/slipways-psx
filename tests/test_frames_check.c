@@ -1,4 +1,4 @@
-/* tools/frames_check.sh, le corps de `make frames-check`, sur des empreintes
+/* tools/frames_check.sh, la comparaison d'empreintes de `make e2e`, sur des empreintes
  * fabriquees : il se teste par ce qu'il doit empecher. */
 
 #include <assert.h>
@@ -79,7 +79,7 @@ static void test_every_divergent_replay_is_named_with_both_hashes(void) {
     assert(strstr(log, HASH_X) != NULL);
     assert(strstr(log, HASH_A) != NULL);
     assert(strstr(log, HASH_B) != NULL);
-    assert(strstr(log, "make frames-ref") != NULL);
+    assert(strstr(log, "make e2e-ref") != NULL);
     free(log);
 }
 
@@ -102,20 +102,9 @@ static void test_missing_reference_is_not_compared_and_says_how_to_set_it(void) 
     assert(run_check() == 0);
     char *log = read_log();
     assert(strstr(log, A_REF) != NULL);
-    assert(strstr(log, "make frames-baseline") != NULL);
+    assert(strstr(log, "make e2e-baseline") != NULL);
     assert(strstr(log, A_EVENTS " : conforme") == NULL);
     assert(strstr(log, B_EVENTS " : conforme") != NULL);
-    free(log);
-}
-
-/* e2e-fast pose ses references par une autre cible : le conseil la nomme. */
-static void test_baseline_target_named_by_environment(void) {
-    reset();
-    write_hash(B_REF, HASH_X);
-    assert(system("FRAMES_BASELINE=e2e-fast-baseline " SCRIPT ARGS " > " LOG " 2>&1") != 0);
-    char *log = read_log();
-    assert(strstr(log, "make e2e-fast-baseline") != NULL);
-    assert(strstr(log, "make frames-baseline") == NULL);
     free(log);
 }
 
@@ -139,7 +128,6 @@ int main(void) {
     test_only_the_divergent_replay_is_named();
     test_missing_reference_is_not_compared_and_says_how_to_set_it();
     test_missing_current_hash_fails();
-    test_baseline_target_named_by_environment();
     assert(system("rm -rf " DIR) == 0);
     printf("test_frames_check: all tests passed\n");
     return 0;

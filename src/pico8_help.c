@@ -159,7 +159,3 @@ pico8_class_t *pico8_fv_class(void) {
 pico8_instance_t *pico8_fv_new(const pico8_ob_table_t *overrides) {
     return pico8_class_instantiate(g_fv_class, overrides);
 }
-
-const pico8_ob_table_t *pico8_bo(void) {
-    return g_bo;
-}

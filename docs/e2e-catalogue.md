@@ -1,7 +1,11 @@
 # Catalogue des scénarios e2e
 
-**Statut : validé par l'humain le 2026-09-27**, avec les décisions ci-dessous,
-qui priment sur le reste du document.
+**Statut : épuisé, chantier clos.** Validé par l'humain le 2026-09-27, avec
+les décisions ci-dessous, qui priment sur le reste du document. Les 25 e2e de
+`tests/e2e/` couvrent toute la référence (`make e2e-gap` nul, aucune ligne
+inatteignable) ; les anciens rejeux de `tests/fixtures/` et le raccourci de
+difficulté sont retirés, `make e2e` ne rejoue plus que `tests/e2e/`. Le reste
+du document est l'historique du chantier.
 
 ## Décisions de l'humain
 

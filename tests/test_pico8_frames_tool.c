@@ -1,4 +1,4 @@
-/* L'outil d'emission de frames, lance tel que les messages de make frames-ref
+/* L'outil d'emission de frames, lance tel que les messages de make e2e-ref
  * le proposent, sur une capture faite par le vrai pilote de rejeu. Comme
  * test_pico8_headless_capture, ce test reecrit le dump du pilote. */
 

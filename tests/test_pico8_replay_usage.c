@@ -43,13 +43,15 @@ static void test_no_argument_prints_usage_and_fails(void) {
     assert_usage_and_failure("");
 }
 
-static void test_flag_alone_prints_usage_and_fails(void) {
-    assert_usage_and_failure(" --from-title");
+/* Le pilote ne prend aucune option : un argument en tiret n'est pas pris
+ * pour un fichier d'evenements. */
+static void test_option_prints_usage_and_fails(void) {
+    assert_usage_and_failure(" --from-title tests/fixtures/title_click_forgiving.json");
 }
 
 int main(void) {
     test_no_argument_prints_usage_and_fails();
-    test_flag_alone_prints_usage_and_fails();
+    test_option_prints_usage_and_fails();
     remove(STDERR_LOG);
     printf("test_pico8_replay_usage: all tests passed\n");
     return 0;

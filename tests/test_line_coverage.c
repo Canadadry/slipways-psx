@@ -87,14 +87,6 @@ static void test_cover_of_a_set_is_the_union(void) {
     assert(line_count(DIR "/gap.lines") == 0);
 }
 
-/* --from-title ne vaut que pour le fichier qui le suit : rejoue sans le
- * raccourci, le meme fichier couvre d'autres lignes du pilote. */
-static void test_from_title_changes_the_replay(void) {
-    assert(run(COVER " --from-title " IDLE, DIR "/title.lines") == 0);
-    assert(run(SCRIPT " diff " DIR "/idle.lines " DIR "/title.lines", DIR "/gap.lines") == 0);
-    assert(line_count(DIR "/gap.lines") > 0);
-}
-
 static void test_missing_or_malformed_file_fails(void) {
     assert(run(COVER " " DIR "/absent_events.json", DIR "/x.lines") != 0);
     assert(strstr(read_file(LOG), DIR "/absent_events.json") != NULL);
@@ -159,7 +151,6 @@ int main(void) {
     write_fixtures();
     test_idle_file_covers_strictly_less_than_clicking_file();
     test_cover_of_a_set_is_the_union();
-    test_from_title_changes_the_replay();
     test_missing_or_malformed_file_fails();
     test_diff_returns_lines_of_first_set_missing_from_second();
     test_contrib_returns_lines_no_other_set_covers();

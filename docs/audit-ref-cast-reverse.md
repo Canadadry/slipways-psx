@@ -282,5 +282,5 @@ Sortie brute dans `tmp/ref_audit_raw.txt`, rapport dans
 n'est volontairement pas dans `make test`, parce qu'elle répond à « qu'est-ce
 que les scénarios atteignent » et non à « le port se comporte-t-il bien ».
 Le script rejoue les fichiers qu'il reçoit en argument ; `make ref-audit` lui
-passe les rejeux du filet (`FRAMES_EVENTS`). Pour étendre la couverture,
-ajouter un rejeu au filet ou un binaire au bloc `REFAUDIT_BINS` du Makefile.
+passe les e2e de `tests/e2e/`. Pour étendre la couverture, ajouter un e2e
+ou un binaire au bloc `REFAUDIT_BINS` du Makefile.
