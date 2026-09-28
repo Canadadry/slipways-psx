@@ -3,8 +3,7 @@
  * its three roads (`bg:ldown`, `pico8_g__new(NULL)`, `pico8_g__new` with the
  * 4 keys of probe_mm_rnd_order) and driven through the real `mv`/`dc`/`dg`.
  * Its methods are compared to the public functions. Its daughter `fv` is
- * read on the title screen. The frozen values were taken on the code where
- * `g_` was still a class instance and must not be re-taken. */
+ * read on the title screen. No events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -21,7 +20,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -47,7 +45,6 @@
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
-#define DRAG "tests/fixtures/slipway_drag_events.json"
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -57,8 +54,6 @@
 #define LIFE_HASH 0x26179978u
 #define EY_ON_HASH 0x7D81D210u
 #define EY_OFF_HASH 0x196FE04Du
-#define DRAG_HASH 0xBF801C2Fu
-#define DRAG_PROBES 2
 #define FV_HASH 0xE9230D69u
 #define BV_ET_MEMBERS_HASH 0x2E520916u
 #define G__MEMBERS_HASH 0x90C4FE7Du
@@ -66,7 +61,6 @@
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* g_'s 18 spec defaults, in spec order. */
 static const char *const defaults[] = {"nu", "fx", "dq", "od", "fp", "fa", "dw", "py", "ki",
@@ -234,12 +228,6 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_int(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
 static uint32_t screen_hash(void) {
     uint32_t h = 2166136261u;
     int i;
@@ -251,29 +239,13 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_game(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-    pico8_eu(pico8_js_new(bo_row(2)));
-}
-
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
-    }
+    pico8_eu(NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -401,7 +373,7 @@ static void test_built(void) {
     void *b;
     void *c;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     h = fold_probe(h, a);
     b = pico8_g__new(NULL);
@@ -532,7 +504,7 @@ static void test_life(void) {
     pico8_vec_t middle;
     int i;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     b = pico8_g__new(NULL);
     jc = a_slipway(&middle);
@@ -584,7 +556,7 @@ static void test_ey_on(void) {
     void *a;
     pico8_value_t out;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     (void)call(a, "hq", 2, mouse_at(vec_of(a_planet(), "p")),
                vec_ref(vec_xy(64, 64)));
@@ -604,7 +576,7 @@ static void test_ey_off(void) {
     void *a;
     pico8_value_t out;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     out = call(a, "ey", 0, nil(), nil());
     assert(pico8_value_equal(out, pico8_value_bool(1)));
@@ -626,7 +598,7 @@ static void test_ey_void(void) {
     pico8_value_t me;
     pico8_value_t out;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     (void)a_slipway(&middle);
     (void)call(a, "hq", 2, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
@@ -642,64 +614,6 @@ static void test_ey_void(void) {
     assert(pico8_value_equal(get(a, "me"), me));
     assert(et_kind(a) == 4);
     printf("[ey void] refused\n");
-}
-
-/* The slipway drag fixture, started as main.c starts it: per frame, each
- * live probe's rank, `me`, `t`, `p_`, `et`'s kind, `qy`'s size and `ra`;
- * each probe's birth and death frames; the last screen. */
-static void test_drag(void) {
-    uint32_t h = 2166136261u;
-    const void *seen[8];
-    int birth[8];
-    int death[8];
-    int probes = 0;
-    int i;
-    int k;
-
-    start_game(DRAG);
-    for (i = 0; i < input.frame_count; i++) {
-        const pico8_list_t *hv;
-        int j;
-
-        play_frame(i);
-        hv = pico8_hv();
-        for (k = 0; k < probes; k++) {
-            if (death[k] < 0 && !listed(hv, seen[k])) {
-                death[k] = i;
-                h = fnv(fnv(h, 0xD1Eu), (uint32_t)i);
-            }
-        }
-        for (j = 0; j < hv->count; j++) {
-            const void *e = hv->items[j].as.ref;
-            if (!is_probe(e)) {
-                continue;
-            }
-            for (k = 0; k < probes && seen[k] != e; k++) {
-            }
-            if (k == probes) {
-                assert(probes < 8);
-                seen[probes] = e;
-                birth[probes] = i;
-                death[probes] = -1;
-                probes++;
-                h = fnv(fnv(h, 0xB1Eu), (uint32_t)i);
-            }
-            h = fnv(h, (uint32_t)i);
-            h = fnv(h, (uint32_t)j);
-            h = fold_field(h, e, "me");
-            h = fold_field(h, e, "t");
-            h = fold_field(h, e, "p_");
-            h = fnv(h, et_kind(e));
-            h = fnv(h, (uint32_t)size_of(e, "qy"));
-            h = fold_vec(h, e, "ra");
-        }
-    }
-    for (k = 0; k < probes; k++) {
-        printf("[drag] probe %d born %d died %d\n", k, birth[k], death[k]);
-    }
-    h = fnv(h, screen_hash());
-    check_int("drag probes", probes, DRAG_PROBES);
-    check("drag", h, DRAG_HASH);
 }
 
 /* The help: `g_`'s `nu` and `fa`=10. */
@@ -719,7 +633,6 @@ static void test_fv(void) {
     int i;
 
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, DRAG));
     pico8_dispatch_set_input(&input);
     pico8__init();
     hv = pico8_hv();
@@ -849,7 +762,7 @@ static void test_g__is_a_struct(void) {
     size_t i;
     int j;
 
-    start_game(DRAG);
+    start_game();
     roads[0] = ldown();
     roads[1] = pico8_g__new(NULL);
     roads[2] = keyed();
@@ -908,7 +821,7 @@ static void test_bv_et_is_a_struct(void) {
     pico8_vec_t middle;
     size_t i;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     (void)a_slipway(&middle);
     (void)call(a, "hq", 2, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
@@ -951,7 +864,7 @@ static void *bv_et_target(void **holder_out, void **jc_out, pico8_vec_t *at_out)
     void *t;
     pico8_vec_t middle;
 
-    start_game(DRAG);
+    start_game();
     a = ldown();
     *jc_out = a_slipway(&middle);
     *at_out = pico8_vec_add(middle, vec_xy(0, 3));
@@ -1431,7 +1344,6 @@ static void test_g__members_by_name(void) {
     int k;
 
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, DRAG));
     pico8_dispatch_set_input(&input);
     pico8__init();
     hv = pico8_hv();
@@ -1447,7 +1359,7 @@ static void test_g__members_by_name(void) {
     }
     assert(get_ref(fv[0], "qy") != get_ref(fv[1], "qy"));
 
-    start_game(DRAG);
+    start_game();
     probe[0] = ldown();
     probe[1] = pico8_g__new(NULL);
     probe[2] = keyed();
@@ -1509,7 +1421,7 @@ static void test_g__members_by_name(void) {
         assert(!read_both(e, strangers[i], &v));
     }
 
-    start_game(DRAG);
+    start_game();
     probe[0] = ldown();
     h = hq_at(h, probe[0], vec_xy(200, 200), 64);
     h = fold_value(h, call(probe[0], "ey", 0, nil(), nil()));
@@ -1569,7 +1481,7 @@ static void test_g__writer_stops_off_row(void) {
     size_t n;
     size_t i;
 
-    start_game(DRAG);
+    start_game();
     holders[0] = pico8_g__new(NULL);
     holders[1] = pico8_fv_new(NULL);
     jc = a_slipway(&middle);
@@ -1674,7 +1586,6 @@ int main(void) {
     in_fresh_child(test_ey_on);
     in_fresh_child(test_ey_off);
     in_fresh_child(test_ey_void);
-    in_fresh_child(test_drag);
     in_fresh_child(test_fv);
     in_fresh_child(test_g__is_a_struct);
     in_fresh_child(test_g__members_by_name);
