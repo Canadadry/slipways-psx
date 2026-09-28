@@ -25,10 +25,6 @@ static int pico8_research_display_truthy(pico8_value_t v) {
     return 1;
 }
 
-static int pico8_research_display_nil(pico8_value_t v) {
-    return v.kind == PICO8_VALUE_REF && v.as.ref == NULL;
-}
-
 /* Returns a new, heap-backed list the caller owns and must release with
  * pico8_list_free(). */
 static pico8_list_t pico8_research_display_positional_values(const pico8_ob_table_t *table) {
@@ -284,9 +280,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         return NULL;
     }
 
-    if (!pico8_research_display_nil(pico8_hp_fk())) {
-        pico8_list_add(&l->items, pico8_hp_fk());
-    }
+    pico8_list_add(&l->items, pico8_value_ref(pico8_jb_row_view(pico8_hp_fk())));
     if (self->px != NULL) {
         pico8_list_add(&l->items, pico8_value_string(self->px));
     }

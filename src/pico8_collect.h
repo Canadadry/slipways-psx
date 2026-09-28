@@ -1,6 +1,7 @@
 #ifndef PICO8_COLLECT_H
 #define PICO8_COLLECT_H
 
+#include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_list.h"
 #include "pico8_ob.h"
@@ -62,11 +63,12 @@ int pico8_gu_content(const pico8_list_t *qk, pico8_value_t kb);
 char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color);
 
 /* The body of the closure `ho()` returns, applied to one record `ri`: names
- * `ri`'s positional fields after `mr`'s own positional entries, then
+ * `ri`'s positional fields after `mr`'s names, in order, then
  * registers `ri` into `rc` under its `.px`. A field listed in `gp` (which
  * may be NULL) takes its value from the global `r` table. `rc` borrows
  * `ri`; a positional slot absent from `ri` leaves its named field unset. */
-void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico8_list_t *gp, pico8_ob_table_t *ri);
+void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_str_seq_t *mr, const pico8_str_seq_t *gp,
+                    pico8_ob_table_t *ri);
 
 /* Registers the `b` entry of `pi`; pico8_pi_init() calls it alongside the
  * other constructor registrations. */

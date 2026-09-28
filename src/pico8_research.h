@@ -2,20 +2,24 @@
 #define PICO8_RESEARCH_H
 
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
 /* A research project of `gb`. Freed only by pico8_research_shutdown(),
- * through `gb`'s positional entries. `mr`/`gp`/`fk` are the class's REFs;
- * the other members are borrowed from `fd`'s records and from `r`, except
- * `i` and `lq`, tables built here and never freed (TROU-7). */
+ * through `gb`'s positional entries. `mr`, `gp`, `fk` point at
+ * `pico8_hp_mr_names`, `pico8_hp_gp_names`, `pico8_hp_fk_row`; the other
+ * members are borrowed from `fd`'s records and from `r`, except `i`, a
+ * list built here and never freed (TROU-7), and `lq`, which points at
+ * `lq_own` (its third item `lq_inner`) or is NULL. The struct is never
+ * copied: `lq` points into it. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_ob_table_t *mr;
-    pico8_ob_table_t *gp;
-    pico8_ob_table_t *fk;
+    const pico8_str_seq_t *mr;
+    const pico8_str_seq_t *gp;
+    const pico8_jb_row_t *fk;
     const char *px;
     const char *lr;
     pico8_fixed_t fj;
@@ -35,7 +39,11 @@ typedef struct {
     const char *go;
     pico8_fixed_t rn;
     int has_rn; /* 0: `rn` is nil, and is then never read */
-    pico8_ob_table_t *lq;
+    const pico8_jb_row_t *lq;
+    pico8_jb_row_t lq_own;
+    pico8_jb_item_t lq_own_items[3];
+    pico8_jb_row_t lq_inner;
+    pico8_jb_item_t lq_inner_items[2];
 } pico8_hp_t;
 
 /* Throughout this module -- this file and its `_display` sibling -- a NULL
@@ -58,9 +66,8 @@ int pico8_hp_ready(void);
 int pico8_hp_default(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_hp_struct_class(void);
 
-/* The class's `fk`; nil before pico8_research_init() and after
- * pico8_research_shutdown(). */
-pico8_value_t pico8_hp_fk(void);
+/* The class's `fk`: `pico8_hp_fk_row`, never NULL. */
+const pico8_jb_row_t *pico8_hp_fk(void);
 
 /* `il` as the cart holds it: REF NULL when nil or `self` is NULL, BOOL 0, or the STRING. */
 pico8_value_t pico8_hp_il(const pico8_hp_t *self);

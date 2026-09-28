@@ -53,7 +53,7 @@
 #define GB_COUNT 34
 #define GB_NAMED 26
 #define GB_HASH 0x1339FD84u
-#define DEFAULTS_HASH 0x6DDA7FDEu
+#define DEFAULTS_HASH 0xC841FB8Au
 #define FUNCTIONS_HASH 0x538CF904u
 #define FUNCTIONS_INVENTED_HASH 0xA64C8C0Fu
 #define INSTALL_HASH 0xE9A9797Cu
@@ -189,6 +189,20 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     default:
         return h;
     }
+}
+
+/* As fold_value folds a table of these positional strings, less its tag. */
+static uint32_t fold_names(uint32_t h, const pico8_str_seq_t *names) {
+    int i;
+
+    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)names->count);
+    for (i = 0; i < names->count; i++) {
+        h = fnv(h, (uint32_t)PICO8_OB_KEY_INDEX);
+        h = fnv(h, (uint32_t)(i + 1));
+        h = fold_value(h, pico8_value_string(names->items[i]), 1);
+    }
+    return h;
 }
 
 static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
@@ -366,9 +380,9 @@ static void test_gb(void) {
         assert(lookup(b, "lq", &v));
         h = fnv(h, (uint32_t)v.kind);
         if (v.kind == PICO8_VALUE_REF) {
-            const pico8_ob_table_t *lq = v.as.ref;
+            const pico8_ob_table_t *lq = pico8_jb_row_view(v.as.ref);
             pico8_value_t e;
-            assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_OB_TABLE && has(b, "ii"));
+            assert(v.as.ref == &((const pico8_hp_t *)b)->lq_own && has(b, "ii"));
             for (j = 1; j <= 3; j++) {
                 h = pico8_ob_table_get_index(lq, j, &e) ? fold_value(h, e, 2) : fnv(h, 0xFFFFFFFFu);
             }
@@ -392,9 +406,10 @@ static void test_gb(void) {
             h = fnv(h, (uint32_t)gb_rank(v.as.ref));
         }
     }
-    d = fold_value(d, pico8_value_ref(mr), 2);
-    d = fold_value(d, pico8_value_ref(gp), 2);
-    d = fold_value(d, pico8_value_ref(fk), 2);
+    assert(mr == &pico8_hp_mr_names && gp == &pico8_hp_gp_names && fk == &pico8_hp_fk_row);
+    d = fold_names(d, mr);
+    d = fold_names(d, gp);
+    d = fold_value(d, pico8_value_ref(pico8_jb_row_view(fk)), 2);
     check("gb", h, GB_HASH);
     check("mr gp fk", d, DEFAULTS_HASH);
 }
@@ -612,19 +627,19 @@ static void test_harvested_world(void) {
 }
 
 /* `gb` rebuilt from `fd` frees the projects it held and gives the same
- * projects; shutdown leaves no class, no `fk`, no `gb`; init again, then a
- * rebuild, gives them once more. */
+ * projects; shutdown leaves no class and no `gb`, `fk` still the generated
+ * row; init again, then a rebuild, gives them once more. */
 static void test_rebuild_and_shutdown(void) {
     pico8_research_build_gb(pico8_fd());
     test_gb();
 
     pico8_research_shutdown();
     assert(pico8_gb() == NULL && !pico8_hp_ready());
-    assert(pico8_hp_fk().kind == PICO8_VALUE_REF && pico8_hp_fk().as.ref == NULL);
+    assert(pico8_hp_fk() == &pico8_hp_fk_row);
     pico8_research_shutdown();
 
     pico8_research_init();
-    assert(pico8_hp_ready() && pico8_hp_fk().as.ref != NULL);
+    assert(pico8_hp_ready() && pico8_hp_fk() == &pico8_hp_fk_row);
     pico8_research_build_gb(pico8_fd());
     test_gb();
 }
@@ -707,7 +722,7 @@ static void test_hp_is_a_struct(void) {
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_hp_ready());
     assert(!pico8_hp_default("lq", &v));
-    assert(lookup(b, "fk", &v) && v.kind == pico8_hp_fk().kind && v.as.ref == pico8_hp_fk().as.ref);
+    assert(lookup(b, "fk", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == pico8_hp_fk());
 
     bare = pico8_hp_new(NULL);
     assert(pico8_type_tag_of(bare) == PICO8_TYPE_TAG_STRUCT && bare->header.cls == cls);
@@ -798,7 +813,7 @@ static void test_hp_members_by_name(void) {
             assert(!raw_read(bare, m, &v));
         }
     }
-    assert(raw_read(bare, "fk", &v) && v.as.ref == pico8_hp_fk().as.ref);
+    assert(raw_read(bare, "fk", &v) && v.as.ref == pico8_hp_fk());
     for (n = 0; n < sizeof hp_intruders / sizeof hp_intruders[0]; n++) {
         assert(!raw_read(bare, hp_intruders[n], &v));
         assert(!raw_read(project(1), hp_intruders[n], &v));

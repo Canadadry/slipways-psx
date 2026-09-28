@@ -19,6 +19,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_entity_geom.h"
@@ -54,7 +55,7 @@ static pico8_input_t input;
 static const char *const own[] = {"fa", "ra", "hi", "ca", "gq", "eo", "ff", "fc", "k_", "qo", "ro",
                                   "qg", "q_", "pn", "du", "py", "pk", "ki", "kq", "ql", "fg", "rb"};
 static const char *const inherited[] = {"nu", "fx", "dq", "od", "fp", "dw"};
-static const char *const tables[] = {"ra", "hi", "gq", "kq", "rb"};
+static const char *const tables[] = {"ra", "hi", "gq", "kq"};
 static const char *const absent[] = {"m_", "ep", "p", "et", "p_", "hk", "hb", "ph", "ldown", "fo", "ma"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -201,6 +202,9 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (v.as.ref == (const void *)&pico8_fv_k__seq) {
             return fold_seq(fnv(h, 0x7Au), v.as.ref);
+        }
+        if (v.as.ref == (const void *)&pico8_fv_rb_row) {
+            return fold_table(fnv(h, 0x7Au), pico8_jb_row_view(v.as.ref));
         }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:
@@ -355,6 +359,7 @@ static void test_built(void) {
     }
     assert(get_ref(fv, "k_") == &pico8_fv_k__seq);
     assert(get_ref(fv, "k_") != &pico8_g__k__seq);
+    assert(get_ref(fv, "rb") == &pico8_fv_rb_row);
     h = fold_field(h, fv, "me");
     h = fold_field(h, fv, "t");
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
@@ -703,16 +708,16 @@ static uint32_t fold_fv_members(uint32_t h, const void *e) {
     return h;
 }
 
-/* A fresh help: its 4 tables at the spec's pointers, its 5 fixed at the
- * spec's values, `m_` absent. */
+/* A fresh help: its 3 tables at the spec's pointers, `rb` the generated
+ * row, its 5 fixed at the spec's values, `m_` absent. */
 static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
-    static const char *const refs[] = {"hi", "gq", "kq", "rb"};
+    static const char *const refs[] = {"hi", "gq", "kq"};
     size_t i;
 
     for (i = 0; i < sizeof refs / sizeof refs[0]; i++) {
         assert_same(e, refs[i], pico8_value_ref(class_ref(pico8_fv_default, refs[i])));
     }
-    assert(pico8_type_tag_of(class_ref(pico8_fv_default, "rb")) == PICO8_TYPE_TAG_OB_TABLE);
+    assert_same(e, "rb", pico8_value_ref((void *)&pico8_fv_rb_row));
     assert_same(e, "ca", pico8_value_fixed(pico8_fixed_from_int(11)));
     assert_same(e, "eo", pico8_value_fixed(pico8_fixed_from_int(-1)));
     assert_same(e, "ff", pico8_value_fixed(pico8_fixed_from_int(1)));

@@ -211,10 +211,12 @@ static void test_dr_view_matches_the_decoded_table(const pico8_mem_t *mem) {
 /* The cart's nb_mr pass, redone on the decoded table: each record gains px,
  * lv, nk (routed through r), od and oy by name, and nb gains px -> record. */
 static pico8_ob_table_t *nb_reference(const pico8_mem_t *mem) {
+    static const char *const mr_items[] = {"px", "lv", "nk", "od", "oy"};
+    static const char *const gp_items[] = {"nk"};
+    const pico8_str_seq_t mr = {5, mr_items};
+    const pico8_str_seq_t gp = {1, gp_items};
     pico8_ob_table_t *nb = decode(mem, 10457);
-    pico8_ob_table_t *mr = pico8_ob("\"px\",\"lv\",\"nk\",\"od\",\"oy\",", NULL);
     pico8_ob_table_t *records[PICO8_NB_COUNT];
-    pico8_list_t gp;
     int i;
 
     assert(nb->count == PICO8_NB_COUNT);
@@ -222,12 +224,9 @@ static pico8_ob_table_t *nb_reference(const pico8_mem_t *mem) {
         assert(nb->entries[i].value.kind == PICO8_VALUE_REF);
         records[i] = nb->entries[i].value.as.ref;
     }
-    pico8_list_init(&gp);
-    pico8_list_add(&gp, pico8_value_string("nk"));
     for (i = 0; i < PICO8_NB_COUNT; i++) {
-        pico8_ho_apply(nb, mr, &gp, records[i]);
+        pico8_ho_apply(nb, &mr, &gp, records[i]);
     }
-    pico8_list_free(&gp);
     return nb;
 }
 
@@ -314,7 +313,6 @@ static const char *const DF_SRC = "\n"
                                   "o(\"i\",138,2,\"iceball\"),\n"
                                   "o(\"s\",142,2,\"barren\"),\n"
                                   "o(\"g\",96,4,\"gas giant\"),\n";
-static const char *const DF_PASS_SRC = "\n\"px\",\"s\",\"r\",\"d\",\n";
 static const char *const IX_SRC = "\n"
                                   "o(\n"
                                   "ra=v(118,0),\n"
@@ -437,8 +435,9 @@ static void test_leaf_tables_match_their_parsed_literal_in_order(void) {
 /* The cart's px/s/r/d rename pass, redone on the parsed df: each record
  * gains px, s, r and d (when present) by name, and df gains px -> record. */
 static pico8_ob_table_t *df_reference(void) {
+    static const char *const mr_items[] = {"px", "s", "r", "d"};
+    const pico8_str_seq_t mr = {4, mr_items};
     pico8_ob_table_t *df = parse(DF_SRC);
-    pico8_ob_table_t *mr = parse(DF_PASS_SRC);
     pico8_ob_table_t *records[PICO8_DF_COUNT];
     int i;
 
@@ -448,7 +447,7 @@ static pico8_ob_table_t *df_reference(void) {
         records[i] = df->entries[i].value.as.ref;
     }
     for (i = 0; i < PICO8_DF_COUNT; i++) {
-        pico8_ho_apply(df, mr, NULL, records[i]);
+        pico8_ho_apply(df, &mr, NULL, records[i]);
     }
     return df;
 }
@@ -722,6 +721,45 @@ static const char *const MZ_SRC =
     "nu=o(\"mz\"),\n"
     "kk=o(7,7,6,13,5,1,1,1,0),\n";
 
+static const char *const HP_SRC =
+    "\n"
+    "mr=o(\"px\",\"lr\",\"fj\",\"ja\",\"i\",\"o\",\"il\",\"dm\"),\n"
+    "gp=o(\"o\",\"dm\"),\n"
+    "fk=o(f,2),\n";
+static const char *const PJ_SRC =
+    "\n"
+    "fa=10,\n"
+    "ea=o(\n"
+    "o(42,43,1,fn=\"br\"),\n"
+    "o(\"\",64,40,6,0.5,fn=\"qr\"),\n"
+    "),\n"
+    "gs=o(\n"
+    "o(\"last year!\",64,48,9,0.5,fn=\"qr\"),\n"
+    "o(\"2 years remain\",64,48,2,0.5,fn=\"qr\"),\n"
+    "f,f,\n"
+    "o(\"5 years remain\",64,48,2,0.5,fn=\"qr\"),\n"
+    "),\n"
+    "cr=o(\n"
+    "hi=v(0,11),gq=v(0,11),ca=10,\n"
+    "),\n"
+    "i_=o(\n"
+    "o(126,127,1,fn=\"br\"),\n"
+    "o(0,1,1,fn=\"br\"),\n"
+    "o(8,118,34,fn=\"rf\"),\n"
+    "o(0,-3,26,fn=\"rf\"),\n"
+    "o(81,-3,117,fn=\"rf\"),\n"
+    "),\n"
+    "ou=o(\n"
+    "o(f,13,121,9,fn=\"qr\"),\n"
+    "o(f,37,121,2,fn=\"qr\"),\n"
+    "o(f,13,2,9,fn=\"qr\"),\n"
+    "o(f,29,2,2,fn=\"qr\"),\n"
+    "o(f,59,2,2,fn=\"qr\"),\n"
+    "o(f,85,2,13,fn=\"qr\"),\n"
+    "o(f,99,2,13,fn=\"qr\"),\n"
+    "),\n"
+    "ed=1,\n";
+
 /* The table `ref` holds under `key`. */
 static const pico8_ob_table_t *member_of(const pico8_ob_table_t *ref, const char *key) {
     pico8_value_t v;
@@ -745,8 +783,7 @@ static void check_member_seq(const pico8_ob_table_t *ref, const char *key, const
     check_seq(member_of(ref, key), seq);
 }
 
-static void check_member_tags(const pico8_ob_table_t *ref, const pico8_str_seq_t *tags) {
-    const pico8_ob_table_t *t = member_of(ref, "nu");
+static void check_names(const pico8_ob_table_t *t, const pico8_str_seq_t *tags) {
     int i;
 
     assert(t->count == tags->count);
@@ -755,6 +792,10 @@ static void check_member_tags(const pico8_ob_table_t *ref, const pico8_str_seq_t
         assert(t->entries[i].value.kind == PICO8_VALUE_STRING);
         assert(strcmp(t->entries[i].value.as.string, tags->items[i]) == 0);
     }
+}
+
+static void check_member_tags(const pico8_ob_table_t *ref, const pico8_str_seq_t *tags) {
+    check_names(member_of(ref, "nu"), tags);
 }
 
 static void check_row(const pico8_ob_table_t *t, const pico8_jb_row_t *row, const char *path) {
@@ -859,6 +900,35 @@ static void test_other_classes_data_matches_the_parsed_literals(void) {
     }
 }
 
+static void test_rows_match_the_parsed_literals(void) {
+    pico8_ob_table_t *fv = parse(FV_SRC);
+    pico8_ob_table_t *hp = parse(HP_SRC);
+    pico8_ob_table_t *pj = parse(PJ_SRC);
+
+    check_row(member_of(fv, "rb"), &pico8_fv_rb_row, "fv.rb");
+    check_names(member_of(hp, "mr"), &pico8_hp_mr_names);
+    check_names(member_of(hp, "gp"), &pico8_hp_gp_names);
+    check_row(member_of(hp, "fk"), &pico8_hp_fk_row, "hp.fk");
+    check_row(member_of(pj, "gs"), &pico8_pj_gs_row, "pj.gs");
+    check_row(member_of(pj, "i_"), &pico8_pj_i__row, "pj.i_");
+}
+
+/* A non-integer item keeps its bits; fn comes after c. */
+static void test_row_view_writes_fixed_items_then_c_then_fn(void) {
+    static const pico8_jb_item_t items[] = {{.is_fixed = 1, .fixed = 0x8000}, {.n = 2}};
+    static const pico8_jb_row_t row = {.count = 2, .items = items, .has_c = 1, .c = 7, .fn = "qr"};
+    pico8_ob_table_t *view = pico8_jb_row_view(&row);
+    pico8_value_t v;
+
+    assert(view->count == 4);
+    assert(positional_fixed(view, 0) == 0x8000 && positional_fixed(view, 1) == pico8_fixed_from_int(2));
+    assert(view->entries[2].key.kind == PICO8_OB_KEY_NAME && strcmp(view->entries[2].key.name, "c") == 0);
+    assert(view->entries[3].key.kind == PICO8_OB_KEY_NAME && strcmp(view->entries[3].key.name, "fn") == 0);
+    assert(pico8_ob_table_get_name(view, "c", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x70000);
+    assert(pico8_ob_table_get_name(view, "fn", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "qr") == 0);
+    pico8_ob_table_free(view);
+}
+
 static void test_int_seq_has_fixed_keeps_gu_on_integers(void) {
     static const pico8_int_seq_t empty = {0, NULL};
     const pico8_int_seq_t *seq = &pico8_jo_cq_seq;
@@ -892,6 +962,8 @@ int main(void) {
     test_int_seq_has_fixed_keeps_gu_on_integers();
     test_jo_tree_data_matches_the_parsed_class_literals();
     test_other_classes_data_matches_the_parsed_literals();
+    test_rows_match_the_parsed_literals();
+    test_row_view_writes_fixed_items_then_c_then_fn();
 
     pico8_data_init(&mem);
     test_dr_view_matches_the_decoded_table(&mem);

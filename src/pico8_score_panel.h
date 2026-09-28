@@ -2,6 +2,7 @@
 #define PICO8_SCORE_PANEL_H
 
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
@@ -14,13 +15,13 @@
 /* Throughout this module a NULL panel argument is a safe no-op. */
 
 /* TROU-7 */
-/* `gs`, `i_` are the tables of `pj`'s class, borrowed and never modified.
- * `ed` NULL reads as the spec's fixed 1, never nil. */
+/* `gs` points at `pico8_pj_gs_row`, `i_` at `pico8_pj_i__row`. `ed` NULL
+ * reads as the spec's fixed 1, never nil. */
 typedef struct {
     pico8_ke_t ke;
     pico8_fixed_t fa;
-    pico8_ob_table_t *gs;
-    pico8_ob_table_t *i_;
+    const pico8_jb_row_t *gs;
+    const pico8_jb_row_t *i_;
     pico8_mh_t *ed;
     int c_;
     int has_c_;
@@ -63,8 +64,9 @@ pico8_ob_table_t *pico8_pj_ou(void);
 pico8_ob_table_t *pico8_pj_ea(void);
 pico8_pj_cr_t *pico8_pj_cr(void);
 const pico8_struct_class_t *pico8_pj_cr_struct_class(void);
-const pico8_ob_table_t *pico8_pj_i_(void);
-const pico8_ob_table_t *pico8_pj_gs(void);
+/* `pico8_pj_i__row`, `pico8_pj_gs_row`: never NULL. */
+const pico8_jb_row_t *pico8_pj_i_(void);
+const pico8_jb_row_t *pico8_pj_gs(void);
 
 /* TROU-7 */
 /* `overrides` must be NULL or empty: a key asserts. The panel registers

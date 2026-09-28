@@ -246,7 +246,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `pi` | `pico8_ob_register_constructor` | table des constructeurs appelables depuis une spec : `b`→`qz`, `v`→`v`, `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol`. Depuis une spec, seule la première lettre est atteignable ; les noms longs ne le sont que par `bl()` |
 | `oo(fn,a)` | `pico8_oo` | appelle le constructeur `fn` avec les 5 premières entrées positionnelles, ou rend `a` tel quel |
 | `bl(rb,nc)` | `pico8_bl` | dessine chaque rangée de `rb` via le constructeur `pi` que nomme son champ `fn`, avec une secousse de caméra `nc` alternée. C'est le second consommateur de `pi` |
-| `fn`, `rb`, `nc` | — | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
+| `fn`, `rb`, `nc` | — ; `rb` de `fv` : `const pico8_jb_row_t *rb` → `pico8_fv_rb_row` | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
 | `oa` | — | masque de bouton passé à `bu()` : 1 pour le gauche, 6 pour le droit |
 
 ## Le système de classes `kv:jr`
@@ -271,7 +271,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `nv(qk,kp)` | `pico8_nv` | applique `kp`, en ignorant les résultats faux |
 | `la(a,b)` | `pico8_la` | concatène deux listes |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
-| `ho(rc,mr,gp)` | `pico8_ho_apply` | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
+| `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | `tostr(v)` | `pico8_value_tostr` | conversion en chaîne ; 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris
@@ -413,8 +413,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
 | `lq` | `pico8_lq_t` | une rangée d'icônes mise en page |
 | `jb` | `pico8_jb_t` | une bulle d'info |
-| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, et `px`, `dz`, `em` de l'arbre `jo` : une rangée de chaînes, de nombres, de faux (`is_false`) et de rangées, avec son `c` éventuel |
-| — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`) |
+| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, `px`, `dz`, `em` de l'arbre `jo`, `rb` de `fv`, `gs`, `i_` de `pj`, `fk` et `lq` de `hp` : une rangée de chaînes, de nombres entiers (`n`) ou non (`is_fixed`, `fixed`), de faux (`is_false`) et de rangées, avec son `c` et son `fn` éventuels |
+| — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`, `bl`, `mh`) |
 | — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
@@ -560,8 +560,8 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | Nom | Sens |
 |---|---|
 | `ea` | la rangée du bandeau d'année, réécrite par `pj:hk` |
-| `gs` | messages de compte à rebours, indexés par `3426 - yr` |
-| `i_`, `ou` | rangées du cadre / les 7 afficheurs réécrits par `pj:hb` |
+| `gs` | messages de compte à rebours, indexés par `3426 - yr` ; `pico8_pj_gs_row` |
+| `i_`, `ou` | rangées du cadre (`pico8_pj_i__row`) / les 7 afficheurs réécrits par `pj:hb` |
 | `ed` | la dernière boîte construite par le panneau, comparée à `kc` |
 | `gz` | compteur du rideau de fin, testé par **présence** et non par valeur |
 | `c_` | « panneau visible », basculé par le `my` de `de` |
@@ -597,13 +597,13 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `ja` | clé du projet dans `hc`, qui donne sa table de production |
 | `il` | technologie qui **améliore** le projet : coût ×1,5 et production prise sur l'entrée améliorée |
 | `mc` | sur une entrée de `hc`, le nom de l'entrée améliorée que `hp:po` substitue |
-| `ii` | marqueur « ce projet est une technologie » : supprime la bulle, fait écrire un `lq` **donnée** au lieu d'une méthode |
+| `ii` | marqueur « ce projet est une technologie » : supprime la bulle, fait écrire un `lq` **donnée** au lieu d'une méthode (`const pico8_jb_row_t *lq` → `lq_own`, tenu dans le `pico8_hp_t`) |
 | `lr` | codes de type de planète qu'un projet accepte, comparés à `jo.nk.px` |
 | `i` | ressources requises, développées en liste de `{qe=…}` |
 | `o` | ressource produite |
 | `dm` | routé par `gp` comme `o` ; aucun lecteur trouvé |
-| `fk` | l'entrée `{false,2}` que `hp:lq` ajoute en fin de rangée |
-| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` — c'est `gp` qui rend `o`/`dm` identiques au pointeur de `r`, donc qui justifie l'exception de TROU-3 |
+| `fk` | l'entrée `{false,2}` que `hp:lq` ajoute en fin de rangée ; `pico8_hp_fk_row` |
+| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (`pico8_hp_mr_names`, `pico8_hp_gp_names`) — c'est `gp` qui rend `o`/`dm` identiques au pointeur de `r`, donc qui justifie l'exception de TROU-3 |
 | `ke` (sur `ie`) | la **classe** d'amélioration que l'icône construit, pas une instance |
 | `kh` | drapeau d'instance « icône déjà révélée » |
 | `id` (sur `ie`) | compteur de classe, source de l'override de sprite |

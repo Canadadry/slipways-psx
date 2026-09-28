@@ -82,20 +82,17 @@ void pico8_fv_pq(pico8_fv_t *self) {
 }
 
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec_t p) {
-    const pico8_ob_table_t *rb_table = NULL;
-
     (void)p;
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
 
-    if (self != NULL && self->rb != NULL) {
-        rb_table = self->rb;
-    }
-
     if (gfx != NULL && mem != NULL) {
-        pico8_list_t items = pico8_help_positional_values(rb_table);
+        pico8_ob_table_t *rb_view = self != NULL && self->rb != NULL ? pico8_jb_row_view(self->rb) : NULL;
+        pico8_list_t items = pico8_help_positional_values(rb_view);
+
         pico8_bl_default(gfx, mem, &items);
         pico8_list_free(&items);
+        pico8_ob_table_free(rb_view);
     }
 }
 
@@ -130,7 +127,6 @@ static pico8_fixed_t g_fv_ff = 0;
 static pico8_qz_box_t *g_fv_kq = NULL;
 static pico8_fixed_t g_fv_ql = 0;
 static pico8_fixed_t g_fv_fg = 0;
-static pico8_ob_table_t *g_fv_rb = NULL;
 
 static void pico8_fv_defaults_reset(void) {
     g_fv_fa = 0;
@@ -153,7 +149,6 @@ static void pico8_fv_defaults_reset(void) {
     g_fv_kq = NULL;
     g_fv_ql = 0;
     g_fv_fg = 0;
-    g_fv_rb = NULL;
 }
 
 static int pico8_fv_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -204,7 +199,7 @@ static int pico8_fv_field(const void *self, const char *name, pico8_value_t *out
         if (fv->rb == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(fv->rb);
+        *out_value = pico8_value_ref((void *)fv->rb);
         return 1;
     }
     if (strcmp(name, "m_") == 0) {
@@ -281,7 +276,7 @@ static void *pico8_fv_struct_new(const pico8_ob_table_t *overrides) {
     self->kq = g_fv_kq;
     self->ql = g_fv_ql;
     self->fg = g_fv_fg;
-    self->rb = g_fv_rb;
+    self->rb = &pico8_fv_rb_row;
     assert((overrides == NULL || overrides->count == 0) &&
            "fv: the only road is pico8_fv_new(NULL) (cart.c); a construction key has no member "
            "-- stop, do not add one");
@@ -306,14 +301,6 @@ static pico8_vec_t *help_default_vec(int found, pico8_value_t v) {
     assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
            pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
            "fv.ra/hi/gq: a default of the struct is a key of fv's spec and a vector v() (ref:autre)");
-    (void)found;
-    return v.as.ref;
-}
-
-static pico8_ob_table_t *help_default_table(int found, pico8_value_t v) {
-    assert(found && v.kind == PICO8_VALUE_REF && v.as.ref != NULL &&
-           pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "fv.rb: a default of the struct is a key of fv's spec and a table (ref:table)");
     (void)found;
     return v.as.ref;
 }
@@ -361,8 +348,6 @@ void pico8_help_init(void) {
     g_fv_ql = help_default_fixed(found, v);
     found = pico8_fv_default("fg", &v);
     g_fv_fg = help_default_fixed(found, v);
-    found = pico8_fv_default("rb", &v);
-    g_fv_rb = help_default_table(found, v);
     found = pico8_fv_default("fa", &v);
     g_fv_fa = help_default_fixed(found, v);
     found = pico8_fv_default("ra", &v);

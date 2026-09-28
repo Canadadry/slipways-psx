@@ -1,6 +1,8 @@
 #ifndef PICO8_MAP_TABLES_H
 #define PICO8_MAP_TABLES_H
 
+#include "pico8_fixed.h"
+
 enum {
     PICO8_R_COUNT = 13,
     PICO8_IZ_COUNT = 11,
@@ -29,21 +31,25 @@ typedef struct {
 } pico8_hc_entry_t;
 
 /* An item is the string s when s is non-NULL, the row when row is non-NULL,
- * Lua false when is_false is set, the number n otherwise. */
+ * Lua false when is_false is set, the number `fixed` when is_fixed is set
+ * (the bits ob() returned for a non-integer), the number n otherwise. */
 typedef struct pico8_jb_row pico8_jb_row_t;
 typedef struct {
     const char *s;
     int n;
     const pico8_jb_row_t *row;
     int is_false;
+    int is_fixed;
+    pico8_fixed_t fixed;
 } pico8_jb_item_t;
 
-/* c is only meaningful when has_c is set. */
+/* c is only meaningful when has_c is set; fn is NULL when absent. */
 struct pico8_jb_row {
     int count;
     const pico8_jb_item_t *items;
     int has_c;
     int c;
+    const char *fn;
 };
 
 /* A non-NULL header makes the entry a bare string, the rr of the records that

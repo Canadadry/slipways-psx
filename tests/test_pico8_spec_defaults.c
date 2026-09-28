@@ -13,6 +13,7 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
 #include "../src/pico8_entity.h"
@@ -360,6 +361,40 @@ static int ints_equal(const pico8_ob_table_t *t, const pico8_int_seq_t *seq) {
     return 1;
 }
 
+/* Entry by entry, nested tables included; strings by content. */
+static int tables_same(const pico8_ob_table_t *a, const pico8_ob_table_t *b) {
+    int j;
+
+    if (a->count != b->count) {
+        return 0;
+    }
+    for (j = 0; j < a->count; j++) {
+        const pico8_ob_entry_t *x = &a->entries[j];
+        const pico8_ob_entry_t *y = &b->entries[j];
+
+        if (x->key.kind != y->key.kind || (x->key.kind == PICO8_OB_KEY_INDEX && x->key.index != y->key.index) ||
+            (x->key.kind == PICO8_OB_KEY_NAME && strcmp(x->key.name, y->key.name) != 0) ||
+            x->value.kind != y->value.kind) {
+            return 0;
+        }
+        if ((x->value.kind == PICO8_VALUE_FIXED && x->value.as.fixed != y->value.as.fixed) ||
+            (x->value.kind == PICO8_VALUE_BOOL && x->value.as.boolean != y->value.as.boolean) ||
+            (x->value.kind == PICO8_VALUE_STRING && strcmp(x->value.as.string, y->value.as.string) != 0) ||
+            (x->value.kind == PICO8_VALUE_REF && !tables_same(x->value.as.ref, y->value.as.ref))) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int row_equal(const pico8_ob_table_t *t, const pico8_jb_row_t *row) {
+    pico8_ob_table_t *view = pico8_jb_row_view(row);
+    int equal = tables_same(t, view);
+
+    pico8_ob_table_free(view);
+    return equal;
+}
+
 /* same_value(), plus the converted table members of a module whose struct
  * took them from its spec: a spec table and the struct's untagged REF are
  * the same default when that REF is the data generated from the spec that
@@ -378,6 +413,30 @@ static int same_default(int i, const char *name, pico8_value_t spec, pico8_value
         }
         if (i == M_FV && strcmp(name, "k_") == 0 && made.as.ref == &pico8_fv_k__seq) {
             assert(ints_equal(spec.as.ref, &pico8_fv_k__seq));
+            return 1;
+        }
+        if (i == M_FV && strcmp(name, "rb") == 0 && made.as.ref == &pico8_fv_rb_row) {
+            assert(row_equal(spec.as.ref, &pico8_fv_rb_row));
+            return 1;
+        }
+        if (i == M_HP && strcmp(name, "mr") == 0 && made.as.ref == &pico8_hp_mr_names) {
+            assert(tags_equal(spec.as.ref, &pico8_hp_mr_names));
+            return 1;
+        }
+        if (i == M_HP && strcmp(name, "gp") == 0 && made.as.ref == &pico8_hp_gp_names) {
+            assert(tags_equal(spec.as.ref, &pico8_hp_gp_names));
+            return 1;
+        }
+        if (i == M_HP && strcmp(name, "fk") == 0 && made.as.ref == &pico8_hp_fk_row) {
+            assert(row_equal(spec.as.ref, &pico8_hp_fk_row));
+            return 1;
+        }
+        if (i == M_PJ && strcmp(name, "gs") == 0 && made.as.ref == &pico8_pj_gs_row) {
+            assert(row_equal(spec.as.ref, &pico8_pj_gs_row));
+            return 1;
+        }
+        if (i == M_PJ && strcmp(name, "i_") == 0 && made.as.ref == &pico8_pj_i__row) {
+            assert(row_equal(spec.as.ref, &pico8_pj_i__row));
             return 1;
         }
     }

@@ -255,6 +255,54 @@ const pico8_int_seq_t pico8_bg_pl_seq = {15, bg_pl_items};
 static const pico8_vec_t qb_pc_items[] = {{-0x10000, 0x0}, {0x10000, 0x0}, {0x0, -0x10000}, {0x0, 0x10000}};
 const pico8_vec_seq_t pico8_qb_pc_vecs = {4, qb_pc_items};
 
+static const pico8_jb_item_t fv_rb_1_items[] = {{.n = 192}, {.n = 0}, {.n = 11}, {.n = 16}, {.n = 4}};
+static const pico8_jb_row_t fv_rb_1 = {.count = 5, .items = fv_rb_1_items, .fn = "s"};
+static const pico8_jb_item_t fv_rb_2_items[] = {{.n = 172}, {.n = 20}, {.n = 107}, {.n = 2}, {.n = 2}};
+static const pico8_jb_row_t fv_rb_2 = {.count = 5, .items = fv_rb_2_items, .fn = "s"};
+static const pico8_jb_item_t fv_rb_3_items[] = {{.s = "need help\?"}, {.n = 40}, {.n = 110}, {.n = 13}};
+static const pico8_jb_row_t fv_rb_3 = {.count = 4, .items = fv_rb_3_items, .fn = "qr"};
+static const pico8_jb_item_t fv_rb_4_items[] = {{.s = "slipways.net/help"}, {.n = 40}, {.n = 116}, {.n = 5}};
+static const pico8_jb_row_t fv_rb_4 = {.count = 4, .items = fv_rb_4_items, .fn = "qr"};
+static const pico8_jb_item_t fv_rb_items[] = {{.row = &fv_rb_1}, {.row = &fv_rb_2}, {.row = &fv_rb_3},
+    {.row = &fv_rb_4}};
+const pico8_jb_row_t pico8_fv_rb_row = {.count = 4, .items = fv_rb_items};
+
+static const char *const hp_mr_items[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
+const pico8_str_seq_t pico8_hp_mr_names = {8, hp_mr_items};
+
+static const char *const hp_gp_items[] = {"o", "dm"};
+const pico8_str_seq_t pico8_hp_gp_names = {2, hp_gp_items};
+
+static const pico8_jb_item_t hp_fk_items[] = {{.is_false = 1}, {.n = 2}};
+const pico8_jb_row_t pico8_hp_fk_row = {.count = 2, .items = hp_fk_items};
+
+static const pico8_jb_item_t pj_gs_1_items[] = {{.s = "last year!"}, {.n = 64}, {.n = 48}, {.n = 9},
+    {.is_fixed = 1, .fixed = 0x8000}};
+static const pico8_jb_row_t pj_gs_1 = {.count = 5, .items = pj_gs_1_items, .fn = "qr"};
+static const pico8_jb_item_t pj_gs_2_items[] = {{.s = "2 years remain"}, {.n = 64}, {.n = 48}, {.n = 2},
+    {.is_fixed = 1, .fixed = 0x8000}};
+static const pico8_jb_row_t pj_gs_2 = {.count = 5, .items = pj_gs_2_items, .fn = "qr"};
+static const pico8_jb_item_t pj_gs_5_items[] = {{.s = "5 years remain"}, {.n = 64}, {.n = 48}, {.n = 2},
+    {.is_fixed = 1, .fixed = 0x8000}};
+static const pico8_jb_row_t pj_gs_5 = {.count = 5, .items = pj_gs_5_items, .fn = "qr"};
+static const pico8_jb_item_t pj_gs_items[] = {{.row = &pj_gs_1}, {.row = &pj_gs_2}, {.is_false = 1}, {.is_false = 1},
+    {.row = &pj_gs_5}};
+const pico8_jb_row_t pico8_pj_gs_row = {.count = 5, .items = pj_gs_items};
+
+static const pico8_jb_item_t pj_i__1_items[] = {{.n = 126}, {.n = 127}, {.n = 1}};
+static const pico8_jb_row_t pj_i__1 = {.count = 3, .items = pj_i__1_items, .fn = "br"};
+static const pico8_jb_item_t pj_i__2_items[] = {{.n = 0}, {.n = 1}, {.n = 1}};
+static const pico8_jb_row_t pj_i__2 = {.count = 3, .items = pj_i__2_items, .fn = "br"};
+static const pico8_jb_item_t pj_i__3_items[] = {{.n = 8}, {.n = 118}, {.n = 34}};
+static const pico8_jb_row_t pj_i__3 = {.count = 3, .items = pj_i__3_items, .fn = "rf"};
+static const pico8_jb_item_t pj_i__4_items[] = {{.n = 0}, {.n = -3}, {.n = 26}};
+static const pico8_jb_row_t pj_i__4 = {.count = 3, .items = pj_i__4_items, .fn = "rf"};
+static const pico8_jb_item_t pj_i__5_items[] = {{.n = 81}, {.n = -3}, {.n = 117}};
+static const pico8_jb_row_t pj_i__5 = {.count = 3, .items = pj_i__5_items, .fn = "rf"};
+static const pico8_jb_item_t pj_i__items[] = {{.row = &pj_i__1}, {.row = &pj_i__2}, {.row = &pj_i__3},
+    {.row = &pj_i__4}, {.row = &pj_i__5}};
+const pico8_jb_row_t pico8_pj_i__row = {.count = 5, .items = pj_i__items};
+
 int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {

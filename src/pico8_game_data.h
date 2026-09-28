@@ -159,6 +159,13 @@ extern const pico8_str_seq_t pico8_mz_nu_tags;
 extern const pico8_int_seq_t pico8_mz_kk_seq;
 extern const pico8_int_seq_t pico8_bg_pl_seq;
 extern const pico8_vec_seq_t pico8_qb_pc_vecs;
+extern const pico8_str_seq_t pico8_hp_mr_names;
+extern const pico8_str_seq_t pico8_hp_gp_names;
+extern const pico8_jb_row_t pico8_hp_fk_row;
+/* Draw rows: each item a row of positionals then its fn; gs has two false. */
+extern const pico8_jb_row_t pico8_fv_rb_row;
+extern const pico8_jb_row_t pico8_pj_gs_row;
+extern const pico8_jb_row_t pico8_pj_i__row;
 
 /* Lua's seq[i], 1-based: returns 1 and writes *out when 1 <= i <= count,
  * 0 and leaves *out untouched otherwise. */

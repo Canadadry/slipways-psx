@@ -16,13 +16,6 @@ static pico8_ob_table_t *g_gb = NULL;
 /* Borrowed from `fd`'s backing storage, never copied or freed here. */
 static const char *g_rr = NULL;
 
-/* `hp.mr`, `hp.gp`, `hp.fk`, read once from hp's spec at init: the spec's
- * REFs, never re-parsed. Nil outside init/shutdown. */
-static pico8_value_t g_mr = {PICO8_VALUE_REF, {0}};
-static pico8_value_t g_gp = {PICO8_VALUE_REF, {0}};
-static pico8_value_t g_fk = {PICO8_VALUE_REF, {0}};
-
-static const char *const g_hp_mr_names[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
 static const char *const g_hp_named_keys[] = {"rr", "ii", "cw", "go", "rn"};
 
 static int value_is_nil(pico8_value_t v) {
@@ -91,21 +84,21 @@ static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out
         if (hp->mr == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(hp->mr);
+        *out_value = pico8_value_ref((void *)hp->mr);
         return 1;
     }
     if (strcmp(name, "gp") == 0) {
         if (hp->gp == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(hp->gp);
+        *out_value = pico8_value_ref((void *)hp->gp);
         return 1;
     }
     if (strcmp(name, "fk") == 0) {
         if (hp->fk == NULL) {
             return 0;
         }
-        *out_value = pico8_value_ref(hp->fk);
+        *out_value = pico8_value_ref((void *)hp->fk);
         return 1;
     }
     if (strcmp(name, "px") == 0) {
@@ -205,7 +198,7 @@ static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out
             *out_value = pico8_value_function(pico8_hp_lq_dispatch);
             return 1;
         }
-        *out_value = pico8_value_ref(hp->lq);
+        *out_value = pico8_value_ref((void *)hp->lq);
         return 1;
     }
     return 0;
@@ -221,7 +214,7 @@ static int hp_accepts_key(pico8_ob_key_t key) {
     size_t i;
 
     if (key.kind == PICO8_OB_KEY_INDEX) {
-        return key.index >= 1 && key.index <= (int)(sizeof g_hp_mr_names / sizeof g_hp_mr_names[0]);
+        return key.index >= 1 && key.index <= pico8_hp_mr_names.count;
     }
     for (i = 0; i < sizeof g_hp_named_keys / sizeof g_hp_named_keys[0]; i++) {
         if (strcmp(key.name, g_hp_named_keys[i]) == 0) {
@@ -303,7 +296,6 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
     pico8_hp_t *self = malloc(sizeof *self);
     pico8_ob_table_t *ri = pico8_ob_table_new();
     pico8_ob_table_t *scratch_rc = pico8_ob_table_new();
-    pico8_list_t gp_list;
     pico8_list_t new_i;
     pico8_list_t *new_i_heap;
     pico8_value_t raw_i;
@@ -335,9 +327,9 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
     self->rn = 0;
     self->has_rn = 0;
     self->lq = NULL;
-    self->mr = g_mr.as.ref;
-    self->gp = g_gp.as.ref;
-    self->fk = g_fk.as.ref;
+    self->mr = &pico8_hp_mr_names;
+    self->gp = &pico8_hp_gp_names;
+    self->fk = &pico8_hp_fk_row;
 
     for (k = 0; overrides != NULL && k < overrides->count; k++) {
         pico8_ob_key_t key = overrides->entries[k].key;
@@ -350,10 +342,8 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
         }
     }
 
-    gp_list = pico8_research_positional_values(g_gp.as.ref);
-    pico8_ho_apply(scratch_rc, g_mr.as.ref, &gp_list, ri);
+    pico8_ho_apply(scratch_rc, self->mr, self->gp, ri);
     pico8_ob_table_free(scratch_rc);
-    pico8_list_free(&gp_list);
     hp_take_string(ri, "px", &self->px);
     hp_take_string(ri, "lr", &self->lr);
     hp_take_fixed(ri, "fj", &self->fj, &self->has_fj);
@@ -377,17 +367,16 @@ static void *pico8_hp_struct_new(const pico8_ob_table_t *overrides) {
     }
 
     if (self->has_ii) {
-        pico8_ob_table_t *inner = pico8_ob_table_new();
-        pico8_ob_table_t *outer = pico8_ob_table_new();
-
-        pico8_ob_table_set_index(inner, 1, pico8_value_fixed(self->ii));
-        pico8_ob_table_set_index(inner, 2, pico8_value_fixed(pico8_fixed_from_int(8)));
-        if (self->px != NULL) {
-            pico8_ob_table_set_index(outer, 1, pico8_value_string(self->px));
-        }
-        pico8_ob_table_set_index(outer, 2, pico8_value_fixed(pico8_fixed_from_int(32)));
-        pico8_ob_table_set_index(outer, 3, pico8_value_ref(inner));
-        self->lq = outer;
+        assert(self->px != NULL && "hp.lq: {px, 32, {ii, 8}} has no hole; a project with ii and no px "
+                                   "does not fit the row -- stop, do not widen the member");
+        self->lq_inner_items[0] = (pico8_jb_item_t){.is_fixed = 1, .fixed = self->ii};
+        self->lq_inner_items[1] = (pico8_jb_item_t){.n = 8};
+        self->lq_inner = (pico8_jb_row_t){.count = 2, .items = self->lq_inner_items};
+        self->lq_own_items[0] = (pico8_jb_item_t){.s = self->px};
+        self->lq_own_items[1] = (pico8_jb_item_t){.n = 32};
+        self->lq_own_items[2] = (pico8_jb_item_t){.row = &self->lq_inner};
+        self->lq_own = (pico8_jb_row_t){.count = 3, .items = self->lq_own_items};
+        self->lq = &self->lq_own;
     }
 
     if (raw_i.kind == PICO8_VALUE_STRING && raw_i.as.string != NULL) {
@@ -424,37 +413,11 @@ void pico8_hp_assert(const pico8_hp_t *self) {
 
 /* A root class: no parent, so it never self-registers into hv/cv/cg. */
 void pico8_research_init(void) {
-    const struct {
-        const char *name;
-        pico8_value_t *value;
-    } defaults[] = {{"mr", &g_mr}, {"gp", &g_gp}, {"fk", &g_fk}};
-    const pico8_ob_table_t *mr;
-    size_t n;
-
     pico8_research_shutdown();
     g_hp_spec = pico8_ob("\nmr=o(\"px\",\"lr\",\"fj\",\"ja\",\"i\",\"o\",\"il\",\"dm\"),\n"
                          "gp=o(\"o\",\"dm\"),\n"
                          "fk=o(f,2),\n",
                          NULL);
-
-    for (n = 0; n < sizeof defaults / sizeof defaults[0]; n++) {
-        int found = pico8_hp_default(defaults[n].name, defaults[n].value);
-        assert(found && defaults[n].value->kind == PICO8_VALUE_REF && defaults[n].value->as.ref != NULL &&
-               pico8_type_tag_of(defaults[n].value->as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-               "hp: mr, gp, fk are tables of hp's spec, read by every construction and by lq");
-        (void)found;
-    }
-    mr = g_mr.as.ref;
-    (void)mr;
-    assert(mr->count == (int)(sizeof g_hp_mr_names / sizeof g_hp_mr_names[0]) &&
-           "hp: the members ho fills are exactly hp.mr's names, in its order; the constructor copies them by name");
-    for (n = 0; n < sizeof g_hp_mr_names / sizeof g_hp_mr_names[0]; n++) {
-        assert(mr->entries[n].key.kind == PICO8_OB_KEY_INDEX && mr->entries[n].key.index == (int)n + 1 &&
-               mr->entries[n].value.kind == PICO8_VALUE_STRING &&
-               strcmp(mr->entries[n].value.as.string, g_hp_mr_names[n]) == 0 &&
-               "hp: the members ho fills are exactly hp.mr's names, in its order; the constructor copies them by "
-               "name");
-    }
 }
 
 void pico8_research_shutdown(void) {
@@ -462,9 +425,6 @@ void pico8_research_shutdown(void) {
     pico8_ob_table_free(g_gb);
     g_gb = NULL;
     g_rr = NULL;
-    g_mr = pico8_value_ref(NULL);
-    g_gp = pico8_value_ref(NULL);
-    g_fk = pico8_value_ref(NULL);
     pico8_ob_table_free(g_hp_spec);
     g_hp_spec = NULL;
 }
@@ -481,8 +441,8 @@ const pico8_struct_class_t *pico8_hp_struct_class(void) {
     return &g_hp_struct_class;
 }
 
-pico8_value_t pico8_hp_fk(void) {
-    return g_fk;
+const pico8_jb_row_t *pico8_hp_fk(void) {
+    return &pico8_hp_fk_row;
 }
 
 pico8_hp_t *pico8_hp_new(const pico8_ob_table_t *overrides) {

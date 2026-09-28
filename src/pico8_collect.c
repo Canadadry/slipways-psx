@@ -175,31 +175,32 @@ char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
     return result;
 }
 
-void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_ob_table_t *mr, const pico8_list_t *gp, pico8_ob_table_t *ri) {
+static int ho_gp_has(const pico8_str_seq_t *gp, const char *p) {
+    int j;
+
+    for (j = 0; gp != NULL && j < gp->count; j++) {
+        if (strcmp(gp->items[j], p) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_str_seq_t *mr, const pico8_str_seq_t *gp,
+                    pico8_ob_table_t *ri) {
     pico8_value_t px_val;
     int i;
 
     for (i = 0; i < mr->count; i++) {
-        pico8_ob_key_t key = mr->entries[i].key;
-        pico8_value_t p_val;
-        const char *p;
+        const char *p = mr->items[i];
         pico8_value_t raw;
         pico8_value_t new_value;
 
-        if (key.kind != PICO8_OB_KEY_INDEX) {
-            continue;
-        }
-        p_val = mr->entries[i].value;
-        if (p_val.kind != PICO8_VALUE_STRING) {
-            continue;
-        }
-        p = p_val.as.string;
-
-        if (!pico8_ob_table_get_index(ri, key.index, &raw)) {
+        if (!pico8_ob_table_get_index(ri, i + 1, &raw)) {
             continue;
         }
 
-        if (pico8_gu_content(gp, p_val)) {
+        if (ho_gp_has(gp, p)) {
             /* `r[ri[i]]`: the raw value is the key. r only has named keys, so
              * a number never finds an entry and the raw value stays. */
             int qe;

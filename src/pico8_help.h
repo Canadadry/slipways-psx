@@ -15,8 +15,9 @@
  * no-op, and an absent or wrong-kind field reads as absent. */
 
 /* TROU-7 */
-/* `ra`, `hi`, `gq`, `kq`, `rb` are the tables of `fv`'s class, borrowed
- * and never modified; `k_` points at `pico8_fv_k__seq`, `nu` is `g_`'s. */
+/* `ra`, `hi`, `gq`, `kq` are the tables of `fv`'s class, borrowed and never
+ * modified; `k_` points at `pico8_fv_k__seq`, `rb` at `pico8_fv_rb_row`,
+ * `nu` is `g_`'s. */
 typedef struct {
     pico8_g__t g_;
     pico8_vec_t *hi;
@@ -27,7 +28,7 @@ typedef struct {
     pico8_qz_box_t *kq;
     pico8_fixed_t ql;
     pico8_fixed_t fg;
-    pico8_ob_table_t *rb;
+    const pico8_jb_row_t *rb;
     int m_;
     int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_fv_t;

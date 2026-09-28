@@ -96,7 +96,7 @@ static char *pj_concat2(const char *a, const char *b) {
     return out;
 }
 
-enum { PJ_EA, PJ_GS, PJ_CR, PJ_I_, PJ_OU };
+enum { PJ_EA, PJ_CR, PJ_OU };
 
 /* pj's class state, read once at init from its spec (the spec's REFs,
  * never re-parsed), except `cr`, which is `g_pj_cr`. */
@@ -104,7 +104,9 @@ static struct {
     const char *name;
     pico8_value_t value;
 } g_pj_defaults[] = {
-    [PJ_EA] = {"ea", {0}}, [PJ_GS] = {"gs", {0}}, [PJ_CR] = {"cr", {0}}, [PJ_I_] = {"i_", {0}}, [PJ_OU] = {"ou", {0}},
+    [PJ_EA] = {"ea", {0}},
+    [PJ_CR] = {"cr", {0}},
+    [PJ_OU] = {"ou", {0}},
 };
 
 static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -178,12 +180,12 @@ const pico8_struct_class_t *pico8_pj_cr_struct_class(void) {
     return &g_pj_cr_struct_class;
 }
 
-const pico8_ob_table_t *pico8_pj_i_(void) {
-    return pj_default_table(PJ_I_);
+const pico8_jb_row_t *pico8_pj_i_(void) {
+    return &pico8_pj_i__row;
 }
 
-const pico8_ob_table_t *pico8_pj_gs(void) {
-    return pj_default_table(PJ_GS);
+const pico8_jb_row_t *pico8_pj_gs(void) {
+    return &pico8_pj_gs_row;
 }
 
 static pico8_value_t pico8_pj_init_placeholder(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -327,7 +329,8 @@ static pico8_value_t pico8_pj_hb_dispatch(void *self, int argc, pico8_value_t ar
 }
 
 void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
-    pico8_list_t i_list = pico8_score_panel_positional_values(pico8_pj_i_());
+    pico8_ob_table_t *i_view = pico8_jb_row_view(pico8_pj_i_());
+    pico8_list_t i_list = pico8_score_panel_positional_values(i_view);
     pico8_list_t ou_list = pico8_score_panel_positional_values(pico8_pj_ou());
     pico8_list_t combined = pico8_la(&i_list, &ou_list);
 
@@ -336,6 +339,7 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
     pico8_list_free(&i_list);
     pico8_list_free(&ou_list);
     pico8_list_free(&combined);
+    pico8_ob_table_free(i_view);
 
     if (self != NULL && self->has_gz) {
         pico8_fixed_t gz = pico8_fixed_add(self->gz, PICO8_FIXED_LIT(0x00003333, 0.2));
@@ -407,12 +411,12 @@ static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out
         if (pj->gs == NULL) {
             return 0;
         }
-        value = pico8_value_ref(pj->gs);
+        value = pico8_value_ref((void *)pj->gs);
     } else if (strcmp(name, "i_") == 0) {
         if (pj->i_ == NULL) {
             return 0;
         }
-        value = pico8_value_ref(pj->i_);
+        value = pico8_value_ref((void *)pj->i_);
     } else if (strcmp(name, "ed") == 0) {
         value = pico8_pj_ed(pj);
     } else if (strcmp(name, "c_") == 0) {
@@ -453,8 +457,8 @@ static void *pico8_pj_struct_new(const pico8_ob_table_t *overrides) {
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->ke, &g_pj_struct_class);
     self->fa = pico8_fixed_from_int(10);
-    self->gs = pj_default_table(PJ_GS);
-    self->i_ = pj_default_table(PJ_I_);
+    self->gs = &pico8_pj_gs_row;
+    self->i_ = &pico8_pj_i__row;
     self->ed = NULL;
     self->c_ = 0;
     self->has_c_ = 0;
@@ -497,7 +501,7 @@ void pico8_score_panel_init(void) {
         assert((i == PJ_CR ||
                 (v->kind == PICO8_VALUE_REF && v->as.ref != NULL &&
                  pico8_type_tag_of(v->as.ref) == PICO8_TYPE_TAG_OB_TABLE)) &&
-               "pj: its 4 table accessors cast these REFs to plain tables, and hb/hk write into ou/ea");
+               "pj: its table accessors cast these REFs to plain tables, and hb/hk write into ou/ea");
         (void)found;
     }
     g_pj_cr.ep = NULL;

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_data_init.h"
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
 #include "pico8_layout.h"
@@ -63,7 +64,7 @@ static pico8_value_t pico8_pj_hk_lh_dispatch(void *self, int argc, pico8_value_t
 
 void pico8_pj_hk(pico8_fixed_t yr) {
     pico8_ob_table_t *iw = pico8_pj_ea();
-    const pico8_ob_table_t *gs = pico8_pj_gs();
+    const pico8_jb_row_t *gs = pico8_pj_gs();
     pico8_value_t pp = pico8_value_ref(NULL);
     pico8_value_t iw2_val;
     char *yr_str;
@@ -75,8 +76,11 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 
     idx = 3426 - pico8_fixed_flr_int(yr);
-    if (gs != NULL) {
-        pico8_ob_table_get_index(gs, idx, &pp);
+    if (idx >= 1 && idx <= gs->count) {
+        const pico8_jb_item_t *item = &gs->items[idx - 1];
+
+        assert((item->row != NULL || item->is_false) && "gs holds rows and false only");
+        pp = item->row != NULL ? pico8_value_ref(pico8_jb_row_view(item->row)) : pico8_value_bool(0);
     }
 
     yr_str = pico8_value_tostr(pico8_value_fixed(yr));

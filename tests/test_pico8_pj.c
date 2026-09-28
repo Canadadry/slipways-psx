@@ -18,6 +18,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
+#include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -187,6 +188,9 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
             return fold_table(fnv(h, 0x7Au), v.as.ref);
         }
+        if (v.as.ref == (const void *)&pico8_pj_gs_row || v.as.ref == (const void *)&pico8_pj_i__row) {
+            return fold_table(fnv(h, 0x7Au), pico8_jb_row_view(v.as.ref));
+        }
         return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
     default:
         return fnv(h, 0xF0u);
@@ -353,14 +357,16 @@ static void test_built(void) {
         pico8_value_t v;
         assert(lookup(ju, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
     }
-    for (i = 0; i < sizeof tables / sizeof tables[0]; i++) {
-        assert(get_ref(ju, tables[i]) == class_ref(tables[i]));
-        h = fold_field(h, ju, tables[i]);
-        if (i == 1) {
-            assert(get_ref(ju, "cr") == pico8_pj_cr());
-            h = fold_cr_field(h, ju);
-        }
-    }
+    assert(get_ref(ju, "ea") == class_ref("ea"));
+    h = fold_field(h, ju, "ea");
+    assert(get_ref(ju, "gs") == &pico8_pj_gs_row);
+    h = fold_field(h, ju, "gs");
+    assert(get_ref(ju, "cr") == pico8_pj_cr());
+    h = fold_cr_field(h, ju);
+    assert(get_ref(ju, "i_") == &pico8_pj_i__row);
+    h = fold_field(h, ju, "i_");
+    assert(get_ref(ju, "ou") == class_ref("ou"));
+    h = fold_field(h, ju, "ou");
     check("built", h, BUILT_HASH);
 }
 
@@ -601,7 +607,8 @@ static void build_with_positional_key(void *e) {
 
 /* The game's panel is a struct whose descriptor holds exactly `hb`, `kj`,
  * `hk`, `ph` and no writer; it takes no construction key. Its class keeps
- * only its spec, whose 5 tables are the shared state. */
+ * only its spec, whose `ea`, `cr`, `ou` are the shared state; `gs`, `i_`
+ * are the generated rows. */
 static void test_pj_is_a_struct(void) {
     static const char *const spec[] = {"fa", "ea", "gs", "cr", "i_", "ou", "ed"};
     const pico8_struct_class_t *cls = pico8_pj_struct_class();
@@ -627,8 +634,8 @@ static void test_pj_is_a_struct(void) {
         assert(pico8_pj_default(spec[i], &v));
     }
     assert(pico8_pj_ou() == class_ref("ou") && pico8_pj_ea() == class_ref("ea") && pico8_pj_cr() == get_ref(ju, "cr"));
-    assert(pico8_pj_i_() == class_ref("i_") && pico8_pj_gs() == class_ref("gs"));
-    assert(get_ref(ju, "gs") == class_ref("gs") && get_ref(ju, "i_") == class_ref("i_"));
+    assert(pico8_pj_i_() == &pico8_pj_i__row && pico8_pj_gs() == &pico8_pj_gs_row);
+    assert(get_ref(ju, "gs") == &pico8_pj_gs_row && get_ref(ju, "i_") == &pico8_pj_i__row);
 
     must_abort(write_c_, ju);
     must_abort(build_with_named_key, NULL);
@@ -795,10 +802,10 @@ static uint32_t pj_fresh(uint32_t h, const void *e) {
     size_t i;
 
     h = pj_fixed_is(h, e, "fa", pico8_fixed_from_int(10));
-    h = pj_ref_is(h, e, "gs", class_ref("gs"), PICO8_TYPE_TAG_OB_TABLE);
-    h = pj_ref_is(h, e, "gs", pico8_pj_gs(), PICO8_TYPE_TAG_OB_TABLE);
-    h = pj_ref_is(h, e, "i_", class_ref("i_"), PICO8_TYPE_TAG_OB_TABLE);
-    h = pj_ref_is(h, e, "i_", pico8_pj_i_(), PICO8_TYPE_TAG_OB_TABLE);
+    h = pj_ref_is(h, e, "gs", &pico8_pj_gs_row, PICO8_TYPE_TAG_UNKNOWN);
+    h = pj_ref_is(h, e, "gs", pico8_pj_gs(), PICO8_TYPE_TAG_UNKNOWN);
+    h = pj_ref_is(h, e, "i_", &pico8_pj_i__row, PICO8_TYPE_TAG_UNKNOWN);
+    h = pj_ref_is(h, e, "i_", pico8_pj_i_(), PICO8_TYPE_TAG_UNKNOWN);
     h = pj_fixed_is(h, e, "ed", pico8_fixed_from_int(1));
     h = pj_absent(h, e, "c_");
     h = pj_absent(h, e, "gz");

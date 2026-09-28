@@ -367,6 +367,10 @@ static int pico8_jo_fe_step(pico8_value_t e, void *ctx_ptr, pico8_value_t *out_v
     row = pico8_ob_table_new();
 
     if (pico8_mv((pico8_struct_header_t *)b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
+        if (lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL &&
+            pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_UNKNOWN) {
+            lq_val = pico8_value_ref(pico8_jb_row_view(lq_val.as.ref));
+        }
         pico8_ob_table_set_name(row, "lq", lq_val);
     } else {
         assert(0 && "hp must expose \"lq\" as an mv()-dispatchable field");

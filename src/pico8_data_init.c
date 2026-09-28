@@ -29,6 +29,8 @@ static void data_init_row_items(pico8_ob_table_t *t, const pico8_jb_row_t *row) 
             v = pico8_value_ref(pico8_jb_row_view(item->row));
         } else if (item->is_false) {
             v = pico8_value_bool(0);
+        } else if (item->is_fixed) {
+            v = pico8_value_fixed(item->fixed);
         } else {
             v = pico8_value_fixed(pico8_fixed_from_int(item->n));
         }
@@ -36,9 +38,12 @@ static void data_init_row_items(pico8_ob_table_t *t, const pico8_jb_row_t *row) 
     }
 }
 
-static void data_init_row_c(pico8_ob_table_t *t, const pico8_jb_row_t *row) {
+static void data_init_row_named(pico8_ob_table_t *t, const pico8_jb_row_t *row) {
     if (row->has_c) {
         pico8_ob_table_set_name(t, "c", pico8_value_fixed(pico8_fixed_from_int(row->c)));
+    }
+    if (row->fn != NULL) {
+        pico8_ob_table_set_name(t, "fn", pico8_value_string(row->fn));
     }
 }
 
@@ -46,7 +51,7 @@ pico8_ob_table_t *pico8_jb_row_view(const pico8_jb_row_t *row) {
     pico8_ob_table_t *t = pico8_ob_table_new();
 
     data_init_row_items(t, row);
-    data_init_row_c(t, row);
+    data_init_row_named(t, row);
     return t;
 }
 
@@ -214,7 +219,7 @@ pico8_ob_table_t *pico8_bz_view(void) {
         if (e->has_ra) {
             pico8_ob_table_set_name(ri, "ra", data_init_vec(e->ra_x, e->ra_y));
         }
-        data_init_row_c(ri, &e->row);
+        data_init_row_named(ri, &e->row);
         pico8_ob_table_set_index(bz, i + 1, pico8_value_ref(ri));
     }
     return bz;
