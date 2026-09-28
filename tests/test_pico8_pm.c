@@ -682,7 +682,6 @@ static int is_a_pm_struct(const void *e) {
  * it takes exactly hj's 21 names, and a construction key other than `p`,
  * `ra`, `id` stops the run. pm's class keeps no `pq` of its own. */
 static void test_pm_is_a_struct(void) {
-    static const char *const written[] = {"qy"};
     static const char *const inherited[] = {"me", "nu", "hp", "px", "s",  "py", "ki", "pn",
                                             "pk", "du", "fc", "k_", "qo", "ro", "qg", "q_"};
     const pico8_struct_class_t *cls = pico8_pm_struct_class();
@@ -723,12 +722,6 @@ static void test_pm_is_a_struct(void) {
     must_abort(write_ht, a);
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_value_t v;
-        pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
     {
         pico8_pm_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && !has(bare, "id") && !has(bare, "ra") && has(bare, "oe") &&

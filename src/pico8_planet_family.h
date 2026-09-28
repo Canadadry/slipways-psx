@@ -76,25 +76,30 @@ typedef struct {
 /* An ascension: a laboratory, then hj's own emitter defaults and `qy`,
  * which its own `pq` (`f_`) writes. A default of hj whose name is a member
  * of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`, `s`) lives in that member.
- * `nu`, `px` and `k_` hold the very tables of hj's spec, `ba` the one of
- * qh's, borrowed; `qy` is the ascension's own. Nothing frees the struct:
- * TROU-7. */
+ * `nu`, `px` and `k_` hold the very tables of hj's spec, `rr` its very
+ * string, `ba` the one of qh's, borrowed; `qy` is the ascension's own, NULL
+ * until `f_`, never freed. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    pico8_value_t rr;
-    pico8_value_t py;
-    pico8_value_t ki;
-    pico8_value_t pn;
-    pico8_value_t pk;
-    pico8_value_t fc;
-    pico8_value_t k_;
-    pico8_value_t du;
-    pico8_value_t qo;
-    pico8_value_t ro;
-    pico8_value_t qg;
-    pico8_value_t q_;
-    pico8_value_t qy;
+    const char *rr;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pn;
+    pico8_fixed_t pk;
+    int pk_is_bool; /* 1: `pk` holds a boolean (0/1), 0: a fixed */
+    pico8_fixed_t fc;
+    pico8_ob_table_t *k_;
+    pico8_fixed_t du;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    pico8_list_t *qy;
 } pico8_hj_t;
+
+/* `pk` as a value: a boolean when `pk_is_bool`, a fixed otherwise; REF NULL
+ * when `self` is NULL. */
+pico8_value_t pico8_hj_pk(const pico8_hj_t *self);
 
 /* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
  * ancestor has a member for. A default of pm whose name is a member of

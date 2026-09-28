@@ -733,7 +733,6 @@ static int is_an_hj_struct(const void *e) {
  * `id` stops the run. A bare `qh` still refuses `qy`; no other descriptor
  * but pm's and mx's has an `mm`. */
 static void test_hj_is_a_struct(void) {
-    static const char *const written[] = {"qy"};
     const pico8_struct_class_t *const no_mm[] = {pico8_jo_struct_class(), pico8_qh_struct_class(),
                                                  pico8_nl_struct_class(), pico8_os_struct_class()};
     const pico8_struct_class_t *cls = pico8_hj_struct_class();
@@ -772,12 +771,6 @@ static void test_hj_is_a_struct(void) {
     must_abort(write_qy, pico8_qh_new(NULL));
     must_abort(build_with_unknown_key, NULL);
     must_abort(build_with_positional_key, NULL);
-    for (i = 0; i < sizeof written / sizeof written[0]; i++) {
-        pico8_value_t v;
-        pico8_entity_set_field(a, written[i], pico8_value_fixed(pico8_fixed_from_int((int)i + 1)));
-        assert(lookup(a, written[i], &v) && v.kind == PICO8_VALUE_FIXED &&
-               v.as.fixed == pico8_fixed_from_int((int)i + 1));
-    }
     {
         pico8_hj_t *bare = pico8_hj_new(NULL);
         assert(is_an_hj_struct(bare) && !has(bare, "id") && has(bare, "oe") && list_size(bare, "qy") == 0 &&
