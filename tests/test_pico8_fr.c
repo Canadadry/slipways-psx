@@ -268,7 +268,6 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     static const char *const scalars[] = {"id", "me", "t",  "rr", "mt", "hp", "s",  "od", "fp", "dw",
                                           "dq", "qh", "mi", "hf", "hs", "fa", "ma", "ca"};
     static const char *const not_fr[] = {"qu", "qw", "ht", "qy", "et"};
-    pico8_value_t gb1;
     size_t i;
 
     assert(is_a_gate(e) && !is_a_gate(slipgate));
@@ -306,8 +305,8 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
     assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
-    assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb1) && gb1.kind == PICO8_VALUE_REF);
-    assert(get_ref(e, "hn") == gb1.as.ref);
+    assert(pico8_gb_at(1) != NULL);
+    assert(get_ref(e, "hn") == pico8_gb_at(1));
     h = fnv(h, (uint32_t)list_size(e, "oe"));
     h = fnv(h, (uint32_t)list_size(e, "jy"));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));

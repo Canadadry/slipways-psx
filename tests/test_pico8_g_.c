@@ -1488,7 +1488,8 @@ static void test_g__writer_stops_off_row(void) {
     holders[1] = pico8_fv_new();
     jc = a_slipway(&middle);
     vec = vec_ref(vec_xy(1, 1));
-    assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb_1) && gb_1.kind == PICO8_VALUE_REF);
+    gb_1 = pico8_value_ref(pico8_gb_at(1));
+    assert(gb_1.as.ref != NULL);
 
     n = 0;
     off[n++] = pico8_value_fixed(pico8_fixed_from_int(1));

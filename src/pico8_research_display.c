@@ -25,24 +25,6 @@ static int pico8_research_display_truthy(pico8_value_t v) {
     return 1;
 }
 
-/* Returns a new, heap-backed list the caller owns and must release with
- * pico8_list_free(). */
-static pico8_list_t pico8_research_display_positional_values(const pico8_ob_table_t *table) {
-    pico8_list_t list;
-    int i;
-
-    pico8_list_init(&list);
-    if (table == NULL) {
-        return list;
-    }
-    for (i = 0; i < table->count; i++) {
-        if (table->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-            pico8_list_add(&list, table->entries[i].value);
-        }
-    }
-    return list;
-}
-
 /* Returns a newly heap-allocated, NUL-terminated string the caller owns
  * and must free(). */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {
@@ -332,10 +314,15 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
 }
 
 pico8_list_t pico8_bj(const pico8_struct_header_t *jo_instance) {
-    pico8_list_t items = pico8_research_display_positional_values(pico8_gb());
+    pico8_list_t items;
     pico8_bj_ctx_t ctx;
     pico8_list_t result;
+    int k;
 
+    pico8_list_init(&items);
+    for (k = 1; k <= pico8_gb_count(); k++) {
+        pico8_list_add(&items, pico8_value_ref(pico8_gb_at(k)));
+    }
     ctx.jo_instance = jo_instance;
     result = pico8_jp(&items, pico8_bj_predicate, &ctx);
     pico8_list_free(&items);

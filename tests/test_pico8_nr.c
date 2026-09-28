@@ -280,7 +280,6 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
                                           "dq", "qh", "mi", "hf", "hs", "fa", "ma", "ca"};
     static const char *const not_nr[] = {"mt", "qu", "qw", "ht", "qy", "et"};
     const pico8_struct_class_t *qh = pico8_qh_struct_class();
-    pico8_value_t gb1;
     size_t i;
 
     assert(gate_kind(e) == NR);
@@ -333,8 +332,8 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
     assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
-    assert(pico8_ob_table_get_index(pico8_gb(), 1, &gb1) && gb1.kind == PICO8_VALUE_REF);
-    assert(get_ref(e, "hn") == gb1.as.ref);
+    assert(pico8_gb_at(1) != NULL);
+    assert(get_ref(e, "hn") == pico8_gb_at(1));
     h = fnv(h, (uint32_t)list_size(e, "oe"));
     h = fnv(h, (uint32_t)list_size(e, "jy"));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));

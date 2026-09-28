@@ -364,9 +364,8 @@ static void test_constructions(void) {
 }
 
 static void *project(int k) {
-    pico8_value_t v;
-    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
+    assert(pico8_gb_at(k) != NULL);
+    return pico8_gb_at(k);
 }
 
 /* `jo.ex` on the `i`/`o` of three projects, over a spread of `jq`/`mj`/`d`

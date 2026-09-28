@@ -1562,15 +1562,12 @@ static void test_jo_members_by_name(void) {
 }
 
 static pico8_hp_t *gb_project(int want_go) {
-    const pico8_ob_table_t *gb = pico8_gb();
-    pico8_value_t v;
     int k;
 
-    for (k = 1; pico8_ob_table_get_index(gb, k, &v); k++) {
+    for (k = 1; k <= pico8_gb_count(); k++) {
         pico8_hp_t *hp;
 
-        assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-        hp = v.as.ref;
+        hp = pico8_gb_at(k);
         if (want_go ? hp->go != NULL : hp->go == NULL && hp->cw == NULL) {
             return hp;
         }
@@ -1863,8 +1860,8 @@ static void test_jo_position_by_name(void) {
     h = fold_position(h, e[1], "ra", rv);
     assert(rv->x == before.x && rv->y != before.y);
 
-    for (k = 1; pico8_ob_table_get_index(pico8_gb(), k, &v); k++) {
-        pico8_hp_t *hp = v.as.ref;
+    for (k = 1; k <= pico8_gb_count(); k++) {
+        pico8_hp_t *hp = pico8_gb_at(k);
 
         if (hp->cw != NULL && strcmp(hp->cw, "pm") == 0) {
             to_pm = hp;
@@ -2175,8 +2172,8 @@ static void test_jo_state_by_name(void) {
     assert(me_of(made, "fx", &v) && v.as.boolean == 1);
     h = fold_jo_state(h, made);
 
-    for (k = 1; pico8_ob_table_get_index(pico8_gb(), k, &v); k++) {
-        pico8_hp_t *hp = v.as.ref;
+    for (k = 1; k <= pico8_gb_count(); k++) {
+        pico8_hp_t *hp = pico8_gb_at(k);
 
         if (hp->cw != NULL && strcmp(hp->cw, "pm") == 0) {
             to_pm = hp;

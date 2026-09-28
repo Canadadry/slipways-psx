@@ -134,7 +134,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `df` | `pico8_df_table`, `pico8_df_lookup(px)` (`df[px]`) | catalogue des types de planète, tiré au sort par `bw()` |
 | `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
 | `fd` | `pico8_fd_table` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; `build_gb` la parcourt |
-| `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
+| `gb` | `pico8_gb_at`, `pico8_gb_find`, `pico8_gb_count` | les instances `hp` construites depuis `fd` : `gb[k]` par rang (tableau fixe de `pico8_research.c`), `gb[px]` le dernier projet enregistré sous ce `px` (plusieurs le partagent) |
 | `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
 | `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
 | `ek` | `pico8_ek_table` (`pico8_game_data.h`) | seuils de palier comparés à `#self.invented` par `hy:kt()` |
@@ -458,7 +458,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hp:po()` | `pico8_hp_po` | table de production du projet, par palier |
 | `hp:od()` | `pico8_hp_od` | coût du projet, réduit par les technologies acquises |
 | `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée |
-| `gb` | `pico8_gb` | tous les projets construits depuis `fd` |
+| `gb` | `pico8_gb_at`, `pico8_gb_find` | tous les projets construits depuis `fd`, par rang ou par `px` |
 | `cb(bi)` | `pico8_cb` | les technologies affichables ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
 | `gi(t)` | `pico8_gi` (enregistrement de la vue), `pico8_gi_nb` (entrée de `pico8_nb_table`, lue par `hy:kt`) | coût en points de recherche d'une technologie |
 

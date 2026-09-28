@@ -249,9 +249,8 @@ static pico8_fixed_t must_fixed(const void *e, const char *name) {
 }
 
 static pico8_hp_t *project(int k) {
-    pico8_value_t v;
-    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
+    assert(pico8_gb_at(k) != NULL);
+    return pico8_gb_at(k);
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the

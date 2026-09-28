@@ -12,7 +12,18 @@
 #include "pico8_type_tag.h"
 
 static int g_hp_up = 0;
-static pico8_ob_table_t *g_gb = NULL;
+
+/* `gb[k]`, 1-based rank k: the projects `build_gb` made, which it owns. */
+static pico8_hp_t *g_gb[PICO8_FD_COUNT];
+static int g_gb_count = 0;
+/* `gb[px]`: the last project registered under each `px` (several share
+ * one), built by `build_gb` or not. 0 until `build_gb`. */
+static struct {
+    const char *px;
+    pico8_hp_t *hp;
+} g_gb_px[PICO8_FD_COUNT];
+static int g_gb_px_count = 0;
+static int g_gb_up = 0;
 /* Borrowed from `pico8_fd_table`, never copied or freed here. */
 static const char *g_rr = NULL;
 
@@ -35,15 +46,26 @@ static int pico8_research_truthy(pico8_value_t v) {
 static void pico8_research_free_gb_instances(void) {
     int i;
 
-    if (g_gb == NULL) {
-        return;
+    for (i = 0; i < g_gb_count; i++) {
+        free(g_gb[i]);
     }
-    for (i = 0; i < g_gb->count; i++) {
-        if (g_gb->entries[i].key.kind == PICO8_OB_KEY_INDEX && g_gb->entries[i].value.kind == PICO8_VALUE_REF &&
-            g_gb->entries[i].value.as.ref != NULL) {
-            free(g_gb->entries[i].value.as.ref);
+    g_gb_count = 0;
+    g_gb_px_count = 0;
+}
+
+static void pico8_research_gb_register(pico8_hp_t *hp) {
+    int i;
+
+    for (i = 0; i < g_gb_px_count; i++) {
+        if (strcmp(g_gb_px[i].px, hp->px) == 0) {
+            g_gb_px[i].hp = hp;
+            return;
         }
     }
+    assert(g_gb_px_count < PICO8_FD_COUNT && "gb[px]: every px comes from fd, which has fewer names than records");
+    g_gb_px[g_gb_px_count].px = hp->px;
+    g_gb_px[g_gb_px_count].hp = hp;
+    g_gb_px_count++;
 }
 
 static pico8_value_t pico8_hp_lq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -334,8 +356,8 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     }
 
     if (self->px != NULL) {
-        assert(g_gb != NULL && "hp:pq registers itself in gb: build gb before instantiating an hp");
-        pico8_ob_table_set_name(g_gb, self->px, pico8_value_ref(self));
+        assert(g_gb_up && "hp:pq registers itself in gb: build gb before instantiating an hp");
+        pico8_research_gb_register(self);
     }
 
     if (self->has_ii) {
@@ -388,8 +410,7 @@ void pico8_research_init(void) {
 
 void pico8_research_shutdown(void) {
     pico8_research_free_gb_instances();
-    pico8_ob_table_free(g_gb);
-    g_gb = NULL;
+    g_gb_up = 0;
     g_rr = NULL;
     g_hp_up = 0;
 }
@@ -411,12 +432,10 @@ pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys) {
 }
 
 void pico8_research_build_gb(void) {
-    int next_index = 1;
     int i;
 
     pico8_research_free_gb_instances();
-    pico8_ob_table_free(g_gb);
-    g_gb = pico8_ob_table_new();
+    g_gb_up = 1;
     g_rr = NULL;
 
     for (i = 0; i < PICO8_FD_COUNT; i++) {
@@ -431,13 +450,31 @@ void pico8_research_build_gb(void) {
             keys.ri = e;
             keys.rr = g_rr;
             inst = pico8_hp_new(&keys);
-            pico8_ob_table_set_index(g_gb, next_index++, pico8_value_ref(inst));
+            g_gb[g_gb_count++] = inst;
         }
     }
 }
 
-const pico8_ob_table_t *pico8_gb(void) {
-    return g_gb;
+int pico8_gb_count(void) {
+    return g_gb_count;
+}
+
+pico8_hp_t *pico8_gb_at(int k) {
+    if (k < 1 || k > g_gb_count) {
+        return NULL;
+    }
+    return g_gb[k - 1];
+}
+
+pico8_hp_t *pico8_gb_find(const char *px) {
+    int i;
+
+    for (i = 0; px != NULL && i < g_gb_px_count; i++) {
+        if (strcmp(g_gb_px[i].px, px) == 0) {
+            return g_gb_px[i].hp;
+        }
+    }
+    return NULL;
 }
 
 const pico8_hc_entry_t *pico8_hp_po(const pico8_hp_t *self) {

@@ -267,15 +267,13 @@ static void *ga_from(int from) {
 
 /* The recipe of `gb` whose `cw` names "ga": the harvest. */
 static void *harvest_recipe(void) {
-    const pico8_ob_table_t *gb = pico8_gb();
     void *found = NULL;
     int i;
 
-    for (i = 0; i < gb->count; i++) {
+    for (i = 1; i <= pico8_gb_count(); i++) {
         pico8_value_t cw;
-        void *hp = gb->entries[i].value.as.ref;
-        if (gb->entries[i].value.kind == PICO8_VALUE_REF && hp != NULL && lookup(hp, "cw", &cw) &&
-            cw.kind == PICO8_VALUE_STRING && strcmp(cw.as.string, "ga") == 0) {
+        void *hp = pico8_gb_at(i);
+        if (lookup(hp, "cw", &cw) && cw.kind == PICO8_VALUE_STRING && strcmp(cw.as.string, "ga") == 0) {
             assert(found == NULL || found == hp);
             found = hp;
         }

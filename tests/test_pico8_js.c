@@ -191,10 +191,9 @@ static uint32_t fn_index(pico8_value_function_t fn) {
 /* A research project folds by the tag of the class-instance form these
  * values were frozen on, whatever its form now. */
 static int in_gb(const void *e) {
-    const pico8_ob_table_t *gb = pico8_gb();
-    int i;
-    for (i = 0; gb != NULL && i < gb->count; i++) {
-        if (gb->entries[i].value.kind == PICO8_VALUE_REF && gb->entries[i].value.as.ref == e) {
+    int k;
+    for (k = 1; k <= pico8_gb_count(); k++) {
+        if (pico8_gb_at(k) == e) {
             return 1;
         }
     }
@@ -438,9 +437,8 @@ static pico8_fixed_t world_fixed(const void *e, const char *name) {
 }
 
 static pico8_hp_t *project(int k) {
-    pico8_value_t v;
-    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
+    assert(pico8_gb_at(k) != NULL);
+    return pico8_gb_at(k);
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
@@ -1634,7 +1632,6 @@ static void stops_on(void (*write)(void *), void *e, const char *name, const pic
  * and `jb` false. */
 static void test_js_writer_stops_off_row(void) {
     static const char *const fixed_keys[] = {"fg", "trade", "en", "_jo_fe_od"};
-    const pico8_ob_table_t *gb;
     pico8_value_t table;
     pico8_value_t vec;
     pico8_value_t list;
@@ -1642,7 +1639,6 @@ static void test_js_writer_stops_off_row(void) {
     pico8_value_t hp = pico8_value_ref(NULL);
     void *ix[4];
     size_t i;
-    int j;
 
     start_game();
     assert(ix_buttons(ix) == 4);
@@ -1650,13 +1646,7 @@ static void test_js_writer_stops_off_row(void) {
     vec = vec_ref(1, 1);
     list = pico8_value_ref((void *)pico8_hv());
     js = pico8_value_ref(ix[1]);
-    gb = pico8_gb();
-    for (j = 0; j < gb->count && hp.as.ref == NULL; j++) {
-        if (gb->entries[j].value.kind == PICO8_VALUE_REF &&
-            is_of_class(gb->entries[j].value.as.ref, pico8_hp_struct_class())) {
-            hp = gb->entries[j].value;
-        }
-    }
+    hp = pico8_value_ref(pico8_gb_at(1));
     assert(hp.as.ref != NULL);
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),

@@ -676,8 +676,6 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
     return pico8_jo_struct_new(keys);
 }
 
-/* `pico8_gb()` is NULL until `pico8_data_init()` has run, and the
- * `pico8_ob_table_get_*` primitives do not guard their table argument. */
 void pico8_jo_pq(pico8_jo_t *self) {
     pico8_value_t hp_val;
     pico8_list_t *oe;
@@ -691,19 +689,15 @@ void pico8_jo_pq(pico8_jo_t *self) {
     self->oe = oe;
 
     if (pico8_entity_get_field(self, "hp", &hp_val) && pico8_jo_truthy(hp_val)) {
-        const pico8_ob_table_t *gb = pico8_gb();
-        pico8_value_t target;
-        int found = 0;
+        pico8_hp_t *target = NULL;
 
-        if (gb != NULL) {
-            if (hp_val.kind == PICO8_VALUE_FIXED) {
-                found = pico8_ob_table_get_index(gb, pico8_fixed_flr_int(hp_val.as.fixed), &target);
-            } else if (hp_val.kind == PICO8_VALUE_STRING) {
-                found = pico8_ob_table_get_name(gb, hp_val.as.string, &target);
-            }
+        if (hp_val.kind == PICO8_VALUE_FIXED) {
+            target = pico8_gb_at(pico8_fixed_flr_int(hp_val.as.fixed));
+        } else if (hp_val.kind == PICO8_VALUE_STRING) {
+            target = pico8_gb_find(hp_val.as.string);
         }
-        if (found && target.kind == PICO8_VALUE_REF && target.as.ref != NULL) {
-            pico8_jo_lz(self, target.as.ref);
+        if (target != NULL) {
+            pico8_jo_lz(self, target);
         }
     }
 }

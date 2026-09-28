@@ -303,7 +303,6 @@ static uint32_t fold_processor(uint32_t h, const void *e) {
     static const char *const scalars[] = {"id", "me", "t",  "qh", "hp", "s",  "od", "hs", "dq",
                                           "fp", "dw", "mi", "hf", "fa", "ma", "ca"};
     static const char *const not_os[] = {"rr", "nl", "qw"};
-    pico8_value_t gb4;
     size_t i;
 
     for (i = 0; i < sizeof scalars / sizeof scalars[0]; i++) {
@@ -339,8 +338,8 @@ static uint32_t fold_processor(uint32_t h, const void *e) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
     assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
-    assert(pico8_ob_table_get_index(pico8_gb(), 4, &gb4) && gb4.kind == PICO8_VALUE_REF);
-    assert(get_ref(e, "hn") == gb4.as.ref);
+    assert(pico8_gb_at(4) != NULL);
+    assert(get_ref(e, "hn") == pico8_gb_at(4));
     h = fold_kw(h, e);
     h = fnv(h, (uint32_t)list_size(e, "oe"));
     h = fnv(h, (uint32_t)list_size(e, "jy"));

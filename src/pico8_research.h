@@ -88,8 +88,13 @@ pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys);
  * tagged with. */
 void pico8_research_build_gb(void);
 
-/* Owned by this module; callers must not free it. */
-const pico8_ob_table_t *pico8_gb(void);
+/* `gb`, owned by this module (callers free nothing): its projects by rank,
+ * 1..pico8_gb_count() (NULL outside), and by `px`, the last project
+ * registered under it (NULL when none). All empty before the first
+ * pico8_research_build_gb() and after pico8_research_shutdown(). */
+int pico8_gb_count(void);
+pico8_hp_t *pico8_gb_at(int k);
+pico8_hp_t *pico8_gb_find(const char *px);
 
 /* Returns an entry of pico8_hc_table, never a copy, or NULL when `self.ja`
  * does not resolve to one. */

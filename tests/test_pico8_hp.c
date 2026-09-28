@@ -106,21 +106,14 @@ static void *get_ref(const void *e, const char *name) {
     return lookup(e, name, &v) && v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
 }
 
-/* The positional entries of `gb`, in order. */
+/* The projects of `gb` by rank, in order. */
 static int gb_count(void) {
-    const pico8_ob_table_t *gb = pico8_gb();
-    int i;
-    int n = 0;
-    for (i = 0; i < gb->count; i++) {
-        n += gb->entries[i].key.kind == PICO8_OB_KEY_INDEX;
-    }
-    return n;
+    return pico8_gb_count();
 }
 
 static void *project(int k) {
-    pico8_value_t v;
-    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
+    assert(pico8_gb_at(k) != NULL);
+    return pico8_gb_at(k);
 }
 
 /* 1-based rank of `e` among the positional entries of `gb`, -1 when none. */
@@ -342,7 +335,6 @@ static void *last_with_px(const char *px) {
 static void test_gb(void) {
     uint32_t h = 2166136261u;
     uint32_t d = 2166136261u;
-    const pico8_ob_table_t *gb = pico8_gb();
     void *mr = NULL;
     void *gp = NULL;
     void *fk = NULL;
@@ -351,8 +343,8 @@ static void test_gb(void) {
     size_t n;
 
     check_count("gb", gb_count(), GB_COUNT);
-    for (k = 0; k < gb->count; k++) {
-        named += gb->entries[k].key.kind == PICO8_OB_KEY_NAME;
+    for (k = 1; k <= gb_count(); k++) {
+        named += pico8_gb_find(((const pico8_hp_t *)project(k))->px) == project(k);
     }
     check_count("gb named", named, GB_NAMED);
 
@@ -400,7 +392,8 @@ static void test_gb(void) {
             assert(!has(b, absent[n]));
         }
         if (lookup(b, "px", &px) && px.kind == PICO8_VALUE_STRING) {
-            assert(pico8_ob_table_get_name(gb, px.as.string, &v) && v.kind == PICO8_VALUE_REF);
+            v = pico8_value_ref(pico8_gb_find(px.as.string));
+            assert(v.as.ref != NULL);
             assert(v.as.ref == last_with_px(px.as.string));
             h = fnv(h, (uint32_t)gb_rank(v.as.ref));
         }
@@ -633,7 +626,8 @@ static void test_rebuild_and_shutdown(void) {
     test_gb();
 
     pico8_research_shutdown();
-    assert(pico8_gb() == NULL && !pico8_hp_ready());
+    assert(pico8_gb_count() == 0 && pico8_gb_at(1) == NULL && pico8_gb_find("colony") == NULL);
+    assert(!pico8_hp_ready());
     assert(pico8_hp_fk() == &pico8_hp_fk_row);
     pico8_research_shutdown();
 
@@ -657,6 +651,37 @@ static void must_abort(void (*write)(void *), void *e) {
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+/* As must_abort, and the abort is the assert whose text holds `needle`:
+ * past it, the construction reads out of bounds and may abort elsewhere. */
+static void must_abort_saying(void (*write)(void *), void *e, const char *needle) {
+    char said[512];
+    ssize_t n;
+    size_t got = 0;
+    int fds[2];
+    pid_t child;
+    int status;
+
+    fflush(stdout);
+    assert(pipe(fds) == 0);
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        close(fds[0]);
+        assert(dup2(fds[1], 2) == 2);
+        write(e);
+        _exit(0);
+    }
+    close(fds[1]);
+    while (got < sizeof said - 1 && (n = read(fds[0], said + got, sizeof said - 1 - got)) > 0) {
+        got += (size_t)n;
+    }
+    said[got] = '\0';
+    close(fds[0]);
+    assert(waitpid(child, &status, 0) == child);
+    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+    assert(strstr(said, needle) != NULL);
 }
 
 static void write_px(void *e) {
@@ -700,6 +725,42 @@ static void build_with_ii_and_no_px(void *e) {
     (void)pico8_hp_new(&keys);
 }
 
+static void build_with_nine_positions(void *e) {
+    pico8_fd_entry_t ri = {0};
+    pico8_hp_keys_t keys = {0};
+
+    (void)e;
+    ri.npos = 9;
+    ri.px = "x";
+    keys.ri = &ri;
+    (void)pico8_hp_new(&keys);
+}
+
+static void build_with_no_px_string(void *e) {
+    pico8_fd_entry_t ri = {0};
+    pico8_hp_keys_t keys = {0};
+
+    (void)e;
+    ri.npos = 1;
+    keys.ri = &ri;
+    (void)pico8_hp_new(&keys);
+}
+
+static void build_with_no_o_number(void *e) {
+    pico8_fd_entry_t ri = {0};
+    pico8_hp_keys_t keys = {0};
+
+    (void)e;
+    ri.npos = 6;
+    ri.px = "x";
+    ri.lr = "y";
+    ri.fj = 1;
+    ri.ja = "z";
+    ri.i = "";
+    keys.ri = &ri;
+    (void)pico8_hp_new(&keys);
+}
+
 static void od_on_other(void *e) {
     (void)pico8_hp_od(e);
 }
@@ -726,7 +787,8 @@ static void hu_on_other(void *e) {
 
 /* A project is a struct whose descriptor has no method and no writer, its
  * `mr`/`gp`/`fk` the class's; a header entry, a value `gp` maps that `r`
- * lacks, or `ii` without `px` stops its construction, and its functions
+ * lacks, `ii` without `px`, more positions than `mr`, or a position of the
+ * wrong type stops its construction, and its functions
  * refuse anything that is not a project. With no key, only `mr`/`gp`/`fk`, an empty `i` and the `lq`
  * method. */
 static void test_hp_is_a_struct(void) {
@@ -761,12 +823,34 @@ static void test_hp_is_a_struct(void) {
     must_abort(build_with_header, NULL);
     must_abort(build_with_o_missing_from_r, NULL);
     must_abort(build_with_ii_and_no_px, NULL);
+    must_abort_saying(build_with_nine_positions, NULL, "ri->npos <= self->mr->count");
+    must_abort(build_with_no_px_string, NULL);
+    must_abort(build_with_no_o_number, NULL);
     must_abort(od_on_other, pico8_ok());
     must_abort(po_on_other, pico8_ok());
     must_abort(jb_on_other, pico8_ok());
     must_abort(lq_on_other, pico8_ok());
     must_abort(lz_on_other, pico8_ok());
     must_abort(hu_on_other, pico8_ok());
+}
+
+/* `gb[px]` is the last project `hp:pq` registered under that `px`, even one
+ * `build_gb` did not make; `gb[k]` keeps its own. */
+static void test_gb_px_is_the_last_registered(void) {
+    pico8_hp_t *first = project(1);
+    pico8_hp_keys_t keys = {0};
+    pico8_hp_t *again;
+    int i;
+
+    for (i = 0; keys.ri == NULL; i++) {
+        assert(i < PICO8_FD_COUNT);
+        if (pico8_fd_table[i].header == NULL && strcmp(pico8_fd_table[i].px, first->px) == 0) {
+            keys.ri = &pico8_fd_table[i];
+        }
+    }
+    again = pico8_hp_new(&keys);
+    assert(again != first && pico8_gb_find(first->px) == again);
+    assert(pico8_gb_at(1) == first && pico8_gb_count() == GB_COUNT);
 }
 
 static const char *const hp_members[] = {"mr", "gp", "fk", "px", "lr", "fj", "ja", "i", "o",
@@ -981,6 +1065,7 @@ int main(void) {
     in_fresh_child(test_built_world);
     in_fresh_child(test_harvested_world);
     in_fresh_child(test_hp_is_a_struct);
+    in_fresh_child(test_gb_px_is_the_last_registered);
     in_fresh_child(test_hp_members_by_name);
     in_fresh_child(test_rebuild_and_shutdown);
 

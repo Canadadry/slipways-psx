@@ -313,7 +313,6 @@ static uint32_t fold_synthesizer(uint32_t h, const void *e) {
                                           "dq", "fp", "dw", "mi", "hf", "hs", "fa", "ma", "ca"};
     static const char *const not_mx[] = {"nl", "qw", "ng", "fz", "et"};
     const pico8_struct_class_t *hj = pico8_hj_struct_class();
-    pico8_value_t gb5;
     size_t i;
 
     for (i = 0; i < sizeof scalars / sizeof scalars[0]; i++) {
@@ -359,8 +358,8 @@ static uint32_t fold_synthesizer(uint32_t h, const void *e) {
         assert(get_ref(e, jo_data[i].name) == jo_data[i].data);
     }
     assert(get_ref(e, "kw") != NULL && get_ref(e, "kw") != pico8_jo_shared_kw());
-    assert(pico8_ob_table_get_index(pico8_gb(), 5, &gb5) && gb5.kind == PICO8_VALUE_REF);
-    assert(get_ref(e, "hn") == gb5.as.ref);
+    assert(pico8_gb_at(5) != NULL);
+    assert(get_ref(e, "hn") == pico8_gb_at(5));
     h = fold_kw(h, e);
     h = fnv(h, (uint32_t)list_size(e, "oe"));
     h = fnv(h, (uint32_t)list_size(e, "jy"));

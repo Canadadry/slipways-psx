@@ -252,17 +252,15 @@ static void test_kind_reader_serves_the_generated_defaults(void) {
 /* `kv[hp.cw]` only ever sees "pm" or "ga": every research of `gb` carries
  * one of them as `cw`, or none. */
 static void test_every_cw_is_pm_or_ga(void) {
-    const pico8_ob_table_t *gb = pico8_gb();
     int with_cw = 0;
     int k;
 
-    assert(gb != NULL && gb->count > 0);
-    for (k = 0; k < gb->count; k++) {
+    assert(pico8_gb_count() > 0);
+    for (k = 1; k <= pico8_gb_count(); k++) {
         const pico8_hp_t *hp;
         const char *cw;
 
-        assert(gb->entries[k].value.kind == PICO8_VALUE_REF && gb->entries[k].value.as.ref != NULL);
-        hp = gb->entries[k].value.as.ref;
+        hp = pico8_gb_at(k);
         cw = hp->cw;
         if (cw == NULL) {
             continue;
@@ -270,7 +268,7 @@ static void test_every_cw_is_pm_or_ga(void) {
         assert(strcmp(cw, "pm") == 0 || strcmp(cw, "ga") == 0);
         with_cw++;
     }
-    printf("[cw] %d of %d researches\n", with_cw, gb->count);
+    printf("[cw] %d of %d researches\n", with_cw, pico8_gb_count());
     assert(with_cw > 0);
 }
 

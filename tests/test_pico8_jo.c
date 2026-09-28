@@ -380,12 +380,10 @@ static pico8_hp_t *cw_project(const char *cw) {
     int k;
 
     for (k = 1;; k++) {
-        pico8_value_t v;
-        const pico8_hp_t *hp;
-        assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF);
-        hp = v.as.ref;
+        pico8_hp_t *hp = pico8_gb_at(k);
+        assert(hp != NULL);
         if (hp->cw != NULL && strcmp(hp->cw, cw) == 0) {
-            return v.as.ref;
+            return hp;
         }
     }
 }
@@ -485,9 +483,9 @@ static void test_kw_shared(void) {
     assert(((const pico8_kw_t *)get_ref(b, "kw"))->mu == pico8_fixed_from_int(7));
     assert(pico8_jo_shared_kw()->mu == pico8_fixed_from_int(7));
 
-    assert(pico8_gb() != NULL && pico8_gb()->count > 0);
-    hp = pico8_gb()->entries[0].value;
-    assert(hp.kind == PICO8_VALUE_REF && hp.as.ref != NULL);
+    assert(pico8_gb_count() > 0);
+    hp = pico8_value_ref(pico8_gb_at(1));
+    assert(hp.as.ref != NULL);
     pico8_jo_lz(a, hp.as.ref);
     assert(get_ref(a, "kw") != NULL && get_ref(a, "kw") != pico8_jo_shared_kw());
     assert(((const pico8_kw_t *)get_ref(a, "kw"))->mu == pico8_fixed_from_int(0));

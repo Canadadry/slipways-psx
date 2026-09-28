@@ -26,8 +26,8 @@ static void test_hc_fd_dr_nb_decode_real_cart_content(void) {
     assert(pico8_hc_lookup("does-not-exist") == NULL);
 
     assert(PICO8_FD_COUNT == 42);
-    assert(pico8_ob_table_get_index(pico8_gb(), 34, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    assert(!pico8_ob_table_get_index(pico8_gb(), 35, &v));
+    assert(pico8_gb_count() == 34 && pico8_gb_at(34) != NULL);
+    assert(pico8_gb_at(35) == NULL);
 
     assert(PICO8_DR_COUNT == 7);
     assert(pico8_dr_table[0].count > 0 && pico8_dr_table[0].items[0].row != NULL);
