@@ -1,6 +1,6 @@
 ---
-title: "Plan 3, étape D.6c : les clés de construction du reste (`g_`, `fv`, `ie`, `hp`, `hy`, `trade`, `pj`) passent d'une table ob à une struct typée locale, ou à aucun paramètre ; `hp` prend l'enregistrement généré de `fd` et le pont `pico8_fd()` est fermé ; `overrides` tombe aux 21 lignes des quatre ponts de D.6b, qui n'entre pas encore dans `DATA_RESIDUE_GUARD` — deux commits, aucun pixel changé"
-description: "Sept constructeurs reçoivent encore leurs clés dans une `pico8_ob_table_t` que l'appelant alloue, remplit par nom, passe puis libère (icônes de recherche de `eu`, routes de `jo:ib` et `trade:kg`, sonde à clés des TU), ou que `build_gb` tire de la vue `pico8_fd()` construite à chaque init ; trois autres n'acceptent qu'une table vide. D.6c type ces dix paramètres, fait lire à `hp` l'enregistrement généré `pico8_fd_entry_t`, ferme le pont `pico8_fd()`, et laisse `overrides` aux seuls ponts de D.6b (21 lignes) — en mesurant la baisse en lignes ET en occurrences, sans tassement ni renommage à type constant."
+title: "Plan 3, étape D.6c : les clés de construction du reste (`g_`, `fv`, `ie`, `hp`, `hy`, `trade`, `pj`) passent d'une table ob à une struct typée locale, ou à aucun paramètre ; `hp` prend l'enregistrement généré de `fd` et le pont `pico8_fd()` est fermé ; `overrides` tombe aux 30 lignes des quatre ponts de D.6b et de leurs TU, et n'entre pas encore dans `DATA_RESIDUE_GUARD` — deux commits, aucun pixel changé"
+description: "Sept constructeurs reçoivent encore leurs clés dans une `pico8_ob_table_t` que l'appelant alloue, remplit par nom, passe puis libère (icônes de recherche de `eu`, routes de `jo:ib` et `trade:kg`, sonde à clés des TU), ou que `build_gb` tire de la vue `pico8_fd()` construite à chaque init ; trois autres n'acceptent qu'une table vide. D.6c type ces dix paramètres, fait lire à `hp` l'enregistrement généré `pico8_fd_entry_t`, ferme le pont `pico8_fd()`, et laisse `overrides` aux seuls ponts de D.6b et à leurs TU (30 lignes) — en mesurant la baisse en lignes ET en occurrences, sans tassement ni renommage à type constant."
 status: needs-triage
 ---
 
@@ -24,7 +24,7 @@ En-tête de la liste de D, règles communes et ordre, recopiés :
 >
 > Ordre : `stash`, puis les tables constantes nommées par la première puce ; les membres table (`pico8_ob_table_t *`, R1 `ref:table`) avant les spécifications, dont les défauts table en dépendent ; `spec`, `ke` d'abord et l'arbre `jo` en dernier ; `overrides` ; les tables ad hoc restantes, puis les TU ; la suppression de `pico8_ob.c`/`pico8_stash.c`. `par-nom`, `dispatch`, `pico8_list_t`, puis `valeur`/`type-tag`/`ref-audit` viendraient après : arrêt, voir la fin de la liste.
 
-Notes « Découvert à D.x » des étapes livrées, recopiées (D.0, D.2, D.3, D.4a, D.4b, D.5a, D.5b, D.5c, D.6a ; D.6b n'a pas encore la sienne) :
+Notes « Découvert à D.x » des étapes livrées, recopiées (D.0, D.2, D.3, D.4a, D.4b, D.5a, D.5b, D.5c, D.6a, D.6b) :
 
 > Découvert à D.0 : `make data-residue` (`tools/data_residue.sh`, modes `--detail` pour la liste de D et `--check`), neuf catégories figées, lignes qui se chevauchent, commentaires compris — `valeur`, `ob` (avec `pico8_fi`), `stash`, `type-tag` (tout `pico8_type_tag.h`, dont le `tag` de `pico8_struct_header_t`), `ref-audit`, `par-nom` (`*field_truthy` seulement), `dispatch` (`pico8_value_function(_t)`, `pico8_mv` ; pas `methods[]`), `overrides`, `spec` (hors six `_default` à argument omis). Comptes initiaux après la fusion de master (lignes/fichiers) : 6001/133, 2280/128, 56/14, 450/72, 70/17, 1070/81, 180/57, 421/57, 942/68, **9711 lignes distinctes dans 145 fichiers** (100 de `src/`, 45 de `tests/`). Sortie vide = la seule ligne `résidu D : 0 ligne(s), 0 fichier(s)`. `pico8_list_t` sans catégorie (§6 ne le retire pas), mais ses éléments `pico8_value_t` comptent dans `valeur` : la liste de D doit en changer la représentation. « Plus aucun `malloc` pour des données » lu comme les allocations de `pico8_ob.c`/`pico8_stash.c`/`pico8_value.c`, éteintes avec leurs catégories ; une lecture plus large ajoute une catégorie dans son propre commit. Garde : `make data-guard` dans `make test` (`entity_value_members.sh --check`, `grep -rn offsetof src/`, `DATA_RESIDUE_GUARD`, vide à D.0) ; une étape qui éteint une catégorie l'ajoute à `DATA_RESIDUE_GUARD`. Motifs figés : une étape ne change un motif qu'avec la preuve que les lignes retirées ne touchent plus aucune catégorie transversale.
 
@@ -43,6 +43,8 @@ Notes « Découvert à D.x » des étapes livrées, recopiées (D.0, D.2, D.3, D
 > Découvert à D.5c : deux chunks (données, puis conversion et garde ; 27 chemins, `pico8_game_data.*`, `ke.c/.h`, le test ponctuel et le `Makefile` hors du majorant ; le lien du test ponctuel prend `pico8_planet_family_trade.c`, pour interroger `nr`/`fr`/`mx`). Défauts générés `pico8_X_start` des dix classes de l'arbre, clés propres, lus par les constructeurs, l'héritage par le `struct_init` de la parente ; chaînes dans des tableaux distincts, un par jeton (des littéraux se fusionneraient, TROU-3). `jo.kq`/`gq`, `pm.ng` : membres `const` vers la donnée générée, aucun repli. Le `field` des sortes est `pico8_X_kind_field` : `rr`, `s`, `me`, `od` seulement, lus dans `pico8_X_start`, puis la parente jusqu'à `pico8_jo_kind_field` (seul déclaré, `planet.h`) ; 0 si le module n'est pas prêt ; compté par `par-nom` (1106 après D.5c), à typer par D.9. `pico8_ke_start_field` supprimé. `_ready` sur `g_jo_up`, `g_family_up`, `g_family_trade_up`. `ga.by` : `g_ga_by_shared`, `pico8_list_t` statique non `const` vidée à chaque init (précédent `ui.le`), contenu à typer par D.7a. `spec` après D.5c : 0, dans `DATA_RESIDUE_GUARD`. `ob` : 1721 hors test ponctuel.
 
 > Découvert à D.6a : un commit (30 chemins : `research_icon.c` pour `ie:ldown`, `pico8_game_data.*` et quatorze TU qui construisent dans une variable `b`, hors du majorant). Clés typées : `pico8_jo_keys_t` (`id`, `p`, `ra`, NULL = absent, `pico8_struct.h`) pour neuf classes et `new_entity` ; `pico8_ga_keys_t` (`jo` et `pq`, NULL = défauts de `ga` ; `k_` NULL sous `pq` = nil) ; la chaîne que `pm:pq` parsait devient `pico8_pm_ga_pq_keys` (`pico8_ga_pq_keys_t`, générée) ; la sorte `ga` passe par une adaptatrice (`pico8_ga_kind_new`, `pq` NULL). `pico8_X_new(NULL)` inchangé ; les classes « seulement `id` » (`qh`, `nl`, `os`, `hj`, `fr`, `mx`) l'assertent sur `p`/`ra`. Tests de mort d'une clé positionnelle, sans membre ou hors rangée à la construction retirés (le type les interdit). `pico8_ob.h` quitte `planet.h`, `planet_family.h`, `planet_family_trade.h` ; `pico8_struct.h` le garde (`slipway.h`, `wormhole.h` en dépendent par lui). Le commentaire l. 2 de `gh_row_lq` parle des clés de `js` : il passe à D.6b (le changer ici serait un renommage à type constant). `overrides` après D.6a : 329 lignes / 348 occurrences / 55 fichiers (au lieu de 316 : le « = 315 » de D.1 était le total des fichiers de l'empreinte, dont 30 lignes de D.6b/D.6c — `iv`/`jc` de `planet.c` et `planet_family_trade.c`, `jc` de `test_pico8_mx`, `gh_row_lq`, `ie` de `test_pico8_entity_kind` — et sans 16 lignes de D.6a — `ie:ldown`, `nr` de `test_pico8_mz`/`test_pico8_bg` ; la ligne de `k_` ajoutée par D.4a est dans le périmètre) ; le compte de D.6b est à reprendre : sur les 329 lignes, 232 sont à D.6b (lignes classées par le constructeur appelé ou déclaré, commentaires de `lq`/`jb`/`gh_row_lq` compris, `iv` d'`economy.c` et `jc` des TU `hp`/`hy`/`trade`/`ui`/`mx`/`mz` compris) et 97 à D.6c : « `overrides` = 97 » après D.6b au lieu de 117 ; le « = 0 » de D.6c est inchangé. `par-nom` : 1075.
+
+> Découvert à D.6b : trois chunks (classes sans clé ; `iv`/`jc`/`fq` ; `lq`/`jb`/`js`/`mh` avec les ponts, `dr` et le §6 — 58 chemins : appelants à NULL, `economy.c`, `score_panel_display`, `research_display`, `data_init` et les TU qui construisent dans `b` hors du majorant). `bg`, `nf`, `qb`, `ui`, `mz` sans paramètre ; clés typées `pico8_iv_keys_t`, `pico8_jc_keys_t`, `pico8_fq_keys_t`, `pico8_lq_keys_t` (items `pico8_value_t`), `pico8_js_keys_t` (`lq`/`h_`/`jb` restent des sources de rangée `pico8_value_t`, présence TROU-23), `pico8_mh_keys_t` ; `jb` prend `const pico8_jb_row_t *`. `js:pq` copie une rangée par `pico8_lq_keys_of` et une liste par ses éléments (plus de vue ni de conversion) ; `jb:pq` n'emballe plus ses lignes chaîne ; `fq(de)` lit `pico8_de_my()`. Pont `pico8_dr()` fermé (`pico8_jb_new(&pico8_dr_table[i])`). Ponts nouveaux, paramètre `overrides` gardé (type inchangé, comptés, 21 lignes) : `pico8_lq_new_table`, `pico8_jb_new_table` (`layout.c`), `pico8_js_new_table` (`ui_button.c`), `pico8_mh_new_table` (`msgbox.c`) — fermés quand les rangées de `pz` et les sources `lq`/`h_`/`jb`/`mh` sont typées (`planet_display`, `menu`, `score_panel_display`, `research_display` : D.7a ; `help`, `msgbox` : D.7b ; le « 0 dans `layout` » de D.7a exige les deux premiers). Les TU d'un pont gardent leur table : `test_pico8_mh` (clé `lh` nil, clés refusées : 7 lignes `overrides`, table de même type et même nom) et `test_pico8_lq` (deux commentaires qui nomment la table passée au pont) tombent avec lui. Reportés, avec eux : `pico8_ix()`/`pico8_ha()`, `g_bo`, `pico8_bz()` (vues par init ; `ix` porte un item imbriqué que seule une vue sait donner à `lq:mn`), les vues à l'appel de `hp.lq` et de `kw`. `pico8_lq_table_view` sans appelant de `src/` ; une table qui porte `fs` ou `w` est refusée par le pont `lq` (aucun producteur n'en pose). `overrides` après D.6b : 127 lignes / 138 occurrences / 27 fichiers (97 lignes de D.6c + 21 des ponts + 9 des TU des ponts ; le « = 117 » de D.1 était un total de fichiers, qui comptait dans ceux de D.6c 23 lignes de D.6b — `iv` de `economy.c`, `jc` de `test_pico8_hp`/`_hy`/`_trade`) ; le « = 0 » de D.6c devient « = 30 » (les ponts et leurs TU), et `overrides` entre dans `DATA_RESIDUE_GUARD` à l'étape qui ferme le dernier pont. D.7a hérite d'un chantier plus lourd : fermer les ponts `lq`/`jb` demande de typer les producteurs de rangées de `planet_display`, `menu`, `score_panel_display`, `research_display` et les rangées `bs` de `pz` (fichier de D.7b) ; son PRD tranche l'ordre ou la fusion avec D.7b. `par-nom` : 1062.
 
 Puces de la phase D, recopiées :
 
@@ -64,41 +66,41 @@ Règles du §7, recopiées :
 ### Lecture de ces textes pour D.6c
 
 - **« Même règle »** (celle de D.6a, reprise par D.6b) : la table de clés de construction devient une **struct locale** à l'appelant, passée par pointeur `const`, lue par le constructeur et jamais gardée ; une classe qui n'accepte aucune clé perd son paramètre ; le paramètre est renommé **seulement parce que son type change**. Un renommage à type constant ferait tomber `\boverrides\b` sans rien convertir : c'est le **tassement par renommage**, interdit et traduit en `FAILED:` (section « Anti-tassement »).
-- **Le « = 0 » de la ligne ne peut pas tenir, et D.6c ne le vise pas.** Le PRD de D.6b (en cours d'implémentation) garde, comptés sous le nom `overrides`, quatre ponts où une rangée ob **reçue d'un producteur non typé** est lue par nom (`pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table` : 21 lignes / 25 occurrences, 6 fichiers). Leurs producteurs (`planet_display`, `menu`, `score_panel_display`, `research_display`, `cart` : D.7a ; `help`, `msgbox`/`pz` : D.7b) sont hors de D.6c. Les fermer ici, c'est faire D.7a/D.7b dans D.6c. **Cible honnête de D.6c : `overrides` = 21 lignes / 25 occurrences / 6 fichiers, exactement les lignes des quatre ponts** (H-D6b-1, H-D6b-2). La note de D.6b le prévoit (« le « = 0 » de D.6c devient « = 21 » », H-D6b-9).
-- **`DATA_RESIDUE_GUARD` ne change pas à D.6c.** La règle commune dit « une catégorie tombée à 0 entre dans `DATA_RESIDUE_GUARD` dans le même commit » ; `overrides` ne tombe pas à 0. Elle y entre **à l'étape qui ferme le dernier des quatre ponts** : dans l'ordre actuel de la liste, **D.7b** (le pont `js` reçoit les rangées `bs` de `pz`, `msgbox.c`, fichier de D.7b ; `lq`, `jb`, `mh` et les autres sources de `js` ferment avec D.7a). Si le PRD de D.7a fusionne ou réordonne D.7a/D.7b, c'est l'étape qui ferme le dernier pont. **Rejetés** : un garde partiel (compte plafonné, liste blanche des ponts dans `tools/data_residue.sh`) — les motifs et l'outil sont figés (note de D.0), et un plafond ajouterait un mécanisme que la liste ne prévoit pas ; D.6c le remplace par un contrôle du vérificateur (chaque ligne `overrides` restante est dans un des quatre ponts).
-- **Le « 97 » de la note de D.6a, recompté sur `09f0f56`** : les dix-neuf fichiers de D.6c portent **exactement 97 lignes / 104 occurrences** `overrides` (inventaire plus bas), aucune de D.6b ; les 23 lignes de D.6b que ces fichiers portaient à `a29154e` sont `economy.c` `hy:lj` (11 lignes, 11 occurrences) et un `pico8_jc_new` dans chacun de `test_pico8_hp`, `_hy`, `_trade` (12) — ces trois TU ne portent plus aucune ligne de D.6c. D.6c part donc de **118 / 129 / 25** (H-D6b-1) et retire **97 / 104 / 19**.
+- **Le « = 0 » de la ligne ne peut pas tenir, et D.6c ne le vise pas.** D.6b a gardé, comptés sous le nom `overrides`, quatre ponts où une rangée ob **reçue d'un producteur non typé** est lue par nom (`pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table` : 21 lignes / 25 occurrences, 6 fichiers), et les TU de ces ponts qui leur passent une table de même type et même nom (`test_pico8_mh` : `test_mh_nil_lh_key_reads_absent` 4 lignes, `build_with_key` 3 lignes ; `test_pico8_lq` : commentaires l. 258 et 281 — 9 lignes / 9 occurrences, 2 fichiers). Leurs producteurs (`planet_display`, `menu`, `score_panel_display`, `research_display`, `cart` : D.7a ; `help`, `msgbox`/`pz` : D.7b) sont hors de D.6c ; les fermer ici, c'est faire D.7a/D.7b dans D.6c, et les TU des ponts tombent avec eux. **Cible honnête de D.6c : `overrides` = 30 lignes / 34 occurrences / 8 fichiers, exactement les lignes des ponts et de leurs TU**, celle que fixe la note de D.6b (« le « = 0 » de D.6c devient « = 30 » (les ponts et leurs TU) »).
+- **`DATA_RESIDUE_GUARD` ne change pas à D.6c.** La règle commune dit « une catégorie tombée à 0 entre dans `DATA_RESIDUE_GUARD` dans le même commit » ; `overrides` ne tombe pas à 0. Elle y entre **à l'étape qui ferme le dernier des quatre ponts** : dans l'ordre actuel de la liste, **D.7b** (le pont `js` reçoit les rangées `bs` de `pz`, `msgbox.c`, fichier de D.7b ; `lq`, `jb`, `mh` et les autres sources de `js` ferment avec D.7a). Si le PRD de D.7a fusionne ou réordonne D.7a/D.7b, c'est l'étape qui ferme le dernier pont. **Rejetés** : un garde partiel (compte plafonné, liste blanche des ponts dans `tools/data_residue.sh`) — les motifs et l'outil sont figés (note de D.0), et un plafond ajouterait un mécanisme que la liste ne prévoit pas ; D.6c le remplace par un contrôle du vérificateur (chaque ligne `overrides` restante est dans un des quatre ponts ou dans les deux TU qui les testent).
+- **Le « 97 » de la note de D.6a, recompté sur `58e39e3`** : les dix-neuf fichiers de D.6c portent **exactement 97 lignes / 104 occurrences** `overrides` (inventaire plus bas), au texte de `09f0f56` (seuls les numéros de ligne de `cart.c` et `test_pico8_ie` ont bougé) ; les trois TU `test_pico8_hp`, `_hy`, `_trade` ne portent plus aucune ligne. D.6c part de **127 / 138 / 27** et retire **97 / 104 / 19**.
 - **Pont de données nommé pour D.6c** : la note de D.2 dit « `pico8_fd()` (fermé par D.6c, entrée de `hp`) ». `hp` est le seul lecteur de `src/` de cette vue (`pico8_research_build_gb`, appelé par `pico8_data_init`) ; ses enregistrements n'ont que des items scalaires (`pico8_fd_entry_t` : chaînes, entiers, `il` faux). Il **ferme** ici, sur le modèle de `pico8_dr()` à D.6b : `hp` prend l'enregistrement généré, `build_gb` parcourt `pico8_fd_table`.
 - **§6 : aucun.** `ga_export_panel_by` construit ses routes `route_a`/`route_b` comme des tables ob d'enregistrements de `jo:ib` (D.7a), sans appeler `pico8_trade_new` ; `gh_row_lq` et `layout_nil_item_draws_nothing` ne touchent aucune classe de D.6c. Aucun test du §6 n'est modifié.
 - **`make class-coverage-net` et `make sanitize-net`** : oui aux deux, à chaque chunk : chacun touche des constructeurs, et chacun change la durée de vie d'une table (tables de clés du tas à la pile ; au chunk 2, la vue `fd` construite à chaque init, la copie de travail `ri` et le `rc` jetable de chaque `hp` disparaissent).
 
-### D.6b n'est pas livrée à l'écriture de ce PRD
+### D.6b livrée : hypothèses vérifiées sur `58e39e3`
 
-D.6b (clés des classes d'écran → `pico8_{iv,jc,fq,lq,js,mh}_keys_t`, `jb` sur `pico8_jb_row_t`, cinq classes sans paramètre, quatre ponts, pont `pico8_dr()` fermé) est implémentée en parallèle et touche des fichiers que D.6c touche aussi (`pico8_cart.c`, `pico8_data_init.c/.h`, `pico8_economy.c`, `test_pico8_ie`, `test_pico8_entity_kind`, `test_pico8_g_`, `test_pico8_ui`, `test_pico8_jc`, `test_pico8_hy`, `test_pico8_trade`, `test_pico8_spec_defaults`, `test_pico8_data_init`, le test ponctuel). Ce PRD **suppose que D.6b atterrit comme son PRD le dit**. Chaque supposition sur son résultat est une hypothèse **H-D6b-n** (section « Hypothèses sur D.6b »), et la section « À revérifier après D.6b » liste ce que `plan-pilot` relit contre la note « Découvert à D.6b » avant de passer ce PRD en `triage`. **Aucun fichier non versionné n'a été lu** : tout vient de `09f0f56` (extrait par `git archive` dans le scratchpad), où D.6a est gradée et D.6b en file.
+Ce PRD a été écrit sur `09f0f56` pendant l'implémentation de D.6b, sous quatorze hypothèses H-D6b, puis relu contre l'arbre gradé de D.6b (`58e39e3` ; commits `7f45ca4`, `11e1cf4`, `ca29aaa`) et sa note. **Tenues** : les 97 lignes de D.6c intactes ; la convention (`pico8_X_keys_t`, `const … *keys`, `void` pour `bg`, `nf`, `qb`, `ui`, `mz`) et aucun nom en collision ; pont `pico8_dr()` fermé, `eu` construit ses `jb` par `pico8_jb_new(&pico8_dr_table[i])` dans la boucle où restent les six lignes `ie` ; `test_pico8_ie` (`dr_row`) et `test_pico8_entity_kind` (`ie_jb`) lisent `pico8_dr_table` ; `DATA_RESIDUE_GUARD` = `spec`, `Makefile` et `tools/` inchangés ; arbre vert ; le commentaire de `pico8_data_init` dit « fd and nb are built » ; `g_fd`, `data_init_fd_view`, `pico8_fd()` et `test_fd_view_matches_the_decoded_table_plus_rr` intacts ; aucun constructeur ni appelant de D.6c touché ; le test ponctuel garde ses 2 lignes `stash`. **Démenties et corrigées ici** : le départ est **127 / 138 / 27**, pas 118 / 129 / 25, parce que D.6b a laissé, en plus des 21 lignes des ponts, **9 lignes des TU des ponts** (`test_pico8_mh` 7, `test_pico8_lq` 2) ; la note de D.6b fixe donc la cible de D.6c à **« = 30 »**, pas « = 21 ». Toutes les sections qui en dépendaient (Lecture, Inventaire, Solution, Sortie, Effet sur `make data-residue`, jalons, contrôles, critères d'échec) ont été relues et corrigées. Rien d'autre ne dépend encore de D.6b.
 
 ### État de départ
 
-**Mesuré sur `09f0f56`** (branche `claude/plan-pilot-3-7zdft0`, D.6a gradée, D.6b en file) ; **l'arbre de départ de D.6c est le commit gradé de D.6b**, inconnu à l'écriture. Décisions de l'utilisateur qui engagent D.6c : **un TU ne rejoue jamais un `events.json`** (il construit son état), **rien de lent**, **aucun `*.sha256` ni fichier de `tests/e2e/` touché**, **un e2e nouveau ajoute de la couverture de lignes en moins de 180 frames**. Consigne de pilotage, liante : **une étape précédente a été notée FAILED pour avoir fait baisser un compte par tassement de lignes** ; le compteur compte des lignes, et toute mise en forme, tout renommage à type constant, tout alias, registre ou déplacement qui baisse un compte sans retirer la construction est interdit.
+**Mesuré sur `58e39e3`** (branche `claude/plan-pilot-3-7zdft0`, D.6b gradée) ; **l'arbre de départ de D.6c est ce commit** (ou un commit de docs au-dessus). Décisions de l'utilisateur qui engagent D.6c : **un TU ne rejoue jamais un `events.json`** (il construit son état), **rien de lent**, **aucun `*.sha256` ni fichier de `tests/e2e/` touché**, **un e2e nouveau ajoute de la couverture de lignes en moins de 180 frames**. Consigne de pilotage, liante : **une étape précédente a été notée FAILED pour avoir fait baisser un compte par tassement de lignes** ; le compteur compte des lignes, et toute mise en forme, tout renommage à type constant, tout alias, registre ou déplacement qui baisse un compte sans retirer la construction est interdit.
 
-**Rien n'a été compilé ni lancé pour ce PRD.** Seuls `sh tools/data_residue.sh` (avec `--detail`) et la recette d'occurrences ont tourné, sur la copie `git archive 09f0f56` du scratchpad ; le reste vient de `grep` et de la lecture des sources de `09f0f56` et de `pico8/lua.lua`. Tout fait d'exécution est une hypothèse (H1 à H15, H-D6b-1 à H-D6b-14).
+**Rien n'a été compilé ni lancé pour ce PRD.** Seuls `sh tools/data_residue.sh` (avec `--detail`) et la recette d'occurrences ont tourné, d'abord sur la copie `git archive 09f0f56` du scratchpad, puis sur l'arbre versionné de `58e39e3` ; le reste vient de `grep` et de la lecture des sources et de `pico8/lua.lua`. Tout fait d'exécution est une hypothèse (H1 à H15).
 
-### Inventaire (mesuré sur `09f0f56`)
+### Inventaire (mesuré sur `58e39e3`)
 
 **`make data-residue`** (lignes / fichiers) et **occurrences** (recette de la section « Anti-tassement ») :
 
 | Catégorie | Lignes | Fichiers | Occurrences |
 |---|---|---|---|
-| `valeur` | 5647 | 132 | 6540 |
-| `ob` | 1661 | 118 | 1852 |
+| `valeur` | 5550 | 133 | 6438 |
+| `ob` | 1462 | 109 | 1625 |
 | `stash` | 28 | 4 | 28 |
-| `type-tag` | 408 | 69 | 658 |
+| `type-tag` | 406 | 69 | 654 |
 | `ref-audit` | 68 | 17 | 69 |
-| `par-nom` | 1075 | 81 | 1130 |
-| `dispatch` | 197 | 59 | 199 |
-| `overrides` | 329 | 55 | 348 |
+| `par-nom` | 1062 | 81 | 1117 |
+| `dispatch` | 199 | 60 | 201 |
+| `overrides` | 127 | 27 | 138 |
 | `spec` | 0 | 0 | 0 |
-| **résidu D** | **8014 lignes** | **140 fichiers** | — |
+| **résidu D** | **7694 lignes** | **140 fichiers** | — |
 
-Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 de D.6c, 21 / 25 / 6 des ponts) ; `par-nom` ≈ 1062 (H-D6b-6) ; les autres catégories remesurées au départ.
+`overrides` **127 / 138 / 27 fichiers** : 97 / 104 / 19 de D.6c, 21 / 25 / 6 des ponts, 9 / 9 / 2 des TU des ponts.
 
 **Ce que dit le cart** (`pico8/lua.lua`) : le constructeur de classe (`kv:jr`) copie les clés passées dans l'instance (`mw(ob)`) ; une clé nil n'existe pas. `g_=ke:jr(…)` (l. 708) n'est construit par le cart qu'**sans clé** (`bg:ldown`) ; le chemin à clés `pn`/`t`/`du`/`py` n'existe que pour le TU `probe_mm_rnd_order` (« road (c) » de `test_pico8_g_`). `ie({ke=b,jb=jb(dr[i])})` (l. 1185, `eu`). `trade({lp={self},rl={w},qe=qe})` (l. 504, `jo:ib`) et `trade({lp=la(self.lp,{np}),rl=la(self.rl,{jc}),qe=self.qe})` (l. 607, `trade:kg`). `gb` (l. 1434-1441) : `for ri in all(fd) do if type(ri)=="string" then rr=ri else ri.rr=rr add(gb,hp(ri)) end end`, et `hp:pq` (l. 1403) fait `ho(gb,hp.mr,hp.gp)(self)` : les positionnels 1-8 prennent les noms de `mr`, ceux que `gp` nomme (`o`, `dm`) passent par `r`. `hy`, `fv`, `pj` ne sont construits que sans clé (`eu`, `_init`).
 
@@ -120,14 +122,14 @@ Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 d
 - **`hp` lit un enregistrement de `fd` augmenté de `rr`** et rien d'autre : `pico8_fd_entry_t` porte déjà les positionnels (`npos`, `px`, `lr`, `fj`, `ja`, `i`, `o`, `il`/`il_false`, `dm`) et `ii`/`go`/`cw`/`rn` ; `rr` est la dernière entrée-titre (`header`) vue par `build_gb`. `o` et `dm` sont des chaînes que `ho` traduit par `r` (`pico8_hp_start.gp` = {`o`, `dm`}) ; toutes les valeurs de `pico8_fd_table` y sont trouvées (sinon `hp_take_fixed` aborterait à chaque init : H10).
 - **La copie de travail de `hp`** (`ri`, table ob) et le **`rc` jetable** (`scratch_rc`) n'existent que pour appeler `pico8_ho_apply` sur une table ob ; `gb[px]` est posé à part (`pico8_ob_table_set_name(g_gb, …)`). Les deux disparaissent avec la table de clés.
 - **`pico8_ho_apply` n'a qu'un appelant de `src/`, `hp`** ; le test ponctuel l'appelle pour `nb` et `df`. Après D.6c, elle reste **sans appelant de `src/`** (comme `pico8_lq_table_view` après D.6b), fermée avec `collect` (D.7a) ou avec le test ponctuel (D.8).
-- **`pico8_research_build_gb(fd)`** : seuls appelants `pico8_data_init` (`g_fd`) et `test_pico8_hp` (`pico8_fd()`, deux fois) ; la vue `fd` n'a pas d'autre lecteur de `src/`. `pico8_fd()` est lue par `test_pico8_hp` (l. 633, 643, 794), `test_pico8_data_init` (l. 27) et le test ponctuel (l. 257).
+- **`pico8_research_build_gb(fd)`** : seuls appelants `pico8_data_init` (`g_fd`) et `test_pico8_hp` (`pico8_fd()`, deux fois) ; la vue `fd` n'a pas d'autre lecteur de `src/`. `pico8_fd()` est lue par `test_pico8_hp` (l. 632, 642, 793), `test_pico8_data_init` (l. 27) et le test ponctuel (l. 268).
 - **Les TU construisent souvent dans une variable `b` ou `o`**, invisible pour le motif (`test_pico8_g_`, `_ui`, `_fv`, `_pj`, `_hy`, `_hp`, `_trade`, `_os`) : l'empreinte réelle dépasse celle de la ligne.
 
-**`overrides` de D.6c, par fichier** (lignes / occurrences ; texte à `09f0f56`, inchangé par D.6b selon H-D6b-3 ; chunks définis plus bas ; classe de la section « Anti-tassement ») :
+**`overrides` de D.6c, par fichier** (lignes / occurrences ; numéros à `58e39e3`, texte inchangé depuis `09f0f56` ; chunks définis plus bas ; classe de la section « Anti-tassement ») :
 
-| Fichier | Lignes / occ. | Chunk | Lignes (n° à `09f0f56`) et classe |
+| Fichier | Lignes / occ. | Chunk | Lignes (n° à `58e39e3`) et classe |
 |---|---|---|---|
-| `pico8_cart.c` | 6 / 6 | 1 | 220 déclaration, 229 allocation, 230-231 poses `ke`/`jb`, 233 libération : (a) ; 232 appel `pico8_ie_new(overrides)` : (a) (l'argument devient `&keys`) |
+| `pico8_cart.c` | 6 / 6 | 1 | 218 déclaration, 223 allocation, 224-225 poses `ke`/`jb`, 227 libération : (a) ; 226 appel `pico8_ie_new(overrides)` : (a) (l'argument devient `&keys`) |
 | `pico8_economy.c` | 4 / 5 | 1 | 92, 166, 167 signatures et relais : (b) ; 113 `assert` NULL ou vide : (a) |
 | `pico8_economy.h` | 1 / 1 | 1 | 53 déclaration : (b) |
 | `pico8_help.c` | 4 / 5 | 1 | 206, 280, 281 : (b) ; 236 `assert` : (a) |
@@ -141,7 +143,7 @@ Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 d
 | `pico8_trade.c` | 13 / 14 | 1 | 63, 134, 135 : (b) ; 77-79 boucle et entrée, 172 déclaration, 205-208 allocation et poses, 210 appel, 211 libération : (a) |
 | `pico8_trade.h` | 2 / 2 | 1 | 10 commentaire de la struct (« the REFs the overrides held ») : (b) ; 38 déclaration : (b) |
 | `pico8_planet_trade.c` | 7 / 7 | 1 | 231 déclaration, 248-251 allocation et poses, 253 appel, 254 libération : (a) |
-| `test_pico8_ie` | 10 / 10 | 1 | 277-283 (`build_icon`) : (a) ; 670-675 (`build_with_ra`, test de mort retiré) : (a) |
+| `test_pico8_ie` | 10 / 10 | 1 | 276-282 (`build_icon`) : (a) ; 669-674 (`build_with_ra`, test de mort retiré) : (a) |
 | `test_pico8_entity_kind` | 9 / 9 | 1 | 317-320 (icônes de `test_ie_ke_view_by_name`), 495-505 (`ie_with`) : (a) |
 | `test_pico8_probe_mm_rnd_order` | 7 / 7 | 1 | 29-37 (`new_probe`) : (a) |
 | `pico8_research.c` | 8 / 9 | 2 | 293 commentaire de la copie de travail, 334-341 boucle, clé, poses dans `ri` : (a) ; 295, 440, 441 : (b) |
@@ -150,7 +152,7 @@ Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 d
 
 (Décompte (a)/(b) : (b) = 3 lignes par constructeur `.c` × 7 + les 12 lignes d'en-tête = 33 ; (a) = le reste, 64. L'implémenteur refait ce décompte sur le diff réel.)
 
-**Lignes `overrides` après D.6c** : les 21 lignes / 25 occurrences des quatre ponts de D.6b (`pico8_layout.c` 9 / 11, `pico8_layout.h` 2 / 2, `pico8_ui_button.c` 4 / 5, `pico8_ui_button.h` 1 / 1, `pico8_msgbox.c` 4 / 5, `pico8_msgbox.h` 1 / 1 — H-D6b-2), **intouchées**.
+**Lignes `overrides` après D.6c** : les 21 lignes / 25 occurrences des quatre ponts de D.6b (`pico8_layout.c` 9 / 11, `pico8_layout.h` 2 / 2, `pico8_ui_button.c` 4 / 5, `pico8_ui_button.h` 1 / 1, `pico8_msgbox.c` 4 / 5, `pico8_msgbox.h` 1 / 1) et les 9 lignes / 9 occurrences de leurs TU (`test_pico8_mh` 7 / 7 : l. 463, 469-471, 493, 495-496 ; `test_pico8_lq` 2 / 2 : commentaires l. 258, 281), **intouchées** : 30 / 34 / 8.
 
 ## Solution
 
@@ -162,12 +164,12 @@ Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 d
 - **`hp`** prend l'enregistrement généré `const pico8_fd_entry_t *` et `rr` ; il applique `ho` aux champs typés (noms de `mr`, traduction par `r` des membres que `gp` nomme) ; la copie de travail `ri` et le `rc` jetable disparaissent. **`build_gb`** parcourt `pico8_fd_table`.
 - **Pont `pico8_fd()` fermé** : `g_fd`, `data_init_fd_view`, `pico8_fd()` et leur contrat disparaissent de `data_init.c/.h`.
 - **TU** : chaque table de clés d'un constructeur typé devient une struct locale écrite à son site ; les tests de mort qu'un type rend impossibles à écrire disparaissent, listés au commit avec leur raison.
-- **`overrides` = 21**, les quatre ponts de D.6b, intouchés ; **`DATA_RESIDUE_GUARD` inchangé** (`spec`) ; `overrides` y entre à l'étape qui ferme le dernier pont (D.7b dans l'ordre actuel).
+- **`overrides` = 30**, les quatre ponts de D.6b et leurs TU, intouchés ; **`DATA_RESIDUE_GUARD` inchangé** (`spec`) ; `overrides` y entre à l'étape qui ferme le dernier pont (D.7b dans l'ordre actuel).
 
 **Sortie de l'étape**, constatée par commande sur le dernier commit :
 
 - `make test` vert ; `make e2e` : 26 conformes ; `make sanitize-net` : 26 propres ; `make class-coverage-net` : identique ; `make data-guard` : code 0 ;
-- `make data-residue` : `overrides` = **21** lignes / **25** occurrences / **6** fichiers, `spec` 0, `stash` 28/4, `ob`, `valeur` et `type-tag` strictement plus bas, `par-nom` = départ − 24 (écart ≤ 3 expliqué) ; comptes en lignes ET en occurrences, avant et après chaque chunk, par catégorie et par fichier ;
+- `make data-residue` : `overrides` = **30** lignes / **34** occurrences / **8** fichiers, `spec` 0, `stash` 28/4, `ob`, `valeur` et `type-tag` strictement plus bas, `par-nom` = départ − 24 (écart ≤ 3 expliqué) ; comptes en lignes ET en occurrences, avant et après chaque chunk, par catégorie et par fichier ;
 - ces `grep` ne rendent rien :
 
   ```sh
@@ -178,7 +180,7 @@ Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 d
   grep -nE 'pico8_ob_table_new' src/pico8_cart.c src/pico8_planet_trade.c src/pico8_trade.c
   grep -nE 'scratch_rc|pico8_ho_apply' src/pico8_research.c
   ```
-- `grep -rnw overrides src tests --include='*.[ch]'` ne rend que les 21 lignes des quatre ponts, dans `pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table` et leurs quatre déclarations (même texte qu'au départ) ;
+- `grep -rnw overrides src tests --include='*.[ch]'` ne rend que les 21 lignes des quatre ponts (`pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table` et leurs quatre déclarations) et les 9 lignes de `test_pico8_mh`/`test_pico8_lq`, au texte du départ ;
 - `grep -rn 'pico8_jb_row_view\|pico8_ob_table_new' src` : aucun site ajouté.
 
 ## User Stories
@@ -193,11 +195,11 @@ Après D.6b (H-D6b-1) : `overrides` **118 / 129 / 25 fichiers** (97 / 104 / 19 d
 8. En tant que gardien du comportement, je veux que `hp` nomme ses positionnels par `mr` et traduise par `r` ceux que `gp` nomme, comme `ho(gb,hp.mr,hp.gp)`, afin que `o` et `dm` gardent leurs valeurs.
 9. En tant que gardien du comportement, je veux que `il` distingue absent, faux et chaîne, et que `ii`/`rn` gardent leur présence, afin que les lignes d'infobulle et la rangée `lq` des projets soient identiques.
 10. En tant que mainteneur, je veux que `build_gb` parcoure `pico8_fd_table` et que le pont `pico8_fd()` disparaisse, afin que `data_init` ne construise plus cette vue à chaque init.
-11. En tant que gardien du compteur, je veux qu'`overrides` tombe à 21 lignes, exactement les quatre ponts de D.6b, afin que la seule lecture par nom de clés qui reste soit celle des rangées reçues de producteurs non typés.
+11. En tant que gardien du compteur, je veux qu'`overrides` tombe à 30 lignes, exactement les quatre ponts de D.6b et les TU qui leur passent une table, afin que la seule lecture par nom de clés qui reste soit celle des rangées reçues de producteurs non typés.
 12. En tant que gardien du garde, je veux que `DATA_RESIDUE_GUARD` ne change pas et que l'étape qui y fera entrer `overrides` soit nommée, afin qu'aucun garde ne soit posé sur un compte non nul.
 13. En tant que gardien du compteur, je veux qu'aucune des 97 lignes retirées ne soit un renommage à type constant, afin que la baisse ne contienne aucune ligne déplacée sous un autre nom.
 14. En tant que gardien du compteur, je veux les comptes avant/après chaque chunk en lignes ET en occurrences, par catégorie et par fichier, afin qu'une baisse prouve une construction retirée.
-15. En tant que gardien du compteur, je veux que l'écart entre la ligne (« = 0 ») et le compte réel (21) soit expliqué par la note, afin qu'il ne soit pris ni pour un échec ni pour un tassement.
+15. En tant que gardien du compteur, je veux que l'écart entre la ligne (« = 0 ») et le compte réel (30) soit expliqué par la note, afin qu'il ne soit pris ni pour un échec ni pour un tassement.
 16. En tant que gardien des TU, je veux que chaque table de clés d'un constructeur typé devienne une struct locale écrite à son site, sans registre ni aide qui reconstruise une table, afin que le test dise ce qu'il construit.
 17. En tant que gardien des TU, je veux que les aides existantes (`build_icon`, `ie_with`, `new_probe`, `keyed`, `route`, `trade_of`, `export_to`) soient retypées sans cas ajouté, afin que les TU gardent leur forme.
 18. En tant que gardien des TU, je veux que les tests de mort devenus impossibles à écrire disparaissent avec leur raison au commit, afin qu'aucune vérité ne se perde sans être dite.
@@ -216,7 +218,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider par l'ut
 
 ### Convention (G)
 
-Celle de D.6a et D.6b (H-D6b-4) : type `pico8_X_keys_t`, paramètre `const pico8_X_keys_t *keys`, NULL = aucune clé ; la struct est lue, jamais gardée ; chaînes, listes, vecteurs et structs qu'elle pointe sont empruntés par l'instance sans copie, comme aujourd'hui. Classe sans clé : `pico8_X_new(void)`. Chaque clé a le type du membre qu'elle remplit ; un drapeau de présence n'existe que là où le membre en a un ou a un défaut non nul. Aucun nom nouveau ne correspond à un motif figé (`_default`, `_spec`, `_defaults`, `overrides`, `_take_…(`, `…field…`).
+Celle de D.6a et D.6b : type `pico8_X_keys_t`, paramètre `const pico8_X_keys_t *keys`, NULL = aucune clé ; la struct est lue, jamais gardée ; chaînes, listes, vecteurs et structs qu'elle pointe sont empruntés par l'instance sans copie, comme aujourd'hui. Classe sans clé : `pico8_X_new(void)`. Chaque clé a le type du membre qu'elle remplit ; un drapeau de présence n'existe que là où le membre en a un ou a un défaut non nul. Aucun nom nouveau ne correspond à un motif figé (`_default`, `_spec`, `_defaults`, `overrides`, `_take_…(`, `…field…`).
 
 ### Forme des clés, par classe (G)
 
@@ -279,18 +281,18 @@ typedef struct {
 
 - **`hy`, `fv`, `pj`** : `pico8_X_new(void)`, `static void *pico8_X_struct_new(void)` ; l'`assert` « NULL ou vide » et son message disparaissent ; contrats d'en-tête réécrits sans le paramètre (« `overrides` must be NULL or empty: a key asserts » tombe, le reste du contrat demeure). Appelants : `cart.c` (`fv`, `hy`, `pj`), TU.
 - **`g_`** : `pico8_g__new(const pico8_g__keys_t *keys)` ; la boucle, `g__take_fixed` (morte, `-Werror`) et l'`assert` « the only construction keys are pn, t, du, py » disparaissent. `bg.c` (`pico8_g__new(NULL)`) ne change pas.
-- **`ie`** : `pico8_ie_new(const pico8_ie_keys_t *keys)` ; la boucle, `ie_take_kind`, `ie_take_jb` (mortes) et l'`assert` « the only construction keys are ke and jb » disparaissent ; `ie_take_bool` reste (écrivain `m_`). `eu` (`cart.c`) : `pico8_ie_keys_t keys = { gx[i], jb }` sur la pile, l'`jb` étant celui que D.6b construit sur `&pico8_dr_table[i]` (H-D6b-5).
+- **`ie`** : `pico8_ie_new(const pico8_ie_keys_t *keys)` ; la boucle, `ie_take_kind`, `ie_take_jb` (mortes) et l'`assert` « the only construction keys are ke and jb » disparaissent ; `ie_take_bool` reste (écrivain `m_`). `eu` (`cart.c`) : `pico8_ie_keys_t keys = { gx[i], jb }` sur la pile, l'`jb` étant celui que `eu` construit déjà sur `&pico8_dr_table[i]`.
 - **`trade`** : `pico8_trade_new(const pico8_trade_keys_t *keys)` ; la boucle, `trade_list_key` (morte) et l'`assert` « every construction passes only lp, rl, qe » disparaissent. `jo:ib` : `keys.lp`, `keys.rl` (les listes allouées comme aujourd'hui), `keys.has_qe = kw != NULL && kw->has_qe`, `keys.qe = kw->qe` ; le `pico8_value_t qe` local meurt. `trade:kg` : `lp`, `rl` comme aujourd'hui ; sous `/* TROU-24 */`, `has_qe = 1`, `qe_is_bool = self->has_qe ? self->qe_is_bool : 1`, `qe = self->has_qe ? self->qe : 0` ; `qe_val` meurt. Le commentaire de `pico8_trade_t` (`trade.h` l. 10) dit « the REFs the keys held » ; `/* TROU-7 */` et « Never freed » restent.
 
 ### Chunk 2 — `hp`, `build_gb`, pont `fd` (G)
 
 - **`hp`** : `pico8_hp_new(const pico8_hp_keys_t *keys)` ; la boucle, `hp_accepts_key`, `g_hp_named_keys`, `hp_take_string`/`_fixed`/`_il` (mortes), la copie de travail `ri`, `scratch_rc` et l'appel de `pico8_ho_apply` disparaissent ; le commentaire l. 292-294 perd la copie de travail et le `rc` (il garde ce que le code ne dit pas : `i` réécrit après `ho`, `gb[px]` tient la struct) ; `/* TROU-7 */` reste.
 - **`pico8_ho_gp_has`** : promotion de l'aide statique de `collect.c`, déclarée dans `collect.h`.
-- **`build_gb`** et **pont `pico8_fd()` fermé** : `pico8_research_build_gb(void)` ; `g_fd`, `data_init_fd_view`, `pico8_fd()` et leur contrat supprimés ; `pico8_data_init` appelle `pico8_research_init()` puis `pico8_research_build_gb()` ; le commentaire de `pico8_data_init` (« fd, … and nb are built », tel que D.6b l'aura laissé, H-D6b-10) ne parle plus de `fd`.
+- **`build_gb`** et **pont `pico8_fd()` fermé** : `pico8_research_build_gb(void)` ; `g_fd`, `data_init_fd_view`, `pico8_fd()` et leur contrat supprimés ; `pico8_data_init` appelle `pico8_research_init()` puis `pico8_research_build_gb()` ; le commentaire de `pico8_data_init` (« fd and nb are built ») ne parle plus de `fd`.
 
 ### `Makefile`, docs
 
-- **Le `Makefile` ne change pas** : aucun fichier nouveau, `DATA_RESIDUE_GUARD` reste `spec` (H-D6b-7). `tools/` ne change pas.
+- **Le `Makefile` ne change pas** : aucun fichier nouveau, `DATA_RESIDUE_GUARD` reste `spec`. `tools/` ne change pas.
 - `docs/glossaire-noms.md` : entrées `pico8_g__keys_t`, `pico8_ie_keys_t`, `pico8_trade_keys_t` (chunk 1), `pico8_hp_keys_t` (`ri`, `rr`) et `pico8_ho_gp_has` (chunk 2) ; ligne `fd` : « `pico8_fd_table` » seul (la vue disparaît) ; ligne `gb` inchangée.
 - `docs/trous-de-portage.md` : aucune entrée ne change (TROU-24 décrit le cart et la struct, pas la table de clés ; TROU-7 inchangé).
 - `docs/plan-3.md` : note « Découvert à D.6c » en fin de ligne D.6c (texte dans Further Notes). Rien d'autre dans le plan.
@@ -299,14 +301,14 @@ typedef struct {
 
 - Aucun pixel, aucune instanciation, aucun ordre de construction (`g_` : clés, puis `f_`, puis `pq` ; `hp` : membres, puis `gb[px]`, `lq`, `i`), aucun tirage du RNG, aucune valeur.
 - Aucun `*.sha256`, aucun fichier de `tests/e2e/`, aucun fichier d'événements ; aucun e2e ajouté.
-- Les 21 lignes des quatre ponts de D.6b (même texte), leurs appelants, les producteurs de rangées ob, `g_gb` et `pico8_gb()`, `pico8_nb()`, `pico8_ho_apply` (corps inchangé, sauf l'appel de `pico8_ho_gp_has`), les écrivains par nom (`set_field`, `ie_take_bool`, `g__take_target`/`_bool`), `pico8_ob.c/.h`, `tools/`, `KNOWN[]`, les tests du §6.
+- Les 21 lignes des quatre ponts de D.6b et les 9 de leurs TU (même texte), leurs appelants, les producteurs de rangées ob, `g_gb` et `pico8_gb()`, `pico8_nb()`, `pico8_ho_apply` (corps inchangé, sauf l'appel de `pico8_ho_gp_has`), les écrivains par nom (`set_field`, `ie_take_bool`, `g__take_target`/`_bool`), `pico8_ob.c/.h`, `tools/`, `KNOWN[]`, les tests du §6.
 - **TROU** : aucun écart port/cart corrigé ni ajouté ; TROU-7 et TROU-24 préservés à leurs sites.
 
 ### Anti-tassement (liant)
 
 Le compteur compte des **lignes**, et le motif `overrides` est un **nom de paramètre**. Une baisse obtenue sans retirer la construction comptée est un échec.
 
-- **Interdit** : renommer un paramètre, une variable ou un commentaire `overrides` **sans que le type de la donnée change** — c'est le cas des 21 lignes des ponts ; joindre sur une ligne des déclarations, instructions, arguments, conditions, champs ou entrées d'initialiseur qui étaient sur des lignes distinctes ; retirer des retours à la ligne dans une ligne comptée ; macro, `typedef` ou fonction enveloppe dont le seul rôle est de renommer un identifiant compté ; **un registre dans un TU** (tableau, table, `switch` ou boucle nouveaux qui nomment ensemble classes, clés ou valeurs attendues ; les aides existantes sont retypées, pas étendues) ; **une aide de TU qui reconstruit une table de clés par nom** pour un constructeur typé ; **un alias** (`#define`, pointeur de fonction, variable) qui ferait passer une table ob à un constructeur typé ; déplacer du code compté hors de `src`/`tests` ou hors `.c`/`.h` ; supprimer un commentaire qui ne porte pas sur une clé, une boucle, une aide ou un contrat retiré par D.6c ; **toute vue ob nouvelle construite à l'appel, à la frame ou à l'init**, toute `pico8_ob_table_new` ou tout appel à `pico8_jb_row_view` ajouté dans `src/`.
+- **Interdit** : renommer un paramètre, une variable ou un commentaire `overrides` **sans que le type de la donnée change** — c'est le cas des 30 lignes des ponts et de leurs TU ; joindre sur une ligne des déclarations, instructions, arguments, conditions, champs ou entrées d'initialiseur qui étaient sur des lignes distinctes ; retirer des retours à la ligne dans une ligne comptée ; macro, `typedef` ou fonction enveloppe dont le seul rôle est de renommer un identifiant compté ; **un registre dans un TU** (tableau, table, `switch` ou boucle nouveaux qui nomment ensemble classes, clés ou valeurs attendues ; les aides existantes sont retypées, pas étendues) ; **une aide de TU qui reconstruit une table de clés par nom** pour un constructeur typé ; **un alias** (`#define`, pointeur de fonction, variable) qui ferait passer une table ob à un constructeur typé ; déplacer du code compté hors de `src`/`tests` ou hors `.c`/`.h` ; supprimer un commentaire qui ne porte pas sur une clé, une boucle, une aide ou un contrat retiré par D.6c ; **toute vue ob nouvelle construite à l'appel, à la frame ou à l'init**, toute `pico8_ob_table_new` ou tout appel à `pico8_jb_row_view` ajouté dans `src/`.
 - **Légitimité, contrôle exigé** : chacune des **97 lignes / 104 occurrences** `overrides` retirées est, au commit de son chunk, classée (a) construction supprimée (allocation, pose, libération, boucle, lecture d'entrée, `assert` de table vide, variable ou commentaire d'une table de clés qui n'existe plus), ou (b) signature, déclaration ou commentaire de contrat dont le paramètre passe à une struct typée ou à rien ; aucune ligne (c) « même type, autre nom ». Recette : `git diff -U0` de chaque fichier, lignes `-` qui portent `overrides` en regard des lignes `+` ; aucune ligne `+` ne porte `pico8_ob_table_t` dans une signature d'un des sept constructeurs, ni `overrides`.
 - **Mesure exigée, avant et après chaque chunk** : par catégorie, **lignes** (`make data-residue`, et `--detail` par fichier) **ET occurrences** (recette ci-dessous), le test ponctuel donné à part. Recette figée pour l'implémenteur et le vérificateur (`$S` : dossier du scratchpad) :
 
@@ -319,9 +321,9 @@ Le compteur compte des **lignes**, et le motif `overrides` est un **nom de param
   printf 'spec\t%s\n' "$(for f in $F; do sed -E "$X" "$f" | grep -oE "$(pattern spec)"; done | wc -l)"
   ```
 
-  Mesuré sur `09f0f56` : `valeur` 6540, `ob` 1852, `stash` 28, `type-tag` 658, `ref-audit` 69, `par-nom` 1130, `dispatch` 199, `overrides` 348, `spec` 0. Départ réel : l'arbre gradé de D.6b, remesuré.
+  Mesuré sur `58e39e3` (départ) : `valeur` 6438, `ob` 1625, `stash` 28, `type-tag` 654, `ref-audit` 69, `par-nom` 1117, `dispatch` 201, `overrides` 138, `spec` 0.
 - **Contrôle** : pour chaque catégorie et chaque fichier du diff, Δlignes et Δoccurrences. **Si Δlignes > Δoccurrences** dans un couple (catégorie, fichier), le vérificateur lit le diff de ce fichier : chaque ligne comptée retirée correspond à une construction retirée ou convertie, pas à une construction qui réapparaît sur une autre ligne. Le message de commit liste ces couples et leur justification.
-- **Sites hors périmètre** : les 21 lignes des ponts ont, par fichier, le même compte (lignes et occurrences) et le même texte avant et après (`git diff` vide sur ces lignes).
+- **Sites hors périmètre** : les 30 lignes des ponts et de leurs TU ont, par fichier, le même compte (lignes et occurrences) et le même texte avant et après (`git diff` vide sur ces lignes).
 - **Lignes qui gagnent une catégorie**, listées au commit ; attendues : **aucune**. (Les structs de clés n'ont aucun champ `pico8_value_t` ni fonction ; `pico8_ho_gp_has` n'a aucun motif.) Une ligne qui en gagne une est expliquée au commit ou retirée.
 
 ### Empreinte remesurée (G)
@@ -337,65 +339,35 @@ Le compteur compte des **lignes**, et le motif `overrides` est un **nom de param
 
 ### Effet sur `make data-residue`
 
-Attendu, lignes / occurrences / fichiers (départ : ce que D.6b laisse, H-D6b-1) :
+Attendu, lignes / occurrences / fichiers (départ : `58e39e3`) :
 
 | Catégorie | Départ | Après 1 | Après 2 | Pourquoi |
 |---|---|---|---|---|
-| `overrides` | 118 ; 129 ; 25 | **30 ; 35 ; 8** | **21 ; 25 ; 6**, exact | inventaire par fichier ; restent les quatre ponts |
+| `overrides` | 127 ; 138 ; 27 | **39 ; 44 ; 10** | **30 ; 34 ; 8**, exact | inventaire par fichier ; restent les quatre ponts et leurs TU |
 | `spec` | 0 | 0 | **0** | garde |
-| `par-nom` | P₀ (≈ 1062) | **P₀ − 9** | **P₀ − 24** (écart ≤ 3 expliqué) | `g__take_fixed` (définition, 4 usages), `ie_take_kind`/`ie_take_jb` (2 définitions, 2 usages) ; `hp_take_string`/`_fixed`/`_il` (3 définitions, 12 usages) |
+| `par-nom` | 1062 | **1053** | **1038** (écart ≤ 3 expliqué) | `g__take_fixed` (définition, 4 usages), `ie_take_kind`/`ie_take_jb` (2 définitions, 2 usages) ; `hp_take_string`/`_fixed`/`_il` (3 définitions, 12 usages) |
 | `ob` | rapporté | **plus bas** | **strictement plus bas** | tables des appelants et des TU, boucles des constructeurs ; copie de travail, `rc`, vue `fd`, `pico8_fd()`, `build_gb(fd)`, `pico8_research_positional_values` |
 | `valeur` | rapporté | plus bas | **strictement plus bas** | poses `pico8_value_*` des tables retirées, `qe`/`qe_val` locaux, lectures d'entrée ; vue `fd` ; aucun gain |
 | `type-tag` | rapporté | plus bas | **≤** | `assert` de tag de `ie_take_kind`/`ie_take_jb`/`trade_list_key` |
-| `dispatch` | 197 ; 199 | = | **=** | aucun champ fonction dans les clés |
+| `dispatch` | 199 ; 201 | = | **=** | aucun champ fonction dans les clés |
 | `ref-audit` | rapporté | = | **=** | |
 | `stash` | 28/4 | 28/4 | **28/4** | test ponctuel : 2 lignes inchangées |
 
-- **`overrides` = 21 / 25 / 6 est attendu exact** ; tout écart est expliqué ligne par ligne au commit, et **une baisse sous 21 est un échec** (seuls les ponts restent, et leur texte est gelé). Le « = 0 » de la ligne ne l'est pas, pour la raison dite plus haut ; la note corrige.
+- **`overrides` = 30 / 34 / 8 est attendu exact** ; tout écart est expliqué ligne par ligne au commit, et **une baisse sous 30 est un échec** (seuls les ponts et leurs TU restent, et leur texte est gelé). Le « = 0 » de la ligne ne l'est pas, pour la raison dite plus haut ; la note corrige.
 - Aucune catégorie ne tombe à 0 : `DATA_RESIDUE_GUARD` ne change pas.
-
-### Hypothèses sur D.6b
-
-- **H-D6b-1** : D.6b est livrée et gradée comme son PRD le dit : `overrides` = **118 lignes / 129 occurrences / 25 fichiers** au départ de D.6c, dont les 97 / 104 / 19 de D.6c aux comptes par fichier de l'inventaire.
-- **H-D6b-2** : les quatre ponts s'appellent `pico8_lq_new_table`, `pico8_jb_new_table` (`layout.c/.h`), `pico8_js_new_table` (`ui_button.c/.h`), `pico8_mh_new_table` (`msgbox.c/.h`), paramètre `overrides` gardé, **21 lignes / 25 occurrences** (`layout.c` 9 / 11, `layout.h` 2 / 2, `ui_button.c` 4 / 5, `ui_button.h` 1 / 1, `msgbox.c` 4 / 5, `msgbox.h` 1 / 1), et aucune autre ligne `overrides` de D.6b ne reste.
-- **H-D6b-3** : D.6b ne touche le texte d'aucune des 97 lignes de D.6c (son PRD l'exige octet pour octet) ; seuls les numéros de ligne bougent (`pico8_cart.c`, `pico8_economy.c`, `test_pico8_ie`, `test_pico8_entity_kind`).
-- **H-D6b-4** : la convention est celle de D.6a reprise par D.6b : `pico8_X_keys_t`, `const … *keys`, NULL = aucune clé, `pico8_X_new(void)` pour une classe sans clé (`bg`, `nf`, `qb`, `ui`, `mz`) ; aucun nom de D.6b (`pico8_{iv,jc,fq,lq,js,mh}_keys_t`, `pico8_X_new_table`, `pico8_lq_keys_of`, `pico8_de_my`) n'entre en collision avec ceux de D.6c (`pico8_{g_,ie,trade,hp}_keys_t`, `pico8_ho_gp_has`).
-- **H-D6b-5** : pont `pico8_dr()` fermé : `eu` construit chaque `jb` par `pico8_jb_new(&pico8_dr_table[i])` dans la boucle où restent les six lignes `ie` ; `g_dr`, `data_init_dr_view`, `pico8_dr()` ont disparu ; `test_pico8_ie` (`dr_row`, l. 270-274) et `test_pico8_entity_kind` (`ie_jb`, l. 531-535) passent par `pico8_dr_table`.
-- **H-D6b-6** : `par-nom` ≈ 1062 au départ (1075 − 13) ; les 24 lignes `par-nom` des aides de D.6c (`g__take_fixed`, `ie_take_kind`/`_jb`, `hp_take_*`) sont intactes.
-- **H-D6b-7** : `DATA_RESIDUE_GUARD` = `spec` ; `Makefile` et `tools/` inchangés ; `make data-guard` vert.
-- **H-D6b-8** : l'arbre de D.6b est vert (`make test`, `make e2e` 26, `make sanitize-net` 26, `make class-coverage-net` identique, `make data-guard` 0).
-- **H-D6b-9** : la note de D.6b dit que le « = 0 » de D.6c devient « = 21 » et qu'`overrides` entre dans `DATA_RESIDUE_GUARD` à l'étape qui ferme le dernier pont ; elle nomme D.7a/D.7b comme étapes de fermeture (le pont `js` reçoit les rangées `bs` de `pz`, D.7b).
-- **H-D6b-10** : D.6b corrige le commentaire de `pico8_data_init` (« fd, dr and nb are built ») pour `dr` seulement ; `g_fd`, `data_init_fd_view`, `pico8_fd()` et `test_fd_view_matches_the_decoded_table_plus_rr` sont intacts.
-- **H-D6b-11** : D.6b ne touche aucun constructeur ni appelant de D.6c : ni `pico8_{g_,fv,ie,hp,hy,trade,pj}_new`, ni leurs `NULL` (ses TU `test_pico8_hp`, `_hy`, `_trade`, `_g_`, `_ui`, `_jc` n'y changent que `jc`/`bg`/`ui`/`qb`/`nf`/`mz`) ; en particulier `g__with_t_key` (`test_pico8_ui`) a au plus vu `pico8_bg_new(NULL)` devenir `pico8_bg_new()`.
-- **H-D6b-12** : D.6b n'ajoute rien à `pico8_game_data.*`, `pico8_map_tables.*`, `research.c/.h`, `collect.c/.h`, `trade.c/.h`, `planet_trade.c`, `probe.c/.h`, `help.c/.h`, `score_panel.c/.h`, `research_icon.c/.h`.
-- **H-D6b-13** : le test ponctuel garde ses 2 lignes `stash` ; sa comparaison `dr` passe sur `pico8_dr_table` ; sa comparaison `fd` lit encore `pico8_fd()`.
-- **H-D6b-14** : `ob`, `valeur`, `type-tag` au départ ne sont pas connus ; ils sont remesurés (seules leurs baisses sont exigées).
-
-**Démentie** : l'hypothèse fausse est nommée au commit, la section concernée de ce PRD est relue ; seule une ligne `overrides` de D.6c ou d'un pont touchée par D.6b (H-D6b-1/2/3) oblige à recalculer le compte attendu, sans jamais l'abaisser par renommage. Si D.6b laisse plus ou moins de lignes dans ses ponts, la cible de D.6c est **le compte réel des ponts** donné par la note de D.6b, jamais moins.
-
-### À revérifier après D.6b (contre sa note « Découvert à D.6b »)
-
-1. **Problem Statement / Lecture / Inventaire** : compte réel `overrides` de D.6b (118 ?), partage 97 / ponts par fichier (H-D6b-1/2/3), numéros de ligne cités (`cart.c`, `economy.c`, `test_pico8_ie`, `test_pico8_entity_kind`).
-2. **Cible et garde** : lignes des ponts (21 / 25 / 6 ?), leurs noms, l'étape de fermeture que la note nomme (H-D6b-2/9) ; `DATA_RESIDUE_GUARD` (H-D6b-7).
-3. **Convention et forme des clés** : noms de D.6b, forme `void` des classes sans clé (H-D6b-4).
-4. **Chunk 1 / `eu`** : forme de la boucle de `cart.c` après la fermeture de `pico8_dr()` (H-D6b-5) ; `test_pico8_ie`/`_entity_kind` (aides `dr_row`, `ie_jb`) ; `g__with_t_key` (H-D6b-11).
-5. **Chunk 2 / `data_init`** : commentaire de `pico8_data_init`, `test_pico8_data_init`, test ponctuel (H-D6b-10/13).
-6. **Effet sur `make data-residue`** : départs de `par-nom` (H-D6b-6), `ob`, `valeur`, `type-tag` (H-D6b-14).
-7. **Empreinte remesurée** : fichiers que D.6b aurait touchés hors de son PRD (H-D6b-11/12).
-8. **Critères d'échec** : l'arbre de départ (commit gradé de D.6b).
 
 ### Hypothèses sur D.6c (rien n'a été lancé)
 
 - **H1** : l'arbre de départ est vert et `make data-residue` y rend l'inventaire. Démenti : arrêt, D.6c ne répare rien.
-- **H2** : aucun appelant des sept constructeurs hors de l'inventaire (grep sur `09f0f56` : `src/` et les TU listés ; aucun pointeur de fonction vers eux, aucune sorte `pico8_entity_kind_t` pour `g_`, `fv`, `ie`, `hp`, `hy`, `trade`, `pj`).
-- **H3** : `pico8_fd_table` porte les mêmes valeurs que la vue `fd` (le test ponctuel le prouve à `09f0f56`) ; chaque `o`/`dm` d'un enregistrement est une clé de `r`.
+- **H2** : aucun appelant des sept constructeurs hors de l'inventaire (grep sur `58e39e3` : `src/` et les TU listés ; aucun pointeur de fonction vers eux, aucune sorte `pico8_entity_kind_t` pour `g_`, `fv`, `ie`, `hp`, `hy`, `trade`, `pj`).
+- **H3** : `pico8_fd_table` porte les mêmes valeurs que la vue `fd` (le test ponctuel le prouve à `58e39e3`) ; chaque `o`/`dm` d'un enregistrement est une clé de `r`.
 - **H4** : `hp` construit sur `{ri, rr}` pose, pour chacun des 34 enregistrements, les mêmes membres qu'aujourd'hui (présence comprise : `il` absent / faux / chaîne, `dm` seulement si `npos` = 8, `ii`/`rn` sous leurs drapeaux) et les mêmes pointeurs de chaîne (ceux de `pico8_fd_table`, que la vue recopiait sans copie).
 - **H5** : aucune constante `*_HASH` (ni son nom) ne bouge ; les tests de mort retirés ne nourrissent aucun hachage. Démentie : arrêt sur la constante, jamais de mise à jour.
 - **H6** : `make class-coverage-net` est identique : aucune instanciation ajoutée ni retirée (une `hp` par enregistrement, une `ie` par sorte, une `trade` par proposition et par `kg`).
 - **H7** : `make sanitize-net` rend 26 propres : les tables de clés passent du tas à la pile, la vue `fd`, la copie de travail et le `rc` disparaissent, rien d'autre ne change de propriétaire (les listes `lp`/`rl` restent allouées et jamais libérées, TROU-7).
 - **H8** : `-Werror` reste muet : aides mortes supprimées (`g__take_fixed`, `ie_take_kind`, `ie_take_jb`, `trade_list_key`, `hp_accepts_key`, `hp_take_*`, `g_hp_named_keys`, `pico8_research_positional_values`, `value_is_nil` si elle n'a plus d'usage), inclusions devenues inutiles retirées (`pico8_ob.h` là où plus rien ne l'emploie).
 - **H9** : `constants-check`, `float-grep`, `float-guard` restent verts : aucun flottant ni `PICO8_FIXED_LIT` ajouté.
-- **H10** : aucune valeur `o`/`dm` de `pico8_fd_table` ne manque dans `r` (sinon l'init aborterait déjà à `09f0f56`).
+- **H10** : aucune valeur `o`/`dm` de `pico8_fd_table` ne manque dans `r` (sinon l'init aborterait déjà à `58e39e3`).
 - **H11** : durées courtes : `make test` en quelques secondes plus une recompilation large ; `make e2e` ~1 s ; `sanitize-net` et `class-coverage-net` < 2 min chacun, par chunk.
 - **H12** : les 26 e2e atteignent `eu`, `data_init`/`build_gb` et `jo:ib` ; `trade:kg` est prouvé au moins par `test_pico8_trade` ; un site non atteint est prouvé par un TU.
 - **H13** : `test_pico8_hp` et le test ponctuel peuvent comparer `gb` et `pico8_fd_table` sans vue : les pointeurs de chaîne qu'ils testent sont ceux de la table générée.
@@ -406,8 +378,8 @@ Attendu, lignes / occurrences / fichiers (départ : ce que D.6b laisse, H-D6b-1)
 
 Deux commits, dans cet ordre, chacun vert seul (`make test`, `make e2e`, `make sanitize-net`, `make class-coverage-net`, `make data-guard`), chacun avec ses comptes avant/après, sa classification et son rapport gcov/mutations :
 
-1. **1 — `hy`, `fv`, `pj`, `g_`, `ie`, `trade`** : trois classes sans paramètre, trois structs de clés, appelants littéraux (`eu`, `jo:ib`, `trade:kg`), aides mortes, TU ; glossaire (trois entrées). `overrides` → 30 / 35 / 8.
-2. **2 — `hp`, `build_gb`, pont `fd`** : `pico8_hp_keys_t`, `ho` sur l'enregistrement typé, `pico8_ho_gp_has`, `build_gb(void)`, fermeture de `pico8_fd()`, test ponctuel, `test_pico8_hp`, `test_pico8_data_init` ; glossaire, note du plan. `overrides` → 21 / 25 / 6.
+1. **1 — `hy`, `fv`, `pj`, `g_`, `ie`, `trade`** : trois classes sans paramètre, trois structs de clés, appelants littéraux (`eu`, `jo:ib`, `trade:kg`), aides mortes, TU ; glossaire (trois entrées). `overrides` → 39 / 44 / 10.
+2. **2 — `hp`, `build_gb`, pont `fd`** : `pico8_hp_keys_t`, `ho` sur l'enregistrement typé, `pico8_ho_gp_has`, `build_gb(void)`, fermeture de `pico8_fd()`, test ponctuel, `test_pico8_hp`, `test_pico8_data_init` ; glossaire, note du plan. `overrides` → 30 / 34 / 8.
 
 Ordre conseillé dans chaque commit : mesure de départ (lignes et occurrences, par fichier) ; types et constructeurs ; appelants de `src/` ; `make test` ; TU ; `make test` ; `make e2e`, `make sanitize-net`, `make class-coverage-net` une fois ; gcov, mutations ; mesure d'arrivée, classification, anti-tassement, gardes ; docs.
 
@@ -468,13 +440,13 @@ Au-delà du budget, l'implémenteur s'arrête et note ce qui manque, plutôt que
 
 Le vérificateur réutilise ce tableau et ne relance que ce qui suit le dernier changement de l'arbre.
 
-**Cibles finales**, vertes sur l'arbre de chaque commit : `timeout 5m make test` ; `timeout 5m make e2e` : **26 « conforme »** ; `timeout 10m make sanitize-net` : `sanitize: 26 propre(s)` ; `timeout 10m make class-coverage-net` : identique à `tools/class_coverage_net_expected.txt` ; `make data-guard` : code 0 ; `make data-residue` + recette : `overrides` aux jalons 30/35/8 puis 21/25/6, `spec` 0, `stash` 28/4, `ob` et `valeur` strictement plus bas au dernier chunk, `par-nom` départ − 24 (± 3 expliqué) ; classification et anti-tassement passés.
+**Cibles finales**, vertes sur l'arbre de chaque commit : `timeout 5m make test` ; `timeout 5m make e2e` : **26 « conforme »** ; `timeout 10m make sanitize-net` : `sanitize: 26 propre(s)` ; `timeout 10m make class-coverage-net` : identique à `tools/class_coverage_net_expected.txt` ; `make data-guard` : code 0 ; `make data-residue` + recette : `overrides` aux jalons 39/44/10 puis 30/34/8, `spec` 0, `stash` 28/4, `ob` et `valeur` strictement plus bas au dernier chunk, `par-nom` départ − 24 (± 3 expliqué) ; classification et anti-tassement passés.
 
 ### Contrôles du vérificateur
 
 1. **Périmètre** : `git show --stat` de chaque commit liste les chemins de son chunk (« Empreinte remesurée », écart ≤ 3 expliqué), rien d'autre. Aucun `*.sha256`, rien sous `tests/e2e/`, aucun fichier d'événements, `Makefile` et `tools/` inchangés, tests du §6 intacts.
 2. **Types** : les sept constructeurs prennent une struct de clés ou rien ; aucune recherche par nom d'une clé de construction hors des quatre ponts ; `grep` de la « Sortie de l'étape » vides.
-3. **Reste `overrides`** : les 21 lignes restantes sont toutes dans `pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table` ou leurs déclarations, au texte du départ.
+3. **Reste `overrides`** : les 30 lignes restantes sont toutes dans `pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table` ou leurs déclarations (21), ou dans `test_pico8_mh` (7) et `test_pico8_lq` (2), au texte du départ.
 4. **Renommage** : les 97 lignes retirées classées (a)/(b), aucune (c).
 5. **Mémoire** : aucune `pico8_ob_table_new` ni `pico8_jb_row_view` ajoutée dans `src/` ; les tables de clés de `eu`, `jo:ib`, `trade:kg`, la copie de travail et le `rc` de `hp`, la vue `fd` ont disparu.
 6. **Anti-tassement** : comptes avant/après chaque chunk, en lignes ET en occurrences, par catégorie et par fichier, recalculés avec la recette ; chaque couple Δlignes > Δoccurrences justifié ; aucune jonction de lignes, aucun alias, aucun registre de TU, aucun déplacement hors du compteur, aucun commentaire sans rapport supprimé ; aucune ligne ne gagne de catégorie sans être listée.
@@ -487,7 +459,7 @@ Le vérificateur réutilise ce tableau et ne relance que ce qui suit le dernier 
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ n'est pas le commit gradé de D.6b (ou un commit de docs au-dessus) propre, ou si `make data-residue` n'y rend pas `overrides` 118/25 et `spec` 0 sans que la note de D.6b l'explique (H-D6b-1 démentie : relire le PRD avant tout code).
+- `FAILED:` si l'arbre de départ n'est pas `58e39e3` (ou un commit de docs au-dessus) propre, ou si `make data-residue` n'y rend pas `overrides` 127/27 et `spec` 0.
 - `FAILED:` si le filet (`make test`, `make e2e`, `make sanitize-net`, `make class-coverage-net`) reste rouge après **3 tentatives** sur un même commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si `make e2e` ne rend pas **26 « conforme »**, si `make sanitize-net` ne rend pas 26 propres, ou si `make class-coverage-net` diffère de sa référence, à un des deux commits.
@@ -495,7 +467,7 @@ Le vérificateur réutilise ce tableau et ne relance que ce qui suit le dernier 
 **Périmètre**
 
 - `FAILED:` si un des sept constructeurs prend encore une `pico8_ob_table_t`, si une clé de construction est lue par nom hors des quatre ponts de D.6b, ou si une ligne des `grep` de la « Sortie de l'étape » subsiste.
-- `FAILED:` si une ligne d'un pont de D.6b change, si un pont est fermé, renommé ou ajouté, si un producteur de rangées ob est converti, si `g_gb`/`pico8_gb()`, `pico8_nb()`, `pico8_jb_row_view` ou le corps de `pico8_ho_apply` (hors l'appel de `pico8_ho_gp_has`) change, ou si un test du §6 est touché.
+- `FAILED:` si une ligne d'un pont de D.6b ou de ses TU (`test_pico8_mh`, `test_pico8_lq`) change, si un pont est fermé, renommé ou ajouté, si un producteur de rangées ob est converti, si `g_gb`/`pico8_gb()`, `pico8_nb()`, `pico8_jb_row_view` ou le corps de `pico8_ho_apply` (hors l'appel de `pico8_ho_gp_has`) change, ou si un test du §6 est touché.
 - `FAILED:` si le diff ajoute une `pico8_ob_table_new` ou un appel à `pico8_jb_row_view` dans `src/`, ou toute table ou vue construite à chaque appel, à chaque frame ou à l'init.
 - `FAILED:` si le diff touche un TROU autrement que par le texte de contrat qui l'entoure (TROU-7, TROU-24 gardés à leurs sites).
 - `FAILED:` si le test ponctuel nomme un motif de `spec`, d'`overrides` ou de `type-tag`, construit une table ob depuis `pico8_fd_table`, ou porte plus de 2 lignes `stash`.
@@ -503,7 +475,7 @@ Le vérificateur réutilise ce tableau et ne relance que ce qui suit le dernier 
 **Gardes, comptes et anti-tassement**
 
 - `FAILED:` si `make data-guard` n'est pas vert, ou si `DATA_RESIDUE_GUARD` ou `tools/data_residue.sh` change.
-- `FAILED:` si `overrides` ne rend pas 21 lignes / 25 occurrences / 6 fichiers (et 30/35/8 après le chunk 1) sans explication ligne par ligne, ou descend sous le compte réel des ponts ; si `stash` n'est pas 28/4, `spec` 0 ; si `par-nom` s'écarte de départ − 24 de plus de 3 ou sans explication ; si `ob` ou `valeur` ne baisse pas strictement.
+- `FAILED:` si `overrides` ne rend pas 30 lignes / 34 occurrences / 8 fichiers (et 39/44/10 après le chunk 1) sans explication ligne par ligne, ou descend sous 30 ; si `stash` n'est pas 28/4, `spec` 0 ; si `par-nom` s'écarte de départ − 24 de plus de 3 ou sans explication ; si `ob` ou `valeur` ne baisse pas strictement.
 - `FAILED:` **si une ligne `overrides` disparaît par renommage sans changement de type** (classe (c)), ou si la classification (a)/(b) manque au commit.
 - `FAILED:` **si un compte baisse par tassement** : lignes jointes, retours à la ligne retirés dans une ligne comptée, construction comptée déplacée sur une autre ligne comptée, alias (macro, `typedef`, enveloppe, pointeur) d'un identifiant compté, code déplacé hors de `src`/`tests` ou hors `.c`/`.h`, commentaire sans rapport supprimé.
 - `FAILED:` si un TU construit les clés d'un constructeur typé par un registre, une table ou une aide par nom nouvelle.
@@ -521,7 +493,7 @@ Le vérificateur réutilise ce tableau et ne relance que ce qui suit le dernier 
 
 ## Out of Scope
 
-- **Les quatre ponts de D.6b** (`pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table`) et leurs 21 lignes : ils ferment avec leurs producteurs (D.7a, D.7b) ; `overrides` entre alors dans `DATA_RESIDUE_GUARD`.
+- **Les quatre ponts de D.6b** (`pico8_lq_new_table`, `pico8_jb_new_table`, `pico8_js_new_table`, `pico8_mh_new_table`) et leurs 21 lignes, avec les 9 lignes de leurs TU (`test_pico8_mh`, `test_pico8_lq`) : ils ferment avec leurs producteurs (D.7a, D.7b) ; `overrides` entre alors dans `DATA_RESIDUE_GUARD`.
 - **Les producteurs de rangées ob** (`planet_display`, `research_display`, `score_panel_display`, `menu`, `help`, `pz`) et les vues `ix`/`ha`/`bo`/`bz`, `pico8_nb()` : D.7a/D.7b.
 - **`g_gb`, `pico8_gb()`** (table ob des projets), les enregistrements de `jo:ib` (`route_a`/`route_b` de `ga_export_panel_by`), `pico8_ho_apply` (ob, sans appelant de `src/` après D.6c) : D.7a (`research`, `planet_trade`, `collect`) ou D.8 (test ponctuel).
 - **Les listes `lp`/`rl` de `trade`** (`pico8_list_t` de `pico8_value_t`) et leur fuite (TROU-7) : point 3 de l'arrêt, D.9.
@@ -531,22 +503,22 @@ Le vérificateur réutilise ce tableau et ne relance que ce qui suit le dernier 
 ## Further Notes
 
 - **Décisions de l'agent à la place de l'utilisateur** (consigne `to-prd` : vérifier modules, tests et découpage avec l'utilisateur), tranchées en `guideline` et marquées (G) plus haut :
-  - **cible** : `overrides` = 21 / 25 / 6 (les quatre ponts de D.6b), pas 0 ; `DATA_RESIDUE_GUARD` inchangé ; `overrides` y entre à l'étape qui ferme le dernier pont (D.7b dans l'ordre actuel), pas de garde partiel.
+  - **cible** : `overrides` = 30 / 34 / 8 (les quatre ponts de D.6b et leurs TU, « = 30 » de la note de D.6b), pas 0 ; `DATA_RESIDUE_GUARD` inchangé ; `overrides` y entre à l'étape qui ferme le dernier pont (D.7b dans l'ordre actuel), pas de garde partiel.
   - **forme** : `(void)` pour `hy`, `fv`, `pj` ; `pico8_g__keys_t` (`t` sans drapeau, `pn`/`du`/`py` sous drapeau) ; `pico8_ie_keys_t` (deux pointeurs) ; `pico8_trade_keys_t` (listes et triple `qe` du membre) ; `pico8_hp_keys_t` (enregistrement généré `pico8_fd_entry_t` et `rr`), `ho` appliqué aux champs typés avec `pico8_ho_gp_has`.
   - **pont de données** : `pico8_fd()` fermé ; `build_gb(void)` sur `pico8_fd_table`.
   - **tests** : clés en struct locale à leur site, aides existantes retypées ; tests de mort impossibles retirés et listés ; un test de mort par `assert` nouveau ; test ponctuel sur `pico8_fd_table` sans vue ; quatorze mutations ; pas d'e2e ; `class-coverage-net` et `sanitize-net` à chaque chunk ; §6 non touché.
   - **découpage** : deux commits (37 chemins ; `hp` et le pont `fd` à part).
-  - **D.6b** : quatorze hypothèses H-D6b, huit sections à relire contre sa note.
+  - **D.6b** : quatorze hypothèses H-D6b écrites sur `09f0f56`, vérifiées sur `58e39e3` ; le départ (127) et la cible (30) corrigés d'après la note de D.6b.
 - **Note du plan (G)**, à ajouter en fin de ligne D.6c (le §7 ne garde que ce qui change une étape suivante) :
 
-  > Découvert à D.6c : deux chunks (`hy`/`fv`/`pj`/`g_`/`ie`/`trade`, puis `hp` et le pont `fd` — 37 chemins : appelants à NULL, TU qui construisent dans `b`/`o`, `data_init`, `collect` et le test ponctuel hors du majorant). `hy`, `fv`, `pj` sans paramètre ; clés typées `pico8_g__keys_t`, `pico8_ie_keys_t`, `pico8_trade_keys_t` (triple `qe` du membre ; TROU-24 au site de `trade:kg`), `pico8_hp_keys_t` (`ri` : enregistrement `pico8_fd_entry_t`, `rr`) ; `hp` applique `ho` aux champs typés (`pico8_ho_gp_has`, extraite de `collect.c`). Pont `pico8_fd()` fermé (`pico8_research_build_gb(void)` parcourt `pico8_fd_table`) ; `pico8_ho_apply` sans appelant de `src/` (D.7a `collect`, ou D.8 avec le test ponctuel). `overrides` après D.6c : N (les lignes des quatre ponts de D.6b ; le « = 0 » de D.1 comptait sans eux) ; `overrides` n'entre pas dans `DATA_RESIDUE_GUARD` : il y entre à l'étape qui ferme le dernier pont — `js`, dont les rangées `bs` de `pz` sont à D.7b ; D.7a ferme `lq`, `jb`, `mh` et les autres sources de `js` si son PRD ne réordonne pas. `par-nom` : P.
+  > Découvert à D.6c : deux chunks (`hy`/`fv`/`pj`/`g_`/`ie`/`trade`, puis `hp` et le pont `fd` — 37 chemins : appelants à NULL, TU qui construisent dans `b`/`o`, `data_init`, `collect` et le test ponctuel hors du majorant). `hy`, `fv`, `pj` sans paramètre ; clés typées `pico8_g__keys_t`, `pico8_ie_keys_t`, `pico8_trade_keys_t` (triple `qe` du membre ; TROU-24 au site de `trade:kg`), `pico8_hp_keys_t` (`ri` : enregistrement `pico8_fd_entry_t`, `rr`) ; `hp` applique `ho` aux champs typés (`pico8_ho_gp_has`, extraite de `collect.c`). Pont `pico8_fd()` fermé (`pico8_research_build_gb(void)` parcourt `pico8_fd_table`) ; `pico8_ho_apply` sans appelant de `src/` (D.7a `collect`, ou D.8 avec le test ponctuel). `overrides` après D.6c : N (les 21 lignes des quatre ponts de D.6b et les 9 de leurs TU, le « = 30 » de la note de D.6b ; le « = 0 » de D.1 comptait sans eux) ; `overrides` n'entre pas dans `DATA_RESIDUE_GUARD` : il y entre à l'étape qui ferme le dernier pont — `js`, dont les rangées `bs` de `pz` sont à D.7b ; D.7a ferme `lq`, `jb`, `mh` et les autres sources de `js` si son PRD ne réordonne pas. `par-nom` : P.
 
   N est le compte `overrides` réel, P le compte `par-nom` réel.
 - **Contrôle d'étape** : un sous-agent frais relit le diff de chaque chunk contre ce PRD avant son commit (hors budget de tests), anti-tassement, classification et reste `overrides` compris.
-- **Le message de chaque commit** porte : le périmètre du chunk ; la forme des clés par classe et ses rejets ; la classification (a)/(b) des lignes `overrides` retirées ; les comptes avant et après **en lignes et en occurrences** par catégorie et par fichier, et les couples Δlignes > Δoccurrences justifiés ; les lignes qui gagnent une catégorie (aucune attendue) ; les tests de mort retirés, un par un, avec leur raison ; le rapport gcov et les mutations ; le tableau « Runs » résumé ; les réponses aux hypothèses H et H-D6b qui le concernent.
+- **Le message de chaque commit** porte : le périmètre du chunk ; la forme des clés par classe et ses rejets ; la classification (a)/(b) des lignes `overrides` retirées ; les comptes avant et après **en lignes et en occurrences** par catégorie et par fichier, et les couples Δlignes > Δoccurrences justifiés ; les lignes qui gagnent une catégorie (aucune attendue) ; les tests de mort retirés, un par un, avec leur raison ; le rapport gcov et les mutations ; le tableau « Runs » résumé ; les réponses aux hypothèses H qui le concernent.
 - **Surprises pour le pilote** :
-  - **Le « = 0 » de la ligne est hors d'atteinte par construction** : D.6b a choisi (et justifié) de garder quatre ponts nommés `overrides` pour ne pas typer ses producteurs ; D.6c ne peut les fermer sans faire D.7a/D.7b. Le vrai « = 0 » et l'entrée dans le garde glissent à D.7b.
-  - **Le « 97 » de la note de D.6a tient exactement** sur `09f0f56` (97 lignes / 104 occurrences / 19 fichiers) ; les trois TU `test_pico8_hp`, `_hy`, `_trade`, que la ligne mettait dans l'empreinte de D.6c, ne portent que des lignes de D.6b (`jc`).
+  - **Le « = 0 » de la ligne est hors d'atteinte par construction** : D.6b a choisi (et justifié) de garder quatre ponts nommés `overrides` pour ne pas typer ses producteurs, et leurs TU passent une table de même nom ; D.6c ne peut les fermer sans faire D.7a/D.7b. Le vrai « = 0 » et l'entrée dans le garde glissent à D.7b.
+  - **Le « 97 » de la note de D.6a tient exactement** sur `09f0f56` et sur `58e39e3` (97 lignes / 104 occurrences / 19 fichiers) ; les trois TU `test_pico8_hp`, `_hy`, `_trade`, que la ligne mettait dans l'empreinte de D.6c, ne portent que des lignes de D.6b (`jc`).
   - **`g_` n'a de clés que pour un TU** : le cart ne construit la sonde que sans clé ; `pico8_g__keys_t` sert le chemin (c) de `probe_mm_rnd_order`/`test_pico8_g_`. Le supprimer changerait l'ordre `pq`/clés : gardé.
   - **`hp` coûtait une vue par init et deux tables par projet** (vue `fd`, copie de travail `ri`, `rc` jetable) pour un `ho` dont le résultat était relu champ par champ ; le typage les retire toutes, et `pico8_ho_apply` perd son dernier appelant de `src/`.
   - **L'empreinte de la ligne (21) sous-estime** : 37 chemins, surtout des TU qui appellent `pico8_fv_new(NULL)`/`pico8_pj_new(NULL)` ou construisent dans `b`.
