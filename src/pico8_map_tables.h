@@ -100,5 +100,7 @@ int pico8_r_lookup(const char *key, int *out_qe);
 const char *pico8_iz_lookup(const char *key);
 /* NULL when key is absent; otherwise a pointer into pico8_hc_table. */
 const pico8_hc_entry_t *pico8_hc_lookup(const char *key);
+/* The nb entry whose px is `px`, NULL when none or `px` is NULL: `nb[px]`. */
+const pico8_nb_entry_t *pico8_nb_lookup(const char *px);
 
 #endif

@@ -121,7 +121,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `fd` | `pico8_fd_table` ; vue ob `pico8_fd` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; la vue est la table ob que `build_gb` reçoit |
 | `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
 | `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
-| `nb` | `pico8_nb_table` ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` |
+| `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
 | `ek` | `pico8_ek_table` (`pico8_game_data.h`) | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
 ## Commerce
@@ -193,8 +193,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jk` | points de recherche accumulés |
 | `yr` | année courante ; 3426 déclenche le score final |
 | `lo` | compteur de ticks depuis la dernière année |
-| `po` | production totale par ressource (résultat de `bx()`) |
-| `fu` | demande par ressource (résultat de `ck()`) |
+| `po` | production totale par ressource (résultat de `bx()`) ; `pico8_qe_map_t *po` → `po_own`, rempli sur place par chaque `lj` |
+| `fu` | demande par ressource (résultat de `ck()`) ; `pico8_qe_map_t *fu` → `fu_own` |
 | `happiness` | score de bonheur (résultat de `bf()`) |
 | `hl` | statut de fin de partie : `"final score"`, `"bankrupt"`, ou faux |
 | `invented` | technologies débloquées |
@@ -235,7 +235,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `kr` | revenu net de la planète |
 | `gg()` | la planète compte-t-elle dans les scores (colonisée) |
 | `qh`, `nl` | marqueurs de sous-type de planète |
-| `hg` | ensemble des planètes desservies par un slipway |
+| `hg` | ensemble des planètes desservies par un slipway ; `pico8_jc_hg_t` |
 
 ## Le mini-langage de données `ob()`
 
@@ -316,7 +316,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `qa` | champ | position de la souris en coordonnées monde (`je.ra + mo.ra`) |
 | `o_`, `gj` | champs | entité survolée cette frame / la frame précédente |
 | `m_` | champ | drapeau « je suis survolée », posé et retiré par `gw` |
-| `ic` | champ | seaux d'entités survolées, indexés par couche `fa` |
+| `ic` | champ ; `pico8_ui_ic_t *ic` → `ic_own` (16 couches vidées par chaque `gw`) | seaux d'entités survolées, indexés par couche `fa` |
 | `le` | champ | entités éphémères, détruites en bloc par `cj` |
 | `hw` | champ | boîte du panneau principal, `b(10,10,118,118)` |
 | `ql` | champ | sprite de curseur |
@@ -402,7 +402,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jc:kj` | `pico8_jc_kj` | dessine la ligne, avec une légère ondulation temporelle aux deux bouts |
 | `qu`, `re` | champs | les deux extrémités du slipway |
 | `ts` | champ | points lumineux en transit |
-| `hg` | champ | ensemble des planètes que ce slipway dessert |
+| `hg` | champ ; `pico8_jc_hg_t *hg` → `hg_own` (90 `id` au plus, `pico8_jc_hg_add`/`pico8_jc_hg_has`) | ensemble des planètes que ce slipway dessert |
 
 ## Boîtes, boutons et menus
 
@@ -417,6 +417,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_jb_row_view` | vue ob neuve d'une `pico8_jb_row_t`, pour les lecteurs qui veulent encore une table (`layout`, clé `lq` de `js`, `bl`, `mh`) |
 | — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
+| — | `pico8_qe_map_t` | une table par ressource (`po`, `fu`) : clés `qe` entières, ordre d'insertion, 16 au plus ; `pico8_qe_map_get`/`_set` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
 | `js` | `pico8_js_t` | un bouton cliquable |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
@@ -439,7 +440,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée |
 | `gb` | `pico8_gb` | tous les projets construits depuis `fd` |
 | `cb(bi)` | `pico8_cb` | les technologies affichables ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
-| `gi(t)` | `pico8_gi` | coût en points de recherche d'une technologie |
+| `gi(t)` | `pico8_gi` (enregistrement de la vue), `pico8_gi_nb` (entrée de `pico8_nb_table`, lue par `hy:kt`) | coût en points de recherche d'une technologie |
 
 ## Particules
 

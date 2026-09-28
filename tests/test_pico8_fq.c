@@ -221,15 +221,11 @@ static void test_false_my_keeps_the_veil(void) {
 
 static int in_layer(int layer, const void *e) {
     pico8_value_t ic;
-    pico8_value_t bucket;
 
     if (!pico8_entity_get_field(pico8_ok(), "ic", &ic) || ic.kind != PICO8_VALUE_REF || ic.as.ref == NULL) {
         return 0;
     }
-    if (!pico8_ob_table_get_index(ic.as.ref, layer, &bucket) || bucket.kind != PICO8_VALUE_REF) {
-        return 0;
-    }
-    return listed(bucket.as.ref, e);
+    return listed(&((const pico8_ui_ic_t *)ic.as.ref)->layers[layer], e);
 }
 
 /* A started game, then `fq()`: `ok`'s hover loop makes it `o_` (hd=1 is

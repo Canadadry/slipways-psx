@@ -333,10 +333,9 @@ static uint32_t fold_button(uint32_t h, const void *b) {
         h = lookup(b, copied[i], &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
     }
     if (lookup(b, "_cr_t", &v)) {
-        pico8_value_t nk;
-        assert(v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-        assert(pico8_ob_table_get_name(v.as.ref, "nk", &nk));
-        h = fold_value(fnv(h, 1u), nk);
+        const pico8_nb_entry_t *t = v.as.ref;
+        assert(v.kind == PICO8_VALUE_REF && t == pico8_nb_lookup(t->px));
+        h = fold_value(fnv(h, 1u), pico8_value_fixed(pico8_fixed_from_int(t->nk)));
     } else {
         h = fnv(h, 0u);
     }
@@ -1183,10 +1182,10 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
             h = fnv(h, 0xB2u);
         } else if (is_of_class(v.as.ref, pico8_hp_struct_class())) {
             h = fnv(h, 0xB3u);
-        } else if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            pico8_value_t nk;
-            assert(pico8_ob_table_get_name(v.as.ref, "nk", &nk));
-            h = fold_value(fnv(h, 0xB4u), nk);
+        } else if (strcmp(name, "_cr_t") == 0) {
+            const pico8_nb_entry_t *t = v.as.ref;
+            assert(t == pico8_nb_lookup(t->px));
+            h = fold_value(fnv(h, 0xB4u), pico8_value_fixed(pico8_fixed_from_int(t->nk)));
         } else {
             h = fnv(fnv(h, 0xB5u), (uint32_t)pico8_type_tag_of(v.as.ref));
         }
@@ -1491,12 +1490,11 @@ static uint32_t members_research(void) {
             assert_absent(b, "_cr_t");
             dear++;
         } else {
-            const void *t = read_ref(b, "_cr_t");
-            int j;
+            const pico8_nb_entry_t *t = read_ref(b, "_cr_t");
+            const pico8_lq_t *lq = read_ref(b, "lq");
             assert(my.kind == PICO8_VALUE_FUNCTION);
-            for (j = 0; j < nb->count && nb->entries[j].value.as.ref != t; j++) {
-            }
-            assert(j < nb->count);
+            assert(lq->items.count >= 2 && lq->items.items[1].kind == PICO8_VALUE_STRING);
+            assert(t != NULL && t == pico8_nb_lookup(lq->items.items[1].as.string));
             affordable++;
         }
         assert(is_lq(read_ref(b, "h_")));
@@ -1716,7 +1714,7 @@ static void test_js_writer_stops_off_row(void) {
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),
                                      pico8_value_bool(1), zero_union(PICO8_VALUE_BOOL), pico8_value_string("x"),
-                                     zero_union(PICO8_VALUE_STRING), zero_union(PICO8_VALUE_FUNCTION), list, vec,
+                                     zero_union(PICO8_VALUE_STRING), zero_union(PICO8_VALUE_FUNCTION), list, table,
                                      js};
         stops_on(build_off_row, NULL, "_cr_t", off, sizeof off / sizeof off[0]);
     }

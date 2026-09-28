@@ -12,9 +12,25 @@
  * an absent or wrong-kind field of another entity, reads as absent rather
  * than crashing. */
 
-/* `nu` points at `pico8_jc_nu_tags`, `k_` at `pico8_jc_k__seq`; `ts` and
- * `hg` are this slipway's own, made by `pico8_jc_pq`. Nothing frees the
- * struct: TROU-7. */
+enum { PICO8_JC_HG_CAP = 90 };
+
+/* The `id` of each planet a slipway serves, each once; the strings are
+ * borrowed from the planets. */
+typedef struct {
+    int count;
+    const char *ids[PICO8_JC_HG_CAP];
+} pico8_jc_hg_t;
+
+/* `hg[id]=true`: `id` must be a string, and at most PICO8_JC_HG_CAP are
+ * ever added (asserted). */
+void pico8_jc_hg_add(pico8_jc_hg_t *hg, pico8_value_t id);
+
+/* `hg[id]`: 1 for a string `id` already added, 0 otherwise. */
+int pico8_jc_hg_has(const pico8_jc_hg_t *hg, pico8_value_t id);
+
+/* `nu` points at `pico8_jc_nu_tags`, `k_` at `pico8_jc_k__seq`; `ts` is this
+ * slipway's own, made by `pico8_jc_pq`, which also empties `hg_own` and
+ * points `hg` at it (NULL before). Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
@@ -26,7 +42,8 @@ typedef struct {
     pico8_fixed_t nh;
     pico8_struct_header_t *qu; /* borrowed, never freed */
     pico8_list_t *ts;
-    pico8_ob_table_t *hg;
+    pico8_jc_hg_t *hg;
+    pico8_jc_hg_t hg_own;
     pico8_struct_header_t *re; /* borrowed, never freed */
     pico8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */

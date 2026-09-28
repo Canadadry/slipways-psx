@@ -182,6 +182,7 @@ static const pico8_struct_class_t g_ui_struct_class = {
 
 static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     pico8_ui_t *self;
+    int i;
 
     assert(g_ui_spec != NULL && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
@@ -192,6 +193,10 @@ static void *pico8_ui_struct_new(const pico8_ob_table_t *overrides) {
     self->hw = g_ui_hw;
     self->qa = NULL;
     self->ic = NULL;
+    self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
+    for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
+        pico8_list_init(&self->ic_own.layers[i]);
+    }
     self->o_ = NULL;
     self->gj = NULL;
     self->lheld = NULL;
@@ -385,7 +390,6 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
  * field is absent, with no observable effect, so the write is simply
  * skipped here rather than allocating a table nothing reads. */
 void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
-    pico8_ob_table_t *ic;
     pico8_value_t qa_val;
     pico8_value_t je_ra_val;
     const pico8_list_t *hd_bucket;
@@ -396,9 +400,11 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
         return;
     }
 
-    /* TROU-7 */
-    ic = pico8_ob_table_new();
-    self->ic = ic;
+    for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
+        pico8_list_free(&self->ic_own.layers[i]);
+        pico8_list_init(&self->ic_own.layers[i]);
+    }
+    self->ic = &self->ic_own;
     self->o_ = NULL;
 
     qa_val = pico8_value_ref(self->qa);
@@ -414,7 +420,11 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
             if (pico8_mv(e, "hd", 2, qa_val, je_ra_val, &hit_out) && pico8_ui_truthy(hit_out)) {
                 pico8_value_t fa_val;
                 if (pico8_entity_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
-                    pico8_ft_index(ic, pico8_ui_to_int(fa_val.as.fixed), pico8_value_ref(e));
+                    int fa = pico8_ui_to_int(fa_val.as.fixed);
+
+                    assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
+                           "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
+                    pico8_list_add(&self->ic->layers[fa], pico8_value_ref(e));
                 }
                 self->o_ = e;
             }
@@ -532,7 +542,6 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
                 pico8_struct_header_t **out_kv, pico8_value_t *out_kn) {
     int mf;
-    const pico8_ob_table_t *ic;
 
     if (self == NULL) {
         return 0;
@@ -541,18 +550,10 @@ int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, 
     if (self->ic == NULL) {
         return 0;
     }
-    ic = self->ic;
 
-    for (mf = 15; mf >= 0; mf--) {
-        pico8_value_t bucket_val;
-        const pico8_list_t *bucket;
+    for (mf = PICO8_UI_IC_LAYERS - 1; mf >= 0; mf--) {
+        const pico8_list_t *bucket = &self->ic->layers[mf];
         int i;
-
-        if (!pico8_ob_table_get_index(ic, mf, &bucket_val) || bucket_val.kind != PICO8_VALUE_REF ||
-            bucket_val.as.ref == NULL) {
-            continue;
-        }
-        bucket = PICO8_REF_AS_LIST_CONST(bucket_val.as.ref);
 
         for (i = 0; i < bucket->count; i++) {
             pico8_struct_header_t *h = bucket->items[i].as.ref;

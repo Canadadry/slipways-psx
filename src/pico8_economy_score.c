@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
@@ -35,10 +36,10 @@ static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
     return economy_truthy(v);
 }
 
-static const pico8_ob_table_t *field_ref_table(const pico8_struct_header_t *inst, const char *name) {
+static const pico8_qe_map_t *field_qe_map(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_ob_table_t *)v.as.ref;
+        return (const pico8_qe_map_t *)v.as.ref;
     }
     return NULL;
 }
@@ -49,18 +50,6 @@ static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const c
         return PICO8_REF_AS_LIST_CONST(v.as.ref);
     }
     return NULL;
-}
-
-static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_value_t *out) {
-    if (table == NULL) {
-        return 0;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
-    } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        return pico8_ob_table_get_name(table, key.as.string, out);
-    }
-    return 0;
 }
 
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
@@ -242,7 +231,7 @@ pico8_ob_table_t *pico8_ky(void) {
     pico8_fixed_t happiness = field_fixed(pico8_fm(), "happiness");
     const pico8_list_t *invented = field_list(pico8_fm(), "invented");
     int invented_count = (invented != NULL) ? invented->count : 0;
-    const pico8_ob_table_t *fm_po = field_ref_table(pico8_fm(), "po");
+    const pico8_qe_map_t *fm_po = field_qe_map(pico8_fm(), "po");
     char *happiness_str;
     pico8_ob_table_t *result;
 
@@ -253,10 +242,9 @@ pico8_ob_table_t *pico8_ky(void) {
 
     if (fm_po != NULL) {
         int p;
-        pico8_value_t gl_val;
-        if (pico8_r_lookup("p", &p) && get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(p)), &gl_val) &&
-            gl_val.kind == PICO8_VALUE_FIXED) {
-            gl = pico8_fixed_mul(gl_val.as.fixed, pico8_fixed_from_int(40));
+        pico8_fixed_t gl_val;
+        if (pico8_r_lookup("p", &p) && pico8_qe_map_get(fm_po, pico8_fixed_from_int(p), &gl_val)) {
+            gl = pico8_fixed_mul(gl_val, pico8_fixed_from_int(40));
         }
     }
 
@@ -284,7 +272,7 @@ pico8_ob_table_t *pico8_ky(void) {
 }
 
 pico8_fixed_t pico8_bf(void) {
-    const pico8_ob_table_t *fm_po = field_ref_table(pico8_fm(), "po");
+    const pico8_qe_map_t *fm_po = field_qe_map(pico8_fm(), "po");
     pico8_fixed_t r_h = pico8_fixed_from_int(0);
     pico8_fixed_t r_w = pico8_fixed_from_int(0);
     pico8_fixed_t h_val;
@@ -293,15 +281,11 @@ pico8_fixed_t pico8_bf(void) {
     if (fm_po != NULL) {
         int h_key;
         int w_key;
-        pico8_value_t hv;
-        pico8_value_t wv;
-        if (pico8_r_lookup("h", &h_key) && get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(h_key)), &hv) &&
-            hv.kind == PICO8_VALUE_FIXED) {
-            r_h = hv.as.fixed;
+        if (pico8_r_lookup("h", &h_key)) {
+            pico8_qe_map_get(fm_po, pico8_fixed_from_int(h_key), &r_h);
         }
-        if (pico8_r_lookup("w", &w_key) && get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(w_key)), &wv) &&
-            wv.kind == PICO8_VALUE_FIXED) {
-            r_w = wv.as.fixed;
+        if (pico8_r_lookup("w", &w_key)) {
+            pico8_qe_map_get(fm_po, pico8_fixed_from_int(w_key), &r_w);
         }
     }
     h_val =

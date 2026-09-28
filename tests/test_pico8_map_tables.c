@@ -8,6 +8,7 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_collect.h"
 #include "../src/pico8_data_init.h"
+#include "../src/pico8_economy_formulas.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
@@ -929,6 +930,32 @@ static void test_row_view_writes_fixed_items_then_c_then_fn(void) {
     pico8_ob_table_free(view);
 }
 
+static void test_nb_lookup_finds_each_px(void) {
+    int i;
+
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        assert(pico8_nb_lookup(pico8_nb_table[i].px) == &pico8_nb_table[i]);
+    }
+    assert(pico8_nb_lookup("zz") == NULL && pico8_nb_lookup(NULL) == NULL);
+}
+
+/* Keys floored as Lua indexes a table, one entry per key, insertion order. */
+static void test_qe_map_keeps_one_entry_per_key_in_order(void) {
+    pico8_qe_map_t map = {0, {{0, 0}}};
+    pico8_fixed_t v = 0x1234;
+
+    assert(!pico8_qe_map_get(&map, pico8_fixed_from_int(21), &v) && v == 0x1234);
+    pico8_qe_map_set(&map, pico8_fixed_from_int(21), pico8_fixed_from_int(3));
+    pico8_qe_map_set(&map, pico8_fixed_from_int(12), pico8_fixed_from_int(5));
+    pico8_qe_map_set(&map, pico8_fixed_from_int(21), pico8_fixed_from_int(7));
+    assert(map.count == 2 && map.entries[0].qe == 21 && map.entries[1].qe == 12);
+    assert(pico8_qe_map_get(&map, pico8_fixed_from_int(21), &v) && v == pico8_fixed_from_int(7));
+    assert(pico8_qe_map_get(&map, pico8_fixed_from_int(12) + 0x8000, &v) && v == pico8_fixed_from_int(5));
+    assert(!pico8_qe_map_get(&map, pico8_fixed_from_int(13), &v) && v == pico8_fixed_from_int(5));
+    pico8_qe_map_set(&map, pico8_fixed_from_int(99) + 0x4000, pico8_fixed_from_int(1));
+    assert(map.count == 3 && map.entries[2].qe == 99);
+}
+
 static void test_int_seq_has_fixed_keeps_gu_on_integers(void) {
     static const pico8_int_seq_t empty = {0, NULL};
     const pico8_int_seq_t *seq = &pico8_jo_cq_seq;
@@ -964,6 +991,8 @@ int main(void) {
     test_other_classes_data_matches_the_parsed_literals();
     test_rows_match_the_parsed_literals();
     test_row_view_writes_fixed_items_then_c_then_fn();
+    test_nb_lookup_finds_each_px();
+    test_qe_map_keeps_one_entry_per_key_in_order();
 
     pico8_data_init(&mem);
     test_dr_view_matches_the_decoded_table(&mem);

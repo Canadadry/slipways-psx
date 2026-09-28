@@ -200,7 +200,7 @@ static int pico8_js_field(const void *self, const char *name, pico8_value_t *out
         return js_fixed_field(js->en, js->has_en, out_value);
     }
     if (strcmp(name, "_cr_t") == 0) {
-        return js_ref_field(js->_cr_t, out_value);
+        return js_ref_field((void *)js->_cr_t, out_value);
     }
     if (strcmp(name, "_jo_fe_pt") == 0) {
         return js_ref_field(js->_jo_fe_pt, out_value);
@@ -295,14 +295,15 @@ static void button_take_string(pico8_value_t value, const char **out) {
     *out = value.as.string;
 }
 
-static void button_take_table(pico8_value_t value, pico8_ob_table_t **out) {
+static void button_take_nb(pico8_value_t value, const pico8_nb_entry_t **out) {
     *out = NULL;
     if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
         return;
     }
     assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_OB_TABLE &&
-           "js._cr_t: a key neither nil nor a table does not fit the member's type -- stop, do not widen the member");
+           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
+           "js._cr_t: a key neither nil nor an nb entry does not fit the member's type "
+           "-- stop, do not widen the member");
     *out = value.as.ref;
 }
 
@@ -435,7 +436,7 @@ static void *pico8_js_struct_new(const pico8_ob_table_t *overrides) {
         } else if (strcmp(name, "en") == 0) {
             button_take_fixed(value, &self->en, &self->has_en);
         } else if (strcmp(name, "_cr_t") == 0) {
-            button_take_table(value, &self->_cr_t);
+            button_take_nb(value, &self->_cr_t);
         } else if (strcmp(name, "_jo_fe_pt") == 0) {
             button_take_jo(value, &self->_jo_fe_pt);
         } else if (strcmp(name, "_jo_fe_b") == 0) {

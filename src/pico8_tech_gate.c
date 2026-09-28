@@ -4,6 +4,7 @@
 
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
+#include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
 #include "pico8_ob.h"
 #include "pico8_probe.h"
@@ -61,40 +62,43 @@ pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc) {
     return lk;
 }
 
-/* `t.nk` keys fm.fu either by index or by name, decided at runtime -- the
- * same split pico8_ft_index/pico8_ft_name already carry. */
-pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
-    pico8_value_t od_val;
-    pico8_value_t nk_val;
+/* `flr(od*max(fm.fu[nk], 0.55))`, an absent `fu[nk]` reading as 0. */
+static pico8_fixed_t pico8_gi_cost(pico8_fixed_t od, int has_nk, pico8_fixed_t nk) {
     pico8_value_t fu_val;
-    pico8_fixed_t od = pico8_fixed_from_int(0);
     pico8_fixed_t fu = pico8_fixed_from_int(0);
     pico8_fixed_t threshold = PICO8_FIXED_LIT(0x00008ccc, 0.55);
     pico8_fixed_t factor;
 
-    if (t != NULL && pico8_ob_table_get_name(t, "od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
-        od = od_val.as.fixed;
-    }
-
-    if (t != NULL && pico8_ob_table_get_name(t, "nk", &nk_val) && pico8_fm() != NULL &&
-        pico8_entity_get_field(pico8_fm(), "fu", &fu_val) && fu_val.kind == PICO8_VALUE_REF &&
-        fu_val.as.ref != NULL) {
-        const pico8_ob_table_t *fu_table = fu_val.as.ref;
-        pico8_value_t v;
-        int found = 0;
-
-        if (nk_val.kind == PICO8_VALUE_FIXED) {
-            found = pico8_ob_table_get_index(fu_table, pico8_fixed_flr_int(nk_val.as.fixed), &v);
-        } else if (nk_val.kind == PICO8_VALUE_STRING && nk_val.as.string != NULL) {
-            found = pico8_ob_table_get_name(fu_table, nk_val.as.string, &v);
-        }
-        if (found && v.kind == PICO8_VALUE_FIXED) {
-            fu = v.as.fixed;
-        }
+    if (has_nk && pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "fu", &fu_val) &&
+        fu_val.kind == PICO8_VALUE_REF && fu_val.as.ref != NULL) {
+        pico8_qe_map_get((const pico8_qe_map_t *)fu_val.as.ref, nk, &fu);
     }
 
     factor = (fu > threshold) ? fu : threshold;
     return pico8_fixed_flr(pico8_fixed_mul(od, factor));
+}
+
+/* A string `t.nk` finds nothing in fm.fu, whose keys are resources. */
+pico8_fixed_t pico8_gi(const pico8_ob_table_t *t) {
+    pico8_value_t od_val;
+    pico8_value_t nk_val;
+    pico8_fixed_t od = pico8_fixed_from_int(0);
+    int has_nk = 0;
+
+    if (t != NULL && pico8_ob_table_get_name(t, "od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
+        od = od_val.as.fixed;
+    }
+    if (t != NULL && pico8_ob_table_get_name(t, "nk", &nk_val) && nk_val.kind == PICO8_VALUE_FIXED) {
+        has_nk = 1;
+    }
+    return pico8_gi_cost(od, has_nk, has_nk ? nk_val.as.fixed : 0);
+}
+
+pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
+    if (t == NULL) {
+        return pico8_gi_cost(pico8_fixed_from_int(0), 0, 0);
+    }
+    return pico8_gi_cost(pico8_fixed_from_int(t->od), 1, pico8_fixed_from_int(t->nk));
 }
 
 /* `bi`, the Lua closure's captured upvalue, threaded as an explicit ctx. */

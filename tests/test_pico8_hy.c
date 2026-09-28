@@ -32,6 +32,7 @@
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
@@ -48,12 +49,12 @@
 #define COLONY 12
 #define EXPORTER 3
 
-#define CONSTRUCTION_HASH 0x581AC8D6u
-#define NX_HASH 0x857718F9u
-#define HK_HASH 0xB592387Cu
+#define CONSTRUCTION_HASH 0x8343CAA6u
+#define NX_HASH 0xC143EEC1u
+#define HK_HASH 0x6CD37E64u
 #define LU_HASH 0xB07FE872u
-#define LJ_HASH 0x8B99BDE4u
-#define KT_HASH 0x20EA7380u
+#define LJ_HASH 0x77BE9594u
+#define KT_HASH 0x5EE5D720u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -176,10 +177,28 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     }
 }
 
+/* As fold_value folds a table of these index keys and fixed values, less
+ * its tag. */
+static uint32_t fold_qe_map(uint32_t h, const pico8_qe_map_t *map) {
+    int i;
+
+    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)map->count);
+    for (i = 0; i < map->count; i++) {
+        h = fnv(h, (uint32_t)PICO8_OB_KEY_INDEX);
+        h = fnv(h, (uint32_t)map->entries[i].qe);
+        h = fold_value(h, pico8_value_fixed(map->entries[i].v), 2);
+    }
+    return h;
+}
+
 static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     pico8_value_t v;
     if (!lookup(e, name, &v)) {
         return fnv(h, 0xFFFFFFFFu);
+    }
+    if (strcmp(name, "po") == 0 || strcmp(name, "fu") == 0) {
+        return fold_qe_map(h, v.as.ref);
     }
     return fold_value(h, v, 3);
 }
@@ -477,20 +496,56 @@ static const char *hl_string(void) {
     return v.as.string;
 }
 
-/* New `po`/`fu` each call, `ge`, `happiness`, each planet's `kr`, and `hl`:
- * false, "final score" at 3426, "bankrupt" with no income and under 3
- * credits. */
+/* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
+static pico8_jo_t *a_maker(void) {
+    const pico8_list_t *jos = pico8_cg("jo");
+    pico8_value_t jy;
+    int i;
+
+    for (i = 0; i < jos->count; i++) {
+        pico8_jo_t *p = jos->items[i].as.ref;
+        if (lookup(p, "jy", &jy) && !(jy.kind == PICO8_VALUE_BOOL && jy.as.boolean == 0) && p->kw != NULL &&
+            p->kw->has_qe) {
+            return p;
+        }
+    }
+    assert(0 && "built_world() makes a producing planet");
+    return NULL;
+}
+
+/* `po`/`fu` recomputed each call -- a planet's `qe` moved shows in `po`, a
+ * resource no planet makes any more is gone from it --, `ge`, `happiness`,
+ * each planet's `kr`, and `hl`: false, "final score" at 3426, "bankrupt"
+ * with no income and under 3 credits; then a `qh` needing a resource
+ * outside `r` gets it in `fu`, from 1, gone once the need is. */
 static void test_lj(void) {
     uint32_t h = 2166136261u;
-    void *po;
-    void *fu;
+    const pico8_qe_map_t *po;
+    const pico8_qe_map_t *fu;
+    pico8_jo_t *maker;
+    pico8_qh_t *needer;
+    pico8_list_t needs;
+    pico8_ob_table_t *need = pico8_ob_table_new();
+    pico8_fixed_t made;
+    pico8_fixed_t now;
+    pico8_fixed_t qe;
 
     built_world();
     po = get_ref(pico8_fm(), "po");
     fu = get_ref(pico8_fm(), "fu");
     assert(po != NULL && fu != NULL);
+    maker = a_maker();
+    qe = maker->kw->qe;
+    assert(pico8_qe_map_get(po, qe, &made) && maker->kw->mu > 0);
+    maker->kw->qe = pico8_fixed_from_int(99);
     pico8_hy_lj(fm_self());
-    assert(get_ref(pico8_fm(), "po") != po && get_ref(pico8_fm(), "fu") != fu);
+    assert(pico8_qe_map_get(po, pico8_fixed_from_int(99), &now) && now == maker->kw->mu);
+    assert(pico8_qe_map_get(po, qe, &now) && now == pico8_fixed_sub(made, maker->kw->mu));
+    maker->kw->qe = qe;
+    pico8_hy_lj(fm_self());
+    assert(!pico8_qe_map_get(po, pico8_fixed_from_int(99), &now));
+    assert(pico8_qe_map_get(po, qe, &now) && now == made);
+    assert(get_ref(pico8_fm(), "po") == po && get_ref(pico8_fm(), "fu") == fu);
     assert(hl_string() == NULL);
     h = fold_fm(h);
     h = fold_planets_kr(h);
@@ -520,14 +575,26 @@ static void test_lj(void) {
     pico8_hy_lj(NULL);
     h = fold_fm(h);
     check("lj", h, LJ_HASH);
+
+    fu = get_ref(pico8_fm(), "fu");
+    needer = pico8_qh_new(NULL);
+    pico8_list_init(&needs);
+    pico8_list_add(&needs, pico8_value_ref(need));
+    pico8_ob_table_set_name(need, "qe", pico8_value_fixed(pico8_fixed_from_int(99)));
+    needer->jo.jy = &needs;
+    pico8_hy_lj(fm_self());
+    assert(pico8_qe_map_get(fu, pico8_fixed_from_int(99), &now) && now == pico8_fixed_from_int(1) - 0x2666);
+    needer->jo.jy = NULL;
+    pico8_hy_lj(fm_self());
+    assert(!pico8_qe_map_get(fu, pico8_fixed_from_int(99), &now));
 }
 
-static const pico8_ob_table_t *tech(const char *px, int od) {
-    pico8_ob_table_t *t = pico8_ob_table_new();
-    if (px != NULL) {
-        pico8_ob_table_set_name(t, "px", pico8_value_string(px));
-    }
-    pico8_ob_table_set_name(t, "od", pico8_value_fixed(pico8_fixed_from_int(od)));
+/* An nb entry of cost `od` whose `nk` (0) no resource of `r` is: gi reads
+ * no `fu` for it. Never freed. */
+static const pico8_nb_entry_t *tech(const char *px, int od) {
+    pico8_nb_entry_t *t = malloc(sizeof *t);
+
+    *t = (pico8_nb_entry_t){px, 0, NULL, 0, od, NULL};
     return t;
 }
 
@@ -764,8 +831,11 @@ static void test_hy_members_by_name(void) {
     }
 
     assert(read_ref(pico8_fm(), "po") == po && read_ref(pico8_fm(), "fu") == fu);
+    ((pico8_qe_map_t *)po)->count = 0;
+    ((pico8_qe_map_t *)fu)->count = 0;
     pico8_hy_lj(fm_self());
-    assert(read_ref(pico8_fm(), "po") != po && read_ref(pico8_fm(), "fu") != fu);
+    assert(read_ref(pico8_fm(), "po") == po && ((const pico8_qe_map_t *)po)->count >= PICO8_R_COUNT);
+    assert(read_ref(pico8_fm(), "fu") == fu && ((const pico8_qe_map_t *)fu)->count >= PICO8_R_COUNT);
     invented = read_ref(pico8_fm(), "invented");
     before = invented->count;
     pico8_hy_kt(fm_self(), tech("t1", 0));

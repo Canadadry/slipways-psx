@@ -103,7 +103,8 @@ static char *cr_concat2(const char *a, const char *b) {
 }
 
 /* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
- * captured tech entry, read back here off the button `js(b)` copied it to. */
+ * captured tech, as its entry of pico8_nb_table, read back here off the
+ * button `js(b)` copied it to. */
 static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     const void *inst = self;
     pico8_value_t t_val;
@@ -114,7 +115,7 @@ static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_
         return pico8_value_ref(NULL);
     }
     if (pico8_entity_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
-        pico8_hy_kt(pico8_fm_hy(), (const pico8_ob_table_t *)t_val.as.ref);
+        pico8_hy_kt(pico8_fm_hy(), (const pico8_nb_entry_t *)t_val.as.ref);
     }
     return pico8_value_ref(NULL);
 }
@@ -169,7 +170,10 @@ static int pico8_cr_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
     }
 
     if (pico8_ob_table_get_name(t, "e_", &e_val) && cr_truthy(e_val)) {
-        pico8_ob_table_set_name(row, "_cr_t", pico8_value_ref(t));
+        const pico8_nb_entry_t *entry = px_val.kind == PICO8_VALUE_STRING ? pico8_nb_lookup(px_val.as.string) : NULL;
+
+        assert(entry != NULL && "cb() yields records of the nb view, each an entry of pico8_nb_table by its px");
+        pico8_ob_table_set_name(row, "_cr_t", pico8_value_ref((void *)entry));
         pico8_ob_table_set_name(row, "my", pico8_value_function(pico8_cr_row_my_dispatch));
     } else {
         pico8_ob_table_set_name(row, "my", pico8_value_bool(0));

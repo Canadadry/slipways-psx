@@ -8,6 +8,7 @@
 #include "pico8_collect.h"
 #include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
+#include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_hud.h"
@@ -65,24 +66,12 @@ static pico8_value_t fm_field_value(const pico8_struct_header_t *fm, const char 
     return pico8_value_ref(NULL);
 }
 
-static const pico8_ob_table_t *fm_field_ref_table(const pico8_struct_header_t *fm, const char *name) {
+static const pico8_qe_map_t *fm_field_qe_map(const pico8_struct_header_t *fm, const char *name) {
     pico8_value_t v;
     if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_ob_table_t *)v.as.ref;
+        return (const pico8_qe_map_t *)v.as.ref;
     }
     return NULL;
-}
-
-static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_value_t *out) {
-    if (table == NULL) {
-        return 0;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
-    } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        return pico8_ob_table_get_name(table, key.as.string, out);
-    }
-    return 0;
 }
 
 /* Returns a newly allocated string the caller owns and must free(). */
@@ -254,7 +243,7 @@ void pico8_pj_hb(void) {
     pico8_fixed_t fm_happiness = fm_field_fixed(fm, "happiness");
     pico8_fixed_t fm_lo = fm_field_fixed(fm, "lo");
     pico8_value_t fm_yr = fm_field_value(fm, "yr");
-    const pico8_ob_table_t *fm_po = fm_field_ref_table(fm, "po");
+    const pico8_qe_map_t *fm_po = fm_field_qe_map(fm, "po");
     pico8_ob_table_t *ou_table;
     pico8_value_t ou[7];
     char *cf;
@@ -276,17 +265,13 @@ void pico8_pj_hb(void) {
 
     {
         int k_key;
-        pico8_value_t po_val = pico8_value_fixed(pico8_fixed_from_int(0));
+        pico8_fixed_t po_val = pico8_fixed_from_int(0);
         if (pico8_r_lookup("k", &k_key)) {
-            pico8_value_t looked;
-            if (get_by_value(fm_po, pico8_value_fixed(pico8_fixed_from_int(k_key)), &looked) &&
-                looked.kind == PICO8_VALUE_FIXED) {
-                po_val = looked;
-            }
+            pico8_qe_map_get(fm_po, pico8_fixed_from_int(k_key), &po_val);
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
-            pico8_value_tostr(pico8_value_fixed(pico8_fixed_add(po_val.as.fixed, pico8_fixed_from_int(1))));
+            pico8_value_tostr(pico8_value_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1))));
         ou[3] = pico8_value_string(pj_concat2("+", plus_num));
         free(plus_num);
     }

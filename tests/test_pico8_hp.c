@@ -446,9 +446,12 @@ static uint32_t fold_functions(uint32_t h) {
     return h;
 }
 
+/* `px` invented at no cost: an nb entry whose `nk` (0) no resource of `r`
+ * is. Never freed. */
 static void invent(const char *px) {
-    pico8_ob_table_t *t = pico8_ob_table_new();
-    pico8_ob_table_set_name(t, "px", pico8_value_string(px));
+    pico8_nb_entry_t *t = malloc(sizeof *t);
+
+    *t = (pico8_nb_entry_t){px, 0, NULL, 0, 0, NULL};
     pico8_hy_kt(pico8_fm_hy(), t);
     assert(pico8_oj(pico8_value_string(px)));
 }

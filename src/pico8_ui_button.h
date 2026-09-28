@@ -5,6 +5,7 @@
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
+#include "pico8_map_tables.h"
 #include "pico8_mem.h"
 #include "pico8_ob.h"
 #include "pico8_planet.h"
@@ -42,7 +43,7 @@ typedef struct {
     int has_trade; /* 0: `trade` is nil, and is then never read */
     pico8_fixed_t en;
     int has_en; /* 0: `en` is nil, and is then never read */
-    pico8_ob_table_t *_cr_t;
+    const pico8_nb_entry_t *_cr_t; /* an entry of pico8_nb_table */
     pico8_jo_t *_jo_fe_pt;
     pico8_hp_t *_jo_fe_b;
     pico8_fixed_t _jo_fe_od;

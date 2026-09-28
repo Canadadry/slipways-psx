@@ -185,9 +185,33 @@ static void jc_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
     *has = 1;
 }
 
+void pico8_jc_hg_add(pico8_jc_hg_t *hg, pico8_value_t id) {
+    assert(id.kind == PICO8_VALUE_STRING && id.as.string != NULL &&
+           "jc.hg: an id that is not a string does not fit the member's type -- stop, do not widen the member");
+    if (pico8_jc_hg_has(hg, id)) {
+        return;
+    }
+    assert(hg->count < PICO8_JC_HG_CAP && "jc.hg: more planets than bw(90) makes -- stop, do not widen the member");
+    hg->ids[hg->count] = id.as.string;
+    hg->count++;
+}
+
+int pico8_jc_hg_has(const pico8_jc_hg_t *hg, pico8_value_t id) {
+    int i;
+
+    if (hg == NULL || id.kind != PICO8_VALUE_STRING || id.as.string == NULL) {
+        return 0;
+    }
+    for (i = 0; i < hg->count; i++) {
+        if (strcmp(hg->ids[i], id.as.string) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void pico8_jc_pq(pico8_jc_t *self) {
     pico8_list_t *ts;
-    pico8_ob_table_t *hg;
 
     if (self == NULL) {
         return;
@@ -199,8 +223,8 @@ void pico8_jc_pq(pico8_jc_t *self) {
     pico8_list_init(ts);
     self->ts = ts;
 
-    hg = pico8_ob_table_new();
-    self->hg = hg;
+    self->hg_own.count = 0;
+    self->hg = &self->hg_own;
 }
 
 void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {

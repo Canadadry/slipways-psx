@@ -190,22 +190,13 @@ static uint32_t fold_fixed_field(uint32_t h, const void *e, const char *name) {
 }
 
 static int layer_count(const void *ok, int mf) {
-    const pico8_ob_table_t *ic = get_ref(ok, "ic");
-    pico8_value_t bucket;
-    if (ic == NULL || !pico8_ob_table_get_index(ic, mf, &bucket) || bucket.kind != PICO8_VALUE_REF ||
-        bucket.as.ref == NULL) {
-        return 0;
-    }
-    return ((const pico8_list_t *)bucket.as.ref)->count;
+    const pico8_ui_ic_t *ic = get_ref(ok, "ic");
+    return ic == NULL ? 0 : ic->layers[mf].count;
 }
 
 static int in_layer(const void *ok, int mf, const void *e) {
-    const pico8_ob_table_t *ic = get_ref(ok, "ic");
-    pico8_value_t bucket;
-    if (ic == NULL || !pico8_ob_table_get_index(ic, mf, &bucket) || bucket.kind != PICO8_VALUE_REF) {
-        return 0;
-    }
-    return listed(bucket.as.ref, e);
+    const pico8_ui_ic_t *ic = get_ref(ok, "ic");
+    return ic != NULL && listed(&ic->layers[mf], e);
 }
 
 static uint32_t fold_layers(uint32_t h, const void *ok) {
@@ -935,13 +926,15 @@ static void test_ui_members_by_name(void) {
     qa = ui_ref(ok, "qa");
     ic = ui_ref(ok, "ic");
     assert(qa != NULL && ((pico8_vec_t *)qa)->x == want.x && ((pico8_vec_t *)qa)->y == want.y);
-    assert(ic != NULL && pico8_type_tag_of(ic) == PICO8_TYPE_TAG_OB_TABLE);
+    assert(ic == &ok->ic_own && ok->ic_own.layer_count == PICO8_UI_IC_LAYERS);
     assert(ui_ref(ok, "o_") == the_bg() && ui_ref(ok, "gj") == ui_ref(ok, "o_"));
     assert(ui_ref(ok, "le") == class_ref("le") && ui_ref(ok, "lheld") == NULL && ui_ref(ok, "rheld") == NULL);
     h = fold_vec(h, *(pico8_vec_t *)qa);
     h = fold_layers(h, ok);
+    pico8_list_add(&ok->ic_own.layers[7], pico8_value_ref(the_bg()));
     pico8_ui_lj(&mem, ok);
-    assert(ui_ref(ok, "qa") != qa && ui_ref(ok, "ic") != ic && ui_ref(ok, "gj") == the_bg());
+    assert(ui_ref(ok, "qa") != qa && ui_ref(ok, "ic") == ic && ui_ref(ok, "gj") == the_bg());
+    assert(!in_layer(ok, 7, the_bg()) && in_layer(ok, 1, the_bg()));
 
     press(ok, 1);
     assert(is_of(ui_ref(ok, "lheld"), pico8_g__struct_class()));

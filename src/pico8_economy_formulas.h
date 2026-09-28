@@ -4,6 +4,7 @@
 #include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_list.h"
+#include "pico8_map_tables.h"
 #include "pico8_ob.h"
 #include "pico8_value.h"
 
@@ -11,18 +12,30 @@
  * zero/false default rather than crashing, and a NULL instance is a safe
  * no-op. */
 
-/* Returns a fresh table the caller owns and must release with
- * pico8_ob_table_free(). Its keys are `r`'s VALUES, not `r`'s keys; a
- * value may be FIXED or STRING, and both are usable as a key. */
-pico8_ob_table_t *pico8_cm(pico8_fixed_t jm);
+/* `r`'s 13 resources and at most 3 more. */
+enum { PICO8_QE_MAP_CAP = PICO8_R_COUNT + 3 };
 
-/* Returns a fresh table the caller owns; `hy:lj()` stores it in `fm.po`
- * and frees it on the next recompute. */
-pico8_ob_table_t *pico8_bx(void);
+/* A table keyed by resource (`qe`, floored to an integer as Lua indexes
+ * it), entries in insertion order. */
+typedef struct {
+    int count;
+    struct {
+        int qe;
+        pico8_fixed_t v;
+    } entries[PICO8_QE_MAP_CAP];
+} pico8_qe_map_t;
 
-/* Returns a fresh table the caller owns; `hy:lj()` stores it in `fm.fu`
- * and frees it on the next recompute. */
-pico8_ob_table_t *pico8_ck(void);
+/* Returns 1 and writes *out when `qe` is a key, 0 and leaves *out untouched
+ * otherwise. */
+int pico8_qe_map_get(const pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t *out);
+void pico8_qe_map_set(pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t v);
+
+/* Each empties `out` first. `cm`: every `qe` VALUE of `r` (not `r`'s keys)
+ * mapped to `jm`; `bx`: `cm(0)` plus each producing planet's `kw.mu`;
+ * `ck`: `cm(1)` less 0.15 per `qh` for the resource of its last `jy`. */
+void pico8_cm(pico8_qe_map_t *out, pico8_fixed_t jm);
+void pico8_bx(pico8_qe_map_t *out);
+void pico8_ck(pico8_qe_map_t *out);
 
 /* `#(to.p-pb.p)` is the SQUARED distance, not the Euclidean one. */
 pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to);

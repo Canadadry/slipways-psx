@@ -6,6 +6,7 @@
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_research.h"
+#include "pico8_slipway.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 
@@ -46,17 +47,6 @@ static pico8_struct_header_t *field_ref_instance(const pico8_struct_header_t *in
         return (pico8_struct_header_t *)v.as.ref;
     }
     return NULL;
-}
-
-static void set_by_value(pico8_ob_table_t *table, pico8_value_t key, pico8_value_t value) {
-    if (table == NULL) {
-        return;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        pico8_ob_table_set_index(table, pico8_fixed_flr_int(key.as.fixed), value);
-    } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        pico8_ob_table_set_name(table, key.as.string, value);
-    }
 }
 
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
@@ -156,7 +146,7 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
                     hg_val.as.ref == NULL) {
                     continue;
                 }
-                set_by_value((pico8_ob_table_t *)hg_val.as.ref, id_val, pico8_value_bool(1));
+                pico8_jc_hg_add((pico8_jc_hg_t *)hg_val.as.ref, id_val);
             }
         }
 

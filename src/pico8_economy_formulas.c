@@ -1,5 +1,7 @@
 #include "pico8_economy_formulas.h"
 
+#include <assert.h>
+
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
@@ -46,27 +48,34 @@ static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const c
     return NULL;
 }
 
-static void set_by_value(pico8_ob_table_t *table, pico8_value_t key, pico8_value_t value) {
-    if (table == NULL) {
-        return;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        pico8_ob_table_set_index(table, pico8_fixed_flr_int(key.as.fixed), value);
-    } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        pico8_ob_table_set_name(table, key.as.string, value);
-    }
-}
+int pico8_qe_map_get(const pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t *out) {
+    int key = pico8_fixed_flr_int(qe);
+    int i;
 
-static int get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_value_t *out) {
-    if (table == NULL) {
-        return 0;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
-    } else if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        return pico8_ob_table_get_name(table, key.as.string, out);
+    for (i = 0; map != NULL && i < map->count; i++) {
+        if (map->entries[i].qe == key) {
+            *out = map->entries[i].v;
+            return 1;
+        }
     }
     return 0;
+}
+
+void pico8_qe_map_set(pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t v) {
+    int key = pico8_fixed_flr_int(qe);
+    int i;
+
+    for (i = 0; i < map->count; i++) {
+        if (map->entries[i].qe == key) {
+            map->entries[i].v = v;
+            return;
+        }
+    }
+    assert(map->count < PICO8_QE_MAP_CAP &&
+           "a resource key outside r's 13 and the 3 spares -- stop, do not widen");
+    map->entries[map->count].qe = key;
+    map->entries[map->count].v = v;
+    map->count++;
 }
 
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
@@ -86,21 +95,19 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
     }
 }
 
-pico8_ob_table_t *pico8_cm(pico8_fixed_t jm) {
-    pico8_ob_table_t *p = pico8_ob_table_new();
+void pico8_cm(pico8_qe_map_t *out, pico8_fixed_t jm) {
     int i;
+
+    out->count = 0;
     for (i = 0; i < PICO8_R_COUNT; i++) {
-        set_by_value(p, pico8_value_fixed(pico8_fixed_from_int(pico8_r_table[i].qe)), pico8_value_fixed(jm));
+        pico8_qe_map_set(out, pico8_fixed_from_int(pico8_r_table[i].qe), jm);
     }
-    return p;
 }
 
 static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
-    pico8_ob_table_t *p = (pico8_ob_table_t *)ctx;
+    pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
     const pico8_kw_t *kw;
-    pico8_value_t qe_val;
-    pico8_value_t current;
-    pico8_fixed_t mu;
+    pico8_fixed_t current;
 
     if (!field_truthy(pt, "jy")) {
         return;
@@ -109,27 +116,24 @@ static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
     if (kw == NULL || !kw->has_qe) {
         return;
     }
-    qe_val = pico8_value_fixed(kw->qe);
-    mu = kw->mu;
-    if (!get_by_value(p, qe_val, &current) || current.kind != PICO8_VALUE_FIXED) {
-        current = pico8_value_fixed(pico8_fixed_from_int(0));
+    if (!pico8_qe_map_get(p, kw->qe, &current)) {
+        current = pico8_fixed_from_int(0);
     }
-    set_by_value(p, qe_val, pico8_value_fixed(pico8_fixed_add(current.as.fixed, mu)));
+    pico8_qe_map_set(p, kw->qe, pico8_fixed_add(current, kw->mu));
 }
 
-pico8_ob_table_t *pico8_bx(void) {
-    pico8_ob_table_t *p = pico8_cm(pico8_fixed_from_int(0));
-    for_each_cg("jo", bx_visit, p);
-    return p;
+void pico8_bx(pico8_qe_map_t *out) {
+    pico8_cm(out, pico8_fixed_from_int(0));
+    for_each_cg("jo", bx_visit, out);
 }
 
 static void ck_visit(pico8_struct_header_t *l, void *ctx) {
-    pico8_ob_table_t *d = (pico8_ob_table_t *)ctx;
+    pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
     const pico8_list_t *jy = field_list(l, "jy");
     const pico8_ob_table_t *last;
     pico8_value_t last_val;
     pico8_value_t qe_val;
-    pico8_value_t current;
+    pico8_fixed_t current;
 
     if (jy == NULL || jy->count == 0) {
         return;
@@ -139,21 +143,20 @@ static void ck_visit(pico8_struct_header_t *l, void *ctx) {
         return;
     }
     last = (const pico8_ob_table_t *)last_val.as.ref;
-    if (!pico8_ob_table_get_name(last, "qe", &qe_val)) {
+    if (!pico8_ob_table_get_name(last, "qe", &qe_val) || qe_val.kind != PICO8_VALUE_FIXED) {
         return;
     }
     /* Fallback 1, not 0: `cm(1)` seeded every key of `r`, so an absent one
      * is a resource `r` never listed, treated as that same seed. */
-    if (!get_by_value(d, qe_val, &current) || current.kind != PICO8_VALUE_FIXED) {
-        current = pico8_value_fixed(pico8_fixed_from_int(1));
+    if (!pico8_qe_map_get(d, qe_val.as.fixed, &current)) {
+        current = pico8_fixed_from_int(1);
     }
-    set_by_value(d, qe_val, pico8_value_fixed(pico8_fixed_sub(current.as.fixed, PICO8_FIXED_LIT(0x00002666, 0.15))));
+    pico8_qe_map_set(d, qe_val.as.fixed, pico8_fixed_sub(current, PICO8_FIXED_LIT(0x00002666, 0.15)));
 }
 
-pico8_ob_table_t *pico8_ck(void) {
-    pico8_ob_table_t *d = pico8_cm(pico8_fixed_from_int(1));
-    for_each_cg("qh", ck_visit, d);
-    return d;
+void pico8_ck(pico8_qe_map_t *out) {
+    pico8_cm(out, pico8_fixed_from_int(1));
+    for_each_cg("qh", ck_visit, out);
 }
 
 pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to) {

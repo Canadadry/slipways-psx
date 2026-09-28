@@ -10,17 +10,6 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
-/* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
-static int pico8_jc_display_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 /* Readers: an absent field of another entity, of either form, a wrong
  * kind, or a NULL entity or table all read as the zero/false/NULL
  * default. */
@@ -59,19 +48,6 @@ static pico8_fixed_t pico8_jc_display_table_field_fixed(const pico8_ob_table_t *
     return pico8_fixed_from_int(0);
 }
 
-static int pico8_jc_display_get_by_value(const pico8_ob_table_t *table, pico8_value_t key, pico8_value_t *out) {
-    if (table == NULL) {
-        return 0;
-    }
-    if (key.kind == PICO8_VALUE_FIXED) {
-        return pico8_ob_table_get_index(table, pico8_fixed_flr_int(key.as.fixed), out);
-    }
-    if (key.kind == PICO8_VALUE_STRING && key.as.string != NULL) {
-        return pico8_ob_table_get_name(table, key.as.string, out);
-    }
-    return 0;
-}
-
 static int pico8_jc_display_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -88,8 +64,7 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
 
     if (self->hg != NULL) {
         pico8_value_t t_id = pico8_jc_display_entity_value(t, "id");
-        pico8_value_t hg_entry;
-        if (pico8_jc_display_get_by_value(self->hg, t_id, &hg_entry) && pico8_jc_display_truthy(hg_entry)) {
+        if (pico8_jc_hg_has(self->hg, t_id)) {
             if (self->ts != NULL) {
                 pico8_vec_t f_ra = pico8_jc_display_entity_vec(f, "ra");
                 pico8_vec_t t_ra = pico8_jc_display_entity_vec(t, "ra");

@@ -14,9 +14,20 @@
  * no-op, and an absent or wrong-kind field of another entity (`je`, `mo`,
  * `o_`) reads as absent rather than crashing. */
 
+enum { PICO8_UI_IC_LAYERS = 16 };
+
+/* `ic`: `layers[fa]` lists the hovered entities of layer `fa` in the order
+ * they were found; `layer_count` is always PICO8_UI_IC_LAYERS. */
+typedef struct {
+    int layer_count;
+    pico8_list_t layers[PICO8_UI_IC_LAYERS];
+} pico8_ui_ic_t;
+
 /* TROU-7 */
 /* `le` of a new `ui` is the class's own empty list, shared until `cj` or
- * `pz` replaces it; `hw` is the class's box, borrowed. */
+ * `pz` replaces it; `hw` is the class's box, borrowed. `ic` is NULL until
+ * the first `gw`, then points at `ic_own`, which every `gw` empties and
+ * refills. */
 typedef struct {
     pico8_ke_t ke;
     pico8_fixed_t ql;
@@ -24,7 +35,8 @@ typedef struct {
     pico8_list_t *le;
     pico8_qz_box_t *hw;
     pico8_vec_t *qa;
-    pico8_ob_table_t *ic;
+    pico8_ui_ic_t *ic;
+    pico8_ui_ic_t ic_own;
     pico8_struct_header_t *o_; /* borrowed, never freed */
     pico8_struct_header_t *gj; /* borrowed, never freed */
     pico8_struct_header_t *lheld; /* borrowed, never freed */

@@ -104,6 +104,8 @@ static void *pico8_hy_struct_new(const pico8_ob_table_t *overrides) {
     self->yr = pico8_fixed_from_int(0);
     self->po = NULL;
     self->fu = NULL;
+    self->po_own.count = 0;
+    self->fu_own.count = 0;
     self->happiness = pico8_fixed_from_int(0);
     self->has_happiness = 0;
     self->hl = NULL;
@@ -216,10 +218,8 @@ void pico8_hy_hk(pico8_hy_t *self) {
 
     if (self->po != NULL) {
         int k;
-        pico8_value_t rk_val;
-        if (pico8_r_lookup("k", &k) && pico8_ob_table_get_index(self->po, k, &rk_val) &&
-            rk_val.kind == PICO8_VALUE_FIXED) {
-            po_rk = rk_val.as.fixed;
+        if (pico8_r_lookup("k", &k)) {
+            pico8_qe_map_get(self->po, pico8_fixed_from_int(k), &po_rk);
         }
     }
 
@@ -279,8 +279,6 @@ int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
 }
 
 void pico8_hy_lj(pico8_hy_t *self) {
-    pico8_ob_table_t *new_po;
-    pico8_ob_table_t *new_fu;
     pico8_fixed_t dd = pico8_fixed_from_int(0);
     pico8_fixed_t ge;
     pico8_fixed_t happiness;
@@ -303,16 +301,10 @@ void pico8_hy_lj(pico8_hy_t *self) {
         pico8_bd();
     } while (pico8_bb());
 
-    if (self->po != NULL) {
-        pico8_ob_table_free(self->po);
-    }
-    if (self->fu != NULL) {
-        pico8_ob_table_free(self->fu);
-    }
-    new_po = pico8_bx();
-    new_fu = pico8_ck();
-    self->po = new_po;
-    self->fu = new_fu;
+    pico8_bx(&self->po_own);
+    pico8_ck(&self->fu_own);
+    self->po = &self->po_own;
+    self->fu = &self->fu_own;
 
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
@@ -365,8 +357,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
     }
 }
 
-void pico8_hy_kt(pico8_hy_t *self, const pico8_ob_table_t *t) {
-    pico8_value_t px_val;
+void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
     pico8_fixed_t jk;
     pico8_fixed_t ew;
     int count = 0;
@@ -377,11 +368,11 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_ob_table_t *t) {
     }
 
     jk = self->jk;
-    self->jk = pico8_fixed_sub(jk, pico8_gi(t));
+    self->jk = pico8_fixed_sub(jk, pico8_gi_nb(t));
 
     if (self->invented != NULL) {
-        if (t != NULL && pico8_ob_table_get_name(t, "px", &px_val)) {
-            pico8_list_add(self->invented, px_val);
+        if (t != NULL && t->px != NULL) {
+            pico8_list_add(self->invented, pico8_value_string(t->px));
         }
         count = self->invented->count;
     }

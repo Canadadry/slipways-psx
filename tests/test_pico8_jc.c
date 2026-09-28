@@ -254,22 +254,18 @@ static int list_count(const void *e, const char *name) {
     return l == NULL ? -1 : ((const pico8_list_t *)l)->count;
 }
 
+/* Each `id` as the table `hg[id]=true` held it: a named key, true. */
 static uint32_t fold_hg(uint32_t h, const void *jc) {
-    const pico8_ob_table_t *hg = get_ref(jc, "hg");
+    const pico8_jc_hg_t *hg = get_ref(jc, "hg");
     int i;
     if (hg == NULL) {
         return fnv(h, 0xDEADu);
     }
     h = fnv(h, (uint32_t)hg->count);
     for (i = 0; i < hg->count; i++) {
-        const pico8_ob_entry_t *entry = &hg->entries[i];
-        h = fnv(h, (uint32_t)entry->key.kind);
-        if (entry->key.kind == PICO8_OB_KEY_NAME) {
-            h = fnv_str(h, entry->key.name);
-        } else {
-            h = fnv(h, (uint32_t)entry->key.index);
-        }
-        h = fold_value(h, entry->value);
+        h = fnv(h, (uint32_t)PICO8_OB_KEY_NAME);
+        h = fnv_str(h, hg->ids[i]);
+        h = fold_value(h, pico8_value_bool(1));
     }
     return h;
 }
@@ -473,7 +469,7 @@ static void check_fresh_jc(const void *jc, const void *qu) {
     pico8_value_t v;
     const pico8_int_seq_t *k_;
     const pico8_str_seq_t *nu;
-    const pico8_ob_table_t *hg;
+    const pico8_jc_hg_t *hg;
     size_t i;
 
     assert(is_string(jc, "me", "kz"));
@@ -497,7 +493,7 @@ static void check_fresh_jc(const void *jc, const void *qu) {
 
     assert(list_count(jc, "ts") == 0);
     hg = get_ref(jc, "hg");
-    assert(hg != NULL && hg->count == 0);
+    assert(hg == &((const pico8_jc_t *)jc)->hg_own && hg->count == 0);
 
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(jc, absent[i]));
@@ -880,6 +876,39 @@ static void must_abort(void (*write)(void *), void *jc) {
     }
     assert(waitpid(child, &status, 0) == child);
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+}
+
+static void hg_add_fixed(void *hg) {
+    pico8_jc_hg_add(hg, pico8_value_fixed(pico8_fixed_from_int(1)));
+}
+
+static void hg_add_one_more(void *hg) {
+    pico8_jc_hg_add(hg, pico8_value_string("one more"));
+}
+
+/* `hg[id]=true` keeps each string `id` once and in order, reads anything
+ * else as absent, refuses a non-string `id` and a 91st planet. */
+static void test_hg_is_a_set_of_ids(void) {
+    static char ids[PICO8_JC_HG_CAP][8];
+    pico8_jc_hg_t hg = {0, {NULL}};
+    int i;
+
+    pico8_jc_hg_add(&hg, pico8_value_string("p1"));
+    pico8_jc_hg_add(&hg, pico8_value_string("p2"));
+    pico8_jc_hg_add(&hg, pico8_value_string("p1"));
+    assert(hg.count == 2 && strcmp(hg.ids[0], "p1") == 0 && strcmp(hg.ids[1], "p2") == 0);
+    assert(pico8_jc_hg_has(&hg, pico8_value_string("p2")) && !pico8_jc_hg_has(&hg, pico8_value_string("p3")));
+    assert(!pico8_jc_hg_has(&hg, pico8_value_fixed(pico8_fixed_from_int(1))));
+    assert(!pico8_jc_hg_has(&hg, pico8_value_ref(NULL)) && !pico8_jc_hg_has(NULL, pico8_value_string("p1")));
+    must_abort(hg_add_fixed, &hg);
+
+    hg.count = 0;
+    for (i = 0; i < PICO8_JC_HG_CAP; i++) {
+        snprintf(ids[i], sizeof ids[i], "p%d", i + 1);
+        pico8_jc_hg_add(&hg, pico8_value_string(ids[i]));
+    }
+    assert(hg.count == PICO8_JC_HG_CAP && pico8_jc_hg_has(&hg, pico8_value_string("p90")));
+    must_abort(hg_add_one_more, &hg);
 }
 
 static void write_re(void *jc) {
@@ -1733,6 +1762,7 @@ int main(void) {
     in_fresh_child(test_too_far);
     in_fresh_child(test_hq_mouse_point);
     in_fresh_child(test_jc_is_a_struct);
+    in_fresh_child(test_hg_is_a_set_of_ids);
     in_fresh_child(test_too_far_is_a_struct);
     in_fresh_child(test_mouse_point_is_a_struct);
     in_fresh_child(test_mouse_point_members_by_name);

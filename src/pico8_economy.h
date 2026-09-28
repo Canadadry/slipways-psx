@@ -1,7 +1,9 @@
 #ifndef PICO8_ECONOMY_H
 #define PICO8_ECONOMY_H
 
+#include "pico8_economy_formulas.h"
 #include "pico8_fixed.h"
+#include "pico8_map_tables.h"
 #include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -9,8 +11,10 @@
 /* Throughout this module a NULL `self` is a safe no-op. */
 
 /* The economy, one per game. Nothing here frees it: pico8_probe_set_fm()
- * and pico8_probe_shutdown() free the struct alone, never `invented`, `po`
- * nor `fu` (TROU-7). `hl` is absent before the first pico8_hy_lj(). */
+ * and pico8_probe_shutdown() free the struct alone, never `invented`
+ * (TROU-7). `po`/`fu` are NULL before the first pico8_hy_lj(), then point
+ * at `po_own`/`fu_own`, which every pico8_hy_lj() refills in place. `hl` is
+ * absent before the first pico8_hy_lj(). */
 typedef struct {
     pico8_struct_header_t header;
     pico8_fixed_t nz;
@@ -20,8 +24,10 @@ typedef struct {
     pico8_list_t *invented;
     pico8_fixed_t lo;
     pico8_fixed_t yr;
-    pico8_ob_table_t *po;
-    pico8_ob_table_t *fu;
+    pico8_qe_map_t *po;
+    pico8_qe_map_t *fu;
+    pico8_qe_map_t po_own;
+    pico8_qe_map_t fu_own;
     pico8_fixed_t happiness;
     int has_happiness; /* 0: `happiness` is nil, and is then never read */
     const char *hl;
@@ -58,13 +64,13 @@ void pico8_hy_hk(pico8_hy_t *self);
  * has 0 credits, so any positive `jt` fails. */
 int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt);
 
-/* Frees the `po`/`fu` tables its own previous call installed, so no caller
- * may hold either pointer across a call. `hl` is BOOL(0), not a string,
- * when neither end-of-game condition holds. */
+/* Refills `po`/`fu` in place, so what a caller read through either before
+ * the call no longer holds after it. `hl` is BOOL(0), not a string, when
+ * neither end-of-game condition holds. */
 void pico8_hy_lj(pico8_hy_t *self);
 
-/* `t` is only read. The `px` value appended to `invented` is borrowed from
- * it, never copied: `t` must outlive the struct. */
-void pico8_hy_kt(pico8_hy_t *self, const pico8_ob_table_t *t);
+/* `t` is an entry of `pico8_nb_table`, or NULL (no `px`, a cost of 0);
+ * its `px` string is appended to `invented`, borrowed. */
+void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t);
 
 #endif

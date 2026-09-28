@@ -309,3 +309,14 @@ const pico8_hc_entry_t *pico8_hc_lookup(const char *key) {
     }
     return NULL;
 }
+
+const pico8_nb_entry_t *pico8_nb_lookup(const char *px) {
+    int i;
+
+    for (i = 0; px != NULL && i < PICO8_NB_COUNT; i++) {
+        if (strcmp(pico8_nb_table[i].px, px) == 0) {
+            return &pico8_nb_table[i];
+        }
+    }
+    return NULL;
+}
