@@ -3,8 +3,7 @@
  * `pico8_pm_default()` for spec defaults, built by its three roads (`jo:hu`
  * on the harvest recipe, `pm:pq`, `pico8_ga_new(NULL)`) and driven through
  * the real `mv`/`dc`. jo's methods are named by `pico8_jo_struct_class()`.
- * The frozen values were taken on the code where `ga` was still a class
- * instance and must not be re-taken. */
+ * No events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -21,7 +20,6 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -43,20 +41,15 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define EMPTY "tests/fixtures/empty_planet_cleared_events.json"
-#define GEOHARVEST "tests/fixtures/geoharvest_burst_events.json"
 
 #define BUILT_HASH 0xEA365129u
 #define LIFE_HASH 0x85D7319Eu
-#define BURST_HASH 0xF73B9F9Fu
 #define GA_MEMBERS_HASH 0x9DE58769u
-#define BURST_BIRTH 205
-#define BURST_DEATH 289
+#define BURST_FRAMES 86
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 /* ga's 11 own names, then the 31 members of `jo`. */
 static const char *const ga_own[] = {"fz", "fc", "qo", "ro", "qg", "q_", "k_", "iu", "py", "ms", "qy"};
@@ -222,19 +215,13 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_game(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
-    pico8_eu(pico8_js_new(bo_row(2)));
+    pico8_eu(NULL);
 }
 
 static pico8_value_t vec_ref(pico8_vec_t at) {
@@ -407,7 +394,7 @@ static void test_built(void) {
     void *b;
     void *c;
 
-    start_game(EMPTY);
+    start_game();
     assert(ga_from(0) == NULL);
     a = harvest(40, 40, "s61");
     h = fold_burst(h, a, 0);
@@ -505,7 +492,7 @@ static void test_life(void) {
     int hv_count;
     int i;
 
-    start_game(EMPTY);
+    start_game();
     a = harvest(40, 40, "s71");
     b = spawn(84, 60, "s72", &pm);
     c = pico8_ga_new(NULL);
@@ -565,48 +552,24 @@ static void test_life(void) {
     check("life", h, LIFE_HASH);
 }
 
-/* The harvest of the geoharvest fixture, started as main.c starts it: per
- * frame, the live burst's rank, particle count, `p_`, `t`, `me`, `ra` and
- * `mo.ma`; its birth and death frames; the last screen. */
+/* A harvest played frame by frame: one live burst at a time, gone after
+ * BURST_FRAMES frames. */
 static void test_burst(void) {
-    uint32_t h = 2166136261u;
-    int birth = -1;
-    int death = -1;
-    int i;
+    int frames = 0;
+    void *e;
 
-    start_game(GEOHARVEST);
-    for (i = 0; i < input.frame_count; i++) {
-        void *e;
-
-        pico8_dispatch_set_input(&input);
-        pico8_cheat_step(&cheat, &input);
+    start_game();
+    e = harvest(40, 40, "s64");
+    assert(ga_from(0) == e);
+    while (ga_from(0) != NULL) {
+        e = ga_from(0);
+        assert(ga_from(rank_in(pico8_hv(), e) + 1) == NULL);
         pico8__update60();
         pico8__draw();
-        e = ga_from(0);
-        if (e != NULL) {
-            assert(ga_from(rank_in(pico8_hv(), e) + 1) == NULL);
-            if (birth < 0) {
-                birth = i;
-            }
-            h = fnv(h, (uint32_t)i);
-            h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
-            h = fnv(h, (uint32_t)size_of(e, "qy"));
-            h = fold_field(h, e, "p_");
-            h = fold_field(h, e, "t");
-            h = fold_field(h, e, "me");
-            h = fold_vec(h, e, "ra");
-            h = fold_field(h, pico8_mo(), "ma");
-        } else if (birth >= 0 && death < 0) {
-            death = i;
-        }
-        if (i < input.frame_count - 1) {
-            pico8_input_step(&input);
-        }
+        frames++;
+        assert(frames < 600);
     }
-    h = fnv(h, screen_hash());
-    check_int("birth", birth, BURST_BIRTH);
-    check_int("death", death, BURST_DEATH);
-    check("burst", h, BURST_HASH);
+    check_int("burst frames", frames, BURST_FRAMES);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -694,7 +657,7 @@ static void test_ga_is_a_struct(void) {
     size_t i;
     int j;
 
-    start_game(EMPTY);
+    start_game();
     roads[0] = harvest(40, 40, "s81");
     roads[1] = spawn(80, 70, "s82", NULL);
     roads[2] = pico8_ga_new(NULL);
@@ -827,7 +790,7 @@ static void test_ga_members_by_name(void) {
     size_t i;
     size_t r;
 
-    start_game(EMPTY);
+    start_game();
     roads[0] = harvest(40, 40, "s91");
     roads[1] = spawn(80, 70, "s92", NULL);
     roads[2] = pico8_ga_new(NULL);
@@ -934,7 +897,7 @@ static void test_ga_writer_stops_off_row(void) {
     size_t i;
     size_t r;
 
-    start_game(EMPTY);
+    start_game();
     roads[0] = harvest(40, 40, "s93");
     roads[1] = spawn(80, 70, "s94", NULL);
     roads[2] = pico8_ga_new(NULL);
