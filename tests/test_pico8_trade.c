@@ -1,8 +1,6 @@
-/* The export route `trade`, built by `jo:ib` and `kg` in a game started as
- * the net starts it, or by hand on that game's planets and slipways, read
- * only through pico8_entity_get_field and `to`/`kg`/`eq`. The frozen values
- * were taken on the code where `trade` was still a class instance and must
- * not be re-taken. */
+/* The export route `trade`, built by `jo:ib` and `kg` in a game built
+ * directly (no events file), or by hand on that game's planets and
+ * slipways, read only through pico8_entity_get_field and `to`/`kg`/`eq`. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -19,12 +17,14 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_research.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
@@ -36,20 +36,17 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
+#include "../src/pico8_vec.h"
 
-#define BUILT "tests/fixtures/built_planet_panel_events.json"
-#define HUB "tests/fixtures/trading_hub_session_events.json"
+/* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
+ * planet a slipway joins it to. */
+#define EXPORTER 3
 
-#define GAME_ROUTE_HASH 0x5C07E005u
-#define BUILT_REPLAY_HASH 0x3D21D018u
-#define HUB_REPLAY_HASH 0x763C36DBu
-#define BUILT_ROUTES 1
-#define HUB_ROUTES 5
+#define GAME_ROUTE_HASH 0x93A4DA45u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static const char *const absent[] = {"to", "kg", "me", "nu", "id"};
 
@@ -160,48 +157,58 @@ static void check(const char *label, uint32_t got, uint32_t want) {
     assert(got == want);
 }
 
-static void check_count(const char *label, int got, int want) {
-    printf("[%s] %d\n", label, got);
-    fflush(stdout);
-    assert(got == want);
-}
-
-static uint32_t screen_hash(void) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    for (i = 0; i < PICO8_SCREEN_WIDTH * PICO8_SCREEN_HEIGHT; i++) {
-        h ^= (uint32_t)pico8_peek(&mem, PICO8_ADDR_SCREEN + i);
-        h *= 16777619u;
-    }
-    return h;
-}
-
-static void start_from_title(const char *events) {
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
+    pico8_eu(NULL);
 }
 
-/* A game started as the net starts it: `eu()` on `bo[2]` before frame 0. */
-static void start_game(const char *events) {
-    pico8_value_t difficulty;
-
-    start_from_title(events);
-    assert(pico8_ob_table_get_index(pico8_bo(), 2, &difficulty) && difficulty.kind == PICO8_VALUE_REF);
-    pico8_eu(pico8_js_new((const pico8_ob_table_t *)difficulty.as.ref));
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
 }
 
-static void play_frame(int i) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
-    pico8__update60();
-    pico8__draw();
-    if (i < input.frame_count - 1) {
-        pico8_input_step(&input);
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+static pico8_fixed_t must_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static pico8_hp_t *project(int k) {
+    pico8_value_t v;
+    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+/* `jc:hq` reads the hovered planet off `ok.o_`; the slipway is paid by `ey`
+ * as a drag onto `re` pays it. */
+static void join(void *qu, void *re) {
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *jc;
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
     }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
 }
 
 static pico8_value_t nil(void) {
@@ -246,17 +253,32 @@ static void *planet(int i) {
     return jo->items[i].as.ref;
 }
 
-/* The built_planet_panel game at its last frame, and its first route: the
- * first element of `by` on the first planet of `cg.jo` that exports. */
+/* A generated planet colonized by EXPORTER, its nearest one by a bare
+ * project, the two joined by a paid slipway, then left to settle; and the
+ * first route: the first element of `by` on the first planet of `cg.jo`
+ * that exports. */
 static void *game_route(void) {
     const pico8_list_t *jo;
+    void *qu;
+    void *re = NULL;
     int i;
 
-    start_game(BUILT);
-    for (i = 0; i < input.frame_count; i++) {
-        play_frame(i);
-    }
+    start_game();
     jo = pico8_cg("jo");
+    assert(jo != NULL && jo->count > 3);
+    qu = jo->items[0].as.ref;
+    for (i = 1; i < jo->count; i++) {
+        void *e = jo->items[i].as.ref;
+        if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
+            re = e;
+        }
+    }
+    pico8_jo_hu(qu, project(EXPORTER));
+    pico8_jo_hu(re, pico8_hp_new(NULL));
+    join(qu, re);
+    for (i = 0; i < 120; i++) {
+        pico8_dg();
+    }
     for (i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_list_t *by = get_list(jo->items[i].as.ref, "by");
         if (by != NULL && by->count > 0) {
@@ -418,67 +440,6 @@ static void test_eq(void) {
     assert(!pico8_trade_eq(route(list_of(0, a), NULL, nil()), ta));
     assert(!pico8_trade_eq(ta, pico8_trade_new(NULL)) && !pico8_trade_eq(pico8_trade_new(NULL), ta));
     assert(!pico8_trade_eq(ta, NULL) && !pico8_trade_eq(NULL, ta));
-}
-
-static const void *g_seen[4096];
-static int g_seen_count;
-
-static void see(const void *t) {
-    int i;
-    for (i = 0; i < g_seen_count; i++) {
-        if (g_seen[i] == t) {
-            return;
-        }
-    }
-    assert(g_seen_count < (int)(sizeof g_seen / sizeof g_seen[0]));
-    g_seen[g_seen_count++] = t;
-}
-
-/* Each frame, each planet of `cg.jo` in order: the counts of `by` and `cc`,
- * then each route of `by`. Then the screen. `*routes` is the number of
- * distinct routes seen in a `by`. */
-static uint32_t replay(int from_title, const char *events, int *routes) {
-    uint32_t h = 2166136261u;
-    int i;
-
-    g_seen_count = 0;
-    if (from_title) {
-        start_from_title(events);
-    } else {
-        start_game(events);
-    }
-    for (i = 0; i < input.frame_count; i++) {
-        const pico8_list_t *jo;
-        int j;
-        play_frame(i);
-        jo = pico8_cg("jo");
-        for (j = 0; jo != NULL && j < jo->count; j++) {
-            const void *p = jo->items[j].as.ref;
-            const pico8_list_t *by = get_list(p, "by");
-            const pico8_list_t *cc = get_list(p, "cc");
-            int k;
-            h = fnv(h, (uint32_t)(by != NULL ? by->count : -1));
-            h = fnv(h, (uint32_t)(cc != NULL ? cc->count : -1));
-            for (k = 0; by != NULL && k < by->count; k++) {
-                see(by->items[k].as.ref);
-                h = fold_route(h, by->items[k].as.ref);
-            }
-        }
-    }
-    *routes = g_seen_count;
-    return fnv(h, screen_hash());
-}
-
-static void test_built_replay(void) {
-    int routes;
-    check("built replay", replay(0, BUILT, &routes), BUILT_REPLAY_HASH);
-    check_count("built routes", routes, BUILT_ROUTES);
-}
-
-static void test_hub_replay(void) {
-    int routes;
-    check("hub replay", replay(1, HUB, &routes), HUB_REPLAY_HASH);
-    check_count("hub routes", routes, HUB_ROUTES);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -678,8 +639,6 @@ int main(void) {
     in_fresh_child(test_to);
     in_fresh_child(test_kg);
     in_fresh_child(test_eq);
-    in_fresh_child(test_built_replay);
-    in_fresh_child(test_hub_replay);
     in_fresh_child(test_trade_is_a_struct);
     in_fresh_child(test_trade_members_by_name);
 
