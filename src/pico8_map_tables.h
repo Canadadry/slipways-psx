@@ -29,12 +29,13 @@ typedef struct {
 } pico8_hc_entry_t;
 
 /* An item is the string s when s is non-NULL, the row when row is non-NULL,
- * the number n otherwise. */
+ * Lua false when is_false is set, the number n otherwise. */
 typedef struct pico8_jb_row pico8_jb_row_t;
 typedef struct {
     const char *s;
     int n;
     const pico8_jb_row_t *row;
+    int is_false;
 } pico8_jb_item_t;
 
 /* c is only meaningful when has_c is set. */

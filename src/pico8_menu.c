@@ -12,6 +12,7 @@
 #include "pico8_economy.h"
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
+#include "pico8_game_data.h"
 #include "pico8_input.h"
 #include "pico8_layout.h"
 #include "pico8_list.h"
@@ -193,7 +194,7 @@ void pico8_cr(void) {
     pico8_fixed_t qi = pico8_fixed_from_int(0);
     pico8_value_t tl_val;
     pico8_value_t invented_val;
-    const pico8_ob_table_t *ek;
+    int ek;
     pico8_list_t cb_list;
     pico8_list_t bs;
     pico8_pj_cr_t *cr;
@@ -206,13 +207,8 @@ void pico8_cr(void) {
         gr = PICO8_REF_AS_LIST_CONST(invented_val.as.ref)->count;
     }
 
-    ek = pico8_ek();
-    if (ek != NULL) {
-        pico8_value_t qi_val;
-        int idx = pico8_fixed_flr_int(tl) - 1;
-        if (pico8_ob_table_get_index(ek, idx, &qi_val) && qi_val.kind == PICO8_VALUE_FIXED) {
-            qi = qi_val.as.fixed;
-        }
+    if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl) - 1, &ek)) {
+        qi = pico8_fixed_from_int(ek);
     }
 
     /* `true` is the ignore-cost flag: this screen lists every tech of the era,
@@ -243,7 +239,6 @@ void pico8_cr(void) {
     cr = pico8_pj_cr();
     if (cr != NULL) {
         pico8_fixed_t ek_tl = pico8_fixed_from_int(0);
-        pico8_value_t ek_tl_val;
         char *tl_str;
         char *diff1_str;
         char *diff2_str;
@@ -252,9 +247,8 @@ void pico8_cr(void) {
         char *tmp3;
         char *ep;
 
-        if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(tl), &ek_tl_val) &&
-            ek_tl_val.kind == PICO8_VALUE_FIXED) {
-            ek_tl = ek_tl_val.as.fixed;
+        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl), &ek)) {
+            ek_tl = pico8_fixed_from_int(ek);
         }
 
         tl_str = pico8_value_tostr(pico8_value_fixed(tl));
@@ -474,30 +468,8 @@ void pico8_menu_init(void) {
 
     pico8_pi_init();
 
-    g_ix = pico8_ob("\n"
-                     "o(\n"
-                     "ra=v(118,0),\n"
-                     "lq=o(o(15,7)),\n"
-                     "),o(\n"
-                     "ra=v(0,0),\n"
-                     "lq=o(o(37,7)),\n"
-                     "),o(\n"
-                     "ra=v(47,0),\n"
-                     "lq=o(o(25,7)),\n"
-                     "),o(\n"
-                     "ra=v(0,117),\n"
-                     "lq=o(o(8,7)),\n"
-                     "),\n",
-                     NULL);
-
-    g_ha = pico8_ob("\n"
-                     "o(lq=o(31,\"restart     \")),\n"
-                     "o(lq=o(42,\"toggle music\")),\n"
-                     "o(lq=o(40,\"toggle sfx  \")),\n"
-                     "o(lq=o(26,\"how to play?\"),fg=5,),\n"
-                     "hi=v(0,107),gq=v(0,-11),\n"
-                     "ca=14,\n",
-                     NULL);
+    g_ix = pico8_ix_view();
+    g_ha = pico8_ha_view();
     {
         pico8_value_t hi_v;
         pico8_value_t gq_v;

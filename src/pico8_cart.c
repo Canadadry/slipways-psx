@@ -17,7 +17,6 @@
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_galaxy.h"
-#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_help.h"
 #include "pico8_hud.h"
@@ -61,7 +60,6 @@ void pico8_cart_load(void) {
     pico8_layout_init();
     pico8_pi_init();
     pico8_trade_init();
-    pico8_game_data_init();
 
     pico8_js_init();
     pico8_fq_init();
@@ -118,7 +116,6 @@ void pico8_cart_shutdown(void) {
     pico8_fq_shutdown();
     pico8_js_shutdown();
 
-    pico8_game_data_shutdown();
     pico8_trade_shutdown();
     pico8_layout_shutdown();
 

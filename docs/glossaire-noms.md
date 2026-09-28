@@ -29,7 +29,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `cg` | `pico8_cg` | entités indexées par étiquette (`nu`), d'où `cg("jo")` = toutes les planètes |
 | `hv` | `pico8_hv` | liste de toutes les entités vivantes, dans l'ordre d'enregistrement |
 | `he(e)` | `pico8_he` | retire une entité de `hv`/`cv`/`cg` |
-| `ci` | `pico8_ci` | facteur de mélange de palette par couche, lu par la branche `kj` de `dc` |
+| `ci` | `pico8_ci_table` (`pico8_game_data.h`) | facteur de mélange de palette par couche, lu par la branche `kj` de `dc` |
 | `jl()` | `pico8_jl` | (re)construit les singletons du jeu : `mo=qb()`, `je=nf()`, `ok=ui()` |
 | `nu` | champ `"nu"` | étiquettes d'une classe, ce par quoi `cg` l'indexe |
 
@@ -41,11 +41,11 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `unstash(pd)` | `pico8_unstash` | décode une chaîne depuis la mémoire cart, un octet = un index dans `gt`, l'octet 0 termine |
 | `r` | `pico8_r_table`, `pico8_r_lookup` ; `pico8_r` (décodée par `pico8_stash_init`) | table décodée depuis l'adresse 8192 |
 | `iz` | `pico8_iz_table`, `pico8_iz_lookup` ; `pico8_iz` (décodée par `pico8_stash_init`) | table décodée depuis l'adresse 8259 |
-| `es` | `pico8_es` | table de correspondance de `da()` |
-| `ct` | `pico8_ct` | bonus par palier du partenaire commercial, lu par `db()` |
-| `b_` | `pico8_b_` | table de score de `ky()` |
-| `co` | `pico8_co` | modificateur de bonheur de `bf()` |
-| `fb` | `pico8_fb` | décalages d'adresse de palette de `eg()` |
+| `es` | `pico8_es_table` | table de correspondance de `da()` |
+| `ct` | `pico8_ct_table` | bonus par palier du partenaire commercial, lu par `db()` |
+| `b_` | `pico8_b__table` | table de score de `ky()` |
+| `co` | `pico8_co_table` | modificateur de bonheur de `bf()` |
+| `fb` | `pico8_fb_table` | décalages d'adresse de palette de `eg()` |
 | `bn`, `bq` | `pico8_bn`, `pico8_bq` | constantes de réglage de `dj()` |
 
 ## Entrée et son
@@ -116,13 +116,13 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `df` | `pico8_df` | catalogue des types de planète, tiré au sort par `bw()` |
+| `df` | `pico8_df_table` (typée), `pico8_df()` (vue ob) | catalogue des types de planète, tiré au sort par `bw()` |
 | `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
 | `fd` | `pico8_fd_table` ; vue ob `pico8_fd` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; la vue est la table ob que `build_gb` reçoit |
 | `gb` | `pico8_gb` | les instances `hp` construites depuis `fd` |
 | `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
 | `nb` | `pico8_nb_table` ; vue ob `pico8_nb` | liste des technologies, décodée depuis l'adresse 10457 ; la vue est lue et mutée par `cb()`/`gi()` |
-| `ek` | `pico8_ek` | seuils de palier comparés à `#self.invented` par `hy:kt()` |
+| `ek` | `pico8_ek_table` (`pico8_game_data.h`) | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
 ## Commerce
 
@@ -413,14 +413,14 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir d'une liste de rangées et remplit `ok.le` avec ses icônes cliquables |
 | `lq` | `pico8_lq_t` | une rangée d'icônes mise en page |
 | `jb` | `pico8_jb_t` | une bulle d'info |
-| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`) : une rangée de chaînes, de nombres et de rangées, avec son `c` éventuel |
+| — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz` : une rangée de chaînes, de nombres, de faux (`is_false`) et de rangées, avec son `c` éventuel |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
 | `js` | `pico8_js_t` | un bouton cliquable |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton |
-| `bo` | `g_bo` (static, `pico8_help.c`) | les options de difficulté de l'écran-titre |
-| `ix` | — | les 4 boutons du menu de la vue galaxie |
-| `ha` | — | le menu pause : recommencer, musique, bruitages, aide |
+| `bo` | `pico8_bo_table` (typée), `g_bo` (vue ob, static, `pico8_help.c`, construite par `pico8_bo_view`) | les options de difficulté de l'écran-titre |
+| `ix` | `pico8_ix_table` (typée), `pico8_ix()` (vue ob, `pico8_ix_view`) | les 4 boutons du menu de la vue galaxie |
+| `ha` | `pico8_ha_table`, `pico8_ha_tail` (typées), `pico8_ha()` (vue ob, `pico8_ha_view`) | le menu pause : recommencer, musique, bruitages, aide |
 | `fv` | `pico8_fv_t` | l'écran d'aide ; étend `g_` |
 | `pj` | `pico8_pj_t` | le panneau de score ; `ju` est son singleton |
 | `eg()` | `pico8_eg` | recalcule la palette du panneau de score selon l'avancement |
@@ -492,11 +492,11 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `kc` | `pico8_kc` | la boîte de message actuellement affichée, ou rien |
 | `ju` | `pico8_ju` | le singleton du panneau de score, instance de `pj` |
 | `cr()` | `pico8_cr` | l'écran de l'arbre technologique |
-| `ef` | `pico8_ef` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
-| `bz` | `pico8_bz` | les rangées du détail de score |
+| `ef` | `pico8_ef_table` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
+| `bz` | `pico8_bz_table` (typée), `pico8_bz()` (vue ob, `pico8_bz_view`) | les rangées du détail de score |
 | `de` | `pico8_de` | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau. Il ne doit y en avoir qu'une |
-| `ix` | `pico8_ix` | les 4 boutons de la vue galaxie |
-| `ha` | `pico8_ha` | le menu pause |
+| `ix` | `pico8_ix_table`, `pico8_ix()` | les 4 boutons de la vue galaxie |
+| `ha` | `pico8_ha_table`, `pico8_ha()` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |
 | `je` | `pico8_je` | le singleton lecteur de souris, instance de `nf` |
 

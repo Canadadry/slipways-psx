@@ -1,54 +1,149 @@
 #include "pico8_game_data.h"
 
+#include <assert.h>
 #include <stddef.h>
 
-static pico8_ob_table_t *g_es = NULL;
-static pico8_ob_table_t *g_ct = NULL;
-static pico8_ob_table_t *g_b_ = NULL;
-static pico8_ob_table_t *g_co = NULL;
-static pico8_ob_table_t *g_fb = NULL;
+const int pico8_es_table[PICO8_ES_COUNT] = {1, 0, 1, 2};
 
-void pico8_game_data_shutdown(void) {
-    pico8_ob_table_free(g_es);
-    g_es = NULL;
-    pico8_ob_table_free(g_ct);
-    g_ct = NULL;
-    pico8_ob_table_free(g_b_);
-    g_b_ = NULL;
-    pico8_ob_table_free(g_co);
-    g_co = NULL;
-    pico8_ob_table_free(g_fb);
-    g_fb = NULL;
+const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT] = {-0x5540, 0x0, 0x4000, 0x8000};
+
+const int pico8_b__table[PICO8_B__COUNT] = {0, 100, 200, 400};
+
+const int pico8_co_table[PICO8_CO_COUNT] = {-5, 0, 1, 1};
+
+const int pico8_fb_table[PICO8_FB_COUNT] = {2, 2, 5, 5, 7, 7, 10, 10, 14, 14, 14, 19, 19, 19};
+
+const int pico8_ek_table[PICO8_EK_COUNT] = {2, 4, 7, 12};
+
+const pico8_fixed_t pico8_ci_table[PICO8_CI_COUNT] = {0x8000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000, 0x10000,
+    0x10000, 0x10000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+
+const char *const pico8_ef_table[PICO8_EF_COUNT] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP",
+    "OCT", "NOV", "DEC", "UND", "DUO", "TER"};
+
+const pico8_df_entry_t pico8_df_table[PICO8_DF_COUNT] = {
+    {"ll", 45, 0x0, NULL, "ll"},
+    {"e", 160, 0x48000, "earth-like", NULL},
+    {"f", 128, 0x60000, "forgeworld", NULL},
+    {"m", 134, 0x40000, "mineral", NULL},
+    {"o", 130, 0x30000, "ocean", NULL},
+    {"r", 140, 0x28000, "remnant", NULL},
+    {"x", 162, 0x30000, "xeno", NULL},
+    {"j", 136, 0x20000, "jungle", NULL},
+    {"i", 138, 0x20000, "iceball", NULL},
+    {"s", 142, 0x20000, "barren", NULL},
+    {"g", 96, 0x40000, "gas giant", NULL},
+};
+
+static const pico8_jb_item_t ix_1_lq_1_items[] = {{.n = 15}, {.n = 7}};
+static const pico8_jb_row_t ix_1_lq_1 = {.count = 2, .items = ix_1_lq_1_items};
+static const pico8_jb_item_t ix_1_lq_items[] = {{.row = &ix_1_lq_1}};
+static const pico8_jb_row_t ix_1_lq = {.count = 1, .items = ix_1_lq_items};
+static const pico8_jb_item_t ix_2_lq_1_items[] = {{.n = 37}, {.n = 7}};
+static const pico8_jb_row_t ix_2_lq_1 = {.count = 2, .items = ix_2_lq_1_items};
+static const pico8_jb_item_t ix_2_lq_items[] = {{.row = &ix_2_lq_1}};
+static const pico8_jb_row_t ix_2_lq = {.count = 1, .items = ix_2_lq_items};
+static const pico8_jb_item_t ix_3_lq_1_items[] = {{.n = 25}, {.n = 7}};
+static const pico8_jb_row_t ix_3_lq_1 = {.count = 2, .items = ix_3_lq_1_items};
+static const pico8_jb_item_t ix_3_lq_items[] = {{.row = &ix_3_lq_1}};
+static const pico8_jb_row_t ix_3_lq = {.count = 1, .items = ix_3_lq_items};
+static const pico8_jb_item_t ix_4_lq_1_items[] = {{.n = 8}, {.n = 7}};
+static const pico8_jb_row_t ix_4_lq_1 = {.count = 2, .items = ix_4_lq_1_items};
+static const pico8_jb_item_t ix_4_lq_items[] = {{.row = &ix_4_lq_1}};
+static const pico8_jb_row_t ix_4_lq = {.count = 1, .items = ix_4_lq_items};
+
+const pico8_ix_entry_t pico8_ix_table[PICO8_IX_COUNT] = {
+    {118, 0, &ix_1_lq},
+    {0, 0, &ix_2_lq},
+    {47, 0, &ix_3_lq},
+    {0, 117, &ix_4_lq},
+};
+
+static const pico8_jb_item_t ha_1_lq_items[] = {{.n = 31}, {.s = "restart     "}};
+static const pico8_jb_row_t ha_1_lq = {.count = 2, .items = ha_1_lq_items};
+static const pico8_jb_item_t ha_2_lq_items[] = {{.n = 42}, {.s = "toggle music"}};
+static const pico8_jb_row_t ha_2_lq = {.count = 2, .items = ha_2_lq_items};
+static const pico8_jb_item_t ha_3_lq_items[] = {{.n = 40}, {.s = "toggle sfx  "}};
+static const pico8_jb_row_t ha_3_lq = {.count = 2, .items = ha_3_lq_items};
+static const pico8_jb_item_t ha_4_lq_items[] = {{.n = 26}, {.s = "how to play\?"}};
+static const pico8_jb_row_t ha_4_lq = {.count = 2, .items = ha_4_lq_items};
+
+const pico8_ha_entry_t pico8_ha_table[PICO8_HA_COUNT] = {
+    {&ha_1_lq, 0, 0},
+    {&ha_2_lq, 0, 0},
+    {&ha_3_lq, 0, 0},
+    {&ha_4_lq, 1, 5},
+};
+
+const pico8_ha_tail_t pico8_ha_tail = {0, 107, 0, -11, 14};
+
+static const pico8_jb_item_t bo_1_lq_items[] = {{.n = 49}, {.s = "forgiving   "}};
+static const pico8_jb_row_t bo_1_lq = {.count = 2, .items = bo_1_lq_items};
+static const pico8_jb_item_t bo_2_lq_items[] = {{.n = 50}, {.s = "reasonable  "}};
+static const pico8_jb_row_t bo_2_lq = {.count = 2, .items = bo_2_lq_items};
+static const pico8_jb_item_t bo_3_lq_items[] = {{.n = 51}, {.s = "challenging "}};
+static const pico8_jb_row_t bo_3_lq = {.count = 2, .items = bo_3_lq_items};
+static const pico8_jb_item_t bo_4_lq_items[] = {{.n = 52}, {.s = "tough       "}};
+static const pico8_jb_row_t bo_4_lq = {.count = 2, .items = bo_4_lq_items};
+
+const pico8_bo_entry_t pico8_bo_table[PICO8_BO_COUNT] = {
+    {&bo_1_lq, "forgiving", 7, -0xfd70},
+    {&bo_2_lq, "reasonable", 6, -0x999a},
+    {&bo_3_lq, "challenging", 5, -0x6666},
+    {&bo_4_lq, "tough", 4, -0x3334},
+};
+
+static const pico8_jb_item_t bz_1_items[] = {{.n = 26}, {.n = 86}, {.n = 0}};
+static const pico8_jb_item_t bz_2_items[] = {{.n = 51}, {.n = 59}, {.n = 1}};
+static const pico8_jb_item_t bz_3_items[] = {{.n = 76}, {.n = 77}, {.n = 1}};
+static const pico8_jb_item_t bz_4_items[] = {{.n = 24}, {.n = 25}, {.n = 1}};
+static const pico8_jb_item_t bz_5_items[] = {{.n = 33}, {.n = 41}, {.n = 1}};
+static const pico8_jb_item_t bz_6_items[] = {{.s = ""}};
+static const pico8_jb_item_t bz_7_items[] = {{.n = 55}, {.s = "planets:   "}};
+static const pico8_jb_item_t bz_8_items[] = {{.n = 19}, {.s = "population:"}};
+static const pico8_jb_item_t bz_9_items[] = {{.n = 24}, {.s = "technology:"}};
+static const pico8_jb_item_t bz_10_1_items[] = {{.n = 27}, {.n = 5}};
+static const pico8_jb_row_t bz_10_1 = {.count = 2, .items = bz_10_1_items};
+static const pico8_jb_item_t bz_10_2_items[] = {{.is_false = 1}, {.n = 0}};
+static const pico8_jb_row_t bz_10_2 = {.count = 2, .items = bz_10_2_items};
+static const pico8_jb_item_t bz_10_4_items[] = {{.n = 25}, {.n = 5}};
+static const pico8_jb_row_t bz_10_4 = {.count = 2, .items = bz_10_4_items};
+static const pico8_jb_item_t bz_10_items[] = {{.row = &bz_10_1}, {.row = &bz_10_2}, {.is_false = 1}, {.row = &bz_10_4},
+    {.s = "happiness"}};
+static const pico8_jb_item_t bz_11_items[] = {{.s = "total:"}, {.s = ""}};
+
+const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT] = {
+    {.row = {.count = 3, .items = bz_1_items}, .fn = "br"},
+    {.row = {.count = 3, .items = bz_2_items}, .fn = "br"},
+    {.row = {.count = 3, .items = bz_3_items}, .fn = "br"},
+    {.row = {.count = 3, .items = bz_4_items}, .fn = "br"},
+    {.row = {.count = 3, .items = bz_5_items}, .fn = "br"},
+    {.row = {.count = 1, .items = bz_6_items, .has_c = 1, .c = 5}, .has_score = 1, .score = 0, .has_ra = 1, .ra_x = 64,
+        .ra_y = 21},
+    {.row = {.count = 2, .items = bz_7_items}, .has_score = 1, .score = 1, .has_ra = 1, .ra_x = 64, .ra_y = 34},
+    {.row = {.count = 2, .items = bz_8_items}, .has_score = 1, .score = 2, .has_ra = 1, .ra_x = 64, .ra_y = 43},
+    {.row = {.count = 2, .items = bz_9_items}, .has_score = 1, .score = 3, .has_ra = 1, .ra_x = 64, .ra_y = 52},
+    {.row = {.count = 5, .items = bz_10_items}, .has_score = 1, .score = 4, .has_ra = 1, .ra_x = 64, .ra_y = 61},
+    {.row = {.count = 2, .items = bz_11_items}, .has_score = 1, .score = 5, .has_ra = 1, .ra_x = 64, .ra_y = 74},
+    {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_ra = 1, .ra_x = 64, .ra_y = 82},
+};
+
+int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
+    assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
+    if (i < 1 || i > count) {
+        return 0;
+    }
+    *out = seq[i - 1];
+    return 1;
 }
 
-void pico8_game_data_init(void) {
-    pico8_game_data_shutdown();
-
-    g_es = pico8_ob("1,0,1,2,", NULL);
-    g_ct = pico8_ob("-0.333,0,0.25,0.5,", NULL);
-    g_b_ = pico8_ob("0,100,200,400,", NULL);
-    g_co = pico8_ob("-5,0,1,1,", NULL);
-    g_fb = pico8_ob("2,2,5,5,7,7,10,10,14,14,14,19,19,19,", NULL);
-}
-
-const pico8_ob_table_t *pico8_es(void) {
-    return g_es;
-}
-
-const pico8_ob_table_t *pico8_ct(void) {
-    return g_ct;
-}
-
-const pico8_ob_table_t *pico8_b_(void) {
-    return g_b_;
-}
-
-const pico8_ob_table_t *pico8_co(void) {
-    return g_co;
-}
-
-const pico8_ob_table_t *pico8_fb(void) {
-    return g_fb;
+int pico8_fixed_seq_at(const pico8_fixed_t *seq, int count, int i, pico8_fixed_t *out) {
+    assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
+    if (i < 1 || i > count) {
+        return 0;
+    }
+    *out = seq[i - 1];
+    return 1;
 }
 
 pico8_fixed_t pico8_bn(void) {

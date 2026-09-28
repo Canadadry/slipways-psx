@@ -26,7 +26,7 @@ const pico8_ob_table_t *pico8_ha(void);
 const void *pico8_ha_pz(void);
 const pico8_struct_class_t *pico8_ha_pz_struct_class(void);
 
-/* An init frees the previous `ix`/`ha` and reparses both, so any row pointer
+/* An init frees the previous `ix`/`ha` and rebuilds both, so any row pointer
  * taken before it dangles after it. */
 void pico8_menu_init(void);
 void pico8_menu_shutdown(void);

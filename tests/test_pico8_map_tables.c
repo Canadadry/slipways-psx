@@ -9,9 +9,12 @@
 #include "../src/pico8_collect.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_game_data.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_pi.h"
 #include "../src/pico8_stash.h"
+#include "../src/pico8_vec.h"
 
 /* The table ob() parses from the string the cart parks at map address pd:
  * the reference every generated table is compared against. */
@@ -23,7 +26,34 @@ static pico8_ob_table_t *decode(const pico8_mem_t *mem, int pd) {
     return t;
 }
 
+static pico8_ob_table_t *parse(const char *s) {
+    return pico8_ob(s, NULL);
+}
+
 static int tables_equal(const pico8_ob_table_t *a, const pico8_ob_table_t *b, int count, const char *path);
+
+/* v(x, y) stores a heap vector, not a table, under these names only. */
+static int is_vec_name(const char *name) {
+    return strcmp(name, "ra") == 0 || strcmp(name, "hi") == 0 || strcmp(name, "gq") == 0;
+}
+
+static int vecs_equal(pico8_value_t a, pico8_value_t b, const char *path) {
+    const pico8_vec_t *va;
+    const pico8_vec_t *vb;
+
+    if (a.kind != PICO8_VALUE_REF || b.kind != PICO8_VALUE_REF || a.as.ref == NULL || b.as.ref == NULL) {
+        fprintf(stderr, "%s: not two vectors\n", path);
+        return 0;
+    }
+    va = a.as.ref;
+    vb = b.as.ref;
+    if (va->x != vb->x || va->y != vb->y) {
+        fprintf(stderr, "%s: vector (0x%x, 0x%x) != (0x%x, 0x%x)\n", path, (unsigned)va->x, (unsigned)va->y,
+                (unsigned)vb->x, (unsigned)vb->y);
+        return 0;
+    }
+    return 1;
+}
 
 static int values_equal(pico8_value_t a, pico8_value_t b, const char *path) {
     if (a.kind != b.kind) {
@@ -44,7 +74,11 @@ static int values_equal(pico8_value_t a, pico8_value_t b, const char *path) {
         }
         return 1;
     case PICO8_VALUE_BOOL:
-        return a.as.boolean == b.as.boolean;
+        if (a.as.boolean != b.as.boolean) {
+            fprintf(stderr, "%s: bool %d != %d\n", path, a.as.boolean, b.as.boolean);
+            return 0;
+        }
+        return 1;
     case PICO8_VALUE_REF:
         if (a.as.ref == NULL || b.as.ref == NULL) {
             return a.as.ref == b.as.ref;
@@ -80,6 +114,12 @@ static int tables_equal(const pico8_ob_table_t *a, const pico8_ob_table_t *b, in
             (ka->kind == PICO8_OB_KEY_NAME && strcmp(ka->name, kb->name) != 0)) {
             fprintf(stderr, "%s: key differs\n", sub);
             return 0;
+        }
+        if (ka->kind == PICO8_OB_KEY_NAME && is_vec_name(ka->name)) {
+            if (!vecs_equal(a->entries[i].value, b->entries[i].value, sub)) {
+                return 0;
+            }
+            continue;
         }
         if (!values_equal(a->entries[i].value, b->entries[i].value, sub)) {
             return 0;
@@ -248,6 +288,195 @@ static void test_fd_view_matches_the_decoded_table_plus_rr(const pico8_mem_t *me
     assert(records == PICO8_FD_COUNT - 8);
 }
 
+/* The start tree's literals, byte for byte: game_data.c (es, ct, b_, co, fb),
+ * data_init.c (df and its rename pass, ek), entity.c (ci), menu.c (ix, ha),
+ * help.c (bo), score_panel.c (ef, bz). */
+static const char *const ES_SRC = "1,0,1,2,";
+static const char *const CT_SRC = "-0.333,0,0.25,0.5,";
+static const char *const B__SRC = "0,100,200,400,";
+static const char *const CO_SRC = "-5,0,1,1,";
+static const char *const FB_SRC = "2,2,5,5,7,7,10,10,14,14,14,19,19,19,";
+static const char *const EK_SRC = "2,4,7,12,";
+static const char *const CI_SRC = "0.5,1,1,1,1,1,1,1,1,0,0,0,0,0,0,";
+static const char *const EF_SRC =
+    "\"JAN\",\"FEB\",\"MAR\",\"APR\",\"MAY\",\"JUN\",\"JUL\",\"AUG\",\"SEP\",\"OCT\",\"NOV\",\"DEC\",\"UND\","
+    "\"DUO\",\"TER\",";
+static const char *const DF_SRC = "\n"
+                                  "o(\"ll\",45,0,me=\"ll\"),\n"
+                                  "o(\"e\",160,4.5,\"earth-like\"),\n"
+                                  "o(\"f\",128,6,\"forgeworld\"),\n"
+                                  "o(\"m\",134,4,\"mineral\"),\n"
+                                  "o(\"o\",130,3,\"ocean\"),\n"
+                                  "o(\"r\",140,2.5,\"remnant\"),\n"
+                                  "o(\"x\",162,3,\"xeno\"),\n"
+                                  "o(\"j\",136,2,\"jungle\"),\n"
+                                  "o(\"i\",138,2,\"iceball\"),\n"
+                                  "o(\"s\",142,2,\"barren\"),\n"
+                                  "o(\"g\",96,4,\"gas giant\"),\n";
+static const char *const DF_PASS_SRC = "\n\"px\",\"s\",\"r\",\"d\",\n";
+static const char *const IX_SRC = "\n"
+                                  "o(\n"
+                                  "ra=v(118,0),\n"
+                                  "lq=o(o(15,7)),\n"
+                                  "),o(\n"
+                                  "ra=v(0,0),\n"
+                                  "lq=o(o(37,7)),\n"
+                                  "),o(\n"
+                                  "ra=v(47,0),\n"
+                                  "lq=o(o(25,7)),\n"
+                                  "),o(\n"
+                                  "ra=v(0,117),\n"
+                                  "lq=o(o(8,7)),\n"
+                                  "),\n";
+static const char *const HA_SRC = "\n"
+                                  "o(lq=o(31,\"restart     \")),\n"
+                                  "o(lq=o(42,\"toggle music\")),\n"
+                                  "o(lq=o(40,\"toggle sfx  \")),\n"
+                                  "o(lq=o(26,\"how to play?\"),fg=5,),\n"
+                                  "hi=v(0,107),gq=v(0,-11),\n"
+                                  "ca=14,\n";
+static const char *const BO_SRC = "\no(lq=o(49,\"forgiving   \"),px=\"forgiving\",\ntrade=7,en=-0.99),\n"
+                                  "o(lq=o(50,\"reasonable  \"),px=\"reasonable\",\ntrade=6,en=-0.6),\n"
+                                  "o(lq=o(51,\"challenging \"),px=\"challenging\",\ntrade=5,en=-0.4),\n"
+                                  "o(lq=o(52,\"tough       \"),px=\"tough\",\ntrade=4,en=-0.2),\n";
+static const char *const BZ_SRC = "\n"
+                                  "o(26,86,0,fn=\"br\"),\n"
+                                  "o(51,59,1,fn=\"br\"),\n"
+                                  "o(76,77,1,fn=\"br\"),\n"
+                                  "o(24,25,1,fn=\"br\"),\n"
+                                  "o(33,41,1,fn=\"br\"),\n"
+                                  "o(\"\",score=0,ra=v(64,21),c=5),\n"
+                                  "o(55,\"planets:   \",\n"
+                                  "score=1,ra=v(64,34)),\n"
+                                  "o(19,\"population:\",\n"
+                                  "score=2,ra=v(64,43)),\n"
+                                  "o(24,\"technology:\",\n"
+                                  "score=3,ra=v(64,52)),\n"
+                                  "o(o(27,5),o(f,0),f,o(25,5),\"happiness\",\n"
+                                  "score=4,ra=v(64,61)),\n"
+                                  "o(\"total:\",\"\",\n"
+                                  "score=5,ra=v(64,74)),\n"
+                                  "o(score=6,ra=v(64,82)),\n";
+
+/* Entry i of the parsed reference is positional i + 1 and its number. */
+static pico8_fixed_t positional_fixed(const pico8_ob_table_t *ref, int i) {
+    assert(ref->entries[i].key.kind == PICO8_OB_KEY_INDEX);
+    assert(ref->entries[i].key.index == i + 1);
+    assert(ref->entries[i].value.kind == PICO8_VALUE_FIXED);
+    return ref->entries[i].value.as.fixed;
+}
+
+static void check_int_seq(const char *src, const int *seq, int count) {
+    pico8_ob_table_t *ref = parse(src);
+    int out = -12345;
+    int i;
+
+    assert(ref->count == count);
+    for (i = 0; i < count; i++) {
+        assert(positional_fixed(ref, i) == pico8_fixed_from_int(seq[i]));
+        assert(pico8_int_seq_at(seq, count, i + 1, &out));
+        assert(out == seq[i]);
+    }
+    out = -12345;
+    assert(!pico8_int_seq_at(seq, count, 0, &out));
+    assert(!pico8_int_seq_at(seq, count, count + 1, &out));
+    assert(out == -12345);
+}
+
+static void check_fixed_seq(const char *src, const pico8_fixed_t *seq, int count) {
+    pico8_ob_table_t *ref = parse(src);
+    pico8_fixed_t out = -12345;
+    int i;
+
+    assert(ref->count == count);
+    for (i = 0; i < count; i++) {
+        assert(positional_fixed(ref, i) == seq[i]);
+        assert(pico8_fixed_seq_at(seq, count, i + 1, &out));
+        assert(out == seq[i]);
+    }
+    out = -12345;
+    assert(!pico8_fixed_seq_at(seq, count, 0, &out));
+    assert(!pico8_fixed_seq_at(seq, count, count + 1, &out));
+    assert(out == -12345);
+}
+
+static void test_leaf_tables_match_their_parsed_literal_in_order(void) {
+    pico8_ob_table_t *ef = parse(EF_SRC);
+    int i;
+
+    check_int_seq(ES_SRC, pico8_es_table, PICO8_ES_COUNT);
+    check_fixed_seq(CT_SRC, pico8_ct_table, PICO8_CT_COUNT);
+    check_int_seq(B__SRC, pico8_b__table, PICO8_B__COUNT);
+    check_int_seq(CO_SRC, pico8_co_table, PICO8_CO_COUNT);
+    check_int_seq(FB_SRC, pico8_fb_table, PICO8_FB_COUNT);
+    check_int_seq(EK_SRC, pico8_ek_table, PICO8_EK_COUNT);
+    check_fixed_seq(CI_SRC, pico8_ci_table, PICO8_CI_COUNT);
+
+    assert(ef->count == PICO8_EF_COUNT);
+    for (i = 0; i < PICO8_EF_COUNT; i++) {
+        assert(ef->entries[i].key.kind == PICO8_OB_KEY_INDEX && ef->entries[i].key.index == i + 1);
+        assert(ef->entries[i].value.kind == PICO8_VALUE_STRING);
+        assert(strcmp(ef->entries[i].value.as.string, pico8_ef_table[i]) == 0);
+    }
+}
+
+/* The cart's px/s/r/d rename pass, redone on the parsed df: each record
+ * gains px, s, r and d (when present) by name, and df gains px -> record. */
+static pico8_ob_table_t *df_reference(void) {
+    pico8_ob_table_t *df = parse(DF_SRC);
+    pico8_ob_table_t *mr = parse(DF_PASS_SRC);
+    pico8_ob_table_t *records[PICO8_DF_COUNT];
+    int i;
+
+    assert(df->count == PICO8_DF_COUNT);
+    for (i = 0; i < PICO8_DF_COUNT; i++) {
+        assert(df->entries[i].value.kind == PICO8_VALUE_REF);
+        records[i] = df->entries[i].value.as.ref;
+    }
+    for (i = 0; i < PICO8_DF_COUNT; i++) {
+        pico8_ho_apply(df, mr, NULL, records[i]);
+    }
+    return df;
+}
+
+static void test_df_view_matches_the_parsed_table_after_its_pass(void) {
+    pico8_ob_table_t *ref = df_reference();
+    const pico8_ob_table_t *df = pico8_df();
+    int i;
+
+    assert(ref->count == 2 * PICO8_DF_COUNT);
+    assert(df->count == ref->count);
+    assert(tables_equal(df, ref, ref->count, "df"));
+    for (i = 0; i < PICO8_DF_COUNT; i++) {
+        assert(df->entries[PICO8_DF_COUNT + i].key.kind == PICO8_OB_KEY_NAME);
+        assert(df->entries[PICO8_DF_COUNT + i].value.as.ref == df->entries[i].value.as.ref);
+    }
+}
+
+static void check_view(pico8_ob_table_t *view, const char *src, const char *name) {
+    pico8_ob_table_t *ref = parse(src);
+
+    assert(view->count == ref->count);
+    assert(tables_equal(view, ref, ref->count, name));
+    pico8_ob_table_free(view);
+}
+
+static void test_ix_bo_bz_views_match_their_parsed_literal(void) {
+    check_view(pico8_ix_view(), IX_SRC, "ix");
+    check_view(pico8_bo_view(), BO_SRC, "bo");
+    check_view(pico8_bz_view(), BZ_SRC, "bz");
+}
+
+static void test_ha_view_matches_its_parsed_literal_with_two_vectors(void) {
+    pico8_ob_table_t *ha = pico8_ha_view();
+    pico8_value_t hi;
+    pico8_value_t gq;
+
+    assert(pico8_ob_table_get_name(ha, "hi", &hi) && pico8_ob_table_get_name(ha, "gq", &gq));
+    assert(hi.as.ref != gq.as.ref);
+    check_view(ha, HA_SRC, "ha");
+}
+
 int main(void) {
     pico8_mem_t mem;
 
@@ -258,7 +487,13 @@ int main(void) {
     test_iz_matches_the_decoded_table_in_order(&mem);
     test_hc_matches_the_decoded_table_in_order(&mem);
 
+    pico8_pi_init();
+    test_leaf_tables_match_their_parsed_literal_in_order();
+    test_ix_bo_bz_views_match_their_parsed_literal();
+    test_ha_view_matches_its_parsed_literal_with_two_vectors();
+
     pico8_data_init(&mem);
+    test_df_view_matches_the_parsed_table_after_its_pass();
     test_dr_view_matches_the_decoded_table(&mem);
     test_nb_view_matches_the_decoded_table_after_its_pass(&mem);
     test_fd_view_matches_the_decoded_table_plus_rr(&mem);

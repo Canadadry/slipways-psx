@@ -6,15 +6,15 @@
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
-/* (Re)builds hv, cv, cg and ci to a fresh, empty state, freeing the
+/* (Re)builds hv, cv and cg to a fresh, empty state, freeing the
  * previous build first via pico8_entity_shutdown(), and puts back the
- * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc, mv, ci or
+ * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc, mv or
  * mo below is used. pico8_jl() (pico8_bootstrap.c) calls it, then replaces
  * the placeholder mo through pico8_entity_set_mo(). */
 void pico8_entity_init(void);
 
-/* Releases this module's own bookkeeping (hv/cv/cg's backing arrays, ci's
- * table); mo is never freed: the placeholder is static, a `qb` struct in
+/* Releases this module's own bookkeeping (hv/cv/cg's backing arrays); mo
+ * is never freed: the placeholder is static, a `qb` struct in
  * its place is dropped (TROU-7). Nor are the entities registered in
  * hv/cv/cg, which stay owned by whoever instantiated them. A second
  * call, or a call before the first pico8_entity_init(), is a no-op. */
@@ -62,11 +62,6 @@ int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_
              pico8_value_t *out_value);
 
 void pico8_dc(const char *nt);
-
-/* The per-layer blend factors dc()'s `kj` branch indexes into, 1-indexed
- * as in the cart. Owned by this module (built and freed by
- * pico8_entity_init()/_shutdown()); callers must not free it. */
-const pico8_ob_table_t *pico8_ci(void);
 
 /* Until pico8_jl() runs, the placeholder struct, with no field and no
  * method, so that dc()'s `mo:md(ci[o])` has an object to dispatch through;

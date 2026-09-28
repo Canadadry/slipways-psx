@@ -37,12 +37,12 @@ typedef struct {
     const char *ep;
 } pico8_pj_cr_t;
 
-/* Calls `pico8_pi_init()` first: the `pj` spec and `bz` both contain
- * `v(...)`, so the 'v' constructor must be registered before either spec is
- * parsed. Builds `ef` and `bz` alongside the spec. */
+/* Calls `pico8_pi_init()` first: the `pj` spec contains `v(...)`, so the
+ * 'v' constructor must be registered before it is parsed. Builds `bz`
+ * alongside the spec. */
 void pico8_score_panel_init(void);
 
-/* Frees the `pj` spec, `ef` and `bz`. Resets `ju` to NULL without freeing
+/* Frees the `pj` spec and `bz`. Resets `ju` to NULL without freeing
  * the instance it named: `ju` is a bookmark, `hv` owns the entity. */
 void pico8_score_panel_shutdown(void);
 
@@ -74,9 +74,6 @@ pico8_pj_t *pico8_pj_new(const pico8_ob_table_t *overrides);
 
 /* REF NULL for a NULL panel. */
 pico8_value_t pico8_pj_ed(const pico8_pj_t *self);
-
-/* Owned by this module, freed by `pico8_score_panel_shutdown()`. */
-const pico8_ob_table_t *pico8_ef(void);
 
 /* Owned by this module, freed by `pico8_score_panel_shutdown()`. Its rows
  * are rewritten in place by every `pj:ph()` run -- they are the shared

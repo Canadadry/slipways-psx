@@ -5,11 +5,11 @@
 #include <string.h>
 
 #include "pico8_collect.h"
-#include "pico8_data_init.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_economy_score.h"
 #include "pico8_economy_tiers.h"
 #include "pico8_entity.h"
+#include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_tech_gate.h"
@@ -388,10 +388,9 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_ob_table_t *t) {
 
     ew = self->ew;
     if (ew < pico8_fixed_from_int(4)) {
-        const pico8_ob_table_t *ek = pico8_ek();
-        pico8_value_t threshold_val;
-        if (ek != NULL && pico8_ob_table_get_index(ek, pico8_fixed_flr_int(ew), &threshold_val) &&
-            threshold_val.kind == PICO8_VALUE_FIXED && pico8_fixed_from_int(count) >= threshold_val.as.fixed) {
+        int threshold;
+        if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(ew), &threshold) &&
+            pico8_fixed_from_int(count) >= pico8_fixed_from_int(threshold)) {
             self->ew = pico8_fixed_add(ew, pico8_fixed_from_int(1));
         }
     }

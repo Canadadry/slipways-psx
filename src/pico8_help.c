@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
@@ -338,11 +339,7 @@ void pico8_help_init(void) {
 
     pico8_help_shutdown();
 
-    g_bo = pico8_ob("\no(lq=o(49,\"forgiving   \"),px=\"forgiving\",\ntrade=7,en=-0.99),\n"
-                     "o(lq=o(50,\"reasonable  \"),px=\"reasonable\",\ntrade=6,en=-0.6),\n"
-                     "o(lq=o(51,\"challenging \"),px=\"challenging\",\ntrade=5,en=-0.4),\n"
-                     "o(lq=o(52,\"tough       \"),px=\"tough\",\ntrade=4,en=-0.2),\n",
-                     NULL);
+    g_bo = pico8_bo_view();
 
     g_fv_spec = pico8_ob("\nfa=10,ra=v(64,28),\nhi=v(34,56),\nca=11,\ngq=v(0,11),\neo=-1,\nff=1,\nfc=5,"
                          "\nk_=o(0,1,1,2,4,9,10,9,4,2,1,1,1),\nqo=1.02,ro=-0.007,\nqg=0.007,q_=1.02,"

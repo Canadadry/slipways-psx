@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
@@ -23,7 +24,6 @@
 #include "pico8_vec.h"
 
 static pico8_ob_table_t *g_pj_spec = NULL;
-static pico8_ob_table_t *g_ef = NULL;
 static pico8_ob_table_t *g_bz = NULL;
 static pico8_pj_t *g_ju = NULL;
 
@@ -225,7 +225,6 @@ void pico8_eg(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
     pico8_list_t filtered;
     pico8_fixed_t ps;
-    const pico8_ob_table_t *fb;
     int i;
 
     filtered = pico8_jp(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
@@ -236,20 +235,12 @@ void pico8_eg(void) {
         return;
     }
 
-    fb = pico8_fb();
-    if (fb == NULL) {
-        return;
-    }
-
-    for (i = 1; i <= fb->count; i++) {
-        pico8_value_t ny_val;
-        if (pico8_ob_table_get_index(fb, i, &ny_val) && ny_val.kind == PICO8_VALUE_FIXED) {
-            int ny = pico8_fixed_flr_int(ny_val.as.fixed);
-            int pd = 0x3101 + 4 * ny;
-            unsigned char cur = pico8_peek(mem, pd);
-            int newval = (cur % 128) + ((ps < pico8_fixed_from_int(i)) ? 128 : 0);
-            pico8_poke(mem, pd, (unsigned char)newval);
-        }
+    for (i = 1; i <= PICO8_FB_COUNT; i++) {
+        int ny = pico8_fb_table[i - 1];
+        int pd = 0x3101 + 4 * ny;
+        unsigned char cur = pico8_peek(mem, pd);
+        int newval = (cur % 128) + ((ps < pico8_fixed_from_int(i)) ? 128 : 0);
+        pico8_poke(mem, pd, (unsigned char)newval);
     }
 }
 
@@ -303,11 +294,8 @@ void pico8_pj_hb(void) {
     free(happiness_str);
 
     {
-        pico8_value_t ef_val = pico8_value_ref(NULL);
-        if (g_ef != NULL) {
-            pico8_ob_table_get_index(g_ef, pico8_fixed_flr_int(fm_lo), &ef_val);
-        }
-        ou[5] = ef_val;
+        int lo = pico8_fixed_flr_int(fm_lo);
+        ou[5] = (lo >= 1 && lo <= PICO8_EF_COUNT) ? pico8_value_string(pico8_ef_table[lo - 1]) : pico8_value_ref(NULL);
     }
 
     ou[6] = fm_yr;
@@ -489,30 +477,7 @@ void pico8_score_panel_init(void) {
 
     pico8_pi_init();
 
-    g_ef = pico8_ob(
-        "\"JAN\",\"FEB\",\"MAR\",\"APR\",\"MAY\",\"JUN\",\"JUL\",\"AUG\",\"SEP\",\"OCT\",\"NOV\",\"DEC\",\"UND\","
-        "\"DUO\",\"TER\",",
-        NULL);
-
-    g_bz = pico8_ob("\n"
-                     "o(26,86,0,fn=\"br\"),\n"
-                     "o(51,59,1,fn=\"br\"),\n"
-                     "o(76,77,1,fn=\"br\"),\n"
-                     "o(24,25,1,fn=\"br\"),\n"
-                     "o(33,41,1,fn=\"br\"),\n"
-                     "o(\"\",score=0,ra=v(64,21),c=5),\n"
-                     "o(55,\"planets:   \",\n"
-                     "score=1,ra=v(64,34)),\n"
-                     "o(19,\"population:\",\n"
-                     "score=2,ra=v(64,43)),\n"
-                     "o(24,\"technology:\",\n"
-                     "score=3,ra=v(64,52)),\n"
-                     "o(o(27,5),o(f,0),f,o(25,5),\"happiness\",\n"
-                     "score=4,ra=v(64,61)),\n"
-                     "o(\"total:\",\"\",\n"
-                     "score=5,ra=v(64,74)),\n"
-                     "o(score=6,ra=v(64,82)),\n",
-                     NULL);
+    g_bz = pico8_bz_view();
 
     g_pj_spec = pico8_ob(
         "\nfa=10,\nea=o(\no(42,43,1,fn=\"br\"),\no(\"\",64,40,6,0.5,fn=\"qr\"),\n),\n"
@@ -549,10 +514,6 @@ void pico8_score_panel_shutdown(void) {
     pico8_pj_defaults_reset();
     pico8_ob_table_free(g_pj_spec);
     g_pj_spec = NULL;
-    if (g_ef != NULL) {
-        pico8_ob_table_free(g_ef);
-        g_ef = NULL;
-    }
     if (g_bz != NULL) {
         pico8_ob_table_free(g_bz);
         g_bz = NULL;
@@ -576,10 +537,6 @@ const pico8_struct_class_t *pico8_pj_struct_class(void) {
 
 pico8_pj_t *pico8_pj_new(const pico8_ob_table_t *overrides) {
     return pico8_pj_struct_new(overrides);
-}
-
-const pico8_ob_table_t *pico8_ef(void) {
-    return g_ef;
 }
 
 const pico8_ob_table_t *pico8_bz(void) {

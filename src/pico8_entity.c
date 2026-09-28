@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_game_data.h"
 #include "pico8_struct.h"
 
 #define PICO8_BM_COUNT 5
@@ -29,7 +30,6 @@ static int g_cg_count = 0;
 static int g_cg_capacity = 0;
 
 static pico8_list_t g_hv;
-static pico8_ob_table_t *g_ci = NULL;
 static pico8_struct_header_t *g_mo = NULL;
 static int g_initialized = 0;
 
@@ -122,9 +122,6 @@ void pico8_entity_shutdown(void) {
     g_cg_count = 0;
     g_cg_capacity = 0;
 
-    pico8_ob_table_free(g_ci);
-    g_ci = NULL;
-
     /* TROU-7 */
     g_mo = NULL;
 
@@ -142,8 +139,6 @@ void pico8_entity_init(void) {
         g_cv[i].name = g_bm_names[i];
         pico8_list_init(&g_cv[i].list);
     }
-
-    g_ci = pico8_ob("0.5,1,1,1,1,1,1,1,1,0,0,0,0,0,0,", NULL);
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
 
@@ -317,10 +312,10 @@ void pico8_dc(const char *nt) {
         pico8_list_t *bucket = &layers[o - 1];
 
         if (strcmp(nt, "kj") == 0 && bucket->count > 0) {
-            pico8_value_t ci_val;
-            if (pico8_ob_table_get_index(g_ci, o, &ci_val)) {
+            pico8_fixed_t ci;
+            if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, o, &ci)) {
                 pico8_value_t discard;
-                pico8_mv(g_mo, "md", 1, ci_val, pico8_value_ref(NULL), &discard);
+                pico8_mv(g_mo, "md", 1, pico8_value_fixed(ci), pico8_value_ref(NULL), &discard);
             }
         }
 
@@ -342,10 +337,6 @@ void pico8_dc(const char *nt) {
     for (i = 0; i < 15; i++) {
         pico8_list_free(&layers[i]);
     }
-}
-
-const pico8_ob_table_t *pico8_ci(void) {
-    return g_ci;
 }
 
 const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void) {
