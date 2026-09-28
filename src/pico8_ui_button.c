@@ -668,9 +668,8 @@ static const pico8_struct_class_t g_fq_struct_class = {
     pico8_fq_set_field,
 };
 
-static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     pico8_fq_t *self = malloc(sizeof *self);
-    int i;
 
     pico8_ke_struct_init(&self->ke, &g_fq_struct_class);
     self->fa = pico8_fq_start.fa;
@@ -680,14 +679,8 @@ static void *pico8_fq_struct_new(const pico8_ob_table_t *overrides) {
     self->has_p_ = 0;
     self->m_ = 0;
     self->has_m_ = 0;
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        pico8_ob_key_t key = overrides->entries[i].key;
-
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "my") == 0) {
-            button_take_function(overrides->entries[i].value, &self->my);
-        } else {
-            assert(0 && "fq: the only key is my; another key has no member -- stop, do not add one");
-        }
+    if (keys != NULL) {
+        self->my = keys->my;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fq");
@@ -713,8 +706,8 @@ const pico8_struct_class_t *pico8_fq_struct_class(void) {
     return &g_fq_struct_class;
 }
 
-pico8_fq_t *pico8_fq_new(const pico8_ob_table_t *overrides) {
-    return pico8_fq_struct_new(overrides);
+pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys) {
+    return pico8_fq_struct_new(keys);
 }
 
 pico8_value_t pico8_fq_ldown(pico8_fq_t *self) {

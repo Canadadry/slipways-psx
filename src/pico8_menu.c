@@ -361,10 +361,11 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     return pico8_value_ref(NULL);
 }
 
-/* `de` is borrowed from pico8_score_panel_display.c: the same table `pj:ph()`
- * uses, not a copy. */
+/* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,
+ * the one `pj:ph()` uses. */
 static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_pj_t *ju = pico8_ju();
+    pico8_fq_keys_t keys = {0};
     pico8_fq_t *built;
     (void)self;
     (void)argc;
@@ -374,7 +375,8 @@ static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t a
         ju->c_ = 1;
         ju->has_c_ = 1;
     }
-    built = pico8_fq_new(pico8_de());
+    keys.my = pico8_de_my();
+    built = pico8_fq_new(&keys);
     (void)built;
     return pico8_value_ref(NULL);
 }

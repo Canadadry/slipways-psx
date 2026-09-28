@@ -87,7 +87,7 @@ static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{PICO8_TYPE_TAG_STRUCT, 
 
 pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
     pico8_value_t gv_result;
-    pico8_ob_table_t *overrides;
+    pico8_jc_keys_t keys = {0};
     pico8_jc_t *made;
 
     if (self == NULL) {
@@ -101,10 +101,8 @@ pico8_value_t pico8_nr_ldown(pico8_nr_t *self) {
     }
 
     assert(pico8_jc_ready() && "pico8_jc_init() must run before nr:ldown builds a jc");
-    overrides = pico8_ob_table_new();
-    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
-    made = pico8_jc_new(overrides);
-    pico8_ob_table_free(overrides);
+    keys.qu = (pico8_struct_header_t *)self;
+    made = pico8_jc_new(&keys);
     return pico8_value_ref(made);
 }
 

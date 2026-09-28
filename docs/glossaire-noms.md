@@ -17,6 +17,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `kv:jr` : `mw(ob)` | `pico8_jo_keys_t` (`pico8_struct.h`) | les clés de construction de l'arbre `jo`, que le constructeur de classe copie dans l'instance : `id`, `p`, `ra`, NULL = absente (une clé nil n'existe pas) ; `qh`, `nl`, `os`, `hj`, `fr`, `mx` ne prennent que `id` |
 | — | `pico8_ga_keys_t` (`pico8_planet_family.h`) | les clés de `ga` : celles de `jo` (`jo:hu`), puis `pq`, le groupe que passe `pm:pq` (NULL : défauts de `ga`) |
 | — | `pico8_ga_pq_keys_t`, `pico8_pm_ga_pq_keys` (`pico8_game_data.h`) | les clés que `pm:pq` passe au `ga` qu'il fait naître, hors `ra` : `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` et `k_`, générées depuis la chaîne du cart |
+| — | `pico8_iv_keys_t` (`pico8_msgbox.h`) | les clés d'un toast `iv` : `ra`, `at1` (`[1]`, le texte), `at2` (`[2]`, la couleur) ; NULL ou 0 = absente |
+| — | `pico8_jc_keys_t` (`pico8_slipway.h`) | la clé `qu` d'un slipway `jc`, planète de départ (NULL = nil) |
+| — | `pico8_fq_keys_t` (`pico8_ui_button.h`) | la clé `my` d'un fond modal `fq` (NULL = nil) |
 | `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; plus aucune classe n'a de spec parsée : ses clés sont `pico8_X_start`, que son constructeur lit, l'héritage passant par le constructeur de la parente |
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
 | — | `pico8_X_kind_field` | le `field` d'une sorte de l'arbre `jo` : `rr`, `s`, `me`, `od` seulement, depuis `pico8_X_start` de la classe qui les pose, puis la parente ; fin `pico8_jo_kind_field` |
@@ -507,6 +510,7 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `ef` | `pico8_ef_table` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
 | `bz` | `pico8_bz_table` (typée), `pico8_bz()` (vue ob, `pico8_bz_view`) | les rangées du détail de score |
 | `de` | `pico8_de` | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau. Il ne doit y en avoir qu'une |
+| `de.my` | `pico8_de_my` | la fonction que porte `de`, seule clé que `fq(de)` de `ix[3]` lit |
 | `ix` | `pico8_ix_table`, `pico8_ix()` | les 4 boutons de la vue galaxie |
 | `ha` | `pico8_ha_table`, `pico8_ha()` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |

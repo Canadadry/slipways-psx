@@ -19,8 +19,10 @@ void pico8_pj_hk(pico8_fixed_t yr);
 void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);
 
-/* The cart's one `de` table, borrowed: `pj:ph` and `ix[3]` both read this
- * one, so a second table would leave them with separate `my` fields. */
+/* The cart's one `de` table, borrowed: `pj:ph` parses `spec2` over it. */
 const pico8_ob_table_t *pico8_de(void);
+
+/* The function `de.my` holds: `fq(de)` of `ix[3]` reads nothing else. */
+pico8_value_function_t pico8_de_my(void);
 
 #endif

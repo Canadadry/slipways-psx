@@ -410,13 +410,10 @@ static void *the_slipway(void) {
 }
 
 static void *build_jc(void *qu) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    void *made;
+    pico8_jc_keys_t keys = {0};
 
-    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    made = pico8_jc_new(overrides);
-    pico8_ob_table_free(overrides);
-    return made;
+    keys.qu = qu;
+    return pico8_jc_new(&keys);
 }
 
 static pico8_value_t vec_ref(int x, int y) {
@@ -923,35 +920,24 @@ static void write_fa(void *jc) {
     pico8_entity_set_field(jc, "fa", pico8_value_fixed(0));
 }
 
-static void build_with_ra(void *qu) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-
-    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(NULL));
-    (void)pico8_jc_new(overrides);
-}
-
 /* Built by `jo:ldown`/`nr:ldown` or directly, a `jc`
  * is a struct with its five methods; a generic write of a name other than
- * `fo`/`p_`, or a construction key other than `qu`, stops the run instead
- * of growing a member. */
+ * `fo`/`p_` stops the run instead of growing a member. */
 static void test_jc_is_a_struct(void) {
     static const char *const methods[] = {"hq", "ey", "eb", "ev", "kj"};
     static const char *const not_methods[] = {"kz", "ph", "ldown", "rdown", "gv", "md"};
     void *old;
     void *jc;
     void *others[3];
-    pico8_ob_table_t *overrides;
+    pico8_jc_keys_t keys = {0};
     void *direct;
     size_t i;
 
     world();
     old = the_slipway();
     jc = build_jc(get_ref(old, "qu"));
-    overrides = pico8_ob_table_new();
-    pico8_ob_table_set_name(overrides, "qu", get(old, "qu"));
-    direct = pico8_jc_new(overrides);
-    pico8_ob_table_free(overrides);
+    keys.qu = get_ref(old, "qu");
+    direct = pico8_jc_new(&keys);
     assert(get_ref(direct, "qu") == get_ref(old, "qu"));
     assert(is_a_jc_struct(old) && is_a_jc_struct(jc) && is_a_jc_struct(direct));
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
@@ -970,7 +956,6 @@ static void test_jc_is_a_struct(void) {
     must_abort(write_re, jc);
     must_abort(write_nh, jc);
     must_abort(write_fa, jc);
-    must_abort(build_with_ra, get_ref(old, "qu"));
 
     others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
@@ -1441,7 +1426,7 @@ static void test_jc_members_by_name(void) {
     const pico8_struct_class_t *want_cls[9];
     uint32_t h = 2166136261u;
     uint32_t before;
-    pico8_ob_table_t *b;
+    pico8_jc_keys_t keys = {0};
     pico8_value_t v;
     void *fresh[4];
     void *ly;
@@ -1460,9 +1445,7 @@ static void test_jc_members_by_name(void) {
     ly = first_with_me("jo", "ly");
     assert(ly != NULL);
     fresh[0] = pico8_jc_new(NULL);
-    b = pico8_ob_table_new();
-    fresh[1] = pico8_jc_new(b);
-    pico8_ob_table_free(b);
+    fresh[1] = pico8_jc_new(&keys);
     fresh[2] = build_jc(ly);
     fresh[3] = call(ly, "ldown", pico8_value_ref(NULL)).as.ref;
     for (k = 0; k < 4; k++) {
@@ -1506,10 +1489,8 @@ static void test_jc_members_by_name(void) {
         check_fresh_members(made, qu_of[k], fresh[0]);
         h = fold_jc_members(h, made);
     }
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "qu", pico8_value_ref(NULL));
-    jc = pico8_jc_new(b);
-    pico8_ob_table_free(b);
+    keys.qu = NULL;
+    jc = pico8_jc_new(&keys);
     check_fresh_members(jc, NULL, fresh[0]);
     h = fold_jc_members(h, jc);
 
@@ -1635,11 +1616,11 @@ static void write_off_row(void *e) {
 }
 
 static void build_off_row(void *e) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jc_keys_t keys = {0};
 
     (void)e;
-    pico8_ob_table_set_name(b, g_off_name, g_off_row);
-    (void)pico8_jc_new(b);
+    keys.qu = g_off_row.as.ref;
+    (void)pico8_jc_new(&keys);
 }
 
 static void stops_on(void (*write)(void *), void *e, const char *name, const pico8_value_t *off, size_t n) {
@@ -1707,12 +1688,7 @@ static void test_jc_writer_stops_off_row(void) {
         stops_on(write_off_row, old, "p_", off, sizeof off / sizeof off[0]);
     }
     {
-        const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)),
-                                     zero_union(PICO8_VALUE_FIXED),
-                                     pico8_value_bool(1),
-                                     zero_union(PICO8_VALUE_BOOL),
-                                     pico8_value_string("x"),
-                                     table,
+        const pico8_value_t off[] = {table,
                                      vec,
                                      ga,
                                      pico8_value_ref(pico8_g__new(NULL)),

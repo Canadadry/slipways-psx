@@ -478,12 +478,11 @@ static void test_life(void) {
 /* A slipway from `qu` to the synthesizer, joined by its real `ey`: `jc:ey`
  * charges the player, then runs `kf` on both ends. */
 static void *join(void *qu, void *synthesizer) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_jc_keys_t jc_keys = {0};
     void *jc;
 
-    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    jc = pico8_jc_new(overrides);
-    pico8_ob_table_free(overrides);
+    jc_keys.qu = qu;
+    jc = pico8_jc_new(&jc_keys);
     assert(jc != NULL);
     set_credits(999);
     (void)call(jc, "ey", 1, pico8_value_ref(synthesizer), pico8_value_ref(NULL));

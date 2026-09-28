@@ -348,3 +348,7 @@ void pico8_score_panel_display_shutdown(void) {
 const pico8_ob_table_t *pico8_de(void) {
     return g_de;
 }
+
+pico8_value_function_t pico8_de_my(void) {
+    return pico8_pj_de_my_dispatch;
+}

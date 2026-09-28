@@ -103,9 +103,14 @@ void pico8_fq_shutdown(void);
 int pico8_fq_ready(void);
 const pico8_struct_class_t *pico8_fq_struct_class(void);
 
-/* `overrides` is read, not kept: `my` only. The struct registers itself
+/* The cart's key `my` of a veil: NULL is nil. */
+typedef struct {
+    pico8_value_function_t my;
+} pico8_fq_keys_t;
+
+/* `keys` is read, not kept (NULL: none). The struct registers itself
  * through `lt`, and nothing frees it. */
-pico8_fq_t *pico8_fq_new(const pico8_ob_table_t *overrides);
+pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys);
 
 pico8_value_t pico8_fq_ldown(pico8_fq_t *self);
 

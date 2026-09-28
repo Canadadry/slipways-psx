@@ -452,7 +452,7 @@ static void *a_planet(void) {
  * rest, its `re` set directly; its middle is the returned point. */
 static void *a_slipway(pico8_vec_t *middle) {
     pico8_jo_keys_t keys;
-    pico8_ob_table_t *b;
+    pico8_jc_keys_t jc_keys = {0};
     void *qu;
     void *re;
     void *jc;
@@ -467,10 +467,8 @@ static void *a_slipway(pico8_vec_t *middle) {
     keys.p = vec_ref(re_p).as.ref;
     keys.id = "s92";
     re = pico8_jo_new(&keys);
-    b = pico8_ob_table_new();
-    pico8_ob_table_set_name(b, "qu", pico8_value_ref(qu));
-    jc = pico8_jc_new(b);
-    pico8_ob_table_free(b);
+    jc_keys.qu = qu;
+    jc = pico8_jc_new(&jc_keys);
     ((pico8_jc_t *)jc)->re = re;
     *middle = pico8_vec_div(pico8_vec_add(qu_p, re_p), pico8_fixed_from_int(2));
     return jc;

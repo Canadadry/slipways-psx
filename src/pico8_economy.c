@@ -240,17 +240,15 @@ void pico8_hy_hk(pico8_hy_t *self) {
 
 int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
     pico8_fixed_t nz;
-    pico8_ob_table_t *overrides;
+    pico8_iv_keys_t keys = {0};
 
     assert_hy(self);
     nz = self != NULL ? self->nz : pico8_fixed_from_int(0);
 
     if (nz < jt) {
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_index(overrides, 1, pico8_value_string("-no money-"));
-        pico8_ob_table_set_index(overrides, 2, pico8_value_fixed(pico8_fixed_from_int(8)));
-        pico8_iv_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.at1 = "-no money-";
+        keys.at2 = pico8_fixed_from_int(8);
+        pico8_iv_new(&keys);
         return 0;
     }
 
@@ -261,11 +259,9 @@ int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
     if (jt != pico8_fixed_from_int(0)) {
         int color;
         char *text = pico8_ne(pico8_fixed_neg(jt), 10, "$", &color);
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_index(overrides, 1, pico8_value_string(text));
-        pico8_ob_table_set_index(overrides, 2, pico8_value_fixed(pico8_fixed_from_int(color)));
-        pico8_iv_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.at1 = text;
+        keys.at2 = pico8_fixed_from_int(color);
+        pico8_iv_new(&keys);
         /* `text` is now owned by the new `iv` instance, which reads it every
          * frame it stays on screen: not freed here. */
     }

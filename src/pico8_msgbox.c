@@ -335,36 +335,8 @@ static const pico8_struct_class_t g_iv_struct_class = {
     NULL,
 };
 
-static void iv_take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "iv.ra: a key neither nil nor a vector ref does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void iv_take_string(pico8_value_t value, const char **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_STRING && value.as.string != NULL &&
-           "iv.at1: a key neither nil nor a string does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.string;
-}
-
-static void iv_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
-    assert(value.kind == PICO8_VALUE_FIXED &&
-           "iv.at2: a key that is not a fixed does not fit the member's type and at2 has no presence flag "
-           "-- stop, do not widen the member");
-    *out = value.as.fixed;
-}
-
-static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     pico8_iv_t *self = malloc(sizeof *self);
-    int i;
 
     pico8_ke_struct_init(&self->ke, &g_iv_struct_class);
     self->fa = pico8_iv_start.fa;
@@ -375,19 +347,10 @@ static void *pico8_iv_struct_new(const pico8_ob_table_t *overrides) {
     self->has_p_ = 0;
     self->at1 = NULL;
     self->at2 = pico8_fixed_from_int(0);
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        pico8_ob_key_t key = overrides->entries[i].key;
-        pico8_value_t value = overrides->entries[i].value;
-
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "ra") == 0) {
-            iv_take_vec(value, &self->ra);
-        } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 1) {
-            iv_take_string(value, &self->at1);
-        } else if (key.kind != PICO8_OB_KEY_NAME && key.index == 2) {
-            iv_take_fixed(value, &self->at2);
-        } else {
-            assert(0 && "iv: every key is ra, [1] or [2]; another key has no member -- stop, do not add one");
-        }
+    if (keys != NULL) {
+        self->ra = keys->ra;
+        self->at1 = keys->at1;
+        self->at2 = keys->at2;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("iv");
@@ -411,8 +374,8 @@ int pico8_iv_ready(void) {
     return g_iv_up;
 }
 
-pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides) {
-    return pico8_iv_struct_new(overrides);
+pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys) {
+    return pico8_iv_struct_new(keys);
 }
 
 typedef struct {

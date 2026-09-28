@@ -259,7 +259,7 @@ static pico8_hp_t *project(int k) {
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
     const pico8_list_t *jos;
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     pico8_value_t out;
     void *qu;
@@ -280,9 +280,8 @@ static void built_world(void) {
     pico8_jo_hu(qu, project(COLONY));
     pico8_jo_hu(re, project(EXPORTER));
 
-    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    jc = pico8_jc_new(overrides);
-    pico8_ob_table_free(overrides);
+    jc_keys.qu = qu;
+    jc = pico8_jc_new(&jc_keys);
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
@@ -300,12 +299,11 @@ static void built_world(void) {
 /* The descriptor every `iv` shares, taken off one built for that purpose;
  * it stays in `hv`. */
 static const pico8_struct_class_t *iv_descriptor(void) {
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_iv_keys_t keys = {0};
     const pico8_iv_t *ref;
 
-    pico8_ob_table_set_index(b, 1, pico8_value_string("ref"));
-    ref = pico8_iv_new(b);
-    pico8_ob_table_free(b);
+    keys.at1 = "ref";
+    ref = pico8_iv_new(&keys);
     return ref->ke.header.cls;
 }
 

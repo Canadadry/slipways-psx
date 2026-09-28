@@ -117,19 +117,16 @@ static void fresh_world(void) {
 }
 
 static void *build(const pico8_vec_t *ra, const char *text, int color) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    void *e;
+    pico8_iv_keys_t keys = {0};
 
     if (ra != NULL) {
         pico8_vec_t *heap_ra = malloc(sizeof *heap_ra);
         *heap_ra = *ra;
-        pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(heap_ra));
+        keys.ra = heap_ra;
     }
-    pico8_ob_table_set_index(overrides, 1, pico8_value_string(text));
-    pico8_ob_table_set_index(overrides, 2, pico8_value_fixed(pico8_fixed_from_int(color)));
-    e = pico8_iv_new(overrides);
-    pico8_ob_table_free(overrides);
-    return e;
+    keys.at1 = text;
+    keys.at2 = pico8_fixed_from_int(color);
+    return pico8_iv_new(&keys);
 }
 
 /* Lives the toast through `dg` until it leaves `hv`, folding every tick's
@@ -286,16 +283,15 @@ static void test_defaults_match_the_parsed_spec(void) {
  * and cv.kj only. */
 static void test_iv_is_a_struct_registered_under_kj(void) {
     const char *others[] = {"ev", "hd", "hk", "hb"};
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_iv_keys_t keys = {0};
     void *direct;
     void *generic;
     int i;
 
     fresh_world();
-    pico8_ob_table_set_index(overrides, 1, pico8_value_string("z"));
+    keys.at1 = "z";
     direct = build(NULL, "z", 7);
-    generic = pico8_iv_new(overrides);
-    pico8_ob_table_free(overrides);
+    generic = pico8_iv_new(&keys);
 
     assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
@@ -365,22 +361,13 @@ static const pico8_vec_t *read_vec(void *e, const char *name) {
     return p;
 }
 
-static void *make_iv(const pico8_value_t *ra, const pico8_value_t *at1, const pico8_value_t *at2) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    void *e;
+static void *make_iv(pico8_vec_t *ra, const char *at1, pico8_fixed_t at2) {
+    pico8_iv_keys_t keys = {0};
 
-    if (ra != NULL) {
-        pico8_ob_table_set_name(overrides, "ra", *ra);
-    }
-    if (at1 != NULL) {
-        pico8_ob_table_set_index(overrides, 1, *at1);
-    }
-    if (at2 != NULL) {
-        pico8_ob_table_set_index(overrides, 2, *at2);
-    }
-    e = pico8_iv_new(overrides);
-    pico8_ob_table_free(overrides);
-    return e;
+    keys.ra = ra;
+    keys.at1 = at1;
+    keys.at2 = at2;
+    return pico8_iv_new(&keys);
 }
 
 static uint32_t kj_hash(void *e) {
@@ -445,9 +432,6 @@ static const void *read_members_of_a_fresh_iv(void *e, const pico8_vec_t *want_r
 static void test_iv_members_by_name(void) {
     pico8_vec_t *key_ra = malloc(sizeof *key_ra);
     pico8_value_t out;
-    pico8_value_t ra_value;
-    pico8_value_t s1;
-    pico8_value_t s2;
     pico8_value_t nil = pico8_value_ref(NULL);
     const pico8_vec_t *v;
     const void *ras[5];
@@ -467,17 +451,11 @@ static void test_iv_members_by_name(void) {
     g_iv_h = 2166136261u;
     fresh_world();
     *key_ra = pico8_vec_v(pico8_fixed_from_int(250), pico8_fixed_from_int(260));
-    ra_value = pico8_value_ref(key_ra);
-    s1 = pico8_value_string("+12$");
-    s2 = pico8_value_fixed(pico8_fixed_from_int(11));
-    a = make_iv(&ra_value, &s1, &s2);
+    a = make_iv(key_ra, "+12$", pico8_fixed_from_int(11));
     b = build(NULL, "x", 7);
     n = pico8_iv_new(NULL);
-    s1 = pico8_value_string("r");
-    s2 = pico8_value_fixed(pico8_fixed_from_int(3));
-    r = make_iv(&nil, &s1, &s2);
-    s2 = pico8_value_fixed(pico8_fixed_from_int(5));
-    sx = make_iv(NULL, &nil, &s2);
+    r = make_iv(NULL, "r", pico8_fixed_from_int(3));
+    sx = make_iv(NULL, NULL, pico8_fixed_from_int(5));
 
     assert(read_member(a, "v", &out) && out.kind == PICO8_VALUE_REF);
     v = out.as.ref;
@@ -514,10 +492,8 @@ static void test_iv_members_by_name(void) {
     }
     fold((uint32_t)first_p_);
 
-    s1 = pico8_value_string("c");
-    c = make_iv(NULL, &s1, NULL);
-    s2 = zero_of(PICO8_VALUE_FIXED);
-    z = make_iv(NULL, &s1, &s2);
+    c = make_iv(NULL, "c", 0);
+    z = make_iv(NULL, "c", pico8_fixed_from_int(0));
     (void)kj_hash(a);
     (void)kj_hash(b);
     (void)kj_hash(n);
@@ -546,74 +522,6 @@ static void test_iv_members_by_name(void) {
     assert(g_iv_h == IV_MEMBERS_HASH);
 }
 
-/* The child builds an iv from the one key (plus `[1]` when the key is not
- * `[1]`) and must die by SIGABRT. `index` 0 names the key `ra`. */
-static void must_abort_key(int index, pico8_value_t v) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        pico8_ob_table_t *overrides = pico8_ob_table_new();
-
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        if (index == 0) {
-            pico8_ob_table_set_name(overrides, "ra", v);
-        } else {
-            pico8_ob_table_set_index(overrides, index, v);
-        }
-        if (index != 1) {
-            pico8_ob_table_set_index(overrides, 1, pico8_value_string("k"));
-        }
-        (void)pico8_iv_new(overrides);
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-/* `ra` takes nil or a vector ref, `[1]` nil or a string, `[2]` a fixed
- * only; a value whose whole union is zero is not nil unless it is a REF. */
-static void test_iv_keys_stop_off_row(void) {
-    pico8_vec_t *vec = malloc(sizeof *vec);
-    pico8_value_t one = pico8_value_fixed(pico8_fixed_from_int(1));
-    pico8_value_t table = pico8_value_ref(pico8_ob_table_new());
-    void *iv;
-
-    fresh_world();
-    *vec = pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2));
-    iv = build(NULL, "i", 7);
-
-    must_abort_key(0, one);
-    must_abort_key(0, zero_of(PICO8_VALUE_FIXED));
-    must_abort_key(0, zero_of(PICO8_VALUE_BOOL));
-    must_abort_key(0, zero_of(PICO8_VALUE_STRING));
-    must_abort_key(0, zero_of(PICO8_VALUE_FUNCTION));
-    must_abort_key(0, pico8_value_string("x"));
-    must_abort_key(0, table);
-    must_abort_key(0, pico8_value_ref((void *)pico8_hv()));
-    must_abort_key(0, pico8_value_ref(iv));
-
-    must_abort_key(1, one);
-    must_abort_key(1, zero_of(PICO8_VALUE_FIXED));
-    must_abort_key(1, zero_of(PICO8_VALUE_BOOL));
-    must_abort_key(1, pico8_value_bool(1));
-    must_abort_key(1, zero_of(PICO8_VALUE_STRING));
-    must_abort_key(1, zero_of(PICO8_VALUE_FUNCTION));
-    must_abort_key(1, pico8_value_ref(vec));
-    must_abort_key(1, table);
-
-    must_abort_key(2, pico8_value_ref(NULL));
-    must_abort_key(2, zero_of(PICO8_VALUE_BOOL));
-    must_abort_key(2, pico8_value_bool(1));
-    must_abort_key(2, pico8_value_string("8"));
-    must_abort_key(2, zero_of(PICO8_VALUE_STRING));
-    must_abort_key(2, zero_of(PICO8_VALUE_FUNCTION));
-    must_abort_key(2, pico8_value_ref(vec));
-}
-
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -634,7 +542,6 @@ int main(void) {
     test_defaults_match_the_parsed_spec();
     test_iv_is_a_struct_registered_under_kj();
     test_iv_members_by_name();
-    test_iv_keys_stop_off_row();
 
     printf("test_pico8_iv: all tests passed\n");
     return 0;

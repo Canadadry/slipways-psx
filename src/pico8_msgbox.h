@@ -79,9 +79,18 @@ void pico8_iv_shutdown(void);
 /* 1 from pico8_iv_init() to pico8_iv_shutdown(), 0 otherwise. */
 int pico8_iv_ready(void);
 
-/* `overrides` is read, not kept: `ra`, `[1]` and `[2]` only. The struct
- * registers itself through `lt`, and nothing frees it. */
-pico8_iv_t *pico8_iv_new(const pico8_ob_table_t *overrides);
+/* The cart's keys `ra`, `[1]` and `[2]` of a toast. NULL or 0 is an absent
+ * key, which leaves the member's default. */
+typedef struct {
+    pico8_vec_t *ra;
+    const char *at1;
+    pico8_fixed_t at2;
+} pico8_iv_keys_t;
+
+/* `keys` is read, not kept (NULL: none); `ra` and `at1` are adopted
+ * without copy. The struct registers itself through `lt`, and nothing
+ * frees it. */
+pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys);
 
 void pico8_iv_pq(pico8_iv_t *self);
 void pico8_iv_ph(pico8_iv_t *self);

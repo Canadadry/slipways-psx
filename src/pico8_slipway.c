@@ -580,18 +580,6 @@ static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
     return cls->methods[PICO8_METHOD_LY] != NULL || cls == pico8_jo_struct_class();
 }
 
-static void jc_take_endpoint(pico8_value_t value, pico8_struct_header_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           jc_is_endpoint_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) does not "
-           "fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
 static int jc_is_fo_holder_class(const pico8_struct_class_t *cls) {
     return cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch || cls == pico8_jc_struct_class() ||
            cls == pico8_mz_struct_class();
@@ -649,9 +637,8 @@ static const pico8_struct_class_t g_jc_struct_class = {
     pico8_jc_set_field,
 };
 
-static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
+static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_jc_t *self = malloc(sizeof *self);
-    int i;
 
     pico8_ke_struct_init(&self->ke, &g_jc_struct_class);
     self->ke.me = pico8_jc_start.me;
@@ -674,15 +661,11 @@ static void *pico8_jc_struct_new(const pico8_ob_table_t *overrides) {
     self->fo = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
-    for (i = 0; overrides != NULL && i < overrides->count; i++) {
-        pico8_ob_key_t key = overrides->entries[i].key;
-
-        if (key.kind == PICO8_OB_KEY_NAME && strcmp(key.name, "qu") == 0) {
-            jc_take_endpoint(overrides->entries[i].value, &self->qu);
-        } else {
-            assert(0 && "jc: the only construction key is qu (jo:ldown, nr:ldown); another key has no member "
-                        "-- stop, do not add one");
-        }
+    if (keys != NULL && keys->qu != NULL) {
+        assert(pico8_type_tag_of(keys->qu) == PICO8_TYPE_TAG_STRUCT && jc_is_endpoint_class(keys->qu->cls) &&
+               "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
+               "does not fit the member's type -- stop, do not widen the member");
+        self->qu = keys->qu;
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("jc");
@@ -709,8 +692,8 @@ const pico8_struct_class_t *pico8_jc_struct_class(void) {
     return &g_jc_struct_class;
 }
 
-pico8_jc_t *pico8_jc_new(const pico8_ob_table_t *overrides) {
-    return pico8_jc_struct_new(overrides);
+pico8_jc_t *pico8_jc_new(const pico8_jc_keys_t *keys) {
+    return pico8_jc_struct_new(keys);
 }
 
 const pico8_struct_class_t *pico8_jc_too_far_struct_class(void) {

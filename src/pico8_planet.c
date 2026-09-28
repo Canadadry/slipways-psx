@@ -902,20 +902,17 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         return;
     }
     {
-        pico8_ob_table_t *overrides = pico8_ob_table_new();
+        pico8_iv_keys_t keys = {0};
         int color = 0;
         char *text;
 
-        if (self->ra != NULL) {
-            pico8_ob_table_set_name(overrides, "ra", pico8_value_ref(self->ra));
-        }
+        keys.ra = self->ra;
         text = pico8_ne(self->kr, 10, "$", &color);
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
-        pico8_ob_table_set_index(overrides, 1, pico8_value_string(text));
-        pico8_ob_table_set_index(overrides, 2, pico8_value_fixed(pico8_fixed_from_int(color)));
-        pico8_iv_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.at1 = text;
+        keys.at2 = pico8_fixed_from_int(color);
+        pico8_iv_new(&keys);
         /* `text` is now owned by the new `iv` instance, which reads it every
          * frame it stays on screen: not freed here. */
     }
@@ -934,13 +931,11 @@ pico8_value_t pico8_jo_ldown(pico8_jo_t *self) {
     }
     if (strcmp(me_val, "ly") == 0) {
         pico8_jc_t *made;
-        pico8_ob_table_t *overrides;
+        pico8_jc_keys_t keys = {0};
 
         assert(pico8_jc_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
-        overrides = pico8_ob_table_new();
-        pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(self));
-        made = pico8_jc_new(overrides);
-        pico8_ob_table_free(overrides);
+        keys.qu = (pico8_struct_header_t *)self;
+        made = pico8_jc_new(&keys);
         return pico8_value_ref(made);
     }
     return pico8_value_ref(NULL);

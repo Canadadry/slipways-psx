@@ -285,7 +285,7 @@ static void *nearest_to(const void *qu) {
  * left to settle. */
 static void grow_world(void) {
     const pico8_list_t *jos = pico8_cg("jo");
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     pico8_value_t out;
     void *qu = NULL;
@@ -302,9 +302,8 @@ static void grow_world(void) {
     re = nearest_to(qu);
     pico8_jo_hu(qu, pico8_hp_new(NULL));
     pico8_jo_hu(re, pico8_hp_new(NULL));
-    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
-    jc = pico8_jc_new(overrides);
-    pico8_ob_table_free(overrides);
+    jc_keys.qu = qu;
+    jc = pico8_jc_new(&jc_keys);
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
@@ -2891,10 +2890,10 @@ static void test_qh_members_by_name(void) {
     }
 
     {
-        pico8_ob_table_t *b = pico8_ob_table_new();
-        pico8_ob_table_set_name(b, "qu", pico8_value_ref(targets[0]));
-        targets[9] = pico8_jc_new(b);
-        pico8_ob_table_free(b);
+        pico8_jc_keys_t jc_keys = {0};
+
+        jc_keys.qu = targets[0];
+        targets[9] = pico8_jc_new(&jc_keys);
     }
     targets[10] = throwaway;
     for (k = 0; k < 4; k++) {
@@ -3357,7 +3356,7 @@ static uint32_t fold_mx_kw_qe(uint32_t h, const void *e) {
 static void mx_join_row(void *qu, void *mx, int qe) {
     pico8_ob_table_t *row = pico8_ob_table_new();
     pico8_list_t *jy = malloc(sizeof *jy);
-    pico8_ob_table_t *b = pico8_ob_table_new();
+    pico8_jc_keys_t jc_keys = {0};
     pico8_value_t out;
     void *jc;
 
@@ -3366,9 +3365,8 @@ static void mx_join_row(void *qu, void *mx, int qe) {
     pico8_list_init(jy);
     pico8_list_add(jy, pico8_value_ref(row));
     pico8_entity_set_field(qu, "jy", pico8_value_ref(jy));
-    pico8_ob_table_set_name(b, "qu", pico8_value_ref(qu));
-    jc = pico8_jc_new(b);
-    pico8_ob_table_free(b);
+    jc_keys.qu = qu;
+    jc = pico8_jc_new(&jc_keys);
     pico8_fm_hy()->nz = pico8_fixed_from_int(999);
     assert(pico8_mv(jc, "ey", 1, pico8_value_ref(mx), pico8_value_ref(NULL), &out));
 }

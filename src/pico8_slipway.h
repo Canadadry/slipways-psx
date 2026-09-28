@@ -65,10 +65,15 @@ void pico8_jc_shutdown(void);
 int pico8_jc_ready(void);
 const pico8_struct_class_t *pico8_jc_struct_class(void);
 
-/* `overrides` is read, not kept, and may hold `qu` only. The struct
- * registers itself into `hv`/`cv`/`cg` through `lt`, and nothing frees
- * it. */
-pico8_jc_t *pico8_jc_new(const pico8_ob_table_t *overrides);
+/* The cart's key `qu` of a slipway: NULL is nil, else a planet a slipway
+ * starts from, which the type does not enforce (an assert does). */
+typedef struct {
+    pico8_struct_header_t *qu;
+} pico8_jc_keys_t;
+
+/* `keys` is read, not kept (NULL: none). The struct registers itself into
+ * `hv`/`cv`/`cg` through `lt`, and nothing frees it. */
+pico8_jc_t *pico8_jc_new(const pico8_jc_keys_t *keys);
 
 /* TROU-7 */
 /* Allocates the `ts` and `hg` containers every other method here assumes

@@ -123,15 +123,12 @@ static pico8_value_t counting_my(void *self, int argc, pico8_value_t arg0, pico8
 }
 
 static void *veil_with_my(int answer) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    void *veil;
+    pico8_fq_keys_t keys = {0};
 
     g_my_calls = 0;
     g_my_answer = answer;
-    pico8_ob_table_set_name(overrides, "my", pico8_value_function(counting_my));
-    veil = pico8_fq_new(overrides);
-    pico8_ob_table_free(overrides);
-    return veil;
+    keys.my = counting_my;
+    return pico8_fq_new(&keys);
 }
 
 static int ldown(void *veil) {
@@ -302,13 +299,15 @@ static int is_a_veil_struct(const void *e) {
  * nor `rdown`. */
 static void test_fq_is_a_struct_registered_under_hd(void) {
     const char *others[] = {"kj", "ev", "hk", "hb"};
+    pico8_fq_keys_t keys = {0};
     void *built;
     void *generic;
     pico8_value_t out;
     int i;
 
     pico8_jl();
-    built = pico8_fq_new(pico8_de());
+    keys.my = pico8_de_my();
+    built = pico8_fq_new(&keys);
     generic = pico8_fq_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
@@ -337,14 +336,11 @@ static pico8_value_t scripted_my(void *self, int argc, pico8_value_t arg0, pico8
     return g_script[g_script_calls++];
 }
 
-static void *veil_with_key(pico8_value_t my) {
-    pico8_ob_table_t *overrides = pico8_ob_table_new();
-    void *veil;
+static void *veil_with_key(pico8_value_function_t my) {
+    pico8_fq_keys_t keys = {0};
 
-    pico8_ob_table_set_name(overrides, "my", my);
-    veil = pico8_fq_new(overrides);
-    pico8_ob_table_free(overrides);
-    return veil;
+    keys.my = my;
+    return pico8_fq_new(&keys);
 }
 
 /* Raw reader and entity reader must agree; a miss leaves the witness. */
@@ -419,6 +415,7 @@ static void test_fq_members_by_name(void) {
     static const char *const intruders[] = {"", "x", "M_", "P_", "m", "p", "has_m_", "has_p_", "ke", "header"};
     static const char *const unwritten[] = {"fa", "hd", "my", "p_", "me", "t", "", "m_ ", "has_m_", "has_p_"};
     const pico8_ob_table_t *de;
+    pico8_fq_keys_t keys = {0};
     pico8_value_t de_my;
     pico8_value_t got;
     void *bare;
@@ -434,8 +431,9 @@ static void test_fq_members_by_name(void) {
     de = pico8_de();
     assert(pico8_ob_table_get_name(de, "my", &de_my) && de_my.kind == PICO8_VALUE_FUNCTION);
     bare = pico8_fq_new(NULL);
-    built = pico8_fq_new(de);
-    nil_key = veil_with_key(pico8_value_ref(NULL));
+    keys.my = pico8_de_my();
+    built = pico8_fq_new(&keys);
+    nil_key = veil_with_key(NULL);
 
     h = fold_members(h, bare);
     h = fold_members(h, built);
@@ -457,7 +455,7 @@ static void test_fq_members_by_name(void) {
     g_script[4] = pico8_value_bool(1);
     g_script_len = 5;
     g_script_calls = 0;
-    scripted = veil_with_key(pico8_value_function(scripted_my));
+    scripted = veil_with_key(scripted_my);
     for (step = 0; step < g_script_len; step++) {
         h = fnv(h, (uint32_t)ldown(scripted));
         h = fnv(h, (uint32_t)g_script_calls);
@@ -507,13 +505,8 @@ static void ldown_returning(void *e, pico8_value_t v) {
     g_script[0] = v;
     g_script_len = 1;
     g_script_calls = 0;
-    veil = veil_with_key(pico8_value_function(scripted_my));
+    veil = veil_with_key(scripted_my);
     (void)ldown(veil);
-}
-
-static void build_with_key(void *e, pico8_value_t v) {
-    (void)e;
-    (void)veil_with_key(v);
 }
 
 static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
@@ -532,9 +525,8 @@ static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-/* `m_` and `p_` take nil or a boolean only, the `my` key nil or a non-NULL
- * function only; a value whose whole union is zero is not nil unless it is
- * a REF. */
+/* `m_` and `p_` take nil or a boolean only; a value whose whole union is
+ * zero is not nil unless it is a REF. */
 static void test_fq_writer_stops_off_row(void) {
     pico8_value_t one = pico8_value_fixed(pico8_fixed_from_int(1));
     void *bare;
@@ -558,13 +550,6 @@ static void test_fq_writer_stops_off_row(void) {
     must_abort_value(bare, ldown_returning, zero_of(PICO8_VALUE_STRING));
     must_abort_value(bare, ldown_returning, pico8_value_string("x"));
     must_abort_value(bare, ldown_returning, pico8_value_ref(other));
-
-    must_abort_value(bare, build_with_key, one);
-    must_abort_value(bare, build_with_key, zero_of(PICO8_VALUE_FIXED));
-    must_abort_value(bare, build_with_key, zero_of(PICO8_VALUE_BOOL));
-    must_abort_value(bare, build_with_key, zero_of(PICO8_VALUE_FUNCTION));
-    must_abort_value(bare, build_with_key, pico8_value_string("x"));
-    must_abort_value(bare, build_with_key, pico8_value_ref(other));
 }
 
 int main(void) {
