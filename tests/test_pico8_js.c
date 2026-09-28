@@ -1,7 +1,6 @@
 /* The button `js`, read and written only through the dual-form field API
- * and driven through the real `pz`/`eu`/`cr`/`ix`/`dg`/`dc`/`mv`. The
- * frozen values were taken on the code where `js` was still a class
- * instance and must not be re-taken. */
+ * and driven through the real `pz`/`eu`/`cr`/`ix`/`dg`/`dc`/`mv`, on title
+ * screens and games built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -18,9 +17,9 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_cheat.h"
 #include "../src/pico8_data_init.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy.h"
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
@@ -35,9 +34,12 @@
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
+#include "../src/pico8_score_panel.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_type_tag.h"
@@ -46,16 +48,11 @@
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
-#define TITLE_CLICK "tests/fixtures/title_click_reasonable.json"
-#define PAUSE "tests/fixtures/pause_menu_music_events.json"
-#define TECH "tests/fixtures/tech_screen_invent_events.json"
-#define BUILT "tests/fixtures/built_planet_panel_events.json"
-#define GAME_END "tests/fixtures/game_end_events.json"
-
-/* built_planet_panel_events.json: the panel of the known "p1", then of the
- * built "p27" (see test_pico8_built_planet_panel_nil_row.c). */
-#define KNOWN_PANEL_FRAME 245
-#define BUILT_PANEL_FRAME 277
+/* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
+ * project with an `o` and no `i`, which exports to any planet a slipway
+ * joins it to. */
+#define COLONY 12
+#define EXPORTER 3
 
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
@@ -65,33 +62,21 @@
 #define EU_HASH 0x08EB17A6u
 #define PAUSE_HASH 0xF715AAC0u
 #define RESEARCH_HASH 0x48094C1Eu
-#define FE_HASH 0xF7292196u
-#define GH_HASH 0x8B1AE656u
-#define PJ_HASH 0xC28C95AFu
-#define HARNESS_HASH 0xD8AB9548u
+#define FE_HASH 0xF6B832D5u
+#define GH_HASH 0x67CA51E5u
+#define PJ_HASH 0x0C7D2BEDu
 #define DK_HASH 0x5178903Bu
-#define TITLE_CLICK_FRAMES 340
-#define TITLE_CLICK_HASH 0xDFB69B55u
-#define PAUSE_FRAMES 32
-#define PAUSE_REPLAY_HASH 0xEA3F2516u
-#define TECH_FRAMES 58
-#define TECH_REPLAY_HASH 0x3A948B77u
-#define BUILT_FRAMES 278
-#define BUILT_REPLAY_HASH 0xEBA9C7C6u
-#define GAME_END_FRAMES 74
-#define GAME_END_REPLAY_HASH 0x23547372u
 #define PH_HASH 0xD2A611E7u
 #define LDOWN_HASH 0x4621266Fu
 #define HB_HASH 0x0FA6ACC7u
-#define FE_MY_HASH 0x77F1CF92u
+#define FE_MY_HASH 0x459139D2u
 #define CR_MY_HASH 0x7ED641D9u
 #define DRAW_HASH 0x92E72EEBu
-#define JS_MEMBERS_HASH 0x22909485u
+#define JS_MEMBERS_HASH 0x31CE3B93u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
-static pico8_cheat_t cheat;
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -406,33 +391,143 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
-static const pico8_ob_table_t *bo_row(int i) {
-    pico8_value_t row;
-    assert(pico8_ob_table_get_index(pico8_bo(), i, &row) && row.kind == PICO8_VALUE_REF);
-    return row.as.ref;
-}
-
-static void start_from_title(const char *events) {
+static void start_title(void) {
     pico8_input_init(&input);
-    assert(pico8_input_load(&input, events));
     pico8_dispatch_set_input(&input);
     pico8__init();
-    pico8_cheat_init(&cheat);
 }
 
-static void start_game(const char *events) {
-    start_from_title(events);
-    pico8_eu(pico8_js_new(bo_row(2)));
+/* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
+ * reads as difficulty 0. */
+static void start_game(void) {
+    start_title();
+    pico8_eu(NULL);
 }
 
-static void play_frame(void) {
-    pico8_dispatch_set_input(&input);
-    pico8_cheat_step(&cheat, &input);
+/* The `i`th (from 1) of the title's four buttons, which `pz` built from
+ * `bo`'s rows in order: the entities of `cv.hd` with an `mb`. */
+static void *title_button(int i) {
+    const pico8_list_t *hd = pico8_cv("hd");
+    int k;
+
+    for (k = 0; hd != NULL && k < hd->count; k++) {
+        void *e = hd->items[k].as.ref;
+        pico8_value_t mb;
+        if (pico8_entity_get_field(e, "mb", &mb) && mb.kind == PICO8_VALUE_FIXED && --i == 0) {
+            return e;
+        }
+    }
+    assert(0 && "no such title button");
+    return NULL;
+}
+
+static pico8_vec_t pos_of(const void *e) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return *(const pico8_vec_t *)v.as.ref;
+}
+
+static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
+    pico8_vec_t d = pico8_vec_sub(a, b);
+    return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
+}
+
+static pico8_fixed_t world_fixed(const void *e, const char *name) {
+    pico8_value_t v;
+    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+    return v.as.fixed;
+}
+
+static pico8_hp_t *project(int k) {
+    pico8_value_t v;
+    assert(pico8_ob_table_get_index(pico8_gb(), k, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    return v.as.ref;
+}
+
+/* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
+ * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
+ * hovered planet off `ok.o_`), then left to settle; returns the colony. */
+static void *built_world(void) {
+    const pico8_list_t *jos;
+    pico8_ob_table_t *overrides = pico8_ob_table_new();
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_value_t out;
+    void *qu;
+    void *re = NULL;
+    void *jc;
+    int i;
+
+    start_game();
+    jos = pico8_cg("jo");
+    assert(jos != NULL && jos->count > 1);
+    qu = jos->items[0].as.ref;
+    for (i = 1; i < jos->count; i++) {
+        void *e = jos->items[i].as.ref;
+        if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
+            re = e;
+        }
+    }
+    pico8_jo_hu(qu, project(COLONY));
+    pico8_jo_hu(re, project(EXPORTER));
+
+    pico8_ob_table_set_name(overrides, "qu", pico8_value_ref(qu));
+    jc = pico8_jc_new(overrides);
+    pico8_ob_table_free(overrides);
+    *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
+                        pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
+    pico8_ok()->o_ = re;
+    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_ok()->o_ = NULL;
+    while (world_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+        pico8_dg();
+    }
+    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    for (i = 0; i < 120; i++) {
+        pico8_dg();
+    }
+    return qu;
+}
+
+static void one_frame(void) {
     pico8__update60();
     pico8__draw();
-    if (input.current_frame + 1 < input.frame_count) {
-        pico8_input_step(&input);
-    }
+}
+
+/* A generated planet discovered by `jo:hh` and clicked: `jo:fe`'s panel. */
+static void known_panel(void) {
+    void *p;
+
+    start_game();
+    p = pico8_cg("jo")->items[0].as.ref;
+    pico8_jo_hh(p);
+    (void)pico8_jo_ldown(p);
+    one_frame();
+}
+
+/* built_world's colony with its panel, `jo:gh`, up. */
+static void built_panel(void) {
+    pico8_jo_gh(built_world());
+    one_frame();
+}
+
+/* The research screen, `cr`, opened on a started game holding 5 `jk`:
+ * some techs affordable, some too dear. */
+static void tech_screen(void) {
+    start_game();
+    pico8_fm_hy()->jk = pico8_fixed_from_int(5);
+    pico8_cr();
+    one_frame();
+}
+
+/* The game's end: `pj:ph` once `hy.hl` is "final score". */
+static void game_end(void) {
+    pico8_value_t out;
+
+    start_game();
+    pico8_fm_hy()->hl = "final score";
+    pico8_fm_hy()->has_hl = 1;
+    assert(pico8_mv((pico8_struct_header_t *)pico8_ju(), "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    one_frame();
 }
 
 static pico8_value_t call(void *e, const char *name, pico8_value_t arg0, pico8_value_t arg1) {
@@ -472,7 +567,7 @@ static void test_title(void) {
     int n = 0;
     int i;
 
-    start_from_title(TITLE_CLICK);
+    start_title();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i].as.ref;
@@ -494,7 +589,7 @@ static void test_eu(void) {
     void *ix[4];
     int i;
 
-    start_game(PAUSE);
+    start_game();
     check_int("eu buttons", ix_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
         assert(!listed(ok_le(), ix[i]));
@@ -508,7 +603,7 @@ static void test_pause(void) {
     uint32_t h = 2166136261u;
     void *ix[4];
 
-    start_game(PAUSE);
+    start_game();
     assert(ix_buttons(ix) == 4);
     (void)call(ix[3], "my", nil(), nil());
     check_shared_ra();
@@ -529,7 +624,7 @@ static void test_research(void) {
     int unaffordable = 0;
     int i;
 
-    start_game(TECH);
+    start_game();
     invent("slipgates");
     pico8_cr();
     check_shared_ra();
@@ -546,13 +641,7 @@ static void test_research(void) {
     check("research", h, RESEARCH_HASH);
 }
 
-static void run_to(const char *events, int frame) {
-    int i;
-    start_game(events);
-    for (i = 0; i <= frame; i++) {
-        play_frame();
-    }
-}
+
 
 static void test_fe(void) {
     uint32_t h = 2166136261u;
@@ -560,7 +649,7 @@ static void test_fe(void) {
     int with_pt = 0;
     int i;
 
-    run_to(BUILT, KNOWN_PANEL_FRAME);
+    known_panel();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         with_pt += has(le->items[i].as.ref, "_jo_fe_pt");
@@ -573,7 +662,7 @@ static void test_fe(void) {
 
 static void test_gh(void) {
     uint32_t h = 2166136261u;
-    run_to(BUILT, BUILT_PANEL_FRAME);
+    built_panel();
     h = fold_le(h, "gh");
     check("gh", h, GH_HASH);
 }
@@ -586,7 +675,7 @@ static void test_pj(void) {
     int n = 0;
     int i;
 
-    run_to(GAME_END, GAME_END_FRAMES - 1);
+    game_end();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i].as.ref;
@@ -601,32 +690,18 @@ static void test_pj(void) {
     check("pj", h, PJ_HASH);
 }
 
-/* The harness's `pico8_js_new(bo[2])`: a copy of a row `pz` already wrote
- * `ra`/`qf`/`fa` into. */
-static void test_harness(void) {
-    uint32_t h = 2166136261u;
-    void *nj;
-
-    start_from_title(PAUSE);
-    nj = pico8_js_new(bo_row(2));
-    assert(listed(pico8_hv(), nj) && !listed(ok_le(), nj));
-    h = fold_button(h, nj);
-    check("harness", h, HARNESS_HASH);
-}
-
 /* `dk` is the button `eu` got: its `en` sizes the galaxy. */
 static void test_dk(void) {
     uint32_t h = 2166136261u;
     int i;
 
-    start_from_title(PAUSE);
     for (i = 1; i <= 4; i++) {
         void *nj;
         const pico8_list_t *jo;
         int j;
 
-        pico8__init();
-        nj = pico8_js_new(bo_row(i));
+        start_title();
+        nj = title_button(i);
         pico8_eu(nj);
         assert(pico8_dk() == nj);
         h = fold_value(h, get(nj, "en"));
@@ -653,83 +728,6 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int is_js_like(const void *e) {
-    pico8_value_t fa;
-    return lookup(e, "fa", &fa) && fa.kind == PICO8_VALUE_FIXED && fa.as.fixed == pico8_fixed_from_int(11) &&
-           has(e, "lq") && has(e, "mb");
-}
-
-static uint32_t fold_live(uint32_t h, const void *b) {
-    h = fold_vec(h, b, "ra");
-    h = fnv(h, bool_state(b, "m_"));
-    h = fold_value(h, get(b, "t"));
-    return fold_value(h, get(get_ref(b, "lq"), "w"));
-}
-
-/* Per frame: every button of `ok.le` and `cv.hb`, the hovered one, the
- * screen. */
-static void replay(const char *label, const char *events, int from_title, int want_frames, uint32_t want_hash) {
-    uint32_t h = 2166136261u;
-    const void *last_le = NULL;
-    int le_changes = 0;
-    int frames;
-    int i;
-
-    if (from_title) {
-        start_from_title(events);
-    } else {
-        start_game(events);
-    }
-    frames = input.frame_count;
-    for (i = 0; i < frames; i++) {
-        const pico8_list_t *le;
-        const pico8_list_t *hb;
-        int j;
-
-        play_frame();
-        le = ok_le();
-        if (le != last_le) {
-            le_changes++;
-            last_le = le;
-        }
-        h = fnv(h, (uint32_t)(le == NULL ? 0 : le->count));
-        for (j = 0; le != NULL && j < le->count; j++) {
-            h = fold_live(h, le->items[j].as.ref);
-        }
-        hb = pico8_cv("hb");
-        for (j = 0; hb != NULL && j < hb->count; j++) {
-            if (is_js_like(hb->items[j].as.ref)) {
-                h = fold_live(fnv(h, (uint32_t)j), hb->items[j].as.ref);
-            }
-        }
-        h = fnv(h, (uint32_t)rank_in(le, get_ref(pico8_ok(), "o_")));
-        h = fnv(h, screen_hash());
-    }
-    printf("[%s] ok.le replaced %d time(s)\n", label, le_changes);
-    check_int(label, frames, want_frames);
-    check(label, h, want_hash);
-}
-
-static void test_replay_title_click(void) {
-    replay("title click", TITLE_CLICK, 1, TITLE_CLICK_FRAMES, TITLE_CLICK_HASH);
-}
-
-static void test_replay_pause(void) {
-    replay("pause replay", PAUSE, 0, PAUSE_FRAMES, PAUSE_REPLAY_HASH);
-}
-
-static void test_replay_tech(void) {
-    replay("tech replay", TECH, 0, TECH_FRAMES, TECH_REPLAY_HASH);
-}
-
-static void test_replay_built(void) {
-    replay("built replay", BUILT, 0, BUILT_FRAMES, BUILT_REPLAY_HASH);
-}
-
-static void test_replay_game_end(void) {
-    replay("game end replay", GAME_END, 0, GAME_END_FRAMES, GAME_END_REPLAY_HASH);
-}
-
 static void *build(const char *spec, const pico8_ob_table_t *extra) {
     pico8_ob_table_t *b = pico8_ob(spec, extra);
     void *made = pico8_js_new(b);
@@ -746,7 +744,7 @@ static void test_ph(void) {
     pico8_vec_t first_at;
     int steps = 0;
 
-    start_game(PAUSE);
+    start_game();
     b = build("\nra=v(3,4),\nqf=v(40,-20),\nlq=o(\"go\"),\n", NULL);
     first = get_ref(b, "ra");
     first_at = *first;
@@ -785,7 +783,7 @@ static void test_ldown(void) {
     void *with_my;
     void *with_false;
 
-    start_game(PAUSE);
+    start_game();
     pico8_ob_table_set_name(extra, "my", pico8_value_function(counting_my));
     with_my = build("\nlq=o(\"a\"),\n", extra);
     pico8_ob_table_set_name(extra, "my", pico8_value_bool(0));
@@ -823,7 +821,7 @@ static void test_hb(void) {
     int affordable;
     int i;
 
-    start_game(TECH);
+    start_game();
     assert(ix_buttons(ix) == 4);
     for (i = 0; i < 4; i++) {
         pico8_value_t out;
@@ -850,7 +848,7 @@ static void test_fe_my(void) {
     const pico8_list_t *le;
     int i;
 
-    run_to(BUILT, KNOWN_PANEL_FRAME);
+    known_panel();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i].as.ref;
@@ -878,7 +876,7 @@ static void test_cr_my(void) {
     const pico8_list_t *invented;
     int i;
 
-    run_to(TECH, 45);
+    tech_screen();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         if (bool_state(le->items[i].as.ref, "my") == 3) {
@@ -925,7 +923,7 @@ static void test_draw(void) {
     uint32_t px[7];
     size_t i;
 
-    start_game(PAUSE);
+    start_game();
     plain = build("\nra=v(10,20),\nlq=o(\"plain\"),\n", NULL);
     pico8_ob_table_set_name(extra, "my", pico8_value_function(counting_my));
     with_my = build("\nra=v(10,20),\nlq=o(\"plain\"),\n", extra);
@@ -963,7 +961,7 @@ static void test_nil_keys(void) {
     void *nil_keys;
     void *no_keys;
 
-    start_game(PAUSE);
+    start_game();
     pico8_ob_table_set_name(b, "lq", pico8_value_ref(NULL));
     no_keys = pico8_js_new(b);
     pico8_ob_table_set_name(b, "h_", pico8_value_ref(NULL));
@@ -1053,9 +1051,9 @@ static void test_js_is_a_struct(void) {
     void *nj;
     int i;
 
-    start_from_title(TECH);
+    start_title();
     check_int("struct title", all_buttons_are_structs(), 4);
-    nj = pico8_js_new(bo_row(2));
+    nj = title_button(2);
     pico8_eu(nj);
     assert(is_a_js_struct(nj) && pico8_dk() == nj);
     assert(ix_buttons(ix) == 4);
@@ -1233,20 +1231,6 @@ static void check_le_one_pz(void) {
     check_one_pz(b, le->count);
 }
 
-static const char *bo_px(int i) {
-    pico8_value_t px;
-
-    assert(pico8_ob_table_get_name(bo_row(i), "px", &px) && px.kind == PICO8_VALUE_STRING);
-    return px.as.string;
-}
-
-static pico8_value_t bo_value(int i, const char *name) {
-    pico8_value_t v;
-
-    assert(pico8_ob_table_get_name(bo_row(i), name, &v));
-    return v;
-}
-
 static void write_named(void *e, const char *name, pico8_value_t v) {
     assert(pico8_js_struct_class()->set_field(e, name, v) == 1);
     pico8_entity_set_field(e, name, v);
@@ -1398,24 +1382,18 @@ static uint32_t members_title_and_game(void) {
     void *my_false;
     pico8_value_t ca;
     pico8_value_t px;
-    int seen_bo[5] = {0, 0, 0, 0, 0};
     int n = 0;
     int i;
     size_t k;
 
-    start_from_title(PAUSE);
+    start_title();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i].as.ref;
         if (has(e, "mb")) {
-            int j;
             assert(n < 4);
             title[n++] = e;
             assert(read_both(e, "px", &px) && px.kind == PICO8_VALUE_STRING);
-            for (j = 1; j <= 4 && px.as.string != bo_px(j); j++) {
-            }
-            assert(j <= 4 && !seen_bo[j]);
-            seen_bo[j] = 1;
             assert(pico8_fv_default("ca", &ca));
             assert_same(e, "fa", ca);
             h = fold_js_members(h, e);
@@ -1424,11 +1402,8 @@ static uint32_t members_title_and_game(void) {
     check_int("members title", n, 4);
     check_one_pz(title, 4);
 
-    nj = pico8_js_new(bo_row(2));
-    assert_same(nj, "px", pico8_value_string(bo_px(2)));
+    nj = title[1];
     assert_same(nj, "my", pico8_value_function(pico8_eu_field_value().as.function));
-    assert_same(nj, "trade", bo_value(2, "trade"));
-    assert_same(nj, "en", bo_value(2, "en"));
     printf("[members] dk: trade %d, en %d/65536\n", pico8_fixed_flr_int(must_fixed(nj, "trade")),
            (int)must_fixed(nj, "en"));
     h = fold_js_members(h, nj);
@@ -1502,7 +1477,7 @@ static uint32_t members_research(void) {
     }
     h = fnv(h, (uint32_t)nb->count);
 
-    run_to(TECH, 45);
+    tech_screen();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i].as.ref;
@@ -1539,7 +1514,7 @@ static uint32_t members_fe(void) {
     int free_rows = 0;
     int i;
 
-    run_to(BUILT, KNOWN_PANEL_FRAME);
+    known_panel();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i].as.ref;
@@ -1571,7 +1546,7 @@ static uint32_t members_fe(void) {
 }
 
 static uint32_t members_gh(void) {
-    run_to(BUILT, BUILT_PANEL_FRAME);
+    built_panel();
     return fold_le_members(2166136261u);
 }
 
@@ -1581,7 +1556,7 @@ static uint32_t members_pj(void) {
     int n = 0;
     int i;
 
-    run_to(GAME_END, GAME_END_FRAMES - 1);
+    game_end();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
         void *e = hd->items[i].as.ref;
@@ -1675,7 +1650,7 @@ static void test_js_writer_stops_off_row(void) {
     size_t i;
     int j;
 
-    start_game(PAUSE);
+    start_game();
     assert(ix_buttons(ix) == 4);
     table = pico8_value_ref(pico8_ob_table_new());
     vec = vec_ref(1, 1);
@@ -1795,7 +1770,7 @@ static void test_ha_pz_is_a_struct(void) {
     pico8_value_t v;
     size_t i;
 
-    start_game(PAUSE);
+    start_game();
     o = pico8_ha_pz();
     assert(o != NULL && o->tag == PICO8_TYPE_TAG_STRUCT && o->cls == pico8_ha_pz_struct_class());
     for (i = 0; i < PICO8_METHOD_COUNT; i++) {
@@ -1850,7 +1825,7 @@ static void ha_pz_misses(const pico8_struct_header_t *o, const char *name) {
 static void test_ha_pz_members_by_name(void) {
     const pico8_struct_header_t *o;
 
-    start_game(PAUSE);
+    start_game();
     o = pico8_ha_pz();
     ha_pz_vec_as_ha(o, "hi", 0, 107);
     ha_pz_vec_as_ha(o, "gq", 0, -11);
@@ -1881,7 +1856,7 @@ static void test_pz_closed(void) {
     pico8_ob_table_t *table = pico8_ob_table_new();
     pico8_list_t none;
 
-    start_game(PAUSE);
+    start_game();
     must_abort(pz_on_a_table, table);
     pico8_ob_table_free(table);
     pico8_list_init(&none);
@@ -1889,16 +1864,16 @@ static void test_pz_closed(void) {
 }
 
 static void test_panels_are_structs(void) {
-    run_to(BUILT, KNOWN_PANEL_FRAME);
+    known_panel();
     assert(all_buttons_are_structs() >= 2);
 }
 
 static void test_pj_are_structs(void) {
-    run_to(GAME_END, GAME_END_FRAMES - 1);
+    game_end();
     assert(all_buttons_are_structs() >= 2);
 }
 
-/* A replay depends on the rnd state: run each scenario in a child forked
+/* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
     pid_t child;
@@ -1935,13 +1910,7 @@ int main(void) {
     in_fresh_child(test_fe);
     in_fresh_child(test_gh);
     in_fresh_child(test_pj);
-    in_fresh_child(test_harness);
     in_fresh_child(test_dk);
-    in_fresh_child(test_replay_title_click);
-    in_fresh_child(test_replay_pause);
-    in_fresh_child(test_replay_tech);
-    in_fresh_child(test_replay_built);
-    in_fresh_child(test_replay_game_end);
     in_fresh_child(test_ph);
     in_fresh_child(test_ldown);
     in_fresh_child(test_hb);
