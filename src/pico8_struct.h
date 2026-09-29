@@ -77,7 +77,7 @@ struct pico8_jo_trade_proposal;
  * instance decides. `mm` returns a fresh particle the caller owns. `field`
  * is NULL only for a class no generic consumer ever reaches, `set_field`
  * for a class no generic writer ever reaches. `parent` returns the class
- * whose struct this one embeds first; it is NULL for a root. */
+ * whose struct this one embeds first; the member is NULL for a root. */
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
