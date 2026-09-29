@@ -27,23 +27,6 @@ static pico8_mz_jj_t g_mz_jj_wrapper = {
     pico8_mz_jj_qs,
 };
 
-static int pico8_mz_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
-static pico8_vec_t pico8_mz_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
 static int pico8_mz_pq_ox_predicate(void *e, void *ctx) {
     pico8_struct_header_t *p;
     (void)ctx;
@@ -71,7 +54,7 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
 void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t p_vec;
-    pico8_value_t nearest = pico8_value_ref(NULL);
+    pico8_struct_header_t *nearest = NULL;
     pico8_fixed_t nq;
     pico8_fixed_t threshold;
 
@@ -80,9 +63,9 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         return;
     }
 
-    p_vec = pico8_mz_value_vec(pico8_value_ref(self->p));
+    p_vec = self->p != NULL ? *self->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     nq = pico8_ij(p_vec, self->ox, &nearest);
-    self->ij = nearest.as.ref;
+    self->ij = nearest;
 
     threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x000030a3, 0.19), PICO8_FIXED_LIT(0x0000451e, 0.27));
 
@@ -139,7 +122,7 @@ void pico8_mz_ey(pico8_mz_t *self) {
     if (t < pico8_fixed_from_int(15)) {
         result = 1;
     } else {
-        result = !pico8_mz_truthy(pico8_d_((pico8_struct_header_t *)self));
+        result = !pico8_d_((pico8_struct_header_t *)self);
     }
 
     self->p_ = result;
@@ -164,7 +147,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     sr = pico8_fixed_add(pico8_fixed_div(pico8_mz_ej(self, t), pico8_fixed_from_int(128)),
                           PICO8_FIXED_LIT(0x000007ef, 0.031));
 
-    self_p = pico8_mz_value_vec(pico8_value_ref(self->p));
+    self_p = self->p != NULL ? *self->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {

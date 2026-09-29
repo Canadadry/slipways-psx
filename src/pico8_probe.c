@@ -154,7 +154,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t p_vec;
     pico8_vec_t *p_heap;
     pico8_fixed_t nq;
-    pico8_value_t c;
+    pico8_struct_header_t *c;
     pico8_value_t et;
 
     if (self == NULL) {
@@ -172,13 +172,13 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     *p_heap = p_vec;
     probe_host_set_ra_p(self, mp, p_heap);
 
-    c = pico8_value_ref(NULL);
+    c = NULL;
     nq = pico8_ij(p_vec, pico8_cg("np"), &c);
 
     et = pico8_value_ref(NULL);
 
-    if (nq < probe->dw && pico8_probe_truthy(c)) {
-        et = c;
+    if (nq < probe->dw && c != NULL) {
+        et = pico8_value_ref(c);
     } else {
         pico8_bv_ctx_t ctx;
         pico8_ptrs_t filtered;
@@ -325,14 +325,14 @@ static void probe_host_raise_p_(pico8_struct_header_t *self) {
     mz->has_p_ = 1;
 }
 
-pico8_value_t pico8_d_(pico8_struct_header_t *self) {
+int pico8_d_(pico8_struct_header_t *self) {
     const pico8_probe_t *probe;
     int has_et;
     pico8_hy_t *fm;
     int lu_ok = 0;
 
     if (self == NULL) {
-        return pico8_value_ref(NULL);
+        return 0;
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "d_: self is a struct; no class instance reaches g_'s functions any more");
@@ -356,12 +356,12 @@ pico8_value_t pico8_d_(pico8_struct_header_t *self) {
 
         pico8_rn(pico8_value_fixed(probe->has_ik ? probe->ik : pico8_fixed_from_int(54)));
 
-        return pico8_value_bool(1);
+        return 1;
     }
 
     pico8_rn(pico8_value_fixed(pico8_fixed_from_int(57)));
     probe_host_raise_p_(self);
-    return pico8_value_ref(NULL);
+    return 0;
 }
 
 void pico8_d__dispatch(void *self, pico8_struct_header_t *kv) {

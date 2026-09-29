@@ -93,12 +93,12 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     return pico8_vec_add(p, pico8_vec_qm(clamped, pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00003333, 0.2))));
 }
 
-pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_value_t *out_nearest) {
+pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_header_t **out_nearest) {
     pico8_fixed_t mk = pico8_fixed_from_int(32767);
     pico8_ptrs_iter_t it;
     void *e;
 
-    *out_nearest = pico8_value_ref(NULL);
+    *out_nearest = NULL;
     if (j_ == NULL) {
         return mk;
     }
@@ -115,7 +115,7 @@ pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_value_t *out
 
         if (!same_position && d < mk) {
             mk = d;
-            *out_nearest = pico8_value_ref(e);
+            *out_nearest = o;
         }
     }
     return mk;

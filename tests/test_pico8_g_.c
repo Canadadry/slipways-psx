@@ -582,7 +582,7 @@ static void test_life(void) {
         assert(listed(pico8_hv(), a) && listed(pico8_hv(), b));
     }
     assert(cls_of(a)->ey == pico8_d__dispatch);
-    assert(pico8_d_(&a->ke.header).kind == PICO8_VALUE_REF);
+    assert(pico8_d_(&a->ke.header) == 0);
     assert(a->has_p_ && a->p_);
     pico8_dg();
     assert(!listed(pico8_hv(), a) && !listed(pico8_cg("g_"), a) && !listed(pico8_cg("prober"), a));
@@ -595,14 +595,14 @@ static void test_life(void) {
 static void test_ey_on(void) {
     uint32_t h = 2166136261u;
     pico8_g__t *a;
-    pico8_value_t out;
+    int out;
 
     start_game();
     a = ldown();
     cls_of(a)->hq(a, mouse_at(planet_p()).as.ref, vec_ref(vec_xy(64, 64)).as.ref);
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->ke.header);
-    assert(out.kind == PICO8_VALUE_REF && out.as.ref == NULL);
+    assert(out == 0);
     assert(a->has_p_ && a->p_);
     h = fold_string_member(h, a->ke.me);
     h = fold_fixed_member(h, a->ke.t);
@@ -615,13 +615,13 @@ static void test_ey_on(void) {
 static void test_ey_off(void) {
     uint32_t h = 2166136261u;
     pico8_g__t *a;
-    pico8_value_t out;
+    int out;
 
     start_game();
     a = ldown();
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->ke.header);
-    assert(pico8_value_equal(out, pico8_value_bool(1)));
+    assert(out == 1);
     assert(!a->has_p_);
     assert(is_me(&a->ke, "ly"));
     assert(a->ke.t == pico8_fixed_from_int(0));
@@ -638,7 +638,7 @@ static void test_ey_void(void) {
     pico8_vec_t middle;
     pico8_fixed_t nz;
     const char *me;
-    pico8_value_t out;
+    int out;
 
     start_game();
     a = ldown();
@@ -651,7 +651,7 @@ static void test_ey_void(void) {
     me = a->ke.me;
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->ke.header);
-    assert(out.kind == PICO8_VALUE_REF && out.as.ref == NULL);
+    assert(out == 0);
     assert(a->has_p_ && a->p_);
     assert(fm_hy()->nz == nz);
     assert(a->ke.me == me);

@@ -484,7 +484,7 @@ static void test_life(void) {
     place(placed, 12, 108);
     set_credits(999);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
-    h = fold_value(h, pico8_d_(placed));
+    h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(placed)->jo.ke.me);
     assert(strcmp(as_qh(placed)->jo.ke.me, "ly") == 0);
     h = fold_economy(h, placed);

@@ -21,7 +21,8 @@ static int g_ie_up = 0;
  * written through: an icon's `ra`, and `eh`, may hold its REF. Only `_init`
  * resets `gy`, only pico8_research_icon_init() resets `id`. */
 static const pico8_vec_t *g_ie_gy = NULL;
-static pico8_value_t g_ie_id = {PICO8_VALUE_REF, {.ref = NULL}};
+static pico8_fixed_t g_ie_id = 0;
+static int g_ie_has_id = 0;
 
 static int ie_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -124,9 +125,10 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
     pico8_down_t out = {0, NULL};
 
     assert(g_ie_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
-    new_id = pico8_fixed_add(g_ie_id.kind == PICO8_VALUE_FIXED ? g_ie_id.as.fixed : pico8_fixed_from_int(0),
+    new_id = pico8_fixed_add(g_ie_has_id ? g_ie_id : pico8_fixed_from_int(0),
                              pico8_fixed_from_int(1));
-    g_ie_id = pico8_value_fixed(new_id);
+    g_ie_id = new_id;
+    g_ie_has_id = 1;
 
     ke_kind = ie_self_ke_kind(self);
     if (ke_kind == NULL) {
@@ -264,7 +266,8 @@ void pico8_research_icon_init(void) {
 
     g_ie_up = 1;
     g_ie_gy = NULL;
-    g_ie_id = pico8_value_fixed(pico8_ie_start.id);
+    g_ie_id = pico8_ie_start.id;
+    g_ie_has_id = 1;
 }
 
 /* TROU-7 */
@@ -294,11 +297,10 @@ const pico8_vec_t *pico8_ie_gy(void) {
 }
 
 int pico8_ie_id(pico8_fixed_t *out) {
-    if (g_ie_id.kind == PICO8_VALUE_REF && g_ie_id.as.ref == NULL) {
+    if (!g_ie_has_id) {
         return 0;
     }
-    assert(g_ie_id.kind == PICO8_VALUE_FIXED && "ie.id: only ever nil or a number");
-    *out = g_ie_id.as.fixed;
+    *out = g_ie_id;
     return 1;
 }
 

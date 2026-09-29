@@ -454,7 +454,7 @@ static void test_life(void) {
     h = fold_et(h, &placed->qh);
     set_credits(100);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
-    h = fold_value(h, pico8_d_(&placed->qh.jo.ke.header));
+    h = pico8_d_(&placed->qh.jo.ke.header) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, placed->qh.jo.ke.me);
     h = fold_fixed_member(h, placed->qh.jo.ke.t);
     h = fnv(h, (uint32_t)credits());

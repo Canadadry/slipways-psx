@@ -23,12 +23,12 @@ typedef struct {
     const char *ids[PICO8_JC_HG_CAP];
 } pico8_jc_hg_t;
 
-/* `hg[id]=true`: `id` must be a string, and at most PICO8_JC_HG_CAP are
+/* `hg[id]=true`: `id` must not be NULL, and at most PICO8_JC_HG_CAP are
  * ever added (asserted). */
-void pico8_jc_hg_add(pico8_jc_hg_t *hg, pico8_value_t id);
+void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id);
 
-/* `hg[id]`: 1 for a string `id` already added, 0 otherwise. */
-int pico8_jc_hg_has(const pico8_jc_hg_t *hg, pico8_value_t id);
+/* `hg[id]`: 1 for an `id` already added, 0 otherwise, NULL included. */
+int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
 
 /* `nu` points at `pico8_jc_nu_tags`, `k_` at `pico8_jc_k__seq`; `ts` is this
  * slipway's own, made by `pico8_jc_pq`, which also empties `hg_own` and
@@ -115,8 +115,8 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp);
 void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re);
 
 /* Returns the existing slipway to reuse, the first planet or slipway in
- * the way, the one static `{qs="-too far-"}` struct, or nothing. */
-pico8_value_t pico8_jc_ce(pico8_jc_t *self);
+ * the way, the one static `{qs="-too far-"}` struct, or NULL. */
+pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self);
 
 const pico8_struct_class_t *pico8_jc_too_far_struct_class(void);
 

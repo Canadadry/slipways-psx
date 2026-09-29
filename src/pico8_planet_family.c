@@ -23,13 +23,6 @@ static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */
 static pico8_ptrs_t g_ga_by_shared;
 
-static pico8_vec_t pico8_pf_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
 void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t) {
     pico8_na((pico8_struct_header_t *)self, t);
 }
@@ -364,13 +357,17 @@ void pico8_pm_pq(pico8_pm_t *self) {
     pico8_vec_t *spawn_ra_heap;
     pico8_ga_keys_t keys;
     pico8_ga_t *spawned;
+    const pico8_vec_t *ra;
+    const pico8_vec_t *ng;
 
     if (self == NULL) {
         return;
     }
 
-    spawn_ra = pico8_vec_add(pico8_pf_value_vec(pico8_value_ref(self->hj.qh.jo.ra)),
-                             pico8_pf_value_vec(pico8_value_ref((void *)self->ng)));
+    ra = self->hj.qh.jo.ra;
+    ng = self->ng;
+    spawn_ra = pico8_vec_add(ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
+                             ng != NULL ? *ng : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)));
     spawn_ra_heap = malloc(sizeof *spawn_ra_heap);
     *spawn_ra_heap = spawn_ra;
 

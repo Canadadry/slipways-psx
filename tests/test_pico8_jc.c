@@ -905,36 +905,35 @@ static void must_abort(void (*write)(void *), void *jc) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-static void hg_add_fixed(void *hg) {
-    pico8_jc_hg_add(hg, pico8_value_fixed(pico8_fixed_from_int(1)));
+static void hg_add_nil(void *hg) {
+    pico8_jc_hg_add(hg, NULL);
 }
 
 static void hg_add_one_more(void *hg) {
-    pico8_jc_hg_add(hg, pico8_value_string("one more"));
+    pico8_jc_hg_add(hg, "one more");
 }
 
 /* `hg[id]=true` keeps each string `id` once and in order, reads anything
- * else as absent, refuses a non-string `id` and a 91st planet. */
+ * else as absent, refuses a nil `id` and a 91st planet. */
 static void test_hg_is_a_set_of_ids(void) {
     static char ids[PICO8_JC_HG_CAP][8];
     pico8_jc_hg_t hg = {0, {NULL}};
     int i;
 
-    pico8_jc_hg_add(&hg, pico8_value_string("p1"));
-    pico8_jc_hg_add(&hg, pico8_value_string("p2"));
-    pico8_jc_hg_add(&hg, pico8_value_string("p1"));
+    pico8_jc_hg_add(&hg, "p1");
+    pico8_jc_hg_add(&hg, "p2");
+    pico8_jc_hg_add(&hg, "p1");
     assert(hg.count == 2 && strcmp(hg.ids[0], "p1") == 0 && strcmp(hg.ids[1], "p2") == 0);
-    assert(pico8_jc_hg_has(&hg, pico8_value_string("p2")) && !pico8_jc_hg_has(&hg, pico8_value_string("p3")));
-    assert(!pico8_jc_hg_has(&hg, pico8_value_fixed(pico8_fixed_from_int(1))));
-    assert(!pico8_jc_hg_has(&hg, pico8_value_ref(NULL)) && !pico8_jc_hg_has(NULL, pico8_value_string("p1")));
-    must_abort(hg_add_fixed, &hg);
+    assert(pico8_jc_hg_has(&hg, "p2") && !pico8_jc_hg_has(&hg, "p3"));
+    assert(!pico8_jc_hg_has(&hg, NULL) && !pico8_jc_hg_has(NULL, "p1"));
+    must_abort(hg_add_nil, &hg);
 
     hg.count = 0;
     for (i = 0; i < PICO8_JC_HG_CAP; i++) {
         snprintf(ids[i], sizeof ids[i], "p%d", i + 1);
-        pico8_jc_hg_add(&hg, pico8_value_string(ids[i]));
+        pico8_jc_hg_add(&hg, ids[i]);
     }
-    assert(hg.count == PICO8_JC_HG_CAP && pico8_jc_hg_has(&hg, pico8_value_string("p90")));
+    assert(hg.count == PICO8_JC_HG_CAP && pico8_jc_hg_has(&hg, "p90"));
     must_abort(hg_add_one_more, &hg);
 }
 

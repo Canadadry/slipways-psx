@@ -8,7 +8,6 @@
 #include "pico8_entity_geom.h"
 #include "pico8_planet.h"
 #include "pico8_slipway.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 static int pico8_jc_display_to_int(pico8_fixed_t x) {
@@ -28,7 +27,7 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
     if (self->hg != NULL) {
         /* The mouse point jc:hq hangs on `re` has no `id`. */
         const char *t_id = t != NULL && pico8_jo_is_family(t) ? ((const pico8_jo_t *)t)->id : NULL;
-        if (pico8_jc_hg_has(self->hg, pico8_value_string(t_id))) {
+        if (pico8_jc_hg_has(self->hg, t_id)) {
             if (self->ts != NULL) {
                 pico8_vec_t f_ra = pico8_jc_end_ra(f);
                 pico8_vec_t t_ra = pico8_jc_end_ra(t);

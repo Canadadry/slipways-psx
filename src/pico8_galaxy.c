@@ -50,7 +50,7 @@ void pico8_bw(pico8_fixed_t n) {
         pico8_vec_t p_vec;
         pico8_vec_t *p_heap;
         pico8_vec_t *ra_heap;
-        pico8_value_t nearest;
+        pico8_struct_header_t *nearest;
         char *id_num_str;
         char *id_str;
         pico8_jo_keys_t keys;

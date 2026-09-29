@@ -130,7 +130,7 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
                 if (w->hg == NULL) {
                     continue;
                 }
-                pico8_jc_hg_add(w->hg, pico8_value_string(planet->id));
+                pico8_jc_hg_add(w->hg, planet->id);
             }
         }
 

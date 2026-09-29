@@ -152,21 +152,6 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
-}
-
 /* `et` as qh's reader gave it: absent, false, or the target. */
 static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
     switch (et_state(qh)) {
@@ -448,7 +433,7 @@ static void test_life(void) {
     assert(et_state(as_qh(poor_lab)) == 1);
     set_credits(3);
     assert(cls_of(poor_lab)->ey == pico8_d__dispatch);
-    h = fold_value(h, pico8_d_(poor_lab));
+    h = pico8_d_(poor_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(poor_lab)->jo.ke.me);
     h = fold_fixed_member(h, as_qh(poor_lab)->jo.ke.t);
     h = fnv(h, p__state(&as_qh(poor_lab)->jo));
@@ -460,7 +445,7 @@ static void test_life(void) {
     cls_of(in_lab)->hq(in_lab, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
     set_credits(100);
     assert(cls_of(in_lab)->ey == pico8_d__dispatch);
-    h = fold_value(h, pico8_d_(in_lab));
+    h = pico8_d_(in_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
     h = fold_string_member(h, as_qh(in_lab)->jo.ke.me);
     h = fold_fixed_member(h, as_qh(in_lab)->jo.ke.t);
     h = fnv(h, p__state(&as_qh(in_lab)->jo));

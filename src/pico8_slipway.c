@@ -44,24 +44,6 @@ static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
     .get_p = jc_mouse_point_get_p,
 };
 
-/* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
-static int pico8_jc_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
-static pico8_struct_header_t *pico8_jc_value_instance(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_struct_header_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 static const pico8_jc_mouse_point_t *jc_end_point(const pico8_struct_header_t *end) {
     assert(end->cls == &g_jc_mouse_point_struct_class &&
            "jc: an end of a slipway is a planet or the mouse point jc:hq hangs on re -- stop");
@@ -90,25 +72,25 @@ static int jc_mt_of(const pico8_struct_header_t *e, pico8_fixed_t *out) {
     return e != NULL && e->cls->get_mt != NULL && e->cls->get_mt(e, out);
 }
 
-void pico8_jc_hg_add(pico8_jc_hg_t *hg, pico8_value_t id) {
-    assert(id.kind == PICO8_VALUE_STRING && id.as.string != NULL &&
-           "jc.hg: an id that is not a string does not fit the member's type -- stop, do not widen the member");
+void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id) {
+    assert(id != NULL &&
+           "jc.hg: a nil id does not fit the member's type -- stop, do not widen the member");
     if (pico8_jc_hg_has(hg, id)) {
         return;
     }
     assert(hg->count < PICO8_JC_HG_CAP && "jc.hg: more planets than bw(90) makes -- stop, do not widen the member");
-    hg->ids[hg->count] = id.as.string;
+    hg->ids[hg->count] = id;
     hg->count++;
 }
 
-int pico8_jc_hg_has(const pico8_jc_hg_t *hg, pico8_value_t id) {
+int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id) {
     int i;
 
-    if (hg == NULL || id.kind != PICO8_VALUE_STRING || id.as.string == NULL) {
+    if (hg == NULL || id == NULL) {
         return 0;
     }
     for (i = 0; i < hg->count; i++) {
-        if (strcmp(hg->ids[i], id.as.string) == 0) {
+        if (strcmp(hg->ids[i], id) == 0) {
             return 1;
         }
     }
@@ -164,7 +146,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     self->mt = pico8_fixed_from_int(0);
     self->has_mt = jc_mt_of(self->qu, &self->mt) || jc_mt_of(self->re, &self->mt);
 
-    self->probe->et = pico8_jc_value_instance(pico8_jc_ce(self));
+    self->probe->et = pico8_jc_ce(self);
     self->probe->has_et = self->probe->et != NULL;
     if (self->probe->et != NULL) {
         assert(pico8_type_tag_of(self->probe->et) == PICO8_TYPE_TAG_STRUCT &&
@@ -184,7 +166,7 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
 
     /* `d_()` charges the player and advances the clock, so it must stay
      * behind the `re == NULL` short-circuit. */
-    should_fail = (re == NULL) || !pico8_jc_truthy(pico8_d_((pico8_struct_header_t *)self));
+    should_fail = (re == NULL) || !pico8_d_((pico8_struct_header_t *)self);
     if (should_fail) {
         /* pico8_stat has no case for 19, so it reads 0 and this sfx never
          * fires; ported anyway. It dereferences `input` without checking it,
@@ -262,7 +244,7 @@ static int pico8_jc_ce_jc_predicate(void *e, void *ctx_ptr) {
     return pico8_geom_cl(ctx->sp, ctx->dp, pico8_jc_end_p(sw->qu), pico8_jc_end_p(sw->re));
 }
 
-pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
+pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
     pico8_struct_header_t *qu;
     pico8_struct_header_t *re;
     pico8_vec_t sp;
@@ -270,7 +252,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     pico8_fixed_t threshold;
 
     if (self == NULL) {
-        return pico8_value_ref(NULL);
+        return NULL;
     }
 
     qu = self->qu;
@@ -281,7 +263,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x00008000, 0.5), PICO8_FIXED_LIT(0x0001147a, 1.08));
 
     if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {
-        return pico8_value_ref(&g_jc_too_far);
+        return &g_jc_too_far.header;
     }
 
     {
@@ -304,7 +286,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
                        "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
                 w = w_val;
                 if (pico8_jc_eb((const pico8_jc_t *)w, qu) == re) {
-                    return pico8_value_ref(w);
+                    return w;
                 }
             }
         }
@@ -316,7 +298,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
         pico8_ptrs_t part1;
         pico8_ptrs_t part2;
         pico8_ptrs_t ds;
-        pico8_value_t result = pico8_value_ref(NULL);
+        pico8_struct_header_t *result = NULL;
 
         np_ctx.sp = sp;
         np_ctx.dp = dp;
@@ -332,7 +314,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
         pico8_ptrs_free(&part2);
 
         if (ds.count > 0) {
-            result = pico8_value_ref(ds.items[0]);
+            result = ds.items[0];
         }
         pico8_ptrs_free(&ds);
         return result;

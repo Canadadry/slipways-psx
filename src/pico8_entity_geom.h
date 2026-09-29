@@ -7,7 +7,7 @@
 #include "pico8_vec.h"
 
 /* A vector-valued entity field -- `ra`, `p`, and `kq`'s box -- is a
- * PICO8_VALUE_REF to a heap object the field borrows and never owns.
+ * pointer to a heap vector the field borrows and never owns.
  * Throughout this module a NULL instance, an absent field or a wrong-kind
  * field reads as the zero vector, as 0, or as a false hit test. */
 /* TROU-15 */
@@ -26,8 +26,8 @@ void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t);
 pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e);
 
 /* Reads every element of `j_` as an entity instance. `*out_nearest` is
- * pico8_value_ref(NULL) -- Lua's nil -- when `j_` is NULL, empty, or holds
+ * NULL -- Lua's nil -- when `j_` is NULL, empty, or holds
  * nothing away from `p`; the returned distance is then 32767. */
-pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_value_t *out_nearest);
+pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_header_t **out_nearest);
 
 #endif
