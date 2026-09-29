@@ -6,13 +6,13 @@ status: needs-triage
 
 ## Problem Statement
 
-**Écrit pendant que D.18a est implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis **`d183e10`** (HEAD de `claude/plan-pilot-3-7zdft0` au moment de l'écriture : D.17 gradée, PRD de D.18a en file), extrait par `git archive d183e10` dans le scratchpad. Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné ; **rien n'a été compilé ni lancé**, rien de non commis n'a été lu. Tout ce que ce PRD suppose de l'issue de D.18a est une hypothèse **`H-D18a-n`** (section dédiée) ; la liste des sections à revérifier à la graduation de D.18a est en fin de Problem Statement. **Les numéros de ligne sont ceux de `d183e10`** ; l'implémenteur les remesure par contenu au parent de son commit (le commit de D.18a, ou un descendant `docs/` seul) et explique tout écart.
+**Écrit pendant que D.18a était implémentée** (`plan-pilot`, étape 2b) sur l'arbre commis `d183e10`, puis **revérifié après la graduation de D.18a** (`42eb560` `refactor(D.18a)`, gradée par `ab56a93`) sur **`ab56a93`** (HEAD de `claude/plan-pilot-3-7zdft0`, qui ne fait qu'ajouter la première version de ce PRD et la note « Découvert à D.18a »), extrait par `git archive HEAD` dans le scratchpad. Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné ; **rien n'a été compilé ni lancé**. Les hypothèses `H-D18a-n` ont reçu leur verdict (plus bas). **Les numéros de ligne de ce PRD sont ceux de `ab56a93`** (identiques à `42eb560` pour `src/` et `tests/`) : identiques à ceux de `d183e10` dans les fichiers que D.18a n'a pas touchés ou a changés en place (`ui_button.c/.h`, `menu.c`, `help.c`, `msgbox.c`, `planet_display.c`), remesurés par contenu dans les autres (`score_panel_display.c`, `test_pico8_js.c`, `test_pico8_lq.c`), l'ancien numéro donné là où il sert. L'implémenteur remesure encore par contenu au parent de son commit et explique tout écart.
 
-Mesuré à `d183e10` (départ de D.18a) : `valeur` 693 / 85 ; 763 occ., `type-tag` 242 / 58, résidu D 933 / 102. **Départ attendu de D.18b** (H-D18a-1) : `valeur` 560 / 83 ; 623 occ. (`src/` 181 / 45 / 212, `tests/` 379 / 38 / 411), `type-tag` 242 / 58, résidu D 800 / 101.
+Mesuré à `d183e10` (départ de D.18a) : `valeur` 693 / 85 ; 763 occ., `type-tag` 242 / 58, résidu D 933 / 102. **Mesuré à `ab56a93` (départ de D.18b) : `valeur` 560 / 83 ; 623 occ. (`src/` 181 / 45 / 212, `tests/` 379 / 38 / 411), `type-tag` 242 / 58, résidu D 800 / 101.**
 
 Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico8_value.c/.h` disparaissent (D.19c). Le groupe B9 de l'étude D.14 (`docs/prd/done/plan3-phaseD-etape14-etude-genres-meles.md`) est celui des **sources d'un bouton** : `pico8_js_keys_t` garde trois membres `pico8_value_t lq, h_, jb` à côté des rangées typées `lq_row`, `h_row`, `jb_row` ; le constructeur de `js` recopie ces valeurs dans trois locales, y applique TROU-23 en transformant un nil présent en `true`, puis `pico8_js_pq` les trie (`pico8_js_truthy`, `pico8_js_is_lq` qui lit l'étiquette de type, deux `assert` de genre). Presque tous les producteurs écrivent déjà la rangée typée et posent la valeur à nil pour rien (`.lq = pico8_value_ref(NULL)`, dix-neuf lignes de `src/` et de TU).
 
-Ligne de l'étape, recopiée de `docs/plan-3.md` à `d183e10` (§5, l. 290) :
+Ligne de l'étape, recopiée de `docs/plan-3.md` à `ab56a93` (§5, l. 290, inchangée depuis `d183e10`) :
 
 > - D.18b — B9 : sources des boutons en champs séparés. `class-coverage-net` : oui. Compte : ≈ 505.
 
@@ -36,37 +36,37 @@ Lignes directrices de l'étude (§4) qui s'appliquent, en extrait :
 
 Règles communes de l'étude (§3) : un TU qui nomme un symbole changé le suit dans le même commit ; aucune empreinte figée ne change ; aucun `*.sha256` ni e2e ne change ; `class-coverage-net` si l'étape touche un constructeur (drapeau de l'étude pour D.18b : « constructeur `js` »).
 
-Note de D.15c (PRD `docs/prd/done/plan3-phaseD-etape15c-tostr-nombre-dans-str.md`, l. 83, 132, 327, 484) : « `planet_display.c:377` garde `pico8_value_string` autour du formatage (`h_item` d'un bouton, B9, D.18b) ». **Relu ici** : cette ligne (`row->h_item = pico8_value_string(jo_dollar(pico8_tostr_fixed(od)));`, `planet_display.c:357` à `d183e10`) écrit la **case** de la rangée `h_` de `jo:fe`, pas la source du bouton : c'est une clé de `lq` (B8), et le PRD de D.18a la prend (son Inventaire, `planet_display.c:357`, (a1), `pico8_lq_cell_string`), avec sa jumelle `:175` (`h_item` de `jo:gh`). D.18b n'a rien à y faire (H-D18a-5) ; si D.18a la laissait, D.18b la prend, (a1), et le déclare.
+Note de D.15c (PRD `docs/prd/done/plan3-phaseD-etape15c-tostr-nombre-dans-str.md`, l. 83, 132, 327, 484) : « `planet_display.c:377` garde `pico8_value_string` autour du formatage (`h_item` d'un bouton, B9, D.18b) ». **Relu ici** : cette ligne (`row->h_item = pico8_value_string(jo_dollar(pico8_tostr_fixed(od)));`, `planet_display.c:357` à `d183e10`) écrit la **case** de la rangée `h_` de `jo:fe`, pas la source du bouton : c'est une clé de `lq` (B8), et le PRD de D.18a la prend (son Inventaire, `planet_display.c:357`, (a1), `pico8_lq_cell_string`), avec sa jumelle `:175` (`h_item` de `jo:gh`). D.18a l'a convertie (H-D18a-5, tient) : D.18b n'a rien à y faire.
 
-### Hypothèses `H-D18a-n` (D.18a en cours ; à juger à sa graduation)
+### Hypothèses `H-D18a-n` — verdicts (D.18a gradée, mesurés à `ab56a93`)
 
-Source : le PRD de D.18a (`docs/prd/triage/plan3-phaseD-etape18a-b8-cles-de-rangee-en-cases.md` à `d183e10`), son Inventaire, ses « Pour D.18b » et ses totaux.
+Source des hypothèses : ce PRD à sa première version (écrite sur `d183e10`, commise par `644e649`). Verdicts : `git archive HEAD` (`ab56a93`), `git diff --stat d183e10 HEAD -- src tests Makefile tools docs/trous-de-portage.md docs/glossaire-noms.md` (12 chemins : `layout.c/.h`, `menu.c`, `help.c`, `msgbox.c`, `planet_display.c`, `research_display.c`, `score_panel_display.c`, TU `js`, `lq`, `layout_nil_item_draws_nothing`, `glossaire-noms.md` ; ni `ui_button.c/.h`, ni `Makefile`, ni `tools/`, ni `trous-de-portage.md`), la note « Découvert à D.18a » (`docs/plan-3.md:289`).
 
-| Hypothèse | Énoncé | Si elle tombe |
-|---|---|---|
-| H-D18a-1 | Après D.18a : `valeur` **560 / 83 ; 623 occ.** (`src/` 181 / 45 / 212, `tests/` 379 / 38 / 411) ; `type-tag` 242 / 58 ; résidu D 800 / 101 | départ, « Effet », critères `FAILED:` recalculés (les deltas de D.18b restent − 66 / − 76) |
-| H-D18a-2 | D.18a ne touche ni `pico8_ui_button.c` ni `pico8_ui_button.h` (sa liste « Inchangés ») | Inventaire de `ui_button` remesuré ligne à ligne |
-| H-D18a-3 | Dans `menu.c`, `help.c`, `msgbox.c`, `planet_display.c`, D.18a change ses lignes **en place** : les lignes B9 gardent contenu et numéro (`menu.c:106,117,121,196,199,364,387`, `help.c:58`, `msgbox.c:356`, `planet_display.c:165,171,282,349,351,355,363,374`) ; dans `score_panel_display.c`, le retrait de `pico8_pj_ph_item_value` et de son commentaire (`:126-141`) fait remonter `:279`, `:294` d'environ 16 lignes | numéros remesurés par contenu |
-| H-D18a-4 | Comptes par fichier après D.18a (lignes / occ.) : `ui_button.c` 16 / 21, `ui_button.h` 6 / 7, `menu.c` 8 / 8 (7 B9 + include `:24`), `help.c` 1 / 1, `msgbox.c` 1 / 1, `planet_display.c` 8 / 8, `score_panel_display.c` 13 / 13, `test_pico8_js` 39 / 44, `test_pico8_lq` 30 / 30 | tableau « Effet » recalculé |
-| H-D18a-5 | `planet_display.c:175` et `:357` (cases `h_` de `jo:gh` et `jo:fe`, la « ligne pour D.18b » de D.15c) sont converties par D.18a | D.18b les prend, (a1), déclarées |
-| H-D18a-6 | Copies `truthy` : **1** (`ui_button.c:27`) ; fonctions publiques qui nomment `pico8_value_t` : **2** (`pico8_pj_item_of`, `pico8_js_pq`) | Sortie grep 3 et « Effet » |
-| H-D18a-7 | `pico8_lq_copy`, `pico8_lq_new(NULL)` (rangée vide), `pico8_jb_new(NULL)` (`jb` vide) inchangés ; D.18b n'emploie aucun constructeur `pico8_lq_cell_*` | lecture de `pico8_js_lq` revue |
-| H-D18a-8 | Dans `test_pico8_js`, D.18a ne change que `build()` (`:780-781` : `h_item` écrit **dans** le `if (h_text != NULL)`, une ligne de plus : les lignes après `:789` descendent de 1) et `fold_keys` (`:1319`, `:1388-1389`, en place) ; aucune ligne B9 touchée | numéros de `js` remesurés |
-| H-D18a-9 | Dans `test_pico8_lq`, D.18a change des lignes avant `:524` (plis `fold_cell`/`fold_positionals`, masque `nil_at`, `same_cell`) : `:524` et `:893` gardent leur contenu mais descendent d'un nombre inconnu ; `must_abort` garde deux appelants (`keys_of_row`, retypé en cases, et `ol_on_other`) | numéros remesurés ; si `must_abort` perdait ses appelants, voir « `-Werror` » |
-| H-D18a-10 | `Makefile`, `tools/`, `DATA_RESIDUE_GUARD`, `tools/class_coverage_net_expected.txt`, les 26 e2e, `docs/trous-de-portage.md` inchangés par D.18a ; le glossaire change ses lignes `:434-435` en place (l'entrée `js` reste `:444`) | chemins et numéros de la « Documentation » revus |
-| H-D18a-11 | D.18a en un commit, sans repli (sinon D.18a1/D.18a2, et D.18b part de D.18a2) ; durée réelle mesurée pour recalibrer le budget | « Budget » recalibré |
-| H-D18a-12 | La ligne D.18b du plan est inchangée ; la note « Découvert à D.18a » dit « pour D.18b » ce que liste l'Inventaire ci-dessous (`menu.c` 7, `help.c` 1, `msgbox.c` 1, `planet_display.c` 8, `score_panel_display.c` 2, `ui_button.c/.h`, dernière copie `truthy` `ui_button`) | Inventaire relu contre la note |
+| Hypothèse | Énoncé (résumé) | Verdict | Mesure à `ab56a93` ; effet sur ce PRD |
+|---|---|---|---|
+| H-D18a-1 | `valeur` 560 / 83 ; 623 occ. (`src/` 181 / 45 / 212, `tests/` 379 / 38 / 411) ; `type-tag` 242 / 58 ; résidu D 800 / 101 | **tient** | exact ; départ, effet et critères inchangés |
+| H-D18a-2 | `ui_button.c/.h` intacts | **tient** | absents du `diff --stat` ; lignes `:27-28`, `:118-120`, `:161-165`, `:217-251`, `.h:73-108` inchangées |
+| H-D18a-3 | B9 en place dans `menu`, `help`, `msgbox`, `planet_display` ; `score_panel_display` remonte d'environ 16 | **tient** (écart de 1) | numéros identiques dans les quatre premiers ; `score_panel_display.c:279`, `:294` → **`:262`, `:277`** (− 17, et non ≈ − 16) ; `pico8_pj_ph` `:239-283` |
+| H-D18a-4 | comptes par fichier : `ui_button.c` 16 / 21, `.h` 6 / 7, `menu.c` 8 / 8, `help.c` 1 / 1, `msgbox.c` 1 / 1, `planet_display.c` 8 / 8, `score_panel_display.c` 13 / 13, `js` 39 / 44, `lq` 30 / 30 | **tient** | exact |
+| H-D18a-5 | `planet_display.c:175`, `:357` (cases `h_`) converties par D.18a | **tient** | plus aucune ligne `valeur` hors des huit B9 ; la « ligne pour D.18b » de D.15c est partie avec B8 |
+| H-D18a-6 | copies `truthy` 1 (`ui_button.c:27`) ; 2 fonctions publiques à `pico8_value_t` | **tient** | note : « copies `truthy` 2 → 1 », grep 3 rend `ui_button.c` seul |
+| H-D18a-7 | `pico8_lq_copy`, `lq_new(NULL)`, `jb_new(NULL)` inchangés ; D.18b n'emploie aucun `pico8_lq_cell_*` | **tient** | `pico8_lq_copy` recopie les cases telles quelles ; aucune source de bouton n'est une case |
+| H-D18a-8 | `test_pico8_js` : lignes après `:789` + 1 ; aucune ligne B9 touchée | **tient** | `:997` → `:998`, …, `:1711` → `:1712`, appel `:1819` → `:1820` ; lignes ≤ `:789` (`:8`, `:46`, `:207-215`, `:675-678`) inchangées |
+| H-D18a-9 | `test_pico8_lq` : `:524`, `:893` décalées d'un nombre inconnu ; `must_abort` garde deux appelants | **tient** | décalage **+ 9** : `:524` → **`:533`**, `:893` → **`:902`** (`button_on_other` `:900-904`, appel `:958`, commentaire `:906-909`) ; `must_abort` `:874`, appelants `keys_of_row` (`:954-956`) et `ol_on_other` (`:957`) |
+| H-D18a-10 | `Makefile`, `tools/`, e2e (26), TROU-23 inchangés ; glossaire en place, entrée `js` à `:444` | **tient** | TROU-23 `:374-391` intact (nomme encore `pico8_js_new_table`, `:388`) ; entrée `js` `:444` |
+| H-D18a-11 | D.18a en un commit ; durée pour recalibrer | **tient** | `42eb560` ; mise en file `d183e10` 20:46 → commit 20:56 (≈ 10 min pour 133 lignes), gradée 21:04 (≈ 18 min) : budget ramené à ≈ 15 min |
+| H-D18a-12 | ligne D.18b inchangée ; « pour D.18b » de la note = cet Inventaire | **tient** | note : « `menu.c` 7 + include, `help.c` 1, `msgbox.c` 1, `planet_display.c` 8, `score_panel_display.c` 2, `ui_button.c/.h` ; la dernière copie `truthy` est celle de `ui_button` » |
 
-### Sections à revérifier quand D.18a sera gradée
+**Constat hors hypothèses** : aucun. La note de D.18a ne signale ni ligne B9 prise ni site nouveau ; elle confirme `class-coverage-net` identique et `sanitize-net` propre à D.18a.
 
-1. « État de départ » et les critères `FAILED:` de départ (H-D18a-1, -4).
-2. Numéros de ligne de l'Inventaire : `score_panel_display.c` (H-D18a-3), `test_pico8_js.c` (H-D18a-8), `test_pico8_lq.c` (H-D18a-9) ; les autres par `git diff --quiet <D.18a> d183e10 -- <fichier>` ou remesure par contenu.
-3. « Effet sur `make data-residue` » (départ réel moins − 66 / − 76 occ.).
-4. Tableau « Runs », lignes 1 à 3 (valeurs attendues).
-5. Cibles des mutations (numéros).
-6. « Documentation » : numéro de l'entrée `js` du glossaire ; texte de TROU-23 (H-D18a-10).
-7. « Budget » : recalibré sur le temps réel de D.18a (H-D18a-11).
-8. La note « Découvert à D.18a » : legs pour D.18b (H-D18a-12), et tout écart qu'elle signale (ligne prise, `pico8_lq_cell_*` employé par un site B9).
+### Revérification faite à la graduation de D.18a
+
+- « État de départ », critères `FAILED:` de départ, lignes 1 à 3 du tableau « Runs » : remis sur `ab56a93` (mesures identiques à H-D18a-1, -4).
+- Numéros de `score_panel_display.c` (− 17), `test_pico8_js.c` (+ 1 après `:789`), `test_pico8_lq.c` (+ 9 après `:517`) : remesurés par contenu ; les autres fichiers de l'empreinte : numéros inchangés (vérifiés un à un par `grep -nE "$P"`).
+- Cibles des mutations : remises sur `ab56a93`.
+- Annexe A : lignes D.18a (avec sa note) à D.18c réextraites ; TROU-23 et glossaire relus (inchangés).
+- Budget : recalibré sur D.18a (≈ 10 min jusqu'au commit pour 133 lignes) : **≈ 15 min**, plafond 50.
+- Découpage en un commit : **gardé** (aucune mesure ne le change).
 
 ### Preuve B9, par le cart
 
@@ -85,9 +85,9 @@ self.kq=qz(0,-1,self.mb,11)self.h_=self.h_ and lq(self.h_)self.jb=self.jb and jb
 
 ### Preuve B9, par le port : écritures et lecteurs
 
-Grep complet à `d183e10` : `grep -rnE '\b(lq_row|h_row|jb_row|has_h_|has_jb)\b|pico8_js_pq|pico8_js_new\(|pico8_js_keys_t|\.(lq|h_|jb) = ' src tests`.
+Grep complet à `ab56a93` (mêmes sites qu'à `d183e10`) : `grep -rnE '\b(lq_row|h_row|jb_row|has_h_|has_jb)\b|pico8_js_pq|pico8_js_new\(|pico8_js_keys_t|\.(lq|h_|jb) = ' src tests`.
 
-| # | Site (`d183e10`) | `lq` | `h_` | `jb` | Genres écrits |
+| # | Site (`ab56a93`) | `lq` | `h_` | `jb` | Genres écrits |
 |---|---|---|---|---|---|
 | S1 | `menu.c:94-128` `pico8_cr_step` (lignes de `cr`, `rows` en `calloc`) | `ref(NULL)` `:106` + `lq_row` | `has_h_ = 1`, `ref(NULL)` `:117` + `h_row` | `has_jb = 1`, `ref(NULL)` `:121` + `jb_row = t->oy` (NULL possible) | rangée ; `h_` rangée ; `jb` rangée ou nil présent (TROU-23) |
 | S2 | `menu.c:185-200` rangée « n invented » | `ref(NULL)` `:196` + `lq_row` | — | `has_jb = 1`, `ref(NULL)` `:199` + `jb_row` | rangées |
@@ -97,7 +97,7 @@ Grep complet à `d183e10` : `grep -rnE '\b(lq_row|h_row|jb_row|has_h_|has_jb)\b|
 | S6 | `msgbox.c:333-358` `pico8_pz` (`ep_row = {0}`) | `ref(NULL)` `:356` + `lq_row` | — | — | rangée |
 | S7 | `planet_display.c:131-287` `pico8_jo_gh` (`memset(bs)`) | `ref(NULL)` `:165` (+ `lq_row` si icône) ; `ref(NULL)` `:282` + `lq_row` | `has_h_ = 1`, `ref(NULL)` `:171` (+ `h_row` si `kr`) | — | rangée ou nil ; `h_` rangée ou **nil présent** (TROU-23) |
 | S8 | `planet_display.c:342-376` `pico8_jo_fe_keys` (`memset(keys)`) | `ref(NULL)` `:349` + `lq_row` ; **`ref(pico8_hp_lq(b))` `:351`** (copie d'un `lq`, NULL si `hp` absent) | `has_h_ = 1`, **`bool(0)` `:355`** ; si `od > 0` : `ref(NULL)` `:363` + `h_row` | `has_jb = 1`, `ref(NULL)` `:374` + `jb_row = pico8_hp_jb(b)` (NULL possible) | `lq` rangée ou **copie** ; `h_` **faux** ou rangée ; `jb` rangée ou nil présent (TROU-23, le cas atteint par le filet) |
-| S9 | `score_panel_display.c:256-300` `pico8_pj_ph` (`spec1`, `spec2 = {0}`) | `ref(NULL)` `:279`, `:294` + `lq_row` | — | — | rangées |
+| S9 | `score_panel_display.c:235-330` `pico8_pj_ph` (`spec1`, `spec2 = {0}`) | `ref(NULL)` `:262`, `:277` + `lq_row` | — | — | rangées |
 | S10 | `msgbox.c:310-331` `pico8_pz_step` | recopie `b = *row` | | | — |
 | S11 | TU `ui`, `spec_defaults`, `js` (`fresh[0]`, `fresh[2]`) | `pico8_js_new(NULL)` | | | aucune clé (aucun site de `src/` n'appelle `pico8_js_new(NULL)`) |
 
@@ -152,7 +152,7 @@ Sur tous les genres que `src/` écrit, les deux colonnes rendent le même membre
 
 ### État de départ
 
-| Mesure | À `d183e10` (D.18a non commencée) | Départ de D.18b attendu (D.18a gradée, H-D18a-1) |
+| Mesure | À `d183e10` (D.18a non commencée) | Départ de D.18b, mesuré à `ab56a93` (D.18a gradée) |
 |---|---|---|
 | `valeur` (lignes / fichiers ; occ.) | 693 / 85 ; 763 occ. | **560 / 83 ; 623 occ.** (`src/` 181 / 45 / 212, `tests/` 379 / 38 / 411) |
 | `type-tag` | 242 / 58 | **242 / 58** |
@@ -174,7 +174,7 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
 
 ### Inventaire
 
-Classes du message de commit : **(a1)** même site, type C à la place de la valeur ; **(a2)** retirée sans remplaçant au site (écriture de nil dans une struct à zéro, fonction ou aide sans appel, cas de TU d'un genre que `src/` n'écrit pas (G4), include devenu inutile) ; **(b)** signature ou membre public dont le type change ou qui disparaît ; **(c)** même donnée, autre nom : **attendu 0**. `occ.` : occurrences du motif. Chaque ligne listée **sort** de `valeur` ; aucune n'en gagne. Numéros de `d183e10`.
+Classes du message de commit : **(a1)** même site, type C à la place de la valeur ; **(a2)** retirée sans remplaçant au site (écriture de nil dans une struct à zéro, fonction ou aide sans appel, cas de TU d'un genre que `src/` n'écrit pas (G4), include devenu inutile) ; **(b)** signature ou membre public dont le type change ou qui disparaît ; **(c)** même donnée, autre nom : **attendu 0**. `occ.` : occurrences du motif. Chaque ligne listée **sort** de `valeur` ; aucune n'en gagne. Numéros de `ab56a93`.
 
 #### API (`ui_button.h`, `ui_button.c`)
 
@@ -212,7 +212,7 @@ Classes du message de commit : **(a1)** même site, type C à la place de la val
 | | `:355` (1) | `keys->h_is_false = od <= pico8_fixed_from_int(0);` | (a1) 1 |
 | | `:363` (1) | retirée (la clé n'est pas fausse quand `od > 0` : `:355` l'écrit) | (a2) 1 |
 | | `:374` (1) | retirée ; `has_jb = 1`, `jb_row = pico8_hp_jb(b)` restent (TROU-23 quand `hp:jb` est nil) | (a2) 1 |
-| `score_panel_display.c` | `:279`, `:294` (1 chacune ; ≈ `:263`, `:278` après D.18a, H-D18a-3) | retirées (`= {0}`) | (a2) 2 |
+| `score_panel_display.c` | `:262`, `:277` (1 chacune ; `:279`, `:294` à `d183e10`) | retirées (`= {0}`) | (a2) 2 |
 
 Totaux `src/` (lignes / occ.) : `ui_button.c` 16 / 21, `ui_button.h` 5 / 6, `menu.c` 8 / 8, `help.c` 1 / 1, `msgbox.c` 1 / 1, `planet_display.c` 8 / 8, `score_panel_display.c` 2 / 2 : **41 lignes, 47 occ.** Classes : (a1) 5, (a2) 29, (b) 7.
 
@@ -220,22 +220,22 @@ Totaux `src/` (lignes / occ.) : `ui_button.c` 16 / 21, `ui_button.h` 5 / 6, `men
 
 #### Les TU suivent (25 lignes, 29 occ. retirées)
 
-Numéros de `d183e10` ; dans `test_pico8_js`, les lignes après `:789` descendent de 1 après D.18a (H-D18a-8) ; dans `test_pico8_lq`, `:524` et `:893` descendent d'un nombre à remesurer (H-D18a-9).
+Numéros de `ab56a93`, remesurés par contenu : dans `test_pico8_js`, les lignes après `:789` ont descendu de 1 depuis `d183e10` (H-D18a-8) ; dans `test_pico8_lq`, celles d'après `:517` de 9 (`:524` → `:533`, `:893` → `:902`, H-D18a-9).
 
 | TU | Lignes (occ.) | Nouveau texte | Classe |
 |---|---|---|---|
-| `js` | `:997` (1) | `free_keys.h_is_false = 1;` (`test_draw`, le bouton gratuit de `jo:fe`) | (a1) 1 |
-| | `:1030`, `:1031`, `:1032` (1 chacune) | retirées (`b = {0}` : nil) ; `test_nil_keys` garde ses deux constructions et ses assertions | (a2) 3 |
-| | `:1358` (1) | `k.h_is_false = 1;` (`fold_keys`, `h_` faux) | (a1) 1 |
-| | `:1365`, `:1371`, `:1376` (1 chacune) | retirées : `has_h_ = 1` seul, `has_jb = 1` seul (TROU-23), `k = none` seul (nil) ; chaque cas garde son `built(k)` et son pli | (a2) 3 |
-| | `:1383` (1) | **`h_` copie d'un `lq`** : genre qu'aucun producteur n'écrit (G4), mais le cas est plié dans `JS_MEMBERS_HASH` (G1). Le cas devient : `k = none; k.has_h_ = 1; b = built(k);` puis **`b->h_ = pico8_lq_copy(row);`** (le membre que construisait `lq(lq)`, écrit directement, prior art `test_draw:1000`) ; l'assertion `:1385` et le pli `:1386` inchangés : **mêmes octets** (même `has_h_`, même copie de `row`, `pico8_lq_new` n'enregistre rien de global hors `PICO8_CLASS_COVERAGE`) | (a1) 1 |
-| | `:1105`, `:1106` (2, 1) ; `:1113`, `:1117` (1 chacune) | `zero_union`, `vec_ref` retirées : seul appelant, le test supprimé (`-Werror`) | (a2) 4 |
-| | `:1624`, `:1649`, `:1661`, `:1662`, `:1668`, `:1670`, `:1671`, `:1676`, `:1677` (1, 1, 1, 1, 1, 2, 1, 3, 1) | **`test_js_new_stops_off_row` supprimé** (G4) avec `g_off_row`, `build_lq_off_row`, `build_h__off_row`, `build_jb_off_row`, `stops_on` (`:1624-1680`) et son appel `:1819` : ses cas sont une référence étrangère en `lq` ou `h_` (vecteur, `jb`, `js`, rangée générée), un `jb` faux, une union à zéro de genre booléen — aucun ne se range plus dans un champ ; `must_abort` (`:1054-1068`) perd son seul appelant et part (`-Werror`) ; `<signal.h>` (`SIGABRT`, seul usage) part | (a2) 9 |
-| | `:1711` (1) | retirée (`row = {0}`, `test_pz_fa_only_from_ca`) | (a2) 1 |
-| | commentaire `:1313-1315` (0) | « `h_` false, TROU-23, an `h_` copied from an `lq` (written on the member: no key builds it), a row's keys » | — |
+| `js` | `:998` (1) | `free_keys.h_is_false = 1;` (`test_draw`, le bouton gratuit de `jo:fe`) | (a1) 1 |
+| | `:1031`, `:1032`, `:1033` (1 chacune) | retirées (`b = {0}` : nil) ; `test_nil_keys` garde ses deux constructions et ses assertions | (a2) 3 |
+| | `:1359` (1) | `k.h_is_false = 1;` (`fold_keys`, `h_` faux) | (a1) 1 |
+| | `:1366`, `:1372`, `:1377` (1 chacune) | retirées : `has_h_ = 1` seul, `has_jb = 1` seul (TROU-23), `k = none` seul (nil) ; chaque cas garde son `built(k)` et son pli | (a2) 3 |
+| | `:1384` (1) | **`h_` copie d'un `lq`** : genre qu'aucun producteur n'écrit (G4), mais le cas est plié dans `JS_MEMBERS_HASH` (G1). Le cas devient : `k = none; k.has_h_ = 1; b = built(k);` puis **`b->h_ = pico8_lq_copy(row);`** (le membre que construisait `lq(lq)`, écrit directement, prior art `test_draw:1001`) ; l'assertion `:1386` et le pli `:1387` inchangés : **mêmes octets** (même `has_h_`, même copie de `row`, `pico8_lq_new` n'enregistre rien de global hors `PICO8_CLASS_COVERAGE`) | (a1) 1 |
+| | `:1106`, `:1107` (2, 1) ; `:1114`, `:1118` (1 chacune) | `zero_union`, `vec_ref` retirées : seul appelant, le test supprimé (`-Werror`) | (a2) 4 |
+| | `:1625`, `:1650`, `:1662`, `:1663`, `:1669`, `:1671`, `:1672`, `:1677`, `:1678` (1, 1, 1, 1, 1, 2, 1, 3, 1) | **`test_js_new_stops_off_row` supprimé** (G4) avec `g_off_row`, `build_lq_off_row`, `build_h__off_row`, `build_jb_off_row`, `stops_on` (`:1625-1681`) et son appel `:1820` : ses cas sont une référence étrangère en `lq` ou `h_` (vecteur, `jb`, `js`, rangée générée), un `jb` faux, une union à zéro de genre booléen — aucun ne se range plus dans un champ ; `must_abort` (`:1055-1069`) perd son seul appelant et part (`-Werror`) ; `<signal.h>` (`SIGABRT`, seul usage) part | (a2) 9 |
+| | `:1712` (1) | retirée (`row = {0}`, `test_pz_fa_only_from_ca`) | (a2) 1 |
+| | commentaire `:1314-1316` (0) | « `h_` false, TROU-23, an `h_` copied from an `lq` (written on the member: no key builds it), a row's keys » | — |
 | | **inchangés** : `fold_value` (`:207-215`), `fold_js_fn`, `fold_kind` et ses appels, `is_lq`, `is_of_class`, `build()` (D.18a), include `:46` | plis et aides de D.19b | — |
-| `lq` | `:524` (1) | `spec.lq_copy = lq;` (`void *` vers `const pico8_lq_t *`, sans cast) | (a1) 1 |
-| | `:893` (1) | **`button_on_other` supprimé** (`:891-895`) et son appel `:949` (G4 : une struct `ui` en source `lq` ; le champ typé ne l'admet plus, et sans `pico8_js_is_lq` elle ne s'arrêterait plus, elle serait lue comme un `lq`) ; `must_abort` garde ses appelants `keys_of_row`, `ol_on_other` (H-D18a-9) ; commentaire `:897-900` : « `ol` refuses anything that is not a row » (la comparaison « as `js:pq` refuses another struct » part) | (a2) 1 |
+| `lq` | `:533` (1) | `spec.lq_copy = lq;` (`void *` vers `const pico8_lq_t *`, sans cast) | (a1) 1 |
+| | `:902` (1) | **`button_on_other` supprimé** (`:900-904`) et son appel `:958` (G4 : une struct `ui` en source `lq` ; le champ typé ne l'admet plus, et sans `pico8_js_is_lq` elle ne s'arrêterait plus, elle serait lue comme un `lq`) ; `must_abort` garde ses appelants `keys_of_row`, `ol_on_other` (H-D18a-9) ; commentaire `:906-909` : « `ol` refuses anything that is not a row » (la comparaison « as `js:pq` refuses another struct » part) | (a2) 1 |
 
 Totaux `tests/` (lignes / occ.) : `js` 23 / 27, `lq` 2 / 2 : **25 lignes, 29 occ.** Classes : (a1) 4, (a2) 21.
 
@@ -267,7 +267,7 @@ Retirés : `menu.c:24` `"pico8_value.h"` (compté), `ui_button.c:3` `<assert.h>`
 **Sortie**, constatée par commande :
 
 - `make test` vert (dont `data-guard`, `constants-check`, `float-grep`, `float-guard`) ; `make e2e` **26 conformes** ; `make class-coverage-net` **identique** à l'attendu ; balayage ASan+UBSan des TU propre ;
-- `make data-residue` : `valeur` **560 → 494** lignes (**623 → 547** occ.), fichiers **83 → 78** (sortent `ui_button.c`, `menu.c`, `help.c`, `msgbox.c`, `planet_display.c`) ; `type-tag` **242 / 58 → 241 / 57** (`ui_button.c:19`) ; résidu D **800 / 101 → 733 / 99** (sortent `ui_button.c`, `msgbox.c` ; `menu.c`, `help.c`, `planet_display.c` restent par `type-tag`) ; départs de H-D18a-1 (sinon : départ réel − 66 / − 76 occ., `type-tag` − 1) ;
+- `make data-residue` : `valeur` **560 → 494** lignes (**623 → 547** occ.), fichiers **83 → 78** (sortent `ui_button.c`, `menu.c`, `help.c`, `msgbox.c`, `planet_display.c`) ; `type-tag` **242 / 58 → 241 / 57** (`ui_button.c:19`) ; résidu D **800 / 101 → 733 / 99** (sortent `ui_button.c`, `msgbox.c` ; `menu.c`, `help.c`, `planet_display.c` restent par `type-tag`) ; départs mesurés à `ab56a93` (si un commit `docs/` s'intercale : départ réel − 66 / − 76 occ., `type-tag` − 1) ;
 - ces commandes rendent exactement ce qui est écrit :
 
   ```sh
@@ -364,12 +364,12 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 
 (L'étude disait ≈ 10 fichiers et TU `js`, `lq` : conforme, plus les docs.)
 
-- **Rythme mesuré** : D.15a–D.17, ≈ 7 à 11 min de la mise en file au commit pour 40 à 55 lignes comptées (D.17 : 52 lignes, ≈ 10 min, gradée à ≈ 16 min) ; D.18a estimée à ≈ 25 min pour 133 lignes (H-D18a-11, à recalibrer). **D.18b** : éditions ≈ 6 (12 chemins, 66 lignes dont 50 retraits) ; `gcov` départ/arrivée ≈ 3 ; mutations (≈ 12) ≈ 5 ; filets (`class-coverage-net`, balayage ASan+UBSan) ≈ 4 ; mesures, classification, message, note ≈ 3 : **budget ≈ 20 min jusqu'au commit**, **plafond 50 min**.
+- **Rythme mesuré** : D.15a–D.17, ≈ 7 à 11 min de la mise en file au commit pour 40 à 55 lignes comptées (D.17 : 52 lignes, ≈ 10 min, gradée à ≈ 16 min) ; D.18a : 133 lignes, ≈ 10 min de la mise en file au commit (`d183e10` 20:46 → `42eb560` 20:56), gradée à ≈ 18 min, dans un budget écrit de 25. **D.18b** : éditions ≈ 4 (12 chemins, 66 lignes dont 50 retraits) ; `gcov` départ/arrivée ≈ 3 ; mutations (≈ 12) ≈ 3 ; filets (`class-coverage-net`, balayage ASan+UBSan) ≈ 3 ; mesures, classification, message, note ≈ 2 : **budget ≈ 15 min jusqu'au commit**, **plafond 50 min**.
 - **Repli écrit** (G) : au plafond sans commit, rien n'est commis et `plan-pilot` relance en **D.18b1** (`pico8_js_pq(self, keys)` lisant encore les trois valeurs des clés, TROU-23 déplacé du constructeur dans `pq`, locales retirées ; ≈ 10 lignes, `ui_button.c/.h` seuls) puis **D.18b2** (champs typés, producteurs, `jo:fe`, retraits, TU, docs ; ≈ 56 lignes). Sans pont. Comptes recomptés par commit. Rejeté comme plan principal : deux coûts fixes pour 66 lignes surtout mécaniques.
 
 ### Effet sur `make data-residue`
 
-| Catégorie | Départ attendu (H-D18a-1) | Après D.18b |
+| Catégorie | Départ (mesuré à `ab56a93`) | Après D.18b |
 |---|---|---|
 | `valeur` | 560 / 83 ; 623 occ. | **494 / 78 ; 547 occ.** (− 66, − 76) |
 | `valeur` `src/` | 181 / 45 ; 212 occ. | 140 / 40 ; 165 occ. |
@@ -378,7 +378,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 | résidu D | 800 / 101 | **733 / 99** |
 | `DATA_RESIDUE_GUARD` | inchangé | inchangé |
 
-Par fichier (lignes / occ. ; départ attendu → après) : `ui_button.c` 16/21 → 0/0 ; `ui_button.h` 6/7 → 1/1 ; `menu.c` 8/8 → 0/0 ; `help.c` 1/1 → 0/0 ; `msgbox.c` 1/1 → 0/0 ; `planet_display.c` 8/8 → 0/0 ; `score_panel_display.c` 13/13 → 11/11 ; `test_pico8_js` 39/44 → 16/17 ; `test_pico8_lq` 30/30 → 28/28.
+Par fichier (lignes / occ. ; départ mesuré à `ab56a93` → après) : `ui_button.c` 16/21 → 0/0 ; `ui_button.h` 6/7 → 1/1 ; `menu.c` 8/8 → 0/0 ; `help.c` 1/1 → 0/0 ; `msgbox.c` 1/1 → 0/0 ; `planet_display.c` 8/8 → 0/0 ; `score_panel_display.c` 13/13 → 11/11 ; `test_pico8_js` 39/44 → 16/17 ; `test_pico8_lq` 30/30 → 28/28.
 
 Fonctions publiques qui nomment `pico8_value_t` : 2 → **1** (`pico8_pj_item_of`, D.18c). Copies `truthy` : 1 → **0**.
 
@@ -389,7 +389,7 @@ Fonctions publiques qui nomment `pico8_value_t` : 2 → **1** (`pico8_pj_item_of
 - `docs/plan-3.md` : une note « Découvert à D.18b » en fin de ligne D.18b, rien d'autre. Elle dit : le commit ; les comptes réels et l'écart à ≈ 505 ; les lectures (`lq_copy`, `h_is_false`, `jb` sans champ, `pq` sur la struct de clés, TROU-23 dans `pq`, `h_is_false = od <= 0` à `jo:fe`, `pico8_js_is_lq` et la dernière copie `truthy` retirées, `type-tag` − 1) ; tests supprimés (G4) ; le cas `h_` copie gardé sur le membre ; **pour D.18c** : `score_panel_display.c` n'a plus que B11 (11 lignes) ; **pour D.19b** : `test_pico8_js` garde 16 lignes (`fold_value`, `fold_kind`, include), `test_pico8_lq` 28 ; **pour D.19c** : `ui_button.h:13` n'a plus que son include ; **pour D.20** : `is_lq`/`is_of_class` de `test_pico8_js` lisent encore l'étiquette.
 - `docs/trous-de-portage.md`, TROU-23 (l. 374-391), dernier paragraphe réécrit (G3), le reste inchangé : « La struct `js`, où nil vaut absent, garde ce comportement : la présence d'une clé `h_` ou `jb` nil est portée par `has_h_`/`has_jb` de `pico8_js_keys_t`, sans `h_row` ni `h_is_false` (sans `jb_row`) ; `js:pq` construit alors une rangée ou un `jb` vides. Fixé par `test_nil_keys` de `test_pico8_js`. » (Le pont `pico8_js_new_table` et le `true` de remplacement disparaissent du texte.)
 - `docs/glossaire-noms.md:444` (entrée `js`, H-D18a-10) : « ses clés : `pico8_js_keys_t` (`lq` : sa rangée par ses clés `lq_row`, sinon la copie d'un `lq` `lq_copy`, sinon vide ; `h_` : présence `has_h_`, rangée `h_row` ou faux `h_is_false` ; `jb` : présence `has_jb`, rangée générée `jb_row` ; présent sans rangée ni faux : rangée ou `jb` vides, TROU-23) ».
-- Commentaires : quatre sortes de `CLAUDE.md` ; contrats réécrits (`ui_button.h:65-69`, `:75`, `:78`, `:104-106` ; `pico8_js_lq` `:215-216`) ; marqueur nu `/* TROU-23 */` déplacé dans `pq` ; commentaires de TU réécrits (`fold_keys` `:1313-1315`, `test_lq_is_a_struct` `:897-900`) ; commentaires retirés avec leur objet (`test_js_new_stops_off_row` `:1657-1658`) ; aucun renvoi à D.18b ni au plan dans `src/` ou `tests/`.
+- Commentaires : quatre sortes de `CLAUDE.md` ; contrats réécrits (`ui_button.h:65-69`, `:75`, `:78`, `:104-106` ; `pico8_js_lq` `:215-216`) ; marqueur nu `/* TROU-23 */` déplacé dans `pq` ; commentaires de TU réécrits (`fold_keys` `:1313-1315`, `test_lq_is_a_struct` `:897-900`) ; commentaires retirés avec leur objet (`test_js_new_stops_off_row` `:1658-1659`) ; aucun renvoi à D.18b ni au plan dans `src/` ou `tests/`.
 
 ### Ce qui ne change pas
 
@@ -399,7 +399,7 @@ Fonctions publiques qui nomment `pico8_value_t` : 2 → **1** (`pico8_pj_item_of
 ### Hypothèses d'exécution (rien n'a été compilé ni lancé)
 
 - **H1** : sous `-Wall -Wextra -Werror`, les `static` retirées seraient fatales si gardées (retirées dans le même commit) ; `pico8_lq_t *` vers `const pico8_lq_t *` et `void *` vers `const pico8_lq_t *` s'affectent sans cast.
-- **H2** : aucun autre écrivain ni lecteur de `pico8_js_keys_t.lq/.h_/.jb` n'existe hors de l'Inventaire (grep à `d183e10`, `src/`, `tests/`, `tools/`) ; un oublié se révèle à la compilation (champ renommé ou retiré) et suit, listé.
+- **H2** : aucun autre écrivain ni lecteur de `pico8_js_keys_t.lq/.h_/.jb` n'existe hors de l'Inventaire (grep à `d183e10`, refait à `ab56a93` : mêmes sites, `src/`, `tests/`, `tools/`) ; un oublié se révèle à la compilation (champ renommé ou retiré) et suit, listé.
 - **H3** : toutes les structs de clés sont à zéro avant écriture (preuve par site) ; si ASan/UBSan ou `gcov` montre une lecture de `lq_copy`/`h_is_false` non initialisée, H3 est fausse : arrêt, rapporté.
 - **H4** : `pico8_lq_new(NULL)` et `pico8_jb_new(NULL)` rendent les mêmes rangée et `jb` vides que les branches « vrai » d'aujourd'hui (même appel) ; `JS_MEMBERS_HASH` le juge.
 - **H5** : le cas réécrit de `fold_keys` (`b->h_ = pico8_lq_copy(row)`) plie les mêmes octets (même membre ; l'ancien chemin appelait `pico8_lq_copy(row)`) ; `JS_MEMBERS_HASH` le juge.
@@ -408,7 +408,7 @@ Fonctions publiques qui nomment `pico8_value_t` : 2 → **1** (`pico8_pj_item_of
 
 **D.18b** (un commit)
 
-1. Mesure de départ (commit de D.18a ou un descendant `docs/` seul ; attendus H-D18a-1) ; remesure par contenu des numéros ; jugement des `H-D18a-n` rapporté au message ; `gcov` de départ.
+1. Mesure de départ (`ab56a93` ou un descendant `docs/` seul : 560 / 83 / 623 occ., `type-tag` 242 / 58, résidu D 800 / 101) ; remesure par contenu des numéros ; `gcov` de départ.
 2. `ui_button.h/.c` : clés, `pq`, `pico8_js_lq`, constructeur, retraits.
 3. Producteurs : `menu.c` (dont l'include), `help.c`, `msgbox.c`, `planet_display.c`, `score_panel_display.c`.
 4. TU `js` (`test_draw`, `test_nil_keys`, `fold_keys`, suppression G4 et aides, `test_pz_fa_only_from_ca`), `lq` (`test_hp_lq_and_copy`, `button_on_other`) ; `make tmp/test_pico8_js tmp/test_pico8_lq` et lancement de chacun.
@@ -425,7 +425,7 @@ Un bon test juge ce que le code rend ou fait (membres construits, pixels, rangé
 2. Prouvent sans suivre : `ui`, `spec_defaults` (`pico8_js_new(NULL)`), `fm`, `fv`, `mh`, `pj`, `ga`, `hp` (boutons de `cr`, `ix`, `ha`, `bo`, `pz`, `jo:gh`, `jo:fe`, `pj:ph`), §6 `planet_gh_row_lq`, `ga_export_panel_by` (panneaux à boutons).
 3. **Constantes** : aucune `*_HASH`/`identity[]` ne change ; une constante qui rougit est un bug de conversion.
 4. **Assertion nouvelle** : seulement pour couvrir une ligne modifiée non exécutée ou faire rougir une mutation qui ne rougit rien, dans un test du module (`test_pico8_js`), listée au message ; rien de lent, aucun fichier d'événements.
-5. **Prior art** : membre écrit directement par un TU (`test_draw:1000`, `((pico8_js_t *)tooltip)->jb = …`) ; cas G4 supprimés et nommés (`pico8_oj` d'un nombre, D.16b2 ; `pico8_jc_hg_has` d'un nombre, D.15b) ; tests d'arrêt supprimés avec leur genre (D.11d3–d4) ; fonctions `static` retirées avec leur dernier appel (D.15b–D.18a) ; drapeau + pointeur à la place d'une valeur (`has_my` + `my`, D.10–D.12).
+5. **Prior art** : membre écrit directement par un TU (`test_draw:1001`, `((pico8_js_t *)tooltip)->jb = …`) ; cas G4 supprimés et nommés (`pico8_oj` d'un nombre, D.16b2 ; `pico8_jc_hg_has` d'un nombre, D.15b) ; tests d'arrêt supprimés avec leur genre (D.11d3–d4) ; fonctions `static` retirées avec leur dernier appel (D.15b–D.18a) ; drapeau + pointeur à la place d'une valeur (`has_my` + `my`, D.10–D.12).
 
 ### Preuve des tests (§7 : `gcov` et mutations)
 
@@ -447,9 +447,9 @@ Un bon test juge ce que le code rend ou fait (membres construits, pixels, rangé
 - **M9** `pico8_js_lq` : `lq_row` ignoré (la copie ou le vide seulement) → `js`, `lq`, `fm`, `fv`, `pj` (tous les boutons).
 - **M10** constructeur : `pico8_js_pq(self, NULL)` à la place de `keys` → `js`, `lq` (tous les boutons perdent leurs rangées).
 - **M11** `pq` : `keys` NULL traité en retour anticipé (membre `lq` laissé NULL) → `js` (`fresh[0]` : `lq != NULL`), `ui`, `spec_defaults`.
-- **M12 (TU)** `fold_keys` : `b->h_ = pico8_lq_copy(row);` retirée → `js` rouge par `JS_MEMBERS_HASH` (l'`h_` reste la rangée vide de TROU-23 : l'assertion `:1385` passe, le pli change) : le cas plié est bien la copie.
+- **M12 (TU)** `fold_keys` : `b->h_ = pico8_lq_copy(row);` retirée → `js` rouge par `JS_MEMBERS_HASH` (l'`h_` reste la rangée vide de TROU-23 : l'assertion `:1386` passe, le pli change) : le cas plié est bien la copie.
 
-Cibles (numéros de `d183e10`) : `ui_button.c:116-192`, `:215-254` ; `planet_display.c:342-376` ; `tests/test_pico8_js.c:1316-1397`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
+Cibles (numéros de `ab56a93`) : `ui_button.c:116-192`, `:215-254` ; `planet_display.c:342-376` ; `tests/test_pico8_js.c:1317-1398`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
 
 ### Filets
 
@@ -461,7 +461,7 @@ Cibles (numéros de `d183e10`) : `ui_button.c:116-192`, `:215-254` ; `planet_dis
 
 ### Vérification, budget et tableau « Runs »
 
-**Budget : environ 20 min de temps réel jusqu'au commit**, mesures, `gcov`, mutations et filets compris ; **plafond 50 min** (au-delà : repli D.18b1/D.18b2). La relecture par un sous-agent frais est hors budget.
+**Budget : environ 15 min de temps réel jusqu'au commit**, mesures, `gcov`, mutations et filets compris ; **plafond 50 min** (au-delà : repli D.18b1/D.18b2). La relecture par un sous-agent frais est hors budget.
 
 | Cible | Durée attendue |
 |---|---|
@@ -481,9 +481,9 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + état) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | commit de D.18a (gradée), avant D.18b | 0 | `valeur 560 83`, `type-tag 242 58` (H-D18a-1) | … |
+| 1 | `make -s data-residue` | `ab56a93` (D.18a gradée), avant D.18b | 0 | `valeur 560 83`, `type-tag 242 58` (mesuré à `ab56a93`) | … |
 | 2 | recette `valeur` | idem | 0 | `valeur 560 lignes 83 fichiers 623 occ.` | … |
-| 3 | `grep -cE "$P" src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_menu.c src/pico8_planet_display.c tests/test_pico8_js.c` | idem | 0 | `16`, `6`, `8`, `8`, `39` (H-D18a-4) | … |
+| 3 | `grep -cE "$P" src/pico8_ui_button.c src/pico8_ui_button.h src/pico8_menu.c src/pico8_planet_display.c tests/test_pico8_js.c` | idem | 0 | `16`, `6`, `8`, `8`, `39` (mesurés à `ab56a93`) | … |
 | … | … | … | … | … | … |
 
 Le vérificateur le réutilise et ne relance que ce qui suit le dernier changement de l'arbre.
@@ -499,7 +499,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 7. **Constantes** : grep 7 vide ; M1, M2, M3, M3b, M12 rapportées.
 8. **Anti-tassement** : comptes avant/après en lignes ET occurrences, par catégorie et par fichier ; classification présente et juste ; aucune ligne gagnée ; jonctions des signatures déclarées avec leur contrefactuel ; includes (grep 8) ; lignes prises (B12, include) déclarées.
 9. **Écarts déclarés** : `pq` sur la struct de clés ; `jb` sans champ ; `h_` copie d'un `lq` gardé sur le membre du TU ; tests G4 supprimés et nommés ; `planet_display.c:357` rangée B8 (D.18a) ; `type-tag` − 1 ; `<assert.h>`, `<signal.h>` retirés.
-10. **Preuve** : `gcov` (lignes modifiées exécutées ou justifiées ; `L` vide ou justifié par `test_pico8_value` seul), mutations restaurées par `cp`, `class-coverage-net` et ASan+UBSan rapportés ; jugement des `H-D18a-n`.
+10. **Preuve** : `gcov` (lignes modifiées exécutées ou justifiées ; `L` vide ou justifié par `test_pico8_value` seul), mutations restaurées par `cp`, `class-coverage-net` et ASan+UBSan rapportés .
 11. **Commentaires** : quatre sortes de `CLAUDE.md` ; aucun renvoi à D.18b ni au plan dans `src/` ou `tests/`.
 12. **Docs** : note « Découvert à D.18b » en fin de ligne D.18b, rien d'autre dans le plan ; TROU-23 (dernier paragraphe) et glossaire (entrée `js`) réécrits.
 
@@ -507,7 +507,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ n'est pas le commit gradé de D.18a (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas le départ réel annoncé au message (attendu 560 / 83 / 623 occ., `type-tag` 242 / 58, résidu D 800 / 101), sans explication.
+- `FAILED:` si l'arbre de départ n'est pas `ab56a93` (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 560 / 83 / 623 occ., `type-tag` 242 / 58, résidu D 800 / 101 (mesurés à `ab56a93`), sans explication.
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur le commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si un test de régression du §6 change ; si un site ne tombe sous aucune règle de ce PRD ni de l'étude (arrêt « champ sans règle ») — en particulier une struct de clés non mise à zéro (H3) ou un genre de source écrit par `src/` hors de la table de vérité ; ou si un écart port/cart découvert n'est pas préservé et décrit par une entrée `TROU-N`.
@@ -526,7 +526,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 - `FAILED:` si `make data-guard` n'est pas vert, ou si `DATA_RESIDUE_GUARD` change.
 - `FAILED:` si `valeur` ne baisse pas de **66 lignes / 76 occ.** exactement depuis le départ réel, sans explication chiffrée ligne à ligne ; si `type-tag` ne baisse pas d'exactement **1** ligne.
 - `FAILED:` **si un compte baisse par tassement** : lignes jointes (hors signatures déclarées), alias, renommage d'un identifiant vivant pour le motif, commentaire compté réécrit hors de son sujet, cale ou pont, (c) non nulle, (b) hors de `pico8_js_keys_t` et `pico8_js_pq`.
-- `FAILED:` si le **message du commit** omet l'un de ces éléments : par catégorie et par fichier, les comptes avant/après **en lignes et en occurrences** ; la classification (a1)/(a2)/(b)/(c) avec numéros du parent ; les lignes qui gagnent une catégorie (« aucune » compris) ; les lignes prises (copie `truthy`, include) ; la justification de chaque Δlignes > Δoccurrences (attendu : aucune) ; les jonctions des signatures et leur contrefactuel ; les fonctions et aides retirées et leurs lecteurs (raison `-Werror`) ; les tests supprimés (G4) et pourquoi ; le cas `h_` copie gardé sur le membre ; la table de vérité avant/après ; le jugement des `H-D18a-n` ; le rapport `gcov` ; les mutations (M1, M2, M3, M3b en tête) ; `class-coverage-net`, ASan+UBSan ; le tableau « Runs » (ou son renvoi au journal). Un commit de rattrapage ne compense pas un message incomplet.
+- `FAILED:` si le **message du commit** omet l'un de ces éléments : par catégorie et par fichier, les comptes avant/après **en lignes et en occurrences** ; la classification (a1)/(a2)/(b)/(c) avec numéros du parent ; les lignes qui gagnent une catégorie (« aucune » compris) ; les lignes prises (copie `truthy`, include) ; la justification de chaque Δlignes > Δoccurrences (attendu : aucune) ; les jonctions des signatures et leur contrefactuel ; les fonctions et aides retirées et leurs lecteurs (raison `-Werror`) ; les tests supprimés (G4) et pourquoi ; le cas `h_` copie gardé sur le membre ; la table de vérité avant/après ; le rapport `gcov` ; les mutations (M1, M2, M3, M3b en tête) ; `class-coverage-net`, ASan+UBSan ; le tableau « Runs » (ou son renvoi au journal). Un commit de rattrapage ne compense pas un message incomplet.
 - `FAILED:` si `make constants-check`, `float-grep` ou `float-guard` rougit, ou si `tools/float_guard.txt` diffère après `make test`.
 
 **Preuve, commit et note**
@@ -558,23 +558,26 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
   - **Includes** : `menu.c` perd `pico8_value.h` (règle de D.15b) ; `<assert.h>` (`ui_button.c`) et `<signal.h>` (`test_pico8_js`), orphelins du diff, partent ; en-têtes gardés.
   - **Drapeaux** : `class-coverage-net` (ligne) ; balayage ASan+UBSan (consigne) ; `sanitize-net` non exigé.
 - **Surprises de mesure, pour `plan-pilot`** : (1) **la « ligne pour D.18b » de D.15c** (`planet_display.c:377`, `:357` à `d183e10`) est une case de rangée (B8), prise par D.18a ; (2) **la table de vérité ne change pour aucun genre que `src/` écrit** : les seize écritures de nil de `src/` sont des lignes mortes dans des structs à zéro ; (3) **`{0}` met aujourd'hui `lq`/`h_`/`jb` au nombre 0, pas à nil** (`PICO8_VALUE_FIXED` vaut 0) : sans conséquence parce que `lq_row` ou l'absence de `has_h_`/`has_jb` masquent la valeur partout, mais c'est la raison pour laquelle le type ne pouvait pas rester ; (4) **le seul cas de TU qui plie un genre inexprimable** est `h_` copie d'un `lq` dans `fold_keys` ; (5) **`test_js_new_stops_off_row` disparaît entièrement** (sept arrêts, tous sur des genres que le type interdit) avec `must_abort`, `zero_union`, `vec_ref` : 13 lignes `valeur` de plus que l'étude ; (6) **`type-tag` baisse de 1** (`pico8_js_is_lq`) ; (7) **arrivée ≈ 494**, et non ≈ 505 (voir « Lecture de la ligne ») ; (8) TROU-23 nomme encore le pont `pico8_js_new_table` retiré depuis D.7, et des rejeux (`events_recorded_1790198294`, `session_events`) antérieurs à la fusion e2e.
+- **Révision après la graduation de D.18a** (`ab56a93`) : les douze hypothèses tiennent ; seuls des numéros bougent (`score_panel_display.c` − 17, `test_pico8_js` + 1 après `:789`, `test_pico8_lq` + 9 après `:517`) ; départ, inventaire, deltas (− 66 / − 76, `type-tag` − 1), classification et découpage inchangés ; budget recalibré à ≈ 15 min sur le temps réel de D.18a.
 - **Pour D.18c** : `score_panel_display.c` garde 11 lignes (B11) ; `pico8_value_tostr` y garde son appel ; `pico8_pj_item_of` est la dernière fonction publique qui nomme `pico8_value_t`.
-- **Pour D.19b** : `test_pico8_js` garde 16 lignes / 17 occ. (`fold_value` `:207-215`, `fold_js_fn` `:1131`, `fold_kind` et neuf appels, include) ; `test_pico8_lq` 28.
+- **Pour D.19b** : `test_pico8_js` garde 16 lignes / 17 occ. (`fold_value` `:207-215`, `fold_js_fn` `:1132`, `fold_kind` et neuf appels, include) ; `test_pico8_lq` 28.
 - **Pour D.19c** : `ui_button.h:13` n'a plus que son include (avec `help.h`, `msgbox.h`, `planet_display.h`, `layout.h`).
 
-## Annexe A — textes recopiés (`d183e10`)
+## Annexe A — textes recopiés (`ab56a93`, par extraction de lignes)
 
 ### Lignes D.18a à D.18c (`docs/plan-3.md`, l. 289-291)
 
-> - D.18a — B8 : `pico8_lq_keys_t.items` en cases de l'union de `layout` ; §6 `layout_nil_item_draws_nothing` et `planet_gh_row_lq` réécrits dans leur lecture, preuve rouge. `sanitize-net` : oui. Compte : ≈ 560.
+> - D.18a — B8 : `pico8_lq_keys_t.items` en cases de l'union de `layout` ; §6 `layout_nil_item_draws_nothing` et `planet_gh_row_lq` réécrits dans leur lecture, preuve rouge. `sanitize-net` : oui. Compte : ≈ 560. Découvert à D.18a : un commit (`refactor(D.18a)`) ; `valeur` 693 / 85 (763 occ.) → **560 / 83 (623 occ.)**, − 133 lignes, − 140 occ., le delta du PRD exactement (≈ 560 tenu) ; `type-tag` 242 / 58 inchangé ; résidu D 933 / 102 → **800 / 101** (`research_display.c` sort ; `layout.c` sort de `valeur` et reste par `type-tag`). Lectures : `pico8_lq_keys_t.items` en `const pico8_lq_cell_t *`, copiées telles quelles par `lq` ; cinq constructeurs publics (`pico8_lq_cell_nothing/fixed/string/row/item` ; `string(NULL)` s'arrête, `row(NULL)` est « rien » et porte le piège de la clause nil) ; `pico8_lq_cell_item` est le seul tri d'un item généré (`keys_of_row`, lignes de `jb`, tuples de `lq:mn` par `pico8_lq_scalar_item`, `pj:ph`) ; `pico8_layout_truthy`, `pico8_lq_scalar_cell`, `pico8_lq_cell_of`, `pico8_pj_ph_item_value` retirées (copies `truthy` 2 → 1) ; `pico8_lq_add` et `pico8_lq_keys_of_row` en cases. Piège « rien » tenu par le masque `nil_at` de `test_pico8_lq` (M0′ : false@0, nil@0, mixed c false@3 / nil@5, conforme ; M1/M1b rougissent `CONSTRUCTIONS_HASH`). `layout_nil_item_draws_nothing` passe un item nil généré par `pico8_lq_keys_of_row` (M2 rouge sur la case, puis sur les pixels) ; `planet_gh_row_lq` sans réécriture, reprouvé (M3, M4 rouges sous ASan) ; `sanitize-net` propre, `class-coverage-net` lancé, identique. Ligne prise à B11 : `score_panel_display.c:181` (`items[5]`, les clés de `pj:ph`). `PICO8_LQ_CELL_TRUE` n'est plus produit par aucun producteur (lu par les plis de TU). Pour D.18b : les sources de bouton restent (`menu.c` 7 + include, `help.c` 1, `msgbox.c` 1, `planet_display.c` 8, `score_panel_display.c` 2, `ui_button.c/.h`) ; la dernière copie `truthy` est celle de `ui_button`. Pour D.18c : `score_panel_display.c` garde `s[i]` (`pico8_pj_ph_s_at`, `s_val`, `pico8_value_tostr`). Pour D.19b : `test_pico8_lq` plie encore par `fold_value` (`fold_cell`, `fold_tuple`, `cell_value_kind`), 30 lignes ; `test_pico8_js` par son `fold_value`, 39. Pour D.19c : `layout.h:9` et `test_pico8_layout_nil_item_draws_nothing.c:34` n'ont plus que leur include.
 > - D.18b — B9 : sources des boutons en champs séparés. `class-coverage-net` : oui. Compte : ≈ 505.
 > - D.18c — B10, B11, `ou[]`. `sanitize-net` : oui. Compte : ≈ 435.
 
-### TROU-23 (`docs/trous-de-portage.md:374-391`), dernier paragraphe, texte d'aujourd'hui
+(Réextraites de `ab56a93` : la ligne D.18a porte sa note « Découvert à D.18a » ; les lignes D.18b et D.18c sont identiques à celles de `d183e10`, H-D18a-12.)
+
+### TROU-23 (`docs/trous-de-portage.md:374-391`), dernier paragraphe, texte à `ab56a93` (inchangé depuis `d183e10`)
 
 > La struct `js`, où nil vaut absent, garde ce comportement : la présence d'une clé `h_` ou `jb` nil est portée par `has_h_`/`has_jb` de `pico8_js_keys_t` (posés par `pico8_js_new_table`), et le constructeur de `js` remplace alors la valeur nil par `true`.
 
-### Glossaire (`docs/glossaire-noms.md:444`), texte d'aujourd'hui
+### Glossaire (`docs/glossaire-noms.md:444`), texte à `ab56a93` (inchangé depuis `d183e10`)
 
 > | `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` : une rangée par ses clés `lq_row`/`h_row` ou sa rangée générée `jb_row`, sinon un `lq` ou nil) |
 
