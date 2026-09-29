@@ -587,7 +587,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `ed` | la dernière boîte construite par le panneau, comparée à `kc` |
 | `gz` | compteur du rideau de fin, testé par **présence** et non par valeur |
 | `c_` | « panneau visible », basculé par le `my` de `de` |
-| `gy`, `eh` | sur la classe `ie` : `eh` est la valeur de repos (`pico8_ie_start.eh`), `gy` la valeur courante partagée par toute la classe. `_init()` fait `gy = eh` à chaque démarrage, `ie:hb` réécrit `gy` |
+| `gy`, `eh` | sur la classe `ie` : `eh` est la valeur de repos (`pico8_ie_start.eh`), `gy` la valeur courante partagée par toute la classe. `_init()` fait `gy = eh` à chaque démarrage, `ie:hb` réécrit `gy` ; lu par `pico8_ie_gy()` (NULL = nil) |
 | `nj` | le bouton de difficulté cliqué, dont la table de champs **devient** `dk` |
 
 ### Sonde et validation
@@ -628,7 +628,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (`pico8_hp_mr_names`, `pico8_hp_gp_names`) — c'est `gp` qui rend `o`/`dm` identiques au pointeur de `r`, donc qui justifie l'exception de TROU-3 |
 | `ke` (sur `ie`) | la **classe** d'amélioration que l'icône construit, pas une instance |
 | `kh` | drapeau d'instance « icône déjà révélée » |
-| `id` (sur `ie`) | compteur de classe, source de l'override de sprite ; repart de `pico8_ie_start.id` à chaque init |
+| `id` (sur `ie`) | compteur de classe, source de l'override de sprite ; repart de `pico8_ie_start.id` à chaque init, `ie:ldown` l'incrémente ; lu par `pico8_ie_id(&out)` (0 = nil) |
 | `jo.em` | l'entrée d'espacement que `jo.ex` ajoute après chaque élément |
 
 ### Locales du parseur et de la boucle d'entités

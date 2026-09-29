@@ -88,26 +88,24 @@ static pico8_ie_t *as_ie(void *e) {
     return e;
 }
 
-/* `gy` and `id` are the class's shared state, no member of any icon: src/
- * gives them no typed reader, so they are the two reads left by name. */
+/* `gy` and `id` are the class's shared state, no member of any icon: the
+ * same answer whatever icon asks. */
 static const pico8_vec_t *shared_gy(const pico8_ie_t *icon) {
-    pico8_value_t v = pico8_value_ref(NULL);
-    (void)pico8_entity_get_field(icon, "gy", &v);
-    assert(v.kind == PICO8_VALUE_REF);
-    return v.as.ref;
+    (void)icon;
+    return pico8_ie_gy();
 }
 
-/* REF NULL while `id` is nil. */
-static pico8_value_t shared_id(const pico8_ie_t *icon) {
-    pico8_value_t v = pico8_value_ref(NULL);
-    (void)pico8_entity_get_field(icon, "id", &v);
-    return v;
+/* 0 while `id` is nil. */
+static int shared_id(const pico8_ie_t *icon, pico8_fixed_t *out) {
+    (void)icon;
+    return pico8_ie_id(out);
 }
 
 static pico8_fixed_t shared_id_fixed(const pico8_ie_t *icon) {
-    pico8_value_t v = shared_id(icon);
-    assert(v.kind == PICO8_VALUE_FIXED);
-    return v.as.fixed;
+    pico8_fixed_t id = 0;
+    int present = shared_id(icon, &id);
+    assert(present);
+    return id;
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -136,34 +134,14 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-/* fold_value's FIXED and STRING cases, a NULL string as absent. */
+/* The kind bytes the frozen constants were folded with (0xF1 a number,
+ * 0x57 a string, 0xDEAD absent); a NULL string is absent. */
 static uint32_t fold_fixed(uint32_t h, pico8_fixed_t v) {
     return fnv(fnv(h, 0xF1u), (uint32_t)v);
 }
 
 static uint32_t fold_string(uint32_t h, const char *s) {
     return s == NULL ? fnv(h, 0xDEADu) : fnv_str(fnv(h, 0x57u), s);
-}
-
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        if (v.as.ref == NULL) {
-            return fnv(h, 0xDEADu);
-        }
-        if (listed(pico8_hv(), v.as.ref)) {
-            return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
-        }
-        return fnv(h, 0xEEEEu);
-    default:
-        return fnv(h, 0xF0u);
-    }
 }
 
 /* An icon is the one entity of `cv.hb` whose `ke` holds a kind, not an
@@ -212,8 +190,10 @@ static void gx(const pico8_entity_kind_t *out[7]) {
 /* `gy` and `id` read off any icon: the cursor and counter every icon
  * shares. */
 static uint32_t fold_shared(uint32_t h, void *icon) {
+    pico8_fixed_t id = 0;
+
     h = fold_vec(h, shared_gy(as_ie(icon)));
-    return fold_value(h, shared_id(as_ie(icon)));
+    return shared_id(as_ie(icon), &id) ? fold_fixed(h, id) : fnv(h, 0xDEADu);
 }
 
 /* `t` is always a number: its kind byte is constant by the struct's shape,

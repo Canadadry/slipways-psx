@@ -35,16 +35,7 @@ static pico8_list_t g_hv;
 static pico8_struct_header_t *g_mo = NULL;
 static int g_initialized = 0;
 
-static int pico8_mo_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
-    (void)self;
-    (void)name;
-    (void)out_value;
-    return 0;
-}
-
-static const pico8_struct_class_t g_mo_placeholder_struct_class = {
-    .field = pico8_mo_placeholder_field,
-};
+static const pico8_struct_class_t g_mo_placeholder_struct_class = {0};
 
 typedef struct {
     pico8_struct_header_t header;
@@ -193,30 +184,6 @@ int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
 const pico8_list_t *pico8_cg(const char *tag) {
     pico8_cg_entry_t *entry = pico8_cg_find(tag);
     return entry != NULL ? &entry->list : NULL;
-}
-
-int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value) {
-    const pico8_struct_header_t *header;
-
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           "entity: e is an entity struct; a list REF passed as an entity would be read as one");
-    header = e;
-    assert(header->cls->field != NULL && "entity: a struct a generic consumer reaches needs a field reader");
-    return header->cls->field(e, name, out_value);
-}
-
-void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
-    const pico8_struct_header_t *header;
-    int written;
-
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           "entity: e is an entity struct; a list REF passed as an entity would be written as one");
-    header = e;
-    assert(header->cls->set_field != NULL && "entity: a struct a generic writer reaches needs a field writer");
-    written = header->cls->set_field(e, name, value);
-    assert(written && "entity: a generic write names a field this struct has no member for "
-                      "-- stop, do not add a member");
-    (void)written;
 }
 
 pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {

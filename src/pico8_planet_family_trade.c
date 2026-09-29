@@ -53,8 +53,8 @@ typedef struct {
     pico8_struct_header_t header;
 } pico8_nr_ldown_empty_t;
 
-/* The `{}` `nr:ldown` hands to `nr:gv`: never allocated, never freed; no
- * field, and no writer, so a write reaching it stops the run. */
+/* The `{}` `nr:ldown` hands to `nr:gv`: never allocated, never freed,
+ * never written. */
 static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{PICO8_TYPE_TAG_STRUCT, &g_nr_ldown_empty_struct_class}};
 
 pico8_down_t pico8_nr_ldown(pico8_nr_t *self) {

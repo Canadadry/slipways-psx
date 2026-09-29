@@ -42,24 +42,13 @@ const pico8_list_t *pico8_cg(const char *tag);
 pico8_struct_header_t *pico8_lt(pico8_ke_t *ke);
 void pico8_he(pico8_struct_header_t *e);
 
-/* `e[name]`: returns 1 and writes *out_value when the struct `e` has a
- * non-nil field by that name (a method is no field: it answers 0);
- * returns 0, leaving *out_value untouched, otherwise. Asserts that `e` is an entity struct: a list REF
- * passed as an entity stops the run. */
-int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value);
-
-/* `e[name]=value` into the struct's member `name`. Asserts, as
- * pico8_entity_get_field() does, that `e` is an entity struct, and that it
- * has such a member: a struct never grows a field. */
-void pico8_entity_set_field(void *e, const char *name, pico8_value_t value);
-
 /* `nt` is "kj" or "ev" (asserted). */
 void pico8_dc(const char *nt);
 
 /* `hd=1` of `bg` and `fq`: the hover test that every point passes. */
 int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 
-/* Until pico8_jl() runs, the placeholder struct, with no field and no
+/* Until pico8_jl() runs, the placeholder struct, with no member and no
  * `md`: dc() calls `mo:md(ci[o])` on a `qb` only; afterwards the
  * real `qb` struct (pico8_scroll.h). Its members are read and written
  * through pico8_mo_qb(). Callers must not free it. */

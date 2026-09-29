@@ -32,16 +32,7 @@ pico8_list_t *pico8_ui_le_shared(void) {
     return &g_shared_le;
 }
 
-static int pico8_je_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
-    (void)self;
-    (void)name;
-    (void)out_value;
-    return 0;
-}
-
-static const pico8_struct_class_t g_je_placeholder_struct_class = {
-    .field = pico8_je_placeholder_field,
-};
+static const pico8_struct_class_t g_je_placeholder_struct_class = {0};
 
 typedef struct {
     pico8_struct_header_t header;
@@ -87,52 +78,6 @@ static void pico8_ui_ev_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }
 
-static int ui_ref_field(void *ref, pico8_value_t *out_value) {
-    if (ref == NULL) {
-        return 0;
-    }
-    *out_value = pico8_value_ref(ref);
-    return 1;
-}
-
-static int pico8_ui_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_ui_t *ui = self;
-
-    if (strcmp(name, "ql") == 0) {
-        *out_value = pico8_value_fixed(ui->ql);
-        return 1;
-    }
-    if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(ui->fa);
-        return 1;
-    }
-    if (strcmp(name, "le") == 0) {
-        return ui_ref_field(ui->le, out_value);
-    }
-    if (strcmp(name, "hw") == 0) {
-        return ui_ref_field((void *)ui->hw, out_value);
-    }
-    if (strcmp(name, "qa") == 0) {
-        return ui_ref_field(ui->qa, out_value);
-    }
-    if (strcmp(name, "ic") == 0) {
-        return ui_ref_field(ui->ic, out_value);
-    }
-    if (strcmp(name, "o_") == 0) {
-        return ui_ref_field(ui->o_, out_value);
-    }
-    if (strcmp(name, "gj") == 0) {
-        return ui_ref_field(ui->gj, out_value);
-    }
-    if (strcmp(name, "lheld") == 0) {
-        return ui_ref_field(ui->lheld, out_value);
-    }
-    if (strcmp(name, "rheld") == 0) {
-        return ui_ref_field(ui->rheld, out_value);
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
 static int ui_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_ui_t *)self)->fa;
     return 1;
@@ -145,7 +90,6 @@ static int ui_get_ql(const void *self, pico8_fixed_t *out) {
 
 static const pico8_struct_class_t g_ui_struct_class = {
     .ev = pico8_ui_ev_dispatch,
-    .field = pico8_ui_field,
     .get_fa = ui_get_fa,
     .get_ql = ui_get_ql,
 };

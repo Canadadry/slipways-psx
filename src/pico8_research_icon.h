@@ -12,16 +12,17 @@
 
 /* Throughout this module a NULL `ie` struct, `gfx` or `mem` is a safe
  * no-op, and a nil member, or an absent field of `self.ke`, reads as its
- * zero/false default; a wrong-kind write, construction key or field of
- * `self.ke` stops the run.
+ * zero/false default; a wrong construction key or field of `self.ke` stops
+ * the run.
  *
  * `self.ke` holds a `pico8_entity_kind_t`, not an entity: its fields are
- * read off a `pico8_ie_ke_t`, never pico8_entity_get_field() on the kind
+ * read off a `pico8_ie_ke_t`, never through a struct header on the kind
  * pointer. */
 
 /* `kq`, `ra` and `eh` point at `pico8_ie_start`'s, shared by every `ie`;
- * `hb` rebinds `ra` to the cursor. `gy` and `id` are no members: see the
- * module's shared state. Nothing frees the struct: TROU-7. */
+ * `hb` rebinds `ra` to the cursor. `gy` and `id` are no members: the
+ * module's shared state, read by pico8_ie_gy()/pico8_ie_id(). Nothing frees
+ * the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke_base;
     const pico8_qz_box_t *kq;
@@ -36,8 +37,8 @@ typedef struct {
     int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_ie_t;
 
-/* `self.ke` read as Lua reads a class: no parent, never an entity, and no
- * writer, so a write reaching it stops the run. */
+/* `self.ke` read as Lua reads a class: no parent, never an entity, never
+ * written. */
 typedef struct {
     pico8_struct_header_t header;
     const char *rr;
@@ -74,6 +75,12 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys);
  * not a copy. NULL before pico8_research_icon_init() and after the
  * shutdown. */
 const pico8_vec_t *pico8_ie_eh(void);
+
+/* The shared `ie.gy` cursor, borrowed; NULL while `gy` is nil. */
+const pico8_vec_t *pico8_ie_gy(void);
+
+/* The shared `ie.id` counter: 0 while `id` is nil, else 1 with `*out` set. */
+int pico8_ie_id(pico8_fixed_t *out);
 
 /* NULL is a nil `gy`. */
 void pico8_ie_set_gy(const pico8_vec_t *gy);

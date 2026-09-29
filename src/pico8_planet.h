@@ -19,9 +19,9 @@
  * `em` point at jo's generated data in pico8_game_data.h; `kw` points at the one kw
  * every bare planet shares, written in place by `bb` and `mx:kf`, until `lz`
  * points it at the planet's own `kw_own`), its construction keys
- * `id`/`p`/`ra`, then every field jo's functions and the generic writers
- * of `cg.jo` write on it. Every planet struct begins with one, so jo's
- * functions take it for `self`. Nothing frees the struct: TROU-7. */
+ * `id`/`p`/`ra`, then every field jo's functions write on it. Every planet
+ * struct begins with one, so jo's functions take it for `self`. Nothing
+ * frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;

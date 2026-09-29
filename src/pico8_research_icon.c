@@ -44,43 +44,7 @@ static const pico8_entity_kind_t *ie_self_ke_kind(const pico8_ie_t *self) {
     return self != NULL ? self->ke : NULL;
 }
 
-static int pico8_ie_ke_view_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_ie_ke_t *view = self;
-
-    if (strcmp(name, "rr") == 0) {
-        if (view->rr == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(view->rr);
-        return 1;
-    }
-    if (strcmp(name, "s") == 0) {
-        if (!view->has_s) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(view->s);
-        return 1;
-    }
-    if (strcmp(name, "me") == 0) {
-        if (view->me == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(view->me);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        if (!view->has_od) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(view->od);
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_ie_ke_view_struct_class = {
-    .field = pico8_ie_ke_view_field,
-};
+static const pico8_struct_class_t g_ie_ke_view_struct_class = {0};
 
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
@@ -236,95 +200,6 @@ static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
     return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
-/* `gy` and `id` read off an icon answer the shared state, as the class
- * chain did. */
-static int pico8_ie_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_ie_t *ie = self;
-    pico8_value_t value;
-
-    if (strcmp(name, "gy") == 0) {
-        value = pico8_value_ref((void *)g_ie_gy);
-    } else if (strcmp(name, "id") == 0) {
-        value = g_ie_id;
-    } else if (strcmp(name, "kq") == 0) {
-        if (ie->kq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)ie->kq);
-        return 1;
-    } else if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(ie->fa);
-        return 1;
-    } else if (strcmp(name, "ra") == 0) {
-        if (ie->ra == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)ie->ra);
-        return 1;
-    } else if (strcmp(name, "eh") == 0) {
-        if (ie->eh == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)ie->eh);
-        return 1;
-    } else if (strcmp(name, "ke") == 0) {
-        if (ie->ke == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)ie->ke);
-        return 1;
-    } else if (strcmp(name, "jb") == 0) {
-        if (ie->jb == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(ie->jb);
-        return 1;
-    } else if (strcmp(name, "kh") == 0) {
-        if (!ie->has_kh) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(ie->kh);
-        return 1;
-    } else if (strcmp(name, "m_") == 0) {
-        if (!ie->has_m_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(ie->m_);
-        return 1;
-    } else {
-        return pico8_ke_field(self, name, out_value);
-    }
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return 0;
-    }
-    *out_value = value;
-    return 1;
-}
-
-static void ie_take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "ie.m_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.boolean;
-    *has = 1;
-}
-
-/* `m_` (the hover loop, on `ok.o_` and `ok.gj`): the only name a generic
- * writer ever writes on an `ie`. */
-static int pico8_ie_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_ie_t *ie = self;
-
-    if (strcmp(name, "m_") == 0) {
-        ie_take_bool(value, &ie->m_, &ie->has_m_);
-        return 1;
-    }
-    return 0;
-}
-
 static int ie_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_ie_t *)self)->fa;
     return 1;
@@ -350,8 +225,6 @@ static const pico8_struct_class_t g_ie_struct_class = {
     .hd = pico8_ie_hd_dispatch,
     .hb = pico8_ie_hb_dispatch,
     .ldown = pico8_ie_ldown_dispatch,
-    .field = pico8_ie_field,
-    .set_field = pico8_ie_set_field,
     .get_fa = ie_get_fa,
     .get_ra = ie_get_ra,
     .get_kq = ie_get_kq,
@@ -414,6 +287,19 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
 
 const pico8_vec_t *pico8_ie_eh(void) {
     return g_ie_up ? &pico8_ie_start.eh : NULL;
+}
+
+const pico8_vec_t *pico8_ie_gy(void) {
+    return g_ie_gy;
+}
+
+int pico8_ie_id(pico8_fixed_t *out) {
+    if (g_ie_id.kind == PICO8_VALUE_REF && g_ie_id.as.ref == NULL) {
+        return 0;
+    }
+    assert(g_ie_id.kind == PICO8_VALUE_FIXED && "ie.id: only ever nil or a number");
+    *out = g_ie_id.as.fixed;
+    return 1;
 }
 
 void pico8_ie_set_gy(const pico8_vec_t *gy) {

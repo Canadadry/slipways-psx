@@ -69,146 +69,6 @@ static void pico8_js_hb_dispatch(void *self) {
     }
 }
 
-pico8_value_t pico8_js_h_(const pico8_js_t *self) {
-    if (self == NULL || !self->has_h_) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->h_ == NULL) {
-        return pico8_value_bool(0);
-    }
-    return pico8_value_ref(self->h_);
-}
-
-static int js_ref_field(void *ref, pico8_value_t *out_value) {
-    if (ref == NULL) {
-        return 0;
-    }
-    *out_value = pico8_value_ref(ref);
-    return 1;
-}
-
-static int js_fixed_field(pico8_fixed_t fixed, int has, pico8_value_t *out_value) {
-    if (!has) {
-        return 0;
-    }
-    *out_value = pico8_value_fixed(fixed);
-    return 1;
-}
-
-static int js_value_field(pico8_value_t v, pico8_value_t *out_value) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    *out_value = v;
-    return 1;
-}
-
-static int pico8_js_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_js_t *js = self;
-
-    if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(js->fa);
-        return 1;
-    }
-    if (strcmp(name, "lq") == 0) {
-        return js_ref_field(js->lq, out_value);
-    }
-    if (strcmp(name, "mb") == 0) {
-        *out_value = pico8_value_fixed(js->mb);
-        return 1;
-    }
-    if (strcmp(name, "kq") == 0) {
-        return js_ref_field(js->kq, out_value);
-    }
-    if (strcmp(name, "h_") == 0) {
-        return js_value_field(pico8_js_h_(js), out_value);
-    }
-    if (strcmp(name, "jb") == 0) {
-        return js_ref_field(js->jb, out_value);
-    }
-    if (strcmp(name, "ra") == 0) {
-        return js_ref_field(js->ra, out_value);
-    }
-    if (strcmp(name, "qf") == 0) {
-        return js_ref_field(js->qf, out_value);
-    }
-    if (strcmp(name, "m_") == 0) {
-        if (!js->has_m_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(js->m_);
-        return 1;
-    }
-    if (strcmp(name, "fg") == 0) {
-        return js_fixed_field(js->fg, js->has_fg, out_value);
-    }
-    if (strcmp(name, "px") == 0) {
-        if (js->px == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(js->px);
-        return 1;
-    }
-    if (strcmp(name, "trade") == 0) {
-        return js_fixed_field(js->trade, js->has_trade, out_value);
-    }
-    if (strcmp(name, "en") == 0) {
-        return js_fixed_field(js->en, js->has_en, out_value);
-    }
-    if (strcmp(name, "_cr_t") == 0) {
-        return js_ref_field((void *)js->_cr_t, out_value);
-    }
-    if (strcmp(name, "_jo_fe_pt") == 0) {
-        return js_ref_field(js->_jo_fe_pt, out_value);
-    }
-    if (strcmp(name, "_jo_fe_b") == 0) {
-        return js_ref_field(js->_jo_fe_b, out_value);
-    }
-    if (strcmp(name, "_jo_fe_od") == 0) {
-        return js_fixed_field(js->_jo_fe_od, js->has__jo_fe_od, out_value);
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
-static void button_take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "fq.m_, js.m_: a write neither nil nor a boolean does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.boolean;
-    *has = 1;
-}
-
-static void button_take_lq(pico8_value_t value, pico8_lq_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL && pico8_js_is_lq(value.as.ref) &&
-           "js.lq: a write neither nil nor an lq row does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-/* `m_` (the hover loop) and `lq` (`ix[2].hb`): the only names a generic
- * writer ever writes on a `js`. */
-static int pico8_js_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_js_t *js = self;
-
-    if (strcmp(name, "lq") == 0) {
-        button_take_lq(value, &js->lq);
-        return 1;
-    }
-    if (strcmp(name, "m_") == 0) {
-        button_take_bool(value, &js->m_, &js->has_m_);
-        return 1;
-    }
-    return 0;
-}
-
 static int js_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_js_t *)self)->fa;
     return 1;
@@ -247,8 +107,6 @@ static const pico8_struct_class_t g_js_struct_class = {
     .has_hb = pico8_js_has_hb,
     .ldown = pico8_js_ldown_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
-    .field = pico8_js_field,
-    .set_field = pico8_js_set_field,
     .get_fa = js_get_fa,
     .get_ra = js_get_ra,
     .get_kq = js_get_kq,
@@ -510,44 +368,6 @@ static pico8_down_t pico8_fq_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_v
     return pico8_fq_ldown((pico8_fq_t *)self);
 }
 
-static int pico8_fq_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_fq_t *fq = self;
-
-    if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(fq->fa);
-        return 1;
-    }
-    if (strcmp(name, "hd") == 0) {
-        *out_value = pico8_value_fixed(fq->hd);
-        return 1;
-    }
-    if (strcmp(name, "p_") == 0) {
-        if (!fq->has_p_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(fq->p_);
-        return 1;
-    }
-    if (strcmp(name, "m_") == 0) {
-        if (!fq->has_m_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(fq->m_);
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
-static int pico8_fq_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_fq_t *fq = self;
-
-    if (strcmp(name, "m_") == 0) {
-        button_take_bool(value, &fq->m_, &fq->has_m_);
-        return 1;
-    }
-    return 0;
-}
-
 static int fq_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_fq_t *)self)->fa;
     return 1;
@@ -569,8 +389,6 @@ static void fq_set_m_(void *self, int m_) {
 static const pico8_struct_class_t g_fq_struct_class = {
     .hd = pico8_hd_true,
     .ldown = pico8_fq_ldown_dispatch,
-    .field = pico8_fq_field,
-    .set_field = pico8_fq_set_field,
     .get_fa = fq_get_fa,
     .get_p_ = fq_get_p_,
     .set_m_ = fq_set_m_,

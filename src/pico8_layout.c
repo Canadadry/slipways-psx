@@ -319,59 +319,12 @@ pico8_value_t pico8_lq_bg(const pico8_lq_t *self) {
     return self->bg_is_bool ? pico8_value_bool(self->bg) : pico8_value_fixed(self->bg);
 }
 
-static int pico8_lq_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_lq_t *lq = self;
-
-    if (strcmp(name, "c") == 0) {
-        if (!lq->has_c) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(lq->c);
-        return 1;
-    }
-    if (strcmp(name, "bg") == 0) {
-        pico8_value_t v = pico8_lq_bg(lq);
-        if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-            return 0;
-        }
-        *out_value = v;
-        return 1;
-    }
-    if (strcmp(name, "score") == 0) {
-        if (!lq->has_score) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(lq->score);
-        return 1;
-    }
-    if (strcmp(name, "ra") == 0) {
-        if (lq->ra == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(lq->ra);
-        return 1;
-    }
-    if (strcmp(name, "fs") == 0) {
-        if (lq->fs == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(lq->fs);
-        return 1;
-    }
-    if (strcmp(name, "w") == 0) {
-        *out_value = pico8_value_fixed(lq->w);
-        return 1;
-    }
-    return 0;
-}
-
 static const pico8_vec_t *lq_get_ra(const void *self) {
     return ((const pico8_lq_t *)self)->ra;
 }
 
 static const pico8_struct_class_t g_lq_struct_class = {
     .ol = pico8_lq_ol_dispatch,
-    .field = pico8_lq_field,
     .get_ra = lq_get_ra,
 };
 

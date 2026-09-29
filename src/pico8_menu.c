@@ -46,36 +46,7 @@ typedef struct {
     int has_ca; /* 0: `ca` is nil, and `ca` is then never read */
 } pico8_ha_pz_t;
 
-static int pico8_ha_pz_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_ha_pz_t *o = self;
-
-    if (strcmp(name, "hi") == 0) {
-        if (o->hi == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(o->hi);
-        return 1;
-    }
-    if (strcmp(name, "gq") == 0) {
-        if (o->gq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(o->gq);
-        return 1;
-    }
-    if (strcmp(name, "ca") == 0) {
-        if (!o->has_ca) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(o->ca);
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_ha_pz_struct_class = {
-    .field = pico8_ha_pz_field,
-};
+static const pico8_struct_class_t g_ha_pz_struct_class = {0};
 
 /* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`
  * at `ha`'s own values, `pico8_menu_shutdown()` resets them to nil. */

@@ -1231,7 +1231,7 @@ static void check_le_one_pz(void) {
     check_one_pz(b, le->count);
 }
 
-/* What the generic writer did to `m_` (`button_take_bool`): nil clears it. */
+/* `m_` true, false, or nil (`present` 0), which clears it. */
 static void write_m_(pico8_js_t *b, int present, int value) {
     b->m_ = present ? value : 0;
     b->has_m_ = present;

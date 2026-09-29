@@ -6,7 +6,6 @@
 #include "pico8_coverage.h"
 #include "pico8_game_data.h"
 #include "pico8_type_tag.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* The states `dg` runs as `qc[qc.me](qc,qc.t)`. */
@@ -38,14 +37,6 @@ static inline int pico8_state_of(const char *me) {
     return -1;
 }
 
-/* Returns 1 and writes *out_value when `self` has a non-nil field `name`;
- * returns 0, leaving *out_value untouched, otherwise. */
-typedef int (*pico8_struct_field_fn)(const void *self, const char *name, pico8_value_t *out_value);
-
-/* Returns 1 when `self` has a member `name` and has written `value` into
- * it; returns 0, writing nothing, otherwise. */
-typedef int (*pico8_struct_set_field_fn)(void *self, const char *name, pico8_value_t value);
-
 typedef struct pico8_struct_class pico8_struct_class_t;
 
 /* First member of every entity struct, and of the parent struct a child
@@ -76,9 +67,7 @@ struct pico8_probe;
  * such method. `kj`, `ev` and `hd` read the vectors they get and never keep
  * them; `ldown`, `rdown` and `hq` may keep theirs. NULL `ra`: nil. `has_hb`
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
- * instance decides. `mm` returns a fresh particle the caller owns. `field`
- * is NULL only for a class no generic consumer ever reaches, `set_field`
- * for a class no generic writer ever reaches. `parent` returns the class
+ * instance decides. `mm` returns a fresh particle the caller owns. `parent` returns the class
  * whose struct this one embeds first; the member is NULL for a root.
  * `emitter_of` and `probe_of` return the particle emitter and the probe the
  * instance stores in itself; the member is NULL for a class that carries
@@ -101,8 +90,6 @@ struct pico8_struct_class {
     void (*ol)(void *self, pico8_vec_t p, pico8_fixed_t a);
     struct pico8_qy *(*mm)(void *self);
     pico8_state_fn states[PICO8_STATE_COUNT];
-    pico8_struct_field_fn field;
-    pico8_struct_set_field_fn set_field;
     const pico8_struct_class_t *(*parent)(void);
     struct pico8_emitter *(*emitter_of)(void *self);
     struct pico8_probe *(*probe_of)(void *self);

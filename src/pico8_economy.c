@@ -18,75 +18,7 @@
 
 static int g_hy_up = 0;
 
-static int pico8_hy_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_hy_t *hy = self;
-
-    if (strcmp(name, "nz") == 0) {
-        *out_value = pico8_value_fixed(hy->nz);
-        return 1;
-    }
-    if (strcmp(name, "ge") == 0) {
-        *out_value = pico8_value_fixed(hy->ge);
-        return 1;
-    }
-    if (strcmp(name, "jk") == 0) {
-        *out_value = pico8_value_fixed(hy->jk);
-        return 1;
-    }
-    if (strcmp(name, "ew") == 0) {
-        *out_value = pico8_value_fixed(hy->ew);
-        return 1;
-    }
-    if (strcmp(name, "invented") == 0) {
-        if (hy->invented == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(hy->invented);
-        return 1;
-    }
-    if (strcmp(name, "lo") == 0) {
-        *out_value = pico8_value_fixed(hy->lo);
-        return 1;
-    }
-    if (strcmp(name, "yr") == 0) {
-        *out_value = pico8_value_fixed(hy->yr);
-        return 1;
-    }
-    if (strcmp(name, "po") == 0) {
-        if (hy->po == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(hy->po);
-        return 1;
-    }
-    if (strcmp(name, "fu") == 0) {
-        if (hy->fu == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(hy->fu);
-        return 1;
-    }
-    if (strcmp(name, "happiness") == 0) {
-        if (!hy->has_happiness) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(hy->happiness);
-        return 1;
-    }
-    if (strcmp(name, "hl") == 0) {
-        pico8_value_t v = pico8_hy_hl(hy);
-        if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-            return 0;
-        }
-        *out_value = v;
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_hy_struct_class = {
-    .field = pico8_hy_field,
-};
+static const pico8_struct_class_t g_hy_struct_class = {0};
 
 static void *pico8_hy_struct_new(void) {
     pico8_hy_t *self = malloc(sizeof *self);
@@ -148,16 +80,6 @@ int pico8_hy_ready(void) {
 
 const pico8_struct_class_t *pico8_hy_struct_class(void) {
     return &g_hy_struct_class;
-}
-
-pico8_value_t pico8_hy_hl(const pico8_hy_t *self) {
-    if (self == NULL || !self->has_hl) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->hl == NULL) {
-        return pico8_value_bool(0);
-    }
-    return pico8_value_string(self->hl);
 }
 
 pico8_hy_t *pico8_hy_new(void) {

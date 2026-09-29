@@ -61,35 +61,7 @@ static void pj_row_copy(pico8_jb_row_t *dst, pico8_jb_item_t *items, int cap, co
     dst->items = items;
 }
 
-static int pico8_pj_cr_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_pj_cr_t *cr = self;
-
-    if (strcmp(name, "hi") == 0) {
-        if (cr->hi == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)cr->hi);
-    } else if (strcmp(name, "gq") == 0) {
-        if (cr->gq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)cr->gq);
-    } else if (strcmp(name, "ca") == 0) {
-        *out_value = pico8_value_fixed(cr->ca);
-    } else if (strcmp(name, "ep") == 0) {
-        if (cr->ep == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(cr->ep);
-    } else {
-        return 0;
-    }
-    return 1;
-}
-
-static const pico8_struct_class_t g_pj_cr_struct_class = {
-    .field = pico8_pj_cr_field,
-};
+static const pico8_struct_class_t g_pj_cr_struct_class = {0};
 
 static pico8_pj_cr_t g_pj_cr = {
     {PICO8_TYPE_TAG_STRUCT, &g_pj_cr_struct_class},
@@ -331,52 +303,6 @@ pico8_value_t pico8_pj_ed(const pico8_pj_t *self) {
     return pico8_value_ref(self->ed);
 }
 
-/* `ou`, `ea`, `cr` read off a panel answer the shared state, as the class
- * chain did. */
-static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_pj_t *pj = self;
-    pico8_value_t value;
-
-    if (strcmp(name, "ou") == 0) {
-        value = pico8_value_ref(pico8_pj_ou());
-    } else if (strcmp(name, "ea") == 0) {
-        value = pico8_value_ref(pico8_pj_ea());
-    } else if (strcmp(name, "cr") == 0) {
-        value = pico8_value_ref(pico8_pj_cr());
-    } else if (strcmp(name, "fa") == 0) {
-        value = pico8_value_fixed(pj->fa);
-    } else if (strcmp(name, "gs") == 0) {
-        if (pj->gs == NULL) {
-            return 0;
-        }
-        value = pico8_value_ref((void *)pj->gs);
-    } else if (strcmp(name, "i_") == 0) {
-        if (pj->i_ == NULL) {
-            return 0;
-        }
-        value = pico8_value_ref((void *)pj->i_);
-    } else if (strcmp(name, "ed") == 0) {
-        value = pico8_pj_ed(pj);
-    } else if (strcmp(name, "c_") == 0) {
-        if (!pj->has_c_) {
-            return 0;
-        }
-        value = pico8_value_bool(pj->c_);
-    } else if (strcmp(name, "gz") == 0) {
-        if (!pj->has_gz) {
-            return 0;
-        }
-        value = pico8_value_fixed(pj->gz);
-    } else {
-        return pico8_ke_field(self, name, out_value);
-    }
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return 0;
-    }
-    *out_value = value;
-    return 1;
-}
-
 static int pj_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_pj_t *)self)->fa;
     return 1;
@@ -387,7 +313,6 @@ static const pico8_struct_class_t g_pj_struct_class = {
     .hk = pico8_pj_hk_dispatch,
     .hb = pico8_pj_hb_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_pj_ph_dispatch},
-    .field = pico8_pj_field,
     .get_fa = pj_get_fa,
 };
 

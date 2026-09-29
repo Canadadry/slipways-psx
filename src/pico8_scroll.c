@@ -28,77 +28,6 @@ static void pico8_qb_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
 }
 
-static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_qb_t *qb = self;
-
-    if (strcmp(name, "v") == 0) {
-        if (qb->v == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)qb->v);
-        return 1;
-    }
-    if (strcmp(name, "ma") == 0) {
-        *out_value = pico8_value_fixed(qb->ma);
-        return 1;
-    }
-    if (strcmp(name, "p") == 0) {
-        if (qb->p == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)qb->p);
-        return 1;
-    }
-    if (strcmp(name, "ra") == 0) {
-        if (qb->ra == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)qb->ra);
-        return 1;
-    }
-    if (strcmp(name, "pc") == 0) {
-        if (qb->pc == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)qb->pc);
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
-static void qb_take_vec(pico8_value_t value, const pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "qb.v: a write neither nil nor a vector ref does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void qb_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
-    assert(value.kind == PICO8_VALUE_FIXED &&
-           "qb.ma: a write that is not a fixed does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.fixed;
-}
-
-/* `ma` (ma(), ga:pq) and `v` (bg:hq): the only names a generic writer ever
- * writes on `mo`. */
-static int pico8_qb_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_qb_t *qb = self;
-
-    if (strcmp(name, "v") == 0) {
-        qb_take_vec(value, &qb->v);
-        return 1;
-    }
-    if (strcmp(name, "ma") == 0) {
-        qb_take_fixed(value, &qb->ma);
-        return 1;
-    }
-    return 0;
-}
-
 static const pico8_vec_t *qb_get_ra(const void *self) {
     return ((const pico8_qb_t *)self)->ra;
 }
@@ -109,8 +38,6 @@ static const pico8_vec_t *qb_get_p(const void *self) {
 
 static const pico8_struct_class_t g_qb_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_qb_ph_dispatch},
-    .field = pico8_qb_field,
-    .set_field = pico8_qb_set_field,
     .get_ra = qb_get_ra,
     .get_p = qb_get_p,
 };

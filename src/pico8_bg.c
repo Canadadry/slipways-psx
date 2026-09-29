@@ -41,65 +41,6 @@ static void pico8_bg_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_bg_hq((pico8_bg_t *)self, ra);
 }
 
-static int pico8_bg_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_bg_t *bg = self;
-
-    if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(bg->fa);
-        return 1;
-    }
-    if (strcmp(name, "hd") == 0) {
-        *out_value = pico8_value_fixed(bg->hd);
-        return 1;
-    }
-    if (strcmp(name, "pl") == 0) {
-        if (bg->pl == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)bg->pl);
-        return 1;
-    }
-    if (strcmp(name, "mq") == 0) {
-        if (bg->mq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(bg->mq);
-        return 1;
-    }
-    if (strcmp(name, "m_") == 0) {
-        if (!bg->has_m_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(bg->m_);
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
-static void bg_take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "bg.m_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.boolean;
-    *has = 1;
-}
-
-/* `m_` (the hover loop `gw`): the only name a generic writer ever writes
- * on a `bg`. */
-static int pico8_bg_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_bg_t *bg = self;
-
-    if (strcmp(name, "m_") == 0) {
-        bg_take_bool(value, &bg->m_, &bg->has_m_);
-        return 1;
-    }
-    return 0;
-}
-
 static int bg_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_bg_t *)self)->fa;
     return 1;
@@ -118,8 +59,6 @@ static const pico8_struct_class_t g_bg_struct_class = {
     .ldown = pico8_bg_ldown_dispatch,
     .rdown = pico8_bg_rdown_dispatch,
     .hq = pico8_bg_hq_dispatch,
-    .field = pico8_bg_field,
-    .set_field = pico8_bg_set_field,
     .get_fa = bg_get_fa,
     .set_m_ = bg_set_m_,
 };

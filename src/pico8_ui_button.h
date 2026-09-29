@@ -101,10 +101,6 @@ typedef struct {
  * through `lt`, and nothing frees it. */
 pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys);
 
-/* `h_` as a value: REF NULL when `self` is NULL or `h_` is absent, `false`
- * when present and NULL, a REF to the row otherwise. */
-pico8_value_t pico8_js_h_(const pico8_js_t *self);
-
 /* `lq`, `h_`, `jb` are the row's construction values `js:pq` builds the
  * members from, TROU-23 already applied; `lq_row`, `h_row`, `jb_row`, when
  * set, the rows it builds them from instead. All borrowed, never kept. */

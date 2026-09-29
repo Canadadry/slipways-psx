@@ -5,7 +5,6 @@
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* Throughout this module a NULL `self` is a safe no-op. */
 
@@ -42,10 +41,6 @@ void pico8_economy_shutdown(void);
 /* 1 from pico8_economy_init() to pico8_economy_shutdown(), 0 otherwise. */
 int pico8_hy_ready(void);
 const pico8_struct_class_t *pico8_hy_struct_class(void);
-
-/* `hl` as 1a held it: REF NULL when nil or `self` is NULL, BOOL(0) when
- * false, else the STRING of the same pointer. */
-pico8_value_t pico8_hy_hl(const pico8_hy_t *self);
 
 /* Takes no key. The caller owns the struct until pico8_probe_set_fm()
  * takes it. */

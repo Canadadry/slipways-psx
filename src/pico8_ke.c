@@ -41,23 +41,6 @@ void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls) {
     self->t = pico8_ke_start.t;
 }
 
-int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_ke_t *ke = self;
-
-    if (strcmp(name, "me") == 0) {
-        if (ke->me == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(ke->me);
-        return 1;
-    }
-    if (strcmp(name, "t") == 0) {
-        *out_value = pico8_value_fixed(ke->t);
-        return 1;
-    }
-    return 0;
-}
-
 void pico8_ke_struct_pq(pico8_ke_t *self) {
     pico8_lt(self);
 }

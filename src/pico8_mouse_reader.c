@@ -24,37 +24,12 @@ static void pico8_nf_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
 }
 
-static int pico8_nf_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_nf_t *nf = self;
-    pico8_value_t value;
-
-    if (strcmp(name, "ra") == 0) {
-        if (nf->ra == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(nf->ra);
-        return 1;
-    } else if (strcmp(name, "l") == 0) {
-        value = pico8_value_ref(g_nf_up ? &g_nf_l : NULL);
-    } else if (strcmp(name, "r") == 0) {
-        value = pico8_value_ref(g_nf_up ? &g_nf_r : NULL);
-    } else {
-        return pico8_ke_field(self, name, out_value);
-    }
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return 0;
-    }
-    *out_value = value;
-    return 1;
-}
-
 static const pico8_vec_t *nf_get_ra(const void *self) {
     return ((const pico8_nf_t *)self)->ra;
 }
 
 static const pico8_struct_class_t g_nf_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_nf_ph_dispatch},
-    .field = pico8_nf_field,
     .get_ra = nf_get_ra,
 };
 

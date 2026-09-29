@@ -23,17 +23,13 @@ void pico8_ke_shutdown(void);
 int pico8_ke_ready(void);
 
 /* A NULL `self` is a no-op; any other `self` must be a struct. `me` and
- * `t` are written into its pico8_ke_t, never through its field writer.
- * `me` NULL is nil; a string is borrowed. */
+ * `t` are written into its pico8_ke_t. `me` NULL is nil; a string is
+ * borrowed. */
 void pico8_ke_ks(pico8_struct_header_t *self, const char *me);
 
 /* Tags `self` as a struct of class `cls` and sets ke's defaults,
  * `pico8_ke_start`. */
 void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls);
-
-/* ke's field reader, for a child's reader to fall back on: `me`, absent
- * when NULL, and `t`, always present. */
-int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value);
 
 /* ke's pq for a struct. A child calls it exactly once, after its own pq,
  * or alone when it has none: the class walk's derived-to-base order and

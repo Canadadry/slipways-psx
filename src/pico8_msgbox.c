@@ -84,29 +84,6 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     }
 }
 
-static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_mh_t *mh = self;
-
-    if (strcmp(name, "nu") == 0) {
-        if (mh->nu == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)mh->nu);
-    } else if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(mh->fa);
-    } else if (strcmp(name, "rh") == 0) {
-        *out_value = pico8_value_fixed(mh->rh);
-    } else if (strcmp(name, "p_") == 0) {
-        if (!mh->has_p_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(mh->p_);
-    } else {
-        return pico8_ke_field(self, name, out_value);
-    }
-    return 1;
-}
-
 static const pico8_str_seq_t *mh_get_nu(const void *self) {
     return ((const pico8_mh_t *)self)->nu;
 }
@@ -124,7 +101,6 @@ static int mh_get_p_(const void *self) {
 
 static const pico8_struct_class_t g_mh_struct_class = {
     .ev = pico8_mh_ev_dispatch,
-    .field = pico8_mh_field,
     .get_nu = mh_get_nu,
     .get_fa = mh_get_fa,
     .get_p_ = mh_get_p_,
@@ -254,41 +230,6 @@ static void pico8_iv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }
 
-static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_iv_t *iv = self;
-
-    if (strcmp(name, "fa") == 0) {
-        *out_value = pico8_value_fixed(iv->fa);
-        return 1;
-    }
-    if (strcmp(name, "l") == 0) {
-        *out_value = pico8_value_fixed(iv->l);
-        return 1;
-    }
-    if (strcmp(name, "v") == 0) {
-        if (iv->v == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)iv->v);
-        return 1;
-    }
-    if (strcmp(name, "ra") == 0) {
-        if (iv->ra == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(iv->ra);
-        return 1;
-    }
-    if (strcmp(name, "p_") == 0) {
-        if (!iv->has_p_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(iv->p_);
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
 static int iv_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_iv_t *)self)->fa;
     return 1;
@@ -307,7 +248,6 @@ static int iv_get_p_(const void *self) {
 static const pico8_struct_class_t g_iv_struct_class = {
     .kj = pico8_iv_kj_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
-    .field = pico8_iv_field,
     .get_fa = iv_get_fa,
     .get_ra = iv_get_ra,
     .get_p_ = iv_get_p_,

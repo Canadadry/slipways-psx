@@ -18,36 +18,7 @@ pico8_value_t pico8_trade_qe(const pico8_trade_t *self) {
     return self->qe_is_bool ? pico8_value_bool(self->qe) : pico8_value_fixed(self->qe);
 }
 
-static int pico8_trade_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_trade_t *t = self;
-
-    if (strcmp(name, "lp") == 0) {
-        if (t->lp == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(t->lp);
-        return 1;
-    }
-    if (strcmp(name, "rl") == 0) {
-        if (t->rl == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(t->rl);
-        return 1;
-    }
-    if (strcmp(name, "qe") == 0) {
-        if (!t->has_qe) {
-            return 0;
-        }
-        *out_value = pico8_trade_qe(t);
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_trade_struct_class = {
-    .field = pico8_trade_field,
-};
+static const pico8_struct_class_t g_trade_struct_class = {0};
 
 static void *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
     pico8_trade_t *self = malloc(sizeof *self);
