@@ -6,7 +6,7 @@ status: needs-triage
 
 ## Problem Statement
 
-**Écrit pendant que D.12c est implémentée** (`plan-pilot`, étape 2b : c1 — `cb`/`bj`, `bl`/`mh`/`help`/`pj:kj`, `fs`/`ls`, retrait de `pico8_jp`/`pico8_nv` ; c2 — union de `lq.items`, `jo:gh`/`jo.ex`/`pj:ph`/`jb_line`, derniers includes, §6), sur l'arbre commis `4beeadb` (« docs: PRD de D.12c revérifié après D.12b et mis en file, deux sous-étapes »), extrait par `git archive` dans le scratchpad. Seuls `grep`, `sed`, `awk`, une analyse de fermeture d'includes (script Python en lecture seule), `sh tools/data_residue.sh` et la recette de mesure ont tourné. **Rien n'a été compilé ni lancé.** Tout ce qui dépend du résultat de D.12c est une hypothèse `H-D12c-n` (plus bas), à confronter à sa note « Découvert à D.12c » avant de mettre ce PRD en file. Les numéros de ligne sont ceux de `4beeadb` ; ceux des fichiers que D.12c réécrit sont marqués ⟲ et **doivent être remesurés par contenu**.
+**Écrit pendant que D.12c était implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis `4beeadb` (brouillon commis en `50bb679`), puis **révisé après sa graduation** : D.12c gradée (c1 `245d703`, c2 `66c7f0e`, VERIFIED ; « docs: D.12c gradée (union de layout, tableaux d'affichage) » `5a84e49`). Les hypothèses `H-D12c-n` sont confrontées plus bas à `5a84e49` et aux notes « Découvert à D.12c1/c2 » (recopiées en Annexe A) ; tous les numéros de ligne de ce PRD (Inventaire, décisions, D0, mutations, Annexe C) ont été **remesurés par contenu** sur `git archive 5a84e49` ; les marques ⟲ de la première version sont retirées. Seuls `grep`, `sed`, `awk`, une analyse de fermeture d'includes (Python, lecture seule), `sh tools/data_residue.sh` et la recette ont tourné. **Rien n'a été compilé ni lancé.** Depuis `4beeadb`, seul un numéro de l'étape a bougé : l'include de `test_pico8_planet_gh_row_lq` (`:32` → `:29`).
 
 Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico8_list.c` disparaisse. Après D.12c, `src/` n'a plus aucun appelant de `pico8_list_*` (H-D12c-3) ; restent :
 
@@ -19,7 +19,7 @@ Tant que ces lignes existent, `liste` ne peut pas entrer dans `DATA_RESIDUE_GUAR
 
 D.12d est aussi **la dernière étape écrite de la phase D** : après elle, `plan-pilot` pose Q12 à l'humain (décisions de D.9). La note « Découvert à D.12d » doit donc remettre les comptes finals de la phase.
 
-Ligne de l'étape, recopiée de `docs/plan-3.md` à `4beeadb` (§5, « Phase D — Données », l. 280) :
+Ligne de l'étape, recopiée de `docs/plan-3.md` à `5a84e49` (§5, « Phase D — Données », l. 280 ; identique à `4beeadb`) :
 
 > - D.12d — `liste`, TU (431 lignes, 38 fichiers ; `test_pico8_list` réécrit sur le nouveau conteneur, il ne perd pas son objet, §6), en deux chunks ; `pico8_list.c/.h` supprimés, `PICO8_REF_AS_LIST*` et `PICO8_TYPE_TAG_LIST` retirés. Empreinte 42 (4, 38). Compte : `liste` = 0, ajouté à `DATA_RESIDUE_GUARD`. §6 : aucun. `class-coverage-net`, `sanitize-net` : non.
 
@@ -39,7 +39,7 @@ Comptes au départ de D.10 et règle des ponts de TU, recopiés (l. 267) :
 
 > Comptes au départ de D.10 (HEAD 5a13008, `make -s data-residue` et `--detail` ; l'étude mesurait `2dec71f`, avant D.7a–D.8) : `valeur` 4961/126, `type-tag` 352/65, `ref-audit` 56/15, `par-nom` 1009/81 (`src/` 433/43, `tests/` 576/38), `dispatch` 191/61 (`src/` 67/30, `tests/` 124/31), résidu D 5868 lignes / 128 fichiers ; `liste`, pas encore au compteur, 927/99 avec le motif de Q10 (`src/` 496/61, `tests/` 431/38). Les classes A–M, T1/T2 et L1–L4 sont celles de l'étude (annexe A) ; ses « ≈ » viennent de son classement, chaque PRD remesure. Un TU qui nomme un symbole retiré par une étape de `src/` la suit dans le même commit, ou le symbole reste comme pont compté, fermé par l'étape TU de son groupe (D.10c, D.11d, D.12d) ; le PRD tranche. `sanitize-net` : aux seules étapes qui changent une durée de vie ou un propriétaire (§7).
 
-Toutes les autres lignes de la phase D (D.0 à D.12c) **avec toutes leurs notes « Découvert à D.x »** (D.0, D.1, D.7c, D.8, D.10a, D.10b, D.10c, D.11a, D.11b, D.11c, D.11d1 à D.11d4 et la décision humaine qui découpe D.11d, D.11e1 à D.11e3, D.12a1, D.12a2, D.12b1, D.12b2), l'arrêt « champ sans règle », les parties du §5 qui fixent les règles (en-tête et phase 1a, phase 1b, phase D en entier, phases 2 et 3), le §6 et le §7 entiers sont recopiés tels quels, par extraction de lignes de `4beeadb`, en **Annexe A**. Les passages de l'étude D.9 sur `pico8_list_t` (§3, §4, table des étapes, Q9 à Q12) sont en **Annexe B**. L'**Annexe C** est l'inventaire ligne à ligne des 146 lignes `liste` qui existent à `4beeadb` dans les fichiers de l'étape, chacune avec son sort (dont les 17 que D.12c retire, marquées).
+Toutes les autres lignes de la phase D (D.0 à D.12c) **avec toutes leurs notes « Découvert à D.x »** (D.0, D.1, D.7c, D.8, D.10a, D.10b, D.10c, D.11a, D.11b, D.11c, D.11d1 à D.11d4 et la décision humaine qui découpe D.11d, D.11e1 à D.11e3, D.12a1, D.12a2, D.12b1, D.12b2, D.12c1, D.12c2), l'arrêt « champ sans règle », les parties du §5 qui fixent les règles (en-tête et phase 1a, phase 1b, phase D en entier, phases 2 et 3), le §6 et le §7 entiers sont recopiés tels quels, par extraction de lignes de `5a84e49`, en **Annexe A**. Les passages de l'étude D.9 sur `pico8_list_t` (§3, §4, table des étapes, Q9 à Q12) sont en **Annexe B**. L'**Annexe C** est l'inventaire ligne à ligne des 129 lignes `liste` de `5a84e49`, chacune avec son sort.
 
 Notes « Découvert à » et consignes antérieures qui visent D.12d, extraites de ces textes et des PRD de D.12a à D.12c :
 
@@ -66,9 +66,32 @@ Source : le PRD de D.12c (`docs/prd/triage/plan3-phaseD-etape12c-listes-heteroge
 | H-D12c-9 | Fermeture d'includes : après D.12c, chaque TU de l'Annexe C et chaque includer de `pico8_ref_audit.h` reçoit `pico8_value.h`, `pico8_type_tag.h` et `pico8_fixed.h` par un autre chemin que `pico8_list.h` (vrai à `4beeadb`, analyse sans `pico8_list.h` : aucune rupture sur les 17 TU ni les 12 fichiers de `src/`) | « Includes » ; lignes gagnées (attendu : aucune) | la compilation ; sinon l'include direct ajouté, déclaré |
 | H-D12c-10 | `pico8_lq_bg`, `pico8_pj_ed` et les API de Q12 inchangées ; `DATA_RESIDUE_GUARD` = `spec,overrides,stash,ob,dispatch,par-nom` | Out of Scope, garde | lecture de `layout.h`, `score_panel.h`, `Makefile:895` |
 | H-D12c-11 | D.12c est entière (c1 + c2, ou c2r + c2u en repli), VERIFIED, note « Découvert à D.12c » écrite ; les ligne D.12d et paragraphes recopiés ci-dessus inchangés | tout | note de D.12c ; lecture du plan gradé |
-| H-D12c-12 | Les branches « liste » des trois `fold_value` (`hp:137-145`, `hy:118-126`, `lq:109-117` ⟲) ne sont plus exécutées après c1 (plus aucune liste pliée : `lq.fs` passe à une constante figée) | décision « branches mortes », D0 | `gcov` de D0 |
+| H-D12c-12 | Les branches « liste » des trois `fold_value` (`hp:137-145`, `hy:118-126`, `lq:109-117`) ne sont plus exécutées après c1 (plus aucune liste pliée : `lq.fs` passe à une constante figée) | décision « branches mortes », D0 | `gcov` de D0 |
 
-### Sections à revérifier une fois D.12c gradée
+**Verdicts à `5a84e49`** (`git archive`, recette, `sh tools/data_residue.sh`, greps, fermeture d'includes, note « Découvert à D.12c1/c2 ») :
+
+| Hypothèse | Verdict |
+|---|---|
+| H-D12c-1 | **tenue** : `liste` **129 / 23 / 157 occ.** (`src/` 50 / 5 / 75, `tests/` 79 / 18 / 82 ; `test_pico8_list` 52 / 55) ; `valeur` 1054 / 108, `type-tag` 262 / 61, `ref-audit` 40 / 14, résidu D 1435 / 116 |
+| H-D12c-2 | **tenue** : les 17 lignes de TU de D.12c sont parties, les 27 de l'Annexe C restent, texte identique ; « aucun TU n'en gagne, aucun n'en perd » (note de c2) |
+| H-D12c-3 | **tenue** : `pico8_list.h` inclus dans `src/` par `pico8_list.c` et `pico8_ref_audit.h` seuls ; aucun `pico8_list_*`/`PICO8_REF_AS_LIST` dans un `.c` de `src/` hors `pico8_list.c` ; aucun `pico8_list_init` dans `src/` hors `pico8_list.c` |
+| H-D12c-4 | **tenue** : `FROZEN_LIST_TAG 0x9E5C1157u` dans `fr:51`, `ga:49` (créée par c1), `hj:54`, `hy:60`, `mx:52`, `nl:47`, `nr:49`, `os:52`, `pm:48` ; `VIEW_LIST_TAG` en `hp:157` ; `PICO8_TYPE_TAG_LIST` nommé dans les TU seulement par `hp:137`, `hy:118`, `lq:109` |
+| H-D12c-5 | **tenue** : `Makefile` et `tools/` identiques à `4beeadb` (`git diff --stat` vide) ; `float_guard.txt` : `garde fichiers 59` ; lignes `:198`, `:263`, `:421-422`, `:574`, `:588`, `:895`, `:991-992` inchangées |
+| H-D12c-6 | **tenue** : `ref-audit` 40 / 14 ; les 12 includers de `pico8_ref_audit.h` hors `pico8_list.c` gardés |
+| H-D12c-7 | **tenue** : `pico8_list.c/.h`, `pico8_ref_audit.h`, `pico8_type_tag.h`, `pico8_value.h`, `pico8_ptrs.c/.h`, `test_pico8_list`, `test_pico8_ptrs` identiques à `4beeadb` |
+| H-D12c-8 | **tenue** : D.12c a touché les TU `fm`, `ga`, `ga_export_panel_by`, `hp`, `jb_ol`, `js`, `layout_nil_item_draws_nothing`, `lq`, `pj`, `planet_gh_row_lq` (pas `mh`) ; parmi les numéros de l'étape, seul `planet_gh_row_lq:32` → `:29` bouge (`hp:30`, `:112-145`, `lq:29`, `:86-117`, `js:31`, `jb_ol:18` inchangés) |
+| H-D12c-9 | **tenue** : fermeture d'includes refaite à `5a84e49` sans `pico8_list.h` : les 17 TU et les 12 includers de `pico8_ref_audit.h` reçoivent `pico8_value.h`, `pico8_type_tag.h`, `pico8_fixed.h` par d'autres en-têtes ; `pico8_ptrs.h` atteint `fv` et `ui` |
+| H-D12c-10 | **tenue** : `pico8_lq_bg`, `pico8_pj_ed` inchangées ; `DATA_RESIDUE_GUARD` inchangé |
+| H-D12c-11 | **tenue** : D.12c entière (c1 + c2, sans repli), VERIFIED, note écrite ; ligne D.12d inchangée |
+| H-D12c-12 | **tenue sur pièces, à confirmer par D0** : les trois blocs ont la même forme (9 lignes, mêmes numéros) ; plus aucun objet étiqueté `LIST` n'est construit hors `pico8_list.c`, `test_pico8_list` et les deux objets de `must_abort` (`fv`, `ui`), jamais pliés. Le pli de `lq.fs` de `hp` (`:309-313`) passe par `VIEW_LIST_TAG` puis `fold_value(h, pico8_value_ref((void *)&lq->fs[i]), 2)` : une REF vers un `pico8_lq_item_t`, dont le premier mot est un genre d'enum (`UNKNOWN`), pas une liste ; `ga` plie `FROZEN_LIST_TAG` (`:527`) ; `lq` ne plie plus `fs` par `fold_value` |
+
+Conséquences : aucune décision ni aucun découpage ne change (une sous-étape). Départ réel : **`5a84e49`**, `liste` 129 / 23 / 157 ; seuls numéros changés : `planet_gh_row_lq:29` ; comptes de départ `valeur` 1054, `type-tag` 262, `ref-audit` 40 écrits dans « État de départ » et « Effet sur `make data-residue` ».
+
+### Sections revérifiées sur `5a84e49`
+
+Refaites : en-tête, verdicts, « État de départ », « Effet sur `make data-residue` », « Remise des comptes » (valeurs de départ), numéros de l'Inventaire, de D0, des mutations et de l'Annexe C (régénérée à `5a84e49`), Annexe A (réextraite, ligne D.12c avec ses notes « Découvert à D.12c1/c2 »), critère `FAILED:` de départ, tableau « Runs ». Inchangées et vérifiées : décisions, découpage, empreinte, critères hors départ. Si le HEAD de départ de D.12d n'est pas `5a84e49` (ou un descendant qui ne touche que `docs/`), l'implémenteur remesure et explique l'écart.
+
+(Liste d'origine, gardée pour trace :)
 
 - **Toujours** : « État de départ » (comptes réels, H-D12c-1, -6) ; critère `FAILED:` de départ (HEAD, `liste` 129/23/157) ; « Effet sur `make data-residue` » et « Remise des comptes de la phase D » (valeurs de départ `valeur`/`type-tag`/`ref-audit` après D.12c) ; numéros ⟲ de l'Annexe C (`hp`, `lq`, `js`, `jb_ol`, `planet_gh_row_lq`), des mutations et de D0, **remesurés par contenu** ; Annexe A (ligne D.12c avec sa note « Découvert à D.12c », à recopier ; ligne D.12d si la note de D.12c l'a modifiée).
 - **Si H-D12c-2 tombe** (un TU a gagné un include de `pico8_list.h`, ou une ligne de TU de D.12c reste) : Annexe C (ajouter la ligne, sort (a2)), empreinte, comptes ; une ligne de `src/` restée hors les cinq fichiers n'entre **pas** en D.12d sans être déclarée (retour à D.12c).
@@ -88,7 +111,7 @@ Source : le PRD de D.12c (`docs/prd/triage/plan3-phaseD-etape12c-listes-heteroge
 - **« en deux chunks »** et **« Empreinte 42 (4, 38) »** : taille de D.10 (431 lignes, 38 TU) et règle de la Liste de D (« découpée au-delà de ~40 fichiers »). Remesurée : **≈ 27 chemins** (5 de `src/` dont 2 supprimés, 18 TU dont 1 supprimé, le `Makefile`, `tools/float_guard.txt` réécrit par `make test`, `docs/plan-3.md`, `docs/glossaire-noms.md`), sous le seuil. **Tranché (G)** : **une seule sous-étape**, un commit, ≈ 40 min (préférence humaine : ~50 min ; rythme mesuré 11–27 min par sous-étape). Le découpage en deux reste écrit comme **repli** (d1 : les 27 lignes des 17 TU, sans toucher `src/` ; d2 : la suppression) si le plafond est atteint. Déclaré à la note comme lecture de la ligne.
 - **« `pico8_list.c/.h` supprimés, `PICO8_REF_AS_LIST*` et `PICO8_TYPE_TAG_LIST` retirés »** : appliqué à la lettre ; s'y ajoutent, parce qu'ils ne servent qu'à eux et deviendraient orphelins : `pico8_ref_as_list`/`pico8_ref_as_list_const` (cibles des macros), `PICO8_REF_AUDIT_EXPECT_LIST` sous ses deux formes (seuls appelants dans `pico8_list.c` ; la forme `((void)0)` de `:224` n'est comptée que par `ref-audit`), le cas `PICO8_TYPE_TAG_LIST` du `switch` de `pico8_ref_audit_note` (`:142-144`), la branche `#else` devenue vide (`:206`). **Pas** le reste de `pico8_ref_audit.h` : voir « Ce que devient `pico8_ref_audit.h` ».
 - **« Compte : `liste` = 0, ajouté à `DATA_RESIDUE_GUARD` »** : appliqué ; le commentaire de `pico8_value.h:7` (compté, laissé vrai par D.12c jusqu'ici) est réécrit dans ce commit, **parce que son sujet disparaît** — pas un renommage pour échapper au motif. La garde doit **mordre** (M6).
-- **« §6 : aucun »** : aucun test de régression ne change d'intention ni de façon de lire. `test_pico8_planet_gh_row_lq` (§6) perd **seulement** son `#include "../src/pico8_list.h"` (`:32` ⟲), ligne sans code ; aucune preuve rouge exigée (le test n'est pas réécrit), mais le vérificateur contrôle que le diff de ce fichier est exactement cette ligne. `test_pico8_ga_export_panel_by` et `test_pico8_layout_nil_item_draws_nothing` ne sont pas touchés.
+- **« §6 : aucun »** : aucun test de régression ne change d'intention ni de façon de lire. `test_pico8_planet_gh_row_lq` (§6) perd **seulement** son `#include "../src/pico8_list.h"` (`:29`), ligne sans code ; aucune preuve rouge exigée (le test n'est pas réécrit), mais le vérificateur contrôle que le diff de ce fichier est exactement cette ligne. `test_pico8_ga_export_panel_by` et `test_pico8_layout_nil_item_draws_nothing` ne sont pas touchés.
 - **« `class-coverage-net`, `sanitize-net` : non »** : tenu (aucun constructeur, aucune durée de vie ne change ; les deux objets refusés de `fv`/`ui` n'allouent rien). Le balayage ASan+UBSan **des TU** reste exigé (consigne de l'utilisateur, précédent de D.12a–D.12c).
 - **Règle des ponts de TU (l. 267)** : D.12d **est** l'étape TU du groupe ; aucun pont n'existe ni n'est créé.
 - **Remarque de D.11e (`pico8_lq_bg`, `pico8_pj_ed` rendent un `pico8_value_t` pour les seuls TU)** : **hors D.12d, tranché (G)**. Aucune des deux ne porte de ligne `liste` ; leur retour à genres mêlés (nil, booléen, fixe ; fixe ou REF) est l'objet de Q12, ouverte ; les typer ici trancherait Q12 pour deux cas (même raisonnement que D.12c). Rapporté à la remise des comptes, avec les 62 prototypes publics.
@@ -96,12 +119,12 @@ Source : le PRD de D.12c (`docs/prd/triage/plan3-phaseD-etape12c-listes-heteroge
 
 ### État de départ
 
-**Mesuré à `4beeadb`** (D.12c non commencée), sans build, par `sh tools/data_residue.sh` et la recette ; **projeté** après D.12c (H-D12c-1, -6) :
+**Mesuré à `4beeadb`** (D.12c non commencée), puis **à `5a84e49`** (D.12c gradée), sans build, par `sh tools/data_residue.sh` et la recette :
 
-| Mesure | À `4beeadb` | Départ de D.12d (HEAD gradé de D.12c), projeté |
+| Mesure | À `4beeadb` | Départ réel de D.12d (`5a84e49`) |
 |---|---|---|
-| `liste` (motif de Q10) | **284 lignes / 45 fichiers / 320 occ.** (`src/` 188 / 26 / 221, `tests/` 96 / 19 / 99) | **129 / 23 / 157** (`src/` 50 / 5 / 75 exact, `tests/` 79 / 18 / 82) |
-| `valeur`, `type-tag`, `ref-audit` | 1095 / 109, 265 / 61, 42 / 14 ; résidu D 1595 / 117 | `valeur` et `type-tag` : baisses de D.12c, rapportées par sa note ; `ref-audit` **40 / 14** |
+| `liste` (motif de Q10) | **284 lignes / 45 fichiers / 320 occ.** (`src/` 188 / 26 / 221, `tests/` 96 / 19 / 99) | **129 / 23 / 157** (`src/` 50 / 5 / 75, `tests/` 79 / 18 / 82) |
+| `valeur`, `type-tag`, `ref-audit` | 1095 / 109, 265 / 61, 42 / 14 ; résidu D 1595 / 117 | **1054 / 108, 262 / 61, 40 / 14** ; résidu D **1435 / 116** |
 | `DATA_RESIDUE_GUARD` | `spec,overrides,stash,ob,dispatch,par-nom` | inchangé |
 | `tools/float_guard.txt` | `garde fichiers 59 en-echec 0` | inchangé |
 
@@ -116,9 +139,9 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
   printf '%s\t%s\t%s\n' $f $n "$(grep -oE "$P" $f | wc -l)"; done
 ```
 
-### Inventaire (mesuré à `4beeadb`, projeté après D.12c ; détail ligne à ligne : Annexe C)
+### Inventaire (mesuré à `4beeadb`, remesuré par contenu à `5a84e49` ; détail ligne à ligne : Annexe C)
 
-#### `src/` — 50 lignes, 5 fichiers (H-D12c-1)
+#### `src/` — 50 lignes, 5 fichiers
 
 | Fichier | Lignes `liste` / occ. | Sort | Autres catégories retirées |
 |---|---|---|---|
@@ -128,22 +151,22 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
 | `pico8_type_tag.h` | 3 / 4 : `:7` commentaire ; `:31` `#define` ; `:51` condition | `:31` retirée ; `:51` → `if (tag == PICO8_TYPE_TAG_STRUCT) {` (reste `type-tag`) ; `:6-8` et la phrase « differ from each other in the low half » (`:22-24`) réécrites | `type-tag` 1 (`:31`) |
 | `pico8_value.h` | 1 / 1 : `:7` | commentaire `:6-9` réécrit (voir « Commentaires ») ; `:43-45` (« as del() uses it », non compté) réécrit, devenu faux | — |
 
-#### `tests/` — 79 lignes, 18 fichiers (H-D12c-1, -2)
+#### `tests/` — 79 lignes, 18 fichiers
 
-| TU | Lignes (à `4beeadb`) | Sort | Coût |
+| TU | Lignes (à `5a84e49`) | Sort | Coût |
 |---|---|---|---|
 | `test_pico8_list` | 52 / 55 occ. (tout le fichier) | **supprimé** avec `pico8_list.c` ; objet tenu par `test_pico8_ptrs` (table ci-dessous, M3a–M3g) | — |
 | `bg`, `fq`, `iv`, `je`, `mh`, `mo`, `mz`, `nf`, `qb` | include seul (`bg:27`, `fq:21`, `iv:22`, `je:19`, `mh:25`, `mo:20`, `mz:27`, `nf:19`, `qb:25`) | include supprimé (a2) | 1 ligne chacun |
-| `js` ⟲, `jb_ol` ⟲, `planet_gh_row_lq` ⟲ (§6) | include seul après D.12c (`js:31`, `jb_ol:18`, `planet_gh_row_lq:32`) | include supprimé (a2) | 1 ligne chacun |
-| `hp` ⟲ | `:30` include ; `:137-138` branche « liste » de `fold_value` (bloc `:137-145`) | include et bloc supprimés (a2) ; commentaire de `fold_value` (`:112-114`) réécrit | 10 lignes retirées |
+| `js`, `jb_ol`, `planet_gh_row_lq` (§6) | include seul (`js:31`, `jb_ol:18`, `planet_gh_row_lq:29`) | include supprimé (a2) | 1 ligne chacun |
+| `hp` | `:30` include ; `:137-138` branche « liste » de `fold_value` (bloc `:137-145`) | include et bloc supprimés (a2) ; commentaire de `fold_value` (`:112-114`) réécrit | 10 lignes retirées |
 | `hy` | `:30` include ; `:118-119` branche « liste » (bloc `:118-126`) | include et bloc supprimés (a2) ; commentaire (`:99-100`) réécrit | 10 lignes |
-| `lq` ⟲ | `:29` include ; `:109-110` branche « liste » (bloc `:109-117`) | include et bloc supprimés (a2) ; commentaire (`:86-87`) réécrit | 10 lignes |
+| `lq` | `:29` include ; `:109-110` branche « liste » (bloc `:109-117`) | include et bloc supprimés (a2) ; commentaire (`:86-87`) réécrit | 10 lignes |
 | `fv` | `:31` include ; `:609` `pico8_list_t list;`, `:612` `pico8_list_init(&list);` (`test_g__closed`) | include supprimé (a2) ; `pico8_ptrs_t list;`, `pico8_ptrs_init(&list);` (a1) | 3 lignes |
 | `ui` | `:36` include ; `:824`, `:826` (`test_ke_closed`) | idem (a2), (a1) | 3 lignes |
 
 #### `test_pico8_list` → `test_pico8_ptrs` (le cas, où il est tenu, la mutation qui le prouve)
 
-| Cas de `test_pico8_list` (à `4beeadb`) | Tenu par `test_pico8_ptrs` | Mutation de `pico8_ptrs.c` qui doit le rougir |
+| Cas de `test_pico8_list` (à `5a84e49`, identique à `4beeadb`) | Tenu par `test_pico8_ptrs` | Mutation de `pico8_ptrs.c` qui doit le rougir |
 |---|---|---|
 | `test_add_grows_list_and_appends_in_order` (`:6-25` : 5 ajouts, `capacity >= 5`, ordre) | `test_add_grows_past_four_and_keeps_order` (`:6-25`, plus `free` qui vide) | **M3a** `pico8_ptrs_add` écrit toujours en `items[0]` (le compte croît, l'ordre est perdu) |
 | `test_del_removes_first_matching_element_by_value` (`:27-44`) | `test_del_removes_only_the_first_identical_pointer` (`:27-44`, avec un doublon : plus fort) | **M3b** `pico8_ptrs_del` retire le **dernier** identique (boucle descendante) |
@@ -166,7 +189,7 @@ Après D.12c, ses 12 includers de `src/` (`economy_formulas.c`, `economy_score.c
 
 #### `Makefile` et liens
 
-Lignes changées (numéros de `4beeadb`, H-D12c-5), et elles seules :
+Lignes changées (numéros de `5a84e49`, identiques à `4beeadb`), et elles seules :
 
 | Ligne | Aujourd'hui | Après |
 |---|---|---|
@@ -270,14 +293,14 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider par l'ut
 
 ### `test_g__closed` (`fv`) et `test_ke_closed` (`ui`) (G)
 
-- Ils vérifient qu'une fonction qui prend « une struct ou NULL » refuse autre chose (`must_abort` : l'enfant doit mourir par `SIGABRT`). Les `assert` visés (`ke.c:31` pour `ks`, celui de `lt` dans `entity.c`, `particle.c:45-46` pour `f_`, et ceux des huit autres fonctions de `fns[]` dans `particle.c`/`probe.c`) testent `pico8_type_tag_of(x) == PICO8_TYPE_TAG_STRUCT` ; une liste (étiquette `LIST`) et un objet non étiqueté (`UNKNOWN`) les font échouer **par la même ligne**.
+- Ils vérifient qu'une fonction qui prend « une struct ou NULL » refuse autre chose (`must_abort` : l'enfant doit mourir par `SIGABRT`). Les `assert` visés (`ke.c:31` pour `ks`, celui de `lt` dans `entity.c`, `particle.c:46-47` pour `f_`, et ceux des huit autres fonctions de `fns[]` dans `particle.c`/`probe.c`) testent `pico8_type_tag_of(x) == PICO8_TYPE_TAG_STRUCT` ; une liste (étiquette `LIST`) et un objet non étiqueté (`UNKNOWN`) les font échouer **par la même ligne**.
 - **Tranché** : `pico8_list_t list;` → `pico8_ptrs_t list;`, `pico8_list_init(&list);` → `pico8_ptrs_init(&list);` : la « liste » du cart est désormais ce conteneur (Q9) ; il n'alloue rien (pas de `free`, comme la liste d'aujourd'hui qui n'en avait pas), son premier mot (`items`) vaut NULL, donc `UNKNOWN`. Les commentaires (« a list stops each of them », « a list is refused by `ks` and by `lt` ») restent vrais. `pico8_ptrs.h` est déjà dans la fermeture d'includes des deux TU (`ui:48` direct, `fv` par un en-tête). Rejetés : une struct locale à étiquette arbitraire (invente une forme), un pointeur vers un fixe (moins de 4 octets possibles, contrat de `pico8_type_tag_of`).
 - **Preuve** : M1 et M2 (l'`assert` d'étiquette neutralisé → l'enfant ne meurt plus par `SIGABRT` → rouge).
 
 ### Includes (G)
 
-- Les 17 `#include "../src/pico8_list.h"` de TU sont supprimés : après D.12c, aucun de ces TU ne nomme `pico8_list_*`. `pico8_list.h` apportait `pico8_value.h` et `pico8_type_tag.h` ; l'analyse de fermeture à `4beeadb` (sans `pico8_list.h`) montre que les 17 TU les reçoivent par d'autres en-têtes (H-D12c-9). Si la compilation dit le contraire, le TU gagne l'include **direct** de ce qu'il emploie (`../src/pico8_value.h` : ligne `valeur` gagnée ; `../src/pico8_type_tag.h` : ligne `type-tag` gagnée), listé au message.
-- `pico8_ref_audit.h` perd `#include "pico8_list.h"` ; ses 12 includers gardent `pico8_value.h`/`pico8_fixed.h` par d'autres chemins (analyse à `4beeadb` : aucune rupture) ; même règle si la compilation le dément (ligne gagnée, déclarée). **`#include <assert.h>` et `"pico8_type_tag.h"` restent** dans l'en-tête (usagers transitifs possibles ; `note` lit l'étiquette en mode audit).
+- Les 17 `#include "../src/pico8_list.h"` de TU sont supprimés : après D.12c, aucun de ces TU ne nomme `pico8_list_*`. `pico8_list.h` apportait `pico8_value.h` et `pico8_type_tag.h` ; l'analyse de fermeture à `4beeadb`, refaite à `5a84e49` (sans `pico8_list.h`) montre que les 17 TU les reçoivent par d'autres en-têtes (H-D12c-9). Si la compilation dit le contraire, le TU gagne l'include **direct** de ce qu'il emploie (`../src/pico8_value.h` : ligne `valeur` gagnée ; `../src/pico8_type_tag.h` : ligne `type-tag` gagnée), listé au message.
+- `pico8_ref_audit.h` perd `#include "pico8_list.h"` ; ses 12 includers gardent `pico8_value.h`/`pico8_fixed.h` par d'autres chemins (analyse à `4beeadb` et `5a84e49` : aucune rupture) ; même règle si la compilation le dément (ligne gagnée, déclarée). **`#include <assert.h>` et `"pico8_type_tag.h"` restent** dans l'en-tête (usagers transitifs possibles ; `note` lit l'étiquette en mode audit).
 - Aucun include de `pico8_ptrs.h` n'est ajouté (déjà présent partout où il sert).
 
 ### Commentaires (G)
@@ -305,7 +328,7 @@ Le compteur compte des **lignes**. Une baisse obtenue sans retirer la liste est 
 - **Lignes qui gagnent une catégorie**, par fichier et par catégorie, « aucune » compris. Attendu : **aucune** (les `pico8_ptrs_*` de `fv`/`ui` ne correspondent à aucun motif ; les commentaires réécrits n'en gagnent pas). Un include direct ajouté (H-D12c-9) gagne `valeur` ou `type-tag` : déclaré avec la preuve de compilation.
 - **Lignes comptées modifiées, non retirées** : `pico8_type_tag.h:51` (perd `liste`, garde `type-tag`) ; aucune autre attendue.
 - **Δlignes > Δoccurrences** : aucun attendu (chaque ligne retirée porte au moins une occurrence ; `:51` perd une occurrence `type-tag` sans perdre la ligne : Δocc > Δlignes). Tout couple contraire est justifié.
-- **Numéros de ligne** : ceux du **parent du commit**, jamais ceux de ce PRD sans remesure (⟲).
+- **Numéros de ligne** : ceux du **parent du commit**, jamais ceux de ce PRD sans remesure.
 
 ### Empreinte et découpage (G)
 
@@ -319,16 +342,16 @@ Le compteur compte des **lignes**. Une baisse obtenue sans retirer la liste est 
 
 ### Effet sur `make data-residue`
 
-| Catégorie | Départ (après D.12c) | Après D.12d | Pourquoi |
+| Catégorie | Départ (`5a84e49`) | Après D.12d | Pourquoi |
 |---|---|---|---|
-| `liste` `src/` | **50** (H-D12c-1) | **0, exact** | `pico8_list.c` 16, `pico8_list.h` 14, `ref_audit.h` 16, `type_tag.h` 3, `value.h` 1 |
-| `liste` `tests/` | **79** (≈, rapporté par D.12c) | **0, exact** | `test_pico8_list` 52 ; 17 includes ; `hp`/`hy`/`lq` 2 chacun ; `fv`/`ui` 2 chacun |
-| `valeur` | après D.12c, rapporté | **− 40**, rapporté | `pico8_list.c` 5, `pico8_list.h` 8, `test_pico8_list` 27 (+ includes directs gagnés, s'il y en a) |
-| `type-tag` | après D.12c, rapporté | **− 13**, rapporté | `pico8_list.c` 1, `pico8_list.h` 4, `ref_audit.h` 4, `type_tag.h` 1 (`:31` ; `:51` reste), `hp`/`hy`/`lq` 1 chacun |
-| `ref-audit` | **40 / 14** (H-D12c-6) | **23 / 13**, rapporté | `pico8_list.c` 9 ; `ref_audit.h` 8 (`:13`, `:152-153`, `:204`, `:206`, `:222-224`) ; reste : l'en-tête (11) et ses 12 includes |
+| `liste` `src/` | **50** | **0, exact** | `pico8_list.c` 16, `pico8_list.h` 14, `ref_audit.h` 16, `type_tag.h` 3, `value.h` 1 |
+| `liste` `tests/` | **79** | **0, exact** | `test_pico8_list` 52 ; 17 includes ; `hp`/`hy`/`lq` 2 chacun ; `fv`/`ui` 2 chacun |
+| `valeur` | **1054 / 108** | **1014** (− 40), rapporté | `pico8_list.c` 5, `pico8_list.h` 8, `test_pico8_list` 27 (+ includes directs gagnés, s'il y en a) |
+| `type-tag` | **262 / 61** | **249** (− 13), rapporté | `pico8_list.c` 1, `pico8_list.h` 4, `ref_audit.h` 4, `type_tag.h` 1 (`:31` ; `:51` reste), `hp`/`hy`/`lq` 1 chacun |
+| `ref-audit` | **40 / 14** | **23 / 13**, rapporté | `pico8_list.c` 9 ; `ref_audit.h` 8 (`:13`, `:152-153`, `:204`, `:206`, `:222-224`) ; reste : l'en-tête (11) et ses 12 includes |
 | `DATA_RESIDUE_GUARD` | `…,dispatch,par-nom` | **`…,dispatch,par-nom,liste`** | `liste` = 0 |
 
-Mesure de ces deltas : simulation des retraits sur les fichiers de l'étape à `4beeadb` (recette par catégorie, fichier avant/après), sans build. « exact » est un critère ; « rapporté » est mesuré au commit, écart expliqué.
+Mesure de ces deltas : simulation des retraits sur les fichiers de l'étape à `4beeadb` (fichiers identiques à `5a84e49`, H-D12c-7, -8) (recette par catégorie, fichier avant/après), sans build. « exact » est un critère ; « rapporté » est mesuré au commit, écart expliqué.
 
 ### Remise des comptes de la phase D (note « Découvert à D.12d »)
 
@@ -359,7 +382,7 @@ D.12d est la dernière ligne de la liste de D ; les décisions de D.9 disent que
 
 Une sous-étape, dans cet ordre, verte seule (`make test`, `make e2e`, balayage ASan+UBSan des TU), vérifiée et poussée, avec ses comptes, sa classification, ses lignes gagnées, son `gcov`, ses mutations et son tableau « Runs » :
 
-1. **D0 — départ** : HEAD = commit qui gradue D.12c (ou descendant qui ne touche que `docs/`) ; recette : `liste` 129 / 23 / 157 (`src/` 50) sinon remesure et explication (arrêt si une ligne de `src/` hors les cinq fichiers) ; `grep -rn 'pico8_list_[a-z_]*\|PICO8_REF_AS_LIST' src/*.c` ne rend que `pico8_list.c` ; **`gcov`** de tous les TU (union) : `pico8_list.c` exécuté par `test_pico8_list` **seul** ; les blocs `hp`/`hy`/`lq` de `fold_value` à **0** ; `make line-coverage EVENTS="tests/e2e/*.json"` : aucune ligne de `pico8_list.c` (aucun appelant en partie). Arrêt sinon.
+1. **D0 — départ** : HEAD = `5a84e49`, qui gradue D.12c (ou un descendant qui ne touche que `docs/`) ; recette : `liste` 129 / 23 / 157 (`src/` 50) sinon remesure et explication (arrêt si une ligne de `src/` hors les cinq fichiers) ; `grep -rn 'pico8_list_[a-z_]*\|PICO8_REF_AS_LIST' src/*.c` ne rend que `pico8_list.c` ; **`gcov`** de tous les TU (union) : `pico8_list.c` exécuté par `test_pico8_list` **seul** ; les blocs `hp`/`hy`/`lq` de `fold_value` à **0** ; `make line-coverage EVENTS="tests/e2e/*.json"` : aucune ligne de `pico8_list.c` (aucun appelant en partie). Arrêt sinon.
 2. **TU** : 17 includes ; blocs morts `hp`, `hy`, `lq` et leurs commentaires ; `fv`, `ui` (`pico8_ptrs_t`) ; `make` et lancement de chacun.
 3. **`src/`** : `pico8_ref_audit.h`, `pico8_type_tag.h`, `pico8_value.h` ; suppression de `pico8_list.c/.h`, `tests/test_pico8_list.c`.
 4. **`Makefile`** (table) ; `make test` (réécrit `float_guard.txt`), `make e2e`, greps 1–9, binaires d'audit (grep 5).
@@ -399,13 +422,13 @@ Un bon test juge ce que le code rend ou fait, pas la présence d'une ligne. D.12
 **Mutations**, une à la fois, dans l'arbre de travail, fichier sauvegardé par `cp` avant et restauré par `cp` après (jamais `git checkout`/`stash`) ; chaque binaire lancé exactement comme le `Makefile` le lance (`ASAN_OPTIONS=detect_leaks=0` pour un binaire lié sous ASan) ; chacune doit rougir au moins le TU nommé, sinon c'est un trou, couvert par une assertion ou justifié. **Astuce** : supprimer un appel ou une entrée peut échouer sous `-Werror` (variable ou fonction `static` inutilisée) ; neutraliser par `0 ? f(…) : …`, `if (0)`, `1 ||` ou une condition toujours fausse plutôt que supprimer.
 
 - **M1** `pico8_ke_ks` (`ke.c:31`) : la moitié `pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT` de l'`assert` neutralisée (`1 ||` devant l'expression d'étiquette, le reste inchangé) → `test_pico8_ui` (`test_ke_closed` : l'enfant ne meurt plus par `SIGABRT`) rouge ;
-- **M2** même neutralisation sur l'`assert` d'étiquette de `pico8_f_` (`particle.c:45-46`, premier élément de `fns[]`) → `test_pico8_fv` (`test_g__closed`) rouge ;
+- **M2** même neutralisation sur l'`assert` d'étiquette de `pico8_f_` (`particle.c:46-47`, premier élément de `fns[]`) → `test_pico8_fv` (`test_g__closed`) rouge ;
 - **M3a–M3g** sur `pico8_ptrs.c` (table « `test_pico8_list` → `test_pico8_ptrs` ») → `test_pico8_ptrs` rouge à chacune ; M3f peut rougir par arrêt (lecture d'un `items` NULL) : rouge compté ;
 - **M4** `pico8_type_tag_of` : `if (tag == PICO8_TYPE_TAG_STRUCT)` → `if (1)` (rend le premier mot de tout objet) → au moins un TU rouge, nommé (un pli de REF non étiquetée, ou un `assert(… == PICO8_TYPE_TAG_UNKNOWN)`), sinon trou justifié ;
 - **M5** `pico8_type_tag_of` : `if (tag == PICO8_TYPE_TAG_STRUCT)` → `if (0)` → `make test` rouge (toutes les entités lues `UNKNOWN`) : garde le test de `:51` après sa réécriture ;
 - **M6** (**la garde mord**) : dans une copie jetable de l'arbre (ou un TU sauvegardé par `cp`), une ligne `/* pico8_list_t */` plantée dans `tests/test_pico8_ptrs.c` → `make data-guard` (donc `make test`) échoue avec une ligne `liste: tests/test_pico8_ptrs.c:<n>:…` et `résidu gardé (…,liste) : 1 ligne(s)` ; restaurée, vert.
 
-Cibles (numéros de `4beeadb`, remesurés par contenu au départ) : `ke.c:31`, `particle.c:45-46`, `pico8_ptrs.c:70-131`, `pico8_type_tag.h:44-55`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
+Cibles (numéros de `5a84e49`, à remesurer par contenu au départ) : `ke.c:31`, `particle.c:46-47`, `pico8_ptrs.c:70-131`, `pico8_type_tag.h:44-55`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
 
 ### Filets
 
@@ -437,7 +460,7 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + étape) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | `<HEAD gradé de D.12c>`, avant D.12d | 0 | ligne `liste` : 129 lignes, 23 fichiers | … |
+| 1 | `make -s data-residue` | `5a84e49` (D.12c gradée), avant D.12d | 0 | ligne `liste` : 129 lignes, 23 fichiers | … |
 | 2 | recette `liste` | idem | 0 | `liste 129 lignes 23 fichiers 157 occ.` | … |
 | 3 | `gcov` D0 (union des TU ; `hp`, `hy`, `lq`) | idem | 0 | `pico8_list.c` : `test_pico8_list` seul ; blocs `fold_value` : 0 | … |
 | … | … | … | … | … | … |
@@ -464,7 +487,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ n'est pas le commit qui gradue D.12c (ou un descendant qui ne touche que `docs/`), propre ; si `liste` (recette) n'y vaut pas 129 lignes / 23 fichiers / 157 occ. (`src/` 50) sans explication ; si une ligne `liste` de `src/` existe hors `pico8_list.c/.h`, `pico8_ref_audit.h`, `pico8_type_tag.h`, `pico8_value.h:7`.
+- `FAILED:` si l'arbre de départ n'est pas `5a84e49`, le commit qui gradue D.12c (ou un descendant qui ne touche que `docs/`), propre ; si `liste` (recette) n'y vaut pas 129 lignes / 23 fichiers / 157 occ. (`src/` 50 / 5 / 75, `tests/` 79 / 18 / 82) sans explication ; si `valeur` / `type-tag` / `ref-audit` n'y valent pas 1054 / 262 / 40 sans explication ; si une ligne `liste` de `src/` existe hors `pico8_list.c/.h`, `pico8_ref_audit.h`, `pico8_type_tag.h`, `pico8_value.h:7`.
 - `FAILED:` si D0 montre une ligne de `pico8_list.c` exécutée par un autre TU que `test_pico8_list` ou par les e2e, ou une ligne d'un bloc « liste » de `fold_value` exécutée (arrêt rapporté, pas de suppression).
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur le commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
@@ -519,281 +542,258 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
   - **`pico8_lq_bg`/`pico8_pj_ed`** : hors D.12d (Q12).
 - **Surprises de mesure, pour `plan-pilot`** : (1) la ligne compte « 431 lignes, 38 fichiers » de TU ; il en reste **79 dans 18 TU** après D.12c, dont 52 dans `test_pico8_list` et 17 includes : D.12a–D.12c ont fait suivre leurs TU ; (2) **`test_pico8_ptrs` existe déjà et couvre les 7 cas de `test_pico8_list`** (deux de plus) : « réécrire » n'a plus rien à écrire ; (3) **deux TU (`fv`, `ui`) construisent une vraie `pico8_list_t`** pour vérifier qu'elle est refusée : leur objet survit à la liste, par un conteneur non étiqueté ; (4) les trois `fold_value` de `hp`, `hy`, `lq` gardent une branche « liste » qui meurt avec D.12c ; (5) **`pico8_ref_audit.h` n'a plus de raison d'être après D.12d** (plus aucune macro n'enregistre de site) mais il est la catégorie `ref-audit`, suspendue à Q12 : ≈ 23 lignes d'en-tête mort et d'includes, `make ref-audit` et son script vides — un fait pour l'humain ; (6) `pico8_value.h:7` est faux deux fois (liste, et « entity field » depuis 1b) ; `pico8_value.h:43` dit encore que `del` emploie `pico8_value_equal` ; (7) `tools/float_guard.txt` change (59 → 58) sans qu'on y touche : `make test` le réécrit ; (8) `tools/line_coverage_reference.txt` et `tools/ref_audit_report.sh` nomment le module et deviennent périmés, hors `make test` ; (9) le `Makefile` nomme `pico8_list.c` sur **six** lignes (plus la cible et l'entrée `UNIT_TESTS` de `test_pico8_list`), dont les deux de `main_raylib` qu'aucun filet ne compile sans vendoring : le diff exact du `Makefile` est le contrôle ; (10) les constantes `FROZEN_LIST_TAG` ne correspondent à aucun motif (le motif exige `PICO8_TYPE_TAG_LIST` entier) : rien à faire pour elles, comme `FROZEN_INSTANCE_TAG` après 1a.42d.
 - **Pour la suite (après D.12d)** : la liste de D n'a plus d'étape ; `plan-pilot` s'arrête et pose Q12 (texte en Annexe A, l. 265, et Annexe B) avec la remise des comptes de la note.
-- **Inventaire exhaustif** : Annexe C (146 lignes à `4beeadb` dans les fichiers de l'étape : 129 pour D.12d, 17 marquées D.12c).
+- **Inventaire exhaustif** : Annexe C (129 lignes à `5a84e49`).
+- **Révision après D.12c** : H-D12c-1 à -12 tiennent (-12 à confirmer par D0, qui reste exigé) ; seul changement de numéro : `planet_gh_row_lq:32` → `:29` ; départ réel `5a84e49`, `liste` 129 / 23 / 157, `valeur` 1054, `type-tag` 262, `ref-audit` 40 ; découpage et décisions inchangés.
 
-## Annexe C — inventaire ligne à ligne des lignes `liste` des fichiers de l'étape (mesuré à `4beeadb`, motif de Q10)
+## Annexe C — inventaire ligne à ligne des lignes `liste` (remesuré à `5a84e49`, motif de Q10)
 
-Chaque table : les lignes `liste` du fichier à `4beeadb` (en-tête : lignes / occurrences à `4beeadb`, lignes de D.12c comprises). Colonne « Sort » : classification de ce PRD ; **D.12c** = ligne que D.12c retire (H-D12c-2), hors D.12d. Les numéros de `hp`, `lq`, `js`, `jb_ol`, `planet_gh_row_lq` bougent avec D.12c (⟲) : remesure par contenu. Les accents graves du texte source sont rendus par ʼ. Total : 146 lignes, dont 129 pour D.12d (`src/` 50, `tests/` 79) et 17 pour D.12c.
+Chaque table : les lignes `liste` du fichier à `5a84e49` (en-tête : lignes / occurrences). Colonne « Sort » : classification de ce PRD. Les accents graves du texte source sont rendus par ʼ. Total : 129 lignes / 157 occ. (`src/` 50 / 75, `tests/` 79 / 82) dans 23 fichiers.
 
-#### `src/pico8_list.h` — 14 lignes / 24 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 15 | `/* Always PICO8_TYPE_TAG_LIST, written by pico8_list_init(). Kept` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 21 | `} pico8_list_t;` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 25 | `* pico8_list_free releases only ʼitemsʼ -- whatever a STRING or REF` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 27 | `void pico8_list_init(pico8_list_t *list);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 28 | `void pico8_list_free(pico8_list_t *list);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 31 | `* needed. Any pico8_list_iter_t over t holds a pointer to the list, not` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 33 | `void pico8_list_add(pico8_list_t *list, pico8_value_t value);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 43 | `int pico8_list_del(pico8_list_t *list, pico8_value_t value);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 61 | `const pico8_list_t *list;` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 64 | `} pico8_list_iter_t;` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 66 | `pico8_list_iter_t pico8_list_all(const pico8_list_t *list);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 71 | `int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 77 | `typedef void (*pico8_list_foreach_fn)(pico8_value_t value, void *ctx);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 78 | `void pico8_list_foreach(const pico8_list_t *list, pico8_list_foreach_fn fn, void *ctx);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-
-#### `src/pico8_list.c` — 16 lignes / 27 occ.
+#### `src/pico8_list.h` — 14 ligne(s) / 24 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 1 | `#include "pico8_list.h"` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 15 | `* pointer whether it really is a pico8_list_t, catching a REF read as a` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 18 | `* pico8_list_init is deliberately NOT checked: it is the function that` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 22 | `* PICO8_REF_AS_LIST passes a NULL ref through on purpose (a NULL is not a` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 26 | `void pico8_list_init(pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 27 | `list->tag = PICO8_TYPE_TAG_LIST;` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 33 | `void pico8_list_free(pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 44 | `static void pico8_list_grow(pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 55 | `void pico8_list_add(pico8_list_t *list, pico8_value_t value) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 59 | `pico8_list_grow(list);` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 65 | `int pico8_list_del(pico8_list_t *list, pico8_value_t value) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 82 | `pico8_list_iter_t pico8_list_all(const pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 83 | `pico8_list_iter_t it;` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 92 | `int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 102 | `* same slot (see pico8_list_all in pico8_list.h for the scope of` | (a2) fichier supprimé (module sans appelant après D.12c) |
-| 119 | `void pico8_list_foreach(const pico8_list_t *list, pico8_list_foreach_fn fn, void *ctx) {` | (a2) fichier supprimé (module sans appelant après D.12c) |
+| 15 | `/* Always PICO8_TYPE_TAG_LIST, written by pico8_list_init(). Kept` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 21 | `} pico8_list_t;` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 25 | `* pico8_list_free releases only ʼitemsʼ -- whatever a STRING or REF` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 27 | `void pico8_list_init(pico8_list_t *list);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 28 | `void pico8_list_free(pico8_list_t *list);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 31 | `* needed. Any pico8_list_iter_t over t holds a pointer to the list, not` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 33 | `void pico8_list_add(pico8_list_t *list, pico8_value_t value);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 43 | `int pico8_list_del(pico8_list_t *list, pico8_value_t value);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 61 | `const pico8_list_t *list;` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 64 | `} pico8_list_iter_t;` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 66 | `pico8_list_iter_t pico8_list_all(const pico8_list_t *list);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 71 | `int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 77 | `typedef void (*pico8_list_foreach_fn)(pico8_value_t value, void *ctx);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 78 | `void pico8_list_foreach(const pico8_list_t *list, pico8_list_foreach_fn fn, void *ctx);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
 
-#### `src/pico8_ref_audit.h` — 16 lignes / 19 occ.
+#### `src/pico8_list.c` — 16 ligne(s) / 27 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 4 | `#include "pico8_list.h"` | (a2) include de `pico8_list.h` supprimé (en-tête supprimé) |
+| 1 | `#include "pico8_list.h"` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 15 | `* pointer whether it really is a pico8_list_t, catching a REF read as a` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 18 | `* pico8_list_init is deliberately NOT checked: it is the function that` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 22 | `* PICO8_REF_AS_LIST passes a NULL ref through on purpose (a NULL is not a` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 26 | `void pico8_list_init(pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 27 | `list->tag = PICO8_TYPE_TAG_LIST;` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 33 | `void pico8_list_free(pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 44 | `static void pico8_list_grow(pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 55 | `void pico8_list_add(pico8_list_t *list, pico8_value_t value) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 59 | `pico8_list_grow(list);` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 65 | `int pico8_list_del(pico8_list_t *list, pico8_value_t value) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 82 | `pico8_list_iter_t pico8_list_all(const pico8_list_t *list) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 83 | `pico8_list_iter_t it;` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 92 | `int pico8_list_iter_next(pico8_list_iter_t *iter, pico8_value_t *out_value) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 102 | `* same slot (see pico8_list_all in pico8_list.h for the scope of` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+| 119 | `void pico8_list_foreach(const pico8_list_t *list, pico8_list_foreach_fn fn, void *ctx) {` | (a2) fichier supprimé (module sans appelant depuis D.12c) |
+
+#### `src/pico8_ref_audit.h` — 16 ligne(s) / 19 occ.
+
+| Ligne | Texte | Sort |
+|---|---|---|
+| 4 | `#include "pico8_list.h"` | (a2) include de ʼpico8_list.hʼ supprimé |
 | 8 | `/* The checked conversion of a REF to a pico8_list_t, and the` | (a2) commentaire dont le sujet disparaît, réécrit pour dire ce qui reste (aucun motif gagné) |
 | 13 | `*   1. PICO8_REF_AS_LIST / PICO8_REF_AS_LIST_CONST: the ONE spelling` | (a2) commentaire dont le sujet disparaît, réécrit pour dire ce qui reste (aucun motif gagné) |
 | 14 | `*      every "REF value -> pico8_list_t *" conversion in src/ goes` | (a2) commentaire dont le sujet disparaît, réécrit pour dire ce qui reste (aucun motif gagné) |
-| 142 | `case PICO8_TYPE_TAG_LIST:` | (a2) cas `LIST` du `switch` de `pico8_ref_audit_note` retiré (avec `n_list++`/`break`, :143-144) |
-| 152 | `#define PICO8_REF_AS_LIST(r) ((pico8_list_t *)pico8_ref_audit_note(__FILE__, __LINE__, (r)))` | (a2) macro `PICO8_REF_AS_LIST*` retirée (aucun appelant depuis D.12c) |
-| 153 | `#define PICO8_REF_AS_LIST_CONST(r) ((const pico8_list_t *)pico8_ref_audit_note(__FILE__, __LINE__, (r)))` | (a2) macro `PICO8_REF_AS_LIST*` retirée (aucun appelant depuis D.12c) |
-| 204 | `#define PICO8_REF_AUDIT_EXPECT_LIST(p) pico8_ref_audit_expect(__func__, (p), PICO8_TYPE_TAG_LIST)` | (a2) `PICO8_REF_AUDIT_EXPECT_LIST` (mode audit) retirée : seuls appelants dans `pico8_list.c` |
-| 212 | `static inline pico8_list_t *pico8_ref_as_list(void *r) {` | (a2) `pico8_ref_as_list(_const)` retirée (seule cible des macros retirées) |
-| 213 | `assert((r == NULL \|\| pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");` | (a2) `pico8_ref_as_list(_const)` retirée (seule cible des macros retirées) |
-| 214 | `return (pico8_list_t *)r;` | (a2) `pico8_ref_as_list(_const)` retirée (seule cible des macros retirées) |
-| 217 | `static inline const pico8_list_t *pico8_ref_as_list_const(const void *r) {` | (a2) `pico8_ref_as_list(_const)` retirée (seule cible des macros retirées) |
-| 218 | `assert((r == NULL \|\| pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");` | (a2) `pico8_ref_as_list(_const)` retirée (seule cible des macros retirées) |
-| 219 | `return (const pico8_list_t *)r;` | (a2) `pico8_ref_as_list(_const)` retirée (seule cible des macros retirées) |
-| 222 | `#define PICO8_REF_AS_LIST(r) pico8_ref_as_list(r)` | (a2) macro `PICO8_REF_AS_LIST*` retirée (aucun appelant depuis D.12c) |
-| 223 | `#define PICO8_REF_AS_LIST_CONST(r) pico8_ref_as_list_const(r)` | (a2) macro `PICO8_REF_AS_LIST*` retirée (aucun appelant depuis D.12c) |
+| 142 | `case PICO8_TYPE_TAG_LIST:` | (a2) cas ʼLISTʼ du ʼswitchʼ de ʼpico8_ref_audit_noteʼ retiré (avec :143-144) |
+| 152 | `#define PICO8_REF_AS_LIST(r) ((pico8_list_t *)pico8_ref_audit_note(__FILE__, __LINE__, (r)))` | (a2) macro ʼPICO8_REF_AS_LIST*ʼ retirée (aucun appelant depuis D.12c) |
+| 153 | `#define PICO8_REF_AS_LIST_CONST(r) ((const pico8_list_t *)pico8_ref_audit_note(__FILE__, __LINE__, (r)))` | (a2) macro ʼPICO8_REF_AS_LIST*ʼ retirée (aucun appelant depuis D.12c) |
+| 204 | `#define PICO8_REF_AUDIT_EXPECT_LIST(p) pico8_ref_audit_expect(__func__, (p), PICO8_TYPE_TAG_LIST)` | (a2) ʼPICO8_REF_AUDIT_EXPECT_LISTʼ (mode audit) retirée : seuls appelants dans ʼpico8_list.cʼ |
+| 212 | `static inline pico8_list_t *pico8_ref_as_list(void *r) {` | (a2) ʼpico8_ref_as_list(_const)ʼ retirée (seule cible des macros retirées) |
+| 213 | `assert((r == NULL \|\| pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");` | (a2) ʼpico8_ref_as_list(_const)ʼ retirée (seule cible des macros retirées) |
+| 214 | `return (pico8_list_t *)r;` | (a2) ʼpico8_ref_as_list(_const)ʼ retirée (seule cible des macros retirées) |
+| 217 | `static inline const pico8_list_t *pico8_ref_as_list_const(const void *r) {` | (a2) ʼpico8_ref_as_list(_const)ʼ retirée (seule cible des macros retirées) |
+| 218 | `assert((r == NULL \|\| pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");` | (a2) ʼpico8_ref_as_list(_const)ʼ retirée (seule cible des macros retirées) |
+| 219 | `return (const pico8_list_t *)r;` | (a2) ʼpico8_ref_as_list(_const)ʼ retirée (seule cible des macros retirées) |
+| 222 | `#define PICO8_REF_AS_LIST(r) pico8_ref_as_list(r)` | (a2) macro ʼPICO8_REF_AS_LIST*ʼ retirée (aucun appelant depuis D.12c) |
+| 223 | `#define PICO8_REF_AS_LIST_CONST(r) pico8_ref_as_list_const(r)` | (a2) macro ʼPICO8_REF_AS_LIST*ʼ retirée (aucun appelant depuis D.12c) |
 
-#### `src/pico8_type_tag.h` — 3 lignes / 4 occ.
+#### `src/pico8_type_tag.h` — 3 ligne(s) / 4 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 7 | `* at: pico8_list_t (pico8_list.h) and the entity structs that begin with a` | (a2) commentaire réécrit : la seule forme étiquetée restante est l'en-tête d'entité |
-| 31 | `#define PICO8_TYPE_TAG_LIST 0x9E5C1157u` | (a2) `#define PICO8_TYPE_TAG_LIST` retiré |
-| 51 | `if (tag == PICO8_TYPE_TAG_LIST \|\| tag == PICO8_TYPE_TAG_STRUCT) {` | (a2) `tag == PICO8_TYPE_TAG_LIST ||` retiré de la condition ; la ligne reste `type-tag` (STRUCT), modifiée non retirée |
+| 7 | `* at: pico8_list_t (pico8_list.h) and the entity structs that begin with a` | (a2) commentaire réécrit : seule forme étiquetée restante, l'en-tête d'entité |
+| 31 | `#define PICO8_TYPE_TAG_LIST 0x9E5C1157u` | (a2) ʼ#define PICO8_TYPE_TAG_LISTʼ retiré |
+| 51 | `if (tag == PICO8_TYPE_TAG_LIST \|\| tag == PICO8_TYPE_TAG_STRUCT) {` | (a2) ʼtag == PICO8_TYPE_TAG_LIST ||ʼ retiré de la condition ; la ligne reste ʼtype-tagʼ (modifiée, non retirée) |
 
-#### `src/pico8_value.h` — 1 lignes / 1 occ.
+#### `src/pico8_value.h` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
 | 7 | `* list element (pico8_list.h), an entity field (pico8_struct.h). Lua has a single dynamically-typed value` | (a2) commentaire réécrit (plus de liste de valeurs) ; sujet disparu, pas un renommage |
 
-#### `tests/test_pico8_bg.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_bg.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 27 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 27 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-#### `tests/test_pico8_fm.c` — 2 lignes / 2 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 88 | `pico8_list_t kept = pico8_cb(pico8_value_bool(1));` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 90 | `pico8_list_free(&kept);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-
-#### `tests/test_pico8_fq.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_fq.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 21 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 21 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-#### `tests/test_pico8_fv.c` — 3 lignes / 3 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 31 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 609 | `pico8_list_t list;` | (a1) le « tableau » refusé devient un `pico8_ptrs_t list;` (le conteneur de Q9), même intention |
-| 612 | `pico8_list_init(&list);` | (a1) `pico8_ptrs_init(&list);` |
-
-#### `tests/test_pico8_hp.c` — 3 lignes / 3 occ.
+#### `tests/test_pico8_fv.c` — 3 ligne(s) / 3 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 30 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 137 | `if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {` | (a2) branche « liste » de `fold_value` retirée : morte depuis D.12c (aucune liste n'existe ; D0 le prouve par `gcov`) |
-| 138 | `const pico8_list_t *l = v.as.ref;` | (a2) branche « liste » de `fold_value` retirée : morte depuis D.12c (aucune liste n'existe ; D0 le prouve par `gcov`) |
+| 31 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+| 609 | `pico8_list_t list;` | (a1) ʼpico8_ptrs_t list;ʼ (le conteneur de Q9), même intention |
+| 612 | `pico8_list_init(&list);` | (a1) ʼpico8_ptrs_init(&list);ʼ |
 
-#### `tests/test_pico8_hy.c` — 3 lignes / 3 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 30 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 118 | `if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {` | (a2) branche « liste » de `fold_value` retirée : morte depuis D.12c (aucune liste n'existe ; D0 le prouve par `gcov`) |
-| 119 | `const pico8_list_t *l = v.as.ref;` | (a2) branche « liste » de `fold_value` retirée : morte depuis D.12c (aucune liste n'existe ; D0 le prouve par `gcov`) |
-
-#### `tests/test_pico8_iv.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_hp.c` — 3 ligne(s) / 3 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 22 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 30 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+| 137 | `if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {` | (a2) branche « liste » de ʼfold_valueʼ retirée (bloc entier) : morte depuis D.12c, D0 le prouve par ʼgcovʼ |
+| 138 | `const pico8_list_t *l = v.as.ref;` | (a2) branche « liste » de ʼfold_valueʼ retirée (bloc entier) : morte depuis D.12c, D0 le prouve par ʼgcovʼ |
 
-#### `tests/test_pico8_jb_ol.c` — 2 lignes / 2 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 18 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 91 | `assert(direct->ls != NULL && pico8_type_tag_of(direct->ls) == PICO8_TYPE_TAG_LIST && direct->ls->count == 0);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-
-#### `tests/test_pico8_je.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_hy.c` — 3 ligne(s) / 3 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 19 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 30 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+| 118 | `if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {` | (a2) branche « liste » de ʼfold_valueʼ retirée (bloc entier) : morte depuis D.12c, D0 le prouve par ʼgcovʼ |
+| 119 | `const pico8_list_t *l = v.as.ref;` | (a2) branche « liste » de ʼfold_valueʼ retirée (bloc entier) : morte depuis D.12c, D0 le prouve par ʼgcovʼ |
 
-#### `tests/test_pico8_js.c` — 9 lignes / 9 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 31 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 882 | `pico8_list_t cb;` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 896 | `pico8_list_free(&cb);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 1311 | `pico8_list_t *list = malloc(sizeof *list);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 1379 | `pico8_list_init(list);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 1380 | `pico8_list_add(list, pico8_value_string("from a list"));` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 1381 | `pico8_list_add(list, pico8_value_fixed(pico8_fixed_from_int(3)));` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 1713 | `pico8_list_t kept;` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 1734 | `pico8_list_free(&kept);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-
-#### `tests/test_pico8_list.c` — 52 lignes / 55 occ.
+#### `tests/test_pico8_iv.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 1 | `#include "../src/pico8_list.h"` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 7 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 8 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 10 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(1)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 11 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(2)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 12 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(3)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 13 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(4)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 14 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(5)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 24 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 29 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 30 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 32 | `pico8_list_add(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 33 | `pico8_list_add(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 34 | `pico8_list_add(&list, pico8_value_ref(&c));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 36 | `int removed = pico8_list_del(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 43 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 48 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 49 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 51 | `pico8_list_add(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 52 | `pico8_list_add(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 54 | `int removed = pico8_list_del(&list, pico8_value_ref(&not_in_list));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 61 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 65 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 66 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 67 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(10)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 68 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(20)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 69 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(30)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 71 | `pico8_list_iter_t it = pico8_list_all(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 76 | `while (pico8_list_iter_next(&it, &v)) {` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 82 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 90 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 91 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 92 | `pico8_list_add(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 93 | `pico8_list_add(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 94 | `pico8_list_add(&list, pico8_value_ref(&c));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 95 | `pico8_list_add(&list, pico8_value_ref(&d));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 100 | `pico8_list_iter_t it = pico8_list_all(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 102 | `while (pico8_list_iter_next(&it, &v)) {` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 105 | `pico8_list_del(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 116 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 120 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 121 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 123 | `pico8_list_iter_t it = pico8_list_all(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 125 | `assert(pico8_list_iter_next(&it, &v) == 0);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 127 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 140 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 141 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 142 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(1)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 143 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(2)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 144 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(3)));` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 153 | `pico8_list_foreach(&list, collect_into_array, &collector);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
-| 160 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par `test_pico8_ptrs` (table « `test_pico8_list` → `test_pico8_ptrs` ») |
+| 22 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-#### `tests/test_pico8_lq.c` — 8 lignes / 8 occ.
+#### `tests/test_pico8_jb_ol.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 29 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 109 | `if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {` | (a2) branche « liste » de `fold_value` retirée : morte depuis D.12c (aucune liste n'existe ; D0 le prouve par `gcov`) |
-| 110 | `const pico8_list_t *l = v.as.ref;` | (a2) branche « liste » de `fold_value` retirée : morte depuis D.12c (aucune liste n'existe ; D0 le prouve par `gcov`) |
-| 180 | `const pico8_list_t *fs = as_lq(lq)->fs;` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 181 | `assert(fs != NULL && pico8_type_tag_of(fs) == PICO8_TYPE_TAG_LIST);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 530 | `pico8_list_t rb;` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 551 | `pico8_list_init(&rb);` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 552 | `pico8_list_add(&rb, pico8_value_ref(&entry));` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
+| 18 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-#### `tests/test_pico8_mh.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_je.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 25 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 19 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-#### `tests/test_pico8_mo.c` — 1 lignes / 1 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 20 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-
-#### `tests/test_pico8_mz.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_js.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 27 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 31 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-#### `tests/test_pico8_nf.c` — 1 lignes / 1 occ.
-
-| Ligne | Texte | Sort |
-|---|---|---|
-| 19 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-
-#### `tests/test_pico8_planet_gh_row_lq.c` — 2 lignes / 2 occ.
+#### `tests/test_pico8_list.c` — 52 ligne(s) / 55 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 1 | `/* A display row's "lq" holds a ʼpico8_list_t*ʼ, whose elements ʼjs:pq()ʼ` | **D.12c** (retirée par c1/c2, H-D12c-2 ; hors D.12d) |
-| 32 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 1 | `#include "../src/pico8_list.h"` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 7 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 8 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 10 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(1)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 11 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(2)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 12 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(3)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 13 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(4)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 14 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(5)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 24 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 29 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 30 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 32 | `pico8_list_add(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 33 | `pico8_list_add(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 34 | `pico8_list_add(&list, pico8_value_ref(&c));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 36 | `int removed = pico8_list_del(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 43 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 48 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 49 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 51 | `pico8_list_add(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 52 | `pico8_list_add(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 54 | `int removed = pico8_list_del(&list, pico8_value_ref(&not_in_list));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 61 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 65 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 66 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 67 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(10)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 68 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(20)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 69 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(30)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 71 | `pico8_list_iter_t it = pico8_list_all(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 76 | `while (pico8_list_iter_next(&it, &v)) {` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 82 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 90 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 91 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 92 | `pico8_list_add(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 93 | `pico8_list_add(&list, pico8_value_ref(&b));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 94 | `pico8_list_add(&list, pico8_value_ref(&c));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 95 | `pico8_list_add(&list, pico8_value_ref(&d));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 100 | `pico8_list_iter_t it = pico8_list_all(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 102 | `while (pico8_list_iter_next(&it, &v)) {` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 105 | `pico8_list_del(&list, pico8_value_ref(&a));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 116 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 120 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 121 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 123 | `pico8_list_iter_t it = pico8_list_all(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 125 | `assert(pico8_list_iter_next(&it, &v) == 0);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 127 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 140 | `pico8_list_t list;` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 141 | `pico8_list_init(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 142 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(1)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 143 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(2)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 144 | `pico8_list_add(&list, pico8_value_fixed(pico8_fixed_from_int(3)));` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 153 | `pico8_list_foreach(&list, collect_into_array, &collector);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
+| 160 | `pico8_list_free(&list);` | (a2) TU de la couche supprimé ; son cas est tenu par ʼtest_pico8_ptrsʼ (table « test_pico8_list → test_pico8_ptrs ») |
 
-#### `tests/test_pico8_qb.c` — 1 lignes / 1 occ.
+#### `tests/test_pico8_lq.c` — 3 ligne(s) / 3 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 25 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
+| 29 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+| 109 | `if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {` | (a2) branche « liste » de ʼfold_valueʼ retirée (bloc entier) : morte depuis D.12c, D0 le prouve par ʼgcovʼ |
+| 110 | `const pico8_list_t *l = v.as.ref;` | (a2) branche « liste » de ʼfold_valueʼ retirée (bloc entier) : morte depuis D.12c, D0 le prouve par ʼgcovʼ |
 
-#### `tests/test_pico8_ui.c` — 3 lignes / 3 occ.
+#### `tests/test_pico8_mh.c` — 1 ligne(s) / 1 occ.
 
 | Ligne | Texte | Sort |
 |---|---|---|
-| 36 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus `pico8_list_*` après D.12c) |
-| 824 | `pico8_list_t list;` | (a1) le « tableau » refusé devient un `pico8_ptrs_t list;` (le conteneur de Q9), même intention |
-| 826 | `pico8_list_init(&list);` | (a1) `pico8_ptrs_init(&list);` |
+| 25 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
 
-## Annexe A — textes du plan recopiés (`docs/plan-3.md` à `4beeadb`, par extraction de lignes)
+#### `tests/test_pico8_mo.c` — 1 ligne(s) / 1 occ.
 
-Extraction mécanique (`sed -n`) de l'arbre commis `4beeadb` ; D.12c n'y a pas encore de note « Découvert à D.12c » (à recopier à la revérification).
+| Ligne | Texte | Sort |
+|---|---|---|
+| 20 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+
+#### `tests/test_pico8_mz.c` — 1 ligne(s) / 1 occ.
+
+| Ligne | Texte | Sort |
+|---|---|---|
+| 27 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+
+#### `tests/test_pico8_nf.c` — 1 ligne(s) / 1 occ.
+
+| Ligne | Texte | Sort |
+|---|---|---|
+| 19 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+
+#### `tests/test_pico8_planet_gh_row_lq.c` — 1 ligne(s) / 1 occ.
+
+| Ligne | Texte | Sort |
+|---|---|---|
+| 29 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+
+#### `tests/test_pico8_qb.c` — 1 ligne(s) / 1 occ.
+
+| Ligne | Texte | Sort |
+|---|---|---|
+| 25 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+
+#### `tests/test_pico8_ui.c` — 3 ligne(s) / 3 occ.
+
+| Ligne | Texte | Sort |
+|---|---|---|
+| 36 | `#include "../src/pico8_list.h"` | (a2) include devenu inutile (le TU ne nomme plus ʼpico8_list_*ʼ) |
+| 824 | `pico8_list_t list;` | (a1) ʼpico8_ptrs_t list;ʼ (le conteneur de Q9), même intention |
+| 826 | `pico8_list_init(&list);` | (a1) ʼpico8_ptrs_init(&list);ʼ |
+
+## Annexe A — textes du plan recopiés (`docs/plan-3.md` à `5a84e49`, par extraction de lignes)
 
 ### §5, en-tête et règles de la phase 1a (l. 74-92)
 
@@ -838,7 +838,7 @@ Struct par struct, chaque membre `pico8_value_t` prend son type C (`pico8_fixed_
 - **Sortie** : aucune struct d'entité ne contient de `pico8_value_t` — constaté par une commande nommée : un script qui parcourt les typedefs de struct d'entité (premier membre `pico8_struct_header_t` ou struct d'entité enchâssée) et liste tout membre `pico8_value_t` ; sortie vide. Le même script sert de compteur de progrès à chaque étape.
 
 
-### §5, phase D, en entier (l. 228-280) : puces, note de D.0, « Liste de D » avec empreinte, règles communes et ordre, arrêt « champ sans règle », décisions de D.9, comptes au départ de D.10, lignes D.2 à D.12d avec toutes leurs notes « Découvert à D.x »
+### §5, phase D, en entier (l. 228-280) : puces, note de D.0, « Liste de D » avec empreinte, règles communes et ordre, arrêt « champ sans règle », décisions de D.9, comptes au départ de D.10, lignes D.2 à D.12d avec toutes leurs notes « Découvert à D.x » (D.12c1 et D.12c2 comprises)
 
 ### Phase D — Données
 
@@ -891,7 +891,7 @@ Comptes au départ de D.10 (HEAD 5a13008, `make -s data-residue` et `--detail` ;
 - D.11e — `par-nom`, suppression de l'infrastructure. Premier chunk : classe C (14 sites dont `wormhole.c:78`, `entity_geom.c:99`, `wormhole_display.c:41` et `jc.mt` de `slipway.c`, laissé à D.11a ; accesseur typé par champ dans la table de classe, NULL = absent, Q6 ; l'oracle accesseurs = lecteurs naît et meurt dans l'étape). Découvert à D.11b (pour D.11d/D.11e) : les littéraux `s`/`od` des `pico8_X_kind_rec` doublent ceux de `pico8_X_start` ; seul `test_kind_rec_matches_the_reader` en garde l'égalité — à sa suppression, garder une comparaison rec ↔ `pico8_X_start` ou des constantes nommées partagées. Puis : lecteurs `field` et écrivains `set_field` des descripteurs et leurs emplacements dans `pico8_struct_class_t`, les 10 `kind_field` et les emplacements des 11 sortes, les aides `*_take_*` restantes, `pico8_entity_get_field`/`set_field`, les typedefs `pico8_struct_field_fn`/`_set_field_fn` ; les structs-vues deviennent typées ou disparaissent (remplaçants de `mo`/`je`/`fm`, `jc_too_far`, `jc_mouse_point`, `bv_et`, `nr_ldown_empty`, `pj_cr`, `mz_jj`, `ha_pz`, `ie_ke_view`). Empreinte ≈ 45 (42, 3), en 2 ou 3 chunks. Compte : `par-nom` = 0, ajouté à `DATA_RESIDUE_GUARD`. §6 : aucun. `class-coverage-net` : oui. `sanitize-net` : non. Q6 reconfirmée (humain, 2026-09-29) après la revue du plan : accesseurs typés par champ, pas de remontée dans `ke`, même si la phase 2 en remplace une partie. Découpé à la PRD en trois sous-étapes d'environ 50 min, même PRD, chacune vérifiée et poussée : D.11e1 (classe C, trois faux descripteurs de TU, oracle ; `src/` 292 → 271), D.11e2 (arbre jo, sonde, voies, emplacement de sorte ; oracle retiré ; `pico8_bv_et_t` et `pico8_jc_mouse_point_t` publics ; → 87), D.11e3 (interface, `pico8_ie_gy()`/`pico8_ie_id()`, la couche elle-même, garde += `par-nom` ; → 0). Découvert à D.11e1 : `par-nom` `src/` 292/352 → 271/331 (27 fichiers), `tests/` 11 → 19 (6 exceptions + 13 lignes de l'oracle, hausse déclarée qui part en e2) ; onze accesseurs typés dans `pico8_struct_class_t` (`get_nu`, `get_fa`, `get_ra`, `get_p`, `get_kq`, `get_ql`, `get_fg`, `get_mt`, `get_fx`, `get_p_`, `set_m_`), **135** lignes d'initialiseurs dans 16 fichiers, pas 136 : la table « Qui répond » du PRD compte 21 descripteurs pour `get_ra` mais n'en énumère que 20, ensemble confirmé par relecture des lecteurs et par l'oracle ; descendants de `jo` sur `pico8_jo_get_X` (`planet.h`), `fv` sur `pico8_g__get_X` (`probe.h`). Écarts à la lettre de Q6, déclarés : `dw` par `probe_of`, `fo` par `pico8_probe_et_hang_fo` (public, branche `jc_too_far` ajoutée), `ma`/`na` par cast vérifié (dans `pico8_ma`, l'`assert` de famille passe avant la lecture ; `pico8_na` gagne `assert(self == NULL || pico8_jo_is_family(self))`) ; `get_mt` (`fr`, `jc`) lève la contrainte de lien de `jc.mt` sans toucher au `Makefile`. Oracle `test_accessors_agree_with_readers` (`test_pico8_ui`) : tout `hv` d'une partie plus une instance neuve des 24 classes construites, le point souris et `jc_too_far` de `jc:hq` sur le vide, un `jc` tenu depuis un `fr` (seul chemin qui exécute `get_mt` de `jc` présent), `lq`, `hy`, `hp`, `trade`, `ha_pz`, `pj_cr`, `mz_jj` et les trois remplaçants (après `pico8_entity_init`/`pico8_ui_init`/`pico8_probe_init`, ils valent NULL avant) ; aucun désaccord. Mutations : M11 (`get_p_` de `mz` sans `has_p_`) est équivalente (`p_` vaut 0 quand `has_p_` vaut 0 : init, écriture nil) et a été remplacée par M11b/M11c ; M6 et M8 ne rougissaient que l'oracle, qui meurt en e2 : deux assertions ajoutées (`test_pico8_mz` : une sonde entre dans `ox` ; `test_pico8_jc` : `gd` du point souris hors caméra puis dans la caméra). `get_fg` de `js` présent n'est exécuté que par les e2e. Découvert à D.11e2 : `par-nom` `src/` 271/331 → 87/111 (19 fichiers), `tests/` 19/20 → 2/2 (`test_pico8_ie`), total 290 → 89 (20 fichiers) ; 184 lignes retirées dans les 8 fichiers de e2 : 19 définitions et 13 délégations de lecteurs, 13 écrivains et 7 délégations, 28 aides `*_take_*` et 39 appels, 36 emplacements, 10 `kind_field` et leur déclaration, 9 délégations de sortes, et l'entrée `kind_field` des 9 initialiseurs de sortes (ligne gardée) ; l'emplacement `field` de `pico8_entity_kind_t` part (non compté). Oracle `test_accessors_agree_with_readers` retiré. `pico8_bv_et_t` (`probe.h`) et `pico8_jc_mouse_point_t` (`slipway.h`) publics ; `bv_et_fo` (`g_`, `mz`) et `mouse_point_ra`/`_p` (`jc`) les lisent après leur test de classe, constantes inchangées. Vues `fm`, `bv_et`, `jc_too_far`, `mz_jj`, `nr_ldown_empty` : descripteur vide `= {0}` ; `jc_mouse_point` réduit à `{get_ra, get_p}`. Orphelins supprimés : `pico8_g__et`, `pico8_qh_et`, `pico8_hj_pk` ; prédicats statiques `jo_is_fo_holder_class`, `family_is_target_class`, `jc_is_fo_holder_class`, `mz_is_et_class`. `gcov` : sans l'oracle au départ, `L` = 3 lignes de déclaration statique (`probe.c`, initialiseur de `g_fm_placeholder`), aucune ligne exécutable ; avec l'oracle, `L` ajoute 241 lignes des lecteurs par nom de e3 (que seul l'oracle appelait) et 33 lignes de 12 accesseurs que seul l'oracle exécutait (`get_mt` de `jc`, `get_p` du point souris, `get_ra`/`get_p`/`get_fa` de `mz`, `get_p` de `g_`, `get_ql` de `ui`, `get_ra` de `lq`, `nf`, `qb`, `get_p` de `qb`, `set_m_` de `ie`), recouvertes par des assertions typées ajoutées dans 8 TU (`jc`, `mz`, `g_`, `ui`, `lq`, `nf`, `qb`, `ie`). M15 (`.get_fx` de `qh` retiré) ne rougissait rien : aucun TU ne met une planète de classe `qh` à `fx` vrai devant un `mz` ; assertion ajoutée à `test_ox` (`test_pico8_mz`), M15 rougit `mz` ; M15b (`.get_ra` de `qh`) rougit `jo`. Découvert à D.11e3 (clôt D.11e) : `par-nom` `src/` 87/111 → **0** (19 fichiers → 0), `tests/` 2/2 → **0**, total 89/113 → 0 ; `DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom`, `make data-guard` vert et mordant (une ligne `par-nom` plantée dans une copie jetable rougit `make test` à `data-guard`). 89 lignes retirées : (a1) 2 (`test_pico8_ie.c:95`, `:103`), (a2) 86, (a3) 1 (`research_icon.h:19`), (b) = (c) = 0 ; 26 chemins (23 de `src/`, `test_pico8_ie`, `Makefile`, ce plan) plus `test_pico8_js` (commentaire nommant `button_take_bool`), `planet.h:22` et `planet_family_trade.c:57` (commentaires de contrat devenus faux), `glossaire-noms.md`. Couche retirée : `pico8_entity_get_field`/`set_field`, `pico8_ke_field`, typedefs `pico8_struct_field_fn`/`_set_field_fn`, emplacements `field`/`set_field` de `pico8_struct_class_t` et leur phrase de contrat, `#include "pico8_value.h"` de `pico8_struct.h` (plus rien n'y nomme `pico8_value_t`) ; lecteurs, écrivains, aides `*_take_*` et aides statiques de lecture (`value_is_nil`, `ui_ref_field`, `js_ref_field`/`_fixed_field`/`_value_field`) de `bg`, `hy`, `mo`, `lq`, `ha_pz`, `nf`, `mh`, `iv`, `hp`, `ie`, `ie_ke_view`, `pj`, `pj_cr`, `qb`, `trade`, `je`, `ui`, `js`, `fq`. `pico8_ie_gy()` (NULL = nil) et `pico8_ie_id(&out)` (0 = nil ; l'incrément de `id` est dans `ie:ldown`, pas `ie:hb`) ; `shared_gy`/`shared_id` de `test_pico8_ie` les lisent, `shared_id` rend désormais sa présence et le fixe par pointeur (`fold_shared` plie `0xF1`+fixe ou `0xDEAD` comme `fold_value`, retiré faute d'appelant), constantes inchangées. Sur l'étape : onze accesseurs (`get_nu`, `get_fa`, `get_ra`, `get_p`, `get_kq`, `get_ql`, `get_fg`, `get_mt`, `get_fx`, `get_p_`, `set_m_`), 135 lignes d'initialiseurs ; écarts à Q6 : `dw` par `probe_of`, `fo` par `pico8_probe_et_hang_fo`, `ma`/`na` par cast vérifié ; `get_mt` (`fr`, `jc`) tient la règle de lien (grep 6 : les 7 TU liés sur `DATA_ENGINE_SRCS` seule se lient), `Makefile` changé sur la seule ligne de garde ; oracle né en e1, mort en e2, aucun désaccord ; lecteurs typés pour les TU : `pico8_bv_et_t`, `pico8_jc_mouse_point_t`, `pico8_ie_gy`/`pico8_ie_id`, les six lignes d'exception retypées (`g_:120`, `mz:148`, `jc:141`, `:151`, `ie:95`, `:103`). Vues : les onze gardées, typées, sans lecteur ni écrivain ; descripteur vide `= {0}` pour `fm`, `bv_et`, `jc_too_far`, `mz_jj`, `nr_ldown_empty` (e2), `mo`, `je`, `ha_pz`, `pj_cr`, `ie_ke_view` (e3), et aussi les classes `hy`, `hp`, `trade` ; `jc_mouse_point` = `{get_ra, get_p}`. Orphelins supprimés : `pico8_g__et`, `pico8_qh_et`, `pico8_hj_pk` (e2), `pico8_hy_hl`, `pico8_js_h_` (e3) ; gardés : `pico8_lq_bg` (`test_pico8_ga`, `test_pico8_hp`), `pico8_pj_ed` (`test_pico8_spec_defaults`). `gcov` (section propre de chaque `.c`, sans les lignes d'en-tête que `gcov -t` y mêle) : `L` vide ; 14 lignes exécutées au départ supprimées (`pico8_entity_get_field`, branches `gy`/`id` de `pico8_ie_field`), remplacées par `pico8_ie_gy`/`pico8_ie_id`, exécutés sauf le `return 0` de `id` nil (jamais atteint avant comme après : `id` est un fixe dès l'init). Mutations : M16 (`.set_m_` de `js`) rougit `js`, `ui`, `fq`, `ga`, `hp`, `lq`… ; M17 (`.get_fa` de `pj`) rougit 9 TU de partie mais pas `test_pico8_pj`, qui ne lit pas `fa` par la table ; M20 (`pico8_ie_gy` NULL) rougit `ie` ; M21 (`ie:ldown` n'écrit plus `g_ie_id`) rougit `ie` et 7 TU de planète. Balayage ASan+UBSan (44 TU) propre, `class-coverage-net` identique. Greps de la « Sortie » : 1, 4 vides, 5 = 31 ; écarts : grep 2 rend `test_kind_fields_and_build` (`test_pico8_entity_kind.c:2`, `:134`, `:254`, faux positif de `kind_field`, nom gardé : un renommage pour la grep est interdit) ; grep 3 rend les 8 lignes `strcmp(name, "` de `hp_pose` (`research.c:75-101`), qui n'est pas un lecteur mais le port de `ho(gb, mr, gp)` (D.6c) : il pose sur un `hp` neuf les membres que les noms de `mr` désignent, à la construction depuis `fd` ; hors `par-nom`, laissé. Autres catégories après D.11e : `valeur` 1833 → 1321 (118 fichiers), `type-tag` 293 → 272 (62), `ref-audit` 42 (14), résidu D 2336 → 1631 (121 fichiers) ; **`liste`** (motif de Q10) 826 lignes / 870 occ. / 99 fichiers (`src/` 477/517, 60 ; `tests/` 349/353, 39), exactement H-D11e-3 (les 7 lignes de l'infrastructure parties en e2, aucune en e3). **Pour D.12** : `pico8_ij` lit `p` par `get_p` et garde `pico8_value_t *out_nearest` ; le prédicat de `mz.ox` garde `(pico8_value_t e, void *ctx)` ; `bv_et` et `jc_too_far` restent des cibles `et` ; plus aucun lecteur ne rend `ui.le`, `ui.ic`, `mz.ox` en REF ; H-D11e-6 ne tient pas à la lettre : D.11e a aussi touché `help.c`, `ke.c`/`.h`, `layout.c`, `menu.c`, `mouse_reader.c`, `planet.c`/`.h`, `planet_display.c`, `planet_family.c`/`.h`, `planet_family_trade.c`/`.h`, `research.c`, `research_icon.c`/`.h`, `scroll.c`, `struct.h`, `trade.c`, `ui_button.c`/`.h`, `wormhole_display.c` et les TU `js`, `lq`, `nf`, `qb` : ses numéros ⟲ se remesurent par contenu sur ces fichiers aussi. **Pour la phase 2** : les onze accesseurs sont les premiers que le noyau et les composants remplaceront (Q6 reconfirmée « même si la phase 2 en remplace une partie »). Relevé au vérificateur de D.11e3, pour D.12 ou la phase 2 : `hp_pose` (`research.c`, port de `ho(rc,mr,gp)` du cart, D.6c) reste un aiguillage nom → membre à la construction, hors `par-nom` ; `pico8_lq_bg` et `pico8_pj_ed` ne servent plus qu'aux TU et rendent un `pico8_value_t`.
 - D.12a — `liste`, registres : catégorie `liste` ajoutée à `tools/data_residue.sh` dans un premier commit seul, motif `\bpico8_list_[a-z_]+\b|\bPICO8_REF_AS_LIST[A-Z_]*|\bPICO8_TYPE_TAG_LIST\b|pico8_list\.h` (Q10 ; la règle de D.0 fige les motifs existants, mais une catégorie nouvelle s'ajoute dans son propre commit avec son motif énoncé) ; conteneur de pointeurs (Q9) sous un nom hors de ce motif ; registres L1 (`hv`, `cv[5]`, `cg[*]`, calques de `dc`, `ui.ic`, `ui.le`, `g_ga_by_shared`) et leurs parcours. Empreinte ≈ 15 (15, 0) : `entity.*`, `bootstrap`, `ui.*`, `economy*.c`, `cart`, `galaxy`, `bg`, `hud`. Compte : `liste` ≤ 927 moins L1, rapporté. §6 : aucun. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : oui. Découpé à la PRD en deux sous-étapes, même PRD, chacune vérifiée et poussée : D.12a1 (catégorie `liste` seule, puis conteneur `pico8_ptrs_t`, calques de `dc`, `ui.le`) et D.12a2 (`hv`, `cv`, `cg`, `ui.ic`, `mz.ox`, `ij`, et les TU qui les lisent ; repli a2p/a2s si le plafond est atteint). Découvert à D.12a1 : deux commits. (1) `6ba781e`, catégorie `liste` seule (motif de Q10, rendu à l'identique par `pattern liste`, le littéral coupé en deux chaînes shell pour tenir en 120 colonnes comme `par-nom`/`spec`) : révèle 826 lignes / 99 fichiers / 870 occ. (`src/` 477/60/517, `tests/` 349/39/353), résidu D 1631/121 → 2314/123, autres catégories inchangées. (2) conteneur `pico8_ptrs_t` (`src/pico8_ptrs.c/.h`, `void *`, `del` par identité, NULL stockable, sans tag, `test_pico8_ptrs`), calques de `dc`, `ui.le` (`g_shared_le`, `lj` par `pico8_gu_ptrs`, `cj` par `pico8_nv_ptrs`, `pz`) et les 8 TU qui lisent `le` (deux §6, façon de lire seulement) : `liste` 777/98/821 occ. (`src/` 455/60/495, `tests/` 322/38/326), `valeur` 1309/117, `type-tag` 271/62, `ref-audit` 42/14, résidu D 2256/122. Pour a2 : `test_pico8_js` lit `le` par une aide transitoire `rank_in_le` (2 appels), à fondre dans `rank_in`/`listed` convertis ; `pico8_gu` (valeur) n'a plus que `planet_family_trade.c` (`t_rl`) et n'est plus exécuté que par les e2e ; `pico8_nv` garde `layout` et `planet` ; `ui.h` garde `#include "pico8_list.h"` (`ic`). `tools/float_guard.txt` (réécrit par `make test`) passe à 59 fichiers, comme à D.2/D.8. Deux cas ajoutés à `test_pico8_ui` (clic sur une rangée de `le`, `pico8_ui_init` vide `le`) : M6 et M8 ne rougissaient aucun TU. Découvert à D.12a2 : un commit. `hv`, `cv`, `cg` (stockage, `lt`, `he`, accesseurs `const pico8_ptrs_t *`), `ui.ic`, `mz.ox`, source `cv` de `dc`, parcours de `dg` (index, TROU-5), `hy:hk`, `hy:lj`, `for_each_cg` ×3, `cz`, `bv`, `eg`, `jc:ce`, `mz:pq`, `mz:pr`, `gw`, `jz` (15 → 0) ; `pico8_jp_ptrs`, `pico8_la_ptrs` ; `pico8_ij` converti en place (`out_nearest` reste `pico8_value_t *`, Q12) ; les 31 TU lecteurs suivent (aucune constante ne change), `rank_in_le` de `test_pico8_js` fondue dans `rank_in`/`listed`. `liste` 581/86/625 occ. (`src/` 371/49/411, `tests/` 210/37/214), `valeur` 1245/115, `type-tag` 271/62, `ref-audit` 42/14, résidu D 2005/121. `entity.h`, `entity_geom.h`, `ui.h`, `wormhole.h` perdent `#include "pico8_list.h"` (aucun fichier ne s'en servait par eux). Clôture de D.12a, pour D.12b–D.12d : `g_ga_by_shared` reste une `pico8_list_t` (défaut de `jo.by`, D.12b) ; les aides à valeur gardent `layout`, `planet` (`nv`), `planet_display`, `planet_trade`, `trade` (`la`), `planet_display`, `research_display`, `tech_gate` (`jp`), `planet_family_trade` (`gu`) ; aides de TU restées à valeur (L2) : `list_size` de dix TU, `size_of` de `fv`/`g_`, `list_count` de `jc`, `value_listed` de `mx` (scindée de `listed` pour `jo.oe`) ; `cart.c` garde un include de `pico8_list.h` sans usage ; `test_pico8_ptrs` à côté de `test_pico8_list` pour D.12d. M11 (`dg` depuis l'index 1) ne rougit ni `iv` ni `mz` mais `qb`, `pm`, `ui` et 4 e2e ; M13 (`la` sans `b`) ne rougissait rien, e2e compris : cas `test_ce_crosses_a_slipway` ajouté à `test_pico8_jc`.
 - D.12b — `liste`, listes membres L2 (`jo.oe`, `jo.cc`/`by`, `trade.lp`/`rl`, `mz.ox`, proposition `ib`, `qy`, `jc.ts`, `hy.invented`, `jo.jy`/`hp.i` ; `gen.oc` en tableau fixe) et aides L4 de `collect` (`jp`, `nv`, `gu`/`gu_content`, `la_append` ; prédicat `int (*)(void *, void *ctx)`). Empreinte ≈ 25 (25, 0). Compte : `liste` rapporté. §6 : aucun. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : oui. Découpé à la PRD en deux sous-étapes, même PRD, chacune vérifiée et poussée : D.12b1 (`qy`, `ts`, `invented`, `gen.oc`) et D.12b2 (réseau des routes : `oe`, `jy`, `cc`, `by` avec `g_ga_by_shared`, `lp`/`rl`, `ib` ; repli b2o/b2t). Découvert à D.12b1 : un commit. `emitter->qy`, `jc.ts`, `hy.invented` sur `pico8_ptrs_t` (tas, TROU-7 ; `ei` et `jc:kj` restent à index non compensé, TROU-14 ; tests de genre → `== NULL`) ; `hy:kt` range `t->px` par le seul cast de qualificatif `(void *)` (`economy.c`) ; `pico8_gu_content` → `pico8_gu_content_ptrs` (chaînes, TROU-3), `oj` rend 0 d'emblée sur un `px` non chaîne (même résultat) ; `gen.oc` en tableau fixe `oc[PICO8_GN_OC_CAP]` (66, `assert` porteur de message), `nm[3]` et `pico8_gn_next` en `const pico8_df_entry_t *`, `pico8_gn(hr, hr_count, …)` : `hr_list` de `galaxy` disparaît (déplacé de D.12c) ; `gen.nm[3]`/`pico8_gn_next` quittent l'inventaire Q12. `particle.h`, `slipway.h`, `gen.h` perdent `#include "pico8_list.h"` (aucun fichier ne s'en servait par eux ; `gen.h` perd aussi `pico8_value.h`), `economy.h` gagne `pico8_ptrs.h` ; les TU `g_`, `ie`, `map_tables`, `pj`, `probe_mm_rnd_order` perdent le leur. 13 TU suivent, aucune constante ne change : `size_of` (`fv`, `g_`) retypée ; `ptrs_size` créée dans `ga`, `hj`, `mx`, `pm` et `ptrs_count` dans `jc` pour `qy`/`ts` (les aides à valeur `list_size`/`list_count` gardent `oe`/`jy`/`by`/`cc` pour b2) ; `test_pico8_hy` plie `FROZEN_LIST_TAG` (0x9E5C1157u) au lieu de l'étiquette d'`invented` ; `pj` range des chaînes dans `invented`. Deux assertions ajoutées : `hp` (`oj` d'un fixe, ligne nouvelle de `tech_gate`), `js` (lignes de `jb` du rang « n invented », M7 ne rougissait rien). `src/pico8_value.h` : commentaire qui nommait `pico8_gu_content` (hors empreinte). `liste` 507/72/551 occ. (`src/` 327/40/367, `tests/` 180/32/184), `valeur` 1211/111, `type-tag` 269/62, `ref-audit` 42/14, résidu D 1911/117. Pour b2 : `list_size` (dix TU), `list_count` (`jc`), `value_listed` (`mx`) n'ont plus que des appels `oe`/`jy`/`by`/`cc` ; `pico8_gu` (`t_rl`) et `pico8_la` restent les aides à valeur à retirer. Découvert à D.12b2 (clôt D.12b) : un commit, 36 chemins de `src/` et `tests/` plus ce plan et `glossaire-noms.md`, sans repli b2o/b2t. `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (et son défaut partagé `g_ga_by_shared`, `static pico8_ptrs_t`, init dans `pico8_planet_family_init`), `trade.lp`/`rl` (membres et clés), l'`ib` de la proposition sur `pico8_ptrs_t` ; tests de genre → `== NULL`, `assert` de classe et de famille gardés mot pour mot, `all()` restés itérateurs, boucles à index (`dh`, `db`, `bd_route_visit` sur `rl`/`lp`) restées à index, `del` de `jo:cn` → `pico8_ptrs_del` (premier identique). API typées (classe (b)) : `pico8_jo_ib` rend `pico8_ptrs_t *`, `kf` de la proposition prend `pico8_trade_t *`, `pico8_trade_kg(self, pico8_struct_header_t *np, pico8_struct_header_t *jc)` (NULL = nil ; `value_is_nil` et `{np}`/`{jc}` à valeur retirés, déplacés de D.12c), `pico8_trade_to(self, void **out)` (même contrat), `pico8_jo_ex(const pico8_ptrs_t *is, …)`, `gu_trade(const pico8_ptrs_t *, const pico8_trade_t *)` ; `pico8_trade_eq` compare des pointeurs ; `trade_kg`/`_to` et `kf` quittent l'inventaire Q12 avec `gen.nm[3]`/`pico8_gn_next` (b1). `mz.ox` était sorti en D.12a, `g_ga_by_shared` entré ici. Frontière L3 de `jo:gh` : le prédicat de `jp` ajoute `pico8_value_ref(e)` à `ji`, les trois concaténations de `jy` sont écrites au site (`merged` reçoit l'en-tête puis chaque besoin enveloppé ; `prefix`/`last_only` disparaissent, déplacés de D.12c) ; `jc:ce` rend `pico8_value_ref(w)` (Q12). Aides de `collect` retirées : `pico8_gu`, `pico8_la`, `pico8_la_append` (b2 ; `pico8_gu_content` en b1) ; survivent jusqu'à D.12c : `pico8_jp` (`research_display.c:361` `bj`, `tech_gate.c:129` `cb`) et `pico8_nv` (`layout.c:170`), noms `_ptrs` gardés. Piège des étiquettes : les sept `fold_value(h, ib)` (`fr`, `hj`, `mx`, `nl`, `nr`, `os`, `pm`) passent par `fold_ib`, qui plie `FROZEN_LIST_TAG` (0x9E5C1157u, bits inchangés) dans la branche « étiquette » que `fold_ref` prenait ; aucune constante ne change (grep 8 vide). TU suiveurs (17) : `fr`, `ga`, `ga_export_panel_by` (§6, façon de lire seulement : `pico8_ptrs_t *by`, deux `pico8_ptrs_add`, l'`assert` d'étiquette retiré au profit du `by != NULL` déjà présent, commentaire de tête réécrit ; preuve rouge M22 : `self->jo.by = NULL` dans le constructeur de `ga` rougit le TU, restauré vert), `hj`, `hp`, `hy`, `jc`, `jo`, `lq`, `mx`, `nl`, `nr`, `os`, `pm`, `qh`, `trade`, `ui` ; `jo_spec_defaults` inchangé. Aides de TU : `list_size` retirée (`ga`, `hj`, `mx`, `pm` : appels passés à `ptrs_size`) ou retypée (`fr`, `jo`, `nl`, `nr`, `os`, `qh`), `list_count` (`jc`) et `value_listed` (`mx`) retirées, `list_of`/`route`/`list_is`/`fold_ranks` (`trade`, `fr`, `nr`) retypées, `same_value`/`fold_value`/`nil`/`ref` de `test_pico8_trade` retirées (`fold_ref` plie le mot de genre REF comme `fold_value` le pliait) ; 13 TU perdent `#include "pico8_list.h"`. Cas nouveaux : `test_cn_skips_a_slipway_already_in_rl` (`test_pico8_nr`, exigé : M20 le rougit, il couvre `planet_family_trade.c:138-143`) ; une assertion `pico8_jo_ib(b) == by` dans `test_pico8_ga` (M12 ne rougissait rien, e2e compris : `self.by or {}` n'était gardé par aucun test). `liste` 507/72/551 → **284/45/320** occ. (`src/` 327/40/367 → 188/26/221, `tests/` 180/32/184 → 96/19/99), −223 lignes (231 retirées : (a1) 157, (a2) 53, (b) 21, (c) 0 ; 8 écrites au site dans `jo:gh`), au lieu de l'estimation ≈ 355 : les `list_size` retirées et 13 includes de TU ; `valeur` 1211/111 → 1095/109, `type-tag` 269/62 → 265/61, `ref-audit` 42/14, résidu D 1911/117 → 1595/117. `gcov` : `L` = 4 lignes, la branche `qk == NULL` de `pico8_jp` à valeur (`collect.c:8-10`, `:13`), dont le seul appelant NULL était `jo:gh` sur un `jy` nil, passé à `pico8_jp_ptrs` (branche exécutée) ; `bj` et `cb` passent l'adresse d'une liste locale. Lignes ajoutées non exécutées par les TU : `economy_tiers.c:179`, `:280-285`, `:296-298`, `planet_display.c:219`, couvertes par les e2e. Mutations M11–M25 rouges (M13, M17 : `js`, `lq`, e2e ; M18 : `hp`, `lq` ; M21 : `lq`, 25/26 e2e ; M23 : `hp`). Pour D.12c : `ji` et `merged` de `jo:gh` (`planet_display.c:99`, `:199-222`) reçoivent des `pico8_value_ref(e)` de besoins, à remplacer par l'union ; `pico8_jp`/`pico8_nv` à valeur et leurs appelants ci-dessus ; l'assertion de `test_pico8_js.c:668-671` lit `jb.ls` par `.kind`/`.as.ref` et doit être réécrite avec `jb.ls`. Pour D.12d : includes de `pico8_list.h` gardés dans `collect.h` (`jp`/`nv`), `research_display.h` (`pico8_bj`), `economy_formulas.h` (sans usage, hors empreinte) ; les `FROZEN_LIST_TAG` de `hy` et des sept TU restent.
-- D.12c — `liste`, listes hétérogènes L3 et locales L4 : `lq.items`, `mh.items`, `jb.ls` → union étiquetée locale à `layout` {rien, fixe, chaîne, rangée, autre-vrai} (Q10), `lq.fs` en tableau typé de fixes ; listes locales d'affichage (`planet_display`, `menu`, `msgbox:pz`, `trade:kg`, `research*`, `score_panel*`, `tech_gate`, `slipway`, `probe`, `galaxy`) en tableaux fixes là où la borne est dans le cart. Empreinte ≈ 16 (15, 1). Compte : `liste` = 0 dans `src/` hors `pico8_list.c/.h`, `pico8_ref_audit.h` et `pico8_type_tag.h` (49 lignes aujourd'hui, à D.12d). §6 : `layout_nil_item_draws_nothing` passe son item par l'union, même intention (nil et fixe 0), preuve rouge. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : oui. Découpé à la PRD en deux sous-étapes, même PRD, chacune vérifiée et poussée : D.12c1 (`cb`/`bj`, `bl`/`mh`/`help`/`pj:kj`, `fs`/`ls`, suppression de `jp`/`nv`) et D.12c2 (union de `lq.items`, `jo:gh`/`jo.ex`/`pj:ph`/`jb_line`, derniers includes, les trois tests du §6 ; repli c2r/c2u).
+- D.12c — `liste`, listes hétérogènes L3 et locales L4 : `lq.items`, `mh.items`, `jb.ls` → union étiquetée locale à `layout` {rien, fixe, chaîne, rangée, autre-vrai} (Q10), `lq.fs` en tableau typé de fixes ; listes locales d'affichage (`planet_display`, `menu`, `msgbox:pz`, `trade:kg`, `research*`, `score_panel*`, `tech_gate`, `slipway`, `probe`, `galaxy`) en tableaux fixes là où la borne est dans le cart. Empreinte ≈ 16 (15, 1). Compte : `liste` = 0 dans `src/` hors `pico8_list.c/.h`, `pico8_ref_audit.h` et `pico8_type_tag.h` (49 lignes aujourd'hui, à D.12d). §6 : `layout_nil_item_draws_nothing` passe son item par l'union, même intention (nil et fixe 0), preuve rouge. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : oui. Découpé à la PRD en deux sous-étapes, même PRD, chacune vérifiée et poussée : D.12c1 (`cb`/`bj`, `bl`/`mh`/`help`/`pj:kj`, `fs`/`ls`, suppression de `jp`/`nv`) et D.12c2 (union de `lq.items`, `jo:gh`/`jo.ex`/`pj:ph`/`jb_line`, derniers includes, les trois tests du §6 ; repli c2r/c2u). Découvert à D.12c1 : un commit, 18 fichiers de `src/` (les 17 de l'empreinte plus `gen.h`, dont un commentaire nommait `pico8_jp_predicate_fn`), 8 TU (`fm`, `js`, `pj`, `lq`, `ga`, `hp`, `jb_ol`, `planet_gh_row_lq` ; `mh` n'a pas eu à suivre), `glossaire-noms.md` et ce plan. `pico8_cb` rend `pico8_cb_kept_t` (`items[PICO8_NB_COUNT]`, 19 = `#nb`), `pico8_bj` rend `pico8_bj_kept_t` (`items[PICO8_FD_COUNT]`, 42 = `#fd`), filtres écrits au site dans l'ordre de la table, `assert` porteurs de message ; `pico8_bl`/`_default` prennent `(const pico8_jb_row_t *const *rb, int n)` ; `mh.items[PICO8_MH_ITEMS_CAP]` (12 = `#bz`) + `items_count`, clés `const pico8_jb_row_t *const *items` ; `fv:kj` (4) et `pj:kj` (5 + 7) en tableaux locaux bornés ; `pico8_lq_item_t` publié dans `layout.h`, `lq.fs` = `pico8_lq_item_t *fs` + `fs_count`, `jb.ls` = `pico8_lq_t **ls` + `ls_count`, tous deux alloués à `max(n, 1)` (TROU-7, `jb_new(NULL)` garde un `ls` non NULL de compte 0) ; `lq:pq` sans `nv` (locales `w`/`fs`, `pico8_lq_pq_ctx_t` et `pico8_lq_pq_step` retirés). `pico8_jp`, `pico8_jp_predicate_fn`, `pico8_nv`, `pico8_nv_fn` retirées, noms `_ptrs` gardés ; `layout.c` perd `#include "pico8_collect.h"` (plus rien n'y sert). Includes de `pico8_list.h` retirés : `collect.h`, `tech_gate.h`, `research_display.h`, `menu.c`, `pi.h`, `msgbox.h`, `score_panel.c` (les sept prévus). 92 lignes `liste` retirées (`src/` 80, `tests/` 12) : (a1) 37, (a2) 47, (b) 8, (c) 0 ; aucune ligne gagnée en `liste` ni en `type-tag`, 6 lignes modifiées ou écrites portent `valeur` (`bi` de `cb`, `fm:88`, deux lignes du pli de `fs` de `hp`). Piège des étiquettes : `ga` plie `FROZEN_LIST_TAG` (0x9E5C1157u, créée), `hp` réutilise `VIEW_LIST_TAG` puis le compte et chaque entrée comme la REF qu'elle était ; aucune constante ne change. `liste` 284/45/320 occ. → **192/32/222** (`src/` 188/26/221 → **108/14/135**, exact ; `tests/` 96/19/99 → 84/18/87) ; `valeur` 1095/109 → 1055/108, `type-tag` 265/61 → 263/61, `ref-audit` 42/14, résidu D 1595/117 → 1473/116. `gcov` : `L` = 0 (6899 → 6854 lignes exécutées, les partantes sont `jp`, `nv`, `pico8_lq_pq_step` et les tests de genre) ; lignes ajoutées toutes exécutées par les TU, hors trois déclarations de struct locale. Mutations M1–M12 et M9 bis rouges ; M2 (`cb` s'arrête à `#nb − 1`) ne rougissait rien : assertion ajoutée à `test_cb_writes_every_e_` (`jk` = 999, chaque `e_` à 1) ; M1 ne rougit que `js` (`fm` ne lit que `e_`). Pour c2 : `lq.items` reste une `pico8_list_t` (`layout.h:6`, `layout.c:11` gardent l'include), la boucle de `lq:pq` lit `self->items.items[i]` à passer sur la case. Découvert à D.12c2 (clôt D.12c) : un commit, sans repli c2r/c2u, 12 fichiers de `src/` (les 9 de l'empreinte plus `ui_button.h`, dont le contrat de `pico8_js_keys_t` nommait une liste, et `tech_gate.c`, commentaire orphelin retiré), 8 TU (`lq`, `js`, `pj`, `hp`, `ga`, `layout_nil_item_draws_nothing`, `planet_gh_row_lq`, `ga_export_panel_by`), `glossaire-noms.md` et ce plan. Lectures de la ligne : l'union ne tient que `lq.items` (`mh.items`, `jb.ls` sont des tableaux de leur élément unique depuis c1 ; `fs` tient des enregistrements `pico8_lq_item_t`, pas des fixes) ; les clés `pico8_lq_keys_t` gardent leurs valeurs (Q12). Formes : `pico8_lq_cell_t` (`pico8_lq_cell_kind_t`, `PICO8_LQ_CELL_NOTHING`/`FIXED`/`STRING`/`ROW`/`TRUE`, `layout.h`), `lq.items` = `pico8_lq_cell_t *items` + `items_count`, alloué à `max(n, 1)` (TROU-7), chaque positionnel classé une fois à la construction par `pico8_lq_cell_of` (une REF non NULL → rangée, lue sans étiquette comme avant) puis `pico8_lq_scalar_cell` (fixe, chaîne non NULL, sinon `pico8_layout_truthy` : autre-vrai ou rien), la même fonction classant le `f[1]` d'un tuple dans `lq:mn` ; la clause REF-NULL reste dans `pico8_layout_truthy`, son commentaire nomme le classement ; `lq:mn` prend une case. `pico8_lq_keys_of` → `pico8_lq_copy(row)` (copie des cases, `c`, `bg`, `score`, `ra`, remise en page ; `pico8_lq_struct_alloc`/`_finish` communs à `pico8_lq_struct_new`, un seul `class_coverage_record("lq")` par construction, `class-coverage-net` identique) ; `pico8_lq_add(self, v)` nouvelle (`realloc` d'une case, `fs`/`w` intouchés : `hp:lq`). `jb_line` : tableau local `items[PICO8_JB_LINE_CAP]` (7, `nb_9_oy_1`, `assert` porteur de message). `jo:gh` : `ctx.ji` en `pico8_ptrs_t` (le prédicat y ajoute `e`), rangées 2..n en clés locales `row_keys[PICO8_JO_GH_ROWS]` passées par `lq_row` (`lq` nil) sur des tableaux de valeurs alloués à leur taille, case de l'écart réservée (`jo_gh_row_items`, TROU-7 : jamais libérés, comme les listes qu'ils remplacent ; `ji` libéré dans tous les cas), makes/exports de `PICO8_JO_GH_LB_CAP` (4) ; `assert` porteur de message sur la case de l'écart. `jo.ex` : tableau de valeurs alloué à `#is + 2 + 2 + #ml·(⌊max(jq',1)⌋+1)` à l'entrée, `assert` de remplissage exact, libéré après `pico8_lq_new`. `pj:ph` : `lq1`/`lq2` en clés locales à une valeur (idiome de `h_keys`/`ep_lq`, pas de tableau), passées par `lq_row`. `js:pq` : branche liste retirée ; une REF non `lq` s'arrête sur l'`assert` réécrit. Includes de `pico8_list.h` retirés : `layout.c`, `layout.h`, `score_panel_display.c`, `cart.c`, `probe.h`, `economy_formulas.h` ; aucun TU n'en gagne, aucun n'en perd. Déplacements (toute l'étape) : `trade:kg`, `galaxy` pris par D.12b ; `slipway`, `probe`, `msgbox:pz` sans liste ; `help`, `pi`, `ui_button`, `cart` entrés. Aides retirées : `pico8_jp`, `pico8_nv` (c1), `pico8_lq_keys_of` (c2) ; noms `_ptrs` gardés. API changées en c2 : `pico8_lq_copy`, `pico8_lq_add` (nouvelles), `pico8_lq_mn` (statique, une case), `pico8_jo_gh_jp_step` (statique, `pico8_ptrs_t`). Piège « rien » : M0 (instrumentation temporaire des plis de positionnels de `lq`, `js`, `pj`, `hp`, `ga`, restaurée par `cp`) : seule `CONSTRUCTIONS_HASH` plie des nil (2) et des faux (2), dont une rangée mêlée (« mixed c »), famille (1) ; toutes les autres constantes, 0 : conforme. `test_pico8_lq` plie une case « rien » du genre de sa clé (`fold_row_from`, `assert_sorted` asserte la case de chaque clé), les autres TU la plient comme faux. Aucune constante ne change. §6 suiveurs : `layout_nil_item_draws_nothing` asserte la case (« rien » pour nil, fixe 0 pour le contrôle), preuve rouge M20 (REF NULL classé autre-vrai : rouge, et rouge aussi par l'assertion de pixels une fois l'assertion de case relâchée) ; `planet_gh_row_lq` lit la case, commentaire de tête réécrit, preuves rouges M17 (une case de trop) et M19 (sans écart) ; `ga_export_panel_by` lit la case, preuve rouge M26 (`jo.by = NULL` dans le constructeur de `ga`) et M14. Mutations M13–M26 rouges ; M15 (`qw` ignoré) et M18 (`pico8_lq_copy` perd `c`) ne rougissaient rien : deux assertions ajoutées à `test_pico8_lq` (`sprite_qw` de la rangée « spr w qw qv », copie directe d'une rangée à `c`). `gcov` : `L` = 0 ; lignes ajoutées non exécutées par les TU : `layout.c:223` (déclaration), `planet_display.c:234`, `:271-272` (couvertes par les e2e, non exécutées par les TU avant non plus). `liste` 192/32/222 occ. → **129/23/157** (`src/` 108/14/135 → **50/5/75**, exact : `pico8_list.c/.h`, `pico8_ref_audit.h`, `pico8_type_tag.h` et `pico8_value.h:7` ; `tests/` 84/18/87 → 79/18/82), 63 lignes retirées ((a1) 47, (a2) 16, (b) 0, (c) 0), aucune gagnée ; `valeur` 1055/108 → 1054/108, `type-tag` 263/61 → 262/61, `ref-audit` 42/14 → 40/14, résidu D 1473/116 → 1435/116. Pour D.12d : `PICO8_REF_AS_LIST*` n'a plus d'appelant dans `src/` (défini par `pico8_ref_audit.h` seul, nommé par un commentaire de `pico8_list.c`) ; `pico8_type_tag_of` ne rencontre plus de liste dans `src/` hors `pico8_list.c` ; `pico8_value.h:7` ; 79 lignes `liste` de TU dans 18 fichiers (`test_pico8_list` 52 ; ailleurs des includes directs, les branches liste des `fold_value` de `lq`, `hp`, `hy` et des listes locales de `fv` et `ui`) ; restent aussi, hors motif, `FROZEN_LIST_TAG` de `fr`, `ga`, `hj`, `hy`, `mx`, `nl`, `nr`, `os`, `pm` et `VIEW_LIST_TAG` de `hp` ; aucun include de TU ajouté par D.12c.
 - D.12d — `liste`, TU (431 lignes, 38 fichiers ; `test_pico8_list` réécrit sur le nouveau conteneur, il ne perd pas son objet, §6), en deux chunks ; `pico8_list.c/.h` supprimés, `PICO8_REF_AS_LIST*` et `PICO8_TYPE_TAG_LIST` retirés. Empreinte 42 (4, 38). Compte : `liste` = 0, ajouté à `DATA_RESIDUE_GUARD`. §6 : aucun. `class-coverage-net`, `sanitize-net` : non.
 
 ### §5, phases 2 et 3 (l. 282-300)
@@ -952,7 +952,7 @@ Un écart port/cart découvert en cours d'étape n'est pas un arrêt : il est **
 
 Chacune de ces conditions est écrite dans le PRD de l'étape concernée comme critère que le vérificateur de `prd-autopilot` traduit en `FAILED:` — c'est le seul arrêt que `plan-pilot` honore.
 
-## Annexe B — étude D.9 (`docs/prd/done/plan3-phaseD-etape9-etude.md`, inchangée à `4beeadb`)
+## Annexe B — étude D.9 (`docs/prd/done/plan3-phaseD-etape9-etude.md`, inchangée à `5a84e49`)
 
 ### §3 (l. 120-137) : `pico8_list_t`, dont « `test_pico8_list` n'est pas un test qui perd son objet »
 
