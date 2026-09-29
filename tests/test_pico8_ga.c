@@ -44,6 +44,10 @@
 #define LIFE_HASH 0x85D7319Eu
 #define BURST_FRAMES 86
 
+/* The tag `lq.fs` carried as a tagged list, which the frozen hashes fold:
+ * any other value moves every *_HASH. */
+#define FROZEN_LIST_TAG 0x9E5C1157u
+
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
@@ -487,7 +491,8 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
            lq->header.cls == pico8_lq_struct_class());
     bg = pico8_lq_bg(lq);
-    k = lq->fs->count;
+    assert(lq->fs != NULL);
+    k = lq->fs_count;
     for (i = 0; i < k; i++) {
         h = fold_lq_positional(h, lq, i);
     }
@@ -507,7 +512,8 @@ static uint32_t fold_lq(uint32_t h, void *e) {
         h = fold_value(fnv_str(h, "ra"), pico8_value_ref(lq->ra));
         n++;
     }
-    h = fold_value(fnv_str(h, "fs"), pico8_value_ref(lq->fs));
+    /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
+    h = fnv(fnv(fnv_str(h, "fs"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_value(fnv_str(h, "w"), pico8_value_fixed(lq->w));
     for (i = k; i < lq->items.count; i++) {
         h = fold_lq_positional(h, lq, i);

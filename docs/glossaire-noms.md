@@ -261,7 +261,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `fi(qs,fn)` | — (supprimé à D.8 avec `pico8_ob.c`) | appliquait `fn` à chaque caractère et collectait les résultats non nuls ; seul `ob()` s'en servait |
 | `pi` | `pico8_pi_dispatch_register` | table des constructeurs appelables depuis une spec (`b`→`qz`, `v`→`v`, `s`→`spr`, sans équivalent : le port n'analyse plus de spec) et des fonctions de dessin de `bl()`, `pico8_pi_fn` (un article) : `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol` |
 | `oo(fn,a)` | — | appelle `fn` avec les 5 premières entrées positionnelles de `a` : dans `bl`, la fonction de `pi` lit elle-même les items de l'article |
-| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (`const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le seul consommateur de `pi` depuis D.8 |
+| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (un tableau de `n` `const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le seul consommateur de `pi` depuis D.8 |
 | `fn`, `rb`, `nc` | — ; `rb` de `fv` : `const pico8_jb_row_t *rb` → `pico8_fv_rb_row` | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
 | `oa` | — | masque de bouton passé à `bu()` : 1 pour le gauche, 6 pour le droit |
 
@@ -283,9 +283,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `mw(o)` | — | copie superficielle ; celle d'un besoin par `jo:lz` copie le `pico8_jy_t` |
 | `gu(qk,kb)` | `pico8_gu_ptrs` | `kb` est-il dans le conteneur `qk` (identité de pointeur) |
 | — | `pico8_gu_content_ptrs` | appartenance d'une chaîne à un `pico8_ptrs_t` de chaînes (`hy.invented`), comparée par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua (TROU-3) |
-| `jp(qk,ow)` | `pico8_jp`, `pico8_jp_ptrs` | filtre |
-| `nv(qk,kp)` | `pico8_nv`, `pico8_nv_ptrs` | applique `kp`, en ignorant les résultats faux |
-| — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; ce sont les deux seules aides de `collect` qui gardent aussi une version à valeur (`pico8_jp` : `bj`, `cb` ; `pico8_nv` : `layout`) |
+| `jp(qk,ow)` | `pico8_jp_ptrs` ; écrit au site sur une table statique (`cb`, `bj`) | filtre |
+| `nv(qk,kp)` | `pico8_nv_ptrs` ; écrit au site dans `lq:pq` (`fs`) | applique `kp`, en ignorant les résultats faux |
+| — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; `collect` n'a plus de version à valeur |
 | `la(a,b)` | `pico8_la_ptrs` | concatène deux conteneurs de pointeurs |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
@@ -427,7 +427,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `mh` | `pico8_mh_t` | boîte de message ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, chacun un article de `bl`, `rh`, `lh`) |
+| `mh` | `pico8_mh_t` | boîte de message, ses articles dans `items[PICO8_MH_ITEMS_CAP]` (12, `#bz`) et `items_count` ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, chacun un article `const pico8_jb_row_t *` de `bl`, `rh`, `lh`) |
 | `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir des clés de ses boutons (`pico8_js_keys_t`, un tableau et son compte) et remplit `ok.le` avec ses icônes cliquables |
 | `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) |
@@ -457,9 +457,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hp` | `pico8_hp_t` | un projet de recherche |
 | `hp:po()` | `pico8_hp_po` | table de production du projet, par palier |
 | `hp:od()` | `pico8_hp_od` | coût du projet, réduit par les technologies acquises |
-| `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée |
+| `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée, rendus par valeur dans un `pico8_bj_kept_t` (au plus `#fd` : `PICO8_FD_COUNT`) |
 | `gb` | `pico8_gb_at`, `pico8_gb_find` | tous les projets construits depuis `fd`, par rang ou par `px` |
-| `cb(bi)` | `pico8_cb` | les technologies affichables ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
+| `cb(bi)` | `pico8_cb` | les technologies affichables, rendues par valeur dans un `pico8_cb_kept_t` (au plus `#nb` : `PICO8_NB_COUNT`) ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
 | `gi(t)` | `pico8_gi_nb` (entrée de `pico8_nb_table`, lue par `cr` et `hy:kt`) | coût en points de recherche d'une technologie |
 
 ## Particules
@@ -662,8 +662,8 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | Nom | Sens |
 |---|---|
 | `lq:mn` | découpe un item en (dessin, largeur, espacement) ; le cœur de la mise en page |
-| `fs` | **deux sens** : sur une instance `lq`, une entrée par élément mis en page ; dans `lq:pq`, une locale qui retient le dernier espacement |
-| `ls` | les rangées `lq` d'une bulle `jb` |
+| `fs` | **deux sens** : sur une instance `lq`, une entrée par élément mis en page (`pico8_lq_item_t *fs`, `fs_count`) ; dans `lq:pq`, une locale qui retient le dernier espacement |
+| `ls` | les rangées `lq` d'une bulle `jb` (`pico8_lq_t **ls`, `ls_count`) |
 | `w`, `c` | largeur totale de la rangée (`w - fs`), et couleur du texte (défaut 6) |
 | `qv` | l'espacement rendu par `mn`, accumulé dans `w` |
 | `om` | ordonnée du haut de la bulle dans `jb:ol` |

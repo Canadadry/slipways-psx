@@ -375,7 +375,7 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
 }
 
 void pico8_jo_fe(pico8_jo_t *self) {
-    pico8_list_t bj_list;
+    pico8_bj_kept_t bj_list;
     pico8_js_keys_t *bs;
     pico8_jo_fe_row_t *rows;
     pico8_pz_frame_t frame;
@@ -391,14 +391,9 @@ void pico8_jo_fe(pico8_jo_t *self) {
     rows = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *rows);
     assert(bs != NULL && rows != NULL);
     for (i = 0; i < bj_list.count; i++) {
-        pico8_value_t e = bj_list.items[i];
-
-        if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-            pico8_jo_fe_keys(self, e.as.ref, &bs[n], &rows[n]);
-            n++;
-        }
+        pico8_jo_fe_keys(self, bj_list.items[i], &bs[n], &rows[n]);
+        n++;
     }
-    pico8_list_free(&bj_list);
 
     frame = jo_pz_frame(self);
     pico8_pz(&frame, bs, n);

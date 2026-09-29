@@ -5,28 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_hud.h"
 #include "pico8_list.h"
-
-/* C has no closures, so lq:mn bakes the draw its Lua counterpart returns as a
- * closure into this tagged struct instead. Private to this file. */
-typedef enum {
-    PICO8_LQ_ITEM_NONE,
-    PICO8_LQ_ITEM_TEXT,
-    PICO8_LQ_ITEM_SPRITE
-} pico8_lq_item_kind_t;
-
-typedef struct {
-    pico8_lq_item_kind_t kind;
-    const char *text;        /* TEXT only; borrowed, never owned */
-    pico8_fixed_t color;   /* TEXT only: self.c or 6 */
-    pico8_fixed_t sprite_id; /* SPRITE only: f */
-    pico8_fixed_t sprite_qw; /* SPRITE only: dv()'s palette-block arg */
-    pico8_vec_t d;           /* offset within the line; set by pico8_lq_pq_step,
-                              * not by pico8_lq_mn */
-} pico8_lq_item_t;
 
 static int g_layout_up = 0;
 static const pico8_struct_class_t g_lq_struct_class;
@@ -130,47 +111,30 @@ static void pico8_lq_mn(const pico8_lq_t *self, pico8_value_t f, pico8_lq_item_t
     *out_qv = have_qv ? qv : pico8_fixed_from_int(2);
 }
 
-/* The `w`/`fs` upvalues lq:pq's Lua closure captures, threaded as an
- * explicit nv() context. */
-typedef struct {
-    const pico8_lq_t *self;
-    pico8_fixed_t w;  /* running width accumulator */
-    pico8_fixed_t fs; /* last item's spacing, retained after the loop ends */
-} pico8_lq_pq_ctx_t;
-
-static int pico8_lq_pq_step(pico8_value_t f, void *ctx_ptr, pico8_value_t *out_value) {
-    pico8_lq_pq_ctx_t *ctx = ctx_ptr;
-    /* TROU-7 */
-    pico8_lq_item_t *item = malloc(sizeof *item);
-    pico8_fixed_t w_i = pico8_fixed_from_int(0);
-    pico8_fixed_t qv_i = pico8_fixed_from_int(0);
-    pico8_fixed_t x = ctx->w;
-
-    pico8_lq_mn(ctx->self, f, item, &w_i, &qv_i);
-    item->d = pico8_vec_v(x, pico8_fixed_from_int(0));
-    ctx->w = pico8_fixed_add(ctx->w, pico8_fixed_add(w_i, qv_i));
-    ctx->fs = qv_i;
-
-    *out_value = pico8_value_ref(item);
-    return 1;
-}
-
-/* ctx.fs starts at 0 where Lua's own `fs` starts nil, so a zero-item lq()
- * yields w=0 here and would error in Lua. No call site builds one. */
+/* `fs`, the last item's spacing, starts at 0 where Lua's own starts nil, so
+ * a zero-item lq() yields w=0 here and would error in Lua. No call site
+ * builds one. */
 static void pico8_lq_pq(pico8_lq_t *self) {
-    pico8_lq_pq_ctx_t ctx;
-    pico8_list_t *fs_heap;
-
-    ctx.self = self;
-    ctx.w = pico8_fixed_from_int(0);
-    ctx.fs = pico8_fixed_from_int(0);
+    pico8_fixed_t w = pico8_fixed_from_int(0);
+    pico8_fixed_t fs = pico8_fixed_from_int(0);
+    int n = self->items.count;
+    int i;
 
     /* TROU-7 */
-    fs_heap = malloc(sizeof *fs_heap);
-    *fs_heap = pico8_nv(&self->items, pico8_lq_pq_step, &ctx);
+    self->fs = malloc((size_t)(n > 0 ? n : 1) * sizeof *self->fs);
+    assert(self->fs != NULL);
+    for (i = 0; i < n; i++) {
+        pico8_fixed_t w_i = pico8_fixed_from_int(0);
+        pico8_fixed_t qv_i = pico8_fixed_from_int(0);
+        pico8_fixed_t x = w;
 
-    self->fs = fs_heap;
-    self->w = pico8_fixed_sub(ctx.w, ctx.fs);
+        pico8_lq_mn(self, self->items.items[i], &self->fs[i], &w_i, &qv_i);
+        self->fs[i].d = pico8_vec_v(x, pico8_fixed_from_int(0));
+        w = pico8_fixed_add(w, pico8_fixed_add(w_i, qv_i));
+        fs = qv_i;
+    }
+    self->fs_count = n;
+    self->w = pico8_fixed_sub(w, fs);
 }
 
 static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_item_t *item,
@@ -198,8 +162,7 @@ static void pico8_lq_ol_item_draw(const pico8_gfx_t *gfx, pico8_mem_t *mem, cons
 
 void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *self, pico8_vec_t p, pico8_fixed_t a) {
     pico8_fixed_t w;
-    pico8_list_iter_t it;
-    pico8_value_t entry;
+    int i;
 
     if (self == NULL) {
         return;
@@ -213,11 +176,8 @@ void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *sel
     if (self->fs == NULL) {
         return;
     }
-    it = pico8_list_all(self->fs);
-    while (pico8_list_iter_next(&it, &entry)) {
-        if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
-            pico8_lq_ol_item_draw(gfx, mem, (const pico8_lq_item_t *)entry.as.ref, p);
-        }
+    for (i = 0; i < self->fs_count; i++) {
+        pico8_lq_ol_item_draw(gfx, mem, &self->fs[i], p);
     }
 }
 
@@ -256,34 +216,34 @@ static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
     return line;
 }
 
+/* `ls` is allocated even for no line: `jb:ol` draws the frame of an empty
+ * `jb`, and skips one whose `ls` is NULL. */
 static void pico8_jb_pq(pico8_jb_t *self, const pico8_jb_row_t *row) {
-    /* TROU-7 */
-    pico8_list_t *ls_heap = malloc(sizeof *ls_heap);
+    int n = row != NULL ? row->count : 0;
     int i;
 
-    pico8_list_init(ls_heap);
-    for (i = 0; row != NULL && i < row->count; i++) {
-        pico8_list_add(ls_heap, pico8_value_ref(pico8_jb_line(&row->items[i])));
+    /* TROU-7 */
+    self->ls = malloc((size_t)(n > 0 ? n : 1) * sizeof *self->ls);
+    assert(self->ls != NULL);
+    for (i = 0; i < n; i++) {
+        self->ls[i] = pico8_jb_line(&row->items[i]);
     }
-    self->ls = ls_heap;
+    self->ls_count = n;
 }
 
-/* Lua's `#self` is read here as `ls->count`: jb:pq contributes exactly one
+/* Lua's `#self` is read here as `ls_count`: jb:pq contributes exactly one
  * `ls` entry per positional item, so the two counts never differ. */
 void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pico8_fixed_t om,
                   pico8_fixed_t a) {
-    const pico8_list_t *ls;
     pico8_fixed_t h;
     pico8_fixed_t dn;
-    pico8_list_iter_t it;
-    pico8_value_t entry;
+    int i;
 
     if (self == NULL || self->ls == NULL) {
         return;
     }
-    ls = self->ls;
 
-    h = pico8_fixed_add(pico8_fixed_mul(pico8_fixed_from_int(ls->count), pico8_fixed_from_int(8)),
+    h = pico8_fixed_add(pico8_fixed_mul(pico8_fixed_from_int(self->ls_count), pico8_fixed_from_int(8)),
                          pico8_fixed_from_int(2));
     om = pico8_fixed_sub(om, pico8_fixed_mul(h, a));
     dn = pico8_fixed_add(om, h);
@@ -292,13 +252,10 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pic
     pico8_rk(gfx, mem, om, dn, 0x10);
     pico8_fillp_reset(gfx);
 
-    it = pico8_list_all(ls);
-    while (pico8_list_iter_next(&it, &entry)) {
-        if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
-            pico8_vec_t pos = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_add(om, pico8_fixed_from_int(2)));
-            pico8_lq_ol(gfx, mem, (const pico8_lq_t *)entry.as.ref, pos, PICO8_FIXED_LIT(0x00008000, 0.5));
-            om = pico8_fixed_add(om, pico8_fixed_from_int(8));
-        }
+    for (i = 0; i < self->ls_count; i++) {
+        pico8_vec_t pos = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_add(om, pico8_fixed_from_int(2)));
+        pico8_lq_ol(gfx, mem, self->ls[i], pos, PICO8_FIXED_LIT(0x00008000, 0.5));
+        om = pico8_fixed_add(om, pico8_fixed_from_int(8));
     }
 }
 
@@ -344,6 +301,7 @@ static void *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
     self->has_score = 0;
     self->ra = NULL;
     self->fs = NULL;
+    self->fs_count = 0;
     self->w = 0;
     pico8_list_init(&self->items);
     if (keys != NULL) {
@@ -419,6 +377,7 @@ static pico8_jb_t *pico8_jb_struct_alloc(void) {
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_jb_struct_class;
     self->ls = NULL;
+    self->ls_count = 0;
     return self;
 }
 

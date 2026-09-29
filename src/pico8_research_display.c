@@ -300,34 +300,23 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
     return l;
 }
 
-/* The filter closure's captured upvalue. */
-typedef struct {
-    const pico8_struct_header_t *jo_instance;
-} pico8_bj_ctx_t;
-
 /* `jo.nk.px` is one character wide by construction, so `k==jo.nk.px` is a
  * plain char comparison here -- no string identity involved. */
-static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
-    pico8_bj_ctx_t *ctx = ctx_ptr;
-    const pico8_hp_t *b;
+static int pico8_bj_predicate(const pico8_hp_t *b, const pico8_struct_header_t *jo_instance) {
     const char *px_str = NULL;
     int mg = 0;
 
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
-    }
-    b = e.as.ref;
     pico8_hp_assert(b);
 
     if (!pico8_oj(b->rr != NULL ? pico8_value_string(b->rr) : pico8_value_ref(NULL))) {
         return 0;
     }
 
-    if (ctx->jo_instance != NULL) {
+    if (jo_instance != NULL) {
         const pico8_jo_t *jo;
 
-        assert(pico8_jo_is_family(ctx->jo_instance) && "bj: jo:ex passes its own planet");
-        jo = (const pico8_jo_t *)ctx->jo_instance;
+        assert(pico8_jo_is_family(jo_instance) && "bj: jo:ex passes its own planet");
+        jo = (const pico8_jo_t *)jo_instance;
         if (jo->nk != NULL) {
             px_str = jo->nk->px;
         }
@@ -347,18 +336,18 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     return mg;
 }
 
-pico8_list_t pico8_bj(const pico8_struct_header_t *jo_instance) {
-    pico8_list_t items;
-    pico8_bj_ctx_t ctx;
-    pico8_list_t result;
+pico8_bj_kept_t pico8_bj(const pico8_struct_header_t *jo_instance) {
+    pico8_bj_kept_t result;
     int k;
 
-    pico8_list_init(&items);
+    assert(pico8_gb_count() <= PICO8_FD_COUNT && "gb holds one hp per entry of fd at most: #fd bounds bj");
+    result.count = 0;
     for (k = 1; k <= pico8_gb_count(); k++) {
-        pico8_list_add(&items, pico8_value_ref(pico8_gb_at(k)));
+        pico8_hp_t *b = pico8_gb_at(k);
+
+        if (pico8_bj_predicate(b, jo_instance)) {
+            result.items[result.count++] = b;
+        }
     }
-    ctx.jo_instance = jo_instance;
-    result = pico8_jp(&items, pico8_bj_predicate, &ctx);
-    pico8_list_free(&items);
     return result;
 }

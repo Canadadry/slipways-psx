@@ -5,7 +5,6 @@
 #include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
@@ -19,10 +18,14 @@ typedef struct pico8_mh pico8_mh_t;
 /* `mh.lh`: the Lua truth of what it returns, which `mh:ev` tests. */
 typedef int (*pico8_mh_lh_fn)(pico8_mh_t *self);
 
+/* The cart builds a box twice: `pj:hk` (up to 3 articles) and `pj:ph`
+ * (one per row of `bz`). */
+enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
+
 /* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
- * through `bl`, in the order the construction table stored them: a table
- * among them stays shared with the caller. Nothing frees the struct or
- * its list: TROU-7. `nu` points at `pico8_mh_nu_tags`. */
+ * through `bl`, in the order the construction table stored them: an
+ * article stays shared with the caller. Nothing frees the struct: TROU-7.
+ * `nu` points at `pico8_mh_nu_tags`. */
 struct pico8_mh {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
@@ -31,7 +34,8 @@ struct pico8_mh {
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
     int p_;
     int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
-    pico8_list_t items;
+    const pico8_jb_row_t *items[PICO8_MH_ITEMS_CAP];
+    int items_count;
 };
 
 /* The message box currently open, or NULL for none. The setter never frees
@@ -50,10 +54,10 @@ void pico8_mh_shutdown(void);
 int pico8_mh_ready(void);
 
 /* The cart's keys of a message box: `items` its positionals in order, each
- * a REF to an article of `bl` (borrowed, never copied), `rh` under its
- * flag, `lh` NULL for nil. */
+ * an article of `bl` (borrowed, never copied), `rh` under its flag, `lh`
+ * NULL for nil. */
 typedef struct {
-    const pico8_value_t *items;
+    const pico8_jb_row_t *const *items;
     int count;
     int has_rh; /* 0: `rh` keeps `pico8_mh_start.rh` */
     pico8_fixed_t rh;

@@ -158,14 +158,12 @@ static void pico8_pi_ld_draw(const pico8_jb_row_t *e) {
 
 /* oo(pi[e.fn],e) -- bl()'s inner step, shared by both entry points. The
  * dispatch context has to be set before every call, not once per list. */
-static void pico8_bl_dispatch_one(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_value_t e_val) {
-    const pico8_jb_row_t *e;
+static void pico8_bl_dispatch_one(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *e) {
     pico8_pi_fn fn = NULL;
 
     g_pi_gfx = gfx;
     g_pi_mem = mem;
 
-    e = (const pico8_jb_row_t *)e_val.as.ref;
     if (e->fn != NULL) {
         fn = pico8_pi_dispatch_lookup(e->fn);
     }
@@ -174,23 +172,21 @@ static void pico8_bl_dispatch_one(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_valu
     }
 }
 
-void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb, pico8_fixed_t nc) {
-    pico8_list_iter_t it = pico8_list_all(rb);
-    pico8_value_t e_val;
+void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n, pico8_fixed_t nc) {
+    int i;
 
-    while (pico8_list_iter_next(&it, &e_val)) {
+    for (i = 0; i < n; i++) {
         pico8_camera(gfx, pico8_fixed_flr_int(nc), 0);
         nc = pico8_fixed_neg(nc);
-        pico8_bl_dispatch_one(gfx, mem, e_val);
+        pico8_bl_dispatch_one(gfx, mem, rb[i]);
     }
 }
 
-void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb) {
-    pico8_list_iter_t it = pico8_list_all(rb);
-    pico8_value_t e_val;
+void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n) {
+    int i;
 
-    while (pico8_list_iter_next(&it, &e_val)) {
-        pico8_bl_dispatch_one(gfx, mem, e_val);
+    for (i = 0; i < n; i++) {
+        pico8_bl_dispatch_one(gfx, mem, rb[i]);
     }
 }
 

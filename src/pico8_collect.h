@@ -3,25 +3,12 @@
 
 #include "pico8_game_data.h"
 #include "pico8_geom.h"
-#include "pico8_list.h"
 #include "pico8_ptrs.h"
 #include "pico8_value.h"
 
 /* `ow` gets each element plus `ctx`, this port's stand-in for the captured
- * upvalue of the original's closure. Returns a new heap-backed list the
- * caller releases with pico8_list_free(); a NULL `qk` gives an empty one. */
-typedef int (*pico8_jp_predicate_fn)(pico8_value_t e, void *ctx);
-pico8_list_t pico8_jp(const pico8_list_t *qk, pico8_jp_predicate_fn ow, void *ctx);
-
-/* `kp` writes *out_value and returns 1 to contribute an element, 0 to
- * contribute nothing -- this port has no nil for `add(m,kp(e)or nil)` to
- * drop. Returns a new heap-backed list the caller releases with
- * pico8_list_free(). `qk` must not be NULL. */
-typedef int (*pico8_nv_fn)(pico8_value_t e, void *ctx, pico8_value_t *out_value);
-pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx);
-
-/* pico8_jp over pointers. Returns a new container the caller releases with
- * pico8_ptrs_free(); a NULL `qk` gives an empty one. */
+ * upvalue of the original's closure. Returns a new container the caller
+ * releases with pico8_ptrs_free(); a NULL `qk` gives an empty one. */
 typedef int (*pico8_jp_ptrs_predicate_fn)(void *e, void *ctx);
 pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow, void *ctx);
 
@@ -32,9 +19,10 @@ pico8_ptrs_t pico8_la_ptrs(const pico8_ptrs_t *a, const pico8_ptrs_t *b);
 /* Membership by identity; a NULL `qk` is a member of nothing. */
 int pico8_gu_ptrs(const pico8_ptrs_t *qk, const void *kb);
 
-/* pico8_nv over pointers: `kp` writes *out and returns 1 to contribute an
- * element. Returns a new container the caller releases with
- * pico8_ptrs_free(). `qk` must not be NULL. */
+/* `kp` writes *out and returns 1 to contribute an element, 0 to contribute
+ * nothing -- this port has no nil for `add(m,kp(e)or nil)` to drop. Returns
+ * a new container the caller releases with pico8_ptrs_free(). `qk` must not
+ * be NULL. */
 typedef int (*pico8_nv_ptrs_fn)(void *e, void *ctx, void **out);
 pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx);
 

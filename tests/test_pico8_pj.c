@@ -717,8 +717,8 @@ static pico8_value_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
     const pico8_jb_row_t *ld;
     const pico8_lq_t *lq;
 
-    assert(k < mh->items.count && mh->items.items[k].kind == PICO8_VALUE_REF);
-    ld = mh->items.items[k].as.ref;
+    assert(k < mh->items_count);
+    ld = mh->items[k];
     assert(ld->fn != NULL && strcmp(ld->fn, "ld") == 0 && ld->items[0].is_ref);
     lq = ld->items[0].ref;
     assert(i <= lq->items.count);
@@ -743,7 +743,7 @@ static void test_ph_rows_show_ky(void) {
     fm->has_hl = 1;
     cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     mh = pico8_kc();
-    assert(mh != NULL && mh->items.count == PICO8_BZ_COUNT);
+    assert(mh != NULL && mh->items_count == PICO8_BZ_COUNT);
     total = ph_row_item(mh, 10, 3);
     assert(total.kind == PICO8_VALUE_STRING && strcmp(total.as.string, "14") == 0);
     for (i = 1; i <= 5; i++) {

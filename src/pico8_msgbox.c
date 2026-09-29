@@ -73,7 +73,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     nc = pico8_fixed_div(pico8_fixed_neg(t3), pico8_fixed_from_int(9));
 
     if (gfx != NULL && mem != NULL) {
-        pico8_bl(gfx, mem, &self->items, nc);
+        pico8_bl(gfx, mem, self->items, self->items_count, nc);
         pico8_camera_reset(gfx);
     }
 
@@ -118,10 +118,12 @@ static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     self->lh = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
-    pico8_list_init(&self->items);
+    self->items_count = 0;
     if (keys != NULL) {
+        assert(keys->count <= PICO8_MH_ITEMS_CAP &&
+               "the cart's two mh() are pj:hk (3 articles at most) and pj:ph (one per bz row): a third needs more");
         for (i = 0; i < keys->count; i++) {
-            pico8_list_add(&self->items, keys->items[i]);
+            self->items[self->items_count++] = keys->items[i];
         }
         if (keys->has_rh) {
             self->rh = keys->rh;

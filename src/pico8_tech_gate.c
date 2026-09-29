@@ -72,26 +72,15 @@ pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
 }
 
 /* `bi`, the Lua closure's captured upvalue, threaded as an explicit ctx. */
-typedef struct {
-    pico8_value_t bi;
-} pico8_cb_ctx_t;
-
 /* The `e_` write below happens for every `t`, before any early return:
  * hoisting it under a keep/drop branch would change what callers read back
  * off nb. */
-static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
-    pico8_cb_ctx_t *ctx = ctx_ptr;
-    const pico8_nb_entry_t *t;
+static int pico8_cb_predicate(const pico8_nb_entry_t *t, pico8_value_t bi) {
     const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
     pico8_fixed_t jk = pico8_fixed_from_int(0);
     pico8_fixed_t ew = pico8_fixed_from_int(0);
     int affordable;
-
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
-        return 0;
-    }
-    t = e.as.ref;
 
     if (fm != NULL) {
         jk = fm->jk;
@@ -112,22 +101,20 @@ static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
 
-    return affordable || pico8_tech_gate_truthy(ctx->bi);
+    return affordable || pico8_tech_gate_truthy(bi);
 }
 
-pico8_list_t pico8_cb(pico8_value_t bi) {
-    pico8_list_t items;
-    pico8_cb_ctx_t ctx;
-    pico8_list_t result;
+pico8_cb_kept_t pico8_cb(pico8_value_t bi) {
+    pico8_cb_kept_t result;
     int i;
 
-    pico8_list_init(&items);
+    result.count = 0;
     for (i = 0; i < PICO8_NB_COUNT; i++) {
-        pico8_list_add(&items, pico8_value_ref((void *)&pico8_nb_table[i]));
+        if (pico8_cb_predicate(&pico8_nb_table[i], bi)) {
+            assert(result.count < PICO8_NB_COUNT && "cb keeps entries of nb only: #nb bounds the result");
+            result.items[result.count++] = &pico8_nb_table[i];
+        }
     }
-    ctx.bi = bi;
-    result = pico8_jp(&items, pico8_cb_predicate, &ctx);
-    pico8_list_free(&items);
     return result;
 }
 

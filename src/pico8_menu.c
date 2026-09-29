@@ -14,7 +14,6 @@
 #include "pico8_game_data.h"
 #include "pico8_input.h"
 #include "pico8_layout.h"
-#include "pico8_list.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_probe.h"
@@ -92,15 +91,11 @@ typedef struct {
 /* TROU-7 */
 /* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
  * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
-static void pico8_cr_step(pico8_value_t e, pico8_cr_row_t *b) {
-    const pico8_nb_entry_t *t;
+static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     static const pico8_jb_item_t pair_items[] = {{.n = 24}, {.n = 5}};
     static const pico8_jb_row_t pair = {.count = 2, .items = pair_items};
     pico8_fixed_t gi_result;
     char *gi_str;
-
-    assert(e.kind == PICO8_VALUE_REF && e.as.ref != NULL && "cb() yields entries of pico8_nb_table");
-    t = e.as.ref;
 
     b->lq_items[0] = pico8_value_fixed(pico8_fixed_from_int(t->nk));
     b->lq_items[1] = pico8_value_string(t->px);
@@ -157,7 +152,7 @@ void pico8_cr(void) {
     int gr = 0;
     pico8_fixed_t qi = pico8_fixed_from_int(0);
     int ek;
-    pico8_list_t cb_list;
+    pico8_cb_kept_t cb_list;
     pico8_cr_row_t *rows;
     pico8_js_keys_t *bs;
     int n = 0;
@@ -184,11 +179,8 @@ void pico8_cr(void) {
     bs = calloc((size_t)cb_list.count + 1, sizeof *bs);
     assert(rows != NULL && bs != NULL);
     for (i = 0; i < cb_list.count; i++) {
-        if (cb_list.items[i].kind == PICO8_VALUE_REF && cb_list.items[i].as.ref != NULL) {
-            pico8_cr_step(cb_list.items[i], &rows[n++]);
-        }
+        pico8_cr_step(cb_list.items[i], &rows[n++]);
     }
-    pico8_list_free(&cb_list);
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
@@ -278,7 +270,7 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
 static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
-    pico8_list_t cb_list;
+    pico8_cb_kept_t cb_list;
     int cb_count;
     pico8_value_t item;
     pico8_lq_keys_t keys = {0};
@@ -290,7 +282,6 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
 
     cb_list = pico8_cb(pico8_value_ref(NULL));
     cb_count = cb_list.count;
-    pico8_list_free(&cb_list);
 
     item = pico8_value_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;

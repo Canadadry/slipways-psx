@@ -279,7 +279,8 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     }
     assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == pico8_lq_struct_class());
     bg = pico8_lq_bg(lq);
-    k = lq->fs->count;
+    assert(lq->fs != NULL);
+    k = lq->fs_count;
     h = fold_view_head(h, lq->items.count + (lq->has_c != 0) + !(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL) +
                               (lq->has_score != 0) + (lq->ra != NULL) + 2);
     for (i = 0; i < k; i++) {
@@ -297,7 +298,12 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     if (lq->ra != NULL) {
         h = fold_value(fold_view_name(h, "ra"), pico8_value_ref(lq->ra), 3);
     }
-    h = fold_value(fold_view_name(h, "fs"), pico8_value_ref(lq->fs), 3);
+    /* `fs` as fold_value folded the tagged list it was: REF, its tag, its count, each entry a REF. */
+    h = fnv(fnv(fold_view_name(h, "fs"), (uint32_t)PICO8_VALUE_REF), (uint32_t)VIEW_LIST_TAG);
+    h = fnv(h, (uint32_t)lq->fs_count);
+    for (i = 0; i < lq->fs_count; i++) {
+        h = fold_value(h, pico8_value_ref((void *)&lq->fs[i]), 2);
+    }
     h = fold_value(fold_view_name(h, "w"), pico8_value_fixed(lq->w), 3);
     for (i = k; i < lq->items.count; i++) {
         h = fold_lq_item(fold_view_index(h, i + 1), lq->items.items[i], 3);

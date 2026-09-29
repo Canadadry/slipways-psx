@@ -4,39 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-pico8_list_t pico8_jp(const pico8_list_t *qk, pico8_jp_predicate_fn ow, void *ctx) {
-    pico8_list_t f;
-    pico8_list_iter_t it;
-    pico8_value_t e;
-    pico8_list_init(&f);
-    if (qk == NULL) {
-        return f;
-    }
-    it = pico8_list_all(qk);
-    while (pico8_list_iter_next(&it, &e)) {
-        if (ow(e, ctx)) {
-            pico8_list_add(&f, e);
-        }
-    }
-    return f;
-}
-
-pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx) {
-    pico8_list_t m;
-    pico8_list_iter_t it;
-    pico8_value_t e;
-    assert(qk != NULL && "nv: a NULL list is not tolerated here, unlike gu and jp");
-    pico8_list_init(&m);
-    it = pico8_list_all(qk);
-    while (pico8_list_iter_next(&it, &e)) {
-        pico8_value_t v;
-        if (kp(e, ctx, &v)) {
-            pico8_list_add(&m, v);
-        }
-    }
-    return m;
-}
-
 pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow, void *ctx) {
     pico8_ptrs_t f;
     pico8_ptrs_iter_t it;

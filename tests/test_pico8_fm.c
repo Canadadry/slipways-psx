@@ -85,9 +85,7 @@ static void test_at_rest(void) {
 }
 
 static int cb_affordable(const pico8_nb_entry_t *t) {
-    pico8_list_t kept = pico8_cb(pico8_value_bool(1));
-
-    pico8_list_free(&kept);
+    (void)pico8_cb(pico8_value_bool(1));
     return pico8_nb_e_(t);
 }
 

@@ -13,7 +13,6 @@
 #include "pico8_game_data.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
@@ -246,23 +245,26 @@ static void pico8_pj_hb_dispatch(void *self) {
     pico8_pj_hb();
 }
 
+/* `la(pj.i_, pj.ou)`: 5 then 7 articles in the cart. */
+enum { PICO8_PJ_KJ_ARTICLES_CAP = 5 + 7 };
+
 void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
     const pico8_jb_row_t *i_ = pico8_pj_i_();
     pico8_pj_ou_t *ou_state = pico8_pj_ou();
-    pico8_list_t combined;
+    const pico8_jb_row_t *combined[PICO8_PJ_KJ_ARTICLES_CAP];
+    int n = 0;
     int i;
 
-    pico8_list_init(&combined);
+    assert(i_->count + (ou_state != NULL ? ou_state->row.count : 0) <= PICO8_PJ_KJ_ARTICLES_CAP &&
+           "la(pj.i_, pj.ou) is 5 + 7 articles in the cart");
     for (i = 0; i < i_->count; i++) {
-        pico8_list_add(&combined, pico8_value_ref((void *)i_->items[i].row));
+        combined[n++] = i_->items[i].row;
     }
     for (i = 0; ou_state != NULL && i < ou_state->row.count; i++) {
-        pico8_list_add(&combined, pico8_value_ref((void *)ou_state->row.items[i].row));
+        combined[n++] = ou_state->row.items[i].row;
     }
 
-    pico8_bl_default(gfx, mem, &combined);
-
-    pico8_list_free(&combined);
+    pico8_bl_default(gfx, mem, combined, n);
 
     if (self != NULL && self->has_gz) {
         pico8_fixed_t gz = pico8_fixed_add(self->gz, PICO8_FIXED_LIT(0x00003333, 0.2));

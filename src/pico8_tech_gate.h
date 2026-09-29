@@ -2,7 +2,6 @@
 #define PICO8_TECH_GATE_H
 
 #include "pico8_fixed.h"
-#include "pico8_list.h"
 #include "pico8_map_tables.h"
 #include "pico8_value.h"
 
@@ -19,11 +18,15 @@ pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc);
  * 0. */
 pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t);
 
+/* The entries of `pico8_nb_table` that `cb` keeps, in table order. */
+typedef struct {
+    const pico8_nb_entry_t *items[PICO8_NB_COUNT];
+    int count;
+} pico8_cb_kept_t;
+
 /* Writes `e_` for every nb entry it visits, kept or not, before deciding
- * whether to keep it -- a real side effect, not a by-product. Returns a new
- * list the caller owns and must release with pico8_list_free(), of REFs to
- * entries of `pico8_nb_table`. */
-pico8_list_t pico8_cb(pico8_value_t bi);
+ * whether to keep it -- a real side effect, not a by-product. */
+pico8_cb_kept_t pico8_cb(pico8_value_t bi);
 
 /* `t.e_` as `cb` last wrote it: 1 for true, 0 for false or never written. */
 int pico8_nb_e_(const pico8_nb_entry_t *t);

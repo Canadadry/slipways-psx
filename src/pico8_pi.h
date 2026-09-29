@@ -3,7 +3,6 @@
 
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
-#include "pico8_list.h"
 #include "pico8_map_tables.h"
 #include "pico8_mem.h"
 
@@ -23,16 +22,15 @@ pico8_pi_fn pico8_pi_dispatch_lookup(const char *name);
 /* Test-support only (no cart equivalent): resets the table to empty. */
 void pico8_pi_dispatch_clear(void);
 
-/* Every element of `rb` must be a PICO8_VALUE_REF to an article, a
- * `const pico8_jb_row_t *` whose `fn` names its drawing function. An
- * article with no `fn`, or one naming an unregistered function, draws
- * nothing.
+/* Draws the `n` articles of `rb` in order, each by the function its `fn`
+ * names. An article with no `fn`, or one naming an unregistered function,
+ * draws nothing.
  *
  * pico8_bl_default is the `nc == nil` case, where the camera-shake branch
  * never runs at all. `gfx`/`mem` are borrowed, and also stashed in this
  * module's dispatch context for the drawing functions to read. */
-void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb, pico8_fixed_t nc);
-void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb);
+void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n, pico8_fixed_t nc);
+void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_row_t *const *rb, int n);
 
 /* Fills the registry; idempotent.
  *

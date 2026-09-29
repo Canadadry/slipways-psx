@@ -88,7 +88,7 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
     assert(direct->header.cls == generic->header.cls);
     assert(direct->header.cls->ol != NULL);
-    assert(direct->ls != NULL && pico8_type_tag_of(direct->ls) == PICO8_TYPE_TAG_LIST && direct->ls->count == 0);
+    assert(direct->ls != NULL && direct->ls_count == 0);
 
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);

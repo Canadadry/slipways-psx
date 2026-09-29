@@ -76,21 +76,24 @@ void pico8_fv_pq(pico8_fv_t *self) {
     pico8_pz(&frame, bs, PICO8_BO_COUNT);
 }
 
+/* `fv.rb` holds four articles in the cart. */
+enum { PICO8_FV_RB_CAP = 4 };
+
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec_t p) {
     (void)p;
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
 
     if (gfx != NULL && mem != NULL) {
-        pico8_list_t items;
+        const pico8_jb_row_t *items[PICO8_FV_RB_CAP];
+        int n = 0;
         int i;
 
-        pico8_list_init(&items);
         for (i = 0; self != NULL && self->rb != NULL && i < self->rb->count; i++) {
-            pico8_list_add(&items, pico8_value_ref((void *)self->rb->items[i].row));
+            assert(n < PICO8_FV_RB_CAP && "fv.rb has four articles in the cart");
+            items[n++] = self->rb->items[i].row;
         }
-        pico8_bl_default(gfx, mem, &items);
-        pico8_list_free(&items);
+        pico8_bl_default(gfx, mem, items, n);
     }
 }
 

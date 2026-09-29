@@ -177,9 +177,8 @@ static uint32_t fold_positionals(uint32_t h, const void *lq) {
 }
 
 static int fs_count(const void *lq) {
-    const pico8_list_t *fs = as_lq(lq)->fs;
-    assert(fs != NULL && pico8_type_tag_of(fs) == PICO8_TYPE_TAG_LIST);
-    return fs->count;
+    assert(as_lq(lq)->fs != NULL);
+    return as_lq(lq)->fs_count;
 }
 
 static pico8_fixed_t w_of(const void *lq) {
@@ -527,7 +526,7 @@ static void test_calls(void) {
     void *lq;
     pico8_jb_item_t entry_items[3];
     pico8_jb_row_t entry = {0};
-    pico8_list_t rb;
+    const pico8_jb_row_t *rb[1];
     uint32_t h = 2166136261u;
     uint32_t want;
 
@@ -548,11 +547,10 @@ static void test_calls(void) {
     entry.count = 3;
     entry.items = entry_items;
     entry.fn = "ld";
-    pico8_list_init(&rb);
-    pico8_list_add(&rb, pico8_value_ref(&entry));
+    rb[0] = &entry;
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    pico8_bl_default(&gfx, &mem, &rb);
+    pico8_bl_default(&gfx, &mem, rb, 1);
     assert(screen_hash() == want);
 
     want = drawn_by_ol(lq, vec_xy(20, 90), 0);

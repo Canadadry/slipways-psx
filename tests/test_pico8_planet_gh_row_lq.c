@@ -162,7 +162,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
 
     /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
     assert(exports_lq->fs != NULL);
-    assert(exports_lq->fs->count == 4);
+    assert(exports_lq->fs_count == 4);
 }
 
 int main(void) {

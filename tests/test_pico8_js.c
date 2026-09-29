@@ -665,8 +665,8 @@ static void test_research(void) {
     assert(unaffordable >= 1);
     assert(!js_of(le->items[le->count - 1])->has_my && js_of(le->items[le->count - 1])->jb != NULL);
     jb = js_of(le->items[le->count - 1])->jb;
-    assert(jb->ls->count == 1 && jb->ls->items[0].kind == PICO8_VALUE_REF);
-    line = jb->ls->items[0].as.ref;
+    assert(jb->ls_count == 1);
+    line = jb->ls[0];
     assert(line->items.count == 1 && line->items.items[0].kind == PICO8_VALUE_STRING);
     assert(strcmp(line->items.items[0].as.string, "slipgates") == 0);
     h = fold_le(h, "research");
@@ -879,7 +879,7 @@ static uint32_t lq_first(const void *b) {
 static void test_hb(void) {
     uint32_t h = 2166136261u;
     void *ix[4];
-    pico8_list_t cb;
+    pico8_cb_kept_t cb;
     void *before;
     int affordable;
     int i;
@@ -893,7 +893,6 @@ static void test_hb(void) {
     cls_of(ix[1])->hb(ix[1]);
     cb = pico8_cb(nil());
     affordable = cb.count > 0;
-    pico8_list_free(&cb);
     assert(js_of(ix[1])->lq != before);
     assert(lq_first(ix[1]) == (affordable ? 24u : 37u));
     h = fnv(h, lq_first(ix[1]));
@@ -1710,7 +1709,7 @@ static void test_pz_fa_only_from_ca(void) {
 /* `cb` writes `e_` for every entry, kept or not; `pico8_data_init` forgets
  * them all. */
 static void test_cb_writes_every_e_(void) {
-    pico8_list_t kept;
+    pico8_cb_kept_t kept;
     pico8_fixed_t jk;
     int dropped_affordable = 0;
     int i;
@@ -1727,12 +1726,16 @@ static void test_cb_writes_every_e_(void) {
 
         assert(pico8_nb_e_(t) == affordable);
         for (k = 0; k < kept.count; k++) {
-            is_kept |= kept.items[k].as.ref == t;
+            is_kept |= kept.items[k] == t;
         }
         dropped_affordable += affordable && !is_kept;
     }
-    pico8_list_free(&kept);
     assert(dropped_affordable > 0);
+    pico8_fm_hy()->jk = pico8_fixed_from_int(999);
+    (void)pico8_cb(nil());
+    for (i = 0; i < PICO8_NB_COUNT; i++) {
+        assert(pico8_nb_e_(&pico8_nb_table[i]) == 1);
+    }
     pico8_data_init();
     for (i = 0; i < PICO8_NB_COUNT; i++) {
         assert(pico8_nb_e_(&pico8_nb_table[i]) == 0);

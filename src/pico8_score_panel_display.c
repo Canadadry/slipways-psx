@@ -74,13 +74,13 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 
     {
-        pico8_value_t items[3];
+        const pico8_jb_row_t *items[3];
         pico8_mh_keys_t keys = {0};
         pico8_mh_t *made;
         int i;
 
         for (i = 0; i < iw->row.count; i++) {
-            items[i] = pico8_value_ref((void *)iw->row.items[i].row);
+            items[i] = iw->row.items[i].row;
         }
         keys.items = items;
         keys.count = iw->row.count;
@@ -174,7 +174,7 @@ static void pico8_pj_ph_set(pico8_bz_row_t *st, int i, pico8_jb_item_t item) {
 /* One row of `bz` as `ph` shows it: a row without a score is its own
  * article; one with a score gets `s[score]` at 3 (and more for 0 and 6),
  * then becomes the line of an article `ld`. */
-static pico8_value_t pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t *ctx) {
+static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t *ctx) {
     int score_i;
     pico8_value_t s_val;
     char *s_str;
@@ -185,7 +185,7 @@ static pico8_value_t pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t
     int k;
 
     if (!st->e->has_score) {
-        return pico8_value_ref(&st->row);
+        return &st->row;
     }
 
     score_i = st->e->score;
@@ -246,7 +246,7 @@ static pico8_value_t pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t
     wrapped->items[1] = (pico8_jb_item_t){.is_ref = 1, .ref = keys.ra};
     wrapped->items[2] = (pico8_jb_item_t){.is_fixed = 1, .fixed = PICO8_FIXED_LIT(0x00008000, 0.5)};
     wrapped->row = (pico8_jb_row_t){.count = 3, .items = wrapped->items, .fn = "ld"};
-    return pico8_value_ref(&wrapped->row);
+    return &wrapped->row;
 }
 
 void pico8_pj_ph(pico8_pj_t *self) {
@@ -318,7 +318,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
             pico8_ky_t s = pico8_ky();
             pico8_bz_row_t *bz = pico8_pj_bz();
             pico8_pj_ph_ctx_t ctx;
-            pico8_value_t iw[PICO8_BZ_COUNT];
+            const pico8_jb_row_t *iw[PICO8_BZ_COUNT];
             pico8_mh_keys_t keys = {0};
             pico8_mh_t *made;
             int i;

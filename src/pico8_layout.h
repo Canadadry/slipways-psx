@@ -10,17 +10,28 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
-/* Never freed, nor is the list `ls` points at: TROU-7. */
+/* C has no closures, so lq:mn bakes the draw its Lua counterpart returns as a
+ * closure into this tagged record instead. */
+typedef enum {
+    PICO8_LQ_ITEM_NONE,
+    PICO8_LQ_ITEM_TEXT,
+    PICO8_LQ_ITEM_SPRITE
+} pico8_lq_item_kind_t;
+
 typedef struct {
-    pico8_struct_header_t header;
-    pico8_list_t *ls;
-} pico8_jb_t;
+    pico8_lq_item_kind_t kind;
+    const char *text;        /* TEXT only; borrowed, never owned */
+    pico8_fixed_t color;     /* TEXT only: self.c or 6 */
+    pico8_fixed_t sprite_id; /* SPRITE only: f */
+    pico8_fixed_t sprite_qw; /* SPRITE only: dv()'s palette-block arg */
+    pico8_vec_t d;           /* offset within the line; set by lq:pq, not by lq:mn */
+} pico8_lq_item_t;
 
 /* `items` is the cart's `self[1..n]` in ascending index order, holes
  * closed up: the sequence `lq:pq` walks. Its values are borrowed from the
  * keys, tables shared as the cart's copy shares them. `ra` is the vector
  * the keys held, borrowed, never copied. Nothing frees the row,
- * `items`, or `fs` and its entries: TROU-7. */
+ * `items`, or `fs`: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     pico8_list_t items;
@@ -32,9 +43,18 @@ typedef struct {
     pico8_fixed_t score;
     int has_score; /* 0: `score` is nil, and `score` is then never read */
     pico8_vec_t *ra;
-    pico8_list_t *fs;
+    pico8_lq_item_t *fs; /* NULL: not laid out yet */
+    int fs_count;
     pico8_fixed_t w;
 } pico8_lq_t;
+
+/* Never freed, nor is the array `ls` points at: TROU-7. `ls` NULL: not
+ * laid out yet. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_lq_t **ls;
+    int ls_count;
+} pico8_jb_t;
 
 /* `lq` and `jb` are root classes with no defaults and are not
  * ke-descended, so neither ever self-registers into hv/cv/cg. */

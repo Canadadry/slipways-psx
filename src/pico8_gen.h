@@ -22,7 +22,7 @@ void pico8_jf_free(pico8_jf_state_t *state);
 
 /* `gn`'s third argument is a zero-argument Lua closure: a function pointer
  * plus a ctx here, this port's convention for a captured closure with no
- * native C equivalent (see pico8_jp_predicate_fn, pico8_collect.h). */
+ * native C equivalent (see pico8_jp_ptrs_predicate_fn, pico8_collect.h). */
 typedef pico8_fixed_t (*pico8_gn_random_fn)(void *ctx);
 
 /* The cart's only `gn(df,2)` makes flr(r*2) tickets per `df` entry: 66. */
