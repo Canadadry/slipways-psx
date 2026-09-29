@@ -1,12 +1,12 @@
 ---
 title: "Plan 3, étape D.15c : `valeur` — `pico8_tostr_fixed` dans `pico8_str.c`, 20 sites d'appel convertis, cas « nombre » de `test_pico8_value` déplacés tels quels dans `test_pico8_str` ; `pico8_value_tostr` garde ses trois appelants à genres mêlés et délègue ses nombres ; aucune constante ne change"
-description: "Vingt sites de `src/` écrivent `pico8_value_tostr(pico8_value_fixed(x))` pour formater un nombre, et le formatage à quatre décimales (TROU-22) vit dans le module de la valeur Lua que la phase D doit supprimer. D.15c le déplace dans `pico8_str.c` sous le nom `pico8_tostr_fixed`, à côté de `pico8_sub` (même contrat : l'appelant libère), fait suivre les appelants et les tests dans le même commit : `valeur` baisse de 27 lignes (54 occ.), hypothèse de départ 911 → 884."
+description: "Vingt sites de `src/` écrivent `pico8_value_tostr(pico8_value_fixed(x))` pour formater un nombre, et le formatage à quatre décimales (TROU-22) vit dans le module de la valeur Lua que la phase D doit supprimer. D.15c le déplace dans `pico8_str.c` sous le nom `pico8_tostr_fixed`, à côté de `pico8_sub` (même contrat : l'appelant libère), fait suivre les appelants et les tests dans le même commit : `valeur` baisse de 27 lignes (54 occ.), 906 → 879."
 status: needs-triage
 ---
 
 ## Problem Statement
 
-**Écrit pendant que D.15b est implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis **`289c9a2`** (« docs: PRD de D.15b revérifié après D.15a et mis en file » ; son `src/`, ses `tests/`, son `Makefile` sont ceux de `77c916a`, D.15a gradée). Tout ce qui dépend du résultat de D.15b est une hypothèse **`H-D15b-n`** (table ci-dessous). Seuls `git archive 289c9a2`, `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné. **Rien n'a été compilé ni lancé.** Les numéros de ligne sont ceux de `289c9a2` ; la colonne « après D.15b » ne diffère que là où une hypothèse le dit (`research_icon.c`). Si le HEAD de départ n'est pas le commit gradé de D.15b (ou un descendant qui ne touche que `docs/`), l'implémenteur remesure par contenu et explique l'écart.
+**Écrit pendant que D.15b était implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis `289c9a2`, puis **révisé après sa graduation** : D.15b gradée (`33dc521`, VERIFIED ; « docs: D.15b gradée (ij/jc_ce en pointeurs, d_ en entier, jc_hg en chaîne) » **`667fd2f`**). Les hypothèses `H-D15b-n` sont confrontées plus bas à `667fd2f` ; les comptes et **tous les numéros de ligne de ce PRD sont ceux de `667fd2f`**, remesurés par contenu sur `git archive 667fd2f` (parmi les fichiers de l'étape, seuls `galaxy.c`, `probe.c`, `research_icon.c` ont été touchés par D.15b ; seul `research_icon.c` a bougé au-dessus d'un site : `:136` → `:138`). Seuls `grep`, `sed`, `awk`, `git diff 289c9a2 667fd2f` et `sh tools/data_residue.sh` ont tourné. **Rien n'a été compilé ni lancé.** Si le HEAD de départ n'est pas `667fd2f` (ou un descendant qui ne touche que `docs/`), l'implémenteur remesure par contenu et explique l'écart.
 
 Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico8_value.c/.h` disparaissent (D.19c). Or la seule fonction de ce module qui a un vrai contenu, le formatage d'un nombre à quatre décimales arrondies au pair (réécrit en entiers à D2, 13 témoins sur 14 du bloc C de `tools/probe_out.txt`, TROU-22), y est rangée dans la branche `FIXED` de `pico8_value_tostr`. Vingt sites de `src/` fabriquent une valeur rien que pour la lui passer, et ses tests — dont le balayage exhaustif de 1 245 183 entrées et les 13 témoins — vivent dans `test_pico8_value`, le test de la couche, qui sera supprimé avec elle (§6 du plan). Tant que le formatage reste là, supprimer le module supprimerait aussi le seul test qui garde TROU-22.
 
@@ -27,7 +27,7 @@ Règles communes de l'étude (§3), recopiées :
 > - Aucun `*.sha256` ni e2e ne change.
 > - `class-coverage-net` si l'étape touche un constructeur ; `sanitize-net` si elle change une durée de vie ou un propriétaire.
 
-### Hypothèses `H-D15b-n` (D.15b en cours ; à confronter à son commit gradé et à sa note « Découvert à D.15b »)
+### Hypothèses `H-D15b-n` (écrites pendant D.15b ; verdicts plus bas)
 
 Source : le PRD de D.15b commis à `289c9a2` (`docs/prd/triage/plan3-phaseD-etape15b-valeur-pointeurs-entier-chaine.md`), ses « Sortie », « Inventaire », « Includes », « Pour D.15c ». Rien d'autre de D.15b n'a été lu.
 
@@ -43,7 +43,7 @@ Source : le PRD de D.15b commis à `289c9a2` (`docs/prd/triage/plan3-phaseD-etap
 | H-D15b-8 | D.15b est entière à la graduation (un commit, ou b1 + b2 tous deux commis ; pas de repli laissé à moitié) | tout | note de D.15b |
 | H-D15b-9 | D.15b n'ajoute aucun `#include "pico8_str.h"`, aucun symbole `pico8_tostr*`, aucun TU ; `tools/` inchangé ; `make e2e` 26 conformes | « Includes », « `Makefile` et liens », filets | `git diff --stat` ; `grep -rn 'pico8_tostr\|pico8_str.h' src tests` |
 
-### Sections à revérifier quand D.15b sera gradée
+### Sections à revérifier quand D.15b sera gradée (liste d'origine, gardée pour trace ; faite, voir « Sections revérifiées »)
 
 - **Toujours** : « État de départ » (comptes réels, H-D15b-1) ; critères `FAILED:` de départ (HEAD et comptes attendus) ; « Effet sur `make data-residue` » (colonnes « départ » et « après », et la table par fichier) ; grep 10 de la Sortie ; la note attendue « Découvert à D.15c » ; Annexe A (recopier la ligne D.15b et sa note).
 - **Si H-D15b-2 tombe** (include de `galaxy.c` déjà retiré, ou `galaxy.c` touché ailleurs) : « Includes » (le retrait passe à D.15b ou reste ici), Inventaire de `galaxy.c`, table (a2), comptes (− 27 peut devenir − 26), passage 101 → 99 fichiers, grep 9.
@@ -52,6 +52,26 @@ Source : le PRD de D.15b commis à `289c9a2` (`docs/prd/triage/plan3-phaseD-etap
 - **Si H-D15b-6 tombe** (D.15b a gardé l'include de `slipway_display.c`, ou a vidé des en-têtes) : « Includes » (retirer ou garder `galaxy.c:12` selon la règle effectivement appliquée), comptes.
 - **Si H-D15b-7, -8 ou -9 tombe** : ne pas mettre ce PRD en file ; le reprendre.
 
+**Verdicts à `667fd2f`** (`git archive`, `git diff 289c9a2 667fd2f`, `sh tools/data_residue.sh`, note « Découvert à D.15b » recopiée en Annexe A) :
+
+| Hypothèse | Verdict |
+|---|---|
+| H-D15b-1 | **fausse en valeur, sans effet sur le plan** : `valeur` **906 / 101 ; 1025 occ.** (`src/` 436 / 63 / 508 occ. comme prévu ; `tests/` **470 / 38 / 517 occ.** au lieu de 475 / 522) : D.15b a aussi retiré l'aide `fold_value` de `test_pico8_qh` (5 lignes, 5 occ.), restée sans appel ; `type-tag` 243 / 58 ; résidu D **1147 / 110** ; `DATA_RESIDUE_GUARD` inchangé. `test_pico8_qh` n'est pas un fichier de D.15c |
+| H-D15b-2 | **tenue** : `galaxy.c` ne change qu'à `:53` (un hunk, en place) ; `:12` include gardé, `:79` intacte ; 2 / 3 occ. |
+| H-D15b-3 | **tenue** : `research_icon.c` +3 lignes, `assert` retiré ; site `tostr` à **`:138`** (note de D.15b et grep) ; `:91` intacte ; 2 / 4 occ. |
+| H-D15b-4 | **tenue** : `probe.c` édité en place (hunks `:154`, `:172`, `:325`, `:356`, longueurs égales) ; `:273` intacte ; 16 / 18 occ. |
+| H-D15b-5 | **tenue** : `git diff --stat 289c9a2 667fd2f` ne touche aucun de ces chemins (`src/` : `economy_tiers.c`, `entity_geom.c/.h`, `galaxy.c`, `planet_family.c`, `probe.c/.h`, `research_icon.c`, `slipway.c/.h`, `slipway_display.c`, `wormhole.c` ; TU `fr`, `g_`, `hj`, `jc`, `mx`, `nl`, `nr`, `os`, `qh` ; `docs/`) ; comptes des sept autres fichiers d'appel identiques à `289c9a2` |
+| H-D15b-6 | **tenue** : note « Include retiré : `slipway_display.c` ; en-têtes vidés gardés pour D.19c : `entity_geom.h`, `probe.h`, `slipway.h` » ; `slipway_display.c` ne nomme plus le module |
+| H-D15b-7 | **tenue** : ligne D.15c du plan identique ; « Pour D.15c : `tostr` intacts, `galaxy.c:79`, `probe.c:273`, `research_icon.c:138` » |
+| H-D15b-8 | **tenue** : un commit (`33dc521`), VERIFIED |
+| H-D15b-9 | **tenue** : aucun `pico8_str.h` ni `pico8_tostr*` ajouté (seuls `pico8_str.c:1`, `test_pico8_str.c:1` l'incluent) ; `Makefile`, `tools/` inchangés ; aucun TU ajouté |
+
+Conséquences : aucune décision, ni l'empreinte, ni le découpage (un commit) ne changent. Changent : les comptes de départ (906 / 101 / 1025, `tests/` 470 / 517, résidu D 1147) et donc les comptes d'arrivée (**879 / 99 / 971**, `tests/` 464 / 505, résidu D **1120 / 108**) ; le numéro `research_icon.c:138` n'est plus une hypothèse.
+
+### Sections revérifiées sur `667fd2f`
+
+Refaites : en-tête, verdicts, « Lecture » (compte), « État de départ », Inventaire (numéros : `research_icon.c:138` ; tous les autres remesurés par grep, identiques), « Effet sur `make data-residue` » (départ, arrivée, par fichier), Sortie (compte), tableau « Runs », critères `FAILED:` (départ, comptes), Surprises, Annexe A (ligne D.15b et sa note recopiées). Inchangées et vérifiées : décisions, correspondance des tests (`test_pico8_value.c` et `test_pico8_str.c` identiques à `289c9a2`), includes (`galaxy.c:12` à retirer), `Makefile` (`:407`, `:414` identiques), empreinte (20 chemins), budget.
+
 ### Lecture de la ligne pour D.15c
 
 - **« `tostr` déplacé dans `pico8_str.c` »** : l'étude nomme le nouveau symbole `char *pico8_tostr_fixed(pico8_fixed_t)`. **Tranché (G)** : ce nom, déclaré dans `pico8_str.h` à côté de `pico8_sub`, défini dans `pico8_str.c` après lui. C'est un **déplacement vers un module qui a son propre nom**, déclaré comme tel : ce n'est ni un renommage pour échapper aux greps (la fonction d'origine ne disparaît pas, elle garde son nom et ses appelants à genres mêlés) ni un alias. Corps : les lignes de la branche `FIXED` de `pico8_value.c:69-101`, **mot pour mot** (y compris les conversions `(uint32_t)` et `(unsigned long)` déjà présentes, le `/* TROU-22 */` et le commentaire « Round half to even »), la valeur lue devenant le paramètre ; la copie finale `malloc`/`memcpy` écrite comme dans `pico8_sub` (même module, même contrat), pas par une aide publiée.
@@ -59,7 +79,7 @@ Source : le PRD de D.15b commis à `289c9a2` (`docs/prd/triage/plan3-phaseD-etap
 - **« avec ses tests »** : **Tranché (G)** : les cas « nombre » passent dans le TU **existant** `tests/test_pico8_str.c` (« le TU de `pico8_str` » de l'étude), pas dans un TU nouveau. Raison : même module, aucune entrée nouvelle dans `UNIT_TESTS`, aucune règle nouvelle. Rejeté : `test_pico8_tostr` (un binaire, une règle et une entrée de plus pour 7 fonctions de test).
 - **Cas chaîne et booléen** : l'étude dit « supprimés avec leur genre ». Leur genre ne meurt pas ici (voir ci-dessus). **Tranché (G)** : `test_tostr_string_is_content_passthrough` et `test_tostr_bool` **restent** dans `test_pico8_value`, inchangés ; ils partent avec la fonction (D.19c). Écart à la lettre de l'étude, déclaré. Aucun cas `REF` n'existe aujourd'hui.
 - **« TROU-22 et TROU-13 suivent la fonction »** : TROU-22 est le formatage d'un nombre : **il suit** (`/* TROU-22 */` dans `pico8_str.c`, texte de `docs/trous-de-portage.md` réécrit sur `pico8_tostr_fixed`, fichier `src/pico8_str.c`). TROU-13 est la branche `REF` (un champ absent rendu `""`), qui **reste** dans `pico8_value.c` avec son appelant `score_panel_display.c:196` : **il ne suit pas** (écart à l'étude, déclaré ; il sera réécrit par D.18c, qui écrit `""` au site).
-- **« Compte : ≈ 880 »** : mesuré sous H-D15b-1 : **27 lignes, 54 occ. retirées**, aucune gagnée : `valeur` **911 → 884** (1030 → 976 occ.). « ≈ » n'est pas un critère ; « − 27 lignes, − 54 occ., exact sous H-D15b, écart expliqué » l'est.
+- **« Compte : ≈ 880 »** : mesuré à `667fd2f` : **27 lignes, 54 occ. retirées**, aucune gagnée : `valeur` **906 → 879** (1025 → 971 occ.). « ≈ » n'est pas un critère ; « − 27 lignes, − 54 occ., exact, écart expliqué » l'est.
 - **Pourquoi 19 sites quittent le motif et non 20** : `planet_display.c:377` enveloppe le résultat dans `pico8_value_string(…)` (`h_item` d'un bouton, B9, D.18b) ; la ligne perd ses deux occurrences `tostr`/`fixed` mais garde la troisième : ligne comptée **modifiée, non retirée**, déclarée.
 - **« `sanitize-net` : oui »** : l'allocation de la chaîne change de module (`pico8_str.c` au lieu de `pico8_value.c`) ; chaque appelant libère comme avant. `make sanitize-net` exigé, plus le balayage ASan+UBSan des TU (consigne de l'utilisateur). `class-coverage-net` : **non** (aucun constructeur, aucun `pico8_class_coverage_record`, aucun `KNOWN[]` touché).
 - **§6** : `test_pico8_value` est un test de la couche ; il **ne perd pas** son objet ici (la fonction reste), il perd seulement des cas qui n'étaient pas des tests de la couche (l'étude : « ce n'est pas un test de la couche »). Les trois tests de régression (`layout_nil_item_draws_nothing`, `planet_gh_row_lq`, `ga_export_panel_by`) ne nomment aucun symbole de l'étape : recompilés, relancés, rien de plus.
@@ -67,11 +87,11 @@ Source : le PRD de D.15b commis à `289c9a2` (`docs/prd/triage/plan3-phaseD-etap
 
 ### État de départ
 
-| Mesure | À `289c9a2` (mesuré) | Départ attendu de D.15c (après D.15b, H-D15b-1) |
+| Mesure | À `289c9a2` | Départ réel de D.15c (`667fd2f`, D.15b gradée) |
 |---|---|---|
-| `valeur` (lignes / fichiers ; occ.) | 980 / 103 ; 1105 occ. (`src/` 488 / 65 / 563, `tests/` 492 / 38 / 542) | **911 / 101 ; 1030 occ.** (`src/` 436 / 63 / 508, `tests/` 475 / 38 / 522) |
+| `valeur` (lignes / fichiers ; occ.) | 980 / 103 ; 1105 occ. (`src/` 488 / 65 / 563, `tests/` 492 / 38 / 542) | **906 / 101 ; 1025 occ.** (`src/` 436 / 63 / 508, `tests/` 470 / 38 / 517) |
 | `type-tag` | 243 / 58 | 243 / 58 |
-| résidu D | 1221 / 111 | **1152 / 110** |
+| résidu D | 1221 / 111 | **1147 / 110** |
 | `DATA_RESIDUE_GUARD` | `spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit` | inchangé |
 
 Recette des occurrences (celle de D.12–D.15b, motif `valeur` de `tools/data_residue.sh:29`) :
@@ -85,7 +105,7 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
   printf '%s\t%s\t%s\n' $f $n "$(grep -oE "$P" $f | wc -l)"; done
 ```
 
-### Inventaire (numéros à `289c9a2` ; « après D.15b » seulement si une hypothèse le change)
+### Inventaire (numéros à `667fd2f`, remesurés par contenu ; identiques à `289c9a2` sauf `research_icon.c`)
 
 Classes du message de commit : **(a1)** même site, fonction typée à la place de la valeur (y compris un cas de test déplacé tel quel, un pour un) ; **(a2)** retirée sans remplaçant (include devenu inutile) ; **(b)** signature publique dont le type change : **attendu 0** (`pico8_value_tostr` garde la sienne ; `pico8_tostr_fixed` est nouvelle) ; **(c)** même donnée, autre nom : **attendu 0**.
 
@@ -110,9 +130,9 @@ Classes du message de commit : **(a1)** même site, fonction typée à la place 
 | `menu.c` | `:109`, `:186`, `:220`, `:221`, `:222` (2 chacune) | `gi_str = pico8_tostr_fixed(gi_result);` ; `char *gr_str = pico8_tostr_fixed(pico8_fixed_from_int(gr));` ; `tl_str = pico8_tostr_fixed(tl);` ; `diff1_str = pico8_tostr_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi));` ; `diff2_str = pico8_tostr_fixed(pico8_fixed_sub(ek_tl, qi));` | (a1) |
 | `planet_display.c` | `:269`, `:275`, `:276` (2 chacune) | `pico8_tostr_fixed(mu)`, `pico8_tostr_fixed(pico8_fixed_from_int(by_count))`, `pico8_tostr_fixed(mu)` | (a1) |
 | | `:377` (3 → 1) | `row->h_item = pico8_value_string(jo_dollar(pico8_tostr_fixed(od)));` — **reste comptée** (`pico8_value_string`, B9, D.18b) | modifiée, non retirée |
-| `probe.c` | `:273` (2) (H-D15b-4) | `char *od_str = pico8_tostr_fixed(pb->od);` | (a1) |
+| `probe.c` | `:273` (2) | `char *od_str = pico8_tostr_fixed(pb->od);` | (a1) |
 | `research_display.c` | `:107`, `:235` (2 chacune) | `pico8_tostr_fixed(self->o)`, `pico8_tostr_fixed(jq)` | (a1) |
-| `research_icon.c` | `:136` → **`:138`** après D.15b (2) (H-D15b-3) | `id_num_str = pico8_tostr_fixed(new_id);` | (a1) |
+| `research_icon.c` | `:138` (2) (`:136` à `289c9a2`) | `id_num_str = pico8_tostr_fixed(new_id);` | (a1) |
 | `score_panel.c` | `:200`, `:221` (2 chacune) | `nz_str = pico8_tostr_fixed(fm_nz);`, `happiness_str = pico8_tostr_fixed(fm_happiness);` | (a1) |
 | | `:216` (2) | `pico8_tostr_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1)));` — **`:215` `plus_num =` reste sur sa ligne** (le tout tiendrait sur une ligne : joindre est interdit) | (a1) |
 | `score_panel_display.c` | `:60` (2) | `yr_str = pico8_tostr_fixed(yr);` | (a1) |
@@ -124,11 +144,11 @@ Hors motif, dans le même commit :
 - `pico8_value.c` : `:3` `<stdint.h>` et `:4` `<stdio.h>` retirés (seul le code déplacé s'en servait) ; `#include "pico8_str.h"` ajouté ; `:62` (`char buf[64];`) et `:70-100` partent dans `pico8_str.c` ; `:69` `case PICO8_VALUE_FIXED: {` devient `case PICO8_VALUE_FIXED:` suivi de `return pico8_tostr_fixed(v.as.fixed);` — **ligne comptée modifiée, non retirée** (1 occ. avant, 1 après), déclarée ; `:101` (`}`) part. `pico8_strdup_owned` reste (branches chaîne, booléen, `REF`, défaut). `pico8_value.c` : **23 / 30 occ., inchangé**.
 - `pico8_value.h:60-72` : le paragraphe `FIXED` (`:64-67`, hors motif) devient « FIXED is rendered by pico8_tostr_fixed (pico8_str.h). » ; `:68-71` et `/* TROU-13 */` (`:72`) restent ; `:71` et `:73` (comptées) **inchangées**. `pico8_value.h` : **22 / 30 occ., inchangé**.
 - `pico8_str.h` : `#include "pico8_fixed.h"` ; prototype de `pico8_tostr_fixed` avec son contrat (propriété ; quatre décimales arrondies au pair, zéros de fin et point nu élagués ; 13 témoins sur 14 du bloc C ; magnitudes sous 0.0001 : TROU-22) — commentaire de contrat C, l'une des quatre sortes de `CLAUDE.md`. **Piège** : ni `double` ni `float` dans ce commentaire ni dans `pico8_str.c` (`make float-grep` lit les commentaires du cœur, `tools/float_grep.sh:78`) ; ni `pico8_value_*` (la ligne gagnerait `valeur`).
-- `#include "pico8_str.h"` ajouté dans **les 10 fichiers d'appel** et `pico8_value.c` (aucun ne l'inclut à `289c9a2`, directement ou non), à sa place alphabétique quand le bloc des includes locaux est trié, sinon en fin de bloc.
+- `#include "pico8_str.h"` ajouté dans **les 10 fichiers d'appel** et `pico8_value.c` (aucun ne l'inclut à `667fd2f`, directement ou non), à sa place alphabétique quand le bloc des includes locaux est trié, sinon en fin de bloc.
 
 #### Tests : correspondance case par case (6 lignes, 12 occ. retirées de `test_pico8_value` ; aucune gagnée)
 
-| `test_pico8_value.c` (à `289c9a2`) | Devient dans `test_pico8_str.c` | Témoins gardés | Classe |
+| `test_pico8_value.c` (à `667fd2f`, identique à `289c9a2`) | Devient dans `test_pico8_str.c` | Témoins gardés | Classe |
 |---|---|---|---|
 | `test_tostr_small_positive_integer` `:69-73` (`:70`, 2 occ.) | même nom, `pico8_tostr_fixed(pico8_fixed_from_int(3))` → `"3"` | `3` → `"3"` | (a1) |
 | `test_tostr_zero` `:75-79` (`:76`, 2) | idem, `0` → `"0"` | `"0"` | (a1) |
@@ -174,7 +194,7 @@ Un **`.c`** qui ne nomme plus rien du module perd son `#include "pico8_value.h"`
 **Sortie de l'étape**, constatée par commande sur le commit :
 
 - `make test` vert (dont `make data-guard`, `float-grep`, `float-guard`, `constants-check`) ; `make e2e` : **26 conformes** ; `make sanitize-net` : **26 propres** ; balayage ASan+UBSan des TU propre ;
-- `make data-residue` : `valeur` **911 → 884** lignes (**1030 → 976** occ.), fichiers **101 → 99** (`collect.c` et `galaxy.c` sortent de `valeur` **et** du résidu D : aucune ligne `type-tag`) ; `type-tag` 243 / 58 inchangé ; résidu D **1152 / 110 → 1125 / 108** ;
+- `make data-residue` : `valeur` **906 → 879** lignes (**1025 → 971** occ.), fichiers **101 → 99** (`collect.c` et `galaxy.c` sortent de `valeur` **et** du résidu D : aucune ligne `type-tag`) ; `type-tag` 243 / 58 inchangé ; résidu D **1147 / 110 → 1120 / 108** ;
 - aucun `*.sha256`, aucun fichier de `tests/e2e/`, rien dans `tools/` (`float_guard.txt` réécrit à l'identique) ; dans le `Makefile`, les deux lignes de prérequis et elles seules ;
 - ces commandes rendent exactement ce qui est écrit :
 
@@ -287,18 +307,18 @@ Le compteur compte des **lignes**. Une baisse obtenue sans retirer la valeur est
 
 ### Effet sur `make data-residue`
 
-| Catégorie | À `289c9a2` | Départ (après D.15b, H-D15b-1) | Après D.15c | Pourquoi |
+| Catégorie | À `289c9a2` | Départ (`667fd2f`) | Après D.15c | Pourquoi |
 |---|---|---|---|---|
-| `valeur` | 980 / 103 ; 1105 occ. | 911 / 101 ; 1030 occ. | **884 / 99 ; 976 occ.** (− 27, − 54) | Inventaire : `src/` − 21 / − 42, `tests/` − 6 / − 12 |
+| `valeur` | 980 / 103 ; 1105 occ. | 906 / 101 ; 1025 occ. | **879 / 99 ; 971 occ.** (− 27, − 54) | Inventaire : `src/` − 21 / − 42, `tests/` − 6 / − 12 |
 | `valeur` `src/` | 488 / 65 ; 563 occ. | 436 / 63 ; 508 occ. | **415 / 61 ; 466 occ.** | `collect.c`, `galaxy.c` sortent |
-| `valeur` `tests/` | 492 / 38 ; 542 occ. | 475 / 38 ; 522 occ. | **469 / 38 ; 510 occ.** | `test_pico8_value` garde des lignes |
+| `valeur` `tests/` | 492 / 38 ; 542 occ. | 470 / 38 ; 517 occ. | **464 / 38 ; 505 occ.** | `test_pico8_value` garde des lignes |
 | `type-tag` | 243 / 58 | 243 / 58 | **inchangé** | aucune ligne `type-tag` touchée |
-| résidu D | 1221 / 111 | 1152 / 110 | **1125 / 108** | ni `collect.c` ni `galaxy.c` n'ont de ligne `type-tag` |
+| résidu D | 1221 / 111 | 1147 / 110 | **1120 / 108** | ni `collect.c` ni `galaxy.c` n'ont de ligne `type-tag` |
 | `DATA_RESIDUE_GUARD` | 8 catégories | inchangé | inchangé | `valeur` ≠ 0 |
 
-Par fichier (lignes / occ. ; à `289c9a2` → après D.15b (H) → après D.15c) : `collect.c` 2/3 → 2/3 → 0/0 ; `economy_score.c` 3/4 → 3/4 → 2/2 ; `galaxy.c` 3/4 → 2/3 → 0/0 ; `menu.c` 25/30 → 25/30 → 20/20 ; `planet_display.c` 44/51 → 44/51 → 41/43 ; `probe.c` 21/23 → 16/18 → 15/16 ; `research_display.c` 29/37 → 29/37 → 27/33 ; `research_icon.c` 8/11 → 2/4 → 1/2 ; `score_panel.c` 25/32 → 25/32 → 22/26 ; `score_panel_display.c` 25/26 → 25/26 → 24/24 ; `pico8_value.c` 23/30, `pico8_value.h` 22/30 : inchangés ; `test_pico8_value.c` 33/64 → 33/64 → 27/52 ; `pico8_str.c`, `pico8_str.h`, `test_pico8_str.c` : 0/0.
+Par fichier (lignes / occ. ; à `289c9a2` → à `667fd2f` → après D.15c) : `collect.c` 2/3 → 2/3 → 0/0 ; `economy_score.c` 3/4 → 3/4 → 2/2 ; `galaxy.c` 3/4 → 2/3 → 0/0 ; `menu.c` 25/30 → 25/30 → 20/20 ; `planet_display.c` 44/51 → 44/51 → 41/43 ; `probe.c` 21/23 → 16/18 → 15/16 ; `research_display.c` 29/37 → 29/37 → 27/33 ; `research_icon.c` 8/11 → 2/4 → 1/2 ; `score_panel.c` 25/32 → 25/32 → 22/26 ; `score_panel_display.c` 25/26 → 25/26 → 24/24 ; `pico8_value.c` 23/30, `pico8_value.h` 22/30 : inchangés ; `test_pico8_value.c` 33/64 → 33/64 → 27/52 ; `pico8_str.c`, `pico8_str.h`, `test_pico8_str.c` : 0/0.
 
-« − 27 », « − 54 occ. », « 884 / 976 », « inchangé » sont des critères sous H-D15b-1 (écart = explication chiffrée au message, rapportée à l'écart de départ).
+« − 27 », « − 54 occ. », « 879 / 971 », « inchangé » sont des critères (écart = explication chiffrée au message).
 
 ### Documentation (G)
 
@@ -318,7 +338,7 @@ Par fichier (lignes / occ. ; à `289c9a2` → après D.15b (H) → après D.15c)
 
 - **H1** : sous `-Wall -Wextra -Werror`, `pico8_value.c` compile sans `<stdint.h>`/`<stdio.h>` (plus de `uint32_t` ni de `snprintf`) ; `pico8_strdup_owned` reste utilisée.
 - **H2** : `pico8_str.c` passe `float-grep`, `float-guard` et `-mgeneral-regs-only` comme `pico8_value.c` aujourd'hui (même code, `snprintf` d'entiers).
-- **H3** : aucun autre appelant de `pico8_value_tostr(pico8_value_fixed(…))` n'existe hors les 20 de l'Inventaire (grep à `289c9a2`, `src/` et `tests/`) ; un oublié se révèle au grep 1 et suit.
+- **H3** : aucun autre appelant de `pico8_value_tostr(pico8_value_fixed(…))` n'existe hors les 20 de l'Inventaire (grep à `289c9a2` et `667fd2f`, `src/` et `tests/`) ; un oublié se révèle au grep 1 et suit.
 - **H4** : le balayage exhaustif prend, sous `--coverage` ou ASan+UBSan, quelques secondes au plus (1 245 183 `malloc`/`free`) : il était déjà dans `make test`, il n'est pas élargi.
 - **H5** : la branche `FIXED` de `pico8_value_tostr` est exécutée par l'union des TU (`test_pico8_pj`, par `score_panel_display.c:196` : le total `"14"`, `:742-763`) ; `test_pico8_value` ne l'exécute plus.
 
@@ -326,7 +346,7 @@ Par fichier (lignes / occ. ; à `289c9a2` → après D.15b (H) → après D.15c)
 
 Un seul commit. Ordre de travail :
 
-1. Mesure de départ (HEAD gradé de D.15b : H-D15b-1..9 constatées) ; `gcov` de départ.
+1. Mesure de départ (`667fd2f` : `valeur` 906 / 101 / 1025 occ., `type-tag` 243 / 58, résidu D 1147 / 110) ; `gcov` de départ.
 2. `pico8_str.c/.h` (`pico8_tostr_fixed`) ; `pico8_value.c/.h` (délégation, includes, contrat) ; `Makefile:407`, `:414`.
 3. `test_pico8_str`, `test_pico8_value` (déplacement case par case) ; `make tmp/test_pico8_str tmp/test_pico8_value` et lancement.
 4. Les 20 sites et leurs includes ; `galaxy.c:12` ; `collect.c:90`.
@@ -369,7 +389,7 @@ Un bon test juge ce que le code rend (la chaîne d'un nombre, au caractère prè
 - **M14** `menu.c:109` formate `0` au lieu de `gi_result` → TU qui construisent la barre du haut, sinon `make e2e` ;
 - **M15** (le test lui-même) un témoin du bloc C faussé dans `test_pico8_str` (`"0.27"` → `"0.28"`) → `test_pico8_str` rouge, avec le message `tostr 0x0000451e: got …` : l'assertion déplacée est vivante.
 
-Cibles (numéros à `289c9a2`, `research_icon.c` après D.15b) : `pico8_str.c` (nouveau), `pico8_value.c:61-107`, `research_icon.c:136-140`, `score_panel.c:198-225`, `galaxy.c:76-82`, `collect.c:84-100`, `planet_display.c:375-378`, `menu.c:105-112`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
+Cibles (numéros à `667fd2f`) : `pico8_str.c` (nouveau), `pico8_value.c:61-107`, `research_icon.c:138-142`, `score_panel.c:198-225`, `galaxy.c:76-82`, `collect.c:84-100`, `planet_display.c:375-378`, `menu.c:105-112`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
 
 ### Filets
 
@@ -401,8 +421,8 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + étape) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | HEAD gradé de D.15b, avant D.15c | 0 | `valeur 911 101` (H-D15b-1) | … |
-| 2 | recette `valeur` | idem | 0 | `valeur 911 lignes 101 fichiers 1030 occ.` | … |
+| 1 | `make -s data-residue` | `667fd2f` (D.15b gradée), avant D.15c | 0 | `valeur 906 101` | … |
+| 2 | recette `valeur` | idem | 0 | `valeur 906 lignes 101 fichiers 1025 occ.` | … |
 | 3 | `grep -rn 'pico8_value_tostr(pico8_value_fixed' src tests \| wc -l` | idem | 0 | `26` (20 `src/`, 6 `tests/`) | … |
 | … | … | … | … | … | … |
 
@@ -427,7 +447,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ n'est pas le commit gradé de D.15b (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 911 / 101 / 1030 occ., `type-tag` 243 / 58, résidu D 1152 / 110, sans explication (H-D15b-1).
+- `FAILED:` si l'arbre de départ n'est pas `667fd2f` (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 906 / 101 / 1025 occ., `type-tag` 243 / 58, résidu D 1147 / 110, sans explication.
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur le commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si un test de régression du §6 change.
@@ -445,7 +465,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 **Gardes, comptes et anti-tassement**
 
 - `FAILED:` si `make data-guard` n'est pas vert, ou si `DATA_RESIDUE_GUARD` change.
-- `FAILED:` si `valeur` ne passe pas du départ à départ **− 27 lignes et − 54 occurrences exactement** (911 / 1030 → 884 / 976 sous H-D15b-1), sans explication chiffrée ligne à ligne ; si `type-tag` change.
+- `FAILED:` si `valeur` ne passe pas du départ à départ **− 27 lignes et − 54 occurrences exactement** (906 / 1025 → 879 / 971), sans explication chiffrée ligne à ligne ; si `type-tag` change.
 - `FAILED:` **si un compte baisse par tassement** : lignes jointes (`score_panel.c:215-216`), alias, renommage d'un identifiant vivant, commentaire compté réécrit hors de son sujet, cale, (b) ou (c) non nulle.
 - `FAILED:` si le **message du commit** omet l'un de ces éléments : par catégorie et par fichier, les comptes avant/après **en lignes et en occurrences** ; la classification (a1)/(a2)/(b)/(c) avec numéros du parent ; la liste par fichier des lignes qui gagnent une catégorie (« aucune » compris) ; les lignes comptées modifiées non retirées ; la justification de chaque Δlignes > Δoccurrences ; le déplacement déclaré (`pico8_tostr_fixed`, module `str`) ; la table de correspondance des tests ; l'include retiré ; les deux prérequis du `Makefile` ; le rapport `gcov` ; les mutations ; le tableau « Runs » (ou son renvoi au journal). Un commit de rattrapage ne compense pas un message incomplet.
 - `FAILED:` si `make constants-check`, `float-grep` ou `float-guard` rougit, ou si `tools/float_guard.txt` diffère après `make test`.
@@ -479,20 +499,20 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
   - **`Makefile`** : deux prérequis, rien d'autre.
   - **Drapeaux** : `sanitize-net` (ligne) et balayage ASan+UBSan des TU ; pas de `class-coverage-net`.
   - **Découpage** : un commit (≈ 15 min, plafond 30), repli c1/c2 écrit.
-- **Surprises de mesure, pour `plan-pilot`** : (1) `pico8_value_tostr` a trois appelants de plus que les 20 de l'étude (genres mêlés) : elle ne peut pas partir, elle délègue ; (2) `planet_display.c:377` reste comptée (`pico8_value_string` autour) : 19 lignes de sites quittent le motif, pas 20 ; (3) `galaxy.c` se vide sous H-D15b-2 : son include part ici ; (4) `collect.c` sort de `valeur` et du résidu D sans include à retirer (il passe par `pico8_collect.h`) ; (5) le `Makefile` doit changer (l'étude n'en disait rien) : `test_pico8_value` doit lier `pico8_str.c`, `test_pico8_str` doit lier `pico8_fixed.c` ; (6) l'étude dit « ≈ 16 fichiers » : 20 chemins avec `pico8_value.c/.h`, le `Makefile` et les docs ; (7) mesuré sous H-D15b-1 : − 27 lignes, − 54 occ., 911 → 884 contre ≈ 880 au plan ; (8) `make float-grep` lit les commentaires du cœur : le commentaire de contrat de `pico8_str.h` ne doit pas dire « double » ni « float » ; (9) aucun cas `REF` de `pico8_value_tostr` n'est testé aujourd'hui (TROU-13 n'est gardé que par `test_pico8_pj` et les e2e) : constat pour D.18c, rien à faire ici.
+- **Surprises de mesure, pour `plan-pilot`** : (1) `pico8_value_tostr` a trois appelants de plus que les 20 de l'étude (genres mêlés) : elle ne peut pas partir, elle délègue ; (2) `planet_display.c:377` reste comptée (`pico8_value_string` autour) : 19 lignes de sites quittent le motif, pas 20 ; (3) `galaxy.c` se vide (H-D15b-2 tenue) : son include part ici ; (4) `collect.c` sort de `valeur` et du résidu D sans include à retirer (il passe par `pico8_collect.h`) ; (5) le `Makefile` doit changer (l'étude n'en disait rien) : `test_pico8_value` doit lier `pico8_str.c`, `test_pico8_str` doit lier `pico8_fixed.c` ; (6) l'étude dit « ≈ 16 fichiers » : 20 chemins avec `pico8_value.c/.h`, le `Makefile` et les docs ; (7) mesuré à `667fd2f` : − 27 lignes, − 54 occ., 906 → 879 contre ≈ 880 au plan ; (8) `make float-grep` lit les commentaires du cœur : le commentaire de contrat de `pico8_str.h` ne doit pas dire « double » ni « float » ; (9) aucun cas `REF` de `pico8_value_tostr` n'est testé aujourd'hui (TROU-13 n'est gardé que par `test_pico8_pj` et les e2e) : constat pour D.18c, rien à faire ici ; (10) révision après D.15b : ses hypothèses tiennent sauf H-D15b-1 (906 au lieu de 911 : aide `fold_value` de `test_pico8_qh` retirée), sans effet sur l'étape.
 - **Pour D.17** : `research_display.c:57` (`pico8_value_tostr(qe)`, `qe` nil → `""`).
 - **Pour D.18c** : `pi.c:105`, `score_panel_display.c:196` ; après eux, `pico8_value_tostr` n'a plus d'appelant dans `src/`.
 - **Pour D.19c** : `test_pico8_value` ne teste plus que la couche ; `Makefile:407` (`src/pico8_str.c` dans ses prérequis) part avec la règle.
 
-## Annexe A — textes recopiés (`docs/plan-3.md` à `289c9a2`, par extraction de lignes)
+## Annexe A — textes recopiés (`docs/plan-3.md` à `667fd2f`, par extraction de lignes ; depuis `289c9a2`, seule la ligne D.15b a changé)
 
 ### Lignes D.15a à D.15c (l. 283-285)
 
 > - D.15a — `valeur`, mécanique : `ov` prend des nombres, `cb` un entier. Compte : `valeur` ≈ 979. Découvert à D.15a : `valeur` 980 / 103 (1105 occ.), et non ≈ 979 : `ov` passe `pico8_value_string(px)` à `oj`, ligne qui part à D.16b avec `oj` ; `pico8_tech_gate_truthy` n'a plus que `oj` pour appelant (B12, D.16b) ; `pico8_economy.c` et `test_pico8_fm` sortent de `valeur` (restent au résidu D par `type-tag`) ; `nil()` de `test_pico8_js` retirée ; aucun include gagné. Résidu D 1221 / 111.
-> - D.15b — `valeur`, mécanique : `ij`/`jc_ce` en pointeurs, `d_` en entier, `jc_hg` en `const char *`, `g_ie_id`. Compte : ≈ 910.
+> - D.15b — `valeur`, mécanique : `ij`/`jc_ce` en pointeurs, `d_` en entier, `jc_hg` en `const char *`, `g_ie_id`. Compte : ≈ 910. Découvert à D.15b : un commit (`refactor(D.15b)`) ; `valeur` 980 / 103 (1105 occ.) → **906 / 101 (1025 occ.)**, et non 911 / 1030 : retirer les deux plis `fold_value(h, pico8_d_(…))` de `test_pico8_qh` y laisse `fold_value` sans appel, fatale sous `-Werror` ; elle part (5 lignes, 5 occ. de plus) ; `type-tag` 243 / 58 inchangé ; résidu D 1221 / 111 → 1147 / 110 ; prototypes publics qui nomment `pico8_value_t` : − 5. Lectures : `ij` et `jc_ce` en `pico8_struct_header_t` (et non `void **`) ; G4 en deux moitiés (le cas nombre de `hg` meurt, le cas nil reste : `has(NULL)` → 0, `add(NULL)` refusé, `hg_add_nil`) ; `pf/mz_value_vec` pris ; `fv` hors empreinte (`(void)pico8_d_`). Ligne gagnée : `probe.c:181` `et = pico8_value_ref(c);` (`bv`, `c` en pointeur), rendue par D.16b (B3). Copies `truthy` parties ici : `pico8_jc_truthy`, `pico8_mz_truthy`. Include retiré : `slipway_display.c` ; en-têtes vidés gardés pour D.19c : `entity_geom.h`, `probe.h`, `slipway.h`. Pour D.15c : `tostr` intacts, `galaxy.c:79`, `probe.c:273`, `research_icon.c:138`. Pour D.16 : copies `truthy` restantes 11 (`economy_score`, `economy_tiers`, `layout`, `planet`, `planet_display`, `probe`, `research`, `research_display`, `tech_gate`, `ui_button`, `wormhole_display`) ; `pico8_probe_truthy` n'a plus que `first` (`probe.c:196`).
 > - D.15c — `valeur` : `tostr` déplacé dans `pico8_str.c` avec ses tests. `sanitize-net` : oui. Compte : ≈ 880.
 
-À la graduation de D.15b, recopier ici sa ligne avec sa note « Découvert à D.15b » (H-D15b-7).
+Ligne D.15c identique à `289c9a2` (H-D15b-7 tenue).
 
 ### §6, extrait (l. 327)
 
