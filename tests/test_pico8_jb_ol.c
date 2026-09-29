@@ -137,7 +137,6 @@ static void test_jb_state_by_name(void) {
     int i;
 
     assert(cls->ol != NULL);
-    assert(cls->field == NULL && cls->set_field == NULL);
 
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);

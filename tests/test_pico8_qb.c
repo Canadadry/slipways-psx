@@ -1,11 +1,10 @@
-/* The camera `qb` (`mo` once `jl()` has run), read and written only through
- * the dual-form field API and driven through the real `dg`/`dc`, in games
+/* The camera `qb` (`mo` once `jl()` has run), read and written on its
+ * members through pico8_mo_qb() and driven through the real `dg`/`dc`, in games
  * built directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
 
 #include <assert.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +37,6 @@
 #define SHAKE_TICKS 31
 #define SHAKE_HASH 0xF1E7A593u
 #define GEOHARVEST_WINDOW 60
-#define QB_MEMBERS_HASH 0x7382517Bu
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -75,75 +73,31 @@ static int in_any_cv(const void *e) {
     return 0;
 }
 
-/* 0 when absent; asserts a non-NULL vector REF otherwise. */
-static int vec_of(const void *e, const char *name, pico8_vec_t *out) {
-    pico8_value_t v;
-
-    if (!pico8_entity_get_field(e, name, &v)) {
-        return 0;
-    }
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    *out = *(const pico8_vec_t *)v.as.ref;
-    return 1;
+static pico8_qb_t *mo_qb(void) {
+    assert(pico8_mo_qb() != NULL);
+    return pico8_mo_qb();
 }
 
-static const void *ref_of(const void *e, const char *name) {
-    pico8_value_t v;
-
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
+static pico8_vec_t must_vec(const pico8_vec_t *v) {
+    assert(v != NULL);
+    return *v;
 }
 
-/* 0 when absent; asserts a number otherwise. */
-static int fixed_of(const void *e, const char *name, pico8_fixed_t *out) {
-    pico8_value_t v;
-
-    if (!pico8_entity_get_field(e, name, &v)) {
-        return 0;
-    }
-    assert(v.kind == PICO8_VALUE_FIXED);
-    *out = v.as.fixed;
-    return 1;
-}
-
-static pico8_vec_t must_vec(const void *e, const char *name) {
-    pico8_vec_t out;
-    assert(vec_of(e, name, &out));
-    return out;
-}
-
-static pico8_fixed_t must_fixed(const void *e, const char *name) {
-    pico8_fixed_t out;
-    assert(fixed_of(e, name, &out));
-    return out;
-}
-
-static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
-    pico8_vec_t v;
-
-    if (!vec_of(e, name, &v)) {
+static uint32_t fold_vec(uint32_t h, const pico8_vec_t *v) {
+    if (v == NULL) {
         return fnv(h, 0xDEADu);
     }
-    h = fnv(h, (uint32_t)v.x);
-    return fnv(h, (uint32_t)v.y);
-}
-
-static uint32_t fold_fixed(uint32_t h, const void *e, const char *name) {
-    pico8_fixed_t f;
-
-    if (!fixed_of(e, name, &f)) {
-        return fnv(h, 0xDEADu);
-    }
-    return fnv(h, (uint32_t)f);
+    h = fnv(h, (uint32_t)v->x);
+    return fnv(h, (uint32_t)v->y);
 }
 
 static uint32_t fold_mo(uint32_t h) {
-    const void *mo = pico8_mo();
+    const pico8_qb_t *mo = mo_qb();
 
-    h = fold_vec(h, mo, "p");
-    h = fold_vec(h, mo, "v");
-    h = fold_vec(h, mo, "ra");
-    h = fold_fixed(h, mo, "ma");
+    h = fold_vec(h, mo->p);
+    h = fold_vec(h, mo->v);
+    h = fold_vec(h, mo->ra);
+    h = fnv(h, (uint32_t)mo->ma);
     h = fnv(h, (uint32_t)gfx.camera_x);
     return fnv(h, (uint32_t)gfx.camera_y);
 }
@@ -182,23 +136,23 @@ static int is_vec(pico8_vec_t v, int x, int y) {
 
 /* `jl()` builds `mo`: in hv only, the spec's defaults, ke's `me`/`t`, `pc`
  * in the order left, right, up, down, and `p`/`ra` two distinct vectors. */
-static void check_fresh_mo(const void *mo) {
+static void check_fresh_mo(const pico8_qb_t *mo) {
     const pico8_vec_seq_t *pc;
-    pico8_value_t me;
-    pico8_vec_t p = must_vec(mo, "p");
-    pico8_vec_t ra = must_vec(mo, "ra");
-    pico8_vec_t v = must_vec(mo, "v");
+    pico8_vec_t p = must_vec(mo->p);
+    pico8_vec_t ra = must_vec(mo->ra);
+    pico8_vec_t v = must_vec(mo->v);
 
     assert(listed(pico8_hv(), mo) && !in_any_cv(mo));
     assert(p.x == pico8_fixed_from_int(192) && p.y == pico8_fixed_from_int(192));
     assert(ra.x == pico8_fixed_from_int(192) && ra.y == pico8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
-    assert(must_fixed(mo, "ma") == 0);
-    assert(must_fixed(mo, "t") == 0);
-    assert(pico8_entity_get_field(mo, "me", &me) && me.kind == PICO8_VALUE_STRING && strcmp(me.as.string, "ph") == 0);
-    assert(ref_of(mo, "p") != ref_of(mo, "ra"));
+    assert(mo->ma == 0);
+    assert(mo->ke.t == 0);
+    assert(mo->ke.me != NULL && strcmp(mo->ke.me, "ph") == 0);
+    assert(mo->p != mo->ra);
 
-    pc = ref_of(mo, "pc");
+    pc = mo->pc;
+    assert(pc != NULL);
     assert(pc == &pico8_qb_pc_vecs && pc->count == 4);
     assert(is_vec(pc->items[0], -1, 0));
     assert(is_vec(pc->items[1], 1, 0));
@@ -208,7 +162,7 @@ static void check_fresh_mo(const void *mo) {
 
 static void test_jl_builds_a_camera(void) {
     pico8_jl();
-    check_fresh_mo(pico8_mo());
+    check_fresh_mo(mo_qb());
 }
 
 static void md_to(pico8_fixed_t fy, int want_x, int want_y) {
@@ -252,8 +206,8 @@ static void test_scripted_ticks(void) {
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         pico8_dg();
         h = fold_mo(h);
-        h = fold_fixed(h, pico8_mo(), "t");
-        if (must_vec(pico8_mo(), "p").y == pico8_fixed_from_int(320)) {
+        h = fnv(h, (uint32_t)mo_qb()->ke.t);
+        if (must_vec(mo_qb()->p).y == pico8_fixed_from_int(320)) {
             bounded++;
         }
         if (i < SCRIPTED_TICKS - 1) {
@@ -271,20 +225,20 @@ static void test_scripted_ticks(void) {
 static void test_shake_decays(void) {
     uint32_t h = 2166136261u;
     int ticks = 0;
-    const void *mo;
+    const pico8_qb_t *mo;
 
     pico8_jl();
-    mo = pico8_mo();
-    pico8_entity_set_field(pico8_mo(), "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
-    assert(must_fixed(mo, "ma") == pico8_fixed_from_int(3));
+    mo = mo_qb();
+    mo_qb()->ma = pico8_fixed_from_int(3);
+    assert(mo->ma == pico8_fixed_from_int(3));
     unscript();
-    while (must_fixed(mo, "ma") != 0) {
+    while (mo->ma != 0) {
         pico8_vec_t off;
         pico8_dg();
         ticks++;
         assert(ticks < 100);
-        off = pico8_vec_sub(must_vec(mo, "ra"), must_vec(mo, "p"));
-        h = fnv(h, (uint32_t)must_fixed(mo, "ma"));
+        off = pico8_vec_sub(must_vec(mo->ra), must_vec(mo->p));
+        h = fnv(h, (uint32_t)mo->ma);
         h = fnv(h, (uint32_t)off.x);
         h = fnv(h, (uint32_t)off.y);
     }
@@ -304,25 +258,21 @@ static void test_second_jl(void) {
     pico8_jl();
     assert(pico8_mo() != first);
     assert(!listed(pico8_hv(), first));
-    check_fresh_mo(pico8_mo());
+    check_fresh_mo(mo_qb());
 
     pico8_bootstrap_shutdown();
     pico8_jl();
-    check_fresh_mo(pico8_mo());
+    check_fresh_mo(mo_qb());
 }
 
-/* Before `jl()`, `mo` is the field-less placeholder: `md` dispatches
+/* Before `jl()`, `mo` is the placeholder, not a qb: `md` dispatches
  * nothing and the camera stays put. */
 static void test_placeholder_mo(void) {
-    pico8_value_t v;
-
     pico8_entity_init();
     pico8_camera(&gfx, 5, 6);
     assert(pico8_mo()->cls != pico8_qb_struct_class());
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
-    assert(!pico8_entity_get_field(pico8_mo(), "ra", &v));
-    assert(!pico8_entity_get_field(pico8_mo(), "p", &v));
-    assert(!pico8_entity_get_field(pico8_mo(), "ma", &v));
+    assert(pico8_mo_qb() == NULL);
 }
 
 /* A game started as `eu` starts it, the right button pressed over empty
@@ -342,13 +292,13 @@ static void test_right_drag_moves_the_camera(void) {
     }
     script(20);
     pico8__update60();
-    before = must_vec(pico8_mo(), "p");
+    before = must_vec(mo_qb()->p);
     for (i = 1; i < 20; i++) {
         pico8_input_step(&input);
         pico8__update60();
     }
     unscript();
-    after = must_vec(pico8_mo(), "p");
+    after = must_vec(mo_qb()->p);
     assert(after.x != before.x || after.y != before.y);
 }
 
@@ -376,11 +326,11 @@ static void test_ga_shakes(void) {
     assert(!ga_alive());
     (void)pico8_ga_new(NULL);
     assert(ga_alive());
-    assert(must_fixed(pico8_mo(), "ma") == pico8_fixed_from_int(3));
+    assert(mo_qb()->ma == pico8_fixed_from_int(3));
     for (i = 0; i < GEOHARVEST_WINDOW; i++) {
         pico8_dg();
     }
-    assert(must_fixed(pico8_mo(), "ma") == 0);
+    assert(mo_qb()->ma == 0);
 }
 
 /* The galaxy depends on the rnd state, which the tests before it consume: run
@@ -408,12 +358,9 @@ static int is_a_qb_struct(const void *e) {
 }
 
 /* `jl()`'s `mo` and one built through the class are qb structs in hv only,
- * with `ph` and `md` as methods and no `kj`; a generic write of a name
- * other than `ma`/`v` stops the run instead of growing a member. */
+ * with `ph` and `md` as methods and no `kj`; `ph` reads a nil `v` as zero. */
 static void test_qb_is_a_struct(void) {
-    void *generic;
-    pid_t child;
-    int status;
+    pico8_qb_t *generic;
 
     pico8_jl();
     generic = pico8_qb_new();
@@ -423,318 +370,14 @@ static void test_qb_is_a_struct(void) {
     pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
     pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
     assert(pico8_qb_struct_class()->kj == NULL);
+    {
+        pico8_vec_t p_before = must_vec(generic->p);
 
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        pico8_entity_set_field(pico8_mo(), "p", pico8_value_ref(NULL));
-        _exit(0);
+        generic->v = NULL;
+        pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
+        assert(generic->v != NULL && generic->v->x == 0 && generic->v->y == 0);
+        assert(generic->p->x == p_before.x && generic->p->y == p_before.y);
     }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-
-#define WITNESS 0x1234
-
-static int same_value(pico8_value_t a, pico8_value_t b) {
-    if (a.kind != b.kind) {
-        return 0;
-    }
-    switch (a.kind) {
-    case PICO8_VALUE_FIXED:
-        return a.as.fixed == b.as.fixed;
-    case PICO8_VALUE_BOOL:
-        return a.as.boolean == b.as.boolean;
-    case PICO8_VALUE_STRING:
-        return strcmp(a.as.string, b.as.string) == 0;
-    default:
-        return a.as.ref == b.as.ref;
-    }
-}
-
-/* The raw reader and pico8_entity_get_field must agree; on 0 both leave
- * the witness untouched. */
-static int get2(const void *e, const char *name, pico8_value_t *out) {
-    pico8_value_t raw = pico8_value_fixed(WITNESS);
-    pico8_value_t via = pico8_value_fixed(WITNESS);
-    int r = pico8_qb_struct_class()->field(e, name, &raw);
-    int g = pico8_entity_get_field(e, name, &via);
-
-    assert(r == g);
-    if (!r) {
-        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS);
-        assert(via.kind == PICO8_VALUE_FIXED && via.as.fixed == WITNESS);
-        return 0;
-    }
-    assert(same_value(raw, via));
-    *out = raw;
-    return 1;
-}
-
-static const void *ref2(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(get2(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
-}
-
-static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
-    pico8_value_t v;
-
-    if (!get2(e, name, &v)) {
-        return fnv(h, 0xDEADu);
-    }
-    h = fnv(h, (uint32_t)v.kind);
-    if (v.kind == PICO8_VALUE_FIXED) {
-        return fnv(h, (uint32_t)v.as.fixed);
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == (const void *)&pico8_qb_pc_vecs) {
-        return fnv(h, (uint32_t)pico8_qb_pc_vecs.count);
-    }
-    if (v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN) {
-        const pico8_vec_t *p = v.as.ref;
-        h = fnv(h, (uint32_t)p->x);
-        return fnv(h, (uint32_t)p->y);
-    }
-    return h;
-}
-
-static uint32_t fold_all(uint32_t h, const void *e) {
-    const char *names[] = {"v", "ma", "p", "ra", "pc", "me", "t"};
-    int i;
-
-    for (i = 0; i < 7; i++) {
-        h = fold_member(h, e, names[i]);
-    }
-    return h;
-}
-
-typedef struct {
-    int has_v;
-    const void *v;
-    pico8_value_t ma;
-    const void *p;
-    const void *ra;
-    int has_pc;
-    const void *pc;
-} qb_seen_t;
-
-static qb_seen_t seen(const void *e) {
-    qb_seen_t s;
-    pico8_value_t x;
-
-    s.has_v = get2(e, "v", &x);
-    s.v = s.has_v ? x.as.ref : NULL;
-    assert(get2(e, "ma", &s.ma));
-    s.p = ref2(e, "p");
-    s.ra = ref2(e, "ra");
-    s.has_pc = get2(e, "pc", &x);
-    s.pc = s.has_pc ? x.as.ref : NULL;
-    return s;
-}
-
-static void same_but_v(qb_seen_t a, qb_seen_t b) {
-    assert(same_value(a.ma, b.ma) && a.p == b.p && a.ra == b.ra && a.has_pc == b.has_pc && a.pc == b.pc);
-}
-
-static void same_but_ma(qb_seen_t a, qb_seen_t b) {
-    assert(a.has_v == b.has_v && a.v == b.v && a.p == b.p && a.ra == b.ra && a.has_pc == b.has_pc && a.pc == b.pc);
-}
-
-static pico8_value_t heap_vec(int x, int y) {
-    pico8_vec_t *v = malloc(sizeof *v);
-    *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(v);
-}
-
-static void must_abort(void *e, const char *name) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        pico8_entity_set_field(e, name, pico8_value_fixed(pico8_fixed_from_int(1)));
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-/* Every member by name on `jl()`'s `mo` and a second qb: shared defaults,
- * `v` written nil then a vector, `ma` written a zero-union fixed, `ph` over
- * a nil `v`, the raw writer on names it does not write, `pc` still the
- * generated data after a shutdown. */
-static void test_qb_members_by_name(void) {
-    const char *intruders[] = {"", "V", "x", "q", "has_v", "has_ma", "ke", "header", "pa", "m"};
-    const char *unwritten[] = {"p", "ra", "pc", "me", "t", "", "V", "ma ", "has_v"};
-    const pico8_struct_set_field_fn raw_set = pico8_qb_struct_class()->set_field;
-    uint32_t h = 2166136261u;
-    pico8_value_t x;
-    pico8_value_t zero_fixed;
-    pico8_value_t va;
-    pico8_value_t vb;
-    qb_seen_t s0;
-    qb_seen_t s1;
-    const void *shared_v;
-    void *a;
-    void *b;
-    void *c;
-    unsigned i;
-
-    pico8_jl();
-    unscript();
-    a = pico8_mo();
-    b = pico8_qb_new();
-    h = fold_all(h, a);
-    h = fold_all(h, b);
-    assert(ref2(a, "v") == ref2(b, "v") && ref2(a, "p") == ref2(b, "p"));
-    assert(ref2(a, "ra") == ref2(b, "ra") && ref2(a, "pc") == ref2(b, "pc"));
-    assert(ref2(a, "p") != ref2(a, "ra"));
-    assert(ref2(a, "pc") == &pico8_qb_pc_vecs);
-    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
-        h = fnv(h, (uint32_t)get2(b, intruders[i], &x));
-    }
-    shared_v = ref2(a, "v");
-
-    s0 = seen(b);
-    va = heap_vec(3, 4);
-    pico8_entity_set_field(b, "v", va);
-    assert(ref2(b, "v") == va.as.ref);
-    same_but_v(s0, seen(b));
-    h = fold_member(h, b, "v");
-    h = fnv(h, (uint32_t)raw_set(b, "v", pico8_value_ref(NULL)));
-    assert(!get2(b, "v", &x));
-    h = fnv(h, (uint32_t)raw_set(b, "v", pico8_value_ref(NULL)));
-    assert(!get2(b, "v", &x));
-    same_but_v(s0, seen(b));
-    vb = heap_vec(-2, 5);
-    pico8_entity_set_field(b, "v", vb);
-    assert(ref2(b, "v") == vb.as.ref);
-    same_but_v(s0, seen(b));
-    h = fold_member(h, b, "v");
-    assert(ref2(a, "v") == shared_v);
-
-    s0 = seen(b);
-    pico8_entity_set_field(b, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
-    h = fold_member(h, b, "ma");
-    same_but_ma(s0, seen(b));
-    memset(&zero_fixed, 0, sizeof zero_fixed);
-    zero_fixed.kind = PICO8_VALUE_FIXED;
-    h = fnv(h, (uint32_t)raw_set(b, "ma", zero_fixed));
-    assert(get2(b, "ma", &x) && x.kind == PICO8_VALUE_FIXED && x.as.fixed == 0);
-    h = fold_member(h, b, "ma");
-    pico8_entity_set_field(b, "ma", pico8_value_fixed(pico8_fixed_from_int(-1)));
-    h = fold_member(h, b, "ma");
-    pico8_entity_set_field(b, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
-    h = fold_member(h, b, "ma");
-    same_but_ma(s0, seen(b));
-
-    raw_set(b, "v", pico8_value_ref(NULL));
-    s0 = seen(b);
-    assert(!s0.has_v);
-    pico8_qb_struct_class()->states[PICO8_STATE_PH](b, pico8_fixed_from_int(0));
-    s1 = seen(b);
-    assert(s1.has_v && s1.v != shared_v && s1.v != vb.as.ref);
-    assert(s1.p != s0.p && s1.ra != s0.ra && s1.p != s1.ra && s1.pc == s0.pc);
-    assert(s1.ma.as.fixed < pico8_fixed_from_int(3) && s1.ma.as.fixed > 0);
-    h = fold_all(h, b);
-    pico8_qb_struct_class()->states[PICO8_STATE_PH](b, pico8_fixed_from_int(0));
-    s0 = seen(b);
-    assert(s0.v != s1.v && s0.p != s1.p && s0.ra != s1.ra);
-    h = fold_all(h, b);
-
-    s0 = seen(b);
-    for (i = 0; i < sizeof unwritten / sizeof unwritten[0]; i++) {
-        int r = raw_set(b, unwritten[i], pico8_value_fixed(pico8_fixed_from_int(1)));
-        assert(r == 0);
-        h = fnv(h, (uint32_t)r);
-    }
-    s1 = seen(b);
-    same_but_v(s0, s1);
-    same_but_ma(s0, s1);
-    h = fold_all(h, b);
-    must_abort(b, "ra");
-    must_abort(b, "pc");
-
-    pico8_qb_shutdown();
-    c = pico8_qb_new();
-    assert(ref2(c, "pc") == &pico8_qb_pc_vecs);
-    h = fold_all(h, c);
-    pico8_jl();
-    check("qb members", h, QB_MEMBERS_HASH);
-}
-
-static void write_v_by_name(void *e, pico8_value_t v) {
-    pico8_entity_set_field(e, "v", v);
-}
-
-static void write_ma_by_name(void *e, pico8_value_t v) {
-    pico8_entity_set_field(e, "ma", v);
-}
-
-static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        write(e, v);
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-/* `v` takes nil or a vector only, `ma` a fixed only -- nil included, `ma`
- * has no nil state; a value whose whole union is zero is not nil unless it
- * is a REF. */
-static void test_qb_writer_stops_off_row(void) {
-    pico8_value_t zero_fixed;
-    pico8_value_t zero_false;
-    pico8_value_t zero_string;
-    pico8_value_t zero_ref;
-    pico8_value_t ph;
-    void *a;
-    void *b;
-
-    pico8_jl();
-    a = pico8_mo();
-    b = pico8_qb_new();
-    assert(!pico8_entity_get_field(b, "ph", &ph) && pico8_qb_struct_class()->states[PICO8_STATE_PH] != NULL);
-    memset(&zero_fixed, 0, sizeof zero_fixed);
-    zero_fixed.kind = PICO8_VALUE_FIXED;
-    memset(&zero_false, 0, sizeof zero_false);
-    zero_false.kind = PICO8_VALUE_BOOL;
-    memset(&zero_string, 0, sizeof zero_string);
-    zero_string.kind = PICO8_VALUE_STRING;
-    memset(&zero_ref, 0, sizeof zero_ref);
-    zero_ref.kind = PICO8_VALUE_REF;
-
-    must_abort_value(b, write_v_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
-    must_abort_value(b, write_v_by_name, zero_fixed);
-    must_abort_value(b, write_v_by_name, zero_false);
-    must_abort_value(b, write_v_by_name, zero_string);
-    must_abort_value(b, write_v_by_name, pico8_value_bool(1));
-    must_abort_value(b, write_v_by_name, pico8_value_string("x"));
-    must_abort_value(b, write_v_by_name, pico8_value_ref((void *)pico8_hv()));
-    must_abort_value(b, write_v_by_name, pico8_value_ref(a));
-
-    must_abort_value(b, write_ma_by_name, zero_ref);
-    must_abort_value(b, write_ma_by_name, pico8_value_ref(NULL));
-    must_abort_value(b, write_ma_by_name, zero_false);
-    must_abort_value(b, write_ma_by_name, zero_string);
-    must_abort_value(b, write_ma_by_name, pico8_value_bool(1));
-    must_abort_value(b, write_ma_by_name, pico8_value_string("x"));
-    must_abort_value(b, write_ma_by_name, heap_vec(1, 1));
-    must_abort_value(b, write_ma_by_name, pico8_value_ref(a));
 }
 
 int main(void) {
@@ -758,8 +401,6 @@ int main(void) {
     test_second_jl();
     test_placeholder_mo();
     test_qb_is_a_struct();
-    test_qb_members_by_name();
-    test_qb_writer_stops_off_row();
 
     printf("test_pico8_qb: all tests passed\n");
     return 0;

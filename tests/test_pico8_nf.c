@@ -1,15 +1,12 @@
-/* The mouse reader `nf` (`je` once `jl()` has run), read only through the
- * dual-form field reader and driven through the real `dg`, in games built
- * directly: no events file. */
+/* The mouse reader `nf` (`je` once `jl()` has run), read through
+ * pico8_je_nf() and the shared `l`/`r` tables and driven through the real
+ * `dg`, in games built directly: no events file. */
 
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bg.h"
@@ -32,7 +29,6 @@
 
 #define SCRIPTED_TICKS 12
 #define SCRIPTED_HASH 0xEB03D064u
-#define NF_MEMBERS_HASH 0x8D1F75D8u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -69,46 +65,45 @@ static int in_any_cv(const void *e) {
     return 0;
 }
 
-/* NULL when `je` has no such field. */
-static const pico8_nf_button_t *button(const char *bt) {
-    pico8_value_t v;
+/* The shared tables while `je` is an nf, NULL on the placeholder. */
+static const pico8_nf_button_t *je_l(void) {
+    return pico8_je_nf() != NULL ? pico8_nf_l() : NULL;
+}
 
-    if (!pico8_entity_get_field(pico8_je(), bt, &v) || v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
-        return NULL;
-    }
-    return v.as.ref;
+static const pico8_nf_button_t *je_r(void) {
+    return pico8_je_nf() != NULL ? pico8_nf_r() : NULL;
 }
 
 /* -1 absent, else the boolean. */
-static int flag(const char *bt, const char *name) {
-    const pico8_nf_button_t *b = button(bt);
+static int on_of(const pico8_nf_button_t *b) {
+    return b == NULL || !b->has_on ? -1 : b->on;
+}
 
-    if (b == NULL || !b->has_on) {
-        return -1;
-    }
-    if (strcmp(name, "on") == 0) {
-        return b->on;
-    }
-    return strcmp(name, "jn") == 0 ? b->jn : b->hm;
+static int jn_of(const pico8_nf_button_t *b) {
+    return b == NULL || !b->has_on ? -1 : b->jn;
+}
+
+static int hm_of(const pico8_nf_button_t *b) {
+    return b == NULL || !b->has_on ? -1 : b->hm;
 }
 
 static int ra_of_je(pico8_vec_t *out) {
-    pico8_value_t v;
+    const pico8_nf_t *nf = pico8_je_nf();
 
-    if (!pico8_entity_get_field(pico8_je(), "ra", &v)) {
+    if (nf == NULL || nf->ra == NULL) {
         return 0;
     }
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    *out = *(const pico8_vec_t *)v.as.ref;
+    *out = *nf->ra;
     return 1;
 }
 
 static uint32_t fold_je(uint32_t h) {
-    const char *bts[] = {"l", "r"};
-    const char *names[] = {"on", "jn", "hm"};
+    const pico8_nf_button_t *bts[2];
     pico8_vec_t ra;
     int i;
-    int j;
+
+    bts[0] = je_l();
+    bts[1] = je_r();
 
     if (ra_of_je(&ra)) {
         h = fnv(h, (uint32_t)ra.x);
@@ -117,9 +112,9 @@ static uint32_t fold_je(uint32_t h) {
         h = fnv(h, 0xDEADu);
     }
     for (i = 0; i < 2; i++) {
-        for (j = 0; j < 3; j++) {
-            h = fnv(h, (uint32_t)flag(bts[i], names[j]));
-        }
+        h = fnv(h, (uint32_t)on_of(bts[i]));
+        h = fnv(h, (uint32_t)jn_of(bts[i]));
+        h = fnv(h, (uint32_t)hm_of(bts[i]));
     }
     return h;
 }
@@ -156,7 +151,6 @@ static void frame(int i, int x, int y, int buttons) {
  * `l`/`r` present and still empty. */
 static void test_jl_builds_a_mouse_reader(void) {
     const void *je;
-    pico8_value_t v;
     pico8_vec_t ra;
 
     pico8_poke(&mem, 0x5f2d, 0);
@@ -164,11 +158,10 @@ static void test_jl_builds_a_mouse_reader(void) {
     je = pico8_je();
     assert(pico8_peek(&mem, 0x5f2d) == 1);
     assert(listed(pico8_hv(), je) && !in_any_cv(je));
-    assert(!pico8_entity_get_field(je, "nu", &v));
     assert(ra_of_je(&ra) && ra.x == 0 && ra.y == 0);
-    assert(button("l") != NULL && button("r") != NULL && button("l") != button("r"));
-    assert(flag("l", "on") == -1 && flag("l", "jn") == -1 && flag("l", "hm") == -1);
-    assert(flag("r", "on") == -1 && flag("r", "jn") == -1 && flag("r", "hm") == -1);
+    assert(je_l() != NULL && je_r() != NULL && je_l() != je_r());
+    assert(on_of(je_l()) == -1 && jn_of(je_l()) == -1 && hm_of(je_l()) == -1);
+    assert(on_of(je_r()) == -1 && jn_of(je_r()) == -1 && hm_of(je_r()) == -1);
 }
 
 /* Left alone, right, middle, left+right, releases, moving each tick. */
@@ -206,15 +199,15 @@ static void test_buttons_survive_jl(void) {
     pico8_dg();
     pico8_input_step(&input);
     pico8_dg();
-    assert(flag("l", "on") == 1);
-    l_before = button("l");
+    assert(on_of(je_l()) == 1);
+    l_before = je_l();
 
     pico8_jl();
     pico8_input_step(&input);
     pico8_dg();
     unscript();
-    assert(button("l") == l_before);
-    assert(flag("l", "jn") == 0 && flag("l", "on") == 1);
+    assert(je_l() == l_before);
+    assert(jn_of(je_l()) == 0 && on_of(je_l()) == 1);
 }
 
 /* Rebuilding the class starts both tables afresh. */
@@ -224,11 +217,11 @@ static void test_nf_init_starts_the_tables_afresh(void) {
     script(1);
     pico8_dg();
     unscript();
-    assert(flag("l", "on") == 1);
+    assert(on_of(je_l()) == 1);
 
     pico8_nf_init();
     pico8_jl();
-    assert(flag("l", "on") == -1 && flag("r", "on") == -1);
+    assert(on_of(je_l()) == -1 && on_of(je_r()) == -1);
 }
 
 /* Before `jl()`, `je` is the field-less placeholder: no buttons, no `ra`,
@@ -236,15 +229,14 @@ static void test_nf_init_starts_the_tables_afresh(void) {
 static void test_placeholder_je(void) {
     pico8_ui_t *ok;
     pico8_vec_t ra;
-    pico8_value_t v;
 
     pico8_jl();
     pico8_ui_init();
-    assert(button("l") == NULL && button("r") == NULL && !ra_of_je(&ra));
+    assert(je_l() == NULL && je_r() == NULL && !ra_of_je(&ra));
     ok = pico8_ui_new();
     pico8_ui_lj(&mem, ok);
-    assert(!pico8_entity_get_field(ok, "lheld", &v) && !pico8_entity_get_field(ok, "rheld", &v));
-    assert(pico8_entity_get_field(ok, "qa", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
+    assert(ok->lheld == NULL && ok->rheld == NULL);
+    assert(ok->qa != NULL);
 }
 
 /* The title screen's `je`, then `eu` starting a game with the left button
@@ -265,7 +257,7 @@ static void test_launch_with_left_held(void) {
     pico8_input_step(&input);
     pico8_dg();
     unscript();
-    assert(flag("l", "on") == 1);
+    assert(on_of(je_l()) == 1);
 }
 
 static int is_an_nf_struct(const void *e) {
@@ -274,16 +266,11 @@ static int is_an_nf_struct(const void *e) {
 }
 
 /* Built by `pico8_nf_new` or through its class, an nf is a struct in hv
- * only; `ph` is its method, `kj` and `p_` are absent, and every nf shares
- * the same `l` and `r`. */
+ * only; `ph` is its method, `kj` is absent, and every nf shares the class's
+ * two button tables. */
 static void test_nf_is_a_struct_sharing_its_buttons(void) {
     void *built;
     void *generic;
-    pico8_value_t out;
-    pico8_value_t l_built;
-    pico8_value_t r_built;
-    pico8_value_t l_generic;
-    pico8_value_t r_generic;
 
     pico8_jl();
     built = pico8_nf_new();
@@ -294,177 +281,8 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
     assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] != NULL);
     assert(((const pico8_struct_header_t *)generic)->cls->kj == NULL);
-    assert(!pico8_entity_get_field(generic, "p_", &out));
-    assert(pico8_entity_get_field(built, "l", &l_built) && pico8_entity_get_field(built, "r", &r_built));
-    assert(pico8_entity_get_field(generic, "l", &l_generic) && pico8_entity_get_field(generic, "r", &r_generic));
-    assert(l_built.as.ref == l_generic.as.ref && r_built.as.ref == r_generic.as.ref);
-    assert(l_built.as.ref != r_built.as.ref);
-}
-
-#define WITNESS 0x1234
-
-/* Reads `name` through the raw reader and through pico8_entity_get_field,
- * which must agree; a miss leaves the witness intact in both. */
-static uint32_t fold_member(uint32_t h, const void *e, const char *name, pico8_value_t *out) {
-    pico8_value_t raw = pico8_value_fixed(WITNESS);
-    pico8_value_t gen = pico8_value_fixed(WITNESS);
-    int got_raw = pico8_nf_struct_class()->field(e, name, &raw);
-    int got_gen = pico8_entity_get_field(e, name, &gen);
-
-    assert(got_raw == got_gen && raw.kind == gen.kind);
-    h = fnv(h, (uint32_t)got_raw);
-    h = fnv(h, (uint32_t)raw.kind);
-    if (!got_raw) {
-        assert(raw.kind == PICO8_VALUE_FIXED && raw.as.fixed == WITNESS && gen.as.fixed == WITNESS);
-    } else if (raw.kind == PICO8_VALUE_FIXED) {
-        assert(raw.as.fixed == gen.as.fixed);
-        h = fnv(h, (uint32_t)raw.as.fixed);
-    } else if (raw.kind == PICO8_VALUE_STRING) {
-        assert(strcmp(raw.as.string, gen.as.string) == 0);
-        h = fnv(h, (uint32_t)strlen(raw.as.string));
-    } else {
-        assert(raw.kind == PICO8_VALUE_REF && raw.as.ref == gen.as.ref);
-    }
-    if (out != NULL) {
-        *out = raw;
-    }
-    return h;
-}
-
-/* `ra` present, a vector the type tag does not know, folded by value; its
- * address is returned for the caller to judge. */
-static uint32_t fold_ra(uint32_t h, const void *e, const void **addr) {
-    pico8_value_t v;
-    const pico8_vec_t *ra;
-
-    h = fold_member(h, e, "ra", &v);
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
-    ra = v.as.ref;
-    h = fnv(h, (uint32_t)ra->x);
-    h = fnv(h, (uint32_t)ra->y);
-    *addr = ra;
-    return h;
-}
-
-static uint32_t fold_nf(uint32_t h, const void *e, const void **ra_addr) {
-    static const char *const intruders[] = {"", "x", "RA", "p", "v", "ke", "header", "has_ra"};
-    pico8_value_t v;
-    pico8_value_t l;
-    pico8_value_t r;
-    size_t i;
-
-    h = fold_ra(h, e, ra_addr);
-    h = fold_member(h, e, "l", &l);
-    h = fold_member(h, e, "r", &r);
-    assert(l.kind == PICO8_VALUE_REF && r.kind == PICO8_VALUE_REF && l.as.ref != r.as.ref);
-    assert(l.as.ref == button("l") && r.as.ref == button("r"));
-    h = fold_member(h, e, "me", NULL);
-    h = fold_member(h, e, "t", NULL);
-    for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
-        h = fold_member(h, e, intruders[i], &v);
-        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == WITNESS);
-    }
-    return h;
-}
-
-static void must_abort(void *e, const char *name, pico8_value_t value) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        pico8_entity_set_field(e, name, value);
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-static pico8_value_t vec_ref(int x, int y) {
-    pico8_vec_t *p = malloc(sizeof *p);
-
-    *p = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(p);
-}
-
-/* `ra` read by name on `je` and on fresh nfs, which all share one copy of
- * the zero vector `pico8_nf_start.ra`; `ph` rebinds a fresh vector each call and
- * leaves the old one intact; `bg.mq` keeps the very vector `je.ra` hands
- * out; no name can be written. */
-static void test_nf_members_by_name(void) {
-    uint32_t h = 2166136261u;
-    void *je;
-    void *a;
-    void *b;
-    void *bg;
-    const void *ra_je;
-    const void *ra_a;
-    const void *ra_b;
-    const void *ra_prev;
-    pico8_value_t r;
-    pico8_value_t out;
-    pico8_value_t zero_false;
-    pico8_value_t zero_fixed;
-    int i;
-
-    pico8_jl();
-    je = pico8_je();
-    a = pico8_nf_new();
-    b = pico8_nf_new();
-    h = fold_nf(h, je, &ra_je);
-    h = fold_nf(h, a, &ra_a);
-    h = fold_nf(h, b, &ra_b);
-    assert(ra_je == ra_a && ra_a == ra_b);
-    assert(((const pico8_vec_t *)ra_a)->x == 0 && ((const pico8_vec_t *)ra_a)->y == 0);
-    assert(ra_a != (const void *)&pico8_nf_start.ra);
-    assert(((const pico8_vec_t *)ra_a)->x == pico8_nf_start.ra.x);
-    assert(((const pico8_vec_t *)ra_a)->y == pico8_nf_start.ra.y);
-
-    frame(0, 17, 93, 0);
-    frame(1, 101, 5, 0);
-    script(2);
-    ra_prev = ra_b;
-    for (i = 0; i < 2; i++) {
-        pico8_nf_ph(&input, a);
-        h = fold_nf(h, a, &ra_a);
-        assert(ra_a != ra_b && ra_a != ra_prev && ra_a != (const void *)&pico8_nf_start.ra);
-        assert(((const pico8_vec_t *)ra_a)->x == pico8_fixed_from_int(g_frames[i].mouse_x));
-        assert(((const pico8_vec_t *)ra_a)->y == pico8_fixed_from_int(g_frames[i].mouse_y));
-        if (i == 1) {
-            assert(((const pico8_vec_t *)ra_prev)->x == pico8_fixed_from_int(17));
-            assert(((const pico8_vec_t *)ra_prev)->y == pico8_fixed_from_int(93));
-        }
-        ra_prev = ra_a;
-        h = fold_nf(h, b, &ra_b);
-        assert(ra_b == ra_je && ((const pico8_vec_t *)ra_b)->x == 0 && ((const pico8_vec_t *)ra_b)->y == 0);
-        if (i == 0) {
-            pico8_input_step(&input);
-        }
-    }
-    unscript();
-
-    bg = (void *)pico8_bg_new();
-    assert(pico8_entity_get_field(je, "ra", &r) && r.kind == PICO8_VALUE_REF);
-    assert(pico8_bg_struct_class()->rdown(bg, vec_ref(0, 0).as.ref, r.as.ref).held == bg);
-    assert(pico8_entity_get_field(bg, "mq", &out) && out.kind == PICO8_VALUE_REF && out.as.ref == ra_je);
-    h = fold_nf(h, je, &ra_je);
-    assert(ra_je == out.as.ref);
-
-    memset(&zero_false, 0, sizeof zero_false);
-    zero_false.kind = PICO8_VALUE_BOOL;
-    memset(&zero_fixed, 0, sizeof zero_fixed);
-    zero_fixed.kind = PICO8_VALUE_FIXED;
-    must_abort(je, "ra", pico8_value_ref(NULL));
-    must_abort(je, "ra", vec_ref(1, 1));
-    must_abort(je, "ra", zero_false);
-    must_abort(je, "ra", zero_fixed);
-    h = fold_nf(h, je, &ra_je);
-    assert(ra_je == out.as.ref);
-    check("nf members", h, NF_MEMBERS_HASH);
+    assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);
+    assert(pico8_nf_l() != pico8_nf_r());
 }
 
 int main(void) {
@@ -486,7 +304,6 @@ int main(void) {
     test_placeholder_je();
     test_launch_with_left_held();
     test_nf_is_a_struct_sharing_its_buttons();
-    test_nf_members_by_name();
 
     printf("test_pico8_nf: all tests passed\n");
     return 0;

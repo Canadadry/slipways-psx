@@ -59,29 +59,22 @@ static int registered(const void *e, int entity_live) {
     return 0;
 }
 
-/* Every name a reader of `je` asks for, and a few it never does, is absent;
- * no method answers; nothing registers it. */
+/* Not an nf; no method answers; nothing registers it. */
 static void assert_placeholder(int entity_live) {
-    const char *names[] = {"ra", "l", "r", "me", "t"};
     pico8_struct_header_t *je = pico8_je();
-    pico8_value_t v;
-    int i;
 
-    assert(je != NULL);
-    for (i = 0; i < 5; i++) {
-        assert(!pico8_entity_get_field(je, names[i], &v));
-    }
+    assert(je != NULL && pico8_je_nf() == NULL);
     assert(je->cls->states[PICO8_STATE_PH] == NULL);
     assert(je->cls->kj == NULL);
     assert(!registered(je, entity_live));
 }
 
 static void assert_an_nf(void) {
-    pico8_value_t v;
+    const pico8_nf_t *nf = pico8_je_nf();
 
-    assert(pico8_entity_get_field(pico8_je(), "ra", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    assert(((const pico8_vec_t *)v.as.ref)->x == 0 && ((const pico8_vec_t *)v.as.ref)->y == 0);
-    assert(pico8_entity_get_field(pico8_je(), "l", &v) && pico8_entity_get_field(pico8_je(), "r", &v));
+    assert(nf != NULL && nf->ra != NULL);
+    assert(nf->ra->x == 0 && nf->ra->y == 0);
+    assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);
 }
 
 /* Between pico8_cart_load() and pico8__init(). */
@@ -93,16 +86,15 @@ static void test_placeholder_after_cart_load(void) {
  * run: no press, `qa` is `mo.ra` alone. */
 static void test_lj_on_placeholder(void) {
     pico8_ui_t *ok;
-    pico8_value_t v;
     const pico8_vec_t *qa;
 
     pico8_entity_init();
     assert_placeholder(1);
     ok = pico8_ui_new();
     pico8_ui_lj(&mem, ok);
-    assert(!pico8_entity_get_field(ok, "lheld", &v) && !pico8_entity_get_field(ok, "rheld", &v));
-    assert(pico8_entity_get_field(ok, "qa", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    qa = v.as.ref;
+    assert(ok->lheld == NULL && ok->rheld == NULL);
+    assert(ok->qa != NULL);
+    qa = ok->qa;
     printf("[lj qa] (%d,%d)\n", (int)qa->x, (int)qa->y);
     fflush(stdout);
     assert(qa->x == LJ_QA_X && qa->y == LJ_QA_Y);

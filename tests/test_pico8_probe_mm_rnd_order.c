@@ -38,14 +38,13 @@ static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du
 }
 
 static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
-    pico8_value_t qy_val;
     pico8_value_t particle;
     pico8_list_iter_t it;
 
     pico8_ez((pico8_struct_header_t *)probe, pico8_fixed_from_int(1));
 
-    assert(pico8_entity_get_field(probe, "qy", &qy_val) && qy_val.kind == PICO8_VALUE_REF && qy_val.as.ref != NULL);
-    it = pico8_list_all((const pico8_list_t *)qy_val.as.ref);
+    assert(probe->emitter != NULL && probe->emitter->qy != NULL);
+    it = pico8_list_all(probe->emitter->qy);
     assert(pico8_list_iter_next(&it, &particle) && particle.kind == PICO8_VALUE_REF && particle.as.ref != NULL);
     return ((const pico8_qy_t *)particle.as.ref)->p;
 }

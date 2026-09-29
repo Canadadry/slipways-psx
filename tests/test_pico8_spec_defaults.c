@@ -40,17 +40,16 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static pico8_nf_button_t *nf_l_of(void *nf) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(nf, "l", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return v.as.ref;
+static pico8_nf_button_t *nf_l_of(const pico8_nf_t *nf) {
+    assert(nf != NULL && pico8_nf_l() != NULL);
+    return (pico8_nf_button_t *)pico8_nf_l();
 }
 
 /* The second `jl()` (the one `eu` runs) finds `qb`, `nf` and `ui` ready and
  * leaves their state alone: a mark written into `nf`'s `l` and into the
  * shared `le` survives it; `qb` stays ready throughout. */
 static void test_second_jl_keeps_specs(void) {
-    pico8_nf_button_t *nf_l = nf_l_of(pico8_je());
+    pico8_nf_button_t *nf_l = nf_l_of(pico8_je_nf());
     pico8_list_t *ui_le = pico8_ui_le_shared();
     pico8_value_t mark = pico8_value_fixed(0x7777);
     int hm = nf_l->hm;
@@ -64,7 +63,7 @@ static void test_second_jl_keeps_specs(void) {
     pico8_jl();
 
     assert(pico8_qb_ready());
-    assert(nf_l_of(pico8_je()) == nf_l && nf_l_of(pico8_je())->hm == 0x7777);
+    assert(nf_l_of(pico8_je_nf()) == nf_l && nf_l_of(pico8_je_nf())->hm == 0x7777);
     assert(pico8_ui_le_shared() == ui_le && pico8_ui_le_shared()->count == ui_count);
     assert(pico8_list_del(ui_le, mark));
     nf_l->hm = hm;
