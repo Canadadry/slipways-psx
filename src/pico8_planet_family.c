@@ -512,7 +512,7 @@ pico8_qy_t *pico8_ga_mm(void *self_ptr) {
 }
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p) {
-    const pico8_list_t *qy = NULL;
+    const pico8_ptrs_t *qy = NULL;
     const pico8_qy_t *last_pt = NULL;
     int i;
     int px;
@@ -531,10 +531,7 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
         const pico8_qy_t *pt = NULL;
 
         if (qy != NULL && i <= qy->count) {
-            pico8_value_t entry = qy->items[i - 1];
-            if (entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL) {
-                pt = (const pico8_qy_t *)entry.as.ref;
-            }
+            pt = qy->items[i - 1];
         }
 
         if (pt != NULL) {

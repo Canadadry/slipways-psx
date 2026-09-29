@@ -41,7 +41,7 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
                 particle->v = v;
                 particle->l = pico8_vec_qx(d);
 
-                pico8_list_add(self->ts, pico8_value_ref(particle));
+                pico8_ptrs_add(self->ts, particle);
             }
         }
     }
@@ -131,19 +131,17 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
                     pico8_jc_display_to_int(c));
 
         {
-            pico8_list_t *ts = self->ts;
+            pico8_ptrs_t *ts = self->ts;
             if (ts != NULL) {
                 int i;
                 for (i = 0; i < ts->count; i++) {
-                    pico8_value_t t_val = ts->items[i];
-                    pico8_ts_t *t;
+                    pico8_ts_t *t = ts->items[i];
                     pico8_vec_t new_ra;
                     pico8_fixed_t new_l;
 
-                    if (t_val.kind != PICO8_VALUE_REF || t_val.as.ref == NULL) {
+                    if (t == NULL) {
                         continue;
                     }
-                    t = (pico8_ts_t *)t_val.as.ref;
 
                     new_ra = pico8_vec_add(t->ra, t->v);
                     t->ra = new_ra;
@@ -154,7 +152,7 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
                     /* No `else` in the Lua: an expired particle is removed
                      * and still drawn once more at its final position. */
                     if (new_l <= pico8_fixed_from_int(0)) {
-                        pico8_list_del(ts, t_val);
+                        pico8_ptrs_del(ts, t);
                     }
 
                     {

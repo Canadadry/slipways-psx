@@ -7,7 +7,6 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -130,28 +129,22 @@ static pico8_fixed_t never_drawn(void *ctx) {
 
 /* bw hands gn every df entry, in order, at og = 2. */
 static void test_gn_pools_df_entries_by_their_r(void) {
-    pico8_list_t hr;
     pico8_gn_state_t *state;
     int i;
 
-    pico8_list_init(&hr);
-    for (i = 0; i < PICO8_DF_COUNT; i++) {
-        pico8_list_add(&hr, pico8_value_ref((void *)&pico8_df_table[i]));
-    }
-    state = pico8_gn(&hr, pico8_fixed_from_int(2), never_drawn, NULL);
-    assert(state->oc.count == 66);
+    state = pico8_gn(pico8_df_table, PICO8_DF_COUNT, pico8_fixed_from_int(2), never_drawn, NULL);
+    assert(state->oc_count == 66);
     for (i = 0; i < PICO8_DF_COUNT; i++) {
         int want = pico8_fixed_flr_int(pico8_fixed_mul(pico8_df_table[i].r, pico8_fixed_from_int(2)));
         int got = 0;
         int j;
 
-        for (j = 0; j < state->oc.count; j++) {
-            got += state->oc.items[j].as.ref == &pico8_df_table[i];
+        for (j = 0; j < state->oc_count; j++) {
+            got += state->oc[j] == &pico8_df_table[i];
         }
         assert(got == want);
     }
     pico8_gn_free(state);
-    pico8_list_free(&hr);
 }
 
 /* ob() gave each string token its own allocation: no string field of the jo

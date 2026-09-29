@@ -4,8 +4,8 @@
 #include "pico8_struct.h"
 #include "pico8_game_data.h"
 #include "pico8_gfx.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
+#include "pico8_ptrs.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
@@ -41,7 +41,7 @@ typedef struct pico8_emitter {
     pico8_fixed_t ro;
     pico8_fixed_t qg;
     pico8_fixed_t q_;
-    pico8_list_t *qy;
+    pico8_ptrs_t *qy;
 } pico8_emitter_t;
 
 /* TROU-7 */

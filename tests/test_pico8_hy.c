@@ -55,6 +55,10 @@
 #define LJ_HASH 0x77BE9594u
 #define KT_HASH 0x5EE5D720u
 
+/* The tag `invented` carried as a tagged list, which the frozen hashes fold:
+ * any other value moves every *_HASH. */
+#define FROZEN_LIST_TAG 0x9E5C1157u
+
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
@@ -79,9 +83,9 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static const pico8_list_t *invented_of(const pico8_hy_t *hy) {
-    const pico8_list_t *l = hy->invented;
-    assert(l != NULL && pico8_type_tag_of(l) == PICO8_TYPE_TAG_LIST);
+static const pico8_ptrs_t *invented_of(const pico8_hy_t *hy) {
+    const pico8_ptrs_t *l = hy->invented;
+    assert(l != NULL);
     return l;
 }
 
@@ -158,17 +162,17 @@ static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
     return has ? fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)v) : fold_absent(h);
 }
 
-static uint32_t fold_list_member(uint32_t h, const pico8_list_t *l) {
+static uint32_t fold_list_member(uint32_t h, const pico8_ptrs_t *l) {
     int i;
 
     if (l == NULL) {
         return fold_absent(h);
     }
     h = fnv(h, (uint32_t)PICO8_VALUE_REF);
-    h = fnv(h, (uint32_t)pico8_type_tag_of(l));
+    h = fnv(h, FROZEN_LIST_TAG);
     h = fnv(h, (uint32_t)l->count);
     for (i = 0; i < l->count; i++) {
-        h = fold_value(h, l->items[i], 2);
+        h = fold_string(fnv(h, (uint32_t)PICO8_VALUE_STRING), l->items[i]);
     }
     return h;
 }
@@ -324,7 +328,7 @@ static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class
 static void test_construction(void) {
     uint32_t h = 2166136261u;
     pico8_hy_t *bare;
-    const pico8_list_t *first;
+    const pico8_ptrs_t *first;
 
     pico8__init();
     bare = pico8_hy_new();
@@ -373,7 +377,7 @@ static void test_nx(void) {
     assert(fm_hy()->yr == pico8_fixed_add(yr, pico8_fixed_from_int(1)));
     h = fold_fm(h);
 
-    pico8_list_add(fm_hy()->invented, pico8_value_string("time compression"));
+    pico8_ptrs_add(fm_hy()->invented, "time compression");
     pico8_hy_nx(fm_self(), pico8_fixed_from_int(14));
     assert(fm_hy()->lo == pico8_fixed_from_int(15));
     assert(fm_hy()->yr == pico8_fixed_add(yr, pico8_fixed_from_int(1)));

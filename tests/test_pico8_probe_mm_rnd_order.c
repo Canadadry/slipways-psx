@@ -18,7 +18,6 @@
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_ke.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_value.h"
@@ -38,15 +37,17 @@ static pico8_g__t *new_probe(pico8_fixed_t pn, pico8_fixed_t t, pico8_fixed_t du
 }
 
 static pico8_vec_t emitted_particle_p(pico8_g__t *probe) {
-    pico8_value_t particle;
-    pico8_list_iter_t it;
+    void *particle;
+    const pico8_qy_t *q;
+    pico8_ptrs_iter_t it;
 
     pico8_ez((pico8_struct_header_t *)probe, pico8_fixed_from_int(1));
 
     assert(probe->emitter != NULL && probe->emitter->qy != NULL);
-    it = pico8_list_all(probe->emitter->qy);
-    assert(pico8_list_iter_next(&it, &particle) && particle.kind == PICO8_VALUE_REF && particle.as.ref != NULL);
-    return ((const pico8_qy_t *)particle.as.ref)->p;
+    it = pico8_ptrs_all(probe->emitter->qy);
+    assert(pico8_ptrs_iter_next(&it, &particle) && particle != NULL);
+    q = particle;
+    return q->p;
 }
 
 static void test_probe_particle_draws_rnd_pn_before_rnd_half(void) {

@@ -196,7 +196,7 @@ pico8_ky_t pico8_ky(void) {
     pico8_fixed_t total;
     const pico8_hy_t *fm = pico8_fm_hy();
     pico8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : pico8_fixed_from_int(0);
-    const pico8_list_t *invented = fm != NULL ? fm->invented : NULL;
+    const pico8_ptrs_t *invented = fm != NULL ? fm->invented : NULL;
     int invented_count = (invented != NULL) ? invented->count : 0;
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     char *happiness_str;

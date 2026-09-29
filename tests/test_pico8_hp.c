@@ -531,6 +531,7 @@ static void test_functions(void) {
     assert(pico8_fm_hy() == NULL && !pico8_oj(pico8_value_string("nanomaterials")));
     start_game();
     assert(!pico8_oj(pico8_value_string("nanomaterials")));
+    assert(!pico8_oj(pico8_value_fixed(pico8_fixed_from_int(1))));
     check("functions", fold_functions(2166136261u), FUNCTIONS_HASH);
 
     invent("nanomaterials");

@@ -38,7 +38,7 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
 /* TROU-7 */
 void pico8_f_(pico8_struct_header_t *self) {
     pico8_emitter_t *emitter;
-    pico8_list_t *qy;
+    pico8_ptrs_t *qy;
 
     if (self == NULL) {
         return;
@@ -49,13 +49,13 @@ void pico8_f_(pico8_struct_header_t *self) {
 
     emitter = self->cls->emitter_of(self);
     qy = malloc(sizeof *qy);
-    pico8_list_init(qy);
+    pico8_ptrs_init(qy);
     emitter->qy = qy;
 }
 
 void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     pico8_emitter_t *emitter;
-    pico8_list_t *qy;
+    pico8_ptrs_t *qy;
 
     if (self == NULL) {
         return;
@@ -68,7 +68,7 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
 
     while (pico8_fixed_rnd_default() < n) {
         if (qy != NULL && self->cls->mm != NULL) {
-            pico8_list_add(qy, pico8_value_ref(self->cls->mm(self)));
+            pico8_ptrs_add(qy, self->cls->mm(self));
         }
         n = pico8_fixed_sub(n, pico8_fixed_from_int(1));
     }
@@ -85,7 +85,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     pico8_fixed_t ro;
     pico8_fixed_t q_;
     const pico8_int_seq_t *cs;
-    pico8_list_t *qy;
+    pico8_ptrs_t *qy;
     int i;
 
     if (self == NULL) {
@@ -112,14 +112,12 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     qy = emitter->qy;
     if (qy != NULL) {
         for (i = 0; i < qy->count; i++) {
-            pico8_value_t p_value = qy->items[i];
-            pico8_qy_t *p;
+            pico8_qy_t *p = qy->items[i];
             pico8_vec_t pv;
 
-            if (p_value.kind != PICO8_VALUE_REF || p_value.as.ref == NULL) {
+            if (p == NULL) {
                 continue;
             }
-            p = (pico8_qy_t *)p_value.as.ref;
             pv = p->v;
 
             p->p = pico8_vec_add(p->p, pv);
@@ -140,7 +138,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
                 /* The Lua loop is `pairs()`, not `all()`: the element
                  * that slides into the vacated slot is skipped this
                  * frame. Reproduced by never compensating the index. */
-                pico8_list_del(qy, p_value);
+                pico8_ptrs_del(qy, p);
             } else {
                 int px = pico8_particle_to_int(pico8_fixed_add(cx, p->p.x));
                 int py = pico8_particle_to_int(pico8_fixed_add(cy, p->p.y));

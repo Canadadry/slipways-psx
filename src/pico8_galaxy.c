@@ -40,10 +40,8 @@ void pico8_bw(pico8_fixed_t n) {
     pico8_fixed_t two_seventy_five = PICO8_FIXED_LIT(0x0002c000, 2.75);
     pico8_fixed_t eighth = PICO8_FIXED_LIT(0x00002000, 0.125);
     pico8_fixed_t id;
-    int i;
     const pico8_js_t *dk;
     pico8_fixed_t dk_en = pico8_fixed_from_int(0);
-    pico8_list_t hr_list;
     pico8_jf_state_t *new_oc_r_ctx;
     pico8_gn_state_t *oc_state;
     pico8_jf_state_t *ir_state;
@@ -99,13 +97,8 @@ void pico8_bw(pico8_fixed_t n) {
         dk_en = dk->en;
     }
 
-    pico8_list_init(&hr_list);
-    for (i = 0; i < PICO8_DF_COUNT; i++) {
-        pico8_list_add(&hr_list, pico8_value_ref((void *)&pico8_df_table[i]));
-    }
     new_oc_r_ctx = pico8_jf(PICO8_FIXED_LIT(0x00008000, 0.5), dk_en);
-    oc_state = pico8_gn(&hr_list, pico8_fixed_from_int(2), pico8_bw_gn_r, new_oc_r_ctx);
-    pico8_list_free(&hr_list);
+    oc_state = pico8_gn(pico8_df_table, PICO8_DF_COUNT, pico8_fixed_from_int(2), pico8_bw_gn_r, new_oc_r_ctx);
 
     /* Freed in lockstep with pico8_jo_set_oc releasing the gn state it was
      * paired with, so a repeated pico8_bw() neither leaks nor frees the pair

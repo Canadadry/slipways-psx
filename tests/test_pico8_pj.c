@@ -28,7 +28,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
 #include "../src/pico8_msgbox.h"
@@ -702,7 +701,7 @@ static void test_ky_reads_invented_and_happiness(void) {
     (void)start_game();
     fm = pico8_fm_hy();
     for (i = 0; i < 10; i++) {
-        pico8_list_add(fm->invented, pico8_value_fixed(pico8_fixed_from_int(i)));
+        pico8_ptrs_add(fm->invented, "a tech");
     }
     fm->happiness = pico8_fixed_from_int(1);
     fm->has_happiness = 1;
@@ -736,7 +735,7 @@ static void test_ph_rows_show_ky(void) {
     int i;
 
     for (i = 0; i < 10; i++) {
-        pico8_list_add(fm->invented, pico8_value_fixed(pico8_fixed_from_int(i)));
+        pico8_ptrs_add(fm->invented, "a tech");
     }
     fm->happiness = pico8_fixed_from_int(1);
     fm->has_happiness = 1;

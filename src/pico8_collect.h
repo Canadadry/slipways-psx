@@ -48,9 +48,9 @@ typedef int (*pico8_nv_ptrs_fn)(void *e, void *ctx, void **out);
 pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx);
 
 /* TROU-3 */
-/* Membership as pico8_gu, except that two PICO8_VALUE_STRINGs are compared
- * by content. */
-int pico8_gu_content(const pico8_list_t *qk, pico8_value_t kb);
+/* Membership by string content: every element of `qk` is a string (NULL is
+ * skipped); a NULL `qk` is a member of nothing. */
+int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb);
 
 /* Returns a newly malloc'd string the caller must free(), and writes the
  * color into *out_color: `c` when d >= 0, 8 when d < 0. `ku` may be NULL

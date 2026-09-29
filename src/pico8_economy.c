@@ -22,7 +22,7 @@ static const pico8_struct_class_t g_hy_struct_class = {0};
 
 static void *pico8_hy_struct_new(void) {
     pico8_hy_t *self = malloc(sizeof *self);
-    pico8_list_t *invented;
+    pico8_ptrs_t *invented;
 
     self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_hy_struct_class;
@@ -48,7 +48,7 @@ static void *pico8_hy_struct_new(void) {
     self->ew = pico8_fixed_from_int(1);
     /* TROU-7 */
     invented = malloc(sizeof *invented);
-    pico8_list_init(invented);
+    pico8_ptrs_init(invented);
     self->invented = invented;
     self->lo = pico8_fixed_from_int(1);
     self->yr = pico8_fixed_from_int(3401);
@@ -289,7 +289,7 @@ void pico8_hy_kt(pico8_hy_t *self, const pico8_nb_entry_t *t) {
 
     if (self->invented != NULL) {
         if (t != NULL && t->px != NULL) {
-            pico8_list_add(self->invented, pico8_value_string(t->px));
+            pico8_ptrs_add(self->invented, (void *)t->px);
         }
         count = self->invented->count;
     }

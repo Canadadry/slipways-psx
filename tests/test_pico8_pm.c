@@ -140,6 +140,10 @@ static int list_size(const pico8_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ptrs_size(const pico8_ptrs_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     const pico8_kw_t *k = jo->kw;
 
@@ -298,7 +302,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     }
     assert(gra != ra && gra != ng);
     h = fold_vec(h, g->jo.ra);
-    h = fnv(h, (uint32_t)list_size(g->emitter->qy));
+    h = fnv(h, (uint32_t)ptrs_size(g->emitter->qy));
     assert(pico8_mo_qb() != NULL);
     return fold_fixed_member(h, pico8_mo_qb()->ma);
 }
@@ -409,7 +413,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)jo->has_mi);
     h = fnv(h, (uint32_t)jo->has_m_);
-    assert(list_size(em->qy) == 0);
+    assert(ptrs_size(em->qy) == 0);
     assert_qh_shape(cls_of(e));
     assert_members_of(cls_of(e), pico8_qh_struct_class(), 0, 1);
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
@@ -492,7 +496,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static uint32_t fold_draw(uint32_t h, void *e) {
     pico8_dc("kj");
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)list_size(as_hj(e)->emitter->qy));
+    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->qy));
 }
 
 /* `dg` in "ly" (qh's `ly`, `na`); `mm` (`g_.mm`, `pk` false: no rotation)
@@ -524,8 +528,8 @@ static void test_life(void) {
 
     h = fold_particle(h, pico8_value_ref(cls_of(placed)->mm(placed)));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
-    h = fnv(h, (uint32_t)list_size(as_hj(placed)->emitter->qy));
-    assert(list_size(as_hj(placed)->emitter->qy) >= 2);
+    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
+    assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
 
     h = fold_draw(h, placed);
     h = fold_draw(h, placed);
@@ -568,7 +572,7 @@ static void test_pm_is_a_struct(void) {
     {
         pico8_pm_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && bare->hj.qh.jo.id == NULL && bare->hj.qh.jo.ra == NULL &&
-               bare->hj.qh.jo.oe != NULL && list_size(bare->hj.emitter->qy) == 0 && listed(pico8_cg("jo"), bare));
+               bare->hj.qh.jo.oe != NULL && ptrs_size(bare->hj.emitter->qy) == 0 && listed(pico8_cg("jo"), bare));
     }
 }
 

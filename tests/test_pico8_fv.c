@@ -205,7 +205,7 @@ static uint32_t fold_box(uint32_t h, const pico8_qz_box_t *b) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int size_of(const pico8_list_t *list) {
+static int size_of(const pico8_ptrs_t *list) {
     return list == NULL ? -1 : list->count;
 }
 
@@ -486,7 +486,7 @@ static void test_hover(void) {
  * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. */
 static void test_particle_takes_the_help_palette(void) {
     static pico8_qy_t particle;
-    pico8_list_t *qy;
+    pico8_ptrs_t *qy;
     pico8_vec_t ra;
     pico8_fv_t *fv;
     int at;
@@ -501,7 +501,7 @@ static void test_particle_takes_the_help_palette(void) {
     particle.l = PICO8_FIXED_LIT(0x00068000, 6.5);
     qy = fv->g_.emitter->qy;
     qy->count = 0;
-    pico8_list_add(qy, pico8_value_ref(&particle));
+    pico8_ptrs_add(qy, &particle);
     pico8_camera_reset(&gfx);
     at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
     pico8_poke(&mem, at, 3);

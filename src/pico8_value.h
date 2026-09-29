@@ -52,7 +52,7 @@ pico8_value_t pico8_value_ref(void *p);
  *     Lua interns its literals, so there two equal strings are the same
  *     object; this port allocates a fresh string per parsed token, so
  *     they are not. A caller that wants content equality must ask for it
- *     explicitly: pico8_gu_content (pico8_collect.h) exists for exactly
+ *     explicitly: pico8_gu_content_ptrs (pico8_collect.h) exists for
  *     that, and several modules compare string contents themselves. Two
  *     neighbouring call sites can therefore legitimately differ on which
  *     comparison they use; neither is to be "fixed" after the other. */

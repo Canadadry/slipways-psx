@@ -117,7 +117,7 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, pico8_value_t id) {
 }
 
 void pico8_jc_pq(pico8_jc_t *self) {
-    pico8_list_t *ts;
+    pico8_ptrs_t *ts;
 
     if (self == NULL) {
         return;
@@ -126,7 +126,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
     pico8_rn(pico8_value_fixed(pico8_fixed_from_int(50)));
 
     ts = malloc(sizeof *ts);
-    pico8_list_init(ts);
+    pico8_ptrs_init(ts);
     self->ts = ts;
 
     self->hg_own.count = 0;

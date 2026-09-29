@@ -249,6 +249,10 @@ static int list_count(const pico8_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ptrs_count(const pico8_ptrs_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 /* The count, then each `id` and `true`. */
 static uint32_t fold_hg(uint32_t h, const void *jc) {
     const pico8_jc_hg_t *hg = as_jc(jc)->hg;
@@ -284,7 +288,7 @@ static uint32_t fold_jc(uint32_t h, const void *e) {
     h = fold_ref(h, jc->probe->et);
     h = fold_ref(h, jc->fo);
     h = fnv(h, (uint32_t)holder_kind(jc->fo));
-    h = fnv(h, (uint32_t)list_count(jc->ts));
+    h = fnv(h, (uint32_t)ptrs_count(jc->ts));
     return fold_hg(h, jc);
 }
 
@@ -471,7 +475,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(nu == &pico8_jc_nu_tags && nu->count == 1 && strcmp(nu->items[0], "jc") == 0);
     assert(jc->qu == qu);
 
-    assert(list_count(jc->ts) == 0);
+    assert(ptrs_count(jc->ts) == 0);
     hg = jc->hg;
     assert(hg == &jc->hg_own && hg->count == 0);
 

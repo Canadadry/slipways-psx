@@ -135,6 +135,10 @@ static int list_size(const pico8_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ptrs_size(const pico8_ptrs_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
     switch (v.kind) {
     case PICO8_VALUE_BOOL:
@@ -315,7 +319,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, (uint32_t)(em->k_ == NULL ? -1 : em->k_->count));
     h = fnv(h, (uint32_t)(jo->nu == NULL ? -1 : jo->nu->count));
     h = fnv(h, (uint32_t)list_size(jo->by));
-    h = fnv(h, (uint32_t)list_size(em->qy));
+    h = fnv(h, (uint32_t)ptrs_size(em->qy));
     h = fnv(h, (uint32_t)list_size(jo->oe));
     assert(pico8_mo_qb() != NULL);
     h = fold_fixed_member(h, pico8_mo_qb()->ma);
@@ -519,7 +523,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     pico8_ga_t *g = as_ga(e);
-    pico8_list_t *qy = g->emitter->qy;
+    pico8_ptrs_t *qy = g->emitter->qy;
 
     assert(qy != NULL && qy->count >= n);
     qy->count = n;
@@ -558,7 +562,7 @@ static void test_life(void) {
         h = fold_p_(h, &as_ga(a)->jo);
         h = fold_p_(h, &as_ga(b)->jo);
         h = fold_p_(h, &as_ga(c)->jo);
-        h = fnv(h, (uint32_t)list_size(as_ga(b)->emitter->qy));
+        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->qy));
     }
 
     as_ga(b)->emitter->qy->count = 3;
@@ -633,7 +637,7 @@ static void test_ei_moves_a_particle_in_place(void) {
     pico8_vec_t p0 = vec_xy(3, -2);
     pico8_vec_t v0 = pico8_vec_v(PICO8_FIXED_LIT(0x00018000, 1.5), PICO8_FIXED_LIT(0x00004000, 0.25));
     pico8_vec_t a0 = pico8_vec_v(PICO8_FIXED_LIT(0x00002000, 0.125), PICO8_FIXED_LIT(0xFFFF8000, -0.5));
-    pico8_list_t *qy;
+    pico8_ptrs_t *qy;
     pico8_fixed_t vx;
     pico8_fixed_t vy;
     void *e;
@@ -650,13 +654,13 @@ static void test_ei_moves_a_particle_in_place(void) {
     particle.l = pico8_fixed_from_int(5);
     qy = em->qy;
     qy->count = 0;
-    pico8_list_add(qy, pico8_value_ref(&particle));
+    pico8_ptrs_add(qy, &particle);
 
     pico8_ei(&gfx, &mem, e);
 
     vx = pico8_fixed_add(pico8_fixed_mul(em->qo, v0.x), pico8_fixed_mul(em->ro, v0.y));
     vy = pico8_fixed_add(pico8_fixed_mul(em->qg, vx), pico8_fixed_mul(em->q_, v0.y));
-    assert(qy->count >= 1 && qy->items[0].as.ref == (void *)&particle);
+    assert(qy->count >= 1 && qy->items[0] == &particle);
     assert(particle.p.x == pico8_fixed_add(p0.x, v0.x) && particle.p.y == pico8_fixed_add(p0.y, v0.y));
     assert(particle.v.x == pico8_fixed_add(vx, a0.x) && particle.v.y == pico8_fixed_add(vy, a0.y));
     assert(particle.a.x == a0.x && particle.a.y == a0.y);

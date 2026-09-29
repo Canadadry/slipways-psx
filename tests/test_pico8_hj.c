@@ -155,6 +155,10 @@ static int list_size(const pico8_list_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ptrs_size(const pico8_ptrs_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     const pico8_kw_t *k = jo->kw;
 
@@ -402,7 +406,7 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)jo->has_mi);
     h = fnv(h, (uint32_t)jo->has_m_);
-    assert(list_size(em->qy) == 0);
+    assert(ptrs_size(em->qy) == 0);
     assert_qh_members_but_kj(cls_of(e));
     assert(cls_of(e)->kj == pico8_hj_struct_class()->kj && pico8_jo_is_family(e));
     assert(cls_of(e)->mm == pico8_g__mm);
@@ -487,7 +491,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static uint32_t fold_draw(uint32_t h, void *e) {
     pico8_dc("kj");
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)list_size(as_hj(e)->emitter->qy));
+    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->qy));
 }
 
 /* `hq` (`bv`) on screen then `ey` (`d_`) with the credits; `bb`/`ib`/`gg`/
@@ -529,8 +533,8 @@ static void test_life(void) {
 
     h = fold_particle(h, pico8_value_ref(cls_of(placed)->mm(placed)));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
-    h = fnv(h, (uint32_t)list_size(as_hj(placed)->emitter->qy));
-    assert(list_size(as_hj(placed)->emitter->qy) >= 2);
+    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
+    assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
 
     h = fold_draw(h, placed);
     h = fold_draw(h, placed);
@@ -559,7 +563,7 @@ static uint32_t fold_heir(uint32_t h, void *e, const pico8_struct_class_t *cls) 
     assert(is_of(e, cls == pico8_pm_struct_class() ? &pico8_pm_px_row : &pico8_mx_px_row));
     assert(cls_of(e)->kj == pico8_hj_struct_class()->kj);
     assert(cls_of(e)->mm == pico8_hj_struct_class()->mm);
-    assert(list_size(hj->emitter->qy) == 0);
+    assert(ptrs_size(hj->emitter->qy) == 0);
     assert(hj->qh.qh_is_bool && hj->qh.qh == 0);
     h = fold_string_member(h, hj->qh.jo.id);
     h = fold_string_member(h, hj->qh.jo.ke.me);
@@ -653,7 +657,7 @@ static void test_hj_is_a_struct(void) {
     {
         pico8_hj_t *bare = pico8_hj_new(NULL);
         assert(is_an_hj_struct(bare) && bare->qh.jo.id == NULL && bare->qh.jo.oe != NULL &&
-               list_size(bare->emitter->qy) == 0 && listed(pico8_cg("hj"), bare));
+               ptrs_size(bare->emitter->qy) == 0 && listed(pico8_cg("hj"), bare));
     }
 }
 

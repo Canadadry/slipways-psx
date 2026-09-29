@@ -475,9 +475,7 @@ void pico8_jo_hh(pico8_jo_t *self) {
         if (use_ll) {
             nk = pico8_df_lookup("ll");
         } else if (g_jo_oc != NULL) {
-            pico8_value_t e = pico8_gn_next(g_jo_oc);
-
-            nk = e.kind == PICO8_VALUE_REF ? e.as.ref : NULL;
+            nk = pico8_gn_next(g_jo_oc);
         }
     }
     self->nk = nk;

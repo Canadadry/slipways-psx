@@ -27,7 +27,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_ke.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
@@ -224,7 +223,7 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int size_of(const pico8_list_t *list) {
+static int size_of(const pico8_ptrs_t *list) {
     return list == NULL ? -1 : list->count;
 }
 

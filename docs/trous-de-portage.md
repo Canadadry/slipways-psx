@@ -46,7 +46,8 @@ alors que Lua interne les littéraux : deux chaînes identiques y sont le
 même objet. Comme le parseur `ob()` de ce port alloue une chaîne neuve par
 token, deux chaînes égales ne sont jamais le même pointeur.
 
-Contourné au cas par cas : `pico8_gu_content` compare par contenu, et
+Contourné au cas par cas : `pico8_gu_content_ptrs` compare par contenu
+(les chaînes de `hy.invented`, pour `oj`), et
 plusieurs modules ont leur propre comparaison par contenu (`jo:gg`, `dh`,
 `db`). Toute nouvelle comparaison de chaînes doit choisir explicitement,
 `pico8_value_equal` ne fera pas ce qu'on croit.

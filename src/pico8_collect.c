@@ -128,19 +128,15 @@ pico8_ptrs_t pico8_la_ptrs(const pico8_ptrs_t *a, const pico8_ptrs_t *b) {
 }
 
 /* TROU-3 */
-int pico8_gu_content(const pico8_list_t *qk, pico8_value_t kb) {
-    pico8_list_iter_t it;
-    pico8_value_t e;
+int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb) {
+    pico8_ptrs_iter_t it;
+    void *e;
     if (qk == NULL) {
         return 0;
     }
-    it = pico8_list_all(qk);
-    while (pico8_list_iter_next(&it, &e)) {
-        if (e.kind == PICO8_VALUE_STRING && kb.kind == PICO8_VALUE_STRING) {
-            if (strcmp(e.as.string, kb.as.string) == 0) {
-                return 1;
-            }
-        } else if (pico8_value_equal(e, kb)) {
+    it = pico8_ptrs_all(qk);
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        if (e != NULL && strcmp(e, kb) == 0) {
             return 1;
         }
     }

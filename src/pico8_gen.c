@@ -1,5 +1,6 @@
 #include "pico8_gen.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "pico8_game_data.h"
@@ -29,13 +30,13 @@ void pico8_jf_free(pico8_jf_state_t *state) {
  * sequence iteration: it stops at the first slot never assigned. Hence the
  * early return on an unset slot -- dropping it would widen the anti-repeat
  * window past what the cart does. */
-static int pico8_gn_nm_contains(const pico8_gn_state_t *state, pico8_value_t e) {
+static int pico8_gn_nm_contains(const pico8_gn_state_t *state, const pico8_df_entry_t *e) {
     int i;
     for (i = 0; i < 3; i++) {
         if (!state->nm_set[i]) {
             return 0;
         }
-        if (pico8_value_equal(state->nm[i], e)) {
+        if (state->nm[i] == e) {
             return 1;
         }
     }
@@ -44,58 +45,72 @@ static int pico8_gn_nm_contains(const pico8_gn_state_t *state, pico8_value_t e) 
 
 /* `for n=1,e.r*og`: Lua runs the body floor(X) times for X>=1 and never
  * for X<1, which is what pico8_fixed_flr reproduces here. */
-pico8_gn_state_t *pico8_gn(const pico8_list_t *hr, pico8_fixed_t og, pico8_gn_random_fn r, void *r_ctx) {
+pico8_gn_state_t *pico8_gn(const pico8_df_entry_t *hr, int hr_count, pico8_fixed_t og, pico8_gn_random_fn r,
+                           void *r_ctx) {
     pico8_gn_state_t *state = malloc(sizeof *state);
-    pico8_list_iter_t it;
-    pico8_value_t e;
     int i;
 
-    pico8_list_init(&state->oc);
+    state->oc_count = 0;
     for (i = 0; i < 3; i++) {
-        state->nm[i] = pico8_value_ref(NULL);
+        state->nm[i] = NULL;
         state->nm_set[i] = 0;
     }
     state->r = r;
     state->r_ctx = r_ctx;
 
-    it = pico8_list_all(hr);
-    while (pico8_list_iter_next(&it, &e)) {
-        const pico8_df_entry_t *entity = (const pico8_df_entry_t *)e.as.ref;
+    for (i = 0; i < hr_count; i++) {
+        const pico8_df_entry_t *entity = &hr[i];
         pico8_fixed_t count_fixed;
         int count, n;
 
         count_fixed = pico8_fixed_flr(pico8_fixed_mul(entity->r, og));
         count = pico8_fixed_flr_int(count_fixed);
         for (n = 1; n <= count; n++) {
-            pico8_list_add(&state->oc, e);
+            assert(state->oc_count < PICO8_GN_OC_CAP &&
+                   "gn: the pool is bounded by the cart's only gn(df,2): a larger df or og needs a larger array");
+            state->oc[state->oc_count++] = entity;
         }
     }
 
     return state;
 }
 
+/* del(oc,e): the first entry identical to `e` goes, the later ones shift
+ * down. `e` is always in `oc`. */
+static void pico8_gn_oc_del(pico8_gn_state_t *state, const pico8_df_entry_t *e) {
+    int i = 0;
+
+    while (state->oc[i] != e) {
+        i++;
+    }
+    state->oc_count--;
+    for (; i < state->oc_count; i++) {
+        state->oc[i] = state->oc[i + 1];
+    }
+}
+
 /* `del` drops the picked ticket for good, so `oc` only ever shrinks. `df`
  * at `og=2` yields 66 tickets while `bw(90)` can reveal 90 planets; an
  * emptied pool would index out of range just below. */
-pico8_value_t pico8_gn_next(pico8_gn_state_t *state) {
-    pico8_value_t e;
+const pico8_df_entry_t *pico8_gn_next(pico8_gn_state_t *state) {
+    const pico8_df_entry_t *e;
 
     for (;;) {
         pico8_fixed_t r_val = state->r(state->r_ctx);
-        pico8_fixed_t len_fixed = pico8_fixed_from_int(state->oc.count);
+        pico8_fixed_t len_fixed = pico8_fixed_from_int(state->oc_count);
         pico8_fixed_t idx_fixed =
             pico8_fixed_flr(pico8_fixed_add(pico8_fixed_mul(r_val, len_fixed), pico8_fixed_from_int(1)));
         int idx0 = pico8_fixed_flr_int(idx_fixed) - 1;
 
-        e = state->oc.items[idx0];
+        e = state->oc[idx0];
         if (!pico8_gn_nm_contains(state, e)) {
             break;
         }
     }
 
-    pico8_list_del(&state->oc, e);
+    pico8_gn_oc_del(state, e);
     {
-        int slot = 3 - (state->oc.count % 3);
+        int slot = 3 - (state->oc_count % 3);
         state->nm[slot - 1] = e;
         state->nm_set[slot - 1] = 1;
     }
@@ -106,6 +121,5 @@ void pico8_gn_free(pico8_gn_state_t *state) {
     if (state == NULL) {
         return;
     }
-    pico8_list_free(&state->oc);
     free(state);
 }

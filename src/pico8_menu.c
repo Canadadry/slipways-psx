@@ -134,9 +134,9 @@ static void pico8_cr_step(pico8_value_t e, pico8_cr_row_t *b) {
 }
 
 /* TROU-7 */
-/* `jb` of the "n invented" row: one line per invented tech, its name (any
- * other value an empty line), in one fresh block. */
-static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_list_t *list) {
+/* `jb` of the "n invented" row: one line per invented tech, its name (NULL
+ * an empty line), in one fresh block. */
+static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_ptrs_t *list) {
     int n = list != NULL ? list->count : 0;
     pico8_jb_row_t *row = calloc(1, sizeof *row + (size_t)n * sizeof(pico8_jb_item_t));
     pico8_jb_item_t *items = (pico8_jb_item_t *)(row + 1);
@@ -144,9 +144,7 @@ static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_list_t *list)
 
     assert(row != NULL);
     for (i = 0; i < n; i++) {
-        if (list->items[i].kind == PICO8_VALUE_STRING) {
-            items[i].s = list->items[i].as.string;
-        }
+        items[i].s = list->items[i];
     }
     row->count = n;
     row->items = items;

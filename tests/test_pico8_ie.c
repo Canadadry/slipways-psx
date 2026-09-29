@@ -27,7 +27,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -511,12 +510,12 @@ static void test_draw(void) {
 }
 
 /* `rr` of each `gx[]` class, in `gx[]` order: nil for `qh` and `os`. */
-static const char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "trade league", "void synthesis",
+static char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "trade league", "void synthesis",
                                      "ascension"};
 
-static void invent(const char *rr) {
+static void invent(char *rr) {
     assert(pico8_fm_hy() != NULL && pico8_fm_hy()->invented != NULL);
-    pico8_list_add(pico8_fm_hy()->invented, pico8_value_string(rr));
+    pico8_ptrs_add(pico8_fm_hy()->invented, rr);
 }
 
 /* Per icon, in `gx[]` order: `hb` reveals it exactly when `oj(self.ke.rr)`,

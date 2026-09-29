@@ -638,14 +638,16 @@ static void test_pause(void) {
     check("pause", h, PAUSE_HASH);
 }
 
-static void invent(const char *rr) {
+static void invent(char *rr) {
     assert(pico8_fm_hy() != NULL && pico8_fm_hy()->invented != NULL);
-    pico8_list_add(pico8_fm_hy()->invented, pico8_value_string(rr));
+    pico8_ptrs_add(pico8_fm_hy()->invented, rr);
 }
 
 static void test_research(void) {
     uint32_t h = 2166136261u;
     const pico8_ptrs_t *le;
+    const pico8_jb_t *jb;
+    const pico8_lq_t *line;
     int unaffordable = 0;
     int i;
 
@@ -662,6 +664,11 @@ static void test_research(void) {
     printf("[research] %d unaffordable tech(s)\n", unaffordable);
     assert(unaffordable >= 1);
     assert(!js_of(le->items[le->count - 1])->has_my && js_of(le->items[le->count - 1])->jb != NULL);
+    jb = js_of(le->items[le->count - 1])->jb;
+    assert(jb->ls->count == 1 && jb->ls->items[0].kind == PICO8_VALUE_REF);
+    line = jb->ls->items[0].as.ref;
+    assert(line->items.count == 1 && line->items.items[0].kind == PICO8_VALUE_STRING);
+    assert(strcmp(line->items.items[0].as.string, "slipgates") == 0);
     h = fold_le(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -927,7 +934,8 @@ static void test_fe_my(void) {
 static void test_cr_my(void) {
     uint32_t h = 2166136261u;
     const pico8_ptrs_t *le;
-    const pico8_list_t *invented;
+    const pico8_ptrs_t *invented;
+    const char *last;
     int i;
 
     tech_screen();
@@ -945,8 +953,9 @@ static void test_cr_my(void) {
     invented = pico8_fm_hy()->invented;
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
-    h = fold_value(h, invented->items[invented->count - 1]);
-    printf("[cr my] row %d invented %s\n", i, invented->items[invented->count - 1].as.string);
+    last = invented->items[invented->count - 1];
+    h = fold_string(h, last);
+    printf("[cr my] row %d invented %s\n", i, last);
     check("cr my", h, CR_MY_HASH);
 }
 

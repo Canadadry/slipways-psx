@@ -4,6 +4,7 @@
 #include "pico8_economy_formulas.h"
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
+#include "pico8_ptrs.h"
 #include "pico8_struct.h"
 
 /* Throughout this module a NULL `self` is a safe no-op. */
@@ -19,7 +20,7 @@ typedef struct {
     pico8_fixed_t ge;
     pico8_fixed_t jk;
     pico8_fixed_t ew;
-    pico8_list_t *invented;
+    pico8_ptrs_t *invented;
     pico8_fixed_t lo;
     pico8_fixed_t yr;
     pico8_qe_map_t *po;

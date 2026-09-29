@@ -114,7 +114,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `jf(n_,b)` | `pico8_jf`/`_next` | marche aléatoire bornée, un pas par appel |
-| `gn(hr,og,r)` | `pico8_gn`/`_next` | tirage pondéré (par le champ `.r`) avec fenêtre anti-répétition de 3 |
+| `gn(hr,og,r)` | `pico8_gn`/`_next` | tirage pondéré (par le champ `.r`) avec fenêtre anti-répétition de 3 ; `hr` est un tableau d'entrées de `df`, le pool `oc` un tableau fixe de `PICO8_GN_OC_CAP` (66) tickets, `_next` rend l'entrée tirée |
 
 ## Entrée : classes lectrices
 
@@ -282,7 +282,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `qj(o,mr)` | — | fusionne `mr` dans `o` ; `mr` gagne sur les clés partagées |
 | `mw(o)` | — | copie superficielle ; celle d'un besoin par `jo:lz` copie le `pico8_jy_t` |
 | `gu(qk,kb)` | `pico8_gu` | `kb` est-il dans la liste `qk` (identité de pointeur) |
-| — | `pico8_gu_content` | même chose, mais les chaînes sont comparées par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua |
+| — | `pico8_gu_content_ptrs` | appartenance d'une chaîne à un `pico8_ptrs_t` de chaînes (`hy.invented`), comparée par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua (TROU-3) |
 | `jp(qk,ow)` | `pico8_jp` | filtre |
 | `nv(qk,kp)` | `pico8_nv` | applique `kp`, en ignorant les résultats faux |
 | — | `pico8_gu_ptrs`, `pico8_nv_ptrs`, `pico8_jp_ptrs`, `pico8_la_ptrs` | `gu`, `nv`, `jp` et `la` sur un `pico8_ptrs_t` (élément `void *`, appartenance par identité) ; ceux des registres, les versions à valeur gardant leurs autres appelants |
@@ -655,7 +655,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
 | Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des deux formes qui modélisent encore la table Lua (la troisième, la table ob, est supprimée à D.8) ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
 | Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
-| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) |
+| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented` |
 
 ### Mise en page
 

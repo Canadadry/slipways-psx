@@ -27,16 +27,19 @@ static int g_nb_e_[PICO8_NB_COUNT];
 
 int pico8_oj(pico8_value_t px) {
     const pico8_hy_t *fm = pico8_fm_hy();
-    const pico8_list_t *invented_list = NULL;
+    const pico8_ptrs_t *invented_list = NULL;
 
     if (!pico8_tech_gate_truthy(px)) {
         return 1;
+    }
+    if (px.kind != PICO8_VALUE_STRING) {
+        return 0;
     }
     if (fm != NULL) {
         invented_list = fm->invented;
     }
     /* TROU-3 */
-    return pico8_gu_content(invented_list, px);
+    return pico8_gu_content_ptrs(invented_list, px.as.string);
 }
 
 pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc) {
