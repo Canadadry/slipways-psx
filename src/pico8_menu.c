@@ -23,7 +23,6 @@
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
-#include "pico8_ref_audit.h"
 
 /* The most items a row of `ix` or `ha` holds. */
 #define PICO8_MENU_ROW_CAP 4

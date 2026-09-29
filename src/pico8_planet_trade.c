@@ -10,7 +10,6 @@
 #include "pico8_planet.h"
 #include "pico8_planet_family.h"
 #include "pico8_trade.h"
-#include "pico8_ref_audit.h"
 #include "pico8_slipway.h"
 
 /* Membership by trade equality (same endpoints), not pico8_gu_ptrs's pointer

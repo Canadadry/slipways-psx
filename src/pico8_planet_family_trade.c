@@ -16,7 +16,6 @@
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
 #include "pico8_type_tag.h"
-#include "pico8_ref_audit.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
 static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};

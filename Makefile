@@ -23,8 +23,6 @@
 #                       sa référence (git blame), laisse la capture dans
 #                       tmp/frames/<events>.ref.bin et donne la première frame
 #                       divergente ; hors suite
-# make ref-audit     -> diagnostic des casts REF sur les e2e de tests/e2e/,
-#                       hors suite
 # make class-coverage [DIR=<dossier>] -> rejoue les e2e de tests/e2e/ (avec
 #                       DIR : chaque *events.json posé directement dans DIR,
 #                       sans sous-dossiers) et compte les instanciations par
@@ -102,11 +100,10 @@ TMP_DIR := tmp
 
 # Un arbre d'objets par jeu de flags. Un objet compilé sans -fsanitize n'est pas
 # instrumenté : le partager avec une cible qui l'est rendrait le binaire aveugle
-# sur ce code, sans rien dire. Ne pas fusionner les sept.
+# sur ce code, sans rien dire. Ne pas fusionner les six.
 OBJ_DIR := $(TMP_DIR)/obj
 OBJ_ASAN_DIR := $(TMP_DIR)/obj-asan
 OBJ_UBSAN_DIR := $(TMP_DIR)/obj-ubsan
-OBJ_REFAUDIT_DIR := $(TMP_DIR)/obj-refaudit
 OBJ_COVERAGE_DIR := $(TMP_DIR)/obj-coverage
 OBJ_GCOV_DIR := $(TMP_DIR)/obj-gcov
 OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
@@ -117,7 +114,6 @@ OBJ_SANITIZE_DIR := $(TMP_DIR)/obj-sanitize
 DEPFLAGS := -MMD -MP
 ASAN_CFLAGS := -fsanitize=address -fno-omit-frame-pointer
 UBSAN_CFLAGS := -fsanitize=undefined -fno-sanitize-recover=undefined
-REFAUDIT_CFLAGS := -DPICO8_REF_AUDIT
 COVERAGE_CFLAGS := -DPICO8_CLASS_COVERAGE
 GCOV_CFLAGS := --coverage
 SANITIZE_OPT_CFLAGS := -O2
@@ -128,7 +124,6 @@ SANITIZE_OPT_CFLAGS := -O2
 objs = $(patsubst %.c,$(OBJ_DIR)/%.o,$(1))
 asan_objs = $(patsubst %.c,$(OBJ_ASAN_DIR)/%.o,$(1))
 ubsan_objs = $(patsubst %.c,$(OBJ_UBSAN_DIR)/%.o,$(1))
-refaudit_objs = $(patsubst %.c,$(OBJ_REFAUDIT_DIR)/%.o,$(1))
 coverage_objs = $(patsubst %.c,$(OBJ_COVERAGE_DIR)/%.o,$(1))
 gcov_objs = $(patsubst %.c,$(OBJ_GCOV_DIR)/%.o,$(1))
 sanitize_objs = $(patsubst %.c,$(OBJ_SANITIZE_DIR)/%.o,$(1))
@@ -146,10 +141,6 @@ $(OBJ_ASAN_DIR)/%.o: %.c
 $(OBJ_UBSAN_DIR)/%.o: %.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(UBSAN_CFLAGS) $(DEPFLAGS) -c -o $@ $<
-
-$(OBJ_REFAUDIT_DIR)/%.o: %.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 $(OBJ_COVERAGE_DIR)/%.o: %.c
 	@mkdir -p $(@D)
@@ -765,39 +756,6 @@ e2e-baseline: $(foreach e,$(E2E_EVENTS),$(call frames_current,$(e)))
 e2e-ref: $(foreach e,$(E2E_EVENTS),$(if $(wildcard $(call frames_reference,$(e))),$(call frames_current,$(e)))) $(FRAMES_TOOL) tools/frames_ref.sh
 	@sh tools/frames_ref.sh ./$(FRAMES_TOOL) $(FRAMES_DIR) $(TMP_DIR)/frames-ref $(foreach e,$(E2E_EVENTS),$(e) $(call frames_reference,$(e)) $(call frames_current,$(e)) $(call frames_capture,$(e)))
 
-# make ref-audit : un diagnostic, pas un test, et délibérément hors de `test`.
-# Il répond « quels sites de cast REF ont été atteints, et avec quel tag », en
-# rejouant les binaires ci-dessous compilés avec -DPICO8_REF_AUDIT.
-$(TMP_DIR)/pico8_replay_refaudit: $(call refaudit_objs,src/main.c src/pico8_screencast.c $(ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit: $(call refaudit_objs,tests/test_pico8_planet_gh_row_lq.c $(ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_data_init_refaudit: $(call refaudit_objs,tests/test_pico8_data_init.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_planet_kj_dispatch_refaudit: $(call refaudit_objs,tests/test_pico8_planet_kj_dispatch.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-$(TMP_DIR)/test_pico8_ga_export_panel_by_refaudit: $(call refaudit_objs,tests/test_pico8_ga_export_panel_by.c $(ENGINE_SRCS)) | $(TMP_DIR)
-	$(CC) $(CFLAGS) $(REFAUDIT_CFLAGS) -o $@ $(filter %.o,$^) -lm
-
-REFAUDIT_BINS := \
-    $(TMP_DIR)/pico8_replay_refaudit \
-    $(TMP_DIR)/test_pico8_planet_gh_row_lq_refaudit \
-    $(TMP_DIR)/test_pico8_data_init_refaudit \
-    $(TMP_DIR)/test_pico8_planet_kj_dispatch_refaudit \
-    $(TMP_DIR)/test_pico8_ga_export_panel_by_refaudit
-
-# Chaque binaire ajoute son décompte à un fichier ; le script les additionne et
-# compare aux sites qu'il grep dans src/, pour qu'un site jamais atteint sorte en
-# NOT COVERED au lieu de manquer en silence.
-ref-audit: $(REFAUDIT_BINS)
-	sh tools/ref_audit_report.sh $(E2E_EVENTS)
-
-.PHONY: ref-audit
-
 # Tout vient de l'arbre coverage, qui n'est lié qu'ici et dans
 # test_class_coverage : le compteur n'y est compilé que sous PICO8_CLASS_COVERAGE.
 $(TMP_DIR)/pico8_class_coverage: $(call coverage_objs,src/main_class_coverage.c $(ENGINE_SRCS)) | $(TMP_DIR)
@@ -887,7 +845,7 @@ value-members: tools/entity_value_members.sh
 .PHONY: value-members
 
 # Catégories du compteur tombées à 0, séparées par des virgules.
-DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste
+DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit
 
 data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh
@@ -999,7 +957,6 @@ screencast-viewer: $(SCREENCAST_VIEWER_BIN)
 -include $(wildcard $(OBJ_DIR)/src/*.d $(OBJ_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_ASAN_DIR)/src/*.d $(OBJ_ASAN_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_UBSAN_DIR)/src/*.d $(OBJ_UBSAN_DIR)/tests/*.d)
--include $(wildcard $(OBJ_REFAUDIT_DIR)/src/*.d $(OBJ_REFAUDIT_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_COVERAGE_DIR)/src/*.d $(OBJ_COVERAGE_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_GCOV_DIR)/src/*.d $(OBJ_GCOV_DIR)/tests/*.d)
 -include $(wildcard $(OBJ_SANITIZE_DIR)/src/*.d $(OBJ_SANITIZE_DIR)/tests/*.d)

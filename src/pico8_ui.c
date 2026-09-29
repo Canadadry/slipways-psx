@@ -16,7 +16,6 @@
 #include "pico8_type_tag.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
-#include "pico8_ref_audit.h"
 
 static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;

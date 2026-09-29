@@ -16,7 +16,6 @@
 #include "pico8_planet.h"
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
-#include "pico8_ref_audit.h"
 #include "pico8_slipway.h"
 #include "pico8_type_tag.h"
 

@@ -8,7 +8,6 @@
 #include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
 #include "pico8_probe.h"
-#include "pico8_ref_audit.h"
 
 /* Lua truthiness -- fixed 0 included, it is truthy -- extended to read
  * this port's absent-value filler as falsy. */

@@ -11,7 +11,6 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
-#include "pico8_ref_audit.h"
 
 static int g_js_up = 0;
 static int g_fq_up = 0;

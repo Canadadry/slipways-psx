@@ -13,7 +13,6 @@
 #include "pico8_planet_family.h"
 #include "pico8_probe.h"
 #include "pico8_trade.h"
-#include "pico8_ref_audit.h"
 
 static int economy_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);

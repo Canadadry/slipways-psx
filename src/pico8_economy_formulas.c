@@ -9,7 +9,6 @@
 #include "pico8_research.h"
 #include "pico8_slipway.h"
 #include "pico8_vec.h"
-#include "pico8_ref_audit.h"
 
 static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
     return (a > b) ? a : b;

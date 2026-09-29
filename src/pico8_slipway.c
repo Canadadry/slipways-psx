@@ -21,7 +21,6 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
-#include "pico8_ref_audit.h"
 
 static int g_jc_up = 0;
 

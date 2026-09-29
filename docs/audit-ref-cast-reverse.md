@@ -2,9 +2,8 @@
 
 Table de classement site par site produite par
 [`docs/prd/triage/reverse-direction-ref-cast-audit.md`](prd/triage/reverse-direction-ref-cast-audit.md).
-Outillage :
-[`src/pico8_ref_audit.h`](../src/pico8_ref_audit.h),
-[`tools/ref_audit_report.sh`](../tools/ref_audit_report.sh), cible `make ref-audit`.
+L'outillage de l'audit (un en-tête d'instrumentation, un script de rapport et
+une cible `make` dédiés) a été supprimé depuis ; il reste dans l'historique git.
 
 ## Ce que « direction inverse » veut dire
 
@@ -270,17 +269,3 @@ dispatch sur tag lors du correctif du segfault `lq`. Un `grep` sur `->cls`
 dans `src/*.c` ne rend plus que `pico8_class.c` (parcours de la chaîne
 d'héritage, usage légitime) et les commentaires historiques de
 `pico8_ui_button.c`. Rien à supprimer.
-
-## Rejouer l'audit
-
-```
-make ref-audit
-```
-
-Sortie brute dans `tmp/ref_audit_raw.txt`, rapport dans
-`tmp/ref_audit_report.txt`. La cible est un diagnostic, pas un test : elle
-n'est volontairement pas dans `make test`, parce qu'elle répond à « qu'est-ce
-que les scénarios atteignent » et non à « le port se comporte-t-il bien ».
-Le script rejoue les fichiers qu'il reçoit en argument ; `make ref-audit` lui
-passe les e2e de `tests/e2e/`. Pour étendre la couverture, ajouter un e2e
-ou un binaire au bloc `REFAUDIT_BINS` du Makefile.

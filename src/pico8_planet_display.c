@@ -20,7 +20,6 @@
 #include "pico8_research.h"
 #include "pico8_research_display.h"
 #include "pico8_slipway.h"
-#include "pico8_ref_audit.h"
 #include "pico8_type_tag.h"
 
 /* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
