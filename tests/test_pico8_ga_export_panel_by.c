@@ -32,23 +32,22 @@
 
 /* The `js` buttons `pz()` just built. */
 static const pico8_list_t *ok_le(void) {
-    const void *ok = pico8_ok();
-    pico8_value_t le;
+    const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
-    assert(pico8_entity_get_field(ok, "le", &le));
-    assert(le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
-    return (const pico8_list_t *)le.as.ref;
+    assert(ok->le != NULL);
+    return ok->le;
 }
 
 static const pico8_lq_t *button_lq(pico8_value_t button_val) {
     const void *button;
-    pico8_value_t lq_val;
+    const pico8_lq_t *lq;
 
     assert(button_val.kind == PICO8_VALUE_REF && button_val.as.ref != NULL);
     button = button_val.as.ref;
-    assert(pico8_entity_get_field(button, "lq", &lq_val));
-    assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
-    return (const pico8_lq_t *)lq_val.as.ref;
+    assert(((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class());
+    lq = ((const pico8_js_t *)button)->lq;
+    assert(lq != NULL);
+    return lq;
 }
 
 static const char *lq_index_string(const pico8_lq_t *lq, int index) {
@@ -82,13 +81,10 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
     pico8_planet_family_init();
 }
 
-/* Read through the field interface, not the class defaults, so the test
+/* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
 static void *planet_by_ref(const pico8_ga_t *planet) {
-    pico8_value_t by;
-    assert(pico8_entity_get_field(planet, "by", &by));
-    assert(by.kind == PICO8_VALUE_REF);
-    return by.as.ref;
+    return planet->jo.by;
 }
 
 static void test_ga_export_line_counts_the_routes_in_by(void) {

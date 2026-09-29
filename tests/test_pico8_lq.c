@@ -1,5 +1,5 @@
-/* The laid-out row `lq`, read only through pico8_entity_get_field, its
- * pixels and row_count/row_item: direct constructions, `jo.ex`, `hp:lq` and
+/* The laid-out row `lq`, read on its struct members, its pixels and
+ * row_count/row_item: direct constructions, `jo.ex`, `hp:lq` and
  * the copy `js:pq` makes of it, `ol` through mv() and `pi.ld`, and a built
  * planet's panel in a game built directly: no events file. */
 
@@ -52,11 +52,6 @@
 #define HP_LQ_HASH 0x9071EEC9u
 #define CALLS_HASH 0x26A3DB53u
 #define PANEL_HASH 0xDA5A7F3Eu
-#define RAW_PRESENCE_HASH 0x8AE888A5u
-#define PANEL_PRESENCE_HASH 0x8278CD73u
-#define BG_FIXED_COUNT 0
-#define BG_FALSE_COUNT 1
-#define BG_ABSENT_COUNT 14
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -71,15 +66,10 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-/* The instance reader keeps a field written nil (TROU-9), the struct reader
- * reads a nil member as absent: nil and absent are one state here. */
-static int lookup(const void *e, const char *name, pico8_value_t *out) {
-    return pico8_entity_get_field(e, name, out) && !(out->kind == PICO8_VALUE_REF && out->as.ref == NULL);
-}
-
-static void *get_ref(const void *e, const char *name) {
-    pico8_value_t v;
-    return lookup(e, name, &v) && v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
+static const pico8_lq_t *as_lq(const void *lq) {
+    assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
+    return lq;
 }
 
 /* The only reader of a row's positionals: how many, then the i-th (0-based)
@@ -187,28 +177,37 @@ static uint32_t fold_positionals(uint32_t h, const void *lq) {
 }
 
 static int fs_count(const void *lq) {
-    const pico8_list_t *fs = get_ref(lq, "fs");
+    const pico8_list_t *fs = as_lq(lq)->fs;
     assert(fs != NULL && pico8_type_tag_of(fs) == PICO8_TYPE_TAG_LIST);
     return fs->count;
 }
 
 static pico8_fixed_t w_of(const void *lq) {
-    pico8_value_t w;
-    assert(lookup(lq, "w", &w) && w.kind == PICO8_VALUE_FIXED);
-    return w.as.fixed;
+    return as_lq(lq)->w;
+}
+
+/* fold_value's FIXED and BOOL cases at depth 0; an unset flag folds as
+ * absent. */
+static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
+    return has ? fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)v) : fnv(h, 0xFFFFFFFFu);
+}
+
+static uint32_t fold_bg(uint32_t h, const pico8_lq_t *lq) {
+    if (lq->has_bg && lq->bg_is_bool) {
+        return fnv(fnv(h, (uint32_t)PICO8_VALUE_BOOL), (uint32_t)(lq->bg != 0));
+    }
+    return fold_fixed_member(h, lq->has_bg, lq->bg);
 }
 
 /* `c`, `bg`, `score` as values; `ra` as the vector it points at. */
-static uint32_t fold_named(uint32_t h, const void *lq) {
-    static const char *const names[] = {"c", "bg", "score"};
+static uint32_t fold_named(uint32_t h, const void *row) {
+    const pico8_lq_t *lq = as_lq(row);
     const pico8_vec_t *ra;
-    pico8_value_t v;
-    size_t n;
 
-    for (n = 0; n < sizeof names / sizeof names[0]; n++) {
-        h = lookup(lq, names[n], &v) ? fold_value(h, v, 0) : fnv(h, 0xFFFFFFFFu);
-    }
-    ra = get_ref(lq, "ra");
+    h = fold_fixed_member(h, lq->has_c, lq->c);
+    h = fold_bg(h, lq);
+    h = fold_fixed_member(h, lq->has_score, lq->score);
+    ra = lq->ra;
     if (ra == NULL) {
         return fnv(h, 0xFFFFFFFFu);
     }
@@ -426,17 +425,17 @@ static void test_jo_ex(void) {
     pico8_value_t o;
 
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
-        void *p = project(ks[a]);
-        const pico8_list_t *is = get_ref(p, "i");
-        assert(lookup(p, "o", &o));
+        const pico8_hp_t *p = project(ks[a]);
+        const pico8_list_t *is = p->i;
+        assert(p->has_o);
+        o = pico8_value_fixed(p->o);
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
             const void *lq = pico8_jo_ex(is, o, pico8_fixed_from_int(jqs[b]), pico8_fixed_from_int((int)b % 3),
                                          pico8_fixed_from_int((int)b % 2));
-            pico8_value_t c;
             assert(lq != NULL);
-            assert(lookup(lq, "c", &c) == (jqs[b] > 5));
+            assert(as_lq(lq)->has_c == (jqs[b] > 5));
             if (jqs[b] > 5) {
-                assert(c.kind == PICO8_VALUE_FIXED && c.as.fixed == pico8_fixed_from_int(13));
+                assert(as_lq(lq)->c == pico8_fixed_from_int(13));
             }
             h = fold_row(h, lq);
         }
@@ -466,7 +465,6 @@ static void test_hp_lq_and_copy(void) {
         pico8_js_keys_t spec = {0};
         pico8_js_t *button;
         const void *copy;
-        pico8_value_t mb;
 
         assert(lq != NULL);
         assert(fs_count(lq) + 2 == row_count(lq));
@@ -474,12 +472,11 @@ static void test_hp_lq_and_copy(void) {
 
         spec.lq = pico8_value_ref(lq);
         button = pico8_js_new(&spec);
-        copy = get_ref(button, "lq");
+        copy = button->lq;
         assert(copy != NULL && copy != lq);
         assert(fs_count(copy) == row_count(copy) && row_count(copy) == row_count(lq));
         h = fold_row(h, copy);
-        assert(lookup(button, "mb", &mb) && mb.kind == PICO8_VALUE_FIXED);
-        h = fnv(h, (uint32_t)mb.as.fixed);
+        h = fnv(h, (uint32_t)button->mb);
         pico8_gfx_init(&gfx);
         pico8_cls(&mem);
         pico8_js_kj(&gfx, &mem, button, vec_xy(10, 50));
@@ -494,18 +491,16 @@ static void test_hp_lq_and_copy(void) {
         pico8_js_keys_t spec = {0};
         pico8_js_t *button;
         const void *h_;
-        pico8_value_t mb;
 
         spec.lq_row = &lq_t;
         spec.has_h_ = 1;
         spec.h_row = &h_t;
         button = pico8_js_new(&spec);
-        h = fold_row(h, get_ref(button, "lq"));
-        h_ = get_ref(button, "h_");
+        h = fold_row(h, button->lq);
+        h_ = button->h_;
         assert(h_ != NULL);
         h = fold_row(h, h_);
-        assert(lookup(button, "mb", &mb) && mb.kind == PICO8_VALUE_FIXED);
-        h = fnv(h, (uint32_t)mb.as.fixed);
+        h = fnv(h, (uint32_t)button->mb);
         pico8_gfx_init(&gfx);
         pico8_cls(&mem);
         pico8_js_kj(&gfx, &mem, button, vec_xy(10, 50));
@@ -582,21 +577,20 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_vec_t pos_of(const void *e) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, "p", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return *(const pico8_vec_t *)v.as.ref;
+static pico8_jo_t *as_jo(void *e) {
+    assert(pico8_jo_is_family(e));
+    return e;
+}
+
+static pico8_vec_t pos_of(void *e) {
+    const pico8_vec_t *p = as_jo(e)->p;
+    assert(p != NULL);
+    return *p;
 }
 
 static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
     pico8_vec_t d = pico8_vec_sub(a, b);
     return pico8_fixed_add(pico8_fixed_mul(d.x, d.x), pico8_fixed_mul(d.y, d.y));
-}
-
-static pico8_fixed_t must_fixed(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
-    return v.as.fixed;
 }
 
 /* A generated planet colonized by COLONY, its nearest one by EXPORTER, the
@@ -609,7 +603,7 @@ static void built_planet_panel(void) {
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
     void *re = NULL;
-    void *jc;
+    pico8_jc_t *jc;
     int i;
 
     start_game();
@@ -632,7 +626,7 @@ static void built_planet_panel(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
+    while (jc->ke.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);
@@ -644,17 +638,16 @@ static void built_planet_panel(void) {
     pico8__draw();
 }
 
-static uint32_t fold_button_row(uint32_t h, const void *button, const char *name) {
-    const void *lq = get_ref(button, name);
-    pico8_value_t v;
+/* A button's `lq` or `h_`, NULL when nil or false. */
+static uint32_t fold_button_row(uint32_t h, const pico8_lq_t *lq) {
     int i;
 
     if (lq == NULL) {
         return fnv(h, 0xDEADu);
     }
     h = fnv(h, (uint32_t)w_of(lq));
-    h = lookup(lq, "c", &v) ? fold_value(h, v, 0) : fnv(h, 0xFFFFFFFFu);
-    h = lookup(lq, "bg", &v) ? fold_value(h, v, 0) : fnv(h, 0xFFFFFFFFu);
+    h = fold_fixed_member(h, lq->has_c, lq->c);
+    h = fold_bg(h, lq);
     h = fnv(h, (uint32_t)row_count(lq));
     for (i = 0; i < row_count(lq); i++) {
         h = fnv(h, (uint32_t)row_item(lq, i).kind);
@@ -671,15 +664,15 @@ static void test_planet_panel(void) {
     int i;
 
     built_planet_panel();
-    le = get_ref(pico8_ok(), "le");
+    le = pico8_ok()->le;
     assert(le != NULL);
     for (i = 0; i < le->count; i++) {
         const void *button = le->items[i].as.ref;
         if (button != NULL && pico8_type_tag_of(button) == PICO8_TYPE_TAG_STRUCT &&
             ((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class()) {
             buttons++;
-            h = fold_button_row(h, button, "lq");
-            h = fold_button_row(h, button, "h_");
+            h = fold_button_row(h, ((const pico8_js_t *)button)->lq);
+            h = fold_button_row(h, ((const pico8_js_t *)button)->h_);
         }
     }
     printf("  panel buttons: %d\n", buttons);
@@ -689,12 +682,16 @@ static void test_planet_panel(void) {
 
 /* The row of `ok.le` whose first item is `head`, NULL when none. */
 static const pico8_lq_t *panel_row(const char *head) {
-    const pico8_list_t *le = get_ref(pico8_ok(), "le");
+    const pico8_list_t *le = pico8_ok()->le;
     int i;
 
     for (i = 0; le != NULL && i < le->count; i++) {
-        const pico8_lq_t *lq = get_ref(le->items[i].as.ref, "lq");
+        const pico8_struct_header_t *button = le->items[i].as.ref;
+        const pico8_lq_t *lq;
         pico8_value_t v;
+
+        assert(button != NULL && button->cls == pico8_js_struct_class() && "ok.le holds js buttons only");
+        lq = ((const pico8_js_t *)button)->lq;
 
         if (lq != NULL && lq->items.count > 0) {
             v = lq->items.items[0];
@@ -765,10 +762,6 @@ static void must_abort(void (*write)(void *), void *e) {
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-static void write_w(void *e) {
-    pico8_entity_set_field(e, "w", num(1));
-}
-
 /* `e` is a generated row with a key no member takes, or too many items. */
 static void keys_of_row(void *e) {
     pico8_value_t items[2];
@@ -785,9 +778,8 @@ static void button_on_other(void *e) {
     (void)pico8_js_new(&spec);
 }
 
-/* A row is a struct whose descriptor has `ol` and a reader, no other method
- * and no writer; the class keeps no `pq` and no `ol` default. A generated
- * row gives its keys but for `fn`, `qe` or more items than the caller
+/* A row is a struct whose descriptor has `ol`, no other method; the class
+ * keeps no `pq` and no `ol` default. A generated row gives its keys but for `fn`, `qe` or more items than the caller
  * holds, and `ol` refuses anything that is not a row, as `js:pq` refuses
  * another struct. An `hp:lq` row holds the positionals `pq` saw, then the
  * two added after. */
@@ -803,7 +795,6 @@ static void test_lq_is_a_struct(void) {
     pico8_lq_keys_t t = with_c(positionals(2, a), 9);
     pico8_lq_t *lq;
     pico8_lq_t *row;
-    pico8_value_t v;
     int k;
     int i;
 
@@ -816,11 +807,9 @@ static void test_lq_is_a_struct(void) {
     for (i = 0; i < PICO8_STATE_COUNT; i++) {
         assert(cls->states[i] == NULL);
     }
-    assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_lq_ready());
-    assert(lookup(lq, "c", &v) && v.as.fixed == pico8_fixed_from_int(9));
-    assert(!lookup(lq, "bg", &v) && !lookup(lq, "items", &v));
-    assert(!lookup(lq, "ol", &v) && cls->ol != NULL);
+    assert(lq->has_c && lq->c == pico8_fixed_from_int(9));
+    assert(!lq->has_bg);
 
     t = pico8_lq_keys_of_row(&nested, items, 2);
     assert(t.items == items && t.count == 2 && t.has_c && t.c == pico8_fixed_from_int(7));
@@ -833,176 +822,11 @@ static void test_lq_is_a_struct(void) {
     k = fs_count(row);
     assert(row_count(row) == k + 2);
 
-    must_abort(write_w, lq);
     must_abort(keys_of_row, (void *)&with_fn);
     must_abort(keys_of_row, (void *)&with_qe);
     must_abort(keys_of_row, (void *)&too_long);
     must_abort(ol_on_other, pico8_ok());
     must_abort(button_on_other, pico8_ok());
-}
-
-static const char *const g_lq_names[] = {"c",  "bg", "score", "ra",    "fs",    "w",     "",
-                                         "x",  "lq", "items", "ol",    "has_c", "has_bg", "bg_is_bool"};
-
-/* One raw read: 1 with a kind the member holds, or 0 with the
- * witness left in `out`; never 1 with REF NULL. */
-static uint32_t fold_raw(uint32_t h, const void *lq, const char *name) {
-    const pico8_value_t witness = pico8_value_fixed(0x1234);
-    pico8_value_t out = witness;
-    int got = pico8_lq_struct_class()->field(lq, name, &out);
-
-    h = fnv(h, (uint32_t)got);
-    if (!got) {
-        assert(out.kind == witness.kind && out.as.fixed == witness.as.fixed);
-        return h;
-    }
-    assert(!(out.kind == PICO8_VALUE_REF && out.as.ref == NULL));
-    h = fnv(h, (uint32_t)out.kind);
-    if (strcmp(name, "c") == 0 || strcmp(name, "score") == 0 || strcmp(name, "w") == 0) {
-        assert(out.kind == PICO8_VALUE_FIXED);
-        h = fnv(h, (uint32_t)out.as.fixed);
-    } else if (strcmp(name, "bg") == 0) {
-        assert(out.kind == PICO8_VALUE_FIXED || out.kind == PICO8_VALUE_BOOL);
-        h = fnv(h, out.kind == PICO8_VALUE_FIXED ? (uint32_t)out.as.fixed : (uint32_t)out.as.boolean);
-    } else if (strcmp(name, "ra") == 0) {
-        assert(out.kind == PICO8_VALUE_REF && pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_UNKNOWN);
-    } else {
-        assert(strcmp(name, "fs") == 0 && out.kind == PICO8_VALUE_REF &&
-               pico8_type_tag_of(out.as.ref) == PICO8_TYPE_TAG_LIST);
-        h = fnv(h, (uint32_t)((const pico8_list_t *)out.as.ref)->count);
-    }
-    return h;
-}
-
-static uint32_t fold_raw_row(uint32_t h, const void *lq) {
-    size_t n;
-    for (n = 0; n < sizeof g_lq_names / sizeof g_lq_names[0]; n++) {
-        h = fold_raw(h, lq, g_lq_names[n]);
-    }
-    return h;
-}
-
-static int same_value(const void *a, const void *b, const char *name) {
-    pico8_value_t va;
-    pico8_value_t vb;
-    int ga = lookup(a, name, &va);
-    int gb = lookup(b, name, &vb);
-    return ga == gb && (!ga || pico8_value_equal(va, vb));
-}
-
-/* The copy has the source's c, bg (kind kept), score and `ra` at the same
- * address, and a `fs` of its own. */
-static void check_copy(const void *src, const void *copy) {
-    assert(copy != NULL && copy != src);
-    assert(same_value(src, copy, "c") && same_value(src, copy, "bg") && same_value(src, copy, "score"));
-    assert(get_ref(src, "ra") == get_ref(copy, "ra"));
-    assert(get_ref(copy, "fs") != NULL && get_ref(copy, "fs") != get_ref(src, "fs"));
-}
-
-static int is_row(const void *p) {
-    return p != NULL && pico8_type_tag_of(p) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)p)->cls == pico8_lq_struct_class();
-}
-
-static int bg_fixed, bg_false, bg_absent, targets;
-
-/* Same address twice by name, `ol` through its class, then its raw reads. */
-static uint32_t fold_target(uint32_t h, const void *holder, const char *name) {
-    void *row = get_ref(holder, name);
-    pico8_value_t v;
-
-    if (!is_row(row)) {
-        return h;
-    }
-    targets++;
-    assert(get_ref(holder, name) == row);
-    ((const pico8_struct_header_t *)row)->cls->ol(row, vec_xy(64, 60), 0);
-    if (!lookup(row, "bg", &v)) {
-        bg_absent++;
-    } else if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        bg_false++;
-    } else {
-        assert(v.kind == PICO8_VALUE_FIXED);
-        bg_fixed++;
-    }
-    return fold_raw_row(h, row);
-}
-
-/* Each of the six members, and names that are not members, read by the raw
- * reader on built rows and on every row reachable with a built planet's
- * panel up; pointer identity of `ra`/`fs` and through copies. Taken on
- * the code where the members were still pico8_value_t. */
-static void test_lq_members_by_name(void) {
-    pico8_value_t a[] = {str("hi"), num(12)};
-    pico8_value_t ra = vec_ref(vec_xy(3, 4));
-    pico8_lq_keys_t t;
-    const void *rows[6];
-    const void *bare;
-    const pico8_list_t *le;
-    const pico8_list_t *hv;
-    pico8_js_keys_t spec = {0};
-    pico8_lq_keys_t keys;
-    uint32_t h = 2166136261u;
-    size_t n;
-    int i;
-
-    built_planet_panel();
-    hv = pico8_hv();
-    for (i = 0; i < hv->count; i++) {
-        const void *e = hv->items[i].as.ref;
-        if (e != NULL) {
-            h = fold_target(h, e, "lq");
-        }
-    }
-    le = get_ref(pico8_ok(), "le");
-    assert(le != NULL);
-    for (i = 0; i < le->count; i++) {
-        const void *button = le->items[i].as.ref;
-        if (button != NULL && pico8_type_tag_of(button) == PICO8_TYPE_TAG_STRUCT &&
-            ((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class()) {
-            h = fold_target(h, button, "lq");
-            h = fold_target(h, button, "h_");
-        }
-    }
-    printf("  panel rows: %d, bg fixed %d, false %d, absent %d\n", targets, bg_fixed, bg_false, bg_absent);
-    assert(targets > 0);
-    assert(bg_fixed == BG_FIXED_COUNT && bg_false == BG_FALSE_COUNT && bg_absent == BG_ABSENT_COUNT);
-    check("panel presence", h, PANEL_PRESENCE_HASH);
-
-    h = 2166136261u;
-    bare = pico8_lq_new(NULL);
-    h = fold_raw_row(h, bare);
-    assert(get_ref(bare, "fs") != NULL && ((const pico8_list_t *)get_ref(bare, "fs"))->count == 0);
-
-    t = with_ra(with_bg(with_score(with_c(positionals(2, a), 9), 0), 8), ra);
-    rows[0] = pico8_lq_new(&t);
-    t = with_score(with_bg(positionals(2, a), -1), 3);
-    rows[1] = pico8_lq_new(&t);
-    t = positionals(1, a);
-    rows[2] = pico8_lq_new(&t);
-    t = positionals(2, a);
-    rows[3] = pico8_lq_new(&t);
-    for (n = 0; n < 4; n++) {
-        h = fnv(h, (uint32_t)n);
-        h = fold_raw_row(h, rows[n]);
-    }
-    assert(get_ref(rows[0], "ra") == ra.as.ref);
-    assert(get_ref(rows[0], "fs") == get_ref(rows[0], "fs"));
-
-    spec.lq = pico8_value_ref((void *)rows[0]);
-    check_copy(rows[0], get_ref(pico8_js_new(&spec), "lq"));
-    spec.lq = pico8_value_ref((void *)rows[1]);
-    rows[4] = get_ref(pico8_js_new(&spec), "lq");
-    check_copy(rows[1], rows[4]);
-    keys = pico8_lq_keys_of(rows[0]);
-    rows[5] = pico8_lq_new(&keys);
-    check_copy(rows[0], rows[5]);
-    for (n = 4; n < 6; n++) {
-        h = fnv(h, (uint32_t)n);
-        h = fold_raw_row(h, rows[n]);
-    }
-    check("raw presence", h, RAW_PRESENCE_HASH);
-
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
@@ -1041,7 +865,6 @@ int main(void) {
     in_fresh_child(test_planet_panel);
     in_fresh_child(test_gh_wants_more);
     in_fresh_child(test_lq_is_a_struct);
-    in_fresh_child(test_lq_members_by_name);
 
     printf("test_pico8_lq: all tests passed\n");
     return 0;

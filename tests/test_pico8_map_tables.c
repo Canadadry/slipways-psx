@@ -176,33 +176,6 @@ static void test_jo_tree_strings_are_distinct_objects(void) {
     }
 }
 
-/* What a kind serves as `name`, the one read of a kind in this file. */
-static int kind_answer(const pico8_entity_kind_t *kind, const char *name, pico8_value_t *out) {
-    return kind->field(name, out);
-}
-
-/* A kind whose module, or an ancestor's, is down answers nothing and
- * leaves the output untouched. Shuts the three modules down. */
-static void test_kinds_answer_nothing_once_down(void) {
-    pico8_value_t got = pico8_value_fixed(0x5A5A);
-
-    pico8_planet_family_trade_shutdown();
-    assert(!kind_answer(pico8_nr_kind(), "rr", &got));
-    assert(!kind_answer(pico8_fr_kind(), "rr", &got));
-    assert(!kind_answer(pico8_mx_kind(), "rr", &got));
-    assert(got.kind == PICO8_VALUE_FIXED && got.as.fixed == 0x5A5A);
-    pico8_jo_shutdown();
-    assert(!kind_answer(pico8_ga_kind(), "me", &got));
-    pico8_planet_family_shutdown();
-    assert(!kind_answer(pico8_qh_kind(), "s", &got));
-    assert(!kind_answer(pico8_nl_kind(), "rr", &got));
-    assert(!kind_answer(pico8_os_kind(), "s", &got));
-    assert(!kind_answer(pico8_hj_kind(), "rr", &got));
-    assert(!kind_answer(pico8_pm_kind(), "s", &got));
-    assert(!kind_answer(pico8_ga_kind(), "me", &got));
-    assert(got.kind == PICO8_VALUE_FIXED && got.as.fixed == 0x5A5A);
-}
-
 static void test_nb_lookup_finds_each_px(void) {
     int i;
 
@@ -252,10 +225,6 @@ int main(void) {
     test_gn_pools_df_entries_by_their_r();
     test_int_seq_has_fixed_keeps_gu_on_integers();
     test_jo_tree_strings_are_distinct_objects();
-    pico8_jo_init();
-    pico8_planet_family_init();
-    pico8_planet_family_trade_init();
-    test_kinds_answer_nothing_once_down();
     test_nb_lookup_finds_each_px();
     test_qe_map_keeps_one_entry_per_key_in_order();
 

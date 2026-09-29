@@ -1,5 +1,5 @@
-/* The research icon `ie`, read and written only through the dual-form field
- * API and driven through the real `mv`/`dg`/`dc`/`ok`/`_init`/`eu`, in games
+/* The research icon `ie`, read and written on its struct members and driven
+ * through the real `mv`/`dg`/`dc`/`ok`/`_init`/`eu`, in games
  * started directly: no events file. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -83,67 +83,66 @@ static int listed(const pico8_list_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
-/* The instance reader keeps a field written nil, the struct reader reads a
- * nil member as absent: nil and absent are one state here. */
-static int lookup(const void *e, const char *name, pico8_value_t *out) {
-    return pico8_entity_get_field(e, name, out) && !(out->kind == PICO8_VALUE_REF && out->as.ref == NULL);
+static pico8_ie_t *as_ie(void *e) {
+    assert(e != NULL && ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class());
+    return e;
 }
 
-static int has(const void *e, const char *name) {
-    pico8_value_t v;
-    return lookup(e, name, &v);
-}
-
-static pico8_value_t get(const void *e, const char *name) {
+/* `gy` and `id` are the class's shared state, no member of any icon: src/
+ * gives them no typed reader, so they are the two reads left by name. */
+static const pico8_vec_t *shared_gy(const pico8_ie_t *icon) {
     pico8_value_t v = pico8_value_ref(NULL);
-    (void)pico8_entity_get_field(e, name, &v);
+    (void)pico8_entity_get_field(icon, "gy", &v);
+    assert(v.kind == PICO8_VALUE_REF);
+    return v.as.ref;
+}
+
+/* REF NULL while `id` is nil. */
+static pico8_value_t shared_id(const pico8_ie_t *icon) {
+    pico8_value_t v = pico8_value_ref(NULL);
+    (void)pico8_entity_get_field(icon, "id", &v);
     return v;
 }
 
-static void *get_ref(const void *e, const char *name) {
-    pico8_value_t v = get(e, name);
-    return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_fixed_t must_fixed(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FIXED);
+static pico8_fixed_t shared_id_fixed(const pico8_ie_t *icon) {
+    pico8_value_t v = shared_id(icon);
+    assert(v.kind == PICO8_VALUE_FIXED);
     return v.as.fixed;
 }
 
-static int is_string(const void *e, const char *name, const char *want) {
-    pico8_value_t v;
-    return pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, want) == 0;
-}
-
-/* 0 absent, 1 false, 2 true, 3 other. */
-static uint32_t bool_state(const void *e, const char *name) {
-    pico8_value_t v;
-    if (!lookup(e, name, &v)) {
+/* 0 absent, 1 false, 2 true. */
+static uint32_t bool_state(int has, int b) {
+    if (!has) {
         return 0;
     }
-    if (v.kind == PICO8_VALUE_BOOL) {
-        return v.as.boolean ? 2 : 1;
-    }
-    return 3;
+    return b ? 2 : 1;
 }
 
-static pico8_vec_t vec_of(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    return *(const pico8_vec_t *)v.as.ref;
+static uint32_t kh_state(const void *icon) {
+    const pico8_ie_t *ie = as_ie((void *)icon);
+    return bool_state(ie->has_kh, ie->kh);
 }
 
-static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
-    pico8_value_t v;
-    const pico8_vec_t *p;
-    if (!lookup(e, name, &v)) {
+static uint32_t m__state(const void *icon) {
+    const pico8_ie_t *ie = as_ie((void *)icon);
+    return bool_state(ie->has_m_, ie->m_);
+}
+
+static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
+    if (p == NULL) {
         return fnv(h, 0xDEADu);
     }
-    assert(v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    p = v.as.ref;
     h = fnv(h, (uint32_t)p->x);
     return fnv(h, (uint32_t)p->y);
+}
+
+/* fold_value's FIXED and STRING cases, a NULL string as absent. */
+static uint32_t fold_fixed(uint32_t h, pico8_fixed_t v) {
+    return fnv(fnv(h, 0xF1u), (uint32_t)v);
+}
+
+static uint32_t fold_string(uint32_t h, const char *s) {
+    return s == NULL ? fnv(h, 0xDEADu) : fnv_str(fnv(h, 0x57u), s);
 }
 
 static uint32_t fold_value(uint32_t h, pico8_value_t v) {
@@ -170,9 +169,8 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
 /* An icon is the one entity of `cv.hb` whose `ke` holds a kind, not an
  * entity: there is no `cg.ie`. */
 static int is_icon(const void *e) {
-    pico8_value_t ke;
-    return e != NULL && lookup(e, "ke", &ke) && ke.kind == PICO8_VALUE_REF &&
-           pico8_type_tag_of(ke.as.ref) == PICO8_TYPE_TAG_UNKNOWN;
+    return e != NULL && ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class() &&
+           ((const pico8_ie_t *)e)->ke != NULL;
 }
 
 static int icons(void *out[], int cap) {
@@ -213,16 +211,19 @@ static void gx(const pico8_entity_kind_t *out[7]) {
 
 /* `gy` and `id` read off any icon: the cursor and counter every icon
  * shares. */
-static uint32_t fold_shared(uint32_t h, const void *icon) {
-    h = fold_vec(h, icon, "gy");
-    return fold_value(h, get(icon, "id"));
+static uint32_t fold_shared(uint32_t h, void *icon) {
+    h = fold_vec(h, shared_gy(as_ie(icon)));
+    return fold_value(h, shared_id(as_ie(icon)));
 }
 
-static uint32_t fold_icon(uint32_t h, const void *icon) {
-    h = fnv(h, bool_state(icon, "kh"));
-    h = fold_vec(h, icon, "ra");
-    h = fnv(h, bool_state(icon, "m_"));
-    return fold_value(h, get(icon, "t"));
+/* `t` is always a number: its kind byte is constant by the struct's shape,
+ * kept so that the frozen constants still prove the typed reads. */
+static uint32_t fold_icon(uint32_t h, void *icon) {
+    const pico8_ie_t *ie = as_ie(icon);
+    h = fnv(h, kh_state(ie));
+    h = fold_vec(h, ie->ra);
+    h = fnv(h, m__state(ie));
+    return fold_fixed(h, ie->ke_base.t);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -278,10 +279,10 @@ static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
 }
 
 /* The `kq` box by which of a ring of points around its corners it holds. */
-static uint32_t fold_kq(uint32_t h, const void *icon) {
+static uint32_t fold_kq(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
-    const pico8_qz_box_t *kq = get_ref(icon, "kq");
+    const pico8_qz_box_t *kq = as_ie(icon)->kq;
     size_t i;
 
     assert(kq != NULL);
@@ -293,39 +294,34 @@ static uint32_t fold_kq(uint32_t h, const void *icon) {
 
 /* A fresh icon: `kq`/`fa`/`ra`/`eh` those of `pico8_ie_start`, ke's `me`/`t`, the two
  * construction keys, and nothing written by `hb` or the hover loop yet. */
-static uint32_t check_fresh_icon(uint32_t h, const void *icon, const void *ke, const void *jb) {
-    static const char *const absent[] = {"kh", "m_", "p_", "nu", "fx", "hq"};
-    pico8_value_t v;
-    size_t i;
+static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
+    const pico8_ie_t *ie = as_ie(icon);
 
-    assert(is_string(icon, "me", "ph"));
-    assert(must_fixed(icon, "t") == 0);
-    assert(must_fixed(icon, "fa") == pico8_fixed_from_int(12));
-    assert(must_fixed(icon, "fa") == pico8_ie_start.fa);
-    assert(get_ref(icon, "kq") == &pico8_ie_start.kq);
-    assert(get_ref(icon, "ra") == &pico8_ie_start.ra);
-    assert(get_ref(icon, "eh") == &pico8_ie_start.eh);
-    assert(vec_of(icon, "ra").x == pico8_fixed_from_int(999) && vec_of(icon, "ra").y == pico8_fixed_from_int(999));
-    assert(vec_of(icon, "eh").x == pico8_fixed_from_int(118) && vec_of(icon, "eh").y == pico8_fixed_from_int(120));
-    assert(get_ref(icon, "ke") == ke);
-    assert(get_ref(icon, "jb") == jb);
-    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
-        assert(!has(icon, absent[i]));
-    }
+    assert(ie->ke_base.me != NULL && strcmp(ie->ke_base.me, "ph") == 0);
+    assert(ie->ke_base.t == 0);
+    assert(ie->fa == pico8_fixed_from_int(12));
+    assert(ie->fa == pico8_ie_start.fa);
+    assert(ie->kq == &pico8_ie_start.kq);
+    assert(ie->ra == &pico8_ie_start.ra);
+    assert(ie->eh == &pico8_ie_start.eh);
+    assert(ie->ra->x == pico8_fixed_from_int(999) && ie->ra->y == pico8_fixed_from_int(999));
+    assert(ie->eh->x == pico8_fixed_from_int(118) && ie->eh->y == pico8_fixed_from_int(120));
+    assert((const void *)ie->ke == ke);
+    assert((const void *)ie->jb == jb);
+    assert(!ie->has_kh && !ie->has_m_);
     assert(cls_of(icon)->states[PICO8_STATE_PH] == NULL && cls_of(icon)->ev == NULL && cls_of(icon)->hk == NULL &&
            cls_of(icon)->rdown == NULL && cls_of(icon)->gv == NULL);
     assert(cls_of(icon)->hd != NULL && cls_of(icon)->hb != NULL && cls_of(icon)->kj != NULL &&
            cls_of(icon)->ldown != NULL);
-    assert(!pico8_entity_get_field(icon, "hd", &v));
     assert(listed(pico8_hv(), icon) && listed(pico8_cv("kj"), icon) && listed(pico8_cv("hd"), icon) &&
            listed(pico8_cv("hb"), icon));
     assert(!listed(pico8_cv("ev"), icon) && !listed(pico8_cv("hk"), icon));
 
-    h = fold_value(h, get(icon, "me"));
-    h = fold_value(h, get(icon, "fa"));
+    h = fold_string(h, ie->ke_base.me);
+    h = fold_fixed(h, ie->fa);
     h = fold_kq(h, icon);
-    h = fold_vec(h, icon, "ra");
-    h = fold_vec(h, icon, "eh");
+    h = fold_vec(h, ie->ra);
+    h = fold_vec(h, ie->eh);
     return fold_shared(h, icon);
 }
 
@@ -345,13 +341,12 @@ static void test_construction(void) {
     n = icons(all, 16);
     check_int("eu icons", n, 7);
     for (i = 0; i < n; i++) {
-        pico8_value_t v;
-        assert(get_ref(all[i], "ke") == classes[i]);
-        assert(get_ref(all[i], "jb") != NULL);
-        assert(is_string(all[i], "me", "ph"));
-        assert(must_fixed(all[i], "fa") == pico8_fixed_from_int(12));
-        assert(!has(all[i], "p_") && !has(all[i], "nu") && !has(all[i], "fx"));
-        assert(!pico8_entity_get_field(all[i], "hd", &v) && cls_of(all[i])->hd != NULL);
+        const pico8_ie_t *ie = as_ie(all[i]);
+        assert(ie->ke == classes[i]);
+        assert(ie->jb != NULL);
+        assert(ie->ke_base.me != NULL && strcmp(ie->ke_base.me, "ph") == 0);
+        assert(ie->fa == pico8_fixed_from_int(12));
+        assert(cls_of(all[i])->hd != NULL);
         assert(listed(pico8_hv(), all[i]) && listed(pico8_cv("kj"), all[i]) && listed(pico8_cv("hd"), all[i]));
         assert(!listed(pico8_cv("ev"), all[i]) && !listed(pico8_cv("hk"), all[i]));
         h = fold_kq(h, all[i]);
@@ -363,10 +358,10 @@ static void test_construction(void) {
     b = build_icon(classes[1], jb_b);
     h = check_fresh_icon(h, a, classes[0], jb_a);
     h = check_fresh_icon(h, b, classes[1], jb_b);
-    assert(get_ref(a, "ra") == get_ref(b, "ra"));
-    assert(get_ref(a, "kq") == get_ref(b, "kq"));
-    assert(get_ref(a, "eh") == get_ref(b, "eh"));
-    assert(get_ref(a, "kq") == get_ref(all[0], "kq"));
+    assert(as_ie(a)->ra == as_ie(b)->ra);
+    assert(as_ie(a)->kq == as_ie(b)->kq);
+    assert(as_ie(a)->eh == as_ie(b)->eh);
+    assert(as_ie(a)->kq == as_ie(all[0])->kq);
     assert(icon_rank(a) == 7 && icon_rank(b) == 8);
     check("construction", h, CONSTRUCTION_HASH);
 }
@@ -383,17 +378,17 @@ static void test_start(void) {
     start_game();
     n = icons(all, 16);
     for (i = 0; i < n; i++) {
-        if (first < 0 && bool_state(all[i], "kh") == 2) {
+        if (first < 0 && kh_state(all[i]) == 2) {
             first = i;
         }
         h = fold_icon(h, all[i]);
     }
     printf("[start] first revealed icon %d\n", first);
     assert(first >= 0);
-    assert(get_ref(all[first], "ra") == get_ref(all[first], "eh"));
+    assert(as_ie(all[first])->ra == as_ie(all[first])->eh);
     for (i = 0; i < n; i++) {
-        if (bool_state(all[i], "kh") != 2) {
-            assert(get_ref(all[i], "ra") != get_ref(all[first], "ra"));
+        if (kh_state(all[i]) != 2) {
+            assert(as_ie(all[i])->ra != as_ie(all[first])->ra);
         }
     }
     h = fold_shared(h, all[0]);
@@ -405,7 +400,7 @@ static void *first_icon_with_kh(uint32_t kh) {
     int n = icons(all, 16);
     int i;
     for (i = 0; i < n; i++) {
-        if (bool_state(all[i], "kh") == kh) {
+        if (kh_state(all[i]) == kh) {
             return all[i];
         }
     }
@@ -419,8 +414,8 @@ static void test_directed(void) {
     void *shown;
     void *hidden;
     void *all[16];
-    pico8_value_t gy_before;
-    pico8_value_t ra_before;
+    const pico8_vec_t *gy_before;
+    const pico8_vec_t *ra_before;
     pico8_down_t made;
     pico8_fixed_t id0;
     pico8_vec_t ra;
@@ -432,29 +427,31 @@ static void test_directed(void) {
     hidden = first_icon_with_kh(0);
     assert(shown != NULL && hidden != NULL);
 
-    gy_before = get(shown, "gy");
-    ra_before = get(shown, "ra");
+    gy_before = shared_gy(as_ie(shown));
+    ra_before = as_ie(shown)->ra;
     cls_of(shown)->hb(shown);
-    assert(get_ref(shown, "ra") == ra_before.as.ref && get_ref(shown, "gy") == gy_before.as.ref);
+    assert(as_ie(shown)->ra == ra_before && shared_gy(as_ie(shown)) == gy_before);
     cls_of(hidden)->hb(hidden);
-    assert(bool_state(hidden, "kh") == 0 && get_ref(hidden, "gy") == gy_before.as.ref);
+    assert(kh_state(hidden) == 0 && shared_gy(as_ie(hidden)) == gy_before);
     h = fold_icon(h, shown);
     h = fold_icon(h, hidden);
     h = fold_shared(h, hidden);
 
-    id0 = must_fixed(all[0], "id");
+    id0 = shared_id_fixed(as_ie(all[0]));
     made = cls_of(all[0])->ldown(all[0], NULL, NULL);
-    assert(made.stop && made.held != NULL);
-    assert(is_string(made.held, "id", "s1"));
-    assert(must_fixed(all[n - 1], "id") == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
-    h = fold_value(h, get(made.held, "id"));
+    assert(made.stop && made.held != NULL && pico8_jo_is_family(made.held));
+    assert(strcmp(((const pico8_jo_t *)made.held)->id, "s1") == 0);
+    assert(shared_id_fixed(as_ie(all[n - 1])) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
+    h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
     made = cls_of(all[n - 1])->ldown(all[n - 1], NULL, NULL);
-    assert(is_string(made.held, "id", "s2"));
-    assert(must_fixed(all[0], "id") == pico8_fixed_add(id0, pico8_fixed_from_int(2)));
-    h = fold_value(h, get(made.held, "id"));
+    assert(made.held != NULL && pico8_jo_is_family(made.held));
+    assert(strcmp(((const pico8_jo_t *)made.held)->id, "s2") == 0);
+    assert(shared_id_fixed(as_ie(all[0])) == pico8_fixed_add(id0, pico8_fixed_from_int(2)));
+    h = fold_string(h, ((const pico8_jo_t *)made.held)->id);
     h = fold_shared(h, all[3]);
 
-    ra = vec_of(shown, "ra");
+    assert(as_ie(shown)->ra != NULL);
+    ra = *as_ie(shown)->ra;
     assert(cls_of(shown)->hd(shown, vec_ref(v2(-500, -500)).as.ref, vec_ref(pico8_vec_add(ra, v2(1, 1))).as.ref));
     assert(!cls_of(shown)->hd(shown, vec_ref(pico8_vec_add(ra, v2(1, 1))).as.ref,
                               vec_ref(pico8_vec_add(ra, v2(20, 20))).as.ref));
@@ -484,7 +481,7 @@ static uint32_t screen_hash(void) {
 static uint32_t draw_alone(void *icon) {
     pico8_camera(&gfx, 0, 0);
     pico8_cls(&mem);
-    cls_of(icon)->kj(icon, get_ref(icon, "ra"));
+    cls_of(icon)->kj(icon, as_ie(icon)->ra);
     return screen_hash();
 }
 
@@ -508,16 +505,19 @@ static void test_draw(void) {
 
     hidden_px = draw_alone(hidden);
     assert(hidden_px == blank);
-    pico8_entity_set_field(hidden, "m_", pico8_value_bool(1));
-    assert(bool_state(hidden, "m_") == 2);
+    as_ie(hidden)->m_ = 1;
+    as_ie(hidden)->has_m_ = 1;
+    assert(m__state(hidden) == 2);
     assert(draw_alone(hidden) == blank);
     shown_px = draw_alone(shown);
     assert(shown_px != blank);
-    pico8_entity_set_field(shown, "m_", pico8_value_bool(1));
-    assert(bool_state(shown, "m_") == 2);
+    as_ie(shown)->m_ = 1;
+    as_ie(shown)->has_m_ = 1;
+    assert(m__state(shown) == 2);
     hovered_px = draw_alone(shown);
     assert(hovered_px != shown_px);
-    pico8_entity_set_field(shown, "m_", pico8_value_bool(0));
+    as_ie(shown)->m_ = 0;
+    as_ie(shown)->has_m_ = 1;
     assert(draw_alone(shown) == shown_px);
 
     h = fnv(h, hidden_px);
@@ -531,10 +531,8 @@ static const char *const gx_rr[7] = {NULL, NULL, "slipgates", "infraspace", "tra
                                      "ascension"};
 
 static void invent(const char *rr) {
-    pico8_value_t v;
-    assert(pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "invented", &v) &&
-           v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    pico8_list_add((pico8_list_t *)v.as.ref, pico8_value_string(rr));
+    assert(pico8_fm_hy() != NULL && pico8_fm_hy()->invented != NULL);
+    pico8_list_add(pico8_fm_hy()->invented, pico8_value_string(rr));
 }
 
 /* Per icon, in `gx[]` order: `hb` reveals it exactly when `oj(self.ke.rr)`,
@@ -552,13 +550,13 @@ static void test_ke_view(void) {
     for (i = 0; i < n; i++) {
         uint32_t before;
         cls_of(all[i])->hb(all[i]);
-        before = bool_state(all[i], "kh");
+        before = kh_state(all[i]);
         assert(before == (gx_rr[i] == NULL ? 2u : 0u));
         if (gx_rr[i] != NULL) {
             invent(gx_rr[i]);
             cls_of(all[i])->hb(all[i]);
         }
-        assert(bool_state(all[i], "kh") == 2);
+        assert(kh_state(all[i]) == 2);
         h = fnv(h, before);
         h = fold_icon(h, all[i]);
     }
@@ -566,17 +564,17 @@ static void test_ke_view(void) {
     {
         /* `dl` prints at `je.ra`, (0,0) here: its label would land off
          * screen. */
-        pico8_value_t mouse;
-        assert(pico8_entity_get_field(pico8_je(), "ra", &mouse) && mouse.kind == PICO8_VALUE_REF &&
-               mouse.as.ref != NULL);
-        *(pico8_vec_t *)mouse.as.ref = v2(64, 64);
+        assert(pico8_je_nf() != NULL && pico8_je_nf()->ra != NULL);
+        *pico8_je_nf()->ra = v2(64, 64);
     }
     for (i = 0; i < n; i++) {
         uint32_t plain = draw_alone(all[i]);
         uint32_t hovered;
-        pico8_entity_set_field(all[i], "m_", pico8_value_bool(1));
+        as_ie(all[i])->m_ = 1;
+        as_ie(all[i])->has_m_ = 1;
         hovered = draw_alone(all[i]);
-        pico8_entity_set_field(all[i], "m_", pico8_value_bool(0));
+        as_ie(all[i])->m_ = 0;
+        as_ie(all[i])->has_m_ = 1;
         printf("[ke view] icon %d: 0x%08Xu / 0x%08Xu\n", i, (unsigned)plain, (unsigned)hovered);
         assert(hovered != plain);
         h = fnv(h, plain);
@@ -590,7 +588,7 @@ static void test_ke_view(void) {
 static void test_restart(void) {
     uint32_t h = 2166136261u;
     void *all[16];
-    pico8_value_t gy;
+    const pico8_vec_t *gy;
     pico8_fixed_t id;
     int n;
     int i;
@@ -598,27 +596,27 @@ static void test_restart(void) {
     start_game();
     n = icons(all, 16);
     (void)cls_of(all[0])->ldown(all[0], NULL, NULL);
-    gy = get(all[0], "gy");
-    id = must_fixed(all[0], "id");
+    gy = shared_gy(as_ie(all[0]));
+    id = shared_id_fixed(as_ie(all[0]));
     assert(id == pico8_fixed_from_int(1));
-    assert(gy.as.ref != get_ref(all[0], "eh"));
+    assert(gy != as_ie(all[0])->eh);
 
     new_game();
     n = icons(all, 16);
     check_int("restart icons", n, 7);
-    assert(must_fixed(all[0], "id") == id);
-    assert(get_ref(all[0], "gy") != gy.as.ref);
+    assert(shared_id_fixed(as_ie(all[0])) == id);
+    assert(shared_gy(as_ie(all[0])) != gy);
     for (i = 0; i < n; i++) {
-        if (bool_state(all[i], "kh") == 2) {
-            assert(get_ref(all[i], "ra") != get_ref(all[i], "eh"));
+        if (kh_state(all[i]) == 2) {
+            assert(as_ie(all[i])->ra != as_ie(all[i])->eh);
         }
         h = fold_icon(h, all[i]);
     }
     h = fold_shared(h, all[0]);
 
     pico8__init();
-    assert(get_ref(all[0], "gy") == get_ref(all[0], "eh"));
-    assert(must_fixed(all[0], "id") == id);
+    assert(shared_gy(as_ie(all[0])) == as_ie(all[0])->eh);
+    assert(shared_id_fixed(as_ie(all[0])) == id);
     h = fold_shared(h, all[0]);
     check("restart", h, RESTART_HASH);
 }
@@ -628,42 +626,8 @@ static int is_an_ie_struct(const void *e) {
            ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class();
 }
 
-static void must_abort(void (*write)(void *), void *e) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        write(e);
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
-static void write_kh(void *e) {
-    pico8_entity_set_field(e, "kh", pico8_value_bool(1));
-}
-
-static void write_ra(void *e) {
-    pico8_entity_set_field(e, "ra", pico8_value_ref(NULL));
-}
-
-static void write_gy(void *e) {
-    pico8_entity_set_field(e, "gy", pico8_value_ref(NULL));
-}
-
-static void write_id(void *e) {
-    pico8_entity_set_field(e, "id", pico8_value_fixed(0));
-}
-
-/* Built by `eu` or directly, an `ie` is a struct with its four methods; a
- * generic write of a name other than `m_` stops the run instead of growing
- * a member. `hd` stays the
- * plain `1` of `fq` and `bg`, and no other struct answers to `hb`. */
+/* Built by `eu` or directly, an `ie` is a struct with its four methods, and
+ * no other struct answers to `hb`. */
 static void test_ie_is_a_struct(void) {
     const pico8_entity_kind_t *classes[7];
     void *all[16];
@@ -685,49 +649,33 @@ static void test_ie_is_a_struct(void) {
                cls_of(all[i])->hk == NULL && cls_of(all[i])->rdown == NULL && cls_of(all[i])->gv == NULL);
     }
 
-    pico8_entity_set_field(built, "m_", pico8_value_bool(1));
-    assert(bool_state(built, "m_") == 2);
     {
         pico8_ie_keys_t jb_only = {0};
-        void *no_ke;
-        pico8_fixed_t id0 = must_fixed(built, "id");
+        pico8_ie_t *no_ke;
+        pico8_fixed_t id0 = shared_id_fixed(as_ie(built));
 
         jb_only.jb = pico8_jb_new(NULL);
         no_ke = pico8_ie_new(&jb_only);
-        assert(is_an_ie_struct(no_ke) && !has(no_ke, "ke"));
-        assert(must_fixed(no_ke, "id") == id0);
+        assert(is_an_ie_struct(no_ke) && no_ke->ke == NULL);
+        assert(shared_id_fixed(no_ke) == id0);
         (void)cls_of(no_ke)->ldown(no_ke, NULL, NULL);
-        assert(must_fixed(built, "id") == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
+        assert(shared_id_fixed(as_ie(built)) == pico8_fixed_add(id0, pico8_fixed_from_int(1)));
     }
-    must_abort(write_kh, built);
-    must_abort(write_ra, built);
-    must_abort(write_gy, built);
-    must_abort(write_id, built);
 
     others[0] = pico8_bg_new();
     others[1] = pico8_fq_new(NULL);
     others[2] = pico8_jc_new(NULL);
     others[3] = pico8_mz_new();
-    for (i = 0; i < 2; i++) {
-        pico8_value_t hd;
-        assert(pico8_entity_get_field(others[i], "hd", &hd) && hd.kind == PICO8_VALUE_FIXED &&
-               hd.as.fixed == pico8_fixed_from_int(1));
-    }
     for (i = 0; i < 4; i++) {
         assert(cls_of(others[i])->hb == NULL);
     }
 }
 
-static void write_od(void *e) {
-    pico8_entity_set_field(e, "od", pico8_value_fixed(0));
-}
-
 /* `self.ke` read through a struct without parent that carries only the
- * `rr`/`s`/`me`/`od` of the held class's chain, and no writer. */
+ * `rr`/`s`/`me`/`od` of the held class's chain. */
 static void test_ke_view_is_a_struct(void) {
     static const int s[7] = {174, 100, 170, 78, 68, 66, 166};
     static const int od[7] = {15, 15, 10, 25, 20, 40, 60};
-    static const char *const unknown[] = {"et", "ke", "nu", "hq"};
     const pico8_entity_kind_t *classes[7];
     void *all[16];
     pico8_ie_ke_t view;
@@ -739,40 +687,29 @@ static void test_ke_view_is_a_struct(void) {
     n = icons(all, 16);
     check_int("ke view struct icons", n, 7);
     for (i = 0; i < n; i++) {
-        pico8_value_t v;
-        size_t k;
-
-        assert(get_ref(all[i], "ke") == classes[i]);
+        assert(as_ie(all[i])->ke == classes[i]);
         view = pico8_ie_ke_view(all[i]);
         assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT &&
                view.header.cls == pico8_ie_ke_view_struct_class());
         if (gx_rr[i] == NULL) {
-            assert(!has(&view, "rr"));
+            assert(view.rr == NULL);
         } else {
-            assert(is_string(&view, "rr", gx_rr[i]));
+            assert(view.rr != NULL && strcmp(view.rr, gx_rr[i]) == 0);
         }
-        assert(must_fixed(&view, "s") == pico8_fixed_from_int(s[i]));
-        assert(must_fixed(&view, "od") == pico8_fixed_from_int(od[i]));
-        assert(is_string(&view, "me", "kz"));
-        for (k = 0; k < sizeof unknown / sizeof unknown[0]; k++) {
-            assert(!pico8_entity_get_field(&view, unknown[k], &v));
-        }
+        assert(view.has_s && view.s == pico8_fixed_from_int(s[i]));
+        assert(view.has_od && view.od == pico8_fixed_from_int(od[i]));
+        assert(view.me != NULL && strcmp(view.me, "kz") == 0);
     }
-    must_abort(write_od, &view);
 
     {
         pico8_ie_keys_t jb_only = {0};
         void *no_ke;
-        static const char *const members[] = {"rr", "s", "me", "od"};
-        size_t k;
 
         jb_only.jb = pico8_jb_new(NULL);
         no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
         assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT);
-        for (k = 0; k < sizeof members / sizeof members[0]; k++) {
-            assert(!has(&view, members[k]));
-        }
+        assert(view.rr == NULL && !view.has_s && view.me == NULL && !view.has_od);
     }
 }
 
