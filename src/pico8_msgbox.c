@@ -28,30 +28,6 @@ void pico8_msgbox_set_kc(pico8_mh_t *mh) {
     g_kc = mh;
 }
 
-/* Lua truthiness : seuls nil et false sont faux. La clause REF-NULL n'est pas
- * optionnelle — ce port modélise le nil de Lua par ref(NULL), donc un test qui
- * ne rejette que BOOL false rend nil vrai. C'est ce qui faisait dessiner une
- * rangée fantôme en sprite 0 sur une planète construite. */
-static int pico8_msgbox_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
-/* Field readers: an absent field, a wrong kind, or a NULL instance all read
- * as the zero default. */
-static pico8_vec_t pico8_msgbox_field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
 void pico8_mh_pq(pico8_mh_t *self) {
     pico8_mh_t *previous;
 
@@ -345,7 +321,7 @@ pico8_iv_t *pico8_iv_new(const pico8_iv_keys_t *keys) {
 }
 
 typedef struct {
-    const pico8_struct_header_t *p;
+    const pico8_pz_frame_t *frame;
     pico8_vec_t bp;
     pico8_vec_t *ra_heap;
 } pico8_pz_ctx_t;
@@ -354,7 +330,6 @@ typedef struct {
  * `fa` from `p.ca`; then the button. */
 static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row) {
     pico8_js_keys_t b = *row;
-    pico8_value_t ca_val;
     pico8_vec_t gq;
 
     /* Every item's "ra" is the same vector object, as in Lua -- not a copy
@@ -365,41 +340,36 @@ static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row
     *b.qf = ctx->bp;
 
     /* TROU-9 */
-    if (pico8_entity_get_field(ctx->p, "ca", &ca_val)) {
-        assert(ca_val.kind == PICO8_VALUE_FIXED && "js.fa: a `ca` that is not a fixed does not fit the member's type");
-        b.fa = ca_val.as.fixed;
+    if (ctx->frame->has_ca) {
+        b.fa = ctx->frame->ca;
         b.has_fa = 1;
     }
 
-    gq = pico8_msgbox_field_vec(ctx->p, "gq");
+    gq = ctx->frame->gq != NULL ? *ctx->frame->gq : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     ctx->bp = pico8_vec_add(ctx->bp, gq);
 
     return pico8_js_new(&b);
 }
 
-void pico8_pz(const pico8_struct_header_t *p, const pico8_js_keys_t *bs, int n) {
+void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     pico8_value_t ep_val;
-    pico8_value_t hi_val;
     pico8_vec_t ra;
     pico8_pz_ctx_t ctx;
     pico8_list_t *le_heap;
     pico8_ui_t *ok;
-    pico8_value_t eo_val;
     pico8_value_t rn_arg;
-    pico8_value_t ff_val;
     pico8_js_keys_t ep_row = {0};
     pico8_lq_keys_t ep_lq = {0};
     int has_ep;
     int i;
 
-    if (p == NULL) {
+    if (frame == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(p) == PICO8_TYPE_TAG_STRUCT &&
-           "pz: p is a struct; no class instance reaches pz any more");
 
-    has_ep = pico8_entity_get_field(p, "ep", &ep_val) && pico8_msgbox_truthy(ep_val);
+    has_ep = frame->ep != NULL;
     if (has_ep) {
+        ep_val = pico8_value_string(frame->ep);
         ep_lq.items = &ep_val;
         ep_lq.count = 1;
         ep_lq.has_c = 1;
@@ -408,21 +378,22 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_js_keys_t *bs, int n) 
         ep_row.lq_row = &ep_lq;
     }
 
-    if (pico8_entity_get_field(p, "eo", &eo_val) && pico8_msgbox_truthy(eo_val)) {
-        rn_arg = eo_val;
+    if (frame->has_eo) {
+        rn_arg = pico8_value_fixed(frame->eo);
     } else {
         rn_arg = pico8_value_fixed(pico8_fixed_from_int(62));
     }
     pico8_rn(rn_arg);
 
-    if (pico8_entity_get_field(p, "hi", &hi_val) && pico8_msgbox_truthy(hi_val) &&
-        hi_val.kind == PICO8_VALUE_REF && hi_val.as.ref != NULL) {
-        ra = *(const pico8_vec_t *)hi_val.as.ref;
+    if (frame->hi != NULL) {
+        ra = *frame->hi;
+    } else if (frame->ra != NULL) {
+        ra = *frame->ra;
     } else {
-        ra = pico8_msgbox_field_vec(p, "ra");
+        ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     }
 
-    ctx.p = p;
+    ctx.frame = frame;
     ctx.bp = pico8_vec_add(ra, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)));
     ctx.ra_heap = malloc(sizeof *ctx.ra_heap);
     *ctx.ra_heap = ra;
@@ -449,7 +420,7 @@ void pico8_pz(const pico8_struct_header_t *p, const pico8_js_keys_t *bs, int n) 
     /* TROU-7 */
     /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
-    if (pico8_entity_get_field(p, "ff", &ff_val) && pico8_msgbox_truthy(ff_val) && ok != NULL) {
+    if (frame->ff && ok != NULL) {
         pico8_list_t *empty_heap = malloc(sizeof *empty_heap);
         pico8_list_init(empty_heap);
         ok->le = empty_heap;

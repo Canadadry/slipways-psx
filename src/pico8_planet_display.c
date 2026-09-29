@@ -122,6 +122,18 @@ static char *jo_dollar(char *s) {
     return with_suffix;
 }
 
+/* A planet's `pz` frame: `ep`, `gq` and `ra` nil when NULL, `ca` always. */
+static pico8_pz_frame_t jo_pz_frame(const pico8_jo_t *self) {
+    pico8_pz_frame_t frame = {0};
+
+    frame.ep = self->ep;
+    frame.has_ca = 1;
+    frame.ca = self->ca;
+    frame.gq = self->gq;
+    frame.ra = self->ra;
+    return frame;
+}
+
 void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_js_keys_t bs[PICO8_JO_GH_ROWS];
     pico8_lq_keys_t icon;
@@ -135,6 +147,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_jo_gh_ctx_t ctx;
     const pico8_list_t *jy;
     pico8_list_t jx;
+    pico8_pz_frame_t frame;
     int i;
 
     if (self == NULL) {
@@ -273,7 +286,8 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         pico8_list_add(PICO8_REF_AS_LIST(bs[i].lq.as.ref), pico8_value_ref((void *)&gap));
     }
 
-    pico8_pz((const pico8_struct_header_t *)self, bs, n);
+    frame = jo_pz_frame(self);
+    pico8_pz(&frame, bs, n);
 }
 
 pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
@@ -368,6 +382,7 @@ void pico8_jo_fe(pico8_jo_t *self) {
     pico8_list_t bj_list;
     pico8_js_keys_t *bs;
     pico8_jo_fe_row_t *rows;
+    pico8_pz_frame_t frame;
     int n = 0;
     int i;
 
@@ -389,7 +404,8 @@ void pico8_jo_fe(pico8_jo_t *self) {
     }
     pico8_list_free(&bj_list);
 
-    pico8_pz((const pico8_struct_header_t *)self, bs, n);
+    frame = jo_pz_frame(self);
+    pico8_pz(&frame, bs, n);
     free(bs);
     free(rows);
 }

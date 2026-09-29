@@ -44,6 +44,7 @@ void pico8_fv_pq(pico8_fv_t *self) {
     pico8_js_keys_t bs[PICO8_BO_COUNT];
     pico8_lq_keys_t lq[PICO8_BO_COUNT];
     pico8_value_t items[PICO8_BO_COUNT][PICO8_BO_ROW_CAP];
+    pico8_pz_frame_t frame = {0};
     int i;
 
     if (self == NULL) {
@@ -64,7 +65,15 @@ void pico8_fv_pq(pico8_fv_t *self) {
         bs[i].has_my = 1;
         bs[i].my = pico8_eu_field_value();
     }
-    pico8_pz((const pico8_struct_header_t *)self, bs, PICO8_BO_COUNT);
+    frame.has_eo = 1;
+    frame.eo = self->eo;
+    frame.hi = self->hi;
+    frame.ff = 1;
+    frame.has_ca = 1;
+    frame.ca = self->ca;
+    frame.gq = self->gq;
+    frame.ra = self->g_.ra;
+    pico8_pz(&frame, bs, PICO8_BO_COUNT);
 }
 
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec_t p) {

@@ -194,6 +194,7 @@ void pico8_cr(void) {
     int n = 0;
     int i;
     pico8_pj_cr_t *cr;
+    pico8_pz_frame_t frame = {0};
 
     if (fm != NULL) {
         tl = fm->ew;
@@ -277,7 +278,12 @@ void pico8_cr(void) {
         free(diff2_str);
 
         cr->ep = ep;
-        pico8_pz((const pico8_struct_header_t *)cr, bs, n);
+        frame.ep = cr->ep;
+        frame.hi = cr->hi;
+        frame.has_ca = 1;
+        frame.ca = cr->ca;
+        frame.gq = cr->gq;
+        pico8_pz(&frame, bs, n);
     }
 
     free(bs);
@@ -372,7 +378,7 @@ static const pico8_js_fn g_ix_my[PICO8_IX_COUNT] = {
 static const pico8_js_fn g_ix_hb[PICO8_IX_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
 
 /* `pz(ha,ha)`: `ha`'s rows go in as `bs`, their `my` installed on every
- * run, and `p` is `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
+ * run, and `p` is the frame of `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
 static void pico8_ix4_my_dispatch(pico8_js_t *self) {
     const pico8_js_fn my[PICO8_HA_COUNT] = {
         pico8_init_field_value(),
@@ -383,6 +389,7 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
     pico8_js_keys_t bs[PICO8_HA_COUNT];
     pico8_lq_keys_t lq[PICO8_HA_COUNT];
     pico8_value_t items[PICO8_HA_COUNT][PICO8_MENU_ROW_CAP];
+    pico8_pz_frame_t frame = {0};
     int i;
     (void)self;
 
@@ -401,7 +408,11 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
         bs[i].has_my = 1;
         bs[i].my = my[i];
     }
-    pico8_pz((const pico8_struct_header_t *)&g_ha_pz, bs, PICO8_HA_COUNT);
+    frame.hi = g_ha_pz.hi;
+    frame.has_ca = g_ha_pz.has_ca;
+    frame.ca = g_ha_pz.ca;
+    frame.gq = g_ha_pz.gq;
+    pico8_pz(&frame, bs, PICO8_HA_COUNT);
 }
 
 pico8_js_t *pico8_ix_button(int i) {

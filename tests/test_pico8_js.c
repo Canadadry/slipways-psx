@@ -1855,35 +1855,18 @@ static void test_ha_pz_members_by_name(void) {
     ha_pz_ca_is_14(o);
 }
 
-static void pz_on_a_table(void *e) {
-    pico8_pz(e, NULL, 0);
-}
-
-/* A `p` whose only field is `ca`, when `with_ca`. */
-static int g_p_with_ca;
-
-static int p_field(const void *self, const char *name, pico8_value_t *out) {
-    (void)self;
-    if (g_p_with_ca && strcmp(name, "ca") == 0) {
-        *out = pico8_value_fixed(pico8_fixed_from_int(14));
-        return 1;
-    }
-    return 0;
-}
-
 /* TROU-9: a button's `fa` is `p.ca` when `p` has one, else `js`'s own. */
 static void test_pz_fa_only_from_ca(void) {
-    static const pico8_struct_class_t cls = {.field = p_field};
-    static const pico8_struct_header_t p = {PICO8_TYPE_TAG_STRUCT, &cls};
+    pico8_pz_frame_t frame = {0};
     pico8_js_keys_t row = {0};
 
     start_game();
     row.lq = pico8_value_ref(NULL);
-    g_p_with_ca = 0;
-    pico8_pz(&p, &row, 1);
+    pico8_pz(&frame, &row, 1);
     assert(ok_le()->count == 1 && must_fixed(ok_le()->items[0].as.ref, "fa") == pico8_fixed_from_int(11));
-    g_p_with_ca = 1;
-    pico8_pz(&p, &row, 1);
+    frame.has_ca = 1;
+    frame.ca = pico8_fixed_from_int(14);
+    pico8_pz(&frame, &row, 1);
     assert(ok_le()->count == 1 && must_fixed(ok_le()->items[0].as.ref, "fa") == pico8_fixed_from_int(14));
 }
 
@@ -1919,13 +1902,9 @@ static void test_cb_writes_every_e_(void) {
     }
 }
 
-/* `pz` takes a struct or NULL: a list stops it. */
+/* A NULL frame makes `pz` a no-op. */
 static void test_pz_closed(void) {
-    pico8_list_t list;
-
-    pico8_list_init(&list);
     start_game();
-    must_abort(pz_on_a_table, &list);
     pico8_pz(NULL, NULL, 0);
 }
 

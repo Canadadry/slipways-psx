@@ -114,10 +114,25 @@ void pico8_iv_ph(pico8_iv_t *self);
 /* A NULL `gfx`/`mem` makes the whole call a no-op. */
 void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p);
 
+/* What `pz` reads of its `p`, filled by the caller from its own members: a
+ * NULL pointer or a 0 has_* is nil; `ff` is the Lua truth of `p.ff`. `pz`
+ * reads it during the call and keeps none of it. */
+typedef struct {
+    const char *ep;
+    int has_eo;
+    pico8_fixed_t eo;
+    const pico8_vec_t *hi;
+    int ff;
+    int has_ca;
+    pico8_fixed_t ca;
+    const pico8_vec_t *gq;
+    const pico8_vec_t *ra;
+} pico8_pz_frame_t;
+
 /* TROU-7 */
 /* The `n` rows of `bs` are the keys of `ok.le`'s buttons, each read on a
  * copy that gets `ra`, `qf` and `fa`; `bs` stays the caller's, unchanged.
- * `p` is NULL (a no-op) or a struct whose descriptor has a field reader. */
-void pico8_pz(const pico8_struct_header_t *p, const pico8_js_keys_t *bs, int n);
+ * A NULL `frame` is a no-op. */
+void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n);
 
 #endif
