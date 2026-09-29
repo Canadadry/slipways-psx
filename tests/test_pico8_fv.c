@@ -578,8 +578,8 @@ static void call_na(void *e) {
     pico8_na(e, pico8_fixed_from_int(1));
 }
 
-/* `g_`'s functions take a struct or NULL as `self`, and do nothing on
- * NULL. */
+/* On NULL `self`: `d_`, `gk` return 0; `g__mm` draws three `rnd`, divides by
+ * `pn` = 0 and returns a new particle; the six others do nothing. */
 static void test_g__closed(void) {
     static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
                                           call_dl, call_d_, call_gk, call_na};
