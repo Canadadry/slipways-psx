@@ -99,9 +99,9 @@ void pico8_bx(pico8_qe_map_t *out) {
 
 static void ck_visit(pico8_struct_header_t *l, void *ctx) {
     pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
-    const pico8_list_t *jy;
+    const pico8_ptrs_t *jy;
     const pico8_jy_t *last;
-    pico8_value_t last_val;
+    void *last_val;
     pico8_fixed_t current;
 
     assert(pico8_jo_is_family(l) && "ck: l is a planet of cg.qh");
@@ -110,10 +110,10 @@ static void ck_visit(pico8_struct_header_t *l, void *ctx) {
         return;
     }
     last_val = jy->items[jy->count - 1];
-    if (last_val.kind != PICO8_VALUE_REF || last_val.as.ref == NULL) {
+    if (last_val == NULL) {
         return;
     }
-    last = last_val.as.ref;
+    last = last_val;
     if (!last->row.has_qe) {
         return;
     }

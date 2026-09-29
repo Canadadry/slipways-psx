@@ -284,14 +284,14 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
 
 void pico8_jo_pq(pico8_jo_t *self) {
     const pico8_qh_t *qh;
-    pico8_list_t *oe;
+    pico8_ptrs_t *oe;
 
     if (self == NULL) {
         return;
     }
 
     oe = malloc(sizeof *oe);
-    pico8_list_init(oe);
+    pico8_ptrs_init(oe);
     self->oe = oe;
 
     qh = pico8_qh_of(&self->ke.header);
@@ -305,22 +305,23 @@ void pico8_jo_pq(pico8_jo_t *self) {
 }
 
 /* `mw(i)`: a copy of the want, never shared with `hp.i`. */
-static int pico8_jo_lz_mw_step(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
+static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
     (void)ctx;
-    if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
+    if (e != NULL) {
         pico8_jy_t *copy = malloc(sizeof *copy);
+        const pico8_jy_t *i = e;
 
         assert(copy != NULL);
-        *copy = *(const pico8_jy_t *)e.as.ref;
-        *out_value = pico8_value_ref(copy);
+        *copy = *i;
+        *out = copy;
         return 1;
     }
     return 0;
 }
 
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
-    pico8_list_t jy;
-    pico8_list_t *jy_heap;
+    pico8_ptrs_t jy;
+    pico8_ptrs_t *jy_heap;
 
     pico8_hp_assert(hp_instance);
     if (self == NULL) {
@@ -330,9 +331,9 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     self->hn = hp_instance;
     self->ep = NULL;
 
-    pico8_list_init(&jy);
+    pico8_ptrs_init(&jy);
     if (hp_instance != NULL && hp_instance->i != NULL) {
-        jy = pico8_nv(hp_instance->i, pico8_jo_lz_mw_step, NULL);
+        jy = pico8_nv_ptrs(hp_instance->i, pico8_jo_lz_mw_step, NULL);
     }
     jy_heap = malloc(sizeof *jy_heap);
     *jy_heap = jy;

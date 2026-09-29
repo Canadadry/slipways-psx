@@ -5,6 +5,7 @@
 #include "pico8_fixed.h"
 #include "pico8_layout.h"
 #include "pico8_list.h"
+#include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_value.h"
 
@@ -24,7 +25,7 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self);
 /* A static function of `jo`, not a method: `jo.ex(...)`, never `jo:ex(...)`.
  * Returns a fresh row, or NULL when `o` is falsy -- which `jo:hb`
  * does reach, for a planet whose `kw` carries no `qe`. */
-pico8_lq_t *pico8_jo_ex(const pico8_list_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
+pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
                          pico8_fixed_t d);
 
 /* The Lua parameter is literally named `jo`: a local shadowing the class,

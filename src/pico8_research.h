@@ -3,8 +3,8 @@
 
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_list.h"
 #include "pico8_map_tables.h"
+#include "pico8_ptrs.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -40,7 +40,7 @@ typedef struct {
     pico8_fixed_t fj;
     int has_fj; /* 0: `fj` is nil, and is then never read */
     const char *ja;
-    pico8_list_t *i;
+    pico8_ptrs_t *i;
     pico8_fixed_t o;
     int has_o; /* 0: `o` is nil, and is then never read */
     const char *il;

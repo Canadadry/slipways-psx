@@ -28,7 +28,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
 #include "../src/pico8_struct.h"
@@ -83,34 +82,15 @@ static int same_qe(const pico8_trade_t *a, const pico8_trade_t *b) {
     return a->has_qe && b->has_qe && a->qe_is_bool == b->qe_is_bool && a->qe == b->qe;
 }
 
-static int same_value(pico8_value_t a, pico8_value_t b) {
-    return pico8_value_equal(a, b);
+/* The kind word a REF value folded, then presence and the rank in `hv`. */
+static uint32_t fold_ref(uint32_t h, const void *p) {
+    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)(p != NULL));
+    return fnv(h, (uint32_t)rank_in(pico8_hv(), p));
 }
 
-/* Kind, then the string's bytes, the number, the boolean or the rank in
- * `hv` of what the value holds. */
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    const char *s;
-    h = fnv(h, (uint32_t)v.kind);
-    switch (v.kind) {
-    case PICO8_VALUE_FIXED:
-        return fnv(h, (uint32_t)v.as.fixed);
-    case PICO8_VALUE_BOOL:
-        return fnv(h, (uint32_t)v.as.boolean);
-    case PICO8_VALUE_STRING:
-        for (s = v.as.string; *s != '\0'; s++) {
-            h = fnv(h, (uint32_t)(unsigned char)*s);
-        }
-        return h;
-    case PICO8_VALUE_REF:
-        h = fnv(h, (uint32_t)(v.as.ref != NULL));
-        return fnv(h, (uint32_t)rank_in(pico8_hv(), v.as.ref));
-    default:
-        return h;
-    }
-}
-
-/* fold_value's BOOL and FIXED cases; an unset `qe` folds as absent. */
+/* A BOOL or FIXED value's kind word and payload; an unset `qe` folds as
+ * absent. */
 static uint32_t fold_qe(uint32_t h, const pico8_trade_t *t) {
     if (!t->has_qe) {
         return fnv(h, 0xFFFFFFFFu);
@@ -121,14 +101,14 @@ static uint32_t fold_qe(uint32_t h, const pico8_trade_t *t) {
     return fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)t->qe);
 }
 
-static uint32_t fold_ranks(uint32_t h, const pico8_list_t *l) {
+static uint32_t fold_ranks(uint32_t h, const pico8_ptrs_t *l) {
     int i;
     if (l == NULL) {
         return fnv(h, 0xFFFFFFFFu);
     }
     h = fnv(h, (uint32_t)l->count);
     for (i = 0; i < l->count; i++) {
-        h = fold_value(h, l->items[i]);
+        h = fold_ref(h, l->items[i]);
     }
     return h;
 }
@@ -136,12 +116,12 @@ static uint32_t fold_ranks(uint32_t h, const pico8_list_t *l) {
 /* A route: the ranks in `hv` of its `lp` planets and `rl` slipways, its
  * `qe`, and the rank of `to()`. */
 static uint32_t fold_route(uint32_t h, const pico8_trade_t *t) {
-    pico8_value_t to;
+    void *to;
     h = fold_ranks(h, t->lp);
     h = fold_ranks(h, t->rl);
     h = fold_qe(h, t);
     if (pico8_trade_to(t, &to)) {
-        return fold_value(fnv(h, 1u), to);
+        return fold_ref(fnv(h, 1u), to);
     }
     return fnv(h, 0u);
 }
@@ -197,26 +177,18 @@ static void join(void *qu, void *re) {
     pico8_jc_struct_class()->ey(jc, re);
 }
 
-static pico8_value_t nil(void) {
-    return pico8_value_ref(NULL);
-}
-
-static pico8_value_t ref(const void *p) {
-    return pico8_value_ref((void *)p);
-}
-
-static pico8_list_t *list_of(int n, const pico8_value_t *items) {
-    pico8_list_t *l = malloc(sizeof *l);
+static pico8_ptrs_t *list_of(int n, void *const *items) {
+    pico8_ptrs_t *l = malloc(sizeof *l);
     int i;
-    pico8_list_init(l);
+    pico8_ptrs_init(l);
     for (i = 0; i < n; i++) {
-        pico8_list_add(l, items[i]);
+        pico8_ptrs_add(l, items[i]);
     }
     return l;
 }
 
 /* NULL `lp`/`rl` are nil; `has_qe` 0 is a nil `qe`. */
-static pico8_trade_t *route(pico8_list_t *lp, pico8_list_t *rl, int has_qe, int qe_is_bool, pico8_fixed_t qe) {
+static pico8_trade_t *route(pico8_ptrs_t *lp, pico8_ptrs_t *rl, int has_qe, int qe_is_bool, pico8_fixed_t qe) {
     pico8_trade_keys_t keys = {0};
 
     keys.lp = lp;
@@ -260,9 +232,9 @@ static pico8_trade_t *game_route(void) {
         pico8_dg();
     }
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_list_t *by = as_jo(jo->items[i])->by;
+        const pico8_ptrs_t *by = as_jo(jo->items[i])->by;
         if (by != NULL && by->count > 0) {
-            return as_trade(by->items[0].as.ref);
+            return as_trade(by->items[0]);
         }
     }
     assert(0 && "no route in the game");
@@ -274,8 +246,8 @@ static pico8_trade_t *game_route(void) {
 static void test_construction(void) {
     uint32_t h = 2166136261u;
     pico8_trade_t *g = game_route();
-    pico8_list_t *lp = g->lp;
-    pico8_list_t *rl = g->rl;
+    pico8_ptrs_t *lp = g->lp;
+    pico8_ptrs_t *rl = g->rl;
     pico8_trade_t *t;
 
     assert(lp != NULL && rl != NULL && g->has_qe);
@@ -296,33 +268,34 @@ static void test_construction(void) {
 /* `to` is the last of `lp`; an empty or missing `lp` gives nothing and
  * leaves the output alone. */
 static void test_to(void) {
-    pico8_value_t items[3];
-    pico8_value_t out;
-    const pico8_value_t sentinel = pico8_value_fixed(pico8_fixed_from_int(7));
+    static int sentinel_target;
+    void *const sentinel = &sentinel_target;
+    void *items[3];
+    void *out;
     pico8_trade_t *t;
 
     (void)game_route();
-    items[0] = ref(planet(0));
-    items[1] = ref(planet(1));
-    items[2] = ref(planet(2));
+    items[0] = planet(0);
+    items[1] = planet(1);
+    items[2] = planet(2);
     t = route(list_of(3, items), NULL, 0, 0, 0);
-    assert(pico8_trade_to(t, &out) && out.kind == PICO8_VALUE_REF && out.as.ref == planet(2));
+    assert(pico8_trade_to(t, &out) && out == planet(2));
     t = route(list_of(1, items), NULL, 0, 0, 0);
-    assert(pico8_trade_to(t, &out) && out.as.ref == planet(0));
+    assert(pico8_trade_to(t, &out) && out == planet(0));
 
     out = sentinel;
-    assert(!pico8_trade_to(route(list_of(0, items), NULL, 0, 0, 0), &out) && same_value(out, sentinel));
-    assert(!pico8_trade_to(pico8_trade_new(NULL), &out) && same_value(out, sentinel));
-    assert(!pico8_trade_to(NULL, &out) && same_value(out, sentinel));
+    assert(!pico8_trade_to(route(list_of(0, items), NULL, 0, 0, 0), &out) && out == sentinel);
+    assert(!pico8_trade_to(pico8_trade_new(NULL), &out) && out == sentinel);
+    assert(!pico8_trade_to(NULL, &out) && out == sentinel);
 }
 
-static int list_is(const pico8_list_t *l, int n, const pico8_value_t *items) {
+static int list_is(const pico8_ptrs_t *l, int n, void *const *items) {
     int i;
     if (l == NULL || l->count != n) {
         return 0;
     }
     for (i = 0; i < n; i++) {
-        if (!same_value(l->items[i], items[i]) || l->items[i].kind != items[i].kind) {
+        if (l->items[i] != items[i]) {
             return 0;
         }
     }
@@ -334,74 +307,74 @@ static int list_is(const pico8_list_t *l, int n, const pico8_value_t *items) {
  * route `qe` false. */
 static void test_kg(void) {
     pico8_trade_t *g = game_route();
-    const pico8_list_t *lp = g->lp;
-    const pico8_list_t *rl = g->rl;
+    const pico8_ptrs_t *lp = g->lp;
+    const pico8_ptrs_t *rl = g->rl;
     const int lp_n = lp->count;
     const int rl_n = rl->count;
     void *np = planet(3);
-    void *jc = rl->items[0].as.ref;
-    pico8_value_t want[16];
+    void *jc = rl->items[0];
+    void *want[16];
     pico8_trade_t *k;
     int i;
 
     assert(g->has_qe && lp_n + 1 < 16 && rl_n + 1 < 16);
-    k = pico8_trade_kg(g, ref(np), ref(jc));
+    k = pico8_trade_kg(g, np, jc);
     assert(k != NULL && k != g);
     assert(g->lp == lp && g->rl == rl && lp->count == lp_n && rl->count == rl_n);
     assert(k->lp != lp && k->rl != rl);
     for (i = 0; i < lp_n; i++) {
         want[i] = lp->items[i];
     }
-    want[lp_n] = ref(np);
+    want[lp_n] = np;
     assert(list_is(k->lp, lp_n + 1, want));
     for (i = 0; i < rl_n; i++) {
         want[i] = rl->items[i];
     }
-    want[rl_n] = ref(jc);
+    want[rl_n] = jc;
     assert(list_is(k->rl, rl_n + 1, want));
     assert(same_qe(k, g));
 
-    k = pico8_trade_kg(g, ref(np), nil());
+    k = pico8_trade_kg(g, np, NULL);
     assert(k->lp->count == lp_n + 1 && list_is(k->rl, rl_n, rl->items));
     assert(k->rl != rl);
     assert(same_qe(k, g));
 
-    k = pico8_trade_kg(g, nil(), nil());
+    k = pico8_trade_kg(g, NULL, NULL);
     assert(list_is(k->lp, lp_n, lp->items) && list_is(k->rl, rl_n, rl->items));
 
-    k = pico8_trade_kg(route((pico8_list_t *)lp, NULL, 0, 0, 0), ref(np), nil());
+    k = pico8_trade_kg(route((pico8_ptrs_t *)lp, NULL, 0, 0, 0), np, NULL);
     assert(k->lp->count == lp_n + 1 && k->rl->count == 0);
     assert(k->has_qe && k->qe_is_bool && k->qe == 0);
 
-    k = pico8_trade_kg(pico8_trade_new(NULL), ref(np), ref(jc));
-    want[0] = ref(np);
+    k = pico8_trade_kg(pico8_trade_new(NULL), np, jc);
+    want[0] = np;
     assert(list_is(k->lp, 1, want));
-    want[0] = ref(jc);
+    want[0] = jc;
     assert(list_is(k->rl, 1, want));
     assert(k->has_qe && k->qe_is_bool && k->qe == 0);
 
-    assert(pico8_trade_kg(NULL, ref(np), ref(jc)) == NULL);
+    assert(pico8_trade_kg(NULL, np, jc) == NULL);
 }
 
 /* Equal when they start and end at the same planet, whatever the length. */
 static void test_eq(void) {
-    pico8_value_t a[2];
-    pico8_value_t b[3];
-    pico8_value_t c[2];
-    pico8_value_t d[2];
+    void *a[2];
+    void *b[3];
+    void *c[2];
+    void *d[2];
     pico8_trade_t *ta;
     pico8_trade_t *tb;
 
     (void)game_route();
-    a[0] = ref(planet(0));
-    a[1] = ref(planet(1));
-    b[0] = ref(planet(0));
-    b[1] = ref(planet(2));
-    b[2] = ref(planet(1));
-    c[0] = ref(planet(2));
-    c[1] = ref(planet(1));
-    d[0] = ref(planet(0));
-    d[1] = ref(planet(2));
+    a[0] = planet(0);
+    a[1] = planet(1);
+    b[0] = planet(0);
+    b[1] = planet(2);
+    b[2] = planet(1);
+    c[0] = planet(2);
+    c[1] = planet(1);
+    d[0] = planet(0);
+    d[1] = planet(2);
     ta = route(list_of(2, a), NULL, 0, 0, 0);
     tb = route(list_of(3, b), NULL, 0, 0, 0);
     assert(pico8_trade_eq(ta, tb) && pico8_trade_eq(tb, ta) && pico8_trade_eq(ta, ta));
@@ -446,12 +419,12 @@ static void build_with_nil_qe_as_bool(void *e) {
 }
 
 static void to_on_other(void *e) {
-    pico8_value_t out;
+    void *out;
     (void)pico8_trade_to(e, &out);
 }
 
 static void kg_on_other(void *e) {
-    (void)pico8_trade_kg(e, nil(), nil());
+    (void)pico8_trade_kg(e, NULL, NULL);
 }
 
 static void eq_left_other(void *e) {
@@ -493,7 +466,7 @@ static void test_trade_is_a_struct(void) {
 
 static int g_kf_calls = 0;
 
-static void count_kf(pico8_jo_trade_proposal_t *self, pico8_value_t a) {
+static void count_kf(pico8_jo_trade_proposal_t *self, pico8_trade_t *a) {
     (void)self;
     (void)a;
     g_kf_calls++;
@@ -504,7 +477,7 @@ static void count_kf(pico8_jo_trade_proposal_t *self, pico8_value_t a) {
 static void test_cn_wildcard_want(void) {
     pico8_trade_keys_t keys = {0};
     pico8_jo_trade_proposal_t lw = {0};
-    pico8_list_t *jy = malloc(sizeof *jy);
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_qh_t *qh;
     pico8_jy_t *want;
     pico8_fixed_t any;
@@ -514,8 +487,8 @@ static void test_cn_wildcard_want(void) {
     assert(pico8_r_lookup("?", &any_qe));
     any = pico8_fixed_from_int(any_qe);
     want = pico8_jy_new(&any);
-    pico8_list_init(jy);
-    pico8_list_add(jy, pico8_value_ref(want));
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, want);
     qh = pico8_qh_new(NULL);
     qh->jo.jy = jy;
     keys.has_qe = 1;

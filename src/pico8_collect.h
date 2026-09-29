@@ -7,11 +7,6 @@
 #include "pico8_ptrs.h"
 #include "pico8_value.h"
 
-/* TROU-3 */
-/* A NULL `qk` is a member of nothing rather than an error, mirroring
- * all(nil). */
-int pico8_gu(const pico8_list_t *qk, pico8_value_t kb);
-
 /* `ow` gets each element plus `ctx`, this port's stand-in for the captured
  * upvalue of the original's closure. Returns a new heap-backed list the
  * caller releases with pico8_list_free(); a NULL `qk` gives an empty one. */
@@ -24,10 +19,6 @@ pico8_list_t pico8_jp(const pico8_list_t *qk, pico8_jp_predicate_fn ow, void *ct
  * pico8_list_free(). `qk` must not be NULL. */
 typedef int (*pico8_nv_fn)(pico8_value_t e, void *ctx, pico8_value_t *out_value);
 pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx);
-
-/* Returns a new heap-backed list, `a`'s elements then `b`'s, that the
- * caller releases with pico8_list_free(). Neither argument may be NULL. */
-pico8_list_t pico8_la(const pico8_list_t *a, const pico8_list_t *b);
 
 /* pico8_jp over pointers. Returns a new container the caller releases with
  * pico8_ptrs_free(); a NULL `qk` gives an empty one. */

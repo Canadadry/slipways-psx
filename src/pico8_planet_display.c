@@ -54,8 +54,8 @@ static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
 }
 
 void pico8_jo_hb(pico8_jo_t *self) {
-    const pico8_list_t *jy_list;
-    const pico8_list_t *by_list;
+    const pico8_ptrs_t *jy_list;
+    const pico8_ptrs_t *by_list;
     pico8_value_t qe = pico8_value_ref(NULL);
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     pico8_lq_t *lq_result;
@@ -82,21 +82,21 @@ typedef struct {
 
 /* Filters on `gc == 0`, and also appends the element to the `ji` list in
  * `ctx` once per `gc`: the Lua predicate has that side effect. */
-static int pico8_jo_gh_jp_step(pico8_value_t e, void *ctx_ptr) {
+static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
     pico8_jo_gh_ctx_t *ctx = (pico8_jo_gh_ctx_t *)ctx_ptr;
     pico8_fixed_t gc = pico8_fixed_from_int(0);
     int count;
     int j;
 
-    if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        const pico8_jy_t *i = e.as.ref;
+    if (e != NULL) {
+        const pico8_jy_t *i = e;
         if (i->has_gc) {
             gc = i->gc;
         }
     }
     count = pico8_fixed_flr_int(gc);
     for (j = 0; j < count; j++) {
-        pico8_list_add(ctx->ji, e);
+        pico8_list_add(ctx->ji, pico8_value_ref(e));
     }
     return gc == pico8_fixed_from_int(0);
 }
@@ -145,8 +145,8 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     const pico8_jb_row_t *icon_row = NULL;
     pico8_list_t *ji;
     pico8_jo_gh_ctx_t ctx;
-    const pico8_list_t *jy;
-    pico8_list_t jx;
+    const pico8_ptrs_t *jy;
+    pico8_ptrs_t jx;
     pico8_pz_frame_t frame;
     int i;
 
@@ -192,15 +192,15 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     ctx.ji = ji;
 
     jy = self->jy;
-    jx = pico8_jp(jy, pico8_jo_gh_jp_step, &ctx);
+    jx = pico8_jp_ptrs(jy, pico8_jo_gh_jp_step, &ctx);
 
     if (jx.count > 0) {
-        pico8_list_t prefix;
         pico8_list_t *merged = malloc(sizeof *merged);
-        pico8_list_init(&prefix);
-        pico8_list_add(&prefix, pico8_value_string("needs:"));
-        *merged = pico8_la(&prefix, &jx);
-        pico8_list_free(&prefix);
+        pico8_list_init(merged);
+        pico8_list_add(merged, pico8_value_string("needs:"));
+        for (i = 0; i < jx.count; i++) {
+            pico8_list_add(merged, pico8_value_ref(jx.items[i]));
+        }
         bs[n++].lq = pico8_value_ref(merged);
     } else {
         pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
@@ -212,24 +212,20 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         qe_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(kw_qe, pico8_value_fixed(pico8_fixed_from_int(r_w)));
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            pico8_list_t prefix;
             pico8_list_t *merged = malloc(sizeof *merged);
-            pico8_list_init(&prefix);
-            pico8_list_add(&prefix, pico8_value_string("wants more:"));
+            pico8_list_init(merged);
+            pico8_list_add(merged, pico8_value_string("wants more:"));
             if (qh != NULL && pico8_jo_truthy(pico8_qh_qh(qh))) {
-                pico8_list_t last_only;
-                pico8_list_init(&last_only);
-                pico8_list_add(&last_only, jy->items[jy->count - 1]);
-                *merged = pico8_la(&prefix, &last_only);
-                pico8_list_free(&last_only);
+                pico8_list_add(merged, pico8_value_ref(jy->items[jy->count - 1]));
             } else {
-                *merged = pico8_la(&prefix, jy);
+                for (i = 0; i < jy->count; i++) {
+                    pico8_list_add(merged, pico8_value_ref(jy->items[i]));
+                }
             }
-            pico8_list_free(&prefix);
             bs[n++].lq = pico8_value_ref(merged);
         }
     }
-    pico8_list_free(&jx);
+    pico8_ptrs_free(&jx);
 
     /* A `ji` still holding only its header means the predicate appended
      * nothing; Lua's `add(t,nil)` is a no-op, so there is no row at all,
@@ -257,7 +253,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 pico8_list_add(lb, pico8_value_string("makes:"));
                 pico8_list_add(lb, pico8_value_string(mu_str));
             } else {
-                const pico8_list_t *by = self->by;
+                const pico8_ptrs_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
                 char *count_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(by_count)));
                 char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));

@@ -87,7 +87,7 @@ pico8_fixed_t pico8_cz(void) {
 pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     pico8_fixed_t total = pico8_fixed_from_int(0);
     const pico8_jo_t *jo;
-    const pico8_list_t *by;
+    const pico8_ptrs_t *by;
     const pico8_js_t *dk = pico8_dk();
 
     if (pt == NULL) {
@@ -100,21 +100,20 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     if (by != NULL) {
         int i;
         for (i = 0; i < by->count; i++) {
-            pico8_value_t e_val = by->items[i];
+            void *e_val = by->items[i];
             pico8_struct_header_t *e;
-            pico8_value_t oz_val;
-            if (e_val.kind != PICO8_VALUE_REF || e_val.as.ref == NULL) {
+            void *oz_val;
+            if (e_val == NULL) {
                 continue;
             }
-            e = (pico8_struct_header_t *)e_val.as.ref;
-            if (!pico8_trade_to((const pico8_trade_t *)e, &oz_val) || oz_val.kind != PICO8_VALUE_REF ||
-                oz_val.as.ref == NULL) {
+            e = e_val;
+            if (!pico8_trade_to((const pico8_trade_t *)e, &oz_val) || oz_val == NULL) {
                 continue;
             }
             {
                 const pico8_jo_t *oz;
-                assert(pico8_jo_is_family(oz_val.as.ref) && "db: a trade leads to a planet");
-                oz = oz_val.as.ref;
+                assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
+                oz = oz_val;
                 if (economy_truthy(pico8_jo_hf(oz))) {
                     pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
                     pico8_fixed_t hs = jo->hs;

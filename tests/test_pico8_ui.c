@@ -488,7 +488,7 @@ static void test_right(void) {
 }
 
 static int oe_count(void *planet) {
-    const pico8_list_t *oe = as_jo(planet)->oe;
+    const pico8_ptrs_t *oe = as_jo(planet)->oe;
     return oe == NULL ? 0 : oe->count;
 }
 

@@ -7,7 +7,6 @@
 #include "pico8_struct.h"
 #include "pico8_collect.h"
 #include "pico8_entity.h"
-#include "pico8_list.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
@@ -110,9 +109,9 @@ static void pico8_nr_hb_dispatch(void *self) {
 
 void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     pico8_trade_t *t;
-    const pico8_list_t *oe = NULL;
-    pico8_list_iter_t it;
-    pico8_value_t w_val;
+    const pico8_ptrs_t *oe = NULL;
+    pico8_ptrs_iter_t it;
+    void *w_val;
 
     if (self == NULL || lw == NULL) {
         return;
@@ -121,15 +120,15 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 
     oe = self->qh.jo.oe;
 
-    it = pico8_list_all(oe);
-    while (pico8_list_iter_next(&it, &w_val)) {
+    it = pico8_ptrs_all(oe);
+    while (pico8_ptrs_iter_next(&it, &w_val)) {
         pico8_struct_header_t *w;
-        const pico8_list_t *t_rl = NULL;
+        const pico8_ptrs_t *t_rl = NULL;
 
-        if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
+        if (w_val == NULL) {
             continue;
         }
-        w = (pico8_struct_header_t *)w_val.as.ref;
+        w = w_val;
 
         if (lw->mu <= pico8_fixed_from_int(0)) {
             continue;
@@ -138,13 +137,13 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
         if (t != NULL && t->rl != NULL) {
             t_rl = t->rl;
         }
-        if (pico8_gu(t_rl, pico8_value_ref(w))) {
+        if (pico8_gu_ptrs(t_rl, w)) {
             continue;
         }
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_trade_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(w));
+            pico8_trade_t *extended = pico8_trade_kg(t, &self->qh.jo.ke.header, w);
             pico8_struct_header_t *other;
 
             gf.t = extended;
@@ -302,22 +301,22 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
     }
 
     if (cp != NULL) {
-        const pico8_list_t *jy;
-        pico8_list_iter_t it;
-        pico8_value_t i_val;
+        const pico8_ptrs_t *jy;
+        pico8_ptrs_iter_t it;
+        void *i_val;
 
         assert(pico8_jo_is_family(cp) && "mx:kf: the other end of a registered slipway is a planet");
         jy = ((const pico8_jo_t *)cp)->jy;
 
-        it = pico8_list_all(jy);
-        while (pico8_list_iter_next(&it, &i_val)) {
+        it = pico8_ptrs_all(jy);
+        while (pico8_ptrs_iter_next(&it, &i_val)) {
             const pico8_jy_t *i;
             pico8_fixed_t gc;
 
-            if (i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
+            if (i_val == NULL) {
                 continue;
             }
-            i = i_val.as.ref;
+            i = i_val;
 
             gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
             if (gc != pico8_fixed_from_int(0)) {

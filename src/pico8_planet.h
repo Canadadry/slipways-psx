@@ -7,6 +7,7 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
+#include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -41,10 +42,10 @@ typedef struct {
     const char *id;
     pico8_vec_t *p;
     pico8_vec_t *ra;
-    pico8_list_t *oe;
+    pico8_ptrs_t *oe;
     pico8_hp_t *hn;
     const char *ep;
-    pico8_list_t *jy;
+    pico8_ptrs_t *jy;
     const pico8_df_entry_t *nk;
     int fx;
     int has_fx;
@@ -56,8 +57,8 @@ typedef struct {
     int has_p_;
     pico8_fixed_t kr;
     int has_kr;
-    pico8_list_t *cc;
-    pico8_list_t *by;
+    pico8_ptrs_t *cc;
+    pico8_ptrs_t *by;
     pico8_fixed_t mi;
     int has_mi;
     int m_;

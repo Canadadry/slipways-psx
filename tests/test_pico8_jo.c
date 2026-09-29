@@ -25,7 +25,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_ke.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
@@ -143,7 +142,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_list_t *l) {
+static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 

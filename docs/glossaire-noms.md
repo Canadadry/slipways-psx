@@ -281,12 +281,12 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `qj(o,mr)` | — | fusionne `mr` dans `o` ; `mr` gagne sur les clés partagées |
 | `mw(o)` | — | copie superficielle ; celle d'un besoin par `jo:lz` copie le `pico8_jy_t` |
-| `gu(qk,kb)` | `pico8_gu` | `kb` est-il dans la liste `qk` (identité de pointeur) |
+| `gu(qk,kb)` | `pico8_gu_ptrs` | `kb` est-il dans le conteneur `qk` (identité de pointeur) |
 | — | `pico8_gu_content_ptrs` | appartenance d'une chaîne à un `pico8_ptrs_t` de chaînes (`hy.invented`), comparée par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua (TROU-3) |
-| `jp(qk,ow)` | `pico8_jp` | filtre |
-| `nv(qk,kp)` | `pico8_nv` | applique `kp`, en ignorant les résultats faux |
-| — | `pico8_gu_ptrs`, `pico8_nv_ptrs`, `pico8_jp_ptrs`, `pico8_la_ptrs` | `gu`, `nv`, `jp` et `la` sur un `pico8_ptrs_t` (élément `void *`, appartenance par identité) ; ceux des registres, les versions à valeur gardant leurs autres appelants |
-| `la(a,b)` | `pico8_la` | concatène deux listes |
+| `jp(qk,ow)` | `pico8_jp`, `pico8_jp_ptrs` | filtre |
+| `nv(qk,kp)` | `pico8_nv`, `pico8_nv_ptrs` | applique `kp`, en ignorant les résultats faux |
+| — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; ce sont les deux seules aides de `collect` qui gardent aussi une version à valeur (`pico8_jp` : `bj`, `cb` ; `pico8_nv` : `layout`) |
+| `la(a,b)` | `pico8_la_ptrs` | concatène deux conteneurs de pointeurs |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `pico8_ho_apply` et par `hp` |
@@ -655,7 +655,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
 | Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des deux formes qui modélisent encore la table Lua (la troisième, la table ob, est supprimée à D.8) ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
 | Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
-| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented` |
+| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), `trade.lp`, `trade.rl` et l'`ib` d'une proposition |
 
 ### Mise en page
 

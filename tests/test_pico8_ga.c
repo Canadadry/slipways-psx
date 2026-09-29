@@ -26,7 +26,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
@@ -131,10 +130,6 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_list_t *l) {
-    return l == NULL ? -1 : l->count;
-}
-
 static int ptrs_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
@@ -318,9 +313,9 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_vec(h, jo->p);
     h = fnv(h, (uint32_t)(em->k_ == NULL ? -1 : em->k_->count));
     h = fnv(h, (uint32_t)(jo->nu == NULL ? -1 : jo->nu->count));
-    h = fnv(h, (uint32_t)list_size(jo->by));
+    h = fnv(h, (uint32_t)ptrs_size(jo->by));
     h = fnv(h, (uint32_t)ptrs_size(em->qy));
-    h = fnv(h, (uint32_t)list_size(jo->oe));
+    h = fnv(h, (uint32_t)ptrs_size(jo->oe));
     assert(pico8_mo_qb() != NULL);
     h = fold_fixed_member(h, pico8_mo_qb()->ma);
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
@@ -385,7 +380,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     assert(cls_of(e)->ol == NULL && cls_of(e)->hq == NULL && cls_of(e)->ey == NULL);
     assert(jo->nu == &pico8_ga_nu_tags);
     assert(jo->kq == &pico8_ga_start.kq);
-    assert(pico8_type_tag_of(jo->by) == PICO8_TYPE_TAG_LIST);
+    assert(jo->by != NULL);
     if (from_pm) {
         assert(em->k_ != &pico8_ga_k__seq);
         assert(em->k_ != &pico8_pm_k__seq);
@@ -543,7 +538,7 @@ static void test_life(void) {
     void *b;
     void *c;
     void *pm;
-    pico8_list_t *by;
+    pico8_ptrs_t *by;
     static pico8_kw_t kw;
     uint32_t row;
     int hv_count;
@@ -595,12 +590,14 @@ static void test_life(void) {
     h = fnv(h, row);
     by = as_ga(c)->jo.by;
     assert(by == as_ga(a)->jo.by && by->count == 0);
-    pico8_list_add(by, pico8_value_ref(pico8_trade_new(NULL)));
-    pico8_list_add(by, pico8_value_ref(pico8_trade_new(NULL)));
+    pico8_ptrs_add(by, pico8_trade_new(NULL));
+    pico8_ptrs_add(by, pico8_trade_new(NULL));
     cls_of(a)->hb(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
-    assert(list_size(as_ga(b)->jo.by) == 2);
+    assert(ptrs_size(as_ga(b)->jo.by) == 2);
+    /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */
+    assert(pico8_jo_ib(&as_ga(b)->jo) == by && by->count == 2);
 
     hv_count = pico8_hv()->count;
     cls_of(b)->hk(b, pico8_fixed_from_int(0));

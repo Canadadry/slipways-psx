@@ -428,7 +428,7 @@ static void test_jo_ex(void) {
 
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
         const pico8_hp_t *p = project(ks[a]);
-        const pico8_list_t *is = p->i;
+        const pico8_ptrs_t *is = p->i;
         assert(p->has_o);
         o = pico8_value_fixed(p->o);
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
@@ -712,7 +712,7 @@ static void test_gh_wants_more(void) {
     pico8_fixed_t ore = pico8_fixed_from_int(21);
     pico8_jy_t *a = pico8_jy_new(&ore);
     pico8_jy_t *b = pico8_jy_new(NULL);
-    pico8_list_t *jy = malloc(sizeof *jy);
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_jo_t *planet;
     const pico8_lq_t *wants;
     const pico8_lq_t *receives;
@@ -723,9 +723,9 @@ static void test_gh_wants_more(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(2);
-    pico8_list_init(jy);
-    pico8_list_add(jy, pico8_value_ref(a));
-    pico8_list_add(jy, pico8_value_ref(b));
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, a);
+    pico8_ptrs_add(jy, b);
     planet = pico8_jo_new(NULL);
     planet->jy = jy;
     planet->has_mi = 1;

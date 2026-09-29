@@ -13,38 +13,37 @@
 #include "pico8_ref_audit.h"
 #include "pico8_slipway.h"
 
-/* Membership by trade equality (same endpoints), not pico8_gu's pointer
+/* Membership by trade equality (same endpoints), not pico8_gu_ptrs's pointer
  * identity: every candidate offered here is a freshly built route, which
  * identity would never match. NULL-safe on `list`. */
-static int gu_trade(const pico8_list_t *list, pico8_value_t v) {
-    pico8_list_iter_t it;
-    pico8_value_t e;
+static int gu_trade(const pico8_ptrs_t *list, const pico8_trade_t *v) {
+    pico8_ptrs_iter_t it;
+    void *e;
 
     if (list == NULL) {
         return 0;
     }
-    it = pico8_list_all(list);
-    while (pico8_list_iter_next(&it, &e)) {
-        if (e.kind == PICO8_VALUE_REF && v.kind == PICO8_VALUE_REF &&
-            pico8_trade_eq((const pico8_trade_t *)e.as.ref, (const pico8_trade_t *)v.as.ref)) {
+    it = pico8_ptrs_all(list);
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        if (pico8_trade_eq(e, v)) {
             return 1;
         }
     }
     return 0;
 }
 
-static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_value_t a) {
+static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_trade_t *a) {
     if (self == NULL || self->ib == NULL) {
         return;
     }
     if (!gu_trade(self->ib, a)) {
-        pico8_list_add(self->ib, a);
+        pico8_ptrs_add(self->ib, a);
         self->mu -= pico8_fixed_from_int(1);
     }
 }
 
 void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
-    pico8_list_t *oe = NULL;
+    pico8_ptrs_t *oe = NULL;
     pico8_struct_header_t *other = NULL;
 
     if (self == NULL) {
@@ -53,7 +52,7 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
 
     oe = self->oe;
     if (oe != NULL) {
-        pico8_list_add(oe, pico8_value_ref(sw));
+        pico8_ptrs_add(oe, sw);
     }
 
     if (sw != NULL) {
@@ -79,9 +78,9 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     int have_r_q;
     pico8_trade_t *t;
     pico8_value_t t_qe = pico8_value_ref(NULL);
-    pico8_list_t *jy = NULL;
-    pico8_list_iter_t it;
-    pico8_value_t e;
+    pico8_ptrs_t *jy = NULL;
+    pico8_ptrs_iter_t it;
+    void *e;
 
     if (self == NULL || lw == NULL) {
         return;
@@ -103,16 +102,16 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     jy = self->jy;
 
     if (have_r_e && pico8_value_equal(t_qe, r_e) && !self->has_jh) {
-        it = pico8_list_all(jy);
-        while (pico8_list_iter_next(&it, &e)) {
-            if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                const pico8_jy_t *i = e.as.ref;
+        it = pico8_ptrs_all(jy);
+        while (pico8_ptrs_iter_next(&it, &e)) {
+            if (e != NULL) {
+                const pico8_jy_t *i = e;
                 pico8_fixed_t gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
                 int qe_is_r_q;
 
                 qe_is_r_q = have_r_q && pico8_value_equal(pico8_jy_qe(i), r_q);
                 if (gc == pico8_fixed_from_int(0) && !qe_is_r_q) {
-                    pico8_list_del(jy, e);
+                    pico8_ptrs_del(jy, e);
                     break;
                 }
             }
@@ -121,14 +120,14 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         {
             pico8_fixed_t e_qe = r_e.as.fixed;
             pico8_jy_t *fresh = pico8_jy_new(&e_qe);
-            pico8_list_t prefix;
-            pico8_list_t merged;
-            pico8_list_t *merged_heap;
+            pico8_ptrs_t prefix;
+            pico8_ptrs_t merged;
+            pico8_ptrs_t *merged_heap;
 
-            pico8_list_init(&prefix);
-            pico8_list_add(&prefix, pico8_value_ref(fresh));
-            merged = pico8_la(&prefix, jy);
-            pico8_list_free(&prefix);
+            pico8_ptrs_init(&prefix);
+            pico8_ptrs_add(&prefix, fresh);
+            merged = pico8_la_ptrs(&prefix, jy);
+            pico8_ptrs_free(&prefix);
 
             merged_heap = malloc(sizeof *merged_heap);
             *merged_heap = merged;
@@ -139,15 +138,15 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         self->has_jh = 1;
     }
 
-    it = pico8_list_all(jy);
-    while (pico8_list_iter_next(&it, &e)) {
+    it = pico8_ptrs_all(jy);
+    while (pico8_ptrs_iter_next(&it, &e)) {
         pico8_jy_t *i;
         pico8_value_t qe_val;
 
-        if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
+        if (e == NULL) {
             continue;
         }
-        i = e.as.ref;
+        i = e;
         qe_val = pico8_jy_qe(i);
 
         if (have_r_q && pico8_value_equal(qe_val, r_q)) {
@@ -167,22 +166,22 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         if (pico8_value_equal(t_qe, qe_val) && !(have_r_q && pico8_value_equal(qe_val, r_q))) {
-            pico8_trade_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(NULL));
+            pico8_trade_t *extended = pico8_trade_kg(t, &self->ke.header, NULL);
             if (lw->kf != NULL) {
-                lw->kf(lw, pico8_value_ref(extended));
+                lw->kf(lw, extended);
             }
             return;
         }
     }
 }
 
-pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
-    pico8_list_t *ib;
+pico8_ptrs_t *pico8_jo_ib(pico8_jo_t *self) {
+    pico8_ptrs_t *ib;
     pico8_trade_keys_t keys = {0};
     pico8_fixed_t mu = pico8_fixed_from_int(0);
-    const pico8_list_t *oe = NULL;
-    pico8_list_iter_t it;
-    pico8_value_t w_val;
+    const pico8_ptrs_t *oe = NULL;
+    pico8_ptrs_iter_t it;
+    void *w_val;
 
     if (self == NULL) {
         return NULL;
@@ -192,7 +191,7 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         ib = self->by;
     } else {
         ib = malloc(sizeof *ib);
-        pico8_list_init(ib);
+        pico8_ptrs_init(ib);
     }
 
     if (self->kw != NULL) {
@@ -205,25 +204,25 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
 
     oe = self->oe;
 
-    it = pico8_list_all(oe);
-    while (pico8_list_iter_next(&it, &w_val)) {
+    it = pico8_ptrs_all(oe);
+    while (pico8_ptrs_iter_next(&it, &w_val)) {
         pico8_struct_header_t *w;
         pico8_jo_trade_proposal_t lw;
-        pico8_list_t *lp_list;
-        pico8_list_t *rl_list;
+        pico8_ptrs_t *lp_list;
+        pico8_ptrs_t *rl_list;
         pico8_struct_header_t *other;
 
-        if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
+        if (w_val == NULL) {
             continue;
         }
-        w = (pico8_struct_header_t *)w_val.as.ref;
+        w = w_val;
 
         lp_list = malloc(sizeof *lp_list);
-        pico8_list_init(lp_list);
-        pico8_list_add(lp_list, pico8_value_ref(self));
+        pico8_ptrs_init(lp_list);
+        pico8_ptrs_add(lp_list, self);
         rl_list = malloc(sizeof *rl_list);
-        pico8_list_init(rl_list);
-        pico8_list_add(rl_list, pico8_value_ref(w));
+        pico8_ptrs_init(rl_list);
+        pico8_ptrs_add(rl_list, w);
 
         keys.lp = lp_list;
         keys.rl = rl_list;

@@ -22,7 +22,7 @@
 
 static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */
-static pico8_list_t g_ga_by_shared;
+static pico8_ptrs_t g_ga_by_shared;
 
 static pico8_vec_t pico8_pf_value_vec(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -655,7 +655,7 @@ void pico8_planet_family_init(void) {
     pico8_planet_family_shutdown();
     pico8_pi_init();
     g_family_up = 1;
-    pico8_list_init(&g_ga_by_shared);
+    pico8_ptrs_init(&g_ga_by_shared);
 }
 
 void pico8_planet_family_shutdown(void) {

@@ -1,9 +1,5 @@
-/* Six sites read the "by" field as a `pico8_list_t*`, so its producers
- * must all make a real list. A `by=o()` in a class spec does not: `ob()`
- * parses it into an ob_table. Nothing visible separates the two while the
- * table is empty, because `count` sits at the same byte offset in both
- * structs -- which is why the contract is asserted here on the REF itself,
- * between two assertions on what a player reads. */
+/* The "exports:" row of `jo:gh` counts the routes held in the `by` a `ga`
+ * receives at construction, read on the member itself. */
 
 #include <assert.h>
 #include <stdio.h>
@@ -18,13 +14,11 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_trade.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
@@ -81,7 +75,7 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static void *planet_by_ref(const pico8_ga_t *planet) {
+static pico8_ptrs_t *planet_by_ref(const pico8_ga_t *planet) {
     return planet->jo.by;
 }
 
@@ -92,7 +86,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     static pico8_kw_t kw;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
-    pico8_list_t *by;
+    pico8_ptrs_t *by;
     pico8_trade_t *route_a;
     pico8_trade_t *route_b;
     const pico8_ptrs_t *le;
@@ -135,13 +129,10 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
      * declaration installed. */
     by = planet_by_ref(planet);
     assert(by != NULL);
-    /* The contract all six readers assume, on the value actually handed
-     * out. Without the `by` swap, ga's init aborts first. */
-    assert(pico8_type_tag_of(by) == PICO8_TYPE_TAG_LIST);
     route_a = pico8_trade_new(NULL);
     route_b = pico8_trade_new(NULL);
-    pico8_list_add(by, pico8_value_ref(route_a));
-    pico8_list_add(by, pico8_value_ref(route_b));
+    pico8_ptrs_add(by, route_a);
+    pico8_ptrs_add(by, route_b);
 
     exports_lq = NULL;
     pico8_jo_gh(&planet->jo);

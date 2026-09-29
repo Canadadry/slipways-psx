@@ -48,7 +48,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 
 static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_jo_t *jo;
-    pico8_list_t *cc;
+    pico8_ptrs_t *cc;
     (void)ctx;
     if (pt == NULL) {
         return;
@@ -56,20 +56,20 @@ static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     assert(pico8_jo_is_family(pt) && "bd: pt is a planet of cg.jo");
     jo = (pico8_jo_t *)pt;
     if (jo->cc != NULL) {
-        pico8_list_free(jo->cc);
+        pico8_ptrs_free(jo->cc);
         free(jo->cc);
     }
     /* TROU-7 */
     cc = malloc(sizeof *cc);
-    pico8_list_init(cc);
+    pico8_ptrs_init(cc);
     jo->cc = cc;
 }
 
 static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_jo_t *jo;
-    pico8_list_t *by;
-    pico8_list_iter_t it;
-    pico8_value_t e;
+    pico8_ptrs_t *by;
+    pico8_ptrs_iter_t it;
+    void *e;
     (void)ctx;
     if (pt == NULL) {
         return;
@@ -84,48 +84,48 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
         return;
     }
 
-    it = pico8_list_all(by);
-    while (pico8_list_iter_next(&it, &e)) {
+    it = pico8_ptrs_all(by);
+    while (pico8_ptrs_iter_next(&it, &e)) {
         const pico8_trade_t *route;
-        const pico8_list_t *rl;
-        const pico8_list_t *lp;
-        pico8_value_t to_val;
+        const pico8_ptrs_t *rl;
+        const pico8_ptrs_t *lp;
+        void *to_val;
         int i;
 
-        if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
+        if (e == NULL) {
             continue;
         }
-        assert(((const pico8_struct_header_t *)e.as.ref)->cls == pico8_trade_struct_class() &&
+        assert(((const pico8_struct_header_t *)e)->cls == pico8_trade_struct_class() &&
                "jo.by holds trades only");
-        route = e.as.ref;
+        route = e;
         rl = route->rl;
         lp = route->lp;
 
         if (rl != NULL && lp != NULL) {
             for (i = 0; i < rl->count; i++) {
-                pico8_value_t w_val = rl->items[i];
+                void *w_val = rl->items[i];
                 const pico8_jc_t *w;
-                pico8_value_t planet_val;
+                void *planet_val;
                 const pico8_jo_t *planet;
 
-                if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
+                if (w_val == NULL) {
                     continue;
                 }
                 if (i + 1 >= lp->count) {
                     continue;
                 }
                 planet_val = lp->items[i + 1];
-                if (planet_val.kind != PICO8_VALUE_REF || planet_val.as.ref == NULL) {
+                if (planet_val == NULL) {
                     continue;
                 }
-                assert(pico8_jo_is_family(planet_val.as.ref) && "trade.lp holds planets only");
-                planet = planet_val.as.ref;
+                assert(pico8_jo_is_family(planet_val) && "trade.lp holds planets only");
+                planet = planet_val;
                 if (planet->id == NULL) {
                     continue;
                 }
-                assert(((const pico8_struct_header_t *)w_val.as.ref)->cls == pico8_jc_struct_class() &&
+                assert(((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class() &&
                        "trade.rl holds slipways only");
-                w = w_val.as.ref;
+                w = w_val;
                 /* A slipway with no `hg` set is skipped; Lua would error
                  * indexing nil here. */
                 if (w->hg == NULL) {
@@ -135,14 +135,13 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
             }
         }
 
-        if (pico8_trade_to(route, &to_val) && to_val.kind == PICO8_VALUE_REF &&
-            to_val.as.ref != NULL) {
+        if (pico8_trade_to(route, &to_val) && to_val != NULL) {
             pico8_jo_t *dest;
 
-            assert(pico8_jo_is_family(to_val.as.ref) && "a trade leads to a planet");
-            dest = to_val.as.ref;
+            assert(pico8_jo_is_family(to_val) && "a trade leads to a planet");
+            dest = to_val;
             if (dest->cc != NULL) {
-                pico8_list_add(dest->cc, e);
+                pico8_ptrs_add(dest->cc, e);
             }
         }
     }
@@ -177,7 +176,7 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
             if (hn != NULL && hn->has_dm) {
                 if (jo->jy != NULL) {
                     pico8_jy_t *entry = pico8_jy_new(&hn->dm);
-                    pico8_list_add(jo->jy, pico8_value_ref(entry));
+                    pico8_ptrs_add(jo->jy, entry);
                 }
             }
         }
@@ -219,8 +218,8 @@ int pico8_bb(void) {
 
 pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     const pico8_jo_t *jo;
-    const pico8_list_t *jy;
-    const pico8_list_t *cc;
+    const pico8_ptrs_t *jy;
+    const pico8_ptrs_t *cc;
     pico8_fixed_t jd = pico8_fixed_from_int(1);
     int i;
 
@@ -237,27 +236,27 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     cc = jo->cc;
     if (jy != NULL) {
         for (i = 0; i < jy->count; i++) {
-            pico8_value_t i_val = jy->items[i];
+            void *i_val = jy->items[i];
             pico8_jy_t *want;
             pico8_value_t qe_val;
             int gc = 0;
             int j;
 
-            if (i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
+            if (i_val == NULL) {
                 continue;
             }
-            want = i_val.as.ref;
+            want = i_val;
             qe_val = pico8_jy_qe(want);
             if (cc != NULL) {
                 for (j = 0; j < cc->count; j++) {
-                    pico8_value_t im_val = cc->items[j];
+                    void *im_val = cc->items[j];
                     const pico8_trade_t *im;
-                    if (im_val.kind != PICO8_VALUE_REF || im_val.as.ref == NULL) {
+                    if (im_val == NULL) {
                         continue;
                     }
-                    assert(((const pico8_struct_header_t *)im_val.as.ref)->cls == pico8_trade_struct_class() &&
+                    assert(((const pico8_struct_header_t *)im_val)->cls == pico8_trade_struct_class() &&
                            "jo.cc holds trades only");
-                    im = im_val.as.ref;
+                    im = im_val;
                     /* TROU-3 */
                     if (im->has_qe && economy_value_equal_content(pico8_trade_qe(im), qe_val)) {
                         gc++;
@@ -278,12 +277,12 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         int count = 0;
         if (jy != NULL) {
             for (i = 0; i < jy->count; i++) {
-                pico8_value_t i_val = jy->items[i];
+                void *i_val = jy->items[i];
                 const pico8_jy_t *want;
-                if (i_val.kind != PICO8_VALUE_REF || i_val.as.ref == NULL) {
+                if (i_val == NULL) {
                     continue;
                 }
-                want = i_val.as.ref;
+                want = i_val;
                 if (want->has_gc && want->gc > pico8_fixed_from_int(0)) {
                     count++;
                 }
@@ -294,9 +293,9 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
 
     if (!economy_truthy(pico8_jo_hf(jo))) {
         if (jy != NULL && jy->count > 0) {
-            pico8_value_t last_val = jy->items[jy->count - 1];
-            if (last_val.kind == PICO8_VALUE_REF && last_val.as.ref != NULL) {
-                const pico8_jy_t *last = last_val.as.ref;
+            void *last_val = jy->items[jy->count - 1];
+            if (last_val != NULL) {
+                const pico8_jy_t *last = last_val;
                 if (last->has_gc) {
                     return fixed_min(pico8_fixed_add(last->gc, pico8_fixed_from_int(1)), pico8_fixed_from_int(4));
                 }
@@ -306,7 +305,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     }
 
     {
-        const pico8_list_t *by = jo->by;
+        const pico8_ptrs_t *by = jo->by;
         int by_count = (by != NULL) ? by->count : 0;
         int cc_count = (cc != NULL) ? cc->count : 0;
         pico8_fixed_t mid_val =

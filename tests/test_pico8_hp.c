@@ -427,7 +427,7 @@ static void test_gb(void) {
 
     for (k = 1; k <= GB_COUNT; k++) {
         pico8_hp_t *b = project(k);
-        const pico8_list_t *i_list;
+        const pico8_ptrs_t *i_list;
         void *found;
         int j;
 
@@ -445,12 +445,11 @@ static void test_gb(void) {
         h = fold_string_member(h, b->go);
         h = fold_fixed_member(h, b->has_rn, b->rn);
         i_list = b->i;
-        assert(i_list != NULL && pico8_type_tag_of(i_list) == PICO8_TYPE_TAG_LIST);
+        assert(i_list != NULL);
         h = fnv(h, (uint32_t)i_list->count);
         for (j = 0; j < i_list->count; j++) {
             pico8_value_t qe = pico8_value_ref(NULL);
-            assert(i_list->items[j].kind == PICO8_VALUE_REF);
-            qe = pico8_jy_qe(i_list->items[j].as.ref);
+            qe = pico8_jy_qe(i_list->items[j]);
             h = fold_value(h, qe, 0);
         }
         if (b->lq != NULL) {
@@ -611,7 +610,7 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *p) {
 /* A planet's `jy`, folded as fold_value folded the list of tables it was:
  * each want, `qe` (nil included), then `gc` when written. */
 static uint32_t fold_jy(uint32_t h, const pico8_jo_t *p) {
-    const pico8_list_t *jy = p->jy;
+    const pico8_ptrs_t *jy = p->jy;
     int i;
 
     if (jy == NULL) {
@@ -620,7 +619,7 @@ static uint32_t fold_jy(uint32_t h, const pico8_jo_t *p) {
     h = fnv(fnv(h, (uint32_t)PICO8_VALUE_REF), (uint32_t)VIEW_LIST_TAG);
     h = fnv(h, (uint32_t)jy->count);
     for (i = 0; i < jy->count; i++) {
-        const pico8_jy_t *want = jy->items[i].as.ref;
+        const pico8_jy_t *want = jy->items[i];
 
         h = fold_view_head(h, 1 + (want->has_gc != 0));
         h = fold_value(fold_view_name(h, "qe"), pico8_jy_qe(want), 2);
@@ -652,7 +651,7 @@ static uint32_t fold_planet(uint32_t h, void *e) {
 static void test_wants(void) {
     pico8_fd_entry_t ri = {0};
     pico8_hp_keys_t keys = {0};
-    const pico8_list_t *jy;
+    const pico8_ptrs_t *jy;
     pico8_hp_t *b;
     void *a;
     int p;
@@ -668,17 +667,17 @@ static void test_wants(void) {
     keys.ri = &ri;
     b = pico8_hp_new(&keys);
     assert(b->i->count == 2 && pico8_r_lookup("p", &p));
-    assert(((const pico8_jy_t *)b->i->items[0].as.ref)->row.has_qe);
-    assert(((const pico8_jy_t *)b->i->items[0].as.ref)->row.qe == pico8_fixed_from_int(p));
-    assert(!((const pico8_jy_t *)b->i->items[1].as.ref)->row.has_qe);
+    assert(((const pico8_jy_t *)b->i->items[0])->row.has_qe);
+    assert(((const pico8_jy_t *)b->i->items[0])->row.qe == pico8_fixed_from_int(p));
+    assert(!((const pico8_jy_t *)b->i->items[1])->row.has_qe);
 
     a = new_planet("p950", 12, 16);
     pico8_jo_lz(a, b);
     jy = as_jo(a)->jy;
     assert(jy != NULL && jy->count == 2);
     for (k = 0; k < 2; k++) {
-        assert(jy->items[k].as.ref != b->i->items[k].as.ref);
-        assert(memcmp(jy->items[k].as.ref, b->i->items[k].as.ref, sizeof(pico8_jy_t)) == 0);
+        assert(jy->items[k] != b->i->items[k]);
+        assert(memcmp(jy->items[k], b->i->items[k], sizeof(pico8_jy_t)) == 0);
     }
 }
 

@@ -25,7 +25,6 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
@@ -49,6 +48,10 @@
 #define BUILT_HASH 0x3F7BD05Au
 #define LIFE_HASH 0xD3BC6FC2u
 #define HEIRS_HASH 0xB8D3FBCCu
+
+/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
+ * fold: any other value moves every *_HASH. */
+#define FROZEN_LIST_TAG 0x9E5C1157u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -151,10 +154,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_list_t *l) {
-    return l == NULL ? -1 : l->count;
-}
-
 static int ptrs_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
@@ -422,8 +421,8 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     assert(pico8_gb_at(2) != NULL);
     assert(jo->hn == pico8_gb_at(2));
     h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)list_size(jo->oe));
-    h = fnv(h, (uint32_t)list_size(jo->jy));
+    h = fnv(h, (uint32_t)ptrs_size(jo->oe));
+    h = fnv(h, (uint32_t)ptrs_size(jo->jy));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
@@ -476,12 +475,21 @@ static uint32_t fold_dg(uint32_t h, void *e) {
     return fold_ra_y(h, hj);
 }
 
+/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
+ * never in `hv`, so the tag branch. */
+static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+    if (ib == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
+}
+
 /* What `bb`'s `dh` (no `pt.nl`, `pt.hf` false), `ib`, `gg` and `da` (qh
  * false) give on an ascension. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_value_t ib = pico8_value_ref(pico8_jo_ib(e));
+    pico8_ptrs_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
-    h = fold_value(h, ib);
+    h = fold_ib(h, ib);
     h = fold_value(h, pico8_jo_gg(e));
     h = fnv(h, (uint32_t)pico8_da(e));
     return as_hj(e)->qh.jo.has_mi ? fold_fixed_member(h, as_hj(e)->qh.jo.mi) : fold_absent(h);

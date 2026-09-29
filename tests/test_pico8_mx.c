@@ -26,7 +26,6 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
@@ -47,6 +46,10 @@
 #define BUILT_HASH 0x2A676693u
 #define LIFE_HASH 0x902C2D62u
 #define SYNTHESIS_HASH 0x2DBF1611u
+
+/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
+ * fold: any other value moves every *_HASH. */
+#define FROZEN_LIST_TAG 0x9E5C1157u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -83,17 +86,6 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
 
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
-}
-
-/* `listed` for a list member of an entity (`jo.oe`), not a registry. */
-static int value_listed(const pico8_list_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
-            return 1;
-        }
-    }
-    return 0;
 }
 
 static uint32_t fold_absent(uint32_t h) {
@@ -151,10 +143,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_list_t *l) {
-    return l == NULL ? -1 : l->count;
-}
-
 static int ptrs_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
@@ -429,8 +417,8 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     assert(pico8_gb_at(5) != NULL);
     assert(jo->hn == pico8_gb_at(5));
     h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)list_size(jo->oe));
-    h = fnv(h, (uint32_t)list_size(jo->jy));
+    h = fnv(h, (uint32_t)ptrs_size(jo->oe));
+    h = fnv(h, (uint32_t)ptrs_size(jo->jy));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
@@ -478,11 +466,20 @@ static uint32_t fold_dg(uint32_t h, void *e) {
     return fold_ra_y(h, hj);
 }
 
+/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
+ * never in `hv`, so the tag branch. */
+static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+    if (ib == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
+}
+
 /* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a synthesizer. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_value_t ib = pico8_value_ref(pico8_jo_ib(e));
+    pico8_ptrs_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
-    h = fold_value(h, ib);
+    h = fold_ib(h, ib);
     h = fold_value(h, pico8_jo_gg(e));
     h = fnv(h, (uint32_t)pico8_da(e));
     return as_hj(e)->qh.jo.has_mi ? fold_fixed_member(h, as_hj(e)->qh.jo.mi) : fold_absent(h);
@@ -557,7 +554,7 @@ static void *join(void *qu, void *synthesizer) {
     assert(jc != NULL);
     set_credits(999);
     cls_of(jc)->ey(jc, synthesizer);
-    assert(value_listed(as_hj(synthesizer)->qh.jo.oe, jc));
+    assert(listed(as_hj(synthesizer)->qh.jo.oe, jc));
     return jc;
 }
 
@@ -566,12 +563,12 @@ static void *join(void *qu, void *synthesizer) {
 static void give_row(void *e, int qe) {
     pico8_fixed_t want_qe = pico8_fixed_from_int(qe);
     pico8_jy_t *row = pico8_jy_new(&want_qe);
-    pico8_list_t *jy = malloc(sizeof *jy);
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
 
     row->has_gc = 1;
     row->gc = pico8_fixed_from_int(0);
-    pico8_list_init(jy);
-    pico8_list_add(jy, pico8_value_ref(row));
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, row);
     as_hj(e)->qh.jo.jy = jy;
 }
 
@@ -583,7 +580,7 @@ static uint32_t fold_kf(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fold_fixed_member(h, jo->ma);
     h = jo->has_fx ? fold_bool_member(h, jo->fx) : fold_absent(h);
-    return fnv(h, (uint32_t)list_size(jo->oe));
+    return fnv(h, (uint32_t)ptrs_size(jo->oe));
 }
 
 /* `mx:kf` on a slipway from an ascension whose `jy` lacks a resource of `ht`: nothing

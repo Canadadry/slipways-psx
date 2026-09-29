@@ -24,7 +24,6 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
@@ -35,6 +34,7 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
+#include "../src/pico8_trade.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_value.h"
@@ -43,6 +43,10 @@
 
 #define BUILT_HASH 0x4194DF7Bu
 #define LIFE_HASH 0x6D8FAD96u
+
+/* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
+ * fold: any other value moves every *_HASH. */
+#define FROZEN_LIST_TAG 0x9E5C1157u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -136,7 +140,7 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
 }
 
 /* The item count of a list member, -1 when NULL. */
-static int list_size(const pico8_list_t *l) {
+static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -403,11 +407,20 @@ static uint32_t fold_dg(uint32_t h, void *e) {
     return fold_ra_y(h, qh);
 }
 
+/* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
+ * never in `hv`, so the tag branch. */
+static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+    if (ib == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, 0xEEEEu), FROZEN_LIST_TAG);
+}
+
 /* What `bb`'s `dh`, `ib`, `gg` and `da` give on a slipgate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_value_t ib = pico8_value_ref(pico8_jo_ib(e));
+    pico8_ptrs_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
-    h = fold_value(h, ib);
+    h = fold_ib(h, ib);
     h = fold_value(h, pico8_jo_gg(e));
     h = fnv(h, (uint32_t)pico8_da(e));
     return as_qh(e)->jo.has_mi ? fold_fixed_member(h, as_qh(e)->jo.mi) : fold_absent(h);
@@ -415,13 +428,13 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 
 /* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
  * count it. */
-static pico8_list_t *list_of(int n, void *item) {
-    pico8_list_t *l = malloc(sizeof *l);
+static pico8_ptrs_t *list_of(int n, void *item) {
+    pico8_ptrs_t *l = malloc(sizeof *l);
     int i;
 
-    pico8_list_init(l);
+    pico8_ptrs_init(l);
     for (i = 0; i < n; i++) {
-        pico8_list_add(l, pico8_value_ref(item));
+        pico8_ptrs_add(l, item);
     }
     return l;
 }
@@ -439,7 +452,7 @@ static void test_life(void) {
     void *bare;
     pico8_value_t mp;
     pico8_down_t jc;
-    pico8_list_t *oe;
+    pico8_ptrs_t *oe;
     const pico8_vec_t *mo_ra;
     int i;
 
@@ -557,6 +570,68 @@ static void test_nr_is_a_struct(void) {
     assert(as_qh(fr)->s == pico8_fixed_from_int(78));
 }
 
+/* Counts the offers `cn` makes, taking each as `jo:ib`'s closure does. */
+static int g_offers = 0;
+
+static void take_offer(pico8_jo_trade_proposal_t *self, pico8_trade_t *a) {
+    pico8_ptrs_add(self->ib, a);
+    self->mu -= pico8_fixed_from_int(1);
+    g_offers++;
+}
+
+/* `nr:cn` forwards a trade over each of its slipways but one the trade's
+ * `rl` already runs through: over `w` to a planet wanting the trade's
+ * resource, a trade whose `rl` holds `w` is not offered, one whose `rl`
+ * does not is, once. */
+static void test_cn_skips_a_slipway_already_in_rl(void) {
+    pico8_nr_t *self;
+    pico8_qh_t *other;
+    pico8_jc_keys_t jc_keys = {0};
+    pico8_jc_t *w;
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
+    pico8_ptrs_t *with_w = malloc(sizeof *with_w);
+    pico8_ptrs_t *without_w = malloc(sizeof *without_w);
+    pico8_ptrs_t ib;
+    pico8_trade_keys_t keys = {0};
+    pico8_jo_trade_proposal_t lw = {0};
+    pico8_fixed_t qe;
+    int r_p;
+
+    start_game();
+    assert(pico8_r_lookup("p", &r_p));
+    qe = pico8_fixed_from_int(r_p);
+    self = pico8_nr_new(NULL);
+    other = pico8_qh_new(NULL);
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, pico8_jy_new(&qe));
+    other->jo.jy = jy;
+    jc_keys.qu = &self->qh.jo.ke.header;
+    w = pico8_jc_new(&jc_keys);
+    w->re = &other->jo.ke.header;
+    assert(self->qh.jo.oe != NULL && self->qh.jo.oe->count == 0);
+    pico8_ptrs_add(self->qh.jo.oe, w);
+
+    pico8_ptrs_init(with_w);
+    pico8_ptrs_add(with_w, w);
+    pico8_ptrs_init(&ib);
+    keys.has_qe = 1;
+    keys.qe = qe;
+    keys.rl = with_w;
+    lw.t = pico8_trade_new(&keys);
+    lw.mu = pico8_fixed_from_int(2);
+    lw.kf = take_offer;
+    lw.ib = &ib;
+    pico8_nr_cn(self, &lw);
+    assert(g_offers == 0 && ib.count == 0 && lw.mu == pico8_fixed_from_int(2));
+
+    pico8_ptrs_init(without_w);
+    keys.rl = without_w;
+    lw.t = pico8_trade_new(&keys);
+    pico8_nr_cn(self, &lw);
+    assert(g_offers == 1 && ib.count == 1 && lw.mu == pico8_fixed_from_int(1));
+    pico8_ptrs_free(&ib);
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
@@ -597,6 +672,7 @@ int main(void) {
     in_fresh_child(test_built);
     in_fresh_child(test_life);
     in_fresh_child(test_nr_is_a_struct);
+    in_fresh_child(test_cn_skips_a_slipway_already_in_rl);
 
     printf("test_pico8_nr: all tests passed\n");
     return 0;

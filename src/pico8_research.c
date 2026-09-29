@@ -154,7 +154,7 @@ pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe) {
  * real `gb[px]` must hold the struct. */
 static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     pico8_hp_t *self = malloc(sizeof *self);
-    pico8_list_t *new_i_heap;
+    pico8_ptrs_t *new_i_heap;
     const char *i_src = "";
     size_t c;
 
@@ -227,7 +227,7 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     /* A want for every character, never skipping one: the Lua table
      * constructor is non-nil even when `r[c]` is absent. */
     new_i_heap = malloc(sizeof *new_i_heap);
-    pico8_list_init(new_i_heap);
+    pico8_ptrs_init(new_i_heap);
     for (c = 0; i_src[c] != '\0'; c++) {
         char key[2] = {i_src[c], '\0'};
         int r_qe;
@@ -235,9 +235,9 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
 
         if (pico8_r_lookup(key, &r_qe)) {
             qe = pico8_fixed_from_int(r_qe);
-            pico8_list_add(new_i_heap, pico8_value_ref(pico8_jy_new(&qe)));
+            pico8_ptrs_add(new_i_heap, pico8_jy_new(&qe));
         } else {
-            pico8_list_add(new_i_heap, pico8_value_ref(pico8_jy_new(NULL)));
+            pico8_ptrs_add(new_i_heap, pico8_jy_new(NULL));
         }
     }
     self->i = new_i_heap;
