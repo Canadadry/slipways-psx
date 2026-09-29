@@ -117,10 +117,6 @@ void pico8_score_panel_set_init(pico8_js_fn fn);
 pico8_pj_t *pico8_ju(void);
 void pico8_pj_set_ju(pico8_pj_t *instance);
 
-/* The item `hb`, `hk` and `ph` write for `v`: a string (borrowed), a number,
- * false, or nil for REF NULL; any other value asserts. */
-pico8_jb_item_t pico8_pj_item_of(pico8_value_t v);
-
 void pico8_pj_hb(void);
 
 void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self);

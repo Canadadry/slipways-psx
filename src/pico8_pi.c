@@ -7,6 +7,7 @@
 #include "pico8_geom.h"
 #include "pico8_hud.h"
 #include "pico8_layout.h"
+#include "pico8_str.h"
 #include "pico8_vec.h"
 
 typedef struct {
@@ -53,43 +54,49 @@ void pico8_pi_dispatch_clear(void) {
     g_pi_dispatch_count = 0;
 }
 
-/* `e[i]`, 1-based, as the value the cart's `oo` unpacked: an item past
- * the end is nil. */
-static pico8_value_t pico8_pi_arg(const pico8_jb_row_t *e, int i) {
+/* `e[i]`, 1-based; NULL past the end, where the cart's `oo` unpacked
+ * nil. */
+static const pico8_jb_item_t *pico8_pi_arg(const pico8_jb_row_t *e, int i) {
     const pico8_jb_item_t *item;
 
     if (i > e->count) {
-        return pico8_value_ref(NULL);
+        return NULL;
     }
     item = &e->items[i - 1];
     assert(item->row == NULL && "an article of bl holds no nested row");
-    if (item->s != NULL) {
-        return pico8_value_string(item->s);
+    return item;
+}
+
+static int pico8_pi_is_number(const pico8_jb_row_t *e, int i) {
+    const pico8_jb_item_t *item = pico8_pi_arg(e, i);
+    return item != NULL && item->s == NULL && !item->is_false && !item->is_ref;
+}
+
+/* 0 when `e[i]` is not a number. */
+static pico8_fixed_t pico8_pi_number(const pico8_jb_row_t *e, int i) {
+    const pico8_jb_item_t *item = pico8_pi_arg(e, i);
+    if (!pico8_pi_is_number(e, i)) {
+        return pico8_fixed_from_int(0);
     }
-    if (item->is_false) {
-        return pico8_value_bool(0);
-    }
-    if (item->is_ref) {
-        return pico8_value_ref((void *)item->ref);
-    }
-    if (item->is_fixed) {
-        return pico8_value_fixed(item->fixed);
-    }
-    return pico8_value_fixed(pico8_fixed_from_int(item->n));
+    return item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n);
+}
+
+/* NULL when `e[i]` is not a pointer. */
+static const void *pico8_pi_ref(const pico8_jb_row_t *e, int i) {
+    const pico8_jb_item_t *item = pico8_pi_arg(e, i);
+    return (item != NULL && item->s == NULL && !item->is_false && item->is_ref) ? item->ref : NULL;
 }
 
 /* An absent `col` draws in colour 0 here, where PICO-8 would keep the
  * current pen colour -- no bl()-dispatched call site omits it. */
 static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
-    pico8_value_t a1 = pico8_pi_arg(e, 1);
-    pico8_value_t a2 = pico8_pi_arg(e, 2);
-    pico8_value_t a3 = pico8_pi_arg(e, 3);
+    pico8_fixed_t y1 = pico8_pi_number(e, 1);
     int col;
-    col = (a3.kind == PICO8_VALUE_FIXED) ? pico8_fixed_flr_int(a3.as.fixed) : 0;
-    if (a2.kind == PICO8_VALUE_FIXED) {
-        pico8_rk(g_pi_gfx, g_pi_mem, a1.as.fixed, a2.as.fixed, col);
+    col = pico8_fixed_flr_int(pico8_pi_number(e, 3));
+    if (pico8_pi_is_number(e, 2)) {
+        pico8_rk(g_pi_gfx, g_pi_mem, y1, pico8_pi_number(e, 2), col);
     } else {
-        pico8_rk_y1(g_pi_gfx, g_pi_mem, a1.as.fixed, col);
+        pico8_rk_y1(g_pi_gfx, g_pi_mem, y1, col);
     }
 }
 
@@ -97,18 +104,14 @@ static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
  * its decimals: substituting "" for one blanks the year and the
  * technology counter in the top menu bar. Other kinds do fall back to "". */
 static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
-    pico8_value_t a1 = pico8_pi_arg(e, 1);
-    pico8_value_t a2 = pico8_pi_arg(e, 2);
-    pico8_value_t a3 = pico8_pi_arg(e, 3);
-    pico8_value_t a4 = pico8_pi_arg(e, 4);
-    pico8_value_t a5 = pico8_pi_arg(e, 5);
-    char *owned = (a1.kind == PICO8_VALUE_FIXED) ? pico8_value_tostr(a1) : NULL;
-    const char *t = (a1.kind == PICO8_VALUE_STRING) ? a1.as.string : (owned != NULL ? owned : "");
-    pico8_fixed_t x = (a2.kind == PICO8_VALUE_FIXED) ? a2.as.fixed : pico8_fixed_from_int(0);
-    pico8_fixed_t y = (a3.kind == PICO8_VALUE_FIXED) ? a3.as.fixed : pico8_fixed_from_int(0);
-    int c = (a4.kind == PICO8_VALUE_FIXED) ? pico8_fixed_flr_int(a4.as.fixed) : 0;
-    if (a5.kind == PICO8_VALUE_FIXED) {
-        pico8_fixed_t a_val = a5.as.fixed;
+    const pico8_jb_item_t *a1 = pico8_pi_arg(e, 1);
+    char *owned = pico8_pi_is_number(e, 1) ? pico8_tostr_fixed(pico8_pi_number(e, 1)) : NULL;
+    const char *t = a1 != NULL && a1->s != NULL ? a1->s : (owned != NULL ? owned : "");
+    pico8_fixed_t x = pico8_pi_number(e, 2);
+    pico8_fixed_t y = pico8_pi_number(e, 3);
+    int c = pico8_fixed_flr_int(pico8_pi_number(e, 4));
+    if (pico8_pi_is_number(e, 5)) {
+        pico8_fixed_t a_val = pico8_pi_number(e, 5);
         pico8_io(g_pi_gfx, g_pi_mem, t, x, y, c, &a_val);
     } else {
         pico8_io_default(g_pi_gfx, g_pi_mem, t, x, y, c);
@@ -117,42 +120,32 @@ static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
 }
 
 static void pico8_pi_eq_draw(const pico8_jb_row_t *e) {
-    pico8_eq(g_pi_gfx, g_pi_mem, pico8_pi_arg(e, 1).as.fixed, pico8_pi_arg(e, 2).as.fixed,
-             pico8_pi_arg(e, 3).as.fixed);
+    pico8_eq(g_pi_gfx, g_pi_mem, pico8_pi_number(e, 1), pico8_pi_number(e, 2), pico8_pi_number(e, 3));
 }
 
-/* The one spr() call of the char-keyed 's' and the string-keyed "s": w/h
- * are supplied both or neither, as in real spr(). */
-static void pico8_pi_spr_call(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
-                              pico8_value_t a5) {
-    int n = pico8_fixed_flr_int(a1.as.fixed);
-    int x = pico8_fixed_flr_int(a2.as.fixed);
-    int y = pico8_fixed_flr_int(a3.as.fixed);
-    if (a4.kind == PICO8_VALUE_FIXED && a5.kind == PICO8_VALUE_FIXED) {
-        int w = pico8_fixed_flr_int(a4.as.fixed);
-        int h = pico8_fixed_flr_int(a5.as.fixed);
+/* w/h are supplied both or neither, as in real spr(). */
+static void pico8_pi_spr_draw(const pico8_jb_row_t *e) {
+    int n = pico8_fixed_flr_int(pico8_pi_number(e, 1));
+    int x = pico8_fixed_flr_int(pico8_pi_number(e, 2));
+    int y = pico8_fixed_flr_int(pico8_pi_number(e, 3));
+    if (pico8_pi_is_number(e, 4) && pico8_pi_is_number(e, 5)) {
+        int w = pico8_fixed_flr_int(pico8_pi_number(e, 4));
+        int h = pico8_fixed_flr_int(pico8_pi_number(e, 5));
         pico8_spr(g_pi_gfx, g_pi_mem, n, x, y, w, h);
     } else {
         pico8_spr_default(g_pi_gfx, g_pi_mem, n, x, y);
     }
 }
 
-static void pico8_pi_spr_draw(const pico8_jb_row_t *e) {
-    pico8_pi_spr_call(pico8_pi_arg(e, 1), pico8_pi_arg(e, 2), pico8_pi_arg(e, 3), pico8_pi_arg(e, 4),
-                      pico8_pi_arg(e, 5));
-}
-
 /* lq.ol is registered UNBOUND, so e[1] is lq:ol's own `self`, e[2] the
  * position vector and e[3] the alignment factor. */
 static void pico8_pi_ld_draw(const pico8_jb_row_t *e) {
-    pico8_value_t a1 = pico8_pi_arg(e, 1);
-    pico8_value_t a2 = pico8_pi_arg(e, 2);
-    pico8_value_t a3 = pico8_pi_arg(e, 3);
-    const pico8_lq_t *self = (a1.kind == PICO8_VALUE_REF) ? (const pico8_lq_t *)a1.as.ref : NULL;
-    pico8_vec_t p = (a2.kind == PICO8_VALUE_REF && a2.as.ref != NULL)
-                        ? *(const pico8_vec_t *)a2.as.ref
+    const pico8_lq_t *self = pico8_pi_ref(e, 1);
+    const pico8_vec_t *at = pico8_pi_ref(e, 2);
+    pico8_vec_t p = at != NULL
+                        ? *at
                         : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_fixed_t a = (a3.kind == PICO8_VALUE_FIXED) ? a3.as.fixed : pico8_fixed_from_int(0);
+    pico8_fixed_t a = pico8_pi_number(e, 3);
     pico8_lq_ol(g_pi_gfx, g_pi_mem, self, p, a);
 }
 

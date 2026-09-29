@@ -141,34 +141,19 @@ void pico8_eg(void) {
     }
 }
 
-pico8_jb_item_t pico8_pj_item_of(pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_STRING:
-        return (pico8_jb_item_t){.s = v.as.string};
-    case PICO8_VALUE_FIXED:
-        return (pico8_jb_item_t){.is_fixed = 1, .fixed = v.as.fixed};
-    case PICO8_VALUE_BOOL:
-        assert(!v.as.boolean && "pj writes a string, a number, false or nil into an item");
-        return (pico8_jb_item_t){.is_false = 1};
-    default:
-        assert(v.kind == PICO8_VALUE_REF && v.as.ref == NULL &&
-               "pj writes a string, a number, false or nil into an item");
-        return (pico8_jb_item_t){.is_ref = 1};
-    }
-}
-
 void pico8_pj_hb(void) {
     const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
     pico8_fixed_t fm_ge = fm != NULL ? fm->ge : pico8_fixed_from_int(0);
     pico8_fixed_t fm_nz = pico8_fixed_from_int(0);
-    pico8_value_t fm_jk = pico8_value_ref(NULL);
+    pico8_jb_item_t fm_jk = {.is_ref = 1};
     pico8_fixed_t fm_happiness = fm != NULL && fm->has_happiness ? fm->happiness : pico8_fixed_from_int(0);
     pico8_fixed_t fm_lo = fm != NULL ? fm->lo : pico8_fixed_from_int(0);
-    pico8_value_t fm_yr = fm != NULL ? pico8_value_fixed(fm->yr) : pico8_value_ref(NULL);
+    pico8_jb_item_t fm_yr = fm != NULL ? (pico8_jb_item_t){.is_fixed = 1, .fixed = fm->yr}
+                                       : (pico8_jb_item_t){.is_ref = 1};
     const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     pico8_pj_ou_t *ou_state;
-    pico8_value_t ou[7];
+    pico8_jb_item_t ou[7];
     char *cf;
     char *nz_str;
     char *happiness_str;
@@ -178,23 +163,23 @@ void pico8_pj_hb(void) {
 
     if (fm != NULL) {
         fm_nz = fm->nz;
-        fm_jk = pico8_value_fixed(fm->jk);
+        fm_jk = (pico8_jb_item_t){.is_fixed = 1, .fixed = fm->jk};
     } else if (provisional != NULL) {
         if (provisional->has_nz) {
             fm_nz = provisional->nz;
         }
         if (provisional->has_jk) {
-            fm_jk = pico8_value_fixed(provisional->jk);
+            fm_jk = (pico8_jb_item_t){.is_fixed = 1, .fixed = provisional->jk};
         }
     }
 
     cf = pico8_ne(fm_ge, 0, NULL, &discard_color);
 
     nz_str = pico8_tostr_fixed(fm_nz);
-    ou[0] = pico8_value_string(pj_concat2(nz_str, "$"));
+    ou[0] = (pico8_jb_item_t){.s = pj_concat2(nz_str, "$")};
     free(nz_str);
 
-    ou[1] = pico8_value_string(cf);
+    ou[1] = (pico8_jb_item_t){.s = cf};
 
     ou[2] = fm_jk;
 
@@ -207,17 +192,18 @@ void pico8_pj_hb(void) {
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
             pico8_tostr_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
-        ou[3] = pico8_value_string(pj_concat2("+", plus_num));
+        ou[3] = (pico8_jb_item_t){.s = pj_concat2("+", plus_num)};
         free(plus_num);
     }
 
     happiness_str = pico8_tostr_fixed(fm_happiness);
-    ou[4] = pico8_value_string(pj_concat2(happiness_str, "%"));
+    ou[4] = (pico8_jb_item_t){.s = pj_concat2(happiness_str, "%")};
     free(happiness_str);
 
     {
         int lo = pico8_fixed_flr_int(fm_lo);
-        ou[5] = (lo >= 1 && lo <= PICO8_EF_COUNT) ? pico8_value_string(pico8_ef_table[lo - 1]) : pico8_value_ref(NULL);
+        ou[5] = (lo >= 1 && lo <= PICO8_EF_COUNT) ? (pico8_jb_item_t){.s = pico8_ef_table[lo - 1]}
+                                                  : (pico8_jb_item_t){.is_ref = 1};
     }
 
     ou[6] = fm_yr;
@@ -226,7 +212,7 @@ void pico8_pj_hb(void) {
     if (ou_state != NULL) {
         for (i = 0; i < 7; i++) {
             /* TROU-7 */
-            ou_state->sub_items[i][0] = pico8_pj_item_of(ou[i]);
+            ou_state->sub_items[i][0] = ou[i];
         }
     }
 

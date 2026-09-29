@@ -67,7 +67,6 @@ char *pico8_value_tostr(pico8_value_t v) {
         case PICO8_VALUE_FIXED:
             return pico8_tostr_fixed(v.as.fixed);
         case PICO8_VALUE_REF:
-            /* TROU-13 */
             return pico8_strdup_owned("");
     }
     return pico8_strdup_owned("");

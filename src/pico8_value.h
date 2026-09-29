@@ -66,7 +66,6 @@ int pico8_value_equal(pico8_value_t a, pico8_value_t b);
  * and REF renders the empty string. The empty string is also
  * what an absent field yields, since this port spells "absent" as
  * pico8_value_ref(NULL) and PICO-8 would print nil there. */
-/* TROU-13 */
 char *pico8_value_tostr(pico8_value_t v);
 
 #endif

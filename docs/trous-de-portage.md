@@ -192,17 +192,14 @@ Fichier : `src/pico8_wormhole_display.c`.
 La rangée « score 0 » du panneau lit `s[st.score]` avec `score == 0`,
 c'est-à-dire un indice que `ky()` ne pose jamais. Lua y verrait nil.
 
-Ce port n'a pas de nil : il passe son emplissage « absent »
-(`pico8_value_ref(NULL)`) à `pico8_value_tostr`, qui rend `""`. PICO-8,
-lui, a une représentation dédiée pour nil dans `tostr` — donc la ligne ne
-s'affiche pas pareil.
+Ce port n'a pas de nil à mettre en chaîne : `pico8_pj_ph_s_str` rend `""`
+pour tout indice hors de 1..6. PICO-8, lui, a une représentation dédiée
+pour nil dans `tostr` — donc la ligne ne s'affiche pas pareil.
 
-Corollaire : le commentaire de `pico8_value_tostr` affirmait que ses
-branches `REF`/`FUNCTION` ne sont exercées par aucun site d'appel. C'est
-faux depuis que le panneau de score existe : elles le sont à chaque
-rafraîchissement.
+Fixé par `test_scores_box_follows_c_` de `test_pico8_mh`
+(`SCORES_SEQUENCE_HASH`).
 
-Fichiers : `src/pico8_score_panel_display.c`, `src/pico8_value.c`.
+Fichier : `src/pico8_score_panel_display.c`.
 
 ## TROU-14 — Une boucle qui supprime son propre élément en saute un
 

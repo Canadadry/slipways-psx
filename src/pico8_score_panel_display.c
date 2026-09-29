@@ -123,23 +123,24 @@ typedef struct {
     const pico8_ky_t *s;
 } pico8_pj_ph_ctx_t;
 
-/* `s[i]`: absent outside 1..6. */
-static pico8_value_t pico8_pj_ph_s_at(const pico8_ky_t *s, int i) {
+/* `tostr(s[i])`, a newly allocated string the caller owns. */
+static char *pico8_pj_ph_s_str(const pico8_ky_t *s, int i) {
     switch (i) {
     case 1:
-        return pico8_value_fixed(s->di);
+        return pico8_tostr_fixed(s->di);
     case 2:
-        return pico8_value_fixed(s->gl);
+        return pico8_tostr_fixed(s->gl);
     case 3:
-        return pico8_value_fixed(s->el);
+        return pico8_tostr_fixed(s->el);
     case 4:
-        return pico8_value_string(s->happiness);
+        return pj_concat2(s->happiness, "");
     case 5:
-        return pico8_value_fixed(s->total);
+        return pico8_tostr_fixed(s->total);
     case 6:
-        return pico8_value_fixed(s->tier);
+        return pico8_tostr_fixed(s->tier);
     default:
-        return pico8_value_ref(NULL);
+        /* TROU-13 */
+        return pj_concat2("", "");
     }
 }
 
@@ -159,7 +160,6 @@ static void pico8_pj_ph_set(pico8_bz_row_t *st, int i, pico8_jb_item_t item) {
  * then becomes the line of an article `ld`. */
 static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t *ctx) {
     int score_i;
-    pico8_value_t s_val;
     char *s_str;
     pico8_lq_cell_t items[5];
     pico8_lq_keys_t keys = {0};
@@ -173,11 +173,7 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
 
     score_i = st->e->score;
 
-    s_val = pico8_pj_ph_s_at(ctx->s, score_i);
-    /* `s[0]` is genuinely absent for score 0, and this port has no nil to
-     * format: `pico8_value_tostr` renders the absent filler as "", which
-     * PICO-8's own tostr would not. */
-    s_str = pico8_value_tostr(s_val);
+    s_str = pico8_pj_ph_s_str(ctx->s, score_i);
     /* TROU-7 */
     pico8_pj_ph_set(st, 3, (pico8_jb_item_t){.s = s_str});
 

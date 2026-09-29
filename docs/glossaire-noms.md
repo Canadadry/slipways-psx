@@ -291,7 +291,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `pico8_ho_apply` et par `hp` |
-| `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `pico8_value_tostr` pour une valeur à genres mêlés (jusqu'à D.19c) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
+| `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `s[i]` du panneau de fin par `pico8_pj_ph_s_str` (chaîne possédée, `""` hors de 1..6 : TROU-13) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris
 
@@ -654,7 +654,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 |---|---|
 | Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_ptrs_free` ne libère que son tableau |
 | L'inverse, pour les chaînes construites | `tostr`, `sub`, `unstash` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
-| `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
+| `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
 | Le tag de type | `PICO8_TYPE_TAG_STRUCT` en premier membre de l'en-tête d'entité (`pico8_struct_header_t`), seule forme étiquetée qui reste (la table ob est supprimée à D.8, la liste de valeurs à D.12d) ; les `assert` d'entrée des fonctions à entité le vérifient. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
 | Les primitives de liste | `add` → `pico8_ptrs_add`, `del` → `pico8_ptrs_del` (supprime le premier élément **identique**, pas par index), `all` → `pico8_ptrs_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_ptrs_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
 | Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), `trade.lp`, `trade.rl` et l'`ib` d'une proposition |
