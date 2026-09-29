@@ -13,7 +13,6 @@
 #include "pico8_geom.h"
 #include "pico8_input.h"
 #include "pico8_ke.h"
-#include "pico8_ob.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_slipway_display.h"

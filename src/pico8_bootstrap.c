@@ -7,7 +7,6 @@
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mouse_reader.h"
-#include "pico8_ob.h"
 #include "pico8_scroll.h"
 #include "pico8_type_tag.h"
 #include "pico8_ui.h"

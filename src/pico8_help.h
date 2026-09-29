@@ -5,7 +5,6 @@
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
-#include "pico8_ob.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"

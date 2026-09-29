@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "pico8_coverage.h"
-#include "pico8_ob.h"
 #include "pico8_type_tag.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"

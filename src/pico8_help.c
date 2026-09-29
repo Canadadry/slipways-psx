@@ -239,7 +239,7 @@ static void *pico8_fv_struct_new(void) {
 /* This module, unlike most, does not call pico8_pi_init() itself, and `fv`
  * extends `g_`, not `ke`: both preconditions are asserted, not repaired. */
 void pico8_help_init(void) {
-    assert(pico8_ob_lookup_constructor('v') != NULL && "pico8_help_init() runs after pico8_pi_init()");
+    assert(pico8_pi_dispatch_lookup("s") != NULL && "pico8_help_init() runs after pico8_pi_init()");
     assert(pico8_g__ready() && "pico8_help_init() runs after pico8_probe_init()");
 
     pico8_help_shutdown();

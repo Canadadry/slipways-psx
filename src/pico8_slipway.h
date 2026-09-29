@@ -4,6 +4,7 @@
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_ke.h"
+#include "pico8_list.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 

@@ -2,7 +2,6 @@
 #define PICO8_ENTITY_H
 
 #include "pico8_list.h"
-#include "pico8_ob.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
