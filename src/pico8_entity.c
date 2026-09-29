@@ -170,7 +170,7 @@ int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_v
     int method;
 
     assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           "entity: e is an entity struct; an ob table or list REF passed as an entity would be read as one");
+           "entity: e is an entity struct; a list REF passed as an entity would be read as one");
     header = e;
     method = pico8_method_of(name);
     if (method >= 0 && header->cls->methods[method] != NULL) {
@@ -186,7 +186,7 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
     int written;
 
     assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           "entity: e is an entity struct; an ob table or list REF passed as an entity would be written as one");
+           "entity: e is an entity struct; a list REF passed as an entity would be written as one");
     header = e;
     assert(header->cls->set_field != NULL && "entity: a struct a generic writer reaches needs a field writer");
     written = header->cls->set_field(e, name, value);

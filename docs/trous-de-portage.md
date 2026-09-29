@@ -74,8 +74,9 @@ depuis `pico8_pi_init()`, et `pico8_pi_spr_constructor` rend
 n'écrit `s(...)` aujourd'hui — vérifié sur `pico8/lua.lua` — donc le trou
 est dormant, pas actif. Il s'ouvrira le jour où une spec en écrira une.
 
-Fichiers : `src/pico8_collect.c` (`pico8_oo`), `src/pico8_ob.c` (la même
-logique, dupliquée en ligne dans le parseur).
+Sans site depuis D.8 : `pico8_oo` (`src/pico8_collect.c`) supprimé à D.7a,
+`src/pico8_ob.c` et `pico8_pi_spr_constructor` supprimés à D.8 ; le port
+n'analyse plus de spec.
 
 ## TROU-5 — `dg()` saute une entité quand une entité s'auto-supprime
 
@@ -126,7 +127,8 @@ par utilité.
 d'appel n'en a eu besoin. `t[nom]=nil` n'a donc pas d'équivalent exact —
 écrire une valeur fausse n'est pas la même chose qu'un champ absent.
 
-Fichier : `src/pico8_ob.c`.
+Sans site depuis D.8 : `src/pico8_ob.c` supprimé ; le port n'a plus de
+table à clés dynamiques.
 
 ## TROU-10 — L'audio est hors périmètre
 

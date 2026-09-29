@@ -29,7 +29,6 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
@@ -127,9 +126,9 @@ static int gb_rank(const void *e) {
     return -1;
 }
 
-/* Kind, then the string's bytes, the number, the boolean; a list or an
- * ob_table is folded through (`depth` levels), an entity by its rank in
- * `hv` or in `gb`. */
+/* Kind, then the string's bytes, the number, the boolean; a list is
+ * folded through (`depth` levels), an entity by its rank in `hv` or in
+ * `gb`. */
 static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     const char *s;
     h = fnv(h, (uint32_t)v.kind);
@@ -169,6 +168,12 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     }
 }
 
+/* The frozen hashes were taken when rows were ob views and name lists ob
+ * tables: these are the bytes they folded for their tag and their two kinds
+ * of key, frozen values of a tag and an enum since deleted. Changing one
+ * reddens every constant that folds it. */
+enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1, VIEW_LIST_TAG = 0x9E5C1157u };
+
 /* `REF`, the count, then per name the index-key kind, its position and
  * the string: the format DEFAULTS_HASH froze. */
 static uint32_t fold_names(uint32_t h, const pico8_str_seq_t *names) {
@@ -177,7 +182,7 @@ static uint32_t fold_names(uint32_t h, const pico8_str_seq_t *names) {
     h = fnv(h, (uint32_t)PICO8_VALUE_REF);
     h = fnv(h, (uint32_t)names->count);
     for (i = 0; i < names->count; i++) {
-        h = fnv(h, (uint32_t)PICO8_OB_KEY_INDEX);
+        h = fnv(h, (uint32_t)VIEW_INDEX_KEY);
         h = fnv(h, (uint32_t)(i + 1));
         h = fold_value(h, pico8_value_string(names->items[i]), 1);
     }
@@ -191,10 +196,6 @@ static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     }
     return fold_value(h, v, 4);
 }
-
-/* The frozen hashes were taken when rows were ob views: these are the
- * bytes a view folded for its tag and its two kinds of key. */
-enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1, VIEW_LIST_TAG = 0x9E5C1157u };
 
 static uint32_t fold_view_head(uint32_t h, int count) {
     h = fnv(h, (uint32_t)PICO8_VALUE_REF);

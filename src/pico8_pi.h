@@ -7,10 +7,6 @@
 #include "pico8_map_tables.h"
 #include "pico8_mem.h"
 
-/* `pi` has two consumers needing two lookups: ob() indexes it by a single
- * character (pico8_ob_register_constructor, pico8_ob.h), bl() by the whole
- * string an entity holds in `.fn`. This module owns the string-keyed one. */
-
 /* Draws article `e` of `bl()` from its items, `e[1]..e[5]` in the cart. */
 typedef void (*pico8_pi_fn)(const pico8_jb_row_t *e);
 
@@ -34,15 +30,11 @@ void pico8_pi_dispatch_clear(void);
  *
  * pico8_bl_default is the `nc == nil` case, where the camera-shake branch
  * never runs at all. `gfx`/`mem` are borrowed, and also stashed in this
- * module's dispatch context for the constructors to read. */
+ * module's dispatch context for the drawing functions to read. */
 void pico8_bl(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb, pico8_fixed_t nc);
 void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb);
 
-/* Fills both registries; idempotent. Must run before ob() parses a spec
- * holding `v(...)` or `b(...)`: an unregistered identifier falls back to a
- * plain positional table, so the field silently becomes something other
- * than a vector or a box. Modules whose specs need that call this
- * themselves.
+/* Fills the registry; idempotent.
  *
  * "ld" dispatches to lq:ol, so pico8_layout_init() must have run before
  * that entry is exercised. */

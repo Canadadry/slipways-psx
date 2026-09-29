@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_map_tables.h"
-
 /* TROU-3 */
 int pico8_gu(const pico8_list_t *qk, pico8_value_t kb) {
     pico8_list_iter_t it;
@@ -122,48 +120,4 @@ int pico8_ho_gp_has(const pico8_str_seq_t *gp, const char *p) {
         }
     }
     return 0;
-}
-
-void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_str_seq_t *mr, const pico8_str_seq_t *gp,
-                    pico8_ob_table_t *ri) {
-    pico8_value_t px_val;
-    int i;
-
-    for (i = 0; i < mr->count; i++) {
-        const char *p = mr->items[i];
-        pico8_value_t raw;
-        pico8_value_t new_value;
-
-        if (!pico8_ob_table_get_index(ri, i + 1, &raw)) {
-            continue;
-        }
-
-        if (pico8_ho_gp_has(gp, p)) {
-            /* `r[ri[i]]`: the raw value is the key. r only has named keys, so
-             * a number never finds an entry and the raw value stays. */
-            int qe;
-
-            new_value = raw;
-            if (raw.kind == PICO8_VALUE_STRING && pico8_r_lookup(raw.as.string, &qe)) {
-                new_value = pico8_value_fixed(pico8_fixed_from_int(qe));
-            }
-        } else {
-            new_value = raw;
-        }
-        pico8_ob_table_set_name(ri, p, new_value);
-    }
-
-    if (pico8_ob_table_get_name(ri, "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
-        pico8_ob_table_set_name(rc, px_val.as.string, pico8_value_ref(ri));
-    }
-}
-
-static pico8_value_t pico8_qz_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
-                                           pico8_value_t a5) {
-    (void)a5;
-    return pico8_value_ref(pico8_qz(a1.as.fixed, a2.as.fixed, a3.as.fixed, a4.as.fixed));
-}
-
-void pico8_qz_register_constructor(void) {
-    pico8_ob_register_constructor('b', pico8_qz_constructor);
 }

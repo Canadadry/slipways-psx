@@ -10,8 +10,7 @@
  * this module ports those, not generic Lua table behavior.
  *
  * One growable array of pico8_value_t (pico8_value.h) is the single list
- * representation in this port; the ob() table (pico8_ob.h) is the other
- * shape, and the two are not interchangeable -- see pico8_type_tag.h. */
+ * representation in this port. */
 typedef struct {
     /* Always PICO8_TYPE_TAG_LIST, written by pico8_list_init(). Kept
      * FIRST so pico8_type_tag_of() can read it off a bare REF. */

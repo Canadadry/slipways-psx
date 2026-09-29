@@ -52,9 +52,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `gt` | `PICO8_GT` | alphabet de 51 caractères de `unstash` |
-| `unstash(pd)` | `pico8_unstash` | décode une chaîne depuis la mémoire cart, un octet = un index dans `gt`, l'octet 0 termine |
-| `r` | `pico8_r_table`, `pico8_r_lookup` ; `pico8_r` (décodée par `pico8_stash_init`) | table décodée depuis l'adresse 8192 |
-| `iz` | `pico8_iz_table`, `pico8_iz_lookup` ; `pico8_iz` (décodée par `pico8_stash_init`) | table décodée depuis l'adresse 8259 |
+| `unstash(pd)` | — (tables décodées générées : `pico8_map_tables.c`) | décode une chaîne depuis la mémoire cart, un octet = un index dans `gt`, l'octet 0 termine |
+| `r` | `pico8_r_table`, `pico8_r_lookup` | table décodée depuis l'adresse 8192 |
+| `iz` | `pico8_iz_table`, `pico8_iz_lookup` | table décodée depuis l'adresse 8259 |
 | `es` | `pico8_es_table` | table de correspondance de `da()` |
 | `ct` | `pico8_ct_table` | bonus par palier du partenaire commercial, lu par `db()` |
 | `b_` | `pico8_b__table` | table de score de `ky()` |
@@ -258,9 +258,9 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `ob(qs,mr)` | `pico8_ob` | analyse une spec compacte (`"x=-1,y=-1,c=0,"`) en table, puis y fusionne `mr` ; **la virgule finale est obligatoire**, sans elle le dernier champ est perdu |
+| `ob(qs,mr)` | — (données générées : `pico8_game_data.c`) | analyse une spec compacte (`"x=-1,y=-1,c=0,"`) en table, puis y fusionne `mr` ; **la virgule finale est obligatoire**, sans elle le dernier champ est perdu |
 | `fi(qs,fn)` | `pico8_fi` | applique `fn` à chaque caractère et collecte les résultats non nuls |
-| `pi` | `pico8_ob_register_constructor` ; `pico8_pi_dispatch_register` | table des constructeurs appelables depuis une spec : `b`→`qz`, `v`→`v`, `s`→`spr` ; et des fonctions de dessin de `bl()`, `pico8_pi_fn` (un article) : `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol` |
+| `pi` | `pico8_pi_dispatch_register` | table des constructeurs appelables depuis une spec (`b`→`qz`, `v`→`v`, `s`→`spr`, sans équivalent : le port n'analyse plus de spec) et des fonctions de dessin de `bl()`, `pico8_pi_fn` (un article) : `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol` |
 | `oo(fn,a)` | — | appelle `fn` avec les 5 premières entrées positionnelles de `a` : dans `bl`, la fonction de `pi` lit elle-même les items de l'article |
 | `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (`const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le second consommateur de `pi` |
 | `fn`, `rb`, `nc` | — ; `rb` de `fv` : `const pico8_jb_row_t *rb` → `pico8_fv_rb_row` | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
@@ -650,7 +650,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 
 | Convention | Règle |
 |---|---|
-| Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_list_free` ne libère que son tableau, `pico8_ob_table_free` que ses clés |
+| Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_list_free` ne libère que son tableau |
 | L'inverse, pour les chaînes construites | `tostr`, `sub`, `unstash` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
 | Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des trois formes qui modélisent la table Lua ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |

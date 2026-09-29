@@ -4,7 +4,6 @@
 #include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_list.h"
-#include "pico8_ob.h"
 #include "pico8_value.h"
 
 /* TROU-3 */
@@ -42,17 +41,5 @@ char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color);
 /* 1 when `gp` (NULL: none) lists the name `p`: the fields `ho` maps
  * through `r`. */
 int pico8_ho_gp_has(const pico8_str_seq_t *gp, const char *p);
-
-/* The body of the closure `ho()` returns, applied to one record `ri`: names
- * `ri`'s positional fields after `mr`'s names, in order, then
- * registers `ri` into `rc` under its `.px`. A field listed in `gp` (which
- * may be NULL) takes its value from the global `r` table. `rc` borrows
- * `ri`; a positional slot absent from `ri` leaves its named field unset. */
-void pico8_ho_apply(pico8_ob_table_t *rc, const pico8_str_seq_t *mr, const pico8_str_seq_t *gp,
-                    pico8_ob_table_t *ri);
-
-/* Registers the `b` entry of `pi`; pico8_pi_init() calls it alongside the
- * other constructor registrations. */
-void pico8_qz_register_constructor(void);
 
 #endif

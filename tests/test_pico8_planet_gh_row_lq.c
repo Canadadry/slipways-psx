@@ -1,6 +1,6 @@
 /* A display row's "lq" holds a `pico8_list_t*`, whose elements `js:pq()`
- * takes as the row's positionals; the bug read it as a `pico8_ob_table_t*`.
- * Lua has one table type and this port has two: before the type tag the
+ * takes as the row's positionals; the bug read it as the deleted ob() table.
+ * Lua has one table type and this port had two: before the type tag the
  * structs were ABI-compatible but element-incompatible, so the copy loop
  * walked 32-byte entries over a 16-byte-element array and overflowed the
  * allocation.

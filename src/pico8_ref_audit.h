@@ -5,24 +5,8 @@
 #include "pico8_type_tag.h"
 #include <assert.h>
 
-/* The REVERSE-direction half of this port's REF-cast problem, and the
+/* The checked conversion of a REF to a pico8_list_t, and the
  * instrumentation that measures it.
- *
- * pico8_type_tag.h covers the forward direction: a `pico8_list_t` read as
- * a `pico8_ob_table_t` walks its backing array at DOUBLE stride and
- * overflows the allocation -- loud and ASan-visible. This header is about
- * the mirror image, which is quiet: a `pico8_ob_table_t` read as a
- * `pico8_list_t`. The two structs have the same header down to
- * `count`/`capacity` (tag, 4 bytes padding, a pointer, two ints), so those
- * fields read back CORRECTLY -- only the ELEMENTS differ, 16-byte
- * `pico8_value_t` against 32-byte `pico8_ob_entry_t`. Reading N elements
- * of 16 bytes out of an array of N elements of 32 stays comfortably inside
- * the allocation and never trips a sanitizer; what comes back is
- * `items[0]` = entry 0's KEY reinterpreted as a value (a
- * PICO8_OB_KEY_INDEX kind of 0 reads as PICO8_VALUE_FIXED, and the key's
- * `name` pointer reads as that number's bits), `items[1]` = entry 0's
- * value, `items[2]` = entry 1's key, and so on. The symptom is a wrong
- * number on a panel, an empty line, or an absurd glyph -- never a crash.
  *
  * WHAT THIS HEADER IS. Two things:
  *
@@ -63,7 +47,6 @@ typedef struct {
     const char *file;
     int line;
     unsigned long n_list;
-    unsigned long n_ob_table;
     unsigned long n_instance;
     unsigned long n_unknown;
     unsigned long n_null;
@@ -113,8 +96,8 @@ static inline void pico8_ref_audit_dump(void) {
     }
     for (i = 0; i < state->count; i++) {
         const pico8_ref_audit_site_t *s = &state->sites[i];
-        fprintf(out, "SITE\t%s\t%d\tlist=%lu\tob_table=%lu\tinstance=%lu\tunknown=%lu\tnull=%lu\n", s->file, s->line,
-                s->n_list, s->n_ob_table, s->n_instance, s->n_unknown, s->n_null);
+        fprintf(out, "SITE\t%s\t%d\tlist=%lu\tinstance=%lu\tunknown=%lu\tnull=%lu\n", s->file, s->line, s->n_list,
+                s->n_instance, s->n_unknown, s->n_null);
     }
     if (out != stderr) {
         fclose(out);
@@ -147,7 +130,6 @@ static inline const void *pico8_ref_audit_note(const char *file, int line, const
         site->file = file;
         site->line = line;
         site->n_list = 0;
-        site->n_ob_table = 0;
         site->n_instance = 0;
         site->n_unknown = 0;
         site->n_null = 0;
@@ -159,9 +141,6 @@ static inline const void *pico8_ref_audit_note(const char *file, int line, const
     switch (pico8_type_tag_of(ref)) {
     case PICO8_TYPE_TAG_LIST:
         site->n_list++;
-        break;
-    case PICO8_TYPE_TAG_OB_TABLE:
-        site->n_ob_table++;
         break;
     default:
         site->n_unknown++;
@@ -176,7 +155,7 @@ static inline const void *pico8_ref_audit_note(const char *file, int line, const
 /* The SECOND dynamic channel, and the reason the audit does not simply
  * trust its own list of cast sites. The macros above can only see the
  * conversions this audit found and rewrote; this one sits at the ENTRY of
- * the list and ordered-table primitives themselves, so a mis-typed object
+ * the list primitives themselves, so a mis-typed object
  * arriving through a path nobody enumerated -- a helper that takes an
  * already-converted pointer, a field this audit never looked at, a site
  * written after it -- still announces itself. That gap is what lets a
@@ -223,15 +202,12 @@ static inline void pico8_ref_audit_expect(const char *what, const void *p, pico8
 }
 
 #define PICO8_REF_AUDIT_EXPECT_LIST(p) pico8_ref_audit_expect(__func__, (p), PICO8_TYPE_TAG_LIST)
-#define PICO8_REF_AUDIT_EXPECT_OB_TABLE(p) pico8_ref_audit_expect(__func__, (p), PICO8_TYPE_TAG_OB_TABLE)
 
 #else /* !PICO8_REF_AUDIT */
 
-/* An ordinary build checks the tag and then casts: reading a REF that is
- * not a list walks its backing array at the wrong stride (pico8_type_tag.h
- * for what that costs). Each site used to carry a comment arguing why its
- * own cast was safe; this check replaces all of them, and unlike a comment
- * it cannot go stale. NULL is let through deliberately -- it is an absent
+/* An ordinary build checks the tag and then casts. Each site used to
+ * carry a comment arguing why its own cast was safe; this check replaces
+ * all of them, and unlike a comment it cannot go stale. NULL is let through deliberately -- it is an absent
  * field, not a wrong tag -- and pico8_list.c refuses it instead. */
 static inline pico8_list_t *pico8_ref_as_list(void *r) {
     assert((r == NULL || pico8_type_tag_of(r) == PICO8_TYPE_TAG_LIST) && "REF read as a list is not one");
@@ -246,7 +222,6 @@ static inline const pico8_list_t *pico8_ref_as_list_const(const void *r) {
 #define PICO8_REF_AS_LIST(r) pico8_ref_as_list(r)
 #define PICO8_REF_AS_LIST_CONST(r) pico8_ref_as_list_const(r)
 #define PICO8_REF_AUDIT_EXPECT_LIST(p) ((void)0)
-#define PICO8_REF_AUDIT_EXPECT_OB_TABLE(p) ((void)0)
 
 #endif /* PICO8_REF_AUDIT */
 

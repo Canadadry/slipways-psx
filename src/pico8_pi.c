@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
 #include "pico8_geom.h"
 #include "pico8_hud.h"
 #include "pico8_layout.h"
@@ -20,7 +19,7 @@ static int g_pi_dispatch_count = 0;
 
 /* Borrowed, never owned: set by pico8_bl/pico8_bl_default right before
  * each dispatch, so the functions below can reach a real drawing function
- * that neither an article nor ob()'s five-value constructor can carry. */
+ * that an article cannot carry. */
 static pico8_gfx_t *g_pi_gfx = NULL;
 static pico8_mem_t *g_pi_mem = NULL;
 
@@ -138,29 +137,9 @@ static void pico8_pi_spr_call(pico8_value_t a1, pico8_value_t a2, pico8_value_t 
     }
 }
 
-static pico8_value_t pico8_pi_spr_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3, pico8_value_t a4,
-                                               pico8_value_t a5) {
-    pico8_pi_spr_call(a1, a2, a3, a4, a5);
-    return pico8_value_ref(NULL);
-}
-
 static void pico8_pi_spr_draw(const pico8_jb_row_t *e) {
     pico8_pi_spr_call(pico8_pi_arg(e, 1), pico8_pi_arg(e, 2), pico8_pi_arg(e, 3), pico8_pi_arg(e, 4),
                       pico8_pi_arg(e, 5));
-}
-
-/* The returned REF points at a heap pico8_vec_t, the shape every
- * vector-valued field in this port carries. */
-/* TROU-7 */
-static pico8_value_t pico8_pi_vec_v_constructor(pico8_value_t a1, pico8_value_t a2, pico8_value_t a3,
-                                                 pico8_value_t a4, pico8_value_t a5) {
-    pico8_vec_t *v;
-    (void)a3;
-    (void)a4;
-    (void)a5;
-    v = malloc(sizeof *v);
-    *v = pico8_vec_v(a1.as.fixed, a2.as.fixed);
-    return pico8_value_ref(v);
 }
 
 /* lq.ol is registered UNBOUND, so e[1] is lq:ol's own `self`, e[2] the
@@ -216,11 +195,6 @@ void pico8_bl_default(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_list_t *rb
 }
 
 void pico8_pi_init(void) {
-    pico8_qz_register_constructor();
-    pico8_ob_register_constructor('v', pico8_pi_vec_v_constructor);
-    /* TROU-4 */
-    pico8_ob_register_constructor('s', pico8_pi_spr_constructor);
-
     pico8_pi_dispatch_register("br", pico8_pi_rk_draw);
     pico8_pi_dispatch_register("qr", pico8_pi_io_draw);
     pico8_pi_dispatch_register("rf", pico8_pi_eq_draw);

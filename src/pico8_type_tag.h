@@ -3,20 +3,13 @@
 
 #include <string.h>
 
-/* A first-member type discriminator for the heap shapes this port uses to
- * model Lua's single table type: pico8_list_t (pico8_list.h),
- * pico8_ob_table_t (pico8_ob.h) and the entity structs that begin with a
+/* A first-member type discriminator for the heap shapes a REF can point
+ * at: pico8_list_t (pico8_list.h) and the entity structs that begin with a
  * pico8_struct_header_t (pico8_struct.h).
  *
  * A pico8_value_t REF (pico8_value.h) is a bare `void *` and carries no
- * type of its own. The first two structs are the same size and share a
- * compatible header, so a cast between them compiles silently AND
- * yields a plausible-looking object -- while their element strides differ
- * by 2x. Reading a pico8_list_t as a pico8_ob_table_t therefore walks its
- * backing array at twice the stride, past the end of the allocation; four
- * separate heap-buffer-overflows of this port came from that confusion.
- * The tag makes "what is this REF really" a question with an answer, and
- * with an explicit "I don't know" for anything untagged.
+ * type of its own. The tag makes "what is this REF really" a question with
+ * an answer, and with an explicit "I don't know" for anything untagged.
  *
  * CHOICE OF MAGIC VALUES. Not 0/1/2: this tag sits at offset 0, exactly
  * where each struct's first pointer member used to live, so a mis-cast
@@ -36,7 +29,6 @@ typedef unsigned int pico8_type_tag_t;
 
 #define PICO8_TYPE_TAG_UNKNOWN 0x00000000u
 #define PICO8_TYPE_TAG_LIST 0x9E5C1157u
-#define PICO8_TYPE_TAG_OB_TABLE 0x9E5C0B7Au
 #define PICO8_TYPE_TAG_STRUCT 0x9E5C57C7u
 
 /* Reports which of the tagged shapes `ref` really points at, or
@@ -56,7 +48,7 @@ static inline pico8_type_tag_t pico8_type_tag_of(const void *ref) {
         return PICO8_TYPE_TAG_UNKNOWN;
     }
     memcpy(&tag, ref, sizeof tag);
-    if (tag == PICO8_TYPE_TAG_LIST || tag == PICO8_TYPE_TAG_OB_TABLE || tag == PICO8_TYPE_TAG_STRUCT) {
+    if (tag == PICO8_TYPE_TAG_LIST || tag == PICO8_TYPE_TAG_STRUCT) {
         return tag;
     }
     return PICO8_TYPE_TAG_UNKNOWN;

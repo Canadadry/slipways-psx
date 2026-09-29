@@ -41,8 +41,8 @@ void pico8_he(pico8_struct_header_t *e);
 
 /* `e[name]`: returns 1 and writes *out_value when the struct `e` has a
  * method by that name or a non-nil field; returns 0, leaving *out_value
- * untouched, otherwise. Asserts that `e` is an entity struct: an ob table
- * or a list REF passed as an entity stops the run. */
+ * untouched, otherwise. Asserts that `e` is an entity struct: a list REF
+ * passed as an entity stops the run. */
 int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value);
 
 /* `e[name]=value` into the struct's member `name`. Asserts, as

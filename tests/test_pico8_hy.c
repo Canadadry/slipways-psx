@@ -30,7 +30,6 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_msgbox.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
@@ -128,8 +127,8 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* Kind, then the string's bytes, the number, the boolean; a list or an
- * ob_table folded through `depth` levels; any other REF by its tag. */
+/* Kind, then the string's bytes, the number, the boolean; a list folded
+ * through `depth` levels; any other REF by its tag. */
 static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     h = fnv(h, (uint32_t)v.kind);
     switch (v.kind) {
@@ -162,6 +161,11 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     }
 }
 
+/* The byte an ob table folded before a positional key, frozen in the
+ * constants that fold `po`/`fu`; the enum that gave it is deleted.
+ * Changing it reddens those constants. */
+enum { TABLE_INDEX_KEY = 0 };
+
 /* `REF`, the count, then per entry the index-key kind, `qe` and the
  * value: the format the constants froze. */
 static uint32_t fold_qe_map(uint32_t h, const pico8_qe_map_t *map) {
@@ -170,7 +174,7 @@ static uint32_t fold_qe_map(uint32_t h, const pico8_qe_map_t *map) {
     h = fnv(h, (uint32_t)PICO8_VALUE_REF);
     h = fnv(h, (uint32_t)map->count);
     for (i = 0; i < map->count; i++) {
-        h = fnv(h, (uint32_t)PICO8_OB_KEY_INDEX);
+        h = fnv(h, (uint32_t)TABLE_INDEX_KEY);
         h = fnv(h, (uint32_t)map->entries[i].qe);
         h = fold_value(h, pico8_value_fixed(map->entries[i].v), 2);
     }
