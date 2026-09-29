@@ -138,7 +138,6 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
         const pico8_kw_t *kw = jo->kw;
         if (kw != NULL) {
             int w;
-            /* TROU-3 */
             if (kw->has_qe && pico8_r_lookup("w", &w) && kw->qe == pico8_fixed_from_int(w)) {
                 pico8_fixed_t mu = kw->mu;
                 pico8_fixed_t trade_mult = pico8_fixed_from_int(0);

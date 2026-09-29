@@ -13,13 +13,6 @@
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
 
-static int economy_value_equal_content(pico8_value_t a, pico8_value_t b) {
-    if (a.kind == PICO8_VALUE_STRING && b.kind == PICO8_VALUE_STRING) {
-        return strcmp(a.as.string, b.as.string) == 0;
-    }
-    return pico8_value_equal(a, b);
-}
-
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
@@ -233,7 +226,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         for (i = 0; i < jy->count; i++) {
             void *i_val = jy->items[i];
             pico8_jy_t *want;
-            pico8_value_t qe_val;
+            pico8_qe_t qe_val;
             int gc = 0;
             int j;
 
@@ -252,8 +245,8 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
                     assert(((const pico8_struct_header_t *)im_val)->cls == pico8_trade_struct_class() &&
                            "jo.cc holds trades only");
                     im = im_val;
-                    /* TROU-3 */
-                    if (im->has_qe && economy_value_equal_content(pico8_trade_qe(im), qe_val)) {
+                    /* TROU-24 */
+                    if (im->has_qe && pico8_qe_equal(pico8_trade_qe(im), qe_val)) {
                         gc++;
                     }
                 }

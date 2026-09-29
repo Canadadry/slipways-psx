@@ -32,6 +32,16 @@ void pico8_trade_shutdown(void);
 int pico8_trade_ready(void);
 const pico8_struct_class_t *pico8_trade_struct_class(void);
 
+/* A route's or a want's `qe`: `n` is read only for FIXED. */
+typedef struct {
+    enum { PICO8_QE_NIL, PICO8_QE_FALSE, PICO8_QE_FIXED } kind;
+    pico8_fixed_t n;
+} pico8_qe_t;
+
+/* Lua's `==` on two `qe`: nil equals nil, false equals false, nil is not
+ * false; numbers by value. */
+int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b);
+
 /* The keys of `pico8_trade_new`, read, not kept: `lp`/`rl` NULL are nil;
  * `has_qe`, `qe_is_bool`, `qe` as in `pico8_trade_t`, all 0 for a nil `qe`. */
 typedef struct {
@@ -45,9 +55,9 @@ typedef struct {
 /* `keys` NULL means none: every member nil. */
 pico8_trade_t *pico8_trade_new(const pico8_trade_keys_t *keys);
 
-/* "qe" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "qe" or a
- * NULL self. */
-pico8_value_t pico8_trade_qe(const pico8_trade_t *self);
+/* `qe` as the cart compares it: nil for a nil `qe` or a NULL self, false
+ * only as `kg` writes it (TROU-24); a true `qe` stops the run. */
+pico8_qe_t pico8_trade_qe(const pico8_trade_t *self);
 
 /* Returns 1 and writes *out (the last of "lp") for a non-empty "lp"; returns
  * 0 with *out untouched for a NULL self, or a nil or empty "lp". */

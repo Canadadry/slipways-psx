@@ -23,14 +23,6 @@
 #include "pico8_str.h"
 #include "pico8_type_tag.h"
 
-/* `kw.qe` as a value: nil when absent. */
-static pico8_value_t jo_kw_qe(const pico8_kw_t *kw) {
-    if (kw == NULL || !kw->has_qe) {
-        return pico8_value_ref(NULL);
-    }
-    return pico8_value_fixed(kw->qe);
-}
-
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there). A
  * fresh row, never freed (TROU-7). */
 static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
@@ -45,7 +37,7 @@ static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
 void pico8_jo_hb(pico8_jo_t *self) {
     const pico8_ptrs_t *jy_list;
     const pico8_ptrs_t *by_list;
-    pico8_value_t qe = pico8_value_ref(NULL);
+    const pico8_fixed_t *qe = NULL;
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     pico8_lq_t *lq_result;
 
@@ -55,7 +47,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
 
     jy_list = self->jy;
     if (self->kw != NULL) {
-        qe = jo_kw_qe(self->kw);
+        qe = self->kw->has_qe ? &self->kw->qe : NULL;
         mu = self->kw->mu;
     }
     by_list = self->by;
@@ -206,12 +198,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         n++;
     } else {
         pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
-        pico8_value_t kw_qe = jo_kw_qe(self->kw);
+        const pico8_kw_t *kw = self->kw;
         int r_w;
         int qe_is_r_w;
 
-        /* TROU-3 */
-        qe_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(kw_qe, pico8_value_fixed(pico8_fixed_from_int(r_w)));
+        qe_is_r_w = kw != NULL && kw->has_qe && pico8_r_lookup("w", &r_w) && kw->qe == pico8_fixed_from_int(r_w);
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
             int last_only = qh != NULL && qh->qh;
@@ -247,10 +238,9 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     {
         const pico8_kw_t *kw = self->kw;
         pico8_fixed_t mu = kw != NULL ? kw->mu : pico8_fixed_from_int(0);
-        pico8_value_t qe_val = jo_kw_qe(kw);
 
         if (mu > pico8_fixed_from_int(0)) {
-            int makes = qe_val.kind == PICO8_VALUE_FIXED && pico8_int_seq_has_fixed(pico8_jo_cq(), qe_val.as.fixed);
+            int makes = kw->has_qe && pico8_int_seq_has_fixed(pico8_jo_cq(), kw->qe);
 
             row_cap[n] = PICO8_JO_GH_LB_CAP;
             row_items[n] = jo_gh_row_items(row_cap[n]);

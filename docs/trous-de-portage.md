@@ -48,17 +48,15 @@ token, deux chaînes égales ne sont jamais le même pointeur.
 
 Contourné au cas par cas : `pico8_gu_content_ptrs` compare par contenu
 (les chaînes de `hy.invented`, pour `oj`), et
-plusieurs modules ont leur propre comparaison par contenu (`jo:gg`, `dh`,
+plusieurs modules ont leur propre comparaison par contenu (`jo:gg`,
 `db`). Toute nouvelle comparaison de chaînes doit choisir explicitement,
 `pico8_value_equal` ne fera pas ce qu'on croit.
 
-**Une exception, qui explique deux sites voisins qui ne se ressemblent
-pas.** Les valeurs que `ho()` route à travers `r` partagent littéralement
-le pointeur de `r` : là, la comparaison par identité est correcte. C'est
-le cas de `kw.qe` (routé depuis `hp.o`), d'où un `pico8_value_equal` dans
-`jo:gh` là où `db()` — qui compare une chaîne d'une autre provenance —
-doit passer par le contenu. Aucun des deux n'est à « corriger » d'après
-l'autre.
+**Hors de TROU-3 : les `qe`.** Ce que `ho()` route à travers `r` (`hp.o`,
+`hp.dm`, donc `kw.qe`) et les besoins `{qe=r[c]}` sont des nombres —
+l'indice d'une ressource —, pas des chaînes : ils se comparent par valeur
+(`==` sur `pico8_fixed_t`, `pico8_qe_equal`). `db()`, qui compare une
+chaîne, passe par le contenu.
 
 Fichiers : `src/pico8_value.c`, `src/pico8_collect.c`.
 
@@ -394,19 +392,24 @@ Fichier : `src/pico8_ui_button.c`.
 
 ## TROU-24 — `trade:kg` donne `qe=false` à la route neuve quand `self.qe` est nil
 
-Dans le cart, `trade:kg` recopie `self.qe` tel quel : nil reste nil. Ce
-port pose `false` quand la route allongée n'a pas de `qe`. Dans la struct
-`trade`, nil et absent ne font qu'un : un `qe` nil, passé explicitement ou
-omis, donne `false`.
+Dans le cart, `trade:kg` recopie `self.qe` tel quel : nil reste nil, et
+aucune route n'a jamais `qe=false`. Ce port pose `false` quand la route
+allongée n'a pas de `qe`. Dans la struct `trade`, nil et absent ne font
+qu'un : un `qe` nil, passé explicitement ou omis, donne `false`.
 
-Non atteint par le filet : toute route construite par les rejeux a un `qe`
-non nil. `jo:ib` passe pourtant un `qe` nil quand la table `kw` de la planète
-n'a pas de `qe` (`src/pico8_planet_trade.c:242`), jusqu'à `nr:cn` → `kg`.
-Même effondrement nil/absent dans `dh`
-(`src/pico8_economy_tiers.c:302`) : une route au `qe` nil y compte comme
-une route sans `qe`.
+`pico8_qe_t` garde les trois états et `pico8_qe_equal` est le `==` de Lua :
+l'écart se voit là où une route rencontre un besoin sans `qe`. Dans
+`jo:cn`, une route venue de `jo:ib` sans `qe` (nil) répond à un tel besoin,
+comme dans le cart ; passée par `kg` (`nr:cn`), elle vaut `false` et n'y
+répond plus. Dans `dh`, la garde `has_qe` écarte en plus la route nil que le
+cart compterait : une route sans nombre n'y compte jamais.
 
-Fichier : `src/pico8_trade.c`.
+Non atteint par les e2e : toute route qu'ils construisent a un `qe` non nil.
+`jo:ib` passe pourtant un `qe` nil quand la table `kw` de la planète n'a pas
+de `qe`. `test_pico8_trade` fixe les deux lectures.
+
+Fichiers : `src/pico8_trade.c`, `src/pico8_planet_trade.c`,
+`src/pico8_economy_tiers.c`.
 
 ## TROU-25 — La rangée « score 0 » du panneau de fin a un trou, le port en dessine les deux éléments
 

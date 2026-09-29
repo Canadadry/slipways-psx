@@ -139,6 +139,13 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     }
 }
 
+/* A want's `qe` with the bytes fold_value folded for it, which the frozen
+ * hashes hold: kind word 0 then the number; kind word 3 then 0xDEAD for nil. */
+static uint32_t fold_qe(uint32_t h, pico8_qe_t qe) {
+    assert(qe.kind != PICO8_QE_FALSE && "a want's qe is never false");
+    return qe.kind == PICO8_QE_FIXED ? fnv(fnv(h, 0u), qe.n) : fnv(fnv(h, 3u), 0xDEADu);
+}
+
 /* The frozen hashes were taken when rows were ob views and name lists ob
  * tables: these are the bytes they folded for their tag and their two kinds
  * of key, frozen values of a tag and an enum since deleted. Changing one
@@ -446,9 +453,9 @@ static void test_gb(void) {
         assert(i_list != NULL);
         h = fnv(h, (uint32_t)i_list->count);
         for (j = 0; j < i_list->count; j++) {
-            pico8_value_t qe = pico8_value_ref(NULL);
+            pico8_qe_t qe;
             qe = pico8_jy_qe(i_list->items[j]);
-            h = fold_value(h, qe, 0);
+            h = fold_qe(h, qe);
         }
         if (b->lq != NULL) {
             const pico8_jb_row_t *lq = b->lq;
@@ -619,7 +626,7 @@ static uint32_t fold_jy(uint32_t h, const pico8_jo_t *p) {
         const pico8_jy_t *want = jy->items[i];
 
         h = fold_view_head(h, 1 + (want->has_gc != 0));
-        h = fold_value(fold_view_name(h, "qe"), pico8_jy_qe(want), 2);
+        h = fold_qe(fold_view_name(h, "qe"), pico8_jy_qe(want));
         if (want->has_gc) {
             h = fold_value(fold_view_name(h, "gc"), pico8_value_fixed(want->gc), 2);
         }

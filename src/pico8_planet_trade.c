@@ -71,12 +71,12 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
 
 void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     int qe;
-    pico8_value_t r_e = pico8_value_ref(NULL);
-    pico8_value_t r_q = pico8_value_ref(NULL);
+    pico8_qe_t r_e = {.kind = PICO8_QE_NIL};
+    pico8_qe_t r_q = {.kind = PICO8_QE_NIL};
     int have_r_e;
     int have_r_q;
     pico8_trade_t *t;
-    pico8_value_t t_qe = pico8_value_ref(NULL);
+    pico8_qe_t t_qe = {.kind = PICO8_QE_NIL};
     pico8_ptrs_t *jy = NULL;
     pico8_ptrs_iter_t it;
     void *e;
@@ -91,16 +91,16 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
     have_r_e = pico8_r_lookup("e", &qe);
     if (have_r_e) {
-        r_e = pico8_value_fixed(pico8_fixed_from_int(qe));
+        r_e = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(qe)};
     }
     have_r_q = pico8_r_lookup("?", &qe);
     if (have_r_q) {
-        r_q = pico8_value_fixed(pico8_fixed_from_int(qe));
+        r_q = (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(qe)};
     }
 
     jy = self->jy;
 
-    if (have_r_e && pico8_value_equal(t_qe, r_e) && !self->has_jh) {
+    if (have_r_e && pico8_qe_equal(t_qe, r_e) && !self->has_jh) {
         it = pico8_ptrs_all(jy);
         while (pico8_ptrs_iter_next(&it, &e)) {
             if (e != NULL) {
@@ -108,7 +108,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
                 pico8_fixed_t gc = i->has_gc ? i->gc : pico8_fixed_from_int(0);
                 int qe_is_r_q;
 
-                qe_is_r_q = have_r_q && pico8_value_equal(pico8_jy_qe(i), r_q);
+                qe_is_r_q = have_r_q && pico8_qe_equal(pico8_jy_qe(i), r_q);
                 if (gc == pico8_fixed_from_int(0) && !qe_is_r_q) {
                     pico8_ptrs_del(jy, e);
                     break;
@@ -117,7 +117,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         {
-            pico8_fixed_t e_qe = r_e.as.fixed;
+            pico8_fixed_t e_qe = r_e.n;
             pico8_jy_t *fresh = pico8_jy_new(&e_qe);
             pico8_ptrs_t prefix;
             pico8_ptrs_t merged;
@@ -140,7 +140,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     it = pico8_ptrs_all(jy);
     while (pico8_ptrs_iter_next(&it, &e)) {
         pico8_jy_t *i;
-        pico8_value_t qe_val;
+        pico8_qe_t qe_val;
 
         if (e == NULL) {
             continue;
@@ -148,23 +148,23 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         i = e;
         qe_val = pico8_jy_qe(i);
 
-        if (have_r_q && pico8_value_equal(qe_val, r_q)) {
+        if (have_r_q && pico8_qe_equal(qe_val, r_q)) {
             const pico8_qh_t *qh = pico8_qh_of(&self->ke.header);
             int accepted = 0;
 
             if (qh != NULL && qh->ba != NULL) {
-                accepted = t_qe.kind == PICO8_VALUE_FIXED &&
-                           pico8_int_seq_has_fixed(qh->ba, t_qe.as.fixed);
+                accepted = t_qe.kind == PICO8_QE_FIXED &&
+                           pico8_int_seq_has_fixed(qh->ba, t_qe.n);
             }
             if (accepted) {
-                assert(t_qe.kind == PICO8_VALUE_FIXED && "a want's qe is a resource of r, never a boolean");
+                assert(t_qe.kind == PICO8_QE_FIXED && "a want's qe is a resource of r, never a boolean");
                 i->row.has_qe = 1;
-                i->row.qe = t_qe.as.fixed;
+                i->row.qe = t_qe.n;
                 qe_val = t_qe;
             }
         }
 
-        if (pico8_value_equal(t_qe, qe_val) && !(have_r_q && pico8_value_equal(qe_val, r_q))) {
+        if (pico8_qe_equal(t_qe, qe_val) && !(have_r_q && pico8_qe_equal(qe_val, r_q))) {
             pico8_trade_t *extended = pico8_trade_kg(t, &self->ke.header, NULL);
             if (lw->kf != NULL) {
                 lw->kf(lw, extended);

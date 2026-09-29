@@ -18,6 +18,7 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy_tiers.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
@@ -418,6 +419,11 @@ static void build_with_nil_qe_as_bool(void *e) {
     (void)route(NULL, NULL, 0, 1, 0);
 }
 
+static void qe_of_true_route(void *e) {
+    (void)e;
+    (void)pico8_trade_qe(route(NULL, NULL, 1, 1, 1));
+}
+
 static void to_on_other(void *e) {
     void *out;
     (void)pico8_trade_to(e, &out);
@@ -436,8 +442,8 @@ static void eq_right_other(void *e) {
 }
 
 /* A game's route is a struct whose descriptor has no method;
- * a `qe` key its member could not hold stops the run, and `to`/`kg`/`eq`
- * refuse anything that is not a route. */
+ * a `qe` key its member could not hold stops the run, as does reading a true
+ * `qe`, and `to`/`kg`/`eq` refuse anything that is not a route. */
 static void test_trade_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_trade_struct_class();
     pico8_trade_t *g = game_route();
@@ -458,6 +464,7 @@ static void test_trade_is_a_struct(void) {
     must_abort(build_with_bool_qe_2, NULL);
     must_abort(build_with_nil_qe_holding_1, NULL);
     must_abort(build_with_nil_qe_as_bool, NULL);
+    must_abort(qe_of_true_route, NULL);
     must_abort(to_on_other, pico8_ok());
     must_abort(kg_on_other, pico8_ok());
     must_abort(eq_left_other, pico8_ok());
@@ -499,6 +506,89 @@ static void test_cn_wildcard_want(void) {
     assert(want->row.has_qe && want->row.qe == keys.qe && g_kf_calls == 1);
 }
 
+/* A route through `kg` holds false, not nil: it no longer answers a want
+ * with no `qe`, which the cart's nil route would answer -- TROU-24. */
+static void test_cn_nil_want_after_kg(void) {
+    pico8_jo_trade_proposal_t lw = {0};
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
+    pico8_qh_t *qh;
+    pico8_trade_t *nil_route;
+
+    start_game();
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, pico8_jy_new(NULL));
+    qh = pico8_qh_new(NULL);
+    qh->jo.jy = jy;
+    nil_route = pico8_trade_new(&(pico8_trade_keys_t){.lp = list_of(0, NULL)});
+    lw.kf = count_kf;
+    lw.t = nil_route;
+    pico8_jo_cn(&qh->jo, &lw);
+    assert(g_kf_calls == 1);
+    lw.t = pico8_trade_kg(nil_route, NULL, NULL);
+    assert(lw.t->has_qe && lw.t->qe_is_bool && lw.t->qe == 0);
+    pico8_jo_cn(&qh->jo, &lw);
+    assert(g_kf_calls == 1);
+}
+
+/* `dh` counts for a want only the routes whose `qe` equals the want's: a
+ * route with no `qe` is skipped by the `has_qe` guard, and one through `kg`
+ * holds false, which is not the nil of a want with no `qe` -- TROU-24. */
+static void test_dh_counts_numbered_routes_only(void) {
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
+    pico8_ptrs_t *cc = malloc(sizeof *cc);
+    pico8_qh_t *qh;
+    pico8_jy_t *nil_want;
+    pico8_jy_t *x_want;
+    pico8_fixed_t x = pico8_fixed_from_int(2);
+    pico8_trade_t *nil_route;
+
+    start_game();
+    nil_want = pico8_jy_new(NULL);
+    x_want = pico8_jy_new(&x);
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, nil_want);
+    pico8_ptrs_add(jy, x_want);
+    nil_route = pico8_trade_new(NULL);
+    pico8_ptrs_init(cc);
+    pico8_ptrs_add(cc, nil_route);
+    pico8_ptrs_add(cc, pico8_trade_kg(nil_route, NULL, NULL));
+    pico8_ptrs_add(cc, pico8_trade_new(&(pico8_trade_keys_t){.has_qe = 1, .qe = x}));
+    qh = pico8_qh_new(NULL);
+    qh->jo.jy = jy;
+    qh->jo.cc = cc;
+    pico8_ke_ks(&qh->jo.ke.header, "ly");
+    (void)pico8_dh(&qh->jo.ke.header);
+    assert(nil_want->has_gc && nil_want->gc == pico8_fixed_from_int(0));
+    assert(x_want->has_gc && x_want->gc == pico8_fixed_from_int(1));
+}
+
+/* `pico8_qe_equal` is Lua's `==` both ways, `n` unread outside FIXED; and
+ * `pico8_trade_qe` reads nil, false (after `kg`) and a number. */
+static void test_qe_equal(void) {
+    const pico8_qe_t nil = {.kind = PICO8_QE_NIL};
+    const pico8_qe_t no = {.kind = PICO8_QE_FALSE};
+    const pico8_qe_t n0 = {.kind = PICO8_QE_FIXED, .n = 0};
+    const pico8_qe_t n2 = {.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(2)};
+    const pico8_qe_t n3 = {.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(3)};
+    pico8_trade_t *nil_route = pico8_trade_new(NULL);
+    pico8_trade_t *two = pico8_trade_new(&(pico8_trade_keys_t){.has_qe = 1, .qe = pico8_fixed_from_int(2)});
+    pico8_qe_t got;
+
+    assert(pico8_qe_equal(nil, nil) && pico8_qe_equal(no, no) && pico8_qe_equal(n2, n2));
+    assert(!pico8_qe_equal(nil, no) && !pico8_qe_equal(no, nil));
+    assert(!pico8_qe_equal(n0, nil) && !pico8_qe_equal(nil, n0) && !pico8_qe_equal(n0, no) &&
+           !pico8_qe_equal(no, n0));
+    assert(!pico8_qe_equal(n2, n3) && !pico8_qe_equal(n3, n2));
+    assert(pico8_qe_equal(nil, (pico8_qe_t){.kind = PICO8_QE_NIL, .n = 5}) &&
+           pico8_qe_equal((pico8_qe_t){.kind = PICO8_QE_FALSE, .n = 7}, no));
+
+    assert(pico8_trade_qe(NULL).kind == PICO8_QE_NIL);
+    assert(pico8_trade_qe(nil_route).kind == PICO8_QE_NIL);
+    assert(pico8_trade_qe(pico8_trade_kg(nil_route, NULL, NULL)).kind == PICO8_QE_FALSE);
+    got = pico8_trade_qe(two);
+    assert(got.kind == PICO8_QE_FIXED && got.n == pico8_fixed_from_int(2));
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it: the rnd state is the same for all. */
 static void in_fresh_child(void (*test)(void)) {
@@ -534,6 +624,9 @@ int main(void) {
     in_fresh_child(test_eq);
     in_fresh_child(test_trade_is_a_struct);
     in_fresh_child(test_cn_wildcard_want);
+    in_fresh_child(test_cn_nil_want_after_kg);
+    in_fresh_child(test_dh_counts_numbered_routes_only);
+    in_fresh_child(test_qe_equal);
 
     printf("test_pico8_trade: all tests passed\n");
     return 0;

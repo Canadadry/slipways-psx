@@ -15,18 +15,6 @@
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
 
-/* Lua truthiness, widened so this port's "absent" filler REF(NULL) is
- * falsy too. */
-static int pico8_research_display_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 /* Returns a newly heap-allocated, NUL-terminated string the caller owns
  * and must free(). */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {
@@ -45,7 +33,7 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
     i_list = self->i;
     it = pico8_ptrs_all(i_list);
     while (pico8_ptrs_iter_next(&it, &entry)) {
-        pico8_value_t qe = pico8_value_ref(NULL);
+        pico8_qe_t qe = {.kind = PICO8_QE_NIL};
         char *num_str;
         const char *iz_name;
         const char *piece = "";
@@ -55,8 +43,8 @@ static char *pico8_hp_jb_join(const pico8_hp_t *self) {
         if (entry != NULL) {
             qe = pico8_jy_qe(entry);
         }
-        num_str = pico8_value_tostr(qe);
-        iz_name = pico8_iz_lookup(num_str);
+        num_str = qe.kind == PICO8_QE_FIXED ? pico8_tostr_fixed(qe.n) : NULL;
+        iz_name = num_str != NULL ? pico8_iz_lookup(num_str) : NULL;
         if (iz_name != NULL) {
             piece = iz_name;
         }
@@ -140,7 +128,7 @@ static pico8_jb_item_t pico8_jo_ex_fixed(pico8_fixed_t x) {
     return (pico8_jb_item_t){.is_fixed = 1, .fixed = x};
 }
 
-pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t jq, pico8_fixed_t mj,
+pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, const pico8_fixed_t *o, pico8_fixed_t jq, pico8_fixed_t mj,
                                pico8_fixed_t d) {
     pico8_value_t *l;
     int l_count = 0;
@@ -148,12 +136,12 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
     pico8_lq_keys_t keys = {0};
     int lc;
     int is_count = (is != NULL) ? is->count : 0;
-    pico8_value_t ml[2];
+    pico8_fixed_t ml[2];
     int ml_count;
     int pe;
     pico8_lq_t *result;
 
-    if (!pico8_research_display_truthy(o)) {
+    if (o == NULL) {
         return NULL;
     }
 
@@ -161,15 +149,14 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
 
     {
         int r_w;
-        /* TROU-3 */
-        int o_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(o, pico8_value_fixed(pico8_fixed_from_int(r_w)));
+        int o_is_r_w = pico8_r_lookup("w", &r_w) && *o == pico8_fixed_from_int(r_w);
 
         if (o_is_r_w) {
-            ml[0] = pico8_value_fixed(pico8_fixed_from_int(25));
-            ml[1] = pico8_value_fixed(pico8_fixed_from_int(23));
+            ml[0] = pico8_fixed_from_int(25);
+            ml[1] = pico8_fixed_from_int(23);
             ml_count = 2;
         } else {
-            ml[0] = o;
+            ml[0] = *o;
             ml_count = 1;
         }
     }
@@ -192,7 +179,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
 
         while (pico8_ptrs_iter_next(&it, &entry)) {
             pico8_jo_ex_tuple_t *tuple = pico8_jo_ex_tuple(3);
-            pico8_value_t qe = pico8_value_ref(NULL);
+            pico8_qe_t qe = {.kind = PICO8_QE_NIL};
             int gc_zero = 0;
 
             if (entry != NULL) {
@@ -201,9 +188,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
                 qe = pico8_jy_qe(i);
                 gc_zero = i->has_gc && i->gc == 0;
             }
-            assert((qe.kind == PICO8_VALUE_FIXED || (qe.kind == PICO8_VALUE_REF && qe.as.ref == NULL)) &&
-                   "a want record's qe is a resource of r or nil");
-            tuple->items[0] = qe.kind == PICO8_VALUE_FIXED ? pico8_jo_ex_fixed(qe.as.fixed)
+            tuple->items[0] = qe.kind == PICO8_QE_FIXED ? pico8_jo_ex_fixed(qe.n)
                                                            : (pico8_jb_item_t){.is_ref = 1};
             tuple->items[1] = pico8_jo_ex_fixed(pico8_fixed_sub(pico8_fixed_from_int(3), pico8_fixed_from_int(lc)));
             /* Lua's `i.gc~=0 and 0 or 7`: gc==0 -> 7, gc~=0 or absent -> 0.
@@ -248,7 +233,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
         int qq_i;
 
         for (qq_i = 0; qq_i < ml_count; qq_i++) {
-            pico8_value_t qq = ml[qq_i];
+            pico8_fixed_t qq = ml[qq_i];
             pico8_fixed_t loop_bound = (jq > pico8_fixed_from_int(1)) ? jq : pico8_fixed_from_int(1);
             int n = pico8_fixed_flr_int(loop_bound);
             int i;
@@ -258,8 +243,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
                 pico8_fixed_t i_fixed = pico8_fixed_from_int(i);
                 int within = (i_fixed <= jq) && (i_fixed > mj);
 
-                assert(qq.kind == PICO8_VALUE_FIXED && "ml holds sprite numbers");
-                t4->items[0] = pico8_jo_ex_fixed(qq.as.fixed);
+                t4->items[0] = pico8_jo_ex_fixed(qq);
                 t4->items[1] = pico8_jo_ex_fixed(pico8_fixed_from_int(6));
                 t4->items[2] = pico8_jo_ex_fixed(pico8_fixed_from_int(within ? 0 : 7));
                 t4->items[3] = pico8_jo_ex_fixed(pico8_fixed_from_int(pe ? -4 : -3));
@@ -301,7 +285,7 @@ pico8_lq_t *pico8_hp_lq(pico8_hp_t *self) {
         jq = (po1 > pico8_fixed_from_int(1)) ? po1 : pico8_fixed_from_int(1);
     }
 
-    l = pico8_jo_ex(is, self->has_o ? pico8_value_fixed(self->o) : pico8_value_ref(NULL), jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
+    l = pico8_jo_ex(is, self->has_o ? &self->o : NULL, jq, pico8_fixed_from_int(0), pico8_fixed_from_int(1));
     if (l == NULL) {
         return NULL;
     }

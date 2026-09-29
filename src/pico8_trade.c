@@ -10,11 +10,17 @@
 
 static int g_trade_up = 0;
 
-pico8_value_t pico8_trade_qe(const pico8_trade_t *self) {
+pico8_qe_t pico8_trade_qe(const pico8_trade_t *self) {
     if (self == NULL || !self->has_qe) {
-        return pico8_value_ref(NULL);
+        return (pico8_qe_t){.kind = PICO8_QE_NIL};
     }
-    return self->qe_is_bool ? pico8_value_bool(self->qe) : pico8_value_fixed(self->qe);
+    assert(!(self->qe_is_bool && self->qe != 0) && "no route of src/ holds true: `pico8_qe_t` has no kind for it");
+    return self->qe_is_bool ? (pico8_qe_t){.kind = PICO8_QE_FALSE}
+                            : (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = self->qe};
+}
+
+int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b) {
+    return a.kind == b.kind && (a.kind != PICO8_QE_FIXED || a.n == b.n);
 }
 
 static const pico8_struct_class_t g_trade_struct_class = {0};

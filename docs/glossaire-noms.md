@@ -23,6 +23,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_g__keys_t` (`pico8_probe.h`) | les clés d'une sonde `g_` (seul le TU `probe_mm_rnd_order` et le chemin (c) de `test_pico8_g_` en passent) : `t` (`ke.t`, défaut 0, sans drapeau), `pn`, `du`, `py` sous `has_pn`/`has_du`/`has_py` (défauts non nuls : une clé à 0 les remplace) |
 | — | `pico8_ie_keys_t` (`pico8_research_icon.h`) | les clés d'une icône de recherche `ie` que construit `eu` : `ke` (la sorte), `jb` (l'infobulle), NULL = nil |
 | — | `pico8_trade_keys_t` (`pico8_trade.h`) | les clés d'une route `trade` (`jo:ib`, `trade:kg`) : `lp`, `rl` (NULL = nil) et le triple `qe` du membre (`has_qe`, `qe_is_bool`, `qe`) |
+| — | `pico8_qe_t`, `pico8_qe_equal` (`pico8_trade.h`) | un `qe` de route ou de besoin tel que le cart le compare : nil, faux (seulement par TROU-24) ou un nombre ; `pico8_qe_equal` est le `==` de Lua (nil ≠ faux) |
 | — | `pico8_hp_keys_t` (`pico8_research.h`) | les clés d'un projet `hp` : `ri`, un enregistrement de `pico8_fd_table` (jamais une entrée-titre ; `hp` lui applique `ho` : positions nommées par `mr`, `gp` traduit par `r`), et `rr`, la catégorie (NULL = nil) |
 | `jr` | — | déclare une sous-classe à partir d'une spec `[[...]]` ; plus aucune classe n'a de spec parsée : ses clés sont `pico8_X_start`, que son constructeur lit, l'héritage passant par le constructeur de la parente |
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
@@ -627,7 +628,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `o` | ressource produite |
 | `dm` | routé par `gp` comme `o` ; aucun lecteur trouvé |
 | `fk` | l'entrée `{false,2}` que `hp:lq` ajoute en fin de rangée ; `pico8_hp_fk_row` |
-| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (`pico8_hp_mr_names`, `pico8_hp_gp_names`) — c'est `gp` qui rend `o`/`dm` identiques au pointeur de `r`, donc qui justifie l'exception de TROU-3 |
+| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (`pico8_hp_mr_names`, `pico8_hp_gp_names`) — c'est `gp` qui fait de `o`/`dm` le nombre que `r` donne |
 | `ke` (sur `ie`) | la **classe** d'amélioration que l'icône construit, pas une instance |
 | `kh` | drapeau d'instance « icône déjà révélée » |
 | `id` (sur `ie`) | compteur de classe, source de l'override de sprite ; repart de `pico8_ie_start.id` à chaque init, `ie:ldown` l'incrémente ; lu par `pico8_ie_id(&out)` (0 = nil) |

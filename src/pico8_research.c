@@ -131,8 +131,8 @@ static void hp_ho(pico8_hp_t *self, const pico8_fd_entry_t *ri, const char **i_s
     }
 }
 
-pico8_value_t pico8_jy_qe(const pico8_jy_t *i) {
-    return i->row.has_qe ? pico8_value_fixed(i->row.qe) : pico8_value_ref(NULL);
+pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {
+    return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};
 }
 
 pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe) {

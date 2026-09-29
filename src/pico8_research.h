@@ -6,6 +6,7 @@
 #include "pico8_map_tables.h"
 #include "pico8_ptrs.h"
 #include "pico8_struct.h"
+#include "pico8_trade.h"
 #include "pico8_value.h"
 
 /* A want of `hp.i` or `jo.jy`, the cart's `{qe=r[c]}`, then `gc` as
@@ -17,8 +18,8 @@ typedef struct {
     pico8_fixed_t gc;
 } pico8_jy_t;
 
-/* `i.qe` as a value: nil or a fixed. */
-pico8_value_t pico8_jy_qe(const pico8_jy_t *i);
+/* `i.qe`: nil or a number, never false. */
+pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);
 
 /* A fresh want, never freed (TROU-7): `qe` NULL is nil, no `gc`. */
 pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe);

@@ -473,15 +473,15 @@ static void test_jo_ex(void) {
     uint32_t h = 2166136261u;
     size_t a;
     size_t b;
-    pico8_value_t o;
+    pico8_fixed_t o;
 
     for (a = 0; a < sizeof ks / sizeof ks[0]; a++) {
         const pico8_hp_t *p = project(ks[a]);
         const pico8_ptrs_t *is = p->i;
         assert(p->has_o);
-        o = pico8_value_fixed(p->o);
+        o = p->o;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = pico8_jo_ex(is, o, pico8_fixed_from_int(jqs[b]), pico8_fixed_from_int((int)b % 3),
+            const void *lq = pico8_jo_ex(is, &o, pico8_fixed_from_int(jqs[b]), pico8_fixed_from_int((int)b % 3),
                                          pico8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_lq(lq)->has_c == (jqs[b] > 5));
@@ -492,11 +492,11 @@ static void test_jo_ex(void) {
         }
     }
     {
-        const void *lq = pico8_jo_ex(NULL, o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
+        const void *lq = pico8_jo_ex(NULL, &o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
         assert(lq != NULL);
         h = fold_row(h, lq);
     }
-    assert(pico8_jo_ex(NULL, pico8_value_bool(0), pico8_fixed_from_int(1), 0, 0) == NULL);
+    assert(pico8_jo_ex(NULL, NULL, pico8_fixed_from_int(1), 0, 0) == NULL);
     check("jo.ex", h, JO_EX_HASH);
 }
 
@@ -796,6 +796,40 @@ static void test_gh_wants_more(void) {
     assert(wants->w == pico8_fixed_from_int(64) && receives->w == pico8_fixed_from_int(64));
 }
 
+/* A planet whose `kw.qe` is `r.w` has no "wants more:" row, though every
+ * want arrives. */
+static void test_gh_w_maker_wants_no_more(void) {
+    pico8_fixed_t ore = pico8_fixed_from_int(21);
+    pico8_jy_t *a = pico8_jy_new(&ore);
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
+    pico8_kw_t *kw = calloc(1, sizeof *kw);
+    pico8_jo_t *planet;
+    pico8_vec_t *gq;
+    int r_w;
+
+    start_game();
+    assert(pico8_r_lookup("w", &r_w));
+    kw->has_qe = 1;
+    kw->qe = pico8_fixed_from_int(r_w);
+    a->has_gc = 1;
+    a->gc = pico8_fixed_from_int(1);
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, a);
+    planet = pico8_jo_new(NULL);
+    planet->jy = jy;
+    planet->kw = kw;
+    planet->has_mi = 1;
+    planet->mi = pico8_fixed_from_int(1);
+    planet->ra = malloc(sizeof *planet->ra);
+    *planet->ra = vec_xy(64, 64);
+    gq = malloc(sizeof *gq);
+    *gq = vec_xy(0, 9);
+    planet->gq = gq;
+    pico8_jo_gh(planet);
+
+    assert(panel_row("wants more:") == NULL && panel_row("needs:") == NULL);
+}
+
 /* A laboratory (`qh` true) lists only its last want under "wants more:". */
 static void test_gh_lab_wants_its_last(void) {
     pico8_jy_t *a = pico8_jy_new(NULL);
@@ -950,6 +984,7 @@ int main(void) {
     in_fresh_child(test_calls);
     in_fresh_child(test_planet_panel);
     in_fresh_child(test_gh_wants_more);
+    in_fresh_child(test_gh_w_maker_wants_no_more);
     in_fresh_child(test_gh_lab_wants_its_last);
     in_fresh_child(test_lq_is_a_struct);
 
