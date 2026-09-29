@@ -62,7 +62,7 @@ typedef struct {
     int has_mi;
     int m_;
     int has_m_;
-    pico8_kw_t kw_own; /* never a field by name */
+    pico8_kw_t kw_own;
 } pico8_jo_t;
 
 /* TROU-8 */
@@ -76,9 +76,6 @@ void pico8_jo_shutdown(void);
 /* 1 from `pico8_jo_init()` to `pico8_jo_shutdown()`, 0 otherwise. */
 int pico8_jo_ready(void);
 
-/* The end of the `field` of the jo tree's kinds: `me`, from pico8_jo_start;
- * 0 for any other name, or when not ready. */
-int pico8_jo_kind_field(const char *name, pico8_value_t *out_value);
 const pico8_struct_class_t *pico8_jo_struct_class(void);
 
 /* `jo.dz` (PICO8_JO_DZ_COUNT rows), `jo.cq`, `jo.ka`, `jo.em`: jo's

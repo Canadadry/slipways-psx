@@ -133,26 +133,15 @@ static pico8_jc_too_far_t *as_too_far(const void *e) {
     return (pico8_jc_too_far_t *)e;
 }
 
-/* The mouse point's `ra` and `p`, NULL when absent: its struct is private
- * to pico8_slipway.c and no typed reader gives these pointers. */
+/* The mouse point's `ra` and `p`, NULL when absent. */
 static const pico8_vec_t *mouse_point_ra(const void *re) {
-    pico8_value_t v;
-
     assert(is_throwaway(re));
-    if (!pico8_entity_get_field(re, "ra", &v)) {
-        return NULL;
-    }
-    return v.as.ref;
+    return ((const pico8_jc_mouse_point_t *)re)->ra;
 }
 
 static const pico8_vec_t *mouse_point_p(const void *re) {
-    pico8_value_t v;
-
     assert(is_throwaway(re));
-    if (!pico8_entity_get_field(re, "p", &v)) {
-        return NULL;
-    }
-    return v.as.ref;
+    return ((const pico8_jc_mouse_point_t *)re)->p;
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref);
@@ -457,6 +446,8 @@ static void *first_with_me(const char *tag, const char *me) {
  * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_jc(const void *e, const void *qu) {
     const pico8_jc_t *jc = as_jc(e);
+    pico8_jc_t with_mt = *jc;
+    pico8_fixed_t mt = 0;
     const pico8_int_seq_t *k_;
     const pico8_str_seq_t *nu;
     const pico8_jc_hg_t *hg;
@@ -485,6 +476,10 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(hg == &jc->hg_own && hg->count == 0);
 
     assert(jc->re == NULL && !jc->probe->has_od && !jc->has_mt && jc->probe->et == NULL);
+    assert(!cls_of(jc)->get_mt(jc, &mt) && mt == 0);
+    with_mt.mt = pico8_fixed_from_int(3);
+    with_mt.has_mt = 1;
+    assert(cls_of(&with_mt)->get_mt(&with_mt, &mt) && mt == with_mt.mt);
     assert(jc->fo == NULL && !jc->has_p_);
     assert(cls_of(jc)->hq != NULL && cls_of(jc)->ey != NULL);
     assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
@@ -784,6 +779,7 @@ static void test_hq_mouse_point(void) {
     p1 = vec_of(mouse_point_p(r1));
     assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), pico8_fixed_from_int(128))));
     assert(mouse_point_p(r1) != m1.as.ref);
+    assert(cls_of(r1)->get_p(r1) == mouse_point_p(r1));
     assert(!pico8_gd(r1));
     assert(!listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
     h = fnv(h, (uint32_t)p1.x);

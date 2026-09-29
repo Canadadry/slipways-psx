@@ -519,6 +519,10 @@ static void test_draw(void) {
     as_ie(shown)->m_ = 0;
     as_ie(shown)->has_m_ = 1;
     assert(draw_alone(shown) == shown_px);
+    cls_of(shown)->set_m_(shown, 1);
+    assert(m__state(shown) == 2);
+    cls_of(shown)->set_m_(shown, 0);
+    assert(m__state(shown) == 1);
 
     h = fnv(h, hidden_px);
     h = fnv(h, shown_px);

@@ -38,16 +38,12 @@ typedef struct {
     pico8_fixed_t s;
     const pico8_int_seq_t *ba;
     pico8_probe_t *probe;
-    pico8_probe_t probe_own; /* never a field by name */
+    pico8_probe_t probe_own;
 } pico8_qh_t;
 
 /* `qh` as a value: a boolean when `qh_is_bool`, a fixed otherwise; REF NULL
  * when `self` is NULL. */
 pico8_value_t pico8_qh_qh(const pico8_qh_t *self);
-
-/* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
- * absent, `false` when present and NULL, a REF to the target otherwise. */
-pico8_value_t pico8_qh_et(const pico8_qh_t *self);
 
 /* The `probe_of` of qh's descriptor, for its daughters' to name. */
 pico8_probe_t *pico8_qh_probe_of(void *self);
@@ -82,12 +78,8 @@ typedef struct {
     pico8_qh_t qh;
     const char *rr;
     pico8_emitter_t *emitter;
-    pico8_emitter_t emitter_own; /* never a field by name */
+    pico8_emitter_t emitter_own;
 } pico8_hj_t;
-
-/* The emitter's `pk` as a value: a boolean when `pk_is_bool`, a fixed
- * otherwise; REF NULL when `self` is NULL. */
-pico8_value_t pico8_hj_pk(const pico8_hj_t *self);
 
 /* The `emitter_of` of hj's descriptor, for `mx`'s to name (`pm`'s too). */
 pico8_emitter_t *pico8_hj_emitter_of(void *self);
@@ -118,14 +110,12 @@ typedef struct {
     pico8_fixed_t iu;
     pico8_fixed_t ms;
     pico8_emitter_t *emitter;
-    pico8_emitter_t emitter_own; /* never a field by name */
+    pico8_emitter_t emitter_own;
 } pico8_ga_t;
 
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to
  * `pico8_planet_family_shutdown()`, 0 otherwise. A `_kind` accessor is never
- * NULL; its reader answers `rr`, `s`, `me` and `od` only, from the
- * generated defaults of the class that sets each, then its parent's (qh,
- * ga: jo; nl, os, hj: qh; pm: hj); 0 for any other name, or when not ready. */
+ * NULL. */
 int pico8_qh_ready(void);
 const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);

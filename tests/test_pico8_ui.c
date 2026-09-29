@@ -317,8 +317,10 @@ static void test_shared(void) {
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other = pico8_ui_new();
     const pico8_list_t *le = ok->le;
+    pico8_fixed_t ql;
 
     assert(other != NULL && other != ok);
+    assert(other->ke.header.cls->get_ql(other, &ql) && ql == other->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), other));
     h = fnv(h, (uint32_t)rank_in(pico8_cv("ev"), other));
@@ -1090,152 +1092,6 @@ static void test_ke_t_by_name(void) {
     check("ke_t", h, KE_T_HASH);
 }
 
-static int lua_true(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_REF && v.as.ref == NULL) && !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
-/* Each accessor of `e`'s class against the reader by name it replaces: same
- * presence, same value; a NULL member where the reader answers nothing. */
-static void accessors_agree(const void *e) {
-    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
-    pico8_value_t v;
-    pico8_fixed_t f;
-    const void *ref;
-    int has;
-
-    ref = cls->get_nu != NULL ? cls->get_nu(e) : NULL;
-    has = pico8_entity_get_field(e, "nu", &v);
-    assert(has == (ref != NULL) && (!has || (v.kind == PICO8_VALUE_REF && v.as.ref == ref)));
-
-    has = cls->get_fa != NULL && cls->get_fa(e, &f);
-    assert(has == pico8_entity_get_field(e, "fa", &v) && (!has || (v.kind == PICO8_VALUE_FIXED && v.as.fixed == f)));
-
-    ref = cls->get_ra != NULL ? cls->get_ra(e) : NULL;
-    has = pico8_entity_get_field(e, "ra", &v);
-    assert(has == (ref != NULL) && (!has || (v.kind == PICO8_VALUE_REF && v.as.ref == ref)));
-
-    ref = cls->get_p != NULL ? cls->get_p(e) : NULL;
-    has = pico8_entity_get_field(e, "p", &v);
-    assert(has == (ref != NULL) && (!has || (v.kind == PICO8_VALUE_REF && v.as.ref == ref)));
-
-    ref = cls->get_kq != NULL ? cls->get_kq(e) : NULL;
-    has = pico8_entity_get_field(e, "kq", &v);
-    assert(has == (ref != NULL) && (!has || (v.kind == PICO8_VALUE_REF && v.as.ref == ref)));
-
-    has = cls->get_ql != NULL && cls->get_ql(e, &f);
-    assert(has == pico8_entity_get_field(e, "ql", &v) && (!has || (v.kind == PICO8_VALUE_FIXED && v.as.fixed == f)));
-
-    has = cls->get_fg != NULL && cls->get_fg(e, &f);
-    assert(has == pico8_entity_get_field(e, "fg", &v) && (!has || (v.kind == PICO8_VALUE_FIXED && v.as.fixed == f)));
-
-    has = cls->get_mt != NULL && cls->get_mt(e, &f);
-    assert(has == pico8_entity_get_field(e, "mt", &v) && (!has || (v.kind == PICO8_VALUE_FIXED && v.as.fixed == f)));
-
-    has = pico8_entity_get_field(e, "fx", &v);
-    assert((cls->get_fx != NULL || !has) && (cls->get_fx != NULL && cls->get_fx(e)) == (has && lua_true(v)));
-
-    has = pico8_entity_get_field(e, "p_", &v);
-    assert((cls->get_p_ != NULL || !has) && (cls->get_p_ != NULL && cls->get_p_(e)) == (has && lua_true(v)));
-}
-
-/* `set_m_` writes what the writer by name writes; a NULL member where the
- * writer takes no `m_`. */
-static void m__agrees(void *e) {
-    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
-    pico8_value_t v;
-
-    if (cls->set_m_ == NULL) {
-        assert(cls->set_field == NULL || !cls->set_field(e, "m_", pico8_value_bool(1)));
-        return;
-    }
-    cls->set_m_(e, 1);
-    assert(pico8_entity_get_field(e, "m_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 1);
-    cls->set_m_(e, 0);
-    assert(pico8_entity_get_field(e, "m_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
-/* On every entity of a started game, one of each class the game has not
- * built, the two ends and targets `jc:hq` hangs over the void, and the
- * placeholders; the classes with no instance here answer no name. */
-static void test_accessors_agree_with_readers(void) {
-    const pico8_list_t *hv;
-    pico8_jc_keys_t keys = {0};
-    pico8_jc_t *jc;
-    pico8_jc_t *from_fr;
-    pico8_fr_t *fr;
-    pico8_vec_t *far = malloc(sizeof *far);
-    const void *views[6];
-    size_t i;
-    int j;
-
-    pico8_entity_init();
-    pico8_ui_init();
-    pico8_probe_init();
-    views[0] = pico8_mo();
-    views[1] = pico8_je();
-    views[2] = pico8_fm();
-    for (i = 0; i < 3; i++) {
-        assert(views[i] != NULL);
-        accessors_agree(views[i]);
-    }
-
-    (void)start_game();
-    (void)pico8_bg_new();
-    (void)pico8_nf_new();
-    (void)pico8_mh_new(NULL);
-    (void)pico8_iv_new(NULL);
-    (void)pico8_jo_new(NULL);
-    (void)pico8_qh_new(NULL);
-    (void)pico8_nl_new(NULL);
-    (void)pico8_os_new(NULL);
-    (void)pico8_hj_new(NULL);
-    (void)pico8_pm_new(NULL);
-    (void)pico8_ga_new(NULL);
-    (void)pico8_nr_new(NULL);
-    fr = pico8_fr_new(NULL);
-    (void)pico8_mx_new(NULL);
-    (void)pico8_g__new(NULL);
-    (void)pico8_fv_new();
-    (void)pico8_ie_new(NULL);
-    (void)pico8_pj_new();
-    (void)pico8_qb_new();
-    (void)pico8_ui_new();
-    (void)pico8_js_new(NULL);
-    (void)pico8_fq_new(NULL);
-    (void)pico8_mz_new();
-
-    keys.qu = pico8_cg("jo")->items[0].as.ref;
-    jc = pico8_jc_new(&keys);
-    *far = pico8_vec_v(pico8_fixed_from_int(-640), pico8_fixed_from_int(-640));
-    pico8_ok()->o_ = NULL;
-    jc->ke.header.cls->hq(jc, far, NULL);
-    assert(jc->re->cls == pico8_jc_mouse_point_struct_class());
-    assert(jc->probe->et->cls == pico8_jc_too_far_struct_class());
-    keys.qu = &fr->nr.qh.jo.ke.header;
-    from_fr = pico8_jc_new(&keys);
-    from_fr->ke.header.cls->hq(from_fr, far, NULL);
-    assert(from_fr->has_mt && from_fr->mt == fr->mt);
-
-    hv = pico8_hv();
-    for (j = 0; j < hv->count; j++) {
-        accessors_agree(hv->items[j].as.ref);
-        m__agrees(hv->items[j].as.ref);
-    }
-    views[0] = jc->re;
-    views[1] = jc->probe->et;
-    views[2] = pico8_lq_new(NULL);
-    views[3] = pico8_hy_new();
-    views[4] = pico8_hp_new(NULL);
-    views[5] = pico8_trade_new(NULL);
-    for (i = 0; i < 6; i++) {
-        accessors_agree(views[i]);
-        m__agrees((void *)views[i]);
-    }
-    accessors_agree(pico8_ha_pz());
-    accessors_agree(pico8_pj_cr());
-    accessors_agree(pico8_mz_jj_wrapper());
-}
-
 static void test_g__t_key_stops_off_row(void) {
     pico8_g__keys_t keys = {0};
     void *made;
@@ -1291,7 +1147,6 @@ int main(void) {
     in_fresh_child(test_components_carried);
     in_fresh_child(test_ke_t_by_name);
     in_fresh_child(test_g__t_key_stops_off_row);
-    in_fresh_child(test_accessors_agree_with_readers);
 
     printf("test_pico8_ui: all tests passed\n");
     return 0;

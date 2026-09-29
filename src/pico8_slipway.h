@@ -52,7 +52,7 @@ typedef struct {
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_probe_t *probe;
-    pico8_probe_t probe_own; /* never a field by name */
+    pico8_probe_t probe_own;
 } pico8_jc_t;
 
 /* The one static `{qs="-too far-"}` struct `jc:ce` returns: `fo` is the last
@@ -62,6 +62,14 @@ typedef struct {
     const char *qs;
     pico8_jc_t *fo;
 } pico8_jc_too_far_t;
+
+/* The `{ra,p}` `jc:hq` hangs on `re` over nothing: a fresh one per call,
+ * never freed, nor its `p`; `ra` is the caller's `mp` itself, not a copy. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_vec_t *ra;
+    pico8_vec_t *p;
+} pico8_jc_mouse_point_t;
 
 void pico8_jc_init(void);
 

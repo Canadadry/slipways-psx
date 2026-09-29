@@ -99,89 +99,6 @@ void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_fv_t *)self, p);
 }
 
-static int pico8_fv_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_fv_t *fv = self;
-
-    if (strcmp(name, "hi") == 0) {
-        if (fv->hi == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)fv->hi);
-        return 1;
-    }
-    if (strcmp(name, "ca") == 0) {
-        *out_value = pico8_value_fixed(fv->ca);
-        return 1;
-    }
-    if (strcmp(name, "gq") == 0) {
-        if (fv->gq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)fv->gq);
-        return 1;
-    }
-    if (strcmp(name, "eo") == 0) {
-        *out_value = pico8_value_fixed(fv->eo);
-        return 1;
-    }
-    if (strcmp(name, "ff") == 0) {
-        *out_value = pico8_value_fixed(fv->ff);
-        return 1;
-    }
-    if (strcmp(name, "kq") == 0) {
-        if (fv->kq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)fv->kq);
-        return 1;
-    }
-    if (strcmp(name, "ql") == 0) {
-        *out_value = pico8_value_fixed(fv->ql);
-        return 1;
-    }
-    if (strcmp(name, "fg") == 0) {
-        *out_value = pico8_value_fixed(fv->fg);
-        return 1;
-    }
-    if (strcmp(name, "rb") == 0) {
-        if (fv->rb == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)fv->rb);
-        return 1;
-    }
-    if (strcmp(name, "m_") == 0) {
-        if (!fv->has_m_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(fv->m_);
-        return 1;
-    }
-    return pico8_g__struct_class()->field(self, name, out_value);
-}
-
-static void help_take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "fv.m_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.boolean;
-    *has = 1;
-}
-
-/* `m_` (`gw`, hovering the help), then g_'s 5; 0 for any other. */
-static int pico8_fv_set_field(void *self, const char *name, pico8_value_t value) {
-    if (strcmp(name, "m_") == 0) {
-        pico8_fv_t *fv = self;
-        help_take_bool(value, &fv->m_, &fv->has_m_);
-        return 1;
-    }
-    return pico8_g__struct_class()->set_field(self, name, value);
-}
-
 static const pico8_qz_box_t *fv_get_kq(const void *self) {
     return ((const pico8_fv_t *)self)->kq;
 }
@@ -210,8 +127,6 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
-    .field = pico8_fv_field,
-    .set_field = pico8_fv_set_field,
     .parent = pico8_g__struct_class,
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,

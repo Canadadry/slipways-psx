@@ -112,14 +112,10 @@ static int is_bv_target(const void *e) {
            ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
 }
 
-/* The throwaway target's `fo`. Its struct is private to pico8_probe.c: no
- * typed read exists yet, so this one stays by name until the reader goes. */
+/* The throwaway target's `fo`, NULL when absent. */
 static const void *bv_et_fo(const void *t) {
-    pico8_value_t fo = pico8_value_ref(NULL);
     assert(is_bv_target(t));
-    (void)pico8_entity_get_field(t, "fo", &fo);
-    assert(fo.kind == PICO8_VALUE_REF);
-    return fo.as.ref;
+    return ((const pico8_bv_et_t *)t)->fo;
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -342,6 +338,7 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     size_t i;
 
     assert(is_probe(&e->ke.header));
+    assert(e->ke.header.cls->get_p(e) == e->p);
     h = fold_fixed_member(h, e->fx);
     h = fold_string_member(h, pr->dq);
     h = fold_fixed_member(h, pr->od);

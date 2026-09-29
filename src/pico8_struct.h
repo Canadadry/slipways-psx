@@ -136,13 +136,10 @@ typedef struct {
 /* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one
  * `static const` per kind, never freed, whose first member is no tag, so
  * pico8_type_tag_of() reads it UNKNOWN. `new_entity` is the kind's
- * pico8_X_new(). `field` reads the kind's defaults; it returns 0, leaving
- * *out_value untouched, when `name` is absent from the whole chain. `rec`,
- * never NULL, holds what `field` answers for `rr`, `s`, `me` and `od` while
- * the kind's modules are up, and still holds it once they are down. */
+ * pico8_X_new(). `rec`, never NULL, holds the kind's `rr`, `s`, `me` and
+ * `od` whether its modules are up or down. */
 typedef struct {
     void *(*new_entity)(const pico8_jo_keys_t *keys);
-    int (*field)(const char *name, pico8_value_t *out_value);
     const pico8_kind_rec_t *rec;
 } pico8_entity_kind_t;
 

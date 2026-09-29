@@ -48,9 +48,7 @@ typedef struct {
 } pico8_mx_t;
 
 /* As in pico8_planet_family.h: `_ready` from
- * `pico8_planet_family_trade_init()` to its shutdown; each `_kind` reader
- * answers `rr`, `s`, `me`, `od` from the generated defaults, then its
- * parent's (nr: qh, fr: nr, mx: hj). */
+ * `pico8_planet_family_trade_init()` to its shutdown. */
 int pico8_nr_ready(void);
 const pico8_entity_kind_t *pico8_nr_kind(void);
 const pico8_struct_class_t *pico8_nr_struct_class(void);
@@ -79,7 +77,7 @@ const pico8_struct_class_t *pico8_mx_struct_class(void);
 pico8_mx_t *pico8_mx_new(const pico8_jo_keys_t *keys);
 
 /* Never stores `s`, which may be NULL: `nr:ldown` passes a static struct
- * with no field. */
+ * with no member but its header. */
 pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s);
 
 /* TROU-6 */

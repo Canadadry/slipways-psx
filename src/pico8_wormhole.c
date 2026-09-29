@@ -18,22 +18,7 @@
 
 static int g_mz_up = 0;
 
-static int pico8_mz_jj_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_mz_jj_t *jj = self;
-
-    if (strcmp(name, "qs") == 0) {
-        if (jj->qs == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(jj->qs);
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_mz_jj_struct_class = {
-    .field = pico8_mz_jj_field,
-};
+static const pico8_struct_class_t g_mz_jj_struct_class = {0};
 
 /* The only one: never allocated, never freed; no writer, so a write
  * reaching it stops the run. */
@@ -244,158 +229,6 @@ pico8_value_t pico8_mz_et(const pico8_mz_t *self) {
     return pico8_value_ref(self->probe->et);
 }
 
-static int mz_ref_field(const void *ref, pico8_value_t *out_value) {
-    if (ref == NULL) {
-        return 0;
-    }
-    *out_value = pico8_value_ref((void *)ref);
-    return 1;
-}
-
-static int mz_fixed_field(pico8_fixed_t x, pico8_value_t *out_value) {
-    *out_value = pico8_value_fixed(x);
-    return 1;
-}
-
-static int pico8_mz_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_mz_t *mz = self;
-
-    if (strcmp(name, "nu") == 0) {
-        return mz_ref_field(mz->nu, out_value);
-    }
-    if (strcmp(name, "dw") == 0) {
-        return mz_fixed_field(mz->probe->dw, out_value);
-    }
-    if (strcmp(name, "dq") == 0) {
-        if (mz->probe->dq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(mz->probe->dq);
-        return 1;
-    }
-    if (strcmp(name, "spawn_snd") == 0) {
-        return mz_fixed_field(mz->spawn_snd, out_value);
-    }
-    if (strcmp(name, "ik") == 0) {
-        return mz_fixed_field(mz->probe->ik, out_value);
-    }
-    if (strcmp(name, "oi") == 0) {
-        return mz_fixed_field(mz->oi, out_value);
-    }
-    if (strcmp(name, "od") == 0) {
-        return mz_fixed_field(mz->probe->od, out_value);
-    }
-    if (strcmp(name, "fp") == 0) {
-        return mz_fixed_field(mz->probe->fp, out_value);
-    }
-    if (strcmp(name, "fa") == 0) {
-        return mz_fixed_field(mz->fa, out_value);
-    }
-    if (strcmp(name, "kk") == 0) {
-        return mz_ref_field(mz->kk, out_value);
-    }
-    if (strcmp(name, "jj") == 0) {
-        return mz_ref_field(mz->jj, out_value);
-    }
-    if (strcmp(name, "ox") == 0) {
-        return mz_ref_field(mz->ox, out_value);
-    }
-    if (strcmp(name, "ra") == 0) {
-        return mz_ref_field(mz->ra, out_value);
-    }
-    if (strcmp(name, "p") == 0) {
-        return mz_ref_field(mz->p, out_value);
-    }
-    if (strcmp(name, "et") == 0) {
-        pico8_value_t et = pico8_mz_et(mz);
-        if (et.kind == PICO8_VALUE_REF && et.as.ref == NULL) {
-            return 0;
-        }
-        *out_value = et;
-        return 1;
-    }
-    if (strcmp(name, "ij") == 0) {
-        return mz_ref_field(mz->ij, out_value);
-    }
-    if (strcmp(name, "p_") == 0) {
-        if (!mz->has_p_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(mz->p_);
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
-static void mz_take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "mz.ra/p: a write neither nil nor a vector ref does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-/* What `bv` aims at from an `mz` (never a planet: `dw` is 0, so `nq<dw`
- * never holds), plus the `jj` wrapper `mz:hq` puts there. */
-static int mz_is_et_class(const pico8_struct_class_t *cls) {
-    return cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class() || cls == pico8_mz_jj_struct_class();
-}
-
-static void mz_take_et(pico8_value_t value, pico8_struct_header_t **out, int *has) {
-    *out = NULL;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(((value.kind == PICO8_VALUE_BOOL && value.as.boolean == 0) ||
-            (value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-             mz_is_et_class(((const pico8_struct_header_t *)value.as.ref)->cls))) &&
-           "mz.et: a write neither nil, false, nor what bv or mz:hq aims at (a jc, bv's throwaway target, the jj "
-           "wrapper) does not fit the member's type -- stop, do not widen the member");
-    *out = value.kind == PICO8_VALUE_REF ? value.as.ref : NULL;
-    *has = 1;
-}
-
-static void mz_take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "mz.p_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.boolean != 0;
-    *has = 1;
-}
-
-/* `ra`, `p`, `et` (bv) and `p_` (d_): the only names a generic writer
- * ever writes on an `mz`. */
-static int pico8_mz_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_mz_t *mz = self;
-
-    if (strcmp(name, "ra") == 0) {
-        mz_take_vec(value, &mz->ra);
-        return 1;
-    }
-    if (strcmp(name, "p") == 0) {
-        mz_take_vec(value, &mz->p);
-        return 1;
-    }
-    if (strcmp(name, "et") == 0) {
-        mz_take_et(value, &mz->probe->et, &mz->probe->has_et);
-        return 1;
-    }
-    if (strcmp(name, "p_") == 0) {
-        mz_take_bool(value, &mz->p_, &mz->has_p_);
-        return 1;
-    }
-    return 0;
-}
-
 /* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
@@ -437,8 +270,6 @@ static const pico8_struct_class_t g_mz_struct_class = {
             [PICO8_STATE_KZ] = pico8_mz_kz_dispatch,
             [PICO8_STATE_PR] = pico8_mz_pr_dispatch,
         },
-    .field = pico8_mz_field,
-    .set_field = pico8_mz_set_field,
     .probe_of = mz_probe_of,
     .get_nu = mz_get_nu,
     .get_fa = mz_get_fa,

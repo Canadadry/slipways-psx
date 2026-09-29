@@ -24,81 +24,16 @@
 static int g_g__up = 0;
 static pico8_struct_header_t *g_fm = NULL;
 
-static int pico8_fm_placeholder_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_fm_placeholder_t *fm = self;
-
-    if (strcmp(name, "jk") == 0) {
-        if (fm->has_jk == 0) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(fm->jk);
-        return 1;
-    }
-    if (strcmp(name, "nz") == 0) {
-        if (fm->has_nz == 0) {
-            return 0;
-        }
-        *out_value = pico8_value_fixed(fm->nz);
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_fm_placeholder_struct_class = {
-    .field = pico8_fm_placeholder_field,
-};
+static const pico8_struct_class_t g_fm_placeholder_struct_class = {0};
 
 static pico8_fm_placeholder_t g_fm_placeholder = {
     {PICO8_TYPE_TAG_STRUCT, &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
-
-typedef struct {
-    pico8_struct_header_t header;
-    pico8_struct_header_t *fo;
-} pico8_bv_et_t;
-
-static int pico8_bv_et_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_bv_et_t *et = self;
-
-    if (strcmp(name, "fo") == 0) {
-        if (et->fo == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref(et->fo);
-        return 1;
-    }
-    return 0;
-}
 
 static int bv_et_is_holder_class(const pico8_struct_class_t *cls) {
     return cls->hq == pico8_bv_dispatch || cls == pico8_mz_struct_class();
 }
 
-static void bv_et_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           bv_et_is_holder_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, mx) "
-           "does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static int pico8_bv_et_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_bv_et_t *et = self;
-
-    if (strcmp(name, "fo") == 0) {
-        bv_et_take_holder(value, &et->fo);
-        return 1;
-    }
-    return 0;
-}
-
-static const pico8_struct_class_t g_bv_et_struct_class = {
-    .field = pico8_bv_et_field,
-    .set_field = pico8_bv_et_set_field,
-};
+static const pico8_struct_class_t g_bv_et_struct_class = {0};
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
@@ -484,198 +419,6 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     return particle;
 }
 
-pico8_value_t pico8_g__et(const pico8_g__t *self) {
-    if (self == NULL || !self->probe->has_et) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->probe->et == NULL) {
-        return pico8_value_bool(0);
-    }
-    return pico8_value_ref(self->probe->et);
-}
-
-static int g__ref_field(const void *ref, pico8_value_t *out_value) {
-    if (ref == NULL) {
-        return 0;
-    }
-    *out_value = pico8_value_ref((void *)ref);
-    return 1;
-}
-
-static int g__fixed_field(pico8_fixed_t x, pico8_value_t *out_value) {
-    *out_value = pico8_value_fixed(x);
-    return 1;
-}
-
-static int pico8_g__field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_g__t *g_ = self;
-
-    if (strcmp(name, "nu") == 0) {
-        return g__ref_field(g_->nu, out_value);
-    }
-    if (strcmp(name, "fx") == 0) {
-        return g__fixed_field(g_->fx, out_value);
-    }
-    if (strcmp(name, "dq") == 0) {
-        if (g_->probe->dq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(g_->probe->dq);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        return g__fixed_field(g_->probe->od, out_value);
-    }
-    if (strcmp(name, "fp") == 0) {
-        *out_value = pico8_value_bool(g_->probe->fp);
-        return 1;
-    }
-    if (strcmp(name, "fa") == 0) {
-        return g__fixed_field(g_->fa, out_value);
-    }
-    if (strcmp(name, "dw") == 0) {
-        return g__fixed_field(g_->probe->dw, out_value);
-    }
-    if (strcmp(name, "py") == 0) {
-        return g__fixed_field(g_->emitter->py, out_value);
-    }
-    if (strcmp(name, "ki") == 0) {
-        return g__fixed_field(g_->emitter->ki, out_value);
-    }
-    if (strcmp(name, "pn") == 0) {
-        return g__fixed_field(g_->emitter->pn, out_value);
-    }
-    if (strcmp(name, "pk") == 0) {
-        return g__fixed_field(g_->emitter->pk, out_value);
-    }
-    if (strcmp(name, "fc") == 0) {
-        return g__fixed_field(g_->emitter->fc, out_value);
-    }
-    if (strcmp(name, "k_") == 0) {
-        return g__ref_field(g_->emitter->k_, out_value);
-    }
-    if (strcmp(name, "qo") == 0) {
-        return g__fixed_field(g_->emitter->qo, out_value);
-    }
-    if (strcmp(name, "ro") == 0) {
-        return g__fixed_field(g_->emitter->ro, out_value);
-    }
-    if (strcmp(name, "qg") == 0) {
-        return g__fixed_field(g_->emitter->qg, out_value);
-    }
-    if (strcmp(name, "q_") == 0) {
-        return g__fixed_field(g_->emitter->q_, out_value);
-    }
-    if (strcmp(name, "du") == 0) {
-        return g__fixed_field(g_->emitter->du, out_value);
-    }
-    if (strcmp(name, "qy") == 0) {
-        return g__ref_field(g_->emitter->qy, out_value);
-    }
-    if (strcmp(name, "ra") == 0) {
-        return g__ref_field(g_->ra, out_value);
-    }
-    if (strcmp(name, "p") == 0) {
-        return g__ref_field(g_->p, out_value);
-    }
-    if (strcmp(name, "et") == 0) {
-        pico8_value_t et = pico8_g__et(g_);
-        if (et.kind == PICO8_VALUE_REF && et.as.ref == NULL) {
-            return 0;
-        }
-        *out_value = et;
-        return 1;
-    }
-    if (strcmp(name, "p_") == 0) {
-        if (!g_->has_p_) {
-            return 0;
-        }
-        *out_value = pico8_value_bool(g_->p_);
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
-}
-
-static void g__take_list(pico8_value_t value, pico8_list_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "g_.qy: a write neither nil nor a list does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void g__take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "g_.ra/p: a write neither nil nor a vector ref does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void g__take_target(pico8_value_t value, pico8_struct_header_t **out, int *has) {
-    *out = NULL;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(((value.kind == PICO8_VALUE_BOOL && value.as.boolean == 0) ||
-            (value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-             g__is_target_class(((const pico8_struct_header_t *)value.as.ref)->cls))) &&
-           "g_.et: a write neither nil, false, nor what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, "
-           "or bv's throwaway target) does not fit the member's type -- stop, do not widen the member");
-    *out = value.kind == PICO8_VALUE_REF ? value.as.ref : NULL;
-    *has = 1;
-}
-
-static void g__take_bool(pico8_value_t value, int *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_BOOL &&
-           "g_.p_: a write neither nil nor a boolean does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.boolean != 0;
-    *has = 1;
-}
-
-/* `qy` (`f_`), `ra`, `p`, `et` (`bv`), `p_` (`d_`); 0 for any other. */
-static int pico8_g__set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_g__t *g_ = self;
-
-    if (strcmp(name, "qy") == 0) {
-        g__take_list(value, &g_->emitter->qy);
-        return 1;
-    }
-    if (strcmp(name, "ra") == 0) {
-        pico8_vec_t *ra;
-
-        g__take_vec(value, &ra);
-        g_->ra = ra;
-        return 1;
-    }
-    if (strcmp(name, "p") == 0) {
-        g__take_vec(value, &g_->p);
-        return 1;
-    }
-    if (strcmp(name, "et") == 0) {
-        g__take_target(value, &g_->probe->et, &g_->probe->has_et);
-        return 1;
-    }
-    if (strcmp(name, "p_") == 0) {
-        g__take_bool(value, &g_->p_, &g_->has_p_);
-        return 1;
-    }
-    return 0;
-}
-
 const pico8_str_seq_t *pico8_g__get_nu(const void *self) {
     return ((const pico8_g__t *)self)->nu;
 }
@@ -711,8 +454,6 @@ static const pico8_struct_class_t g_g__struct_class = {
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
-    .field = pico8_g__field,
-    .set_field = pico8_g__set_field,
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .get_nu = pico8_g__get_nu,

@@ -45,131 +45,8 @@ pico8_value_t pico8_qh_qh(const pico8_qh_t *self) {
     return pico8_value_fixed(self->qh);
 }
 
-pico8_value_t pico8_qh_et(const pico8_qh_t *self) {
-    if (self == NULL || !self->probe->has_et) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->probe->et == NULL) {
-        return pico8_value_bool(0);
-    }
-    return pico8_value_ref(self->probe->et);
-}
-
 pico8_probe_t *pico8_qh_probe_of(void *self) {
     return ((pico8_qh_t *)self)->probe;
-}
-
-static int family_ref_field(const void *ref, pico8_value_t *out_value) {
-    if (ref == NULL) {
-        return 0;
-    }
-    *out_value = pico8_value_ref((void *)ref);
-    return 1;
-}
-
-static int pico8_qh_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_qh_t *qh = self;
-
-    if (strcmp(name, "hp") == 0) {
-        *out_value = pico8_value_fixed(qh->hp);
-        return 1;
-    }
-    if (strcmp(name, "px") == 0) {
-        return family_ref_field(qh->px, out_value);
-    }
-    if (strcmp(name, "dq") == 0) {
-        if (qh->probe->dq == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(qh->probe->dq);
-        return 1;
-    }
-    if (strcmp(name, "qh") == 0) {
-        *out_value = pico8_qh_qh(qh);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        *out_value = pico8_value_fixed(qh->probe->od);
-        return 1;
-    }
-    if (strcmp(name, "fp") == 0) {
-        *out_value = pico8_value_fixed(qh->probe->fp);
-        return 1;
-    }
-    if (strcmp(name, "dw") == 0) {
-        *out_value = pico8_value_fixed(qh->probe->dw);
-        return 1;
-    }
-    if (strcmp(name, "s") == 0) {
-        *out_value = pico8_value_fixed(qh->s);
-        return 1;
-    }
-    if (strcmp(name, "ba") == 0) {
-        return family_ref_field(qh->ba, out_value);
-    }
-    if (strcmp(name, "et") == 0) {
-        pico8_value_t et = pico8_qh_et(qh);
-        if (et.kind == PICO8_VALUE_REF && et.as.ref == NULL) {
-            return 0;
-        }
-        *out_value = et;
-        return 1;
-    }
-    return pico8_jo_struct_class()->field(self, name, out_value);
-}
-
-static void family_take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jo.ra/p: a write neither nil nor a vector ref does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-/* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
- * holding `ly`), a `jc`, or the throwaway target. */
-static int family_is_target_class(const pico8_struct_class_t *cls) {
-    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class() ||
-           cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
-}
-
-static void family_take_target(pico8_value_t value, pico8_struct_header_t **out, int *has) {
-    *out = NULL;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(((value.kind == PICO8_VALUE_BOOL && value.as.boolean == 0) ||
-            (value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-             family_is_target_class(((const pico8_struct_header_t *)value.as.ref)->cls))) &&
-           "qh.et: a write neither nil, false, nor what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, "
-           "or bv's throwaway target) does not fit the member's type -- stop, do not widen the member");
-    *out = value.kind == PICO8_VALUE_REF ? value.as.ref : NULL;
-    *has = 1;
-}
-
-/* `et`, `ra`, `p`, which qh's own `hq` (`bv`) writes, then jo's 17 names;
- * 0 for any other. */
-static int pico8_qh_set_field(void *self, const char *name, pico8_value_t value) {
-    pico8_qh_t *qh = self;
-
-    if (strcmp(name, "et") == 0) {
-        family_take_target(value, &qh->probe->et, &qh->probe->has_et);
-        return 1;
-    }
-    if (strcmp(name, "ra") == 0) {
-        family_take_vec(value, &qh->jo.ra);
-        return 1;
-    }
-    if (strcmp(name, "p") == 0) {
-        family_take_vec(value, &qh->jo.p);
-        return 1;
-    }
-    return pico8_jo_struct_class()->set_field(self, name, value);
 }
 
 static const pico8_struct_class_t g_qh_struct_class = {
@@ -189,8 +66,6 @@ static const pico8_struct_class_t g_qh_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .field = pico8_qh_field,
-    .set_field = pico8_qh_set_field,
     .parent = pico8_jo_struct_class,
     .probe_of = pico8_qh_probe_of,
     .get_nu = pico8_jo_get_nu,
@@ -251,43 +126,6 @@ static void *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
     return self;
 }
 
-static int pico8_nl_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_nl_t *nl = self;
-
-    if (strcmp(name, "rr") == 0) {
-        if (nl->rr == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(nl->rr);
-        return 1;
-    }
-    if (strcmp(name, "nl") == 0) {
-        *out_value = pico8_value_fixed(nl->nl);
-        return 1;
-    }
-    if (strcmp(name, "qw") == 0) {
-        *out_value = pico8_value_fixed(nl->qw);
-        return 1;
-    }
-    return pico8_qh_struct_class()->field(self, name, out_value);
-}
-
-static void family_take_fixed(pico8_value_t value, pico8_fixed_t *out) {
-    assert(value.kind == PICO8_VALUE_FIXED &&
-           "nl.qw: a write that is not a fixed does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.fixed;
-}
-
-/* `qw`, which nl's own `ly` writes, then qh's 20 names; 0 for any other. */
-static int pico8_nl_set_field(void *self, const char *name, pico8_value_t value) {
-    if (strcmp(name, "qw") == 0) {
-        family_take_fixed(value, &((pico8_nl_t *)self)->qw);
-        return 1;
-    }
-    return pico8_qh_struct_class()->set_field(self, name, value);
-}
-
 void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t) {
     if (self == NULL) {
         return;
@@ -322,8 +160,6 @@ static const pico8_struct_class_t g_nl_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_nl_ly_dispatch,
         },
-    .field = pico8_nl_field,
-    .set_field = pico8_nl_set_field,
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .get_nu = pico8_jo_get_nu,
@@ -385,8 +221,6 @@ static const pico8_struct_class_t g_os_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .field = pico8_qh_field,
-    .set_field = pico8_qh_set_field,
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .get_nu = pico8_jo_get_nu,
@@ -443,98 +277,8 @@ void pico8_hj_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_hj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_hj_t *)self, p);
 }
 
-pico8_value_t pico8_hj_pk(const pico8_hj_t *self) {
-    if (self == NULL) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->emitter->pk_is_bool) {
-        return pico8_value_bool(self->emitter->pk != 0);
-    }
-    return pico8_value_fixed(self->emitter->pk);
-}
-
 pico8_emitter_t *pico8_hj_emitter_of(void *self) {
     return ((pico8_hj_t *)self)->emitter;
-}
-
-static int pico8_hj_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_hj_t *hj = self;
-
-    if (strcmp(name, "rr") == 0) {
-        if (hj->rr == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(hj->rr);
-        return 1;
-    }
-    if (strcmp(name, "py") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->py);
-        return 1;
-    }
-    if (strcmp(name, "ki") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->ki);
-        return 1;
-    }
-    if (strcmp(name, "pn") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->pn);
-        return 1;
-    }
-    if (strcmp(name, "pk") == 0) {
-        *out_value = pico8_hj_pk(hj);
-        return 1;
-    }
-    if (strcmp(name, "fc") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->fc);
-        return 1;
-    }
-    if (strcmp(name, "k_") == 0) {
-        return family_ref_field(hj->emitter->k_, out_value);
-    }
-    if (strcmp(name, "du") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->du);
-        return 1;
-    }
-    if (strcmp(name, "qo") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->qo);
-        return 1;
-    }
-    if (strcmp(name, "ro") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->ro);
-        return 1;
-    }
-    if (strcmp(name, "qg") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->qg);
-        return 1;
-    }
-    if (strcmp(name, "q_") == 0) {
-        *out_value = pico8_value_fixed(hj->emitter->q_);
-        return 1;
-    }
-    if (strcmp(name, "qy") == 0) {
-        return family_ref_field(hj->emitter->qy, out_value);
-    }
-    return pico8_qh_struct_class()->field(self, name, out_value);
-}
-
-static void family_take_list(pico8_value_t value, pico8_list_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && value.as.ref != NULL &&
-           pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "hj/ga.qy: a write neither nil nor a list does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-/* `qy`, which hj's own `pq` (`f_`) writes, then qh's 20 names; 0 for any
- * other. */
-static int pico8_hj_set_field(void *self, const char *name, pico8_value_t value) {
-    if (strcmp(name, "qy") == 0) {
-        family_take_list(value, &((pico8_hj_t *)self)->emitter->qy);
-        return 1;
-    }
-    return pico8_qh_struct_class()->set_field(self, name, value);
 }
 
 static const pico8_struct_class_t g_hj_struct_class = {
@@ -555,8 +299,6 @@ static const pico8_struct_class_t g_hj_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .field = pico8_hj_field,
-    .set_field = pico8_hj_set_field,
     .parent = pico8_qh_struct_class,
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
@@ -642,27 +384,6 @@ void pico8_pm_pq(pico8_pm_t *self) {
     (void)spawned;
 }
 
-static int pico8_pm_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_pm_t *pm = self;
-
-    if (strcmp(name, "ng") == 0) {
-        if (pm->ng == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_ref((void *)pm->ng);
-        return 1;
-    }
-    if (strcmp(name, "fz") == 0) {
-        if (pm->fz == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(pm->fz);
-        return 1;
-    }
-    return pico8_hj_field(self, name, out_value);
-}
-
-/* No site writes `ng` or `fz`: the writer is hj's, its 21 names. */
 static const pico8_struct_class_t g_pm_struct_class = {
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -681,8 +402,6 @@ static const pico8_struct_class_t g_pm_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .field = pico8_pm_field,
-    .set_field = pico8_hj_set_field,
     .parent = pico8_hj_struct_class,
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
@@ -739,67 +458,6 @@ static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     pico8_jo_pq((pico8_jo_t *)self);
     pico8_ke_struct_pq(&self->hj.qh.jo.ke);
     return self;
-}
-
-static int pico8_ga_field(const void *self, const char *name, pico8_value_t *out_value) {
-    const pico8_ga_t *ga = self;
-
-    if (strcmp(name, "fz") == 0) {
-        if (ga->fz == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_string(ga->fz);
-        return 1;
-    }
-    if (strcmp(name, "fc") == 0) {
-        *out_value = pico8_value_fixed(ga->emitter->fc);
-        return 1;
-    }
-    if (strcmp(name, "qo") == 0) {
-        *out_value = pico8_value_fixed(ga->emitter->qo);
-        return 1;
-    }
-    if (strcmp(name, "ro") == 0) {
-        *out_value = pico8_value_fixed(ga->emitter->ro);
-        return 1;
-    }
-    if (strcmp(name, "qg") == 0) {
-        *out_value = pico8_value_fixed(ga->emitter->qg);
-        return 1;
-    }
-    if (strcmp(name, "q_") == 0) {
-        *out_value = pico8_value_fixed(ga->emitter->q_);
-        return 1;
-    }
-    if (strcmp(name, "k_") == 0) {
-        return family_ref_field(ga->emitter->k_, out_value);
-    }
-    if (strcmp(name, "iu") == 0) {
-        *out_value = pico8_value_fixed(ga->iu);
-        return 1;
-    }
-    if (strcmp(name, "py") == 0) {
-        *out_value = pico8_value_fixed(ga->emitter->py);
-        return 1;
-    }
-    if (strcmp(name, "ms") == 0) {
-        *out_value = pico8_value_fixed(ga->ms);
-        return 1;
-    }
-    if (strcmp(name, "qy") == 0) {
-        return family_ref_field(ga->emitter->qy, out_value);
-    }
-    return pico8_jo_struct_class()->field(self, name, out_value);
-}
-
-/* `qy`, which ga's own `pq` (`f_`) writes, then jo's 17 names; 0 for any
- * other. */
-static int pico8_ga_set_field(void *self, const char *name, pico8_value_t value) {
-    if (strcmp(name, "qy") == 0) {
-        family_take_list(value, &((pico8_ga_t *)self)->emitter->qy);
-        return 1;
-    }
-    return pico8_jo_struct_class()->set_field(self, name, value);
 }
 
 void pico8_ga_pq(pico8_ga_t *self) {
@@ -923,8 +581,6 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .cn = pico8_jo_cn_dispatch,
     .mm = pico8_ga_mm,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
-    .field = pico8_ga_field,
-    .set_field = pico8_ga_set_field,
     .parent = pico8_jo_struct_class,
     .emitter_of = ga_emitter_of,
     .get_nu = pico8_jo_get_nu,
@@ -1013,26 +669,7 @@ int pico8_qh_ready(void) {
     return g_family_up;
 }
 
-static int pico8_qh_kind_field(const char *name, pico8_value_t *out_value) {
-    if (!g_family_up) {
-        return 0;
-    }
-    if (strcmp(name, "s") == 0) {
-        *out_value = pico8_value_fixed(pico8_qh_start.s);
-        return 1;
-    }
-    if (strcmp(name, "me") == 0) {
-        *out_value = pico8_value_string(pico8_qh_start.me);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        *out_value = pico8_value_fixed(pico8_qh_start.od);
-        return 1;
-    }
-    return pico8_jo_kind_field(name, out_value);
-}
-
-static const pico8_entity_kind_t g_qh_kind = {pico8_qh_struct_new, pico8_qh_kind_field, &pico8_qh_kind_rec};
+static const pico8_entity_kind_t g_qh_kind = {pico8_qh_struct_new, &pico8_qh_kind_rec};
 
 const pico8_entity_kind_t *pico8_qh_kind(void) {
     return &g_qh_kind;
@@ -1050,26 +687,7 @@ int pico8_nl_ready(void) {
     return g_family_up;
 }
 
-static int pico8_nl_kind_field(const char *name, pico8_value_t *out_value) {
-    if (!g_family_up) {
-        return 0;
-    }
-    if (strcmp(name, "rr") == 0) {
-        *out_value = pico8_value_string(pico8_nl_start.rr);
-        return 1;
-    }
-    if (strcmp(name, "s") == 0) {
-        *out_value = pico8_value_fixed(pico8_nl_start.s);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        *out_value = pico8_value_fixed(pico8_nl_start.od);
-        return 1;
-    }
-    return pico8_qh_kind_field(name, out_value);
-}
-
-static const pico8_entity_kind_t g_nl_kind = {pico8_nl_struct_new, pico8_nl_kind_field, &pico8_nl_kind_rec};
+static const pico8_entity_kind_t g_nl_kind = {pico8_nl_struct_new, &pico8_nl_kind_rec};
 
 const pico8_entity_kind_t *pico8_nl_kind(void) {
     return &g_nl_kind;
@@ -1105,22 +723,7 @@ int pico8_os_ready(void) {
     return g_family_up;
 }
 
-static int pico8_os_kind_field(const char *name, pico8_value_t *out_value) {
-    if (!g_family_up) {
-        return 0;
-    }
-    if (strcmp(name, "s") == 0) {
-        *out_value = pico8_value_fixed(pico8_os_start.s);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        *out_value = pico8_value_fixed(pico8_os_start.od);
-        return 1;
-    }
-    return pico8_qh_kind_field(name, out_value);
-}
-
-static const pico8_entity_kind_t g_os_kind = {pico8_os_struct_new, pico8_os_kind_field, &pico8_os_kind_rec};
+static const pico8_entity_kind_t g_os_kind = {pico8_os_struct_new, &pico8_os_kind_rec};
 
 const pico8_entity_kind_t *pico8_os_kind(void) {
     return &g_os_kind;
@@ -1138,26 +741,7 @@ int pico8_hj_ready(void) {
     return g_family_up;
 }
 
-static int pico8_hj_kind_field(const char *name, pico8_value_t *out_value) {
-    if (!g_family_up) {
-        return 0;
-    }
-    if (strcmp(name, "rr") == 0) {
-        *out_value = pico8_value_string(pico8_hj_start.rr);
-        return 1;
-    }
-    if (strcmp(name, "s") == 0) {
-        *out_value = pico8_value_fixed(pico8_hj_start.s);
-        return 1;
-    }
-    if (strcmp(name, "od") == 0) {
-        *out_value = pico8_value_fixed(pico8_hj_start.od);
-        return 1;
-    }
-    return pico8_qh_kind_field(name, out_value);
-}
-
-static const pico8_entity_kind_t g_hj_kind = {pico8_hj_struct_new, pico8_hj_kind_field, &pico8_hj_kind_rec};
+static const pico8_entity_kind_t g_hj_kind = {pico8_hj_struct_new, &pico8_hj_kind_rec};
 
 const pico8_entity_kind_t *pico8_hj_kind(void) {
     return &g_hj_kind;
@@ -1175,22 +759,7 @@ int pico8_pm_ready(void) {
     return g_family_up;
 }
 
-static int pico8_pm_kind_field(const char *name, pico8_value_t *out_value) {
-    if (!g_family_up) {
-        return 0;
-    }
-    if (strcmp(name, "s") == 0) {
-        *out_value = pico8_value_fixed(pico8_pm_start.s);
-        return 1;
-    }
-    if (strcmp(name, "me") == 0) {
-        *out_value = pico8_value_string(pico8_pm_start.me);
-        return 1;
-    }
-    return pico8_hj_kind_field(name, out_value);
-}
-
-static const pico8_entity_kind_t g_pm_kind = {pico8_pm_struct_new, pico8_pm_kind_field, &pico8_pm_kind_rec};
+static const pico8_entity_kind_t g_pm_kind = {pico8_pm_struct_new, &pico8_pm_kind_rec};
 
 const pico8_entity_kind_t *pico8_pm_kind(void) {
     return &g_pm_kind;
@@ -1208,13 +777,6 @@ int pico8_ga_ready(void) {
     return g_family_up;
 }
 
-static int pico8_ga_kind_field(const char *name, pico8_value_t *out_value) {
-    if (!g_family_up) {
-        return 0;
-    }
-    return pico8_jo_kind_field(name, out_value);
-}
-
 /* `kv["ga"]` (jo:hu): jo's keys, no `pq`. */
 static void *pico8_ga_kind_new(const pico8_jo_keys_t *keys) {
     pico8_ga_keys_t ga_keys;
@@ -1227,7 +789,7 @@ static void *pico8_ga_kind_new(const pico8_jo_keys_t *keys) {
     return pico8_ga_struct_new(&ga_keys);
 }
 
-static const pico8_entity_kind_t g_ga_kind = {pico8_ga_kind_new, pico8_ga_kind_field, &pico8_ga_kind_rec};
+static const pico8_entity_kind_t g_ga_kind = {pico8_ga_kind_new, &pico8_ga_kind_rec};
 
 const pico8_entity_kind_t *pico8_ga_kind(void) {
     return &g_ga_kind;

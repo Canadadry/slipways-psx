@@ -140,14 +140,10 @@ static int is_bv_target(const void *e) {
            ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
 }
 
-/* The throwaway target's `fo`. Its struct is private to pico8_probe.c: no
- * typed read exists yet, so this one stays by name until the reader goes. */
+/* The throwaway target's `fo`, NULL when absent. */
 static const void *bv_et_fo(const void *t) {
-    pico8_value_t fo = pico8_value_ref(NULL);
     assert(is_bv_target(t));
-    (void)pico8_entity_get_field(t, "fo", &fo);
-    assert(fo.kind == PICO8_VALUE_REF);
-    return fo.as.ref;
+    return ((const pico8_bv_et_t *)t)->fo;
 }
 
 static int et_kind(const pico8_mz_t *mz) {
@@ -311,6 +307,7 @@ static void check_fresh_mz(void *e) {
     const pico8_int_seq_t *kk;
     const pico8_str_seq_t *nu;
     const pico8_mz_jj_t *jj;
+    pico8_fixed_t fa;
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
@@ -324,6 +321,7 @@ static void check_fresh_mz(void *e) {
     assert(mz->probe->od == pico8_fixed_from_int(3));
     assert(mz->probe->fp == pico8_fixed_from_int(1));
     assert(mz->fa == pico8_fixed_from_int(5));
+    assert(mz->ke.header.cls->get_fa(mz, &fa) && fa == mz->fa);
 
     kk = mz->kk;
     assert(kk == &pico8_mz_kk_seq && kk->count == 9);
@@ -387,6 +385,7 @@ static void test_ox(void) {
     pico8_mz_t *second;
     pico8_jo_t *unlit = NULL;
     pico8_g__t *probe;
+    pico8_qh_t *lit;
     const pico8_list_t *jos;
     int i;
 
@@ -414,6 +413,11 @@ static void test_ox(void) {
     /* A probe's `fx` is a fixed, true in Lua even at 0: it joins `ox`. */
     probe = pico8_g__new(NULL);
     assert(listed(build_mz()->ox, probe));
+
+    lit = pico8_qh_new(NULL);
+    lit->jo.fx = 1;
+    lit->jo.has_fx = 1;
+    assert(listed(build_mz()->ox, lit));
 }
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */
@@ -434,6 +438,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
     printf("[hq] et kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
+    assert(mz->ke.header.cls->get_ra(mz) == mz->ra && mz->ke.header.cls->get_p(mz) == mz->p);
     h = fold_vec(h, mz->ra);
     h = fold_vec(h, mz->p);
     h = fnv(h, (uint32_t)kind);

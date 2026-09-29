@@ -52,8 +52,8 @@ typedef struct {
     pico8_vec_t *p;
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
-    pico8_emitter_t emitter_own; /* never a field by name */
-    pico8_probe_t probe_own;     /* never a field by name */
+    pico8_emitter_t emitter_own;
+    pico8_probe_t probe_own;
 } pico8_g__t;
 
 /* `e` itself when its class is g_'s or has g_'s up its `parent` chain; NULL
@@ -70,10 +70,6 @@ const pico8_vec_t *pico8_g__get_ra(const void *self);
 const pico8_vec_t *pico8_g__get_p(const void *self);
 int pico8_g__get_fx(const void *self);
 int pico8_g__get_p_(const void *self);
-
-/* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
- * absent, `false` when present and NULL, a REF to the target otherwise. */
-pico8_value_t pico8_g__et(const pico8_g__t *self);
 
 /* TROU-8 */
 /* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
@@ -154,6 +150,14 @@ void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
  * of jo's family, a `jc`, the `jc_too_far` struct or `bv`'s throwaway target
  * (asserted, as is the class of `self` each accepts). */
 void pico8_probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self);
+
+/* The `{}` `bv` puts in `et` over the void: one static struct, never
+ * allocated nor freed; only `fo` is written, by pico8_probe_et_hang_fo(),
+ * and the next `bv` overwrites it. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_struct_header_t *fo;
+} pico8_bv_et_t;
 
 const pico8_struct_class_t *pico8_bv_et_struct_class(void);
 

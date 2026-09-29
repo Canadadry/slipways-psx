@@ -41,7 +41,7 @@ typedef struct {
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_probe_t *probe;
-    pico8_probe_t probe_own; /* never a field by name */
+    pico8_probe_t probe_own;
 } pico8_mz_t;
 
 /* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
