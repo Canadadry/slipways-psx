@@ -42,7 +42,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -201,23 +200,6 @@ static pico8_lq_cell_t row_item(const void *lq, int i) {
     return ((const pico8_lq_t *)lq)->items[i];
 }
 
-static uint32_t fold_ref(uint32_t h, const void *ref);
-
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
-}
-
 static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
@@ -231,7 +213,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-/* fold_value's words for a fixed, a boolean and a string: the 0xF1, 0xB0
+/* The words the frozen hashes fold before a fixed, a boolean and a string: the 0xF1, 0xB0
  * and 0x57 of a member of one kind are constant by the struct's shape,
  * kept so that the hashes still prove the typed reads. */
 static uint32_t fold_fixed(uint32_t h, pico8_fixed_t f) {
@@ -1079,9 +1061,10 @@ static void test_js_is_a_struct(void) {
     }
 }
 
-/* The kind the name reader gave a callback, frozen in the constants that
- * fold `my` and `hb`; the enum entry is gone. Changing it reddens them. */
-enum { FUNCTION_KIND = 4 };
+/* The kind words the frozen hashes fold before a value, FUNCTION_KIND the one
+ * the name reader gave a callback (the constants that fold `my` and `hb`); the
+ * enum entries are gone. Any other value moves them. */
+enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
 static int is_of_class(const void *ref, const pico8_struct_class_t *cls) {
     return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)ref)->cls == cls;
@@ -1094,7 +1077,7 @@ static uint32_t fold_js_fn(uint32_t h, int present, pico8_js_fn fn) {
         return fnv(h, 0u);
     }
     if (fn == NULL) {
-        return fold_value(fnv(fnv(h, 1u), (uint32_t)PICO8_VALUE_BOOL), pico8_value_bool(0));
+        return fold_bool(fnv(fnv(h, 1u), (uint32_t)BOOL_KIND), 0);
     }
     return fnv(fnv(fnv(fnv(h, 1u), (uint32_t)FUNCTION_KIND), 0xFCu), fn_index(fn));
 }
@@ -1102,14 +1085,14 @@ static uint32_t fold_js_fn(uint32_t h, int present, pico8_js_fn fn) {
 /* A present member: bit 1, then the word of the kind the name reader gave
  * it. Both are constant by the struct's shape for a member of one kind,
  * kept so that JS_MEMBERS_HASH still proves the typed reads. */
-static uint32_t fold_kind(uint32_t h, pico8_value_kind_t kind) {
+static uint32_t fold_kind(uint32_t h, uint32_t kind) {
     return fnv(fnv(h, 1u), (uint32_t)kind);
 }
 
 /* A present reference: a row by content, a `jb`/`jo`/`hp` struct by class,
  * anything else by its tag. */
 static uint32_t fold_member_ref(uint32_t h, const void *ref) {
-    h = fold_kind(h, PICO8_VALUE_REF);
+    h = fold_kind(h, REF_KIND);
     if (is_lq(ref)) {
         return fold_lq(fnv(h, 0xA2u), ref);
     }
@@ -1134,11 +1117,11 @@ static uint32_t fold_member_vec(uint32_t h, const pico8_vec_t *v) {
         return fnv(h, 0u);
     }
     assert(pico8_type_tag_of(v) == PICO8_TYPE_TAG_UNKNOWN);
-    return fold_vec(fold_kind(h, PICO8_VALUE_REF), v);
+    return fold_vec(fold_kind(h, REF_KIND), v);
 }
 
 static uint32_t fold_member_fixed(uint32_t h, int has, pico8_fixed_t f) {
-    return has ? fold_fixed(fold_kind(h, PICO8_VALUE_FIXED), f) : fnv(h, 0u);
+    return has ? fold_fixed(fold_kind(h, FIXED_KIND), f) : fnv(h, 0u);
 }
 
 /* The 17 members and the two callbacks, in the order the frozen constants
@@ -1149,9 +1132,9 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
     h = fold_member_fixed(h, 1, b->fa);
     h = fold_member_opt_ref(h, b->lq);
     h = fold_member_fixed(h, 1, b->mb);
-    h = b->kq != NULL ? fold_kq(fold_kind(h, PICO8_VALUE_REF), b) : fnv(h, 0u);
+    h = b->kq != NULL ? fold_kq(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
     if (b->has_h_ && b->h_ == NULL) {
-        h = fold_bool(fold_kind(h, PICO8_VALUE_BOOL), 0);
+        h = fold_bool(fold_kind(h, BOOL_KIND), 0);
     } else {
         h = fold_member_opt_ref(h, b->has_h_ ? b->h_ : NULL);
     }
@@ -1159,16 +1142,16 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
     h = fold_member_vec(h, b->ra);
     h = fold_member_vec(h, b->qf);
     h = fold_js_fn(h, b->has_my, b->my);
-    h = b->has_m_ ? fold_bool(fold_kind(h, PICO8_VALUE_BOOL), b->m_) : fnv(h, 0u);
+    h = b->has_m_ ? fold_bool(fold_kind(h, BOOL_KIND), b->m_) : fnv(h, 0u);
     h = fold_js_fn(h, b->hb != NULL, b->hb);
     h = fold_member_fixed(h, b->has_fg, b->fg);
-    h = b->px != NULL ? fold_string(fold_kind(h, PICO8_VALUE_STRING), b->px) : fnv(h, 0u);
+    h = b->px != NULL ? fold_string(fold_kind(h, STRING_KIND), b->px) : fnv(h, 0u);
     h = fold_member_fixed(h, b->has_trade, b->trade);
     h = fold_member_fixed(h, b->has_en, b->en);
     if (b->_cr_t != NULL) {
         const pico8_nb_entry_t *t = b->_cr_t;
         assert(t == pico8_nb_lookup(t->px));
-        h = fold_fixed(fnv(fold_kind(h, PICO8_VALUE_REF), 0xB4u), pico8_fixed_from_int(t->nk));
+        h = fold_fixed(fnv(fold_kind(h, REF_KIND), 0xB4u), pico8_fixed_from_int(t->nk));
     } else {
         h = fnv(h, 0u);
     }

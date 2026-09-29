@@ -54,7 +54,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -945,6 +944,10 @@ static void test_components_carried(void) {
     assert_own_probe(e[23], pico8_mz_new(), sizeof(pico8_mz_t));
 }
 
+/* The kind words the frozen hashes fold before a value: any other value
+ * moves them. */
+enum { FIXED_KIND = 0, STRING_KIND = 1 };
+
 static void test_ke_me_by_name(void) {
     static const char *const want[24] = {"ph", "ph",      "ph", "ph", "unknown", "kz", "kz", "kz",
                                          "kz", "ly",      "unknown", "kz", "kz", "kz", "ph", "ph",
@@ -966,7 +969,7 @@ static void test_ke_me_by_name(void) {
     for (i = 0; i < (size_t)hv->count; i++) {
         me = ke_of(hv->items[i])->me;
         if (me != NULL) {
-            h = fold_string(fnv(fnv(h, 1u), (uint32_t)PICO8_VALUE_STRING), me);
+            h = fold_string(fnv(fnv(h, 1u), (uint32_t)STRING_KIND), me);
         } else {
             h = fnv(h, 0u);
         }
@@ -1001,7 +1004,7 @@ static void test_ke_me_by_name(void) {
         assert(me != NULL);
         assert(strcmp(me, want[i]) == 0);
         assert(identity_of(me) == identity[i]);
-        h = fold_string(fnv(h, (uint32_t)PICO8_VALUE_STRING), me);
+        h = fold_string(fnv(h, (uint32_t)STRING_KIND), me);
         h = fnv(h, (uint32_t)identity_of(me));
     }
 
@@ -1033,7 +1036,7 @@ static void test_ke_me_by_name(void) {
 /* The kind word is constant by the struct's shape (`t` is always a fixed),
  * kept so that KE_T_HASH still proves the typed reads. */
 static uint32_t fold_t(uint32_t h, void *e) {
-    return fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)ke_of(e)->t);
+    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)ke_of(e)->t);
 }
 
 static uint32_t fold_hv_t(uint32_t h) {

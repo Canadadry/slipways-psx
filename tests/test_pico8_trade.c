@@ -36,7 +36,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 /* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
@@ -83,9 +82,13 @@ static int same_qe(const pico8_trade_t *a, const pico8_trade_t *b) {
     return a->has_qe && b->has_qe && a->qe_is_bool == b->qe_is_bool && a->qe == b->qe;
 }
 
+/* The kind words the frozen hashes fold before a value: any other value
+ * moves them. */
+enum { FIXED_KIND = 0, BOOL_KIND = 2, REF_KIND = 3 };
+
 /* The kind word a REF value folded, then presence and the rank in `hv`. */
 static uint32_t fold_ref(uint32_t h, const void *p) {
-    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)REF_KIND);
     h = fnv(h, (uint32_t)(p != NULL));
     return fnv(h, (uint32_t)rank_in(pico8_hv(), p));
 }
@@ -97,9 +100,9 @@ static uint32_t fold_qe(uint32_t h, const pico8_trade_t *t) {
         return fnv(h, 0xFFFFFFFFu);
     }
     if (t->qe_is_bool) {
-        return fnv(fnv(h, (uint32_t)PICO8_VALUE_BOOL), (uint32_t)(t->qe != 0));
+        return fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)(t->qe != 0));
     }
-    return fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)t->qe);
+    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)t->qe);
 }
 
 static uint32_t fold_ranks(uint32_t h, const pico8_ptrs_t *l) {

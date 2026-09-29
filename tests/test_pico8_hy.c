@@ -38,7 +38,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
@@ -95,29 +94,12 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* Kind, then the string's bytes, the number, the boolean; a REF by its
- * tag. */
-static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
-    h = fnv(h, (uint32_t)v.kind);
-    switch (v.kind) {
-    case PICO8_VALUE_FIXED:
-        return fnv(h, (uint32_t)v.as.fixed);
-    case PICO8_VALUE_BOOL:
-        return fnv(h, (uint32_t)v.as.boolean);
-    case PICO8_VALUE_STRING:
-        return fold_string(h, v.as.string);
-    case PICO8_VALUE_REF:
-        if (v.as.ref == NULL) {
-            return fnv(h, 0xDEADu);
-        }
-        h = fnv(h, (uint32_t)pico8_type_tag_of(v.as.ref));
-        if (depth <= 0) {
-            return h;
-        }
-        return h;
-    default:
-        return h;
-    }
+/* The kind words the frozen hashes fold before a value: any other value
+ * moves them. */
+enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3 };
+
+static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+    return fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)x);
 }
 
 /* The byte an ob table folded before a positional key, frozen in the
@@ -130,12 +112,12 @@ enum { TABLE_INDEX_KEY = 0 };
 static uint32_t fold_qe_map(uint32_t h, const pico8_qe_map_t *map) {
     int i;
 
-    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)REF_KIND);
     h = fnv(h, (uint32_t)map->count);
     for (i = 0; i < map->count; i++) {
         h = fnv(h, (uint32_t)TABLE_INDEX_KEY);
         h = fnv(h, (uint32_t)map->entries[i].qe);
-        h = fold_value(h, pico8_value_fixed(map->entries[i].v), 2);
+        h = fold_fixed(h, map->entries[i].v);
     }
     return h;
 }
@@ -144,12 +126,11 @@ static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0xFFFFFFFFu);
 }
 
-/* fold_value's cases for a member of one kind: the kind word and the list's
- * tag are constant by the struct's shape, kept so that the frozen constants
- * still prove the typed reads. An unset flag or a NULL member folds as
- * absent. */
+/* A member of one kind: the kind word and the list's tag are constant by
+ * the struct's shape, kept so that the frozen constants still prove the typed
+ * reads. An unset flag or a NULL member folds as absent. */
 static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
-    return has ? fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)v) : fold_absent(h);
+    return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : fold_absent(h);
 }
 
 static uint32_t fold_list_member(uint32_t h, const pico8_ptrs_t *l) {
@@ -158,11 +139,11 @@ static uint32_t fold_list_member(uint32_t h, const pico8_ptrs_t *l) {
     if (l == NULL) {
         return fold_absent(h);
     }
-    h = fnv(h, (uint32_t)PICO8_VALUE_REF);
+    h = fnv(h, (uint32_t)REF_KIND);
     h = fnv(h, FROZEN_LIST_TAG);
     h = fnv(h, (uint32_t)l->count);
     for (i = 0; i < l->count; i++) {
-        h = fold_string(fnv(h, (uint32_t)PICO8_VALUE_STRING), l->items[i]);
+        h = fold_string(fnv(h, (uint32_t)STRING_KIND), l->items[i]);
     }
     return h;
 }
@@ -177,9 +158,9 @@ static uint32_t fold_hl(uint32_t h, const pico8_hy_t *hy) {
         return fold_absent(h);
     }
     if (hy->hl == NULL) {
-        return fnv(fnv(h, (uint32_t)PICO8_VALUE_BOOL), 0u);
+        return fnv(fnv(h, (uint32_t)BOOL_KIND), 0u);
     }
-    return fold_string(fnv(h, (uint32_t)PICO8_VALUE_STRING), hy->hl);
+    return fold_string(fnv(h, (uint32_t)STRING_KIND), hy->hl);
 }
 
 /* The 11 members of a `hy`, each with its kind and value. */
@@ -305,8 +286,9 @@ static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class
         h = fnv(h, (uint32_t)pico8_type_tag_of(e));
         if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == iv_cls) {
             const pico8_iv_t *iv = e;
-            h = fold_value(h, iv->at1 != NULL ? pico8_value_string(iv->at1) : pico8_value_ref(NULL), 0);
-            h = fold_value(h, pico8_value_fixed(iv->at2), 0);
+            h = iv->at1 != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->at1)
+                                : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
+            h = fold_fixed(h, iv->at2);
         }
     }
     return h;

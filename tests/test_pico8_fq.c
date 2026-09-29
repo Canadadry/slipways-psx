@@ -24,7 +24,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 
 #define MY_TRUE_TICKS 6
 #define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u
@@ -70,17 +69,21 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+/* The kind words the frozen hashes fold before a value: any other value
+ * moves them. */
+enum { FIXED_KIND = 0, BOOL_KIND = 2 };
+
 static uint32_t fold_bool_member(uint32_t h, int has, int b) {
     if (!has) {
         return fnv(h, 0xDEADu);
     }
-    return fnv(fnv(h, (uint32_t)PICO8_VALUE_BOOL), (uint32_t)b);
+    return fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)b);
 }
 
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
-    h = fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)e->ke.t);
+    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->ke.t);
     h = fold_bool_member(h, e->has_p_, e->p_);
     h = fold_bool_member(h, e->has_m_, e->m_);
     h = fnv(h, (uint32_t)listed(pico8_hv(), e));

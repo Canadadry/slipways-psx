@@ -27,7 +27,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 #define KIND_HASH 0xBCF0E60Bu
@@ -104,6 +103,10 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
+/* The kind words the frozen hashes fold before a value: any other value
+ * moves them. */
+enum { FIXED_KIND = 0, STRING_KIND = 1 };
+
 static uint32_t fold_string(uint32_t h, const char *s) {
     for (; *s != '\0'; s++) {
         h = fnv(h, (uint32_t)(unsigned char)*s);
@@ -115,12 +118,12 @@ static uint32_t fold_string(uint32_t h, const char *s) {
  * `s`/`od` fixed), kept so that KIND_HASH still proves the typed reads. */
 static uint32_t fold_string_member(uint32_t h, const char *s) {
     h = fnv(h, (uint32_t)(s != NULL));
-    return s == NULL ? h : fold_string(fnv(h, (uint32_t)PICO8_VALUE_STRING), s);
+    return s == NULL ? h : fold_string(fnv(h, (uint32_t)STRING_KIND), s);
 }
 
 static uint32_t fold_fixed_member(uint32_t h, int has, pico8_fixed_t v) {
     h = fnv(h, (uint32_t)(has != 0));
-    return has ? fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)v) : h;
+    return has ? fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)v) : h;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {

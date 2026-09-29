@@ -28,7 +28,6 @@
 #include "../src/pico8_score_panel_display.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 
 #define YEAR_MESSAGE_TICKS 192
 #define YEAR_MESSAGE_SEQUENCE_HASH 0xEF726FD2u
@@ -86,12 +85,16 @@ static int count_of(const pico8_ptrs_t *list) {
     return list != NULL ? list->count : 0;
 }
 
+/* The kind words the frozen hashes fold before a value: any other value
+ * moves them. */
+enum { FIXED_KIND = 0, BOOL_KIND = 2 };
+
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
-    h = fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)e->ke.t);
+    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->ke.t);
     if (e->has_p_) {
-        h = fnv(fnv(h, (uint32_t)PICO8_VALUE_BOOL), (uint32_t)e->p_);
+        h = fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)e->p_);
     } else {
         h = fnv(h, 0xDEADu);
     }
