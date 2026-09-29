@@ -30,6 +30,7 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
+#include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
@@ -1161,6 +1162,53 @@ static void test_hp_members_by_name(void) {
             }
         }
         check_count("members by name: _jo_fe_b seen", seen, 1);
+
+        /* A project whose `lq` member is set gives its button that row, not
+         * the `lq` method's list, which ends on `fk`. Each planet's panel
+         * replaces the previous one's buttons. */
+        {
+            const pico8_list_t *jo_list = pico8_cg("jo");
+            int from_row = 0;
+            int j;
+            int p;
+
+            for (j = 1; j <= GB_COUNT; j++) {
+                const pico8_hp_t *b = project(j);
+                if (b->lq != NULL && b->rr != NULL && !pico8_oj(pico8_value_string(b->rr))) {
+                    invent(b->rr);
+                }
+            }
+            for (p = 0; p < jo_list->count; p++) {
+                const pico8_list_t *hv;
+
+                pico8_jo_fe(jo_list->items[p].as.ref);
+                hv = pico8_hv();
+                for (j = 0; j < hv->count; j++) {
+                    const pico8_hp_t *target;
+                    const pico8_lq_t *blq;
+                    int k;
+
+                    if (hv->items[j].kind != PICO8_VALUE_REF || hv->items[j].as.ref == NULL ||
+                        !pico8_entity_get_field(hv->items[j].as.ref, "_jo_fe_b", &v) || v.kind != PICO8_VALUE_REF ||
+                        v.as.ref == NULL) {
+                        continue;
+                    }
+                    target = v.as.ref;
+                    if (target->lq == NULL) {
+                        continue;
+                    }
+                    blq = ((const pico8_js_t *)hv->items[j].as.ref)->lq;
+                    assert(blq != NULL && blq->items.count == target->lq->count);
+                    for (k = 0; k < blq->items.count; k++) {
+                        assert(!(blq->items.items[k].kind == PICO8_VALUE_REF &&
+                                 blq->items.items[k].as.ref == (const void *)pico8_hp_fk()));
+                    }
+                    from_row++;
+                }
+            }
+            printf("[members by name: buttons from a row lq] %d\n", from_row);
+            assert(from_row >= 1);
+        }
     }
 }
 
