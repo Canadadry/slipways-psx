@@ -162,13 +162,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             icon_row = &pico8_jo_dz()[mi - 1];
         }
     }
-    bs[0].lq = pico8_value_ref(NULL);
     if (icon_row != NULL) {
         icon = pico8_lq_keys_of_row(icon_row, icon_items, PICO8_JO_ROW_CAP);
         bs[0].lq_row = &icon;
     }
     bs[0].has_h_ = 1;
-    bs[0].h_ = pico8_value_ref(NULL);
     if (self->has_kr) {
         int discard_color = 0;
 
@@ -279,7 +277,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         assert(row_keys[i].count < row_cap[i] && "jo:gh: every row 2..n keeps its last cell for the gap");
         row_items[i][row_keys[i].count++] = pico8_lq_cell_row(&gap);
         row_keys[i].items = row_items[i];
-        bs[i].lq = pico8_value_ref(NULL);
         bs[i].lq_row = &row_keys[i];
     }
 
@@ -346,13 +343,12 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     if (b->lq != NULL) {
         row->lq = pico8_lq_keys_of_row(b->lq, row->lq_items, PICO8_JO_ROW_CAP);
         keys->lq_row = &row->lq;
-        keys->lq = pico8_value_ref(NULL);
     } else {
-        keys->lq = pico8_value_ref(pico8_hp_lq(b));
+        keys->lq_copy = pico8_hp_lq(b);
     }
 
     keys->has_h_ = 1;
-    keys->h_ = pico8_value_bool(0);
+    keys->h_is_false = od <= pico8_fixed_from_int(0);
     if (od > pico8_fixed_from_int(0)) {
         row->h_item = pico8_lq_cell_string(jo_dollar(pico8_tostr_fixed(od)));
         memset(&row->h, 0, sizeof row->h);
@@ -360,7 +356,6 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
         row->h.count = 1;
         row->h.has_c = 1;
         row->h.c = pico8_fixed_from_int(13);
-        keys->h_ = pico8_value_ref(NULL);
         keys->h_row = &row->h;
     }
 
@@ -371,7 +366,6 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has_my = 1;
     keys->my = pico8_jo_fe_my_dispatch;
     keys->has_jb = 1;
-    keys->jb = pico8_value_ref(NULL);
     keys->jb_row = pico8_hp_jb(b);
 }
 

@@ -259,7 +259,6 @@ void pico8_pj_ph(pico8_pj_t *self) {
         /* TROU-7 */
         spec1.ra = malloc(sizeof *spec1.ra);
         *spec1.ra = pico8_vec_v(pico8_fixed_from_int(51), pico8_fixed_from_int(100));
-        spec1.lq = pico8_value_ref(NULL);
         spec1.lq_row = &lq1;
         spec1.has_my = 1;
         spec1.my = pico8_init_field_value();
@@ -274,7 +273,6 @@ void pico8_pj_ph(pico8_pj_t *self) {
         /* TROU-7 */
         spec2.ra = malloc(sizeof *spec2.ra);
         *spec2.ra = pico8_vec_v(pico8_fixed_from_int(39), pico8_fixed_from_int(100));
-        spec2.lq = pico8_value_ref(NULL);
         spec2.lq_row = &lq2;
         spec2.has_my = 1;
         spec2.my = pico8_pj_de_js_my_dispatch;

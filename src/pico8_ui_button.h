@@ -63,20 +63,18 @@ int pico8_js_ready(void);
 const pico8_struct_class_t *pico8_js_struct_class(void);
 
 /* The cart's keys of a button, each typed as the member it fills (NULL
- * or an unset flag: absent). `lq`, `h_` and `jb` are the sources `js:pq`
- * copies a row or a `jb` from: the row `lq_row`, `h_row`, `jb_row` when set
- * (read during the construction, not kept), else an `lq` row, true, false
- * or nil. */
+ * or an unset flag: absent). The rows `lq_row`, `h_row`, `jb_row` and the
+ * `lq` `lq_copy` are read during the construction, not kept. `js.lq`: the
+ * row `lq_row`, else a copy of `lq_copy`, else an empty row. */
 typedef struct {
     int has_fa; /* 0: `fa` keeps `pico8_js_start.fa` */
     pico8_fixed_t fa;
-    pico8_value_t lq;
+    const pico8_lq_t *lq_copy;
     const pico8_lq_keys_t *lq_row;
-    int has_h_; /* present: a nil `h_` builds an empty row (TROU-23), false none */
-    pico8_value_t h_;
+    int has_h_; /* present without `h_row` nor `h_is_false`: an empty row (TROU-23) */
+    int h_is_false;
     const pico8_lq_keys_t *h_row;
-    int has_jb; /* present: a nil `jb` builds an empty `jb` (TROU-23) */
-    pico8_value_t jb;
+    int has_jb; /* present without `jb_row`: an empty `jb` (TROU-23) */
     const pico8_jb_row_t *jb_row;
     pico8_vec_t *ra;
     pico8_vec_t *qf;
@@ -101,11 +99,8 @@ typedef struct {
  * through `lt`, and nothing frees it. */
 pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys);
 
-/* `lq`, `h_`, `jb` are the row's construction values `js:pq` builds the
- * members from, TROU-23 already applied; `lq_row`, `h_row`, `jb_row`, when
- * set, the rows it builds them from instead. All borrowed, never kept. */
-void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, const pico8_lq_keys_t *lq_row, pico8_value_t h_,
-                 const pico8_lq_keys_t *h_row, pico8_value_t jb, const pico8_jb_row_t *jb_row);
+/* `keys` is read, not kept (NULL: none). */
+void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys);
 
 void pico8_js_ph(pico8_js_t *self);
 

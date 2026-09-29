@@ -21,7 +21,6 @@
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui_button.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 #include "pico8_str.h"
 
@@ -103,7 +102,6 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->lq.count = 2;
     b->lq.has_c = 1;
     b->lq.c = pico8_fixed_from_int(6);
-    b->row.lq = pico8_value_ref(NULL);
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
@@ -114,11 +112,9 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->h.items = b->h_items;
     b->h.count = 2;
     b->row.has_h_ = 1;
-    b->row.h_ = pico8_value_ref(NULL);
     b->row.h_row = &b->h;
 
     b->row.has_jb = 1;
-    b->row.jb = pico8_value_ref(NULL);
     b->row.jb_row = t->oy;
 
     b->row.has_my = 1;
@@ -193,10 +189,8 @@ void pico8_cr(void) {
         extra->lq.count = 2;
         extra->lq.has_c = 1;
         extra->lq.c = pico8_fixed_from_int(3);
-        extra->row.lq = pico8_value_ref(NULL);
         extra->row.lq_row = &extra->lq;
         extra->row.has_jb = 1;
-        extra->row.jb = pico8_value_ref(NULL);
         extra->row.jb_row = pico8_menu_invented_lines(fm->invented);
     }
     for (i = 0; i < n; i++) {
@@ -361,7 +355,6 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
 
         memset(&bs[i], 0, sizeof bs[i]);
         lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_MENU_ROW_CAP);
-        bs[i].lq = pico8_value_ref(NULL);
         bs[i].lq_row = &lq[i];
         bs[i].has_fg = e->has_fg;
         bs[i].fg = pico8_fixed_from_int(e->fg);
@@ -384,7 +377,6 @@ pico8_js_t *pico8_ix_button(int i) {
     assert(g_menu_up && i >= 1 && i <= PICO8_IX_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
     e = &pico8_ix_table[i - 1];
     lq = pico8_lq_keys_of_row(e->lq, items, PICO8_MENU_ROW_CAP);
-    keys.lq = pico8_value_ref(NULL);
     keys.lq_row = &lq;
     keys.ra = &g_ix_ra[i - 1];
     keys.has_my = 1;

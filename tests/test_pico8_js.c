@@ -5,7 +5,6 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <assert.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -995,7 +994,7 @@ static void test_draw(void) {
     with_my = build(keyed_my(at(10, 20), counting_my), "plain", NULL);
     priced = build(keyed_my(at(10, 20), counting_my), "plain", "12$");
     free_keys.has_h_ = 1;
-    free_keys.h_ = pico8_value_bool(0);
+    free_keys.h_is_false = 1;
     free_ = build(free_keys, "plain", NULL);
     tooltip = build(at(10, 20), "plain", NULL);
     ((pico8_js_t *)tooltip)->jb = pico8_jb_new(&pico8_dr_table[0]);
@@ -1028,9 +1027,6 @@ static void test_nil_keys(void) {
     void *no_keys;
 
     start_game();
-    b.lq = pico8_value_ref(NULL);
-    b.h_ = pico8_value_ref(NULL);
-    b.jb = pico8_value_ref(NULL);
     no_keys = pico8_js_new(&b);
     b.has_h_ = 1;
     b.has_jb = 1;
@@ -1050,22 +1046,6 @@ static int all_buttons_are_structs(void) {
         n += is_js(hv->items[i]);
     }
     return n;
-}
-
-static void must_abort(void (*build)(void)) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        build();
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
 /* Built by any producer, a `js` is a struct with the five methods of its
@@ -1102,21 +1082,6 @@ static void test_js_is_a_struct(void) {
 /* The kind the name reader gave a callback, frozen in the constants that
  * fold `my` and `hb`; the enum entry is gone. Changing it reddens them. */
 enum { FUNCTION_KIND = 4 };
-
-static pico8_value_t zero_union(pico8_value_kind_t kind) {
-    pico8_value_t v;
-
-    memset(&v, 0, sizeof v);
-    v.kind = kind;
-    return v;
-}
-
-static pico8_value_t vec_ref(int x, int y) {
-    pico8_vec_t *p = malloc(sizeof *p);
-
-    *p = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(p);
-}
 
 static int is_of_class(const void *ref, const pico8_struct_class_t *cls) {
     return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)ref)->cls == cls;
@@ -1313,7 +1278,8 @@ static void *built(pico8_js_keys_t keys) {
 }
 
 /* Each optional key unset, the fixed ones and `my` given at zero, `h_`
- * false, TROU-23, an `lq` and a row's keys as `lq(x)`'s argument. */
+ * false, TROU-23, an `h_` copied from an `lq` (written on the member: no
+ * key builds it), a row's keys as `lq(x)`'s argument. */
 static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     const pico8_js_keys_t none = {0};
     pico8_js_keys_t k;
@@ -1356,33 +1322,30 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     }
     k = none;
     k.has_h_ = 1;
-    k.h_ = pico8_value_bool(0);
+    k.h_is_false = 1;
     b = built(k);
     assert(b->has_h_ && b->h_ == NULL);
     h = fold_js_members(h, b);
 
     k = none;
     k.has_h_ = 1;
-    k.h_ = pico8_value_ref(NULL);
     b = built(k);
     assert(b->has_h_ && is_lq(b->h_) && b->h_->w == 0);
     h = fold_js_members(h, b);
     k = none;
     k.has_jb = 1;
-    k.jb = pico8_value_ref(NULL);
     b = built(k);
     assert(b->jb != NULL && is_of_class(b->jb, pico8_jb_struct_class()));
     h = fold_js_members(h, b);
     k = none;
-    k.lq = pico8_value_ref(NULL);
     b = built(k);
     assert(b->lq != NULL && is_lq(b->lq));
     h = fold_js_members(h, b);
 
     k = none;
     k.has_h_ = 1;
-    k.h_ = pico8_value_ref(row);
     b = built(k);
+    b->h_ = pico8_lq_copy(row);
     assert(b->has_h_ && is_lq(b->h_) && b->h_ != row);
     h = fold_js_members(h, b);
 
@@ -1622,62 +1585,35 @@ static void test_js_members_by_name(void) {
     check("js members", h, JS_MEMBERS_HASH);
 }
 
-static pico8_value_t g_off_row;
+/* `h_=od>0 and {…}` of `jo:fe`: a free building's `h_` is false, not the
+ * empty row of a present nil. */
+static void test_fe_free_row(void) {
+    const pico8_ptrs_t *le;
+    pico8_hp_t *b = NULL;
+    pico8_jo_t *pt = NULL;
+    int found = 0;
+    int i;
 
-static void build_lq_off_row(void) {
-    pico8_js_keys_t k = {0};
-
-    k.lq = g_off_row;
-    (void)pico8_js_new(&k);
-}
-
-static void build_h__off_row(void) {
-    pico8_js_keys_t k = {0};
-
-    k.has_h_ = 1;
-    k.h_ = g_off_row;
-    (void)pico8_js_new(&k);
-}
-
-static void build_jb_off_row(void) {
-    pico8_js_keys_t k = {0};
-
-    k.has_jb = 1;
-    k.jb = g_off_row;
-    (void)pico8_js_new(&k);
-}
-
-static void stops_on(void (*build)(void), const pico8_value_t *off, size_t n) {
-    size_t i;
-
-    for (i = 0; i < n; i++) {
-        g_off_row = off[i];
-        must_abort(build);
+    known_panel();
+    le = ok_le();
+    for (i = 0; i < le->count && b == NULL; i++) {
+        b = js_of(le->items[i])->_jo_fe_b;
+        pt = js_of(le->items[i])->_jo_fe_pt;
     }
-}
+    assert(b != NULL && pt != NULL);
+    b->has_fj = 1;
+    b->fj = 0;
+    pico8_jo_fe(pt);
+    le = ok_le();
+    for (i = 0; i < le->count; i++) {
+        const pico8_js_t *row = js_of(le->items[i]);
 
-/* A construction's `lq` or `h_` that is a REF to neither a list nor a row,
- * and `jb` false, stop the run, a zeroed union included. */
-static void test_js_new_stops_off_row(void) {
-    pico8_value_t vec;
-    pico8_value_t js;
-    void *ix[4];
-
-    start_game();
-    assert(ix_buttons(ix) == 4);
-    vec = vec_ref(1, 1);
-    js = pico8_value_ref(ix[1]);
-    {
-        const pico8_value_t off[] = {vec, pico8_value_ref(pico8_jb_new(NULL)), js,
-                                     pico8_value_ref((void *)&pico8_dr_table[0])};
-        stops_on(build_lq_off_row, off, sizeof off / sizeof off[0]);
-        stops_on(build_h__off_row, off, sizeof off / sizeof off[0]);
+        if (row->_jo_fe_b == b) {
+            assert(row->_jo_fe_od == 0 && row->has_h_ && row->h_ == NULL);
+            found = 1;
+        }
     }
-    {
-        const pico8_value_t off[] = {pico8_value_bool(0), zero_union(PICO8_VALUE_BOOL),
-                                     pico8_value_ref((void *)&pico8_dr_table[0])};
-        stops_on(build_jb_off_row, off, sizeof off / sizeof off[0]);
-    }
+    assert(found);
 }
 
 /* What `ix[4].my` hands `pz` as `p`: a struct without method, for as long
@@ -1709,7 +1645,6 @@ static void test_pz_fa_only_from_ca(void) {
     pico8_js_keys_t row = {0};
 
     start_game();
-    row.lq = pico8_value_ref(NULL);
     pico8_pz(&frame, &row, 1);
     assert(ok_le()->count == 1 && js_of(ok_le()->items[0])->fa == pico8_fixed_from_int(11));
     frame.has_ca = 1;
@@ -1815,9 +1750,9 @@ int main(void) {
     in_fresh_child(test_cr_my);
     in_fresh_child(test_draw);
     in_fresh_child(test_nil_keys);
+    in_fresh_child(test_fe_free_row);
     in_fresh_child(test_js_is_a_struct);
     in_fresh_child(test_js_members_by_name);
-    in_fresh_child(test_js_new_stops_off_row);
     in_fresh_child(test_ha_pz_is_a_struct);
     in_fresh_child(test_pz_closed);
     in_fresh_child(test_pz_fa_only_from_ca);

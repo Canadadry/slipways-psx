@@ -385,8 +385,9 @@ survol (`events_recorded_1790198294`, `session_events`). La ligne de
 `jo:gh` sans `kr` recevrait une pastille vide ; aucun rejeu ne l'atteint.
 La struct `js`, où nil vaut absent, garde ce comportement : la présence
 d'une clé `h_` ou `jb` nil est portée par `has_h_`/`has_jb` de
-`pico8_js_keys_t` (posés par `pico8_js_new_table`), et le constructeur de
-`js` remplace alors la valeur nil par `true`.
+`pico8_js_keys_t`, sans `h_row` ni `h_is_false` (sans `jb_row`) ; `js:pq`
+construit alors une rangée ou un `jb` vides. Fixé par `test_nil_keys` de
+`test_pico8_js`.
 
 Fichier : `src/pico8_ui_button.c`.
 

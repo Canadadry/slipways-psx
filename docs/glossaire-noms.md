@@ -441,7 +441,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | — | `pico8_qe_map_t` | une table par ressource (`po`, `fu`) : clés `qe` entières, ordre d'insertion, 16 au plus ; `pico8_qe_map_get`/`_set` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
-| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` : une rangée par ses clés `lq_row`/`h_row` ou sa rangée générée `jb_row`, sinon un `lq` ou nil) |
+| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq` : sa rangée par ses clés `lq_row`, sinon la copie d'un `lq` `lq_copy`, sinon vide ; `h_` : présence `has_h_`, rangée `h_row` ou faux `h_is_false` ; `jb` : présence `has_jb`, rangée générée `jb_row` ; présent sans rangée ni faux : rangée ou `jb` vides, TROU-23) |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton : `pico8_js_fn` sur `js` (rien de rendu), `pico8_fq_my_fn` sur `fq` (vérité rangée dans `p_`) |
 | `bo` | `pico8_bo_table` (typée ; `fv:pq` en construit les clés des boutons) | les options de difficulté de l'écran-titre |

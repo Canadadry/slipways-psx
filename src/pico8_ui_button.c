@@ -1,6 +1,5 @@
 #include "pico8_ui_button.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,17 +14,8 @@
 static int g_js_up = 0;
 static int g_fq_up = 0;
 
-static int pico8_js_is_lq(const void *ref) {
-    return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)ref)->cls == pico8_lq_struct_class();
-}
-
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
-}
-
-static int pico8_js_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_REF && v.as.ref == NULL) && !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
 }
 
 static void pico8_js_ph_dispatch(void *self, pico8_fixed_t t) {
@@ -115,9 +105,6 @@ static const pico8_struct_class_t g_js_struct_class = {
 
 static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_js_t *self = malloc(sizeof *self);
-    pico8_value_t lq_arg = pico8_value_ref(NULL);
-    pico8_value_t h__arg = pico8_value_ref(NULL);
-    pico8_value_t jb_arg = pico8_value_ref(NULL);
 
     pico8_ke_struct_init(&self->ke, &g_js_struct_class);
     self->lq = NULL;
@@ -150,20 +137,6 @@ static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
         if (keys->has_fa) {
             self->fa = keys->fa;
         }
-        lq_arg = keys->lq;
-        if (keys->has_h_) {
-            h__arg = keys->h_;
-        }
-        if (keys->has_jb) {
-            jb_arg = keys->jb;
-        }
-        /* TROU-23 */
-        if (keys->has_h_ && h__arg.kind == PICO8_VALUE_REF && h__arg.as.ref == NULL) {
-            h__arg = pico8_value_bool(1);
-        }
-        if (keys->has_jb && jb_arg.kind == PICO8_VALUE_REF && jb_arg.as.ref == NULL) {
-            jb_arg = pico8_value_bool(1);
-        }
         self->ra = keys->ra;
         self->qf = keys->qf;
         self->my = keys->my;
@@ -185,8 +158,7 @@ static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("js");
 #endif
-    pico8_js_pq(self, lq_arg, keys != NULL ? keys->lq_row : NULL, h__arg, keys != NULL ? keys->h_row : NULL, jb_arg,
-                keys != NULL ? keys->jb_row : NULL);
+    pico8_js_pq(self, keys);
     pico8_ke_struct_pq(&self->ke);
     return self;
 }
@@ -212,44 +184,42 @@ pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
     return pico8_js_struct_new(keys);
 }
 
-/* `lq(x)` of the cart: a row is built from its keys (`row`, when set), an
- * `lq` is copied; anything else not a REF builds an empty row. */
-static pico8_lq_t *pico8_js_lq(pico8_value_t v, const pico8_lq_keys_t *row) {
+/* `lq(x)` of the cart for `js.lq`: built from a row's keys, else a copy of
+ * an `lq`, else an empty row. */
+static pico8_lq_t *pico8_js_lq(const pico8_lq_t *copy, const pico8_lq_keys_t *row) {
     if (row != NULL) {
         return pico8_lq_new(row);
     }
-    if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
+    if (copy == NULL) {
         return pico8_lq_new(NULL);
     }
-    assert(pico8_js_is_lq(v.as.ref) && "js:pq's lq()/h_() argument: a REF is an lq; a row comes as keys");
-    return pico8_lq_copy((const pico8_lq_t *)v.as.ref);
+    return pico8_lq_copy(copy);
 }
 
-void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, const pico8_lq_keys_t *lq_row, pico8_value_t h_,
-                 const pico8_lq_keys_t *h_row, pico8_value_t jb, const pico8_jb_row_t *jb_row) {
+void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
+    static const pico8_js_keys_t none;
+
     if (self == NULL) {
         return;
     }
+    if (keys == NULL) {
+        keys = &none;
+    }
 
-    self->lq = pico8_js_lq(lq, lq_row);
+    self->lq = pico8_js_lq(keys->lq_copy, keys->lq_row);
     self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
     self->kq = pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
 
-    if (h_row != NULL || pico8_js_truthy(h_)) {
-        self->h_ = pico8_js_lq(h_, h_row);
+    /* TROU-23 */
+    if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {
+        self->h_ = pico8_lq_new(keys->h_row);
         self->has_h_ = 1;
-    } else if (h_.kind == PICO8_VALUE_BOOL) {
+    } else if (keys->has_h_) {
         self->h_ = NULL;
         self->has_h_ = 1;
     }
-
-    if (jb_row != NULL) {
-        self->jb = pico8_jb_new(jb_row);
-    } else if (pico8_js_truthy(jb)) {
-        assert(jb.kind != PICO8_VALUE_REF && "js:pq's jb: a row comes as jb_row");
-        self->jb = pico8_jb_new(NULL);
-    } else if (jb.kind == PICO8_VALUE_BOOL) {
-        assert(0 && "js.jb: a key false does not fit the member's type -- stop, do not widen the member");
+    if (keys->jb_row != NULL || keys->has_jb) {
+        self->jb = pico8_jb_new(keys->jb_row);
     }
 }
 

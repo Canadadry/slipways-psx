@@ -55,7 +55,6 @@ void pico8_fv_pq(pico8_fv_t *self) {
 
         memset(&bs[i], 0, sizeof bs[i]);
         lq[i] = pico8_lq_keys_of_row(e->lq, items[i], PICO8_BO_ROW_CAP);
-        bs[i].lq = pico8_value_ref(NULL);
         bs[i].lq_row = &lq[i];
         bs[i].px = e->px;
         bs[i].has_trade = 1;

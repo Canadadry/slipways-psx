@@ -530,7 +530,7 @@ static void test_hp_lq_and_copy(void) {
         assert(fs_count(lq) + 2 == row_count(lq));
         h = fold_row(h, lq);
 
-        spec.lq = pico8_value_ref(lq);
+        spec.lq_copy = lq;
         button = pico8_js_new(&spec);
         copy = button->lq;
         assert(copy != NULL && copy != lq);
@@ -897,16 +897,9 @@ static void ol_on_other(void *e) {
     pico8_lq_ol(&gfx, &mem, e, vec_xy(0, 0), 0);
 }
 
-static void button_on_other(void *e) {
-    pico8_js_keys_t spec = {0};
-    spec.lq = pico8_value_ref(e);
-    (void)pico8_js_new(&spec);
-}
-
 /* A row is a struct whose descriptor has `ol`, no other method; the class
  * keeps no `pq` and no `ol` default. A generated row gives its keys but for `fn`, `qe` or more items than the caller
- * holds, and `ol` refuses anything that is not a row, as `js:pq` refuses
- * another struct. An `hp:lq` row holds the positionals `pq` saw, then the
+ * holds, and `ol` refuses anything that is not a row. An `hp:lq` row holds the positionals `pq` saw, then the
  * two added after. */
 static void test_lq_is_a_struct(void) {
     static const pico8_jb_item_t three[] = {{.s = "a"}, {.is_fixed = 1, .fixed = 0x8000}, {.row = &pico8_dr_table[0]}};
@@ -955,7 +948,6 @@ static void test_lq_is_a_struct(void) {
     must_abort(keys_of_row, (void *)&with_qe);
     must_abort(keys_of_row, (void *)&too_long);
     must_abort(ol_on_other, pico8_ok());
-    must_abort(button_on_other, pico8_ok());
 }
 
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
