@@ -7,7 +7,6 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <assert.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -513,22 +512,6 @@ static void test_eu_retires_the_help(void) {
     assert(!listed(pico8_cg("g_"), fv) && !listed(pico8_cv("kj"), fv) && !listed(pico8_cv("hd"), fv));
 }
 
-static void must_abort(void (*write)(void *), void *e) {
-    pid_t child;
-    int status;
-
-    fflush(stdout);
-    child = fork();
-    assert(child >= 0);
-    if (child == 0) {
-        assert(freopen("/dev/null", "w", stderr) != NULL);
-        write(e);
-        _exit(0);
-    }
-    assert(waitpid(child, &status, 0) == child);
-    assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-}
-
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited
  * entries and holds its own `kj`, `hd`. Ready from its init to its
  * shutdown. */
@@ -595,19 +578,16 @@ static void call_na(void *e) {
     pico8_na(e, pico8_fixed_from_int(1));
 }
 
-/* `g_`'s functions take a struct or NULL as `self`: a list stops each of
- * them. */
+/* `g_`'s functions take a struct or NULL as `self`, and do nothing on
+ * NULL. */
 static void test_g__closed(void) {
     static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
                                           call_dl, call_d_, call_gk, call_na};
-    pico8_ptrs_t list;
     size_t i;
 
-    pico8_ptrs_init(&list);
     start_title();
     assert(pico8_g__ready());
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
-        must_abort(fns[i], &list);
         fns[i](NULL);
     }
 }

@@ -157,8 +157,6 @@ const pico8_ptrs_t *pico8_cv(const char *name) {
 static int pico8_bm_has(const pico8_struct_header_t *e, int i) {
     const pico8_struct_class_t *cls;
 
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
-           "entity: e is an entity struct; a list REF passed as an entity would be read as one");
     cls = e->cls;
 
     switch (i) {
@@ -260,8 +258,6 @@ void pico8_dc(const char *nt) {
             pico8_struct_header_t *qc = bucket_src->items[i];
             pico8_fixed_t fa;
             int layer;
-
-            assert(pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT && "cv holds entities only");
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
              * from every layer, where Lua would error on the nil key. */

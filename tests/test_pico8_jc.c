@@ -1003,7 +1003,7 @@ static void build_off_row(void *e) {
 
 /* A construction's `qu` that is not a planet stops the run. */
 static void test_jc_new_stops_off_qu(void) {
-    void *off[6];
+    void *off[5];
     void *old;
     void *far;
     size_t i;
@@ -1013,12 +1013,11 @@ static void test_jc_new_stops_off_qu(void) {
     far = build_jc(as_jc(old)->qu);
     hq_over(far, NULL, vec_ref(-640, -640));
     assert(is_throwaway(as_jc(far)->re));
-    off[0] = vec_ref(1, 1);
-    off[1] = pico8_ga_new(NULL);
-    off[2] = pico8_g__new(NULL);
-    off[3] = pico8_mz_new();
-    off[4] = far;
-    off[5] = as_jc(far)->re;
+    off[0] = pico8_ga_new(NULL);
+    off[1] = pico8_g__new(NULL);
+    off[2] = pico8_mz_new();
+    off[3] = far;
+    off[4] = as_jc(far)->re;
     for (i = 0; i < sizeof off / sizeof off[0]; i++) {
         g_off_qu = off[i];
         must_abort(build_off_row, NULL);

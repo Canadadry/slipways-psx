@@ -12,7 +12,6 @@
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_vec.h"
-#include "pico8_type_tag.h"
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), which the host of
  * `ei` holds for itself: `g_`'s line, or jo's family (`hj`, `pm`, `mx`, `ga`). */
@@ -43,8 +42,6 @@ void pico8_f_(pico8_struct_header_t *self) {
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "f_: self is a struct; no class instance reaches g_'s functions any more");
     assert(self->cls->emitter_of != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
 
     emitter = self->cls->emitter_of(self);
@@ -60,9 +57,6 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "ez: self is a struct; no class instance reaches g_'s functions any more");
-
     emitter = self->cls->emitter_of != NULL ? self->cls->emitter_of(self) : NULL;
     qy = emitter != NULL ? emitter->qy : NULL;
 
@@ -91,8 +85,6 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "ei: self is a struct; no class instance reaches g_'s functions any more");
     assert(self->cls->emitter_of != NULL && "ei: a class that carries no particle emitter is no receiver -- stop");
 
     emitter = self->cls->emitter_of(self);

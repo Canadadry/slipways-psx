@@ -28,8 +28,6 @@ void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "ke:ks: self is a struct; no class instance descends from ke any more");
     ((pico8_ke_t *)self)->me = me;
     ((pico8_ke_t *)self)->t = pico8_fixed_from_int(0);
 }

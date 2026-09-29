@@ -114,7 +114,6 @@ static int pico8_eg_gg_pred(void *e, void *ctx) {
     if (e == NULL) {
         return 0;
     }
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && "cg(\"jo\") only ever holds entities");
     return pico8_jo_gg(e);
 }
 

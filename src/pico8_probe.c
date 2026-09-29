@@ -151,8 +151,6 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "bv: self is a struct; no class instance reaches g_'s functions any more");
     assert(self->cls->probe_of != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
     probe = self->cls->probe_of(self);
@@ -197,8 +195,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 
     assert((et == NULL ||
-            (pico8_type_tag_of(et) == PICO8_TYPE_TAG_STRUCT &&
-             g__is_target_class(et->cls))) &&
+            g__is_target_class(et->cls)) &&
            "bv: et is false or what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, or the static "
            "throwaway struct), never a bare table");
     probe->et = et;
@@ -228,8 +225,6 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "dl: self is a struct; no class instance reaches g_'s functions any more");
     assert(self->cls->probe_of != NULL && "dl: a class that carries no probe is no receiver -- stop");
 
     pico8_dl_show(gfx, mem, ((const pico8_ke_t *)self)->me, self->cls->probe_of(self));
@@ -323,8 +318,6 @@ int pico8_d_(pico8_struct_header_t *self) {
     if (self == NULL) {
         return 0;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-           "d_: self is a struct; no class instance reaches g_'s functions any more");
     assert(self->cls->probe_of != NULL && "d_: a class that carries no probe is no receiver -- stop");
 
     probe = self->cls->probe_of(self);
@@ -366,9 +359,6 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     pico8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
     pico8_qy_t *particle;
-
-    assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
-           "g_.mm: self is a struct; no class instance reaches g_'s functions any more");
 
     if (self != NULL) {
         assert(self->cls->emitter_of != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");

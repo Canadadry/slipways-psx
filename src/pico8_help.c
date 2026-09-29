@@ -14,7 +14,6 @@
 #include "pico8_pi.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
-#include "pico8_type_tag.h"
 
 static int g_fv_up = 0;
 

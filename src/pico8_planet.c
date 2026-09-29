@@ -22,7 +22,6 @@
 #include "pico8_research.h"
 #include "pico8_slipway.h"
 #include "pico8_tech_gate.h"
-#include "pico8_type_tag.h"
 
 static int g_jo_up = 0;
 

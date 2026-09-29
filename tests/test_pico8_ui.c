@@ -808,23 +808,9 @@ static void test_ui_held_stops_off_row(void) {
     }
 }
 
-static void ks_on_a_table(void *e) {
-    pico8_ke_ks(e, "ph");
-}
-
-static void lt_a_table(void *e) {
-    pico8_lt(e);
-}
-
-/* `ks` takes a struct or NULL, and nothing but a struct enters `hv` for
- * `dg` to walk: a list is refused by `ks` and by `lt`. */
+/* `ks` takes a struct or NULL, and does nothing on NULL. */
 static void test_ke_closed(void) {
-    pico8_ptrs_t list;
-
-    pico8_ptrs_init(&list);
     (void)start_game();
-    must_abort(ks_on_a_table, &list);
-    must_abort(lt_a_table, &list);
     pico8_ke_ks(NULL, "ph");
 }
 

@@ -21,7 +21,6 @@
 #include "pico8_research_display.h"
 #include "pico8_slipway.h"
 #include "pico8_str.h"
-#include "pico8_type_tag.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there). A
  * fresh row, never freed (TROU-7). */

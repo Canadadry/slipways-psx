@@ -60,8 +60,8 @@ static void *pico8_hy_struct_new(void) {
 }
 
 static void assert_hy(const pico8_hy_t *self) {
-    assert((self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-                             self->header.cls == &g_hy_struct_class)) &&
+    assert((self == NULL ||
+            self->header.cls == &g_hy_struct_class) &&
            "hy: every measured call passes the hy of fm; anything else would be read through the wrong layout");
 }
 

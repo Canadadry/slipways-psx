@@ -2,8 +2,6 @@
 
 #include <assert.h>
 
-#include "pico8_type_tag.h"
-
 #include <stddef.h>
 
 #include "pico8_entity.h"
@@ -28,8 +26,6 @@ static pico8_vec_t pico8_entity_geom_p(const pico8_struct_header_t *e) {
 }
 
 int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_vec_t *rp) {
-    assert((e == NULL || pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT) &&
-           "gk: e is a struct; no class instance reaches g_'s functions any more");
     pico8_fixed_t fa = pico8_fixed_from_int(0);
     pico8_vec_t ra = pico8_entity_geom_ra(e);
     const pico8_vec_t *chosen;
@@ -62,8 +58,6 @@ int pico8_gd(const pico8_struct_header_t *e) {
 void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_vec_t *ra_vec;
 
-    assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
-           "na: self is a struct; no class instance reaches g_'s functions any more");
     assert((self == NULL || pico8_jo_is_family(self)) && "na: self is a planet (qh:ly, nl:ly) -- stop");
     ra_vec = self != NULL ? ((pico8_jo_t *)self)->ra : NULL;
     if (ra_vec != NULL) {
@@ -106,8 +100,6 @@ pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_heade
     while (pico8_ptrs_iter_next(&it, &e)) {
         pico8_struct_header_t *o;
 
-        assert((e == NULL || pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT) &&
-               "ij walks a list of entities");
         o = e;
         pico8_vec_t o_p = pico8_entity_geom_p(o);
         pico8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));

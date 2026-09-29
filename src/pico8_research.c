@@ -254,7 +254,7 @@ const char *pico8_hp_il(const pico8_hp_t *self) {
 
 void pico8_hp_assert(const pico8_hp_t *self) {
     assert((self == NULL ||
-            (pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT && self->header.cls == &g_hp_struct_class)) &&
+            self->header.cls == &g_hp_struct_class) &&
            "hp: every gb entry, every planet's hn and every row's project is an hp; anything else would be read "
            "through the wrong layout");
     (void)self;

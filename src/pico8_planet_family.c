@@ -17,7 +17,6 @@
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
-#include "pico8_type_tag.h"
 
 static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */

@@ -53,8 +53,8 @@ static void *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
 }
 
 static void assert_trade(const pico8_trade_t *self) {
-    assert((self == NULL || (pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
-                             self->header.cls == &g_trade_struct_class)) &&
+    assert((self == NULL ||
+            self->header.cls == &g_trade_struct_class) &&
            "trade: every by/cc element and every proposal's t is a route; anything else would be read "
            "through the wrong layout");
 }

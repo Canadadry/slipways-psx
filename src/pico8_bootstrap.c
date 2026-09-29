@@ -7,7 +7,6 @@
 #include "pico8_ke.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_scroll.h"
-#include "pico8_type_tag.h"
 #include "pico8_ui.h"
 
 void pico8_jl(void) {
@@ -57,9 +56,6 @@ void pico8_dg(void) {
     for (i = 0; i < hv->count; i++) {
         pico8_struct_header_t *qc = hv->items[i];
         pico8_ke_t *ke = hv->items[i];
-
-        assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
-               "hv holds structs only; no class instance descends from ke any more");
 
         /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
          * name comes from `me` at run time, so no site ever writes `:ly(`

@@ -4,6 +4,26 @@ description: "Dernière étape de la phase D. Après D.20a, `type-tag` n'a plus 
 status: needs-triage
 ---
 
+## Amendement (arrêt D.20b1)
+
+**Ce qui a bloqué.** Au premier essai de D.20b1 (sur `f554e85`), les 23 lecteurs retirés, `make test` rougit sur trois TU, et eux seuls (26 e2e conformes). Ces TU passent exprès un objet qui **n'est pas une entité** à travers un `void *` et attendent SIGABRT de l'`assert` d'étiquette. Sans l'étiquette, l'appel lit `->cls` dans (ou après) le faux objet et finit en SIGSEGV (adresses `0x80`, `0xa8`) :
+
+- `tests/test_pico8_fv.c`, `test_g__closed` : une `pico8_ptrs_t` passée à `f_`, `ez`, `ei`, `g__mm`, `bv`, `dl`, `d_`, `gk`, `na` (sites R2/R3 de `particle`, `probe`, `entity_geom`) ;
+- `tests/test_pico8_ui.c`, `test_ke_closed` : une `pico8_ptrs_t` passée à `pico8_ke_ks` (R2, `ke.c:31`) et à `pico8_lt` (→ `bm_has`, R2, `entity.c:160`) ;
+- `tests/test_pico8_jc.c`, `test_jc_new_stops_off_qu` : `off[0] = vec_ref(1, 1)` (un `pico8_vec_t` de 8 octets) comme `keys.qu` (R1, `slipway.c:438`).
+
+H-D20a-3 tenait à la lettre (aucun TU ne *lit* le marqueur), mais ces trois TU *dépendaient* de sa lecture dans `src/`. C'est la perte de détection des questions ouvertes 1 et 2, déjà testée.
+
+**Décision** (coordinateur, sur Q13 = A) : voie (a). Ces cas testent la détection d'un non-entité, c'est-à-dire la couche d'étiquette elle-même (§6, même raisonnement que les tests UNKNOWN de D.20a) ; ils partent avec elle. On retire **uniquement** les appels qui passent un non-entité par `void *` en attendant SIGABRT. On garde tout cas qui passe une vraie entité de la mauvaise classe (encore arrêté par un contrôle R1) et tout autre cas du même test ; un test vidé part avec son appel ; les orphelins `-Werror` partent.
+
+**Périmètre ajouté à D.20b1** : `tests/test_pico8_fv.c`, `tests/test_pico8_ui.c`, `tests/test_pico8_jc.c`. Aucun autre TU, aucune constante figée.
+
+**Écart d'inventaire** : `bm_has` (`entity.c:157`) a deux appelants, `pico8_lt` et `pico8_he` (`entity.c:227`), et non le seul `pico8_lt`. `pico8_he` reçoit un élément de `hv` (`bootstrap.c:76`) ou de `ui.c:456` ; R2 tient.
+
+**Recette `gcov`** : `make line-coverage EVENTS="$(ls tests/e2e/*.json)"` échoue (Error 127 : les retours à la ligne cassent la variable). Écrire `make line-coverage EVENTS="$(echo tests/e2e/*.json)"`.
+
+**Ce que l'amendement change plus bas** : Modules et « TU touchés » de D.20b1 (les trois TU) ; grep 3 de D.20b1 (`tests` hors des trois TU) ; greps 4 et 5 sur `src tests` (le seul include retiré de `tests/` est `<signal.h>` de `fv`, orphelin) ; critères d'échec (les trois TU sont permis à D.20b1, un autre TU reste un `FAILED:`) ; `nm -u` : les symboles perdus par ces retraits (`__assert_fail`, `__stack_chk_fail` de `bootstrap.o`/`ke.o`, `freopen`, `stderr`, `pico8_ptrs_init` des TU) sont déclarés, aucun n'est gagné.
+
 ## Problem Statement
 
 **Écrit pendant que D.20a2 est implémentée**, sur l'arbre commis **`ca68736`** (D.20a1 faite). Seuls `grep`, `sed`, `git log/show` ont tourné. **Rien n'a été compilé ni lancé.** Tout ce que ce PRD suppose de l'issue de D.20a est une hypothèse `H-D20a-n` (plus bas), à vérifier sur l'arbre gradué de D.20a2 avant la mise en file.
@@ -165,7 +185,7 @@ Chaque ligne sort de `type-tag`, et aucune n'en gagne. **Δlignes > Δocc.** : a
 
 **Deux commits** `refactor(D.20b1)` puis `refactor(D.20b2)`, chacun vert seul, vérifié et poussé, dans cet ordre. b2 dépend de b1 : un lecteur d'étiquette restant lirait, sans le membre, la moitié basse du pointeur `cls`.
 
-- **D.20b1 — plus aucun lecteur** : les 23 tests deviennent le test de classe qu'ils précédaient (R1) ou partent (R2, R3). Les 7 includes sans autre usage partent. Aucune écriture, aucun membre, aucun TU, aucun `Makefile` ne change. Dès ce commit, `pico8_type_tag_of` n'a plus d'appelant : `nm` le montre absent de tout objet.
+- **D.20b1 — plus aucun lecteur** : les 23 tests deviennent le test de classe qu'ils précédaient (R1) ou partent (R2, R3). Les 7 includes sans autre usage partent. Aucune écriture, aucun membre, aucun `Makefile` ne change ; seuls `fv`, `ui`, `jc` perdent leurs cas « non-entité » (amendement). Dès ce commit, `pico8_type_tag_of` n'a plus d'appelant : `nm` le montre absent de tout objet.
 - **D.20b2 — plus de marqueur** : le membre `tag` et ses 17 écritures, les 8 derniers includes de `src/`, `pico8_type_tag.h`, les 5 lignes de `mo` et `ui`, les commentaires de `pico8_struct.h`. `type-tag` entre dans `DATA_RESIDUE_GUARD`, et `tools/line_coverage_reference.txt` perd ses lignes de `pico8_type_tag.h`. Le glossaire, TROU-6 et le plan sont mis à jour.
 
 Du point de vue du joueur : **rien**. Même image, frame par frame, sur les 26 e2e.
@@ -193,14 +213,15 @@ Du point de vue du joueur : **rien**. Même image, frame par frame, sur les 26 e
   git grep -n 'pico8_type_tag_of' -- src tests | grep -vE '^src/pico8_type_tag\.h:41:|^src/pico8_struct\.h:(43|125):'   # vide
   # 2. restent exactement les écritures, les includes de b2, le membre et l'en-tête
   git grep -nE "$T" -- src | grep -vE '^src/pico8_type_tag\.h:|^src/pico8_struct\.h:(8|43|44|46|125):|header\.tag = PICO8_TYPE_TAG_STRUCT;|\{PICO8_TYPE_TAG_STRUCT, &g_[a-z0-9_]+_struct_class\}|^src/pico8_(economy|ke|planet_family_trade|research|score_panel|trade|ui)\.c:[0-9]+:#include "pico8_type_tag\.h"$'   # vide
-  # 3. périmètre : src/ seulement (et le plan)
-  git diff --stat <parent> -- Makefile tools tests      # vide
-  git diff --name-only <parent> | grep -vE '^src/pico8_(bootstrap|economy|entity|entity_geom|help|ke|layout|particle|planet|planet_display|planet_family|probe|research|score_panel|slipway|trade)\.c$|^docs/plan-3\.md$'   # vide
+  # 3. périmètre : src/, les trois TU de l'amendement, le plan et ce PRD
+  git diff --stat <parent> -- Makefile tools tests/e2e  # vide
+  git diff --name-only <parent> -- tests | grep -vE '^tests/test_pico8_(fv|ui|jc)\.c$'   # vide (amendement)
+  git diff --name-only <parent> | grep -vE '^src/pico8_(bootstrap|economy|entity|entity_geom|help|ke|layout|particle|planet|planet_display|planet_family|probe|research|score_panel|slipway|trade)\.c$|^tests/test_pico8_(fv|ui|jc)\.c$|^docs/plan-3\.md$|^docs/prd/triage/plan3-phaseD-etape20b-src-sans-marqueur-de-type\.md$'   # vide
   # 4. aucune ligne ajoutée ne nomme le module, aucun cast nouveau hors du cast remonté de slipway
-  git diff <parent> -- src | grep -E '^\+[^+]' | grep -E "$T"        # vide
-  git diff <parent> -- src | grep -E '^\+[^+]' | grep -E '\(\s*(const\s+)?[a-z0-9_]+_t\s*\*\s*\)' | grep -vF '((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class()'   # vide
-  # 5. includes : 7 retirés, aucun ajouté
-  git diff <parent> -- src | grep -E '^[-+]#include'   # 7 lignes '-#include "pico8_type_tag.h"', aucune '+'
+  git diff <parent> -- src tests | grep -E '^\+[^+]' | grep -E "$T"        # vide
+  git diff <parent> -- src tests | grep -E '^\+[^+]' | grep -E '\(\s*(const\s+)?[a-z0-9_]+_t\s*\*\s*\)' | grep -vF '((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class()'   # vide
+  # 5. includes : 7 retirés de src/, <signal.h> orphelin retiré de fv (amendement), aucun ajouté
+  git diff <parent> -- src tests | grep -E '^[-+]#include'   # 7 lignes '-#include "pico8_type_tag.h"', '-#include <signal.h>', aucune '+'
   # 6. comptes
   make -s data-residue; sh tools/data_residue.sh --detail src | grep '^type-tag'
   ```
@@ -264,7 +285,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 
 ### Modules
 
-- **D.20b1** : `src/pico8_{bootstrap,economy,entity,entity_geom,help,ke,layout,particle,planet,planet_display,planet_family,probe,research,score_panel,slipway,trade}.c` (16 fichiers) ; `docs/plan-3.md` (note).
+- **D.20b1** : `src/pico8_{bootstrap,economy,entity,entity_geom,help,ke,layout,particle,planet,planet_display,planet_family,probe,research,score_panel,slipway,trade}.c` (16 fichiers) ; `tests/test_pico8_{fv,ui,jc}.c` (amendement : cas « non-entité par `void *` » retirés) ; `docs/plan-3.md` (note) ; ce PRD (amendement).
 - **D.20b2** : `src/pico8_struct.h`, `src/pico8_type_tag.h` (supprimé), `src/pico8_{economy,entity,ke,layout,menu,planet_family_trade,probe,research,research_icon,score_panel,slipway,trade,ui,wormhole}.c` (14) ; `tests/test_pico8_{mo,ui}.c` ; `Makefile` (une ligne) ; `tools/line_coverage_reference.txt` ; `docs/glossaire-noms.md` (entrée « Le tag de type ») ; `docs/trous-de-portage.md` (TROU-6, dernière phrase) ; `docs/plan-3.md` (note, bloc « Reste de D »).
 - **Inchangés** : les 64 autres TU, `tests/e2e/`, tout `*.sha256`, `tools/` hors de la référence de couverture (dont `tools/data_residue.sh`, `tools/class_coverage_net_expected.txt`, `tools/float_guard.txt`), les listes de sources du `Makefile`, `CLAUDE.md`.
 
@@ -308,7 +329,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 
 ### Anti-tassement et message de commit (liant)
 
-- **Interdit** : joindre des lignes (comptées ou non) ; renommer un identifiant vivant pour échapper au motif ; alias (`#define`, constante ou champ qui redonne le marqueur ou le lit sous un autre nom) ; cast nouveau (hors du cast **remonté** de `slipway.c:283` → `:282`) ; lire le premier mot d'une entité par un autre chemin (`memcpy`, `*(const uint32_t *)`) ; accesseur de classe nouveau ; toucher une constante figée de TU, `tests/e2e/`, un `*.sha256`, une liste de sources ; toucher un TU autre que `mo` et `ui` ; toucher `CLAUDE.md`.
+- **Interdit** : joindre des lignes (comptées ou non) ; renommer un identifiant vivant pour échapper au motif ; alias (`#define`, constante ou champ qui redonne le marqueur ou le lit sous un autre nom) ; cast nouveau (hors du cast **remonté** de `slipway.c:283` → `:282`) ; lire le premier mot d'une entité par un autre chemin (`memcpy`, `*(const uint32_t *)`) ; accesseur de classe nouveau ; toucher une constante figée de TU, `tests/e2e/`, un `*.sha256`, une liste de sources ; toucher un TU autre que `mo` et `ui` (D.20b2) ou `fv`, `ui`, `jc` (D.20b1, amendement) ; toucher `CLAUDE.md`.
 - **Classification exigée** (recette : `git diff -U0 <parent> -- <fichier>`, lignes `-` qui portent le motif, en regard des `+`) : D.20b1 **(a1) 7, (a2) 23** ; D.20b2 **(a1) 14, (a2) 20, (d) 12**. Recomptée au parent, ligne à ligne, avec les numéros du parent, et avec la règle (R1/R2/R3) de chaque test.
 - **Mesure exigée**, avant et après, par catégorie (`type-tag`, et les neuf gardées à 0) et par fichier du diff, en lignes (`--detail`) **et** en occurrences.
 - **Lignes qui gagnent une catégorie** : attendu aucune. **Lignes non comptées retirées ou modifiées** : nombre par fichier (b1 : les 14 lignes de message, les lignes vides, les ≈ 4 continuations R1).
@@ -363,7 +384,7 @@ Un bon test juge ce que le code rend ou fait, pas la présence d'une ligne. D.20
 
 ### TU touchés
 
-- D.20b1 : **aucun**. Tous les TU sont reconstruits contre le nouveau `src/`, et tous passent.
+- D.20b1 : `fv`, `ui`, `jc` (amendement) — seuls partent les appels qui passent un non-entité par `void *` en attendant SIGABRT, et leurs orphelins. Chaque cas gardé est prouvé rouge sous mutation. Tous les TU sont reconstruits contre le nouveau `src/`, et tous passent.
 - D.20b2 : `mo`, `ui` (initialiseurs et includes). Leurs assertions et leurs empreintes ne changent pas.
 - Aucun TU n'est ajouté. Une assertion n'est ajoutée que si une mutation exigée ne rougit rien alors qu'elle rougit au parent (chemin perdu).
 - Aucun test du §6 n'est touché (`planet_gh_row_lq`, `ga_export_panel_by`, `layout_nil_item_draws_nothing`). Il n'y a donc pas de preuve rouge à refaire, mais ils doivent passer.
@@ -473,6 +494,7 @@ Pour D.20b2, les lignes 1–3 partent de 46 / 18 / 47 (`src/` 41 / 16 / 42). Le 
 
 **Périmètre et forme**
 
+- `FAILED:` si, à D.20b1, un TU autre que `fv`, `ui`, `jc` change, ou si un de ces trois perd un cas qui passe une vraie entité, ou un cas qui n'attend pas SIGABRT d'un non-entité (amendement) ;
 - `FAILED:` si un fichier hors de « Modules » change ; si une liste de sources du `Makefile` change ; si le `Makefile` change ailleurs que sur `DATA_RESIDUE_GUARD` ; si `CLAUDE.md` change.
 - `FAILED:` si une grep de la Sortie ne rend pas ce qui y est écrit, ou si une exclusion y est ajoutée sans être rapportée.
 - `FAILED:` si un contrôle de classe qui suivait une étiquette est retiré ou affaibli ; si un accesseur de classe, un alias, un champ ou un mot remplace le marqueur ; si le premier mot d'une entité est relu par un autre chemin ; si un cast nouveau est ajouté ; si des lignes sont jointes.

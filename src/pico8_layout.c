@@ -185,7 +185,7 @@ void pico8_lq_ol(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_lq_t *sel
     if (self == NULL) {
         return;
     }
-    assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT && self->header.cls == &g_lq_struct_class &&
+    assert(self->header.cls == &g_lq_struct_class &&
            "lq:ol: every row reaching it (jo.lq, js.lq/h_, jb.ls, pi.ld) is an lq; anything else would be read "
            "through the wrong layout");
     w = self->w;

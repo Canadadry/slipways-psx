@@ -147,8 +147,6 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
 
     self->probe->et = pico8_jc_ce(self);
     if (self->probe->et != NULL) {
-        assert(pico8_type_tag_of(self->probe->et) == PICO8_TYPE_TAG_STRUCT &&
-               "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
         pico8_probe_et_hang_fo(self->probe->et, &self->ke.header);
     }
 
@@ -279,8 +277,7 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
                 if (w_val == NULL) {
                     continue;
                 }
-                assert(pico8_type_tag_of(w_val) == PICO8_TYPE_TAG_STRUCT &&
-                       ((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class() &&
+                assert(((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class() &&
                        "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
                 w = w_val;
                 if (pico8_jc_eb((const pico8_jc_t *)w, qu) == re) {
@@ -435,7 +432,7 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->p_ = 0;
     self->has_p_ = 0;
     if (keys != NULL && keys->qu != NULL) {
-        assert(pico8_type_tag_of(keys->qu) == PICO8_TYPE_TAG_STRUCT && jc_is_endpoint_class(keys->qu->cls) &&
+        assert(jc_is_endpoint_class(keys->qu->cls) &&
                "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "
                "does not fit the member's type -- stop, do not widen the member");
         self->qu = keys->qu;
