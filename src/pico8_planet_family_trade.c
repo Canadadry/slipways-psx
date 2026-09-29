@@ -428,6 +428,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .field = pico8_mx_field,
     .set_field = pico8_mx_set_field,
     .parent = pico8_hj_struct_class,
+    .emitter_of = pico8_hj_emitter_of,
 };
 
 static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
@@ -437,18 +438,18 @@ static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
     pico8_hj_struct_init(&self->hj, &g_mx_struct_class);
     self->ht = pico8_mx_start.ht;
     self->hj.rr = pico8_mx_start.rr;
-    self->hj.py = pico8_mx_start.py;
-    self->hj.ki = pico8_mx_start.ki;
-    self->hj.pn = pico8_mx_start.pn;
-    self->hj.pk = pico8_mx_start.pk;
-    self->hj.pk_is_bool = pico8_mx_start.pk_is_bool;
-    self->hj.fc = pico8_mx_start.fc;
-    self->hj.k_ = pico8_mx_start.k_;
-    self->hj.du = pico8_mx_start.du;
-    self->hj.qo = pico8_mx_start.qo;
-    self->hj.ro = pico8_mx_start.ro;
-    self->hj.qg = pico8_mx_start.qg;
-    self->hj.q_ = pico8_mx_start.q_;
+    self->hj.emitter->py = pico8_mx_start.py;
+    self->hj.emitter->ki = pico8_mx_start.ki;
+    self->hj.emitter->pn = pico8_mx_start.pn;
+    self->hj.emitter->pk = pico8_mx_start.pk;
+    self->hj.emitter->pk_is_bool = pico8_mx_start.pk_is_bool;
+    self->hj.emitter->fc = pico8_mx_start.fc;
+    self->hj.emitter->k_ = pico8_mx_start.k_;
+    self->hj.emitter->du = pico8_mx_start.du;
+    self->hj.emitter->qo = pico8_mx_start.qo;
+    self->hj.emitter->ro = pico8_mx_start.ro;
+    self->hj.emitter->qg = pico8_mx_start.qg;
+    self->hj.emitter->q_ = pico8_mx_start.q_;
     self->hj.qh.hp = pico8_mx_start.hp;
     self->hj.qh.s = pico8_mx_start.s;
     self->hj.qh.px = pico8_mx_start.px;

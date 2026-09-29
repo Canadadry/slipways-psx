@@ -69,6 +69,7 @@ typedef void (*pico8_state_fn)(void *self, pico8_fixed_t t);
 
 struct pico8_qy;
 struct pico8_jo_trade_proposal;
+struct pico8_emitter;
 
 /* One `static const` per converted class. A NULL member: the class has no
  * such method. `kj`, `ev` and `hd` read the vectors they get and never keep
@@ -77,7 +78,10 @@ struct pico8_jo_trade_proposal;
  * instance decides. `mm` returns a fresh particle the caller owns. `field`
  * is NULL only for a class no generic consumer ever reaches, `set_field`
  * for a class no generic writer ever reaches. `parent` returns the class
- * whose struct this one embeds first; the member is NULL for a root. */
+ * whose struct this one embeds first; the member is NULL for a root.
+ * `emitter_of` returns the particle emitter the instance stores in itself;
+ * the member is NULL for a class that carries none. A class that sets it
+ * embeds pico8_ke_t first; it is only ever called as `e->cls->emitter_of(e)`. */
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
@@ -98,6 +102,7 @@ struct pico8_struct_class {
     pico8_struct_field_fn field;
     pico8_struct_set_field_fn set_field;
     const pico8_struct_class_t *(*parent)(void);
+    struct pico8_emitter *(*emitter_of)(void *self);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).

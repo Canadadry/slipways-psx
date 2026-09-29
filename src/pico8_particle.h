@@ -2,6 +2,7 @@
 #define PICO8_PARTICLE_H
 
 #include "pico8_struct.h"
+#include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
@@ -9,8 +10,8 @@
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
- * no-op, a non-NULL `self` must be a struct (asserted), and an absent or
- * wrong-kind field reads as its zero default. */
+ * no-op and a non-NULL `self` must be a struct (asserted). `f_` and `ei`
+ * stop on a class whose `emitter_of` is NULL; `ez` adds nothing there. */
 
 /* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` returns one on
  * the heap, `ei` updates it in place, nothing frees it. `has_a` is 0 for
@@ -22,6 +23,26 @@ typedef struct pico8_qy {
     pico8_vec_t a;
     pico8_fixed_t l;
 } pico8_qy_t;
+
+/* What `ei`, `ez`, `f_` and `g_:mm` read of their host, the particle
+ * emitter's own fields, stored in the host (`emitter_own`) and never copied.
+ * `qy` is NULL until `f_`, then owned by the host and never freed (TROU-7).
+ * `pn`, `du`, `ki`, `pk` are read by `g_:mm` only: a `ga` holds 0 there. */
+typedef struct pico8_emitter {
+    pico8_fixed_t pn;
+    pico8_fixed_t du;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pk;
+    int pk_is_bool; /* 1: `pk` holds a boolean (0/1), 0: a fixed, always truthy */
+    pico8_fixed_t fc;
+    const pico8_int_seq_t *k_; /* NULL: absent, every particle drawn in colour 0 */
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+    pico8_list_t *qy;
+} pico8_emitter_t;
 
 /* TROU-7 */
 /* The fresh `qy` list is heap-allocated and owned by `self`, which never

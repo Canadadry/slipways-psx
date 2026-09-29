@@ -19,8 +19,9 @@
  * the rest of the body still runs. */
 
 /* TROU-7 */
-/* `nu` points at `pico8_g__nu_tags` (for `fv` too), `k_` at `pico8_g__k__seq`
- * (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv` was passed, aliased. */
+/* `nu` points at `pico8_g__nu_tags` (for `fv` too), the emitter's `k_` at
+ * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv`
+ * was passed, aliased. `emitter` points at `emitter_own`: never copy the struct. */
 typedef struct {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
@@ -30,25 +31,22 @@ typedef struct {
     int fp;
     pico8_fixed_t fa;
     pico8_fixed_t dw;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pn;
-    pico8_fixed_t pk;
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    pico8_fixed_t du;
-    pico8_list_t *qy;
+    pico8_emitter_t *emitter;
     const pico8_vec_t *ra;
     pico8_vec_t *p;
     pico8_struct_header_t *et; /* borrowed, never freed */
     int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
+    pico8_emitter_t emitter_own; /* never a field by name */
 } pico8_g__t;
+
+/* `e` itself when its class is g_'s or has g_'s up its `parent` chain; NULL
+ * otherwise, and for a NULL `e`. */
+pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
+
+/* The `emitter_of` of g_'s descriptor, for `fv`'s to name. */
+pico8_emitter_t *pico8_g__emitter_of(void *self);
 
 /* `et` as a value: REF NULL when `self` is NULL or `et` is absent, `false`
  * when present and NULL, a REF to the target otherwise. */
@@ -68,7 +66,8 @@ int pico8_g__ready(void);
 const pico8_struct_class_t *pico8_g__struct_class(void);
 
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 5
- * written members nil, g_'s 18 defaults from `pico8_g__start`. Reads no
+ * written members nil, g_'s 18 defaults from `pico8_g__start`, 12 of them
+ * in the emitter. Reads no
  * key, runs neither `pq` nor `lt`, records no coverage. */
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
 

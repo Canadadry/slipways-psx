@@ -71,33 +71,25 @@ typedef struct {
     pico8_qh_t qh;
 } pico8_os_t;
 
-/* An ascension: a laboratory, then hj's own emitter defaults and `qy`,
- * which its own `pq` (`f_`) writes. A default of hj whose name is a member
- * of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`, `s`) lives in that member.
- * `nu`, `px`, `k_` and `rr` point at hj's generated data, `ba` at qh's;
- * `qy` is the ascension's own, NULL until `f_`, never freed. Nothing frees
- * the struct: TROU-7. */
+/* An ascension: a laboratory, then `rr` and hj's own emitter defaults,
+ * in the emitter with `qy`, which its own `pq` (`f_`) writes. A default of
+ * hj whose name is a member of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`,
+ * `s`) lives in that member. `nu`, `px`, the emitter's `k_` and `rr` point
+ * at hj's generated data, `ba` at qh's. `emitter` points at `emitter_own`:
+ * never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
     const char *rr;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pn;
-    pico8_fixed_t pk;
-    int pk_is_bool; /* 1: `pk` holds a boolean (0/1), 0: a fixed */
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t du;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    pico8_list_t *qy;
+    pico8_emitter_t *emitter;
+    pico8_emitter_t emitter_own; /* never a field by name */
 } pico8_hj_t;
 
-/* `pk` as a value: a boolean when `pk_is_bool`, a fixed otherwise; REF NULL
- * when `self` is NULL. */
+/* The emitter's `pk` as a value: a boolean when `pk_is_bool`, a fixed
+ * otherwise; REF NULL when `self` is NULL. */
 pico8_value_t pico8_hj_pk(const pico8_hj_t *self);
+
+/* The `emitter_of` of hj's descriptor, for `mx`'s to name (`pm`'s too). */
+pico8_emitter_t *pico8_hj_emitter_of(void *self);
 
 /* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
  * ancestor has a member for. A default of pm whose name is a member of
@@ -111,26 +103,21 @@ typedef struct {
     const char *fz;
 } pico8_pm_t;
 
-/* A particle burst: a bare planet, then ga's own defaults and `qy`, which
- * its own `pq` (`f_`) writes. A default of ga whose name is a member of
- * `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in that member. `nu`, `k_`,
- * `kq` and `fz` point at ga's generated data; `by` is the one list every
- * burst shares, which `ib` extends in place and each init empties. A burst
- * spawned by `pm:pq` points `k_` at pico8_pm_ga_k__seq instead. Nothing
- * frees the struct: TROU-7. */
+/* A particle burst: a bare planet, then ga's own defaults, those of the
+ * emitter in it with `qy`, which its own `pq` (`f_`) writes. A default of
+ * ga whose name is a member of `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in
+ * that member. `nu`, the emitter's `k_`, `kq` and `fz` point at ga's
+ * generated data; `by` is the one list every burst shares, which `ib`
+ * extends in place and each init empties. A burst spawned by `pm:pq` points
+ * `k_` at pico8_pm_ga_k__seq instead. `emitter` points at `emitter_own`:
+ * never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
     const char *fz;
-    pico8_fixed_t fc;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    const pico8_int_seq_t *k_;
     pico8_fixed_t iu;
-    pico8_fixed_t py;
     pico8_fixed_t ms;
-    pico8_list_t *qy;
+    pico8_emitter_t *emitter;
+    pico8_emitter_t emitter_own; /* never a field by name */
 } pico8_ga_t;
 
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to

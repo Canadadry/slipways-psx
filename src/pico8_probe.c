@@ -126,14 +126,6 @@ static pico8_fixed_t pico8_probe_field_fixed(const pico8_struct_header_t *inst, 
     return pico8_fixed_from_int(0);
 }
 
-static int pico8_probe_field_truthy(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
-        return 0;
-    }
-    return pico8_probe_truthy(v);
-}
-
 typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
@@ -367,7 +359,9 @@ void pico8_d__dispatch(void *self, pico8_struct_header_t *kv) {
 
 pico8_qy_t *pico8_g__mm(void *self_ptr) {
     pico8_struct_header_t *self = (pico8_struct_header_t *)self_ptr;
-    pico8_fixed_t pn, t, du, py, ki;
+    const pico8_emitter_t *emitter = NULL;
+    pico8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
+    int pk = 0;
     pico8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
     pico8_qy_t *particle;
@@ -375,11 +369,17 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
            "g_.mm: self is a struct; no class instance reaches g_'s functions any more");
 
-    pn = pico8_probe_field_fixed(self, "pn");
-    t = pico8_probe_field_fixed(self, "t");
-    du = pico8_probe_field_fixed(self, "du");
-    py = pico8_probe_field_fixed(self, "py");
-    ki = pico8_probe_field_fixed(self, "ki");
+    if (self != NULL) {
+        assert(self->cls->emitter_of != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
+        emitter = self->cls->emitter_of(self);
+        pn = emitter->pn;
+        t = ((const pico8_ke_t *)self)->t;
+        du = emitter->du;
+        py = emitter->py;
+        ki = emitter->ki;
+        /* A fixed `pk` is truthy in Lua, 0 included. */
+        pk = emitter->pk_is_bool ? emitter->pk != 0 : 1;
+    }
 
     /* Two statements, not two arguments: C leaves argument order unspecified
      * (gcc drew rnd(0.5) first), Lua draws rnd(self.pn) first. */
@@ -392,7 +392,7 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     p = pico8_vec_qm(pico8_fixed_add(du, pico8_fixed_rnd_default()), a);
     v = pico8_vec_mul(p, py);
 
-    if (pico8_probe_field_truthy(self, "pk")) {
+    if (pk) {
         v = pico8_vec_pa(v);
     }
 
@@ -460,40 +460,40 @@ static int pico8_g__field(const void *self, const char *name, pico8_value_t *out
         return g__fixed_field(g_->dw, out_value);
     }
     if (strcmp(name, "py") == 0) {
-        return g__fixed_field(g_->py, out_value);
+        return g__fixed_field(g_->emitter->py, out_value);
     }
     if (strcmp(name, "ki") == 0) {
-        return g__fixed_field(g_->ki, out_value);
+        return g__fixed_field(g_->emitter->ki, out_value);
     }
     if (strcmp(name, "pn") == 0) {
-        return g__fixed_field(g_->pn, out_value);
+        return g__fixed_field(g_->emitter->pn, out_value);
     }
     if (strcmp(name, "pk") == 0) {
-        return g__fixed_field(g_->pk, out_value);
+        return g__fixed_field(g_->emitter->pk, out_value);
     }
     if (strcmp(name, "fc") == 0) {
-        return g__fixed_field(g_->fc, out_value);
+        return g__fixed_field(g_->emitter->fc, out_value);
     }
     if (strcmp(name, "k_") == 0) {
-        return g__ref_field(g_->k_, out_value);
+        return g__ref_field(g_->emitter->k_, out_value);
     }
     if (strcmp(name, "qo") == 0) {
-        return g__fixed_field(g_->qo, out_value);
+        return g__fixed_field(g_->emitter->qo, out_value);
     }
     if (strcmp(name, "ro") == 0) {
-        return g__fixed_field(g_->ro, out_value);
+        return g__fixed_field(g_->emitter->ro, out_value);
     }
     if (strcmp(name, "qg") == 0) {
-        return g__fixed_field(g_->qg, out_value);
+        return g__fixed_field(g_->emitter->qg, out_value);
     }
     if (strcmp(name, "q_") == 0) {
-        return g__fixed_field(g_->q_, out_value);
+        return g__fixed_field(g_->emitter->q_, out_value);
     }
     if (strcmp(name, "du") == 0) {
-        return g__fixed_field(g_->du, out_value);
+        return g__fixed_field(g_->emitter->du, out_value);
     }
     if (strcmp(name, "qy") == 0) {
-        return g__ref_field(g_->qy, out_value);
+        return g__ref_field(g_->emitter->qy, out_value);
     }
     if (strcmp(name, "ra") == 0) {
         return g__ref_field(g_->ra, out_value);
@@ -581,7 +581,7 @@ static int pico8_g__set_field(void *self, const char *name, pico8_value_t value)
     pico8_g__t *g_ = self;
 
     if (strcmp(name, "qy") == 0) {
-        g__take_list(value, &g_->qy);
+        g__take_list(value, &g_->emitter->qy);
         return 1;
     }
     if (strcmp(name, "ra") == 0) {
@@ -614,11 +614,13 @@ static const pico8_struct_class_t g_g__struct_class = {
     .mm = pico8_g__mm,
     .field = pico8_g__field,
     .set_field = pico8_g__set_field,
+    .emitter_of = pico8_g__emitter_of,
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     pico8_ke_struct_init(&self->ke, cls);
-    self->qy = NULL;
+    self->emitter = &self->emitter_own;
+    self->emitter->qy = NULL;
     self->ra = NULL;
     self->p = NULL;
     self->et = NULL;
@@ -632,17 +634,18 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->fp = pico8_g__start.fp;
     self->fa = pico8_g__start.fa;
     self->dw = pico8_g__start.dw;
-    self->py = pico8_g__start.py;
-    self->ki = pico8_g__start.ki;
-    self->pn = pico8_g__start.pn;
-    self->pk = pico8_g__start.pk;
-    self->fc = pico8_g__start.fc;
-    self->k_ = pico8_g__start.k_;
-    self->qo = pico8_g__start.qo;
-    self->ro = pico8_g__start.ro;
-    self->qg = pico8_g__start.qg;
-    self->q_ = pico8_g__start.q_;
-    self->du = pico8_g__start.du;
+    self->emitter->py = pico8_g__start.py;
+    self->emitter->ki = pico8_g__start.ki;
+    self->emitter->pn = pico8_g__start.pn;
+    self->emitter->pk = pico8_g__start.pk;
+    self->emitter->pk_is_bool = 0;
+    self->emitter->fc = pico8_g__start.fc;
+    self->emitter->k_ = pico8_g__start.k_;
+    self->emitter->qo = pico8_g__start.qo;
+    self->emitter->ro = pico8_g__start.ro;
+    self->emitter->qg = pico8_g__start.qg;
+    self->emitter->q_ = pico8_g__start.q_;
+    self->emitter->du = pico8_g__start.du;
 }
 
 static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
@@ -654,13 +657,13 @@ static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     if (keys != NULL) {
         self->ke.t = keys->t;
         if (keys->has_pn) {
-            self->pn = keys->pn;
+            self->emitter->pn = keys->pn;
         }
         if (keys->has_du) {
-            self->du = keys->du;
+            self->emitter->du = keys->du;
         }
         if (keys->has_py) {
-            self->py = keys->py;
+            self->emitter->py = keys->py;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -704,6 +707,19 @@ int pico8_g__ready(void) {
 
 const pico8_struct_class_t *pico8_g__struct_class(void) {
     return &g_g__struct_class;
+}
+
+pico8_g__t *pico8_g__of(pico8_struct_header_t *e) {
+    const pico8_struct_class_t *cls = e != NULL ? e->cls : NULL;
+
+    while (cls != NULL && cls != &g_g__struct_class) {
+        cls = cls->parent != NULL ? cls->parent() : NULL;
+    }
+    return cls != NULL ? (pico8_g__t *)e : NULL;
+}
+
+pico8_emitter_t *pico8_g__emitter_of(void *self) {
+    return ((pico8_g__t *)self)->emitter;
 }
 
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {

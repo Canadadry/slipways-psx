@@ -9,41 +9,26 @@
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
+#include "pico8_planet.h"
+#include "pico8_probe.h"
 #include "pico8_vec.h"
-#include "pico8_ref_audit.h"
 #include "pico8_type_tag.h"
 
-static pico8_fixed_t pico8_particle_field_fixed(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
+/* `fa`, and `ra` into `*ra` (the zero vector when nil), which the host of
+ * `ei` holds for itself: `g_`'s line, or jo's family (`hj`, `pm`, `mx`, `ga`). */
+static pico8_fixed_t emitter_host_fa_ra(pico8_struct_header_t *self, pico8_vec_t *ra) {
+    const pico8_g__t *g_ = pico8_g__of(self);
+    const pico8_jo_t *jo;
 
-static pico8_vec_t pico8_particle_field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
+    if (g_ != NULL) {
+        *ra = g_->ra != NULL ? *g_->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+        return g_->fa;
     }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
-static pico8_list_t *pico8_particle_field_list(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return PICO8_REF_AS_LIST(v.as.ref);
-    }
-    return NULL;
-}
-
-/* NULL when absent. */
-static const pico8_int_seq_t *pico8_particle_field_k_(const pico8_struct_header_t *inst) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, "k_", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_int_seq_t *)v.as.ref;
-    }
-    return NULL;
+    assert(pico8_jo_is_family(self) &&
+           "ei: a host neither of g_'s line nor of jo's family, none of whose kj runs ei -- stop");
+    jo = (const pico8_jo_t *)self;
+    *ra = jo->ra != NULL ? *jo->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return jo->fa;
 }
 
 static int pico8_particle_to_int(pico8_fixed_t x) {
@@ -52,6 +37,7 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
 
 /* TROU-7 */
 void pico8_f_(pico8_struct_header_t *self) {
+    pico8_emitter_t *emitter;
     pico8_list_t *qy;
 
     if (self == NULL) {
@@ -59,13 +45,16 @@ void pico8_f_(pico8_struct_header_t *self) {
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "f_: self is a struct; no class instance reaches g_'s functions any more");
+    assert(self->cls->emitter_of != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
 
+    emitter = self->cls->emitter_of(self);
     qy = malloc(sizeof *qy);
     pico8_list_init(qy);
-    pico8_entity_set_field(self, "qy", pico8_value_ref(qy));
+    emitter->qy = qy;
 }
 
 void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
+    pico8_emitter_t *emitter;
     pico8_list_t *qy;
 
     if (self == NULL) {
@@ -74,7 +63,8 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "ez: self is a struct; no class instance reaches g_'s functions any more");
 
-    qy = pico8_particle_field_list(self, "qy");
+    emitter = self->cls->emitter_of != NULL ? self->cls->emitter_of(self) : NULL;
+    qy = emitter != NULL ? emitter->qy : NULL;
 
     while (pico8_fixed_rnd_default() < n) {
         if (qy != NULL && self->cls->mm != NULL) {
@@ -85,6 +75,7 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
 }
 
 void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
+    const pico8_emitter_t *emitter;
     pico8_fixed_t fa;
     pico8_vec_t ra;
     pico8_fixed_t cx;
@@ -102,22 +93,23 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "ei: self is a struct; no class instance reaches g_'s functions any more");
+    assert(self->cls->emitter_of != NULL && "ei: a class that carries no particle emitter is no receiver -- stop");
 
-    fa = pico8_particle_field_fixed(self, "fa");
+    emitter = self->cls->emitter_of(self);
+    fa = emitter_host_fa_ra(self, &ra);
     if (fa < pico8_fixed_from_int(10) && !pico8_gd(self)) {
         return;
     }
 
-    ra = pico8_particle_field_vec(self, "ra");
     cx = ra.x;
     cy = ra.y;
-    qo = pico8_particle_field_fixed(self, "qo");
-    qg = pico8_particle_field_fixed(self, "qg");
-    ro = pico8_particle_field_fixed(self, "ro");
-    q_ = pico8_particle_field_fixed(self, "q_");
-    cs = pico8_particle_field_k_(self);
+    qo = emitter->qo;
+    qg = emitter->qg;
+    ro = emitter->ro;
+    q_ = emitter->q_;
+    cs = emitter->k_;
 
-    qy = pico8_particle_field_list(self, "qy");
+    qy = emitter->qy;
     if (qy != NULL) {
         for (i = 0; i < qy->count; i++) {
             pico8_value_t p_value = qy->items[i];
@@ -164,7 +156,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
         }
     }
 
-    pico8_ez(self, pico8_particle_field_fixed(self, "fc"));
+    pico8_ez(self, emitter->fc);
 }
 
 void pico8_ei_dispatch(void *self, const pico8_vec_t *ra) {

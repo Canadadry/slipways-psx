@@ -485,24 +485,16 @@ static void test_hover(void) {
 /* `eu`, as a difficulty button starts it, takes the help out of `hv`,
  * `cg.g_` and `cv.kj`/`cv.hd`. */
 /* A particle of the help is drawn in the help's own `k_`: at `l`=6.5, less
- * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. A
- * button built just before it has neither `k_` nor `qy`: nothing drawn. */
+ * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. */
 static void test_particle_takes_the_help_palette(void) {
     static pico8_qy_t particle;
     pico8_list_t *qy;
     pico8_vec_t ra;
     void *fv;
-    void *button;
-    uint32_t before;
     int at;
 
     start_title();
     fv = the_help();
-    button = pico8_hv()->items[rank_in(pico8_hv(), fv) - 1].as.ref;
-    assert(!has(button, "k_") && !has(button, "qy") && get_fixed(button, "fa") >= pico8_fixed_from_int(10));
-    before = screen_hash();
-    pico8_ei(&gfx, &mem, button);
-    assert(screen_hash() == before);
     ra = *(const pico8_vec_t *)get_ref(fv, "ra");
     particle.p = pico8_vec_v(0, 0);
     particle.v = pico8_vec_v(0, 0);

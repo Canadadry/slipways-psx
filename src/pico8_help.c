@@ -192,6 +192,7 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .field = pico8_fv_field,
     .set_field = pico8_fv_set_field,
     .parent = pico8_g__struct_class,
+    .emitter_of = pico8_g__emitter_of,
 };
 
 static void *pico8_fv_struct_new(void) {
@@ -204,17 +205,17 @@ static void *pico8_fv_struct_new(void) {
     self->has_m_ = 0;
     self->g_.fa = pico8_fv_start.fa;
     self->g_.ra = &pico8_fv_start.ra;
-    self->g_.fc = pico8_fv_start.fc;
-    self->g_.k_ = pico8_fv_start.k_;
-    self->g_.qo = pico8_fv_start.qo;
-    self->g_.ro = pico8_fv_start.ro;
-    self->g_.qg = pico8_fv_start.qg;
-    self->g_.q_ = pico8_fv_start.q_;
-    self->g_.pn = pico8_fv_start.pn;
-    self->g_.du = pico8_fv_start.du;
-    self->g_.py = pico8_fv_start.py;
-    self->g_.pk = pico8_fv_start.pk;
-    self->g_.ki = pico8_fv_start.ki;
+    self->g_.emitter->fc = pico8_fv_start.fc;
+    self->g_.emitter->k_ = pico8_fv_start.k_;
+    self->g_.emitter->qo = pico8_fv_start.qo;
+    self->g_.emitter->ro = pico8_fv_start.ro;
+    self->g_.emitter->qg = pico8_fv_start.qg;
+    self->g_.emitter->q_ = pico8_fv_start.q_;
+    self->g_.emitter->pn = pico8_fv_start.pn;
+    self->g_.emitter->du = pico8_fv_start.du;
+    self->g_.emitter->py = pico8_fv_start.py;
+    self->g_.emitter->pk = pico8_fv_start.pk;
+    self->g_.emitter->ki = pico8_fv_start.ki;
     self->hi = &pico8_fv_start.hi;
     self->ca = pico8_fv_start.ca;
     self->gq = &pico8_fv_start.gq;

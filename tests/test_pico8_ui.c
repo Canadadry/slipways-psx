@@ -1088,6 +1088,64 @@ static uint32_t fold_ks_back(uint32_t h, void *e) {
     return fnv(h, (uint32_t)v.as.fixed);
 }
 
+/* The component a host stores in itself: not shared with `other`, of the
+ * same class, and inside the host's own `size` bytes. */
+static void assert_own_emitter(void *self, void *other, size_t size) {
+    pico8_struct_header_t *e = self;
+    pico8_struct_header_t *o = other;
+    const char *at = (const char *)e->cls->emitter_of(e);
+
+    assert(e->cls == o->cls);
+    assert((const void *)at != (const void *)o->cls->emitter_of(o));
+    assert(at >= (const char *)self && at < (const char *)self + size);
+}
+
+/* Which of the 24 classes carry a particle emitter: exactly hj, pm, ga, mx,
+ * g_ and fv, each in its own storage. */
+static void test_components_carried(void) {
+    static const int emitter[24] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+    void *e[24];
+    size_t i;
+
+    (void)start_game();
+    e[0] = pico8_bg_new();
+    e[1] = pico8_nf_new();
+    e[2] = pico8_mh_new(NULL);
+    e[3] = pico8_iv_new(NULL);
+    e[4] = pico8_jo_new(NULL);
+    e[5] = pico8_qh_new(NULL);
+    e[6] = pico8_nl_new(NULL);
+    e[7] = pico8_os_new(NULL);
+    e[8] = pico8_hj_new(NULL);
+    e[9] = pico8_pm_new(NULL);
+    e[10] = pico8_ga_new(NULL);
+    e[11] = pico8_nr_new(NULL);
+    e[12] = pico8_fr_new(NULL);
+    e[13] = pico8_mx_new(NULL);
+    e[14] = pico8_g__new(NULL);
+    e[15] = pico8_fv_new();
+    e[16] = pico8_ie_new(NULL);
+    e[17] = pico8_pj_new();
+    e[18] = pico8_qb_new();
+    e[19] = pico8_jc_new(NULL);
+    e[20] = pico8_ui_new();
+    e[21] = pico8_js_new(NULL);
+    e[22] = pico8_fq_new(NULL);
+    e[23] = pico8_mz_new();
+    for (i = 0; i < 24; i++) {
+        const pico8_struct_header_t *header = e[i];
+
+        assert((header->cls->emitter_of != NULL) == emitter[i]);
+    }
+
+    assert_own_emitter(e[8], pico8_hj_new(NULL), sizeof(pico8_hj_t));
+    assert_own_emitter(e[9], pico8_pm_new(NULL), sizeof(pico8_pm_t));
+    assert_own_emitter(e[10], pico8_ga_new(NULL), sizeof(pico8_ga_t));
+    assert_own_emitter(e[13], pico8_mx_new(NULL), sizeof(pico8_mx_t));
+    assert_own_emitter(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
+    assert_own_emitter(e[15], pico8_fv_new(), sizeof(pico8_fv_t));
+}
+
 static void test_ke_me_by_name(void) {
     static const char *const want[24] = {"ph", "ph",      "ph", "ph", "unknown", "kz", "kz", "kz",
                                          "kz", "ly",      "unknown", "kz", "kz", "kz", "ph", "ph",
@@ -3438,6 +3496,7 @@ int main(void) {
     in_fresh_child(test_ui_held_stops_off_row);
     in_fresh_child(test_ke_closed);
     in_fresh_child(test_ke_me_by_name);
+    in_fresh_child(test_components_carried);
     in_fresh_child(test_ke_ks_stops_off_row);
     in_fresh_child(test_ke_t_by_name);
     in_fresh_child(test_g__t_key_stops_off_row);

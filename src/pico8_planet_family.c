@@ -411,10 +411,14 @@ pico8_value_t pico8_hj_pk(const pico8_hj_t *self) {
     if (self == NULL) {
         return pico8_value_ref(NULL);
     }
-    if (self->pk_is_bool) {
-        return pico8_value_bool(self->pk != 0);
+    if (self->emitter->pk_is_bool) {
+        return pico8_value_bool(self->emitter->pk != 0);
     }
-    return pico8_value_fixed(self->pk);
+    return pico8_value_fixed(self->emitter->pk);
+}
+
+pico8_emitter_t *pico8_hj_emitter_of(void *self) {
+    return ((pico8_hj_t *)self)->emitter;
 }
 
 static int pico8_hj_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -428,15 +432,15 @@ static int pico8_hj_field(const void *self, const char *name, pico8_value_t *out
         return 1;
     }
     if (strcmp(name, "py") == 0) {
-        *out_value = pico8_value_fixed(hj->py);
+        *out_value = pico8_value_fixed(hj->emitter->py);
         return 1;
     }
     if (strcmp(name, "ki") == 0) {
-        *out_value = pico8_value_fixed(hj->ki);
+        *out_value = pico8_value_fixed(hj->emitter->ki);
         return 1;
     }
     if (strcmp(name, "pn") == 0) {
-        *out_value = pico8_value_fixed(hj->pn);
+        *out_value = pico8_value_fixed(hj->emitter->pn);
         return 1;
     }
     if (strcmp(name, "pk") == 0) {
@@ -444,34 +448,34 @@ static int pico8_hj_field(const void *self, const char *name, pico8_value_t *out
         return 1;
     }
     if (strcmp(name, "fc") == 0) {
-        *out_value = pico8_value_fixed(hj->fc);
+        *out_value = pico8_value_fixed(hj->emitter->fc);
         return 1;
     }
     if (strcmp(name, "k_") == 0) {
-        return family_ref_field(hj->k_, out_value);
+        return family_ref_field(hj->emitter->k_, out_value);
     }
     if (strcmp(name, "du") == 0) {
-        *out_value = pico8_value_fixed(hj->du);
+        *out_value = pico8_value_fixed(hj->emitter->du);
         return 1;
     }
     if (strcmp(name, "qo") == 0) {
-        *out_value = pico8_value_fixed(hj->qo);
+        *out_value = pico8_value_fixed(hj->emitter->qo);
         return 1;
     }
     if (strcmp(name, "ro") == 0) {
-        *out_value = pico8_value_fixed(hj->ro);
+        *out_value = pico8_value_fixed(hj->emitter->ro);
         return 1;
     }
     if (strcmp(name, "qg") == 0) {
-        *out_value = pico8_value_fixed(hj->qg);
+        *out_value = pico8_value_fixed(hj->emitter->qg);
         return 1;
     }
     if (strcmp(name, "q_") == 0) {
-        *out_value = pico8_value_fixed(hj->q_);
+        *out_value = pico8_value_fixed(hj->emitter->q_);
         return 1;
     }
     if (strcmp(name, "qy") == 0) {
-        return family_ref_field(hj->qy, out_value);
+        return family_ref_field(hj->emitter->qy, out_value);
     }
     return pico8_qh_struct_class()->field(self, name, out_value);
 }
@@ -491,7 +495,7 @@ static void family_take_list(pico8_value_t value, pico8_list_t **out) {
  * other. */
 static int pico8_hj_set_field(void *self, const char *name, pico8_value_t value) {
     if (strcmp(name, "qy") == 0) {
-        family_take_list(value, &((pico8_hj_t *)self)->qy);
+        family_take_list(value, &((pico8_hj_t *)self)->emitter->qy);
         return 1;
     }
     return pico8_qh_struct_class()->set_field(self, name, value);
@@ -518,24 +522,26 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .field = pico8_hj_field,
     .set_field = pico8_hj_set_field,
     .parent = pico8_qh_struct_class,
+    .emitter_of = pico8_hj_emitter_of,
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     pico8_qh_struct_init(&self->qh, cls);
     self->rr = pico8_hj_start.rr;
-    self->py = pico8_hj_start.py;
-    self->ki = pico8_hj_start.ki;
-    self->pn = pico8_hj_start.pn;
-    self->pk = pico8_hj_start.pk;
-    self->pk_is_bool = pico8_hj_start.pk_is_bool;
-    self->fc = pico8_hj_start.fc;
-    self->k_ = pico8_hj_start.k_;
-    self->du = pico8_hj_start.du;
-    self->qo = pico8_hj_start.qo;
-    self->ro = pico8_hj_start.ro;
-    self->qg = pico8_hj_start.qg;
-    self->q_ = pico8_hj_start.q_;
-    self->qy = NULL;
+    self->emitter = &self->emitter_own;
+    self->emitter->py = pico8_hj_start.py;
+    self->emitter->ki = pico8_hj_start.ki;
+    self->emitter->pn = pico8_hj_start.pn;
+    self->emitter->pk = pico8_hj_start.pk;
+    self->emitter->pk_is_bool = pico8_hj_start.pk_is_bool;
+    self->emitter->fc = pico8_hj_start.fc;
+    self->emitter->k_ = pico8_hj_start.k_;
+    self->emitter->du = pico8_hj_start.du;
+    self->emitter->qo = pico8_hj_start.qo;
+    self->emitter->ro = pico8_hj_start.ro;
+    self->emitter->qg = pico8_hj_start.qg;
+    self->emitter->q_ = pico8_hj_start.q_;
+    self->emitter->qy = NULL;
     self->qh.hp = pico8_hj_start.hp;
     self->qh.qh = pico8_hj_start.qh;
     self->qh.qh_is_bool = pico8_hj_start.qh_is_bool;
@@ -633,6 +639,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .field = pico8_pm_field,
     .set_field = pico8_hj_set_field,
     .parent = pico8_hj_struct_class,
+    .emitter_of = pico8_hj_emitter_of,
 };
 
 static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
@@ -642,18 +649,18 @@ static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     pico8_hj_struct_init(&self->hj, &g_pm_struct_class);
     self->ng = &pico8_pm_start.ng;
     self->fz = pico8_pm_start.fz;
-    self->hj.py = pico8_pm_start.py;
-    self->hj.ki = pico8_pm_start.ki;
-    self->hj.pn = pico8_pm_start.pn;
-    self->hj.pk = pico8_pm_start.pk;
-    self->hj.pk_is_bool = pico8_pm_start.pk_is_bool;
-    self->hj.du = pico8_pm_start.du;
-    self->hj.fc = pico8_pm_start.fc;
-    self->hj.k_ = pico8_pm_start.k_;
-    self->hj.qo = pico8_pm_start.qo;
-    self->hj.ro = pico8_pm_start.ro;
-    self->hj.qg = pico8_pm_start.qg;
-    self->hj.q_ = pico8_pm_start.q_;
+    self->hj.emitter->py = pico8_pm_start.py;
+    self->hj.emitter->ki = pico8_pm_start.ki;
+    self->hj.emitter->pn = pico8_pm_start.pn;
+    self->hj.emitter->pk = pico8_pm_start.pk;
+    self->hj.emitter->pk_is_bool = pico8_pm_start.pk_is_bool;
+    self->hj.emitter->du = pico8_pm_start.du;
+    self->hj.emitter->fc = pico8_pm_start.fc;
+    self->hj.emitter->k_ = pico8_pm_start.k_;
+    self->hj.emitter->qo = pico8_pm_start.qo;
+    self->hj.emitter->ro = pico8_pm_start.ro;
+    self->hj.emitter->qg = pico8_pm_start.qg;
+    self->hj.emitter->q_ = pico8_pm_start.q_;
     self->hj.qh.hp = pico8_pm_start.hp;
     self->hj.qh.px = pico8_pm_start.px;
     self->hj.qh.s = pico8_pm_start.s;
@@ -691,34 +698,34 @@ static int pico8_ga_field(const void *self, const char *name, pico8_value_t *out
         return 1;
     }
     if (strcmp(name, "fc") == 0) {
-        *out_value = pico8_value_fixed(ga->fc);
+        *out_value = pico8_value_fixed(ga->emitter->fc);
         return 1;
     }
     if (strcmp(name, "qo") == 0) {
-        *out_value = pico8_value_fixed(ga->qo);
+        *out_value = pico8_value_fixed(ga->emitter->qo);
         return 1;
     }
     if (strcmp(name, "ro") == 0) {
-        *out_value = pico8_value_fixed(ga->ro);
+        *out_value = pico8_value_fixed(ga->emitter->ro);
         return 1;
     }
     if (strcmp(name, "qg") == 0) {
-        *out_value = pico8_value_fixed(ga->qg);
+        *out_value = pico8_value_fixed(ga->emitter->qg);
         return 1;
     }
     if (strcmp(name, "q_") == 0) {
-        *out_value = pico8_value_fixed(ga->q_);
+        *out_value = pico8_value_fixed(ga->emitter->q_);
         return 1;
     }
     if (strcmp(name, "k_") == 0) {
-        return family_ref_field(ga->k_, out_value);
+        return family_ref_field(ga->emitter->k_, out_value);
     }
     if (strcmp(name, "iu") == 0) {
         *out_value = pico8_value_fixed(ga->iu);
         return 1;
     }
     if (strcmp(name, "py") == 0) {
-        *out_value = pico8_value_fixed(ga->py);
+        *out_value = pico8_value_fixed(ga->emitter->py);
         return 1;
     }
     if (strcmp(name, "ms") == 0) {
@@ -726,7 +733,7 @@ static int pico8_ga_field(const void *self, const char *name, pico8_value_t *out
         return 1;
     }
     if (strcmp(name, "qy") == 0) {
-        return family_ref_field(ga->qy, out_value);
+        return family_ref_field(ga->emitter->qy, out_value);
     }
     return pico8_jo_struct_class()->field(self, name, out_value);
 }
@@ -735,7 +742,7 @@ static int pico8_ga_field(const void *self, const char *name, pico8_value_t *out
  * other. */
 static int pico8_ga_set_field(void *self, const char *name, pico8_value_t value) {
     if (strcmp(name, "qy") == 0) {
-        family_take_list(value, &((pico8_ga_t *)self)->qy);
+        family_take_list(value, &((pico8_ga_t *)self)->emitter->qy);
         return 1;
     }
     return pico8_jo_struct_class()->set_field(self, name, value);
@@ -777,7 +784,7 @@ pico8_qy_t *pico8_ga_mm(void *self_ptr) {
 
     ms = self->ms;
     iu = self->iu;
-    py = self->py;
+    py = self->emitter->py;
 
     v = pico8_vec_mul(p, ms);
     a = pico8_vec_mul(p, iu);
@@ -803,7 +810,7 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
         return;
     }
 
-    qy = self->qy;
+    qy = self->emitter->qy;
 
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
@@ -847,6 +854,10 @@ static void pico8_ga_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ga_t *)self, p);
 }
 
+static pico8_emitter_t *ga_emitter_of(void *self) {
+    return ((pico8_ga_t *)self)->emitter;
+}
+
 static const pico8_struct_class_t g_ga_struct_class = {
     .kj = pico8_ga_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -861,6 +872,7 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .field = pico8_ga_field,
     .set_field = pico8_ga_set_field,
     .parent = pico8_jo_struct_class,
+    .emitter_of = ga_emitter_of,
 };
 
 static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
@@ -869,16 +881,22 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_jo_struct_init(&self->jo, &g_ga_struct_class);
     self->fz = pico8_ga_start.fz;
-    self->fc = pico8_ga_start.fc;
-    self->qo = pico8_ga_start.qo;
-    self->ro = pico8_ga_start.ro;
-    self->qg = pico8_ga_start.qg;
-    self->q_ = pico8_ga_start.q_;
-    self->k_ = pico8_ga_start.k_;
+    self->emitter = &self->emitter_own;
+    self->emitter->pn = 0;
+    self->emitter->du = 0;
+    self->emitter->ki = 0;
+    self->emitter->pk = 0;
+    self->emitter->pk_is_bool = 0;
+    self->emitter->fc = pico8_ga_start.fc;
+    self->emitter->qo = pico8_ga_start.qo;
+    self->emitter->ro = pico8_ga_start.ro;
+    self->emitter->qg = pico8_ga_start.qg;
+    self->emitter->q_ = pico8_ga_start.q_;
+    self->emitter->k_ = pico8_ga_start.k_;
     self->iu = pico8_ga_start.iu;
-    self->py = pico8_ga_start.py;
+    self->emitter->py = pico8_ga_start.py;
     self->ms = pico8_ga_start.ms;
-    self->qy = NULL;
+    self->emitter->qy = NULL;
     self->jo.by = &g_ga_by_shared;
     /* `nu=o()` is empty and replaces jo's `nu` outright, so no burst is
      * ever registered under jo/np/prober in `cg`. This is not a merge. */
@@ -898,13 +916,13 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
             self->jo.id = keys->jo.id;
         }
         if (keys->pq != NULL) {
-            self->qo = keys->pq->qo;
-            self->ro = keys->pq->ro;
-            self->qg = keys->pq->qg;
-            self->q_ = keys->pq->q_;
-            self->k_ = keys->pq->k_;
+            self->emitter->qo = keys->pq->qo;
+            self->emitter->ro = keys->pq->ro;
+            self->emitter->qg = keys->pq->qg;
+            self->emitter->q_ = keys->pq->q_;
+            self->emitter->k_ = keys->pq->k_;
             self->iu = keys->pq->iu;
-            self->py = keys->pq->py;
+            self->emitter->py = keys->pq->py;
             self->ms = keys->pq->ms;
         }
     }
