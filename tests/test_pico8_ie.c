@@ -34,7 +34,6 @@
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -604,7 +603,7 @@ static void test_restart(void) {
 }
 
 static int is_an_ie_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_ie_struct_class();
 }
 
@@ -671,7 +670,7 @@ static void test_ke_view_is_a_struct(void) {
     for (i = 0; i < n; i++) {
         assert(as_ie(all[i])->ke == classes[i]);
         view = pico8_ie_ke_view(all[i]);
-        assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT &&
+        assert(&view != NULL &&
                view.header.cls == pico8_ie_ke_view_struct_class());
         if (gx_rr[i] == NULL) {
             assert(view.rr == NULL);
@@ -690,7 +689,7 @@ static void test_ke_view_is_a_struct(void) {
         jb_only.jb = pico8_jb_new(NULL);
         no_ke = pico8_ie_new(&jb_only);
         view = pico8_ie_ke_view(no_ke);
-        assert(pico8_type_tag_of(&view) == PICO8_TYPE_TAG_STRUCT);
+        assert(view.header.cls == pico8_ie_ke_view_struct_class());
         assert(view.rr == NULL && !view.has_s && view.me == NULL && !view.has_od);
     }
 }

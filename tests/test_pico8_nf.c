@@ -20,7 +20,6 @@
 #include "../src/pico8_mouse.h"
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
 
@@ -258,7 +257,7 @@ static void test_launch_with_left_held(void) {
 }
 
 static int is_an_nf_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_nf_struct_class();
 }
 

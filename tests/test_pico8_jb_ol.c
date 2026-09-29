@@ -17,7 +17,6 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 
 #define DR_FIRST_ENTRY_HASH 0x8B2796B5u
 #define BARE_STRINGS_HASH 0x2B14E741u
@@ -82,8 +81,8 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     const pico8_jb_t *direct = pico8_jb_new(NULL);
     const pico8_jb_t *generic = pico8_jb_new(NULL);
 
-    assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);
-    assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
+    assert(direct->header.cls == pico8_jb_struct_class());
+    assert(generic->header.cls == pico8_jb_struct_class());
     assert(direct->header.cls == generic->header.cls);
     assert(direct->header.cls->ol != NULL);
     assert(direct->ls != NULL && direct->ls_count == 0);

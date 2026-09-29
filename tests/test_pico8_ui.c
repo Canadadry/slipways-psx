@@ -197,7 +197,7 @@ static uint32_t cursor_is(int id) {
 }
 
 static int is_of(const void *e, const pico8_struct_class_t *cls) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == cls;
+    return e != NULL && ((const pico8_struct_header_t *)e)->cls == cls;
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -830,7 +830,7 @@ static void test_ke_closed(void) {
 
 /* Every entity struct begins with its `pico8_ke_t`. */
 static pico8_ke_t *ke_of(void *e) {
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT);
+    assert(e != NULL);
     return e;
 }
 

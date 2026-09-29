@@ -33,7 +33,6 @@
 #include "../src/pico8_menu.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -453,8 +452,8 @@ static void test_trade_is_a_struct(void) {
     pico8_trade_t *t = pico8_trade_new(NULL);
     int j;
 
-    assert(pico8_type_tag_of(g) == PICO8_TYPE_TAG_STRUCT && g->header.cls == cls);
-    assert(pico8_type_tag_of(t) == PICO8_TYPE_TAG_STRUCT && t->header.cls == cls);
+    assert(g != NULL && g->header.cls == cls);
+    assert(t != NULL && t->header.cls == cls);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
            cls->kf == NULL && cls->cn == NULL && cls->ol == NULL && cls->mm == NULL);

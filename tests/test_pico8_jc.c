@@ -32,7 +32,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -116,12 +115,12 @@ static uint32_t p__state(const pico8_jc_t *jc) {
 }
 
 static int is_throwaway(const void *e) {
-    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jc_mouse_point_struct_class();
 }
 
 static int is_too_far(const void *e) {
-    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jc_too_far_struct_class() &&
            ((const pico8_jc_too_far_t *)e)->qs != NULL && strcmp(((const pico8_jc_too_far_t *)e)->qs, "-too far-") == 0;
 }
@@ -412,7 +411,7 @@ static void hq_over(void *jc, void *hovered, pico8_vec_t *mp) {
 
 /* Every entity of `cg` begins with its `pico8_ke_t`. */
 static const pico8_ke_t *ke_of(const void *e) {
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT);
+    assert(e != NULL);
     return e;
 }
 
@@ -872,7 +871,7 @@ static void test_bv(void) {
 }
 
 static int is_a_jc_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class();
 }
 
@@ -980,7 +979,7 @@ static void test_mouse_point_is_a_struct(void) {
     jc = build_jc(origin);
     hq_over(jc, NULL, vec_ref(-640, -640));
     re = as_jc(jc)->re;
-    assert(re != NULL && pico8_type_tag_of(re) == PICO8_TYPE_TAG_STRUCT &&
+    assert(re != NULL &&
            ((const pico8_struct_header_t *)re)->cls == pico8_jc_mouse_point_struct_class());
     assert(mouse_point_ra(re) != NULL && mouse_point_p(re) != NULL);
     assert(cls_of(re)->kf == NULL && cls_of(re)->hq == NULL);

@@ -35,7 +35,6 @@
 #include "../src/pico8_research_display.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -66,7 +65,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
 }
 
 static const pico8_lq_t *as_lq(const void *lq) {
-    assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
+    assert(lq != NULL &&
            ((const pico8_struct_header_t *)lq)->cls == pico8_lq_struct_class());
     return lq;
 }
@@ -103,13 +102,13 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* 0xDEAD for NULL, else the tag. */
+/* 0xDEAD for NULL, else 0: no pointer an item holds carried a tag. */
 static uint32_t fold_ref(uint32_t h, const void *ref) {
     h = fnv(h, (uint32_t)REF_KIND);
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    return fnv(h, (uint32_t)pico8_type_tag_of(ref));
+    return fnv(h, 0u);
 }
 
 /* The frozen hashes were taken when tuples were ob tables: these are the
@@ -727,7 +726,7 @@ static void test_planet_panel(void) {
     assert(le != NULL);
     for (i = 0; i < le->count; i++) {
         const void *button = le->items[i];
-        if (button != NULL && pico8_type_tag_of(button) == PICO8_TYPE_TAG_STRUCT &&
+        if (button != NULL &&
             ((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class()) {
             buttons++;
             h = fold_button_row(h, ((const pico8_js_t *)button)->lq);
@@ -918,7 +917,7 @@ static void test_lq_is_a_struct(void) {
     int i;
 
     lq = pico8_lq_new(&t);
-    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == cls);
+    assert(lq != NULL && lq->header.cls == cls);
     assert(cls->ol != NULL);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&

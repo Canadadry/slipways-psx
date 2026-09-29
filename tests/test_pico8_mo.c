@@ -151,7 +151,7 @@ static void test_replaced_by_jl(void) {
 }
 
 static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
-    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == cls;
 }
 

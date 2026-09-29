@@ -32,7 +32,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -317,13 +316,11 @@ static void test_ldown(void) {
 
     out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
-    assert(pico8_type_tag_of(out.held) == PICO8_TYPE_TAG_STRUCT);
     assert(out.held->cls == pico8_g__struct_class());
     assert(listed(pico8_cg("g_"), out.held));
 
     out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
-    assert(pico8_type_tag_of(out.held) == PICO8_TYPE_TAG_STRUCT);
     assert(out.held->cls == pico8_mz_struct_class());
     assert(listed(pico8_cg("mz"), out.held));
     assert(is_me(&((const pico8_mz_t *)out.held)->ke, "kz"));
@@ -451,11 +448,11 @@ static uint32_t lheld_kind(void) {
     if (held == NULL) {
         return HELD_ABSENT;
     }
-    if (pico8_type_tag_of(held) == PICO8_TYPE_TAG_STRUCT &&
+    if (held != NULL &&
         ((const pico8_struct_header_t *)held)->cls == pico8_g__struct_class()) {
         return HELD_G_STRUCT;
     }
-    if (pico8_type_tag_of(held) == PICO8_TYPE_TAG_STRUCT &&
+    if (held != NULL &&
         ((const pico8_struct_header_t *)held)->cls == pico8_mz_struct_class()) {
         return HELD_MZ_STRUCT;
     }
@@ -509,7 +506,7 @@ static void test_scripted_drags(void) {
 }
 
 static int is_a_bg_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_bg_struct_class();
 }
 

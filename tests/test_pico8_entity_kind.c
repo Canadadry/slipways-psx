@@ -25,7 +25,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
 
@@ -147,7 +146,7 @@ static void test_kind_fields_and_build(void) {
         h = fold_string_member(h, rec->me);
         h = fold_fixed_member(h, rec->has_od, rec->od);
         made = kind_build(i);
-        assert(made != NULL && pico8_type_tag_of(made) == PICO8_TYPE_TAG_STRUCT &&
+        assert(made != NULL &&
                ((const pico8_struct_header_t *)made)->cls == struct_class_of(i));
         h = fnv(h, (uint32_t)i);
     }
@@ -155,14 +154,10 @@ static void test_kind_fields_and_build(void) {
 }
 
 /* Each kind's `rec` holds the generated default of the class that sets
- * each name, and pico8_type_tag_of() reads a kind UNKNOWN. */
+ * each name. */
 static void test_kind_reader_serves_the_generated_defaults(void) {
     const pico8_kind_rec_t *rec;
-    int i;
 
-    for (i = 0; i < KIND_COUNT; i++) {
-        assert(pico8_type_tag_of(kind_of(i)) == PICO8_TYPE_TAG_UNKNOWN);
-    }
     rec = rec_of(0);
     assert(rec->rr == NULL);
     assert(rec->has_s && rec->s == pico8_qh_start.s);

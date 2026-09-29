@@ -35,7 +35,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -45,6 +44,10 @@
  * joins it to. */
 #define COLONY 12
 #define EXPORTER 3
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define CONSTRUCTION_HASH 0x8343CAA6u
 #define NX_HASH 0xC143EEC1u
@@ -283,8 +286,8 @@ static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class
     h = fnv(h, (uint32_t)(hv->count - from));
     for (i = from; i < hv->count; i++) {
         const void *e = hv->items[i];
-        h = fnv(h, (uint32_t)pico8_type_tag_of(e));
-        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == iv_cls) {
+        h = fnv(h, FROZEN_STRUCT_TAG);
+        if (((const pico8_struct_header_t *)e)->cls == iv_cls) {
             const pico8_iv_t *iv = e;
             h = iv->at1 != NULL ? fold_string(fnv(h, (uint32_t)STRING_KIND), iv->at1)
                                 : fnv(fnv(h, (uint32_t)REF_KIND), 0xDEADu);
@@ -649,11 +652,11 @@ static void test_hy_is_a_struct(void) {
 
     assert(pico8_hy_ready());
     pico8__init();
-    assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)pico8_fm())->cls == pico8_fm_placeholder_struct_class());
+    assert(pico8_fm() != NULL && ((const pico8_struct_header_t *)pico8_fm())->cls == pico8_fm_placeholder_struct_class());
     assert(pico8_fm_hy() == NULL);
 
     new_game();
-    assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_STRUCT);
+    assert(pico8_fm() != NULL);
     assert(((const pico8_struct_header_t *)pico8_fm())->cls == cls && pico8_fm_hy() == (void *)pico8_fm());
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
@@ -664,7 +667,7 @@ static void test_hy_is_a_struct(void) {
     }
 
     bare = pico8_hy_new();
-    assert(pico8_type_tag_of(bare) == PICO8_TYPE_TAG_STRUCT && bare->header.cls == cls);
+    assert(bare != NULL && bare->header.cls == cls);
 
     must_abort(lu_on_other, pico8_ok());
 

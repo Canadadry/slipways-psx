@@ -33,7 +33,6 @@
 #include "../src/pico8_probe.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -92,13 +91,13 @@ static int is_me(const pico8_ke_t *ke, const char *want) {
 }
 
 static pico8_mz_t *as_mz(void *e) {
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    assert(e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_mz_struct_class());
     return e;
 }
 
 static pico8_jc_t *as_jc(void *e) {
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    assert(e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class());
     return e;
 }
@@ -134,7 +133,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 enum { ET_ABSENT, ET_FALSE, ET_JJ, ET_JC, ET_JO, ET_THROWAWAY, ET_OTHER };
 
 static int is_bv_target(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
 }
 
@@ -764,7 +763,7 @@ static void test_jj_wrapper(void) {
 }
 
 static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == cls;
+    return e != NULL && ((const pico8_struct_header_t *)e)->cls == cls;
 }
 
 static int is_an_mz_struct(const void *e) {

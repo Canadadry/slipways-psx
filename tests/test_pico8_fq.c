@@ -21,7 +21,6 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_score_panel_display.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 
@@ -264,7 +263,7 @@ static void test_defaults_match_the_parsed_spec(void) {
 }
 
 static int is_a_veil_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_fq_struct_class();
 }
 

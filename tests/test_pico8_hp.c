@@ -37,7 +37,6 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -125,14 +124,14 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* 0xDEAD for NULL, else the tag and, above `depth` 0, the rank in `hv` and
- * in `gb`. */
+/* 0xDEAD for NULL, else 0 (no pointer it sees carried a tag) and, above
+ * `depth` 0, the rank in `hv` and in `gb`. */
 static uint32_t fold_ref(uint32_t h, const void *ref, int depth) {
     h = fnv(h, (uint32_t)REF_KIND);
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    h = fnv(h, (uint32_t)pico8_type_tag_of(ref));
+    h = fnv(h, 0u);
     if (depth <= 0) {
         return h;
     }
@@ -280,7 +279,7 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     if (l == NULL) {
         return fnv(h, 0xDEADu);
     }
-    assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == pico8_lq_struct_class());
+    assert(lq != NULL && lq->header.cls == pico8_lq_struct_class());
     assert(!lq->has_bg);
     assert(lq->fs != NULL);
     k = lq->fs_count;
@@ -763,7 +762,7 @@ static void test_harvested_world(void) {
     pico8_jo_hh(p);
     pico8_jo_hu(p, project_with(with_cw, 1));
     last = pico8_hv()->items[pico8_hv()->count - 1];
-    assert(pico8_type_tag_of(last) == PICO8_TYPE_TAG_STRUCT && last->cls == pico8_ga_struct_class());
+    assert(last != NULL && last->cls == pico8_ga_struct_class());
     for (i = 0; i < 60; i++) {
         pico8_dg();
     }
@@ -945,7 +944,7 @@ static void test_hp_is_a_struct(void) {
     pico8_hp_t *bare;
     int j;
 
-    assert(pico8_type_tag_of(b) == PICO8_TYPE_TAG_STRUCT && b->header.cls == cls);
+    assert(b != NULL && b->header.cls == cls);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
     assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
@@ -957,7 +956,7 @@ static void test_hp_is_a_struct(void) {
     assert(b->fk != NULL && b->fk == pico8_hp_fk());
 
     bare = pico8_hp_new(NULL);
-    assert(pico8_type_tag_of(bare) == PICO8_TYPE_TAG_STRUCT && bare->header.cls == cls);
+    assert(bare != NULL && bare->header.cls == cls);
     assert(bare->mr != NULL && bare->mr == b->mr && bare->gp != NULL && bare->gp == b->gp);
     assert(bare->fk != NULL && bare->fk == b->fk);
     assert(bare->mr == pico8_hp_start.mr && bare->gp == pico8_hp_start.gp && bare->fk == pico8_hp_start.fk);

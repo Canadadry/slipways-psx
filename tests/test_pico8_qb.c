@@ -26,7 +26,6 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -306,7 +305,7 @@ static int ga_alive(void) {
 
     for (i = 0; i < hv->count; i++) {
         const void *e = hv->items[i];
-        if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+        if (e != NULL &&
             ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
             return 1;
         }
@@ -351,7 +350,7 @@ static void in_fresh_child(void (*test)(void)) {
 }
 
 static int is_a_qb_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_qb_struct_class();
 }
 

@@ -531,6 +531,30 @@ Sonde d'étiquette lancée au parent (8a42cba) sur les 12 TU de D.20a1. Tous pas
 git diff <parent> -- tests | grep -E '^\+' | grep -E '\(\s*(const\s+)?void\s*\*\s*\)|\(\s*(const\s+)?[a-z0-9_]+_t\s*\*\s*\)\s*[^{ ]' | grep -vF 'assert(fv != NULL && ((const pico8_struct_header_t *)fv)->cls == cls);'
 ```
 
+## Amendement (sonde D.20a2)
+
+Sonde d'étiquette lancée au parent (ca68736) sur les 22 TU de D.20a2. Tous passent. Les nombres entre parenthèses comptent les appels observés.
+
+| Site | Vu | Décision |
+|---|---|---|
+| `bg:320`, `:326`, `:454` (1 chacun), `bg:512` (3), `entity_kind:150` (9), `fm:156` (1), `fq:267` (2), `hp:283` (120), `hp:766`, `:948`, `:960` (1), `hy:287` (8), `hy:652`, `:656`, `:667` (1), `ie:607` (9), `ie:674` (7), `ie:693` (1), `iv:87` (6), `iv:256`, `:257`, `jb_ol:85`, `:86` (1), `jc:119` (47), `jc:124` (20), `jc:415` (1), `jc:875` (3), `jc:983` (1), `je:138` (2), `js:112` (1299), `js:190` (270), `js:1019` (1), `js:1070` (33), `lq:69` (248), `lq:730` (4), `lq:921` (1), `mh:340`, `:341` (1), `mo:154` (2), `mz:95` (3), `mz:101` (10), `mz:137`, `:767` (4), `nf:261` (3), `pj:104` (15), `pj:303` (489), `planet_gh_row_lq:134` (2), `qb:309` (213), `qb:354` (2), `trade:456`, `:457` (1), `ui:200` (645), `ui:833` (411) | ENTITY seul | formes de « Lecture » 1, comme prévu ; aucun arrêt |
+| `bg:458` | jamais atteint | forme (a1) |
+| `hy:286` (8), `js:290` (8) | ENTITY seul | `FROZEN_STRUCT_TAG` (c) |
+| `js:213`, `js:1108`, `lq:112` | jamais atteints | type statique : `js` entités (`_jo_fe_pt`, `_jo_fe_b` ; `lq`, `jb`, `h_`) → (c) ; `lq` items → `0u` |
+| `hp:135` | UNTAGGED 688 | `0u` en place |
+| **`pj:199`** | **UNTAGGED 2 seul** (`cr->hi`, `cr->gq`), et non « les deux genres » | `pj->ed` n'atteint jamais `fold_ref` : `fold_ed` ne voit que `ed` NULL (`gcov` : sa branche non NULL à 0, au parent comme à l'enfant). Coupe faite quand même, par type statique, comme `ga:127` à D.20a1 : `fold_ed` → `fold_entity`, `:199` en `0u` (a1) |
+| `entity_kind:164` (9), `js:1119` (58) | UNTAGGED | tests de la couche, retirés |
+
+**H1 sans objet** : aucune famille non étiquetée ne quitte sa `fold_ref`. `hp:135` et `pj:199` sont après la branche `listed`/rang de leur `fold_ref`, qui ne change pas.
+
+**`fold_entity` (`pj`)** prend `const pico8_mh_t *` (le type de `pj->ed`) et garde, en plus des branches NULL et `0xEEEE` du PRD, la branche `listed` → `0x4E` + rang de la `fold_ref` du parent : une entité peut être dans `hv`, et c'est la seule façon d'écrire les mêmes octets. Les comparaisons d'adresse aux rangées `gs`/`i_`/`ou`/`ea` ne peuvent pas viser un `mh` et ne sont pas recopiées. `fold_ed` appelle `fold_entity(fnv(h, 1u), pj->ed)`, les octets de `fold_ref_member` pour un `ed` non NULL.
+
+**Grep 7 de la Sortie.** Pour D.20a2, six lignes `+` portent un `(const pico8_struct_header_t *)` déjà présent sur la ligne `-` correspondante (`hy:287`, `hy:652`, `js:1070`, `mz:767`, `pj:303`, `ui:200`). Chaque fichier a autant de ces casts en `-` qu'en `+`. La grep, avec leur exclusion :
+
+```sh
+git diff <parent> -- tests | grep -E '^\+' | grep -E '\(\s*(const\s+)?void\s*\*\s*\)|\(\s*(const\s+)?[a-z0-9_]+_t\s*\*\s*\)\s*[^{ ]' | grep -vE '^\+\s*(if \(|assert\(pico8_fm\(\) != NULL && |return (e|ref) != NULL && )\(\(const pico8_struct_header_t \*\)(e|ref|pico8_fm\(\))\)->cls == '
+```
+
 ## Annexe A — textes recopiés (`f3d4505`, par extraction de lignes)
 
 ### Lignes D.20a et D.20b (`docs/plan-3.md`, l. 294-295)

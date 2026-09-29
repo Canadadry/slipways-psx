@@ -19,7 +19,6 @@
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
 
@@ -135,7 +134,7 @@ static void test_jl_without_cart_load(void) {
 }
 
 static int is_a_struct_of(const void *e, const pico8_struct_class_t *cls) {
-    return e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == cls;
 }
 

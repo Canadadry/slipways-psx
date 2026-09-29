@@ -29,7 +29,6 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -131,7 +130,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
 
     for (i = 0; i < le->count; i++) {
         const pico8_lq_t *lq = button_lq(le->items[i]);
-        assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == pico8_lq_struct_class());
+        assert(lq != NULL && lq->header.cls == pico8_lq_struct_class());
         if (lq_index_is_string(lq, 1, "exports:")) {
             exports_lq = lq;
         }

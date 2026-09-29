@@ -39,7 +39,6 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -53,6 +52,10 @@
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define TITLE_HASH 0xB044B5F2u
 #define EU_HASH 0x08EB17A6u
@@ -109,7 +112,7 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 }
 
 static int is_js(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && cls_of(e) == pico8_js_struct_class();
+    return e != NULL && cls_of(e) == pico8_js_struct_class();
 }
 
 static pico8_vec_t vec_of(const pico8_vec_t *v) {
@@ -187,7 +190,7 @@ static int in_gb(const void *e) {
 }
 
 static int is_lq(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_lq_struct_class();
 }
 
@@ -210,7 +213,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (in_gb(ref)) {
         return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
 /* The words the frozen hashes fold before a fixed, a boolean and a string: the 0xF1, 0xB0
@@ -287,7 +290,7 @@ static uint32_t fold_built(uint32_t h, const void *ref) {
     if (is_lq(ref)) {
         return fold_lq(fnv(fnv(h, 0xA2u), FROZEN_INSTANCE_TAG), ref);
     }
-    h = fnv(fnv(h, 0xA2u), (uint32_t)pico8_type_tag_of(ref));
+    h = fnv(fnv(h, 0xA2u), FROZEN_STRUCT_TAG);
     return h;
 }
 
@@ -1016,7 +1019,7 @@ static void test_nil_keys(void) {
     assert(!js_of(no_keys)->has_h_ && js_of(no_keys)->jb == NULL);
     assert(js_of(nil_keys)->has_h_ && is_lq(js_of(nil_keys)->h_));
     assert(js_of(nil_keys)->h_->w == 0);
-    assert(js_of(nil_keys)->jb != NULL && pico8_type_tag_of(js_of(nil_keys)->jb) == PICO8_TYPE_TAG_STRUCT);
+    assert(js_of(nil_keys)->jb != NULL);
 }
 
 /* How many `js` structs hv holds. */
@@ -1067,7 +1070,7 @@ static void test_js_is_a_struct(void) {
 enum { FIXED_KIND = 0, STRING_KIND = 1, BOOL_KIND = 2, REF_KIND = 3, FUNCTION_KIND = 4 };
 
 static int is_of_class(const void *ref, const pico8_struct_class_t *cls) {
-    return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)ref)->cls == cls;
+    return ref != NULL && ((const pico8_struct_header_t *)ref)->cls == cls;
 }
 
 /* `my` or `hb` from its member, in the bytes the name reader's value folded
@@ -1105,7 +1108,7 @@ static uint32_t fold_member_ref(uint32_t h, const void *ref) {
     if (is_of_class(ref, pico8_hp_struct_class())) {
         return fnv(h, 0xB3u);
     }
-    return fnv(fnv(h, 0xB5u), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xB5u), FROZEN_STRUCT_TAG);
 }
 
 static uint32_t fold_member_opt_ref(uint32_t h, const void *ref) {
@@ -1116,7 +1119,6 @@ static uint32_t fold_member_vec(uint32_t h, const pico8_vec_t *v) {
     if (v == NULL) {
         return fnv(h, 0u);
     }
-    assert(pico8_type_tag_of(v) == PICO8_TYPE_TAG_UNKNOWN);
     return fold_vec(fold_kind(h, REF_KIND), v);
 }
 
@@ -1607,7 +1609,7 @@ static void test_ha_pz_is_a_struct(void) {
 
     start_game();
     o = pico8_ha_pz();
-    assert(o != NULL && o->tag == PICO8_TYPE_TAG_STRUCT && o->cls == pico8_ha_pz_struct_class());
+    assert(o != NULL && o->cls == pico8_ha_pz_struct_class());
     assert(o->cls->kj == NULL && o->cls->ev == NULL && o->cls->hd == NULL && o->cls->hk == NULL &&
            o->cls->hb == NULL && o->cls->ldown == NULL && o->cls->rdown == NULL && o->cls->gv == NULL);
     assert(o->cls->hq == NULL && o->cls->ey == NULL && o->cls->kf == NULL && o->cls->cn == NULL && o->cls->ol == NULL &&

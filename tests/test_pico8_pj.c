@@ -35,11 +35,13 @@
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define BUILT_HASH 0x9BE763EBu
 #define SHARED_HASH 0xAC16627Bu
@@ -101,7 +103,7 @@ static pico8_fixed_t ed_fixed(const pico8_pj_t *pj) {
 }
 
 static int is_lq(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_lq_struct_class();
 }
 
@@ -196,7 +198,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == (const void *)pico8_pj_ea()) {
         return fold_ea(fnv(h, 0x7Au), ref);
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), 0u);
 }
 
 /* A present member: bit 1, then the value as the frozen hashes fold it.
@@ -216,8 +218,19 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
     return ref != NULL ? fold_ref(fnv(h, 1u), ref) : fnv(h, 0u);
 }
 
+/* An entity: its rank in `hv`, else the tag the frozen hashes fold. */
+static uint32_t fold_entity(uint32_t h, const pico8_mh_t *e) {
+    if (e == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    if (listed(pico8_hv(), e)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), e));
+    }
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
+}
+
 static uint32_t fold_ed(uint32_t h, const pico8_pj_t *pj) {
-    return pj->ed != NULL ? fold_ref_member(h, pj->ed) : fold_fixed_member(h, ed_fixed(pj));
+    return pj->ed != NULL ? fold_entity(fnv(h, 1u), pj->ed) : fold_fixed_member(h, ed_fixed(pj));
 }
 
 /* `cr` as the spec table it was: its entries in spec order, then their
@@ -300,7 +313,7 @@ static uint32_t fold_ou_heads(uint32_t h) {
 }
 
 static int is_of(const void *e, const pico8_struct_class_t *cls) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == cls;
+    return e != NULL && ((const pico8_struct_header_t *)e)->cls == cls;
 }
 
 static int fq_count(void) {

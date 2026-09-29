@@ -24,7 +24,6 @@
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -84,7 +83,7 @@ static void fresh_world(void) {
 
     pico8_jl();
     *mouse = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
-    assert(pico8_type_tag_of(pico8_je()) == PICO8_TYPE_TAG_STRUCT);
+    assert(pico8_je() != NULL && pico8_je()->cls == pico8_nf_struct_class());
     ((pico8_nf_t *)pico8_je())->ra = mouse;
 }
 
@@ -253,8 +252,8 @@ static void test_iv_is_a_struct_registered_under_kj(void) {
     direct = build(NULL, "z", 7);
     generic = pico8_iv_new(&keys);
 
-    assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);
-    assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
+    assert(direct != NULL);
+    assert(generic != NULL);
     assert(listed(pico8_hv(), direct) && listed(pico8_cv("kj"), direct));
     assert(listed(pico8_hv(), generic) && listed(pico8_cv("kj"), generic));
     for (i = 0; i < 4; i++) {
