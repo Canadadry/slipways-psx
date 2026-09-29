@@ -35,7 +35,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -143,22 +142,10 @@ static const pico8_vec_t *mouse_point_p(const void *re) {
     return ((const pico8_jc_mouse_point_t *)re)->p;
 }
 
-static uint32_t fold_ref(uint32_t h, const void *ref);
-
-/* A value by what it is, a referenced entity by its rank in `hv`. */
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
+/* The word the frozen hashes fold before a boolean: 0xB0, then 0 or 1; any
+ * other moves every *_HASH. */
+static uint32_t fold_bool(uint32_t h, int b) {
+    return fnv(fnv(h, 0xB0u), b ? 1u : 0u);
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref) {
@@ -172,8 +159,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(h, is_too_far(ref) || is_throwaway(ref) ? 0x7Au : 0xEEEEu);
 }
 
-/* A member as fold_value folds what the name reader gave: nil when absent;
- * the 0xF1 of a fixed and the 0x57 of a string are constant by the
+/* A member as the frozen hashes fold what the name reader gave: nil when
+ * absent; the 0xF1 of a fixed and the 0x57 of a string are constant by the
  * struct's shape, kept so that the hashes still prove the typed reads. */
 static uint32_t fold_fixed(uint32_t h, int has, pico8_fixed_t f) {
     return has ? fnv(fnv(h, 0xF1u), (uint32_t)f) : fnv(h, 0xDEADu);
@@ -258,7 +245,7 @@ static uint32_t fold_hg(uint32_t h, const void *jc) {
     h = fnv(h, (uint32_t)hg->count);
     for (i = 0; i < hg->count; i++) {
         h = fnv_str(h, hg->ids[i]);
-        h = fold_value(h, pico8_value_bool(1));
+        h = fold_bool(h, 1);
     }
     return h;
 }
@@ -306,7 +293,7 @@ static uint32_t fold_planets(uint32_t h, int with_eb) {
             int j;
             for (j = 0; j < oe->count; j++) {
                 assert(cls_of(oe->items[j]) == pico8_jc_struct_class());
-                h = fold_value(h, pico8_value_ref(pico8_jc_eb(oe->items[j], p)));
+                h = fold_ref(h, pico8_jc_eb(oe->items[j], p));
             }
         }
     }
@@ -359,7 +346,7 @@ static void colonized_pair(void **qu, void **re) {
 }
 
 static void *build_jc(void *qu);
-static void hq_over(void *jc, void *hovered, pico8_value_t mp);
+static void hq_over(void *jc, void *hovered, pico8_vec_t *mp);
 
 /* A slipway from `qu` dragged over `re` as `jc:hq` sees a drag (it reads the
  * hovered planet off `ok.o_`), held until its `t` reaches 15, not paid. */
@@ -369,7 +356,7 @@ static void *dragged(void *qu, void *re) {
 
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
-    hq_over(jc, re, pico8_value_ref(mp));
+    hq_over(jc, re, mp);
     pico8_ok()->o_ = NULL;
     while (as_jc(jc)->ke.t < pico8_fixed_from_int(15)) {
         pico8_dg();
@@ -405,22 +392,22 @@ static void *build_jc(void *qu) {
     return pico8_jc_new(&keys);
 }
 
-static pico8_value_t vec_ref(int x, int y) {
+static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(v);
+    return v;
 }
 
-static pico8_value_t vec_ref_fixed(pico8_vec_t at) {
+static pico8_vec_t *vec_ref_fixed(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 /* `jc:hq` reads the hovered entity off `ok.o_`. */
-static void hq_over(void *jc, void *hovered, pico8_value_t mp) {
+static void hq_over(void *jc, void *hovered, pico8_vec_t *mp) {
     pico8_ok()->o_ = hovered;
-    cls_of(jc)->hq(jc, mp.as.ref, NULL);
+    cls_of(jc)->hq(jc, mp, NULL);
 }
 
 /* Every entity of `cg` begins with its `pico8_ke_t`. */
@@ -597,14 +584,14 @@ static void test_eb(void) {
     target = as_jc(old)->re;
     fresh = build_jc(origin);
 
-    assert(pico8_value_ref(pico8_jc_eb(old, origin)).as.ref == target);
-    assert(pico8_value_ref(pico8_jc_eb(old, target)).as.ref == origin);
-    assert(pico8_value_ref(pico8_jc_eb(fresh, origin)).as.ref == origin);
-    assert(pico8_value_ref(pico8_jc_eb(fresh, target)).as.ref == origin);
-    h = fold_value(h, pico8_value_ref(pico8_jc_eb(old, origin)));
-    h = fold_value(h, pico8_value_ref(pico8_jc_eb(old, target)));
-    h = fold_value(h, pico8_value_ref(pico8_jc_eb(fresh, origin)));
-    h = fold_value(h, pico8_value_ref(pico8_jc_eb(fresh, NULL)));
+    assert(pico8_jc_eb(old, origin) == target);
+    assert(pico8_jc_eb(old, target) == origin);
+    assert(pico8_jc_eb(fresh, origin) == origin);
+    assert(pico8_jc_eb(fresh, target) == origin);
+    h = fold_ref(h, pico8_jc_eb(old, origin));
+    h = fold_ref(h, pico8_jc_eb(old, target));
+    h = fold_ref(h, pico8_jc_eb(fresh, origin));
+    h = fold_ref(h, pico8_jc_eb(fresh, NULL));
     check("eb", h, EB_HASH);
 }
 
@@ -651,11 +638,11 @@ static void test_draw(void) {
     }
 
     pico8_cls(&mem);
-    cls_of(origin)->kj(origin, vec_ref_fixed(vec_of(as_jo(origin)->ra)).as.ref);
+    cls_of(origin)->kj(origin, vec_ref_fixed(vec_of(as_jo(origin)->ra)));
     plain = screen_hash();
     as_jo(origin)->fo = old;
     pico8_cls(&mem);
-    cls_of(origin)->kj(origin, vec_ref_fixed(vec_of(as_jo(origin)->ra)).as.ref);
+    cls_of(origin)->kj(origin, vec_ref_fixed(vec_of(as_jo(origin)->ra)));
     circled = screen_hash();
     assert(as_jo(origin)->fo == NULL);
     assert(circled != plain);
@@ -754,8 +741,8 @@ static int same_vec(pico8_vec_t a, pico8_vec_t b) {
  * this `jc` or another, leaves an earlier one as it was. */
 static void test_hq_mouse_point(void) {
     uint32_t h = 2166136261u;
-    pico8_value_t m1;
-    pico8_value_t m2;
+    pico8_vec_t *m1;
+    pico8_vec_t *m2;
     pico8_vec_t p1;
     pico8_vec_t on_camera;
     void *origin;
@@ -774,10 +761,10 @@ static void test_hq_mouse_point(void) {
     hq_over(a, NULL, m1);
     r1 = as_jc(a)->re;
     assert(r1 != NULL && re_kind(a) == RE_THROWAWAY);
-    assert(mouse_point_ra(r1) == m1.as.ref);
+    assert(mouse_point_ra(r1) == m1);
     p1 = vec_of(mouse_point_p(r1));
     assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), pico8_fixed_from_int(128))));
-    assert(mouse_point_p(r1) != m1.as.ref);
+    assert(mouse_point_p(r1) != m1);
     assert(cls_of(r1)->get_p(r1) == mouse_point_p(r1));
     assert(!pico8_gd(r1));
     assert(!listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
@@ -789,7 +776,7 @@ static void test_hq_mouse_point(void) {
     hq_over(a, NULL, m2);
     r2 = as_jc(a)->re;
     assert(r2 != NULL && r2 != r1 && re_kind(a) == RE_THROWAWAY);
-    assert(mouse_point_ra(r2) == m2.as.ref && mouse_point_ra(r1) == m1.as.ref);
+    assert(mouse_point_ra(r2) == m2 && mouse_point_ra(r1) == m1);
     assert(same_vec(vec_of(mouse_point_p(r1)), p1));
     assert(!same_vec(vec_of(mouse_point_p(r2)), p1));
     h = fold_jc(h, a);
@@ -798,13 +785,13 @@ static void test_hq_mouse_point(void) {
     hq_over(b, NULL, m1);
     rb = as_jc(b)->re;
     assert(rb != NULL && rb != r1 && rb != r2 && as_jc(a)->re == r2);
-    assert(mouse_point_ra(rb) == m1.as.ref && same_vec(vec_of(mouse_point_p(rb)), p1));
+    assert(mouse_point_ra(rb) == m1 && same_vec(vec_of(mouse_point_p(rb)), p1));
     h = fold_jc(h, b);
 
     hq_over(a, target, vec_ref_fixed(vec_of(as_jo(target)->ra)));
     assert(as_jc(a)->re == target && re_kind(a) == RE_PLANET);
-    assert(mouse_point_ra(r1) == m1.as.ref && same_vec(vec_of(mouse_point_p(r1)), p1));
-    assert(mouse_point_ra(r2) == m2.as.ref && mouse_point_ra(rb) == m1.as.ref);
+    assert(mouse_point_ra(r1) == m1 && same_vec(vec_of(mouse_point_p(r1)), p1));
+    assert(mouse_point_ra(r2) == m2 && mouse_point_ra(rb) == m1);
     h = fold_jc(h, a);
     check("mouse point", h, MOUSE_POINT_HASH);
 
@@ -868,8 +855,8 @@ static void test_bv(void) {
     for (k = 1; k < 8; k++) {
         pico8_vec_t at = pico8_vec_add(qu, pico8_vec_div(pico8_vec_mul(pico8_vec_sub(re, qu), pico8_fixed_from_int(k)),
                                                          pico8_fixed_from_int(8)));
-        cls_of(probe)->hq(probe, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))).as.ref,
-                          vec_ref(64, 64).as.ref);
+        cls_of(probe)->hq(probe, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))),
+                          vec_ref(64, 64));
         h = fold_ref(h, ((pico8_g__t *)probe)->probe->et);
         if (((pico8_g__t *)probe)->probe->et == old) {
             break;
@@ -998,7 +985,7 @@ static void test_mouse_point_is_a_struct(void) {
     assert(mouse_point_ra(re) != NULL && mouse_point_p(re) != NULL);
     assert(cls_of(re)->kf == NULL && cls_of(re)->hq == NULL);
 
-    hq_over(jc, NULL, pico8_value_ref(NULL));
+    hq_over(jc, NULL, NULL);
     re = as_jc(jc)->re;
     assert(is_throwaway(re) && mouse_point_ra(re) == NULL);
     p = vec_of(mouse_point_p(re));
@@ -1027,7 +1014,7 @@ static void test_jc_new_stops_off_qu(void) {
     far = build_jc(as_jc(old)->qu);
     hq_over(far, NULL, vec_ref(-640, -640));
     assert(is_throwaway(as_jc(far)->re));
-    off[0] = vec_ref(1, 1).as.ref;
+    off[0] = vec_ref(1, 1);
     off[1] = pico8_ga_new(NULL);
     off[2] = pico8_g__new(NULL);
     off[3] = pico8_mz_new();

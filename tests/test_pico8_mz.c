@@ -36,7 +36,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -250,20 +249,20 @@ static pico8_mz_t *build_mz(void) {
     return pico8_mz_new();
 }
 
-static pico8_value_t vec_ref(int x, int y) {
+static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(v);
+    return v;
 }
 
-static pico8_value_t vec_ref_fixed(pico8_vec_t at) {
+static pico8_vec_t *vec_ref_fixed(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
-static void hq(void *mz, pico8_value_t mp, pico8_value_t rp) {
-    pico8_mz_struct_class()->hq(mz, mp.as.ref, rp.as.ref);
+static void hq(void *mz, pico8_vec_t *mp, pico8_vec_t *rp) {
+    pico8_mz_struct_class()->hq(mz, mp, rp);
 }
 
 static void ey(void *mz) {
@@ -636,7 +635,7 @@ static uint32_t draw(void *mz) {
 
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    cls->kj(mz, vec_ref(64, 64).as.ref);
+    cls->kj(mz, vec_ref(64, 64));
     cls->ev(mz, NULL);
     return screen_hash();
 }

@@ -35,7 +35,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -169,10 +168,10 @@ static pico8_bg_t *the_bg(void) {
     return bg;
 }
 
-static pico8_value_t vec_ref(int x, int y) {
+static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(v);
+    return v;
 }
 
 static int mget(int x, int y) {
@@ -261,8 +260,8 @@ static void test_map(void) {
     check("second map", map_hash(&stars, &zeros), SECOND_MAP_HASH);
 }
 
-static void hq(void *bg, pico8_value_t rp) {
-    pico8_bg_struct_class()->hq(bg, vec_ref(1, 2).as.ref, rp.as.ref);
+static void hq(void *bg, pico8_vec_t *rp) {
+    pico8_bg_struct_class()->hq(bg, vec_ref(1, 2), rp);
 }
 
 /* `hq` with no `mq` yet reads the zero vector; `rdown` keeps `rp` itself
@@ -271,7 +270,7 @@ static void hq(void *bg, pico8_value_t rp) {
 static void test_drag(void) {
     uint32_t h = 2166136261u;
     pico8_bg_t *bg;
-    pico8_value_t rp;
+    pico8_vec_t *rp;
     pico8_down_t out;
     pico8_vec_t v;
     int i;
@@ -283,19 +282,19 @@ static void test_drag(void) {
     assert(mo_qb()->v != NULL);
     v = *mo_qb()->v;
     assert(v.x == pico8_fixed_from_int(-10) && v.y == pico8_fixed_from_int(-20));
-    assert(bg->mq == rp.as.ref);
+    assert(bg->mq == rp);
     h = fold_vec(h, mo_qb()->v);
 
     rp = vec_ref(30, 40);
-    out = pico8_bg_struct_class()->rdown(bg, vec_ref(5, 6).as.ref, rp.as.ref);
+    out = pico8_bg_struct_class()->rdown(bg, vec_ref(5, 6), rp);
     assert(out.stop && (void *)out.held == bg);
-    assert(bg->mq != NULL && bg->mq == rp.as.ref);
+    assert(bg->mq != NULL && bg->mq == rp);
     h = fold_vec(h, bg->mq);
 
     for (i = 0; i < 3; i++) {
         rp = vec_ref(33 - 7 * i, 41 + 5 * i * i);
         hq(bg, rp);
-        assert(bg->mq == rp.as.ref);
+        assert(bg->mq == rp);
         h = fold_vec(h, mo_qb()->v);
         h = fold_vec(h, bg->mq);
     }
@@ -316,13 +315,13 @@ static void test_ldown(void) {
     check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
     check_int("ldown mz before", mz_before, LDOWN_MZ_BEFORE);
 
-    out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref);
+    out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(pico8_type_tag_of(out.held) == PICO8_TYPE_TAG_STRUCT);
     assert(out.held->cls == pico8_g__struct_class());
     assert(listed(pico8_cg("g_"), out.held));
 
-    out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref);
+    out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(pico8_type_tag_of(out.held) == PICO8_TYPE_TAG_STRUCT);
     assert(out.held->cls == pico8_mz_struct_class());
@@ -372,10 +371,10 @@ static void test_hover(void) {
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     h = fnv(h, m__state(bg));
 
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref, NULL, &kv, &kn));
+    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && kn.held != NULL && (void *)kn.held != bg);
     kv = NULL;
-    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref, NULL, &kv, &kn));
+    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && (void *)kn.held == bg);
     h = fold_vec(h, bg->mq);
 

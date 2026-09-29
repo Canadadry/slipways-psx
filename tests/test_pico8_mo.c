@@ -22,7 +22,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 #define GD_NEAR 1
@@ -79,13 +78,13 @@ static void test_placeholder_after_init(void) {
 
 typedef struct {
     pico8_struct_header_t header;
-    pico8_value_t ra;
+    const pico8_vec_t *ra;
 } ra_only_t;
 
 static const pico8_vec_t *ra_only_get_ra(const void *self) {
     const ra_only_t *e = self;
 
-    return e->ra.kind == PICO8_VALUE_REF ? e->ra.as.ref : NULL;
+    return e->ra;
 }
 
 static const pico8_struct_class_t g_ra_only_class = {.get_ra = ra_only_get_ra};
@@ -94,14 +93,14 @@ static const pico8_struct_class_t g_ra_only_class = {.get_ra = ra_only_get_ra};
 static void test_gd_on_placeholder(void) {
     pico8_vec_t near_ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_vec_t far_ra = pico8_vec_v(pico8_fixed_from_int(64 + 77), pico8_fixed_from_int(64));
-    ra_only_t near_e = {{PICO8_TYPE_TAG_STRUCT, &g_ra_only_class}, {PICO8_VALUE_REF, {0}}};
-    ra_only_t far_e = {{PICO8_TYPE_TAG_STRUCT, &g_ra_only_class}, {PICO8_VALUE_REF, {0}}};
+    ra_only_t near_e = {{PICO8_TYPE_TAG_STRUCT, &g_ra_only_class}, NULL};
+    ra_only_t far_e = {{PICO8_TYPE_TAG_STRUCT, &g_ra_only_class}, NULL};
     int near_hit;
     int far_hit;
 
     pico8_entity_init();
-    near_e.ra = pico8_value_ref(&near_ra);
-    far_e.ra = pico8_value_ref(&far_ra);
+    near_e.ra = &near_ra;
+    far_e.ra = &far_ra;
     near_hit = pico8_gd(&near_e.header);
     far_hit = pico8_gd(&far_e.header);
     printf("[gd] near %d far %d\n", near_hit, far_hit);

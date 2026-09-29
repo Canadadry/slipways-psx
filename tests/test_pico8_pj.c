@@ -38,7 +38,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -115,21 +114,34 @@ static pico8_lq_cell_t row_item(const void *lq, int i) {
     return ((const pico8_lq_t *)lq)->items[i];
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v);
+/* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
+ * boolean (then 0 or 1), 0x57 a string; any other moves every *_HASH. */
+static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+    return fnv(fnv(h, 0xF1u), (uint32_t)x);
+}
+
+static uint32_t fold_bool(uint32_t h, int b) {
+    return fnv(fnv(h, 0xB0u), b ? 1u : 0u);
+}
+
+static uint32_t fold_string(uint32_t h, const char *s) {
+    return fnv_str(fnv(h, 0x57u), s);
+}
+
 static uint32_t fold_ref(uint32_t h, const void *ref);
 static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row);
 
-static pico8_value_t item_value(const pico8_jb_item_t *item) {
+static uint32_t fold_item(uint32_t h, const pico8_jb_item_t *item) {
     if (item->s != NULL) {
-        return pico8_value_string(item->s);
+        return fold_string(h, item->s);
     }
     if (item->is_false) {
-        return pico8_value_bool(0);
+        return fold_bool(h, 0);
     }
     if (item->is_ref) {
-        return pico8_value_ref((void *)item->ref);
+        return fold_ref(h, item->ref);
     }
-    return pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
+    return fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
 }
 
 /* A row's items (a nested row folded the same way), then `c`, then `fn`;
@@ -140,13 +152,13 @@ static uint32_t fold_row_entries(uint32_t h, const pico8_jb_row_t *row) {
     for (i = 0; i < row->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
         h = row->items[i].row != NULL ? fold_row(fnv(h, 0x7Au), row->items[i].row)
-                                      : fold_value(h, item_value(&row->items[i]));
+                                      : fold_item(h, &row->items[i]);
     }
     if (row->has_c) {
-        h = fold_value(fnv_str(h, "c"), pico8_value_fixed(pico8_fixed_from_int(row->c)));
+        h = fold_fixed(fnv_str(h, "c"), pico8_fixed_from_int(row->c));
     }
     if (row->fn != NULL) {
-        h = fold_value(fnv_str(h, "fn"), pico8_value_string(row->fn));
+        h = fold_string(fnv_str(h, "fn"), row->fn);
     }
     return h;
 }
@@ -168,21 +180,6 @@ static uint32_t fold_ea(uint32_t h, const pico8_pj_ea_t *ea) {
     return fnv(h, (uint32_t)(row_entries(&ea->row) + (ea->lh != NULL)));
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
-}
-
 static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
@@ -202,10 +199,10 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-/* A present member: bit 1, then the value as fold_value folds it. The 1 of
- * a member the struct always holds, and the 0xF1 of a fixed, are constant
- * by the struct's shape, kept so that the hashes still prove the typed
- * reads. */
+/* A present member: bit 1, then the value as the frozen hashes fold it.
+ * The 1 of a member the struct always holds, and the 0xF1 of a fixed, are
+ * constant by the struct's shape, kept so that the hashes still prove the
+ * typed reads. */
 static uint32_t fold_fixed_member(uint32_t h, pico8_fixed_t f) {
     return fnv(fnv(fnv(h, 1u), 0xF1u), (uint32_t)f);
 }
@@ -297,7 +294,7 @@ static uint32_t fold_ou_heads(uint32_t h) {
 
     assert(ou != NULL);
     for (i = 1; i <= 7; i++) {
-        h = fold_value(h, item_value(&row_of(&ou->row, i)->items[0]));
+        h = fold_item(h, &row_of(&ou->row, i)->items[0]);
     }
     return h;
 }
@@ -514,11 +511,11 @@ static uint32_t fold_cell(uint32_t h, pico8_lq_cell_t c) {
     case PICO8_LQ_CELL_ROW:
         return fnv(h, 0x12u);
     case PICO8_LQ_CELL_FIXED:
-        return fold_value(h, pico8_value_fixed(c.as.fixed));
+        return fold_fixed(h, c.as.fixed);
     case PICO8_LQ_CELL_STRING:
-        return fold_value(h, pico8_value_string(c.as.s));
+        return fold_string(h, c.as.s);
     default:
-        return fold_value(h, pico8_value_bool(c.kind == PICO8_LQ_CELL_TRUE));
+        return fold_bool(h, c.kind == PICO8_LQ_CELL_TRUE);
     }
 }
 

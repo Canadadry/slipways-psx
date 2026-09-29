@@ -37,7 +37,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -234,10 +233,10 @@ static const pico8_struct_class_t *cls_of(const void *e) {
     return ((const pico8_struct_header_t *)e)->cls;
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t v2(int x, int y) {
@@ -431,15 +430,15 @@ static void test_directed(void) {
 
     assert(as_ie(shown)->ra != NULL);
     ra = *as_ie(shown)->ra;
-    assert(cls_of(shown)->hd(shown, vec_ref(v2(-500, -500)).as.ref, vec_ref(pico8_vec_add(ra, v2(1, 1))).as.ref));
-    assert(!cls_of(shown)->hd(shown, vec_ref(pico8_vec_add(ra, v2(1, 1))).as.ref,
-                              vec_ref(pico8_vec_add(ra, v2(20, 20))).as.ref));
-    assert(!cls_of(hidden)->hd(hidden, vec_ref(v2(0, 0)).as.ref, vec_ref(pico8_vec_add(ra, v2(1, 1))).as.ref));
+    assert(cls_of(shown)->hd(shown, vec_ref(v2(-500, -500)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
+    assert(!cls_of(shown)->hd(shown, vec_ref(pico8_vec_add(ra, v2(1, 1))),
+                              vec_ref(pico8_vec_add(ra, v2(20, 20)))));
+    assert(!cls_of(hidden)->hd(hidden, vec_ref(v2(0, 0)), vec_ref(pico8_vec_add(ra, v2(1, 1)))));
     {
         int dx;
         for (dx = -2; dx <= 11; dx++) {
-            int hit = cls_of(shown)->hd(shown, vec_ref(v2(0, 0)).as.ref,
-                                        vec_ref(pico8_vec_add(ra, v2(dx, dx - 1))).as.ref);
+            int hit = cls_of(shown)->hd(shown, vec_ref(v2(0, 0)),
+                                        vec_ref(pico8_vec_add(ra, v2(dx, dx - 1))));
             h = fnv(h, (uint32_t)hit);
         }
     }

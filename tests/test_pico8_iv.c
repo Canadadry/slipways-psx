@@ -25,7 +25,6 @@
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -172,7 +171,7 @@ static void test_mz_scan_skips_a_live_toast(void) {
  * bumped on the struct itself, and a truthy `p_` takes it out of hv. */
 typedef struct {
     pico8_ke_t ke;
-    pico8_value_t p_;
+    int p_;
 } fake_toast_t;
 
 static int g_fake_ph_calls = 0;
@@ -183,15 +182,14 @@ static void fake_toast_ph(void *self, pico8_fixed_t t) {
     g_fake_ph_calls++;
     g_fake_ph_last_t = t;
     if (t >= pico8_fixed_from_int(2)) {
-        f->p_ = pico8_value_bool(1);
+        f->p_ = 1;
     }
 }
 
 static int fake_toast_get_p_(const void *self) {
     const fake_toast_t *f = self;
 
-    return !(f->p_.kind == PICO8_VALUE_REF && f->p_.as.ref == NULL) &&
-           !(f->p_.kind == PICO8_VALUE_BOOL && f->p_.as.boolean == 0);
+    return f->p_ != 0;
 }
 
 static const pico8_struct_class_t g_fake_toast_class = {
@@ -205,7 +203,7 @@ static void test_dg_drives_a_ke_struct(void) {
 
     fresh_world();
     pico8_ke_struct_init(&f->ke, &g_fake_toast_class);
-    f->p_ = pico8_value_ref(NULL);
+    f->p_ = 0;
     pico8_ke_struct_pq(&f->ke);
     assert(listed(pico8_hv(), f));
 
