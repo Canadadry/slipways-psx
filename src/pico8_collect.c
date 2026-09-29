@@ -53,6 +53,37 @@ pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx) {
     return m;
 }
 
+int pico8_gu_ptrs(const pico8_ptrs_t *qk, const void *kb) {
+    pico8_ptrs_iter_t it;
+    void *e;
+    if (qk == NULL) {
+        return 0;
+    }
+    it = pico8_ptrs_all(qk);
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        if (e == kb) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx) {
+    pico8_ptrs_t m;
+    pico8_ptrs_iter_t it;
+    void *e;
+    assert(qk != NULL && "nv: a NULL list is not tolerated here, unlike gu and jp");
+    pico8_ptrs_init(&m);
+    it = pico8_ptrs_all(qk);
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        void *v;
+        if (kp(e, ctx, &v)) {
+            pico8_ptrs_add(&m, v);
+        }
+    }
+    return m;
+}
+
 static void pico8_la_append(pico8_value_t value, void *ctx) {
     pico8_list_add((pico8_list_t *)ctx, value);
 }

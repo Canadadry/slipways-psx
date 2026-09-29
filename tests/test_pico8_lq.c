@@ -661,7 +661,7 @@ static uint32_t fold_button_row(uint32_t h, const pico8_lq_t *lq) {
  * `h_`; then the screen. */
 static void test_planet_panel(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     int buttons = 0;
     int i;
 
@@ -669,7 +669,7 @@ static void test_planet_panel(void) {
     le = pico8_ok()->le;
     assert(le != NULL);
     for (i = 0; i < le->count; i++) {
-        const void *button = le->items[i].as.ref;
+        const void *button = le->items[i];
         if (button != NULL && pico8_type_tag_of(button) == PICO8_TYPE_TAG_STRUCT &&
             ((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class()) {
             buttons++;
@@ -684,11 +684,11 @@ static void test_planet_panel(void) {
 
 /* The row of `ok.le` whose first item is `head`, NULL when none. */
 static const pico8_lq_t *panel_row(const char *head) {
-    const pico8_list_t *le = pico8_ok()->le;
+    const pico8_ptrs_t *le = pico8_ok()->le;
     int i;
 
     for (i = 0; le != NULL && i < le->count; i++) {
-        const pico8_struct_header_t *button = le->items[i].as.ref;
+        const pico8_struct_header_t *button = le->items[i];
         const pico8_lq_t *lq;
         pico8_value_t v;
 

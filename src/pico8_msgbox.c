@@ -13,6 +13,7 @@
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_pi.h"
+#include "pico8_ptrs.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 
@@ -331,7 +332,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     pico8_value_t ep_val;
     pico8_vec_t ra;
     pico8_pz_ctx_t ctx;
-    pico8_list_t *le_heap;
+    pico8_ptrs_t *le_heap;
     pico8_ui_t *ok;
     pico8_value_t rn_arg;
     pico8_js_keys_t ep_row = {0};
@@ -379,17 +380,17 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
 
     /* TROU-7 */
     le_heap = malloc(sizeof *le_heap);
-    pico8_list_init(le_heap);
+    pico8_ptrs_init(le_heap);
     if (has_ep) {
-        pico8_list_add(le_heap, pico8_value_ref(pico8_pz_step(&ctx, &ep_row)));
+        pico8_ptrs_add(le_heap, pico8_pz_step(&ctx, &ep_row));
     }
     for (i = 0; i < n; i++) {
-        pico8_list_add(le_heap, pico8_value_ref(pico8_pz_step(&ctx, &bs[i])));
+        pico8_ptrs_add(le_heap, pico8_pz_step(&ctx, &bs[i]));
     }
     if (ok != NULL) {
         ok->le = le_heap;
     } else {
-        pico8_list_free(le_heap);
+        pico8_ptrs_free(le_heap);
         free(le_heap);
     }
 
@@ -397,8 +398,8 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
     if (frame->ff && ok != NULL) {
-        pico8_list_t *empty_heap = malloc(sizeof *empty_heap);
-        pico8_list_init(empty_heap);
+        pico8_ptrs_t *empty_heap = malloc(sizeof *empty_heap);
+        pico8_ptrs_init(empty_heap);
         ok->le = empty_heap;
     }
 }

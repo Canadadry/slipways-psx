@@ -526,7 +526,7 @@ static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
 /* What `pz(pj.cr, bs)` left in `ok.le`: the `ep` head row, then one row per
  * tech, all at `fa` = `ca`, sharing one `ra` = `hi`, `qf` stepped by `gq`. */
 static uint32_t fold_cr_le(uint32_t h, const char **head) {
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     const pico8_lq_t *lq;
     const pico8_vec_t *ra;
     int i;
@@ -535,14 +535,14 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     le = pico8_ok()->le;
     assert(le->count >= 2);
     h = fnv(h, (uint32_t)le->count);
-    lq = as_js(le->items[0].as.ref)->lq;
+    lq = as_js(le->items[0])->lq;
     assert(lq != NULL && lq->has_c && lq->c == pico8_fixed_from_int(13));
     assert(row_count(lq) > 0 && row_item(lq, 0).kind == PICO8_VALUE_STRING);
     *head = row_item(lq, 0).as.string;
     h = fnv_str(h, *head);
-    ra = as_js(le->items[0].as.ref)->ra;
+    ra = as_js(le->items[0])->ra;
     for (i = 0; i < le->count; i++) {
-        const pico8_js_t *b = as_js(le->items[i].as.ref);
+        const pico8_js_t *b = as_js(le->items[i]);
         pico8_vec_t qf = vec_of(b->qf);
         assert(b->ra == ra);
         assert(b->fa == pico8_fixed_from_int(10));

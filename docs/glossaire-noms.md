@@ -285,6 +285,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_gu_content` | même chose, mais les chaînes sont comparées par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua |
 | `jp(qk,ow)` | `pico8_jp` | filtre |
 | `nv(qk,kp)` | `pico8_nv` | applique `kp`, en ignorant les résultats faux |
+| — | `pico8_gu_ptrs`, `pico8_nv_ptrs` | `gu` et `nv` sur un `pico8_ptrs_t` (élément `void *`, appartenance par identité) ; ceux des registres, les versions à valeur gardant leurs autres appelants |
 | `la(a,b)` | `pico8_la` | concatène deux listes |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
@@ -654,6 +655,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
 | Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des deux formes qui modélisent encore la table Lua (la troisième, la table ob, est supprimée à D.8) ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
 | Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
+| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`ui.le`, calques de `dc`) |
 
 ### Mise en page
 

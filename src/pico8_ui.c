@@ -22,13 +22,13 @@
 static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;
 static pico8_ui_t *g_ok = NULL;
-static pico8_list_t g_shared_le;
+static pico8_ptrs_t g_shared_le;
 
 const pico8_qz_box_t *pico8_ui_hw(void) {
     return g_ui_up ? &pico8_ui_start.hw : NULL;
 }
 
-pico8_list_t *pico8_ui_le_shared(void) {
+pico8_ptrs_t *pico8_ui_le_shared(void) {
     return &g_shared_le;
 }
 
@@ -125,7 +125,7 @@ static void *pico8_ui_struct_new(void) {
 void pico8_ui_init(void) {
     pico8_ui_shutdown();
     pico8_pi_init();
-    pico8_list_init(&g_shared_le);
+    pico8_ptrs_init(&g_shared_le);
     g_ui_up = 1;
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
@@ -194,7 +194,7 @@ void pico8_ui_set_ok(pico8_ui_t *ui) {
 /* `le` is read before gw()/bh() run: the `self.le == le` test further down
  * is a pointer identity check against the list this frame started with. */
 void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
-    pico8_list_t *le_ptr_before;
+    pico8_ptrs_t *le_ptr_before;
     int le_count;
     pico8_vec_t qa;
     pico8_vec_t *heap_qa;
@@ -220,7 +220,7 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
 
     pico8_ui_gw(mem, self);
 
-    hit = (le_count == 0) || pico8_gu(le_ptr_before, pico8_value_ref(self->o_));
+    hit = (le_count == 0) || pico8_gu_ptrs(le_ptr_before, self->o_);
     if (hit) {
         pico8_ui_bh(self, "l");
     }
@@ -451,29 +451,29 @@ int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec
 /* `he()` returns nothing, so this never produces a mapped value (always 0)
  * and the mapped list stays empty; the point is `pico8_he()`'s side effect
  * of unregistering each entity. */
-static int pico8_ui_cj_he_mapper(pico8_value_t e, void *ctx, pico8_value_t *out_value) {
+static int pico8_ui_cj_he_mapper(void *e, void *ctx, void **out) {
     (void)ctx;
-    (void)out_value;
-    if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-        pico8_he((pico8_struct_header_t *)e.as.ref);
+    (void)out;
+    if (e != NULL) {
+        pico8_he(e);
     }
     return 0;
 }
 
 void pico8_ui_cj(pico8_ui_t *self) {
-    pico8_list_t *heap_le;
+    pico8_ptrs_t *heap_le;
 
     if (self == NULL) {
         return;
     }
 
     if (self->le != NULL) {
-        pico8_list_t discarded = pico8_nv(self->le, pico8_ui_cj_he_mapper, NULL);
-        pico8_list_free(&discarded);
+        pico8_ptrs_t discarded = pico8_nv_ptrs(self->le, pico8_ui_cj_he_mapper, NULL);
+        pico8_ptrs_free(&discarded);
     }
 
     /* TROU-7 */
     heap_le = malloc(sizeof *heap_le);
-    pico8_list_init(heap_le);
+    pico8_ptrs_init(heap_le);
     self->le = heap_le;
 }

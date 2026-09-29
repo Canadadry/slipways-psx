@@ -6,6 +6,7 @@
 
 #include "pico8_dispatch_context.h"
 #include "pico8_game_data.h"
+#include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
 
@@ -243,14 +244,14 @@ void pico8_he(pico8_struct_header_t *e) {
 
 void pico8_dc(const char *nt) {
     const pico8_list_t *bucket_src;
-    pico8_list_t layers[15];
+    pico8_ptrs_t layers[15];
     int kj = strcmp(nt, "kj") == 0;
     int i, o;
 
     assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
-        pico8_list_init(&layers[i]);
+        pico8_ptrs_init(&layers[i]);
     }
 
     bucket_src = pico8_cv(nt);
@@ -271,12 +272,12 @@ void pico8_dc(const char *nt) {
             if (layer < 1 || layer > 15) {
                 continue;
             }
-            pico8_list_add(&layers[layer - 1], pico8_value_ref(qc));
+            pico8_ptrs_add(&layers[layer - 1], qc);
         }
     }
 
     for (o = 1; o <= 15; o++) {
-        pico8_list_t *bucket = &layers[o - 1];
+        pico8_ptrs_t *bucket = &layers[o - 1];
 
         if (kj && bucket->count > 0) {
             pico8_fixed_t ci;
@@ -288,7 +289,7 @@ void pico8_dc(const char *nt) {
         }
 
         for (i = 0; i < bucket->count; i++) {
-            pico8_struct_header_t *qc = bucket->items[i].as.ref;
+            pico8_struct_header_t *qc = bucket->items[i];
             void (*draw)(void *self, const pico8_vec_t *ra) = kj ? qc->cls->kj : qc->cls->ev;
             const pico8_vec_t *ra = qc->cls->get_ra != NULL ? qc->cls->get_ra(qc) : NULL;
 
@@ -299,7 +300,7 @@ void pico8_dc(const char *nt) {
     }
 
     for (i = 0; i < 15; i++) {
-        pico8_list_free(&layers[i]);
+        pico8_ptrs_free(&layers[i]);
     }
 }
 

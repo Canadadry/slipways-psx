@@ -4,6 +4,7 @@
 #include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_list.h"
+#include "pico8_ptrs.h"
 #include "pico8_value.h"
 
 /* TROU-3 */
@@ -27,6 +28,15 @@ pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx);
 /* Returns a new heap-backed list, `a`'s elements then `b`'s, that the
  * caller releases with pico8_list_free(). Neither argument may be NULL. */
 pico8_list_t pico8_la(const pico8_list_t *a, const pico8_list_t *b);
+
+/* Membership by identity; a NULL `qk` is a member of nothing. */
+int pico8_gu_ptrs(const pico8_ptrs_t *qk, const void *kb);
+
+/* pico8_nv over pointers: `kp` writes *out and returns 1 to contribute an
+ * element. Returns a new container the caller releases with
+ * pico8_ptrs_free(). `qk` must not be NULL. */
+typedef int (*pico8_nv_ptrs_fn)(void *e, void *ctx, void **out);
+pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx);
 
 /* TROU-3 */
 /* Membership as pico8_gu, except that two PICO8_VALUE_STRINGs are compared

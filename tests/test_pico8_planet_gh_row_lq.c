@@ -40,7 +40,7 @@
 #include "../src/pico8_vec.h"
 
 /* The `js` button instances `pz()` just built. */
-static const pico8_list_t *ok_le(void) {
+static const pico8_ptrs_t *ok_le(void) {
     const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
     assert(ok->le != NULL);
@@ -49,12 +49,10 @@ static const pico8_list_t *ok_le(void) {
 
 /* A button's `lq` field, after `js:pq()` replaced the raw row override
  * with a real row. */
-static const pico8_lq_t *button_lq(pico8_value_t button_val) {
-    const void *button;
+static const pico8_lq_t *button_lq(const void *button) {
     const pico8_lq_t *lq;
 
-    assert(button_val.kind == PICO8_VALUE_REF && button_val.as.ref != NULL);
-    button = button_val.as.ref;
+    assert(button != NULL);
     assert(((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class());
     lq = ((const pico8_js_t *)button)->lq;
     assert(lq != NULL);
@@ -102,7 +100,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     const pico8_jb_row_t *kw_row;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     const pico8_lq_t *exports_lq = NULL;
     pico8_value_t entry;
     int i;

@@ -397,7 +397,7 @@ static void test_built(void) {
         assert(row->has_my);
         assert(row->my == pico8_eu_field_value());
     }
-    assert(size_of(pico8_ok()->le) == 0);
+    assert(pico8_ok()->le != NULL && pico8_ok()->le->count == 0);
     check("built", h, BUILT_HASH);
 }
 

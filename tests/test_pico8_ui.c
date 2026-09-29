@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "../src/pico8_assets.h"
+#include "../src/pico8_audio.h"
 #include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
@@ -44,6 +45,7 @@
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_planet_trade.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_ptrs.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_score_panel.h"
@@ -104,7 +106,7 @@ static int listed(const pico8_list_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
-static const pico8_list_t *le_of(const pico8_ui_t *ok) {
+static const pico8_ptrs_t *le_of(const pico8_ui_t *ok) {
     assert(ok->le != NULL);
     return ok->le;
 }
@@ -302,7 +304,7 @@ static void test_built(void) {
 
     assert(ok->le == pico8_ui_le_shared());
     assert(ok->hw == &pico8_ui_start.hw);
-    assert(pico8_type_tag_of(pico8_ui_le_shared()) == PICO8_TYPE_TAG_LIST && le_of(ok)->count == 0);
+    assert(le_of(ok)->count == 0);
     check("built", h, BUILT_HASH);
 }
 
@@ -316,7 +318,7 @@ static void test_shared(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other = pico8_ui_new();
-    const pico8_list_t *le = ok->le;
+    const pico8_ptrs_t *le = ok->le;
     pico8_fixed_t ql;
 
     assert(other != NULL && other != ok);
@@ -332,7 +334,7 @@ static void test_shared(void) {
     call_ix_my(4);
     assert(ok->le != le && other->le != ok->le);
     h = fnv(h, (uint32_t)le_of(ok)->count);
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), le_of(ok)->items[0].as.ref));
+    h = fnv(h, (uint32_t)rank_in(pico8_hv(), le_of(ok)->items[0]));
     assert(pico8_ui_le_shared() == le && le->count == 0);
 
     (void)pico8_fv_new();
@@ -570,7 +572,7 @@ static void test_left(void) {
 static void test_cj(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     int count;
     int i;
 
@@ -579,14 +581,14 @@ static void test_cj(void) {
     count = le->count;
     assert(count > 0);
     for (i = 0; i < count; i++) {
-        assert(listed(pico8_hv(), le->items[i].as.ref));
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), le->items[i].as.ref));
+        assert(listed(pico8_hv(), le->items[i]));
+        h = fnv(h, (uint32_t)rank_in(pico8_hv(), le->items[i]));
     }
     h = fnv(h, (uint32_t)pico8_hv()->count);
     pico8_ui_cj(pico8_ok());
     assert(ok->le != le && le_of(ok)->count == 0 && ok->le != pico8_ui_le_shared());
     for (i = 0; i < count; i++) {
-        assert(!listed(pico8_hv(), le->items[i].as.ref));
+        assert(!listed(pico8_hv(), le->items[i]));
     }
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("cj", h, CJ_HASH);
@@ -599,7 +601,7 @@ static void test_stale(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *old;
     void *button;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
 
     pico8_input_init(&input);
     pico8_dispatch_set_input(&input);
@@ -624,6 +626,49 @@ static void test_stale(void) {
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_ok()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("stale", h, STALE_HASH);
+}
+
+/* With a panel up, `lj` hands the left click to an entity of `le`: the
+ * third row of `ha` runs its `my`, which flips `ih`. */
+static void test_click_reaches_a_row_of_le(void) {
+    pico8_ui_t *ok = start_game();
+    void *row;
+    int ih;
+    int x;
+    int y;
+    int hx = -1;
+    int hy = -1;
+
+    call_ix_my(4);
+    assert(le_of(ok)->count == 4);
+    row = le_of(ok)->items[2];
+    for (y = 0; y < 128 && hx < 0; y += 2) {
+        for (x = 0; x < 128 && hx < 0; x += 2) {
+            mouse_at(x, y, 0);
+            pico8_ui_lj(&mem, ok);
+            if ((void *)ok->o_ == row) {
+                hx = x;
+                hy = y;
+            }
+        }
+    }
+    assert(hx >= 0);
+    ih = pico8_ih();
+    mouse_at(hx, hy, 1);
+    pico8_ui_lj(&mem, ok);
+    assert(pico8_ih() == !ih);
+    pico8_set_ih(ih);
+}
+
+/* `pico8_ui_init()` empties the shared `le`. */
+static void test_init_empties_shared_le(void) {
+    static int mark;
+
+    (void)start_game();
+    pico8_ptrs_add(pico8_ui_le_shared(), &mark);
+    assert(pico8_ui_le_shared()->count == 1);
+    pico8_ui_init();
+    assert(pico8_ui_le_shared()->count == 0);
 }
 
 static void must_abort(void (*write)(void *), void *e) {
@@ -1140,6 +1185,8 @@ int main(void) {
     in_fresh_child(test_left);
     in_fresh_child(test_cj);
     in_fresh_child(test_stale);
+    in_fresh_child(test_click_reaches_a_row_of_le);
+    in_fresh_child(test_init_empties_shared_le);
     in_fresh_child(test_ui_is_a_struct);
     in_fresh_child(test_ui_held_stops_off_row);
     in_fresh_child(test_ke_closed);

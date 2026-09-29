@@ -328,8 +328,18 @@ static uint32_t fold_kq(uint32_t h, const pico8_js_t *b) {
     return h;
 }
 
-static const pico8_list_t *ok_le(void) {
+static const pico8_ptrs_t *ok_le(void) {
     return pico8_ok() == NULL ? NULL : pico8_ok()->le;
+}
+
+static int rank_in_le(const pico8_ptrs_t *le, const void *e) {
+    int i;
+    for (i = 0; le != NULL && i < le->count; i++) {
+        if (le->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 /* A button as `js(b)` and `js:pq` left it: every construction key, what
@@ -383,18 +393,18 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)listed(pico8_cv(bm[i]), b));
     }
-    return fnv(h, (uint32_t)rank_in(ok_le(), b));
+    return fnv(h, (uint32_t)rank_in_le(ok_le(), b));
 }
 
 static uint32_t fold_le(uint32_t h, const char *label) {
-    const pico8_list_t *le = ok_le();
+    const pico8_ptrs_t *le = ok_le();
     int i;
 
     assert(le != NULL);
     printf("[%s] %d button(s) in ok.le\n", label, le->count);
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i].as.ref;
+        void *b = le->items[i];
         printf("[%s] button %d: my %u, h_ %u, jb %u\n", label, i, my_state(b), h__state(b),
                js_of(b)->jb != NULL ? 3u : 0u);
         h = fold_button(h, b);
@@ -404,10 +414,10 @@ static uint32_t fold_le(uint32_t h, const char *label) {
 
 /* The `ra` every row of one `pz` call shares. */
 static void check_shared_ra(void) {
-    const pico8_list_t *le = ok_le();
+    const pico8_ptrs_t *le = ok_le();
     int i;
     for (i = 1; le != NULL && i < le->count; i++) {
-        assert(js_of(le->items[i].as.ref)->ra == js_of(le->items[0].as.ref)->ra);
+        assert(js_of(le->items[i])->ra == js_of(le->items[0])->ra);
     }
 }
 
@@ -619,7 +629,7 @@ static void test_eu(void) {
     start_game();
     check_int("eu buttons", ix_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
-        assert(!listed(ok_le(), ix[i]));
+        assert(rank_in_le(ok_le(), ix[i]) < 0);
         assert((js_of(ix[i])->hb != NULL) == (i == 1));
         h = fold_button(h, ix[i]);
     }
@@ -645,7 +655,7 @@ static void invent(const char *rr) {
 
 static void test_research(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     int unaffordable = 0;
     int i;
 
@@ -655,13 +665,13 @@ static void test_research(void) {
     check_shared_ra();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        if (my_state(le->items[i].as.ref) == 1) {
+        if (my_state(le->items[i]) == 1) {
             unaffordable++;
         }
     }
     printf("[research] %d unaffordable tech(s)\n", unaffordable);
     assert(unaffordable >= 1);
-    assert(!js_of(le->items[le->count - 1].as.ref)->has_my && js_of(le->items[le->count - 1].as.ref)->jb != NULL);
+    assert(!js_of(le->items[le->count - 1])->has_my && js_of(le->items[le->count - 1])->jb != NULL);
     h = fold_le(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -670,14 +680,14 @@ static void test_research(void) {
 
 static void test_fe(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     int with_pt = 0;
     int i;
 
     known_panel();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        with_pt += js_of(le->items[i].as.ref)->_jo_fe_pt != NULL;
+        with_pt += js_of(le->items[i])->_jo_fe_pt != NULL;
     }
     printf("[fe] %d row(s) carry _jo_fe_pt\n", with_pt);
     assert(with_pt >= 1);
@@ -898,13 +908,13 @@ static void test_hb(void) {
 /* The `my` of a `jo:fe` row builds on the planet it captured. */
 static void test_fe_my(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     int i;
 
     known_panel();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i].as.ref;
+        void *b = le->items[i];
         const pico8_jo_t *pt;
         if (js_of(b)->_jo_fe_pt == NULL) {
             continue;
@@ -926,14 +936,14 @@ static void test_fe_my(void) {
 /* The `my` of a `cr` row invents the tech it captured. */
 static void test_cr_my(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     const pico8_list_t *invented;
     int i;
 
     tech_screen();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        if (my_state(le->items[i].as.ref) == 3) {
+        if (my_state(le->items[i]) == 3) {
             break;
         }
     }
@@ -941,7 +951,7 @@ static void test_cr_my(void) {
     assert(pico8_fm_hy() != NULL);
     invented = pico8_fm_hy()->invented;
     h = fnv(h, (uint32_t)invented->count);
-    call_my(le->items[i].as.ref);
+    call_my(le->items[i]);
     invented = pico8_fm_hy()->invented;
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
@@ -1195,13 +1205,13 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
 }
 
 static uint32_t fold_le_members(uint32_t h) {
-    const pico8_list_t *le = ok_le();
+    const pico8_ptrs_t *le = ok_le();
     int i;
 
     assert(le != NULL);
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
-        h = fold_js_members(h, le->items[i].as.ref);
+        h = fold_js_members(h, le->items[i]);
     }
     return h;
 }
@@ -1220,13 +1230,13 @@ static void check_one_pz(void *const *b, int n) {
 }
 
 static void check_le_one_pz(void) {
-    const pico8_list_t *le = ok_le();
+    const pico8_ptrs_t *le = ok_le();
     void *b[32];
     int i;
 
     assert(le != NULL && le->count <= 32);
     for (i = 0; i < le->count; i++) {
-        b[i] = le->items[i].as.ref;
+        b[i] = le->items[i];
     }
     check_one_pz(b, le->count);
 }
@@ -1437,7 +1447,7 @@ static uint32_t members_title_and_game(void) {
 
     call_my(ix[3]);
     check_le_one_pz();
-    printf("[members] ha: %d row(s), fg on the 4th: %d\n", ok_le()->count, js_of(ok_le()->items[3].as.ref)->has_fg);
+    printf("[members] ha: %d row(s), fg on the 4th: %d\n", ok_le()->count, js_of(ok_le()->items[3])->has_fg);
     h = fold_le_members(h);
 
     fresh[2] = pico8_js_new(NULL);
@@ -1459,7 +1469,7 @@ static uint32_t members_title_and_game(void) {
 }
 
 static uint32_t members_research(void) {
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     uint32_t h = 2166136261u;
     int dear = 0;
     int affordable = 0;
@@ -1475,7 +1485,7 @@ static uint32_t members_research(void) {
     tech_screen();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        void *b = le->items[i].as.ref;
+        void *b = le->items[i];
 
         if (my_state(b) == 0) {
             continue;
@@ -1499,7 +1509,7 @@ static uint32_t members_research(void) {
 }
 
 static uint32_t members_fe(void) {
-    const pico8_list_t *le;
+    const pico8_ptrs_t *le;
     const void *pt = NULL;
     uint32_t h = 2166136261u;
     int rows = 0;
@@ -1509,7 +1519,7 @@ static uint32_t members_fe(void) {
     known_panel();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        const pico8_js_t *b = js_of(le->items[i].as.ref);
+        const pico8_js_t *b = js_of(le->items[i]);
 
         if (b->_jo_fe_pt == NULL) {
             continue;
@@ -1691,11 +1701,11 @@ static void test_pz_fa_only_from_ca(void) {
     start_game();
     row.lq = pico8_value_ref(NULL);
     pico8_pz(&frame, &row, 1);
-    assert(ok_le()->count == 1 && js_of(ok_le()->items[0].as.ref)->fa == pico8_fixed_from_int(11));
+    assert(ok_le()->count == 1 && js_of(ok_le()->items[0])->fa == pico8_fixed_from_int(11));
     frame.has_ca = 1;
     frame.ca = pico8_fixed_from_int(14);
     pico8_pz(&frame, &row, 1);
-    assert(ok_le()->count == 1 && js_of(ok_le()->items[0].as.ref)->fa == pico8_fixed_from_int(14));
+    assert(ok_le()->count == 1 && js_of(ok_le()->items[0])->fa == pico8_fixed_from_int(14));
 }
 
 /* `cb` writes `e_` for every entry, kept or not; `pico8_data_init` forgets
