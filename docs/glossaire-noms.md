@@ -430,16 +430,17 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `mh` | `pico8_mh_t` | boîte de message, ses articles dans `items[PICO8_MH_ITEMS_CAP]` (12, `#bz`) et `items_count` ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, chacun un article `const pico8_jb_row_t *` de `bl`, `rh`, `lh`) |
 | `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir des clés de ses boutons (`pico8_js_keys_t`, un tableau et son compte) et remplit `ok.le` avec ses icônes cliquables |
-| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) |
+| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) ; ses positionnels, `items` (`items_count`), classés une fois à la construction en `pico8_lq_cell_t` : rien (nil et faux, confondus), fixe, chaîne, rangée (tuple), autre-vrai (`pico8_lq_cell_kind_t`, `PICO8_LQ_CELL_*`) |
 | — | `pico8_lq_keys_of_row` | les clés d'une rangée générée : ses items (une sous-rangée, un tuple, en REF vers elle) et son `c` |
-| `lq(row)` | `pico8_lq_keys_of` | les clés d'où `js:pq` recopie une rangée : tous ses items dans l'ordre, empruntés, et ses `c`, `bg`, `score`, `ra` |
+| `lq(row)` | `pico8_lq_copy` | la copie que `js:pq` fait d'une rangée : toutes ses cases dans l'ordre, ses `c`, `bg`, `score`, `ra`, remise en page |
+| `add(l, …)` de `hp:lq` | `pico8_lq_add` | ajoute une case à une rangée déjà mise en page, sans toucher `fs` ni `w` |
 | `jb` | `pico8_jb_t` | une bulle d'info ; ses clés sont ses lignes, une rangée générée `pico8_jb_row_t` (`dr`, `oy` de `nb`, `hp:jb`) |
 | — | `pico8_jb_row_t`, `pico8_jb_item_t` | contenu constant d'une bulle (`dr`, `oy` de `nb`), des `lq` de `ix`, `ha`, `bo` et des rangées de `bz`, `px`, `dz`, `em` de l'arbre `jo`, `rb` de `fv`, `gs`, `i_` de `pj`, `fk` et `lq` de `hp` : une rangée de chaînes, de nombres entiers (`n`) ou non (`is_fixed`, `fixed`), de faux (`is_false`), de rangées et de pointeurs (`is_ref`, `ref` ; NULL : nil), avec son `c`, son `fn` et son `qe` éventuels. Est aussi la forme d'un article de `bl` et d'un tuple de `lq:mn` (`{f,w,qw,qv}`, ou `{qe=x}` lu `{x,5}`) |
 | — | `pico8_int_seq_t`, `pico8_str_seq_t`, `pico8_vec_seq_t` | séquence d'entiers, liste d'étiquettes, séquence de vecteurs, chacune avec son compte ; `pico8_int_seq_has_fixed` est le `gu` du cart sur des entiers |
 | — | `pico8_kw_t` | l'enregistrement `kw` : `qe` sous `has_qe`, `mu` |
 | — | `pico8_qe_map_t` | une table par ressource (`po`, `fu`) : clés `qe` entières, ordre d'insertion, 16 au plus ; `pico8_qe_map_get`/`_set` |
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
-| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` : une rangée par ses clés `lq_row`/`h_row` ou sa rangée générée `jb_row`, sinon une liste, un `lq` ou nil) |
+| `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` : une rangée par ses clés `lq_row`/`h_row` ou sa rangée générée `jb_row`, sinon un `lq` ou nil) |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
 | `my` | champ | callback de clic d'un bouton : `pico8_js_fn` sur `js` (rien de rendu), `pico8_fq_my_fn` sur `fq` (vérité rangée dans `p_`) |
 | `bo` | `pico8_bo_table` (typée ; `fv:pq` en construit les clés des boutons) | les options de difficulté de l'écran-titre |

@@ -9,7 +9,6 @@
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
 #include "pico8_layout.h"
-#include "pico8_list.h"
 #include "pico8_msgbox.h"
 #include "pico8_probe.h"
 #include "pico8_score_panel.h"
@@ -259,40 +258,44 @@ void pico8_pj_ph(pico8_pj_t *self) {
         static const pico8_jb_row_t back = {.count = 2, .items = back_items};
         pico8_js_keys_t spec1 = {0};
         pico8_js_keys_t spec2 = {0};
-        pico8_list_t lq1;
-        pico8_list_t lq2;
+        pico8_value_t lq1_item;
+        pico8_value_t lq2_item;
+        pico8_lq_keys_t lq1 = {0};
+        pico8_lq_keys_t lq2 = {0};
         pico8_js_t *made1;
         pico8_js_t *made2;
 
         (void)pico8_fq_new(NULL);
 
-        pico8_list_init(&lq1);
-        pico8_list_add(&lq1, pico8_value_string(" again? "));
+        lq1_item = pico8_value_string(" again? ");
+        lq1.items = &lq1_item;
+        lq1.count = 1;
         spec1.has_fa = 1;
         spec1.fa = pico8_fixed_from_int(15);
         /* TROU-7 */
         spec1.ra = malloc(sizeof *spec1.ra);
         *spec1.ra = pico8_vec_v(pico8_fixed_from_int(51), pico8_fixed_from_int(100));
-        spec1.lq = pico8_value_ref(&lq1);
+        spec1.lq = pico8_value_ref(NULL);
+        spec1.lq_row = &lq1;
         spec1.has_my = 1;
         spec1.my = pico8_init_field_value();
         made1 = pico8_js_new(&spec1);
         (void)made1;
-        pico8_list_free(&lq1);
 
-        pico8_list_init(&lq2);
-        pico8_list_add(&lq2, pico8_value_ref((void *)&back));
+        lq2_item = pico8_value_ref((void *)&back);
+        lq2.items = &lq2_item;
+        lq2.count = 1;
         spec2.has_fa = 1;
         spec2.fa = pico8_fixed_from_int(15);
         /* TROU-7 */
         spec2.ra = malloc(sizeof *spec2.ra);
         *spec2.ra = pico8_vec_v(pico8_fixed_from_int(39), pico8_fixed_from_int(100));
-        spec2.lq = pico8_value_ref(&lq2);
+        spec2.lq = pico8_value_ref(NULL);
+        spec2.lq_row = &lq2;
         spec2.has_my = 1;
         spec2.my = pico8_pj_de_js_my_dispatch;
         made2 = pico8_js_new(&spec2);
         (void)made2;
-        pico8_list_free(&lq2);
 
         if (self != NULL) {
             self->c_ = 1;

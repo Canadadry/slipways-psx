@@ -107,12 +107,12 @@ static int is_lq(const void *e) {
 }
 
 static int row_count(const void *lq) {
-    return ((const pico8_lq_t *)lq)->items.count;
+    return ((const pico8_lq_t *)lq)->items_count;
 }
 
-static pico8_value_t row_item(const void *lq, int i) {
+static pico8_lq_cell_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const pico8_lq_t *)lq)->items.items[i];
+    return ((const pico8_lq_t *)lq)->items[i];
 }
 
 static uint32_t fold_value(uint32_t h, pico8_value_t v);
@@ -507,6 +507,21 @@ static pico8_vec_t vec_of(const pico8_vec_t *v) {
     return *v;
 }
 
+/* A positional as the value it was sorted from folded: a row as any REF,
+ * NOTHING as false (no row folded here holds a nil at the top level). */
+static uint32_t fold_cell(uint32_t h, pico8_lq_cell_t c) {
+    switch (c.kind) {
+    case PICO8_LQ_CELL_ROW:
+        return fnv(h, 0x12u);
+    case PICO8_LQ_CELL_FIXED:
+        return fold_value(h, pico8_value_fixed(c.as.fixed));
+    case PICO8_LQ_CELL_STRING:
+        return fold_value(h, pico8_value_string(c.as.s));
+    default:
+        return fold_value(h, pico8_value_bool(c.kind == PICO8_LQ_CELL_TRUE));
+    }
+}
+
 /* A row's `lq` as `js:pq` built it: its `w`, its `c`, its positional items. */
 static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
     int i;
@@ -515,9 +530,8 @@ static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
     h = fold_fixed_member(h, lq->w);
     h = fold_opt_fixed(h, lq->has_c, lq->c);
     for (i = 0; i < row_count(lq); i++) {
-        pico8_value_t item = row_item(lq, i);
         h = fnv(h, (uint32_t)(i + 1));
-        h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
+        h = fold_cell(h, row_item(lq, i));
     }
     return h;
 }
@@ -536,8 +550,8 @@ static uint32_t fold_cr_le(uint32_t h, const char **head) {
     h = fnv(h, (uint32_t)le->count);
     lq = as_js(le->items[0])->lq;
     assert(lq != NULL && lq->has_c && lq->c == pico8_fixed_from_int(13));
-    assert(row_count(lq) > 0 && row_item(lq, 0).kind == PICO8_VALUE_STRING);
-    *head = row_item(lq, 0).as.string;
+    assert(row_count(lq) > 0 && row_item(lq, 0).kind == PICO8_LQ_CELL_STRING);
+    *head = row_item(lq, 0).as.s;
     h = fnv_str(h, *head);
     ra = as_js(le->items[0])->ra;
     for (i = 0; i < le->count; i++) {
@@ -713,7 +727,7 @@ static void test_ky_reads_invented_and_happiness(void) {
 
 /* Item `i` (1-based) of the line that `ph` put in the box's row `k`
  * (0-based), an article `ld`. */
-static pico8_value_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
+static pico8_lq_cell_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
     const pico8_jb_row_t *ld;
     const pico8_lq_t *lq;
 
@@ -721,8 +735,8 @@ static pico8_value_t ph_row_item(const pico8_mh_t *mh, int k, int i) {
     ld = mh->items[k];
     assert(ld->fn != NULL && strcmp(ld->fn, "ld") == 0 && ld->items[0].is_ref);
     lq = ld->items[0].ref;
-    assert(i <= lq->items.count);
-    return lq->items.items[i - 1];
+    assert(i <= lq->items_count);
+    return lq->items[i - 1];
 }
 
 /* `ph` shows `ky()`: the score-5 row (box row 10) carries `s[5]`, the total,
@@ -731,7 +745,8 @@ static void test_ph_rows_show_ky(void) {
     void *ju = start_game();
     pico8_hy_t *fm = pico8_fm_hy();
     const pico8_mh_t *mh;
-    pico8_value_t total;
+    pico8_lq_cell_t total;
+    pico8_lq_cell_t icon;
     int i;
 
     for (i = 0; i < 10; i++) {
@@ -745,9 +760,10 @@ static void test_ph_rows_show_ky(void) {
     mh = pico8_kc();
     assert(mh != NULL && mh->items_count == PICO8_BZ_COUNT);
     total = ph_row_item(mh, 10, 3);
-    assert(total.kind == PICO8_VALUE_STRING && strcmp(total.as.string, "14") == 0);
+    assert(total.kind == PICO8_LQ_CELL_STRING && strcmp(total.as.s, "14") == 0);
     for (i = 1; i <= 5; i++) {
-        assert(pico8_value_equal(ph_row_item(mh, 11, i), pico8_value_fixed(pico8_fixed_from_int(57))));
+        icon = ph_row_item(mh, 11, i);
+        assert(icon.kind == PICO8_LQ_CELL_FIXED && icon.as.fixed == pico8_fixed_from_int(57));
     }
 }
 

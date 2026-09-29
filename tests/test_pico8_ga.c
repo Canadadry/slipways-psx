@@ -472,11 +472,22 @@ static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
     return fnv(h, (uint32_t)(t->count + (t->has_qe != 0) + (t->has_c != 0)));
 }
 
+/* A positional as the value it was sorted from folded; NOTHING as false
+ * (no row folded here holds a nil at the top level). */
 static uint32_t fold_lq_positional(uint32_t h, const pico8_lq_t *lq, int i) {
-    pico8_value_t v = lq->items.items[i];
+    pico8_lq_cell_t c = lq->items[i];
 
     h = fnv(h, (uint32_t)(i + 1));
-    return v.kind == PICO8_VALUE_REF && v.as.ref != NULL ? fold_tuple(h, v.as.ref) : fold_value(h, v);
+    switch (c.kind) {
+    case PICO8_LQ_CELL_ROW:
+        return fold_tuple(h, c.as.row);
+    case PICO8_LQ_CELL_FIXED:
+        return fold_value(h, pico8_value_fixed(c.as.fixed));
+    case PICO8_LQ_CELL_STRING:
+        return fold_value(h, pico8_value_string(c.as.s));
+    default:
+        return fold_value(h, pico8_value_bool(c.kind == PICO8_LQ_CELL_TRUE));
+    }
 }
 
 /* The row `jo:ex` built into `lq`: its first `#fs` positionals, `c`, `bg`,
@@ -515,10 +526,10 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "fs"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_value(fnv_str(h, "w"), pico8_value_fixed(lq->w));
-    for (i = k; i < lq->items.count; i++) {
+    for (i = k; i < lq->items_count; i++) {
         h = fold_lq_positional(h, lq, i);
     }
-    return fnv(h, (uint32_t)(lq->items.count + n + 2));
+    return fnv(h, (uint32_t)(lq->items_count + n + 2));
 }
 
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */

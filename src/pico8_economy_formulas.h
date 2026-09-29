@@ -3,7 +3,6 @@
 
 #include "pico8_struct.h"
 #include "pico8_fixed.h"
-#include "pico8_list.h"
 #include "pico8_map_tables.h"
 #include "pico8_value.h"
 

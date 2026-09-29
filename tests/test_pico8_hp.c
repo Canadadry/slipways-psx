@@ -258,12 +258,19 @@ static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row, int depth) {
     return h;
 }
 
-/* A row's positional, a tuple when a REF. */
-static uint32_t fold_lq_item(uint32_t h, pico8_value_t v, int depth) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return fold_row(h, v.as.ref, depth);
+/* A row's positional as the value it was sorted from folded; NOTHING as
+ * false (no row folded here holds a nil at the top level). */
+static uint32_t fold_lq_item(uint32_t h, pico8_lq_cell_t c, int depth) {
+    switch (c.kind) {
+    case PICO8_LQ_CELL_ROW:
+        return fold_row(h, c.as.row, depth);
+    case PICO8_LQ_CELL_FIXED:
+        return fold_value(h, pico8_value_fixed(c.as.fixed), depth);
+    case PICO8_LQ_CELL_STRING:
+        return fold_value(h, pico8_value_string(c.as.s), depth);
+    default:
+        return fold_value(h, pico8_value_bool(c.kind == PICO8_LQ_CELL_TRUE), depth);
     }
-    return fold_value(h, v, depth);
 }
 
 /* A row folded as fold_value folded its table view: its first `#fs`
@@ -281,10 +288,10 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     bg = pico8_lq_bg(lq);
     assert(lq->fs != NULL);
     k = lq->fs_count;
-    h = fold_view_head(h, lq->items.count + (lq->has_c != 0) + !(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL) +
+    h = fold_view_head(h, lq->items_count + (lq->has_c != 0) + !(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL) +
                               (lq->has_score != 0) + (lq->ra != NULL) + 2);
     for (i = 0; i < k; i++) {
-        h = fold_lq_item(fold_view_index(h, i + 1), lq->items.items[i], 3);
+        h = fold_lq_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
     if (lq->has_c) {
         h = fold_value(fold_view_name(h, "c"), pico8_value_fixed(lq->c), 3);
@@ -305,8 +312,8 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
         h = fold_value(h, pico8_value_ref((void *)&lq->fs[i]), 2);
     }
     h = fold_value(fold_view_name(h, "w"), pico8_value_fixed(lq->w), 3);
-    for (i = k; i < lq->items.count; i++) {
-        h = fold_lq_item(fold_view_index(h, i + 1), lq->items.items[i], 3);
+    for (i = k; i < lq->items_count; i++) {
+        h = fold_lq_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
     return h;
 }

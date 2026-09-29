@@ -71,7 +71,6 @@ pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
     return pico8_gi_cost(pico8_fixed_from_int(t->od), 1, pico8_fixed_from_int(t->nk));
 }
 
-/* `bi`, the Lua closure's captured upvalue, threaded as an explicit ctx. */
 /* The `e_` write below happens for every `t`, before any early return:
  * hoisting it under a keep/drop branch would change what callers read back
  * off nb. */

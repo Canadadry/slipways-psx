@@ -22,7 +22,6 @@
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
 #include "pico8_menu.h"
 #include "pico8_mouse_reader.h"

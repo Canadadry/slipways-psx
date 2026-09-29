@@ -43,12 +43,12 @@ static const pico8_lq_t *button_lq(const void *button) {
 }
 
 static const char *lq_index_string(const pico8_lq_t *lq, int index) {
-    pico8_value_t v;
-    if (index < 1 || index > lq->items.count) {
+    pico8_lq_cell_t v;
+    if (index < 1 || index > lq->items_count) {
         return NULL;
     }
-    v = lq->items.items[index - 1];
-    return (v.kind == PICO8_VALUE_STRING) ? v.as.string : NULL;
+    v = lq->items[index - 1];
+    return (v.kind == PICO8_LQ_CELL_STRING) ? v.as.s : NULL;
 }
 
 static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {

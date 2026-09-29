@@ -195,12 +195,12 @@ static int is_lq(const void *e) {
 }
 
 static int row_count(const void *lq) {
-    return ((const pico8_lq_t *)lq)->items.count;
+    return ((const pico8_lq_t *)lq)->items_count;
 }
 
-static pico8_value_t row_item(const void *lq, int i) {
+static pico8_lq_cell_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const pico8_lq_t *)lq)->items.items[i];
+    return ((const pico8_lq_t *)lq)->items[i];
 }
 
 static uint32_t fold_ref(uint32_t h, const void *ref);
@@ -270,6 +270,21 @@ static uint32_t fold_opt_ref(uint32_t h, const void *ref) {
     return ref != NULL ? fold_ref(fnv(h, 1u), ref) : fnv(h, 0u);
 }
 
+/* A positional as the value it was sorted from folded: a row as any REF,
+ * NOTHING as false (no row folded here holds a nil at the top level). */
+static uint32_t fold_cell(uint32_t h, pico8_lq_cell_t c) {
+    switch (c.kind) {
+    case PICO8_LQ_CELL_ROW:
+        return fnv(h, 0x12u);
+    case PICO8_LQ_CELL_FIXED:
+        return fold_fixed(h, c.as.fixed);
+    case PICO8_LQ_CELL_STRING:
+        return fold_string(h, c.as.s);
+    default:
+        return fold_bool(h, c.kind == PICO8_LQ_CELL_TRUE);
+    }
+}
+
 /* A row by its width and its positional items. */
 static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
     int i;
@@ -277,9 +292,8 @@ static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
     assert(is_lq(lq));
     h = fold_fixed(h, lq->w);
     for (i = 0; i < row_count(lq); i++) {
-        pico8_value_t item = row_item(lq, i);
         h = fnv(h, (uint32_t)(i + 1));
-        h = item.kind == PICO8_VALUE_REF ? fnv(h, 0x12u) : fold_value(h, item);
+        h = fold_cell(h, row_item(lq, i));
     }
     return h;
 }
@@ -667,8 +681,8 @@ static void test_research(void) {
     jb = js_of(le->items[le->count - 1])->jb;
     assert(jb->ls_count == 1);
     line = jb->ls[0];
-    assert(line->items.count == 1 && line->items.items[0].kind == PICO8_VALUE_STRING);
-    assert(strcmp(line->items.items[0].as.string, "slipgates") == 0);
+    assert(line->items_count == 1 && line->items[0].kind == PICO8_LQ_CELL_STRING);
+    assert(strcmp(line->items[0].as.s, "slipgates") == 0);
     h = fold_le(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -868,10 +882,10 @@ static void test_ldown(void) {
 
 static uint32_t lq_first(const void *b) {
     const pico8_lq_t *lq = js_of(b)->lq;
-    pico8_value_t v;
+    pico8_lq_cell_t v;
     assert(lq != NULL && row_count(lq) > 0);
     v = row_item(lq, 0);
-    assert(v.kind == PICO8_VALUE_FIXED);
+    assert(v.kind == PICO8_LQ_CELL_FIXED);
     return (uint32_t)pico8_fixed_flr_int(v.as.fixed);
 }
 
@@ -1303,11 +1317,12 @@ static void *built(pico8_js_keys_t keys) {
 }
 
 /* Each optional key unset, the fixed ones and `my` given at zero, `h_`
- * false, TROU-23, a row and a list as `lq(x)`'s argument. */
+ * false, TROU-23, an `lq` and a row's keys as `lq(x)`'s argument. */
 static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     const pico8_js_keys_t none = {0};
     pico8_js_keys_t k;
-    pico8_list_t *list = malloc(sizeof *list);
+    pico8_value_t from_keys[2];
+    pico8_lq_keys_t from = {0};
     pico8_js_t *b;
     int i;
 
@@ -1375,11 +1390,12 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     assert(b->has_h_ && is_lq(b->h_) && b->h_ != row);
     h = fold_js_members(h, b);
 
-    pico8_list_init(list);
-    pico8_list_add(list, pico8_value_string("from a list"));
-    pico8_list_add(list, pico8_value_fixed(pico8_fixed_from_int(3)));
+    from_keys[0] = pico8_value_string("from a list");
+    from_keys[1] = pico8_value_fixed(pico8_fixed_from_int(3));
+    from.items = from_keys;
+    from.count = 2;
     k = none;
-    k.lq = pico8_value_ref(list);
+    k.lq_row = &from;
     b = built(k);
     assert(b->lq != NULL && is_lq(b->lq) && row_count(b->lq) == 2);
     return fold_js_members(h, b);
@@ -1495,8 +1511,8 @@ static uint32_t members_research(void) {
             const pico8_nb_entry_t *t = js_of(b)->_cr_t;
             const pico8_lq_t *lq = js_of(b)->lq;
             assert(my_state(b) == 3 && lq != NULL);
-            assert(lq->items.count >= 2 && lq->items.items[1].kind == PICO8_VALUE_STRING);
-            assert(t != NULL && t == pico8_nb_lookup(lq->items.items[1].as.string));
+            assert(lq->items_count >= 2 && lq->items[1].kind == PICO8_LQ_CELL_STRING);
+            assert(t != NULL && t == pico8_nb_lookup(lq->items[1].as.s));
             affordable++;
         }
         assert(js_of(b)->has_h_ && is_lq(js_of(b)->h_));

@@ -213,31 +213,17 @@ pico8_js_t *pico8_js_new(const pico8_js_keys_t *keys) {
     return pico8_js_struct_new(keys);
 }
 
-/* `lq(x)` of the cart: a row is built from its keys (`row`, when set), a
- * list gives its elements, nil included, as the positionals, an `lq` is
- * copied from its keys; anything else not a REF builds an empty row. */
+/* `lq(x)` of the cart: a row is built from its keys (`row`, when set), an
+ * `lq` is copied; anything else not a REF builds an empty row. */
 static pico8_lq_t *pico8_js_lq(pico8_value_t v, const pico8_lq_keys_t *row) {
-    pico8_lq_keys_t keys = {0};
-
     if (row != NULL) {
         return pico8_lq_new(row);
     }
     if (v.kind != PICO8_VALUE_REF || v.as.ref == NULL) {
         return pico8_lq_new(NULL);
     }
-    if (pico8_js_is_lq(v.as.ref)) {
-        keys = pico8_lq_keys_of((const pico8_lq_t *)v.as.ref);
-        return pico8_lq_new(&keys);
-    }
-    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST &&
-           "js:pq's lq()/h_() argument: a REF is a list or an lq; a row comes as keys");
-    {
-        const pico8_list_t *list = PICO8_REF_AS_LIST_CONST(v.as.ref);
-
-        keys.items = list->items;
-        keys.count = list->count;
-        return pico8_lq_new(&keys);
-    }
+    assert(pico8_js_is_lq(v.as.ref) && "js:pq's lq()/h_() argument: a REF is an lq; a row comes as keys");
+    return pico8_lq_copy((const pico8_lq_t *)v.as.ref);
 }
 
 void pico8_js_pq(pico8_js_t *self, pico8_value_t lq, const pico8_lq_keys_t *lq_row, pico8_value_t h_,

@@ -75,12 +75,12 @@ static const pico8_lq_t *as_lq(const void *lq) {
 /* The only reader of a row's positionals: how many, then the i-th (0-based)
  * in ascending index order. */
 static int row_count(const void *lq) {
-    return ((const pico8_lq_t *)lq)->items.count;
+    return ((const pico8_lq_t *)lq)->items_count;
 }
 
-static pico8_value_t row_item(const void *lq, int i) {
+static pico8_lq_cell_t row_item(const void *lq, int i) {
     assert(i >= 0 && i < row_count(lq));
-    return ((const pico8_lq_t *)lq)->items.items[i];
+    return ((const pico8_lq_t *)lq)->items[i];
 }
 
 /* Kind, then the string's bytes, the number, the boolean; a list or an
@@ -165,13 +165,67 @@ static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t, int depth) {
     return h;
 }
 
-static uint32_t fold_positionals(uint32_t h, const void *lq) {
+/* The kind of value a cell was sorted from; NOTHING as false. */
+static pico8_value_kind_t cell_value_kind(pico8_lq_cell_t c) {
+    switch (c.kind) {
+    case PICO8_LQ_CELL_FIXED:
+        return PICO8_VALUE_FIXED;
+    case PICO8_LQ_CELL_STRING:
+        return PICO8_VALUE_STRING;
+    case PICO8_LQ_CELL_ROW:
+        return PICO8_VALUE_REF;
+    default:
+        return PICO8_VALUE_BOOL;
+    }
+}
+
+/* The cell the row keeps for the key `v`: a number, a string, a tuple as
+ * such, nil and false as NOTHING, true as TRUE. */
+static void assert_sorted(pico8_lq_cell_t c, pico8_value_t v) {
+    if (v.kind == PICO8_VALUE_FIXED) {
+        assert(c.kind == PICO8_LQ_CELL_FIXED && c.as.fixed == v.as.fixed);
+    } else if (v.kind == PICO8_VALUE_STRING) {
+        assert(c.kind == PICO8_LQ_CELL_STRING && c.as.s == v.as.string);
+    } else if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
+        assert(c.kind == PICO8_LQ_CELL_ROW && c.as.row == v.as.ref);
+    } else if (v.kind == PICO8_VALUE_REF || v.as.boolean == 0) {
+        assert(c.kind == PICO8_LQ_CELL_NOTHING);
+    } else {
+        assert(c.kind == PICO8_LQ_CELL_TRUE);
+    }
+}
+
+/* The frozen hashes folded the value a positional was, nil and false apart:
+ * a NOTHING cell folds as the key `from` it was sorted from when the test
+ * built the row, as false otherwise (no row `src/` builds holds a nil at
+ * the top level). */
+static uint32_t fold_cell(uint32_t h, pico8_lq_cell_t c, const pico8_value_t *from) {
+    switch (c.kind) {
+    case PICO8_LQ_CELL_ROW:
+        return fold_tuple(h, c.as.row, 2);
+    case PICO8_LQ_CELL_FIXED:
+        return fold_value(h, pico8_value_fixed(c.as.fixed), 2);
+    case PICO8_LQ_CELL_STRING:
+        return fold_value(h, pico8_value_string(c.as.s), 2);
+    case PICO8_LQ_CELL_NOTHING:
+        return fold_value(h, from != NULL ? *from : pico8_value_bool(0), 2);
+    default:
+        return fold_value(h, pico8_value_bool(1), 2);
+    }
+}
+
+/* `from`: the keys the row was built from, NULL when `src/` built it. */
+static uint32_t fold_positionals(uint32_t h, const void *lq, const pico8_lq_keys_t *from) {
     int n = row_count(lq);
     int i;
+    assert(from == NULL || from->count == n);
     h = fnv(h, (uint32_t)n);
     for (i = 0; i < n; i++) {
-        pico8_value_t v = row_item(lq, i);
-        h = v.kind == PICO8_VALUE_REF && v.as.ref != NULL ? fold_tuple(h, v.as.ref, 2) : fold_value(h, v, 2);
+        pico8_lq_cell_t c = row_item(lq, i);
+        if (from != NULL) {
+            assert_sorted(c, from->items[i]);
+        }
+        h = fold_cell(h, c, from != NULL ? &from->items[i] : NULL);
     }
     return h;
 }
@@ -276,18 +330,22 @@ static uint32_t fold_drawn(uint32_t h, const void *lq) {
     return h;
 }
 
-static uint32_t fold_row(uint32_t h, const void *lq) {
+static uint32_t fold_row_from(uint32_t h, const void *lq, const pico8_lq_keys_t *from) {
     h = fold_drawn(h, lq);
     h = fnv(h, (uint32_t)w_of(lq));
     h = fnv(h, (uint32_t)fs_count(lq));
-    h = fold_positionals(h, lq);
+    h = fold_positionals(h, lq, from);
     return fold_named(h, lq);
+}
+
+static uint32_t fold_row(uint32_t h, const void *lq) {
+    return fold_row_from(h, lq, NULL);
 }
 
 /* Builds the row from `k` (NULL: no keys), folds it. */
 static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_keys_t *k) {
     const void *lq = pico8_lq_new(k);
-    uint32_t one = fold_row(2166136261u, lq);
+    uint32_t one = fold_row_from(2166136261u, lq, k);
 
     assert(((const pico8_struct_header_t *)lq)->cls->get_ra(lq) == as_lq(lq)->ra);
 
@@ -358,6 +416,7 @@ static void test_constructions(void) {
         a[0] = tuple_of(4, f);
         k = positionals(1, a);
         h = fold_built_from(h, "spr w qw qv", &k);
+        assert(pico8_lq_new(&k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
     }
     {
         pico8_jb_row_t *qe = calloc(1, sizeof *qe);
@@ -650,7 +709,7 @@ static uint32_t fold_button_row(uint32_t h, const pico8_lq_t *lq) {
     h = fold_bg(h, lq);
     h = fnv(h, (uint32_t)row_count(lq));
     for (i = 0; i < row_count(lq); i++) {
-        h = fnv(h, (uint32_t)row_item(lq, i).kind);
+        h = fnv(h, (uint32_t)cell_value_kind(row_item(lq, i)));
     }
     return h;
 }
@@ -688,14 +747,14 @@ static const pico8_lq_t *panel_row(const char *head) {
     for (i = 0; le != NULL && i < le->count; i++) {
         const pico8_struct_header_t *button = le->items[i];
         const pico8_lq_t *lq;
-        pico8_value_t v;
+        pico8_lq_cell_t v;
 
         assert(button != NULL && button->cls == pico8_js_struct_class() && "ok.le holds js buttons only");
         lq = ((const pico8_js_t *)button)->lq;
 
-        if (lq != NULL && lq->items.count > 0) {
-            v = lq->items.items[0];
-            if (v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, head) == 0) {
+        if (lq != NULL && lq->items_count > 0) {
+            v = lq->items[0];
+            if (v.kind == PICO8_LQ_CELL_STRING && strcmp(v.as.s, head) == 0) {
                 return lq;
             }
         }
@@ -738,10 +797,10 @@ static void test_gh_wants_more(void) {
     wants = panel_row("wants more:");
     receives = panel_row("receives:");
     assert(wants != NULL && receives != NULL && panel_row("needs:") == NULL);
-    assert(wants->items.count == 4 && receives->items.count == 5);
-    assert(wants->items.items[1].as.ref == &a->row && wants->items.items[2].as.ref == &b->row);
-    assert(receives->items.items[1].as.ref == &a->row && receives->items.items[2].as.ref == &b->row &&
-           receives->items.items[3].as.ref == &b->row);
+    assert(wants->items_count == 4 && receives->items_count == 5);
+    assert(wants->items[1].as.row == &a->row && wants->items[2].as.row == &b->row);
+    assert(receives->items[1].as.row == &a->row && receives->items[2].as.row == &b->row &&
+           receives->items[3].as.row == &b->row);
     printf("  wants more: w=%d, receives: w=%d\n", pico8_fixed_flr_int(wants->w), pico8_fixed_flr_int(receives->w));
     assert(wants->w == pico8_fixed_from_int(64) && receives->w == pico8_fixed_from_int(64));
 }
@@ -795,6 +854,7 @@ static void test_lq_is_a_struct(void) {
     pico8_lq_keys_t t = with_c(positionals(2, a), 9);
     pico8_lq_t *lq;
     pico8_lq_t *row;
+    pico8_lq_t *copy;
     int k;
     int i;
 
@@ -810,6 +870,9 @@ static void test_lq_is_a_struct(void) {
     assert(pico8_lq_ready());
     assert(lq->has_c && lq->c == pico8_fixed_from_int(9));
     assert(!lq->has_bg);
+    copy = pico8_lq_copy(lq);
+    assert(copy != lq && copy->items != lq->items && copy->items_count == 2);
+    assert(copy->has_c && copy->c == pico8_fixed_from_int(9) && copy->fs_count == 2 && copy->w == lq->w);
 
     t = pico8_lq_keys_of_row(&nested, items, 2);
     assert(t.items == items && t.count == 2 && t.has_c && t.c == pico8_fixed_from_int(7));

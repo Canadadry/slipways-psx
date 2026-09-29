@@ -77,11 +77,11 @@ void pico8_jo_hb(pico8_jo_t *self) {
 }
 
 typedef struct {
-    pico8_list_t *ji;
+    pico8_ptrs_t ji;
 } pico8_jo_gh_ctx_t;
 
-/* Filters on `gc == 0`, and also appends the element to the `ji` list in
- * `ctx` once per `gc`: the Lua predicate has that side effect. */
+/* Filters on `gc == 0`, and also appends the element to `ji` in `ctx` once
+ * per `gc`: the Lua predicate has that side effect. */
 static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
     pico8_jo_gh_ctx_t *ctx = (pico8_jo_gh_ctx_t *)ctx_ptr;
     pico8_fixed_t gc = pico8_fixed_from_int(0);
@@ -96,7 +96,7 @@ static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
     }
     count = pico8_fixed_flr_int(gc);
     for (j = 0; j < count; j++) {
-        pico8_list_add(ctx->ji, pico8_value_ref(e));
+        pico8_ptrs_add(&ctx->ji, e);
     }
     return gc == pico8_fixed_from_int(0);
 }
@@ -107,6 +107,19 @@ static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
 /* The most rows `jo:gh` passes to `pz`: the icon, needs or wants more,
  * receives, makes or exports. */
 #define PICO8_JO_GH_ROWS 4
+
+/* The cart's makes or exports row: its head, the count, the tuple, then
+ * the gap. */
+#define PICO8_JO_GH_LB_CAP 4
+
+/* TROU-7 */
+/* Room for `n` positionals of a row of `jo:gh`, the gap's cell included. */
+static pico8_value_t *jo_gh_row_items(int n) {
+    pico8_value_t *items = malloc((size_t)n * sizeof *items);
+
+    assert(items != NULL);
+    return items;
+}
 
 /* TROU-7 */
 /* `s` followed by `$`: a fresh string, never freed; `s` itself is freed. */
@@ -143,7 +156,9 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     int n = 0;
     const pico8_qh_t *qh;
     const pico8_jb_row_t *icon_row = NULL;
-    pico8_list_t *ji;
+    pico8_lq_keys_t row_keys[PICO8_JO_GH_ROWS];
+    pico8_value_t *row_items[PICO8_JO_GH_ROWS];
+    int row_cap[PICO8_JO_GH_ROWS];
     pico8_jo_gh_ctx_t ctx;
     const pico8_ptrs_t *jy;
     pico8_ptrs_t jx;
@@ -155,6 +170,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
 
     memset(bs, 0, sizeof bs);
+    memset(row_keys, 0, sizeof row_keys);
     qh = pico8_qh_of(&self->ke.header);
     if (qh != NULL && qh->px != NULL) {
         icon_row = qh->px;
@@ -186,22 +202,19 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
     n = 1;
 
-    ji = malloc(sizeof *ji);
-    pico8_list_init(ji);
-    pico8_list_add(ji, pico8_value_string("receives:"));
-    ctx.ji = ji;
+    pico8_ptrs_init(&ctx.ji);
 
     jy = self->jy;
     jx = pico8_jp_ptrs(jy, pico8_jo_gh_jp_step, &ctx);
 
     if (jx.count > 0) {
-        pico8_list_t *merged = malloc(sizeof *merged);
-        pico8_list_init(merged);
-        pico8_list_add(merged, pico8_value_string("needs:"));
+        row_cap[n] = 1 + jx.count + 1;
+        row_items[n] = jo_gh_row_items(row_cap[n]);
+        row_items[n][row_keys[n].count++] = pico8_value_string("needs:");
         for (i = 0; i < jx.count; i++) {
-            pico8_list_add(merged, pico8_value_ref(jx.items[i]));
+            row_items[n][row_keys[n].count++] = pico8_value_ref(jx.items[i]);
         }
-        bs[n++].lq = pico8_value_ref(merged);
+        n++;
     } else {
         pico8_fixed_t mi_fixed = self->has_mi ? self->mi : pico8_fixed_from_int(0);
         pico8_value_t kw_qe = jo_kw_qe(self->kw);
@@ -212,30 +225,35 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         qe_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(kw_qe, pico8_value_fixed(pico8_fixed_from_int(r_w)));
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            pico8_list_t *merged = malloc(sizeof *merged);
-            pico8_list_init(merged);
-            pico8_list_add(merged, pico8_value_string("wants more:"));
-            if (qh != NULL && pico8_jo_truthy(pico8_qh_qh(qh))) {
-                pico8_list_add(merged, pico8_value_ref(jy->items[jy->count - 1]));
+            int last_only = qh != NULL && pico8_jo_truthy(pico8_qh_qh(qh));
+
+            row_cap[n] = 1 + (last_only ? 1 : jy->count) + 1;
+            row_items[n] = jo_gh_row_items(row_cap[n]);
+            row_items[n][row_keys[n].count++] = pico8_value_string("wants more:");
+            if (last_only) {
+                row_items[n][row_keys[n].count++] = pico8_value_ref(jy->items[jy->count - 1]);
             } else {
                 for (i = 0; i < jy->count; i++) {
-                    pico8_list_add(merged, pico8_value_ref(jy->items[i]));
+                    row_items[n][row_keys[n].count++] = pico8_value_ref(jy->items[i]);
                 }
             }
-            bs[n++].lq = pico8_value_ref(merged);
+            n++;
         }
     }
     pico8_ptrs_free(&jx);
 
-    /* A `ji` still holding only its header means the predicate appended
-     * nothing; Lua's `add(t,nil)` is a no-op, so there is no row at all,
-     * not a row holding false. */
-    if (ji->count >= 2) {
-        bs[n++].lq = pico8_value_ref(ji);
-    } else {
-        pico8_list_free(ji);
-        free(ji);
+    /* A `ji` the predicate appended nothing to leaves no row at all, not a
+     * row holding false: Lua's `add(t,nil)` is a no-op. */
+    if (ctx.ji.count >= 1) {
+        row_cap[n] = 1 + ctx.ji.count + 1;
+        row_items[n] = jo_gh_row_items(row_cap[n]);
+        row_items[n][row_keys[n].count++] = pico8_value_string("receives:");
+        for (i = 0; i < ctx.ji.count; i++) {
+            row_items[n][row_keys[n].count++] = pico8_value_ref(ctx.ji.items[i]);
+        }
+        n++;
     }
+    pico8_ptrs_free(&ctx.ji);
 
     {
         const pico8_kw_t *kw = self->kw;
@@ -243,15 +261,15 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         pico8_value_t qe_val = jo_kw_qe(kw);
 
         if (mu > pico8_fixed_from_int(0)) {
-            pico8_list_t *lb = malloc(sizeof *lb);
             int makes = qe_val.kind == PICO8_VALUE_FIXED && pico8_int_seq_has_fixed(pico8_jo_cq(), qe_val.as.fixed);
 
-            pico8_list_init(lb);
+            row_cap[n] = PICO8_JO_GH_LB_CAP;
+            row_items[n] = jo_gh_row_items(row_cap[n]);
 
             if (makes) {
                 char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));
-                pico8_list_add(lb, pico8_value_string("makes:"));
-                pico8_list_add(lb, pico8_value_string(mu_str));
+                row_items[n][row_keys[n].count++] = pico8_value_string("makes:");
+                row_items[n][row_keys[n].count++] = pico8_value_string(mu_str);
             } else {
                 const pico8_ptrs_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
@@ -265,11 +283,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 memcpy(combined + count_len + 1, mu_str, mu_len + 1);
                 free(count_str);
                 free(mu_str);
-                pico8_list_add(lb, pico8_value_string("exports:"));
-                pico8_list_add(lb, pico8_value_string(combined));
+                row_items[n][row_keys[n].count++] = pico8_value_string("exports:");
+                row_items[n][row_keys[n].count++] = pico8_value_string(combined);
             }
-            pico8_list_add(lb, pico8_value_ref((void *)jo_kw_tuple(kw)));
-            bs[n++].lq = pico8_value_ref(lb);
+            row_items[n][row_keys[n].count++] = pico8_value_ref((void *)jo_kw_tuple(kw));
+            n++;
         }
     }
 
@@ -279,7 +297,11 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         static const pico8_jb_item_t gap_items[] = {{.is_false = 1}, {.n = 1}};
         static const pico8_jb_row_t gap = {.count = 2, .items = gap_items};
 
-        pico8_list_add(PICO8_REF_AS_LIST(bs[i].lq.as.ref), pico8_value_ref((void *)&gap));
+        assert(row_keys[i].count < row_cap[i] && "jo:gh: every row 2..n keeps its last cell for the gap");
+        row_items[i][row_keys[i].count++] = pico8_value_ref((void *)&gap);
+        row_keys[i].items = row_items[i];
+        bs[i].lq = pico8_value_ref(NULL);
+        bs[i].lq_row = &row_keys[i];
     }
 
     frame = jo_pz_frame(self);

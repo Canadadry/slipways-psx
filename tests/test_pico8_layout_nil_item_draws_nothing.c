@@ -101,26 +101,30 @@ static int pixels_drawn(void) {
 }
 
 /* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one
- * positional item, rendered onto a cleared screen. */
-static void render_one_item(pico8_value_t item) {
+ * positional item, rendered onto a cleared screen. Returns its one cell, as
+ * the row sorted `item` into it. */
+static pico8_lq_cell_t render_one_item(pico8_value_t item) {
     pico8_lq_keys_t keys = {0};
     pico8_lq_t *line;
 
     keys.items = &item;
     keys.count = 1;
     line = pico8_lq_new(&keys);
-    assert(line != NULL && line->items.count == 1);
+    assert(line != NULL && line->items_count == 1);
 
     pico8_cls(&mem);
     pico8_lq_ol_default(&gfx, &mem, line, pico8_vec_v(pico8_fixed_from_int(DRAW_X), pico8_fixed_from_int(DRAW_Y)));
+    return line->items[0];
 }
 
 /* THE SUBJECT: `lq({nil})` must draw nothing at all. */
 static void test_nil_item_draws_nothing(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
+    pico8_lq_cell_t cell;
 
-    render_one_item(pico8_value_ref(NULL));
+    cell = render_one_item(pico8_value_ref(NULL));
+    assert(cell.kind == PICO8_LQ_CELL_NOTHING);
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();
@@ -144,8 +148,10 @@ static void test_nil_item_draws_nothing(void) {
 static void test_numeric_item_still_draws_its_sprite(void) {
     int hit_x = -1, hit_y = -1;
     int hits, drawn;
+    pico8_lq_cell_t cell;
 
-    render_one_item(pico8_value_fixed(pico8_fixed_from_int(0)));
+    cell = render_one_item(pico8_value_fixed(pico8_fixed_from_int(0)));
+    assert(cell.kind == PICO8_LQ_CELL_FIXED && cell.as.fixed == pico8_fixed_from_int(0));
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
     drawn = pixels_drawn();

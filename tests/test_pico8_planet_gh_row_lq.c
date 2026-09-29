@@ -1,19 +1,16 @@
-/* A display row's "lq" holds a `pico8_list_t*`, whose elements `js:pq()`
- * takes as the row's positionals; the bug read it as the deleted ob() table.
- * Lua has one table type and this port had two: before the type tag the
- * structs were ABI-compatible but element-incompatible, so the copy loop
- * walked 32-byte entries over a 16-byte-element array and overflowed the
- * allocation.
+/* `jo:gh`'s "exports:" row must reach its `lq` with its four items, in
+ * order, and not one more: the bug copied a display row's positionals at
+ * the wrong element stride, took its count from the wrong slot and walked
+ * past the end of the allocation. The copy into the row's cells, and the
+ * layout that gives each cell one `fs` entry, fail the same way if they
+ * take one item too many.
  *
  * Built under AddressSanitizer, because the resulting SIGSEGV depends on
  * allocator layout and is not a sound oracle: on the replay that reported
  * it, -O0 exits 139 while -O1 and -O2 exit 0, and ASan reports the
  * overflow in all three. The target runs with detect_leaks=0.
  *
- * The field assertions below are a second, sanitizer-independent oracle:
- * under the blind cast the entry count came out of the list's `capacity`
- * slot and the values from past the end of the allocation, so neither
- * could be right by construction. */
+ * The field assertions below are a second, sanitizer-independent oracle. */
 /* TROU-7 */
 
 #include <assert.h>
@@ -60,20 +57,20 @@ static const pico8_lq_t *button_lq(const void *button) {
 }
 
 /* The row's item at 1-based `index`, as a table lookup would find it. */
-static int lq_item(const pico8_lq_t *lq, int index, pico8_value_t *out) {
-    if (index < 1 || index > lq->items.count) {
+static int lq_item(const pico8_lq_t *lq, int index, pico8_lq_cell_t *out) {
+    if (index < 1 || index > lq->items_count) {
         return 0;
     }
-    *out = lq->items.items[index - 1];
+    *out = lq->items[index - 1];
     return 1;
 }
 
 static int lq_index_is_string(const pico8_lq_t *lq, int index, const char *expected) {
-    pico8_value_t v;
+    pico8_lq_cell_t v;
     if (!lq_item(lq, index, &v)) {
         return 0;
     }
-    return v.kind == PICO8_VALUE_STRING && v.as.string != NULL && strcmp(v.as.string, expected) == 0;
+    return v.kind == PICO8_LQ_CELL_STRING && strcmp(v.as.s, expected) == 0;
 }
 
 /* What `jo:gh` reaches when the cart calls it, built without a boot: `r`
@@ -102,7 +99,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     pico8_vec_t *gq;
     const pico8_ptrs_t *le;
     const pico8_lq_t *exports_lq = NULL;
-    pico8_value_t entry;
+    pico8_lq_cell_t entry;
     int i;
 
     setup_panel_state(&mem, &gfx);
@@ -150,12 +147,12 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(lq_index_is_string(exports_lq, 2, "0/1"));
 
     assert(lq_item(exports_lq, 3, &entry));
-    assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
-    kw_row = entry.as.ref;
+    assert(entry.kind == PICO8_LQ_CELL_ROW && entry.as.row != NULL);
+    kw_row = entry.as.row;
     assert(kw_row->has_qe && kw_row->qe == pico8_fixed_from_int(99) && kw_row->count == 0);
 
     assert(lq_item(exports_lq, 4, &entry));
-    assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
+    assert(entry.kind == PICO8_LQ_CELL_ROW && entry.as.row != NULL);
 
     /* No phantom fifth item from an over-long copy loop. */
     assert(!lq_item(exports_lq, 5, &entry));

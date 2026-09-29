@@ -3,7 +3,6 @@
 
 #include "pico8_fixed.h"
 #include "pico8_gfx.h"
-#include "pico8_list.h"
 #include "pico8_map_tables.h"
 #include "pico8_mem.h"
 #include "pico8_struct.h"
@@ -27,14 +26,38 @@ typedef struct {
     pico8_vec_t d;           /* offset within the line; set by lq:pq, not by lq:mn */
 } pico8_lq_item_t;
 
+/* The five cases `lq:mn` tells a positional apart by, set once when the
+ * row is built: nil and false are both NOTHING, the union does not tell
+ * them apart. TRUE is any other truthy value that is not a number, a
+ * string or a row. */
+typedef enum {
+    PICO8_LQ_CELL_NOTHING,
+    PICO8_LQ_CELL_FIXED,
+    PICO8_LQ_CELL_STRING,
+    PICO8_LQ_CELL_ROW,
+    PICO8_LQ_CELL_TRUE
+} pico8_lq_cell_kind_t;
+
+/* `s` and `row` are borrowed from the keys, never owned. A ROW is read as
+ * a tuple `{f,w,qw,qv}` or a `{qe=x}` whatever it points at. */
+typedef struct {
+    pico8_lq_cell_kind_t kind;
+    union {
+        pico8_fixed_t fixed;
+        const char *s;
+        const pico8_jb_row_t *row;
+    } as;
+} pico8_lq_cell_t;
+
 /* `items` is the cart's `self[1..n]` in ascending index order, holes
- * closed up: the sequence `lq:pq` walks. Its values are borrowed from the
- * keys, tables shared as the cart's copy shares them. `ra` is the vector
- * the keys held, borrowed, never copied. Nothing frees the row,
+ * closed up: the sequence `lq:pq` walks, `items_count` of them (pico8_lq_add
+ * appends without laying out again, so `fs_count` may be smaller). `ra` is
+ * the vector the keys held, borrowed, never copied. Nothing frees the row,
  * `items`, or `fs`: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_list_t items;
+    pico8_lq_cell_t *items;
+    int items_count;
     pico8_fixed_t c;
     int has_c; /* 0: `c` is nil, and `c` is then never read */
     pico8_fixed_t bg;
@@ -70,9 +93,9 @@ int pico8_jb_ready(void);
 const pico8_struct_class_t *pico8_lq_struct_class(void);
 const pico8_struct_class_t *pico8_jb_struct_class(void);
 
-/* The cart's keys of a row. `items` are its positionals in order, copied
- * into `lq.items` (the values themselves borrowed); `c`, `bg` and `score`
- * count under their flags, `ra` NULL is nil. */
+/* The cart's keys of a row. `items` are its positionals in order, each
+ * sorted into a cell of `lq.items` (what it points at borrowed); `c`, `bg`
+ * and `score` count under their flags, `ra` NULL is nil. */
 typedef struct {
     const pico8_value_t *items;
     int count;
@@ -94,9 +117,13 @@ pico8_lq_t *pico8_lq_new(const pico8_lq_keys_t *keys);
  * must outlive the keys. */
 pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_value_t *items, int cap);
 
-/* The keys the copy `lq(row)` is built from, by value, nothing allocated:
- * every item of `row` in order (borrowed), its `c`, `bg`, `score`, `ra`. */
-pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row);
+/* The copy `lq(row)`, laid out anew: every cell of `row` in order (what
+ * they point at borrowed), its `c`, `bg`, `score`, `ra`. */
+pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row);
+
+/* The cart's `add(l, v)` on a row already laid out: `v` is appended to
+ * `items`, `fs` and `w` are left as they were. */
+void pico8_lq_add(pico8_lq_t *self, pico8_value_t v);
 
 /* "bg" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "bg" or a
  * NULL self. */

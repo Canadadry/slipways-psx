@@ -65,8 +65,8 @@ const pico8_struct_class_t *pico8_js_struct_class(void);
 /* The cart's keys of a button, each typed as the member it fills (NULL
  * or an unset flag: absent). `lq`, `h_` and `jb` are the sources `js:pq`
  * copies a row or a `jb` from: the row `lq_row`, `h_row`, `jb_row` when set
- * (read during the construction, not kept), else a list, an `lq` row, true,
- * false or nil. */
+ * (read during the construction, not kept), else an `lq` row, true, false
+ * or nil. */
 typedef struct {
     int has_fa; /* 0: `fa` keeps `pico8_js_start.fa` */
     pico8_fixed_t fa;
