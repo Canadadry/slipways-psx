@@ -26,7 +26,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -254,7 +253,7 @@ static int list_count(const void *e, const char *name) {
     return l == NULL ? -1 : ((const pico8_list_t *)l)->count;
 }
 
-/* Each `id` as the table `hg[id]=true` held it: a named key, true. */
+/* The count, then each `id` and `true`. */
 static uint32_t fold_hg(uint32_t h, const void *jc) {
     const pico8_jc_hg_t *hg = get_ref(jc, "hg");
     int i;
@@ -263,7 +262,6 @@ static uint32_t fold_hg(uint32_t h, const void *jc) {
     }
     h = fnv(h, (uint32_t)hg->count);
     for (i = 0; i < hg->count; i++) {
-        h = fnv(h, (uint32_t)PICO8_OB_KEY_NAME);
         h = fnv_str(h, hg->ids[i]);
         h = fold_value(h, pico8_value_bool(1));
     }
