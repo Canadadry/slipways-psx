@@ -162,21 +162,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
             }
             return h;
         }
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            const pico8_ob_table_t *t = v.as.ref;
-            int i;
-            h = fnv(h, (uint32_t)t->count);
-            for (i = 0; i < t->count; i++) {
-                h = fnv(h, (uint32_t)t->entries[i].key.kind);
-                if (t->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-                    h = fnv(h, (uint32_t)t->entries[i].key.index);
-                } else {
-                    h = fold_value(h, pico8_value_string(t->entries[i].key.name), 0);
-                }
-                h = fold_value(h, t->entries[i].value, depth - 1);
-            }
-            return h;
-        }
         h = fnv(h, (uint32_t)rank_in(pico8_hv(), v.as.ref));
         return fnv(h, (uint32_t)gb_rank(v.as.ref));
     default:
@@ -184,7 +169,8 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     }
 }
 
-/* As fold_value folds a table of these positional strings, less its tag. */
+/* `REF`, the count, then per name the index-key kind, its position and
+ * the string: the format DEFAULTS_HASH froze. */
 static uint32_t fold_names(uint32_t h, const pico8_str_seq_t *names) {
     int i;
 

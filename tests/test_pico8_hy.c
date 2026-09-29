@@ -156,29 +156,14 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
             }
             return h;
         }
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            const pico8_ob_table_t *t = v.as.ref;
-            int i;
-            h = fnv(h, (uint32_t)t->count);
-            for (i = 0; i < t->count; i++) {
-                h = fnv(h, (uint32_t)t->entries[i].key.kind);
-                if (t->entries[i].key.kind == PICO8_OB_KEY_INDEX) {
-                    h = fnv(h, (uint32_t)t->entries[i].key.index);
-                } else {
-                    h = fold_string(h, t->entries[i].key.name);
-                }
-                h = fold_value(h, t->entries[i].value, depth - 1);
-            }
-            return h;
-        }
         return h;
     default:
         return h;
     }
 }
 
-/* As fold_value folds a table of these index keys and fixed values, less
- * its tag. */
+/* `REF`, the count, then per entry the index-key kind, `qe` and the
+ * value: the format the constants froze. */
 static uint32_t fold_qe_map(uint32_t h, const pico8_qe_map_t *map) {
     int i;
 

@@ -30,7 +30,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_struct.h"
@@ -135,20 +134,7 @@ static uint32_t bool_state(const void *e, const char *name) {
 
 static uint32_t fold_value(uint32_t h, pico8_value_t v);
 
-/* A table's entries, in order, nested tables included. */
-static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
-    int i;
-
-    assert(pico8_type_tag_of(t) == PICO8_TYPE_TAG_OB_TABLE);
-    for (i = 0; i < t->count; i++) {
-        const pico8_ob_key_t *key = &t->entries[i].key;
-        h = key->kind == PICO8_OB_KEY_NAME ? fnv_str(h, key->name) : fnv(h, (uint32_t)key->index);
-        h = fold_value(h, t->entries[i].value);
-    }
-    return fnv(h, (uint32_t)t->count);
-}
-
-/* A tag sequence as fold_table folds a table of the same positionals. */
+/* A tag sequence: each position, then its string, then the count. */
 static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
     int i;
 
@@ -159,7 +145,7 @@ static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
     return fnv(h, (uint32_t)s->count);
 }
 
-/* An integer sequence as fold_table folds a table of the same positionals. */
+/* An integer sequence: each position, then its value, then the count. */
 static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
     int i;
 
@@ -170,8 +156,8 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
     return fnv(h, (uint32_t)s->count);
 }
 
-/* A generated row as fold_table folded its view: items (a nested row as a
- * nested table), then `c`, then `fn`, then the entry count. */
+/* A generated row: items (a nested row folded the same way), then `c`,
+ * then `fn`, then the entry count. */
 static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
     int i;
 
@@ -214,9 +200,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (listed(pico8_hv(), v.as.ref)) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
-        }
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            return fold_table(fnv(h, 0x7Au), v.as.ref);
         }
         if (v.as.ref == (const void *)&pico8_g__nu_tags) {
             return fold_tags(fnv(h, 0x7Au), v.as.ref);

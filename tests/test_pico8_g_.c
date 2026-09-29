@@ -29,7 +29,6 @@
 #include "../src/pico8_ke.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
@@ -187,20 +186,7 @@ static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     return lookup(e, name, &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
 }
 
-/* A table's entries, in order. */
-static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
-    int i;
-
-    assert(pico8_type_tag_of(t) == PICO8_TYPE_TAG_OB_TABLE);
-    for (i = 0; i < t->count; i++) {
-        const pico8_ob_key_t *key = &t->entries[i].key;
-        h = key->kind == PICO8_OB_KEY_NAME ? fnv_str(h, key->name) : fnv(h, (uint32_t)key->index);
-        h = fold_value(h, t->entries[i].value);
-    }
-    return fnv(h, (uint32_t)t->count);
-}
-
-/* A tag sequence as fold_table folds a table of the same positionals. */
+/* A tag sequence: each position, then its string, then the count. */
 static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
     int i;
 
@@ -211,7 +197,7 @@ static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
     return fnv(h, (uint32_t)s->count);
 }
 
-/* An integer sequence as fold_table folds a table of the same positionals. */
+/* An integer sequence: each position, then its value, then the count. */
 static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
     int i;
 
@@ -1162,8 +1148,6 @@ static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
         switch (pico8_type_tag_of(v.as.ref)) {
         case PICO8_TYPE_TAG_LIST:
             return fnv(h, (uint32_t)((const pico8_list_t *)v.as.ref)->count);
-        case PICO8_TYPE_TAG_OB_TABLE:
-            return fold_table(h, v.as.ref);
         case PICO8_TYPE_TAG_STRUCT:
             return fnv(h, target_rank(v.as.ref));
         default:

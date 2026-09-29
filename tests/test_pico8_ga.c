@@ -28,7 +28,6 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
@@ -173,7 +172,7 @@ static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
     return lookup(e, name, &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
 }
 
-/* The item count of a list or ob_table field, -1 when absent. */
+/* The item count of a list field, -1 when absent. */
 static int size_of(const void *e, const char *name) {
     pico8_value_t v;
     if (!lookup(e, name, &v)) {
@@ -186,11 +185,8 @@ static int size_of(const void *e, const char *name) {
     if (strcmp(name, "nu") == 0) {
         return ((const pico8_str_seq_t *)v.as.ref)->count;
     }
-    if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {
-        return ((const pico8_list_t *)v.as.ref)->count;
-    }
-    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE);
-    return ((const pico8_ob_table_t *)v.as.ref)->count;
+    assert(pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST);
+    return ((const pico8_list_t *)v.as.ref)->count;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -422,8 +418,7 @@ static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
     return fnv(h, (uint32_t)q->l);
 }
 
-/* A tuple of `lq:mn` as fold_table folded the table it was: items, `qe`,
- * `c`, then the entry count. */
+/* A tuple of `lq:mn`: items, `qe`, `c`, then the entry count. */
 static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
     int i;
 
@@ -457,8 +452,8 @@ static uint32_t fold_lq_positional(uint32_t h, const pico8_lq_t *lq, int i) {
     return v.kind == PICO8_VALUE_REF && v.as.ref != NULL ? fold_tuple(h, v.as.ref) : fold_value(h, v);
 }
 
-/* The row `jo:ex` built into `lq`, as fold_table folded its table view: its
- * first `#fs` positionals, `c`, `bg`, `score`, `ra`, `fs`, `w`, the rest. */
+/* The row `jo:ex` built into `lq`: its first `#fs` positionals, `c`, `bg`,
+ * `score`, `ra`, `fs`, `w`, the rest. */
 static uint32_t fold_lq(uint32_t h, const void *e) {
     const pico8_lq_t *lq = get_ref(e, "lq");
     pico8_value_t bg;

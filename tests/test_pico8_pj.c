@@ -33,7 +33,6 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
 #include "../src/pico8_msgbox.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
@@ -153,19 +152,6 @@ static pico8_value_t row_item(const void *lq, int i) {
 static uint32_t fold_value(uint32_t h, pico8_value_t v);
 static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row);
 
-/* A table's entries, in order, nested tables included. */
-static uint32_t fold_table(uint32_t h, const pico8_ob_table_t *t) {
-    int i;
-
-    assert(pico8_type_tag_of(t) == PICO8_TYPE_TAG_OB_TABLE);
-    for (i = 0; i < t->count; i++) {
-        const pico8_ob_key_t *key = &t->entries[i].key;
-        h = key->kind == PICO8_OB_KEY_NAME ? fnv_str(h, key->name) : fnv(h, (uint32_t)key->index);
-        h = fold_value(h, t->entries[i].value);
-    }
-    return fnv(h, (uint32_t)t->count);
-}
-
 static pico8_value_t item_value(const pico8_jb_item_t *item) {
     if (item->s != NULL) {
         return pico8_value_string(item->s);
@@ -179,8 +165,8 @@ static pico8_value_t item_value(const pico8_jb_item_t *item) {
     return pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
 }
 
-/* A row's items as fold_table folded its view (a nested row as a nested
- * table), then `c`, then `fn`; `extra` more entries follow, the caller's. */
+/* A row's items (a nested row folded the same way), then `c`, then `fn`;
+ * `extra` more entries follow, the caller's. */
 static uint32_t fold_row_entries(uint32_t h, const pico8_jb_row_t *row) {
     int i;
 
@@ -206,7 +192,7 @@ static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
     return fnv(fold_row_entries(h, row), (uint32_t)row_entries(row));
 }
 
-/* `ea` as fold_table folded its view: its positionals, then `lh`. */
+/* `ea`: its positionals, then `lh`. */
 static uint32_t fold_ea(uint32_t h, const pico8_pj_ea_t *ea) {
     h = fold_row_entries(h, &ea->row);
     if (ea->lh != NULL) {
@@ -231,9 +217,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         }
         if (listed(pico8_hv(), v.as.ref)) {
             return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
-        }
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-            return fold_table(fnv(h, 0x7Au), v.as.ref);
         }
         if (v.as.ref == (const void *)&pico8_pj_gs_row || v.as.ref == (const void *)&pico8_pj_i__row) {
             return fold_row(fnv(h, 0x7Au), v.as.ref);

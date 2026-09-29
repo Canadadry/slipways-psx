@@ -25,7 +25,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
@@ -502,9 +501,6 @@ static uint32_t fold_member(uint32_t h, const void *e, const char *name) {
         const pico8_vec_t *p = v.as.ref;
         h = fnv(h, (uint32_t)p->x);
         return fnv(h, (uint32_t)p->y);
-    }
-    if (v.kind == PICO8_VALUE_REF && pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_OB_TABLE) {
-        return fnv(h, (uint32_t)((const pico8_ob_table_t *)v.as.ref)->count);
     }
     return h;
 }

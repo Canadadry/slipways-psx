@@ -26,7 +26,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -937,8 +936,6 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
         return fnv(fnv(h, 0x57u), (uint32_t)rank_in(pico8_hv(), ref));
     case PICO8_TYPE_TAG_LIST:
         return fnv(fnv(h, 0x11u), (uint32_t)((const pico8_list_t *)ref)->count);
-    case PICO8_TYPE_TAG_OB_TABLE:
-        return fnv(fnv(h, 0x7Au), (uint32_t)((const pico8_ob_table_t *)ref)->count);
     default:
         h = fnv(h, (uint32_t)((const pico8_vec_t *)ref)->x);
         return fnv(h, (uint32_t)((const pico8_vec_t *)ref)->y);
