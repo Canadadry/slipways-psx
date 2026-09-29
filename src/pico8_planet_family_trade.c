@@ -15,7 +15,6 @@
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
-#include "pico8_type_tag.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
 static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
@@ -53,7 +52,7 @@ typedef struct {
 
 /* The `{}` `nr:ldown` hands to `nr:gv`: never allocated, never freed,
  * never written. */
-static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{PICO8_TYPE_TAG_STRUCT, &g_nr_ldown_empty_struct_class}};
+static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{&g_nr_ldown_empty_struct_class}};
 
 pico8_down_t pico8_nr_ldown(pico8_nr_t *self) {
     pico8_down_t gv_result = {0, NULL};

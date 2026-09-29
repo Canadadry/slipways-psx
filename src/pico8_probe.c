@@ -28,7 +28,7 @@ static pico8_struct_header_t *g_fm = NULL;
 static const pico8_struct_class_t g_fm_placeholder_struct_class = {0};
 
 static pico8_fm_placeholder_t g_fm_placeholder = {
-    {PICO8_TYPE_TAG_STRUCT, &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
+    {&g_fm_placeholder_struct_class}, 0, 0, 0, 0};
 
 static int bv_et_is_holder_class(const pico8_struct_class_t *cls) {
     return cls->hq == pico8_bv_dispatch || cls == pico8_mz_struct_class();
@@ -38,7 +38,7 @@ static const pico8_struct_class_t g_bv_et_struct_class = {0};
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
-static pico8_bv_et_t g_bv_et = {{PICO8_TYPE_TAG_STRUCT, &g_bv_et_struct_class}, NULL};
+static pico8_bv_et_t g_bv_et = {{&g_bv_et_struct_class}, NULL};
 
 static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);

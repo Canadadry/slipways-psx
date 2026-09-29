@@ -670,8 +670,7 @@ static void test_ke_view_is_a_struct(void) {
     for (i = 0; i < n; i++) {
         assert(as_ie(all[i])->ke == classes[i]);
         view = pico8_ie_ke_view(all[i]);
-        assert(&view != NULL &&
-               view.header.cls == pico8_ie_ke_view_struct_class());
+        assert(view.header.cls == pico8_ie_ke_view_struct_class());
         if (gx_rr[i] == NULL) {
             assert(view.rr == NULL);
         } else {

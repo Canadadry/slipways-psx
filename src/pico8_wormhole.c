@@ -23,7 +23,7 @@ static const pico8_struct_class_t g_mz_jj_struct_class = {0};
 /* The only one: never allocated, never freed; no writer, so a write
  * reaching it stops the run. */
 static pico8_mz_jj_t g_mz_jj_wrapper = {
-    {PICO8_TYPE_TAG_STRUCT, &g_mz_jj_struct_class},
+    {&g_mz_jj_struct_class},
     pico8_mz_jj_qs,
 };
 

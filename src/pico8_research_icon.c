@@ -52,7 +52,6 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
     pico8_ie_ke_t view;
 
-    view.header.tag = PICO8_TYPE_TAG_STRUCT;
     view.header.cls = &g_ie_ke_view_struct_class;
     view.rr = NULL;
     view.s = 0;

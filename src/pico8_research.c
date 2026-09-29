@@ -9,7 +9,6 @@
 #include "pico8_data_init.h"
 #include "pico8_research_display.h"
 #include "pico8_tech_gate.h"
-#include "pico8_type_tag.h"
 
 static int g_hp_up = 0;
 
@@ -155,7 +154,6 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     const char *i_src = "";
     size_t c;
 
-    self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_hp_struct_class;
     self->mr = NULL;
     self->gp = NULL;

@@ -7,7 +7,6 @@
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_type_tag.h"
 
 static int g_ke_up = 0;
 
@@ -33,7 +32,6 @@ void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
 }
 
 void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls) {
-    self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = cls;
     self->me = pico8_ke_start.me;
     self->t = pico8_ke_start.t;

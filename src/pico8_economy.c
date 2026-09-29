@@ -14,7 +14,6 @@
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
 #include "pico8_tech_gate.h"
-#include "pico8_type_tag.h"
 
 static int g_hy_up = 0;
 
@@ -24,7 +23,6 @@ static void *pico8_hy_struct_new(void) {
     pico8_hy_t *self = malloc(sizeof *self);
     pico8_ptrs_t *invented;
 
-    self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_hy_struct_class;
     self->nz = pico8_fixed_from_int(0);
     self->ge = pico8_fixed_from_int(0);

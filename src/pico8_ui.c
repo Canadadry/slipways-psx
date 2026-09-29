@@ -13,7 +13,6 @@
 #include "pico8_planet_family.h"
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
-#include "pico8_type_tag.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
@@ -37,7 +36,7 @@ typedef struct {
 } pico8_je_placeholder_t;
 
 /* The only one: never allocated, never freed. */
-static pico8_je_placeholder_t g_je_placeholder = {{PICO8_TYPE_TAG_STRUCT, &g_je_placeholder_struct_class}};
+static pico8_je_placeholder_t g_je_placeholder = {{&g_je_placeholder_struct_class}};
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);

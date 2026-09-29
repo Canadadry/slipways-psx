@@ -839,7 +839,7 @@ value-members: tools/entity_value_members.sh
 .PHONY: value-members
 
 # Catégories du compteur tombées à 0, séparées par des virgules.
-DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit,valeur
+DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit,valeur,type-tag
 
 data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh

@@ -28,7 +28,7 @@ static const pico8_struct_class_t g_jc_too_far_struct_class = {0};
 /* The `{qs="-too far-"}` `jc:ce` returns beyond range: never allocated,
  * never freed; `qs` is fixed, only `fo` is written, and the next `hq`
  * overwrites it. */
-static pico8_jc_too_far_t g_jc_too_far = {{PICO8_TYPE_TAG_STRUCT, &g_jc_too_far_struct_class}, "-too far-", NULL};
+static pico8_jc_too_far_t g_jc_too_far = {{&g_jc_too_far_struct_class}, "-too far-", NULL};
 
 static const pico8_vec_t *jc_mouse_point_get_ra(const void *self) {
     return ((const pico8_jc_mouse_point_t *)self)->ra;
@@ -129,7 +129,6 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     } else {
         pico8_jc_mouse_point_t *point = malloc(sizeof *point);
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
-        point->header.tag = PICO8_TYPE_TAG_STRUCT;
         point->header.cls = &g_jc_mouse_point_struct_class;
         point->ra = mp;
         *p_heap = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),

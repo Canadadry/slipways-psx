@@ -51,7 +51,6 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -759,7 +758,7 @@ static const pico8_struct_class_t g_giver_class = {
     .set_m_ = giver_set_m_,
 };
 
-static giver_t g_giver = {{{PICO8_TYPE_TAG_STRUCT, &g_giver_class}, NULL, 0}};
+static giver_t g_giver = {{{&g_giver_class}, NULL, 0}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);

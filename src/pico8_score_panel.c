@@ -21,7 +21,6 @@
 #include "pico8_score_panel_display.h"
 #include "pico8_str.h"
 #include "pico8_struct.h"
-#include "pico8_type_tag.h"
 #include "pico8_vec.h"
 
 static int g_pj_up = 0;
@@ -64,7 +63,7 @@ static void pj_row_copy(pico8_jb_row_t *dst, pico8_jb_item_t *items, int cap, co
 static const pico8_struct_class_t g_pj_cr_struct_class = {0};
 
 static pico8_pj_cr_t g_pj_cr = {
-    {PICO8_TYPE_TAG_STRUCT, &g_pj_cr_struct_class},
+    {&g_pj_cr_struct_class},
     &pico8_pj_cr_start.hi,
     &pico8_pj_cr_start.gq,
     0,

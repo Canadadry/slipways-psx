@@ -102,7 +102,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* 0xDEAD for NULL, else 0: no pointer an item holds carried a tag. */
+/* Items fold as untagged pointers (0); this TU folds no non-NULL one. */
 static uint32_t fold_ref(uint32_t h, const void *ref) {
     h = fnv(h, (uint32_t)REF_KIND);
     if (ref == NULL) {

@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "pico8_collect.h"
-#include "pico8_type_tag.h"
 
 static int g_trade_up = 0;
 
@@ -31,7 +30,6 @@ static void *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
 #endif
-    self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_trade_struct_class;
     self->lp = NULL;
     self->rl = NULL;

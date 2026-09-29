@@ -5,7 +5,6 @@
 
 #include "pico8_coverage.h"
 #include "pico8_game_data.h"
-#include "pico8_type_tag.h"
 #include "pico8_vec.h"
 
 /* The states `dg` runs as `qc[qc.me](qc,qc.t)`. */
@@ -40,10 +39,8 @@ static inline int pico8_state_of(const char *me) {
 typedef struct pico8_struct_class pico8_struct_class_t;
 
 /* First member of every entity struct, and of the parent struct a child
- * embeds first: the tag stays at offset 0 for pico8_type_tag_of(). `tag` is
- * always PICO8_TYPE_TAG_STRUCT. */
+ * embeds first. */
 typedef struct {
-    pico8_type_tag_t tag;
     const pico8_struct_class_t *cls;
 } pico8_struct_header_t;
 
@@ -121,8 +118,8 @@ typedef struct {
 } pico8_jo_keys_t;
 
 /* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one
- * `static const` per kind, never freed, whose first member is no tag, so
- * pico8_type_tag_of() reads it UNKNOWN. `new_entity` is the kind's
+ * `static const` per kind, never freed. Not an entity: it has no
+ * pico8_struct_header_t. `new_entity` is the kind's
  * pico8_X_new(). `rec`, never NULL, holds the kind's `rr`, `s`, `me` and
  * `od` whether its modules are up or down. */
 typedef struct {

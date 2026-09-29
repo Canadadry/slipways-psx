@@ -302,7 +302,6 @@ static const pico8_struct_class_t g_lq_struct_class = {
 static pico8_lq_t *pico8_lq_struct_alloc(int n) {
     pico8_lq_t *self = malloc(sizeof *self);
 
-    self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_lq_struct_class;
     self->c = 0;
     self->has_c = 0;
@@ -410,7 +409,6 @@ static pico8_jb_t *pico8_jb_struct_alloc(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("jb");
 #endif
-    self->header.tag = PICO8_TYPE_TAG_STRUCT;
     self->header.cls = &g_jb_struct_class;
     self->ls = NULL;
     self->ls_count = 0;
