@@ -5,48 +5,14 @@
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
+#include "pico8_planet.h"
 #include "pico8_research.h"
+#include "pico8_slipway.h"
 #include "pico8_vec.h"
 #include "pico8_ref_audit.h"
 
-static int economy_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
 static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
     return (a > b) ? a : b;
-}
-
-static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
-        return 0;
-    }
-    return economy_truthy(v);
-}
-
-static pico8_vec_t field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
-static const pico8_kw_t *field_kw(const pico8_struct_header_t *inst) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, "kw", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_kw_t *)v.as.ref;
-    }
-    return NULL;
-}
-
-static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return PICO8_REF_AS_LIST_CONST(v.as.ref);
-    }
-    return NULL;
 }
 
 int pico8_qe_map_get(const pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t *out) {
@@ -107,13 +73,16 @@ void pico8_cm(pico8_qe_map_t *out, pico8_fixed_t jm) {
 
 static void bx_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_qe_map_t *p = (pico8_qe_map_t *)ctx;
+    const pico8_jo_t *jo;
     const pico8_kw_t *kw;
     pico8_fixed_t current;
 
-    if (!field_truthy(pt, "jy")) {
+    assert(pico8_jo_is_family(pt) && "bx: pt is a planet of cg.jo");
+    jo = (const pico8_jo_t *)pt;
+    if (jo->jy == NULL) {
         return;
     }
-    kw = field_kw(pt);
+    kw = jo->kw;
     if (kw == NULL || !kw->has_qe) {
         return;
     }
@@ -130,11 +99,13 @@ void pico8_bx(pico8_qe_map_t *out) {
 
 static void ck_visit(pico8_struct_header_t *l, void *ctx) {
     pico8_qe_map_t *d = (pico8_qe_map_t *)ctx;
-    const pico8_list_t *jy = field_list(l, "jy");
+    const pico8_list_t *jy;
     const pico8_jy_t *last;
     pico8_value_t last_val;
     pico8_fixed_t current;
 
+    assert(pico8_jo_is_family(l) && "ck: l is a planet of cg.qh");
+    jy = ((const pico8_jo_t *)l)->jy;
     if (jy == NULL || jy->count == 0) {
         return;
     }
@@ -160,7 +131,7 @@ void pico8_ck(pico8_qe_map_t *out) {
 }
 
 pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to) {
-    pico8_vec_t diff = pico8_vec_sub(field_vec(to, "p"), field_vec(pb, "p"));
+    pico8_vec_t diff = pico8_vec_sub(pico8_jc_end_p(to), pico8_jc_end_p(pb));
     pico8_fixed_t len_sq = pico8_vec_len_sq(diff);
     pico8_fixed_t x = pico8_fixed_div(len_sq, pico8_bq());
     pico8_fixed_t ec = pico8_fixed_pow075(x);

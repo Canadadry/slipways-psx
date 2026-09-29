@@ -134,50 +134,24 @@ static int pico8_probe_field_truthy(const pico8_struct_header_t *inst, const cha
     return pico8_probe_truthy(v);
 }
 
-static pico8_vec_t pico8_probe_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
-static pico8_vec_t pico8_probe_field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
-        return pico8_probe_value_vec(v);
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
-static pico8_struct_header_t *pico8_probe_field_instance(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_struct_header_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
 
 static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
-    pico8_struct_header_t *sw;
-    pico8_struct_header_t *qu;
-    pico8_struct_header_t *re;
+    const pico8_jc_t *sw;
     pico8_vec_t qu_p;
     pico8_vec_t re_p;
 
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
-    sw = (pico8_struct_header_t *)e.as.ref;
+    assert(((const pico8_struct_header_t *)e.as.ref)->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
+    sw = e.as.ref;
 
-    qu = pico8_probe_field_instance(sw, "qu");
-    re = pico8_probe_field_instance(sw, "re");
-    qu_p = pico8_probe_field_vec(qu, "p");
-    re_p = pico8_probe_field_vec(re, "p");
+    qu_p = pico8_jc_end_p(sw->qu);
+    re_p = pico8_jc_end_p(sw->re);
 
     return pico8_geom_be(qu_p, re_p, ctx->self_p, PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }

@@ -97,17 +97,15 @@ static char *cr_concat2(const char *a, const char *b) {
     return out;
 }
 
-/* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
+/* `_cr_t` is not a cart field: it is where pico8_cr_step stashes the row's
  * captured tech, as its entry of pico8_nb_table, read back here off the
  * button `js(b)` copied it to. */
 static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
-    const void *inst = self;
-    pico8_value_t t_val;
-    if (inst == NULL) {
+    if (self == NULL) {
         return;
     }
-    if (pico8_entity_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
-        pico8_hy_kt(pico8_fm_hy(), (const pico8_nb_entry_t *)t_val.as.ref);
+    if (self->_cr_t != NULL) {
+        pico8_hy_kt(pico8_fm_hy(), self->_cr_t);
     }
 }
 
@@ -305,14 +303,13 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
 static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
-    void *inst = self;
     pico8_list_t cb_list;
     int cb_count;
     pico8_value_t item;
     pico8_lq_keys_t keys = {0};
     pico8_lq_t *built;
 
-    if (inst == NULL) {
+    if (self == NULL) {
         return;
     }
 
@@ -325,7 +322,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     keys.count = 1;
     built = pico8_lq_new(&keys);
 
-    pico8_entity_set_field(inst, "lq", pico8_value_ref(built));
+    self->lq = built;
 }
 
 /* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,

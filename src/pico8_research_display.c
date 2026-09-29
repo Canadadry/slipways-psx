@@ -310,7 +310,6 @@ typedef struct {
 static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
     pico8_bj_ctx_t *ctx = ctx_ptr;
     const pico8_hp_t *b;
-    pico8_value_t nk_val;
     const char *px_str = NULL;
     int mg = 0;
 
@@ -324,9 +323,14 @@ static int pico8_bj_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
 
-    if (ctx->jo_instance != NULL && pico8_entity_get_field(ctx->jo_instance, "nk", &nk_val) &&
-        nk_val.kind == PICO8_VALUE_REF && nk_val.as.ref != NULL) {
-        px_str = ((const pico8_df_entry_t *)nk_val.as.ref)->px;
+    if (ctx->jo_instance != NULL) {
+        const pico8_jo_t *jo;
+
+        assert(pico8_jo_is_family(ctx->jo_instance) && "bj: jo:ex passes its own planet");
+        jo = (const pico8_jo_t *)ctx->jo_instance;
+        if (jo->nk != NULL) {
+            px_str = jo->nk->px;
+        }
     }
 
     if (px_str != NULL && px_str[0] != '\0' && px_str[1] == '\0' && b->lr != NULL) {

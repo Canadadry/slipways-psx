@@ -32,7 +32,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
-| `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`) |
+| `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`), et ne prend qu'un `pico8_ke_t` |
 | `me` | champ `"me"` | nom de l'état/icône courant d'une entité |
 | `t` | champ `"t"` | compteur de frames de l'état courant |
 | `mv(e,rm,...)` | membre typé de `pico8_struct_class_t` (`e->cls->rm`), ou fonction directe pour `eb`, `ib`, `gg`, `md` | dispatch : appelle la méthode `rm` de `e` ; `pico8_mv` supprimé (D.10a) |
@@ -107,7 +107,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `na(self,t)` | `pico8_na` | flottement vertical, mute `ra.y` en place |
 | `ma(p,e)` | `pico8_ma` | fait décroître le halo de `e` et décale `p` d'un vecteur polaire |
 | `ij(p,j_)` | `pico8_ij` | plus proche voisin : rend la distance au carré et l'entité |
-| `mo` | `pico8_mo` | la caméra (instance `qb`) |
+| `mo` | `pico8_mo`, `pico8_mo_qb()` | la caméra (instance `qb`) ; `pico8_mo_qb()` la rend typée, NULL sur le remplaçant d'avant `jl()` |
 | `mp`, `rp` | — | les deux positions de souris passées à `hd`/`gk` : monde et écran. `fa >= 10` décide laquelle sert |
 
 ## Générateurs procéduraux
@@ -186,7 +186,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `oj(px)` | `pico8_oj` | le prérequis `px` est-il débloqué (`px` absent = pas de prérequis, donc vrai) |
 | `ov(px,lk,mc)` | `pico8_ov` | rend `mc` si `px` est débloqué et `mc` non faux, sinon `lk` |
 | `hp` | `pico8_hp_t` | classe d'un projet de recherche |
-| `fm` | `pico8_fm` | le singleton économie (instance `hy`) |
+| `fm` | `pico8_fm`, `pico8_fm_hy()`, `pico8_fm_placeholder()` | le singleton économie (instance `hy`) ; `pico8_fm_hy()` rend NULL sur le `fm` provisoire, que `pico8_fm_placeholder()` rend typé (`jk`/`nz` du code de triche) |
 | `invented` | champ de `fm` | liste des technologies déjà débloquées |
 
 ## Économie : la classe `hy` et son singleton `fm`
@@ -418,7 +418,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `jc:eb(p)` | `pico8_jc_eb` | la planète à l'autre bout depuis `p` |
 | `jc:ch(f,t)` | `pico8_jc_ch` | 8 % de chances par appel d'engendrer un point de transit de `f` vers `t` |
 | `jc:kj` | `pico8_jc_kj` | dessine la ligne, avec une légère ondulation temporelle aux deux bouts |
-| `qu`, `re` | champs | les deux extrémités du slipway |
+| `qu`, `re` | champs | les deux extrémités du slipway : une planète, ou (`re` seul) le point de souris que `jc:hq` accroche au-dessus du vide ; leurs `p`/`ra` se lisent par `pico8_jc_end_p()`/`pico8_jc_end_ra()` |
 | `ts` | champ | points lumineux en transit |
 | — | `pico8_ts_t` (`pico8_slipway_display.h`) | un point de `ts` : `ra` avance de `v` et `l` décompte à chaque frame |
 | `hg` | champ ; `pico8_jc_hg_t *hg` → `hg_own` (90 `id` au plus, `pico8_jc_hg_add`/`pico8_jc_hg_has`) | ensemble des planètes que ce slipway dessert |
@@ -524,7 +524,7 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `ix` | `pico8_ix_table`, `pico8_ix_button(i)` | les 4 boutons de la vue galaxie |
 | `ha` | `pico8_ha_table`, `pico8_ha_pz()` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |
-| `je` | `pico8_je` | le singleton lecteur de souris, instance de `nf` |
+| `je` | `pico8_je`, `pico8_je_nf()` | le singleton lecteur de souris, instance de `nf` ; `pico8_je_nf()` le rend typé, NULL sur le remplaçant. `je.l`/`je.r` : `pico8_nf_l()`/`pico8_nf_r()` |
 
 ## Champs de classe et d'instance, par thème
 

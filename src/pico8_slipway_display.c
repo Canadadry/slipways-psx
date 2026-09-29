@@ -6,29 +6,10 @@
 
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
+#include "pico8_planet.h"
+#include "pico8_slipway.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
-
-/* Readers: an absent field of another entity, of either form, a wrong
- * kind, or a NULL entity all read as the zero/false/NULL default. */
-static pico8_value_t pico8_jc_display_entity_value(const void *e, const char *name) {
-    pico8_value_t v;
-    if (e != NULL && pico8_entity_get_field(e, name, &v)) {
-        return v;
-    }
-    return pico8_value_ref(NULL);
-}
-
-static pico8_vec_t pico8_jc_display_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
-static pico8_vec_t pico8_jc_display_entity_vec(const void *e, const char *name) {
-    return pico8_jc_display_value_vec(pico8_jc_display_entity_value(e, name));
-}
 
 static int pico8_jc_display_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -45,11 +26,12 @@ void pico8_jc_ch(pico8_jc_t *self, const pico8_struct_header_t *f, const pico8_s
     }
 
     if (self->hg != NULL) {
-        pico8_value_t t_id = pico8_jc_display_entity_value(t, "id");
-        if (pico8_jc_hg_has(self->hg, t_id)) {
+        /* The mouse point jc:hq hangs on `re` has no `id`. */
+        const char *t_id = t != NULL && pico8_jo_is_family(t) ? ((const pico8_jo_t *)t)->id : NULL;
+        if (pico8_jc_hg_has(self->hg, pico8_value_string(t_id))) {
             if (self->ts != NULL) {
-                pico8_vec_t f_ra = pico8_jc_display_entity_vec(f, "ra");
-                pico8_vec_t t_ra = pico8_jc_display_entity_vec(t, "ra");
+                pico8_vec_t f_ra = pico8_jc_end_ra(f);
+                pico8_vec_t t_ra = pico8_jc_end_ra(t);
                 pico8_vec_t d = pico8_vec_sub(t_ra, f_ra);
                 pico8_vec_t v = pico8_vec_nn(d);
                 pico8_ts_t *particle = malloc(sizeof *particle);
@@ -85,9 +67,9 @@ void pico8_jc_lg(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jc_t *sel
     re = self->re;
     t = self->ke.t;
 
-    qu_pt = pico8_vec_add(pico8_jc_display_entity_vec(qu, "ra"),
+    qu_pt = pico8_vec_add(pico8_jc_end_ra(qu),
                            pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(126))));
-    re_pt = pico8_vec_add(pico8_jc_display_entity_vec(re, "ra"),
+    re_pt = pico8_vec_add(pico8_jc_end_ra(re),
                            pico8_vec_qm(PICO8_FIXED_LIT(0x00018000, 1.5), pico8_fixed_div(t, pico8_fixed_from_int(176))));
 
     for (dx = l; dx <= h; dx = pico8_fixed_add(dx, s)) {

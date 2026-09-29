@@ -1569,6 +1569,14 @@ static void test_jc_members_by_name(void) {
         h = fold_jc_member(h, jc, intruders[i]);
     }
     check("jc members", h, JC_MEMBERS_HASH);
+
+    fr = pico8_fr_new(NULL);
+    cls_of(fr)->hq(fr, mouse_at(units(-24, -40)).as.ref, vec_ref(2, 2).as.ref);
+    far = lone_jc(fr, NULL);
+    assert(read_jc(far, "mt", &v));
+    cross = build_jc(bare_jo(shifted(units(-24, -40), 0x4000, -0x4000)));
+    over(cross, bare_jo(shifted(units(-24, -40), 0x4000, 0x4000)));
+    assert(!read_jc(cross, "mt", &v) && jc_ref(cross, "et") == NULL && jc_ref(far, "fo") == NULL);
 }
 
 static pico8_value_t g_off_row;

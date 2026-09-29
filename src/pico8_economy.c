@@ -12,6 +12,7 @@
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
+#include "pico8_planet.h"
 #include "pico8_tech_gate.h"
 #include "pico8_type_tag.h"
 
@@ -301,7 +302,12 @@ void pico8_hy_lj(pico8_hy_t *self) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
                 pico8_struct_header_t *p = (pico8_struct_header_t *)e.as.ref;
                 pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
-                pico8_entity_set_field(p, "kr", pico8_value_fixed(kr));
+                pico8_jo_t *jo;
+
+                assert(pico8_jo_is_family(p) && "hy:lj: cg.jo holds planets only");
+                jo = (pico8_jo_t *)p;
+                jo->kr = kr;
+                jo->has_kr = 1;
                 dd = pico8_fixed_add(dd, kr);
             }
         }

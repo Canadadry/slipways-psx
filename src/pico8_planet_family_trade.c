@@ -25,7 +25,6 @@ static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
 static int g_family_trade_up = 0;
 
 pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s) {
-    pico8_value_t qu_val = pico8_value_ref(NULL);
     int qu_not_self;
     int oe_count = 0;
     pico8_down_t out = {0, NULL};
@@ -34,10 +33,9 @@ pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s)
         return out;
     }
 
-    if (s != NULL) {
-        pico8_entity_get_field(s, "qu", &qu_val);
-    }
-    qu_not_self = !(qu_val.kind == PICO8_VALUE_REF && qu_val.as.ref == (const void *)self);
+    /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
+    qu_not_self = !(s != NULL && s->cls == pico8_jc_struct_class() &&
+                    ((const pico8_jc_t *)s)->qu == &self->qh.jo.ke.header);
 
     oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
 
@@ -334,14 +332,12 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
     }
 
     if (cp != NULL) {
-        pico8_value_t jy_val;
-        const pico8_list_t *jy = NULL;
+        const pico8_list_t *jy;
         pico8_list_iter_t it;
         pico8_value_t i_val;
 
-        if (pico8_entity_get_field(cp, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF && jy_val.as.ref != NULL) {
-            jy = PICO8_REF_AS_LIST_CONST(jy_val.as.ref);
-        }
+        assert(pico8_jo_is_family(cp) && "mx:kf: the other end of a registered slipway is a planet");
+        jy = ((const pico8_jo_t *)cp)->jy;
 
         it = pico8_list_all(jy);
         while (pico8_list_iter_next(&it, &i_val)) {

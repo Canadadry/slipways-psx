@@ -1,6 +1,7 @@
 #ifndef PICO8_ENTITY_H
 #define PICO8_ENTITY_H
 
+#include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
@@ -37,7 +38,8 @@ const pico8_list_t *pico8_cv(const char *name);
  * lt() call, call pico8_cg() again instead. */
 const pico8_list_t *pico8_cg(const char *tag);
 
-pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
+/* Only a `ke` enters `hv`: pico8_dg() reads `me` and `t` on every entity of it. */
+pico8_struct_header_t *pico8_lt(pico8_ke_t *ke);
 void pico8_he(pico8_struct_header_t *e);
 
 /* `e[name]`: returns 1 and writes *out_value when the struct `e` has a

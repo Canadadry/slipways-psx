@@ -550,7 +550,7 @@ static void test_ie_members_by_name(void) {
     all[1] = b;
     all[2] = n;
     assert(spec_ra != NULL && spec_kq != NULL && spec_eh != NULL && spec_ra != spec_eh);
-    assert(spec_eh == pico8_ie_eh().as.ref);
+    assert(spec_eh == pico8_ie_eh());
     for (i = 0; i < 3; i++) {
         assert(ie_ref(all[i], "kq") == spec_kq && ie_ref(all[i], "ra") == spec_ra && ie_ref(all[i], "eh") == spec_eh);
         assert(ie_read(all[i], "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(12));
@@ -592,7 +592,7 @@ static void test_ie_members_by_name(void) {
         }
     }
 
-    pico8_ie_set_gy(pico8_value_ref(NULL));
+    pico8_ie_set_gy(NULL);
     pico8_ie_hb(b);
     assert(ie_bool_state(b, "kh") == 2 && ie_ref(b, "ra") == NULL);
     gy = ie_ref(b, "gy");
@@ -704,20 +704,12 @@ static void write_m_by_name(void *e, pico8_value_t v) {
     pico8_entity_set_field(e, "m_", v);
 }
 
-static void hb_from_gy(void *e, pico8_value_t v) {
-    (void)e;
-    pico8_ie_set_gy(v);
-    pico8_ie_hb(ie_with(NULL, NULL));
-}
-
-/* `m_` takes nil or a boolean, `ra` nil or a vector off `ie.gy`; a value whose whole union is
- * zero is not nil unless it is a REF. */
+/* `m_` takes nil or a boolean; a value whose whole union is zero is not nil unless it is a REF. */
 static void test_ie_writer_stops_off_row(void) {
     pico8_ie_t *a = ie_with(pico8_qh_kind(), NULL);
     pico8_ie_t *other = ie_with(NULL, NULL);
     pico8_vec_t *vec = malloc(sizeof *vec);
     pico8_value_t zero_fixed;
-    pico8_value_t zero_false;
     pico8_value_t zero_string;
     pico8_value_t hb;
     pico8_value_t list = pico8_value_ref((void *)pico8_hv());
@@ -728,8 +720,6 @@ static void test_ie_writer_stops_off_row(void) {
     vref = pico8_value_ref(vec);
     memset(&zero_fixed, 0, sizeof zero_fixed);
     zero_fixed.kind = PICO8_VALUE_FIXED;
-    memset(&zero_false, 0, sizeof zero_false);
-    zero_false.kind = PICO8_VALUE_BOOL;
     memset(&zero_string, 0, sizeof zero_string);
     zero_string.kind = PICO8_VALUE_STRING;
     assert(!pico8_entity_get_field(a, "hb", &hb) && pico8_ie_struct_class()->hb != NULL);
@@ -742,12 +732,6 @@ static void test_ie_writer_stops_off_row(void) {
     must_abort_value(a, write_m_by_name, list);
     must_abort_value(a, write_m_by_name, pico8_value_ref(other));
     must_abort_value(a, write_m_by_name, kind);
-
-
-    must_abort_value(NULL, hb_from_gy, pico8_value_fixed(pico8_fixed_from_int(1)));
-    must_abort_value(NULL, hb_from_gy, zero_fixed);
-    must_abort_value(NULL, hb_from_gy, zero_false);
-    must_abort_value(NULL, hb_from_gy, pico8_value_ref(other));
 }
 
 int main(void) {

@@ -66,6 +66,12 @@ void pico8_jc_shutdown(void);
 int pico8_jc_ready(void);
 const pico8_struct_class_t *pico8_jc_struct_class(void);
 
+/* `p`/`ra` of an end of a slipway: a planet, or the mouse point `jc:hq`
+ * hangs on `re` over nothing; NULL, or an absent vector, reads as the zero
+ * vector. Asserts on any other end. */
+pico8_vec_t pico8_jc_end_p(const pico8_struct_header_t *end);
+pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end);
+
 /* The cart's key `qu` of a slipway: NULL is nil, else a planet a slipway
  * starts from, which the type does not enforce (an assert does). */
 typedef struct {

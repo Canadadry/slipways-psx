@@ -8,6 +8,7 @@
 
 #include "pico8_entity.h"
 #include "pico8_geom.h"
+#include "pico8_planet.h"
 
 static pico8_vec_t pico8_entity_geom_zero(void) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -72,9 +73,12 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     pico8_fixed_t ma = pico8_entity_geom_field_fixed(e, "ma");
     pico8_fixed_t decremented = pico8_fixed_sub(ma, PICO8_FIXED_LIT(0x00001999, 0.1));
     pico8_fixed_t clamped = (decremented > 0) ? decremented : 0;
-    pico8_fixed_t t = pico8_entity_geom_field_fixed(e, "t");
+    pico8_fixed_t t = pico8_fixed_from_int(0);
 
     if (e != NULL) {
+        assert((pico8_jo_is_family(e) || e->cls == pico8_qb_struct_class()) &&
+               "ma: e is a planet (jo:kj) or the camera (qb:ph)");
+        t = ((const pico8_ke_t *)e)->t;
         pico8_entity_set_field(e, "ma", pico8_value_fixed(clamped));
     }
     return pico8_vec_add(p, pico8_vec_qm(clamped, pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00003333, 0.2))));

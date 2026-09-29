@@ -36,22 +36,6 @@ static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
     return economy_truthy(v);
 }
 
-static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return PICO8_REF_AS_LIST_CONST(v.as.ref);
-    }
-    return NULL;
-}
-
-static pico8_struct_header_t *field_ref_instance(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (pico8_struct_header_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
@@ -70,23 +54,26 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 }
 
 static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
-    pico8_value_t old;
+    pico8_jo_t *jo;
     pico8_list_t *cc;
     (void)ctx;
     if (pt == NULL) {
         return;
     }
-    if (pico8_entity_get_field(pt, "cc", &old) && old.kind == PICO8_VALUE_REF && old.as.ref != NULL) {
-        pico8_list_free(PICO8_REF_AS_LIST(old.as.ref));
-        free(old.as.ref);
+    assert(pico8_jo_is_family(pt) && "bd: pt is a planet of cg.jo");
+    jo = (pico8_jo_t *)pt;
+    if (jo->cc != NULL) {
+        pico8_list_free(jo->cc);
+        free(jo->cc);
     }
     /* TROU-7 */
     cc = malloc(sizeof *cc);
     pico8_list_init(cc);
-    pico8_entity_set_field(pt, "cc", pico8_value_ref(cc));
+    jo->cc = cc;
 }
 
 static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
+    pico8_jo_t *jo;
     pico8_list_t *by;
     pico8_list_iter_t it;
     pico8_value_t e;
@@ -96,8 +83,9 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
     }
 
     assert(pico8_jo_is_family(pt) && "ib: pt is a planet of cg.jo");
-    by = pico8_jo_ib((pico8_jo_t *)pt);
-    pico8_entity_set_field(pt, "by", pico8_value_ref(by));
+    jo = (pico8_jo_t *)pt;
+    by = pico8_jo_ib(jo);
+    jo->by = by;
 
     if (by == NULL) {
         return;
@@ -105,7 +93,7 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
 
     it = pico8_list_all(by);
     while (pico8_list_iter_next(&it, &e)) {
-        pico8_struct_header_t *route;
+        const pico8_trade_t *route;
         const pico8_list_t *rl;
         const pico8_list_t *lp;
         pico8_value_t to_val;
@@ -114,23 +102,22 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
         if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
             continue;
         }
-        route = (pico8_struct_header_t *)e.as.ref;
-        rl = field_list(route, "rl");
-        lp = field_list(route, "lp");
+        assert(((const pico8_struct_header_t *)e.as.ref)->cls == pico8_trade_struct_class() &&
+               "jo.by holds trades only");
+        route = e.as.ref;
+        rl = route->rl;
+        lp = route->lp;
 
         if (rl != NULL && lp != NULL) {
             for (i = 0; i < rl->count; i++) {
                 pico8_value_t w_val = rl->items[i];
-                pico8_struct_header_t *w;
-                pico8_value_t hg_val;
+                const pico8_jc_t *w;
                 pico8_value_t planet_val;
-                pico8_struct_header_t *planet;
-                pico8_value_t id_val;
+                const pico8_jo_t *planet;
 
                 if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
                     continue;
                 }
-                w = (pico8_struct_header_t *)w_val.as.ref;
                 if (i + 1 >= lp->count) {
                     continue;
                 }
@@ -138,27 +125,31 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
                 if (planet_val.kind != PICO8_VALUE_REF || planet_val.as.ref == NULL) {
                     continue;
                 }
-                planet = (pico8_struct_header_t *)planet_val.as.ref;
-                if (!pico8_entity_get_field(planet, "id", &id_val)) {
+                assert(pico8_jo_is_family(planet_val.as.ref) && "trade.lp holds planets only");
+                planet = planet_val.as.ref;
+                if (planet->id == NULL) {
                     continue;
                 }
+                assert(((const pico8_struct_header_t *)w_val.as.ref)->cls == pico8_jc_struct_class() &&
+                       "trade.rl holds slipways only");
+                w = w_val.as.ref;
                 /* A slipway with no `hg` set is skipped; Lua would error
                  * indexing nil here. */
-                if (!pico8_entity_get_field(w, "hg", &hg_val) || hg_val.kind != PICO8_VALUE_REF ||
-                    hg_val.as.ref == NULL) {
+                if (w->hg == NULL) {
                     continue;
                 }
-                pico8_jc_hg_add((pico8_jc_hg_t *)hg_val.as.ref, id_val);
+                pico8_jc_hg_add(w->hg, pico8_value_string(planet->id));
             }
         }
 
-        if (pico8_trade_to((const pico8_trade_t *)route, &to_val) && to_val.kind == PICO8_VALUE_REF &&
+        if (pico8_trade_to(route, &to_val) && to_val.kind == PICO8_VALUE_REF &&
             to_val.as.ref != NULL) {
-            pico8_struct_header_t *dest = (pico8_struct_header_t *)to_val.as.ref;
-            pico8_value_t cc_val;
-            if (pico8_entity_get_field(dest, "cc", &cc_val) && cc_val.kind == PICO8_VALUE_REF &&
-                cc_val.as.ref != NULL) {
-                pico8_list_add(PICO8_REF_AS_LIST(cc_val.as.ref), e);
+            pico8_jo_t *dest;
+
+            assert(pico8_jo_is_family(to_val.as.ref) && "a trade leads to a planet");
+            dest = to_val.as.ref;
+            if (dest->cc != NULL) {
+                pico8_list_add(dest->cc, e);
             }
         }
     }
@@ -171,8 +162,8 @@ void pico8_bd(void) {
 
 static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
     int *jg = (int *)ctx;
+    pico8_jo_t *jo;
     pico8_fixed_t jw;
-    pico8_value_t mi_val;
     int has_mi;
     pico8_fixed_t mi = pico8_fixed_from_int(0);
 
@@ -180,30 +171,31 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
         return;
     }
     jw = pico8_dh(pt);
-    has_mi = pico8_entity_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED;
+    assert(pico8_jo_is_family(pt) && "bb: pt is a planet of cg.jo");
+    jo = (pico8_jo_t *)pt;
+    has_mi = jo->has_mi;
     if (has_mi) {
-        mi = mi_val.as.fixed;
+        mi = jo->mi;
     }
 
     if (!has_mi || jw > mi) {
         if (has_mi && mi == pico8_fixed_from_int(1)) {
-            pico8_hp_t *hn = (pico8_hp_t *)field_ref_instance(pt, "hn");
+            pico8_hp_t *hn = jo->hn;
             if (hn != NULL && hn->has_dm) {
-                pico8_value_t jy_val;
-                if (pico8_entity_get_field(pt, "jy", &jy_val) && jy_val.kind == PICO8_VALUE_REF &&
-                    jy_val.as.ref != NULL) {
+                if (jo->jy != NULL) {
                     pico8_jy_t *entry = pico8_jy_new(&hn->dm);
-                    pico8_list_add(PICO8_REF_AS_LIST(jy_val.as.ref), pico8_value_ref(entry));
+                    pico8_list_add(jo->jy, pico8_value_ref(entry));
                 }
             }
         }
-        pico8_entity_set_field(pt, "mi", pico8_value_fixed(jw));
+        jo->mi = jw;
+        jo->has_mi = 1;
         mi = jw;
         *jg = 1;
     }
 
     if (mi != pico8_fixed_from_int(0)) {
-        pico8_hp_t *hn = (pico8_hp_t *)field_ref_instance(pt, "hn");
+        pico8_hp_t *hn = jo->hn;
         if (hn != NULL) {
             const pico8_hc_entry_t *po = pico8_hp_po(hn);
             if (po != NULL) {
@@ -211,18 +203,15 @@ static void bb_visit(pico8_struct_header_t *pt, void *ctx) {
                 int clamped_idx = (idx < po->count) ? idx : po->count;
                 pico8_fixed_t base = pico8_fixed_from_int(0);
                 pico8_fixed_t jh = pico8_fixed_from_int(0);
-                pico8_value_t jh_val;
-                pico8_value_t kw_val;
 
                 if (clamped_idx >= 1) {
                     base = pico8_fixed_from_int(po->values[clamped_idx - 1]);
                 }
-                if (pico8_entity_get_field(pt, "jh", &jh_val) && jh_val.kind == PICO8_VALUE_FIXED) {
-                    jh = jh_val.as.fixed;
+                if (jo->has_jh) {
+                    jh = jo->jh;
                 }
-                if (pico8_entity_get_field(pt, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF &&
-                    kw_val.as.ref != NULL) {
-                    ((pico8_kw_t *)kw_val.as.ref)->mu = pico8_fixed_add(base, jh);
+                if (jo->kw != NULL) {
+                    jo->kw->mu = pico8_fixed_add(base, jh);
                 }
             }
         }
@@ -236,7 +225,7 @@ int pico8_bb(void) {
 }
 
 pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
-    pico8_value_t me_val;
+    const pico8_jo_t *jo;
     const pico8_list_t *jy;
     const pico8_list_t *cc;
     pico8_fixed_t jd = pico8_fixed_from_int(1);
@@ -245,13 +234,14 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     if (pt == NULL) {
         return pico8_fixed_from_int(0);
     }
-    if (!pico8_entity_get_field(pt, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
-        strcmp(me_val.as.string, "ly") != 0) {
+    assert(pico8_jo_is_family(pt) && "dh: pt is a planet of cg.jo");
+    jo = (const pico8_jo_t *)pt;
+    if (jo->ke.me == NULL || strcmp(jo->ke.me, "ly") != 0) {
         return pico8_fixed_from_int(0);
     }
 
-    jy = field_list(pt, "jy");
-    cc = field_list(pt, "cc");
+    jy = jo->jy;
+    cc = jo->cc;
     if (jy != NULL) {
         for (i = 0; i < jy->count; i++) {
             pico8_value_t i_val = jy->items[i];
@@ -268,14 +258,15 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
             if (cc != NULL) {
                 for (j = 0; j < cc->count; j++) {
                     pico8_value_t im_val = cc->items[j];
-                    pico8_struct_header_t *im;
-                    pico8_value_t im_qe;
+                    const pico8_trade_t *im;
                     if (im_val.kind != PICO8_VALUE_REF || im_val.as.ref == NULL) {
                         continue;
                     }
-                    im = (pico8_struct_header_t *)im_val.as.ref;
+                    assert(((const pico8_struct_header_t *)im_val.as.ref)->cls == pico8_trade_struct_class() &&
+                           "jo.cc holds trades only");
+                    im = im_val.as.ref;
                     /* TROU-3 */
-                    if (pico8_entity_get_field(im, "qe", &im_qe) && economy_value_equal_content(im_qe, qe_val)) {
+                    if (im->has_qe && economy_value_equal_content(pico8_trade_qe(im), qe_val)) {
                         gc++;
                     }
                 }
@@ -308,7 +299,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         return fixed_min(pico8_fixed_from_int(count), pico8_fixed_from_int(3));
     }
 
-    if (!field_truthy(pt, "hf")) {
+    if (!economy_truthy(pico8_jo_hf(jo))) {
         if (jy != NULL && jy->count > 0) {
             pico8_value_t last_val = jy->items[jy->count - 1];
             if (last_val.kind == PICO8_VALUE_REF && last_val.as.ref != NULL) {
@@ -322,7 +313,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     }
 
     {
-        const pico8_list_t *by = field_list(pt, "by");
+        const pico8_list_t *by = jo->by;
         int by_count = (by != NULL) ? by->count : 0;
         int cc_count = (cc != NULL) ? cc->count : 0;
         pico8_fixed_t mid_val =

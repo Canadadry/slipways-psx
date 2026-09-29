@@ -69,5 +69,5 @@ int pico8_ke_field(const void *self, const char *name, pico8_value_t *out_value)
 }
 
 void pico8_ke_struct_pq(pico8_ke_t *self) {
-    pico8_lt((pico8_struct_header_t *)self);
+    pico8_lt(self);
 }

@@ -797,7 +797,7 @@ static uint32_t fold_new_ui(uint32_t h, const void *ui) {
 }
 
 typedef struct {
-    pico8_struct_header_t header;
+    pico8_ke_t ke;
 } giver_t;
 
 static pico8_struct_header_t *g_given;
@@ -844,7 +844,7 @@ static const pico8_struct_class_t g_giver_class = {
     .set_field = giver_set_field,
 };
 
-static giver_t g_giver = {{PICO8_TYPE_TAG_STRUCT, &g_giver_class}};
+static giver_t g_giver = {{{PICO8_TYPE_TAG_STRUCT, &g_giver_class}, NULL, 0}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);
@@ -923,7 +923,7 @@ static void test_ui_members_by_name(void) {
     assert(ui_ref(ok, "rheld") == NULL);
     h = fnv(h, cursor_is(58));
 
-    pico8_lt(&g_giver.header);
+    pico8_lt(&g_giver.ke);
     made[0] = pico8_qh_new(NULL);
     made[1] = pico8_os_new(NULL);
     made[2] = pico8_nl_new(NULL);
@@ -992,7 +992,7 @@ static void test_ui_held_stops_off_row(void) {
     void *right[6];
     size_t i;
 
-    pico8_lt(&g_giver.header);
+    pico8_lt(&g_giver.ke);
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
     left[2] = pico8_cg("jo")->items[0].as.ref;

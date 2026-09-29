@@ -20,7 +20,7 @@ static int g_ie_up = 0;
  * counter shared by every icon, never a member. `gy` is rebound, never
  * written through: an icon's `ra`, and `eh`, may hold its REF. Only `_init`
  * resets `gy`, only pico8_research_icon_init() resets `id`. */
-static pico8_value_t g_ie_gy = {PICO8_VALUE_REF, {.ref = NULL}};
+static const pico8_vec_t *g_ie_gy = NULL;
 static pico8_value_t g_ie_id = {PICO8_VALUE_REF, {.ref = NULL}};
 
 static int ie_to_int(pico8_fixed_t x) {
@@ -135,24 +135,6 @@ const pico8_struct_class_t *pico8_ie_ke_view_struct_class(void) {
     return &g_ie_ke_view_struct_class;
 }
 
-static void ie_take_vec(pico8_value_t value, const pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "ie.ra: a gy neither nil nor a vector ref does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-/* A missing or wrong-kind value reads as the zero vector. */
-static pico8_vec_t ie_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
 void pico8_ie_hb(pico8_ie_t *self) {
     const char *rr;
 
@@ -177,16 +159,17 @@ void pico8_ie_hb(pico8_ie_t *self) {
     /* `self.ra` takes the REF `ie.gy` holds now. The `-=` below rebinds
      * `ie.gy` to a fresh vector rather than writing through the old one, so
      * this snapshot survives it. */
-    ie_take_vec(g_ie_gy, &self->ra);
+    self->ra = g_ie_gy;
     self->kh = 1;
     self->has_kh = 1;
 
     {
-        pico8_vec_t current = ie_value_vec(g_ie_gy);
+        pico8_vec_t current =
+            g_ie_gy != NULL ? *g_ie_gy : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
         pico8_vec_t delta = pico8_vec_v(pico8_fixed_from_int(10), pico8_fixed_from_int(0));
         pico8_vec_t *heap = malloc(sizeof *heap);
         *heap = pico8_vec_sub(current, delta);
-        g_ie_gy = pico8_value_ref(heap);
+        g_ie_gy = heap;
     }
 }
 
@@ -282,7 +265,7 @@ static int pico8_ie_field(const void *self, const char *name, pico8_value_t *out
     pico8_value_t value;
 
     if (strcmp(name, "gy") == 0) {
-        value = g_ie_gy;
+        value = pico8_value_ref((void *)g_ie_gy);
     } else if (strcmp(name, "id") == 0) {
         value = g_ie_id;
     } else if (strcmp(name, "kq") == 0) {
@@ -405,14 +388,14 @@ void pico8_research_icon_init(void) {
     pico8_pi_init();
 
     g_ie_up = 1;
-    g_ie_gy = pico8_value_ref(NULL);
+    g_ie_gy = NULL;
     g_ie_id = pico8_value_fixed(pico8_ie_start.id);
 }
 
 /* TROU-7 */
 void pico8_research_icon_shutdown(void) {
     g_ie_up = 0;
-    g_ie_gy = pico8_value_ref(NULL);
+    g_ie_gy = NULL;
 }
 
 int pico8_ie_ready(void) {
@@ -427,10 +410,10 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
     return pico8_ie_struct_new(keys);
 }
 
-pico8_value_t pico8_ie_eh(void) {
-    return g_ie_up ? pico8_value_ref((void *)&pico8_ie_start.eh) : pico8_value_ref(NULL);
+const pico8_vec_t *pico8_ie_eh(void) {
+    return g_ie_up ? &pico8_ie_start.eh : NULL;
 }
 
-void pico8_ie_set_gy(pico8_value_t gy) {
+void pico8_ie_set_gy(const pico8_vec_t *gy) {
     g_ie_gy = gy;
 }

@@ -22,28 +22,12 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-static pico8_fixed_t field_fixed(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
 static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
         return 0;
     }
     return economy_truthy(v);
-}
-
-static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return PICO8_REF_AS_LIST_CONST(v.as.ref);
-    }
-    return NULL;
 }
 
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
@@ -77,10 +61,10 @@ pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
     if (call_gg_truthy(pt)) {
-        pico8_value_t mi_val;
+        const pico8_jo_t *jo = (const pico8_jo_t *)pt;
         int es;
-        if (pico8_entity_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
-            pico8_int_seq_at(pico8_es_table, PICO8_ES_COUNT, pico8_fixed_flr_int(mi_val.as.fixed), &es)) {
+        if (jo->has_mi &&
+            pico8_int_seq_at(pico8_es_table, PICO8_ES_COUNT, pico8_fixed_flr_int(jo->mi), &es)) {
             return pico8_fixed_from_int(es);
         }
     }
@@ -107,14 +91,16 @@ pico8_fixed_t pico8_cz(void) {
 
 pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     pico8_fixed_t total = pico8_fixed_from_int(0);
-    const pico8_list_t *by = field_list(pt, "by");
+    const pico8_jo_t *jo;
+    const pico8_list_t *by;
     const pico8_js_t *dk = pico8_dk();
-    pico8_value_t pt_mi_val;
-    pico8_fixed_t pt_mi = pico8_fixed_from_int(0);
-    int has_pt_mi = pico8_entity_get_field(pt, "mi", &pt_mi_val) && pt_mi_val.kind == PICO8_VALUE_FIXED;
-    if (has_pt_mi) {
-        pt_mi = pt_mi_val.as.fixed;
+
+    if (pt == NULL) {
+        return total;
     }
+    assert(pico8_jo_is_family(pt) && "db: pt is a planet of cg.jo");
+    jo = (const pico8_jo_t *)pt;
+    by = jo->by;
 
     if (by != NULL) {
         int i;
@@ -131,25 +117,24 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
                 continue;
             }
             {
-                pico8_struct_header_t *oz = (pico8_struct_header_t *)oz_val.as.ref;
-                if (field_truthy(oz, "hf")) {
+                const pico8_jo_t *oz;
+                assert(pico8_jo_is_family(oz_val.as.ref) && "db: a trade leads to a planet");
+                oz = oz_val.as.ref;
+                if (economy_truthy(pico8_jo_hf(oz))) {
                     pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
-                    pico8_fixed_t hs = field_fixed(pt, "hs");
+                    pico8_fixed_t hs = jo->hs;
                     pico8_fixed_t ct_pt = pico8_fixed_from_int(0);
                     pico8_fixed_t ct_oz = pico8_fixed_from_int(0);
                     pico8_fixed_t bonus;
-                    pico8_value_t trade_val;
-                    pico8_value_t oz_mi_val;
 
-                    if (dk != NULL && pico8_entity_get_field(dk, "trade", &trade_val) &&
-                        trade_val.kind == PICO8_VALUE_FIXED) {
-                        trade_mult = trade_val.as.fixed;
+                    if (dk != NULL && dk->has_trade) {
+                        trade_mult = dk->trade;
                     }
-                    if (has_pt_mi) {
-                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, pico8_fixed_flr_int(pt_mi), &ct_pt);
+                    if (jo->has_mi) {
+                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, pico8_fixed_flr_int(jo->mi), &ct_pt);
                     }
-                    if (pico8_entity_get_field(oz, "mi", &oz_mi_val) && oz_mi_val.kind == PICO8_VALUE_FIXED) {
-                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, pico8_fixed_flr_int(oz_mi_val.as.fixed),
+                    if (oz->has_mi) {
+                        pico8_fixed_seq_at(pico8_ct_table, PICO8_CT_COUNT, pico8_fixed_flr_int(oz->mi),
                                            &ct_oz);
                     }
                     bonus = pico8_fixed_add(pico8_fixed_from_int(1), pico8_fixed_add(ct_pt, ct_oz));
@@ -160,21 +145,15 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     }
 
     {
-        pico8_value_t kw_val;
-        const pico8_kw_t *kw = NULL;
-        if (pt != NULL && pico8_entity_get_field(pt, "kw", &kw_val) && kw_val.kind == PICO8_VALUE_REF) {
-            kw = kw_val.as.ref;
-        }
+        const pico8_kw_t *kw = jo->kw;
         if (kw != NULL) {
             int w;
             /* TROU-3 */
             if (kw->has_qe && pico8_r_lookup("w", &w) && kw->qe == pico8_fixed_from_int(w)) {
                 pico8_fixed_t mu = kw->mu;
                 pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
-                pico8_value_t trade_val;
-                if (dk != NULL && pico8_entity_get_field(dk, "trade", &trade_val) &&
-                    trade_val.kind == PICO8_VALUE_FIXED) {
-                    trade_mult = trade_val.as.fixed;
+                if (dk != NULL && dk->has_trade) {
+                    trade_mult = dk->trade;
                 }
                 total = pico8_fixed_add(
                     total, pico8_fixed_mul(pico8_fixed_mul(mu, trade_mult), PICO8_FIXED_LIT(0x00018000, 1.5)));
@@ -193,13 +172,14 @@ typedef struct {
 
 static void sum_by_mi_visit(pico8_struct_header_t *pt, void *ctx_) {
     sum_by_mi_ctx_t *ctx = (sum_by_mi_ctx_t *)ctx_;
-    pico8_value_t mi_val;
+    const pico8_jo_t *jo;
     int v;
     if (!call_gg_truthy(pt)) {
         return;
     }
-    if (pico8_entity_get_field(pt, "mi", &mi_val) && mi_val.kind == PICO8_VALUE_FIXED &&
-        pico8_int_seq_at(ctx->seq, ctx->count, pico8_fixed_flr_int(mi_val.as.fixed), &v)) {
+    jo = (const pico8_jo_t *)pt;
+    if (jo->has_mi &&
+        pico8_int_seq_at(ctx->seq, ctx->count, pico8_fixed_flr_int(jo->mi), &v)) {
         ctx->total = pico8_fixed_add(ctx->total, pico8_fixed_from_int(v));
     }
 }

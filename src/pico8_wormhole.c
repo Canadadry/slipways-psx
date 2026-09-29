@@ -59,14 +59,6 @@ static pico8_vec_t pico8_mz_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_mz_field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
-        return pico8_mz_value_vec(v);
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
 static int pico8_mz_pq_ox_predicate(pico8_value_t e, void *ctx) {
     pico8_struct_header_t *p;
     pico8_value_t fx_val;
@@ -202,20 +194,20 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
             pico8_value_t pt_val = jo_list->items[i];
-            pico8_struct_header_t *pt;
-            pico8_value_t me_val;
+            pico8_jo_t *pt;
 
             if (pt_val.kind != PICO8_VALUE_REF || pt_val.as.ref == NULL) {
                 continue;
             }
-            pt = (pico8_struct_header_t *)pt_val.as.ref;
+            assert(pico8_jo_is_family(pt_val.as.ref) && "mz:pr: cg.jo holds planets only");
+            pt = pt_val.as.ref;
 
-            if (pico8_entity_get_field(pt, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING &&
-                me_val.as.string != NULL && strcmp(me_val.as.string, "unknown") == 0) {
-                pico8_vec_t pt_p = pico8_mz_field_vec(pt, "p");
+            if (pt->ke.me != NULL && strcmp(pt->ke.me, "unknown") == 0) {
+                pico8_vec_t pt_p =
+                    pt->p != NULL ? *pt->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
                 pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);
                 if (pico8_vec_qx(diff) < sr) {
-                    pico8_jo_hh((pico8_jo_t *)pt);
+                    pico8_jo_hh(pt);
                 }
             }
         }

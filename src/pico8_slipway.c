@@ -143,19 +143,28 @@ static pico8_struct_header_t *pico8_jc_value_instance(pico8_value_t v) {
     return NULL;
 }
 
-static pico8_struct_header_t *pico8_jc_entity_instance(const void *e, const char *name) {
-    return pico8_jc_value_instance(pico8_jc_entity_value(e, name));
+static const pico8_jc_mouse_point_t *jc_end_point(const pico8_struct_header_t *end) {
+    assert(end->cls == &g_jc_mouse_point_struct_class &&
+           "jc: an end of a slipway is a planet or the mouse point jc:hq hangs on re -- stop");
+    return (const pico8_jc_mouse_point_t *)end;
 }
 
-static pico8_vec_t pico8_jc_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
+pico8_vec_t pico8_jc_end_p(const pico8_struct_header_t *end) {
+    const pico8_vec_t *p = NULL;
+
+    if (end != NULL) {
+        p = pico8_jo_is_family(end) ? ((const pico8_jo_t *)end)->p : jc_end_point(end)->p;
     }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return p != NULL ? *p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_vec_t pico8_jc_entity_vec(const void *e, const char *name) {
-    return pico8_jc_value_vec(pico8_jc_entity_value(e, name));
+pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end) {
+    const pico8_vec_t *ra = NULL;
+
+    if (end != NULL) {
+        ra = pico8_jo_is_family(end) ? ((const pico8_jo_t *)end)->ra : jc_end_point(end)->ra;
+    }
+    return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
 static void jc_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
@@ -224,7 +233,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     }
 
     ok = pico8_ok();
-    hovered = pico8_jc_entity_instance(ok, "o_");
+    hovered = ok != NULL ? ok->o_ : NULL;
 
     if (hovered != NULL && hovered->cls->gv != NULL) {
         self->re = hovered;
@@ -317,35 +326,31 @@ static int pico8_jc_ce_np_predicate(pico8_value_t e, void *ctx_ptr) {
         return 0;
     }
     n = (pico8_struct_header_t *)e.as.ref;
-    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_entity_vec(n, "p"), PICO8_FIXED_LIT(0x000000d1, 0.0032));
+    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_end_p(n), PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 typedef struct {
     pico8_vec_t sp;
     pico8_vec_t dp;
-    pico8_value_t self_mt;
+    int self_has_mt;
+    pico8_fixed_t self_mt;
 } pico8_jc_ce_jc_ctx_t;
 
 /* `self` is already registered in `cg("jc")` when this runs; `cl()` of a
  * segment against itself is always false, so no self-exclusion is needed. */
 static int pico8_jc_ce_jc_predicate(pico8_value_t e, void *ctx_ptr) {
     const pico8_jc_ce_jc_ctx_t *ctx = (const pico8_jc_ce_jc_ctx_t *)ctx_ptr;
-    const void *sw;
-    pico8_value_t sw_mt;
+    const pico8_jc_t *sw;
 
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
+    assert(((const pico8_struct_header_t *)e.as.ref)->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
     sw = e.as.ref;
-    sw_mt = pico8_jc_entity_value(sw, "mt");
-    if (!pico8_value_equal(sw_mt, ctx->self_mt)) {
+    if (sw->has_mt != ctx->self_has_mt || (sw->has_mt && sw->mt != ctx->self_mt)) {
         return 0;
     }
-    {
-        pico8_struct_header_t *sw_qu = pico8_jc_entity_instance(sw, "qu");
-        pico8_struct_header_t *sw_re = pico8_jc_entity_instance(sw, "re");
-        return pico8_geom_cl(ctx->sp, ctx->dp, pico8_jc_entity_vec(sw_qu, "p"), pico8_jc_entity_vec(sw_re, "p"));
-    }
+    return pico8_geom_cl(ctx->sp, ctx->dp, pico8_jc_end_p(sw->qu), pico8_jc_end_p(sw->re));
 }
 
 pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
@@ -362,8 +367,8 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
 
     qu = self->qu;
     re = self->re;
-    sp = pico8_jc_entity_vec(qu, "p");
-    dp = pico8_jc_entity_vec(re, "p");
+    sp = pico8_jc_end_p(qu);
+    dp = pico8_jc_end_p(re);
 
     ov_result = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)),
                           pico8_value_fixed(PICO8_FIXED_LIT(0x0001147a, 1.08)));
@@ -374,9 +379,14 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     }
 
     {
-        pico8_value_t oe_val = pico8_jc_entity_value(qu, "oe");
-        if (oe_val.kind == PICO8_VALUE_REF && oe_val.as.ref != NULL) {
-            pico8_list_iter_t it = pico8_list_all(PICO8_REF_AS_LIST_CONST(oe_val.as.ref));
+        const pico8_list_t *oe = NULL;
+
+        if (qu != NULL) {
+            assert(pico8_jo_is_family(qu) && "jc.qu is a planet: the constructor asserts it");
+            oe = ((const pico8_jo_t *)qu)->oe;
+        }
+        if (oe != NULL) {
+            pico8_list_iter_t it = pico8_list_all(oe);
             pico8_value_t w_val;
             while (pico8_list_iter_next(&it, &w_val)) {
                 pico8_struct_header_t *w;
@@ -406,7 +416,8 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
         np_ctx.dp = dp;
         jc_ctx.sp = sp;
         jc_ctx.dp = dp;
-        jc_ctx.self_mt = self->has_mt ? pico8_value_fixed(self->mt) : pico8_value_ref(NULL);
+        jc_ctx.self_has_mt = self->has_mt;
+        jc_ctx.self_mt = self->mt;
 
         part1 = pico8_jp(pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
         part2 = pico8_jp(pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);

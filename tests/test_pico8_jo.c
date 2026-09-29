@@ -19,6 +19,7 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy_formulas.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
@@ -477,6 +478,10 @@ static void test_kw_shared(void) {
     void *b;
     pico8_kw_t *kw;
     pico8_value_t hp;
+    pico8_qe_map_t po_before;
+    pico8_qe_map_t po_after;
+    pico8_fixed_t before = pico8_fixed_from_int(0);
+    pico8_fixed_t after = pico8_fixed_from_int(0);
 
     start_title();
     a = new_planet("p902", 5, 6);
@@ -496,8 +501,13 @@ static void test_kw_shared(void) {
     assert(get_ref(b, "kw") == pico8_jo_shared_kw());
     assert(get_ref(a, "hn") == hp.as.ref && list_size(a, "jy") >= 0);
 
+    pico8_bx(&po_before);
     kw->has_qe = 1;
     kw->qe = pico8_fixed_from_int(28);
+    pico8_bx(&po_after);
+    pico8_qe_map_get(&po_before, kw->qe, &before);
+    pico8_qe_map_get(&po_after, kw->qe, &after);
+    assert(after == before);
     pico8_jo_init();
     assert(get_ref(b, "kw") == pico8_jo_shared_kw());
     assert(!kw->has_qe && kw->mu == pico8_fixed_from_int(0));

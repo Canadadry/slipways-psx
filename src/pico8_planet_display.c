@@ -18,6 +18,7 @@
 #include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_research_display.h"
+#include "pico8_slipway.h"
 #include "pico8_ref_audit.h"
 #include "pico8_type_tag.h"
 
@@ -294,7 +295,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
 
 pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
     const char *me_val;
-    pico8_value_t qu_val;
     pico8_down_t out = {0, NULL};
 
     if (self == NULL) {
@@ -304,8 +304,8 @@ pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s)
     if (me_val == NULL || strcmp(me_val, "ly") != 0) {
         return out;
     }
-    if (s != NULL && pico8_entity_get_field(s, "qu", &qu_val) && qu_val.kind == PICO8_VALUE_REF &&
-        qu_val.as.ref == (const void *)self) {
+    /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
+    if (s != NULL && s->cls == pico8_jc_struct_class() && ((const pico8_jc_t *)s)->qu == &self->ke.header) {
         pico8_jo_gh(self);
         return out;
     }
@@ -317,26 +317,17 @@ pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s)
  * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
  * verbatim onto the button this bridge is later dispatched on. */
 static void pico8_jo_fe_my_dispatch(pico8_js_t *self) {
-    const void *inst = self;
-    pico8_value_t pt_val;
-    pico8_value_t b_val;
-    pico8_value_t od_val;
-    pico8_jo_t *pt = NULL;
-    pico8_hp_t *b = NULL;
+    pico8_jo_t *pt;
+    pico8_hp_t *b;
     pico8_fixed_t od = pico8_fixed_from_int(0);
 
-    if (inst == NULL) {
+    if (self == NULL) {
         return;
     }
-    if (pico8_entity_get_field(inst, "_jo_fe_pt", &pt_val) && pt_val.kind == PICO8_VALUE_REF &&
-        pt_val.as.ref != NULL) {
-        pt = (pico8_jo_t *)pt_val.as.ref;
-    }
-    if (pico8_entity_get_field(inst, "_jo_fe_b", &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
-        b = b_val.as.ref;
-    }
-    if (pico8_entity_get_field(inst, "_jo_fe_od", &od_val) && od_val.kind == PICO8_VALUE_FIXED) {
-        od = od_val.as.fixed;
+    pt = self->_jo_fe_pt;
+    b = self->_jo_fe_b;
+    if (self->has__jo_fe_od) {
+        od = self->_jo_fe_od;
     }
 
     assert(pt != NULL && "jo:fe's my callback lost its captured planet");

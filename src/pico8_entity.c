@@ -219,7 +219,8 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
     (void)written;
 }
 
-pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
+pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
+    pico8_struct_header_t *e = &ke->header;
     int i;
     pico8_value_t nu_val;
 

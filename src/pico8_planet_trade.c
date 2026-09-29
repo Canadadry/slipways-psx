@@ -12,16 +12,6 @@
 #include "pico8_ref_audit.h"
 #include "pico8_slipway.h"
 
-static int pico8_jo_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 /* Membership by trade equality (same endpoints), not pico8_gu's pointer
  * identity: every candidate offered here is a freshly built route, which
  * identity would never match. NULL-safe on `list`. */
@@ -70,9 +60,8 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
         other = pico8_jc_eb((const pico8_jc_t *)sw, (const pico8_struct_header_t *)self);
     }
     if (other != NULL) {
-        pico8_value_t fx_val;
-        if (pico8_entity_get_field(other, "fx", &fx_val) &&
-            pico8_jo_truthy(fx_val)) {
+        assert(pico8_jo_is_family(other) && "jo:kf: the other end of a registered slipway is a planet");
+        if (((const pico8_jo_t *)other)->has_fx && ((const pico8_jo_t *)other)->fx) {
             self->fx = 1;
             self->has_fx = 1;
         }

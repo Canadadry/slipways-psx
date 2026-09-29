@@ -71,11 +71,12 @@ typedef struct {
 pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys);
 
 /* `ie.eh`, `pico8_ie_start.eh`, for `_init` to point `ie.gy` at: an alias,
- * not a copy. Absent before pico8_research_icon_init() and after the
+ * not a copy. NULL before pico8_research_icon_init() and after the
  * shutdown. */
-pico8_value_t pico8_ie_eh(void);
+const pico8_vec_t *pico8_ie_eh(void);
 
-void pico8_ie_set_gy(pico8_value_t gy);
+/* NULL is a nil `gy`. */
+void pico8_ie_set_gy(const pico8_vec_t *gy);
 
 /* Reveals the icon once, claiming the next slot off the shared `ie.gy`
  * cursor. Requires pico8_research_icon_init(). */

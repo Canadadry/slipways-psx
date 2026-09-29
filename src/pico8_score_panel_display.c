@@ -203,13 +203,12 @@ static pico8_value_t pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t
         const char *hl_str = fm != NULL && fm->has_hl && fm->hl != NULL ? fm->hl : "current score";
         const pico8_js_t *dk = pico8_dk();
         const char *px = "";
-        pico8_value_t px_val;
         char *piece1;
         char *piece2;
         char *label;
 
-        if (dk != NULL && pico8_entity_get_field(dk, "px", &px_val) && px_val.kind == PICO8_VALUE_STRING) {
-            px = px_val.as.string;
+        if (dk != NULL && dk->px != NULL) {
+            px = dk->px;
         }
         piece1 = pj_concat2(hl_str, " (");
         piece2 = pj_concat2(piece1, px);

@@ -67,9 +67,8 @@ void pico8_dg(void) {
     /* TROU-5 */
     for (i = 0; i < hv->count; i++) {
         pico8_struct_header_t *qc = hv->items[i].as.ref;
-        pico8_value_t me_val;
+        pico8_ke_t *ke = hv->items[i].as.ref;
         pico8_value_t p_val;
-        pico8_value_t t_val;
 
         assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
                "hv holds structs only; no class instance descends from ke any more");
@@ -77,17 +76,11 @@ void pico8_dg(void) {
         /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
          * name comes from `me` at run time, so no site ever writes `:ly(`
          * and a grep reads them as dead code. */
-        if (pico8_entity_get_field(qc, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING) {
-            int state = pico8_state_of(me_val.as.string);
+        if (ke->me != NULL) {
+            int state = pico8_state_of(ke->me);
 
             if (state >= 0 && qc->cls->states[state] != NULL) {
-                pico8_value_t t_arg;
-                pico8_fixed_t t = pico8_fixed_from_int(0);
-
-                if (pico8_entity_get_field(qc, "t", &t_arg) && t_arg.kind == PICO8_VALUE_FIXED) {
-                    t = t_arg.as.fixed;
-                }
-                qc->cls->states[state](qc, t);
+                qc->cls->states[state](qc, ke->t);
             }
         }
 
@@ -95,8 +88,6 @@ void pico8_dg(void) {
             pico8_he(qc);
         }
 
-        if (pico8_entity_get_field(qc, "t", &t_val) && t_val.kind == PICO8_VALUE_FIXED) {
-            ((pico8_ke_t *)qc)->t = pico8_fixed_add(t_val.as.fixed, pico8_fixed_from_int(1));
-        }
+        ke->t = pico8_fixed_add(ke->t, pico8_fixed_from_int(1));
     }
 }
