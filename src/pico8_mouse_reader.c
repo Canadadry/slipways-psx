@@ -48,9 +48,14 @@ static int pico8_nf_field(const void *self, const char *name, pico8_value_t *out
     return 1;
 }
 
+static const pico8_vec_t *nf_get_ra(const void *self) {
+    return ((const pico8_nf_t *)self)->ra;
+}
+
 static const pico8_struct_class_t g_nf_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_nf_ph_dispatch},
     .field = pico8_nf_field,
+    .get_ra = nf_get_ra,
 };
 
 static void pico8_nf_pq(pico8_mem_t *mem) {

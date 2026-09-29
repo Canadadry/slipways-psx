@@ -12,15 +12,6 @@
 #include "pico8_ui.h"
 #include "pico8_value.h"
 
-/* Lua truthiness, sans la clause REF-NULL que portent les autres helpers du
- * port : aucun appelant n'a été montré l'atteignant avec un nil. L'assert
- * énonce cette hypothèse au lieu de lui faire confiance — s'il part, c'est
- * qu'un nil aurait été rendu vrai. */
-static int pico8_dg_truthy(pico8_value_t v) {
-    assert(!(v.kind == PICO8_VALUE_REF && v.as.ref == NULL));
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
 void pico8_jl(void) {
     pico8_qb_t *real_mo;
     pico8_nf_t *real_je;
@@ -68,7 +59,6 @@ void pico8_dg(void) {
     for (i = 0; i < hv->count; i++) {
         pico8_struct_header_t *qc = hv->items[i].as.ref;
         pico8_ke_t *ke = hv->items[i].as.ref;
-        pico8_value_t p_val;
 
         assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
                "hv holds structs only; no class instance descends from ke any more");
@@ -84,7 +74,7 @@ void pico8_dg(void) {
             }
         }
 
-        if (pico8_entity_get_field(qc, "p_", &p_val) && pico8_dg_truthy(p_val)) {
+        if (qc->cls->get_p_ != NULL && qc->cls->get_p_(qc)) {
             pico8_he(qc);
         }
 

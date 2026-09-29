@@ -193,6 +193,14 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .set_field = pico8_qh_set_field,
     .parent = pico8_jo_struct_class,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
@@ -318,6 +326,14 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .set_field = pico8_nl_set_field,
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
@@ -373,6 +389,14 @@ static const pico8_struct_class_t g_os_struct_class = {
     .set_field = pico8_qh_set_field,
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
@@ -536,6 +560,14 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .parent = pico8_qh_struct_class,
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
@@ -654,6 +686,14 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .parent = pico8_hj_struct_class,
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
@@ -887,6 +927,14 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .set_field = pico8_ga_set_field,
     .parent = pico8_jo_struct_class,
     .emitter_of = ga_emitter_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {

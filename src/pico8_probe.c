@@ -183,9 +183,7 @@ static int g__is_target_class(const pico8_struct_class_t *cls) {
            cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
 }
 
-/* Points the `fo` of `bv`'s target back at `self`: a planet of jo's family,
- * a `jc`, or the throwaway target. */
-static void probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self) {
+void pico8_probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self) {
     if (pico8_jo_is_family(et)) {
         assert((self->cls->hq == pico8_bv_dispatch || self->cls == pico8_jc_struct_class()) &&
                "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) "
@@ -199,6 +197,13 @@ static void probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *s
                "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, "
                "nl, os, hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop");
         ((pico8_jc_t *)et)->fo = self;
+        return;
+    }
+    if (et->cls == pico8_jc_too_far_struct_class()) {
+        assert(self->cls == pico8_jc_struct_class() &&
+               "jc_too_far.fo: a write neither nil nor a jc does not fit the member's type "
+               "-- stop, do not widen the member");
+        ((pico8_jc_too_far_t *)et)->fo = (pico8_jc_t *)self;
         return;
     }
     assert(et == &g_bv_et.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
@@ -275,7 +280,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     probe->has_et = 1;
 
     if (probe->et != NULL) {
-        probe_et_hang_fo(probe->et, self);
+        pico8_probe_et_hang_fo(probe->et, self);
     }
 }
 
@@ -671,6 +676,35 @@ static int pico8_g__set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+const pico8_str_seq_t *pico8_g__get_nu(const void *self) {
+    return ((const pico8_g__t *)self)->nu;
+}
+
+int pico8_g__get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_g__t *)self)->fa;
+    return 1;
+}
+
+const pico8_vec_t *pico8_g__get_ra(const void *self) {
+    return ((const pico8_g__t *)self)->ra;
+}
+
+const pico8_vec_t *pico8_g__get_p(const void *self) {
+    return ((const pico8_g__t *)self)->p;
+}
+
+/* `fx` is a fixed here, and a fixed is always true in Lua, even 0. */
+int pico8_g__get_fx(const void *self) {
+    (void)self;
+    return 1;
+}
+
+int pico8_g__get_p_(const void *self) {
+    const pico8_g__t *g_ = self;
+
+    return g_->has_p_ && g_->p_;
+}
+
 static const pico8_struct_class_t g_g__struct_class = {
     .kj = pico8_ei_dispatch,
     .ev = pico8_dl_dispatch,
@@ -681,6 +715,12 @@ static const pico8_struct_class_t g_g__struct_class = {
     .set_field = pico8_g__set_field,
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
+    .get_nu = pico8_g__get_nu,
+    .get_fa = pico8_g__get_fa,
+    .get_ra = pico8_g__get_ra,
+    .get_p = pico8_g__get_p,
+    .get_fx = pico8_g__get_fx,
+    .get_p_ = pico8_g__get_p_,
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {

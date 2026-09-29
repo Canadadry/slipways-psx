@@ -325,6 +325,26 @@ static int pico8_ie_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+static int ie_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_ie_t *)self)->fa;
+    return 1;
+}
+
+static const pico8_vec_t *ie_get_ra(const void *self) {
+    return ((const pico8_ie_t *)self)->ra;
+}
+
+static const pico8_qz_box_t *ie_get_kq(const void *self) {
+    return ((const pico8_ie_t *)self)->kq;
+}
+
+static void ie_set_m_(void *self, int m_) {
+    pico8_ie_t *ie = self;
+
+    ie->m_ = m_ != 0;
+    ie->has_m_ = 1;
+}
+
 static const pico8_struct_class_t g_ie_struct_class = {
     .kj = pico8_ie_kj_dispatch,
     .hd = pico8_ie_hd_dispatch,
@@ -332,6 +352,10 @@ static const pico8_struct_class_t g_ie_struct_class = {
     .ldown = pico8_ie_ldown_dispatch,
     .field = pico8_ie_field,
     .set_field = pico8_ie_set_field,
+    .get_fa = ie_get_fa,
+    .get_ra = ie_get_ra,
+    .get_kq = ie_get_kq,
+    .set_m_ = ie_set_m_,
 };
 
 static void *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {

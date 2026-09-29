@@ -106,6 +106,21 @@ struct pico8_struct_class {
     const pico8_struct_class_t *(*parent)(void);
     struct pico8_emitter *(*emitter_of)(void *self);
     struct pico8_probe *(*probe_of)(void *self);
+    /* A NULL member: the class has no such field, for every instance. A
+     * reader returns NULL, or 0 leaving *out untouched, when the field is
+     * nil; `get_fx` and `get_p_` return its Lua truth. `set_m_` also marks
+     * `m_` present. Each is only ever called as `e->cls->get_X(e, ...)`. */
+    const pico8_str_seq_t *(*get_nu)(const void *self);
+    int (*get_fa)(const void *self, pico8_fixed_t *out);
+    const pico8_vec_t *(*get_ra)(const void *self);
+    const pico8_vec_t *(*get_p)(const void *self);
+    const pico8_qz_box_t *(*get_kq)(const void *self);
+    int (*get_ql)(const void *self, pico8_fixed_t *out);
+    int (*get_fg)(const void *self, pico8_fixed_t *out);
+    int (*get_mt)(const void *self, pico8_fixed_t *out);
+    int (*get_fx)(const void *self);
+    int (*get_p_)(const void *self);
+    void (*set_m_)(void *self, int m_);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).

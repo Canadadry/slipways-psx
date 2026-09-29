@@ -105,8 +105,18 @@ static int pico8_jc_mouse_point_field(const void *self, const char *name, pico8_
     return 0;
 }
 
+static const pico8_vec_t *jc_mouse_point_get_ra(const void *self) {
+    return ((const pico8_jc_mouse_point_t *)self)->ra;
+}
+
+static const pico8_vec_t *jc_mouse_point_get_p(const void *self) {
+    return ((const pico8_jc_mouse_point_t *)self)->p;
+}
+
 static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
     .field = pico8_jc_mouse_point_field,
+    .get_ra = jc_mouse_point_get_ra,
+    .get_p = jc_mouse_point_get_p,
 };
 
 /* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
@@ -118,16 +128,6 @@ static int pico8_jc_truthy(pico8_value_t v) {
         return 0;
     }
     return 1;
-}
-
-/* Readers of another entity, of either form: an absent field, a wrong
- * kind, or a NULL entity all read as the zero/false/NULL default. */
-static pico8_value_t pico8_jc_entity_value(const void *e, const char *name) {
-    pico8_value_t v;
-    if (e != NULL && pico8_entity_get_field(e, name, &v)) {
-        return v;
-    }
-    return pico8_value_ref(NULL);
 }
 
 static pico8_struct_header_t *pico8_jc_value_instance(pico8_value_t v) {
@@ -161,17 +161,8 @@ pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end) {
     return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static void jc_take_fixed(pico8_value_t value, pico8_fixed_t *out, int *has) {
-    *out = 0;
-    *has = 0;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_FIXED &&
-           "jc.mt: an mt read off qu or re neither nil nor a fixed does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.fixed;
-    *has = 1;
+static int jc_mt_of(const pico8_struct_header_t *e, pico8_fixed_t *out) {
+    return e != NULL && e->cls->get_mt != NULL && e->cls->get_mt(e, out);
 }
 
 void pico8_jc_hg_add(pico8_jc_hg_t *hg, pico8_value_t id) {
@@ -219,8 +210,6 @@ void pico8_jc_pq(pico8_jc_t *self) {
 void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     pico8_ui_t *ok;
     pico8_struct_header_t *hovered;
-    pico8_value_t qu_mt;
-    pico8_value_t mt_val;
 
     if (self == NULL) {
         return;
@@ -246,16 +235,16 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     self->probe->od = pico8_dj(self->qu, self->re);
     self->probe->has_od = 1;
 
-    qu_mt = pico8_jc_entity_value(self->qu, "mt");
-    mt_val = pico8_jc_truthy(qu_mt) ? qu_mt : pico8_jc_entity_value(self->re, "mt");
-    jc_take_fixed(mt_val, &self->mt, &self->has_mt);
+    /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */
+    self->mt = pico8_fixed_from_int(0);
+    self->has_mt = jc_mt_of(self->qu, &self->mt) || jc_mt_of(self->re, &self->mt);
 
     self->probe->et = pico8_jc_value_instance(pico8_jc_ce(self));
     self->probe->has_et = self->probe->et != NULL;
     if (self->probe->et != NULL) {
         assert(pico8_type_tag_of(self->probe->et) == PICO8_TYPE_TAG_STRUCT &&
                "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
-        pico8_entity_set_field(self->probe->et, "fo", pico8_value_ref(self));
+        pico8_probe_et_hang_fo(self->probe->et, &self->ke.header);
     }
 
     self->fa = self->has_mt ? pico8_fixed_from_int(2) : pico8_fixed_from_int(4);
@@ -598,6 +587,31 @@ static pico8_probe_t *jc_probe_of(void *self) {
     return ((pico8_jc_t *)self)->probe;
 }
 
+static const pico8_str_seq_t *jc_get_nu(const void *self) {
+    return ((const pico8_jc_t *)self)->nu;
+}
+
+static int jc_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_jc_t *)self)->fa;
+    return 1;
+}
+
+static int jc_get_mt(const void *self, pico8_fixed_t *out) {
+    const pico8_jc_t *jc = self;
+
+    if (!jc->has_mt) {
+        return 0;
+    }
+    *out = jc->mt;
+    return 1;
+}
+
+static int jc_get_p_(const void *self) {
+    const pico8_jc_t *jc = self;
+
+    return jc->has_p_ && jc->p_;
+}
+
 static const pico8_struct_class_t g_jc_struct_class = {
     .kj = pico8_jc_kj_dispatch,
     .ev = pico8_jc_ev_dispatch,
@@ -606,6 +620,10 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .field = pico8_jc_field,
     .set_field = pico8_jc_set_field,
     .probe_of = jc_probe_of,
+    .get_nu = jc_get_nu,
+    .get_fa = jc_get_fa,
+    .get_mt = jc_get_mt,
+    .get_p_ = jc_get_p_,
 };
 
 static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {

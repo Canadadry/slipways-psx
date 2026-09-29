@@ -115,6 +115,17 @@ void pico8_jo_kj_dispatch(void *self, const pico8_vec_t *ra);
 pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
 void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw);
 
+/* The field accessors jo's descriptor holds, for a daughter's `static const`
+ * descriptor to name. */
+const pico8_str_seq_t *pico8_jo_get_nu(const void *self);
+int pico8_jo_get_fa(const void *self, pico8_fixed_t *out);
+const pico8_vec_t *pico8_jo_get_ra(const void *self);
+const pico8_vec_t *pico8_jo_get_p(const void *self);
+const pico8_qz_box_t *pico8_jo_get_kq(const void *self);
+int pico8_jo_get_fx(const void *self);
+int pico8_jo_get_p_(const void *self);
+void pico8_jo_set_m_(void *self, int m_);
+
 /* `e` is one of the ten classes of jo's tree: the only ones whose state
  * `ll` is jo's. */
 int pico8_jo_is_family(const pico8_struct_header_t *e);

@@ -460,6 +460,46 @@ static int pico8_jo_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+const pico8_str_seq_t *pico8_jo_get_nu(const void *self) {
+    return ((const pico8_jo_t *)self)->nu;
+}
+
+int pico8_jo_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_jo_t *)self)->fa;
+    return 1;
+}
+
+const pico8_vec_t *pico8_jo_get_ra(const void *self) {
+    return ((const pico8_jo_t *)self)->ra;
+}
+
+const pico8_vec_t *pico8_jo_get_p(const void *self) {
+    return ((const pico8_jo_t *)self)->p;
+}
+
+const pico8_qz_box_t *pico8_jo_get_kq(const void *self) {
+    return ((const pico8_jo_t *)self)->kq;
+}
+
+int pico8_jo_get_fx(const void *self) {
+    const pico8_jo_t *jo = self;
+
+    return jo->has_fx && jo->fx;
+}
+
+int pico8_jo_get_p_(const void *self) {
+    const pico8_jo_t *jo = self;
+
+    return jo->has_p_ && jo->p_;
+}
+
+void pico8_jo_set_m_(void *self, int m_) {
+    pico8_jo_t *jo = self;
+
+    jo->m_ = m_ != 0;
+    jo->has_m_ = 1;
+}
+
 static const pico8_struct_class_t g_jo_struct_class = {
     .kj = pico8_jo_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -472,6 +512,14 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .field = pico8_jo_field,
     .set_field = pico8_jo_set_field,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {

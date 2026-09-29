@@ -61,16 +61,12 @@ static pico8_vec_t pico8_mz_value_vec(pico8_value_t v) {
 
 static int pico8_mz_pq_ox_predicate(pico8_value_t e, void *ctx) {
     pico8_struct_header_t *p;
-    pico8_value_t fx_val;
     (void)ctx;
     if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
         return 0;
     }
     p = (pico8_struct_header_t *)e.as.ref;
-    if (!pico8_entity_get_field(p, "fx", &fx_val)) {
-        return 0;
-    }
-    return pico8_mz_truthy(fx_val);
+    return p->cls->get_fx != NULL && p->cls->get_fx(p);
 }
 
 void pico8_mz_pq(pico8_mz_t *self) {
@@ -408,6 +404,29 @@ static pico8_probe_t *mz_probe_of(void *self) {
     return ((pico8_mz_t *)self)->probe;
 }
 
+static const pico8_str_seq_t *mz_get_nu(const void *self) {
+    return ((const pico8_mz_t *)self)->nu;
+}
+
+static int mz_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_mz_t *)self)->fa;
+    return 1;
+}
+
+static const pico8_vec_t *mz_get_ra(const void *self) {
+    return ((const pico8_mz_t *)self)->ra;
+}
+
+static const pico8_vec_t *mz_get_p(const void *self) {
+    return ((const pico8_mz_t *)self)->p;
+}
+
+static int mz_get_p_(const void *self) {
+    const pico8_mz_t *mz = self;
+
+    return mz->has_p_ && mz->p_;
+}
+
 static const pico8_struct_class_t g_mz_struct_class = {
     .kj = pico8_mz_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -421,6 +440,11 @@ static const pico8_struct_class_t g_mz_struct_class = {
     .field = pico8_mz_field,
     .set_field = pico8_mz_set_field,
     .probe_of = mz_probe_of,
+    .get_nu = mz_get_nu,
+    .get_fa = mz_get_fa,
+    .get_ra = mz_get_ra,
+    .get_p = mz_get_p,
+    .get_p_ = mz_get_p_,
 };
 
 static void *pico8_mz_struct_new(void) {

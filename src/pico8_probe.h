@@ -60,9 +60,16 @@ typedef struct {
  * otherwise, and for a NULL `e`. */
 pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
 
-/* The `emitter_of` and `probe_of` of g_'s descriptor, for `fv`'s to name. */
+/* The `emitter_of`, `probe_of` and field accessors of g_'s descriptor, for
+ * `fv`'s to name. */
 pico8_emitter_t *pico8_g__emitter_of(void *self);
 pico8_probe_t *pico8_g__probe_of(void *self);
+const pico8_str_seq_t *pico8_g__get_nu(const void *self);
+int pico8_g__get_fa(const void *self, pico8_fixed_t *out);
+const pico8_vec_t *pico8_g__get_ra(const void *self);
+const pico8_vec_t *pico8_g__get_p(const void *self);
+int pico8_g__get_fx(const void *self);
+int pico8_g__get_p_(const void *self);
 
 /* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
  * absent, `false` when present and NULL, a REF to the target otherwise. */
@@ -142,6 +149,11 @@ const pico8_fm_placeholder_t *pico8_fm_placeholder(void);
 void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
 
 void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
+
+/* Points the `fo` of `et` back at `self`, which it borrows: `et` is a planet
+ * of jo's family, a `jc`, the `jc_too_far` struct or `bv`'s throwaway target
+ * (asserted, as is the class of `self` each accepts). */
+void pico8_probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self);
 
 const pico8_struct_class_t *pico8_bv_et_struct_class(void);
 

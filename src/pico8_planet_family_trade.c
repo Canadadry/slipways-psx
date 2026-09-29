@@ -229,6 +229,14 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .set_field = pico8_nr_set_field,
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 /* Initializes an allocated pico8_nr_t under `cls`: qh's part, nr's members
@@ -278,6 +286,11 @@ static int pico8_fr_field(const void *self, const char *name, pico8_value_t *out
     return pico8_nr_field(self, name, out_value);
 }
 
+static int pico8_fr_get_mt(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_fr_t *)self)->mt;
+    return 1;
+}
+
 static const pico8_struct_class_t g_fr_struct_class = {
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -299,6 +312,15 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .set_field = pico8_nr_set_field,
     .parent = pico8_nr_struct_class,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .get_mt = pico8_fr_get_mt,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
@@ -432,6 +454,14 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .parent = pico8_hj_struct_class,
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
+    .get_nu = pico8_jo_get_nu,
+    .get_fa = pico8_jo_get_fa,
+    .get_ra = pico8_jo_get_ra,
+    .get_p = pico8_jo_get_p,
+    .get_kq = pico8_jo_get_kq,
+    .get_fx = pico8_jo_get_fx,
+    .get_p_ = pico8_jo_get_p_,
+    .set_m_ = pico8_jo_set_m_,
 };
 
 static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {

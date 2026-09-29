@@ -107,9 +107,27 @@ static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out
     return 1;
 }
 
+static const pico8_str_seq_t *mh_get_nu(const void *self) {
+    return ((const pico8_mh_t *)self)->nu;
+}
+
+static int mh_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_mh_t *)self)->fa;
+    return 1;
+}
+
+static int mh_get_p_(const void *self) {
+    const pico8_mh_t *mh = self;
+
+    return mh->has_p_ && mh->p_;
+}
+
 static const pico8_struct_class_t g_mh_struct_class = {
     .ev = pico8_mh_ev_dispatch,
     .field = pico8_mh_field,
+    .get_nu = mh_get_nu,
+    .get_fa = mh_get_fa,
+    .get_p_ = mh_get_p_,
 };
 
 static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
@@ -271,10 +289,28 @@ static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out
     return pico8_ke_field(self, name, out_value);
 }
 
+static int iv_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_iv_t *)self)->fa;
+    return 1;
+}
+
+static const pico8_vec_t *iv_get_ra(const void *self) {
+    return ((const pico8_iv_t *)self)->ra;
+}
+
+static int iv_get_p_(const void *self) {
+    const pico8_iv_t *iv = self;
+
+    return iv->has_p_ && iv->p_;
+}
+
 static const pico8_struct_class_t g_iv_struct_class = {
     .kj = pico8_iv_kj_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
     .field = pico8_iv_field,
+    .get_fa = iv_get_fa,
+    .get_ra = iv_get_ra,
+    .get_p_ = iv_get_p_,
 };
 
 static void *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {

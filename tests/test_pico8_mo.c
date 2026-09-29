@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../src/pico8_assets.h"
 #include "../src/pico8_bootstrap.h"
@@ -84,15 +83,13 @@ typedef struct {
     pico8_value_t ra;
 } ra_only_t;
 
-static int ra_only_field(const void *self, const char *name, pico8_value_t *out_value) {
-    if (strcmp(name, "ra") != 0) {
-        return 0;
-    }
-    *out_value = ((const ra_only_t *)self)->ra;
-    return 1;
+static const pico8_vec_t *ra_only_get_ra(const void *self) {
+    const ra_only_t *e = self;
+
+    return e->ra.kind == PICO8_VALUE_REF ? e->ra.as.ref : NULL;
 }
 
-static const pico8_struct_class_t g_ra_only_class = {.field = ra_only_field};
+static const pico8_struct_class_t g_ra_only_class = {.get_ra = ra_only_get_ra};
 
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
 static void test_gd_on_placeholder(void) {

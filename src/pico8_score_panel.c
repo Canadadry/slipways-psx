@@ -377,12 +377,18 @@ static int pico8_pj_field(const void *self, const char *name, pico8_value_t *out
     return 1;
 }
 
+static int pj_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_pj_t *)self)->fa;
+    return 1;
+}
+
 static const pico8_struct_class_t g_pj_struct_class = {
     .kj = pico8_pj_kj_dispatch,
     .hk = pico8_pj_hk_dispatch,
     .hb = pico8_pj_hb_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_pj_ph_dispatch},
     .field = pico8_pj_field,
+    .get_fa = pj_get_fa,
 };
 
 static void *pico8_pj_struct_new(void) {

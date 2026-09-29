@@ -182,6 +182,27 @@ static int pico8_fv_set_field(void *self, const char *name, pico8_value_t value)
     return pico8_g__struct_class()->set_field(self, name, value);
 }
 
+static const pico8_qz_box_t *fv_get_kq(const void *self) {
+    return ((const pico8_fv_t *)self)->kq;
+}
+
+static int fv_get_ql(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_fv_t *)self)->ql;
+    return 1;
+}
+
+static int fv_get_fg(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_fv_t *)self)->fg;
+    return 1;
+}
+
+static void fv_set_m_(void *self, int m_) {
+    pico8_fv_t *fv = self;
+
+    fv->m_ = m_ != 0;
+    fv->has_m_ = 1;
+}
+
 static const pico8_struct_class_t g_fv_struct_class = {
     .kj = pico8_fv_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -194,6 +215,16 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .parent = pico8_g__struct_class,
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
+    .get_nu = pico8_g__get_nu,
+    .get_fa = pico8_g__get_fa,
+    .get_ra = pico8_g__get_ra,
+    .get_p = pico8_g__get_p,
+    .get_kq = fv_get_kq,
+    .get_ql = fv_get_ql,
+    .get_fg = fv_get_fg,
+    .get_fx = pico8_g__get_fx,
+    .get_p_ = pico8_g__get_p_,
+    .set_m_ = fv_set_m_,
 };
 
 static void *pico8_fv_struct_new(void) {

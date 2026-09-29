@@ -209,6 +209,36 @@ static int pico8_js_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+static int js_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_js_t *)self)->fa;
+    return 1;
+}
+
+static const pico8_vec_t *js_get_ra(const void *self) {
+    return ((const pico8_js_t *)self)->ra;
+}
+
+static const pico8_qz_box_t *js_get_kq(const void *self) {
+    return ((const pico8_js_t *)self)->kq;
+}
+
+static int js_get_fg(const void *self, pico8_fixed_t *out) {
+    const pico8_js_t *js = self;
+
+    if (!js->has_fg) {
+        return 0;
+    }
+    *out = js->fg;
+    return 1;
+}
+
+static void js_set_m_(void *self, int m_) {
+    pico8_js_t *js = self;
+
+    js->m_ = m_ != 0;
+    js->has_m_ = 1;
+}
+
 static const pico8_struct_class_t g_js_struct_class = {
     .kj = pico8_js_kj_dispatch,
     .ev = pico8_js_ev_dispatch,
@@ -219,6 +249,11 @@ static const pico8_struct_class_t g_js_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
     .field = pico8_js_field,
     .set_field = pico8_js_set_field,
+    .get_fa = js_get_fa,
+    .get_ra = js_get_ra,
+    .get_kq = js_get_kq,
+    .get_fg = js_get_fg,
+    .set_m_ = js_set_m_,
 };
 
 static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
@@ -513,11 +548,32 @@ static int pico8_fq_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+static int fq_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_fq_t *)self)->fa;
+    return 1;
+}
+
+static int fq_get_p_(const void *self) {
+    const pico8_fq_t *fq = self;
+
+    return fq->has_p_ && fq->p_;
+}
+
+static void fq_set_m_(void *self, int m_) {
+    pico8_fq_t *fq = self;
+
+    fq->m_ = m_ != 0;
+    fq->has_m_ = 1;
+}
+
 static const pico8_struct_class_t g_fq_struct_class = {
     .hd = pico8_hd_true,
     .ldown = pico8_fq_ldown_dispatch,
     .field = pico8_fq_field,
     .set_field = pico8_fq_set_field,
+    .get_fa = fq_get_fa,
+    .get_p_ = fq_get_p_,
+    .set_m_ = fq_set_m_,
 };
 
 static void *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {

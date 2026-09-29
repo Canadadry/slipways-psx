@@ -386,6 +386,7 @@ static void test_ox(void) {
     pico8_mz_t *first;
     pico8_mz_t *second;
     pico8_jo_t *unlit = NULL;
+    pico8_g__t *probe;
     const pico8_list_t *jos;
     int i;
 
@@ -409,6 +410,10 @@ static void test_ox(void) {
     printf("[ox] %d entries\n", second->ox->count);
     assert(second->ox->count > 0);
     check("ox", h, OX_HASH);
+
+    /* A probe's `fx` is a fixed, true in Lua even at 0: it joins `ox`. */
+    probe = pico8_g__new(NULL);
+    assert(listed(build_mz()->ox, probe));
 }
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */

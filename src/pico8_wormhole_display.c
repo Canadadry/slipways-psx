@@ -9,21 +9,6 @@
 #include "pico8_value.h"
 #include "pico8_wormhole.h"
 
-static pico8_vec_t pico8_mzd_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
-static pico8_vec_t pico8_mzd_field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
-        return pico8_mzd_value_vec(v);
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
 static int pico8_mzd_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
         return 0;
@@ -35,10 +20,12 @@ static int pico8_mzd_truthy(pico8_value_t v) {
 }
 
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
-    if (self->ij == NULL) {
-        return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    const pico8_vec_t *ra = NULL;
+
+    if (self->ij != NULL && self->ij->cls->get_ra != NULL) {
+        ra = self->ij->cls->get_ra(self->ij);
     }
-    return pico8_mzd_field_vec(self->ij, "ra");
+    return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
 void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec_t p) {

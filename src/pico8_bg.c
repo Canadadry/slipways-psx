@@ -100,6 +100,18 @@ static int pico8_bg_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+static int bg_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_bg_t *)self)->fa;
+    return 1;
+}
+
+static void bg_set_m_(void *self, int m_) {
+    pico8_bg_t *bg = self;
+
+    bg->m_ = m_ != 0;
+    bg->has_m_ = 1;
+}
+
 static const pico8_struct_class_t g_bg_struct_class = {
     .kj = pico8_bg_kj_dispatch,
     .hd = pico8_hd_true,
@@ -108,6 +120,8 @@ static const pico8_struct_class_t g_bg_struct_class = {
     .hq = pico8_bg_hq_dispatch,
     .field = pico8_bg_field,
     .set_field = pico8_bg_set_field,
+    .get_fa = bg_get_fa,
+    .set_m_ = bg_set_m_,
 };
 
 static void *pico8_bg_struct_new(void) {

@@ -50,15 +50,6 @@ typedef struct {
 /* The only one: never allocated, never freed. */
 static pico8_je_placeholder_t g_je_placeholder = {{PICO8_TYPE_TAG_STRUCT, &g_je_placeholder_struct_class}};
 
-/* An absent field, a wrong kind, or a NULL instance all read as "no value". */
-static pico8_value_t pico8_ui_field_raw(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
-        return v;
-    }
-    return pico8_value_ref(NULL);
-}
-
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
@@ -142,9 +133,21 @@ static int pico8_ui_field(const void *self, const char *name, pico8_value_t *out
     return pico8_ke_field(self, name, out_value);
 }
 
+static int ui_get_fa(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_ui_t *)self)->fa;
+    return 1;
+}
+
+static int ui_get_ql(const void *self, pico8_fixed_t *out) {
+    *out = ((const pico8_ui_t *)self)->ql;
+    return 1;
+}
+
 static const pico8_struct_class_t g_ui_struct_class = {
     .ev = pico8_ui_ev_dispatch,
     .field = pico8_ui_field,
+    .get_fa = ui_get_fa,
+    .get_ql = ui_get_ql,
 };
 
 static void *pico8_ui_struct_new(void) {
@@ -301,8 +304,12 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
     if (self->rheld != NULL) {
         spr_id = 9;
     } else if (self->o_ != NULL) {
-        pico8_value_t ql_val = pico8_ui_field_raw(self->o_, "ql");
-        spr_id = (ql_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(ql_val.as.fixed) : pico8_ui_to_int(self->ql);
+        pico8_fixed_t ql = self->ql;
+
+        if (self->o_->cls->get_ql != NULL) {
+            self->o_->cls->get_ql(self->o_, &ql);
+        }
+        spr_id = pico8_ui_to_int(ql);
     } else {
         spr_id = pico8_ui_to_int(self->ql);
     }
@@ -342,9 +349,9 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
             pico8_struct_header_t *e = hd_bucket->items[i].as.ref;
 
             if (e->cls->hd != NULL && e->cls->hd(e, self->qa, je_ra)) {
-                pico8_value_t fa_val;
-                if (pico8_entity_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
-                    int fa = pico8_ui_to_int(fa_val.as.fixed);
+                pico8_fixed_t fa_val;
+                if (e->cls->get_fa != NULL && e->cls->get_fa(e, &fa_val)) {
+                    int fa = pico8_ui_to_int(fa_val);
 
                     assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
                            "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
@@ -356,16 +363,24 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     if (self->gj != NULL) {
-        pico8_entity_set_field(self->gj, "m_", pico8_value_bool(0));
+        assert(self->gj->cls->set_m_ != NULL &&
+               "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
+        self->gj->cls->set_m_(self->gj, 0);
     }
 
     if (self->o_ != NULL) {
-        pico8_entity_set_field(self->o_, "m_", pico8_value_bool(1));
+        assert(self->o_->cls->set_m_ != NULL &&
+               "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
+        self->o_->cls->set_m_(self->o_, 1);
     }
 
     if (self->o_ != NULL) {
-        pico8_value_t fg_val = pico8_ui_field_raw(self->o_, "fg");
-        poke_val = (fg_val.kind == PICO8_VALUE_FIXED) ? pico8_ui_to_int(fg_val.as.fixed) : 0;
+        pico8_fixed_t fg = pico8_fixed_from_int(0);
+
+        if (self->o_->cls->get_fg != NULL) {
+            self->o_->cls->get_fg(self->o_, &fg);
+        }
+        poke_val = pico8_ui_to_int(fg);
     } else {
         int prev = pico8_peek(mem, 0x5f80);
         poke_val = (prev - 1 > 0) ? prev - 1 : 0;

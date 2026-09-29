@@ -19,6 +19,7 @@
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_entity.h"
+#include "../src/pico8_entity_geom.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
@@ -762,6 +763,7 @@ static void test_hq_mouse_point(void) {
     pico8_value_t m1;
     pico8_value_t m2;
     pico8_vec_t p1;
+    pico8_vec_t on_camera;
     void *origin;
     void *target;
     void *a;
@@ -782,6 +784,7 @@ static void test_hq_mouse_point(void) {
     p1 = vec_of(mouse_point_p(r1));
     assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), pico8_fixed_from_int(128))));
     assert(mouse_point_p(r1) != m1.as.ref);
+    assert(!pico8_gd(r1));
     assert(!listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
     h = fnv(h, (uint32_t)p1.x);
     h = fnv(h, (uint32_t)p1.y);
@@ -809,6 +812,11 @@ static void test_hq_mouse_point(void) {
     assert(mouse_point_ra(r2) == m2.as.ref && mouse_point_ra(rb) == m1.as.ref);
     h = fold_jc(h, a);
     check("mouse point", h, MOUSE_POINT_HASH);
+
+    on_camera = pico8_vec_add(vec_of(pico8_mo_qb()->ra),
+                              pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64)));
+    hq_over(b, NULL, vec_ref_fixed(on_camera));
+    assert(pico8_gd(as_jc(b)->re));
 }
 
 /* A probe over the slipway targets it and hangs `fo` on it. Its `dw` is

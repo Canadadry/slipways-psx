@@ -99,10 +99,20 @@ static int pico8_qb_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+static const pico8_vec_t *qb_get_ra(const void *self) {
+    return ((const pico8_qb_t *)self)->ra;
+}
+
+static const pico8_vec_t *qb_get_p(const void *self) {
+    return ((const pico8_qb_t *)self)->p;
+}
+
 static const pico8_struct_class_t g_qb_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_qb_ph_dispatch},
     .field = pico8_qb_field,
     .set_field = pico8_qb_set_field,
+    .get_ra = qb_get_ra,
+    .get_p = qb_get_p,
 };
 
 static void *pico8_qb_struct_new(void) {

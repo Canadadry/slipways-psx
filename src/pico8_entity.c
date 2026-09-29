@@ -222,7 +222,7 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
 pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
     pico8_struct_header_t *e = &ke->header;
     int i;
-    pico8_value_t nu_val;
+    const pico8_str_seq_t *tags;
 
     pico8_list_add(&g_hv, pico8_value_ref(e));
 
@@ -234,8 +234,8 @@ pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
 
     /* `.nu` is a pico8_str_seq_t; an absent one registers nothing, as
      * `all(nil)` would. */
-    if (pico8_entity_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
-        const pico8_str_seq_t *tags = nu_val.as.ref;
+    tags = e->cls->get_nu != NULL ? e->cls->get_nu(e) : NULL;
+    if (tags != NULL) {
         for (i = 0; i < tags->count; i++) {
             pico8_cg_entry_t *bucket = pico8_cg_find_or_create(tags->items[i]);
             pico8_list_add(&bucket->list, pico8_value_ref(e));
@@ -250,7 +250,7 @@ pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
  * leaves `e` in a list this never removes it from. */
 void pico8_he(pico8_struct_header_t *e) {
     int i;
-    pico8_value_t nu_val;
+    const pico8_str_seq_t *tags;
 
     /* TROU-5 */
     pico8_list_del(&g_hv, pico8_value_ref(e));
@@ -263,8 +263,8 @@ void pico8_he(pico8_struct_header_t *e) {
 
     /* A tag never lt()'d has no bucket; Lua would error on indexing it,
      * this port does nothing. */
-    if (pico8_entity_get_field(e, "nu", &nu_val) && nu_val.kind == PICO8_VALUE_REF && nu_val.as.ref != NULL) {
-        const pico8_str_seq_t *tags = nu_val.as.ref;
+    tags = e->cls->get_nu != NULL ? e->cls->get_nu(e) : NULL;
+    if (tags != NULL) {
         for (i = 0; i < tags->count; i++) {
             pico8_cg_entry_t *bucket = pico8_cg_find(tags->items[i]);
             if (bucket != NULL) {
@@ -290,17 +290,17 @@ void pico8_dc(const char *nt) {
     if (bucket_src != NULL) {
         for (i = 0; i < bucket_src->count; i++) {
             pico8_struct_header_t *qc = bucket_src->items[i].as.ref;
-            pico8_value_t fa_val;
+            pico8_fixed_t fa;
             int layer;
 
             assert(pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT && "cv holds entities only");
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
              * from every layer, where Lua would error on the nil key. */
-            if (!pico8_entity_get_field(qc, "fa", &fa_val) || fa_val.kind != PICO8_VALUE_FIXED) {
+            if (qc->cls->get_fa == NULL || !qc->cls->get_fa(qc, &fa)) {
                 continue;
             }
-            layer = pico8_fixed_flr_int(fa_val.as.fixed);
+            layer = pico8_fixed_flr_int(fa);
             if (layer < 1 || layer > 15) {
                 continue;
             }
@@ -323,12 +323,8 @@ void pico8_dc(const char *nt) {
         for (i = 0; i < bucket->count; i++) {
             pico8_struct_header_t *qc = bucket->items[i].as.ref;
             void (*draw)(void *self, const pico8_vec_t *ra) = kj ? qc->cls->kj : qc->cls->ev;
-            pico8_value_t ra_val;
-            const pico8_vec_t *ra = NULL;
+            const pico8_vec_t *ra = qc->cls->get_ra != NULL ? qc->cls->get_ra(qc) : NULL;
 
-            if (pico8_entity_get_field(qc, "ra", &ra_val) && ra_val.kind == PICO8_VALUE_REF) {
-                ra = ra_val.as.ref;
-            }
             if (draw != NULL) {
                 draw(qc, ra);
             }

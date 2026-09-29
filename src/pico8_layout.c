@@ -365,9 +365,14 @@ static int pico8_lq_field(const void *self, const char *name, pico8_value_t *out
     return 0;
 }
 
+static const pico8_vec_t *lq_get_ra(const void *self) {
+    return ((const pico8_lq_t *)self)->ra;
+}
+
 static const pico8_struct_class_t g_lq_struct_class = {
     .ol = pico8_lq_ol_dispatch,
     .field = pico8_lq_field,
+    .get_ra = lq_get_ra,
 };
 
 /* TROU-7 */

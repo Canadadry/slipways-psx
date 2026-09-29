@@ -188,21 +188,16 @@ static void fake_toast_ph(void *self, pico8_fixed_t t) {
     }
 }
 
-static int fake_toast_field(const void *self, const char *name, pico8_value_t *out_value) {
+static int fake_toast_get_p_(const void *self) {
     const fake_toast_t *f = self;
-    if (strcmp(name, "p_") == 0) {
-        if (f->p_.kind == PICO8_VALUE_REF && f->p_.as.ref == NULL) {
-            return 0;
-        }
-        *out_value = f->p_;
-        return 1;
-    }
-    return pico8_ke_field(self, name, out_value);
+
+    return !(f->p_.kind == PICO8_VALUE_REF && f->p_.as.ref == NULL) &&
+           !(f->p_.kind == PICO8_VALUE_BOOL && f->p_.as.boolean == 0);
 }
 
 static const pico8_struct_class_t g_fake_toast_class = {
     .states = {[PICO8_STATE_PH] = fake_toast_ph},
-    .field = fake_toast_field,
+    .get_p_ = fake_toast_get_p_,
 };
 
 static void test_dg_drives_a_ke_struct(void) {
