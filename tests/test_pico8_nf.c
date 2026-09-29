@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "../src/pico8_assets.h"
-#include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
