@@ -37,7 +37,6 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -48,6 +47,10 @@
 /* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
  * fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -122,7 +125,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (listed(pico8_hv(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
 /* The word the frozen hashes fold before a boolean, 0xB0, then the boolean
@@ -491,7 +494,7 @@ static void test_life(void) {
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.stop && jc.held != NULL);
     assert(cls_of(jc.held) == pico8_jc_struct_class() && ((const pico8_jc_t *)jc.held)->qu == placed);
-    h = fnv(h, (uint32_t)pico8_type_tag_of(jc.held));
+    h = fnv(h, FROZEN_STRUCT_TAG);
     h = fold_bool(h, cls_of(placed)->gv(placed, jc.held).stop);
     h = fold_bool(h, cls_of(idle)->gv(idle, jc.held).stop);
 
@@ -547,7 +550,7 @@ static void build_with_unknown_key(void *e) {
 }
 
 static int is_an_fr_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class();
 }
 

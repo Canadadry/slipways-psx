@@ -32,7 +32,6 @@
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -164,7 +163,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == (const void *)&pico8_fv_rb_row) {
         return fold_row(fnv(h, 0x7Au), ref);
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), 0u);
 }
 
 /* A member the reader always answers: its presence bit and kind byte are
@@ -274,7 +273,7 @@ static int in_layer(int layer, const void *e) {
 }
 
 static const pico8_js_t *as_js(const void *e) {
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    assert(e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_js_struct_class());
     return e;
 }
@@ -541,7 +540,7 @@ static void test_fv_is_a_struct(void) {
 
     start_title();
     fv = the_help();
-    assert(pico8_type_tag_of(fv) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)fv)->cls == cls);
+    assert(fv != NULL && ((const pico8_struct_header_t *)fv)->cls == cls);
     assert(cls->hq != NULL && cls->hq == g_->hq && cls->ey != NULL && cls->ey == g_->ey && cls->mm != NULL &&
            cls->mm == g_->mm);
     assert(cls->kf == NULL && cls->cn == NULL && cls->ol == NULL);

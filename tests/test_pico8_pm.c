@@ -34,7 +34,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -123,7 +122,6 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
-    assert(pico8_type_tag_of(k) == PICO8_TYPE_TAG_UNKNOWN);
     h = k->has_qe ? fold_fixed_member(h, k->qe) : fold_absent(h);
     h = fold_fixed_member(h, k->mu);
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
@@ -528,7 +526,7 @@ static void test_life(void) {
 }
 
 static int is_a_pm_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_pm_struct_class();
 }
 

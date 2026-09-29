@@ -33,7 +33,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -44,6 +43,10 @@
 /* The tag `jo:ib`'s list carried as a tagged list, which the frozen hashes
  * fold: any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -118,7 +121,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (listed(pico8_hv(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
 /* The item count of a list member, -1 when NULL. */
@@ -132,7 +135,6 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
-    assert(pico8_type_tag_of(k) == PICO8_TYPE_TAG_UNKNOWN);
     h = k->has_qe ? fold_fixed_member(h, k->qe) : fold_absent(h);
     h = fold_fixed_member(h, k->mu);
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
@@ -493,7 +495,7 @@ static void build_with_unknown_key(void *e) {
 }
 
 static int is_an_nl_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_nl_struct_class();
 }
 

@@ -34,7 +34,6 @@
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -46,6 +45,10 @@
 /* The tag `lq.fs` carried as a tagged list, which the frozen hashes fold:
  * any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -124,7 +127,15 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (listed(pico8_hv(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
+}
+
+/* A pointer that carried no tag: the frozen hashes fold 0. */
+static uint32_t fold_untagged(uint32_t h, const void *p) {
+    if (p == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, 0xEEEEu), 0u);
 }
 
 /* A NULL ref folds as absent. */
@@ -453,7 +464,7 @@ static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
         } else if (item->is_false) {
             h = fold_bool(h, 0);
         } else if (item->is_ref) {
-            h = fold_ref(h, item->ref);
+            h = fold_untagged(h, item->ref);
         } else {
             h = fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
         }
@@ -493,7 +504,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     int k;
     int i;
 
-    assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
+    assert(lq != NULL &&
            lq->header.cls == pico8_lq_struct_class());
     assert(!lq->has_bg);
     assert(lq->fs != NULL);
@@ -510,7 +521,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
         n++;
     }
     if (lq->ra != NULL) {
-        h = fold_ref(fnv_str(h, "ra"), lq->ra);
+        h = fold_untagged(fnv_str(h, "ra"), lq->ra);
         n++;
     }
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
@@ -672,7 +683,7 @@ static void test_ei_moves_a_particle_in_place(void) {
 }
 
 static int is_a_ga_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class();
 }
 

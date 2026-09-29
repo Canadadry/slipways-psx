@@ -36,7 +36,6 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
@@ -46,6 +45,10 @@
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define BUILT_HASH 0xD5E726A8u
 #define LIFE_HASH 0x26179978u
@@ -106,7 +109,7 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
 }
 
 static int is_bv_target(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
 }
 
@@ -127,7 +130,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (is_bv_target(ref)) {
         return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0x57 a
@@ -155,8 +158,16 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
     return s == NULL ? fnv(h, 0u) : fnv_str(fnv(fnv(h, 1u), 0x57u), s);
 }
 
+/* A pointer that carried no tag: the frozen hashes fold 0. */
+static uint32_t fold_untagged(uint32_t h, const void *p) {
+    if (p == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, 0xEEEEu), 0u);
+}
+
 static uint32_t fold_ref_member(uint32_t h, const void *ref) {
-    return ref == NULL ? fnv(h, 0u) : fold_ref(fnv(h, 1u), ref);
+    return ref == NULL ? fnv(h, 0u) : fold_untagged(fnv(h, 1u), ref);
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_g__t *g_) {
@@ -292,7 +303,7 @@ static int is_probe(pico8_struct_header_t *e) {
 }
 
 static pico8_g__t *as_g_(void *e) {
-    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    assert(e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_g__struct_class());
     return e;
 }
@@ -421,7 +432,7 @@ static uint32_t et_kind(const pico8_g__t *e) {
     if (listed(pico8_cg("np"), ref)) {
         return 2;
     }
-    if (pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT &&
+    if (ref != NULL &&
         ((const pico8_struct_header_t *)ref)->cls == pico8_jc_struct_class()) {
         return 3;
     }
@@ -701,7 +712,7 @@ static void test_fv(void) {
 }
 
 static int is_a_g__struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_g__struct_class();
 }
 
@@ -744,7 +755,7 @@ static void test_g__is_a_struct(void) {
         }
     }
     assert(j < hv->count);
-    assert(pico8_type_tag_of(hv->items[j]) == PICO8_TYPE_TAG_STRUCT &&
+    assert(hv->items[j] != NULL &&
            ((const pico8_struct_header_t *)hv->items[j])->cls == pico8_fv_struct_class());
 }
 

@@ -33,7 +33,6 @@
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -136,7 +135,6 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
-    assert(pico8_type_tag_of(k) == PICO8_TYPE_TAG_UNKNOWN);
     h = k->has_qe ? fold_fixed_member(h, k->qe) : fold_absent(h);
     h = fold_fixed_member(h, k->mu);
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
@@ -300,39 +298,39 @@ static uint32_t fold_live(uint32_t h, const void *e) {
 enum { QH, NL, OS, HJ, PM, MX, NR, FR, GA, DAUGHTERS };
 
 static int daughter_of(const void *e) {
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_qh_struct_class()) {
         return QH;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_nl_struct_class()) {
         return NL;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_os_struct_class()) {
         return OS;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_hj_struct_class()) {
         return HJ;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_pm_struct_class()) {
         return PM;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_mx_struct_class()) {
         return MX;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_nr_struct_class()) {
         return NR;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_fr_struct_class()) {
         return FR;
     }
-    if (e != NULL && pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    if (e != NULL &&
         ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
         return GA;
     }
@@ -536,7 +534,7 @@ static void test_hh_takes_ll(void) {
 }
 
 static int is_a_jo_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jo_struct_class();
 }
 
@@ -568,7 +566,7 @@ static void test_jo_is_a_struct(void) {
     (void)bought(pico8_qh_kind());
     jo = pico8_cg("qh");
     assert(jo != NULL && jo->count == 1);
-    assert(pico8_type_tag_of(jo->items[0]) == PICO8_TYPE_TAG_STRUCT &&
+    assert(jo->items[0] != NULL &&
            ((const pico8_struct_header_t *)jo->items[0])->cls == pico8_qh_struct_class());
 }
 

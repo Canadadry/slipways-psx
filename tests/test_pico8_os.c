@@ -34,7 +34,6 @@
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_trade.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
 
@@ -42,6 +41,10 @@
 /* The tag class instances carried, which the frozen hashes fold: any
  * other value moves every *_HASH. */
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
+
+/* The tag entity structs carried, which the frozen hashes fold: any other
+ * value moves every *_HASH. */
+#define FROZEN_STRUCT_TAG 0x9E5C57C7u
 
 #define BUILT_HASH 0x0FBFD36Bu
 #define LIFE_HASH 0x56980D6Du
@@ -117,7 +120,7 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
 }
 
 static int is_bv_target(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_bv_et_struct_class();
 }
 
@@ -132,7 +135,7 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (is_bv_target(ref)) {
         return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
     }
-    return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
+    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
 /* The item count of a list member, -1 when NULL. */
@@ -146,7 +149,6 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     if (k == NULL) {
         return fnv(h, 0xA0u);
     }
-    assert(pico8_type_tag_of(k) == PICO8_TYPE_TAG_UNKNOWN);
     h = k->has_qe ? fold_fixed_member(h, k->qe) : fold_absent(h);
     h = fold_fixed_member(h, k->mu);
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
@@ -545,7 +547,7 @@ static void build_with_unknown_key(void *e) {
 }
 
 static int is_an_os_struct(const void *e) {
-    return pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+    return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_os_struct_class();
 }
 

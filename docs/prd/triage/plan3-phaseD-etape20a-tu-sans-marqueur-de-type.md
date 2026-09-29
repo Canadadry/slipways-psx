@@ -506,6 +506,31 @@ Pour D.20a2, la ligne 3 est `bg entity_kind fm fq hp hy ie iv jb_ol jc je js lq 
 
   Dans `tests/`, `mo:23`, `:96`, `:97` et `ui:54`, `:762` (initialiseurs `{&cls}`, includes retirés). Les `FROZEN_STRUCT_TAG` des TU restent : ce sont des octets d'empreinte. `class-coverage-net` : oui (en-tête de tous les constructeurs). Avec `type-tag` = 0 dans `DATA_RESIDUE_GUARD`, **le résidu D est vide : c'est la Sortie de D.** L'ensemble `L` de D.20b contiendra tout `pico8_type_tag.h`, supprimé.
 
+## Amendement (sonde D.20a1)
+
+Sonde d'étiquette lancée au parent (8a42cba) sur les 12 TU de D.20a1. Tous passent. Les nombres entre parenthèses comptent les appels observés.
+
+| Site | Vu | Décision |
+|---|---|---|
+| `fr:494` (1), `fr:550` (2), `fv:277` (4), `fv:544` (1), `g_:295` (7), `g_:424` (4), `g_:704` (3), `g_:747` (1), `ga:496` (3), `ga:675` (3), `hj:547` (2), `hj:618` (2), `jo:303`–`:335`, `jo:539` (92), `jo:571` (1), `mx:640` (2), `nl:496` (2), `nr:480` (1), `nr:527` (2), `nr:557` (1), `os:548` (2), `pm:531` (2), `qh:137` (1), `qh:471`–`:495`, `qh:630` (2), `qh:671`–`:700` | ENTITY seul | formes de « Lecture » 1 et 2, comme prévu |
+| **`g_:109`** (`is_bv_target`) | **ENTITY 8, UNTAGGED 2** | test d'étiquette qui voit un pointeur non étiqueté : **arrêt « site sans règle »**, levé par la coupe ci-dessous |
+| `g_:130` | UNTAGGED 2 seul (les séquences `g_->nu`, `em->k_`, via `fold_ref_member`) | coupe : ces deux appels passent à `fold_untagged` (`0u`) ; `:130` garde la famille entité, donc (c) |
+| `ga:127` | **jamais atteint** (et non « les deux genres ») : `:456` et `:513` jamais appelés, `:589` NULL seul | coupe selon le type statique, comme prévu : items et `lq->ra` → `fold_untagged` ; `jo.lq` reste dans `fold_ref`, donc (c) |
+| `fv:167` | UNTAGGED 4 | `0u` |
+| `fr:125`, `mx:126`, `nr:123`, `hj:137`, `nl:121`, `os:135`, `qh:152` | jamais atteints | type statique : entité, donc `FROZEN_STRUCT_TAG` |
+| `hj:122`, `os:120` (`is_bv_target`) | **jamais atteints** (non prévu) | forme (a1) |
+| `hj:151`, `jo:139`, `mx:140`, `nl:135`, `os:149`, `pm:126`, `qh:176` | UNTAGGED | tests de la couche, retirés |
+
+**H1 vérifiée pour `g_`** par une sonde au parent dans `fold_ref_member` : les deux appels non NULL ont `rank_in(hv) = -1`, `is_bv_target` faux et une étiquette à 0. L'empreinte qu'ils écrivent est égale à `fnv(fnv(fnv(h, 1u), 0xEEEEu), 0u)`. `fold_untagged` écrit exactement ces octets, sans appeler `is_bv_target`.
+
+**Sonde refaite après la coupe** : `is_bv_target` de `g_` voit ENTITY 8, et rien d'autre. `fold_untagged` voit UNTAGGED 2, et `fold_ref` ENTITY 3.
+
+**Grep 7 de la Sortie.** Pour D.20a1, sa sortie vide exclut la ligne `+    assert(fv != NULL && ((const pico8_struct_header_t *)fv)->cls == cls);`. Ce cast était déjà sur la ligne `-` (`fv:544`). La grep devient :
+
+```sh
+git diff <parent> -- tests | grep -E '^\+' | grep -E '\(\s*(const\s+)?void\s*\*\s*\)|\(\s*(const\s+)?[a-z0-9_]+_t\s*\*\s*\)\s*[^{ ]' | grep -vF 'assert(fv != NULL && ((const pico8_struct_header_t *)fv)->cls == cls);'
+```
+
 ## Annexe A — textes recopiés (`f3d4505`, par extraction de lignes)
 
 ### Lignes D.20a et D.20b (`docs/plan-3.md`, l. 294-295)
