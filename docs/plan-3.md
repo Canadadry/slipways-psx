@@ -300,6 +300,7 @@ Comptes au départ de D.10 (HEAD 5a13008, `make -s data-residue` et `--detail` ;
 - `hp_pose` (`research.c`) : aiguillage nom → membre à la construction, hors `par-nom` ; phase 2 ou étape `valeur`.
 - Phase 2 reprend : le lien parent (Q5, `parent()` dans `pico8_struct_class_t`) et les `pico8_X_of` ; les composants émetteur et sonde (Q7, `emitter_of`/`probe_of`), faits sans le test ponctuel d'archétype ; les onze accesseurs Q6, premiers remplacés par le noyau et les composants ; les tags `nu` en masque de bits (reportés de D).
 - `pk`/`pk_is_bool` (`hj`, `pm`) et `fp_is_bool` (sonde) : même forme « 1 ou faux » que B1, relevée par la PRD de D.16a, sans étape nommée ; à rattacher à une étape `valeur` ou à la phase 2.
+- `pj:hb` : le `pairs` du cart saute les valeurs nil, le port écrit nil dans `pj.ou` (peut-être aussi via `ef[fm.lo]` avec un `lo` fractionnaire contre le `flr` du port) ; relevé par la PRD de D.18c, préservé tel quel, candidat à une entrée TROU si l'atteinte est prouvée.
 
 ### Phase 2 — Composition
 
