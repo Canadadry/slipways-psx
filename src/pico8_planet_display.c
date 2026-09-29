@@ -20,6 +20,7 @@
 #include "pico8_research.h"
 #include "pico8_research_display.h"
 #include "pico8_slipway.h"
+#include "pico8_str.h"
 #include "pico8_type_tag.h"
 
 /* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
@@ -266,14 +267,14 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             row_items[n] = jo_gh_row_items(row_cap[n]);
 
             if (makes) {
-                char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));
+                char *mu_str = pico8_tostr_fixed(mu);
                 row_items[n][row_keys[n].count++] = pico8_value_string("makes:");
                 row_items[n][row_keys[n].count++] = pico8_value_string(mu_str);
             } else {
                 const pico8_ptrs_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
-                char *count_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(by_count)));
-                char *mu_str = pico8_value_tostr(pico8_value_fixed(mu));
+                char *count_str = pico8_tostr_fixed(pico8_fixed_from_int(by_count));
+                char *mu_str = pico8_tostr_fixed(mu);
                 size_t count_len = strlen(count_str);
                 size_t mu_len = strlen(mu_str);
                 char *combined = malloc(count_len + 1 + mu_len + 1);
@@ -374,7 +375,7 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has_h_ = 1;
     keys->h_ = pico8_value_bool(0);
     if (od > pico8_fixed_from_int(0)) {
-        row->h_item = pico8_value_string(jo_dollar(pico8_value_tostr(pico8_value_fixed(od))));
+        row->h_item = pico8_value_string(jo_dollar(pico8_tostr_fixed(od)));
         memset(&row->h, 0, sizeof row->h);
         row->h.items = &row->h_item;
         row->h.count = 1;

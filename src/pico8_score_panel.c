@@ -19,6 +19,7 @@
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_score_panel_display.h"
+#include "pico8_str.h"
 #include "pico8_struct.h"
 #include "pico8_type_tag.h"
 #include "pico8_vec.h"
@@ -197,7 +198,7 @@ void pico8_pj_hb(void) {
 
     cf = pico8_ne(fm_ge, 0, NULL, &discard_color);
 
-    nz_str = pico8_value_tostr(pico8_value_fixed(fm_nz));
+    nz_str = pico8_tostr_fixed(fm_nz);
     ou[0] = pico8_value_string(pj_concat2(nz_str, "$"));
     free(nz_str);
 
@@ -213,12 +214,12 @@ void pico8_pj_hb(void) {
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
-            pico8_value_tostr(pico8_value_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1))));
+            pico8_tostr_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
         ou[3] = pico8_value_string(pj_concat2("+", plus_num));
         free(plus_num);
     }
 
-    happiness_str = pico8_value_tostr(pico8_value_fixed(fm_happiness));
+    happiness_str = pico8_tostr_fixed(fm_happiness);
     ou[4] = pico8_value_string(pj_concat2(happiness_str, "%"));
     free(happiness_str);
 

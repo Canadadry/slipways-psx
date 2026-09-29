@@ -356,7 +356,7 @@ Fichier : `src/pico8_planet_family.c`.
 
 ## TROU-22 — `tostr` sous 0.0001 n'est pas sourcé
 
-`pico8_value_tostr` écrit un nombre avec 4 décimales arrondies au pair,
+`pico8_tostr_fixed` écrit un nombre avec 4 décimales arrondies au pair,
 puis retire les zéros de fin et le point nu. Cette règle reproduit 13 des
 14 témoins du bloc C de `tools/probe_out.txt`, dont `2/3 → "0.6667"`.
 
@@ -371,7 +371,7 @@ Non atteint par le filet : aucune valeur affichée par le jeu n'a une
 magnitude inférieure à 0.0001. Se tranche par une relance d'une ligne de
 la sonde (reliquat de la Phase A, `docs/plan-2.md`).
 
-Fichier : `src/pico8_value.c`.
+Fichier : `src/pico8_str.c`.
 
 ## TROU-23 — Une ligne de bouton qui porte `h_` ou `jb` à nil a quand même sa pastille ou son infobulle
 

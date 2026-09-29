@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_str.h"
+
 pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow, void *ctx) {
     pico8_ptrs_t f;
     pico8_ptrs_iter_t it;
@@ -82,12 +84,12 @@ int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb) {
 }
 
 char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
-    char *num_str = pico8_value_tostr(pico8_value_fixed(d));
+    char *num_str = pico8_tostr_fixed(d);
     const char *suffix = ku != NULL ? ku : "";
     char *result;
     size_t prefix_len;
 
-    /* d < 0 keeps the '-' pico8_value_tostr already wrote; only the '+' of a
+    /* d < 0 keeps the '-' pico8_tostr_fixed already wrote; only the '+' of a
      * positive is added here. */
     if (d >= 0) {
         *out_color = c;

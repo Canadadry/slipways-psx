@@ -20,6 +20,7 @@
 #include "pico8_slipway.h"
 #include "pico8_ui.h"
 #include "pico8_wormhole.h"
+#include "pico8_str.h"
 
 static int g_g__up = 0;
 static pico8_struct_header_t *g_fm = NULL;
@@ -270,7 +271,7 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
             }
         }
     } else if (pb->has_od) {
-        char *od_str = pico8_value_tostr(pico8_value_fixed(pb->od));
+        char *od_str = pico8_tostr_fixed(pb->od);
         size_t len = strlen(od_str);
         heap_display = malloc(len + 2);
         memcpy(heap_display, od_str, len);

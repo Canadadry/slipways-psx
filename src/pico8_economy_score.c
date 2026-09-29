@@ -12,6 +12,7 @@
 #include "pico8_planet.h"
 #include "pico8_planet_family.h"
 #include "pico8_probe.h"
+#include "pico8_str.h"
 #include "pico8_trade.h"
 
 static int economy_truthy(pico8_value_t v) {
@@ -220,7 +221,7 @@ pico8_ky_t pico8_ky(void) {
         pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = pico8_value_tostr(pico8_value_fixed(happiness));
+    happiness_str = pico8_tostr_fixed(happiness);
 
     result.di = di_ctx.total;
     result.gl = gl;

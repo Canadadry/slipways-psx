@@ -290,7 +290,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `pico8_ho_apply` et par `hp` |
-| `tostr(v)` | `pico8_value_tostr` | conversion en chaîne ; 4 décimales puis zéros de fin élagués |
+| `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `pico8_value_tostr` pour une valeur à genres mêlés (jusqu'à D.19c) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris
 

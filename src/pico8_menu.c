@@ -23,6 +23,7 @@
 #include "pico8_ui_button.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
+#include "pico8_str.h"
 
 /* The most items a row of `ix` or `ha` holds. */
 #define PICO8_MENU_ROW_CAP 4
@@ -106,7 +107,7 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
-    gi_str = pico8_value_tostr(pico8_value_fixed(gi_result));
+    gi_str = pico8_tostr_fixed(gi_result);
 
     b->h_items[0] = pico8_value_ref((void *)&pair);
     b->h_items[1] = pico8_value_string(gi_str);
@@ -183,7 +184,7 @@ void pico8_cr(void) {
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
-        char *gr_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_from_int(gr)));
+        char *gr_str = pico8_tostr_fixed(pico8_fixed_from_int(gr));
         char *label = cr_concat2(gr_str, " invented");
         free(gr_str);
         extra->lq_items[0] = pico8_value_fixed(pico8_fixed_from_int(30));
@@ -217,9 +218,9 @@ void pico8_cr(void) {
             ek_tl = pico8_fixed_from_int(ek);
         }
 
-        tl_str = pico8_value_tostr(pico8_value_fixed(tl));
-        diff1_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi)));
-        diff2_str = pico8_value_tostr(pico8_value_fixed(pico8_fixed_sub(ek_tl, qi)));
+        tl_str = pico8_tostr_fixed(tl);
+        diff1_str = pico8_tostr_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
+        diff2_str = pico8_tostr_fixed(pico8_fixed_sub(ek_tl, qi));
 
         tmp1 = cr_concat2("level ", tl_str);
         tmp2 = cr_concat2(tmp1, " (");

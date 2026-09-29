@@ -12,6 +12,7 @@
 #include "pico8_layout.h"
 #include "pico8_pi.h"
 #include "pico8_probe.h"
+#include "pico8_str.h"
 #include "pico8_tech_gate.h"
 
 static int g_ie_up = 0;
@@ -135,7 +136,7 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
         return out;
     }
 
-    id_num_str = pico8_value_tostr(pico8_value_fixed(new_id));
+    id_num_str = pico8_tostr_fixed(new_id);
     id_str = ie_concat2("s", id_num_str);
     free(id_num_str);
 

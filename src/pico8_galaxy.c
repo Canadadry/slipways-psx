@@ -9,7 +9,7 @@
 #include "pico8_game_data.h"
 #include "pico8_gen.h"
 #include "pico8_planet.h"
-#include "pico8_value.h"
+#include "pico8_str.h"
 #include "pico8_vec.h"
 
 /* jo.oc's inner random source, which pico8_gn_free never touches (see
@@ -76,7 +76,7 @@ void pico8_bw(pico8_fixed_t n) {
 
         /* `id_str` is not freed here: the instance's "id" field keeps it
          * as-is. */
-        id_num_str = pico8_value_tostr(pico8_value_fixed(id));
+        id_num_str = pico8_tostr_fixed(id);
         id_str = pico8_bw_concat2("p", id_num_str);
         free(id_num_str);
 

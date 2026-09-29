@@ -12,6 +12,7 @@
 #include "pico8_msgbox.h"
 #include "pico8_probe.h"
 #include "pico8_score_panel.h"
+#include "pico8_str.h"
 #include "pico8_ui_button.h"
 
 
@@ -57,7 +58,7 @@ void pico8_pj_hk(pico8_fixed_t yr) {
         pp = item->row;
     }
 
-    yr_str = pico8_value_tostr(pico8_value_fixed(yr));
+    yr_str = pico8_tostr_fixed(yr);
     year_label = pj_concat2("year ", yr_str);
     free(yr_str);
 

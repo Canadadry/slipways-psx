@@ -12,6 +12,7 @@
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
+#include "pico8_str.h"
 #include "pico8_tech_gate.h"
 
 /* Lua truthiness, widened so this port's "absent" filler REF(NULL) is
@@ -104,7 +105,7 @@ const pico8_jb_row_t *pico8_hp_jb(const pico8_hp_t *self) {
     jb->inner.items = jb->inner_items;
 
     if (self->has_o) {
-        char *o_str = pico8_value_tostr(pico8_value_fixed(self->o));
+        char *o_str = pico8_tostr_fixed(self->o);
         const char *iz_o = pico8_iz_lookup(o_str);
 
         if (iz_o != NULL) {
@@ -232,7 +233,7 @@ pico8_lq_t *pico8_jo_ex(const pico8_ptrs_t *is, pico8_value_t o, pico8_fixed_t j
     }
 
     if (jq > pico8_fixed_from_int(5)) {
-        char *jq_str = pico8_value_tostr(pico8_value_fixed(jq));
+        char *jq_str = pico8_tostr_fixed(jq);
         static const pico8_jb_item_t t3_items[] = {{.is_false = 1}, {.n = -4}};
         static const pico8_jb_row_t t3 = {.count = 2, .items = t3_items};
 
