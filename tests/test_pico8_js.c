@@ -578,10 +578,6 @@ static void call_my(void *e) {
     b->my(b);
 }
 
-static pico8_value_t nil(void) {
-    return pico8_value_ref(NULL);
-}
-
 /* The buttons `eu`'s `nv(ix,js)` built: the only `fa`=11 entities with an
  * `lq` in `cv.hd` right after `eu`. */
 static int ix_buttons(void *out[4]) {
@@ -904,7 +900,7 @@ static void test_hb(void) {
     }
     before = js_of(ix[1])->lq;
     cls_of(ix[1])->hb(ix[1]);
-    cb = pico8_cb(nil());
+    cb = pico8_cb(0);
     affordable = cb.count > 0;
     assert(js_of(ix[1])->lq != before);
     assert(lq_first(ix[1]) == (affordable ? 24u : 37u));
@@ -1732,7 +1728,7 @@ static void test_cb_writes_every_e_(void) {
     start_game();
     pico8_fm_hy()->jk = pico8_fixed_from_int(12);
     jk = pico8_fm_hy()->jk;
-    kept = pico8_cb(nil());
+    kept = pico8_cb(0);
     for (i = 0; i < PICO8_NB_COUNT; i++) {
         const pico8_nb_entry_t *t = &pico8_nb_table[i];
         int affordable = pico8_gi_nb(t) <= jk;
@@ -1747,7 +1743,7 @@ static void test_cb_writes_every_e_(void) {
     }
     assert(dropped_affordable > 0);
     pico8_fm_hy()->jk = pico8_fixed_from_int(999);
-    (void)pico8_cb(nil());
+    (void)pico8_cb(0);
     for (i = 0; i < PICO8_NB_COUNT; i++) {
         assert(pico8_nb_e_(&pico8_nb_table[i]) == 1);
     }

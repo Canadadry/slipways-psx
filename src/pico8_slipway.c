@@ -267,7 +267,6 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     pico8_struct_header_t *re;
     pico8_vec_t sp;
     pico8_vec_t dp;
-    pico8_value_t ov_result;
     pico8_fixed_t threshold;
 
     if (self == NULL) {
@@ -279,9 +278,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     sp = pico8_jc_end_p(qu);
     dp = pico8_jc_end_p(re);
 
-    ov_result = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)),
-                          pico8_value_fixed(PICO8_FIXED_LIT(0x0001147a, 1.08)));
-    threshold = (ov_result.kind == PICO8_VALUE_FIXED) ? ov_result.as.fixed : pico8_fixed_from_int(0);
+    threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x00008000, 0.5), PICO8_FIXED_LIT(0x0001147a, 1.08));
 
     if (pico8_vec_len_sq(pico8_vec_sub(sp, dp)) > threshold) {
         return pico8_value_ref(&g_jc_too_far);

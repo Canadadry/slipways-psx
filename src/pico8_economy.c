@@ -87,7 +87,6 @@ pico8_hy_t *pico8_hy_new(void) {
 }
 
 void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx) {
-    pico8_value_t kxv;
     pico8_fixed_t kx;
     pico8_fixed_t lo;
 
@@ -96,9 +95,7 @@ void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx) {
         return;
     }
 
-    kxv = pico8_ov(pico8_value_string("time compression"), pico8_value_fixed(pico8_fixed_from_int(12)),
-                   pico8_value_fixed(pico8_fixed_from_int(15)));
-    kx = (kxv.kind == PICO8_VALUE_FIXED) ? kxv.as.fixed : pico8_fixed_from_int(12);
+    kx = pico8_ov("time compression", pico8_fixed_from_int(12), pico8_fixed_from_int(15));
 
     lo = pico8_fixed_add(self->lo, hx);
     self->lo = lo;
@@ -193,7 +190,6 @@ void pico8_hy_lj(pico8_hy_t *self) {
     pico8_fixed_t dd = pico8_fixed_from_int(0);
     pico8_fixed_t ge;
     pico8_fixed_t happiness;
-    pico8_value_t skill;
     pico8_fixed_t skill_mult;
     const pico8_ptrs_t *jo_list;
     pico8_ptrs_iter_t it;
@@ -235,9 +231,7 @@ void pico8_hy_lj(pico8_hy_t *self) {
         }
     }
 
-    skill = pico8_ov(pico8_value_string("skill implants"), pico8_value_fixed(pico8_fixed_from_int(1)),
-                      pico8_value_fixed(PICO8_FIXED_LIT(0x00012666, 1.15)));
-    skill_mult = (skill.kind == PICO8_VALUE_FIXED) ? skill.as.fixed : pico8_fixed_from_int(1);
+    skill_mult = pico8_ov("skill implants", pico8_fixed_from_int(1), PICO8_FIXED_LIT(0x00012666, 1.15));
     ge = pico8_fixed_sub(pico8_fixed_flr(pico8_fixed_mul(dd, skill_mult)), pico8_cz());
     self->ge = ge;
 

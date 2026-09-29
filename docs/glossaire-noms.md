@@ -183,7 +183,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `oj(px)` | `pico8_oj` | le prérequis `px` est-il débloqué (`px` absent = pas de prérequis, donc vrai) |
-| `ov(px,lk,mc)` | `pico8_ov` | rend `mc` si `px` est débloqué et `mc` non faux, sinon `lk` |
+| `ov(px,lk,mc)` | `pico8_ov` | rend `mc` si la technologie `px` est débloquée, sinon `lk` ; `lk` et `mc` sont toujours des nombres (`pico8_fixed_t`), `px` un nom de technologie |
 | `hp` | `pico8_hp_t` | classe d'un projet de recherche |
 | `fm` | `pico8_fm`, `pico8_fm_hy()`, `pico8_fm_placeholder()` | le singleton économie (instance `hy`) ; `pico8_fm_hy()` rend NULL sur le `fm` provisoire, que `pico8_fm_placeholder()` rend typé (`jk`/`nz` du code de triche) |
 | `invented` | champ de `fm` | liste des technologies déjà débloquées |
@@ -460,7 +460,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hp:od()` | `pico8_hp_od` | coût du projet, réduit par les technologies acquises |
 | `bj(jo)` | `pico8_bj` | les projets proposables sur une planète donnée, rendus par valeur dans un `pico8_bj_kept_t` (au plus `#fd` : `PICO8_FD_COUNT`) |
 | `gb` | `pico8_gb_at`, `pico8_gb_find` | tous les projets construits depuis `fd`, par rang ou par `px` |
-| `cb(bi)` | `pico8_cb` | les technologies affichables, rendues par valeur dans un `pico8_cb_kept_t` (au plus `#nb` : `PICO8_NB_COUNT`) ; `bi` vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
+| `cb(bi)` | `pico8_cb` | les technologies affichables, rendues par valeur dans un `pico8_cb_kept_t` (au plus `#nb` : `PICO8_NB_COUNT`) ; `bi` (entier) vrai ignore le coût. Ne pas confondre avec le `t` du prédicat, qui est l'**élément** de `nb` |
 | `gi(t)` | `pico8_gi_nb` (entrée de `pico8_nb_table`, lue par `cr` et `hy:kt`) | coût en points de recherche d'une technologie |
 
 ## Particules

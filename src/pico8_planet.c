@@ -432,16 +432,11 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     } else if (hp_instance != NULL && hp_instance->go != NULL) {
         self->nk = pico8_df_lookup(hp_instance->go);
     } else {
-        pico8_value_t fp_val;
         pico8_ke_ks((pico8_struct_header_t *)self, "ly");
         pico8_jo_lz(self, hp_instance);
         self->fx = 1;
         self->has_fx = 1;
-        fp_val = pico8_ov(pico8_value_string("autoassemblers"), pico8_value_fixed(pico8_fixed_from_int(3)),
-                           pico8_value_fixed(pico8_fixed_from_int(2)));
-        if (fp_val.kind == PICO8_VALUE_FIXED) {
-            fp = fp_val.as.fixed;
-        }
+        fp = pico8_ov("autoassemblers", pico8_fixed_from_int(3), pico8_fixed_from_int(2));
     }
 
     pico8_hy_nx(pico8_fm_hy(), fp);

@@ -173,7 +173,7 @@ void pico8_cr(void) {
     /* `true` is the ignore-cost flag: this screen lists every tech of the era,
      * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
      * ones. The two sites do not merge. */
-    cb_list = pico8_cb(pico8_value_bool(1));
+    cb_list = pico8_cb(1);
     rows = calloc((size_t)cb_list.count + 1, sizeof *rows);
     bs = calloc((size_t)cb_list.count + 1, sizeof *bs);
     assert(rows != NULL && bs != NULL);
@@ -279,7 +279,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
         return;
     }
 
-    cb_list = pico8_cb(pico8_value_ref(NULL));
+    cb_list = pico8_cb(0);
     cb_count = cb_list.count;
 
     item = pico8_value_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));

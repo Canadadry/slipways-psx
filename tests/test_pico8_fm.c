@@ -32,7 +32,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -85,7 +84,7 @@ static void test_at_rest(void) {
 }
 
 static int cb_affordable(const pico8_nb_entry_t *t) {
-    (void)pico8_cb(pico8_value_bool(1));
+    (void)pico8_cb(1);
     return pico8_nb_e_(t);
 }
 

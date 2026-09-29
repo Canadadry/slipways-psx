@@ -9,10 +9,7 @@
  * answers true: no prerequisite is an unlocked prerequisite. */
 int pico8_oj(pico8_value_t px);
 
-/* Lua's `A and B or C`, three-way: `mc` comes back only when it is itself
- * truthy, so a falsy `mc` still yields `lk` on an unlocked `px`. Not a
- * ternary on oj(px) alone. */
-pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc);
+pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc);
 
 /* The cost of the tech `t`, an entry of `pico8_nb_table`; a NULL `t` costs
  * 0. */
@@ -26,7 +23,7 @@ typedef struct {
 
 /* Writes `e_` for every nb entry it visits, kept or not, before deciding
  * whether to keep it -- a real side effect, not a by-product. */
-pico8_cb_kept_t pico8_cb(pico8_value_t bi);
+pico8_cb_kept_t pico8_cb(int bi);
 
 /* `t.e_` as `cb` last wrote it: 1 for true, 0 for false or never written. */
 int pico8_nb_e_(const pico8_nb_entry_t *t);

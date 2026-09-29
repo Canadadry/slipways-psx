@@ -41,8 +41,8 @@ int pico8_oj(pico8_value_t px) {
     return pico8_gu_content_ptrs(invented_list, px.as.string);
 }
 
-pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc) {
-    if (pico8_oj(px) && pico8_tech_gate_truthy(mc)) {
+pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc) {
+    if (pico8_oj(pico8_value_string(px))) {
         return mc;
     }
     return lk;
@@ -73,7 +73,7 @@ pico8_fixed_t pico8_gi_nb(const pico8_nb_entry_t *t) {
 /* The `e_` write below happens for every `t`, before any early return:
  * hoisting it under a keep/drop branch would change what callers read back
  * off nb. */
-static int pico8_cb_predicate(const pico8_nb_entry_t *t, pico8_value_t bi) {
+static int pico8_cb_predicate(const pico8_nb_entry_t *t, int bi) {
     const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
     pico8_fixed_t jk = pico8_fixed_from_int(0);
@@ -99,10 +99,10 @@ static int pico8_cb_predicate(const pico8_nb_entry_t *t, pico8_value_t bi) {
         return 0;
     }
 
-    return affordable || pico8_tech_gate_truthy(bi);
+    return affordable || bi;
 }
 
-pico8_cb_kept_t pico8_cb(pico8_value_t bi) {
+pico8_cb_kept_t pico8_cb(int bi) {
     pico8_cb_kept_t result;
     int i;
 

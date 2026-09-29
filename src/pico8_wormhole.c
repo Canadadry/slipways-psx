@@ -73,7 +73,6 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t p_vec;
     pico8_value_t nearest = pico8_value_ref(NULL);
     pico8_fixed_t nq;
-    pico8_value_t threshold_val;
     pico8_fixed_t threshold;
 
     pico8_bv((pico8_struct_header_t *)self, mp, rp);
@@ -85,9 +84,7 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     nq = pico8_ij(p_vec, self->ox, &nearest);
     self->ij = nearest.as.ref;
 
-    threshold_val = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(PICO8_FIXED_LIT(0x000030a3, 0.19)),
-                              pico8_value_fixed(PICO8_FIXED_LIT(0x0000451e, 0.27)));
-    threshold = (threshold_val.kind == PICO8_VALUE_FIXED) ? threshold_val.as.fixed : pico8_fixed_from_int(0);
+    threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x000030a3, 0.19), PICO8_FIXED_LIT(0x0000451e, 0.27));
 
     if (nq > threshold) {
         self->probe->et = (pico8_struct_header_t *)pico8_mz_jj_wrapper();
@@ -100,7 +97,6 @@ static void pico8_mz_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
 }
 
 void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t) {
-    pico8_value_t threshold_val;
     pico8_fixed_t threshold;
     pico8_fixed_t one;
     pico8_fixed_t td15;
@@ -112,9 +108,7 @@ void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t) {
         return;
     }
 
-    threshold_val = pico8_ov(pico8_value_string("space folding"), pico8_value_fixed(pico8_fixed_from_int(29)),
-                              pico8_value_fixed(pico8_fixed_from_int(35)));
-    threshold = (threshold_val.kind == PICO8_VALUE_FIXED) ? threshold_val.as.fixed : pico8_fixed_from_int(0);
+    threshold = pico8_ov("space folding", pico8_fixed_from_int(29), pico8_fixed_from_int(35));
 
     one = pico8_fixed_from_int(1);
     td15 = pico8_fixed_div(t, pico8_fixed_from_int(15));
