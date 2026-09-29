@@ -46,13 +46,17 @@ pico8_value_t pico8_qh_qh(const pico8_qh_t *self) {
 }
 
 pico8_value_t pico8_qh_et(const pico8_qh_t *self) {
-    if (self == NULL || !self->has_et) {
+    if (self == NULL || !self->probe->has_et) {
         return pico8_value_ref(NULL);
     }
-    if (self->et == NULL) {
+    if (self->probe->et == NULL) {
         return pico8_value_bool(0);
     }
-    return pico8_value_ref(self->et);
+    return pico8_value_ref(self->probe->et);
+}
+
+pico8_probe_t *pico8_qh_probe_of(void *self) {
+    return ((pico8_qh_t *)self)->probe;
 }
 
 static int family_ref_field(const void *ref, pico8_value_t *out_value) {
@@ -74,10 +78,10 @@ static int pico8_qh_field(const void *self, const char *name, pico8_value_t *out
         return family_ref_field(qh->px, out_value);
     }
     if (strcmp(name, "dq") == 0) {
-        if (qh->dq == NULL) {
+        if (qh->probe->dq == NULL) {
             return 0;
         }
-        *out_value = pico8_value_string(qh->dq);
+        *out_value = pico8_value_string(qh->probe->dq);
         return 1;
     }
     if (strcmp(name, "qh") == 0) {
@@ -85,15 +89,15 @@ static int pico8_qh_field(const void *self, const char *name, pico8_value_t *out
         return 1;
     }
     if (strcmp(name, "od") == 0) {
-        *out_value = pico8_value_fixed(qh->od);
+        *out_value = pico8_value_fixed(qh->probe->od);
         return 1;
     }
     if (strcmp(name, "fp") == 0) {
-        *out_value = pico8_value_fixed(qh->fp);
+        *out_value = pico8_value_fixed(qh->probe->fp);
         return 1;
     }
     if (strcmp(name, "dw") == 0) {
-        *out_value = pico8_value_fixed(qh->dw);
+        *out_value = pico8_value_fixed(qh->probe->dw);
         return 1;
     }
     if (strcmp(name, "s") == 0) {
@@ -154,7 +158,7 @@ static int pico8_qh_set_field(void *self, const char *name, pico8_value_t value)
     pico8_qh_t *qh = self;
 
     if (strcmp(name, "et") == 0) {
-        family_take_target(value, &qh->et, &qh->has_et);
+        family_take_target(value, &qh->probe->et, &qh->probe->has_et);
         return 1;
     }
     if (strcmp(name, "ra") == 0) {
@@ -188,22 +192,28 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .field = pico8_qh_field,
     .set_field = pico8_qh_set_field,
     .parent = pico8_jo_struct_class,
+    .probe_of = pico8_qh_probe_of,
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     pico8_jo_struct_init(&self->jo, cls);
     self->hp = pico8_qh_start.hp;
     self->px = pico8_qh_start.px;
-    self->dq = pico8_qh_start.dq;
+    self->probe = &self->probe_own;
+    self->probe->dq = pico8_qh_start.dq;
     self->qh = pico8_qh_start.qh;
     self->qh_is_bool = pico8_qh_start.qh_is_bool;
-    self->od = pico8_qh_start.od;
-    self->fp = pico8_qh_start.fp;
-    self->dw = pico8_qh_start.dw;
+    self->probe->od = pico8_qh_start.od;
+    self->probe->has_od = 1;
+    self->probe->fp = pico8_qh_start.fp;
+    self->probe->fp_is_bool = 0;
+    self->probe->ik = 0;
+    self->probe->has_ik = 0;
+    self->probe->dw = pico8_qh_start.dw;
     self->s = pico8_qh_start.s;
     self->ba = pico8_qh_start.ba;
-    self->et = NULL;
-    self->has_et = 0;
+    self->probe->et = NULL;
+    self->probe->has_et = 0;
     self->jo.mi = pico8_qh_start.mi;
     self->jo.has_mi = 1;
     self->jo.nu = pico8_qh_start.nu;
@@ -307,6 +317,7 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .field = pico8_nl_field,
     .set_field = pico8_nl_set_field,
     .parent = pico8_qh_struct_class,
+    .probe_of = pico8_qh_probe_of,
 };
 
 static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
@@ -322,7 +333,7 @@ static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
     self->qh.hp = pico8_nl_start.hp;
     self->qh.s = pico8_nl_start.s;
     self->qh.px = pico8_nl_start.px;
-    self->qh.od = pico8_nl_start.od;
+    self->qh.probe->od = pico8_nl_start.od;
     self->qh.ba = pico8_nl_start.ba;
     self->qh.jo.nu = pico8_nl_start.nu;
     if (keys != NULL) {
@@ -361,6 +372,7 @@ static const pico8_struct_class_t g_os_struct_class = {
     .field = pico8_qh_field,
     .set_field = pico8_qh_set_field,
     .parent = pico8_qh_struct_class,
+    .probe_of = pico8_qh_probe_of,
 };
 
 static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
@@ -373,7 +385,7 @@ static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
     self->qh.qh = pico8_os_start.qh;
     self->qh.qh_is_bool = pico8_os_start.qh_is_bool;
     self->qh.s = pico8_os_start.s;
-    self->qh.od = pico8_os_start.od;
+    self->qh.probe->od = pico8_os_start.od;
     self->qh.jo.nu = pico8_os_start.nu;
     self->qh.jo.hs = pico8_os_start.hs;
     if (keys != NULL) {
@@ -523,6 +535,7 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .set_field = pico8_hj_set_field,
     .parent = pico8_qh_struct_class,
     .emitter_of = pico8_hj_emitter_of,
+    .probe_of = pico8_qh_probe_of,
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
@@ -546,7 +559,7 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     self->qh.qh = pico8_hj_start.qh;
     self->qh.qh_is_bool = pico8_hj_start.qh_is_bool;
     self->qh.px = pico8_hj_start.px;
-    self->qh.od = pico8_hj_start.od;
+    self->qh.probe->od = pico8_hj_start.od;
     self->qh.s = pico8_hj_start.s;
     self->qh.jo.nu = pico8_hj_start.nu;
 }
@@ -640,6 +653,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .set_field = pico8_hj_set_field,
     .parent = pico8_hj_struct_class,
     .emitter_of = pico8_hj_emitter_of,
+    .probe_of = pico8_qh_probe_of,
 };
 
 static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {

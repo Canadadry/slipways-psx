@@ -24,8 +24,8 @@ int pico8_ke_ready(void);
 
 /* A NULL `self` is a no-op; any other `self` must be a struct. `me` and
  * `t` are written into its pico8_ke_t, never through its field writer.
- * `me` is nil or a non-NULL string, borrowed; anything else aborts. */
-void pico8_ke_ks(pico8_struct_header_t *self, pico8_value_t me);
+ * `me` NULL is nil; a string is borrowed. */
+void pico8_ke_ks(pico8_struct_header_t *self, const char *me);
 
 /* Tags `self` as a struct of class `cls` and sets ke's defaults,
  * `pico8_ke_start`. */

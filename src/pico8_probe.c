@@ -118,14 +118,6 @@ static int pico8_probe_truthy(pico8_value_t v) {
     return 1;
 }
 
-static pico8_fixed_t pico8_probe_field_fixed(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
 typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
@@ -159,13 +151,70 @@ static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
     return pico8_qz_call(hw, rp);
 }
 
+/* `ra` and `p`, which a host of `bv` holds for itself: `g_`'s line, jo's
+ * family (qh's line) or an `mz`. */
+static void probe_host_set_ra_p(pico8_struct_header_t *self, pico8_vec_t *ra, pico8_vec_t *p) {
+    pico8_g__t *g_ = pico8_g__of(self);
+    pico8_jo_t *jo;
+    pico8_mz_t *mz;
+
+    if (g_ != NULL) {
+        g_->ra = ra;
+        g_->p = p;
+        return;
+    }
+    if (pico8_jo_is_family(self)) {
+        jo = (pico8_jo_t *)self;
+        jo->ra = ra;
+        jo->p = p;
+        return;
+    }
+    assert(self->cls == pico8_mz_struct_class() &&
+           "bv: a host neither of g_'s line, of jo's family nor an mz, none of whose hq runs bv -- stop");
+    mz = (pico8_mz_t *)self;
+    mz->ra = ra;
+    mz->p = p;
+}
+
+/* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
+ * holding `ly`), a `jc`, or the throwaway target. */
+static int g__is_target_class(const pico8_struct_class_t *cls) {
+    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class() ||
+           cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
+}
+
+/* Points the `fo` of `bv`'s target back at `self`: a planet of jo's family,
+ * a `jc`, or the throwaway target. */
+static void probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self) {
+    if (pico8_jo_is_family(et)) {
+        assert((self->cls->hq == pico8_bv_dispatch || self->cls == pico8_jc_struct_class()) &&
+               "jo.fo: a write neither nil nor an object whose hq runs bv (g_, fv, qh, nl, os, hj, pm, nr, fr, mx) "
+               "or a jc does not fit the member's type -- stop, do not widen the member");
+        ((pico8_jo_t *)et)->fo = self;
+        return;
+    }
+    if (et->cls == pico8_jc_struct_class()) {
+        assert((self->cls->hq == pico8_bv_dispatch || self->cls == pico8_jc_struct_class() ||
+                self->cls == pico8_mz_struct_class()) &&
+               "jc.fo: a write neither nil nor what hangs fo on a slipway (an object whose hq runs bv: g_, fv, qh, "
+               "nl, os, hj, pm, nr, fr, mx; an mz; another jc) does not fit the member's type -- stop");
+        ((pico8_jc_t *)et)->fo = self;
+        return;
+    }
+    assert(et == &g_bv_et.header && "bv: et is a planet, a jc or the static throwaway struct, nothing else");
+    assert(bv_et_is_holder_class(self->cls) &&
+           "bv_et.fo: a write neither nil nor an object whose hq runs bv (g_, fv, mz, qh, nl, os, hj, pm, nr, fr, "
+           "mx) does not fit the member's type -- stop, do not widen the member");
+    g_bv_et.fo = self;
+}
+
 void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
+    pico8_probe_t *probe;
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
     pico8_vec_t *p_heap;
     pico8_fixed_t nq;
     pico8_value_t c;
-    pico8_fixed_t dw;
     pico8_value_t et;
 
     if (self == NULL) {
@@ -173,22 +222,22 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "bv: self is a struct; no class instance reaches g_'s functions any more");
+    assert(self->cls->probe_of != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
-    pico8_entity_set_field(self, "ra", pico8_value_ref(mp));
+    probe = self->cls->probe_of(self);
     mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
     /* TROU-7 */
     p_heap = malloc(sizeof *p_heap);
     *p_heap = p_vec;
-    pico8_entity_set_field(self, "p", pico8_value_ref(p_heap));
+    probe_host_set_ra_p(self, mp, p_heap);
 
     c = pico8_value_ref(NULL);
     nq = pico8_ij(p_vec, pico8_cg("np"), &c);
-    dw = pico8_probe_field_fixed(self, "dw");
 
     et = pico8_value_ref(NULL);
 
-    if (nq < dw && pico8_probe_truthy(c)) {
+    if (nq < probe->dw && pico8_probe_truthy(c)) {
         et = c;
     } else {
         pico8_bv_ctx_t ctx;
@@ -216,12 +265,17 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         }
     }
 
-    pico8_entity_set_field(self, "et", et);
+    assert(((et.kind == PICO8_VALUE_BOOL && et.as.boolean == 0) ||
+            (et.kind == PICO8_VALUE_REF && et.as.ref != NULL &&
+             pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT &&
+             g__is_target_class(((const pico8_struct_header_t *)et.as.ref)->cls))) &&
+           "bv: et is false or what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, or the static "
+           "throwaway struct), never a bare table");
+    probe->et = et.kind == PICO8_VALUE_REF ? et.as.ref : NULL;
+    probe->has_et = 1;
 
-    if (pico8_probe_truthy(et) && et.kind == PICO8_VALUE_REF && et.as.ref != NULL) {
-        assert(pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-               "bv: et is an entity (a planet, a jc, the static throwaway struct), never a bare table");
-        pico8_entity_set_field(et.as.ref, "fo", pico8_value_ref(self));
+    if (probe->et != NULL) {
+        probe_et_hang_fo(probe->et, self);
     }
 }
 
@@ -229,55 +283,61 @@ void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_bv((pico8_struct_header_t *)self, qa, ra);
 }
 
-void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
-    pico8_value_t me_val;
-    pico8_vec_t mp;
-    const pico8_nf_t *je;
-    const char *display = "";
-    char *heap_display = NULL;
-    pico8_value_t et_val;
-    int has_et;
+/* `qs` of `dl`'s target: `mz.jj` and `jc:ce`'s "too far" struct have one;
+ * any other target (a planet, a `jc`, the throwaway) reads as absent, NULL. */
+static const char *probe_et_qs(const pico8_struct_header_t *et) {
+    if (et->cls == pico8_mz_jj_struct_class()) {
+        return ((const pico8_mz_jj_t *)et)->qs;
+    }
+    if (et->cls == pico8_jc_too_far_struct_class()) {
+        return ((const pico8_jc_too_far_t *)et)->qs;
+    }
+    return NULL;
+}
 
+void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
     if (self == NULL) {
         return;
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "dl: self is a struct; no class instance reaches g_'s functions any more");
+    assert(self->cls->probe_of != NULL && "dl: a class that carries no probe is no receiver -- stop");
 
-    if (!pico8_entity_get_field(self, "me", &me_val) || me_val.kind != PICO8_VALUE_STRING ||
-        me_val.as.string == NULL || strcmp(me_val.as.string, "kz") != 0) {
+    pico8_dl_show(gfx, mem, ((const pico8_ke_t *)self)->me, self->cls->probe_of(self));
+}
+
+void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb) {
+    pico8_vec_t mp;
+    const pico8_nf_t *je;
+    const char *display = "";
+    char *heap_display = NULL;
+
+    if (me == NULL || strcmp(me, "kz") != 0) {
         return;
     }
 
     je = pico8_je_nf();
     mp = je != NULL && je->ra != NULL ? *je->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 
-    has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
-
-    if (has_et) {
-        const void *et_obj = (et_val.kind == PICO8_VALUE_REF) ? et_val.as.ref : NULL;
-        pico8_value_t qs_val;
-        if (et_obj != NULL && pico8_entity_get_field(et_obj, "qs", &qs_val) &&
-            qs_val.kind == PICO8_VALUE_STRING && pico8_probe_truthy(qs_val)) {
-            display = qs_val.as.string;
+    if (pb->has_et && pb->et != NULL) {
+        const char *qs = probe_et_qs(pb->et);
+        if (qs != NULL) {
+            display = qs;
         } else {
             if (gfx != NULL && mem != NULL) {
                 pico8_spr_default(gfx, mem, 31, pico8_probe_to_int(pico8_fixed_sub(mp.x, pico8_fixed_from_int(3))),
                                    pico8_probe_to_int(pico8_fixed_sub(mp.y, pico8_fixed_from_int(8))));
             }
         }
-    } else {
-        pico8_value_t od_val;
-        if (pico8_entity_get_field(self, "od", &od_val) && pico8_probe_truthy(od_val)) {
-            char *od_str = pico8_value_tostr(od_val);
-            size_t len = strlen(od_str);
-            heap_display = malloc(len + 2);
-            memcpy(heap_display, od_str, len);
-            heap_display[len] = '$';
-            heap_display[len + 1] = '\0';
-            free(od_str);
-            display = heap_display;
-        }
+    } else if (pb->has_od) {
+        char *od_str = pico8_value_tostr(pico8_value_fixed(pb->od));
+        size_t len = strlen(od_str);
+        heap_display = malloc(len + 2);
+        memcpy(heap_display, od_str, len);
+        heap_display[len] = '$';
+        heap_display[len + 1] = '\0';
+        free(od_str);
+        display = heap_display;
     }
 
     if (gfx != NULL && mem != NULL) {
@@ -293,10 +353,41 @@ void pico8_dl_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
 }
 
+/* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's
+ * family (qh's line), a `jc` or an `mz`. */
+static void probe_host_raise_p_(pico8_struct_header_t *self) {
+    pico8_g__t *g_ = pico8_g__of(self);
+    pico8_jo_t *jo;
+    pico8_jc_t *jc;
+    pico8_mz_t *mz;
+
+    if (g_ != NULL) {
+        g_->p_ = 1;
+        g_->has_p_ = 1;
+        return;
+    }
+    if (pico8_jo_is_family(self)) {
+        jo = (pico8_jo_t *)self;
+        jo->p_ = 1;
+        jo->has_p_ = 1;
+        return;
+    }
+    if (self->cls == pico8_jc_struct_class()) {
+        jc = (pico8_jc_t *)self;
+        jc->p_ = 1;
+        jc->has_p_ = 1;
+        return;
+    }
+    assert(self->cls == pico8_mz_struct_class() &&
+           "d_: a host neither of g_'s line, of jo's family, a jc nor an mz, none of whose ey runs d_ -- stop");
+    mz = (pico8_mz_t *)self;
+    mz->p_ = 1;
+    mz->has_p_ = 1;
+}
+
 pico8_value_t pico8_d_(pico8_struct_header_t *self) {
-    pico8_value_t et_val;
+    const pico8_probe_t *probe;
     int has_et;
-    pico8_value_t od_val = pico8_value_ref(NULL);
     pico8_hy_t *fm;
     int lu_ok = 0;
 
@@ -305,50 +396,31 @@ pico8_value_t pico8_d_(pico8_struct_header_t *self) {
     }
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "d_: self is a struct; no class instance reaches g_'s functions any more");
+    assert(self->cls->probe_of != NULL && "d_: a class that carries no probe is no receiver -- stop");
 
-    has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
+    probe = self->cls->probe_of(self);
+    has_et = probe->has_et && probe->et != NULL;
 
     fm = pico8_fm_hy();
     if (!has_et) {
-        pico8_fixed_t jt = pico8_fixed_from_int(0);
-        (void)pico8_entity_get_field(self, "od", &od_val);
-        if (od_val.kind == PICO8_VALUE_FIXED) {
-            jt = od_val.as.fixed;
-        }
-        lu_ok = pico8_hy_lu(fm, jt);
+        lu_ok = pico8_hy_lu(fm, probe->has_od ? probe->od : pico8_fixed_from_int(0));
     }
 
     assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
     if (!has_et && lu_ok) {
-        pico8_value_t dq_val;
-        pico8_value_t fp_val;
-        pico8_value_t ik_val;
-        pico8_fixed_t hx = pico8_fixed_from_int(0);
+        pico8_ke_ks(self, probe->dq != NULL ? probe->dq : "ph");
 
-        if (!pico8_entity_get_field(self, "dq", &dq_val) || !pico8_probe_truthy(dq_val)) {
-            dq_val = pico8_value_string("ph");
-        }
-        pico8_ke_ks(self, dq_val);
+        /* A boolean `fp` hands 0 (`true` is no number), a fixed one itself. */
+        pico8_hy_nx(pico8_fm_hy(), probe->fp_is_bool ? pico8_fixed_from_int(0) : probe->fp);
 
-        if (!pico8_entity_get_field(self, "fp", &fp_val) || !pico8_probe_truthy(fp_val)) {
-            fp_val = pico8_value_fixed(pico8_fixed_from_int(0));
-        }
-        if (fp_val.kind == PICO8_VALUE_FIXED) {
-            hx = fp_val.as.fixed;
-        }
-        pico8_hy_nx(pico8_fm_hy(), hx);
-
-        if (!pico8_entity_get_field(self, "ik", &ik_val) || !pico8_probe_truthy(ik_val)) {
-            ik_val = pico8_value_fixed(pico8_fixed_from_int(54));
-        }
-        pico8_rn(ik_val);
+        pico8_rn(pico8_value_fixed(probe->has_ik ? probe->ik : pico8_fixed_from_int(54)));
 
         return pico8_value_bool(1);
     }
 
     pico8_rn(pico8_value_fixed(pico8_fixed_from_int(57)));
-    pico8_entity_set_field(self, "p_", pico8_value_bool(1));
+    probe_host_raise_p_(self);
     return pico8_value_ref(NULL);
 }
 
@@ -408,13 +480,13 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
 }
 
 pico8_value_t pico8_g__et(const pico8_g__t *self) {
-    if (self == NULL || !self->has_et) {
+    if (self == NULL || !self->probe->has_et) {
         return pico8_value_ref(NULL);
     }
-    if (self->et == NULL) {
+    if (self->probe->et == NULL) {
         return pico8_value_bool(0);
     }
-    return pico8_value_ref(self->et);
+    return pico8_value_ref(self->probe->et);
 }
 
 static int g__ref_field(const void *ref, pico8_value_t *out_value) {
@@ -440,24 +512,24 @@ static int pico8_g__field(const void *self, const char *name, pico8_value_t *out
         return g__fixed_field(g_->fx, out_value);
     }
     if (strcmp(name, "dq") == 0) {
-        if (g_->dq == NULL) {
+        if (g_->probe->dq == NULL) {
             return 0;
         }
-        *out_value = pico8_value_string(g_->dq);
+        *out_value = pico8_value_string(g_->probe->dq);
         return 1;
     }
     if (strcmp(name, "od") == 0) {
-        return g__fixed_field(g_->od, out_value);
+        return g__fixed_field(g_->probe->od, out_value);
     }
     if (strcmp(name, "fp") == 0) {
-        *out_value = pico8_value_bool(g_->fp);
+        *out_value = pico8_value_bool(g_->probe->fp);
         return 1;
     }
     if (strcmp(name, "fa") == 0) {
         return g__fixed_field(g_->fa, out_value);
     }
     if (strcmp(name, "dw") == 0) {
-        return g__fixed_field(g_->dw, out_value);
+        return g__fixed_field(g_->probe->dw, out_value);
     }
     if (strcmp(name, "py") == 0) {
         return g__fixed_field(g_->emitter->py, out_value);
@@ -542,13 +614,6 @@ static void g__take_vec(pico8_value_t value, pico8_vec_t **out) {
     *out = value.as.ref;
 }
 
-/* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
- * holding `ly`), a `jc`, or the throwaway target. */
-static int g__is_target_class(const pico8_struct_class_t *cls) {
-    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class() ||
-           cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
-}
-
 static void g__take_target(pico8_value_t value, pico8_struct_header_t **out, int *has) {
     *out = NULL;
     *has = 0;
@@ -596,7 +661,7 @@ static int pico8_g__set_field(void *self, const char *name, pico8_value_t value)
         return 1;
     }
     if (strcmp(name, "et") == 0) {
-        g__take_target(value, &g_->et, &g_->has_et);
+        g__take_target(value, &g_->probe->et, &g_->probe->has_et);
         return 1;
     }
     if (strcmp(name, "p_") == 0) {
@@ -615,6 +680,7 @@ static const pico8_struct_class_t g_g__struct_class = {
     .field = pico8_g__field,
     .set_field = pico8_g__set_field,
     .emitter_of = pico8_g__emitter_of,
+    .probe_of = pico8_g__probe_of,
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
@@ -623,17 +689,22 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->emitter->qy = NULL;
     self->ra = NULL;
     self->p = NULL;
-    self->et = NULL;
-    self->has_et = 0;
+    self->probe = &self->probe_own;
+    self->probe->et = NULL;
+    self->probe->has_et = 0;
     self->p_ = 0;
     self->has_p_ = 0;
     self->nu = pico8_g__start.nu;
     self->fx = pico8_g__start.fx;
-    self->dq = pico8_g__start.dq;
-    self->od = pico8_g__start.od;
-    self->fp = pico8_g__start.fp;
+    self->probe->dq = pico8_g__start.dq;
+    self->probe->od = pico8_g__start.od;
+    self->probe->has_od = 1;
+    self->probe->fp = pico8_g__start.fp;
+    self->probe->fp_is_bool = 1;
+    self->probe->ik = 0;
+    self->probe->has_ik = 0;
     self->fa = pico8_g__start.fa;
-    self->dw = pico8_g__start.dw;
+    self->probe->dw = pico8_g__start.dw;
     self->emitter->py = pico8_g__start.py;
     self->emitter->ki = pico8_g__start.ki;
     self->emitter->pn = pico8_g__start.pn;
@@ -720,6 +791,10 @@ pico8_g__t *pico8_g__of(pico8_struct_header_t *e) {
 
 pico8_emitter_t *pico8_g__emitter_of(void *self) {
     return ((pico8_g__t *)self)->emitter;
+}
+
+pico8_probe_t *pico8_g__probe_of(void *self) {
+    return ((pico8_g__t *)self)->probe;
 }
 
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {

@@ -193,6 +193,7 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .set_field = pico8_fv_set_field,
     .parent = pico8_g__struct_class,
     .emitter_of = pico8_g__emitter_of,
+    .probe_of = pico8_g__probe_of,
 };
 
 static void *pico8_fv_struct_new(void) {

@@ -14,42 +14,58 @@
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
  * for the value-returning functions), a non-NULL `self` must be a struct
- * (asserted), an absent or wrong-kind field reads as 0/false/the zero vector
- * rather than crashing, and a NULL `gfx`/`mem` skips the draw calls while
- * the rest of the body still runs. */
+ * (asserted) whose class carries the component the function reads -- a
+ * probe for `bv`, `dl`, `d_`, an emitter for `g_:mm` -- and a NULL
+ * `gfx`/`mem` skips the draw calls while the rest of the body still runs. */
+
+/* What `bv`, `dl` and `d_` read and write of their host, the probe's own
+ * fields, stored in the host (`probe_own`) and never copied. `et` is
+ * borrowed; with `has_et`, a NULL `et` is `false` (a `jc` keeps `has_et`
+ * equal to `et != NULL`: its NULL is nil). `dq` NULL is nil. A fixed `fp` is
+ * truthy even at 0, and `d_` hands it to `fm:nx`; a boolean one hands 0. */
+typedef struct pico8_probe {
+    pico8_struct_header_t *et;
+    int has_et;
+    pico8_fixed_t dw;
+    pico8_fixed_t od;
+    int has_od; /* 0: `od` is nil, and is then never read */
+    const char *dq;
+    pico8_fixed_t fp;
+    int fp_is_bool; /* 1: `fp` holds a boolean (0/1), 0: a fixed */
+    pico8_fixed_t ik;
+    int has_ik; /* 0: `ik` is nil, and is then never read */
+} pico8_probe_t;
 
 /* TROU-7 */
 /* `nu` points at `pico8_g__nu_tags` (for `fv` too), the emitter's `k_` at
  * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv`
- * was passed, aliased. `emitter` points at `emitter_own`: never copy the struct. */
+ * was passed, aliased. `emitter` and `probe` point at `emitter_own` and
+ * `probe_own`: never copy the struct. */
 typedef struct {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
     pico8_fixed_t fx;
-    const char *dq;
-    pico8_fixed_t od;
-    int fp;
     pico8_fixed_t fa;
-    pico8_fixed_t dw;
     pico8_emitter_t *emitter;
+    pico8_probe_t *probe;
     const pico8_vec_t *ra;
     pico8_vec_t *p;
-    pico8_struct_header_t *et; /* borrowed, never freed */
-    int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_emitter_t emitter_own; /* never a field by name */
+    pico8_probe_t probe_own;     /* never a field by name */
 } pico8_g__t;
 
 /* `e` itself when its class is g_'s or has g_'s up its `parent` chain; NULL
  * otherwise, and for a NULL `e`. */
 pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
 
-/* The `emitter_of` of g_'s descriptor, for `fv`'s to name. */
+/* The `emitter_of` and `probe_of` of g_'s descriptor, for `fv`'s to name. */
 pico8_emitter_t *pico8_g__emitter_of(void *self);
+pico8_probe_t *pico8_g__probe_of(void *self);
 
-/* `et` as a value: REF NULL when `self` is NULL or `et` is absent, `false`
- * when present and NULL, a REF to the target otherwise. */
+/* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
+ * absent, `false` when present and NULL, a REF to the target otherwise. */
 pico8_value_t pico8_g__et(const pico8_g__t *self);
 
 /* TROU-8 */
@@ -67,7 +83,7 @@ const pico8_struct_class_t *pico8_g__struct_class(void);
 
 /* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 5
  * written members nil, g_'s 18 defaults from `pico8_g__start`, 12 of them
- * in the emitter. Reads no
+ * in the emitter, 4 in the probe. Reads no
  * key, runs neither `pq` nor `lt`, records no coverage. */
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
 
@@ -129,11 +145,13 @@ void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
 
 const pico8_struct_class_t *pico8_bv_et_struct_class(void);
 
-/* Generic tooltip helper, not probe-specific: also called directly by
- * `jc:hh`, `qh:ph` and the research icon, on entities that are never `g_`.
- * `self` is read, never retained -- one caller passes a struct view on its
- * stack (`ie.ke`). */
+/* The tooltip of a probe host: `self` must carry a probe (asserted), and is
+ * read, never retained. */
 void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
+
+/* The same, for a caller that is not a host (the research icon): `me` NULL
+ * is nil, `pb` is read during the call only. */
+void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb);
 
 void pico8_dl_dispatch(void *self, const pico8_vec_t *ra);
 

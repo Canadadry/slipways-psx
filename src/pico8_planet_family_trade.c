@@ -228,6 +228,7 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .field = pico8_nr_field,
     .set_field = pico8_nr_set_field,
     .parent = pico8_qh_struct_class,
+    .probe_of = pico8_qh_probe_of,
 };
 
 /* Initializes an allocated pico8_nr_t under `cls`: qh's part, nr's members
@@ -237,10 +238,10 @@ static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *c
     pico8_qh_struct_init(&self->qh, cls);
     self->hz = pico8_nr_start.hz;
     self->rr = pico8_nr_start.rr;
-    self->qh.od = pico8_nr_start.od;
-    self->qh.fp = pico8_nr_start.fp;
+    self->qh.probe->od = pico8_nr_start.od;
+    self->qh.probe->fp = pico8_nr_start.fp;
     self->qh.s = pico8_nr_start.s;
-    self->qh.dw = pico8_nr_start.dw;
+    self->qh.probe->dw = pico8_nr_start.dw;
     self->qh.jo.nu = pico8_nr_start.nu;
     self->qh.jo.kq = &pico8_nr_start.kq;
 }
@@ -297,6 +298,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .field = pico8_fr_field,
     .set_field = pico8_nr_set_field,
     .parent = pico8_nr_struct_class,
+    .probe_of = pico8_qh_probe_of,
 };
 
 static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
@@ -307,7 +309,7 @@ static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
     self->mt = pico8_fr_start.mt;
     self->nr.hz = pico8_fr_start.hz;
     self->nr.rr = pico8_fr_start.rr;
-    self->nr.qh.od = pico8_fr_start.od;
+    self->nr.qh.probe->od = pico8_fr_start.od;
     self->nr.qh.s = pico8_fr_start.s;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
@@ -429,6 +431,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .set_field = pico8_mx_set_field,
     .parent = pico8_hj_struct_class,
     .emitter_of = pico8_hj_emitter_of,
+    .probe_of = pico8_qh_probe_of,
 };
 
 static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
@@ -453,7 +456,7 @@ static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
     self->hj.qh.hp = pico8_mx_start.hp;
     self->hj.qh.s = pico8_mx_start.s;
     self->hj.qh.px = pico8_mx_start.px;
-    self->hj.qh.od = pico8_mx_start.od;
+    self->hj.qh.probe->od = pico8_mx_start.od;
     self->hj.qh.jo.nu = pico8_mx_start.nu;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&

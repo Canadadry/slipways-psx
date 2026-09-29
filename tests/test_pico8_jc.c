@@ -824,7 +824,7 @@ static void test_bv(void) {
     old = the_slipway();
     probe = pico8_g__new(NULL);
     assert(probe != NULL);
-    ((pico8_g__t *)probe)->dw = 0;
+    ((pico8_g__t *)probe)->probe->dw = 0;
     qu = vec_of(get_ref(old, "qu"), "p");
     re = vec_of(get_ref(old, "re"), "p");
     for (k = 1; k < 8; k++) {
@@ -1438,7 +1438,7 @@ static void test_jc_members_by_name(void) {
     assert(is_string(qu_of[5], "me", "ly"));
     for (k = 1; k < 7; k++) {
         if (k != 5) {
-            pico8_ke_ks(qu_of[k], pico8_value_string("ly"));
+            pico8_ke_ks(qu_of[k], "ly");
         }
     }
     for (k = 0; k < 9; k++) {

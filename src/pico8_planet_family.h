@@ -6,6 +6,7 @@
 #include "pico8_mem.h"
 #include "pico8_particle.h"
 #include "pico8_planet.h"
+#include "pico8_probe.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -22,34 +23,34 @@ void pico8_planet_family_init(void);
  * before the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
-/* A laboratory: a bare planet, then qh's own defaults and `et`, which its
- * own `hq` (`bv`) writes. A default of qh whose name is a member of `jo` or
- * `ke` (`me`, `nu`, `hf`, `mi`) lives in that member, never in a second
- * copy here. `nu`, `px` and `ba` point at qh's generated data
- * (pico8_game_data.h). Nothing frees the struct: TROU-7. */
+/* A laboratory: a bare planet, then qh's own defaults, `dq`, `od`, `fp`
+ * and `dw` in the probe with `et`, which its own `hq` (`bv`) writes. A
+ * default of qh whose name is a member of `jo` or `ke` (`me`, `nu`, `hf`,
+ * `mi`) lives in that member, never in a second copy here. `nu`, `px` and
+ * `ba` point at qh's generated data (pico8_game_data.h). `probe` points at
+ * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
-    const char *dq;
     pico8_fixed_t qh;
     int qh_is_bool; /* 1: `qh` holds a boolean (0/1), 0: a fixed */
-    pico8_fixed_t od;
-    pico8_fixed_t fp;
-    pico8_fixed_t dw;
     pico8_fixed_t s;
     const pico8_int_seq_t *ba;
-    pico8_struct_header_t *et; /* borrowed, never freed */
-    int has_et;                /* 0: nil; 1: present, and a NULL `et` is `false` */
+    pico8_probe_t *probe;
+    pico8_probe_t probe_own; /* never a field by name */
 } pico8_qh_t;
 
 /* `qh` as a value: a boolean when `qh_is_bool`, a fixed otherwise; REF NULL
  * when `self` is NULL. */
 pico8_value_t pico8_qh_qh(const pico8_qh_t *self);
 
-/* `et` as a value: REF NULL when `self` is NULL or `et` is absent, `false`
- * when present and NULL, a REF to the target otherwise. */
+/* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
+ * absent, `false` when present and NULL, a REF to the target otherwise. */
 pico8_value_t pico8_qh_et(const pico8_qh_t *self);
+
+/* The `probe_of` of qh's descriptor, for its daughters' to name. */
+pico8_probe_t *pico8_qh_probe_of(void *self);
 
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`

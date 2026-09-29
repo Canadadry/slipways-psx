@@ -118,7 +118,7 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
             self->nh = pico8_fixed_add(nh, pico8_fixed_from_int(1));
         }
 
-        et_or_fo = self->et != NULL || self->fo != NULL;
+        et_or_fo = self->probe->et != NULL || self->fo != NULL;
         mt_truthy = self->has_mt;
 
         c = et_or_fo ? pico8_fixed_from_int(2) : (mt_truthy ? pico8_fixed_from_int(0) : jv);

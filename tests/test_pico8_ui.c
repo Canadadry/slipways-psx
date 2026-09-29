@@ -515,7 +515,7 @@ static void test_layers(void) {
     pico8_ui_lj(&mem, ok);
     assert(lookup(ok, "qa", &qa) && lookup(pico8_je(), "ra", &ra));
 
-    pico8_ke_ks(planet, pico8_value_string("known"));
+    pico8_ke_ks(planet, "known");
     assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, qa.as.ref, ra.as.ref, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && kn.held == NULL);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), kv));
@@ -1021,7 +1021,7 @@ static void test_ui_held_stops_off_row(void) {
 }
 
 static void ks_on_a_table(void *e) {
-    pico8_ke_ks(e, pico8_value_string("ph"));
+    pico8_ke_ks(e, "ph");
 }
 
 static void lt_a_table(void *e) {
@@ -1037,7 +1037,7 @@ static void test_ke_closed(void) {
     (void)start_game();
     must_abort(ks_on_a_table, &list);
     must_abort(lt_a_table, &list);
-    pico8_ke_ks(NULL, pico8_value_string("ph"));
+    pico8_ke_ks(NULL, "ph");
 }
 
 static int me_of(const void *e, const char *name, pico8_value_t *out) {
@@ -1100,10 +1100,21 @@ static void assert_own_emitter(void *self, void *other, size_t size) {
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
-/* Which of the 24 classes carry a particle emitter: exactly hj, pm, ga, mx,
- * g_ and fv, each in its own storage. */
+static void assert_own_probe(void *self, void *other, size_t size) {
+    pico8_struct_header_t *e = self;
+    pico8_struct_header_t *o = other;
+    const char *at = (const char *)e->cls->probe_of(e);
+
+    assert(e->cls == o->cls);
+    assert((const void *)at != (const void *)o->cls->probe_of(o));
+    assert(at >= (const char *)self && at < (const char *)self + size);
+}
+
+/* Which of the 24 classes carry a particle emitter (exactly hj, pm, ga, mx,
+ * g_, fv) and a probe (qh's line, g_, fv, jc, mz), each in its own storage. */
 static void test_components_carried(void) {
     static const int emitter[24] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+    static const int probe[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1};
     void *e[24];
     size_t i;
 
@@ -1136,6 +1147,7 @@ static void test_components_carried(void) {
         const pico8_struct_header_t *header = e[i];
 
         assert((header->cls->emitter_of != NULL) == emitter[i]);
+        assert((header->cls->probe_of != NULL) == probe[i]);
     }
 
     assert_own_emitter(e[8], pico8_hj_new(NULL), sizeof(pico8_hj_t));
@@ -1144,6 +1156,18 @@ static void test_components_carried(void) {
     assert_own_emitter(e[13], pico8_mx_new(NULL), sizeof(pico8_mx_t));
     assert_own_emitter(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
     assert_own_emitter(e[15], pico8_fv_new(), sizeof(pico8_fv_t));
+    assert_own_probe(e[5], pico8_qh_new(NULL), sizeof(pico8_qh_t));
+    assert_own_probe(e[6], pico8_nl_new(NULL), sizeof(pico8_nl_t));
+    assert_own_probe(e[7], pico8_os_new(NULL), sizeof(pico8_os_t));
+    assert_own_probe(e[8], pico8_hj_new(NULL), sizeof(pico8_hj_t));
+    assert_own_probe(e[9], pico8_pm_new(NULL), sizeof(pico8_pm_t));
+    assert_own_probe(e[11], pico8_nr_new(NULL), sizeof(pico8_nr_t));
+    assert_own_probe(e[12], pico8_fr_new(NULL), sizeof(pico8_fr_t));
+    assert_own_probe(e[13], pico8_mx_new(NULL), sizeof(pico8_mx_t));
+    assert_own_probe(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
+    assert_own_probe(e[15], pico8_fv_new(), sizeof(pico8_fv_t));
+    assert_own_probe(e[19], pico8_jc_new(NULL), sizeof(pico8_jc_t));
+    assert_own_probe(e[23], pico8_mz_new(), sizeof(pico8_mz_t));
 }
 
 static void test_ke_me_by_name(void) {
@@ -1213,72 +1237,22 @@ static void test_ke_me_by_name(void) {
         h = fnv(h, 0u);
     }
 
-    pico8_ke_ks(e[0], pico8_value_string(s));
+    pico8_ke_ks(e[0], s);
     assert(me_of(e[0], "me", &v) && v.kind == PICO8_VALUE_STRING && v.as.string == s);
     h = fold_ks_back(fold_string(fnv(h, 1u), v.as.string), e[0]);
-    pico8_ke_ks(e[0], pico8_value_ref(NULL));
+    pico8_ke_ks(e[0], NULL);
     assert(!me_of(e[0], "me", &v));
     h = fold_ks_back(fnv(h, 0u), e[0]);
-    pico8_ke_ks(e[0], pico8_value_string("ph"));
+    pico8_ke_ks(e[0], "ph");
     assert(me_of(e[0], "me", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ph") == 0);
     h = fold_ks_back(fold_string(fnv(h, 1u), v.as.string), e[0]);
 
-    pico8_ke_ks(e[9], pico8_value_string(s));
+    pico8_ke_ks(e[9], s);
     assert(me_of(e[9], "me", &v) && v.kind == PICO8_VALUE_STRING && v.as.string == s);
     assert(pico8_hj_struct_class()->field(e[9], "me", &through_hj) && pico8_value_equal(v, through_hj));
     h = fold_ks_back(fold_string(fnv(h, 1u), v.as.string), e[9]);
 
     check("ke_me", h, KE_ME_HASH);
-}
-
-static void ks_fixed(void *e) {
-    pico8_ke_ks(e, pico8_value_fixed(pico8_fixed_from_int(1)));
-}
-
-static void ks_true(void *e) {
-    pico8_ke_ks(e, pico8_value_bool(1));
-}
-
-static void ks_false(void *e) {
-    pico8_ke_ks(e, pico8_value_bool(0));
-}
-
-static void ks_zero_false(void *e) {
-    pico8_value_t v;
-
-    memset(&v, 0, sizeof v);
-    v.kind = PICO8_VALUE_BOOL;
-    pico8_ke_ks(e, v);
-}
-
-static void ks_zero_fixed(void *e) {
-    pico8_value_t v;
-
-    memset(&v, 0, sizeof v);
-    v.kind = PICO8_VALUE_FIXED;
-    pico8_ke_ks(e, v);
-}
-
-static void ks_struct(void *e) {
-    pico8_ke_ks(e, pico8_value_ref(e));
-}
-
-static void ks_null_string(void *e) {
-    pico8_ke_ks(e, pico8_value_string(NULL));
-}
-
-static void test_ke_ks_stops_off_row(void) {
-    void *bg;
-
-    (void)start_game();
-    bg = pico8_bg_new();
-    must_abort(ks_fixed, bg);
-    must_abort(ks_true, bg);
-    must_abort(ks_false, bg);
-    must_abort(ks_zero_false, bg);
-    must_abort(ks_zero_fixed, bg);
-    must_abort(ks_struct, bg);
-    must_abort(ks_null_string, bg);
 }
 
 static uint32_t fold_t(uint32_t h, const void *e) {
@@ -1382,12 +1356,12 @@ static void test_ke_t_by_name(void) {
     assert(get_fixed(zero, "py") == pico8_g__start.py);
     h = fold_t(h, zero);
 
-    pico8_ke_ks(keyed, pico8_value_string("ll"));
+    pico8_ke_ks(keyed, "ll");
     assert_fixed_by_name(keyed, "t", 0);
     assert(me_of(keyed, "me", &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, "ll") == 0);
     h = fold_string(fold_t(h, keyed), v.as.string);
 
-    pico8_ke_ks(e[9], pico8_value_string("ll"));
+    pico8_ke_ks(e[9], "ll");
     assert_fixed_by_name(e[9], "t", 0);
     assert(me_of(e[9], "t", &v) && pico8_hj_struct_class()->field(e[9], "t", &through_hj) &&
            pico8_value_equal(v, through_hj));
@@ -3497,7 +3471,6 @@ int main(void) {
     in_fresh_child(test_ke_closed);
     in_fresh_child(test_ke_me_by_name);
     in_fresh_child(test_components_carried);
-    in_fresh_child(test_ke_ks_stops_off_row);
     in_fresh_child(test_ke_t_by_name);
     in_fresh_child(test_g__t_key_stops_off_row);
     in_fresh_child(test_jo_members_by_name);

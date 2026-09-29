@@ -5,6 +5,7 @@
 #include "pico8_game_data.h"
 #include "pico8_ke.h"
 #include "pico8_list.h"
+#include "pico8_probe.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -31,14 +32,13 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, pico8_value_t id);
 
 /* `nu` points at `pico8_jc_nu_tags`, `k_` at `pico8_jc_k__seq`; `ts` is this
  * slipway's own, made by `pico8_jc_pq`, which also empties `hg_own` and
- * points `hg` at it (NULL before). Nothing frees the struct: TROU-7. */
+ * points `hg` at it (NULL before). `fp`, `ik`, `dw`, `od` and `et` (NULL is
+ * nil) live in the probe; `probe` points at `probe_own`: never copy the
+ * struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
-    int fp;
-    pico8_fixed_t ik;
-    pico8_fixed_t dw;
     const pico8_int_seq_t *k_;
     pico8_fixed_t nh;
     pico8_struct_header_t *qu; /* borrowed, never freed */
@@ -46,15 +46,22 @@ typedef struct {
     pico8_jc_hg_t *hg;
     pico8_jc_hg_t hg_own;
     pico8_struct_header_t *re; /* borrowed, never freed */
-    pico8_fixed_t od;
-    int has_od; /* 0: `od` is nil, and is then never read */
     pico8_fixed_t mt;
     int has_mt;                /* 0: `mt` is nil, and is then never read */
-    pico8_struct_header_t *et; /* borrowed, never freed */
     pico8_struct_header_t *fo; /* borrowed, never freed */
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
+    pico8_probe_t *probe;
+    pico8_probe_t probe_own; /* never a field by name */
 } pico8_jc_t;
+
+/* The one static `{qs="-too far-"}` struct `jc:ce` returns: `fo` is the last
+ * slipway that hung itself on it, borrowed. */
+typedef struct {
+    pico8_struct_header_t header;
+    const char *qs;
+    pico8_jc_t *fo;
+} pico8_jc_too_far_t;
 
 void pico8_jc_init(void);
 

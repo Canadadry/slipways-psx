@@ -492,8 +492,8 @@ static void test_life(void) {
     h = fold_hq(h, a, pico8_vec_add(middle, vec_xy(0, 3)), 64, 1);
     h = fold_hq(h, a, pico8_vec_add(middle, vec_xy(0, 3)), 2, 4);
 
-    pico8_ke_ks(a, pico8_value_string("kz"));
-    pico8_ke_ks(b, pico8_value_string("kz"));
+    pico8_ke_ks(a, "kz");
+    pico8_ke_ks(b, "kz");
     cls_of(a)->ev(a, NULL);
     h = fnv(h, screen_hash());
     cls_of(b)->ev(b, NULL);
@@ -1167,11 +1167,11 @@ static uint32_t fold_fresh_probe(uint32_t h, const void *e, int keyed) {
 
     h = fold_g__all(h, e);
     assert(g_->fx == pico8_g__start.fx);
-    assert(g_->dq == pico8_g__start.dq);
-    assert(g_->od == pico8_g__start.od);
-    assert(g_->fp == pico8_g__start.fp);
+    assert(g_->probe->dq == pico8_g__start.dq);
+    assert(g_->probe->od == pico8_g__start.od);
+    assert(g_->probe->fp == pico8_g__start.fp);
     assert(g_->fa == pico8_g__start.fa);
-    assert(g_->dw == pico8_g__start.dw);
+    assert(g_->probe->dw == pico8_g__start.dw);
     assert(keyed || g_->emitter->py == pico8_g__start.py);
     assert(g_->emitter->ki == pico8_g__start.ki);
     assert(keyed || g_->emitter->pn == pico8_g__start.pn);
@@ -1212,10 +1212,10 @@ static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
     assert(g_->emitter->pk == pico8_fv_start.pk);
     assert(g_->emitter->ki == pico8_fv_start.ki);
     assert(g_->fx == pico8_g__start.fx);
-    assert(g_->dq == pico8_g__start.dq);
-    assert(g_->od == pico8_g__start.od);
-    assert(g_->fp == pico8_g__start.fp);
-    assert(g_->dw == pico8_g__start.dw);
+    assert(g_->probe->dq == pico8_g__start.dq);
+    assert(g_->probe->od == pico8_g__start.od);
+    assert(g_->probe->fp == pico8_g__start.fp);
+    assert(g_->probe->dw == pico8_g__start.dw);
     assert(get_ref(e, "nu") == pico8_g__start.nu);
     assert(get_ref(e, "k_") == pico8_fv_start.k_ && pico8_fv_start.k_ == &pico8_fv_k__seq);
     assert(size_of(e, "qy") >= 0);

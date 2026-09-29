@@ -25,12 +25,6 @@
 
 static int g_jc_up = 0;
 
-typedef struct {
-    pico8_struct_header_t header;
-    const char *qs;
-    pico8_jc_t *fo;
-} pico8_jc_too_far_t;
-
 static int pico8_jc_too_far_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_jc_too_far_t *too_far = self;
 
@@ -249,18 +243,19 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
         self->re = (pico8_struct_header_t *)point;
     }
 
-    self->od = pico8_dj(self->qu, self->re);
-    self->has_od = 1;
+    self->probe->od = pico8_dj(self->qu, self->re);
+    self->probe->has_od = 1;
 
     qu_mt = pico8_jc_entity_value(self->qu, "mt");
     mt_val = pico8_jc_truthy(qu_mt) ? qu_mt : pico8_jc_entity_value(self->re, "mt");
     jc_take_fixed(mt_val, &self->mt, &self->has_mt);
 
-    self->et = pico8_jc_value_instance(pico8_jc_ce(self));
-    if (self->et != NULL) {
-        assert(pico8_type_tag_of(self->et) == PICO8_TYPE_TAG_STRUCT &&
+    self->probe->et = pico8_jc_value_instance(pico8_jc_ce(self));
+    self->probe->has_et = self->probe->et != NULL;
+    if (self->probe->et != NULL) {
+        assert(pico8_type_tag_of(self->probe->et) == PICO8_TYPE_TAG_STRUCT &&
                "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
-        pico8_entity_set_field(self->et, "fo", pico8_value_ref(self));
+        pico8_entity_set_field(self->probe->et, "fo", pico8_value_ref(self));
     }
 
     self->fa = self->has_mt ? pico8_fixed_from_int(2) : pico8_fixed_from_int(4);
@@ -501,14 +496,14 @@ static int pico8_jc_field(const void *self, const char *name, pico8_value_t *out
         return jc_fixed_field(jc->fa, 1, out_value);
     }
     if (strcmp(name, "fp") == 0) {
-        *out_value = pico8_value_bool(jc->fp);
+        *out_value = pico8_value_bool(jc->probe->fp);
         return 1;
     }
     if (strcmp(name, "ik") == 0) {
-        return jc_fixed_field(jc->ik, 1, out_value);
+        return jc_fixed_field(jc->probe->ik, 1, out_value);
     }
     if (strcmp(name, "dw") == 0) {
-        return jc_fixed_field(jc->dw, 1, out_value);
+        return jc_fixed_field(jc->probe->dw, 1, out_value);
     }
     if (strcmp(name, "k_") == 0) {
         return jc_ref_field(jc->k_, out_value);
@@ -529,13 +524,13 @@ static int pico8_jc_field(const void *self, const char *name, pico8_value_t *out
         return jc_ref_field(jc->re, out_value);
     }
     if (strcmp(name, "od") == 0) {
-        return jc_fixed_field(jc->od, jc->has_od, out_value);
+        return jc_fixed_field(jc->probe->od, jc->probe->has_od, out_value);
     }
     if (strcmp(name, "mt") == 0) {
         return jc_fixed_field(jc->mt, jc->has_mt, out_value);
     }
     if (strcmp(name, "et") == 0) {
-        return jc_ref_field(jc->et, out_value);
+        return jc_ref_field(jc->probe->et, out_value);
     }
     if (strcmp(name, "fo") == 0) {
         return jc_ref_field(jc->fo, out_value);
@@ -599,6 +594,10 @@ static int pico8_jc_set_field(void *self, const char *name, pico8_value_t value)
     return 0;
 }
 
+static pico8_probe_t *jc_probe_of(void *self) {
+    return ((pico8_jc_t *)self)->probe;
+}
+
 static const pico8_struct_class_t g_jc_struct_class = {
     .kj = pico8_jc_kj_dispatch,
     .ev = pico8_jc_ev_dispatch,
@@ -606,6 +605,7 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .ey = pico8_jc_ey_dispatch,
     .field = pico8_jc_field,
     .set_field = pico8_jc_set_field,
+    .probe_of = jc_probe_of,
 };
 
 static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
@@ -615,20 +615,25 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->ke.me = pico8_jc_start.me;
     self->nu = pico8_jc_start.nu;
     self->fa = pico8_jc_start.fa;
-    self->fp = pico8_jc_start.fp;
-    self->ik = pico8_jc_start.ik;
-    self->dw = pico8_jc_start.dw;
+    self->probe = &self->probe_own;
+    self->probe->dq = NULL;
+    self->probe->fp = pico8_jc_start.fp;
+    self->probe->fp_is_bool = 1;
+    self->probe->ik = pico8_jc_start.ik;
+    self->probe->has_ik = 1;
+    self->probe->dw = pico8_jc_start.dw;
     self->k_ = pico8_jc_start.k_;
     self->nh = pico8_jc_start.nh;
     self->qu = NULL;
     self->ts = NULL;
     self->hg = NULL;
     self->re = NULL;
-    self->od = 0;
-    self->has_od = 0;
+    self->probe->od = 0;
+    self->probe->has_od = 0;
     self->mt = 0;
     self->has_mt = 0;
-    self->et = NULL;
+    self->probe->et = NULL;
+    self->probe->has_et = 0;
     self->fo = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

@@ -211,7 +211,11 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
      * kind-level build cost. */
     if (self->has_m_ && self->m_) {
         if (ie_self_ke_kind(self) != NULL) {
-            pico8_dl(gfx, mem, (pico8_struct_header_t *)&view);
+            pico8_probe_t pb = {0};
+
+            pb.has_od = view.has_od;
+            pb.od = view.od;
+            pico8_dl_show(gfx, mem, view.me, &pb);
         }
         if (self->jb != NULL) {
             pico8_jb_ol(gfx, mem, self->jb, pico8_fixed_from_int(0), pico8_fixed_from_int(0));

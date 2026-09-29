@@ -109,8 +109,8 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     threshold = (threshold_val.kind == PICO8_VALUE_FIXED) ? threshold_val.as.fixed : pico8_fixed_from_int(0);
 
     if (nq > threshold) {
-        self->et = (pico8_struct_header_t *)pico8_mz_jj_wrapper();
-        self->has_et = 1;
+        self->probe->et = (pico8_struct_header_t *)pico8_mz_jj_wrapper();
+        self->probe->has_et = 1;
     }
 }
 
@@ -239,13 +239,13 @@ static void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 pico8_value_t pico8_mz_et(const pico8_mz_t *self) {
-    if (self == NULL || !self->has_et) {
+    if (self == NULL || !self->probe->has_et) {
         return pico8_value_ref(NULL);
     }
-    if (self->et == NULL) {
+    if (self->probe->et == NULL) {
         return pico8_value_bool(0);
     }
-    return pico8_value_ref(self->et);
+    return pico8_value_ref(self->probe->et);
 }
 
 static int mz_ref_field(const void *ref, pico8_value_t *out_value) {
@@ -268,29 +268,29 @@ static int pico8_mz_field(const void *self, const char *name, pico8_value_t *out
         return mz_ref_field(mz->nu, out_value);
     }
     if (strcmp(name, "dw") == 0) {
-        return mz_fixed_field(mz->dw, out_value);
+        return mz_fixed_field(mz->probe->dw, out_value);
     }
     if (strcmp(name, "dq") == 0) {
-        if (mz->dq == NULL) {
+        if (mz->probe->dq == NULL) {
             return 0;
         }
-        *out_value = pico8_value_string(mz->dq);
+        *out_value = pico8_value_string(mz->probe->dq);
         return 1;
     }
     if (strcmp(name, "spawn_snd") == 0) {
         return mz_fixed_field(mz->spawn_snd, out_value);
     }
     if (strcmp(name, "ik") == 0) {
-        return mz_fixed_field(mz->ik, out_value);
+        return mz_fixed_field(mz->probe->ik, out_value);
     }
     if (strcmp(name, "oi") == 0) {
         return mz_fixed_field(mz->oi, out_value);
     }
     if (strcmp(name, "od") == 0) {
-        return mz_fixed_field(mz->od, out_value);
+        return mz_fixed_field(mz->probe->od, out_value);
     }
     if (strcmp(name, "fp") == 0) {
-        return mz_fixed_field(mz->fp, out_value);
+        return mz_fixed_field(mz->probe->fp, out_value);
     }
     if (strcmp(name, "fa") == 0) {
         return mz_fixed_field(mz->fa, out_value);
@@ -390,7 +390,7 @@ static int pico8_mz_set_field(void *self, const char *name, pico8_value_t value)
         return 1;
     }
     if (strcmp(name, "et") == 0) {
-        mz_take_et(value, &mz->et, &mz->has_et);
+        mz_take_et(value, &mz->probe->et, &mz->probe->has_et);
         return 1;
     }
     if (strcmp(name, "p_") == 0) {
@@ -404,6 +404,10 @@ static int pico8_mz_set_field(void *self, const char *name, pico8_value_t value)
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
  * drop the nearest-anchor search. */
+static pico8_probe_t *mz_probe_of(void *self) {
+    return ((pico8_mz_t *)self)->probe;
+}
+
 static const pico8_struct_class_t g_mz_struct_class = {
     .kj = pico8_mz_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -416,6 +420,7 @@ static const pico8_struct_class_t g_mz_struct_class = {
         },
     .field = pico8_mz_field,
     .set_field = pico8_mz_set_field,
+    .probe_of = mz_probe_of,
 };
 
 static void *pico8_mz_struct_new(void) {
@@ -424,21 +429,25 @@ static void *pico8_mz_struct_new(void) {
     pico8_ke_struct_init(&self->ke, &g_mz_struct_class);
     self->ke.me = pico8_mz_start.me;
     self->nu = pico8_mz_start.nu;
-    self->dw = pico8_mz_start.dw;
-    self->dq = pico8_mz_start.dq;
+    self->probe = &self->probe_own;
+    self->probe->dw = pico8_mz_start.dw;
+    self->probe->dq = pico8_mz_start.dq;
     self->spawn_snd = pico8_mz_start.spawn_snd;
-    self->ik = pico8_mz_start.ik;
+    self->probe->ik = pico8_mz_start.ik;
+    self->probe->has_ik = 1;
     self->oi = pico8_mz_start.oi;
-    self->od = pico8_mz_start.od;
-    self->fp = pico8_mz_start.fp;
+    self->probe->od = pico8_mz_start.od;
+    self->probe->has_od = 1;
+    self->probe->fp = pico8_mz_start.fp;
+    self->probe->fp_is_bool = 0;
     self->fa = pico8_mz_start.fa;
     self->kk = pico8_mz_start.kk;
     self->jj = &g_mz_jj_wrapper;
     self->ox = NULL;
     self->ra = NULL;
     self->p = NULL;
-    self->et = NULL;
-    self->has_et = 0;
+    self->probe->et = NULL;
+    self->probe->has_et = 0;
     self->ij = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

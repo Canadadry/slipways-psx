@@ -770,7 +770,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
         self->nk = pico8_df_lookup(hp_instance->go);
     } else {
         pico8_value_t fp_val;
-        pico8_ke_ks((pico8_struct_header_t *)self, pico8_value_string("ly"));
+        pico8_ke_ks((pico8_struct_header_t *)self, "ly");
         pico8_jo_lz(self, hp_instance);
         self->fx = 1;
         self->has_fx = 1;
@@ -794,7 +794,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
 void pico8_jo_hh(pico8_jo_t *self) {
     const pico8_df_entry_t *nk = NULL;
-    pico8_value_t ks_arg;
+    const char *ks_arg;
 
     if (self == NULL) {
         return;
@@ -822,9 +822,9 @@ void pico8_jo_hh(pico8_jo_t *self) {
     self->ep = nk != NULL ? nk->d : NULL;
 
     if (nk != NULL && nk->me != NULL) {
-        ks_arg = pico8_value_string(nk->me);
+        ks_arg = nk->me;
     } else {
-        ks_arg = pico8_value_string("known");
+        ks_arg = "known";
     }
     pico8_ke_ks((pico8_struct_header_t *)self, ks_arg);
     pico8_jo_kd(self);

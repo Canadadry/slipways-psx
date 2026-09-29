@@ -460,7 +460,7 @@ static void test_ll(void) {
     a = new_planet("p901", 3, 4);
     pico8_dg();
     assert(bool_state(a, "p_") == 0);
-    pico8_ke_ks(a, pico8_value_string("ll"));
+    pico8_ke_ks(a, "ll");
     while (listed(pico8_hv(), a) && calls < 200) {
         pico8_dg();
         calls++;
