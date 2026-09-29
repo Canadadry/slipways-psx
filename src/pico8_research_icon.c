@@ -156,7 +156,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
 
     assert(g_ie_up && "pico8_research_icon_init() must run before ie:hb writes ie.gy");
 
-    /* `self.ra` takes the REF `ie.gy` holds now. The `-=` below rebinds
+    /* `self.ra` points at the vector `ie.gy` points at now. The `-=` below rebinds
      * `ie.gy` to a fresh vector rather than writing through the old one, so
      * this snapshot survives it. */
     self->ra = g_ie_gy;
