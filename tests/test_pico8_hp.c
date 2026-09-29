@@ -1,5 +1,5 @@
 /* The research project `hp`, the 34 entries of `gb` built at cart load, read
- * only through pico8_entity_get_field, pico8_mv and `po`/`od`/`jb`/`lq`, then
+ * only through pico8_entity_get_field and `po`/`od`/`jb`/`lq`, then
  * installed on fresh planets by `jo:lz`/`jo:hu` and in games built directly:
  * no events file. */
 
@@ -353,7 +353,6 @@ static void built_world(void) {
     const pico8_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *qu;
     void *re = NULL;
     void *jc;
@@ -377,12 +376,12 @@ static void built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -477,8 +476,9 @@ static void test_gb(void) {
     check("mr gp fk", d, DEFAULTS_HASH);
 }
 
-/* Per project: `po` as its entry in `hc`, `od`, `jb`, `lq`, and `mv(b,"lq")`,
- * the member for a project with `ii`, a call of `lq` for the others. */
+/* Per project: `po` as its entry in `hc`, `od`, `jb`, `lq`, and what `b.lq`
+ * names: the member for a project with `ii`, the method `lq` for the
+ * others. */
 static uint32_t fold_functions(uint32_t h) {
     int k;
 
@@ -487,7 +487,6 @@ static uint32_t fold_functions(uint32_t h) {
         const pico8_hc_entry_t *po = pico8_hp_po(b);
         const pico8_jb_row_t *jb = pico8_hp_jb(b);
         pico8_value_t member;
-        pico8_value_t via_mv;
         uint32_t lq_h;
 
         h = fnv(h, (uint32_t)k);
@@ -497,13 +496,12 @@ static uint32_t fold_functions(uint32_t h) {
         assert((jb == NULL) == has(b, "ii"));
         lq_h = fold_lq_instance(2166136261u, pico8_hp_lq(b));
         h = fnv(h, lq_h);
-        assert(pico8_mv(b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &via_mv));
         assert(lookup(b, "lq", &member));
         if (member.kind == PICO8_VALUE_REF) {
-            assert(via_mv.kind == PICO8_VALUE_REF && via_mv.as.ref == member.as.ref);
+            assert(((const pico8_hp_t *)b)->lq != NULL && (const void *)((const pico8_hp_t *)b)->lq == member.as.ref);
         } else {
-            assert(via_mv.kind == PICO8_VALUE_REF && via_mv.as.ref != NULL);
-            assert(fold_lq_instance(2166136261u, via_mv.as.ref) == lq_h);
+            assert(member.kind == PICO8_VALUE_FUNCTION && ((const pico8_hp_t *)b)->lq == NULL);
+            assert(fold_lq_instance(2166136261u, pico8_hp_lq(b)) == lq_h);
         }
     }
     return h;
@@ -933,11 +931,10 @@ static void test_hp_is_a_struct(void) {
     int j;
 
     assert(pico8_type_tag_of(b) == PICO8_TYPE_TAG_STRUCT && b->header.cls == cls);
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        assert(cls->methods[j] == NULL);
-    }
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
+           cls->mm == NULL);
     for (j = 0; j < PICO8_STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
@@ -1121,8 +1118,7 @@ static void test_hp_members_by_name(void) {
         }
         if (raw_read(b, "ii", &v)) {
             assert(raw_read(b, "lq", &v) && v.kind == PICO8_VALUE_REF);
-            assert(pico8_mv(b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &w) &&
-                   w.kind == PICO8_VALUE_REF && w.as.ref == v.as.ref);
+            assert((const void *)((const pico8_hp_t *)b)->lq == v.as.ref);
         }
     }
     check_count("members by name: projects", k, GB_COUNT);

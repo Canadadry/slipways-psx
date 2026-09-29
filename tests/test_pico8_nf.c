@@ -294,7 +294,7 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
     assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] != NULL);
     assert(((const pico8_struct_header_t *)generic)->cls->kj == NULL);
-    assert(!pico8_mv(generic, "p_", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(!pico8_entity_get_field(generic, "p_", &out));
     assert(pico8_entity_get_field(built, "l", &l_built) && pico8_entity_get_field(built, "r", &r_built));
     assert(pico8_entity_get_field(generic, "l", &l_generic) && pico8_entity_get_field(generic, "r", &r_generic));
     assert(l_built.as.ref == l_generic.as.ref && r_built.as.ref == r_generic.as.ref);

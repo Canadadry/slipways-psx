@@ -371,10 +371,8 @@ static int ui_is_held_class(const pico8_struct_class_t *cls) {
 void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     int l;
     pico8_struct_header_t *held_inst;
-    pico8_value_t qa_val;
     pico8_value_t je_ra_val;
     pico8_vec_t *je_ra;
-    pico8_value_t discard;
 
     if (self == NULL) {
         return;
@@ -383,7 +381,6 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
            "ui:bh: bt is l or r only; another button has no state table -- stop");
     l = bt[0] == 'l';
-    qa_val = pico8_value_ref(self->qa);
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
     je_ra = je_ra_val.kind == PICO8_VALUE_REF ? je_ra_val.as.ref : NULL;
 
@@ -408,20 +405,21 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 
     held_inst = l ? self->lheld : (self->rheld != NULL ? &self->rheld->ke.header : NULL);
 
-    pico8_mv(held_inst, "hq", 2, qa_val, je_ra_val, &discard);
+    if (held_inst != NULL && held_inst->cls->hq != NULL) {
+        held_inst->cls->hq(held_inst, self->qa, je_ra);
+    }
 
     if (pico8_ui_je_button_field_bool(bt, "hm") && held_inst != NULL) {
         pico8_struct_header_t *nw_kv = NULL;
         pico8_down_t nw_kn;
-        pico8_value_t ey_arg = pico8_value_ref(NULL);
 
         /* `ey`'s argument is the entity `jz` found, not a field read on
          * `held`: no object in this cart carries a "kv" field. */
-        if (pico8_ui_jz(self, PICO8_JZ_GV, NULL, NULL, held_inst, &nw_kv, &nw_kn) && nw_kv != NULL) {
-            ey_arg = pico8_value_ref(nw_kv);
-        }
+        (void)pico8_ui_jz(self, PICO8_JZ_GV, NULL, NULL, held_inst, &nw_kv, &nw_kn);
 
-        pico8_mv(held_inst, "ey", 1, ey_arg, pico8_value_ref(NULL), &discard);
+        if (held_inst->cls->ey != NULL) {
+            held_inst->cls->ey(held_inst, nw_kv);
+        }
         if (l) {
             self->lheld = NULL;
         } else {

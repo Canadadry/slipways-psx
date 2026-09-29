@@ -63,6 +63,10 @@ static pico8_input_t input;
 
 static const int want_k_[20] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
     for (i = 0; i < 4; i++) {
@@ -310,9 +314,8 @@ static uint32_t fold_planets(uint32_t h, int with_eb) {
         if (with_eb && oe != NULL) {
             int j;
             for (j = 0; j < oe->count; j++) {
-                pico8_value_t out;
-                assert(pico8_mv(oe->items[j].as.ref, "eb", 1, pico8_value_ref(p), pico8_value_ref(NULL), &out));
-                h = fold_value(h, out);
+                assert(cls_of(oe->items[j].as.ref) == pico8_jc_struct_class());
+                h = fold_value(h, pico8_value_ref(pico8_jc_eb(oe->items[j].as.ref, p)));
             }
         }
     }
@@ -388,7 +391,6 @@ static void *dragged(void *qu, void *re) {
 /* Two colonized planets joined by one slipway, paid by `ey` as a drag pays
  * it, then left to settle. */
 static void world(void) {
-    pico8_value_t out;
     void *qu;
     void *re;
     void *jc;
@@ -396,7 +398,7 @@ static void world(void) {
 
     colonized_pair(&qu, &re);
     jc = dragged(qu, re);
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     for (i = 0; i < SETTLE_TICKS; i++) {
         pico8_dg();
     }
@@ -432,20 +434,10 @@ static pico8_vec_t vec_of(const void *e, const char *name) {
     return *(const pico8_vec_t *)v.as.ref;
 }
 
-static const pico8_struct_class_t *cls_of(const void *e) {
-    return ((const pico8_struct_header_t *)e)->cls;
-}
-
-static pico8_value_t call(void *e, const char *name, pico8_value_t arg0) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, 1, arg0, pico8_value_ref(NULL), &out));
-    return out;
-}
-
 /* `jc:hq` reads the hovered entity off `ok.o_`. */
 static void hq_over(void *jc, void *hovered, pico8_value_t mp) {
     pico8_ok()->o_ = hovered;
-    (void)call(jc, "hq", mp);
+    cls_of(jc)->hq(jc, mp.as.ref, NULL);
 }
 
 static void *first_with_me(const char *tag, const char *me) {
@@ -463,7 +455,6 @@ static void *first_with_me(const char *tag, const char *me) {
  * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_jc(const void *jc, const void *qu) {
     static const char *const absent[] = {"re", "od", "mt", "et", "fo", "p_", "ra", "hd", "ql", "fx", "dq"};
-    static const char *const methods[] = {"hq", "ey", "eb"};
     pico8_value_t v;
     const pico8_int_seq_t *k_;
     const pico8_str_seq_t *nu;
@@ -496,9 +487,7 @@ static void check_fresh_jc(const void *jc, const void *qu) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(jc, absent[i]));
     }
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        assert(pico8_entity_get_field(jc, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-    }
+    assert(cls_of(jc)->hq != NULL && cls_of(jc)->ey != NULL && !has(jc, "hq") && !has(jc, "ey"));
     assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
     assert(cls_of(jc)->hd == NULL && cls_of(jc)->states[PICO8_STATE_KZ] == NULL &&
            cls_of(jc)->states[PICO8_STATE_PH] == NULL && cls_of(jc)->ldown == NULL && cls_of(jc)->gv == NULL);
@@ -552,12 +541,12 @@ static void test_ey(void) {
     h = fold_jc(h, held);
 
     refused = build_jc(origin);
-    (void)call(refused, "ey", pico8_value_ref(NULL));
+    cls_of(refused)->ey(refused, NULL);
     assert(bool_state(refused, "p_") == 2 && credits() == before);
     assert(list_count(origin, "oe") == 0);
     h = fold_jc(h, refused);
 
-    (void)call(held, "ey", pico8_value_ref(target));
+    cls_of(held)->ey(held, target);
     assert(must_fixed(held, "nh") == pico8_fixed_from_int(1));
     assert(get_ref(held, "re") == target);
     assert(bool_state(held, "p_") == 0);
@@ -614,14 +603,14 @@ static void test_eb(void) {
     target = get_ref(old, "re");
     fresh = build_jc(origin);
 
-    assert(call(old, "eb", pico8_value_ref(origin)).as.ref == target);
-    assert(call(old, "eb", pico8_value_ref(target)).as.ref == origin);
-    assert(call(fresh, "eb", pico8_value_ref(origin)).as.ref == origin);
-    assert(call(fresh, "eb", pico8_value_ref(target)).as.ref == origin);
-    h = fold_value(h, call(old, "eb", pico8_value_ref(origin)));
-    h = fold_value(h, call(old, "eb", pico8_value_ref(target)));
-    h = fold_value(h, call(fresh, "eb", pico8_value_ref(origin)));
-    h = fold_value(h, call(fresh, "eb", pico8_value_ref(NULL)));
+    assert(pico8_value_ref(pico8_jc_eb(old, origin)).as.ref == target);
+    assert(pico8_value_ref(pico8_jc_eb(old, target)).as.ref == origin);
+    assert(pico8_value_ref(pico8_jc_eb(fresh, origin)).as.ref == origin);
+    assert(pico8_value_ref(pico8_jc_eb(fresh, target)).as.ref == origin);
+    h = fold_value(h, pico8_value_ref(pico8_jc_eb(old, origin)));
+    h = fold_value(h, pico8_value_ref(pico8_jc_eb(old, target)));
+    h = fold_value(h, pico8_value_ref(pico8_jc_eb(fresh, origin)));
+    h = fold_value(h, pico8_value_ref(pico8_jc_eb(fresh, NULL)));
     check("eb", h, EB_HASH);
 }
 
@@ -667,11 +656,11 @@ static void test_draw(void) {
     }
 
     pico8_cls(&mem);
-    cls_of(origin)->kj(origin, (vec_ref_fixed(vec_of(origin, "ra"))).as.ref);
+    cls_of(origin)->kj(origin, vec_ref_fixed(vec_of(origin, "ra")).as.ref);
     plain = screen_hash();
     pico8_entity_set_field(origin, "fo", pico8_value_ref(old));
     pico8_cls(&mem);
-    cls_of(origin)->kj(origin, (vec_ref_fixed(vec_of(origin, "ra"))).as.ref);
+    cls_of(origin)->kj(origin, vec_ref_fixed(vec_of(origin, "ra")).as.ref);
     circled = screen_hash();
     assert(!has(origin, "fo"));
     assert(circled != plain);
@@ -746,7 +735,7 @@ static void test_too_far(void) {
     nh = get(far, "nh");
     re = get_ref(far, "re");
     assert(list_count(origin, "oe") == 1 && list_count(target, "oe") == 1);
-    (void)call(far, "ey", pico8_value_ref(target));
+    cls_of(far)->ey(far, target);
     assert(bool_state(far, "p_") == 2);
     assert(credits() == before);
     assert(list_count(origin, "oe") == 1 && list_count(target, "oe") == 1);
@@ -829,7 +818,6 @@ static void test_bv(void) {
     void *probe;
     pico8_vec_t qu;
     pico8_vec_t re;
-    pico8_value_t out;
     int k;
 
     world();
@@ -842,8 +830,8 @@ static void test_bv(void) {
     for (k = 1; k < 8; k++) {
         pico8_vec_t at = pico8_vec_add(qu, pico8_vec_div(pico8_vec_mul(pico8_vec_sub(re, qu), pico8_fixed_from_int(k)),
                                                          pico8_fixed_from_int(8)));
-        assert(pico8_mv(probe, "hq", 2, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))), vec_ref(64, 64),
-                        &out));
+        cls_of(probe)->hq(probe, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))).as.ref,
+                          vec_ref(64, 64).as.ref);
         h = fold_field(h, probe, "et");
         if (get_ref(probe, "et") == old) {
             break;
@@ -928,13 +916,10 @@ static void write_fa(void *jc) {
  * is a struct with its five methods; a generic write of a name other than
  * `fo`/`p_` stops the run instead of growing a member. */
 static void test_jc_is_a_struct(void) {
-    static const char *const methods[] = {"hq", "ey", "eb"};
     void *old;
     void *jc;
-    void *others[3];
     pico8_jc_keys_t keys = {0};
     void *direct;
-    size_t i;
 
     world();
     old = the_slipway();
@@ -943,10 +928,7 @@ static void test_jc_is_a_struct(void) {
     direct = pico8_jc_new(&keys);
     assert(get_ref(direct, "qu") == get_ref(old, "qu"));
     assert(is_a_jc_struct(old) && is_a_jc_struct(jc) && is_a_jc_struct(direct));
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_t m;
-        assert(pico8_entity_get_field(jc, methods[i], &m) && m.kind == PICO8_VALUE_FUNCTION);
-    }
+    assert(cls_of(jc)->hq != NULL && cls_of(jc)->ey != NULL);
     assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
     assert(cls_of(jc)->states[PICO8_STATE_KZ] == NULL && cls_of(jc)->states[PICO8_STATE_PH] == NULL &&
            cls_of(jc)->ldown == NULL && cls_of(jc)->rdown == NULL && cls_of(jc)->gv == NULL);
@@ -958,13 +940,6 @@ static void test_jc_is_a_struct(void) {
     must_abort(write_re, jc);
     must_abort(write_nh, jc);
     must_abort(write_fa, jc);
-
-    others[0] = pico8_bg_new();
-    others[1] = pico8_fq_new(NULL);
-    others[2] = pico8_mz_new();
-    for (i = 0; i < 3; i++) {
-        assert(!has(others[i], "eb"));
-    }
 }
 
 static void write_qs(void *e) {
@@ -994,11 +969,7 @@ static void test_too_far_is_a_struct(void) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(et, absent[i]));
     }
-    {
-        pico8_value_t out;
-        assert(!pico8_mv(et, "hq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    }
-    assert(cls_of(et)->ev == NULL && cls_of(et)->kj == NULL);
+    assert(cls_of(et)->ev == NULL && cls_of(et)->kj == NULL && cls_of(et)->hq == NULL);
 
     other = build_jc(origin);
     hq_over(other, NULL, vec_ref(-640, -640));
@@ -1022,8 +993,7 @@ static void write_fo(void *e) {
 /* Over nothing, `re` is a `{ra,p}` struct: those two members only, no
  * method, no generic write; a nil `mp` leaves `ra` absent and `p` zero. */
 static void test_mouse_point_is_a_struct(void) {
-    static const char *const absent[] = {"mt", "id", "qs", "fo", "me", "nu", "t", "kf", "eb", "hq"};
-    static const char *const not_methods[] = {"kf", "hq", "eb"};
+    static const char *const absent[] = {"mt", "id", "qs", "fo", "me", "nu", "t"};
     void *origin;
     void *jc;
     void *re;
@@ -1041,10 +1011,7 @@ static void test_mouse_point_is_a_struct(void) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(re, absent[i]));
     }
-    for (i = 0; i < sizeof not_methods / sizeof not_methods[0]; i++) {
-        pico8_value_t out;
-        assert(!pico8_mv(re, not_methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    }
+    assert(cls_of(re)->kf == NULL && cls_of(re)->hq == NULL);
     must_abort(write_ra, re);
     must_abort(write_p, re);
     must_abort(write_fo, re);
@@ -1415,12 +1382,6 @@ static void *lone_jc(void *qu, void **re_out) {
     return jc;
 }
 
-static pico8_value_t call2(void *e, const char *name, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, 2, arg0, arg1, &out));
-    return out;
-}
-
 static void test_jc_members_by_name(void) {
     static const char *const unwritten[] = {"", "FO", "fo ", "p", "has_p_", "has_od", "has_mt"};
     static const char *const intruders[] = {"", "q", "qu ", "QU", "has_od", "has_mt", "has_p_", "header", "ke", "nu_"};
@@ -1501,7 +1462,7 @@ static void test_jc_members_by_name(void) {
     assert(!read_jc(jc, "mt", &v));
     assert(read_jc(jc, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(4));
     h = fold_jc_members(h, jc);
-    (void)call(jc, "ey", pico8_value_ref(NULL));
+    cls_of(jc)->ey(jc, NULL);
     assert(read_jc(jc, "p_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 1);
     assert(jc_ref(jc, "re") == re);
     h = fold_jc_members(h, jc);
@@ -1513,7 +1474,7 @@ static void test_jc_members_by_name(void) {
     h = fold_jc_members(h, far);
 
     fr = pico8_fr_new(NULL);
-    (void)call2(fr, "hq", mouse_at(units(-36, -40)), vec_ref(2, 2));
+    cls_of(fr)->hq(fr, mouse_at(units(-36, -40)).as.ref, vec_ref(2, 2).as.ref);
     far = lone_jc(fr, NULL);
     assert(read_jc(far, "mt", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(1));
     assert(read_jc(far, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(2));
@@ -1548,7 +1509,7 @@ static void test_jc_members_by_name(void) {
     for (k = 0; k < 11; k++) {
         pico8_vec_t base = units(-40 + 4 * k, -32);
         jc = lone_jc(bare_jo(base), NULL);
-        (void)call2(holders[k], "hq", mouse_at(shifted(base, 0x4000, 0)), vec_ref(2, 2));
+        cls_of(holders[k])->hq(holders[k], mouse_at(shifted(base, 0x4000, 0)).as.ref, vec_ref(2, 2).as.ref);
         assert(jc_ref(jc, "fo") == holders[k]);
         h = fold_jc_members(h, jc);
     }

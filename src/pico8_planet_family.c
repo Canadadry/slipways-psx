@@ -169,15 +169,6 @@ static int pico8_qh_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_qh_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-        },
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -185,6 +176,10 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -292,15 +287,6 @@ static void pico8_nl_ly_dispatch(void *self, pico8_fixed_t t) {
 }
 
 static const pico8_struct_class_t g_nl_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-        },
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -308,6 +294,10 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -350,15 +340,6 @@ static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
 }
 
 static const pico8_struct_class_t g_os_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-        },
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -366,6 +347,10 @@ static const pico8_struct_class_t g_os_struct_class = {
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -510,16 +495,6 @@ static int pico8_hj_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_hj_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-            [PICO8_METHOD_MM] = pico8_g__mm,
-        },
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -527,6 +502,11 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
+    .mm = pico8_g__mm,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -629,16 +609,6 @@ static int pico8_pm_field(const void *self, const char *name, pico8_value_t *out
 
 /* No site writes `ng` or `fz`: the writer is hj's, its 21 names. */
 static const pico8_struct_class_t g_pm_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-            [PICO8_METHOD_MM] = pico8_g__mm,
-        },
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -646,6 +616,11 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
+    .mm = pico8_g__mm,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -776,7 +751,7 @@ void pico8_ga_pq(pico8_ga_t *self) {
     }
 }
 
-pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_qy_t *pico8_ga_mm(void *self_ptr) {
     const pico8_ga_t *self = (const pico8_ga_t *)self_ptr;
     pico8_fixed_t qd;
     pico8_fixed_t ms;
@@ -786,10 +761,6 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     pico8_vec_t v;
     pico8_vec_t a;
     pico8_qy_t *particle;
-
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
 
     qd = pico8_fixed_add(pico8_fixed_rnd(PICO8_FIXED_LIT(0x00018000, 1.5)), PICO8_FIXED_LIT(0x00008000, 0.5));
     if (pico8_fixed_rnd_default() < PICO8_FIXED_LIT(0x00009999, 0.6)) {
@@ -812,7 +783,7 @@ pico8_value_t pico8_ga_mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     particle->a = a;
     particle->l = pico8_fixed_add(pico8_fixed_rnd(py), py);
 
-    return pico8_value_ref(particle);
+    return particle;
 }
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p) {
@@ -871,20 +842,15 @@ static void pico8_ga_kj_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 static const pico8_struct_class_t g_ga_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_MM] = pico8_ga_mm,
-        },
     .kj = pico8_ga_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
+    .mm = pico8_ga_mm,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .field = pico8_ga_field,
     .set_field = pico8_ga_set_field,

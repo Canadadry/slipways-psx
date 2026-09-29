@@ -249,7 +249,6 @@ static void built_world(void) {
     const pico8_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *qu;
     void *re = NULL;
     void *jc;
@@ -273,12 +272,12 @@ static void built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -693,11 +692,10 @@ static void test_hy_is_a_struct(void) {
     new_game();
     assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_STRUCT);
     assert(((const pico8_struct_header_t *)pico8_fm())->cls == cls && pico8_fm_hy() == (void *)pico8_fm());
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        assert(cls->methods[j] == NULL);
-    }
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
+           cls->mm == NULL);
     for (j = 0; j < PICO8_STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }

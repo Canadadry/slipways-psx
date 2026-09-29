@@ -96,7 +96,7 @@ void pico8_mz_pq(pico8_mz_t *self) {
     self->ox = heap_ox;
 }
 
-void pico8_mz_hq(pico8_mz_t *self, pico8_value_t mp, pico8_value_t rp) {
+void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t p_vec;
     pico8_value_t nearest = pico8_value_ref(NULL);
     pico8_fixed_t nq;
@@ -122,10 +122,8 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_value_t mp, pico8_value_t rp) {
     }
 }
 
-static pico8_value_t pico8_mz_hq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    pico8_mz_hq((pico8_mz_t *)self, arg0, arg1);
-    return pico8_value_ref(NULL);
+static void pico8_mz_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    pico8_mz_hq((pico8_mz_t *)self, qa, ra);
 }
 
 void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t) {
@@ -181,12 +179,9 @@ void pico8_mz_ey(pico8_mz_t *self) {
     self->has_p_ = 1;
 }
 
-static pico8_value_t pico8_mz_ey_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_mz_ey_dispatch(void *self, pico8_struct_header_t *kv) {
+    (void)kv;
     pico8_mz_ey((pico8_mz_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
@@ -418,13 +413,10 @@ static int pico8_mz_set_field(void *self, const char *name, pico8_value_t value)
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
  * drop the nearest-anchor search. */
 static const pico8_struct_class_t g_mz_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_HQ] = pico8_mz_hq_dispatch,
-            [PICO8_METHOD_EY] = pico8_mz_ey_dispatch,
-        },
     .kj = pico8_mz_kj_dispatch,
     .ev = pico8_dl_dispatch,
+    .hq = pico8_mz_hq_dispatch,
+    .ey = pico8_mz_ey_dispatch,
     .states =
         {
             [PICO8_STATE_KZ] = pico8_mz_kz_dispatch,

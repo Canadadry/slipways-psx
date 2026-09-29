@@ -70,7 +70,7 @@ static int pico8_bv_et_field(const void *self, const char *name, pico8_value_t *
 }
 
 static int bv_et_is_holder_class(const pico8_struct_class_t *cls) {
-    return cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch || cls == pico8_mz_struct_class();
+    return cls->hq == pico8_bv_dispatch || cls == pico8_mz_struct_class();
 }
 
 static void bv_et_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
@@ -193,7 +193,7 @@ static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
     return pico8_qz_call(hw, rp);
 }
 
-void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp) {
+void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
     pico8_vec_t *p_heap;
@@ -208,8 +208,8 @@ void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp) {
     assert(pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT &&
            "bv: self is a struct; no class instance reaches g_'s functions any more");
 
-    pico8_entity_set_field(self, "ra", mp);
-    mp_vec = pico8_probe_value_vec(mp);
+    pico8_entity_set_field(self, "ra", pico8_value_ref(mp));
+    mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
     /* TROU-7 */
     p_heap = malloc(sizeof *p_heap);
@@ -241,7 +241,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp) {
         if (have_first && pico8_probe_truthy(first)) {
             et = first;
         } else {
-            pico8_vec_t rp_vec = pico8_probe_value_vec(rp);
+            pico8_vec_t rp_vec = rp != NULL ? *rp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
             if (!pico8_probe_ui_hw_call(rp_vec)) {
                 et = pico8_value_ref(&g_bv_et);
             } else {
@@ -259,10 +259,8 @@ void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp) {
     }
 }
 
-pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    pico8_bv((pico8_struct_header_t *)self, arg0, arg1);
-    return pico8_value_ref(NULL);
+void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    pico8_bv((pico8_struct_header_t *)self, qa, ra);
 }
 
 void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
@@ -386,23 +384,18 @@ pico8_value_t pico8_d_(pico8_struct_header_t *self) {
     return pico8_value_ref(NULL);
 }
 
-pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_d_((pico8_struct_header_t *)self);
+void pico8_d__dispatch(void *self, pico8_struct_header_t *kv) {
+    (void)kv;
+    (void)pico8_d_((pico8_struct_header_t *)self);
 }
 
-pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+pico8_qy_t *pico8_g__mm(void *self_ptr) {
     pico8_struct_header_t *self = (pico8_struct_header_t *)self_ptr;
     pico8_fixed_t pn, t, du, py, ki;
     pico8_fixed_t a, rnd_pn, rnd_half;
     pico8_vec_t p, v;
     pico8_qy_t *particle;
 
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     assert((self == NULL || pico8_type_tag_of(self) == PICO8_TYPE_TAG_STRUCT) &&
            "g_.mm: self is a struct; no class instance reaches g_'s functions any more");
 
@@ -435,7 +428,7 @@ pico8_value_t pico8_g__mm(void *self_ptr, int argc, pico8_value_t arg0, pico8_va
     particle->a = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     particle->l = ki;
 
-    return pico8_value_ref(particle);
+    return particle;
 }
 
 pico8_value_t pico8_g__et(const pico8_g__t *self) {
@@ -638,14 +631,11 @@ static int pico8_g__set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_g__struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-            [PICO8_METHOD_MM] = pico8_g__mm,
-        },
     .kj = pico8_ei_dispatch,
     .ev = pico8_dl_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .mm = pico8_g__mm,
     .field = pico8_g__field,
     .set_field = pico8_g__set_field,
 };

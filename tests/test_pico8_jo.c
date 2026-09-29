@@ -51,8 +51,6 @@ static pico8_input_t input;
 static const char *const members[] = {"nu", "hf", "hs", "fa", "kq", "ma", "ka", "dz", "cq", "kw", "gq",
                                       "ca", "em", "id", "p",  "ra", "oe", "hn", "ep", "jy", "nk", "fx",
                                       "lq", "fo", "jh", "p_", "kr", "cc", "by", "mi", "m_"};
-static const char *const methods[] = {"gg", "kf", "cn", "ib"};
-static const char *const absent[] = {"hq", "ey"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
 
@@ -218,8 +216,8 @@ static const pico8_struct_class_t *cls_of(const void *e) {
     return ((const pico8_struct_header_t *)e)->cls;
 }
 
-/* jo's own members: `hd`, `kj`, `ldown`, `hb`, `gv`, `hk` and the state
- * `ll`; no other. */
+/* jo's own members: `hd`, `kj`, `ldown`, `hb`, `gv`, `hk`, `kf`, `cn` and
+ * the state `ll`; no other. */
 static void assert_jo_members(const pico8_struct_class_t *c) {
     const pico8_struct_class_t *jo = pico8_jo_struct_class();
 
@@ -227,15 +225,11 @@ static void assert_jo_members(const pico8_struct_class_t *c) {
            c->hk == jo->hk && c->states[PICO8_STATE_LL] == jo->states[PICO8_STATE_LL]);
     assert(c->hd != NULL && c->kj != NULL && c->ldown != NULL && c->hb != NULL && c->gv != NULL && c->hk != NULL &&
            c->states[PICO8_STATE_LL] != NULL);
+    assert(c->kf == jo->kf && c->cn == jo->cn && c->kf != NULL && c->cn != NULL);
+    assert(c->hq == NULL && c->ey == NULL && c->ol == NULL && c->mm == NULL);
     assert(c->ev == NULL && c->has_hb == NULL && c->rdown == NULL && c->states[PICO8_STATE_PH] == NULL &&
            c->states[PICO8_STATE_LY] == NULL && c->states[PICO8_STATE_KZ] == NULL &&
            c->states[PICO8_STATE_PR] == NULL);
-}
-
-static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, argc, arg0, arg1, &out));
-    return out;
 }
 
 /* A bare planet as `jo(...)` and `jo:pq` left it: the scalars, which of
@@ -254,15 +248,8 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     for (i = 0; i < sizeof members / sizeof members[0]; i++) {
         h = fnv(h, (uint32_t)has(e, members[i]));
     }
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_t v;
-        assert(pico8_entity_get_field(e, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-        assert(v.as.function == pico8_jo_struct_class()->methods[pico8_method_of(methods[i])]);
-    }
     assert_jo_members(cls_of(e));
-    for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
-        assert(!has(e, absent[i]));
-    }
+    assert(pico8_jo_is_family(e) && !has(e, "kf") && !has(e, "hq"));
     assert(get_ref(e, "kq") == &pico8_jo_start.kq);
     assert(get_ref(e, "gq") == &pico8_jo_start.gq);
     assert(get_ref(e, "nu") == &pico8_jo_nu_tags && get_ref(e, "kw") == pico8_jo_shared_kw() &&
@@ -363,7 +350,8 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     h = fold_field(h, d, "ca");
     h = fold_vec(h, d, "gq");
     assert(get_ref(d, "em") == &pico8_jo_em_row);
-    h = fold_value(h, call(d, "gg", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)));
+    assert(pico8_jo_is_family(d));
+    h = fold_value(h, pico8_jo_gg(d));
     assert(lookup(d, "ra", &ra_val) && ra_val.kind == PICO8_VALUE_REF);
     ra = *(const pico8_vec_t *)ra_val.as.ref;
     h = fold_value(h, pico8_value_bool(cls_of(d)->hd(d, vec_ref(ra).as.ref, vec_ref(ra).as.ref)));
@@ -385,7 +373,7 @@ static void *bought(const pico8_entity_kind_t *kind) {
             pico8_down_t made = cls_of(icon)->ldown(icon, NULL, NULL);
             pico8_vec_t middle = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
             assert(made.stop && made.held != NULL);
-            (void)call(made.held, "hq", 2, vec_ref(pico8_vec_add(*mo_ra, middle)), vec_ref(middle));
+            cls_of(made.held)->hq(made.held, vec_ref(pico8_vec_add(*mo_ra, middle)).as.ref, vec_ref(middle).as.ref);
             return made.held;
         }
     }
@@ -578,7 +566,6 @@ static int is_a_jo_struct(const void *e) {
 static void test_jo_is_a_struct(void) {
     const pico8_list_t *jo;
     void *a;
-    size_t i;
     int j;
 
     start_game();
@@ -586,19 +573,8 @@ static void test_jo_is_a_struct(void) {
     for (j = 0; j < jo->count; j++) {
         assert(is_a_jo_struct(jo->items[j].as.ref));
     }
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        assert(pico8_jo_struct_class()->methods[pico8_method_of(methods[i])] != NULL);
-    }
     assert_jo_members(pico8_jo_struct_class());
     assert(pico8_jo_ready());
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        if (pico8_jo_struct_class()->methods[j] != NULL) {
-            int k;
-            for (k = 0; k < (int)(sizeof methods / sizeof methods[0]) && pico8_method_of(methods[k]) != j; k++) {
-            }
-            assert(k < (int)(sizeof methods / sizeof methods[0]));
-        }
-    }
 
     assert(pico8_jo_dz() == pico8_jo_dz_rows && pico8_jo_cq() == &pico8_jo_cq_seq &&
            pico8_jo_ka() == &pico8_jo_ka_seq && pico8_jo_em() == &pico8_jo_em_row);

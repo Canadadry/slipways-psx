@@ -1,10 +1,13 @@
 #include "pico8_economy_tiers.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
+#include "pico8_planet.h"
+#include "pico8_planet_trade.h"
 #include "pico8_research.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
@@ -84,7 +87,7 @@ static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
 }
 
 static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
-    pico8_value_t by_val;
+    pico8_list_t *by;
     pico8_list_iter_t it;
     pico8_value_t e;
     (void)ctx;
@@ -92,16 +95,15 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
         return;
     }
 
-    if (!pico8_mv(pt, "ib", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &by_val)) {
-        by_val = pico8_value_ref(NULL);
-    }
-    pico8_entity_set_field(pt, "by", by_val);
+    assert(pico8_jo_is_family(pt) && "ib: pt is a planet of cg.jo");
+    by = pico8_jo_ib((pico8_jo_t *)pt);
+    pico8_entity_set_field(pt, "by", pico8_value_ref(by));
 
-    if (by_val.kind != PICO8_VALUE_REF || by_val.as.ref == NULL) {
+    if (by == NULL) {
         return;
     }
 
-    it = pico8_list_all(PICO8_REF_AS_LIST_CONST(by_val.as.ref));
+    it = pico8_list_all(by);
     while (pico8_list_iter_next(&it, &e)) {
         pico8_struct_header_t *route;
         const pico8_list_t *rl;

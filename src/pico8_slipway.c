@@ -111,16 +111,6 @@ static int pico8_jc_mouse_point_field(const void *self, const char *name, pico8_
     return 0;
 }
 
-static pico8_vec_t *pico8_jc_mouse_point_take_ra(pico8_value_t mp) {
-    if (mp.kind == PICO8_VALUE_REF && mp.as.ref == NULL) {
-        return NULL;
-    }
-    assert(mp.kind == PICO8_VALUE_REF && pico8_type_tag_of(mp.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "jc_mouse_point.ra: an mp neither nil nor a vector ref does not fit the member's type "
-           "-- stop, do not widen the member");
-    return mp.as.ref;
-}
-
 static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
     .field = pico8_jc_mouse_point_field,
 };
@@ -223,7 +213,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
     self->hg = &self->hg_own;
 }
 
-void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
+void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     pico8_ui_t *ok;
     pico8_struct_header_t *hovered;
     pico8_value_t qu_mt;
@@ -243,8 +233,9 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
         point->header.tag = PICO8_TYPE_TAG_STRUCT;
         point->header.cls = &g_jc_mouse_point_struct_class;
-        point->ra = pico8_jc_mouse_point_take_ra(mp);
-        *p_heap = pico8_vec_div(pico8_jc_value_vec(mp), pico8_fixed_from_int(128));
+        point->ra = mp;
+        *p_heap = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
+                                pico8_fixed_from_int(128));
         point->p = p_heap;
         self->re = (pico8_struct_header_t *)point;
     }
@@ -294,11 +285,15 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
 
     {
         pico8_struct_header_t *qu = self->qu;
-        pico8_value_t discard;
-        int qu_registered;
+        int qu_registered = qu != NULL && qu->cls->kf != NULL;
         int re_registered;
-        qu_registered = pico8_mv(qu, "kf", 1, pico8_value_ref(self), pico8_value_ref(NULL), &discard);
-        re_registered = pico8_mv(re, "kf", 1, pico8_value_ref(self), pico8_value_ref(NULL), &discard);
+        if (qu_registered) {
+            qu->cls->kf(qu, &self->ke.header);
+        }
+        re_registered = re != NULL && re->cls->kf != NULL;
+        if (re_registered) {
+            re->cls->kf(re, &self->ke.header);
+        }
         assert(qu_registered && re_registered &&
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
         (void)qu_registered;
@@ -385,7 +380,6 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
             pico8_value_t w_val;
             while (pico8_list_iter_next(&it, &w_val)) {
                 pico8_struct_header_t *w;
-                pico8_value_t eb_result;
                 if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
                     continue;
                 }
@@ -393,8 +387,7 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
                        ((const pico8_struct_header_t *)w_val.as.ref)->cls == pico8_jc_struct_class() &&
                        "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
                 w = (pico8_struct_header_t *)w_val.as.ref;
-                if (pico8_mv(w, "eb", 1, pico8_value_ref(qu), pico8_value_ref(NULL), &eb_result) &&
-                    pico8_value_equal(eb_result, pico8_value_ref(re))) {
+                if (pico8_jc_eb((const pico8_jc_t *)w, qu) == re) {
                     return w_val;
                 }
             }
@@ -429,17 +422,17 @@ pico8_value_t pico8_jc_ce(pico8_jc_t *self) {
     }
 }
 
-pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance) {
+pico8_struct_header_t *pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance) {
     if (self == NULL) {
-        return pico8_value_ref(NULL);
+        return NULL;
     }
 
     /* `A and B or C`: a falsy `self.re` falls through to `self.qu`, so this
      * is not a plain ternary. */
     if (jo_instance == self->qu && self->re != NULL) {
-        return pico8_value_ref(self->re);
+        return self->re;
     }
-    return pico8_value_ref(self->qu);
+    return self->qu;
 }
 
 void pico8_jc_ev(pico8_jc_t *self) {
@@ -452,32 +445,13 @@ void pico8_jc_ev(pico8_jc_t *self) {
     }
 }
 
-static pico8_value_t pico8_jc_hq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg1;
-    pico8_jc_hq((pico8_jc_t *)self, arg0);
-    return pico8_value_ref(NULL);
+static void pico8_jc_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)ra;
+    pico8_jc_hq((pico8_jc_t *)self, qa);
 }
 
-static pico8_value_t pico8_jc_ey_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_struct_header_t *re = NULL;
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        re = (pico8_struct_header_t *)arg0.as.ref;
-    }
-    pico8_jc_ey((pico8_jc_t *)self, re);
-    return pico8_value_ref(NULL);
-}
-
-static pico8_value_t pico8_jc_eb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    const pico8_struct_header_t *jo_instance = NULL;
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        jo_instance = (const pico8_struct_header_t *)arg0.as.ref;
-    }
-    return pico8_jc_eb((const pico8_jc_t *)self, jo_instance);
+static void pico8_jc_ey_dispatch(void *self, pico8_struct_header_t *kv) {
+    pico8_jc_ey((pico8_jc_t *)self, kv);
 }
 
 static void pico8_jc_ev_dispatch(void *self, const pico8_vec_t *ra) {
@@ -570,7 +544,7 @@ static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
 }
 
 static int jc_is_fo_holder_class(const pico8_struct_class_t *cls) {
-    return cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch || cls == pico8_jc_struct_class() ||
+    return cls->hq == pico8_bv_dispatch || cls == pico8_jc_struct_class() ||
            cls == pico8_mz_struct_class();
 }
 
@@ -615,14 +589,10 @@ static int pico8_jc_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_jc_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_HQ] = pico8_jc_hq_dispatch,
-            [PICO8_METHOD_EY] = pico8_jc_ey_dispatch,
-            [PICO8_METHOD_EB] = pico8_jc_eb_dispatch,
-        },
     .kj = pico8_jc_kj_dispatch,
     .ev = pico8_jc_ev_dispatch,
+    .hq = pico8_jc_hq_dispatch,
+    .ey = pico8_jc_ey_dispatch,
     .field = pico8_jc_field,
     .set_field = pico8_jc_set_field,
 };

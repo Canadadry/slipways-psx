@@ -450,7 +450,6 @@ static void *built_world(void) {
     const pico8_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *qu;
     void *re = NULL;
     void *jc;
@@ -474,12 +473,12 @@ static void *built_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (world_fixed(jc, "t") < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -530,10 +529,12 @@ static void game_end(void) {
     one_frame();
 }
 
-static pico8_value_t call(void *e, const char *name, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, 2, arg0, arg1, &out));
-    return out;
+/* The button's `my` callback, called as a click calls it. */
+static pico8_value_t call_my(void *e) {
+    pico8_js_t *b = e;
+
+    assert(b->my != NULL);
+    return b->my(e, 2, pico8_value_ref(NULL), pico8_value_ref(NULL));
 }
 
 static pico8_value_t nil(void) {
@@ -605,7 +606,7 @@ static void test_pause(void) {
 
     start_game();
     assert(ix_buttons(ix) == 4);
-    (void)call(ix[3], "my", nil(), nil());
+    (void)call_my(ix[3]);
     check_shared_ra();
     h = fold_le(h, "pause");
     check("pause", h, PAUSE_HASH);
@@ -893,7 +894,7 @@ static void test_fe_my(void) {
         pt = get_ref(b, "_jo_fe_pt");
         h = fold_value(h, get(pt, "me"));
         h = fnv(h, (uint32_t)pico8_hv()->count);
-        (void)call(b, "my", nil(), nil());
+        (void)call_my(b);
         printf("[fe my] row %d: planet me=%s, %d entities\n", i, is_string(pt, "me", "ly") ? "ly" : "not ly", pico8_hv()->count);
         h = fold_value(h, get(pt, "me"));
         h = fnv(h, (uint32_t)pico8_hv()->count);
@@ -920,7 +921,7 @@ static void test_cr_my(void) {
     assert(i < le->count);
     invented = get_ref(pico8_fm(), "invented");
     h = fnv(h, (uint32_t)invented->count);
-    (void)call(le->items[i].as.ref, "my", nil(), nil());
+    (void)call_my(le->items[i].as.ref);
     invented = get_ref(pico8_fm(), "invented");
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
@@ -1069,7 +1070,7 @@ static void test_js_is_a_struct(void) {
             cls_of(ix[i])->hb(ix[i]);
         }
     }
-    (void)call(ix[3], "my", nil(), nil());
+    (void)call_my(ix[3]);
     check_int("struct pause", all_buttons_are_structs(), 8);
     pico8_cr();
     check_int("struct research", all_buttons_are_structs(), 9);
@@ -1465,7 +1466,7 @@ static uint32_t members_title_and_game(void) {
         h = fold_js_members(h, fresh[k]);
     }
 
-    (void)call(ix[3], "my", nil(), nil());
+    (void)call_my(ix[3]);
     check_le_one_pz();
     printf("[members] ha: %d row(s), fg on the 4th: %d\n", ok_le()->count, has(ok_le()->items[3].as.ref, "fg"));
     h = fold_le_members(h);
@@ -1740,16 +1741,15 @@ static void test_ha_pz_is_a_struct(void) {
     start_game();
     o = pico8_ha_pz();
     assert(o != NULL && o->tag == PICO8_TYPE_TAG_STRUCT && o->cls == pico8_ha_pz_struct_class());
-    for (i = 0; i < PICO8_METHOD_COUNT; i++) {
-        assert(o->cls->methods[i] == NULL);
-    }
     assert(o->cls->kj == NULL && o->cls->ev == NULL && o->cls->hd == NULL && o->cls->hk == NULL &&
            o->cls->hb == NULL && o->cls->ldown == NULL && o->cls->rdown == NULL && o->cls->gv == NULL);
+    assert(o->cls->hq == NULL && o->cls->ey == NULL && o->cls->kf == NULL && o->cls->cn == NULL && o->cls->ol == NULL &&
+           o->cls->mm == NULL);
     for (i = 0; i < PICO8_STATE_COUNT; i++) {
         assert(o->cls->states[i] == NULL);
     }
     assert(o->cls->set_field == NULL);
-    assert(!pico8_mv((void *)o, "my", 0, nil(), nil(), &v));
+    assert(!pico8_entity_get_field((void *)o, "my", &v));
     same_as_ha(o, "hi");
     same_as_ha(o, "gq");
     same_as_ha(o, "ca");

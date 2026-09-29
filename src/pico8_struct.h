@@ -8,43 +8,6 @@
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
-typedef enum {
-    PICO8_METHOD_OL,
-    PICO8_METHOD_HQ,
-    PICO8_METHOD_EY,
-    PICO8_METHOD_EB,
-    PICO8_METHOD_GG,
-    PICO8_METHOD_KF,
-    PICO8_METHOD_CN,
-    PICO8_METHOD_IB,
-    PICO8_METHOD_MM,
-    PICO8_METHOD_COUNT
-} pico8_method_t;
-
-/* The method named `name`, or -1 when no struct has a method by that name:
- * the name is then looked up as a field. */
-static inline int pico8_method_of(const char *name) {
-    static const char *const names[PICO8_METHOD_COUNT] = {
-        [PICO8_METHOD_OL] = "ol",
-        [PICO8_METHOD_HQ] = "hq",
-        [PICO8_METHOD_EY] = "ey",
-        [PICO8_METHOD_EB] = "eb",
-        [PICO8_METHOD_GG] = "gg",
-        [PICO8_METHOD_KF] = "kf",
-        [PICO8_METHOD_CN] = "cn",
-        [PICO8_METHOD_IB] = "ib",
-        [PICO8_METHOD_MM] = "mm",
-    };
-    int i;
-
-    for (i = 0; i < PICO8_METHOD_COUNT; i++) {
-        if (strcmp(names[i], name) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 /* The states `dg` runs as `qc[qc.me](qc,qc.t)`. */
 typedef enum {
     PICO8_STATE_PH,
@@ -103,15 +66,17 @@ typedef struct {
 
 typedef void (*pico8_state_fn)(void *self, pico8_fixed_t t);
 
+struct pico8_qy;
+struct pico8_jo_trade_proposal;
+
 /* One `static const` per converted class. A NULL member: the class has no
  * such method. `kj`, `ev` and `hd` read the vectors they get and never keep
- * them; `ldown` and `rdown` may keep theirs. NULL `ra`: nil. `has_hb` is
- * NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
- * instance decides. `methods` is indexed by pico8_method_t. `field` is NULL
- * only for a class no generic consumer ever reaches, `set_field` for a
- * class no generic writer ever reaches. */
+ * them; `ldown`, `rdown` and `hq` may keep theirs. NULL `ra`: nil. `has_hb`
+ * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
+ * instance decides. `mm` returns a fresh particle the caller owns. `field`
+ * is NULL only for a class no generic consumer ever reaches, `set_field`
+ * for a class no generic writer ever reaches. */
 struct pico8_struct_class {
-    pico8_value_function_t methods[PICO8_METHOD_COUNT];
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
     int (*hd)(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
@@ -121,6 +86,12 @@ struct pico8_struct_class {
     pico8_down_t (*ldown)(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
     pico8_down_t (*rdown)(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
     pico8_down_t (*gv)(void *self, const pico8_struct_header_t *s);
+    void (*hq)(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
+    void (*ey)(void *self, pico8_struct_header_t *kv);
+    void (*kf)(void *self, pico8_struct_header_t *sw);
+    void (*cn)(void *self, struct pico8_jo_trade_proposal *lw);
+    void (*ol)(void *self, pico8_vec_t p, pico8_fixed_t a);
+    struct pico8_qy *(*mm)(void *self);
     pico8_state_fn states[PICO8_STATE_COUNT];
     pico8_struct_field_fn field;
     pico8_struct_set_field_fn set_field;

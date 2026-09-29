@@ -230,7 +230,6 @@ static void world(void) {
     const pico8_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *qu;
     void *re = NULL;
     void *jc;
@@ -254,12 +253,12 @@ static void world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     assert(get(jc, "re").as.ref == re);
     for (i = 0; i < SETTLE_TICKS; i++) {
         pico8_dg();
@@ -283,13 +282,11 @@ static pico8_value_t vec_ref_fixed(pico8_vec_t at) {
 }
 
 static void hq(void *mz, pico8_value_t mp, pico8_value_t rp) {
-    pico8_value_t out;
-    assert(pico8_mv(mz, "hq", 2, mp, rp, &out));
+    pico8_mz_struct_class()->hq(mz, mp.as.ref, rp.as.ref);
 }
 
 static void ey(void *mz) {
-    pico8_value_t out;
-    assert(pico8_mv(mz, "ey", 1, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    pico8_mz_struct_class()->ey(mz, NULL);
 }
 
 /* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
@@ -735,12 +732,9 @@ static void test_jj_wrapper(void) {
     world();
     wrapper = (void *)pico8_mz_jj_wrapper();
     check_jj_untouched();
-    {
-        pico8_value_t out;
-        assert(!pico8_mv(wrapper, "hq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    }
     assert(((const pico8_struct_header_t *)wrapper)->cls->kj == NULL &&
-           ((const pico8_struct_header_t *)wrapper)->cls->ev == NULL);
+           ((const pico8_struct_header_t *)wrapper)->cls->ev == NULL &&
+           ((const pico8_struct_header_t *)wrapper)->cls->hq == NULL);
 
     mz = build_mz();
     hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
@@ -789,11 +783,9 @@ static int is_an_mz_struct(const void *e) {
  * other than `ra`/`p`/`et`/`p_` stops the run instead of growing a
  * member. */
 static void test_mz_is_a_struct(void) {
-    static const char *const methods[] = {"hq", "ey"};
     pico8_down_t made;
     pico8_value_t jj;
     void *mz;
-    size_t i;
     pid_t child;
     int status;
 
@@ -802,11 +794,8 @@ static void test_mz_is_a_struct(void) {
     made = pico8_bg_ldown(NULL);
     mz = pico8_mz_new();
     assert(is_an_mz_struct(made.held) && is_an_mz_struct(build_mz()) && is_an_mz_struct(mz));
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_t m;
-        assert(pico8_entity_get_field(mz, methods[i], &m) && m.kind == PICO8_VALUE_FUNCTION);
-    }
-    assert(!has(mz, "ol"));
+    assert(pico8_mz_struct_class()->hq != NULL && pico8_mz_struct_class()->ey != NULL && !has(mz, "hq"));
+    assert(pico8_mz_struct_class()->ol == NULL);
     assert(pico8_mz_struct_class()->states[PICO8_STATE_KZ] != NULL &&
            pico8_mz_struct_class()->states[PICO8_STATE_PR] != NULL && pico8_mz_struct_class()->kj != NULL &&
            pico8_mz_struct_class()->ev != NULL);

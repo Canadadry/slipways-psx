@@ -114,12 +114,6 @@ static pico8_fixed_t get_fixed(const void *e, const char *name) {
     return v.as.fixed;
 }
 
-static pico8_value_function_t method(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
-    return v.as.function;
-}
-
 /* 0 absent, 1 false, 2 true, 3 anything else. */
 static uint32_t bool_state(const void *e, const char *name) {
     pico8_value_t v;
@@ -371,9 +365,9 @@ static void test_built(void) {
 
     assert(cls_of(fv)->kj == pico8_fv_kj_dispatch);
     assert(cls_of(fv)->ev == pico8_dl_dispatch);
-    assert(method(fv, "mm") == pico8_g__mm);
-    assert(method(fv, "hq") == pico8_bv_dispatch);
-    assert(method(fv, "ey") == pico8_d__dispatch);
+    assert(cls_of(fv)->mm == pico8_g__mm);
+    assert(cls_of(fv)->hq == pico8_bv_dispatch);
+    assert(cls_of(fv)->ey == pico8_d__dispatch);
     assert(cls_of(fv)->hd != NULL);
 
     rank = rank_in(hv, fv);
@@ -596,13 +590,9 @@ static void test_fv_is_a_struct(void) {
     start_title();
     fv = the_help();
     assert(pico8_type_tag_of(fv) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)fv)->cls == cls);
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        if (j == PICO8_METHOD_HQ || j == PICO8_METHOD_EY || j == PICO8_METHOD_MM) {
-            assert(cls->methods[j] != NULL && cls->methods[j] == g_->methods[j]);
-        } else {
-            assert(cls->methods[j] == NULL);
-        }
-    }
+    assert(cls->hq != NULL && cls->hq == g_->hq && cls->ey != NULL && cls->ey == g_->ey && cls->mm != NULL &&
+           cls->mm == g_->mm);
+    assert(cls->kf == NULL && cls->cn == NULL && cls->ol == NULL);
     assert(cls->ev != NULL && cls->ev == g_->ev);
     assert(cls->kj == pico8_fv_kj_dispatch && cls->hd != NULL);
     assert(cls->hk == NULL && cls->hb == NULL && cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL &&
@@ -840,11 +830,11 @@ static void call_ei(void *e) {
 }
 
 static void call_g__mm(void *e) {
-    (void)pico8_g__mm(e, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    (void)pico8_g__mm(e);
 }
 
 static void call_bv(void *e) {
-    pico8_bv(e, vec_ref(1, 1), vec_ref(2, 2));
+    pico8_bv(e, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref);
 }
 
 static void call_dl(void *e) {

@@ -86,8 +86,10 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
-        lh_found =
-            pico8_mv((pico8_struct_header_t *)self, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lh_result);
+        lh_found = self->lh != NULL;
+        if (lh_found) {
+            lh_result = self->lh(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        }
         if (lh_found && pico8_msgbox_truthy(lh_result)) {
             self->ke.t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
             t = pico8_fixed_from_int(0);

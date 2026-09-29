@@ -1,5 +1,6 @@
 #include "pico8_economy_score.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,6 +9,7 @@
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
+#include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
@@ -70,14 +72,11 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 }
 
 static int call_gg_truthy(pico8_struct_header_t *pt) {
-    pico8_value_t out;
     if (pt == NULL) {
         return 0;
     }
-    if (!pico8_mv(pt, "gg", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out)) {
-        return 0;
-    }
-    return economy_truthy(out);
+    assert(pico8_jo_is_family(pt) && "gg: pt is a planet of cg.jo");
+    return economy_truthy(pico8_jo_gg((const pico8_jo_t *)pt));
 }
 
 pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {

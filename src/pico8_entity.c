@@ -197,16 +197,10 @@ const pico8_list_t *pico8_cg(const char *tag) {
 
 int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value) {
     const pico8_struct_header_t *header;
-    int method;
 
     assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
            "entity: e is an entity struct; a list REF passed as an entity would be read as one");
     header = e;
-    method = pico8_method_of(name);
-    if (method >= 0 && header->cls->methods[method] != NULL) {
-        *out_value = pico8_value_function(header->cls->methods[method]);
-        return 1;
-    }
     assert(header->cls->field != NULL && "entity: a struct a generic consumer reaches needs a field reader");
     return header->cls->field(e, name, out_value);
 }
@@ -277,26 +271,6 @@ void pico8_he(pico8_struct_header_t *e) {
             }
         }
     }
-}
-
-int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
-             pico8_value_t *out_value) {
-    pico8_value_t field_val;
-
-    /* `e and e[rm]`: a falsy `e` short-circuits before the field read. */
-    if (e == NULL) {
-        return 0;
-    }
-    if (!pico8_entity_get_field(e, method_name, &field_val)) {
-        return 0;
-    }
-
-    if (field_val.kind == PICO8_VALUE_FUNCTION) {
-        *out_value = field_val.as.function(e, argc, arg0, arg1);
-    } else {
-        *out_value = field_val;
-    }
-    return 1;
 }
 
 void pico8_dc(const char *nt) {

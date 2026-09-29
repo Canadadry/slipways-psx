@@ -84,10 +84,10 @@ static int listed(const pico8_list_t *list, const void *e) {
     return 0;
 }
 
-/* A field as `mv` sees it: its value, or nil when absent. */
+/* A field: its value, or nil when absent. */
 static pico8_value_t field(void *e, const char *name) {
     pico8_value_t v = pico8_value_ref(NULL);
-    (void)pico8_mv((pico8_struct_header_t *)e, name, 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v);
+    (void)pico8_entity_get_field(e, name, &v);
     return v;
 }
 

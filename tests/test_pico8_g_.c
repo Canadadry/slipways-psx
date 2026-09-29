@@ -130,12 +130,6 @@ static int is_string(const void *e, const char *name, const char *want) {
     return lookup(e, name, &v) && v.kind == PICO8_VALUE_STRING && strcmp(v.as.string, want) == 0;
 }
 
-static pico8_value_function_t method(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
-    return v.as.function;
-}
-
 static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
     pico8_value_t v;
     const pico8_vec_t *p;
@@ -263,16 +257,6 @@ static const pico8_struct_class_t *cls_of(const void *e) {
     return ((const pico8_struct_header_t *)e)->cls;
 }
 
-static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, argc, arg0, arg1, &out));
-    return out;
-}
-
-static pico8_value_t nil(void) {
-    return pico8_value_ref(NULL);
-}
-
 /* The background is the entity of cv.hd whose `hd` and `fa` are both the
  * plain value 1. */
 static void *the_bg(void) {
@@ -351,11 +335,11 @@ static uint32_t fold_probe(uint32_t h, const void *e) {
     }
     assert(cls_of(e)->hd == NULL && cls_of(e)->hk == NULL && cls_of(e)->hb == NULL &&
            cls_of(e)->states[PICO8_STATE_LY] == NULL && cls_of(e)->states[PICO8_STATE_PH] == NULL);
-    assert(method(e, "hq") == pico8_bv_dispatch);
-    assert(method(e, "ey") == pico8_d__dispatch);
+    assert(cls_of(e)->hq == pico8_bv_dispatch);
+    assert(cls_of(e)->ey == pico8_d__dispatch);
     assert(cls_of(e)->ev == pico8_dl_dispatch);
     assert(cls_of(e)->kj == pico8_ei_dispatch);
-    assert(method(e, "mm") == pico8_g__mm);
+    assert(cls_of(e)->mm == pico8_g__mm);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
@@ -473,7 +457,7 @@ static uint32_t fold_hq(uint32_t h, void *e, pico8_vec_t at, int rp, uint32_t wa
     pico8_value_t mp = mouse_at(at);
     uint32_t kind;
 
-    (void)call(e, "hq", 2, mp, vec_ref(vec_xy(rp, rp)));
+    cls_of(e)->hq(e, mp.as.ref, vec_ref(vec_xy(rp, rp)).as.ref);
     kind = et_kind(e);
     printf("[hq] et kind %u\n", (unsigned)kind);
     fflush(stdout);
@@ -501,8 +485,8 @@ static void test_life(void) {
     a = ldown();
     b = pico8_g__new(NULL);
     jc = a_slipway(&middle);
-    h = fold_particle(h, call(a, "mm", 0, nil(), nil()));
-    h = fold_particle(h, call(b, "mm", 0, nil(), nil()));
+    h = fold_particle(h, pico8_value_ref(cls_of(a)->mm(a)));
+    h = fold_particle(h, pico8_value_ref(cls_of(b)->mm(b)));
 
     h = fold_hq(h, a, vec_of(a_planet(), "p"), 64, 2);
     h = fold_hq(h, a, middle, 64, 3);
@@ -516,8 +500,7 @@ static void test_life(void) {
     h = fnv(h, screen_hash());
     cls_of(b)->ev(b, NULL);
     h = fnv(h, screen_hash());
-    (void)call(a, "hq", 2, mouse_at(vec_of(a_planet(), "p")),
-               vec_ref(vec_xy(64, 64)));
+    cls_of(a)->hq(a, mouse_at(vec_of(a_planet(), "p")).as.ref, vec_ref(vec_xy(64, 64)).as.ref);
     cls_of(a)->ev(a, NULL);
     h = fnv(h, screen_hash());
 
@@ -534,7 +517,8 @@ static void test_life(void) {
         h = fold_field(h, a, "me");
         assert(listed(pico8_hv(), a) && listed(pico8_hv(), b));
     }
-    assert(call(a, "ey", 0, nil(), nil()).kind == PICO8_VALUE_REF);
+    assert(cls_of(a)->ey == pico8_d__dispatch);
+    assert(pico8_d_(a).kind == PICO8_VALUE_REF);
     assert(pico8_value_equal(get(a, "p_"), pico8_value_bool(1)));
     pico8_dg();
     assert(!listed(pico8_hv(), a) && !listed(pico8_cg("g_"), a) && !listed(pico8_cg("prober"), a));
@@ -551,9 +535,9 @@ static void test_ey_on(void) {
 
     start_game();
     a = ldown();
-    (void)call(a, "hq", 2, mouse_at(vec_of(a_planet(), "p")),
-               vec_ref(vec_xy(64, 64)));
-    out = call(a, "ey", 0, nil(), nil());
+    cls_of(a)->hq(a, mouse_at(vec_of(a_planet(), "p")).as.ref, vec_ref(vec_xy(64, 64)).as.ref);
+    assert(cls_of(a)->ey == pico8_d__dispatch);
+    out = pico8_d_(a);
     assert(out.kind == PICO8_VALUE_REF && out.as.ref == NULL);
     assert(pico8_value_equal(get(a, "p_"), pico8_value_bool(1)));
     h = fold_field(h, a, "me");
@@ -571,7 +555,8 @@ static void test_ey_off(void) {
 
     start_game();
     a = ldown();
-    out = call(a, "ey", 0, nil(), nil());
+    assert(cls_of(a)->ey == pico8_d__dispatch);
+    out = pico8_d_(a);
     assert(pico8_value_equal(out, pico8_value_bool(1)));
     assert(!has(a, "p_"));
     assert(is_string(a, "me", "ly"));
@@ -594,13 +579,14 @@ static void test_ey_void(void) {
     start_game();
     a = ldown();
     (void)a_slipway(&middle);
-    (void)call(a, "hq", 2, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
     assert(et_kind(a) == 4);
     assert(get_ref(get_ref(a, "et"), "fo") == a);
     assert(!has(a, "p_"));
     nz = get(pico8_fm(), "nz");
     me = get(a, "me");
-    out = call(a, "ey", 0, nil(), nil());
+    assert(cls_of(a)->ey == pico8_d__dispatch);
+    out = pico8_d_(a);
     assert(out.kind == PICO8_VALUE_REF && out.as.ref == NULL);
     assert(pico8_value_equal(get(a, "p_"), pico8_value_bool(1)));
     assert(pico8_value_equal(get(pico8_fm(), "nz"), nz));
@@ -644,9 +630,9 @@ static void test_fv(void) {
     assert(get_ref(fv, "k_") == &pico8_fv_k__seq);
     assert(get_ref(fv, "k_") != &pico8_g__k__seq);
     assert(cls_of(fv)->ev == pico8_dl_dispatch);
-    assert(method(fv, "mm") == pico8_g__mm);
-    assert(method(fv, "hq") == pico8_bv_dispatch);
-    assert(method(fv, "ey") == pico8_d__dispatch);
+    assert(cls_of(fv)->mm == pico8_g__mm);
+    assert(cls_of(fv)->hq == pico8_bv_dispatch);
+    assert(cls_of(fv)->ey == pico8_d__dispatch);
     assert(cls_of(fv)->kj != pico8_ei_dispatch);
     assert(cls_of(fv)->kj == pico8_fv_kj_dispatch);
     assert(cls_of(fv)->hd != NULL);
@@ -729,8 +715,6 @@ static int is_a_g__struct(const void *e) {
  * public functions of `g_`, which its class no longer installs. The title's
  * `fv` is a struct of its own. */
 static void test_g__is_a_struct(void) {
-    static const char *const entries[] = {"hq", "ey", "mm"};
-    static const pico8_value_function_t fns[] = {pico8_bv_dispatch, pico8_d__dispatch, pico8_g__mm};
     const pico8_struct_class_t *cls = pico8_g__struct_class();
     const pico8_list_t *hv;
     void *roads[3];
@@ -745,19 +729,9 @@ static void test_g__is_a_struct(void) {
     for (i = 0; i < 3; i++) {
         assert(is_a_g__struct(roads[i]));
     }
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        int named = 0;
-        for (i = 0; i < sizeof entries / sizeof entries[0]; i++) {
-            if (j == pico8_method_of(entries[i])) {
-                assert(cls->methods[j] == fns[i]);
-                named = 1;
-            }
-        }
-        assert(named || cls->methods[j] == NULL);
-    }
-    assert(cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch && cls->methods[PICO8_METHOD_EY] == pico8_d__dispatch &&
-           cls->ev == pico8_dl_dispatch && cls->kj == pico8_ei_dispatch &&
-           cls->methods[PICO8_METHOD_MM] == pico8_g__mm);
+    assert(cls->hq == pico8_bv_dispatch && cls->ey == pico8_d__dispatch && cls->ev == pico8_dl_dispatch &&
+           cls->kj == pico8_ei_dispatch && cls->mm == pico8_g__mm);
+    assert(cls->kf == NULL && cls->cn == NULL && cls->ol == NULL);
     assert(cls->hd == NULL && cls->hk == NULL && cls->hb == NULL && cls->has_hb == NULL && cls->ldown == NULL &&
            cls->rdown == NULL && cls->gv == NULL);
     for (j = 0; j < PICO8_STATE_COUNT; j++) {
@@ -801,7 +775,7 @@ static void test_bv_et_is_a_struct(void) {
     start_game();
     a = ldown();
     (void)a_slipway(&middle);
-    (void)call(a, "hq", 2, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
+    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
     et = get_ref(a, "et");
     assert(is_bv_target(et) && get_ref(et, "fo") == a);
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
@@ -846,7 +820,7 @@ static void *bv_et_target(void **holder_out, void **jc_out, pico8_vec_t *at_out)
     a = ldown();
     *jc_out = a_slipway(&middle);
     *at_out = pico8_vec_add(middle, vec_xy(0, 3));
-    (void)call(a, "hq", 2, mouse_at(*at_out), vec_ref(vec_xy(2, 2)));
+    cls_of(a)->hq(a, mouse_at(*at_out).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
     t = get_ref(a, "et");
     assert(is_bv_target(t));
     *holder_out = a;
@@ -931,7 +905,7 @@ static void test_bv_et_members_by_name(void) {
     }
 
     for (k = 0; k < 11; k++) {
-        (void)call(holders[k], "hq", 2, mouse_at(at), vec_ref(vec_xy(2, 2)));
+        cls_of(holders[k])->hq(holders[k], mouse_at(at).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
         h = fold_bv_et_fo(h, t, holders, 11, holders[k]);
         if (k == 2) {
             h = fnv(h, mz_et_state(holders[k], t));
@@ -1262,7 +1236,7 @@ static uint32_t fold_fresh_fv(uint32_t h, const void *e) {
 static uint32_t hq_at(uint32_t h, void *e, pico8_vec_t at, int rp) {
     pico8_value_t mp = mouse_at(at);
 
-    (void)call(e, "hq", 2, mp, vec_ref(vec_xy(rp, rp)));
+    cls_of(e)->hq(e, mp.as.ref, vec_ref(vec_xy(rp, rp)).as.ref);
     assert(get_ref(e, "ra") == mp.as.ref);
     h = fold_member(h, e, "et");
     h = fold_member(h, e, "ra");
@@ -1424,13 +1398,15 @@ static void test_g__members_by_name(void) {
     start_game();
     probe[0] = ldown();
     h = hq_at(h, probe[0], vec_xy(200, 200), 64);
-    h = fold_value(h, call(probe[0], "ey", 0, nil(), nil()));
+    assert(cls_of(probe[0])->ey == pico8_d__dispatch);
+    h = fold_value(h, pico8_d_(probe[0]));
     h = fold_field(h, probe[0], "me");
     h = fold_field(h, pico8_fm(), "nz");
     h = fold_g__all(h, probe[0]);
     probe[1] = pico8_g__new(NULL);
     h = hq_at(h, probe[1], vec_xy(200, 200), 2);
-    h = fold_value(h, call(probe[1], "ey", 0, nil(), nil()));
+    assert(cls_of(probe[1])->ey == pico8_d__dispatch);
+    h = fold_value(h, pico8_d_(probe[1]));
     assert_same(probe[1], "p_", pico8_value_bool(1));
     h = fold_field(h, pico8_fm(), "nz");
     h = fold_g__all(h, probe[1]);

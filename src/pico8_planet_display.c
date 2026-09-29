@@ -361,19 +361,14 @@ typedef struct {
 
 static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *keys, pico8_jo_fe_row_t *row) {
     pico8_fixed_t od = pico8_hp_od(b);
-    pico8_value_t lq_val;
 
     memset(keys, 0, sizeof *keys);
-    if (pico8_mv((pico8_struct_header_t *)b, "lq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &lq_val)) {
-        if (lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL &&
-            pico8_type_tag_of(lq_val.as.ref) == PICO8_TYPE_TAG_UNKNOWN) {
-            row->lq = pico8_lq_keys_of_row(lq_val.as.ref, row->lq_items, PICO8_JO_ROW_CAP);
-            keys->lq_row = &row->lq;
-            lq_val = pico8_value_ref(NULL);
-        }
-        keys->lq = lq_val;
+    if (b->lq != NULL) {
+        row->lq = pico8_lq_keys_of_row(b->lq, row->lq_items, PICO8_JO_ROW_CAP);
+        keys->lq_row = &row->lq;
+        keys->lq = pico8_value_ref(NULL);
     } else {
-        assert(0 && "hp must expose \"lq\" as an mv()-dispatchable field");
+        keys->lq = pico8_value_ref(pico8_hp_lq(b));
     }
 
     keys->has_h_ = 1;
@@ -482,19 +477,12 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
         pico8_spr_default(gfx, mem, mi + 1, px - 3, py - 6);
     }
 
-    /* `offset` is a stack vector handed over by address: safe only because
-     * `mv()` resolves the call before returning. */
     {
         if (self->lq != NULL) {
             pico8_vec_t offset =
                 pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
-            pico8_value_t offset_val = pico8_value_ref(&offset);
-            pico8_value_t a_val = pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5));
-            pico8_value_t discard;
-            int dispatched;
-            dispatched = pico8_mv((pico8_struct_header_t *)self->lq, "ol", 2, offset_val, a_val, &discard);
-            assert(dispatched && "lq must expose \"ol\" as an mv()-dispatchable field");
-            (void)dispatched;
+            assert(self->lq->header.cls->ol != NULL && "lq must have an `ol`");
+            self->lq->header.cls->ol(self->lq, offset, PICO8_FIXED_LIT(0x00008000, 0.5));
         }
     }
 

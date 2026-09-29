@@ -227,15 +227,10 @@ static void set_ra(void *e) {
     pico8_entity_set_field(e, "ra", pico8_value_ref(NULL));
 }
 
-static void mv_md(void *e) {
-    pico8_value_t v;
-    (void)pico8_mv(e, "md", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v);
-}
-
 /* The by-name accessors take entity structs only: a list stops the run
  * instead of being read as an entity. */
 static void test_accessors_refuse_a_table(void) {
-    static void (*const fns[])(void *) = {get_ra, set_ra, mv_md};
+    static void (*const fns[])(void *) = {get_ra, set_ra};
     pico8_list_t list;
     size_t i;
 

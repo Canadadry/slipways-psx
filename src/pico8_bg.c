@@ -11,7 +11,6 @@
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_probe.h"
-#include "pico8_type_tag.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
@@ -19,14 +18,6 @@ static int g_bg_up = 0;
 
 static int pico8_bg_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
-}
-
-/* Nil and wrong-kind both read as the zero vector. */
-static pico8_vec_t pico8_bg_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
 static void pico8_bg_kj_dispatch(void *self, const pico8_vec_t *ra) {
@@ -45,10 +36,9 @@ static pico8_down_t pico8_bg_rdown_dispatch(void *self, pico8_vec_t *qa, pico8_v
     return pico8_bg_rdown((pico8_bg_t *)self, ra);
 }
 
-static pico8_value_t pico8_bg_hq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    pico8_bg_hq((pico8_bg_t *)self, arg0, arg1);
-    return pico8_value_ref(NULL);
+static void pico8_bg_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    pico8_bg_hq((pico8_bg_t *)self, ra);
 }
 
 static int pico8_bg_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -98,16 +88,6 @@ static void bg_take_bool(pico8_value_t value, int *out, int *has) {
     *has = 1;
 }
 
-static void bg_take_vec(pico8_value_t value, pico8_vec_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_UNKNOWN &&
-           "bg.mq: an rp neither nil nor a vector ref does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
 /* `m_` (the hover loop `gw`): the only name a generic writer ever writes
  * on a `bg`. */
 static int pico8_bg_set_field(void *self, const char *name, pico8_value_t value) {
@@ -121,11 +101,11 @@ static int pico8_bg_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_bg_struct_class = {
-    .methods = {[PICO8_METHOD_HQ] = pico8_bg_hq_dispatch},
     .kj = pico8_bg_kj_dispatch,
     .hd = pico8_hd_true,
     .ldown = pico8_bg_ldown_dispatch,
     .rdown = pico8_bg_rdown_dispatch,
+    .hq = pico8_bg_hq_dispatch,
     .field = pico8_bg_field,
     .set_field = pico8_bg_set_field,
 };
@@ -272,19 +252,18 @@ pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
 
 /* `self.mq` is read here and overwritten by the last statement of the
  * function: that read-then-replace is the drag delta itself. */
-void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp) {
+void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
+    pico8_vec_t zero = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_vec_t mq;
     pico8_vec_t rp_vec;
     pico8_struct_header_t *mo;
-
-    (void)mp;
 
     if (self == NULL) {
         return;
     }
 
-    mq = pico8_bg_value_vec(pico8_value_ref(self->mq));
-    rp_vec = pico8_bg_value_vec(rp);
+    mq = self->mq != NULL ? *self->mq : zero;
+    rp_vec = rp != NULL ? *rp : zero;
     mo = pico8_mo();
     if (mo != NULL) {
         /* TROU-7 */
@@ -293,5 +272,5 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp) {
         pico8_entity_set_field(mo, "v", pico8_value_ref(v_new));
     }
 
-    bg_take_vec(rp, &self->mq);
+    self->mq = rp;
 }

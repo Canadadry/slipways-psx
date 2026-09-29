@@ -302,37 +302,14 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pic
     }
 }
 
-/* The only mv() call site passes argc 2, so this bridge ignores argc; an
- * arg1 that is not FIXED falls back to 0, which is `a` omitted. */
-static pico8_value_t pico8_lq_ol_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_fixed_t a = pico8_fixed_from_int(0);
-    (void)argc;
-
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
-    if (arg1.kind == PICO8_VALUE_FIXED) {
-        a = arg1.as.fixed;
-    }
+static void pico8_lq_ol_dispatch(void *self, pico8_vec_t p, pico8_fixed_t a) {
     pico8_lq_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_lq_t *)self, p, a);
-    return pico8_value_ref(NULL);
 }
 
-/* An `om` or `a` that is not FIXED falls back to 0. */
-static pico8_value_t pico8_jb_ol_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t om = pico8_fixed_from_int(0);
-    pico8_fixed_t a = pico8_fixed_from_int(0);
-    (void)argc;
-
-    if (arg0.kind == PICO8_VALUE_FIXED) {
-        om = arg0.as.fixed;
-    }
-    if (arg1.kind == PICO8_VALUE_FIXED) {
-        a = arg1.as.fixed;
-    }
-    pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, om, a);
-    return pico8_value_ref(NULL);
+/* No launcher reaches it (`jo.lq` is an `lq`); a vector `om` counts as 0. */
+static void pico8_jb_ol_dispatch(void *self, pico8_vec_t p, pico8_fixed_t a) {
+    (void)p;
+    pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, pico8_fixed_from_int(0), a);
 }
 
 pico8_value_t pico8_lq_bg(const pico8_lq_t *self) {
@@ -389,7 +366,7 @@ static int pico8_lq_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_lq_struct_class = {
-    .methods = {[PICO8_METHOD_OL] = pico8_lq_ol_dispatch},
+    .ol = pico8_lq_ol_dispatch,
     .field = pico8_lq_field,
 };
 
@@ -471,7 +448,7 @@ pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row) {
 }
 
 static const pico8_struct_class_t g_jb_struct_class = {
-    .methods = {[PICO8_METHOD_OL] = pico8_jb_ol_dispatch},
+    .ol = pico8_jb_ol_dispatch,
 };
 
 /* The `jb` itself, before its lines. */

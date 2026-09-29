@@ -7,6 +7,7 @@
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
+#include "pico8_particle.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -121,9 +122,9 @@ pico8_hy_t *pico8_fm_hy(void);
  * static struct with no readable field but `fo`, or literal `false` -- of
  * which only `false` is falsy; collapsing the throwaway to nil would change
  * `d_`. */
-void pico8_bv(pico8_struct_header_t *self, pico8_value_t mp, pico8_value_t rp);
+void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
 
-pico8_value_t pico8_bv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
 
 const pico8_struct_class_t *pico8_bv_et_struct_class(void);
 
@@ -139,11 +140,11 @@ void pico8_dl_dispatch(void *self, const pico8_vec_t *ra);
  * that result. */
 pico8_value_t pico8_d_(pico8_struct_header_t *self);
 
-pico8_value_t pico8_d__dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_d__dispatch(void *self, pico8_struct_header_t *kv);
 
 /* TROU-7 */
-/* Returns a REF to a freshly allocated `pico8_qy_t` (`has_a` 0), one
- * allocation; `ez` appends it to `qy` and nothing ever frees it. */
-pico8_value_t pico8_g__mm(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+/* Returns a freshly allocated `pico8_qy_t` (`has_a` 0), one allocation;
+ * `ez` appends it to `qy` and nothing ever frees it. */
+pico8_qy_t *pico8_g__mm(void *self);
 
 #endif

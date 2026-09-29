@@ -530,7 +530,6 @@ static void test_calls(void) {
     pico8_value_t a[] = {str("hi"), num(12), pico8_value_ref(NULL)};
     pico8_lq_keys_t t;
     void *lq;
-    pico8_value_t discard;
     pico8_jb_item_t entry_items[3];
     pico8_jb_row_t entry = {0};
     pico8_list_t rb;
@@ -545,8 +544,7 @@ static void test_calls(void) {
     h = fnv(h, want);
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    assert(pico8_mv(lq, "ol", 2, vec_ref(vec_xy(64, 30)), pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)),
-                    &discard));
+    pico8_lq_struct_class()->ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
     assert(screen_hash() == want);
 
     entry_items[0] = (pico8_jb_item_t){.is_ref = 1, .ref = lq};
@@ -611,7 +609,6 @@ static void built_planet_panel(void) {
     const pico8_list_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *qu;
     void *re = NULL;
     void *jc;
@@ -635,12 +632,12 @@ static void built_planet_panel(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }
@@ -814,11 +811,10 @@ static void test_lq_is_a_struct(void) {
 
     lq = pico8_lq_new(&t);
     assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == cls);
-    for (i = 0; i < PICO8_METHOD_COUNT; i++) {
-        assert((cls->methods[i] != NULL) == (i == PICO8_METHOD_OL));
-    }
+    assert(cls->ol != NULL);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
+           cls->kf == NULL && cls->cn == NULL && cls->mm == NULL);
     for (i = 0; i < PICO8_STATE_COUNT; i++) {
         assert(cls->states[i] == NULL);
     }
@@ -826,7 +822,7 @@ static void test_lq_is_a_struct(void) {
     assert(pico8_lq_ready());
     assert(lookup(lq, "c", &v) && v.as.fixed == pico8_fixed_from_int(9));
     assert(!lookup(lq, "bg", &v) && !lookup(lq, "items", &v));
-    assert(lookup(lq, "ol", &v) && v.kind == PICO8_VALUE_FUNCTION);
+    assert(!lookup(lq, "ol", &v) && cls->ol != NULL);
 
     t = pico8_lq_keys_of_row(&nested, items, 2);
     assert(t.items == items && t.count == 2 && t.has_c && t.c == pico8_fixed_from_int(7));
@@ -912,18 +908,17 @@ static int is_row(const void *p) {
 
 static int bg_fixed, bg_false, bg_absent, targets;
 
-/* Same address twice by name, `ol` through mv(), then its raw reads. */
+/* Same address twice by name, `ol` through its class, then its raw reads. */
 static uint32_t fold_target(uint32_t h, const void *holder, const char *name) {
     void *row = get_ref(holder, name);
     pico8_value_t v;
-    pico8_value_t discard;
 
     if (!is_row(row)) {
         return h;
     }
     targets++;
     assert(get_ref(holder, name) == row);
-    assert(pico8_mv(row, "ol", 2, vec_ref(vec_xy(64, 60)), pico8_value_fixed(0), &discard));
+    ((const pico8_struct_header_t *)row)->cls->ol(row, vec_xy(64, 60), 0);
     if (!lookup(row, "bg", &v)) {
         bg_absent++;
     } else if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {

@@ -7,7 +7,7 @@
 
 /* (Re)builds hv, cv and cg to a fresh, empty state, freeing the
  * previous build first via pico8_entity_shutdown(), and puts back the
- * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc, mv or
+ * placeholder mo. Must run before any of hv, cv, cg, lt, he, dc or
  * mo below is used. pico8_jl() (pico8_bootstrap.c) calls it, then replaces
  * the placeholder mo through pico8_entity_set_mo(). */
 void pico8_entity_init(void);
@@ -40,8 +40,8 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
 void pico8_he(pico8_struct_header_t *e);
 
 /* `e[name]`: returns 1 and writes *out_value when the struct `e` has a
- * method by that name or a non-nil field; returns 0, leaving *out_value
- * untouched, otherwise. Asserts that `e` is an entity struct: a list REF
+ * non-nil field by that name (a method is no field: it answers 0);
+ * returns 0, leaving *out_value untouched, otherwise. Asserts that `e` is an entity struct: a list REF
  * passed as an entity stops the run. */
 int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_value);
 
@@ -49,16 +49,6 @@ int pico8_entity_get_field(const void *e, const char *name, pico8_value_t *out_v
  * pico8_entity_get_field() does, that `e` is an entity struct, and that it
  * has such a member: a struct never grows a field. */
 void pico8_entity_set_field(void *e, const char *name, pico8_value_t value);
-
-/* Returns 1 and writes *out_value when `e` is non-NULL and has a field
- * named `method_name` (pico8_entity_get_field()) -- calling it with `e`,
- * `argc`, `arg0` and `arg1` when the field is PICO8_VALUE_FUNCTION-kind,
- * using the field's own value as-is otherwise. Returns 0, leaving
- * *out_value untouched, when `e` is NULL or has no such field. `argc`
- * says how many of arg0/arg1 are real; a caller passes
- * pico8_value_ref(NULL) for the slots it does not cover. */
-int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
-             pico8_value_t *out_value);
 
 /* `nt` is "kj" or "ev" (asserted). */
 void pico8_dc(const char *nt);

@@ -58,6 +58,6 @@ pico8_down_t pico8_bg_ldown(pico8_bg_t *self);
  * as the button stays down. */
 pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp);
 
-void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp);
+void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp);
 
 #endif

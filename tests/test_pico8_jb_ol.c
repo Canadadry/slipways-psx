@@ -78,8 +78,8 @@ static void test_no_overrides_draws_frame_only(void) {
     check("none", draw_jb(pico8_jb_new(NULL), pico8_fixed_from_int(60), pico8_fixed_from_int(0)), NO_OVERRIDES_HASH);
 }
 
-/* Both constructions give the struct form, sharing `jb`'s method table,
- * whose `ol` entry draws what pico8_jb_ol() draws. */
+/* Both constructions give the struct form, sharing `jb`'s class, which
+ * has an `ol`; pico8_jb_ol() draws the first `dr` entry. */
 static void test_jb_is_a_struct_with_its_method_table(void) {
     const pico8_jb_t *direct = pico8_jb_new(NULL);
     const pico8_jb_t *generic = pico8_jb_new(NULL);
@@ -87,30 +87,40 @@ static void test_jb_is_a_struct_with_its_method_table(void) {
     assert(pico8_type_tag_of(direct) == PICO8_TYPE_TAG_STRUCT);
     assert(pico8_type_tag_of(generic) == PICO8_TYPE_TAG_STRUCT);
     assert(direct->header.cls == generic->header.cls);
-    assert(direct->header.cls->methods[PICO8_METHOD_OL] != NULL);
+    assert(direct->header.cls->ol != NULL);
     assert(direct->ls != NULL && pico8_type_tag_of(direct->ls) == PICO8_TYPE_TAG_LIST && direct->ls->count == 0);
 
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    direct->header.cls->methods[PICO8_METHOD_OL]((void *)pico8_jb_new(&pico8_dr_table[0]), 2,
-                                                 pico8_value_fixed(pico8_fixed_from_int(127)),
-                                                 pico8_value_fixed(pico8_fixed_from_int(1)));
+    pico8_jb_ol(&gfx, &mem, pico8_jb_new(&pico8_dr_table[0]), pico8_fixed_from_int(127), pico8_fixed_from_int(1));
     check("table ol", screen_hash(), DR_FIRST_ENTRY_HASH);
+
+    /* The class's `ol` gets a vector no launcher passes it: `om` is 0. */
+    {
+        uint32_t via_slot;
+
+        pico8_cls(&mem);
+        direct->header.cls->ol((void *)pico8_jb_new(&pico8_dr_table[0]),
+                               pico8_vec_v(pico8_fixed_from_int(127), pico8_fixed_from_int(0)), pico8_fixed_from_int(1));
+        via_slot = screen_hash();
+        pico8_cls(&mem);
+        pico8_jb_ol(&gfx, &mem, pico8_jb_new(&pico8_dr_table[0]), pico8_fixed_from_int(0), pico8_fixed_from_int(1));
+        assert(screen_hash() == via_slot);
+    }
 }
 
-/* Reads `jb` only by name -- `ol` through the method table, then its
- * pixels -- so it holds on either layout of `ls`. */
+/* Reads `jb` only through pico8_jb_ol(), then its pixels, so it holds on
+ * either layout of `ls`. */
 static uint32_t draw_by_name(pico8_jb_t *jb, pico8_fixed_t om, pico8_fixed_t a) {
-    pico8_value_t out;
     uint32_t blank;
     uint32_t got;
 
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
     blank = screen_hash();
-    assert(pico8_mv(&jb->header, "ol", 2, pico8_value_fixed(om), pico8_value_fixed(a), &out));
+    pico8_jb_ol(&gfx, &mem, jb, om, a);
     got = screen_hash();
     assert(got != blank);
     return got;
@@ -123,12 +133,10 @@ static void test_jb_state_by_name(void) {
     static const pico8_jb_row_t row = {.count = 1, .items = row_items};
     static const pico8_jb_item_t mixed_items[] = {{.s = "alpha"}, {.row = &row}, {.n = 5}, {.s = "delta"}};
     static const pico8_jb_row_t mixed = {.count = 4, .items = mixed_items};
-    pico8_value_t v;
     uint32_t h = 2166136261u;
     int i;
 
-    assert(pico8_entity_get_field(jb, "ol", &v));
-    assert(v.kind == PICO8_VALUE_FUNCTION && v.as.function == cls->methods[PICO8_METHOD_OL]);
+    assert(cls->ol != NULL);
     assert(cls->field == NULL && cls->set_field == NULL);
 
     pico8_dispatch_set_gfx(&gfx);

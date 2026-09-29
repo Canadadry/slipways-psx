@@ -183,11 +183,10 @@ static void test_fm_is_a_struct(void) {
     provisional = pico8_fm();
     assert(pico8_type_tag_of(provisional) == PICO8_TYPE_TAG_STRUCT);
     assert(((const pico8_struct_header_t *)provisional)->cls == cls);
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        assert(cls->methods[j] == NULL);
-    }
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
            cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+    assert(cls->hq == NULL && cls->ey == NULL && cls->kf == NULL && cls->cn == NULL && cls->ol == NULL &&
+           cls->mm == NULL);
     for (j = 0; j < PICO8_STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }

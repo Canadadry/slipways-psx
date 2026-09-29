@@ -678,13 +678,11 @@ static void test_ie_is_a_struct(void) {
     built = build_icon(classes[2], pico8_jb_new(dr_row(2)));
     all[n++] = built;
     for (i = 0; i < n; i++) {
-        pico8_value_t out;
         assert(is_an_ie_struct(all[i]));
         assert(cls_of(all[i])->hd != NULL && cls_of(all[i])->hb != NULL && cls_of(all[i])->kj != NULL &&
                cls_of(all[i])->ldown != NULL);
         assert(cls_of(all[i])->states[PICO8_STATE_PH] == NULL && cls_of(all[i])->ev == NULL &&
                cls_of(all[i])->hk == NULL && cls_of(all[i])->rdown == NULL && cls_of(all[i])->gv == NULL);
-        assert(!pico8_mv(all[i], "eb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
     }
 
     pico8_entity_set_field(built, "m_", pico8_value_bool(1));

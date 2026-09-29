@@ -79,8 +79,8 @@ static pico8_value_t pico8_hp_lq_dispatch(void *self, int argc, pico8_value_t ar
 
 /* A nil `lq` member falls back to the class's `lq` method, as the cart's
  * `mv(b,"lq")` finds it: the member written by the constructor shadows the
- * method for a project with `ii`. An `lq` entry in the descriptor's methods
- * would be looked up first and invert that. */
+ * method for a project with `ii`. `jo:fe` makes the same choice on the
+ * member directly. */
 static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_hp_t *hp = self;
 

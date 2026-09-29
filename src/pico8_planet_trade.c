@@ -10,6 +10,7 @@
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
+#include "pico8_slipway.h"
 
 static int pico8_jo_truthy(pico8_value_t v) {
     if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
@@ -53,7 +54,7 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_value_
 
 void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
     pico8_list_t *oe = NULL;
-    pico8_value_t eb_result;
+    pico8_struct_header_t *other = NULL;
 
     if (self == NULL) {
         return;
@@ -64,10 +65,13 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
         pico8_list_add(oe, pico8_value_ref(sw));
     }
 
-    if (sw != NULL && pico8_mv(sw, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
-        eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
+    if (sw != NULL) {
+        assert(sw->cls == pico8_jc_struct_class() && "jo:kf: sw is the slipway jc:ey registers");
+        other = pico8_jc_eb((const pico8_jc_t *)sw, (const pico8_struct_header_t *)self);
+    }
+    if (other != NULL) {
         pico8_value_t fx_val;
-        if (pico8_entity_get_field((const pico8_struct_header_t *)eb_result.as.ref, "fx", &fx_val) &&
+        if (pico8_entity_get_field(other, "fx", &fx_val) &&
             pico8_jo_truthy(fx_val)) {
             self->fx = 1;
             self->has_fx = 1;
@@ -218,7 +222,7 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
         pico8_jo_trade_proposal_t lw;
         pico8_list_t *lp_list;
         pico8_list_t *rl_list;
-        pico8_value_t eb_result;
+        pico8_struct_header_t *other;
 
         if (w_val.kind != PICO8_VALUE_REF || w_val.as.ref == NULL) {
             continue;
@@ -248,11 +252,10 @@ pico8_list_t *pico8_jo_ib(pico8_jo_t *self) {
 
         /* `lw` is on the stack: a callee that keeps the REF past this
          * iteration holds a dangling pointer. `nr:cn` copies it instead. */
-        if (pico8_mv(w, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
-            eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
-            pico8_value_t discard;
-            pico8_mv((pico8_struct_header_t *)eb_result.as.ref, "cn", 1, pico8_value_ref(&lw), pico8_value_ref(NULL),
-                     &discard);
+        assert(w->cls == pico8_jc_struct_class() && "jo.oe holds slipways only: jo:kf adds to it");
+        other = pico8_jc_eb((const pico8_jc_t *)w, (const pico8_struct_header_t *)self);
+        if (other != NULL && other->cls->cn != NULL) {
+            other->cls->cn(other, &lw);
         }
     }
 

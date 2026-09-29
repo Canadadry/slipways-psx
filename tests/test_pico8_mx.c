@@ -59,7 +59,6 @@ static const char *const qh_members[] = {"hp", "px", "dq", "qh", "od", "fp", "dw
 static const char *const jo_members[] = {"nu", "hf", "hs", "fa", "kq", "ma", "ka", "dz", "cq", "kw", "gq",
                                          "ca", "em", "id", "p",  "ra", "oe", "hn", "ep", "jy", "nk", "fx",
                                          "lq", "fo", "jh", "p_", "kr", "cc", "by", "mi", "m_"};
-static const char *const methods[] = {"gg", "kf", "cn", "ib", "hq", "ey", "mm"};
 static const char *const absent[] = {"ol", "eb"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"jo", "np", "prober"};
@@ -125,12 +124,6 @@ static pico8_value_t get(const void *e, const char *name) {
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
-}
-
-static pico8_value_function_t method(const void *e, const char *name) {
-    pico8_value_t v;
-    assert(pico8_entity_get_field(e, name, &v) && v.kind == PICO8_VALUE_FUNCTION);
-    return v.as.function;
 }
 
 static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
@@ -249,29 +242,25 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 }
 
 /* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
- * `ldown`, `gv` and the states `ll`, `ly`; no other. */
+ * `ldown`, `gv`, `hq`, `ey`, `kf`, `cn` and the states `ll`, `ly`; `mm`
+ * aside, no other. */
 static void assert_qh_shape(const pico8_struct_class_t *c) {
     assert(c->kj != NULL && c->ev != NULL && c->hd != NULL && c->hk != NULL && c->hb != NULL && c->ldown != NULL &&
            c->gv != NULL && c->states[PICO8_STATE_LL] != NULL && c->states[PICO8_STATE_LY] != NULL);
     assert(c->has_hb == NULL && c->rdown == NULL && c->states[PICO8_STATE_PH] == NULL &&
            c->states[PICO8_STATE_KZ] == NULL && c->states[PICO8_STATE_PR] == NULL);
+    assert(c->hq != NULL && c->ey != NULL && c->kf != NULL && c->cn != NULL && c->ol == NULL);
 }
 
-/* `c` holds `ref`'s very members, `kj` and the state `ly` included when
- * `with_kj`/`with_ly`. */
+/* `c` holds `ref`'s very members but `kf`, `cn` and `mm`, `kj` and the
+ * state `ly` included when `with_kj`/`with_ly`. */
 static void assert_members_of(const pico8_struct_class_t *c, const pico8_struct_class_t *ref, int with_kj,
                               int with_ly) {
     assert(c->ev == ref->ev && c->hd == ref->hd && c->hk == ref->hk && c->hb == ref->hb && c->has_hb == ref->has_hb &&
            c->ldown == ref->ldown && c->rdown == ref->rdown && c->gv == ref->gv);
-    assert(c->states[PICO8_STATE_LL] == ref->states[PICO8_STATE_LL]);
+    assert(c->states[PICO8_STATE_LL] == ref->states[PICO8_STATE_LL] && c->hq == ref->hq && c->ey == ref->ey);
     assert(!with_kj || c->kj == ref->kj);
     assert(!with_ly || c->states[PICO8_STATE_LY] == ref->states[PICO8_STATE_LY]);
-}
-
-static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, argc, arg0, arg1, &out));
-    return out;
 }
 
 /* The research icon whose `ke` is `kind`. */
@@ -351,17 +340,10 @@ static uint32_t fold_synthesizer(uint32_t h, const void *e) {
         assert(!has(e, not_mx[i]));
     }
     assert(list_size(e, "qy") == 0);
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_function_t got = method(e, methods[i]);
-        if (strcmp(methods[i], "kf") == 0) {
-            assert(got != hj->methods[PICO8_METHOD_KF]);
-            assert(got != pico8_jo_struct_class()->methods[PICO8_METHOD_KF]);
-        } else {
-            assert(got == hj->methods[pico8_method_of(methods[i])]);
-        }
-    }
     assert_qh_shape(cls_of(e));
     assert_members_of(cls_of(e), hj, 1, 1);
+    assert(cls_of(e)->kf != hj->kf && cls_of(e)->kf != pico8_jo_struct_class()->kf);
+    assert(cls_of(e)->cn == hj->cn && cls_of(e)->mm == hj->mm && cls_of(e)->mm != NULL && pico8_jo_is_family(e));
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
@@ -429,10 +411,10 @@ static uint32_t fold_dg(uint32_t h, const void *e) {
 
 /* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a synthesizer. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_value_t ib = call(e, "ib", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    pico8_value_t ib = pico8_value_ref(pico8_jo_ib(e));
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_value(h, ib);
-    h = fold_value(h, call(e, "gg", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)));
+    h = fold_value(h, pico8_jo_gg(e));
     h = fnv(h, (uint32_t)pico8_da(e));
     return fold_field(h, e, "mi");
 }
@@ -466,10 +448,11 @@ static void test_life(void) {
     mo_ra = get_ref(pico8_mo(), "ra");
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
-    (void)call(placed, "hq", 2, mp, vec_ref(vec_xy(64, 64)));
+    cls_of(placed)->hq(placed, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
     assert(get_ref(placed, "ra") == mp.as.ref);
     set_credits(200);
-    h = fold_value(h, call(placed, "ey", 1, pico8_value_ref(NULL), pico8_value_ref(NULL)));
+    assert(cls_of(placed)->ey == pico8_d__dispatch);
+    h = fold_value(h, pico8_d_(placed));
     h = fold_field(h, placed, "me");
     assert(strcmp(get(placed, "me").as.string, "ly") == 0);
 
@@ -478,7 +461,7 @@ static void test_life(void) {
         h = fold_dg(h, placed);
     }
 
-    h = fold_particle(h, call(placed, "mm", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)));
+    h = fold_particle(h, pico8_value_ref(cls_of(placed)->mm(placed)));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
     h = fnv(h, (uint32_t)list_size(placed, "qy"));
     assert(list_size(placed, "qy") >= 2);
@@ -503,7 +486,7 @@ static void *join(void *qu, void *synthesizer) {
     jc = pico8_jc_new(&jc_keys);
     assert(jc != NULL);
     set_credits(999);
-    (void)call(jc, "ey", 1, pico8_value_ref(synthesizer), pico8_value_ref(NULL));
+    cls_of(jc)->ey(jc, synthesizer);
     assert(listed(get_ref(synthesizer, "oe"), jc));
     return jc;
 }
@@ -641,25 +624,14 @@ static void test_mx_is_a_struct(void) {
     pico8_value_t v;
     void *a;
     size_t i;
-    int j;
 
     start_game();
     a = build_synthesizer();
     assert(is_an_mx_struct(a) && cls != hj && listed(pico8_cg("jo"), a) && !listed(pico8_cg("hj"), a));
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        int named = 0;
-        for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-            named |= pico8_method_of(methods[i]) == j;
-        }
-        assert((cls->methods[j] != NULL) == named);
-        if (j != PICO8_METHOD_KF) {
-            assert(cls->methods[j] == hj->methods[j]);
-        }
-    }
-    assert(cls->methods[PICO8_METHOD_KF] != hj->methods[PICO8_METHOD_KF] &&
-           cls->methods[PICO8_METHOD_KF] != pico8_jo_struct_class()->methods[PICO8_METHOD_KF]);
+    assert(cls->kf != hj->kf && cls->kf != pico8_jo_struct_class()->kf);
     assert_qh_shape(cls);
     assert_members_of(cls, hj, 1, 1);
+    assert(cls->cn == hj->cn && cls->mm == hj->mm);
     assert(cls->field != hj->field && cls->set_field != hj->set_field);
     for (i = 0; i < sizeof inherited / sizeof inherited[0]; i++) {
         pico8_value_t own;

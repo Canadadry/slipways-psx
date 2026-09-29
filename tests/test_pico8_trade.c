@@ -194,7 +194,6 @@ static pico8_hp_t *project(int k) {
 static void join(void *qu, void *re) {
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *jc;
 
     jc_keys.qu = qu;
@@ -202,12 +201,12 @@ static void join(void *qu, void *re) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     while (must_fixed(jc, "t") < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
 }
 
 static pico8_value_t nil(void) {
@@ -499,8 +498,11 @@ static void test_trade_is_a_struct(void) {
 
     assert(pico8_type_tag_of(g) == PICO8_TYPE_TAG_STRUCT && g->header.cls == cls);
     assert(pico8_type_tag_of(t) == PICO8_TYPE_TAG_STRUCT && t->header.cls == cls);
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        assert(cls->methods[j] == NULL);
+    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
+           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
+           cls->kf == NULL && cls->cn == NULL && cls->ol == NULL && cls->mm == NULL);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert(cls->states[j] == NULL);
     }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_trade_ready());

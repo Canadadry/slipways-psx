@@ -77,9 +77,8 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     qy = pico8_particle_field_list(self, "qy");
 
     while (pico8_fixed_rnd_default() < n) {
-        pico8_value_t result;
-        if (qy != NULL && pico8_mv(self, "mm", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &result)) {
-            pico8_list_add(qy, result);
+        if (qy != NULL && self->cls->mm != NULL) {
+            pico8_list_add(qy, pico8_value_ref(self->cls->mm(self)));
         }
         n = pico8_fixed_sub(n, pico8_fixed_from_int(1));
     }

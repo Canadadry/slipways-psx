@@ -87,7 +87,7 @@ void pico8_jc_pq(pico8_jc_t *self);
  * `mt`, `et` and `fa`, and points the `fo` of whatever `ce()` found -- a
  * planet, another `jc` struct or the static `{qs}` struct -- back at this
  * slipway. */
-void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp);
+void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp);
 
 /* A NULL `re`, or a `d_()` that refuses, only raises `self.p_`; both
  * endpoints are registered on success. */
@@ -101,7 +101,8 @@ const pico8_struct_class_t *pico8_jc_too_far_struct_class(void);
 
 const pico8_struct_class_t *pico8_jc_mouse_point_struct_class(void);
 
-pico8_value_t pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance);
+/* The other end of the slipway seen from `jo_instance`; NULL for nil. */
+pico8_struct_header_t *pico8_jc_eb(const pico8_jc_t *self, const pico8_struct_header_t *jo_instance);
 
 void pico8_jc_ev(pico8_jc_t *self);
 

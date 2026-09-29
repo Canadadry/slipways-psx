@@ -478,12 +478,13 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
 }
 
 pico8_down_t pico8_js_ldown(pico8_js_t *self) {
-    pico8_value_t discard;
     int has_my = self != NULL && self->my != NULL;
     pico8_down_t out = {1, NULL};
 
     pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
-    pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &discard);
+    if (has_my) {
+        (void)self->my(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    }
 
     return out;
 }
@@ -595,8 +596,9 @@ pico8_down_t pico8_fq_ldown(pico8_fq_t *self) {
     if (self == NULL) {
         return out;
     }
-    if (!pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
-        my_result = pico8_value_ref(NULL);
+    my_result = pico8_value_ref(NULL);
+    if (self->my != NULL) {
+        my_result = self->my(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     }
     button_take_bool(my_result, &self->p_, &self->has_p_);
     return out;

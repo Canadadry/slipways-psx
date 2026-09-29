@@ -178,15 +178,12 @@ static int pico8_fv_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_fv_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-            [PICO8_METHOD_MM] = pico8_g__mm,
-        },
     .kj = pico8_fv_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_fv_hd_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .mm = pico8_g__mm,
     .field = pico8_fv_field,
     .set_field = pico8_fv_set_field,
 };

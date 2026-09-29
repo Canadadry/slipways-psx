@@ -156,32 +156,23 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
         {
             pico8_jo_trade_proposal_t gf = *lw;
             pico8_trade_t *extended = pico8_trade_kg(t, pico8_value_ref(self), pico8_value_ref(w));
-            pico8_value_t eb_result;
+            pico8_struct_header_t *other;
 
             gf.t = extended;
-            if (pico8_mv(w, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
-                eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
-                pico8_value_t discard;
-                /* `&gf` is a stack address passed to a dispatched `cn`:
-                 * safe only while no `cn` implementation stores its
-                 * proposal. */
-                pico8_mv((pico8_struct_header_t *)eb_result.as.ref, "cn", 1, pico8_value_ref(&gf),
-                         pico8_value_ref(NULL), &discard);
+            assert(w->cls == pico8_jc_struct_class() && "nr.oe holds slipways only: jo:kf adds to it");
+            other = pico8_jc_eb((const pico8_jc_t *)w, (const pico8_struct_header_t *)self);
+            /* `&gf` is a stack address passed to a dispatched `cn`: safe
+             * only while no `cn` implementation stores its proposal. */
+            if (other != NULL && other->cls->cn != NULL) {
+                other->cls->cn(other, &gf);
             }
             lw->mu = gf.mu;
         }
     }
 }
 
-static pico8_value_t pico8_nr_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_jo_trade_proposal_t *lw = NULL;
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        lw = (pico8_jo_trade_proposal_t *)arg0.as.ref;
-    }
+static void pico8_nr_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw) {
     pico8_nr_cn((pico8_nr_t *)self, lw);
-    return pico8_value_ref(NULL);
 }
 
 static int pico8_nr_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -220,15 +211,6 @@ static int pico8_nr_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_nr_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_nr_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-        },
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -236,6 +218,10 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .hb = pico8_nr_hb_dispatch,
     .ldown = pico8_nr_ldown_dispatch,
     .gv = pico8_nr_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_nr_cn_dispatch,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -293,15 +279,6 @@ static int pico8_fr_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_fr_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_nr_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-        },
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -309,6 +286,10 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .hb = pico8_nr_hb_dispatch,
     .ldown = pico8_nr_ldown_dispatch,
     .gv = pico8_nr_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_nr_cn_dispatch,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
@@ -345,13 +326,11 @@ static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
 }
 
 void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
-    pico8_value_t eb_result;
     pico8_struct_header_t *cp = NULL;
 
-    if (self != NULL && sw != NULL &&
-        pico8_mv(sw, "eb", 1, pico8_value_ref(self), pico8_value_ref(NULL), &eb_result) &&
-        eb_result.kind == PICO8_VALUE_REF && eb_result.as.ref != NULL) {
-        cp = (pico8_struct_header_t *)eb_result.as.ref;
+    if (self != NULL && sw != NULL) {
+        assert(sw->cls == pico8_jc_struct_class() && "mx:kf: sw is the slipway jc:ey registers");
+        cp = pico8_jc_eb((const pico8_jc_t *)sw, (const pico8_struct_header_t *)self);
     }
 
     if (cp != NULL) {
@@ -393,15 +372,8 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
     pico8_jo_kf((pico8_jo_t *)self, sw);
 }
 
-static pico8_value_t pico8_mx_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_struct_header_t *sw = NULL;
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        sw = (pico8_struct_header_t *)arg0.as.ref;
-    }
+static void pico8_mx_kf_dispatch(void *self, pico8_struct_header_t *sw) {
     pico8_mx_kf((pico8_mx_t *)self, sw);
-    return pico8_value_ref(NULL);
 }
 
 static int pico8_mx_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -438,16 +410,6 @@ static int pico8_mx_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_mx_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_mx_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-            [PICO8_METHOD_EY] = pico8_d__dispatch,
-            [PICO8_METHOD_MM] = pico8_g__mm,
-        },
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -455,6 +417,11 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .hq = pico8_bv_dispatch,
+    .ey = pico8_d__dispatch,
+    .kf = pico8_mx_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
+    .mm = pico8_g__mm,
     .states =
         {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,

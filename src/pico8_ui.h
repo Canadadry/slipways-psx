@@ -93,7 +93,7 @@ void pico8_ui_set_ok(pico8_ui_t *ui);
 
 /* Called once per frame by `pico8__update60()` (pico8_cart.c). `mem` is an
  * explicit parameter because that call is direct, not routed through
- * `mv()`/`dc()` and their shared dispatch context. */
+ * a class member or `dc()` and their shared dispatch context. */
 void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self);
 
 void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *self);

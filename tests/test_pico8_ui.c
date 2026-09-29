@@ -285,7 +285,6 @@ static void grow_world(void) {
     const pico8_list_t *jos = pico8_cg("jo");
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
-    pico8_value_t out;
     void *qu = NULL;
     void *re;
     void *jc;
@@ -305,12 +304,12 @@ static void grow_world(void) {
     *mp = pico8_vec_add(pico8_vec_mul(pos_of(re), pico8_fixed_from_int(128)),
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     pico8_ok()->o_ = re;
-    assert(pico8_mv(jc, "hq", 1, pico8_value_ref(mp), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
     for (i = 0; i < 15; i++) {
         pico8_dg();
     }
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(re), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, re);
     for (i = 0; i < SETTLE_TICKS; i++) {
         pico8_dg();
     }
@@ -736,11 +735,9 @@ static void test_ui_is_a_struct(void) {
     int j;
 
     assert(is_of(ok, cls));
-    for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        assert(cls->methods[j] == NULL);
-    }
     assert(cls->ev != NULL && cls->kj == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
-           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL && cls->hq == NULL && cls->ey == NULL &&
+           cls->kf == NULL && cls->cn == NULL && cls->ol == NULL && cls->mm == NULL);
     for (j = 0; j < PICO8_STATE_COUNT; j++) {
         assert(cls->states[j] == NULL);
     }
@@ -1845,7 +1842,7 @@ static void test_jo_position_by_name(void) {
         h = fnv(h, (uint32_t)me_of(e[i], "p", &v));
     }
 
-    pico8_bv(e[1], pico8_value_ref(rv), pico8_value_ref(heap_vec(1, 1)));
+    pico8_bv(e[1], rv, heap_vec(1, 1));
     h = fold_position(h, e[1], "ra", rv);
     assert(me_of(e[1], "p", &v) && v.as.ref != rv);
     h = fold_position(h, e[1], "p", v.as.ref);
@@ -2492,7 +2489,7 @@ static void test_jo_writers_by_name(void) {
 
     at = heap_vec(0, 0);
     *at = vec_of(planet, "ra");
-    pico8_bv(e[1], pico8_value_ref(at), pico8_value_ref(at));
+    pico8_bv(e[1], at, at);
     holder = ref_of(planet, "fo");
     h = fnv(h, (uint32_t)(holder != NULL));
     assert(holder == NULL || holder == e[1]);
@@ -2503,7 +2500,7 @@ static void test_jo_writers_by_name(void) {
     for (k = 0; k < 2; k++) {
         const pico8_struct_header_t *p = k == 0 ? (void *)pico8_pm_new(NULL) : (void *)pico8_fv_new();
 
-        (void)p->cls->methods[PICO8_METHOD_HQ]((void *)p, 2, pico8_value_ref(at), pico8_value_ref(at));
+        p->cls->hq((void *)p, at, at);
         holder = ref_of(planet, "fo");
         h = fnv(h, holder == NULL ? 99u : fo_holder_index(holder));
         write_by_name(planet, "fo", pico8_value_ref((void *)p));
@@ -2542,7 +2539,7 @@ static void test_jo_writers_by_name(void) {
         for (k = 0; k < jos->count; k++) {
             write_by_name(jos->items[k].as.ref, "fo", pico8_value_ref(NULL));
         }
-        pico8_jc_hq(made, pico8_value_ref(at));
+        pico8_jc_hq(made, at);
         for (k = 0; k < jos->count; k++) {
             holder = ref_of(jos->items[k].as.ref, "fo");
             h = fnv(h, (uint32_t)(holder != NULL));
@@ -2772,10 +2769,9 @@ static pico8_vec_t qh_at(int x, int y) {
 /* `hq` of `lab` with the mouse one pixel right of `at` (a position in `p`
  * units), the raw mouse at `rp`. */
 static void qh_hq(void *lab, pico8_vec_t at, int rp) {
-    pico8_value_t out = pico8_value_ref(NULL);
     pico8_vec_t mp = pico8_vec_add(pico8_vec_mul(at, pico8_fixed_from_int(128)), qh_at(1, 0));
 
-    assert(pico8_mv(lab, "hq", 2, qh_vec_ref(mp), qh_vec_ref(qh_at(rp, rp)), &out));
+    ((const pico8_struct_header_t *)lab)->cls->hq(lab, qh_vec_ref(mp).as.ref, qh_vec_ref(qh_at(rp, rp)).as.ref);
 }
 
 /* A fresh planet of the k-th class of `cg.np` (jo, then qh's tree) at `at`. */
@@ -2823,7 +2819,7 @@ static void test_qh_members_by_name(void) {
 
         *mp = pico8_vec_add(pico8_vec_mul(pos_of(pico8_cg("jo")->items[0].as.ref), pico8_fixed_from_int(128)),
                             qh_at(1, 1));
-        assert(pico8_mv(gate, "hq", 2, pico8_value_ref(mp), qh_vec_ref(qh_at(64, 64)), &v));
+        ((const pico8_struct_header_t *)gate)->cls->hq(gate, mp, qh_vec_ref(qh_at(64, 64)).as.ref);
         assert(et_state(gate) == 2u);
     }
     h = fold_hv_qh(h);
@@ -3055,10 +3051,10 @@ static uint32_t fold_hj_qy(uint32_t h, const void *e) {
 }
 
 static pico8_value_t call_mm(void *e) {
-    pico8_value_t out = nil();
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)e)->cls;
 
-    assert(pico8_mv(e, "mm", 0, nil(), nil(), &out));
-    return out;
+    assert(cls->mm != NULL);
+    return pico8_value_ref(cls->mm(e));
 }
 
 static void test_hj_members_by_name(void) {
@@ -3319,7 +3315,6 @@ static void mx_join_row(void *qu, void *mx, int qe) {
     pico8_jy_t *row = pico8_jy_new(&want_qe);
     pico8_list_t *jy = malloc(sizeof *jy);
     pico8_jc_keys_t jc_keys = {0};
-    pico8_value_t out;
     void *jc;
 
     row->has_gc = 1;
@@ -3330,7 +3325,7 @@ static void mx_join_row(void *qu, void *mx, int qe) {
     jc_keys.qu = qu;
     jc = pico8_jc_new(&jc_keys);
     pico8_fm_hy()->nz = pico8_fixed_from_int(999);
-    assert(pico8_mv(jc, "ey", 1, pico8_value_ref(mx), pico8_value_ref(NULL), &out));
+    pico8_jc_struct_class()->ey(jc, mx);
 }
 
 static void test_mx_members_by_name(void) {

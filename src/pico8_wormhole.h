@@ -75,7 +75,7 @@ void pico8_mz_pq(pico8_mz_t *self);
 
 /* Calls `pico8_bv` first, which is what sets `ra`/`p` and a first `et`;
  * the "too far" branch here then overwrites `et`. */
-void pico8_mz_hq(pico8_mz_t *self, pico8_value_t mp, pico8_value_t rp);
+void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
 
 void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t);
 

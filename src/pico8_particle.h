@@ -12,10 +12,10 @@
  * no-op, a non-NULL `self` must be a struct (asserted), and an absent or
  * wrong-kind field reads as its zero default. */
 
-/* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` returns a REF to
- * one on the heap, `ei` updates it in place, nothing frees it. `has_a` is 0
- * for `g_`'s particles, whose `a` is absent and never read. */
-typedef struct {
+/* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` returns one on
+ * the heap, `ei` updates it in place, nothing frees it. `has_a` is 0 for
+ * `g_`'s particles, whose `a` is absent and never read. */
+typedef struct pico8_qy {
     pico8_vec_t p;
     pico8_vec_t v;
     int has_a;

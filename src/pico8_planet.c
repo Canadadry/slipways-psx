@@ -47,13 +47,6 @@ int pico8_jo_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *r
     return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
-pico8_value_t pico8_jo_gg_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_jo_gg((const pico8_jo_t *)self);
-}
-
 void pico8_jo_hb_dispatch(void *self) {
     pico8_jo_hb((pico8_jo_t *)self);
 }
@@ -78,33 +71,16 @@ pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *r
     return pico8_jo_ldown((pico8_jo_t *)self);
 }
 
-pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_struct_header_t *sw = NULL;
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        sw = (pico8_struct_header_t *)arg0.as.ref;
-    }
+int pico8_jo_is_family(const pico8_struct_header_t *e) {
+    return e->cls->states[PICO8_STATE_LL] == pico8_jo_ll_dispatch;
+}
+
+void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw) {
     pico8_jo_kf((pico8_jo_t *)self, sw);
-    return pico8_value_ref(NULL);
 }
 
-pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_jo_trade_proposal_t *lw = NULL;
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        lw = (pico8_jo_trade_proposal_t *)arg0.as.ref;
-    }
+void pico8_jo_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw) {
     pico8_jo_cn((pico8_jo_t *)self, lw);
-    return pico8_value_ref(NULL);
-}
-
-pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_ref(pico8_jo_ib((pico8_jo_t *)self));
 }
 
 void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
@@ -216,7 +192,7 @@ static void jo_take_ma(pico8_value_t value, pico8_fixed_t *out) {
 }
 
 static int jo_is_fo_holder_class(const pico8_struct_class_t *cls) {
-    return cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch || cls == pico8_jc_struct_class();
+    return cls->hq == pico8_bv_dispatch || cls == pico8_jc_struct_class();
 }
 
 static void jo_take_holder(pico8_value_t value, pico8_struct_header_t **out) {
@@ -485,19 +461,14 @@ static int pico8_jo_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_jo_struct_class = {
-    .methods =
-        {
-            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        },
     .kj = pico8_jo_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
+    .kf = pico8_jo_kf_dispatch,
+    .cn = pico8_jo_cn_dispatch,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .field = pico8_jo_field,
     .set_field = pico8_jo_set_field,

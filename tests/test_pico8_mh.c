@@ -361,7 +361,8 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     for (i = 0; i < 4; i++) {
         assert(!listed(pico8_cv(others[i]), from_pj) && !listed(pico8_cv(others[i]), generic));
     }
-    assert(pico8_mv(generic, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(((pico8_mh_t *)generic)->lh != NULL);
+    out = ((pico8_mh_t *)generic)->lh(generic, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     assert(g_lh_calls == 1 && out.kind == PICO8_VALUE_BOOL && out.as.boolean);
     assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] == NULL);
 }
@@ -408,7 +409,6 @@ static void test_mh_members_by_name(void) {
     const void *nu;
     const pico8_str_seq_t *tags;
     pico8_value_t v;
-    pico8_value_t out;
     uint32_t h = 2166136261u;
     int calls;
     int i;
@@ -425,7 +425,7 @@ static void test_mh_members_by_name(void) {
     assert(tags->count == 1 && strcmp(tags->items[0], "mh") == 0);
     assert(!has_member(a, "lh", &v));
     assert(!has_member(a, "p_", &v));
-    assert(!pico8_mv(a, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(((pico8_mh_t *)a)->lh == NULL);
     assert(listed(pico8_hv(), a) && listed(pico8_cv("ev"), a) && listed(pico8_cg("mh"), a));
     assert(pico8_kc() == a);
 
@@ -440,7 +440,7 @@ static void test_mh_members_by_name(void) {
     assert(has_member(b, "rh", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(3));
     assert(has_member(b, "lh", &v) && v.kind == PICO8_VALUE_FUNCTION && v.as.function == counting_lh);
     calls = g_lh_calls;
-    assert(pico8_mv(b, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    (void)((pico8_mh_t *)b)->lh(b, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     assert(g_lh_calls == calls + 1);
     assert(!has_member(b, "p_", &v));
     assert(has_member(a, "p_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 1);
@@ -461,13 +461,12 @@ static void test_mh_nil_lh_key_reads_absent(void) {
     pico8_mh_keys_t keys = {0};
     void *box;
     pico8_value_t v;
-    pico8_value_t out;
 
     pico8_jl();
     keys.lh = NULL;
     box = pico8_mh_new(&keys);
     assert(!has_member(box, "lh", &v));
-    assert(!pico8_mv(box, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(((pico8_mh_t *)box)->lh == NULL);
 }
 
 int main(void) {
