@@ -15,6 +15,7 @@
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
+#include "pico8_planet_family.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_research_display.h"
@@ -31,25 +32,6 @@ static int pico8_jo_truthy(pico8_value_t v) {
         return 0;
     }
     return 1;
-}
-
-/* Readers of a name no `jo` has a member for (`qh`, `qw`), through the
- * planet's descriptor: an absent field or a wrong kind reads as the
- * zero/false default. */
-static int field_truthy(const pico8_jo_t *self, const char *name) {
-    pico8_value_t v;
-    if (!pico8_entity_get_field(self, name, &v)) {
-        return 0;
-    }
-    return pico8_jo_truthy(v);
-}
-
-static pico8_fixed_t field_fixed(const pico8_jo_t *self, const char *name) {
-    pico8_value_t v;
-    if (pico8_entity_get_field(self, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
 }
 
 /* `kw.qe` as a value: nil when absent. */
@@ -147,7 +129,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_lq_keys_t h_keys;
     pico8_value_t h_item;
     int n = 0;
-    pico8_value_t px_val;
+    const pico8_qh_t *qh;
     const pico8_jb_row_t *icon_row = NULL;
     pico8_list_t *ji;
     pico8_jo_gh_ctx_t ctx;
@@ -160,8 +142,9 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
 
     memset(bs, 0, sizeof bs);
-    if (pico8_entity_get_field(self, "px", &px_val) && pico8_jo_truthy(px_val)) {
-        icon_row = px_val.as.ref;
+    qh = pico8_qh_of(&self->ke.header);
+    if (qh != NULL && qh->px != NULL) {
+        icon_row = qh->px;
     } else if (self->has_mi) {
         int mi = pico8_fixed_flr_int(self->mi);
 
@@ -220,7 +203,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             pico8_list_t *merged = malloc(sizeof *merged);
             pico8_list_init(&prefix);
             pico8_list_add(&prefix, pico8_value_string("wants more:"));
-            if (field_truthy(self, "qh")) {
+            if (qh != NULL && pico8_jo_truthy(pico8_qh_qh(qh))) {
                 pico8_list_t last_only;
                 pico8_list_init(&last_only);
                 pico8_list_add(&last_only, jy->items[jy->count - 1]);
@@ -417,7 +400,8 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     int px;
     int py;
     int spr_index = 43;
-    pico8_value_t s_val;
+    const pico8_qh_t *qh;
+    const pico8_nl_t *nl;
 
     if (self == NULL || !pico8_gd((const pico8_struct_header_t *)self)) {
         return;
@@ -441,16 +425,18 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     pico8_circfill(gfx, mem, px, py, 7, 0);
 
     /* An absent `qw` reads as 0, i.e. the default palette block. */
-    pico8_dv(mem, field_fixed(self, "qw"));
+    nl = pico8_nl_of(&self->ke.header);
+    pico8_dv(mem, nl != NULL ? nl->qw : pico8_fixed_from_int(0));
     pico8_palt(mem, 3, 0);
     pico8_palt(mem, 0, 1);
 
     /* `A and B or C`: `nk.s` is never absent, so only a nil `nk` falls
      * through to `self.s`, then to the literal 43. */
+    qh = pico8_qh_of(&self->ke.header);
     if (self->nk != NULL) {
         spr_index = self->nk->s;
-    } else if (pico8_entity_get_field(self, "s", &s_val) && s_val.kind == PICO8_VALUE_FIXED) {
-        spr_index = pico8_fixed_flr_int(s_val.as.fixed);
+    } else if (qh != NULL) {
+        spr_index = pico8_fixed_flr_int(qh->s);
     }
     pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
     pico8_dv_default(mem);

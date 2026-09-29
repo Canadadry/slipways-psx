@@ -670,6 +670,16 @@ const pico8_mx_start_t pico8_mx_start = {
     .q_ = 0xfae0,
 };
 
+const pico8_kind_rec_t pico8_qh_kind_rec = {NULL, 1, 0xae0000, qh_me_text, 1, 0xf0000};
+const pico8_kind_rec_t pico8_nl_kind_rec = {nl_rr_text, 1, 0x440000, qh_me_text, 1, 0x140000};
+const pico8_kind_rec_t pico8_os_kind_rec = {NULL, 1, 0x640000, qh_me_text, 1, 0xf0000};
+const pico8_kind_rec_t pico8_hj_kind_rec = {hj_rr_text, 1, 0xa60000, qh_me_text, 1, 0x3c0000};
+const pico8_kind_rec_t pico8_pm_kind_rec = {hj_rr_text, 1, 0x620000, pm_me_text, 1, 0x3c0000};
+const pico8_kind_rec_t pico8_ga_kind_rec = {NULL, 0, 0x0, jo_me_text, 0, 0x0};
+const pico8_kind_rec_t pico8_nr_kind_rec = {nr_rr_text, 1, 0xaa0000, qh_me_text, 1, 0xa0000};
+const pico8_kind_rec_t pico8_fr_kind_rec = {fr_rr_text, 1, 0x4e0000, qh_me_text, 1, 0x190000};
+const pico8_kind_rec_t pico8_mx_kind_rec = {mx_rr_text, 1, 0x420000, qh_me_text, 1, 0x280000};
+
 int pico8_int_seq_at(const int *seq, int count, int i, int *out) {
     assert(seq != NULL && count >= 0 && "a sequence is a table and its length");
     if (i < 1 || i > count) {

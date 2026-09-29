@@ -82,34 +82,6 @@ static const pico8_struct_class_t g_ie_ke_view_struct_class = {
     .field = pico8_ie_ke_view_field,
 };
 
-static void ie_ke_take_string(const pico8_entity_kind_t *kind, const char *name, const char **out) {
-    pico8_value_t v = pico8_value_ref(NULL);
-
-    *out = NULL;
-    if (!kind->field(name, &v) || (v.kind == PICO8_VALUE_REF && v.as.ref == NULL)) {
-        return;
-    }
-    assert(v.kind == PICO8_VALUE_STRING && v.as.string != NULL &&
-           "ie_ke.rr/me: a chain value neither nil nor a string does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = v.as.string;
-}
-
-static void ie_ke_take_fixed(const pico8_entity_kind_t *kind, const char *name, pico8_fixed_t *out, int *has) {
-    pico8_value_t v = pico8_value_ref(NULL);
-
-    *out = 0;
-    *has = 0;
-    if (!kind->field(name, &v) || (v.kind == PICO8_VALUE_REF && v.as.ref == NULL)) {
-        return;
-    }
-    assert(v.kind == PICO8_VALUE_FIXED &&
-           "ie_ke.s/od: a chain value neither nil nor fixed does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = v.as.fixed;
-    *has = 1;
-}
-
 pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
     pico8_ie_ke_t view;
@@ -123,10 +95,12 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     view.od = 0;
     view.has_od = 0;
     if (kind != NULL) {
-        ie_ke_take_string(kind, "rr", &view.rr);
-        ie_ke_take_fixed(kind, "s", &view.s, &view.has_s);
-        ie_ke_take_string(kind, "me", &view.me);
-        ie_ke_take_fixed(kind, "od", &view.od, &view.has_od);
+        view.rr = kind->rec->rr;
+        view.s = kind->rec->s;
+        view.has_s = kind->rec->has_s;
+        view.me = kind->rec->me;
+        view.od = kind->rec->od;
+        view.has_od = kind->rec->has_od;
     }
     return view;
 }

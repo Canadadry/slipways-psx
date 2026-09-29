@@ -187,6 +187,7 @@ static const pico8_struct_class_t g_qh_struct_class = {
         },
     .field = pico8_qh_field,
     .set_field = pico8_qh_set_field,
+    .parent = pico8_jo_struct_class,
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
@@ -305,6 +306,7 @@ static const pico8_struct_class_t g_nl_struct_class = {
         },
     .field = pico8_nl_field,
     .set_field = pico8_nl_set_field,
+    .parent = pico8_qh_struct_class,
 };
 
 static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
@@ -358,6 +360,7 @@ static const pico8_struct_class_t g_os_struct_class = {
         },
     .field = pico8_qh_field,
     .set_field = pico8_qh_set_field,
+    .parent = pico8_qh_struct_class,
 };
 
 static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
@@ -514,6 +517,7 @@ static const pico8_struct_class_t g_hj_struct_class = {
         },
     .field = pico8_hj_field,
     .set_field = pico8_hj_set_field,
+    .parent = pico8_qh_struct_class,
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
@@ -628,6 +632,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
         },
     .field = pico8_pm_field,
     .set_field = pico8_hj_set_field,
+    .parent = pico8_hj_struct_class,
 };
 
 static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
@@ -855,6 +860,7 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .field = pico8_ga_field,
     .set_field = pico8_ga_set_field,
+    .parent = pico8_jo_struct_class,
 };
 
 static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
@@ -946,7 +952,7 @@ static int pico8_qh_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_jo_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_qh_kind = {pico8_qh_struct_new, pico8_qh_kind_field};
+static const pico8_entity_kind_t g_qh_kind = {pico8_qh_struct_new, pico8_qh_kind_field, &pico8_qh_kind_rec};
 
 const pico8_entity_kind_t *pico8_qh_kind(void) {
     return &g_qh_kind;
@@ -983,7 +989,7 @@ static int pico8_nl_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_qh_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_nl_kind = {pico8_nl_struct_new, pico8_nl_kind_field};
+static const pico8_entity_kind_t g_nl_kind = {pico8_nl_struct_new, pico8_nl_kind_field, &pico8_nl_kind_rec};
 
 const pico8_entity_kind_t *pico8_nl_kind(void) {
     return &g_nl_kind;
@@ -995,6 +1001,24 @@ const pico8_struct_class_t *pico8_nl_struct_class(void) {
 
 pico8_nl_t *pico8_nl_new(const pico8_jo_keys_t *keys) {
     return pico8_nl_struct_new(keys);
+}
+
+const pico8_qh_t *pico8_qh_of(const pico8_struct_header_t *e) {
+    const pico8_struct_class_t *cls = e != NULL ? e->cls : NULL;
+
+    while (cls != NULL && cls != &g_qh_struct_class) {
+        cls = cls->parent != NULL ? cls->parent() : NULL;
+    }
+    return cls != NULL ? (const pico8_qh_t *)e : NULL;
+}
+
+const pico8_nl_t *pico8_nl_of(const pico8_struct_header_t *e) {
+    const pico8_struct_class_t *cls = e != NULL ? e->cls : NULL;
+
+    while (cls != NULL && cls != &g_nl_struct_class) {
+        cls = cls->parent != NULL ? cls->parent() : NULL;
+    }
+    return cls != NULL ? (const pico8_nl_t *)e : NULL;
 }
 
 int pico8_os_ready(void) {
@@ -1016,7 +1040,7 @@ static int pico8_os_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_qh_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_os_kind = {pico8_os_struct_new, pico8_os_kind_field};
+static const pico8_entity_kind_t g_os_kind = {pico8_os_struct_new, pico8_os_kind_field, &pico8_os_kind_rec};
 
 const pico8_entity_kind_t *pico8_os_kind(void) {
     return &g_os_kind;
@@ -1053,7 +1077,7 @@ static int pico8_hj_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_qh_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_hj_kind = {pico8_hj_struct_new, pico8_hj_kind_field};
+static const pico8_entity_kind_t g_hj_kind = {pico8_hj_struct_new, pico8_hj_kind_field, &pico8_hj_kind_rec};
 
 const pico8_entity_kind_t *pico8_hj_kind(void) {
     return &g_hj_kind;
@@ -1086,7 +1110,7 @@ static int pico8_pm_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_hj_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_pm_kind = {pico8_pm_struct_new, pico8_pm_kind_field};
+static const pico8_entity_kind_t g_pm_kind = {pico8_pm_struct_new, pico8_pm_kind_field, &pico8_pm_kind_rec};
 
 const pico8_entity_kind_t *pico8_pm_kind(void) {
     return &g_pm_kind;
@@ -1123,7 +1147,7 @@ static void *pico8_ga_kind_new(const pico8_jo_keys_t *keys) {
     return pico8_ga_struct_new(&ga_keys);
 }
 
-static const pico8_entity_kind_t g_ga_kind = {pico8_ga_kind_new, pico8_ga_kind_field};
+static const pico8_entity_kind_t g_ga_kind = {pico8_ga_kind_new, pico8_ga_kind_field, &pico8_ga_kind_rec};
 
 const pico8_entity_kind_t *pico8_ga_kind(void) {
     return &g_ga_kind;

@@ -703,6 +703,28 @@ static void test_qh_is_a_struct(void) {
     }
 }
 
+/* qh's lineage answers pico8_qh_of() with itself, through one to three
+ * `parent` links; jo, ga and NULL answer NULL. Only nl answers pico8_nl_of(). */
+static void test_qh_of_follows_parent(void) {
+    const pico8_entity_kind_t *const lineage[] = {pico8_qh_kind(), pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(),
+                                                  pico8_pm_kind(), pico8_mx_kind(), pico8_nr_kind(), pico8_fr_kind()};
+    pico8_jo_keys_t keys = {"s99", NULL, NULL};
+    const pico8_struct_header_t *e;
+    size_t i;
+
+    start_game();
+    for (i = 0; i < sizeof lineage / sizeof lineage[0]; i++) {
+        e = lineage[i]->new_entity(&keys);
+        assert(pico8_qh_of(e) == (const void *)e);
+        assert(pico8_nl_of(e) == (lineage[i] == pico8_nl_kind() ? (const void *)e : NULL));
+    }
+    e = pico8_ga_kind()->new_entity(&keys);
+    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL);
+    e = (const pico8_struct_header_t *)pico8_jo_new(&keys);
+    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL);
+    assert(pico8_qh_of(NULL) == NULL && pico8_nl_of(NULL) == NULL);
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
@@ -744,6 +766,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_descendants);
     in_fresh_child(test_qh_is_a_struct);
+    in_fresh_child(test_qh_of_follows_parent);
 
     printf("test_pico8_qh: all tests passed\n");
     return 0;

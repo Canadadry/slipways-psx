@@ -621,7 +621,7 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
 }
 
 void pico8_jo_pq(pico8_jo_t *self) {
-    pico8_value_t hp_val;
+    const pico8_qh_t *qh;
     pico8_list_t *oe;
 
     if (self == NULL) {
@@ -632,14 +632,10 @@ void pico8_jo_pq(pico8_jo_t *self) {
     pico8_list_init(oe);
     self->oe = oe;
 
-    if (pico8_entity_get_field(self, "hp", &hp_val) && pico8_jo_truthy(hp_val)) {
-        pico8_hp_t *target = NULL;
+    qh = pico8_qh_of(&self->ke.header);
+    if (qh != NULL) {
+        pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(qh->hp));
 
-        if (hp_val.kind == PICO8_VALUE_FIXED) {
-            target = pico8_gb_at(pico8_fixed_flr_int(hp_val.as.fixed));
-        } else if (hp_val.kind == PICO8_VALUE_STRING) {
-            target = pico8_gb_find(hp_val.as.string);
-        }
         if (target != NULL) {
             pico8_jo_lz(self, target);
         }

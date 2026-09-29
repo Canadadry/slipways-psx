@@ -10,6 +10,7 @@
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
+#include "pico8_planet_family.h"
 #include "pico8_probe.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
@@ -20,14 +21,6 @@ static int economy_truthy(pico8_value_t v) {
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
-}
-
-static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
-        return 0;
-    }
-    return economy_truthy(v);
 }
 
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
@@ -56,7 +49,9 @@ static int call_gg_truthy(pico8_struct_header_t *pt) {
 }
 
 pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
-    if (field_truthy(pt, "qh")) {
+    const pico8_qh_t *qh = pico8_qh_of(pt);
+
+    if (qh != NULL && economy_truthy(pico8_qh_qh(qh))) {
         const pico8_list_t *qh_list = pico8_cg("qh");
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }

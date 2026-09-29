@@ -161,6 +161,14 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_nl_t *pico8_nl_new(const pico8_jo_keys_t *keys);
 
+/* `e` itself when its class is qh's or has qh's up its `parent` chain; NULL
+ * otherwise, and for a NULL `e`. */
+const pico8_qh_t *pico8_qh_of(const pico8_struct_header_t *e);
+
+/* `e` itself when its class is nl's or has nl's up its `parent` chain; NULL
+ * otherwise, and for a NULL `e`. */
+const pico8_nl_t *pico8_nl_of(const pico8_struct_header_t *e);
+
 int pico8_os_ready(void);
 const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);

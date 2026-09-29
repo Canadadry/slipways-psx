@@ -248,6 +248,22 @@ static void test_kind_reader_serves_the_generated_defaults(void) {
     assert(!kind_has(8, "od"));
 }
 
+/* Each kind's `rec` holds what its reader serves for `rr`, `s`, `me` and
+ * `od`: the same presence, value and string pointer. */
+static void test_kind_rec_matches_the_reader(void) {
+    int i;
+
+    for (i = 0; i < KIND_COUNT; i++) {
+        const pico8_kind_rec_t *rec = kind_of(i)->rec;
+
+        assert(rec != NULL);
+        assert(kind_has(i, "rr") ? rec->rr == kind_string(i, "rr") : rec->rr == NULL);
+        assert(kind_has(i, "s") ? rec->has_s && rec->s == kind_fixed(i, "s") : !rec->has_s && rec->s == 0);
+        assert(kind_has(i, "me") ? rec->me == kind_string(i, "me") : rec->me == NULL);
+        assert(kind_has(i, "od") ? rec->has_od && rec->od == kind_fixed(i, "od") : !rec->has_od && rec->od == 0);
+    }
+}
+
 /* `kv[hp.cw]` only ever sees "pm" or "ga": every research of `gb` carries
  * one of them as `cw`, or none. */
 static void test_every_cw_is_pm_or_ga(void) {
@@ -749,6 +765,7 @@ int main(void) {
     pico8_jl();
     test_kind_fields_and_build();
     test_kind_reader_serves_the_generated_defaults();
+    test_kind_rec_matches_the_reader();
     test_ie_ke_view_by_name();
     test_ie_members_by_name();
     test_ie_writer_stops_off_row();

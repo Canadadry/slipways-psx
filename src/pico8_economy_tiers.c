@@ -7,6 +7,7 @@
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
 #include "pico8_planet.h"
+#include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
 #include "pico8_research.h"
 #include "pico8_slipway.h"
@@ -26,14 +27,6 @@ static int economy_value_equal_content(pico8_value_t a, pico8_value_t b) {
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
-}
-
-static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst == NULL || !pico8_entity_get_field(inst, name, &v)) {
-        return 0;
-    }
-    return economy_truthy(v);
 }
 
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
@@ -281,7 +274,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         return pico8_fixed_from_int(1);
     }
 
-    if (field_truthy(pt, "nl")) {
+    if (pico8_nl_of(pt) != NULL) {
         int count = 0;
         if (jy != NULL) {
             for (i = 0; i < jy->count; i++) {

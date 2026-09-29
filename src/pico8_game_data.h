@@ -39,6 +39,18 @@ typedef struct {
     const pico8_vec_t *items;
 } pico8_vec_seq_t;
 
+/* A kind's `rr`, `s`, `me`, `od` as its chain of defaults resolves them: a
+ * NULL string, or has_* 0, when absent. The strings are the ones the
+ * pico8_X_start of the class that sets each points at. */
+typedef struct {
+    const char *rr;
+    int has_s;
+    pico8_fixed_t s;
+    const char *me;
+    int has_od;
+    pico8_fixed_t od;
+} pico8_kind_rec_t;
+
 /* qe is only meaningful when has_qe is set. */
 typedef struct {
     int has_qe;
@@ -537,6 +549,15 @@ extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
 extern const pico8_nr_start_t pico8_nr_start;
 extern const pico8_fr_start_t pico8_fr_start;
 extern const pico8_mx_start_t pico8_mx_start;
+extern const pico8_kind_rec_t pico8_qh_kind_rec;
+extern const pico8_kind_rec_t pico8_nl_kind_rec;
+extern const pico8_kind_rec_t pico8_os_kind_rec;
+extern const pico8_kind_rec_t pico8_hj_kind_rec;
+extern const pico8_kind_rec_t pico8_pm_kind_rec;
+extern const pico8_kind_rec_t pico8_ga_kind_rec;
+extern const pico8_kind_rec_t pico8_nr_kind_rec;
+extern const pico8_kind_rec_t pico8_fr_kind_rec;
+extern const pico8_kind_rec_t pico8_mx_kind_rec;
 /* mz.jj's qs: the table jj=o(qs=...) of mz's spec. */
 extern const char pico8_mz_jj_qs[];
 

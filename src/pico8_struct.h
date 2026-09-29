@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "pico8_coverage.h"
+#include "pico8_game_data.h"
 #include "pico8_type_tag.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -75,7 +76,8 @@ struct pico8_jo_trade_proposal;
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
  * instance decides. `mm` returns a fresh particle the caller owns. `field`
  * is NULL only for a class no generic consumer ever reaches, `set_field`
- * for a class no generic writer ever reaches. */
+ * for a class no generic writer ever reaches. `parent` returns the class
+ * whose struct this one embeds first; it is NULL for a root. */
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
@@ -95,6 +97,7 @@ struct pico8_struct_class {
     pico8_state_fn states[PICO8_STATE_COUNT];
     pico8_struct_field_fn field;
     pico8_struct_set_field_fn set_field;
+    const pico8_struct_class_t *(*parent)(void);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).
@@ -111,10 +114,13 @@ typedef struct {
  * `static const` per kind, never freed, whose first member is no tag, so
  * pico8_type_tag_of() reads it UNKNOWN. `new_entity` is the kind's
  * pico8_X_new(). `field` reads the kind's defaults; it returns 0, leaving
- * *out_value untouched, when `name` is absent from the whole chain. */
+ * *out_value untouched, when `name` is absent from the whole chain. `rec`,
+ * never NULL, holds what `field` answers for `rr`, `s`, `me` and `od` while
+ * the kind's modules are up, and still holds it once they are down. */
 typedef struct {
     void *(*new_entity)(const pico8_jo_keys_t *keys);
     int (*field)(const char *name, pico8_value_t *out_value);
+    const pico8_kind_rec_t *rec;
 } pico8_entity_kind_t;
 
 #endif

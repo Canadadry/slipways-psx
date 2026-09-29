@@ -8,6 +8,7 @@
 #include "pico8_entity.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
+#include "pico8_planet_family.h"
 #include "pico8_trade.h"
 #include "pico8_ref_audit.h"
 #include "pico8_slipway.h"
@@ -150,13 +151,12 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         qe_val = pico8_jy_qe(i);
 
         if (have_r_q && pico8_value_equal(qe_val, r_q)) {
-            pico8_value_t ba_val;
+            const pico8_qh_t *qh = pico8_qh_of(&self->ke.header);
             int accepted = 0;
 
-            if (pico8_entity_get_field(self, "ba", &ba_val) && ba_val.kind == PICO8_VALUE_REF &&
-                ba_val.as.ref != NULL) {
+            if (qh != NULL && qh->ba != NULL) {
                 accepted = t_qe.kind == PICO8_VALUE_FIXED &&
-                           pico8_int_seq_has_fixed((const pico8_int_seq_t *)ba_val.as.ref, t_qe.as.fixed);
+                           pico8_int_seq_has_fixed(qh->ba, t_qe.as.fixed);
             }
             if (accepted) {
                 assert(t_qe.kind == PICO8_VALUE_FIXED && "a want's qe is a resource of r, never a boolean");

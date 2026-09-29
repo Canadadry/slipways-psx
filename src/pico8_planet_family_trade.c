@@ -227,6 +227,7 @@ static const pico8_struct_class_t g_nr_struct_class = {
         },
     .field = pico8_nr_field,
     .set_field = pico8_nr_set_field,
+    .parent = pico8_qh_struct_class,
 };
 
 /* Initializes an allocated pico8_nr_t under `cls`: qh's part, nr's members
@@ -295,6 +296,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
         },
     .field = pico8_fr_field,
     .set_field = pico8_nr_set_field,
+    .parent = pico8_nr_struct_class,
 };
 
 static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
@@ -425,6 +427,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
         },
     .field = pico8_mx_field,
     .set_field = pico8_mx_set_field,
+    .parent = pico8_hj_struct_class,
 };
 
 static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
@@ -503,7 +506,7 @@ static int pico8_nr_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_qh_kind()->field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_nr_kind = {pico8_nr_struct_new, pico8_nr_kind_field};
+static const pico8_entity_kind_t g_nr_kind = {pico8_nr_struct_new, pico8_nr_kind_field, &pico8_nr_kind_rec};
 
 const pico8_entity_kind_t *pico8_nr_kind(void) {
     return &g_nr_kind;
@@ -540,7 +543,7 @@ static int pico8_fr_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_nr_kind_field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_fr_kind = {pico8_fr_struct_new, pico8_fr_kind_field};
+static const pico8_entity_kind_t g_fr_kind = {pico8_fr_struct_new, pico8_fr_kind_field, &pico8_fr_kind_rec};
 
 const pico8_entity_kind_t *pico8_fr_kind(void) {
     return &g_fr_kind;
@@ -577,7 +580,7 @@ static int pico8_mx_kind_field(const char *name, pico8_value_t *out_value) {
     return pico8_hj_kind()->field(name, out_value);
 }
 
-static const pico8_entity_kind_t g_mx_kind = {pico8_mx_struct_new, pico8_mx_kind_field};
+static const pico8_entity_kind_t g_mx_kind = {pico8_mx_struct_new, pico8_mx_kind_field, &pico8_mx_kind_rec};
 
 const pico8_entity_kind_t *pico8_mx_kind(void) {
     return &g_mx_kind;
