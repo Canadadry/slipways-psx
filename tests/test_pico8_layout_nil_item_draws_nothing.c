@@ -100,15 +100,15 @@ static int pixels_drawn(void) {
     return n;
 }
 
-/* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one
- * positional item, rendered onto a cleared screen. Returns its one cell, as
- * the row sorted `item` into it. */
-static pico8_lq_cell_t render_one_item(pico8_value_t item) {
-    pico8_lq_keys_t keys = {0};
+/* `lq({item}):ol(v(DRAW_X,DRAW_Y))` -- one real row holding one generated
+ * item, its keys taken by pico8_lq_keys_of_row, rendered onto a cleared
+ * screen. Returns its one cell, as the keys sorted `item` into it. */
+static pico8_lq_cell_t render_one_item(pico8_jb_item_t item) {
+    const pico8_jb_row_t row = {.count = 1, .items = &item};
+    pico8_lq_cell_t cells[1];
+    pico8_lq_keys_t keys = pico8_lq_keys_of_row(&row, cells, 1);
     pico8_lq_t *line;
 
-    keys.items = &item;
-    keys.count = 1;
     line = pico8_lq_new(&keys);
     assert(line != NULL && line->items_count == 1);
 
@@ -123,7 +123,7 @@ static void test_nil_item_draws_nothing(void) {
     int hits, drawn;
     pico8_lq_cell_t cell;
 
-    cell = render_one_item(pico8_value_ref(NULL));
+    cell = render_one_item((pico8_jb_item_t){.is_ref = 1});
     assert(cell.kind == PICO8_LQ_CELL_NOTHING);
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);
@@ -150,7 +150,7 @@ static void test_numeric_item_still_draws_its_sprite(void) {
     int hits, drawn;
     pico8_lq_cell_t cell;
 
-    cell = render_one_item(pico8_value_fixed(pico8_fixed_from_int(0)));
+    cell = render_one_item((pico8_jb_item_t){.n = 0});
     assert(cell.kind == PICO8_LQ_CELL_FIXED && cell.as.fixed == pico8_fixed_from_int(0));
 
     hits = sprite0_bottom_row_hits(&hit_x, &hit_y);

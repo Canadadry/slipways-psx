@@ -431,8 +431,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `mh` | `pico8_mh_t` | boîte de message, ses articles dans `items[PICO8_MH_ITEMS_CAP]` (12, `#bz`) et `items_count` ; ses clés : `pico8_mh_keys_t` (positionnels dans l'ordre, chacun un article `const pico8_jb_row_t *` de `bl`, `rh`, `lh`) |
 | `iv` | `pico8_iv_t` | toast flottant : monte lentement et s'efface en 50 ticks par changement de bloc de palette |
 | `pz(self,bs)` | `pico8_pz` | construit une boîte à partir des clés de ses boutons (`pico8_js_keys_t`, un tableau et son compte) et remplit `ok.le` avec ses icônes cliquables |
-| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels `pico8_value_t` dans l'ordre, `c`, `bg`, `score`, `ra`) ; ses positionnels, `items` (`items_count`), classés une fois à la construction en `pico8_lq_cell_t` : rien (nil et faux, confondus), fixe, chaîne, rangée (tuple), autre-vrai (`pico8_lq_cell_kind_t`, `PICO8_LQ_CELL_*`) |
-| — | `pico8_lq_keys_of_row` | les clés d'une rangée générée : ses items (une sous-rangée, un tuple, en REF vers elle) et son `c` |
+| `lq` | `pico8_lq_t` | une rangée d'icônes mise en page ; ses clés : `pico8_lq_keys_t` (positionnels en cases `pico8_lq_cell_t`, dans l'ordre, écrites par `pico8_lq_cell_nothing/fixed/string/row/item`, `c`, `bg`, `score`, `ra`) ; ses positionnels, `items` (`items_count`), copiés des clés : rien (nil et faux, confondus), fixe, chaîne, rangée (tuple), autre-vrai (`pico8_lq_cell_kind_t`, `PICO8_LQ_CELL_*`) |
+| — | `pico8_lq_keys_of_row` | les clés d'une rangée générée : ses items (une sous-rangée, un tuple, en case rangée) et son `c` |
 | `lq(row)` | `pico8_lq_copy` | la copie que `js:pq` fait d'une rangée : toutes ses cases dans l'ordre, ses `c`, `bg`, `score`, `ra`, remise en page |
 | `add(l, …)` de `hp:lq` | `pico8_lq_add` | ajoute une case à une rangée déjà mise en page, sans toucher `fs` ni `w` |
 | `jb` | `pico8_jb_t` | une bulle d'info ; ses clés sont ses lignes, une rangée générée `pico8_jb_row_t` (`dr`, `oy` de `nb`, `hp:jb`) |

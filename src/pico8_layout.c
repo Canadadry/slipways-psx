@@ -11,68 +11,58 @@
 static int g_layout_up = 0;
 static const pico8_struct_class_t g_lq_struct_class;
 
-/* Lua truthiness : seuls nil et false sont faux. La clause REF-NULL n'est pas
- * optionnelle — un test qui ne rejette que BOOL false rend nil vrai, le
- * classement d'un item nil tombait alors en TRUE, et le `elseif f then` de
- * `lq:mn` en faisait un sprite dont l'identifiant retombait à 0 : un bloc de
- * données brutes dessiné à l'écran. */
-static int pico8_layout_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
+pico8_lq_cell_t pico8_lq_cell_nothing(void) {
+    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_NOTHING};
+    return cell;
 }
 
-/* A nested row has no value form here: tuples and lines hold scalars. */
-static pico8_value_t pico8_jb_item_value(const pico8_jb_item_t *item) {
-    assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
-    if (item->s != NULL) {
-        return pico8_value_string(item->s);
-    }
-    if (item->is_false) {
-        return pico8_value_bool(0);
-    }
-    if (item->is_ref) {
-        return pico8_value_ref((void *)item->ref);
-    }
-    if (item->is_fixed) {
-        return pico8_value_fixed(item->fixed);
-    }
-    return pico8_value_fixed(pico8_fixed_from_int(item->n));
+pico8_lq_cell_t pico8_lq_cell_fixed(pico8_fixed_t x) {
+    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_FIXED, .as.fixed = x};
+    return cell;
 }
 
-/* A value that is not a row: a tuple's `f`, or a positional once a REF is
- * set apart. */
-static pico8_lq_cell_t pico8_lq_scalar_cell(pico8_value_t v) {
-    pico8_lq_cell_t cell;
+pico8_lq_cell_t pico8_lq_cell_string(const char *s) {
+    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_STRING, .as.s = s};
 
-    if (v.kind == PICO8_VALUE_FIXED) {
-        cell.kind = PICO8_LQ_CELL_FIXED;
-        cell.as.fixed = v.as.fixed;
-    } else if (v.kind == PICO8_VALUE_STRING && v.as.string != NULL) {
-        cell.kind = PICO8_LQ_CELL_STRING;
-        cell.as.s = v.as.string;
-    } else {
-        cell.kind = pico8_layout_truthy(v) ? PICO8_LQ_CELL_TRUE : PICO8_LQ_CELL_NOTHING;
+    assert(s != NULL && "lq: no producer writes a NULL string; its kind would have no reader in lq:mn");
+    return cell;
+}
+
+pico8_lq_cell_t pico8_lq_cell_row(const pico8_jb_row_t *row) {
+    pico8_lq_cell_t cell = {.kind = PICO8_LQ_CELL_ROW, .as.row = row};
+
+    /* Not optional: a nil read as anything but NOTHING falls through `elseif f`
+     * of `lq:mn` into a sprite 0, a block of raw data on screen
+     * (layout_nil_item_draws_nothing). */
+    if (row == NULL) {
+        return pico8_lq_cell_nothing();
     }
     return cell;
 }
 
-/* A positional REF is a tuple `{f,w,qw,qv}` or a `{qe=x}`, taken without
- * interrogating its tag: a list or a table arriving here would be read at
- * the wrong layout, quietly. */
-static pico8_lq_cell_t pico8_lq_cell_of(pico8_value_t v) {
-    pico8_lq_cell_t cell;
-
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        cell.kind = PICO8_LQ_CELL_ROW;
-        cell.as.row = v.as.ref;
-        return cell;
+pico8_lq_cell_t pico8_lq_cell_item(const pico8_jb_item_t *item) {
+    if (item->row != NULL) {
+        return pico8_lq_cell_row(item->row);
     }
-    return pico8_lq_scalar_cell(v);
+    if (item->s != NULL) {
+        return pico8_lq_cell_string(item->s);
+    }
+    if (item->is_false) {
+        return pico8_lq_cell_nothing();
+    }
+    if (item->is_ref) {
+        return pico8_lq_cell_row(item->ref);
+    }
+    if (item->is_fixed) {
+        return pico8_lq_cell_fixed(item->fixed);
+    }
+    return pico8_lq_cell_fixed(pico8_fixed_from_int(item->n));
+}
+
+/* A tuple's `f[1..4]` or an item of a line. */
+static pico8_lq_cell_t pico8_lq_scalar_item(const pico8_jb_item_t *item) {
+    assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
+    return pico8_lq_cell_item(item);
 }
 
 /* Writes out_item plus mn's second and third Lua return values (out_w,
@@ -90,27 +80,27 @@ static void pico8_lq_mn(const pico8_lq_t *self, pico8_lq_cell_t f, pico8_lq_item
         const pico8_jb_item_t wrap[] = {{.is_fixed = 1, .fixed = t->qe}, {.n = 5}};
         const pico8_jb_item_t *items = t->has_qe ? wrap : t->items;
         int count = t->has_qe ? 2 : t->count;
-        pico8_value_t f1, f2, f3, f4;
+        pico8_lq_cell_t f1, f2, f3, f4;
         int have_f1 = count >= 1;
         int have_f2 = count >= 2;
         int have_f3 = count >= 3;
         int have_f4 = count >= 4;
 
-        f1 = have_f1 ? pico8_jb_item_value(&items[0]) : pico8_value_bool(0);
-        f2 = have_f2 ? pico8_jb_item_value(&items[1]) : pico8_value_bool(0);
-        f3 = have_f3 ? pico8_jb_item_value(&items[2]) : pico8_value_bool(0);
-        f4 = have_f4 ? pico8_jb_item_value(&items[3]) : pico8_value_bool(0);
+        f1 = have_f1 ? pico8_lq_scalar_item(&items[0]) : pico8_lq_cell_nothing();
+        f2 = have_f2 ? pico8_lq_scalar_item(&items[1]) : pico8_lq_cell_nothing();
+        f3 = have_f3 ? pico8_lq_scalar_item(&items[2]) : pico8_lq_cell_nothing();
+        f4 = have_f4 ? pico8_lq_scalar_item(&items[3]) : pico8_lq_cell_nothing();
 
-        f = pico8_lq_scalar_cell(f1);
-        if (have_f2 && f2.kind == PICO8_VALUE_FIXED) {
+        f = f1;
+        if (have_f2 && f2.kind == PICO8_LQ_CELL_FIXED) {
             w = f2.as.fixed;
         }
-        if (have_f3 && pico8_layout_truthy(f3) && f3.kind == PICO8_VALUE_FIXED) {
+        if (have_f3 && f3.kind == PICO8_LQ_CELL_FIXED) {
             qw = f3.as.fixed;
         }
-        if (have_f4 && pico8_layout_truthy(f4)) {
+        if (have_f4 && f4.kind != PICO8_LQ_CELL_NOTHING) {
             have_qv = 1;
-            qv = (f4.kind == PICO8_VALUE_FIXED) ? f4.as.fixed : pico8_fixed_from_int(0);
+            qv = (f4.kind == PICO8_LQ_CELL_FIXED) ? f4.as.fixed : pico8_fixed_from_int(0);
         }
     }
 
@@ -219,12 +209,12 @@ void pico8_lq_ol_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_l
 /* The line `jb:pq` builds from one item of its row. */
 static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
     pico8_lq_keys_t keys = {0};
-    pico8_value_t s;
-    pico8_value_t items[PICO8_JB_LINE_CAP];
+    pico8_lq_cell_t s;
+    pico8_lq_cell_t items[PICO8_JB_LINE_CAP];
     int i;
 
     if (item->s != NULL) {
-        s = pico8_value_string(item->s);
+        s = pico8_lq_cell_string(item->s);
         keys.items = &s;
         keys.count = 1;
         return pico8_lq_new(&keys);
@@ -236,7 +226,7 @@ static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
     assert(item->row->count <= PICO8_JB_LINE_CAP &&
            "jb: the cart's longest bubble line (nb_9_oy_1) has 7 items; a longer one needs a bigger array");
     for (i = 0; i < item->row->count; i++) {
-        items[i] = pico8_jb_item_value(&item->row->items[i]);
+        items[i] = pico8_lq_scalar_item(&item->row->items[i]);
     }
     keys.items = items;
     keys.count = item->row->count;
@@ -345,7 +335,7 @@ static void *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
 
     if (keys != NULL) {
         for (k = 0; k < keys->count; k++) {
-            self->items[k] = pico8_lq_cell_of(keys->items[k]);
+            self->items[k] = keys->items[k];
         }
         if (keys->has_c) {
             self->c = keys->c;
@@ -365,17 +355,16 @@ static void *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
     return pico8_lq_struct_finish(self);
 }
 
-pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_value_t *items, int cap) {
+pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t *cells, int cap) {
     pico8_lq_keys_t keys = {0};
     int i;
 
     assert(row->count <= cap && row->fn == NULL && !row->has_qe &&
            "lq: a row passes positionals and c; fn or qe has no member -- stop, do not add one");
     for (i = 0; i < row->count; i++) {
-        items[i] = row->items[i].row != NULL ? pico8_value_ref((void *)row->items[i].row)
-                                             : pico8_jb_item_value(&row->items[i]);
+        cells[i] = pico8_lq_cell_item(&row->items[i]);
     }
-    keys.items = items;
+    keys.items = cells;
     keys.count = row->count;
     keys.has_c = row->has_c;
     keys.c = pico8_fixed_from_int(row->c);
@@ -401,12 +390,12 @@ pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row) {
 }
 
 /* TROU-7 */
-void pico8_lq_add(pico8_lq_t *self, pico8_value_t v) {
+void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell) {
     pico8_lq_cell_t *grown = realloc(self->items, (size_t)(self->items_count + 1) * sizeof *self->items);
 
     assert(grown != NULL);
     self->items = grown;
-    self->items[self->items_count] = pico8_lq_cell_of(v);
+    self->items[self->items_count] = cell;
     self->items_count++;
 }
 

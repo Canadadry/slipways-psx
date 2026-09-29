@@ -26,9 +26,9 @@ typedef struct {
     pico8_vec_t d;           /* offset within the line; set by lq:pq, not by lq:mn */
 } pico8_lq_item_t;
 
-/* The five cases `lq:mn` tells a positional apart by, set once when the
- * row is built: nil and false are both NOTHING, the union does not tell
- * them apart. TRUE is any other truthy value that is not a number, a
+/* The five cases `lq:mn` tells a positional apart by, written by the
+ * producers of the keys: nil and false are both NOTHING, the union does not
+ * tell them apart. TRUE is any other truthy value that is not a number, a
  * string or a row. */
 typedef enum {
     PICO8_LQ_CELL_NOTHING,
@@ -93,11 +93,11 @@ int pico8_jb_ready(void);
 const pico8_struct_class_t *pico8_lq_struct_class(void);
 const pico8_struct_class_t *pico8_jb_struct_class(void);
 
-/* The cart's keys of a row. `items` are its positionals in order, each
- * sorted into a cell of `lq.items` (what it points at borrowed); `c`, `bg`
- * and `score` count under their flags, `ra` NULL is nil. */
+/* The cart's keys of a row. `items` are its positionals in order, each a
+ * cell copied into `lq.items` (what it points at borrowed); `c`, `bg` and
+ * `score` count under their flags, `ra` NULL is nil. */
 typedef struct {
-    const pico8_value_t *items;
+    const pico8_lq_cell_t *items;
     int count;
     int has_c;
     pico8_fixed_t c;
@@ -112,18 +112,29 @@ typedef struct {
 /* `keys` is read, not kept (NULL: none). */
 pico8_lq_t *pico8_lq_new(const pico8_lq_keys_t *keys);
 
-/* The keys of a generated row, its items written into `items` (`cap` of
- * them at most; a nested row, a tuple, as a REF to it) and its `c`. `items`
+/* Cells as the producers of keys write them. */
+pico8_lq_cell_t pico8_lq_cell_nothing(void);
+pico8_lq_cell_t pico8_lq_cell_fixed(pico8_fixed_t x);
+/* `s` borrowed; a NULL `s` stops the run: no producer writes one. */
+pico8_lq_cell_t pico8_lq_cell_string(const char *s);
+/* `row` borrowed; NULL is nil: NOTHING. */
+pico8_lq_cell_t pico8_lq_cell_row(const pico8_jb_row_t *row);
+/* A generated item as `lq:mn` tells it apart: a row, a string, a number;
+ * false and a nil `ref` are NOTHING. What it points at is borrowed. */
+pico8_lq_cell_t pico8_lq_cell_item(const pico8_jb_item_t *item);
+
+/* The keys of a generated row, its items written into `cells` (`cap` of
+ * them at most; a nested row, a tuple, as a ROW cell) and its `c`. `cells`
  * must outlive the keys. */
-pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_value_t *items, int cap);
+pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t *cells, int cap);
 
 /* The copy `lq(row)`, laid out anew: every cell of `row` in order (what
  * they point at borrowed), its `c`, `bg`, `score`, `ra`. */
 pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row);
 
-/* The cart's `add(l, v)` on a row already laid out: `v` is appended to
+/* The cart's `add(l, v)` on a row already laid out: `cell` is appended to
  * `items`, `fs` and `w` are left as they were. */
-void pico8_lq_add(pico8_lq_t *self, pico8_value_t v);
+void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell);
 
 /* One line per item of `row` (NULL: no line): a string makes a one-item
  * row, a row its scalar items and its `c`, any other item an empty row. */

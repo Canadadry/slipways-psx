@@ -777,8 +777,8 @@ static pico8_vec_t *vec_at(int x, int y) {
 /* A button of `keys` whose `lq` is `{lq_text}`, and whose `h_`, when
  * `h_text` is not NULL, is `{h_text,c=13}`. */
 static void *build(pico8_js_keys_t keys, const char *lq_text, const char *h_text) {
-    pico8_value_t lq_item = pico8_value_string(lq_text);
-    pico8_value_t h_item = pico8_value_string(h_text);
+    pico8_lq_cell_t lq_item = pico8_lq_cell_string(lq_text);
+    pico8_lq_cell_t h_item;
     pico8_lq_keys_t lq = {0};
     pico8_lq_keys_t h_ = {0};
 
@@ -786,6 +786,7 @@ static void *build(pico8_js_keys_t keys, const char *lq_text, const char *h_text
     lq.count = 1;
     keys.lq_row = &lq;
     if (h_text != NULL) {
+        h_item = pico8_lq_cell_string(h_text);
         h_.items = &h_item;
         h_.count = 1;
         h_.has_c = 1;
@@ -1316,7 +1317,7 @@ static void *built(pico8_js_keys_t keys) {
 static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     const pico8_js_keys_t none = {0};
     pico8_js_keys_t k;
-    pico8_value_t from_keys[2];
+    pico8_lq_cell_t from_keys[2];
     pico8_lq_keys_t from = {0};
     pico8_js_t *b;
     int i;
@@ -1385,8 +1386,8 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
     assert(b->has_h_ && is_lq(b->h_) && b->h_ != row);
     h = fold_js_members(h, b);
 
-    from_keys[0] = pico8_value_string("from a list");
-    from_keys[1] = pico8_value_fixed(pico8_fixed_from_int(3));
+    from_keys[0] = pico8_lq_cell_string("from a list");
+    from_keys[1] = pico8_lq_cell_fixed(pico8_fixed_from_int(3));
     from.items = from_keys;
     from.count = 2;
     k = none;

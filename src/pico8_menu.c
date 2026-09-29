@@ -83,9 +83,9 @@ static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
 typedef struct {
     pico8_js_keys_t row;
     pico8_lq_keys_t lq;
-    pico8_value_t lq_items[2];
+    pico8_lq_cell_t lq_items[2];
     pico8_lq_keys_t h;
-    pico8_value_t h_items[2];
+    pico8_lq_cell_t h_items[2];
 } pico8_cr_row_t;
 
 /* TROU-7 */
@@ -97,8 +97,8 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     pico8_fixed_t gi_result;
     char *gi_str;
 
-    b->lq_items[0] = pico8_value_fixed(pico8_fixed_from_int(t->nk));
-    b->lq_items[1] = pico8_value_string(t->px);
+    b->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(t->nk));
+    b->lq_items[1] = pico8_lq_cell_string(t->px);
     b->lq.items = b->lq_items;
     b->lq.count = 2;
     b->lq.has_c = 1;
@@ -109,8 +109,8 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     gi_result = pico8_gi_nb(t);
     gi_str = pico8_tostr_fixed(gi_result);
 
-    b->h_items[0] = pico8_value_ref((void *)&pair);
-    b->h_items[1] = pico8_value_string(gi_str);
+    b->h_items[0] = pico8_lq_cell_row(&pair);
+    b->h_items[1] = pico8_lq_cell_string(gi_str);
     b->h.items = b->h_items;
     b->h.count = 2;
     b->row.has_h_ = 1;
@@ -187,8 +187,8 @@ void pico8_cr(void) {
         char *gr_str = pico8_tostr_fixed(pico8_fixed_from_int(gr));
         char *label = cr_concat2(gr_str, " invented");
         free(gr_str);
-        extra->lq_items[0] = pico8_value_fixed(pico8_fixed_from_int(30));
-        extra->lq_items[1] = pico8_value_string(label);
+        extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
+        extra->lq_items[1] = pico8_lq_cell_string(label);
         extra->lq.items = extra->lq_items;
         extra->lq.count = 2;
         extra->lq.has_c = 1;
@@ -272,7 +272,7 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
 static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     pico8_cb_kept_t cb_list;
     int cb_count;
-    pico8_value_t item;
+    pico8_lq_cell_t item;
     pico8_lq_keys_t keys = {0};
     pico8_lq_t *built;
 
@@ -283,7 +283,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     cb_list = pico8_cb(0);
     cb_count = cb_list.count;
 
-    item = pico8_value_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
+    item = pico8_lq_cell_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
     built = pico8_lq_new(&keys);
@@ -348,7 +348,7 @@ static void pico8_ix4_my_dispatch(pico8_js_t *self) {
     };
     pico8_js_keys_t bs[PICO8_HA_COUNT];
     pico8_lq_keys_t lq[PICO8_HA_COUNT];
-    pico8_value_t items[PICO8_HA_COUNT][PICO8_MENU_ROW_CAP];
+    pico8_lq_cell_t items[PICO8_HA_COUNT][PICO8_MENU_ROW_CAP];
     pico8_pz_frame_t frame = {0};
     int i;
     (void)self;
@@ -379,7 +379,7 @@ pico8_js_t *pico8_ix_button(int i) {
     const pico8_ix_entry_t *e;
     pico8_js_keys_t keys = {0};
     pico8_lq_keys_t lq;
-    pico8_value_t items[PICO8_MENU_ROW_CAP];
+    pico8_lq_cell_t items[PICO8_MENU_ROW_CAP];
 
     assert(g_menu_up && i >= 1 && i <= PICO8_IX_COUNT && "ix has PICO8_IX_COUNT rows, after pico8_menu_init()");
     e = &pico8_ix_table[i - 1];

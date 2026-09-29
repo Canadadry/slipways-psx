@@ -123,23 +123,6 @@ typedef struct {
     const pico8_ky_t *s;
 } pico8_pj_ph_ctx_t;
 
-/* A position of a row of `bz` as the value `lq` borrows. */
-static pico8_value_t pico8_pj_ph_item_value(const pico8_jb_item_t *item) {
-    if (item->s != NULL) {
-        return pico8_value_string(item->s);
-    }
-    if (item->row != NULL) {
-        return pico8_value_ref((void *)item->row);
-    }
-    if (item->is_false) {
-        return pico8_value_bool(0);
-    }
-    if (item->is_fixed) {
-        return pico8_value_fixed(item->fixed);
-    }
-    return pico8_value_fixed(pico8_fixed_from_int(item->n));
-}
-
 /* `s[i]`: absent outside 1..6. */
 static pico8_value_t pico8_pj_ph_s_at(const pico8_ky_t *s, int i) {
     switch (i) {
@@ -178,7 +161,7 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
     int score_i;
     pico8_value_t s_val;
     char *s_str;
-    pico8_value_t items[5];
+    pico8_lq_cell_t items[5];
     pico8_lq_keys_t keys = {0};
     pico8_lq_t *lq_inst;
     pico8_pj_ph_ld_t *wrapped;
@@ -229,7 +212,7 @@ static const pico8_jb_row_t *pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_
     /* TROU-25 */
     for (k = 0; k < 5; k++) {
         if (st->has[k]) {
-            items[keys.count++] = pico8_pj_ph_item_value(&st->items[k]);
+            items[keys.count++] = pico8_lq_cell_item(&st->items[k]);
         }
     }
     keys.items = items;
@@ -259,8 +242,8 @@ void pico8_pj_ph(pico8_pj_t *self) {
         static const pico8_jb_row_t back = {.count = 2, .items = back_items};
         pico8_js_keys_t spec1 = {0};
         pico8_js_keys_t spec2 = {0};
-        pico8_value_t lq1_item;
-        pico8_value_t lq2_item;
+        pico8_lq_cell_t lq1_item;
+        pico8_lq_cell_t lq2_item;
         pico8_lq_keys_t lq1 = {0};
         pico8_lq_keys_t lq2 = {0};
         pico8_js_t *made1;
@@ -268,7 +251,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
 
         (void)pico8_fq_new(NULL);
 
-        lq1_item = pico8_value_string(" again? ");
+        lq1_item = pico8_lq_cell_string(" again? ");
         lq1.items = &lq1_item;
         lq1.count = 1;
         spec1.has_fa = 1;
@@ -283,7 +266,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
         made1 = pico8_js_new(&spec1);
         (void)made1;
 
-        lq2_item = pico8_value_ref((void *)&back);
+        lq2_item = pico8_lq_cell_row(&back);
         lq2.items = &lq2_item;
         lq2.count = 1;
         spec2.has_fa = 1;

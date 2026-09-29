@@ -43,7 +43,7 @@ static int pico8_fv_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
 void pico8_fv_pq(pico8_fv_t *self) {
     pico8_js_keys_t bs[PICO8_BO_COUNT];
     pico8_lq_keys_t lq[PICO8_BO_COUNT];
-    pico8_value_t items[PICO8_BO_COUNT][PICO8_BO_ROW_CAP];
+    pico8_lq_cell_t items[PICO8_BO_COUNT][PICO8_BO_ROW_CAP];
     pico8_pz_frame_t frame = {0};
     int i;
 
