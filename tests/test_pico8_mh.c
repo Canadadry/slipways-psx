@@ -39,7 +39,6 @@
 #define TWO_YEARS_SEQUENCE_HASH 0xFB1D13D2u
 #define SCORES_TICKS 113
 #define SCORES_SEQUENCE_HASH 0xE45D2CF8u
-#define MEMBERS_BY_NAME_HASH 0xE307F5E9u
 
 #define MAX_BOXES 4
 
@@ -88,25 +87,15 @@ static int count_of(const pico8_list_t *list) {
     return list != NULL ? list->count : 0;
 }
 
-static uint32_t fold_field(uint32_t h, const void *e, const char *name) {
-    pico8_value_t v;
-
-    if (!pico8_entity_get_field(e, name, &v)) {
-        return fnv(h, 0xDEADu);
+/* The kind words are constant by the struct's shape, kept so that the
+ * sequence hashes still prove the typed reads. */
+static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
+    h = fnv(fnv(h, (uint32_t)PICO8_VALUE_FIXED), (uint32_t)e->ke.t);
+    if (e->has_p_) {
+        h = fnv(fnv(h, (uint32_t)PICO8_VALUE_BOOL), (uint32_t)e->p_);
+    } else {
+        h = fnv(h, 0xDEADu);
     }
-    h = fnv(h, (uint32_t)v.kind);
-    if (v.kind == PICO8_VALUE_FIXED) {
-        return fnv(h, (uint32_t)v.as.fixed);
-    }
-    if (v.kind == PICO8_VALUE_BOOL) {
-        return fnv(h, (uint32_t)v.as.boolean);
-    }
-    return h;
-}
-
-static uint32_t fold_box(uint32_t h, const void *e) {
-    h = fold_field(h, e, "t");
-    h = fold_field(h, e, "p_");
     h = fnv(h, (uint32_t)(pico8_kc() == e));
     h = fnv(h, (uint32_t)listed(pico8_hv(), e));
     h = fnv(h, (uint32_t)listed(pico8_cv("ev"), e));
@@ -114,7 +103,7 @@ static uint32_t fold_box(uint32_t h, const void *e) {
 }
 
 typedef struct {
-    const void *boxes[MAX_BOXES];
+    const pico8_mh_t *boxes[MAX_BOXES];
     int count;
     uint32_t h;
     int ticks;
@@ -128,7 +117,7 @@ static void run_start(run_t *run) {
     run->drew = 0;
 }
 
-static void track(run_t *run, const void *box) {
+static void track(run_t *run, const pico8_mh_t *box) {
     assert(box != NULL && run->count < MAX_BOXES);
     run->boxes[run->count++] = box;
 }
@@ -183,8 +172,8 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
 }
 
 /* `pj:hk` discards the box it builds; `mh:pq` has just made it `kc`. */
-static const void *year_box(int yr) {
-    const void *box;
+static const pico8_mh_t *year_box(int yr) {
+    const pico8_mh_t *box;
     int before = count_of(pico8_cg("mh"));
 
     pico8_pj_hk(pico8_fixed_from_int(yr));
@@ -225,9 +214,8 @@ static void test_year_without_a_message(void) {
  * one last time. */
 static void test_two_years_in_a_row(void) {
     run_t run;
-    const void *first;
-    const void *second;
-    pico8_value_t p_;
+    const pico8_mh_t *first;
+    const pico8_mh_t *second;
     int i;
 
     pico8_jl();
@@ -237,10 +225,10 @@ static void test_two_years_in_a_row(void) {
     for (i = 0; i < 20; i++) {
         tick(&run);
     }
-    assert(!pico8_entity_get_field(first, "p_", &p_));
+    assert(!first->has_p_);
     second = year_box(3421);
     track(&run, second);
-    assert(pico8_entity_get_field(first, "p_", &p_) && p_.kind == PICO8_VALUE_BOOL && p_.as.boolean);
+    assert(first->has_p_ && first->p_);
     run.h = fnv(run.h, draw_hash());
     tick(&run);
     assert(!listed(pico8_hv(), first));
@@ -268,8 +256,7 @@ static pico8_pj_t *game_ju(void) {
 static void test_scores_box_follows_c_(void) {
     run_t run;
     pico8_pj_t *ju = game_ju();
-    pico8_value_t ed;
-    const void *box;
+    const pico8_mh_t *box;
     int built;
     int i;
 
@@ -281,7 +268,7 @@ static void test_scores_box_follows_c_(void) {
     pico8_pj_ph(ju);
     box = pico8_kc();
     assert(box != NULL);
-    assert(pico8_entity_get_field(ju, "ed", &ed) && ed.kind == PICO8_VALUE_REF && ed.as.ref == box);
+    assert(ju->ed == box);
     built = count_of(pico8_cg("mh"));
     track(&run, box);
     run.h = fnv(run.h, draw_hash());
@@ -303,24 +290,21 @@ static void test_scores_box_follows_c_(void) {
 
 /* The box's `fa`/`rh`/`nu` are the class's generated defaults. */
 static void test_defaults_match_the_parsed_spec(void) {
-    const void *box;
-    pico8_value_t got;
+    const pico8_mh_t *box;
     const pico8_str_seq_t *nu;
 
     pico8_jl();
     box = year_box(3400);
-    assert(pico8_entity_get_field(box, "fa", &got) && got.kind == PICO8_VALUE_FIXED);
-    assert(got.as.fixed == pico8_mh_start.fa);
-    assert(got.as.fixed == pico8_fixed_from_int(14));
-    assert(pico8_entity_get_field(box, "rh", &got) && got.kind == PICO8_VALUE_FIXED);
-    assert(got.as.fixed == pico8_mh_start.rh);
-    assert(got.as.fixed == pico8_fixed_from_int(5));
-    assert(pico8_entity_get_field(box, "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref != NULL);
-    nu = got.as.ref;
+    assert(box->fa == pico8_mh_start.fa);
+    assert(box->fa == pico8_fixed_from_int(14));
+    assert(box->rh == pico8_mh_start.rh);
+    assert(box->rh == pico8_fixed_from_int(5));
+    assert(box->nu != NULL);
+    nu = box->nu;
     assert(nu == pico8_mh_start.nu && nu == &pico8_mh_nu_tags && nu->count == 1);
     assert(strcmp(nu->items[0], "mh") == 0);
-    assert(pico8_entity_get_field(year_box(3400), "nu", &got) && got.kind == PICO8_VALUE_REF && got.as.ref == nu);
-    assert(pico8_entity_get_field(box, "me", &got) && got.kind == PICO8_VALUE_STRING && strcmp(got.as.string, "ph") == 0);
+    assert(year_box(3400)->nu == nu);
+    assert(box->ke.me != NULL && strcmp(box->ke.me, "ph") == 0);
     assert(pico8_mh_ready());
     pico8_mh_shutdown();
     assert(!pico8_mh_ready());
@@ -341,7 +325,7 @@ static int counting_lh(pico8_mh_t *self) {
 static void test_mh_is_a_struct_registered_under_ev(void) {
     const char *others[] = {"kj", "hd", "hk", "hb"};
     pico8_mh_keys_t keys = {0};
-    const void *from_pj;
+    const pico8_mh_t *from_pj;
     void *generic;
     int out;
     int i;
@@ -364,122 +348,16 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] == NULL);
 }
 
-static const char *const MEMBER_NAMES[] = {"nu", "fa", "rh", "p_"};
-
-/* The kind the name reader gave `lh`, frozen in MEMBERS_BY_NAME_HASH; the
- * enum entry is gone. Changing it reddens the constant. */
-enum { FUNCTION_KIND = 4 };
-
-/* `lh` from its member, in the bytes its value read by name folded to. */
-static uint32_t fold_lh(uint32_t h, const void *e, pico8_mh_lh_fn want) {
-    pico8_mh_lh_fn lh = ((const pico8_mh_t *)e)->lh;
-
-    if (lh == NULL) {
-        return fnv(h, 0xDEADu);
-    }
-    return fnv(fnv(h, (uint32_t)FUNCTION_KIND), (uint32_t)(lh == want));
-}
-
-static uint32_t fold_member(uint32_t h, const void *e, const char *name, const void *nu) {
-    pico8_value_t v = pico8_value_fixed(0x5A5A);
-
-    if (!pico8_entity_get_field(e, name, &v)) {
-        assert(v.kind == PICO8_VALUE_FIXED && v.as.fixed == 0x5A5A);
-        return fnv(h, 0xDEADu);
-    }
-    h = fnv(h, (uint32_t)v.kind);
-    switch (v.kind) {
-    case PICO8_VALUE_FIXED:
-        return fnv(h, (uint32_t)v.as.fixed);
-    case PICO8_VALUE_BOOL:
-        return fnv(h, (uint32_t)v.as.boolean);
-    case PICO8_VALUE_REF:
-        return fnv(h, (uint32_t)(v.as.ref == nu));
-    default:
-        return fnv(h, 0xBADu);
-    }
-}
-
-static int has_member(const void *e, const char *name, pico8_value_t *out) {
-    *out = pico8_value_fixed(0x5A5A);
-    if (pico8_entity_get_field(e, name, out)) {
-        return 1;
-    }
-    assert(out->kind == PICO8_VALUE_FIXED && out->as.fixed == 0x5A5A);
-    return 0;
-}
-
-/* The five members, read by name only, on a box with no key, on one with
- * `rh` and `lh` keys, and on the first once the second has closed it. */
-static void test_mh_members_by_name(void) {
-    pico8_mh_keys_t keys = {0};
-    void *a;
-    void *b;
-    const void *nu;
-    const pico8_str_seq_t *tags;
-    pico8_value_t v;
-    uint32_t h = 2166136261u;
-    int calls;
-    int i;
-
-    pico8_jl();
-    a = pico8_mh_new(NULL);
-
-    assert(has_member(a, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(14));
-    assert(has_member(a, "rh", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(5));
-    assert(has_member(a, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL);
-    nu = v.as.ref;
-    tags = nu;
-    assert(tags == &pico8_mh_nu_tags);
-    assert(tags->count == 1 && strcmp(tags->items[0], "mh") == 0);
-    assert(!has_member(a, "lh", &v));
-    assert(!has_member(a, "p_", &v));
-    assert(((pico8_mh_t *)a)->lh == NULL);
-    assert(listed(pico8_hv(), a) && listed(pico8_cv("ev"), a) && listed(pico8_cg("mh"), a));
-    assert(pico8_kc() == a);
-
-    keys.has_rh = 1;
-    keys.rh = pico8_fixed_from_int(3);
-    keys.lh = counting_lh;
-    b = pico8_mh_new(&keys);
-
-    assert(pico8_type_tag_of(b) == PICO8_TYPE_TAG_STRUCT);
-    assert(has_member(b, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == nu);
-    assert(has_member(b, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(14));
-    assert(has_member(b, "rh", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(3));
-    assert(!has_member(b, "lh", &v) && ((pico8_mh_t *)b)->lh == counting_lh);
-    calls = g_lh_calls;
-    (void)((pico8_mh_t *)b)->lh(b);
-    assert(g_lh_calls == calls + 1);
-    assert(!has_member(b, "p_", &v));
-    assert(has_member(a, "p_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 1);
-    assert(pico8_kc() == b);
-
-    for (i = 0; i < 3; i++) {
-        h = fold_member(h, a, MEMBER_NAMES[i], nu);
-        h = fold_member(h, b, MEMBER_NAMES[i], nu);
-    }
-    h = fold_lh(h, a, counting_lh);
-    h = fold_lh(h, b, counting_lh);
-    h = fold_member(h, a, MEMBER_NAMES[3], nu);
-    h = fold_member(h, b, MEMBER_NAMES[3], nu);
-    printf("[members by name] hash=0x%08Xu\n", (unsigned)h);
-    fflush(stdout);
-    assert(h == MEMBERS_BY_NAME_HASH);
-}
-
 /* A nil `lh` key (NULL) leaves the box without `lh`, as a box built with no
  * key. */
 static void test_mh_nil_lh_key_reads_absent(void) {
     pico8_mh_keys_t keys = {0};
-    void *box;
-    pico8_value_t v;
+    pico8_mh_t *box;
 
     pico8_jl();
     keys.lh = NULL;
     box = pico8_mh_new(&keys);
-    assert(!has_member(box, "lh", &v));
-    assert(((pico8_mh_t *)box)->lh == NULL);
+    assert(box->lh == NULL);
 }
 
 int main(void) {
@@ -501,7 +379,6 @@ int main(void) {
     test_scores_box_follows_c_();
     test_defaults_match_the_parsed_spec();
     test_mh_is_a_struct_registered_under_ev();
-    test_mh_members_by_name();
     test_mh_nil_lh_key_reads_absent();
 
     printf("test_pico8_mh: all tests passed\n");

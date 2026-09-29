@@ -41,25 +41,24 @@
 
 /* The `js` button instances `pz()` just built. */
 static const pico8_list_t *ok_le(void) {
-    const void *ok = pico8_ok();
-    pico8_value_t le;
+    const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
-    assert(pico8_entity_get_field(ok, "le", &le));
-    assert(le.kind == PICO8_VALUE_REF && le.as.ref != NULL);
-    return (const pico8_list_t *)le.as.ref;
+    assert(ok->le != NULL);
+    return ok->le;
 }
 
 /* A button's `lq` field, after `js:pq()` replaced the raw row override
  * with a real row. */
 static const pico8_lq_t *button_lq(pico8_value_t button_val) {
     const void *button;
-    pico8_value_t lq_val;
+    const pico8_lq_t *lq;
 
     assert(button_val.kind == PICO8_VALUE_REF && button_val.as.ref != NULL);
     button = button_val.as.ref;
-    assert(pico8_entity_get_field(button, "lq", &lq_val));
-    assert(lq_val.kind == PICO8_VALUE_REF && lq_val.as.ref != NULL);
-    return (const pico8_lq_t *)lq_val.as.ref;
+    assert(((const pico8_struct_header_t *)button)->cls == pico8_js_struct_class());
+    lq = ((const pico8_js_t *)button)->lq;
+    assert(lq != NULL);
+    return lq;
 }
 
 /* The row's item at 1-based `index`, as a table lookup would find it. */
@@ -164,9 +163,8 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     assert(!lq_item(exports_lq, 5, &entry));
 
     /* `lq:pq()` ran over exactly those four: one `fs` entry per item. */
-    assert(pico8_entity_get_field(exports_lq, "fs", &entry));
-    assert(entry.kind == PICO8_VALUE_REF && entry.as.ref != NULL);
-    assert(((const pico8_list_t *)entry.as.ref)->count == 4);
+    assert(exports_lq->fs != NULL);
+    assert(exports_lq->fs->count == 4);
 }
 
 int main(void) {
