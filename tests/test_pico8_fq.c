@@ -1,5 +1,5 @@
 /* The click veil `fq`, built bare (`pj:ph`) and with a `my` (`ix[3]` with
- * `de`), lived through the real `dg`, `mv("ldown")` and the hover loop of
+ * `de`), lived through the real `dg`, its `ldown` and the hover loop of
  * `ok`, in a game built directly: no events file. */
 
 #include <assert.h>
@@ -131,10 +131,10 @@ static void *veil_with_my(int answer) {
 }
 
 static int ldown(void *veil) {
-    pico8_value_t out;
+    pico8_down_t out = pico8_fq_struct_class()->ldown(veil, NULL, NULL);
 
-    assert(pico8_mv(veil, "ldown", 2, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    return out.kind == PICO8_VALUE_BOOL && out.as.boolean;
+    assert(out.held == NULL);
+    return out.stop;
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -229,7 +229,7 @@ static int in_layer(int layer, const void *e) {
  * and, once the veil is gone, unmarks it through `gj`. */
 static void test_hover_loop_on_the_veil(void) {
     uint32_t h = 2166136261u;
-    pico8_value_t kn;
+    pico8_down_t kn;
     pico8_value_t m_;
     pico8_struct_header_t *kv = NULL;
     void *veil;
@@ -250,10 +250,10 @@ static void test_hover_loop_on_the_veil(void) {
     pico8_ui_ev(&gfx, &mem, pico8_ok());
     check("hover cursor", screen_hash(), HOVER_CURSOR_HASH);
 
-    assert(pico8_ui_jz(pico8_ok(), "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &kv, &kn));
-    assert((void *)kv == veil && kn.kind == PICO8_VALUE_BOOL && kn.as.boolean);
+    assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, NULL, NULL, NULL, &kv, &kn));
+    assert((void *)kv == veil && kn.stop && kn.held == NULL);
     kv = NULL;
-    if (pico8_ui_jz(pico8_ok(), "rdown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &kv, &kn)) {
+    if (pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, NULL, NULL, NULL, &kv, &kn)) {
         assert((void *)kv != veil);
     }
     h = fold_veil(h, veil);
@@ -294,10 +294,11 @@ static int is_a_veil_struct(const void *e) {
 }
 
 /* Built by `pico8_fq_new` or through its class, a veil is a struct in hv
- * and cv.hd only; `hd` is a value `mv` hands back, and it has neither `ph`
- * nor `rdown`. */
+ * and cv.hd only; its `hd` is the constant hit of `hd=1`, and it has
+ * neither `ph` nor `rdown`. */
 static void test_fq_is_a_struct_registered_under_hd(void) {
     const char *others[] = {"kj", "ev", "hk", "hb"};
+    const pico8_struct_class_t *cls = pico8_fq_struct_class();
     pico8_fq_keys_t keys = {0};
     void *built;
     void *generic;
@@ -315,10 +316,10 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     for (i = 0; i < 4; i++) {
         assert(!listed(pico8_cv(others[i]), built) && !listed(pico8_cv(others[i]), generic));
     }
-    assert(pico8_mv(generic, "hd", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    assert(out.kind == PICO8_VALUE_FIXED && out.as.fixed == pico8_fixed_from_int(1));
-    assert(!pico8_mv(generic, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    assert(!pico8_mv(generic, "rdown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(cls->hd == pico8_hd_true && cls->hd(generic, NULL, NULL) == 1);
+    assert(pico8_entity_get_field(generic, "hd", &out) && out.kind == PICO8_VALUE_FIXED &&
+           out.as.fixed == pico8_fixed_from_int(1));
+    assert(cls->states[PICO8_STATE_PH] == NULL && cls->rdown == NULL);
     assert(pico8_entity_get_field(built, "my", &out) && out.kind == PICO8_VALUE_FUNCTION);
 }
 

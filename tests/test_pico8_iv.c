@@ -203,17 +203,13 @@ typedef struct {
 static int g_fake_ph_calls = 0;
 static pico8_fixed_t g_fake_ph_last_t;
 
-static pico8_value_t fake_toast_ph(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void fake_toast_ph(void *self, pico8_fixed_t t) {
     fake_toast_t *f = self;
-    (void)argc;
-    (void)arg1;
-    assert(arg0.kind == PICO8_VALUE_FIXED);
     g_fake_ph_calls++;
-    g_fake_ph_last_t = arg0.as.fixed;
-    if (arg0.as.fixed >= pico8_fixed_from_int(2)) {
+    g_fake_ph_last_t = t;
+    if (t >= pico8_fixed_from_int(2)) {
         f->p_ = pico8_value_bool(1);
     }
-    return pico8_value_ref(NULL);
 }
 
 static int fake_toast_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -229,9 +225,8 @@ static int fake_toast_field(const void *self, const char *name, pico8_value_t *o
 }
 
 static const pico8_struct_class_t g_fake_toast_class = {
-    {[PICO8_METHOD_PH] = fake_toast_ph},
-    fake_toast_field,
-    NULL,
+    .states = {[PICO8_STATE_PH] = fake_toast_ph},
+    .field = fake_toast_field,
 };
 
 static void test_dg_drives_a_ke_struct(void) {

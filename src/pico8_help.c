@@ -36,9 +36,8 @@ void pico8_help_set_eu(pico8_value_function_t fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
-static pico8_value_t pico8_fv_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    return pico8_gk((const pico8_struct_header_t *)self, arg0, arg1);
+static int pico8_fv_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
 /* The most items a row of `bo` holds. */
@@ -90,15 +89,9 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
     }
 }
 
-pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
+void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_fv_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
 static int pico8_fv_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -185,16 +178,17 @@ static int pico8_fv_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_fv_struct_class = {
-    {
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_MM] = pico8_g__mm,
-        [PICO8_METHOD_KJ] = pico8_fv_kj_dispatch,
-        [PICO8_METHOD_HD] = pico8_fv_hd_dispatch,
-    },
-    pico8_fv_field,
-    pico8_fv_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+            [PICO8_METHOD_MM] = pico8_g__mm,
+        },
+    .kj = pico8_fv_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .hd = pico8_fv_hd_dispatch,
+    .field = pico8_fv_field,
+    .set_field = pico8_fv_set_field,
 };
 
 static void *pico8_fv_struct_new(void) {

@@ -18,13 +18,10 @@ static pico8_nf_button_t g_nf_r;
 static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
- * arg0 is the frame counter, which nf:ph does not read. */
-static pico8_value_t pico8_nf_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+ * `t` is the frame counter, which nf:ph does not read. */
+static void pico8_nf_ph_dispatch(void *self, pico8_fixed_t t) {
+    (void)t;
     pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 static int pico8_nf_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -52,9 +49,8 @@ static int pico8_nf_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_nf_struct_class = {
-    {[PICO8_METHOD_PH] = pico8_nf_ph_dispatch},
-    pico8_nf_field,
-    NULL,
+    .states = {[PICO8_STATE_PH] = pico8_nf_ph_dispatch},
+    .field = pico8_nf_field,
 };
 
 static void pico8_nf_pq(pico8_mem_t *mem) {

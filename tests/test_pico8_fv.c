@@ -54,7 +54,7 @@ static pico8_input_t input;
 static const char *const own[] = {"fa", "ra", "hi", "ca", "gq", "eo", "ff", "fc", "k_", "qo", "ro",
                                   "qg", "q_", "pn", "du", "py", "pk", "ki", "kq", "ql", "fg", "rb"};
 static const char *const inherited[] = {"nu", "fx", "dq", "od", "fp", "dw"};
-static const char *const absent[] = {"m_", "ep", "p", "et", "p_", "hk", "hb", "ph", "ldown", "fo", "ma"};
+static const char *const absent[] = {"m_", "ep", "p", "et", "p_", "fo", "ma"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
@@ -278,10 +278,8 @@ static pico8_value_t vec_ref(int x, int y) {
     return pico8_value_ref(v);
 }
 
-static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, argc, arg0, arg1, &out));
-    return out;
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
 }
 
 static void start_title(void) {
@@ -368,13 +366,15 @@ static void test_built(void) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(fv, absent[i]));
     }
+    assert(cls_of(fv)->hk == NULL && cls_of(fv)->hb == NULL && cls_of(fv)->states[PICO8_STATE_PH] == NULL &&
+           cls_of(fv)->ldown == NULL);
 
-    assert(method(fv, "kj") == pico8_fv_kj_dispatch);
-    assert(method(fv, "ev") == pico8_dl_dispatch);
+    assert(cls_of(fv)->kj == pico8_fv_kj_dispatch);
+    assert(cls_of(fv)->ev == pico8_dl_dispatch);
     assert(method(fv, "mm") == pico8_g__mm);
     assert(method(fv, "hq") == pico8_bv_dispatch);
     assert(method(fv, "ey") == pico8_d__dispatch);
-    assert(method(fv, "hd") != NULL);
+    assert(cls_of(fv)->hd != NULL);
 
     rank = rank_in(hv, fv);
     h = fnv(h, (uint32_t)rank);
@@ -433,10 +433,10 @@ static void test_life(void) {
         h = fold_field(h, fv, "me");
         assert(listed(pico8_hv(), fv));
     }
-    assert(pico8_value_equal(call(fv, "hd", 2, vec_ref(64, 10), vec_ref(64, 112)), pico8_value_bool(1)));
-    assert(pico8_value_equal(call(fv, "hd", 2, vec_ref(64, 112), vec_ref(64, 10)), pico8_value_bool(0)));
-    assert(pico8_value_equal(call(fv, "hd", 2, vec_ref(24, 106), vec_ref(24, 106)), pico8_value_bool(1)));
-    assert(pico8_value_equal(call(fv, "hd", 2, vec_ref(23, 106), vec_ref(23, 106)), pico8_value_bool(0)));
+    assert(cls_of(fv)->hd(fv, vec_ref(64, 10).as.ref, vec_ref(64, 112).as.ref) == 1);
+    assert(cls_of(fv)->hd(fv, vec_ref(64, 112).as.ref, vec_ref(64, 10).as.ref) == 0);
+    assert(cls_of(fv)->hd(fv, vec_ref(24, 106).as.ref, vec_ref(24, 106).as.ref) == 1);
+    assert(cls_of(fv)->hd(fv, vec_ref(23, 106).as.ref, vec_ref(23, 106).as.ref) == 0);
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
     check("life", h, LIFE_HASH);
 }
@@ -597,15 +597,18 @@ static void test_fv_is_a_struct(void) {
     fv = the_help();
     assert(pico8_type_tag_of(fv) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)fv)->cls == cls);
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        if (j == PICO8_METHOD_HQ || j == PICO8_METHOD_EY || j == PICO8_METHOD_EV || j == PICO8_METHOD_MM) {
+        if (j == PICO8_METHOD_HQ || j == PICO8_METHOD_EY || j == PICO8_METHOD_MM) {
             assert(cls->methods[j] != NULL && cls->methods[j] == g_->methods[j]);
-        } else if (j == PICO8_METHOD_KJ) {
-            assert(cls->methods[j] == pico8_fv_kj_dispatch);
-        } else if (j == PICO8_METHOD_HD) {
-            assert(cls->methods[j] != NULL);
         } else {
             assert(cls->methods[j] == NULL);
         }
+    }
+    assert(cls->ev != NULL && cls->ev == g_->ev);
+    assert(cls->kj == pico8_fv_kj_dispatch && cls->hd != NULL);
+    assert(cls->hk == NULL && cls->hb == NULL && cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL &&
+           cls->gv == NULL);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert(cls->states[j] == NULL);
     }
     assert(cls->field != NULL && cls->set_field != NULL);
     assert(cls->field != g_->field && cls->set_field != g_->set_field);
@@ -853,7 +856,7 @@ static void call_d_(void *e) {
 }
 
 static void call_gk(void *e) {
-    (void)pico8_gk(e, vec_ref(1, 1), vec_ref(2, 2));
+    (void)pico8_gk(e, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref);
 }
 
 static void call_na(void *e) {

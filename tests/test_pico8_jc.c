@@ -432,6 +432,10 @@ static pico8_vec_t vec_of(const void *e, const char *name) {
     return *(const pico8_vec_t *)v.as.ref;
 }
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
 static pico8_value_t call(void *e, const char *name, pico8_value_t arg0) {
     pico8_value_t out = pico8_value_ref(NULL);
     assert(pico8_mv(e, name, 1, arg0, pico8_value_ref(NULL), &out));
@@ -458,9 +462,8 @@ static void *first_with_me(const char *tag, const char *me) {
 /* A fresh `jc`: the spec's defaults, ke's `t`, `qu`, and the `ts`/`hg` its
  * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_jc(const void *jc, const void *qu) {
-    static const char *const absent[] = {"re", "od", "mt", "et", "fo", "p_", "ra", "hd", "ql", "fx", "dq",
-                                         "kz", "ph", "ldown", "gv", "md"};
-    static const char *const methods[] = {"hq", "ey", "eb", "ev", "kj"};
+    static const char *const absent[] = {"re", "od", "mt", "et", "fo", "p_", "ra", "hd", "ql", "fx", "dq"};
+    static const char *const methods[] = {"hq", "ey", "eb"};
     pico8_value_t v;
     const pico8_int_seq_t *k_;
     const pico8_str_seq_t *nu;
@@ -496,6 +499,9 @@ static void check_fresh_jc(const void *jc, const void *qu) {
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         assert(pico8_entity_get_field(jc, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
     }
+    assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
+    assert(cls_of(jc)->hd == NULL && cls_of(jc)->states[PICO8_STATE_KZ] == NULL &&
+           cls_of(jc)->states[PICO8_STATE_PH] == NULL && cls_of(jc)->ldown == NULL && cls_of(jc)->gv == NULL);
 
     assert(listed(pico8_hv(), jc) && listed(pico8_cv("kj"), jc) && listed(pico8_cv("ev"), jc));
     assert(listed(pico8_cg("jc"), jc));
@@ -506,14 +512,14 @@ static void test_construction(void) {
     void *ly;
     void *by_ldown;
     void *by_lookup;
-    pico8_value_t made;
+    pico8_down_t made;
 
     world();
     ly = first_with_me("jo", "ly");
     assert(ly != NULL);
-    made = call(ly, "ldown", pico8_value_ref(NULL));
-    assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-    by_ldown = made.as.ref;
+    made = cls_of(ly)->ldown(ly, NULL, NULL);
+    assert(made.stop && made.held != NULL);
+    by_ldown = made.held;
     check_fresh_jc(by_ldown, ly);
     by_lookup = build_jc(ly);
     check_fresh_jc(by_lookup, ly);
@@ -653,7 +659,7 @@ static void test_draw(void) {
     for (i = 0; i < 3; i++) {
         pico8_entity_set_field(old, "fo", pico8_value_ref(old));
         pico8_cls(&mem);
-        (void)call(old, "kj", pico8_value_ref(NULL));
+        cls_of(old)->kj(old, NULL);
         assert(!has(old, "fo"));
         assert(screen_hash() != blank);
         h = fnv(h, screen_hash());
@@ -661,11 +667,11 @@ static void test_draw(void) {
     }
 
     pico8_cls(&mem);
-    (void)call(origin, "kj", vec_ref_fixed(vec_of(origin, "ra")));
+    cls_of(origin)->kj(origin, (vec_ref_fixed(vec_of(origin, "ra"))).as.ref);
     plain = screen_hash();
     pico8_entity_set_field(origin, "fo", pico8_value_ref(old));
     pico8_cls(&mem);
-    (void)call(origin, "kj", vec_ref_fixed(vec_of(origin, "ra")));
+    cls_of(origin)->kj(origin, (vec_ref_fixed(vec_of(origin, "ra"))).as.ref);
     circled = screen_hash();
     assert(!has(origin, "fo"));
     assert(circled != plain);
@@ -709,7 +715,7 @@ static void test_too_far(void) {
     pico8_cls(&mem);
     blank = screen_hash();
 
-    (void)call(far, "kj", pico8_value_ref(NULL));
+    cls_of(far)->kj(far, NULL);
     assert(screen_hash() != blank);
     h = fnv(h, screen_hash());
 
@@ -722,13 +728,13 @@ static void test_too_far(void) {
     mouse = vec_of(pico8_je(), "ra");
     pico8_camera(&gfx, pico8_fixed_flr_int(mouse.x) - 64, pico8_fixed_flr_int(mouse.y) - 64);
     pico8_cls(&mem);
-    (void)call(far, "ev", pico8_value_ref(NULL));
+    cls_of(far)->ev(far, NULL);
     too_far = screen_hash();
     pico8_cls(&mem);
-    (void)call(twin, "ev", pico8_value_ref(NULL));
+    cls_of(twin)->ev(twin, NULL);
     sprite = screen_hash();
     pico8_cls(&mem);
-    (void)call(near, "ev", pico8_value_ref(NULL));
+    cls_of(near)->ev(near, NULL);
     costed = screen_hash();
     assert(too_far != blank && sprite != blank && costed != blank);
     assert(too_far != sprite && too_far != costed);
@@ -922,8 +928,7 @@ static void write_fa(void *jc) {
  * is a struct with its five methods; a generic write of a name other than
  * `fo`/`p_` stops the run instead of growing a member. */
 static void test_jc_is_a_struct(void) {
-    static const char *const methods[] = {"hq", "ey", "eb", "ev", "kj"};
-    static const char *const not_methods[] = {"kz", "ph", "ldown", "rdown", "gv", "md"};
+    static const char *const methods[] = {"hq", "ey", "eb"};
     void *old;
     void *jc;
     void *others[3];
@@ -942,10 +947,9 @@ static void test_jc_is_a_struct(void) {
         pico8_value_t m;
         assert(pico8_entity_get_field(jc, methods[i], &m) && m.kind == PICO8_VALUE_FUNCTION);
     }
-    for (i = 0; i < sizeof not_methods / sizeof not_methods[0]; i++) {
-        pico8_value_t out;
-        assert(!pico8_mv(jc, not_methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    }
+    assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
+    assert(cls_of(jc)->states[PICO8_STATE_KZ] == NULL && cls_of(jc)->states[PICO8_STATE_PH] == NULL &&
+           cls_of(jc)->ldown == NULL && cls_of(jc)->rdown == NULL && cls_of(jc)->gv == NULL);
 
     pico8_entity_set_field(jc, "fo", pico8_value_ref(old));
     assert(get_ref(jc, "fo") == old);
@@ -974,8 +978,7 @@ static void write_ra(void *e) {
 /* Beyond range, every `jc` gets the same struct: `qs` fixed, `fo` the last
  * `hq` to write it, no method, and a write of another name stops the run. */
 static void test_too_far_is_a_struct(void) {
-    static const char *const absent[] = {"ra", "p", "me", "nu", "t", "hq", "ev", "kj"};
-    static const char *const not_methods[] = {"hq", "ev", "kj"};
+    static const char *const absent[] = {"ra", "p", "me", "nu", "t", "hq"};
     void *origin;
     void *far;
     void *other;
@@ -991,10 +994,11 @@ static void test_too_far_is_a_struct(void) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(et, absent[i]));
     }
-    for (i = 0; i < sizeof not_methods / sizeof not_methods[0]; i++) {
+    {
         pico8_value_t out;
-        assert(!pico8_mv(et, not_methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+        assert(!pico8_mv(et, "hq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
     }
+    assert(cls_of(et)->ev == NULL && cls_of(et)->kj == NULL);
 
     other = build_jc(origin);
     hq_over(other, NULL, vec_ref(-640, -640));
@@ -1445,7 +1449,7 @@ static void test_jc_members_by_name(void) {
     fresh[0] = pico8_jc_new(NULL);
     fresh[1] = pico8_jc_new(&keys);
     fresh[2] = build_jc(ly);
-    fresh[3] = call(ly, "ldown", pico8_value_ref(NULL)).as.ref;
+    fresh[3] = cls_of(ly)->ldown(ly, NULL, NULL).held;
     for (k = 0; k < 4; k++) {
         assert(is_a_jc_struct(fresh[k]));
         check_fresh_members(fresh[k], k < 2 ? NULL : ly, fresh[k == 0 ? 1 : 0]);
@@ -1479,7 +1483,7 @@ static void test_jc_members_by_name(void) {
     for (k = 0; k < 9; k++) {
         void *made;
         assert(is_of_class(qu_of[k], want_cls[k]));
-        made = call(qu_of[k], "ldown", pico8_value_ref(NULL)).as.ref;
+        made = cls_of(qu_of[k])->ldown(qu_of[k], NULL, NULL).held;
         assert(is_a_jc_struct(made));
         check_fresh_members(made, qu_of[k], fresh[0]);
         h = fold_jc_members(h, made);
@@ -1561,7 +1565,7 @@ static void test_jc_members_by_name(void) {
     pico8_entity_set_field(jc, "fo", zero_union(PICO8_VALUE_REF));
     assert(!read_jc(jc, "fo", &v));
     pico8_entity_set_field(jc, "fo", pico8_value_ref(holders[2]));
-    (void)call(jc, "kj", pico8_value_ref(NULL));
+    cls_of(jc)->kj(jc, NULL);
     assert(!read_jc(jc, "fo", &v));
     h = fold_jc_members(h, jc);
 

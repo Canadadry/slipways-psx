@@ -79,9 +79,7 @@ static int pico8_ie_ke_view_field(const void *self, const char *name, pico8_valu
 }
 
 static const pico8_struct_class_t g_ie_ke_view_struct_class = {
-    {0},
-    pico8_ie_ke_view_field,
-    NULL,
+    .field = pico8_ie_ke_view_field,
 };
 
 static void ie_ke_take_string(const pico8_entity_kind_t *kind, const char *name, const char **out) {
@@ -192,23 +190,17 @@ void pico8_ie_hb(pico8_ie_t *self) {
     }
 }
 
-static pico8_value_t pico8_ie_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_ie_hb_dispatch(void *self) {
     pico8_ie_hb((pico8_ie_t *)self);
-    return pico8_value_ref(NULL);
 }
 
-pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
+pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
     pico8_fixed_t new_id;
     const pico8_entity_kind_t *ke_kind;
     char *id_num_str;
     char *id_str;
     pico8_jo_keys_t keys;
-    void *made;
-
-    (void)mp;
+    pico8_down_t out = {0, NULL};
 
     assert(g_ie_up && "pico8_research_icon_init() must run before ie:ldown writes ie.id");
     new_id = pico8_fixed_add(g_ie_id.kind == PICO8_VALUE_FIXED ? g_ie_id.as.fixed : pico8_fixed_from_int(0),
@@ -217,7 +209,7 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
 
     ke_kind = ie_self_ke_kind(self);
     if (ke_kind == NULL) {
-        return pico8_value_ref(NULL);
+        return out;
     }
 
     id_num_str = pico8_value_tostr(pico8_value_fixed(new_id));
@@ -229,15 +221,15 @@ pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp) {
     keys.id = id_str;
     keys.p = NULL;
     keys.ra = NULL;
-    made = ke_kind->new_entity(&keys);
-
-    return pico8_value_ref(made);
+    out.held = ke_kind->new_entity(&keys);
+    out.stop = out.held != NULL;
+    return out;
 }
 
-static pico8_value_t pico8_ie_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg1;
-    return pico8_ie_ldown((pico8_ie_t *)self, arg0);
+static pico8_down_t pico8_ie_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    (void)ra;
+    return pico8_ie_ldown((pico8_ie_t *)self);
 }
 
 void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec_t p) {
@@ -272,22 +264,15 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
     pico8_palt(mem, 3, 1);
 }
 
-/* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `arg0` is always `self.ra`. */
-static pico8_value_t pico8_ie_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
+/* `dc("kj")` calls `qc[nt](qc,qc.ra)`, so `ra` is always `self.ra`. */
+static void pico8_ie_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_ie_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ie_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
 /* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
-static pico8_value_t pico8_ie_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    return pico8_gk((const pico8_struct_header_t *)self, arg0, arg1);
+static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
 /* `gy` and `id` read off an icon answer the shared state, as the class
@@ -380,14 +365,12 @@ static int pico8_ie_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_ie_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_ie_hd_dispatch,
-        [PICO8_METHOD_HB] = pico8_ie_hb_dispatch,
-        [PICO8_METHOD_KJ] = pico8_ie_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_ie_ldown_dispatch,
-    },
-    pico8_ie_field,
-    pico8_ie_set_field,
+    .kj = pico8_ie_kj_dispatch,
+    .hd = pico8_ie_hd_dispatch,
+    .hb = pico8_ie_hb_dispatch,
+    .ldown = pico8_ie_ldown_dispatch,
+    .field = pico8_ie_field,
+    .set_field = pico8_ie_set_field,
 };
 
 static void *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {

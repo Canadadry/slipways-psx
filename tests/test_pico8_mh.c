@@ -363,7 +363,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     }
     assert(pico8_mv(generic, "lh", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
     assert(g_lh_calls == 1 && out.kind == PICO8_VALUE_BOOL && out.as.boolean);
-    assert(!pico8_mv(generic, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] == NULL);
 }
 
 static const char *const MEMBER_NAMES[] = {"nu", "fa", "rh", "lh", "p_"};

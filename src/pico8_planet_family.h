@@ -185,8 +185,8 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls);
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-pico8_value_t pico8_qh_ly_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t);
+void pico8_hj_kj_dispatch(void *self, const pico8_vec_t *ra);
 
 /* `pm` and `ga` are the only classes here whose spec sets `fz`: the two
  * kinds `jo:hu`'s `kv[hp.cw]` can resolve. */

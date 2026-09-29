@@ -211,21 +211,21 @@ static void test_jl_builds_a_camera(void) {
     check_fresh_mo(pico8_mo());
 }
 
-static void md_to(pico8_value_t fy, int want_x, int want_y) {
-    pico8_value_t out;
-
+static void md_to(pico8_fixed_t fy, int want_x, int want_y) {
     pico8_camera(&gfx, 7, 11);
-    assert(pico8_mv(pico8_mo(), "md", 1, fy, pico8_value_ref(NULL), &out));
+    assert(pico8_mo()->cls == pico8_qb_struct_class());
+    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)pico8_mo(), fy);
     assert(gfx.camera_x == want_x && gfx.camera_y == want_y);
 }
 
-/* `md(fy)` puts the camera on `ra*fy`, an absent `fy` counting as 1. */
+/* `md(fy)` puts the camera on `ra*fy`. The later tests of this process
+ * start from the camera the last `md` leaves: 192,192. */
 static void test_md_sets_the_camera(void) {
     pico8_jl();
-    md_to(pico8_value_fixed(pico8_fixed_from_int(1)), 192, 192);
-    md_to(pico8_value_fixed(PICO8_FIXED_LIT(0x00008000, 0.5)), 96, 96);
-    md_to(pico8_value_fixed(0), 0, 0);
-    md_to(pico8_value_ref(NULL), 192, 192);
+    md_to(pico8_fixed_from_int(1), 192, 192);
+    md_to(PICO8_FIXED_LIT(0x00008000, 0.5), 96, 96);
+    md_to(0, 0, 0);
+    md_to(pico8_fixed_from_int(1), 192, 192);
 }
 
 /* Idle, left, right+up, down held into the 320 bound, then released. */
@@ -314,12 +314,11 @@ static void test_second_jl(void) {
 /* Before `jl()`, `mo` is the field-less placeholder: `md` dispatches
  * nothing and the camera stays put. */
 static void test_placeholder_mo(void) {
-    pico8_value_t out;
     pico8_value_t v;
 
     pico8_entity_init();
     pico8_camera(&gfx, 5, 6);
-    assert(!pico8_mv(pico8_mo(), "md", 1, pico8_value_fixed(pico8_fixed_from_int(1)), pico8_value_ref(NULL), &out));
+    assert(pico8_mo()->cls != pico8_qb_struct_class());
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(!pico8_entity_get_field(pico8_mo(), "ra", &v));
     assert(!pico8_entity_get_field(pico8_mo(), "p", &v));
@@ -413,7 +412,6 @@ static int is_a_qb_struct(const void *e) {
  * other than `ma`/`v` stops the run instead of growing a member. */
 static void test_qb_is_a_struct(void) {
     void *generic;
-    pico8_value_t out;
     pid_t child;
     int status;
 
@@ -422,9 +420,9 @@ static void test_qb_is_a_struct(void) {
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
-    assert(pico8_mv(generic, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    assert(pico8_mv(generic, "md", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    assert(!pico8_mv(generic, "kj", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
+    pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
+    assert(pico8_qb_struct_class()->kj == NULL);
 
     fflush(stdout);
     child = fork();
@@ -589,7 +587,6 @@ static void test_qb_members_by_name(void) {
     void *b;
     void *c;
     unsigned i;
-    pico8_value_t out;
 
     pico8_jl();
     unscript();
@@ -642,13 +639,13 @@ static void test_qb_members_by_name(void) {
     raw_set(b, "v", pico8_value_ref(NULL));
     s0 = seen(b);
     assert(!s0.has_v);
-    assert(pico8_mv(b, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    pico8_qb_struct_class()->states[PICO8_STATE_PH](b, pico8_fixed_from_int(0));
     s1 = seen(b);
     assert(s1.has_v && s1.v != shared_v && s1.v != vb.as.ref);
     assert(s1.p != s0.p && s1.ra != s0.ra && s1.p != s1.ra && s1.pc == s0.pc);
     assert(s1.ma.as.fixed < pico8_fixed_from_int(3) && s1.ma.as.fixed > 0);
     h = fold_all(h, b);
-    assert(pico8_mv(b, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    pico8_qb_struct_class()->states[PICO8_STATE_PH](b, pico8_fixed_from_int(0));
     s0 = seen(b);
     assert(s0.v != s1.v && s0.p != s1.p && s0.ra != s1.ra);
     h = fold_all(h, b);
@@ -714,7 +711,7 @@ static void test_qb_writer_stops_off_row(void) {
     pico8_jl();
     a = pico8_mo();
     b = pico8_qb_new();
-    assert(pico8_entity_get_field(b, "ph", &ph) && ph.kind == PICO8_VALUE_FUNCTION);
+    assert(!pico8_entity_get_field(b, "ph", &ph) && pico8_qb_struct_class()->states[PICO8_STATE_PH] != NULL);
     memset(&zero_fixed, 0, sizeof zero_fixed);
     zero_fixed.kind = PICO8_VALUE_FIXED;
     memset(&zero_false, 0, sizeof zero_false);
@@ -733,7 +730,6 @@ static void test_qb_writer_stops_off_row(void) {
     must_abort_value(b, write_v_by_name, zero_function);
     must_abort_value(b, write_v_by_name, pico8_value_bool(1));
     must_abort_value(b, write_v_by_name, pico8_value_string("x"));
-    must_abort_value(b, write_v_by_name, ph);
     must_abort_value(b, write_v_by_name, pico8_value_ref((void *)pico8_hv()));
     must_abort_value(b, write_v_by_name, pico8_value_ref(a));
 

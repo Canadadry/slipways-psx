@@ -45,9 +45,8 @@ pico8_qb_t *pico8_qb_new(void);
  * the old vectors sees the new values. */
 void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self);
 
-/* `fy` is already resolved by the caller: Lua's `fy or 1` fallback lives
- * in this module's dispatch adapter, so there is no separate _default
- * entry point here. */
+/* `fy` is `dc`'s `ci[o]`, never nil: the cart's `fy or 1` fallback has no
+ * caller, so there is no separate _default entry point here. */
 void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy);
 
 #endif

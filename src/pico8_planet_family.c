@@ -31,15 +31,8 @@ static pico8_vec_t pico8_pf_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-pico8_value_t pico8_qh_ly_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t t = pico8_fixed_from_int(0);
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_FIXED) {
-        t = arg0.as.fixed;
-    }
+void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t) {
     pico8_na((pico8_struct_header_t *)self, t);
-    return pico8_value_ref(NULL);
 }
 
 pico8_value_t pico8_qh_qh(const pico8_qh_t *self) {
@@ -136,7 +129,7 @@ static void family_take_vec(pico8_value_t value, pico8_vec_t **out) {
 /* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
  * holding `ly`), a `jc`, or the throwaway target. */
 static int family_is_target_class(const pico8_struct_class_t *cls) {
-    return cls->methods[PICO8_METHOD_LY] != NULL || cls == pico8_jo_struct_class() ||
+    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class() ||
            cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
 }
 
@@ -176,25 +169,29 @@ static int pico8_qh_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_qh_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
-        [PICO8_METHOD_KJ] = pico8_jo_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
-        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
-        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
-        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
-        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
-    },
-    pico8_qh_field,
-    pico8_qh_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+        },
+    .kj = pico8_jo_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .hd = pico8_jo_hd_dispatch,
+    .hk = pico8_jo_hk_dispatch,
+    .hb = pico8_jo_hb_dispatch,
+    .ldown = pico8_jo_ldown_dispatch,
+    .gv = pico8_jo_gv_dispatch,
+    .states =
+        {
+            [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
+            [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
+        },
+    .field = pico8_qh_field,
+    .set_field = pico8_qh_set_field,
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
@@ -290,37 +287,34 @@ void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t) {
     }
 }
 
-static pico8_value_t pico8_nl_ly_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t t = pico8_fixed_from_int(0);
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_FIXED) {
-        t = arg0.as.fixed;
-    }
+static void pico8_nl_ly_dispatch(void *self, pico8_fixed_t t) {
     pico8_nl_ly((pico8_nl_t *)self, t);
-    return pico8_value_ref(NULL);
 }
 
 static const pico8_struct_class_t g_nl_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
-        [PICO8_METHOD_KJ] = pico8_jo_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
-        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
-        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
-        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
-        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_LY] = pico8_nl_ly_dispatch,
-    },
-    pico8_nl_field,
-    pico8_nl_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+        },
+    .kj = pico8_jo_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .hd = pico8_jo_hd_dispatch,
+    .hk = pico8_jo_hk_dispatch,
+    .hb = pico8_jo_hb_dispatch,
+    .ldown = pico8_jo_ldown_dispatch,
+    .gv = pico8_jo_gv_dispatch,
+    .states =
+        {
+            [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
+            [PICO8_STATE_LY] = pico8_nl_ly_dispatch,
+        },
+    .field = pico8_nl_field,
+    .set_field = pico8_nl_set_field,
 };
 
 static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
@@ -356,25 +350,29 @@ static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
 }
 
 static const pico8_struct_class_t g_os_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
-        [PICO8_METHOD_KJ] = pico8_jo_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
-        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
-        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
-        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
-        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
-    },
-    pico8_qh_field,
-    pico8_qh_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+        },
+    .kj = pico8_jo_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .hd = pico8_jo_hd_dispatch,
+    .hk = pico8_jo_hk_dispatch,
+    .hb = pico8_jo_hb_dispatch,
+    .ldown = pico8_jo_ldown_dispatch,
+    .gv = pico8_jo_gv_dispatch,
+    .states =
+        {
+            [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
+            [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
+        },
+    .field = pico8_qh_field,
+    .set_field = pico8_qh_set_field,
 };
 
 static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
@@ -416,15 +414,9 @@ void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_hj_t *self, pico8_vec
     pico8_jo_kj(gfx, mem, (pico8_jo_t *)self, p);
 }
 
-pico8_value_t pico8_hj_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
+void pico8_hj_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_hj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_hj_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
 pico8_value_t pico8_hj_pk(const pico8_hj_t *self) {
@@ -518,26 +510,30 @@ static int pico8_hj_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_hj_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
-        [PICO8_METHOD_KJ] = pico8_hj_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
-        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
-        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
-        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
-        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
-        [PICO8_METHOD_MM] = pico8_g__mm,
-    },
-    pico8_hj_field,
-    pico8_hj_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+            [PICO8_METHOD_MM] = pico8_g__mm,
+        },
+    .kj = pico8_hj_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .hd = pico8_jo_hd_dispatch,
+    .hk = pico8_jo_hk_dispatch,
+    .hb = pico8_jo_hb_dispatch,
+    .ldown = pico8_jo_ldown_dispatch,
+    .gv = pico8_jo_gv_dispatch,
+    .states =
+        {
+            [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
+            [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
+        },
+    .field = pico8_hj_field,
+    .set_field = pico8_hj_set_field,
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
@@ -633,26 +629,30 @@ static int pico8_pm_field(const void *self, const char *name, pico8_value_t *out
 
 /* No site writes `ng` or `fz`: the writer is hj's, its 21 names. */
 static const pico8_struct_class_t g_pm_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
-        [PICO8_METHOD_KJ] = pico8_hj_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
-        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
-        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
-        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
-        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_LY] = pico8_qh_ly_dispatch,
-        [PICO8_METHOD_MM] = pico8_g__mm,
-    },
-    pico8_pm_field,
-    pico8_hj_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+            [PICO8_METHOD_MM] = pico8_g__mm,
+        },
+    .kj = pico8_hj_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .hd = pico8_jo_hd_dispatch,
+    .hk = pico8_jo_hk_dispatch,
+    .hb = pico8_jo_hb_dispatch,
+    .ldown = pico8_jo_ldown_dispatch,
+    .gv = pico8_jo_gv_dispatch,
+    .states =
+        {
+            [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
+            [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
+        },
+    .field = pico8_pm_field,
+    .set_field = pico8_hj_set_field,
 };
 
 static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
@@ -865,34 +865,29 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
     self->jo.has_p_ = 1;
 }
 
-static pico8_value_t pico8_ga_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
+static void pico8_ga_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ga_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
 static const pico8_struct_class_t g_ga_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_jo_hd_dispatch,
-        [PICO8_METHOD_KJ] = pico8_ga_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_jo_ldown_dispatch,
-        [PICO8_METHOD_HB] = pico8_jo_hb_dispatch,
-        [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
-        [PICO8_METHOD_GV] = pico8_jo_gv_dispatch,
-        [PICO8_METHOD_HK] = pico8_jo_hk_dispatch,
-        [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
-        [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
-        [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
-        [PICO8_METHOD_LL] = pico8_jo_ll_dispatch,
-        [PICO8_METHOD_MM] = pico8_ga_mm,
-    },
-    pico8_ga_field,
-    pico8_ga_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_GG] = pico8_jo_gg_dispatch,
+            [PICO8_METHOD_KF] = pico8_jo_kf_dispatch,
+            [PICO8_METHOD_CN] = pico8_jo_cn_dispatch,
+            [PICO8_METHOD_IB] = pico8_jo_ib_dispatch,
+            [PICO8_METHOD_MM] = pico8_ga_mm,
+        },
+    .kj = pico8_ga_kj_dispatch,
+    .hd = pico8_jo_hd_dispatch,
+    .hk = pico8_jo_hk_dispatch,
+    .hb = pico8_jo_hb_dispatch,
+    .ldown = pico8_jo_ldown_dispatch,
+    .gv = pico8_jo_gv_dispatch,
+    .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
+    .field = pico8_ga_field,
+    .set_field = pico8_ga_set_field,
 };
 
 static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {

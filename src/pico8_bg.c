@@ -29,23 +29,20 @@ static pico8_vec_t pico8_bg_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static pico8_value_t pico8_bg_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_bg_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_bg_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_bg_t *)self);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_bg_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg1;
-    return pico8_bg_ldown((pico8_bg_t *)self, arg0);
+static pico8_down_t pico8_bg_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    (void)ra;
+    return pico8_bg_ldown((pico8_bg_t *)self);
 }
 
-static pico8_value_t pico8_bg_rdown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    return pico8_bg_rdown((pico8_bg_t *)self, arg0, arg1);
+static pico8_down_t pico8_bg_rdown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    return pico8_bg_rdown((pico8_bg_t *)self, ra);
 }
 
 static pico8_value_t pico8_bg_hq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
@@ -124,14 +121,13 @@ static int pico8_bg_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_bg_struct_class = {
-    {
-        [PICO8_METHOD_KJ] = pico8_bg_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_bg_ldown_dispatch,
-        [PICO8_METHOD_RDOWN] = pico8_bg_rdown_dispatch,
-        [PICO8_METHOD_HQ] = pico8_bg_hq_dispatch,
-    },
-    pico8_bg_field,
-    pico8_bg_set_field,
+    .methods = {[PICO8_METHOD_HQ] = pico8_bg_hq_dispatch},
+    .kj = pico8_bg_kj_dispatch,
+    .hd = pico8_hd_true,
+    .ldown = pico8_bg_ldown_dispatch,
+    .rdown = pico8_bg_rdown_dispatch,
+    .field = pico8_bg_field,
+    .set_field = pico8_bg_set_field,
 };
 
 static void *pico8_bg_struct_new(void) {
@@ -242,32 +238,36 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
     pico8_rect(gfx, mem, 0, 0, 262, 262, 5);
 }
 
-pico8_value_t pico8_bg_ldown(pico8_bg_t *self, pico8_value_t mp) {
+pico8_down_t pico8_bg_ldown(pico8_bg_t *self) {
     const pico8_list_t *g_tag;
     int count;
-    void *made;
+    pico8_struct_header_t *made;
+    pico8_down_t out;
 
     (void)self;
-    (void)mp;
 
     g_tag = pico8_cg("g_");
     count = (g_tag != NULL) ? g_tag->count : 0;
     if (count > 0) {
         assert(pico8_mz_ready() && "pico8_wormhole_init() must run before bg:ldown builds an mz");
-        made = pico8_mz_new();
+        made = (pico8_struct_header_t *)pico8_mz_new();
     } else {
-        made = pico8_g__new(NULL);
+        made = (pico8_struct_header_t *)pico8_g__new(NULL);
     }
-    return pico8_value_ref(made);
+    out.stop = made != NULL;
+    out.held = made;
+    return out;
 }
 
-pico8_value_t pico8_bg_rdown(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp) {
-    (void)mp;
+pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
+    pico8_down_t out = {0, NULL};
 
     if (self != NULL) {
-        bg_take_vec(rp, &self->mq);
+        self->mq = rp;
+        out.stop = 1;
+        out.held = &self->ke.header;
     }
-    return pico8_value_ref(self);
+    return out;
 }
 
 /* `self.mq` is read here and overwritten by the last statement of the

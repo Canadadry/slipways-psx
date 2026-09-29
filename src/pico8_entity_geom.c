@@ -21,13 +21,6 @@ static pico8_vec_t pico8_entity_geom_field_vec(const pico8_struct_header_t *inst
     return pico8_entity_geom_zero();
 }
 
-static pico8_vec_t pico8_entity_geom_value_vec(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_entity_geom_zero();
-}
-
 static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_FIXED) {
@@ -36,19 +29,19 @@ static pico8_fixed_t pico8_entity_geom_field_fixed(const pico8_struct_header_t *
     return pico8_fixed_from_int(0);
 }
 
-pico8_value_t pico8_gk(const pico8_struct_header_t *e, pico8_value_t mp, pico8_value_t rp) {
+int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_vec_t *rp) {
     assert((e == NULL || pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT) &&
            "gk: e is a struct; no class instance reaches g_'s functions any more");
     pico8_fixed_t fa = pico8_entity_geom_field_fixed(e, "fa");
     pico8_vec_t ra = pico8_entity_geom_field_vec(e, "ra");
-    pico8_value_t chosen = (fa >= pico8_fixed_from_int(10)) ? rp : mp;
-    pico8_vec_t point = pico8_vec_sub(pico8_entity_geom_value_vec(chosen), ra);
+    const pico8_vec_t *chosen = (fa >= pico8_fixed_from_int(10)) ? rp : mp;
+    pico8_vec_t point = pico8_vec_sub(chosen != NULL ? *chosen : pico8_entity_geom_zero(), ra);
     pico8_value_t kq;
 
     if (e != NULL && pico8_entity_get_field(e, "kq", &kq) && kq.kind == PICO8_VALUE_REF && kq.as.ref != NULL) {
-        return pico8_value_bool(pico8_qz_call((const pico8_qz_box_t *)kq.as.ref, point));
+        return pico8_qz_call((const pico8_qz_box_t *)kq.as.ref, point);
     }
-    return pico8_value_bool(0);
+    return 0;
 }
 
 int pico8_gd(const pico8_struct_header_t *e) {

@@ -84,9 +84,7 @@ static int pico8_hy_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_hy_struct_class = {
-    {NULL},
-    pico8_hy_field,
-    NULL,
+    .field = pico8_hy_field,
 };
 
 static void *pico8_hy_struct_new(void) {
@@ -228,9 +226,10 @@ void pico8_hy_hk(pico8_hy_t *self) {
         it = pico8_list_all(hk_list);
         while (pico8_list_iter_next(&it, &e)) {
             if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                pico8_value_t discard;
-                pico8_mv((pico8_struct_header_t *)e.as.ref, "hk", 1, pico8_value_fixed(new_yr), pico8_value_ref(NULL),
-                         &discard);
+                pico8_struct_header_t *qc = e.as.ref;
+                if (qc->cls->hk != NULL) {
+                    qc->cls->hk(qc, new_yr);
+                }
             }
         }
     }
@@ -337,9 +336,10 @@ void pico8_hy_lj(pico8_hy_t *self) {
             it2 = pico8_list_all(hb_list);
             while (pico8_list_iter_next(&it2, &e2)) {
                 if (e2.kind == PICO8_VALUE_REF && e2.as.ref != NULL) {
-                    pico8_value_t discard;
-                    pico8_mv((pico8_struct_header_t *)e2.as.ref, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL),
-                             &discard);
+                    pico8_struct_header_t *qc = e2.as.ref;
+                    if (qc->cls->hb != NULL) {
+                        qc->cls->hb(qc);
+                    }
                 }
             }
         }

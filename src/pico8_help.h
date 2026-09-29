@@ -61,6 +61,6 @@ void pico8_fv_pq(pico8_fv_t *self);
 
 void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec_t p);
 
-pico8_value_t pico8_fv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra);
 
 #endif

@@ -56,19 +56,19 @@ static int listed(const pico8_list_t *list, const void *e) {
 /* Every name a reader of `mo` asks for, and a few it never does, is absent;
  * no method answers and the camera stays put; hv and cv are empty. */
 static void assert_placeholder(void) {
-    const char *names[] = {"ra", "p", "v", "ma", "pc", "me", "t", "nu", "md", "ph", "kj"};
+    const char *names[] = {"ra", "p", "v", "ma", "pc", "me", "t", "nu"};
     const char *buckets[] = {"kj", "ev", "hd", "hk", "hb"};
     pico8_struct_header_t *mo = pico8_mo();
     pico8_value_t v;
     int i;
 
     assert(mo != NULL);
-    for (i = 0; i < 11; i++) {
+    for (i = 0; i < 8; i++) {
         assert(!pico8_entity_get_field(mo, names[i], &v));
     }
     pico8_camera(&gfx, 5, 6);
-    assert(!pico8_mv(mo, "md", 1, pico8_value_fixed(pico8_fixed_from_int(1)), pico8_value_ref(NULL), &v));
-    assert(!pico8_mv(mo, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v));
+    assert(mo->cls != pico8_qb_struct_class());
+    assert(mo->cls->states[PICO8_STATE_PH] == NULL && mo->cls->kj == NULL);
     assert(gfx.camera_x == 5 && gfx.camera_y == 6);
     assert(pico8_hv()->count == 0);
     for (i = 0; i < 5; i++) {
@@ -104,7 +104,7 @@ static int ra_only_field(const void *self, const char *name, pico8_value_t *out_
     return 1;
 }
 
-static const pico8_struct_class_t g_ra_only_class = {{0}, ra_only_field, NULL};
+static const pico8_struct_class_t g_ra_only_class = {.field = ra_only_field};
 
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
 static void test_gd_on_placeholder(void) {

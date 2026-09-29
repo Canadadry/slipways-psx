@@ -209,9 +209,7 @@ static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_hp_struct_class = {
-    {NULL},
-    pico8_hp_field,
-    NULL,
+    .field = pico8_hp_field,
 };
 
 /* `s` NULL with `is_fixed` 0 is false. `i` gets the raw string that

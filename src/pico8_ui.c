@@ -40,9 +40,7 @@ static int pico8_je_placeholder_field(const void *self, const char *name, pico8_
 }
 
 static const pico8_struct_class_t g_je_placeholder_struct_class = {
-    {0},
-    pico8_je_placeholder_field,
-    NULL,
+    .field = pico8_je_placeholder_field,
 };
 
 typedef struct {
@@ -68,19 +66,6 @@ static pico8_value_t pico8_ui_field_raw(const pico8_struct_header_t *inst, const
         return v;
     }
     return pico8_value_ref(NULL);
-}
-
-/* Lua truthiness, used on every dispatch result below: false is falsy, and
- * so is this port's stand-in for nil, a REF holding NULL. A check that only
- * caught false swallowed every click near an unrevealed planet. */
-static int pico8_ui_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
 }
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
@@ -111,12 +96,9 @@ static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
     return b->hm;
 }
 
-static pico8_value_t pico8_ui_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_ui_ev_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 static int ui_ref_field(void *ref, pico8_value_t *out_value) {
@@ -166,11 +148,8 @@ static int pico8_ui_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_ui_struct_class = {
-    {
-        [PICO8_METHOD_EV] = pico8_ui_ev_dispatch,
-    },
-    pico8_ui_field,
-    NULL,
+    .ev = pico8_ui_ev_dispatch,
+    .field = pico8_ui_field,
 };
 
 static void *pico8_ui_struct_new(void) {
@@ -327,8 +306,8 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
  * field is absent, with no observable effect, so the write is simply
  * skipped here rather than allocating a table nothing reads. */
 void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
-    pico8_value_t qa_val;
     pico8_value_t je_ra_val;
+    const pico8_vec_t *je_ra;
     const pico8_list_t *hd_bucket;
     int i;
     int poke_val;
@@ -344,17 +323,15 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     self->ic = &self->ic_own;
     self->o_ = NULL;
 
-    qa_val = pico8_value_ref(self->qa);
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
+    je_ra = je_ra_val.kind == PICO8_VALUE_REF ? je_ra_val.as.ref : NULL;
 
     hd_bucket = pico8_cv("hd");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
             pico8_struct_header_t *e = hd_bucket->items[i].as.ref;
-            pico8_value_t hit_out;
 
-            /* TROU-11 */
-            if (pico8_mv(e, "hd", 2, qa_val, je_ra_val, &hit_out) && pico8_ui_truthy(hit_out)) {
+            if (e->cls->hd != NULL && e->cls->hd(e, self->qa, je_ra)) {
                 pico8_value_t fa_val;
                 if (pico8_entity_get_field(e, "fa", &fa_val) && fa_val.kind == PICO8_VALUE_FIXED) {
                     int fa = pico8_ui_to_int(fa_val.as.fixed);
@@ -388,39 +365,15 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
 
 static int ui_is_held_class(const pico8_struct_class_t *cls) {
     return cls == pico8_jc_struct_class() || cls == pico8_g__struct_class() || cls == pico8_mz_struct_class() ||
-           (cls->methods[PICO8_METHOD_LY] != NULL && cls != pico8_pm_struct_class());
-}
-
-static void ui_take_held(pico8_value_t value, pico8_struct_header_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           ui_is_held_class(((const pico8_struct_header_t *)value.as.ref)->cls) &&
-           "ui.lheld: a value neither nil nor what an ldown hands over (a jc; a g_ or an mz from bg; a qh, os, nr, fr, "
-           "nl, mx or hj from an ie) does not fit the member's type -- stop, do not widen the member");
-    *out = value.as.ref;
-}
-
-static void ui_take_bg(pico8_value_t value, pico8_bg_t **out) {
-    *out = NULL;
-    if (value.kind == PICO8_VALUE_REF && value.as.ref == NULL) {
-        return;
-    }
-    assert(value.kind == PICO8_VALUE_REF && pico8_type_tag_of(value.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)value.as.ref)->cls == pico8_bg_struct_class() &&
-           "ui.rheld: a value neither nil nor the bg that rdown hands over does not fit the member's type "
-           "-- stop, do not widen the member");
-    *out = value.as.ref;
+           (cls->states[PICO8_STATE_LY] != NULL && cls != pico8_pm_struct_class());
 }
 
 void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     int l;
-    const char *down;
     pico8_struct_header_t *held_inst;
     pico8_value_t qa_val;
     pico8_value_t je_ra_val;
+    pico8_vec_t *je_ra;
     pico8_value_t discard;
 
     if (self == NULL) {
@@ -430,20 +383,25 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
            "ui:bh: bt is l or r only; another button has no state table -- stop");
     l = bt[0] == 'l';
-    down = l ? "ldown" : "rdown";
     qa_val = pico8_value_ref(self->qa);
     je_ra_val = pico8_ui_field_raw(g_je, "ra");
+    je_ra = je_ra_val.kind == PICO8_VALUE_REF ? je_ra_val.as.ref : NULL;
 
     if (pico8_ui_je_button_field_bool(bt, "jn")) {
         pico8_struct_header_t *kv = NULL;
-        pico8_value_t kn;
+        pico8_down_t kn;
 
-        if (pico8_ui_jz(self, down, 2, qa_val, je_ra_val, &kv, &kn) && kn.kind == PICO8_VALUE_REF) {
+        if (pico8_ui_jz(self, l ? PICO8_JZ_LDOWN : PICO8_JZ_RDOWN, self->qa, je_ra, NULL, &kv, &kn) &&
+            kn.held != NULL) {
             /* TROU-6 */
             if (l) {
-                ui_take_held(kn, &self->lheld);
+                assert(ui_is_held_class(kn.held->cls) &&
+                       "ui.lheld: what an ldown hands over is a jc; a g_ or an mz from bg; a qh, os, nr, fr, nl, mx "
+                       "or hj from an ie");
+                self->lheld = kn.held;
             } else {
-                ui_take_bg(kn, &self->rheld);
+                assert(kn.held->cls == pico8_bg_struct_class() && "ui.rheld: what an rdown hands over is the bg");
+                self->rheld = (pico8_bg_t *)kn.held;
             }
         }
     }
@@ -454,13 +412,12 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 
     if (pico8_ui_je_button_field_bool(bt, "hm") && held_inst != NULL) {
         pico8_struct_header_t *nw_kv = NULL;
-        pico8_value_t nw_kn;
+        pico8_down_t nw_kn;
         pico8_value_t ey_arg = pico8_value_ref(NULL);
 
         /* `ey`'s argument is the entity `jz` found, not a field read on
          * `held`: no object in this cart carries a "kv" field. */
-        if (pico8_ui_jz(self, "gv", 1, pico8_value_ref(held_inst), pico8_value_ref(NULL), &nw_kv, &nw_kn) &&
-            nw_kv != NULL) {
+        if (pico8_ui_jz(self, PICO8_JZ_GV, NULL, NULL, held_inst, &nw_kv, &nw_kn) && nw_kv != NULL) {
             ey_arg = pico8_value_ref(nw_kv);
         }
 
@@ -476,8 +433,8 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 /* Layers descend from 15 to 0 and the first truthy answer wins: that order
  * is the dispatch priority between overlapping entities, not an arbitrary
  * walk. */
-int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
-                pico8_struct_header_t **out_kv, pico8_value_t *out_kn) {
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const pico8_struct_header_t *s,
+                pico8_struct_header_t **out_kv, pico8_down_t *out_kn) {
     int mf;
 
     if (self == NULL) {
@@ -494,9 +451,26 @@ int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, 
 
         for (i = 0; i < bucket->count; i++) {
             pico8_struct_header_t *h = bucket->items[i].as.ref;
-            pico8_value_t kn;
+            pico8_down_t kn = {0, NULL};
 
-            if (pico8_mv(h, rm, argc, arg0, arg1, &kn) && pico8_ui_truthy(kn)) {
+            switch (rm) {
+            case PICO8_JZ_LDOWN:
+                if (h->cls->ldown != NULL) {
+                    kn = h->cls->ldown(h, qa, ra);
+                }
+                break;
+            case PICO8_JZ_RDOWN:
+                if (h->cls->rdown != NULL) {
+                    kn = h->cls->rdown(h, qa, ra);
+                }
+                break;
+            case PICO8_JZ_GV:
+                if (h->cls->gv != NULL) {
+                    kn = h->cls->gv(h, s);
+                }
+                break;
+            }
+            if (kn.stop) {
                 *out_kv = h;
                 *out_kn = kn;
                 return 1;

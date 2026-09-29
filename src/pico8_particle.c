@@ -168,10 +168,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     pico8_ez(self, pico8_particle_field_fixed(self, "fc"));
 }
 
-pico8_value_t pico8_ei_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+void pico8_ei_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_ei(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
-    return pico8_value_ref(NULL);
 }

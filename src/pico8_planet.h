@@ -107,17 +107,17 @@ void pico8_jo_pq(pico8_jo_t *self);
 
 /* The dispatchers jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-pico8_value_t pico8_jo_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+int pico8_jo_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 pico8_value_t pico8_jo_gg_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_jo_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_jo_gv_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_jo_hk_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_jo_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_jo_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_jo_hb_dispatch(void *self);
+pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s);
+void pico8_jo_hk_dispatch(void *self, pico8_fixed_t yr);
+void pico8_jo_kj_dispatch(void *self, const pico8_vec_t *ra);
+pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
 pico8_value_t pico8_jo_kf_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 pico8_value_t pico8_jo_cn_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 pico8_value_t pico8_jo_ib_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
-pico8_value_t pico8_jo_ll_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t);
 
 /* TROU-7 */
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
@@ -148,7 +148,7 @@ void pico8_jo_hk(const pico8_jo_t *self);
 /* TROU-6 */
 /* Returns a freshly built `jc` instance, Lua true, or nil; the caller
  * (`ui:bh`) keeps whatever comes back, and nothing frees the instance. */
-pico8_value_t pico8_jo_ldown(pico8_jo_t *self);
+pico8_down_t pico8_jo_ldown(pico8_jo_t *self);
 
 /* Both take ownership and free the previous generator; NULL is the valid
  * way back to "none", and `pico8_jo_shutdown()` releases whichever is set.

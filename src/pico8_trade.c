@@ -46,9 +46,7 @@ static int pico8_trade_field(const void *self, const char *name, pico8_value_t *
 }
 
 static const pico8_struct_class_t g_trade_struct_class = {
-    {NULL},
-    pico8_trade_field,
-    NULL,
+    .field = pico8_trade_field,
 };
 
 static void *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {

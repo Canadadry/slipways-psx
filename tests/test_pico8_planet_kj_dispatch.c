@@ -20,38 +20,23 @@
  * and a real entity registered under "kj" to run at all: `jl()`, a real
  * `jo` and real gfx/mem. */
 
-static char g_order[8];
-static int g_order_n = 0;
+static int g_kj_calls = 0;
+static int g_camera_x_at_kj;
+static int g_camera_y_at_kj;
 
-/* Records the call order, then forwards to the real `pico8_qb_md`, so the
- * order is observed without stubbing the behaviour out. Installed on `mo`
- * alone, through a copy of qb's method table whose `md` entry is this spy,
- * so no other `qb` sees it. */
-static pico8_value_t spy_md(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t fy = (arg0.kind == PICO8_VALUE_FIXED) ? arg0.as.fixed : pico8_fixed_from_int(1);
-    (void)argc;
-    (void)arg1;
-    assert(g_order_n < 8);
-    g_order[g_order_n++] = 'M';
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
-    return pico8_value_ref(NULL);
-}
+/* Records the camera `mo:md` has left by the time the planet's "kj" runs,
+ * then forwards to the real `pico8_jo_kj`, so the order is observed without
+ * stubbing the behaviour out. Installed on the planet alone, through a copy
+ * of jo's class whose `kj` is this spy, so no other `jo` sees it. */
+static void spy_kj(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 
-/* Same, for the planet's "kj". */
-static pico8_value_t spy_kj(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
-    assert(g_order_n < 8);
-    g_order[g_order_n++] = 'K';
+    g_kj_calls++;
+    g_camera_x_at_kj = pico8_dispatch_gfx()->camera_x;
+    g_camera_y_at_kj = pico8_dispatch_gfx()->camera_y;
     pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_struct_class_t g_spied_qb;
 static pico8_struct_class_t g_spied_jo;
 
 static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
@@ -69,7 +54,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pico8_dispatch_set_gfx(&gfx);
     pico8_dispatch_set_mem(&mem);
 
-    g_order_n = 0;
+    g_kj_calls = 0;
 
     /* `jl()` builds the real `hv`/`cv`/`cg` and the real `mo=qb()`. */
     pico8_jl();
@@ -101,11 +86,9 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     *ra_heap = pico8_vec_v(pico8_fixed_from_int(256), pico8_fixed_from_int(256));
     planet->ra = ra_heap;
 
-    g_spied_qb = *pico8_qb_struct_class();
-    g_spied_qb.methods[PICO8_METHOD_MD] = spy_md;
-    ((pico8_struct_header_t *)mo)->cls = &g_spied_qb;
+    assert(mo->cls == pico8_qb_struct_class());
     g_spied_jo = *pico8_jo_struct_class();
-    g_spied_jo.methods[PICO8_METHOD_KJ] = spy_kj;
+    g_spied_jo.kj = spy_kj;
     planet->ke.header.cls = &g_spied_jo;
 
     /* `kj` paints colour 0, which is also the framebuffer's cleared value,
@@ -119,13 +102,13 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     pixel_before = pico8_peek(&mem, screen_pixel_addr);
     assert(pixel_before == 9);
 
+    assert(gfx.camera_x == 0 && gfx.camera_y == 0);
     pico8_dc("kj");
 
     /* Order, never the reverse: within a layer, the "kj" special case runs
-     * before the per-entity loop. */
-    assert(g_order_n == 2);
-    assert(g_order[0] == 'M');
-    assert(g_order[1] == 'K');
+     * before the per-entity loop, so the real `kj` already sees its camera. */
+    assert(g_kj_calls == 1);
+    assert(g_camera_x_at_kj == 192 && g_camera_y_at_kj == 192);
 
     /* `mo:md` really ran: the camera lands on `qb`'s spec `ra=v(192,192)`,
      * `self.ma` having decayed to its 0 default so the shake adds nothing. */
@@ -143,7 +126,6 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
 
     assert(pico8_mo() == mo);
 
-    ((pico8_struct_header_t *)mo)->cls = pico8_qb_struct_class();
     planet->ke.header.cls = pico8_jo_struct_class();
     pico8_jo_shutdown();
     pico8_bootstrap_shutdown();

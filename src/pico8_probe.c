@@ -45,9 +45,7 @@ static int pico8_fm_placeholder_field(const void *self, const char *name, pico8_
 }
 
 static const pico8_struct_class_t g_fm_placeholder_struct_class = {
-    {NULL},
-    pico8_fm_placeholder_field,
-    NULL,
+    .field = pico8_fm_placeholder_field,
 };
 
 static pico8_fm_placeholder_t g_fm_placeholder = {
@@ -98,9 +96,8 @@ static int pico8_bv_et_set_field(void *self, const char *name, pico8_value_t val
 }
 
 static const pico8_struct_class_t g_bv_et_struct_class = {
-    {NULL},
-    pico8_bv_et_field,
-    pico8_bv_et_set_field,
+    .field = pico8_bv_et_field,
+    .set_field = pico8_bv_et_set_field,
 };
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
@@ -325,12 +322,9 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     free(heap_display);
 }
 
-pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+void pico8_dl_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_dl(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_struct_header_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 pico8_value_t pico8_d_(pico8_struct_header_t *self) {
@@ -582,7 +576,7 @@ static void g__take_vec(pico8_value_t value, pico8_vec_t **out) {
 /* What `bv` aims at: `cg.np` (jo, and qh's tree: exactly the descriptors
  * holding `ly`), a `jc`, or the throwaway target. */
 static int g__is_target_class(const pico8_struct_class_t *cls) {
-    return cls->methods[PICO8_METHOD_LY] != NULL || cls == pico8_jo_struct_class() ||
+    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class() ||
            cls == pico8_jc_struct_class() || cls == pico8_bv_et_struct_class();
 }
 
@@ -644,15 +638,16 @@ static int pico8_g__set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_g__struct_class = {
-    {
-        [PICO8_METHOD_HQ] = pico8_bv_dispatch,
-        [PICO8_METHOD_EY] = pico8_d__dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_KJ] = pico8_ei_dispatch,
-        [PICO8_METHOD_MM] = pico8_g__mm,
-    },
-    pico8_g__field,
-    pico8_g__set_field,
+    .methods =
+        {
+            [PICO8_METHOD_HQ] = pico8_bv_dispatch,
+            [PICO8_METHOD_EY] = pico8_d__dispatch,
+            [PICO8_METHOD_MM] = pico8_g__mm,
+        },
+    .kj = pico8_ei_dispatch,
+    .ev = pico8_dl_dispatch,
+    .field = pico8_g__field,
+    .set_field = pico8_g__set_field,
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {

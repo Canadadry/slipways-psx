@@ -22,23 +22,10 @@ static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
 }
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
- * arg0 is the frame counter, which qb:ph does not read. */
-static pico8_value_t pico8_qb_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+ * `t` is the frame counter, which qb:ph does not read. */
+static void pico8_qb_ph_dispatch(void *self, pico8_fixed_t t) {
+    (void)t;
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
-    return pico8_value_ref(NULL);
-}
-
-/* Resolves Lua's `fy or 1` here, so pico8_qb_md itself always gets a real
- * factor; dc()'s "kj" branch passes `ci[o]` as arg0. */
-static pico8_value_t pico8_qb_md_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t fy = (arg0.kind == PICO8_VALUE_FIXED) ? arg0.as.fixed : pico8_fixed_from_int(1);
-    (void)argc;
-    (void)arg1;
-    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
-    return pico8_value_ref(NULL);
 }
 
 static int pico8_qb_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -113,9 +100,9 @@ static int pico8_qb_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_qb_struct_class = {
-    {[PICO8_METHOD_PH] = pico8_qb_ph_dispatch, [PICO8_METHOD_MD] = pico8_qb_md_dispatch},
-    pico8_qb_field,
-    pico8_qb_set_field,
+    .states = {[PICO8_STATE_PH] = pico8_qb_ph_dispatch},
+    .field = pico8_qb_field,
+    .set_field = pico8_qb_set_field,
 };
 
 static void *pico8_qb_struct_new(void) {

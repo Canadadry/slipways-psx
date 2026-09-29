@@ -74,9 +74,8 @@ static int pico8_jc_too_far_set_field(void *self, const char *name, pico8_value_
 }
 
 static const pico8_struct_class_t g_jc_too_far_struct_class = {
-    {NULL},
-    pico8_jc_too_far_field,
-    pico8_jc_too_far_set_field,
+    .field = pico8_jc_too_far_field,
+    .set_field = pico8_jc_too_far_set_field,
 };
 
 /* The `{qs="-too far-"}` `jc:ce` returns beyond range: never allocated,
@@ -123,9 +122,7 @@ static pico8_vec_t *pico8_jc_mouse_point_take_ra(pico8_value_t mp) {
 }
 
 static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
-    {NULL},
-    pico8_jc_mouse_point_field,
-    NULL,
+    .field = pico8_jc_mouse_point_field,
 };
 
 /* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
@@ -229,7 +226,6 @@ void pico8_jc_pq(pico8_jc_t *self) {
 void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     pico8_ui_t *ok;
     pico8_struct_header_t *hovered;
-    pico8_value_t gv_val;
     pico8_value_t qu_mt;
     pico8_value_t mt_val;
 
@@ -240,7 +236,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_value_t mp) {
     ok = pico8_ok();
     hovered = pico8_jc_entity_instance(ok, "o_");
 
-    if (hovered != NULL && pico8_entity_get_field(hovered, "gv", &gv_val) && pico8_jc_truthy(gv_val)) {
+    if (hovered != NULL && hovered->cls->gv != NULL) {
         self->re = hovered;
     } else {
         pico8_jc_mouse_point_t *point = malloc(sizeof *point);
@@ -484,20 +480,14 @@ static pico8_value_t pico8_jc_eb_dispatch(void *self, int argc, pico8_value_t ar
     return pico8_jc_eb((const pico8_jc_t *)self, jo_instance);
 }
 
-static pico8_value_t pico8_jc_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_jc_ev_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_jc_ev((pico8_jc_t *)self);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_jc_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_jc_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_jc_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jc_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 static int jc_ref_field(const void *ref, pico8_value_t *out_value) {
@@ -576,7 +566,7 @@ static int pico8_jc_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
-    return cls->methods[PICO8_METHOD_LY] != NULL || cls == pico8_jo_struct_class();
+    return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class();
 }
 
 static int jc_is_fo_holder_class(const pico8_struct_class_t *cls) {
@@ -625,15 +615,16 @@ static int pico8_jc_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_jc_struct_class = {
-    {
-        [PICO8_METHOD_HQ] = pico8_jc_hq_dispatch,
-        [PICO8_METHOD_EY] = pico8_jc_ey_dispatch,
-        [PICO8_METHOD_EB] = pico8_jc_eb_dispatch,
-        [PICO8_METHOD_EV] = pico8_jc_ev_dispatch,
-        [PICO8_METHOD_KJ] = pico8_jc_kj_dispatch,
-    },
-    pico8_jc_field,
-    pico8_jc_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_HQ] = pico8_jc_hq_dispatch,
+            [PICO8_METHOD_EY] = pico8_jc_ey_dispatch,
+            [PICO8_METHOD_EB] = pico8_jc_eb_dispatch,
+        },
+    .kj = pico8_jc_kj_dispatch,
+    .ev = pico8_jc_ev_dispatch,
+    .field = pico8_jc_field,
+    .set_field = pico8_jc_set_field,
 };
 
 static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {

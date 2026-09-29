@@ -67,12 +67,9 @@ void pico8_mh_pq(pico8_mh_t *self) {
     pico8_msgbox_set_kc(self);
 }
 
-static pico8_value_t pico8_mh_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_mh_ev_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_mh_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mh_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
@@ -144,9 +141,8 @@ static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_mh_struct_class = {
-    {[PICO8_METHOD_EV] = pico8_mh_ev_dispatch},
-    pico8_mh_field,
-    NULL,
+    .ev = pico8_mh_ev_dispatch,
+    .field = pico8_mh_field,
 };
 
 static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
@@ -242,12 +238,9 @@ void pico8_iv_ph(pico8_iv_t *self) {
     self->has_p_ = 1;
 }
 
-static pico8_value_t pico8_iv_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_iv_ph_dispatch(void *self, pico8_fixed_t t) {
+    (void)t;
     pico8_iv_ph((pico8_iv_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *self, pico8_vec_t p) {
@@ -269,14 +262,9 @@ void pico8_iv_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_iv_t *sel
     pico8_dv_default(mem);
 }
 
-static pico8_value_t pico8_iv_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL)
-                        ? *(const pico8_vec_t *)arg0.as.ref
-                        : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
+static void pico8_iv_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
 static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out_value) {
@@ -315,9 +303,9 @@ static int pico8_iv_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_iv_struct_class = {
-    {[PICO8_METHOD_PH] = pico8_iv_ph_dispatch, [PICO8_METHOD_KJ] = pico8_iv_kj_dispatch},
-    pico8_iv_field,
-    NULL,
+    .kj = pico8_iv_kj_dispatch,
+    .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
+    .field = pico8_iv_field,
 };
 
 static void *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {

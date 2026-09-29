@@ -57,8 +57,7 @@ static pico8_input_t input;
 /* 4 of the 5 tables of pj's spec, read on the class by the cart; the 5th,
  * `cr`, is its own struct. */
 static const char *const tables[] = {"ea", "gs", "i_", "ou"};
-static const char *const absent[] = {"c_", "gz", "ra", "p_", "nu", "fx", "hd", "ev"};
-static const char *const methods[] = {"kj", "ph", "hb", "hk"};
+static const char *const absent[] = {"c_", "gz", "ra", "p_", "nu", "fx", "hd"};
 static const char *const tags[] = {"jo", "g_", "qh", "jc", "mz", "mh", "np", "hj", "prober", "nr", "bg"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -275,10 +274,8 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0) {
-    pico8_value_t out = pico8_value_ref(NULL);
-    assert(pico8_mv(e, name, argc, arg0, pico8_value_ref(NULL), &out));
-    return out;
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
 }
 
 static pico8_value_t nil(void) {
@@ -375,10 +372,9 @@ static void test_built(void) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(ju, absent[i]));
     }
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        pico8_value_t v;
-        assert(lookup(ju, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-    }
+    assert(cls_of(ju)->kj != NULL && cls_of(ju)->states[PICO8_STATE_PH] != NULL && cls_of(ju)->hb != NULL &&
+           cls_of(ju)->hk != NULL);
+    assert(cls_of(ju)->hd == NULL && cls_of(ju)->ev == NULL);
     assert(get_ref(ju, "ea") == pico8_pj_ea());
     h = fold_field(h, ju, "ea");
     assert(get_ref(ju, "gs") == &pico8_pj_gs_row);
@@ -409,11 +405,11 @@ static void test_shared(void) {
     assert(get_ref(other, "cr") == get_ref(ju, "cr"));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), other));
 
-    (void)call(ju, "hb", 0, nil());
+    cls_of(ju)->hb(ju);
     h = fold_ou_heads(h, other);
     assert(strcmp(string_at(row_of(get_ref(other, "ou"), 1), 1), string_at(row_of(get_ref(ju, "ou"), 1), 1)) == 0);
 
-    (void)call(ju, "hk", 1, pico8_value_fixed(pico8_fixed_from_int(3425)));
+    cls_of(ju)->hk(ju, pico8_fixed_from_int(3425));
     ea = get_ref(other, "ea");
     assert(strcmp(string_at(row_of(&ea->row, 2), 1), "year 3425") == 0);
     assert(ea->row.count == 3 && ea->lh != NULL);
@@ -421,7 +417,7 @@ static void test_shared(void) {
 
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    (void)call(ju, "ph", 0, nil());
+    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     assert(get_fixed(ju, "fa") == pico8_fixed_from_int(13));
     assert(bool_state(ju, "c_") == 2);
     assert(get_fixed(other, "fa") == pico8_fixed_from_int(10));
@@ -447,11 +443,11 @@ static void test_life(void) {
     int boxes;
     size_t i;
 
-    (void)call(ju, "hb", 0, nil());
+    cls_of(ju)->hb(ju);
     h = fold_ou_heads(h, ju);
 
     for (i = 0; i < sizeof years / sizeof years[0]; i++) {
-        (void)call(ju, "hk", 1, pico8_value_fixed(pico8_fixed_from_int(years[i])));
+        cls_of(ju)->hk(ju, pico8_fixed_from_int(years[i]));
         h = fnv(h, (uint32_t)(ea->row.count >= 3));
         h = fnv(h, (uint32_t)(ea->lh != NULL));
         h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
@@ -466,7 +462,7 @@ static void test_life(void) {
     h = fnv_str(h, ep.as.string);
 
     for (i = 0; i < 2; i++) {
-        (void)call(ju, "kj", 0, nil());
+        cls_of(ju)->kj(ju, NULL);
         h = fnv(h, screen_hash());
     }
     assert(!has(ju, "gz"));
@@ -475,7 +471,7 @@ static void test_life(void) {
     js_before = js15_count();
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    (void)call(ju, "ph", 0, nil());
+    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     assert(bool_state(ju, "c_") == 2);
     assert(get_fixed(ju, "gz") == 0);
     assert(get_fixed(ju, "fa") == pico8_fixed_from_int(13));
@@ -485,12 +481,12 @@ static void test_life(void) {
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_kc()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
 
-    (void)call(ju, "ph", 0, nil());
+    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     assert(count_of(pico8_cg("mh")) == boxes);
     assert(get_ref(ju, "ed") == pico8_kc());
 
     for (i = 0; i < 3; i++) {
-        (void)call(ju, "kj", 0, nil());
+        cls_of(ju)->kj(ju, NULL);
         h = fold_field(h, ju, "gz");
         h = fnv(h, screen_hash());
     }
@@ -658,11 +654,13 @@ static void test_pj_is_a_struct(void) {
 
     assert(is_of(ju, cls));
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        if (j == PICO8_METHOD_HB || j == PICO8_METHOD_KJ || j == PICO8_METHOD_HK || j == PICO8_METHOD_PH) {
-            assert(cls->methods[j] != NULL);
-        } else {
-            assert(cls->methods[j] == NULL);
-        }
+        assert(cls->methods[j] == NULL);
+    }
+    assert(cls->hb != NULL && cls->kj != NULL && cls->hk != NULL && cls->states[PICO8_STATE_PH] != NULL);
+    assert(cls->ev == NULL && cls->hd == NULL && cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL &&
+           cls->gv == NULL);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert((cls->states[j] != NULL) == (j == PICO8_STATE_PH));
     }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_pj_ready());
@@ -694,6 +692,11 @@ static void test_cr_is_a_struct(void) {
     assert(cr != NULL && get_ref(ju, "cr") == cr && is_of(cr, cls));
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
         assert(cls->methods[j] == NULL);
+    }
+    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
+           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert(cls->states[j] == NULL);
     }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(lookup(cr, "hi", &v) && v.kind == PICO8_VALUE_REF);
@@ -907,7 +910,7 @@ static void test_pj_members_by_name(void) {
     pico8_msgbox_set_kc(NULL);
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    (void)call(ju, "ph", 0, nil());
+    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     h = pj_bool_is(h, ju, "c_", 1);
     h = pj_fixed_is(h, ju, "gz", 0);
     h = pj_fixed_is(h, ju, "fa", pico8_fixed_from_int(13));
@@ -921,12 +924,12 @@ static void test_pj_members_by_name(void) {
     boxes = count_of(pico8_cg("mh"));
     h = fnv(h, (uint32_t)boxes);
 
-    (void)call(ju, "ph", 0, nil());
+    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     assert(count_of(pico8_cg("mh")) == boxes);
     h = pj_ref_is(h, ju, "ed", ed, PICO8_TYPE_TAG_STRUCT);
 
     for (i = 0; i < 3; i++) {
-        (void)call(ju, "kj", 0, nil());
+        cls_of(ju)->kj(ju, NULL);
     }
     h = pj_fixed_is(h, ju, "gz", PICO8_FIXED_LIT(0x00009999, 0.6));
     h = pj_fixed_is(h, ju, "fa", pico8_fixed_from_int(13));
@@ -1009,7 +1012,7 @@ static void test_ph_rows_show_ky(void) {
     fm->has_happiness = 1;
     fm->hl = "final score";
     fm->has_hl = 1;
-    (void)call(ju, "ph", 0, nil());
+    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     mh = pico8_kc();
     assert(mh != NULL && mh->items.count == PICO8_BZ_COUNT);
     total = ph_row_item(mh, 10, 3);

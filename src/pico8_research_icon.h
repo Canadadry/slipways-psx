@@ -85,8 +85,8 @@ void pico8_ie_hb(pico8_ie_t *self);
 /* Returns a fresh instance of the class `self.ke` names, for the caller to
  * hold as a placement in progress, or an absent value when `self.ke` is not
  * a class; bumps the shared `ie.id` either way. Requires
- * pico8_research_icon_init(). `mp` is unused, as in Lua. */
-pico8_value_t pico8_ie_ldown(pico8_ie_t *self, pico8_value_t mp);
+ * pico8_research_icon_init(). */
+pico8_down_t pico8_ie_ldown(pico8_ie_t *self);
 
 /* By value, one per read: each member copied off the chain of the class
  * `self.ke` holds, nil when absent there or when `self.ke` is. `rr` and

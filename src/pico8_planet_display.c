@@ -292,23 +292,25 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_pz((const pico8_struct_header_t *)self, bs, n);
 }
 
-pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
+pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
     const char *me_val;
     pico8_value_t qu_val;
+    pico8_down_t out = {0, NULL};
 
     if (self == NULL) {
-        return pico8_value_ref(NULL);
+        return out;
     }
     me_val = self->ke.me;
     if (me_val == NULL || strcmp(me_val, "ly") != 0) {
-        return pico8_value_ref(NULL);
+        return out;
     }
     if (s != NULL && pico8_entity_get_field(s, "qu", &qu_val) && qu_val.kind == PICO8_VALUE_REF &&
         qu_val.as.ref == (const void *)self) {
         pico8_jo_gh(self);
-        return pico8_value_ref(NULL);
+        return out;
     }
-    return pico8_value_bool(1);
+    out.stop = 1;
+    return out;
 }
 
 /* C has no closures: the three values the Lua `my` callback captures ride

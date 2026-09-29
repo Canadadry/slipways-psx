@@ -363,7 +363,7 @@ static void check_fresh_mz(const void *mz) {
 }
 
 static void test_construction(void) {
-    pico8_value_t made;
+    pico8_down_t made;
     const pico8_list_t *mzs;
     int before;
 
@@ -371,15 +371,15 @@ static void test_construction(void) {
     assert(pico8_cg("g_") == NULL || pico8_cg("g_")->count == 0);
     mzs = pico8_cg("mz");
     before = mzs == NULL ? 0 : mzs->count;
-    made = pico8_bg_ldown(NULL, pico8_value_ref(NULL));
-    assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-    assert(listed(pico8_cg("g_"), made.as.ref));
+    made = pico8_bg_ldown(NULL);
+    assert(made.stop && made.held != NULL);
+    assert(listed(pico8_cg("g_"), made.held));
     mzs = pico8_cg("mz");
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
-    made = pico8_bg_ldown(NULL, pico8_value_ref(NULL));
-    assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-    check_fresh_mz(made.as.ref);
+    made = pico8_bg_ldown(NULL);
+    assert(made.stop && made.held != NULL);
+    check_fresh_mz(made.held);
     check_fresh_mz(build_mz());
     check_fresh_mz(pico8_mz_new());
 }
@@ -625,12 +625,12 @@ static uint32_t screen_hash(void) {
 /* `kj` is given the screen centre rather than `ra`, which is in world
  * coordinates, off the uncamera'd screen. */
 static uint32_t draw(void *mz) {
-    pico8_value_t out;
+    const pico8_struct_class_t *cls = ((const pico8_struct_header_t *)mz)->cls;
 
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
-    assert(pico8_mv(mz, "kj", 1, vec_ref(64, 64), pico8_value_ref(NULL), &out));
-    assert(pico8_mv(mz, "ev", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    cls->kj(mz, vec_ref(64, 64).as.ref);
+    cls->ev(mz, NULL);
     return screen_hash();
 }
 
@@ -682,21 +682,21 @@ static void test_gv(void) {
     void *ly;
     void *nr;
     pico8_jo_keys_t keys;
-    pico8_value_t r;
+    pico8_down_t r;
 
     world();
     mz = build_mz();
     ly = first_with_me("jo", "ly");
     assert(ly != NULL);
     r = pico8_jo_gv(ly, mz);
-    assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
+    assert(r.stop && r.held == NULL);
 
     keys.id = NULL;
     keys.p = get(ly, "p").as.ref;
     keys.ra = get(ly, "ra").as.ref;
     nr = pico8_nr_new(&keys);
     r = pico8_nr_gv(nr, mz);
-    assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
+    assert(r.stop && r.held == NULL);
 }
 
 /* `mz.jj` as the cart has it: `qs` and nothing else, never written. `bv`
@@ -723,7 +723,6 @@ static void check_fo_is(const void *mz) {
 }
 
 static void test_jj_wrapper(void) {
-    static const char *const methods[] = {"kj", "ev", "hq"};
     void *wrapper;
     void *mz;
     void *other;
@@ -732,15 +731,16 @@ static void test_jj_wrapper(void) {
     pico8_vec_t mid;
     pico8_value_t et;
     pico8_value_t other_et;
-    size_t i;
 
     world();
     wrapper = (void *)pico8_mz_jj_wrapper();
     check_jj_untouched();
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
+    {
         pico8_value_t out;
-        assert(!pico8_mv(wrapper, methods[i], 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+        assert(!pico8_mv(wrapper, "hq", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
     }
+    assert(((const pico8_struct_header_t *)wrapper)->cls->kj == NULL &&
+           ((const pico8_struct_header_t *)wrapper)->cls->ev == NULL);
 
     mz = build_mz();
     hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
@@ -789,8 +789,8 @@ static int is_an_mz_struct(const void *e) {
  * other than `ra`/`p`/`et`/`p_` stops the run instead of growing a
  * member. */
 static void test_mz_is_a_struct(void) {
-    static const char *const methods[] = {"hq", "ey", "kz", "pr", "kj", "ev"};
-    pico8_value_t made;
+    static const char *const methods[] = {"hq", "ey"};
+    pico8_down_t made;
     pico8_value_t jj;
     void *mz;
     size_t i;
@@ -798,15 +798,19 @@ static void test_mz_is_a_struct(void) {
     int status;
 
     start_game();
-    (void)pico8_bg_ldown(NULL, pico8_value_ref(NULL));
-    made = pico8_bg_ldown(NULL, pico8_value_ref(NULL));
+    (void)pico8_bg_ldown(NULL);
+    made = pico8_bg_ldown(NULL);
     mz = pico8_mz_new();
-    assert(is_an_mz_struct(made.as.ref) && is_an_mz_struct(build_mz()) && is_an_mz_struct(mz));
+    assert(is_an_mz_struct(made.held) && is_an_mz_struct(build_mz()) && is_an_mz_struct(mz));
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         pico8_value_t m;
         assert(pico8_entity_get_field(mz, methods[i], &m) && m.kind == PICO8_VALUE_FUNCTION);
     }
-    assert(!has(mz, "ph") && !has(mz, "ldown") && !has(mz, "md") && !has(mz, "ol"));
+    assert(!has(mz, "ol"));
+    assert(pico8_mz_struct_class()->states[PICO8_STATE_KZ] != NULL &&
+           pico8_mz_struct_class()->states[PICO8_STATE_PR] != NULL && pico8_mz_struct_class()->kj != NULL &&
+           pico8_mz_struct_class()->ev != NULL);
+    assert(pico8_mz_struct_class()->states[PICO8_STATE_PH] == NULL && pico8_mz_struct_class()->ldown == NULL);
 
     assert(is_a_struct_of(pico8_mz_jj_wrapper(), pico8_mz_jj_struct_class()));
     assert(pico8_entity_get_field(mz, "jj", &jj) && jj.as.ref == (const void *)pico8_mz_jj_wrapper());
@@ -1146,8 +1150,8 @@ static void test_mz_members_by_name(void) {
     start_game();
     fresh[0] = pico8_mz_new();
     fresh[1] = pico8_mz_new();
-    (void)pico8_bg_ldown(NULL, pico8_value_ref(NULL));
-    fresh[2] = pico8_bg_ldown(NULL, pico8_value_ref(NULL)).as.ref;
+    (void)pico8_bg_ldown(NULL);
+    fresh[2] = pico8_bg_ldown(NULL).held;
     for (k = 0; k < 3; k++) {
         check_fresh_members(fresh[k], fresh[0]);
         h = fold_mz_members(h, fresh[k]);

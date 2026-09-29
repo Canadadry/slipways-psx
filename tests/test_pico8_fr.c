@@ -57,9 +57,8 @@ static const char *const qh_members[] = {"hp", "px", "dq", "qh", "od", "fp", "dw
 static const char *const jo_members[] = {"nu", "hf", "hs", "fa", "kq", "ma", "ka", "dz", "cq", "kw", "gq",
                                          "ca", "em", "id", "p",  "ra", "oe", "hn", "ep", "jy", "nk", "fx",
                                          "lq", "fo", "jh", "p_", "kr", "cc", "by", "mi", "m_"};
-static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf",
-                                      "cn", "ib", "ll", "hq", "ev", "ey", "ly"};
-static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb", "mm"};
+static const char *const methods[] = {"gg", "kf", "cn", "ib", "hq", "ey"};
+static const char *const absent[] = {"ol", "eb", "mm"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"nr", "np", "prober"};
 
@@ -215,6 +214,10 @@ static pico8_vec_t vec_xy(int x, int y) {
     return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
 }
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
 static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_value_t out = pico8_value_ref(NULL);
     assert(pico8_mv(e, name, argc, arg0, arg1, &out));
@@ -238,12 +241,12 @@ static void *icon_of(const pico8_entity_kind_t *kind) {
 /* `ie:ldown` on the icon of `kind`, as the shop does. */
 static void *build(const pico8_entity_kind_t *kind) {
     void *icon = icon_of(kind);
-    pico8_value_t made;
+    pico8_down_t made;
 
     assert(icon != NULL);
-    made = call(icon, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-    assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-    return made.as.ref;
+    made = cls_of(icon)->ldown(icon, NULL, NULL);
+    assert(made.stop && made.held != NULL);
+    return made.held;
 }
 
 /* `hz` is never written on an entity: one whose `hz` is the very table of
@@ -290,9 +293,20 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
         assert(method(e, methods[i]) == method(slipgate, methods[i]));
     }
+    assert(cls_of(e)->hd == cls_of(slipgate)->hd && cls_of(e)->kj == cls_of(slipgate)->kj &&
+           cls_of(e)->ldown == cls_of(slipgate)->ldown && cls_of(e)->hb == cls_of(slipgate)->hb &&
+           cls_of(e)->gv == cls_of(slipgate)->gv && cls_of(e)->hk == cls_of(slipgate)->hk &&
+           cls_of(e)->ev == cls_of(slipgate)->ev);
+    assert(cls_of(e)->states[PICO8_STATE_LL] == cls_of(slipgate)->states[PICO8_STATE_LL] &&
+           cls_of(e)->states[PICO8_STATE_LY] == cls_of(slipgate)->states[PICO8_STATE_LY]);
+    assert(cls_of(e)->hd != NULL && cls_of(e)->kj != NULL && cls_of(e)->ldown != NULL && cls_of(e)->hb != NULL &&
+           cls_of(e)->gv != NULL && cls_of(e)->hk != NULL && cls_of(e)->ev != NULL &&
+           cls_of(e)->states[PICO8_STATE_LL] != NULL && cls_of(e)->states[PICO8_STATE_LY] != NULL);
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
+    assert(cls_of(e)->states[PICO8_STATE_PH] == NULL && cls_of(e)->states[PICO8_STATE_KZ] == NULL &&
+           cls_of(e)->states[PICO8_STATE_PR] == NULL && cls_of(e)->rdown == NULL);
     assert(get_ref(e, "hz") != &pico8_nr_hz_seq);
     assert(get_ref(e, "kq") == &pico8_nr_start.kq);
     assert(get_ref(e, "nu") == &pico8_nr_nu_tags);
@@ -390,16 +404,16 @@ static void place(void *e, int x, int y) {
 /* A slipway drawn from `from` by its `ldown`, aimed by `jc:hq` at a point
  * with no planet: its `mt` (then `fa`) comes from `from` alone. */
 static uint32_t fold_route(uint32_t h, void *from) {
-    pico8_value_t jc = call(from, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    pico8_down_t jc = cls_of(from)->ldown(from, NULL, NULL);
     const pico8_vec_t *ra = get_ref(from, "ra");
 
-    assert(jc.kind == PICO8_VALUE_REF && jc.as.ref != NULL && get_ref(jc.as.ref, "qu") == from);
+    assert(jc.stop && jc.held != NULL && get_ref(jc.held, "qu") == from);
     assert(ra != NULL);
-    (void)call(jc.as.ref, "hq", 1, vec_ref(pico8_vec_add(*ra, vec_xy(20, 0))), pico8_value_ref(NULL));
-    assert(has(jc.as.ref, "mt") == has(from, "mt"));
-    assert(get(jc.as.ref, "fa").as.fixed == pico8_fixed_from_int(has(from, "mt") ? 2 : 4));
-    h = fold_field(h, jc.as.ref, "mt");
-    return fold_field(h, jc.as.ref, "fa");
+    (void)call(jc.held, "hq", 1, vec_ref(pico8_vec_add(*ra, vec_xy(20, 0))), pico8_value_ref(NULL));
+    assert(has(jc.held, "mt") == has(from, "mt"));
+    assert(get(jc.held, "fa").as.fixed == pico8_fixed_from_int(has(from, "mt") ? 2 : 4));
+    h = fold_field(h, jc.held, "mt");
+    return fold_field(h, jc.held, "fa");
 }
 
 /* Placed on screen by `hq` (`bv`) and `ey` (`d_`); `dg` on one still in
@@ -412,7 +426,7 @@ static void test_life(void) {
     void *placed;
     void *idle;
     void *slipgate;
-    pico8_value_t jc;
+    pico8_down_t jc;
     pico8_value_t oe;
     int i;
 
@@ -436,26 +450,28 @@ static void test_life(void) {
         h = fnv(h, screen_hash());
     }
 
-    h = fold_value(h, call(placed, "gv", 1, pico8_value_ref(NULL), pico8_value_ref(NULL)));
-    h = fold_value(h, call(placed, "gv", 1, pico8_value_ref(idle), pico8_value_ref(NULL)));
-    jc = call(placed, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-    assert(jc.kind == PICO8_VALUE_REF && jc.as.ref != NULL);
-    assert(get_ref(jc.as.ref, "qu") == placed);
-    h = fnv(h, (uint32_t)pico8_type_tag_of(jc.as.ref));
-    h = fold_value(h, call(placed, "gv", 1, jc, pico8_value_ref(NULL)));
-    h = fold_value(h, call(idle, "gv", 1, jc, pico8_value_ref(NULL)));
+    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, NULL).stop));
+    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, idle).stop));
+    jc = cls_of(placed)->ldown(placed, NULL, NULL);
+    assert(jc.stop && jc.held != NULL);
+    assert(get_ref(jc.held, "qu") == placed);
+    h = fnv(h, (uint32_t)pico8_type_tag_of(jc.held));
+    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, jc.held).stop));
+    h = fold_value(h, pico8_value_bool(cls_of(idle)->gv(idle, jc.held).stop));
 
     oe = get(placed, "oe");
     for (i = 0; i <= 3; i++) {
         pico8_entity_set_field(placed, "oe", list_of(i, idle));
-        (void)call(placed, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        cls_of(placed)->hb(placed);
         h = fold_field(h, placed, "s");
-        h = fold_value(h, call(placed, "gv", 1, pico8_value_ref(NULL), pico8_value_ref(NULL)));
+        h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, NULL).stop));
     }
     assert(get(placed, "s").as.fixed == pico8_fixed_from_int(76));
-    h = fold_value(h, call(placed, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)));
+    jc = cls_of(placed)->ldown(placed, NULL, NULL);
+    assert(jc.held == NULL);
+    h = fold_value(h, pico8_value_bool(jc.stop));
     pico8_entity_set_field(placed, "oe", oe);
-    (void)call(placed, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    cls_of(placed)->hb(placed);
     h = fold_field(h, placed, "s");
     assert(get(placed, "s").as.fixed == pico8_fixed_from_int(78));
     h = fold_economy(h, placed);
@@ -619,7 +635,7 @@ static uint32_t fold_hb(uint32_t h, void *e) {
         pico8_entity_set_field(e, "oe", list_of(i, e));
         const pico8_int_seq_t *hz = get_ref(e, "hz");
         int entry;
-        (void)call(e, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        cls_of(e)->hb(e);
         assert(pico8_int_seq_at(hz->items, hz->count, i + 1, &entry) &&
                pico8_value_equal(pico8_value_fixed(pico8_fixed_from_int(entry)), get(e, "s")));
         h = fold_field(h, e, "s");
@@ -689,9 +705,9 @@ static void test_fr_mt_by_name(void) {
 
     placed = build_gate();
     place(placed, 12, 108);
-    (void)call(placed, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    cls_of(placed)->hb(placed);
     h = fold_mt(h, placed);
-    (void)call(placed, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    (void)cls_of(placed)->ldown(placed, NULL, NULL);
     h = fold_mt(h, placed);
 
     for (n = 0; n < sizeof strangers / sizeof strangers[0]; n++) {

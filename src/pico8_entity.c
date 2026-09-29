@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_dispatch_context.h"
 #include "pico8_game_data.h"
+#include "pico8_scroll.h"
 #include "pico8_struct.h"
 
 #define PICO8_BM_COUNT 5
@@ -41,9 +43,7 @@ static int pico8_mo_placeholder_field(const void *self, const char *name, pico8_
 }
 
 static const pico8_struct_class_t g_mo_placeholder_struct_class = {
-    {0},
-    pico8_mo_placeholder_field,
-    NULL,
+    .field = pico8_mo_placeholder_field,
 };
 
 typedef struct {
@@ -160,6 +160,36 @@ const pico8_list_t *pico8_cv(const char *name) {
     return NULL;
 }
 
+/* `e[bm[i]]` exists: the member of `e`'s class for the i-th name of
+ * g_bm_names. */
+static int pico8_bm_has(const pico8_struct_header_t *e, int i) {
+    const pico8_struct_class_t *cls;
+
+    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
+           "entity: e is an entity struct; a list REF passed as an entity would be read as one");
+    cls = e->cls;
+
+    switch (i) {
+    case 0:
+        return cls->kj != NULL;
+    case 1:
+        return cls->ev != NULL;
+    case 2:
+        return cls->hd != NULL;
+    case 3:
+        return cls->hk != NULL;
+    default:
+        return cls->hb != NULL && (cls->has_hb == NULL || cls->has_hb(e));
+    }
+}
+
+int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    (void)self;
+    (void)qa;
+    (void)ra;
+    return 1;
+}
+
 const pico8_list_t *pico8_cg(const char *tag) {
     pico8_cg_entry_t *entry = pico8_cg_find(tag);
     return entry != NULL ? &entry->list : NULL;
@@ -197,15 +227,12 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value) {
 
 pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
     int i;
-    pico8_value_t discard;
     pico8_value_t nu_val;
 
     pico8_list_add(&g_hv, pico8_value_ref(e));
 
-    /* `if(e[p])` is ported as a presence test, not as Lua truthiness: a
-     * bm field explicitly set to `false` still registers `e` in cv[p]. */
     for (i = 0; i < PICO8_BM_COUNT; i++) {
-        if (pico8_entity_get_field(e, g_cv[i].name, &discard)) {
+        if (pico8_bm_has(e, i)) {
             pico8_list_add(&g_cv[i].list, pico8_value_ref(e));
         }
     }
@@ -228,14 +255,13 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
  * leaves `e` in a list this never removes it from. */
 void pico8_he(pico8_struct_header_t *e) {
     int i;
-    pico8_value_t discard;
     pico8_value_t nu_val;
 
     /* TROU-5 */
     pico8_list_del(&g_hv, pico8_value_ref(e));
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
-        if (pico8_entity_get_field(e, g_cv[i].name, &discard)) {
+        if (pico8_bm_has(e, i)) {
             pico8_list_del(&g_cv[i].list, pico8_value_ref(e));
         }
     }
@@ -276,7 +302,10 @@ int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_
 void pico8_dc(const char *nt) {
     const pico8_list_t *bucket_src;
     pico8_list_t layers[15];
+    int kj = strcmp(nt, "kj") == 0;
     int i, o;
+
+    assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
         pico8_list_init(&layers[i]);
@@ -307,26 +336,27 @@ void pico8_dc(const char *nt) {
     for (o = 1; o <= 15; o++) {
         pico8_list_t *bucket = &layers[o - 1];
 
-        if (strcmp(nt, "kj") == 0 && bucket->count > 0) {
+        if (kj && bucket->count > 0) {
             pico8_fixed_t ci;
-            if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, o, &ci)) {
-                pico8_value_t discard;
-                pico8_mv(g_mo, "md", 1, pico8_value_fixed(ci), pico8_value_ref(NULL), &discard);
+            /* The placeholder mo, before jl(), has no `md`. */
+            if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, o, &ci) && g_mo != NULL &&
+                g_mo->cls == pico8_qb_struct_class()) {
+                pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)g_mo, ci);
             }
         }
 
         for (i = 0; i < bucket->count; i++) {
             pico8_struct_header_t *qc = bucket->items[i].as.ref;
+            void (*draw)(void *self, const pico8_vec_t *ra) = kj ? qc->cls->kj : qc->cls->ev;
             pico8_value_t ra_val;
-            pico8_value_t discard;
+            const pico8_vec_t *ra = NULL;
 
-            /* An absent `.ra` is passed as pico8_value_ref(NULL), this
-             * port's stand-in for Lua nil as a call argument. */
-            if (!pico8_entity_get_field(qc, "ra", &ra_val)) {
-                ra_val = pico8_value_ref(NULL);
+            if (pico8_entity_get_field(qc, "ra", &ra_val) && ra_val.kind == PICO8_VALUE_REF) {
+                ra = ra_val.as.ref;
             }
-            /* TROU-11 */
-            pico8_mv(qc, nt, 1, ra_val, pico8_value_ref(NULL), &discard);
+            if (draw != NULL) {
+                draw(qc, ra);
+            }
         }
     }
 

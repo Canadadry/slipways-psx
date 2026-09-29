@@ -32,9 +32,7 @@ static int pico8_mz_jj_field(const void *self, const char *name, pico8_value_t *
 }
 
 static const pico8_struct_class_t g_mz_jj_struct_class = {
-    {0},
-    pico8_mz_jj_field,
-    NULL,
+    .field = pico8_mz_jj_field,
 };
 
 /* The only one: never allocated, never freed; no writer, so a write
@@ -157,15 +155,8 @@ void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t) {
     self->oi = result;
 }
 
-static pico8_value_t pico8_mz_kz_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t t = pico8_fixed_from_int(0);
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_FIXED) {
-        t = arg0.as.fixed;
-    }
+static void pico8_mz_kz_dispatch(void *self, pico8_fixed_t t) {
     pico8_mz_kz((pico8_mz_t *)self, t);
-    return pico8_value_ref(NULL);
 }
 
 void pico8_mz_ey(pico8_mz_t *self) {
@@ -239,15 +230,8 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     self->has_p_ = 1;
 }
 
-static pico8_value_t pico8_mz_pr_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_fixed_t t = pico8_fixed_from_int(0);
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_FIXED) {
-        t = arg0.as.fixed;
-    }
+static void pico8_mz_pr_dispatch(void *self, pico8_fixed_t t) {
     pico8_mz_pr((pico8_mz_t *)self, t);
-    return pico8_value_ref(NULL);
 }
 
 pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t) {
@@ -262,15 +246,9 @@ pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t) {
     return pico8_fixed_mul(min_val, oi);
 }
 
-static pico8_value_t pico8_mz_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
-    if (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) {
-        p = *(const pico8_vec_t *)arg0.as.ref;
-    }
+static void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_mz_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mz_t *)self, p);
-    return pico8_value_ref(NULL);
 }
 
 pico8_value_t pico8_mz_et(const pico8_mz_t *self) {
@@ -440,16 +418,20 @@ static int pico8_mz_set_field(void *self, const char *name, pico8_value_t value)
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
  * drop the nearest-anchor search. */
 static const pico8_struct_class_t g_mz_struct_class = {
-    {
-        [PICO8_METHOD_HQ] = pico8_mz_hq_dispatch,
-        [PICO8_METHOD_EV] = pico8_dl_dispatch,
-        [PICO8_METHOD_KJ] = pico8_mz_kj_dispatch,
-        [PICO8_METHOD_KZ] = pico8_mz_kz_dispatch,
-        [PICO8_METHOD_EY] = pico8_mz_ey_dispatch,
-        [PICO8_METHOD_PR] = pico8_mz_pr_dispatch,
-    },
-    pico8_mz_field,
-    pico8_mz_set_field,
+    .methods =
+        {
+            [PICO8_METHOD_HQ] = pico8_mz_hq_dispatch,
+            [PICO8_METHOD_EY] = pico8_mz_ey_dispatch,
+        },
+    .kj = pico8_mz_kj_dispatch,
+    .ev = pico8_dl_dispatch,
+    .states =
+        {
+            [PICO8_STATE_KZ] = pico8_mz_kz_dispatch,
+            [PICO8_STATE_PR] = pico8_mz_pr_dispatch,
+        },
+    .field = pico8_mz_field,
+    .set_field = pico8_mz_set_field,
 };
 
 static void *pico8_mz_struct_new(void) {

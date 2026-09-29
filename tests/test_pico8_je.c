@@ -62,17 +62,17 @@ static int registered(const void *e, int entity_live) {
 /* Every name a reader of `je` asks for, and a few it never does, is absent;
  * no method answers; nothing registers it. */
 static void assert_placeholder(int entity_live) {
-    const char *names[] = {"ra", "l", "r", "me", "t", "ph"};
+    const char *names[] = {"ra", "l", "r", "me", "t"};
     pico8_struct_header_t *je = pico8_je();
     pico8_value_t v;
     int i;
 
     assert(je != NULL);
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < 5; i++) {
         assert(!pico8_entity_get_field(je, names[i], &v));
     }
-    assert(!pico8_mv(je, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v));
-    assert(!pico8_mv(je, "kj", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v));
+    assert(je->cls->states[PICO8_STATE_PH] == NULL);
+    assert(je->cls->kj == NULL);
     assert(!registered(je, entity_live));
 }
 

@@ -133,7 +133,7 @@ const pico8_struct_class_t *pico8_bv_et_struct_class(void);
  * stack (`ie.ke`). */
 void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
 
-pico8_value_t pico8_dl_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+void pico8_dl_dispatch(void *self, const pico8_vec_t *ra);
 
 /* Returns Lua true on the success branch, nil on the other; `jc:ey` consumes
  * that result. */

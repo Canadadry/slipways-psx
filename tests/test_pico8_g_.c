@@ -66,8 +66,7 @@ static const char *const defaults[] = {"nu", "fx", "dq", "od", "fp", "fa", "dw",
                                        "pn", "pk", "fc", "k_", "qo", "ro", "qg", "q_", "du"};
 static const char *const scalars[] = {"fx", "dq", "od", "fp", "fa", "dw", "py", "ki", "pn",
                                       "pk", "fc", "qo", "ro", "qg", "q_", "du", "me", "t"};
-static const char *const not_yet[] = {"ra", "p", "et", "p_", "fo", "m_", "ma", "hd",
-                                      "hk", "hb", "ik", "ly", "ph"};
+static const char *const not_yet[] = {"ra", "p", "et", "p_", "fo", "m_", "ma", "ik"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 
 static uint32_t fnv(uint32_t h, uint32_t word) {
@@ -260,6 +259,10 @@ static pico8_vec_t vec_of(const void *e, const char *name) {
     return *(const pico8_vec_t *)v.as.ref;
 }
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
 static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_value_t out = pico8_value_ref(NULL);
     assert(pico8_mv(e, name, argc, arg0, arg1, &out));
@@ -301,12 +304,13 @@ static int is_probe(const void *e) {
 
 /* Road (a): `bg:ldown` while cg.g_ is empty. */
 static void *ldown(void) {
-    pico8_value_t out;
+    void *bg = the_bg();
+    pico8_down_t out;
 
     assert(list_count(pico8_cg("g_")) == 0);
-    out = call(the_bg(), "ldown", 2, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
-    assert(out.kind == PICO8_VALUE_REF && out.as.ref != NULL && is_probe(out.as.ref));
-    return out.as.ref;
+    out = cls_of(bg)->ldown(bg, vec_ref(vec_xy(1, 1)).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
+    assert(out.stop && out.held != NULL && is_probe(out.held));
+    return out.held;
 }
 
 /* Road (c): the 4 keys of probe_mm_rnd_order. */
@@ -345,10 +349,12 @@ static uint32_t fold_probe(uint32_t h, const void *e) {
     for (i = 0; i < sizeof not_yet / sizeof not_yet[0]; i++) {
         assert(!has(e, not_yet[i]));
     }
+    assert(cls_of(e)->hd == NULL && cls_of(e)->hk == NULL && cls_of(e)->hb == NULL &&
+           cls_of(e)->states[PICO8_STATE_LY] == NULL && cls_of(e)->states[PICO8_STATE_PH] == NULL);
     assert(method(e, "hq") == pico8_bv_dispatch);
     assert(method(e, "ey") == pico8_d__dispatch);
-    assert(method(e, "ev") == pico8_dl_dispatch);
-    assert(method(e, "kj") == pico8_ei_dispatch);
+    assert(cls_of(e)->ev == pico8_dl_dispatch);
+    assert(cls_of(e)->kj == pico8_ei_dispatch);
     assert(method(e, "mm") == pico8_g__mm);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -506,13 +512,13 @@ static void test_life(void) {
 
     pico8_ke_ks(a, pico8_value_string("kz"));
     pico8_ke_ks(b, pico8_value_string("kz"));
-    (void)call(a, "ev", 0, nil(), nil());
+    cls_of(a)->ev(a, NULL);
     h = fnv(h, screen_hash());
-    (void)call(b, "ev", 0, nil(), nil());
+    cls_of(b)->ev(b, NULL);
     h = fnv(h, screen_hash());
     (void)call(a, "hq", 2, mouse_at(vec_of(a_planet(), "p")),
                vec_ref(vec_xy(64, 64)));
-    (void)call(a, "ev", 0, nil(), nil());
+    cls_of(a)->ev(a, NULL);
     h = fnv(h, screen_hash());
 
     for (i = 0; i < 3; i++) {
@@ -637,13 +643,13 @@ static void test_fv(void) {
     assert(get(fv, "fa").as.fixed == pico8_fixed_from_int(10));
     assert(get_ref(fv, "k_") == &pico8_fv_k__seq);
     assert(get_ref(fv, "k_") != &pico8_g__k__seq);
-    assert(method(fv, "ev") == pico8_dl_dispatch);
+    assert(cls_of(fv)->ev == pico8_dl_dispatch);
     assert(method(fv, "mm") == pico8_g__mm);
     assert(method(fv, "hq") == pico8_bv_dispatch);
     assert(method(fv, "ey") == pico8_d__dispatch);
-    assert(method(fv, "kj") != pico8_ei_dispatch);
-    assert(method(fv, "kj") == pico8_fv_kj_dispatch);
-    assert(method(fv, "hd") != NULL);
+    assert(cls_of(fv)->kj != pico8_ei_dispatch);
+    assert(cls_of(fv)->kj == pico8_fv_kj_dispatch);
+    assert(cls_of(fv)->hd != NULL);
     assert(pico8_g__ready());
     assert(size_of(fv, "qy") >= 0);
     h = fnv(h, (uint32_t)size_of(fv, "qy"));
@@ -723,9 +729,8 @@ static int is_a_g__struct(const void *e) {
  * public functions of `g_`, which its class no longer installs. The title's
  * `fv` is a struct of its own. */
 static void test_g__is_a_struct(void) {
-    static const char *const entries[] = {"hq", "ey", "ev", "kj", "mm"};
-    static const pico8_value_function_t fns[] = {pico8_bv_dispatch, pico8_d__dispatch, pico8_dl_dispatch,
-                                                  pico8_ei_dispatch, pico8_g__mm};
+    static const char *const entries[] = {"hq", "ey", "mm"};
+    static const pico8_value_function_t fns[] = {pico8_bv_dispatch, pico8_d__dispatch, pico8_g__mm};
     const pico8_struct_class_t *cls = pico8_g__struct_class();
     const pico8_list_t *hv;
     void *roads[3];
@@ -751,8 +756,13 @@ static void test_g__is_a_struct(void) {
         assert(named || cls->methods[j] == NULL);
     }
     assert(cls->methods[PICO8_METHOD_HQ] == pico8_bv_dispatch && cls->methods[PICO8_METHOD_EY] == pico8_d__dispatch &&
-           cls->methods[PICO8_METHOD_EV] == pico8_dl_dispatch && cls->methods[PICO8_METHOD_KJ] == pico8_ei_dispatch &&
+           cls->ev == pico8_dl_dispatch && cls->kj == pico8_ei_dispatch &&
            cls->methods[PICO8_METHOD_MM] == pico8_g__mm);
+    assert(cls->hd == NULL && cls->hk == NULL && cls->hb == NULL && cls->has_hb == NULL && cls->ldown == NULL &&
+           cls->rdown == NULL && cls->gv == NULL);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert(cls->states[j] == NULL);
+    }
     assert(cls->field != NULL && cls->set_field != NULL);
     assert(pico8_g__ready());
 
@@ -782,7 +792,7 @@ static void test_g__is_a_struct(void) {
 /* The throwaway target is a struct that keeps `fo` only: no method, no
  * other field, and a write of another name stops the run. */
 static void test_bv_et_is_a_struct(void) {
-    static const char *const absent[] = {"qs", "hq", "ev", "p", "me"};
+    static const char *const absent[] = {"qs", "hq", "p", "me"};
     void *a;
     void *et;
     pico8_vec_t middle;
@@ -797,6 +807,7 @@ static void test_bv_et_is_a_struct(void) {
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(et, absent[i]));
     }
+    assert(cls_of(et)->ev == NULL);
     must_abort(write_qs, et);
     pico8_entity_set_field(et, "fo", pico8_value_ref(NULL));
     assert(!has(et, "fo"));
@@ -1423,9 +1434,9 @@ static void test_g__members_by_name(void) {
     assert_same(probe[1], "p_", pico8_value_bool(1));
     h = fold_field(h, pico8_fm(), "nz");
     h = fold_g__all(h, probe[1]);
-    (void)call(probe[0], "ev", 0, nil(), nil());
+    cls_of(probe[0])->ev(probe[0], NULL);
     h = fnv(h, screen_hash());
-    (void)call(probe[1], "ev", 0, nil(), nil());
+    cls_of(probe[1])->ev(probe[1], NULL);
     h = fnv(h, screen_hash());
 
     check("g_ members", h, G__MEMBERS_HASH);

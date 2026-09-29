@@ -158,7 +158,8 @@ Pas transformé en `assert(argc >= 2)` : ça ferait sauter un `dc("hd")` par
 ailleurs légitime. Le vrai correctif est de décider ce que `hd` doit faire
 sous `dc()`, ce qui dépasse une reprise de commentaires.
 
-Fichiers : `src/pico8_ui_button.c`, `src/pico8_entity.c`.
+Sans site depuis D.10a : l'emplacement `hd` a toujours deux arguments et
+`dc` ne lance que `kj`/`ev` (`assert` sur tout autre nom).
 
 ## TROU-12 — Le premier anneau du trou de ver est noir au lieu de garder la plume
 

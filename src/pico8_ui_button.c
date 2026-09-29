@@ -29,44 +29,44 @@ static int pico8_js_truthy(pico8_value_t v) {
     return !(v.kind == PICO8_VALUE_REF && v.as.ref == NULL) && !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
 }
 
-static pico8_value_t pico8_js_ph_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_js_ph_dispatch(void *self, pico8_fixed_t t) {
+    (void)t;
     pico8_js_ph(self);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_js_ev_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void pico8_js_ev_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
     pico8_js_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), self);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_js_kj_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_vec_t p = (arg0.kind == PICO8_VALUE_REF && arg0.as.ref != NULL) ? *(const pico8_vec_t *)arg0.as.ref
-                                                                           : pico8_vec_v(pico8_fixed_from_int(0),
-                                                                                         pico8_fixed_from_int(0));
-    (void)argc;
-    (void)arg1;
+static void pico8_js_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_js_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), self, p);
-    return pico8_value_ref(NULL);
 }
 
 /* `js.hd=gk`: a field assignment in the cart, not a method definition. */
-static pico8_value_t pico8_js_hd_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    pico8_value_t mp = arg0;
-    pico8_value_t rp = (argc >= 2) ? arg1 : arg0;
-    return pico8_gk((const pico8_struct_header_t *)self, mp, rp);
+static int pico8_js_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
-static pico8_value_t pico8_js_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static pico8_down_t pico8_js_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    (void)ra;
     return pico8_js_ldown(self);
+}
+
+/* `js.hb` is the row's own callback, set by only one row of `ix`: a button
+ * without one has no `hb` and stays out of `cv.hb`. */
+static int pico8_js_has_hb(const void *self) {
+    return ((const pico8_js_t *)self)->hb != NULL;
+}
+
+static void pico8_js_hb_dispatch(void *self) {
+    pico8_js_t *js = self;
+
+    if (js->hb != NULL) {
+        (void)js->hb(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    }
 }
 
 pico8_value_t pico8_js_h_(const pico8_js_t *self) {
@@ -230,15 +230,15 @@ static int pico8_js_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_js_struct_class = {
-    {
-        [PICO8_METHOD_HD] = pico8_js_hd_dispatch,
-        [PICO8_METHOD_PH] = pico8_js_ph_dispatch,
-        [PICO8_METHOD_EV] = pico8_js_ev_dispatch,
-        [PICO8_METHOD_KJ] = pico8_js_kj_dispatch,
-        [PICO8_METHOD_LDOWN] = pico8_js_ldown_dispatch,
-    },
-    pico8_js_field,
-    pico8_js_set_field,
+    .kj = pico8_js_kj_dispatch,
+    .ev = pico8_js_ev_dispatch,
+    .hd = pico8_js_hd_dispatch,
+    .hb = pico8_js_hb_dispatch,
+    .has_hb = pico8_js_has_hb,
+    .ldown = pico8_js_ldown_dispatch,
+    .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
+    .field = pico8_js_field,
+    .set_field = pico8_js_set_field,
 };
 
 static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
@@ -477,20 +477,20 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
     }
 }
 
-pico8_value_t pico8_js_ldown(pico8_js_t *self) {
+pico8_down_t pico8_js_ldown(pico8_js_t *self) {
     pico8_value_t discard;
     int has_my = self != NULL && self->my != NULL;
+    pico8_down_t out = {1, NULL};
 
     pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
     pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &discard);
 
-    return pico8_value_bool(1);
+    return out;
 }
 
-static pico8_value_t pico8_fq_ldown_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static pico8_down_t pico8_fq_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    (void)ra;
     return pico8_fq_ldown((pico8_fq_t *)self);
 }
 
@@ -540,9 +540,10 @@ static int pico8_fq_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 static const pico8_struct_class_t g_fq_struct_class = {
-    {[PICO8_METHOD_LDOWN] = pico8_fq_ldown_dispatch},
-    pico8_fq_field,
-    pico8_fq_set_field,
+    .hd = pico8_hd_true,
+    .ldown = pico8_fq_ldown_dispatch,
+    .field = pico8_fq_field,
+    .set_field = pico8_fq_set_field,
 };
 
 static void *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
@@ -587,15 +588,16 @@ pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys) {
     return pico8_fq_struct_new(keys);
 }
 
-pico8_value_t pico8_fq_ldown(pico8_fq_t *self) {
+pico8_down_t pico8_fq_ldown(pico8_fq_t *self) {
     pico8_value_t my_result;
+    pico8_down_t out = {1, NULL};
 
     if (self == NULL) {
-        return pico8_value_bool(1);
+        return out;
     }
     if (!pico8_mv((pico8_struct_header_t *)self, "my", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &my_result)) {
         my_result = pico8_value_ref(NULL);
     }
     button_take_bool(my_result, &self->p_, &self->has_p_);
-    return pico8_value_bool(1);
+    return out;
 }

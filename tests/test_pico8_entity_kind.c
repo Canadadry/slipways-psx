@@ -656,17 +656,17 @@ static void test_ie_members_by_name(void) {
     {
         pico8_value_t id_before;
         pico8_value_t id_after;
-        pico8_value_t made;
+        pico8_down_t made;
         pico8_value_t made_id;
         assert(ie_read(a, "id", &id_before) && id_before.kind == PICO8_VALUE_FIXED);
-        made = pico8_ie_ldown(a, pico8_value_ref(NULL));
-        assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-        assert(pico8_entity_get_field(made.as.ref, "id", &made_id) && made_id.kind == PICO8_VALUE_STRING &&
+        made = pico8_ie_ldown(a);
+        assert(made.stop && made.held != NULL);
+        assert(pico8_entity_get_field(made.held, "id", &made_id) && made_id.kind == PICO8_VALUE_STRING &&
                made_id.as.string[0] == 's');
         g_ie_members = fold_string(g_ie_members, made_id.as.string);
         assert(ie_read(b, "id", &id_after) && id_after.as.fixed == id_before.as.fixed + pico8_fixed_from_int(1));
-        made = pico8_ie_ldown(b, pico8_value_ref(NULL));
-        assert(made.kind == PICO8_VALUE_REF && made.as.ref == NULL);
+        made = pico8_ie_ldown(b);
+        assert(!made.stop && made.held == NULL);
         assert(ie_read(a, "id", &id_after) && id_after.as.fixed == id_before.as.fixed + pico8_fixed_from_int(2));
         ie_fold((uint32_t)id_after.as.fixed);
     }
@@ -735,14 +735,13 @@ static void test_ie_writer_stops_off_row(void) {
     zero_string.kind = PICO8_VALUE_STRING;
     memset(&zero_function, 0, sizeof zero_function);
     zero_function.kind = PICO8_VALUE_FUNCTION;
-    assert(pico8_entity_get_field(a, "hb", &hb) && hb.kind == PICO8_VALUE_FUNCTION);
+    assert(!pico8_entity_get_field(a, "hb", &hb) && pico8_ie_struct_class()->hb != NULL);
 
     must_abort_value(a, write_m_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
     must_abort_value(a, write_m_by_name, zero_fixed);
     must_abort_value(a, write_m_by_name, zero_string);
     must_abort_value(a, write_m_by_name, zero_function);
     must_abort_value(a, write_m_by_name, pico8_value_string("x"));
-    must_abort_value(a, write_m_by_name, hb);
     must_abort_value(a, write_m_by_name, vref);
     must_abort_value(a, write_m_by_name, list);
     must_abort_value(a, write_m_by_name, pico8_value_ref(other));

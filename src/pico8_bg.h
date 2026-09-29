@@ -52,11 +52,11 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self);
 
 /* Returns the freshly built `mz` or `g_`, which `ui:bh` then holds as
  * `lheld`, or Lua nil when neither class is registered. Nothing frees it. */
-pico8_value_t pico8_bg_ldown(pico8_bg_t *self, pico8_value_t mp);
+pico8_down_t pico8_bg_ldown(pico8_bg_t *self);
 
 /* Stores `rp` as-is and returns `self`, which becomes `ui.rheld` for as long
  * as the button stays down. */
-pico8_value_t pico8_bg_rdown(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp);
+pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp);
 
 void pico8_bg_hq(pico8_bg_t *self, pico8_value_t mp, pico8_value_t rp);
 

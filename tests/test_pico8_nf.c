@@ -292,8 +292,8 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     assert(is_an_nf_struct(built) && is_an_nf_struct(generic) && is_an_nf_struct(pico8_je()));
     assert(listed(pico8_hv(), built) && !in_any_cv(built));
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
-    assert(pico8_mv(generic, "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
-    assert(!pico8_mv(generic, "kj", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] != NULL);
+    assert(((const pico8_struct_header_t *)generic)->cls->kj == NULL);
     assert(!pico8_mv(generic, "p_", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
     assert(pico8_entity_get_field(built, "l", &l_built) && pico8_entity_get_field(built, "r", &r_built));
     assert(pico8_entity_get_field(generic, "l", &l_generic) && pico8_entity_get_field(generic, "r", &r_generic));
@@ -449,7 +449,7 @@ static void test_nf_members_by_name(void) {
 
     bg = (void *)pico8_bg_new();
     assert(pico8_entity_get_field(je, "ra", &r) && r.kind == PICO8_VALUE_REF);
-    assert(pico8_mv(bg, "rdown", 2, vec_ref(0, 0), r, &out));
+    assert(pico8_bg_struct_class()->rdown(bg, vec_ref(0, 0).as.ref, r.as.ref).held == bg);
     assert(pico8_entity_get_field(bg, "mq", &out) && out.kind == PICO8_VALUE_REF && out.as.ref == ra_je);
     h = fold_nf(h, je, &ra_je);
     assert(ra_je == out.as.ref);

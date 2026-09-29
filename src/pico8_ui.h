@@ -104,12 +104,15 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self);
  * `lheld`/`rheld` and the method `ldown`/`rdown`. */
 void pico8_ui_bh(pico8_ui_t *self, const char *bt);
 
+/* The method `jz` asks each hovered entity: `ldown` and `rdown` get
+ * `qa`/`ra`, `gv` gets `s`. */
+typedef enum { PICO8_JZ_LDOWN, PICO8_JZ_RDOWN, PICO8_JZ_GV } pico8_jz_slot_t;
+
 /* Lua's `{kv=h,kn=kn}` result, written out: returns 1 and fills `*out_kv`
- * and `*out_kn` on the first truthy answer, or 0 leaving both untouched when
- * nothing answers. `argc`/`arg0`/`arg1` are forwarded to each candidate
- * unchanged. */
-int pico8_ui_jz(pico8_ui_t *self, const char *rm, int argc, pico8_value_t arg0, pico8_value_t arg1,
-                pico8_struct_header_t **out_kv, pico8_value_t *out_kn);
+ * and `*out_kn` on the first answer whose `stop` is set, or 0 leaving both
+ * untouched when nothing answers. */
+int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec_t *ra, const pico8_struct_header_t *s,
+                pico8_struct_header_t **out_kv, pico8_down_t *out_kn);
 
 void pico8_ui_cj(pico8_ui_t *self);
 

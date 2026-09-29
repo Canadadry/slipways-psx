@@ -55,9 +55,8 @@ static const char *const ga_own[] = {"fz", "fc", "qo", "ro", "qg", "q_", "k_", "
 static const char *const jo_members[] = {"nu", "hf", "hs", "fa", "kq", "ma", "ka", "dz", "cq", "kw", "gq",
                                          "ca", "em", "id", "p",  "ra", "oe", "hn", "ep", "jy", "nk", "fx",
                                          "lq", "fo", "jh", "p_", "kr", "cc", "by", "mi", "m_"};
-static const char *const inherited[] = {"hd", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
-static const char *const own_methods[] = {"kj", "mm"};
-static const char *const absent_methods[] = {"ol", "ph", "ev", "md", "hq", "ey", "kz", "pr", "rdown", "eb", "ly"};
+static const char *const inherited[] = {"gg", "kf", "cn", "ib"};
+static const char *const absent_methods[] = {"ol", "hq", "ey", "eb"};
 static const char *const not_ga[] = {"hp", "jy", "kr", "qu", "ht", "et", "ng", "du"};
 static const char *const tags[] = {"jo", "np", "prober", "hj", "qh"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
@@ -237,6 +236,10 @@ static pico8_vec_t near_mo(int x, int y) {
     return pico8_vec_add(*mo_ra, vec_xy(x, y));
 }
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
 static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_value_t out = pico8_value_ref(NULL);
     assert(pico8_mv(e, name, argc, arg0, arg1, &out));
@@ -351,9 +354,17 @@ static uint32_t fold_burst(uint32_t h, const void *e, int from_pm) {
     for (i = 0; i < sizeof inherited / sizeof inherited[0]; i++) {
         assert(method(e, inherited[i]) == jo_method(inherited[i]));
     }
-    for (i = 0; i < sizeof own_methods / sizeof own_methods[0]; i++) {
-        assert(method(e, own_methods[i]) != jo_method(own_methods[i]));
-    }
+    assert(method(e, "mm") != jo_method("mm"));
+    assert(cls_of(e)->kj != NULL && cls_of(e)->kj != pico8_jo_struct_class()->kj);
+    assert(cls_of(e)->hd == pico8_jo_struct_class()->hd && cls_of(e)->ldown == pico8_jo_struct_class()->ldown &&
+           cls_of(e)->hb == pico8_jo_struct_class()->hb && cls_of(e)->gv == pico8_jo_struct_class()->gv &&
+           cls_of(e)->hk == pico8_jo_struct_class()->hk &&
+           cls_of(e)->states[PICO8_STATE_LL] == pico8_jo_struct_class()->states[PICO8_STATE_LL]);
+    assert(cls_of(e)->hd != NULL && cls_of(e)->ldown != NULL && cls_of(e)->hb != NULL && cls_of(e)->gv != NULL &&
+           cls_of(e)->hk != NULL && cls_of(e)->states[PICO8_STATE_LL] != NULL);
+    assert(cls_of(e)->states[PICO8_STATE_PH] == NULL && cls_of(e)->ev == NULL &&
+           cls_of(e)->states[PICO8_STATE_KZ] == NULL && cls_of(e)->states[PICO8_STATE_PR] == NULL &&
+           cls_of(e)->rdown == NULL && cls_of(e)->states[PICO8_STATE_LY] == NULL);
     for (i = 0; i < sizeof absent_methods / sizeof absent_methods[0]; i++) {
         assert(!has(e, absent_methods[i]));
     }
@@ -498,7 +509,7 @@ static uint32_t fold_cut(uint32_t h, void *e, int n) {
 
     assert(qy != NULL && qy->count >= n);
     qy->count = n;
-    (void)call(e, "kj", 1, get(e, "ra"), pico8_value_ref(NULL));
+    cls_of(e)->kj(e, get_ref(e, "ra"));
     h = fold_field(h, e, "p_");
     return fnv(h, (uint32_t)qy->count);
 }
@@ -549,32 +560,32 @@ static void test_life(void) {
     h = fold_cut(h, a, 0);
     assert(pico8_value_equal(get(a, "p_"), pico8_value_bool(1)));
 
-    h = fold_value(h, call(b, "hd", 2, get(b, "ra"), get(b, "ra")));
-    h = fold_value(h, call(b, "hd", 2, vec_ref(near_mo(0, 0)), vec_ref(near_mo(0, 0))));
+    h = fold_value(h, pico8_value_bool(cls_of(b)->hd(b, get_ref(b, "ra"), get_ref(b, "ra"))));
+    h = fold_value(h, pico8_value_bool(cls_of(b)->hd(b, vec_ref(near_mo(0, 0)).as.ref, vec_ref(near_mo(0, 0)).as.ref)));
     h = fold_value(h, call(b, "gg", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)));
     assert(pico8_value_equal(call(a, "gg", 0, pico8_value_ref(NULL), pico8_value_ref(NULL)), pico8_value_bool(0)));
 
-    (void)call(a, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    cls_of(a)->hb(a);
     h = fold_field(h, a, "lq");
     assert(!has(a, "lq"));
     kw.has_qe = 1;
     kw.qe = pico8_fixed_from_int(12);
     kw.mu = pico8_fixed_from_int(2);
     pico8_entity_set_field(a, "kw", pico8_value_ref(&kw));
-    (void)call(a, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    cls_of(a)->hb(a);
     row = fold_lq(2166136261u, a);
     h = fnv(h, row);
     by = get_ref(c, "by");
     assert(by == get_ref(a, "by") && by->count == 0);
     pico8_list_add(by, pico8_value_ref(pico8_trade_new(NULL)));
     pico8_list_add(by, pico8_value_ref(pico8_trade_new(NULL)));
-    (void)call(a, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    cls_of(a)->hb(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
     assert(size_of(b, "by") == 2);
 
     hv_count = pico8_hv()->count;
-    (void)call(b, "hk", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    cls_of(b)->hk(b, pico8_fixed_from_int(0));
     assert(pico8_hv()->count == hv_count && !has(b, "kr"));
     h = fnv(h, screen_hash());
     check("life", h, LIFE_HASH);
@@ -715,10 +726,14 @@ static void test_ga_is_a_struct(void) {
     for (i = 0; i < 3; i++) {
         assert(is_a_ga_struct(roads[i]));
     }
+    assert(cls->kj != NULL && cls->kj != jo->kj);
+    assert(cls->ev == jo->ev && cls->hd == jo->hd && cls->hk == jo->hk && cls->hb == jo->hb &&
+           cls->has_hb == jo->has_hb && cls->ldown == jo->ldown && cls->rdown == jo->rdown && cls->gv == jo->gv);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert(cls->states[j] == jo->states[j]);
+    }
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
-        if (j == PICO8_METHOD_KJ) {
-            assert(cls->methods[j] != NULL && cls->methods[j] != jo->methods[j]);
-        } else if (j == PICO8_METHOD_MM) {
+        if (j == PICO8_METHOD_MM) {
             assert(cls->methods[j] == pico8_ga_mm && jo->methods[j] == NULL);
         } else {
             assert(cls->methods[j] == jo->methods[j]);

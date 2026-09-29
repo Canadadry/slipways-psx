@@ -117,7 +117,7 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
 
 /* Always returns true: the click is consumed whether or not a `my` callback
  * was there to run. */
-pico8_value_t pico8_js_ldown(pico8_js_t *self);
+pico8_down_t pico8_js_ldown(pico8_js_t *self);
 
 /* `my` is the closure the construction table carried, which `mv` calls as
  * a field, not a method. Nothing frees the struct: TROU-7. */
@@ -148,6 +148,6 @@ typedef struct {
  * through `lt`, and nothing frees it. */
 pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys);
 
-pico8_value_t pico8_fq_ldown(pico8_fq_t *self);
+pico8_down_t pico8_fq_ldown(pico8_fq_t *self);
 
 #endif

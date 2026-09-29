@@ -23,7 +23,7 @@ void pico8_jo_gh(const pico8_jo_t *self);
 
 /* Answering "no" for the drag's own origin planet also opens that
  * planet's info panel. */
-pico8_value_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s);
+pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s);
 
 /* TROU-7 */
 /* Every row it builds carries the captured values of its `my` callback --

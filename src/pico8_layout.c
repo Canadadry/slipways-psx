@@ -389,9 +389,8 @@ static int pico8_lq_field(const void *self, const char *name, pico8_value_t *out
 }
 
 static const pico8_struct_class_t g_lq_struct_class = {
-    {[PICO8_METHOD_OL] = pico8_lq_ol_dispatch},
-    pico8_lq_field,
-    NULL,
+    .methods = {[PICO8_METHOD_OL] = pico8_lq_ol_dispatch},
+    .field = pico8_lq_field,
 };
 
 /* TROU-7 */
@@ -472,9 +471,7 @@ pico8_lq_keys_t pico8_lq_keys_of(const pico8_lq_t *row) {
 }
 
 static const pico8_struct_class_t g_jb_struct_class = {
-    {[PICO8_METHOD_OL] = pico8_jb_ol_dispatch},
-    NULL,
-    NULL,
+    .methods = {[PICO8_METHOD_OL] = pico8_jb_ol_dispatch},
 };
 
 /* The `jb` itself, before its lines. */

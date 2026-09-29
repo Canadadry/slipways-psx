@@ -696,6 +696,11 @@ static void test_hy_is_a_struct(void) {
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
         assert(cls->methods[j] == NULL);
     }
+    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
+           cls->has_hb == NULL && cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+    for (j = 0; j < PICO8_STATE_COUNT; j++) {
+        assert(cls->states[j] == NULL);
+    }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(!has(pico8_fm(), "hk") && !has(pico8_fm(), "x"));
 

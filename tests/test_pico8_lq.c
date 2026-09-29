@@ -817,6 +817,11 @@ static void test_lq_is_a_struct(void) {
     for (i = 0; i < PICO8_METHOD_COUNT; i++) {
         assert((cls->methods[i] != NULL) == (i == PICO8_METHOD_OL));
     }
+    assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
+           cls->ldown == NULL && cls->rdown == NULL && cls->gv == NULL);
+    for (i = 0; i < PICO8_STATE_COUNT; i++) {
+        assert(cls->states[i] == NULL);
+    }
     assert(cls->field != NULL && cls->set_field == NULL);
     assert(pico8_lq_ready());
     assert(lookup(lq, "c", &v) && v.as.fixed == pico8_fixed_from_int(9));

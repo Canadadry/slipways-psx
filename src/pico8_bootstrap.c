@@ -78,12 +78,17 @@ void pico8_dg(void) {
          * name comes from `me` at run time, so no site ever writes `:ly(`
          * and a grep reads them as dead code. */
         if (pico8_entity_get_field(qc, "me", &me_val) && me_val.kind == PICO8_VALUE_STRING) {
-            pico8_value_t t_arg;
-            pico8_value_t discard;
-            if (!pico8_entity_get_field(qc, "t", &t_arg)) {
-                t_arg = pico8_value_ref(NULL);
+            int state = pico8_state_of(me_val.as.string);
+
+            if (state >= 0 && qc->cls->states[state] != NULL) {
+                pico8_value_t t_arg;
+                pico8_fixed_t t = pico8_fixed_from_int(0);
+
+                if (pico8_entity_get_field(qc, "t", &t_arg) && t_arg.kind == PICO8_VALUE_FIXED) {
+                    t = t_arg.as.fixed;
+                }
+                qc->cls->states[state](qc, t);
             }
-            pico8_mv(qc, me_val.as.string, 1, t_arg, pico8_value_ref(NULL), &discard);
         }
 
         if (pico8_entity_get_field(qc, "p_", &p_val) && pico8_dg_truthy(p_val)) {

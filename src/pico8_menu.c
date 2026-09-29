@@ -74,9 +74,7 @@ static int pico8_ha_pz_field(const void *self, const char *name, pico8_value_t *
 }
 
 static const pico8_struct_class_t g_ha_pz_struct_class = {
-    {0},
-    pico8_ha_pz_field,
-    NULL,
+    .field = pico8_ha_pz_field,
 };
 
 /* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`

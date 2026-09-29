@@ -124,6 +124,10 @@ static pico8_value_t get(const void *e, const char *name) {
     return v;
 }
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
 static void *get_ref(const void *e, const char *name) {
     pico8_value_t v = get(e, name);
     return v.kind == PICO8_VALUE_REF ? v.as.ref : NULL;
@@ -306,8 +310,7 @@ static const pico8_list_t *ok_le(void) {
  * `pq` built, the methods and where `lt` registered it. */
 static uint32_t fold_button(uint32_t h, const void *b) {
     static const char *const copied[] = {"hb", "fg", "px", "trade", "en", "_jo_fe_pt", "_jo_fe_b", "_jo_fe_od"};
-    static const char *const methods[] = {"ph", "kj", "ev", "ldown", "hd"};
-    static const char *const absent[] = {"p_", "nu", "ql", "rdown", "gv", "hq", "ey", "md", "hk"};
+    static const char *const absent[] = {"p_", "nu", "ql", "hq", "ey"};
     static const char *const bm[] = {"kj", "ev", "hd", "hb", "hk"};
     pico8_value_t v;
     size_t i;
@@ -338,12 +341,12 @@ static uint32_t fold_button(uint32_t h, const void *b) {
         h = fnv(h, 0u);
     }
     h = fnv(h, bool_state(b, "m_"));
-    for (i = 0; i < sizeof methods / sizeof methods[0]; i++) {
-        assert(pico8_entity_get_field(b, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
-    }
+    assert(cls_of(b)->states[PICO8_STATE_PH] != NULL && cls_of(b)->kj != NULL && cls_of(b)->ev != NULL &&
+           cls_of(b)->ldown != NULL && cls_of(b)->hd != NULL);
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(b, absent[i]));
     }
+    assert(cls_of(b)->rdown == NULL && cls_of(b)->gv == NULL && cls_of(b)->hk == NULL);
     h = fnv(h, (uint32_t)listed(pico8_hv(), b));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)listed(pico8_cv(bm[i]), b));
@@ -516,12 +519,14 @@ static void tech_screen(void) {
 
 /* The game's end: `pj:ph` once `hy.hl` is "final score". */
 static void game_end(void) {
-    pico8_value_t out;
+    pico8_struct_header_t *ju;
 
     start_game();
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    assert(pico8_mv((pico8_struct_header_t *)pico8_ju(), "ph", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &out));
+    ju = (pico8_struct_header_t *)pico8_ju();
+    assert(ju->cls->states[PICO8_STATE_PH] != NULL);
+    ju->cls->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
     one_frame();
 }
 
@@ -785,7 +790,7 @@ static void test_ph(void) {
     first_at = *first;
     while (steps < 40) {
         pico8_vec_t before = vec_of(b, "ra");
-        (void)call(b, "ph", nil(), nil());
+        cls_of(b)->states[PICO8_STATE_PH](b, pico8_fixed_from_int(0));
         steps++;
         h = fold_vec(h, b, "ra");
         if (vec_of(b, "ra").x == before.x && vec_of(b, "ra").y == before.y) {
@@ -814,7 +819,7 @@ static pico8_value_t counting_my(void *self, int argc, pico8_value_t arg0, pico8
 static void test_ldown(void) {
     uint32_t h = 2166136261u;
     const pico8_js_keys_t none = {0};
-    pico8_value_t r;
+    pico8_down_t r;
     void *with_my;
     void *with_false;
 
@@ -822,11 +827,11 @@ static void test_ldown(void) {
     with_my = build(keyed_my(none, counting_my), "a", NULL);
     with_false = build(keyed_my(none, NULL), "b", NULL);
 
-    r = call(with_my, "ldown", nil(), nil());
-    assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
+    r = cls_of(with_my)->ldown(with_my, NULL, NULL);
+    assert(r.stop && r.held == NULL);
     assert(my_calls == 1 && my_self == with_my);
-    r = call(with_false, "ldown", nil(), nil());
-    assert(r.kind == PICO8_VALUE_BOOL && r.as.boolean);
+    r = cls_of(with_false)->ldown(with_false, NULL, NULL);
+    assert(r.stop && r.held == NULL);
     assert(my_calls == 1);
     assert(bool_state(with_false, "my") == 1);
     h = fnv(h, (uint32_t)my_calls);
@@ -856,13 +861,10 @@ static void test_hb(void) {
     start_game();
     assert(ix_buttons(ix) == 4);
     for (i = 0; i < 4; i++) {
-        pico8_value_t out;
-        if (i != 1) {
-            assert(!pico8_mv(ix[i], "hb", 0, nil(), nil(), &out));
-        }
+        assert(cls_of(ix[i])->has_hb(ix[i]) == (i == 1));
     }
     before = get_ref(ix[1], "lq");
-    (void)call(ix[1], "hb", nil(), nil());
+    cls_of(ix[1])->hb(ix[1]);
     cb = pico8_cb(nil());
     affordable = cb.count > 0;
     pico8_list_free(&cb);
@@ -930,8 +932,8 @@ static void test_cr_my(void) {
 static uint32_t draw_alone(void *b) {
     pico8_camera(&gfx, 0, 0);
     pico8_cls(&mem);
-    (void)call(b, "kj", get(b, "ra"), nil());
-    (void)call(b, "ev", nil(), nil());
+    cls_of(b)->kj(b, get_ref(b, "ra"));
+    cls_of(b)->ev(b, NULL);
     return screen_hash();
 }
 
@@ -1062,8 +1064,10 @@ static void test_js_is_a_struct(void) {
     assert(ix_buttons(ix) == 4);
     check_int("struct eu", all_buttons_are_structs(), 4);
     for (i = 0; i < 4; i++) {
-        pico8_value_t out;
-        assert(pico8_mv(ix[i], "hb", 0, nil(), nil(), &out) == (i == 1));
+        assert(cls_of(ix[i])->has_hb(ix[i]) == (i == 1));
+        if (i == 1) {
+            cls_of(ix[i])->hb(ix[i]);
+        }
     }
     (void)call(ix[3], "my", nil(), nil());
     check_int("struct pause", all_buttons_are_structs(), 8);
@@ -1739,8 +1743,12 @@ static void test_ha_pz_is_a_struct(void) {
     for (i = 0; i < PICO8_METHOD_COUNT; i++) {
         assert(o->cls->methods[i] == NULL);
     }
+    assert(o->cls->kj == NULL && o->cls->ev == NULL && o->cls->hd == NULL && o->cls->hk == NULL &&
+           o->cls->hb == NULL && o->cls->ldown == NULL && o->cls->rdown == NULL && o->cls->gv == NULL);
+    for (i = 0; i < PICO8_STATE_COUNT; i++) {
+        assert(o->cls->states[i] == NULL);
+    }
     assert(o->cls->set_field == NULL);
-    assert(!pico8_mv((void *)o, "ph", 0, nil(), nil(), &v));
     assert(!pico8_mv((void *)o, "my", 0, nil(), nil(), &v));
     same_as_ha(o, "hi");
     same_as_ha(o, "gq");
@@ -1825,7 +1833,7 @@ static int p_field(const void *self, const char *name, pico8_value_t *out) {
 
 /* TROU-9: a button's `fa` is `p.ca` when `p` has one, else `js`'s own. */
 static void test_pz_fa_only_from_ca(void) {
-    static const pico8_struct_class_t cls = {{NULL}, p_field, NULL};
+    static const pico8_struct_class_t cls = {.field = p_field};
     static const pico8_struct_header_t p = {PICO8_TYPE_TAG_STRUCT, &cls};
     pico8_js_keys_t row = {0};
 

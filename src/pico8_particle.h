@@ -39,8 +39,8 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n);
  * through a `kj` field, reading both from the dispatch context instead. */
 void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
 
-/* `argc`/`arg0`/`arg1` are never read: `ei` declares only `self`, so Lua
- * drops the `entity.ra` argument `dc()` passes. */
-pico8_value_t pico8_ei_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+/* `ra` is never read: `ei` declares only `self`, so Lua drops the
+ * `entity.ra` argument `dc()` passes. */
+void pico8_ei_dispatch(void *self, const pico8_vec_t *ra);
 
 #endif

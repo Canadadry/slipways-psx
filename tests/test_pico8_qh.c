@@ -55,9 +55,8 @@ static const char *const own[] = {"hp", "px", "dq", "qh", "od", "fp", "dw", "s",
 static const char *const jo_members[] = {"nu", "hf", "hs", "fa", "kq", "ma", "ka", "dz", "cq", "kw", "gq",
                                          "ca", "em", "id", "p",  "ra", "oe", "hn", "ep", "jy", "nk", "fx",
                                          "lq", "fo", "jh", "p_", "kr", "cc", "by", "mi", "m_"};
-static const char *const methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf",
-                                      "cn", "ib", "ll", "hq", "ev", "ey", "ly"};
-static const char *const absent[] = {"ph", "kz", "rdown", "md", "ol", "pr", "eb"};
+static const char *const methods[] = {"gg", "kf", "cn", "ib", "hq", "ey"};
+static const char *const absent[] = {"ol", "eb"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 static const char *const tags[] = {"qh", "jo", "np", "prober"};
 
@@ -232,6 +231,30 @@ static pico8_vec_t vec_xy(int x, int y) {
     return pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
 }
 
+static const pico8_struct_class_t *cls_of(const void *e) {
+    return ((const pico8_struct_header_t *)e)->cls;
+}
+
+/* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
+ * `ldown`, `gv` and the states `ll`, `ly`; no other. */
+static void assert_qh_shape(const pico8_struct_class_t *c) {
+    assert(c->kj != NULL && c->ev != NULL && c->hd != NULL && c->hk != NULL && c->hb != NULL && c->ldown != NULL &&
+           c->gv != NULL && c->states[PICO8_STATE_LL] != NULL && c->states[PICO8_STATE_LY] != NULL);
+    assert(c->has_hb == NULL && c->rdown == NULL && c->states[PICO8_STATE_PH] == NULL &&
+           c->states[PICO8_STATE_KZ] == NULL && c->states[PICO8_STATE_PR] == NULL);
+}
+
+/* `c` holds `ref`'s very members, `kj` and the state `ly` included when
+ * `with_kj`/`with_ly`. */
+static void assert_members_of(const pico8_struct_class_t *c, const pico8_struct_class_t *ref, int with_kj,
+                              int with_ly) {
+    assert(c->ev == ref->ev && c->hd == ref->hd && c->hk == ref->hk && c->hb == ref->hb && c->has_hb == ref->has_hb &&
+           c->ldown == ref->ldown && c->rdown == ref->rdown && c->gv == ref->gv);
+    assert(c->states[PICO8_STATE_LL] == ref->states[PICO8_STATE_LL]);
+    assert(!with_kj || c->kj == ref->kj);
+    assert(!with_ly || c->states[PICO8_STATE_LY] == ref->states[PICO8_STATE_LY]);
+}
+
 static pico8_value_t call(void *e, const char *name, int argc, pico8_value_t arg0, pico8_value_t arg1) {
     pico8_value_t out = pico8_value_ref(NULL);
     assert(pico8_mv(e, name, argc, arg0, arg1, &out));
@@ -255,12 +278,12 @@ static void *qh_icon(void) {
 /* `ie:ldown` on the laboratory's icon, as the shop does. */
 static void *build_lab(void) {
     void *icon = qh_icon();
-    pico8_value_t made;
+    pico8_down_t made;
 
     assert(icon != NULL);
-    made = call(icon, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-    assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-    return made.as.ref;
+    made = cls_of(icon)->ldown(icon, NULL, NULL);
+    assert(made.stop && made.held != NULL);
+    return made.held;
 }
 
 /* A laboratory as `ie:ldown` and `jo:pq` left it: its scalars, which of
@@ -288,6 +311,8 @@ static uint32_t fold_lab(uint32_t h, const void *e) {
         assert(pico8_entity_get_field(e, methods[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
         assert(want != NULL && v.as.function == want);
     }
+    assert_qh_shape(cls_of(e));
+    assert_members_of(cls_of(e), pico8_qh_struct_class(), 1, 1);
     for (i = 0; i < sizeof absent / sizeof absent[0]; i++) {
         assert(!has(e, absent[i]));
     }
@@ -465,7 +490,7 @@ static int descendant_of(const void *e) {
  * and its `ly` called once (`ra.y` before, after, then put back). */
 static uint32_t fold_descendant(uint32_t h, void *d) {
     static const char *const inherited[] = {"dq", "fp", "dw", "hf", "mi"};
-    static const char *const fns[] = {"hq", "ev", "ey"};
+    static const char *const fns[] = {"hq", "ey"};
     size_t i;
     pico8_value_t ra;
     pico8_value_t qw;
@@ -482,16 +507,17 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
         assert(lookup(d, fns[i], &v) && v.kind == PICO8_VALUE_FUNCTION);
         assert(v.as.function == pico8_qh_struct_class()->methods[pico8_method_of(fns[i])]);
     }
+    assert(cls_of(d)->ev == pico8_qh_struct_class()->ev);
     had_qw = lookup(d, "qw", &qw);
     if (lookup(d, "ra", &ra)) {
         pico8_vec_t *v = ra.as.ref;
         pico8_fixed_t y = v->y;
         h = fnv(fnv(h, 1u), (uint32_t)y);
-        (void)call(d, "ly", 1, pico8_value_fixed(pico8_fixed_from_int(50)), pico8_value_ref(NULL));
+        cls_of(d)->states[PICO8_STATE_LY](d, pico8_fixed_from_int(50));
         h = fnv(h, (uint32_t)v->y);
         v->y = y;
     } else {
-        (void)call(d, "ly", 1, pico8_value_fixed(pico8_fixed_from_int(50)), pico8_value_ref(NULL));
+        cls_of(d)->states[PICO8_STATE_LY](d, pico8_fixed_from_int(50));
         h = fnv(h, 0u);
     }
     h = fold_field(h, d, "qw");
@@ -512,10 +538,10 @@ static void *bought(const pico8_entity_kind_t *kind) {
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *icon = hb->items[i].as.ref;
         if (get_ref(icon, "ke") == kind) {
-            pico8_value_t made = call(icon, "ldown", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-            assert(made.kind == PICO8_VALUE_REF && made.as.ref != NULL);
-            (void)call(made.as.ref, "hq", 2, vec_ref(pico8_vec_add(*mo_ra, vec_xy(64, 64))), vec_ref(vec_xy(64, 64)));
-            return made.as.ref;
+            pico8_down_t made = cls_of(icon)->ldown(icon, NULL, NULL);
+            assert(made.stop && made.held != NULL);
+            (void)call(made.held, "hq", 2, vec_ref(pico8_vec_add(*mo_ra, vec_xy(64, 64))), vec_ref(vec_xy(64, 64)));
+            return made.held;
         }
     }
     assert(0 && "no icon for that kind");
@@ -620,7 +646,7 @@ static int is_a_qh_struct(const void *e) {
  * construction key other than `id` stops the run. A bare `jo` still
  * refuses `et`; every descendant is a struct under its own descriptor. */
 static void test_qh_is_a_struct(void) {
-    static const char *const jo_methods[] = {"hd", "kj", "ldown", "hb", "gg", "gv", "hk", "kf", "cn", "ib", "ll"};
+    static const char *const jo_methods[] = {"gg", "kf", "cn", "ib"};
     const pico8_entity_kind_t *const descendants[] = {pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(), pico8_pm_kind(),
                                                       pico8_mx_kind(), pico8_nr_kind(), pico8_fr_kind()};
     const pico8_struct_class_t *cls = pico8_qh_struct_class();
@@ -635,6 +661,12 @@ static void test_qh_is_a_struct(void) {
         int m = pico8_method_of(jo_methods[i]);
         assert(cls->methods[m] != NULL && cls->methods[m] == pico8_jo_struct_class()->methods[m]);
     }
+    assert_qh_shape(cls);
+    assert(cls->hd == pico8_jo_struct_class()->hd && cls->kj == pico8_jo_struct_class()->kj &&
+           cls->ldown == pico8_jo_struct_class()->ldown && cls->hb == pico8_jo_struct_class()->hb &&
+           cls->gv == pico8_jo_struct_class()->gv && cls->hk == pico8_jo_struct_class()->hk &&
+           cls->states[PICO8_STATE_LL] == pico8_jo_struct_class()->states[PICO8_STATE_LL]);
+    assert(cls->ev != pico8_jo_struct_class()->ev && cls->states[PICO8_STATE_LY] != NULL);
     for (j = 0; j < PICO8_METHOD_COUNT; j++) {
         int k;
         if (cls->methods[j] == NULL) {

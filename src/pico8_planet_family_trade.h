@@ -80,12 +80,12 @@ pico8_mx_t *pico8_mx_new(const pico8_jo_keys_t *keys);
 
 /* Never stores `s`, which may be NULL: `nr:ldown` passes a static struct
  * with no field. */
-pico8_value_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s);
+pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s);
 
 /* TROU-6 */
 /* Returns a freshly built `jc` instance, or `gv`'s own false; nothing ever
  * frees the instance. */
-pico8_value_t pico8_nr_ldown(pico8_nr_t *self);
+pico8_down_t pico8_nr_ldown(pico8_nr_t *self);
 
 void pico8_nr_hb(pico8_nr_t *self);
 

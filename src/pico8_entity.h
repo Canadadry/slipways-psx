@@ -60,11 +60,14 @@ void pico8_entity_set_field(void *e, const char *name, pico8_value_t value);
 int pico8_mv(pico8_struct_header_t *e, const char *method_name, int argc, pico8_value_t arg0, pico8_value_t arg1,
              pico8_value_t *out_value);
 
+/* `nt` is "kj" or "ev" (asserted). */
 void pico8_dc(const char *nt);
 
+/* `hd=1` of `bg` and `fq`: the hover test that every point passes. */
+int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+
 /* Until pico8_jl() runs, the placeholder struct, with no field and no
- * method, so that dc()'s `mo:md(ci[o])` has an object to dispatch through;
- * afterwards the
+ * `md`: dc() calls `mo:md(ci[o])` on a `qb` only; afterwards the
  * real `qb` struct (pico8_scroll.h). Either is read and written through
  * pico8_entity_get_field()/pico8_entity_set_field(). Callers must not free
  * it. */
