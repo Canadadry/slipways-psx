@@ -39,7 +39,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -160,11 +159,8 @@ static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
-static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
-    const pico8_qy_t *q;
-
-    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL);
-    q = pt.as.ref;
+static uint32_t fold_particle(uint32_t h, const pico8_qy_t *q) {
+    assert(q != NULL);
     assert(!q->has_a);
     h = fnv(fnv(h, (uint32_t)q->p.x), (uint32_t)q->p.y);
     h = fnv(fnv(h, (uint32_t)q->v.x), (uint32_t)q->v.y);
@@ -197,10 +193,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -485,7 +481,7 @@ static void test_life(void) {
     uint32_t h = 2166136261u;
     void *placed;
     void *idle;
-    pico8_value_t mp;
+    pico8_vec_t *mp;
     const pico8_vec_t *mo_ra;
     int i;
 
@@ -499,8 +495,8 @@ static void test_life(void) {
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
-    cls_of(placed)->hq(placed, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
-    assert(as_hj(placed)->qh.jo.ra == mp.as.ref);
+    cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
+    assert(as_hj(placed)->qh.jo.ra == mp);
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
@@ -512,7 +508,7 @@ static void test_life(void) {
         h = fold_dg(h, placed);
     }
 
-    h = fold_particle(h, pico8_value_ref(cls_of(placed)->mm(placed)));
+    h = fold_particle(h, cls_of(placed)->mm(placed));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
     h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
     assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
@@ -635,7 +631,7 @@ static void build_with_unknown_key(void *e) {
     pico8_jo_keys_t keys;
     (void)e;
     keys.id = NULL;
-    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.p = vec_ref(vec_xy(1, 1));
     keys.ra = NULL;
     (void)pico8_mx_new(&keys);
 }

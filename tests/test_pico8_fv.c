@@ -35,7 +35,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -85,7 +84,19 @@ static uint32_t m__state(const pico8_fv_t *fv) {
     return fv->m_ ? 2 : 1;
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v);
+/* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
+ * boolean (then 0 or 1), 0x57 a string; any other moves every *_HASH. */
+static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+    return fnv(fnv(h, 0xF1u), (uint32_t)x);
+}
+
+static uint32_t fold_bool(uint32_t h, int b) {
+    return fnv(fnv(h, 0xB0u), b ? 1u : 0u);
+}
+
+static uint32_t fold_string(uint32_t h, const char *s) {
+    return fnv_str(fnv(h, 0x57u), s);
+}
 
 /* A tag sequence: each position, then its string, then the count. */
 static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
@@ -93,7 +104,7 @@ static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
 
     for (i = 0; i < s->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_value(h, pico8_value_string(s->items[i]));
+        h = fold_string(h, s->items[i]);
     }
     return fnv(h, (uint32_t)s->count);
 }
@@ -104,7 +115,7 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
 
     for (i = 0; i < s->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_value(h, pico8_value_fixed(pico8_fixed_from_int(s->items[i])));
+        h = fold_fixed(h, pico8_fixed_from_int(s->items[i]));
     }
     return fnv(h, (uint32_t)s->count);
 }
@@ -121,18 +132,18 @@ static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
         if (item->row != NULL) {
             h = fold_row(fnv(h, 0x7Au), item->row);
         } else if (item->s != NULL) {
-            h = fold_value(h, pico8_value_string(item->s));
+            h = fold_string(h, item->s);
         } else if (item->is_false) {
-            h = fold_value(h, pico8_value_bool(0));
+            h = fold_bool(h, 0);
         } else {
-            h = fold_value(h, pico8_value_fixed(item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n)));
+            h = fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
         }
     }
     if (row->has_c) {
-        h = fold_value(fnv_str(h, "c"), pico8_value_fixed(pico8_fixed_from_int(row->c)));
+        h = fold_fixed(fnv_str(h, "c"), pico8_fixed_from_int(row->c));
     }
     if (row->fn != NULL) {
-        h = fold_value(fnv_str(h, "fn"), pico8_value_string(row->fn));
+        h = fold_string(fnv_str(h, "fn"), row->fn);
     }
     return fnv(h, (uint32_t)(row->count + (row->has_c != 0) + (row->fn != NULL)));
 }
@@ -154,21 +165,6 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
         return fold_row(fnv(h, 0x7Au), ref);
     }
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
-}
-
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
 }
 
 /* A member the reader always answers: its presence bit and kind byte are
@@ -231,10 +227,10 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static pico8_value_t vec_ref(int x, int y) {
+static pico8_vec_t *vec_ref(int x, int y) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y));
-    return pico8_value_ref(v);
+    return v;
 }
 
 static const pico8_struct_class_t *cls_of(const void *e) {
@@ -422,10 +418,10 @@ static void test_life(void) {
         h = fold_string_member(h, fv->g_.ke.me);
         assert(listed(pico8_hv(), fv));
     }
-    assert(cls_of(fv)->hd(fv, vec_ref(64, 10).as.ref, vec_ref(64, 112).as.ref) == 1);
-    assert(cls_of(fv)->hd(fv, vec_ref(64, 112).as.ref, vec_ref(64, 10).as.ref) == 0);
-    assert(cls_of(fv)->hd(fv, vec_ref(24, 106).as.ref, vec_ref(24, 106).as.ref) == 1);
-    assert(cls_of(fv)->hd(fv, vec_ref(23, 106).as.ref, vec_ref(23, 106).as.ref) == 0);
+    assert(cls_of(fv)->hd(fv, vec_ref(64, 10), vec_ref(64, 112)) == 1);
+    assert(cls_of(fv)->hd(fv, vec_ref(64, 112), vec_ref(64, 10)) == 0);
+    assert(cls_of(fv)->hd(fv, vec_ref(24, 106), vec_ref(24, 106)) == 1);
+    assert(cls_of(fv)->hd(fv, vec_ref(23, 106), vec_ref(23, 106)) == 0);
     h = fnv(h, (uint32_t)size_of(fv->g_.emitter->qy));
     check("life", h, LIFE_HASH);
 }
@@ -581,7 +577,7 @@ static void call_g__mm(void *e) {
 }
 
 static void call_bv(void *e) {
-    pico8_bv(e, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref);
+    pico8_bv(e, vec_ref(1, 1), vec_ref(2, 2));
 }
 
 static void call_dl(void *e) {
@@ -593,7 +589,7 @@ static void call_d_(void *e) {
 }
 
 static void call_gk(void *e) {
-    (void)pico8_gk(e, vec_ref(1, 1).as.ref, vec_ref(2, 2).as.ref);
+    (void)pico8_gk(e, vec_ref(1, 1), vec_ref(2, 2));
 }
 
 static void call_na(void *e) {

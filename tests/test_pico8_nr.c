@@ -37,7 +37,6 @@
 #include "../src/pico8_trade.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -124,19 +123,10 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
+/* The word the frozen hashes fold before a boolean, 0xB0, then the boolean
+ * as 0 or 1; any other moves every *_HASH. */
+static uint32_t fold_bool(uint32_t h, int b) {
+    return fnv(fnv(h, 0xB0u), b ? 1u : 0u);
 }
 
 /* The item count of a list member, -1 when NULL. */
@@ -180,10 +170,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -450,7 +440,7 @@ static void test_life(void) {
     void *idle;
     void *fr;
     void *bare;
-    pico8_value_t mp;
+    pico8_vec_t *mp;
     pico8_down_t jc;
     pico8_ptrs_t *oe;
     const pico8_vec_t *mo_ra;
@@ -466,8 +456,8 @@ static void test_life(void) {
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
-    cls_of(placed)->hq(placed, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
-    assert(as_qh(placed)->jo.ra == mp.as.ref);
+    cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
+    assert(as_qh(placed)->jo.ra == mp);
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
@@ -482,26 +472,26 @@ static void test_life(void) {
         h = fnv(h, screen_hash());
     }
 
-    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, NULL).stop));
-    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, idle).stop));
+    h = fold_bool(h, cls_of(placed)->gv(placed, NULL).stop);
+    h = fold_bool(h, cls_of(placed)->gv(placed, idle).stop);
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.stop && jc.held != NULL);
     assert(cls_of(jc.held) == pico8_jc_struct_class() && ((const pico8_jc_t *)jc.held)->qu == placed);
     h = fnv(h, (uint32_t)pico8_type_tag_of(jc.held));
-    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, jc.held).stop));
-    h = fold_value(h, pico8_value_bool(cls_of(idle)->gv(idle, jc.held).stop));
+    h = fold_bool(h, cls_of(placed)->gv(placed, jc.held).stop);
+    h = fold_bool(h, cls_of(idle)->gv(idle, jc.held).stop);
 
     oe = as_qh(placed)->jo.oe;
     for (i = 0; i <= 3; i++) {
         as_qh(placed)->jo.oe = list_of(i, idle);
         cls_of(placed)->hb(placed);
         h = fold_fixed_member(h, as_qh(placed)->s);
-        h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, NULL).stop));
+        h = fold_bool(h, cls_of(placed)->gv(placed, NULL).stop);
     }
     assert(as_qh(placed)->s == pico8_fixed_from_int(168));
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.held == NULL);
-    h = fold_value(h, pico8_value_bool(jc.stop));
+    h = fold_bool(h, jc.stop);
     as_qh(placed)->jo.oe = oe;
     cls_of(placed)->hb(placed);
     h = fold_fixed_member(h, as_qh(placed)->s);
@@ -520,14 +510,14 @@ static void test_life(void) {
     h = fnv(h, (uint32_t)rank_in(pico8_cg("nr"), bare));
     {
         pico8_jo_keys_t keys;
-        pico8_value_t p = vec_ref(vec_xy(3, 4));
-        pico8_value_t ra = vec_ref(vec_xy(5, 6));
+        pico8_vec_t *p = vec_ref(vec_xy(3, 4));
+        pico8_vec_t *ra = vec_ref(vec_xy(5, 6));
         void *with;
         keys.id = NULL;
-        keys.p = p.as.ref;
-        keys.ra = ra.as.ref;
+        keys.p = p;
+        keys.ra = ra;
         with = pico8_nr_new(&keys);
-        assert(as_qh(with)->jo.p == p.as.ref && as_qh(with)->jo.ra == ra.as.ref && as_qh(with)->jo.id == NULL);
+        assert(as_qh(with)->jo.p == p && as_qh(with)->jo.ra == ra && as_qh(with)->jo.id == NULL);
         h = fnv(h, (uint32_t)rank_in(pico8_hv(), with));
     }
     check("life", h, LIFE_HASH);

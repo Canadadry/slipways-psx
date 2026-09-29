@@ -39,7 +39,6 @@
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
 
@@ -131,19 +130,14 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
+/* The words the frozen hashes fold before a value: 0xF1 a number, 0x57 a
+ * string; any other moves every *_HASH. */
+static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
+    return fnv(fnv(h, 0xF1u), (uint32_t)x);
+}
+
+static uint32_t fold_string(uint32_t h, const char *s) {
+    return fnv_str(fnv(h, 0x57u), s);
 }
 
 /* A member the reader always answers: its presence bit and kind byte are
@@ -206,7 +200,7 @@ static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
 
     for (i = 0; i < s->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_value(h, pico8_value_string(s->items[i]));
+        h = fold_string(h, s->items[i]);
     }
     return fnv(h, (uint32_t)s->count);
 }
@@ -217,7 +211,7 @@ static uint32_t fold_seq(uint32_t h, const pico8_int_seq_t *s) {
 
     for (i = 0; i < s->count; i++) {
         h = fnv(h, (uint32_t)(i + 1));
-        h = fold_value(h, pico8_value_fixed(pico8_fixed_from_int(s->items[i])));
+        h = fold_fixed(h, pico8_fixed_from_int(s->items[i]));
     }
     return fnv(h, (uint32_t)s->count);
 }
@@ -253,10 +247,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -309,7 +303,7 @@ static pico8_g__t *ldown(void) {
     pico8_down_t out;
 
     assert(list_count(pico8_cg("g_")) == 0);
-    out = cls_of(bg)->ldown(bg, vec_ref(vec_xy(1, 1)).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
+    out = cls_of(bg)->ldown(bg, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
     assert(out.stop && out.held != NULL && is_probe(out.held));
     return as_g_(out.held);
 }
@@ -407,11 +401,8 @@ static void test_built(void) {
     check("built", h, BUILT_HASH);
 }
 
-static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
-    const pico8_qy_t *q;
-
-    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL);
-    q = pt.as.ref;
+static uint32_t fold_particle(uint32_t h, const pico8_qy_t *q) {
+    assert(q != NULL);
     assert(!q->has_a);
     h = fnv(fnv(h, (uint32_t)q->p.x), (uint32_t)q->p.y);
     h = fnv(fnv(h, (uint32_t)q->v.x), (uint32_t)q->v.y);
@@ -488,11 +479,11 @@ static pico8_jc_t *a_slipway(pico8_vec_t *middle) {
     pico8_vec_t qu_p = pico8_vec_add(base, vec_xy(0, 1));
     pico8_vec_t re_p = pico8_vec_add(base, vec_xy(1, 1));
 
-    keys.p = vec_ref(qu_p).as.ref;
+    keys.p = vec_ref(qu_p);
     keys.ra = NULL;
     keys.id = "s91";
     qu = pico8_jo_new(&keys);
-    keys.p = vec_ref(re_p).as.ref;
+    keys.p = vec_ref(re_p);
     keys.id = "s92";
     re = pico8_jo_new(&keys);
     jc_keys.qu = qu;
@@ -504,22 +495,22 @@ static pico8_jc_t *a_slipway(pico8_vec_t *middle) {
 
 /* The mouse one pixel off `at` (world units, as `p`): `ij` skips an entity
  * at the very position. */
-static pico8_value_t mouse_at(pico8_vec_t at) {
+static pico8_vec_t *mouse_at(pico8_vec_t at) {
     return vec_ref(pico8_vec_add(pico8_vec_mul(at, pico8_fixed_from_int(128)), vec_xy(1, 1)));
 }
 
 /* `hq` at `at`, the raw mouse at `rp`: `et`'s kind, the target's `fo`,
  * `ra` the very REF passed, `p`. */
 static uint32_t fold_hq(uint32_t h, pico8_g__t *e, pico8_vec_t at, int rp, uint32_t want_kind) {
-    pico8_value_t mp = mouse_at(at);
+    pico8_vec_t *mp = mouse_at(at);
     uint32_t kind;
 
-    cls_of(e)->hq(e, mp.as.ref, vec_ref(vec_xy(rp, rp)).as.ref);
+    cls_of(e)->hq(e, mp, vec_ref(vec_xy(rp, rp)));
     kind = et_kind(e);
     printf("[hq] et kind %u\n", (unsigned)kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert((const void *)e->ra == mp.as.ref);
+    assert(e->ra == mp);
     assert(kind == 1 || et_fo(e) == e);
     h = fnv(h, kind);
     h = fold_et(h, e);
@@ -542,8 +533,8 @@ static void test_life(void) {
     a = ldown();
     b = pico8_g__new(NULL);
     jc = a_slipway(&middle);
-    h = fold_particle(h, pico8_value_ref(cls_of(a)->mm(a)));
-    h = fold_particle(h, pico8_value_ref(cls_of(b)->mm(b)));
+    h = fold_particle(h, cls_of(a)->mm(a));
+    h = fold_particle(h, cls_of(b)->mm(b));
 
     h = fold_hq(h, a, planet_p(), 64, 2);
     h = fold_hq(h, a, middle, 64, 3);
@@ -557,7 +548,7 @@ static void test_life(void) {
     h = fnv(h, screen_hash());
     cls_of(b)->ev(b, NULL);
     h = fnv(h, screen_hash());
-    cls_of(a)->hq(a, mouse_at(planet_p()).as.ref, vec_ref(vec_xy(64, 64)).as.ref);
+    cls_of(a)->hq(a, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
     cls_of(a)->ev(a, NULL);
     h = fnv(h, screen_hash());
 
@@ -592,7 +583,7 @@ static void test_ey_on(void) {
 
     start_game();
     a = ldown();
-    cls_of(a)->hq(a, mouse_at(planet_p()).as.ref, vec_ref(vec_xy(64, 64)).as.ref);
+    cls_of(a)->hq(a, mouse_at(planet_p()), vec_ref(vec_xy(64, 64)));
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->ke.header);
     assert(out == 0);
@@ -636,7 +627,7 @@ static void test_ey_void(void) {
     start_game();
     a = ldown();
     (void)a_slipway(&middle);
-    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
+    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(et_kind(a) == 4);
     assert(et_fo(a) == a);
     assert(!a->has_p_);
@@ -767,7 +758,7 @@ static void test_bv_et_is_a_struct(void) {
     start_game();
     a = ldown();
     (void)a_slipway(&middle);
-    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
+    cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(a->probe->et != NULL);
     et = a->probe->et;
     assert(is_bv_target(et) && bv_et_fo(et) == a);

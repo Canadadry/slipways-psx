@@ -35,7 +35,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 #define GALAXY_PLANETS 90
@@ -120,25 +119,10 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        if (v.as.ref == NULL) {
-            return fnv(h, 0xDEADu);
-        }
-        if (listed(pico8_hv(), v.as.ref)) {
-            return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), v.as.ref));
-        }
-        return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(v.as.ref));
-    default:
-        return fnv(h, 0xF0u);
-    }
+/* The word the frozen hashes fold before a boolean, 0xB0, then the boolean
+ * as 0 or 1; any other moves every *_HASH. */
+static uint32_t fold_bool(uint32_t h, int b) {
+    return fnv(fnv(h, 0xB0u), b ? 1u : 0u);
 }
 
 /* The item count of a list member, -1 when NULL. */
@@ -183,10 +167,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static const pico8_struct_class_t *cls_of(const void *e) {
@@ -367,9 +351,9 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(jo) ? 1u : 0u);
     assert(jo->ra != NULL);
     ra = *jo->ra;
-    h = fold_value(h, pico8_value_bool(cls_of(d)->hd(d, vec_ref(ra).as.ref, vec_ref(ra).as.ref)));
+    h = fold_bool(h, cls_of(d)->hd(d, vec_ref(ra), vec_ref(ra)));
     ra = pico8_vec_add(ra, pico8_vec_v(pico8_fixed_from_int(8), pico8_fixed_from_int(8)));
-    return fold_value(h, pico8_value_bool(cls_of(d)->hd(d, vec_ref(ra).as.ref, vec_ref(ra).as.ref)));
+    return fold_bool(h, cls_of(d)->hd(d, vec_ref(ra), vec_ref(ra)));
 }
 
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
@@ -388,7 +372,7 @@ static void *bought(const pico8_entity_kind_t *kind) {
             pico8_down_t made = cls_of(icon)->ldown(icon, NULL, NULL);
             pico8_vec_t middle = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
             assert(made.stop && made.held != NULL);
-            cls_of(made.held)->hq(made.held, vec_ref(pico8_vec_add(*mo_ra, middle)).as.ref, vec_ref(middle).as.ref);
+            cls_of(made.held)->hq(made.held, vec_ref(pico8_vec_add(*mo_ra, middle)), vec_ref(middle));
             return made.held;
         }
     }
@@ -449,8 +433,8 @@ static void *new_planet(const char *id, int x, int y) {
     pico8_jo_keys_t keys;
 
     keys.id = id;
-    keys.p = vec_ref(pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y))).as.ref;
-    keys.ra = vec_ref(pico8_vec_v(pico8_fixed_from_int(x * 128), pico8_fixed_from_int(y * 128))).as.ref;
+    keys.p = vec_ref(pico8_vec_v(pico8_fixed_from_int(x), pico8_fixed_from_int(y)));
+    keys.ra = vec_ref(pico8_vec_v(pico8_fixed_from_int(x * 128), pico8_fixed_from_int(y * 128)));
     return pico8_jo_new(&keys);
 }
 
@@ -493,7 +477,7 @@ static void test_kw_shared(void) {
     pico8_jo_t *a;
     pico8_jo_t *b;
     pico8_kw_t *kw;
-    pico8_value_t hp;
+    pico8_hp_t *hp;
     pico8_qe_map_t po_before;
     pico8_qe_map_t po_after;
     pico8_fixed_t before = pico8_fixed_from_int(0);
@@ -509,13 +493,13 @@ static void test_kw_shared(void) {
     assert(pico8_jo_shared_kw()->mu == pico8_fixed_from_int(7));
 
     assert(pico8_gb_count() > 0);
-    hp = pico8_value_ref(pico8_gb_find(""));
-    assert(hp.as.ref != NULL);
-    pico8_jo_lz(a, hp.as.ref);
+    hp = pico8_gb_find("");
+    assert(hp != NULL);
+    pico8_jo_lz(a, hp);
     assert(a->kw != NULL && a->kw != pico8_jo_shared_kw());
     assert(a->kw->mu == pico8_fixed_from_int(0));
     assert(b->kw == pico8_jo_shared_kw());
-    assert(a->hn == hp.as.ref && list_size(a->jy) >= 0);
+    assert(a->hn == hp && list_size(a->jy) >= 0);
 
     pico8_bx(&po_before);
     kw->has_qe = 1;

@@ -36,7 +36,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -195,10 +194,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -376,10 +375,10 @@ static void set_credits(int n) {
 
 /* What `bv` left on a laboratory: `ra` (the very REF passed), `p`, and
  * what `et` is. */
-static uint32_t fold_held(uint32_t h, void *e, pico8_value_t mp) {
+static uint32_t fold_held(uint32_t h, void *e, const pico8_vec_t *mp) {
     const pico8_qh_t *qh = as_qh(e);
 
-    assert(qh->jo.ra == mp.as.ref);
+    assert(qh->jo.ra == mp);
     h = fold_vec(h, qh->jo.p);
     h = fnv(h, et_state(qh));
     return fold_et(h, qh);
@@ -400,7 +399,7 @@ static void test_life(void) {
     void *in_lab;
     void *poor_lab;
     void *planet;
-    pico8_value_t mp;
+    pico8_vec_t *mp;
     const pico8_vec_t *planet_p;
     const pico8_vec_t *ra_before;
     pico8_fixed_t before;
@@ -411,7 +410,7 @@ static void test_life(void) {
 
     out_lab = build_lab();
     mp = vec_ref(vec_xy(7680, 7680));
-    cls_of(out_lab)->hq(out_lab, mp.as.ref, vec_ref(vec_xy(0, 0)).as.ref);
+    cls_of(out_lab)->hq(out_lab, mp, vec_ref(vec_xy(0, 0)));
     h = fold_held(h, out_lab, mp);
     assert(et_state(as_qh(out_lab)) == 3 && !listed(pico8_hv(), as_qh(out_lab)->probe->et));
 
@@ -420,14 +419,14 @@ static void test_life(void) {
     planet_p = ((const pico8_jo_t *)planet)->p;
     assert(planet_p != NULL);
     mp = vec_ref(pico8_vec_add(pico8_vec_mul(*planet_p, pico8_fixed_from_int(128)), vec_xy(6, 0)));
-    cls_of(out_lab)->hq(out_lab, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
+    cls_of(out_lab)->hq(out_lab, mp, vec_ref(vec_xy(64, 64)));
     h = fold_held(h, out_lab, mp);
     assert(as_qh(out_lab)->probe->et == planet &&
            ((const pico8_jo_t *)planet)->fo == out_lab);
 
     poor_lab = build_lab();
     mp = vec_ref(vec_xy(7680, 7680));
-    cls_of(poor_lab)->hq(poor_lab, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
+    cls_of(poor_lab)->hq(poor_lab, mp, vec_ref(vec_xy(64, 64)));
     h = fold_held(h, poor_lab, mp);
     assert(et_state(as_qh(poor_lab)) == 1);
     set_credits(3);
@@ -441,7 +440,7 @@ static void test_life(void) {
 
     in_lab = build_lab();
     mp = vec_ref(vec_xy(7680, 7552));
-    cls_of(in_lab)->hq(in_lab, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
+    cls_of(in_lab)->hq(in_lab, mp, vec_ref(vec_xy(64, 64)));
     set_credits(100);
     assert(cls_of(in_lab)->ey == pico8_d__dispatch);
     h = pico8_d_(in_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
@@ -551,8 +550,8 @@ static void *bought(const pico8_entity_kind_t *kind) {
         if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
             pico8_down_t made = cls_of(icon)->ldown(icon, NULL, NULL);
             assert(made.stop && made.held != NULL);
-            cls_of(made.held)->hq(made.held, vec_ref(pico8_vec_add(*mo_ra, vec_xy(64, 64))).as.ref,
-                                  vec_ref(vec_xy(64, 64)).as.ref);
+            cls_of(made.held)->hq(made.held, vec_ref(pico8_vec_add(*mo_ra, vec_xy(64, 64))),
+                                  vec_ref(vec_xy(64, 64)));
             return made.held;
         }
     }
@@ -622,7 +621,7 @@ static void build_with_unknown_key(void *e) {
     pico8_jo_keys_t keys;
     (void)e;
     keys.id = NULL;
-    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.p = vec_ref(vec_xy(1, 1));
     keys.ra = NULL;
     (void)pico8_qh_new(&keys);
 }

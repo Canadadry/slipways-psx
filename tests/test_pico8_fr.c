@@ -39,7 +39,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -126,19 +125,10 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
+/* The word the frozen hashes fold before a boolean, 0xB0, then the boolean
+ * as 0 or 1; any other moves every *_HASH. */
+static uint32_t fold_bool(uint32_t h, int b) {
+    return fnv(fnv(h, 0xB0u), b ? 1u : 0u);
 }
 
 /* The item count of a list member, -1 when NULL. */
@@ -180,10 +170,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -432,14 +422,14 @@ static pico8_ptrs_t *list_of(int n, void *item) {
 /* `hq` then `ey`, as the player drops a planet at `offset` from `mo`. */
 static void place(void *e, int x, int y) {
     const pico8_vec_t *mo_ra;
-    pico8_value_t mp;
+    pico8_vec_t *mp;
 
     assert(pico8_mo_qb() != NULL);
     mo_ra = pico8_mo_qb()->ra;
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y)));
-    cls_of(e)->hq(e, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
-    assert(as_qh(e)->jo.ra == mp.as.ref);
+    cls_of(e)->hq(e, mp, vec_ref(vec_xy(64, 64)));
+    assert(as_qh(e)->jo.ra == mp);
 }
 
 /* A slipway drawn from `from` by its `ldown`, aimed by `jc:hq` at a point
@@ -454,7 +444,7 @@ static uint32_t fold_route(uint32_t h, void *from) {
     made = (const pico8_jc_t *)jc.held;
     assert(made->qu == from);
     assert(ra != NULL);
-    cls_of(jc.held)->hq(jc.held, vec_ref(pico8_vec_add(*ra, vec_xy(20, 0))).as.ref, NULL);
+    cls_of(jc.held)->hq(jc.held, vec_ref(pico8_vec_add(*ra, vec_xy(20, 0))), NULL);
     assert(made->has_mt == from_has_mt);
     assert(made->fa == pico8_fixed_from_int(from_has_mt ? 2 : 4));
     h = made->has_mt ? fold_fixed_member(h, made->mt) : fold_absent(h);
@@ -496,26 +486,26 @@ static void test_life(void) {
         h = fnv(h, screen_hash());
     }
 
-    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, NULL).stop));
-    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, idle).stop));
+    h = fold_bool(h, cls_of(placed)->gv(placed, NULL).stop);
+    h = fold_bool(h, cls_of(placed)->gv(placed, idle).stop);
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.stop && jc.held != NULL);
     assert(cls_of(jc.held) == pico8_jc_struct_class() && ((const pico8_jc_t *)jc.held)->qu == placed);
     h = fnv(h, (uint32_t)pico8_type_tag_of(jc.held));
-    h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, jc.held).stop));
-    h = fold_value(h, pico8_value_bool(cls_of(idle)->gv(idle, jc.held).stop));
+    h = fold_bool(h, cls_of(placed)->gv(placed, jc.held).stop);
+    h = fold_bool(h, cls_of(idle)->gv(idle, jc.held).stop);
 
     oe = as_qh(placed)->jo.oe;
     for (i = 0; i <= 3; i++) {
         as_qh(placed)->jo.oe = list_of(i, idle);
         cls_of(placed)->hb(placed);
         h = fold_fixed_member(h, as_qh(placed)->s);
-        h = fold_value(h, pico8_value_bool(cls_of(placed)->gv(placed, NULL).stop));
+        h = fold_bool(h, cls_of(placed)->gv(placed, NULL).stop);
     }
     assert(as_qh(placed)->s == pico8_fixed_from_int(76));
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.held == NULL);
-    h = fold_value(h, pico8_value_bool(jc.stop));
+    h = fold_bool(h, jc.stop);
     as_qh(placed)->jo.oe = oe;
     cls_of(placed)->hb(placed);
     h = fold_fixed_member(h, as_qh(placed)->s);
@@ -551,7 +541,7 @@ static void build_with_unknown_key(void *e) {
     pico8_jo_keys_t keys;
     (void)e;
     keys.id = NULL;
-    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.p = vec_ref(vec_xy(1, 1));
     keys.ra = NULL;
     (void)pico8_fr_new(&keys);
 }

@@ -36,7 +36,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -146,11 +145,8 @@ static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
-static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
-    const pico8_qy_t *q;
-
-    assert(pt.kind == PICO8_VALUE_REF && pt.as.ref != NULL);
-    q = pt.as.ref;
+static uint32_t fold_particle(uint32_t h, const pico8_qy_t *q) {
+    assert(q != NULL);
     assert(!q->has_a);
     h = fnv(fnv(h, (uint32_t)q->p.x), (uint32_t)q->p.y);
     h = fnv(fnv(h, (uint32_t)q->v.x), (uint32_t)q->v.y);
@@ -183,10 +179,10 @@ static void start_game(void) {
     pico8_eu(NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -227,10 +223,10 @@ static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const 
     keys.p = NULL;
     keys.ra = NULL;
     if (p != NULL) {
-        keys.p = vec_ref(*p).as.ref;
+        keys.p = vec_ref(*p);
     }
     if (ra != NULL) {
-        keys.ra = vec_ref(*ra).as.ref;
+        keys.ra = vec_ref(*ra);
     }
     keys.id = id;
     made = pico8_pm_new(&keys);
@@ -509,7 +505,7 @@ static void test_life(void) {
         h = fold_dg(h, placed);
     }
 
-    h = fold_particle(h, pico8_value_ref(cls_of(placed)->mm(placed)));
+    h = fold_particle(h, cls_of(placed)->mm(placed));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
     h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
     assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);

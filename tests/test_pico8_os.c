@@ -36,7 +36,6 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 
@@ -215,10 +214,10 @@ static void clicked_game(void) {
     assert(buttons == 2 && pico8_dk() != NULL);
 }
 
-static pico8_value_t vec_ref(pico8_vec_t at) {
+static pico8_vec_t *vec_ref(pico8_vec_t at) {
     pico8_vec_t *v = malloc(sizeof *v);
     *v = at;
-    return pico8_value_ref(v);
+    return v;
 }
 
 static pico8_vec_t vec_xy(int x, int y) {
@@ -487,15 +486,15 @@ static void test_life(void) {
     uint32_t h = 2166136261u;
     void *placed;
     void *idle;
-    pico8_value_t mp;
+    pico8_vec_t *mp;
     int i;
 
     clicked_game();
 
     placed = build_processor();
     mp = vec_ref(vec_xy(7680, 7552));
-    cls_of(placed)->hq(placed, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
-    assert(as_qh(placed)->jo.ra == mp.as.ref);
+    cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
+    assert(as_qh(placed)->jo.ra == mp);
     h = fold_vec(h, as_qh(placed)->jo.p);
     h = fnv(h, et_state(as_qh(placed)));
     h = fold_et(h, as_qh(placed));
@@ -540,7 +539,7 @@ static void build_with_unknown_key(void *e) {
     pico8_jo_keys_t keys;
     (void)e;
     keys.id = NULL;
-    keys.p = vec_ref(vec_xy(1, 1)).as.ref;
+    keys.p = vec_ref(vec_xy(1, 1));
     keys.ra = NULL;
     (void)pico8_os_new(&keys);
 }
