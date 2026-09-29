@@ -17,7 +17,7 @@
 
 set -u
 
-CATEGORIES="valeur ob stash type-tag ref-audit par-nom dispatch overrides spec"
+CATEGORIES="valeur ob stash type-tag ref-audit par-nom dispatch overrides spec liste"
 
 fail() {
     echo "data_residue: $1" >&2
@@ -37,6 +37,8 @@ pattern() {
         overrides) printf '%s\n' '\boverrides\b' ;;
         spec) printf '%s\n' '\bg_[a-z0-9_]+_(spec|defaults)\b|\bpico8_[a-z0-9_]+_(default|defaults_reset)\b|'\
 '\b[a-z0-9_]+_default_(fixed|table|vec|string|box|list|bool|hf)\b' ;;
+        liste) printf '%s\n' '\bpico8_list_[a-z_]+\b|\bPICO8_REF_AS_LIST[A-Z_]*|'\
+'\bPICO8_TYPE_TAG_LIST\b|pico8_list\.h' ;;
         *) return 1 ;;
     esac
 }

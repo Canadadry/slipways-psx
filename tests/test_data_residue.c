@@ -67,6 +67,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(TST "/c7.c", "pico8_" "mv(a, b);\n");
     write_file(TST "/c8.c", "int over" "rides;\n");
     write_file(TST "/c9.c", "int k = g_jo_" "spec[0];\n");
+    write_file(TST "/c10.c", "pico8_" "list_t l;\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "valeur\t1\t1\n"
                                   "ob\t1\t1\n"
@@ -77,7 +78,8 @@ static void test_one_occurrence_per_category_in_table_order(void) {
                                   "dispatch\t1\t1\n"
                                   "over" "rides\t1\t1\n"
                                   "spec\t1\t1\n"
-                                  "résidu D : 9 ligne(s), 9 fichier(s)\n") == 0);
+                                  "liste\t1\t1\n"
+                                  "résidu D : 10 ligne(s), 10 fichier(s)\n") == 0);
 }
 
 static void test_overlapping_categories_count_each_but_footer_counts_distinct_lines(void) {
@@ -124,6 +126,23 @@ static void test_word_boundaries_and_value_truthy(void) {
                            "int b = field_" "truthy(e, \"x\");\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "par-nom\t3\t1\n"
+                                  "résidu D : 3 ligne(s), 1 fichier(s)\n") == 0);
+}
+
+static void test_liste_word_boundaries(void) {
+    setup();
+    write_file(SRC "/l.c", "int mypico8_" "list_t;\n"
+                           "int pico8_" "listing;\n"
+                           "pico8_" "ptrs_t p;\n");
+    assert(run_residue(TREE) == 0);
+    assert(strcmp(read_file(OUT), EMPTY_FOOTER) == 0);
+    write_file(SRC "/l.c", "#include \"pico8_" "list.h\"\n"
+                           "int n = PICO8_" "REF_AS_LIST_CONST(v)->count;\n"
+                           "int t = PICO8_" "TYPE_TAG_LIST;\n");
+    assert(run_residue(TREE) == 0);
+    assert(strcmp(read_file(OUT), "type-tag\t1\t1\n"
+                                  "ref-audit\t1\t1\n"
+                                  "liste\t3\t1\n"
                                   "résidu D : 3 ligne(s), 1 fichier(s)\n") == 0);
 }
 
@@ -176,6 +195,7 @@ int main(void) {
     test_overlapping_categories_count_each_but_footer_counts_distinct_lines();
     test_omitted_argument_defaults_are_not_class_specs();
     test_word_boundaries_and_value_truthy();
+    test_liste_word_boundaries();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
