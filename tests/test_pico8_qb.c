@@ -450,8 +450,6 @@ static int same_value(pico8_value_t a, pico8_value_t b) {
         return a.as.boolean == b.as.boolean;
     case PICO8_VALUE_STRING:
         return strcmp(a.as.string, b.as.string) == 0;
-    case PICO8_VALUE_FUNCTION:
-        return a.as.function == b.as.function;
     default:
         return a.as.ref == b.as.ref;
     }
@@ -702,7 +700,6 @@ static void test_qb_writer_stops_off_row(void) {
     pico8_value_t zero_fixed;
     pico8_value_t zero_false;
     pico8_value_t zero_string;
-    pico8_value_t zero_function;
     pico8_value_t zero_ref;
     pico8_value_t ph;
     void *a;
@@ -718,8 +715,6 @@ static void test_qb_writer_stops_off_row(void) {
     zero_false.kind = PICO8_VALUE_BOOL;
     memset(&zero_string, 0, sizeof zero_string);
     zero_string.kind = PICO8_VALUE_STRING;
-    memset(&zero_function, 0, sizeof zero_function);
-    zero_function.kind = PICO8_VALUE_FUNCTION;
     memset(&zero_ref, 0, sizeof zero_ref);
     zero_ref.kind = PICO8_VALUE_REF;
 
@@ -727,7 +722,6 @@ static void test_qb_writer_stops_off_row(void) {
     must_abort_value(b, write_v_by_name, zero_fixed);
     must_abort_value(b, write_v_by_name, zero_false);
     must_abort_value(b, write_v_by_name, zero_string);
-    must_abort_value(b, write_v_by_name, zero_function);
     must_abort_value(b, write_v_by_name, pico8_value_bool(1));
     must_abort_value(b, write_v_by_name, pico8_value_string("x"));
     must_abort_value(b, write_v_by_name, pico8_value_ref((void *)pico8_hv()));
@@ -737,7 +731,6 @@ static void test_qb_writer_stops_off_row(void) {
     must_abort_value(b, write_ma_by_name, pico8_value_ref(NULL));
     must_abort_value(b, write_ma_by_name, zero_false);
     must_abort_value(b, write_ma_by_name, zero_string);
-    must_abort_value(b, write_ma_by_name, zero_function);
     must_abort_value(b, write_ma_by_name, pico8_value_bool(1));
     must_abort_value(b, write_ma_by_name, pico8_value_string("x"));
     must_abort_value(b, write_ma_by_name, heap_vec(1, 1));

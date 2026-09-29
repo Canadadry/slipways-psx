@@ -1626,7 +1626,6 @@ static void test_jc_writer_stops_off_row(void) {
                                      zero_union(PICO8_VALUE_BOOL),
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
-                                     zero_union(PICO8_VALUE_FUNCTION),
                                      list,
                                      vec,
                                      jo,
@@ -1641,7 +1640,6 @@ static void test_jc_writer_stops_off_row(void) {
                                      zero_union(PICO8_VALUE_FIXED),
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
-                                     zero_union(PICO8_VALUE_FUNCTION),
                                      vec,
                                      other};
         stops_on(write_off_row, old, "p_", off, sizeof off / sizeof off[0]);

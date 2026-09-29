@@ -155,8 +155,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -965,7 +963,6 @@ static void test_bv_et_writer_stops_off_row(void) {
     pico8_value_t zero_fixed;
     pico8_value_t zero_false;
     pico8_value_t zero_string;
-    pico8_value_t zero_function;
     pico8_vec_t at;
     void *a;
     void *t;
@@ -978,8 +975,6 @@ static void test_bv_et_writer_stops_off_row(void) {
     zero_false.kind = PICO8_VALUE_BOOL;
     memset(&zero_string, 0, sizeof zero_string);
     zero_string.kind = PICO8_VALUE_STRING;
-    memset(&zero_function, 0, sizeof zero_function);
-    zero_function.kind = PICO8_VALUE_FUNCTION;
 
     must_abort_value(t, write_fo_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
     must_abort_value(t, write_fo_by_name, zero_fixed);
@@ -987,7 +982,6 @@ static void test_bv_et_writer_stops_off_row(void) {
     must_abort_value(t, write_fo_by_name, zero_false);
     must_abort_value(t, write_fo_by_name, pico8_value_string("x"));
     must_abort_value(t, write_fo_by_name, zero_string);
-    must_abort_value(t, write_fo_by_name, zero_function);
     must_abort_value(t, write_fo_by_name, vec_ref(vec_xy(1, 1)));
     must_abort_value(t, write_fo_by_name, pico8_value_ref((void *)pico8_hv()));
     must_abort_value(t, write_fo_by_name, get(jc, "qu"));
@@ -1463,7 +1457,6 @@ static void test_g__writer_stops_off_row(void) {
     off[n++] = zero_union(PICO8_VALUE_BOOL);
     off[n++] = pico8_value_string("x");
     off[n++] = zero_union(PICO8_VALUE_STRING);
-    off[n++] = zero_union(PICO8_VALUE_FUNCTION);
     off[n++] = pico8_value_ref(jc);
     off[n++] = vec;
     must_abort_all(holders[0], "qy", write_off_row, off, n);
@@ -1477,7 +1470,6 @@ static void test_g__writer_stops_off_row(void) {
     off[n++] = pico8_value_bool(1);
     off[n++] = pico8_value_string("x");
     off[n++] = zero_union(PICO8_VALUE_STRING);
-    off[n++] = zero_union(PICO8_VALUE_FUNCTION);
     off[n++] = pico8_value_ref(hv);
     off[n++] = vec;
     structs[0] = pico8_value_ref(pico8_ga_new(NULL));
@@ -1498,7 +1490,6 @@ static void test_g__writer_stops_off_row(void) {
     off[n++] = zero_union(PICO8_VALUE_FIXED);
     off[n++] = pico8_value_string("x");
     off[n++] = zero_union(PICO8_VALUE_STRING);
-    off[n++] = zero_union(PICO8_VALUE_FUNCTION);
     off[n++] = vec;
     for (i = 0; i < 2; i++) {
         must_abort_all(holders[i], "p_", write_off_row, off, n);

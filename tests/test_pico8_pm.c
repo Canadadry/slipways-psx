@@ -145,8 +145,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);

@@ -316,7 +316,7 @@ static int same_value(pico8_value_t a, pico8_value_t b) {
     case PICO8_VALUE_REF:
         return a.as.ref == b.as.ref;
     default:
-        return a.as.function == b.as.function;
+        return 0;
     }
 }
 
@@ -508,7 +508,6 @@ static void test_iv_members_by_name(void) {
         must_abort_write(a, name, zero_of(PICO8_VALUE_FIXED));
         must_abort_write(a, name, zero_of(PICO8_VALUE_BOOL));
         must_abort_write(a, name, zero_of(PICO8_VALUE_STRING));
-        must_abort_write(a, name, zero_of(PICO8_VALUE_FUNCTION));
     }
 
     printf("test_iv_members_by_name: first p_ at ph %d, hash 0x%08X\n", first_p_, (unsigned)g_iv_h);

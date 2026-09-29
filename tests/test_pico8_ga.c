@@ -139,8 +139,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -753,8 +751,6 @@ static int same_value(pico8_value_t a, pico8_value_t b) {
         return a.as.boolean == b.as.boolean;
     case PICO8_VALUE_STRING:
         return a.as.string == b.as.string;
-    case PICO8_VALUE_FUNCTION:
-        return a.as.function == b.as.function;
     default:
         return a.as.ref == b.as.ref;
     }
@@ -951,7 +947,6 @@ static void test_ga_writer_stops_off_row(void) {
     off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
     off_row[n_off++] = pico8_value_string("x");
     off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
     off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
     off_row[n_off++] = vec_ref(vec_xy(1, 1));
     g_off_row_name = "qy";

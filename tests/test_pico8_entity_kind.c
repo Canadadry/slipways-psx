@@ -719,7 +719,6 @@ static void test_ie_writer_stops_off_row(void) {
     pico8_value_t zero_fixed;
     pico8_value_t zero_false;
     pico8_value_t zero_string;
-    pico8_value_t zero_function;
     pico8_value_t hb;
     pico8_value_t list = pico8_value_ref((void *)pico8_hv());
     pico8_value_t kind = pico8_value_ref((void *)pico8_qh_kind());
@@ -733,14 +732,11 @@ static void test_ie_writer_stops_off_row(void) {
     zero_false.kind = PICO8_VALUE_BOOL;
     memset(&zero_string, 0, sizeof zero_string);
     zero_string.kind = PICO8_VALUE_STRING;
-    memset(&zero_function, 0, sizeof zero_function);
-    zero_function.kind = PICO8_VALUE_FUNCTION;
     assert(!pico8_entity_get_field(a, "hb", &hb) && pico8_ie_struct_class()->hb != NULL);
 
     must_abort_value(a, write_m_by_name, pico8_value_fixed(pico8_fixed_from_int(1)));
     must_abort_value(a, write_m_by_name, zero_fixed);
     must_abort_value(a, write_m_by_name, zero_string);
-    must_abort_value(a, write_m_by_name, zero_function);
     must_abort_value(a, write_m_by_name, pico8_value_string("x"));
     must_abort_value(a, write_m_by_name, vref);
     must_abort_value(a, write_m_by_name, list);

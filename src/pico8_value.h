@@ -16,27 +16,9 @@ typedef enum {
     PICO8_VALUE_STRING,  /* a C string (not owned by the value; see below) */
     PICO8_VALUE_BOOL,    /* a boolean (0 or 1) */
     PICO8_VALUE_REF,     /* an opaque pointer/reference (e.g. an entity) */
-    PICO8_VALUE_FUNCTION /* an entity method; see pico8_value_function_t */
 } pico8_value_kind_t;
 
-/* Forward-declared here so pico8_value_function_t below can name it by
- * value; the struct's own definition cannot come first, since it has a
- * member of that same function pointer type. */
 typedef struct pico8_value pico8_value_t;
-
-/* An entity method: a field like .kj/.ev/.hd/.hk/.hb, called as
- * `entity[nt](entity,entity.ra)` by dc()/mv() (pico8_entity.h).
- *
- * `self` is a `void *`, not a pico8_struct_header_t *, because pico8_value.h
- * sits below pico8_struct.h in the include graph (pico8_struct.h -> here)
- * and must not depend upward on it; pico8_entity.c casts `self` back
- * itself. Do not "fix" the type.
- *
- * A fixed argument list, not a variadic one: no dispatch site in the cart
- * passes more than two extra arguments. A dispatched function must check
- * `argc` before trusting `arg0`/`arg1` -- a slot argc says is not real
- * holds whatever filler the caller passed, never a distinguished nil. */
-typedef pico8_value_t (*pico8_value_function_t)(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
 
 /* A value never owns the memory a PICO8_VALUE_STRING or PICO8_VALUE_REF
  * points to -- it is a plain tagged union of a scalar or a borrowed
@@ -50,7 +32,6 @@ struct pico8_value {
         const char *string;
         int boolean;
         void *ref;
-        pico8_value_function_t function;
     } as;
 };
 
@@ -58,7 +39,6 @@ pico8_value_t pico8_value_fixed(pico8_fixed_t x);
 pico8_value_t pico8_value_string(const char *s);
 pico8_value_t pico8_value_bool(int b);
 pico8_value_t pico8_value_ref(void *p);
-pico8_value_t pico8_value_function(pico8_value_function_t fn);
 
 /* "Equal in value", as del() uses it to find the first matching element
  * (PICO-8 Del wiki: https://pico-8.fandom.com/wiki/Del). Two values of
@@ -68,7 +48,6 @@ pico8_value_t pico8_value_function(pico8_value_function_t fn);
  *   - PICO8_VALUE_FIXED:    numeric (raw 16.16) equality.
  *   - PICO8_VALUE_BOOL:     plain boolean equality.
  *   - PICO8_VALUE_REF:      pointer identity.
- *   - PICO8_VALUE_FUNCTION: function-pointer identity.
  *   - PICO8_VALUE_STRING:   POINTER identity, not content -- no strcmp.
  *     Lua interns its literals, so there two equal strings are the same
  *     object; this port allocates a fresh string per parsed token, so
@@ -89,7 +68,7 @@ int pico8_value_equal(pico8_value_t a, pico8_value_t b);
  * renders "3" and not "3.0000". This reproduces 13 of the 14 block-C
  * witnesses of tools/probe_out.txt; magnitudes below 0.0001 are TROU-22.
  * STRING passes its content through, BOOL renders "true"/"false",
- * and REF and FUNCTION render the empty string. The empty string is also
+ * and REF renders the empty string. The empty string is also
  * what an absent field yields, since this port spells "absent" as
  * pico8_value_ref(NULL) and PICO-8 would print nil there. */
 /* TROU-13 */

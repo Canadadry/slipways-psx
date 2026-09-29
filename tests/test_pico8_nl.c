@@ -153,8 +153,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -623,7 +621,6 @@ static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico
 static void test_nl_writer_stops_off_row(void) {
     pico8_value_t zero_false;
     pico8_value_t null_string;
-    pico8_value_t null_function;
     void *a;
 
     start_game();
@@ -632,15 +629,12 @@ static void test_nl_writer_stops_off_row(void) {
     zero_false.kind = PICO8_VALUE_BOOL;
     memset(&null_string, 0, sizeof null_string);
     null_string.kind = PICO8_VALUE_STRING;
-    memset(&null_function, 0, sizeof null_function);
-    null_function.kind = PICO8_VALUE_FUNCTION;
     must_abort_value(a, write_qw_value, pico8_value_ref(NULL));
     must_abort_value(a, write_qw_value, pico8_value_bool(1));
     must_abort_value(a, write_qw_value, pico8_value_bool(0));
     must_abort_value(a, write_qw_value, zero_false);
     must_abort_value(a, write_qw_value, pico8_value_string("x"));
     must_abort_value(a, write_qw_value, null_string);
-    must_abort_value(a, write_qw_value, null_function);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
