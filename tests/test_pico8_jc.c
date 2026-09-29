@@ -1634,7 +1634,6 @@ static void stops_on(void (*write)(void *), void *e, const char *name, const pic
 }
 
 static void test_jc_writer_stops_off_row(void) {
-    pico8_value_t table;
     pico8_value_t vec;
     pico8_value_t list;
     pico8_value_t jo;
@@ -1647,7 +1646,6 @@ static void test_jc_writer_stops_off_row(void) {
 
     world();
     old = the_slipway();
-    table = pico8_value_ref(pico8_ob_table_new());
     vec = vec_ref(1, 1);
     list = pico8_value_ref((void *)pico8_hv());
     jo = get(old, "qu");
@@ -1666,7 +1664,6 @@ static void test_jc_writer_stops_off_row(void) {
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
                                      zero_union(PICO8_VALUE_FUNCTION),
-                                     table,
                                      list,
                                      vec,
                                      jo,
@@ -1682,14 +1679,12 @@ static void test_jc_writer_stops_off_row(void) {
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
                                      zero_union(PICO8_VALUE_FUNCTION),
-                                     table,
                                      vec,
                                      other};
         stops_on(write_off_row, old, "p_", off, sizeof off / sizeof off[0]);
     }
     {
-        const pico8_value_t off[] = {table,
-                                     vec,
+        const pico8_value_t off[] = {vec,
                                      ga,
                                      pico8_value_ref(pico8_g__new(NULL)),
                                      pico8_value_ref(pico8_mz_new()),

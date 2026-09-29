@@ -27,7 +27,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_research.h"
@@ -722,7 +721,6 @@ static void test_ie_writer_stops_off_row(void) {
     pico8_value_t zero_string;
     pico8_value_t zero_function;
     pico8_value_t hb;
-    pico8_value_t table = pico8_value_ref(pico8_ob_table_new());
     pico8_value_t list = pico8_value_ref((void *)pico8_hv());
     pico8_value_t kind = pico8_value_ref((void *)pico8_qh_kind());
     pico8_value_t vref;
@@ -746,7 +744,6 @@ static void test_ie_writer_stops_off_row(void) {
     must_abort_value(a, write_m_by_name, pico8_value_string("x"));
     must_abort_value(a, write_m_by_name, hb);
     must_abort_value(a, write_m_by_name, vref);
-    must_abort_value(a, write_m_by_name, table);
     must_abort_value(a, write_m_by_name, list);
     must_abort_value(a, write_m_by_name, pico8_value_ref(other));
     must_abort_value(a, write_m_by_name, kind);
@@ -755,7 +752,6 @@ static void test_ie_writer_stops_off_row(void) {
     must_abort_value(NULL, hb_from_gy, pico8_value_fixed(pico8_fixed_from_int(1)));
     must_abort_value(NULL, hb_from_gy, zero_fixed);
     must_abort_value(NULL, hb_from_gy, zero_false);
-    must_abort_value(NULL, hb_from_gy, table);
     must_abort_value(NULL, hb_from_gy, pico8_value_ref(other));
 }
 

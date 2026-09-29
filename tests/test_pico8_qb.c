@@ -738,7 +738,6 @@ static void test_qb_writer_stops_off_row(void) {
     must_abort_value(b, write_v_by_name, pico8_value_bool(1));
     must_abort_value(b, write_v_by_name, pico8_value_string("x"));
     must_abort_value(b, write_v_by_name, ph);
-    must_abort_value(b, write_v_by_name, pico8_value_ref(pico8_ob_table_new()));
     must_abort_value(b, write_v_by_name, pico8_value_ref((void *)pico8_hv()));
     must_abort_value(b, write_v_by_name, pico8_value_ref(a));
 

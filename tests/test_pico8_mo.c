@@ -26,7 +26,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
@@ -233,24 +232,17 @@ static void mv_md(void *e) {
     (void)pico8_mv(e, "md", 0, pico8_value_ref(NULL), pico8_value_ref(NULL), &v);
 }
 
-/* The by-name accessors take entity structs only: an ob table, even one
- * holding the asked field, or a list stops the run instead of being read
- * as an entity. */
+/* The by-name accessors take entity structs only: a list stops the run
+ * instead of being read as an entity. */
 static void test_accessors_refuse_a_table(void) {
     static void (*const fns[])(void *) = {get_ra, set_ra, mv_md};
-    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(2));
-    pico8_ob_table_t *table = pico8_ob_table_new();
     pico8_list_t list;
     size_t i;
 
     pico8_list_init(&list);
-    pico8_ob_table_set_name(table, "ra", pico8_value_ref(&ra));
-    pico8_ob_table_set_name(table, "md", pico8_value_fixed(pico8_fixed_from_int(1)));
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
-        must_abort(fns[i], table);
         must_abort(fns[i], &list);
     }
-    pico8_ob_table_free(table);
 }
 
 int main(void) {

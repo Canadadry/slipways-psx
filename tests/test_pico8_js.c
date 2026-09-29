@@ -32,7 +32,6 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
 #include "../src/pico8_msgbox.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
@@ -1660,7 +1659,6 @@ static void stops_on(void (*write)(void *), void *e, const char *name, const pic
  * the writer's `m_` and `lq`; a construction's `lq` or `h_` that is a REF
  * to neither a list nor a row, and `jb` false. */
 static void test_js_writer_stops_off_row(void) {
-    pico8_value_t table;
     pico8_value_t vec;
     pico8_value_t list;
     pico8_value_t js;
@@ -1668,25 +1666,24 @@ static void test_js_writer_stops_off_row(void) {
 
     start_game();
     assert(ix_buttons(ix) == 4);
-    table = pico8_value_ref(pico8_ob_table_new());
     vec = vec_ref(1, 1);
     list = pico8_value_ref((void *)pico8_hv());
     js = pico8_value_ref(ix[1]);
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),
                                      pico8_value_string("x"), zero_union(PICO8_VALUE_STRING),
-                                     zero_union(PICO8_VALUE_FUNCTION), table, vec, list, js};
+                                     zero_union(PICO8_VALUE_FUNCTION), vec, list, js};
         stops_on(write_off_row, ix[0], "m_", off, sizeof off / sizeof off[0]);
     }
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),
                                      pico8_value_bool(1), zero_union(PICO8_VALUE_BOOL), pico8_value_string("x"),
-                                     zero_union(PICO8_VALUE_STRING), zero_union(PICO8_VALUE_FUNCTION), table, list,
+                                     zero_union(PICO8_VALUE_STRING), zero_union(PICO8_VALUE_FUNCTION), list,
                                      vec, pico8_value_ref(pico8_jb_new(NULL)), js};
         stops_on(write_off_row, ix[0], "lq", off, sizeof off / sizeof off[0]);
     }
     {
-        const pico8_value_t off[] = {table, vec, pico8_value_ref(pico8_jb_new(NULL)), js,
+        const pico8_value_t off[] = {vec, pico8_value_ref(pico8_jb_new(NULL)), js,
                                      pico8_value_ref((void *)&pico8_dr_table[0])};
         stops_on(build_off_row, NULL, "lq", off, sizeof off / sizeof off[0]);
         stops_on(build_off_row, NULL, "h_", off, sizeof off / sizeof off[0]);
@@ -1874,13 +1871,13 @@ static void test_cb_writes_every_e_(void) {
     }
 }
 
-/* `pz` takes a struct or NULL: an ob table stops it. */
+/* `pz` takes a struct or NULL: a list stops it. */
 static void test_pz_closed(void) {
-    pico8_ob_table_t *table = pico8_ob_table_new();
+    pico8_list_t list;
 
+    pico8_list_init(&list);
     start_game();
-    must_abort(pz_on_a_table, table);
-    pico8_ob_table_free(table);
+    must_abort(pz_on_a_table, &list);
     pico8_pz(NULL, NULL, 0);
 }
 

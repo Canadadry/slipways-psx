@@ -571,8 +571,8 @@ static void test_life(void) {
     h = fnv(h, row);
     by = get_ref(c, "by");
     assert(by == get_ref(a, "by") && by->count == 0);
-    pico8_list_add(by, pico8_value_ref(pico8_ob_table_new()));
-    pico8_list_add(by, pico8_value_ref(pico8_ob_table_new()));
+    pico8_list_add(by, pico8_value_ref(pico8_trade_new(NULL)));
+    pico8_list_add(by, pico8_value_ref(pico8_trade_new(NULL)));
     (void)call(a, "hb", 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
@@ -968,7 +968,6 @@ static void test_ga_writer_stops_off_row(void) {
     off_row[n_off++] = pico8_value_string("x");
     off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
     off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
-    off_row[n_off++] = pico8_value_ref(pico8_ob_table_new());
     off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
     off_row[n_off++] = vec_ref(vec_xy(1, 1));
     g_off_row_name = "qy";

@@ -1197,7 +1197,6 @@ static void stops_on(void *mz, const char *name, const pico8_value_t *off, size_
 }
 
 static void test_mz_writer_stops_off_row(void) {
-    pico8_value_t table;
     pico8_value_t list;
     pico8_value_t vec;
     pico8_value_t jo;
@@ -1206,7 +1205,6 @@ static void test_mz_writer_stops_off_row(void) {
 
     world();
     mz = build_mz();
-    table = pico8_value_ref(pico8_ob_table_new());
     list = pico8_value_ref((void *)pico8_hv());
     vec = vec_ref(1, 1);
     jo = pico8_cg("jo")->items[0];
@@ -1219,7 +1217,6 @@ static void test_mz_writer_stops_off_row(void) {
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
                                      zero_union(PICO8_VALUE_FUNCTION),
-                                     table,
                                      list,
                                      jo,
                                      other};
@@ -1233,7 +1230,6 @@ static void test_mz_writer_stops_off_row(void) {
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
                                      zero_union(PICO8_VALUE_FUNCTION),
-                                     table,
                                      list,
                                      vec,
                                      jo,
@@ -1249,7 +1245,6 @@ static void test_mz_writer_stops_off_row(void) {
                                      pico8_value_string("x"),
                                      zero_union(PICO8_VALUE_STRING),
                                      zero_union(PICO8_VALUE_FUNCTION),
-                                     table,
                                      vec,
                                      other};
         stops_on(mz, "p_", off, sizeof off / sizeof off[0]);

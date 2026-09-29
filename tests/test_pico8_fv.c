@@ -816,7 +816,7 @@ static void write_off_row(void *e) {
 
 /* `m_` takes nil or a boolean only, a zeroed union included. */
 static void test_fv_writer_stops_off_row(void) {
-    pico8_value_t off[10];
+    pico8_value_t off[9];
     void *fv[2];
     size_t i;
     int k;
@@ -829,12 +829,11 @@ static void test_fv_writer_stops_off_row(void) {
     off[2] = pico8_value_string("x");
     off[3] = zero_union(PICO8_VALUE_STRING);
     off[4] = zero_union(PICO8_VALUE_FUNCTION);
-    off[5] = pico8_value_ref(pico8_ob_table_new());
-    off[6] = vec_ref(1, 1);
-    off[7] = pico8_value_ref((void *)pico8_hv());
-    off[8] = pico8_value_ref(pico8_g__new(NULL));
+    off[5] = vec_ref(1, 1);
+    off[6] = pico8_value_ref((void *)pico8_hv());
+    off[7] = pico8_value_ref(pico8_g__new(NULL));
     for (k = 0; k < 2; k++) {
-        off[9] = pico8_value_ref(fv[1 - k]);
+        off[8] = pico8_value_ref(fv[1 - k]);
         for (i = 0; i < sizeof off / sizeof off[0]; i++) {
             g_off_row = off[i];
             must_abort(write_off_row, fv[k]);
@@ -878,21 +877,19 @@ static void call_na(void *e) {
     pico8_na(e, pico8_fixed_from_int(1));
 }
 
-/* `g_`'s functions take a struct or NULL as `self`: an ob table stops each
- * of them. */
+/* `g_`'s functions take a struct or NULL as `self`: a list stops each of
+ * them. */
 static void test_g__closed(void) {
     static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
                                           call_dl, call_d_, call_gk, call_na};
-    pico8_ob_table_t *table = pico8_ob_table_new();
-    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
+    pico8_list_t list;
     size_t i;
 
+    pico8_list_init(&list);
     start_title();
     assert(pico8_g__ready());
-    pico8_ob_table_set_name(table, "ra", pico8_value_ref(&ra));
-    pico8_ob_table_set_name(table, "fa", pico8_value_fixed(pico8_fixed_from_int(10)));
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {
-        must_abort(fns[i], table);
+        must_abort(fns[i], &list);
         fns[i](NULL);
     }
 }

@@ -27,7 +27,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -639,7 +638,6 @@ static void test_nl_writer_stops_off_row(void) {
     must_abort_value(a, write_qw_value, pico8_value_string("x"));
     must_abort_value(a, write_qw_value, null_string);
     must_abort_value(a, write_qw_value, null_function);
-    must_abort_value(a, write_qw_value, pico8_value_ref(pico8_ob_table_new()));
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked
