@@ -34,8 +34,7 @@ typedef struct {
 
 /* C has no closures, so the predicate the cart returns becomes this box
  * plus pico8_qz_call. The box is heap-allocated and belongs to the caller,
- * which usually parks it in a field as a PICO8_VALUE_REF and never frees
- * it (see pico8_value.h's borrowed-pointer convention). */
+ * which parks it in a member (js.kq) and never frees it. */
 pico8_qz_box_t *pico8_qz(pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb);
 
 /* True iff p is inside [xl,xr]x[yt,yb], by mid()'s clamp-then-compare

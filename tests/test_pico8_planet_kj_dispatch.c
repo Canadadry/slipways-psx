@@ -13,7 +13,6 @@
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
-#include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 
 /* `dc("kj")`'s `mo:md(ci[o])` special case, which needs both a real `mo`

@@ -41,16 +41,15 @@ Fichiers : `src/pico8_scroll.c`, `src/pico8_input.h` (le schéma de frame, qui n
 
 ## TROU-3 — Les chaînes ne sont pas internées
 
-`pico8_value_equal` compare deux `PICO8_VALUE_STRING` **par pointeur**,
-alors que Lua interne les littéraux : deux chaînes identiques y sont le
-même objet. Comme le parseur `ob()` de ce port alloue une chaîne neuve par
-token, deux chaînes égales ne sont jamais le même pointeur.
+Lua interne les littéraux : deux chaînes identiques y sont le même objet.
+Ce port copie ou alloue ses chaînes (les données générées ont un tableau
+distinct par jeton) : deux chaînes égales n'y sont donc pas le même
+pointeur.
 
 Contourné au cas par cas : `pico8_gu_content_ptrs` compare par contenu
 (les chaînes de `hy.invented`, pour `oj`), et
 plusieurs modules ont leur propre comparaison par contenu (`jo:gg`,
-`db`). Toute nouvelle comparaison de chaînes doit choisir explicitement,
-`pico8_value_equal` ne fera pas ce qu'on croit.
+`db`). Toute nouvelle comparaison de chaînes doit choisir explicitement.
 
 **Hors de TROU-3 : les `qe`.** Ce que `ho()` route à travers `r` (`hp.o`,
 `hp.dm`, donc `kw.qe`) et les besoins `{qe=r[c]}` sont des nombres —
@@ -58,7 +57,7 @@ l'indice d'une ressource —, pas des chaînes : ils se comparent par valeur
 (`==` sur `pico8_fixed_t`, `pico8_qe_equal`). `db()`, qui compare une
 chaîne, passe par le contenu.
 
-Fichiers : `src/pico8_value.c`, `src/pico8_collect.c`.
+Fichiers : `src/pico8_collect.c`.
 
 ## TROU-4 — `oo()` ne retombe pas sur la table quand le constructeur rend faux
 
@@ -68,8 +67,8 @@ ne teste que `fn == NULL` et rend sinon le résultat du constructeur tel
 quel.
 
 Devenu atteignable : `'s'` (le constructeur `spr`) est bien enregistré
-depuis `pico8_pi_init()`, et `pico8_pi_spr_constructor` rend
-`pico8_value_ref(NULL)`, donc une valeur fausse. Aucune spec du cart
+depuis `pico8_pi_init()`, et `pico8_pi_spr_constructor` rendait un
+pointeur nul, donc une valeur fausse. Aucune spec du cart
 n'écrit `s(...)` aujourd'hui — vérifié sur `pico8/lua.lua` — donc le trou
 est dormant, pas actif. Il s'ouvrira le jour où une spec en écrira une.
 

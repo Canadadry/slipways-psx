@@ -7,7 +7,7 @@
  * can point at: the entity structs that begin with a pico8_struct_header_t
  * (pico8_struct.h).
  *
- * A pico8_value_t REF (pico8_value.h) is a bare `void *` and carries no
+ * A REF, an opaque `void *`, carries no
  * type of its own. The tag makes "what is this REF really" a question with
  * an answer, and with an explicit "I don't know" for anything untagged.
  *

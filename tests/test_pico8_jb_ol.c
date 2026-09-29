@@ -18,7 +18,6 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
-#include "../src/pico8_value.h"
 
 #define DR_FIRST_ENTRY_HASH 0x8B2796B5u
 #define BARE_STRINGS_HASH 0x2B14E741u
