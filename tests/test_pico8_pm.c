@@ -67,17 +67,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -275,7 +275,7 @@ static int is_ga(const void *e) {
 /* The `ga` that `pm:pq` spawned: registered in `hv` just before the
  * protostar, at `ra + ng`; its `qy` and `mo.ma` as `ga:pq` left them. */
 static uint32_t fold_spawned(uint32_t h, void *e) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int at = rank_in(hv, e);
     const pico8_ga_t *g;
     const pico8_pm_t *pm;
@@ -287,8 +287,8 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     pm = e;
     ra = pm->hj.qh.jo.ra;
     ng = pm->ng;
-    assert(is_ga(hv->items[at - 1].as.ref));
-    g = hv->items[at - 1].as.ref;
+    assert(is_ga(hv->items[at - 1]));
+    g = hv->items[at - 1];
     gra = g->jo.ra;
     assert(gra != NULL && ng != NULL);
     if (ra != NULL) {

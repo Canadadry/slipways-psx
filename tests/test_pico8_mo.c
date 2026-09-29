@@ -36,10 +36,10 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return 1;
         }
     }

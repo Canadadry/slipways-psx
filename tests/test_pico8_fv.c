@@ -64,17 +64,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -255,14 +255,14 @@ static int is_help(pico8_struct_header_t *e) {
 }
 
 static pico8_fv_t *the_help(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     pico8_struct_header_t *found = NULL;
     int i;
 
     for (i = 0; i < hv->count; i++) {
-        if (is_help(hv->items[i].as.ref)) {
+        if (is_help(hv->items[i])) {
             assert(found == NULL);
-            found = hv->items[i].as.ref;
+            found = hv->items[i];
         }
     }
     assert(found != NULL && found->cls == pico8_fv_struct_class());
@@ -291,7 +291,7 @@ static const pico8_js_t *as_js(const void *e) {
  * `lt` registered it; `ok.le` emptied. */
 static void test_built(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *hv;
+    const pico8_ptrs_t *hv;
     pico8_fv_t *fv;
     const pico8_g__t *g_;
     const pico8_emitter_t *em;
@@ -372,7 +372,7 @@ static void test_built(void) {
     h = fnv(h, (uint32_t)hv->count);
     assert(rank >= 4);
     for (k = 0; k < 4; k++) {
-        const pico8_js_t *b = as_js(hv->items[rank - 4 + k].as.ref);
+        const pico8_js_t *b = as_js(hv->items[rank - 4 + k]);
         pico8_vec_t qf;
         assert(b->fa == pico8_fixed_from_int(11));
         assert(b->qf != NULL);
@@ -393,7 +393,7 @@ static void test_built(void) {
     assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
 
     for (k = 0; k < 4; k++) {
-        const pico8_js_t *row = hv->items[rank - 4 + k].as.ref;
+        const pico8_js_t *row = hv->items[rank - 4 + k];
         assert(row->has_my);
         assert(row->my == pico8_eu_field_value());
     }

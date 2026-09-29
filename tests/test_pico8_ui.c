@@ -92,17 +92,17 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -228,12 +228,12 @@ static int placed(void *e) {
 
 /* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
 static void *nearest_to(void *qu) {
-    const pico8_list_t *jos = pico8_cg("jo");
+    const pico8_ptrs_t *jos = pico8_cg("jo");
     void *re = NULL;
     int i;
 
     for (i = 0; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (e != qu && placed(e) && (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu)))) {
             re = e;
         }
@@ -258,13 +258,13 @@ static void mouse_at(int x, int y, int buttons) {
 }
 
 static void *the_bg(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     void *bg = NULL;
     int i;
     for (i = 0; i < hv->count; i++) {
-        if (is_of(hv->items[i].as.ref, pico8_bg_struct_class())) {
+        if (is_of(hv->items[i], pico8_bg_struct_class())) {
             assert(bg == NULL);
-            bg = hv->items[i].as.ref;
+            bg = hv->items[i];
         }
     }
     assert(bg != NULL);
@@ -368,18 +368,18 @@ static void test_fresh(void) {
 
 /* The first planet of `cg.jo` whose screen position is well inside. */
 static pico8_jo_t *planet_on_screen(int *sx, int *sy) {
-    const pico8_list_t *jo = pico8_cg("jo");
+    const pico8_ptrs_t *jo = pico8_cg("jo");
     pico8_vec_t cam = vec_at(mo_qb()->ra);
     int i;
 
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        pico8_vec_t at = vec_at(as_jo(jo->items[i].as.ref)->ra);
+        pico8_vec_t at = vec_at(as_jo(jo->items[i])->ra);
         int x = pico8_fixed_flr_int(pico8_fixed_sub(at.x, cam.x));
         int y = pico8_fixed_flr_int(pico8_fixed_sub(at.y, cam.y));
         if (x >= 16 && x <= 112 && y >= 16 && y <= 112) {
             *sx = x;
             *sy = y;
-            return jo->items[i].as.ref;
+            return jo->items[i];
         }
     }
     assert(0 && "no planet on screen");
@@ -514,7 +514,7 @@ static int on_screen(void *e) {
  * other, `ey` gets that planet and `lheld` goes. */
 static void test_left(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     pico8_ui_t *ok;
     void *held;
     void *origin = NULL;
@@ -527,7 +527,7 @@ static void test_left(void) {
     ok = start_game();
     jos = pico8_cg("jo");
     for (i = 0; i < jos->count && other == NULL; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (on_screen(e) && on_screen(nearest_to(e))) {
             origin = e;
             other = nearest_to(e);
@@ -785,7 +785,7 @@ static void test_ui_held_stops_off_row(void) {
     pico8_lt(&g_giver.ke);
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
-    left[2] = pico8_cg("jo")->items[0].as.ref;
+    left[2] = pico8_cg("jo")->items[0];
     left[3] = the_bg();
     left[4] = pico8_fv_new();
     left[5] = pico8_js_new(NULL);
@@ -953,7 +953,7 @@ static void test_ke_me_by_name(void) {
     static const int identity[24] = {1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 2, 3, 3, 3, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0};
     char s[] = "ll";
     void *e[24];
-    const pico8_list_t *hv;
+    const pico8_ptrs_t *hv;
     const char *me;
     uint32_t h = 2166136261u;
     size_t i;
@@ -965,8 +965,7 @@ static void test_ke_me_by_name(void) {
     /* The kind word is constant by the struct's shape (`me` is a string or
      * absent), kept so that KE_ME_HASH still proves the typed reads. */
     for (i = 0; i < (size_t)hv->count; i++) {
-        assert(hv->items[i].kind == PICO8_VALUE_REF);
-        me = ke_of(hv->items[i].as.ref)->me;
+        me = ke_of(hv->items[i])->me;
         if (me != NULL) {
             h = fold_string(fnv(fnv(h, 1u), (uint32_t)PICO8_VALUE_STRING), me);
         } else {
@@ -1039,14 +1038,13 @@ static uint32_t fold_t(uint32_t h, void *e) {
 }
 
 static uint32_t fold_hv_t(uint32_t h) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int i;
 
     assert(hv != NULL);
     h = fnv(h, (uint32_t)hv->count);
     for (i = 0; i < hv->count; i++) {
-        assert(hv->items[i].kind == PICO8_VALUE_REF);
-        h = fold_t(h, hv->items[i].as.ref);
+        h = fold_t(h, hv->items[i]);
     }
     return h;
 }

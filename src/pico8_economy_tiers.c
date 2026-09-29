@@ -32,16 +32,16 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_list_t *list = pico8_cg(tag);
-    pico8_list_iter_t it;
-    pico8_value_t e;
+    const pico8_ptrs_t *list = pico8_cg(tag);
+    pico8_ptrs_iter_t it;
+    void *e;
     if (list == NULL) {
         return;
     }
-    it = pico8_list_all(list);
-    while (pico8_list_iter_next(&it, &e)) {
-        if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-            fn((pico8_struct_header_t *)e.as.ref, ctx);
+    it = pico8_ptrs_all(list);
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        if (e != NULL) {
+            fn(e, ctx);
         }
     }
 }

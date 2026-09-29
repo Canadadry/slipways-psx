@@ -51,10 +51,10 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return 1;
         }
     }
@@ -303,11 +303,11 @@ static void test_right_drag_moves_the_camera(void) {
 }
 
 static int ga_alive(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int i;
 
     for (i = 0; i < hv->count; i++) {
-        const void *e = hv->items[i].as.ref;
+        const void *e = hv->items[i];
         if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT &&
             ((const pico8_struct_header_t *)e)->cls == pico8_ga_struct_class()) {
             return 1;

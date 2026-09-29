@@ -172,7 +172,7 @@ void pico8_bg_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_bg_t *self) {
 }
 
 pico8_down_t pico8_bg_ldown(pico8_bg_t *self) {
-    const pico8_list_t *g_tag;
+    const pico8_ptrs_t *g_tag;
     int count;
     pico8_struct_header_t *made;
     pico8_down_t out;

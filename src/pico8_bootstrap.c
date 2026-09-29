@@ -5,7 +5,6 @@
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_scroll.h"
 #include "pico8_type_tag.h"
@@ -52,13 +51,13 @@ void pico8_bootstrap_shutdown(void) {
 }
 
 void pico8_dg(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int i;
 
     /* TROU-5 */
     for (i = 0; i < hv->count; i++) {
-        pico8_struct_header_t *qc = hv->items[i].as.ref;
-        pico8_ke_t *ke = hv->items[i].as.ref;
+        pico8_struct_header_t *qc = hv->items[i];
+        pico8_ke_t *ke = hv->items[i];
 
         assert((qc == NULL || pico8_type_tag_of(qc) == PICO8_TYPE_TAG_STRUCT) &&
                "hv holds structs only; no class instance descends from ke any more");

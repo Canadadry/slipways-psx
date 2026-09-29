@@ -57,17 +57,17 @@ typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
 
-static int pico8_bv_jc_predicate(pico8_value_t e, void *ctx_ptr) {
+static int pico8_bv_jc_predicate(void *e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
     const pico8_jc_t *sw;
     pico8_vec_t qu_p;
     pico8_vec_t re_p;
 
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
+    if (e == NULL) {
         return 0;
     }
-    assert(((const pico8_struct_header_t *)e.as.ref)->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
-    sw = e.as.ref;
+    assert(((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
+    sw = e;
 
     qu_p = pico8_jc_end_p(sw->qu);
     re_p = pico8_jc_end_p(sw->re);
@@ -181,17 +181,17 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         et = c;
     } else {
         pico8_bv_ctx_t ctx;
-        pico8_list_t filtered;
+        pico8_ptrs_t filtered;
         int have_first = 0;
         pico8_value_t first = pico8_value_ref(NULL);
 
         ctx.self_p = p_vec;
-        filtered = pico8_jp(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
+        filtered = pico8_jp_ptrs(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
-            first = filtered.items[0];
+            first = pico8_value_ref(filtered.items[0]);
             have_first = 1;
         }
-        pico8_list_free(&filtered);
+        pico8_ptrs_free(&filtered);
 
         if (have_first && pico8_probe_truthy(first)) {
             et = first;

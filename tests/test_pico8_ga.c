@@ -68,17 +68,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -218,11 +218,11 @@ static pico8_ga_t *as_ga(void *e) {
 
 /* The first burst of `hv` at rank `from` or later, NULL when none. */
 static void *ga_from(int from) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int i;
     for (i = from; i < hv->count; i++) {
-        if (is_ga(hv->items[i].as.ref)) {
-            return hv->items[i].as.ref;
+        if (is_ga(hv->items[i])) {
+            return hv->items[i];
         }
     }
     return NULL;
@@ -276,11 +276,11 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     keys.ra = vec_ref(near_mo(x, y)).as.ref;
     pm = pico8_pm_new(&keys);
     at = rank_in(pico8_hv(), pm);
-    assert(at >= 1 && is_ga(pico8_hv()->items[at - 1].as.ref));
+    assert(at >= 1 && is_ga(pico8_hv()->items[at - 1]));
     if (protostar != NULL) {
         *protostar = pm;
     }
-    return pico8_hv()->items[at - 1].as.ref;
+    return pico8_hv()->items[at - 1];
 }
 
 /* A burst as its road and `ga:pq`, `jo:pq`, `ke:pq` left it: its scalars,

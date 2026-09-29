@@ -8,7 +8,6 @@
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
@@ -109,7 +108,7 @@ static void *pico8_ui_struct_new(void) {
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_list_init(&self->ic_own.layers[i]);
+        pico8_ptrs_init(&self->ic_own.layers[i]);
     }
     self->o_ = NULL;
     self->gj = NULL;
@@ -269,7 +268,7 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
 void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     const pico8_nf_t *je;
     const pico8_vec_t *je_ra;
-    const pico8_list_t *hd_bucket;
+    const pico8_ptrs_t *hd_bucket;
     int i;
     int poke_val;
 
@@ -278,8 +277,8 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_list_free(&self->ic_own.layers[i]);
-        pico8_list_init(&self->ic_own.layers[i]);
+        pico8_ptrs_free(&self->ic_own.layers[i]);
+        pico8_ptrs_init(&self->ic_own.layers[i]);
     }
     self->ic = &self->ic_own;
     self->o_ = NULL;
@@ -290,7 +289,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     hd_bucket = pico8_cv("hd");
     if (hd_bucket != NULL) {
         for (i = 0; i < hd_bucket->count; i++) {
-            pico8_struct_header_t *e = hd_bucket->items[i].as.ref;
+            pico8_struct_header_t *e = hd_bucket->items[i];
 
             if (e->cls->hd != NULL && e->cls->hd(e, self->qa, je_ra)) {
                 pico8_fixed_t fa_val;
@@ -299,7 +298,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
 
                     assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
                            "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");
-                    pico8_list_add(&self->ic->layers[fa], pico8_value_ref(e));
+                    pico8_ptrs_add(&self->ic->layers[fa], e);
                 }
                 self->o_ = e;
             }
@@ -413,11 +412,11 @@ int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec
     }
 
     for (mf = PICO8_UI_IC_LAYERS - 1; mf >= 0; mf--) {
-        const pico8_list_t *bucket = &self->ic->layers[mf];
+        const pico8_ptrs_t *bucket = &self->ic->layers[mf];
         int i;
 
         for (i = 0; i < bucket->count; i++) {
-            pico8_struct_header_t *h = bucket->items[i].as.ref;
+            pico8_struct_header_t *h = bucket->items[i];
             pico8_down_t kn = {0, NULL};
 
             switch (rm) {

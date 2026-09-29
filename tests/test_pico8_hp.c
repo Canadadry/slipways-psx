@@ -74,10 +74,10 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
@@ -357,7 +357,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -368,9 +368,9 @@ static void built_world(void) {
     start_game();
     jos = pico8_cg("jo");
     assert(jos != NULL && jos->count > 1);
-    qu = jos->items[0].as.ref;
+    qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
             re = e;
         }
@@ -716,7 +716,7 @@ static void test_install(void) {
         h = fold_string_member(h, cw->cw);
         h = fnv(h, (uint32_t)(pico8_hv()->count - before));
         h = fold_planet(h, a);
-        h = fold_planet(h, pico8_hv()->items[pico8_hv()->count - 1].as.ref);
+        h = fold_planet(h, pico8_hv()->items[pico8_hv()->count - 1]);
     }
 
     a = new_planet("p906", 110, 20);
@@ -730,14 +730,14 @@ static void test_install(void) {
  * once a frame is played and drawn. */
 static uint32_t fold_world(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *jo;
+    const pico8_ptrs_t *jo;
     int i;
 
     pico8__update60();
     pico8__draw();
     jo = pico8_cg("jo");
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i].as.ref)->hn));
+        h = fnv(h, (uint32_t)gb_rank(as_jo(jo->items[i])->hn));
     }
     return fnv(h, screen_hash());
 }
@@ -754,10 +754,10 @@ static void test_harvested_world(void) {
     int i;
 
     start_game();
-    p = pico8_cg("jo")->items[0].as.ref;
+    p = pico8_cg("jo")->items[0];
     pico8_jo_hh(p);
     pico8_jo_hu(p, project_with(with_cw, 1));
-    last = pico8_hv()->items[pico8_hv()->count - 1].as.ref;
+    last = pico8_hv()->items[pico8_hv()->count - 1];
     assert(pico8_type_tag_of(last) == PICO8_TYPE_TAG_STRUCT && last->cls == pico8_ga_struct_class());
     for (i = 0; i < 60; i++) {
         pico8_dg();
@@ -921,11 +921,11 @@ static void lq_on_other(void *e) {
 }
 
 static void lz_on_other(void *e) {
-    pico8_jo_lz(pico8_cg("jo")->items[0].as.ref, e);
+    pico8_jo_lz(pico8_cg("jo")->items[0], e);
 }
 
 static void hu_on_other(void *e) {
-    pico8_jo_hu(pico8_cg("jo")->items[0].as.ref, e);
+    pico8_jo_hu(pico8_cg("jo")->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its

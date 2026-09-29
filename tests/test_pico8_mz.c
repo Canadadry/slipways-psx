@@ -75,17 +75,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -212,7 +212,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * of the galaxy left unknown, then left to settle. `jc:hq` reads the hovered planet off
  * `ok.o_`. */
 static void world(void) {
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -223,9 +223,9 @@ static void world(void) {
     start_game();
     jos = pico8_cg("jo");
     assert(jos != NULL && jos->count > 1);
-    qu = jos->items[0].as.ref;
+    qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
             re = e;
         }
@@ -283,10 +283,10 @@ static void until_t(const pico8_mz_t *mz, int t) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_list_t *list = pico8_cg("jo");
+    const pico8_ptrs_t *list = pico8_cg("jo");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        pico8_jo_t *jo = as_jo(list->items[i].as.ref);
+        pico8_jo_t *jo = as_jo(list->items[i]);
         if (is_me(&jo->ke, me)) {
             return jo;
         }
@@ -345,7 +345,7 @@ static void check_fresh_mz(void *e) {
 
 static void test_construction(void) {
     pico8_down_t made;
-    const pico8_list_t *mzs;
+    const pico8_ptrs_t *mzs;
     int before;
 
     start_game();
@@ -366,14 +366,14 @@ static void test_construction(void) {
 }
 
 static uint32_t fold_ox(uint32_t h, const pico8_mz_t *mz) {
-    const pico8_list_t *ox;
+    const pico8_ptrs_t *ox;
     int i;
 
     assert(mz->ox != NULL);
     ox = mz->ox;
     h = fnv(h, (uint32_t)ox->count);
     for (i = 0; i < ox->count; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), ox->items[i].as.ref));
+        h = fnv(h, (uint32_t)rank_in(pico8_hv(), ox->items[i]));
     }
     return h;
 }
@@ -386,13 +386,13 @@ static void test_ox(void) {
     pico8_jo_t *unlit = NULL;
     pico8_g__t *probe;
     pico8_qh_t *lit;
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     int i;
 
     world();
     jos = pico8_cg("jo");
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
-        pico8_jo_t *jo = as_jo(jos->items[i].as.ref);
+        pico8_jo_t *jo = as_jo(jos->items[i]);
         if (!jo->has_fx) {
             unlit = jo;
         }
@@ -460,13 +460,13 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
 /* A quarter of the slipway's length past its `qu` end: near that
  * colonized anchor, off the slipway's segment. */
 static pico8_vec_t near_anchor(void) {
-    const pico8_list_t *jcs = pico8_cg("jc");
+    const pico8_ptrs_t *jcs = pico8_cg("jc");
     const pico8_jc_t *jc;
     pico8_vec_t qu;
     pico8_vec_t re;
 
     assert(jcs != NULL && jcs->count == 1);
-    jc = as_jc(jcs->items[0].as.ref);
+    jc = as_jc(jcs->items[0]);
     qu = pos_of(jc->qu);
     re = pos_of(jc->re);
     return pico8_vec_mul(pico8_vec_add(qu, pico8_vec_div(pico8_vec_sub(qu, re), pico8_fixed_from_int(4))),
@@ -476,14 +476,14 @@ static pico8_vec_t near_anchor(void) {
 static void test_hq(void) {
     uint32_t h = 2166136261u;
     pico8_mz_t *mz;
-    const pico8_list_t *jcs;
+    const pico8_ptrs_t *jcs;
     pico8_vec_t mid;
 
     world();
     mz = build_mz();
     jcs = pico8_cg("jc");
     assert(jcs != NULL && jcs->count > 0);
-    mid = slipway_mid(as_jc(jcs->items[0].as.ref));
+    mid = slipway_mid(as_jc(jcs->items[0]));
     hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
     h = fold_hq(h, mz, ET_JC);
     hq(mz, vec_ref(-640, -640), vec_ref(64, 64));
@@ -567,11 +567,11 @@ static void test_ey(void) {
 }
 
 static int unknown_count(void) {
-    const pico8_list_t *jo = pico8_cg("jo");
+    const pico8_ptrs_t *jo = pico8_cg("jo");
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        if (is_me(&as_jo(jo->items[i].as.ref)->ke, "unknown")) {
+        if (is_me(&as_jo(jo->items[i])->ke, "unknown")) {
             n++;
         }
     }
@@ -729,7 +729,7 @@ static void test_jj_wrapper(void) {
     void *wrapper;
     pico8_mz_t *mz;
     pico8_mz_t *other;
-    const pico8_list_t *jcs;
+    const pico8_ptrs_t *jcs;
     pico8_vec_t mid;
 
     world();
@@ -746,7 +746,7 @@ static void test_jj_wrapper(void) {
 
     jcs = pico8_cg("jc");
     assert(jcs != NULL && jcs->count > 0);
-    mid = slipway_mid(as_jc(jcs->items[0].as.ref));
+    mid = slipway_mid(as_jc(jcs->items[0]));
     hq(mz, vec_ref_fixed(mid), vec_ref(64, 64));
     assert(et_kind(mz) == ET_JC);
     check_fo_is(mz);

@@ -68,17 +68,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -279,13 +279,13 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
 /* After `eu`: the 90 planets `bw` built. */
 static void test_galaxy(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *jo;
+    const pico8_ptrs_t *jo;
     int i;
 
     start_game();
     jo = pico8_cg("jo");
     for (i = 0; i < jo->count; i++) {
-        h = fold_planet(h, jo->items[i].as.ref);
+        h = fold_planet(h, jo->items[i]);
     }
     check_int("galaxy planets", jo->count, GALAXY_PLANETS);
     check("galaxy", h, GALAXY_HASH);
@@ -376,7 +376,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const pico8_entity_kind_t *kind) {
-    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_ptrs_t *hb = pico8_cv("hb");
     const pico8_qb_t *mo = pico8_mo_qb();
     const pico8_vec_t *mo_ra;
     int i;
@@ -384,7 +384,7 @@ static void *bought(const pico8_entity_kind_t *kind) {
     assert(mo != NULL && mo->ra != NULL);
     mo_ra = mo->ra;
     for (i = 0; hb != NULL && i < hb->count; i++) {
-        void *icon = hb->items[i].as.ref;
+        void *icon = hb->items[i];
         if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
             pico8_down_t made = cls_of(icon)->ldown(icon, NULL, NULL);
             pico8_vec_t middle = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
@@ -413,11 +413,11 @@ static pico8_hp_t *cw_project(const char *cw) {
 /* A generated planet turned by `jo:hu` into the daughter `cw` names: the
  * newest entity of `hv`. */
 static void *turned(int planet, const char *cw) {
-    void *p = pico8_cg("jo")->items[planet].as.ref;
+    void *p = pico8_cg("jo")->items[planet];
 
     pico8_jo_hh(p);
     pico8_jo_hu(p, cw_project(cw));
-    return pico8_hv()->items[pico8_hv()->count - 1].as.ref;
+    return pico8_hv()->items[pico8_hv()->count - 1];
 }
 
 /* Each daughter by the road a game takes to it: the seven of the shop
@@ -560,14 +560,14 @@ static int is_a_jo_struct(const void *e) {
 /* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
  * jo's 11 dispatchers, and its class installs none of them, nor a `pq`. */
 static void test_jo_is_a_struct(void) {
-    const pico8_list_t *jo;
+    const pico8_ptrs_t *jo;
     void *a;
     int j;
 
     start_game();
     jo = pico8_cg("jo");
     for (j = 0; j < jo->count; j++) {
-        assert(is_a_jo_struct(jo->items[j].as.ref));
+        assert(is_a_jo_struct(jo->items[j]));
     }
     assert_jo_members(pico8_jo_struct_class());
     assert(pico8_jo_ready());
@@ -585,8 +585,8 @@ static void test_jo_is_a_struct(void) {
     (void)bought(pico8_qh_kind());
     jo = pico8_cg("qh");
     assert(jo != NULL && jo->count == 1);
-    assert(pico8_type_tag_of(jo->items[0].as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)jo->items[0].as.ref)->cls == pico8_qh_struct_class());
+    assert(pico8_type_tag_of(jo->items[0]) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)jo->items[0])->cls == pico8_qh_struct_class());
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

@@ -58,10 +58,10 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
@@ -228,9 +228,9 @@ static pico8_trade_t *route(pico8_list_t *lp, pico8_list_t *rl, int has_qe, int 
 }
 
 static void *planet(int i) {
-    const pico8_list_t *jo = pico8_cg("jo");
-    assert(jo != NULL && i < jo->count && jo->items[i].kind == PICO8_VALUE_REF);
-    return jo->items[i].as.ref;
+    const pico8_ptrs_t *jo = pico8_cg("jo");
+    assert(jo != NULL && i < jo->count);
+    return jo->items[i];
 }
 
 /* A generated planet colonized by EXPORTER, its nearest one by a bare
@@ -238,7 +238,7 @@ static void *planet(int i) {
  * first route: the first element of `by` on the first planet of `cg.jo`
  * that exports. */
 static pico8_trade_t *game_route(void) {
-    const pico8_list_t *jo;
+    const pico8_ptrs_t *jo;
     void *qu;
     void *re = NULL;
     int i;
@@ -246,9 +246,9 @@ static pico8_trade_t *game_route(void) {
     start_game();
     jo = pico8_cg("jo");
     assert(jo != NULL && jo->count > 3);
-    qu = jo->items[0].as.ref;
+    qu = jo->items[0];
     for (i = 1; i < jo->count; i++) {
-        void *e = jo->items[i].as.ref;
+        void *e = jo->items[i];
         if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
             re = e;
         }
@@ -260,7 +260,7 @@ static pico8_trade_t *game_route(void) {
         pico8_dg();
     }
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_list_t *by = as_jo(jo->items[i].as.ref)->by;
+        const pico8_list_t *by = as_jo(jo->items[i])->by;
         if (by != NULL && by->count > 0) {
             return as_trade(by->items[0].as.ref);
         }

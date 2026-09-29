@@ -109,14 +109,14 @@ void pico8_score_panel_set_init(pico8_js_fn fn) {
     g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
 }
 
-static int pico8_eg_gg_pred(pico8_value_t e, void *ctx) {
+static int pico8_eg_gg_pred(void *e, void *ctx) {
     pico8_value_t gg;
     (void)ctx;
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
+    if (e == NULL) {
         return 0;
     }
-    assert(pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT && "cg(\"jo\") only ever holds entities");
-    gg = pico8_jo_gg((const pico8_jo_t *)e.as.ref);
+    assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && "cg(\"jo\") only ever holds entities");
+    gg = pico8_jo_gg(e);
     if (gg.kind == PICO8_VALUE_BOOL && gg.as.boolean == 0) {
         return 0;
     }
@@ -128,13 +128,13 @@ static int pico8_eg_gg_pred(pico8_value_t e, void *ctx) {
 
 void pico8_eg(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
-    pico8_list_t filtered;
+    pico8_ptrs_t filtered;
     pico8_fixed_t ps;
     int i;
 
-    filtered = pico8_jp(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
+    filtered = pico8_jp_ptrs(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
     ps = pico8_fixed_div(pico8_fixed_from_int(filtered.count), pico8_fixed_from_int(2));
-    pico8_list_free(&filtered);
+    pico8_ptrs_free(&filtered);
 
     if (mem == NULL) {
         return;

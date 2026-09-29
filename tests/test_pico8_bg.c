@@ -79,17 +79,17 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return 1;
         }
     }
     return 0;
 }
 
-static int list_count(const pico8_list_t *list) {
+static int list_count(const pico8_ptrs_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
@@ -142,13 +142,13 @@ static void start_game(void) {
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
 static pico8_bg_t *find_bg(int *count) {
-    const pico8_list_t *hd = pico8_cv("hd");
+    const pico8_ptrs_t *hd = pico8_cv("hd");
     pico8_bg_t *found = NULL;
     int i;
 
     *count = 0;
     for (i = 0; hd != NULL && i < hd->count; i++) {
-        const pico8_struct_header_t *e = hd->items[i].as.ref;
+        const pico8_struct_header_t *e = hd->items[i];
         pico8_bg_t *bg;
 
         if (e->cls != pico8_bg_struct_class()) {
@@ -390,10 +390,10 @@ static void test_hover(void) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_list_t *list = pico8_cg("jo");
+    const pico8_ptrs_t *list = pico8_cg("jo");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        pico8_struct_header_t *e = list->items[i].as.ref;
+        pico8_struct_header_t *e = list->items[i];
 
         assert(pico8_jo_is_family(e));
         if (is_me(&((const pico8_jo_t *)e)->ke, me)) {
@@ -413,7 +413,7 @@ static void test_gv(void) {
     pico8_down_t r;
 
     start_game();
-    pico8_jo_hu(pico8_cg("jo")->items[0].as.ref, pico8_hp_new(NULL));
+    pico8_jo_hu(pico8_cg("jo")->items[0], pico8_hp_new(NULL));
     bg = the_bg();
     ly = first_jo_with_me("ly");
     assert(ly != NULL);

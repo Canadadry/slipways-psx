@@ -93,17 +93,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -332,16 +332,6 @@ static const pico8_ptrs_t *ok_le(void) {
     return pico8_ok() == NULL ? NULL : pico8_ok()->le;
 }
 
-static int rank_in_le(const pico8_ptrs_t *le, const void *e) {
-    int i;
-    for (i = 0; le != NULL && i < le->count; i++) {
-        if (le->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 /* A button as `js(b)` and `js:pq` left it: every construction key, what
  * `pq` built, the methods and where `lt` registered it. */
 static uint32_t fold_button(uint32_t h, const void *e) {
@@ -393,7 +383,7 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)listed(pico8_cv(bm[i]), b));
     }
-    return fnv(h, (uint32_t)rank_in_le(ok_le(), b));
+    return fnv(h, (uint32_t)rank_in(ok_le(), b));
 }
 
 static uint32_t fold_le(uint32_t h, const char *label) {
@@ -449,11 +439,11 @@ static void start_game(void) {
 /* The `i`th (from 1) of the title's four buttons, which `pz` built from
  * `bo`'s rows in order: the entities of `cv.hd` with an `mb`. */
 static void *title_button(int i) {
-    const pico8_list_t *hd = pico8_cv("hd");
+    const pico8_ptrs_t *hd = pico8_cv("hd");
     int k;
 
     for (k = 0; hd != NULL && k < hd->count; k++) {
-        void *e = hd->items[k].as.ref;
+        void *e = hd->items[k];
         if (is_js(e) && --i == 0) {
             return e;
         }
@@ -485,7 +475,7 @@ static pico8_hp_t *project(int k) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle; returns the colony. */
 static void *built_world(void) {
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -496,9 +486,9 @@ static void *built_world(void) {
     start_game();
     jos = pico8_cg("jo");
     assert(jos != NULL && jos->count > 1);
-    qu = jos->items[0].as.ref;
+    qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
             re = e;
         }
@@ -533,7 +523,7 @@ static void known_panel(void) {
     void *p;
 
     start_game();
-    p = pico8_cg("jo")->items[0].as.ref;
+    p = pico8_cg("jo")->items[0];
     pico8_jo_hh(p);
     (void)pico8_jo_ldown(p);
     one_frame();
@@ -582,11 +572,11 @@ static pico8_value_t nil(void) {
 /* The buttons `eu`'s `nv(ix,js)` built: the only `fa`=11 entities with an
  * `lq` in `cv.hd` right after `eu`. */
 static int ix_buttons(void *out[4]) {
-    const pico8_list_t *hd = pico8_cv("hd");
+    const pico8_ptrs_t *hd = pico8_cv("hd");
     int n = 0;
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
-        void *e = hd->items[i].as.ref;
+        void *e = hd->items[i];
         if (is_js(e) && js_of(e)->fa == pico8_fixed_from_int(11) && js_of(e)->lq != NULL) {
             assert(n < 4);
             out[n++] = e;
@@ -599,7 +589,7 @@ static int ix_buttons(void *out[4]) {
  * entities of `cv.hd` with an `mb`, which only a `js` has. */
 static void test_title(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *hd;
+    const pico8_ptrs_t *hd;
     void *first = NULL;
     int n = 0;
     int i;
@@ -607,7 +597,7 @@ static void test_title(void) {
     start_title();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
-        void *e = hd->items[i].as.ref;
+        void *e = hd->items[i];
         if (is_js(e)) {
             if (first == NULL) {
                 first = e;
@@ -629,7 +619,7 @@ static void test_eu(void) {
     start_game();
     check_int("eu buttons", ix_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
-        assert(rank_in_le(ok_le(), ix[i]) < 0);
+        assert(!listed(ok_le(), ix[i]));
         assert((js_of(ix[i])->hb != NULL) == (i == 1));
         h = fold_button(h, ix[i]);
     }
@@ -706,14 +696,14 @@ static void test_gh(void) {
  * with an `lq`. */
 static void test_pj(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *hd;
+    const pico8_ptrs_t *hd;
     int n = 0;
     int i;
 
     game_end();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
-        void *e = hd->items[i].as.ref;
+        void *e = hd->items[i];
         if (is_js(e) && js_of(e)->fa == pico8_fixed_from_int(15) && js_of(e)->lq != NULL) {
             n++;
             h = fold_button(h, e);
@@ -730,7 +720,7 @@ static void test_dk(void) {
 
     for (i = 1; i <= 4; i++) {
         void *nj;
-        const pico8_list_t *jo;
+        const pico8_ptrs_t *jo;
         int j;
 
         start_title();
@@ -744,7 +734,7 @@ static void test_dk(void) {
         printf("[dk] bo[%d]: %d planet(s)\n", i, jo->count);
         h = fnv(h, (uint32_t)jo->count);
         for (j = 0; j < jo->count; j++) {
-            h = fold_vec(h, as_jo(jo->items[j].as.ref)->ra);
+            h = fold_vec(h, as_jo(jo->items[j])->ra);
         }
     }
     check("dk", h, DK_HASH);
@@ -1035,11 +1025,11 @@ static void test_nil_keys(void) {
 
 /* How many `js` structs hv holds. */
 static int all_buttons_are_structs(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {
-        n += is_js(hv->items[i].as.ref);
+        n += is_js(hv->items[i]);
     }
     return n;
 }
@@ -1390,7 +1380,7 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
 static uint32_t members_title_and_game(void) {
     const pico8_js_keys_t empty = {0};
     uint32_t h = 2166136261u;
-    const pico8_list_t *hd;
+    const pico8_ptrs_t *hd;
     void *title[4];
     void *ix[4];
     void *fresh[3];
@@ -1404,7 +1394,7 @@ static uint32_t members_title_and_game(void) {
     start_title();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
-        void *e = hd->items[i].as.ref;
+        void *e = hd->items[i];
         if (is_js(e)) {
             assert(n < 4);
             title[n++] = e;
@@ -1553,14 +1543,14 @@ static uint32_t members_gh(void) {
 
 static uint32_t members_pj(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *hd;
+    const pico8_ptrs_t *hd;
     int n = 0;
     int i;
 
     game_end();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
-        void *e = hd->items[i].as.ref;
+        void *e = hd->items[i];
         if (is_js(e) && js_of(e)->fa == pico8_fixed_from_int(15) && js_of(e)->lq != NULL) {
             n++;
             h = fold_js_members(h, e);

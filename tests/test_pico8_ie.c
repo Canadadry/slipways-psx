@@ -69,17 +69,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -152,11 +152,11 @@ static int is_icon(const void *e) {
 }
 
 static int icons(void *out[], int cap) {
-    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_ptrs_t *hb = pico8_cv("hb");
     int n = 0;
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
-        void *e = hb->items[i].as.ref;
+        void *e = hb->items[i];
         if (is_icon(e)) {
             assert(n < cap);
             out[n++] = e;

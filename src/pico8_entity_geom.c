@@ -93,30 +93,29 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     return pico8_vec_add(p, pico8_vec_qm(clamped, pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00003333, 0.2))));
 }
 
-pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_list_t *j_, pico8_value_t *out_nearest) {
+pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_value_t *out_nearest) {
     pico8_fixed_t mk = pico8_fixed_from_int(32767);
-    pico8_list_iter_t it;
-    pico8_value_t e;
+    pico8_ptrs_iter_t it;
+    void *e;
 
     *out_nearest = pico8_value_ref(NULL);
     if (j_ == NULL) {
         return mk;
     }
-    it = pico8_list_all(j_);
-    while (pico8_list_iter_next(&it, &e)) {
+    it = pico8_ptrs_all(j_);
+    while (pico8_ptrs_iter_next(&it, &e)) {
         pico8_struct_header_t *o;
 
-        assert(e.kind == PICO8_VALUE_REF &&
-               (e.as.ref == NULL || pico8_type_tag_of(e.as.ref) == PICO8_TYPE_TAG_STRUCT) &&
+        assert((e == NULL || pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT) &&
                "ij walks a list of entities");
-        o = (pico8_struct_header_t *)e.as.ref;
+        o = e;
         pico8_vec_t o_p = pico8_entity_geom_p(o);
         pico8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));
         int same_position = (p.x == o_p.x && p.y == o_p.y);
 
         if (!same_position && d < mk) {
             mk = d;
-            *out_nearest = e;
+            *out_nearest = pico8_value_ref(e);
         }
     }
     return mk;

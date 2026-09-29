@@ -71,17 +71,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -250,10 +250,10 @@ static void assert_members_of(const pico8_struct_class_t *c, const pico8_struct_
 
 /* The research icon whose `ke` is `gx[0]`, the laboratory. */
 static void *qh_icon(void) {
-    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_ptrs_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
-        void *e = hb->items[i].as.ref;
+        void *e = hb->items[i];
         if (cls_of(e) == pico8_ie_struct_class() && ((const pico8_ie_t *)e)->ke == pico8_qh_kind()) {
             return e;
         }
@@ -432,7 +432,7 @@ static void test_life(void) {
     h = fold_held(h, out_lab, mp);
     assert(et_state(as_qh(out_lab)) == 3 && !listed(pico8_hv(), as_qh(out_lab)->probe->et));
 
-    planet = pico8_cg("jo")->items[0].as.ref;
+    planet = pico8_cg("jo")->items[0];
     assert(pico8_jo_is_family(planet));
     planet_p = ((const pico8_jo_t *)planet)->p;
     assert(planet_p != NULL);
@@ -556,7 +556,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const pico8_entity_kind_t *kind) {
-    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_ptrs_t *hb = pico8_cv("hb");
     const pico8_qb_t *mo = pico8_mo_qb();
     const pico8_vec_t *mo_ra;
     int i;
@@ -564,7 +564,7 @@ static void *bought(const pico8_entity_kind_t *kind) {
     assert(mo != NULL && mo->ra != NULL);
     mo_ra = mo->ra;
     for (i = 0; hb != NULL && i < hb->count; i++) {
-        void *icon = hb->items[i].as.ref;
+        void *icon = hb->items[i];
         if (cls_of(icon) == pico8_ie_struct_class() && ((const pico8_ie_t *)icon)->ke == kind) {
             pico8_down_t made = cls_of(icon)->ldown(icon, NULL, NULL);
             assert(made.stop && made.held != NULL);
@@ -608,10 +608,10 @@ static void test_descendants(void) {
     for (i = 0; i < sizeof shop / sizeof shop[0]; i++) {
         made[shop[i].d] = bought(shop[i].kind());
     }
-    p = pico8_cg("jo")->items[0].as.ref;
+    p = pico8_cg("jo")->items[0];
     pico8_jo_hh(p);
     pico8_jo_hu(p, cw_project("pm"));
-    made[PM] = pico8_hv()->items[pico8_hv()->count - 1].as.ref;
+    made[PM] = pico8_hv()->items[pico8_hv()->count - 1];
     for (i = 0; i < DESCENDANTS; i++) {
         assert(made[i] != NULL && descendant_of(made[i]) == (int)i && listed(pico8_hv(), made[i]));
         h = fold_descendant(fnv(h, (uint32_t)i), made[i]);

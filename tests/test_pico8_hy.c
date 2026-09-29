@@ -251,7 +251,7 @@ static pico8_hp_t *project(int k) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -262,9 +262,9 @@ static void built_world(void) {
     start_game();
     jos = pico8_cg("jo");
     assert(jos != NULL && jos->count > 1);
-    qu = jos->items[0].as.ref;
+    qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
             re = e;
         }
@@ -302,12 +302,12 @@ static const pico8_struct_class_t *iv_descriptor(void) {
 /* Every entry `hv` gained since it held `from` entries: its tag, and for an
  * `iv` the text and color it shows. */
 static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class_t *iv_cls) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int i;
 
     h = fnv(h, (uint32_t)(hv->count - from));
     for (i = from; i < hv->count; i++) {
-        const void *e = hv->items[i].as.ref;
+        const void *e = hv->items[i];
         h = fnv(h, (uint32_t)pico8_type_tag_of(e));
         if (pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)e)->cls == iv_cls) {
             const pico8_iv_t *iv = e;
@@ -444,7 +444,7 @@ static void test_lu(void) {
     from = pico8_hv()->count;
     h = lu_step(h, fm_self(), 101, 0, iv_cls);
     assert(fm_hy()->nz == pico8_fixed_from_int(100) && pico8_hv()->count == from + 1);
-    assert(strcmp(((const pico8_iv_t *)pico8_hv()->items[from].as.ref)->at1, "-no money-") == 0);
+    assert(strcmp(((const pico8_iv_t *)pico8_hv()->items[from])->at1, "-no money-") == 0);
 
     from = pico8_hv()->count;
     h = lu_step(h, fm_self(), 0, 1, iv_cls);
@@ -464,10 +464,10 @@ static void test_lu(void) {
 }
 
 static uint32_t fold_planets_kr(uint32_t h) {
-    const pico8_list_t *jo = pico8_cg("jo");
+    const pico8_ptrs_t *jo = pico8_cg("jo");
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        const pico8_jo_t *p = as_jo(jo->items[i].as.ref);
+        const pico8_jo_t *p = as_jo(jo->items[i]);
         h = fold_fixed_member(h, p->has_kr, p->kr);
     }
     return h;
@@ -481,11 +481,11 @@ static const char *hl_string(void) {
 
 /* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
 static pico8_jo_t *a_maker(void) {
-    const pico8_list_t *jos = pico8_cg("jo");
+    const pico8_ptrs_t *jos = pico8_cg("jo");
     int i;
 
     for (i = 0; i < jos->count; i++) {
-        pico8_jo_t *p = as_jo(jos->items[i].as.ref);
+        pico8_jo_t *p = as_jo(jos->items[i]);
         if (p->jy != NULL && p->kw != NULL && p->kw->has_qe) {
             return p;
         }

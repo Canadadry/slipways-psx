@@ -80,17 +80,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -294,11 +294,11 @@ static pico8_fixed_t credits(void) {
 }
 
 static uint32_t fold_planets(uint32_t h, int with_eb) {
-    const pico8_list_t *np = pico8_cg("np");
+    const pico8_ptrs_t *np = pico8_cg("np");
     int i;
 
     for (i = 0; np != NULL && i < np->count; i++) {
-        void *p = np->items[i].as.ref;
+        void *p = np->items[i];
         const pico8_list_t *oe = as_jo(p)->oe;
         h = fnv(h, (uint32_t)list_count(oe));
         h = fold_ref(h, as_jo(p)->fo);
@@ -341,16 +341,16 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
 /* A started game's first generated planet and its nearest one, both
  * colonized by a bare project. */
 static void colonized_pair(void **qu, void **re) {
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     int i;
 
     start_game();
     jos = pico8_cg("jo");
     assert(jos != NULL && jos->count > 1);
-    *qu = jos->items[0].as.ref;
+    *qu = jos->items[0];
     *re = NULL;
     for (i = 1; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (*re == NULL || dist2(pos_of(e), pos_of(*qu)) < dist2(pos_of(*re), pos_of(*qu))) {
             *re = e;
         }
@@ -396,7 +396,7 @@ static void world(void) {
 }
 
 static void *the_slipway(void) {
-    return pico8_cg("jc")->items[0].as.ref;
+    return pico8_cg("jc")->items[0];
 }
 
 static void *build_jc(void *qu) {
@@ -431,12 +431,12 @@ static const pico8_ke_t *ke_of(const void *e) {
 }
 
 static void *first_with_me(const char *tag, const char *me) {
-    const pico8_list_t *list = pico8_cg(tag);
+    const pico8_ptrs_t *list = pico8_cg(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        const pico8_ke_t *ke = ke_of(list->items[i].as.ref);
+        const pico8_ke_t *ke = ke_of(list->items[i]);
         if (ke->me != NULL && strcmp(ke->me, me) == 0) {
-            return list->items[i].as.ref;
+            return list->items[i];
         }
     }
     return NULL;
@@ -815,6 +815,39 @@ static void test_hq_mouse_point(void) {
     assert(pico8_gd(as_jc(b)->re));
 }
 
+/* `jc:ce` falls through to `cg("jc")` when no planet lies on the drag: a
+ * drag from a nearby planet to just past the slipway's middle crosses it. */
+static void test_ce_crosses_a_slipway(void) {
+    const pico8_ptrs_t *jos;
+    void *old;
+    pico8_vec_t mid;
+    int i;
+    int crossed = 0;
+
+    world();
+    jos = pico8_cg("jo");
+    old = the_slipway();
+    mid = pico8_vec_div(pico8_vec_add(pos_of(as_jc(old)->qu), pos_of(as_jc(old)->re)), pico8_fixed_from_int(2));
+    for (i = 0; i < jos->count && !crossed; i++) {
+        void *q = jos->items[i];
+        pico8_vec_t past;
+        void *a;
+
+        if (q == as_jc(old)->qu || q == as_jc(old)->re) {
+            continue;
+        }
+        past = pico8_vec_add(mid, pico8_vec_div(pico8_vec_sub(mid, pos_of(q)), pico8_fixed_from_int(8)));
+        a = build_jc(q);
+        hq_over(a, NULL, vec_ref_fixed(pico8_vec_mul(past, pico8_fixed_from_int(128))));
+        crossed = as_jc(a)->probe->et == old;
+        if (!crossed) {
+            pico8_he(a);
+        }
+    }
+    printf("[ce] crossed from planet %d\n", i - 1);
+    assert(crossed);
+}
+
 /* A probe over the slipway targets it and hangs `fo` on it. Its `dw` is
  * zeroed, as `mz`'s is: every point of this short slipway lies within a
  * `g_`'s `dw` of one of its own planets, which would win. */
@@ -1045,6 +1078,7 @@ int main(void) {
     in_fresh_child(test_bv);
     in_fresh_child(test_too_far);
     in_fresh_child(test_hq_mouse_point);
+    in_fresh_child(test_ce_crosses_a_slipway);
     in_fresh_child(test_jc_is_a_struct);
     in_fresh_child(test_hg_is_a_set_of_ids);
     in_fresh_child(test_too_far_is_a_struct);

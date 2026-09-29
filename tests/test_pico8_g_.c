@@ -77,21 +77,21 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
-static int list_count(const pico8_list_t *list) {
+static int list_count(const pico8_ptrs_t *list) {
     return list != NULL ? list->count : 0;
 }
 
@@ -270,13 +270,13 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
 static pico8_bg_t *the_bg(void) {
-    const pico8_list_t *hd = pico8_cv("hd");
+    const pico8_ptrs_t *hd = pico8_cv("hd");
     pico8_bg_t *found = NULL;
     int count = 0;
     int i;
 
     for (i = 0; hd != NULL && i < hd->count; i++) {
-        const pico8_struct_header_t *e = hd->items[i].as.ref;
+        const pico8_struct_header_t *e = hd->items[i];
         pico8_bg_t *bg;
 
         if (e->cls != pico8_bg_struct_class()) {
@@ -473,7 +473,7 @@ static pico8_jo_t *a_planet(void) {
     pico8_struct_header_t *e;
 
     assert(list_count(pico8_cg("np")) > 0);
-    e = pico8_cg("np")->items[0].as.ref;
+    e = pico8_cg("np")->items[0];
     assert(pico8_jo_is_family(e));
     return (pico8_jo_t *)e;
 }
@@ -670,7 +670,7 @@ static int is_help(pico8_struct_header_t *e) {
  * `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
 static void test_fv(void) {
     uint32_t h = 2166136261u;
-    const pico8_list_t *hv;
+    const pico8_ptrs_t *hv;
     pico8_struct_header_t *found = NULL;
     const pico8_g__t *fv;
     int i;
@@ -680,7 +680,7 @@ static void test_fv(void) {
     pico8__init();
     hv = pico8_hv();
     for (i = 0; i < hv->count; i++) {
-        pico8_struct_header_t *e = hv->items[i].as.ref;
+        pico8_struct_header_t *e = hv->items[i];
         if (is_help(e)) {
             assert(found == NULL);
             found = e;
@@ -727,7 +727,7 @@ static int is_a_g__struct(const void *e) {
  * `fv` is a struct of its own. */
 static void test_g__is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_g__struct_class();
-    const pico8_list_t *hv;
+    const pico8_ptrs_t *hv;
     pico8_g__t *roads[3];
     size_t i;
     int j;
@@ -755,14 +755,14 @@ static void test_g__is_a_struct(void) {
     pico8__init();
     hv = pico8_hv();
     for (j = 0; j < hv->count; j++) {
-        pico8_struct_header_t *e = hv->items[j].as.ref;
+        pico8_struct_header_t *e = hv->items[j];
         if (is_help(e)) {
             break;
         }
     }
     assert(j < hv->count);
-    assert(pico8_type_tag_of(hv->items[j].as.ref) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)hv->items[j].as.ref)->cls == pico8_fv_struct_class());
+    assert(pico8_type_tag_of(hv->items[j]) == PICO8_TYPE_TAG_STRUCT &&
+           ((const pico8_struct_header_t *)hv->items[j])->cls == pico8_fv_struct_class());
 }
 
 /* The throwaway target is a struct that keeps `fo`, the probe aiming at it,

@@ -71,17 +71,17 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
@@ -212,7 +212,7 @@ static void start_game(void) {
  * stamped, `eu` on that button. `db` reads `dk.trade`, which a NULL `dk`
  * lacks. */
 static void clicked_game(void) {
-    const pico8_list_t *hd;
+    const pico8_ptrs_t *hd;
     int buttons = 0;
     int i;
 
@@ -221,8 +221,8 @@ static void clicked_game(void) {
     pico8__init();
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
-        if (((const pico8_struct_header_t *)hd->items[i].as.ref)->cls == pico8_js_struct_class() && ++buttons == 2) {
-            (void)pico8_js_ldown(hd->items[i].as.ref);
+        if (((const pico8_struct_header_t *)hd->items[i])->cls == pico8_js_struct_class() && ++buttons == 2) {
+            (void)pico8_js_ldown(hd->items[i]);
             break;
         }
     }
@@ -267,10 +267,10 @@ static void assert_members_of(const pico8_struct_class_t *c, const pico8_struct_
 
 /* The research icon whose `ke` is `gx[1]`, the processor. */
 static void *os_icon(void) {
-    const pico8_list_t *hb = pico8_cv("hb");
+    const pico8_ptrs_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
-        void *e = hb->items[i].as.ref;
+        void *e = hb->items[i];
         if (cls_of(e) == pico8_ie_struct_class() && ((const pico8_ie_t *)e)->ke == pico8_os_kind()) {
             return e;
         }

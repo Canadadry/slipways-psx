@@ -2,7 +2,7 @@
 #define PICO8_ENTITY_H
 
 #include "pico8_ke.h"
-#include "pico8_list.h"
+#include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
@@ -22,21 +22,20 @@ void pico8_entity_init(void);
 void pico8_entity_shutdown(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
- * PICO8_VALUE_REF values whose .as.ref is a ke-descended struct
- * (pico8_ke.h). */
-const pico8_list_t *pico8_hv(void);
+ * pointers to a ke-descended struct (pico8_ke.h). */
+const pico8_ptrs_t *pico8_hv(void);
 
 /* The entities registered under bm field name `name` ("kj", "ev", "hd",
  * "hk" or "hb"), or NULL if `name` is not one of those five. The five
  * buckets are fixed, so a returned pointer stays valid for the module's
  * whole lifetime. */
-const pico8_list_t *pico8_cv(const char *name);
+const pico8_ptrs_t *pico8_cv(const char *name);
 
 /* The entities registered under `tag`, or NULL if no entity carrying
  * that tag has ever been lt()'d. Unlike cv, cg's storage grows as new
  * tags are first seen: do not hold a returned pointer across a later
  * lt() call, call pico8_cg() again instead. */
-const pico8_list_t *pico8_cg(const char *tag);
+const pico8_ptrs_t *pico8_cg(const char *tag);
 
 /* Only a `ke` enters `hv`: pico8_dg() reads `me` and `t` on every entity of it. */
 pico8_struct_header_t *pico8_lt(pico8_ke_t *ke);

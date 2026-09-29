@@ -70,21 +70,21 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_list_t *list, const void *e) {
+static int rank_in(const pico8_ptrs_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i].kind == PICO8_VALUE_REF && list->items[i].as.ref == e) {
+        if (list->items[i] == e) {
             return i;
         }
     }
     return -1;
 }
 
-static int listed(const pico8_list_t *list, const void *e) {
+static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
-static int count_of(const pico8_list_t *list) {
+static int count_of(const pico8_ptrs_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
@@ -308,21 +308,21 @@ static int is_of(const void *e, const pico8_struct_class_t *cls) {
 }
 
 static int fq_count(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {
-        n += is_of(hv->items[i].as.ref, pico8_fq_struct_class());
+        n += is_of(hv->items[i], pico8_fq_struct_class());
     }
     return n;
 }
 
 static int js15_count(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {
-        const void *e = hv->items[i].as.ref;
+        const void *e = hv->items[i];
         n += is_of(e, pico8_js_struct_class()) && ((const pico8_js_t *)e)->fa == pico8_fixed_from_int(15);
     }
     return n;
@@ -334,10 +334,10 @@ static int de_my(void) {
 
 /* `pj:ph`'s second button, the one whose `my` is `de`'s. */
 static pico8_js_t *de_button(void) {
-    const pico8_list_t *hv = pico8_hv();
+    const pico8_ptrs_t *hv = pico8_hv();
     int i;
     for (i = hv->count - 1; i >= 0; i--) {
-        pico8_js_t *e = hv->items[i].as.ref;
+        pico8_js_t *e = hv->items[i];
         if (is_of(e, pico8_js_struct_class()) && e->fa == pico8_fixed_from_int(15) &&
             e->my != pico8_init_field_value()) {
             return e;

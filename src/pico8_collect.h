@@ -29,6 +29,15 @@ pico8_list_t pico8_nv(const pico8_list_t *qk, pico8_nv_fn kp, void *ctx);
  * caller releases with pico8_list_free(). Neither argument may be NULL. */
 pico8_list_t pico8_la(const pico8_list_t *a, const pico8_list_t *b);
 
+/* pico8_jp over pointers. Returns a new container the caller releases with
+ * pico8_ptrs_free(); a NULL `qk` gives an empty one. */
+typedef int (*pico8_jp_ptrs_predicate_fn)(void *e, void *ctx);
+pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow, void *ctx);
+
+/* `a`'s elements then `b`'s, in a new container the caller releases with
+ * pico8_ptrs_free(). Neither argument may be NULL. */
+pico8_ptrs_t pico8_la_ptrs(const pico8_ptrs_t *a, const pico8_ptrs_t *b);
+
 /* Membership by identity; a NULL `qk` is a member of nothing. */
 int pico8_gu_ptrs(const pico8_ptrs_t *qk, const void *kb);
 

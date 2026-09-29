@@ -5,7 +5,6 @@
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
 #include "pico8_mem.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_ptrs.h"
@@ -22,7 +21,7 @@ enum { PICO8_UI_IC_LAYERS = 16 };
  * they were found; `layer_count` is always PICO8_UI_IC_LAYERS. */
 typedef struct {
     int layer_count;
-    pico8_list_t layers[PICO8_UI_IC_LAYERS];
+    pico8_ptrs_t layers[PICO8_UI_IC_LAYERS];
 } pico8_ui_ic_t;
 
 /* TROU-7 */

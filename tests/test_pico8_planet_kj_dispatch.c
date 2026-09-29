@@ -68,12 +68,12 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     /* `jo` wires "kj" as a class default, so the instance must land in the
      * real `cv["kj"]` bucket. */
     {
-        const pico8_list_t *bucket = pico8_cv("kj");
+        const pico8_ptrs_t *bucket = pico8_cv("kj");
         int found = 0;
         int i;
         assert(bucket != NULL);
         for (i = 0; i < bucket->count; i++) {
-            if (bucket->items[i].kind == PICO8_VALUE_REF && bucket->items[i].as.ref == planet) {
+            if (bucket->items[i] == planet) {
                 found = 1;
             }
         }

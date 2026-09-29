@@ -15,7 +15,7 @@ static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "
 
 typedef struct {
     const char *name; /* borrowed from g_bm_names -- not owned here */
-    pico8_list_t list;
+    pico8_ptrs_t list;
 } pico8_cv_entry_t;
 
 static pico8_cv_entry_t g_cv[PICO8_BM_COUNT];
@@ -25,14 +25,14 @@ static pico8_cv_entry_t g_cv[PICO8_BM_COUNT];
  * that reads it. */
 typedef struct {
     char *tag;
-    pico8_list_t list;
+    pico8_ptrs_t list;
 } pico8_cg_entry_t;
 
 static pico8_cg_entry_t *g_cg = NULL;
 static int g_cg_count = 0;
 static int g_cg_capacity = 0;
 
-static pico8_list_t g_hv;
+static pico8_ptrs_t g_hv;
 static pico8_struct_header_t *g_mo = NULL;
 static int g_initialized = 0;
 
@@ -84,7 +84,7 @@ static pico8_cg_entry_t *pico8_cg_find_or_create(const char *tag) {
     }
 
     g_cg[g_cg_count].tag = pico8_entity_strdup(tag);
-    pico8_list_init(&g_cg[g_cg_count].list);
+    pico8_ptrs_init(&g_cg[g_cg_count].list);
     g_cg_count++;
     return &g_cg[g_cg_count - 1];
 }
@@ -98,15 +98,15 @@ void pico8_entity_shutdown(void) {
         return;
     }
 
-    pico8_list_free(&g_hv);
+    pico8_ptrs_free(&g_hv);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
-        pico8_list_free(&g_cv[i].list);
+        pico8_ptrs_free(&g_cv[i].list);
         g_cv[i].name = NULL;
     }
 
     for (i = 0; i < g_cg_count; i++) {
-        pico8_list_free(&g_cg[i].list);
+        pico8_ptrs_free(&g_cg[i].list);
         free(g_cg[i].tag);
     }
     free(g_cg);
@@ -125,11 +125,11 @@ void pico8_entity_init(void) {
 
     pico8_entity_shutdown();
 
-    pico8_list_init(&g_hv);
+    pico8_ptrs_init(&g_hv);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         g_cv[i].name = g_bm_names[i];
-        pico8_list_init(&g_cv[i].list);
+        pico8_ptrs_init(&g_cv[i].list);
     }
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
@@ -137,11 +137,11 @@ void pico8_entity_init(void) {
     g_initialized = 1;
 }
 
-const pico8_list_t *pico8_hv(void) {
+const pico8_ptrs_t *pico8_hv(void) {
     return &g_hv;
 }
 
-const pico8_list_t *pico8_cv(const char *name) {
+const pico8_ptrs_t *pico8_cv(const char *name) {
     int i;
     assert(g_initialized && "pico8_entity_init() must run before cv is read");
     for (i = 0; i < PICO8_BM_COUNT; i++) {
@@ -182,7 +182,7 @@ int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return 1;
 }
 
-const pico8_list_t *pico8_cg(const char *tag) {
+const pico8_ptrs_t *pico8_cg(const char *tag) {
     pico8_cg_entry_t *entry = pico8_cg_find(tag);
     return entry != NULL ? &entry->list : NULL;
 }
@@ -192,11 +192,11 @@ pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
     int i;
     const pico8_str_seq_t *tags;
 
-    pico8_list_add(&g_hv, pico8_value_ref(e));
+    pico8_ptrs_add(&g_hv, e);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
-            pico8_list_add(&g_cv[i].list, pico8_value_ref(e));
+            pico8_ptrs_add(&g_cv[i].list, e);
         }
     }
 
@@ -206,7 +206,7 @@ pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
     if (tags != NULL) {
         for (i = 0; i < tags->count; i++) {
             pico8_cg_entry_t *bucket = pico8_cg_find_or_create(tags->items[i]);
-            pico8_list_add(&bucket->list, pico8_value_ref(e));
+            pico8_ptrs_add(&bucket->list, e);
         }
     }
 
@@ -221,11 +221,11 @@ void pico8_he(pico8_struct_header_t *e) {
     const pico8_str_seq_t *tags;
 
     /* TROU-5 */
-    pico8_list_del(&g_hv, pico8_value_ref(e));
+    pico8_ptrs_del(&g_hv, e);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
-            pico8_list_del(&g_cv[i].list, pico8_value_ref(e));
+            pico8_ptrs_del(&g_cv[i].list, e);
         }
     }
 
@@ -236,14 +236,14 @@ void pico8_he(pico8_struct_header_t *e) {
         for (i = 0; i < tags->count; i++) {
             pico8_cg_entry_t *bucket = pico8_cg_find(tags->items[i]);
             if (bucket != NULL) {
-                pico8_list_del(&bucket->list, pico8_value_ref(e));
+                pico8_ptrs_del(&bucket->list, e);
             }
         }
     }
 }
 
 void pico8_dc(const char *nt) {
-    const pico8_list_t *bucket_src;
+    const pico8_ptrs_t *bucket_src;
     pico8_ptrs_t layers[15];
     int kj = strcmp(nt, "kj") == 0;
     int i, o;
@@ -257,7 +257,7 @@ void pico8_dc(const char *nt) {
     bucket_src = pico8_cv(nt);
     if (bucket_src != NULL) {
         for (i = 0; i < bucket_src->count; i++) {
-            pico8_struct_header_t *qc = bucket_src->items[i].as.ref;
+            pico8_struct_header_t *qc = bucket_src->items[i];
             pico8_fixed_t fa;
             int layer;
 

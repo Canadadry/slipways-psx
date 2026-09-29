@@ -44,18 +44,18 @@ static pico8_vec_t pico8_mz_value_vec(pico8_value_t v) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
-static int pico8_mz_pq_ox_predicate(pico8_value_t e, void *ctx) {
+static int pico8_mz_pq_ox_predicate(void *e, void *ctx) {
     pico8_struct_header_t *p;
     (void)ctx;
-    if (e.kind != PICO8_VALUE_REF || e.as.ref == NULL) {
+    if (e == NULL) {
         return 0;
     }
-    p = (pico8_struct_header_t *)e.as.ref;
+    p = e;
     return p->cls->get_fx != NULL && p->cls->get_fx(p);
 }
 
 void pico8_mz_pq(pico8_mz_t *self) {
-    pico8_list_t *heap_ox;
+    pico8_ptrs_t *heap_ox;
 
     if (self == NULL) {
         return;
@@ -65,7 +65,7 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
     /* TROU-7 */
     heap_ox = malloc(sizeof *heap_ox);
-    *heap_ox = pico8_jp(pico8_hv(), pico8_mz_pq_ox_predicate, NULL);
+    *heap_ox = pico8_jp_ptrs(pico8_hv(), pico8_mz_pq_ox_predicate, NULL);
     self->ox = heap_ox;
 }
 
@@ -160,7 +160,7 @@ static void pico8_mz_ey_dispatch(void *self, pico8_struct_header_t *kv) {
 void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     pico8_fixed_t sr;
     pico8_vec_t self_p;
-    const pico8_list_t *jo_list;
+    const pico8_ptrs_t *jo_list;
     int i;
 
     if (self == NULL) {
@@ -174,14 +174,14 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
-            pico8_value_t pt_val = jo_list->items[i];
+            void *pt_val = jo_list->items[i];
             pico8_jo_t *pt;
 
-            if (pt_val.kind != PICO8_VALUE_REF || pt_val.as.ref == NULL) {
+            if (pt_val == NULL) {
                 continue;
             }
-            assert(pico8_jo_is_family(pt_val.as.ref) && "mz:pr: cg.jo holds planets only");
-            pt = pt_val.as.ref;
+            assert(pico8_jo_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
+            pt = pt_val;
 
             if (pt->ke.me != NULL && strcmp(pt->ke.me, "unknown") == 0) {
                 pico8_vec_t pt_p =

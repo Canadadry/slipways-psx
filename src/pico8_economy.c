@@ -117,9 +117,9 @@ void pico8_hy_hk(pico8_hy_t *self) {
     pico8_fixed_t jk;
     pico8_fixed_t new_yr;
     pico8_fixed_t po_rk = pico8_fixed_from_int(0);
-    const pico8_list_t *hk_list;
-    pico8_list_iter_t it;
-    pico8_value_t e;
+    const pico8_ptrs_t *hk_list;
+    pico8_ptrs_iter_t it;
+    void *e;
 
     assert_hy(self);
     if (self == NULL) {
@@ -146,10 +146,10 @@ void pico8_hy_hk(pico8_hy_t *self) {
 
     hk_list = pico8_cv("hk");
     if (hk_list != NULL) {
-        it = pico8_list_all(hk_list);
-        while (pico8_list_iter_next(&it, &e)) {
-            if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                pico8_struct_header_t *qc = e.as.ref;
+        it = pico8_ptrs_all(hk_list);
+        while (pico8_ptrs_iter_next(&it, &e)) {
+            if (e != NULL) {
+                pico8_struct_header_t *qc = e;
                 if (qc->cls->hk != NULL) {
                     qc->cls->hk(qc, new_yr);
                 }
@@ -195,9 +195,9 @@ void pico8_hy_lj(pico8_hy_t *self) {
     pico8_fixed_t happiness;
     pico8_value_t skill;
     pico8_fixed_t skill_mult;
-    const pico8_list_t *jo_list;
-    pico8_list_iter_t it;
-    pico8_value_t e;
+    const pico8_ptrs_t *jo_list;
+    pico8_ptrs_iter_t it;
+    void *e;
     pico8_fixed_t yr;
     pico8_fixed_t nz;
 
@@ -219,10 +219,10 @@ void pico8_hy_lj(pico8_hy_t *self) {
 
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
-        it = pico8_list_all(jo_list);
-        while (pico8_list_iter_next(&it, &e)) {
-            if (e.kind == PICO8_VALUE_REF && e.as.ref != NULL) {
-                pico8_struct_header_t *p = (pico8_struct_header_t *)e.as.ref;
+        it = pico8_ptrs_all(jo_list);
+        while (pico8_ptrs_iter_next(&it, &e)) {
+            if (e != NULL) {
+                pico8_struct_header_t *p = e;
                 pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
                 pico8_jo_t *jo;
 
@@ -257,14 +257,14 @@ void pico8_hy_lj(pico8_hy_t *self) {
     self->has_hl = 1;
 
     {
-        const pico8_list_t *hb_list = pico8_cv("hb");
+        const pico8_ptrs_t *hb_list = pico8_cv("hb");
         if (hb_list != NULL) {
-            pico8_list_iter_t it2;
-            pico8_value_t e2;
-            it2 = pico8_list_all(hb_list);
-            while (pico8_list_iter_next(&it2, &e2)) {
-                if (e2.kind == PICO8_VALUE_REF && e2.as.ref != NULL) {
-                    pico8_struct_header_t *qc = e2.as.ref;
+            pico8_ptrs_iter_t it2;
+            void *e2;
+            it2 = pico8_ptrs_all(hb_list);
+            while (pico8_ptrs_iter_next(&it2, &e2)) {
+                if (e2 != NULL) {
+                    pico8_struct_header_t *qc = e2;
                     if (qc->cls->hb != NULL) {
                         qc->cls->hb(qc);
                     }

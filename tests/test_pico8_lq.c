@@ -600,7 +600,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * hovered planet off `ok.o_`), left to settle; then the colony's panel,
  * `jo:gh`, up and drawn. */
 static void built_planet_panel(void) {
-    const pico8_list_t *jos;
+    const pico8_ptrs_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -611,9 +611,9 @@ static void built_planet_panel(void) {
     start_game();
     jos = pico8_cg("jo");
     assert(jos != NULL && jos->count > 1);
-    qu = jos->items[0].as.ref;
+    qu = jos->items[0];
     for (i = 1; i < jos->count; i++) {
-        void *e = jos->items[i].as.ref;
+        void *e = jos->items[i];
         if (re == NULL || dist2(pos_of(e), pos_of(qu)) < dist2(pos_of(re), pos_of(qu))) {
             re = e;
         }

@@ -5,7 +5,7 @@
 #include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
-#include "pico8_list.h"
+#include "pico8_ptrs.h"
 #include "pico8_mem.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
@@ -34,7 +34,7 @@ typedef struct {
     pico8_fixed_t fa;
     const pico8_int_seq_t *kk;
     pico8_mz_jj_t *jj;
-    pico8_list_t *ox;
+    pico8_ptrs_t *ox;
     pico8_vec_t *ra;
     pico8_vec_t *p;
     pico8_struct_header_t *ij; /* borrowed, never freed */
