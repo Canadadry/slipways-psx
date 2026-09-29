@@ -6,9 +6,9 @@ status: needs-triage
 
 ## Problem Statement
 
-**Écrit pendant que D.16a est implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis **`c77124e`** (« docs: PRD de D.16a (B1 : hf/qh/gg en entiers) en file »), extrait par `git archive c77124e` dans le scratchpad. Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné. **Rien n'a été compilé ni lancé**, et rien de D.16a au-delà de son PRD (`docs/prd/triage/plan3-phaseD-etape16a-b1-hf-qh-gg-entiers.md` à `c77124e`) n'a été lu. Tout ce qui dépend du résultat de D.16a est une hypothèse `H-D16a-n` (plus bas). **Les numéros de ligne de ce PRD sont ceux de `c77124e`.** Dans les fichiers que D.16a touche aussi (`planet.c`, `planet_family.c`, `score_panel.c` et les TU `fr`, `mx`, `os`, `pm`, `nr`, `hj`, `nl`, `qh`, `ga`, `jo_spec_defaults`), ils seront décalés : l'implémenteur **remesure par contenu** au parent de chaque commit et explique tout écart.
+**Écrit pendant que D.16a était implémentée** (`plan-pilot`, étape 2b) sur l'arbre commis `c77124e`, puis **revérifié après la graduation de D.16a** (`6fcb370` `refactor(D.16a)`, gradé par `ab8839d`) sur **`0b8ea0d`** (HEAD de `claude/plan-pilot-3-7zdft0`, qui ne fait qu'ajouter ce PRD), extrait par `git archive HEAD` dans le scratchpad. Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné ; **rien n'a été compilé ni lancé**. Les hypothèses `H-D16a-n` ont reçu leur verdict (plus bas). **Les numéros de ligne de ce PRD sont ceux de `0b8ea0d`** : identiques à ceux de `c77124e` dans les fichiers que D.16a n'a pas touchés, remesurés par contenu dans ceux qu'elle a touchés (`planet.c`, `planet_family.c`, `score_panel.c` et les TU `fr`, `mx`, `os`, `pm`, `nr`, `hj`, `nl`, `qh`, `ga`, `lq`). L'implémenteur remesure encore par contenu au parent de chaque commit et explique tout écart.
 
-Mesuré à `c77124e` : `valeur` **879 / 99 ; 971 occ.**, `type-tag` 243 / 58, résidu D 1120 / 108 (D.15c gradée, H-D15c-1 vérifiée).
+Mesuré à `c77124e` : `valeur` 879 / 99 ; 971 occ., `type-tag` 243 / 58, résidu D 1120 / 108. **Mesuré à `0b8ea0d` (départ de b1) : `valeur` 825 / 97 ; 916 occ. (`src/` 387 / 59 / 438, `tests/` 438 / 38 / 478), `type-tag` 242 / 58, résidu D 1065 / 107.**
 
 Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico8_value.c/.h` disparaissent (D.19c). L'étude D.14 (`docs/prd/done/plan3-phaseD-etape14-etude-genres-meles.md`) range en B3–B7 cinq valeurs que le port tient encore comme des valeurs Lua, alors que **aucun lecteur, ni du cart ni du port, ne sépare nil de `false`** :
 
@@ -42,32 +42,30 @@ Points B3–B7 et G7 de l'étude (§1.3, §4), recopiés :
 
 Règles communes de l'étude (§3) : un TU qui nomme un symbole changé le suit dans le même commit ; aucune empreinte figée ne change (G1 : un pli typé reproduit l'octet de genre et le contenu de l'ancien pli) ; aucun `*.sha256` ni e2e ne change ; `class-coverage-net` si l'étape touche un constructeur.
 
-### Hypothèses `H-D16a-n` (D.16a en cours ; verdicts à écrire à sa graduation)
+### Hypothèses `H-D16a-n` — verdicts (D.16a gradée, mesurés à `0b8ea0d`)
 
-Source : le PRD de D.16a à `c77124e` (Inventaire, « Effet sur `make data-residue` », Sortie, « Pour D.16b »). Rien d'autre de D.16a n'a été lu.
+Source des hypothèses : le PRD de D.16a à `c77124e`. Verdicts : `git archive HEAD` (`0b8ea0d`), `git diff --stat c77124e HEAD -- src tests Makefile tools`, la note « Découvert à D.16a » (`docs/plan-3.md:286`).
 
-| Hypothèse | Énoncé | Ce qui en dépend ici | Vérification à la graduation |
+| Hypothèse | Énoncé (résumé) | Verdict | Mesure à `0b8ea0d` ; effet sur ce PRD |
 |---|---|---|---|
-| H-D16a-1 | Après D.16a : `valeur` **825 / 97 ; 916 occ.** (`src/` 387 / 59 / 438, `tests/` 438 / 38 / 478) ; `type-tag` 243 / 58 ; résidu D **1066 / 107** ; `DATA_RESIDUE_GUARD` inchangé (`spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit`) | « État de départ », « Effet sur `make data-residue` », critères de départ, Runs 1-2 | `make -s data-residue` ; recette ; note « Découvert à D.16a » |
-| H-D16a-2 | `planet.c` ne garde que ses deux lignes `rn` (`pico8_rn(pico8_value_fixed(hp_instance->rn));`, `…(55)`), inchangées, décalées d'environ − 23 (`:445`, `:447` → ≈ `:422`, `:424`) ; `planet.c` vaut **2 / 2** | b1 : inventaire B5, sortie de `planet.c` de `valeur` | `grep -nE "$P" src/pico8_planet.c` |
-| H-D16a-3 | `score_panel.c` vaut **19 / 23** ; `pico8_pj_ed` (`:299-307`) est intacte, décalée d'environ − 7 | b2 : inventaire B7 | `git diff c77124e <HEAD gradé> -- src/pico8_score_panel.c` |
-| H-D16a-4 | Le constructeur `qh` garde `self->probe->et = NULL;` / `self->probe->has_et = 0;` (`planet_family.c:90-91`), décalés (D.16a retire `pico8_qh_qh` et des lignes `_is_bool` au-dessus) | b1 : ligne `has_et` du constructeur `qh` | `grep -n has_et src/pico8_planet_family.c` |
-| H-D16a-5 | D.16a ne touche, dans les TU, aucune ligne qui nomme `has_et`, `et_state`, `fold_et`, `et_kind`, `pico8_mz_et`, `pico8_lq_bg`, `pico8_pj_ed`, `pico8_oj`, ni les lignes `bg` de `ga` (`:497`, `:504`, `:514-517`) ni `jo_spec_defaults:233` ; `ga` vaut **30 / 30** après D.16a ; `mx`, `os`, `pm`, `hj`, `nl` perdent `fold_value` (14 lignes + une blanche) au-dessus de leurs sites `has_et`, qui remontent d'environ 15 lignes | b1 : sites TU ; b2 : `ga`, `jo_spec_defaults` | `git diff c77124e <HEAD gradé> -- tests \| grep -E 'has_et\|et_state\|fold_et\|lq_bg\|pj_ed'` vide |
-| H-D16a-6 | Copies `truthy` après D.16a : **7** (`layout`, `probe`, `research`, `research_display`, `tech_gate`, `ui_button`, `wormhole_display`) | « Copies `truthy` », grep 3 des Sorties | `grep -lE 'static int [a-z0-9_]*truthy\(pico8_value_t' src/*.c` |
-| H-D16a-7 | Dans `os`, `hj`, `nl`, `qh`, `fold_absent`, `fold_bool_member` et `fold_ref` restent utilisées après D.16a (plis de `qe`, `mi`, cas 1 de `fold_et`) | b1 : retrait de la branche « absente » de `fold_et` sans aide rendue inutile | `grep -c 'fold_absent(' tests/test_pico8_{os,hj,nl,qh}.c` ≥ 3 |
-| H-D16a-8 | D.16a ne change ni le `Makefile`, ni `tools/` (`class_coverage_net_expected.txt` compris), ni aucun des fichiers de B3–B7 hors ceux listés en H-D16a-2 à -5 (`probe.c/.h`, `wormhole.c/.h`, `wormhole_display.c`, `audio.c/.h`, `msgbox.c`, `ui_button.c`, `slipway.c`, `research.c/.h`, `tech_gate.c/.h`, `research_icon.c`, `research_display.c`, `layout.c/.h`, `score_panel.h`, TU `mz`, `g_`, `fv`, `hp`, `lq`) ; `make e2e` 26 conformes | tous les numéros non marqués ; « `Makefile` et liens » | `git diff --stat c77124e <HEAD gradé> -- <ces chemins>` vide |
-| H-D16a-9 | La note « Découvert à D.16a » ne modifie pas la ligne D.16b du plan, ne déplace aucun site B3–B7 vers D.16a (ni l'inverse) ; D.16a est entière à la graduation (un commit, ou a1 + a2 tous deux commis) | tout le PRD | lecture du plan gradé |
+| H-D16a-1 | `valeur` 825 / 97 ; 916 occ. (`src/` 387 / 59 / 438, `tests/` 438 / 38 / 478) ; `type-tag` 243 / 58 ; résidu D 1066 / 107 ; garde inchangée | **fausse en partie** | `valeur` exact ; **`type-tag` 242 / 58, résidu D 1065 / 107** : `fold_ref` de `test_pico8_pm` n'avait que `fold_value` pour appelant et est partie avec elle (une ligne `type-tag`). Départs, arrivées et critères `type-tag`/résidu D corrigés (− 1 ligne) ; les deltas de D.16b ne changent pas |
+| H-D16a-2 | `planet.c` 2 / 2, ses deux lignes `rn` intactes, ≈ `:422`, `:424` | **tient** | `:421`, `:423` (décalage − 24) |
+| H-D16a-3 | `score_panel.c` 19 / 23, `pico8_pj_ed` intacte, ≈ − 7 | **tient** | 19 / 23 ; `pico8_pj_ed` en `:291-299` (décalage − 8) |
+| H-D16a-4 | constructeur `qh` garde `et = NULL` / `has_et = 0`, décalés | **tient** | `planet_family.c:79-80` |
+| H-D16a-5 | aucune ligne `has_et`/`et_state`/`fold_et`/`et_kind`/`mz_et`/`lq_bg`/`pj_ed`/`oj` touchée dans les TU ; `ga` 30 / 30 ; `mx`, `os`, `pm`, `hj`, `nl` remontent d'≈ 15 | **tient, décalages différents** | contenu intact, `ga` 30 / 30. Décalages : `mx`, `os`, `hj`, `nl` − 15 ; **`pm` − 25** (`fold_value` et `fold_ref`) ; **`qh` + 1** (include de `economy_score.h` ajouté par D.16a, hors de son empreinte) ; `lq` + 1 à partir de `:239` (test et include ajoutés par D.16a ; `lq` n'est pas touché ici) ; `fr`, `nr`, `ga` inchangés aux sites de ce PRD. Tous les numéros sont remesurés ci-dessous |
+| H-D16a-6 | 7 copies `truthy` | **tient** | `layout`, `probe`, `research`, `research_display`, `tech_gate`, `ui_button`, `wormhole_display` |
+| H-D16a-7 | `fold_absent`, `fold_bool_member`, `fold_ref` restent utilisées dans `os`, `hj`, `nl`, `qh` | **tient** | `fold_absent` 6 / 6 / 6 / 7 lignes, `fold_ref` 3 / 3 / 3 / 4, `fold_bool_member` 4 / 5 / 4 / 4. Le retrait de `fold_ref` de `pm` ne touche pas b1 : le seul site `has_et` de `pm` (pli « built », `:358`) plie `fnv(h, …)` sans `fold_ref`, et `pm` n'a ni `et_state` ni `fold_et` |
+| H-D16a-8 | ni `Makefile`, ni `tools/`, ni aucun fichier B3–B7 hors ceux de H-2 à H-5 | **tient** | `git diff --stat c77124e HEAD -- Makefile tools` vide ; les 23 chemins de D.16a (dont `test_pico8_pj`, `test_pico8_lq`, hors de son empreinte) n'incluent aucun fichier de `src/` de D.16b hors `planet.c`, `planet_family.c`, `score_panel.c` |
+| H-D16a-9 | ligne D.16b inchangée ; D.16a entière | **tient** | un commit ; ligne D.16b identique (Annexe A) ; aucun site B3–B7 déplacé |
 
-### Sections à revérifier quand D.16a sera gradée
+**Erreur du brouillon, corrigée (sans lien avec D.16a)** : le TU de B7 est `tests/test_pico8_spec_defaults.c` (qui appelle `pico8_pj_ed` à `:233`), pas `test_pico8_spec_defaults.c` (TU de D.16a, qui ne nomme pas `ed`). Le brouillon écrivait `spec_defaults` : corrigé partout en `spec_defaults`. `test_pico8_spec_defaults.c` est inchangé depuis `c77124e`.
 
-- **Toujours** : « État de départ » ; critères `FAILED:` de départ (HEAD, comptes) ; « Effet sur `make data-residue` » (colonnes départ et après, tables par fichier) ; Runs 1-2 de b1 ; les numéros de `planet.c`, `planet_family.c`, `score_panel.c`, et des TU `fr`, `mx`, `os`, `pm`, `nr`, `hj`, `nl`, `qh`, `ga`, `jo_spec_defaults` dans l'Inventaire et dans les cibles de mutation (**remesure par contenu**) ; Annexe A (recopier la ligne D.16a avec sa note).
-- **Si H-D16a-1 tombe** : départs et arrivées des deux sous-étapes (les deltas − 40 / − 42 et − 40 / − 43 restent les critères).
-- **Si H-D16a-2 ou -3 tombe** (autre compte, ligne `rn`/`pj_ed` touchée) : Inventaire du fichier, sortie de `planet.c` de `valeur`, comptes de b1 ou b2.
-- **Si H-D16a-4 ou -5 tombe** : table « Les TU suivent » de b1, sites `ga`/`jo_spec_defaults` de b2.
-- **Si H-D16a-6 tombe** : « Copies `truthy` », grep 3, note.
-- **Si H-D16a-7 tombe** (une aide des quatre TU devenue sans appel) : l'aide part dans b1 (précédent `fold_value`), comptes recalculés.
-- **Si H-D16a-8 tombe** : « `Makefile` et liens », filets, fichier touché.
-- **Si H-D16a-9 tombe** : ne pas mettre ce PRD en file ; le reprendre.
+### Revérification faite à la graduation de D.16a
+
+- « État de départ », critères `FAILED:` de départ, « Effet sur `make data-residue` », Runs 1-2 : remis sur `0b8ea0d` (`type-tag` 242, résidu D 1065, puis 1025 et 985).
+- Numéros de `planet.c`, `planet_family.c`, `score_panel.c`, des TU `mx`, `os`, `pm`, `hj`, `nl`, `qh` et de `lq` (preuve B6) : remesurés par contenu. `fr:293`, `nr:308`, `ga:497/504/514`, `hp`, `mz`, `g_`, `fv`, `spec_defaults:233` : inchangés.
+- Découpage b1/b2 : **gardé** (aucune mesure ne le change ; D.16a n'a touché aucun fichier de b2 hors `score_panel.c`, en place).
+- Annexe A : lignes D.16a–D.17 réextraites de `0b8ea0d`.
 
 ### Preuve B3 (`et`), par le cart et par le port
 
@@ -99,8 +97,8 @@ Par l'invariant, `has_et && et != NULL` vaut `et != NULL` partout : **retirer `h
 
 **Ce que les TU plient** (surprise, déclarée) : `has_et` est plié ou lu dans **11 TU** (`fr`, `fv`, `g_`, `hj`, `mx`, `mz`, `nl`, `nr`, `os`, `pm`, `qh`), hors motif `valeur`. Deux contextes seulement, prouvés par lecture :
 
-1. **Empreintes « built »** (`fnv(h, (uint32_t)qh->probe->has_et)`, `fr:293`, `mx:369`, `os:340`, `pm:383`, `nr:308`, `hj:376`, `nl:313`, `qh:297`) : les fonctions `fold_gate`/`fold_synthesizer`/`fold_processor`/`fold_protostar`/`fold_slipgate`/`fold_ascension`/`fold_plate`/`fold_lab` ne sont appelées que par `test_built` sur des planètes faites par `ie:ldown` (`build()` : `cls_of(icon)->ldown(icon, NULL, NULL)`), jamais passées par `hq` : `has_et == 0` et `et == NULL`. Le pli typé `qh->probe->et != NULL ? 1u : 0u` écrit le même octet (0).
-2. **Après un `hq`** (`et_state`/`fold_et` de `os`, `hj`, `nl`, `qh` ; `et_kind`/`fold_et` de `g_` ; `et_kind` de `mz`) : chaque lecture suit un `hq` qui est `bv` (`qh.hq=bv`, `g_.hq=bv`, lua.lua:915, 722 ; `pico8_bv_dispatch` dans `planet_family.c:52,146,207,284,391`, `probe.c:455`) ou `mz:hq` (qui appelle `bv`), et `bv` pose `has_et = 1` sans condition. La branche « absente » (`!has_et`) n'y est donc jamais prise, et les `assert` des TU le confirment (aucun n'attend `ET_ABSENT`/`0` ; `qh:433` attend l'état 1, `false`). Retirer cette branche laisse les mêmes octets.
+1. **Empreintes « built »** (`fnv(h, (uint32_t)qh->probe->has_et)`, `fr:293`, `mx:354`, `os:325`, `pm:358`, `nr:308`, `hj:361`, `nl:298`, `qh:298`) : les fonctions `fold_gate`/`fold_synthesizer`/`fold_processor`/`fold_protostar`/`fold_slipgate`/`fold_ascension`/`fold_plate`/`fold_lab` ne sont appelées que par `test_built` sur des planètes faites par `ie:ldown` (`build()` : `cls_of(icon)->ldown(icon, NULL, NULL)`), jamais passées par `hq` : `has_et == 0` et `et == NULL`. Le pli typé `qh->probe->et != NULL ? 1u : 0u` écrit le même octet (0).
+2. **Après un `hq`** (`et_state`/`fold_et` de `os`, `hj`, `nl`, `qh` ; `et_kind`/`fold_et` de `g_` ; `et_kind` de `mz`) : chaque lecture suit un `hq` qui est `bv` (`qh.hq=bv`, `g_.hq=bv`, lua.lua:915, 722 ; `pico8_bv_dispatch` dans `planet_family.c:52,146,207,284,391`, `probe.c:455`) ou `mz:hq` (qui appelle `bv`), et `bv` pose `has_et = 1` sans condition. La branche « absente » (`!has_et`) n'y est donc jamais prise, et les `assert` des TU le confirment (aucun n'attend `ET_ABSENT`/`0` ; `qh:434` attend l'état 1, `false`). Retirer cette branche laisse les mêmes octets.
 
 Aucune empreinte ne plie donc un état « nil après construction » **et** un état « `false` après `bv` » par le seul membre : G1 tient sans drapeau. **Hypothèse vérifiée par l'exécution** : si une constante rougit, c'est qu'un pli lit un état que cette analyse manque — arrêt, rapporté (pas de mise à jour de constante).
 
@@ -118,7 +116,7 @@ Aucune empreinte ne plie donc un état « nil après construction » **et** un �
 
 **Cart** : `bg=` n'est écrit qu'à la ligne 429 (`{ne(self.kr).."$",bg=self.kr>=0 and 1}`, rangée `h_` de `jo:gh`) ; lecteur unique `c.bg or 2` (275). **Port** : écriture unique `planet_display.c:198-200` (`has_bg = 1`, `bg_is_bool = kr < 0`, `bg = kr >= 0 ? 1 : 0`) et copie `layout.c:401-403` ; lecteur unique `ui_button.c:325` (`has_bg && !bg_is_bool` → nombre, sinon 2). `pico8_lq_bg` n'a que deux appelants, les TU `ga:504` et `hp:277`.
 
-**Conflit avec G1, tranché (G)** : les empreintes figées de `test_pico8_lq` **séparent** `false` de nil : `fold_bg` (`lq:238-243`) plie un `BOOL 0` quand `has_bg && bg_is_bool` et un absent (`0xFFFFFFFF`) sinon ; `CONSTRUCTIONS_HASH` plie les constructions « hole »/« disorder » (sans `bg`) **et** « bg false » (`with_bg(…, -1)`, `lq:456`) ; `HP_LQ_HASH` plie la rangée `h_` à `bg` faux (`lq:540`). Ranger `false` en absent (`has_bg = 0`) rendrait ces états identiques : deux constantes bougeraient. G1 l'emporte : **`bg_is_bool` est gardé** (membre déjà typé, hors motif `valeur`), la représentation à trois états reste, et seul `pico8_lq_bg` part (4 lignes de `src/`). `test_pico8_lq`, `planet_display.c` et `ui_button.c:325` ne changent pas. `bg_is_bool` rejoint `pk_is_bool` et `fp_is_bool` dans la note du plan (forme « 1 ou faux » sans étape nommée).
+**Conflit avec G1, tranché (G)** : les empreintes figées de `test_pico8_lq` **séparent** `false` de nil : `fold_bg` (`lq:239-244`) plie un `BOOL 0` quand `has_bg && bg_is_bool` et un absent (`0xFFFFFFFF`) sinon ; `CONSTRUCTIONS_HASH` plie les constructions « hole »/« disorder » (sans `bg`) **et** « bg false » (`with_bg(…, -1)`, `lq:457`) ; `HP_LQ_HASH` plie la rangée `h_` à `bg` faux (`lq:541`). Ranger `false` en absent (`has_bg = 0`) rendrait ces états identiques : deux constantes bougeraient. G1 l'emporte : **`bg_is_bool` est gardé** (membre déjà typé, hors motif `valeur`), la représentation à trois états reste, et seul `pico8_lq_bg` part (4 lignes de `src/`). `test_pico8_lq`, `planet_display.c` et `ui_button.c:325` ne changent pas. `bg_is_bool` rejoint `pk_is_bool` et `fp_is_bool` dans la note du plan (forme « 1 ou faux » sans étape nommée).
 
 **`ga` et `hp`** : leurs plis de rangée (`ga:fold_lq`, `hp:fold_lq_instance`) portent sur `jo.lq` (fait par `jo.ex`, lua.lua:539) et `hp:lq` ; aucune n'a de `bg` (cart : `bg=` seulement en 429 ; port : seules `h_keys` de `planet_display.c` et les `with_bg` du TU `lq` posent `has_bg`). La branche `bg` de ces plis n'est jamais prise (`pico8_lq_bg` rend `REF NULL`, le terme `!(bg…)` de `hp:280` vaut 0). Elle devient `assert(!lq->has_bg);` : mêmes octets, et l'invariant est vérifié à l'exécution au lieu d'être plié mort.
 
@@ -134,20 +132,20 @@ Aucune empreinte ne plie donc un état « nil après construction » **et** un �
 - **« `hp_pose` en affectation par position »** : `hp_pose(self, p, s, is_fixed, fixed, i_src)`, trois `assert` de genre gardés mot pour mot (message du troisième réécrit : le cas « `mr` nomme un membre inconnu » n'existe plus), puis `switch (p)` ; `hp_ho` garde `name` pour `pico8_ho_gp_has`. Sans compte (G7).
 - **« `rn` »** (B5) : `void pico8_rn(pico8_fixed_t no)` ; `js:ldown` appelle `pico8_rn(pico8_fixed_from_int(60))` **dans le bloc `if (has_my)` existant**, avant `self->my(self)` (l'ordre du cart `rn(…)mv(self,"my")` est gardé).
 - **« `bg` »** (B6) : `pico8_lq_bg` retiré ; `bg_is_bool` **gardé** (écart à l'étude, G1, ci-dessus).
-- **« `pj_ed` »** (B7) : `pico8_pj_ed` retiré ; `jo_spec_defaults:233` devient `assert(pj->ed == NULL);`.
+- **« `pj_ed` »** (B7) : `pico8_pj_ed` retiré ; `spec_defaults:233` devient `assert(pj->ed == NULL);`.
 - **Ponts absorbés** : `tech_gate.c:45` (D.15a) → `if (pico8_oj(px)) {` ; `probe.c:182` (D.15b) → `et = c;`.
-- **« Compte : ≈ 765 »** : estimation sur une base de 845 (− 80). Mesuré à `c77124e` : **b1 − 40 lignes / − 42 occ., b2 − 40 / − 43, total − 80 / − 85** — le delta de l'étude exactement ; l'arrivée est **≈ 745** parce que D.16a part de 825 et non de 845 (H-D16a-1). « ≈ » n'est pas un critère ; les deltas exacts le sont.
+- **« Compte : ≈ 765 »** : estimation sur une base de 845 (− 80). Mesuré à `c77124e`, remesuré identique à `0b8ea0d` : **b1 − 40 lignes / − 42 occ., b2 − 40 / − 43, total − 80 / − 85** — le delta de l'étude exactement ; l'arrivée est **745** parce que D.16a a fini à 825 et non à ≈ 845. « ≈ » n'est pas un critère ; les deltas exacts le sont.
 - **« `class-coverage-net` : oui »** : b1 touche les constructeurs `g_`, `qh`, `mz`, `jc` (ligne `has_et`) ; b2 le constructeur `hp` (`hp_pose` via `hp_ho`). Exigé aux deux commits, **identique** à `tools/class_coverage_net_expected.txt`. `sanitize-net` : **non** (aucune durée de vie ni propriétaire ne change : `et` reste emprunté, aucune allocation touchée). Balayage ASan+UBSan des TU exigé aux deux commits (consigne).
 - **§6** : aucun des trois tests de régression (`layout_nil_item_draws_nothing`, `planet_gh_row_lq`, `ga_export_panel_by`) ne nomme un symbole de l'étape ; recompilés, relancés.
 - **Consignes de l'utilisateur, liantes** : un TU ne rejoue jamais un `events.json` ; rien de lent ; aucun `*.sha256` ni fichier de `tests/e2e/` touché ; interdits : jonction de lignes comptées, alias, renommage pour échapper aux greps, cast nouveau, cale valeur ↔ typé ; mutations restaurées par `cp` simple puis `touch` ; binaires lancés exactement comme le `Makefile` ; **jamais l'appli raylib**.
 
 ### État de départ
 
-| Mesure | À `c77124e` (D.16a non commencée) | Départ attendu de b1 (D.16a gradée, H-D16a-1) |
+| Mesure | À `c77124e` (D.16a non commencée) | Départ de b1, mesuré à `0b8ea0d` (D.16a gradée) |
 |---|---|---|
 | `valeur` (lignes / fichiers ; occ.) | 879 / 99 ; 971 occ. | **825 / 97 ; 916 occ.** (`src/` 387 / 59 / 438, `tests/` 438 / 38 / 478) |
-| `type-tag` | 243 / 58 | 243 / 58 |
-| résidu D | 1120 / 108 | **1066 / 107** |
+| `type-tag` | 243 / 58 | **242 / 58** |
+| résidu D | 1120 / 108 | **1065 / 107** |
 | fonctions publiques qui nomment `pico8_value_t` (recette de l'Annexe B) | 16 | 13 |
 | copies `*_truthy(pico8_value_t)` | 11 | 7 |
 | `DATA_RESIDUE_GUARD` | `spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit` | inchangé |
@@ -163,7 +161,7 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
   printf '%s\t%s\t%s\n' $f $n "$(grep -oE "$P" $f | wc -l)"; done
 ```
 
-### Inventaire (numéros à `c77124e` ; « ≈ » : fichier que D.16a décale, remesure par contenu)
+### Inventaire (numéros à `0b8ea0d`, remesurés par contenu après D.16a)
 
 Classes du message de commit : **(a1)** même site, type C à la place de la valeur ; **(a2)** retirée sans remplaçant (enveloppe, copie `truthy`, local, include d'un `.c` vidé, cas G4, terme de pli mort) ; **(b)** signature publique dont le type change ; **(c)** même donnée, autre nom : **attendu 0**. `occ.` : occurrences du motif sur la ligne.
 
@@ -208,14 +206,14 @@ Classes du message de commit : **(a1)** même site, type C à la place de la val
 | | `:107` (1) | `pico8_rn(pico8_fixed_from_int(50));` | (a1) |
 | | `:176` (1) | `pico8_rn(pico8_fixed_from_int(-1));` | (a1) |
 | | `:150`, `:436` (0) | `has_et = et != NULL` (`jc:hq`) et `has_et = 0` (constructeur `jc`) retirées | — |
-| `planet_family.c` | ≈ `:91` (0) | `self->probe->has_et = 0;` retirée (constructeur `qh`, H-D16a-4) | — |
+| `planet_family.c` | `:80` (0) | `self->probe->has_et = 0;` retirée (constructeur `qh` ; `:91` à `c77124e`) | — |
 | `audio.c` | `:24` (1) | `void pico8_rn(pico8_fixed_t no) {` | (b) |
 | | `:25` (1) | local `truthy` retiré | (a2) |
 | | `:27` (0) | `if (!pico8_ih()) {` | — |
 | | `:28` (1) | `int n = pico8_fixed_flr_int(no);` (la ligne reste, le repli « pas un nombre → 0 » part : aucun appelant n'en passe) | (a1) |
 | `audio.h` | `:17` (1) | contrat `:16-18` retiré (il décrivait le `false` que le type n'admet plus) | (a2) |
 | | `:19` (1) | `void pico8_rn(pico8_fixed_t no);` | (b) |
-| `planet.c` | ≈ `:422`, ≈ `:424` (1 chacune ; `:445`, `:447` à `c77124e`, H-D16a-2) | `pico8_rn(hp_instance->rn);`, `pico8_rn(pico8_fixed_from_int(55));` | (a1) |
+| `planet.c` | `:421`, `:423` (1 chacune ; `:445`, `:447` à `c77124e`) | `pico8_rn(hp_instance->rn);`, `pico8_rn(pico8_fixed_from_int(55));` | (a1) |
 | `msgbox.c` | `:339` (1) | `pico8_fixed_t rn_arg;` | (a1) |
 | | `:361` (1) | `rn_arg = frame->eo;` | (a1) |
 | | `:363` (1) | `rn_arg = pico8_fixed_from_int(62);` | (a1) |
@@ -234,12 +232,12 @@ Totaux `src/` b1 (lignes / occ. retirées) : `probe.c` 15 / 16, `wormhole.c` 5 /
 | `g_` | `:426-428`, `:461-463` | branches `!has_et` d'`et_kind` et de `fold_et` retirées (valeurs de retour 1–4 inchangées) ; commentaires `:419-420`, `:457-458` sans « absent » | — |
 | `g_` | `:366`, `:448`, `:778` | `pr->et == NULL` ; `assert(et != NULL);` ; `assert(a->probe->et != NULL);` | — |
 | `fv` | `:358` | `pr->et == NULL` à la place de `!pr->has_et` | — |
-| `os` ≈ `:183`, `hj` ≈ `:179`, `nl` `:169`, `qh` `:125` | `et_state` | `return qh->probe->et == NULL ? 1u : 3u;` ; commentaire au-dessus : « 1 no target, 3 a target: the bytes the frozen hashes fold. » | — |
-| `os` ≈ `:189-190`, `hj` ≈ `:185-186`, `nl` `:175-176`, `qh` `:158-159` | `fold_et` | `case 0u: return fold_absent(h);` retiré ; commentaire sans « absent » | — |
-| `fr:293`, `mx` ≈ `:369`, `os` ≈ `:340`, `pm` ≈ `:383`, `nr:308`, `hj` ≈ `:376`, `nl` ≈ `:313`, `qh:297` | pli « built » | `h = fnv(h, qh->probe->et != NULL ? 1u : 0u);` | — |
-| `qh` | `:426` | `assert(as_qh(out_lab)->probe->et == planet &&` (la moitié `has_et &&` part) | — |
+| `os:168`, `hj:164`, `nl:154`, `qh:126` | `et_state` | `return qh->probe->et == NULL ? 1u : 3u;` ; commentaire au-dessus : « 1 no target, 3 a target: the bytes the frozen hashes fold. » | — |
+| `os:174-175`, `hj:170-171`, `nl:160-161`, `qh:159-160` | `fold_et` | `case 0u: return fold_absent(h);` retiré ; commentaire sans « absent » | — |
+| `fr:293`, `mx:354`, `os:325`, `pm:358`, `nr:308`, `hj:361`, `nl:298`, `qh:298` | pli « built » | `h = fnv(h, qh->probe->et != NULL ? 1u : 0u);` | — |
+| `qh` | `:427` | `assert(as_qh(out_lab)->probe->et == planet &&` (la moitié `has_et &&` part) | — |
 
-(« ≈ » : `mx`, `os`, `pm`, `hj`, `nl` remontent d'environ 15 lignes sous H-D16a-5.) **Pourquoi `? 1u : 0u`** : aucun cast nouveau (l'ancien `(uint32_t)…has_et` part avec sa ligne), et une mutation qui ferait valoir 2 au test ne passerait pas pour un pli juste. **Rejeté** : garder `has_et` pour les seuls TU (état que `src/` ne lit plus) ; plier `0u` en constante (le pli ne lirait plus rien) ; `jo.p != NULL` comme témoin de « `bv` a tourné » (faux pour les planètes placées par la galaxie).
+(Remesuré : à `c77124e`, `mx:369`, `os:183/189-190/340`, `pm:383`, `hj:179/185-186/376`, `nl:169/175-176/313`, `qh:125/158-159/297/426`.) **Pourquoi `? 1u : 0u`** : aucun cast nouveau (l'ancien `(uint32_t)…has_et` part avec sa ligne), et une mutation qui ferait valoir 2 au test ne passerait pas pour un pli juste. **Rejeté** : garder `has_et` pour les seuls TU (état que `src/` ne lit plus) ; plier `0u` en constante (le pli ne lirait plus rien) ; `jo.p != NULL` comme témoin de « `bv` a tourné » (faux pour les planètes placées par la galaxie).
 
 Totaux `tests/` b1 : `mz` 1 / 1. **Total b1 : 40 lignes, 42 occ.** ; (a1) 21, (a2) 17, (b) 2, (c) 0.
 
@@ -250,7 +248,7 @@ Totaux `tests/` b1 : `mz` 1 / 1. **Total b1 : 40 lignes, 42 occ.** ; (a1) 21, (a
 | `pico8_oj` (`tech_gate.c:27`, `.h:10`) | `int (pico8_value_t px)` | **`int pico8_oj(const char *px)`** (NULL : 1) — (b) | `tech_gate.c:45`, `:98`, `research.c:357`, `:377`, `:381`, `research_icon.c:93`, `research_display.c:325` | `hp:526`, `:532`, `:534`, `:535` (G4, retirée), `:541` |
 | `pico8_hp_il` (`research.c:251`, `.h:84`) | rend `pico8_value_t` | **`const char *pico8_hp_il(const pico8_hp_t *self)`** — (b) | `research.c:356`, `:373` | aucun |
 | `pico8_lq_bg` (`layout.c:301-306`, `.h:127-130`) | rend `pico8_value_t` | **retirée** — (a2) | aucun | `ga:504`, `hp:277` |
-| `pico8_pj_ed` (`score_panel.c:299-307`, `.h:105-106`) | rend `pico8_value_t` | **retirée** — (a2) | aucun | `jo_spec_defaults:233` |
+| `pico8_pj_ed` (`score_panel.c:291-299`, `.h:105-106`) | rend `pico8_value_t` | **retirée** — (a2) | aucun | `spec_defaults:233` |
 
 #### b2 — sites de `src/` (30 lignes, 33 occ. retirées ; aucune gagnée)
 
@@ -278,7 +276,7 @@ Totaux `tests/` b1 : `mz` 1 / 1. **Total b1 : 40 lignes, 42 occ.** ; (a1) 21, (a
 | `research_display.c` | `:325` (2) | `if (!pico8_oj(b->rr)) {` | (a1) |
 | `layout.c` | `:301`, `:303`, `:305` (1, 1, 2) | `pico8_lq_bg` retirée entière (`:301-306` et la blanche) | (a2) |
 | `layout.h` | `:130` (1) | prototype retiré avec son contrat `:127-129` | (a2) |
-| `score_panel.c` | ≈ `:299`, `:301`, `:304`, `:306` (1 chacune ; H-D16a-3) | `pico8_pj_ed` retirée entière (`:299-307` et la blanche) | (a2) |
+| `score_panel.c` | `:291`, `:293`, `:296`, `:298` (1 chacune) | `pico8_pj_ed` retirée entière (`:291-299` et la blanche) | (a2) |
 | `score_panel.h` | `:106` (1) | prototype retiré avec son contrat `:105` | (a2) |
 
 Totaux `src/` b2 : `tech_gate.c` 7 / 7, `tech_gate.h` 1 / 1, `research.c` 10 / 10, `research.h` 1 / 1, `research_icon.c` 1 / 2, `research_display.c` 1 / 2, `layout.c` 3 / 4, `layout.h` 1 / 1, `score_panel.c` 4 / 4, `score_panel.h` 1 / 1 : **30 lignes, 33 occ.** Classes : (a1) 9, (a2) 17, (b) 4.
@@ -296,7 +294,7 @@ Totaux `src/` b2 : `tech_gate.c` 7 / 7, `tech_gate.h` 1 / 1, `research.c` 10 / 1
 | `ga` | `:497` (1) | local `bg` retiré | (a2) |
 | | `:504` (0) | `assert(!lq->has_bg);` à la place de `bg = pico8_lq_bg(lq);` | — |
 | | `:514` (1) | branche `bg` retirée avec `:515-517` | (a2) |
-| `jo_spec_defaults` | `:233` (0) | `assert(pj->ed == NULL);` (commentaire `:224` reste vrai) | — |
+| `spec_defaults` | `:233` (0) | `assert(pj->ed == NULL);` (commentaire `:224` reste vrai) | — |
 
 Totaux `tests/` b2 : `hp` 8 / 8, `ga` 2 / 2. **Total b2 : 40 lignes, 43 occ.** ; (a1) 13, (a2) 23, (b) 4, (c) 0. `test_pico8_lq` : **inchangé** (`bg_is_bool` gardé).
 
@@ -355,12 +353,12 @@ Un `.c` qui ne nomme plus rien du module perd son `#include "pico8_value.h"` ; u
 1. `pico8_oj` prend un `const char *`, `pico8_hp_il` en rend un ; le pont `tech_gate.c:45` part ; `pico8_research_truthy`, `pico8_tech_gate_truthy` disparaissent.
 2. `hp_pose` pose par position.
 3. `pico8_lq_bg` et `pico8_pj_ed` disparaissent ; `bg_is_bool` reste (G1).
-4. `hp`, `ga`, `jo_spec_defaults` suivent. Aucune constante ne change.
+4. `hp`, `ga`, `spec_defaults` suivent. Aucune constante ne change.
 
 **Sortie de b1**, constatée par commande :
 
 - `make test` vert (dont `data-guard`, `constants-check`, `float-grep`, `float-guard`) ; `make e2e` **26 conformes** ; `make class-coverage-net` **identique** à l'attendu ; balayage ASan+UBSan des TU propre ;
-- `make data-residue` : `valeur` **825 → 785** lignes (**916 → 874** occ.), fichiers **97 → 91** (sortent : `probe.c`, `wormhole.c`, `wormhole_display.c`, `audio.c`, `slipway.c`, `planet.c`) ; `type-tag` 243 / 58 inchangé ; résidu D **1066 / 107 → 1026 / 105** (`wormhole_display.c`, `audio.c` sortent : aucune ligne `type-tag`) ; sous H-D16a-1, sinon départ − 40 / − 42 occ. ;
+- `make data-residue` : `valeur` **825 → 785** lignes (**916 → 874** occ.), fichiers **97 → 91** (sortent : `probe.c`, `wormhole.c`, `wormhole_display.c`, `audio.c`, `slipway.c`, `planet.c`) ; `type-tag` 242 / 58 inchangé ; résidu D **1065 / 107 → 1025 / 105** (`wormhole_display.c`, `audio.c` sortent : aucune ligne `type-tag`) ; départs mesurés à `0b8ea0d` (si un commit `docs/` s'intercale, départ réel − 40 / − 42 occ.) ;
 - ces commandes rendent exactement ce qui est écrit :
 
   ```sh
@@ -392,7 +390,7 @@ Un `.c` qui ne nomme plus rien du module perd son `#include "pico8_value.h"` ; u
 **Sortie de b2** :
 
 - mêmes filets verts ;
-- `valeur` **785 → 745** lignes (**874 → 831** occ.), fichiers **91 → 89** (`tech_gate.c`, `research_icon.c` sortent) ; `type-tag` inchangé ; résidu D **1026 / 105 → 986 / 104** (`tech_gate.c` sort) ;
+- `valeur` **785 → 745** lignes (**874 → 831** occ.), fichiers **91 → 89** (`tech_gate.c`, `research_icon.c` sortent) ; `type-tag` inchangé ; résidu D **1025 / 105 → 985 / 104** (`tech_gate.c` sort) ;
 - commandes :
 
   ```sh
@@ -442,7 +440,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 - **Audio** (b1) : `pico8_audio.c/.h` ; appelants `planet.c`, `probe.c`, `wormhole.c`, `slipway.c`, `msgbox.c`, `ui_button.c`.
 - **Recherche** (b2) : `pico8_tech_gate.c/.h`, `pico8_research.c/.h` (`hp_il`, `hp_po`, `hp_od`, `hp_pose`), `pico8_research_icon.c`, `pico8_research_display.c`.
 - **Rangée et panneau** (b2) : `pico8_layout.c/.h`, `pico8_score_panel.c/.h`.
-- **TU** : b1 `fr`, `fv`, `g_`, `hj`, `mx`, `mz`, `nl`, `nr`, `os`, `pm`, `qh` ; b2 `hp`, `ga`, `jo_spec_defaults`. **Docs** : `plan-3.md` (deux notes).
+- **TU** : b1 `fr`, `fv`, `g_`, `hj`, `mx`, `mz`, `nl`, `nr`, `os`, `pm`, `qh` ; b2 `hp`, `ga`, `spec_defaults`. **Docs** : `plan-3.md` (deux notes).
 - Inchangés : `Makefile`, `tools/`, `pico8_value.c/.h`, `pico8_type_tag.h`, `planet_display.c`, `ui_button.h`, `test_pico8_lq`, `test_pico8_jc`, `docs/glossaire-noms.md` (`rn`, `oj` y décrivent le cart, toujours vrai), `docs/trous-de-portage.md` (TROU-3, TROU-10 restent vrais).
 
 ### Représentation (G)
@@ -468,7 +466,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 | Commit | `src/` | `tests/` | autres | Chemins |
 |---|---|---|---|---|
 | **D.16b1** | `probe.c`, `probe.h`, `wormhole.c`, `wormhole.h`, `wormhole_display.c`, `slipway.c`, `planet_family.c`, `audio.c`, `audio.h`, `planet.c`, `msgbox.c`, `ui_button.c` (12) | `fr`, `fv`, `g_`, `hj`, `mx`, `mz`, `nl`, `nr`, `os`, `pm`, `qh` (11) | `plan-3.md` | 24 |
-| **D.16b2** | `tech_gate.c`, `tech_gate.h`, `research.c`, `research.h`, `research_icon.c`, `research_display.c`, `layout.c`, `layout.h`, `score_panel.c`, `score_panel.h` (10) | `hp`, `ga`, `jo_spec_defaults` (3) | `plan-3.md` | 14 |
+| **D.16b2** | `tech_gate.c`, `tech_gate.h`, `research.c`, `research.h`, `research_icon.c`, `research_display.c`, `layout.c`, `layout.h`, `score_panel.c`, `score_panel.h` (10) | `hp`, `ga`, `spec_defaults` (3) | `plan-3.md` | 14 |
 
 (L'étude disait ≈ 25 fichiers en tout et nommait les TU `hp`, `mz`, `g_`, `ga`, `spec_defaults`, `lq` : mesuré, 36 chemins de code ; `lq` sort (G1), neuf TU entrent pour `has_et`.)
 
@@ -477,16 +475,16 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 
 ### Effet sur `make data-residue`
 
-| Catégorie | À `c77124e` | Départ (H-D16a-1) | Après b1 | Après b2 |
+| Catégorie | À `c77124e` | Départ (mesuré à `0b8ea0d`) | Après b1 | Après b2 |
 |---|---|---|---|---|
 | `valeur` | 879 / 99 ; 971 occ. | 825 / 97 ; 916 occ. | **785 / 91 ; 874 occ.** (− 40, − 42) | **745 / 89 ; 831 occ.** (− 40, − 43) |
 | `valeur` `src/` | 415 / 61 ; 466 occ. | 387 / 59 ; 438 occ. | 348 / 53 ; 397 occ. | 318 / 51 ; 364 occ. |
 | `valeur` `tests/` | 464 / 38 ; 505 occ. | 438 / 38 ; 478 occ. | 437 / 38 ; 477 occ. | 427 / 38 ; 467 occ. |
-| `type-tag` | 243 / 58 | 243 / 58 | inchangé | inchangé |
-| résidu D | 1120 / 108 | 1066 / 107 | **1026 / 105** | **986 / 104** |
+| `type-tag` | 243 / 58 | 242 / 58 | inchangé | inchangé |
+| résidu D | 1120 / 108 | 1065 / 107 | **1025 / 105** | **985 / 104** |
 | `DATA_RESIDUE_GUARD` | 8 catégories | inchangé | inchangé | inchangé |
 
-Par fichier (lignes / occ. ; départ attendu → après) — b1 : `probe.c` 15/16 → 0/0 ; `probe.h` 1/1 → 1/1 ; `wormhole.c` 5/5 → 0/0 ; `wormhole.h` 2/2 → 1/1 ; `wormhole_display.c` 4/4 → 0/0 ; `slipway.c` 3/3 → 0/0 ; `audio.c` 3/3 → 0/0 ; `audio.h` 3/3 → 1/1 ; `planet.c` 2/2 → 0/0 ; `msgbox.c` 6/6 → 3/3 ; `ui_button.c` 17/23 → 16/21 ; `test_pico8_mz` 7/8 → 6/7 ; `planet_family.c`, les dix autres TU : 0 ligne `valeur` touchée. b2 : `tech_gate.c` 7/7 → 0/0 ; `tech_gate.h` 2/2 → 1/1 ; `research.c` 12/13 → 2/3 ; `research.h` 3/3 → 2/2 ; `research_icon.c` 1/2 → 0/0 ; `research_display.c` 27/33 → 26/31 ; `layout.c` 31/32 → 28/28 ; `layout.h` 5/5 → 4/4 ; `score_panel.c` 19/23 → 15/19 ; `score_panel.h` 3/3 → 2/2 ; `test_pico8_hp` 43/44 → 35/36 ; `test_pico8_ga` 30/30 → 28/28 ; `jo_spec_defaults` 0/0.
+Par fichier (lignes / occ. ; départ attendu → après) — b1 : `probe.c` 15/16 → 0/0 ; `probe.h` 1/1 → 1/1 ; `wormhole.c` 5/5 → 0/0 ; `wormhole.h` 2/2 → 1/1 ; `wormhole_display.c` 4/4 → 0/0 ; `slipway.c` 3/3 → 0/0 ; `audio.c` 3/3 → 0/0 ; `audio.h` 3/3 → 1/1 ; `planet.c` 2/2 → 0/0 ; `msgbox.c` 6/6 → 3/3 ; `ui_button.c` 17/23 → 16/21 ; `test_pico8_mz` 7/8 → 6/7 ; `planet_family.c`, les dix autres TU : 0 ligne `valeur` touchée. b2 : `tech_gate.c` 7/7 → 0/0 ; `tech_gate.h` 2/2 → 1/1 ; `research.c` 12/13 → 2/3 ; `research.h` 3/3 → 2/2 ; `research_icon.c` 1/2 → 0/0 ; `research_display.c` 27/33 → 26/31 ; `layout.c` 31/32 → 28/28 ; `layout.h` 5/5 → 4/4 ; `score_panel.c` 19/23 → 15/19 ; `score_panel.h` 3/3 → 2/2 ; `test_pico8_hp` 43/44 → 35/36 ; `test_pico8_ga` 30/30 → 28/28 ; `spec_defaults` 0/0.
 
 Fonctions publiques qui nomment `pico8_value_t` (Annexe B) : 13 → **11** (b1 : `rn`, `mz_et`) → **7** (b2 : `oj`, `hp_il`, `lq_bg`, `pj_ed`).
 
@@ -515,7 +513,7 @@ Fonctions publiques qui nomment `pico8_value_t` (Annexe B) : 13 → **11** (b1 :
 ## Implementation Chunks
 
 **b1** (un commit)
-1. Mesure de départ (HEAD de graduation de D.16a ; H-D16a-1) ; remesure par contenu ; `gcov` de départ.
+1. Mesure de départ (`0b8ea0d` ou un descendant `docs/` seul : 825 / 97 / 916 occ., `type-tag` 242 / 58, résidu D 1065 / 107) ; remesure par contenu ; `gcov` de départ.
 2. `probe.h` (membre, commentaire) ; `probe.c` (`bv`, `dl`, `d_`, constructeur `g_`, copie `truthy`, `rn`) ; `wormhole.c/.h`, `wormhole_display.c` ; `slipway.c` ; `planet_family.c`.
 3. `audio.c/.h` ; appelants `planet.c`, `msgbox.c`, `ui_button.c` (et les lignes `rn` déjà ouvertes).
 4. TU : `mz`, `g_`, `fv`, puis `et_state`/`fold_et`/plis « built » de `os`, `hj`, `nl`, `qh`, `fr`, `mx`, `pm`, `nr` ; `make tmp/test_pico8_<nom>` et lancement de chacun.
@@ -525,7 +523,7 @@ Fonctions publiques qui nomment `pico8_value_t` (Annexe B) : 13 → **11** (b1 :
 1. Mesure de départ (785 / 91 / 874 occ. attendus) ; `gcov` de départ.
 2. `tech_gate.c/.h` (`oj`, `ov`, `cb`) ; `research.c/.h` (`hp_il`, `po`, `od`, `hp_pose`) ; `research_icon.c`, `research_display.c`.
 3. `layout.c/.h`, `score_panel.c/.h`.
-4. TU `hp`, `ga`, `jo_spec_defaults`.
+4. TU `hp`, `ga`, `spec_defaults`.
 5. Filets, `gcov`, mutations M11–M22, mesures, note « Découvert à D.16b2 », **commit**, vérification, push.
 
 ## Testing Decisions
@@ -534,7 +532,7 @@ Un bon test juge ce que le code rend ou fait (cible d'une sonde, anneau dessiné
 
 ### TU touchés (G)
 
-1. b1 : `fr`, `fv`, `g_`, `hj`, `mx`, `mz`, `nl`, `nr`, `os`, `pm`, `qh`. b2 : `hp`, `ga`, `jo_spec_defaults`.
+1. b1 : `fr`, `fv`, `g_`, `hj`, `mx`, `mz`, `nl`, `nr`, `os`, `pm`, `qh`. b2 : `hp`, `ga`, `spec_defaults`.
 2. Prouvent sans suivre : `jc` (`et` par `jc:hq`, `fold_ref`), `js` (`js:ldown` → `rn` ; `bj`), `fm` (`ov`, `cb`), `ie` (`ie:hb` → `oj(rr)`), `mh`/`ui` (`pz` → `rn`), `lq` (`bg` à trois états, inchangé).
 3. **Constantes** : aucune `*_HASH`/`identity[]` ne change ; une constante qui rougit est un bug de conversion (ou H3/H4 fausse : arrêt).
 4. **Assertion nouvelle** : seulement `assert(!lq->has_bg)` (`ga`, `hp`, décision B6), ou pour couvrir une ligne modifiée non exécutée, ou pour faire rougir une mutation qui ne rougit rien, dans un test du module, listée au message ; rien de lent, aucun fichier d'événements.
@@ -551,14 +549,14 @@ Un bon test juge ce que le code rend ou fait (cible d'une sonde, anneau dessiné
 
 b1 :
 - **M1** `bv` : `et = c;` → `et = 0 ? c : NULL;` → `test_pico8_g_` (kind 2 attendu), `test_pico8_qh` (`fold_held` près d'une planète) ;
-- **M2** `bv` : branche `ui:hw` vraie écrit `&g_bv_et.header` au lieu de `NULL` → `g_` (kind 1), `qh` (`:433`), `mz` (`ET_FALSE`) ; l'`assert` de `bv` ne l'attrape pas (la jetable y est admise) ;
+- **M2** `bv` : branche `ui:hw` vraie écrit `&g_bv_et.header` au lieu de `NULL` → `g_` (kind 1), `qh` (`:434`), `mz` (`ET_FALSE`) ; l'`assert` de `bv` ne l'attrape pas (la jetable y est admise) ;
 - **M3** `bv` : `if (have_first && 0 && first != NULL)` → `g_` (kind 3), `mz` (`ET_JC`) ;
 - **M4** `d_` : `has_et = 1;` → `qh` (`d_` sur `poor_lab`), `os`/`hj` (`test_life`) ;
 - **M5** `d_` : `has_et = 0;` → l'`assert` `(!has_et || !lu_ok)` de `d_` attrape d'abord ; relancée avec l'`assert` relâché → `os`/`hj`/`nl` (crédits, `ks`) ;
 - **M6** `dl` : `if (0 && pb->et != NULL)` → `test_pico8_fv` (écran de `dl`), sinon e2e ;
 - **M7** `mz:kj` : `if (self->probe->et != NULL)` → `test_pico8_mz` s'il plie l'écran de `kj`, sinon `make e2e`, sinon trou justifié ;
 - **M8** `mz:hq` : `if (0 && nq > threshold)` → `mz` (`ET_JJ`) — le voisin de la ligne `has_et` retirée ;
-- **M9** (preuve du pli, TU) `test_pico8_qh` : `et_state` rend `3u` toujours → `qh` rouge (`:433` et `fold_held`), restauré, vert ;
+- **M9** (preuve du pli, TU) `test_pico8_qh` : `et_state` rend `3u` toujours → `qh` rouge (`:434` et `fold_held`), restauré, vert ;
 - **M10** (preuve du pli, TU) `test_pico8_fr` : pli « built » `? 0u : 1u` → `fr` rouge (`BUILT_HASH`), restauré, vert.
 - **B5 sans mutation** : `pico8_sfx` est vide (TROU-10) ; toute mutation de `rn` ou de ses appels est **équivalente par construction** (aucun observateur, ni TU ni e2e). Preuve : compilation (types), `gcov` (lignes exécutées), e2e au bit près. Déclaré au message.
 
@@ -571,12 +569,12 @@ b2 :
 - **M16** `hp_po` : `il != NULL` → `1` (`oj(NULL)` vaut 1) → `hp` (projets sans `il`) ;
 - **M17** `hp_od` : même mutation → `hp` ;
 - **M18** `hp_od` : `!has_ii && !pico8_oj("nanomaterials")` → `hp` ;
-- **M19** `hp_pose` : `case 1` pose `ja`, `case 3` pose `lr` (échange) → `hp` (plis des membres), `jo_spec_defaults` s'il lit un projet ;
+- **M19** `hp_pose` : `case 1` pose `ja`, `case 3` pose `lr` (échange) → `hp` (plis des membres), `spec_defaults` s'il lit un projet ;
 - **M20** `hp_pose` : `case 6` pose `has_il = 0` → `hp` (`fold_il` : `false` ≠ nil) ;
 - **M21** `research_icon.c:93` : `pico8_oj(0 ? rr : NULL)` → `ie`, sinon e2e ;
 - **M22** (preuve de l'invariant, TU) `test_pico8_ga` : `assert(lq->has_bg);` → `ga` abandonne (l'`assert` est exécuté), restauré, vert.
 
-Cibles (numéros à `c77124e` ; « ≈ » : remesure) : `probe.c:150-220`, `:255-270`, `:330-365`, `wormhole.c:60-76`, `wormhole_display.c:40-50`, `tech_gate.c:25-50`, `:95-100`, `research.c:70-125`, `:250-260`, `:340-385`, `research_icon.c:88-95`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
+Cibles (numéros à `0b8ea0d`) : `probe.c:150-220`, `:255-270`, `:330-365`, `wormhole.c:60-76`, `wormhole_display.c:40-50`, `tech_gate.c:25-50`, `:95-100`, `research.c:70-125`, `:250-260`, `:340-385`, `research_icon.c:88-95`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
 
 ### Filets
 
@@ -608,9 +606,9 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + sous-étape) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | HEAD de graduation de D.16a, avant b1 | 0 | `valeur 825 97` (H-D16a-1) | … |
+| 1 | `make -s data-residue` | HEAD de graduation de D.16a, avant b1 | 0 | `valeur 825 97` (mesuré à `0b8ea0d`) | … |
 | 2 | recette `valeur` | idem | 0 | `valeur 825 lignes 97 fichiers 916 occ.` | … |
-| 3 | `grep -rn has_et src tests \| wc -l` | idem | 0 | 40 à `c77124e` (16 de `src/`, 24 de `tests/`), rapporté | … |
+| 3 | `grep -rn has_et src tests \| wc -l` | idem | 0 | 40 (16 de `src/`, 24 de `tests/`, inchangé depuis `c77124e`) | … |
 | … | … | … | … | … | … |
 
 Le vérificateur le réutilise et ne relance que ce qui suit le dernier changement de l'arbre.
@@ -634,7 +632,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ de b1 n'est pas le commit de graduation de D.16a (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 825 / 97 / 916 occ., `type-tag` 243 / 58, résidu D 1066 / 107, sans explication (H-D16a-1 revérifiée à la graduation remplace ces nombres). Idem pour b2 : départ = b1 gradée, 785 / 91 / 874 occ.
+- `FAILED:` si l'arbre de départ de b1 n'est pas `0b8ea0d` (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 825 / 97 / 916 occ., `type-tag` 242 / 58, résidu D 1065 / 107 (mesurés à `0b8ea0d`), sans explication. Idem pour b2 : départ = b1 gradée, 785 / 91 / 874 occ.
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur un commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si un test de régression du §6 change.
@@ -681,20 +679,21 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
   - **Portée** : `has_et`, `pico8_mz_et`, `pico8_lq_bg`, `pico8_pj_ed` et quatre copies `truthy` retirés ; `has_il`, `bg_is_bool`, l'`assert` d'étiquette de `bv` gardés (écarts à l'étude déclarés, G1 ou hors groupe).
   - **TU** : plis de `et` aux mêmes octets par contexte prouvé (« built » : `et != NULL ? 1u : 0u` ; après `bv` : branche absente retirée) ; branches `bg` mortes de `ga`/`hp` en `assert` ; cas G4 de `oj` retiré.
   - **Drapeaux** : `class-coverage-net` aux deux commits ; balayage ASan+UBSan ; pas de `sanitize-net`.
-- **Surprises de mesure, pour `plan-pilot`** : (1) `has_et` est plié dans les empreintes de **onze** TU (l'étude en nommait deux) : G1 tient sans drapeau parce que chaque lecture est soit avant tout `bv`, soit après un `bv` qui pose `has_et = 1` ; (2) **B6 contredit G1** : `test_pico8_lq` sépare `bg` faux de `bg` absent dans deux empreintes figées — `bg_is_bool` reste, seul `pico8_lq_bg` part, `lq` sort de l'empreinte ; (3) les branches `bg` de `ga`/`hp` étaient mortes (le cart n'écrit `bg` qu'en 429) ; (4) `has_il` est plié nil ≠ `false` par `test_pico8_hp` : gardé ; (5) `pico8_value_string(NULL)` passé à l'ancien `oj` aurait fait `strcmp(e, NULL)` — chemin latent jamais pris (les 19 `px` de `nb` sont des chaînes), fermé par le type ; (6) `rn` n'a aucun observateur (TROU-10) : B5 se prouve par `gcov` et types, pas par mutation ; (7) `jo_spec_defaults:233` n'est pas comptée (`pico8_pj_ed` hors motif) mais doit suivre ; (8) `probe.c:211` (`type-tag`) est modifiée sur place, pas retirée comme l'étude l'annonçait ; (9) le delta mesuré (− 80 lignes, − 85 occ.) est exactement celui de l'étude ; l'arrivée ≈ 745 et non ≈ 765 vient de la base de D.16a (825, et non 845) ; (10) deux `.c` perdent leur include (`wormhole_display.c`, `slipway.c`), trois fichiers sortent du résidu D (`wormhole_display.c`, `audio.c`, `tech_gate.c`) ; (11) copies `truthy` 7 → 3 ; fonctions publiques à `pico8_value_t` 13 → 7.
+- **Surprises de mesure, pour `plan-pilot`** : (1) `has_et` est plié dans les empreintes de **onze** TU (l'étude en nommait deux) : G1 tient sans drapeau parce que chaque lecture est soit avant tout `bv`, soit après un `bv` qui pose `has_et = 1` ; (2) **B6 contredit G1** : `test_pico8_lq` sépare `bg` faux de `bg` absent dans deux empreintes figées — `bg_is_bool` reste, seul `pico8_lq_bg` part, `lq` sort de l'empreinte ; (3) les branches `bg` de `ga`/`hp` étaient mortes (le cart n'écrit `bg` qu'en 429) ; (4) `has_il` est plié nil ≠ `false` par `test_pico8_hp` : gardé ; (5) `pico8_value_string(NULL)` passé à l'ancien `oj` aurait fait `strcmp(e, NULL)` — chemin latent jamais pris (les 19 `px` de `nb` sont des chaînes), fermé par le type ; (6) `rn` n'a aucun observateur (TROU-10) : B5 se prouve par `gcov` et types, pas par mutation ; (7) `spec_defaults:233` n'est pas comptée (`pico8_pj_ed` hors motif) mais doit suivre ; (8) `probe.c:211` (`type-tag`) est modifiée sur place, pas retirée comme l'étude l'annonçait ; (9) le delta mesuré (− 80 lignes, − 85 occ.) est exactement celui de l'étude ; l'arrivée ≈ 745 et non ≈ 765 vient de la base de D.16a (825, et non 845) ; (10) deux `.c` perdent leur include (`wormhole_display.c`, `slipway.c`), trois fichiers sortent du résidu D (`wormhole_display.c`, `audio.c`, `tech_gate.c`) ; (11) copies `truthy` 7 → 3 ; fonctions publiques à `pico8_value_t` 13 → 7.
+- **Révision après la graduation de D.16a** (`0b8ea0d`) : H-D16a-1 fausse sur `type-tag` (242, non 243) et le résidu D (1065, non 1066), par le retrait de `fold_ref` de `test_pico8_pm` ; toutes les autres hypothèses tiennent ; numéros remesurés (`planet.c`, `planet_family.c`, `score_panel.c`, TU `mx`, `os`, `pm`, `hj`, `nl`, `qh`, `lq`) ; nom du TU de B7 corrigé (`test_pico8_spec_defaults.c`) ; découpage, inventaire, deltas et classification inchangés.
 - **Pour D.17** : la copie `truthy` de `research_display.c` n'a plus que `o` de `jo_ex` pour appelant ; `research.c` garde `pico8_jy_qe` (`:137-138`).
 - **Pour D.19a/b** : les plis de `et` sont typés dans les onze TU ; `hp` et `ga` n'ont plus de local `bg`.
 - **Pour D.19c** : `audio.h:4` (seule ligne, fournit `pico8_fixed_t` à `rn`), `wormhole.h:12`, `probe.h:11`, `tech_gate.h:6` n'ont plus que leur include.
 
-## Annexe A — textes recopiés (`docs/plan-3.md` à `c77124e`, par extraction de lignes)
+## Annexe A — textes recopiés (`docs/plan-3.md` à `0b8ea0d`, par extraction de lignes)
 
 ### Lignes D.16a à D.17 (l. 286-288)
 
-> - D.16a — genres mêlés B1 (valeurs vraies/fausses devenues entiers). `class-coverage-net` : oui. Compte : ≈ 845.
+> - D.16a — genres mêlés B1 (valeurs vraies/fausses devenues entiers). `class-coverage-net` : oui. Compte : ≈ 845. Découvert à D.16a : un commit (`refactor(D.16a)`) ; `valeur` 879 / 99 (971 occ.) → **825 / 97 (916 occ.)**, − 54 lignes, − 55 occ., et non ≈ 845 : l'écart vient des 25 lignes de `fold_value` retirée de `mx`, `os`, `pm`, `hj`, `nl` (sans appel sous `-Werror`) et des 10 lignes des quatre copies `truthy` (`planet`, `planet_display`, `economy_score`, `economy_tiers`) ; `type-tag` 243 / 58 → **242 / 58** (surprise : `fold_ref` de `test_pico8_pm` n'avait que `fold_value` pour appelant et part avec elle, `-Werror`) ; résidu D 1120 / 108 → **1065 / 107** (`economy_score.c` sort de `valeur` et du résidu D ; `planet_family.c` sort de `valeur`, reste au résidu par `type-tag`). Lectures : `int hf`, `int qh` (1 / 0), `hf_is_bool`/`qh_is_bool` retirés des structs et des données ; `pico8_jo_hf` et `pico8_qh_qh` retirées, leurs lecteurs lisent le membre ; `pico8_jo_gg` rend `int`, 0 sur `self` NULL, deux tests non joints, TROU-3 gardé ; aucun champ sorti de B1. Trois tests ajoutés pour trois mutations sans rouge : `da` d'un laboratoire (`test_pico8_qh`), `eg` sans planète `ly` (`test_pico8_pj`), « wants more » d'un laboratoire (`test_pico8_lq`). Pour D.16b : 7 copies `truthy` restantes (`layout`, `probe`, `research`, `research_display`, `tech_gate`, `ui_button`, `wormhole_display`). Pour D.19a : `fold_value` déjà absente de `mx`, `os`, `pm`, `hj`, `nl` (et `qh` depuis D.15b), `fold_ref` absente de `pm`. Pour D.19c : `planet.h` et `planet_family.h` gardent leur include de `pico8_value.h`.
 > - D.16b — genres mêlés B3–B7 (pointeur NULL pour nil/faux, chaînes, `hp_pose` en affectation par position, `rn`, `bg`, `pj_ed`), en deux sous-étapes b1/b2. `class-coverage-net` : oui. Compte : ≈ 765.
 > - D.17 — genres mêlés B2 : `pico8_qe_t` et `pico8_qe_equal` (nil ≠ faux conservé). `class-coverage-net` : oui. Compte : ≈ 720.
 
-(À la graduation de D.16a : recopier la ligne D.16a avec sa note « Découvert à D.16a », et vérifier que la ligne D.16b est identique, H-D16a-9.)
+(Réextraites de `0b8ea0d` : la ligne D.16a porte sa note « Découvert à D.16a » ; les lignes D.16b et D.17 sont identiques à celles de `c77124e`, H-D16a-9.)
 
 ### Ponts déclarés (notes de D.15a et D.15b, l. 283-284, extraits)
 
@@ -714,11 +713,11 @@ grep -nE 'self\.et\s*=|\.et\b' pico8/lua.lua                     # écritures et
 grep -nE 'oj\(|\.il\b|rr=' pico8/lua.lua                         # oj, il, rr
 grep -nE 'rn\(' pico8/lua.lua                                    # rn et ses appelants
 grep -nE 'bg=|c\.bg|\.ed\b|ed=' pico8/lua.lua                    # bg (429, 275), ed (846, 882, 899)
-grep -rn 'has_et' src tests                                      # 40 lignes à c77124e (16 src, 24 tests)
+grep -rn 'has_et' src tests                                      # 40 lignes à 0b8ea0d (16 src, 24 tests)
 grep -rnE 'et_state|fold_et|et_kind' tests                       # plis d'état de et
 grep -rnE 'pico8_mz_et|pico8_lq_bg|pico8_pj_ed|pico8_hp_il|pico8_oj\(|pico8_rn\(' src tests
-grep -nE 'static int [a-z0-9_]*truthy\(pico8_value_t' src/*.c    # 11 à c77124e
+grep -nE 'static int [a-z0-9_]*truthy\(pico8_value_t' src/*.c    # 7 à 0b8ea0d (11 à c77124e)
 grep -nE 'pico8_value_t' src/*.h | grep -vE ':\s*(\*|/\*)' | grep -v 'src/pico8_value.h' \
-  | grep -vE '^\S+:[0-9]+:\s+(const )?pico8_value_t \*?[a-z_]+;|^\S+:[0-9]+:\s+const pico8_lq_keys_t'  # fonctions : 16 à c77124e
+  | grep -vE '^\S+:[0-9]+:\s+(const )?pico8_value_t \*?[a-z_]+;|^\S+:[0-9]+:\s+const pico8_lq_keys_t'  # fonctions : 13 à 0b8ea0d (16 à c77124e)
 awk 'NR>=254 && NR<=273' src/pico8_map_tables.c | grep -c '{"'  # 19 entrées de nb, px chaîne
 ```
