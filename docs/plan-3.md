@@ -299,6 +299,7 @@ Comptes au départ de D.10 (HEAD 5a13008, `make -s data-residue` et `--detail` ;
 - `valeur` (980), `type-tag` (243) : étapes après Q12. Elles emportent les 13 copies privées de `*_truthy(pico8_value_t)` et les includes inutiles de `pico8_value.h` (motif `valeur`). Restes nommés : `pico8_lq_keys_t.items`, `pico8_lq_bg`, `pico8_pj_ed`, `pico8_jc_ce`, `pico8_jy_qe`, `pico8_oj` ; 25 prototypes publics (29 à la fin de D.12, 25 après D.15a) à `pico8_value_t` (96 au début de D ; l'étude disait 62, compte d'une autre méthode).
 - `hp_pose` (`research.c`) : aiguillage nom → membre à la construction, hors `par-nom` ; phase 2 ou étape `valeur`.
 - Phase 2 reprend : le lien parent (Q5, `parent()` dans `pico8_struct_class_t`) et les `pico8_X_of` ; les composants émetteur et sonde (Q7, `emitter_of`/`probe_of`), faits sans le test ponctuel d'archétype ; les onze accesseurs Q6, premiers remplacés par le noyau et les composants ; les tags `nu` en masque de bits (reportés de D).
+- `pk`/`pk_is_bool` (`hj`, `pm`) et `fp_is_bool` (sonde) : même forme « 1 ou faux » que B1, relevée par la PRD de D.16a, sans étape nommée ; à rattacher à une étape `valeur` ou à la phase 2.
 
 ### Phase 2 — Composition
 
