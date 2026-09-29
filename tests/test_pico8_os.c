@@ -106,7 +106,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf_is_bool ? fold_bool_member(h, jo->hf != 0) : fold_fixed_member(h, jo->hf);
+    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -136,21 +136,6 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-static uint32_t fold_value(uint32_t h, pico8_value_t v) {
-    switch (v.kind) {
-    case PICO8_VALUE_BOOL:
-        return fnv(fnv(h, 0xB0u), (uint32_t)v.as.boolean);
-    case PICO8_VALUE_FIXED:
-        return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
-    case PICO8_VALUE_STRING:
-        return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_REF:
-        return fold_ref(h, v.as.ref);
-    default:
-        return fnv(h, 0xF0u);
-    }
-}
-
 /* The item count of a list member, -1 when NULL. */
 static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
@@ -175,7 +160,7 @@ static pico8_qh_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh_is_bool ? fold_bool_member(h, qh->qh != 0) : fold_fixed_member(h, qh->qh);
+    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 3 a target. */
@@ -451,7 +436,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     pico8_ptrs_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
-    h = fold_value(h, pico8_jo_gg(e));
+    h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)pico8_da(e));
     return as_qh(e)->jo.has_mi ? fold_fixed_member(h, as_qh(e)->jo.mi) : fold_absent(h);
 }
@@ -484,7 +469,7 @@ static uint32_t fold_db(uint32_t h, void *processor) {
     pico8_fixed_t os_db;
     pico8_fixed_t bare_db;
 
-    assert(!oz->hf_is_bool || oz->hf != 0);
+    assert(oz->hf);
     bare->mi = from->has_mi ? from->mi : 0;
     bare->has_mi = from->has_mi;
     export_to(processor, oz);

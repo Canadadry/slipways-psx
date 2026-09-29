@@ -15,10 +15,6 @@
 #include "pico8_str.h"
 #include "pico8_trade.h"
 
-static int economy_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
@@ -45,13 +41,13 @@ static int call_gg_truthy(pico8_struct_header_t *pt) {
         return 0;
     }
     assert(pico8_jo_is_family(pt) && "gg: pt is a planet of cg.jo");
-    return economy_truthy(pico8_jo_gg((const pico8_jo_t *)pt));
+    return pico8_jo_gg((const pico8_jo_t *)pt);
 }
 
 pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
     const pico8_qh_t *qh = pico8_qh_of(pt);
 
-    if (qh != NULL && economy_truthy(pico8_qh_qh(qh))) {
+    if (qh != NULL && qh->qh) {
         const pico8_ptrs_t *qh_list = pico8_cg("qh");
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
@@ -114,7 +110,7 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
                 const pico8_jo_t *oz;
                 assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
                 oz = oz_val;
-                if (economy_truthy(pico8_jo_hf(oz))) {
+                if (oz->hf) {
                     pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
                     pico8_fixed_t hs = jo->hs;
                     pico8_fixed_t ct_pt = pico8_fixed_from_int(0);

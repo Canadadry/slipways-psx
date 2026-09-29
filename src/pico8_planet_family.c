@@ -27,16 +27,6 @@ void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t) {
     pico8_na((pico8_struct_header_t *)self, t);
 }
 
-pico8_value_t pico8_qh_qh(const pico8_qh_t *self) {
-    if (self == NULL) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->qh_is_bool) {
-        return pico8_value_bool(self->qh != 0);
-    }
-    return pico8_value_fixed(self->qh);
-}
-
 pico8_probe_t *pico8_qh_probe_of(void *self) {
     return ((pico8_qh_t *)self)->probe;
 }
@@ -77,7 +67,6 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->probe = &self->probe_own;
     self->probe->dq = pico8_qh_start.dq;
     self->qh = pico8_qh_start.qh;
-    self->qh_is_bool = pico8_qh_start.qh_is_bool;
     self->probe->od = pico8_qh_start.od;
     self->probe->has_od = 1;
     self->probe->fp = pico8_qh_start.fp;
@@ -93,7 +82,6 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->jo.has_mi = 1;
     self->jo.nu = pico8_qh_start.nu;
     self->jo.hf = pico8_qh_start.hf;
-    self->jo.hf_is_bool = pico8_qh_start.hf_is_bool;
     self->jo.ke.me = pico8_qh_start.me;
 }
 
@@ -173,7 +161,6 @@ static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
     self->nl = pico8_nl_start.nl;
     self->qw = pico8_nl_start.qw;
     self->qh.qh = pico8_nl_start.qh;
-    self->qh.qh_is_bool = pico8_nl_start.qh_is_bool;
     self->qh.hp = pico8_nl_start.hp;
     self->qh.s = pico8_nl_start.s;
     self->qh.px = pico8_nl_start.px;
@@ -233,7 +220,6 @@ static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
     self->qh.hp = pico8_os_start.hp;
     self->qh.px = pico8_os_start.px;
     self->qh.qh = pico8_os_start.qh;
-    self->qh.qh_is_bool = pico8_os_start.qh_is_bool;
     self->qh.s = pico8_os_start.s;
     self->qh.probe->od = pico8_os_start.od;
     self->qh.jo.nu = pico8_os_start.nu;
@@ -323,7 +309,6 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     self->emitter->qy = NULL;
     self->qh.hp = pico8_hj_start.hp;
     self->qh.qh = pico8_hj_start.qh;
-    self->qh.qh_is_bool = pico8_hj_start.qh_is_bool;
     self->qh.px = pico8_hj_start.px;
     self->qh.probe->od = pico8_hj_start.od;
     self->qh.s = pico8_hj_start.s;
@@ -613,7 +598,6 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
      * ever registered under jo/np/prober in `cg`. This is not a merge. */
     self->jo.nu = pico8_ga_start.nu;
     self->jo.hf = pico8_ga_start.hf;
-    self->jo.hf_is_bool = pico8_ga_start.hf_is_bool;
     self->jo.kq = &pico8_ga_start.kq;
     self->jo.fa = pico8_ga_start.fa;
     if (keys != NULL) {

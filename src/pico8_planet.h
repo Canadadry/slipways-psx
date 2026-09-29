@@ -26,8 +26,7 @@
 typedef struct {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
-    pico8_fixed_t hf;
-    int hf_is_bool; /* 1: `hf` holds a boolean (0/1), 0: a fixed */
+    int hf;
     pico8_fixed_t hs;
     pico8_fixed_t fa;
     const pico8_qz_box_t *kq;
@@ -133,13 +132,9 @@ void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t);
 /* TROU-7 */
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
-/* `hf` as a value: a boolean or a fixed, per `hf_is_bool`; nil for a NULL `self`. */
-pico8_value_t pico8_jo_hf(const pico8_jo_t *self);
-
 /* TROU-3 */
-/* Returns `self.hf` itself when that field is falsy (Lua's `A and B`), a
- * real boolean otherwise -- deliberately not collapsed to a C int. */
-pico8_value_t pico8_jo_gg(const pico8_jo_t *self);
+/* 1 when `hf` is true and `me` is "ly", 0 otherwise, a NULL `self` included. */
+int pico8_jo_gg(const pico8_jo_t *self);
 
 void pico8_jo_kd(pico8_jo_t *self);
 

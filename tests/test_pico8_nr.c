@@ -103,7 +103,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf_is_bool ? fold_bool_member(h, jo->hf != 0) : fold_fixed_member(h, jo->hf);
+    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -151,7 +151,7 @@ static pico8_qh_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh_is_bool ? fold_bool_member(h, qh->qh != 0) : fold_fixed_member(h, qh->qh);
+    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -421,7 +421,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     pico8_ptrs_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
-    h = fold_value(h, pico8_jo_gg(e));
+    h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)pico8_da(e));
     return as_qh(e)->jo.has_mi ? fold_fixed_member(h, as_qh(e)->jo.mi) : fold_absent(h);
 }

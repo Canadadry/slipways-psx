@@ -104,7 +104,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf_is_bool ? fold_bool_member(h, jo->hf != 0) : fold_fixed_member(h, jo->hf);
+    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -364,7 +364,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     h = fold_fixed_member(h, jo->ca);
     h = fold_vec(h, jo->gq);
     assert(jo->em == &pico8_jo_em_row);
-    h = fold_value(h, pico8_jo_gg(jo));
+    h = fnv(fnv(h, 0xB0u), pico8_jo_gg(jo) ? 1u : 0u);
     assert(jo->ra != NULL);
     ra = *jo->ra;
     h = fold_value(h, pico8_value_bool(cls_of(d)->hd(d, vec_ref(ra).as.ref, vec_ref(ra).as.ref)));

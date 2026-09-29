@@ -19,6 +19,7 @@
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_economy_score.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
@@ -108,11 +109,11 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf_is_bool ? fold_bool_member(h, jo->hf != 0) : fold_fixed_member(h, jo->hf);
+    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh_is_bool ? fold_bool_member(h, qh->qh != 0) : fold_fixed_member(h, qh->qh);
+    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -647,6 +648,7 @@ static void test_qh_is_a_struct(void) {
     start_game();
     a = build_lab();
     assert(is_a_qh_struct(a) && listed(pico8_cg("qh"), a));
+    assert(pico8_da(a) == pico8_fixed_from_int(pico8_cg("qh")->count));
     assert(cls->kf == pico8_jo_struct_class()->kf && cls->cn == pico8_jo_struct_class()->cn);
     assert_qh_shape(cls);
     assert(cls->hd == pico8_jo_struct_class()->hd && cls->kj == pico8_jo_struct_class()->kj &&

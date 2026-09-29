@@ -13,10 +13,6 @@
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
 
-static int economy_truthy(pico8_value_t v) {
-    return !(v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0);
-}
-
 static int economy_value_equal_content(pico8_value_t a, pico8_value_t b) {
     if (a.kind == PICO8_VALUE_STRING && b.kind == PICO8_VALUE_STRING) {
         return strcmp(a.as.string, b.as.string) == 0;
@@ -290,7 +286,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         return fixed_min(pico8_fixed_from_int(count), pico8_fixed_from_int(3));
     }
 
-    if (!economy_truthy(pico8_jo_hf(jo))) {
+    if (!jo->hf) {
         if (jy != NULL && jy->count > 0) {
             void *last_val = jy->items[jy->count - 1];
             if (last_val != NULL) {

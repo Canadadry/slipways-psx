@@ -110,20 +110,12 @@ void pico8_score_panel_set_init(pico8_js_fn fn) {
 }
 
 static int pico8_eg_gg_pred(void *e, void *ctx) {
-    pico8_value_t gg;
     (void)ctx;
     if (e == NULL) {
         return 0;
     }
     assert(pico8_type_tag_of(e) == PICO8_TYPE_TAG_STRUCT && "cg(\"jo\") only ever holds entities");
-    gg = pico8_jo_gg(e);
-    if (gg.kind == PICO8_VALUE_BOOL && gg.as.boolean == 0) {
-        return 0;
-    }
-    if (gg.kind == PICO8_VALUE_REF && gg.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
+    return pico8_jo_gg(e);
 }
 
 void pico8_eg(void) {

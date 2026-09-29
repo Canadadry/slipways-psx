@@ -273,8 +273,7 @@ typedef struct {
 typedef struct {
     const pico8_str_seq_t *nu;
     const char *me;
-    pico8_fixed_t hf;
-    int hf_is_bool;
+    int hf;
     pico8_fixed_t hs;
     pico8_fixed_t fa;
     pico8_qz_box_t kq;
@@ -294,10 +293,8 @@ typedef struct {
     const pico8_jb_row_t *px;
     const char *me;
     const char *dq;
-    pico8_fixed_t hf;
-    int hf_is_bool;
-    pico8_fixed_t qh;
-    int qh_is_bool;
+    int hf;
+    int qh;
     pico8_fixed_t od;
     pico8_fixed_t fp;
     pico8_fixed_t dw;
@@ -309,8 +306,7 @@ typedef struct {
 typedef struct {
     const pico8_str_seq_t *nu;
     const char *rr;
-    pico8_fixed_t qh;
-    int qh_is_bool;
+    int qh;
     pico8_fixed_t nl;
     pico8_fixed_t hp;
     pico8_fixed_t s;
@@ -324,8 +320,7 @@ typedef struct {
     const pico8_str_seq_t *nu;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
-    pico8_fixed_t qh;
-    int qh_is_bool;
+    int qh;
     pico8_fixed_t s;
     pico8_fixed_t od;
     pico8_fixed_t hs;
@@ -335,8 +330,7 @@ typedef struct {
     const pico8_str_seq_t *nu;
     const char *rr;
     pico8_fixed_t hp;
-    pico8_fixed_t qh;
-    int qh_is_bool;
+    int qh;
     const pico8_jb_row_t *px;
     pico8_fixed_t od;
     pico8_fixed_t s;
@@ -379,8 +373,7 @@ typedef struct {
 typedef struct {
     const char *fz;
     const pico8_str_seq_t *nu;
-    pico8_fixed_t hf;
-    int hf_is_bool;
+    int hf;
     pico8_qz_box_t kq;
     pico8_fixed_t fa;
     pico8_fixed_t fc;

@@ -30,6 +30,7 @@
 #include "../src/pico8_pi.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
+#include "../src/pico8_planet_family.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_display.h"
 #include "../src/pico8_slipway.h"
@@ -795,6 +796,38 @@ static void test_gh_wants_more(void) {
     assert(wants->w == pico8_fixed_from_int(64) && receives->w == pico8_fixed_from_int(64));
 }
 
+/* A laboratory (`qh` true) lists only its last want under "wants more:". */
+static void test_gh_lab_wants_its_last(void) {
+    pico8_jy_t *a = pico8_jy_new(NULL);
+    pico8_jy_t *b = pico8_jy_new(NULL);
+    pico8_ptrs_t *jy = malloc(sizeof *jy);
+    pico8_qh_t *lab;
+    const pico8_lq_t *wants;
+    pico8_vec_t *gq;
+
+    start_game();
+    a->has_gc = 1;
+    a->gc = pico8_fixed_from_int(1);
+    b->has_gc = 1;
+    b->gc = pico8_fixed_from_int(1);
+    pico8_ptrs_init(jy);
+    pico8_ptrs_add(jy, a);
+    pico8_ptrs_add(jy, b);
+    lab = pico8_qh_new(NULL);
+    lab->jo.jy = jy;
+    lab->jo.has_mi = 1;
+    lab->jo.mi = pico8_fixed_from_int(1);
+    lab->jo.ra = malloc(sizeof *lab->jo.ra);
+    *lab->jo.ra = vec_xy(64, 64);
+    gq = malloc(sizeof *gq);
+    *gq = vec_xy(0, 9);
+    lab->jo.gq = gq;
+    pico8_jo_gh(&lab->jo);
+
+    wants = panel_row("wants more:");
+    assert(wants != NULL && wants->items_count == 3 && wants->items[1].as.row == &b->row);
+}
+
 static void must_abort(void (*write)(void *), void *e) {
     pid_t child;
     int status;
@@ -917,6 +950,7 @@ int main(void) {
     in_fresh_child(test_calls);
     in_fresh_child(test_planet_panel);
     in_fresh_child(test_gh_wants_more);
+    in_fresh_child(test_gh_lab_wants_its_last);
     in_fresh_child(test_lq_is_a_struct);
 
     printf("test_pico8_lq: all tests passed\n");

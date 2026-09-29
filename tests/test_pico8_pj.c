@@ -767,6 +767,19 @@ static void test_ph_rows_show_ky(void) {
     }
 }
 
+/* `eg` on a started game: no planet is `ly` yet, so half their count is 0
+ * and every pattern of `fb` gets its flag. */
+static void test_eg_flags_every_fb_pattern_without_ly(void) {
+    int i;
+
+    (void)start_game();
+    assert(pico8_cg("jo")->count >= 2);
+    pico8_eg();
+    for (i = 0; i < PICO8_FB_COUNT; i++) {
+        assert(pico8_peek(&mem, 0x3101 + 4 * pico8_fb_table[i]) >= 128);
+    }
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -787,6 +800,7 @@ int main(void) {
     in_fresh_child(test_cr_is_a_struct);
     in_fresh_child(test_ky_reads_invented_and_happiness);
     in_fresh_child(test_ph_rows_show_ky);
+    in_fresh_child(test_eg_flags_every_fb_pattern_without_ly);
 
     printf("test_pico8_pj: all tests passed\n");
     return 0;

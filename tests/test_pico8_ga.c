@@ -103,7 +103,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf_is_bool ? fold_bool_member(h, jo->hf != 0) : fold_fixed_member(h, jo->hf);
+    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_jo_t *jo) {
@@ -428,7 +428,7 @@ static void test_built(void) {
     assert(as_ga(a)->jo.by == as_ga(b)->jo.by && as_ga(b)->jo.by == as_ga(c)->jo.by);
     assert(as_ga(c)->jo.ra == NULL && as_ga(c)->jo.p == NULL && as_ga(c)->jo.id == NULL);
     assert(as_ga(a)->jo.fa == pico8_fixed_from_int(3) && as_ga(a)->ms == pico8_fixed_from_int(3));
-    assert(as_ga(a)->jo.hf_is_bool && as_ga(a)->jo.hf == 0);
+    assert(as_ga(a)->jo.hf == 0);
     assert(as_ga(b)->ms == PICO8_FIXED_LIT(0x00018000, 1.5));
     check("built", h, BUILT_HASH);
 }
@@ -592,8 +592,8 @@ static void test_life(void) {
 
     h = fold_value(h, pico8_value_bool(cls_of(b)->hd(b, as_ga(b)->jo.ra, as_ga(b)->jo.ra)));
     h = fold_value(h, pico8_value_bool(cls_of(b)->hd(b, vec_ref(near_mo(0, 0)).as.ref, vec_ref(near_mo(0, 0)).as.ref)));
-    h = fold_value(h, pico8_jo_gg(b));
-    assert(pico8_value_equal(pico8_jo_gg(a), pico8_value_bool(0)));
+    h = fnv(fnv(h, 0xB0u), pico8_jo_gg(b) ? 1u : 0u);
+    assert(pico8_jo_gg(a) == 0);
 
     cls_of(a)->hb(a);
     h = fold_ref_member(h, as_ga(a)->jo.lq);

@@ -23,17 +23,6 @@
 #include "pico8_str.h"
 #include "pico8_type_tag.h"
 
-/* Lua truthiness: only `false` and nil are falsy -- a fixed 0 is truthy. */
-static int pico8_jo_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 /* `kw.qe` as a value: nil when absent. */
 static pico8_value_t jo_kw_qe(const pico8_kw_t *kw) {
     if (kw == NULL || !kw->has_qe) {
@@ -225,7 +214,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         qe_is_r_w = pico8_r_lookup("w", &r_w) && pico8_value_equal(kw_qe, pico8_value_fixed(pico8_fixed_from_int(r_w)));
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            int last_only = qh != NULL && pico8_jo_truthy(pico8_qh_qh(qh));
+            int last_only = qh != NULL && qh->qh;
 
             row_cap[n] = 1 + (last_only ? 1 : jy->count) + 1;
             row_items[n] = jo_gh_row_items(row_cap[n]);
@@ -470,7 +459,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
     pico8_dv_default(mem);
 
-    if (pico8_jo_truthy(pico8_jo_gg(self))) {
+    if (pico8_jo_gg(self)) {
         int mi = pico8_fixed_flr_int(self->has_mi ? self->mi : pico8_fixed_from_int(0));
         int color = 0;
         pico8_int_seq_at(pico8_jo_ka()->items, pico8_jo_ka()->count, mi, &color);

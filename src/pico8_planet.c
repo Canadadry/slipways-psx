@@ -33,16 +33,6 @@ static pico8_jf_state_t *g_jo_ir = NULL;
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
 
-static int pico8_jo_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 int pico8_jo_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
@@ -152,7 +142,6 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     pico8_ke_struct_init(&self->ke, cls);
     self->nu = pico8_jo_start.nu;
     self->hf = pico8_jo_start.hf;
-    self->hf_is_bool = pico8_jo_start.hf_is_bool;
     self->hs = pico8_jo_start.hs;
     self->fa = pico8_jo_start.fa;
     self->kq = &pico8_jo_start.kq;
@@ -345,27 +334,14 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     self->kw = &self->kw_own;
 }
 
-pico8_value_t pico8_jo_hf(const pico8_jo_t *self) {
+int pico8_jo_gg(const pico8_jo_t *self) {
     if (self == NULL) {
-        return pico8_value_ref(NULL);
+        return 0;
     }
-    if (self->hf_is_bool) {
-        return pico8_value_bool(self->hf != 0);
+    if (!self->hf) {
+        return 0;
     }
-    return pico8_value_fixed(self->hf);
-}
-
-pico8_value_t pico8_jo_gg(const pico8_jo_t *self) {
-    pico8_value_t hf_val;
-
-    if (self == NULL) {
-        return pico8_value_ref(NULL);
-    }
-    hf_val = pico8_jo_hf(self);
-    if (!pico8_jo_truthy(hf_val)) {
-        return hf_val;
-    }
-    return pico8_value_bool(self->ke.me != NULL && strcmp(self->ke.me, "ly") == 0);
+    return self->ke.me != NULL && strcmp(self->ke.me, "ly") == 0;
 }
 
 void pico8_jo_kd(pico8_jo_t *self) {

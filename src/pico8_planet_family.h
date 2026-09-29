@@ -33,17 +33,12 @@ typedef struct {
     pico8_jo_t jo;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
-    pico8_fixed_t qh;
-    int qh_is_bool; /* 1: `qh` holds a boolean (0/1), 0: a fixed */
+    int qh;
     pico8_fixed_t s;
     const pico8_int_seq_t *ba;
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
 } pico8_qh_t;
-
-/* `qh` as a value: a boolean when `qh_is_bool`, a fixed otherwise; REF NULL
- * when `self` is NULL. */
-pico8_value_t pico8_qh_qh(const pico8_qh_t *self);
 
 /* The `probe_of` of qh's descriptor, for its daughters' to name. */
 pico8_probe_t *pico8_qh_probe_of(void *self);
