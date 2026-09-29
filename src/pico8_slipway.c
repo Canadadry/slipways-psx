@@ -18,7 +18,6 @@
 #include "pico8_slipway_display.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
@@ -104,7 +103,7 @@ void pico8_jc_pq(pico8_jc_t *self) {
         return;
     }
 
-    pico8_rn(pico8_value_fixed(pico8_fixed_from_int(50)));
+    pico8_rn(pico8_fixed_from_int(50));
 
     ts = malloc(sizeof *ts);
     pico8_ptrs_init(ts);
@@ -147,7 +146,6 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     self->has_mt = jc_mt_of(self->qu, &self->mt) || jc_mt_of(self->re, &self->mt);
 
     self->probe->et = pico8_jc_ce(self);
-    self->probe->has_et = self->probe->et != NULL;
     if (self->probe->et != NULL) {
         assert(pico8_type_tag_of(self->probe->et) == PICO8_TYPE_TAG_STRUCT &&
                "jc:ce must yield an entity to hang `fo` on: a planet, a jc struct or the static `{qs}` struct");
@@ -173,7 +171,7 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
          * so the NULL guard below is load-bearing. */
         const pico8_input_t *input = pico8_dispatch_input();
         if (input != NULL && pico8_stat(input, 19) == 50) {
-            pico8_rn(pico8_value_fixed(pico8_fixed_from_int(-1)));
+            pico8_rn(pico8_fixed_from_int(-1));
         }
         self->p_ = 1;
         self->has_p_ = 1;
@@ -433,7 +431,6 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->mt = 0;
     self->has_mt = 0;
     self->probe->et = NULL;
-    self->probe->has_et = 0;
     self->fo = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

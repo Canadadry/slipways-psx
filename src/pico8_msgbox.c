@@ -336,7 +336,7 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     pico8_pz_ctx_t ctx;
     pico8_ptrs_t *le_heap;
     pico8_ui_t *ok;
-    pico8_value_t rn_arg;
+    pico8_fixed_t rn_arg;
     pico8_js_keys_t ep_row = {0};
     pico8_lq_keys_t ep_lq = {0};
     int has_ep;
@@ -358,9 +358,9 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     }
 
     if (frame->has_eo) {
-        rn_arg = pico8_value_fixed(frame->eo);
+        rn_arg = frame->eo;
     } else {
-        rn_arg = pico8_value_fixed(pico8_fixed_from_int(62));
+        rn_arg = pico8_fixed_from_int(62);
     }
     pico8_rn(rn_arg);
 

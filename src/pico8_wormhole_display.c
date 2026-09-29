@@ -6,18 +6,7 @@
 
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
-#include "pico8_value.h"
 #include "pico8_wormhole.h"
-
-static int pico8_mzd_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
 
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
     const pico8_vec_t *ra = NULL;
@@ -42,7 +31,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     if (self->ke.me != NULL && strcmp(self->ke.me, "kz") == 0) {
         pico8_vec_t cp;
 
-        if (!pico8_mzd_truthy(pico8_mz_et(self))) {
+        if (self->probe->et == NULL) {
             pico8_fixed_t oi = self->oi;
             if (gfx != NULL && mem != NULL) {
                 pico8_circ(gfx, mem, px, py, pico8_fixed_flr_int(oi), 1);

@@ -19,12 +19,11 @@
 
 /* What `bv`, `dl` and `d_` read and write of their host, the probe's own
  * fields, stored in the host (`probe_own`) and never copied. `et` is
- * borrowed; with `has_et`, a NULL `et` is `false` (a `jc` keeps `has_et`
- * equal to `et != NULL`: its NULL is nil). `dq` NULL is nil. A fixed `fp` is
- * truthy even at 0, and `d_` hands it to `fm:nx`; a boolean one hands 0. */
+ * borrowed; NULL is nil or false, which no reader tells apart. `dq` NULL is
+ * nil. A fixed `fp` is truthy even at 0, and `d_` hands it to `fm:nx`; a
+ * boolean one hands 0. */
 typedef struct pico8_probe {
     pico8_struct_header_t *et;
-    int has_et;
     pico8_fixed_t dw;
     pico8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */

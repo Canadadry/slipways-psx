@@ -44,7 +44,7 @@ void pico8_mz_pq(pico8_mz_t *self) {
         return;
     }
 
-    pico8_rn(pico8_value_fixed(pico8_fixed_from_int(53)));
+    pico8_rn(pico8_fixed_from_int(53));
 
     /* TROU-7 */
     heap_ox = malloc(sizeof *heap_ox);
@@ -71,7 +71,6 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
 
     if (nq > threshold) {
         self->probe->et = (pico8_struct_header_t *)pico8_mz_jj_wrapper();
-        self->probe->has_et = 1;
     }
 }
 
@@ -196,16 +195,6 @@ static void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_mz_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mz_t *)self, p);
 }
 
-pico8_value_t pico8_mz_et(const pico8_mz_t *self) {
-    if (self == NULL || !self->probe->has_et) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->probe->et == NULL) {
-        return pico8_value_bool(0);
-    }
-    return pico8_value_ref(self->probe->et);
-}
-
 /* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
@@ -279,7 +268,6 @@ static void *pico8_mz_struct_new(void) {
     self->ra = NULL;
     self->p = NULL;
     self->probe->et = NULL;
-    self->probe->has_et = 0;
     self->ij = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

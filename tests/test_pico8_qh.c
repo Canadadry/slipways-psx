@@ -121,9 +121,9 @@ static uint32_t p__state(const pico8_jo_t *jo) {
     return !jo->has_p_ ? 0u : jo->p_ ? 2u : 1u;
 }
 
-/* 0 absent, 1 false, 3 a target. */
+/* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t et_state(const pico8_qh_t *qh) {
-    return !qh->probe->has_et ? 0u : qh->probe->et == NULL ? 1u : 3u;
+    return qh->probe->et == NULL ? 1u : 3u;
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -153,11 +153,9 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), (uint32_t)pico8_type_tag_of(ref));
 }
 
-/* `et` as qh's reader gave it: absent, false, or the target. */
+/* `et` as qh's reader gave it: false or the target. */
 static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
     switch (et_state(qh)) {
-    case 0u:
-        return fold_absent(h);
     case 1u:
         return fold_bool_member(h, 0);
     default:
@@ -295,7 +293,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
-    h = fnv(h, (uint32_t)qh->probe->has_et);
+    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, (uint32_t)(jo->nu != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -424,7 +422,7 @@ static void test_life(void) {
     mp = vec_ref(pico8_vec_add(pico8_vec_mul(*planet_p, pico8_fixed_from_int(128)), vec_xy(6, 0)));
     cls_of(out_lab)->hq(out_lab, mp.as.ref, vec_ref(vec_xy(64, 64)).as.ref);
     h = fold_held(h, out_lab, mp);
-    assert(as_qh(out_lab)->probe->has_et && as_qh(out_lab)->probe->et == planet &&
+    assert(as_qh(out_lab)->probe->et == planet &&
            ((const pico8_jo_t *)planet)->fo == out_lab);
 
     poor_lab = build_lab();

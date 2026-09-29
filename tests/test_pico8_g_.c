@@ -363,7 +363,7 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     assert(em->k_ == &pico8_g__k__seq);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
-    assert(e->ra == NULL && e->p == NULL && !pr->has_et && !e->has_p_);
+    assert(e->ra == NULL && e->p == NULL && pr->et == NULL && !e->has_p_);
     assert(cls_of(e)->hd == NULL && cls_of(e)->hk == NULL && cls_of(e)->hb == NULL &&
            cls_of(e)->states[PICO8_STATE_LY] == NULL && cls_of(e)->states[PICO8_STATE_PH] == NULL);
     assert(cls_of(e)->hq == pico8_bv_dispatch);
@@ -418,14 +418,11 @@ static uint32_t fold_particle(uint32_t h, pico8_value_t pt) {
     return fnv(h, (uint32_t)q->l);
 }
 
-/* The kind of the probe's `et`: absent, `false`, a planet, a slipway, the
- * throwaway struct. */
+/* The kind of the probe's `et`: `false`, a planet, a slipway, the throwaway
+ * struct. */
 static uint32_t et_kind(const pico8_g__t *e) {
     const void *ref;
 
-    if (!e->probe->has_et) {
-        return 0;
-    }
     if (e->probe->et == NULL) {
         return 1;
     }
@@ -445,7 +442,7 @@ static uint32_t et_kind(const pico8_g__t *e) {
 static const void *et_fo(const pico8_g__t *e) {
     pico8_struct_header_t *et = e->probe->et;
 
-    assert(e->probe->has_et && et != NULL);
+    assert(et != NULL);
     if (pico8_jo_is_family(et)) {
         return ((const pico8_jo_t *)et)->fo;
     }
@@ -455,12 +452,8 @@ static const void *et_fo(const pico8_g__t *e) {
     return bv_et_fo(et);
 }
 
-/* `et` in the bytes its value read by name folded to: absent, false, the
- * target. */
+/* `et` in the bytes its value read by name folded to: false, the target. */
 static uint32_t fold_et(uint32_t h, const pico8_g__t *e) {
-    if (!e->probe->has_et) {
-        return fnv(h, 0xDEADu);
-    }
     if (e->probe->et == NULL) {
         return fnv(fnv(h, 0xB0u), 0u);
     }
@@ -775,7 +768,7 @@ static void test_bv_et_is_a_struct(void) {
     a = ldown();
     (void)a_slipway(&middle);
     cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))).as.ref, vec_ref(vec_xy(2, 2)).as.ref);
-    assert(a->probe->has_et);
+    assert(a->probe->et != NULL);
     et = a->probe->et;
     assert(is_bv_target(et) && bv_et_fo(et) == a);
     assert(cls_of(et)->ev == NULL);

@@ -44,10 +44,6 @@ typedef struct {
     pico8_probe_t probe_own;
 } pico8_mz_t;
 
-/* The probe's `et` as a value: REF NULL when `self` is NULL or `et` is
- * absent, `false` when present and NULL, a REF to the target otherwise. */
-pico8_value_t pico8_mz_et(const pico8_mz_t *self);
-
 void pico8_wormhole_init(void);
 
 /* Never frees any `mz` nor the `jj` wrapper. Idempotent, and safe before

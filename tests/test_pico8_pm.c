@@ -355,7 +355,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
-    h = fnv(h, (uint32_t)qh->probe->has_et);
+    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, (uint32_t)(jo->nu != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);

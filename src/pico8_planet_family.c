@@ -77,7 +77,6 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->s = pico8_qh_start.s;
     self->ba = pico8_qh_start.ba;
     self->probe->et = NULL;
-    self->probe->has_et = 0;
     self->jo.mi = pico8_qh_start.mi;
     self->jo.has_mi = 1;
     self->jo.nu = pico8_qh_start.nu;

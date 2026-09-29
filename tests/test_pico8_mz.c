@@ -148,9 +148,6 @@ static const void *bv_et_fo(const void *t) {
 static int et_kind(const pico8_mz_t *mz) {
     const void *et = mz->probe->et;
 
-    if (!mz->probe->has_et) {
-        return ET_ABSENT;
-    }
     if (et == NULL) {
         return ET_FALSE;
     }
@@ -333,8 +330,7 @@ static void check_fresh_mz(void *e) {
     assert(jj != NULL && jj->qs != NULL && strcmp(jj->qs, "-too far-") == 0);
     assert(pico8_mz_jj_wrapper() == jj);
 
-    assert(mz->ra == NULL && mz->p == NULL && !mz->probe->has_et && mz->ij == NULL && !mz->has_p_);
-    assert(pico8_mz_et(mz).kind == PICO8_VALUE_REF && pico8_mz_et(mz).as.ref == NULL);
+    assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->has_p_);
     assert(mz->ox != NULL);
 
     assert(listed(pico8_hv(), mz) && listed(pico8_cv("kj"), mz) && listed(pico8_cv("ev"), mz));
@@ -423,7 +419,7 @@ static void test_ox(void) {
 static const void *et_fo(const pico8_mz_t *mz) {
     pico8_struct_header_t *et = mz->probe->et;
 
-    assert(mz->probe->has_et && et != NULL);
+    assert(et != NULL);
     if (et->cls == pico8_jc_struct_class()) {
         return ((const pico8_jc_t *)et)->fo;
     }
@@ -441,7 +437,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
     h = fold_vec(h, mz->ra);
     h = fold_vec(h, mz->p);
     h = fnv(h, (uint32_t)kind);
-    if (mz->probe->has_et && et != NULL) {
+    if (et != NULL) {
         if (et->cls == pico8_mz_jj_struct_class() && ((const pico8_mz_jj_t *)et)->qs != NULL) {
             h = fnv_str(h, ((const pico8_mz_jj_t *)et)->qs);
         }
@@ -763,7 +759,7 @@ static void test_jj_wrapper(void) {
     other = build_mz();
     hq(other, vec_ref(640, 640), vec_ref(64, 64));
     assert(et_kind(other) == ET_JJ);
-    assert(mz->probe->has_et && other->probe->has_et);
+    assert(mz->probe->et != NULL && other->probe->et != NULL);
     assert(mz->probe->et == other->probe->et && (void *)mz->probe->et == wrapper);
     check_jj_untouched();
 }

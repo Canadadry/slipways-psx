@@ -418,9 +418,9 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     pico8_hy_nx(pico8_fm_hy(), fp);
 
     if (hp_instance != NULL && hp_instance->has_rn) {
-        pico8_rn(pico8_value_fixed(hp_instance->rn));
+        pico8_rn(hp_instance->rn);
     } else {
-        pico8_rn(pico8_value_fixed(pico8_fixed_from_int(55)));
+        pico8_rn(pico8_fixed_from_int(55));
     }
 
     pico8_jo_kd(working_self);

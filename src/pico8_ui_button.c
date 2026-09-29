@@ -339,8 +339,8 @@ pico8_down_t pico8_js_ldown(pico8_js_t *self) {
     int has_my = self != NULL && self->my != NULL;
     pico8_down_t out = {1, NULL};
 
-    pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
     if (has_my) {
+        pico8_rn(pico8_fixed_from_int(60));
         self->my(self);
     }
 

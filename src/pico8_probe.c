@@ -44,16 +44,6 @@ static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-static int pico8_probe_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
@@ -156,7 +146,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_vec_t *p_heap;
     pico8_fixed_t nq;
     pico8_struct_header_t *c;
-    pico8_value_t et;
+    pico8_struct_header_t *et;
 
     if (self == NULL) {
         return;
@@ -176,44 +166,42 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     c = NULL;
     nq = pico8_ij(p_vec, pico8_cg("np"), &c);
 
-    et = pico8_value_ref(NULL);
+    et = NULL;
 
     if (nq < probe->dw && c != NULL) {
-        et = pico8_value_ref(c);
+        et = c;
     } else {
         pico8_bv_ctx_t ctx;
         pico8_ptrs_t filtered;
         int have_first = 0;
-        pico8_value_t first = pico8_value_ref(NULL);
+        pico8_struct_header_t *first = NULL;
 
         ctx.self_p = p_vec;
         filtered = pico8_jp_ptrs(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
-            first = pico8_value_ref(filtered.items[0]);
+            first = filtered.items[0];
             have_first = 1;
         }
         pico8_ptrs_free(&filtered);
 
-        if (have_first && pico8_probe_truthy(first)) {
+        if (have_first && first != NULL) {
             et = first;
         } else {
             pico8_vec_t rp_vec = rp != NULL ? *rp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
             if (!pico8_probe_ui_hw_call(rp_vec)) {
-                et = pico8_value_ref(&g_bv_et);
+                et = &g_bv_et.header;
             } else {
-                et = pico8_value_bool(0);
+                et = NULL;
             }
         }
     }
 
-    assert(((et.kind == PICO8_VALUE_BOOL && et.as.boolean == 0) ||
-            (et.kind == PICO8_VALUE_REF && et.as.ref != NULL &&
-             pico8_type_tag_of(et.as.ref) == PICO8_TYPE_TAG_STRUCT &&
-             g__is_target_class(((const pico8_struct_header_t *)et.as.ref)->cls))) &&
+    assert((et == NULL ||
+            (pico8_type_tag_of(et) == PICO8_TYPE_TAG_STRUCT &&
+             g__is_target_class(et->cls))) &&
            "bv: et is false or what bv aims at (a planet jo, qh, nl, os, hj, pm, nr, fr, mx, a jc, or the static "
            "throwaway struct), never a bare table");
-    probe->et = et.kind == PICO8_VALUE_REF ? et.as.ref : NULL;
-    probe->has_et = 1;
+    probe->et = et;
 
     if (probe->et != NULL) {
         pico8_probe_et_hang_fo(probe->et, self);
@@ -260,7 +248,7 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     je = pico8_je_nf();
     mp = je != NULL && je->ra != NULL ? *je->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 
-    if (pb->has_et && pb->et != NULL) {
+    if (pb->et != NULL) {
         const char *qs = probe_et_qs(pb->et);
         if (qs != NULL) {
             display = qs;
@@ -340,7 +328,7 @@ int pico8_d_(pico8_struct_header_t *self) {
     assert(self->cls->probe_of != NULL && "d_: a class that carries no probe is no receiver -- stop");
 
     probe = self->cls->probe_of(self);
-    has_et = probe->has_et && probe->et != NULL;
+    has_et = probe->et != NULL;
 
     fm = pico8_fm_hy();
     if (!has_et) {
@@ -355,12 +343,12 @@ int pico8_d_(pico8_struct_header_t *self) {
         /* A boolean `fp` hands 0 (`true` is no number), a fixed one itself. */
         pico8_hy_nx(pico8_fm_hy(), probe->fp_is_bool ? pico8_fixed_from_int(0) : probe->fp);
 
-        pico8_rn(pico8_value_fixed(probe->has_ik ? probe->ik : pico8_fixed_from_int(54)));
+        pico8_rn(probe->has_ik ? probe->ik : pico8_fixed_from_int(54));
 
         return 1;
     }
 
-    pico8_rn(pico8_value_fixed(pico8_fixed_from_int(57)));
+    pico8_rn(pico8_fixed_from_int(57));
     probe_host_raise_p_(self);
     return 0;
 }
@@ -473,7 +461,6 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->p = NULL;
     self->probe = &self->probe_own;
     self->probe->et = NULL;
-    self->probe->has_et = 0;
     self->p_ = 0;
     self->has_p_ = 0;
     self->nu = pico8_g__start.nu;

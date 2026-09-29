@@ -163,16 +163,14 @@ static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
     return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
-/* 0 absent, 1 false, 3 a target. */
+/* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t et_state(const pico8_qh_t *qh) {
-    return !qh->probe->has_et ? 0u : qh->probe->et == NULL ? 1u : 3u;
+    return qh->probe->et == NULL ? 1u : 3u;
 }
 
-/* `et` as qh's reader gave it: absent, false, or the target. */
+/* `et` as qh's reader gave it: false or the target. */
 static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
     switch (et_state(qh)) {
-    case 0u:
-        return fold_absent(h);
     case 1u:
         return fold_bool_member(h, 0);
     default:
@@ -322,7 +320,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
-    h = fnv(h, (uint32_t)qh->probe->has_et);
+    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, (uint32_t)(jo->nu != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
