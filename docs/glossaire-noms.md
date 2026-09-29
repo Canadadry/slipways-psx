@@ -259,10 +259,10 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `ob(qs,mr)` | — (données générées : `pico8_game_data.c`) | analyse une spec compacte (`"x=-1,y=-1,c=0,"`) en table, puis y fusionne `mr` ; **la virgule finale est obligatoire**, sans elle le dernier champ est perdu |
-| `fi(qs,fn)` | `pico8_fi` | applique `fn` à chaque caractère et collecte les résultats non nuls |
+| `fi(qs,fn)` | — (supprimé à D.8 avec `pico8_ob.c`) | appliquait `fn` à chaque caractère et collectait les résultats non nuls ; seul `ob()` s'en servait |
 | `pi` | `pico8_pi_dispatch_register` | table des constructeurs appelables depuis une spec (`b`→`qz`, `v`→`v`, `s`→`spr`, sans équivalent : le port n'analyse plus de spec) et des fonctions de dessin de `bl()`, `pico8_pi_fn` (un article) : `br`→`rk`, `qr`→`io`, `rf`→`eq`, `s`→`spr`, `ld`→`lq:ol` |
 | `oo(fn,a)` | — | appelle `fn` avec les 5 premières entrées positionnelles de `a` : dans `bl`, la fonction de `pi` lit elle-même les items de l'article |
-| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (`const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le second consommateur de `pi` |
+| `bl(rb,nc)` | `pico8_bl` | dessine chaque article de `rb` (`const pico8_jb_row_t *`, items et `fn`) via la fonction `pi` que nomme son `fn`, avec une secousse de caméra `nc` alternée. C'est le seul consommateur de `pi` depuis D.8 |
 | `fn`, `rb`, `nc` | — ; `rb` de `fv` : `const pico8_jb_row_t *rb` → `pico8_fv_rb_row` | le nom de constructeur d'une rangée, la liste de rangées, le décalage de secousse |
 | `oa` | — | masque de bouton passé à `bu()` : 1 pour le gauche, 6 pour le droit |
 
@@ -653,7 +653,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_list_free` ne libère que son tableau |
 | L'inverse, pour les chaînes construites | `tostr`, `sub`, `unstash` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
-| Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des trois formes qui modélisent la table Lua ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
+| Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des deux formes qui modélisent encore la table Lua (la troisième, la table ob, est supprimée à D.8) ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
 | Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
 
 ### Mise en page
