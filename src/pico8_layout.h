@@ -125,10 +125,6 @@ pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row);
  * `items`, `fs` and `w` are left as they were. */
 void pico8_lq_add(pico8_lq_t *self, pico8_value_t v);
 
-/* "bg" as 1a held it, a FIXED or a BOOL; nil (REF NULL) for a nil "bg" or a
- * NULL self. */
-pico8_value_t pico8_lq_bg(const pico8_lq_t *self);
-
 /* One line per item of `row` (NULL: no line): a string makes a one-item
  * row, a row its scalar items and its `c`, any other item an empty row. */
 pico8_jb_t *pico8_jb_new(const pico8_jb_row_t *row);

@@ -298,13 +298,6 @@ static void pico8_jb_ol_dispatch(void *self, pico8_vec_t p, pico8_fixed_t a) {
     pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, pico8_fixed_from_int(0), a);
 }
 
-pico8_value_t pico8_lq_bg(const pico8_lq_t *self) {
-    if (self == NULL || !self->has_bg) {
-        return pico8_value_ref(NULL);
-    }
-    return self->bg_is_bool ? pico8_value_bool(self->bg) : pico8_value_fixed(self->bg);
-}
-
 static const pico8_vec_t *lq_get_ra(const void *self) {
     return ((const pico8_lq_t *)self)->ra;
 }

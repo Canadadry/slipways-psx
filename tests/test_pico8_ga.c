@@ -494,14 +494,13 @@ static uint32_t fold_lq_positional(uint32_t h, const pico8_lq_t *lq, int i) {
  * `score`, `ra`, `fs`, `w`, the rest. */
 static uint32_t fold_lq(uint32_t h, void *e) {
     const pico8_lq_t *lq = as_ga(e)->jo.lq;
-    pico8_value_t bg;
     int n = 0;
     int k;
     int i;
 
     assert(lq != NULL && pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT &&
            lq->header.cls == pico8_lq_struct_class());
-    bg = pico8_lq_bg(lq);
+    assert(!lq->has_bg);
     assert(lq->fs != NULL);
     k = lq->fs_count;
     for (i = 0; i < k; i++) {
@@ -509,10 +508,6 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     }
     if (lq->has_c) {
         h = fold_value(fnv_str(h, "c"), pico8_value_fixed(lq->c));
-        n++;
-    }
-    if (!(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL)) {
-        h = fold_value(fnv_str(h, "bg"), bg);
         n++;
     }
     if (lq->has_score) {

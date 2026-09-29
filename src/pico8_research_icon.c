@@ -90,7 +90,7 @@ void pico8_ie_hb(pico8_ie_t *self) {
      * pico8_oj() then answers true unconditionally. */
     rr = pico8_ie_ke_view(self).rr;
 
-    if (!pico8_oj(rr != NULL ? pico8_value_string(rr) : pico8_value_ref(NULL))) {
+    if (!pico8_oj(rr)) {
         return;
     }
 

@@ -102,9 +102,6 @@ const pico8_jb_row_t *pico8_pj_gs(void);
  * init. */
 pico8_pj_t *pico8_pj_new(void);
 
-/* REF NULL for a NULL panel. */
-pico8_value_t pico8_pj_ed(const pico8_pj_t *self);
-
 /* The PICO8_BZ_COUNT rows of `bz`, statics of this module: every `pj:ph()`
  * run rewrites them in place. NULL before the init and after the shutdown. */
 pico8_bz_row_t *pico8_pj_bz(void);

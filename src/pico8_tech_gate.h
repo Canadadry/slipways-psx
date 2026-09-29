@@ -5,9 +5,9 @@
 #include "pico8_map_tables.h"
 #include "pico8_value.h"
 
-/* `px` may be this port's absent-value filler, which reads falsy and so
- * answers true: no prerequisite is an unlocked prerequisite. */
-int pico8_oj(pico8_value_t px);
+/* A NULL `px` (the cart's nil or false) answers 1: no prerequisite is an
+ * unlocked one. */
+int pico8_oj(const char *px);
 
 pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc);
 

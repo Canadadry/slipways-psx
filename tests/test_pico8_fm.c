@@ -170,6 +170,27 @@ static void test_fm_is_a_struct(void) {
     assert(((const pico8_struct_header_t *)pico8_fm())->cls == pico8_hy_struct_class());
 }
 
+/* `cb` keeps a tech of the current tier until it is invented, even with `bi`. */
+static void test_cb_drops_invented(void) {
+    pico8_cb_kept_t kept;
+    const pico8_nb_entry_t *t;
+    pico8_fixed_t ew;
+    int i;
+
+    pico8__init();
+    new_game();
+    kept = pico8_cb(1);
+    assert(kept.count > 0);
+    t = kept.items[0];
+    ew = pico8_fm_hy()->ew;
+    pico8_hy_kt(pico8_fm_hy(), t);
+    assert(pico8_fm_hy()->ew == ew);
+    kept = pico8_cb(1);
+    for (i = 0; i < kept.count; i++) {
+        assert(kept.items[i] != t);
+    }
+}
+
 /* Each scenario runs in a child forked right after pico8_cart_load(), as a
  * fresh process would start it. */
 static void in_fresh_child(void (*test)(void)) {
@@ -205,6 +226,7 @@ int main(void) {
     in_fresh_child(test_cycle);
     in_fresh_child(test_replacement);
     in_fresh_child(test_fm_is_a_struct);
+    in_fresh_child(test_cb_drops_invented);
     printf("test_pico8_fm: ok\n");
     return 0;
 }

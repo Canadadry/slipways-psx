@@ -322,7 +322,7 @@ static int pico8_bj_predicate(const pico8_hp_t *b, const pico8_struct_header_t *
 
     pico8_hp_assert(b);
 
-    if (!pico8_oj(b->rr != NULL ? pico8_value_string(b->rr) : pico8_value_ref(NULL))) {
+    if (!pico8_oj(b->rr)) {
         return 0;
     }
 

@@ -9,40 +9,25 @@
 #include "pico8_entity.h"
 #include "pico8_probe.h"
 
-/* Lua truthiness -- fixed 0 included, it is truthy -- extended to read
- * this port's absent-value filler as falsy. */
-static int pico8_tech_gate_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
 /* `e_` of each entry of `pico8_nb_table`, by rank. */
 static int g_nb_e_[PICO8_NB_COUNT];
 
-int pico8_oj(pico8_value_t px) {
+int pico8_oj(const char *px) {
     const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_ptrs_t *invented_list = NULL;
 
-    if (!pico8_tech_gate_truthy(px)) {
+    if (px == NULL) {
         return 1;
-    }
-    if (px.kind != PICO8_VALUE_STRING) {
-        return 0;
     }
     if (fm != NULL) {
         invented_list = fm->invented;
     }
     /* TROU-3 */
-    return pico8_gu_content_ptrs(invented_list, px.as.string);
+    return pico8_gu_content_ptrs(invented_list, px);
 }
 
 pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc) {
-    if (pico8_oj(pico8_value_string(px))) {
+    if (pico8_oj(px)) {
         return mc;
     }
     return lk;
@@ -95,7 +80,7 @@ static int pico8_cb_predicate(const pico8_nb_entry_t *t, int bi) {
         return 0;
     }
 
-    if (pico8_oj(pico8_value_string(t->px))) {
+    if (pico8_oj(t->px)) {
         return 0;
     }
 

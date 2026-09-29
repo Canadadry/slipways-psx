@@ -80,8 +80,8 @@ const pico8_struct_class_t *pico8_hp_struct_class(void);
 /* The class's `fk`: `pico8_hp_fk_row`, never NULL. */
 const pico8_jb_row_t *pico8_hp_fk(void);
 
-/* `il` as the cart holds it: REF NULL when nil or `self` is NULL, BOOL 0, or the STRING. */
-pico8_value_t pico8_hp_il(const pico8_hp_t *self);
+/* `il` as the cart reads it: NULL when nil, false or `self` is NULL. */
+const char *pico8_hp_il(const pico8_hp_t *self);
 
 /* Aborts unless `self` is NULL or a project. */
 void pico8_hp_assert(const pico8_hp_t *self);

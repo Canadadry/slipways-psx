@@ -288,16 +288,6 @@ static void pico8_pj_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_pj_ph((pico8_pj_t *)self);
 }
 
-pico8_value_t pico8_pj_ed(const pico8_pj_t *self) {
-    if (self == NULL) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->ed == NULL) {
-        return pico8_value_fixed(pico8_pj_start.ed);
-    }
-    return pico8_value_ref(self->ed);
-}
-
 static int pj_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_pj_t *)self)->fa;
     return 1;

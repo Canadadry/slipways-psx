@@ -266,7 +266,6 @@ static uint32_t fold_lq_item(uint32_t h, pico8_lq_cell_t c, int depth) {
  * positionals, then `c`, `bg`, `score`, `ra`, `fs`, `w`, then the rest. */
 static uint32_t fold_lq_instance(uint32_t h, const void *l) {
     const pico8_lq_t *lq = l;
-    pico8_value_t bg;
     int k;
     int i;
 
@@ -274,19 +273,16 @@ static uint32_t fold_lq_instance(uint32_t h, const void *l) {
         return fnv(h, 0xDEADu);
     }
     assert(pico8_type_tag_of(lq) == PICO8_TYPE_TAG_STRUCT && lq->header.cls == pico8_lq_struct_class());
-    bg = pico8_lq_bg(lq);
+    assert(!lq->has_bg);
     assert(lq->fs != NULL);
     k = lq->fs_count;
-    h = fold_view_head(h, lq->items_count + (lq->has_c != 0) + !(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL) +
+    h = fold_view_head(h, lq->items_count + (lq->has_c != 0) +
                               (lq->has_score != 0) + (lq->ra != NULL) + 2);
     for (i = 0; i < k; i++) {
         h = fold_lq_item(fold_view_index(h, i + 1), lq->items[i], 3);
     }
     if (lq->has_c) {
         h = fold_value(fold_view_name(h, "c"), pico8_value_fixed(lq->c), 3);
-    }
-    if (!(bg.kind == PICO8_VALUE_REF && bg.as.ref == NULL)) {
-        h = fold_value(fold_view_name(h, "bg"), bg, 3);
     }
     if (lq->has_score) {
         h = fold_value(fold_view_name(h, "score"), pico8_value_fixed(lq->score), 3);
@@ -523,22 +519,21 @@ static void invent(const char *px) {
 
     *t = (pico8_nb_entry_t){px, 0, NULL, 0, 0, NULL};
     pico8_hy_kt(pico8_fm_hy(), t);
-    assert(pico8_oj(pico8_value_string(px)));
+    assert(pico8_oj(px));
 }
 
 static void test_functions(void) {
     int k;
 
-    assert(pico8_fm_hy() == NULL && !pico8_oj(pico8_value_string("nanomaterials")));
+    assert(pico8_fm_hy() == NULL && !pico8_oj("nanomaterials"));
     start_game();
-    assert(!pico8_oj(pico8_value_string("nanomaterials")));
-    assert(!pico8_oj(pico8_value_fixed(pico8_fixed_from_int(1))));
+    assert(!pico8_oj("nanomaterials"));
     check("functions", fold_functions(2166136261u), FUNCTIONS_HASH);
 
     invent("nanomaterials");
     for (k = 1; k <= GB_COUNT; k++) {
         const pico8_hp_t *b = project(k);
-        if (b->has_il && b->il != NULL && !pico8_oj(pico8_value_string(b->il))) {
+        if (b->has_il && b->il != NULL && !pico8_oj(b->il)) {
             invent(b->il);
         }
     }

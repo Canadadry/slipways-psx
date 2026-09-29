@@ -230,7 +230,7 @@ static void test_pj_defaults_and_ready(void) {
     assert(pj->fa == pico8_pj_start.fa);
     assert(pj->gs == pico8_pj_start.gs);
     assert(pj->i_ == pico8_pj_start.i_);
-    assert(pj->ed == NULL && pico8_pj_ed(pj).as.fixed == pico8_pj_start.ed);
+    assert(pj->ed == NULL);
     assert(cr->hi->x == pico8_pj_start.cr->hi.x && cr->hi->y == pico8_pj_start.cr->hi.y);
     assert(cr->gq->x == pico8_pj_start.cr->gq.x && cr->gq->y == pico8_pj_start.cr->gq.y);
     assert(cr->ca == pico8_pj_start.cr->ca);
