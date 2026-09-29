@@ -6,7 +6,6 @@
 #include "pico8_layout.h"
 #include "pico8_ptrs.h"
 #include "pico8_research.h"
-#include "pico8_value.h"
 
 /* TROU-7 */
 /* Returns a fresh row, or NULL when pico8_jo_ex() does. The two items

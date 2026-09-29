@@ -9,7 +9,6 @@
 #include "pico8_scroll.h"
 #include "pico8_type_tag.h"
 #include "pico8_ui.h"
-#include "pico8_value.h"
 
 void pico8_jl(void) {
     pico8_qb_t *real_mo;

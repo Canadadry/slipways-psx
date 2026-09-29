@@ -7,7 +7,6 @@
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL struct, `gfx` or `input` argument is a

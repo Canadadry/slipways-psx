@@ -8,7 +8,6 @@
 #include "pico8_probe.h"
 #include "pico8_struct.h"
 #include "pico8_ui_button.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe

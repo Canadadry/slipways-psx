@@ -8,7 +8,6 @@
 #include "pico8_dispatch_context.h"
 #include "pico8_entity_geom.h"
 #include "pico8_pi.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 static int g_qb_up = 0;

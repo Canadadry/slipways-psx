@@ -3,7 +3,6 @@
 
 #include "pico8_struct.h"
 #include "pico8_ptrs.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* A vector-valued entity field -- `ra`, `p`, and `kq`'s box -- is a

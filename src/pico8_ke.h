@@ -2,7 +2,6 @@
 #define PICO8_KE_H
 
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* First member of every entity struct of a class descended from ke. Only
  * such structs are ever passed to lt, since only ke's pq calls it outside

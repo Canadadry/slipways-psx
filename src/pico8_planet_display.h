@@ -5,7 +5,6 @@
 #include "pico8_gfx.h"
 #include "pico8_mem.h"
 #include "pico8_planet.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil

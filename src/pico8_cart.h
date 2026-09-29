@@ -3,7 +3,6 @@
 
 #include "pico8_struct.h"
 #include "pico8_ui_button.h"
-#include "pico8_value.h"
 
 /* Parses every module's spec and builds every data table the cart's
  * top-level statements build, which real Lua runs once before `_init()`.

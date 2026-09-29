@@ -5,7 +5,6 @@
 #include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* (Re)builds hv, cv and cg to a fresh, empty state, freeing the
  * previous build first via pico8_entity_shutdown(), and puts back the

@@ -6,7 +6,6 @@
 #include "pico8_mem.h"
 #include "pico8_mouse.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL struct, `mem` or `input` argument is a

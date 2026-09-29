@@ -5,7 +5,6 @@
 #include "pico8_planet_family.h"
 #include "pico8_planet_trade.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* TROU-8 */
 /* Calls `pico8_pi_init()` first. */

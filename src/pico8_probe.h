@@ -8,7 +8,6 @@
 #include "pico8_mem.h"
 #include "pico8_particle.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil

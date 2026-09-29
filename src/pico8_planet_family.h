@@ -8,7 +8,6 @@
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module -- this file and its `_trade` sibling -- a NULL

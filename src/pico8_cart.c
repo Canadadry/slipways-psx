@@ -39,7 +39,6 @@
 #include "pico8_trade.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 

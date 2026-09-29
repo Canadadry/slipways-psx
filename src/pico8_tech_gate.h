@@ -3,7 +3,6 @@
 
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
-#include "pico8_value.h"
 
 /* A NULL `px` (the cart's nil or false) answers 1: no prerequisite is an
  * unlocked one. */

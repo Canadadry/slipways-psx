@@ -10,7 +10,6 @@
 #include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
  * for the value-returning functions), and an absent or wrong-kind field

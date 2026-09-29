@@ -1,7 +1,7 @@
 #ifndef PICO8_AUDIO_H
 #define PICO8_AUDIO_H
 
-#include "pico8_value.h"
+#include "pico8_fixed.h"
 
 /* TROU-10 */
 void pico8_sfx(int n, int channel);

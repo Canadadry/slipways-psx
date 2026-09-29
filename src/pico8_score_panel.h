@@ -9,7 +9,6 @@
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL panel argument is a safe no-op. */

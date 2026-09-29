@@ -4,7 +4,6 @@
 #include "pico8_fixed.h"
 #include "pico8_ptrs.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* Never freed: TROU-7. `lp`/`rl` are the containers the keys held, borrowed,
  * not copied. */

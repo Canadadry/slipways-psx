@@ -4,7 +4,6 @@
 #include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_ptrs.h"
-#include "pico8_value.h"
 
 /* `ow` gets each element plus `ctx`, this port's stand-in for the captured
  * upvalue of the original's closure. Returns a new container the caller

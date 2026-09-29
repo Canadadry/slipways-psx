@@ -10,7 +10,6 @@
 #include "pico8_planet.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 typedef struct pico8_js pico8_js_t;

@@ -4,7 +4,6 @@
 #include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
-#include "pico8_value.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
  * zero/false default rather than crashing, and a NULL instance is a safe

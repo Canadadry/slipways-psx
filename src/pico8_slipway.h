@@ -7,7 +7,6 @@
 #include "pico8_probe.h"
 #include "pico8_ptrs.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* Throughout this module a NULL struct argument is a safe no-op (Lua nil
  * for the value-returning functions), and a nil or wrong-kind member, or

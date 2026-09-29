@@ -9,7 +9,6 @@
 #include "pico8_mouse_reader.h"
 #include "pico8_ptrs.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 
 /* Throughout this module a NULL `ui`, `gfx` or `mem` argument is a safe
  * no-op, and an absent or wrong-kind field of another entity (`je`, `mo`,

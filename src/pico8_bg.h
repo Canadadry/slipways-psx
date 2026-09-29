@@ -6,7 +6,6 @@
 #include "pico8_ke.h"
 #include "pico8_mem.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* Throughout this module a NULL `self`, `gfx` or `mem` argument is a safe

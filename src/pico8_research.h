@@ -7,7 +7,6 @@
 #include "pico8_ptrs.h"
 #include "pico8_struct.h"
 #include "pico8_trade.h"
-#include "pico8_value.h"
 
 /* A want of `hp.i` or `jo.jy`, the cart's `{qe=r[c]}`, then `gc` as
  * `economy_tiers` writes it. `row` comes first and holds `qe` (has_qe 0:

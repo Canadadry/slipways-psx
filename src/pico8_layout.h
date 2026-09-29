@@ -6,7 +6,6 @@
 #include "pico8_map_tables.h"
 #include "pico8_mem.h"
 #include "pico8_struct.h"
-#include "pico8_value.h"
 #include "pico8_vec.h"
 
 /* C has no closures, so lq:mn bakes the draw its Lua counterpart returns as a
