@@ -185,12 +185,10 @@ static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_list_t *list)
 }
 
 void pico8_cr(void) {
-    pico8_struct_header_t *fm = pico8_fm();
+    const pico8_hy_t *fm = pico8_fm_hy();
     pico8_fixed_t tl = pico8_fixed_from_int(0);
     int gr = 0;
     pico8_fixed_t qi = pico8_fixed_from_int(0);
-    pico8_value_t tl_val;
-    pico8_value_t invented_val;
     int ek;
     pico8_list_t cb_list;
     pico8_cr_row_t *rows;
@@ -199,12 +197,11 @@ void pico8_cr(void) {
     int i;
     pico8_pj_cr_t *cr;
 
-    if (fm != NULL && pico8_entity_get_field(fm, "ew", &tl_val) && tl_val.kind == PICO8_VALUE_FIXED) {
-        tl = tl_val.as.fixed;
+    if (fm != NULL) {
+        tl = fm->ew;
     }
-    if (fm != NULL && pico8_entity_get_field(fm, "invented", &invented_val) &&
-        invented_val.kind == PICO8_VALUE_REF && invented_val.as.ref != NULL) {
-        gr = PICO8_REF_AS_LIST_CONST(invented_val.as.ref)->count;
+    if (fm != NULL && fm->invented != NULL) {
+        gr = fm->invented->count;
     }
 
     if (pico8_int_seq_at(pico8_ek_table, PICO8_EK_COUNT, pico8_fixed_flr_int(tl) - 1, &ek)) {
@@ -240,8 +237,7 @@ void pico8_cr(void) {
         extra->row.lq_row = &extra->lq;
         extra->row.has_jb = 1;
         extra->row.jb = pico8_value_ref(NULL);
-        extra->row.jb_row = pico8_menu_invented_lines(
-            invented_val.kind == PICO8_VALUE_REF ? PICO8_REF_AS_LIST_CONST(invented_val.as.ref) : NULL);
+        extra->row.jb_row = pico8_menu_invented_lines(fm->invented);
     }
     for (i = 0; i < n; i++) {
         bs[i] = rows[i].row;

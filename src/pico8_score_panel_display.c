@@ -16,26 +16,6 @@
 #include "pico8_ui_button.h"
 
 
-/* Lua truthiness: only `false` and this port's absent filler `ref(NULL)`
- * read as falsy -- 0 does not. */
-static int pj_display_truthy(pico8_value_t v) {
-    if (v.kind == PICO8_VALUE_BOOL && v.as.boolean == 0) {
-        return 0;
-    }
-    if (v.kind == PICO8_VALUE_REF && v.as.ref == NULL) {
-        return 0;
-    }
-    return 1;
-}
-
-static pico8_value_t fm_field_value(const pico8_struct_header_t *fm, const char *name) {
-    pico8_value_t v;
-    if (fm != NULL && pico8_entity_get_field(fm, name, &v)) {
-        return v;
-    }
-    return pico8_value_ref(NULL);
-}
-
 /* Returns a newly allocated string the caller owns and must free(). */
 static char *pj_concat2(const char *a, const char *b) {
     size_t la = strlen(a);
@@ -219,9 +199,8 @@ static pico8_value_t pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t
     pico8_pj_ph_set(st, 3, (pico8_jb_item_t){.s = s_str});
 
     if (score_i == 0) {
-        const pico8_struct_header_t *fm = pico8_fm();
-        pico8_value_t hl_val = fm_field_value(fm, "hl");
-        const char *hl_str = (hl_val.kind == PICO8_VALUE_STRING) ? hl_val.as.string : "current score";
+        const pico8_hy_t *fm = pico8_fm_hy();
+        const char *hl_str = fm != NULL && fm->has_hl && fm->hl != NULL ? fm->hl : "current score";
         const pico8_js_t *dk = pico8_dk();
         const char *px = "";
         pico8_value_t px_val;
@@ -272,11 +251,11 @@ static pico8_value_t pico8_pj_ph_map(pico8_bz_row_t *st, const pico8_pj_ph_ctx_t
 }
 
 void pico8_pj_ph(pico8_pj_t *self) {
-    const pico8_struct_header_t *fm = pico8_fm();
-    pico8_value_t hl_val = fm_field_value(fm, "hl");
+    const pico8_hy_t *fm = pico8_fm_hy();
+    int has_hl = fm != NULL && fm->has_hl && fm->hl != NULL;
     int has_gz = self != NULL && self->has_gz;
 
-    if (pj_display_truthy(hl_val) && !has_gz) {
+    if (has_hl && !has_gz) {
         static const pico8_jb_item_t back_items[] = {{.n = 10}, {.n = 7}};
         static const pico8_jb_row_t back = {.count = 2, .items = back_items};
         pico8_js_keys_t spec1 = {0};

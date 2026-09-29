@@ -671,11 +671,6 @@ static void lu_on_other(void *e) {
     (void)pico8_hy_lu(e, pico8_fixed_from_int(1));
 }
 
-static void fm_hy_on_provisional(void *e) {
-    (void)e;
-    (void)pico8_fm_hy();
-}
-
 /* `fm` is a struct whose descriptor has no method, a reader and no writer;
  * `hy` takes no key, its functions refuse anything but a `hy`, and the
  * provisional `fm` is never handed to them. */
@@ -687,7 +682,7 @@ static void test_hy_is_a_struct(void) {
     assert(pico8_hy_ready());
     pico8__init();
     assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)pico8_fm())->cls == pico8_fm_placeholder_struct_class());
-    must_abort(fm_hy_on_provisional, NULL);
+    assert(pico8_fm_hy() == NULL);
 
     new_game();
     assert(pico8_type_tag_of(pico8_fm()) == PICO8_TYPE_TAG_STRUCT);

@@ -26,15 +26,14 @@ static int pico8_tech_gate_truthy(pico8_value_t v) {
 static int g_nb_e_[PICO8_NB_COUNT];
 
 int pico8_oj(pico8_value_t px) {
-    pico8_value_t invented;
+    const pico8_hy_t *fm = pico8_fm_hy();
     const pico8_list_t *invented_list = NULL;
 
     if (!pico8_tech_gate_truthy(px)) {
         return 1;
     }
-    if (pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "invented", &invented) &&
-        invented.kind == PICO8_VALUE_REF) {
-        invented_list = PICO8_REF_AS_LIST_CONST(invented.as.ref);
+    if (fm != NULL) {
+        invented_list = fm->invented;
     }
     /* TROU-3 */
     return pico8_gu_content(invented_list, px);
@@ -49,14 +48,13 @@ pico8_value_t pico8_ov(pico8_value_t px, pico8_value_t lk, pico8_value_t mc) {
 
 /* `flr(od*max(fm.fu[nk], 0.55))`, an absent `fu[nk]` reading as 0. */
 static pico8_fixed_t pico8_gi_cost(pico8_fixed_t od, int has_nk, pico8_fixed_t nk) {
-    pico8_value_t fu_val;
+    const pico8_hy_t *fm = pico8_fm_hy();
     pico8_fixed_t fu = pico8_fixed_from_int(0);
     pico8_fixed_t threshold = PICO8_FIXED_LIT(0x00008ccc, 0.55);
     pico8_fixed_t factor;
 
-    if (has_nk && pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "fu", &fu_val) &&
-        fu_val.kind == PICO8_VALUE_REF && fu_val.as.ref != NULL) {
-        pico8_qe_map_get((const pico8_qe_map_t *)fu_val.as.ref, nk, &fu);
+    if (has_nk && fm != NULL && fm->fu != NULL) {
+        pico8_qe_map_get(fm->fu, nk, &fu);
     }
 
     factor = (fu > threshold) ? fu : threshold;
@@ -81,8 +79,8 @@ typedef struct {
 static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
     pico8_cb_ctx_t *ctx = ctx_ptr;
     const pico8_nb_entry_t *t;
-    pico8_value_t jk_val;
-    pico8_value_t ew_val;
+    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
     pico8_fixed_t jk = pico8_fixed_from_int(0);
     pico8_fixed_t ew = pico8_fixed_from_int(0);
     int affordable;
@@ -92,16 +90,16 @@ static int pico8_cb_predicate(pico8_value_t e, void *ctx_ptr) {
     }
     t = e.as.ref;
 
-    if (pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "jk", &jk_val) &&
-        jk_val.kind == PICO8_VALUE_FIXED) {
-        jk = jk_val.as.fixed;
+    if (fm != NULL) {
+        jk = fm->jk;
+    } else if (provisional != NULL && provisional->has_jk) {
+        jk = provisional->jk;
     }
     affordable = pico8_gi_nb(t) <= jk;
     g_nb_e_[t - pico8_nb_table] = affordable;
 
-    if (pico8_fm() != NULL && pico8_entity_get_field(pico8_fm(), "ew", &ew_val) &&
-        ew_val.kind == PICO8_VALUE_FIXED) {
-        ew = ew_val.as.fixed;
+    if (fm != NULL) {
+        ew = fm->ew;
     }
     if (pico8_fixed_from_int(t->lv) != ew) {
         return 0;

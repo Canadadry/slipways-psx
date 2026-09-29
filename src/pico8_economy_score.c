@@ -38,14 +38,6 @@ static int field_truthy(const pico8_struct_header_t *inst, const char *name) {
     return economy_truthy(v);
 }
 
-static const pico8_qe_map_t *field_qe_map(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_qe_map_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 static const pico8_list_t *field_list(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
@@ -227,10 +219,11 @@ pico8_ky_t pico8_ky(void) {
     pico8_fixed_t base;
     pico8_fixed_t el;
     pico8_fixed_t total;
-    pico8_fixed_t happiness = field_fixed(pico8_fm(), "happiness");
-    const pico8_list_t *invented = field_list(pico8_fm(), "invented");
+    const pico8_hy_t *fm = pico8_fm_hy();
+    pico8_fixed_t happiness = fm != NULL && fm->has_happiness ? fm->happiness : pico8_fixed_from_int(0);
+    const pico8_list_t *invented = fm != NULL ? fm->invented : NULL;
     int invented_count = (invented != NULL) ? invented->count : 0;
-    const pico8_qe_map_t *fm_po = field_qe_map(pico8_fm(), "po");
+    const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     char *happiness_str;
     pico8_ky_t result;
 
@@ -269,7 +262,8 @@ pico8_ky_t pico8_ky(void) {
 }
 
 pico8_fixed_t pico8_bf(void) {
-    const pico8_qe_map_t *fm_po = field_qe_map(pico8_fm(), "po");
+    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     pico8_fixed_t r_h = pico8_fixed_from_int(0);
     pico8_fixed_t r_w = pico8_fixed_from_int(0);
     pico8_fixed_t h_val;

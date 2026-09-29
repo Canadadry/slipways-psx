@@ -266,6 +266,7 @@ void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
 void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self) {
     pico8_value_t me_val;
     pico8_vec_t mp;
+    const pico8_nf_t *je;
     const char *display = "";
     char *heap_display = NULL;
     pico8_value_t et_val;
@@ -282,7 +283,8 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
         return;
     }
 
-    mp = pico8_probe_field_vec(pico8_je(), "ra");
+    je = pico8_je_nf();
+    mp = je != NULL && je->ra != NULL ? *je->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 
     has_et = pico8_entity_get_field(self, "et", &et_val) && pico8_probe_truthy(et_val);
 
@@ -743,13 +745,15 @@ pico8_struct_header_t *pico8_fm(void) {
 }
 
 pico8_hy_t *pico8_fm_hy(void) {
-    if (g_fm == NULL) {
+    if (g_fm == NULL || g_fm == &g_fm_placeholder.header) {
         return NULL;
     }
-    assert(pico8_type_tag_of(g_fm) == PICO8_TYPE_TAG_STRUCT &&
-           ((const pico8_struct_header_t *)g_fm)->cls == pico8_hy_struct_class() &&
-           "a hy function on the provisional fm calls through a nil fm in the cart");
+    assert(g_fm->cls == pico8_hy_struct_class() && "fm: only the provisional or a hy is ever stored");
     return (pico8_hy_t *)g_fm;
+}
+
+const pico8_fm_placeholder_t *pico8_fm_placeholder(void) {
+    return g_fm == &g_fm_placeholder.header ? &g_fm_placeholder : NULL;
 }
 
 void pico8_probe_set_fm(pico8_struct_header_t *instance) {

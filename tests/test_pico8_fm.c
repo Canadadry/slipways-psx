@@ -28,6 +28,8 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_probe.h"
+#include "../src/pico8_score_panel.h"
+#include "../src/pico8_tech_gate.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_ui_button.h"
@@ -107,12 +109,31 @@ static void test_at_rest(void) {
     assert_at_rest();
 }
 
+static int cb_affordable(const pico8_nb_entry_t *t) {
+    pico8_list_t kept = pico8_cb(pico8_value_bool(1));
+
+    pico8_list_free(&kept);
+    return pico8_nb_e_(t);
+}
+
 static void test_cheat_on_title(void) {
     void *provisional;
+    const pico8_nb_entry_t *t = pico8_nb_table;
 
     pico8__init();
     provisional = pico8_fm();
+    assert(pico8_fm_hy() == NULL && (const void *)pico8_fm_placeholder() == provisional);
+    while (pico8_gi_nb(t) <= pico8_fixed_from_int(0) || pico8_gi_nb(t) > pico8_fixed_from_int(99)) {
+        t++;
+        assert(t < pico8_nb_table + PICO8_NB_COUNT);
+    }
+    assert(cb_affordable(t) == 0);
+    pico8_pj_hb();
+    assert(pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].s, "0$") == 0);
     assert(type_cheat() == 1 && pico8_fm() == provisional);
+    assert(cb_affordable(t) == 1);
+    pico8_pj_hb();
+    assert(!pico8_pj_ou()->sub_items[2][0].is_ref && strcmp(pico8_pj_ou()->sub_items[0][0].s, "200$") == 0);
     assert_cheated();
     assert(type_cheat() == 1 && pico8_fm() == provisional);
     assert_cheated();
@@ -145,6 +166,7 @@ static void test_replacement(void) {
     pico8__init();
     assert(type_cheat() == 1);
     new_game();
+    assert(pico8_fm_placeholder() == NULL && (void *)pico8_fm_hy() == (void *)pico8_fm());
     assert(get_fixed(pico8_fm(), "jk") == pico8_fixed_from_int(0));
     assert(get_fixed(pico8_fm(), "nz") == pico8_fixed_from_int(100));
     pico8_probe_init();

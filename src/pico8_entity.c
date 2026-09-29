@@ -347,6 +347,14 @@ pico8_struct_header_t *pico8_mo(void) {
     return g_mo;
 }
 
+pico8_qb_t *pico8_mo_qb(void) {
+    if (g_mo == NULL || g_mo == &g_mo_placeholder.header) {
+        return NULL;
+    }
+    assert(g_mo->cls == pico8_qb_struct_class() && "mo: only the placeholder or a qb is ever stored");
+    return (pico8_qb_t *)g_mo;
+}
+
 /* See pico8_entity.h's own comment on this declaration: the outgoing mo
  * is deliberately leaked rather than freed. */
 void pico8_entity_set_mo(pico8_struct_header_t *instance) {

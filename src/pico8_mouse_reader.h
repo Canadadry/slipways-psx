@@ -4,6 +4,7 @@
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
+#include "pico8_mouse.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
@@ -26,6 +27,10 @@ void pico8_nf_init(void);
 
 /* Frees the shared `l`/`r` tables. */
 void pico8_nf_shutdown(void);
+
+/* The shared `l`/`r` tables, NULL outside pico8_nf_init()..pico8_nf_shutdown(). */
+const pico8_nf_button_t *pico8_nf_l(void);
+const pico8_nf_button_t *pico8_nf_r(void);
 
 /* 1 from pico8_nf_init() to pico8_nf_shutdown(), 0 otherwise. */
 int pico8_nf_ready(void);

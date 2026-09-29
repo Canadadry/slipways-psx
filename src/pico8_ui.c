@@ -50,16 +50,7 @@ typedef struct {
 /* The only one: never allocated, never freed. */
 static pico8_je_placeholder_t g_je_placeholder = {{PICO8_TYPE_TAG_STRUCT, &g_je_placeholder_struct_class}};
 
-/* Field readers: an absent field, a wrong kind, or a NULL instance all read
- * as the default -- a zero vector here, "no value" for the raw one. */
-static pico8_vec_t pico8_ui_field_vec(const pico8_struct_header_t *inst, const char *name) {
-    pico8_value_t v;
-    if (inst != NULL && pico8_entity_get_field(inst, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return *(const pico8_vec_t *)v.as.ref;
-    }
-    return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-}
-
+/* An absent field, a wrong kind, or a NULL instance all read as "no value". */
 static pico8_value_t pico8_ui_field_raw(const pico8_struct_header_t *inst, const char *name) {
     pico8_value_t v;
     if (inst != NULL && pico8_entity_get_field(inst, name, &v)) {
@@ -72,16 +63,20 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
+static pico8_vec_t pico8_ui_vec_or_zero(const pico8_vec_t *v) {
+    return v != NULL ? *v : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+}
+
 /* je[bt] (bt "l" or "r"): NULL when `je` has no such button state,
  * which is the case for the field-less placeholder. */
 static const pico8_nf_button_t *pico8_ui_je_button_table(const char *bt) {
-    pico8_value_t b_val;
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
            "je[bt]: bt is l or r only; another button has no state table -- stop");
-    if (pico8_entity_get_field(g_je, bt, &b_val) && b_val.kind == PICO8_VALUE_REF && b_val.as.ref != NULL) {
-        return (const pico8_nf_button_t *)b_val.as.ref;
+    assert(g_je != NULL && "je[bt]: indexing a nil je stops the run, as in the cart");
+    if (pico8_je_nf() == NULL) {
+        return NULL;
     }
-    return NULL;
+    return strcmp(bt, "l") == 0 ? pico8_nf_l() : pico8_nf_r();
 }
 
 static int pico8_ui_je_button_field_bool(const char *bt, const char *field) {
@@ -218,6 +213,14 @@ pico8_struct_header_t *pico8_je(void) {
     return g_je;
 }
 
+pico8_nf_t *pico8_je_nf(void) {
+    if (g_je == NULL || g_je == &g_je_placeholder.header) {
+        return NULL;
+    }
+    assert(g_je->cls == pico8_nf_struct_class() && "je: only the placeholder or an nf is ever stored");
+    return (pico8_nf_t *)g_je;
+}
+
 /* Deliberately does not free the outgoing instance. `pico8_jl()` rebuilds
  * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
  * whose `self` is still the old `ok` after the callback returns -- freeing
@@ -249,6 +252,8 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
     pico8_vec_t qa;
     pico8_vec_t *heap_qa;
     int hit;
+    const pico8_nf_t *je;
+    const pico8_qb_t *mo;
 
     if (self == NULL) {
         return;
@@ -257,7 +262,10 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
     le_ptr_before = self->le;
     le_count = self->le != NULL ? self->le->count : 0;
 
-    qa = pico8_vec_add(pico8_ui_field_vec(g_je, "ra"), pico8_ui_field_vec(pico8_mo(), "ra"));
+    je = pico8_je_nf();
+    mo = pico8_mo_qb();
+    qa = pico8_vec_add(pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL),
+                       pico8_ui_vec_or_zero(mo != NULL ? mo->ra : NULL));
     /* TROU-7 */
     heap_qa = malloc(sizeof *heap_qa);
     *heap_qa = qa;
@@ -283,6 +291,7 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
  * `ql` is absent falls through to self's own cursor sprite. */
 void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *self) {
     pico8_vec_t je_ra;
+    const pico8_nf_t *je;
     int spr_id = 0;
 
     if (self == NULL || gfx == NULL || mem == NULL) {
@@ -298,7 +307,8 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
         spr_id = pico8_ui_to_int(self->ql);
     }
 
-    je_ra = pico8_ui_field_vec(g_je, "ra");
+    je = pico8_je_nf();
+    je_ra = pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL);
     pico8_spr_default(gfx, mem, spr_id, pico8_ui_to_int(je_ra.x), pico8_ui_to_int(je_ra.y));
 }
 
@@ -306,7 +316,7 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
  * field is absent, with no observable effect, so the write is simply
  * skipped here rather than allocating a table nothing reads. */
 void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
-    pico8_value_t je_ra_val;
+    const pico8_nf_t *je;
     const pico8_vec_t *je_ra;
     const pico8_list_t *hd_bucket;
     int i;
@@ -323,8 +333,8 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     self->ic = &self->ic_own;
     self->o_ = NULL;
 
-    je_ra_val = pico8_ui_field_raw(g_je, "ra");
-    je_ra = je_ra_val.kind == PICO8_VALUE_REF ? je_ra_val.as.ref : NULL;
+    je = pico8_je_nf();
+    je_ra = je != NULL ? je->ra : NULL;
 
     hd_bucket = pico8_cv("hd");
     if (hd_bucket != NULL) {
@@ -371,7 +381,7 @@ static int ui_is_held_class(const pico8_struct_class_t *cls) {
 void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     int l;
     pico8_struct_header_t *held_inst;
-    pico8_value_t je_ra_val;
+    pico8_nf_t *je;
     pico8_vec_t *je_ra;
 
     if (self == NULL) {
@@ -381,8 +391,8 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
     assert((strcmp(bt, "l") == 0 || strcmp(bt, "r") == 0) &&
            "ui:bh: bt is l or r only; another button has no state table -- stop");
     l = bt[0] == 'l';
-    je_ra_val = pico8_ui_field_raw(g_je, "ra");
-    je_ra = je_ra_val.kind == PICO8_VALUE_REF ? je_ra_val.as.ref : NULL;
+    je = pico8_je_nf();
+    je_ra = je != NULL ? je->ra : NULL;
 
     if (pico8_ui_je_button_field_bool(bt, "jn")) {
         pico8_struct_header_t *kv = NULL;

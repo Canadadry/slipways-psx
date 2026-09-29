@@ -32,30 +32,6 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
 }
 
-static pico8_fixed_t fm_field_fixed(const pico8_struct_header_t *fm, const char *name) {
-    pico8_value_t v;
-    if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_FIXED) {
-        return v.as.fixed;
-    }
-    return pico8_fixed_from_int(0);
-}
-
-static pico8_value_t fm_field_value(const pico8_struct_header_t *fm, const char *name) {
-    pico8_value_t v;
-    if (fm != NULL && pico8_entity_get_field(fm, name, &v)) {
-        return v;
-    }
-    return pico8_value_ref(NULL);
-}
-
-static const pico8_qe_map_t *fm_field_qe_map(const pico8_struct_header_t *fm, const char *name) {
-    pico8_value_t v;
-    if (fm != NULL && pico8_entity_get_field(fm, name, &v) && v.kind == PICO8_VALUE_REF && v.as.ref != NULL) {
-        return (const pico8_qe_map_t *)v.as.ref;
-    }
-    return NULL;
-}
-
 /* Returns a newly allocated string the caller owns and must free(). */
 static char *pj_concat2(const char *a, const char *b) {
     size_t la = strlen(a);
@@ -218,14 +194,15 @@ pico8_jb_item_t pico8_pj_item_of(pico8_value_t v) {
 }
 
 void pico8_pj_hb(void) {
-    const pico8_struct_header_t *fm = pico8_fm();
-    pico8_fixed_t fm_ge = fm_field_fixed(fm, "ge");
-    pico8_fixed_t fm_nz = fm_field_fixed(fm, "nz");
-    pico8_value_t fm_jk = fm_field_value(fm, "jk");
-    pico8_fixed_t fm_happiness = fm_field_fixed(fm, "happiness");
-    pico8_fixed_t fm_lo = fm_field_fixed(fm, "lo");
-    pico8_value_t fm_yr = fm_field_value(fm, "yr");
-    const pico8_qe_map_t *fm_po = fm_field_qe_map(fm, "po");
+    const pico8_hy_t *fm = pico8_fm_hy();
+    const pico8_fm_placeholder_t *provisional = pico8_fm_placeholder();
+    pico8_fixed_t fm_ge = fm != NULL ? fm->ge : pico8_fixed_from_int(0);
+    pico8_fixed_t fm_nz = pico8_fixed_from_int(0);
+    pico8_value_t fm_jk = pico8_value_ref(NULL);
+    pico8_fixed_t fm_happiness = fm != NULL && fm->has_happiness ? fm->happiness : pico8_fixed_from_int(0);
+    pico8_fixed_t fm_lo = fm != NULL ? fm->lo : pico8_fixed_from_int(0);
+    pico8_value_t fm_yr = fm != NULL ? pico8_value_fixed(fm->yr) : pico8_value_ref(NULL);
+    const pico8_qe_map_t *fm_po = fm != NULL ? fm->po : NULL;
     pico8_pj_ou_t *ou_state;
     pico8_value_t ou[7];
     char *cf;
@@ -234,6 +211,18 @@ void pico8_pj_hb(void) {
     char *plus_num;
     int discard_color = 0;
     int i;
+
+    if (fm != NULL) {
+        fm_nz = fm->nz;
+        fm_jk = pico8_value_fixed(fm->jk);
+    } else if (provisional != NULL) {
+        if (provisional->has_nz) {
+            fm_nz = provisional->nz;
+        }
+        if (provisional->has_jk) {
+            fm_jk = pico8_value_fixed(provisional->jk);
+        }
+    }
 
     cf = pico8_ne(fm_ge, 0, NULL, &discard_color);
 

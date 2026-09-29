@@ -46,7 +46,8 @@ int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_
 
 int pico8_gd(const pico8_struct_header_t *e) {
     pico8_vec_t e_ra = pico8_entity_geom_field_vec(e, "ra");
-    pico8_vec_t mo_ra = pico8_entity_geom_field_vec(pico8_mo(), "ra");
+    const pico8_qb_t *mo = pico8_mo_qb();
+    pico8_vec_t mo_ra = mo != NULL && mo->ra != NULL ? *mo->ra : pico8_entity_geom_zero();
     pico8_fixed_t sixty_four = pico8_fixed_from_int(64);
     pico8_fixed_t seventy_six = pico8_fixed_from_int(76);
 

@@ -737,7 +737,7 @@ static int pico8_ga_set_field(void *self, const char *name, pico8_value_t value)
 }
 
 void pico8_ga_pq(pico8_ga_t *self) {
-    pico8_struct_header_t *mo;
+    pico8_qb_t *mo;
 
     if (self == NULL) {
         return;
@@ -745,9 +745,10 @@ void pico8_ga_pq(pico8_ga_t *self) {
     pico8_f_((pico8_struct_header_t *)self);
     pico8_ez((pico8_struct_header_t *)self, pico8_fixed_from_int(140));
 
-    mo = pico8_mo();
-    if (mo != NULL) {
-        pico8_entity_set_field(mo, "ma", pico8_value_fixed(pico8_fixed_from_int(3)));
+    if (pico8_mo() != NULL) {
+        mo = pico8_mo_qb();
+        assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
+        mo->ma = pico8_fixed_from_int(3);
     }
 }
 

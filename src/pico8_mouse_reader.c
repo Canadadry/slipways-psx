@@ -87,6 +87,14 @@ void pico8_nf_shutdown(void) {
     g_nf_up = 0;
 }
 
+const pico8_nf_button_t *pico8_nf_l(void) {
+    return g_nf_up ? &g_nf_l : NULL;
+}
+
+const pico8_nf_button_t *pico8_nf_r(void) {
+    return g_nf_up ? &g_nf_r : NULL;
+}
+
 int pico8_nf_ready(void) {
     return g_nf_up;
 }

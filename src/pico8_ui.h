@@ -7,6 +7,7 @@
 #include "pico8_ke.h"
 #include "pico8_list.h"
 #include "pico8_mem.h"
+#include "pico8_mouse_reader.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -74,8 +75,11 @@ pico8_ui_t *pico8_ui_new(void);
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder
  * struct, with no field and no method, so every `je.<field>` read falls back
  * to its default; after `pico8_jl()` it is an `nf` struct
- * (pico8_mouse_reader.h). Read it only through `pico8_entity_get_field()`. */
+ * (pico8_mouse_reader.h). Its members are read through `pico8_je_nf()`. */
 pico8_struct_header_t *pico8_je(void);
+
+/* `je` as its `nf`: NULL when there is no je and on the placeholder. */
+pico8_nf_t *pico8_je_nf(void);
 
 const pico8_struct_class_t *pico8_je_placeholder_struct_class(void);
 

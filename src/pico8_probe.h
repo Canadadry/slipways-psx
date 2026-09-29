@@ -105,16 +105,18 @@ const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
 
 /* `fm`: the provisional, a static struct that has only `jk`/`nz` (written by
  * the cheat code), which `pico8_probe_init()` installs, then, from `eu()` on,
- * a `hy` struct; read it through pico8_entity_get_field. NULL before init and
- * after shutdown, which several callers test for. The setter takes ownership
- * of the new occupant and frees a previous `hy` as the struct alone
- * (TROU-7); never the provisional. */
+ * a `hy` struct; read it through pico8_fm_hy() and pico8_fm_placeholder().
+ * NULL before init and after shutdown, which several callers test for. The
+ * setter takes ownership of the new occupant and frees a previous `hy` as
+ * the struct alone (TROU-7); never the provisional. */
 pico8_struct_header_t *pico8_fm(void);
 void pico8_probe_set_fm(pico8_struct_header_t *instance);
 
-/* The `hy` of `fm`, NULL when the slot is empty; asserts on the
- * placeholder. */
+/* The `hy` of `fm`, NULL when the slot is empty and on the provisional. */
 pico8_hy_t *pico8_fm_hy(void);
+
+/* The provisional `fm`, NULL when the slot is empty or holds a `hy`. */
+const pico8_fm_placeholder_t *pico8_fm_placeholder(void);
 
 /* TROU-7 */
 /* `mp` is stored into `ra` by REF identity, not copied: the caller's vector

@@ -196,8 +196,10 @@ void pico8_iv_pq(pico8_iv_t *self) {
     }
 
     if (self->ra == NULL) {
-        pico8_vec_t je_ra = pico8_msgbox_field_vec(pico8_je(), "ra");
-        pico8_vec_t mo_ra = pico8_msgbox_field_vec(pico8_mo(), "ra");
+        const pico8_nf_t *je = pico8_je_nf();
+        const pico8_qb_t *mo = pico8_mo_qb();
+        pico8_vec_t je_ra = pico8_iv_vec_or_zero(je != NULL ? je->ra : NULL);
+        pico8_vec_t mo_ra = pico8_iv_vec_or_zero(mo != NULL ? mo->ra : NULL);
         pico8_vec_t offset = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(5));
         pico8_vec_t new_ra = pico8_vec_sub(pico8_vec_add(je_ra, mo_ra), offset);
         /* TROU-7 */

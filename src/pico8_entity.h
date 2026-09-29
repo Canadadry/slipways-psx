@@ -2,6 +2,7 @@
 #define PICO8_ENTITY_H
 
 #include "pico8_list.h"
+#include "pico8_scroll.h"
 #include "pico8_struct.h"
 #include "pico8_value.h"
 
@@ -58,10 +59,12 @@ int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 
 /* Until pico8_jl() runs, the placeholder struct, with no field and no
  * `md`: dc() calls `mo:md(ci[o])` on a `qb` only; afterwards the
- * real `qb` struct (pico8_scroll.h). Either is read and written through
- * pico8_entity_get_field()/pico8_entity_set_field(). Callers must not free
- * it. */
+ * real `qb` struct (pico8_scroll.h). Its members are read and written
+ * through pico8_mo_qb(). Callers must not free it. */
 pico8_struct_header_t *pico8_mo(void);
+
+/* `mo` as its `qb`: NULL when there is no mo and on the placeholder. */
+pico8_qb_t *pico8_mo_qb(void);
 
 const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
 

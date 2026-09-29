@@ -256,7 +256,7 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
     pico8_vec_t zero = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     pico8_vec_t mq;
     pico8_vec_t rp_vec;
-    pico8_struct_header_t *mo;
+    pico8_qb_t *mo;
 
     if (self == NULL) {
         return;
@@ -264,12 +264,13 @@ void pico8_bg_hq(pico8_bg_t *self, pico8_vec_t *rp) {
 
     mq = self->mq != NULL ? *self->mq : zero;
     rp_vec = rp != NULL ? *rp : zero;
-    mo = pico8_mo();
-    if (mo != NULL) {
+    if (pico8_mo() != NULL) {
         /* TROU-7 */
         pico8_vec_t *v_new = malloc(sizeof *v_new);
         *v_new = pico8_vec_sub(mq, rp_vec);
-        pico8_entity_set_field(mo, "v", pico8_value_ref(v_new));
+        mo = pico8_mo_qb();
+        assert(mo != NULL && "mo: the placeholder has no writer; a write before jl() stops the run");
+        mo->v = v_new;
     }
 
     self->mq = rp;
