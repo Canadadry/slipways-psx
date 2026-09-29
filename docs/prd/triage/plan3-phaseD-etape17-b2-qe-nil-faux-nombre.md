@@ -6,9 +6,9 @@ status: needs-triage
 
 ## Problem Statement
 
-**Écrit pendant que D.16b est implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis **`8533807`** (HEAD de `claude/plan-pilot-3-7zdft0` : le PRD de D.16b revérifié et mis en file), extrait par `git archive 8533807` dans le scratchpad. Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné ; **rien n'a été compilé ni lancé**, aucun fichier non commis n'a été lu. Tout ce qui dépend du résultat de D.16b est une hypothèse `H-D16b-n` (table plus bas) ; les sections qui en dépendent sont listées dans « Sections à revérifier ». **Les numéros de ligne sont ceux de `8533807`** ; dans les fichiers que D.16b touche (`research.c`, `research.h`, `research_display.c`, `test_pico8_hp.c`), le décalage attendu est donné. L'implémenteur remesure par contenu au parent de son commit et explique tout écart.
+**Écrit pendant que D.16b était implémentée** (`plan-pilot`, étape 2b) sur l'arbre commis `8533807`, puis **revérifié après la graduation de D.16b** (`2aa02d5` `refactor(D.16b1)`, `0b2fb52` `refactor(D.16b2)`, gradée par `a01b84c`) sur **`529c71a`** (HEAD de `claude/plan-pilot-3-7zdft0`, qui ne fait qu'ajouter ce PRD), extrait par `git archive HEAD` dans le scratchpad. Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné ; **rien n'a été compilé ni lancé**. Les hypothèses `H-D16b-n` ont reçu leur verdict (plus bas). **Les numéros de ligne de ce PRD sont ceux de `529c71a`** : identiques à ceux de `8533807` dans les fichiers que D.16b n'a pas touchés, remesurés par contenu dans ceux qu'elle a touchés (`research.c`, `research.h`, `research_display.c`, `test_pico8_hp`). L'implémenteur remesure encore par contenu au parent de son commit et explique tout écart.
 
-Mesuré à `8533807` : `valeur` **825 / 97 ; 916 occ.**, `type-tag` **242 / 58**, résidu D **1065 / 107** (D.16b non commencée). **Départ attendu de D.17** (D.16b gradée, H-D16b-1) : `valeur` **745 / 89 ; 831 occ.** (`src/` 318 / 51 / 364, `tests/` 427 / 38 / 467), `type-tag` **242 / 58**, résidu D **985 / 104**.
+Mesuré à `8533807` : `valeur` 825 / 97 ; 916 occ., `type-tag` 242 / 58, résidu D 1065 / 107 (D.16b non commencée). **Mesuré à `529c71a` (départ de D.17) : `valeur` 745 / 89 ; 831 occ. (`src/` 318 / 51 / 364, `tests/` 427 / 38 / 467), `type-tag` 242 / 58, résidu D 985 / 104.**
 
 Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico8_value.c/.h` disparaissent (D.19c). L'étude D.14 (`docs/prd/done/plan3-phaseD-etape14-etude-genres-meles.md`, B2) range à part le `qe` des routes et des besoins : c'est **le seul groupe où un lecteur sépare nil de `false`**. Le port le tient encore en `pico8_value_t` :
 
@@ -17,7 +17,7 @@ Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico
 - l'argument `o` de `pico8_jo_ex` est une `pico8_value_t` que seuls `jo:hb` (`kw.qe`) et `hp:lq` (`hp.o`) fabriquent, pour une copie `truthy` et une comparaison à `r.w` ;
 - `planet_display.c` refabrique `kw.qe` en valeur (`jo_kw_qe`) pour trois lecteurs ; `hp:jb` passe un `qe` enveloppé à `pico8_value_tostr` (appelant que le PRD de D.15c a confié à D.17).
 
-Ligne de l'étape, recopiée de `docs/plan-3.md` à `8533807` (§5, l. 288) :
+Ligne de l'étape, recopiée de `docs/plan-3.md` à `529c71a` (§5, l. 288, inchangée depuis `8533807`) :
 
 > - D.17 — genres mêlés B2 : `pico8_qe_t` et `pico8_qe_equal` (nil ≠ faux conservé). `class-coverage-net` : oui. Compte : ≈ 720.
 
@@ -51,35 +51,32 @@ Legs des étapes précédentes, recopiés (`docs/plan-3.md` l. 285 et PRD de D.1
 
 Règles communes de l'étude (§3) : un TU qui nomme un symbole changé le suit dans le même commit ; aucune empreinte figée ne change ; aucun `*.sha256` ni e2e ne change ; `class-coverage-net` si l'étape touche un constructeur.
 
-### Hypothèses `H-D16b-n` (D.16b en cours ; verdicts à la graduation)
+### Hypothèses `H-D16b-n` — verdicts (D.16b gradée, mesurés à `529c71a`)
 
-Source : le PRD de D.16b à `8533807` (`docs/prd/triage/plan3-phaseD-etape16b-b3-b7-pointeurs-chaines-rn-bg-ed.md`), sa « Sortie » et ses tables d'empreinte. À vérifier par `git archive <HEAD de graduation>`, `git diff --stat 8533807 <HEAD> -- src tests Makefile tools docs/trous-de-portage.md docs/glossaire-noms.md` et les notes « Découvert à D.16b1/b2 ».
+Source des hypothèses : ce PRD à `8533807`. Verdicts : `git archive HEAD` (`529c71a`), `git diff --stat 8533807 HEAD -- src tests Makefile tools docs/trous-de-portage.md docs/glossaire-noms.md` (37 chemins de code ; ni `Makefile`, ni `tools/`, ni les deux docs), la note « Découvert à D.16b1/b2 » (`docs/plan-3.md:287`).
 
-| Hypothèse | Énoncé | Sections de ce PRD qui en dépendent |
-|---|---|---|
-| **H-D16b-1** | Après b2 : `valeur` **745 / 89 ; 831 occ.** (`src/` 318 / 51 / 364, `tests/` 427 / 38 / 467), `type-tag` **242 / 58**, résidu D **985 / 104**, `DATA_RESIDUE_GUARD` inchangé | État de départ, Effet sur `make data-residue`, Sortie, `FAILED:` de départ, Runs 1-2 |
-| **H-D16b-2** | D.16b ne touche ni `trade.c/.h`, ni `planet_trade.c`, ni `economy_tiers.c`, ni `economy_score.c`, ni `planet_display.c/.h`, ni `research_display.h`, ni `test_pico8_trade`, ni `test_pico8_lq` : leurs numéros de ligne sont ceux de `8533807` | Inventaire (toutes ces lignes), mutations (cibles) |
-| **H-D16b-3** | `research.c` après b2 : **2 / 3**, seules les deux lignes de `pico8_jy_qe` restent comptées ; elles remontent (copie `truthy` `:32-42` retirée, `hp_pose` réécrite) vers **≈ `:110–:125`**, à relocaliser par contenu | Inventaire `research.c` |
-| **H-D16b-4** | `research.h` après b2 : **2 / 3 → 2 / 2**, l'include `:9` et `pico8_jy_qe` `:21` (b2 réécrit `:83-84` en place, sans décalage au-dessus) | Inventaire `research.h`, Includes |
-| **H-D16b-5** | `research_display.c` après b2 : **26 / 31** ; b2 n'y change que le texte de `:325` (`pico8_oj(b->rr)`), en place : **aucun décalage**, toutes les lignes de D.17 (`:18-28`, `:48`, `:58`, `:143-304`) inchangées | Inventaire `research_display.c`, mutations |
-| **H-D16b-6** | Copies `*_truthy(pico8_value_t)` après D.16b : **3** (`layout`, `research_display`, `ui_button`) ; celle de `research_display` n'a qu'un appelant, `:156` (`jo_ex`) | Copies `truthy`, grep 3 de la Sortie |
-| **H-D16b-7** | `test_pico8_hp` après b2 : **35 / 36** ; ses lignes `pico8_jy_qe` décalées : `:453-455` → **`:449-451`** (− 4 : `:269`, `:288-290`), `:627` → **`:622`** (− 5 : plus `:535`) ; `fold_value`, `fold_view_name`, `fnv` toujours appelées (aucune ne part sous `-Werror`) | Les TU suivent (`hp`), `fold_qe`, M21 |
-| **H-D16b-8** | Fonctions publiques qui nomment `pico8_value_t` (Annexe B) après D.16b : **7** (`pico8_lq_keys_of_row`, `pico8_lq_add`, `pico8_jy_qe`, `pico8_jo_ex`, `pico8_pj_item_of`, `pico8_js_pq`, `pico8_trade_qe`) | État de départ, Effet |
-| **H-D16b-9** | Appelants de `pico8_value_equal` dans `src/` hors `pico8_value.c` : **exactement 7 lignes** (`planet_trade.c:103,111,151,167`, `economy_tiers.c:20`, `research_display.c:165`, `planet_display.c:214`) ; de `pico8_value_tostr` : **3** (`research_display.c:58`, `pi.c:105`, `score_panel_display.c:197`) | grep 1 et 4 de la Sortie |
-| **H-D16b-10** | `Makefile`, `tools/`, `DATA_ENGINE_SRCS`, `tools/class_coverage_net_expected.txt` (`trade 247`, `lq 2742`, `hp 884`, `jo 2430`) inchangés ; 26 e2e | Makefile et liens, Filets |
-| **H-D16b-11** | `hp_pose` (b2) écrit toujours `o` en nombre (`self->o`, `self->has_o`), membres de `pico8_hp_t` inchangés ; `docs/trous-de-portage.md` (TROU-3, TROU-24) et `docs/glossaire-noms.md` (l. 25, 630) inchangés par D.16b | Inventaire `research_display.c:304`, Documentation |
-| **H-D16b-12** | Ligne D.17 du plan inchangée ; D.16b gradée en deux commits (b1, b2), sans repli b1a/b1b/b2a/b2b qui déplacerait un site de B2 | tout le PRD |
+| Hypothèse | Énoncé (résumé) | Verdict | Mesure à `529c71a` ; effet sur ce PRD |
+|---|---|---|---|
+| H-D16b-1 | `valeur` 745 / 89 ; 831 occ. (`src/` 318 / 51 / 364, `tests/` 427 / 38 / 467), `type-tag` 242 / 58, résidu D 985 / 104 | **tient** | exact ; départ, effet et critères inchangés |
+| H-D16b-2 | D.16b ne touche ni `trade.c/.h`, `planet_trade.c`, `economy_tiers.c`, `economy_score.c`, `planet_display.c/.h`, `research_display.h`, ni les TU `trade`, `lq` | **tient** | absents du `diff --stat` ; numéros inchangés |
+| H-D16b-3 | `research.c` 2 / 3, seules les lignes de `pico8_jy_qe`, remontées vers ≈ `:110–:125` | **fausse en partie** | 2 / 3 exact, mais `pico8_jy_qe` est en **`:134-135`** (− 3 seulement : `hp_pose` réécrite a presque rendu les lignes que la copie `truthy` a libérées) ; numéros corrigés dans l'Inventaire, sans autre effet |
+| H-D16b-4 | `research.h` 2 / 2, include `:9`, `pico8_jy_qe` `:21` | **tient** | `:9`, `:21` ; contrat `:20` inchangé |
+| H-D16b-5 | `research_display.c` 26 / 31, seul `:325` changé en place | **tient** | `:325` est `if (!pico8_oj(b->rr)) {` ; toutes les lignes de D.17 à leur numéro |
+| H-D16b-6 | 3 copies `truthy`, celle de `research_display` appelée seulement en `:156` | **tient** | `layout.c:19`, `research_display.c:20`, `ui_button.c:27` |
+| H-D16b-7 | `test_pico8_hp` 35 / 36 ; `:453-455` → `:449-451`, `:627` → `:622` ; `fold_value` toujours appelée | **tient** | `:449` (2 occ.), `:450`, `:451`, `:622` ; `fold_value` sur 20 lignes (définition comprise) |
+| H-D16b-8 | 7 fonctions publiques à `pico8_value_t` | **tient** | `lq_keys_of_row`, `lq_add`, `jy_qe`, `jo_ex`, `pj_item_of` (`score_panel.h:122`), `js_pq`, `trade_qe` |
+| H-D16b-9 | 7 lignes d'appel de `pico8_value_equal`, 3 de `pico8_value_tostr` dans `src/` | **tient** | mêmes sites (`pi.c:105`, `score_panel_display.c:197`, `research_display.c:58`) |
+| H-D16b-10 | `Makefile`, `tools/`, `DATA_ENGINE_SRCS`, attendu de `class-coverage-net` inchangés ; 26 e2e | **tient** | aucun chemin de `Makefile`/`tools/` dans le diff |
+| H-D16b-11 | `o` toujours un nombre (`hp_pose`, `case 5`) ; TROU-3, TROU-24, glossaire intacts | **tient** | `research.c:90-92` (`self->o`, `has_o = 1`) ; docs absents du diff |
+| H-D16b-12 | ligne D.17 inchangée ; D.16b en deux commits, sans repli | **tient** | `2aa02d5`, `0b2fb52` ; ligne D.17 identique (Annexe A) |
 
-### Sections à revérifier quand D.16b est gradée
+### Revérification faite à la graduation de D.16b
 
-1. « État de départ », « Effet sur `make data-residue` », les deltas attendus de la Sortie et les `FAILED:` de départ (H-D16b-1, H-D16b-8).
-2. Inventaire : numéros de `research.c` (H-D16b-3), `research.h` (H-D16b-4), `research_display.c` (H-D16b-5), `test_pico8_hp` (H-D16b-7) ; les autres fichiers (H-D16b-2) seulement par `git diff --stat`.
-3. Copies `truthy` et grep 3 (H-D16b-6) ; grep 1 et 4 (H-D16b-9).
-4. « Makefile et liens » (H-D16b-10), « Documentation » (H-D16b-11).
-5. Tableau « Runs » : ligne 1 (départ), et « Budget » si la note « Découvert à D.16b » donne un rythme différent de ≈ 11 min jusqu'au commit.
-6. Annexe A : réextraire les lignes D.16b–D.18a du plan.
-
-Si toutes les hypothèses tiennent, le PRD passe en `docs/prd/triage/` sans autre changement ; si une tombe, les sections qu'elle nomme sont remesurées avant.
+- « État de départ », critères `FAILED:` de départ, Runs 1 et 3 : remis sur `529c71a` (mesures identiques à H-D16b-1).
+- Numéros de `research.c` (`:134-135`), `research.h`, `research_display.c`, `test_pico8_hp` : remesurés par contenu ; les autres fichiers sont inchangés depuis `8533807`.
+- Copies `truthy`, greps 1, 3, 4 : constatés.
+- Découpage en un commit : **gardé** (aucune mesure ne le change).
+- Annexe A : lignes D.16b–D.18a réextraites de `529c71a`, avec les notes « Découvert à D.16b1/b2 ».
 
 ### Preuve B2, par le cart
 
@@ -123,7 +120,7 @@ Si toutes les hypothèses tiennent, le PRD passe en `docs/prd/triage/` sans autr
 | `trade.c:22-47` (constructeur) | recopie `keys` ; les deux `assert` `:36-39` refusent un booléen autre que 0/1 et un nil porteur d'une valeur | — |
 | `planet_trade.c:196-200` (`jo:ib`) | `has_qe = 1, qe = kw->qe` si `kw->has_qe`, sinon rien | NIL ou FIXED |
 | `trade.c:115-118` (`kg`, `/* TROU-24 */`) | `has_qe = 1` toujours ; `qe_is_bool = 1, qe = 0` si `self` n'a pas de `qe` | FIXED recopié ou **FALSE** |
-| `research.c:141-149` (`pico8_jy_new`) ; appelants `research.c:236-240` (NULL si le caractère est hors de `r`), `planet_trade.c:121` (`r.e`) | `row.has_qe` sous `qe != NULL` | NIL ou FIXED |
+| `research.c:138-146` (`pico8_jy_new`) ; appelants `research.c:233-237` (NULL si le caractère est hors de `r`), `planet_trade.c:121` (`r.e`) | `row.has_qe` sous `qe != NULL` | NIL ou FIXED |
 | `planet_trade.c:161-162` (`i.qe=t.qe`) | nombre (l'`assert` `:160` le garde) | FIXED |
 | TU : `test_pico8_trade:191-199` (`route()`), `:381` | un `qe` **vrai** (`1, 1, 1`) seulement pour `pico8_trade_eq`, qui ne lit pas `qe` ; aucun appel de `pico8_trade_qe` dans `tests/` | — |
 
@@ -188,7 +185,7 @@ Partout ailleurs, un côté est un nombre ou la lecture ne teste que le genre : 
 - **`hp:jb`** (`research_display.c:48-63`) : `num_str = qe.kind == PICO8_QE_FIXED ? pico8_tostr_fixed(qe.n) : NULL;` puis `iz_name = num_str != NULL ? pico8_iz_lookup(num_str) : NULL;` ; `free(NULL)` est permis. Même morceau qu'aujourd'hui pour un besoin NIL : l'ancien `tostr` rendait `""`, que `iz` n'a pas (clés `"28"`…`"25"`, `map_tables.c:12-15`), et le cart cherche `"[nil]"`, qu'il n'a pas non plus ; aucune chaîne n'est affichée, **TROU-13 n'est pas en jeu à ce site**. Le legs de D.15c (`research_display.c:58`) est soldé : `pico8_value_tostr` garde deux appelants, D.18c.
 - **« nil ≠ faux conservé »** : par `pico8_qe_equal` (table), par la garde `has_qe` de `dh`, et **par des tests** qui fixent les deux lectures de TROU-24 (aujourd'hui non observées).
 - **TU** : `hp` suit `pico8_jy_qe` (pli typé `fold_qe`, mêmes octets) ; `lq` suit `pico8_jo_ex` (G4 : le cas `false` devient le cas nil) ; `trade` reçoit les tests. **`nr` ne suit pas** (l'étude le nommait ; mesuré : il ne nomme ni `pico8_trade_qe`, ni `pico8_jy_qe`, ni `pico8_jo_ex`, ni `pico8_value_equal` ; ses 17 lignes `valeur` sont des plis de D.19).
-- **« TROU-3 et TROU-24 relus »** : TROU-3 nomme « un `pico8_value_equal` dans `jo:gh` » que D.17 retire, et décrit `kw.qe` comme une chaîne partageant le pointeur de `r` — faux depuis que `ho` route `o`/`dm` en nombres (`research.c:122-131`). Son paragraphe d'exception est réécrit ; les marqueurs `/* TROU-3 */` des comparaisons de `qe` partent (`planet_display.c:213`, `research_display.c:164`, `economy_score.c:141`) ou deviennent `/* TROU-24 */` (`economy_tiers.c:255`) ; la clause de `glossaire-noms.md:630` qui « justifie l'exception de TROU-3 » est réécrite. TROU-24 est réécrit pour nommer des fonctions au lieu de numéros de ligne périmés (`planet_trade.c:242`, `economy_tiers.c:302`) et dire où l'écart se voit et quel TU le fixe (textes plus bas).
+- **« TROU-3 et TROU-24 relus »** : TROU-3 nomme « un `pico8_value_equal` dans `jo:gh` » que D.17 retire, et décrit `kw.qe` comme une chaîne partageant le pointeur de `r` — faux depuis que `ho` route `o`/`dm` en nombres (`research.c:119-128`). Son paragraphe d'exception est réécrit ; les marqueurs `/* TROU-3 */` des comparaisons de `qe` partent (`planet_display.c:213`, `research_display.c:164`, `economy_score.c:141`) ou deviennent `/* TROU-24 */` (`economy_tiers.c:255`) ; la clause de `glossaire-noms.md:630` qui « justifie l'exception de TROU-3 » est réécrite. TROU-24 est réécrit pour nommer des fonctions au lieu de numéros de ligne périmés (`planet_trade.c:242`, `economy_tiers.c:302`) et dire où l'écart se voit et quel TU le fixe (textes plus bas).
 - **« Compte : ≈ 720 »** : estimation de l'étude sur une base de 765 (− 45). Mesuré : **− 52 lignes / − 68 occ.** = 23 (B2) + 17 ((a) rangées avec B2) + 3 (copie `truthy`, B12) + 5 (`ml`, B8 dans l'étude) + 4 (TU `hp` 1, `lq` 3) ; l'arrivée est **≈ 693** parce que D.16a/D.16b finissent à 745 et non à 765. « ≈ » n'est pas un critère ; les deltas exacts le sont.
 - **« `class-coverage-net` : oui »** : le constructeur `trade` n'est **pas** modifié (`trade.c:22-47` intact) ; `jo:ib` et `kg`, qui construisent les routes, gardent leurs lignes de construction ; `jo_ex` construit des `lq`. Exigé par la ligne : sortie **identique** à `tools/class_coverage_net_expected.txt`. `sanitize-net` : **non** (aucune durée de vie ni propriétaire ne change : `o` est emprunté le temps de l'appel ; `hp:jb` n'alloue plus de `""` pour un besoin NIL, `free(NULL)`). Balayage ASan+UBSan des TU exigé (consigne).
 - **§6** : `planet_gh_row_lq` et `ga_export_panel_by` exécutent `jo:gh` avec `kw.qe = 99` (branche « exports ») : **inchangés**, recompilés, relancés ; `layout_nil_item_draws_nothing` ne lie pas les fichiers de D.17.
@@ -197,14 +194,14 @@ Partout ailleurs, un côté est un nombre ou la lecture ne teste que le genre : 
 
 ### État de départ
 
-| Mesure | À `8533807` (D.16b non commencée) | Départ attendu (D.16b gradée, H-D16b-1) |
+| Mesure | À `8533807` (D.16b non commencée) | Départ de D.17, mesuré à `529c71a` (D.16b gradée) |
 |---|---|---|
 | `valeur` (lignes / fichiers ; occ.) | 825 / 97 ; 916 occ. | **745 / 89 ; 831 occ.** (`src/` 318 / 51 / 364, `tests/` 427 / 38 / 467) |
 | `type-tag` | 242 / 58 | **242 / 58** |
 | résidu D | 1065 / 107 | **985 / 104** |
-| fonctions publiques qui nomment `pico8_value_t` (Annexe B) | 13 | **7** (H-D16b-8) |
-| copies `*_truthy(pico8_value_t)` | 7 | **3** (H-D16b-6) |
-| appelants de `pico8_value_equal` dans `src/` (hors module) | 7 lignes | 7 (H-D16b-9) |
+| fonctions publiques qui nomment `pico8_value_t` (Annexe B) | 13 | **7** |
+| copies `*_truthy(pico8_value_t)` | 7 | **3** |
+| appelants de `pico8_value_equal` dans `src/` (hors module) | 7 lignes | 7 |
 | `DATA_RESIDUE_GUARD` | `spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit` | inchangé |
 
 Recette des occurrences (celle de D.12–D.16b, motif `valeur` de `tools/data_residue.sh:29`) :
@@ -218,7 +215,7 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
   printf '%s\t%s\t%s\n' $f $n "$(grep -oE "$P" $f | wc -l)"; done
 ```
 
-### Inventaire (numéros à `8533807` ; décalages de D.16b indiqués)
+### Inventaire (numéros à `529c71a`, remesurés par contenu après D.16b)
 
 Classes du message de commit : **(a1)** même site, type C à la place de la valeur ; **(a2)** retirée sans remplaçant (fonction sans appel, copie `truthy`, local, `assert` que le type rend vrai) ; **(b)** signature publique dont le type change ; **(c)** même donnée, autre nom : **attendu 0**. `occ.` : occurrences du motif sur la ligne.
 
@@ -228,7 +225,7 @@ Classes du message de commit : **(a1)** même site, type C à la place de la val
 |---|---|---|---|---|
 | `pico8_qe_t`, `pico8_qe_equal` (`trade.h`, `trade.c`) | — | **nouveaux** (hors motif) | `planet_trade.c`, `economy_tiers.c` | `trade` (tests ajoutés) |
 | `pico8_trade_qe` (`trade.c:13`, `.h:50`) | rend `pico8_value_t` | **rend `pico8_qe_t`** — (b) | `planet_trade.c:89`, `economy_tiers.c:256` | `trade` (tests ajoutés) |
-| `pico8_jy_qe` (`research.c:137` → ≈ `:110–:125`, `.h:21`) | rend `pico8_value_t` | **rend `pico8_qe_t`** — (b) | `planet_trade.c:111,149`, `economy_tiers.c:244`, `research_display.c:56,201` | `hp:454`, `:627` (→ `:450`, `:622`) |
+| `pico8_jy_qe` (`research.c:134`, `.h:21`) | rend `pico8_value_t` | **rend `pico8_qe_t`** — (b) | `planet_trade.c:111,149`, `economy_tiers.c:244`, `research_display.c:56,201` | `hp:450`, `:622` |
 | `pico8_jo_ex` (`research_display.c:143`, `.h:27`) | `(…, pico8_value_t o, …)` | **`(…, const pico8_fixed_t *o, …)`** — (b) | `planet_display.c:63`, `research_display.c:304` | `lq:484`, `:495`, `:499` |
 | `pico8_research_display_truthy`, `jo_kw_qe`, `economy_value_equal_content` (`static`) | — | **retirées** (sans appel, `-Werror`) — (a2) | — | — |
 
@@ -242,8 +239,8 @@ Classes du message de commit : **(a1)** même site, type C à la place de la val
 | | (ajout) | `int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b)`, après `pico8_trade_qe` | — |
 | `trade.h` | `:50` (1) | `pico8_qe_t pico8_trade_qe(const pico8_trade_t *self);` ; contrat `:48-49` réécrit : « `qe` as the cart compares it: nil for a nil `qe` or a NULL self, false only as `kg` writes it (TROU-24); a true `qe` stops the run. » | (b) |
 | | (ajout) | `pico8_qe_t` et le prototype de `pico8_qe_equal` avec son contrat, avant `pico8_trade_keys_t` | — |
-| `research.c` | `:137` (1) | `pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {` | (b) |
-| | `:138` (2) | `return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};` | (a1) |
+| `research.c` | `:134` (1) | `pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {` | (b) |
+| | `:135` (2) | `return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};` | (a1) |
 | `research.h` | `:21` (1) | `pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);` ; contrat `:20` : « `i.qe`: nil or a number, never false. » ; `#include "pico8_trade.h"` ajouté après `pico8_struct.h` (hors motif) | (b) |
 | `planet_trade.c` | `:74`, `:75` (2 chacune) | `pico8_qe_t r_e = {.kind = PICO8_QE_NIL};`, idem `r_q` | (a1) |
 | | `:79` (2) | `pico8_qe_t t_qe = {.kind = PICO8_QE_NIL};` | (a1) |
@@ -296,9 +293,9 @@ Totaux `src/` (lignes / occ. retirées) : `trade.c` 3 / 4, `trade.h` 1 / 1, `res
 
 | TU | Ligne(s) (occ.) | Nouveau texte | Classe |
 |---|---|---|---|
-| `hp` | `:453` (2) (→ `:449`, H-D16b-7) | `pico8_qe_t qe;` (l'initialisation morte part) | (a1) |
-| | `:455` (0) | `h = fold_qe(h, qe);` | — |
-| | `:627` (0) (→ `:622`) | `h = fold_qe(fold_view_name(h, "qe"), pico8_jy_qe(want));` | — |
+| `hp` | `:449` (2) (`:453` à `8533807`) | `pico8_qe_t qe;` (l'initialisation morte part) | (a1) |
+| | `:451` (0) | `h = fold_qe(h, qe);` | — |
+| | `:622` (0) (`:627` à `8533807`) | `h = fold_qe(fold_view_name(h, "qe"), pico8_jy_qe(want));` | — |
 | | (ajout, après `fold_value`) | `fold_qe`, voir ci-dessous | — |
 | `lq` | `:476` (1) | `pico8_fixed_t o;` | (a1) |
 | | `:482` (1) | `o = p->o;` | (a1) |
@@ -358,7 +355,7 @@ Un `.c` qui ne nomme plus rien du module perd son `#include "pico8_value.h"` ; u
 **Sortie**, constatée par commande :
 
 - `make test` vert (dont `data-guard`, `constants-check`, `float-grep`, `float-guard`) ; `make e2e` **26 conformes** ; `make class-coverage-net` **identique** à l'attendu ; balayage ASan+UBSan des TU propre ;
-- `make data-residue` : `valeur` **745 → 693** lignes (**831 → 763** occ.), fichiers **89 → 85** (sortent : `trade.c`, `research.c`, `planet_trade.c`, `economy_tiers.c`) ; `type-tag` 242 / 58 inchangé ; résidu D **985 / 104 → 933 / 102** (`planet_trade.c`, `economy_tiers.c` sortent ; `trade.c`, `research.c` restent par `type-tag`) ; départs de H-D16b-1 (si D.16b finit ailleurs : départ réel − 52 / − 68 occ.) ;
+- `make data-residue` : `valeur` **745 → 693** lignes (**831 → 763** occ.), fichiers **89 → 85** (sortent : `trade.c`, `research.c`, `planet_trade.c`, `economy_tiers.c`) ; `type-tag` 242 / 58 inchangé ; résidu D **985 / 104 → 933 / 102** (`planet_trade.c`, `economy_tiers.c` sortent ; `trade.c`, `research.c` restent par `type-tag`) ; départs mesurés à `529c71a` (si un commit `docs/` s'intercale : départ réel − 52 / − 68 occ.) ;
 - ces commandes rendent exactement ce qui est écrit :
 
   ```sh
@@ -457,7 +454,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider modules,
 
 ### Effet sur `make data-residue`
 
-| Catégorie | À `8533807` | Départ (H-D16b-1) | Après D.17 |
+| Catégorie | À `8533807` | Départ (mesuré à `529c71a`) | Après D.17 |
 |---|---|---|---|
 | `valeur` | 825 / 97 ; 916 occ. | 745 / 89 ; 831 occ. | **693 / 85 ; 763 occ.** (− 52, − 68) |
 | `valeur` `src/` | 387 / 59 ; 438 occ. | 318 / 51 ; 364 occ. | 270 / 47 ; 301 occ. |
@@ -512,7 +509,7 @@ Fonctions publiques qui nomment `pico8_value_t` (Annexe B) : 7 → **4** (`pico8
 
 **D.17** (un commit)
 
-1. Mesure de départ (HEAD de graduation de D.16b, ou un descendant `docs/` seul : 745 / 89 / 831 occ., `type-tag` 242 / 58, résidu D 985 / 104) ; remesure par contenu ; `gcov` de départ.
+1. Mesure de départ (`529c71a` ou un descendant `docs/` seul : 745 / 89 / 831 occ., `type-tag` 242 / 58, résidu D 985 / 104, mesurés à `529c71a`) ; remesure par contenu ; `gcov` de départ.
 2. **Tests ajoutés d'abord** (`test_pico8_trade`, 1 à 4 moins le `must_abort` du `qe` vrai, qui n'existe qu'avec l'`assert`) contre l'arbre de départ : verts (H5). Ils fixent le comportement que la conversion doit garder.
 3. `trade.h/.c` (`pico8_qe_t`, `pico8_qe_equal`, `pico8_trade_qe` et son `assert`) ; `research.h/.c` (`pico8_jy_qe`, include) ; `planet_trade.c` ; `economy_tiers.c`.
 4. `research_display.h/.c` (`jo_ex`, `ml`, `hp:lq`, `hp:jb`, copie `truthy`) ; `planet_display.c` ; marqueur de `economy_score.c`.
@@ -564,7 +561,7 @@ Un bon test juge ce que le code rend ou fait (routes proposées et acceptées, `
 - **M21** (preuve du pli, TU) `test_pico8_hp` : `fold_qe` plie `1u` au lieu de `0u` pour FIXED → `hp` rouge (`GB_HASH`), restauré, vert.
 - `hp:lq` `:304` (`NULL` toujours) est couvert par M16/M19 et `HP_LQ_HASH` ; ajouté comme M22 si le temps le permet.
 
-Cibles (numéros à `8533807`) : `trade.c:13-18`, `planet_trade.c:72-175`, `economy_tiers.c:236-260`, `planet_display.c:45-66`, `:207-254`, `research_display.c:48-63`, `:143-207`, `:247-270`, `:304`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
+Cibles (numéros à `529c71a`) : `trade.c:13-18`, `planet_trade.c:72-175`, `economy_tiers.c:236-260`, `planet_display.c:45-66`, `:207-254`, `research_display.c:48-63`, `:143-207`, `:247-270`, `:304`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
 
 ### Filets
 
@@ -596,9 +593,9 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + état) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | HEAD de graduation de D.16b, avant D.17 | 0 | `valeur 745 89` (H-D16b-1) | … |
+| 1 | `make -s data-residue` | `529c71a` (D.16b gradée), avant D.17 | 0 | `valeur 745 89` (mesuré à `529c71a`) | … |
 | 2 | recette `valeur` | idem | 0 | `valeur 745 lignes 89 fichiers 831 occ.` | … |
-| 3 | `grep -rn 'pico8_value_equal' src \| grep -v '^src/pico8_value\.' \| wc -l` | idem | 0 | 7 (H-D16b-9) | … |
+| 3 | `grep -rn 'pico8_value_equal' src \| grep -v '^src/pico8_value\.' \| wc -l` | idem | 0 | 7 (mesuré à `529c71a`) | … |
 | 4 | `make tmp/test_pico8_trade && ./tmp/test_pico8_trade` | idem + tests ajoutés (H5) | 0 | `test_pico8_trade: all tests passed` | … |
 | … | … | … | … | … | … |
 
@@ -623,7 +620,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ n'est pas le HEAD de graduation de D.16b (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 745 / 89 / 831 occ., `type-tag` 242 / 58, résidu D 985 / 104, sans explication (et sans révision de ce PRD par `plan-pilot` après la graduation de D.16b).
+- `FAILED:` si l'arbre de départ n'est pas `529c71a` (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 745 / 89 / 831 occ., `type-tag` 242 / 58, résidu D 985 / 104 (mesurés à `529c71a`), sans explication.
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur le commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si un test de régression du §6 change.
@@ -674,27 +671,28 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
   - **Tests** : quatre tests ajoutés à `trade` (TROU-24 dans `jo:cn`, dans `dh`, table, `qe` vrai), écrits d'abord contre l'arbre de départ ; `fold_qe` typé dans `hp` ; cas G4 de `lq` rendu nil.
   - **Drapeaux** : `class-coverage-net` (ligne du plan) ; balayage ASan+UBSan ; pas de `sanitize-net`.
 - **Surprises de mesure, pour `plan-pilot`** : (1) **le cart n'écrit jamais `false` dans un `qe`** : le troisième état n'existe que par TROU-24, et l'écart nil/faux ne se voit qu'à deux comparaisons (`jo:cn` après `kg`, `dh`) ; (2) **aucun TU ni e2e n'atteint ces deux lectures** : sans les tests ajoutés, confondre nil et faux passerait tous les filets ; (3) la garde `has_qe` de `dh` est l'autre moitié de TROU-24 et portait un marqueur TROU-3 ; (4) le paragraphe d'exception de TROU-3 (et la ligne 630 du glossaire) décrivait `kw.qe` comme une chaîne partageant le pointeur de `r` : faux dans le port actuel (`ho` route `o`/`dm` en nombres) ; (5) `ml` de `jo_ex` doit être typé avec `o` : 5 lignes de B8 passent à D.17 ; (6) `nr` n'a rien à suivre ; (7) un `qe` vrai n'est écrit que par `test_pico8_trade:381`, pour `pico8_trade_eq` ; (8) `hp:jb` d'un besoin nil ne rend ni `""` ni `"[nil]"` à l'écran : TROU-13 n'y est pas en jeu ; (9) `research.h` doit inclure `pico8_trade.h` ; (10) arrivée ≈ 693 et non ≈ 720 : base 745, delta − 52 (et non − 45) ; (11) fonctions publiques à `pico8_value_t` 7 → 4, copies `truthy` 3 → 2, `pico8_value_equal` sans appelant dans `src/`.
+- **Révision après la graduation de D.16b** (`529c71a`) : toutes les hypothèses tiennent sauf la position estimée de `pico8_jy_qe` dans `research.c` (H-D16b-3 : `:134-135`, et non ≈ `:110–:125`) ; numéros remesurés (`research.c`, `test_pico8_hp` `:449-451`, `:622`) ; départ, inventaire, deltas (− 52 / − 68), classification et découpage inchangés.
 - **Pour D.18a** : `research_display.c` garde 10 lignes, toutes des cases (`l`, `pico8_lq_add`) ; B8 compte 5 lignes de moins que l'étude.
 - **Pour D.19b** : `test_pico8_trade` garde `fold_qe` (membres), `fold_ref`, `same_qe` ; `hp` plie les `qe` en octets par `fold_qe`.
 - **Pour D.19c** : `trade.h:7`, `research.h:9`, `research_display.h:9` n'ont plus que leur include ; `pico8_value_equal` n'a plus que `test_pico8_value`.
 
-## Annexe A — textes recopiés (`docs/plan-3.md` à `8533807`, par extraction de lignes)
+## Annexe A — textes recopiés (`docs/plan-3.md` à `529c71a`, par extraction de lignes)
 
 ### Lignes D.16b à D.18a (l. 287-289)
 
-> - D.16b — genres mêlés B3–B7 (pointeur NULL pour nil/faux, chaînes, `hp_pose` en affectation par position, `rn`, `bg`, `pj_ed`), en deux sous-étapes b1/b2. `class-coverage-net` : oui. Compte : ≈ 765.
+> - D.16b — genres mêlés B3–B7 (pointeur NULL pour nil/faux, chaînes, `hp_pose` en affectation par position, `rn`, `bg`, `pj_ed`), en deux sous-étapes b1/b2. `class-coverage-net` : oui. Compte : ≈ 765. Découvert à D.16b1 : un commit (`refactor(D.16b1)`, B3 + B5) ; `valeur` 825 / 97 (916 occ.) → **785 / 91 (874 occ.)**, − 40 lignes, − 42 occ., le delta du PRD exactement (≈ 765 visait une base de 845 : D.16a a fini à 825) ; `type-tag` 242 / 58 inchangé (`probe.c:211` modifiée sur place) ; résidu D 1065 / 107 → **1025 / 105** (`wormhole_display.c`, `audio.c` sortent). Lectures : `et` pointeur, NULL pour nil et `false`, `has_et` retiré de `pico8_probe_t` et de ses sept écritures ; `pico8_mz_et` retirée, `mz:kj` lit le membre ; le pont `probe.c:182` de D.15b part ; `has_et` était plié par onze TU, en « built » (avant tout `bv` : `et != NULL ? 1u : 0u`) ou après un `bv` qui le posait toujours (branche absente retirée) : aucune constante ne bouge ; le local `has_et` de `d_` garde son nom (grep 1 de la Sortie le rend, cinq lignes de `d_`) ; `pico8_rn(pico8_fixed_t)`, `js:ldown` l'appelle dans son bloc `has_my`. Copies `truthy` 7 → 5 (`layout`, `research`, `research_display`, `tech_gate`, `ui_button`). Pour D.19c : `audio.h` (qui fournit aussi `pico8_fixed_t` à `rn`), `wormhole.h`, `probe.h` n'ont plus que leur include. Pour D.20b : `probe.c:199-201` porte encore l'`assert` d'étiquette sur `et`. Découvert à D.16b2 : un commit (`refactor(D.16b2)`, B4 + B6 + B7 + `hp_pose`) ; `valeur` 785 / 91 (874 occ.) → **745 / 89 (831 occ.)**, − 40 lignes, − 43 occ., le delta du PRD exactement ; D.16b entière : 825 → 745 (− 80, − 85 occ.), et non ≈ 765 (base 825, non 845) ; `type-tag` 242 / 58 inchangé ; résidu D 1025 / 105 → **985 / 104** (`tech_gate.c` sort). Lectures : `int pico8_oj(const char *)` (NULL : 1), le pont `tech_gate.c:45` de D.15a part ; `const char *pico8_hp_il`, **`has_il` gardé** (`test_pico8_hp` plie nil ≠ `false`) ; le cas `pico8_oj` d'un nombre de `test_pico8_hp` retiré (G4) ; `hp_pose` par position (`switch (p)`, trois `assert` de genre gardés) ; `pico8_lq_bg` et `pico8_pj_ed` retirées ; **`bg_is_bool` gardé** par G1 (`test_pico8_lq` sépare `bg` faux de `bg` absent dans deux empreintes figées) : il rejoint `pk_is_bool` et `fp_is_bool` dans la forme « 1 ou faux » sans étape nommée ; les branches `bg` de `ga`/`hp` étaient mortes, devenues `assert(!lq->has_bg)`. Un test ajouté pour une mutation sans rouge de TU (seul l'e2e rougissait) : `cb` écarte une tech inventée du palier courant (`test_pico8_fm`). Copies `truthy` 5 → 3 (`layout`, `research_display`, `ui_button`). Pour D.17 : `research_display` garde sa copie (argument `o` de `jo_ex`). Pour D.19c : `tech_gate.h` n'a plus que son include (avec `audio.h`, `wormhole.h`, `probe.h`).
 > - D.17 — genres mêlés B2 : `pico8_qe_t` et `pico8_qe_equal` (nil ≠ faux conservé). `class-coverage-net` : oui. Compte : ≈ 720.
 > - D.18a — B8 : `pico8_lq_keys_t.items` en cases de l'union de `layout` ; §6 `layout_nil_item_draws_nothing` et `planet_gh_row_lq` réécrits dans leur lecture, preuve rouge. `sanitize-net` : oui. Compte : ≈ 560.
 
-(À réextraire à la graduation de D.16b : la ligne D.16b portera ses notes b1/b2.)
+(Réextraites de `529c71a` : la ligne D.16b porte ses notes « Découvert à D.16b1 » et « Découvert à D.16b2 » ; les lignes D.17 et D.18a sont identiques à celles de `8533807`, H-D16b-12.)
 
-### TROU-24 à `8533807` (`docs/trous-de-portage.md:395-412`)
+### TROU-24 à `529c71a` (inchangé depuis `8533807`) (`docs/trous-de-portage.md:395-412`)
 
 > Dans le cart, `trade:kg` recopie `self.qe` tel quel : nil reste nil. Ce port pose `false` quand la route allongée n'a pas de `qe`. Dans la struct `trade`, nil et absent ne font qu'un : un `qe` nil, passé explicitement ou omis, donne `false`.
 > Non atteint par le filet : toute route construite par les rejeux a un `qe` non nil. `jo:ib` passe pourtant un `qe` nil quand la table `kw` de la planète n'a pas de `qe` (`src/pico8_planet_trade.c:242`), jusqu'à `nr:cn` → `kg`. Même effondrement nil/absent dans `dh` (`src/pico8_economy_tiers.c:302`) : une route au `qe` nil y compte comme une route sans `qe`.
 > Fichier : `src/pico8_trade.c`.
 
-### TROU-3, paragraphe d'exception à `8533807`
+### TROU-3, paragraphe d'exception à `529c71a` (inchangé)
 
 > **Une exception, qui explique deux sites voisins qui ne se ressemblent pas.** Les valeurs que `ho()` route à travers `r` partagent littéralement le pointeur de `r` : là, la comparaison par identité est correcte. C'est le cas de `kw.qe` (routé depuis `hp.o`), d'où un `pico8_value_equal` dans `jo:gh` là où `db()` — qui compare une chaîne d'une autre provenance — doit passer par le contenu. Aucun des deux n'est à « corriger » d'après l'autre.
 
@@ -711,8 +709,8 @@ grep -rnE 'pico8_trade_qe|pico8_jy_qe|pico8_jo_ex\(|pico8_value_equal|economy_va
 grep -rnE 'pico8_trade_new|pico8_trade_kg|qe_is_bool|pico8_jy_new' src tests   # écritures de qe
 grep -rn 'pico8_jo_cn\|pico8_dh(' tests                          # TU qui atteignent cn/dh
 grep -rn 'TROU-3\|TROU-24' src                                    # marqueurs
-grep -nE 'static int [a-z0-9_]*truthy\(pico8_value_t' src/*.c     # 7 à 8533807, 3 attendues après D.16b
+grep -nE 'static int [a-z0-9_]*truthy\(pico8_value_t' src/*.c     # 3 à 529c71a (7 à 8533807)
 grep -nE 'pico8_value_t' src/*.h | grep -vE ':\s*(\*|/\*)' | grep -v 'src/pico8_value.h' \
-  | grep -vE '^\S+:[0-9]+:\s+(const )?pico8_value_t \*?[a-z_]+;|^\S+:[0-9]+:\s+const pico8_lq_keys_t'  # 13 à 8533807, 7 après D.16b
+  | grep -vE '^\S+:[0-9]+:\s+(const )?pico8_value_t \*?[a-z_]+;|^\S+:[0-9]+:\s+const pico8_lq_keys_t'  # 7 à 529c71a (13 à 8533807)
 sed -n 12,15p src/pico8_map_tables.c                             # clés de iz : ni "" ni "[nil]"
 ```
