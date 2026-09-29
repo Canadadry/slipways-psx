@@ -186,8 +186,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -397,9 +395,9 @@ static void test_built(void) {
     assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
 
     for (k = 0; k < 4; k++) {
-        pico8_value_t my;
-        assert(lookup(hv->items[rank - 4 + k].as.ref, "my", &my));
-        assert(pico8_value_equal(my, pico8_eu_field_value()));
+        const pico8_js_t *row = hv->items[rank - 4 + k].as.ref;
+        assert(row->has_my);
+        assert(row->my == pico8_eu_field_value());
     }
     assert(size_of(pico8_ok(), "le") == 0);
     check("built", h, BUILT_HASH);
@@ -792,7 +790,7 @@ static void write_off_row(void *e) {
 
 /* `m_` takes nil or a boolean only, a zeroed union included. */
 static void test_fv_writer_stops_off_row(void) {
-    pico8_value_t off[9];
+    pico8_value_t off[8];
     void *fv[2];
     size_t i;
     int k;
@@ -804,12 +802,11 @@ static void test_fv_writer_stops_off_row(void) {
     off[1] = zero_union(PICO8_VALUE_FIXED);
     off[2] = pico8_value_string("x");
     off[3] = zero_union(PICO8_VALUE_STRING);
-    off[4] = zero_union(PICO8_VALUE_FUNCTION);
-    off[5] = vec_ref(1, 1);
-    off[6] = pico8_value_ref((void *)pico8_hv());
-    off[7] = pico8_value_ref(pico8_g__new(NULL));
+    off[4] = vec_ref(1, 1);
+    off[5] = pico8_value_ref((void *)pico8_hv());
+    off[6] = pico8_value_ref(pico8_g__new(NULL));
     for (k = 0; k < 2; k++) {
-        off[8] = pico8_value_ref(fv[1 - k]);
+        off[7] = pico8_value_ref(fv[1 - k]);
         for (i = 0; i < sizeof off / sizeof off[0]; i++) {
             g_off_row = off[i];
             must_abort(write_off_row, fv[k]);

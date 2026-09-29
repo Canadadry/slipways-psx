@@ -74,8 +74,6 @@ static void pico8_mh_ev_dispatch(void *self, const pico8_vec_t *ra) {
 
 void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     pico8_fixed_t self_t, rh, t, nc, t3;
-    pico8_value_t lh_result;
-    int lh_found;
 
     if (self == NULL) {
         return;
@@ -86,11 +84,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
-        lh_found = self->lh != NULL;
-        if (lh_found) {
-            lh_result = self->lh(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-        }
-        if (lh_found && pico8_msgbox_truthy(lh_result)) {
+        if (self->lh != NULL && self->lh(self)) {
             self->ke.t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
             t = pico8_fixed_from_int(0);
         }
@@ -126,11 +120,6 @@ static int pico8_mh_field(const void *self, const char *name, pico8_value_t *out
         *out_value = pico8_value_fixed(mh->fa);
     } else if (strcmp(name, "rh") == 0) {
         *out_value = pico8_value_fixed(mh->rh);
-    } else if (strcmp(name, "lh") == 0) {
-        if (mh->lh == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_function(mh->lh);
     } else if (strcmp(name, "p_") == 0) {
         if (!mh->has_p_) {
             return 0;

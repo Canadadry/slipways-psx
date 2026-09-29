@@ -7,6 +7,7 @@
 #include "pico8_mem.h"
 #include "pico8_probe.h"
 #include "pico8_struct.h"
+#include "pico8_ui_button.h"
 #include "pico8_value.h"
 #include "pico8_vec.h"
 
@@ -48,11 +49,11 @@ const pico8_struct_class_t *pico8_fv_struct_class(void);
  * `pico8_help_init()`. */
 pico8_fv_t *pico8_fv_new(void);
 
-/* `pico8_eu_field_value()` always returns a PICO8_VALUE_FUNCTION value: an
- * inert placeholder until `pico8_help_set_eu()` installs the real `eu`, which
+/* `pico8_eu_field_value()` never returns NULL: an inert placeholder until
+ * `pico8_help_set_eu()` installs the real `eu`, which
  * `pico8_help_set_eu(NULL)` puts back. */
-pico8_value_t pico8_eu_field_value(void);
-void pico8_help_set_eu(pico8_value_function_t fn);
+pico8_js_fn pico8_eu_field_value(void);
+void pico8_help_set_eu(pico8_js_fn fn);
 
 /* Stamps the `eu` value current at call time onto every row of `bo`: rows
  * stamped before a `pico8_help_set_eu()` keep what they were given. A NULL

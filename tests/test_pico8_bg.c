@@ -786,7 +786,6 @@ static void test_bg_writer_stops_off_row(void) {
     must_abort_value(b, write_m_by_name, zero_fixed);
     must_abort_value(b, write_m_by_name, zero_string);
     must_abort_value(b, write_m_by_name, pico8_value_string("x"));
-    must_abort_value(b, write_m_by_name, pico8_eu_field_value());
     must_abort_value(b, write_m_by_name, pico8_value_ref(a));
     must_abort_value(b, write_m_by_name, vec_ref(1, 1));
 }

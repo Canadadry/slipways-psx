@@ -176,10 +176,10 @@ static uint32_t fold_vec(uint32_t h, const void *e, const char *name) {
 
 /* A function by the order it was first seen in the scenario: its address
  * is not stable from one build to the next. */
-static pico8_value_function_t seen_fns[64];
+static pico8_js_fn seen_fns[64];
 static int seen_count;
 
-static uint32_t fn_index(pico8_value_function_t fn) {
+static uint32_t fn_index(pico8_js_fn fn) {
     int i;
     for (i = 0; i < seen_count; i++) {
         if (seen_fns[i] == fn) {
@@ -189,6 +189,20 @@ static uint32_t fn_index(pico8_value_function_t fn) {
     assert(seen_count < 64);
     seen_fns[seen_count] = fn;
     return (uint32_t)seen_count++;
+}
+
+static const pico8_js_t *js_of(const void *e) {
+    assert(cls_of(e) == pico8_js_struct_class());
+    return e;
+}
+
+/* 0 absent, 1 false, 3 a function: `bool_state`'s code for `my`. */
+static uint32_t my_state(const void *e) {
+    const pico8_js_t *b = js_of(e);
+    if (!b->has_my) {
+        return 0;
+    }
+    return b->my == NULL ? 1u : 3u;
 }
 
 /* A research project folds by the tag of the class-instance form these
@@ -225,8 +239,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(fnv(h, 0xFCu), fn_index(v.as.function));
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -309,7 +321,7 @@ static const pico8_list_t *ok_le(void) {
 /* A button as `js(b)` and `js:pq` left it: every construction key, what
  * `pq` built, the methods and where `lt` registered it. */
 static uint32_t fold_button(uint32_t h, const void *b) {
-    static const char *const copied[] = {"hb", "fg", "px", "trade", "en", "_jo_fe_pt", "_jo_fe_b", "_jo_fe_od"};
+    static const char *const copied[] = {"fg", "px", "trade", "en", "_jo_fe_pt", "_jo_fe_b", "_jo_fe_od"};
     static const char *const absent[] = {"p_", "nu", "ql", "hq", "ey"};
     static const char *const bm[] = {"kj", "ev", "hd", "hb", "hk"};
     pico8_value_t v;
@@ -325,10 +337,17 @@ static uint32_t fold_button(uint32_t h, const void *b) {
     h = fold_built(h, b, "lq");
     h = fold_built(h, b, "h_");
     h = fold_built(h, b, "jb");
-    if (lookup(b, "my", &v)) {
-        h = fold_value(fnv(h, 0x33u), v);
-    } else {
+    if (!js_of(b)->has_my) {
         h = fnv(h, 0x34u);
+    } else if (js_of(b)->my == NULL) {
+        h = fnv(fnv(fnv(h, 0x33u), 0xB0u), 0u);
+    } else {
+        h = fnv(fnv(fnv(h, 0x33u), 0xFCu), fn_index(js_of(b)->my));
+    }
+    if (js_of(b)->hb != NULL) {
+        h = fnv(fnv(fnv(h, 1u), 0xFCu), fn_index(js_of(b)->hb));
+    } else {
+        h = fnv(h, 0u);
     }
     for (i = 0; i < sizeof copied / sizeof copied[0]; i++) {
         h = lookup(b, copied[i], &v) ? fold_value(fnv(h, 1u), v) : fnv(h, 0u);
@@ -363,7 +382,7 @@ static uint32_t fold_le(uint32_t h, const char *label) {
     h = fnv(h, (uint32_t)le->count);
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i].as.ref;
-        printf("[%s] button %d: my %u, h_ %u, jb %u\n", label, i, bool_state(b, "my"), bool_state(b, "h_"),
+        printf("[%s] button %d: my %u, h_ %u, jb %u\n", label, i, my_state(b), bool_state(b, "h_"),
                bool_state(b, "jb"));
         h = fold_button(h, b);
     }
@@ -530,11 +549,11 @@ static void game_end(void) {
 }
 
 /* The button's `my` callback, called as a click calls it. */
-static pico8_value_t call_my(void *e) {
+static void call_my(void *e) {
     pico8_js_t *b = e;
 
     assert(b->my != NULL);
-    return b->my(e, 2, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    b->my(b);
 }
 
 static pico8_value_t nil(void) {
@@ -594,7 +613,7 @@ static void test_eu(void) {
     check_int("eu buttons", ix_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
         assert(!listed(ok_le(), ix[i]));
-        assert(has(ix[i], "hb") == (i == 1));
+        assert((js_of(ix[i])->hb != NULL) == (i == 1));
         h = fold_button(h, ix[i]);
     }
     check("eu", h, EU_HASH);
@@ -606,7 +625,7 @@ static void test_pause(void) {
 
     start_game();
     assert(ix_buttons(ix) == 4);
-    (void)call_my(ix[3]);
+    call_my(ix[3]);
     check_shared_ra();
     h = fold_le(h, "pause");
     check("pause", h, PAUSE_HASH);
@@ -631,13 +650,13 @@ static void test_research(void) {
     check_shared_ra();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        if (bool_state(le->items[i].as.ref, "my") == 1) {
+        if (my_state(le->items[i].as.ref) == 1) {
             unaffordable++;
         }
     }
     printf("[research] %d unaffordable tech(s)\n", unaffordable);
     assert(unaffordable >= 1);
-    assert(!has(le->items[le->count - 1].as.ref, "my") && has(le->items[le->count - 1].as.ref, "jb"));
+    assert(!js_of(le->items[le->count - 1].as.ref)->has_my && has(le->items[le->count - 1].as.ref, "jb"));
     h = fold_le(h, "research");
     check("research", h, RESEARCH_HASH);
 }
@@ -765,7 +784,7 @@ static pico8_js_keys_t at(int x, int y) {
     return keys;
 }
 
-static pico8_js_keys_t keyed_my(pico8_js_keys_t keys, pico8_value_function_t my) {
+static pico8_js_keys_t keyed_my(pico8_js_keys_t keys, pico8_js_fn my) {
     keys.has_my = 1;
     keys.my = my;
     return keys;
@@ -808,13 +827,9 @@ static void test_ph(void) {
 static int my_calls;
 static void *my_self;
 
-static pico8_value_t counting_my(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
+static void counting_my(pico8_js_t *self) {
     my_calls++;
     my_self = self;
-    return pico8_value_fixed(pico8_fixed_from_int(7));
 }
 
 static void test_ldown(void) {
@@ -834,7 +849,7 @@ static void test_ldown(void) {
     r = cls_of(with_false)->ldown(with_false, NULL, NULL);
     assert(r.stop && r.held == NULL);
     assert(my_calls == 1);
-    assert(bool_state(with_false, "my") == 1);
+    assert(my_state(with_false) == 1);
     h = fnv(h, (uint32_t)my_calls);
     h = fold_button(h, with_my);
     h = fold_button(h, with_false);
@@ -894,7 +909,7 @@ static void test_fe_my(void) {
         pt = get_ref(b, "_jo_fe_pt");
         h = fold_value(h, get(pt, "me"));
         h = fnv(h, (uint32_t)pico8_hv()->count);
-        (void)call_my(b);
+        call_my(b);
         printf("[fe my] row %d: planet me=%s, %d entities\n", i, is_string(pt, "me", "ly") ? "ly" : "not ly", pico8_hv()->count);
         h = fold_value(h, get(pt, "me"));
         h = fnv(h, (uint32_t)pico8_hv()->count);
@@ -914,14 +929,14 @@ static void test_cr_my(void) {
     tech_screen();
     le = ok_le();
     for (i = 0; i < le->count; i++) {
-        if (bool_state(le->items[i].as.ref, "my") == 3) {
+        if (my_state(le->items[i].as.ref) == 3) {
             break;
         }
     }
     assert(i < le->count);
     invented = get_ref(pico8_fm(), "invented");
     h = fnv(h, (uint32_t)invented->count);
-    (void)call_my(le->items[i].as.ref);
+    call_my(le->items[i].as.ref);
     invented = get_ref(pico8_fm(), "invented");
     h = fnv(h, (uint32_t)invented->count);
     assert(invented->count >= 1);
@@ -1070,7 +1085,7 @@ static void test_js_is_a_struct(void) {
             cls_of(ix[i])->hb(ix[i]);
         }
     }
-    (void)call_my(ix[3]);
+    call_my(ix[3]);
     check_int("struct pause", all_buttons_are_structs(), 8);
     pico8_cr();
     check_int("struct research", all_buttons_are_structs(), 9);
@@ -1085,12 +1100,16 @@ static void test_js_is_a_struct(void) {
     {
         const pico8_js_keys_t empty = {0};
         void *bare = pico8_js_new(&empty);
-        assert(is_a_js_struct(bare) && must_fixed(bare, "fa") == pico8_fixed_from_int(11) && !has(bare, "my"));
+        assert(is_a_js_struct(bare) && must_fixed(bare, "fa") == pico8_fixed_from_int(11) && !js_of(bare)->has_my);
     }
 }
 
-static const char *const js_names[] = {"fa", "lq", "mb", "kq", "h_", "jb", "ra", "qf", "my", "m_",
-                                       "hb", "fg", "px", "trade", "en", "_cr_t", "_jo_fe_pt", "_jo_fe_b", "_jo_fe_od"};
+static const char *const js_names[] = {"fa", "lq", "mb", "kq", "h_", "jb", "ra", "qf", "m_",
+                                       "fg", "px", "trade", "en", "_cr_t", "_jo_fe_pt", "_jo_fe_b", "_jo_fe_od"};
+
+/* The kind the name reader gave a callback, frozen in the constants that
+ * fold `my` and `hb`; the enum entry is gone. Changing it reddens them. */
+enum { FUNCTION_KIND = 4 };
 
 static pico8_value_t zero_union(pico8_value_kind_t kind) {
     pico8_value_t v;
@@ -1149,13 +1168,25 @@ static int is_of_class(const void *ref, const pico8_struct_class_t *cls) {
     return pico8_type_tag_of(ref) == PICO8_TYPE_TAG_STRUCT && ((const pico8_struct_header_t *)ref)->cls == cls;
 }
 
-/* The 19 names by both readers: presence, kind, value; rows, vectors and
- * the box by content, structs by class, a function by first sight. */
-static uint32_t fold_js_members(uint32_t h, const void *e) {
+/* `my` or `hb` from its member, in the bytes the name reader's value folded
+ * to: absent, `false`, or a function by first sight. */
+static uint32_t fold_js_fn(uint32_t h, int present, pico8_js_fn fn) {
+    if (!present) {
+        return fnv(h, 0u);
+    }
+    if (fn == NULL) {
+        return fold_value(fnv(fnv(h, 1u), (uint32_t)PICO8_VALUE_BOOL), pico8_value_bool(0));
+    }
+    return fnv(fnv(fnv(fnv(h, 1u), (uint32_t)FUNCTION_KIND), 0xFCu), fn_index(fn));
+}
+
+/* `names[0..n)` by both readers: presence, kind, value; rows, vectors and
+ * the box by content, structs by class. */
+static uint32_t fold_js_names(uint32_t h, const void *e, const char *const *names, size_t n) {
     size_t i;
 
-    for (i = 0; i < sizeof js_names / sizeof js_names[0]; i++) {
-        const char *name = js_names[i];
+    for (i = 0; i < n; i++) {
+        const char *name = names[i];
         pico8_value_t v;
 
         if (!read_both(e, name, &v)) {
@@ -1163,9 +1194,6 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
             continue;
         }
         h = fnv(fnv(h, 1u), (uint32_t)v.kind);
-        if (v.kind == PICO8_VALUE_FUNCTION) {
-            assert(v.as.function != NULL);
-        }
         if (v.kind == PICO8_VALUE_STRING) {
             assert(v.as.string != NULL);
         }
@@ -1196,6 +1224,19 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
         }
     }
     return h;
+}
+
+/* The 17 names of `js_names` and the two callbacks from their members, in
+ * the order the frozen constants folded them: `my` after `qf`, `hb` after
+ * `m_`. */
+static uint32_t fold_js_members(uint32_t h, const void *e) {
+    const pico8_js_t *b = js_of(e);
+
+    h = fold_js_names(h, e, js_names, 8);
+    h = fold_js_fn(h, b->has_my, b->my);
+    h = fold_js_names(h, e, js_names + 8, 1);
+    h = fold_js_fn(h, b->hb != NULL, b->hb);
+    return fold_js_names(h, e, js_names + 9, sizeof js_names / sizeof js_names[0] - 9);
 }
 
 static uint32_t fold_le_members(uint32_t h) {
@@ -1241,10 +1282,10 @@ static void write_named(void *e, const char *name, pico8_value_t v) {
 }
 
 /* `m_` takes true, false (a zeroed union too) and nil; `lq` a row or nil.
- * The 17 other names and any stranger are no writer's: the raw writer
- * returns 0 and touches nothing. */
+ * The 15 other names, the two callbacks and any stranger are no writer's:
+ * the raw writer returns 0 and touches nothing. */
 static uint32_t fold_written_by_name(uint32_t h, void *e, void *other) {
-    static const char *const unwritten[] = {"", "M_", "m_ ", "lq ", "has_m_", "has_h_"};
+    static const char *const unwritten[] = {"", "M_", "m_ ", "lq ", "has_m_", "has_h_", "my", "hb"};
     void *kq_before = read_ref(e, "kq");
     pico8_value_t mb;
     void *row;
@@ -1373,10 +1414,10 @@ static uint32_t fold_keys(uint32_t h, void *row) {
         h = fold_js_members(h, b);
     }
     b = built_with("my", pico8_value_bool(0));
-    assert_same(b, "my", pico8_value_bool(0));
+    assert(my_state(b) == 1);
     h = fold_js_members(h, b);
     b = built_with("my", zero_union(PICO8_VALUE_BOOL));
-    assert_same(b, "my", pico8_value_bool(0));
+    assert(my_state(b) == 1);
     h = fold_js_members(h, b);
     b = built_with("h_", pico8_value_bool(0));
     assert_same(b, "h_", pico8_value_bool(0));
@@ -1437,7 +1478,7 @@ static uint32_t members_title_and_game(void) {
     check_one_pz(title, 4);
 
     nj = title[1];
-    assert_same(nj, "my", pico8_value_function(pico8_eu_field_value().as.function));
+    assert(js_of(nj)->my == pico8_eu_field_value());
     printf("[members] dk: trade %d, en %d/65536\n", pico8_fixed_flr_int(must_fixed(nj, "trade")),
            (int)must_fixed(nj, "en"));
     h = fold_js_members(h, nj);
@@ -1445,7 +1486,7 @@ static uint32_t members_title_and_game(void) {
     assert(pico8_dk() == nj);
     assert(ix_buttons(ix) == 4);
     for (i = 0; i < 4; i++) {
-        assert(has(ix[i], "hb") == (i == 1));
+        assert((js_of(ix[i])->hb != NULL) == (i == 1));
         h = fold_js_members(h, ix[i]);
     }
 
@@ -1463,10 +1504,11 @@ static uint32_t members_title_and_game(void) {
                 assert_absent(fresh[k], js_names[i]);
             }
         }
+        assert(my_state(fresh[k]) == 0 && js_of(fresh[k])->hb == NULL);
         h = fold_js_members(h, fresh[k]);
     }
 
-    (void)call_my(ix[3]);
+    call_my(ix[3]);
     check_le_one_pz();
     printf("[members] ha: %d row(s), fg on the 4th: %d\n", ok_le()->count, has(ok_le()->items[3].as.ref, "fg"));
     h = fold_le_members(h);
@@ -1507,19 +1549,17 @@ static uint32_t members_research(void) {
     le = ok_le();
     for (i = 0; i < le->count; i++) {
         void *b = le->items[i].as.ref;
-        pico8_value_t my;
 
-        if (!read_both(b, "my", &my)) {
+        if (my_state(b) == 0) {
             continue;
         }
-        if (my.kind == PICO8_VALUE_BOOL) {
-            assert(my.as.boolean == 0);
+        if (my_state(b) == 1) {
             assert_absent(b, "_cr_t");
             dear++;
         } else {
             const pico8_nb_entry_t *t = read_ref(b, "_cr_t");
             const pico8_lq_t *lq = read_ref(b, "lq");
-            assert(my.kind == PICO8_VALUE_FUNCTION);
+            assert(my_state(b) == 3);
             assert(lq->items.count >= 2 && lq->items.items[1].kind == PICO8_VALUE_STRING);
             assert(t != NULL && t == pico8_nb_lookup(lq->items.items[1].as.string));
             affordable++;
@@ -1555,7 +1595,7 @@ static uint32_t members_fe(void) {
         assert(is_of_class(pt, pico8_jo_struct_class()) && listed(pico8_cg("jo"), pt));
         assert(is_of_class(read_ref(b, "_jo_fe_b"), pico8_hp_struct_class()));
         assert(read_both(b, "_jo_fe_od", &od) && od.kind == PICO8_VALUE_FIXED);
-        assert(read_both(b, "my", &(pico8_value_t){0}));
+        assert(!read_both(b, "my", &(pico8_value_t){0}) && js_of(b)->my != NULL);
         assert(is_of_class(read_ref(b, "jb"), pico8_jb_struct_class()));
         if (od.as.fixed > 0) {
             assert(is_lq(read_ref(b, "h_")));
@@ -1677,13 +1717,13 @@ static void test_js_writer_stops_off_row(void) {
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),
                                      pico8_value_string("x"), zero_union(PICO8_VALUE_STRING),
-                                     zero_union(PICO8_VALUE_FUNCTION), vec, list, js};
+                                     vec, list, js};
         stops_on(write_off_row, ix[0], "m_", off, sizeof off / sizeof off[0]);
     }
     {
         const pico8_value_t off[] = {pico8_value_fixed(pico8_fixed_from_int(1)), zero_union(PICO8_VALUE_FIXED),
                                      pico8_value_bool(1), zero_union(PICO8_VALUE_BOOL), pico8_value_string("x"),
-                                     zero_union(PICO8_VALUE_STRING), zero_union(PICO8_VALUE_FUNCTION), list,
+                                     zero_union(PICO8_VALUE_STRING), list,
                                      vec, pico8_value_ref(pico8_jb_new(NULL)), js};
         stops_on(write_off_row, ix[0], "lq", off, sizeof off / sizeof off[0]);
     }

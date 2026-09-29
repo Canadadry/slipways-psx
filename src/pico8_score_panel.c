@@ -147,21 +147,17 @@ const pico8_jb_row_t *pico8_pj_gs(void) {
     return pico8_pj_start.gs;
 }
 
-static pico8_value_t pico8_pj_init_placeholder(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_pj_init_placeholder(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_function_t g_init_dispatch = pico8_pj_init_placeholder;
+static pico8_js_fn g_init_dispatch = pico8_pj_init_placeholder;
 
-pico8_value_t pico8_init_field_value(void) {
-    return pico8_value_function(g_init_dispatch);
+pico8_js_fn pico8_init_field_value(void) {
+    return g_init_dispatch;
 }
 
-void pico8_score_panel_set_init(pico8_value_function_t fn) {
+void pico8_score_panel_set_init(pico8_js_fn fn) {
     g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
 }
 

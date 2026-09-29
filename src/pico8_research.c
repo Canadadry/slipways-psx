@@ -70,17 +70,9 @@ static void pico8_research_gb_register(pico8_hp_t *hp) {
     g_gb_px_count++;
 }
 
-static pico8_value_t pico8_hp_lq_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_ref(pico8_hp_lq((pico8_hp_t *)self));
-}
-
-/* A nil `lq` member falls back to the class's `lq` method, as the cart's
- * `mv(b,"lq")` finds it: the member written by the constructor shadows the
- * method for a project with `ii`. `jo:fe` makes the same choice on the
- * member directly. */
+/* A NULL `lq` member reads absent: the class's `lq` method, which the
+ * member shadows for a project with `ii`, is `pico8_hp_lq`, called directly
+ * by `jo:fe`. */
 static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out_value) {
     const pico8_hp_t *hp = self;
 
@@ -199,8 +191,7 @@ static int pico8_hp_field(const void *self, const char *name, pico8_value_t *out
     }
     if (strcmp(name, "lq") == 0) {
         if (hp->lq == NULL) {
-            *out_value = pico8_value_function(pico8_hp_lq_dispatch);
-            return 1;
+            return 0;
         }
         *out_value = pico8_value_ref((void *)hp->lq);
         return 1;

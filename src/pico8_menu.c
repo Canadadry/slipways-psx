@@ -36,7 +36,7 @@ static pico8_vec_t g_ix_ra[PICO8_IX_COUNT];
 static pico8_vec_t g_ha_hi;
 static pico8_vec_t g_ha_gq;
 
-static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1);
+static void pico8_ix4_my_dispatch(pico8_js_t *self);
 
 typedef struct {
     pico8_struct_header_t header;
@@ -100,19 +100,15 @@ static char *cr_concat2(const char *a, const char *b) {
 /* `"_cr_t"` is not a cart field: it is where pico8_cr_step stashes the row's
  * captured tech, as its entry of pico8_nb_table, read back here off the
  * button `js(b)` copied it to. */
-static pico8_value_t pico8_cr_row_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_cr_row_my_dispatch(pico8_js_t *self) {
     const void *inst = self;
     pico8_value_t t_val;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     if (inst == NULL) {
-        return pico8_value_ref(NULL);
+        return;
     }
     if (pico8_entity_get_field(inst, "_cr_t", &t_val) && t_val.kind == PICO8_VALUE_REF && t_val.as.ref != NULL) {
         pico8_hy_kt(pico8_fm_hy(), (const pico8_nb_entry_t *)t_val.as.ref);
     }
-    return pico8_value_ref(NULL);
 }
 
 /* One row of `cr`'s `bs`: the keys and the rows its `lq`/`h_` read. */
@@ -294,45 +290,34 @@ void pico8_cr(void) {
     free(rows);
 }
 
-static pico8_value_t pico8_ix1_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ix1_my_dispatch(pico8_js_t *self) {
     pico8_hy_t *fm = pico8_fm_hy();
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     if (fm != NULL) {
         fm->lo = pico8_fixed_from_int(1);
     }
     pico8_hy_hk(fm);
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_ix2_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ix2_my_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     pico8_cr();
-    return pico8_value_ref(NULL);
 }
 
 /* TROU-7 */
 /* The bare `cb()` counts only affordable techs. pico8_cr()'s `cb(true)` is the
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
-static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     void *inst = self;
     pico8_list_t cb_list;
     int cb_count;
     pico8_value_t item;
     pico8_lq_keys_t keys = {0};
     pico8_lq_t *built;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
 
     if (inst == NULL) {
-        return pico8_value_ref(NULL);
+        return;
     }
 
     cb_list = pico8_cb(pico8_value_ref(NULL));
@@ -345,20 +330,15 @@ static pico8_value_t pico8_ix2_hb_dispatch(void *self, int argc, pico8_value_t a
     built = pico8_lq_new(&keys);
 
     pico8_entity_set_field(inst, "lq", pico8_value_ref(built));
-
-    return pico8_value_ref(NULL);
 }
 
 /* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,
  * the one `pj:ph()` uses. */
-static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ix3_my_dispatch(pico8_js_t *self) {
     pico8_pj_t *ju = pico8_ju();
     pico8_fq_keys_t keys = {0};
     pico8_fq_t *built;
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     if (ju != NULL) {
         ju->c_ = 1;
         ju->has_c_ = 1;
@@ -366,56 +346,43 @@ static pico8_value_t pico8_ix3_my_dispatch(void *self, int argc, pico8_value_t a
     keys.my = pico8_de_my();
     built = pico8_fq_new(&keys);
     (void)built;
-    return pico8_value_ref(NULL);
 }
 
 /* TROU-10 */
-static pico8_value_t pico8_ha2_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ha2_my_dispatch(pico8_js_t *self) {
     int stat_val;
     pico8_fixed_t s;
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     stat_val = pico8_stat(pico8_dispatch_input(), 20);
     s = pico8_fixed_sgn(pico8_fixed_from_int(stat_val));
     pico8_music(-pico8_fixed_flr_int(s));
-    return pico8_value_ref(NULL);
 }
 
 /* TROU-10 */
 /* `ih` is the real global of pico8_audio.c, which pico8_rn() reads; a private
  * copy here would leave that mute check on the old value. */
-static pico8_value_t pico8_ha3_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ha3_my_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     pico8_set_ih(!pico8_ih());
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_t pico8_ha4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_ha4_my_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_ref(NULL);
 }
 
-static const pico8_value_function_t g_ix_my[PICO8_IX_COUNT] = {
+static const pico8_js_fn g_ix_my[PICO8_IX_COUNT] = {
     pico8_ix1_my_dispatch,
     pico8_ix2_my_dispatch,
     pico8_ix3_my_dispatch,
     pico8_ix4_my_dispatch,
 };
-static const pico8_value_function_t g_ix_hb[PICO8_IX_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
+static const pico8_js_fn g_ix_hb[PICO8_IX_COUNT] = {NULL, pico8_ix2_hb_dispatch, NULL, NULL};
 
 /* `pz(ha,ha)`: `ha`'s rows go in as `bs`, their `my` installed on every
  * run, and `p` is `g_ha_pz`, which carries `ha`'s `hi`/`gq`/`ca`. */
-static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    const pico8_value_function_t my[PICO8_HA_COUNT] = {
-        pico8_init_field_value().as.function,
+static void pico8_ix4_my_dispatch(pico8_js_t *self) {
+    const pico8_js_fn my[PICO8_HA_COUNT] = {
+        pico8_init_field_value(),
         pico8_ha2_my_dispatch,
         pico8_ha3_my_dispatch,
         pico8_ha4_my_dispatch,
@@ -425,12 +392,9 @@ static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t a
     pico8_value_t items[PICO8_HA_COUNT][PICO8_MENU_ROW_CAP];
     int i;
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
 
     if (!g_menu_up) {
-        return pico8_value_ref(NULL);
+        return;
     }
     for (i = 0; i < PICO8_HA_COUNT; i++) {
         const pico8_ha_entry_t *e = &pico8_ha_table[i];
@@ -445,8 +409,6 @@ static pico8_value_t pico8_ix4_my_dispatch(void *self, int argc, pico8_value_t a
         bs[i].my = my[i];
     }
     pico8_pz((const pico8_struct_header_t *)&g_ha_pz, bs, PICO8_HA_COUNT);
-
-    return pico8_value_ref(NULL);
 }
 
 pico8_js_t *pico8_ix_button(int i) {
@@ -467,7 +429,7 @@ pico8_js_t *pico8_ix_button(int i) {
     return pico8_js_new(&keys);
 }
 
-pico8_value_function_t pico8_ix_my(int i) {
+pico8_js_fn pico8_ix_my(int i) {
     assert(i >= 1 && i <= PICO8_IX_COUNT);
     return g_ix_my[i - 1];
 }

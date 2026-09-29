@@ -52,13 +52,10 @@ static char *pj_concat2(const char *a, const char *b) {
  * such closure is ever live. */
 static int g_pj_hk_lh_t = 0;
 
-static pico8_value_t pico8_pj_hk_lh_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static int pico8_pj_hk_lh_dispatch(pico8_mh_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     g_pj_hk_lh_t -= 1;
-    return pico8_value_bool(g_pj_hk_lh_t > 0);
+    return g_pj_hk_lh_t > 0;
 }
 
 void pico8_pj_hk(pico8_fixed_t yr) {
@@ -113,28 +110,33 @@ void pico8_pj_hk(pico8_fixed_t yr) {
     }
 }
 
-static pico8_value_t pico8_pj_de_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+/* `de.my`'s body: `pj:ph` stores it in a button, `fq(de)` in a veil, each
+ * through the variant of its own callback type. */
+static void pico8_pj_de_toggle(void) {
     pico8_pj_t *ju = pico8_ju();
-    (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     if (ju != NULL) {
         ju->c_ = !(ju->has_c_ && ju->c_);
         ju->has_c_ = 1;
     }
-    return pico8_value_bool(1);
+}
+
+static int pico8_pj_de_my_dispatch(pico8_fq_t *self) {
+    (void)self;
+    pico8_pj_de_toggle();
+    return 1;
+}
+
+static void pico8_pj_de_js_my_dispatch(pico8_js_t *self) {
+    (void)self;
+    pico8_pj_de_toggle();
 }
 
 /* `self` inside `pj:ph` is always `ju` -- `pj()` is constructed exactly once
  * in the cart -- so reading `ju.c_` here IS reading the captured upvalue. */
-static pico8_value_t pico8_pj_ph_lh_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static int pico8_pj_ph_lh_dispatch(pico8_mh_t *self) {
     const pico8_pj_t *ju = pico8_ju();
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_bool(ju != NULL && ju->has_c_ && ju->c_);
+    return ju != NULL && ju->has_c_ && ju->c_;
 }
 
 typedef struct {
@@ -295,7 +297,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
         *spec1.ra = pico8_vec_v(pico8_fixed_from_int(51), pico8_fixed_from_int(100));
         spec1.lq = pico8_value_ref(&lq1);
         spec1.has_my = 1;
-        spec1.my = pico8_init_field_value().as.function;
+        spec1.my = pico8_init_field_value();
         made1 = pico8_js_new(&spec1);
         (void)made1;
         pico8_list_free(&lq1);
@@ -309,7 +311,7 @@ void pico8_pj_ph(pico8_pj_t *self) {
         *spec2.ra = pico8_vec_v(pico8_fixed_from_int(39), pico8_fixed_from_int(100));
         spec2.lq = pico8_value_ref(&lq2);
         spec2.has_my = 1;
-        spec2.my = pico8_de_my();
+        spec2.my = pico8_pj_de_js_my_dispatch;
         made2 = pico8_js_new(&spec2);
         (void)made2;
         pico8_list_free(&lq2);
@@ -370,6 +372,6 @@ void pico8_score_panel_display_init(void) {
 void pico8_score_panel_display_shutdown(void) {
 }
 
-pico8_value_function_t pico8_de_my(void) {
+pico8_fq_my_fn pico8_de_my(void) {
     return pico8_pj_de_my_dispatch;
 }

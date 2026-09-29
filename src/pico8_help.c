@@ -18,21 +18,17 @@
 
 static int g_fv_up = 0;
 
-static pico8_value_t pico8_fv_eu_placeholder(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_fv_eu_placeholder(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_ref(NULL);
 }
 
-static pico8_value_function_t g_eu_dispatch = pico8_fv_eu_placeholder;
+static pico8_js_fn g_eu_dispatch = pico8_fv_eu_placeholder;
 
-pico8_value_t pico8_eu_field_value(void) {
-    return pico8_value_function(g_eu_dispatch);
+pico8_js_fn pico8_eu_field_value(void) {
+    return g_eu_dispatch;
 }
 
-void pico8_help_set_eu(pico8_value_function_t fn) {
+void pico8_help_set_eu(pico8_js_fn fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
@@ -66,7 +62,7 @@ void pico8_fv_pq(pico8_fv_t *self) {
         bs[i].has_en = 1;
         bs[i].en = e->en;
         bs[i].has_my = 1;
-        bs[i].my = pico8_eu_field_value().as.function;
+        bs[i].my = pico8_eu_field_value();
     }
     pico8_pz((const pico8_struct_header_t *)self, bs, PICO8_BO_COUNT);
 }

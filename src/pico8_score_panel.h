@@ -56,7 +56,7 @@ typedef struct {
     pico8_jb_item_t items[3];
     pico8_jb_row_t second;
     pico8_jb_item_t second_items[5];
-    pico8_value_function_t lh;
+    pico8_mh_lh_fn lh;
 } pico8_pj_ea_t;
 
 /* A row of `bz`, a copy of its entry of `pico8_bz_table`. Without a score it
@@ -109,11 +109,11 @@ pico8_value_t pico8_pj_ed(const pico8_pj_t *self);
  * run rewrites them in place. NULL before the init and after the shutdown. */
 pico8_bz_row_t *pico8_pj_bz(void);
 
-/* Always a valid FUNCTION value: an inert placeholder until the real
- * `_init` bridge is installed, which a NULL argument resets. A button built
- * earlier keeps whichever value it captured then. */
-pico8_value_t pico8_init_field_value(void);
-void pico8_score_panel_set_init(pico8_value_function_t fn);
+/* Never NULL: an inert placeholder until the real `_init` bridge is
+ * installed, which a NULL argument resets. A button built earlier keeps
+ * whichever value it captured then. */
+pico8_js_fn pico8_init_field_value(void);
+void pico8_score_panel_set_init(pico8_js_fn fn);
 
 /* NULL until `eu()` builds the one `pj` instance and sets it here. The
  * setter takes no ownership. */

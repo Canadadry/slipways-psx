@@ -127,6 +127,11 @@ static int gb_rank(const void *e) {
     return -1;
 }
 
+/* The kind the name reader gave `lq` when it fell back to the method,
+ * frozen in GB_HASH and RAW_PRESENCE_HASH; the enum entry is gone.
+ * Changing it reddens them. */
+enum { FUNCTION_KIND = 4 };
+
 /* Kind, then the string's bytes, the number, the boolean; a list is
  * folded through (`depth` levels), an entity by its rank in `hv` or in
  * `gb`. */
@@ -143,8 +148,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
             h = fnv(h, (uint32_t)(unsigned char)*s);
         }
         return fnv(h, 0xFFu);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -440,16 +443,16 @@ static void test_gb(void) {
             qe = pico8_jy_qe(i_list->items[j].as.ref);
             h = fold_value(h, qe, 0);
         }
-        assert(lookup(b, "lq", &v));
-        h = fnv(h, (uint32_t)v.kind);
-        if (v.kind == PICO8_VALUE_REF) {
+        if (lookup(b, "lq", &v)) {
             const pico8_jb_row_t *lq = v.as.ref;
+            h = fnv(h, (uint32_t)v.kind);
             assert(v.as.ref == &((const pico8_hp_t *)b)->lq_own && has(b, "ii"));
             for (j = 1; j <= 3; j++) {
                 h = j <= lq->count ? fold_item(h, &lq->items[j - 1], 2) : fnv(h, 0xFFFFFFFFu);
             }
         } else {
-            assert(v.kind == PICO8_VALUE_FUNCTION && !has(b, "ii"));
+            h = fnv(h, (uint32_t)FUNCTION_KIND);
+            assert(((const pico8_hp_t *)b)->lq == NULL && !has(b, "ii"));
         }
 
         if (k == 1) {
@@ -497,11 +500,10 @@ static uint32_t fold_functions(uint32_t h) {
         assert((jb == NULL) == has(b, "ii"));
         lq_h = fold_lq_instance(2166136261u, pico8_hp_lq(b));
         h = fnv(h, lq_h);
-        assert(lookup(b, "lq", &member));
-        if (member.kind == PICO8_VALUE_REF) {
+        if (lookup(b, "lq", &member)) {
             assert(((const pico8_hp_t *)b)->lq != NULL && (const void *)((const pico8_hp_t *)b)->lq == member.as.ref);
         } else {
-            assert(member.kind == PICO8_VALUE_FUNCTION && ((const pico8_hp_t *)b)->lq == NULL);
+            assert(((const pico8_hp_t *)b)->lq == NULL);
             assert(fold_lq_instance(2166136261u, pico8_hp_lq(b)) == lq_h);
         }
     }
@@ -949,7 +951,7 @@ static void test_hp_is_a_struct(void) {
     assert(get_ref(bare, "fk") == get_ref(b, "fk"));
     assert(bare->mr == pico8_hp_start.mr && bare->gp == pico8_hp_start.gp && bare->fk == pico8_hp_start.fk);
     assert(get_ref(bare, "i") != NULL && ((const pico8_list_t *)get_ref(bare, "i"))->count == 0);
-    assert(lookup(bare, "lq", &v) && v.kind == PICO8_VALUE_FUNCTION);
+    assert(!lookup(bare, "lq", &v) && bare->lq == NULL);
     for (n = 0; n < sizeof own / sizeof own[0]; n++) {
         assert(!has(bare, own[n]));
     }
@@ -990,7 +992,7 @@ static void test_gb_px_is_the_last_registered(void) {
 }
 
 static const char *const hp_members[] = {"mr", "gp", "fk", "px", "lr", "fj", "ja", "i", "o",
-                                         "il", "dm", "rr", "ii", "cw", "go", "rn", "lq"};
+                                         "il", "dm", "rr", "ii", "cw", "go", "rn"};
 static const char *const hp_intruders[] = {"", "x", "hp", "me", "has_ii", "has_il", "il_is_bool"};
 
 /* The descriptor's reader, with a witness in `out`: 0 must leave it. */
@@ -1012,9 +1014,6 @@ static int member_kind_ok(const char *name, pico8_value_kind_t kind) {
     }
     if (strcmp(name, "il") == 0) {
         return kind == PICO8_VALUE_BOOL || kind == PICO8_VALUE_STRING;
-    }
-    if (strcmp(name, "lq") == 0) {
-        return kind == PICO8_VALUE_REF || kind == PICO8_VALUE_FUNCTION;
     }
     return kind == PICO8_VALUE_STRING;
 }
@@ -1056,12 +1055,11 @@ static void test_hp_members_by_name(void) {
         } else if (strcmp(m, "i") == 0) {
             assert(raw_read(bare, m, &v) && v.kind == PICO8_VALUE_REF &&
                    pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST && ((const pico8_list_t *)v.as.ref)->count == 0);
-        } else if (strcmp(m, "lq") == 0) {
-            assert(raw_read(bare, m, &v) && v.kind == PICO8_VALUE_FUNCTION);
         } else {
             assert(!raw_read(bare, m, &v));
         }
     }
+    assert(!raw_read(bare, "lq", &v) && bare->lq == NULL);
     assert(raw_read(bare, "fk", &v) && v.as.ref == pico8_hp_fk());
     for (n = 0; n < sizeof hp_intruders / sizeof hp_intruders[0]; n++) {
         assert(!raw_read(bare, hp_intruders[n], &v));
@@ -1088,6 +1086,13 @@ static void test_hp_members_by_name(void) {
                 h = fnv(h, (uint32_t)v.kind);
             }
         }
+        h = fnv(fnv(fnv(h, (uint32_t)k), (uint32_t)n), 1u);
+        if (raw_read(b, "lq", &v)) {
+            assert((const void *)((const pico8_hp_t *)b)->lq == v.as.ref);
+            h = fnv(h, (uint32_t)v.kind);
+        } else {
+            h = fnv(h, (uint32_t)FUNCTION_KIND);
+        }
         if (!raw_read(b, "il", &v)) {
             il_absent++;
         } else if (v.kind == PICO8_VALUE_BOOL) {
@@ -1111,10 +1116,10 @@ static void test_hp_members_by_name(void) {
         assert(record_string(rec, 0, "go") == NULL || v.as.string == record_string(rec, 0, "go"));
         for (n = 0; n < sizeof hp_members / sizeof hp_members[0]; n++) {
             const char *m = hp_members[n];
-            if (strcmp(m, "i") == 0 || strcmp(m, "lq") == 0 || strcmp(m, "mr") == 0 || strcmp(m, "gp") == 0 ||
+            if (strcmp(m, "i") == 0 || strcmp(m, "mr") == 0 || strcmp(m, "gp") == 0 ||
                 strcmp(m, "fk") == 0) {
                 assert(raw_read(b, m, &v) && raw_read(b, m, &w) && v.kind == w.kind);
-                assert(v.kind == PICO8_VALUE_FUNCTION || v.as.ref == w.as.ref);
+                assert(v.as.ref == w.as.ref);
             }
         }
         if (raw_read(b, "ii", &v)) {

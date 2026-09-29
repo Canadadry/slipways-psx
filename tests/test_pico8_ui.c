@@ -381,12 +381,8 @@ static void test_built(void) {
     check("built", h, BUILT_HASH);
 }
 
-static pico8_value_t nil(void) {
-    return pico8_value_ref(NULL);
-}
-
 static void call_ix_my(int i) {
-    (void)pico8_ix_my(i)(NULL, 0, nil(), nil());
+    pico8_ix_my(i)(NULL);
 }
 
 /* A second `ui` shares the class's empty `le` until its own `cj`; `pz`
@@ -1688,7 +1684,6 @@ static void test_jo_writer_stops_off_row(void) {
             off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
             off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
             off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-            off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
             off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
             off_row[n_off++] = pico8_value_ref(e[i]);
             if (strcmp(names[m], "hn") != 0) {
@@ -1911,7 +1906,6 @@ static void test_jo_position_stops_off_row(void) {
         off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
         off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
         off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-        off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
         off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
         off_row[n_off++] = pico8_value_ref(e[i]);
         for (m = 0; m < 2; m++) {
@@ -2259,7 +2253,6 @@ static void test_jo_state_stops_off_row(void) {
         off_row[n_off++] = zero_union(PICO8_VALUE_FIXED);
         off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
         off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-        off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
         off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
         off_row[n_off++] = pico8_value_ref(e[i]);
         off_row[n_off++] = pico8_value_ref(gb_project(0));
@@ -2587,7 +2580,6 @@ static void test_jo_writers_stop_off_row(void) {
                 off_row[n_off++] = pico8_value_string("x");
             }
             off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-            off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
             if (strcmp(n, "ma") == 0 || strcmp(n, "kr") == 0 || strcmp(n, "mi") == 0 || strcmp(n, "fo") == 0 ||
                 strcmp(n, "m_") == 0) {
                 off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
@@ -2927,7 +2919,6 @@ static void test_qh_writer_stops_off_row(void) {
     off_row[n_off++] = pico8_value_bool(1);
     off_row[n_off++] = pico8_value_string("x");
     off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
     off_row[n_off++] = pico8_value_ref((void *)pico8_hv());
     off_row[n_off++] = pico8_value_ref(vec);
     off_row[n_off++] = pico8_value_ref(pico8_ga_new(NULL));
@@ -2954,7 +2945,6 @@ static void test_qh_writer_stops_off_row(void) {
     off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
     off_row[n_off++] = pico8_value_string("x");
     off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
     g_off_row_name = "s";
     for (i = 0; i < 2; i++) {
         for (k = 0; k < n_off; k++) {
@@ -3268,7 +3258,6 @@ static void test_hj_writer_stops_off_row(void) {
     off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
     off_row[n_off++] = pico8_value_string("x");
     off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
     off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
     off_row[n_off++] = pico8_value_ref(vec);
     g_off_row_name = "qy";
@@ -3415,7 +3404,6 @@ static void test_mx_writer_stops_off_row(void) {
     off_row[n_off++] = zero_union(PICO8_VALUE_BOOL);
     off_row[n_off++] = pico8_value_string("x");
     off_row[n_off++] = zero_union(PICO8_VALUE_STRING);
-    off_row[n_off++] = zero_union(PICO8_VALUE_FUNCTION);
     off_row[n_off++] = pico8_value_ref(list);
     off_row[n_off++] = pico8_value_ref(pico8_jo_new(NULL));
     g_off_row_name = "ht";

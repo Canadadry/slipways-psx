@@ -89,7 +89,7 @@ void pico8_cart_load(void) {
     pico8_research_icon_init();
     pico8_menu_init();
 
-    pico8_help_set_eu(pico8_eu_dispatch);
+    pico8_help_set_eu(pico8_eu);
     pico8_score_panel_set_init(pico8_init_dispatch);
 }
 
@@ -128,8 +128,8 @@ void pico8__init(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
 
     assert(pico8_ie_ready() && "pico8_cart_load() must run before _init()");
-    assert(pico8_eu_field_value().as.function == pico8_eu_dispatch &&
-           pico8_init_field_value().as.function == pico8_init_dispatch &&
+    assert(pico8_eu_field_value() == pico8_eu &&
+           pico8_init_field_value() == pico8_init_dispatch &&
            "pico8_help_init()/pico8_score_panel_init() reset these bridges, so pico8_cart_load() must "
            "install them afterwards: every button copies the value when it is built");
 
@@ -146,13 +146,9 @@ void pico8__init(void) {
     pico8_music(0);
 }
 
-pico8_value_t pico8_init_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+void pico8_init_dispatch(pico8_js_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     pico8__init();
-    return pico8_value_ref(NULL);
 }
 
 void pico8_eu(pico8_js_t *nj) {
@@ -199,14 +195,6 @@ void pico8_eu(pico8_js_t *nj) {
 
     assert(pico8_fm_hy() != NULL && "fm must be the hy of this game before fm:lj()");
     pico8_hy_lj(pico8_fm_hy());
-}
-
-pico8_value_t pico8_eu_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    pico8_eu((pico8_js_t *)self);
-    return pico8_value_ref(NULL);
 }
 
 void pico8__update60(void) {

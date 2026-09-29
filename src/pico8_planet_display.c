@@ -316,7 +316,7 @@ pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s)
 /* C has no closures: the three values the Lua `my` callback captures ride
  * on the row as `_jo_fe_*` fields, which `pz()`'s own `js(b)` copies
  * verbatim onto the button this bridge is later dispatched on. */
-static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static void pico8_jo_fe_my_dispatch(pico8_js_t *self) {
     const void *inst = self;
     pico8_value_t pt_val;
     pico8_value_t b_val;
@@ -325,12 +325,8 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
     pico8_hp_t *b = NULL;
     pico8_fixed_t od = pico8_fixed_from_int(0);
 
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-
     if (inst == NULL) {
-        return pico8_value_ref(NULL);
+        return;
     }
     if (pico8_entity_get_field(inst, "_jo_fe_pt", &pt_val) && pt_val.kind == PICO8_VALUE_REF &&
         pt_val.as.ref != NULL) {
@@ -347,7 +343,6 @@ static pico8_value_t pico8_jo_fe_my_dispatch(void *self, int argc, pico8_value_t
     if (pico8_hy_lu(pico8_fm_hy(), od)) {
         pico8_jo_hu(pt, b);
     }
-    return pico8_value_ref(NULL);
 }
 
 /* One button of `jo:fe`: its keys and the rows they point at, alive until

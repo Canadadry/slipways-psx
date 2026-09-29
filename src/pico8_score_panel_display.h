@@ -19,6 +19,6 @@ void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);
 
 /* The function `de.my` holds: `fq(de)` of `ix[3]` reads nothing else. */
-pico8_value_function_t pico8_de_my(void);
+pico8_fq_my_fn pico8_de_my(void);
 
 #endif

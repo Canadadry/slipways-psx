@@ -37,7 +37,7 @@
 #define MY_FALSE_SEQUENCE_HASH 0xE43E9427u
 #define HOVER_SEQUENCE_HASH 0x27C4BCB8u
 #define HOVER_CURSOR_HASH 0x04C40AB9u
-#define FQ_MEMBERS_HASH 0x76872F8Du
+#define FQ_MEMBERS_HASH 0x0D1F1DC9u
 
 #define LDOWN_TICK 5
 #define IDLE_TICKS 30
@@ -112,13 +112,10 @@ static const void *ok_o_(void) {
 static int g_my_calls = 0;
 static int g_my_answer = 1;
 
-static pico8_value_t counting_my(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static int counting_my(pico8_fq_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     g_my_calls++;
-    return pico8_value_bool(g_my_answer);
+    return g_my_answer;
 }
 
 static void *veil_with_my(int answer) {
@@ -320,23 +317,20 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     assert(pico8_entity_get_field(generic, "hd", &out) && out.kind == PICO8_VALUE_FIXED &&
            out.as.fixed == pico8_fixed_from_int(1));
     assert(cls->states[PICO8_STATE_PH] == NULL && cls->rdown == NULL);
-    assert(pico8_entity_get_field(built, "my", &out) && out.kind == PICO8_VALUE_FUNCTION);
+    assert(!pico8_entity_get_field(built, "my", &out) && ((const pico8_fq_t *)built)->my == pico8_de_my());
 }
 
-static pico8_value_t g_script[8];
+static int g_script[8];
 static int g_script_len = 0;
 static int g_script_calls = 0;
 
-static pico8_value_t scripted_my(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static int scripted_my(pico8_fq_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     assert(g_script_calls < g_script_len);
     return g_script[g_script_calls++];
 }
 
-static void *veil_with_key(pico8_value_function_t my) {
+static void *veil_with_key(pico8_fq_my_fn my) {
     pico8_fq_keys_t keys = {0};
 
     keys.my = my;
@@ -365,9 +359,6 @@ static uint32_t fold_raw(uint32_t h, const void *e, const char *name) {
         assert(raw.as.boolean == via.as.boolean);
         return fnv(h, (uint32_t)raw.as.boolean);
     }
-    if (raw.kind == PICO8_VALUE_FUNCTION) {
-        assert(raw.as.function == via.as.function);
-    }
     if (raw.kind == PICO8_VALUE_STRING) {
         assert(strcmp(raw.as.string, via.as.string) == 0);
         h = fnv(h, (uint32_t)strlen(raw.as.string));
@@ -375,10 +366,22 @@ static uint32_t fold_raw(uint32_t h, const void *e, const char *name) {
     return h;
 }
 
+/* The kind the name reader gave `my`, frozen in the constants that fold
+ * it; the enum entry is gone. Changing it reddens them. */
+enum { FUNCTION_KIND = 4 };
+
+/* `my` from its member, at its place between `hd` and `p_`, in the bytes
+ * its value read by name folded to. */
 static uint32_t fold_members(uint32_t h, const void *e) {
-    static const char *const names[] = {"fa", "hd", "my", "p_", "m_", "me", "t"};
+    static const char *const head[] = {"fa", "hd"};
+    static const char *const names[] = {"p_", "m_", "me", "t"};
+    const pico8_fq_t *fq = e;
     size_t i;
 
+    for (i = 0; i < sizeof head / sizeof head[0]; i++) {
+        h = fold_raw(h, e, head[i]);
+    }
+    h = fq->my != NULL ? fnv(h, (uint32_t)FUNCTION_KIND) : fnv(h, 0xDEADu);
     for (i = 0; i < sizeof names / sizeof names[0]; i++) {
         h = fold_raw(h, e, names[i]);
     }
@@ -415,7 +418,6 @@ static void test_fq_members_by_name(void) {
     static const char *const intruders[] = {"", "x", "M_", "P_", "m", "p", "has_m_", "has_p_", "ke", "header"};
     static const char *const unwritten[] = {"fa", "hd", "my", "p_", "me", "t", "", "m_ ", "has_m_", "has_p_"};
     pico8_fq_keys_t keys = {0};
-    pico8_value_t de_my;
     pico8_value_t got;
     void *bare;
     void *built;
@@ -427,7 +429,6 @@ static void test_fq_members_by_name(void) {
     int step;
 
     pico8_jl();
-    de_my = pico8_value_function(pico8_de_my());
     bare = pico8_fq_new(NULL);
     keys.my = pico8_de_my();
     built = pico8_fq_new(&keys);
@@ -436,8 +437,8 @@ static void test_fq_members_by_name(void) {
     h = fold_members(h, bare);
     h = fold_members(h, built);
     h = fold_members(h, nil_key);
-    assert(pico8_entity_get_field(built, "my", &got) && got.kind == PICO8_VALUE_FUNCTION &&
-           got.as.function == de_my.as.function);
+    assert(!pico8_entity_get_field(built, "my", &got) &&
+           ((const pico8_fq_t *)built)->my == pico8_de_my());
     for (i = 0; i < sizeof intruders / sizeof intruders[0]; i++) {
         h = fold_raw(h, bare, intruders[i]);
         h = fold_raw(h, built, intruders[i]);
@@ -446,12 +447,11 @@ static void test_fq_members_by_name(void) {
     h = fnv(h, (uint32_t)ldown(bare));
     h = fold_members(h, bare);
 
-    g_script[0] = pico8_value_bool(1);
-    g_script[1] = pico8_value_ref(NULL);
-    g_script[2] = zero_of(PICO8_VALUE_BOOL);
-    g_script[3] = pico8_value_bool(0);
-    g_script[4] = pico8_value_bool(1);
-    g_script_len = 5;
+    g_script[0] = 1;
+    g_script[1] = 0;
+    g_script[2] = 0;
+    g_script[3] = 1;
+    g_script_len = 4;
     g_script_calls = 0;
     scripted = veil_with_key(scripted_my);
     for (step = 0; step < g_script_len; step++) {
@@ -459,7 +459,7 @@ static void test_fq_members_by_name(void) {
         h = fnv(h, (uint32_t)g_script_calls);
         h = fold_members(h, scripted);
     }
-    assert(g_script_calls == 5);
+    assert(g_script_calls == 4);
 
     pico8_entity_set_field(bare, "m_", pico8_value_bool(1));
     h = fold_members(h, bare);
@@ -497,16 +497,6 @@ static void write_m_by_name(void *e, pico8_value_t v) {
     pico8_entity_set_field(e, "m_", v);
 }
 
-static void ldown_returning(void *e, pico8_value_t v) {
-    void *veil;
-    (void)e;
-    g_script[0] = v;
-    g_script_len = 1;
-    g_script_calls = 0;
-    veil = veil_with_key(scripted_my);
-    (void)ldown(veil);
-}
-
 static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico8_value_t v) {
     pid_t child;
     int status;
@@ -523,8 +513,8 @@ static void must_abort_value(void *e, void (*write)(void *, pico8_value_t), pico
     assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
 }
 
-/* `m_` and `p_` take nil or a boolean only; a value whose whole union is
- * zero is not nil unless it is a REF. */
+/* `m_` takes nil or a boolean only; a value whose whole union is zero is
+ * not nil unless it is a REF. */
 static void test_fq_writer_stops_off_row(void) {
     pico8_value_t one = pico8_value_fixed(pico8_fixed_from_int(1));
     static const pico8_jb_row_t plain = {0};
@@ -539,16 +529,8 @@ static void test_fq_writer_stops_off_row(void) {
     must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_FIXED));
     must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_STRING));
     must_abort_value(bare, write_m_by_name, pico8_value_string("x"));
-    must_abort_value(bare, write_m_by_name, pico8_value_function(counting_my));
-    must_abort_value(bare, write_m_by_name, zero_of(PICO8_VALUE_FUNCTION));
     must_abort_value(bare, write_m_by_name, pico8_value_ref(other));
     must_abort_value(bare, write_m_by_name, pico8_value_ref((void *)&plain));
-
-    must_abort_value(bare, ldown_returning, one);
-    must_abort_value(bare, ldown_returning, zero_of(PICO8_VALUE_FIXED));
-    must_abort_value(bare, ldown_returning, zero_of(PICO8_VALUE_STRING));
-    must_abort_value(bare, ldown_returning, pico8_value_string("x"));
-    must_abort_value(bare, ldown_returning, pico8_value_ref(other));
 }
 
 int main(void) {

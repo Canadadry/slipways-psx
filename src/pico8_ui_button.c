@@ -65,7 +65,7 @@ static void pico8_js_hb_dispatch(void *self) {
     pico8_js_t *js = self;
 
     if (js->hb != NULL) {
-        (void)js->hb(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        js->hb(js);
     }
 }
 
@@ -77,16 +77,6 @@ pico8_value_t pico8_js_h_(const pico8_js_t *self) {
         return pico8_value_bool(0);
     }
     return pico8_value_ref(self->h_);
-}
-
-pico8_value_t pico8_js_my(const pico8_js_t *self) {
-    if (self == NULL || !self->has_my) {
-        return pico8_value_ref(NULL);
-    }
-    if (self->my == NULL) {
-        return pico8_value_bool(0);
-    }
-    return pico8_value_function(self->my);
 }
 
 static int js_ref_field(void *ref, pico8_value_t *out_value) {
@@ -142,21 +132,11 @@ static int pico8_js_field(const void *self, const char *name, pico8_value_t *out
     if (strcmp(name, "qf") == 0) {
         return js_ref_field(js->qf, out_value);
     }
-    if (strcmp(name, "my") == 0) {
-        return js_value_field(pico8_js_my(js), out_value);
-    }
     if (strcmp(name, "m_") == 0) {
         if (!js->has_m_) {
             return 0;
         }
         *out_value = pico8_value_bool(js->m_);
-        return 1;
-    }
-    if (strcmp(name, "hb") == 0) {
-        if (js->hb == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_function(js->hb);
         return 1;
     }
     if (strcmp(name, "fg") == 0) {
@@ -197,7 +177,7 @@ static void button_take_bool(pico8_value_t value, int *out, int *has) {
         return;
     }
     assert(value.kind == PICO8_VALUE_BOOL &&
-           "fq.m_/p_, js.m_: a write neither nil nor a boolean does not fit the member's type "
+           "fq.m_, js.m_: a write neither nil nor a boolean does not fit the member's type "
            "-- stop, do not widen the member");
     *out = value.as.boolean;
     *has = 1;
@@ -483,7 +463,7 @@ pico8_down_t pico8_js_ldown(pico8_js_t *self) {
 
     pico8_rn(has_my ? pico8_value_fixed(pico8_fixed_from_int(60)) : pico8_value_bool(0));
     if (has_my) {
-        (void)self->my(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        self->my(self);
     }
 
     return out;
@@ -504,13 +484,6 @@ static int pico8_fq_field(const void *self, const char *name, pico8_value_t *out
     }
     if (strcmp(name, "hd") == 0) {
         *out_value = pico8_value_fixed(fq->hd);
-        return 1;
-    }
-    if (strcmp(name, "my") == 0) {
-        if (fq->my == NULL) {
-            return 0;
-        }
-        *out_value = pico8_value_function(fq->my);
         return 1;
     }
     if (strcmp(name, "p_") == 0) {
@@ -590,16 +563,16 @@ pico8_fq_t *pico8_fq_new(const pico8_fq_keys_t *keys) {
 }
 
 pico8_down_t pico8_fq_ldown(pico8_fq_t *self) {
-    pico8_value_t my_result;
     pico8_down_t out = {1, NULL};
 
     if (self == NULL) {
         return out;
     }
-    my_result = pico8_value_ref(NULL);
+    self->p_ = 0;
+    self->has_p_ = 0;
     if (self->my != NULL) {
-        my_result = self->my(self, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+        self->p_ = self->my(self) != 0;
+        self->has_p_ = 1;
     }
-    button_take_bool(my_result, &self->p_, &self->has_p_);
     return out;
 }

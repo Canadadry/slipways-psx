@@ -18,7 +18,7 @@ pico8_js_t *pico8_ix_button(int i);
 
 /* The `my` callback of `ix`'s row `i`. `ha`'s rows get theirs from `ix[4]`'s,
  * on every run, as in the cart. */
-pico8_value_function_t pico8_ix_my(int i);
+pico8_js_fn pico8_ix_my(int i);
 
 /* The struct `ix[4]`'s callback hands `pz` for `ha`, with `ha`'s own
  * `hi`/`gq`/`ca`; NULL before the init and after the shutdown. */

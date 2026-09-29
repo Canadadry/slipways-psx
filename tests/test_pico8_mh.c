@@ -329,13 +329,10 @@ static void test_defaults_match_the_parsed_spec(void) {
 
 static int g_lh_calls = 0;
 
-static pico8_value_t counting_lh(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static int counting_lh(pico8_mh_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
     g_lh_calls++;
-    return pico8_value_bool(1);
+    return 1;
 }
 
 /* Built by `pj` or through its class, a box is a struct that lands in hv,
@@ -346,7 +343,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     pico8_mh_keys_t keys = {0};
     const void *from_pj;
     void *generic;
-    pico8_value_t out;
+    int out;
     int i;
 
     pico8_jl();
@@ -362,14 +359,28 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
         assert(!listed(pico8_cv(others[i]), from_pj) && !listed(pico8_cv(others[i]), generic));
     }
     assert(((pico8_mh_t *)generic)->lh != NULL);
-    out = ((pico8_mh_t *)generic)->lh(generic, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
-    assert(g_lh_calls == 1 && out.kind == PICO8_VALUE_BOOL && out.as.boolean);
+    out = ((pico8_mh_t *)generic)->lh(generic);
+    assert(g_lh_calls == 1 && out);
     assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] == NULL);
 }
 
-static const char *const MEMBER_NAMES[] = {"nu", "fa", "rh", "lh", "p_"};
+static const char *const MEMBER_NAMES[] = {"nu", "fa", "rh", "p_"};
 
-static uint32_t fold_member(uint32_t h, const void *e, const char *name, const void *nu, pico8_value_function_t lh) {
+/* The kind the name reader gave `lh`, frozen in MEMBERS_BY_NAME_HASH; the
+ * enum entry is gone. Changing it reddens the constant. */
+enum { FUNCTION_KIND = 4 };
+
+/* `lh` from its member, in the bytes its value read by name folded to. */
+static uint32_t fold_lh(uint32_t h, const void *e, pico8_mh_lh_fn want) {
+    pico8_mh_lh_fn lh = ((const pico8_mh_t *)e)->lh;
+
+    if (lh == NULL) {
+        return fnv(h, 0xDEADu);
+    }
+    return fnv(fnv(h, (uint32_t)FUNCTION_KIND), (uint32_t)(lh == want));
+}
+
+static uint32_t fold_member(uint32_t h, const void *e, const char *name, const void *nu) {
     pico8_value_t v = pico8_value_fixed(0x5A5A);
 
     if (!pico8_entity_get_field(e, name, &v)) {
@@ -384,8 +395,6 @@ static uint32_t fold_member(uint32_t h, const void *e, const char *name, const v
         return fnv(h, (uint32_t)v.as.boolean);
     case PICO8_VALUE_REF:
         return fnv(h, (uint32_t)(v.as.ref == nu));
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, (uint32_t)(v.as.function == lh));
     default:
         return fnv(h, 0xBADu);
     }
@@ -438,18 +447,22 @@ static void test_mh_members_by_name(void) {
     assert(has_member(b, "nu", &v) && v.kind == PICO8_VALUE_REF && v.as.ref == nu);
     assert(has_member(b, "fa", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(14));
     assert(has_member(b, "rh", &v) && v.kind == PICO8_VALUE_FIXED && v.as.fixed == pico8_fixed_from_int(3));
-    assert(has_member(b, "lh", &v) && v.kind == PICO8_VALUE_FUNCTION && v.as.function == counting_lh);
+    assert(!has_member(b, "lh", &v) && ((pico8_mh_t *)b)->lh == counting_lh);
     calls = g_lh_calls;
-    (void)((pico8_mh_t *)b)->lh(b, 0, pico8_value_ref(NULL), pico8_value_ref(NULL));
+    (void)((pico8_mh_t *)b)->lh(b);
     assert(g_lh_calls == calls + 1);
     assert(!has_member(b, "p_", &v));
     assert(has_member(a, "p_", &v) && v.kind == PICO8_VALUE_BOOL && v.as.boolean == 1);
     assert(pico8_kc() == b);
 
-    for (i = 0; i < 5; i++) {
-        h = fold_member(h, a, MEMBER_NAMES[i], nu, counting_lh);
-        h = fold_member(h, b, MEMBER_NAMES[i], nu, counting_lh);
+    for (i = 0; i < 3; i++) {
+        h = fold_member(h, a, MEMBER_NAMES[i], nu);
+        h = fold_member(h, b, MEMBER_NAMES[i], nu);
     }
+    h = fold_lh(h, a, counting_lh);
+    h = fold_lh(h, b, counting_lh);
+    h = fold_member(h, a, MEMBER_NAMES[3], nu);
+    h = fold_member(h, b, MEMBER_NAMES[3], nu);
     printf("[members by name] hash=0x%08Xu\n", (unsigned)h);
     fflush(stdout);
     assert(h == MEMBERS_BY_NAME_HASH);

@@ -195,7 +195,7 @@ static uint32_t fold_row(uint32_t h, const pico8_jb_row_t *row) {
 static uint32_t fold_ea(uint32_t h, const pico8_pj_ea_t *ea) {
     h = fold_row_entries(h, &ea->row);
     if (ea->lh != NULL) {
-        h = fold_value(fnv_str(h, "lh"), pico8_value_function(ea->lh));
+        h = fnv(fnv_str(h, "lh"), 0xFCu);
     }
     return fnv(h, (uint32_t)(row_entries(&ea->row) + (ea->lh != NULL)));
 }
@@ -208,8 +208,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v) {
         return fnv(fnv(h, 0xF1u), (uint32_t)v.as.fixed);
     case PICO8_VALUE_STRING:
         return fnv_str(fnv(h, 0x57u), v.as.string);
-    case PICO8_VALUE_FUNCTION:
-        return fnv(h, 0xFCu);
     case PICO8_VALUE_REF:
         if (v.as.ref == NULL) {
             return fnv(h, 0xDEADu);
@@ -339,8 +337,22 @@ static int js15_count(void) {
     return n;
 }
 
-static pico8_value_t de_my(void) {
-    return pico8_de_my()(NULL, 0, nil(), nil());
+static int de_my(void) {
+    return pico8_de_my()(NULL);
+}
+
+/* `pj:ph`'s second button, the one whose `my` is `de`'s. */
+static pico8_js_t *de_button(void) {
+    const pico8_list_t *hv = pico8_hv();
+    int i;
+    for (i = hv->count - 1; i >= 0; i--) {
+        pico8_js_t *e = hv->items[i].as.ref;
+        if (is_of(e, pico8_js_struct_class()) && get_fixed(e, "fa") == pico8_fixed_from_int(15) &&
+            e->my != pico8_init_field_value()) {
+            return e;
+        }
+    }
+    return NULL;
 }
 
 /* The game's panel as `eu()` and `lt` left it: where it registered, its
@@ -492,10 +504,18 @@ static void test_life(void) {
     }
     assert(get_fixed(ju, "gz") == PICO8_FIXED_LIT(0x00009999, 0.6));
 
-    assert(pico8_value_equal(de_my(), pico8_value_bool(1)));
+    assert(de_my() == 1);
     assert(bool_state(ju, "c_") == 1);
-    assert(pico8_value_equal(de_my(), pico8_value_bool(1)));
+    assert(de_my() == 1);
     assert(bool_state(ju, "c_") == 2);
+    {
+        pico8_js_t *de = de_button();
+        assert(de != NULL && de->has_my && de->my != NULL);
+        de->my(de);
+        assert(bool_state(ju, "c_") == 1);
+        de->my(de);
+        assert(bool_state(ju, "c_") == 2);
+    }
     h = fold_field(h, ju, "fa");
     check("life", h, LIFE_HASH);
 }
@@ -608,12 +628,9 @@ static void write_c_(void *e) {
     pico8_entity_set_field(e, "c_", pico8_value_bool(1));
 }
 
-static pico8_value_t pico8_pj_ea_lh_witness(void *self, int argc, pico8_value_t arg0, pico8_value_t arg1) {
+static int pico8_pj_ea_lh_witness(pico8_mh_t *self) {
     (void)self;
-    (void)argc;
-    (void)arg0;
-    (void)arg1;
-    return pico8_value_bool(1);
+    return 1;
 }
 
 /* Right after the init, before any `hb`/`hk`, `ou` and `ea` hold what
@@ -879,8 +896,8 @@ static void write_fa(void *e) {
     pico8_entity_set_field(e, "fa", pico8_value_fixed(pico8_fixed_from_int(3)));
 }
 
-static pico8_value_t ix3_my(void) {
-    return pico8_ix_my(3)(NULL, 0, nil(), nil());
+static void ix3_my(void) {
+    pico8_ix_my(3)(NULL);
 }
 
 /* The six members by name on a fresh panel, then through `de.my`, `ix[3].my`,
@@ -901,7 +918,7 @@ static void test_pj_members_by_name(void) {
     h = pj_bool_is(h, ju, "c_", 1);
     (void)de_my();
     h = pj_bool_is(h, ju, "c_", 0);
-    (void)ix3_my();
+    ix3_my();
     h = pj_bool_is(h, ju, "c_", 1);
     h = pj_absent(h, b, "c_");
 

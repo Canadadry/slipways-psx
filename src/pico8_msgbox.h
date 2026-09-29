@@ -14,20 +14,25 @@
 /* Throughout this module a NULL instance argument is a safe no-op, and an
  * absent or wrong-kind field reads as its zero/false default. */
 
+typedef struct pico8_mh pico8_mh_t;
+
+/* `mh.lh`: the Lua truth of what it returns, which `mh:ev` tests. */
+typedef int (*pico8_mh_lh_fn)(pico8_mh_t *self);
+
 /* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
  * through `bl`, in the order the construction table stored them: a table
  * among them stays shared with the caller. Nothing frees the struct or
  * its list: TROU-7. `nu` points at `pico8_mh_nu_tags`. */
-typedef struct {
+struct pico8_mh {
     pico8_ke_t ke;
     const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     pico8_fixed_t rh;
-    pico8_value_function_t lh; /* NULL: `lh` is nil */
+    pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
     int p_;
     int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
     pico8_list_t items;
-} pico8_mh_t;
+};
 
 /* The message box currently open, or NULL for none. The setter never frees
  * the box it replaces: `kc` borrows a struct that `lt` registered into
@@ -52,7 +57,7 @@ typedef struct {
     int count;
     int has_rh; /* 0: `rh` keeps `pico8_mh_start.rh` */
     pico8_fixed_t rh;
-    pico8_value_function_t lh;
+    pico8_mh_lh_fn lh;
 } pico8_mh_keys_t;
 
 /* `keys` is read, not kept (NULL: none). The struct registers itself

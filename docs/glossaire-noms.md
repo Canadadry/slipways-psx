@@ -441,7 +441,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ol` | `pico8_lq_ol`, `pico8_jb_ol` | dessine la rangée ou la bulle |
 | `js` | `pico8_js_t` | un bouton cliquable ; ses clés : `pico8_js_keys_t` (`lq`, `h_`, `jb` : une rangée par ses clés `lq_row`/`h_row` ou sa rangée générée `jb_row`, sinon une liste, un `lq` ou nil) |
 | `fq` | `pico8_fq_t` | fond modal : attrape tous les clics derrière une boîte |
-| `my` | champ | callback de clic d'un bouton |
+| `my` | champ | callback de clic d'un bouton : `pico8_js_fn` sur `js` (rien de rendu), `pico8_fq_my_fn` sur `fq` (vérité rangée dans `p_`) |
 | `bo` | `pico8_bo_table` (typée ; `fv:pq` en construit les clés des boutons) | les options de difficulté de l'écran-titre |
 | `ix` | `pico8_ix_table` (typée), `pico8_ix_button(i)`, `pico8_ix_my(i)` | les 4 boutons du menu de la vue galaxie |
 | `ha` | `pico8_ha_table`, `pico8_ha_tail` (typées), `pico8_ha_pz()` (le `p` de `pz`) | le menu pause : recommencer, musique, bruitages, aide |
@@ -519,8 +519,8 @@ autres sont atteints par `mv()` (lookup par nom, sans restriction) ou par
 | `cr()` | `pico8_cr` | l'écran de l'arbre technologique |
 | `ef` | `pico8_ef_table` | les 15 abréviations de période (`JAN`…`TER`), indexées par le compteur de ticks `fm.lo` |
 | `bz` | `pico8_bz_table` (typée), `pico8_pj_bz()` (`pico8_bz_row_t`, copies statiques que `pj:ph` réécrit, remises à l'init) | les rangées du détail de score |
-| `de` | — | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau ; le port n'en garde que la fonction |
-| `de.my` | `pico8_de_my` | la fonction que porte `de`, seule clé que `fq(de)` de `ix[3]` lit |
+| `de` | — | **pas une table de mise en page** : la table de rappel partagée entre `pj:ph` et `ix[3]`, dont le `my` bascule la visibilité du panneau ; le port n'en garde que la fonction, en deux variantes typées sur un même corps (bouton de `pj:ph`, fond de `ix[3]`) |
+| `de.my` | `pico8_de_my` | la variante `pico8_fq_my_fn` de la fonction que porte `de`, seule clé que `fq(de)` de `ix[3]` lit ; la variante `pico8_js_fn` est statique à `score_panel_display.c` |
 | `ix` | `pico8_ix_table`, `pico8_ix_button(i)` | les 4 boutons de la vue galaxie |
 | `ha` | `pico8_ha_table`, `pico8_ha_pz()` | le menu pause |
 | `jc:lg` | `pico8_jc_lg` | dessine une des lignes du slipway |
