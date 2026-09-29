@@ -1,18 +1,18 @@
 ---
 title: "Plan 3, étape D.11d : les TU cessent de lire et d'écrire par nom — T1 (mise en état, lecture d'état) en membres typés à plis de hachage identiques au bit près, T2 (tests des descripteurs, cas de mort des écrivains) supprimés comme tests de la couche (Q11, §6), trois faux descripteurs qui nourrissent un site C gardés pour D.11e (T3) ; `gh_row_lq` et `ga_export_panel_by` lisent les membres avec leur preuve rouge ; aucun fichier de `src/` ; deux chunks d1/d2"
-description: "Après D.11c, `par-nom` compte encore 567 lignes dans 38 TU, plus environ 2 480 appels non comptés d'aides locales par nom (`lookup`, `get`, `has`, `fold_field`…) que ces lignes définissent. D.11d type la mise en état et la lecture d'état (T1) sans changer une constante de hachage, supprime les tests dont l'objet est le lecteur ou l'écrivain par nom (T2, Q11), garde les trois faux descripteurs qui nourrissent un site C de `src/` jusqu'à D.11e (T3) : `par-nom` `tests/` passe de 567 à 5, total ≈ 297 (mesuré à `a917e3a`, D.11c en cours : hypothèses H-D11c)."
+description: "Après D.11c, `par-nom` compte encore 567 lignes dans 38 TU, plus environ 2 480 appels non comptés d'aides locales par nom (`lookup`, `get`, `has`, `fold_field`…) que ces lignes définissent. D.11d type la mise en état et la lecture d'état (T1) sans changer une constante de hachage, supprime les tests dont l'objet est le lecteur ou l'écrivain par nom (T2, Q11), garde les trois faux descripteurs qui nourrissent un site C de `src/` jusqu'à D.11e (T3) : `par-nom` `tests/` passe de 567 à 5, total ≈ 297 (mesuré à `264a511`, D.11c gradée)."
 status: needs-triage
 ---
 
 ## Problem Statement
 
-**Écrit pendant que D.11c est implémentée** (`plan-pilot`, étape 2b). Tout ce qui suit a été lu et mesuré sur l'arbre **commis** `a917e3a` (« docs: PRD de l'étape D.11c … mis en file »), extrait par `git archive a917e3a` dans le scratchpad : `grep`, `sh tools/data_residue.sh` (avec `--detail`), la recette d'occurrences de D.8 et des scripts de lecture seule (graphe d'appel des fonctions `static` de chaque TU). **Rien n'a été compilé ni lancé.** Les numéros de ligne sont ceux de `a917e3a`. Ce que D.11c changera est écrit en hypothèses `H-D11c-n` (plus bas) ; les sections qui en dépendent sont marquées ⟲ et listées dans « Sections à revérifier ».
+**Écrit pendant que D.11c était implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis `a917e3a`, **puis révisé après sa graduation** : D.11c est gradée (VERIFIED) à `264a511` (« docs: D.11c gradée », après `8737740` c1 et `978a20f` c2). Tout ce qui suit a été relu et remesuré sur l'arbre **commis** `264a511`, extrait par `git archive HEAD` dans le scratchpad : `grep`, `sh tools/data_residue.sh` (avec `--detail`), la recette d'occurrences de D.8 et des scripts de lecture seule (graphe d'appel des fonctions `static` de chaque TU). **Rien n'a été compilé ni lancé.** Les numéros de ligne sont ceux de `264a511`. Les hypothèses `H-D11c-n` de la première version sont confrontées plus bas à `264a511` et à la note « Découvert à D.11c » ; toutes les sections qui en dépendaient ont été refaites.
 
 Le problème, vu du mainteneur du port : après D.11a–D.11c, `src/` ne lit plus par nom que ses sites de classe C (D.11e) et l'infrastructure elle-même ; mais les TU, eux, lisent et écrivent presque tout par nom. 38 fichiers de `tests/` portent 567 lignes `par-nom` (622 occurrences), et ces lignes sont surtout des **aides locales** (`lookup`, `get`, `has`, `get_ref`, `must_fixed`, `fold_field`, `fold_vec`, `bool_state`, `write_*`…) que les tests appellent avec un littéral de nom. Ces appels ne sont pas comptés (le motif ne voit que la définition de l'aide), mais ils sont **environ 2 480** : chaque aide ne meurt qu'avec son dernier appelant. Tant qu'un TU lit par nom, D.11e ne peut supprimer ni `pico8_entity_get_field`/`set_field`, ni les lecteurs `field`/écrivains `set_field` des descripteurs, ni les `kind_field` : le compilateur les verrait encore nommés.
 
 L'étude D.9 (§1.2) a classé ces lignes en deux formes : **T1** (mise en état et lecture d'état : le TU connaît son type) et **T2** (tests des descripteurs eux-mêmes : leur objet disparaît avec eux). L'humain a tranché **Q11** : les T2 sont supprimés comme tests de la couche.
 
-Ligne de l'étape, recopiée de `docs/plan-3.md` à `a917e3a` (§5, « Phase D — Données », l. 275) :
+Ligne de l'étape, recopiée de `docs/plan-3.md` à `264a511` (§5, « Phase D — Données », l. 275) :
 
 > - D.11d — `par-nom`, TU : T1 (mise en état et lecture d'état) en accès aux membres typés ; T2 (tests des descripteurs, tests de mort des `assert` d'écrivain) supprimés comme tests de la couche (Q11, §6). Deux chunks d'environ 19 fichiers. Empreinte 38 (0, 38). Compte : `par-nom` ≈ 286 (l'infrastructure de `src/`). §6 : `test_pico8_planet_gh_row_lq` et `test_pico8_ga_export_panel_by` (3 lignes chacun) lisent les membres, preuve rouge. `class-coverage-net`, `sanitize-net` : non, aucun fichier de `src/` ne change.
 
@@ -46,34 +46,36 @@ Ligne D.11e, recopiée (l. 276), avec la note de D.11b qui la complète et qui l
 
 Toutes les autres lignes de la phase D (D.0 à D.12, **avec toutes leurs notes « Découvert à D.x »** : D.0, D.1, D.7c, D.8, D.10a, D.10b, D.10c, D.11a, D.11b), l'arrêt « champ sans règle », le §6 et le §7 entiers sont recopiés tels quels, par extraction de lignes, en **Annexe A**. Les passages de l'étude D.9 sur T1/T2, la table des étapes (ligne D.11d) et Q11 sont en **Annexe B**. L'inventaire ligne à ligne est en **Annexe C**.
 
-### Hypothèses `H-D11c-n` (D.11c n'est pas gradée)
+### Hypothèses `H-D11c-n`, confrontées à `264a511`
 
-Source : le PRD de D.11c (`docs/prd/triage/plan3-phaseD-etape11c-composants-emetteur-et-sonde.md` à `a917e3a`), rien d'autre. Chacune est à confronter à la note « Découvert à D.11c » et au diff de D.11c avant que ce PRD passe en `triage/`.
+La première version (sur `a917e3a`) supposait l'issue de D.11c d'après son seul PRD. Verdicts, par `git diff a917e3a 264a511`, `data_residue.sh` et la note « Découvert à D.11c » (recopiée en Annexe A, ligne D.11c) :
 
-| Hypothèse | Énoncé | Ce qui en dépend ici |
+| Hypothèse | Énoncé (résumé) | Verdict à `264a511` |
 |---|---|---|
-| H-D11c-1 | Après D.11c : `par-nom` `src/` **292** / 352 occ., `tests/` **567** / 622 occ., total **859** ; `particle.c` à 0, donc 69 fichiers ; `valeur`, `type-tag`, `ref-audit` en baisse, rapportés | départ, arrivée (≈ 297), critères `FAILED:` de comptes |
-| H-D11c-2 | D.11c n'ajoute ni ne retire aucune ligne `par-nom` de `tests/` (son cas structurel de `test_pico8_ui` passe par `emitter_of`/`probe_of`, les cas qu'il retire n'en portent pas) | l'inventaire de l'Annexe C reste exact en contenu |
-| H-D11c-3 | D.11c touche cinq TU : `test_pico8_fv` (l. 495-496 et 501-505 retirées : décalage de −7 des lignes comptées suivantes, 548 → 541 … 788 → 781, et 3 appels d'aides de moins), `test_pico8_ui` (`ke:ks` typé à 518, 1024, 1040, 1158, 1161, 1164, 1168, 1327, 1332 ; `test_ke_ks_stops_off_row` et ses sept aides `ks_*`, l. 1176-1224, retirés ; un cas structurel ajouté), `test_pico8_jc` (827, 1441 : même nombre de lignes), `test_pico8_g_` (495-496), `test_pico8_jo` (463). Une inclusion ajoutée (`pico8_probe.h`, `pico8_particle.h`) décalerait tout le fichier | numéros de l'Annexe C pour ces cinq fichiers (⟲) ; chunk d2 |
-| H-D11c-4 | Membres déplacés dans des composants portés par pointeur : `pico8_emitter_t` `{pn, du, py, ki, pk, pk_is_bool, fc, k_, qo, ro, qg, q_, qy}` sur `g_` (donc `fv`), `hj` (donc `pm`, `mx`), `ga` ; `pico8_probe_t` `{et, has_et, dw, od, has_od, dq, fp, fp_is_bool, ik, has_ik}` sur `g_` (`fv`), `qh` et ses sept descendants, `mz`, `jc` ; `k_` de `jc` (palette de voie) reste dans `pico8_jc_t` | chaque T1 qui lit ou écrit un de ces noms écrit `->emitter->X` / `->probe->X` (la note « Ce que D.11d trouve » du PRD de D.11c le dit : « les T1 qui liront un membre déplacé typé écriront `->probe->dw`, `->emitter->qy` ; `test_pico8_jc.c:827` le fait déjà ») |
-| H-D11c-5 | `pico8_ke_ks(pico8_struct_header_t *, const char *me)` : les appels de `test_ke_me_by_name`/`test_ke_t_by_name` sont déjà typés ; `me_of` y reste par nom jusqu'à D.11d | conversion de ces deux tests (T1, voir « Tests mixtes ») |
-| H-D11c-6 | Aucune constante `*_HASH`/`identity[]` ne change à D.11c ; `KE_ME_HASH` inchangée | la règle « plis identiques au bit près » part des constantes de `a917e3a` |
-| H-D11c-7 | D.11c ne touche ni les trois faux descripteurs T3 (`test_pico8_iv.c:218-230`, `test_pico8_mo.c:94-107`, `test_pico8_ui.c:799-847`), ni les sites C qu'ils nourrissent (`bootstrap.c:87` `p_`, `entity_geom.c:49` `ra`, `ui.c:346` `fa`, `ui.c:359`/`:363` `m_`) | T3 |
-| H-D11c-8 | `pico8_jc_too_far_t` passe dans `slipway.h` ; `pico8_mz_jj_t` y est déjà (`wormhole.h`) | lectures T1 de `qs`/`fo` des cibles dans `test_pico8_mz` |
-| H-D11c-9 | `Makefile`, `DATA_ENGINE_SRCS`, `tools/` inchangés ; `-Wall -Wextra -Werror` inchangé | aides mortes à supprimer ; liens des TU |
-| H-D11c-10 | Aucun cas de mort de `test_pico8_ui`/`_fv` que D.11c retire n'est dans la liste T2 de ce PRD (les sept de `ke:ks` ne portent aucune ligne `par-nom`) | liste des tests T2 |
+| H-D11c-1 | `par-nom` `src/` 292 / 352, `tests/` 567 / 622, total 859, 69 fichiers | **tenue** : 859 lignes / 974 occurrences, 69 fichiers (31 de `src/`, 38 TU) ; `valeur` 3815 / 4109, `type-tag` 343 / 544, `ref-audit` 42 / 43 ; résidu D 4605 lignes, 124 fichiers |
+| H-D11c-2 | D.11c n'ajoute ni ne retire de ligne `par-nom` dans `tests/` | **tenue** : les 38 TU ont exactement leurs lignes et occurrences `par-nom` de `a917e3a`, mêmes contenus, même classement (le cas structurel `test_components_carried` de `test_pico8_ui`, ajouté vers l. 1091, ne lit rien par nom) |
+| H-D11c-3 | D.11c touche cinq TU (`fv`, `ui`, `jc`, `g_`, `jo`) ; décalage de −7 dans `fv` | **fausse en deux points** : (a) D.11c touche **sept** TU : aussi `test_pico8_spec_defaults` et `test_pico8_jo_spec_defaults` (défauts lus en membres qui passent à `->probe->X`/`->emitter->X`), et `test_pico8_g_` plus largement que prévu (mêmes chemins de membres, `pico8_value_string("kz")` → `"kz"`) ; aucun de ces changements ne touche une ligne `par-nom` ni un appel d'aide par nom, les numéros de `g_`, `jc`, `jo`, `spec_defaults` sont inchangés et `jo_spec_defaults` ne porte aucune ligne `par-nom` (hors inventaire) ; (b) `fv` : **−8** (l. 548 → 540 … 788 → 780 ; le demi-cas retiré emportait aussi deux lignes de commentaire) et **un** appel d'aide de moins (58 à typer au lieu de 59). `ui` : les lignes ≥ 1088 sont décalées de **+82** (cas structurel ajouté) puis, au-delà de l. 1176 de `a917e3a`, de **+32** (sept aides `ks_*` et leur test retirés) : 1153 → 1235, 1170 → 1252, 1300 → 1332 … 3370 → 3402 ; lignes < 1088 (dont T3 843-844 et `me_of` 1047-1048) inchangées. Annexe C refaite |
+| H-D11c-4 | membres déplacés dans `pico8_emitter_t` / `pico8_probe_t` sur les hôtes nommés | **tenue** (note : mêmes champs, mêmes hôtes, stockage `emitter_own`/`probe_own`) ; précédent typé dans les TU : `test_pico8_spec_defaults`, `test_pico8_jo_spec_defaults`, `test_pico8_g_` lisent déjà `mz->probe->dw`, `g_->emitter->qo`… |
+| H-D11c-5 | `pico8_ke_ks(pico8_struct_header_t *, const char *)` | **tenue** (`ke.h:28`) ; les appels de `test_ke_me_by_name`/`test_ke_t_by_name` sont typés, `me_of` y est encore par nom |
+| H-D11c-6 | aucune constante `*_HASH`/`identity[]` changée | **tenue** selon la graduation (VERIFIED), non recomptée ici |
+| H-D11c-7 | T3 et sites C intacts | **tenue** pour les T3 (`iv.c:224`, `:229`, `mo.c:107`, `ui.c:843`, `:844`, mêmes lignes) et les sites (`bootstrap.c:87`, `entity_geom.c:37`/`:49`/`:73`/`:82`/`:104`, `ui.c:304`/`:346`/`:359`/`:363`/`:367`, `planet_display.c:484`, `wormhole.c:70`, `wormhole_display.c:41`) ; **décalés** : `slipway.c:133` → `:127` (`jc_ref_field`), `:263` → `:258` (écriture de `fo`, receveur `self->probe->et`) |
+| H-D11c-8 | `pico8_jc_too_far_t` dans `slipway.h` | **tenue** (`slipway.h:64`) |
+| H-D11c-9 | `Makefile`, `tools/`, `-Werror` inchangés | **tenue** (`git diff` vide ; `Makefile` l. 99) |
+| H-D11c-10 | les cas retirés par D.11c ne sont pas des T2 de ce PRD | **tenue** : `test_ke_ks_stops_off_row` et le demi-cas du bouton de `fv` ne portaient aucune ligne `par-nom` |
 
-### Sections à revérifier quand D.11c sera gradée
+Conséquences : départ **859** (`tests/` 567 / 622), arrivée **≈ 297** inchangée ; appels à typer **1 555** (au lieu de 1 556) ; numéros refaits dans `test_pico8_fv` et `test_pico8_ui` ; sites `slipway.c` renumérotés ; la note de D.11c confirme la voie « `->probe->X`/`->emitter->X` » et fournit le précédent (trois TU déjà convertis sur ces membres, hors de l'empreinte de son PRD : la même dérive guette D.11d, d'où le contrôle de périmètre par `git show --stat`).
 
-« État de départ » (comptes, nombre de fichiers), « Hypothèses `H-D11c-n` » (verdict par ligne), Annexe C pour `test_pico8_fv`, `_ui`, `_jc`, `_g_`, `_jo` (numéros ⟲), « Empreinte et découpage » (contenu de d2, appels d'aides de `fv`/`ui`), « Effet sur `make data-residue` », les greps de la « Sortie », les critères `FAILED:` de départ et de comptes, le budget. Toute ligne T1 qui nomme un membre de H-D11c-4 est à relire contre la forme réelle des composants.
+### Sections revérifiées sur `264a511`
+
+Refaites : « État de départ », « Hypothèses », Annexe C (toutes les lignes de `test_pico8_fv` et `test_pico8_ui` ; les autres fichiers vérifiés identiques), tables par chunk et « Empreinte et découpage », « Effet sur `make data-residue` », greps de la « Sortie », critères `FAILED:` de départ, table « D.11e » (numéros de `slipway.c`), Annexe A (ligne D.11c et sa note). Plus rien n'est ⟲ : si le HEAD de départ de D.11d n'est pas `264a511` (ou un descendant qui ne touche que `docs/`), l'implémenteur remesure et explique l'écart.
 
 ### Lecture de ces textes pour D.11d
 
-- **Périmètre** : les 567 lignes `par-nom` de `tests/` à `a917e3a` (38 fichiers, H-D11c-2) **et** les appels non comptés des aides que ces lignes définissent : une aide ne meurt qu'avec son dernier appelant, et remplacer ses appels par une autre aide par nom serait un renommage pour échapper aux greps. Rien dans `src/`, `tools/`, le `Makefile`, `tests/e2e/`.
+- **Périmètre** : les 567 lignes `par-nom` de `tests/` à `264a511` (38 fichiers ; D.11c n'en a changé aucune) **et** les appels non comptés des aides que ces lignes définissent : une aide ne meurt qu'avec son dernier appelant, et remplacer ses appels par une autre aide par nom serait un renommage pour échapper aux greps. Rien dans `src/`, `tools/`, le `Makefile`, `tests/e2e/`.
 - **« T1 (mise en état et lecture d'état) en accès aux membres typés »** : un TU qui construit un état ou lit un état le fait sur la struct (`qh->jo.mi = …; qh->jo.has_mi = 1;`, étude §1.2), derrière un test de classe ou de lignée quand son pointeur est un en-tête.
 - **« T2 (tests des descripteurs, tests de mort des `assert` d'écrivain) supprimés comme tests de la couche (Q11, §6) »** : un test dont l'objet est la réponse du lecteur ou de l'écrivain par nom est supprimé. Le §6 dit « supprimés dans le commit qui supprime le code testé » ; la ligne D.11d, ajoutée après D.9 avec les décisions de l'humain, place cette suppression **ici**, avant D.11e : la ligne, plus précise et postérieure, l'emporte (G), et la tension est rapportée dans la note (« Documentation »). Ce que D.11e perd à ne plus trouver ces tests est traité dans « D.11e ».
 - **« Deux chunks d'environ 19 fichiers. Empreinte 38 (0, 38) »** : remesuré, 38 TU exactement ; d1 18 fichiers, d2 20 (plus le plan pour la note) ; voir « Empreinte et découpage ».
-- **« Compte : `par-nom` ≈ 286 (l'infrastructure de `src/`) »** : ce PRD attend **≈ 297** : `src/` 292 (H-D11c-1 ; 286 était l'estimation de l'infrastructure par l'étude, D.11c mesure 292 avec ses sites C et `mt` restants), plus **5 lignes T3** dans trois TU, gardées pour D.11e — la ligne D.11e le prévoit déjà (« Empreinte ≈ 45 (42, **3**) »). Rapporté.
+- **« Compte : `par-nom` ≈ 286 (l'infrastructure de `src/`) »** : ce PRD attend **≈ 297** : `src/` 292 (mesuré ; 286 était l'estimation de l'infrastructure par l'étude, D.11c mesure 292 avec ses sites C et `mt` restants), plus **5 lignes T3** dans trois TU, gardées pour D.11e — la ligne D.11e le prévoit déjà (« Empreinte ≈ 45 (42, **3**) »). Rapporté.
 - **« §6 : `test_pico8_planet_gh_row_lq` et `test_pico8_ga_export_panel_by` (3 lignes chacun) lisent les membres, preuve rouge »** : confirmé, trois lignes chacun (`gh_row_lq` 47, 60, 167 ; `ga_export_panel_by` 38, 49, 89) ; seule leur façon de lire change ; preuve rouge dans le commit (§6 : bug remis localement, test rouge, correctif restauré).
 - **« `class-coverage-net`, `sanitize-net` : non, aucun fichier de `src/` ne change »** : pris tel quel. Le balayage ASan+UBSan des TU touchés reste exigé (précédent D.7c, TU seuls) : un cast faux dans un TU est un comportement indéfini que seul ce balayage voit.
 - **Règle « Un TU qui nomme un symbole retiré par une étape de `src/` la suit » (l. 267)** : sans objet ici (aucun symbole de `src/` ne change) ; D.11d est l'étape TU de `par-nom` qui ferme les ponts éventuels : il n'y en a aucun (D.11a–D.11c n'en ont posé aucun, notes).
@@ -83,17 +85,17 @@ Source : le PRD de D.11c (`docs/prd/triage/plan3-phaseD-etape11c-composants-emet
 
 ### État de départ
 
-**Mesuré sur `a917e3a`** (arbre archivé), sans build :
+**Mesuré sur `264a511`** (arbre archivé, D.11c gradée), sans build :
 
 | Catégorie | Lignes | Fichiers | Occurrences | `src/` (lignes / occ.) | `tests/` (lignes / occ.) |
 |---|---|---|---|---|---|
-| `valeur` | 3876 | 123 | 4170 | rapporté | rapporté |
+| `valeur` | 3815 | 123 | 4109 | rapporté | rapporté |
 | `type-tag` | 343 | 63 | 544 | rapporté | rapporté |
-| `ref-audit` | 44 | 15 | 45 | 44 / 45 | 0 |
-| `par-nom` | 884 | 70 | 999 | 317 / 377 | **567 / 622** (38 fichiers) |
-| **résidu D** | **4681** | **124** | — | | |
+| `ref-audit` | 42 | 14 | 43 | 42 / 43 | 0 |
+| `par-nom` | 859 | 69 | 974 | **292 / 352** (31 fichiers) | **567 / 622** (38 fichiers) |
+| **résidu D** | **4605** | **124** | — | | |
 
-Départ attendu de D.11d (H-D11c-1) : `par-nom` 859 (`src/` 292 / 352, `tests/` 567 / 622), 69 fichiers ; `DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch` inchangé.
+`DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch` (`Makefile`, inchangé).
 
 Recette (réutilisée à chaque mesure ; `$S` : dossier du scratchpad) :
 
@@ -106,11 +108,11 @@ for f in tests/*.c; do n=$(grep -cE "$(pattern par-nom)" $f); [ $n -gt 0 ] && \
   printf '%s\t%s\t%s\n' $f $n "$(grep -oE "$(pattern par-nom)" $f | wc -l)"; done
 ```
 
-### Inventaire (mesuré sur `a917e3a`)
+### Inventaire (mesuré sur `264a511`)
 
 Méthode : chaque ligne comptée a été rattachée à sa fonction englobante ; pour chaque fonction `static` d'un TU, l'ensemble des tests qui l'atteignent a été calculé (graphe d'appel, pointeurs de fonction compris) ; chaque test à ligne ou appel par nom a été classé sur son commentaire d'en-tête et son contenu ; les lignes des tests gardés dont l'objet est le descripteur ont été classées une à une. Les appels d'aides par nom (non comptés) ont été comptés de la même façon : ligne qui appelle une fonction du TU prenant un `const char *` et atteignant, directement ou non, une ligne comptée.
 
-**Résultat** : 567 lignes = **T1 193**, **T2 369**, **T3 5**. Appels non comptés d'aides par nom : **1 556 à typer** (dans des tests ou aides T1), **925 supprimés** (dans des tests ou aides T2). **47 tests** supprimés en entier (14 en d1, 33 en d2) ; une trentaine de tests « `*_is_a_struct` » et assimilés **gardés**, amputés de leurs lignes T2.
+**Résultat** : 567 lignes = **T1 193**, **T2 369**, **T3 5**. Appels non comptés d'aides par nom : **1 555 à typer** (dans des tests ou aides T1), **925 supprimés** (dans des tests ou aides T2). **47 tests** supprimés en entier (14 en d1, 33 en d2) ; une trentaine de tests « `*_is_a_struct` » et assimilés **gardés**, amputés de leurs lignes T2.
 
 Codes de l'Annexe C (la lettre après T1/T2/T3) :
 
@@ -143,7 +145,7 @@ Ces cinq lignes tombent avec le site C qu'elles servent, au premier chunk de D.1
 
 | Fichier | `par-nom` l. / occ. | T1 | T2 | T3 | appels à typer | appels supprimés | tests T2 entiers | constantes `*_HASH` du fichier | `valeur` l. | `type-tag` l. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `test_pico8_jo.c` | 5 / 5 | 2 | 3 | 0 | 38 | 0 | 0 | 3 | 37 | 14 |
+| `test_pico8_jo.c` | 5 / 5 | 2 | 3 | 0 | 38 | 0 | 0 | 3 | 36 | 14 |
 | `test_pico8_qh.c` | 9 / 9 | 4 | 5 | 0 | 52 | 0 | 0 | 3 | 42 | 19 |
 | `test_pico8_nl.c` | 21 / 22 | 5 | 16 | 0 | 40 | 9 | 1 | 3 | 70 | 4 |
 | `test_pico8_os.c` | 12 / 15 | 6 | 6 | 0 | 38 | 0 | 0 | 2 | 44 | 5 |
@@ -167,12 +169,12 @@ Ces cinq lignes tombent avec le site C qu'elles servent, au premier chunk de D.1
 
 | Fichier | `par-nom` l. / occ. | T1 | T2 | T3 | appels à typer | appels supprimés | tests T2 entiers | constantes `*_HASH` du fichier | `valeur` l. | `type-tag` l. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `test_pico8_ui.c` | 40 / 41 | 4 | 34 | 2 | 86 | 266 | 10 | 21 | 384 | 20 |
+| `test_pico8_ui.c` | 40 / 41 | 4 | 34 | 2 | 86 | 266 | 10 | 21 | 366 | 20 |
 | `test_pico8_js.c` | 31 / 31 | 11 | 20 | 0 | 158 | 11 | 1 | 15 | 170 | 10 |
-| `test_pico8_jc.c` | 56 / 56 | 10 | 46 | 0 | 132 | 110 | 5 | 10 | 192 | 6 |
+| `test_pico8_jc.c` | 56 / 56 | 10 | 46 | 0 | 132 | 110 | 5 | 10 | 191 | 6 |
 | `test_pico8_pj.c` | 14 / 16 | 2 | 12 | 0 | 92 | 57 | 2 | 5 | 90 | 17 |
-| `test_pico8_g_.c` | 29 / 30 | 5 | 24 | 0 | 79 | 87 | 3 | 7 | 180 | 13 |
-| `test_pico8_fv.c` | 12 / 16 | 3 | 9 | 0 | 59 | 26 | 1 | 4 | 89 | 5 |
+| `test_pico8_g_.c` | 29 / 30 | 5 | 24 | 0 | 79 | 87 | 3 | 7 | 178 | 13 |
+| `test_pico8_fv.c` | 12 / 16 | 3 | 9 | 0 | 58 | 26 | 1 | 4 | 89 | 5 |
 | `test_pico8_mz.c` | 64 / 66 | 27 | 37 | 0 | 45 | 58 | 2 | 7 | 140 | 6 |
 | `test_pico8_bg.c` | 22 / 22 | 12 | 10 | 0 | 32 | 17 | 1 | 6 | 70 | 6 |
 | `test_pico8_qb.c` | 22 / 23 | 8 | 14 | 0 | 25 | 29 | 2 | 3 | 67 | 4 |
@@ -187,7 +189,7 @@ Ces cinq lignes tombent avec le site C qu'elles servent, au premier chunk de D.1
 | `test_pico8_jb_ol.c` | 1 / 2 | 0 | 1 | 0 | 0 | 0 | 0 | 5 | 1 | 4 |
 | `test_pico8_planet_gh_row_lq.c` | 3 / 3 | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 14 | 2 |
 | `test_pico8_spec_defaults.c` | 1 / 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 |
-| **20 fichiers** | **369 / 387** | **121** | **243** | **5** | **750** | **731** | **33** | **101** | | |
+| **20 fichiers** | **369 / 387** | **121** | **243** | **5** | **749** | **731** | **33** | **101** | | |
 
 **Tests T2 supprimés en entier** (47) : `test_pico8_bg` : `test_bg_members_by_name` ; `test_pico8_entity_kind` : `test_kind_rec_matches_the_reader`, `test_ie_ke_view_by_name`, `test_ie_members_by_name`, `test_ie_writer_stops_off_row` ; `test_pico8_fm` : `test_fm_members_by_name` ; `test_pico8_fq` : `test_fq_members_by_name` ; `test_pico8_fr` : `test_nr_members_by_name`, `test_fr_mt_by_name` ; `test_pico8_fv` : `test_fv_members_by_name` ; `test_pico8_g_` : `test_bv_et_members_by_name`, `test_bv_et_writer_stops_off_row`, `test_g__members_by_name` ; `test_pico8_ga` : `test_ga_members_by_name`, `test_ga_writer_stops_off_row` ; `test_pico8_hp` : `test_hp_members_by_name` ; `test_pico8_hy` : `test_hy_members_by_name` ; `test_pico8_iv` : `test_iv_members_by_name` ; `test_pico8_jc` : `test_mouse_point_members_by_name`, `test_too_far_members_by_name`, `test_too_far_writer_stops_off_row`, `test_jc_members_by_name`, `test_jc_writer_stops_off_row` ; `test_pico8_js` : `test_ha_pz_members_by_name` ; `test_pico8_lq` : `test_lq_members_by_name` ; `test_pico8_map_tables` : `test_kinds_answer_nothing_once_down` ; `test_pico8_mh` : `test_mh_members_by_name` ; `test_pico8_mo` : `test_accessors_refuse_a_table` ; `test_pico8_mz` : `test_jj_qs_by_name`, `test_mz_members_by_name` ; `test_pico8_nf` : `test_nf_members_by_name` ; `test_pico8_nl` : `test_nl_members_by_name` ; `test_pico8_pj` : `test_cr_members_by_name`, `test_pj_members_by_name` ; `test_pico8_qb` : `test_qb_members_by_name`, `test_qb_writer_stops_off_row` ; `test_pico8_trade` : `test_trade_members_by_name` ; `test_pico8_ui` : `test_ui_members_by_name`, `test_jo_members_by_name`, `test_jo_written_by_name`, `test_jo_position_by_name`, `test_jo_state_by_name`, `test_jo_writers_by_name`, `test_qh_members_by_name`, `test_hj_members_by_name`, `test_pm_members_by_name`, `test_mx_members_by_name`.
 
@@ -205,7 +207,7 @@ Ces cinq lignes tombent avec le site C qu'elles servent, au premier chunk de D.1
 - `make test` vert (`make data-guard` : `résidu gardé (spec,overrides,stash,ob,dispatch) : 0 ligne(s)`) ; `make e2e` : **26 conformes** ;
 - balayage ASan+UBSan des 38 TU touchés propre ;
 - **aucune constante `*_HASH`/`identity[]` d'un test gardé ne change** : chaque ligne `-`/`+` d'une constante dans `git diff` est la suppression d'une constante que seul un test T2 nommait, listée ;
-- `make data-residue` : `par-nom` `tests/` = **5 lignes / 5 occurrences** (T3), `src/` = 292 (H-D11c-1, inchangé), total **≈ 297** ; `valeur`, `type-tag` rapportés (forte baisse attendue) ;
+- `make data-residue` : `par-nom` `tests/` = **5 lignes / 5 occurrences** (T3), `src/` = 292 (inchangé), total **≈ 297** ; `valeur`, `type-tag` rapportés (forte baisse attendue) ;
 - aucun fichier de `src/`, `tools/`, `tests/e2e/`, aucun `*.sha256`, le `Makefile` inchangé ;
 - ces commandes rendent exactement ce qui est écrit :
 
@@ -271,7 +273,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider par l'ut
 ### Réécriture typée (G)
 
 - **Receveur** : le TU connaît son type. Un pointeur venu d'un constructeur typé (`pico8_nr_new` rend `pico8_nr_t *`) est utilisé tel quel ; un en-tête (élément de `hv`/`cg`, `void *` d'une aide) est casté **après** un test dans la même fonction : classe exacte (`h->cls == pico8_X_struct_class()`), `pico8_jo_is_family`, `pico8_qh_of`/`pico8_nl_of`, `pico8_g__of` (H-D11c). Une aide locale `as_X(e)` qui asserte la classe puis caste est admise (une par type et par TU ; elle prend un objet, jamais un nom).
-- **Membres déplacés par D.11c** : `->emitter->X`, `->probe->X` (H-D11c-4) ; la présence et le genre se lisent sur `has_*`/`*_is_bool` du composant.
+- **Membres déplacés par D.11c** : `->emitter->X`, `->probe->X` (note de D.11c ; précédent : `test_pico8_spec_defaults`, `test_pico8_jo_spec_defaults`, `test_pico8_g_`) ; la présence et le genre se lisent sur `has_*`/`*_is_bool` du composant.
 - **Écriture (W)** : reproduit exactement l'effet de l'écrivain de `src/` pour ce nom (membre, drapeau `has_*`, `*_is_bool`, conversion de faux/nil) ; l'implémenteur lit l'écrivain avant chaque W et cite la ligne au message si l'effet n'est pas une simple affectation.
 - **Singletons** : `pico8_ok()` (typé `pico8_ui_t *`), `pico8_je_nf()` (NULL sur le remplaçant), `pico8_fm_hy()` (NULL sur le provisoire ; `pico8_fm_placeholder()` pour `jk`/`nz`), `pico8_mo_qb()`.
 - **Interdits** (liant) : une aide qui passe d'un nom à un membre (`strcmp`, `switch`, table de noms associée à des pointeurs ou des décalages : registre) ; `offsetof` ; reconstruire un `pico8_value_t` à partir d'un membre typé **pour le seul pli** (cale valeur ↔ typé) ; un cast d'en-tête sans test.
@@ -296,9 +298,9 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider par l'ut
 
 La consigne demande de trancher chaque lecteur dont le seul test part ici. Réponse, par famille :
 
-| Lecteur ou écrivain (supprimé par D.11e) | Tests directs à `a917e3a` | Encore atteint par `src/` après D.11c ? | Décision |
+| Lecteur ou écrivain (supprimé par D.11e) | Tests directs à `264a511` | Encore atteint par `src/` après D.11c ? | Décision |
 |---|---|---|---|
-| lecteurs `field` des 40 descripteurs, pour les noms que lisent les sites C (`p_`, `fa`, `ra`, `kq`, `ma`, `p`, `dw`, `fo`, `ql`, `m_`, `fg`, `fx`, `mt`) | T2 de chaque classe | oui, par les sites C (`bootstrap.c:87`, `entity_geom.c`, `planet_display.c:484`, `slipway.c:133`/`:263`, `ui.c:304-367`, `wormhole.c:70`, `wormhole_display.c:41`) | T2 supprimés ; la valeur de ces champs reste couverte par les T1 qui exercent ces chemins (survol, `gd`, `dg`, `ui:lj`, `jc:hq`) et par les 26 e2e (mesure `gcov` exigée) ; D.11e écrit son oracle accesseurs = lecteurs sur des lecteurs encore vivants (ligne D.11e) |
+| lecteurs `field` des 40 descripteurs, pour les noms que lisent les sites C (`p_`, `fa`, `ra`, `kq`, `ma`, `p`, `dw`, `fo`, `ql`, `m_`, `fg`, `fx`, `mt`) | T2 de chaque classe | oui, par les sites C (`bootstrap.c:87`, `entity_geom.c`, `planet_display.c:484`, `slipway.c:127`/`:258`, `ui.c:304-367`, `wormhole.c:70`, `wormhole_display.c:41`) | T2 supprimés ; la valeur de ces champs reste couverte par les T1 qui exercent ces chemins (survol, `gd`, `dg`, `ui:lj`, `jc:hq`) et par les 26 e2e (mesure `gcov` exigée) ; D.11e écrit son oracle accesseurs = lecteurs sur des lecteurs encore vivants (ligne D.11e) |
 | lecteurs `field` pour tous les autres noms, lecteurs des structs-vues (`ie_ke_view`, `ha_pz`, `mz_jj`, `jc_too_far`, `jc_mouse_point`, `bv_et`, `pj_cr`) | T2 | non (consommateurs typés depuis D.11a–D.11c) | code mort jusqu'à D.11e : supprimés sans reprise |
 | écrivains `set_field` et leurs `assert` de genre | cas de mort T2 | oui pour `m_` (`ui.c:359`/`:363`), `ma` (`entity_geom.c:82`), `fo` (`slipway.c:263`) | T2 supprimés ; chacun de ces appels de `src/` construit sa valeur par un constructeur au genre fixe (`pico8_value_bool`, `pico8_value_fixed`, `pico8_value_ref`) : l'`assert` ne peut pas y mordre ; D.11e les supprime |
 | `kind_field` des 11 sortes | T2 (`map_tables`, `entity_kind`) | non (K à D.11b) | supprimés ; `rec` comparé à `pico8_X_start` (ci-dessus) |
@@ -338,29 +340,45 @@ Le compteur compte des **lignes**. Une baisse obtenue sans retirer la lecture pa
 - **Plis de forme (p)** : par fichier et par fonction, le nombre de bits pliés depuis la forme.
 - **Δlignes > Δoccurrences** : chaque couple justifié (attendu : aucun ; des lignes à deux occurrences partent, d'où Δoccurrences ≥ Δlignes).
 - **Tests supprimés** : chacun nommé, avec sa raison (code D/M/N de l'Annexe C) et la couverture qu'il emporte (voir « Couverture perdue »). **Constantes supprimées** : chacune nommée, avec le test T2 qui était le seul à la nommer.
-- **Numéros de ligne** : ceux du **départ du commit** (HEAD avant le commit), pas ceux de ce PRD si D.11c les a décalés (H-D11c-3).
+- **Numéros de ligne** : ceux du **départ du commit** (HEAD avant le commit) ; pour d1 ce sont ceux de ce PRD (`264a511`).
 
 ### Empreinte et découpage (G)
 
 | Chunk | TU (`tests/test_pico8_*.c`) | Chemins | `par-nom` `tests/` retirées (lignes / occ.) | À typer (comptées + appels) | Supprimées (comptées + appels) | Tests T2 entiers |
 |---|---|---|---|---|---|---|
 | d1 | `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `mx`, `nr`, `fr`, `ga`, `hp`, `hy`, `trade`, `lq`, `entity_kind`, `map_tables`, `ie`, `ga_export_panel_by` (§6) | 18 | 198 / 235 | 72 + 806 | 126 + 194 | 14 |
-| d2 | `ui`, `js`, `jc`, `pj`, `g_`, `fv`, `mz`, `bg`, `qb`, `nf`, `iv`, `fq`, `mh`, `fm`, `je`, `mo`, `probe_mm_rnd_order`, `jb_ol`, `planet_gh_row_lq` (§6), `spec_defaults` ; `docs/plan-3.md` | 21 | 364 / 382 (5 T3 restent) | 121 + 750 | 243 + 731 | 33 |
+| d2 | `ui`, `js`, `jc`, `pj`, `g_`, `fv`, `mz`, `bg`, `qb`, `nf`, `iv`, `fq`, `mh`, `fm`, `je`, `mo`, `probe_mm_rnd_order`, `jb_ol`, `planet_gh_row_lq` (§6), `spec_defaults` ; `docs/plan-3.md` | 21 | 364 / 382 (5 T3 restent) | 121 + 749 | 243 + 731 | 33 |
 
 - d1 : 18 chemins ; d2 : 20 TU + `docs/plan-3.md` = 21 chemins : sous les ~40 de la règle.
-- **Pourquoi ce découpage** : d1 regroupe l'arbre `jo` et ce qui s'y branche (lignées `qh`/`hj`, `ga`, recherche `hp`, économie `hy`, routes, rangées `lq`, sortes et icônes `ie`) ; d2 l'interface (`ui`, `js`, `pj`, `fq`, `mh`, `iv`, `bg`), la sonde et ses cibles (`g_`, `fv`, `mz`, `jc`), les singletons (`fm`, `je`, `mo`, `qb`, `nf`). Les cinq TU que D.11c touche (`fv`, `ui`, `jc`, `g_`, `jo`) sont en d2 sauf `jo` : d1 dépend le moins des numéros ⟲. Charge équilibrée : d1 ≈ 880 lignes à typer (72 comptées + 806 appels) et ≈ 320 à supprimer ; d2 ≈ 870 à typer (121 + 750) et ≈ 970 à supprimer.
+- **Pourquoi ce découpage** : d1 regroupe l'arbre `jo` et ce qui s'y branche (lignées `qh`/`hj`, `ga`, recherche `hp`, économie `hy`, routes, rangées `lq`, sortes et icônes `ie`) ; d2 l'interface (`ui`, `js`, `pj`, `fq`, `mh`, `iv`, `bg`), la sonde et ses cibles (`g_`, `fv`, `mz`, `jc`), les singletons (`fm`, `je`, `mo`, `qb`, `nf`). Les TU que D.11c a touchés (`fv`, `ui`, `jc`, `g_`, `spec_defaults` en d2 ; `jo` en d1 ; `jo_spec_defaults`, sans ligne `par-nom`, hors périmètre) sont renumérotés dans ce PRD. Charge équilibrée : d1 ≈ 880 lignes à typer (72 comptées + 806 appels) et ≈ 320 à supprimer ; d2 ≈ 870 à typer (121 + 749) et ≈ 970 à supprimer.
 - **Pourquoi deux commits, pas plus** : la ligne en fixe deux ; chacun se prouve seul (TU verts, constantes égales, `gcov`, mutations). Un chunk qui déborde son budget n'est pas coupé en cours de route : l'implémenteur s'arrête au plafond et le note (voir « Budget »).
 
-### Effet sur `make data-residue` ⟲
+### Découpage alternatif : quatre étapes d'environ 45 minutes (non retenu, prêt si l'utilisateur le demande)
 
-| Catégorie | Départ (H-D11c-1) | Après d1 | Après d2 | Pourquoi |
+Le découpage retenu reste d1/d2 (ligne de l'étape). Si l'utilisateur préfère des pas plus courts, le même travail se coupe en quatre commits **emboîtés dans d1/d2** (s1 + s2 = d1, s3 + s4 = d2) : les listes de fichiers, les règles, les critères et les mutations ne changent pas, seul l'endroit des commits change (§6 : `ga_export_panel_by` en s2, `planet_gh_row_lq` en s3 ; note « Découvert à D.11d » en s4). Coût estimé comme le budget principal (≈ 12 lignes typées par minute, suppressions à ≈ 1/4 de ce coût, plus ≈ 8 min de mesure, `gcov`, mutations et balayage par pas) :
+
+| Pas | TU (`tests/test_pico8_*.c`) | Chemins | À typer (comptées + appels) | Supprimées | Tests T2 entiers | `par-nom` `tests/` retirées (l. / occ.) | `par-nom` `tests/` après (l. / occ.) | Fichiers `par-nom` après | Coût |
+|---|---|---|---|---|---|---|---|---|---|
+| s1 — lignée `qh` et `jo` | `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `mx`, `nr`, `fr` | 9 | 481 | 81 | 3 | 94 / 123 | 473 / 499 | 60 | ≈ 50 min |
+| s2 — `ga`, recherche, économie, sortes, icônes | `ga`, `hp`, `hy`, `trade`, `lq`, `entity_kind`, `map_tables`, `ie`, `ga_export_panel_by` (§6) | 9 | 397 | 239 | 11 | 104 / 112 | 369 / 387 | 51 | ≈ 45 min |
+| s3 — interface, sonde | `ui`, `g_`, `fv`, `mz`, `bg`, `fq`, `mh`, `iv`, `planet_gh_row_lq` (§6) | 9 | 394 | 632 | 20 | 207 / 215 | 162 / 172 | 44 | ≈ 50 min |
+| s4 — boutons, voies, panneau, singletons | `js`, `jc`, `pj`, `qb`, `nf`, `fm`, `je`, `mo`, `probe_mm_rnd_order`, `jb_ol`, `spec_defaults` ; `docs/plan-3.md` | 12 | 476 | 342 | 13 | 157 / 167 | **5 / 5** (T3) | 34 | ≈ 50 min |
+
+- Total ≈ 3 h 15, comme le budget principal plus trois fois le coût fixe d'un commit ; plafond par pas 75 min.
+- Chaque pas est vert seul et porte son propre message complet (comptes, classification, plis de forme, `gcov`, mutations de ses TU) ; les critères `FAILED:` de comptes deviennent : `par-nom` `tests/` = 473, 369, 162, puis 5.
+- Mutations par pas : s1 M1, M2 ; s2 R2, R3, R4, M3, M4, M5 ; s3 R1, R3, R4, R5, M6, M7, M9 ; s4 M8, M10, M11.
+- Le basculement est une décision de `plan-pilot` sur demande de l'utilisateur ; il ne demande aucune autre modification de ce PRD.
+
+### Effet sur `make data-residue`
+
+| Catégorie | Départ (`264a511`) | Après d1 | Après d2 | Pourquoi |
 |---|---|---|---|---|
 | `par-nom` `tests/` | 567 / 622 occ. | 369 / 387 | **5 / 5** | exact : d1 retire les 198 lignes de ses 18 TU, d2 les 364 non-T3 des siens |
 | `par-nom` `src/` | 292 / 352 | 292 | 292 | aucun fichier de `src/` |
 | `par-nom` total | 859 | 661 | **297** | la ligne dit ≈ 286 : +11, soit `src/` 292 au lieu des 286 de l'étude (+6) et les 5 T3 |
 | `par-nom` fichiers | 69 | 51 | **34** | 31 de `src/` + 3 TU (T3) |
-| `valeur` | rapporté | forte baisse, rapportée | forte baisse, rapportée | les `pico8_value_t` des aides et des tests T2 partent ; hausses déclarées |
-| `type-tag` | rapporté | baisse, rapportée | baisse, rapportée | `pico8_type_tag_of` des tests T2 ; ceux des tests gardés restent |
+| `valeur` | 3815 / 4109 | forte baisse, rapportée | forte baisse, rapportée | les `pico8_value_t` des aides et des tests T2 partent ; hausses déclarées |
+| `type-tag` | 343 / 544 | baisse, rapportée | baisse, rapportée | `pico8_type_tag_of` des tests T2 ; ceux des tests gardés restent |
 | `ref-audit` | 0 dans `tests/` | 0 | 0 | — |
 
 « exact » est une égalité ; « rapporté » est mesuré au commit, écart expliqué.
@@ -384,7 +402,7 @@ Le compteur compte des **lignes**. Une baisse obtenue sans retirer la lecture pa
 - **H3** : chaque constante d'un test gardé est atteignable au bit près par des lectures typées (plis de forme compris). Une constante qui ne l'est pas : arrêt rapporté, jamais une mise à jour.
 - **H4** : les tests T2 n'exécutent aucune ligne de `src/` que ni un test gardé ni les 26 e2e n'exécutent, hors infrastructure par nom (à mesurer : « Couverture perdue ») ; une ligne qui fait exception reçoit une assertion dans un test gardé de sa classe.
 - **H5** : aucun test T1 n'écrit par nom un champ dont l'écrivain de `src/` fait plus qu'une affectation sans que ce PRD le voie ; l'implémenteur lit l'écrivain avant chaque W (leçon D.11a).
-- **H6** : les 5 lignes T3 et leurs sites C sont intacts après D.11c (H-D11c-7).
+- **H6** : les 5 lignes T3 et leurs sites C sont intacts après D.11c (vérifié à `264a511`).
 
 ## Implementation Chunks
 
@@ -428,7 +446,7 @@ Un bon test juge ce que le code rend ou fait (valeurs, présences, identités, e
 1. **Les 38 TU de l'inventaire**, ni plus ni moins. Un TU qui casse sans nommer de lecture par nom est un **bug de D.11d** : il part à `help-me-debug`.
 2. **Tests supprimés** : les 47 de la liste, leurs appels dans `main`/`in_fresh_child`/`spawn`, leurs aides devenues mortes (H1), les constantes que seuls eux nommaient.
 3. **Tests gardés amputés** : les lignes T2 des « `*_is_a_struct` » (emplacements `field`/`set_field`, lecteur brut, `must_abort` sur un écrivain, lecture d'une méthode comme champ) ; le reste du test (classe, enregistrement, entrées de méthodes, `hd`, tags) reste mot pour mot.
-4. **`test_ke_me_by_name`, `test_ke_t_by_name`** (`test_pico8_ui`) : `me_of` lit `((const pico8_ke_t *)e)->me`/`->t` (tout hôte enchâsse `pico8_ke_t` en premier) ; les comparaisons au lecteur brut (`me_of`, l. 1047), à `pico8_hj_struct_class()->field` (l. 1170, 1334) et les intrus (l. 1153, 1300) partent ; les `fnv(h, 0u)` que la boucle d'intrus pliait sont des plis de forme, gardés et déclarés ; `KE_ME_HASH`, `KE_T_HASH` inchangées.
+4. **`test_ke_me_by_name`, `test_ke_t_by_name`** (`test_pico8_ui`) : `me_of` lit `((const pico8_ke_t *)e)->me`/`->t` (tout hôte enchâsse `pico8_ke_t` en premier) ; les comparaisons au lecteur brut (`me_of`, l. 1047), à `pico8_hj_struct_class()->field` (l. 1252, 1366) et les intrus (l. 1235, 1332) partent ; les `fnv(h, 0u)` que la boucle d'intrus pliait sont des plis de forme, gardés et déclarés ; `KE_ME_HASH`, `KE_T_HASH` inchangées.
 5. **Sortes** : voir « Sortes ».
 6. **Constantes** : aucune d'un test gardé ne change ; une constante qui rougit est corrigée dans la réécriture, jamais dans la constante.
 7. **Assertion nouvelle** : admise seulement pour couvrir une ligne de `src/` perdue par la suppression d'un T2 (classe (iii) absente), dans un test gardé de la classe, en accès typé, listée au message avec la ligne qu'elle couvre.
@@ -453,7 +471,7 @@ Une à la fois, dans l'arbre de travail, fichier sauvegardé par `cp` avant et r
   - **M9** : `mz:hq` ne pose pas `jj` dans `probe->et` → `test_pico8_mz` ;
   - **M10** : `qb:ph` ne décroît pas `ma` → `test_pico8_qb` (`pico8_mo_qb()->ma`) ;
   - **M11** : `pico8_nf_new` ne partage pas `l`/`r` → `test_pico8_nf`.
-- Les lignes et fonctions exactes sont celles du HEAD de départ du commit (H-D11c) ; une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même membre, déclarée.
+- Les lignes et fonctions exactes sont celles du HEAD de départ du commit (cibles vérifiées à `264a511` : `msgbox.c:414`, `planet_family.c:914`, `ui_button.c:345`/`:356`, `layout.c:172`) ; une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même membre, déclarée.
 
 ### Filets
 
@@ -483,7 +501,7 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + chunk + étape) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | départ, avant d1 | 0 | `par-nom 859 69` (H-D11c-1) | … |
+| 1 | `make -s data-residue` | `264a511`, avant d1 | 0 | `par-nom 859 69` | … |
 | … | … | … | … | … | … |
 
 Le vérificateur le réutilise et ne relance que ce qui suit le dernier changement de l'arbre.
@@ -507,7 +525,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si D.11c n'est pas gradée, ou si le HEAD de départ n'est pas celui de sa graduation (ou un descendant qui ne touche que `docs/`), propre ; ou si `make data-residue` n'y rend pas `par-nom` `tests/` 567 lignes sur 38 fichiers sans explication (H-D11c-1/2) ; ou si les hypothèses H-D11c n'ont pas été confrontées à la note « Découvert à D.11c » (ce PRD doit alors être passé de `next/` à `triage/` par `plan-pilot`, revu).
+- `FAILED:` si l'arbre de départ n'est pas `264a511` (ou un descendant qui ne touche que `docs/`), propre ; ou si `make data-residue` n'y rend pas `par-nom` 859 (`src/` 292, `tests/` 567) sur 69 fichiers, `tests/` sur 38, sans explication ; ou si une ligne T3 (`test_pico8_iv.c:224`, `:229`, `test_pico8_mo.c:107`, `test_pico8_ui.c:843`, `:844`) n'y est pas telle que l'Annexe C la décrit.
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur un même commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si un test de régression du §6 change au-delà de sa façon de lire (assertion retirée ou affaiblie, valeur attendue changée), si sa preuve rouge (bug remis, échec observé, correctif restauré, vert) manque au message, ou si un bug remis ne le rend pas rouge ; ou si un test devrait changer d'intention pour passer.
@@ -562,11 +580,11 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
   - **Découpage** : d1 (arbre `jo`, 18 TU), d2 (interface, sonde, singletons, 20 TU + le plan).
 - **Surprise de mesure, pour `plan-pilot`** : l'étude D.9 et la ligne comptaient 576 puis 567 lignes ; le travail réel est dominé par les ≈ 2 480 appels non comptés des aides par nom (≈ 1 556 à typer). Le budget de ce PRD est calculé sur ce volume, pas sur le nombre de chemins. D.12d (`liste` des TU, 431 lignes, 38 fichiers) aura sans doute la même forme : ses aides locales (`list_size`, `rank_in`, `listed`) seront à compter de la même façon.
 - **Tension §6 / ligne D.11d** : le §6 fait supprimer un test de la couche « dans le commit qui supprime le code testé » ; la ligne D.11d, ajoutée avec les décisions de D.9, les supprime ici. Ce PRD suit la ligne (plus précise, postérieure, approuvée) et le rapporte dans la note ; si `plan-pilot` préfère aligner le texte du §6, c'est un changement de méthode pour `plan-review`, pas pour l'implémenteur.
-- **Inventaire exhaustif** : Annexe C (une ligne par fonction et par classe, numéros à `a917e3a`). Les numéros de `test_pico8_fv`, `_ui`, `_jc`, `_g_`, `_jo` sont à reprendre après D.11c (H-D11c-3) ; le contenu, non (H-D11c-2).
+- **Inventaire exhaustif** : Annexe C (une ligne par fonction et par classe, numéros à `264a511`).
 
-## Annexe A — textes du plan recopiés (`docs/plan-3.md` à `a917e3a`, par extraction de lignes)
+## Annexe A — textes du plan recopiés (`docs/plan-3.md` à `264a511`, par extraction de lignes)
 
-### §5, phase D, en entier (l. 228-280) : puces, note de D.0, « Liste de D » avec empreinte, règles communes et ordre, arrêt « champ sans règle », décisions de D.9, comptes au départ de D.10, lignes D.2 à D.12 avec toutes leurs notes « Découvert à D.x »
+### §5, phase D, en entier (l. 228-280) : puces, note de D.0, « Liste de D » avec empreinte, règles communes et ordre, arrêt « champ sans règle », décisions de D.9, comptes au départ de D.10, lignes D.2 à D.12 avec toutes leurs notes « Découvert à D.x » (D.11c comprise)
 
 > #### Phase D — Données
 >
@@ -614,7 +632,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 > - D.10c — `dispatch`, TU : 98 lignes `pico8_mv` → appels typés, 26 lignes `pico8_value_function` → rappels typés ; le pont éventuel de D.10a/D.10b supprimé. Empreinte 31 (0, 31). Compte : `dispatch` = 0, ajouté à `DATA_RESIDUE_GUARD`. §6 : aucun. `class-coverage-net`, `sanitize-net` : non, aucun fichier de `src/` ne change hors pont. Découvert à D.10c : vide, constatée sans commit de code — tout est parti à D.10a et D.10b, sans pont.
 > - D.11a — `par-nom`, receveurs de type connu et singletons : classe A (41 lignes, 36 appels d'aides ; cast vérifié vers la famille que le cart fixe), classe D (8, 21 ; `pico8_fm_hy()`, `pico8_je_nf()`, `pico8_mo_qb()`, NULL sur le remplaçant, Q8), E `je.l`/`je.r` (`pico8_ui_je_button_table`), et les aides H (39) devenues sans appelant. Empreinte ≈ 22 (22, 0). Compte : `par-nom` ≈ 910. §6 : aucun. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : non. Découvert à D.11a : deux chunks (a1 : 19 chemins ; a2 : 29). Singletons (Q8) : `pico8_fm_hy()` rend NULL sur le `fm` provisoire (son assert part, les méthodes de `hy` prennent NULL ; le cas de mort `fm_hy_on_provisional` de `test_pico8_hy`, que le PRD n'avait pas vu, devient `pico8_fm_hy() == NULL`), `pico8_fm_placeholder()` le rend typé pour `jk`/`nz`, `pico8_je_nf()`, `pico8_mo_qb()` (une écriture sur le `mo` provisoire arrête toujours), `pico8_nf_l()`/`pico8_nf_r()` pour `je[bt]`. Receveurs connus : cast vérifié par `pico8_jo_is_family` ou une classe exacte (`jc`, `trade`, `qb`) ; `pico8_lt` prend `pico8_ke_t *` (porte de `hv`, `me`/`t` de `dg` lus typés ; `giver_t` de `test_pico8_ui` porte un `ke`) ; extrémités de voie par `pico8_jc_end_p`/`pico8_jc_end_ra` (planète ou point de souris ; `jc:ch` lit aussi `id` sur le point de souris : absent). G : `ie.gy` en `const pico8_vec_t *` (`pico8_ie_eh`/`pico8_ie_set_gy` typés, `ie_take_vec` supprimée, quatre cas `hb_from_gy` retirés). **`jc.mt` reste par nom** : H2 est fausse pour lui (`slipway.c` est dans `DATA_ENGINE_SRCS`, `planet_family_trade.c` non, et `pico8_fr_struct_class` casse le lien de `test_pico8_bg_kj`) ; `jc:hq` garde `pico8_jc_entity_value` et `jc_take_fixed` (3 lignes `par-nom`), que D.11b prend comme champ transversal (Q6, accesseur de la table de classe) ; la comparaison des `mt` de `jc:ce` est typée. **Reclassés en C (D.11b)** : `mz_pq_ox_predicate` (`fx` sur `hv`), `pico8_ij` (`p`) et `pico8_mzd_ra_of_ij` (`ra`), parce que `mz.ox` tient des planètes et des `g_`/`fv` (`fx=1`). Aides H restantes (appelant B/C/F/M, ou `mt`) : `field_truthy` d'`economy_score`/`economy_tiers`/`planet_display`, `field_fixed` de `planet_display`, `pico8_entity_geom_field_*`, `pico8_msgbox_field_vec`, `pico8_probe_field_fixed`/`_truthy`, `pico8_ui_field_raw`, `pico8_mzd_field_vec`, `pico8_jc_entity_value`/`jc_take_fixed`. Q12 : `pico8_ie_eh`/`pico8_ie_set_gy` quittent la liste ; `pico8_jc_hg_add`/`_has`, `pico8_trade_qe`, `pico8_jo_hf` reçoivent une valeur reconstruite du membre à leur appel. `par-nom` 913 (`src/` 345 : départ − 73, pas − 76, les 3 lignes de `mt`) ; `valeur` 3906 / 4202 ; résidu D 4736 lignes dans 124 fichiers.
 > - D.11b — `par-nom`, lectures sans receveur typé : B (7 + 1 ; test d'appartenance par le lien parent, `pico8_qh_of(jo)`, Q5), (C passe en tête de D.11e : ses descripteurs sont ceux que D.11e rouvre, revue du plan après D.11a), F (5 + 2 ; struct locale de cadre `{ep, eo, hi, ff, ca, gq, ra}` remplie par les cinq appelants de `pz`), K (4 ; enregistrement typé par sorte `{rr, has_s, s, me, has_od, od}`, résolu le long de la chaîne, pointé par `pico8_entity_kind_t`). Empreinte ≈ 15 (15, 0). Compte : `par-nom` ≈ 882. §6 : aucun. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : non. Découvert à D.11b : deux chunks (b1 : 15 chemins ; b2 : 7). B (Q5) : `pico8_struct_class_t.parent` (9 filles de `jo`, `fv`) est un pointeur vers l'accesseur de la classe parente (`const pico8_struct_class_t *(*parent)(void)`), pas vers ses données : les descripteurs parents sont `static` dans d'autres unités et un initialiseur statique veut une constante d'adresse ; `pico8_qh_of()`/`pico8_nl_of()` remontent ce lien (NULL hors lignée) ; `pico8_jo_is_family` (test par `states[LL]`) pourrait s'écrire sur `parent`, non fait. La branche « `hp` chaîne » de `jo:pq` était inexprimable, retirée (`pico8_gb_find` sans appelant de `src/`, gardée pour ses TU). K : `pico8_entity_kind_t.rec` → `pico8_kind_rec_t` `{rr, has_s, s, me, has_od, od}`, généré dans `pico8_game_data.c` pour les 9 sortes (pas 11), mêmes chaînes que `pico8_X_start` (s/od en mêmes littéraux) ; la garde « prêt » du `field` des sortes n'est pas dans l'enregistrement ; l'oracle de transition `test_kind_rec_matches_the_reader` (`test_pico8_entity_kind`, par l'aide `kind_field` existante, aucune ligne `par-nom` ajoutée) est à retirer par D.11d/D.11e, après quoi D.11e peut supprimer le `field` des sortes. F : `pico8_pz(const pico8_pz_frame_t *, …)`, cadre rempli par `fv:pq`, `cr`, `ix[4].my`, `jo:gh`, `jo:fe` (aide `jo_pz_frame`) ; vues `pj_cr`/`ha_pz` laissées à D.11e ; le `ra` du cadre de `fv` n'est jamais lu (`fv.hi` toujours posé) ; le cas « une liste arrête `pz` » de `test_pz_closed` est retiré (inexprimable). `parent` est disponible pour C (D.11e). `par-nom` 884 (`src/` 317, `tests/` 567 : l'oracle n'ajoute pas la ligne prévue, d'où −1 sur les 885 du PRD) ; `valeur` 3876 / 4170 ; `type-tag` 343 / 544 ; résidu D 4681 lignes dans 124 fichiers.
-> - D.11c — `par-nom`, classe M (Q7) : émetteur de particules (`ei`, `ez`, `f_`, `g__mm`) et sonde (`bv`, `dl`, `d_`) → composants portés par pointeur, règle 2 de la phase 2 appliquée à ces deux groupes seulement. Empreinte ≈ 15 (15, 0) : `particle`, `probe` et les 13 fichiers des classes qui les portent. Compte : `par-nom` ≈ 862. §6 : aucun. `class-coverage-net` : oui. `sanitize-net` : oui.
+> - D.11c — `par-nom`, classe M (Q7) : émetteur de particules (`ei`, `ez`, `f_`, `g__mm`) et sonde (`bv`, `dl`, `d_`) → composants portés par pointeur, règle 2 de la phase 2 appliquée à ces deux groupes seulement. Empreinte ≈ 15 (15, 0) : `particle`, `probe` et les 13 fichiers des classes qui les portent. Compte : `par-nom` ≈ 862. §6 : aucun. `class-coverage-net` : oui. `sanitize-net` : oui. Découvert à D.11c : deux chunks (c1 : 14 chemins ; c2 : 23). Composants (règle 2, Q7) : `pico8_emitter_t` `{pn, du, py, ki, pk, pk_is_bool, fc, k_, qo, ro, qg, q_, qy}` porté par `g_`, `hj`, `ga` ; `pico8_probe_t` `{et, has_et, dw, od, has_od, dq, fp, fp_is_bool, ik, has_ik}` porté par `g_`, `qh`, `mz`, `jc` ; pointeur vers un stockage dans l'hôte (`emitter_own`/`probe_own`), aucune allocation ; crochets `emitter_of`/`probe_of` de `pico8_struct_class_t` (6 et 12 descripteurs), l'enchâssement inchangé. Champs d'hôte (`ra`, `p`, `p_`, `fa`) et de cible (`fo`, `qs`) par cast vérifié sur l'ensemble fermé (`pico8_g__of`, `pico8_jo_is_family`, classes exactes), `me`/`t` par `ke`. `pico8_dl_show` pour la vue de l'icône ; `pico8_ke_ks(self, const char *)` (G `ke.c:43`) ; `ei`/`f_` s'arrêtent sur un non-émetteur. `pico8_jc_too_far_t` dans `slipway.h`. Trois TU lisaient les défauts déplacés en membres et suivent (`test_pico8_spec_defaults`, `test_pico8_jo_spec_defaults`, `test_pico8_g_`), hors de l'empreinte du PRD ; l'écriture de `p_` par `d_` sur un `mz` est aussitôt écrasée par `mz:ey` (mutation équivalente), et le numéro de sfx de `ik` n'est observé par aucun TU (audio hors périmètre). Pour D.11e : `get_dw` n'a plus d'objet (ses 12 descripteurs sont les porteurs de `probe_of`), `set_fo` peut réutiliser l'écriture typée de `bv` (planète, `jc`, `bv_et`) en y ajoutant `jc_too_far`. Pour D.12b : `qy` est `emitter->qy`. `par-nom` 859 (`src/` 292) ; `valeur` 3815 ; résidu D 4605.
 > - D.11d — `par-nom`, TU : T1 (mise en état et lecture d'état) en accès aux membres typés ; T2 (tests des descripteurs, tests de mort des `assert` d'écrivain) supprimés comme tests de la couche (Q11, §6). Deux chunks d'environ 19 fichiers. Empreinte 38 (0, 38). Compte : `par-nom` ≈ 286 (l'infrastructure de `src/`). §6 : `test_pico8_planet_gh_row_lq` et `test_pico8_ga_export_panel_by` (3 lignes chacun) lisent les membres, preuve rouge. `class-coverage-net`, `sanitize-net` : non, aucun fichier de `src/` ne change.
 > - D.11e — `par-nom`, suppression de l'infrastructure. Premier chunk : classe C (14 sites dont `wormhole.c:78`, `entity_geom.c:99`, `wormhole_display.c:41` et `jc.mt` de `slipway.c`, laissé à D.11a ; accesseur typé par champ dans la table de classe, NULL = absent, Q6 ; l'oracle accesseurs = lecteurs naît et meurt dans l'étape). Découvert à D.11b (pour D.11d/D.11e) : les littéraux `s`/`od` des `pico8_X_kind_rec` doublent ceux de `pico8_X_start` ; seul `test_kind_rec_matches_the_reader` en garde l'égalité — à sa suppression, garder une comparaison rec ↔ `pico8_X_start` ou des constantes nommées partagées. Puis : lecteurs `field` et écrivains `set_field` des descripteurs et leurs emplacements dans `pico8_struct_class_t`, les 10 `kind_field` et les emplacements des 11 sortes, les aides `*_take_*` restantes, `pico8_entity_get_field`/`set_field`, les typedefs `pico8_struct_field_fn`/`_set_field_fn` ; les structs-vues deviennent typées ou disparaissent (remplaçants de `mo`/`je`/`fm`, `jc_too_far`, `jc_mouse_point`, `bv_et`, `nr_ldown_empty`, `pj_cr`, `mz_jj`, `ha_pz`, `ie_ke_view`). Empreinte ≈ 45 (42, 3), en 2 ou 3 chunks. Compte : `par-nom` = 0, ajouté à `DATA_RESIDUE_GUARD`. §6 : aucun. `class-coverage-net` : oui. `sanitize-net` : non.
 > - D.12a — `liste`, registres : catégorie `liste` ajoutée à `tools/data_residue.sh` dans un premier commit seul, motif `\bpico8_list_[a-z_]+\b|\bPICO8_REF_AS_LIST[A-Z_]*|\bPICO8_TYPE_TAG_LIST\b|pico8_list\.h` (Q10 ; la règle de D.0 fige les motifs existants, mais une catégorie nouvelle s'ajoute dans son propre commit avec son motif énoncé) ; conteneur de pointeurs (Q9) sous un nom hors de ce motif ; registres L1 (`hv`, `cv[5]`, `cg[*]`, calques de `dc`, `ui.ic`, `ui.le`, `g_ga_by_shared`) et leurs parcours. Empreinte ≈ 15 (15, 0) : `entity.*`, `bootstrap`, `ui.*`, `economy*.c`, `cart`, `galaxy`, `bg`, `hud`. Compte : `liste` ≤ 927 moins L1, rapporté. §6 : aucun. `class-coverage-net` : seulement si le diff touche un constructeur. `sanitize-net` : oui.
@@ -656,7 +674,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 >
 > Chacune de ces conditions est écrite dans le PRD de l'étape concernée comme critère que le vérificateur de `prd-autopilot` traduit en `FAILED:` — c'est le seul arrêt que `plan-pilot` honore.
 
-## Annexe B — étude D.9 (`docs/prd/done/plan3-phaseD-etape9-etude.md` à `a917e3a`) : T1/T2, D.11d et Q11
+## Annexe B — étude D.9 (`docs/prd/done/plan3-phaseD-etape9-etude.md`, inchangée à `264a511`) : T1/T2, D.11d et Q11
 
 ### §1.2 (l. 49-55)
 
@@ -701,9 +719,9 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 > **Q11. Tests des descripteurs (T2 : environ 145 lignes `cls->field`/`set_field` et les tests de mort des `assert` d'écrivain) : les supprimer avec les descripteurs, comme tests de la couche (§6, premier point) ?**
 > Oui. Leur objet, la lecture et l'écriture par nom, disparaît. Les valeurs des membres restent couvertes par les TU en accès typé (T1) et par les e2e.
 
-## Annexe C — inventaire ligne à ligne (`tests/` à `a917e3a`, 567 lignes `par-nom`)
+## Annexe C — inventaire ligne à ligne (`tests/` à `264a511`, 567 lignes `par-nom`)
 
-Classe et code : voir « Inventaire » (A, R, W, S, C : T1 ; D, M, N, X : T2 ; F : T3). « — » : le code suffit. Les lignes d’une même fonction et d’une même classe sont regroupées. Numéros ⟲ pour `test_pico8_fv`, `_ui`, `_jc`, `_g_`, `_jo` (H-D11c-3). Les appels non comptés des aides par nom ne sont pas listés un à un : leur nombre est donné par fichier, et chaque aide qu’ils appellent est une ligne T1-A ou T2 ci-dessous.
+Classe et code : voir « Inventaire » (A, R, W, S, C : T1 ; D, M, N, X : T2 ; F : T3). « — » : le code suffit. Les lignes d’une même fonction et d’une même classe sont regroupées. Les appels non comptés des aides par nom ne sont pas listés un à un : leur nombre est donné par fichier, et chaque aide qu’ils appellent est une ligne T1-A ou T2 ci-dessous. Numéros refaits à `264a511` : `test_pico8_fv` (−8 après l. 540), `test_pico8_ui` (+82 à partir de l. 1088, +32 après l. 1235) ; les 36 autres fichiers sont identiques à `a917e3a`. `test_pico8_jo_spec_defaults`, touché par D.11c, ne porte aucune ligne `par-nom` : hors inventaire.
 
 #### `test_pico8_bg.c` — 22 lignes : T1 12, T2 10 ; appels d'aides par nom non comptés : 32 à typer, 17 supprimés
 
@@ -797,7 +815,7 @@ Tests T2 supprimés en entier : `test_fr_mt_by_name`, `test_nr_members_by_name` 
 | 620, 628 | `fold_hb` | T2-X | — |
 | 661, 662 | `test_nr_members_by_name` | T2-D | — |
 
-#### `test_pico8_fv.c` — 12 lignes : T1 3, T2 9 ; appels d'aides par nom non comptés : 59 à typer, 26 supprimés
+#### `test_pico8_fv.c` — 12 lignes : T1 3, T2 9 ; appels d'aides par nom non comptés : 58 à typer, 26 supprimés
 
 Tests T2 supprimés en entier : `test_fv_members_by_name` ; constantes nommées dans ces tests (celles qu'aucun test gardé ne nomme partent avec eux) : `FV_MEMBERS_HASH`.
 
@@ -806,12 +824,12 @@ Tests T2 supprimés en entier : `test_fv_members_by_name` ; constantes nommées 
 | 92 | `lookup` | T1-A | — |
 | 102 | `get` | T1-A | — |
 | 308 | `in_layer` | T1-S | — |
-| 548 | `write_fixed` | T2-M | — |
-| 601, 602 | `test_fv_is_a_struct` | T2-D | — |
-| 633, 634 | `read_both` | T2-D | — |
-| 701, 702 | `write_m_` | T2-M | — |
-| 737 | `fold_written_by_name` | T2-D | — |
-| 788 | `write_off_row` | T2-M | — |
+| 540 | `write_fixed` | T2-M | — |
+| 593, 594 | `test_fv_is_a_struct` | T2-D | — |
+| 625, 626 | `read_both` | T2-D | — |
+| 693, 694 | `write_m_` | T2-M | — |
+| 729 | `fold_written_by_name` | T2-D | — |
+| 780 | `write_off_row` | T2-M | — |
 
 #### `test_pico8_g_.c` — 29 lignes : T1 5, T2 24 ; appels d'aides par nom non comptés : 79 à typer, 87 supprimés
 
@@ -1329,24 +1347,24 @@ Tests T2 supprimés en entier : `test_hj_members_by_name`, `test_jo_members_by_n
 | 969 | `test_ui_members_by_name` | T2-D | — |
 | 1047 | `me_of` | T2-D | — |
 | 1048 | `me_of` | T1-A | `me_of` lit `((const pico8_ke_t *)e)->me`/`->t` ; sa comparaison au lecteur brut (l. 1047) part |
-| 1153 | `test_ke_me_by_name` | T2-N | — |
-| 1170 | `test_ke_me_by_name` | T2-D | — |
-| 1300 | `test_ke_t_by_name` | T2-N | — |
-| 1334 | `test_ke_t_by_name` | T2-D | — |
-| 1546 | `test_jo_members_by_name` | T2-N | — |
-| 1583, 1584 | `write_by_name` | T2-M | — |
-| 1655 | `write_off_row` | T2-M | — |
-| 1825, 1826, 1880 | `test_jo_position_by_name` | T2-D | — |
-| 1834, 1835 | `test_jo_position_by_name` | T2-X | — |
-| 2137 | `test_jo_state_by_name` | T2-D | — |
-| 2207 | `test_jo_state_by_name` | T2-N | — |
-| 2440 | `test_jo_writers_by_name` | T2-D | — |
-| 2521 | `test_jo_writers_by_name` | T2-N | — |
-| 2776 | `np_target_at` | T2-X | — |
-| 2874, 2889 | `test_qh_members_by_name` | T2-D | — |
-| 3103 | `test_hj_members_by_name` | T2-X | — |
-| 3133 | `test_hj_members_by_name` | T2-D | — |
-| 3221 | `test_pm_members_by_name` | T2-D | — |
-| 3313 | `mx_join_row` | T2-X | — |
-| 3365, 3367 | `test_mx_members_by_name` | T2-D | — |
-| 3370 | `test_mx_members_by_name` | T2-X | — |
+| 1235 | `test_ke_me_by_name` | T2-N | — |
+| 1252 | `test_ke_me_by_name` | T2-D | — |
+| 1332 | `test_ke_t_by_name` | T2-N | — |
+| 1366 | `test_ke_t_by_name` | T2-D | — |
+| 1578 | `test_jo_members_by_name` | T2-N | — |
+| 1615, 1616 | `write_by_name` | T2-M | — |
+| 1687 | `write_off_row` | T2-M | — |
+| 1857, 1858, 1912 | `test_jo_position_by_name` | T2-D | — |
+| 1866, 1867 | `test_jo_position_by_name` | T2-X | — |
+| 2169 | `test_jo_state_by_name` | T2-D | — |
+| 2239 | `test_jo_state_by_name` | T2-N | — |
+| 2472 | `test_jo_writers_by_name` | T2-D | — |
+| 2553 | `test_jo_writers_by_name` | T2-N | — |
+| 2808 | `np_target_at` | T2-X | — |
+| 2906, 2921 | `test_qh_members_by_name` | T2-D | — |
+| 3135 | `test_hj_members_by_name` | T2-X | — |
+| 3165 | `test_hj_members_by_name` | T2-D | — |
+| 3253 | `test_pm_members_by_name` | T2-D | — |
+| 3345 | `mx_join_row` | T2-X | — |
+| 3397, 3399 | `test_mx_members_by_name` | T2-D | — |
+| 3402 | `test_mx_members_by_name` | T2-X | — |
