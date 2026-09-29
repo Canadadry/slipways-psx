@@ -87,20 +87,6 @@ suivante.
 
 Fichier : `src/pico8_bootstrap.c`.
 
-## TROU-6 — L'entité tenue par la souris est castée sans vérification
-
-`ui:bh()` range dans `lheld`/`rheld` ce que rend le `ldown`/`rdown` de
-l'entité cliquée, puis le relit comme un `pico8_instance_t*` pour lui
-envoyer `hq`/`ey`. Rien ne garantit que c'en soit une : en Lua c'est
-n'importe quelle table.
-
-Aujourd'hui sans danger — toutes les classes qui définissent `ldown` rendent
-soit une instance, soit un booléen — mais c'est la même famille de
-confusion de représentation que celle qui a produit quatre débordements de tas (voir
-le tag de type, `docs/glossaire-noms.md`).
-
-Fichier : `src/pico8_ui.c`.
-
 ## TROU-7 — Fuites mémoire assumées
 
 Ce port n'a pas de ramasse-miettes là où Lua en a un. Deux conventions

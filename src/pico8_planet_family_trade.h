@@ -79,7 +79,7 @@ pico8_mx_t *pico8_mx_new(const pico8_jo_keys_t *keys);
  * with no member but its header. */
 pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s);
 
-/* TROU-6 */
+/* TROU-7 */
 /* Returns a freshly built `jc` instance, or `gv`'s own false; nothing ever
  * frees the instance. */
 pico8_down_t pico8_nr_ldown(pico8_nr_t *self);

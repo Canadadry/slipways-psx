@@ -150,9 +150,9 @@ void pico8_jo_hh(pico8_jo_t *self);
 
 void pico8_jo_hk(const pico8_jo_t *self);
 
-/* TROU-6 */
-/* Returns a freshly built `jc` instance, Lua true, or nil; the caller
- * (`ui:bh`) keeps whatever comes back, and nothing frees the instance. */
+/* TROU-7 */
+/* Returns a freshly built `jc` instance in `held`, Lua true as `stop`
+ * alone, or nil; `ui:bh` holds only the instance, and nothing frees it. */
 pico8_down_t pico8_jo_ldown(pico8_jo_t *self);
 
 /* Both take ownership and free the previous generator; NULL is the valid

@@ -356,7 +356,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
 
         if (pico8_ui_jz(self, l ? PICO8_JZ_LDOWN : PICO8_JZ_RDOWN, self->qa, je_ra, NULL, &kv, &kn) &&
             kn.held != NULL) {
-            /* TROU-6 */
+
             if (l) {
                 assert(ui_is_held_class(kn.held->cls) &&
                        "ui.lheld: what an ldown hands over is a jc; a g_ or an mz from bg; a qh, os, nr, fr, nl, mx "
