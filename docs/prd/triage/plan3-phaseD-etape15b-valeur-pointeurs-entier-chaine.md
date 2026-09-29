@@ -1,12 +1,12 @@
 ---
 title: "Plan 3, étape D.15b : `valeur`, mécanique — `pico8_ij` et `pico8_jc_ce` en pointeurs d'en-tête, `pico8_d_` en entier, `pico8_jc_hg_add/has` en `const char *`, `g_ie_id` en nombre + drapeau, `pf/mz_value_vec` retirés ; les TU suivent dans le même commit ; aucune constante ne change"
-description: "Six API et un état de module, qui ne prennent chacun qu'un seul genre non nil (une entité ou rien, vrai ou rien, une chaîne, un nombre ou rien), passent encore par `pico8_value_t` ; D.15b leur donne leur type C (règle (a) de l'étude D.14), retire les enveloppes et les deux copies `*_truthy` qui n'avaient plus que `d_` pour argument, fait suivre 9 TU sans changer une constante : `valeur` baisse de 68 lignes (69 retirées, 1 gagnée et déclarée)."
+description: "Six API et un état de module, qui ne prennent chacun qu'un seul genre non nil (une entité ou rien, vrai ou rien, une chaîne, un nombre ou rien), passent encore par `pico8_value_t` ; D.15b leur donne leur type C (règle (a) de l'étude D.14), retire les enveloppes et les deux copies `*_truthy` qui n'avaient plus que `d_` pour argument, fait suivre 9 TU sans changer une constante : `valeur` baisse de 69 lignes (70 retirées dont un include devenu inutile, 1 gagnée et déclarée)."
 status: needs-triage
 ---
 
 ## Problem Statement
 
-**Écrit pendant que D.15a est spécifiée et implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis **`a702ce4`** (`git archive` dans le scratchpad). Seuls `grep`, `sed`, `awk` et `sh tools/data_residue.sh` ont tourné. **Rien n'a été compilé ni lancé.** Tous les numéros de ligne de ce PRD sont ceux de `a702ce4` ; ceux de `pico8_slipway.c` (≥ 270) et de `pico8_wormhole.c` (≥ 76) bougeront avec D.15a (hypothèses `H-D15a-n` ci-dessous) : l'implémenteur les **remesure par contenu** sur le HEAD qui gradue D.15a, jamais par recopie.
+**Écrit pendant que D.15a était implémentée** (`plan-pilot`, étape 2b), sur l'arbre commis `a702ce4`, puis **révisé après sa graduation** : D.15a gradée (`48d165e`, VERIFIED ; « docs: D.15a gradée (ov en nombres, cb en entier) » **`77c916a`**). Les hypothèses `H-D15a-n` sont confrontées plus bas à `77c916a` ; les comptes et **tous les numéros de ligne de ce PRD sont ceux de `77c916a`**, remesurés par contenu sur `git archive 77c916a` (seuls `slipway.c` ≥ 270 et `wormhole.c` ≥ 76 ont bougé parmi les fichiers de l'étape). Seuls `grep`, `sed`, `awk`, `git diff a702ce4 77c916a` et `sh tools/data_residue.sh` ont tourné. **Rien n'a été compilé ni lancé.** Si le HEAD de départ n'est pas `77c916a` (ou un descendant qui ne touche que `docs/`), l'implémenteur remesure par contenu et explique l'écart.
 
 Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico8_value.c/.h` disparaissent (D.19c). L'étude D.14 (`docs/prd/done/plan3-phaseD-etape14-etude-genres-meles.md`) a classé 560 lignes `valeur` comme **(a) mécaniques** : une valeur qui ne prend qu'un seul genre non nil et dont aucun lecteur ne distingue nil de `false` devient son type C, avec `NULL` ou un drapeau `has_x` pour nil. D.15b en prend le deuxième lot, celui des pointeurs :
 
@@ -17,7 +17,7 @@ Le problème, vu du mainteneur du port : la Sortie de la phase D exige que `pico
 - `g_ie_id` (`ie.id`) est un `pico8_value_t` statique qui ne vaut que nil ou un nombre ;
 - `pico8_pf_value_vec`/`pico8_mz_value_vec` enveloppent un `pico8_vec_t *` dans une valeur pour le relire aussitôt.
 
-Ligne de l'étape, recopiée de `docs/plan-3.md` à `a702ce4` (§5, « Phase D — Données », l. 284) :
+Ligne de l'étape, recopiée de `docs/plan-3.md` à `a702ce4`, identique à `77c916a` (§5, « Phase D — Données », l. 284) :
 
 > - D.15b — `valeur`, mécanique : `ij`/`jc_ce` en pointeurs, `d_` en entier, `jc_hg` en `const char *`, `g_ie_id`. Compte : ≈ 910.
 
@@ -45,7 +45,7 @@ Lignes directrices de l'étude qui s'appliquent ici (§4), recopiées : **G1** (
 
 Notes antérieures qui visent ces sites : D.11e (« **Pour D.12** : `pico8_ij` lit `p` par `get_p` et garde `pico8_value_t *out_nearest` ») ; D.12a (« `pico8_ij` converti en place (`out_nearest` reste `pico8_value_t *`, Q12) ») ; D.12b2 (« `jc:ce` rend `pico8_value_ref(w)` (Q12) ») ; remise des comptes de D.12d (« Restes nommés : […] `pico8_jc_ce` […] »). Q12 est tranchée oui (D.14) : ces restes sont l'objet de cette étape.
 
-### Hypothèses `H-D15a-n` (D.15a en cours)
+### Hypothèses `H-D15a-n` (écrites pendant D.15a ; verdicts plus bas)
 
 Source : la ligne D.15a du plan (« `valeur`, mécanique : `ov` prend des nombres, `cb` un entier. Compte : `valeur` ≈ 979. ») et la ligne D.15a de l'étude (« `pico8_ov` en nombres, `pico8_cb(int)` ; appelants `economy`, `planet`, `slipway`, `wormhole`, `menu` ; TU `fm`, `js` ; ≈ 8 fichiers »). Le PRD de D.15a n'est pas commis à `a702ce4` : rien de lui n'a été lu.
 
@@ -62,7 +62,7 @@ Source : la ligne D.15a du plan (« `valeur`, mécanique : `ov` prend des nombre
 | H-D15a-9 | La note « Découvert à D.15a » ne modifie pas la ligne D.15b du plan et ne déplace aucun site de D.15b vers D.15a (ni l'inverse) | tout le PRD | lecture du plan gradé |
 | H-D15a-10 | D.15a est entière (pas de repli laissé à moitié) à la graduation | tout | note de D.15a |
 
-### Sections à revérifier quand D.15a sera gradée
+### Sections à revérifier quand D.15a sera gradée (liste d'origine, gardée pour trace ; faite, voir « Sections revérifiées »)
 
 - **Toujours** : « État de départ » (comptes réels, H-D15a-1) ; critères `FAILED:` de départ (HEAD, `valeur` de départ) ; « Effet sur `make data-residue` » (colonne « départ » et « après », par fichier pour `slipway.c` et `wormhole.c`) ; tous les numéros de `slipway.c` ≥ 270 et de `wormhole.c` ≥ 76 dans l'Inventaire et les mutations (remesure **par contenu**) ; Annexe A (ligne D.15a et sa note, à recopier ; ligne D.15b si la note l'a modifiée).
 - **Si H-D15a-2 ou -3 tombe** (D.15a a touché d'autres lignes de `jc_ce`, `mz_hq`, `mz_ey`, `mz_pr`, ou une copie `truthy`) : Inventaire de ces deux fichiers, « Copies `truthy` », M3–M6, M10, M17, M18.
@@ -73,6 +73,27 @@ Source : la ligne D.15a du plan (« `valeur`, mécanique : `ov` prend des nombre
 - **Si H-D15a-8 tombe** : filets, « `Makefile` et liens ».
 - **Si H-D15a-9 ou -10 tombe** : ne pas mettre ce PRD en file ; le reprendre.
 
+**Verdicts à `77c916a`** (`git archive`, `git diff a702ce4 77c916a`, `sh tools/data_residue.sh`, note « Découvert à D.15a » recopiée en Annexe A) :
+
+| Hypothèse | Verdict |
+|---|---|
+| H-D15a-1 | **fausse en valeur, sans effet sur le plan** : `valeur` **980 / 103 ; 1105 occ.** (`src/` 488 / 65 / 563 occ., `tests/` 492 / 38 / 542 occ.) au lieu de ≈ 979 : D.15a garde un pont déclaré, `tech_gate.c:45` `if (pico8_oj(pico8_value_string(px))) {`, jusqu'à D.16b (`oj`) ; `type-tag` 243 / 58 ; résidu D **1221 / 111** ; `DATA_RESIDUE_GUARD` inchangé |
+| H-D15a-2 | **tenue** : dans `slipway.c`, seuls `:270` (`ov_result`, retirée) et `:282-284` (trois lignes → une, `:281` `threshold = pico8_ov("space folding", …);`) ont changé ; `threshold` reste une locale `pico8_fixed_t`. Numéros de `slipway.c` ≥ 270 : **− 3** (`:274` → `:273`, `:287` → `:284`, `:310` → `:307`, `:322` → `:319`, `:338` → `:335`) ; `< 270` inchangés |
+| H-D15a-3 | **tenue** : dans `wormhole.c`, seuls `threshold_val` de `mz_hq` (`:76` retirée, `:88-90` → `:87`) et de `mz_kz` (`:103` retirée, `:115-117` → `:111`). Numéros : `:74` inchangé ; `:84` → `:83`, `:85` → `:84`, `:86` → `:85` ; `:148` → `:142` ; `:173` → `:167` ; `pico8_mz_et` `:222-229` → `:216-223` |
+| H-D15a-4 | **tenue** : D.15a n'a touché que `economy.c`, `menu.c`, `planet.c`, `slipway.c`, `tech_gate.c/.h`, `wormhole.c`, TU `fm`, `js` (et `docs/`) ; aucun autre fichier de l'étape, numéros inchangés |
+| H-D15a-5 | **tenue à la lettre de sa clause, mais elle change une règle d'ici** : D.15a a retiré un include, `test_pico8_fm.c:35`, fichier que D.15b ne touche pas, parce que le TU ne nommait plus rien du module (son PRD : « les includes inutiles partent au fil des étapes, comme le prévoit l'étude »). Ce précédent **remplace** la lecture « aucun include touché » de la première version : voir « Includes » |
+| H-D15a-6 | **tenue** : `pico8_fixed_t pico8_ov(const char *px, pico8_fixed_t lk, pico8_fixed_t mc)` (`tech_gate.h:12`) ; `jc_ce` et `mz_hq` l'appellent sur une ligne |
+| H-D15a-7 | **tenue** : `pico8_jc_truthy` (`slipway.c:48`) et `pico8_mz_truthy` (`wormhole.c:30`) intactes, toujours avec `d_` pour seul appelant ; `rn` non touché. (`pico8_tech_gate_truthy` n'a plus que `oj` : hors étape) |
+| H-D15a-8 | **tenue** : `Makefile`, `tools/` inchangés (`git diff --stat a702ce4 77c916a`) ; aucun fichier ni TU ajouté ; VERIFIED |
+| H-D15a-9 | **tenue** : ligne D.15b du plan identique ; aucun site déplacé |
+| H-D15a-10 | **tenue** : D.15a entière, un commit |
+
+Conséquences : aucune décision de fond ni le découpage ne changent. Changent : les comptes de départ (980 / 103 / 1105) ; les numéros de `slipway.c` et `wormhole.c` ; la règle des includes (un include de plus retiré : `slipway_display.c:11`), d'où **− 69 lignes, − 75 occ.** au lieu de − 68 / − 74 ; prototypes publics qui nomment `pico8_value_t` : 25 à `77c916a` (compte du coordinateur), **20** après D.15b (les cinq de la table « API »).
+
+### Sections revérifiées sur `77c916a`
+
+Refaites : en-tête, verdicts, « Lecture » (includes, compte), « État de départ », Inventaire (numéros de `slipway.c`, `wormhole.c` ; ligne d'include ajoutée), « Includes », « Effet sur `make data-residue` », Sortie (greps 1 et 7), anti-tassement, mutations et cibles, critères `FAILED:`, Out of Scope, Annexe A (ligne D.15a et sa note recopiées). Inchangées et vérifiées : décisions de type, TU, empreinte (22 chemins), découpage (un commit), budget.
+
 ### Lecture de ces textes pour D.15b
 
 - **« `ij`/`jc_ce` en pointeurs »** : l'étude propose `void **out_nearest` pour `ij` et `pico8_struct_header_t *` pour `jc_ce`. **Tranché (G)** : les deux en `pico8_struct_header_t` (`pico8_struct_header_t **out_nearest`, `pico8_struct_header_t *pico8_jc_ce`). Raison : `ij` asserte déjà que chaque élément est une struct et le lie à `pico8_struct_header_t *o` (`entity_geom.c:108-111`) ; ses trois lecteurs rangent le résultat dans un `pico8_struct_header_t *` (`mz.ij`, `wormhole.h:40`) ou le passent comme cible `et` (`probe.c:181`, `probe.h:26`). `void **` obligerait `wormhole.c:86` à convertir un `void *` en en-tête sans test. Rejeté : `void **` (écart à l'étude, déclaré).
@@ -80,7 +101,7 @@ Source : la ligne D.15a du plan (« `valeur`, mécanique : `ov` prend des nombre
 - **« `jc_hg` en `const char *` »** : `pico8_jc_hg_add(pico8_jc_hg_t *, const char *id)`, `pico8_jc_hg_has(const pico8_jc_hg_t *, const char *id)`. **G4 lu en deux moitiés (G)** : le cas **nombre** meurt avec le type (`test_pico8_jc.c:909`, `:928`) ; le cas **nil ne meurt pas** : un `const char *` peut être NULL, et `src/` en produit un — `slipway_display.c:29-31` passe `t_id` NULL quand `t` est le point souris de `jc:hq` (« The mouse point jc:hq hangs on `re` has no `id` »). `has` garde donc `id == NULL → 0` (lecture Lua de `hg[nil]`) et son cas de TU (`:929`, réécrit sur `NULL`) ; `add` garde son refus d'un `id` NULL (moitié `id.as.string != NULL` de l'`assert` actuel, `lua.lua` : `t[nil]=true` lève une erreur), et le `must_abort` qui refusait un nombre refuse désormais NULL (`hg_add_fixed` → `hg_add_nil`, même garde, l'autre moitié de l'`assert`). Écart à la lettre de G4, déclaré.
 - **« `g_ie_id` »** : la ligne ne donne pas la règle ; l'étude dit « `pico8_fixed_t` + `has_ie_id` ». **Tranché (G)** : `static pico8_fixed_t g_ie_id` et `static int g_ie_has_id` (préfixe `g_ie_` des statiques du module, nom hors motif), nil = `g_ie_has_id == 0` ; `pico8_ie_id(&out)` garde son contrat (0 pour nil) ; l'`assert` « only ever nil or a number » (`:300`) part avec le genre qu'il gardait.
 - **`pf/mz_value_vec`** : absents de la ligne du plan, présents dans la ligne de l'étude pour D.15b, et comptés dans son « ≈ 910 ». **Tranché (G)** : dans l'étape (la ligne du plan abrège celle de l'étude, qu'elle dit reprendre : « Étapes ci-dessous, reprises de l'étude »), déclaré. Lecture au site : `p != NULL ? *p : vecteur nul`, exactement ce que faisait l'enveloppe.
-- **« Compte : ≈ 910 »** : estimation de l'étude. Mesurée ici à `a702ce4` : **69 lignes retirées** (`src/` 52, `tests/` 17), **1 gagnée** (`probe.c:181`, voir « `ij` »), soit **−68** : départ réel de D.15b − 68, ≈ 911 si H-D15a-1 tient. « ≈ » n'est pas un critère ; « −68 exact, écart expliqué » l'est.
+- **« Compte : ≈ 910 »** : estimation de l'étude. Mesurée à `77c916a` : **70 lignes retirées** (`src/` 53 dont l'include de `slipway_display.c`, `tests/` 17), **1 gagnée** (`probe.c:181`, voir « `ij` »), soit **− 69** : `valeur` **980 → 911** (1105 → 1030 occ.). « ≈ » n'est pas un critère ; « − 69 exact, écart expliqué » l'est.
 - **Empreinte** : l'étude dit ≈ 20 fichiers, dont le TU `fv`. Mesuré : **12 fichiers de `src/`, 9 TU**, plus `docs/plan-3.md` (note) — **pas `fv`** (`test_pico8_fv.c:592` est `(void)pico8_d_(e);`, qui compile tel quel avec un `int`), **pas `ie`, `mz`, `pm`** (ils lisent `pico8_ie_id`, `mz->ij`, `pm->ng`, dont le type ne change pas : ils prouvent, ils ne suivent pas).
 - **Drapeaux** : la ligne ne dit rien de `class-coverage-net` ni de `sanitize-net`, l'étude non plus pour D.15b. Vérifié : aucun constructeur, aucun appel `pico8_class_coverage_record`, aucun `KNOWN[]` touché (`jc:hq`, `pm:pq`, `mz:hq`, `ie:ldown`, `bw` ne sont pas des constructeurs de classe au sens du §7 ; `pm:pq` construit un `ga` par `pico8_ga_new`, inchangé) ; aucune durée de vie ni aucun propriétaire ne change (les pointeurs rendus sont empruntés comme les REF qu'ils remplacent ; `g_ie_id` reste statique). **Tranché (G)** : ni l'un ni l'autre exigé (§7, « En D et en 2 ») ; le balayage ASan+UBSan des TU est exigé (consigne de l'utilisateur).
 - **§6** : aucun des trois tests de régression (`layout_nil_item_draws_nothing`, `planet_gh_row_lq`, `ga_export_panel_by`) ne nomme un symbole de l'étape ; ils sont recompilés et relancés (deux se lient sur `DATA_ENGINE_SRCS`), rien de plus.
@@ -88,13 +109,14 @@ Source : la ligne D.15a du plan (« `valeur`, mécanique : `ov` prend des nombre
 
 ### État de départ
 
-Mesuré à `a702ce4` (D.15a non commencée), sans build :
+Mesuré à `a702ce4` (D.15a non commencée), puis à **`77c916a`** (D.15a gradée), sans build :
 
-| Mesure | À `a702ce4` | Départ réel de D.15b (HEAD gradé de D.15a) |
+| Mesure | À `a702ce4` | Départ réel de D.15b (`77c916a`) |
 |---|---|---|
-| `valeur` (lignes / fichiers ; occ.) | **1014 / 105 ; 1151 occ.** (`src/` 518 / 66 / 605 occ., `tests/` 496 / 39 / 546 occ.) | ≈ 979 (H-D15a-1), remesuré |
-| `type-tag` | 243 / 58 (`src/` 72 / 24, `tests/` 171 / 34) | 243 / 58 attendu |
-| résidu D | 1255 / 111 | remesuré |
+| `valeur` (lignes / fichiers ; occ.) | 1014 / 105 ; 1151 occ. (`src/` 518 / 66 / 605 occ., `tests/` 496 / 39 / 546 occ.) | **980 / 103 ; 1105 occ.** (`src/` 488 / 65 / 563 occ., `tests/` 492 / 38 / 542 occ.) |
+| `type-tag` | 243 / 58 (`src/` 72 / 24, `tests/` 171 / 34) | **243 / 58** |
+| résidu D | 1255 / 111 | **1221 / 111** |
+| prototypes publics qui nomment `pico8_value_t` | — | 25 |
 | `DATA_RESIDUE_GUARD` | `spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit` | inchangé |
 
 Recette des occurrences (celle de D.12, motif `valeur` de `tools/data_residue.sh`) :
@@ -108,7 +130,7 @@ for f in $F; do n=$(grep -cE "$P" $f); [ $n -gt 0 ] && \
   printf '%s\t%s\t%s\n' $f $n "$(grep -oE "$P" $f | wc -l)"; done
 ```
 
-### Inventaire (à `a702ce4`, ligne à ligne)
+### Inventaire (à `77c916a`, ligne à ligne ; mesure d'origine à `a702ce4`)
 
 Classes du message de commit : **(a1)** même site, type C à la place de la valeur ; **(a2)** retirée sans remplaçant (enveloppe, copie `truthy`, `assert` de genre, cas de TU d'un genre mort) ; **(b)** signature dont le type change (table « API ») ; **(c)** même donnée, autre nom : **attendu 0**. `occ.` : occurrences du motif sur la ligne.
 
@@ -116,15 +138,15 @@ Classes du message de commit : **(a1)** même site, type C à la place de la val
 
 | API | Aujourd'hui | Après D.15b | Appelants (`src/`) | TU |
 |---|---|---|---|---|
-| `pico8_ij` (`entity_geom.c:96`, `.h:31`) | `pico8_value_t *out_nearest` | `pico8_struct_header_t **out_nearest` (NULL : rien) | `galaxy.c:67` (`bw`), `wormhole.c:85` (`mz:hq`), **`probe.c:176` (`bv`)** | aucun direct (`mz`, `g_` par `hq`) |
+| `pico8_ij` (`entity_geom.c:96`, `.h:31`) | `pico8_value_t *out_nearest` | `pico8_struct_header_t **out_nearest` (NULL : rien) | `galaxy.c:67` (`bw`), `wormhole.c:84` (`mz:hq`), **`probe.c:176` (`bv`)** | aucun direct (`mz`, `g_` par `hq`) |
 | `pico8_jc_ce` (`slipway.c:265`, `.h:119`) | rend `pico8_value_t` | rend `pico8_struct_header_t *` (NULL : rien) | `slipway.c:167` (`jc:hq`) seul | aucun direct (`jc` par `hq`) |
-| `pico8_d_` (`probe.c:328`, `.h:175`) | rend `pico8_value_t` (`bool(1)` ou `REF NULL`) | rend `int` (1 / 0) | `slipway.c:187` (`jc:ey`), `wormhole.c:148` (`mz:ey`), `probe.c:369` (`d__dispatch`, résultat ignoré) | `g_` (4 sites), plis `fr`, `mx`, `os`, `nr`, `hj`, `nl`, `qh` (×2) ; `fv:592` inchangé |
+| `pico8_d_` (`probe.c:328`, `.h:175`) | rend `pico8_value_t` (`bool(1)` ou `REF NULL`) | rend `int` (1 / 0) | `slipway.c:187` (`jc:ey`), `wormhole.c:142` (`mz:ey`), `probe.c:369` (`d__dispatch`, résultat ignoré) | `g_` (4 sites), plis `fr`, `mx`, `os`, `nr`, `hj`, `nl`, `qh` (×2) ; `fv:592` inchangé |
 | `pico8_jc_hg_add` (`slipway.c:93`, `.h:28`) | `pico8_value_t id` | `const char *id` (NULL refusé, `assert`) | `economy_tiers.c:133` (`bd`) | `jc` |
 | `pico8_jc_hg_has` (`slipway.c:104`, `.h:31`) | `pico8_value_t id` | `const char *id` (NULL : 0) | `slipway_display.c:31` (`jc:ch`), `slipway.c:95` (`add`) | `jc` |
 
 Aucune autre signature publique ne change. Statiques retirées : `pico8_jc_value_instance`, `pico8_jc_truthy` (`slipway.c`), `pico8_mz_truthy`, `pico8_mz_value_vec` (`wormhole.c`), `pico8_pf_value_vec` (`planet_family.c`).
 
-#### Sites de `src/` (52 lignes, 55 occ. retirées ; 1 ligne, 1 occ. gagnée)
+#### Sites de `src/` (53 lignes, 56 occ. retirées ; 1 ligne, 1 occ. gagnée)
 
 | Fichier | Ligne(s) `valeur` (occ.) | Remplacement | Classe |
 |---|---|---|---|
@@ -134,11 +156,11 @@ Aucune autre signature publique ne change. Statiques retirées : `pico8_jc_value
 | | `:29` (1) | contrat du prototype (`:28-30`) réécrit : « `*out_nearest` is NULL -- Lua's nil -- when … » | (a1) |
 | | `:10` (1) | commentaire de tête (`:9-12`) devenu faux depuis la phase 1b (« is a PICO8_VALUE_REF ») : « is a pointer to a heap vector the field borrows and never owns » ; l'étude le nomme avec son objet (§1.2, « commentaires ») | (a1) |
 | `galaxy.c` | `:53` (1) | `pico8_struct_header_t *nearest;` (`:67` inchangé) | (a1) |
-| `wormhole.c` | `:30`, `:31`, `:34` (3) | `pico8_mz_truthy` retirée (seul appelant `:148`, voir « Copies `truthy` ») | (a2) |
+| `wormhole.c` | `:30`, `:31`, `:34` (3) | `pico8_mz_truthy` retirée (seul appelant `:142`, voir « Copies `truthy` ») | (a2) |
 | | `:40`, `:41` (2) | `pico8_mz_value_vec` retirée | (a2) |
 | | `:74` (2) | `pico8_struct_header_t *nearest = NULL;` | (a1) |
-| | `:84` (1), `:173` (1) | `p_vec = self->p != NULL ? *self->p : <vecteur nul>;` (idem `self_p`) | (a1) |
-| | `:86`, `:148` (0) | `self->ij = nearest;` ; `result = !pico8_d_(…);` — lignes modifiées hors motif | — |
+| | `:83` (1), `:167` (1) | `p_vec = self->p != NULL ? *self->p : <vecteur nul>;` (idem `self_p`) | (a1) |
+| | `:85`, `:142` (0) | `self->ij = nearest;` ; `result = !pico8_d_(…);` — lignes modifiées hors motif | — |
 | `probe.c` | `:157` (1), `:175` (1) | `pico8_struct_header_t *c;`, `c = NULL;` | (a1) |
 | | `:328` (1) | signature `int pico8_d_(…)` | (b) |
 | | `:335` (1), `:364` (1), `:359` (1) | `return 0;`, `return 0;`, `return 1;` | (a1) |
@@ -150,8 +172,8 @@ Aucune autre signature publique ne change. Statiques retirées : `pico8_jc_value
 | | `:94` (1) | `assert(id != NULL && "jc.hg: …")` (message gardé, reformulé sur nil) | (a1) |
 | | `:107` (1) | `if (hg == NULL \|\| id == NULL)` ; `:99`, `:110` (`id.as.string` → `id`) modifiées hors motif | (a1) |
 | | `:265` (1) | signature `pico8_struct_header_t *pico8_jc_ce(…)` | (b) |
-| | `:274` (1), `:287` (1), `:310` (1) | `return NULL;`, `return &g_jc_too_far.header;`, `return w;` | (a1) |
-| | `:322` (2), `:338` (1) | `pico8_struct_header_t *result = NULL;`, `result = ds.items[0];` | (a1) |
+| | `:273` (1), `:284` (1), `:307` (1) | `return NULL;`, `return &g_jc_too_far.header;`, `return w;` | (a1) |
+| | `:319` (2), `:335` (1) | `pico8_struct_header_t *result = NULL;`, `result = ds.items[0];` | (a1) |
 | | `:187` (0) | `should_fail = (re == NULL) \|\| !pico8_d_(…);` (hors motif) | — |
 | `slipway.h` | `:28`, `:31`, `:119` (3) | prototypes ; contrats `:26-27`, `:30`, `:117-118` réécrits (« NULL » au lieu de « nothing », « `id` must not be NULL ») | (b) |
 | `research_icon.c` | `:24` (2) | `static pico8_fixed_t g_ie_id = 0;` + ligne nouvelle `static int g_ie_has_id = 0;` | (a1) |
@@ -163,8 +185,9 @@ Aucune autre signature publique ne change. Statiques retirées : `pico8_jc_value
 | | `:372`, `:373` (2) | lecture directe de `self->hj.qh.jo.ra` et `self->ng`, NULL → vecteur nul | (a1) |
 | `economy_tiers.c` | `:133` (1) | `pico8_jc_hg_add(w->hg, planet->id);` | (a1) |
 | `slipway_display.c` | `:31` (1) | `pico8_jc_hg_has(self->hg, t_id)` (`t_id` peut être NULL, garde de `has`) | (a1) |
+| | `:11` (1) | `#include "pico8_value.h"` retiré : le fichier ne nomme plus rien du module (précédent de D.15a, `test_pico8_fm.c:35` ; voir « Includes ») | (a2) |
 
-Totaux `src/` : entity_geom.c 3, entity_geom.h 3, galaxy.c 1, wormhole.c 8 (9 occ.), probe.c 6, probe.h 1, slipway.c 15 (16 occ.), slipway.h 3, research_icon.c 6 (7 occ.), planet_family.c 4, economy_tiers.c 1, slipway_display.c 1 : **52 lignes, 55 occ.** ; gagnée : `probe.c:181` (1, 1).
+Totaux `src/` : entity_geom.c 3, entity_geom.h 3, galaxy.c 1, wormhole.c 8 (9 occ.), probe.c 6, probe.h 1, slipway.c 15 (16 occ.), slipway.h 3, research_icon.c 6 (7 occ.), planet_family.c 4, economy_tiers.c 1, slipway_display.c 2 : **53 lignes, 56 occ.** ; gagnée : `probe.c:181` (1, 1).
 
 #### TU (17 lignes, 20 occ. retirées ; 8 lignes modifiées hors motif)
 
@@ -191,9 +214,9 @@ Totaux `tests/` : `jc` 10 lignes (12 occ.), `g_` 7 (8 occ.) : **17 lignes, 20 oc
 
 #### Sites nommés par l'étude et laissés
 
-- `entity_geom.h:6`, `slipway.h:10`, `probe.h:11`, `slipway_display.c:11`, `galaxy.c:12`, `slipway.c:21`, `research_icon.h:10`, `wormhole.h:12` (includes) : **gardés** (voir « Includes »).
+- `entity_geom.h:6`, `slipway.h:10`, `probe.h:11`, `galaxy.c:12`, `slipway.c:21`, `research_icon.h:10`, `wormhole.h:12` (includes) : **gardés** (`slipway_display.c:11` part) (voir « Includes »).
 - `geom.h:37-38` (le `qz` rangé « as a PICO8_VALUE_REF ») : hors étape (objet : `qz`, pas un site D.15b).
-- `probe.c:186-203`, `:208-214` (`et`, `first`), `wormhole.c:222-229` (`pico8_mz_et`) : B3, D.16b. `probe.c:357`, `:362`, `slipway.c:125`, `:194`, `wormhole.c:64` (`rn`) : B5, D.16b. `galaxy.c:79`, `probe.c:273`, `research_icon.c:136` (`tostr`) : D.15c. `research_icon.c:91` (`oj`) : B4, D.16b. `planet_family.c:37-44` (`qh_qh`) : B1, D.16a. `slipway.c:270`, `:282-284`, `wormhole.c:76`, `:88-90`, `:103`, `:115-117` (`ov`) : D.15a.
+- `probe.c:186-203`, `:208-214` (`et`, `first`), `wormhole.c:216-223` (`pico8_mz_et`) : B3, D.16b. `probe.c:357`, `:362`, `slipway.c:125`, `:194`, `wormhole.c:64` (`rn`) : B5, D.16b. `galaxy.c:79`, `probe.c:273`, `research_icon.c:136` (`tostr`) : D.15c. `research_icon.c:91` (`oj`) : B4, D.16b. `planet_family.c:37-44` (`qh_qh`) : B1, D.16a. `slipway.c:281`, `wormhole.c:87`, `:111` (`ov`, déjà typés par D.15a, hors motif) ; `tech_gate.c:45` (pont `oj` de D.15a) : D.16b.
 
 #### `Makefile` et liens
 
@@ -215,13 +238,13 @@ Totaux `tests/` : `jc` 10 lignes (12 occ.), `g_` 7 (8 occ.) : **17 lignes, 20 oc
 **Sortie de l'étape**, constatée par commande sur le commit :
 
 - `make test` vert (dont `make data-guard`, inchangé) ; `make e2e` : **26 conformes** ; balayage ASan+UBSan des TU propre ;
-- `make data-residue` : `valeur` = départ **− 68** lignes (**− 74** occ.), fichiers − 1 (`entity_geom.c` sort de `valeur`, pas du résidu D) ; `type-tag` inchangé ;
+- `make data-residue` : `valeur` **980 → 911** lignes (**1105 → 1030** occ.), fichiers **103 → 101** (`entity_geom.c` sort de `valeur`, pas du résidu D ; `slipway_display.c` sort des deux) ; `type-tag` 243 / 58 inchangé ; résidu D **1221 / 111 → 1152 / 110** ;
 - aucun `*.sha256`, aucun fichier de `tests/e2e/`, rien dans `tools/` (`tools/float_guard.txt` réécrit à l'identique par `make test`), rien dans le `Makefile` ;
 - ces commandes rendent exactement ce qui est écrit :
 
   ```sh
   P='\bpico8_value_[A-Za-z0-9_]+|\bPICO8_VALUE_[A-Z0-9_]+|pico8_value\.h'
-  # 1. entity_geom : plus rien hors l'include de l'en-tête (une ligne : src/pico8_entity_geom.h:6)
+  # 1. entity_geom : plus rien hors l'include gardé de l'en-tête (une ligne : src/pico8_entity_geom.h:6)
   grep -nE "$P" src/pico8_entity_geom.c src/pico8_entity_geom.h
   # 2. les prototypes typés : 5 lignes, aucune ne nomme pico8_value_t
   grep -nE 'pico8_ij\(|pico8_jc_ce\(|pico8_d_\(|pico8_jc_hg_(add|has)\(' src/*.h
@@ -236,8 +259,9 @@ Totaux `tests/` : `jc` 10 lignes (12 occ.), `g_` 7 (8 occ.) : **17 lignes, 20 oc
        tmp/test_pico8_ga_export_panel_by
   # 6. aucune constante de TU changée : vide
   git diff <parent> -- tests | grep -E '^[-+].*(_HASH|identity\[)' | grep -vE '^[-+]\s*(/\*|\*)'
-  # 7. aucun include de pico8_value.h touché : vide
+  # 7. un seul include de pico8_value.h touché : exactement la ligne '-#include "pico8_value.h"' de src/pico8_slipway_display.c
   git diff <parent> | grep -E '^[-+]\s*#include "(\.\./src/)?pico8_value\.h"'
+  grep -c 'pico8_value' src/pico8_slipway_display.c                      # 0
   # 8. plus de pli de d_ par la valeur : vide
   grep -nE 'fold_value\(h, pico8_d_' tests/*.c
   # 9. comptes
@@ -260,7 +284,7 @@ Totaux `tests/` : `jc` 10 lignes (12 occ.), `g_` 7 (8 occ.) : **17 lignes, 20 oc
 12. En tant que gardien des filets, je veux `make test`, `make e2e` et le balayage ASan+UBSan des TU verts, afin de prouver qu'aucun ordre, aucun pixel, aucune cible `et` ni aucune fuite ne change.
 13. En tant que gardien des tests, je veux `gcov` avant/après et des mutations ciblées restaurées par `cp`, afin que chaque ligne modifiée soit exécutée et qu'aucune ligne survivante ne cesse de l'être.
 14. En tant que gardien du compteur, je veux au message du commit les comptes par catégorie et par fichier en lignes et en occurrences, la classification (a1)/(a2)/(b)/(c), les lignes qui gagnent une catégorie (« aucune » compris) et chaque Δlignes > Δocc justifié, avec les numéros du parent, afin qu'aucune baisse ne soit un tassement.
-15. En tant que gardien du compteur, je veux qu'aucune ligne ne soit jointe, qu'aucun alias, renommage pour les greps, cast non vérifié ni cale valeur ↔ typé ne soit ajouté, et qu'aucun include ne soit touché, afin que « − 68 » veuille dire « retiré ».
+15. En tant que gardien du compteur, je veux qu'aucune ligne ne soit jointe, qu'aucun alias, renommage pour les greps, cast non vérifié ni cale valeur ↔ typé ne soit ajouté, et qu'aucun include ne soit touché hors celui du seul `.c` que l'étape vide, afin que « − 69 » veuille dire « retiré ».
 16. En tant que `plan-pilot`, je veux une étape d'environ 45 minutes, un repli écrit, et une note « Découvert à D.15b » qui dise les comptes réels, les lectures de la ligne et ce que D.15c et D.16 trouvent, afin que la suite parte d'un état exact.
 
 ## Implementation Decisions
@@ -316,7 +340,7 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider par l'ut
 
 ### Includes (G)
 
-**Aucun `#include "pico8_value.h"` n'est retiré ni ajouté par D.15b**, même là où plus rien ne nomme le module (`entity_geom.h:6`, `slipway_display.c:11`, et, hors `#include`, `probe.h`, `slipway.h`). Raison : l'étude laisse les 76 includes (`src/` et `tests/`) à D.19c (« les includes restants (≈ 76 lignes) », table des étapes ; son « ≈ 910 » les exclut) ; les en-têtes en passent le type à des dépendants qui ne l'incluent pas tous (risque de casse par transitivité, invisible sans build) ; l'étape reste chirurgicale. Déclaré au message avec la liste des includes devenus sans usage (pour D.19c).
+**Règle (G, révisée après D.15a)** : un fichier **`.c`** qui ne nomme plus rien du module après l'étape perd son `#include "pico8_value.h"` dans ce commit — précédent de D.15a (`test_pico8_fm.c:35`, « les includes inutiles partent au fil des étapes, comme le prévoit l'étude »). Un **en-tête** le garde, même vidé, jusqu'à D.19c : il passe le type à des dépendants dont une vingtaine de `.c` nomment `pico8_value_*` sans l'inclure directement (`probe.c`, `wormhole.c`, `research_icon.c`, `planet_family.c`, `economy_tiers.c`… ; mesuré par grep à `77c916a`), casse invisible sans build. Appliqué : **`slipway_display.c:11` retiré** (seul `.c` que l'étape vide : ses lignes `:11` et `:31` étaient les seules) ; **gardés** : `entity_geom.h:6`, `probe.h:11`, `slipway.h:10` (vidés, pour D.19c), et tous les autres. Aucun include ajouté ; si la compilation en exige un (dépendant de `slipway_display.c`, aucun attendu : c'est un `.c`), il est ajouté et déclaré avec l'erreur du compilateur. `slipway_display.c` sort alors de `valeur` **et du résidu D** (aucune ligne `type-tag`). Rejeté : garder l'include (contredit le précédent de D.15a) ; vider aussi les en-têtes (risque de transitivité).
 
 ### Les TU suivent (G, règle commune de l'étude)
 
@@ -331,8 +355,8 @@ Pas d'humain dans la boucle. Le skill `to-prd` demande de faire valider par l'ut
 
 Le compteur compte des **lignes**. Une baisse obtenue sans retirer la valeur est un échec.
 
-- **Interdit** : joindre sur une ligne ce qui était sur plusieurs ; renommer un identifiant, un paramètre ou un commentaire compté dont la donnée existe toujours pour échapper au motif ; alias (macro ou `typedef` qui renomme `pico8_value_t` ou une de ses fonctions, enveloppe qui renomme une aide) ; cast d'un `void *` vers une struct précise sans son test ; cast de pointeur de fonction ; cast nouveau autre que les conversions implicites déjà présentes aux lignes touchées ; **cale valeur ↔ typé** (fonction qui convertit une valeur en pointeur ou en `int` et l'inverse, double tenu en parallèle, `pico8_d_value` ou `pico8_jc_ce_value` gardé « pour les TU ») ; déplacer du code compté hors de `src`/`tests` ou hors `.c`/`.h` ; tout changement d'une constante de hachage ; toute modification de `tests/e2e/`, d'un `*.sha256`, de `tools/`, du `Makefile`, d'un `#include "pico8_value.h"`.
-- **Classification exigée** au message, pour chaque ligne `valeur` retirée ou modifiée (recette : `git diff -U0 <parent>` par fichier, lignes `-` qui portent le motif, en regard des lignes `+`) : **(a1)**, **(a2)**, **(b)** (les cinq API de la table, et elles seules), **(c)** = **0**. Attendu : (a1) 45, (a2) 14, (b) 10, (c) 0 (à `a702ce4` ; recompté au parent).
+- **Interdit** : joindre sur une ligne ce qui était sur plusieurs ; renommer un identifiant, un paramètre ou un commentaire compté dont la donnée existe toujours pour échapper au motif ; alias (macro ou `typedef` qui renomme `pico8_value_t` ou une de ses fonctions, enveloppe qui renomme une aide) ; cast d'un `void *` vers une struct précise sans son test ; cast de pointeur de fonction ; cast nouveau autre que les conversions implicites déjà présentes aux lignes touchées ; **cale valeur ↔ typé** (fonction qui convertit une valeur en pointeur ou en `int` et l'inverse, double tenu en parallèle, `pico8_d_value` ou `pico8_jc_ce_value` gardé « pour les TU ») ; déplacer du code compté hors de `src`/`tests` ou hors `.c`/`.h` ; tout changement d'une constante de hachage ; toute modification de `tests/e2e/`, d'un `*.sha256`, de `tools/`, du `Makefile`, d'un `#include "pico8_value.h"` autre que `slipway_display.c:11`.
+- **Classification exigée** au message, pour chaque ligne `valeur` retirée ou modifiée (recette : `git diff -U0 <parent>` par fichier, lignes `-` qui portent le motif, en regard des lignes `+`) : **(a1)**, **(a2)**, **(b)** (les cinq API de la table, et elles seules), **(c)** = **0**. Attendu : (a1) 45, (a2) 15, (b) 10, (c) 0 (à `77c916a` ; recompté au parent).
 - **Mesure exigée**, avant et après, par catégorie (`valeur`, `type-tag` ; les huit gardées à 0 constatées) et **par fichier** du diff : lignes (`--detail`) **et** occurrences (recette).
 - **Lignes qui gagnent une catégorie**, par fichier et par catégorie, « aucune » compris. Attendu : `valeur` : `probe.c` (`et = pico8_value_ref(c);`, rendue par D.16b) ; `type-tag` : aucune ; toute autre catégorie : aucune. Toute autre est à justifier.
 - **Lignes comptées modifiées, non retirées** (fichier:ligne) : attendu **aucune** hors la ligne gagnée (les lignes `valeur` de l'Inventaire quittent toutes le motif).
@@ -352,27 +376,27 @@ Le compteur compte des **lignes**. Une baisse obtenue sans retirer la valeur est
 
 | Catégorie | À `a702ce4` | Départ (après D.15a) | Après D.15b | Pourquoi |
 |---|---|---|---|---|
-| `valeur` | 1014 / 105 ; 1151 occ. | ≈ 979 (H-D15a-1) | **départ − 68 lignes, − 74 occ.** ; fichiers − 1 | Inventaire : `src/` − 52 + 1, `tests/` − 17 |
-| `valeur` `src/` | 518 / 66 ; 605 occ. | remesuré | départ − 51 (− 54 occ.) | — |
-| `valeur` `tests/` | 496 / 39 ; 546 occ. | remesuré | départ − 17 (− 20 occ.) | — |
+| `valeur` | 1014 / 105 ; 1151 occ. | **980 / 103 ; 1105 occ.** | **911 / 101 ; 1030 occ.** (− 69, − 75) | Inventaire : `src/` − 53 + 1, `tests/` − 17 |
+| `valeur` `src/` | 518 / 66 ; 605 occ. | 488 / 65 ; 563 occ. | **436 / 63 ; 508 occ.** | — |
+| `valeur` `tests/` | 496 / 39 ; 546 occ. | 492 / 38 ; 542 occ. | **475 / 38 ; 522 occ.** | — |
 | `type-tag` | 243 / 58 | 243 / 58 | **inchangé** | aucune ligne `type-tag` touchée |
-| résidu D | 1255 / 111 | remesuré | départ − 68 lignes ; fichiers inchangés | `entity_geom.c` garde ses lignes `type-tag` |
+| résidu D | 1255 / 111 | 1221 / 111 | **1152 / 110** | `entity_geom.c` garde ses lignes `type-tag` ; `slipway_display.c` n'en a pas |
 | `DATA_RESIDUE_GUARD` | 8 catégories | inchangé | inchangé | `valeur` ≠ 0 |
 
-Par fichier (lignes / occ., à `a702ce4`, avant → après D.15b, sans D.15a) : `entity_geom.c` 3/3 → 0/0 ; `entity_geom.h` 4/4 → 1/1 ; `galaxy.c` 3/4 → 2/3 ; `wormhole.c` 21/24 → 13/15 (D.15a en retire 8 autres) ; `probe.c` 21/23 → 16/18 ; `probe.h` 2/2 → 1/1 ; `slipway.c` 22/24 → 7/8 (D.15a en retire 4 autres) ; `slipway.h` 4/4 → 1/1 ; `research_icon.c` 8/11 → 2/4 ; `planet_family.c` 8/8 → 4/4 ; `economy_tiers.c` 7/9 → 6/8 ; `slipway_display.c` 2/2 → 1/1 ; `test_pico8_jc` 36/38 → 26/26 ; `test_pico8_g_` 23/24 → 16/16 ; les sept TU de plis : inchangés.
+Par fichier (lignes / occ., à `77c916a`, avant → après D.15b) : `entity_geom.c` 3/3 → 0/0 ; `entity_geom.h` 4/4 → 1/1 ; `galaxy.c` 3/4 → 2/3 ; `wormhole.c` 13/14 → 5/5 ; `probe.c` 21/23 → 16/18 ; `probe.h` 2/2 → 1/1 ; `slipway.c` 18/19 → 3/3 ; `slipway.h` 4/4 → 1/1 ; `research_icon.c` 8/11 → 2/4 ; `planet_family.c` 8/8 → 4/4 ; `economy_tiers.c` 7/9 → 6/8 ; `slipway_display.c` 2/2 → 0/0 ; `test_pico8_jc` 36/38 → 26/26 ; `test_pico8_g_` 23/24 → 16/16 ; les sept TU de plis : inchangés.
 
-« ≈ » est une estimation ; « − 68 », « − 74 occ. », « inchangé » sont des critères (écart = explication au message, et, s'il tient à D.15a, remesure ici d'abord).
+« − 69 », « − 75 occ. », « 911 / 1030 », « inchangé » sont des critères (écart = explication chiffrée au message).
 
 ### Documentation (G)
 
-- `docs/plan-3.md` : note « Découvert à D.15b » en fin de ligne D.15b, rien d'autre. Elle dit : le commit ; les comptes réels ; les lectures de la ligne (en-tête pour `ij`/`jc_ce` au lieu de `void **` ; G4 lu en deux moitiés, nil gardé ; `pf/mz_value_vec` pris ; `fv` hors empreinte) ; la ligne gagnée `probe.c` (`et`) et l'étape qui la retire ; les deux copies `truthy` parties ici ; les includes devenus sans usage, laissés à D.19c ; **pour D.15c** : les sites `tostr` des fichiers touchés, numéros au commit ; **pour D.16** : les copies `truthy` restantes (11 au lieu de 13), `probe_truthy` n'a plus que `first`, `bv` a `c` en pointeur.
+- `docs/plan-3.md` : note « Découvert à D.15b » en fin de ligne D.15b, rien d'autre. Elle dit : le commit ; les comptes réels ; les lectures de la ligne (en-tête pour `ij`/`jc_ce` au lieu de `void **` ; G4 lu en deux moitiés, nil gardé ; `pf/mz_value_vec` pris ; `fv` hors empreinte) ; la ligne gagnée `probe.c` (`et`) et l'étape qui la retire ; les deux copies `truthy` parties ici ; l'include retiré (`slipway_display.c`) et les en-têtes vidés gardés pour D.19c (`entity_geom.h`, `probe.h`, `slipway.h`) ; **pour D.15c** : les sites `tostr` des fichiers touchés, numéros au commit ; **pour D.16** : les copies `truthy` restantes (11 au lieu de 13), `probe_truthy` n'a plus que `first`, `bv` a `c` en pointeur.
 - `docs/glossaire-noms.md` : aucune entrée ne nomme un type changé (`ij`, `hg`, `jc:ce`, `id` sur `ie` restent vrais) ; inchangé sauf si l'implémenteur trouve une phrase devenue fausse (listée).
 - `docs/trous-de-portage.md` : inchangé ; TROU-15 (`bd` sur un `hg` absent) reste vrai.
 - Commentaires : quatre sortes de `CLAUDE.md` ; contrats réécrits : `entity_geom.h:9-12`, `:28-30`, `probe.h:173-174`, `slipway.h:26-31`, `:117-118`, commentaire du test `jc:915-916` ; aucun renvoi à D.15b ni au plan dans `src/` ou `tests/`.
 
 ### Ce qui ne change pas
 
-- `tests/e2e/`, tout `*.sha256`, `tools/`, le `Makefile`, tout `#include "pico8_value.h"` ; aucun e2e ni TU ajouté ou supprimé.
+- `tests/e2e/`, tout `*.sha256`, `tools/`, le `Makefile`, tout `#include "pico8_value.h"` hors `slipway_display.c:11` ; aucun e2e ni TU ajouté ou supprimé.
 - Toute constante `*_HASH`/`identity[]` de TU.
 - Le comportement : mêmes voisins, mêmes cibles `et` (planète, slipway, « -too far- », vue statique, faux), même `ie.id`, mêmes `hg`, mêmes vecteurs, mêmes durées de vie (tout reste emprunté ; TROU-7 inchangé), `make e2e` conforme au bit près.
 - `et` de la sonde, `pico8_mz_et`, `pico8_probe_truthy`, `rn`, `tostr`, `oj`, `qh_qh` (D.15c, D.16).
@@ -381,20 +405,20 @@ Par fichier (lignes / occ., à `a702ce4`, avant → après D.15b, sans D.15a) : 
 ### Hypothèses d'exécution (rien n'a été compilé ni lancé)
 
 - **H1** : `-Wall -Wextra -Werror` rend fatales `pico8_jc_truthy`, `pico8_mz_truthy` une fois `d_` typé, et `pico8_jc_value_instance`, `pico8_pf_value_vec`, `pico8_mz_value_vec` une fois leurs appels retirés : d'où leur retrait dans le même commit.
-- **H2** : aucun autre appelant de `pico8_ij`, `pico8_jc_ce`, `pico8_d_`, `pico8_jc_hg_*` n'existe hors ceux de l'Inventaire (grep à `a702ce4`, `src/` et `tests/`) ; un oublié se révèle à la compilation et suit (listé).
-- **H3** : les sept `fold_value` touchés plient `BOOL` en `fnv(fnv(h, 0xB0u), b)` et `REF NULL` en `fnv(h, 0xDEADu)` (vérifié par lecture à `a702ce4`) ; le pli direct ne change donc aucune constante.
+- **H2** : aucun autre appelant de `pico8_ij`, `pico8_jc_ce`, `pico8_d_`, `pico8_jc_hg_*` n'existe hors ceux de l'Inventaire (grep à `a702ce4` et `77c916a`, `src/` et `tests/`) ; un oublié se révèle à la compilation et suit (listé).
+- **H3** : les sept `fold_value` touchés plient `BOOL` en `fnv(fnv(h, 0xB0u), b)` et `REF NULL` en `fnv(h, 0xDEADu)` (vérifié par lecture à `a702ce4` ; TU non touchés par D.15a) ; le pli direct ne change donc aucune constante.
 - **H4** : `ie.id` n'est jamais lu à nil par un TU ou un e2e après la première `_init` : la branche nil de `pico8_ie_id` (`:298`) n'est exécutée par personne, avant comme après (justifiée au rapport `gcov`, pas dans `L`).
-- **H5** : `jc_ce` à `self` NULL (`:274`) n'est jamais atteint (`jc:hq` garde `self`) : ligne non exécutée avant comme après.
+- **H5** : `jc_ce` à `self` NULL (`:273`) n'est jamais atteint (`jc:hq` garde `self`) : ligne non exécutée avant comme après.
 
 ## Implementation Chunks
 
 Un seul commit. Ordre de travail :
 
-1. Mesure de départ (HEAD gradé de D.15a, `valeur` rapporté, `type-tag` 243) ; remesure par contenu des numéros de `slipway.c`/`wormhole.c` ; `gcov` de départ.
+1. Mesure de départ (`77c916a` : `valeur` 980 / 103 / 1105 occ., `type-tag` 243 / 58) ; `gcov` de départ.
 2. `entity_geom.c/.h` (`ij`), puis `galaxy.c`, `wormhole.c` (`mz:hq`), `probe.c` (`bv`).
 3. `probe.c/.h` (`d_`), `slipway.c` (`jc:ey`, `pico8_jc_truthy`), `wormhole.c` (`mz:ey`, `pico8_mz_truthy`) ; TU `g_` et les sept plis.
 4. `slipway.c/.h` (`jc_ce`, `pico8_jc_value_instance`, `jc:hq`).
-5. `slipway.c/.h` (`hg`), `economy_tiers.c`, `slipway_display.c` ; TU `jc`.
+5. `slipway.c/.h` (`hg`), `economy_tiers.c`, `slipway_display.c` (appel, include) ; TU `jc`.
 6. `research_icon.c` (`ie.id`) ; `planet_family.c`, `wormhole.c` (`pf/mz_value_vec`).
 7. `make test`, `make e2e`, balayage ASan+UBSan ; `gcov` d'arrivée ; mutations M1–M20 ; mesure, classification ; note « Découvert à D.15b » ; **commit**.
 
@@ -439,7 +463,7 @@ Un bon test juge ce que le code rend ou fait (voisin trouvé, cible `et`, vérit
 - **M19** `bv` ignore le voisin (`c != NULL` → `0`) → `test_pico8_g_` (`et_kind` planète), constantes `hj`/`os`/`qh`/`nl` (`fold_et`) ;
 - **M20** (preuve du pli typé, dans le TU) `test_pico8_fr` plie `0u` au lieu de `1u` pour le vrai de `d_` → `test_pico8_fr` rouge (sa constante plie bien ce pli), restauré, vert.
 
-Cibles (numéros à `a702ce4`, remesurés par contenu au parent) : `entity_geom.c:96-122`, `slipway.c:93-115`, `:160-200`, `:265-342`, `probe.c:150-220`, `:328-365`, `wormhole.c:72-98`, `:135-180`, `research_icon.c:118-130`, `:260-302`, `planet_family.c:360-380`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
+Cibles (numéros à `77c916a`) : `entity_geom.c:96-122`, `slipway.c:93-115`, `:160-200`, `:265-339`, `probe.c:150-220`, `:328-365`, `wormhole.c:72-93`, `:127-175`, `research_icon.c:118-130`, `:260-302`, `planet_family.c:360-380`. Une mutation dont la cible n'existe plus sous cette forme est remplacée par une mutation équivalente sur le même comportement, déclarée.
 
 ### Filets
 
@@ -469,8 +493,8 @@ Au-delà du plafond, l'implémenteur s'arrête et note ce qui n'a pas été fait
 
 | # | Commande exacte | État de l'arbre (HEAD + étape) | Code de sortie | Ligne clé | Durée |
 |---|---|---|---|---|---|
-| 1 | `make -s data-residue` | HEAD gradé de D.15a, avant D.15b | 0 | ligne `valeur` : N lignes, M fichiers | … |
-| 2 | recette `valeur` | idem | 0 | `valeur N lignes M fichiers K occ.` | … |
+| 1 | `make -s data-residue` | `77c916a` (D.15a gradée), avant D.15b | 0 | `valeur 980 103` | … |
+| 2 | recette `valeur` | idem | 0 | `valeur 980 lignes 103 fichiers 1105 occ.` | … |
 | … | … | … | … | … | … |
 
 Le vérificateur le réutilise et ne relance que ce qui suit le dernier changement de l'arbre.
@@ -484,8 +508,8 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 5. **API** : les cinq signatures de la table « classe (b) », et elles seules, ont changé.
 6. **Liens** : grep 5.
 7. **Constantes** : grep 6 vide ; plis de `d_` aux mêmes octets (grep 8 vide) ; M20 rapporté.
-8. **Anti-tassement** : comptes avant/après en lignes ET occurrences, par catégorie et par fichier ; classification présente et juste, (c) = 0, (b) limitée à la table ; ligne gagnée listée (`probe.c`) ; includes intacts (grep 7) ; aucun alias, renommage, cale.
-9. **Écarts déclarés** : en-tête au lieu de `void **` ; G4 en deux moitiés ; `pf/mz_value_vec` pris ; deux copies `truthy` prises ; `probe.c:176` ajouté ; `fv` hors empreinte ; includes laissés.
+8. **Anti-tassement** : comptes avant/après en lignes ET occurrences, par catégorie et par fichier ; classification présente et juste, (c) = 0, (b) limitée à la table ; ligne gagnée listée (`probe.c`) ; un seul include retiré, `slipway_display.c:11` (grep 7) ; aucun alias, renommage, cale.
+9. **Écarts déclarés** : en-tête au lieu de `void **` ; G4 en deux moitiés ; `pf/mz_value_vec` pris ; deux copies `truthy` prises ; `probe.c:176` ajouté ; `fv` hors empreinte ; include de `slipway_display.c` retiré, en-têtes vidés gardés.
 10. **Preuve** : `gcov` (lignes modifiées exécutées ou justifiées ; `L` vide), mutations restaurées par `cp`, balayage ASan+UBSan rapportés.
 11. **Commentaires** : quatre sortes de `CLAUDE.md` ; contrats devenus faux réécrits ; aucun renvoi à D.15b ni au plan dans `src/` ou `tests/`.
 12. **Docs** : note « Découvert à D.15b » en fin de ligne D.15b ; rien d'autre dans le plan.
@@ -494,7 +518,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Départ et filet (§7)**
 
-- `FAILED:` si l'arbre de départ n'est pas le commit qui gradue D.15a (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y est pas celui que la note de D.15a rapporte, sans explication ; ou si `type-tag` n'y vaut pas 243 / 58 sans explication.
+- `FAILED:` si l'arbre de départ n'est pas `77c916a` (ou un descendant qui ne touche que `docs/`), propre ; ou si `valeur` n'y vaut pas 980 / 103 / 1105 occ., `type-tag` 243 / 58, résidu D 1221 / 111, sans explication.
 - `FAILED:` si le filet (`make test`, `make e2e`) reste rouge après **3 tentatives** sur le commit.
 - `FAILED:` si un `*.sha256` est modifié ou supprimé, si un fichier de `tests/e2e/` est touché, si un e2e est ajouté ou retiré, ou si un TU rejoue un fichier d'événements.
 - `FAILED:` si un test de régression du §6 change.
@@ -503,7 +527,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 **Périmètre et forme**
 
-- `FAILED:` si `tools/`, le `Makefile` ou un `#include "pico8_value.h"` change ; si le commit touche un chemin hors « Empreinte » sans le lister comme TU suiveur.
+- `FAILED:` si `tools/`, le `Makefile` ou un `#include "pico8_value.h"` autre que `slipway_display.c:11` change, ou si celui-ci reste ; si le commit touche un chemin hors « Empreinte » sans le lister comme TU suiveur.
 - `FAILED:` si une grep de la « Sortie » ne rend pas ce qui y est écrit.
 - `FAILED:` si une signature hors de la table « classe (b) » change, si `et`, `has_et`, `pico8_mz_et`, `pico8_probe_truthy`, `rn`, `tostr`, `oj` ou `qh_qh` changent de type (D.15c, D.16), ou si une durée de vie change.
 - `FAILED:` si un cast nouveau est ajouté, si une conversion vers une struct précise n'a pas son test, ou si un pointeur de fonction est casté.
@@ -511,9 +535,9 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 **Gardes, comptes et anti-tassement**
 
 - `FAILED:` si `make data-guard` n'est pas vert, ou si `DATA_RESIDUE_GUARD` change.
-- `FAILED:` si `valeur` ne baisse pas de **68 lignes et 74 occurrences exactement** par rapport au départ réel, sans explication chiffrée ligne à ligne ; si `type-tag` change.
+- `FAILED:` si `valeur` ne passe pas de 980 / 1105 occ. à **911 lignes et 1030 occurrences exactement** (− 69, − 75), sans explication chiffrée ligne à ligne ; si `type-tag` change.
 - `FAILED:` **si un compte baisse par tassement** : lignes jointes, alias, renommage d'un identifiant vivant pour échapper aux greps, commentaire compté réécrit hors de son sujet, cale valeur ↔ typé, (c) non nulle, (b) hors de la table.
-- `FAILED:` si le **message du commit** omet l'un de ces éléments : par catégorie et par fichier, les comptes avant/après **en lignes et en occurrences** ; la classification (a1)/(a2)/(b)/(c) avec numéros du parent ; la liste par fichier des lignes qui gagnent une catégorie (« aucune » compris) ; les lignes comptées modifiées non retirées ; la justification de chaque Δlignes > Δoccurrences ; les includes devenus sans usage, laissés ; les cas de TU supprimés (G4) et le cas nil gardé ; le rapport `gcov` ; les mutations ; le tableau « Runs » (ou son renvoi au journal). Un commit de rattrapage ne compense pas un message incomplet.
+- `FAILED:` si le **message du commit** omet l'un de ces éléments : par catégorie et par fichier, les comptes avant/après **en lignes et en occurrences** ; la classification (a1)/(a2)/(b)/(c) avec numéros du parent ; la liste par fichier des lignes qui gagnent une catégorie (« aucune » compris) ; les lignes comptées modifiées non retirées ; la justification de chaque Δlignes > Δoccurrences ; l'include retiré et les en-têtes vidés gardés ; les cas de TU supprimés (G4) et le cas nil gardé ; le rapport `gcov` ; les mutations ; le tableau « Runs » (ou son renvoi au journal). Un commit de rattrapage ne compense pas un message incomplet.
 - `FAILED:` si `make constants-check`, `float-grep` ou `float-guard` rougit, ou si `tools/float_guard.txt` diffère après `make test`.
 
 **Preuve, commit et note**
@@ -522,12 +546,12 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 - `FAILED:` si une ligne modifiée n'est exécutée ni par un TU ni par les e2e sans justification ; si `L` n'est pas vide.
 - `FAILED:` si une mutation manque, ne se restaure pas par `cp`, ou ne rougit rien sans justification.
 - `FAILED:` si le plafond est dépassé sans note (et sans repli b1/b2), ou s'il manque le tableau « Runs ».
-- `FAILED:` s'il manque la note « Découvert à D.15b », ou si elle omet : les comptes réels, les lectures de la ligne, la ligne gagnée et son étape, les copies `truthy` prises, les includes laissés, ce que D.15c et D.16 trouvent.
+- `FAILED:` s'il manque la note « Découvert à D.15b », ou si elle omet : les comptes réels, les lectures de la ligne, la ligne gagnée et son étape, les copies `truthy` prises, l'include retiré et les en-têtes vidés gardés, ce que D.15c et D.16 trouvent.
 - `FAILED:` si un commentaire ajouté ou reformulé sort des quatre sortes de `CLAUDE.md`.
 
 ## Out of Scope
 
-- `pico8_ov`, `pico8_cb` : D.15a.
+- `pico8_ov`, `pico8_cb` : faits par D.15a ; son pont `tech_gate.c:45` (`pico8_oj(pico8_value_string(px))`) : D.16b avec `oj`.
 - `tostr` (`galaxy.c:79`, `probe.c:273`, `research_icon.c:136`…) : D.15c.
 - `et` de la sonde (`probe.c:186-214`, `has_et`, `pico8_mz_et`, `pico8_probe_truthy`) : D.16b (B3) ; `rn` : D.16b (B5) ; `oj`/`il` : D.16b (B4) ; `hf`/`qh_qh`/`jo_gg` : D.16a (B1) ; les autres copies `truthy` : D.16.
 - Les includes de `pico8_value.h`, `geom.h:37-38`, `type_tag.h:10`, `collect.c:90` : D.19c (ou avec leur objet).
@@ -539,16 +563,16 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 - **Décisions de l'agent à la place de l'utilisateur** (consigne `to-prd` : vérifier modules, tests et découpage avec l'utilisateur), tranchées en `guideline` et marquées (G) :
   - **Types** : `pico8_struct_header_t **`/`*` pour `ij`/`jc_ce` (écart à `void **` de l'étude) ; `int` pour `d_` ; `const char *` pour `hg` ; `pico8_fixed_t` + `int` pour `ie.id`.
-  - **Portée** : `pf/mz_value_vec` inclus (ligne de l'étude) ; `probe.c:176` inclus (imposé par `ij`) ; deux copies `truthy` incluses (imposé par `-Werror`) ; includes laissés à D.19c.
+  - **Portée** : `pf/mz_value_vec` inclus (ligne de l'étude) ; `probe.c:176` inclus (imposé par `ij`) ; deux copies `truthy` incluses (imposé par `-Werror`) ; include de `slipway_display.c` retiré (précédent D.15a), en-têtes vidés gardés pour D.19c.
   - **G4** : nombre supprimé, nil gardé (le type le permet, `src/` le produit).
   - **TU** : suivent dans le même commit ; plis de `d_` directs aux mêmes octets, sans gagner `valeur` ; `fv`, `ie`, `mz`, `pm` ne suivent pas.
   - **Drapeaux** : ni `class-coverage-net` ni `sanitize-net` ; balayage ASan+UBSan des TU.
   - **Découpage** : un commit (≈ 45 min, plafond 70), repli b1/b2 écrit.
-- **Surprises de mesure, pour `plan-pilot`** : (1) l'étude omet un appelant d'`ij`, `probe.c:176` (`bv`), dont la locale `c` est rangée en B3 : le changement de sortie la retype ici et fait gagner une ligne `valeur` (`et = pico8_value_ref(c)`), rendue par D.16b ; (2) `pico8_jc_truthy` et `pico8_mz_truthy` n'ont que `d_` pour argument : elles partent ici sous `-Werror` (6 lignes B12 de moins pour D.16) ; (3) G4 dit « `pico8_jc_hg_has` […] de nil » genre non produit, mais `slipway_display.c:29-31` passe un `t_id` NULL (point souris) : le cas nil est gardé ; (4) la ligne du plan omet `pf/mz_value_vec`, que la ligne de l'étude et son « ≈ 910 » comptent ; (5) le TU `fv` que l'étude range parmi les plis de `d_` ne plie rien (`(void)pico8_d_(e)`) : hors empreinte ; (6) `pico8_jc_ce` n'a aucun appelant de TU : sa preuve passe par `jc:hq` et `et_kind` de `test_pico8_jc` ; (7) les numéros de l'étude (`galaxy.c:53`, `wormhole.c:74`) sont ceux des déclarations, les appels sont `:67`, `:85` ; (8) mesuré, l'étape fait −68 lignes (69 retirées, 1 gagnée), l'étude disait ≈ −69 ; (9) après D.15b, `entity_geom.h`, `probe.h`, `slipway.h`, `slipway_display.c` n'incluent plus `pico8_value.h` que pour rien ou pour leurs dépendants : liste pour D.19c.
+- **Surprises de mesure, pour `plan-pilot`** : (1) l'étude omet un appelant d'`ij`, `probe.c:176` (`bv`), dont la locale `c` est rangée en B3 : le changement de sortie la retype ici et fait gagner une ligne `valeur` (`et = pico8_value_ref(c)`), rendue par D.16b ; (2) `pico8_jc_truthy` et `pico8_mz_truthy` n'ont que `d_` pour argument : elles partent ici sous `-Werror` (6 lignes B12 de moins pour D.16) ; (3) G4 dit « `pico8_jc_hg_has` […] de nil » genre non produit, mais `slipway_display.c:29-31` passe un `t_id` NULL (point souris) : le cas nil est gardé ; (4) la ligne du plan omet `pf/mz_value_vec`, que la ligne de l'étude et son « ≈ 910 » comptent ; (5) le TU `fv` que l'étude range parmi les plis de `d_` ne plie rien (`(void)pico8_d_(e)`) : hors empreinte ; (6) `pico8_jc_ce` n'a aucun appelant de TU : sa preuve passe par `jc:hq` et `et_kind` de `test_pico8_jc` ; (7) les numéros de l'étude (`galaxy.c:53`, `wormhole.c:74`) sont ceux des déclarations, les appels sont `:67`, `:85` ; (8) mesuré à `77c916a`, l'étape fait − 69 lignes (70 retirées dont un include, 1 gagnée) : 980 → 911, contre ≈ 910 au plan ; (9) après D.15b, `entity_geom.h`, `probe.h`, `slipway.h` n'incluent plus `pico8_value.h` que pour leurs dépendants : liste pour D.19c ; (10) révision après D.15a : ses hypothèses tiennent sauf H-D15a-1 (980 au lieu de ≈ 979, pont `tech_gate.c:45`), sans effet ; le précédent d'include de D.15a fait retirer `slipway_display.c:11`.
 - **Pour D.15c** : `galaxy.c:79`, `probe.c:273`, `research_icon.c:136` (tostr) intacts, numéros au commit.
-- **Pour D.16** : `probe.c` : `et = pico8_value_ref(c)` à retirer avec B3 ; `pico8_probe_truthy` n'a plus que `first` (`:196`) ; copies `truthy` restantes : 11 (`economy_score`, `economy_tiers`, `layout`, `planet`, `planet_display`, `probe`, `research`, `research_display`, `tech_gate`, `ui_button`, `wormhole_display`).
+- **Pour D.16** : prototypes publics qui nomment `pico8_value_t` : 25 → 20 ; `probe.c` : `et = pico8_value_ref(c)` à retirer avec B3 ; `pico8_probe_truthy` n'a plus que `first` (`:196`) ; copies `truthy` restantes : 11 (`economy_score`, `economy_tiers`, `layout`, `planet`, `planet_display`, `probe`, `research`, `research_display`, `tech_gate`, `ui_button`, `wormhole_display`).
 
-## Annexe A — textes recopiés (`docs/plan-3.md` à `a702ce4`, par extraction de lignes)
+## Annexe A — textes recopiés (`docs/plan-3.md` à `77c916a`, par extraction de lignes ; depuis `a702ce4`, seules la ligne D.15a (note) et la ligne « `valeur` (980) » du reste de D ont changé)
 
 ### Ligne D.14 (l. 282)
 
@@ -556,7 +580,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 ### Lignes D.15a à D.15c (l. 283-285)
 
-> - D.15a — `valeur`, mécanique : `ov` prend des nombres, `cb` un entier. Compte : `valeur` ≈ 979.
+> - D.15a — `valeur`, mécanique : `ov` prend des nombres, `cb` un entier. Compte : `valeur` ≈ 979. Découvert à D.15a : `valeur` 980 / 103 (1105 occ.), et non ≈ 979 : `ov` passe `pico8_value_string(px)` à `oj`, ligne qui part à D.16b avec `oj` ; `pico8_tech_gate_truthy` n'a plus que `oj` pour appelant (B12, D.16b) ; `pico8_economy.c` et `test_pico8_fm` sortent de `valeur` (restent au résidu D par `type-tag`) ; `nil()` de `test_pico8_js` retirée ; aucun include gagné. Résidu D 1221 / 111.
 > - D.15b — `valeur`, mécanique : `ij`/`jc_ce` en pointeurs, `d_` en entier, `jc_hg` en `const char *`, `g_ie_id`. Compte : ≈ 910.
 > - D.15c — `valeur` : `tostr` déplacé dans `pico8_str.c` avec ses tests. `sanitize-net` : oui. Compte : ≈ 880.
 
@@ -564,7 +588,7 @@ Le vérificateur le réutilise et ne relance que ce qui suit le dernier changeme
 
 > - **En D et en 2** (ajouté à la revue de sortie de 1b) : `make class-coverage-net` aux étapes dont le diff touche un constructeur, un appel `pico8_class_coverage_record` ou `KNOWN[]`, et à la sortie de phase ; `make sanitize-net` aux étapes qui changent la durée de vie ou le propriétaire d'une donnée (table ob → locale ou statique, `malloc`/`free` retiré), et à la sortie de phase.
 
-À recopier après la graduation de D.15a : la ligne D.15a avec sa note « Découvert à D.15a », et la ligne D.15b si la note l'a modifiée (H-D15a-9).
+Ligne D.15b identique à `a702ce4` (H-D15a-9 tenue).
 
 ## Annexe B — cart (`pico8/lua.lua`), écritures et lectures des genres
 
