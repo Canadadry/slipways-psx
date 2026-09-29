@@ -19,7 +19,6 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_ke.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_msgbox.h"

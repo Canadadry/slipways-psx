@@ -15,7 +15,6 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_hud.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"

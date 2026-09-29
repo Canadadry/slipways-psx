@@ -3,10 +3,10 @@
 
 #include "pico8_fixed.h"
 
-/* The one tagged value type every value slot in this port is built on: a
- * list element (pico8_list.h), an entity field (pico8_struct.h). Lua has a single dynamically-typed value
- * and this stands in for it, rather than each consumer inventing its own
- * tagged union.
+/* The one tagged value type for the slots whose kind the cart leaves
+ * open: the keys of a layout row, and returns that mix kinds. Lua has a
+ * single dynamically-typed value and this stands in for it, rather than
+ * each consumer inventing its own tagged union.
  *
  * There is no nil kind. Where Lua would see nil, this port passes
  * pico8_value_ref(NULL) as a filler; that is not a distinguished absent
@@ -40,9 +40,7 @@ pico8_value_t pico8_value_string(const char *s);
 pico8_value_t pico8_value_bool(int b);
 pico8_value_t pico8_value_ref(void *p);
 
-/* "Equal in value", as del() uses it to find the first matching element
- * (PICO-8 Del wiki: https://pico-8.fandom.com/wiki/Del). Two values of
- * different kinds are never equal.
+/* Two values of different kinds are never equal.
  *
  * Per-kind rules -- everything but numbers and booleans is IDENTITY:
  *   - PICO8_VALUE_FIXED:    numeric (raw 16.16) equality.

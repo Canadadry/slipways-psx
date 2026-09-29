@@ -16,7 +16,6 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_mouse.h"
 #include "../src/pico8_mouse_reader.h"

@@ -28,7 +28,6 @@
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
@@ -606,10 +605,10 @@ static void call_na(void *e) {
 static void test_g__closed(void) {
     static void (*const fns[])(void *) = {call_f_, call_ez, call_ei, call_g__mm, call_bv,
                                           call_dl, call_d_, call_gk, call_na};
-    pico8_list_t list;
+    pico8_ptrs_t list;
     size_t i;
 
-    pico8_list_init(&list);
+    pico8_ptrs_init(&list);
     start_title();
     assert(pico8_g__ready());
     for (i = 0; i < sizeof fns / sizeof fns[0]; i++) {

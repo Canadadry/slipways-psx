@@ -26,7 +26,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_pi.h"
 #include "../src/pico8_planet.h"
@@ -83,8 +82,8 @@ static pico8_lq_cell_t row_item(const void *lq, int i) {
     return ((const pico8_lq_t *)lq)->items[i];
 }
 
-/* Kind, then the string's bytes, the number, the boolean; a list or an
- * folded through (`depth` levels), any other REF by its tag. */
+/* Kind, then the string's bytes, the number, the boolean; a REF by its
+ * tag. */
 static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
     const char *s;
     h = fnv(h, (uint32_t)v.kind);
@@ -104,15 +103,6 @@ static uint32_t fold_value(uint32_t h, pico8_value_t v, int depth) {
         }
         h = fnv(h, (uint32_t)pico8_type_tag_of(v.as.ref));
         if (depth <= 0) {
-            return h;
-        }
-        if (pico8_type_tag_of(v.as.ref) == PICO8_TYPE_TAG_LIST) {
-            const pico8_list_t *l = v.as.ref;
-            int i;
-            h = fnv(h, (uint32_t)l->count);
-            for (i = 0; i < l->count; i++) {
-                h = fold_value(h, l->items[i], depth - 1);
-            }
             return h;
         }
         return h;

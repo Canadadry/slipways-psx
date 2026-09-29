@@ -3,9 +3,9 @@
 
 #include <string.h>
 
-/* A first-member type discriminator for the heap shapes a REF can point
- * at: pico8_list_t (pico8_list.h) and the entity structs that begin with a
- * pico8_struct_header_t (pico8_struct.h).
+/* A first-member type discriminator for the one tagged heap shape a REF
+ * can point at: the entity structs that begin with a pico8_struct_header_t
+ * (pico8_struct.h).
  *
  * A pico8_value_t REF (pico8_value.h) is a bare `void *` and carries no
  * type of its own. The tag makes "what is this REF really" a question with
@@ -16,19 +16,16 @@
  * REF (or a stale/garbage word) is read AS a tag -- and small integers
  * are overwhelmingly the most likely bit patterns to find in real program
  * data (counts, indices, flags, enum values, the low half of a small heap
- * pointer). These values are instead full-width 32-bit constants sharing
- * a deliberately unusual 0x9E5C prefix: they are non-zero, outside every
- * plausible count/index range, not ASCII text, not a plausible aligned
- * pointer half, and differ from each other in the low half so a
- * partially-overwritten tag reads as UNKNOWN rather than as a different
- * one of them. Hitting one by accident is a 1-in-2^32 coincidence,
+ * pointer). The value is instead a full-width 32-bit constant with a
+ * deliberately unusual 0x9E5C prefix: it is non-zero, outside every
+ * plausible count/index range, not ASCII text and not a plausible aligned
+ * pointer half. Hitting it by accident is a 1-in-2^32 coincidence,
  * and the sole consequence would be the blind cast the code did before
  * this header existed. */
 
 typedef unsigned int pico8_type_tag_t;
 
 #define PICO8_TYPE_TAG_UNKNOWN 0x00000000u
-#define PICO8_TYPE_TAG_LIST 0x9E5C1157u
 #define PICO8_TYPE_TAG_STRUCT 0x9E5C57C7u
 
 /* Reports which of the tagged shapes `ref` really points at, or
@@ -48,7 +45,7 @@ static inline pico8_type_tag_t pico8_type_tag_of(const void *ref) {
         return PICO8_TYPE_TAG_UNKNOWN;
     }
     memcpy(&tag, ref, sizeof tag);
-    if (tag == PICO8_TYPE_TAG_LIST || tag == PICO8_TYPE_TAG_STRUCT) {
+    if (tag == PICO8_TYPE_TAG_STRUCT) {
         return tag;
     }
     return PICO8_TYPE_TAG_UNKNOWN;

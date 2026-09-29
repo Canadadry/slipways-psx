@@ -33,7 +33,6 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
 #include "../src/pico8_ke.h"
-#include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
 #include "../src/pico8_mouse_reader.h"
@@ -821,9 +820,9 @@ static void lt_a_table(void *e) {
 /* `ks` takes a struct or NULL, and nothing but a struct enters `hv` for
  * `dg` to walk: a list is refused by `ks` and by `lt`. */
 static void test_ke_closed(void) {
-    pico8_list_t list;
+    pico8_ptrs_t list;
 
-    pico8_list_init(&list);
+    pico8_ptrs_init(&list);
     (void)start_game();
     must_abort(ks_on_a_table, &list);
     must_abort(lt_a_table, &list);

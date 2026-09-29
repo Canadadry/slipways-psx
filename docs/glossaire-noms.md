@@ -651,11 +651,11 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 
 | Convention | Règle |
 |---|---|
-| Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_list_free` ne libère que son tableau |
+| Emprunt de pointeur | un `pico8_value_t` ne possède **jamais** ce que pointent ses genres `STRING` et `REF`. `pico8_ptrs_free` ne libère que son tableau |
 | L'inverse, pour les chaînes construites | `tostr`, `sub`, `unstash` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
 | `pico8_value_ref(NULL)` | l'emplissage « valeur absente ». C'est lui qui fait exister TROU-11 et TROU-13 : il traverse les dispatches et les conversions sans se distinguer d'une vraie valeur |
-| Le tag de type | `PICO8_TYPE_TAG_*` en premier membre des deux formes qui modélisent encore la table Lua (la troisième, la table ob, est supprimée à D.8) ; `PICO8_REF_AS_LIST` le vérifie. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
-| Les primitives de liste | `add` → `pico8_list_add`, `del` → `pico8_list_del` (supprime par **valeur**, pas par index), `all` → `pico8_list_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_list_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
+| Le tag de type | `PICO8_TYPE_TAG_STRUCT` en premier membre de l'en-tête d'entité (`pico8_struct_header_t`), seule forme étiquetée qui reste (la table ob est supprimée à D.8, la liste de valeurs à D.12d) ; les `assert` d'entrée des fonctions à entité le vérifient. Quatre débordements de tas en sont nés, d'où ce mot de 4 octets qu'aucun code de jeu ne lit |
+| Les primitives de liste | `add` → `pico8_ptrs_add`, `del` → `pico8_ptrs_del` (supprime le premier élément **identique**, pas par index), `all` → `pico8_ptrs_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_ptrs_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
 | Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), `trade.lp`, `trade.rl` et l'`ib` d'une proposition |
 
 ### Mise en page
