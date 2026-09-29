@@ -31,7 +31,6 @@
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_menu.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
 #include "../src/pico8_type_tag.h"

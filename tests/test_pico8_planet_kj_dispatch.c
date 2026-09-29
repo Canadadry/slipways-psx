@@ -10,7 +10,6 @@
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"

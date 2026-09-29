@@ -27,7 +27,6 @@
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"

@@ -31,7 +31,6 @@
 #include "../src/pico8_hud.h"
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_value.h"
 #include "../src/pico8_vec.h"
 

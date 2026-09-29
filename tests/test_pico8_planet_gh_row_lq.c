@@ -31,7 +31,6 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_list.h"
 #include "../src/pico8_mem.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_type_tag.h"

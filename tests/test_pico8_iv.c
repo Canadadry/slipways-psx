@@ -28,7 +28,6 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_mouse_reader.h"
-#include "../src/pico8_ob.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_type_tag.h"
 #include "../src/pico8_value.h"
