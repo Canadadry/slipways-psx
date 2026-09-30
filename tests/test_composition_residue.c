@@ -347,6 +347,32 @@ static void test_measure_on_nothing_is_an_error_not_an_empty_residue(void) {
     assert(strstr(read_file(OUT), "résidu 2 : 0") == NULL);
 }
 
+static void test_champs_counts_writes_and_writes_outside_constructors(void) {
+    setup();
+    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+                           "typedef struct {\n    pico8_" "ke_t ke;\n    int a;\n    int b;\n"
+                           "    int c; /* (x) */\n    void (*f)(int k);\n} pico8_" "jo_t;\n");
+    write_file(TST "/fake.h", "typedef struct {\n    pico8_" "ke_t ke;\n    int z;\n} fake_t;\n");
+    write_file(SRC "/e.c", "void pico8_jo_struct_init(pico8_" "jo_t *self,\n"
+                           "                         int k) {\n"
+                           "    self->a = pico8_" "jo_start.a;\n"
+                           "    self->b = 1;\n"
+                           "}\n"
+                           "static void pico8_jo_hk(pico8_" "jo_t *self) {\n"
+                           "    self->c += 2;\n"
+                           "    if (self->b == 1) {}\n"
+                           "}\n");
+    write_file(TST "/e.c", "void t(void) { q->a = 1; q->z = 1; }\n");
+    assert(run_residue("--champs " TREE) == 0);
+    assert(strcmp(read_file(OUT), "pico8_" "jo_t\ta\t0\t0\n"
+                                  "pico8_" "jo_t\tb\t1\t0\n"
+                                  "pico8_" "jo_t\tc\t1\t1\n"
+                                  "champs : 3 ; 0 écriture : 1 ; 0 hors constructeur : 2\n") == 0);
+    write_file(SRC "/k.c", "static pico8_" "jo_t k = { .b = 2 };\n");
+    assert(run_residue("--champs " TREE) == 0);
+    assert(strstr(read_file(OUT), "pico8_" "jo_t\tb\t2\t1\n") != NULL);
+}
+
 int main(void) {
     test_clean_tree_prints_only_the_empty_footer();
     test_one_occurrence_per_category_in_table_order();
@@ -364,6 +390,7 @@ int main(void) {
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
+    test_champs_counts_writes_and_writes_outside_constructors();
     assert(system("rm -rf " DIR) == 0);
     printf("test_composition_residue: all tests passed\n");
     return 0;

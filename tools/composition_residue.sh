@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: composition_residue.sh [--detail | --check <cat>[,<cat>...]] [dossier...]
+# usage: composition_residue.sh [--detail | --check <cat>[,<cat>...] | --champs] [dossier...]
 # Compte, dans les .c/.h des dossiers (defaut : src tests, chemins imprimes
 # tels que recus), les lignes de chaque categorie du residu de la phase 2,
 # commentaires compris ; une ligne compte dans chaque categorie qu'elle touche.
@@ -19,6 +19,16 @@
 #                 categories nommees ("inclusion-mutuelle: <a> <-> <b>"), puis
 #                 "résidu gardé (<cats>) : N ligne(s)" ; code 1 si N > 0.
 #                 Toute categorie connue est acceptee.
+#   --champs    : releve de la regle 1, "<type>\t<membre>\t<ecritures>\t<hors
+#                 constructeur>" par membre des types d'entite des .h hors
+#                 tests/ (ni header, ni parente enchassee, ni pointeur de
+#                 fonction), trie, puis "champs : N ; 0 écriture : K ; 0 hors
+#                 constructeur : M" ; code 0. Une ecriture est une ligne d'un
+#                 .c hors tests/ qui affecte, incremente ou decremente
+#                 (->|.)<membre>, copie du defaut pico8_X_start.<membre>
+#                 retiree ; elle est hors constructeur sauf dans une fonction
+#                 qui finit par _new ou _init. Recherche par nom :
+#                 un majorant, un membre court compte pour tous ses types.
 # Vide (sortie de la phase 2) : aucune ligne de categorie de SORTIE, et le pied
 # "résidu 2 : 0 ligne(s), 0 fichier(s)".
 # Code 2 sur option ou categorie inconnue, dossier absent, aucun .c/.h, liste
@@ -90,6 +100,7 @@ mode=count
 checked=
 case ${1:-} in
     --detail) mode=detail; shift ;;
+    --champs) mode=champs; shift ;;
     --check)
         mode=check
         [ $# -ge 2 ] || fail "--check sans categorie"
@@ -165,10 +176,11 @@ function braces(s,    t, n) {
 # membre. E est la fermeture depuis pico8_struct_header_t par le premier
 # membre non pointeur ; l'etiquette, le typedef de "} nom;" et celui de
 # "typedef struct X Y;" nomment le meme type. Rend dans $work/parente et
-# $work/ptrs-entité les lignes "<fichier>:<ligne>:<texte>".
+# $work/ptrs-entité les lignes "<fichier>:<ligne>:<texte>", et dans
+# $work/members les "<type>\t<membre>" que lit --champs.
 read_structs() {
     awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \
-        -v out_ptrs="$work/ptrs-entité" "$CLEAN_AWK"'
+        -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"'
     FNR == 1 { depth = 0; incomment = 0; inbody = 0 }
     {
         c = clean($0)
@@ -185,6 +197,16 @@ read_structs() {
             next
         }
         if (inbody && depth == 1 && c !~ /^[ \t]*$/ && c !~ /^[ \t]*\}/) {
+            if (c !~ /[({]/ && match(c, /;/)) {
+                t = substr(c, 1, RSTART - 1)
+                nd = split(t, parts, ",")
+                for (i = 1; i <= nd; i++) {
+                    d = parts[i]; sub(/\[.*/, "", d); sub(/:.*/, "", d); sub(/[ \t]+$/, "", d)
+                    if (!match(d, /[A-Za-z_][A-Za-z0-9_]*$/)) continue
+                    nm_n[n]++; mname[n, nm_n[n]] = substr(d, RSTART, RLENGTH)
+                    mfirst[n, nm_n[n]] = !seen
+                }
+            }
             if (!seen) {
                 seen = 1
                 if (c ~ /^[ \t]*(const[ \t]+)?(struct[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*(\[[^]]*\])?[ \t]*;/) {
@@ -229,10 +251,21 @@ read_structs() {
         } while (grown)
         printf "" > out_parente
         printf "" > out_ptrs
+        printf "" > out_members
+        for (i = 1; i <= alias_n; i++) alias_of[alias_a[i]] = alias_b[i]
         for (k = 1; k <= n; k++) {
             if (first[k] in e && first[k] != "pico8_struct_header_t")
                 print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parente
             if (!in_e(k)) continue
+            if (sfile[k] ~ /\.h$/ && sfile[k] !~ /(^|\/)tests\//) {
+                m = split(names[k], nm, " "); type = nm[m]
+                if (type in alias_of) type = alias_of[type]
+                for (j = 1; j <= nm_n[k]; j++) {
+                    if (mname[k, j] == "header") continue
+                    if (mfirst[k, j] && first[k] in e) continue
+                    print type "\t" mname[k, j] > out_members
+                }
+            }
             for (j = 1; j <= np[k]; j++) {
                 m = split(names[k], nm, " "); skip = 0
                 for (i = 1; i <= m; i++) if (index(non_entite, " " nm[i] "." pmem[k, j] " ")) skip = 1
@@ -343,6 +376,62 @@ collect() {
             "$work/numbers.cut" "$file" >> "$work/$1"
     done < "$work/candidates"
 }
+
+# Releve de la regle 1. La fonction d'une ligne est la derniere definition de
+# premier niveau, signature jointe jusqu'a son "{" final, close par la "}" de
+# colonne 0. Hors de toute fonction (initialiseur de fichier, dont les
+# defauts pico8_X_start), une ecriture est hors constructeur : le releve est
+# un majorant, il ne declare pas constant ce qu'un initialiseur ecrit.
+champs() {
+    read_structs
+    sort -u "$work/members" > "$work/members.sorted"
+    grep -E '\.c$' "$work/files" | grep -v '/tests/' | grep -v '^tests/' > "$work/sources" || true
+    awk -F'\t' '
+    FILENAME == ARGV[1] { want[$2] = 1; next }
+    FNR == 1 { fn = ""; pend = "" }
+    {
+        line = $0
+        if (line ~ /^}/) { fn = ""; pend = "" }
+        else if (pend != "") {
+            if (line ~ /\)[ \t]*\{[ \t]*$/) { fn = pend; pend = "" }
+            else if (line ~ /;/) pend = ""
+        } else if (line ~ /^[a-z]/ && match(line, /[A-Za-z_][A-Za-z0-9_]*\(/)) {
+            name = substr(line, RSTART, RLENGTH - 1)
+            if (line ~ /\)[ \t]*\{[ \t]*$/) fn = name
+            else if (line !~ /[;=]/) pend = name
+        }
+        split("", done)
+        rest = line
+        while (match(rest, /(->|\.)[A-Za-z_][A-Za-z0-9_]*/)) {
+            m = substr(rest, RSTART, RLENGTH); sub(/^(->|\.)/, "", m)
+            rest = substr(rest, RSTART + RLENGTH)
+            if (!(m in want) || (m in done)) continue
+            done[m] = 1
+            s = line
+            gsub("=[ \t]*pico8_[a-z0-9_]+_start\\." m "([^A-Za-z0-9_]|$)", " ", s)
+            if (s ~ ("(->|\\.)" m "[ \t]*(=[^=]|\\+=|-=|\\*=|/=|\\+\\+|--)") ||
+                s ~ ("(\\+\\+|--)[A-Za-z0-9_>.()-]*(->|\\.)" m "([^A-Za-z0-9_]|$)")) {
+                w[m]++
+                if (fn !~ /(_new|_init)$/) h[m]++
+            }
+        }
+    }
+    END {
+        for (m in want) printf "%s\t%d\t%d\n", m, w[m], h[m] > (ARGV[1] ".counts")
+    }' "$work/members.sorted" $(cat "$work/sources") || fail "echec de awk"
+    awk -F'\t' '
+    NR == FNR { c[$1] = $2 "\t" $3; next }
+    { print $1 "\t" $2 "\t" c[$2] }' "$work/members.sorted.counts" "$work/members.sorted" \
+        | sort -t"$(printf '\t')" -k1,1 -k2,2 > "$work/champs" || fail "echec de awk"
+    cat "$work/champs"
+    awk -F'\t' '{ n++; if ($3 == 0) k++; if ($4 == 0) z++ }
+    END { printf "champs : %d ; 0 écriture : %d ; 0 hors constructeur : %d\n", n, k, z }' "$work/champs"
+}
+
+if [ "$mode" = champs ]; then
+    champs
+    exit 0
+fi
 
 if [ "$mode" = check ]; then
     : > "$work/all"
