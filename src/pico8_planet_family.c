@@ -9,7 +9,6 @@
 #include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
-#include "pico8_entity_geom.h"
 #include "pico8_ke.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
@@ -647,4 +646,25 @@ const pico8_struct_class_t *pico8_ga_struct_class(void) {
 
 pico8_jo_t *pico8_ga_new(const pico8_ga_keys_t *keys) {
     return pico8_ga_struct_new(keys);
+}
+
+/* `kv`, indexed by `fz`: `pm` and `ga` are the only kinds whose spec sets
+ * one. */
+static const struct {
+    const char *fz;
+    const pico8_entity_kind_t *(*kind)(void);
+} g_kv[] = {
+    {"pm", pico8_pm_kind},
+    {"ga", pico8_ga_kind},
+};
+
+const pico8_entity_kind_t *pico8_jo_kv(const char *fz) {
+    size_t i;
+
+    for (i = 0; i < sizeof g_kv / sizeof g_kv[0]; i++) {
+        if (strcmp(g_kv[i].fz, fz) == 0) {
+            return g_kv[i].kind();
+        }
+    }
+    return NULL;
 }

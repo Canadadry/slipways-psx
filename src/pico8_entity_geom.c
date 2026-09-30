@@ -6,7 +6,6 @@
 
 #include "pico8_entity.h"
 #include "pico8_geom.h"
-#include "pico8_planet.h"
 
 static pico8_vec_t pico8_entity_geom_zero(void) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
@@ -43,25 +42,12 @@ int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_
 
 int pico8_gd(const pico8_struct_header_t *e) {
     pico8_vec_t e_ra = pico8_entity_geom_ra(e);
-    const pico8_qb_t *mo = pico8_mo_qb();
-    pico8_vec_t mo_ra = mo != NULL && mo->ra != NULL ? *mo->ra : pico8_entity_geom_zero();
+    pico8_vec_t mo_ra = pico8_entity_geom_ra(pico8_mo());
     pico8_fixed_t sixty_four = pico8_fixed_from_int(64);
     pico8_fixed_t seventy_six = pico8_fixed_from_int(76);
 
     return pico8_fixed_abs(pico8_fixed_sub(pico8_fixed_sub(e_ra.x, mo_ra.x), sixty_four)) <= seventy_six &&
            pico8_fixed_abs(pico8_fixed_sub(pico8_fixed_sub(e_ra.y, mo_ra.y), sixty_four)) <= seventy_six;
-}
-
-void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t) {
-    pico8_vec_t *ra_vec;
-
-    assert((self == NULL || pico8_jo_is_family(self)) && "na: self is a planet (qh:ly, nl:ly) -- stop");
-    ra_vec = self != NULL ? ((pico8_jo_t *)self)->ra : NULL;
-    if (ra_vec != NULL) {
-        pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000147, 0.005))),
-                                               PICO8_FIXED_LIT(0x00000f5c, 0.06));
-        ra_vec->y = pico8_fixed_add(ra_vec->y, delta);
-    }
 }
 
 pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {

@@ -149,4 +149,12 @@ pico8_down_t pico8_jo_ldown(pico8_jo_t *self);
 void pico8_jo_set_oc(pico8_gn_state_t *oc);
 void pico8_jo_set_ir(pico8_jf_state_t *ir);
 
+/* Mutates the pico8_vec_t `self.ra` points at, in place: every other holder
+ * of that vector -- the `iv` toast `jo:hk` builds from `self.ra` -- sees the
+ * bob. Rebinding the field to a fresh vector, as `qb:kj` does, would not. */
+void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t);
+
+/* NULL when no kind has `fz`. */
+const pico8_entity_kind_t *pico8_jo_kv(const char *fz);
+
 #endif

@@ -29,6 +29,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_planet.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"

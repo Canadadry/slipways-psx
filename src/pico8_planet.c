@@ -15,7 +15,6 @@
 #include "pico8_ke.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
-#include "pico8_planet_family.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
 
@@ -275,28 +274,6 @@ void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t) {
     self->p_ = t > pico8_fixed_from_int(60);
 }
 
-/* `kv`, indexed by `fz`: `pm` and `ga` are the only kinds whose spec sets
- * one. */
-static const struct {
-    const char *fz;
-    const pico8_entity_kind_t *(*kind)(void);
-} g_kv[] = {
-    {"pm", pico8_pm_kind},
-    {"ga", pico8_ga_kind},
-};
-
-/* NULL when no kind has `fz`. */
-static const pico8_entity_kind_t *jo_kv(const char *fz) {
-    size_t i;
-
-    for (i = 0; i < sizeof g_kv / sizeof g_kv[0]; i++) {
-        if (strcmp(g_kv[i].fz, fz) == 0) {
-            return g_kv[i].kind();
-        }
-    }
-    return NULL;
-}
-
 void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     pico8_jo_t *working_self;
     pico8_fixed_t fp = pico8_fixed_from_int(2);
@@ -313,7 +290,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
 
         self->p_ = 1;
 
-        target_kind = jo_kv(hp_instance->cw);
+        target_kind = pico8_jo_kv(hp_instance->cw);
 
         keys.p = self->p;
         keys.ra = self->ra;
@@ -400,5 +377,17 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         pico8_iv_new(&keys);
         /* `text` is now owned by the new `iv` instance, which reads it every
          * frame it stays on screen: not freed here. */
+    }
+}
+
+void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t) {
+    pico8_vec_t *ra_vec;
+
+    assert((self == NULL || pico8_jo_is_family(self)) && "na: self is a planet (qh:ly, nl:ly) -- stop");
+    ra_vec = self != NULL ? ((pico8_jo_t *)self)->ra : NULL;
+    if (ra_vec != NULL) {
+        pico8_fixed_t delta = pico8_fixed_mul(pico8_fixed_sin(pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00000147, 0.005))),
+                                               PICO8_FIXED_LIT(0x00000f5c, 0.06));
+        ra_vec->y = pico8_fixed_add(ra_vec->y, delta);
     }
 }

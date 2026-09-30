@@ -11,16 +11,11 @@
  * field reads as the zero vector, as 0, or as a false hit test. */
 /* TROU-15 */
 
-/* `gk`'s `e` and `na`'s `self` are NULL or a struct (asserted); `gk`'s
- * NULL `mp`/`rp` reads as the zero vector. */
+/* `gk`'s `e` is NULL or a struct (asserted); its NULL `mp`/`rp` reads as
+ * the zero vector. */
 int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_vec_t *rp);
 
 int pico8_gd(const pico8_struct_header_t *e);
-
-/* Mutates the pico8_vec_t `self.ra` points at, in place: every other holder
- * of that vector -- the `iv` toast `jo:hk` builds from `self.ra` -- sees the
- * bob. Rebinding the field to a fresh vector, as `qb:kj` does, would not. */
-void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t);
 
 /* `e` is NULL or carries `ma` (asserted): a planet or the camera. Decays
  * `e.ma` in place. */
