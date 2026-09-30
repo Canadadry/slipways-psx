@@ -35,12 +35,9 @@ typedef struct {
     pico8_fixed_t mt;
 } pico8_fr_t;
 
-/* A synthesizer: an ascension, then mx's own default `ht`, which no
- * ancestor has a member for. A default of mx whose name is a member of
- * `hj`, `qh` or `jo` (`rr`, `hp`, `s`, `px`, `od` and the 11 emitter
- * defaults) lives in that member. `px`, `ht` and `k_` point at mx's
- * generated data; `mx:kf` points `ht` at an empty sequence
- * once it accepts a resource. Nothing frees the struct: TROU-7. */
+/* A synthesizer: an ascension, then `ht`, copied from its archetype;
+ * `mx:kf` points it at an empty sequence once it accepts a resource.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
     const pico8_int_seq_t *ht;

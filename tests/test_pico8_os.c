@@ -165,7 +165,7 @@ static pico8_qh_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->jo.def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
@@ -283,7 +283,7 @@ static void *build_processor(void) {
 /* A processor is the only entity whose `px` is os's own table. */
 static int is_processor(const void *e) {
     const pico8_qh_t *qh = pico8_qh_of(e);
-    return qh != NULL && qh->px == &pico8_os_px_row;
+    return qh != NULL && qh->jo.def->px == &pico8_os_px_row;
 }
 
 /* A processor as `ie:ldown` and `jo:pq` left it: its scalars (`hs` is jo's
@@ -300,7 +300,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->hp);
+    h = fold_fixed_member(h, qh->jo.def->hp);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, jo->def->hs);
@@ -317,7 +317,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
      * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
      * still proves the typed reads. */
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->px != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
     h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -362,7 +362,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
            cls_of(e)->mm == NULL && pico8_jo_is_family(e));
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(qh->px == &pico8_os_px_row && qh->px != &pico8_qh_px_row);
+    assert(qh->jo.def->px == &pico8_os_px_row && qh->jo.def->px != &pico8_qh_px_row);
     assert(qh->jo.def->ba == &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_os_def.kq);
     assert(jo->def == &pico8_os_def);

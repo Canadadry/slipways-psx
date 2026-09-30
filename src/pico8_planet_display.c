@@ -152,8 +152,8 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     memset(bs, 0, sizeof bs);
     memset(row_keys, 0, sizeof row_keys);
     qh = pico8_qh_of(&self->header);
-    if (qh != NULL && qh->px != NULL) {
-        icon_row = qh->px;
+    if (qh != NULL && qh->jo.def->px != NULL) {
+        icon_row = qh->jo.def->px;
     } else if (self->has_mi) {
         int mi = pico8_fixed_flr_int(self->mi);
 
@@ -202,7 +202,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         qe_is_r_w = kw != NULL && kw->has_qe && pico8_r_lookup("w", &r_w) && kw->qe == pico8_fixed_from_int(r_w);
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            int last_only = qh != NULL && qh->qh;
+            int last_only = qh != NULL && qh->jo.def->qh;
 
             row_cap[n] = 1 + (last_only ? 1 : jy->count) + 1;
             row_items[n] = jo_gh_row_items(row_cap[n]);

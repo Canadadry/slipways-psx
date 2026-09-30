@@ -371,23 +371,7 @@ static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(&self->hj, &g_mx_struct_class, &pico8_mx_def);
-    self->ht = pico8_mx_start.ht;
-    self->hj.rr = pico8_mx_start.rr;
-    self->hj.emitter->py = pico8_mx_start.py;
-    self->hj.emitter->ki = pico8_mx_start.ki;
-    self->hj.emitter->pn = pico8_mx_start.pn;
-    self->hj.emitter->pk = pico8_mx_start.pk;
-    self->hj.emitter->fc = pico8_mx_start.fc;
-    self->hj.emitter->k_ = pico8_mx_start.k_;
-    self->hj.emitter->du = pico8_mx_start.du;
-    self->hj.emitter->qo = pico8_mx_start.qo;
-    self->hj.emitter->ro = pico8_mx_start.ro;
-    self->hj.emitter->qg = pico8_mx_start.qg;
-    self->hj.emitter->q_ = pico8_mx_start.q_;
-    self->hj.qh.hp = pico8_mx_start.hp;
-    self->hj.qh.s = pico8_mx_start.s;
-    self->hj.qh.px = pico8_mx_start.px;
-    self->hj.qh.probe->od = pico8_mx_start.od;
+    self->ht = self->hj.qh.jo.def->ht;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "mx: the only construction key is id (ie:ldown); another key has no member "

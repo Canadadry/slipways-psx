@@ -273,7 +273,7 @@ void pico8_jo_pq(pico8_jo_t *self) {
 
     qh = pico8_qh_of(&self->header);
     if (qh != NULL) {
-        pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(qh->hp));
+        pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(qh->jo.def->hp));
 
         if (target != NULL) {
             pico8_jo_lz(self, target);

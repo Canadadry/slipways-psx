@@ -28,9 +28,6 @@ void pico8_planet_family_shutdown(void);
  * struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
-    pico8_fixed_t hp;
-    const pico8_jb_row_t *px;
-    int qh;
     pico8_fixed_t s;
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
@@ -52,15 +49,12 @@ typedef struct {
     pico8_qh_t qh;
 } pico8_os_t;
 
-/* An ascension: a laboratory, then `rr` and hj's own emitter defaults,
- * in the emitter with `qy`, which its own `pq` (`f_`) writes. A default of
- * hj whose name is a member of `qh` or `jo` (`hp`, `qh`, `px`, `od`,
- * `s`) lives in that member. `px`, the emitter's `k_` and `rr` point
- * at hj's generated data. `emitter` points at `emitter_own`:
- * never copy the struct. Nothing frees the struct: TROU-7. */
+/* An ascension: a laboratory, then an emitter copied from its kind's
+ * archetype, with `qy`, which its own `pq` (`f_`) writes. `emitter` points
+ * at `emitter_own`: never copy the struct. Nothing frees the struct:
+ * TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    const char *rr;
     pico8_emitter_t *emitter;
     pico8_emitter_t emitter_own;
 } pico8_hj_t;
@@ -68,16 +62,10 @@ typedef struct {
 /* The `emitter_of` of hj's descriptor, for `mx`'s to name (`pm`'s too). */
 pico8_emitter_t *pico8_hj_emitter_of(void *self);
 
-/* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
- * ancestor has a member for. A default of pm whose name is a member of
- * `hj`, `qh`, `jo` or `ke` (`me`, `hp`, `px`, `s` and the 11 emitter
- * defaults) lives in that member. `px`, `k_`, `ng` and `fz` point
- * at pm's generated data; `qy` is the protostar's own.
- * Nothing frees the struct: TROU-7. */
+/* A protostar: an ascension and nothing of its own; its defaults are its
+ * archetype's. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
-    const pico8_vec_t *ng;
-    const char *fz;
 } pico8_pm_t;
 
 /* A particle burst: a bare planet, then ga's own defaults, those of the
@@ -105,8 +93,9 @@ const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
 /* Initializes an allocated pico8_qh_t under `cls` and `def`, its kind's
- * archetype: jo's part, qh's members nil, qh's defaults. Reads no key, runs neither `pq` nor `lt`, records no
- * coverage. Requires `pico8_planet_family_init()`. */
+ * archetype: jo's part, then `s` and the probe copied from `def`. Reads no
+ * key, runs neither `pq` nor `lt`, records no coverage. Requires
+ * `pico8_planet_family_init()`. */
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
@@ -150,8 +139,9 @@ const pico8_struct_class_t *pico8_hj_struct_class(void);
 pico8_hj_t *pico8_hj_new(const pico8_jo_keys_t *keys);
 
 /* Initializes an allocated pico8_hj_t under `cls` and `def`, its kind's
- * archetype: qh's part, hj's members nil, hj's defaults. Reads no key, runs neither `pq` nor `lt`, records no
- * coverage. Requires `pico8_planet_family_init()`. */
+ * archetype: qh's part, then the emitter copied from `def`, `qy` nil. Reads
+ * no key, runs neither `pq` nor `lt`, records no coverage. Requires
+ * `pico8_planet_family_init()`. */
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`

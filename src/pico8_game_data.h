@@ -308,46 +308,6 @@ typedef struct {
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
 typedef struct {
-    const char *rr;
-    pico8_fixed_t hp;
-    int qh;
-    const pico8_jb_row_t *px;
-    pico8_fixed_t od;
-    pico8_fixed_t s;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pn;
-    pico8_fixed_t pk;
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t du;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-} pico8_hj_start_t;
-
-typedef struct {
-    const char *fz;
-    pico8_fixed_t hp;
-    const pico8_jb_row_t *px;
-    const char *me;
-    pico8_fixed_t s;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pn;
-    pico8_fixed_t pk;
-    pico8_vec_t ng;
-    pico8_fixed_t du;
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-} pico8_pm_start_t;
-
-typedef struct {
     const char *fz;
     int hf;
     pico8_qz_box_t kq;
@@ -392,26 +352,6 @@ typedef struct {
     pico8_fixed_t s;
     const pico8_int_seq_t *hz;
 } pico8_fr_start_t;
-
-typedef struct {
-    const char *rr;
-    pico8_fixed_t hp;
-    pico8_fixed_t s;
-    const pico8_jb_row_t *px;
-    pico8_fixed_t od;
-    const pico8_int_seq_t *ht;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pn;
-    pico8_fixed_t pk;
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t du;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-} pico8_mx_start_t;
 
 extern const int pico8_es_table[PICO8_ES_COUNT];
 extern const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
@@ -470,13 +410,10 @@ extern const pico8_jb_row_t pico8_pj_ou_row;
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_hj_start_t pico8_hj_start;
-extern const pico8_pm_start_t pico8_pm_start;
 extern const pico8_ga_start_t pico8_ga_start;
 extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
 extern const pico8_nr_start_t pico8_nr_start;
 extern const pico8_fr_start_t pico8_fr_start;
-extern const pico8_mx_start_t pico8_mx_start;
 extern const pico8_bg_def_t pico8_bg_def;
 extern const pico8_ui_def_t pico8_ui_def;
 extern const pico8_js_def_t pico8_js_def;

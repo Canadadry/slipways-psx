@@ -151,7 +151,7 @@ static pico8_qh_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->jo.def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
@@ -269,7 +269,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fold_string_member(h, nl->qh.jo.def->rr);
     h = fold_fixed_member(h, nl->qh.jo.def->nl);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->hp);
+    h = fold_fixed_member(h, qh->jo.def->hp);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, nl->qw);
@@ -290,7 +290,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->px != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
     h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -337,7 +337,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
            cls_of(e)->mm == NULL);
     assert(cls_of(e)->states[PICO8_STATE_LY] != pico8_qh_struct_class()->states[PICO8_STATE_LY]);
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(qh->px == &pico8_nl_px_row && qh->px != &pico8_qh_px_row);
+    assert(qh->jo.def->px == &pico8_nl_px_row && qh->jo.def->px != &pico8_qh_px_row);
     assert(qh->jo.def->ba == &pico8_nl_ba_seq && qh->jo.def->ba != &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_nl_def.kq);
     assert(jo->def == &pico8_nl_def);

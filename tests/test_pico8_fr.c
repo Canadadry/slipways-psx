@@ -150,7 +150,7 @@ static pico8_qh_t *as_qh(void *e) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->jo.def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -257,7 +257,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fold_fixed_member(h, jo->header.t);
     h = fold_string_member(h, nr->rr);
     h = fold_fixed_member(h, fr->mt);
-    h = fold_fixed_member(h, qh->hp);
+    h = fold_fixed_member(h, qh->jo.def->hp);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, qh->probe->fp);
@@ -279,7 +279,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fnv(h, (uint32_t)(nr->hz != NULL));
     h = fnv(h, (uint32_t)(nr->rr != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->px != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
     h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -338,7 +338,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     assert(nr->hz != &pico8_nr_hz_seq);
     assert(jo->kq == &pico8_nr_start.kq);
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(qh->px == &pico8_qh_px_row && qh->jo.def->ba == &pico8_qh_ba_seq);
+    assert(qh->jo.def->px == &pico8_qh_px_row && qh->jo.def->ba == &pico8_qh_ba_seq);
     assert(jo->def == &pico8_fr_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
            jo->def->cq == &pico8_jo_cq_seq);

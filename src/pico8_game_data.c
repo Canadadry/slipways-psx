@@ -436,46 +436,6 @@ static const char nr_rr_text[] = "slipgates";
 static const char fr_rr_text[] = "infraspace";
 static const char mx_rr_text[] = "void synthesis";
 
-const pico8_hj_start_t pico8_hj_start = {
-    .rr = hj_rr_text,
-    .hp = 0x20000,
-    .qh = 0,
-    .px = &pico8_hj_px_row,
-    .od = 0x3c0000,
-    .s = 0xa60000,
-    .py = 0x1eb8,
-    .ki = 0x90000,
-    .pn = 0x50000,
-    .pk = 0x10000,
-    .fc = 0x8000,
-    .k_ = &pico8_hj_k__seq,
-    .du = 0x78000,
-    .qo = 0xfae0,
-    .ro = -0x11ec,
-    .qg = 0x11ea,
-    .q_ = 0xfae0,
-};
-
-const pico8_pm_start_t pico8_pm_start = {
-    .fz = pm_fz_text,
-    .hp = 0x30000,
-    .px = &pico8_pm_px_row,
-    .me = pm_me_text,
-    .s = 0x620000,
-    .py = 0xf5c,
-    .ki = 0x90000,
-    .pn = 0x80000,
-    .pk = 0,
-    .ng = {0x10000, 0x0},
-    .du = 0x20000,
-    .fc = 0x10000,
-    .k_ = &pico8_pm_k__seq,
-    .qo = 0x1051e,
-    .ro = -0xd70,
-    .qg = 0xd70,
-    .q_ = 0x1051e,
-};
-
 const pico8_ga_start_t pico8_ga_start = {
     .fz = ga_fz_text,
     .hf = 0,
@@ -519,26 +479,6 @@ const pico8_fr_start_t pico8_fr_start = {
     .od = 0x190000,
     .s = 0x4e0000,
     .hz = &pico8_fr_hz_seq,
-};
-
-const pico8_mx_start_t pico8_mx_start = {
-    .rr = mx_rr_text,
-    .hp = 0x50000,
-    .s = 0x420000,
-    .px = &pico8_mx_px_row,
-    .od = 0x280000,
-    .ht = &pico8_mx_ht_seq,
-    .py = 0x1eb8,
-    .ki = 0x90000,
-    .pn = 0x50000,
-    .pk = 0x10000,
-    .fc = 0x4ccc,
-    .k_ = &pico8_mx_k__seq,
-    .du = 0x50000,
-    .qo = 0xfae0,
-    .ro = -0x11ec,
-    .qg = 0x11ea,
-    .q_ = 0xfae0,
 };
 
 const pico8_jo_def_t pico8_jo_def = {

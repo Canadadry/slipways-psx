@@ -150,7 +150,7 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return qh->jo.def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
@@ -267,7 +267,7 @@ static void *build_synthesizer(void) {
  * class is a synthesizer. */
 static int is_mx(const void *e) {
     const pico8_qh_t *qh = pico8_qh_of(e);
-    return qh != NULL && qh->px == &pico8_mx_px_row;
+    return qh != NULL && qh->jo.def->px == &pico8_mx_px_row;
 }
 
 /* `ht` of an `mx`; NULL on any other struct, which has no `ht`. */
@@ -301,9 +301,9 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fold_string_member(h, jo->id);
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
-    h = fold_string_member(h, hj->rr);
+    h = fold_string_member(h, hj->qh.jo.def->rr);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->hp);
+    h = fold_fixed_member(h, qh->jo.def->hp);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, em->py);
@@ -331,7 +331,7 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     /* The 1s of hj's ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
      * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(hj->rr != NULL));
+    h = fnv(h, (uint32_t)(hj->qh.jo.def->rr != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -345,7 +345,7 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(em->qy != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->px != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
     h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -391,7 +391,7 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     assert(cls_of(e)->kf != hj_cls->kf && cls_of(e)->kf != pico8_jo_struct_class()->kf);
     assert(cls_of(e)->cn == hj_cls->cn && cls_of(e)->mm == hj_cls->mm && cls_of(e)->mm != NULL &&
            pico8_jo_is_family(e));
-    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->px == &pico8_mx_px_row && ht_of(e) == &pico8_mx_ht_seq &&
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->jo.def->px == &pico8_mx_px_row && ht_of(e) == &pico8_mx_ht_seq &&
            em->k_ == &pico8_mx_k__seq);
     assert(jo->header.cls->tags != (PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(em->k_ != &pico8_hj_k__seq);

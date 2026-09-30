@@ -61,12 +61,9 @@ static const pico8_struct_class_t g_qh_struct_class = {
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_jo_struct_init(&self->jo, cls, def);
-    self->hp = self->jo.def->hp;
-    self->px = self->jo.def->px;
     self->probe = &self->probe_own;
     self->probe->def = &self->jo.def->probe;
     self->probe->dq = self->jo.def->probe.dq;
-    self->qh = self->jo.def->qh;
     self->probe->od = self->jo.def->probe.od;
     self->probe->has_od = self->jo.def->probe.has_od;
     self->probe->fp = self->jo.def->probe.fp;
@@ -268,26 +265,20 @@ static const pico8_struct_class_t g_hj_struct_class = {
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_qh_struct_init(&self->qh, cls, def);
-    self->rr = pico8_hj_start.rr;
     self->emitter = &self->emitter_own;
-    self->emitter->def = NULL;
-    self->emitter->py = pico8_hj_start.py;
-    self->emitter->ki = pico8_hj_start.ki;
-    self->emitter->pn = pico8_hj_start.pn;
-    self->emitter->pk = pico8_hj_start.pk;
-    self->emitter->fc = pico8_hj_start.fc;
-    self->emitter->k_ = pico8_hj_start.k_;
-    self->emitter->du = pico8_hj_start.du;
-    self->emitter->qo = pico8_hj_start.qo;
-    self->emitter->ro = pico8_hj_start.ro;
-    self->emitter->qg = pico8_hj_start.qg;
-    self->emitter->q_ = pico8_hj_start.q_;
+    self->emitter->def = &self->qh.jo.def->emitter;
+    self->emitter->py = self->qh.jo.def->emitter.py;
+    self->emitter->ki = self->qh.jo.def->emitter.ki;
+    self->emitter->pn = self->qh.jo.def->emitter.pn;
+    self->emitter->pk = self->qh.jo.def->emitter.pk;
+    self->emitter->fc = self->qh.jo.def->emitter.fc;
+    self->emitter->k_ = self->qh.jo.def->emitter.k_;
+    self->emitter->du = self->qh.jo.def->emitter.du;
+    self->emitter->qo = self->qh.jo.def->emitter.qo;
+    self->emitter->ro = self->qh.jo.def->emitter.ro;
+    self->emitter->qg = self->qh.jo.def->emitter.qg;
+    self->emitter->q_ = self->qh.jo.def->emitter.q_;
     self->emitter->qy = NULL;
-    self->qh.hp = pico8_hj_start.hp;
-    self->qh.qh = pico8_hj_start.qh;
-    self->qh.px = pico8_hj_start.px;
-    self->qh.probe->od = pico8_hj_start.od;
-    self->qh.s = pico8_hj_start.s;
 }
 
 static pico8_hj_t *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
@@ -318,16 +309,14 @@ void pico8_pm_pq(pico8_pm_t *self) {
     pico8_ga_keys_t keys;
     pico8_ga_t *spawned;
     const pico8_vec_t *ra;
-    const pico8_vec_t *ng;
 
     if (self == NULL) {
         return;
     }
 
     ra = self->hj.qh.jo.ra;
-    ng = self->ng;
     spawn_ra = pico8_vec_add(ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
-                             ng != NULL ? *ng : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)));
+                             self->hj.qh.jo.def->ng);
     spawn_ra_heap = malloc(sizeof *spawn_ra_heap);
     *spawn_ra_heap = spawn_ra;
 
@@ -376,23 +365,6 @@ static pico8_pm_t *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_hj_struct_init(&self->hj, &g_pm_struct_class, &pico8_pm_def);
-    self->ng = &pico8_pm_start.ng;
-    self->fz = pico8_pm_start.fz;
-    self->hj.emitter->py = pico8_pm_start.py;
-    self->hj.emitter->ki = pico8_pm_start.ki;
-    self->hj.emitter->pn = pico8_pm_start.pn;
-    self->hj.emitter->pk = pico8_pm_start.pk;
-    self->hj.emitter->du = pico8_pm_start.du;
-    self->hj.emitter->fc = pico8_pm_start.fc;
-    self->hj.emitter->k_ = pico8_pm_start.k_;
-    self->hj.emitter->qo = pico8_pm_start.qo;
-    self->hj.emitter->ro = pico8_pm_start.ro;
-    self->hj.emitter->qg = pico8_pm_start.qg;
-    self->hj.emitter->q_ = pico8_pm_start.q_;
-    self->hj.qh.hp = pico8_pm_start.hp;
-    self->hj.qh.px = pico8_pm_start.px;
-    self->hj.qh.s = pico8_pm_start.s;
-    self->hj.qh.jo.header.me = pico8_pm_start.me;
     if (keys != NULL) {
         if (keys->p != NULL) {
             self->hj.qh.jo.p = keys->p;

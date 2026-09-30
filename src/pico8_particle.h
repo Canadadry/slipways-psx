@@ -29,7 +29,7 @@ typedef struct pico8_qy {
  * `pn`, `du`, `ki`, `pk` are read by `g_:mm` only: a `ga` holds 0 there.
  * `pk` is the cart's 1 or false, false held as 0: only its truth is read. */
 typedef struct pico8_emitter {
-    const pico8_emitter_def_t *def; /* NULL on the jo tree: no generic reader may use it */
+    const pico8_emitter_def_t *def; /* NULL on ga: no generic reader may use it */
     pico8_fixed_t pn;
     pico8_fixed_t du;
     pico8_fixed_t py;
