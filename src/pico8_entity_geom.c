@@ -14,13 +14,13 @@ static pico8_vec_t pico8_entity_geom_zero(void) {
 
 /* `e`'s `ra` (`p` for the second), or (0,0) when `e` is NULL or the field is nil. */
 static pico8_vec_t pico8_entity_geom_ra(const pico8_struct_header_t *e) {
-    const pico8_vec_t *ra = e != NULL && e->cls->get_ra != NULL ? e->cls->get_ra(e) : NULL;
+    const pico8_vec_t *ra = e != NULL && e->ra != NULL ? *e->ra : NULL;
 
     return ra != NULL ? *ra : pico8_entity_geom_zero();
 }
 
 static pico8_vec_t pico8_entity_geom_p(const pico8_struct_header_t *e) {
-    const pico8_vec_t *p = e != NULL && e->cls->get_p != NULL ? e->cls->get_p(e) : NULL;
+    const pico8_vec_t *p = e != NULL && e->p != NULL ? *e->p : NULL;
 
     return p != NULL ? *p : pico8_entity_geom_zero();
 }

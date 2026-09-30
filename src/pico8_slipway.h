@@ -63,8 +63,8 @@ typedef struct {
  * never freed, nor its `p`; `ra` is the caller's `mp` itself, not a copy. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_vec_t *ra;
-    pico8_vec_t *p;
+    const pico8_vec_t *ra;
+    const pico8_vec_t *p;
 } pico8_jc_mouse_point_t;
 
 void pico8_jc_init(void);
@@ -77,9 +77,9 @@ void pico8_jc_shutdown(void);
 int pico8_jc_ready(void);
 const pico8_struct_class_t *pico8_jc_struct_class(void);
 
-/* `p`/`ra` of an end of a slipway: a planet, or the mouse point `jc:hq`
- * hangs on `re` over nothing; NULL, or an absent vector, reads as the zero
- * vector. Asserts on any other end. */
+/* `p`/`ra` of an end of a slipway (a planet, or the mouse point `jc:hq`
+ * hangs on `re` over nothing), read through its link: NULL, an end without
+ * the link, or an absent vector reads as the zero vector. */
 pico8_vec_t pico8_jc_end_p(const pico8_struct_header_t *end);
 pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end);
 

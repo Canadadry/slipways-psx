@@ -35,7 +35,7 @@ struct pico8_js {
     pico8_lq_t *h_;
     int has_h_; /* 0: nil; 1: present, and a NULL `h_` is `false` */
     pico8_jb_t *jb;
-    pico8_vec_t *ra;
+    const pico8_vec_t *ra;
     pico8_vec_t *qf;
     pico8_js_fn my;
     int has_my; /* 0: nil; 1: present, and a NULL `my` is `false` */

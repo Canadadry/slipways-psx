@@ -31,8 +31,8 @@ typedef struct {
     pico8_fixed_t oi;
     pico8_mz_jj_t *jj;
     pico8_ents_t *ox;
-    pico8_vec_t *ra;
-    pico8_vec_t *p;
+    const pico8_vec_t *ra;
+    const pico8_vec_t *p;
     pico8_struct_header_t *ij; /* borrowed, never freed */
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */

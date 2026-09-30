@@ -82,7 +82,7 @@ typedef struct {
     pico8_struct_header_t header;
     const pico8_iv_def_t *def;
     pico8_fixed_t l;
-    pico8_vec_t *ra;
+    const pico8_vec_t *ra;
     int p_;
     int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
     const char *at1;

@@ -39,7 +39,7 @@ typedef struct {
     pico8_emitter_t *emitter;
     pico8_probe_t *probe;
     const pico8_vec_t *ra;
-    pico8_vec_t *p;
+    const pico8_vec_t *p;
     int p_;
     int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_emitter_t emitter_own;
@@ -54,8 +54,6 @@ pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
  * `fv`'s to name. */
 pico8_emitter_t *pico8_g__emitter_of(void *self);
 pico8_probe_t *pico8_g__probe_of(void *self);
-const pico8_vec_t *pico8_g__get_ra(const void *self);
-const pico8_vec_t *pico8_g__get_p(const void *self);
 int pico8_g__get_fx(const void *self);
 int pico8_g__get_p_(const void *self);
 

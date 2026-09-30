@@ -27,18 +27,8 @@ static void pico8_qb_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
 }
 
-static const pico8_vec_t *qb_get_ra(const void *self) {
-    return ((const pico8_qb_t *)self)->ra;
-}
-
-static const pico8_vec_t *qb_get_p(const void *self) {
-    return ((const pico8_qb_t *)self)->p;
-}
-
 static const pico8_struct_class_t g_qb_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_qb_ph_dispatch},
-    .get_ra = qb_get_ra,
-    .get_p = qb_get_p,
 };
 
 static pico8_qb_t *pico8_qb_struct_new(void) {
@@ -46,6 +36,8 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
     self->def = &pico8_qb_def;
+    self->header.ra = &self->ra;
+    self->header.p = &self->p;
     self->v = &self->def->v;
     self->ma = self->def->ma;
     self->p = &self->def->p;

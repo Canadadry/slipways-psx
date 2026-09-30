@@ -279,7 +279,7 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     assert(((const pico8_struct_header_t *)generic)->cls->kj == NULL);
     assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);
     assert(pico8_nf_l() != pico8_nf_r());
-    assert(((const pico8_struct_header_t *)built)->cls->get_ra(built) == ((const pico8_nf_t *)built)->ra);
+    assert(*((const pico8_struct_header_t *)built)->ra == ((const pico8_nf_t *)built)->ra);
 }
 
 int main(void) {

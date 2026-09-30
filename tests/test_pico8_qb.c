@@ -364,8 +364,8 @@ static void test_qb_is_a_struct(void) {
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
     assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
-    assert(generic->header.cls->get_ra(generic) == generic->ra);
-    assert(generic->header.cls->get_p(generic) == generic->p);
+    assert(generic->header.ra == &generic->ra);
+    assert(generic->header.p == &generic->p);
     pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
     pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
     assert(pico8_qb_struct_class()->kj == NULL);

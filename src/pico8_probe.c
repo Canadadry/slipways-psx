@@ -395,14 +395,6 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     return particle;
 }
 
-const pico8_vec_t *pico8_g__get_ra(const void *self) {
-    return ((const pico8_g__t *)self)->ra;
-}
-
-const pico8_vec_t *pico8_g__get_p(const void *self) {
-    return ((const pico8_g__t *)self)->p;
-}
-
 /* `fx` is a fixed here, and a fixed is always true in Lua, even 0. */
 int pico8_g__get_fx(const void *self) {
     (void)self;
@@ -424,8 +416,6 @@ static const pico8_struct_class_t g_g__struct_class = {
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_ra = pico8_g__get_ra,
-    .get_p = pico8_g__get_p,
     .get_fx = pico8_g__get_fx,
     .get_p_ = pico8_g__get_p_,
 };
@@ -434,6 +424,8 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     pico8_ke_struct_init(&self->header, cls, def->me, def->t);
     self->def = def;
     self->header.fa = &self->def->fa;
+    self->header.ra = &self->ra;
+    self->header.p = &self->p;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;

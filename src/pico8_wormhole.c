@@ -199,14 +199,6 @@ static pico8_probe_t *mz_probe_of(void *self) {
     return ((pico8_mz_t *)self)->probe;
 }
 
-static const pico8_vec_t *mz_get_ra(const void *self) {
-    return ((const pico8_mz_t *)self)->ra;
-}
-
-static const pico8_vec_t *mz_get_p(const void *self) {
-    return ((const pico8_mz_t *)self)->p;
-}
-
 static int mz_get_p_(const void *self) {
     const pico8_mz_t *mz = self;
 
@@ -225,8 +217,6 @@ static const pico8_struct_class_t g_mz_struct_class = {
         },
     .probe_of = mz_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_MZ),
-    .get_ra = mz_get_ra,
-    .get_p = mz_get_p,
     .get_p_ = mz_get_p_,
 };
 
@@ -236,6 +226,8 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_ke_struct_init(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
     self->def = &pico8_mz_def;
     self->header.fa = &self->def->fa;
+    self->header.ra = &self->ra;
+    self->header.p = &self->p;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->oi = self->def->oi;

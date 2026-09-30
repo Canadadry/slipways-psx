@@ -223,10 +223,6 @@ static void pico8_iv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }
 
-static const pico8_vec_t *iv_get_ra(const void *self) {
-    return ((const pico8_iv_t *)self)->ra;
-}
-
 static int iv_get_p_(const void *self) {
     const pico8_iv_t *iv = self;
 
@@ -236,7 +232,6 @@ static int iv_get_p_(const void *self) {
 static const pico8_struct_class_t g_iv_struct_class = {
     .kj = pico8_iv_kj_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
-    .get_ra = iv_get_ra,
     .get_p_ = iv_get_p_,
 };
 
@@ -246,6 +241,7 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     pico8_ke_struct_init(&self->header, &g_iv_struct_class, pico8_iv_def.me, pico8_iv_def.t);
     self->def = &pico8_iv_def;
     self->header.fa = &self->def->fa;
+    self->header.ra = &self->ra;
     self->l = self->def->l;
     self->ra = NULL;
     self->p_ = 0;

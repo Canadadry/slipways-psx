@@ -428,7 +428,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
     printf("[hq] et kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(mz->header.cls->get_ra(mz) == mz->ra && mz->header.cls->get_p(mz) == mz->p);
+    assert(mz->header.ra == &mz->ra && mz->header.p == &mz->p);
     h = fold_vec(h, mz->ra);
     h = fold_vec(h, mz->p);
     h = fnv(h, (uint32_t)kind);

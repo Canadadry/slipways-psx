@@ -64,7 +64,7 @@ typedef struct {
     int bg_is_bool; /* 1: `bg` holds a boolean (0/1), 0: a fixed; read only when `has_bg` */
     pico8_fixed_t score;
     int has_score; /* 0: `score` is nil, and `score` is then never read */
-    pico8_vec_t *ra;
+    const pico8_vec_t *ra;
     pico8_lq_item_t *fs; /* NULL: not laid out yet */
     int fs_count;
     pico8_fixed_t w;

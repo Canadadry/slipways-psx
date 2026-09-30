@@ -767,7 +767,7 @@ static void test_hq_mouse_point(void) {
     p1 = vec_of(mouse_point_p(r1));
     assert(same_vec(p1, pico8_vec_div(vec_of(mouse_point_ra(r1)), pico8_fixed_from_int(128))));
     assert(mouse_point_p(r1) != m1);
-    assert(cls_of(r1)->get_p(r1) == mouse_point_p(r1));
+    assert(*((const pico8_struct_header_t *)r1)->p == mouse_point_p(r1));
     assert(!pico8_gd(r1));
     assert(!ents_listed(pico8_hv(), r1) && !ents_listed(pico8_cg("jc"), r1) && !ents_listed(pico8_cg("np"), r1));
     h = fnv(h, (uint32_t)p1.x);

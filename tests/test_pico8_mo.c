@@ -80,20 +80,14 @@ typedef struct {
     const pico8_vec_t *ra;
 } ra_only_t;
 
-static const pico8_vec_t *ra_only_get_ra(const void *self) {
-    const ra_only_t *e = self;
-
-    return e->ra;
-}
-
-static const pico8_struct_class_t g_ra_only_class = {.get_ra = ra_only_get_ra};
+static const pico8_struct_class_t g_ra_only_class = {0};
 
 /* `gd` reads `mo.ra` as (0,0): 64 off is inside the 76 margin, 77 is not. */
 static void test_gd_on_placeholder(void) {
     pico8_vec_t near_ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_vec_t far_ra = pico8_vec_v(pico8_fixed_from_int(64 + 77), pico8_fixed_from_int(64));
-    ra_only_t near_e = {{.cls = &g_ra_only_class}, NULL};
-    ra_only_t far_e = {{.cls = &g_ra_only_class}, NULL};
+    ra_only_t near_e = {{.cls = &g_ra_only_class, .ra = &near_e.ra}, NULL};
+    ra_only_t far_e = {{.cls = &g_ra_only_class, .ra = &far_e.ra}, NULL};
     int near_hit;
     int far_hit;
 

@@ -288,13 +288,8 @@ static void pico8_jb_ol_dispatch(void *self, pico8_vec_t p, pico8_fixed_t a) {
     pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, pico8_fixed_from_int(0), a);
 }
 
-static const pico8_vec_t *lq_get_ra(const void *self) {
-    return ((const pico8_lq_t *)self)->ra;
-}
-
 static const pico8_struct_class_t g_lq_struct_class = {
     .ol = pico8_lq_ol_dispatch,
-    .get_ra = lq_get_ra,
 };
 
 /* TROU-7 */
@@ -303,6 +298,7 @@ static pico8_lq_t *pico8_lq_struct_alloc(int n) {
     pico8_lq_t *self = malloc(sizeof *self);
 
     pico8_struct_header_init(&self->header, &g_lq_struct_class);
+    self->header.ra = &self->ra;
     self->c = 0;
     self->has_c = 0;
     self->bg = 0;

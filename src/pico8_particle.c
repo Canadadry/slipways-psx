@@ -10,24 +10,14 @@
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_planet.h"
-#include "pico8_probe.h"
 #include "pico8_vec.h"
 
-/* `fa`, and `ra` into `*ra` (the zero vector when nil), which the host of
- * `ei` holds for itself: `g_`'s line, or jo's family (`hj`, `pm`, `mx`, `ga`). */
-static pico8_fixed_t emitter_host_fa_ra(pico8_struct_header_t *self, pico8_vec_t *ra) {
-    const pico8_g__t *g_ = pico8_g__of(self);
-    const pico8_jo_t *jo;
-
-    if (g_ != NULL) {
-        *ra = g_->ra != NULL ? *g_->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-        return g_->def->fa;
-    }
-    assert(pico8_jo_is_family(self) &&
-           "ei: a host neither of g_'s line nor of jo's family, none of whose kj runs ei -- stop");
-    jo = (const pico8_jo_t *)self;
-    *ra = jo->ra != NULL ? *jo->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    return jo->def->fa;
+/* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
+static pico8_fixed_t emitter_host_fa_ra(const pico8_struct_header_t *self, pico8_vec_t *ra) {
+    assert(self->fa != NULL && self->ra != NULL &&
+           "ei: a host that carries no fa or no ra, none of whose kj runs ei -- stop");
+    *ra = *self->ra != NULL ? **self->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    return *self->fa;
 }
 
 static int pico8_particle_to_int(pico8_fixed_t x) {

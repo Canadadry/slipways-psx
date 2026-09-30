@@ -28,40 +28,17 @@ static const pico8_struct_class_t g_jc_too_far_struct_class = {0};
  * overwrites it. */
 static pico8_jc_too_far_t g_jc_too_far = {{.cls = &g_jc_too_far_struct_class}, "-too far-", NULL};
 
-static const pico8_vec_t *jc_mouse_point_get_ra(const void *self) {
-    return ((const pico8_jc_mouse_point_t *)self)->ra;
-}
-
-static const pico8_vec_t *jc_mouse_point_get_p(const void *self) {
-    return ((const pico8_jc_mouse_point_t *)self)->p;
-}
-
-static const pico8_struct_class_t g_jc_mouse_point_struct_class = {
-    .get_ra = jc_mouse_point_get_ra,
-    .get_p = jc_mouse_point_get_p,
-};
-
-static const pico8_jc_mouse_point_t *jc_end_point(const pico8_struct_header_t *end) {
-    assert(end->cls == &g_jc_mouse_point_struct_class &&
-           "jc: an end of a slipway is a planet or the mouse point jc:hq hangs on re -- stop");
-    return (const pico8_jc_mouse_point_t *)end;
-}
+static const pico8_struct_class_t g_jc_mouse_point_struct_class = {0};
 
 pico8_vec_t pico8_jc_end_p(const pico8_struct_header_t *end) {
-    const pico8_vec_t *p = NULL;
+    const pico8_vec_t *p = end != NULL && end->p != NULL ? *end->p : NULL;
 
-    if (end != NULL) {
-        p = pico8_jo_is_family(end) ? ((const pico8_jo_t *)end)->p : jc_end_point(end)->p;
-    }
     return p != NULL ? *p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
 pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end) {
-    const pico8_vec_t *ra = NULL;
+    const pico8_vec_t *ra = end != NULL && end->ra != NULL ? *end->ra : NULL;
 
-    if (end != NULL) {
-        ra = pico8_jo_is_family(end) ? ((const pico8_jo_t *)end)->ra : jc_end_point(end)->ra;
-    }
     return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }
 
@@ -128,6 +105,8 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
         pico8_jc_mouse_point_t *point = malloc(sizeof *point);
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
         pico8_struct_header_init(&point->header, &g_jc_mouse_point_struct_class);
+        point->header.ra = &point->ra;
+        point->header.p = &point->p;
         point->ra = mp;
         *p_heap = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
                                 pico8_fixed_from_int(128));

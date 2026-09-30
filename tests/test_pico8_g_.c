@@ -347,7 +347,7 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     size_t i;
 
     assert(is_probe(&e->header));
-    assert(e->header.cls->get_p(e) == e->p);
+    assert(e->header.p == &e->p);
     h = fold_fixed_member(h, e->def->fx);
     h = fold_string_member(h, pr->def->dq);
     h = fold_fixed_member(h, pr->od);

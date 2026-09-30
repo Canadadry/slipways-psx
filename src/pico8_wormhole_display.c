@@ -11,8 +11,8 @@
 static pico8_vec_t pico8_mzd_ra_of_ij(const pico8_mz_t *self) {
     const pico8_vec_t *ra = NULL;
 
-    if (self->ij != NULL && self->ij->cls->get_ra != NULL) {
-        ra = self->ij->cls->get_ra(self->ij);
+    if (self->ij != NULL && self->ij->ra != NULL) {
+        ra = *self->ij->ra;
     }
     return ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
 }

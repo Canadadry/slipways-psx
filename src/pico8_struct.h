@@ -84,6 +84,8 @@ typedef struct {
     const char *me;
     pico8_fixed_t t;
     const pico8_fixed_t *fa;
+    const pico8_vec_t *const *ra;
+    const pico8_vec_t *const *p;
 } pico8_struct_header_t;
 
 /* Every constructor calls it first: its `malloc` leaves the header
@@ -147,8 +149,6 @@ struct pico8_struct_class {
      * reader returns NULL, or 0 leaving *out untouched, when the field is
      * nil; `get_fx` and `get_p_` return its Lua truth. `set_m_` also marks
      * `m_` present. Each is only ever called as `e->cls->get_X(e, ...)`. */
-    const pico8_vec_t *(*get_ra)(const void *self);
-    const pico8_vec_t *(*get_p)(const void *self);
     const pico8_qz_box_t *(*get_kq)(const void *self);
     int (*get_ql)(const void *self, pico8_fixed_t *out);
     int (*get_fg)(const void *self, pico8_fixed_t *out);

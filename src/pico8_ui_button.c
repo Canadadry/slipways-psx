@@ -58,10 +58,6 @@ static void pico8_js_hb_dispatch(void *self) {
     }
 }
 
-static const pico8_vec_t *js_get_ra(const void *self) {
-    return ((const pico8_js_t *)self)->ra;
-}
-
 static const pico8_qz_box_t *js_get_kq(const void *self) {
     return ((const pico8_js_t *)self)->kq;
 }
@@ -91,7 +87,6 @@ static const pico8_struct_class_t g_js_struct_class = {
     .has_hb = pico8_js_has_hb,
     .ldown = pico8_js_ldown_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
-    .get_ra = js_get_ra,
     .get_kq = js_get_kq,
     .get_fg = js_get_fg,
     .set_m_ = js_set_m_,
@@ -129,6 +124,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->def = &pico8_js_def;
     self->fa = self->def->fa;
     self->header.fa = &self->fa;
+    self->header.ra = &self->ra;
     if (keys != NULL) {
         if (keys->has_fa) {
             self->fa = keys->fa;

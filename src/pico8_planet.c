@@ -76,14 +76,6 @@ void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
     pico8_jo_ll((pico8_jo_t *)self, t);
 }
 
-const pico8_vec_t *pico8_jo_get_ra(const void *self) {
-    return ((const pico8_jo_t *)self)->ra;
-}
-
-const pico8_vec_t *pico8_jo_get_p(const void *self) {
-    return ((const pico8_jo_t *)self)->p;
-}
-
 const pico8_qz_box_t *pico8_jo_get_kq(const void *self) {
     return &((const pico8_jo_t *)self)->def->kq;
 }
@@ -118,8 +110,6 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .cn = pico8_jo_cn_dispatch,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_ra = pico8_jo_get_ra,
-    .get_p = pico8_jo_get_p,
     .get_kq = pico8_jo_get_kq,
     .get_fx = pico8_jo_get_fx,
     .get_p_ = pico8_jo_get_p_,
@@ -131,6 +121,9 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     pico8_ke_struct_init(&self->header, cls, def->me, def->t);
     self->def = def;
     self->header.fa = &self->def->fa;
+    /* Read-only: the planet modules write through their members. */
+    self->header.ra = (const pico8_vec_t *const *)&self->ra;
+    self->header.p = (const pico8_vec_t *const *)&self->p;
     self->ma = self->def->ma;
     self->kw = &g_jo_kw_shared;
     self->id = NULL;

@@ -335,7 +335,7 @@ static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_ke
     const void *lq = pico8_lq_new(k);
     uint32_t one = fold_row_from(2166136261u, lq, k, nil_at);
 
-    assert(((const pico8_struct_header_t *)lq)->cls->get_ra(lq) == as_lq(lq)->ra);
+    assert(((const pico8_struct_header_t *)lq)->ra == &as_lq(lq)->ra);
 
     printf("  %s: w=%d fs=%d n=%d 0x%08X\n", label, pico8_fixed_flr_int(w_of(lq)), fs_count(lq), row_count(lq),
            (unsigned)one);

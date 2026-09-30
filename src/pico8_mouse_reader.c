@@ -24,13 +24,8 @@ static void pico8_nf_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
 }
 
-static const pico8_vec_t *nf_get_ra(const void *self) {
-    return ((const pico8_nf_t *)self)->ra;
-}
-
 static const pico8_struct_class_t g_nf_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_nf_ph_dispatch},
-    .get_ra = nf_get_ra,
 };
 
 static void pico8_nf_pq(pico8_mem_t *mem) {
@@ -45,6 +40,8 @@ static pico8_nf_t *pico8_nf_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_nf_struct_class, pico8_nf_def.me, pico8_nf_def.t);
     self->def = &pico8_nf_def;
+    /* Read-only: this module writes through its member. */
+    self->header.ra = (const pico8_vec_t *const *)&self->ra;
     self->ra = &g_nf_ra;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nf");
