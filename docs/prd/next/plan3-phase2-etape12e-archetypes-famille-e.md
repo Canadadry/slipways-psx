@@ -788,7 +788,7 @@ Sur la copie jetable (`prd212e/tree`). `p` = 2.12d appliquée d'après son PRD s
 | 19 | `constproof.py` rejoué, 21 membres | `e2` | 0 | 91 sites, 0 dans `tests/` | 13 s |
 | 20 | greps de Sortie ; liste des `_def` et des 40 tables | `e1`/`e2` | 0 | 22 / 25 valeurs + `hy` = 26 ; 14 tables sans archétype = l'inventaire | 3 s |
 | 21 | `grep -rn kw_own src tests` | `e2` | 0 | lu hors `planet.c` par `archetype_chain` et `jo_spec_defaults:74`, `:230` seulement | 1 s |
-| 22 | `rm -rf` de la copie | — | 0 | copie supprimée ; journaux gardés dans `prd212e/` | 1 s |
+| 22 | `rm -rf` de la copie | — | 0 | copie et journaux supprimés (tout `prd212e/`) | 1 s |
 
 ### Critères d'échec (`FAILED:` pour le vérificateur)
 
