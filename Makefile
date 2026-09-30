@@ -59,6 +59,9 @@
 # make data-residue  -> compte le résidu de données par catégorie
 #                       (tools/data_residue.sh) ; la phase D sort sur une sortie
 #                       vide, hors suite
+# make composition-residue -> compte le résidu de composition par catégorie
+#                       (tools/composition_residue.sh) ; la phase 2 sort sur
+#                       une sortie vide, hors suite
 # make data-guard    -> aucun offsetof dans src/, catégories de
 #                       DATA_RESIDUE_GUARD à 0, dans make test
 # make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
@@ -377,6 +380,9 @@ $(TMP_DIR)/test_float_grep: $(call objs,tests/test_float_grep.c) tools/float_gre
 $(TMP_DIR)/test_data_residue: $(call objs,tests/test_data_residue.c) tools/data_residue.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
+$(TMP_DIR)/test_composition_residue: $(call objs,tests/test_composition_residue.c) tools/composition_residue.sh | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
+
 $(TMP_DIR)/test_float_link: $(call objs,tests/test_float_link.c) tools/float_link.sh | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -589,6 +595,7 @@ UNIT_TESTS := \
     test_float_guard \
     test_float_grep \
     test_data_residue \
+    test_composition_residue \
     test_float_link \
     test_constants_check \
     test_pico8_bg_kj \
@@ -848,6 +855,11 @@ data-guard: tools/data_residue.sh
 	fi
 
 .PHONY: data-residue data-guard
+
+composition-residue: tools/composition_residue.sh
+	@sh tools/composition_residue.sh
+
+.PHONY: composition-residue
 
 # detect_leaks=0 : les entités ne sont jamais libérées (TROU-7).
 $(TMP_DIR)/pico8_replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
