@@ -567,7 +567,9 @@ $(TMP_DIR)/test_pico8_probe_mm_rnd_order: $(call objs,tests/test_pico8_probe_mm_
 $(TMP_DIR)/test_pico8_layout_nil_item_draws_nothing: $(call objs,tests/test_pico8_layout_nil_item_draws_nothing.c src/pico8_assets.c src/pico8_collect.c src/pico8_dispatch_context.c src/pico8_fixed.c src/pico8_geom.c src/pico8_gfx.c src/pico8_hud.c src/pico8_layout.c src/pico8_ptrs.c src/pico8_map_tables.c src/pico8_mem.c src/pico8_str.c src/pico8_vec.c) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+# Le plus long en tête : sous -j, make le lance d'abord.
 UNIT_TESTS := \
+    test_composition_residue \
     test_pico8_mem \
     test_asset_loading \
     test_pico8_gfx \
@@ -605,7 +607,6 @@ UNIT_TESTS := \
     test_float_guard \
     test_float_grep \
     test_data_residue \
-    test_composition_residue \
     test_float_link \
     test_constants_check \
     test_pico8_bg_kj \
