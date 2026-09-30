@@ -264,7 +264,7 @@ typedef struct {
 
 /* A class's archetype: its defaults resolved along its init chain, ke's
  * `me`/`t` first. A default that is the address of a module's static object
- * (ui.le, nf.ra) is not here: the module's init still sets it. */
+ * (ui.le, nf.ra, mz.jj) is not here: the module's init still sets it. */
 typedef struct {
     const char *me;
     pico8_fixed_t t;
@@ -344,6 +344,36 @@ typedef struct {
     const pico8_jb_row_t *gs;
     const pico8_jb_row_t *i_;
 } pico8_pj_def_t;
+
+/* A probe's own defaults, in the archetype of each class that carries one. */
+typedef struct {
+    pico8_fixed_t dw;
+    pico8_fixed_t od;
+    int has_od;
+    const char *dq;
+    pico8_fixed_t fp;
+    pico8_fixed_t ik;
+    int has_ik;
+} pico8_probe_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t spawn_snd;
+    pico8_fixed_t oi;
+    pico8_fixed_t fa;
+    const pico8_int_seq_t *kk;
+    pico8_probe_def_t probe;
+} pico8_mz_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t nh;
+    pico8_probe_def_t probe;
+} pico8_jc_def_t;
 
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
@@ -602,6 +632,8 @@ extern const pico8_iv_def_t pico8_iv_def;
 extern const pico8_hp_def_t pico8_hp_def;
 extern const pico8_ie_def_t pico8_ie_def;
 extern const pico8_pj_def_t pico8_pj_def;
+extern const pico8_mz_def_t pico8_mz_def;
+extern const pico8_jc_def_t pico8_jc_def;
 extern const pico8_kind_rec_t pico8_qh_kind_rec;
 extern const pico8_kind_rec_t pico8_nl_kind_rec;
 extern const pico8_kind_rec_t pico8_os_kind_rec;

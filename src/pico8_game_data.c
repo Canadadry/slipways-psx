@@ -512,6 +512,25 @@ const pico8_pj_def_t pico8_pj_def = {
     .i_ = &pico8_pj_i__row,
 };
 
+const pico8_mz_def_t pico8_mz_def = {
+    .me = "kz",
+    .t = 0x0,
+    .spawn_snd = 0x340000,
+    .oi = 0x0,
+    .fa = 0x50000,
+    .kk = &pico8_mz_kk_seq,
+    .probe = {.dw = 0x0, .od = 0x30000, .has_od = 1, .dq = "pr", .fp = 0x10000, .ik = 0x310000, .has_ik = 1},
+};
+
+const pico8_jc_def_t pico8_jc_def = {
+    .me = "kz",
+    .t = 0x0,
+    .fa = 0x20000,
+    .k_ = &pico8_jc_k__seq,
+    .nh = 0x140000,
+    .probe = {.dw = 0x106, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x300000, .has_ik = 1},
+};
+
 static const char jo_me_text[] = "unknown";
 static const char qh_me_text[] = "kz";
 static const char qh_dq_text[] = "ly";
