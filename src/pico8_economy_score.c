@@ -98,7 +98,7 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
         for (i = 0; i < by->count; i++) {
             void *e_val = by->items[i];
             pico8_struct_header_t *e;
-            void *oz_val;
+            pico8_struct_header_t *oz_val;
             if (e_val == NULL) {
                 continue;
             }
@@ -109,7 +109,7 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
             {
                 const pico8_jo_t *oz;
                 assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
-                oz = oz_val;
+                oz = (const pico8_jo_t *)oz_val;
                 if (oz->hf) {
                     pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
                     pico8_fixed_t hs = jo->hs;

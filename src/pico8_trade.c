@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
 
 static int g_trade_up = 0;
 
@@ -78,8 +77,8 @@ pico8_trade_t *pico8_trade_new(const pico8_trade_keys_t *keys) {
     return pico8_trade_struct_new(keys);
 }
 
-int pico8_trade_to(const pico8_trade_t *self, void **out) {
-    const pico8_ptrs_t *lp;
+int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out) {
+    const pico8_ents_t *lp;
 
     assert_trade(self);
     if (self == NULL || self->lp == NULL) {
@@ -93,27 +92,27 @@ int pico8_trade_to(const pico8_trade_t *self, void **out) {
     return 1;
 }
 
-/* `{np}`/`{jc}` are one-element stack containers, freed once pico8_la_ptrs
+/* `{np}`/`{jc}` are one-element stack containers, freed once pico8_ents_cat
  * has copied their element into the heap lp/rl it returns; a Lua `{x}`
  * holds zero elements when x is nil, so a NULL contributes nothing. */
 pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *np, pico8_struct_header_t *jc) {
     pico8_trade_keys_t keys = {0};
-    pico8_ptrs_t empty_lp;
-    pico8_ptrs_t empty_rl;
-    const pico8_ptrs_t *lp;
-    const pico8_ptrs_t *rl;
-    pico8_ptrs_t np_list;
-    pico8_ptrs_t jc_list;
-    pico8_ptrs_t *new_lp;
-    pico8_ptrs_t *new_rl;
+    pico8_ents_t empty_lp;
+    pico8_ents_t empty_rl;
+    const pico8_ents_t *lp;
+    const pico8_ents_t *rl;
+    pico8_ents_t np_list;
+    pico8_ents_t jc_list;
+    pico8_ents_t *new_lp;
+    pico8_ents_t *new_rl;
 
     assert_trade(self);
     if (self == NULL) {
         return NULL;
     }
 
-    pico8_ptrs_init(&empty_lp);
-    pico8_ptrs_init(&empty_rl);
+    pico8_ents_init(&empty_lp);
+    pico8_ents_init(&empty_rl);
     lp = self->lp != NULL ? self->lp : &empty_lp;
     rl = self->rl != NULL ? self->rl : &empty_rl;
     /* TROU-24 */
@@ -121,23 +120,23 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
     keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
     keys.qe = self->has_qe ? self->qe : 0;
 
-    pico8_ptrs_init(&np_list);
+    pico8_ents_init(&np_list);
     if (np != NULL) {
-        pico8_ptrs_add(&np_list, np);
+        pico8_ents_add(&np_list, np);
     }
-    pico8_ptrs_init(&jc_list);
+    pico8_ents_init(&jc_list);
     if (jc != NULL) {
-        pico8_ptrs_add(&jc_list, jc);
+        pico8_ents_add(&jc_list, jc);
     }
 
     /* TROU-7 */
     new_lp = malloc(sizeof *new_lp);
-    *new_lp = pico8_la_ptrs(lp, &np_list);
+    *new_lp = pico8_ents_cat(lp, &np_list);
     new_rl = malloc(sizeof *new_rl);
-    *new_rl = pico8_la_ptrs(rl, &jc_list);
+    *new_rl = pico8_ents_cat(rl, &jc_list);
 
-    pico8_ptrs_free(&np_list);
-    pico8_ptrs_free(&jc_list);
+    pico8_ents_free(&np_list);
+    pico8_ents_free(&jc_list);
 
     keys.lp = new_lp;
     keys.rl = new_rl;
@@ -145,9 +144,9 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
 }
 
 int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {
-    const pico8_ptrs_t *l_lp, *r_lp;
-    void *l_first, *r_first;
-    void *l_last, *r_last;
+    const pico8_ents_t *l_lp, *r_lp;
+    const pico8_struct_header_t *l_first, *r_first;
+    pico8_struct_header_t *l_last, *r_last;
 
     assert_trade(l);
     assert_trade(r);

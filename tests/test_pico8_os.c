@@ -444,13 +444,13 @@ static uint32_t fold_economy(uint32_t h, void *e) {
  * trade whose `lp` starts at `pt` and ends at `oz`. */
 static void export_to(void *pt, void *oz) {
     pico8_trade_keys_t keys = {0};
-    pico8_ptrs_t *lp = malloc(sizeof *lp);
+    pico8_ents_t *lp = malloc(sizeof *lp);
     pico8_ptrs_t *by = malloc(sizeof *by);
     pico8_trade_t *t;
 
-    pico8_ptrs_init(lp);
-    pico8_ptrs_add(lp, pt);
-    pico8_ptrs_add(lp, oz);
+    pico8_ents_init(lp);
+    pico8_ents_add(lp, pt);
+    pico8_ents_add(lp, oz);
     keys.lp = lp;
     t = pico8_trade_new(&keys);
     pico8_ptrs_init(by);

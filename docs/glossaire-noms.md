@@ -282,12 +282,12 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `qj(o,mr)` | — | fusionne `mr` dans `o` ; `mr` gagne sur les clés partagées |
 | `mw(o)` | — | copie superficielle ; celle d'un besoin par `jo:lz` copie le `pico8_jy_t` |
-| `gu(qk,kb)` | `pico8_gu_ptrs` | `kb` est-il dans le conteneur `qk` (identité de pointeur) |
+| `gu(qk,kb)` | `pico8_gu_ptrs` ; `pico8_ents_has` sur les listes d'entités | `kb` est-il dans le conteneur `qk` (identité de pointeur) |
 | — | `pico8_gu_content_ptrs` | appartenance d'une chaîne à un `pico8_ptrs_t` de chaînes (`hy.invented`), comparée par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua (TROU-3) |
 | `jp(qk,ow)` | `pico8_jp_ptrs` ; écrit au site sur une table statique (`cb`, `bj`) | filtre |
 | `nv(qk,kp)` | `pico8_nv_ptrs` ; écrit au site dans `lq:pq` (`fs`) | applique `kp`, en ignorant les résultats faux |
 | — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; `collect` n'a plus de version à valeur |
-| `la(a,b)` | `pico8_la_ptrs` | concatène deux conteneurs de pointeurs |
+| `la(a,b)` | `pico8_la_ptrs` ; `pico8_ents_cat` sur les listes d'entités | concatène deux conteneurs de pointeurs |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
 | `ho(rc,mr,gp)` | `hp_positions` (`static`, `pico8_research.c`) : chaque position écrit son membre, `o`/`dm` par `hp_r` ; `pico8_ho_apply` supprimé (D.8) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `s[i]` du panneau de fin par `pico8_pj_ph_s_str` (chaîne possédée, `""` hors de 1..6 : TROU-13) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
@@ -655,7 +655,8 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | L'inverse, pour les chaînes construites | `tostr`, `sub` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
 | Le tag de type | Retiré : l'en-tête d'entité (`pico8_struct_header_t`) ne porte que `cls`, à l'offset 0, et les `assert` d'entrée testent la classe (`->cls == &g_X_struct_class`), ou s'en remettent au type C du pointeur et à l'écrivain unique des registres (`hv`, `cv`, `cg` : `pico8_lt`). Piège : une confusion de représentation a produit quatre débordements de tas ; sans mot de tête, lire `->cls` sur un non-entité (un `pico8_vec_t` de 8 octets) lit **dans** l'objet, et ASan ne le voit plus |
 | Les primitives de liste | `add` → `pico8_ptrs_add`, `del` → `pico8_ptrs_del` (supprime le premier élément **identique**, pas par index), `all` → `pico8_ptrs_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_ptrs_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
-| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), `trade.lp`, `trade.rl` et l'`ib` d'une proposition |
+| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`) et l'`ib` d'une proposition |
+| Le conteneur d'entités | `pico8_ents_t` (`pico8_ents.h`) : `add`/`del`/`has`/`cat`/`all` sur des `pico8_struct_header_t *` ; tient `trade.lp`, `trade.rl` |
 
 ### Mise en page
 

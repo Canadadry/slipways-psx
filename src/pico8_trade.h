@@ -1,16 +1,16 @@
 #ifndef PICO8_TRADE_H
 #define PICO8_TRADE_H
 
+#include "pico8_ents.h"
 #include "pico8_fixed.h"
-#include "pico8_ptrs.h"
 #include "pico8_struct.h"
 
 /* Never freed: TROU-7. `lp`/`rl` are the containers the keys held, borrowed,
  * not copied. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_ptrs_t *lp;
-    pico8_ptrs_t *rl;
+    pico8_ents_t *lp;
+    pico8_ents_t *rl;
     pico8_fixed_t qe;
     int has_qe;     /* 0: `qe` is nil, and `qe` is then never read */
     int qe_is_bool; /* 1: `qe` holds a boolean (0/1), 0: a fixed; read only when `has_qe` */
@@ -20,7 +20,7 @@ typedef struct {
  * ke-descended, so it never self-registers into hv/cv/cg.
  *
  * This port has no operator overloading, so `trade.ns.__eq` is the plain
- * named pico8_trade_eq below. The generic membership helper (pico8_gu_ptrs)
+ * named pico8_trade_eq below. The generic membership helper (pico8_ents_has)
  * therefore compares two trades by pointer identity, not by pico8_trade_eq;
  * membership that must honour trade equality goes
  * through `gu_trade` (src/pico8_planet_trade.c). */
@@ -44,8 +44,8 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b);
 /* The keys of `pico8_trade_new`, read, not kept: `lp`/`rl` NULL are nil;
  * `has_qe`, `qe_is_bool`, `qe` as in `pico8_trade_t`, all 0 for a nil `qe`. */
 typedef struct {
-    pico8_ptrs_t *lp;
-    pico8_ptrs_t *rl;
+    pico8_ents_t *lp;
+    pico8_ents_t *rl;
     pico8_fixed_t qe;
     int has_qe;
     int qe_is_bool;
@@ -60,7 +60,7 @@ pico8_qe_t pico8_trade_qe(const pico8_trade_t *self);
 
 /* Returns 1 and writes *out (the last of "lp") for a non-empty "lp"; returns
  * 0 with *out untouched for a NULL self, or a nil or empty "lp". */
-int pico8_trade_to(const pico8_trade_t *self, void **out);
+int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out);
 
 /* Returns a brand-new route, never mutating self; NULL for a NULL self.
  * A nil "lp"/"rl" on self reads as an empty list, a nil "qe" as false

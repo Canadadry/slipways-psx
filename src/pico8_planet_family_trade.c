@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "pico8_struct.h"
-#include "pico8_collect.h"
 #include "pico8_entity.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
@@ -121,7 +120,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     it = pico8_ptrs_all(oe);
     while (pico8_ptrs_iter_next(&it, &w_val)) {
         pico8_struct_header_t *w;
-        const pico8_ptrs_t *t_rl = NULL;
+        const pico8_ents_t *t_rl = NULL;
 
         if (w_val == NULL) {
             continue;
@@ -135,7 +134,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
         if (t != NULL && t->rl != NULL) {
             t_rl = t->rl;
         }
-        if (pico8_gu_ptrs(t_rl, w)) {
+        if (pico8_ents_has(t_rl, w)) {
             continue;
         }
 

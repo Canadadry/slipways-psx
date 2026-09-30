@@ -75,9 +75,9 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
     it = pico8_ptrs_all(by);
     while (pico8_ptrs_iter_next(&it, &e)) {
         const pico8_trade_t *route;
-        const pico8_ptrs_t *rl;
-        const pico8_ptrs_t *lp;
-        void *to_val;
+        const pico8_ents_t *rl;
+        const pico8_ents_t *lp;
+        pico8_struct_header_t *to_val;
         int i;
 
         if (e == NULL) {
@@ -91,9 +91,9 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
 
         if (rl != NULL && lp != NULL) {
             for (i = 0; i < rl->count; i++) {
-                void *w_val = rl->items[i];
+                const pico8_struct_header_t *w_val = rl->items[i];
                 const pico8_jc_t *w;
-                void *planet_val;
+                const pico8_struct_header_t *planet_val;
                 const pico8_jo_t *planet;
 
                 if (w_val == NULL) {
@@ -107,13 +107,12 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
                     continue;
                 }
                 assert(pico8_jo_is_family(planet_val) && "trade.lp holds planets only");
-                planet = planet_val;
+                planet = (const pico8_jo_t *)planet_val;
                 if (planet->id == NULL) {
                     continue;
                 }
-                assert(((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class() &&
-                       "trade.rl holds slipways only");
-                w = w_val;
+                assert(w_val->cls == pico8_jc_struct_class() && "trade.rl holds slipways only");
+                w = (const pico8_jc_t *)w_val;
                 /* A slipway with no `hg` set is skipped; Lua would error
                  * indexing nil here. */
                 if (w->hg == NULL) {
@@ -127,7 +126,7 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
             pico8_jo_t *dest;
 
             assert(pico8_jo_is_family(to_val) && "a trade leads to a planet");
-            dest = to_val;
+            dest = (pico8_jo_t *)to_val;
             if (dest->cc != NULL) {
                 pico8_ptrs_add(dest->cc, e);
             }

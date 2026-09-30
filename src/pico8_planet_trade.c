@@ -207,8 +207,8 @@ pico8_ptrs_t *pico8_jo_ib(pico8_jo_t *self) {
     while (pico8_ptrs_iter_next(&it, &w_val)) {
         pico8_struct_header_t *w;
         pico8_jo_trade_proposal_t lw;
-        pico8_ptrs_t *lp_list;
-        pico8_ptrs_t *rl_list;
+        pico8_ents_t *lp_list;
+        pico8_ents_t *rl_list;
         pico8_struct_header_t *other;
 
         if (w_val == NULL) {
@@ -217,11 +217,11 @@ pico8_ptrs_t *pico8_jo_ib(pico8_jo_t *self) {
         w = w_val;
 
         lp_list = malloc(sizeof *lp_list);
-        pico8_ptrs_init(lp_list);
-        pico8_ptrs_add(lp_list, self);
+        pico8_ents_init(lp_list);
+        pico8_ents_add(lp_list, &self->header);
         rl_list = malloc(sizeof *rl_list);
-        pico8_ptrs_init(rl_list);
-        pico8_ptrs_add(rl_list, w);
+        pico8_ents_init(rl_list);
+        pico8_ents_add(rl_list, w);
 
         keys.lp = lp_list;
         keys.rl = rl_list;

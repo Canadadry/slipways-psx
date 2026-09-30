@@ -582,8 +582,8 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     pico8_jc_keys_t jc_keys = {0};
     pico8_jc_t *w;
     pico8_ptrs_t *jy = malloc(sizeof *jy);
-    pico8_ptrs_t *with_w = malloc(sizeof *with_w);
-    pico8_ptrs_t *without_w = malloc(sizeof *without_w);
+    pico8_ents_t *with_w = malloc(sizeof *with_w);
+    pico8_ents_t *without_w = malloc(sizeof *without_w);
     pico8_ptrs_t ib;
     pico8_trade_keys_t keys = {0};
     pico8_jo_trade_proposal_t lw = {0};
@@ -604,8 +604,8 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     assert(self->qh.jo.oe != NULL && self->qh.jo.oe->count == 0);
     pico8_ptrs_add(self->qh.jo.oe, w);
 
-    pico8_ptrs_init(with_w);
-    pico8_ptrs_add(with_w, w);
+    pico8_ents_init(with_w);
+    pico8_ents_add(with_w, &w->header);
     pico8_ptrs_init(&ib);
     keys.has_qe = 1;
     keys.qe = qe;
@@ -617,7 +617,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     pico8_nr_cn(self, &lw);
     assert(g_offers == 0 && ib.count == 0 && lw.mu == pico8_fixed_from_int(2));
 
-    pico8_ptrs_init(without_w);
+    pico8_ents_init(without_w);
     keys.rl = without_w;
     lw.t = pico8_trade_new(&keys);
     pico8_nr_cn(self, &lw);
