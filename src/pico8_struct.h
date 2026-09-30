@@ -4,7 +4,8 @@
 #include <string.h>
 
 #include "pico8_coverage.h"
-#include "pico8_game_data.h"
+#include "pico8_fixed.h"
+#include "pico8_geom.h"
 #include "pico8_vec.h"
 
 /* The states `dg` runs as `qc[qc.me](qc,qc.t)`. */
@@ -59,6 +60,8 @@ struct pico8_qy;
 struct pico8_jo_trade_proposal;
 struct pico8_emitter;
 struct pico8_probe;
+struct pico8_str_seq;
+struct pico8_kind_rec;
 
 /* One `static const` per converted class. A NULL member: the class has no
  * such method. `kj`, `ev` and `hd` read the vectors they get and never keep
@@ -94,7 +97,7 @@ struct pico8_struct_class {
      * reader returns NULL, or 0 leaving *out untouched, when the field is
      * nil; `get_fx` and `get_p_` return its Lua truth. `set_m_` also marks
      * `m_` present. Each is only ever called as `e->cls->get_X(e, ...)`. */
-    const pico8_str_seq_t *(*get_nu)(const void *self);
+    const struct pico8_str_seq *(*get_nu)(const void *self);
     int (*get_fa)(const void *self, pico8_fixed_t *out);
     const pico8_vec_t *(*get_ra)(const void *self);
     const pico8_vec_t *(*get_p)(const void *self);
@@ -124,7 +127,7 @@ typedef struct {
  * `od` whether its modules are up or down. */
 typedef struct {
     void *(*new_entity)(const pico8_jo_keys_t *keys);
-    const pico8_kind_rec_t *rec;
+    const struct pico8_kind_rec *rec;
 } pico8_entity_kind_t;
 
 #endif

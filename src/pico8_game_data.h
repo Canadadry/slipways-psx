@@ -29,7 +29,7 @@ typedef struct {
     const int *items;
 } pico8_int_seq_t;
 
-typedef struct {
+typedef struct pico8_str_seq {
     int count;
     const char *const *items;
 } pico8_str_seq_t;
@@ -42,7 +42,7 @@ typedef struct {
 /* A kind's `rr`, `s`, `me`, `od` as its chain of defaults resolves them: a
  * NULL string, or has_* 0, when absent. The strings are the ones the
  * pico8_X_start of the class that sets each points at. */
-typedef struct {
+typedef struct pico8_kind_rec {
     const char *rr;
     int has_s;
     pico8_fixed_t s;

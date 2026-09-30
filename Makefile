@@ -1,7 +1,7 @@
 # Tout tourne en parallèle (-j au nombre de cœurs, sorties regroupées par cible).
 #
 # make test          -> unit + constants-check + float-grep + float-guard +
-#                       data-guard, la boucle rapide
+#                       data-guard + composition-guard, la boucle rapide
 # make e2e           -> rejoue chaque e2e de tests/e2e/ depuis l'écran titre,
 #                       avec le binaire -O0 de make test, et compare le sha256
 #                       de sa capture à <nom>.json.sha256 ; échoue aussi si un
@@ -64,6 +64,7 @@
 #                       une sortie vide, hors suite
 # make data-guard    -> aucun offsetof dans src/, catégories de
 #                       DATA_RESIDUE_GUARD à 0, dans make test
+# make composition-guard -> catégories de COMPOSITION_RESIDUE_GUARD à 0, dans make test
 # make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
 #                       critère « sortie propre », hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
@@ -668,7 +669,7 @@ endif
 replay: $(TMP_DIR)/pico8_replay
 	./$(TMP_DIR)/pico8_replay $(EVENTS)
 
-test: unit constants-check float-grep float-guard data-guard
+test: unit constants-check float-grep float-guard data-guard composition-guard
 
 test-all: test e2e
 
@@ -859,7 +860,13 @@ data-guard: tools/data_residue.sh
 composition-residue: tools/composition_residue.sh
 	@sh tools/composition_residue.sh
 
-.PHONY: composition-residue
+# Catégories du compteur de composition tombées à 0, séparées par des virgules.
+COMPOSITION_RESIDUE_GUARD := noyau-inclut
+
+composition-guard: tools/composition_residue.sh
+	@sh tools/composition_residue.sh --check $(COMPOSITION_RESIDUE_GUARD) src tests
+
+.PHONY: composition-residue composition-guard
 
 # detect_leaks=0 : les entités ne sont jamais libérées (TROU-7).
 $(TMP_DIR)/pico8_replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
