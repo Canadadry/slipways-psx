@@ -4,7 +4,7 @@
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_ke.h"
-#include "pico8_probe.h"
+#include "pico8_probe_comp.h"
 #include "pico8_ptrs.h"
 #include "pico8_struct.h"
 
@@ -75,7 +75,6 @@ void pico8_jc_shutdown(void);
 
 /* 1 from pico8_jc_init() to pico8_jc_shutdown(), 0 otherwise. */
 int pico8_jc_ready(void);
-const pico8_struct_class_t *pico8_jc_struct_class(void);
 
 /* `p`/`ra` of an end of a slipway (a planet, or the mouse point `jc:hq`
  * hangs on `re` over nothing), read through its link: NULL, an end without

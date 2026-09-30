@@ -14,7 +14,7 @@
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_planet.h"
-#include "pico8_probe.h"
+#include "pico8_probe_comp.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
 #include "pico8_vec.h"

@@ -1,0 +1,64 @@
+#ifndef PICO8_PROBE_COMP_H
+#define PICO8_PROBE_COMP_H
+
+#include "pico8_fixed.h"
+#include "pico8_game_data.h"
+#include "pico8_gfx.h"
+#include "pico8_mem.h"
+#include "pico8_struct.h"
+#include "pico8_vec.h"
+
+/* What `bv`, `dl` and `d_` read and write of their host, the probe's own
+ * fields, stored in the host (`probe_own`) and never copied; the rest is
+ * read on `def`, the host's archetype's probe (`pico8_probe_def_none` on
+ * research_icon's `pb`). `et` is borrowed; NULL is nil or false, which no
+ * reader tells apart. */
+typedef struct pico8_probe {
+    const pico8_probe_def_t *def;
+    pico8_struct_header_t *et;
+    pico8_fixed_t od;
+    int has_od; /* 0: `od` is nil, and is then never read */
+} pico8_probe_t;
+
+/* TROU-7 */
+/* `mp` is stored into `ra` by REF identity, not copied: the caller's vector
+ * stays aliased. `et` ends in one of three states -- a real target, a
+ * static struct with no readable field but `fo`, or literal `false` -- of
+ * which only `false` is falsy; collapsing the throwaway to nil would change
+ * `d_`. */
+void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp);
+
+void pico8_bv_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra);
+
+/* Points the `fo` of `et` back at `self`, which it borrows: `et` is a planet
+ * of jo's family, a `jc`, the `jc_too_far` struct or `bv`'s throwaway target
+ * (asserted, as is the class of `self` each accepts). */
+void pico8_probe_et_hang_fo(pico8_struct_header_t *et, pico8_struct_header_t *self);
+
+/* The `{}` `bv` puts in `et` over the void: one static struct, never
+ * allocated nor freed; only `fo` is written, by pico8_probe_et_hang_fo(),
+ * and the next `bv` overwrites it. */
+typedef struct {
+    pico8_struct_header_t header;
+    pico8_struct_header_t *fo;
+} pico8_bv_et_t;
+
+const pico8_struct_class_t *pico8_bv_et_struct_class(void);
+
+/* The tooltip of a probe host: `self` must carry a probe (asserted), and is
+ * read, never retained. */
+void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *self);
+
+/* The same, for a caller that is not a host (the research icon): `me` NULL
+ * is nil, `pb` is read during the call only. */
+void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb);
+
+void pico8_dl_dispatch(void *self, const pico8_vec_t *ra);
+
+/* Returns 1 on the success branch (Lua true), 0 on the other (nil); `jc:ey`
+ * and `mz:ey` consume it. */
+int pico8_d_(pico8_struct_header_t *self);
+
+void pico8_d__dispatch(void *self, pico8_struct_header_t *kv);
+
+#endif

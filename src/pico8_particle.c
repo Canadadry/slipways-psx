@@ -9,7 +9,6 @@
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_planet.h"
 #include "pico8_vec.h"
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */

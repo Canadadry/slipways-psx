@@ -184,4 +184,9 @@ typedef struct {
     const struct pico8_kind_rec *rec;
 } pico8_entity_kind_t;
 
+/* Here, not in pico8_slipway.h / pico8_probe.h: ui.c compares against
+ * them, and including either header from ui.c makes an include pair. */
+const pico8_struct_class_t *pico8_jc_struct_class(void);
+const pico8_struct_class_t *pico8_g__struct_class(void);
+
 #endif

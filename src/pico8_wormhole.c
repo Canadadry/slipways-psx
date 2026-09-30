@@ -9,7 +9,7 @@
 #include "pico8_entity_geom.h"
 #include "pico8_ke.h"
 #include "pico8_planet.h"
-#include "pico8_probe.h"
+#include "pico8_probe_comp.h"
 #include "pico8_tech_gate.h"
 
 static int g_mz_up = 0;

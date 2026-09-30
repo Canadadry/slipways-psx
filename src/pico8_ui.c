@@ -10,8 +10,6 @@
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
-#include "pico8_probe.h"
-#include "pico8_slipway.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 
