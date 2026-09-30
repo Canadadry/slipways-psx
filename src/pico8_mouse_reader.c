@@ -43,7 +43,7 @@ static void pico8_nf_pq(pico8_mem_t *mem) {
 static pico8_nf_t *pico8_nf_struct_new(void) {
     pico8_nf_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_nf_struct_class);
+    pico8_ke_struct_init(&self->header, &g_nf_struct_class, pico8_nf_def.me, pico8_nf_def.t);
     self->def = &pico8_nf_def;
     self->ra = &g_nf_ra;
 #ifdef PICO8_CLASS_COVERAGE

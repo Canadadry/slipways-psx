@@ -395,9 +395,8 @@ static const pico8_struct_class_t g_jc_struct_class = {
 static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_jc_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_jc_struct_class);
+    pico8_ke_struct_init(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
     self->def = &pico8_jc_def;
-    self->header.me = self->def->me;
     self->fa = self->def->fa;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;

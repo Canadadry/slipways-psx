@@ -207,22 +207,21 @@ static void test_mx_defaults(void) {
 }
 
 /* The second `jl()` (the one `eu` runs) finds `ke` ready and leaves it
- * alone: a fresh struct of each module still holds ke's `t`. */
+ * alone: a fresh struct of each module still holds `t` 0. */
 static void test_second_jl_keeps_ke(void) {
     assert(pico8_ke_ready());
     pico8_jl();
     assert(pico8_ke_ready());
-    assert(pico8_jo_new(NULL)->header.t == pico8_ke_start.t);
-    assert(pico8_qh_new(NULL)->jo.header.t == pico8_ke_start.t);
-    assert(pico8_nl_new(NULL)->qh.jo.header.t == pico8_ke_start.t);
-    assert(pico8_os_new(NULL)->qh.jo.header.t == pico8_ke_start.t);
-    assert(pico8_hj_new(NULL)->qh.jo.header.t == pico8_ke_start.t);
-    assert(pico8_pm_new(NULL)->hj.qh.jo.header.t == pico8_ke_start.t);
-    assert(pico8_ga_new(NULL)->jo.header.t == pico8_ke_start.t);
-    assert(pico8_nr_new(NULL)->qh.jo.header.t == pico8_ke_start.t);
-    assert(pico8_fr_new(NULL)->nr.qh.jo.header.t == pico8_ke_start.t);
-    assert(pico8_mx_new(NULL)->hj.qh.jo.header.t == pico8_ke_start.t);
-    assert(strcmp(pico8_ke_start.me, "ph") == 0 && pico8_ke_start.t == 0);
+    assert(pico8_jo_new(NULL)->header.t == 0);
+    assert(pico8_qh_new(NULL)->jo.header.t == 0);
+    assert(pico8_nl_new(NULL)->qh.jo.header.t == 0);
+    assert(pico8_os_new(NULL)->qh.jo.header.t == 0);
+    assert(pico8_hj_new(NULL)->qh.jo.header.t == 0);
+    assert(pico8_pm_new(NULL)->hj.qh.jo.header.t == 0);
+    assert(pico8_ga_new(NULL)->jo.header.t == 0);
+    assert(pico8_nr_new(NULL)->qh.jo.header.t == 0);
+    assert(pico8_fr_new(NULL)->nr.qh.jo.header.t == 0);
+    assert(pico8_mx_new(NULL)->hj.qh.jo.header.t == 0);
 }
 
 int main(void) {

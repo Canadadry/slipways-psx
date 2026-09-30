@@ -75,7 +75,7 @@ static void test_bg_defaults_and_ready(void) {
     pico8_bg_t *bg = pico8_bg_new();
 
     assert(bg->def == &pico8_bg_def && bg->def->pl == &pico8_bg_pl_seq);
-    assert(bg->header.me == pico8_ke_start.me && bg->header.t == pico8_ke_start.t);
+    assert(bg->header.me == bg->def->me && strcmp(bg->header.me, "ph") == 0 && bg->header.t == 0);
     assert(pico8_bg_ready());
     pico8_bg_shutdown();
     assert(!pico8_bg_ready());
@@ -85,10 +85,20 @@ static void test_js_defaults_and_ready(void) {
     pico8_js_t *js = pico8_js_new(NULL);
 
     assert(js->def == &pico8_js_def && js->fa == js->def->fa);
-    assert(js->header.me == pico8_ke_start.me && js->header.t == pico8_ke_start.t);
+    assert(js->header.me == js->def->me && strcmp(js->header.me, "ph") == 0 && js->header.t == 0);
     assert(pico8_js_ready());
     pico8_js_shutdown();
     assert(!pico8_js_ready());
+}
+
+/* `ra` is the module's shared vector, not the archetype's: two fresh
+ * readers point at the same one. */
+static void test_nf_ra_is_shared(void) {
+    const pico8_nf_t *nf = pico8_nf_new();
+    const pico8_nf_t *other = pico8_nf_new();
+
+    assert(nf->def == &pico8_nf_def);
+    assert(nf->ra != NULL && nf->ra == other->ra);
 }
 
 /* `v`, `p` and `ra` start on the archetype's vectors. */
@@ -97,7 +107,7 @@ static void test_qb_defaults_and_ready(void) {
 
     assert(qb->def == &pico8_qb_def && qb->def->pc == &pico8_qb_pc_vecs);
     assert(qb->v == &qb->def->v && qb->p == &qb->def->p && qb->ra == &qb->def->ra && qb->ma == qb->def->ma);
-    assert(qb->header.me == pico8_ke_start.me && qb->header.t == pico8_ke_start.t);
+    assert(qb->header.me == qb->def->me && strcmp(qb->header.me, "ph") == 0 && qb->header.t == 0);
     assert(pico8_qb_ready());
     pico8_qb_shutdown();
     assert(!pico8_qb_ready());
@@ -108,7 +118,7 @@ static void test_mz_defaults_and_ready(void) {
     pico8_mz_t *mz = pico8_mz_new();
 
     assert(mz->def == &pico8_mz_def && mz->probe->def == &pico8_mz_def.probe);
-    assert(mz->header.me == mz->def->me && strcmp(mz->header.me, "kz") == 0 && mz->header.t == pico8_ke_start.t);
+    assert(mz->header.me == mz->def->me && strcmp(mz->header.me, "kz") == 0 && mz->header.t == 0);
     assert(mz->oi == mz->def->oi);
     assert(mz->probe->od == mz->def->probe.od && mz->probe->od == pico8_fixed_from_int(3));
     assert(mz->probe->has_od == mz->def->probe.has_od);
@@ -140,7 +150,7 @@ static void test_fv_defaults_and_ready(void) {
     assert(g_->probe->od == g_->def->probe.od);
     assert(g_->probe->has_od == g_->def->probe.has_od);
     assert(g_->probe->has_od == 1 && g_->probe->def->ik == 0 && g_->probe->def->has_ik == 0);
-    assert(g_->header.me == pico8_ke_start.me && g_->header.t == pico8_ke_start.t);
+    assert(g_->header.me == g_->def->me && strcmp(g_->header.me, "ph") == 0 && g_->header.t == 0);
     assert(pico8_fv_ready());
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
@@ -163,7 +173,7 @@ static void test_g__defaults_and_ready(void) {
     assert(g_->emitter->qg == g_->def->emitter.qg && g_->emitter->q_ == g_->def->emitter.q_);
     assert(g_->emitter->du == g_->def->emitter.du);
     assert(g_->ra == NULL);
-    assert(g_->header.me == pico8_ke_start.me && g_->header.t == pico8_ke_start.t);
+    assert(g_->header.me == g_->def->me && strcmp(g_->header.me, "ph") == 0 && g_->header.t == 0);
     assert(pico8_g__ready());
     pico8_probe_shutdown();
     assert(!pico8_g__ready());
@@ -183,7 +193,7 @@ static void test_ie_defaults_and_ready(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
 
     assert(ie->def == &pico8_ie_def && ie->ra == &ie->def->ra);
-    assert(ie->header.me == pico8_ke_start.me && ie->header.t == pico8_ke_start.t);
+    assert(ie->header.me == ie->def->me && strcmp(ie->header.me, "ph") == 0 && ie->header.t == 0);
     assert(pico8_ie_ready());
     pico8_research_icon_shutdown();
     assert(!pico8_ie_ready());
@@ -199,7 +209,7 @@ static void test_pj_defaults_and_ready(void) {
     assert(cr->hi->x == 0 && cr->hi->y == pico8_fixed_from_int(11));
     assert(cr->gq->x == 0 && cr->gq->y == pico8_fixed_from_int(11));
     assert(cr->ca == pico8_fixed_from_int(10));
-    assert(pj->header.me == pico8_ke_start.me && pj->header.t == pico8_ke_start.t);
+    assert(pj->header.me == pj->def->me && strcmp(pj->header.me, "ph") == 0 && pj->header.t == 0);
     assert(pico8_pj_ready());
     pico8_score_panel_shutdown();
     assert(!pico8_pj_ready());
@@ -248,6 +258,7 @@ int main(void) {
     test_bg_defaults_and_ready();
     test_js_defaults_and_ready();
     test_qb_defaults_and_ready();
+    test_nf_ra_is_shared();
     test_mz_defaults_and_ready();
     test_layout_ready();
     test_fv_defaults_and_ready();

@@ -40,8 +40,8 @@ typedef struct {
 } pico8_vec_seq_t;
 
 /* A kind's `rr`, `s`, `me`, `od` as its chain of defaults resolves them: a
- * NULL string, or has_* 0, when absent. The strings are the ones the
- * pico8_X_start of the class that sets each points at. */
+ * NULL string, or has_* 0, when absent. The strings are the ones its
+ * archetype points at. */
 typedef struct pico8_kind_rec {
     const char *rr;
     int has_s;
@@ -111,13 +111,6 @@ typedef struct {
     int ra_x;
     int ra_y;
 } pico8_bz_entry_t;
-
-/* The values a new instance of a class starts with: exactly the keys of the
- * class's spec, ke's left out, under the struct's own member types. */
-typedef struct {
-    const char *me;
-    pico8_fixed_t t;
-} pico8_ke_start_t;
 
 /* A class's archetype: its defaults resolved along its init chain, ke's
  * `me`/`t` first. A default that is the address of a module's static object
@@ -376,7 +369,6 @@ extern const pico8_jb_row_t pico8_pj_ou_row;
 
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
-extern const pico8_ke_start_t pico8_ke_start;
 extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
 extern const pico8_bg_def_t pico8_bg_def;
 extern const pico8_ui_def_t pico8_ui_def;

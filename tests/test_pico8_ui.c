@@ -829,7 +829,7 @@ static uint32_t fold_string(uint32_t h, const char *s) {
 }
 
 static int identity_of(const char *s) {
-    if (s == pico8_ke_start.me) {
+    if (s == pico8_bg_def.me) {
         return 1;
     }
     if (s == pico8_jo_def.me) {

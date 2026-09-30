@@ -239,9 +239,8 @@ static const pico8_struct_class_t g_mz_struct_class = {
 static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_mz_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_mz_struct_class);
+    pico8_ke_struct_init(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
     self->def = &pico8_mz_def;
-    self->header.me = self->def->me;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->oi = self->def->oi;

@@ -285,11 +285,6 @@ const pico8_jb_row_t pico8_pj_ou_row = {.count = 7, .items = pj_ou_items};
 
 const char pico8_mz_jj_qs[] = "-too far-";
 
-const pico8_ke_start_t pico8_ke_start = {
-    .me = "ph",
-    .t = 0x0,
-};
-
 const pico8_bg_def_t pico8_bg_def = {
     .me = "ph",
     .t = 0x0,

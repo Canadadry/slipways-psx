@@ -31,10 +31,11 @@ void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
     self->t = pico8_fixed_from_int(0);
 }
 
-void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls) {
+void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls, const char *me,
+                          pico8_fixed_t t) {
     self->cls = cls;
-    self->me = pico8_ke_start.me;
-    self->t = pico8_ke_start.t;
+    self->me = me;
+    self->t = t;
 }
 
 void pico8_ke_struct_pq(pico8_struct_header_t *self) {

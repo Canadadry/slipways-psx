@@ -17,9 +17,10 @@ int pico8_ke_ready(void);
  * borrowed. */
 void pico8_ke_ks(pico8_struct_header_t *self, const char *me);
 
-/* Tags `self` as a struct of class `cls` and sets ke's defaults,
- * `pico8_ke_start`. */
-void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls);
+/* Tags `self` as a struct of class `cls` and sets `me` and `t`, its class's
+ * archetype's. `me` is borrowed. */
+void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls, const char *me,
+                          pico8_fixed_t t);
 
 /* ke's pq for a struct. A child calls it exactly once, after its own pq,
  * or alone when it has none: the class walk's derived-to-base order and

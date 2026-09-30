@@ -290,7 +290,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
     self = malloc(sizeof *self);
-    pico8_ke_struct_init(&self->header, &g_pj_struct_class);
+    pico8_ke_struct_init(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
     self->def = &pico8_pj_def;
     self->fa = self->def->fa;
     self->ed = NULL;

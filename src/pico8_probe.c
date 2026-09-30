@@ -437,7 +437,7 @@ static const pico8_struct_class_t g_g__struct_class = {
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def) {
-    pico8_ke_struct_init(&self->header, cls);
+    pico8_ke_struct_init(&self->header, cls, def->me, def->t);
     self->def = def;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;

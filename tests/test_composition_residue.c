@@ -332,7 +332,8 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
 
 /* ptrs-entité lit les membres d'un type d'entité comme registres lit ceux des
  * autres structs, avec les mêmes limites (void *owner, :15). jy est exempté
- * seul, pas other_jy sur sa ligne (:16) ; (*mk) n'a pas de nom lisible (:17). */
+ * seul, pas other_jy sur sa ligne (:16) ; (*mk) n'a pas de nom lisible
+ * (:17). */
 static void test_ptrs_entite_reads_entity_members_like_registres(void) {
     setup();
     write_file(SRC "/a.h", "typedef pico8_" "ptrs_t reg17_t;\n");
@@ -374,6 +375,20 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
                                   "ptrs-entité: " SRC "/e.h:18:    _Alignas (8) void **al2;\n"
                                   "ptrs-entité: " SRC "/e.h:23:    void **more;\n"
                                   "résidu gardé (ptrs-entité) : 13 ligne(s)\n") == 0);
+}
+
+/* Deux types d'entité de deux fichiers, un membre au même numéro de ligne :
+ * deux lignes, la clé qui les dédoublonne tient au type, pas au numéro. */
+static void test_ptrs_entite_keeps_one_line_number_in_two_files(void) {
+    setup();
+    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+                           "typedef struct {\n    pico8_" "ke_t ke;\n    void **items;\n} pico8_" "jo_t;\n");
+    write_file(SRC "/g.h", "/* g */\n\n\n"
+                           "typedef struct {\n    pico8_" "ke_t ke;\n    void **more;\n} pico8_" "qh_t;\n");
+    assert(run_residue("--check ptrs-entité " TREE) == 1);
+    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void **items;\n"
+                                  "ptrs-entité: " SRC "/g.h:6:    void **more;\n"
+                                  "résidu gardé (ptrs-entité) : 2 ligne(s)\n") == 0);
 }
 
 /* const et volatile autour de void et des *, plusieurs déclarations sur une
@@ -663,6 +678,7 @@ int main(void) {
     test_registres_reads_declaration_points_outside_entity_types();
     test_registres_sees_hidden_forms_and_not_its_named_limits();
     test_ptrs_entite_reads_entity_members_like_registres();
+    test_ptrs_entite_keeps_one_line_number_in_two_files();
     test_readers_see_qualifiers_split_declarations_and_nested_attributes();
     test_registres_sees_split_braces_unions_and_attributes();
     test_void_ptr_reads_joined_public_prototypes();

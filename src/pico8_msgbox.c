@@ -107,7 +107,7 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     pico8_mh_t *self = malloc(sizeof *self);
     int i;
 
-    pico8_ke_struct_init(&self->header, &g_mh_struct_class);
+    pico8_ke_struct_init(&self->header, &g_mh_struct_class, pico8_mh_def.me, pico8_mh_def.t);
     self->def = &pico8_mh_def;
     self->rh = self->def->rh;
     self->lh = NULL;
@@ -254,7 +254,7 @@ static const pico8_struct_class_t g_iv_struct_class = {
 static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     pico8_iv_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_iv_struct_class);
+    pico8_ke_struct_init(&self->header, &g_iv_struct_class, pico8_iv_def.me, pico8_iv_def.t);
     self->def = &pico8_iv_def;
     self->l = self->def->l;
     self->ra = NULL;

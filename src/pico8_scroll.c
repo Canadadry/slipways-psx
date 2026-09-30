@@ -44,7 +44,7 @@ static const pico8_struct_class_t g_qb_struct_class = {
 static pico8_qb_t *pico8_qb_struct_new(void) {
     pico8_qb_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->header, &g_qb_struct_class);
+    pico8_ke_struct_init(&self->header, &g_qb_struct_class, pico8_qb_def.me, pico8_qb_def.t);
     self->def = &pico8_qb_def;
     self->v = &self->def->v;
     self->ma = self->def->ma;

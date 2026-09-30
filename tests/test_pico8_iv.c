@@ -201,7 +201,7 @@ static void test_dg_drives_a_ke_struct(void) {
     int i;
 
     fresh_world();
-    pico8_ke_struct_init(&f->header, &g_fake_toast_class);
+    pico8_ke_struct_init(&f->header, &g_fake_toast_class, "ph", 0);
     f->p_ = 0;
     pico8_ke_struct_pq(&f->header);
     assert(ents_listed(pico8_hv(), f));

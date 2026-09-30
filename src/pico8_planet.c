@@ -134,7 +134,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
 
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     assert(g_jo_up && "pico8_jo_init() must run first");
-    pico8_ke_struct_init(&self->header, cls);
+    pico8_ke_struct_init(&self->header, cls, def->me, def->t);
     self->def = def;
     self->ma = self->def->ma;
     self->kw = &g_jo_kw_shared;
@@ -163,7 +163,6 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->m_ = 0;
     self->has_m_ = 0;
     self->kw_own = (pico8_kw_t){0};
-    self->header.me = self->def->me;
 }
 
 static pico8_jo_t *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {

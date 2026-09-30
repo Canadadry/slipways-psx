@@ -96,7 +96,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 
     assert(g_ui_up && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
-    pico8_ke_struct_init(&self->header, &g_ui_struct_class);
+    pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
     self->le = &g_shared_le;
     self->qa = NULL;
