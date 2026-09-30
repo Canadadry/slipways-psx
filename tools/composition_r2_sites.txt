@@ -1,0 +1,11 @@
+pico8_bm_has	src/pico8_entity.c	pico8_ui_cj_he_mapper(void *e) (ui.c:450) ; hv->items (void **) dans pico8_dg (bootstrap.c:57)	pico8_he (entity.c:217) <- ui.c:454, bootstrap.c:72 ; pico8_lt (entity.c:188) <- pico8_ke_struct_pq (ke.c:40), typee
+pico8_dc	src/pico8_entity.c	bucket_src->items (void **, registre cv) dans pico8_dc (entity.c:258)	qc = bucket_src->items[i] ; entrees typees (const char *nt), appelants cart.c:208-209
+pico8_ke_ks	src/pico8_ke.c	pico8_d__dispatch(void *self) (probe.c:349), via pico8_d_	pico8_d_ (probe.c:334) <- probe.c:351 ; pico8_jo_hh <- pico8_mz_pr, void *pt_val = jo_list->items[i] (wormhole.c:153) ; pico8_jo_hu <- planet_display.c:325, typee
+pico8_f_	src/pico8_particle.c	aucun	appelants : help.c:180, planet_family.c:332, :436, planet_family_trade.c:408, probe.c:502 (self local des *_struct_new) ; planet_family.c:448 dans pico8_ga_pq (ga_t *) <- pico8_ga_struct_new
+pico8_ez	src/pico8_particle.c	pico8_ei_dispatch(void *self) (particle.c:152), via pico8_ei	particle.c:149 dans pico8_ei ; planet_family.c:449 dans pico8_ga_pq, typee
+pico8_ei	src/pico8_particle.c	pico8_ei_dispatch(void *self) (particle.c:152)	particle.c:154 ; help.c:83 <- pico8_fv_kj_dispatch(void *self) (help.c:98) ; planet_family.c:246, :535 <- pico8_hj_kj, pico8_ga_kj <- dispatch (planet_family.c:253, :542)
+pico8_bv	src/pico8_probe.c	pico8_bv_dispatch(void *self) (probe.c:208)	probe.c:209 ; wormhole.c:61 dans pico8_mz_hq <- pico8_mz_hq_dispatch(void *self) (wormhole.c:77)
+pico8_dl	src/pico8_probe.c	pico8_dl_dispatch(void *self) (probe.c:275)	probe.c:277 ; slipway.c:337 dans pico8_jc_ev <- dispatch (slipway.c:352)
+pico8_d_	src/pico8_probe.c	pico8_d__dispatch(void *self) (probe.c:349)	probe.c:351 ; slipway.c:164 dans pico8_jc_ey <- dispatch (slipway.c:347) ; wormhole.c:124 dans pico8_mz_ey <- pico8_mz_ey_dispatch(void *self) (wormhole.c:131)
+pico8_eg_gg_pred	src/pico8_score_panel.c	son propre void *e (pico8_jp_ptrs_predicate_fn, collect.h:11)	score_panel.c:125 : pico8_jp_ptrs(pico8_cg("jo"), pico8_eg_gg_pred, NULL)
+pico8_jc_hq	src/pico8_slipway.c	void *w_val lu dans jo.oe par pico8_jc_ce (slipway.c:273)	self->probe->et = pico8_jc_ce(self) (slipway.c:147) ; self <- pico8_jc_hq_dispatch(void *self) (slipway.c:341)
