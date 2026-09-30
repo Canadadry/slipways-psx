@@ -330,6 +330,112 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
                                   "résidu gardé (registres) : 19 ligne(s)\n") == 0);
 }
 
+/* ptrs-entité lit les membres d'un type d'entité comme registres lit ceux des
+ * autres structs : aucun conteneur non typé n'échappe aux deux. */
+static void test_ptrs_entite_reads_entity_members_like_registres(void) {
+    setup();
+    write_file(SRC "/a.h", "typedef pico8_" "ptrs_t reg17_t;\n");
+    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+                           "typedef struct {\n"
+                           "    pico8_" "ke_t ke;\n"
+                           "    void **items;\n"
+                           "    void *slots[8];\n"
+                           "    reg17_t l;\n"
+                           "    pico8_" "ptrs_t arr[4];\n"
+                           "    pico8_" "ptrs_t **pp;\n"
+                           "    pico8_" "ptrs_t *a, *b;\n"
+                           "    const pico8_" "ptrs_t *const x;\n"
+                           "    void *(*get)(void);\n"
+                           "    _Alignas(8) void **al;\n"
+                           "    void *owner;\n"
+                           "    pico8_" "ptrs_t *jy;\n"
+                           "} pico8_" "jo_t;\n"
+                           "typedef struct pico8_" "nl_s\n"
+                           "{\n"
+                           "    pico8_" "jo_t jo;\n"
+                           "    void **more;\n"
+                           "} pico8_" "nl_t;\n");
+    assert(run_residue("--check registres " TREE) == 0);
+    assert(run_residue("--check ptrs-entité " TREE) == 1);
+    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void **items;\n"
+                                  "ptrs-entité: " SRC "/e.h:7:    void *slots[8];\n"
+                                  "ptrs-entité: " SRC "/e.h:8:    reg17_t l;\n"
+                                  "ptrs-entité: " SRC "/e.h:9:    pico8_" "ptrs_t arr[4];\n"
+                                  "ptrs-entité: " SRC "/e.h:10:    pico8_" "ptrs_t **pp;\n"
+                                  "ptrs-entité: " SRC "/e.h:11:    pico8_" "ptrs_t *a, *b;\n"
+                                  "ptrs-entité: " SRC "/e.h:12:    const pico8_" "ptrs_t *const x;\n"
+                                  "ptrs-entité: " SRC "/e.h:13:    void *(*get)(void);\n"
+                                  "ptrs-entité: " SRC "/e.h:14:    _Alignas(8) void **al;\n"
+                                  "ptrs-entité: " SRC "/e.h:21:    void **more;\n"
+                                  "résidu gardé (ptrs-entité) : 10 ligne(s)\n") == 0);
+}
+
+/* Accolade à la ligne, union, __attribute__ et _Alignas : vus. Une union
+ * imbriquée sur plusieurs lignes (f.h:19) reste une limite, comme la struct
+ * imbriquée. */
+static void test_registres_sees_split_braces_unions_and_attributes(void) {
+    setup();
+    write_file(SRC "/f.h", "typedef struct reg_s\n"
+                           "{\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "} reg_s_t;\n"
+                           "typedef union {\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "    int x;\n"
+                           "} reg_u_t;\n"
+                           "typedef union { pico8_" "ptrs_t l; } reg_u1_t;\n"
+                           "typedef struct __attribute__((packed)) {\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "} reg_p_t;\n"
+                           "struct __attribute__((aligned(8))) reg_q {\n"
+                           "    void **items __attribute__((aligned(8)));\n"
+                           "};\n"
+                           "typedef struct {\n"
+                           "    _Alignas(8) void **items;\n"
+                           "    union {\n"
+                           "        pico8_" "ptrs_t l;\n"
+                           "    } inner;\n"
+                           "} reg_a_t;\n");
+    write_file(SRC "/f.c", "_Alignas(8) static pico8_" "ptrs_t g_al;\n"
+                           "_Alignas(8) static void *g_slots[8];\n"
+                           "static union {\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "} g_u;\n"
+                           "static struct\n"
+                           "{\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "} g_s;\n"
+                           "_Alignas(8) static struct {\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "} g_as;\n"
+                           "static void reg_f(void) {\n"
+                           "    static union {\n"
+                           "        pico8_" "ptrs_t l;\n"
+                           "    } u;\n"
+                           "    static struct\n"
+                           "    {\n"
+                           "        pico8_" "ptrs_t l;\n"
+                           "    } s;\n"
+                           "    (void)u;\n"
+                           "    (void)s;\n"
+                           "}\n");
+    assert(run_residue("--check registres " TREE) == 1);
+    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:1:_Alignas(8) static pico8_" "ptrs_t g_al;\n"
+                                  "registres: " SRC "/f.c:2:_Alignas(8) static void *g_slots[8];\n"
+                                  "registres: " SRC "/f.c:4:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.c:8:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.c:11:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.c:15:        pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.c:19:        pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.h:3:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.h:6:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.h:9:typedef union { pico8_" "ptrs_t l; } reg_u1_t;\n"
+                                  "registres: " SRC "/f.h:11:    pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.h:14:    void **items __attribute__((aligned(8)));\n"
+                                  "registres: " SRC "/f.h:17:    _Alignas(8) void **items;\n"
+                                  "résidu gardé (registres) : 13 ligne(s)\n") == 0);
+}
+
 static void test_void_ptr_reads_joined_public_prototypes(void) {
     setup();
     write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *self);\n"
@@ -494,6 +600,8 @@ int main(void) {
     test_ptrs_members_count_only_on_entity_types();
     test_registres_reads_declaration_points_outside_entity_types();
     test_registres_sees_hidden_forms_and_not_its_named_limits();
+    test_ptrs_entite_reads_entity_members_like_registres();
+    test_registres_sees_split_braces_unions_and_attributes();
     test_void_ptr_reads_joined_public_prototypes();
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
     test_attainment_list_counts_only_useful_lines();

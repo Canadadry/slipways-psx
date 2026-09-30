@@ -78,7 +78,9 @@ exclusion() {
 # le sed GNU (\b), comme les grep du script.
 VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 
-# Listes pico8_ptrs_t d'un type d'entite qui ne portent pas d'entites
+# ptrs-entite : les membres d'un type d'entite que registres compterait hors
+# d'un type d'entite (REG_TYPES par jeton, void **, void *[N], pointeur de
+# fonction qui rend void *). Listes qui ne portent pas d'entites
 # (type.membre), chacune prouvee par son ecrivain : hy.invented des chaines
 # (economy.c:284), jo.jy des entrees (economy_tiers.c:167), hp.i des
 # enregistrements jy (research.c:233), jc.ts des particules (slipway_display.c:43).
@@ -92,11 +94,13 @@ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 # void *[N] ; membre qui rend void * par pointeur de fonction ; objet de portee
 # fichier, statique de fonction, extern de .h, de ces types ou void * ;
 # prototype ou definition inline de .h qui prend ou rend un pico8_ptrs_t, ou
-# rend void **. Non vus : alias d'alias, void * derriere un typedef, struct
-# imbriquee, membre void * simple, locale, macro. Exemptes, chacun prouve par
-# son ecrivain : emitter.qy des particules (particle.c:65), le ji du contexte
-# de planet_display.c des enregistrements jy (:79, :186) ; pico8_nv_ptrs sur
-# hp.i (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
+# rend void **. Une struct ou une union dont l'accolade ouvre la ligne suivante
+# est vue ; __attribute__((...)) et _Alignas(...) sont retires avant lecture.
+# Non vus : alias d'alias, void * derriere un typedef, struct ou union
+# imbriquee sur plusieurs lignes, membre void * simple, locale, macro.
+# Exemptes, chacun prouve par son ecrivain : emitter.qy des particules
+# (particle.c:65), le ji du contexte de planet_display.c des enregistrements
+# jy (:79, :186) ; pico8_nv_ptrs sur hp.i (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
 # pico8_jo_ex sur des enregistrements jy (planet_display.c:54) ;
 # pico8_jp_ptrs et pico8_la_ptrs sur des enregistrements jy (planet_display.c:186,
 # planet_trade.c:128), les listes d'entites passant par pico8_jp_ents et
@@ -198,6 +202,11 @@ function clean(s,    out, c, q) {
     }
     return out
 }
+function unattr(s) {
+    gsub(/__attribute__[ \t]*\(\([^()]*(\([^()]*\)[^()]*)*\)\)[ \t]*/, "", s)
+    gsub(/_Alignas[ \t]*\([^()]*\)[ \t]*/, "", s)
+    return s
+}
 function braces(s,    t, n) {
     t = s; n = gsub(/\{/, "", t); depth += n
     t = s; n = gsub(/\}/, "", t); depth -= n
@@ -215,15 +224,21 @@ read_structs() {
     awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \
         -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registres.structs" -v reg_types="$REG_TYPES" \
         -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"'
-    FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0 }
+    FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0; phead = "" }
     {
-        c = clean($0)
+        c = unattr(clean($0))
+        if (phead != "") { if (c ~ /^[ \t]*\{/) c = phead " " c; phead = "" }
+        if (!inbody && (depth == 0 && c ~ /^((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*$/ ||
+                        depth > 0 && c ~ /^[ \t]*static[ \t]+(const[ \t]+)?(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*$/)) {
+            phead = c
+            next
+        }
         if (!inbody && depth == 0 && c ~ /^typedef[ \t]+struct[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*;/) {
             split(c, w, /[ \t;]+/)
             alias_n++; alias_a[alias_n] = w[3]; alias_b[alias_n] = w[4]
         }
-        if (!inbody && (depth == 0 && c ~ /^((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?struct([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/ ||
-                        depth > 0 && c ~ /^[ \t]*static[ \t]+(const[ \t]+)?struct([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/)) {
+        if (!inbody && (depth == 0 && c ~ /^((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/ ||
+                        depth > 0 && c ~ /^[ \t]*static[ \t]+(const[ \t]+)?(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/)) {
             n++; inbody = 1; seen = 0; names[n] = " "; base = depth
             sfile[n] = FILENAME; sobj[n] = c ~ /^[ \t]*(static|extern)[ \t]/
             t = c; sub(/^[ \t]*((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?struct[ \t]*/, "", t); sub(/[ \t]*\{.*/, "", t)
@@ -258,10 +273,6 @@ read_structs() {
                     t = c; sub(/^[ \t]*(const[ \t]+)?(struct[ \t]+)?/, "", t); sub(/[ \t].*/, "", t)
                     first[n] = t; firstline[n] = FNR; firsttext[n] = $0
                 }
-            }
-            if ($0 ~ /^[ \t]+(const[ \t]+)?pico8_ptrs_t[ \t]*\*?[ \t]*[a-z0-9_]+;/) {
-                t = $0; sub(/;.*/, "", t); sub(/.*[ \t*]/, "", t)
-                np[n]++; pmem[n, np[n]] = t; pline[n, np[n]] = FNR; ptext[n, np[n]] = $0
             }
             if (c ~ /^[ \t]*(const[ \t]+)?void[ \t]*(\*[ \t]*)+\([ \t]*\*/) {
                 t = c; sub(/\).*/, "", t); sub(/.*[ \t*(]/, "", t)
@@ -335,10 +346,12 @@ read_structs() {
                     print type "\t" mname[k, j] > out_members
                 }
             }
-            for (j = 1; j <= np[k]; j++) {
-                m = split(names[k], nm, " "); skip = 0
-                for (i = 1; i <= m; i++) if (index(non_entite, " " nm[i] "." pmem[k, j] " ")) skip = 1
-                if (!skip) print sfile[k] ":" pline[k, j] ":" ptext[k, j] > out_ptrs
+            m = split(names[k], nm, " ")
+            for (j = 1; j <= nr[k]; j++) {
+                q = split(rmem[k, j], mm, " "); left = q
+                for (h = 1; h <= q; h++)
+                    for (i = 1; i <= m; i++) if (index(non_entite, " " nm[i] "." mm[h] " ")) { left--; break }
+                if (left > 0 || q == 0) print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_ptrs
             }
         }
     }' $(cat "$work/files") || fail "echec de awk"
@@ -390,8 +403,8 @@ read_registres() {
         awk -v non=" $REGISTRES_NON_ENTITE " -v reg_types="$REG_TYPES" "$CLEAN_AWK"'
         FNR == 1 { depth = 0; incomment = 0; acc = "" }
         {
-            c = clean($0)
-            if (acc == "" && ((depth == 0 && $0 ~ /^[a-z]/) || (depth > 0 && c ~ /^[ \t]*static[ \t]/))) {
+            c = unattr(clean($0))
+            if (acc == "" && ((depth == 0 && $0 ~ /^([a-z]|_Alignas)/) || (depth > 0 && c ~ /^[ \t]*static[ \t]/))) {
                 start = FNR; text = $0; acc = " "; local = depth > 0
             }
             if (acc != "") {

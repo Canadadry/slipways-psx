@@ -872,6 +872,33 @@ static void test_bv(void) {
     check("bv", h, BV_HASH);
 }
 
+/* `bv` aims at the first slipway of `cg("jc")` under the probe (`jp(...)[1]`),
+ * not the last: a second slipway laid over the first, registered after it,
+ * never wins. */
+static void test_bv_takes_the_first_slipway_of_cg(void) {
+    void *old;
+    void *twin;
+    void *probe;
+    pico8_vec_t qu;
+    pico8_vec_t re;
+    pico8_vec_t at;
+
+    world();
+    old = the_slipway();
+    twin = build_jc(as_jc(old)->re);
+    as_jc(twin)->re = as_jc(old)->qu;
+    assert(pico8_cg("jc")->count == 2 && pico8_cg("jc")->items[0] == old &&
+           pico8_cg("jc")->items[1] == twin);
+    probe = pico8_g__new(NULL);
+    ((pico8_g__t *)probe)->probe->dw = 0;
+    qu = pos_of(as_jc(old)->qu);
+    re = pos_of(as_jc(old)->re);
+    at = pico8_vec_div(pico8_vec_add(qu, re), pico8_fixed_from_int(2));
+    cls_of(probe)->hq(probe, vec_ref_fixed(pico8_vec_mul(at, pico8_fixed_from_int(128))), vec_ref(64, 64));
+    assert(((pico8_g__t *)probe)->probe->et == old);
+    assert(as_jc(old)->fo == probe && as_jc(twin)->fo != probe);
+}
+
 static int is_a_jc_struct(const void *e) {
     return e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class();
@@ -1061,6 +1088,7 @@ int main(void) {
     in_fresh_child(test_eb);
     in_fresh_child(test_draw);
     in_fresh_child(test_bv);
+    in_fresh_child(test_bv_takes_the_first_slipway_of_cg);
     in_fresh_child(test_too_far);
     in_fresh_child(test_hq_mouse_point);
     in_fresh_child(test_ce_crosses_a_slipway);
