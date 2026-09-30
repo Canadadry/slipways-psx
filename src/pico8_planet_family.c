@@ -20,7 +20,7 @@
 
 static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */
-static pico8_ptrs_t g_ga_by_shared;
+static pico8_ents_t g_ga_by_shared;
 
 void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t) {
     pico8_na((pico8_struct_header_t *)self, t);
@@ -622,7 +622,7 @@ void pico8_planet_family_init(void) {
     pico8_planet_family_shutdown();
     pico8_pi_init();
     g_family_up = 1;
-    pico8_ptrs_init(&g_ga_by_shared);
+    pico8_ents_init(&g_ga_by_shared);
 }
 
 void pico8_planet_family_shutdown(void) {

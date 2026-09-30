@@ -83,7 +83,7 @@ pico8_fixed_t pico8_cz(void) {
 pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     pico8_fixed_t total = pico8_fixed_from_int(0);
     const pico8_jo_t *jo;
-    const pico8_ptrs_t *by;
+    const pico8_ents_t *by;
     const pico8_js_t *dk = pico8_dk();
 
     if (pt == NULL) {
@@ -96,13 +96,11 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
     if (by != NULL) {
         int i;
         for (i = 0; i < by->count; i++) {
-            void *e_val = by->items[i];
-            pico8_struct_header_t *e;
+            pico8_struct_header_t *e = by->items[i];
             pico8_struct_header_t *oz_val;
-            if (e_val == NULL) {
+            if (e == NULL) {
                 continue;
             }
-            e = e_val;
             if (!pico8_trade_to((const pico8_trade_t *)e, &oz_val) || oz_val == NULL) {
                 continue;
             }

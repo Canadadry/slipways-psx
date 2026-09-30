@@ -24,7 +24,7 @@ struct pico8_jo_trade_proposal {
     pico8_trade_t *t;
     pico8_fixed_t mu;
     pico8_jo_trade_proposal_kf_fn kf;
-    pico8_ptrs_t *ib;
+    pico8_ents_t *ib;
 };
 
 void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw);
@@ -35,6 +35,6 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw);
 /* TROU-7 */
 /* Returns `self.by` itself when it is set, else a fresh heap container;
  * frees neither, and never writes `self.by` back -- its caller does. */
-pico8_ptrs_t *pico8_jo_ib(pico8_jo_t *self);
+pico8_ents_t *pico8_jo_ib(pico8_jo_t *self);
 
 #endif

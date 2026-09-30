@@ -106,9 +106,9 @@ static void pico8_nr_hb_dispatch(void *self) {
 
 void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     pico8_trade_t *t;
-    const pico8_ptrs_t *oe = NULL;
-    pico8_ptrs_iter_t it;
-    void *w_val;
+    const pico8_ents_t *oe = NULL;
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *w;
 
     if (self == NULL || lw == NULL) {
         return;
@@ -117,15 +117,13 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 
     oe = self->qh.jo.oe;
 
-    it = pico8_ptrs_all(oe);
-    while (pico8_ptrs_iter_next(&it, &w_val)) {
-        pico8_struct_header_t *w;
+    it = pico8_ents_all(oe);
+    while (pico8_ents_iter_next(&it, &w)) {
         const pico8_ents_t *t_rl = NULL;
 
-        if (w_val == NULL) {
+        if (w == NULL) {
             continue;
         }
-        w = w_val;
 
         if (lw->mu <= pico8_fixed_from_int(0)) {
             continue;

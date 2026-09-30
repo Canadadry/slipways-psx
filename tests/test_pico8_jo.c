@@ -129,6 +129,10 @@ static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ents_list_size(const pico8_ents_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     const pico8_kw_t *k = jo->kw;
 
@@ -284,10 +288,10 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->ep);
     h = fnv(h, p__state(jo));
     h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)list_size(jo->oe));
+    h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
-    h = fnv(h, (uint32_t)list_size(jo->by));
-    h = fnv(h, (uint32_t)list_size(jo->cc));
+    h = fnv(h, (uint32_t)ents_list_size(jo->by));
+    h = fnv(h, (uint32_t)ents_list_size(jo->cc));
     h = fnv(h, (uint32_t)(jo->fo != NULL));
     h = fnv(h, (uint32_t)(jo->nk != NULL));
     h = fnv(h, (uint32_t)(jo->lq != NULL));

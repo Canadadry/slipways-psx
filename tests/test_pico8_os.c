@@ -143,6 +143,10 @@ static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ents_list_size(const pico8_ents_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     const pico8_kw_t *k = jo->kw;
 
@@ -368,7 +372,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     assert(pico8_gb_at(4) != NULL);
     assert(jo->hn == pico8_gb_at(4));
     h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)list_size(jo->oe));
+    h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -422,7 +426,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -432,7 +436,7 @@ static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
 /* What `bb`'s `dh` (no `pt.nl`, `pt.hf` false), `ib`, `gg` and `da` (qh
  * false) give on a processor. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_ptrs_t *ib = pico8_jo_ib(e);
+    pico8_ents_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
@@ -445,7 +449,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static void export_to(void *pt, void *oz) {
     pico8_trade_keys_t keys = {0};
     pico8_ents_t *lp = malloc(sizeof *lp);
-    pico8_ptrs_t *by = malloc(sizeof *by);
+    pico8_ents_t *by = malloc(sizeof *by);
     pico8_trade_t *t;
 
     pico8_ents_init(lp);
@@ -453,8 +457,8 @@ static void export_to(void *pt, void *oz) {
     pico8_ents_add(lp, oz);
     keys.lp = lp;
     t = pico8_trade_new(&keys);
-    pico8_ptrs_init(by);
-    pico8_ptrs_add(by, t);
+    pico8_ents_init(by);
+    pico8_ents_add(by, &t->header);
     assert(pico8_jo_is_family(pt));
     ((pico8_jo_t *)pt)->by = by;
 }

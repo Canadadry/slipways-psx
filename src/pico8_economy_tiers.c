@@ -36,7 +36,7 @@ static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
 
 static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_jo_t *jo;
-    pico8_ptrs_t *cc;
+    pico8_ents_t *cc;
     (void)ctx;
     if (pt == NULL) {
         return;
@@ -44,20 +44,20 @@ static void bd_reset_visit(pico8_struct_header_t *pt, void *ctx) {
     assert(pico8_jo_is_family(pt) && "bd: pt is a planet of cg.jo");
     jo = (pico8_jo_t *)pt;
     if (jo->cc != NULL) {
-        pico8_ptrs_free(jo->cc);
+        pico8_ents_free(jo->cc);
         free(jo->cc);
     }
     /* TROU-7 */
     cc = malloc(sizeof *cc);
-    pico8_ptrs_init(cc);
+    pico8_ents_init(cc);
     jo->cc = cc;
 }
 
 static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
     pico8_jo_t *jo;
-    pico8_ptrs_t *by;
-    pico8_ptrs_iter_t it;
-    void *e;
+    pico8_ents_t *by;
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *e;
     (void)ctx;
     if (pt == NULL) {
         return;
@@ -72,8 +72,8 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
         return;
     }
 
-    it = pico8_ptrs_all(by);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    it = pico8_ents_all(by);
+    while (pico8_ents_iter_next(&it, &e)) {
         const pico8_trade_t *route;
         const pico8_ents_t *rl;
         const pico8_ents_t *lp;
@@ -83,9 +83,8 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
         if (e == NULL) {
             continue;
         }
-        assert(((const pico8_struct_header_t *)e)->cls == pico8_trade_struct_class() &&
-               "jo.by holds trades only");
-        route = e;
+        assert(e->cls == pico8_trade_struct_class() && "jo.by holds trades only");
+        route = (const pico8_trade_t *)e;
         rl = route->rl;
         lp = route->lp;
 
@@ -128,7 +127,7 @@ static void bd_route_visit(pico8_struct_header_t *pt, void *ctx) {
             assert(pico8_jo_is_family(to_val) && "a trade leads to a planet");
             dest = (pico8_jo_t *)to_val;
             if (dest->cc != NULL) {
-                pico8_ptrs_add(dest->cc, e);
+                pico8_ents_add(dest->cc, e);
             }
         }
     }
@@ -206,7 +205,7 @@ int pico8_bb(void) {
 pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     const pico8_jo_t *jo;
     const pico8_ptrs_t *jy;
-    const pico8_ptrs_t *cc;
+    const pico8_ents_t *cc;
     pico8_fixed_t jd = pico8_fixed_from_int(1);
     int i;
 
@@ -236,14 +235,13 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
             qe_val = pico8_jy_qe(want);
             if (cc != NULL) {
                 for (j = 0; j < cc->count; j++) {
-                    void *im_val = cc->items[j];
+                    const pico8_struct_header_t *im_val = cc->items[j];
                     const pico8_trade_t *im;
                     if (im_val == NULL) {
                         continue;
                     }
-                    assert(((const pico8_struct_header_t *)im_val)->cls == pico8_trade_struct_class() &&
-                           "jo.cc holds trades only");
-                    im = im_val;
+                    assert(im_val->cls == pico8_trade_struct_class() && "jo.cc holds trades only");
+                    im = (const pico8_trade_t *)im_val;
                     /* TROU-24 */
                     if (im->has_qe && pico8_qe_equal(pico8_trade_qe(im), qe_val)) {
                         gc++;
@@ -292,7 +290,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     }
 
     {
-        const pico8_ptrs_t *by = jo->by;
+        const pico8_ents_t *by = jo->by;
         int by_count = (by != NULL) ? by->count : 0;
         int cc_count = (cc != NULL) ? cc->count : 0;
         pico8_fixed_t mid_val =

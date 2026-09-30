@@ -135,6 +135,10 @@ static int ptrs_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ents_ptrs_size(const pico8_ents_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
  * boolean (then 0 or 1), 0x57 a string; any other moves every *_HASH. */
 static uint32_t fold_fixed(uint32_t h, pico8_fixed_t x) {
@@ -313,9 +317,9 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_vec(h, jo->p);
     h = fnv(h, (uint32_t)(em->k_ == NULL ? -1 : em->k_->count));
     h = fnv(h, (uint32_t)tag_count(jo->header.cls->tags));
-    h = fnv(h, (uint32_t)ptrs_size(jo->by));
+    h = fnv(h, (uint32_t)ents_ptrs_size(jo->by));
     h = fnv(h, (uint32_t)ptrs_size(em->qy));
-    h = fnv(h, (uint32_t)ptrs_size(jo->oe));
+    h = fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
     assert(pico8_mo_qb() != NULL);
     h = fold_fixed_member(h, pico8_mo_qb()->ma);
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
@@ -539,7 +543,7 @@ static void test_life(void) {
     void *b;
     void *c;
     void *pm;
-    pico8_ptrs_t *by;
+    pico8_ents_t *by;
     static pico8_kw_t kw;
     uint32_t row;
     int hv_count;
@@ -591,12 +595,12 @@ static void test_life(void) {
     h = fnv(h, row);
     by = as_ga(c)->jo.by;
     assert(by == as_ga(a)->jo.by && by->count == 0);
-    pico8_ptrs_add(by, pico8_trade_new(NULL));
-    pico8_ptrs_add(by, pico8_trade_new(NULL));
+    pico8_ents_add(by, &pico8_trade_new(NULL)->header);
+    pico8_ents_add(by, &pico8_trade_new(NULL)->header);
     cls_of(a)->hb(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
-    assert(ptrs_size(as_ga(b)->jo.by) == 2);
+    assert(ents_ptrs_size(as_ga(b)->jo.by) == 2);
     /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */
     assert(pico8_jo_ib(&as_ga(b)->jo) == by && by->count == 2);
 

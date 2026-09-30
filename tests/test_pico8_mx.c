@@ -90,6 +90,20 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
+}
+
 static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0u);
 }
@@ -131,6 +145,10 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
 
 /* The item count of a list member, -1 when NULL. */
 static int ptrs_size(const pico8_ptrs_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
+static int ents_ptrs_size(const pico8_ents_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
@@ -400,7 +418,7 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     assert(pico8_gb_at(5) != NULL);
     assert(jo->hn == pico8_gb_at(5));
     h = fold_kw(h, jo);
-    h = fnv(h, (uint32_t)ptrs_size(jo->oe));
+    h = fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
     h = fnv(h, (uint32_t)ptrs_size(jo->jy));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -451,7 +469,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -460,7 +478,7 @@ static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
 
 /* What `bb`'s `dh`, `ib`, `gg` and `da` (qh false) give on a synthesizer. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_ptrs_t *ib = pico8_jo_ib(e);
+    pico8_ents_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
@@ -537,7 +555,7 @@ static void *join(void *qu, void *synthesizer) {
     assert(jc != NULL);
     set_credits(999);
     cls_of(jc)->ey(jc, synthesizer);
-    assert(listed(as_hj(synthesizer)->qh.jo.oe, jc));
+    assert(ents_listed(as_hj(synthesizer)->qh.jo.oe, jc));
     return jc;
 }
 
@@ -563,7 +581,7 @@ static uint32_t fold_kf(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fold_fixed_member(h, jo->ma);
     h = jo->has_fx ? fold_bool_member(h, jo->fx) : fold_absent(h);
-    return fnv(h, (uint32_t)ptrs_size(jo->oe));
+    return fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
 }
 
 /* `mx:kf` on a slipway from an ascension whose `jy` lacks a resource of `ht`: nothing

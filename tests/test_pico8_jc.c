@@ -234,6 +234,10 @@ static int ptrs_count(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ents_ptrs_count(const pico8_ents_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 /* The count, then each `id` and `true`. */
 static uint32_t fold_hg(uint32_t h, const void *jc) {
     const pico8_jc_hg_t *hg = as_jc(jc)->hg;
@@ -284,15 +288,15 @@ static uint32_t fold_planets(uint32_t h, int with_eb) {
 
     for (i = 0; np != NULL && i < np->count; i++) {
         void *p = np->items[i];
-        const pico8_ptrs_t *oe = as_jo(p)->oe;
-        h = fnv(h, (uint32_t)ptrs_count(oe));
+        const pico8_ents_t *oe = as_jo(p)->oe;
+        h = fnv(h, (uint32_t)ents_ptrs_count(oe));
         h = fold_ref(h, as_jo(p)->fo);
         h = fnv(h, (uint32_t)holder_kind(as_jo(p)->fo));
         if (with_eb && oe != NULL) {
             int j;
             for (j = 0; j < oe->count; j++) {
                 assert(cls_of(oe->items[j]) == pico8_jc_struct_class());
-                h = fold_ref(h, pico8_jc_eb(oe->items[j], p));
+                h = fold_ref(h, pico8_jc_eb((const pico8_jc_t *)oe->items[j], p));
             }
         }
     }
@@ -512,7 +516,7 @@ static void test_ey(void) {
     assert(listed(pico8_cg("jc"), held));
     assert(as_jc(held)->qu == origin && as_jc(held)->re == target);
     assert(re_kind(held) == RE_PLANET && et_kind(held) == ET_ABSENT);
-    assert(ptrs_count(as_jo(origin)->oe) == 0 && ptrs_count(as_jo(target)->oe) == 0);
+    assert(ents_ptrs_count(as_jo(origin)->oe) == 0 && ents_ptrs_count(as_jo(target)->oe) == 0);
     before = credits();
     assert(as_jc(held)->probe->has_od);
     od = as_jc(held)->probe->od;
@@ -521,14 +525,14 @@ static void test_ey(void) {
     refused = build_jc(origin);
     cls_of(refused)->ey(refused, NULL);
     assert(p__state(as_jc(refused)) == 2 && credits() == before);
-    assert(ptrs_count(as_jo(origin)->oe) == 0);
+    assert(ents_ptrs_count(as_jo(origin)->oe) == 0);
     h = fold_jc(h, refused);
 
     cls_of(held)->ey(held, target);
     assert(as_jc(held)->nh == pico8_fixed_from_int(1));
     assert(as_jc(held)->re == target);
     assert(p__state(as_jc(held)) == 0);
-    assert(ptrs_count(as_jo(origin)->oe) == 1 && ptrs_count(as_jo(target)->oe) == 1);
+    assert(ents_ptrs_count(as_jo(origin)->oe) == 1 && ents_ptrs_count(as_jo(target)->oe) == 1);
     assert(credits() == pico8_fixed_sub(before, od));
     h = fold_jc(h, held);
     h = fold_planets(h, 1);
@@ -716,11 +720,11 @@ static void test_too_far(void) {
     before = credits();
     nh = as_jc(far)->nh;
     re = as_jc(far)->re;
-    assert(ptrs_count(as_jo(origin)->oe) == 1 && ptrs_count(as_jo(target)->oe) == 1);
+    assert(ents_ptrs_count(as_jo(origin)->oe) == 1 && ents_ptrs_count(as_jo(target)->oe) == 1);
     cls_of(far)->ey(far, target);
     assert(p__state(as_jc(far)) == 2);
     assert(credits() == before);
-    assert(ptrs_count(as_jo(origin)->oe) == 1 && ptrs_count(as_jo(target)->oe) == 1);
+    assert(ents_ptrs_count(as_jo(origin)->oe) == 1 && ents_ptrs_count(as_jo(target)->oe) == 1);
     assert(as_jc(far)->re == re && re_kind(far) == RE_THROWAWAY);
     assert(as_jc(far)->nh == nh);
     assert(et_kind(far) == ET_QS);

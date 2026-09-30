@@ -261,23 +261,21 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
     }
 
     {
-        const pico8_ptrs_t *oe = NULL;
+        const pico8_ents_t *oe = NULL;
 
         if (qu != NULL) {
             assert(pico8_jo_is_family(qu) && "jc.qu is a planet: the constructor asserts it");
             oe = ((const pico8_jo_t *)qu)->oe;
         }
         if (oe != NULL) {
-            pico8_ptrs_iter_t it = pico8_ptrs_all(oe);
-            void *w_val;
-            while (pico8_ptrs_iter_next(&it, &w_val)) {
-                pico8_struct_header_t *w;
-                if (w_val == NULL) {
+            pico8_ents_iter_t it = pico8_ents_all(oe);
+            pico8_struct_header_t *w;
+            while (pico8_ents_iter_next(&it, &w)) {
+                if (w == NULL) {
                     continue;
                 }
-                assert(((const pico8_struct_header_t *)w_val)->cls == pico8_jc_struct_class() &&
+                assert(w->cls == pico8_jc_struct_class() &&
                        "qu.oe must hold jc structs: only jo:kf adds to it, and only slipways");
-                w = w_val;
                 if (pico8_jc_eb((const pico8_jc_t *)w, qu) == re) {
                     return w;
                 }

@@ -267,14 +267,14 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
 
 void pico8_jo_pq(pico8_jo_t *self) {
     const pico8_qh_t *qh;
-    pico8_ptrs_t *oe;
+    pico8_ents_t *oe;
 
     if (self == NULL) {
         return;
     }
 
     oe = malloc(sizeof *oe);
-    pico8_ptrs_init(oe);
+    pico8_ents_init(oe);
     self->oe = oe;
 
     qh = pico8_qh_of(&self->header);

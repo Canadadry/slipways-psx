@@ -139,6 +139,10 @@ static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ents_list_size(const pico8_ents_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 /* `e` as a planet of qh's lineage. */
 static pico8_qh_t *as_qh(void *e) {
     assert(pico8_qh_of(e) == e);
@@ -341,7 +345,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     assert(jo->kw != NULL && jo->kw != pico8_jo_shared_kw());
     assert(pico8_gb_at(1) != NULL);
     assert(jo->hn == pico8_gb_at(1));
-    h = fnv(h, (uint32_t)list_size(jo->oe));
+    h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -393,7 +397,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -402,7 +406,7 @@ static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
 
 /* What `bb`'s `dh`, `ib`, `gg` and `da` give on a gate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_ptrs_t *ib = pico8_jo_ib(e);
+    pico8_ents_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
@@ -412,12 +416,12 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 
 /* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
  * count it. */
-static pico8_ptrs_t *list_of(int n, void *item) {
-    pico8_ptrs_t *l = malloc(sizeof *l);
+static pico8_ents_t *list_of(int n, pico8_struct_header_t *item) {
+    pico8_ents_t *l = malloc(sizeof *l);
     int i;
-    pico8_ptrs_init(l);
+    pico8_ents_init(l);
     for (i = 0; i < n; i++) {
-        pico8_ptrs_add(l, item);
+        pico8_ents_add(l, item);
     }
     return l;
 }
@@ -465,7 +469,7 @@ static void test_life(void) {
     void *idle;
     void *slipgate;
     pico8_down_t jc;
-    pico8_ptrs_t *oe;
+    pico8_ents_t *oe;
     int i;
 
     start_game();

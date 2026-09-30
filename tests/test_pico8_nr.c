@@ -137,6 +137,10 @@ static int list_size(const pico8_ptrs_t *l) {
     return l == NULL ? -1 : l->count;
 }
 
+static int ents_list_size(const pico8_ents_t *l) {
+    return l == NULL ? -1 : l->count;
+}
+
 /* `e` as a planet of qh's lineage. */
 static pico8_qh_t *as_qh(void *e) {
     assert(pico8_qh_of(e) == e);
@@ -353,7 +357,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     assert(jo->kw != NULL && jo->kw != pico8_jo_shared_kw());
     assert(pico8_gb_at(1) != NULL);
     assert(jo->hn == pico8_gb_at(1));
-    h = fnv(h, (uint32_t)list_size(jo->oe));
+    h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
@@ -402,7 +406,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
  * never in `hv`, so the tag branch. */
-static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
+static uint32_t fold_ib(uint32_t h, const pico8_ents_t *ib) {
     if (ib == NULL) {
         return fnv(h, 0xDEADu);
     }
@@ -411,7 +415,7 @@ static uint32_t fold_ib(uint32_t h, const pico8_ptrs_t *ib) {
 
 /* What `bb`'s `dh`, `ib`, `gg` and `da` give on a slipgate. */
 static uint32_t fold_economy(uint32_t h, void *e) {
-    pico8_ptrs_t *ib = pico8_jo_ib(e);
+    pico8_ents_t *ib = pico8_jo_ib(e);
     h = fnv(h, (uint32_t)pico8_dh(e));
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
@@ -421,13 +425,13 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 
 /* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
  * count it. */
-static pico8_ptrs_t *list_of(int n, void *item) {
-    pico8_ptrs_t *l = malloc(sizeof *l);
+static pico8_ents_t *list_of(int n, pico8_struct_header_t *item) {
+    pico8_ents_t *l = malloc(sizeof *l);
     int i;
 
-    pico8_ptrs_init(l);
+    pico8_ents_init(l);
     for (i = 0; i < n; i++) {
-        pico8_ptrs_add(l, item);
+        pico8_ents_add(l, item);
     }
     return l;
 }
@@ -445,7 +449,7 @@ static void test_life(void) {
     void *bare;
     pico8_vec_t *mp;
     pico8_down_t jc;
-    pico8_ptrs_t *oe;
+    pico8_ents_t *oe;
     const pico8_vec_t *mo_ra;
     int i;
 
@@ -567,7 +571,7 @@ static void test_nr_is_a_struct(void) {
 static int g_offers = 0;
 
 static void take_offer(pico8_jo_trade_proposal_t *self, pico8_trade_t *a) {
-    pico8_ptrs_add(self->ib, a);
+    pico8_ents_add(self->ib, &a->header);
     self->mu -= pico8_fixed_from_int(1);
     g_offers++;
 }
@@ -584,7 +588,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_ents_t *with_w = malloc(sizeof *with_w);
     pico8_ents_t *without_w = malloc(sizeof *without_w);
-    pico8_ptrs_t ib;
+    pico8_ents_t ib;
     pico8_trade_keys_t keys = {0};
     pico8_jo_trade_proposal_t lw = {0};
     pico8_fixed_t qe;
@@ -602,11 +606,11 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     w = pico8_jc_new(&jc_keys);
     w->re = &other->jo.header;
     assert(self->qh.jo.oe != NULL && self->qh.jo.oe->count == 0);
-    pico8_ptrs_add(self->qh.jo.oe, w);
+    pico8_ents_add(self->qh.jo.oe, &w->header);
 
     pico8_ents_init(with_w);
     pico8_ents_add(with_w, &w->header);
-    pico8_ptrs_init(&ib);
+    pico8_ents_init(&ib);
     keys.has_qe = 1;
     keys.qe = qe;
     keys.rl = with_w;
@@ -622,7 +626,7 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     lw.t = pico8_trade_new(&keys);
     pico8_nr_cn(self, &lw);
     assert(g_offers == 1 && ib.count == 1 && lw.mu == pico8_fixed_from_int(1));
-    pico8_ptrs_free(&ib);
+    pico8_ents_free(&ib);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

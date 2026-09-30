@@ -1,6 +1,7 @@
 #ifndef PICO8_PLANET_H
 #define PICO8_PLANET_H
 
+#include "pico8_ents.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_gen.h"
@@ -39,7 +40,7 @@ typedef struct {
     const char *id;
     pico8_vec_t *p;
     pico8_vec_t *ra;
-    pico8_ptrs_t *oe;
+    pico8_ents_t *oe;
     pico8_hp_t *hn;
     const char *ep;
     pico8_ptrs_t *jy;
@@ -54,8 +55,8 @@ typedef struct {
     int has_p_;
     pico8_fixed_t kr;
     int has_kr;
-    pico8_ptrs_t *cc;
-    pico8_ptrs_t *by;
+    pico8_ents_t *cc;
+    pico8_ents_t *by;
     pico8_fixed_t mi;
     int has_mi;
     int m_;

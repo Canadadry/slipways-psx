@@ -74,7 +74,7 @@ static void setup_panel_state(pico8_mem_t *mem, pico8_gfx_t *gfx) {
 
 /* Read on the instance's member, not the class defaults, so the test
  * says nothing about where the value comes from. */
-static pico8_ptrs_t *planet_by_ref(const pico8_ga_t *planet) {
+static pico8_ents_t *planet_by_ref(const pico8_ga_t *planet) {
     return planet->jo.by;
 }
 
@@ -85,7 +85,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     static pico8_kw_t kw;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
-    pico8_ptrs_t *by;
+    pico8_ents_t *by;
     pico8_trade_t *route_a;
     pico8_trade_t *route_b;
     const pico8_ptrs_t *le;
@@ -130,8 +130,8 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     assert(by != NULL);
     route_a = pico8_trade_new(NULL);
     route_b = pico8_trade_new(NULL);
-    pico8_ptrs_add(by, route_a);
-    pico8_ptrs_add(by, route_b);
+    pico8_ents_add(by, &route_a->header);
+    pico8_ents_add(by, &route_b->header);
 
     exports_lq = NULL;
     pico8_jo_gh(&planet->jo);

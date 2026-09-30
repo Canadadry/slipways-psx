@@ -35,7 +35,7 @@ static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
 
 void pico8_jo_hb(pico8_jo_t *self) {
     const pico8_ptrs_t *jy_list;
-    const pico8_ptrs_t *by_list;
+    const pico8_ents_t *by_list;
     const pico8_fixed_t *qe = NULL;
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     pico8_lq_t *lq_result;
@@ -247,7 +247,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string("makes:");
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string(mu_str);
             } else {
-                const pico8_ptrs_t *by = self->by;
+                const pico8_ents_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
                 char *count_str = pico8_tostr_fixed(pico8_fixed_from_int(by_count));
                 char *mu_str = pico8_tostr_fixed(mu);

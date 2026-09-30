@@ -8,4 +8,4 @@ pico8_bv	src/pico8_probe.c	pico8_bv_dispatch(void *self) (probe.c:208)	probe.c:2
 pico8_dl	src/pico8_probe.c	pico8_dl_dispatch(void *self) (probe.c:275)	probe.c:277 ; slipway.c:337 dans pico8_jc_ev <- dispatch (slipway.c:352)
 pico8_d_	src/pico8_probe.c	pico8_d__dispatch(void *self) (probe.c:349)	probe.c:351 ; slipway.c:164 dans pico8_jc_ey <- dispatch (slipway.c:347) ; wormhole.c:124 dans pico8_mz_ey <- pico8_mz_ey_dispatch(void *self) (wormhole.c:131)
 pico8_eg_gg_pred	src/pico8_score_panel.c	son propre void *e (pico8_jp_ptrs_predicate_fn, collect.h:11)	score_panel.c:125 : pico8_jp_ptrs(pico8_cg("jo"), pico8_eg_gg_pred, NULL)
-pico8_jc_hq	src/pico8_slipway.c	void *w_val lu dans jo.oe par pico8_jc_ce (slipway.c:273)	self->probe->et = pico8_jc_ce(self) (slipway.c:147) ; self <- pico8_jc_hq_dispatch(void *self) (slipway.c:341)
+pico8_jc_hq	src/pico8_slipway.c	aucun : jo.oe est typee (2.8b)	self->probe->et = pico8_jc_ce(self) (slipway.c:147) ; self <- pico8_jc_hq_dispatch(void *self) (slipway.c:341)
