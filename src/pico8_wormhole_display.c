@@ -28,7 +28,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
 
-    if (self->ke.me != NULL && strcmp(self->ke.me, "kz") == 0) {
+    if (self->ke.header.me != NULL && strcmp(self->ke.header.me, "kz") == 0) {
         pico8_vec_t cp;
 
         if (self->probe->et == NULL) {
@@ -46,7 +46,7 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
             pico8_spr_default(gfx, mem, 7, px - 4, py - 4);
         }
     } else {
-        pico8_fixed_t t = self->ke.t;
+        pico8_fixed_t t = self->ke.header.t;
         pico8_fixed_t oi = self->oi;
         int has_kk = self->kk != NULL;
         int dt;

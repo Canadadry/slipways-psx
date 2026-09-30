@@ -44,7 +44,7 @@ static const pico8_struct_class_t g_qb_struct_class = {
 static void *pico8_qb_struct_new(void) {
     pico8_qb_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke, &g_qb_struct_class);
+    pico8_ke_struct_init(&self->ke.header, &g_qb_struct_class);
     self->v = &pico8_qb_start.v;
     self->ma = pico8_qb_start.ma;
     self->p = &pico8_qb_start.p;
@@ -53,7 +53,7 @@ static void *pico8_qb_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("qb");
 #endif
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

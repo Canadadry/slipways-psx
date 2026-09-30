@@ -28,7 +28,7 @@ static pico8_struct_header_t *g_fm = NULL;
 static const pico8_struct_class_t g_fm_placeholder_struct_class = {0};
 
 static pico8_fm_placeholder_t g_fm_placeholder = {
-    {&g_fm_placeholder_struct_class}, 0, 0, 0, 0};
+    {.cls = &g_fm_placeholder_struct_class}, 0, 0, 0, 0};
 
 static int bv_et_is_holder_class(const pico8_struct_class_t *cls) {
     return cls->hq == pico8_bv_dispatch || cls == pico8_mz_struct_class();
@@ -38,7 +38,7 @@ static const pico8_struct_class_t g_bv_et_struct_class = {0};
 
 /* The `{}` `bv` puts in `et` over the void, off the panel: never allocated,
  * never freed; only `fo` is written, and the next `bv` overwrites it. */
-static pico8_bv_et_t g_bv_et = {{&g_bv_et_struct_class}, NULL};
+static pico8_bv_et_t g_bv_et = {{.cls = &g_bv_et_struct_class}, NULL};
 
 static int pico8_probe_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -227,7 +227,7 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     }
     assert(self->cls->probe_of != NULL && "dl: a class that carries no probe is no receiver -- stop");
 
-    pico8_dl_show(gfx, mem, ((const pico8_ke_t *)self)->me, self->cls->probe_of(self));
+    pico8_dl_show(gfx, mem, self->me, self->cls->probe_of(self));
 }
 
 void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb) {
@@ -364,7 +364,7 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
         assert(self->cls->emitter_of != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
         emitter = self->cls->emitter_of(self);
         pn = emitter->pn;
-        t = ((const pico8_ke_t *)self)->t;
+        t = self->t;
         du = emitter->du;
         py = emitter->py;
         ki = emitter->ki;
@@ -444,7 +444,7 @@ static const pico8_struct_class_t g_g__struct_class = {
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
-    pico8_ke_struct_init(&self->ke, cls);
+    pico8_ke_struct_init(&self->ke.header, cls);
     self->emitter = &self->emitter_own;
     self->emitter->qy = NULL;
     self->ra = NULL;
@@ -485,7 +485,7 @@ static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     self = malloc(sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class);
     if (keys != NULL) {
-        self->ke.t = keys->t;
+        self->ke.header.t = keys->t;
         if (keys->has_pn) {
             self->emitter->pn = keys->pn;
         }
@@ -500,7 +500,7 @@ static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_class_coverage_record("g_");
 #endif
     pico8_f_((pico8_struct_header_t *)self);
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

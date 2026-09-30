@@ -92,7 +92,7 @@ static int list_count(const pico8_ptrs_t *list) {
     return list != NULL ? list->count : 0;
 }
 
-static int is_me(const pico8_ke_t *ke, const char *want) {
+static int is_me(const pico8_struct_header_t *ke, const char *want) {
     return ke->me != NULL && strcmp(ke->me, want) == 0;
 }
 
@@ -353,8 +353,8 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
     h = fold_fixed_member(h, em->du);
-    h = fold_string_member(h, e->ke.me);
-    h = fold_fixed_member(h, e->ke.t);
+    h = fold_string_member(h, e->ke.header.me);
+    h = fold_fixed_member(h, e->ke.header.t);
     assert(e->nu != NULL && pr->dq != NULL && em->k_ != NULL);
     h = fold_tags(h, e->nu);
     h = fold_seq(h, em->k_);
@@ -400,9 +400,9 @@ static void test_built(void) {
     assert(a->emitter->qy != b->emitter->qy && b->emitter->qy != c->emitter->qy);
     assert(a->fa == pico8_fixed_from_int(2) && a->emitter->ki == pico8_fixed_from_int(9));
     assert(a->probe->dw == pico8_g__start.dw);
-    assert(c->emitter->pn == pico8_fixed_from_int(7) && c->ke.t == pico8_fixed_from_int(3) &&
+    assert(c->emitter->pn == pico8_fixed_from_int(7) && c->ke.header.t == pico8_fixed_from_int(3) &&
            c->emitter->du == pico8_fixed_from_int(10) && c->emitter->py == pico8_fixed_from_int(1));
-    assert(b->emitter->pn == pico8_fixed_from_int(3) && b->ke.t == pico8_fixed_from_int(0));
+    assert(b->emitter->pn == pico8_fixed_from_int(3) && b->ke.header.t == pico8_fixed_from_int(0));
     check("built", h, BUILT_HASH);
 }
 
@@ -565,9 +565,9 @@ static void test_life(void) {
     }
     for (i = 0; i < 3; i++) {
         pico8_dg();
-        h = fold_fixed_member(h, a->ke.t);
-        h = fold_fixed_member(h, b->ke.t);
-        h = fold_string_member(h, a->ke.me);
+        h = fold_fixed_member(h, a->ke.header.t);
+        h = fold_fixed_member(h, b->ke.header.t);
+        h = fold_string_member(h, a->ke.header.me);
         assert(listed(pico8_hv(), a) && listed(pico8_hv(), b));
     }
     assert(cls_of(a)->ey == pico8_d__dispatch);
@@ -593,8 +593,8 @@ static void test_ey_on(void) {
     out = pico8_d_(&a->ke.header);
     assert(out == 0);
     assert(a->has_p_ && a->p_);
-    h = fold_string_member(h, a->ke.me);
-    h = fold_fixed_member(h, a->ke.t);
+    h = fold_string_member(h, a->ke.header.me);
+    h = fold_fixed_member(h, a->ke.header.t);
     h = fold_p_(h, a);
     h = fold_fixed_member(h, fm_hy()->nz);
     check("ey on", h, EY_ON_HASH);
@@ -612,10 +612,10 @@ static void test_ey_off(void) {
     out = pico8_d_(&a->ke.header);
     assert(out == 1);
     assert(!a->has_p_);
-    assert(is_me(&a->ke, "ly"));
-    assert(a->ke.t == pico8_fixed_from_int(0));
-    h = fold_string_member(h, a->ke.me);
-    h = fold_fixed_member(h, a->ke.t);
+    assert(is_me(&a->ke.header, "ly"));
+    assert(a->ke.header.t == pico8_fixed_from_int(0));
+    h = fold_string_member(h, a->ke.header.me);
+    h = fold_fixed_member(h, a->ke.header.t);
     h = fold_fixed_member(h, fm_hy()->nz);
     check("ey off", h, EY_OFF_HASH);
 }
@@ -637,13 +637,13 @@ static void test_ey_void(void) {
     assert(et_fo(a) == a);
     assert(!a->has_p_);
     nz = fm_hy()->nz;
-    me = a->ke.me;
+    me = a->ke.header.me;
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->ke.header);
     assert(out == 0);
     assert(a->has_p_ && a->p_);
     assert(fm_hy()->nz == nz);
-    assert(a->ke.me == me);
+    assert(a->ke.header.me == me);
     assert(et_kind(a) == 4);
     printf("[ey void] refused\n");
 }

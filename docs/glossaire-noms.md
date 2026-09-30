@@ -32,7 +32,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
-| `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`), et ne prend qu'un `pico8_ke_t` |
+| `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`), et prend l'en-tête `pico8_struct_header_t` |
 | `me` | champ `"me"` | nom de l'état/icône courant d'une entité |
 | `t` | champ `"t"` | compteur de frames de l'état courant |
 | `mv(e,rm,...)` | membre typé de `pico8_struct_class_t` (`e->cls->rm`), ou fonction directe pour `eb`, `ib`, `gg`, `md` | dispatch : appelle la méthode `rm` de `e` ; `pico8_mv` supprimé (D.10a) |

@@ -22,7 +22,7 @@ static const pico8_struct_class_t g_mz_jj_struct_class = {0};
 /* The only one: never allocated, never freed; no writer, so a write
  * reaching it stops the run. */
 static pico8_mz_jj_t g_mz_jj_wrapper = {
-    {&g_mz_jj_struct_class},
+    {.cls = &g_mz_jj_struct_class},
     pico8_mz_jj_qs,
 };
 
@@ -113,7 +113,7 @@ void pico8_mz_ey(pico8_mz_t *self) {
         return;
     }
 
-    t = self->ke.t;
+    t = self->ke.header.t;
 
     /* The `or` short-circuits: `d_`'s side effects must not run before tick
      * 15, so this call cannot be hoisted out of the else branch. */
@@ -158,7 +158,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
             assert(pico8_jo_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
             pt = pt_val;
 
-            if (pt->ke.me != NULL && strcmp(pt->ke.me, "unknown") == 0) {
+            if (pt->ke.header.me != NULL && strcmp(pt->ke.header.me, "unknown") == 0) {
                 pico8_vec_t pt_p =
                     pt->p != NULL ? *pt->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
                 pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);
@@ -246,8 +246,8 @@ static const pico8_struct_class_t g_mz_struct_class = {
 static void *pico8_mz_struct_new(void) {
     pico8_mz_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke, &g_mz_struct_class);
-    self->ke.me = pico8_mz_start.me;
+    pico8_ke_struct_init(&self->ke.header, &g_mz_struct_class);
+    self->ke.header.me = pico8_mz_start.me;
     self->nu = pico8_mz_start.nu;
     self->probe = &self->probe_own;
     self->probe->dw = pico8_mz_start.dw;
@@ -274,7 +274,7 @@ static void *pico8_mz_struct_new(void) {
     pico8_class_coverage_record("mz");
 #endif
     pico8_mz_pq(self);
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

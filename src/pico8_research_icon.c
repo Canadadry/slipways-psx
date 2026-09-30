@@ -237,7 +237,7 @@ static void *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     pico8_ie_t *self = malloc(sizeof *self);
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
-    pico8_ke_struct_init(&self->ke_base, &g_ie_struct_class);
+    pico8_ke_struct_init(&self->ke_base.header, &g_ie_struct_class);
     self->kq = &pico8_ie_start.kq;
     self->fa = pico8_ie_start.fa;
     self->ra = &pico8_ie_start.ra;
@@ -255,7 +255,7 @@ static void *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ie");
 #endif
-    pico8_ke_struct_pq(&self->ke_base);
+    pico8_ke_struct_pq(&self->ke_base.header);
     return self;
 }
 

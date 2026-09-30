@@ -295,8 +295,8 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, g->ms);
     h = fold_hf(h, jo);
-    h = fold_string_member(h, jo->ke.me);
-    h = fold_fixed_member(h, jo->ke.t);
+    h = fold_string_member(h, jo->ke.header.me);
+    h = fold_fixed_member(h, jo->ke.header.t);
     h = fold_string_member(h, jo->id);
     h = fold_fixed_member(h, jo->ma);
     h = fold_p_(h, jo);

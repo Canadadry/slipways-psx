@@ -249,8 +249,8 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     qh = &nr->qh;
     jo = &qh->jo;
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->ke.me);
-    h = fold_fixed_member(h, jo->ke.t);
+    h = fold_string_member(h, jo->ke.header.me);
+    h = fold_fixed_member(h, jo->ke.header.t);
     h = fold_string_member(h, nr->rr);
     h = fold_fixed_member(h, fr->mt);
     h = fold_fixed_member(h, qh->hp);
@@ -387,7 +387,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
     h = fold_ra_y(h, qh);
     pico8_dg();
-    h = fold_fixed_member(h, qh->jo.ke.t);
+    h = fold_fixed_member(h, qh->jo.ke.header.t);
     return fold_ra_y(h, qh);
 }
 
@@ -470,7 +470,7 @@ static void test_life(void) {
 
     start_game();
     idle = build_gate();
-    h = fold_string_member(h, as_qh(idle)->jo.ke.me);
+    h = fold_string_member(h, as_qh(idle)->jo.ke.header.me);
     h = fold_dg(h, idle);
 
     placed = build_gate();
@@ -478,8 +478,8 @@ static void test_life(void) {
     set_credits(999);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(placed)->jo.ke.me);
-    assert(strcmp(as_qh(placed)->jo.ke.me, "ly") == 0);
+    h = fold_string_member(h, as_qh(placed)->jo.ke.header.me);
+    assert(strcmp(as_qh(placed)->jo.ke.header.me, "ly") == 0);
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
         h = fold_dg(h, placed);

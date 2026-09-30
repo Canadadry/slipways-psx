@@ -36,7 +36,7 @@ typedef struct {
 } pico8_je_placeholder_t;
 
 /* The only one: never allocated, never freed. */
-static pico8_je_placeholder_t g_je_placeholder = {{&g_je_placeholder_struct_class}};
+static pico8_je_placeholder_t g_je_placeholder = {{.cls = &g_je_placeholder_struct_class}};
 
 static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
@@ -97,7 +97,7 @@ static void *pico8_ui_struct_new(void) {
 
     assert(g_ui_up && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
-    pico8_ke_struct_init(&self->ke, &g_ui_struct_class);
+    pico8_ke_struct_init(&self->ke.header, &g_ui_struct_class);
     self->ql = pico8_ui_start.ql;
     self->fa = pico8_ui_start.fa;
     self->le = &g_shared_le;
@@ -115,7 +115,7 @@ static void *pico8_ui_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ui");
 #endif
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

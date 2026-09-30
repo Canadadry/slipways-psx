@@ -49,7 +49,7 @@ static const pico8_struct_class_t g_ha_pz_struct_class = {0};
 /* Never allocated nor freed: `pico8_menu_init()` points its `hi`/`gq`/`ca`
  * at `ha`'s own values, `pico8_menu_shutdown()` resets them to nil. */
 static pico8_ha_pz_t g_ha_pz = {
-    {&g_ha_pz_struct_class},
+    {.cls = &g_ha_pz_struct_class},
     NULL,
     NULL,
     0,

@@ -86,7 +86,7 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
-static int is_me(const pico8_ke_t *ke, const char *want) {
+static int is_me(const pico8_struct_header_t *ke, const char *want) {
     return ke->me != NULL && strcmp(ke->me, want) == 0;
 }
 
@@ -234,7 +234,7 @@ static void world(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.t < pico8_fixed_from_int(15)) {
+    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);
@@ -271,7 +271,7 @@ static void ey(void *mz) {
 /* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
  * ticks by `t`, not by calls. */
 static void until_t(const pico8_mz_t *mz, int t) {
-    while (mz->ke.t < pico8_fixed_from_int(t)) {
+    while (mz->ke.header.t < pico8_fixed_from_int(t)) {
         pico8_dg();
     }
 }
@@ -281,7 +281,7 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         pico8_jo_t *jo = as_jo(list->items[i]);
-        if (is_me(&jo->ke, me)) {
+        if (is_me(&jo->ke.header, me)) {
             return jo;
         }
     }
@@ -305,8 +305,8 @@ static void check_fresh_mz(void *e) {
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
-    assert(is_me(&mz->ke, "kz"));
-    assert(mz->ke.t == 0);
+    assert(is_me(&mz->ke.header, "kz"));
+    assert(mz->ke.header.t == 0);
     assert(mz->probe->dw == 0);
     assert(mz->probe->dq != NULL && strcmp(mz->probe->dq, "pr") == 0);
     assert(mz->spawn_snd == pico8_fixed_from_int(52));
@@ -499,7 +499,7 @@ static void test_kz_ticks(void) {
     for (i = 0; i < KZ_TICKS; i++) {
         pico8_dg();
         assert(p__state(mz) == 0);
-        assert(mz->ke.t == pico8_fixed_from_int(i + 1));
+        assert(mz->ke.header.t == pico8_fixed_from_int(i + 1));
         h = fnv(h, (uint32_t)mz->oi);
     }
     assert(listed(pico8_hv(), mz));
@@ -507,8 +507,8 @@ static void test_kz_ticks(void) {
 }
 
 static uint32_t fold_ey(uint32_t h, const pico8_mz_t *mz) {
-    h = fold_string(h, mz->ke.me);
-    h = fnv(h, (uint32_t)mz->ke.t);
+    h = fold_string(h, mz->ke.header.me);
+    h = fnv(h, (uint32_t)mz->ke.header.t);
     h = fnv(h, p__state(mz));
     return fnv(h, (uint32_t)credits());
 }
@@ -544,7 +544,7 @@ static void test_ey(void) {
     hq(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(paid) == ET_FALSE);
     ey(paid);
-    assert(is_me(&paid->ke, "pr") && paid->ke.t == 0 && p__state(paid) == 1);
+    assert(is_me(&paid->ke.header, "pr") && paid->ke.header.t == 0 && p__state(paid) == 1);
     assert(credits() == pico8_fixed_sub(before, pico8_fixed_from_int(3)));
     h = fold_ey(h, paid);
 
@@ -553,7 +553,7 @@ static void test_ey(void) {
     hq(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     pico8_fm_hy()->nz = pico8_fixed_from_int(2);
     ey(broke);
-    assert(is_me(&broke->ke, "kz") && p__state(broke) == 2);
+    assert(is_me(&broke->ke.header, "kz") && p__state(broke) == 2);
     assert(credits() == pico8_fixed_from_int(2));
     h = fold_ey(h, broke);
     check("ey", h, EY_HASH);
@@ -564,7 +564,7 @@ static int unknown_count(void) {
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        if (is_me(&as_jo(jo->items[i])->ke, "unknown")) {
+        if (is_me(&as_jo(jo->items[i])->ke.header, "unknown")) {
             n++;
         }
     }
@@ -583,7 +583,7 @@ static pico8_mz_t *paid_mz_on_unknown(void) {
     hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(mz) == ET_FALSE);
     ey(mz);
-    assert(is_me(&mz->ke, "pr"));
+    assert(is_me(&mz->ke.header, "pr"));
     assert(unknown->p != NULL);
     *p = *unknown->p;
     mz->p = p;

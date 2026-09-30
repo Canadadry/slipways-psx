@@ -290,7 +290,7 @@ pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s)
     if (self == NULL) {
         return out;
     }
-    me_val = self->ke.me;
+    me_val = self->ke.header.me;
     if (me_val == NULL || strcmp(me_val, "ly") != 0) {
         return out;
     }
@@ -412,9 +412,9 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
      * at the `p` that was passed in. */
     adjusted = pico8_ma(p, (pico8_struct_header_t *)self);
 
-    me_val = self->ke.me;
+    me_val = self->ke.header.me;
     if (me_val != NULL && strcmp(me_val, "ll") == 0) {
-        pico8_fixed_t t = self->ke.t;
+        pico8_fixed_t t = self->ke.header.t;
         if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
             return;
         }

@@ -55,16 +55,15 @@ void pico8_dg(void) {
     /* TROU-5 */
     for (i = 0; i < hv->count; i++) {
         pico8_struct_header_t *qc = hv->items[i];
-        pico8_ke_t *ke = hv->items[i];
 
         /* The only caller of the state methods (`ph`, `ly`, `ll`, ...): the
          * name comes from `me` at run time, so no site ever writes `:ly(`
          * and a grep reads them as dead code. */
-        if (ke->me != NULL) {
-            int state = pico8_state_of(ke->me);
+        if (qc->me != NULL) {
+            int state = pico8_state_of(qc->me);
 
             if (state >= 0 && qc->cls->states[state] != NULL) {
-                qc->cls->states[state](qc, ke->t);
+                qc->cls->states[state](qc, qc->t);
             }
         }
 
@@ -72,6 +71,6 @@ void pico8_dg(void) {
             pico8_he(qc);
         }
 
-        ke->t = pico8_fixed_add(ke->t, pico8_fixed_from_int(1));
+        qc->t = pico8_fixed_add(qc->t, pico8_fixed_from_int(1));
     }
 }

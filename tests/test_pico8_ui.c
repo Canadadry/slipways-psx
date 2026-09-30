@@ -289,10 +289,10 @@ static void test_built(void) {
 
     assert(ok->ql == pico8_fixed_from_int(58));
     assert(ok->fa == pico8_fixed_from_int(15));
-    assert(ok->ke.me != NULL && strcmp(ok->ke.me, "ph") == 0);
+    assert(ok->ke.header.me != NULL && strcmp(ok->ke.header.me, "ph") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
-    h = fnv(fnv(h, 1u), (uint32_t)ok->ke.t);
+    h = fnv(fnv(h, 1u), (uint32_t)ok->ke.header.t);
     assert(ok->qa == NULL && ok->ic == NULL && ok->o_ == NULL && ok->gj == NULL && ok->lheld == NULL &&
            ok->rheld == NULL);
     assert(pico8_ui_struct_class()->ev != NULL);
@@ -758,7 +758,7 @@ static const pico8_struct_class_t g_giver_class = {
     .set_m_ = giver_set_m_,
 };
 
-static giver_t g_giver = {{{&g_giver_class}, NULL, 0}};
+static giver_t g_giver = {{{.cls = &g_giver_class}}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);
@@ -779,7 +779,7 @@ static void test_ui_held_stops_off_row(void) {
     void *right[6];
     size_t i;
 
-    pico8_lt(&g_giver.ke);
+    pico8_lt(&g_giver.ke.header);
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
     left[2] = pico8_cg("jo")->items[0];
@@ -813,8 +813,8 @@ static void test_ke_closed(void) {
     pico8_ke_ks(NULL, "ph");
 }
 
-/* Every entity struct begins with its `pico8_ke_t`. */
-static pico8_ke_t *ke_of(void *e) {
+/* Every entity struct begins with its header. */
+static pico8_struct_header_t *ke_of(void *e) {
     assert(e != NULL);
     return e;
 }
@@ -1112,8 +1112,8 @@ static void test_ke_t_by_name(void) {
 
     pico8_ke_ks(&keyed->ke.header, "ll");
     assert_t(keyed, 0);
-    assert(keyed->ke.me != NULL && strcmp(keyed->ke.me, "ll") == 0);
-    h = fold_string(fold_t(h, keyed), keyed->ke.me);
+    assert(keyed->ke.header.me != NULL && strcmp(keyed->ke.header.me, "ll") == 0);
+    h = fold_string(fold_t(h, keyed), keyed->ke.header.me);
 
     pico8_ke_ks(e[9], "ll");
     assert_t(e[9], 0);

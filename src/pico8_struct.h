@@ -40,9 +40,13 @@ static inline int pico8_state_of(const char *me) {
 typedef struct pico8_struct_class pico8_struct_class_t;
 
 /* First member of every entity struct, and of the parent struct a child
- * embeds first. */
+ * embeds first. `me` and `t` are ke's (`me` NULL is nil):
+ * pico8_ke_struct_init sets them; on an entity that never went through it
+ * they are left unset and never read. */
 typedef struct {
     const pico8_struct_class_t *cls;
+    const char *me;
+    pico8_fixed_t t;
 } pico8_struct_header_t;
 
 /* What `ldown`, `rdown` and `gv` return: `stop` is the Lua truth of the

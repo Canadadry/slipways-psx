@@ -44,7 +44,7 @@ typedef struct {
 
 /* The only one: never allocated, never freed; no field, and no writer, so
  * a write reaching it stops the run. */
-static pico8_mo_placeholder_t g_mo_placeholder = {{&g_mo_placeholder_struct_class}};
+static pico8_mo_placeholder_t g_mo_placeholder = {{.cls = &g_mo_placeholder_struct_class}};
 
 /* strdup() is POSIX; this build is -std=c99. */
 static char *pico8_entity_strdup(const char *s) {
@@ -185,8 +185,7 @@ const pico8_ptrs_t *pico8_cg(const char *tag) {
     return entry != NULL ? &entry->list : NULL;
 }
 
-pico8_struct_header_t *pico8_lt(pico8_ke_t *ke) {
-    pico8_struct_header_t *e = &ke->header;
+pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
     int i;
     const pico8_str_seq_t *tags;
 

@@ -174,7 +174,7 @@ static void join(void *qu, void *re) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.t < pico8_fixed_from_int(15)) {
+    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);

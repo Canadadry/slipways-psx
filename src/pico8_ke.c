@@ -27,16 +27,16 @@ void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
     if (self == NULL) {
         return;
     }
-    ((pico8_ke_t *)self)->me = me;
-    ((pico8_ke_t *)self)->t = pico8_fixed_from_int(0);
+    self->me = me;
+    self->t = pico8_fixed_from_int(0);
 }
 
-void pico8_ke_struct_init(pico8_ke_t *self, const pico8_struct_class_t *cls) {
-    self->header.cls = cls;
+void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls) {
+    self->cls = cls;
     self->me = pico8_ke_start.me;
     self->t = pico8_ke_start.t;
 }
 
-void pico8_ke_struct_pq(pico8_ke_t *self) {
+void pico8_ke_struct_pq(pico8_struct_header_t *self) {
     pico8_lt(self);
 }

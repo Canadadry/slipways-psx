@@ -144,8 +144,8 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(ra.x == pico8_fixed_from_int(192) && ra.y == pico8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
     assert(mo->ma == 0);
-    assert(mo->ke.t == 0);
-    assert(mo->ke.me != NULL && strcmp(mo->ke.me, "ph") == 0);
+    assert(mo->ke.header.t == 0);
+    assert(mo->ke.header.me != NULL && strcmp(mo->ke.header.me, "ph") == 0);
     assert(mo->p != mo->ra);
 
     pc = mo->pc;
@@ -203,7 +203,7 @@ static void test_scripted_ticks(void) {
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         pico8_dg();
         h = fold_mo(h);
-        h = fnv(h, (uint32_t)mo_qb()->ke.t);
+        h = fnv(h, (uint32_t)mo_qb()->ke.header.t);
         if (must_vec(mo_qb()->p).y == pico8_fixed_from_int(320)) {
             bounded++;
         }

@@ -390,7 +390,7 @@ static void built_world(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.t < pico8_fixed_from_int(15)) {
+    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);
@@ -642,7 +642,7 @@ static uint32_t fold_planet(uint32_t h, void *e) {
     h = fold_string_member(h, p->ep);
     h = fold_jy(h, p);
     h = fold_kw(h, p);
-    h = fold_string_member(h, p->ke.me);
+    h = fold_string_member(h, p->ke.header.me);
     h = fold_bool_member(h, p->has_fx, p->fx);
     h = fold_bool_member(h, p->has_p_, p->p_);
     h = fold_fixed_member(h, 1, p->ma);

@@ -1,7 +1,6 @@
 #ifndef PICO8_ENTITY_H
 #define PICO8_ENTITY_H
 
-#include "pico8_ke.h"
 #include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
@@ -36,8 +35,9 @@ const pico8_ptrs_t *pico8_cv(const char *name);
  * lt() call, call pico8_cg() again instead. */
 const pico8_ptrs_t *pico8_cg(const char *tag);
 
-/* Only a `ke` enters `hv`: pico8_dg() reads `me` and `t` on every entity of it. */
-pico8_struct_header_t *pico8_lt(pico8_ke_t *ke);
+/* Only pico8_ke_struct_pq calls it outside tests: every entity of `hv` has
+ * had `me` and `t` set by pico8_ke_struct_init, and pico8_dg() reads them. */
+pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e);
 void pico8_he(pico8_struct_header_t *e);
 
 /* `nt` is "kj" or "ev" (asserted). */

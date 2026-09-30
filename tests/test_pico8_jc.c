@@ -257,8 +257,8 @@ static uint32_t fold_jc(uint32_t h, const void *e) {
     h = fold_fixed(h, 1, jc->fa);
     h = fold_fixed(h, 1, jc->nh);
     h = fnv(h, p__state(jc));
-    h = fold_string(h, jc->ke.me);
-    h = fold_fixed(h, 1, jc->ke.t);
+    h = fold_string(h, jc->ke.header.me);
+    h = fold_fixed(h, 1, jc->ke.header.t);
     h = fold_ref(h, jc->qu);
     h = fnv(h, (uint32_t)re_kind(jc));
     h = fold_ref(h, jc->re);
@@ -357,7 +357,7 @@ static void *dragged(void *qu, void *re) {
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     hq_over(jc, re, mp);
     pico8_ok()->o_ = NULL;
-    while (as_jc(jc)->ke.t < pico8_fixed_from_int(15)) {
+    while (as_jc(jc)->ke.header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     return jc;
@@ -409,8 +409,8 @@ static void hq_over(void *jc, void *hovered, pico8_vec_t *mp) {
     cls_of(jc)->hq(jc, mp, NULL);
 }
 
-/* Every entity of `cg` begins with its `pico8_ke_t`. */
-static const pico8_ke_t *ke_of(const void *e) {
+/* Every entity of `cg` begins with its header. */
+static const pico8_struct_header_t *ke_of(const void *e) {
     assert(e != NULL);
     return e;
 }
@@ -419,7 +419,7 @@ static void *first_with_me(const char *tag, const char *me) {
     const pico8_ptrs_t *list = pico8_cg(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
-        const pico8_ke_t *ke = ke_of(list->items[i]);
+        const pico8_struct_header_t *ke = ke_of(list->items[i]);
         if (ke->me != NULL && strcmp(ke->me, me) == 0) {
             return list->items[i];
         }
@@ -438,8 +438,8 @@ static void check_fresh_jc(const void *e, const void *qu) {
     const pico8_jc_hg_t *hg;
     size_t i;
 
-    assert(jc->ke.me != NULL && strcmp(jc->ke.me, "kz") == 0);
-    assert(jc->ke.t == 0);
+    assert(jc->ke.header.me != NULL && strcmp(jc->ke.header.me, "kz") == 0);
+    assert(jc->ke.header.t == 0);
     assert(jc->fa == pico8_fixed_from_int(2));
     assert(jc->probe->fp_is_bool && jc->probe->fp == 0);
     assert(jc->probe->ik == pico8_fixed_from_int(48));

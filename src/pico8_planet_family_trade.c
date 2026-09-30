@@ -52,7 +52,7 @@ typedef struct {
 
 /* The `{}` `nr:ldown` hands to `nr:gv`: never allocated, never freed,
  * never written. */
-static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{&g_nr_ldown_empty_struct_class}};
+static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{.cls = &g_nr_ldown_empty_struct_class}};
 
 pico8_down_t pico8_nr_ldown(pico8_nr_t *self) {
     pico8_down_t gv_result = {0, NULL};
@@ -225,7 +225,7 @@ static void *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("nr");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->qh.jo.ke);
+    pico8_ke_struct_pq(&self->qh.jo.ke.header);
     return self;
 }
 
@@ -286,7 +286,7 @@ static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("fr");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->nr.qh.jo.ke);
+    pico8_ke_struct_pq(&self->nr.qh.jo.ke.header);
     return self;
 }
 
@@ -407,7 +407,7 @@ static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
 #endif
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->hj.qh.jo.ke);
+    pico8_ke_struct_pq(&self->hj.qh.jo.ke.header);
     return self;
 }
 

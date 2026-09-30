@@ -291,8 +291,8 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     assert(cls_of(e) == pico8_pm_struct_class());
     pm = e;
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->ke.me);
-    h = fold_fixed_member(h, jo->ke.t);
+    h = fold_string_member(h, jo->ke.header.me);
+    h = fold_fixed_member(h, jo->ke.header.t);
     h = fold_string_member(h, pm->fz);
     h = fold_string_member(h, hj->rr);
     h = fold_qh(h, qh);
@@ -446,7 +446,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
     h = fold_ra_y(h, hj);
     pico8_dg();
-    h = fold_fixed_member(h, hj->qh.jo.ke.t);
+    h = fold_fixed_member(h, hj->qh.jo.ke.header.t);
     return fold_ra_y(h, hj);
 }
 
@@ -496,7 +496,7 @@ static void test_life(void) {
     ra = pico8_vec_add(*mo_ra, vec_xy(12, 108));
     placed = build_protostar(&p, &ra, "s90");
     h = fold_spawned(h, placed);
-    assert(strcmp(as_hj(placed)->qh.jo.ke.me, "ly") == 0);
+    assert(strcmp(as_hj(placed)->qh.jo.ke.header.me, "ly") == 0);
 
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {

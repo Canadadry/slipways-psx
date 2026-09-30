@@ -56,13 +56,13 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
         return;
     }
 
-    self_t = self->ke.t;
+    self_t = self->ke.header.t;
     rh = self->rh;
     t = pico8_fixed_sub(pico8_fixed_div(self_t, rh), pico8_fixed_from_int(10));
 
     if (t >= 0) {
         if (self->lh != NULL && self->lh(self)) {
-            self->ke.t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
+            self->ke.header.t = pico8_fixed_mul(rh, pico8_fixed_from_int(10));
             t = pico8_fixed_from_int(0);
         }
     }
@@ -111,7 +111,7 @@ static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     pico8_mh_t *self = malloc(sizeof *self);
     int i;
 
-    pico8_ke_struct_init(&self->ke, &g_mh_struct_class);
+    pico8_ke_struct_init(&self->ke.header, &g_mh_struct_class);
     self->nu = pico8_mh_start.nu;
     self->fa = pico8_mh_start.fa;
     self->rh = pico8_mh_start.rh;
@@ -134,7 +134,7 @@ static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     pico8_class_coverage_record("mh");
 #endif
     pico8_mh_pq(self);
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 
@@ -259,7 +259,7 @@ static const pico8_struct_class_t g_iv_struct_class = {
 static void *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     pico8_iv_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke, &g_iv_struct_class);
+    pico8_ke_struct_init(&self->ke.header, &g_iv_struct_class);
     self->fa = pico8_iv_start.fa;
     self->l = pico8_iv_start.l;
     self->v = &pico8_iv_start.v;
@@ -277,7 +277,7 @@ static void *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     pico8_class_coverage_record("iv");
 #endif
     pico8_iv_pq(self);
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

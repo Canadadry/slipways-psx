@@ -178,7 +178,7 @@ static void *pico8_fv_struct_new(void) {
 #endif
     pico8_fv_pq(self);
     pico8_f_((pico8_struct_header_t *)self);
-    pico8_ke_struct_pq(&self->g_.ke);
+    pico8_ke_struct_pq(&self->g_.ke.header);
     return self;
 }
 

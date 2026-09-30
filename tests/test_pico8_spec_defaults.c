@@ -76,7 +76,7 @@ static void test_bg_defaults_and_ready(void) {
 
     assert(bg->fa == pico8_bg_start.fa && bg->hd == pico8_bg_start.hd);
     assert(bg->pl == pico8_bg_start.pl && bg->pl == &pico8_bg_pl_seq);
-    assert(bg->ke.me == pico8_ke_start.me && bg->ke.t == pico8_ke_start.t);
+    assert(bg->ke.header.me == pico8_ke_start.me && bg->ke.header.t == pico8_ke_start.t);
     assert(pico8_bg_ready());
     pico8_bg_shutdown();
     assert(!pico8_bg_ready());
@@ -86,7 +86,7 @@ static void test_js_defaults_and_ready(void) {
     pico8_js_t *js = pico8_js_new(NULL);
 
     assert(js->fa == pico8_js_start.fa);
-    assert(js->ke.me == pico8_ke_start.me && js->ke.t == pico8_ke_start.t);
+    assert(js->ke.header.me == pico8_ke_start.me && js->ke.header.t == pico8_ke_start.t);
     assert(pico8_js_ready());
     pico8_js_shutdown();
     assert(!pico8_js_ready());
@@ -98,7 +98,7 @@ static void test_qb_defaults_and_ready(void) {
 
     assert(qb->v == &pico8_qb_start.v && qb->p == &pico8_qb_start.p && qb->ra == &pico8_qb_start.ra);
     assert(qb->ma == pico8_qb_start.ma && qb->pc == pico8_qb_start.pc && qb->pc == &pico8_qb_pc_vecs);
-    assert(qb->ke.me == pico8_ke_start.me && qb->ke.t == pico8_ke_start.t);
+    assert(qb->ke.header.me == pico8_ke_start.me && qb->ke.header.t == pico8_ke_start.t);
     assert(pico8_qb_ready());
     pico8_qb_shutdown();
     assert(!pico8_qb_ready());
@@ -108,7 +108,7 @@ static void test_qb_defaults_and_ready(void) {
 static void test_mz_defaults_and_ready(void) {
     pico8_mz_t *mz = pico8_mz_new();
 
-    assert(mz->ke.me == pico8_mz_start.me && strcmp(mz->ke.me, "kz") == 0 && mz->ke.t == pico8_ke_start.t);
+    assert(mz->ke.header.me == pico8_mz_start.me && strcmp(mz->ke.header.me, "kz") == 0 && mz->ke.header.t == pico8_ke_start.t);
     assert(mz->nu == pico8_mz_start.nu && mz->kk == pico8_mz_start.kk);
     assert(mz->probe->dw == pico8_mz_start.dw && mz->probe->dq == pico8_mz_start.dq);
     assert(mz->spawn_snd == pico8_mz_start.spawn_snd && mz->probe->ik == pico8_mz_start.ik);
@@ -160,7 +160,7 @@ static void test_fv_defaults_and_ready(void) {
     assert(fv->ql == pico8_fv_start.ql);
     assert(fv->fg == pico8_fv_start.fg);
     assert(fv->rb == pico8_fv_start.rb);
-    assert(fv->g_.ke.me == pico8_ke_start.me && fv->g_.ke.t == pico8_ke_start.t);
+    assert(fv->g_.ke.header.me == pico8_ke_start.me && fv->g_.ke.header.t == pico8_ke_start.t);
     assert(pico8_fv_ready());
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
@@ -189,7 +189,7 @@ static void test_g__defaults_and_ready(void) {
     assert(g_->emitter->q_ == pico8_g__start.q_);
     assert(g_->emitter->du == pico8_g__start.du);
     assert(g_->ra == NULL);
-    assert(g_->ke.me == pico8_ke_start.me && g_->ke.t == pico8_ke_start.t);
+    assert(g_->ke.header.me == pico8_ke_start.me && g_->ke.header.t == pico8_ke_start.t);
     assert(pico8_g__ready());
     pico8_probe_shutdown();
     assert(!pico8_g__ready());
@@ -215,7 +215,7 @@ static void test_ie_defaults_and_ready(void) {
     assert(ie->fa == pico8_ie_start.fa);
     assert(ie->ra->x == pico8_ie_start.ra.x && ie->ra->y == pico8_ie_start.ra.y);
     assert(ie->eh->x == pico8_ie_start.eh.x && ie->eh->y == pico8_ie_start.eh.y);
-    assert(ie->ke_base.me == pico8_ke_start.me && ie->ke_base.t == pico8_ke_start.t);
+    assert(ie->ke_base.header.me == pico8_ke_start.me && ie->ke_base.header.t == pico8_ke_start.t);
     assert(pico8_ie_ready());
     pico8_research_icon_shutdown();
     assert(!pico8_ie_ready());
@@ -234,7 +234,7 @@ static void test_pj_defaults_and_ready(void) {
     assert(cr->hi->x == pico8_pj_start.cr->hi.x && cr->hi->y == pico8_pj_start.cr->hi.y);
     assert(cr->gq->x == pico8_pj_start.cr->gq.x && cr->gq->y == pico8_pj_start.cr->gq.y);
     assert(cr->ca == pico8_pj_start.cr->ca);
-    assert(pj->ke.me == pico8_ke_start.me && pj->ke.t == pico8_ke_start.t);
+    assert(pj->ke.header.me == pico8_ke_start.me && pj->ke.header.t == pico8_ke_start.t);
     assert(pico8_pj_ready());
     pico8_score_panel_shutdown();
     assert(!pico8_pj_ready());

@@ -63,7 +63,7 @@ static void pj_row_copy(pico8_jb_row_t *dst, pico8_jb_item_t *items, int cap, co
 static const pico8_struct_class_t g_pj_cr_struct_class = {0};
 
 static pico8_pj_cr_t g_pj_cr = {
-    {&g_pj_cr_struct_class},
+    {.cls = &g_pj_cr_struct_class},
     &pico8_pj_cr_start.hi,
     &pico8_pj_cr_start.gq,
     0,
@@ -290,7 +290,7 @@ static void *pico8_pj_struct_new(void) {
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
     self = malloc(sizeof *self);
-    pico8_ke_struct_init(&self->ke, &g_pj_struct_class);
+    pico8_ke_struct_init(&self->ke.header, &g_pj_struct_class);
     self->fa = pico8_pj_start.fa;
     self->gs = pico8_pj_start.gs;
     self->i_ = pico8_pj_start.i_;
@@ -302,7 +302,7 @@ static void *pico8_pj_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("pj");
 #endif
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

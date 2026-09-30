@@ -200,7 +200,7 @@ static uint32_t fold_icon(uint32_t h, void *icon) {
     h = fnv(h, kh_state(ie));
     h = fold_vec(h, ie->ra);
     h = fnv(h, m__state(ie));
-    return fold_fixed(h, ie->ke_base.t);
+    return fold_fixed(h, ie->ke_base.header.t);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -274,8 +274,8 @@ static uint32_t fold_kq(uint32_t h, void *icon) {
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const pico8_ie_t *ie = as_ie(icon);
 
-    assert(ie->ke_base.me != NULL && strcmp(ie->ke_base.me, "ph") == 0);
-    assert(ie->ke_base.t == 0);
+    assert(ie->ke_base.header.me != NULL && strcmp(ie->ke_base.header.me, "ph") == 0);
+    assert(ie->ke_base.header.t == 0);
     assert(ie->fa == pico8_fixed_from_int(12));
     assert(ie->fa == pico8_ie_start.fa);
     assert(ie->kq == &pico8_ie_start.kq);
@@ -294,7 +294,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            listed(pico8_cv("hb"), icon));
     assert(!listed(pico8_cv("ev"), icon) && !listed(pico8_cv("hk"), icon));
 
-    h = fold_string(h, ie->ke_base.me);
+    h = fold_string(h, ie->ke_base.header.me);
     h = fold_fixed(h, ie->fa);
     h = fold_kq(h, icon);
     h = fold_vec(h, ie->ra);
@@ -321,7 +321,7 @@ static void test_construction(void) {
         const pico8_ie_t *ie = as_ie(all[i]);
         assert(ie->ke == classes[i]);
         assert(ie->jb != NULL);
-        assert(ie->ke_base.me != NULL && strcmp(ie->ke_base.me, "ph") == 0);
+        assert(ie->ke_base.header.me != NULL && strcmp(ie->ke_base.header.me, "ph") == 0);
         assert(ie->fa == pico8_fixed_from_int(12));
         assert(cls_of(all[i])->hd != NULL);
         assert(listed(pico8_hv(), all[i]) && listed(pico8_cv("kj"), all[i]) && listed(pico8_cv("hd"), all[i]));

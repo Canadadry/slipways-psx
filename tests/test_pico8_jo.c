@@ -198,8 +198,8 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     const pico8_jo_t *jo = as_jo(e);
     size_t i;
 
-    h = fold_string_member(h, jo->ke.me);
-    h = fold_fixed_member(h, jo->ke.t);
+    h = fold_string_member(h, jo->ke.header.me);
+    h = fold_fixed_member(h, jo->ke.header.t);
     h = fold_string_member(h, jo->id);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->hs);
@@ -275,8 +275,8 @@ static void test_galaxy(void) {
 static uint32_t fold_live(uint32_t h, const void *e) {
     const pico8_jo_t *jo = as_jo(e);
 
-    h = fold_string_member(h, jo->ke.me);
-    h = fold_fixed_member(h, jo->ke.t);
+    h = fold_string_member(h, jo->ke.header.me);
+    h = fold_fixed_member(h, jo->ke.header.t);
     h = fold_fixed_member(h, jo->ma);
     h = jo->has_fx ? fold_bool_member(h, jo->fx) : fold_absent(h);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
@@ -528,7 +528,7 @@ static void test_hh_takes_ll(void) {
         pico8_jo_hh(p);
         assert(p->nk != NULL && p->ep == p->nk->d);
         took_ll = p->nk == pico8_df_lookup("ll");
-        assert(strcmp(p->ke.me, took_ll ? "ll" : "known") == 0);
+        assert(strcmp(p->ke.header.me, took_ll ? "ll" : "known") == 0);
     }
     assert(took_ll);
 }

@@ -363,8 +363,8 @@ static void test_built(void) {
     assert(ju->fa == pico8_fixed_from_int(10));
     assert(ju->fa == pico8_pj_start.fa);
     assert(ed_fixed(ju) == pico8_fixed_from_int(1));
-    assert(ju->ke.me != NULL && strcmp(ju->ke.me, "ph") == 0);
-    h = fold_fixed_member(h, ju->ke.t);
+    assert(ju->ke.header.me != NULL && strcmp(ju->ke.header.me, "ph") == 0);
+    h = fold_fixed_member(h, ju->ke.header.t);
     assert(!ju->has_c_ && !ju->has_gz);
     assert(cls_of(ju)->kj != NULL && cls_of(ju)->states[PICO8_STATE_PH] != NULL && cls_of(ju)->hb != NULL &&
            cls_of(ju)->hk != NULL);

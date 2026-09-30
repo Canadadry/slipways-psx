@@ -92,8 +92,8 @@ static const pico8_struct_class_t g_ra_only_class = {.get_ra = ra_only_get_ra};
 static void test_gd_on_placeholder(void) {
     pico8_vec_t near_ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     pico8_vec_t far_ra = pico8_vec_v(pico8_fixed_from_int(64 + 77), pico8_fixed_from_int(64));
-    ra_only_t near_e = {{&g_ra_only_class}, NULL};
-    ra_only_t far_e = {{&g_ra_only_class}, NULL};
+    ra_only_t near_e = {{.cls = &g_ra_only_class}, NULL};
+    ra_only_t far_e = {{.cls = &g_ra_only_class}, NULL};
     int near_hit;
     int far_hit;
 

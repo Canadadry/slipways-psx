@@ -27,7 +27,7 @@ static const pico8_struct_class_t g_jc_too_far_struct_class = {0};
 /* The `{qs="-too far-"}` `jc:ce` returns beyond range: never allocated,
  * never freed; `qs` is fixed, only `fo` is written, and the next `hq`
  * overwrites it. */
-static pico8_jc_too_far_t g_jc_too_far = {{&g_jc_too_far_struct_class}, "-too far-", NULL};
+static pico8_jc_too_far_t g_jc_too_far = {{.cls = &g_jc_too_far_struct_class}, "-too far-", NULL};
 
 static const pico8_vec_t *jc_mouse_point_get_ra(const void *self) {
     return ((const pico8_jc_mouse_point_t *)self)->ra;
@@ -404,8 +404,8 @@ static const pico8_struct_class_t g_jc_struct_class = {
 static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_jc_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke, &g_jc_struct_class);
-    self->ke.me = pico8_jc_start.me;
+    pico8_ke_struct_init(&self->ke.header, &g_jc_struct_class);
+    self->ke.header.me = pico8_jc_start.me;
     self->nu = pico8_jc_start.nu;
     self->fa = pico8_jc_start.fa;
     self->probe = &self->probe_own;
@@ -439,7 +439,7 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_class_coverage_record("jc");
 #endif
     pico8_jc_pq(self);
-    pico8_ke_struct_pq(&self->ke);
+    pico8_ke_struct_pq(&self->ke.header);
     return self;
 }
 

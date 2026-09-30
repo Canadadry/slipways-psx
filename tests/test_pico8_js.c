@@ -336,8 +336,8 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     const pico8_js_t *b = js_of(e);
     size_t i;
 
-    assert(b->ke.me != NULL && strcmp(b->ke.me, "ph") == 0);
-    h = fold_fixed(h, b->ke.t);
+    assert(b->ke.header.me != NULL && strcmp(b->ke.header.me, "ph") == 0);
+    h = fold_fixed(h, b->ke.header.t);
     h = fold_fixed(h, b->fa);
     h = fold_fixed(h, b->mb);
     h = fold_kq(h, b);
@@ -500,7 +500,7 @@ static void *built_world(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.t < pico8_fixed_from_int(15)) {
+    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);
@@ -910,12 +910,12 @@ static void test_fe_my(void) {
             continue;
         }
         pt = js_of(b)->_jo_fe_pt;
-        h = fold_string_or_nil(h, pt->ke.me);
+        h = fold_string_or_nil(h, pt->ke.header.me);
         h = fnv(h, (uint32_t)pico8_hv()->count);
         call_my(b);
         printf("[fe my] row %d: planet me=%s, %d entities\n", i,
-               pt->ke.me != NULL && strcmp(pt->ke.me, "ly") == 0 ? "ly" : "not ly", pico8_hv()->count);
-        h = fold_string_or_nil(h, pt->ke.me);
+               pt->ke.header.me != NULL && strcmp(pt->ke.header.me, "ly") == 0 ? "ly" : "not ly", pico8_hv()->count);
+        h = fold_string_or_nil(h, pt->ke.header.me);
         h = fnv(h, (uint32_t)pico8_hv()->count);
         break;
     }

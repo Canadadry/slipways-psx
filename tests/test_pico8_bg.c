@@ -90,7 +90,7 @@ static int list_count(const pico8_ptrs_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
-static int is_me(const pico8_ke_t *ke, const char *want) {
+static int is_me(const pico8_struct_header_t *ke, const char *want) {
     return ke->me != NULL && strcmp(ke->me, want) == 0;
 }
 
@@ -184,8 +184,8 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     const pico8_int_seq_t *pl;
     size_t i;
 
-    assert(is_me(&bg->ke, "ph"));
-    assert(bg->ke.t == 0);
+    assert(is_me(&bg->ke.header, "ph"));
+    assert(bg->ke.header.t == 0);
     assert(bg->fa == pico8_fixed_from_int(1));
     assert(bg->hd == pico8_fixed_from_int(1));
     pl = bg->pl;
@@ -323,7 +323,7 @@ static void test_ldown(void) {
     assert(out.stop && out.held != NULL);
     assert(out.held->cls == pico8_mz_struct_class());
     assert(listed(pico8_cg("mz"), out.held));
-    assert(is_me(&((const pico8_mz_t *)out.held)->ke, "kz"));
+    assert(is_me(&((const pico8_mz_t *)out.held)->ke.header, "kz"));
 
     check_int("ldown g_ after", list_count(pico8_cg("g_")), LDOWN_G_AFTER);
     check_int("ldown mz after", list_count(pico8_cg("mz")), LDOWN_MZ_AFTER);
@@ -391,7 +391,7 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
         pico8_struct_header_t *e = list->items[i];
 
         assert(pico8_jo_is_family(e));
-        if (is_me(&((const pico8_jo_t *)e)->ke, me)) {
+        if (is_me(&((const pico8_jo_t *)e)->ke.header, me)) {
             return (pico8_jo_t *)e;
         }
     }
@@ -414,7 +414,7 @@ static void test_gv(void) {
     assert(ly != NULL);
     r = pico8_jo_gv(ly, &bg->ke.header);
     assert(r.stop && r.held == NULL);
-    assert(is_me(&ly->ke, "ly"));
+    assert(is_me(&ly->ke.header, "ly"));
 
     keys.id = NULL;
     keys.p = ly->p;

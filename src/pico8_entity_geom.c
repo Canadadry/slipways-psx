@@ -81,7 +81,7 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     decremented = pico8_fixed_sub(ma != NULL ? *ma : pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00001999, 0.1));
     clamped = (decremented > 0) ? decremented : 0;
     if (e != NULL) {
-        t = ((const pico8_ke_t *)e)->t;
+        t = e->t;
         *ma = clamped;
     }
     return pico8_vec_add(p, pico8_vec_qm(clamped, pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00003333, 0.2))));
