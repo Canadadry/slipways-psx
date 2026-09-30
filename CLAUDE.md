@@ -2,7 +2,7 @@
 
 ## Le portage
 
-- Cible active : **PC via raylib, rendu logiciel** — voir `docs/plan.md`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception. La couche objet Lua (`pico8_value`/`ob`/`class`/`entity`) est en cours de remplacement par des structs plates — voir `docs/plan-3.md`.
+- Cible active : **PC via raylib, rendu logiciel** — voir `docs/plan.md`. Portage littéral, fonction par fonction, de `pico8/lua.lua` (la source décompilée du cart), pas une réécriture depuis le document de conception. Les objets du jeu sont des structs C plates ; leur composition (phase 2) est en cours — voir `docs/plan-3.md`.
 - PSX est **en pause**, pas abandonné : on y revient quand une version PC/C est jouable de bout en bout. `psx-hello/` est un projet de test du toolchain — voir `docs/psx-hello-world.md`.
 - L'audio (`sfx`, `music`) est **hors périmètre**, pas reporté.
 
