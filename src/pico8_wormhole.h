@@ -21,7 +21,7 @@ typedef struct {
     const char *qs;
 } pico8_mz_jj_t;
 
-/* `nu` points at `pico8_mz_nu_tags`, `kk` at `pico8_mz_kk_seq`, `jj` at the
+/* `kk` points at `pico8_mz_kk_seq`, `jj` at the
  * one `pico8_mz_jj_t`; all shared by every `mz` and never modified in place.
  * `dw`, `dq`, `ik`, `od`, `fp` and `et` live in the probe; `probe` points at
  * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */

@@ -584,8 +584,6 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     self->ms = pico8_ga_start.ms;
     self->emitter->qy = NULL;
     self->jo.by = &g_ga_by_shared;
-    /* `nu=o()` is empty and replaces jo's `nu` outright, so no burst is
-     * ever registered under jo/np/prober in `cg`. This is not a merge. */
     self->jo.hf = pico8_ga_start.hf;
     self->jo.kq = &pico8_ga_start.kq;
     self->jo.fa = pico8_ga_start.fa;

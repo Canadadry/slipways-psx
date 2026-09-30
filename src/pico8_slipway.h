@@ -29,7 +29,7 @@ void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id);
 /* `hg[id]`: 1 for an `id` already added, 0 otherwise, NULL included. */
 int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
 
-/* `nu` points at `pico8_jc_nu_tags`, `k_` at `pico8_jc_k__seq`; `ts` is this
+/* `k_` points at `pico8_jc_k__seq`; `ts` is this
  * slipway's own, made by `pico8_jc_pq`, which also empties `hg_own` and
  * points `hg` at it (NULL before). `fp`, `ik`, `dw`, `od` and `et` (NULL is
  * nil) live in the probe; `probe` points at `probe_own`: never copy the

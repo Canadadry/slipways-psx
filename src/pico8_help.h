@@ -15,8 +15,7 @@
 
 /* TROU-7 */
 /* `ra`, `hi`, `gq`, `kq` point at `pico8_fv_start`'s, shared by every help;
- * `k_` points at `pico8_fv_k__seq`, `rb` at `pico8_fv_rb_row`, `nu` is
- * `g_`'s. */
+ * `k_` points at `pico8_fv_k__seq`, `rb` at `pico8_fv_rb_row`. */
 typedef struct {
     pico8_g__t g_;
     const pico8_vec_t *hi;
@@ -43,7 +42,7 @@ int pico8_fv_ready(void);
 const pico8_struct_class_t *pico8_fv_struct_class(void);
 
 /* TROU-8 */
-/* The help inherits `g_`'s `nu`, so `lt` registers it into `cg.g_` and
+/* The help's class carries `g_`'s tags, so `lt` registers it into `cg.g_` and
  * `cg.prober` too; nothing ever frees it. Asserts when called before
  * `pico8_help_init()`. */
 pico8_fv_t *pico8_fv_new(void);

@@ -15,7 +15,7 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* A bare planet: jo's own defaults (`nu`, `kq`, `ka`, `dz`, `cq`, `gq` and
+/* A bare planet: jo's own defaults (`kq`, `ka`, `dz`, `cq`, `gq` and
  * `em` point at jo's generated data in pico8_game_data.h; `kw` points at the one kw
  * every bare planet shares, written in place by `bb` and `mx:kf`, until `lz`
  * points it at the planet's own `kw_own`), its construction keys

@@ -16,7 +16,7 @@ void pico8_planet_family_trade_shutdown(void);
 
 /* A slipgate: a laboratory, then nr's own defaults `hz` and `rr`, which no
  * ancestor has a member for. A default of nr whose name is a member of `qh`
- * or `jo` (`nu`, `kq`, `od`, `fp`, `s`, `dw`) lives in that member. `nu`,
+ * or `jo` (`kq`, `od`, `fp`, `s`, `dw`) lives in that member.
  * `hz`, `kq` and `rr` point at nr's generated data, `px` and `ba` at qh's.
  * Nothing frees the struct: TROU-7. */
 typedef struct {
@@ -28,7 +28,7 @@ typedef struct {
 /* An infraspace gate: a slipgate, then fr's own default `mt`, which no
  * ancestor has a member for. A default of fr whose name is a member of `nr`
  * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` and `rr` point
- * at fr's generated data, `nu` and `kq` at nr's, `px` and `ba` at qh's.
+ * at fr's generated data, `kq` at nr's, `px` and `ba` at qh's.
  * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_nr_t nr;
@@ -37,8 +37,8 @@ typedef struct {
 
 /* A synthesizer: an ascension, then mx's own default `ht`, which no
  * ancestor has a member for. A default of mx whose name is a member of
- * `hj`, `qh` or `jo` (`nu`, `rr`, `hp`, `s`, `px`, `od` and the 11 emitter
- * defaults) lives in that member. `nu`, `px`, `ht` and `k_` point at mx's
+ * `hj`, `qh` or `jo` (`rr`, `hp`, `s`, `px`, `od` and the 11 emitter
+ * defaults) lives in that member. `px`, `ht` and `k_` point at mx's
  * generated data, `ba` at qh's; `mx:kf` points `ht` at an empty sequence
  * once it accepts a resource. Nothing frees the struct: TROU-7. */
 typedef struct {

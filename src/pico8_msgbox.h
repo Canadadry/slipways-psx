@@ -23,8 +23,7 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
 
 /* `items` is the cart's `self[1..n]`, the option row `mh:ev` lays out
  * through `bl`, in the order the construction table stored them: an
- * article stays shared with the caller. Nothing frees the struct: TROU-7.
- * `nu` points at `pico8_mh_nu_tags`. */
+ * article stays shared with the caller. Nothing frees the struct: TROU-7. */
 struct pico8_mh {
     pico8_struct_header_t header;
     pico8_fixed_t fa;

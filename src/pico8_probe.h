@@ -33,7 +33,7 @@ typedef struct pico8_probe {
 } pico8_probe_t;
 
 /* TROU-7 */
-/* `nu` points at `pico8_g__nu_tags` (for `fv` too), the emitter's `k_` at
+/* The emitter's `k_` points at
  * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv`
  * was passed, aliased. `emitter` and `probe` point at `emitter_own` and
  * `probe_own`: never copy the struct. */

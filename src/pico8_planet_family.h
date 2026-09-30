@@ -24,8 +24,8 @@ void pico8_planet_family_shutdown(void);
 
 /* A laboratory: a bare planet, then qh's own defaults, `dq`, `od`, `fp`
  * and `dw` in the probe with `et`, which its own `hq` (`bv`) writes. A
- * default of qh whose name is a member of `jo` or `ke` (`me`, `nu`, `hf`,
- * `mi`) lives in that member, never in a second copy here. `nu`, `px` and
+ * default of qh whose name is a member of `jo` or `ke` (`me`, `hf`,
+ * `mi`) lives in that member, never in a second copy here. `px` and
  * `ba` point at qh's generated data (pico8_game_data.h). `probe` points at
  * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
@@ -44,8 +44,8 @@ pico8_probe_t *pico8_qh_probe_of(void *self);
 
 /* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
  * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
- * or `jo` (`nu`, `qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
- * `nu`, `px`, `ba` and `rr` point at nl's generated data. Nothing frees
+ * or `jo` (`qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
+ * `px`, `ba` and `rr` point at nl's generated data. Nothing frees
  * the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
@@ -56,7 +56,7 @@ typedef struct {
 
 /* A processor: a laboratory and nothing of its own. Each default of os
  * lives in the member of that name, qh's (`hp`, `px`, `qh`, `s`, `od`) or
- * jo's (`nu`, `hs`). `nu` and `px` point at os's generated data, `ba` at
+ * jo's (`hs`). `px` points at os's generated data, `ba` at
  * qh's. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
@@ -64,8 +64,8 @@ typedef struct {
 
 /* An ascension: a laboratory, then `rr` and hj's own emitter defaults,
  * in the emitter with `qy`, which its own `pq` (`f_`) writes. A default of
- * hj whose name is a member of `qh` or `jo` (`nu`, `hp`, `qh`, `px`, `od`,
- * `s`) lives in that member. `nu`, `px`, the emitter's `k_` and `rr` point
+ * hj whose name is a member of `qh` or `jo` (`hp`, `qh`, `px`, `od`,
+ * `s`) lives in that member. `px`, the emitter's `k_` and `rr` point
  * at hj's generated data, `ba` at qh's. `emitter` points at `emitter_own`:
  * never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
@@ -80,8 +80,8 @@ pico8_emitter_t *pico8_hj_emitter_of(void *self);
 
 /* A protostar: an ascension, then pm's own defaults `ng` and `fz`, which no
  * ancestor has a member for. A default of pm whose name is a member of
- * `hj`, `qh`, `jo` or `ke` (`me`, `nu`, `hp`, `px`, `s` and the 11 emitter
- * defaults) lives in that member. `nu`, `px`, `k_`, `ng` and `fz` point
+ * `hj`, `qh`, `jo` or `ke` (`me`, `hp`, `px`, `s` and the 11 emitter
+ * defaults) lives in that member. `px`, `k_`, `ng` and `fz` point
  * at pm's generated data, `ba` at qh's; `qy` is the protostar's own.
  * Nothing frees the struct: TROU-7. */
 typedef struct {
@@ -92,8 +92,8 @@ typedef struct {
 
 /* A particle burst: a bare planet, then ga's own defaults, those of the
  * emitter in it with `qy`, which its own `pq` (`f_`) writes. A default of
- * ga whose name is a member of `jo` (`nu`, `hf`, `by`, `kq`, `fa`) lives in
- * that member. `nu`, the emitter's `k_`, `kq` and `fz` point at ga's
+ * ga whose name is a member of `jo` (`hf`, `by`, `kq`, `fa`) lives in
+ * that member. The emitter's `k_`, `kq` and `fz` point at ga's
  * generated data; `by` is the one list every burst shares, which `ib`
  * extends in place and each init empties. A burst spawned by `pm:pq` points
  * `k_` at pico8_pm_ga_k__seq instead. `emitter` points at `emitter_own`:
