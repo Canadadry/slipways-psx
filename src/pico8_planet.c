@@ -61,7 +61,7 @@ pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *r
 }
 
 int pico8_jo_is_family(const pico8_struct_header_t *e) {
-    return e->cls->states[PICO8_STATE_LL] == pico8_jo_ll_dispatch;
+    return (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_JO)) != 0;
 }
 
 void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw) {
@@ -87,6 +87,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .cn = pico8_jo_cn_dispatch,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
+    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO),
 };
 
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {

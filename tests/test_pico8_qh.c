@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "../src/pico8_assets.h"
+#include "../src/pico8_bg.h"
 #include "../src/pico8_bootstrap.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
@@ -33,9 +34,11 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_scroll.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_wormhole.h"
 
 
 /* The tag class instances carried, which the frozen hashes fold: any
@@ -702,9 +705,17 @@ static void test_qh_is_a_struct(void) {
     }
 }
 
+static unsigned lineage_of(const pico8_struct_header_t *e) {
+    return e->cls->lineage;
+}
+
 /* qh's lineage answers pico8_qh_of() with itself, through one to three
- * `parent` links; jo, ga and NULL answer NULL. Only nl answers pico8_nl_of(). */
+ * `parent` links; jo, ga and NULL answer NULL. Only nl answers pico8_nl_of().
+ * Each class's `lineage` says the same; g_ and fv are of g_'s alone, the
+ * other classes of none. */
 static void test_qh_of_follows_parent(void) {
+    const unsigned jo = PICO8_LINEAGE(PICO8_LINEAGE_JO);
+    const unsigned qh = jo | PICO8_LINEAGE(PICO8_LINEAGE_QH);
     const pico8_entity_kind_t *const lineage[] = {pico8_qh_kind(), pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(),
                                                   pico8_pm_kind(), pico8_mx_kind(), pico8_nr_kind(), pico8_fr_kind()};
     pico8_jo_keys_t keys = {"s99", NULL, NULL};
@@ -716,12 +727,17 @@ static void test_qh_of_follows_parent(void) {
         e = lineage[i]->new_entity(&keys);
         assert(pico8_qh_of(e) == (const void *)e);
         assert(pico8_nl_of(e) == (lineage[i] == pico8_nl_kind() ? (const void *)e : NULL));
+        assert(lineage_of(e) == (lineage[i] == pico8_nl_kind() ? (qh | PICO8_LINEAGE(PICO8_LINEAGE_NL)) : qh));
     }
     e = pico8_ga_kind()->new_entity(&keys);
-    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL);
+    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL && lineage_of(e) == jo);
     e = (const pico8_struct_header_t *)pico8_jo_new(&keys);
-    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL);
+    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL && lineage_of(e) == jo);
     assert(pico8_qh_of(NULL) == NULL && pico8_nl_of(NULL) == NULL);
+    assert(lineage_of(&pico8_g__new(NULL)->header) == PICO8_LINEAGE(PICO8_LINEAGE_G_));
+    assert(lineage_of(&pico8_fv_new()->header) == PICO8_LINEAGE(PICO8_LINEAGE_G_));
+    assert(lineage_of(&pico8_qb_new()->header) == 0 && lineage_of(&pico8_bg_new()->header) == 0);
+    assert(lineage_of(&pico8_mz_new()->header) == 0 && lineage_of(&pico8_jc_new(NULL)->header) == 0);
 }
 
 /* The galaxy depends on the rnd state: run each scenario in a child forked

@@ -79,11 +79,12 @@ static int pico8_probe_ui_hw_call(pico8_vec_t rp) {
 /* `ra` and `p`, which a host of `bv` holds for itself: `g_`'s line, jo's
  * family (qh's line) or an `mz`. */
 static void probe_host_set_ra_p(pico8_struct_header_t *self, pico8_vec_t *ra, pico8_vec_t *p) {
-    pico8_g__t *g_ = pico8_g__of(self);
+    pico8_g__t *g_;
     pico8_jo_t *jo;
     pico8_mz_t *mz;
 
-    if (g_ != NULL) {
+    if (self->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_G_)) {
+        g_ = (pico8_g__t *)self;
         g_->ra = ra;
         g_->p = p;
         return;
@@ -377,6 +378,7 @@ static const pico8_struct_class_t g_g__struct_class = {
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
+    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def) {
@@ -469,15 +471,6 @@ int pico8_g__ready(void) {
 
 const pico8_struct_class_t *pico8_g__struct_class(void) {
     return &g_g__struct_class;
-}
-
-pico8_g__t *pico8_g__of(pico8_struct_header_t *e) {
-    const pico8_struct_class_t *cls = e != NULL ? e->cls : NULL;
-
-    while (cls != NULL && cls != &g_g__struct_class) {
-        cls = cls->parent != NULL ? cls->parent() : NULL;
-    }
-    return cls != NULL ? (pico8_g__t *)e : NULL;
 }
 
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {

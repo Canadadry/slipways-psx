@@ -55,6 +55,16 @@ typedef enum {
 
 #define PICO8_TAG(t) (1u << (t))
 
+/* The four classes whose descendants the code asks after. */
+typedef enum {
+    PICO8_LINEAGE_JO,
+    PICO8_LINEAGE_QH,
+    PICO8_LINEAGE_NL,
+    PICO8_LINEAGE_G_,
+} pico8_lineage_t;
+
+#define PICO8_LINEAGE(l) (1u << (l))
+
 /* The tag named `name`, or -1 for any other name. */
 static inline int pico8_tag_named(const char *name) {
     static const char *const names[PICO8_TAG_COUNT] = {
@@ -151,6 +161,8 @@ struct pico8_struct_class {
     pico8_state_fn states[PICO8_STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
     unsigned tags;
+    /* `PICO8_LINEAGE(l)` set: the class is l's or descends from it. */
+    unsigned lineage;
     const pico8_struct_class_t *(*parent)(void);
 };
 

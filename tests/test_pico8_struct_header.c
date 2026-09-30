@@ -120,7 +120,7 @@ static void test_carriers_link_their_storage(void) {
     pico8_qb_t *qb = pico8_qb_new();
     pico8_mh_t *mh = pico8_mh_new(NULL);
     pico8_iv_t *iv = pico8_iv_new(NULL);
-    pico8_fv_t *fv = pico8_fv_new();
+    pico8_g__t *fv = pico8_fv_new();
     pico8_jo_t *jo = pico8_jo_new(NULL);
     pico8_fr_t *fr = pico8_fr_new(NULL);
     pico8_jo_t *fr_jo = &fr->nr.qh.jo;
@@ -139,18 +139,18 @@ static void test_carriers_link_their_storage(void) {
     assert_links(&qb->header, (pico8_struct_header_t){.ra = &qb->ra, .p = &qb->p, .ma = &qb->ma});
     assert_links(&mh->header, (pico8_struct_header_t){.fa = &mh->def->fa, .p_ = &mh->p_});
     assert_links(&iv->header, (pico8_struct_header_t){.fa = &iv->def->fa, .ra = &iv->ra, .p_ = &iv->p_});
-    assert_links(&fv->g_.header, (pico8_struct_header_t){.fa = &fv->g_.def->fa,
-                                                         .ra = &fv->g_.ra,
-                                                         .p = &fv->g_.p,
-                                                         .kq = &fv->g_.def->kq,
-                                                         .ql = &fv->g_.def->ql,
-                                                         .fg = &fv->g_.def->fg,
-                                                         .fx = &fv->g_.def->fx,
-                                                         .p_ = &fv->g_.p_,
+    assert_links(&fv->header, (pico8_struct_header_t){.fa = &fv->def->fa,
+                                                         .ra = &fv->ra,
+                                                         .p = &fv->p,
+                                                         .kq = &fv->def->kq,
+                                                         .ql = &fv->def->ql,
+                                                         .fg = &fv->def->fg,
+                                                         .fx = &fv->def->fx,
+                                                         .p_ = &fv->p_,
                                                          .m_ = &fv->m_,
-                                                         .emitter = &fv->g_.emitter_own,
-                                                         .probe = &fv->g_.probe_own});
-    assert(*fv->g_.header.fx == pico8_fixed_from_int(1) &&
+                                                         .emitter = &fv->emitter_own,
+                                                         .probe = &fv->probe_own});
+    assert(*fv->header.fx == pico8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
     assert_links(&jo->header, (pico8_struct_header_t){.fa = &jo->def->fa,
                                                       .ra = (const pico8_vec_t *const *)&jo->ra,

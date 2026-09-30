@@ -177,6 +177,7 @@ static const pico8_struct_class_t g_nr_struct_class = {
         },
     .parent = pico8_qh_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
+    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
 /* Initializes an allocated pico8_nr_t under `cls` and `def`, its kind's
@@ -230,6 +231,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
         },
     .parent = pico8_nr_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
+    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
 static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
@@ -323,6 +325,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
         },
     .parent = pico8_hj_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
+    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
 static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {

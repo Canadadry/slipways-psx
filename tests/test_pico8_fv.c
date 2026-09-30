@@ -75,7 +75,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
 }
 
 /* 0 absent or false, 2 true. */
-static uint32_t m__state(const pico8_fv_t *fv) {
+static uint32_t m__state(const pico8_g__t *fv) {
     return fv->m_ ? 2 : 0;
 }
 
@@ -248,11 +248,12 @@ static void start_title(void) {
 
 /* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
 static int is_help(pico8_struct_header_t *e) {
-    const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
+    const pico8_g__t *g_ =
+        e != NULL && (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_G_)) ? (const pico8_g__t *)e : NULL;
     return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(10);
 }
 
-static pico8_fv_t *the_help(void) {
+static pico8_g__t *the_help(void) {
     const pico8_ents_t *hv = pico8_hv();
     pico8_struct_header_t *found = NULL;
     int i;
@@ -264,7 +265,7 @@ static pico8_fv_t *the_help(void) {
         }
     }
     assert(found != NULL && found->cls == pico8_fv_struct_class());
-    return (pico8_fv_t *)found;
+    return (pico8_g__t *)found;
 }
 
 static int in_layer(int layer, const void *e) {
@@ -290,7 +291,7 @@ static const pico8_js_t *as_js(const void *e) {
 static void test_built(void) {
     uint32_t h = 2166136261u;
     const pico8_ents_t *hv;
-    pico8_fv_t *fv;
+    pico8_g__t *fv;
     const pico8_g__t *g_;
     const pico8_emitter_t *em;
     const pico8_probe_t *pr;
@@ -300,7 +301,7 @@ static void test_built(void) {
 
     start_title();
     fv = the_help();
-    g_ = &fv->g_;
+    g_ = fv;
     em = g_->emitter;
     pr = g_->probe;
     hv = pico8_hv();
@@ -400,7 +401,7 @@ static void test_built(void) {
  * out of `kq`, `rp` retained since `fa` >= 10. */
 static void test_life(void) {
     uint32_t h = 2166136261u;
-    pico8_fv_t *fv;
+    pico8_g__t *fv;
     int i;
 
     start_title();
@@ -408,21 +409,21 @@ static void test_life(void) {
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
         h = fnv(h, screen_hash());
-        h = fnv(h, (uint32_t)size_of(fv->g_.emitter->qy));
+        h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
     }
     pico8_dc("ev");
     h = fnv(h, screen_hash());
     for (i = 0; i < 3; i++) {
         pico8_dg();
-        h = fold_fixed_member(h, fv->g_.header.t);
-        h = fold_string_member(h, fv->g_.header.me);
+        h = fold_fixed_member(h, fv->header.t);
+        h = fold_string_member(h, fv->header.me);
         assert(ents_listed(pico8_hv(), fv));
     }
     assert(cls_of(fv)->hd(fv, vec_ref(64, 10), vec_ref(64, 112)) == 1);
     assert(cls_of(fv)->hd(fv, vec_ref(64, 112), vec_ref(64, 10)) == 0);
     assert(cls_of(fv)->hd(fv, vec_ref(24, 106), vec_ref(24, 106)) == 1);
     assert(cls_of(fv)->hd(fv, vec_ref(23, 106), vec_ref(23, 106)) == 0);
-    h = fnv(h, (uint32_t)size_of(fv->g_.emitter->qy));
+    h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
     check("life", h, LIFE_HASH);
 }
 
@@ -443,7 +444,7 @@ static void mouse_at(int x, int y) {
  * help in layer `fa` of `ic`, the cursor sprite `ql`; then out, `m_` false. */
 static void test_hover(void) {
     uint32_t h = 2166136261u;
-    pico8_fv_t *fv;
+    pico8_g__t *fv;
     uint32_t drawn;
 
     start_title();
@@ -483,24 +484,24 @@ static void test_particle_takes_the_help_palette(void) {
     static pico8_qy_t particle;
     pico8_ptrs_t *qy;
     pico8_vec_t ra;
-    pico8_fv_t *fv;
+    pico8_g__t *fv;
     int at;
 
     start_title();
     fv = the_help();
-    assert(fv->g_.ra != NULL);
-    ra = *fv->g_.ra;
+    assert(fv->ra != NULL);
+    ra = *fv->ra;
     particle.p = pico8_vec_v(0, 0);
     particle.v = pico8_vec_v(0, 0);
     particle.has_a = 0;
     particle.l = PICO8_FIXED_LIT(0x00068000, 6.5);
-    qy = fv->g_.emitter->qy;
+    qy = fv->emitter->qy;
     qy->count = 0;
     pico8_ptrs_add(qy, &particle);
     pico8_camera_reset(&gfx);
     at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
     pico8_poke(&mem, at, 3);
-    pico8_ei(&gfx, &mem, &fv->g_.header);
+    pico8_ei(&gfx, &mem, &fv->header);
     assert(pico8_peek(&mem, at) == pico8_fv_k__seq.items[5] && pico8_fv_k__seq.items[5] == 9);
 }
 

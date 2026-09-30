@@ -39,7 +39,7 @@ static int pico8_fv_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
 #define PICO8_BO_ROW_CAP 4
 
 /* `pz(self, bo)`, each row's `my` the `eu` of this game. */
-void pico8_fv_pq(pico8_fv_t *self) {
+void pico8_fv_pq(pico8_g__t *self) {
     pico8_js_keys_t bs[PICO8_BO_COUNT];
     pico8_lq_keys_t lq[PICO8_BO_COUNT];
     pico8_lq_cell_t items[PICO8_BO_COUNT][PICO8_BO_ROW_CAP];
@@ -64,20 +64,20 @@ void pico8_fv_pq(pico8_fv_t *self) {
         bs[i].my = pico8_eu_field_value();
     }
     frame.has_eo = 1;
-    frame.eo = self->g_.def->eo;
-    frame.hi = &self->g_.def->hi;
+    frame.eo = self->def->eo;
+    frame.hi = &self->def->hi;
     frame.ff = 1;
     frame.has_ca = 1;
-    frame.ca = self->g_.def->ca;
-    frame.gq = &self->g_.def->gq;
-    frame.ra = self->g_.ra;
+    frame.ca = self->def->ca;
+    frame.gq = &self->def->gq;
+    frame.ra = self->ra;
     pico8_pz(&frame, bs, PICO8_BO_COUNT);
 }
 
 /* `fv.rb` holds four articles in the cart. */
 enum { PICO8_FV_RB_CAP = 4 };
 
-void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec_t p) {
+void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_g__t *self, pico8_vec_t p) {
     (void)p;
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
@@ -87,9 +87,9 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
         int n = 0;
         int i;
 
-        for (i = 0; self != NULL && self->g_.def->rb != NULL && i < self->g_.def->rb->count; i++) {
+        for (i = 0; self != NULL && self->def->rb != NULL && i < self->def->rb->count; i++) {
             assert(n < PICO8_FV_RB_CAP && "fv.rb has four articles in the cart");
-            items[n++] = self->g_.def->rb->items[i].row;
+            items[n++] = self->def->rb->items[i].row;
         }
         pico8_bl_default(gfx, mem, items, n);
     }
@@ -97,7 +97,7 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
 
 void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_fv_t *)self, p);
+    pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_g__t *)self, p);
 }
 
 static const pico8_struct_class_t g_fv_struct_class = {
@@ -107,32 +107,32 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
-    .parent = pico8_g__struct_class,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
+    .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
 };
 
-static pico8_fv_t *pico8_fv_struct_new(void) {
-    pico8_fv_t *self;
+static pico8_g__t *pico8_fv_struct_new(void) {
+    pico8_g__t *self;
 
     assert(g_fv_up && "pico8_help_init() must run first");
     self = malloc(sizeof *self);
-    pico8_g__struct_init(&self->g_, &g_fv_struct_class, &pico8_fv_def);
-    self->g_.header.kq = &self->g_.def->kq;
-    self->g_.header.ql = &self->g_.def->ql;
-    self->g_.header.fg = &self->g_.def->fg;
-    self->g_.header.m_ = &self->m_;
+    pico8_g__struct_init(self, &g_fv_struct_class, &pico8_fv_def);
+    self->header.kq = &self->def->kq;
+    self->header.ql = &self->def->ql;
+    self->header.fg = &self->def->fg;
+    self->header.m_ = &self->m_;
     self->m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fv");
 #endif
     pico8_fv_pq(self);
     pico8_f_((pico8_struct_header_t *)self);
-    pico8_ke_struct_pq(&self->g_.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
 /* This module, unlike most, does not call pico8_pi_init() itself, and `fv`
- * extends `g_`, not `ke`: both preconditions are asserted, not repaired. */
+ * is built by `g_`'s init: both preconditions are asserted, not repaired. */
 void pico8_help_init(void) {
     assert(pico8_pi_dispatch_lookup("s") != NULL && "pico8_help_init() runs after pico8_pi_init()");
     assert(pico8_g__ready() && "pico8_help_init() runs after pico8_probe_init()");
@@ -157,6 +157,6 @@ const pico8_struct_class_t *pico8_fv_struct_class(void) {
     return &g_fv_struct_class;
 }
 
-pico8_fv_t *pico8_fv_new(void) {
+pico8_g__t *pico8_fv_new(void) {
     return pico8_fv_struct_new();
 }

@@ -901,7 +901,7 @@ static void test_components_carried(void) {
     assert_own_emitter(e[10], pico8_ga_new(NULL), sizeof(pico8_ga_t));
     assert_own_emitter(e[13], pico8_mx_new(NULL), sizeof(pico8_mx_t));
     assert_own_emitter(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
-    assert_own_emitter(e[15], pico8_fv_new(), sizeof(pico8_fv_t));
+    assert_own_emitter(e[15], pico8_fv_new(), sizeof(pico8_g__t));
     assert_own_probe(e[5], pico8_qh_new(NULL), sizeof(pico8_qh_t));
     assert_own_probe(e[6], pico8_nl_new(NULL), sizeof(pico8_nl_t));
     assert_own_probe(e[7], pico8_os_new(NULL), sizeof(pico8_os_t));
@@ -911,7 +911,7 @@ static void test_components_carried(void) {
     assert_own_probe(e[12], pico8_fr_new(NULL), sizeof(pico8_fr_t));
     assert_own_probe(e[13], pico8_mx_new(NULL), sizeof(pico8_mx_t));
     assert_own_probe(e[14], pico8_g__new(NULL), sizeof(pico8_g__t));
-    assert_own_probe(e[15], pico8_fv_new(), sizeof(pico8_fv_t));
+    assert_own_probe(e[15], pico8_fv_new(), sizeof(pico8_g__t));
     assert_own_probe(e[19], pico8_jc_new(NULL), sizeof(pico8_jc_t));
     assert_own_probe(e[23], pico8_mz_new(), sizeof(pico8_mz_t));
 }

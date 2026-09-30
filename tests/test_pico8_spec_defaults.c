@@ -136,8 +136,7 @@ static void test_layout_ready(void) {
 
 /* A fresh fv: its archetype's defaults copied, ke's under them. */
 static void test_fv_defaults_and_ready(void) {
-    pico8_fv_t *fv = pico8_fv_new();
-    const pico8_g__t *g_ = &fv->g_;
+    const pico8_g__t *g_ = pico8_fv_new();
 
     assert(g_->def == &pico8_fv_def && g_->emitter->def == &pico8_fv_def.emitter &&
            g_->probe->def == &pico8_fv_def.probe);

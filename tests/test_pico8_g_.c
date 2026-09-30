@@ -303,7 +303,8 @@ static pico8_bg_t *the_bg(void) {
 
 /* A probe, whatever its form: `g_`'s tags and `fa`=2 (an `fv` has 10). */
 static int is_probe(pico8_struct_header_t *e) {
-    const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
+    const pico8_g__t *g_ =
+        e != NULL && (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_G_)) ? (const pico8_g__t *)e : NULL;
     return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(2);
 }
 
@@ -661,11 +662,12 @@ static void test_ey_void(void) {
 
 /* The help: `g_`'s tags and `fa`=10. */
 static int is_help(pico8_struct_header_t *e) {
-    const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
+    const pico8_g__t *g_ =
+        e != NULL && (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_G_)) ? (const pico8_g__t *)e : NULL;
     return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(10);
 }
 
-/* The title screen's `fv`, whose class's parent is `g_`'s class: its
+/* The title screen's `fv`, of `g_`'s lineage: its
  * tags, `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
 static void test_fv(void) {
     uint32_t h = 2166136261u;
@@ -686,7 +688,7 @@ static void test_fv(void) {
         }
     }
     assert(found != NULL && !is_probe(found));
-    fv = pico8_g__of(found);
+    fv = (const pico8_g__t *)found;
     assert(fv->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(fv->def->fx == pico8_fixed_from_int(1));
     assert(fv->probe->def->dq != NULL && strcmp(fv->probe->def->dq, "ly") == 0);

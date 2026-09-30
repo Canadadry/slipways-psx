@@ -32,7 +32,8 @@ typedef struct pico8_probe {
 /* The emitter's `k_` points at
  * `pico8_g__k__seq` (`pico8_fv_k__seq` for `fv`); `ra` is the very REF `bv`
  * was passed, aliased. `emitter` and `probe` point at `emitter_own` and
- * `probe_own`: never copy the struct. */
+ * `probe_own`: never copy the struct. `m_` is `fv`'s: a `g_` has no `m_`
+ * link and leaves it indeterminate. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_g__def_t *def;
@@ -41,13 +42,10 @@ typedef struct {
     const pico8_vec_t *ra;
     const pico8_vec_t *p;
     int p_;
+    int m_;
     pico8_emitter_t emitter_own;
     pico8_probe_t probe_own;
 } pico8_g__t;
-
-/* `e` itself when its class is g_'s or has g_'s up its `parent` chain; NULL
- * otherwise, and for a NULL `e`. */
-pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
 
 /* TROU-8 */
 /* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
