@@ -167,8 +167,8 @@ static uint32_t fold_names(uint32_t h, const pico8_str_seq_t *names) {
     return h;
 }
 
-/* The cart's `mr` and `gp` of `hp`, gone from the port since each position
- * writes its member directly; the frozen defaults fold still reads them. */
+/* Copies of the cart's `mr` and `gp` name lists of `hp`: the port has no
+ * such lists, and DEFAULTS_HASH folds these. */
 static const char *const cart_mr_items[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
 static const pico8_str_seq_t CART_MR = {8, cart_mr_items};
 static const char *const cart_gp_items[] = {"o", "dm"};
