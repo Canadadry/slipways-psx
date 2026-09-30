@@ -253,3 +253,9 @@ sed -n 600,601p tests/test_pico8_ga.c                          # jo.lq plié pui
 sed -n 504p tests/test_pico8_mx.c                              # seul appel : fold_ref(h, NULL)
 grep -n NDEBUG Makefile                                        # vide
 ```
+
+## Amendement D.21b2 — `fold_entity` de `test_pico8_ui.c`
+
+Ajouté au périmètre de D.21b2 par le pilote : `grep -rn fold_entity tests/` rendait encore `test_pico8_ui.c:146` (définition), `:359` et `:418` (appels, dans le corps d'un test qui appelle `check("hover", …)`), présents dès `d6db288` et absents du compte « 2 » de ce PRD. Règle : mesurée au parent par `gcov` (`-D_exit=exit`) ; si ses branches sont mortes comme dans `pj`, même traitement (`assert` sur la condition exécutée, lignes `#####` retirées) ; sinon elle reste, déclarée. Grep de Sortie 1 amendée : `grep -rn 'fold_entity' tests/` → vide, exclusion : `test_pico8_ui.c` (« vivante, sans branche »).
+
+Mesure (parent 66b6357) : `fold_entity` n'a **aucune branche** (deux lignes droites : présence `ref != NULL`, puis rang dans `hv`) ; `:147` et `:148` exécutées 2 fois chacune, appelée 2 fois (`:359` 1, `:418` 1). Mutations au parent : `:147` `ref != NULL` → `ref == NULL` et `:148` rang `+ 1` → **rouges** toutes deux (`check` à `:170`, rc 134). Elle plie des octets : **elle reste**, non touchée ; grep 1 → les 3 lignes de `test_pico8_ui.c`, seule exclusion.

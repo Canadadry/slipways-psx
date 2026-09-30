@@ -46,10 +46,6 @@
  * other value moves every *_HASH. */
 #define FROZEN_INSTANCE_TAG 0x9E5C1451u
 
-/* The tag entity structs carried, which the frozen hashes fold: any other
- * value moves every *_HASH. */
-#define FROZEN_STRUCT_TAG 0x9E5C57C7u
-
 #define BUILT_HASH 0xD5E726A8u
 #define LIFE_HASH 0x26179978u
 #define EY_ON_HASH 0x7D81D210u
@@ -127,10 +123,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
-    if (is_bv_target(ref)) {
-        return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
-    }
-    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
+    assert(is_bv_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
+    return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0x57 a

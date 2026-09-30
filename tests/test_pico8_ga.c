@@ -46,10 +46,6 @@
  * any other value moves every *_HASH. */
 #define FROZEN_LIST_TAG 0x9E5C1157u
 
-/* The tag entity structs carried, which the frozen hashes fold: any other
- * value moves every *_HASH. */
-#define FROZEN_STRUCT_TAG 0x9E5C57C7u
-
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
@@ -120,19 +116,9 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-static uint32_t fold_ref(uint32_t h, const void *ref) {
-    if (ref == NULL) {
-        return fnv(h, 0xDEADu);
-    }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
-    }
-    return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
-}
-
-/* A NULL ref folds as absent. */
 static uint32_t fold_ref_member(uint32_t h, const void *ref) {
-    return ref == NULL ? fold_absent(h) : fold_ref(fnv(h, 1u), ref);
+    assert(ref == NULL && "no test folds a set ref: to fold one, fold 1 then its rank in hv (0x4E, rank), or outside hv 0xEEEE then the frozen struct tag 0x9E5C57C7, as the frozen hashes did");
+    return fold_absent(h);
 }
 
 /* The item count of a list member, -1 when NULL. */
