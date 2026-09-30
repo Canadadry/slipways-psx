@@ -157,7 +157,7 @@ Contrôle 5 : les 27 `_start_t` et les 40 tables sont dans ce tableau. Les 36 ty
 
 Les objets constants sont **résolus** le long de la chaîne : l'init parente, puis les défauts propres. Il y a **un type d'archétype par futur type aplati**. Le type planète réunit les champs A et I des dix types de l'arbre `jo`, un seul membre par nom : `rr` de `nl`/`hj`/`nr`, `fz` de `pm`/`ga`. Le type sonde réunit ceux de `g_` et `fv`. Les champs des composants forment deux sous-archétypes, `pico8_emitter_def_t` et `pico8_probe_def_t`, enchâssés dans les archétypes des classes qui portent le composant : planète, sonde, `mz`, `jc`. Une classe sans le composant y laisse des zéros, que rien ne lit, puisque sa table n'a ni `emitter_of` ni `probe_of`.
 
-Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Le champ I dont le défaut est l'adresse d'un objet statique mutable du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet, et ce n'est pas une donnée. Il reste écrit par l'init du module propriétaire. Sont concernés `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le` et `nf.ra` → `g_nf_ra`. L'objet de données `pico8_jo_kw_start` doit changer de nom à 2.13 : le motif de `défauts` le compte (voir l'essai d'inclusion).
+Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Le champ I dont le défaut est l'adresse d'un objet statique mutable du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet, et ce n'est pas une donnée. Il reste écrit par l'init du module propriétaire. Sont concernés `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le` et `nf.ra` → `g_nf_ra`. `kw_own` est lui aussi un membre par valeur (`{0, 0, 0}`) : l'archétype ne nomme pas l'objet de données `pico8_jo_kw_start`, que le motif de `défauts` compterait (voir l'essai d'inclusion).
 
 Texte C de l'archétype de `nl` (trois niveaux de chaîne, groupe sonde), essayé sur la copie :
 
@@ -188,7 +188,7 @@ typedef struct {
     const pico8_int_seq_t *ka;
     const pico8_jb_row_t *dz;
     const pico8_int_seq_t *cq;
-    const pico8_kw_t *kw_own;
+    pico8_kw_t kw_own;
     pico8_vec_t gq;
     pico8_fixed_t ca;
     const pico8_jb_row_t *em;
@@ -216,7 +216,7 @@ const pico8_jo_def_t pico8_nl_def = {
     .hf = 0, .hs = 0x10000, .fa = 0x60000,
     .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
     .ma = 0x0, .ka = &pico8_jo_ka_seq, .dz = pico8_jo_dz_rows, .cq = &pico8_jo_cq_seq,
-    .kw_own = &pico8_jo_kw_start, .gq = {0x0, 0xb0000}, .ca = 0x90000, .em = &pico8_jo_em_row,
+    .kw_own = {0, 0x0, 0x0}, .gq = {0x0, 0xb0000}, .ca = 0x90000, .em = &pico8_jo_em_row,
     .mi = 0x10000, .has_mi = 1,
     .hp = 0x60000, .px = &pico8_nl_px_row, .qh = 0, .s = 0x440000, .ba = &pico8_nl_ba_seq,
     .rr = nl_rr_text, .nl = 0x10000, .qw = 0xf0000,
@@ -241,7 +241,7 @@ Pourquoi pas le module de la classe : les valeurs nomment des données que `game
 - un membre `const pico8_jo_def_t *def` dans `pico8_jo_t` et un membre `const pico8_bg_def_t *def` dans `pico8_bg_t` ;
 - l'affectation `def = &pico8_X_def` dans `pico8_nl_struct_new` et `pico8_bg_struct_new`.
 
-Tout compile (`-fsyntax-only`, 150 + 2 fichiers, 0 erreur). `composition_residue.sh` rend `inclusion-mutuelle` **17 / 16**, et `--check inclusion-mutuelle` **43 lignes**. `parente` 10, `lien-parent` 111, `accesseurs-q6` 237 et `void-ptr` 8 sont inchangés. `défauts` passe à **670** (+1) : la ligne `.kw_own = &pico8_jo_kw_start`, dont l'objet de données porte le suffixe `_start` que le motif compte. Le pied est 1074 / 85. `--champs` passe à 284 (les deux `def`). Copie rendue à `522824b` ensuite (`git checkout -- .`).
+Deux passes. La première avait `kw_own` en pointeur vers `pico8_jo_kw_start`. Tout compile (`-fsyntax-only`, 150 + 2 fichiers, 0 erreur). `inclusion-mutuelle` rend **17 / 16** (43 lignes au `--check`), et `parente`, `lien-parent`, `accesseurs-q6`, `void-ptr` sont inchangés. Mais `défauts` passe à 670 (+1) : la ligne `.kw_own = &pico8_jo_kw_start` nomme un objet au suffixe `_start`. D'où `kw_own` par valeur. La seconde passe porte le texte exact ci-dessus : 0 erreur, `inclusion-mutuelle` **17 / 16**, **43 lignes**, et toutes les catégories identiques au départ. Le pied est **1073 / 85**, `défauts` **669**. `--champs` passerait à 284 (les deux `def`). La copie est rendue à `522824b` après chaque passe (`git checkout -- .`, `status` vide).
 
 ### Chemin de lecture : (ii), un pointeur d'archétype typé dans l'instance
 
@@ -260,7 +260,7 @@ Tout compile (`-fsyntax-only`, 150 + 2 fichiers, 0 erreur). `composition_residue
 
 ### Part copiée à l'init
 
-Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `def`. S'y ajoutent `me`/`t` de l'en-tête pour toutes les classes qui descendent de `ke`, et `kw_own` : l'init fait `self->kw_own = *def->kw_own`. Les écritures qui rendent chacun de ces champs mutables sont dans la colonne « hors construction » de l'annexe A. Un champ noté « 0 ou NULL » y garde un défaut nul pour cette classe.
+Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `def`. S'y ajoutent `me`/`t` de l'en-tête pour toutes les classes qui descendent de `ke`, et `kw_own` : l'init fait `self->kw_own = def->kw_own`. Les écritures qui rendent chacun de ces champs mutables sont dans la colonne « hors construction » de l'annexe A. Un champ noté « 0 ou NULL » y garde un défaut nul pour cette classe.
 
 | Classe | Champs I copiés (hors `me`/`t`) |
 |---|---|
@@ -289,6 +289,124 @@ Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `d
 | `hp` | — |
 | `ie` | `ie.ra` |
 | `pj` | `pj.fa` |
+
+## 3. Test ponctuel de la règle 3 (2.9c)
+
+**Point d'accroche : un TU neuf, `tests/test_pico8_archetype_chain.c`.** Il naît à 2.12a et gagne une fonction par classe à chaque sous-étape de 2.12. À 2.13, il perd chaque fonction dans le commit qui retire la chaîne de sa famille, et le fichier disparaît au dernier. Les TU `jo_spec_defaults`, `spec_defaults` et `entity_kind` restent : 2.13 les réécrit pour comparer l'instance à son `def`. Mettre le test ponctuel dans ces TU mêlerait une garde durable et un test voué à disparaître. Ce serait le travail deux fois.
+
+**Ce que compare chaque fonction.** Elle prend la valeur par la chaîne, c'est-à-dire un `pico8_X_new(NULL)` frais après les inits de module, comme les TU de défauts d'aujourd'hui. Seuls les `_new` portent les défauts des classes feuilles. Elle la compare à la valeur de `pico8_X_def`, champ par champ, pour tous les champs A et I de la classe (annexe B). Les chaînes et les boîtes se comparent par contenu, puisque l'archétype porte ses propres vecteurs par valeur.
+
+Trois exceptions, écrites dans le TU :
+
+- `jo.kw`, `jo.by` de `ga`, `ui.le`, `nf.ra` : leur défaut est un objet statique du module, hors archétype (§2). Ils se comparent à cet objet.
+- `jo.kw`/`kw_own` des neuf descendants de `qh` : `pico8_jo_pq` appelle `pico8_jo_lz` quand la planète a un `hp`, et les réécrit. Ils se comparent sur `jo`, que `lz` ne touche pas au `_new`.
+- La sonde `et` et l'émetteur `qy` (E, groupes Q7) ne sont pas dans l'archétype. Le test vérifie la valeur que le `_new` leur laisse : `et` NULL, et `qy` tel que `pico8_f_` le laisse.
+
+**Groupes de Q7.** Chaque membre nommé par le plan, pour chaque classe que le plan lui associe : classe du champ, puis valeur résolue.
+
+| Classe | `pn` | `du` | `py` | `ki` | `pk` | `fc` | `k_` | `qo` | `ro` | `qg` | `q_` | `qy` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `g_` | I `0x30000` | I `0x20000` | I `0xf5c` | A `0x90000` | A `0x10000` | A `0x10000` | I `&g__k__seq` | I `0x1051e` | I `-0xd70` | I `0xd70` | I `0x1051e` | E `NULL` |
+| `fv` | I `0x50000` | I `0xf0000` | I `0x1b6` | A `0x110000` | A `0x10000` | A `0x50000` | I `&fv_k__seq` | I `0x1051e` | I `-0x1ca` | I `0x1ca` | I `0x1051e` | E `NULL` |
+| `hj` | I `0x50000` | I `0x78000` | I `0x1eb8` | A `0x90000` | A `0x10000` | A `0x8000` | I `&hj_k__seq` | I `0xfae0` | I `-0x11ec` | I `0x11ea` | I `0xfae0` | E `NULL` |
+| `pm` | I `0x80000` | I `0x20000` | I `0xf5c` | A `0x90000` | A `0` | A `0x10000` | I `&pm_k__seq` | I `0x1051e` | I `-0xd70` | I `0xd70` | I `0x1051e` | E `NULL` |
+| `mx` | I `0x50000` | I `0x50000` | I `0x1eb8` | A `0x90000` | A `0x10000` | A `0x4ccc` | I `&mx_k__seq` | I `0xfae0` | I `-0x11ec` | I `0x11ea` | I `0xfae0` | E `NULL` |
+| `ga` | I `0` | I `0` | I `0x60000` | A `0` | A `0` | A `0x0` | I `&ga_k__seq` | I `0xe666` | I `0x0` | I `0x0` | I `0xe666` | E `NULL` |
+
+| Classe | `et` | `dw` | `od` | `dq` | `fp` | `ik` |
+|---|---|---|---|---|---|---|
+| `g_` | E `NULL` | A `0x666` | I `0x0` | A `"ly"` | A `0` | A `0` |
+| `fv` | E `NULL` | A `0x666` | I `0x0` | A `"ly"` | A `0` | A `0` |
+| `qh` | E `NULL` | A `0x666` | I `0xf0000` | A `qh_dq_text` | A `0x20000` | A `0` |
+| `nl` | E `NULL` | A `0x666` | I `0x140000` | A `qh_dq_text` | A `0x20000` | A `0` |
+| `os` | E `NULL` | A `0x666` | I `0xf0000` | A `qh_dq_text` | A `0x20000` | A `0` |
+| `hj` | E `NULL` | A `0x666` | I `0x3c0000` | A `qh_dq_text` | A `0x20000` | A `0` |
+| `pm` | E `NULL` | A `0x666` | I `0x3c0000` | A `qh_dq_text` | A `0x20000` | A `0` |
+| `nr` | E `NULL` | A `0x28e` | I `0xa0000` | A `qh_dq_text` | A `0x10000` | A `0` |
+| `fr` | E `NULL` | A `0x28e` | I `0x190000` | A `qh_dq_text` | A `0x10000` | A `0` |
+| `mx` | E `NULL` | A `0x666` | I `0x280000` | A `qh_dq_text` | A `0x20000` | A `0` |
+| `mz` | E `NULL` | A `0x0` | I `0x30000` | A `"pr"` | A `0x10000` | A `0x310000` |
+| `jc` | E `NULL` | A `0x106` | I `0` | A `NULL` | A `0` | A `0x300000` |
+
+Tout le groupe émetteur est A ou I pour les six classes, sauf `qy` (E). `pn`, `du`, `py`, `k_`, `qo`, `ro`, `qg`, `q_` sont I, parce que des clés de construction les réécrivent (`g_`, `ga`). Le groupe sonde est A pour `dw`, `dq`, `fp` et `ik`. `od` est I : `pico8_jc_hq` le réécrit. `et` est E.
+
+**Masquages.** Ce sont les champs qu'une classe pose à une autre valeur que son ascendante. Il y en a 102 sur 24 classes : les cibles de la mutation « défaut hérité masqué ». Le dernier défaut de chaque chaîne est l'annexe B, et la chaîne complète est `masks.tsv` dans le scratchpad.
+
+| Classe | Famille | Comparés (A + I) | Champs masqués |
+|---|---|---|---|
+| `bg` | a | 3 + 2 | — |
+| `ui` | a | 3 + 3 | — |
+| `js` | a | 0 + 3 | — |
+| `fq` | a | 2 + 2 | — |
+| `qb` | a | 1 + 6 | — |
+| `nf` | a | 0 + 3 | — |
+| `mh` | a | 1 + 3 | — |
+| `iv` | a | 2 + 3 | — |
+| `hp` | a | 1 + 0 | — |
+| `ie` | a | 3 + 3 | — |
+| `pj` | a | 2 + 3 | — |
+| `mz` | b | 9 + 5 | `en-tête.me` |
+| `jc` | b | 6 + 6 | `en-tête.me` |
+| `g_` | c | 10 + 13 | — |
+| `fv` | c | 19 + 13 | `g_.fa`, `g_.ra`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.ki`, `emitter.fc`, `emitter.k_`, `emitter.ro`, `emitter.qg` |
+| `jo` | d | 10 + 8 | `en-tête.me` |
+| `qh` | d | 19 + 11 | `jo.has_mi`, `jo.hf`, `jo.mi`, `en-tête.me` |
+| `nl` | d | 21 + 12 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.ba`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
+| `os` | d | 19 + 11 | `jo.has_mi`, `jo.hf`, `jo.hs`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me` |
+| `hj` | e1 | 23 + 19 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
+| `pm` | e1 | 25 + 19 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.pk`, `emitter.fc`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od` |
+| `mx` | e1 | 23 + 20 | `hj.rr`, `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.du`, `emitter.fc`, `emitter.k_`, `probe.od` |
+| `ga` | e2 | 14 + 18 | `jo.by`, `jo.fa`, `jo.hf`, `jo.kq`, `en-tête.me` |
+| `nr` | e2 | 21 + 11 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
+| `fr` | e2 | 22 + 11 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `nr.hz`, `nr.rr`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
+
+**Preuve qu'il mord : deux mutations par famille**, une à la fois, sur l'archétype, jamais sur la chaîne :
+
+| Famille | Mutation 1 (défaut propre changé) | Mutation 2 (défaut hérité masqué, rendu à la valeur de l'ascendante) |
+|---|---|---|
+| a | `pico8_bg_def.hd` | `pico8_ui_def.me` de `"ph"` à une autre chaîne (valeur de `ke`, que `ui` hérite) |
+| b | `pico8_mz_def.probe.ik` | `pico8_jc_def.me` rendu à `"ph"` (`ke`), masqué par `"kz"` |
+| c | `pico8_fv_def.ql` | `pico8_fv_def.fa` rendu à `0x20000` (`g_`), masqué par `0xa0000` |
+| d | `pico8_nl_def.qw` | `pico8_nl_def.hf` rendu à 1 (`jo`), masqué par 0 (`qh`) |
+| e1 | `pico8_pm_def.ng` | `pico8_mx_def.rr` rendu au texte de `hj` |
+| e2 | `pico8_fr_def.mt` | `pico8_ga_def.kq` rendu à la boîte de `jo` |
+
+Chaque mutation doit rendre le TU rouge. Une mutation verte est un `FAILED:` de la sous-étape.
+
+## 4. Liste ordonnée de 2.12 et 2.13
+
+Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famille a), sans archétype propre. `ke` n'a pas d'archétype : ses `me`/`t` entrent dans chaque archétype dès 2.12, et `pico8_ke_start` sort au dernier commit de 2.13. Les familles d et e forment un seul type d'archétype : d crée `pico8_jo_def_t` complet, avec les champs des dix sortes, et e n'ajoute que des valeurs. e est coupée en deux pour tenir ≈ 50 min (226 comparaisons).
+
+**Comptes `défauts`** : `composition_residue.sh --check défauts` rend 669 lignes. Chacune est attribuée par les noms `pico8_X_start` qu'elle porte, et elle sort du compte quand le dernier de ces noms disparaît. Une ligne qui nomme plusieurs familles va donc à la dernière : `ke` se range en e2, avec `test_pico8_map_tables.c:156` et `test_pico8_spec_defaults.c:111`. Par famille : a1 66, a2 67 (dont `pj_cr` 8), b 29, c 104, d 179 (dont `pico8_jo_kw_start` 3), e1 127, e2 97 (dont `ke` 25).
+
+2.12 — archétypes et test ponctuel, six sous-étapes :
+
+| Sous-étape | Classes | Comparaisons ajoutées (A + I) | `défauts` |
+|---|---|---|---|
+| 2.12a | `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `hp`, `ie`, `pj` | 49 | 669 |
+| 2.12b | `mz`, `jc`, avec `pico8_probe_def_t` | 26 | 669 |
+| 2.12c | `g_`, `fv` (type sonde), avec `pico8_emitter_def_t` | 55 | 669 |
+| 2.12d | `jo`, `qh`, `nl`, `os`, avec le type planète complet | 111 | 669 |
+| 2.12e1 | `hj`, `pm`, `mx` | 129 | 669 |
+| 2.12e2 | `ga`, `nr`, `fr` | 97 | 669 |
+
+2.13 — l'init lit l'archétype, sept sous-étapes :
+
+| Sous-étape | Classes | `défauts` d'arrivée |
+|---|---|---|
+| 2.13a1 | `bg`, `ui`, `js`, `fq`, `nf`, `mh`, `iv`, `hp` | **603** |
+| 2.13a2 | `qb`, `ie`, `pj`, `pj_cr` | **536** |
+| 2.13b | `mz`, `jc` | **507** |
+| 2.13c | `g_`, `fv` | **403** |
+| 2.13d | `jo`, `qh`, `nl`, `os` | **224** |
+| 2.13e1 | `hj`, `pm`, `mx` | **97** |
+| 2.13e2 | `ga`, `nr`, `fr`, puis `ke` | **0**, gardé |
+
+L'ordre d puis e tient à 2.13. Dès 2.13d, `pico8_jo_struct_init` copie tout le `def` de la classe concrète, que chaque `_new` de l'arbre lui passe : les dix archétypes existent depuis 2.12e2. Jusqu'à 2.13e, les `_new` de la famille e réécrivent encore leurs propres `_start` par-dessus, aux mêmes valeurs.
+
+## 5. Questions à l'humain
+
+Aucune. Aucun champ n'est H, et le chemin de lecture ne laisse pas deux options à égalité.
 
 ## Annexe A — les 302 champs
 
@@ -650,3 +768,10 @@ Sur la copie jetable de `522824b`, sauf les lignes 1 et 2 (arbre de travail, lec
 | 13 | essai d'inclusion sur la copie (types et `pico8_nl_def`/`pico8_bg_def` dans `game_data.h/.c`, `def` dans `jo`/`bg`) puis `-fsyntax-only` | 0 | 0 erreur | 2 s |
 | 14 | `composition_residue.sh` et `--check inclusion-mutuelle` sur la copie modifiée | 0 | `inclusion-mutuelle 17 16` ; 43 lignes ; `défauts 670` (+1 : `pico8_jo_kw_start`) ; pied 1074 / 85 ; `--champs` 284 | 1 s |
 | 15 | `git -C tree checkout -- .` puis `status --short` | 0 | vide | < 1 s |
+| 16 | seconde passe, texte exact du §2 (`kw_own` par valeur) : `-fsyntax-only` puis compteur | 0 | 0 erreur ; `inclusion-mutuelle 17 16`, 43 lignes ; `défauts 669` ; pied `1073 / 85` | 3 s |
+| 17 | `git -C tree checkout -- .` puis `status --short` | 0 | vide | < 1 s |
+| 18 | `fam.py` : attribution des 669 lignes de `--check défauts` par nom `pico8_X_start` | 0 | a1 66, a2 67, b 29, c 104, d 179, e1 127, e2 97 | < 1 s |
+| 19 | `chains.py` relancé (`hp` sans `ke`), tables Q7 et masquages | 0 | 467 lignes ; 102 masquages entre niveaux | < 1 s |
+| 20 | `timeout 600 make test` (arbre de travail, aucun code changé) | 0 | `garde fichiers 58 en-echec 0` | 5 s |
+| 21 | `make composition-residue` (arbre de travail, fin de 2.9c) | 0 | `résidu 2 : 1073 ligne(s), 85 fichier(s)` | 0,7 s |
+| 22 | `rm -rf etude29/tree` | 0 | copie supprimée ; journaux et scripts gardés dans `etude29/` | < 1 s |
