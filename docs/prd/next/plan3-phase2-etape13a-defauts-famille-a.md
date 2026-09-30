@@ -53,6 +53,8 @@ Mesuré sur `p` :
 | `make test` ; `make e2e` | vert ; 26 conformes |
 | attribution des 669 lignes `défauts` par nom `pico8_X_start` (script, preuve 1) | a1 66, a2 67, b 29, c 104, d 179, e1 127, e2 97 |
 
+**2.12e2 est arrivée pendant l'écriture** : `5922ab8` (2.12e1 `2418a39`). Contrôlé par index temporaire : `src/` et `tests/` de `5922ab8` sont identiques à `p` (`git diff --stat` vide), donc les diffs ci-dessous s'appliquent tels quels sur `5922ab8` ou son descendant `05daecc`.
+
 Un départ autre : arrêt, rapporté. **Si 2.12e2 n'a pas été commitée à l'identique de son PRD** (`git diff 762f2f2 <commit 2.12e2> -- src tests` non vide dans une copie qui rejoue le PRD de 2.12e), les diffs ci-dessous s'appliquent par ancres de texte, pas par `git apply` : les seuls textes de 2.12e qu'ils touchent sont `extern const pico8_jo_def_t …` (contexte) et la ligne du total du test ponctuel.
 
 ## Solution
