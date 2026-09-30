@@ -231,6 +231,105 @@ static void test_ptrs_members_count_only_on_entity_types(void) {
                                   "résidu gardé (ptrs-entité) : 1 ligne(s)\n") == 0);
 }
 
+static void test_registres_reads_declaration_points_outside_entity_types(void) {
+    setup();
+    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n    pico8_"
+                           "ptrs_t *oe;\n} pico8_" "ke_t;\n"
+                           "typedef struct {\n    pico8_" "ptrs_t layers[16];\n    pico8_" "ptrs_t *qy;\n} pico8_"
+                           "emitter_t;\n"
+                           "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *self);\n} k_t;\n"
+                           "const pico8_" "ptrs_t *pico8_" "hv(void);\n"
+                           "pico8_lq_t *pico8_" "jo_ex(const pico8_" "ptrs_t *is,\n    int o);\n"
+                           "typedef int (*pico8_" "fn)(const pico8_" "ptrs_t *p);\n");
+    write_file(SRC "/r.c", "static pico8_" "ptrs_t g_hv;\n"
+                           "static pico8_" "ptrs_t *g_list = 0;\n"
+                           "pico8_" "ptrs_t pico8_" "jp_ptrs(const pico8_" "ptrs_t *qk) {\n    pico8_"
+                           "ptrs_t f;\n    return f;\n}\n");
+    write_file(SRC "/pico8_ptrs.h", "typedef struct {\n    const pico8_" "ptrs_t *ptrs;\n} pico8_" "ptrs_iter_t;\n"
+                                    "void pico8_" "ptrs_add(pico8_" "ptrs_t *p, void *e);\n");
+    write_file(TST "/t.c", "static pico8_" "ptrs_t g_t;\n");
+    assert(run_residue("--check registres " TREE) == 1);
+    assert(strcmp(read_file(OUT), "registres: " SRC "/e.h:6:    pico8_" "ptrs_t layers[16];\n"
+                                  "registres: " SRC "/e.h:10:    void *(*new_entity)(int k);\n"
+                                  "registres: " SRC "/e.h:13:const pico8_" "ptrs_t *pico8_" "hv(void);\n"
+                                  "registres: " SRC "/r.c:1:static pico8_" "ptrs_t g_hv;\n"
+                                  "registres: " SRC "/r.c:2:static pico8_" "ptrs_t *g_list = 0;\n"
+                                  "résidu gardé (registres) : 5 ligne(s)\n") == 0);
+}
+
+/* Formes d'un registre que le lecteur voit (F) et limites qu'il ne voit pas
+ * (L), chacune a sa ligne : une limite qui se met a compter change l'attendu. */
+static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
+    setup();
+    write_file(SRC "/f.h", "typedef pico8_" "ptrs_t reg_t;\n"
+                           "typedef reg_t reg2_t;\n"
+                           "typedef struct {\n"
+                           "    pico8_" "ptrs_t *a, *b;\n"
+                           "    pico8_" "ptrs_t **pp;\n"
+                           "    const pico8_" "ptrs_t *const x;\n"
+                           "    void **items;\n"
+                           "    pico8_" "ptrs_t (*get)(void);\n"
+                           "    void *slots[8];\n"
+                           "    void *owner;\n"
+                           "    struct {\n"
+                           "        pico8_" "ptrs_t l;\n"
+                           "    } inner;\n"
+                           "} holder_t;\n"
+                           "static inline const pico8_" "ptrs_t *reg_get(void) { return 0; }\n"
+                           "void **pico8_" "reg_items(void);\n"
+                           "extern pico8_" "ptrs_t g_reg;\n"
+                           "typedef struct { pico8_" "ptrs_t l; } one_t;\n");
+    write_file(SRC "/f.c", "static void reg_f(void) {\n"
+                           "    static pico8_" "ptrs_t reg;\n"
+                           "    pico8_" "ptrs_t l;\n"
+                           "    static struct {\n"
+                           "        pico8_" "ptrs_t l;\n"
+                           "    } g;\n"
+                           "    (void)reg;\n"
+                           "}\n"
+                           "static reg_t g_alias;\n"
+                           "static reg2_t g_alias2;\n"
+                           "static struct {\n"
+                           "    pico8_" "ptrs_t list;\n"
+                           "} g_anon;\n"
+                           "static struct reg_s {\n"
+                           "    pico8_" "ptrs_t list;\n"
+                           "} g_named;\n"
+                           "static struct { pico8_" "ptrs_t l; } g_one;\n"
+                           "static void *g_void[64];\n"
+                           "static pico8_" "ptrs_t g_a, g_b;\n"
+                           "pico8_" "ptrs_t g_pub;\n"
+                           "typedef void *handle_t;\n"
+                           "static handle_t g_h[64];\n"
+                           "#define REG(n) pico8_" "ptrs_t n\n"
+                           "static REG(g_m);\n"
+                           "int reg_n(const pico8_" "ptrs_t *p) {\n"
+                           "    return p->count;\n"
+                           "}\n");
+    write_file(TST "/t.c", "static void *g_t[4];\n");
+    assert(run_residue("--check registres " TREE) == 1);
+    assert(strcmp(read_file(OUT), "registres: " SRC "/f.c:2:    static pico8_" "ptrs_t reg;\n"
+                                  "registres: " SRC "/f.c:5:        pico8_" "ptrs_t l;\n"
+                                  "registres: " SRC "/f.c:9:static reg_t g_alias;\n"
+                                  "registres: " SRC "/f.c:12:    pico8_" "ptrs_t list;\n"
+                                  "registres: " SRC "/f.c:15:    pico8_" "ptrs_t list;\n"
+                                  "registres: " SRC "/f.c:17:static struct { pico8_" "ptrs_t l; } g_one;\n"
+                                  "registres: " SRC "/f.c:18:static void *g_void[64];\n"
+                                  "registres: " SRC "/f.c:19:static pico8_" "ptrs_t g_a, g_b;\n"
+                                  "registres: " SRC "/f.c:20:pico8_" "ptrs_t g_pub;\n"
+                                  "registres: " SRC "/f.h:4:    pico8_" "ptrs_t *a, *b;\n"
+                                  "registres: " SRC "/f.h:5:    pico8_" "ptrs_t **pp;\n"
+                                  "registres: " SRC "/f.h:6:    const pico8_" "ptrs_t *const x;\n"
+                                  "registres: " SRC "/f.h:7:    void **items;\n"
+                                  "registres: " SRC "/f.h:8:    pico8_" "ptrs_t (*get)(void);\n"
+                                  "registres: " SRC "/f.h:9:    void *slots[8];\n"
+                                  "registres: " SRC "/f.h:15:static inline const pico8_" "ptrs_t *reg_get(void) { return 0; }\n"
+                                  "registres: " SRC "/f.h:16:void **pico8_" "reg_items(void);\n"
+                                  "registres: " SRC "/f.h:17:extern pico8_" "ptrs_t g_reg;\n"
+                                  "registres: " SRC "/f.h:18:typedef struct { pico8_" "ptrs_t l; } one_t;\n"
+                                  "résidu gardé (registres) : 19 ligne(s)\n") == 0);
+}
+
 static void test_void_ptr_reads_joined_public_prototypes(void) {
     setup();
     write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *self);\n"
@@ -254,7 +353,8 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
     write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
-                                  "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
+                                  "registres\t2\t1\n"
+                                  "résidu 2 : 3 ligne(s), 1 fichier(s)\n") == 0);
 }
 
 static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
@@ -392,6 +492,8 @@ int main(void) {
     test_entity_reader_finds_embedded_parents_by_closure();
     test_entity_reader_ignores_what_is_not_an_embedded_parent();
     test_ptrs_members_count_only_on_entity_types();
+    test_registres_reads_declaration_points_outside_entity_types();
+    test_registres_sees_hidden_forms_and_not_its_named_limits();
     test_void_ptr_reads_joined_public_prototypes();
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
     test_attainment_list_counts_only_useful_lines();

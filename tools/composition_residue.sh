@@ -38,10 +38,10 @@
 
 set -u
 
-CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"
+CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"
 
 # Categories comptees dans le pied.
-SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"
+SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -83,6 +83,22 @@ VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 # (economy.c:284), jo.jy des entrees (economy_tiers.c:167), hp.i des
 # enregistrements jy (research.c:233), jc.ts des particules (slipway_display.c:43).
 PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
+
+# registres : hors tests/ et pico8_ptrs.[ch], les points de declaration qui
+# tiennent des entites par void * hors des types d'entite (que ptrs-entite
+# lit). Membre d'une struct (ou d'un objet struct, meme dans une fonction) qui
+# nomme pico8_ptrs_t ou un alias, quel que soit son declarateur (tableau,
+# **, const, plusieurs noms, pointeur de fonction), ou de type void ** ou
+# void *[N] ; membre qui rend void * par pointeur de fonction ; objet de portee
+# fichier, statique de fonction, extern de .h, de ces types ou void * ;
+# prototype ou definition inline de .h qui prend ou rend un pico8_ptrs_t, ou
+# rend void **. Non vus : alias d'alias, void * derriere un typedef, struct
+# imbriquee, membre void * simple, locale, macro. Exemptes, chacun prouve par
+# son ecrivain : emitter.qy des particules (particle.c:65), le ji du contexte
+# de planet_display.c des enregistrements jy (:79, :186) ; pico8_nv_ptrs sur
+# hp.i (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
+# pico8_jo_ex sur des enregistrements jy (planet_display.c:54).
+REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex"
 
 # En-tetes du noyau, par nom de fichier : noyau-inclut ne lit qu'eux.
 NOYAU="pico8_struct.h pico8_ke.h pico8_entity.h"
@@ -140,6 +156,19 @@ while IFS= read -r file; do
     done
 done < "$work/files"
 
+# registres lit hors tests/ et pico8_ptrs.[ch] ; REG_TYPES est pico8_ptrs_t
+# et ses alias "typedef pico8_ptrs_t X;" de ces fichiers (un alias d'alias
+# n'est pas suivi).
+grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/pico8_ptrs\.[ch]$' | grep -v '^pico8_ptrs\.[ch]$' > "$work/regfiles" || true
+REG_TYPES=pico8_ptrs_t
+if [ -s "$work/regfiles" ]; then
+    grep -hE '^[[:space:]]*typedef[[:space:]]+(const[[:space:]]+)?pico8_ptrs_t[[:space:]*]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;' $(cat "$work/regfiles") > "$work/reg.alias"
+    [ $? -le 1 ] || fail "echec de grep"
+    for a in $(sed -E 's/^.*[[:space:]*]([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*;.*$/\1/' "$work/reg.alias"); do
+        REG_TYPES="$REG_TYPES|$a"
+    done
+fi
+
 # Retire commentaires, chaines et caracteres d'une ligne, pour compter les
 # accolades ; un commentaire ouvert passe a la ligne suivante (incomment).
 CLEAN_AWK='
@@ -181,23 +210,35 @@ function braces(s,    t, n) {
 # $work/members les "<type>\t<membre>" que lit --champs.
 read_structs() {
     awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \
+        -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registres.structs" -v reg_types="$REG_TYPES" \
         -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"'
-    FNR == 1 { depth = 0; incomment = 0; inbody = 0 }
+    FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0 }
     {
         c = clean($0)
         if (!inbody && depth == 0 && c ~ /^typedef[ \t]+struct[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*;/) {
             split(c, w, /[ \t;]+/)
             alias_n++; alias_a[alias_n] = w[3]; alias_b[alias_n] = w[4]
         }
-        if (!inbody && depth == 0 && c ~ /^(typedef[ \t]+)?struct([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/) {
-            n++; inbody = 1; seen = 0; names[n] = " "
-            sfile[n] = FILENAME
-            t = c; sub(/^(typedef[ \t]+)?struct[ \t]*/, "", t); sub(/[ \t]*\{.*/, "", t)
+        if (!inbody && (depth == 0 && c ~ /^((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?struct([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/ ||
+                        depth > 0 && c ~ /^[ \t]*static[ \t]+(const[ \t]+)?struct([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/)) {
+            n++; inbody = 1; seen = 0; names[n] = " "; base = depth
+            sfile[n] = FILENAME; sobj[n] = c ~ /^[ \t]*(static|extern)[ \t]/
+            t = c; sub(/^[ \t]*((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?struct[ \t]*/, "", t); sub(/[ \t]*\{.*/, "", t)
             if (t != "") names[n] = names[n] t " "
             braces(c)
+            if (depth == base) {
+                inbody = 0
+                if (match(c, /\}[ \t]*[A-Za-z_][A-Za-z0-9_]*/)) {
+                    t = substr(c, RSTART + 1, RLENGTH - 1); sub(/^[ \t]*/, "", t)
+                    names[n] = names[n] t " "
+                }
+                if (c ~ ("(^|[^A-Za-z0-9_])(" reg_types ")([^A-Za-z0-9_]|$)")) {
+                    nr[n]++; rmem[n, nr[n]] = ""; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
+                }
+            }
             next
         }
-        if (inbody && depth == 1 && c !~ /^[ \t]*$/ && c !~ /^[ \t]*\}/) {
+        if (inbody && depth == base + 1 && c !~ /^[ \t]*$/ && c !~ /^[ \t]*\}/) {
             if (c !~ /[({]/ && match(c, /;/)) {
                 t = substr(c, 1, RSTART - 1)
                 nd = split(t, parts, ",")
@@ -219,9 +260,23 @@ read_structs() {
                 t = $0; sub(/;.*/, "", t); sub(/.*[ \t*]/, "", t)
                 np[n]++; pmem[n, np[n]] = t; pline[n, np[n]] = FNR; ptext[n, np[n]] = $0
             }
+            if (c ~ /^[ \t]*(const[ \t]+)?void[ \t]*(\*[ \t]*)+\([ \t]*\*/) {
+                t = c; sub(/\).*/, "", t); sub(/.*[ \t*(]/, "", t)
+                nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
+            } else if (c ~ /;/ &&
+                       (c ~ ("(^|[^A-Za-z0-9_])(" reg_types ")([^A-Za-z0-9_]|$)") ||
+                        c !~ /\(/ && c ~ /^[ \t]*(const[ \t]+)?void[ \t]*\*[ \t]*(const[ \t]+)?(\*|[A-Za-z_][A-Za-z0-9_]*[ \t]*\[)/)) {
+                t = c; sub(/;.*/, "", t); sub(/^[ \t]*(const[ \t]+)?[A-Za-z_][A-Za-z0-9_]*/, "", t)
+                nd = split(t, parts, ","); t = ""
+                for (i = 1; i <= nd; i++) {
+                    d = parts[i]; sub(/\[.*/, "", d); sub(/[ \t]+$/, "", d)
+                    if (match(d, /[A-Za-z_][A-Za-z0-9_]*$/)) t = t substr(d, RSTART, RLENGTH) " "
+                }
+                nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
+            }
         }
         braces(c)
-        if (inbody && depth == 0) {
+        if (inbody && depth == base) {
             inbody = 0
             if (match(c, /\}[ \t]*[A-Za-z_][A-Za-z0-9_]*/)) {
                 t = substr(c, RSTART + 1, RLENGTH - 1); sub(/^[ \t]*/, "", t)
@@ -239,7 +294,7 @@ read_structs() {
         do {
             grown = 0
             for (k = 1; k <= n; k++) {
-                if (!(first[k] in e) || in_e(k)) continue
+                if (sobj[k] || !(first[k] in e) || in_e(k)) continue
                 m = split(names[k], nm, " ")
                 for (i = 1; i <= m; i++) e[nm[i]] = 1
                 grown = 1
@@ -253,11 +308,21 @@ read_structs() {
         printf "" > out_parente
         printf "" > out_ptrs
         printf "" > out_members
+        printf "" > out_reg
         for (i = 1; i <= alias_n; i++) alias_of[alias_a[i]] = alias_b[i]
         for (k = 1; k <= n; k++) {
-            if (first[k] in e && first[k] != "pico8_struct_header_t")
+            if (!sobj[k] && first[k] in e && first[k] != "pico8_struct_header_t")
                 print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parente
-            if (!in_e(k)) continue
+            if (!in_e(k) && sfile[k] !~ /(^|\/)tests\// && sfile[k] !~ /(^|\/)pico8_ptrs\.[ch]$/) {
+                m = split(names[k], nm, " ")
+                for (j = 1; j <= nr[k]; j++) {
+                    q = split(rmem[k, j], mm, " "); left = q
+                    for (h = 1; h <= q; h++)
+                        for (i = 1; i <= m; i++) if (index(reg_non_entite, " " nm[i] "." mm[h] " ")) { left--; break }
+                    if (left > 0 || q == 0) print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_reg
+                }
+            }
+            if (!in_e(k) || sobj[k]) continue
             if (sfile[k] ~ /\.h$/ && sfile[k] !~ /(^|\/)tests\//) {
                 m = split(names[k], nm, " "); type = nm[m]
                 if (type in alias_of) type = alias_of[type]
@@ -312,6 +377,41 @@ read_prototypes() {
     }' > "$work/void-ptr" || fail "echec de awk"
 }
 
+# registres, suite : objets pico8_ptrs_t de portee fichier des .c et
+# prototypes des .h (hors pico8_ptrs.h), hors tests/, joints comme ceux de
+# void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
+read_registres() {
+    [ -f "$work/parente" ] || read_structs
+    : > "$work/registres.decl"
+    if [ -s "$work/regfiles" ]; then
+        awk -v non=" $REGISTRES_NON_ENTITE " -v reg_types="$REG_TYPES" "$CLEAN_AWK"'
+        FNR == 1 { depth = 0; incomment = 0; acc = "" }
+        {
+            c = clean($0)
+            if (acc == "" && ((depth == 0 && $0 ~ /^[a-z]/) || (depth > 0 && c ~ /^[ \t]*static[ \t]/))) {
+                start = FNR; text = $0; acc = " "; local = depth > 0
+            }
+            if (acc != "") {
+                acc = acc " " c
+                if (acc ~ /[;{=]/) {
+                    fn = !local && match(acc, /[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)
+                    if (fn) { name = substr(acc, RSTART, RLENGTH); sub(/[ \t]*\($/, "", name); ret = substr(acc, 1, RSTART - 1) }
+                    else { t = acc; sub(/[ \t]*(\[[^]]*\])?[ \t]*[;=].*/, "", t); sub(/.*[ \t*]/, "", t); name = t }
+                    ok = acc !~ /^[ \t]*typedef/ &&
+                         (acc ~ ("(^|[^A-Za-z0-9_])(" reg_types ")([^A-Za-z0-9_]|$)") ||
+                          (!fn && acc ~ /(^|[^A-Za-z0-9_])void[ \t]*\*/) ||
+                          (fn && ret ~ /(^|[^A-Za-z0-9_])void[ \t]*\*[ \t]*(const[ \t]+)?\*/))
+                    keep = FILENAME ~ /\.h$/ || !fn
+                    if (ok && keep && !index(non, " " name " ")) print FILENAME ":" start ":" text
+                    acc = ""
+                }
+            }
+            braces(c)
+        }' $(cat "$work/regfiles") > "$work/registres.decl" || fail "echec de awk"
+    fi
+    cat "$work/registres.structs" "$work/registres.decl" | sort -u -t: -k1,1 -k2,2n > "$work/registres"
+}
+
 # Paires {a, b} de modules hors tests/ ou chacun inclut l'en-tete de l'autre,
 # dans $work/inclusion-mutuelle.pairs ; dans $work/inclusion-mutuelle, les
 # lignes #include qui realisent ces paires, au format des autres categories.
@@ -356,6 +456,7 @@ collect() {
             sort -t: -k1,1 -k2,2n "$work/$1" > "$work/sorted" && mv "$work/sorted" "$work/$1"
             return 0 ;;
         void-ptr) read_prototypes; return 0 ;;
+        registres) read_registres; return 0 ;;
         inclusion-mutuelle) read_inclusions; return 0 ;;
         atteinte-à-prouver)
             status=0
