@@ -2,5 +2,3 @@
 # Une ligne sort par une entree TROU et son test, ou par une ligne de
 # tools/line_coverage_unreachable.txt. composition_residue.sh compte les
 # lignes qui ne commencent ni par # ni par un blanc.
-
-pj-hb-nil	pj:hb ecrit nil dans pj.ou la ou le pairs du cart saute la valeur (peut-etre aussi via ef[fm.lo] avec un lo fractionnaire, contre le flr du port) ; avec elle, le false ou le nil de pj.ou lu par pico8_pi_is_number (D.18c M6/M7), jamais atteint	src/pico8_score_panel.c pico8_pj_hb ; src/pico8_pi.c pico8_pi_is_number	atteinte prouvee -> entree TROU et test ; inaccessible prouvee -> ligne de tools/line_coverage_unreachable.txt

@@ -69,7 +69,13 @@ static const pico8_jb_item_t *pico8_pi_arg(const pico8_jb_row_t *e, int i) {
 
 static int pico8_pi_is_number(const pico8_jb_row_t *e, int i) {
     const pico8_jb_item_t *item = pico8_pi_arg(e, i);
-    return item != NULL && item->s == NULL && !item->is_false && !item->is_ref;
+    if (item == NULL || item->s != NULL) {
+        return 0;
+    }
+    if (item->is_false || item->is_ref) {
+        return 0;
+    }
+    return 1;
 }
 
 /* 0 when `e[i]` is not a number. */

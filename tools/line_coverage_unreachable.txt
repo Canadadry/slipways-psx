@@ -1,0 +1,1 @@
+src/pico8_pi.c:76 aucun article faux ni référence n'arrive ici en jeu : seul pj.ou en porte (false initial, nil de pj:hb), et pj:hb le réécrit avant tout dessin (eu() finit par fm:lj() ; le nil d'ef[fm.lo], lo de 16 à 18, est écrasé par le second fm:lj() de hy:nx dans la même frame)
