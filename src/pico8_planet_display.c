@@ -474,3 +474,46 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
         }
     }
 }
+
+void pico8_jo_hb_dispatch(void *self) {
+    pico8_jo_hb((pico8_jo_t *)self);
+}
+
+pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s) {
+    return pico8_jo_gv((const pico8_jo_t *)self, s);
+}
+
+void pico8_jo_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
+}
+
+pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
+    (void)qa;
+    (void)ra;
+    return pico8_jo_ldown((pico8_jo_t *)self);
+}
+
+pico8_down_t pico8_jo_ldown(pico8_jo_t *self) {
+    const char *me_val;
+    pico8_down_t out = {0, NULL};
+
+    if (self == NULL || self->header.me == NULL) {
+        return out;
+    }
+    me_val = self->header.me;
+    if (strcmp(me_val, "known") == 0) {
+        pico8_jo_fe(self);
+        out.stop = 1;
+        return out;
+    }
+    if (strcmp(me_val, "ly") == 0) {
+        pico8_jc_keys_t keys = {0};
+
+        assert(pico8_jc_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
+        keys.qu = (pico8_struct_header_t *)self;
+        out.held = (pico8_struct_header_t *)pico8_jc_new(&keys);
+        out.stop = out.held != NULL;
+    }
+    return out;
+}

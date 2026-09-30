@@ -245,3 +245,11 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
 
     return ib;
 }
+
+void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw) {
+    pico8_jo_kf((pico8_jo_t *)self, sw);
+}
+
+void pico8_jo_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw) {
+    pico8_jo_cn((pico8_jo_t *)self, lw);
+}

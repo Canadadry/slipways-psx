@@ -7,7 +7,6 @@
 
 #include "pico8_audio.h"
 #include "pico8_collect.h"
-#include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
@@ -15,12 +14,9 @@
 #include "pico8_ke.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
-#include "pico8_planet_display.h"
 #include "pico8_planet_family.h"
-#include "pico8_planet_trade.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
-#include "pico8_slipway.h"
 #include "pico8_tech_gate.h"
 
 static int g_jo_up = 0;
@@ -36,40 +32,13 @@ int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, con
     return pico8_gk(self, qa, ra);
 }
 
-void pico8_jo_hb_dispatch(void *self) {
-    pico8_jo_hb((pico8_jo_t *)self);
-}
-
-pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s) {
-    return pico8_jo_gv((const pico8_jo_t *)self, s);
-}
-
 void pico8_jo_hk_dispatch(void *self, pico8_fixed_t yr) {
     (void)yr;
     pico8_jo_hk((const pico8_jo_t *)self);
 }
 
-void pico8_jo_kj_dispatch(void *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_jo_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
-}
-
-pico8_down_t pico8_jo_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
-    (void)qa;
-    (void)ra;
-    return pico8_jo_ldown((pico8_jo_t *)self);
-}
-
 int pico8_jo_is_family(const pico8_struct_header_t *e) {
     return (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_JO)) != 0;
-}
-
-void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw) {
-    pico8_jo_kf((pico8_jo_t *)self, sw);
-}
-
-void pico8_jo_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw) {
-    pico8_jo_cn((pico8_jo_t *)self, lw);
 }
 
 void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
@@ -432,28 +401,4 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         /* `text` is now owned by the new `iv` instance, which reads it every
          * frame it stays on screen: not freed here. */
     }
-}
-
-pico8_down_t pico8_jo_ldown(pico8_jo_t *self) {
-    const char *me_val;
-    pico8_down_t out = {0, NULL};
-
-    if (self == NULL || self->header.me == NULL) {
-        return out;
-    }
-    me_val = self->header.me;
-    if (strcmp(me_val, "known") == 0) {
-        pico8_jo_fe(self);
-        out.stop = 1;
-        return out;
-    }
-    if (strcmp(me_val, "ly") == 0) {
-        pico8_jc_keys_t keys = {0};
-
-        assert(pico8_jc_ready() && "pico8_jc_init() must run before jo:ldown builds a jc");
-        keys.qu = (pico8_struct_header_t *)self;
-        out.held = (pico8_struct_header_t *)pico8_jc_new(&keys);
-        out.stop = out.held != NULL;
-    }
-    return out;
 }
