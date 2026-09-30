@@ -115,14 +115,14 @@ static char *jo_dollar(char *s) {
     return with_suffix;
 }
 
-/* A planet's `pz` frame: `ep`, `gq` and `ra` nil when NULL, `ca` always. */
+/* A planet's `pz` frame: `ep` and `ra` nil when NULL, `ca` and `gq` always. */
 static pico8_pz_frame_t jo_pz_frame(const pico8_jo_t *self) {
     pico8_pz_frame_t frame = {0};
 
     frame.ep = self->ep;
     frame.has_ca = 1;
-    frame.ca = self->ca;
-    frame.gq = self->gq;
+    frame.ca = self->def->ca;
+    frame.gq = &self->def->gq;
     frame.ra = self->ra;
     return frame;
 }

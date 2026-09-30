@@ -93,7 +93,6 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     static pico8_kw_t kw;
     const pico8_jb_row_t *kw_row;
     pico8_vec_t *ra;
-    pico8_vec_t *gq;
     const pico8_ents_t *le;
     const pico8_lq_t *exports_lq = NULL;
     pico8_lq_cell_t entry;
@@ -112,13 +111,10 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     kw.mu = pico8_fixed_from_int(1);
     planet->kw = &kw;
 
-    /* `jo:gh` reads these for `pz()`'s row placement. */
+    /* `jo:gh` reads it, and the archetype's `gq`, for `pz()`'s row placement. */
     ra = malloc(sizeof *ra);
     *ra = pico8_vec_v(pico8_fixed_from_int(64), pico8_fixed_from_int(64));
     planet->ra = ra;
-    gq = malloc(sizeof *gq);
-    *gq = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(9));
-    planet->gq = gq;
 
     /* The call under test: this is where the overflow happened. */
     pico8_jo_gh(planet);

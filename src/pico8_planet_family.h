@@ -114,10 +114,10 @@ int pico8_qh_ready(void);
 const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
-/* Initializes an allocated pico8_qh_t under `cls`: jo's part, qh's members
- * nil, qh's defaults. Reads no key, runs neither `pq` nor `lt`, records no
+/* Initializes an allocated pico8_qh_t under `cls` and `def`, its kind's
+ * archetype: jo's part, qh's members nil, qh's defaults. Reads no key, runs neither `pq` nor `lt`, records no
  * coverage. Requires `pico8_planet_family_init()`. */
-void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls);
+void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
@@ -159,10 +159,10 @@ const pico8_struct_class_t *pico8_hj_struct_class(void);
  * ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_hj_t *pico8_hj_new(const pico8_jo_keys_t *keys);
 
-/* Initializes an allocated pico8_hj_t under `cls`: qh's part, hj's members
- * nil, hj's defaults. Reads no key, runs neither `pq` nor `lt`, records no
+/* Initializes an allocated pico8_hj_t under `cls` and `def`, its kind's
+ * archetype: qh's part, hj's members nil, hj's defaults. Reads no key, runs neither `pq` nor `lt`, records no
  * coverage. Requires `pico8_planet_family_init()`. */
-void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls);
+void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */

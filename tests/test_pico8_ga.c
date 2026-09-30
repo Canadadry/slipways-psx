@@ -342,13 +342,13 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(jo->kq != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
+    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
+    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
-    h = fnv(h, (uint32_t)(jo->gq != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->em != NULL));
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(jo->def->em != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -391,12 +391,12 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     } else {
         assert(em->k_ == &pico8_ga_k__seq);
     }
-    assert(jo->gq == &pico8_jo_start.gq);
+    assert(jo->def == &pico8_ga_def);
     assert(jo->kw == pico8_jo_shared_kw());
-    assert(jo->em == &pico8_jo_em_row);
-    assert(jo->ka == &pico8_jo_ka_seq);
-    assert(jo->dz == pico8_jo_dz_rows);
-    assert(jo->cq == &pico8_jo_cq_seq);
+    assert(jo->def->em == &pico8_jo_em_row);
+    assert(jo->def->ka == &pico8_jo_ka_seq);
+    assert(jo->def->dz == pico8_jo_dz_rows);
+    assert(jo->def->cq == &pico8_jo_cq_seq);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (j = 0; j < (int)(sizeof bm / sizeof bm[0]); j++) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[j]), e));

@@ -209,7 +209,7 @@ static void test_kind_reader_serves_the_generated_defaults(void) {
     rec = rec_of(8);
     assert(rec->rr == NULL);
     assert(!rec->has_s && rec->s == 0);
-    assert(rec->me == pico8_jo_start.me);
+    assert(rec->me == pico8_jo_def.me);
     assert(!rec->has_od && rec->od == 0);
 }
 

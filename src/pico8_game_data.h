@@ -308,22 +308,6 @@ typedef struct {
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
 typedef struct {
-    const char *me;
-    int hf;
-    pico8_fixed_t hs;
-    pico8_fixed_t fa;
-    pico8_qz_box_t kq;
-    pico8_fixed_t ma;
-    const pico8_int_seq_t *ka;
-    const pico8_jb_row_t *dz;
-    const pico8_int_seq_t *cq;
-    const pico8_kw_t *kw;
-    pico8_vec_t gq;
-    pico8_fixed_t ca;
-    const pico8_jb_row_t *em;
-} pico8_jo_start_t;
-
-typedef struct {
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
     const char *me;
@@ -484,7 +468,6 @@ extern const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT];
 extern const pico8_int_seq_t pico8_jo_ka_seq;
 extern const pico8_jb_row_t pico8_jo_dz_rows[PICO8_JO_DZ_COUNT];
 extern const pico8_int_seq_t pico8_jo_cq_seq;
-extern const pico8_kw_t pico8_jo_kw_start;
 extern const pico8_jb_row_t pico8_jo_em_row;
 extern const pico8_jb_row_t pico8_qh_px_row;
 extern const pico8_jb_row_t pico8_nl_px_row;
@@ -523,7 +506,6 @@ extern const pico8_jb_row_t pico8_pj_ou_row;
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_jo_start_t pico8_jo_start;
 extern const pico8_qh_start_t pico8_qh_start;
 extern const pico8_nl_start_t pico8_nl_start;
 extern const pico8_os_start_t pico8_os_start;

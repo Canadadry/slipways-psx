@@ -146,8 +146,6 @@ const pico8_jb_row_t pico8_jo_dz_rows[PICO8_JO_DZ_COUNT] = {
 static const int jo_cq_items[] = {12, 36, 24, 25};
 const pico8_int_seq_t pico8_jo_cq_seq = {4, jo_cq_items};
 
-const pico8_kw_t pico8_jo_kw_start = {0, 0x0, 0x0};
-
 static const pico8_jb_item_t jo_em_items[] = {{.is_false = 1}, {.n = 3}, {.n = 0}, {.n = -1}};
 const pico8_jb_row_t pico8_jo_em_row = {.count = 4, .items = jo_em_items};
 
@@ -437,22 +435,6 @@ static const char ga_fz_text[] = "ga";
 static const char nr_rr_text[] = "slipgates";
 static const char fr_rr_text[] = "infraspace";
 static const char mx_rr_text[] = "void synthesis";
-
-const pico8_jo_start_t pico8_jo_start = {
-    .me = jo_me_text,
-    .hf = 1,
-    .hs = 0x10000,
-    .fa = 0x60000,
-    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
-    .ma = 0x0,
-    .ka = &pico8_jo_ka_seq,
-    .dz = pico8_jo_dz_rows,
-    .cq = &pico8_jo_cq_seq,
-    .kw = &pico8_jo_kw_start,
-    .gq = {0x0, 0xb0000},
-    .ca = 0x90000,
-    .em = &pico8_jo_em_row,
-};
 
 const pico8_qh_start_t pico8_qh_start = {
     .hp = 0x10000,

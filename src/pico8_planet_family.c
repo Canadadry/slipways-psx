@@ -59,8 +59,8 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
-    pico8_jo_struct_init(&self->jo, cls);
+void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
+    pico8_jo_struct_init(&self->jo, cls, def);
     self->hp = pico8_qh_start.hp;
     self->px = pico8_qh_start.px;
     self->probe = &self->probe_own;
@@ -86,7 +86,7 @@ static pico8_qh_t *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
     pico8_qh_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
-    pico8_qh_struct_init(self, &g_qh_struct_class);
+    pico8_qh_struct_init(self, &g_qh_struct_class, &pico8_qh_def);
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "qh: the only construction key is id (ie:ldown); another key has no member "
@@ -153,7 +153,7 @@ static pico8_nl_t *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
     pico8_nl_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
-    pico8_qh_struct_init(&self->qh, &g_nl_struct_class);
+    pico8_qh_struct_init(&self->qh, &g_nl_struct_class, &pico8_nl_def);
     self->rr = pico8_nl_start.rr;
     self->nl = pico8_nl_start.nl;
     self->qw = pico8_nl_start.qw;
@@ -212,7 +212,7 @@ static pico8_os_t *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
     pico8_os_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
-    pico8_qh_struct_init(&self->qh, &g_os_struct_class);
+    pico8_qh_struct_init(&self->qh, &g_os_struct_class, &pico8_os_def);
     self->qh.hp = pico8_os_start.hp;
     self->qh.px = pico8_os_start.px;
     self->qh.qh = pico8_os_start.qh;
@@ -285,8 +285,8 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
-    pico8_qh_struct_init(&self->qh, cls);
+void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
+    pico8_qh_struct_init(&self->qh, cls, def);
     self->rr = pico8_hj_start.rr;
     self->emitter = &self->emitter_own;
     self->emitter->def = NULL;
@@ -313,7 +313,7 @@ static pico8_hj_t *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
     pico8_hj_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
-    pico8_hj_struct_init(self, &g_hj_struct_class);
+    pico8_hj_struct_init(self, &g_hj_struct_class, &pico8_hj_def);
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "hj: the only construction key is id (ie:ldown); another key has no member "
@@ -394,7 +394,7 @@ static pico8_pm_t *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     pico8_pm_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
-    pico8_hj_struct_init(&self->hj, &g_pm_struct_class);
+    pico8_hj_struct_init(&self->hj, &g_pm_struct_class, &pico8_pm_def);
     self->ng = &pico8_pm_start.ng;
     self->fz = pico8_pm_start.fz;
     self->hj.emitter->py = pico8_pm_start.py;
@@ -568,7 +568,7 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     pico8_ga_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
-    pico8_jo_struct_init(&self->jo, &g_ga_struct_class);
+    pico8_jo_struct_init(&self->jo, &g_ga_struct_class, &pico8_ga_def);
     self->fz = pico8_ga_start.fz;
     self->emitter = &self->emitter_own;
     self->emitter->def = NULL;

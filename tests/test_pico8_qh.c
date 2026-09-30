@@ -278,8 +278,8 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_fixed_member(h, jo->hs);
     h = fold_fixed_member(h, jo->fa);
     h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->ca);
-    h = fold_vec(h, jo->gq);
+    h = fold_fixed_member(h, jo->def->ca);
+    h = fold_vec(h, &jo->def->gq);
     /* The 1s of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`, `hs`, `fa`,
      * `ma` and `ca`: constant by the struct's shape, kept so that BUILT_HASH
      * still proves the typed reads. */
@@ -299,13 +299,13 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(jo->kq != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
+    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
+    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
-    h = fnv(h, (uint32_t)(jo->gq != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->em != NULL));
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(jo->def->em != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -329,10 +329,10 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
            cls_of(e)->mm == NULL && pico8_jo_is_family(e));
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->px == &pico8_qh_px_row && qh->ba == &pico8_qh_ba_seq);
-    assert(jo->kq == &pico8_jo_start.kq);
-    assert(jo->gq == &pico8_jo_start.gq);
-    assert(jo->em == &pico8_jo_em_row && jo->ka == &pico8_jo_ka_seq && jo->dz == pico8_jo_dz_rows &&
-           jo->cq == &pico8_jo_cq_seq);
+    assert(jo->kq == &pico8_qh_def.kq);
+    assert(jo->def == &pico8_qh_def);
+    assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
+           jo->def->cq == &pico8_jo_cq_seq);
     assert(jo->kw != NULL && jo->kw != pico8_jo_shared_kw());
     assert(pico8_gb_at(1) != NULL);
     assert(jo->hn == pico8_gb_at(1));

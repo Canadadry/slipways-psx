@@ -761,7 +761,6 @@ static void test_gh_wants_more(void) {
     pico8_jo_t *planet;
     const pico8_lq_t *wants;
     const pico8_lq_t *receives;
-    pico8_vec_t *gq;
 
     start_game();
     a->has_gc = 1;
@@ -777,9 +776,6 @@ static void test_gh_wants_more(void) {
     planet->mi = pico8_fixed_from_int(1);
     planet->ra = malloc(sizeof *planet->ra);
     *planet->ra = vec_xy(64, 64);
-    gq = malloc(sizeof *gq);
-    *gq = vec_xy(0, 9);
-    planet->gq = gq;
     pico8_jo_gh(planet);
 
     wants = panel_row("wants more:");
@@ -801,7 +797,6 @@ static void test_gh_w_maker_wants_no_more(void) {
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_kw_t *kw = calloc(1, sizeof *kw);
     pico8_jo_t *planet;
-    pico8_vec_t *gq;
     int r_w;
 
     start_game();
@@ -819,9 +814,6 @@ static void test_gh_w_maker_wants_no_more(void) {
     planet->mi = pico8_fixed_from_int(1);
     planet->ra = malloc(sizeof *planet->ra);
     *planet->ra = vec_xy(64, 64);
-    gq = malloc(sizeof *gq);
-    *gq = vec_xy(0, 9);
-    planet->gq = gq;
     pico8_jo_gh(planet);
 
     assert(panel_row("wants more:") == NULL && panel_row("needs:") == NULL);
@@ -834,7 +826,6 @@ static void test_gh_lab_wants_its_last(void) {
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_qh_t *lab;
     const pico8_lq_t *wants;
-    pico8_vec_t *gq;
 
     start_game();
     a->has_gc = 1;
@@ -850,9 +841,6 @@ static void test_gh_lab_wants_its_last(void) {
     lab->jo.mi = pico8_fixed_from_int(1);
     lab->jo.ra = malloc(sizeof *lab->jo.ra);
     *lab->jo.ra = vec_xy(64, 64);
-    gq = malloc(sizeof *gq);
-    *gq = vec_xy(0, 9);
-    lab->jo.gq = gq;
     pico8_jo_gh(&lab->jo);
 
     wants = panel_row("wants more:");

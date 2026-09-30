@@ -132,21 +132,16 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
+void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     assert(g_jo_up && "pico8_jo_init() must run first");
     pico8_ke_struct_init(&self->header, cls);
-    self->hf = pico8_jo_start.hf;
-    self->hs = pico8_jo_start.hs;
-    self->fa = pico8_jo_start.fa;
-    self->kq = &pico8_jo_start.kq;
-    self->ma = pico8_jo_start.ma;
-    self->ka = pico8_jo_start.ka;
-    self->dz = pico8_jo_start.dz;
-    self->cq = pico8_jo_start.cq;
+    self->def = def;
+    self->hf = self->def->hf;
+    self->hs = self->def->hs;
+    self->fa = self->def->fa;
+    self->kq = &self->def->kq;
+    self->ma = self->def->ma;
     self->kw = &g_jo_kw_shared;
-    self->gq = &pico8_jo_start.gq;
-    self->ca = pico8_jo_start.ca;
-    self->em = pico8_jo_start.em;
     self->id = NULL;
     self->p = NULL;
     self->ra = NULL;
@@ -167,18 +162,18 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     self->has_kr = 0;
     self->cc = NULL;
     self->by = NULL;
-    self->mi = 0;
-    self->has_mi = 0;
+    self->mi = self->def->mi;
+    self->has_mi = self->def->has_mi;
     self->m_ = 0;
     self->has_m_ = 0;
-    self->kw_own = *pico8_jo_start.kw;
-    self->header.me = pico8_jo_start.me;
+    self->kw_own = (pico8_kw_t){0};
+    self->header.me = self->def->me;
 }
 
 static pico8_jo_t *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
     pico8_jo_t *self = malloc(sizeof *self);
 
-    pico8_jo_struct_init(self, &g_jo_struct_class);
+    pico8_jo_struct_init(self, &g_jo_struct_class, &pico8_jo_def);
     if (keys != NULL) {
         if (keys->p != NULL) {
             self->p = keys->p;
@@ -202,7 +197,7 @@ void pico8_jo_init(void) {
     pico8_jo_shutdown();
     pico8_pi_init();
     g_jo_up = 1;
-    g_jo_kw_shared = *pico8_jo_start.kw;
+    g_jo_kw_shared = (pico8_kw_t){0};
 }
 
 void pico8_jo_shutdown(void) {

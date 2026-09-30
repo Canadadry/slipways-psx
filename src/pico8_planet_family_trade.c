@@ -190,8 +190,8 @@ static const pico8_struct_class_t g_nr_struct_class = {
 /* Initializes an allocated pico8_nr_t under `cls`: qh's part, nr's members
  * nil, nr's defaults. Reads no key, runs neither `pq` nor `lt`, records no
  * coverage. Requires `pico8_planet_family_trade_init()`. */
-static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls) {
-    pico8_qh_struct_init(&self->qh, cls);
+static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
+    pico8_qh_struct_init(&self->qh, cls, def);
     self->hz = pico8_nr_start.hz;
     self->rr = pico8_nr_start.rr;
     self->qh.probe->od = pico8_nr_start.od;
@@ -205,7 +205,7 @@ static pico8_nr_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_nr_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_nr_struct_init(self, &g_nr_struct_class);
+    pico8_nr_struct_init(self, &g_nr_struct_class, &pico8_nr_def);
     if (keys != NULL) {
         if (keys->id != NULL) {
             self->qh.jo.id = keys->id;
@@ -264,7 +264,7 @@ static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_fr_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_nr_struct_init(&self->nr, &g_fr_struct_class);
+    pico8_nr_struct_init(&self->nr, &g_fr_struct_class, &pico8_fr_def);
     self->mt = pico8_fr_start.mt;
     self->nr.hz = pico8_fr_start.hz;
     self->nr.rr = pico8_fr_start.rr;
@@ -370,7 +370,7 @@ static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
     pico8_mx_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_hj_struct_init(&self->hj, &g_mx_struct_class);
+    pico8_hj_struct_init(&self->hj, &g_mx_struct_class, &pico8_mx_def);
     self->ht = pico8_mx_start.ht;
     self->hj.rr = pico8_mx_start.rr;
     self->hj.emitter->py = pico8_mx_start.py;

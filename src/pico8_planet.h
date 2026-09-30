@@ -16,27 +16,21 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* A bare planet: jo's own defaults (`kq`, `ka`, `dz`, `cq`, `gq` and
- * `em` point at jo's generated data in pico8_game_data.h; `kw` points at the one kw
- * every bare planet shares, written in place by `bb` and `mx:kf`, until `lz`
- * points it at the planet's own `kw_own`), its construction keys
+/* A bare planet: its kind's archetype (`kq` points into it; `kw` points at
+ * the one kw every bare planet shares, written in place by `bb` and `mx:kf`,
+ * until `lz` points it at the planet's own `kw_own`), its construction keys
  * `id`/`p`/`ra`, then every field jo's functions write on it. Every planet
  * struct begins with one, so jo's functions take it for `self`. Nothing
  * frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_jo_def_t *def;
     int hf;
     pico8_fixed_t hs;
     pico8_fixed_t fa;
     const pico8_qz_box_t *kq;
     pico8_fixed_t ma;
-    const pico8_int_seq_t *ka;
-    const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
-    const pico8_int_seq_t *cq;
     pico8_kw_t *kw;
-    const pico8_vec_t *gq;
-    pico8_fixed_t ca;
-    const pico8_jb_row_t *em;
     const char *id;
     pico8_vec_t *p;
     pico8_vec_t *ra;
@@ -94,10 +88,10 @@ pico8_kw_t *pico8_jo_shared_kw(void);
 pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
 
 /* Sets up an allocated `self` as a bare planet whose descriptor is `cls`:
- * the 31 members nil, then jo's defaults. Neither runs `jo:pq` nor `lt`:
- * a daughter's constructor does, after its own defaults. Requires
- * `pico8_jo_init()`. */
-void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls);
+ * `def` kept, the members it holds copied from it, the others nil. Neither
+ * runs `jo:pq` nor `lt`: a daughter's constructor does, after its own
+ * defaults. Requires `pico8_jo_init()`. */
+void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 void pico8_jo_pq(pico8_jo_t *self);
 

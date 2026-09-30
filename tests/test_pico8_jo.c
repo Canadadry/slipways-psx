@@ -209,10 +209,10 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fold_fixed_member(h, jo->hs);
     h = fold_fixed_member(h, jo->fa);
     h = fold_fixed_member(h, jo->ma);
-    h = fold_fixed_member(h, jo->ca);
+    h = fold_fixed_member(h, jo->def->ca);
     h = fold_vec(h, jo->p);
     h = fold_vec(h, jo->ra);
-    h = fold_vec(h, jo->gq);
+    h = fold_vec(h, &jo->def->gq);
     /* The 1s of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's
      * shape, kept so that GALAXY_HASH and NEW_PLANET_HASH still prove the
      * typed reads. */
@@ -222,13 +222,13 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(jo->kq != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->ka != NULL));
-    h = fnv(h, (uint32_t)(jo->dz != NULL));
-    h = fnv(h, (uint32_t)(jo->cq != NULL));
+    h = fnv(h, (uint32_t)(jo->def->ka != NULL));
+    h = fnv(h, (uint32_t)(jo->def->dz != NULL));
+    h = fnv(h, (uint32_t)(jo->def->cq != NULL));
     h = fnv(h, (uint32_t)(jo->kw != NULL));
-    h = fnv(h, (uint32_t)(jo->gq != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->em != NULL));
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(jo->def->em != NULL));
     h = fnv(h, (uint32_t)(jo->id != NULL));
     h = fnv(h, (uint32_t)(jo->p != NULL));
     h = fnv(h, (uint32_t)(jo->ra != NULL));
@@ -248,9 +248,9 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)jo->has_mi);
     h = fnv(h, (uint32_t)jo->has_m_);
     assert_jo_members(cls_of(e));
-    assert(jo->kq == &pico8_jo_start.kq);
-    assert(jo->gq == &pico8_jo_start.gq);
-    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && jo->kw == pico8_jo_shared_kw() && jo->em == &pico8_jo_em_row);
+    assert(jo->kq == &pico8_jo_def.kq);
+    assert(jo->def == &pico8_jo_def);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && jo->kw == pico8_jo_shared_kw() && jo->def->em == &pico8_jo_em_row);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
@@ -347,9 +347,9 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
     const pico8_jo_t *jo = as_jo(d);
     pico8_vec_t ra;
 
-    h = fold_fixed_member(h, jo->ca);
-    h = fold_vec(h, jo->gq);
-    assert(jo->em == &pico8_jo_em_row);
+    h = fold_fixed_member(h, jo->def->ca);
+    h = fold_vec(h, &jo->def->gq);
+    assert(jo->def->em == &pico8_jo_em_row);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(jo) ? 1u : 0u);
     assert(jo->ra != NULL);
     ra = *jo->ra;
