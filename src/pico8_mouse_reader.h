@@ -1,6 +1,7 @@
 #ifndef PICO8_MOUSE_READER_H
 #define PICO8_MOUSE_READER_H
 
+#include "pico8_game_data.h"
 #include "pico8_input.h"
 #include "pico8_ke.h"
 #include "pico8_mem.h"
@@ -16,6 +17,7 @@
  * TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_nf_def_t *def;
     pico8_vec_t *ra;
 } pico8_nf_t;
 

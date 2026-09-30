@@ -13,12 +13,10 @@
  * crashing. `hd=1` is flat data, not a method: `bg` always answers the hover
  * test, since nothing lies behind the background to miss. */
 
-/* `pl` points at `pico8_bg_pl_seq`. Nothing frees the struct: TROU-7. */
+/* Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_fixed_t fa;
-    pico8_fixed_t hd;
-    const pico8_int_seq_t *pl;
+    const pico8_bg_def_t *def;
     pico8_vec_t *mq;
     int m_;
     int has_m_;

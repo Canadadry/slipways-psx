@@ -31,6 +31,7 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     pico8_ptrs_t *invented;
 
     self->header.cls = &g_hy_struct_class;
+    self->def = &pico8_hy_def;
     self->nz = pico8_fixed_from_int(0);
     self->ge = pico8_fixed_from_int(0);
     self->jk = pico8_fixed_from_int(0);
@@ -47,16 +48,16 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     self->hl = NULL;
     self->has_hl = 0;
 
-    self->nz = pico8_fixed_from_int(100);
+    self->nz = self->def->nz;
     self->ge = pico8_fixed_from_int(0);
     self->jk = pico8_fixed_from_int(0);
-    self->ew = pico8_fixed_from_int(1);
+    self->ew = self->def->ew;
     /* TROU-7 */
     invented = malloc(sizeof *invented);
     pico8_ptrs_init(invented);
     self->invented = invented;
-    self->lo = pico8_fixed_from_int(1);
-    self->yr = pico8_fixed_from_int(3401);
+    self->lo = self->def->lo;
+    self->yr = self->def->yr;
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hy");

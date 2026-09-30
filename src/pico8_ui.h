@@ -3,6 +3,7 @@
 
 #include "pico8_bg.h"
 #include "pico8_ents.h"
+#include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
@@ -25,15 +26,12 @@ typedef struct {
 
 /* TROU-7 */
 /* `le` of a new `ui` is `pico8_ui_le_shared()`, until `cj` or `pz`
- * replaces it; `hw` is `&pico8_ui_start.hw`. `ic` is NULL until
- * the first `gw`, then points at `ic_own`, which every `gw` empties and
- * refills. */
+ * replaces it. `ic` is NULL until the first `gw`, then points at `ic_own`,
+ * which every `gw` empties and refills. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_fixed_t ql;
-    pico8_fixed_t fa;
+    const pico8_ui_def_t *def;
     pico8_ents_t *le;
-    const pico8_qz_box_t *hw;
     pico8_vec_t *qa;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
@@ -58,7 +56,7 @@ int pico8_ui_ready(void);
 
 const pico8_struct_class_t *pico8_ui_struct_class(void);
 
-/* The box of the class, read by `bv`: `&pico8_ui_start.hw`, NULL before
+/* The box of the class, read by `bv`: `&pico8_ui_def.hw`, NULL before
  * `pico8_ui_init()` and after `pico8_ui_shutdown()`. */
 const pico8_qz_box_t *pico8_ui_hw(void);
 

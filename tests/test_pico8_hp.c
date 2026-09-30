@@ -477,10 +477,10 @@ static void test_gb(void) {
         }
 
         if (k == 1) {
-            fk = (void *)b->fk;
+            fk = (void *)b->def->fk;
             assert(fk != NULL);
         }
-        assert((void *)b->fk == fk);
+        assert((void *)b->def->fk == fk);
         if (b->px != NULL) {
             found = pico8_gb_find(b->px);
             assert(found != NULL);
@@ -956,12 +956,11 @@ static void test_hp_is_a_struct(void) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_hp_ready());
-    assert(b->fk != NULL && b->fk == pico8_hp_fk());
+    assert(b->def->fk != NULL && b->def->fk == pico8_hp_fk());
 
     bare = pico8_hp_new(NULL);
     assert(bare != NULL && bare->header.cls == cls);
-    assert(bare->fk != NULL && bare->fk == b->fk);
-    assert(bare->fk == pico8_hp_start.fk);
+    assert(bare->def == &pico8_hp_def && bare->def == b->def);
     assert(bare->i != NULL && bare->i->count == 0);
     assert(bare->lq == NULL);
     assert(bare->px == NULL && bare->lr == NULL && !bare->has_fj && bare->ja == NULL && !bare->has_o);

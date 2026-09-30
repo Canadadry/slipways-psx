@@ -1,6 +1,7 @@
 #ifndef PICO8_UI_BUTTON_H
 #define PICO8_UI_BUTTON_H
 
+#include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
@@ -26,6 +27,7 @@ typedef void (*pico8_js_fn)(pico8_js_t *self);
  * Nothing frees the struct: TROU-7. */
 struct pico8_js {
     pico8_struct_header_t header;
+    const pico8_js_def_t *def;
     pico8_fixed_t fa;
     pico8_lq_t *lq;
     pico8_fixed_t mb;
@@ -66,7 +68,7 @@ const pico8_struct_class_t *pico8_js_struct_class(void);
  * `lq` `lq_copy` are read during the construction, not kept. `js.lq`: the
  * row `lq_row`, else a copy of `lq_copy`, else an empty row. */
 typedef struct {
-    int has_fa; /* 0: `fa` keeps `pico8_js_start.fa` */
+    int has_fa; /* 0: `fa` keeps the archetype's */
     pico8_fixed_t fa;
     const pico8_lq_t *lq_copy;
     const pico8_lq_keys_t *lq_row;
@@ -120,8 +122,7 @@ typedef int (*pico8_fq_my_fn)(pico8_fq_t *self);
  * a field, not a method. Nothing frees the struct: TROU-7. */
 struct pico8_fq {
     pico8_struct_header_t header;
-    pico8_fixed_t fa;
-    pico8_fixed_t hd;
+    const pico8_fq_def_t *def;
     pico8_fq_my_fn my;
     int p_;
     int has_p_;

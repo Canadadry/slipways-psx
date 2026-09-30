@@ -24,14 +24,13 @@ pico8_qe_t pico8_jy_qe(const pico8_jy_t *i);
 pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe);
 
 /* A research project of `gb`. Freed only by pico8_research_shutdown(),
- * through `gb`'s ranks. `fk` points at `pico8_hp_fk_row`; the other
- * members are borrowed from `pico8_fd_table` and from `r`, except `i`, a
- * list built here and never freed (TROU-7), and `lq`, which points at
- * `lq_own` (its third item `lq_inner`) or is NULL. The struct is never
- * copied: `lq` points into it. */
+ * through `gb`'s ranks. The members are borrowed from `pico8_fd_table` and
+ * from `r`, except `i`, a list built here and never freed (TROU-7), and
+ * `lq`, which points at `lq_own` (its third item `lq_inner`) or is NULL.
+ * The struct is never copied: `lq` points into it. */
 typedef struct {
     pico8_struct_header_t header;
-    const pico8_jb_row_t *fk;
+    const pico8_hp_def_t *def;
     const char *px;
     const char *lr;
     pico8_fixed_t fj;

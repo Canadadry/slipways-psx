@@ -298,48 +298,12 @@ const pico8_ke_start_t pico8_ke_start = {
     .t = 0x0,
 };
 
-const pico8_bg_start_t pico8_bg_start = {
-    .fa = 0x10000,
-    .hd = 0x10000,
-    .pl = &pico8_bg_pl_seq,
-};
-
-const pico8_ui_start_t pico8_ui_start = {
-    .ql = 0x3a0000,
-    .fa = 0xf0000,
-    .hw = {0xa0000, 0xa0000, 0x760000, 0x760000},
-};
-
-const pico8_js_start_t pico8_js_start = {
-    .fa = 0xb0000,
-};
-
-const pico8_fq_start_t pico8_fq_start = {
-    .fa = 0xe0000,
-    .hd = 0x10000,
-};
-
 const pico8_qb_start_t pico8_qb_start = {
     .v = {0x0, 0x0},
     .ma = 0x0,
     .p = {0xc00000, 0xc00000},
     .ra = {0xc00000, 0xc00000},
     .pc = &pico8_qb_pc_vecs,
-};
-
-const pico8_nf_start_t pico8_nf_start = {
-    .ra = {0x0, 0x0},
-};
-
-const pico8_mh_start_t pico8_mh_start = {
-    .fa = 0xe0000,
-    .rh = 0x50000,
-};
-
-const pico8_iv_start_t pico8_iv_start = {
-    .fa = 0x90000,
-    .l = 0x0,
-    .v = {0x0, -0x570a},
 };
 
 const pico8_mz_start_t pico8_mz_start = {
@@ -408,10 +372,6 @@ const pico8_fv_start_t pico8_fv_start = {
     .ql = 0xb0000,
     .fg = 0x50000,
     .rb = &pico8_fv_rb_row,
-};
-
-const pico8_hp_start_t pico8_hp_start = {
-    .fk = &pico8_hp_fk_row,
 };
 
 const pico8_ie_start_t pico8_ie_start = {

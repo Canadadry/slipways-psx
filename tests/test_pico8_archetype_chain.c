@@ -77,9 +77,6 @@ static void test_bg(void) {
 
     same(same_text(bg->header.me, pico8_bg_def.me), "bg.me");
     same(bg->header.t == pico8_bg_def.t, "bg.t");
-    same(bg->fa == pico8_bg_def.fa, "bg.fa");
-    same(bg->hd == pico8_bg_def.hd, "bg.hd");
-    same(bg->pl == pico8_bg_def.pl, "bg.pl");
 }
 
 /* `le` is the module's shared list, not the archetype's. */
@@ -88,9 +85,6 @@ static void test_ui(void) {
 
     same(same_text(ui->header.me, pico8_ui_def.me), "ui.me");
     same(ui->header.t == pico8_ui_def.t, "ui.t");
-    same(ui->ql == pico8_ui_def.ql, "ui.ql");
-    same(ui->fa == pico8_ui_def.fa, "ui.fa");
-    same(same_box(ui->hw, &pico8_ui_def.hw), "ui.hw");
     assert(ui->le == pico8_ui_le_shared());
 }
 
@@ -99,7 +93,6 @@ static void test_js(void) {
 
     same(same_text(js->header.me, pico8_js_def.me), "js.me");
     same(js->header.t == pico8_js_def.t, "js.t");
-    same(js->fa == pico8_js_def.fa, "js.fa");
 }
 
 static void test_fq(void) {
@@ -107,8 +100,6 @@ static void test_fq(void) {
 
     same(same_text(fq->header.me, pico8_fq_def.me), "fq.me");
     same(fq->header.t == pico8_fq_def.t, "fq.t");
-    same(fq->fa == pico8_fq_def.fa, "fq.fa");
-    same(fq->hd == pico8_fq_def.hd, "fq.hd");
 }
 
 static void test_qb(void) {
@@ -139,8 +130,6 @@ static void test_mh(void) {
 
     same(same_text(mh->header.me, pico8_mh_def.me), "mh.me");
     same(mh->header.t == pico8_mh_def.t, "mh.t");
-    same(mh->fa == pico8_mh_def.fa, "mh.fa");
-    same(mh->rh == pico8_mh_def.rh, "mh.rh");
 }
 
 static void test_iv(void) {
@@ -148,16 +137,6 @@ static void test_iv(void) {
 
     same(same_text(iv->header.me, pico8_iv_def.me), "iv.me");
     same(iv->header.t == pico8_iv_def.t, "iv.t");
-    same(iv->fa == pico8_iv_def.fa, "iv.fa");
-    same(iv->l == pico8_iv_def.l, "iv.l");
-    same(same_vec(iv->v, &pico8_iv_def.v), "iv.v");
-}
-
-/* hp does not descend from ke: no `me`/`t`. */
-static void test_hp(void) {
-    const pico8_hp_t *hp = pico8_hp_new(NULL);
-
-    same(hp->fk == pico8_hp_def.fk, "hp.fk");
 }
 
 static void test_ie(void) {
@@ -179,16 +158,6 @@ static void test_pj(void) {
     same(pj->fa == pico8_pj_def.fa, "pj.fa");
     same(pj->gs == pico8_pj_def.gs, "pj.gs");
     same(pj->i_ == pico8_pj_def.i_, "pj.i_");
-}
-
-/* hy does not descend from ke: no `me`/`t`. */
-static void test_hy(void) {
-    const pico8_hy_t *hy = pico8_hy_new();
-
-    same(hy->nz == pico8_hy_def.nz, "hy.nz");
-    same(hy->ew == pico8_hy_def.ew, "hy.ew");
-    same(hy->lo == pico8_hy_def.lo, "hy.lo");
-    same(hy->yr == pico8_hy_def.yr, "hy.yr");
 }
 
 /* `jj` is the module's shared wrapper, not the archetype's: two fresh
@@ -490,10 +459,8 @@ int main(void) {
     test_nf();
     test_mh();
     test_iv();
-    test_hp();
     test_ie();
     test_pj();
-    test_hy();
     test_mz();
     test_jc();
     test_g_();
@@ -508,7 +475,7 @@ int main(void) {
     test_ga();
     test_nr();
     test_fr();
-    assert(g_compared == 438 && "families a to e compare 438 fields: one missed or one too many");
+    assert(g_compared == 419 && "families a to e compare 419 fields: one missed or one too many");
 
     printf("test_pico8_archetype_chain: all tests passed\n");
     return 0;

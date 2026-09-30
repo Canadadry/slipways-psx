@@ -86,7 +86,7 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
 }
 
 static int mh_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_mh_t *)self)->fa;
+    *out = ((const pico8_mh_t *)self)->def->fa;
     return 1;
 }
 
@@ -108,8 +108,8 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     int i;
 
     pico8_ke_struct_init(&self->header, &g_mh_struct_class);
-    self->fa = pico8_mh_start.fa;
-    self->rh = pico8_mh_start.rh;
+    self->def = &pico8_mh_def;
+    self->rh = self->def->rh;
     self->lh = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
@@ -186,7 +186,7 @@ void pico8_iv_ph(pico8_iv_t *self) {
         return;
     }
 
-    new_ra = pico8_vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(self->v));
+    new_ra = pico8_vec_add(pico8_iv_vec_or_zero(self->ra), pico8_iv_vec_or_zero(&self->def->v));
     /* TROU-7 */
     heap_ra = malloc(sizeof *heap_ra);
     *heap_ra = new_ra;
@@ -229,7 +229,7 @@ static void pico8_iv_kj_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 static int iv_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_iv_t *)self)->fa;
+    *out = ((const pico8_iv_t *)self)->def->fa;
     return 1;
 }
 
@@ -255,9 +255,8 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     pico8_iv_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_iv_struct_class);
-    self->fa = pico8_iv_start.fa;
-    self->l = pico8_iv_start.l;
-    self->v = &pico8_iv_start.v;
+    self->def = &pico8_iv_def;
+    self->l = self->def->l;
     self->ra = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

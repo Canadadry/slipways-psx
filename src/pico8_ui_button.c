@@ -132,7 +132,8 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->_jo_fe_b = NULL;
     self->_jo_fe_od = 0;
     self->has__jo_fe_od = 0;
-    self->fa = pico8_js_start.fa;
+    self->def = &pico8_js_def;
+    self->fa = self->def->fa;
     if (keys != NULL) {
         if (keys->has_fa) {
             self->fa = keys->fa;
@@ -324,7 +325,7 @@ static pico8_down_t pico8_fq_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_v
 }
 
 static int fq_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fq_t *)self)->fa;
+    *out = ((const pico8_fq_t *)self)->def->fa;
     return 1;
 }
 
@@ -353,8 +354,7 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     pico8_fq_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_fq_struct_class);
-    self->fa = pico8_fq_start.fa;
-    self->hd = pico8_fq_start.hd;
+    self->def = &pico8_fq_def;
     self->my = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

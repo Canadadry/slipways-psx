@@ -135,7 +135,6 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     size_t c;
 
     self->header.cls = &g_hp_struct_class;
-    self->fk = NULL;
     self->px = NULL;
     self->lr = NULL;
     self->fj = 0;
@@ -156,7 +155,7 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     self->rn = 0;
     self->has_rn = 0;
     self->lq = NULL;
-    self->fk = pico8_hp_start.fk;
+    self->def = &pico8_hp_def;
 
     if (keys != NULL && keys->ri != NULL) {
         const pico8_fd_entry_t *ri = keys->ri;
@@ -256,7 +255,7 @@ const pico8_struct_class_t *pico8_hp_struct_class(void) {
 }
 
 const pico8_jb_row_t *pico8_hp_fk(void) {
-    return pico8_hp_start.fk;
+    return pico8_hp_def.fk;
 }
 
 pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys) {

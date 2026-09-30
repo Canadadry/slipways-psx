@@ -295,9 +295,9 @@ static void test_defaults_match_the_parsed_spec(void) {
 
     pico8_jl();
     box = year_box(3400);
-    assert(box->fa == pico8_mh_start.fa);
-    assert(box->fa == pico8_fixed_from_int(14));
-    assert(box->rh == pico8_mh_start.rh);
+    assert(box->def == &pico8_mh_def);
+    assert(box->def->fa == pico8_fixed_from_int(14));
+    assert(box->rh == box->def->rh);
     assert(box->rh == pico8_fixed_from_int(5));
     assert(box->header.cls->tags == PICO8_TAG(PICO8_TAG_MH));
     assert(box->header.me != NULL && strcmp(box->header.me, "ph") == 0);

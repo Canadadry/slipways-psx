@@ -251,10 +251,9 @@ static void test_defaults_match_the_parsed_spec(void) {
 
     pico8_jl();
     veil = pico8_fq_new(NULL);
-    assert(veil->fa == pico8_fq_start.fa);
-    assert(veil->fa == pico8_fixed_from_int(14));
-    assert(veil->hd == pico8_fq_start.hd);
-    assert(veil->hd == pico8_fixed_from_int(1));
+    assert(veil->def == &pico8_fq_def);
+    assert(veil->def->fa == pico8_fixed_from_int(14));
+    assert(veil->def->hd == pico8_fixed_from_int(1));
     assert(veil->header.me != NULL && strcmp(veil->header.me, "ph") == 0);
     assert(pico8_fq_ready());
     pico8_fq_shutdown();

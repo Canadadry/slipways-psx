@@ -152,7 +152,7 @@ static pico8_bg_t *find_bg(int *count) {
             continue;
         }
         bg = (pico8_bg_t *)e;
-        if (bg->hd == pico8_fixed_from_int(1) && bg->fa == pico8_fixed_from_int(1)) {
+        if (bg->def->hd == pico8_fixed_from_int(1) && bg->def->fa == pico8_fixed_from_int(1)) {
             found = bg;
             (*count)++;
         }
@@ -186,9 +186,10 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
 
     assert(is_me(&bg->header, "ph"));
     assert(bg->header.t == 0);
-    assert(bg->fa == pico8_fixed_from_int(1));
-    assert(bg->hd == pico8_fixed_from_int(1));
-    pl = bg->pl;
+    assert(bg->def == &pico8_bg_def);
+    assert(bg->def->fa == pico8_fixed_from_int(1));
+    assert(bg->def->hd == pico8_fixed_from_int(1));
+    pl = bg->def->pl;
     assert(pl == &pico8_bg_pl_seq && pl->count == 15);
     for (i = 0; i < 15; i++) {
         assert(pl->items[i] == want_pl[i]);
@@ -214,7 +215,7 @@ static void test_construction(void) {
     generic = pico8_bg_new();
     check_fresh_bg(generic);
     assert(pico8_cg("bg") == NULL);
-    assert(from_eu->pl == built->pl && built->pl == generic->pl);
+    assert(from_eu->def == built->def && built->def == generic->def);
 }
 
 static int in_pl(int tile) {

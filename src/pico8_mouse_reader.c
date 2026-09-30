@@ -14,7 +14,7 @@
 static int g_nf_up = 0;
 static pico8_nf_button_t g_nf_l;
 static pico8_nf_button_t g_nf_r;
-/* Not `&pico8_nf_start.ra`: two TUs write `je.ra` in place. */
+/* Not in the archetype: two TUs write `je.ra` in place. */
 static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
@@ -44,6 +44,7 @@ static pico8_nf_t *pico8_nf_struct_new(void) {
     pico8_nf_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_nf_struct_class);
+    self->def = &pico8_nf_def;
     self->ra = &g_nf_ra;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nf");
@@ -58,7 +59,7 @@ void pico8_nf_init(void) {
     pico8_pi_init();
     assert(pico8_ke_ready() && "nf descends from ke");
     g_nf_up = 1;
-    g_nf_ra = pico8_nf_start.ra;
+    g_nf_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     memset(&g_nf_l, 0, sizeof g_nf_l);
     memset(&g_nf_r, 0, sizeof g_nf_r);
 }

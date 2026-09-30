@@ -42,7 +42,7 @@ static void pico8_bg_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
 }
 
 static int bg_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_bg_t *)self)->fa;
+    *out = ((const pico8_bg_t *)self)->def->fa;
     return 1;
 }
 
@@ -67,9 +67,7 @@ static pico8_bg_t *pico8_bg_struct_new(void) {
     pico8_bg_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_bg_struct_class);
-    self->fa = pico8_bg_start.fa;
-    self->hd = pico8_bg_start.hd;
-    self->pl = pico8_bg_start.pl;
+    self->def = &pico8_bg_def;
     self->mq = NULL;
     self->m_ = 0;
     self->has_m_ = 0;
@@ -109,7 +107,7 @@ void pico8_bg_pq(pico8_mem_t *mem, pico8_bg_t *self) {
     int vs_set[32];
     pico8_fixed_t vh = pico8_fixed_from_int(0);
     pico8_jf_state_t *oh;
-    const pico8_int_seq_t *pl = self != NULL && self->pl != NULL ? self->pl : &pico8_bg_pl_seq;
+    const pico8_int_seq_t *pl = self != NULL && self->def->pl != NULL ? self->def->pl : &pico8_bg_pl_seq;
     int x, y;
 
     if (mem == NULL) {

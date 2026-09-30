@@ -218,20 +218,20 @@ static void test_dg_drives_a_ke_struct(void) {
     assert(f->header.t == pico8_fixed_from_int(3));
 }
 
-/* The struct's defaults are, bit for bit, the class's generated defaults;
- * its `v` is the generated vector itself. */
+/* The struct's defaults are its archetype's, whose `fa` and `v` are the
+ * spec's. */
 static void test_defaults_match_the_parsed_spec(void) {
     const pico8_iv_t *e;
 
     fresh_world();
     e = build(NULL, "x", 7);
-    assert(e->v == &pico8_iv_start.v);
-    assert(pico8_iv_start.v.x == 0 && pico8_iv_start.v.y == -0x570a);
-    assert(e->fa == pico8_iv_start.fa);
-    assert(e->l == pico8_iv_start.l);
+    assert(e->def == &pico8_iv_def);
+    assert(e->def->v.x == 0 && e->def->v.y == -0x570a);
+    assert(e->def->fa == pico8_fixed_from_int(9));
+    assert(e->l == e->def->l);
     assert(e->header.me != NULL && strcmp(e->header.me, "ph") == 0);
     assert(e->header.t == 0);
-    assert(build(NULL, "y", 7)->v == e->v);
+    assert(build(NULL, "y", 7)->def == e->def);
     assert(pico8_iv_ready());
     pico8_iv_shutdown();
     assert(!pico8_iv_ready());

@@ -120,48 +120,12 @@ typedef struct {
 } pico8_ke_start_t;
 
 typedef struct {
-    pico8_fixed_t fa;
-    pico8_fixed_t hd;
-    const pico8_int_seq_t *pl;
-} pico8_bg_start_t;
-
-typedef struct {
-    pico8_fixed_t ql;
-    pico8_fixed_t fa;
-    pico8_qz_box_t hw;
-} pico8_ui_start_t;
-
-typedef struct {
-    pico8_fixed_t fa;
-} pico8_js_start_t;
-
-typedef struct {
-    pico8_fixed_t fa;
-    pico8_fixed_t hd;
-} pico8_fq_start_t;
-
-typedef struct {
     pico8_vec_t v;
     pico8_fixed_t ma;
     pico8_vec_t p;
     pico8_vec_t ra;
     const pico8_vec_seq_t *pc;
 } pico8_qb_start_t;
-
-typedef struct {
-    pico8_vec_t ra;
-} pico8_nf_start_t;
-
-typedef struct {
-    pico8_fixed_t fa;
-    pico8_fixed_t rh;
-} pico8_mh_start_t;
-
-typedef struct {
-    pico8_fixed_t fa;
-    pico8_fixed_t l;
-    pico8_vec_t v;
-} pico8_iv_start_t;
 
 typedef struct {
     const char *me;
@@ -233,10 +197,6 @@ typedef struct {
     pico8_fixed_t fg;
     const pico8_jb_row_t *rb;
 } pico8_fv_start_t;
-
-typedef struct {
-    const pico8_jb_row_t *fk;
-} pico8_hp_start_t;
 
 typedef struct {
     pico8_qz_box_t kq;
@@ -667,19 +627,11 @@ extern const pico8_pj_cr_start_t pico8_pj_cr_start;
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_bg_start_t pico8_bg_start;
-extern const pico8_ui_start_t pico8_ui_start;
-extern const pico8_js_start_t pico8_js_start;
-extern const pico8_fq_start_t pico8_fq_start;
 extern const pico8_qb_start_t pico8_qb_start;
-extern const pico8_nf_start_t pico8_nf_start;
-extern const pico8_mh_start_t pico8_mh_start;
-extern const pico8_iv_start_t pico8_iv_start;
 extern const pico8_mz_start_t pico8_mz_start;
 extern const pico8_jc_start_t pico8_jc_start;
 extern const pico8_g__start_t pico8_g__start;
 extern const pico8_fv_start_t pico8_fv_start;
-extern const pico8_hp_start_t pico8_hp_start;
 /* ie's class keys, and the kq, ra, eh every icon points at. */
 extern const pico8_ie_start_t pico8_ie_start;
 extern const pico8_pj_start_t pico8_pj_start;

@@ -69,13 +69,12 @@ static void test_second_jl_keeps_specs(void) {
     nf_l->hm = hm;
 }
 
-/* A fresh bg starts on bg's generated defaults and ke's; ready until its
- * shutdown. */
+/* A fresh bg reads its archetype and starts on ke's defaults; ready until
+ * its shutdown. */
 static void test_bg_defaults_and_ready(void) {
     pico8_bg_t *bg = pico8_bg_new();
 
-    assert(bg->fa == pico8_bg_start.fa && bg->hd == pico8_bg_start.hd);
-    assert(bg->pl == pico8_bg_start.pl && bg->pl == &pico8_bg_pl_seq);
+    assert(bg->def == &pico8_bg_def && bg->def->pl == &pico8_bg_pl_seq);
     assert(bg->header.me == pico8_ke_start.me && bg->header.t == pico8_ke_start.t);
     assert(pico8_bg_ready());
     pico8_bg_shutdown();
@@ -85,7 +84,7 @@ static void test_bg_defaults_and_ready(void) {
 static void test_js_defaults_and_ready(void) {
     pico8_js_t *js = pico8_js_new(NULL);
 
-    assert(js->fa == pico8_js_start.fa);
+    assert(js->def == &pico8_js_def && js->fa == js->def->fa);
     assert(js->header.me == pico8_ke_start.me && js->header.t == pico8_ke_start.t);
     assert(pico8_js_ready());
     pico8_js_shutdown();
@@ -196,7 +195,7 @@ static void test_g__defaults_and_ready(void) {
 static void test_hp_defaults_and_ready(void) {
     pico8_hp_t *hp = pico8_hp_new(NULL);
 
-    assert(hp->fk == pico8_hp_start.fk);
+    assert(hp->def == &pico8_hp_def && hp->def->fk == &pico8_hp_fk_row);
     assert(pico8_hp_ready());
     pico8_research_shutdown();
     assert(!pico8_hp_ready());

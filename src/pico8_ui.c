@@ -21,7 +21,7 @@ static pico8_ui_t *g_ok = NULL;
 static pico8_ents_t g_shared_le;
 
 const pico8_qz_box_t *pico8_ui_hw(void) {
-    return g_ui_up ? &pico8_ui_start.hw : NULL;
+    return g_ui_up ? &pico8_ui_def.hw : NULL;
 }
 
 pico8_ents_t *pico8_ui_le_shared(void) {
@@ -75,12 +75,12 @@ static void pico8_ui_ev_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 static int ui_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_ui_t *)self)->fa;
+    *out = ((const pico8_ui_t *)self)->def->fa;
     return 1;
 }
 
 static int ui_get_ql(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_ui_t *)self)->ql;
+    *out = ((const pico8_ui_t *)self)->def->ql;
     return 1;
 }
 
@@ -97,10 +97,8 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     assert(g_ui_up && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->header, &g_ui_struct_class);
-    self->ql = pico8_ui_start.ql;
-    self->fa = pico8_ui_start.fa;
+    self->def = &pico8_ui_def;
     self->le = &g_shared_le;
-    self->hw = &pico8_ui_start.hw;
     self->qa = NULL;
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
@@ -244,14 +242,14 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
     if (self->rheld != NULL) {
         spr_id = 9;
     } else if (self->o_ != NULL) {
-        pico8_fixed_t ql = self->ql;
+        pico8_fixed_t ql = self->def->ql;
 
         if (self->o_->cls->get_ql != NULL) {
             self->o_->cls->get_ql(self->o_, &ql);
         }
         spr_id = pico8_ui_to_int(ql);
     } else {
-        spr_id = pico8_ui_to_int(self->ql);
+        spr_id = pico8_ui_to_int(self->def->ql);
     }
 
     je = pico8_je_nf();

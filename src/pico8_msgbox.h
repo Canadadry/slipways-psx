@@ -26,7 +26,7 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
  * article stays shared with the caller. Nothing frees the struct: TROU-7. */
 struct pico8_mh {
     pico8_struct_header_t header;
-    pico8_fixed_t fa;
+    const pico8_mh_def_t *def;
     pico8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
     int p_;
@@ -56,7 +56,7 @@ int pico8_mh_ready(void);
 typedef struct {
     const pico8_jb_row_t *const *items;
     int count;
-    int has_rh; /* 0: `rh` keeps `pico8_mh_start.rh` */
+    int has_rh; /* 0: `rh` keeps the archetype's */
     pico8_fixed_t rh;
     pico8_mh_lh_fn lh;
 } pico8_mh_keys_t;
@@ -77,13 +77,11 @@ void pico8_iv_init(void);
 /* `at1`/`at2` are the cart's `self[1]` (the text, a string never freed)
  * and `self[2]` (the forced color). `at1` NULL is nil; a missing `[2]`
  * leaves `at2` at 0, the color `kj` gave nil. Never freed, nor are the
- * vectors `ra` points at: TROU-7. `v` points at `pico8_iv_start.v`, shared
- * by every iv. */
+ * vectors `ra` points at: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_fixed_t fa;
+    const pico8_iv_def_t *def;
     pico8_fixed_t l;
-    const pico8_vec_t *v;
     pico8_vec_t *ra;
     int p_;
     int has_p_; /* 0: `p_` is nil, and `p_` is then never read */

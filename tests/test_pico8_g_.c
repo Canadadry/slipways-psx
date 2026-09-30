@@ -292,7 +292,7 @@ static pico8_bg_t *the_bg(void) {
             continue;
         }
         bg = (pico8_bg_t *)e;
-        if (bg->hd == pico8_fixed_from_int(1) && bg->fa == pico8_fixed_from_int(1)) {
+        if (bg->def->hd == pico8_fixed_from_int(1) && bg->def->fa == pico8_fixed_from_int(1)) {
             found = bg;
             count++;
         }

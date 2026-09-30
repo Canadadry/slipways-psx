@@ -1,7 +1,7 @@
 /* The click dispatcher `ui`, the singleton `ok`, built by its only road
  * (`jl()`, `pico8_ui_new()`, on a game started directly: no events
  * file), read only through the dual-form field API and compared with the
- * generated `pico8_ui_start` and `pico8_ui_le_shared()`, and
+ * archetype `pico8_ui_def` and `pico8_ui_le_shared()`, and
  * driven through the real `dg`/`lj`/`ev`/`jz`/`cj`/`pz`. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -287,8 +287,8 @@ static void test_built(void) {
         assert(!ents_listed(pico8_cg(tags[i]), ok));
     }
 
-    assert(ok->ql == pico8_fixed_from_int(58));
-    assert(ok->fa == pico8_fixed_from_int(15));
+    assert(ok->def->ql == pico8_fixed_from_int(58));
+    assert(ok->def->fa == pico8_fixed_from_int(15));
     assert(ok->header.me != NULL && strcmp(ok->header.me, "ph") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
@@ -300,7 +300,9 @@ static void test_built(void) {
            pico8_ui_struct_class()->rdown == NULL && pico8_ui_struct_class()->hd == NULL);
 
     assert(ok->le == pico8_ui_le_shared());
-    assert(ok->hw == &pico8_ui_start.hw);
+    assert(ok->def == &pico8_ui_def);
+    assert(ok->def->hw.xl == pico8_fixed_from_int(10) && ok->def->hw.yt == pico8_fixed_from_int(10));
+    assert(ok->def->hw.xr == pico8_fixed_from_int(118) && ok->def->hw.yb == pico8_fixed_from_int(118));
     assert(le_of(ok)->count == 0);
     check("built", h, BUILT_HASH);
 }
@@ -319,7 +321,7 @@ static void test_shared(void) {
     pico8_fixed_t ql;
 
     assert(other != NULL && other != ok);
-    assert(other->header.cls->get_ql(other, &ql) && ql == other->ql);
+    assert(other->header.cls->get_ql(other, &ql) && ql == other->def->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), other));
@@ -705,11 +707,11 @@ static void test_ui_is_a_struct(void) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_ui_ready());
-    assert(ok->ql == pico8_ui_start.ql && ok->fa == pico8_ui_start.fa);
-    assert(pico8_ui_hw() == &pico8_ui_start.hw && ok->hw == &pico8_ui_start.hw);
+    assert(ok->def == &pico8_ui_def);
+    assert(pico8_ui_hw() == &ok->def->hw);
     assert(ok->le == pico8_ui_le_shared() && ok->le->count == 0);
     other = pico8_ui_new();
-    assert(is_of(other, cls) && other->le == pico8_ui_le_shared() && other->hw == &pico8_ui_start.hw);
+    assert(is_of(other, cls) && other->le == pico8_ui_le_shared() && other->def == ok->def);
 
     must_abort(bh_on_x, ok);
 }

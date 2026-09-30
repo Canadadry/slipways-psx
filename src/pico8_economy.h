@@ -9,6 +9,15 @@
 
 /* Throughout this module a NULL `self` is a safe no-op. */
 
+/* hy's archetype, here and not with the others: economy.h does not include
+ * pico8_game_data.h. */
+typedef struct {
+    pico8_fixed_t nz;
+    pico8_fixed_t ew;
+    pico8_fixed_t lo;
+    pico8_fixed_t yr;
+} pico8_hy_def_t;
+
 /* The economy, one per game. Nothing here frees it: pico8_probe_set_fm()
  * and pico8_probe_shutdown() free the struct alone, never `invented`
  * (TROU-7). `po`/`fu` are NULL before the first pico8_hy_lj(), then point
@@ -16,6 +25,7 @@
  * absent before the first pico8_hy_lj(). */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_hy_def_t *def;
     pico8_fixed_t nz;
     pico8_fixed_t ge;
     pico8_fixed_t jk;
@@ -32,15 +42,6 @@ typedef struct {
     const char *hl;
     int has_hl; /* 0: `hl` is nil; 1 with `hl` NULL: `hl` is false */
 } pico8_hy_t;
-
-/* hy's archetype, here and not with the others: economy.h does not include
- * pico8_game_data.h. */
-typedef struct {
-    pico8_fixed_t nz;
-    pico8_fixed_t ew;
-    pico8_fixed_t lo;
-    pico8_fixed_t yr;
-} pico8_hy_def_t;
 
 extern const pico8_hy_def_t pico8_hy_def;
 
