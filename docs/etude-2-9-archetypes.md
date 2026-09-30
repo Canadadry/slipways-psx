@@ -51,9 +51,9 @@ Le classement final vient de la lecture de chaque champ non mécanique.
 | Classe | Champs | Devient |
 |---|---|---|
 | **A** | **69** | champ de l'archétype |
-| **I** | **42** | reste dans l'instance, défaut dans l'archétype, copié par l'init |
+| **I** | **41** | reste dans l'instance, défaut dans l'archétype, copié par l'init |
 | **K** | **87** | reste dans l'instance, sans défaut |
-| **E** | **103** | reste dans l'instance |
+| **E** | **104** | reste dans l'instance |
 | **S** | **1** | reste dans l'init, hors archétype |
 | **H** | **0** | — |
 
@@ -158,7 +158,7 @@ Contrôle 5 : les 27 `_start_t` et les 40 tables sont dans ce tableau. Les 36 ty
 
 Les objets constants sont **résolus** le long de la chaîne : l'init parente, puis les défauts propres. Il y a **un type d'archétype par futur type aplati**. Le type planète réunit les champs A et I des dix types de l'arbre `jo`, un seul membre par nom : `rr` de `nl`/`hj`/`nr`, `fz` de `pm`/`ga`. Le type sonde réunit ceux de `g_` et `fv`. Les champs des composants forment deux sous-archétypes, `pico8_emitter_def_t` et `pico8_probe_def_t`, enchâssés dans les archétypes des classes qui portent le composant : planète, sonde, `mz`, `jc`. Une classe sans le composant y laisse des zéros, que rien ne lit, puisque sa table n'a ni `emitter_of` ni `probe_of`.
 
-Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Un champ dont la valeur de classe est l'adresse d'un objet statique du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet : c'est un `static` du module, et `mz.jj` contient en plus un en-tête du noyau. Ce champ reste écrit par l'init du module propriétaire. Sont concernés les défauts I `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le`, `nf.ra` → `g_nf_ra`, et le champ S `mz.jj` → `g_mz_jj_wrapper`. `jo.by`, NULL pour les neuf autres sortes, n'est pas non plus membre de `pico8_jo_def_t`. `kw_own` est lui aussi un membre par valeur (`{0, 0, 0}`) : l'archétype ne nomme pas l'objet de données `pico8_jo_kw_start`, que le motif de `défauts` compterait (voir l'essai d'inclusion).
+Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Un champ dont la valeur de classe est l'adresse d'un objet statique du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet : c'est un `static` du module, et `mz.jj` contient en plus un en-tête du noyau. Ce champ reste écrit par l'init du module propriétaire. Sont concernés les défauts I `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le`, `nf.ra` → `g_nf_ra`, et le champ S `mz.jj` → `g_mz_jj_wrapper`. `jo.by`, NULL pour les neuf autres sortes, n'est pas non plus membre de `pico8_jo_def_t`. `kw_own` n'en est pas membre non plus : c'est un champ E, le stockage que `pico8_jo_lz` remplit, sans défaut de classe. `pico8_jo_def_t` a 32 membres.
 
 Texte C de l'archétype de `nl` (trois niveaux de chaîne, groupe sonde), essayé sur la copie :
 
