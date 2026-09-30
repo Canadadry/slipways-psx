@@ -338,16 +338,11 @@ static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {
     return cls->states[PICO8_STATE_LY] != NULL || cls == pico8_jo_struct_class();
 }
 
-static pico8_probe_t *jc_probe_of(void *self) {
-    return ((pico8_jc_t *)self)->probe;
-}
-
 static const pico8_struct_class_t g_jc_struct_class = {
     .kj = pico8_jc_kj_dispatch,
     .ev = pico8_jc_ev_dispatch,
     .hq = pico8_jc_hq_dispatch,
     .ey = pico8_jc_ey_dispatch,
-    .probe_of = jc_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JC),
 };
 
@@ -358,6 +353,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->def = &pico8_jc_def;
     self->fa = self->def->fa;
     self->header.fa = &self->fa;
+    self->header.probe = &self->probe_own;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->nh = self->def->nh;

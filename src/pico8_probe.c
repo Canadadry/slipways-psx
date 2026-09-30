@@ -150,9 +150,9 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     if (self == NULL) {
         return;
     }
-    assert(self->cls->probe_of != NULL && "bv: a class that carries no probe is no receiver -- stop");
+    assert(self->probe != NULL && "bv: a class that carries no probe is no receiver -- stop");
 
-    probe = self->cls->probe_of(self);
+    probe = self->probe;
     mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
     /* TROU-7 */
@@ -224,9 +224,9 @@ void pico8_dl(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     if (self == NULL) {
         return;
     }
-    assert(self->cls->probe_of != NULL && "dl: a class that carries no probe is no receiver -- stop");
+    assert(self->probe != NULL && "dl: a class that carries no probe is no receiver -- stop");
 
-    pico8_dl_show(gfx, mem, self->me, self->cls->probe_of(self));
+    pico8_dl_show(gfx, mem, self->me, self->probe);
 }
 
 void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, const pico8_probe_t *pb) {
@@ -292,9 +292,9 @@ int pico8_d_(pico8_struct_header_t *self) {
     if (self == NULL) {
         return 0;
     }
-    assert(self->cls->probe_of != NULL && "d_: a class that carries no probe is no receiver -- stop");
+    assert(self->probe != NULL && "d_: a class that carries no probe is no receiver -- stop");
 
-    probe = self->cls->probe_of(self);
+    probe = self->probe;
     has_et = probe->et != NULL;
 
     fm = pico8_fm_hy();
@@ -334,8 +334,8 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     pico8_qy_t *particle;
 
     if (self != NULL) {
-        assert(self->cls->emitter_of != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
-        emitter = self->cls->emitter_of(self);
+        assert(self->emitter != NULL && "g_.mm: a class that carries no particle emitter has no mm -- stop");
+        emitter = self->emitter;
         pn = emitter->pn;
         t = self->t;
         du = emitter->du;
@@ -376,8 +376,6 @@ static const pico8_struct_class_t g_g__struct_class = {
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
-    .emitter_of = pico8_g__emitter_of,
-    .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
@@ -389,6 +387,8 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     self->header.p = &self->p;
     self->header.fx = &self->def->fx;
     self->header.p_ = &self->p_;
+    self->header.emitter = &self->emitter_own;
+    self->header.probe = &self->probe_own;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;
@@ -478,14 +478,6 @@ pico8_g__t *pico8_g__of(pico8_struct_header_t *e) {
         cls = cls->parent != NULL ? cls->parent() : NULL;
     }
     return cls != NULL ? (pico8_g__t *)e : NULL;
-}
-
-pico8_emitter_t *pico8_g__emitter_of(void *self) {
-    return ((pico8_g__t *)self)->emitter;
-}
-
-pico8_probe_t *pico8_g__probe_of(void *self) {
-    return ((pico8_g__t *)self)->probe;
 }
 
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys) {

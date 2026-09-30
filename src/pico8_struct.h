@@ -74,13 +74,16 @@ static inline int pico8_tag_named(const char *name) {
 }
 
 typedef struct pico8_struct_class pico8_struct_class_t;
+struct pico8_emitter;
+struct pico8_probe;
 
 /* First member of every entity struct, and of the parent struct a child
  * embeds first. `me` and `t` are ke's (`me` NULL is nil). A component link
  * points at the field's storage, the archetype's for a field the class
  * never writes; NULL: the class has no such field, or it is nil. `ma` is
- * written through, by `pico8_ma`, `p_`, by `d_`, and `m_`, by `ui`'s
- * hover. `*fx` 0 is nil. */
+ * written through, by `pico8_ma`, `p_`, by `d_`, `m_`, by `ui`'s hover,
+ * and the particle emitter and the probe, which the instance stores in
+ * itself, by their modules. `*fx` 0 is nil. */
 typedef struct {
     const pico8_struct_class_t *cls;
     const char *me;
@@ -96,6 +99,8 @@ typedef struct {
     const pico8_fixed_t *fx;
     int *p_;
     int *m_;
+    struct pico8_emitter *emitter;
+    struct pico8_probe *probe;
 } pico8_struct_header_t;
 
 /* Every constructor calls it first: its `malloc` leaves the header
@@ -118,8 +123,6 @@ typedef void (*pico8_state_fn)(void *self, pico8_fixed_t t);
 
 struct pico8_qy;
 struct pico8_jo_trade_proposal;
-struct pico8_emitter;
-struct pico8_probe;
 struct pico8_str_seq;
 struct pico8_kind_rec;
 
@@ -128,11 +131,7 @@ struct pico8_kind_rec;
  * them; `ldown`, `rdown` and `hq` may keep theirs. NULL `ra`: nil. `has_hb`
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
  * instance decides. `mm` returns a fresh particle the caller owns. `parent` returns the class
- * whose struct this one embeds first; the member is NULL for a root.
- * `emitter_of` and `probe_of` return the particle emitter and the probe the
- * instance stores in itself; the member is NULL for a class that carries
- * none. A class that sets one descends from ke; each is only ever
- * called as `e->cls->emitter_of(e)`, `e->cls->probe_of(e)`. */
+ * whose struct this one embeds first; the member is NULL for a root. */
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
@@ -153,8 +152,6 @@ struct pico8_struct_class {
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
     unsigned tags;
     const pico8_struct_class_t *(*parent)(void);
-    struct pico8_emitter *(*emitter_of)(void *self);
-    struct pico8_probe *(*probe_of)(void *self);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).

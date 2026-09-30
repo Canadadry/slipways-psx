@@ -32,9 +32,9 @@ void pico8_f_(pico8_struct_header_t *self) {
     if (self == NULL) {
         return;
     }
-    assert(self->cls->emitter_of != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
+    assert(self->emitter != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
 
-    emitter = self->cls->emitter_of(self);
+    emitter = self->emitter;
     qy = malloc(sizeof *qy);
     pico8_ptrs_init(qy);
     emitter->qy = qy;
@@ -47,7 +47,7 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     if (self == NULL) {
         return;
     }
-    emitter = self->cls->emitter_of != NULL ? self->cls->emitter_of(self) : NULL;
+    emitter = self->emitter;
     qy = emitter != NULL ? emitter->qy : NULL;
 
     while (pico8_fixed_rnd_default() < n) {
@@ -75,9 +75,9 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
     if (self == NULL) {
         return;
     }
-    assert(self->cls->emitter_of != NULL && "ei: a class that carries no particle emitter is no receiver -- stop");
+    assert(self->emitter != NULL && "ei: a class that carries no particle emitter is no receiver -- stop");
 
-    emitter = self->cls->emitter_of(self);
+    emitter = self->emitter;
     fa = emitter_host_fa_ra(self, &ra);
     if (fa < pico8_fixed_from_int(10) && !pico8_gd(self)) {
         return;

@@ -839,20 +839,20 @@ static uint32_t fold_ks_back(uint32_t h, void *e) {
 static void assert_own_emitter(void *self, void *other, size_t size) {
     pico8_struct_header_t *e = self;
     pico8_struct_header_t *o = other;
-    const char *at = (const char *)e->cls->emitter_of(e);
+    const char *at = (const char *)e->emitter;
 
     assert(e->cls == o->cls);
-    assert((const void *)at != (const void *)o->cls->emitter_of(o));
+    assert((const void *)at != (const void *)o->emitter);
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
 static void assert_own_probe(void *self, void *other, size_t size) {
     pico8_struct_header_t *e = self;
     pico8_struct_header_t *o = other;
-    const char *at = (const char *)e->cls->probe_of(e);
+    const char *at = (const char *)e->probe;
 
     assert(e->cls == o->cls);
-    assert((const void *)at != (const void *)o->cls->probe_of(o));
+    assert((const void *)at != (const void *)o->probe);
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
@@ -892,8 +892,8 @@ static void test_components_carried(void) {
     for (i = 0; i < 24; i++) {
         const pico8_struct_header_t *header = e[i];
 
-        assert((header->cls->emitter_of != NULL) == emitter[i]);
-        assert((header->cls->probe_of != NULL) == probe[i]);
+        assert((header->emitter != NULL) == emitter[i]);
+        assert((header->probe != NULL) == probe[i]);
     }
 
     assert_own_emitter(e[8], pico8_hj_new(NULL), sizeof(pico8_hj_t));

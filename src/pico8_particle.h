@@ -10,7 +10,7 @@
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
  * no-op and a non-NULL `self` must be a struct (asserted). `f_` and `ei`
- * stop on a class whose `emitter_of` is NULL; `ez` adds nothing there. */
+ * stop on an entity whose `emitter` link is NULL; `ez` adds nothing there. */
 
 /* An element of `qy`, `{p,v,a,l}` in the cart: every `mm` returns one on
  * the heap, `ei` updates it in place, nothing frees it. `has_a` is 0 for

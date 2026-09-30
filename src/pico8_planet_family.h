@@ -33,9 +33,6 @@ typedef struct {
     pico8_probe_t probe_own;
 } pico8_qh_t;
 
-/* The `probe_of` of qh's descriptor, for its daughters' to name. */
-pico8_probe_t *pico8_qh_probe_of(void *self);
-
 /* A trading hub: a laboratory, then `qw`, copied from its archetype and
  * written by its own `ly`. Nothing frees the struct: TROU-7. */
 typedef struct {
@@ -58,9 +55,6 @@ typedef struct {
     pico8_emitter_t *emitter;
     pico8_emitter_t emitter_own;
 } pico8_hj_t;
-
-/* The `emitter_of` of hj's descriptor, for `mx`'s to name (`pm`'s too). */
-pico8_emitter_t *pico8_hj_emitter_of(void *self);
 
 /* A protostar: an ascension and nothing of its own; its defaults are its
  * archetype's. Nothing frees the struct: TROU-7. */

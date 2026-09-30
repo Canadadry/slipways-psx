@@ -465,8 +465,8 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
             pico8_fixed_t radius_f;
             int radius;
 
-            if (self->fo->cls->probe_of != NULL) {
-                dw = self->fo->cls->probe_of(self->fo)->def->dw;
+            if (self->fo->probe != NULL) {
+                dw = self->fo->probe->def->dw;
             }
             radius_f = pico8_fixed_mul(pico8_fixed_sqrt(dw), pico8_fixed_from_int(128));
             radius = pico8_fixed_flr_int(radius_f);

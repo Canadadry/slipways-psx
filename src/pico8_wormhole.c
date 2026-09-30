@@ -193,10 +193,6 @@ static void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra) {
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
  * drop the nearest-anchor search. */
-static pico8_probe_t *mz_probe_of(void *self) {
-    return ((pico8_mz_t *)self)->probe;
-}
-
 static const pico8_struct_class_t g_mz_struct_class = {
     .kj = pico8_mz_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -207,7 +203,6 @@ static const pico8_struct_class_t g_mz_struct_class = {
             [PICO8_STATE_KZ] = pico8_mz_kz_dispatch,
             [PICO8_STATE_PR] = pico8_mz_pr_dispatch,
         },
-    .probe_of = mz_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_MZ),
 };
 
@@ -219,6 +214,7 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     self->header.fa = &self->def->fa;
     self->header.ra = &self->ra;
     self->header.p = &self->p;
+    self->header.probe = &self->probe_own;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->oi = self->def->oi;

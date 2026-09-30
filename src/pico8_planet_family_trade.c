@@ -176,7 +176,6 @@ static const pico8_struct_class_t g_nr_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_qh_struct_class,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
@@ -230,7 +229,6 @@ static const pico8_struct_class_t g_fr_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_nr_struct_class,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
@@ -324,8 +322,6 @@ static const pico8_struct_class_t g_mx_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_hj_struct_class,
-    .emitter_of = pico8_hj_emitter_of,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 

@@ -26,10 +26,6 @@ void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t) {
     pico8_na((pico8_struct_header_t *)self, t);
 }
 
-pico8_probe_t *pico8_qh_probe_of(void *self) {
-    return ((pico8_qh_t *)self)->probe;
-}
-
 static const pico8_struct_class_t g_qh_struct_class = {
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -48,12 +44,12 @@ static const pico8_struct_class_t g_qh_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_jo_struct_class,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_jo_struct_init(&self->jo, cls, def);
+    self->jo.header.probe = &self->probe_own;
     self->probe = &self->probe_own;
     self->probe->def = &self->jo.def->probe;
     self->probe->od = self->jo.def->probe.od;
@@ -118,7 +114,6 @@ static const pico8_struct_class_t g_nl_struct_class = {
             [PICO8_STATE_LY] = pico8_nl_ly_dispatch,
         },
     .parent = pico8_qh_struct_class,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
@@ -162,7 +157,6 @@ static const pico8_struct_class_t g_os_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_qh_struct_class,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
@@ -202,10 +196,6 @@ void pico8_hj_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_hj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_hj_t *)self, p);
 }
 
-pico8_emitter_t *pico8_hj_emitter_of(void *self) {
-    return ((pico8_hj_t *)self)->emitter;
-}
-
 static const pico8_struct_class_t g_hj_struct_class = {
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -225,13 +215,12 @@ static const pico8_struct_class_t g_hj_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_qh_struct_class,
-    .emitter_of = pico8_hj_emitter_of,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_qh_struct_init(&self->qh, cls, def);
+    self->qh.jo.header.emitter = &self->emitter_own;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->qh.jo.def->emitter;
     self->emitter->py = self->qh.jo.def->emitter.py;
@@ -312,8 +301,6 @@ static const pico8_struct_class_t g_pm_struct_class = {
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
     .parent = pico8_hj_struct_class,
-    .emitter_of = pico8_hj_emitter_of,
-    .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
 };
 
@@ -445,10 +432,6 @@ static void pico8_ga_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_ga_t *)self, p);
 }
 
-static pico8_emitter_t *ga_emitter_of(void *self) {
-    return ((pico8_ga_t *)self)->emitter;
-}
-
 static const pico8_struct_class_t g_ga_struct_class = {
     .kj = pico8_ga_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -461,7 +444,6 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .mm = pico8_ga_mm,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .parent = pico8_jo_struct_class,
-    .emitter_of = ga_emitter_of,
     /* ga's cart list of tags is empty and replaces jo's: never jo's. */
     .tags = 0,
 };
@@ -471,6 +453,7 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_jo_struct_init(&self->jo, &g_ga_struct_class, &pico8_ga_def);
+    self->jo.header.emitter = &self->emitter_own;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->jo.def->emitter;
     self->emitter->qo = self->jo.def->emitter.qo;

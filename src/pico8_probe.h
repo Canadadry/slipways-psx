@@ -49,10 +49,6 @@ typedef struct {
  * otherwise, and for a NULL `e`. */
 pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
 
-/* The `emitter_of` and `probe_of` of g_'s descriptor, for `fv`'s to name. */
-pico8_emitter_t *pico8_g__emitter_of(void *self);
-pico8_probe_t *pico8_g__probe_of(void *self);
-
 /* TROU-8 */
 /* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the
  * module down first, so it is idempotent. */
