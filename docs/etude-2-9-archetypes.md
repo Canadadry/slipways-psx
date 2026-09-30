@@ -130,6 +130,166 @@ Chaque verdict est en une phrase dans la dernière colonne de l'annexe A. Les po
 
 Fichiers non compilés : `main_raylib.c`, `main_screencast_viewer.c`, `pico8_raylib_backend.c`. Le grep des 38 noms de types d'entité et de composant n'y trouve rien (code 1).
 
+## 2. Archétypes (2.9b)
+
+### Inventaire
+
+**25 classes reçoivent un archétype, 15 tables de classe n'en reçoivent pas.** Cela couvre les 40 tables `static const pico8_struct_class_t g_X_struct_class` (41 lignes au grep ; `layout.c:12` est une déclaration anticipée) et les 27 `pico8_X_start_t` (`game_data.h:117-423`).
+
+| Classe (table) | `pico8_X_start_t` | Archétype | Raison |
+|---|---|---|---|
+| `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (10) | les 10 | oui, type **planète** `pico8_jo_def_t` | défauts de spécification ; un seul type pour les dix sortes (décision A) |
+| `g_`, `fv` (2) | `g__`, `fv` | oui, type **sonde** `pico8_g__def_t` | idem, un seul type pour la sonde et sa variante d'aide (décision A) |
+| `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `hp`, `ie`, `pj` (13) | les 13 | oui, un type par classe (`pico8_bg_def_t`…) | racines simples. `js` n'a que `fa` (I) et `nf` que `me`/`t`, mais la Sortie veut un archétype par ancienne classe |
+| — | `ke` | pas d'archétype propre | `ke` est le noyau, sans table ni instance. Ses deux défauts (`me` = `"ph"`, `t` = 0) deviennent les deux premiers membres de chaque archétype d'une classe qui descend de `ke`. `pico8_ke_start` disparaît quand la dernière famille ne l'appelle plus |
+| `pj_cr` | `pj_cr` | non | instance statique unique `g_pj_cr` : ses trois A (`ca`, `gq`, `hi`) passent dans son initialiseur statique, et `pico8_pj_cr_start` disparaît avec `pj` (2.13, famille a) |
+| `hy` | — | non | aucune clé de spécification. `nz`/`ew`/`lo`/`yr` sont des valeurs de départ du constructeur (E) |
+| `trade`, `lq`, `jb` | — | non | aucun défaut de classe : tous les champs sont K ou E |
+| `mo`, `je`, `fm` (remplaçants) | — | non | remplaçants statiques ; seul `fm` a des champs, tous E |
+| `bv_et`, `jc_too_far`, `mz_jj` | — | non | instances statiques uniques ; leurs A (`qs`) sont déjà dans l'initialiseur |
+| `ha_pz` | — | non | objet jamais alloué, que `pico8_menu_init` fait pointer sur les valeurs de `ha` (`menu.c:47-51`). Ce n'est pas un type de `--champs` |
+| `ie_ke_view` | — | non | vue construite à la demande (K) |
+| `jc_mouse_point`, `nr_ldown_empty` | — | non | objets transitoires, sans défaut |
+
+Contrôle 5 : les 27 `_start_t` et les 40 tables sont dans ce tableau. Les 36 types de `--champs` s'y retrouvent aussi : les neuf types de l'arbre `jo` qui ont des champs propres, `g_`/`fv`, les 13 racines, `pj_cr`, `hy`, `trade`, `lq`, `jb`, `fm_placeholder`, `bv_et`, `jc_too_far`, `mz_jj`, `ie_ke`, `jc_mouse_point`, et l'en-tête (noyau). `os` n'a aucun champ propre dans `--champs`, `ha_pz` n'y est pas.
+
+### Forme
+
+Les objets constants sont **résolus** le long de la chaîne : l'init parente, puis les défauts propres. Il y a **un type d'archétype par futur type aplati**. Le type planète réunit les champs A et I des dix types de l'arbre `jo`, un seul membre par nom : `rr` de `nl`/`hj`/`nr`, `fz` de `pm`/`ga`. Le type sonde réunit ceux de `g_` et `fv`. Les champs des composants forment deux sous-archétypes, `pico8_emitter_def_t` et `pico8_probe_def_t`, enchâssés dans les archétypes des classes qui portent le composant : planète, sonde, `mz`, `jc`. Une classe sans le composant y laisse des zéros, que rien ne lit, puisque sa table n'a ni `emitter_of` ni `probe_of`.
+
+Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Le champ I dont le défaut est l'adresse d'un objet statique mutable du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet, et ce n'est pas une donnée. Il reste écrit par l'init du module propriétaire. Sont concernés `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le` et `nf.ra` → `g_nf_ra`. L'objet de données `pico8_jo_kw_start` doit changer de nom à 2.13 : le motif de `défauts` le compte (voir l'essai d'inclusion).
+
+Texte C de l'archétype de `nl` (trois niveaux de chaîne, groupe sonde), essayé sur la copie :
+
+```c
+typedef struct {
+    pico8_fixed_t pn, du, py, ki, pk, fc;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t qo, ro, qg, q_;
+} pico8_emitter_def_t;
+
+typedef struct {
+    pico8_fixed_t dw;
+    pico8_fixed_t od;
+    int has_od;
+    const char *dq;
+    pico8_fixed_t fp;
+    pico8_fixed_t ik;
+    int has_ik;
+} pico8_probe_def_t;
+
+typedef struct {
+    const char *me;               /* noyau */
+    pico8_fixed_t t;
+    int hf;                       /* jo */
+    pico8_fixed_t hs, fa;
+    pico8_qz_box_t kq;
+    pico8_fixed_t ma;
+    const pico8_int_seq_t *ka;
+    const pico8_jb_row_t *dz;
+    const pico8_int_seq_t *cq;
+    const pico8_kw_t *kw_own;
+    pico8_vec_t gq;
+    pico8_fixed_t ca;
+    const pico8_jb_row_t *em;
+    pico8_fixed_t mi;
+    int has_mi;
+    pico8_fixed_t hp;             /* qh */
+    const pico8_jb_row_t *px;
+    int qh;
+    pico8_fixed_t s;
+    const pico8_int_seq_t *ba;
+    const char *rr;               /* nl, hj, nr */
+    pico8_fixed_t nl, qw;         /* nl */
+    const char *fz;               /* pm, ga */
+    pico8_vec_t ng;               /* pm */
+    pico8_fixed_t iu, ms;         /* ga */
+    const pico8_int_seq_t *hz;    /* nr */
+    pico8_fixed_t mt;             /* fr */
+    const pico8_int_seq_t *ht;    /* mx */
+    pico8_probe_def_t probe;
+    pico8_emitter_def_t emitter;
+} pico8_jo_def_t;
+
+const pico8_jo_def_t pico8_nl_def = {
+    .me = qh_me_text, .t = 0x0,
+    .hf = 0, .hs = 0x10000, .fa = 0x60000,
+    .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
+    .ma = 0x0, .ka = &pico8_jo_ka_seq, .dz = pico8_jo_dz_rows, .cq = &pico8_jo_cq_seq,
+    .kw_own = &pico8_jo_kw_start, .gq = {0x0, 0xb0000}, .ca = 0x90000, .em = &pico8_jo_em_row,
+    .mi = 0x10000, .has_mi = 1,
+    .hp = 0x60000, .px = &pico8_nl_px_row, .qh = 0, .s = 0x440000, .ba = &pico8_nl_ba_seq,
+    .rr = nl_rr_text, .nl = 0x10000, .qw = 0xf0000,
+    .probe = {.dw = 0x666, .od = 0x140000, .has_od = 1, .dq = qh_dq_text, .fp = 0x20000, .ik = 0, .has_ik = 0},
+};
+```
+
+Chaque valeur vient de la chaîne `pico8_ke_struct_init` → `pico8_jo_struct_init` → `pico8_qh_struct_init` → `pico8_nl_struct_new`, la dernière écriture l'emportant. Trois défauts de `qh` sont masqués par ceux de `nl` : `hp` 1 → 6, `s` 0xae → 0x44, `od` 15 → 20. `qh` masque lui-même `jo.hf` (1 → 0). La table champ → valeur → ligne source des 25 classes est l'annexe B : 467 lignes (259 A, 208 I), produites par `chains.py` à partir des sites de construction du banc.
+
+Le type sonde `pico8_g__def_t` porte `me`, `t`, `fa`, `fx`, `ra` (vecteur, avec un drapeau : NULL pour `g_`), les membres propres de `fv` (`hi`, `ca`, `gq`, `eo`, `ff`, `kq`, `ql`, `fg`, `rb`), `probe` et `emitter`. Chaque racine simple a son type, avec `me`/`t` en tête s'il descend de `ke` (toutes sauf `hp`), puis ses A et ses défauts I. Exemple, `pico8_bg_def_t` = `{me, t, fa, hd, pl}`.
+
+### Place : `pico8_game_data.h` (types) et `pico8_game_data.c` (valeurs)
+
+Les archétypes prennent la place des `_start` d'aujourd'hui. Les types sont dans `game_data.h`, et les valeurs sont des objets `const` de portée fichier dans `game_data.c`, déclarés `extern` dans l'en-tête. Le « `static const` » du plan se lit « objet constant à durée de stockage statique ». Une liaison interne (`static`) le rendrait illisible pour le module de la classe et pour le test ponctuel.
+
+Pourquoi pas le module de la classe : les valeurs nomment des données que `game_data.c` garde `static` (`jo_me_text`, `qh_me_text`, `qh_dq_text`, `nl_rr_text`… `game_data.c:435-438`). Les ranger dans `planet_family.c` exigerait d'exporter ces données, soit une dizaine de nouveaux `extern`. Et les valeurs de l'arbre `jo` seraient réparties sur trois modules (`planet.c`, `planet_family.c`, `planet_family_trade.c`) pour un seul type. Les types n'emploient que `pico8_fixed_t`, `pico8_qz_box_t`, `pico8_vec_t`, `pico8_int_seq_t`, `pico8_jb_row_t`, `pico8_kw_t` et `const char *` : `game_data.h` les a déjà et n'a besoin d'**aucun type du noyau**. La paire `game_data` ↔ `struct` que 2.2 a coupée ne peut pas revenir.
+
+**Essai d'inclusion** (contrôle 7), sur la copie :
+
+- les types `pico8_emitter_def_t`, `pico8_probe_def_t`, `pico8_jo_def_t` et `pico8_bg_def_t` ajoutés en fin de `game_data.h` ;
+- `pico8_nl_def` et `pico8_bg_def` ajoutés en fin de `game_data.c` ;
+- un membre `const pico8_jo_def_t *def` dans `pico8_jo_t` et un membre `const pico8_bg_def_t *def` dans `pico8_bg_t` ;
+- l'affectation `def = &pico8_X_def` dans `pico8_nl_struct_new` et `pico8_bg_struct_new`.
+
+Tout compile (`-fsyntax-only`, 150 + 2 fichiers, 0 erreur). `composition_residue.sh` rend `inclusion-mutuelle` **17 / 16**, et `--check inclusion-mutuelle` **43 lignes**. `parente` 10, `lien-parent` 111, `accesseurs-q6` 237 et `void-ptr` 8 sont inchangés. `défauts` passe à **670** (+1) : la ligne `.kw_own = &pico8_jo_kw_start`, dont l'objet de données porte le suffixe `_start` que le motif compte. Le pied est 1074 / 85. `--champs` passe à 284 (les deux `def`). Copie rendue à `522824b` ensuite (`git checkout -- .`).
+
+### Chemin de lecture : (ii), un pointeur d'archétype typé dans l'instance
+
+| Critère | (i) struct de classe par famille, descente par cast de `header.cls` | (ii) `const pico8_X_def_t *def` posé par l'init | (iii) accesseur `static` par module sur `header.cls` |
+|---|---|---|---|
+| `void *` nouveau | non | non | non |
+| paire d'inclusion neuve | non | non (essai ci-dessus) | non |
+| `parente` / `lien-parent` | à vérifier : une struct qui enchâsse `pico8_struct_class_t` en premier membre | inchangés (essai) | inchangés |
+| casts | un cast descendant non vérifié par lecture, ce que la phase 2 retire | aucun | aucun, mais un aiguillage par comparaison de classe (10 branches pour la planète) |
+| changement des 40 tables | 25 tables à remodeler (`.base = {…}`) | aucune | aucune |
+| coût pour 2.14 | `get_kq` lit par le cast | `get_kq` rend `&self->def->kq`, sans table | un appel d'aiguillage par lecture |
+| coût pour 2.15 | la famille garde sa struct de classe | le type aplati garde un seul `def` | l'aiguillage survit à l'aplatissement |
+| TU qui veut un défaut autre (`g_.fa`, `dw`, §1) | table de test à construire | `inst->def = &archétype_de_test` | impossible sans une classe de test |
+
+**Retenu : (ii).** C'est la seule option sans cast ni aiguillage, et elle ne touche aucune table. Elle permet aussi aux deux TU du §1 de poser un archétype de test. Le coût est un pointeur par instance. Le risque est que `def` et `cls` ne concordent pas. Le même `_new` pose les deux, et le test ponctuel (§3) compare la chaîne à `def` : ce risque est couvert. Pas de question à l'humain : aucune égalité sur les critères.
+
+### Part copiée à l'init
+
+Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `def`. S'y ajoutent `me`/`t` de l'en-tête pour toutes les classes qui descendent de `ke`, et `kw_own` : l'init fait `self->kw_own = *def->kw_own`. Les écritures qui rendent chacun de ces champs mutables sont dans la colonne « hors construction » de l'annexe A. Un champ noté « 0 ou NULL » y garde un défaut nul pour cette classe.
+
+| Classe | Champs I copiés (hors `me`/`t`) |
+|---|---|
+| `jo` | `jo.by` (0 ou NULL), `jo.has_mi` (nil), `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi` (nil) |
+| `qh` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `nl` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `nl.qw`, `qh.s`, `probe.od`, `probe.has_od` |
+| `os` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `hj` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `pm` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `mx` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `mx.ht`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `ga` | `ga.iu`, `ga.ms`, `jo.by` (défaut `&g_ga_by_shared`, objet statique du module : reste écrit par l'init), `jo.has_mi` (0 ou NULL), `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi` (nil), `emitter.pn` (nil), `emitter.du` (nil), `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_` |
+| `nr` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `fr` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `g_` | `g_.ra` (0 ou NULL), `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `fv` | `g_.ra`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `bg` | — |
+| `ui` | `ui.le` (défaut `&g_shared_le`, objet statique du module : reste écrit par l'init) |
+| `js` | `js.fa` |
+| `fq` | — |
+| `qb` | `qb.ma`, `qb.p`, `qb.ra`, `qb.v` |
+| `nf` | `nf.ra` (défaut `&g_nf_ra`, objet statique du module : reste écrit par l'init) |
+| `mh` | `mh.rh` |
+| `iv` | `iv.l` |
+| `mz` | `mz.oi`, `probe.od`, `probe.has_od` |
+| `jc` | `jc.fa`, `jc.nh`, `probe.od` (0 ou NULL), `probe.has_od` (nil) |
+| `hp` | — |
+| `ie` | `ie.ra` |
+| `pj` | `pj.fa` |
+
 ## Annexe A — les 302 champs
 
 Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de construction, écritures `src/` hors construction, écritures `tests/` (`T:` = `tests/test_pico8_`), verdict quand la classe n'est pas mécanique. Chaque site se lit `fichier:ligne fonction` (sans `src/pico8_` ni `pico8_`).
@@ -439,7 +599,37 @@ Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de constr
 | `probe` | `ik` | A | planet_family.c:72 qh_struct_init; probe.c:455 g__struct_init; slipway.c:407 jc_struct_new; wormhole.c:249 mz_struct_new | — | — |  |
 | `probe` | `has_ik` | A | planet_family.c:73 qh_struct_init; probe.c:456 g__struct_init; slipway.c:408 jc_struct_new; wormhole.c:250 mz_struct_new | — | — |  |
 
-## Annexe B — tableau « Runs »
+## Annexe B — valeurs résolues par classe
+
+Pour chaque classe qui reçoit un archétype : champ (type déclarant.membre) = valeur résolue (`[I]` : défaut d'un champ I), et la ligne qui la pose aujourd'hui, dernière écriture de la chaîne. Les valeurs `pico8_X_start.m` sont lues dans `game_data.c`, et les clés de construction sont exclues.
+
+- **`jo`** (18) : `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `0` [I] (planet.c:171) ; `jo.hf` = `1` (planet.c:138) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0` [I] (planet.c:170) ; `en-tête.me` = `jo_me_text` [I] (planet.c:175) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`qh`** (30) : `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x10000` (planet_family.c:64) ; `qh.px` = `&qh_px_row` (planet_family.c:65) ; `qh.qh` = `1` (planet_family.c:68) ; `qh.s` = `0xae0000` [I] (planet_family.c:75) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x666` (planet_family.c:74) ; `probe.od` = `0xf0000` [I] (planet_family.c:69) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x20000` (planet_family.c:71) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`nl`** (33) : `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `nl.nl` = `0x10000` (planet_family.c:157) ; `nl.qw` = `0xf0000` [I] (planet_family.c:158) ; `nl.rr` = `nl_rr_text` (planet_family.c:156) ; `qh.ba` = `&nl_ba_seq` (planet_family.c:164) ; `qh.hp` = `0x60000` (planet_family.c:160) ; `qh.px` = `&nl_px_row` (planet_family.c:162) ; `qh.qh` = `0` (planet_family.c:159) ; `qh.s` = `0x440000` [I] (planet_family.c:161) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x666` (planet_family.c:74) ; `probe.od` = `0x140000` [I] (planet_family.c:163) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x20000` (planet_family.c:71) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`os`** (30) : `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x8000` (planet_family.c:220) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x40000` (planet_family.c:215) ; `qh.px` = `&os_px_row` (planet_family.c:216) ; `qh.qh` = `0` (planet_family.c:217) ; `qh.s` = `0x640000` [I] (planet_family.c:218) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x666` (planet_family.c:74) ; `probe.od` = `0xf0000` [I] (planet_family.c:219) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x20000` (planet_family.c:71) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`hj`** (42) : `hj.rr` = `hj_rr_text` (planet_family.c:289) ; `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x20000` (planet_family.c:303) ; `qh.px` = `&hj_px_row` (planet_family.c:305) ; `qh.qh` = `0` (planet_family.c:304) ; `qh.s` = `0xa60000` [I] (planet_family.c:307) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `emitter.pn` = `0x50000` [I] (planet_family.c:293) ; `emitter.du` = `0x78000` [I] (planet_family.c:297) ; `emitter.py` = `0x1eb8` [I] (planet_family.c:291) ; `emitter.ki` = `0x90000` (planet_family.c:292) ; `emitter.pk` = `0x10000` (planet_family.c:294) ; `emitter.fc` = `0x8000` (planet_family.c:295) ; `emitter.k_` = `&hj_k__seq` [I] (planet_family.c:296) ; `emitter.qo` = `0xfae0` [I] (planet_family.c:298) ; `emitter.ro` = `-0x11ec` [I] (planet_family.c:299) ; `emitter.qg` = `0x11ea` [I] (planet_family.c:300) ; `emitter.q_` = `0xfae0` [I] (planet_family.c:301) ; `probe.dw` = `0x666` (planet_family.c:74) ; `probe.od` = `0x3c0000` [I] (planet_family.c:306) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x20000` (planet_family.c:71) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`pm`** (44) : `hj.rr` = `hj_rr_text` (planet_family.c:289) ; `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `pm.fz` = `pm_fz_text` (planet_family.c:397) ; `pm.ng` = `&{0x10000, 0x0}` (planet_family.c:396) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x30000` (planet_family.c:409) ; `qh.px` = `&pm_px_row` (planet_family.c:410) ; `qh.qh` = `0` (planet_family.c:304) ; `qh.s` = `0x620000` [I] (planet_family.c:411) ; `en-tête.me` = `pm_me_text` [I] (planet_family.c:412) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `emitter.pn` = `0x80000` [I] (planet_family.c:400) ; `emitter.du` = `0x20000` [I] (planet_family.c:402) ; `emitter.py` = `0xf5c` [I] (planet_family.c:398) ; `emitter.ki` = `0x90000` (planet_family.c:399) ; `emitter.pk` = `0` (planet_family.c:401) ; `emitter.fc` = `0x10000` (planet_family.c:403) ; `emitter.k_` = `&pm_k__seq` [I] (planet_family.c:404) ; `emitter.qo` = `0x1051e` [I] (planet_family.c:405) ; `emitter.ro` = `-0xd70` [I] (planet_family.c:406) ; `emitter.qg` = `0xd70` [I] (planet_family.c:407) ; `emitter.q_` = `0x1051e` [I] (planet_family.c:408) ; `probe.dw` = `0x666` (planet_family.c:74) ; `probe.od` = `0x3c0000` [I] (planet_family.c:306) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x20000` (planet_family.c:71) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`mx`** (43) : `hj.rr` = `mx_rr_text` (planet_family_trade.c:375) ; `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x70000, -0x70000, 0x70000, 0x70000}` (planet.c:141) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `mx.ht` = `&mx_ht_seq` [I] (planet_family_trade.c:374) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x50000` (planet_family_trade.c:387) ; `qh.px` = `&mx_px_row` (planet_family_trade.c:389) ; `qh.qh` = `0` (planet_family.c:304) ; `qh.s` = `0x420000` [I] (planet_family_trade.c:388) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `emitter.pn` = `0x50000` [I] (planet_family_trade.c:378) ; `emitter.du` = `0x50000` [I] (planet_family_trade.c:382) ; `emitter.py` = `0x1eb8` [I] (planet_family_trade.c:376) ; `emitter.ki` = `0x90000` (planet_family_trade.c:377) ; `emitter.pk` = `0x10000` (planet_family_trade.c:379) ; `emitter.fc` = `0x4ccc` (planet_family_trade.c:380) ; `emitter.k_` = `&mx_k__seq` [I] (planet_family_trade.c:381) ; `emitter.qo` = `0xfae0` [I] (planet_family_trade.c:383) ; `emitter.ro` = `-0x11ec` [I] (planet_family_trade.c:384) ; `emitter.qg` = `0x11ea` [I] (planet_family_trade.c:385) ; `emitter.q_` = `0xfae0` [I] (planet_family_trade.c:386) ; `probe.dw` = `0x666` (planet_family.c:74) ; `probe.od` = `0x280000` [I] (planet_family_trade.c:390) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x20000` (planet_family.c:71) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`ga`** (32) : `ga.fz` = `ga_fz_text` (planet_family.c:570) ; `ga.iu` = `-0xf5c` [I] (planet_family.c:582) ; `ga.ms` = `0x30000` [I] (planet_family.c:584) ; `jo.by` = `&g_ga_by_shared` [I] (planet_family.c:586) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x30000` (planet_family.c:589) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `0` [I] (planet.c:171) ; `jo.hf` = `0` (planet_family.c:587) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{0x0, 0x0, -0x10000, -0x10000}` (planet_family.c:588) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0` [I] (planet.c:170) ; `en-tête.me` = `jo_me_text` [I] (planet.c:175) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `emitter.pn` = `0` [I] (planet_family.c:572) ; `emitter.du` = `0` [I] (planet_family.c:573) ; `emitter.py` = `0x60000` [I] (planet_family.c:583) ; `emitter.ki` = `0` (planet_family.c:574) ; `emitter.pk` = `0` (planet_family.c:575) ; `emitter.fc` = `0x0` (planet_family.c:576) ; `emitter.k_` = `&ga_k__seq` [I] (planet_family.c:581) ; `emitter.qo` = `0xe666` [I] (planet_family.c:577) ; `emitter.ro` = `0x0` [I] (planet_family.c:578) ; `emitter.qg` = `0x0` [I] (planet_family.c:579) ; `emitter.q_` = `0xe666` [I] (planet_family.c:580).
+- **`nr`** (32) : `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x40000, -0x40000, 0x50000, 0x50000}` (planet_family_trade.c:201) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `nr.hz` = `&nr_hz_seq` (planet_family_trade.c:195) ; `nr.rr` = `nr_rr_text` (planet_family_trade.c:196) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x10000` (planet_family.c:64) ; `qh.px` = `&qh_px_row` (planet_family.c:65) ; `qh.qh` = `1` (planet_family.c:68) ; `qh.s` = `0xaa0000` [I] (planet_family_trade.c:199) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x28e` (planet_family_trade.c:200) ; `probe.od` = `0xa0000` [I] (planet_family_trade.c:197) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x10000` (planet_family_trade.c:198) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`fr`** (33) : `fr.mt` = `0x10000` (planet_family_trade.c:268) ; `jo.by` = `NULL` [I] (planet.c:169) ; `jo.ca` = `0x90000` (planet.c:148) ; `jo.cq` = `&jo_cq_seq` (planet.c:145) ; `jo.dz` = `jo_dz_rows` (planet.c:144) ; `jo.em` = `&jo_em_row` (planet.c:149) ; `jo.fa` = `0x60000` (planet.c:140) ; `jo.gq` = `&{0x0, 0xb0000}` (planet.c:147) ; `jo.has_mi` = `1` [I] (planet_family.c:79) ; `jo.hf` = `0` (planet_family.c:80) ; `jo.hs` = `0x10000` (planet.c:139) ; `jo.ka` = `&jo_ka_seq` (planet.c:143) ; `jo.kq` = `&{-0x40000, -0x40000, 0x50000, 0x50000}` (planet_family_trade.c:201) ; `jo.kw` = `&g_jo_kw_shared` [I] (planet.c:146) ; `jo.kw_own` = `&jo_kw_start` [I] (planet.c:174) ; `jo.ma` = `0x0` [I] (planet.c:142) ; `jo.mi` = `0x10000` [I] (planet_family.c:78) ; `nr.hz` = `&fr_hz_seq` (planet_family_trade.c:269) ; `nr.rr` = `fr_rr_text` (planet_family_trade.c:270) ; `qh.ba` = `&qh_ba_seq` (planet_family.c:76) ; `qh.hp` = `0x10000` (planet_family.c:64) ; `qh.px` = `&qh_px_row` (planet_family.c:65) ; `qh.qh` = `1` (planet_family.c:68) ; `qh.s` = `0x4e0000` [I] (planet_family_trade.c:272) ; `en-tête.me` = `qh_me_text` [I] (planet_family.c:81) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x28e` (planet_family_trade.c:200) ; `probe.od` = `0x190000` [I] (planet_family_trade.c:271) ; `probe.has_od` = `1` [I] (planet_family.c:70) ; `probe.dq` = `qh_dq_text` (planet_family.c:67) ; `probe.fp` = `0x10000` (planet_family_trade.c:198) ; `probe.ik` = `0` (planet_family.c:72) ; `probe.has_ik` = `0` (planet_family.c:73).
+- **`g_`** (23) : `g_.fa` = `0x20000` (probe.c:457) ; `g_.fx` = `0x10000` (probe.c:450) ; `g_.ra` = `NULL` [I] (probe.c:444) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `emitter.pn` = `0x30000` [I] (probe.c:461) ; `emitter.du` = `0x20000` [I] (probe.c:469) ; `emitter.py` = `0xf5c` [I] (probe.c:459) ; `emitter.ki` = `0x90000` (probe.c:460) ; `emitter.pk` = `0x10000` (probe.c:462) ; `emitter.fc` = `0x10000` (probe.c:463) ; `emitter.k_` = `&g__k__seq` [I] (probe.c:464) ; `emitter.qo` = `0x1051e` [I] (probe.c:465) ; `emitter.ro` = `-0xd70` [I] (probe.c:466) ; `emitter.qg` = `0xd70` [I] (probe.c:467) ; `emitter.q_` = `0x1051e` [I] (probe.c:468) ; `probe.dw` = `0x666` (probe.c:458) ; `probe.od` = `0x0` [I] (probe.c:452) ; `probe.has_od` = `1` [I] (probe.c:453) ; `probe.dq` = `"ly"` (probe.c:451) ; `probe.fp` = `0` (probe.c:454) ; `probe.ik` = `0` (probe.c:455) ; `probe.has_ik` = `0` (probe.c:456).
+- **`fv`** (32) : `fv.ca` = `0xb0000` (help.c:168) ; `fv.eo` = `-0x10000` (help.c:170) ; `fv.ff` = `0x10000` (help.c:171) ; `fv.fg` = `0x50000` (help.c:174) ; `fv.gq` = `&{0x0, 0xb0000}` (help.c:169) ; `fv.hi` = `&{0x220000, 0x380000}` (help.c:167) ; `fv.kq` = `&{-0x280000, 0x4e0000, 0x280000, 0x620000}` (help.c:172) ; `fv.ql` = `0xb0000` (help.c:173) ; `fv.rb` = `&fv_rb_row` (help.c:175) ; `g_.fa` = `0xa0000` (help.c:154) ; `g_.fx` = `0x10000` (probe.c:450) ; `g_.ra` = `&{0x400000, 0x1c0000}` [I] (help.c:155) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `emitter.pn` = `0x50000` [I] (help.c:162) ; `emitter.du` = `0xf0000` [I] (help.c:163) ; `emitter.py` = `0x1b6` [I] (help.c:164) ; `emitter.ki` = `0x110000` (help.c:166) ; `emitter.pk` = `0x10000` (help.c:165) ; `emitter.fc` = `0x50000` (help.c:156) ; `emitter.k_` = `&fv_k__seq` [I] (help.c:157) ; `emitter.qo` = `0x1051e` [I] (help.c:158) ; `emitter.ro` = `-0x1ca` [I] (help.c:159) ; `emitter.qg` = `0x1ca` [I] (help.c:160) ; `emitter.q_` = `0x1051e` [I] (help.c:161) ; `probe.dw` = `0x666` (probe.c:458) ; `probe.od` = `0x0` [I] (probe.c:452) ; `probe.has_od` = `1` [I] (probe.c:453) ; `probe.dq` = `"ly"` (probe.c:451) ; `probe.fp` = `0` (probe.c:454) ; `probe.ik` = `0` (probe.c:455) ; `probe.has_ik` = `0` (probe.c:456).
+- **`bg`** (5) : `bg.fa` = `0x10000` (bg.c:70) ; `bg.hd` = `0x10000` (bg.c:71) ; `bg.pl` = `&bg_pl_seq` (bg.c:72) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`ui`** (6) : `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `ui.fa` = `0xf0000` (ui.c:101) ; `ui.hw` = `&{0xa0000, 0xa0000, 0x760000, 0x760000}` (ui.c:103) ; `ui.le` = `&g_shared_le` [I] (ui.c:102) ; `ui.ql` = `0x3a0000` (ui.c:100).
+- **`js`** (3) : `js.fa` = `0xb0000` [I] (ui_button.c:135) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`fq`** (4) : `fq.fa` = `0xe0000` (ui_button.c:356) ; `fq.hd` = `0x10000` (ui_button.c:357) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`qb`** (7) : `qb.ma` = `0x0` [I] (scroll.c:49) ; `qb.p` = `&{0xc00000, 0xc00000}` [I] (scroll.c:50) ; `qb.pc` = `&qb_pc_vecs` (scroll.c:52) ; `qb.ra` = `&{0xc00000, 0xc00000}` [I] (scroll.c:51) ; `qb.v` = `&{0x0, 0x0}` [I] (scroll.c:48) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`nf`** (3) : `nf.ra` = `&g_nf_ra` [I] (mouse_reader.c:47) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`mh`** (4) : `mh.fa` = `0xe0000` (msgbox.c:111) ; `mh.rh` = `0x50000` [I] (msgbox.c:112) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`iv`** (5) : `iv.fa` = `0x90000` (msgbox.c:258) ; `iv.l` = `0x0` [I] (msgbox.c:259) ; `iv.v` = `&{0x0, -0x570a}` (msgbox.c:260) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`mz`** (14) : `mz.fa` = `0x50000` (wormhole.c:255) ; `mz.jj` = `&g_mz_jj_wrapper` (wormhole.c:257) ; `mz.kk` = `&mz_kk_seq` (wormhole.c:256) ; `mz.oi` = `0x0` [I] (wormhole.c:251) ; `mz.spawn_snd` = `0x340000` (wormhole.c:248) ; `en-tête.me` = `"kz"` [I] (wormhole.c:244) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x0` (wormhole.c:246) ; `probe.od` = `0x30000` [I] (wormhole.c:252) ; `probe.has_od` = `1` [I] (wormhole.c:253) ; `probe.dq` = `"pr"` (wormhole.c:247) ; `probe.fp` = `0x10000` (wormhole.c:254) ; `probe.ik` = `0x310000` (wormhole.c:249) ; `probe.has_ik` = `1` (wormhole.c:250).
+- **`jc`** (12) : `jc.fa` = `0x20000` [I] (slipway.c:403) ; `jc.k_` = `&jc_k__seq` (slipway.c:410) ; `jc.nh` = `0x140000` [I] (slipway.c:411) ; `en-tête.me` = `"kz"` [I] (slipway.c:402) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x106` (slipway.c:409) ; `probe.od` = `0` [I] (slipway.c:416) ; `probe.has_od` = `0` [I] (slipway.c:417) ; `probe.dq` = `NULL` (slipway.c:405) ; `probe.fp` = `0` (slipway.c:406) ; `probe.ik` = `0x300000` (slipway.c:407) ; `probe.has_ik` = `1` (slipway.c:408).
+- **`hp`** (1) : `hp.fk` = `&hp_fk_row` (research.c:159).
+- **`ie`** (6) : `ie.eh` = `&{0x760000, 0x780000}` (research_icon.c:244) ; `ie.fa` = `0xc0000` (research_icon.c:242) ; `ie.kq` = `&{0x0, 0x0, 0x90000, 0x80000}` (research_icon.c:241) ; `ie.ra` = `&{0x3e70000, 0x3e70000}` [I] (research_icon.c:243) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`pj`** (5) : `pj.fa` = `0xa0000` [I] (score_panel.c:294) ; `pj.gs` = `&pj_gs_row` (score_panel.c:295) ; `pj.i_` = `&pj_i__row` (score_panel.c:296) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+
+## Annexe C — tableau « Runs »
 
 Sur la copie jetable de `522824b`, sauf les lignes 1 et 2 (arbre de travail, lecture seule).
 
@@ -456,3 +646,7 @@ Sur la copie jetable de `522824b`, sauf les lignes 1 et 2 (arbre de travail, lec
 | 9 | `comm -3` des listes (type, champ) | 0 | vide | < 1 s |
 | 10 | `grep memset\|memcpy\|calloc` ; grep des types dans les trois fichiers raylib | 0 / 1 | aucune entité touchée ; aucun type nommé | < 1 s |
 | 11 | `git -C tree status --short` après le banc | 0 | vide | < 1 s |
+| 12 | `chains.py` (valeurs résolues par classe, masquages) | 0 | 25 classes, 467 lignes (259 A, 208 I) ; 103 champs à écritures successives, dont 102 masquages entre niveaux | < 1 s |
+| 13 | essai d'inclusion sur la copie (types et `pico8_nl_def`/`pico8_bg_def` dans `game_data.h/.c`, `def` dans `jo`/`bg`) puis `-fsyntax-only` | 0 | 0 erreur | 2 s |
+| 14 | `composition_residue.sh` et `--check inclusion-mutuelle` sur la copie modifiée | 0 | `inclusion-mutuelle 17 16` ; 43 lignes ; `défauts 670` (+1 : `pico8_jo_kw_start`) ; pied 1074 / 85 ; `--champs` 284 | 1 s |
+| 15 | `git -C tree checkout -- .` puis `status --short` | 0 | vide | < 1 s |
