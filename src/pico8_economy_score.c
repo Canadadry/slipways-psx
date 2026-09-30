@@ -263,3 +263,14 @@ const pico8_js_t *pico8_dk(void) {
 void pico8_economy_set_dk(const pico8_js_t *dk) {
     g_dk = dk;
 }
+
+pico8_fixed_t pico8_kr(pico8_struct_header_t *p) {
+    pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
+    pico8_jo_t *jo;
+
+    assert(pico8_jo_is_family(p) && "hy:lj: cg.jo holds planets only");
+    jo = (pico8_jo_t *)p;
+    jo->kr = kr;
+    jo->has_kr = 1;
+    return kr;
+}

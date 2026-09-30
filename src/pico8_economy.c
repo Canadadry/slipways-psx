@@ -12,7 +12,6 @@
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
-#include "pico8_planet.h"
 #include "pico8_tech_gate.h"
 
 static int g_hy_up = 0;
@@ -223,13 +222,8 @@ void pico8_hy_lj(pico8_hy_t *self) {
         it = pico8_ents_all(jo_list);
         while (pico8_ents_iter_next(&it, &p)) {
             if (p != NULL) {
-                pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
-                pico8_jo_t *jo;
+                pico8_fixed_t kr = pico8_kr(p);
 
-                assert(pico8_jo_is_family(p) && "hy:lj: cg.jo holds planets only");
-                jo = (pico8_jo_t *)p;
-                jo->kr = kr;
-                jo->has_kr = 1;
                 dd = pico8_fixed_add(dd, kr);
             }
         }

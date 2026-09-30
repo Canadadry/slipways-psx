@@ -117,7 +117,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
         self->re = (pico8_struct_header_t *)point;
     }
 
-    self->probe->od = pico8_dj(self->qu, self->re);
+    self->probe->od = pico8_dj(pico8_jc_end_p(self->qu), pico8_jc_end_p(self->re));
     self->probe->has_od = 1;
 
     /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */

@@ -37,4 +37,7 @@ pico8_fixed_t pico8_bf(void);
 const pico8_js_t *pico8_dk(void);
 void pico8_economy_set_dk(const pico8_js_t *dk);
 
+/* Writes `kr` into planet `p` (asserted) and returns it. */
+pico8_fixed_t pico8_kr(pico8_struct_header_t *p);
+
 #endif

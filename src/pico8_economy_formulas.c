@@ -7,7 +7,6 @@
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
-#include "pico8_slipway.h"
 #include "pico8_vec.h"
 
 static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
@@ -129,8 +128,8 @@ void pico8_ck(pico8_qe_map_t *out) {
     for_each_cg("qh", ck_visit, out);
 }
 
-pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to) {
-    pico8_vec_t diff = pico8_vec_sub(pico8_jc_end_p(to), pico8_jc_end_p(pb));
+pico8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p) {
+    pico8_vec_t diff = pico8_vec_sub(to_p, pb_p);
     pico8_fixed_t len_sq = pico8_vec_len_sq(diff);
     pico8_fixed_t x = pico8_fixed_div(len_sq, pico8_bq());
     pico8_fixed_t ec = pico8_fixed_pow075(x);

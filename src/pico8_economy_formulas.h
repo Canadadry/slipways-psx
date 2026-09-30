@@ -1,9 +1,9 @@
 #ifndef PICO8_ECONOMY_FORMULAS_H
 #define PICO8_ECONOMY_FORMULAS_H
 
-#include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_map_tables.h"
+#include "pico8_vec.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
  * zero/false default rather than crashing, and a NULL instance is a safe
@@ -35,7 +35,7 @@ void pico8_bx(pico8_qe_map_t *out);
 void pico8_ck(pico8_qe_map_t *out);
 
 /* `#(to.p-pb.p)` is the SQUARED distance, not the Euclidean one. */
-pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_header_t *to);
+pico8_fixed_t pico8_dj(pico8_vec_t pb_p, pico8_vec_t to_p);
 
 /* An absent `cg.jc` counts as zero slipways. */
 pico8_fixed_t pico8_bk(void);
