@@ -93,6 +93,10 @@ static void test_one_occurrence_per_category_in_table_order(void) {
     write_file(ATT, "q1\tx\n");
     write_file(SRC "/a.h", "#include \"b.h\"\n");
     write_file(SRC "/b.h", "#include \"a.h\"\n");
+    write_file(SRC "/k.h", "int k_f(void);\n");
+    write_file(SRC "/k.c", "int k = l_g();\n");
+    write_file(SRC "/l.h", "int l_g(void);\n");
+    write_file(SRC "/l.c", "int l = k_f();\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "parente\t1\t1\n"
                                   "lien-parent\t1\t1\n"
@@ -106,7 +110,8 @@ static void test_one_occurrence_per_category_in_table_order(void) {
                                   "noyau-inclut\t1\t1\n"
                                   "atteinte-à-prouver\t1\t1\n"
                                   "inclusion-mutuelle\t1\t2\n"
-                                  "résidu 2 : 13 ligne(s), 13 fichier(s)\n") == 0);
+                                  "usage-mutuel\t1\t2\n"
+                                  "résidu 2 : 15 ligne(s), 15 fichier(s)\n") == 0);
 }
 
 static void test_other_witnesses_of_each_pattern_bite(void) {
@@ -258,7 +263,8 @@ static void test_registres_reads_declaration_points_outside_entity_types(void) {
 }
 
 /* Formes d'un registre que le lecteur voit (F) et limites qu'il ne voit pas
- * (L), chacune a sa ligne : une limite qui se met a compter change l'attendu. */
+ * (L), chacune a sa ligne : une limite qui se met a compter change
+ * l'attendu. */
 static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
     setup();
     write_file(SRC "/f.h", "typedef pico8_" "ptrs_t reg_t;\n"
@@ -587,6 +593,42 @@ static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
     assert(strcmp(read_file(OUT), "résidu gardé (inclusion-mutuelle) : 0 ligne(s)\n") == 0);
 }
 
+/* a et b s'emploient, mais a.c ne recoit b.h que par c.h : inclusion-mutuelle
+ * n'y voit rien. d et e emploient u, qui ne les emploie que par s_t, que d.h
+ * et e.h declarent tous deux ; f n'emploie g que dans un commentaire et une
+ * chaine : ni u-d, ni u-e, ni f-g n'est une paire. */
+static void test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment(void) {
+    setup();
+    write_file(SRC "/a.h", "int a_f(void);\n");
+    write_file(SRC "/b.h", "#include \"a.h\"\nint b_g(void);\n");
+    write_file(SRC "/c.h", "#include \"b.h\"\n");
+    write_file(SRC "/a.c", "#include \"a.h\"\n#include \"c.h\"\nint a_f(void) {\n    return b_g();\n}\n");
+    write_file(SRC "/b.c", "#include \"b.h\"\nint b_g(void) {\n    return a_f();\n}\n");
+    write_file(SRC "/d.h", "struct s_tag;\ntypedef struct s_tag s_t;\n");
+    write_file(SRC "/e.h", "struct s_tag;\ntypedef struct s_tag s_t;\n");
+    write_file(SRC "/u.h", "int u_f(void);\n");
+    write_file(SRC "/u.c", "int u_g(s_t *s) { return s != 0; }\n");
+    write_file(SRC "/d.c", "#include \"u.h\"\nint d = u_f();\n");
+    write_file(SRC "/e.c", "#include \"u.h\"\nint e = u_f();\n");
+    write_file(SRC "/f.h", "int f_k(void);\n");
+    write_file(SRC "/g.h", "int g_h(void);\n");
+    write_file(SRC "/f.c", "/* g_h */\nconst char *f_n = \"g_h\";\nint f_k(void) { return 0; }\n");
+    write_file(SRC "/g.c", "#include \"f.h\"\nint g_h(void) { return f_k(); }\n");
+    assert(run_residue(TREE) == 0);
+    assert(strcmp(read_file(OUT), "usage-mutuel\t1\t2\n"
+                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
+    assert(run_residue("--detail " TREE) == 0);
+    assert(strcmp(read_file(OUT), "usage-mutuel\ta\tb\n"
+                                  "résidu 2 : 2 ligne(s), 2 fichier(s)\n") == 0);
+    assert(run_residue("--check inclusion-mutuelle,usage-mutuel " TREE) == 1);
+    assert(strcmp(read_file(OUT), "usage-mutuel: " SRC "/a.c:4:    return b_g();\n"
+                                  "usage-mutuel: " SRC "/b.c:3:    return a_f();\n"
+                                  "résidu gardé (inclusion-mutuelle,usage-mutuel) : 2 ligne(s)\n") == 0);
+    assert(system("rm " SRC "/a.c") == 0);
+    assert(run_residue("--check usage-mutuel " TREE) == 0);
+    assert(strcmp(read_file(OUT), "résidu gardé (usage-mutuel) : 0 ligne(s)\n") == 0);
+}
+
 static void test_detail_sorts_by_category_then_file(void) {
     setup();
     write_file(SRC "/b.c", "q = pico8_" "qh_of(b);\n");
@@ -685,6 +727,7 @@ int main(void) {
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
     test_attainment_list_counts_only_useful_lines();
     test_mutual_inclusion_counts_its_include_lines_in_the_footer();
+    test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();

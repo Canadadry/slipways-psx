@@ -6,13 +6,18 @@
 # atteinte-à-prouver compte les lignes utiles de COMPOSITION_ATTEINTE ;
 # inclusion-mutuelle compte des paires de modules hors tests/ ; au pied et a
 # --check, ses lignes sont les #include qui realisent ces paires.
+# usage-mutuel compte les paires de modules hors tests/ dont chacun emploie
+# un nom que l'en-tete de l'autre est seul a declarer, include ou detour ;
+# ses lignes sont, par paire et par sens, le premier emploi.
 #   sans option : "<cat>\t<lignes>\t<fichiers>" par categorie non nulle
-#                 ("<paires>\t<modules>" pour inclusion-mutuelle), puis
+#                 ("<paires>\t<modules>" pour inclusion-mutuelle et
+#                 usage-mutuel), puis
 #                 "résidu 2 : N ligne(s), M fichier(s)" (couples fichier:ligne
 #                 et fichiers distincts des categories de SORTIE) ; code 0
 #                 quel que soit le compte.
 #   --detail    : "<cat>\t<fichier>\t<lignes>" par couple non nul,
-#                 "inclusion-mutuelle\t<a>\t<b>" par paire, sous void-ptr les
+#                 "<cat>\t<a>\t<b>" par paire d'inclusion-mutuelle et
+#                 d'usage-mutuel, sous void-ptr les
 #                 "void-ptr-r2\t<fonction>\t<amont>" de COMPOSITION_R2, la
 #                 ligne "info" de pico8_game_data.h s'il est lu, puis le meme
 #                 pied ; code 0.
@@ -38,10 +43,10 @@
 
 set -u
 
-CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"
+CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
 
 # Categories comptees dans le pied.
-SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"
+SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle usage-mutuel"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -483,6 +488,106 @@ read_inclusions() {
     sort -t: -k1,1 -k2,2n "$work/inclusion-mutuelle" > "$work/sorted" && mv "$work/sorted" "$work/inclusion-mutuelle"
 }
 
+# Graphe d'usage de l'etude 2.11 (usegraph.py) : a -> b quand un .c/.h de a
+# hors tests/ emploie un nom que b.h est seul a declarer, commentaires et
+# chaines retires ; il voit la paire qu'un detour cache a inclusion-mutuelle.
+# Noms lus par motif : #define, prototype (un niveau de parentheses
+# internes), (*nom), dernier nom d'un typedef ou d'un extern hors des
+# accolades, enumerateur ; pas les etiquettes de struct. Un nom que deux
+# en-tetes declarent n'est a aucun : les etiquettes, lues sans cette regle,
+# feraient six paires par les declarations anticipees de pico8_struct.h.
+# Rend dans $work/usage-mutuel.pairs les paires, dans $work/usage-mutuel le
+# premier emploi de chaque sens (ordre de $work/files, puis des lignes).
+read_usages() {
+    grep -v '/tests/' "$work/files" | grep -v '^tests/' > "$work/modfiles" || true
+    : > "$work/usage-mutuel.pairs"
+    : > "$work/usage-mutuel"
+    [ -s "$work/modfiles" ] || return 0
+    grep '\.h$' "$work/modfiles" > "$work/modheaders" || true
+    awk -v pairs="$work/usage-mutuel.pairs" "$CLEAN_AWK"'
+    function mod(path,    m) {
+        m = path; sub(/.*\//, "", m); sub(/\.[ch]$/, "", m)
+        return m
+    }
+    function declare(h, x) {
+        if (x == "" || x == "PICO8" || x == "PICO8_" || x ~ /^__/ || ((x, h) in seen)) return
+        seen[x, h] = 1; nown[x]++; own[x] = h
+    }
+    function declare_all(    h, t, m, x) {
+        for (h in full) {
+            t = tops[h]
+            while (match(t, /[A-Za-z0-9_]+[ \t]*\(([^()]|\([^()]*\))*\)[ \t]*;/)) {
+                x = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+                sub(/[^A-Za-z0-9_].*$/, "", x)
+                if (x !~ /^(if|for|while|return|sizeof|switch|void|int|char|const|unsigned)$/) declare(h, x)
+            }
+            t = tops[h]
+            while (match(t, /\([ \t]*\*[ \t]*[A-Za-z0-9_]+[ \t]*\)/)) {
+                x = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+                gsub(/[^A-Za-z0-9_]/, "", x); declare(h, x)
+            }
+            t = tops[h]
+            while (match(t, /typedef[ \t][^;{}]*[A-Za-z0-9_][ \t]*;/)) {
+                x = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+                sub(/[ \t]*;$/, "", x); match(x, /[A-Za-z0-9_]+$/); declare(h, substr(x, RSTART))
+            }
+            t = tops[h]
+            while (match(t, /extern[ \t][^;(]*[A-Za-z0-9_][ \t]*(\[[^]]*\])?[ \t]*;/)) {
+                x = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+                sub(/[ \t]*;$/, "", x); sub(/\[[^]]*\]$/, "", x); sub(/[ \t]*$/, "", x)
+                match(x, /[A-Za-z0-9_]+$/); declare(h, substr(x, RSTART))
+            }
+            t = full[h]
+            while (match(t, /enum[ \t]*[A-Za-z0-9_]*[ \t]*\{[^}]*\}/)) {
+                m = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+                sub(/^[^{]*\{[ \t]*/, "", m); sub(/[ \t]*\}$/, "", m)
+                while (match(m, /[A-Za-z0-9_]+[ \t]*(=[^,]*)?(,|$)/)) {
+                    x = substr(m, RSTART, RLENGTH); m = substr(m, RSTART + RLENGTH)
+                    sub(/[^A-Za-z0-9_].*$/, "", x); declare(h, x)
+                }
+            }
+        }
+    }
+    FNR == 1 { incomment = 0 }
+    pass == 1 {
+        h = mod(FILENAME); c = clean($0); full[h] = full[h] c " "
+        l = c
+        while (match(l, /#define[ \t]+[A-Za-z0-9_]+/)) {
+            x = substr(l, RSTART, RLENGTH); l = substr(l, RSTART + RLENGTH)
+            sub(/^#define[ \t]+/, "", x); declare(h, x)
+        }
+        l = c
+        while (match(l, /[{}]/)) {
+            if (hdepth[h] == 0) tops[h] = tops[h] substr(l, 1, RSTART - 1)
+            hdepth[h] += substr(l, RSTART, 1) == "{" ? 1 : -1
+            l = substr(l, RSTART + 1)
+        }
+        if (hdepth[h] == 0) tops[h] = tops[h] l " "
+        next
+    }
+    !done { declare_all(); done = 1 }
+    {
+        a = mod(FILENAME); l = clean($0)
+        while (match(l, /[A-Za-z0-9_]+/)) {
+            x = substr(l, RSTART, RLENGTH); l = substr(l, RSTART + RLENGTH)
+            if (x ~ /^[0-9]/ || !(x in nown) || nown[x] != 1 || own[x] == a) continue
+            if (!((a, own[x]) in site)) site[a, own[x]] = FILENAME ":" FNR ":" $0
+        }
+    }
+    END {
+        for (k in site) {
+            split(k, ab, SUBSEP)
+            if (ab[1] < ab[2] && ((ab[2], ab[1]) in site)) {
+                print ab[1] "\t" ab[2] > pairs
+                print site[k]; print site[ab[2], ab[1]]
+            }
+        }
+    }
+    ' pass=1 $(cat "$work/modheaders") pass=2 $(cat "$work/modfiles") > "$work/usage-mutuel" || fail "echec de awk"
+    sort "$work/usage-mutuel.pairs" > "$work/sorted" && mv "$work/sorted" "$work/usage-mutuel.pairs"
+    sort -u -t: -k1,1 -k2,2n "$work/usage-mutuel" > "$work/sorted" && mv "$work/sorted" "$work/usage-mutuel"
+}
+
 # Rend dans $work/<cat> les lignes "<fichier>:<ligne>:<texte>", dans l'ordre
 # des fichiers puis des lignes. grep rend 1 quand rien ne correspond.
 # L'exclusion est un sed sur le texte, jamais un filtre sur la ligne entiere :
@@ -496,6 +601,7 @@ collect() {
         void-ptr) read_prototypes; return 0 ;;
         registres) read_registres; return 0 ;;
         inclusion-mutuelle) read_inclusions; return 0 ;;
+        usage-mutuel) read_usages; return 0 ;;
         atteinte-à-prouver)
             status=0
             grep -nE '^[^#[:space:]]' "$ATTEINTE" > "$work/numbers" || status=$?
@@ -603,9 +709,9 @@ for cat in $CATEGORIES; do
         case " $SORTIE " in
             *" $cat "*) cut -d: -f1,2 "$work/$cat" >> "$work/all" ;;
         esac
-        if [ "$cat" = inclusion-mutuelle ] && [ "$mode" = detail ]; then
-            sed 's/^/inclusion-mutuelle\t/' "$work/$cat.pairs"
-        elif [ "$cat" = inclusion-mutuelle ]; then
+        if [ -f "$work/$cat.pairs" ] && [ "$mode" = detail ]; then
+            sed "s/^/$cat\t/" "$work/$cat.pairs"
+        elif [ -f "$work/$cat.pairs" ]; then
             pairs=$(wc -l < "$work/$cat.pairs" | tr -d ' ')
             modules=$(tr '\t' '\n' < "$work/$cat.pairs" | sort -u | wc -l | tr -d ' ')
             printf '%s\t%s\t%s\n' "$cat" "$pairs" "$modules"
