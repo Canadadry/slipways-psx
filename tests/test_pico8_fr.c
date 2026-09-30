@@ -260,9 +260,9 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fold_fixed_member(h, qh->jo.def->hp);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, qh->probe->fp);
-    h = fold_fixed_member(h, qh->probe->dw);
-    h = fold_string_member(h, qh->probe->dq);
+    h = fold_fixed_member(h, qh->probe->def->fp);
+    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_string_member(h, qh->probe->def->dq);
     h = fold_qh(h, qh);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
@@ -280,7 +280,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fnv(h, (uint32_t)(nr->qh.jo.def->rr != NULL));
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);

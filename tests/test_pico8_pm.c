@@ -143,7 +143,7 @@ static pico8_hj_t *as_hj(void *e) {
 }
 
 static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
-    return fold_bool_member(h, hj->emitter->pk != 0);
+    return fold_bool_member(h, hj->emitter->def->pk != 0);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -304,18 +304,18 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->ki);
+    h = fold_fixed_member(h, em->def->ki);
     h = fold_fixed_member(h, em->pn);
     h = fold_pk(h, hj);
-    h = fold_fixed_member(h, em->fc);
+    h = fold_fixed_member(h, em->def->fc);
     h = fold_fixed_member(h, em->du);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
-    h = fold_string_member(h, qh->probe->dq);
-    h = fold_fixed_member(h, qh->probe->fp);
-    h = fold_fixed_member(h, qh->probe->dw);
+    h = fold_string_member(h, qh->probe->def->dq);
+    h = fold_fixed_member(h, qh->probe->def->fp);
+    h = fold_fixed_member(h, qh->probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
@@ -346,7 +346,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(em->qy != NULL));
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);

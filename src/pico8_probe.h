@@ -17,22 +17,15 @@
  * `gfx`/`mem` skips the draw calls while the rest of the body still runs. */
 
 /* What `bv`, `dl` and `d_` read and write of their host, the probe's own
- * fields, stored in the host (`probe_own`) and never copied. `et` is
- * borrowed; NULL is nil or false, which no reader tells apart. `dq` NULL is
- * nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is held as 0,
- * which is what `self.fp or 0` hands. */
+ * fields, stored in the host (`probe_own`) and never copied; the rest is
+ * read on `def`, the host's archetype's probe (`pico8_probe_def_none` on
+ * research_icon's `pb`). `et` is borrowed; NULL is nil or false, which no
+ * reader tells apart. */
 typedef struct pico8_probe {
-    /* `pico8_probe_def_none` on research_icon's `pb`; no generic reader may
-     * use it. */
     const pico8_probe_def_t *def;
     pico8_struct_header_t *et;
-    pico8_fixed_t dw;
     pico8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */
-    const char *dq;
-    pico8_fixed_t fp;
-    pico8_fixed_t ik;
-    int has_ik; /* 0: `ik` is nil, and is then never read */
 } pico8_probe_t;
 
 /* TROU-7 */

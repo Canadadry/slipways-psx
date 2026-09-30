@@ -165,7 +165,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
 
     et = NULL;
 
-    if (nq < probe->dw && c != NULL) {
+    if (nq < probe->def->dw && c != NULL) {
         et = c;
     } else {
         pico8_bv_ctx_t ctx;
@@ -330,11 +330,11 @@ int pico8_d_(pico8_struct_header_t *self) {
     assert((!has_et || !lu_ok) && "d_: fm:lu must stay short-circuited when et is set");
 
     if (!has_et && lu_ok) {
-        pico8_ke_ks(self, probe->dq != NULL ? probe->dq : "ph");
+        pico8_ke_ks(self, probe->def->dq != NULL ? probe->def->dq : "ph");
 
-        pico8_hy_nx(pico8_fm_hy(), probe->fp);
+        pico8_hy_nx(pico8_fm_hy(), probe->def->fp);
 
-        pico8_rn(probe->has_ik ? probe->ik : pico8_fixed_from_int(54));
+        pico8_rn(probe->def->has_ik ? probe->def->ik : pico8_fixed_from_int(54));
 
         return 1;
     }
@@ -365,8 +365,8 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
         t = self->t;
         du = emitter->du;
         py = emitter->py;
-        ki = emitter->ki;
-        pk = emitter->pk != 0;
+        ki = emitter->def->ki;
+        pk = emitter->def->pk != 0;
     }
 
     /* Two statements, not two arguments: C leaves argument order unspecified
@@ -449,18 +449,10 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     self->probe->et = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
-    self->probe->dq = self->def->probe.dq;
     self->probe->od = self->def->probe.od;
     self->probe->has_od = self->def->probe.has_od;
-    self->probe->fp = self->def->probe.fp;
-    self->probe->ik = self->def->probe.ik;
-    self->probe->has_ik = self->def->probe.has_ik;
-    self->probe->dw = self->def->probe.dw;
     self->emitter->py = self->def->emitter.py;
-    self->emitter->ki = self->def->emitter.ki;
     self->emitter->pn = self->def->emitter.pn;
-    self->emitter->pk = self->def->emitter.pk;
-    self->emitter->fc = self->def->emitter.fc;
     self->emitter->k_ = self->def->emitter.k_;
     self->emitter->qo = self->def->emitter.qo;
     self->emitter->ro = self->def->emitter.ro;

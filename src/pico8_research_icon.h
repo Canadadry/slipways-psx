@@ -20,9 +20,8 @@
  * pointer. */
 
 /* `ra` starts on the archetype's, shared by every `ie`; `hb` rebinds it to
- * the cursor. `gy` and `id` are no members: the
- * module's shared state, read by pico8_ie_gy()/pico8_ie_id(). Nothing frees
- * the struct: TROU-7. */
+ * the cursor. `gy` and `id` are no members: the module's shared state, read
+ * by pico8_ie_gy()/pico8_ie_id(). Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_ie_def_t *def;

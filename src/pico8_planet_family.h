@@ -70,9 +70,9 @@ typedef struct {
 
 /* A particle burst: a bare planet, then `iu`, `ms` and an emitter copied
  * from its archetype, with `qy`, which its own `pq` (`f_`) writes; the
- * emitter's `pn`, `du`, `ki`, `pk` are left unwritten, read by `g_:mm`
- * only. `jo.by` is the one list every burst shares, which `ib` extends in
- * place and each init empties. A burst spawned by `pm:pq` takes `iu`, `ms`,
+ * emitter's `pn`, `du` are left unwritten, read by `g_:mm` only. `jo.by`
+ * is the one list every burst shares, which `ib` extends in place and each
+ * init empties. A burst spawned by `pm:pq` takes `iu`, `ms`,
  * `py`, `k_`, `qo`, `ro`, `qg`, `q_` from its keys instead. `emitter` points
  * at `emitter_own`: never copy the struct. Nothing frees the struct:
  * TROU-7. */

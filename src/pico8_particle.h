@@ -24,18 +24,15 @@ typedef struct pico8_qy {
 } pico8_qy_t;
 
 /* What `ei`, `ez`, `f_` and `g_:mm` read of their host, the particle
- * emitter's own fields, stored in the host (`emitter_own`) and never copied.
- * `qy` is NULL until `f_`, then owned by the host and never freed (TROU-7).
- * `pn`, `du`, `ki`, `pk` are read by `g_:mm` only: a `ga` holds 0 there.
- * `pk` is the cart's 1 or false, false held as 0: only its truth is read. */
+ * emitter's own fields, stored in the host (`emitter_own`) and never copied;
+ * the rest is read on `def`, the host's archetype's emitter. `qy` is NULL
+ * until `f_`, then owned by the host and never freed (TROU-7). `pn`, `du`
+ * are read by `g_:mm` only: a `ga` leaves them unwritten. */
 typedef struct pico8_emitter {
-    const pico8_emitter_def_t *def; /* NULL on ga: no generic reader may use it */
+    const pico8_emitter_def_t *def;
     pico8_fixed_t pn;
     pico8_fixed_t du;
     pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pk;
-    pico8_fixed_t fc;
     const pico8_int_seq_t *k_; /* NULL: absent, every particle drawn in colour 0 */
     pico8_fixed_t qo;
     pico8_fixed_t ro;

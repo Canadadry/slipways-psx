@@ -23,9 +23,8 @@ typedef struct {
 } pico8_mz_jj_t;
 
 /* `jj` points at the one `pico8_mz_jj_t`, shared by every `mz` and never
- * modified in place. `dw`, `dq`, `ik`, `od`, `fp` and `et` live in the probe;
- * `probe` points at `probe_own`: never copy the struct. Nothing frees the
- * struct: TROU-7. */
+ * modified in place. `od` and `et` live in the probe; `probe` points at
+ * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_mz_def_t *def;

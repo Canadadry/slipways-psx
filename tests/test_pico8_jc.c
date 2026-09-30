@@ -445,10 +445,10 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(jc->header.me != NULL && strcmp(jc->header.me, "kz") == 0);
     assert(jc->header.t == 0);
     assert(jc->fa == pico8_fixed_from_int(2));
-    assert(jc->probe->fp == 0);
-    assert(jc->probe->ik == pico8_fixed_from_int(48) && jc->probe->has_ik == 1);
-    printf("[dw] 0x%08X\n", (unsigned)jc->probe->dw);
-    assert(jc->probe->dw == (pico8_fixed_t)DW_BITS);
+    assert(jc->probe->def->fp == 0);
+    assert(jc->probe->def->ik == pico8_fixed_from_int(48) && jc->probe->def->has_ik == 1);
+    printf("[dw] 0x%08X\n", (unsigned)jc->probe->def->dw);
+    assert(jc->probe->def->dw == (pico8_fixed_t)DW_BITS);
     assert(jc->nh == pico8_fixed_from_int(20));
 
     k_ = jc->def->k_;
@@ -836,9 +836,24 @@ static void test_ce_crosses_a_slipway(void) {
     assert(crossed);
 }
 
-/* A probe over the slipway targets it and hangs `fo` on it. Its `dw` is
- * zeroed, as `mz`'s is: every point of this short slipway lies within a
- * `g_`'s `dw` of one of its own planets, which would win. */
+/* g_'s archetype with the probe's `dw` zeroed, as `mz`'s is: every point of
+ * this short slipway lies within a `g_`'s `dw` of one of its own planets,
+ * which would win. */
+static pico8_g__def_t g_dw_zero;
+
+/* A `g_` built as `pico8_g__new(NULL)` builds one, on `g_dw_zero`. */
+static pico8_g__t *probe_with_zero_dw(void) {
+    pico8_g__t *probe = malloc(sizeof *probe);
+
+    g_dw_zero = pico8_g__def;
+    g_dw_zero.probe.dw = 0;
+    pico8_g__struct_init(probe, pico8_g__struct_class(), &g_dw_zero);
+    pico8_f_(&probe->header);
+    pico8_ke_struct_pq(&probe->header);
+    return probe;
+}
+
+/* A probe over the slipway targets it and hangs `fo` on it. */
 static void test_bv(void) {
     uint32_t h = 2166136261u;
     void *old;
@@ -849,9 +864,7 @@ static void test_bv(void) {
 
     world();
     old = the_slipway();
-    probe = pico8_g__new(NULL);
-    assert(probe != NULL);
-    ((pico8_g__t *)probe)->probe->dw = 0;
+    probe = probe_with_zero_dw();
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);
     for (k = 1; k < 8; k++) {
@@ -890,8 +903,7 @@ static void test_bv_takes_the_first_slipway_of_cg(void) {
     as_jc(twin)->re = as_jc(old)->qu;
     assert(pico8_cg("jc")->count == 2 && pico8_cg("jc")->items[0] == old &&
            pico8_cg("jc")->items[1] == twin);
-    probe = pico8_g__new(NULL);
-    ((pico8_g__t *)probe)->probe->dw = 0;
+    probe = probe_with_zero_dw();
     qu = pos_of(as_jc(old)->qu);
     re = pos_of(as_jc(old)->re);
     at = pico8_vec_div(pico8_vec_add(qu, re), pico8_fixed_from_int(2));

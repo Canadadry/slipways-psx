@@ -175,16 +175,16 @@ static uint32_t fold_defaults(uint32_t h, const pico8_g__t *g_) {
 
     h = fold_ref_member(h, &g_->header.cls->tags);
     h = fold_fixed_member(h, g_->def->fx);
-    h = fold_string_member(h, pr->dq);
+    h = fold_string_member(h, pr->def->dq);
     h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->fp != 0);
+    h = fold_bool_member(h, pr->def->fp != 0);
     h = fold_fixed_member(h, g_->def->fa);
-    h = fold_fixed_member(h, pr->dw);
+    h = fold_fixed_member(h, pr->def->dw);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->ki);
+    h = fold_fixed_member(h, em->def->ki);
     h = fold_fixed_member(h, em->pn);
-    h = fold_fixed_member(h, em->pk);
-    h = fold_fixed_member(h, em->fc);
+    h = fold_fixed_member(h, em->def->pk);
+    h = fold_fixed_member(h, em->def->fc);
     h = fold_ref_member(h, em->k_);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
@@ -349,16 +349,16 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     assert(is_probe(&e->header));
     assert(e->header.cls->get_p(e) == e->p);
     h = fold_fixed_member(h, e->def->fx);
-    h = fold_string_member(h, pr->dq);
+    h = fold_string_member(h, pr->def->dq);
     h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->fp != 0);
+    h = fold_bool_member(h, pr->def->fp != 0);
     h = fold_fixed_member(h, e->def->fa);
-    h = fold_fixed_member(h, pr->dw);
+    h = fold_fixed_member(h, pr->def->dw);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->ki);
+    h = fold_fixed_member(h, em->def->ki);
     h = fold_fixed_member(h, em->pn);
-    h = fold_fixed_member(h, em->pk);
-    h = fold_fixed_member(h, em->fc);
+    h = fold_fixed_member(h, em->def->pk);
+    h = fold_fixed_member(h, em->def->fc);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
@@ -366,7 +366,7 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     h = fold_fixed_member(h, em->du);
     h = fold_string_member(h, e->header.me);
     h = fold_fixed_member(h, e->header.t);
-    assert(pr->dq != NULL && em->k_ != NULL);
+    assert(pr->def->dq != NULL && em->k_ != NULL);
     h = fold_tags(h, e->header.cls->tags);
     h = fold_seq(h, em->k_);
     assert(e->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
@@ -409,8 +409,8 @@ static void test_built(void) {
     h = fold_probe(h, c);
     assert(a != b && b != c && a != c);
     assert(a->emitter->qy != b->emitter->qy && b->emitter->qy != c->emitter->qy);
-    assert(a->def->fa == pico8_fixed_from_int(2) && a->emitter->ki == pico8_fixed_from_int(9));
-    assert(a->probe->dw == 0x666);
+    assert(a->def->fa == pico8_fixed_from_int(2) && a->emitter->def->ki == pico8_fixed_from_int(9));
+    assert(a->probe->def->dw == 0x666);
     assert(c->emitter->pn == pico8_fixed_from_int(7) && c->header.t == pico8_fixed_from_int(3) &&
            c->emitter->du == pico8_fixed_from_int(10) && c->emitter->py == pico8_fixed_from_int(1));
     assert(b->emitter->pn == pico8_fixed_from_int(3) && b->header.t == pico8_fixed_from_int(0));
@@ -689,7 +689,7 @@ static void test_fv(void) {
     fv = pico8_g__of(found);
     assert(fv->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(fv->def->fx == pico8_fixed_from_int(1));
-    assert(fv->probe->dq != NULL && strcmp(fv->probe->dq, "ly") == 0);
+    assert(fv->probe->def->dq != NULL && strcmp(fv->probe->def->dq, "ly") == 0);
     assert(fv->def->fa == pico8_fixed_from_int(10));
     assert(fv->emitter->k_ == &pico8_fv_k__seq);
     assert(fv->emitter->k_ != &pico8_g__k__seq);

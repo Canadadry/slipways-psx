@@ -146,7 +146,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
         }
     }
 
-    pico8_ez(self, emitter->fc);
+    pico8_ez(self, emitter->def->fc);
 }
 
 void pico8_ei_dispatch(void *self, const pico8_vec_t *ra) {

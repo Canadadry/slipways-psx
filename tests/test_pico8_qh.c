@@ -267,11 +267,11 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
     h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_string_member(h, qh->probe->dq);
+    h = fold_string_member(h, qh->probe->def->dq);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, qh->probe->fp);
-    h = fold_fixed_member(h, qh->probe->dw);
+    h = fold_fixed_member(h, qh->probe->def->fp);
+    h = fold_fixed_member(h, qh->probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_fixed_member(h, qh->s);
     h = fold_hf(h, jo);
@@ -285,7 +285,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
      * still proves the typed reads. */
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -507,9 +507,9 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     pico8_nl_t *nl = cls_of(d) == pico8_nl_struct_class() ? (pico8_nl_t *)d : NULL;
     pico8_fixed_t qw = nl != NULL ? nl->qw : 0;
 
-    h = fold_string_member(h, qh->probe->dq);
-    h = fold_fixed_member(h, qh->probe->fp);
-    h = fold_fixed_member(h, qh->probe->dw);
+    h = fold_string_member(h, qh->probe->def->dq);
+    h = fold_fixed_member(h, qh->probe->def->fp);
+    h = fold_fixed_member(h, qh->probe->def->dw);
     h = fold_hf(h, &qh->jo);
     h = qh->jo.has_mi ? fold_fixed_member(h, qh->jo.mi) : fold_absent(h);
     h = fnv(h, (uint32_t)(qh->jo.header.cls->tags == (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER))));

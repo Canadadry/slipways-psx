@@ -309,11 +309,11 @@ static void test_built(void) {
     hv = pico8_hv();
 
     assert(g_->def->fa == pico8_fixed_from_int(10));
-    assert(em->ki == pico8_fixed_from_int(17));
+    assert(em->def->ki == pico8_fixed_from_int(17));
     assert(g_->def->ca == pico8_fixed_from_int(11));
     assert(g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(g_->ra != NULL && em->k_ != NULL);
-    assert(g_->def->rb != NULL && pr->dq != NULL);
+    assert(g_->def->rb != NULL && pr->def->dq != NULL);
     h = fold_fixed_member(h, g_->def->fa);
     h = fold_ref_member(h, g_->ra);
     h = fold_ref_member(h, &g_->def->hi);
@@ -321,7 +321,7 @@ static void test_built(void) {
     h = fold_ref_member(h, &g_->def->gq);
     h = fold_fixed_member(h, g_->def->eo);
     h = fold_fixed_member(h, g_->def->ff);
-    h = fold_fixed_member(h, em->fc);
+    h = fold_fixed_member(h, em->def->fc);
     h = fold_ref_member(h, em->k_);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
@@ -330,18 +330,18 @@ static void test_built(void) {
     h = fold_fixed_member(h, em->pn);
     h = fold_fixed_member(h, em->du);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, em->pk);
-    h = fold_fixed_member(h, em->ki);
+    h = fold_fixed_member(h, em->def->pk);
+    h = fold_fixed_member(h, em->def->ki);
     h = fold_ref_member(h, &g_->def->kq);
     h = fold_fixed_member(h, g_->def->ql);
     h = fold_fixed_member(h, g_->def->fg);
     h = fold_ref_member(h, g_->def->rb);
     h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.cls->tags);
     h = fold_fixed_member(h, g_->def->fx);
-    h = fold_string_member(h, pr->dq);
+    h = fold_string_member(h, pr->def->dq);
     h = fold_fixed_member(h, pr->od);
-    h = fold_bool_member(h, pr->fp != 0);
-    h = fold_fixed_member(h, pr->dw);
+    h = fold_bool_member(h, pr->def->fp != 0);
+    h = fold_fixed_member(h, pr->def->dw);
     h = fold_vec(h, g_->ra);
     h = fold_vec(h, &g_->def->hi);
     h = fold_vec(h, &g_->def->gq);

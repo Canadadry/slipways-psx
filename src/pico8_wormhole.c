@@ -244,14 +244,9 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     self->header.me = self->def->me;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
-    self->probe->dw = self->def->probe.dw;
-    self->probe->dq = self->def->probe.dq;
-    self->probe->ik = self->def->probe.ik;
-    self->probe->has_ik = self->def->probe.has_ik;
     self->oi = self->def->oi;
     self->probe->od = self->def->probe.od;
     self->probe->has_od = self->def->probe.has_od;
-    self->probe->fp = self->def->probe.fp;
     self->jj = &g_mz_jj_wrapper;
     self->ox = NULL;
     self->ra = NULL;

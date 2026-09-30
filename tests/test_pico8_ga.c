@@ -299,7 +299,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     assert(is_ga(e));
     h = fold_string_member(h, g->jo.def->fz);
     h = fold_fixed_member(h, jo->def->fa);
-    h = fold_fixed_member(h, em->fc);
+    h = fold_fixed_member(h, em->def->fc);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);

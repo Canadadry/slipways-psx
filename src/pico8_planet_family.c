@@ -63,13 +63,8 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, con
     pico8_jo_struct_init(&self->jo, cls, def);
     self->probe = &self->probe_own;
     self->probe->def = &self->jo.def->probe;
-    self->probe->dq = self->jo.def->probe.dq;
     self->probe->od = self->jo.def->probe.od;
     self->probe->has_od = self->jo.def->probe.has_od;
-    self->probe->fp = self->jo.def->probe.fp;
-    self->probe->ik = self->jo.def->probe.ik;
-    self->probe->has_ik = self->jo.def->probe.has_ik;
-    self->probe->dw = self->jo.def->probe.dw;
     self->s = self->jo.def->s;
     self->probe->et = NULL;
 }
@@ -268,10 +263,7 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, con
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->qh.jo.def->emitter;
     self->emitter->py = self->qh.jo.def->emitter.py;
-    self->emitter->ki = self->qh.jo.def->emitter.ki;
     self->emitter->pn = self->qh.jo.def->emitter.pn;
-    self->emitter->pk = self->qh.jo.def->emitter.pk;
-    self->emitter->fc = self->qh.jo.def->emitter.fc;
     self->emitter->k_ = self->qh.jo.def->emitter.k_;
     self->emitter->du = self->qh.jo.def->emitter.du;
     self->emitter->qo = self->qh.jo.def->emitter.qo;
@@ -524,7 +516,6 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     pico8_jo_struct_init(&self->jo, &g_ga_struct_class, &pico8_ga_def);
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->jo.def->emitter;
-    self->emitter->fc = self->jo.def->emitter.fc;
     self->emitter->qo = self->jo.def->emitter.qo;
     self->emitter->ro = self->jo.def->emitter.ro;
     self->emitter->qg = self->jo.def->emitter.qg;

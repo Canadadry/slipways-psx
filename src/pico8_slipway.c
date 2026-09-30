@@ -401,11 +401,6 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->fa = self->def->fa;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
-    self->probe->dq = self->def->probe.dq;
-    self->probe->fp = self->def->probe.fp;
-    self->probe->ik = self->def->probe.ik;
-    self->probe->has_ik = self->def->probe.has_ik;
-    self->probe->dw = self->def->probe.dw;
     self->nh = self->def->nh;
     self->qu = NULL;
     self->ts = NULL;

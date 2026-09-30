@@ -202,6 +202,8 @@ typedef struct {
     const pico8_jb_row_t *i_;
 } pico8_pj_def_t;
 
+/* `dq` NULL is nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is
+ * held as 0, which is what `self.fp or 0` hands. */
 typedef struct {
     pico8_fixed_t dw;
     pico8_fixed_t od;
@@ -231,6 +233,7 @@ typedef struct {
     pico8_probe_def_t probe;
 } pico8_jc_def_t;
 
+/* `pk` is the cart's 1 or false, false held as 0: only its truth is read. */
 typedef struct {
     pico8_fixed_t pn;
     pico8_fixed_t du;

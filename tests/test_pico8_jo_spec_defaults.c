@@ -54,16 +54,14 @@ static void assert_jo_box(const pico8_qz_box_t *kq) {
  * the probe's init literals. */
 static void assert_qh_tail(const pico8_qh_t *qh, const pico8_jo_def_t *def) {
     assert(qh->probe->def == &def->probe);
-    assert_same_string(qh->probe->dq, def->probe.dq);
     assert(qh->jo.mi == def->mi && qh->jo.has_mi == 1);
-    assert(qh->probe->has_od == 1 && qh->probe->ik == 0 && qh->probe->has_ik == 0);
+    assert(qh->probe->has_od == 1 && qh->probe->def->ik == 0 && qh->probe->def->has_ik == 0);
 }
 
 /* The emitter of an ascension, pm or mx, and its archetype. */
 static void assert_emitter(const pico8_emitter_t *em, const pico8_jo_def_t *def) {
     assert(em->def == &def->emitter);
-    assert(em->py == def->emitter.py && em->ki == def->emitter.ki && em->pn == def->emitter.pn);
-    assert(em->pk == def->emitter.pk && em->fc == def->emitter.fc && em->k_ == def->emitter.k_);
+    assert(em->py == def->emitter.py && em->pn == def->emitter.pn && em->k_ == def->emitter.k_);
     assert(em->du == def->emitter.du && em->qo == def->emitter.qo && em->ro == def->emitter.ro);
     assert(em->qg == def->emitter.qg && em->q_ == def->emitter.q_);
 }
@@ -88,8 +86,6 @@ static void test_qh_defaults(void) {
     assert(pico8_qh_ready());
     assert_same_string(qh->jo.header.me, pico8_qh_def.me);
     assert(qh->probe->od == pico8_qh_def.probe.od);
-    assert(qh->probe->fp == pico8_qh_def.probe.fp);
-    assert(qh->probe->dw == pico8_qh_def.probe.dw);
     assert(qh->s == pico8_qh_def.s);
     assert_qh_tail(qh, &pico8_qh_def);
     assert_jo_box(&qh->jo.def->kq);
@@ -104,8 +100,6 @@ static void test_nl_defaults(void) {
     assert(nl->qh.probe->od == pico8_nl_def.probe.od);
     assert(nl->qw == pico8_nl_def.qw);
     assert_same_string(nl->qh.jo.header.me, pico8_nl_def.me);
-    assert(nl->qh.probe->fp == pico8_nl_def.probe.fp);
-    assert(nl->qh.probe->dw == pico8_nl_def.probe.dw);
     assert_qh_tail(&nl->qh, &pico8_nl_def);
     assert_jo_box(&nl->qh.jo.def->kq);
     assert_jo_tail(&nl->qh.jo, &pico8_nl_def);
@@ -118,8 +112,6 @@ static void test_os_defaults(void) {
     assert(os->qh.s == pico8_os_def.s);
     assert(os->qh.probe->od == pico8_os_def.probe.od);
     assert_same_string(os->qh.jo.header.me, pico8_os_def.me);
-    assert(os->qh.probe->fp == pico8_os_def.probe.fp);
-    assert(os->qh.probe->dw == pico8_os_def.probe.dw);
     assert_qh_tail(&os->qh, &pico8_os_def);
     assert_jo_box(&os->qh.jo.def->kq);
     assert_jo_tail(&os->qh.jo, &pico8_os_def);
@@ -133,8 +125,6 @@ static void test_hj_defaults(void) {
     assert(hj->qh.s == pico8_hj_def.s);
     assert_emitter(hj->emitter, &pico8_hj_def);
     assert_same_string(hj->qh.jo.header.me, pico8_hj_def.me);
-    assert(hj->qh.probe->fp == pico8_hj_def.probe.fp);
-    assert(hj->qh.probe->dw == pico8_hj_def.probe.dw);
     assert_qh_tail(&hj->qh, &pico8_hj_def);
     assert_jo_box(&hj->qh.jo.def->kq);
     assert_jo_tail(&hj->qh.jo, &pico8_hj_def);
@@ -148,8 +138,6 @@ static void test_pm_defaults(void) {
     assert(pm->hj.qh.s == pico8_pm_def.s);
     assert_emitter(pm->hj.emitter, &pico8_pm_def);
     assert(pm->hj.qh.probe->od == pico8_pm_def.probe.od);
-    assert(pm->hj.qh.probe->fp == pico8_pm_def.probe.fp);
-    assert(pm->hj.qh.probe->dw == pico8_pm_def.probe.dw);
     assert_qh_tail(&pm->hj.qh, &pico8_pm_def);
     assert_jo_box(&pm->hj.qh.jo.def->kq);
     assert_jo_tail(&pm->hj.qh.jo, &pico8_pm_def);
@@ -162,7 +150,6 @@ static void test_ga_defaults(void) {
     assert(pico8_ga_ready());
     assert(ga->jo.by != NULL && ga->jo.by == other->jo.by);
     assert(ga->emitter->def == &pico8_ga_def.emitter);
-    assert(ga->emitter->fc == pico8_ga_def.emitter.fc);
     assert(ga->emitter->qo == pico8_ga_def.emitter.qo);
     assert(ga->emitter->ro == pico8_ga_def.emitter.ro);
     assert(ga->emitter->qg == pico8_ga_def.emitter.qg);
@@ -183,8 +170,6 @@ static void test_ga_defaults(void) {
 
 /* What nr and fr inherit from qh and jo, and nr's box, which fr keeps. */
 static void assert_nr_inherited(const pico8_nr_t *nr, const pico8_jo_def_t *def) {
-    assert(nr->qh.probe->fp == def->probe.fp);
-    assert(nr->qh.probe->dw == def->probe.dw);
     assert(nr->qh.probe->od == def->probe.od);
     assert(nr->qh.s == def->s);
     assert_box(&nr->qh.jo.def->kq, -4, -4, 5, 5);
@@ -216,8 +201,6 @@ static void test_mx_defaults(void) {
     assert(mx->ht == pico8_mx_def.ht);
     assert_emitter(mx->hj.emitter, &pico8_mx_def);
     assert_same_string(mx->hj.qh.jo.header.me, pico8_mx_def.me);
-    assert(mx->hj.qh.probe->fp == pico8_mx_def.probe.fp);
-    assert(mx->hj.qh.probe->dw == pico8_mx_def.probe.dw);
     assert_qh_tail(&mx->hj.qh, &pico8_mx_def);
     assert_jo_box(&mx->hj.qh.jo.def->kq);
     assert_jo_tail(&mx->hj.qh.jo, &pico8_mx_def);

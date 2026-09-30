@@ -306,13 +306,13 @@ static void check_fresh_mz(void *e) {
 
     assert(is_me(&mz->header, "kz"));
     assert(mz->header.t == 0);
-    assert(mz->probe->dw == 0);
-    assert(mz->probe->dq != NULL && strcmp(mz->probe->dq, "pr") == 0);
+    assert(mz->probe->def->dw == 0);
+    assert(mz->probe->def->dq != NULL && strcmp(mz->probe->def->dq, "pr") == 0);
     assert(mz->def->spawn_snd == pico8_fixed_from_int(52));
-    assert(mz->probe->ik == pico8_fixed_from_int(49) && mz->probe->has_ik == 1);
+    assert(mz->probe->def->ik == pico8_fixed_from_int(49) && mz->probe->def->has_ik == 1);
     assert(mz->oi == 0);
     assert(mz->probe->od == pico8_fixed_from_int(3));
-    assert(mz->probe->fp == pico8_fixed_from_int(1));
+    assert(mz->probe->def->fp == pico8_fixed_from_int(1));
     assert(mz->def->fa == pico8_fixed_from_int(5));
     assert(mz->header.cls->get_fa(mz, &fa) && fa == mz->def->fa);
 
