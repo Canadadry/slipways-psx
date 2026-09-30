@@ -531,6 +531,38 @@ const pico8_jc_def_t pico8_jc_def = {
     .probe = {.dw = 0x106, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x300000, .has_ik = 1},
 };
 
+const pico8_g__def_t pico8_g__def = {
+    .me = "ph",
+    .t = 0x0,
+    .fx = 0x10000,
+    .fa = 0x20000,
+    .has_ra = 0,
+    .emitter = {.pn = 0x30000, .du = 0x20000, .py = 0xf5c, .ki = 0x90000, .pk = 0x10000, .fc = 0x10000,
+                .k_ = &pico8_g__k__seq, .qo = 0x1051e, .ro = -0xd70, .qg = 0xd70, .q_ = 0x1051e},
+    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "ly", .fp = 0x0, .ik = 0x0, .has_ik = 0},
+};
+
+const pico8_g__def_t pico8_fv_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fx = 0x10000,
+    .fa = 0xa0000,
+    .ra = {0x400000, 0x1c0000},
+    .has_ra = 1,
+    .hi = {0x220000, 0x380000},
+    .ca = 0xb0000,
+    .gq = {0x0, 0xb0000},
+    .eo = -0x10000,
+    .ff = 0x10000,
+    .kq = {-0x280000, 0x4e0000, 0x280000, 0x620000},
+    .ql = 0xb0000,
+    .fg = 0x50000,
+    .rb = &pico8_fv_rb_row,
+    .emitter = {.pn = 0x50000, .du = 0xf0000, .py = 0x1b6, .ki = 0x110000, .pk = 0x10000, .fc = 0x50000,
+                .k_ = &pico8_fv_k__seq, .qo = 0x1051e, .ro = -0x1ca, .qg = 0x1ca, .q_ = 0x1051e},
+    .probe = {.dw = 0x666, .od = 0x0, .has_od = 1, .dq = "ly", .fp = 0x0, .ik = 0x0, .has_ik = 0},
+};
+
 static const char jo_me_text[] = "unknown";
 static const char qh_me_text[] = "kz";
 static const char qh_dq_text[] = "ly";

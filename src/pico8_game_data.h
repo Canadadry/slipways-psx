@@ -345,7 +345,6 @@ typedef struct {
     const pico8_jb_row_t *i_;
 } pico8_pj_def_t;
 
-/* A probe's own defaults, in the archetype of each class that carries one. */
 typedef struct {
     pico8_fixed_t dw;
     pico8_fixed_t od;
@@ -374,6 +373,41 @@ typedef struct {
     pico8_fixed_t nh;
     pico8_probe_def_t probe;
 } pico8_jc_def_t;
+
+typedef struct {
+    pico8_fixed_t pn;
+    pico8_fixed_t du;
+    pico8_fixed_t py;
+    pico8_fixed_t ki;
+    pico8_fixed_t pk;
+    pico8_fixed_t fc;
+    const pico8_int_seq_t *k_;
+    pico8_fixed_t qo;
+    pico8_fixed_t ro;
+    pico8_fixed_t qg;
+    pico8_fixed_t q_;
+} pico8_emitter_def_t;
+
+/* g_ and fv share this type; fv's own members are zero in g_'s. */
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fx;
+    pico8_fixed_t fa;
+    pico8_vec_t ra;
+    int has_ra; /* 0: the instance's `ra` is NULL */
+    pico8_vec_t hi;
+    pico8_fixed_t ca;
+    pico8_vec_t gq;
+    pico8_fixed_t eo;
+    pico8_fixed_t ff;
+    pico8_qz_box_t kq;
+    pico8_fixed_t ql;
+    pico8_fixed_t fg;
+    const pico8_jb_row_t *rb;
+    pico8_emitter_def_t emitter;
+    pico8_probe_def_t probe;
+} pico8_g__def_t;
 
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
@@ -634,6 +668,8 @@ extern const pico8_ie_def_t pico8_ie_def;
 extern const pico8_pj_def_t pico8_pj_def;
 extern const pico8_mz_def_t pico8_mz_def;
 extern const pico8_jc_def_t pico8_jc_def;
+extern const pico8_g__def_t pico8_g__def;
+extern const pico8_g__def_t pico8_fv_def;
 extern const pico8_kind_rec_t pico8_qh_kind_rec;
 extern const pico8_kind_rec_t pico8_nl_kind_rec;
 extern const pico8_kind_rec_t pico8_os_kind_rec;
