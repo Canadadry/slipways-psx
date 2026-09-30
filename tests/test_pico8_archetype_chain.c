@@ -432,6 +432,44 @@ static void test_mx(void) {
     assert_lz_ran(&mx->hj.qh.jo);
 }
 
+/* `kw` and `by` are the module's shared objects, not the archetype's; ga has
+ * no `hp`, so `lz` does not run. Its `qy` already holds what `ez` spawned in
+ * `ga_pq`. */
+static void test_ga(void) {
+    const pico8_ga_t *ga = pico8_ga_new(NULL);
+    const pico8_ga_t *other = pico8_ga_new(NULL);
+
+    same_jo_part(&ga->jo, &pico8_ga_def, "ga");
+    same_in(same_text(ga->fz, pico8_ga_def.fz), "ga", "fz");
+    same_in(ga->iu == pico8_ga_def.iu, "ga", "iu");
+    same_in(ga->ms == pico8_ga_def.ms, "ga", "ms");
+    same_emitter_part(ga->emitter, &pico8_ga_def, "ga");
+    assert(ga->emitter->qy != NULL);
+    assert(ga->jo.kw == pico8_jo_shared_kw());
+    assert(ga->jo.by != NULL && ga->jo.by == other->jo.by);
+}
+
+static void test_nr(void) {
+    const pico8_nr_t *nr = pico8_nr_new(NULL);
+
+    same_jo_part(&nr->qh.jo, &pico8_nr_def, "nr");
+    same_qh_part(&nr->qh, &pico8_nr_def, "nr");
+    same_in(nr->hz == pico8_nr_def.hz, "nr", "hz");
+    same_in(same_text(nr->rr, pico8_nr_def.rr), "nr", "rr");
+    assert_lz_ran(&nr->qh.jo);
+}
+
+static void test_fr(void) {
+    const pico8_fr_t *fr = pico8_fr_new(NULL);
+
+    same_jo_part(&fr->nr.qh.jo, &pico8_fr_def, "fr");
+    same_qh_part(&fr->nr.qh, &pico8_fr_def, "fr");
+    same_in(fr->nr.hz == pico8_fr_def.hz, "fr", "hz");
+    same_in(same_text(fr->nr.rr, pico8_fr_def.rr), "fr", "rr");
+    same_in(fr->mt == pico8_fr_def.mt, "fr", "mt");
+    assert_lz_ran(&fr->nr.qh.jo);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -467,7 +505,10 @@ int main(void) {
     test_hj();
     test_pm();
     test_mx();
-    assert(g_compared == 350 && "families a to e1 compare 350 fields: one missed or one too many");
+    test_ga();
+    test_nr();
+    test_fr();
+    assert(g_compared == 438 && "families a to e compare 438 fields: one missed or one too many");
 
     printf("test_pico8_archetype_chain: all tests passed\n");
     return 0;
