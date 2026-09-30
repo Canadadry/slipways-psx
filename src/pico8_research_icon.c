@@ -52,7 +52,7 @@ pico8_ie_ke_t pico8_ie_ke_view(const pico8_ie_t *self) {
     const pico8_entity_kind_t *kind = ie_self_ke_kind(self);
     pico8_ie_ke_t view;
 
-    view.header.cls = &g_ie_ke_view_struct_class;
+    pico8_struct_header_init(&view.header, &g_ie_ke_view_struct_class);
     view.rr = NULL;
     view.s = 0;
     view.has_s = 0;
@@ -202,11 +202,6 @@ static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
     return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
-static int ie_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_ie_t *)self)->def->fa;
-    return 1;
-}
-
 static const pico8_vec_t *ie_get_ra(const void *self) {
     return ((const pico8_ie_t *)self)->ra;
 }
@@ -227,7 +222,6 @@ static const pico8_struct_class_t g_ie_struct_class = {
     .hd = pico8_ie_hd_dispatch,
     .hb = pico8_ie_hb_dispatch,
     .ldown = pico8_ie_ldown_dispatch,
-    .get_fa = ie_get_fa,
     .get_ra = ie_get_ra,
     .get_kq = ie_get_kq,
     .set_m_ = ie_set_m_,
@@ -239,6 +233,7 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
     pico8_ke_struct_init(&self->header, &g_ie_struct_class, pico8_ie_def.me, pico8_ie_def.t);
     self->def = &pico8_ie_def;
+    self->header.fa = &self->def->fa;
     self->ra = &self->def->ra;
     self->ke = NULL;
     self->jb = NULL;

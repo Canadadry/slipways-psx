@@ -33,7 +33,7 @@ void pico8_ke_ks(pico8_struct_header_t *self, const char *me) {
 
 void pico8_ke_struct_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls, const char *me,
                           pico8_fixed_t t) {
-    self->cls = cls;
+    pico8_struct_header_init(self, cls);
     self->me = me;
     self->t = t;
 }

@@ -41,11 +41,6 @@ static void pico8_bg_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_bg_hq((pico8_bg_t *)self, ra);
 }
 
-static int bg_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_bg_t *)self)->def->fa;
-    return 1;
-}
-
 static void bg_set_m_(void *self, int m_) {
     pico8_bg_t *bg = self;
 
@@ -59,7 +54,6 @@ static const pico8_struct_class_t g_bg_struct_class = {
     .ldown = pico8_bg_ldown_dispatch,
     .rdown = pico8_bg_rdown_dispatch,
     .hq = pico8_bg_hq_dispatch,
-    .get_fa = bg_get_fa,
     .set_m_ = bg_set_m_,
 };
 
@@ -68,6 +62,7 @@ static pico8_bg_t *pico8_bg_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_bg_struct_class, pico8_bg_def.me, pico8_bg_def.t);
     self->def = &pico8_bg_def;
+    self->header.fa = &self->def->fa;
     self->mq = NULL;
     self->m_ = 0;
     self->has_m_ = 0;

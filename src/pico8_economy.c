@@ -30,7 +30,7 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     pico8_hy_t *self = malloc(sizeof *self);
     pico8_ptrs_t *invented;
 
-    self->header.cls = &g_hy_struct_class;
+    pico8_struct_header_init(&self->header, &g_hy_struct_class);
     self->def = &pico8_hy_def;
     self->nz = pico8_fixed_from_int(0);
     self->ge = pico8_fixed_from_int(0);

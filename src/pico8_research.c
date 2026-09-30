@@ -134,7 +134,7 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     const char *i_src = "";
     size_t c;
 
-    self->header.cls = &g_hp_struct_class;
+    pico8_struct_header_init(&self->header, &g_hp_struct_class);
     self->px = NULL;
     self->lr = NULL;
     self->fj = 0;

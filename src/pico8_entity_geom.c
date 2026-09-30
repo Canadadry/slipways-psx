@@ -26,15 +26,12 @@ static pico8_vec_t pico8_entity_geom_p(const pico8_struct_header_t *e) {
 }
 
 int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_vec_t *rp) {
-    pico8_fixed_t fa = pico8_fixed_from_int(0);
+    pico8_fixed_t fa = e != NULL && e->fa != NULL ? *e->fa : pico8_fixed_from_int(0);
     pico8_vec_t ra = pico8_entity_geom_ra(e);
     const pico8_vec_t *chosen;
     pico8_vec_t point;
     const pico8_qz_box_t *kq;
 
-    if (e != NULL && e->cls->get_fa != NULL) {
-        e->cls->get_fa(e, &fa);
-    }
     chosen = (fa >= pico8_fixed_from_int(10)) ? rp : mp;
     point = pico8_vec_sub(chosen != NULL ? *chosen : pico8_entity_geom_zero(), ra);
     kq = e != NULL && e->cls->get_kq != NULL ? e->cls->get_kq(e) : NULL;

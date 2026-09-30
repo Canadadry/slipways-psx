@@ -74,11 +74,6 @@ static void pico8_ui_ev_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }
 
-static int ui_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_ui_t *)self)->def->fa;
-    return 1;
-}
-
 static int ui_get_ql(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_ui_t *)self)->def->ql;
     return 1;
@@ -86,7 +81,6 @@ static int ui_get_ql(const void *self, pico8_fixed_t *out) {
 
 static const pico8_struct_class_t g_ui_struct_class = {
     .ev = pico8_ui_ev_dispatch,
-    .get_fa = ui_get_fa,
     .get_ql = ui_get_ql,
 };
 
@@ -98,6 +92,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
+    self->header.fa = &self->def->fa;
     self->le = &g_shared_le;
     self->qa = NULL;
     self->ic = NULL;
@@ -287,9 +282,8 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
             pico8_struct_header_t *e = hd_bucket->items[i];
 
             if (e->cls->hd != NULL && e->cls->hd(e, self->qa, je_ra)) {
-                pico8_fixed_t fa_val;
-                if (e->cls->get_fa != NULL && e->cls->get_fa(e, &fa_val)) {
-                    int fa = pico8_ui_to_int(fa_val);
+                if (e->fa != NULL) {
+                    int fa = pico8_ui_to_int(*e->fa);
 
                     assert(fa >= 0 && fa < PICO8_UI_IC_LAYERS &&
                            "ui.ic: a hovered entity's fa outside 0..15, the layers jz walks -- stop, do not widen");

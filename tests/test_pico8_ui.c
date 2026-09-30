@@ -741,12 +741,6 @@ static int giver_hd(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return g_giver_hovered;
 }
 
-static int giver_get_fa(const void *self, pico8_fixed_t *out) {
-    (void)self;
-    *out = pico8_fixed_from_int(15);
-    return 1;
-}
-
 static void giver_set_m_(void *self, int m_) {
     (void)self;
     (void)m_;
@@ -756,11 +750,11 @@ static const pico8_struct_class_t g_giver_class = {
     .hd = giver_hd,
     .ldown = giver_down,
     .rdown = giver_down,
-    .get_fa = giver_get_fa,
     .set_m_ = giver_set_m_,
 };
 
-static giver_t g_giver = {{.cls = &g_giver_class}};
+static const pico8_fixed_t g_giver_fa = 0xf0000;
+static giver_t g_giver = {{.cls = &g_giver_class, .fa = &g_giver_fa}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);

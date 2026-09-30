@@ -395,11 +395,6 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     return particle;
 }
 
-int pico8_g__get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_g__t *)self)->def->fa;
-    return 1;
-}
-
 const pico8_vec_t *pico8_g__get_ra(const void *self) {
     return ((const pico8_g__t *)self)->ra;
 }
@@ -429,7 +424,6 @@ static const pico8_struct_class_t g_g__struct_class = {
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fa = pico8_g__get_fa,
     .get_ra = pico8_g__get_ra,
     .get_p = pico8_g__get_p,
     .get_fx = pico8_g__get_fx,
@@ -439,6 +433,7 @@ static const pico8_struct_class_t g_g__struct_class = {
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def) {
     pico8_ke_struct_init(&self->header, cls, def->me, def->t);
     self->def = def;
+    self->header.fa = &self->def->fa;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;

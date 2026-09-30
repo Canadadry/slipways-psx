@@ -76,14 +76,22 @@ static inline int pico8_tag_named(const char *name) {
 typedef struct pico8_struct_class pico8_struct_class_t;
 
 /* First member of every entity struct, and of the parent struct a child
- * embeds first. `me` and `t` are ke's (`me` NULL is nil):
- * pico8_ke_struct_init sets them; on an entity that never went through it
- * they are left unset and never read. */
+ * embeds first. `me` and `t` are ke's (`me` NULL is nil). A component link
+ * points at the field's storage, the archetype's for a field the class
+ * never writes; NULL: the class has no such field. */
 typedef struct {
     const pico8_struct_class_t *cls;
     const char *me;
     pico8_fixed_t t;
+    const pico8_fixed_t *fa;
 } pico8_struct_header_t;
+
+/* Every constructor calls it first: its `malloc` leaves the header
+ * indeterminate, and a reader would follow a link left unset. `me` is nil,
+ * `t` 0 and every link NULL until the constructor sets its own. */
+static inline void pico8_struct_header_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls) {
+    *self = (pico8_struct_header_t){.cls = cls};
+}
 
 /* What `ldown`, `rdown` and `gv` return: `stop` is the Lua truth of the
  * cart's return value -- 0 for nil as well as for false: a `stop` that only
@@ -139,7 +147,6 @@ struct pico8_struct_class {
      * reader returns NULL, or 0 leaving *out untouched, when the field is
      * nil; `get_fx` and `get_p_` return its Lua truth. `set_m_` also marks
      * `m_` present. Each is only ever called as `e->cls->get_X(e, ...)`. */
-    int (*get_fa)(const void *self, pico8_fixed_t *out);
     const pico8_vec_t *(*get_ra)(const void *self);
     const pico8_vec_t *(*get_p)(const void *self);
     const pico8_qz_box_t *(*get_kq)(const void *self);

@@ -300,7 +300,6 @@ static void check_fresh_mz(void *e) {
     const pico8_mz_t *mz = as_mz(e);
     const pico8_int_seq_t *kk;
     const pico8_mz_jj_t *jj;
-    pico8_fixed_t fa;
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
@@ -314,7 +313,7 @@ static void check_fresh_mz(void *e) {
     assert(mz->probe->od == pico8_fixed_from_int(3));
     assert(mz->probe->def->fp == pico8_fixed_from_int(1));
     assert(mz->def->fa == pico8_fixed_from_int(5));
-    assert(mz->header.cls->get_fa(mz, &fa) && fa == mz->def->fa);
+    assert(mz->header.fa == &mz->def->fa);
 
     kk = mz->def->kk;
     assert(kk == &pico8_mz_kk_seq && kk->count == 9);

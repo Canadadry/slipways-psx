@@ -29,7 +29,7 @@ static pico8_trade_t *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
 #endif
-    self->header.cls = &g_trade_struct_class;
+    pico8_struct_header_init(&self->header, &g_trade_struct_class);
     self->lp = NULL;
     self->rl = NULL;
     self->qe = 0;

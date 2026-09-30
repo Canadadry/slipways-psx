@@ -475,6 +475,9 @@ $(TMP_DIR)/test_pico8_entity_kind: $(call objs,tests/test_pico8_entity_kind.c $(
 $(TMP_DIR)/test_pico8_spec_defaults: $(call objs,tests/test_pico8_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
+$(TMP_DIR)/test_pico8_struct_header: $(call objs,tests/test_pico8_struct_header.c $(ENGINE_SRCS)) | $(TMP_DIR)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
+
 $(TMP_DIR)/test_pico8_jo_spec_defaults: $(call objs,tests/test_pico8_jo_spec_defaults.c $(ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -628,6 +631,7 @@ UNIT_TESTS := \
     test_pico8_nl \
     test_pico8_entity_kind \
     test_pico8_spec_defaults \
+    test_pico8_struct_header \
     test_pico8_jo_spec_defaults \
     test_pico8_os \
     test_pico8_hj \

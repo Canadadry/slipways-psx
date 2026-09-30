@@ -195,15 +195,14 @@ void pico8_dc(const char *nt) {
     if (bucket_src != NULL) {
         for (i = 0; i < bucket_src->count; i++) {
             pico8_struct_header_t *qc = bucket_src->items[i];
-            pico8_fixed_t fa;
             int layer;
 
             /* An entity whose `.fa` is absent or outside 1..15 is dropped
              * from every layer, where Lua would error on the nil key. */
-            if (qc->cls->get_fa == NULL || !qc->cls->get_fa(qc, &fa)) {
+            if (qc->fa == NULL) {
                 continue;
             }
-            layer = pico8_fixed_flr_int(fa);
+            layer = pico8_fixed_flr_int(*qc->fa);
             if (layer < 1 || layer > 15) {
                 continue;
             }

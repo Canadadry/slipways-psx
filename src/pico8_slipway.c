@@ -127,7 +127,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     } else {
         pico8_jc_mouse_point_t *point = malloc(sizeof *point);
         pico8_vec_t *p_heap = malloc(sizeof *p_heap);
-        point->header.cls = &g_jc_mouse_point_struct_class;
+        pico8_struct_header_init(&point->header, &g_jc_mouse_point_struct_class);
         point->ra = mp;
         *p_heap = pico8_vec_div(mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
                                 pico8_fixed_from_int(128));
@@ -359,11 +359,6 @@ static pico8_probe_t *jc_probe_of(void *self) {
     return ((pico8_jc_t *)self)->probe;
 }
 
-static int jc_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_jc_t *)self)->fa;
-    return 1;
-}
-
 static int jc_get_mt(const void *self, pico8_fixed_t *out) {
     const pico8_jc_t *jc = self;
 
@@ -387,7 +382,6 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .ey = pico8_jc_ey_dispatch,
     .probe_of = jc_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JC),
-    .get_fa = jc_get_fa,
     .get_mt = jc_get_mt,
     .get_p_ = jc_get_p_,
 };
@@ -398,6 +392,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_ke_struct_init(&self->header, &g_jc_struct_class, pico8_jc_def.me, pico8_jc_def.t);
     self->def = &pico8_jc_def;
     self->fa = self->def->fa;
+    self->header.fa = &self->fa;
     self->probe = &self->probe_own;
     self->probe->def = &self->def->probe;
     self->nh = self->def->nh;

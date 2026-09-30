@@ -272,17 +272,11 @@ static void pico8_pj_ph_dispatch(void *self, pico8_fixed_t t) {
     pico8_pj_ph((pico8_pj_t *)self);
 }
 
-static int pj_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_pj_t *)self)->fa;
-    return 1;
-}
-
 static const pico8_struct_class_t g_pj_struct_class = {
     .kj = pico8_pj_kj_dispatch,
     .hk = pico8_pj_hk_dispatch,
     .hb = pico8_pj_hb_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_pj_ph_dispatch},
-    .get_fa = pj_get_fa,
 };
 
 static pico8_pj_t *pico8_pj_struct_new(void) {
@@ -293,6 +287,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     pico8_ke_struct_init(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
     self->def = &pico8_pj_def;
     self->fa = self->def->fa;
+    self->header.fa = &self->fa;
     self->ed = NULL;
     self->c_ = 0;
     self->has_c_ = 0;
