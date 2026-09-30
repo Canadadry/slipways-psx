@@ -129,32 +129,6 @@ const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT] = {
     {.row = {.count = 0, .items = NULL}, .has_score = 1, .score = 6, .has_ra = 1, .ra_x = 64, .ra_y = 82},
 };
 
-static const char *const jo_nu_items[] = {"jo", "np", "prober"};
-const pico8_str_seq_t pico8_jo_nu_tags = {3, jo_nu_items};
-
-static const char *const qh_nu_items[] = {"qh", "jo", "np", "prober"};
-const pico8_str_seq_t pico8_qh_nu_tags = {4, qh_nu_items};
-
-static const char *const nl_nu_items[] = {"jo", "np", "prober"};
-const pico8_str_seq_t pico8_nl_nu_tags = {3, nl_nu_items};
-
-static const char *const os_nu_items[] = {"jo", "np", "prober"};
-const pico8_str_seq_t pico8_os_nu_tags = {3, os_nu_items};
-
-static const char *const hj_nu_items[] = {"hj", "jo", "np", "prober"};
-const pico8_str_seq_t pico8_hj_nu_tags = {4, hj_nu_items};
-
-static const char *const pm_nu_items[] = {"jo", "np", "prober"};
-const pico8_str_seq_t pico8_pm_nu_tags = {3, pm_nu_items};
-
-const pico8_str_seq_t pico8_ga_nu_tags = {0, NULL};
-
-static const char *const nr_nu_items[] = {"nr", "np", "prober"};
-const pico8_str_seq_t pico8_nr_nu_tags = {3, nr_nu_items};
-
-static const char *const mx_nu_items[] = {"jo", "np", "prober"};
-const pico8_str_seq_t pico8_mx_nu_tags = {3, mx_nu_items};
-
 static const int jo_ka_items[] = {2, 3, 9, 12};
 const pico8_int_seq_t pico8_jo_ka_seq = {4, jo_ka_items};
 
@@ -225,26 +199,14 @@ const pico8_int_seq_t pico8_fr_hz_seq = {4, fr_hz_items};
 static const int mx_ht_items[] = {28, 20, 21, 22};
 const pico8_int_seq_t pico8_mx_ht_seq = {4, mx_ht_items};
 
-static const char *const mh_nu_items[] = {"mh"};
-const pico8_str_seq_t pico8_mh_nu_tags = {1, mh_nu_items};
-
-static const char *const g__nu_items[] = {"g_", "prober"};
-const pico8_str_seq_t pico8_g__nu_tags = {2, g__nu_items};
-
 static const int g__k__items[] = {1, 1, 5, 13, 6};
 const pico8_int_seq_t pico8_g__k__seq = {5, g__k__items};
 
 static const int fv_k__items[] = {0, 1, 1, 2, 4, 9, 10, 9, 4, 2, 1, 1, 1};
 const pico8_int_seq_t pico8_fv_k__seq = {13, fv_k__items};
 
-static const char *const jc_nu_items[] = {"jc"};
-const pico8_str_seq_t pico8_jc_nu_tags = {1, jc_nu_items};
-
 static const int jc_k__items[] = {0, 0, 7, 7, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 4, 4, 4, 2, 2, 1};
 const pico8_int_seq_t pico8_jc_k__seq = {20, jc_k__items};
-
-static const char *const mz_nu_items[] = {"mz"};
-const pico8_str_seq_t pico8_mz_nu_tags = {1, mz_nu_items};
 
 static const int mz_kk_items[] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
 const pico8_int_seq_t pico8_mz_kk_seq = {9, mz_kk_items};
@@ -370,7 +332,6 @@ const pico8_nf_start_t pico8_nf_start = {
 };
 
 const pico8_mh_start_t pico8_mh_start = {
-    .nu = &pico8_mh_nu_tags,
     .fa = 0xe0000,
     .rh = 0x50000,
 };
@@ -382,7 +343,6 @@ const pico8_iv_start_t pico8_iv_start = {
 };
 
 const pico8_mz_start_t pico8_mz_start = {
-    .nu = &pico8_mz_nu_tags,
     .me = "kz",
     .dw = 0x0,
     .dq = "pr",
@@ -396,7 +356,6 @@ const pico8_mz_start_t pico8_mz_start = {
 };
 
 const pico8_jc_start_t pico8_jc_start = {
-    .nu = &pico8_jc_nu_tags,
     .me = "kz",
     .fa = 0x20000,
     .fp = 0,
@@ -407,7 +366,6 @@ const pico8_jc_start_t pico8_jc_start = {
 };
 
 const pico8_g__start_t pico8_g__start = {
-    .nu = &pico8_g__nu_tags,
     .fx = 0x10000,
     .dq = "ly",
     .od = 0x0,
@@ -487,7 +445,6 @@ static const char fr_rr_text[] = "infraspace";
 static const char mx_rr_text[] = "void synthesis";
 
 const pico8_jo_start_t pico8_jo_start = {
-    .nu = &pico8_jo_nu_tags,
     .me = jo_me_text,
     .hf = 1,
     .hs = 0x10000,
@@ -504,7 +461,6 @@ const pico8_jo_start_t pico8_jo_start = {
 };
 
 const pico8_qh_start_t pico8_qh_start = {
-    .nu = &pico8_qh_nu_tags,
     .hp = 0x10000,
     .px = &pico8_qh_px_row,
     .me = qh_me_text,
@@ -520,7 +476,6 @@ const pico8_qh_start_t pico8_qh_start = {
 };
 
 const pico8_nl_start_t pico8_nl_start = {
-    .nu = &pico8_nl_nu_tags,
     .rr = nl_rr_text,
     .qh = 0,
     .nl = 0x10000,
@@ -533,7 +488,6 @@ const pico8_nl_start_t pico8_nl_start = {
 };
 
 const pico8_os_start_t pico8_os_start = {
-    .nu = &pico8_os_nu_tags,
     .hp = 0x40000,
     .px = &pico8_os_px_row,
     .qh = 0,
@@ -543,7 +497,6 @@ const pico8_os_start_t pico8_os_start = {
 };
 
 const pico8_hj_start_t pico8_hj_start = {
-    .nu = &pico8_hj_nu_tags,
     .rr = hj_rr_text,
     .hp = 0x20000,
     .qh = 0,
@@ -565,7 +518,6 @@ const pico8_hj_start_t pico8_hj_start = {
 
 const pico8_pm_start_t pico8_pm_start = {
     .fz = pm_fz_text,
-    .nu = &pico8_pm_nu_tags,
     .hp = 0x30000,
     .px = &pico8_pm_px_row,
     .me = pm_me_text,
@@ -586,7 +538,6 @@ const pico8_pm_start_t pico8_pm_start = {
 
 const pico8_ga_start_t pico8_ga_start = {
     .fz = ga_fz_text,
-    .nu = &pico8_ga_nu_tags,
     .hf = 0,
     .kq = {0x0, 0x0, -0x10000, -0x10000},
     .fa = 0x30000,
@@ -613,7 +564,6 @@ const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys = {
 };
 
 const pico8_nr_start_t pico8_nr_start = {
-    .nu = &pico8_nr_nu_tags,
     .od = 0xa0000,
     .fp = 0x10000,
     .kq = {-0x40000, -0x40000, 0x50000, 0x50000},
@@ -632,7 +582,6 @@ const pico8_fr_start_t pico8_fr_start = {
 };
 
 const pico8_mx_start_t pico8_mx_start = {
-    .nu = &pico8_mx_nu_tags,
     .rr = mx_rr_text,
     .hp = 0x50000,
     .s = 0x420000,

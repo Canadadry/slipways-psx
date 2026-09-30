@@ -77,7 +77,6 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->probe->et = NULL;
     self->jo.mi = pico8_qh_start.mi;
     self->jo.has_mi = 1;
-    self->jo.nu = pico8_qh_start.nu;
     self->jo.hf = pico8_qh_start.hf;
     self->jo.header.me = pico8_qh_start.me;
 }
@@ -163,7 +162,6 @@ static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
     self->qh.px = pico8_nl_start.px;
     self->qh.probe->od = pico8_nl_start.od;
     self->qh.ba = pico8_nl_start.ba;
-    self->qh.jo.nu = pico8_nl_start.nu;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "nl: the only construction key is id (ie:ldown); another key has no member "
@@ -219,7 +217,6 @@ static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
     self->qh.qh = pico8_os_start.qh;
     self->qh.s = pico8_os_start.s;
     self->qh.probe->od = pico8_os_start.od;
-    self->qh.jo.nu = pico8_os_start.nu;
     self->qh.jo.hs = pico8_os_start.hs;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
@@ -308,7 +305,6 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     self->qh.px = pico8_hj_start.px;
     self->qh.probe->od = pico8_hj_start.od;
     self->qh.s = pico8_hj_start.s;
-    self->qh.jo.nu = pico8_hj_start.nu;
 }
 
 static void *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
@@ -413,7 +409,6 @@ static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     self->hj.qh.hp = pico8_pm_start.hp;
     self->hj.qh.px = pico8_pm_start.px;
     self->hj.qh.s = pico8_pm_start.s;
-    self->hj.qh.jo.nu = pico8_pm_start.nu;
     self->hj.qh.jo.header.me = pico8_pm_start.me;
     if (keys != NULL) {
         if (keys->p != NULL) {
@@ -591,7 +586,6 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     self->jo.by = &g_ga_by_shared;
     /* `nu=o()` is empty and replaces jo's `nu` outright, so no burst is
      * ever registered under jo/np/prober in `cg`. This is not a merge. */
-    self->jo.nu = pico8_ga_start.nu;
     self->jo.hf = pico8_ga_start.hf;
     self->jo.kq = &pico8_ga_start.kq;
     self->jo.fa = pico8_ga_start.fa;

@@ -135,7 +135,6 @@ static const pico8_struct_class_t g_jo_struct_class = {
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     assert(g_jo_up && "pico8_jo_init() must run first");
     pico8_ke_struct_init(&self->header, cls);
-    self->nu = pico8_jo_start.nu;
     self->hf = pico8_jo_start.hf;
     self->hs = pico8_jo_start.hs;
     self->fa = pico8_jo_start.fa;

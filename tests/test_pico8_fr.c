@@ -284,7 +284,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -333,7 +333,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
            cls_of(e)->states[PICO8_STATE_PR] == NULL && cls_of(e)->rdown == NULL);
     assert(nr->hz != &pico8_nr_hz_seq);
     assert(jo->kq == &pico8_nr_start.kq);
-    assert(jo->nu == &pico8_nr_nu_tags);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(qh->px == &pico8_qh_px_row && qh->ba == &pico8_qh_ba_seq);
     assert(jo->gq == &pico8_jo_start.gq);
     assert(jo->em == &pico8_jo_em_row && jo->ka == &pico8_jo_ka_seq && jo->dz == pico8_jo_dz_rows &&

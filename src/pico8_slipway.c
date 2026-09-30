@@ -402,7 +402,6 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
 
     pico8_ke_struct_init(&self->header, &g_jc_struct_class);
     self->header.me = pico8_jc_start.me;
-    self->nu = pico8_jc_start.nu;
     self->fa = pico8_jc_start.fa;
     self->probe = &self->probe_own;
     self->probe->dq = NULL;

@@ -109,7 +109,7 @@ static void test_mz_defaults_and_ready(void) {
     pico8_mz_t *mz = pico8_mz_new();
 
     assert(mz->header.me == pico8_mz_start.me && strcmp(mz->header.me, "kz") == 0 && mz->header.t == pico8_ke_start.t);
-    assert(mz->nu == pico8_mz_start.nu && mz->kk == pico8_mz_start.kk);
+    assert(mz->kk == pico8_mz_start.kk);
     assert(mz->probe->dw == pico8_mz_start.dw && mz->probe->dq == pico8_mz_start.dq);
     assert(mz->spawn_snd == pico8_mz_start.spawn_snd && mz->probe->ik == pico8_mz_start.ik);
     assert(mz->oi == pico8_mz_start.oi);
@@ -144,7 +144,6 @@ static void test_fv_defaults_and_ready(void) {
     assert(fv->g_.emitter->py == pico8_fv_start.py);
     assert(fv->g_.emitter->pk == pico8_fv_start.pk);
     assert(fv->g_.emitter->ki == pico8_fv_start.ki);
-    assert(fv->g_.nu == pico8_g__start.nu);
     assert(fv->g_.fx == pico8_g__start.fx);
     assert(strcmp(fv->g_.probe->dq, pico8_g__start.dq) == 0);
     assert(fv->g_.probe->od == pico8_g__start.od);
@@ -170,7 +169,6 @@ static void test_fv_defaults_and_ready(void) {
 static void test_g__defaults_and_ready(void) {
     pico8_g__t *g_ = pico8_g__new(NULL);
 
-    assert(g_->nu == pico8_g__start.nu);
     assert(g_->fx == pico8_g__start.fx);
     assert(strcmp(g_->probe->dq, pico8_g__start.dq) == 0);
     assert(g_->probe->od == pico8_g__start.od);

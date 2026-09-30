@@ -153,7 +153,6 @@ typedef struct {
 } pico8_nf_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     pico8_fixed_t rh;
 } pico8_mh_start_t;
@@ -165,7 +164,6 @@ typedef struct {
 } pico8_iv_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     const char *me;
     pico8_fixed_t dw;
     const char *dq;
@@ -180,7 +178,6 @@ typedef struct {
 
 /* fp is the spec's false. */
 typedef struct {
-    const pico8_str_seq_t *nu;
     const char *me;
     pico8_fixed_t fa;
     int fp;
@@ -192,7 +189,6 @@ typedef struct {
 
 /* fp is the spec's false. */
 typedef struct {
-    const pico8_str_seq_t *nu;
     pico8_fixed_t fx;
     const char *dq;
     pico8_fixed_t od;
@@ -269,7 +265,6 @@ typedef struct {
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
 typedef struct {
-    const pico8_str_seq_t *nu;
     const char *me;
     int hf;
     pico8_fixed_t hs;
@@ -286,7 +281,6 @@ typedef struct {
 } pico8_jo_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
     const char *me;
@@ -302,7 +296,6 @@ typedef struct {
 } pico8_qh_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     const char *rr;
     int qh;
     pico8_fixed_t nl;
@@ -315,7 +308,6 @@ typedef struct {
 } pico8_nl_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
     int qh;
@@ -325,7 +317,6 @@ typedef struct {
 } pico8_os_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     const char *rr;
     pico8_fixed_t hp;
     int qh;
@@ -347,7 +338,6 @@ typedef struct {
 
 typedef struct {
     const char *fz;
-    const pico8_str_seq_t *nu;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
     const char *me;
@@ -368,7 +358,6 @@ typedef struct {
 
 typedef struct {
     const char *fz;
-    const pico8_str_seq_t *nu;
     int hf;
     pico8_qz_box_t kq;
     pico8_fixed_t fa;
@@ -396,7 +385,6 @@ typedef struct {
 } pico8_ga_pq_keys_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     pico8_fixed_t od;
     pico8_fixed_t fp;
     pico8_qz_box_t kq;
@@ -415,7 +403,6 @@ typedef struct {
 } pico8_fr_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *nu;
     const char *rr;
     pico8_fixed_t hp;
     pico8_fixed_t s;
@@ -451,15 +438,6 @@ extern const pico8_bo_entry_t pico8_bo_table[PICO8_BO_COUNT];
 extern const pico8_bz_entry_t pico8_bz_table[PICO8_BZ_COUNT];
 
 /* The table members of the jo tree, one object per class that sets it. */
-extern const pico8_str_seq_t pico8_jo_nu_tags;
-extern const pico8_str_seq_t pico8_qh_nu_tags;
-extern const pico8_str_seq_t pico8_nl_nu_tags;
-extern const pico8_str_seq_t pico8_os_nu_tags;
-extern const pico8_str_seq_t pico8_hj_nu_tags;
-extern const pico8_str_seq_t pico8_pm_nu_tags;
-extern const pico8_str_seq_t pico8_ga_nu_tags;
-extern const pico8_str_seq_t pico8_nr_nu_tags;
-extern const pico8_str_seq_t pico8_mx_nu_tags;
 extern const pico8_int_seq_t pico8_jo_ka_seq;
 extern const pico8_jb_row_t pico8_jo_dz_rows[PICO8_JO_DZ_COUNT];
 extern const pico8_int_seq_t pico8_jo_cq_seq;
@@ -484,14 +462,9 @@ extern const pico8_int_seq_t pico8_fr_hz_seq;
 extern const pico8_int_seq_t pico8_mx_ht_seq;
 
 /* The table members of the other classes, one object per class that sets it. */
-extern const pico8_str_seq_t pico8_mh_nu_tags;
-/* g_'s nu is fv's too: fv never sets its own. */
-extern const pico8_str_seq_t pico8_g__nu_tags;
 extern const pico8_int_seq_t pico8_g__k__seq;
 extern const pico8_int_seq_t pico8_fv_k__seq;
-extern const pico8_str_seq_t pico8_jc_nu_tags;
 extern const pico8_int_seq_t pico8_jc_k__seq;
-extern const pico8_str_seq_t pico8_mz_nu_tags;
 extern const pico8_int_seq_t pico8_mz_kk_seq;
 extern const pico8_int_seq_t pico8_bg_pl_seq;
 extern const pico8_vec_seq_t pico8_qb_pc_vecs;

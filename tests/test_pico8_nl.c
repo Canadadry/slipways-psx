@@ -295,7 +295,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -332,7 +332,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
            cls_of(e)->mm == NULL);
     assert(cls_of(e)->states[PICO8_STATE_LY] != pico8_qh_struct_class()->states[PICO8_STATE_LY]);
-    assert(jo->nu == &pico8_nl_nu_tags && jo->nu != &pico8_qh_nu_tags);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(qh->px == &pico8_nl_px_row && qh->px != &pico8_qh_px_row);
     assert(qh->ba == &pico8_nl_ba_seq && qh->ba != &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_jo_start.kq);

@@ -350,7 +350,7 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -387,9 +387,9 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     assert(cls_of(e)->kf != hj_cls->kf && cls_of(e)->kf != pico8_jo_struct_class()->kf);
     assert(cls_of(e)->cn == hj_cls->cn && cls_of(e)->mm == hj_cls->mm && cls_of(e)->mm != NULL &&
            pico8_jo_is_family(e));
-    assert(jo->nu == &pico8_mx_nu_tags && qh->px == &pico8_mx_px_row && ht_of(e) == &pico8_mx_ht_seq &&
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->px == &pico8_mx_px_row && ht_of(e) == &pico8_mx_ht_seq &&
            em->k_ == &pico8_mx_k__seq);
-    assert(jo->nu != &pico8_hj_nu_tags);
+    assert(jo->header.cls->tags != (PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(em->k_ != &pico8_hj_k__seq);
     assert(qh->ba == &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_jo_start.kq);

@@ -27,7 +27,6 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
  * `nu` points at `pico8_mh_nu_tags`. */
 struct pico8_mh {
     pico8_struct_header_t header;
-    const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     pico8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */

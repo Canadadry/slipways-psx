@@ -36,7 +36,6 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
  * struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     const pico8_int_seq_t *k_;
     pico8_fixed_t nh;

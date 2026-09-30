@@ -39,7 +39,6 @@ typedef struct pico8_probe {
  * `probe_own`: never copy the struct. */
 typedef struct {
     pico8_struct_header_t header;
-    const pico8_str_seq_t *nu;
     pico8_fixed_t fx;
     pico8_fixed_t fa;
     pico8_emitter_t *emitter;

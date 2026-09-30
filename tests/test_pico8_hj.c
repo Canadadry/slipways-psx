@@ -356,7 +356,7 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -391,8 +391,8 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     assert_qh_members_but_kj(cls_of(e));
     assert(cls_of(e)->kj == pico8_hj_struct_class()->kj && pico8_jo_is_family(e));
     assert(cls_of(e)->mm == pico8_g__mm);
-    assert(jo->nu == &pico8_hj_nu_tags && qh->px == &pico8_hj_px_row && em->k_ == &pico8_hj_k__seq);
-    assert(jo->nu != &pico8_qh_nu_tags);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->px == &pico8_hj_px_row && em->k_ == &pico8_hj_k__seq);
+    assert(jo->header.cls->tags != (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(qh->px != &pico8_qh_px_row);
     assert(qh->ba == &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_jo_start.kq);

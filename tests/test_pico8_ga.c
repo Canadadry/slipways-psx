@@ -53,6 +53,15 @@ static pico8_input_t input;
 static const char *const tags[] = {"jo", "np", "prober", "hj", "qh"};
 static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
 
+static int tag_count(unsigned tags) {
+    int t, n = 0;
+
+    for (t = 0; t < PICO8_TAG_COUNT; t++) {
+        n += (tags & PICO8_TAG(t)) != 0;
+    }
+    return n;
+}
+
 static uint32_t fnv(uint32_t h, uint32_t word) {
     int i;
     for (i = 0; i < 4; i++) {
@@ -303,7 +312,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_vec(h, jo->ra);
     h = fold_vec(h, jo->p);
     h = fnv(h, (uint32_t)(em->k_ == NULL ? -1 : em->k_->count));
-    h = fnv(h, (uint32_t)(jo->nu == NULL ? -1 : jo->nu->count));
+    h = fnv(h, (uint32_t)tag_count(jo->header.cls->tags));
     h = fnv(h, (uint32_t)ptrs_size(jo->by));
     h = fnv(h, (uint32_t)ptrs_size(em->qy));
     h = fnv(h, (uint32_t)ptrs_size(jo->oe));
@@ -323,7 +332,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(em->qy != NULL));
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -369,7 +378,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
            cls_of(e)->states[PICO8_STATE_KZ] == NULL && cls_of(e)->states[PICO8_STATE_PR] == NULL &&
            cls_of(e)->rdown == NULL && cls_of(e)->states[PICO8_STATE_LY] == NULL);
     assert(cls_of(e)->ol == NULL && cls_of(e)->hq == NULL && cls_of(e)->ey == NULL);
-    assert(jo->nu == &pico8_ga_nu_tags);
+    assert(jo->header.cls->tags == 0);
     assert(jo->kq == &pico8_ga_start.kq);
     assert(jo->by != NULL);
     if (from_pm) {

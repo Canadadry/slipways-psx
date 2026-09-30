@@ -299,7 +299,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -343,8 +343,8 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     assert(cls_of(e)->gv != pico8_jo_struct_class()->gv && cls_of(e)->ldown != pico8_jo_struct_class()->ldown &&
            cls_of(e)->hb != pico8_jo_struct_class()->hb);
     assert(jo->kq == &pico8_nr_start.kq);
-    assert(jo->nu == &pico8_nr_nu_tags && nr->hz == &pico8_nr_hz_seq);
-    assert(jo->nu != &pico8_qh_nu_tags);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && nr->hz == &pico8_nr_hz_seq);
+    assert(jo->header.cls->tags != (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(jo->kq != &pico8_jo_start.kq);
     assert(qh->px == &pico8_qh_px_row && qh->ba == &pico8_qh_ba_seq);
     assert(jo->gq == &pico8_jo_start.gq);

@@ -289,10 +289,9 @@ static void test_scores_box_follows_c_(void) {
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows c_");
 }
 
-/* The box's `fa`/`rh`/`nu` are the class's generated defaults. */
+/* The box's `fa`/`rh` are the class's generated defaults. */
 static void test_defaults_match_the_parsed_spec(void) {
     const pico8_mh_t *box;
-    const pico8_str_seq_t *nu;
 
     pico8_jl();
     box = year_box(3400);
@@ -300,11 +299,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(box->fa == pico8_fixed_from_int(14));
     assert(box->rh == pico8_mh_start.rh);
     assert(box->rh == pico8_fixed_from_int(5));
-    assert(box->nu != NULL);
-    nu = box->nu;
-    assert(nu == pico8_mh_start.nu && nu == &pico8_mh_nu_tags && nu->count == 1);
-    assert(strcmp(nu->items[0], "mh") == 0);
-    assert(year_box(3400)->nu == nu);
+    assert(box->header.cls->tags == PICO8_TAG(PICO8_TAG_MH));
     assert(box->header.me != NULL && strcmp(box->header.me, "ph") == 0);
     assert(pico8_mh_ready());
     pico8_mh_shutdown();

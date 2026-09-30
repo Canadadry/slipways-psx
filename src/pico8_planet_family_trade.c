@@ -201,7 +201,6 @@ static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *c
     self->qh.probe->fp = pico8_nr_start.fp;
     self->qh.s = pico8_nr_start.s;
     self->qh.probe->dw = pico8_nr_start.dw;
-    self->qh.jo.nu = pico8_nr_start.nu;
     self->qh.jo.kq = &pico8_nr_start.kq;
 }
 
@@ -392,7 +391,6 @@ static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
     self->hj.qh.s = pico8_mx_start.s;
     self->hj.qh.px = pico8_mx_start.px;
     self->hj.qh.probe->od = pico8_mx_start.od;
-    self->hj.qh.jo.nu = pico8_mx_start.nu;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "mx: the only construction key is id (ie:ldown); another key has no member "

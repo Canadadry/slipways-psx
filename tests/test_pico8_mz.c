@@ -299,7 +299,6 @@ static pico8_vec_t slipway_mid(pico8_jc_t *jc) {
 static void check_fresh_mz(void *e) {
     const pico8_mz_t *mz = as_mz(e);
     const pico8_int_seq_t *kk;
-    const pico8_str_seq_t *nu;
     const pico8_mz_jj_t *jj;
     pico8_fixed_t fa;
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
@@ -322,8 +321,7 @@ static void check_fresh_mz(void *e) {
     for (i = 0; i < 9; i++) {
         assert(kk->items[i] == want_kk[i]);
     }
-    nu = mz->nu;
-    assert(nu == &pico8_mz_nu_tags && nu->count == 1 && strcmp(nu->items[0], "mz") == 0);
+    assert(mz->header.cls->tags == PICO8_TAG(PICO8_TAG_MZ));
     jj = mz->jj;
     assert(jj != NULL && jj->qs != NULL && strcmp(jj->qs, "-too far-") == 0);
     assert(pico8_mz_jj_wrapper() == jj);

@@ -434,7 +434,6 @@ static void check_fresh_jc(const void *e, const void *qu) {
     pico8_jc_t with_mt = *jc;
     pico8_fixed_t mt = 0;
     const pico8_int_seq_t *k_;
-    const pico8_str_seq_t *nu;
     const pico8_jc_hg_t *hg;
     size_t i;
 
@@ -452,8 +451,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
     for (i = 0; i < 20; i++) {
         assert(k_->items[i] == want_k_[i]);
     }
-    nu = jc->nu;
-    assert(nu == &pico8_jc_nu_tags && nu->count == 1 && strcmp(nu->items[0], "jc") == 0);
+    assert(jc->header.cls->tags == PICO8_TAG(PICO8_TAG_JC));
     assert(jc->qu == qu);
 
     assert(ptrs_count(jc->ts) == 0);
@@ -493,7 +491,7 @@ static void test_construction(void) {
     check_fresh_jc(by_lookup, ly);
 
     assert(as_jc(by_ldown)->k_ == as_jc(by_lookup)->k_);
-    assert(as_jc(by_ldown)->nu == as_jc(by_lookup)->nu);
+    assert(as_jc(by_ldown)->header.cls->tags == as_jc(by_lookup)->header.cls->tags);
     assert(as_jc(by_ldown)->ts != as_jc(by_lookup)->ts);
     assert(as_jc(by_ldown)->hg != as_jc(by_lookup)->hg);
 }

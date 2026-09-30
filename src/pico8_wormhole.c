@@ -244,7 +244,6 @@ static void *pico8_mz_struct_new(void) {
 
     pico8_ke_struct_init(&self->header, &g_mz_struct_class);
     self->header.me = pico8_mz_start.me;
-    self->nu = pico8_mz_start.nu;
     self->probe = &self->probe_own;
     self->probe->dw = pico8_mz_start.dw;
     self->probe->dq = pico8_mz_start.dq;

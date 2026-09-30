@@ -108,7 +108,6 @@ static void *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     int i;
 
     pico8_ke_struct_init(&self->header, &g_mh_struct_class);
-    self->nu = pico8_mh_start.nu;
     self->fa = pico8_mh_start.fa;
     self->rh = pico8_mh_start.rh;
     self->lh = NULL;

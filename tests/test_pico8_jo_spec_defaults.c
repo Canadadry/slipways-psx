@@ -63,7 +63,6 @@ static void test_jo_defaults(void) {
     pico8_jo_t *jo = pico8_jo_new(NULL);
 
     assert(pico8_jo_ready());
-    assert(jo->nu == pico8_jo_start.nu);
     assert_same_string(jo->header.me, pico8_jo_start.me);
     assert(jo->hf == pico8_jo_start.hf);
     assert(jo->hs == pico8_jo_start.hs);
@@ -79,7 +78,6 @@ static void test_qh_defaults(void) {
     pico8_qh_t *qh = pico8_qh_new(NULL);
 
     assert(pico8_qh_ready());
-    assert(qh->jo.nu == pico8_qh_start.nu);
     assert(qh->hp == pico8_qh_start.hp);
     assert(qh->px == pico8_qh_start.px);
     assert_same_string(qh->jo.header.me, pico8_qh_start.me);
@@ -100,7 +98,6 @@ static void test_nl_defaults(void) {
     pico8_nl_t *nl = pico8_nl_new(NULL);
 
     assert(pico8_nl_ready());
-    assert(nl->qh.jo.nu == pico8_nl_start.nu);
     assert_same_string(nl->rr, pico8_nl_start.rr);
     assert(nl->qh.qh == pico8_nl_start.qh);
     assert(nl->nl == pico8_nl_start.nl);
@@ -124,7 +121,6 @@ static void test_os_defaults(void) {
     pico8_os_t *os = pico8_os_new(NULL);
 
     assert(pico8_os_ready());
-    assert(os->qh.jo.nu == pico8_os_start.nu);
     assert(os->qh.hp == pico8_os_start.hp);
     assert(os->qh.px == pico8_os_start.px);
     assert(os->qh.qh == pico8_os_start.qh);
@@ -145,7 +141,6 @@ static void test_hj_defaults(void) {
     pico8_hj_t *hj = pico8_hj_new(NULL);
 
     assert(pico8_hj_ready());
-    assert(hj->qh.jo.nu == pico8_hj_start.nu);
     assert_same_string(hj->rr, pico8_hj_start.rr);
     assert(hj->qh.hp == pico8_hj_start.hp);
     assert(hj->qh.px == pico8_hj_start.px);
@@ -179,7 +174,6 @@ static void test_pm_defaults(void) {
 
     assert(pico8_pm_ready());
     assert_same_string(pm->fz, pico8_pm_start.fz);
-    assert(pm->hj.qh.jo.nu == pico8_pm_start.nu);
     assert(pm->hj.qh.hp == pico8_pm_start.hp);
     assert(pm->hj.qh.px == pico8_pm_start.px);
     assert_same_string(pm->hj.qh.jo.header.me, pico8_pm_start.me);
@@ -215,7 +209,6 @@ static void test_ga_defaults(void) {
 
     assert(pico8_ga_ready());
     assert_same_string(ga->fz, pico8_ga_start.fz);
-    assert(ga->jo.nu == pico8_ga_start.nu);
     assert(ga->jo.hf == pico8_ga_start.hf);
     assert(ga->jo.by != NULL && ga->jo.by == other->jo.by);
     assert_same_box(ga->jo.kq, &pico8_ga_start.kq);
@@ -239,7 +232,6 @@ static void test_ga_defaults(void) {
 
 /* nr's own keys on a struct built by nr_struct_init, under nr or fr. */
 static void assert_nr_own(const pico8_nr_t *nr) {
-    assert(nr->qh.jo.nu == pico8_nr_start.nu);
     assert(nr->qh.probe->fp == pico8_nr_start.fp);
     assert_same_box(nr->qh.jo.kq, &pico8_nr_start.kq);
     assert(nr->qh.probe->dw == pico8_nr_start.dw);
@@ -287,7 +279,6 @@ static void test_mx_defaults(void) {
     pico8_mx_t *mx = pico8_mx_new(NULL);
 
     assert(pico8_mx_ready());
-    assert(mx->hj.qh.jo.nu == pico8_mx_start.nu);
     assert_same_string(mx->hj.rr, pico8_mx_start.rr);
     assert(mx->hj.qh.hp == pico8_mx_start.hp);
     assert(mx->hj.qh.s == pico8_mx_start.s);

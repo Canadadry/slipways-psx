@@ -212,7 +212,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     /* The 1s of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's
      * shape, kept so that GALAXY_HASH and NEW_PLANET_HASH still prove the
      * typed reads. */
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -246,7 +246,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     assert_jo_members(cls_of(e));
     assert(jo->kq == &pico8_jo_start.kq);
     assert(jo->gq == &pico8_jo_start.gq);
-    assert(jo->nu == &pico8_jo_nu_tags && jo->kw == pico8_jo_shared_kw() && jo->em == &pico8_jo_em_row);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && jo->kw == pico8_jo_shared_kw() && jo->em == &pico8_jo_em_row);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));

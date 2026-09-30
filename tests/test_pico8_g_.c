@@ -173,7 +173,7 @@ static uint32_t fold_defaults(uint32_t h, const pico8_g__t *g_) {
     const pico8_emitter_t *em = g_->emitter;
     const pico8_probe_t *pr = g_->probe;
 
-    h = fold_ref_member(h, g_->nu);
+    h = fold_ref_member(h, &g_->header.cls->tags);
     h = fold_fixed_member(h, g_->fx);
     h = fold_string_member(h, pr->dq);
     h = fold_fixed_member(h, pr->od);
@@ -199,15 +199,26 @@ static const pico8_hy_t *fm_hy(void) {
     return hy;
 }
 
-/* A tag sequence: each position, then its string, then the count. */
-static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
-    int i;
+/* A class's tags, in enum order: each position, then its name, then
+ * the count. */
+static uint32_t fold_tags(uint32_t h, unsigned tags) {
+    static const char *const names[PICO8_TAG_COUNT] = {
+        [PICO8_TAG_QH] = "qh", [PICO8_TAG_HJ] = "hj", [PICO8_TAG_NR] = "nr",
+        [PICO8_TAG_G_] = "g_", [PICO8_TAG_MH] = "mh", [PICO8_TAG_JC] = "jc",
+        [PICO8_TAG_MZ] = "mz", [PICO8_TAG_JO] = "jo", [PICO8_TAG_NP] = "np",
+        [PICO8_TAG_PROBER] = "prober",
+    };
+    uint32_t k = 0;
+    int t;
 
-    for (i = 0; i < s->count; i++) {
-        h = fnv(h, (uint32_t)(i + 1));
-        h = fold_string(h, s->items[i]);
+    for (t = 0; t < PICO8_TAG_COUNT; t++) {
+        if (tags & PICO8_TAG(t)) {
+            k++;
+            h = fnv(h, k);
+            h = fold_string(h, names[t]);
+        }
     }
-    return fnv(h, (uint32_t)s->count);
+    return fnv(h, k);
 }
 
 /* An integer sequence: each position, then its value, then the count. */
@@ -290,10 +301,10 @@ static pico8_bg_t *the_bg(void) {
     return found;
 }
 
-/* A probe, whatever its form: `g_`'s `nu` and `fa`=2 (an `fv` has 10). */
+/* A probe, whatever its form: `g_`'s tags and `fa`=2 (an `fv` has 10). */
 static int is_probe(pico8_struct_header_t *e) {
     const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
-    return g_ != NULL && g_->nu == &pico8_g__nu_tags && g_->fa == pico8_fixed_from_int(2);
+    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->fa == pico8_fixed_from_int(2);
 }
 
 static pico8_g__t *as_g_(void *e) {
@@ -355,10 +366,10 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     h = fold_fixed_member(h, em->du);
     h = fold_string_member(h, e->header.me);
     h = fold_fixed_member(h, e->header.t);
-    assert(e->nu != NULL && pr->dq != NULL && em->k_ != NULL);
-    h = fold_tags(h, e->nu);
+    assert(pr->dq != NULL && em->k_ != NULL);
+    h = fold_tags(h, e->header.cls->tags);
     h = fold_seq(h, em->k_);
-    assert(e->nu == &pico8_g__nu_tags);
+    assert(e->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(em->k_ == &pico8_g__k__seq);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
@@ -648,14 +659,14 @@ static void test_ey_void(void) {
     printf("[ey void] refused\n");
 }
 
-/* The help: `g_`'s `nu` and `fa`=10. */
+/* The help: `g_`'s tags and `fa`=10. */
 static int is_help(pico8_struct_header_t *e) {
     const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
-    return g_ != NULL && g_->nu == &pico8_g__nu_tags && g_->fa == pico8_fixed_from_int(10);
+    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->fa == pico8_fixed_from_int(10);
 }
 
-/* The title screen's `fv`, whose class's parent is `g_`'s class: `nu`,
- * `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
+/* The title screen's `fv`, whose class's parent is `g_`'s class: its
+ * tags, `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
 static void test_fv(void) {
     uint32_t h = 2166136261u;
     const pico8_ptrs_t *hv;
@@ -676,7 +687,7 @@ static void test_fv(void) {
     }
     assert(found != NULL && !is_probe(found));
     fv = pico8_g__of(found);
-    assert(fv->nu == &pico8_g__nu_tags);
+    assert(fv->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(fv->fx == pico8_fixed_from_int(1));
     assert(fv->probe->dq != NULL && strcmp(fv->probe->dq, "ly") == 0);
     assert(fv->fa == pico8_fixed_from_int(10));

@@ -96,15 +96,26 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv_str(fnv(h, 0x57u), s);
 }
 
-/* A tag sequence: each position, then its string, then the count. */
-static uint32_t fold_tags(uint32_t h, const pico8_str_seq_t *s) {
-    int i;
+/* A class's tags, in enum order: each position, then its name, then
+ * the count. */
+static uint32_t fold_tags(uint32_t h, unsigned tags) {
+    static const char *const names[PICO8_TAG_COUNT] = {
+        [PICO8_TAG_QH] = "qh", [PICO8_TAG_HJ] = "hj", [PICO8_TAG_NR] = "nr",
+        [PICO8_TAG_G_] = "g_", [PICO8_TAG_MH] = "mh", [PICO8_TAG_JC] = "jc",
+        [PICO8_TAG_MZ] = "mz", [PICO8_TAG_JO] = "jo", [PICO8_TAG_NP] = "np",
+        [PICO8_TAG_PROBER] = "prober",
+    };
+    uint32_t k = 0;
+    int t;
 
-    for (i = 0; i < s->count; i++) {
-        h = fnv(h, (uint32_t)(i + 1));
-        h = fold_string(h, s->items[i]);
+    for (t = 0; t < PICO8_TAG_COUNT; t++) {
+        if (tags & PICO8_TAG(t)) {
+            k++;
+            h = fnv(h, k);
+            h = fold_string(h, names[t]);
+        }
     }
-    return fnv(h, (uint32_t)s->count);
+    return fnv(h, k);
 }
 
 /* An integer sequence: each position, then its value, then the count. */
@@ -152,9 +163,6 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     }
     if (listed(pico8_hv(), ref)) {
         return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
-    }
-    if (ref == (const void *)&pico8_g__nu_tags) {
-        return fold_tags(fnv(h, 0x7Au), ref);
     }
     if (ref == (const void *)&pico8_fv_k__seq) {
         return fold_seq(fnv(h, 0x7Au), ref);
@@ -241,10 +249,10 @@ static void start_title(void) {
     pico8__init();
 }
 
-/* The help, whatever its form: `g_`'s `nu` and `fa`=10 (a probe has 2). */
+/* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
 static int is_help(pico8_struct_header_t *e) {
     const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
-    return g_ != NULL && g_->nu == &pico8_g__nu_tags && g_->fa == pico8_fixed_from_int(10);
+    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->fa == pico8_fixed_from_int(10);
 }
 
 static pico8_fv_t *the_help(void) {
@@ -303,9 +311,9 @@ static void test_built(void) {
     assert(g_->fa == pico8_fixed_from_int(10));
     assert(em->ki == pico8_fixed_from_int(17));
     assert(fv->ca == pico8_fixed_from_int(11));
-    assert(g_->nu == &pico8_g__nu_tags);
+    assert(g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(g_->ra != NULL && fv->hi != NULL && fv->gq != NULL && em->k_ != NULL && fv->kq != NULL);
-    assert(fv->rb != NULL && g_->nu != NULL && pr->dq != NULL);
+    assert(fv->rb != NULL && pr->dq != NULL);
     h = fold_fixed_member(h, g_->fa);
     h = fold_ref_member(h, g_->ra);
     h = fold_ref_member(h, fv->hi);
@@ -328,7 +336,7 @@ static void test_built(void) {
     h = fold_fixed_member(h, fv->ql);
     h = fold_fixed_member(h, fv->fg);
     h = fold_ref_member(h, fv->rb);
-    h = fold_ref_member(h, g_->nu);
+    h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.cls->tags);
     h = fold_fixed_member(h, g_->fx);
     h = fold_string_member(h, pr->dq);
     h = fold_fixed_member(h, pr->od);

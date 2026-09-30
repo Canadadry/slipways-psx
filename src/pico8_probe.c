@@ -447,7 +447,6 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->probe->et = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
-    self->nu = pico8_g__start.nu;
     self->fx = pico8_g__start.fx;
     self->probe->dq = pico8_g__start.dq;
     self->probe->od = pico8_g__start.od;

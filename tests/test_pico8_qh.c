@@ -289,7 +289,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
-    h = fnv(h, (uint32_t)(jo->nu != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -324,7 +324,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     assert_members_of(cls_of(e), pico8_qh_struct_class(), 1, 1);
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
            cls_of(e)->mm == NULL && pico8_jo_is_family(e));
-    assert(jo->nu == &pico8_qh_nu_tags && qh->px == &pico8_qh_px_row && qh->ba == &pico8_qh_ba_seq);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->px == &pico8_qh_px_row && qh->ba == &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_jo_start.kq);
     assert(jo->gq == &pico8_jo_start.gq);
     assert(jo->em == &pico8_jo_em_row && jo->ka == &pico8_jo_ka_seq && jo->dz == pico8_jo_dz_rows &&
@@ -496,7 +496,7 @@ static int descendant_of(const void *e) {
 }
 
 /* What a descendant inherits from `qh`: `dq`, `fp`, `dw`, `hf`, whether
- * its `nu`/`px`/`ba` are qh's own tables, `hq`/`ev`/`ey` (qh's functions),
+ * its tags/`px`/`ba` are qh's own, `hq`/`ev`/`ey` (qh's functions),
  * and its `ly` called once (`ra.y` before, after, then put back). */
 static uint32_t fold_descendant(uint32_t h, void *d) {
     pico8_qh_t *qh = as_qh(d);
@@ -508,7 +508,7 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
     h = fold_fixed_member(h, qh->probe->dw);
     h = fold_hf(h, &qh->jo);
     h = qh->jo.has_mi ? fold_fixed_member(h, qh->jo.mi) : fold_absent(h);
-    h = fnv(h, (uint32_t)(qh->jo.nu == &pico8_qh_nu_tags));
+    h = fnv(h, (uint32_t)(qh->jo.header.cls->tags == (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER))));
     h = fnv(h, (uint32_t)(qh->px == &pico8_qh_px_row));
     h = fnv(h, (uint32_t)(qh->ba == &pico8_qh_ba_seq));
     assert(cls_of(d)->hq == pico8_qh_struct_class()->hq && cls_of(d)->ey == pico8_qh_struct_class()->ey);
