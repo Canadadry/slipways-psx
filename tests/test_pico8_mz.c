@@ -86,6 +86,20 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
+}
+
 static int is_me(const pico8_struct_header_t *ke, const char *want) {
     return ke->me != NULL && strcmp(ke->me, want) == 0;
 }
@@ -357,7 +371,7 @@ static void test_construction(void) {
 }
 
 static uint32_t fold_ox(uint32_t h, const pico8_mz_t *mz) {
-    const pico8_ptrs_t *ox;
+    const pico8_ents_t *ox;
     int i;
 
     assert(mz->ox != NULL);
@@ -396,19 +410,19 @@ static void test_ox(void) {
     second = build_mz();
     h = fold_ox(h, second);
     assert(second->ox != NULL);
-    assert(!listed(second->ox, first) && !listed(second->ox, unlit));
+    assert(!ents_listed(second->ox, first) && !ents_listed(second->ox, unlit));
     printf("[ox] %d entries\n", second->ox->count);
     assert(second->ox->count > 0);
     check("ox", h, OX_HASH);
 
     /* A probe's `fx` is a fixed, true in Lua even at 0: it joins `ox`. */
     probe = pico8_g__new(NULL);
-    assert(listed(build_mz()->ox, probe));
+    assert(ents_listed(build_mz()->ox, probe));
 
     lit = pico8_qh_new(NULL);
     lit->jo.fx = 1;
     lit->jo.has_fx = 1;
-    assert(listed(build_mz()->ox, lit));
+    assert(ents_listed(build_mz()->ox, lit));
 }
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */

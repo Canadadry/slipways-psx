@@ -107,6 +107,20 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
+}
+
 static const pico8_struct_class_t *cls_of(const void *e) {
     return ((const pico8_struct_header_t *)e)->cls;
 }
@@ -325,7 +339,7 @@ static uint32_t fold_kq(uint32_t h, const pico8_js_t *b) {
     return h;
 }
 
-static const pico8_ptrs_t *ok_le(void) {
+static const pico8_ents_t *ok_le(void) {
     return pico8_ok() == NULL ? NULL : pico8_ok()->le;
 }
 
@@ -380,11 +394,11 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)listed(pico8_cv(bm[i]), b));
     }
-    return fnv(h, (uint32_t)rank_in(ok_le(), b));
+    return fnv(h, (uint32_t)ents_rank_in(ok_le(), b));
 }
 
 static uint32_t fold_le(uint32_t h, const char *label) {
-    const pico8_ptrs_t *le = ok_le();
+    const pico8_ents_t *le = ok_le();
     int i;
 
     assert(le != NULL);
@@ -401,7 +415,7 @@ static uint32_t fold_le(uint32_t h, const char *label) {
 
 /* The `ra` every row of one `pz` call shares. */
 static void check_shared_ra(void) {
-    const pico8_ptrs_t *le = ok_le();
+    const pico8_ents_t *le = ok_le();
     int i;
     for (i = 1; le != NULL && i < le->count; i++) {
         assert(js_of(le->items[i])->ra == js_of(le->items[0])->ra);
@@ -612,7 +626,7 @@ static void test_eu(void) {
     start_game();
     check_int("eu buttons", ix_buttons(ix), 4);
     for (i = 0; i < 4; i++) {
-        assert(!listed(ok_le(), ix[i]));
+        assert(!ents_listed(ok_le(), ix[i]));
         assert((js_of(ix[i])->hb != NULL) == (i == 1));
         h = fold_button(h, ix[i]);
     }
@@ -638,7 +652,7 @@ static void invent(char *rr) {
 
 static void test_research(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     const pico8_jb_t *jb;
     const pico8_lq_t *line;
     int unaffordable = 0;
@@ -670,7 +684,7 @@ static void test_research(void) {
 
 static void test_fe(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     int with_pt = 0;
     int i;
 
@@ -898,7 +912,7 @@ static void test_hb(void) {
 /* The `my` of a `jo:fe` row builds on the planet it captured. */
 static void test_fe_my(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     int i;
 
     known_panel();
@@ -926,7 +940,7 @@ static void test_fe_my(void) {
 /* The `my` of a `cr` row invents the tech it captured. */
 static void test_cr_my(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     const pico8_ptrs_t *invented;
     const char *last;
     int i;
@@ -1163,7 +1177,7 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
 }
 
 static uint32_t fold_le_members(uint32_t h) {
-    const pico8_ptrs_t *le = ok_le();
+    const pico8_ents_t *le = ok_le();
     int i;
 
     assert(le != NULL);
@@ -1188,7 +1202,7 @@ static void check_one_pz(void *const *b, int n) {
 }
 
 static void check_le_one_pz(void) {
-    const pico8_ptrs_t *le = ok_le();
+    const pico8_ents_t *le = ok_le();
     void *b[32];
     int i;
 
@@ -1427,7 +1441,7 @@ static uint32_t members_title_and_game(void) {
 }
 
 static uint32_t members_research(void) {
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     uint32_t h = 2166136261u;
     int dear = 0;
     int affordable = 0;
@@ -1467,7 +1481,7 @@ static uint32_t members_research(void) {
 }
 
 static uint32_t members_fe(void) {
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     const void *pt = NULL;
     uint32_t h = 2166136261u;
     int rows = 0;
@@ -1573,7 +1587,7 @@ static void test_js_members_by_name(void) {
 /* `h_=od>0 and {…}` of `jo:fe`: a free building's `h_` is false, not the
  * empty row of a present nil. */
 static void test_fe_free_row(void) {
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     pico8_hp_t *b = NULL;
     pico8_jo_t *pt = NULL;
     int found = 0;

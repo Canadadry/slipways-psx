@@ -103,7 +103,7 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
 
-static const pico8_ptrs_t *le_of(const pico8_ui_t *ok) {
+static const pico8_ents_t *le_of(const pico8_ui_t *ok) {
     assert(ok->le != NULL);
     return ok->le;
 }
@@ -315,7 +315,7 @@ static void test_shared(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other = pico8_ui_new();
-    const pico8_ptrs_t *le = ok->le;
+    const pico8_ents_t *le = ok->le;
     pico8_fixed_t ql;
 
     assert(other != NULL && other != ok);
@@ -569,7 +569,7 @@ static void test_left(void) {
 static void test_cj(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *ok = start_game();
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     int count;
     int i;
 
@@ -598,7 +598,7 @@ static void test_stale(void) {
     uint32_t h = 2166136261u;
     pico8_ui_t *old;
     void *button;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
 
     pico8_input_init(&input);
     pico8_dispatch_set_input(&input);
@@ -659,10 +659,10 @@ static void test_click_reaches_a_row_of_le(void) {
 
 /* `pico8_ui_init()` empties the shared `le`. */
 static void test_init_empties_shared_le(void) {
-    static int mark;
+    static pico8_struct_header_t mark;
 
     (void)start_game();
-    pico8_ptrs_add(pico8_ui_le_shared(), &mark);
+    pico8_ents_add(pico8_ui_le_shared(), &mark);
     assert(pico8_ui_le_shared()->count == 1);
     pico8_ui_init();
     assert(pico8_ui_le_shared()->count == 0);

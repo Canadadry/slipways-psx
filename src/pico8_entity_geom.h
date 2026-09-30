@@ -1,6 +1,7 @@
 #ifndef PICO8_ENTITY_GEOM_H
 #define PICO8_ENTITY_GEOM_H
 
+#include "pico8_ents.h"
 #include "pico8_struct.h"
 #include "pico8_ptrs.h"
 #include "pico8_vec.h"
@@ -28,5 +29,7 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e);
  * NULL -- Lua's nil -- when `j_` is NULL, empty, or holds
  * nothing away from `p`; the returned distance is then 32767. */
 pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_header_t **out_nearest);
+/* As pico8_ij, on an entity list. */
+pico8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, pico8_struct_header_t **out_nearest);
 
 #endif

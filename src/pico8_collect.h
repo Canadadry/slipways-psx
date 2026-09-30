@@ -15,9 +15,6 @@ pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow
  * pico8_ptrs_free(). Neither argument may be NULL. */
 pico8_ptrs_t pico8_la_ptrs(const pico8_ptrs_t *a, const pico8_ptrs_t *b);
 
-/* Membership by identity; a NULL `qk` is a member of nothing. */
-int pico8_gu_ptrs(const pico8_ptrs_t *qk, const void *kb);
-
 /* `kp` writes *out and returns 1 to contribute an element, 0 to contribute
  * nothing -- this port has no nil for `add(m,kp(e)or nil)` to drop. Returns
  * a new container the caller releases with pico8_ptrs_free(). `qk` must not

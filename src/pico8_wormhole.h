@@ -1,6 +1,7 @@
 #ifndef PICO8_WORMHOLE_H
 #define PICO8_WORMHOLE_H
 
+#include "pico8_ents.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_gfx.h"
@@ -32,7 +33,7 @@ typedef struct {
     pico8_fixed_t fa;
     const pico8_int_seq_t *kk;
     pico8_mz_jj_t *jj;
-    pico8_ptrs_t *ox;
+    pico8_ents_t *ox;
     pico8_vec_t *ra;
     pico8_vec_t *p;
     pico8_struct_header_t *ij; /* borrowed, never freed */

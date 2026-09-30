@@ -87,6 +87,17 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     return pico8_vec_add(p, pico8_vec_qm(clamped, pico8_fixed_mul(t, PICO8_FIXED_LIT(0x00003333, 0.2))));
 }
 
+static void ij_step(pico8_vec_t p, pico8_struct_header_t *o, pico8_fixed_t *mk, pico8_struct_header_t **out_nearest) {
+    pico8_vec_t o_p = pico8_entity_geom_p(o);
+    pico8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));
+    int same_position = (p.x == o_p.x && p.y == o_p.y);
+
+    if (!same_position && d < *mk) {
+        *mk = d;
+        *out_nearest = o;
+    }
+}
+
 pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_header_t **out_nearest) {
     pico8_fixed_t mk = pico8_fixed_from_int(32767);
     pico8_ptrs_iter_t it;
@@ -98,17 +109,23 @@ pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_heade
     }
     it = pico8_ptrs_all(j_);
     while (pico8_ptrs_iter_next(&it, &e)) {
-        pico8_struct_header_t *o;
+        ij_step(p, e, &mk, out_nearest);
+    }
+    return mk;
+}
 
-        o = e;
-        pico8_vec_t o_p = pico8_entity_geom_p(o);
-        pico8_fixed_t d = pico8_vec_len_sq(pico8_vec_sub(p, o_p));
-        int same_position = (p.x == o_p.x && p.y == o_p.y);
+pico8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, pico8_struct_header_t **out_nearest) {
+    pico8_fixed_t mk = pico8_fixed_from_int(32767);
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *o;
 
-        if (!same_position && d < mk) {
-            mk = d;
-            *out_nearest = o;
-        }
+    *out_nearest = NULL;
+    if (j_ == NULL) {
+        return mk;
+    }
+    it = pico8_ents_all(j_);
+    while (pico8_ents_iter_next(&it, &o)) {
+        ij_step(p, o, &mk, out_nearest);
     }
     return mk;
 }

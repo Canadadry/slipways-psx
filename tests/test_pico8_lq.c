@@ -706,7 +706,7 @@ static uint32_t fold_button_row(uint32_t h, const pico8_lq_t *lq) {
  * `h_`; then the screen. */
 static void test_planet_panel(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     int buttons = 0;
     int i;
 
@@ -729,7 +729,7 @@ static void test_planet_panel(void) {
 
 /* The row of `ok.le` whose first item is `head`, NULL when none. */
 static const pico8_lq_t *panel_row(const char *head) {
-    const pico8_ptrs_t *le = pico8_ok()->le;
+    const pico8_ents_t *le = pico8_ok()->le;
     int i;
 
     for (i = 0; le != NULL && i < le->count; i++) {

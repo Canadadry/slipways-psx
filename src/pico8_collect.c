@@ -23,21 +23,6 @@ pico8_ptrs_t pico8_jp_ptrs(const pico8_ptrs_t *qk, pico8_jp_ptrs_predicate_fn ow
     return f;
 }
 
-int pico8_gu_ptrs(const pico8_ptrs_t *qk, const void *kb) {
-    pico8_ptrs_iter_t it;
-    void *e;
-    if (qk == NULL) {
-        return 0;
-    }
-    it = pico8_ptrs_all(qk);
-    while (pico8_ptrs_iter_next(&it, &e)) {
-        if (e == kb) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 pico8_ptrs_t pico8_nv_ptrs(const pico8_ptrs_t *qk, pico8_nv_ptrs_fn kp, void *ctx) {
     pico8_ptrs_t m;
     pico8_ptrs_iter_t it;

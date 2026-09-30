@@ -535,7 +535,7 @@ static uint32_t fold_lq(uint32_t h, const pico8_lq_t *lq) {
 /* What `pz(pj.cr, bs)` left in `ok.le`: the `ep` head row, then one row per
  * tech, all at `fa` = `ca`, sharing one `ra` = `hi`, `qf` stepped by `gq`. */
 static uint32_t fold_cr_le(uint32_t h, const char **head) {
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     const pico8_lq_t *lq;
     const pico8_vec_t *ra;
     int i;

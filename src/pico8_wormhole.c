@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "pico8_audio.h"
-#include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
@@ -26,18 +25,10 @@ static pico8_mz_jj_t g_mz_jj_wrapper = {
     pico8_mz_jj_qs,
 };
 
-static int pico8_mz_pq_ox_predicate(void *e, void *ctx) {
-    pico8_struct_header_t *p;
-    (void)ctx;
-    if (e == NULL) {
-        return 0;
-    }
-    p = e;
-    return p->cls->get_fx != NULL && p->cls->get_fx(p);
-}
-
 void pico8_mz_pq(pico8_mz_t *self) {
-    pico8_ptrs_t *heap_ox;
+    pico8_ents_t *heap_ox;
+    pico8_ptrs_iter_t it;
+    void *e;
 
     if (self == NULL) {
         return;
@@ -47,7 +38,14 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
     /* TROU-7 */
     heap_ox = malloc(sizeof *heap_ox);
-    *heap_ox = pico8_jp_ptrs(pico8_hv(), pico8_mz_pq_ox_predicate, NULL);
+    pico8_ents_init(heap_ox);
+    it = pico8_ptrs_all(pico8_hv());
+    while (pico8_ptrs_iter_next(&it, &e)) {
+        pico8_struct_header_t *p = e;
+        if (p != NULL && p->cls->get_fx != NULL && p->cls->get_fx(p)) {
+            pico8_ents_add(heap_ox, p);
+        }
+    }
     self->ox = heap_ox;
 }
 
@@ -63,7 +61,7 @@ void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     }
 
     p_vec = self->p != NULL ? *self->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    nq = pico8_ij(p_vec, self->ox, &nearest);
+    nq = pico8_ij_ents(p_vec, self->ox, &nearest);
     self->ij = nearest;
 
     threshold = pico8_ov("space folding", PICO8_FIXED_LIT(0x000030a3, 0.19), PICO8_FIXED_LIT(0x0000451e, 0.27));

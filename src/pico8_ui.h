@@ -2,6 +2,7 @@
 #define PICO8_UI_H
 
 #include "pico8_bg.h"
+#include "pico8_ents.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
@@ -32,7 +33,7 @@ typedef struct {
     pico8_struct_header_t header;
     pico8_fixed_t ql;
     pico8_fixed_t fa;
-    pico8_ptrs_t *le;
+    pico8_ents_t *le;
     const pico8_qz_box_t *hw;
     pico8_vec_t *qa;
     pico8_ui_ic_t *ic;
@@ -64,7 +65,7 @@ const pico8_qz_box_t *pico8_ui_hw(void);
 
 /* The empty container every new `ui` starts with as `le`: static, never
  * freed, emptied (not freed) by each `pico8_ui_init()`. */
-pico8_ptrs_t *pico8_ui_le_shared(void);
+pico8_ents_t *pico8_ui_le_shared(void);
 
 /* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`;
  * only the current `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts

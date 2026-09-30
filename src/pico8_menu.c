@@ -390,8 +390,8 @@ pico8_js_fn pico8_ix_my(int i) {
     return g_ix_my[i - 1];
 }
 
-const void *pico8_ha_pz(void) {
-    return g_menu_up ? &g_ha_pz : NULL;
+const pico8_struct_header_t *pico8_ha_pz(void) {
+    return g_menu_up ? &g_ha_pz.header : NULL;
 }
 
 const pico8_struct_class_t *pico8_ha_pz_struct_class(void) {

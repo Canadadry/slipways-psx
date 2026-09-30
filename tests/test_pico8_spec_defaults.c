@@ -49,15 +49,15 @@ static pico8_nf_button_t *nf_l_of(const pico8_nf_t *nf) {
  * shared `le` survives it; `qb` stays ready throughout. */
 static void test_second_jl_keeps_specs(void) {
     pico8_nf_button_t *nf_l = nf_l_of(pico8_je_nf());
-    static int mark_cell;
-    pico8_ptrs_t *ui_le = pico8_ui_le_shared();
-    void *mark = &mark_cell;
+    static pico8_struct_header_t mark_cell;
+    pico8_ents_t *ui_le = pico8_ui_le_shared();
+    pico8_struct_header_t *mark = &mark_cell;
     int hm = nf_l->hm;
     int ui_count;
 
     assert(pico8_qb_ready());
     nf_l->hm = 0x7777;
-    pico8_ptrs_add(ui_le, mark);
+    pico8_ents_add(ui_le, mark);
     ui_count = ui_le->count;
 
     pico8_jl();
@@ -65,7 +65,7 @@ static void test_second_jl_keeps_specs(void) {
     assert(pico8_qb_ready());
     assert(nf_l_of(pico8_je_nf()) == nf_l && nf_l_of(pico8_je_nf())->hm == 0x7777);
     assert(pico8_ui_le_shared() == ui_le && pico8_ui_le_shared()->count == ui_count);
-    assert(pico8_ptrs_del(ui_le, mark));
+    assert(pico8_ents_del(ui_le, mark));
     nf_l->hm = hm;
 }
 

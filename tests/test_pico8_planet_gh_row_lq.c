@@ -34,7 +34,7 @@
 #include "../src/pico8_vec.h"
 
 /* The `js` button instances `pz()` just built. */
-static const pico8_ptrs_t *ok_le(void) {
+static const pico8_ents_t *ok_le(void) {
     const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
     assert(ok->le != NULL);
@@ -94,7 +94,7 @@ static void test_gh_exports_row_lq_receives_its_four_items(void) {
     const pico8_jb_row_t *kw_row;
     pico8_vec_t *ra;
     pico8_vec_t *gq;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     const pico8_lq_t *exports_lq = NULL;
     pico8_lq_cell_t entry;
     int i;

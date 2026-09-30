@@ -24,7 +24,7 @@
 #include "../src/pico8_vec.h"
 
 /* The `js` buttons `pz()` just built. */
-static const pico8_ptrs_t *ok_le(void) {
+static const pico8_ents_t *ok_le(void) {
     const pico8_ui_t *ok = pico8_ok();
     assert(ok != NULL);
     assert(ok->le != NULL);
@@ -88,7 +88,7 @@ static void test_ga_export_line_counts_the_routes_in_by(void) {
     pico8_ents_t *by;
     pico8_trade_t *route_a;
     pico8_trade_t *route_b;
-    const pico8_ptrs_t *le;
+    const pico8_ents_t *le;
     const pico8_lq_t *exports_lq = NULL;
     int i;
 

@@ -75,6 +75,16 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* `jl()` again after `_init()`: `hv` holds only `mo`, `je` and `ok`, as at
  * the start of a game. The mouse `je` is put mid-screen, where a toast
  * placed off it is drawn under `mo`'s camera. */
@@ -162,7 +172,7 @@ static void test_mz_scan_skips_a_live_toast(void) {
     e = build(&ra, "+1$", 11);
     mz = pico8_mz_new();
     assert(mz->ox != NULL);
-    assert(!listed(mz->ox, e));
+    assert(!ents_listed(mz->ox, e));
     assert(mz->ox->count == 0);
 }
 
