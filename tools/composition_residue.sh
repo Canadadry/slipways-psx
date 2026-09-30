@@ -83,7 +83,9 @@ VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 # fonction qui rend void *). Listes qui ne portent pas d'entites
 # (type.membre), chacune prouvee par son ecrivain : hy.invented des chaines
 # (economy.c:284), jo.jy des entrees (economy_tiers.c:167), hp.i des
-# enregistrements jy (research.c:233), jc.ts des particules (slipway_display.c:43).
+# enregistrements jy (research.c:233), jc.ts des particules
+# (slipway_display.c:43). L'exemption va nom par nom : une ligne compte des
+# qu'un de ses noms, ou une declaration sans nom lisible, n'est pas exempte.
 PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 
 # registres : hors tests/ et pico8_ptrs.[ch], les points de declaration qui
@@ -94,17 +96,23 @@ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 # void *[N] ; membre qui rend void * par pointeur de fonction ; objet de portee
 # fichier, statique de fonction, extern de .h, de ces types ou void * ;
 # prototype ou definition inline de .h qui prend ou rend un pico8_ptrs_t, ou
-# rend void **. Une struct ou une union dont l'accolade ouvre la ligne suivante
-# est vue ; __attribute__((...)) et _Alignas(...) sont retires avant lecture.
+# rend void **. const et volatile sont lus autour de void et de chaque * ;
+# chaque declaration d'une ligne de membre est lue, et un membre sans ";"
+# en fin de ligne est joint aux lignes suivantes, compte a sa premiere. Une
+# struct ou une union dont l'accolade ouvre la ligne suivante est vue ;
+# __attribute__((...)) a deux niveaux de parentheses internes et
+# _Alignas(...) a un niveau sont retires avant lecture.
 # Non vus : alias d'alias, void * derriere un typedef, struct ou union
-# imbriquee sur plusieurs lignes, membre void * simple, locale, macro.
+# imbriquee sur plusieurs lignes, membre void * simple, locale, macro,
+# attribut a un niveau de plus ; de deux declarations de portee fichier sur
+# une ligne, seul le premier nom est lu pour l'exemption.
 # Exemptes, chacun prouve par son ecrivain : emitter.qy des particules
 # (particle.c:65), le ji du contexte de planet_display.c des enregistrements
-# jy (:79, :186) ; pico8_nv_ptrs sur hp.i (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
-# pico8_jo_ex sur des enregistrements jy (planet_display.c:54) ;
-# pico8_jp_ptrs et pico8_la_ptrs sur des enregistrements jy (planet_display.c:186,
-# planet_trade.c:128), les listes d'entites passant par pico8_jp_ents et
-# pico8_ents_cat.
+# jy (:79, :186) ; pico8_nv_ptrs sur hp.i (planet.c:319),
+# pico8_gu_content_ptrs sur des chaines (tech_gate.c:26), pico8_jo_ex sur des
+# enregistrements jy (planet_display.c:54) ; pico8_jp_ptrs et pico8_la_ptrs
+# sur des enregistrements jy (planet_display.c:186, planet_trade.c:128), les
+# listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
 REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex pico8_jp_ptrs pico8_la_ptrs"
 
 # En-tetes du noyau, par nom de fichier : noyau-inclut ne lit qu'eux.
@@ -203,8 +211,8 @@ function clean(s,    out, c, q) {
     return out
 }
 function unattr(s) {
-    gsub(/__attribute__[ \t]*\(\([^()]*(\([^()]*\)[^()]*)*\)\)[ \t]*/, "", s)
-    gsub(/_Alignas[ \t]*\([^()]*\)[ \t]*/, "", s)
+    gsub(/__attribute__[ \t]*\(\(([^()]|\(([^()]|\([^()]*\))*\))*\)\)[ \t]*/, "", s)
+    gsub(/_Alignas[ \t]*\(([^()]|\([^()]*\))*\)[ \t]*/, "", s)
     return s
 }
 function braces(s,    t, n) {
@@ -224,7 +232,7 @@ read_structs() {
     awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \
         -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registres.structs" -v reg_types="$REG_TYPES" \
         -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"'
-    FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0; phead = "" }
+    FNR == 1 { depth = 0; incomment = 0; inbody = 0; base = 0; phead = ""; mpend = "" }
     {
         c = unattr(clean($0))
         if (phead != "") { if (c ~ /^[ \t]*\{/) c = phead " " c; phead = "" }
@@ -239,7 +247,7 @@ read_structs() {
         }
         if (!inbody && (depth == 0 && c ~ /^((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/ ||
                         depth > 0 && c ~ /^[ \t]*static[ \t]+(const[ \t]+)?(struct|union)([ \t]+[A-Za-z_][A-Za-z0-9_]*)?[ \t]*\{/)) {
-            n++; inbody = 1; seen = 0; names[n] = " "; base = depth
+            n++; inbody = 1; seen = 0; names[n] = " "; base = depth; mpend = ""
             sfile[n] = FILENAME; sobj[n] = c ~ /^[ \t]*(static|extern)[ \t]/
             t = c; sub(/^[ \t]*((static|extern)[ \t]+)?(typedef[ \t]+)?(const[ \t]+)?struct[ \t]*/, "", t); sub(/[ \t]*\{.*/, "", t)
             if (t != "") names[n] = names[n] t " "
@@ -274,24 +282,35 @@ read_structs() {
                     first[n] = t; firstline[n] = FNR; firsttext[n] = $0
                 }
             }
-            if (c ~ /^[ \t]*(const[ \t]+)?void[ \t]*(\*[ \t]*)+\([ \t]*\*/) {
-                t = c; sub(/\).*/, "", t); sub(/.*[ \t*(]/, "", t)
-                nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
-            } else if (c ~ /;/ &&
-                       (c ~ ("(^|[^A-Za-z0-9_])(" reg_types ")([^A-Za-z0-9_]|$)") ||
-                        c !~ /\(/ && c ~ /^[ \t]*(const[ \t]+)?void[ \t]*\*[ \t]*(const[ \t]+)?(\*|[A-Za-z_][A-Za-z0-9_]*[ \t]*\[)/)) {
-                t = c; sub(/;.*/, "", t); sub(/^[ \t]*(const[ \t]+)?[A-Za-z_][A-Za-z0-9_]*/, "", t)
-                nd = split(t, parts, ","); t = ""
-                for (i = 1; i <= nd; i++) {
-                    d = parts[i]; sub(/\[.*/, "", d); sub(/[ \t]+$/, "", d)
-                    if (match(d, /[A-Za-z_][A-Za-z0-9_]*$/)) t = t substr(d, RSTART, RLENGTH) " "
+            m = c; ml = FNR; mt = $0
+            if (c ~ /^[ \t]*#|[{}]/) mpend = ""
+            else {
+                if (mpend != "") { m = mpend " " c; ml = mline; mt = mtext }
+                else { mline = FNR; mtext = $0 }
+                if (m ~ /;[ \t]*$/) mpend = ""
+                else { mpend = m; m = "" }
+            }
+            ns = split(m, sg, ";")
+            for (s = 1; s < ns; s++) {
+                g = sg[s] ";"
+                if (g ~ /^[ \t]*(const[ \t]+)?void[ \t]*(\*[ \t]*)+\([ \t]*\*/) {
+                    t = g; sub(/\).*/, "", t); sub(/.*[ \t*(]/, "", t)
+                    nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = ml; rtext[n, nr[n]] = mt
+                } else if (g ~ ("(^|[^A-Za-z0-9_])(" reg_types ")([^A-Za-z0-9_]|$)") ||
+                           g !~ /\(/ && g ~ /^[ \t]*((const|volatile)[ \t]+)*void([ \t]+(const|volatile))*[ \t]*\*([ \t]*(const|volatile))*[ \t]*(\*|[A-Za-z_][A-Za-z0-9_]*[ \t]*\[)/) {
+                    t = g; sub(/;.*/, "", t); sub(/^[ \t]*(const[ \t]+)?[A-Za-z_][A-Za-z0-9_]*/, "", t)
+                    nd = split(t, parts, ","); t = ""
+                    for (i = 1; i <= nd; i++) {
+                        d = parts[i]; sub(/\[.*/, "", d); sub(/[ \t]+$/, "", d)
+                        if (match(d, /[A-Za-z_][A-Za-z0-9_]*$/)) t = t substr(d, RSTART, RLENGTH) " "
+                    }
+                    nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = ml; rtext[n, nr[n]] = mt
                 }
-                nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
             }
         }
         braces(c)
         if (inbody && depth == base) {
-            inbody = 0
+            inbody = 0; mpend = ""
             if (match(c, /\}[ \t]*[A-Za-z_][A-Za-z0-9_]*/)) {
                 t = substr(c, RSTART + 1, RLENGTH - 1); sub(/^[ \t]*/, "", t)
                 names[n] = names[n] t " "
@@ -351,7 +370,10 @@ read_structs() {
                 q = split(rmem[k, j], mm, " "); left = q
                 for (h = 1; h <= q; h++)
                     for (i = 1; i <= m; i++) if (index(non_entite, " " nm[i] "." mm[h] " ")) { left--; break }
-                if (left > 0 || q == 0) print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_ptrs
+                if ((left > 0 || q == 0) && !((k, rline[k, j]) in shown)) {
+                    shown[k, rline[k, j]] = 1
+                    print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_ptrs
+                }
             }
         }
     }' $(cat "$work/files") || fail "echec de awk"
@@ -415,8 +437,8 @@ read_registres() {
                     else { t = acc; sub(/[ \t]*(\[[^]]*\])?[ \t]*[;=].*/, "", t); sub(/.*[ \t*]/, "", t); name = t }
                     ok = acc !~ /^[ \t]*typedef/ &&
                          (acc ~ ("(^|[^A-Za-z0-9_])(" reg_types ")([^A-Za-z0-9_]|$)") ||
-                          (!fn && acc ~ /(^|[^A-Za-z0-9_])void[ \t]*\*/) ||
-                          (fn && ret ~ /(^|[^A-Za-z0-9_])void[ \t]*\*[ \t]*(const[ \t]+)?\*/))
+                          (!fn && acc ~ /(^|[^A-Za-z0-9_])void([ \t]+(const|volatile))*[ \t]*\*/) ||
+                          (fn && ret ~ /(^|[^A-Za-z0-9_])void([ \t]+(const|volatile))*[ \t]*\*([ \t]*(const|volatile))*[ \t]*\*/))
                     keep = FILENAME ~ /\.h$/ || !fn
                     if (ok && keep && !index(non, " " name " ")) print FILENAME ":" start ":" text
                     acc = ""

@@ -331,7 +331,8 @@ static void test_registres_sees_hidden_forms_and_not_its_named_limits(void) {
 }
 
 /* ptrs-entité lit les membres d'un type d'entité comme registres lit ceux des
- * autres structs : aucun conteneur non typé n'échappe aux deux. */
+ * autres structs, avec les mêmes limites (void *owner, :15). jy est exempté
+ * seul, pas other_jy sur sa ligne (:16) ; (*mk) n'a pas de nom lisible (:17). */
 static void test_ptrs_entite_reads_entity_members_like_registres(void) {
     setup();
     write_file(SRC "/a.h", "typedef pico8_" "ptrs_t reg17_t;\n");
@@ -348,7 +349,9 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
                            "    void *(*get)(void);\n"
                            "    _Alignas(8) void **al;\n"
                            "    void *owner;\n"
-                           "    pico8_" "ptrs_t *jy;\n"
+                           "    pico8_" "ptrs_t *jy, *other_jy;\n"
+                           "    pico8_" "ptrs_t (*mk)(void);\n"
+                           "    _Alignas (8) void **al2;\n"
                            "} pico8_" "jo_t;\n"
                            "typedef struct pico8_" "nl_s\n"
                            "{\n"
@@ -366,8 +369,67 @@ static void test_ptrs_entite_reads_entity_members_like_registres(void) {
                                   "ptrs-entité: " SRC "/e.h:12:    const pico8_" "ptrs_t *const x;\n"
                                   "ptrs-entité: " SRC "/e.h:13:    void *(*get)(void);\n"
                                   "ptrs-entité: " SRC "/e.h:14:    _Alignas(8) void **al;\n"
-                                  "ptrs-entité: " SRC "/e.h:21:    void **more;\n"
-                                  "résidu gardé (ptrs-entité) : 10 ligne(s)\n") == 0);
+                                  "ptrs-entité: " SRC "/e.h:16:    pico8_" "ptrs_t *jy, *other_jy;\n"
+                                  "ptrs-entité: " SRC "/e.h:17:    pico8_" "ptrs_t (*mk)(void);\n"
+                                  "ptrs-entité: " SRC "/e.h:18:    _Alignas (8) void **al2;\n"
+                                  "ptrs-entité: " SRC "/e.h:23:    void **more;\n"
+                                  "résidu gardé (ptrs-entité) : 13 ligne(s)\n") == 0);
+}
+
+/* const et volatile autour de void et des *, plusieurs déclarations sur une
+ * ligne (comptée une fois), déclarateur à la ligne suivante, attribut à deux
+ * niveaux : vus. Limites (attendu 0) : attribut à trois niveaux (e.h:18),
+ * second nom d'une ligne de portée fichier (f.c:3). Formes voisines à 0 :
+ * e.h:19 à :27, f.c:2, f.h:3. */
+static void test_readers_see_qualifiers_split_declarations_and_nested_attributes(void) {
+    setup();
+    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n} pico8_" "ke_t;\n"
+                           "typedef struct {\n"
+                           "    pico8_" "ke_t ke;\n"
+                           "    void const **q1;\n"
+                           "    volatile void **q2;\n"
+                           "    void * volatile *q3;\n"
+                           "    int k2; void **items;\n"
+                           "    pico8_" "ptrs_t *jy; pico8_" "ptrs_t *hidden;\n"
+                           "    void **d1; void **d2;\n"
+                           "    void **\n"
+                           "        split;\n"
+                           "    pico8_" "ptrs_t\n"
+                           "        *next_line;\n"
+                           "    void **nested __attribute__((aligned(sizeof(int))));\n"
+                           "    _Alignas(sizeof(int)) void **al;\n"
+                           "    void **deep __attribute__((aligned(sizeof(sizeof(int)))));\n"
+                           "    const char **names;\n"
+                           "    void *owner;\n"
+                           "    int *(*get)(void);\n"
+                           "    void (*cb)(void *, void **);\n"
+                           "    void *volatile_ptr;\n"
+                           "    char *const *chars;\n"
+                           "    int k3; void *other;\n"
+                           "    void (*cb2)(void *a,\n"
+                           "        int b);\n"
+                           "} pico8_" "jo_t;\n");
+    write_file(SRC "/f.c", "static void const *g_c[4];\n"
+                           "static const char **g_names;\n"
+                           "static pico8_" "ptrs_t pico8_" "jp_ptrs; static pico8_" "ptrs_t g_second;\n");
+    write_file(SRC "/f.h", "void const **pico8_" "reg_c(void);\n"
+                           "void *volatile *pico8_" "reg_v(void);\n"
+                           "const char **pico8_" "names(void);\n");
+    assert(run_residue("--check ptrs-entité,registres " TREE) == 1);
+    assert(strcmp(read_file(OUT), "ptrs-entité: " SRC "/e.h:6:    void const **q1;\n"
+                                  "ptrs-entité: " SRC "/e.h:7:    volatile void **q2;\n"
+                                  "ptrs-entité: " SRC "/e.h:8:    void * volatile *q3;\n"
+                                  "ptrs-entité: " SRC "/e.h:9:    int k2; void **items;\n"
+                                  "ptrs-entité: " SRC "/e.h:10:    pico8_" "ptrs_t *jy; pico8_" "ptrs_t *hidden;\n"
+                                  "ptrs-entité: " SRC "/e.h:11:    void **d1; void **d2;\n"
+                                  "ptrs-entité: " SRC "/e.h:12:    void **\n"
+                                  "ptrs-entité: " SRC "/e.h:14:    pico8_" "ptrs_t\n"
+                                  "ptrs-entité: " SRC "/e.h:16:    void **nested __attribute__((aligned(sizeof(int))));\n"
+                                  "ptrs-entité: " SRC "/e.h:17:    _Alignas(sizeof(int)) void **al;\n"
+                                  "registres: " SRC "/f.c:1:static void const *g_c[4];\n"
+                                  "registres: " SRC "/f.h:1:void const **pico8_" "reg_c(void);\n"
+                                  "registres: " SRC "/f.h:2:void *volatile *pico8_" "reg_v(void);\n"
+                                  "résidu gardé (ptrs-entité,registres) : 13 ligne(s)\n") == 0);
 }
 
 /* Accolade à la ligne, union, __attribute__ et _Alignas : vus. Une union
@@ -601,6 +663,7 @@ int main(void) {
     test_registres_reads_declaration_points_outside_entity_types();
     test_registres_sees_hidden_forms_and_not_its_named_limits();
     test_ptrs_entite_reads_entity_members_like_registres();
+    test_readers_see_qualifiers_split_declarations_and_nested_attributes();
     test_registres_sees_split_braces_unions_and_attributes();
     test_void_ptr_reads_joined_public_prototypes();
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
