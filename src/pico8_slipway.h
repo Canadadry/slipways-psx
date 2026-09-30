@@ -31,7 +31,8 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
 
 /* `ts` is this slipway's own, made by `pico8_jc_pq`, which also empties
  * `hg_own` and points `hg` at it (NULL before). `od` and `et` (NULL is nil)
- * live in the probe; `probe` points at `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
+ * live in the probe; `probe` points at `probe_own`: never copy the struct.
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_jc_def_t *def;
