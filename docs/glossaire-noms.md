@@ -289,8 +289,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; `collect` n'a plus de version à valeur |
 | `la(a,b)` | `pico8_la_ptrs` | concatène deux conteneurs de pointeurs |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
-| `ho(rc,mr,gp)` | `hp_ho` (`static`, `pico8_research.c` ; `mr`, `gp` : `const pico8_str_seq_t *`) ; `pico8_ho_apply` supprimé (D.8) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
-| — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `hp_ho` |
+| `ho(rc,mr,gp)` | `hp_positions` (`static`, `pico8_research.c`) : chaque position écrit son membre, `o`/`dm` par `hp_r` ; `pico8_ho_apply` supprimé (D.8) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
 | `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `s[i]` du panneau de fin par `pico8_pj_ph_s_str` (chaîne possédée, `""` hors de 1..6 : TROU-13) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris
@@ -628,7 +627,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 | `o` | ressource produite |
 | `dm` | routé par `gp` comme `o` ; aucun lecteur trouvé |
 | `fk` | l'entrée `{false,2}` que `hp:lq` ajoute en fin de rangée ; `pico8_hp_fk_row` |
-| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (`pico8_hp_mr_names`, `pico8_hp_gp_names`) — c'est `gp` qui fait de `o`/`dm` le nombre que `r` donne |
+| `mr`, `gp` | carte de renommage positionnel lue par `ho`, et le sous-ensemble dont la valeur est routée à travers `r` (plus de table au port : l'ordre est celui de `hp_positions`, et `o`/`dm` passent par `hp_r`) — c'est `gp` qui fait de `o`/`dm` le nombre que `r` donne |
 | `ke` (sur `ie`) | la **classe** d'amélioration que l'icône construit, pas une instance |
 | `kh` | drapeau d'instance « icône déjà révélée » |
 | `id` (sur `ie`) | compteur de classe, source de l'override de sprite ; repart de `pico8_ie_start.id` à chaque init, `ie:ldown` l'incrémente ; lu par `pico8_ie_id(&out)` (0 = nil) |

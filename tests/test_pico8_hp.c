@@ -167,6 +167,13 @@ static uint32_t fold_names(uint32_t h, const pico8_str_seq_t *names) {
     return h;
 }
 
+/* The cart's `mr` and `gp` of `hp`, gone from the port since each position
+ * writes its member directly; the frozen defaults fold still reads them. */
+static const char *const cart_mr_items[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
+static const pico8_str_seq_t CART_MR = {8, cart_mr_items};
+static const char *const cart_gp_items[] = {"o", "dm"};
+static const pico8_str_seq_t CART_GP = {2, cart_gp_items};
+
 static uint32_t fold_absent(uint32_t h) {
     return fnv(h, 0xFFFFFFFFu);
 }
@@ -413,13 +420,11 @@ static void *last_with_px(const char *px) {
 }
 
 /* Every project of `gb` as `hp:pq` left it: its own fields, `i`, `lq`, the
- * class's `mr`/`gp`/`fk` shared by all, and `gb[px]` aliasing the last
+ * class's `fk` shared by all, and `gb[px]` aliasing the last
  * project of that `px`. */
 static void test_gb(void) {
     uint32_t h = 2166136261u;
     uint32_t d = 2166136261u;
-    void *mr = NULL;
-    void *gp = NULL;
     void *fk = NULL;
     int named = 0;
     int k;
@@ -472,12 +477,10 @@ static void test_gb(void) {
         }
 
         if (k == 1) {
-            mr = (void *)b->mr;
-            gp = (void *)b->gp;
             fk = (void *)b->fk;
-            assert(mr != NULL && gp != NULL && fk != NULL);
+            assert(fk != NULL);
         }
-        assert((void *)b->mr == mr && (void *)b->gp == gp && (void *)b->fk == fk);
+        assert((void *)b->fk == fk);
         if (b->px != NULL) {
             found = pico8_gb_find(b->px);
             assert(found != NULL);
@@ -485,9 +488,9 @@ static void test_gb(void) {
             h = fnv(h, (uint32_t)gb_rank(found));
         }
     }
-    assert(mr == &pico8_hp_mr_names && gp == &pico8_hp_gp_names && fk == &pico8_hp_fk_row);
-    d = fold_names(d, mr);
-    d = fold_names(d, gp);
+    assert(fk == &pico8_hp_fk_row);
+    d = fold_names(d, &CART_MR);
+    d = fold_names(d, &CART_GP);
     d = fold_row(d, fk, 2);
     check("gb", h, GB_HASH);
     check("mr gp fk", d, DEFAULTS_HASH);
@@ -933,10 +936,10 @@ static void hu_on_other(void *e) {
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its
- * `mr`/`gp`/`fk` the class's; a header entry, a value `gp` maps that `r`
- * lacks, `ii` without `px`, more positions than `mr`, or a position of the
+ * `fk` the class's; a header entry, a value `gp` maps that `r`
+ * lacks, `ii` without `px`, more than eight positions, or a position of the
  * wrong type stops its construction, and its functions
- * refuse anything that is not a project. With no key, only `mr`/`gp`/`fk`, an empty `i` and the `lq`
+ * refuse anything that is not a project. With no key, only `fk`, an empty `i` and the `lq`
  * method. */
 static void test_hp_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_hp_struct_class();
@@ -957,9 +960,8 @@ static void test_hp_is_a_struct(void) {
 
     bare = pico8_hp_new(NULL);
     assert(bare != NULL && bare->header.cls == cls);
-    assert(bare->mr != NULL && bare->mr == b->mr && bare->gp != NULL && bare->gp == b->gp);
     assert(bare->fk != NULL && bare->fk == b->fk);
-    assert(bare->mr == pico8_hp_start.mr && bare->gp == pico8_hp_start.gp && bare->fk == pico8_hp_start.fk);
+    assert(bare->fk == pico8_hp_start.fk);
     assert(bare->i != NULL && bare->i->count == 0);
     assert(bare->lq == NULL);
     assert(bare->px == NULL && bare->lr == NULL && !bare->has_fj && bare->ja == NULL && !bare->has_o);
@@ -970,7 +972,7 @@ static void test_hp_is_a_struct(void) {
     must_abort(build_with_header, NULL);
     must_abort(build_with_o_missing_from_r, NULL);
     must_abort(build_with_ii_and_no_px, NULL);
-    must_abort_saying(build_with_nine_positions, NULL, "ri->npos <= self->mr->count");
+    must_abort_saying(build_with_nine_positions, NULL, "hp: fd has eight positions");
     must_abort(build_with_no_px_string, NULL);
     must_abort(build_with_no_o_number, NULL);
     must_abort(od_on_other, pico8_ok());

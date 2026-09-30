@@ -107,14 +107,3 @@ char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color) {
     free(num_str);
     return result;
 }
-
-int pico8_ho_gp_has(const pico8_str_seq_t *gp, const char *p) {
-    int j;
-
-    for (j = 0; gp != NULL && j < gp->count; j++) {
-        if (strcmp(gp->items[j], p) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}

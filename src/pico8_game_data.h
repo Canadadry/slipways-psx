@@ -239,8 +239,6 @@ typedef struct {
 } pico8_fv_start_t;
 
 typedef struct {
-    const pico8_str_seq_t *mr;
-    const pico8_str_seq_t *gp;
     const pico8_jb_row_t *fk;
 } pico8_hp_start_t;
 
@@ -497,8 +495,6 @@ extern const pico8_str_seq_t pico8_mz_nu_tags;
 extern const pico8_int_seq_t pico8_mz_kk_seq;
 extern const pico8_int_seq_t pico8_bg_pl_seq;
 extern const pico8_vec_seq_t pico8_qb_pc_vecs;
-extern const pico8_str_seq_t pico8_hp_mr_names;
-extern const pico8_str_seq_t pico8_hp_gp_names;
 extern const pico8_jb_row_t pico8_hp_fk_row;
 /* Draw rows: each item a row of positionals then its fn; gs has two false. */
 extern const pico8_jb_row_t pico8_fv_rb_row;

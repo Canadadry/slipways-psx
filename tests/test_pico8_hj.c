@@ -183,8 +183,8 @@ static pico8_hj_t *as_hj(void *e) {
 }
 
 static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
-    return ((const pico8_struct_header_t *)hj)->cls == pico8_pm_struct_class() ? fold_bool_member(h, hj->emitter->pk != 0)
-                                                                              : fold_fixed_member(h, hj->emitter->pk);
+    return hj->qh.jo.header.cls == pico8_pm_struct_class() ? fold_bool_member(h, hj->emitter->pk != 0)
+                                                           : fold_fixed_member(h, hj->emitter->pk);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */

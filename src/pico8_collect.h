@@ -35,8 +35,4 @@ int pico8_gu_content_ptrs(const pico8_ptrs_t *qk, const char *kb);
  * (no suffix). A caller that wants only the string may pass any `c`. */
 char *pico8_ne(pico8_fixed_t d, int c, const char *ku, int *out_color);
 
-/* 1 when `gp` (NULL: none) lists the name `p`: the fields `ho` maps
- * through `r`. */
-int pico8_ho_gp_has(const pico8_str_seq_t *gp, const char *p);
-
 #endif

@@ -198,8 +198,6 @@ static void test_g__defaults_and_ready(void) {
 static void test_hp_defaults_and_ready(void) {
     pico8_hp_t *hp = pico8_hp_new(NULL);
 
-    assert(hp->mr == pico8_hp_start.mr);
-    assert(hp->gp == pico8_hp_start.gp);
     assert(hp->fk == pico8_hp_start.fk);
     assert(pico8_hp_ready());
     pico8_research_shutdown();

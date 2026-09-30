@@ -267,12 +267,6 @@ static const pico8_jb_item_t fv_rb_items[] = {{.row = &fv_rb_1}, {.row = &fv_rb_
     {.row = &fv_rb_4}};
 const pico8_jb_row_t pico8_fv_rb_row = {.count = 4, .items = fv_rb_items};
 
-static const char *const hp_mr_items[] = {"px", "lr", "fj", "ja", "i", "o", "il", "dm"};
-const pico8_str_seq_t pico8_hp_mr_names = {8, hp_mr_items};
-
-static const char *const hp_gp_items[] = {"o", "dm"};
-const pico8_str_seq_t pico8_hp_gp_names = {2, hp_gp_items};
-
 static const pico8_jb_item_t hp_fk_items[] = {{.is_false = 1}, {.n = 2}};
 const pico8_jb_row_t pico8_hp_fk_row = {.count = 2, .items = hp_fk_items};
 
@@ -459,8 +453,6 @@ const pico8_fv_start_t pico8_fv_start = {
 };
 
 const pico8_hp_start_t pico8_hp_start = {
-    .mr = &pico8_hp_mr_names,
-    .gp = &pico8_hp_gp_names,
     .fk = &pico8_hp_fk_row,
 };
 

@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
 #include "pico8_tech_gate.h"
 
 static int g_hp_up = 0;
@@ -53,78 +52,61 @@ static void pico8_research_gb_register(pico8_hp_t *hp) {
 
 static const pico8_struct_class_t g_hp_struct_class = {0};
 
-/* `s` NULL with `is_fixed` 0 is false. `i` gets the raw string that
- * `hp:pq` turns into its list afterwards. Position `p` is `hp.mr[p]`, the
- * class's constant. */
-static void hp_pose(pico8_hp_t *self, int p, const char *s, int is_fixed, pico8_fixed_t fixed,
-                    const char **i_src) {
-    if (p == 0 || p == 1 || p == 3 || p == 4) {
-        assert(s != NULL && "hp.px/lr/ja/i: a position that is not a string does not fit the member's type "
-                            "-- stop, do not widen the member");
-    } else if (p == 2 || p == 5 || p == 7) {
-        assert(is_fixed && "hp.fj/o/dm: a position that is not a number does not fit the member's type "
-                           "-- stop, do not widen the member");
-    } else {
-        assert(!is_fixed && "hp: `il` gets a number -- stop, do not add one");
-    }
-    switch (p) {
-    case 0:
-        self->px = s;
-        break;
-    case 1:
-        self->lr = s;
-        break;
-    case 2:
-        self->fj = fixed;
-        self->has_fj = 1;
-        break;
-    case 3:
-        self->ja = s;
-        break;
-    case 4:
-        *i_src = s;
-        break;
-    case 5:
-        self->o = fixed;
-        self->has_o = 1;
-        break;
-    case 6:
-        self->il = s;
-        self->has_il = 1;
-        break;
-    default:
-        self->dm = fixed;
-        self->has_dm = 1;
-        break;
-    }
+static const char *hp_string(const char *s) {
+    assert(s != NULL && "hp.px/lr/ja/i: a position that is not a string does not fit the member's type "
+                        "-- stop, do not widen the member");
+    return s;
 }
 
-/* `ho(gb, mr, gp)` on one record of `fd`: position `p` names the member
- * `mr[p]`, and a member that `gp` names takes `r[value]`. */
-static void hp_ho(pico8_hp_t *self, const pico8_fd_entry_t *ri, const char **i_src) {
-    const char *const strings[8] = {ri->px, ri->lr, NULL, ri->ja, ri->i, ri->o, ri->il, ri->dm};
-    int p;
+/* `r[s]`, for the two positions `gp` names: `o` and `dm`. */
+static pico8_fixed_t hp_r(const char *s) {
+    int qe = 0;
+    int found;
+
+    assert(s != NULL && "hp.fj/o/dm: a position that is not a number does not fit the member's type "
+                        "-- stop, do not widen the member");
+    found = pico8_r_lookup(s, &qe);
+    assert(found && "hp: a value that gp maps through r is missing from r; it would stay a string in a "
+                    "fixed member -- stop, do not widen the member");
+    (void)found;
+    return pico8_fixed_from_int(qe);
+}
+
+/* `ho(gb, mr, gp)` on one record of `fd`: positions 1..npos are `px`, `lr`,
+ * `fj`, `ja`, `i`, `o`, `il`, `dm`. `i` gets the raw string that `hp:pq`
+ * turns into its list afterwards. */
+static void hp_positions(pico8_hp_t *self, const pico8_fd_entry_t *ri, const char **i_src) {
+    int n = ri->npos;
 
     assert(ri->header == NULL && "hp: a header entry of fd is the rr of the records after it, not a project");
-    assert(ri->npos <= self->mr->count && ri->npos <= 8);
-    for (p = 0; p < ri->npos; p++) {
-        const char *name = self->mr->items[p];
-        const char *s = p == 6 && ri->il_false ? NULL : strings[p];
-        int is_fixed = p == 2;
-        pico8_fixed_t fixed = is_fixed ? pico8_fixed_from_int(ri->fj) : 0;
-
-        if (s != NULL && pico8_ho_gp_has(self->gp, name)) {
-            int qe = 0;
-            int found = pico8_r_lookup(s, &qe);
-
-            assert(found && "hp: a value that gp maps through r is missing from r; it would stay a string in a "
-                            "fixed member -- stop, do not widen the member");
-            (void)found;
-            s = NULL;
-            is_fixed = 1;
-            fixed = pico8_fixed_from_int(qe);
-        }
-        hp_pose(self, p, s, is_fixed, fixed, i_src);
+    assert(n <= 8 && "hp: fd has eight positions, px to dm");
+    if (n >= 1) {
+        self->px = hp_string(ri->px);
+    }
+    if (n >= 2) {
+        self->lr = hp_string(ri->lr);
+    }
+    if (n >= 3) {
+        self->fj = pico8_fixed_from_int(ri->fj);
+        self->has_fj = 1;
+    }
+    if (n >= 4) {
+        self->ja = hp_string(ri->ja);
+    }
+    if (n >= 5) {
+        *i_src = hp_string(ri->i);
+    }
+    if (n >= 6) {
+        self->o = hp_r(ri->o);
+        self->has_o = 1;
+    }
+    if (n >= 7) {
+        self->il = ri->il_false ? NULL : ri->il;
+        self->has_il = 1;
+    }
+    if (n >= 8) {
+        self->dm = hp_r(ri->dm);
+        self->has_dm = 1;
     }
 }
 
@@ -153,8 +135,6 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     size_t c;
 
     self->header.cls = &g_hp_struct_class;
-    self->mr = NULL;
-    self->gp = NULL;
     self->fk = NULL;
     self->px = NULL;
     self->lr = NULL;
@@ -176,14 +156,12 @@ static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     self->rn = 0;
     self->has_rn = 0;
     self->lq = NULL;
-    self->mr = pico8_hp_start.mr;
-    self->gp = pico8_hp_start.gp;
     self->fk = pico8_hp_start.fk;
 
     if (keys != NULL && keys->ri != NULL) {
         const pico8_fd_entry_t *ri = keys->ri;
 
-        hp_ho(self, ri, &i_src);
+        hp_positions(self, ri, &i_src);
         if (ri->has_ii) {
             self->ii = pico8_fixed_from_int(ri->ii);
             self->has_ii = 1;
