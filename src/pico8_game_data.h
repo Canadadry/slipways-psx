@@ -411,7 +411,8 @@ typedef struct {
 
 /* The ten planet kinds share this type; a kind's value leaves at zero the
  * members of the kinds it does not descend from. `kw`, and ga's `by`, point
- * at objects their module owns: not here. */
+ * at objects their module owns, and `kw_own` only holds what `lz` writes:
+ * not here. */
 typedef struct {
     const char *me;
     pico8_fixed_t t;
@@ -428,7 +429,6 @@ typedef struct {
     const pico8_jb_row_t *em;
     pico8_fixed_t mi;
     int has_mi;
-    pico8_kw_t kw_own;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
     int qh;
@@ -713,6 +713,9 @@ extern const pico8_jo_def_t pico8_jo_def;
 extern const pico8_jo_def_t pico8_qh_def;
 extern const pico8_jo_def_t pico8_nl_def;
 extern const pico8_jo_def_t pico8_os_def;
+extern const pico8_jo_def_t pico8_hj_def;
+extern const pico8_jo_def_t pico8_pm_def;
+extern const pico8_jo_def_t pico8_mx_def;
 extern const pico8_kind_rec_t pico8_qh_kind_rec;
 extern const pico8_kind_rec_t pico8_nl_kind_rec;
 extern const pico8_kind_rec_t pico8_os_kind_rec;

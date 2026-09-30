@@ -83,7 +83,7 @@ Par type (comptes égaux à ceux de `--champs`, 36 types, plus les deux composan
 | `jc_mouse_point` | 2 | 0 | 0 | 2 | 0 | 0 |
 | `jc` | 15 | 1 | 2 | 3 | 9 | 0 |
 | `jc_too_far` | 2 | 1 | 0 | 0 | 1 | 0 |
-| `jo` | 37 | 10 | 6 | 1 | 20 | 0 |
+| `jo` | 37 | 10 | 5 | 1 | 21 | 0 |
 | `js` | 26 | 0 | 1 | 16 | 9 | 0 |
 | `lq` | 13 | 0 | 0 | 8 | 5 | 0 |
 | `mh` | 7 | 1 | 1 | 3 | 2 | 0 |
@@ -106,7 +106,7 @@ Par type (comptes égaux à ceux de `--champs`, 36 types, plus les deux composan
 
 Les 69 champs **A** : `bg.fa`/`hd`/`pl` ; `fq.fa`/`hd` ; `fr.mt` ; `fv.ca`/`eo`/`ff`/`fg`/`gq`/`hi`/`kq`/`ql`/`rb` ; `g_.fa`/`fx` ; `ga.fz` ; `hj.rr` ; `hp.fk` ; `ie.eh`/`fa`/`kq` ; `iv.fa`/`v` ; `jc.k_` ; `jc_too_far.qs` ; `jo.ca`/`cq`/`dz`/`em`/`fa`/`gq`/`hf`/`hs`/`ka`/`kq` ; `mh.fa` ; `mz_jj.qs` ; `mz.fa`/`kk`/`spawn_snd` ; `nl.nl`/`rr` ; `nr.hz`/`rr` ; `pj_cr.ca`/`gq`/`hi` ; `pj.gs`/`i_` ; `pm.fz`/`ng` ; `qb.pc` ; `qh.ba`/`hp`/`px`/`qh` ; `ui.fa`/`hw`/`ql` ; émetteur `ki`/`pk`/`fc` ; sonde `dw`/`dq`/`fp`/`ik`/`has_ik`.
 
-Les 42 champs **I** : `g_.ra` ; `ga.iu`/`ms` ; `hy.nz`/`ew`/`lo`/`yr` ; `ie.ra` ; `iv.l` ; `jc.fa`/`nh` ; `jo.by`/`has_mi`/`kw`/`kw_own`/`ma`/`mi` ; `js.fa` ; `mh.rh` ; `mx.ht` ; `mz.oi` ; `nf.ra` ; `nl.qw` ; `pj.fa` ; `qb.ma`/`p`/`ra`/`v` ; `qh.s` ; en-tête `me`/`t` ; `ui.le` ; émetteur `pn`/`du`/`py`/`k_`/`qo`/`ro`/`qg`/`q_` ; sonde `od`/`has_od`. Dix d'entre eux ne sont réécrits que par une clé de construction, jamais après : `ga.iu`/`ms`, `js.fa`, `mh.rh`, et six membres de l'émetteur (`pn`/`du`/`py` dans `pico8_g__struct_new` ; `py`/`k_`/`qo`/`ro`/`qg`/`q_` par `keys->pq` dans `pico8_ga_struct_new`). La règle 1 les garde dans l'instance : ils sont écrits sur l'instance, hors de la valeur de classe.
+Les 41 champs **I** : `g_.ra` ; `ga.iu`/`ms` ; `hy.nz`/`ew`/`lo`/`yr` ; `ie.ra` ; `iv.l` ; `jc.fa`/`nh` ; `jo.by`/`has_mi`/`kw`/`ma`/`mi` ; `js.fa` ; `mh.rh` ; `mx.ht` ; `mz.oi` ; `nf.ra` ; `nl.qw` ; `pj.fa` ; `qb.ma`/`p`/`ra`/`v` ; `qh.s` ; en-tête `me`/`t` ; `ui.le` ; émetteur `pn`/`du`/`py`/`k_`/`qo`/`ro`/`qg`/`q_` ; sonde `od`/`has_od`. Dix d'entre eux ne sont réécrits que par une clé de construction, jamais après : `ga.iu`/`ms`, `js.fa`, `mh.rh`, et six membres de l'émetteur (`pn`/`du`/`py` dans `pico8_g__struct_new` ; `py`/`k_`/`qo`/`ro`/`qg`/`q_` par `keys->pq` dans `pico8_ga_struct_new`). La règle 1 les garde dans l'instance : ils sont écrits sur l'instance, hors de la valeur de classe.
 
 ### Verdicts non mécaniques
 
@@ -189,7 +189,6 @@ typedef struct {
     const pico8_int_seq_t *ka;
     const pico8_jb_row_t *dz;
     const pico8_int_seq_t *cq;
-    pico8_kw_t kw_own;
     pico8_vec_t gq;
     pico8_fixed_t ca;
     const pico8_jb_row_t *em;
@@ -217,7 +216,7 @@ const pico8_jo_def_t pico8_nl_def = {
     .hf = 0, .hs = 0x10000, .fa = 0x60000,
     .kq = {-0x70000, -0x70000, 0x70000, 0x70000},
     .ma = 0x0, .ka = &pico8_jo_ka_seq, .dz = pico8_jo_dz_rows, .cq = &pico8_jo_cq_seq,
-    .kw_own = {0, 0x0, 0x0}, .gq = {0x0, 0xb0000}, .ca = 0x90000, .em = &pico8_jo_em_row,
+    .gq = {0x0, 0xb0000}, .ca = 0x90000, .em = &pico8_jo_em_row,
     .mi = 0x10000, .has_mi = 1,
     .hp = 0x60000, .px = &pico8_nl_px_row, .qh = 0, .s = 0x440000, .ba = &pico8_nl_ba_seq,
     .rr = nl_rr_text, .nl = 0x10000, .qw = 0xf0000,
@@ -265,20 +264,20 @@ Troisième passe, après la revue du vérificateur, sur une copie de `d9a2b2d`. 
 
 ### Part copiée à l'init
 
-Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `def`. S'y ajoutent `me`/`t` de l'en-tête pour toutes les classes qui descendent de `ke`, et `kw_own` : l'init fait `self->kw_own = def->kw_own`. Les écritures qui rendent chacun de ces champs mutables sont dans la colonne « hors construction » de l'annexe A. Un champ noté « 0 ou NULL » y garde un défaut nul pour cette classe.
+Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `def`. S'y ajoutent `me`/`t` de l'en-tête pour toutes les classes qui descendent de `ke`. `kw_own` n'en est pas : c'est un E (corrigé à 2.12e1, annexe A). Les écritures qui rendent chacun de ces champs mutables sont dans la colonne « hors construction » de l'annexe A. Un champ noté « 0 ou NULL » y garde un défaut nul pour cette classe.
 
 | Classe | Champs I copiés (hors `me`/`t`) |
 |---|---|
-| `jo` | `jo.by` (0 ou NULL), `jo.has_mi` (nil), `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi` (nil) |
-| `qh` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
-| `nl` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `nl.qw`, `qh.s`, `probe.od`, `probe.has_od` |
-| `os` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
-| `hj` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
-| `pm` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
-| `mx` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `mx.ht`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
-| `ga` | `ga.iu`, `ga.ms`, `jo.by` (défaut `&g_ga_by_shared`, objet statique du module : reste écrit par l'init), `jo.has_mi` (0 ou NULL), `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi` (nil), `emitter.pn` (nil), `emitter.du` (nil), `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_` |
-| `nr` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
-| `fr` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.kw_own`, `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `jo` | `jo.by` (0 ou NULL), `jo.has_mi` (nil), `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi` (nil) |
+| `qh` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `nl` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `nl.qw`, `qh.s`, `probe.od`, `probe.has_od` |
+| `os` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `hj` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `pm` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `mx` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `mx.ht`, `qh.s`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
+| `ga` | `ga.iu`, `ga.ms`, `jo.by` (défaut `&g_ga_by_shared`, objet statique du module : reste écrit par l'init), `jo.has_mi` (0 ou NULL), `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi` (nil), `emitter.pn` (nil), `emitter.du` (nil), `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_` |
+| `nr` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
+| `fr` | `jo.by` (0 ou NULL), `jo.has_mi`, `jo.kw` (défaut `&g_jo_kw_shared`, objet statique du module : reste écrit par l'init), `jo.ma`, `jo.mi`, `qh.s`, `probe.od`, `probe.has_od` |
 | `g_` | `g_.ra` (0 ou NULL), `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
 | `fv` | `g_.ra`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od`, `probe.has_od` |
 | `bg` | — |
@@ -305,7 +304,7 @@ Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `d
 Trois exceptions, écrites dans le TU :
 
 - `jo.kw`, `jo.by` de `ga`, `ui.le`, `nf.ra`, `mz.jj` : leur valeur de classe est un objet statique du module, hors archétype (§2). Ils se comparent à cet objet, et `jo.by` des neuf autres sortes à NULL. Ils ne comptent pas dans les comparaisons à l'archétype.
-- `jo.kw`/`kw_own` des neuf descendants de `qh` : `pico8_jo_pq` appelle `pico8_jo_lz` quand la planète a un `hp`, et les réécrit. Ils se comparent sur `jo`, que `lz` ne touche pas au `_new`.
+- `jo.kw_own` n'est pas un champ d'archétype (E, corrigé à 2.12e1) : c'est le stockage de la table que `pico8_jo_lz` crée, lu seulement par `kw` après que `lz` a écrit ses trois membres. Le test ne le compare sur aucune sorte ; `assert_lz_ran` vérifie que `kw` pointe dessus sur les huit sortes où `lz` tourne (toutes sauf `jo` et `ga`).
 - La sonde `et` et l'émetteur `qy` (E, groupes Q7) ne sont pas dans l'archétype. Le test vérifie la valeur que le `_new` leur laisse : `et` NULL, et `qy` tel que `pico8_f_` le laisse.
 
 **Groupes de Q7.** Chaque membre nommé par le plan, pour chaque classe que le plan lui associe : classe du champ, puis valeur résolue.
@@ -356,16 +355,16 @@ Tout le groupe émetteur est A ou I pour les six classes, sauf `qy` (E). `pn`, `
 | `jc` | b | 6 + 6 | `en-tête.me` |
 | `g_` | c | 10 + 13 | — |
 | `fv` | c | 19 + 13 | `g_.fa`, `g_.ra`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.ki`, `emitter.fc`, `emitter.k_`, `emitter.ro`, `emitter.qg` |
-| `jo` | d | 10 + 6 | `en-tête.me` |
-| `qh` | d | 19 + 9 | `jo.has_mi`, `jo.hf`, `jo.mi`, `en-tête.me` |
-| `nl` | d | 21 + 10 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.ba`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
-| `os` | d | 19 + 9 | `jo.has_mi`, `jo.hf`, `jo.hs`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me` |
-| `hj` | e1 | 23 + 17 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
-| `pm` | e1 | 25 + 17 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.pk`, `emitter.fc`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od` |
-| `mx` | e1 | 23 + 18 | `hj.rr`, `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.du`, `emitter.fc`, `emitter.k_`, `probe.od` |
-| `ga` | e2 | 14 + 16 | `jo.by`, `jo.fa`, `jo.hf`, `jo.kq`, `en-tête.me` |
-| `nr` | e2 | 21 + 9 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
-| `fr` | e2 | 22 + 9 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `nr.hz`, `nr.rr`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
+| `jo` | d | 10 + 5 | `en-tête.me` |
+| `qh` | d | 19 + 8 | `jo.has_mi`, `jo.hf`, `jo.mi`, `en-tête.me` |
+| `nl` | d | 21 + 9 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.ba`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
+| `os` | d | 19 + 8 | `jo.has_mi`, `jo.hf`, `jo.hs`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me` |
+| `hj` | e1 | 23 + 16 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
+| `pm` | e1 | 25 + 16 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.pk`, `emitter.fc`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od` |
+| `mx` | e1 | 23 + 17 | `hj.rr`, `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.du`, `emitter.fc`, `emitter.k_`, `probe.od` |
+| `ga` | e2 | 14 + 15 | `jo.by`, `jo.fa`, `jo.hf`, `jo.kq`, `en-tête.me` |
+| `nr` | e2 | 21 + 8 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
+| `fr` | e2 | 22 + 8 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `nr.hz`, `nr.rr`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
 
 **Preuve qu'il mord : deux mutations par famille**, une à la fois, sur l'archétype, jamais sur la chaîne :
 
@@ -382,7 +381,7 @@ Chaque mutation doit rendre le TU rouge. Une mutation verte est un `FAILED:` de 
 
 ## 4. Liste ordonnée de 2.12 et 2.13
 
-Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famille a), sans archétype propre. `ke` n'a pas d'archétype : ses `me`/`t` entrent dans chaque archétype dès 2.12, et `pico8_ke_start` sort au dernier commit de 2.13. Les familles d et e forment un seul type d'archétype : d crée `pico8_jo_def_t` complet, avec les champs des dix sortes, et e n'ajoute que des valeurs. e est coupée en deux pour tenir ≈ 50 min (214 comparaisons). `hy` rejoint la famille a. Les comparaisons excluent les cinq champs qui pointent un objet statique (§3).
+Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famille a), sans archétype propre. `ke` n'a pas d'archétype : ses `me`/`t` entrent dans chaque archétype dès 2.12, et `pico8_ke_start` sort au dernier commit de 2.13. Les familles d et e forment un seul type d'archétype : d crée `pico8_jo_def_t` complet, avec les champs des dix sortes, et e n'ajoute que des valeurs. e est coupée en deux pour tenir ≈ 50 min (208 comparaisons). `hy` rejoint la famille a. Les comparaisons excluent les cinq champs qui pointent un objet statique (§3).
 
 **Comptes `défauts`** : `composition_residue.sh --check défauts` rend 669 lignes. Chacune est attribuée par les noms `pico8_X_start` qu'elle porte, et elle sort du compte quand le dernier de ces noms disparaît. Une ligne qui nomme plusieurs familles va donc à la dernière : `ke` se range en e2, avec `test_pico8_map_tables.c:156` et `test_pico8_spec_defaults.c:111`. Par famille : a1 66, a2 67 (dont `pj_cr` 8), b 29, c 104, d 179 (dont `pico8_jo_kw_start` 3), e1 127, e2 97 (dont `ke` 25).
 
@@ -393,9 +392,9 @@ Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famill
 | 2.12a | `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `hp`, `ie`, `pj`, `hy` | 51 | 669 |
 | 2.12b | `mz`, `jc`, avec `pico8_probe_def_t` | 25 | 669 |
 | 2.12c | `g_`, `fv` (type sonde), avec `pico8_emitter_def_t` | 55 | 669 |
-| 2.12d | `jo`, `qh`, `nl`, `os`, avec le type planète complet | 103 | 669 |
-| 2.12e1 | `hj`, `pm`, `mx` | 123 | 669 |
-| 2.12e2 | `ga`, `nr`, `fr` | 91 | 669 |
+| 2.12d | `jo`, `qh`, `nl`, `os`, avec le type planète complet | 100 (99 après 2.12e1) | 669 |
+| 2.12e1 | `hj`, `pm`, `mx` | 120 | 669 |
+| 2.12e2 | `ga`, `nr`, `fr` | 88 | 669 |
 
 2.13 — l'init lit l'archétype, sept sous-étapes :
 
@@ -581,7 +580,7 @@ Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de constr
 | `jo` | `kq` | A | planet.c:141 jo_struct_init; planet_family.c:588 ga_struct_new; planet_family_trade.c:201 nr_struct_init | — | — |  |
 | `jo` | `kr` | E | planet.c:166 jo_struct_init | economy.c:225 hy_lj | — |  |
 | `jo` | `kw` | I | planet.c:146 jo_struct_init | planet.c:328 jo_lz | T:ga.c:592 test_life; T:ga_export_panel_by.c:105 test_ga_export_line_counts_the_routes_in_by; T:lq.c:817 test_gh_w_maker_wants_no_more; T:planet_gh_row_lq.c:113 test_gh_exports_row_lq_receives_its_four_items | défaut `&g_jo_kw_shared`, objet statique partagé réécrit en place (S, hors de la liste), repointé sur `kw_own` par `pico8_jo_lz` |
-| `jo` | `kw_own` | I | planet.c:174 jo_struct_init | planet.c:325 jo_lz; planet.c:326 jo_lz; planet.c:327 jo_lz; planet.c:328 jo_lz (fuite) | — |  |
+| `jo` | `kw_own` | E | planet.c:174 jo_struct_init | planet.c:325 jo_lz; planet.c:326 jo_lz; planet.c:327 jo_lz; planet.c:328 jo_lz (fuite) | — | stockage de la table que `jo_lz` crée ; lu seulement par `kw`, après `lz` ; la valeur initiale n'est jamais lue (corrigé à 2.12e1) |
 | `jo` | `lq` | E | planet.c:160 jo_struct_init | planet_display.c:56 jo_hb | — |  |
 | `jo` | `m_` | E | planet.c:172 jo_struct_init | planet.c:111 jo_set_m_ | — |  |
 | `jo` | `ma` | I | planet.c:142 jo_struct_init | entity_geom.c:79 ma (fuite); planet.c:345 jo_kd | — | fuite `&jo->ma` de `pico8_ma` (`entity_geom.c:79`) suivie : `*ma = clamped` y écrit |
@@ -725,6 +724,8 @@ Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de constr
 | `probe` | `has_ik` | A | planet_family.c:73 qh_struct_init; probe.c:456 g__struct_init; slipway.c:408 jc_struct_new; wormhole.c:250 mz_struct_new | — | — |  |
 
 ## Annexe B — valeurs résolues par classe
+
+Correction 2.12e1 : les entrées `jo.kw_own` ci-dessous sont un E, hors archétype.
 
 Pour chaque classe qui reçoit un archétype : champ (type déclarant.membre) = valeur résolue (`[I]` : défaut d'un champ I), et la ligne qui la pose aujourd'hui, dernière écriture de la chaîne. Les valeurs `pico8_X_start.m` sont lues dans `game_data.c`, et les clés de construction sont exclues.
 

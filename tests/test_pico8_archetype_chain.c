@@ -20,6 +20,7 @@
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
+#include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
@@ -49,10 +50,6 @@ static void same_in(int ok, const char *kind, const char *field) {
 
     snprintf(what, sizeof what, "%s.%s", kind, field);
     same(ok, what);
-}
-
-static int same_kw(const pico8_kw_t *got, const pico8_kw_t *want) {
-    return got->has_qe == want->has_qe && got->qe == want->qe && got->mu == want->mu;
 }
 
 static int same_text(const char *got, const char *want) {
@@ -305,7 +302,7 @@ static void test_fv(void) {
     assert(fv->g_.probe->et == NULL);
 }
 
-/* `kw_own`, `kw` and `by` are left to each kind's test. */
+/* `kw`, `kw_own` and `by` are not the archetype's: left to each kind's test. */
 static void same_jo_part(const pico8_jo_t *jo, const pico8_jo_def_t *def, const char *kind) {
     same_in(same_text(jo->header.me, def->me), kind, "me");
     same_in(jo->header.t == def->t, kind, "t");
@@ -341,9 +338,8 @@ static void same_qh_part(const pico8_qh_t *qh, const pico8_jo_def_t *def, const 
     assert(qh->jo.by == NULL);
 }
 
-/* A kind of the qh tree has an `hp`: its `_new` runs `lz`, which rewrites
- * `kw_own` from that research and points `kw` at it. Its `kw_own` is
- * compared on jo only. */
+/* A kind of the qh tree has an `hp`: its `_new` runs `lz`, which fills
+ * `kw_own` from that research and points `kw` at it. */
 static void assert_lz_ran(const pico8_jo_t *jo) {
     assert(jo->hn != NULL && jo->kw == &jo->kw_own);
 }
@@ -353,7 +349,6 @@ static void test_jo(void) {
     const pico8_jo_t *jo = pico8_jo_new(NULL);
 
     same_jo_part(jo, &pico8_jo_def, "jo");
-    same_in(same_kw(&jo->kw_own, &pico8_jo_def.kw_own), "jo", "kw_own");
     assert(jo->kw == pico8_jo_shared_kw());
     assert(jo->by == NULL);
 }
@@ -383,6 +378,58 @@ static void test_os(void) {
     same_jo_part(&os->qh.jo, &pico8_os_def, "os");
     same_qh_part(&os->qh, &pico8_os_def, "os");
     assert_lz_ran(&os->qh.jo);
+}
+
+/* `qy` is left to each kind's test. */
+static void same_emitter_part(const pico8_emitter_t *emitter, const pico8_jo_def_t *def, const char *kind) {
+    same_in(emitter->pn == def->emitter.pn, kind, "emitter.pn");
+    same_in(emitter->du == def->emitter.du, kind, "emitter.du");
+    same_in(emitter->py == def->emitter.py, kind, "emitter.py");
+    same_in(emitter->ki == def->emitter.ki, kind, "emitter.ki");
+    same_in(emitter->pk == def->emitter.pk, kind, "emitter.pk");
+    same_in(emitter->fc == def->emitter.fc, kind, "emitter.fc");
+    same_in(emitter->k_ == def->emitter.k_, kind, "emitter.k_");
+    same_in(emitter->qo == def->emitter.qo, kind, "emitter.qo");
+    same_in(emitter->ro == def->emitter.ro, kind, "emitter.ro");
+    same_in(emitter->qg == def->emitter.qg, kind, "emitter.qg");
+    same_in(emitter->q_ == def->emitter.q_, kind, "emitter.q_");
+}
+
+/* `qy` is the fresh particle list `f_` gives every emitter. */
+static void test_hj(void) {
+    const pico8_hj_t *hj = pico8_hj_new(NULL);
+
+    same_jo_part(&hj->qh.jo, &pico8_hj_def, "hj");
+    same_qh_part(&hj->qh, &pico8_hj_def, "hj");
+    same_in(same_text(hj->rr, pico8_hj_def.rr), "hj", "rr");
+    same_emitter_part(hj->emitter, &pico8_hj_def, "hj");
+    assert(hj->emitter->qy != NULL && hj->emitter->qy->count == 0);
+    assert_lz_ran(&hj->qh.jo);
+}
+
+static void test_pm(void) {
+    const pico8_pm_t *pm = pico8_pm_new(NULL);
+
+    same_jo_part(&pm->hj.qh.jo, &pico8_pm_def, "pm");
+    same_qh_part(&pm->hj.qh, &pico8_pm_def, "pm");
+    same_in(same_text(pm->hj.rr, pico8_pm_def.rr), "pm", "rr");
+    same_in(same_vec(pm->ng, &pico8_pm_def.ng), "pm", "ng");
+    same_in(same_text(pm->fz, pico8_pm_def.fz), "pm", "fz");
+    same_emitter_part(pm->hj.emitter, &pico8_pm_def, "pm");
+    assert(pm->hj.emitter->qy != NULL && pm->hj.emitter->qy->count == 0);
+    assert_lz_ran(&pm->hj.qh.jo);
+}
+
+static void test_mx(void) {
+    const pico8_mx_t *mx = pico8_mx_new(NULL);
+
+    same_jo_part(&mx->hj.qh.jo, &pico8_mx_def, "mx");
+    same_qh_part(&mx->hj.qh, &pico8_mx_def, "mx");
+    same_in(same_text(mx->hj.rr, pico8_mx_def.rr), "mx", "rr");
+    same_in(mx->ht == pico8_mx_def.ht, "mx", "ht");
+    same_emitter_part(mx->hj.emitter, &pico8_mx_def, "mx");
+    assert(mx->hj.emitter->qy != NULL && mx->hj.emitter->qy->count == 0);
+    assert_lz_ran(&mx->hj.qh.jo);
 }
 
 int main(void) {
@@ -417,7 +464,10 @@ int main(void) {
     test_qh();
     test_nl();
     test_os();
-    assert(g_compared == 231 && "families a to d compare 231 fields: one missed or one too many");
+    test_hj();
+    test_pm();
+    test_mx();
+    assert(g_compared == 350 && "families a to e1 compare 350 fields: one missed or one too many");
 
     printf("test_pico8_archetype_chain: all tests passed\n");
     return 0;
