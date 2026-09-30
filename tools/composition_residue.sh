@@ -493,7 +493,9 @@ read_inclusions() {
 # chaines retires ; il voit la paire qu'un detour cache a inclusion-mutuelle.
 # Noms lus par motif : #define, prototype (un niveau de parentheses
 # internes), (*nom), dernier nom d'un typedef ou d'un extern hors des
-# accolades, enumerateur ; pas les etiquettes de struct. Un nom que deux
+# accolades, enumerateur ; pas les etiquettes de struct. Une fonction definie
+# dans l'en-tete (static inline) est lue comme un prototype, ce que
+# usegraph.py ne fait pas. Un nom que deux
 # en-tetes declarent n'est a aucun : les etiquettes, lues sans cette regle,
 # feraient six paires par les declarations anticipees de pico8_struct.h.
 # Rend dans $work/usage-mutuel.pairs les paires, dans $work/usage-mutuel le
@@ -516,7 +518,7 @@ read_usages() {
     function declare_all(    h, t, m, x) {
         for (h in full) {
             t = tops[h]
-            while (match(t, /[A-Za-z0-9_]+[ \t]*\(([^()]|\([^()]*\))*\)[ \t]*;/)) {
+            while (match(t, /[A-Za-z0-9_]+[ \t]*\(([^()]|\([^()]*\))*\)[ \t]*[;\001]/)) {
                 x = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
                 sub(/[^A-Za-z0-9_].*$/, "", x)
                 if (x !~ /^(if|for|while|return|sizeof|switch|void|int|char|const|unsigned)$/) declare(h, x)
@@ -558,7 +560,7 @@ read_usages() {
         }
         l = c
         while (match(l, /[{}]/)) {
-            if (hdepth[h] == 0) tops[h] = tops[h] substr(l, 1, RSTART - 1)
+            if (hdepth[h] == 0) tops[h] = tops[h] substr(l, 1, RSTART - 1) (substr(l, RSTART, 1) == "{" ? "\001" : "")
             hdepth[h] += substr(l, RSTART, 1) == "{" ? 1 : -1
             l = substr(l, RSTART + 1)
         }

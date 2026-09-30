@@ -629,6 +629,22 @@ static void test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment(void) 
     assert(strcmp(read_file(OUT), "résidu gardé (usage-mutuel) : 0 ligne(s)\n") == 0);
 }
 
+/* Une fonction static inline definie dans un en-tete est un nom qu'il
+ * declare, comme un prototype. */
+static void test_usage_pairs_read_a_static_inline_of_a_header(void) {
+    setup();
+    write_file(SRC "/a.h", "typedef struct {\n    int n;\n} s_t;\n"
+                           "static inline int a_f(const s_t *s) {\n    if (s) {\n        return s->n;\n    }\n"
+                           "    return 0;\n}\n");
+    write_file(SRC "/b.h", "int b_g(void);\n");
+    write_file(SRC "/a.c", "#include \"a.h\"\n#include \"b.h\"\nint a_k(void) {\n    return b_g();\n}\n");
+    write_file(SRC "/b.c", "#include \"a.h\"\n#include \"b.h\"\nint b_g(void) {\n    return a_f(0);\n}\n");
+    assert(run_residue("--check usage-mutuel " TREE) == 1);
+    assert(strcmp(read_file(OUT), "usage-mutuel: " SRC "/a.c:4:    return b_g();\n"
+                                  "usage-mutuel: " SRC "/b.c:4:    return a_f(0);\n"
+                                  "résidu gardé (usage-mutuel) : 2 ligne(s)\n") == 0);
+}
+
 static void test_detail_sorts_by_category_then_file(void) {
     setup();
     write_file(SRC "/b.c", "q = pico8_" "qh_of(b);\n");
@@ -728,6 +744,7 @@ int main(void) {
     test_attainment_list_counts_only_useful_lines();
     test_mutual_inclusion_counts_its_include_lines_in_the_footer();
     test_usage_pairs_see_a_detour_not_a_shared_name_nor_a_comment();
+    test_usage_pairs_read_a_static_inline_of_a_header();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();
