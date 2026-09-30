@@ -352,6 +352,7 @@ Découvert à 2.0 (2.0c, clôt l'étape 2.0) : `--champs` rend, sur `2f4c9aa`, *
 - **Q3** : la preuve par le compilateur est acceptée pour la règle 1, à côté du grep (voir règle 1).
 - **Q4** : le champ `nu`, une fois converti en bits, prend un nom neuf ; la catégorie `nu` tombe ainsi à zéro.
 - **Q-2.10** (étude 2.10, §5) : oui, chaque objet reçoit les liens de composant du noyau (environ 100 octets de plus par objet sur PC, 50 sur la PSX). La taille du code C est reprise plus tard, hors phase 2.
+- **Q-2.14d** (PRD 2.14c–d) : oui, `has_p_` et `has_m_` partent ; « faux » et « absent » deviennent le même 0, et les huit constantes d'empreinte de TU qui comptaient « faux » à part (`fq`, `mz` ×2, `ga` en 2.14d1 ; `bg`, `fq`, `fv`, `js` en 2.14d2) prennent leur valeur neuve, refaite au parent en ne changeant que le pli.
 
 Règles, appliquées sans supervision :
 
