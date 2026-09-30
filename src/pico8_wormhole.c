@@ -259,7 +259,6 @@ static void *pico8_mz_struct_new(void) {
     self->probe->od = pico8_mz_start.od;
     self->probe->has_od = 1;
     self->probe->fp = pico8_mz_start.fp;
-    self->probe->fp_is_bool = 0;
     self->fa = pico8_mz_start.fa;
     self->kk = pico8_mz_start.kk;
     self->jj = &g_mz_jj_wrapper;

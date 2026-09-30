@@ -69,7 +69,6 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->probe->od = pico8_qh_start.od;
     self->probe->has_od = 1;
     self->probe->fp = pico8_qh_start.fp;
-    self->probe->fp_is_bool = 0;
     self->probe->ik = 0;
     self->probe->has_ik = 0;
     self->probe->dw = pico8_qh_start.dw;
@@ -296,7 +295,6 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     self->emitter->ki = pico8_hj_start.ki;
     self->emitter->pn = pico8_hj_start.pn;
     self->emitter->pk = pico8_hj_start.pk;
-    self->emitter->pk_is_bool = pico8_hj_start.pk_is_bool;
     self->emitter->fc = pico8_hj_start.fc;
     self->emitter->k_ = pico8_hj_start.k_;
     self->emitter->du = pico8_hj_start.du;
@@ -405,7 +403,6 @@ static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     self->hj.emitter->ki = pico8_pm_start.ki;
     self->hj.emitter->pn = pico8_pm_start.pn;
     self->hj.emitter->pk = pico8_pm_start.pk;
-    self->hj.emitter->pk_is_bool = pico8_pm_start.pk_is_bool;
     self->hj.emitter->du = pico8_pm_start.du;
     self->hj.emitter->fc = pico8_pm_start.fc;
     self->hj.emitter->k_ = pico8_pm_start.k_;
@@ -580,7 +577,6 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     self->emitter->du = 0;
     self->emitter->ki = 0;
     self->emitter->pk = 0;
-    self->emitter->pk_is_bool = 0;
     self->emitter->fc = pico8_ga_start.fc;
     self->emitter->qo = pico8_ga_start.qo;
     self->emitter->ro = pico8_ga_start.ro;

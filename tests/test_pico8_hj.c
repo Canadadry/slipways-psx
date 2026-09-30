@@ -183,7 +183,8 @@ static pico8_hj_t *as_hj(void *e) {
 }
 
 static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
-    return hj->emitter->pk_is_bool ? fold_bool_member(h, hj->emitter->pk != 0) : fold_fixed_member(h, hj->emitter->pk);
+    return ((const pico8_struct_header_t *)hj)->cls == pico8_pm_struct_class() ? fold_bool_member(h, hj->emitter->pk != 0)
+                                                                              : fold_fixed_member(h, hj->emitter->pk);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -582,8 +583,7 @@ static void test_heirs(void) {
     keys.id = "s77";
     pm = pico8_pm_new(&keys);
 
-    assert(strcmp(as_hj(pm)->rr, "ascension") == 0 && as_hj(pm)->emitter->pk_is_bool &&
-           as_hj(pm)->emitter->pk == 0);
+    assert(strcmp(as_hj(pm)->rr, "ascension") == 0 && as_hj(pm)->emitter->pk == 0);
     assert(as_hj(pm)->qh.probe->od == pico8_fixed_from_int(60));
     assert(strcmp(as_hj(mx)->rr, "void synthesis") == 0);
     h = fold_heir(h, pm, pico8_pm_struct_class());

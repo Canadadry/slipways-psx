@@ -154,7 +154,7 @@ static void test_hj_defaults(void) {
     assert(hj->emitter->py == pico8_hj_start.py);
     assert(hj->emitter->ki == pico8_hj_start.ki);
     assert(hj->emitter->pn == pico8_hj_start.pn);
-    assert(hj->emitter->pk == pico8_hj_start.pk && hj->emitter->pk_is_bool == pico8_hj_start.pk_is_bool);
+    assert(hj->emitter->pk == pico8_hj_start.pk);
     assert(hj->emitter->fc == pico8_hj_start.fc);
     assert(hj->emitter->k_ == pico8_hj_start.k_);
     assert(hj->emitter->du == pico8_hj_start.du);
@@ -187,7 +187,7 @@ static void test_pm_defaults(void) {
     assert(pm->hj.emitter->py == pico8_pm_start.py);
     assert(pm->hj.emitter->ki == pico8_pm_start.ki);
     assert(pm->hj.emitter->pn == pico8_pm_start.pn);
-    assert(pm->hj.emitter->pk == pico8_pm_start.pk && pm->hj.emitter->pk_is_bool == pico8_pm_start.pk_is_bool);
+    assert(pm->hj.emitter->pk == pico8_pm_start.pk);
     assert_same_vec(pm->ng, &pico8_pm_start.ng);
     assert(pm->hj.emitter->du == pico8_pm_start.du);
     assert(pm->hj.emitter->fc == pico8_pm_start.fc);
@@ -297,7 +297,7 @@ static void test_mx_defaults(void) {
     assert(mx->hj.emitter->py == pico8_mx_start.py);
     assert(mx->hj.emitter->ki == pico8_mx_start.ki);
     assert(mx->hj.emitter->pn == pico8_mx_start.pn);
-    assert(mx->hj.emitter->pk == pico8_mx_start.pk && mx->hj.emitter->pk_is_bool == pico8_mx_start.pk_is_bool);
+    assert(mx->hj.emitter->pk == pico8_mx_start.pk);
     assert(mx->hj.emitter->fc == pico8_mx_start.fc);
     assert(mx->hj.emitter->k_ == pico8_mx_start.k_);
     assert(mx->hj.emitter->du == pico8_mx_start.du);

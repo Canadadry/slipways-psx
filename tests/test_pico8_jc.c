@@ -441,7 +441,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(jc->header.me != NULL && strcmp(jc->header.me, "kz") == 0);
     assert(jc->header.t == 0);
     assert(jc->fa == pico8_fixed_from_int(2));
-    assert(jc->probe->fp_is_bool && jc->probe->fp == 0);
+    assert(jc->probe->fp == 0);
     assert(jc->probe->ik == pico8_fixed_from_int(48));
     printf("[dw] 0x%08X\n", (unsigned)jc->probe->dw);
     assert(jc->probe->dw == (pico8_fixed_t)DW_BITS);

@@ -157,7 +157,7 @@ static pico8_hj_t *as_hj(void *e) {
 }
 
 static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
-    return hj->emitter->pk_is_bool ? fold_bool_member(h, hj->emitter->pk != 0) : fold_fixed_member(h, hj->emitter->pk);
+    return fold_fixed_member(h, hj->emitter->pk);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */

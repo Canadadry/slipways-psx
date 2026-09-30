@@ -381,7 +381,6 @@ static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
     self->hj.emitter->ki = pico8_mx_start.ki;
     self->hj.emitter->pn = pico8_mx_start.pn;
     self->hj.emitter->pk = pico8_mx_start.pk;
-    self->hj.emitter->pk_is_bool = pico8_mx_start.pk_is_bool;
     self->hj.emitter->fc = pico8_mx_start.fc;
     self->hj.emitter->k_ = pico8_mx_start.k_;
     self->hj.emitter->du = pico8_mx_start.du;

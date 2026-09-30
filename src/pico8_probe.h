@@ -19,8 +19,8 @@
 /* What `bv`, `dl` and `d_` read and write of their host, the probe's own
  * fields, stored in the host (`probe_own`) and never copied. `et` is
  * borrowed; NULL is nil or false, which no reader tells apart. `dq` NULL is
- * nil. A fixed `fp` is truthy even at 0, and `d_` hands it to `fm:nx`; a
- * boolean one hands 0. */
+ * nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is held as 0,
+ * which is what `self.fp or 0` hands. */
 typedef struct pico8_probe {
     pico8_struct_header_t *et;
     pico8_fixed_t dw;
@@ -28,7 +28,6 @@ typedef struct pico8_probe {
     int has_od; /* 0: `od` is nil, and is then never read */
     const char *dq;
     pico8_fixed_t fp;
-    int fp_is_bool; /* 1: `fp` holds a boolean (0/1), 0: a fixed */
     pico8_fixed_t ik;
     int has_ik; /* 0: `ik` is nil, and is then never read */
 } pico8_probe_t;

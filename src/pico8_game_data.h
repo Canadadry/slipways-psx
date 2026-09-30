@@ -338,7 +338,6 @@ typedef struct {
     pico8_fixed_t ki;
     pico8_fixed_t pn;
     pico8_fixed_t pk;
-    int pk_is_bool;
     pico8_fixed_t fc;
     const pico8_int_seq_t *k_;
     pico8_fixed_t du;
@@ -359,7 +358,6 @@ typedef struct {
     pico8_fixed_t ki;
     pico8_fixed_t pn;
     pico8_fixed_t pk;
-    int pk_is_bool;
     pico8_vec_t ng;
     pico8_fixed_t du;
     pico8_fixed_t fc;
@@ -430,7 +428,6 @@ typedef struct {
     pico8_fixed_t ki;
     pico8_fixed_t pn;
     pico8_fixed_t pk;
-    int pk_is_bool;
     pico8_fixed_t fc;
     const pico8_int_seq_t *k_;
     pico8_fixed_t du;

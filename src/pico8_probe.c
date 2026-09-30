@@ -333,8 +333,7 @@ int pico8_d_(pico8_struct_header_t *self) {
     if (!has_et && lu_ok) {
         pico8_ke_ks(self, probe->dq != NULL ? probe->dq : "ph");
 
-        /* A boolean `fp` hands 0 (`true` is no number), a fixed one itself. */
-        pico8_hy_nx(pico8_fm_hy(), probe->fp_is_bool ? pico8_fixed_from_int(0) : probe->fp);
+        pico8_hy_nx(pico8_fm_hy(), probe->fp);
 
         pico8_rn(probe->has_ik ? probe->ik : pico8_fixed_from_int(54));
 
@@ -368,8 +367,7 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
         du = emitter->du;
         py = emitter->py;
         ki = emitter->ki;
-        /* A fixed `pk` is truthy in Lua, 0 included. */
-        pk = emitter->pk_is_bool ? emitter->pk != 0 : 1;
+        pk = emitter->pk != 0;
     }
 
     /* Two statements, not two arguments: C leaves argument order unspecified
@@ -459,7 +457,6 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->probe->od = pico8_g__start.od;
     self->probe->has_od = 1;
     self->probe->fp = pico8_g__start.fp;
-    self->probe->fp_is_bool = 1;
     self->probe->ik = 0;
     self->probe->has_ik = 0;
     self->fa = pico8_g__start.fa;
@@ -468,7 +465,6 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->emitter->ki = pico8_g__start.ki;
     self->emitter->pn = pico8_g__start.pn;
     self->emitter->pk = pico8_g__start.pk;
-    self->emitter->pk_is_bool = 0;
     self->emitter->fc = pico8_g__start.fc;
     self->emitter->k_ = pico8_g__start.k_;
     self->emitter->qo = pico8_g__start.qo;

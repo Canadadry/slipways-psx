@@ -411,7 +411,6 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->probe = &self->probe_own;
     self->probe->dq = NULL;
     self->probe->fp = pico8_jc_start.fp;
-    self->probe->fp_is_bool = 1;
     self->probe->ik = pico8_jc_start.ik;
     self->probe->has_ik = 1;
     self->probe->dw = pico8_jc_start.dw;
