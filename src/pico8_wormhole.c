@@ -5,14 +5,12 @@
 #include <string.h>
 
 #include "pico8_audio.h"
-#include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_ke.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_tech_gate.h"
-#include "pico8_wormhole_display.h"
 
 static int g_mz_up = 0;
 
@@ -182,11 +180,6 @@ pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t) {
         oi = self->oi;
     }
     return pico8_fixed_mul(min_val, oi);
-}
-
-static void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra) {
-    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    pico8_mz_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mz_t *)self, p);
 }
 
 /* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,

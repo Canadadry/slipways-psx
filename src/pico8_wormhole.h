@@ -75,4 +75,6 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t);
 /* Reads `self.oi` only; `self` is non-const for signature uniformity. */
 pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t);
 
+void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra);
+
 #endif

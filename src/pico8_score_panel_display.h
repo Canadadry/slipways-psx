@@ -15,9 +15,6 @@ void pico8_pj_ph(pico8_pj_t *self);
  * deliberately left stale in that same case, as in the Lua. */
 void pico8_pj_hk(pico8_fixed_t yr);
 
-void pico8_score_panel_display_init(void);
-void pico8_score_panel_display_shutdown(void);
-
 /* The function `de.my` holds: `fq(de)` of `ix[3]` reads nothing else. */
 pico8_fq_my_fn pico8_de_my(void);
 

@@ -14,7 +14,6 @@
 #include "pico8_ke.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
-#include "pico8_slipway_display.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
 #include "pico8_vec.h"
@@ -327,11 +326,6 @@ static void pico8_jc_ey_dispatch(void *self, pico8_struct_header_t *kv) {
 static void pico8_jc_ev_dispatch(void *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_jc_ev((pico8_jc_t *)self);
-}
-
-static void pico8_jc_kj_dispatch(void *self, const pico8_vec_t *ra) {
-    (void)ra;
-    pico8_jc_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jc_t *)self);
 }
 
 static int jc_is_endpoint_class(const pico8_struct_class_t *cls) {

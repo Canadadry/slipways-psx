@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_planet.h"
@@ -169,4 +170,9 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
     }
 
     self->fo = NULL;
+}
+
+void pico8_jc_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    (void)ra;
+    pico8_jc_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jc_t *)self);
 }

@@ -334,3 +334,13 @@ void pico8_score_panel_display_shutdown(void) {
 pico8_fq_my_fn pico8_de_my(void) {
     return pico8_pj_de_my_dispatch;
 }
+
+void pico8_pj_hk_dispatch(void *self, pico8_fixed_t yr) {
+    (void)self;
+    pico8_pj_hk(yr);
+}
+
+void pico8_pj_ph_dispatch(void *self, pico8_fixed_t t) {
+    (void)t;
+    pico8_pj_ph((pico8_pj_t *)self);
+}

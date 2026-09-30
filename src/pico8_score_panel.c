@@ -18,7 +18,6 @@
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
-#include "pico8_score_panel_display.h"
 #include "pico8_str.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
@@ -260,16 +259,6 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self) {
 static void pico8_pj_kj_dispatch(void *self, const pico8_vec_t *ra) {
     (void)ra;
     pico8_pj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_pj_t *)self);
-}
-
-static void pico8_pj_hk_dispatch(void *self, pico8_fixed_t yr) {
-    (void)self;
-    pico8_pj_hk(yr);
-}
-
-static void pico8_pj_ph_dispatch(void *self, pico8_fixed_t t) {
-    (void)t;
-    pico8_pj_ph((pico8_pj_t *)self);
 }
 
 static const pico8_struct_class_t g_pj_struct_class = {

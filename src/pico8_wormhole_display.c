@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_wormhole.h"
@@ -72,4 +73,9 @@ void pico8_mz_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mz_t *self, pico8_vec
             }
         }
     }
+}
+
+void pico8_mz_kj_dispatch(void *self, const pico8_vec_t *ra) {
+    pico8_vec_t p = ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    pico8_mz_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_mz_t *)self, p);
 }
