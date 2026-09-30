@@ -8,6 +8,7 @@
 #include "pico8_geom.h"
 #include "pico8_ke.h"
 #include "pico8_layout.h"
+#include "pico8_probe.h"
 #include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_struct.h"
@@ -19,8 +20,11 @@
 /* A bare planet: its kind's archetype (`kw` points at the one kw every bare
  * planet shares, written in place by `bb` and `mx:kf`, until `lz` points it at
  * the planet's own `kw_own`), its construction keys `id`/`p`/`ra`, then every
- * field jo's functions write on it. Every planet struct begins with one, so
- * jo's functions take it for `self`. Nothing frees the struct: TROU-7. */
+ * field jo's functions write on it, then its kinds' fields. Every planet
+ * struct begins with one, so jo's functions take it for `self`. A kind's
+ * field is indeterminate on a planet of another kind; `probe`, `emitter` are
+ * NULL there, else they point at `probe_own`, `emitter_own`: never copy the
+ * struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_jo_def_t *def;
@@ -48,6 +52,14 @@ typedef struct {
     int has_mi;
     int m_;
     pico8_kw_t kw_own;
+    pico8_fixed_t s;           /* qh's lineage */
+    pico8_fixed_t qw;          /* nl */
+    pico8_fixed_t iu, ms;      /* ga */
+    const pico8_int_seq_t *ht; /* mx */
+    pico8_probe_t *probe;      /* qh's lineage */
+    pico8_emitter_t *emitter;  /* hj, pm, mx, ga */
+    pico8_probe_t probe_own;
+    pico8_emitter_t emitter_own;
 } pico8_jo_t;
 
 /* TROU-8 */

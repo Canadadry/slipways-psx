@@ -134,7 +134,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     pico8_lq_keys_t h_keys;
     pico8_lq_cell_t h_item;
     int n = 0;
-    const pico8_qh_t *qh;
     const pico8_jb_row_t *icon_row = NULL;
     pico8_lq_keys_t row_keys[PICO8_JO_GH_ROWS];
     pico8_lq_cell_t *row_items[PICO8_JO_GH_ROWS];
@@ -151,9 +150,8 @@ void pico8_jo_gh(const pico8_jo_t *self) {
 
     memset(bs, 0, sizeof bs);
     memset(row_keys, 0, sizeof row_keys);
-    qh = pico8_qh_of(&self->header);
-    if (qh != NULL && qh->jo.def->px != NULL) {
-        icon_row = qh->jo.def->px;
+    if ((self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) && self->def->px != NULL) {
+        icon_row = self->def->px;
     } else if (self->has_mi) {
         int mi = pico8_fixed_flr_int(self->mi);
 
@@ -202,7 +200,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         qe_is_r_w = kw != NULL && kw->has_qe && pico8_r_lookup("w", &r_w) && kw->qe == pico8_fixed_from_int(r_w);
 
         if (mi_fixed < pico8_fixed_from_int(4) && jy != NULL && jy->count > 0 && !qe_is_r_w) {
-            int last_only = qh != NULL && qh->jo.def->qh;
+            int last_only = (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) && self->def->qh;
 
             row_cap[n] = 1 + (last_only ? 1 : jy->count) + 1;
             row_items[n] = jo_gh_row_items(row_cap[n]);
@@ -401,8 +399,6 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     int px;
     int py;
     int spr_index = 43;
-    const pico8_qh_t *qh;
-    const pico8_nl_t *nl;
 
     if (self == NULL || !pico8_gd((const pico8_struct_header_t *)self)) {
         return;
@@ -426,18 +422,16 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     pico8_circfill(gfx, mem, px, py, 7, 0);
 
     /* An absent `qw` reads as 0, i.e. the default palette block. */
-    nl = pico8_nl_of(&self->header);
-    pico8_dv(mem, nl != NULL ? nl->qw : pico8_fixed_from_int(0));
+    pico8_dv(mem, (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_NL)) ? self->qw : pico8_fixed_from_int(0));
     pico8_palt(mem, 3, 0);
     pico8_palt(mem, 0, 1);
 
     /* `A and B or C`: `nk.s` is never absent, so only a nil `nk` falls
      * through to `self.s`, then to the literal 43. */
-    qh = pico8_qh_of(&self->header);
     if (self->nk != NULL) {
         spr_index = self->nk->s;
-    } else if (qh != NULL) {
-        spr_index = pico8_fixed_flr_int(qh->s);
+    } else if (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) {
+        spr_index = pico8_fixed_flr_int(self->s);
     }
     pico8_spr(gfx, mem, spr_index, px - 4, py - 4, 2, 2);
     pico8_dv_default(mem);

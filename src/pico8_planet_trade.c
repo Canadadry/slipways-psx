@@ -148,12 +148,10 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         qe_val = pico8_jy_qe(i);
 
         if (have_r_q && pico8_qe_equal(qe_val, r_q)) {
-            const pico8_qh_t *qh = pico8_qh_of(&self->header);
             int accepted = 0;
 
-            if (qh != NULL && qh->jo.def->ba != NULL) {
-                accepted = t_qe.kind == PICO8_QE_FIXED &&
-                           pico8_int_seq_has_fixed(qh->jo.def->ba, t_qe.n);
+            if ((self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) && self->def->ba != NULL) {
+                accepted = t_qe.kind == PICO8_QE_FIXED && pico8_int_seq_has_fixed(self->def->ba, t_qe.n);
             }
             if (accepted) {
                 assert(t_qe.kind == PICO8_QE_FIXED && "a want's qe is a resource of r, never a boolean");

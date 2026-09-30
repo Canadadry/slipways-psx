@@ -143,7 +143,7 @@ static pico8_hj_t *as_hj(void *e) {
 }
 
 static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
-    return fold_bool_member(h, hj->emitter->def->pk != 0);
+    return fold_bool_member(h, hj->qh.jo.emitter->def->pk != 0);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -239,8 +239,8 @@ static void *build_protostar(const pico8_vec_t *p, const pico8_vec_t *ra, const 
 /* `pm` sets its own `px`: an entity whose `px` is the very table of pm's
  * class is a protostar. */
 static int is_pm(const void *e) {
-    const pico8_qh_t *qh = pico8_qh_of(e);
-    return qh != NULL && qh->jo.def->px == &pico8_pm_px_row;
+    const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) ? e : NULL;
+    return jo != NULL && jo->def->px == &pico8_pm_px_row;
 }
 
 static int is_ga(const void *e) {
@@ -274,7 +274,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     }
     assert(gra != ra && gra != ng);
     h = fold_vec(h, g->jo.ra);
-    h = fnv(h, (uint32_t)ptrs_size(g->emitter->qy));
+    h = fnv(h, (uint32_t)ptrs_size(g->jo.emitter->qy));
     assert(pico8_mo_qb() != NULL);
     return fold_fixed_member(h, pico8_mo_qb()->ma);
 }
@@ -287,7 +287,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
 static uint32_t fold_protostar(uint32_t h, void *e) {
     const pico8_hj_t *hj = as_hj(e);
     const pico8_pm_t *pm;
-    const pico8_emitter_t *em = hj->emitter;
+    const pico8_emitter_t *em = hj->qh.jo.emitter;
     const pico8_qh_t *qh = &hj->qh;
     const pico8_jo_t *jo = &qh->jo;
     size_t i;
@@ -301,8 +301,8 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fold_string_member(h, hj->qh.jo.def->rr);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_fixed_member(h, qh->s);
-    h = fold_fixed_member(h, qh->probe->od);
+    h = fold_fixed_member(h, qh->jo.s);
+    h = fold_fixed_member(h, qh->jo.probe->od);
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, em->def->ki);
     h = fold_fixed_member(h, em->pn);
@@ -313,9 +313,9 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
-    h = fold_string_member(h, qh->probe->def->dq);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_string_member(h, qh->jo.probe->def->dq);
+    h = fold_fixed_member(h, qh->jo.probe->def->fp);
+    h = fold_fixed_member(h, qh->jo.probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
@@ -337,7 +337,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(hj->emitter->k_ != NULL));
+    h = fnv(h, (uint32_t)(hj->qh.jo.emitter->k_ != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -346,14 +346,14 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(em->qy != NULL));
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -433,7 +433,7 @@ static void test_built(void) {
     a = build_protostar(&pa, &ra_a, "s77");
     b = build_protostar(&pb, &ra_b, "s78");
     assert(a != b && is_pm(a) && is_pm(b));
-    assert(as_hj(a)->emitter->qy != NULL && as_hj(a)->emitter->qy != as_hj(b)->emitter->qy);
+    assert(as_hj(a)->qh.jo.emitter->qy != NULL && as_hj(a)->qh.jo.emitter->qy != as_hj(b)->qh.jo.emitter->qy);
     h = fold_protostar(h, a);
     h = fold_protostar(h, b);
     check("built", h, BUILT_HASH);
@@ -477,7 +477,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
 static uint32_t fold_draw(uint32_t h, void *e) {
     pico8_dc("kj");
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->qy));
+    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->qh.jo.emitter->qy));
 }
 
 /* `dg` in "ly" (qh's `ly`, `na`); `mm` (`g_.mm`, `pk` false: no rotation)
@@ -509,8 +509,8 @@ static void test_life(void) {
 
     h = fold_particle(h, cls_of(placed)->mm(placed));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
-    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
-    assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
+    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->qh.jo.emitter->qy));
+    assert(ptrs_size(as_hj(placed)->qh.jo.emitter->qy) >= 2);
 
     h = fold_draw(h, placed);
     h = fold_draw(h, placed);
@@ -553,7 +553,8 @@ static void test_pm_is_a_struct(void) {
     {
         pico8_pm_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && bare->hj.qh.jo.id == NULL && bare->hj.qh.jo.ra == NULL &&
-               bare->hj.qh.jo.oe != NULL && ptrs_size(bare->hj.emitter->qy) == 0 && ents_listed(pico8_cg("jo"), bare));
+               bare->hj.qh.jo.oe != NULL && ptrs_size(bare->hj.qh.jo.emitter->qy) == 0 &&
+               ents_listed(pico8_cg("jo"), bare));
     }
 }
 

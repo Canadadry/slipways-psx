@@ -44,9 +44,7 @@ static int call_gg_truthy(pico8_struct_header_t *pt) {
 }
 
 pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
-    const pico8_qh_t *qh = pico8_qh_of(pt);
-
-    if (qh != NULL && qh->jo.def->qh) {
+    if (pt != NULL && (pt->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) && ((const pico8_jo_t *)pt)->def->qh) {
         const pico8_ents_t *qh_list = pico8_cg("qh");
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }

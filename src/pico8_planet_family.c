@@ -43,20 +43,19 @@ static const pico8_struct_class_t g_qh_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_jo_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_jo_struct_init(&self->jo, cls, def);
-    self->jo.header.probe = &self->probe_own;
-    self->probe = &self->probe_own;
-    self->probe->def = &self->jo.def->probe;
-    self->probe->od = self->jo.def->probe.od;
-    self->probe->has_od = self->jo.def->probe.has_od;
-    self->s = self->jo.def->s;
-    self->probe->et = NULL;
+    self->jo.header.probe = &self->jo.probe_own;
+    self->jo.probe = &self->jo.probe_own;
+    self->jo.probe->def = &self->jo.def->probe;
+    self->jo.probe->od = self->jo.def->probe.od;
+    self->jo.probe->has_od = self->jo.def->probe.has_od;
+    self->jo.s = self->jo.def->s;
+    self->jo.probe->et = NULL;
 }
 
 static pico8_qh_t *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
@@ -88,8 +87,9 @@ void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t) {
 
     assert(self->qh.jo.has_mi && "nl:ly reads self.mi unguarded, unlike hj:kj");
     if (self->qh.jo.has_mi && self->qh.jo.mi >= pico8_fixed_from_int(2)) {
-        self->qw = pico8_fixed_add(pico8_fixed_from_int(8),
-                                   pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6)));
+        self->qh.jo.qw =
+            pico8_fixed_add(pico8_fixed_from_int(8),
+                            pico8_fixed_div(pico8_fixed_mod(t, pico8_fixed_from_int(42)), pico8_fixed_from_int(6)));
     }
 }
 
@@ -114,7 +114,6 @@ static const pico8_struct_class_t g_nl_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_nl_ly_dispatch,
         },
-    .parent = pico8_qh_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH) | PICO8_LINEAGE(PICO8_LINEAGE_NL),
 };
@@ -124,7 +123,7 @@ static pico8_nl_t *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(&self->qh, &g_nl_struct_class, &pico8_nl_def);
-    self->qw = self->qh.jo.def->qw;
+    self->qh.jo.qw = self->qh.jo.def->qw;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "nl: the only construction key is id (ie:ldown); another key has no member "
@@ -158,7 +157,6 @@ static const pico8_struct_class_t g_os_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_qh_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
@@ -217,25 +215,24 @@ static const pico8_struct_class_t g_hj_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_qh_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_qh_struct_init(&self->qh, cls, def);
-    self->qh.jo.header.emitter = &self->emitter_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->def = &self->qh.jo.def->emitter;
-    self->emitter->py = self->qh.jo.def->emitter.py;
-    self->emitter->pn = self->qh.jo.def->emitter.pn;
-    self->emitter->k_ = self->qh.jo.def->emitter.k_;
-    self->emitter->du = self->qh.jo.def->emitter.du;
-    self->emitter->qo = self->qh.jo.def->emitter.qo;
-    self->emitter->ro = self->qh.jo.def->emitter.ro;
-    self->emitter->qg = self->qh.jo.def->emitter.qg;
-    self->emitter->q_ = self->qh.jo.def->emitter.q_;
-    self->emitter->qy = NULL;
+    self->qh.jo.header.emitter = &self->qh.jo.emitter_own;
+    self->qh.jo.emitter = &self->qh.jo.emitter_own;
+    self->qh.jo.emitter->def = &self->qh.jo.def->emitter;
+    self->qh.jo.emitter->py = self->qh.jo.def->emitter.py;
+    self->qh.jo.emitter->pn = self->qh.jo.def->emitter.pn;
+    self->qh.jo.emitter->k_ = self->qh.jo.def->emitter.k_;
+    self->qh.jo.emitter->du = self->qh.jo.def->emitter.du;
+    self->qh.jo.emitter->qo = self->qh.jo.def->emitter.qo;
+    self->qh.jo.emitter->ro = self->qh.jo.def->emitter.ro;
+    self->qh.jo.emitter->qg = self->qh.jo.def->emitter.qg;
+    self->qh.jo.emitter->q_ = self->qh.jo.def->emitter.q_;
+    self->qh.jo.emitter->qy = NULL;
 }
 
 static pico8_hj_t *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
@@ -304,7 +301,6 @@ static const pico8_struct_class_t g_pm_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_hj_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
@@ -369,9 +365,9 @@ pico8_qy_t *pico8_ga_mm(void *self_ptr) {
     }
     p = pico8_vec_qm(qd, pico8_fixed_rnd_default());
 
-    ms = self->ms;
-    iu = self->iu;
-    py = self->emitter->py;
+    ms = self->jo.ms;
+    iu = self->jo.iu;
+    py = self->jo.emitter->py;
 
     v = pico8_vec_mul(p, ms);
     a = pico8_vec_mul(p, iu);
@@ -397,7 +393,7 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
         return;
     }
 
-    qy = self->emitter->qy;
+    qy = self->jo.emitter->qy;
 
     px = pico8_fixed_flr_int(p.x);
     py = pico8_fixed_flr_int(p.y);
@@ -448,7 +444,6 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .cn = pico8_jo_cn_dispatch,
     .mm = pico8_ga_mm,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
-    .parent = pico8_jo_struct_class,
     /* ga's cart list of tags is empty and replaces jo's: never jo's. */
     .tags = 0,
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO),
@@ -459,18 +454,18 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_jo_struct_init(&self->jo, &g_ga_struct_class, &pico8_ga_def);
-    self->jo.header.emitter = &self->emitter_own;
-    self->emitter = &self->emitter_own;
-    self->emitter->def = &self->jo.def->emitter;
-    self->emitter->qo = self->jo.def->emitter.qo;
-    self->emitter->ro = self->jo.def->emitter.ro;
-    self->emitter->qg = self->jo.def->emitter.qg;
-    self->emitter->q_ = self->jo.def->emitter.q_;
-    self->emitter->k_ = self->jo.def->emitter.k_;
-    self->iu = self->jo.def->iu;
-    self->emitter->py = self->jo.def->emitter.py;
-    self->ms = self->jo.def->ms;
-    self->emitter->qy = NULL;
+    self->jo.header.emitter = &self->jo.emitter_own;
+    self->jo.emitter = &self->jo.emitter_own;
+    self->jo.emitter->def = &self->jo.def->emitter;
+    self->jo.emitter->qo = self->jo.def->emitter.qo;
+    self->jo.emitter->ro = self->jo.def->emitter.ro;
+    self->jo.emitter->qg = self->jo.def->emitter.qg;
+    self->jo.emitter->q_ = self->jo.def->emitter.q_;
+    self->jo.emitter->k_ = self->jo.def->emitter.k_;
+    self->jo.iu = self->jo.def->iu;
+    self->jo.emitter->py = self->jo.def->emitter.py;
+    self->jo.ms = self->jo.def->ms;
+    self->jo.emitter->qy = NULL;
     self->jo.by = &g_ga_by_shared;
     if (keys != NULL) {
         if (keys->jo.p != NULL) {
@@ -483,14 +478,14 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
             self->jo.id = keys->jo.id;
         }
         if (keys->pq != NULL) {
-            self->emitter->qo = keys->pq->qo;
-            self->emitter->ro = keys->pq->ro;
-            self->emitter->qg = keys->pq->qg;
-            self->emitter->q_ = keys->pq->q_;
-            self->emitter->k_ = keys->pq->k_;
-            self->iu = keys->pq->iu;
-            self->emitter->py = keys->pq->py;
-            self->ms = keys->pq->ms;
+            self->jo.emitter->qo = keys->pq->qo;
+            self->jo.emitter->ro = keys->pq->ro;
+            self->jo.emitter->qg = keys->pq->qg;
+            self->jo.emitter->q_ = keys->pq->q_;
+            self->jo.emitter->k_ = keys->pq->k_;
+            self->jo.iu = keys->pq->iu;
+            self->jo.emitter->py = keys->pq->py;
+            self->jo.ms = keys->pq->ms;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
@@ -556,24 +551,6 @@ const pico8_struct_class_t *pico8_nl_struct_class(void) {
 
 pico8_nl_t *pico8_nl_new(const pico8_jo_keys_t *keys) {
     return pico8_nl_struct_new(keys);
-}
-
-const pico8_qh_t *pico8_qh_of(const pico8_struct_header_t *e) {
-    const pico8_struct_class_t *cls = e != NULL ? e->cls : NULL;
-
-    while (cls != NULL && cls != &g_qh_struct_class) {
-        cls = cls->parent != NULL ? cls->parent() : NULL;
-    }
-    return cls != NULL ? (const pico8_qh_t *)e : NULL;
-}
-
-const pico8_nl_t *pico8_nl_of(const pico8_struct_header_t *e) {
-    const pico8_struct_class_t *cls = e != NULL ? e->cls : NULL;
-
-    while (cls != NULL && cls != &g_nl_struct_class) {
-        cls = cls->parent != NULL ? cls->parent() : NULL;
-    }
-    return cls != NULL ? (const pico8_nl_t *)e : NULL;
 }
 
 int pico8_os_ready(void) {

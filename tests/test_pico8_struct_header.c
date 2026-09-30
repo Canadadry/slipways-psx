@@ -160,6 +160,7 @@ static void test_carriers_link_their_storage(void) {
                                                       .fx = &jo->fx,
                                                       .p_ = &jo->p_,
                                                       .m_ = &jo->m_});
+    assert(jo->probe == NULL && jo->emitter == NULL);
     assert_links(&fr_jo->header, (pico8_struct_header_t){.fa = &fr_jo->def->fa,
                                                          .ra = (const pico8_vec_t *const *)&fr_jo->ra,
                                                          .p = (const pico8_vec_t *const *)&fr_jo->p,
@@ -169,7 +170,7 @@ static void test_carriers_link_their_storage(void) {
                                                          .fx = &fr_jo->fx,
                                                          .p_ = &fr_jo->p_,
                                                          .m_ = &fr_jo->m_,
-                                                         .probe = &fr->nr.qh.probe_own});
+                                                         .probe = &fr->nr.qh.jo.probe_own});
 }
 
 /* A planet's links, but for its emitter and probe. */
@@ -188,9 +189,9 @@ static void assert_qh_links(pico8_qh_t *qh, pico8_emitter_t *emitter) {
     pico8_struct_header_t want = planet_links(&qh->jo);
 
     want.emitter = emitter;
-    want.probe = &qh->probe_own;
+    want.probe = &qh->jo.probe_own;
     assert_links(&qh->jo.header, want);
-    assert(qh->probe == qh->jo.header.probe);
+    assert(qh->jo.probe == qh->jo.header.probe && qh->jo.emitter == qh->jo.header.emitter);
 }
 
 /* Emitter and probe carriers: each link is the component the instance
@@ -220,14 +221,13 @@ static void test_component_carriers_link_their_own(void) {
     assert_qh_links(pico8_qh_new(NULL), NULL);
     assert_qh_links(&nl->qh, NULL);
     assert_qh_links(&os->qh, NULL);
-    assert_qh_links(&hj->qh, &hj->emitter_own);
-    assert(hj->emitter == hj->qh.jo.header.emitter);
-    assert_qh_links(&pm->hj.qh, &pm->hj.emitter_own);
-    assert_qh_links(&mx->hj.qh, &mx->hj.emitter_own);
+    assert_qh_links(&hj->qh, &hj->qh.jo.emitter_own);
+    assert_qh_links(&pm->hj.qh, &pm->hj.qh.jo.emitter_own);
+    assert_qh_links(&mx->hj.qh, &mx->hj.qh.jo.emitter_own);
     assert_qh_links(&nr->qh, NULL);
-    want.emitter = &ga->emitter_own;
+    want.emitter = &ga->jo.emitter_own;
     assert_links(&ga->jo.header, want);
-    assert(ga->emitter == ga->jo.header.emitter);
+    assert(ga->jo.emitter == ga->jo.header.emitter && ga->jo.probe == NULL);
     assert_links(&mz->header, (pico8_struct_header_t){.fa = &mz->def->fa,
                                                       .ra = &mz->ra,
                                                       .p = &mz->p,

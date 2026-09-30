@@ -146,7 +146,9 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
 
 /* `e` as a planet of qh's lineage. */
 static pico8_qh_t *as_qh(void *e) {
-    assert(pico8_qh_of(e) == e);
+    const pico8_struct_header_t *h = e;
+
+    assert(h != NULL && (h->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)));
     return e;
 }
 
@@ -156,7 +158,7 @@ static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t et_state(const pico8_qh_t *qh) {
-    return qh->probe->et == NULL ? 1u : 3u;
+    return qh->jo.probe->et == NULL ? 1u : 3u;
 }
 
 /* `et` as qh's reader gave it: false or the target. */
@@ -165,7 +167,7 @@ static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->probe->et);
+        return fold_ref(fnv(h, 1u), qh->jo.probe->et);
     }
 }
 
@@ -196,6 +198,12 @@ static pico8_vec_t vec_xy(int x, int y) {
 
 static const pico8_struct_class_t *cls_of(const void *e) {
     return ((const pico8_struct_header_t *)e)->cls;
+}
+
+/* `e` as a planet of nl's lineage. */
+static const pico8_nl_t *as_nl(const void *e) {
+    assert(e != NULL && (cls_of(e)->lineage & PICO8_LINEAGE(PICO8_LINEAGE_NL)));
+    return e;
 }
 
 /* The members a planet of qh's tree holds: `kj`, `ev`, `hd`, `hk`, `hb`,
@@ -246,8 +254,8 @@ static void *build_plate(void) {
 
 /* A plate is the only entity whose chain holds `nl`, and its `nl` is 1. */
 static int is_plate(const void *e) {
-    const pico8_nl_t *nl = pico8_nl_of(e);
-    return nl != NULL && nl->qh.jo.def->nl == pico8_fixed_from_int(1);
+    const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & PICO8_LINEAGE(PICO8_LINEAGE_NL)) ? e : NULL;
+    return jo != NULL && jo->def->nl == pico8_fixed_from_int(1);
 }
 
 /* A plate as `ie:ldown` and `jo:pq` left it: its scalars, which of nl's,
@@ -255,12 +263,11 @@ static int is_plate(const void *e) {
  * functions, but its own `ly`), which default tables it shares with `nl`
  * and `jo`, and where `lt` registered it -- never in `cg.qh`. */
 static uint32_t fold_plate(uint32_t h, const void *e) {
-    const pico8_nl_t *nl = pico8_nl_of(e);
+    const pico8_nl_t *nl = as_nl(e);
     const pico8_qh_t *qh;
     const pico8_jo_t *jo;
     size_t i;
 
-    assert(nl != NULL);
     qh = &nl->qh;
     jo = &qh->jo;
     h = fold_string_member(h, jo->id);
@@ -270,12 +277,12 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fold_fixed_member(h, nl->qh.jo.def->nl);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_fixed_member(h, qh->s);
-    h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, nl->qw);
-    h = fold_string_member(h, qh->probe->def->dq);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_fixed_member(h, qh->jo.s);
+    h = fold_fixed_member(h, qh->jo.probe->od);
+    h = fold_fixed_member(h, nl->qh.jo.qw);
+    h = fold_string_member(h, qh->jo.probe->def->dq);
+    h = fold_fixed_member(h, qh->jo.probe->def->fp);
+    h = fold_fixed_member(h, qh->jo.probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
@@ -291,14 +298,14 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -391,14 +398,13 @@ static uint32_t fold_ra_y(uint32_t h, const pico8_nl_t *nl) {
 
 /* `dg` once, then what `nl:ly` left on the plate. */
 static uint32_t fold_dg(uint32_t h, const void *e) {
-    const pico8_nl_t *nl = pico8_nl_of(e);
+    const pico8_nl_t *nl = as_nl(e);
 
-    assert(nl != NULL);
     h = fold_ra_y(h, nl);
     pico8_dg();
     h = fold_fixed_member(h, nl->qh.jo.header.t);
     h = fold_ra_y(h, nl);
-    return fold_fixed_member(h, nl->qw);
+    return fold_fixed_member(h, nl->qh.jo.qw);
 }
 
 /* `jo:ib`'s container, folded as fold_ref folded the tagged list it was:
@@ -453,7 +459,7 @@ static void test_life(void) {
     for (i = 0; i < 3; i++) {
         h = fold_dg(h, placed);
     }
-    assert(placed->qw == pico8_fixed_from_int(15));
+    assert(placed->qh.jo.qw == pico8_fixed_from_int(15));
     placed->qh.jo.mi = pico8_fixed_from_int(2);
     placed->qh.jo.has_mi = 1;
     h = fold_dg(h, placed);
@@ -461,13 +467,13 @@ static void test_life(void) {
     placed->qh.jo.mi = pico8_fixed_from_int(3);
     placed->qh.jo.has_mi = 1;
     h = fold_dg(h, placed);
-    assert(placed->qw != pico8_fixed_from_int(15));
+    assert(placed->qh.jo.qw != pico8_fixed_from_int(15));
     h = fold_economy(h, placed);
 
     idle = build_plate();
     h = fold_string_member(h, idle->qh.jo.header.me);
     h = fold_dg(h, idle);
-    assert(idle->qw == pico8_fixed_from_int(15));
+    assert(idle->qh.jo.qw == pico8_fixed_from_int(15));
     check("life", h, LIFE_HASH);
 }
 

@@ -88,7 +88,9 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
 
 /* `e` as a planet of qh's lineage. */
 static pico8_qh_t *as_qh(void *e) {
-    assert(pico8_qh_of(e) == e);
+    const pico8_struct_header_t *h = e;
+
+    assert(h != NULL && (h->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)));
     return e;
 }
 
@@ -124,7 +126,7 @@ static uint32_t p__state(const pico8_jo_t *jo) {
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t et_state(const pico8_qh_t *qh) {
-    return qh->probe->et == NULL ? 1u : 3u;
+    return qh->jo.probe->et == NULL ? 1u : 3u;
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -158,7 +160,7 @@ static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->probe->et);
+        return fold_ref(fnv(h, 1u), qh->jo.probe->et);
     }
 }
 
@@ -270,13 +272,13 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
     h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_string_member(h, qh->probe->def->dq);
+    h = fold_string_member(h, qh->jo.probe->def->dq);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_fixed_member(h, qh->jo.probe->od);
+    h = fold_fixed_member(h, qh->jo.probe->def->fp);
+    h = fold_fixed_member(h, qh->jo.probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
-    h = fold_fixed_member(h, qh->s);
+    h = fold_fixed_member(h, qh->jo.s);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
     h = fold_fixed_member(h, jo->def->fa);
@@ -288,14 +290,14 @@ static uint32_t fold_lab(uint32_t h, void *e) {
      * still proves the typed reads. */
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -415,7 +417,7 @@ static void test_life(void) {
     mp = vec_ref(vec_xy(7680, 7680));
     cls_of(out_lab)->hq(out_lab, mp, vec_ref(vec_xy(0, 0)));
     h = fold_held(h, out_lab, mp);
-    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(pico8_hv(), as_qh(out_lab)->probe->et));
+    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(pico8_hv(), as_qh(out_lab)->jo.probe->et));
 
     planet = pico8_cg("jo")->items[0];
     assert(pico8_jo_is_family(planet));
@@ -424,7 +426,7 @@ static void test_life(void) {
     mp = vec_ref(pico8_vec_add(pico8_vec_mul(*planet_p, pico8_fixed_from_int(128)), vec_xy(6, 0)));
     cls_of(out_lab)->hq(out_lab, mp, vec_ref(vec_xy(64, 64)));
     h = fold_held(h, out_lab, mp);
-    assert(as_qh(out_lab)->probe->et == planet &&
+    assert(as_qh(out_lab)->jo.probe->et == planet &&
            ((const pico8_jo_t *)planet)->fo == out_lab);
 
     poor_lab = build_lab();
@@ -508,11 +510,11 @@ static int descendant_of(const void *e) {
 static uint32_t fold_descendant(uint32_t h, void *d) {
     pico8_qh_t *qh = as_qh(d);
     pico8_nl_t *nl = cls_of(d) == pico8_nl_struct_class() ? (pico8_nl_t *)d : NULL;
-    pico8_fixed_t qw = nl != NULL ? nl->qw : 0;
+    pico8_fixed_t qw = nl != NULL ? nl->qh.jo.qw : 0;
 
-    h = fold_string_member(h, qh->probe->def->dq);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_string_member(h, qh->jo.probe->def->dq);
+    h = fold_fixed_member(h, qh->jo.probe->def->fp);
+    h = fold_fixed_member(h, qh->jo.probe->def->dw);
     h = fold_hf(h, &qh->jo);
     h = qh->jo.has_mi ? fold_fixed_member(h, qh->jo.mi) : fold_absent(h);
     h = fnv(h, (uint32_t)(qh->jo.header.cls->tags == (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER))));
@@ -531,9 +533,9 @@ static uint32_t fold_descendant(uint32_t h, void *d) {
         cls_of(d)->states[PICO8_STATE_LY](d, pico8_fixed_from_int(50));
         h = fnv(h, 0u);
     }
-    h = nl != NULL ? fold_fixed_member(h, nl->qw) : fold_absent(h);
+    h = nl != NULL ? fold_fixed_member(h, nl->qh.jo.qw) : fold_absent(h);
     if (nl != NULL) {
-        nl->qw = qw;
+        nl->qh.jo.qw = qw;
     }
     return h;
 }
@@ -709,11 +711,10 @@ static unsigned lineage_of(const pico8_struct_header_t *e) {
     return e->cls->lineage;
 }
 
-/* qh's lineage answers pico8_qh_of() with itself, through one to three
- * `parent` links; jo, ga and NULL answer NULL. Only nl answers pico8_nl_of().
- * Each class's `lineage` says the same; g_ and fv are of g_'s alone, the
- * other classes of none. */
-static void test_qh_of_follows_parent(void) {
+/* The eight kinds of qh's lineage are of jo's and qh's, nl alone of nl's
+ * too; ga and jo of jo's alone, g_ and fv of g_'s alone, the other classes
+ * of none. */
+static void test_lineage_of_each_class(void) {
     const unsigned jo = PICO8_LINEAGE(PICO8_LINEAGE_JO);
     const unsigned qh = jo | PICO8_LINEAGE(PICO8_LINEAGE_QH);
     const pico8_entity_kind_t *const lineage[] = {pico8_qh_kind(), pico8_nl_kind(), pico8_os_kind(), pico8_hj_kind(),
@@ -725,15 +726,10 @@ static void test_qh_of_follows_parent(void) {
     start_game();
     for (i = 0; i < sizeof lineage / sizeof lineage[0]; i++) {
         e = lineage[i]->new_entity(&keys);
-        assert(pico8_qh_of(e) == (const void *)e);
-        assert(pico8_nl_of(e) == (lineage[i] == pico8_nl_kind() ? (const void *)e : NULL));
         assert(lineage_of(e) == (lineage[i] == pico8_nl_kind() ? (qh | PICO8_LINEAGE(PICO8_LINEAGE_NL)) : qh));
     }
-    e = pico8_ga_kind()->new_entity(&keys);
-    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL && lineage_of(e) == jo);
-    e = (const pico8_struct_header_t *)pico8_jo_new(&keys);
-    assert(pico8_qh_of(e) == NULL && pico8_nl_of(e) == NULL && lineage_of(e) == jo);
-    assert(pico8_qh_of(NULL) == NULL && pico8_nl_of(NULL) == NULL);
+    assert(lineage_of(pico8_ga_kind()->new_entity(&keys)) == jo);
+    assert(lineage_of(&pico8_jo_new(&keys)->header) == jo);
     assert(lineage_of(&pico8_g__new(NULL)->header) == PICO8_LINEAGE(PICO8_LINEAGE_G_));
     assert(lineage_of(&pico8_fv_new()->header) == PICO8_LINEAGE(PICO8_LINEAGE_G_));
     assert(lineage_of(&pico8_qb_new()->header) == 0 && lineage_of(&pico8_bg_new()->header) == 0);
@@ -781,7 +777,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_descendants);
     in_fresh_child(test_qh_is_a_struct);
-    in_fresh_child(test_qh_of_follows_parent);
+    in_fresh_child(test_lineage_of_each_class);
 
     printf("test_pico8_qh: all tests passed\n");
     return 0;

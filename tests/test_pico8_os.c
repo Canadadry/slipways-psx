@@ -160,7 +160,9 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
 
 /* `e` as a planet of qh's lineage. */
 static pico8_qh_t *as_qh(void *e) {
-    assert(pico8_qh_of(e) == e);
+    const pico8_struct_header_t *h = e;
+
+    assert(h != NULL && (h->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)));
     return e;
 }
 
@@ -170,7 +172,7 @@ static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
 static uint32_t et_state(const pico8_qh_t *qh) {
-    return qh->probe->et == NULL ? 1u : 3u;
+    return qh->jo.probe->et == NULL ? 1u : 3u;
 }
 
 /* `et` as qh's reader gave it: false or the target. */
@@ -179,7 +181,7 @@ static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->probe->et);
+        return fold_ref(fnv(h, 1u), qh->jo.probe->et);
     }
 }
 
@@ -282,8 +284,8 @@ static void *build_processor(void) {
 
 /* A processor is the only entity whose `px` is os's own table. */
 static int is_processor(const void *e) {
-    const pico8_qh_t *qh = pico8_qh_of(e);
-    return qh != NULL && qh->jo.def->px == &pico8_os_px_row;
+    const pico8_jo_t *jo = e != NULL && (cls_of(e)->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) ? e : NULL;
+    return jo != NULL && jo->def->px == &pico8_os_px_row;
 }
 
 /* A processor as `ie:ldown` and `jo:pq` left it: its scalars (`hs` is jo's
@@ -301,12 +303,12 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fold_fixed_member(h, jo->header.t);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_fixed_member(h, qh->s);
-    h = fold_fixed_member(h, qh->probe->od);
+    h = fold_fixed_member(h, qh->jo.s);
+    h = fold_fixed_member(h, qh->jo.probe->od);
     h = fold_fixed_member(h, jo->def->hs);
-    h = fold_string_member(h, qh->probe->def->dq);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_string_member(h, qh->jo.probe->def->dq);
+    h = fold_fixed_member(h, qh->jo.probe->def->fp);
+    h = fold_fixed_member(h, qh->jo.probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->fa);
@@ -318,14 +320,14 @@ static uint32_t fold_processor(uint32_t h, void *e) {
      * still proves the typed reads. */
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);

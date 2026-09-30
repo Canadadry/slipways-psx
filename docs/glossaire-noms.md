@@ -271,7 +271,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | Nom | Symbole C | Sens |
 |---|---|---|
 | `fz` | `cls->name` | nom de la classe ; les classes sans `fz` se marchent dessus dans le registre, comme dans l'original |
-| `iq` | `cls->parent` | classe parente ; absente pour une racine |
+| `iq` | — (`cls->lineage`) | classe parente ; absente pour une racine. Sans lien parent ici : le masque `lineage` de la table dit si la classe est `jo`, `qh`, `nl`, `g_` ou en descend |
 | `ns` | — | métatable d'instance de l'original ; sans équivalent ici : chaque `pico8_X_struct_new` recopie les défauts de classe (`pico8_X_start`) dans les membres du struct, qu'on lit ensuite directement |
 | `pq` | `cls->pq` | constructeur supplémentaire ; chaque `pq` distinct de la chaîne est appelé une fois |
 | `cw` | champ | nom de classe lu à l'exécution, pour le re-classement dynamique de `jo:hu` |

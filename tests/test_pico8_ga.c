@@ -292,7 +292,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * and `jo`, where `lt` registered it -- in `hv` alone -- and `mo.ma`. */
 static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     const pico8_ga_t *g = as_ga(e);
-    const pico8_emitter_t *em = g->emitter;
+    const pico8_emitter_t *em = g->jo.emitter;
     const pico8_jo_t *jo = &g->jo;
     int j;
 
@@ -304,9 +304,9 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
-    h = fold_fixed_member(h, g->iu);
+    h = fold_fixed_member(h, g->jo.iu);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, g->ms);
+    h = fold_fixed_member(h, g->jo.ms);
     h = fold_hf(h, jo);
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
@@ -423,13 +423,14 @@ static void test_built(void) {
     c = pico8_ga_new(NULL);
     h = fold_burst(h, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_ga(a)->emitter->qy != as_ga(b)->emitter->qy && as_ga(b)->emitter->qy != as_ga(c)->emitter->qy);
+    assert(as_ga(a)->jo.emitter->qy != as_ga(b)->jo.emitter->qy &&
+           as_ga(b)->jo.emitter->qy != as_ga(c)->jo.emitter->qy);
     assert(as_ga(a)->jo.oe != as_ga(b)->jo.oe);
     assert(as_ga(a)->jo.by == as_ga(b)->jo.by && as_ga(b)->jo.by == as_ga(c)->jo.by);
     assert(as_ga(c)->jo.ra == NULL && as_ga(c)->jo.p == NULL && as_ga(c)->jo.id == NULL);
-    assert(as_ga(a)->jo.def->fa == pico8_fixed_from_int(3) && as_ga(a)->ms == pico8_fixed_from_int(3));
+    assert(as_ga(a)->jo.def->fa == pico8_fixed_from_int(3) && as_ga(a)->jo.ms == pico8_fixed_from_int(3));
     assert(as_ga(a)->jo.def->hf == 0);
-    assert(as_ga(b)->ms == PICO8_FIXED_LIT(0x00018000, 1.5));
+    assert(as_ga(b)->jo.ms == PICO8_FIXED_LIT(0x00018000, 1.5));
     check("built", h, BUILT_HASH);
 }
 
@@ -523,7 +524,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     pico8_ga_t *g = as_ga(e);
-    pico8_ptrs_t *qy = g->emitter->qy;
+    pico8_ptrs_t *qy = g->jo.emitter->qy;
 
     assert(qy != NULL && qy->count >= n);
     qy->count = n;
@@ -562,10 +563,10 @@ static void test_life(void) {
         h = fold_p_(h, &as_ga(a)->jo);
         h = fold_p_(h, &as_ga(b)->jo);
         h = fold_p_(h, &as_ga(c)->jo);
-        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->qy));
+        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->jo.emitter->qy));
     }
 
-    as_ga(b)->emitter->qy->count = 3;
+    as_ga(b)->jo.emitter->qy->count = 3;
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
         h = fnv(h, screen_hash());
@@ -647,7 +648,7 @@ static void test_ei_moves_a_particle_in_place(void) {
 
     start_game();
     e = spawn(84, 60, "s73", NULL);
-    em = as_ga(e)->emitter;
+    em = as_ga(e)->jo.emitter;
     assert(em->qg != 0);
     particle.p = p0;
     particle.v = v0;

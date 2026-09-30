@@ -97,7 +97,7 @@ void pico8_nr_hb(pico8_nr_t *self) {
         }
     }
 
-    self->qh.s = s_val;
+    self->qh.jo.s = s_val;
 }
 
 static void pico8_nr_hb_dispatch(void *self) {
@@ -175,7 +175,6 @@ static const pico8_struct_class_t g_nr_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_qh_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
@@ -229,7 +228,6 @@ static const pico8_struct_class_t g_fr_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_nr_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
@@ -287,13 +285,13 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
                 continue;
             }
 
-            if (i->row.has_qe && self->ht != NULL && pico8_int_seq_has_fixed(self->ht, i->row.qe)) {
+            if (i->row.has_qe && self->hj.qh.jo.ht != NULL && pico8_int_seq_has_fixed(self->hj.qh.jo.ht, i->row.qe)) {
                 pico8_kw_t *kw = self->hj.qh.jo.kw;
                 if (kw != NULL) {
                     kw->has_qe = 1;
                     kw->qe = i->row.qe;
                 }
-                self->ht = &g_mx_ht_spent;
+                self->hj.qh.jo.ht = &g_mx_ht_spent;
             }
         }
     }
@@ -323,7 +321,6 @@ static const pico8_struct_class_t g_mx_struct_class = {
             [PICO8_STATE_LL] = pico8_jo_ll_dispatch,
             [PICO8_STATE_LY] = pico8_qh_ly_dispatch,
         },
-    .parent = pico8_hj_struct_class,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
@@ -333,7 +330,7 @@ static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(&self->hj, &g_mx_struct_class, &pico8_mx_def);
-    self->ht = self->hj.qh.jo.def->ht;
+    self->hj.qh.jo.ht = self->hj.qh.jo.def->ht;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "mx: the only construction key is id (ie:ldown); another key has no member "

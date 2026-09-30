@@ -140,8 +140,7 @@ struct pico8_kind_rec;
  * such method. `kj`, `ev` and `hd` read the vectors they get and never keep
  * them; `ldown`, `rdown` and `hq` may keep theirs. NULL `ra`: nil. `has_hb`
  * is NULL when a non-NULL `hb` is enough for `e.hb` to exist; otherwise the
- * instance decides. `mm` returns a fresh particle the caller owns. `parent` returns the class
- * whose struct this one embeds first; the member is NULL for a root. */
+ * instance decides. `mm` returns a fresh particle the caller owns. */
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
@@ -163,7 +162,6 @@ struct pico8_struct_class {
     unsigned tags;
     /* `PICO8_LINEAGE(l)` set: the class is l's or descends from it. */
     unsigned lineage;
-    const pico8_struct_class_t *(*parent)(void);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).

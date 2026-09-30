@@ -22,22 +22,17 @@ void pico8_planet_family_init(void);
  * before the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
-/* A laboratory: a bare planet, then qh's members copied from its kind's
+/* A laboratory: a planet whose `s` and probe are copied from its kind's
  * archetype, the probe's with `et`, which its own `hq` (`bv`) writes.
- * `probe` points at `probe_own`: never copy the struct. Nothing frees the
- * struct: TROU-7. */
+ * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
-    pico8_fixed_t s;
-    pico8_probe_t *probe;
-    pico8_probe_t probe_own;
 } pico8_qh_t;
 
-/* A trading hub: a laboratory, then `qw`, copied from its archetype and
+/* A trading hub: a laboratory whose `qw` is copied from its archetype and
  * written by its own `ly`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    pico8_fixed_t qw;
 } pico8_nl_t;
 
 /* A processor: a laboratory and nothing of its own; its defaults are its
@@ -46,14 +41,11 @@ typedef struct {
     pico8_qh_t qh;
 } pico8_os_t;
 
-/* An ascension: a laboratory, then an emitter copied from its kind's
- * archetype, with `qy`, which its own `pq` (`f_`) writes. `emitter` points
- * at `emitter_own`: never copy the struct. Nothing frees the struct:
- * TROU-7. */
+/* An ascension: a laboratory whose emitter is copied from its kind's
+ * archetype, with `qy`, which its own `pq` (`f_`) writes. Nothing frees the
+ * struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    pico8_emitter_t *emitter;
-    pico8_emitter_t emitter_own;
 } pico8_hj_t;
 
 /* A protostar: an ascension and nothing of its own; its defaults are its
@@ -62,19 +54,14 @@ typedef struct {
     pico8_hj_t hj;
 } pico8_pm_t;
 
-/* A particle burst: a bare planet, then `iu`, `ms` and an emitter copied from
+/* A particle burst: a planet whose `iu`, `ms` and emitter are copied from
  * its archetype, with `qy`, which its own `pq` (`f_`) writes; the emitter's
  * `pn`, `du` are left unwritten, read by `g_:mm` only. `jo.by` is the one list
  * every burst shares, which `ib` extends in place and each init empties. A
  * burst spawned by `pm:pq` takes `iu`, `ms`, `py`, `k_`, `qo`, `ro`, `qg`, `q_`
- * from its keys instead. `emitter` points at `emitter_own`: never copy the
- * struct. Nothing frees the struct: TROU-7. */
+ * from its keys instead. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
-    pico8_fixed_t iu;
-    pico8_fixed_t ms;
-    pico8_emitter_t *emitter;
-    pico8_emitter_t emitter_own;
 } pico8_ga_t;
 
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to
@@ -103,14 +90,6 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
  * NULL. The new trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
 pico8_nl_t *pico8_nl_new(const pico8_jo_keys_t *keys);
-
-/* `e` itself when its class is qh's or has qh's up its `parent` chain; NULL
- * otherwise, and for a NULL `e`. */
-const pico8_qh_t *pico8_qh_of(const pico8_struct_header_t *e);
-
-/* `e` itself when its class is nl's or has nl's up its `parent` chain; NULL
- * otherwise, and for a NULL `e`. */
-const pico8_nl_t *pico8_nl_of(const pico8_struct_header_t *e);
 
 int pico8_os_ready(void);
 const pico8_entity_kind_t *pico8_os_kind(void);

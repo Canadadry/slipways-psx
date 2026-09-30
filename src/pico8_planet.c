@@ -127,6 +127,8 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->header.m_ = &self->m_;
     self->m_ = 0;
     self->kw_own = (pico8_kw_t){0};
+    self->probe = NULL;
+    self->emitter = NULL;
 }
 
 static pico8_jo_t *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
@@ -220,7 +222,6 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
 }
 
 void pico8_jo_pq(pico8_jo_t *self) {
-    const pico8_qh_t *qh;
     pico8_ents_t *oe;
 
     if (self == NULL) {
@@ -231,9 +232,8 @@ void pico8_jo_pq(pico8_jo_t *self) {
     pico8_ents_init(oe);
     self->oe = oe;
 
-    qh = pico8_qh_of(&self->header);
-    if (qh != NULL) {
-        pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(qh->jo.def->hp));
+    if (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) {
+        pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(self->def->hp));
 
         if (target != NULL) {
             pico8_jo_lz(self, target);

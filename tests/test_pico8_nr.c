@@ -143,7 +143,9 @@ static int ents_list_size(const pico8_ents_t *l) {
 
 /* `e` as a planet of qh's lineage. */
 static pico8_qh_t *as_qh(void *e) {
-    assert(pico8_qh_of(e) == e);
+    const pico8_struct_header_t *h = e;
+
+    assert(h != NULL && (h->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)));
     return e;
 }
 
@@ -274,11 +276,11 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fold_fixed_member(h, jo->header.t);
     h = fold_string_member(h, nr->qh.jo.def->rr);
     h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_fixed_member(h, qh->s);
-    h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, qh->probe->def->fp);
-    h = fold_fixed_member(h, qh->probe->def->dw);
-    h = fold_string_member(h, qh->probe->def->dq);
+    h = fold_fixed_member(h, qh->jo.s);
+    h = fold_fixed_member(h, qh->jo.probe->od);
+    h = fold_fixed_member(h, qh->jo.probe->def->fp);
+    h = fold_fixed_member(h, qh->jo.probe->def->dw);
+    h = fold_string_member(h, qh->jo.probe->def->dq);
     h = fold_qh(h, qh);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
@@ -295,14 +297,14 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(nr->qh.jo.def->rr != NULL));
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
+    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -492,24 +494,24 @@ static void test_life(void) {
     for (i = 0; i <= 3; i++) {
         as_qh(placed)->jo.oe = list_of(i, idle);
         cls_of(placed)->hb(placed);
-        h = fold_fixed_member(h, as_qh(placed)->s);
+        h = fold_fixed_member(h, as_qh(placed)->jo.s);
         h = fold_bool(h, cls_of(placed)->gv(placed, NULL).stop);
     }
-    assert(as_qh(placed)->s == pico8_fixed_from_int(168));
+    assert(as_qh(placed)->jo.s == pico8_fixed_from_int(168));
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.held == NULL);
     h = fold_bool(h, jc.stop);
     as_qh(placed)->jo.oe = oe;
     cls_of(placed)->hb(placed);
-    h = fold_fixed_member(h, as_qh(placed)->s);
+    h = fold_fixed_member(h, as_qh(placed)->jo.s);
     h = fold_economy(h, placed);
 
     fr = build(pico8_fr_kind());
     assert(gate_kind(fr) == FR);
-    h = fold_fixed_member(h, as_qh(fr)->s);
+    h = fold_fixed_member(h, as_qh(fr)->jo.s);
     cls_of(fr)->hb(fr);
-    h = fold_fixed_member(h, as_qh(fr)->s);
-    assert(as_qh(fr)->s == pico8_fixed_from_int(78));
+    h = fold_fixed_member(h, as_qh(fr)->jo.s);
+    assert(as_qh(fr)->jo.s == pico8_fixed_from_int(78));
 
     bare = pico8_nr_new(NULL);
     assert(gate_kind(bare) == NR && as_qh(bare)->jo.id == NULL && as_qh(bare)->jo.oe != NULL &&
@@ -564,7 +566,7 @@ static void test_nr_is_a_struct(void) {
     assert(fr != NULL &&
            ((const pico8_struct_header_t *)fr)->cls == pico8_fr_struct_class());
     cls_of(fr)->hb(fr);
-    assert(as_qh(fr)->s == pico8_fixed_from_int(78));
+    assert(as_qh(fr)->jo.s == pico8_fixed_from_int(78));
 }
 
 /* Counts the offers `cn` makes, taking each as `jo:ib`'s closure does. */

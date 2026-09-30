@@ -26,12 +26,11 @@ typedef struct {
     pico8_nr_t nr;
 } pico8_fr_t;
 
-/* A synthesizer: an ascension, then `ht`, copied from its archetype;
+/* A synthesizer: an ascension whose `ht` is copied from its archetype;
  * `mx:kf` points it at an empty sequence once it accepts a resource.
  * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;
-    const pico8_int_seq_t *ht;
 } pico8_mx_t;
 
 /* As in pico8_planet_family.h: `_ready` from

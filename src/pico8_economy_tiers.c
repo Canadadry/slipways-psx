@@ -258,7 +258,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         return pico8_fixed_from_int(1);
     }
 
-    if (pico8_nl_of(pt) != NULL) {
+    if (pt->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_NL)) {
         int count = 0;
         if (jy != NULL) {
             for (i = 0; i < jy->count; i++) {
