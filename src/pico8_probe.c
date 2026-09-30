@@ -9,6 +9,7 @@
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
+#include "pico8_fm.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_hud.h"

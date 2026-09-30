@@ -1,7 +1,6 @@
 #ifndef PICO8_PROBE_H
 #define PICO8_PROBE_H
 
-#include "pico8_economy.h"
 #include "pico8_game_data.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
@@ -82,34 +81,6 @@ typedef struct {
  * (and gets its particle list from `f_`), and nothing ever frees it.
  * Asserts when called before `pico8_probe_init()`. */
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
-
-/* The provisional `fm`: one static struct, never allocated nor freed, with
- * no method and no writer; `jk`/`nz` are written only by the cheat code, and
- * set back to nil by every `pico8_probe_init()`. */
-typedef struct {
-    pico8_struct_header_t header;
-    pico8_fixed_t jk;
-    int has_jk; /* 0: `jk` is nil, and is then never read */
-    pico8_fixed_t nz;
-    int has_nz; /* 0: `nz` is nil, and is then never read */
-} pico8_fm_placeholder_t;
-
-const pico8_struct_class_t *pico8_fm_placeholder_struct_class(void);
-
-/* `fm`: the provisional, a static struct that has only `jk`/`nz` (written by
- * the cheat code), which `pico8_probe_init()` installs, then, from `eu()` on,
- * a `hy` struct; read it through pico8_fm_hy() and pico8_fm_placeholder().
- * NULL before init and after shutdown, which several callers test for. The
- * setter takes ownership of the new occupant and frees a previous `hy` as
- * the struct alone (TROU-7); never the provisional. */
-pico8_struct_header_t *pico8_fm(void);
-void pico8_probe_set_fm(pico8_struct_header_t *instance);
-
-/* The `hy` of `fm`, NULL when the slot is empty and on the provisional. */
-pico8_hy_t *pico8_fm_hy(void);
-
-/* The provisional `fm`, NULL when the slot is empty or holds a `hy`. */
-const pico8_fm_placeholder_t *pico8_fm_placeholder(void);
 
 /* TROU-7 */
 /* `mp` is stored into `ra` by REF identity, not copied: the caller's vector

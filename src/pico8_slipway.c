@@ -9,6 +9,7 @@
 #include "pico8_economy.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
+#include "pico8_fm.h"
 #include "pico8_geom.h"
 #include "pico8_input.h"
 #include "pico8_ke.h"

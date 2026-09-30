@@ -23,6 +23,7 @@
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_entity.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_fm.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"

@@ -9,6 +9,7 @@
 #include "pico8_economy_score.h"
 #include "pico8_economy_tiers.h"
 #include "pico8_entity.h"
+#include "pico8_fm.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"

@@ -7,6 +7,7 @@
 #include "pico8_audio.h"
 #include "pico8_bg.h"
 #include "pico8_bootstrap.h"
+#include "pico8_fm.h"
 #include "pico8_struct.h"
 #include "pico8_collect.h"
 #include "pico8_data_init.h"

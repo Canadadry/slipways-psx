@@ -10,12 +10,12 @@
 #include "pico8_economy.h"
 #include "pico8_entity.h"
 #include "pico8_entity_geom.h"
+#include "pico8_fm.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
-#include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
 

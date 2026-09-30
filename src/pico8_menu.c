@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pico8_audio.h"
+#include "pico8_fm.h"
 #include "pico8_struct.h"
 #include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
@@ -16,7 +17,6 @@
 #include "pico8_layout.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
-#include "pico8_probe.h"
 #include "pico8_score_panel.h"
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"

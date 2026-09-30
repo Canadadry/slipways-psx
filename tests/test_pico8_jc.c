@@ -21,6 +21,7 @@
 #include "../src/pico8_entity.h"
 #include "../src/pico8_entity_geom.h"
 #include "../src/pico8_fixed.h"
+#include "../src/pico8_fm.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_help.h"
 #include "../src/pico8_input.h"

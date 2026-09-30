@@ -7,7 +7,7 @@
 #include "pico8_collect.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
-#include "pico8_probe.h"
+#include "pico8_fm.h"
 
 /* `e_` of each entry of `pico8_nb_table`, by rank. */
 static int g_nb_e_[PICO8_NB_COUNT];
