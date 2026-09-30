@@ -163,6 +163,36 @@ static void test_placeholder_is_a_struct(void) {
     pico8_bootstrap_shutdown();
 }
 
+/* A shaken camera: `ra` is off `p`, and off its own diagonal. `gd` reads
+ * the camera's `ra`, never its `p`, and each axis on its own. */
+static void test_gd_under_a_shaken_camera(void) {
+    static const pico8_vec_t shaken_p = {0, 0};
+    static pico8_vec_t shaken_ra;
+    pico8_vec_t in_ra = pico8_vec_v(pico8_fixed_from_int(200 + 64), pico8_fixed_from_int(100 + 64));
+    pico8_vec_t below_ra = pico8_vec_v(pico8_fixed_from_int(200 + 64), pico8_fixed_from_int(100 + 64 + 77));
+    ra_only_t in_e = {{.cls = &g_ra_only_class, .ra = &in_e.ra}, NULL};
+    ra_only_t below_e = {{.cls = &g_ra_only_class, .ra = &below_e.ra}, NULL};
+    pico8_qb_t *qb;
+    const pico8_vec_t *saved_p;
+    const pico8_vec_t *saved_ra;
+
+    pico8_jl();
+    qb = pico8_mo_qb();
+    assert(qb != NULL);
+    saved_p = qb->p;
+    saved_ra = qb->ra;
+    shaken_ra = pico8_vec_v(pico8_fixed_from_int(200), pico8_fixed_from_int(100));
+    qb->p = &shaken_p;
+    qb->ra = &shaken_ra;
+    in_e.ra = &in_ra;
+    below_e.ra = &below_ra;
+    assert(pico8_gd(&in_e.header) == GD_NEAR);
+    assert(pico8_gd(&below_e.header) == GD_FAR);
+    qb->p = saved_p;
+    qb->ra = saved_ra;
+    pico8_bootstrap_shutdown();
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -181,6 +211,7 @@ int main(void) {
     test_shutdown_and_init_cycle();
     test_replaced_by_jl();
     test_placeholder_is_a_struct();
+    test_gd_under_a_shaken_camera();
 
     printf("test_pico8_mo: all tests passed\n");
     return 0;
