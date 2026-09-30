@@ -262,6 +262,89 @@ typedef struct {
     pico8_fixed_t ed;
 } pico8_pj_start_t;
 
+/* A class's archetype: its defaults resolved along its init chain, ke's
+ * `me`/`t` first. A default that is the address of a module's static object
+ * (ui.le, nf.ra) is not here: the module's init still sets it. */
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+    pico8_fixed_t hd;
+    const pico8_int_seq_t *pl;
+} pico8_bg_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t ql;
+    pico8_fixed_t fa;
+    pico8_qz_box_t hw;
+} pico8_ui_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+} pico8_js_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+    pico8_fixed_t hd;
+} pico8_fq_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_vec_t v;
+    pico8_fixed_t ma;
+    pico8_vec_t p;
+    pico8_vec_t ra;
+    const pico8_vec_seq_t *pc;
+} pico8_qb_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+} pico8_nf_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+    pico8_fixed_t rh;
+} pico8_mh_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+    pico8_fixed_t l;
+    pico8_vec_t v;
+} pico8_iv_def_t;
+
+typedef struct {
+    const pico8_jb_row_t *fk;
+} pico8_hp_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_qz_box_t kq;
+    pico8_fixed_t fa;
+    pico8_vec_t ra;
+    pico8_vec_t eh;
+} pico8_ie_def_t;
+
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    pico8_fixed_t fa;
+    const pico8_jb_row_t *gs;
+    const pico8_jb_row_t *i_;
+} pico8_pj_def_t;
+
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
 typedef struct {
@@ -508,6 +591,17 @@ extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
 extern const pico8_nr_start_t pico8_nr_start;
 extern const pico8_fr_start_t pico8_fr_start;
 extern const pico8_mx_start_t pico8_mx_start;
+extern const pico8_bg_def_t pico8_bg_def;
+extern const pico8_ui_def_t pico8_ui_def;
+extern const pico8_js_def_t pico8_js_def;
+extern const pico8_fq_def_t pico8_fq_def;
+extern const pico8_qb_def_t pico8_qb_def;
+extern const pico8_nf_def_t pico8_nf_def;
+extern const pico8_mh_def_t pico8_mh_def;
+extern const pico8_iv_def_t pico8_iv_def;
+extern const pico8_hp_def_t pico8_hp_def;
+extern const pico8_ie_def_t pico8_ie_def;
+extern const pico8_pj_def_t pico8_pj_def;
 extern const pico8_kind_rec_t pico8_qh_kind_rec;
 extern const pico8_kind_rec_t pico8_nl_kind_rec;
 extern const pico8_kind_rec_t pico8_os_kind_rec;

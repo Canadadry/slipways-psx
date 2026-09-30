@@ -432,6 +432,86 @@ const pico8_pj_start_t pico8_pj_start = {
     .ed = 0x10000,
 };
 
+const pico8_bg_def_t pico8_bg_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fa = 0x10000,
+    .hd = 0x10000,
+    .pl = &pico8_bg_pl_seq,
+};
+
+const pico8_ui_def_t pico8_ui_def = {
+    .me = "ph",
+    .t = 0x0,
+    .ql = 0x3a0000,
+    .fa = 0xf0000,
+    .hw = {0xa0000, 0xa0000, 0x760000, 0x760000},
+};
+
+const pico8_js_def_t pico8_js_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fa = 0xb0000,
+};
+
+const pico8_fq_def_t pico8_fq_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fa = 0xe0000,
+    .hd = 0x10000,
+};
+
+const pico8_qb_def_t pico8_qb_def = {
+    .me = "ph",
+    .t = 0x0,
+    .v = {0x0, 0x0},
+    .ma = 0x0,
+    .p = {0xc00000, 0xc00000},
+    .ra = {0xc00000, 0xc00000},
+    .pc = &pico8_qb_pc_vecs,
+};
+
+const pico8_nf_def_t pico8_nf_def = {
+    .me = "ph",
+    .t = 0x0,
+};
+
+const pico8_mh_def_t pico8_mh_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fa = 0xe0000,
+    .rh = 0x50000,
+};
+
+const pico8_iv_def_t pico8_iv_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fa = 0x90000,
+    .l = 0x0,
+    .v = {0x0, -0x570a},
+};
+
+const pico8_hp_def_t pico8_hp_def = {
+    .fk = &pico8_hp_fk_row,
+};
+
+const pico8_ie_def_t pico8_ie_def = {
+    .me = "ph",
+    .t = 0x0,
+    .kq = {0x0, 0x0, 0x90000, 0x80000},
+    .fa = 0xc0000,
+    .ra = {0x3e70000, 0x3e70000},
+    .eh = {0x760000, 0x780000},
+};
+
+const pico8_pj_def_t pico8_pj_def = {
+    .me = "ph",
+    .t = 0x0,
+    .fa = 0xa0000,
+    .gs = &pico8_pj_gs_row,
+    .i_ = &pico8_pj_i__row,
+};
+
 static const char jo_me_text[] = "unknown";
 static const char qh_me_text[] = "kz";
 static const char qh_dq_text[] = "ly";

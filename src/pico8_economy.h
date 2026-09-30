@@ -33,6 +33,17 @@ typedef struct {
     int has_hl; /* 0: `hl` is nil; 1 with `hl` NULL: `hl` is false */
 } pico8_hy_t;
 
+/* hy's archetype, here and not with the others: economy.h does not include
+ * pico8_game_data.h. */
+typedef struct {
+    pico8_fixed_t nz;
+    pico8_fixed_t ew;
+    pico8_fixed_t lo;
+    pico8_fixed_t yr;
+} pico8_hy_def_t;
+
+extern const pico8_hy_def_t pico8_hy_def;
+
 /* Marks the module ready only. The singleton `fm=hy()` is built later, by
  * `eu()` (pico8_cart.c), which hands it to pico8_probe_set_fm(). Calls
  * pico8_economy_shutdown() first. */
