@@ -163,7 +163,170 @@ Ordre : `fa` d'abord (le plus lu, et l'init du noyau que les autres liens réuti
 
 ## 2. Lien parent, aplatissement, cibles de table (2.10b)
 
-*À écrire en 2.10b.*
+### Découpage des 111 lignes de `lien-parent`
+
+Par jeton (une ligne peut en porter deux) : `probe_of` 28, `emitter_of` 23, `pico8_qh_of` 21, `pico8_nl_of` 12, `pico8_qh_probe_of` 10, `.parent` 10, `pico8_g__of` 9, `->parent` 6, `pico8_hj_emitter_of` 5, `pico8_g__probe_of` 4, `pico8_g__emitter_of` 4, `mz_probe_of` 2, `jc_probe_of` 2, `ga_emitter_of` 2, `(*parent` 1. `parent()` n'a que trois lecteurs, les marches de `pico8_qh_of` (`planet_family.c:672`), `pico8_nl_of` (`:681`) et `pico8_g__of` (`probe.c:537`) ; ses dix écrivains sont les tables des neuf sortes filles et de `fv` (`help.c:131`).
+
+Chaque ligne est rattachée aux symboles qu'elle nomme et sort avec le dernier (annexe D) :
+
+| Sous-étape | Symboles retirés | Lignes | `lien-parent` d'arrivée |
+|---|---|---|---|
+| 2.14b | `pico8_g__of` de `particle.c:19` (lien `fa`/`ra`) | 1 | 110 |
+| 2.14d1 | `pico8_g__of` de `probe.c:283` (lien `p_`) | 1 | 109 |
+| 2.15a | `emitter_of`, `probe_of` et leurs sept implémentations | 58 | 51 |
+| 2.15b | `pico8_g__of` (7 lignes restantes), `.parent` de `fv`, marche de `probe.c:537` | 9 | 42 |
+| 2.15c | `pico8_qh_of`, `pico8_nl_of`, `.parent` des neuf sortes, marches, membre `parent` | 42 | **0**, gardé |
+
+Somme : 1 + 1 + 58 + 9 + 42 = **111** (contrôle 3).
+
+### Porteur de sorte : un masque de lignée dans la table de classe
+
+Les descentes marchent la chaîne `parent`. Après l'aplatissement, il n'y a plus de struct ancêtre à rendre, mais les lecteurs veulent toujours savoir si la sorte descend de `qh`, de `nl`, si l'entité est une planète ou une sonde. Les étiquettes ne le disent pas (mesuré, tables de la copie) : `qh` porte l'étiquette `qh`, pas `nl`, `os`, `pm`, `mx`, `nr`, `fr` ; `ga` n'a aucune étiquette ; `nr` et `fr` n'ont pas `jo`. (Le PRD disait `hj` réduit à `hj` : il porte `hj`, `jo`, `np`, `prober`. Le verdict ne change pas.) Remplacer `pico8_qh_of` par un test d'étiquette changerait la réponse pour sept sortes.
+
+**Retenu : un membre `unsigned lineage` de `pico8_struct_class_t`**, masque de bits posé une fois dans chaque table `static const`, comme `tags`, avec un enum de quatre bits dans le noyau (`JO`, `QH`, `NL`, `G_`). Le masque d'une classe est l'ensemble des classes de son ancienne chaîne `parent`, restreint à ces quatre. La table de classe, et non l'archétype : les lecteurs tiennent un en-tête de type inconnu (`economy_score.c:48`, `economy_tiers.c:261`, `probe.c:83`), et le `def` de 2.9 n'est atteignable qu'une fois le type connu.
+
+Remplaçants, qui testent une donnée de la table sans marcher de chaîne (ce n'est pas un renommage : il n'y a plus de lien parent) :
+
+- `pico8_jo_is_family(e)` garde son nom (le motif ne le compte pas) et son rôle ; son corps devient `(e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_JO)) != 0` au lieu de comparer `states[PICO8_STATE_LL]` à `pico8_jo_ll_dispatch` (`planet.c:63-65`), une identité de pointeur de fonction que rien ne documente ;
+- `pico8_qh_of(e)`, `pico8_nl_of(e)` : les lecteurs tiennent déjà la planète (`planet.c:280`, `planet_display.c:154`, `:429`, `:436`, `planet_trade.c:152` : `&self->header`) ou un en-tête qu'ils testent par `pico8_jo_is_family` ; ils lisent le bit `QH` ou `NL` et les champs sur la planète ;
+- `pico8_g__of(e)` : bit `G_`, puis la sonde.
+
+**Contrôle 4 — équivalence sur les douze classes**, lue sur les tables de la copie (chaîne `parent`, `states[PICO8_STATE_LL]`, `tags`). Le masque vaut la chaîne restreinte ; chaque colonne est donc égale au bit du même nom :
+
+| Classe | Chaîne `parent` | `pico8_qh_of` | `pico8_nl_of` | `pico8_g__of` | `pico8_jo_is_family` | `tags` |
+|---|---|---|---|---|---|---|
+| `jo` | `jo` | 0 | 0 | 0 | 1 | jo, np, prober |
+| `qh` | `qh` → `jo` | 1 | 0 | 0 | 1 | qh, jo, np, prober |
+| `nl` | `nl` → `qh` → `jo` | 1 | 1 | 0 | 1 | jo, np, prober |
+| `os` | `os` → `qh` → `jo` | 1 | 0 | 0 | 1 | jo, np, prober |
+| `hj` | `hj` → `qh` → `jo` | 1 | 0 | 0 | 1 | hj, jo, np, prober |
+| `pm` | `pm` → `hj` → `qh` → `jo` | 1 | 0 | 0 | 1 | jo, np, prober |
+| `mx` | `mx` → `hj` → `qh` → `jo` | 1 | 0 | 0 | 1 | jo, np, prober |
+| `nr` | `nr` → `qh` → `jo` | 1 | 0 | 0 | 1 | nr, np, prober |
+| `fr` | `fr` → `nr` → `qh` → `jo` | 1 | 0 | 0 | 1 | nr, np, prober |
+| `ga` | `ga` → `jo` | 0 | 0 | 0 | 1 | 0 |
+| `g_` | `g_` | 0 | 0 | 1 | 0 | g_, prober |
+| `fv` | `fv` → `g_` | 0 | 0 | 1 | 0 | g_, prober |
+
+`lineage` : `jo` → `JO` ; `qh`, `os`, `hj`, `pm`, `mx`, `nr`, `fr` → `JO|QH` ; `nl` → `JO|QH|NL` ; `ga` → `JO` ; `g_`, `fv` → `G_`. Les quatre prédicats rendent la même réponse que le bit, sur les douze lignes. Les 28 autres tables n'ont ni `parent` ni `pico8_jo_ll_dispatch` (grep : les dix `[PICO8_STATE_LL] = pico8_jo_ll_dispatch` sont les dix sortes), donc masque 0 et quatre réponses nulles. `test_pico8_qh.c:705-724` fait déjà ce contrôle pour `qh_of`/`nl_of` : 2.15c le réécrit sur le masque.
+
+### Sonde et émetteur : un lien du noyau, et un `def` dans le composant
+
+`emitter_of`/`probe_of` sont une méthode de table qui rend le composant stocké dans l'instance. Le groupe émetteur est dans `g_` et dans `hj`/`pm`/`mx`/`ga` (deux racines), le groupe sonde dans `g_`, la lignée `qh`, `jc`, `mz` : règle 2, composants. **Retenu : deux liens du noyau, `struct pico8_emitter *emitter` et `struct pico8_probe *probe`**, NULL pour une classe qui n'en porte pas, posés par l'init à `&self->emitter_own`/`&self->probe_own`. Même forme que les liens de 2.14. Le statu quo (la méthode) est une entrée de table par classe et un appel indirect pour lire un pointeur constant ; un remplaçant qui garderait la méthode sous un autre nom est exclu par le PRD. Les membres `emitter`/`probe` des types (K, posés par les mêmes sept lignes d'init, `planet_family.c:66`, `:290`, `:571`, `probe.c:442`, `:446`, `slipway.c:404`, `wormhole.c:245`) restent : ils servent 142 lignes de `src/` et 268 de TU, et les réécrire vers le noyau n'apporte rien. L'invariant « lien = membre » est posé par la même init et vérifié par un TU par classe porteuse.
+
+**Réserve 1 du vérificateur de 2.9 : comment le code générique lit un champ A du composant.** Aujourd'hui, `probe.c:169` (`dw`), `:334-338` (`dq`, `fp`, `ik`) et `particle.c:149` (`fc`) lisent `probe->dw`… sur le pointeur que rend `probe_of`/`emitter_of`. Quand 2.13 sort ces champs A de l'instance, le pointeur de composant ne dit pas où est le sous-archétype. **Tranché : un `def` dans le composant**, `const pico8_probe_def_t *def` dans `pico8_probe_t` et `const pico8_emitter_def_t *def` dans `pico8_emitter_t`, posé par l'init du porteur à `&def->probe` / `&def->emitter` (2.9 enchâsse ces sous-archétypes dans l'archétype du porteur). Le code générique lit `probe->def->dw`, sans cast. Un crochet de table (une méthode qui rendrait le sous-archétype) est exclu pour la même raison que `probe_of`. Ce `def` naît avec le premier composant converti : **2.12b** (type) et **2.13b** (`mz`, `jc`) pour la sonde, **2.12c**/**2.13c** pour l'émetteur. C'est une précondition de 2.13, pas de 2.15 : elle est signalée dans la note du plan.
+
+**Réserve 4 : la sonde locale sans classe.** `research_icon.c:180` construit `pico8_probe_t pb = {0}`, remplit `od`/`has_od` et la passe à `pico8_dl_show`. Ses champs A valent 0. Avec le `def` dans le composant, `pb.def` vise un **sous-archétype nul** `pico8_probe_def_none` (tous les champs à 0, constant, à côté des autres), ce qui garde les valeurs lues aujourd'hui. Posé par 2.13b avec le `def` du composant.
+
+**Réserve 2 : les champs A des types partagés entre familles restent dans l'instance jusqu'en 2.13e2.** Au moins 23 lignes de la famille e écrivent un champ A de `jo`, de `qh`, de la sonde ou de l'émetteur (`self->jo.hf = pico8_ga_start.hf`, `self->qh.probe->dw = …`). Tant qu'une famille écrit un champ, il ne peut pas quitter l'instance : les champs A de `jo` et `qh` restent membres jusqu'en 2.13e2, ceux de la sonde aussi (familles b à e), ceux de l'émetteur de même (familles c et e). 2.14 passe après 2.13e2 : quand un lien de 2.14 vise `&def->X`, `X` n'est déjà plus dans l'instance.
+
+### Forme de la planète et de la sonde sous A
+
+**Planète.** `jo` a 37 champs, les sortes 24, soit 19 noms distincts : `ba`, `hp`, `px`, `qh`, `s`, `probe`, `probe_own` (`qh`) ; `nl`, `qw`, `rr` (`nl`) ; `emitter`, `emitter_own` (`hj`, `ga`) ; `fz`, `ng` (`pm`) ; `iu`, `ms` (`ga`) ; `hz` (`nr`) ; `mt` (`fr`) ; `ht` (`mx`). Noms partagés, tous de même type C : `rr` (`hj`, `nl`, `nr`, `const char *`), `fz` (`ga`, `pm`, `const char *`), `emitter`/`emitter_own` (`hj`, `ga`). Aucun nom de sorte ne recoupe `jo`. Total : **56 noms**.
+
+Destination de chacun, dans l'ordre des sous-étapes :
+
+| Destination | Noms | Nombre |
+|---|---|---|
+| archétype `pico8_jo_def_t` (A, 2.13) | `ca`, `cq`, `dz`, `em`, `fa`, `gq`, `hf`, `hs`, `ka`, `kq` (`jo`) ; `ba`, `hp`, `px`, `qh`, `nl`, `rr`, `fz`, `ng`, `hz`, `mt` (sortes) | 20 |
+| retirés par 2.14 (`has_X && X` réduit à `X`) | `has_fx`, `has_p_`, `has_m_` | 3 |
+| **struct planète** | les 24 autres de `jo`, `s`, `qw`, `iu`, `ms`, `ht`, `probe`, `probe_own`, `emitter`, `emitter_own` | 33 |
+
+Contrôle 5 : `comm -3` entre les 56 noms de `--champs` (types `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx`) et l'union des trois lignes du tableau : vide.
+
+```c
+struct pico8_jo {
+    pico8_struct_header_t header;
+    const pico8_jo_def_t *def;
+    pico8_fixed_t ma;
+    pico8_kw_t *kw;
+    const char *id;
+    pico8_vec_t *p;
+    pico8_vec_t *ra;
+    pico8_ents_t *oe;
+    pico8_hp_t *hn;
+    const char *ep;
+    pico8_ptrs_t *jy;
+    const pico8_df_entry_t *nk;
+    pico8_fixed_t fx;
+    pico8_lq_t *lq;
+    pico8_struct_header_t *fo;
+    pico8_fixed_t jh;
+    int has_jh;
+    int p_;
+    pico8_fixed_t kr;
+    int has_kr;
+    pico8_ents_t *cc;
+    pico8_ents_t *by;
+    pico8_fixed_t mi;
+    int has_mi;
+    int m_;
+    pico8_kw_t kw_own;
+    pico8_fixed_t s;              /* sortes de la lignée qh */
+    pico8_fixed_t qw;             /* nl */
+    pico8_fixed_t iu, ms;         /* ga */
+    const pico8_int_seq_t *ht;    /* mx */
+    pico8_probe_t *probe;         /* NULL hors de la lignée qh */
+    pico8_emitter_t *emitter;     /* NULL hors de hj, pm, mx, ga */
+    pico8_probe_t probe_own;
+    pico8_emitter_t emitter_own;
+};
+```
+
+L'ordre suit celui de `pico8_jo_t` (`planet.h:26-65`), puis celui des sortes en descendant l'arbre. Les commentaires de sorte sont des contrats (quelles sortes lisent le membre) ; le sens des noms est au glossaire.
+
+**Sonde.** `g_` 10 champs, `fv` 11, aucun nom commun : 21. Archétype `pico8_g__def_t` : `fa`, `fx` (`g_`), `ca`, `eo`, `ff`, `fg`, `gq`, `hi`, `kq`, `ql`, `rb` (`fv`) : 11. Retirés par 2.14 : `has_p_`, `has_m_` : 2. Struct sonde : `ra`, `p`, `p_`, `m_`, `probe`, `emitter`, `probe_own`, `emitter_own` : 8. `comm -3` : vide.
+
+```c
+typedef struct {
+    pico8_struct_header_t header;
+    const pico8_g__def_t *def;
+    const pico8_vec_t *ra;
+    pico8_vec_t *p;
+    int p_;
+    int m_;                        /* fv */
+    pico8_emitter_t *emitter;
+    pico8_probe_t *probe;
+    pico8_emitter_t emitter_own;
+    pico8_probe_t probe_own;
+} pico8_g__t;
+```
+
+**Disposition** (x86-64, `sizeof`, programme d'essai compilé contre les en-têtes de la copie, annexe B) : aujourd'hui `jo` 272, `qh` 360, `nl` 376, `os` 360, `hj` 432, `pm` 448, `mx` 440, `ga` 352, `nr` 376, `fr` 384 ; `g_` 176, `fv` 240. Après 2.15 (noyau à 13 liens, 128 octets) : **planète 432**, **sonde 264**. Une planète `pm` ou `mx` perd 8 à 16 octets, une `jo` ou une `ga` en gagne 80 à 160 (le stockage sonde et émetteur que A fait porter à toutes les sortes). `pico8_probe_t` 48, `pico8_emitter_t` 56. `sanitize-net` : oui à chaque sous-étape de 2.15.
+
+### Ce que l'aplatissement trouve
+
+Lignes à chemin enchâssé (`.jo.`, `.qh.`, `.hj.`, `.nr.`, `.g_.`) : **123** dans `src/` (`help.c` 15, `planet_family.c` 68, `planet_family_trade.c` 40) et **324** dans 17 TU (dont `test_pico8_jo_spec_defaults.c` 132). Casts vers une sorte ou `fv` : 19 dans `src/` (`help.c` 4, `planet_family.c` 9, `planet_family_trade.c` 6), 10 dans les TU. Beaucoup de ces lignes écrivent ou lisent un champ A ou un `_start` (86 de `src/`, 159 des TU au grep), que 2.13 aura réécrites. Il en reste, estimé, **≈ 37 dans `src/` et ≈ 165 dans les TU** pour 2.15d ; 2.3b/2.3c ont réécrit de tels volumes en ≈ 40 min par passe guidée par le compilateur.
+
+### Ordre et découpage de 2.15
+
+La sonde d'abord : une `parente` (`help.h:21`), 15 lignes de `help.c`, deux TU, et elle porte le masque de lignée sur un cas simple avant les dix sortes. La planète ensuite, en deux temps : d'abord les champs d'état des sortes montent dans `pico8_jo_t` et le masque remplace les descentes (le lien parent tombe à 0), puis les neuf structs de sorte disparaissent. Un aplatissement est un changement de type : ses chemins ne peuvent pas être réécrits module par module sans une forme transitoire (sans structs anonymes, qui ne sont pas du C99). D'où une sous-étape 2.15d qui retire les neuf structs d'un coup ; les autres préparent pour qu'elle ne réécrive que des chemins.
+
+### Cibles de table en `void *` et typage des membres
+
+`void-ptr` 8 / 4 : `pico8_hd_true`, `pico8_jo_set_m_`, `pico8_qh_probe_of`, `pico8_hj_emitter_of`, `pico8_ga_mm`, `pico8_g__emitter_of`, `pico8_g__probe_of`, `pico8_g__mm`. Une cible doit avoir exactement le type du membre : typer une cible, c'est typer le membre et toutes ses autres cibles. Essais refaits sur la copie :
+
+| Essai | Erreurs | `void-ptr` | Pied |
+|---|---|---|---|
+| membre `hd` et `pico8_hd_true` en `pico8_struct_header_t *self` | 18 : 13 entrées de table dans 6 fichiers de `src/` (`planet_family.c` 6, `planet_family_trade.c` 3, `help.c`, `planet.c`, `research_icon.c`, `ui_button.c`), 5 dans 2 TU (`test_pico8_fv.c` 4, `test_pico8_ui.c` 1). Elles tombent en retypant les quatre autres cibles de `hd` | 8 → **7** | 1072 / 84 |
+| membre `mm`, `pico8_g__mm` et `pico8_ga_mm` (définitions et prototypes) | 2, dans `test_pico8_g_.c:552-553` | 8 → **6** | 1071 / 85 |
+| tous les `void *self` de la table (PRD, non refait) | 418 dans 44 fichiers | — | — |
+
+`set_m_` sort à 2.14d2 et `emitter_of`/`probe_of` à 2.15a : leurs cibles disparaissent avec eux. **Retenu : typer seulement `hd` et `mm`** (2.16). Typer toute la table n'est pas exigé par la Sortie, qui compte les prototypes de premier niveau et pas les membres (PRD, G4). Ce serait ≈ 418 erreurs, soit huit sous-étapes environ, pour déplacer le `void *` vers `pico8_struct_header_t *` : le cast descendant reste dans chaque cible, et aucune catégorie ne bouge. Les 16 prototypes `*_dispatch` en `void *self` restent hors du motif ; aucun n'est renommé pour en sortir.
+
+### Liste ordonnée de 2.15 et 2.16
+
+| Sous-étape | Contenu | Modules | Comptes d'arrivée |
+|---|---|---|---|
+| 2.15a | liens `emitter`/`probe` du noyau, posés par l'init de chaque porteur ; `emitter_of`, `probe_of` et leurs sept implémentations retirés ; lecteurs `particle.c`, `probe.c`, `planet_display.c:468-469`, TU `test_pico8_ui.c:855-909` | `struct.h`, `particle`, `probe`, `planet_family(_trade)`, `planet_display`, `slipway`, `wormhole`, `help`, `ke` (init du noyau) | `lien-parent` 109 → **51** ; `void-ptr` 7 → **3** |
+| 2.15b | sonde aplatie : `pico8_fv_t` disparaît, `fv` est une table et un archétype sur `pico8_g__t` (qui reçoit `m_`) ; membre `lineage` et enum de lignée (les douze masques), `pico8_g__of` remplacé par le bit `G_`, `pico8_jo_is_family` sur le bit `JO` ; `.parent` de `fv` retiré | `struct.h`, `help`, `probe`, les 12 tables, `particle` | `parente` 10 → **9** ; `lien-parent` → **42** |
+| 2.15c | les champs d'état des sortes (`s`, `qw`, `iu`, `ms`, `ht`, `probe`, `probe_own`, `emitter`, `emitter_own`) montent dans `pico8_jo_t` ; `pico8_qh_of`/`pico8_nl_of` remplacés par les bits `QH`/`NL` ; membre `parent`, ses neuf écrivains et ses marches retirés | `struct.h`, `planet(_family)(_trade)`, `planet_display`, `economy_score`, `economy_tiers` | `lien-parent` → **0**, gardé |
+| 2.15d | les neuf structs de sorte disparaissent : chemins `.jo.`, `.qh.`, `.hj.`, `.nr.` et casts vers une sorte réécrits | `planet_family(_trade)`, TU de l'arbre `jo` | `parente` → **0**, gardé |
+| 2.16 | membres `hd` et `mm` typés `pico8_struct_header_t *self`, avec leurs cibles (`pico8_hd_true` et quatre `*_hd_dispatch` ; `pico8_g__mm`, `pico8_ga_mm`) | `struct.h`, `entity`, `help`, `planet`, `planet_family(_trade)`, `research_icon`, `ui_button`, `probe`, TU `fv`, `ui`, `g_` | `void-ptr` 3 → **0**, gardé |
+
+`inclusion-mutuelle` : non mesuré par sous-étape (PRD : laissé à 2.11) ; 2.15a retire les appels `probe_of` de `planet_display.c:468-469`, 2.15c les descentes de `planet.c:280` et `planet_display.c:429`, `:436`, que 2.11 lit (§4).
+
+Preuves : 2.15a à 2.15d, chemin touché (`gcov` des lecteurs au parent puis après ; mutations : un lien `probe` laissé NULL sur une sorte de la lignée `qh` → TU rouge ; un bit `QH` ôté du masque de `nr` → rouge ; un bit `JO` ôté de `ga` → rouge), règle du parent de D.21 ; le TU d'équivalence du contrôle 4 réécrit sur le masque (douze classes × quatre prédicats) ; 2.15d est un changement de type : objets sans `-g` identiques pour les modules dont seul un chemin change (`objdump -d`, `nm`), sinon chemin touché. 2.16 : preuve compilateur négative (un `pico8_vec_t *` passé à `cls->hd` ne compile pas, essai sur la copie du commit), chemin touché. `class-coverage-net` : **oui** partout (tables et constructeurs changent ; comptes égaux à `tools/class_coverage_net_expected.txt`). `sanitize-net` : **oui** de 2.15a à 2.15d (disposition), **non** pour 2.16 (signatures seules). Budgets : 2.15a, 2.15b, 2.15c ≈ 50 min ; 2.15d ≈ 1,5 × 50 min, déclaré (changement de type indivisible, ≈ 200 lignes estimées) ; 2.16 ≈ 50 min.
 
 ## 3. Registres d'entités hors catégorie (2.10c)
 
@@ -326,6 +489,49 @@ sub('tests/test_pico8_ui.c','static giver_t g_giver = {{.cls = &g_giver_class}};
 
 Essais `const` de 2.14b (runs 11 et 12) : `sed -i "<ligne>s/^    pico8_vec_t \*/    const pico8_vec_t */"` sur `layout.h:67` (`lq.ra`), `mouse_reader.h:19` (`nf.ra`), `msgbox.h:87` (`iv.ra`), `ui_button.h:36` (`js.ra`), `slipway.h:68-69` (`jc_mouse_point`), `wormhole.h:37-38` (`mz`), `probe.h:47` (`g_.p`) ; puis `planet.h:41` (`jo.p`) et `planet.h:42` (`jo.ra`), un à la fois.
 
+Tailles des structs (run 18), `sizes.c` compilé depuis le scratchpad avec `cc -std=c99 -Wall -Icopie/src` :
+
+```c
+#include <stdio.h>
+#include "pico8_planet.h"
+#include "pico8_planet_family.h"
+#include "pico8_planet_family_trade.h"
+#include "pico8_probe.h"
+#include "pico8_help.h"
+/* Forme aplatie d'apres 2.13, 2.14 et 2.15 (etude 2.10, par. 2) ; le noyau a 13 liens. */
+typedef struct { const void *cls; const char *me; pico8_fixed_t t; const void *l[13]; } hdr_t;
+typedef struct {
+    hdr_t header; const void *def;
+    pico8_fixed_t ma; pico8_kw_t *kw; const char *id; pico8_vec_t *p; pico8_vec_t *ra;
+    pico8_ents_t *oe; pico8_hp_t *hn; const char *ep; pico8_ptrs_t *jy; const pico8_df_entry_t *nk;
+    pico8_fixed_t fx; pico8_lq_t *lq; pico8_struct_header_t *fo; pico8_fixed_t jh; int has_jh; int p_;
+    pico8_fixed_t kr; int has_kr; pico8_ents_t *cc; pico8_ents_t *by; pico8_fixed_t mi; int has_mi; int m_;
+    pico8_kw_t kw_own;
+    pico8_fixed_t s; pico8_fixed_t qw; pico8_fixed_t iu, ms; const pico8_int_seq_t *ht;
+    pico8_probe_t probe_own; pico8_emitter_t emitter_own;
+} planet_t;
+typedef struct {
+    hdr_t header; const void *def; const pico8_vec_t *ra; pico8_vec_t *p; int p_; int m_;
+    pico8_emitter_t emitter_own; pico8_probe_t probe_own;
+} sonde_t;
+int main(void) {
+    printf("jo %zu qh %zu nl %zu os %zu hj %zu pm %zu mx %zu ga %zu nr %zu fr %zu | g_ %zu fv %zu | planete %zu sonde %zu | probe %zu emitter %zu\n",
+      sizeof(pico8_jo_t), sizeof(pico8_qh_t), sizeof(pico8_nl_t), sizeof(pico8_os_t), sizeof(pico8_hj_t), sizeof(pico8_pm_t),
+      sizeof(pico8_mx_t), sizeof(pico8_ga_t), sizeof(pico8_nr_t), sizeof(pico8_fr_t), sizeof(pico8_g__t), sizeof(pico8_fv_t),
+      sizeof(planet_t), sizeof(sonde_t), sizeof(pico8_probe_t), sizeof(pico8_emitter_t));
+    return 0;
+}
+```
+
+Essai `hd` (run 21) :
+
+```sh
+sed -i 's/int (\*hd)(void \*self,/int (*hd)(pico8_struct_header_t *self,/' src/pico8_struct.h
+sed -i 's/^int pico8_hd_true(void \*self,/int pico8_hd_true(pico8_struct_header_t *self,/' src/pico8_entity.h src/pico8_entity.c
+```
+
+Essai `mm` (run 22) : même `sed` sur `struct pico8_qy *(*mm)(void *self);` (`struct.h:131`), et sur les définitions et prototypes de `pico8_ga_mm` (`planet_family.c:450`, `planet_family.h:212`) et `pico8_g__mm` (`probe.c:353`, `probe.h:177`), `void *self_ptr`/`void *self` → `pico8_struct_header_t *`.
+
 ## Annexe C — tableau « Runs »
 
 Sur la copie jetable, depuis le scratchpad `etude210/`.
@@ -346,3 +552,68 @@ Sur la copie jetable, depuis le scratchpad `etude210/`.
 | 12 | `jo.p` en `const` ; puis `jo.ra` en `const` ; `syn.sh` ; remise à zéro | 1 / 1 | 3 erreurs (`planet.c:397`…) ; 9 erreurs (`entity_geom.c`, `planet.c` ×2, 5 TU) | 1 s |
 | 13 | lectures de `has_p_`, `has_m_`, `has_fx` hors `has_X && X` (grep) | 1 | aucune | < 1 s |
 | 14 | `sizeof(pico8_struct_header_t)` et des noyaux à 11 et 13 liens (x86-64) | 0 | 24, 112, 128 | < 1 s |
+| 15 | `--check lien-parent`, par jeton et par ligne ; rattachement aux sous-étapes (annexe D) | 1 | 111 lignes ; 1 + 1 + 58 + 9 + 42 | < 1 s |
+| 16 | tables de classe de la copie : chaîne `parent`, `states[LL]`, `tags` des 12 classes ; grep des `[PICO8_STATE_LL] = pico8_jo_ll_dispatch` | 0 | tableau du contrôle 4 ; 10 tables à `jo_ll`, les dix sortes | < 1 s |
+| 17 | `--champs` des types de l'arbre `jo` et de `g_`/`fv` ; `comm -3` avec les destinations (contrôle 5) | 0 | 56 et 21 noms ; deux `comm -3` vides | < 1 s |
+| 18 | `sizes.c` compilé contre `copie/src` (annexe B) | 0 | `jo 272` … `fr 384`, `g_ 176`, `fv 240`, planète 432, sonde 264 | < 1 s |
+| 19 | chemins enchâssés et casts par fichier ; part qui touche un champ A ou un `_start` | 0 | 123 / 324 lignes, 19 / 10 casts ; ≈ 37 / ≈ 165 après 2.13 | < 1 s |
+| 20 | usages des membres `probe`/`emitter` ; leurs écritures | 0 | 142 lignes `src/`, 268 TU ; 7 écritures, toutes d'init | < 1 s |
+| 21 | essai `hd` (`sed` du PRD, annexe B) ; `syn.sh` ; compteur ; remise à zéro | 1 | 18 erreurs (13 `src/`, 5 TU) ; `void-ptr 7 3` ; pied 1072 / 84 | 1 s |
+| 22 | essai `mm` (membre et deux définitions et prototypes) ; `syn.sh` ; compteur ; remise à zéro | 1 | 2 erreurs (`test_pico8_g_.c:552-553`) ; `void-ptr 6 4` ; pied 1071 / 85 | 1 s |
+
+## Annexe D — découpage de `lien-parent`
+
+Même format que l'annexe A ; une ligne sort avec le dernier symbole qu'elle nomme.
+
+**2.14b** (1 lignes)
+
+| Symbole | Lignes |
+|---|---|
+| `pico8_g__of` | 1 : particle.c:19 |
+
+**2.14d1** (1 lignes)
+
+| Symbole | Lignes |
+|---|---|
+| `pico8_g__of` | 1 : probe.c:283 |
+
+**2.15a** (58 lignes)
+
+| Symbole | Lignes |
+|---|---|
+| `emitter_of` | 13 : particle.c:45,47,60,88,90; particle.h:13; planet_family.h:78; probe.c:363,364; struct.h:136; T:ui.c:855,858,908 |
+| `emitter_of+ga_emitter_of` | 1 : planet_family.c:553 |
+| `emitter_of+pico8_g__emitter_of` | 2 : help.c:132; probe.c:430 |
+| `emitter_of+pico8_hj_emitter_of` | 3 : planet_family.c:275,379; planet_family_trade.c:357 |
+| `emitter_of+probe_of` | 3 : probe.h:58; struct.h:112,115 |
+| `ga_emitter_of` | 1 : planet_family.c:537 |
+| `jc_probe_of` | 1 : slipway.c:361 |
+| `jc_probe_of+probe_of` | 1 : slipway.c:391 |
+| `mz_probe_of` | 1 : wormhole.c:199 |
+| `mz_probe_of+probe_of` | 1 : wormhole.c:232 |
+| `pico8_g__emitter_of` | 2 : probe.c:542; probe.h:60 |
+| `pico8_g__probe_of` | 2 : probe.c:546; probe.h:61 |
+| `pico8_g__probe_of+probe_of` | 2 : help.c:133; probe.c:431 |
+| `pico8_hj_emitter_of` | 2 : planet_family.c:252; planet_family.h:79 |
+| `pico8_qh_probe_of` | 2 : planet_family.c:29; planet_family.h:43 |
+| `pico8_qh_probe_of+probe_of` | 8 : planet_family.c:51,140,199,276,380; planet_family_trade.c:179,251,358 |
+| `probe_of` | 13 : planet_display.c:468,469; planet_family.h:42; probe.c:154,156,228,230,321,323; struct.h:137; T:ui.c:865,868,909 |
+
+**2.15b** (9 lignes)
+
+| Symbole | Lignes |
+|---|---|
+| `->parent` | 1 : probe.c:537 |
+| `.parent` | 1 : help.c:131 |
+| `pico8_g__of` | 7 : probe.c:83,533; probe.h:56; T:fv.c:254; T:g_.c:306,664,689 |
+
+**2.15c** (42 lignes)
+
+| Symbole | Lignes |
+|---|---|
+| `(*parent` | 1 : struct.h:135 |
+| `->parent` | 2 : planet_family.c:672,681 |
+| `.parent` | 9 : planet_family.c:50,139,198,274,378,552; planet_family_trade.c:178,250,356 |
+| `pico8_nl_of` | 9 : economy_tiers.c:261; planet_display.c:429; planet_family.c:677; planet_family.h:142; T:nl.c:249,258,394; T:qh.c:706,718 |
+| `pico8_nl_of+pico8_qh_of` | 3 : T:qh.c:721,723,724 |
+| `pico8_qh_of` | 18 : economy_score.c:48; planet.c:280; planet_display.c:154,436; planet_family.c:668; planet_family.h:138; planet_trade.c:152; T:fr.c:148; T:hj.c:294; T:mx.c:283; T:nl.c:149; T:nr.c:146; T:os.c:163,285; T:pm.c:242; T:qh.c:88,705,717 |
