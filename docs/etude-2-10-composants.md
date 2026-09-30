@@ -2,7 +2,7 @@
 
 Étude B de la phase 2 (`docs/plan-3.md`, ligne 2.10), en lecture seule, faite selon le PRD `plan3-phase2-etape10-etude-composants.md`. Elle fixe comment les accesseurs Q6 et le lien parent disparaissent, quelle forme prennent la planète et la sonde aplaties, comment les cibles de table encore en `void *` sont typées, et comment les registres d'entités hors catégorie entrent dans le compteur. Elle écrit les listes ordonnées de 2.14 à 2.16 et des sous-étapes « registres ».
 
-Départ : `d9a2b2d` (branche `claude/plan-pilot-3-7zdft0`), puis `0f6e495` (correction de l'étude 2.9, documentation seule) et `265be79` (report de cette correction dans le plan). Aucune ligne de code ne change entre ces trois commits : les numéros de ligne sont ceux de `d9a2b2d`. Les essais sont faits sur une seule copie jetable (`git clone` local dans le scratchpad), jamais dans l'arbre de travail ; chaque essai est remis à zéro (`git checkout -- .`, `git status --short` vide) avant le suivant.
+Départ : `d9a2b2d` (branche `claude/plan-pilot-3-7zdft0`, pied 1073 / 85), puis `0f6e495` (correction de l'étude 2.9, documentation seule) et `265be79` (report de cette correction dans le plan). Aucune ligne de code ne change entre ces trois commits : les numéros de ligne sont ceux de `d9a2b2d`. Les essais sont faits sur une seule copie jetable (`git clone` local dans le scratchpad), jamais dans l'arbre de travail ; chaque essai est remis à zéro (`git checkout -- .`, `git status --short` vide) avant le suivant.
 
 ## 0. État de départ
 
@@ -330,15 +330,142 @@ Preuves : 2.15a à 2.15d, chemin touché (`gcov` des lecteurs au parent puis apr
 
 ## 3. Registres d'entités hors catégorie (2.10c)
 
-*À écrire en 2.10c.*
+### Inventaire, relu écrivain par écrivain
+
+`grep -nE '\bpico8_ptrs_t\b' src/*.c src/*.h`, hors `pico8_ptrs.[ch]` et le commentaire `ents.h:6` : **79 lignes dans 35 fichiers**. Chaque ligne est rangée par ce que son écrivain y met :
+
+| Sorte | Lignes | Porte des entités ? |
+|---|---|---|
+| `hv` : `static pico8_ptrs_t g_hv` (`entity.c:32`), `pico8_hv` (`entity.c:90`, `entity.h:24`) ; lecteur `bootstrap.c:52` (`dg`) ; l'autre lecteur, `wormhole.c:42`, n'écrit pas le type (itérateur, `void *e`) | 4 | oui : `pico8_lt` (`entity.c:141`) |
+| `cv` : `pico8_cv_entry_t.list` (`entity.c:18`), `pico8_cv` (`entity.c:94`, `entity.h:30`) ; lecteurs `economy.c:115`, `:252`, `entity.c:184` (`dc`), `ui.c:268` | 7 | oui : `entity.c:145` |
+| `cg` : `pico8_cg_entry_t.list` (`entity.c:27`), `pico8_cg` (`entity.c:133`, `entity.h:36`) ; lecteurs `bg.c:175`, `economy.c:192`, `economy_formulas.c:50`, `:144`, `economy_score.c:25`, `:51`, `:74`, `economy_tiers.c:23`, `wormhole.c:136` | 12 | oui : `entity.c:152` |
+| `ui.ic` : `pico8_ui_ic_t.layers[16]` (`ui.h:24`), lecteur `ui.c:411` | 2 | oui : `ui.c:298` (le survolé) |
+| couches de `dc` : `layers[15]` (`entity.c:185`, `:216`) | 2 | oui : `entity.c:211` ; locale |
+| listes filtrées : `economy_score.c:75`, `probe.c:173`, `score_panel.c:121`, `slipway.c:289-291` | 6 | oui : sorties de `pico8_jp_ptrs`/`pico8_la_ptrs` sur `cg` ; locales |
+| `pico8_ij` (`entity_geom.c:101`, `entity_geom.h:31`) | 2 | oui : appelé sur `cg("jo")`, `cg("np")` (`galaxy.c:67`, `probe.c:165`) ; la jumelle `pico8_ij_ents` existe (2.8c) |
+| aides partagées `pico8_jp_ptrs`, `pico8_la_ptrs` (`collect.h:12`, `:16`, `collect.c:9-10`, `:46-47`) | 6 | **les deux** : entités (`economy_score.c:75`, `probe.c:178`, `score_panel.c:125`, `slipway.c:301-303`) et enregistrements `jy` (`planet_display.c:186`, `planet_trade.c:128`) |
+| chaînes : `hy.invented` (`economy.h:23`, `economy.c:24`), `economy_score.c:191`, `menu.c:130`, `tech_gate.c:17`, `pico8_gu_content_ptrs` (`collect.h:28`, `collect.c:56`) | 7 | non : `economy.c:284`, `tech_gate.c:26` |
+| enregistrements `jy`/`ji`/`jx`/`is`/`i` : `jo.jy` (`planet.h:46`), `planet.c:306-307`, `planet_display.c:37`, `:60` (`pico8_jo_gh_ctx_t.ji`), `:143-144`, `planet_family_trade.c:298`, `planet_trade.c:80`, `:122-124`, `economy_formulas.c:101`, `economy_tiers.c:207`, `hp.i` (`research.h:40`), `research.c:133`, `research_display.c:21`, `:131`, `:268`, `research_display.h:26` (`pico8_jo_ex`), `pico8_nv_ptrs` (`collect.h:23`, `collect.c:26-27`) | 23 | non : `economy_tiers.c:167`, `research.c:233`, `planet_display.c:79`, `planet.c:319` |
+| particules : `emitter.qy` (`particle.h:43`), `particle.c:40`, `:55`, `:82`, `planet_family.c:486`, `jc.ts` (`slipway.h:43`), `slipway.c:99`, `slipway_display.c:133` | 8 | non : `particle.c:65`, `slipway_display.c:43` |
+
+Total : 4 + 7 + 12 + 2 + 2 + 6 + 2 + 6 + 7 + 23 + 8 = **79**. **35 lignes porteuses d'entités dans 16 fichiers**, plus les 6 lignes des aides partagées (`collect.[ch]`) ; le PRD comptait ≈ 35 / 15.
+
+**Autres `void *` qui portent une entité hors de toute catégorie** (le PRD demande de compléter l'inventaire) :
+
+- `new_entity`, membre de `pico8_entity_kind_t` (`struct.h:170`), qui rend `void *` ; ses neuf cibles sont les `pico8_X_struct_new` des sortes `qh`, `nl`, `os`, `hj`, `pm`, `nr`, `fr`, `mx` et `pico8_ga_kind_new` ; lecteurs `planet.c:401` (cast `(pico8_jo_t *)`), `research_icon.c:147` ;
+- les 21 autres constructeurs `static void *pico8_X_struct_new` des `.c` (`bg.c:66`, `economy.c:22`, `help.c:146`, `layout.c:331`, `:418`, `mouse_reader.c:43`, `msgbox.c:106`, `:254`, `planet.c:178`, `planet_family.c:565`, `probe.c:472`, `research.c:131`, `research_icon.c:236`, `score_panel.c:288`, `scroll.c:44`, `slipway.c:398`, `trade.c:26`, `ui.c:93`, `ui_button.c:106`, `:352`, `wormhole.c:240`) : leur `void *` est converti en type par le `pico8_X_new` public qui les appelle ;
+- les prédicats `cz_predicate`, `pico8_bv_jc_predicate`, `pico8_eg_gg_pred`, `pico8_jc_ce_np_predicate`, `pico8_jc_ce_jc_predicate` (`void *e`, type `pico8_jp_ptrs_predicate_fn`) et les `void *e` des boucles `pico8_ptrs_iter_next` sur `hv`/`cv`/`cg` (`wormhole.c:31`, `economy.c:117`, `:194`, `:255`, `economy_formulas.c:52`, `economy_score.c:27`, `economy_tiers.c:25`, `entity_geom.c:104`) : ils tombent avec le typage des registres et les jumelles `ents` des aides.
+
+Deux lignes de la liste R2 (`tools/composition_r2_sites.txt`) nomment un registre comme amont `void *` : `pico8_bm_has` (`hv->items`) et `pico8_dc` (`bucket_src->items`, registre `cv`) ; deux autres un prédicat ou une liste de `cg` (`pico8_eg_gg_pred`, `pico8_ke_ks` par `jo_list->items`). La sous-étape qui type le registre met ces lignes à jour.
+
+### La catégorie `registres` : V1, les points de déclaration
+
+**Retenu : V1**, étendue au seul membre qui rend `void *`. La catégorie lit, hors `tests/` et hors `pico8_ptrs.[ch]` :
+
+1. les membres `pico8_ptrs_t` (pointeur, valeur ou **tableau**) de toute struct qui n'est pas un type d'entité (ceux-là sont à `ptrs-entité`, les deux catégories restent disjointes) ;
+2. les objets `pico8_ptrs_t` de portée fichier des `.c` (`static` ou non) ;
+3. les prototypes des `.h` qui prennent ou rendent un `pico8_ptrs_t`, joints jusqu'au `;` comme ceux de `void-ptr` ;
+4. les membres de struct qui rendent `void *` (`new_entity`).
+
+Exemptés, chacun prouvé par son écrivain, par nom (`type.membre` ou fonction) et non par numéro de ligne : `pico8_emitter_t.qy` (particules, `particle.c:65`), `pico8_jo_gh_ctx_t.ji` (enregistrements `jy`, `planet_display.c:79`, `:186`), `pico8_nv_ptrs` (`hp.i`, `planet.c:319`), `pico8_gu_content_ptrs` (chaînes, `tech_gate.c:26`), `pico8_jo_ex` (enregistrements `jy`, `planet_display.c:54`). `pico8_jp_ptrs` et `pico8_la_ptrs` entrent dans la liste **quand leurs appelants d'entités passent aux jumelles `ents`** : il ne leur reste alors que les appels sur `jy` (`planet_display.c:186`, `planet_trade.c:128`).
+
+Pourquoi V1 et pas V2 :
+
+| Critère | V1 (points de déclaration) | V2 (toute occurrence) |
+|---|---|---|
+| `hv`, `cv`, `cg`, `ui.ic` | tous vus (stockage et accès public) | tous vus |
+| un registre neuf déclaré n'importe où dans `src/` | vu : un registre est un objet de portée fichier, un membre ou un accès public, trois formes que V1 lit | vu |
+| une locale qui tient des entités (`dc`, listes filtrées) | non vue ; elle suit le type du registre qu'elle lit, et les aides partagées sont vues par leur prototype | vue |
+| lignes au départ | **11** dans 6 fichiers | 79 dans 35 fichiers |
+| exemptions à tenir | 5 noms, puis 7 | ≈ 44 lignes, qui changent de numéro à chaque édition ou demandent un nom de locale (`jy` revient huit fois) |
+
+Une locale n'est pas un registre : elle vit le temps d'un appel et reçoit ses entités d'un registre ou d'une aide, que V1 compte. V1 ne laisse donc aucun registre hors compte, et sa liste d'exemptions tient en cinq noms stables. V2 compterait les mêmes registres pour huit fois plus de lignes à exempter.
+
+Essai sur la copie (texte complet en annexe E, `essai_registres.py` et le diff) :
+
+| Critère | Mesure |
+|---|---|
+| (1) au départ, rend au moins `hv`, `cv`, `cg`, `ui.ic` | **11 lignes / 6 fichiers** : `collect.h:12`, `:16`, `entity.c:18`, `:27`, `:32`, `entity.h:24`, `:30`, `:36`, `entity_geom.h:31`, `struct.h:170`, `ui.h:24`. Les sept lignes de stockage et d'accès public de `hv`, `cv`, `cg`, et `ui.h:24`, y sont (contrôle 6) |
+| (2) tombe à 0 quand les registres sont typés | `hv`, `cv`, `cg` (22 lignes de `entity.c`/`.h`), `ui.ic.layers` en `pico8_ents_t`, jumelle `pico8_la_ents` déclarée, `pico8_ij` retiré (sa jumelle existe), `new_entity` rendant `pico8_struct_header_t *`, `pico8_jp_ptrs`/`pico8_la_ptrs` exemptés : **0 ligne**. Aucun renommage |
+| (3) mordante | `static pico8_ptrs_t g_mordant;` dans `wormhole.c` et un membre `pico8_ptrs_t seau[4];` dans `wormhole.h` : **2 lignes**. Avec `registres` ajouté à `COMPOSITION_RESIDUE_GUARD`, `make composition-guard` rend `Error 1` ; `test:` en dépend (`Makefile:678`) |
+| (4) aucune autre catégorie ne change | sortie du compteur comparée ligne à ligne, avant et après : seule la ligne `registres` s'ajoute ; `inclusion-mutuelle` 17 / 16 |
+| (5) fixture | `test_registres_reads_declaration_points_outside_entity_types` (annexe E) : membre tableau compté, `qy` d'émetteur exempté, membre d'un type d'entité laissé à `ptrs-entité`, `new_entity` compté et `kj` (`void *self`, rend `void`) non, prototype `pico8_hv` compté, `pico8_jo_ex` joint sur deux lignes et exempté, `typedef` ignoré, deux statiques comptées, définition et locale d'un `.c` non, `pico8_ptrs.h` et `tests/` non. `test_void_ptr_reads_joined_public_prototypes` change d'attendu : son `pico8_jp_ptrs` et son `new_entity` sont désormais comptés par `registres` (2 lignes). `test_composition_residue` vert, puis `make test` vert sur la copie |
+| (6) `CATEGORIES` et `SORTIE` | ajoutée aux deux, après `ptrs-entité`. **Nouveau pied de départ : `résidu 2 : 1084 ligne(s), 87 fichier(s)`** (1073 / 85 + 11 lignes, + `collect.h` et `ui.h`) |
+
+### Typage des registres, essayé sur la copie
+
+`g_hv`, les listes de `cv`/`cg` et les trois accès passés en `pico8_ents_t` (`entity.c`, `entity.h`, 22 lignes, comme le PRD) : **20 erreurs dans 12 fichiers de `src/`** (1 à 3 par fichier : `economy.c` 3, `economy_score.c` 3, `economy_formulas.c` 2, `probe.c` 2, `slipway.c` 2, `wormhole.c` 2, `bg.c`, `bootstrap.c`, `economy_tiers.c`, `galaxy.c`, `score_panel.c`, `ui.c`) et **375 dans 31 TU**. Le PRD disait 14 fichiers et 36 TU : il comptait les fichiers autrement ; les nombres d'erreurs sont les mêmes. Sur les 375, **292 viennent de deux aides locales** des TU, `listed` (209) et `rank_in` (83), dont le paramètre est un `const pico8_ptrs_t *` : retyper leur signature (≈ 2 lignes par TU) les fait tomber. Le reste : 37 initialisations, 28 affectations, 16 autres passages. La vague suivante n'est pas mesurée.
+
+Le typage ne dépend que du noyau (2.3) et de `pico8_ents` (2.8), pas de 2.12 à 2.15. Chaque registre a son propre stockage : on peut les typer un par un, et chaque commit compile.
+
+**Placement : une ligne neuve, 2.11r, entre 2.11 et 2.12.** Plus tôt la catégorie compte, plus tôt le pied de phase est juste. Et 2.14 réécrit des boucles sur `hv` (`wormhole.c:42`, lien `fx`) et sur `cv` (`dc`, lien `fa`) : typées avant, elles n'ont pas à l'être deux fois. Aucune étape de 2.12 à 2.15 ne touche au stockage des registres.
+
+| Sous-étape | Contenu | `registres` d'arrivée |
+|---|---|---|
+| 2.11r-a | la catégorie (script, `CATEGORIES`, `SORTIE`), sa fixture et l'attendu changé de `test_void_ptr_reads_joined_public_prototypes`, texte de l'annexe E | **11** (monte de 0) ; pied → 1084 / 87 |
+| 2.11r-b1 | `hv` : `g_hv`, `pico8_hv` ; lecteurs `bootstrap.c:52`, `wormhole.c:31-42` ; TU (158 lignes dans 29 TU au grep de `pico8_hv`) ; R2 `pico8_bm_has` | **9** |
+| 2.11r-b2 | `cv`, `ui.ic.layers`, couches locales de `dc` : lecteurs `economy.c:115`, `:252`, `entity.c:184-216`, `ui.c:268`, `:298`, `:411` ; TU ; R2 `pico8_dc` | **6** |
+| 2.11r-b3 | `cg`, jumelles `pico8_jp_ents`/`pico8_la_ents` et leurs prédicats typés, `pico8_ij` retiré ; `pico8_jp_ptrs`/`pico8_la_ptrs` exemptés ; lecteurs des douze sites `cg` et des listes filtrées ; TU ; R2 `pico8_eg_gg_pred`, `pico8_ke_ks` | **1** |
+| 2.11r-c | `new_entity` rend `pico8_struct_header_t *` avec ses neuf cibles ; les 21 autres `static void *pico8_X_struct_new` rendent leur type ; `registres` entre dans `COMPOSITION_RESIDUE_GUARD` | **0**, gardé |
+
+Les 21 constructeurs de 2.11r-c ne sont pas comptés par la catégorie (une définition de `.c` n'est pas un point de déclaration public) ; ils sont typés dans la même sous-étape parce que `new_entity` y oblige neuf d'entre eux et que les autres ont la même forme. Preuve : `grep -nE '^static void \*pico8_[a-z0-9_]+_struct_new' src/*.c` vide.
+
+Preuves : 2.11r-a, fixture rouge puis verte, et deux mutations du script (exemption `pico8_emitter_t.qy` retirée → fixture rouge ; lecture des tableaux retirée → `ui.h:24` sort du compte, fixture rouge). 2.11r-b1 à -c, refactor pur : objets sans `-g` identiques pour les `.c` dont seul un type change (`objdump -d`, `nm`), comme D.19c1 ; sinon chemin touché. Garde prouvée mordante à 2.11r-c par une ligne réinjectée. `class-coverage-net` : **non** (ni table ni constructeur ne change de comportement ; 2.11r-c change un type de retour : **oui**, comptes égaux). `sanitize-net` : **non** (`pico8_ents_t` a la disposition de `pico8_ptrs_t`). Budget : 5 × ≈ 50 min.
 
 ## 4. Table du sort des symboles (contrat avec 2.11)
 
-*À écrire en 2.10c.*
+Pour chaque symbole que les paires d'inclusion emploient, la sous-étape qui le retire, ou « reste », ou « change de module ». 2.10 ne tranche pas les paires.
+
+| Symbole | Sort | Sous-étape |
+|---|---|---|
+| `pico8_qh_of` (`planet_family.c:668`, `.h:138` ; lecteurs `economy_score.c:48`, `planet.c:280`, `planet_display.c:154`, `:436`, `planet_trade.c:152`) | retiré ; lecteurs sur le bit `QH` du masque de lignée | 2.15c |
+| `pico8_nl_of` (`planet_family.c:677`, `.h:142` ; lecteurs `economy_tiers.c:261`, `planet_display.c:429`) | retiré ; bit `NL` | 2.15c |
+| `pico8_g__of` (`probe.c:533`, `probe.h:56`) | lecteur `particle.c:19` retiré à 2.14b, `probe.c:283` à 2.14d1 ; la fonction et `probe.c:83` à 2.15b (bit `G_`) | 2.14b, 2.14d1, 2.15b |
+| `pico8_jo_is_family` (`planet.c:63`, `planet.h:126`) | **reste** dans `planet` ; son corps lit le bit `JO` à 2.15b. Lecteurs retirés : `slipway.c:55`, `:64`, `particle.c:26` (2.14b), `entity_geom.c:77-79` (2.14c), `probe.c:293` (2.14d1). Lecteurs qui restent : `entity_geom.c:61-62` (`pico8_na`), `probe.c:92`, `:113`, `slipway_display.c:29`, `slipway.c:267`, les autres `assert` | 2.15b (corps) |
+| cast `(pico8_jo_t *)` pour `p` (`slipway.c:55`) | retiré (lien `p`) | 2.14b |
+| cast pour `ra` (`slipway.c:64`, `particle.c:28-29`) | retiré (lien `ra`) | 2.14b |
+| cast pour `fa` (`particle.c:30`) | retiré (lien `fa`, lu avec `ra` dans la même fonction) | 2.14b |
+| cast pour `ma` (`entity_geom.c:79`, planète et `pico8_qb_t`) | retiré (lien `ma`) ; `pico8_qb_struct_class` de l'`assert` `entity_geom.c:77` part avec | 2.14c |
+| cast pour `ra` de `pico8_na` (`entity_geom.c:62`) | **reste** (état de la planète) | — |
+| cast pour `id` (`slipway_display.c:29`) | **reste** (un seul porteur) | — |
+| `get_fa` | retiré | 2.14a |
+| `get_ra`, `get_p` | retirés | 2.14b |
+| `get_kq`, `get_ql`, `get_fg`, `get_mt` | retirés | 2.14c |
+| `get_fx`, `get_p_` | retirés | 2.14d1 |
+| `set_m_` | retiré | 2.14d2 |
+| `parent` (membre, `.parent`, marches) | `.parent` de `fv` et la marche `probe.c:537` à 2.15b ; le reste à 2.15c | 2.15b, 2.15c |
+| `emitter_of`, `probe_of` (membres, entrées, appels) | retirés (liens `emitter`/`probe` du noyau) | 2.15a |
+| `pico8_qh_probe_of`, `pico8_hj_emitter_of`, `pico8_g__emitter_of`, `pico8_g__probe_of` | retirés | 2.15a |
+| `pico8_hd_true` (`entity.h:47`) | **reste**, typé | 2.16 |
+| `pico8_g__mm` (`probe.h:177`), `pico8_ga_mm` (`planet_family.h:212`) | **restent**, typés | 2.16 |
+| `pico8_pm_kind`, `pico8_ga_kind` (`planet_family.h:175`, `:185` ; lecteurs `planet.c:362-363`) | **restent** dans `planet_family` ; `new_entity` typé | 2.11r-c |
+| `pico8_ij` (`entity_geom.h:31`) | retiré (jumelle `pico8_ij_ents`) | 2.11r-b3 |
+
+Symboles des arêtes que le PRD de 2.11 nomme (relevé des symboles d'un `.h` employés par l'autre module, sur la copie) :
+
+| Arête | Symboles employés | Sort |
+|---|---|---|
+| `entity_geom` → `planet` | `pico8_jo_is_family` (`entity_geom.c:61`, `:77`, `:79`), `pico8_jo_t` (`:62`, `:79`) | `:77-79` partent à 2.14c ; `:61-62` (`pico8_na`) **restent** : l'arête reste |
+| `planet` → `entity_geom` | `pico8_gk` (`planet.c:36`), `pico8_gd` (`planet.c:466`) | **restent** (2.10 n'y touche pas) |
+| `particle` → `probe` | `pico8_g__of`, `pico8_g__t` (`particle.c:19`) | retirés à 2.14b ; `pico8_emitter_t` et `pico8_qy_t` viennent de `particle.h` même. L'include de `probe.h` n'a plus d'usage à 2.14b, à vérifier par 2.11 |
+| `probe` → `particle` | `pico8_ei_dispatch` (`probe.c:425`), `pico8_f_` (`:493`), `pico8_emitter_t`, `pico8_qy_t` | **restent** |
+| `planet` → `planet_family` | `pico8_qh_of`, `pico8_qh_t` (`planet.c:269`, `:280`) ; `pico8_pm_kind`, `pico8_ga_kind` (`planet.c:362-363`), `pico8_entity_kind_t` | `qh_of` à 2.15c, `pico8_qh_t` à 2.15d ; les deux `kind` **restent** : l'arête reste |
+| `slipway` → `planet` | `pico8_jo_is_family`, `pico8_jo_t` (`slipway.c:55`, `:64`, `:267-268`), `pico8_jo_struct_class` (`:358`) | `:55`, `:64` à 2.14b ; `:267-268` et `:358` **restent** |
+| `planet` → `slipway` | `pico8_jc_new`, `pico8_jc_keys_t`, `pico8_jc_init`/`ready` (`planet.c:500-504`) | **restent** |
+| `planet_display` → `planet_family` | `pico8_qh_of` (`:154`, `:436`), `pico8_nl_of` (`:429`), `pico8_qh_t` (`:137`, `:404`), `pico8_nl_t` (`:405`) ; `probe_of` (`:468-469`, table de classe) | `probe_of` à 2.15a, descentes à 2.15c, types de sorte à 2.15d : **plus aucun symbole** de `planet_family.h` après 2.15d |
+| `planet_family` → `planet_display` | `pico8_jo_kj` (`planet_family.c:244`) | **reste** |
+| `entity_geom` → `scroll` (par `entity.h`) | `pico8_qb_t` (`entity_geom.c:49`, `:79`), `pico8_qb_struct_class` (`:77`) | `:77`, `:79` partent à 2.14c ; `:49` (`pico8_gd`, `mo->ra`) **reste** |
+| `scroll` → `entity_geom` | `pico8_ma` (`scroll.c:131`) | **reste** |
+
+Contrôle 7 : les 27 symboles ou groupes demandés par le PRD (§4) ont chacun une ligne ; les arêtes aussi.
 
 ## 5. Questions à l'humain
 
-*À écrire en 2.10c.*
+Une question. Aucune règle ni aucun critère du PRD ne pèse la mémoire ; le plan la cite parmi ses raisons (§1, point 4, la PSX).
+
+> **Q-2.10.** Pour que le code commun (dessin, survol, destruction en fin d'image) lise la couche, la position ou les drapeaux d'un objet sans connaître son type, chaque objet du jeu reçoit une douzaine de pointeurs : environ 100 octets de plus sur PC, 50 sur la PSX, soit quelques kilo-octets pour une partie. Est-ce acceptable ? Sinon, on peut s'en passer, au prix de tests de type et de conversions dans le code commun, que ce plan cherche justement à retirer.
+
+(80 mots.) Réponse par défaut, si le plan avance sans réponse : oui, la forme de l'étude.
 
 ## Annexe A — découpage d'`accesseurs-q6`
 
@@ -534,7 +661,7 @@ Essai `mm` (run 22) : même `sed` sur `struct pico8_qy *(*mm)(void *self);` (`st
 
 ## Annexe C — tableau « Runs »
 
-Sur la copie jetable, depuis le scratchpad `etude210/`.
+Sur la copie jetable, depuis le scratchpad `etude210/` ; la copie est supprimée au run 30.
 
 | # | Commande | Code | Ligne clé | Durée |
 |---|---|---|---|---|
@@ -560,6 +687,16 @@ Sur la copie jetable, depuis le scratchpad `etude210/`.
 | 20 | usages des membres `probe`/`emitter` ; leurs écritures | 0 | 142 lignes `src/`, 268 TU ; 7 écritures, toutes d'init | < 1 s |
 | 21 | essai `hd` (`sed` du PRD, annexe B) ; `syn.sh` ; compteur ; remise à zéro | 1 | 18 erreurs (13 `src/`, 5 TU) ; `void-ptr 7 3` ; pied 1072 / 84 | 1 s |
 | 22 | essai `mm` (membre et deux définitions et prototypes) ; `syn.sh` ; compteur ; remise à zéro | 1 | 2 erreurs (`test_pico8_g_.c:552-553`) ; `void-ptr 6 4` ; pied 1071 / 85 | 1 s |
+| 23 | inventaire `pico8_ptrs_t` de `src/` (commande du PRD) ; écrivains relus | 0 | 79 lignes / 35 fichiers ; 35 / 16 porteuses d'entités, plus 6 des aides partagées | < 1 s |
+| 24 | `essai_registres.py` (catégorie) ; compteur ; `--check registres` | 0 / 1 | première passe 13 lignes (`pico8_ptrs.h:26`, `planet_display.c:60` à tort) ; après exemption et exclusion : `registres 11 6`, les autres catégories inchangées ; pied 1084 / 87 | 1 s |
+| 25 | `hv`/`cv`/`cg` typés `pico8_ents_t` (`entity.c`, `entity.h`) ; `syn.sh` ; `--check registres` | 1 | 20 erreurs dans 12 fichiers de `src/`, 375 dans 31 TU (292 par `listed`/`rank_in`) ; `registres` 5 | 1 s |
+| 26 | + `ui.h:24` en `pico8_ents_t`, `pico8_ij` retiré, `pico8_la_ents` déclarée, `new_entity` typé, `pico8_jp_ptrs`/`pico8_la_ptrs` exemptés ; compteur | 0 | `registres` **0** ; autres catégories identiques au départ ; pied 1073 / 85 | 1 s |
+| 27 | `registres` dans `COMPOSITION_RESIDUE_GUARD` ; `make composition-guard` ; puis `g_mordant` et `seau[4]` réinjectés ; `make composition-guard` | 0 / 2 | `résidu gardé (…,registres) : 0 ligne(s)` ; puis 2 lignes, `Error 1` | < 1 s |
+| 28 | copie remise à zéro, catégorie seule ; `test_composition_residue` compilé et lancé | 134 | `test_void_ptr_reads_joined_public_prototypes` : l'attendu ne compte pas `registres` (2 lignes) | 1 s |
+| 29 | attendu corrigé, fixture `test_registres_reads_declaration_points_outside_entity_types` ajoutée ; TU ; `timeout 900 make test` | 0 / 0 | `test_composition_residue: all tests passed` ; `make test` vert (71 TU) | 10 s |
+| 30 | `git checkout -- .` ; `git status --short` ; `rm -rf copie` | 0 | copie propre, puis supprimée | < 1 s |
+| 31 | arbre de travail : `make composition-residue` ; `git diff --stat` des commits de l'étude (`265be79`, `0dfef28`, `c8396ce`, 2.10c) | 0 | `résidu 2 : 1073 ligne(s), 85 fichier(s)` ; seuls `docs/etude-2-10-composants.md` et `docs/plan-3.md` (`0f6e495` et `5db289d`, du vérificateur de 2.9, touchent l'étude 2.9 et un PRD) | 1 s |
+| 32 | arbre de travail : `timeout 900 make test` (recommandé par le PRD, contrôle 8) | 0 | vert | 5 s |
 
 ## Annexe D — découpage de `lien-parent`
 
@@ -617,3 +754,286 @@ Même format que l'annexe A ; une ligne sort avec le dernier symbole qu'elle nom
 | `pico8_nl_of` | 9 : economy_tiers.c:261; planet_display.c:429; planet_family.c:677; planet_family.h:142; T:nl.c:249,258,394; T:qh.c:706,718 |
 | `pico8_nl_of+pico8_qh_of` | 3 : T:qh.c:721,723,724 |
 | `pico8_qh_of` | 18 : economy_score.c:48; planet.c:280; planet_display.c:154,436; planet_family.c:668; planet_family.h:138; planet_trade.c:152; T:fr.c:148; T:hj.c:294; T:mx.c:283; T:nl.c:149; T:nr.c:146; T:os.c:163,285; T:pm.c:242; T:qh.c:88,705,717 |
+
+## Annexe E — la catégorie `registres`, texte essayé
+
+Script d'essai (`essai_registres.py`, argument : la copie), qui écrit la catégorie dans `tools/composition_residue.sh` :
+
+```python
+import sys,os
+os.chdir(sys.argv[1])
+p='tools/composition_residue.sh'; s=open(p).read()
+def r(a,b):
+    global s
+    assert s.count(a)==1,a; s=s.replace(a,b)
+r('void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"\n\n# Categories comptees',
+  'void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"\n\n# Categories comptees')
+r('SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut',
+  'SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut')
+r('# En-tetes du noyau, par nom de fichier',
+'''# registres : hors tests/, les points de declaration qui tiennent des entites
+# par void * hors des types d'entite (que ptrs-entite lit) : membre
+# pico8_ptrs_t (tableau compris) d'une struct, objet pico8_ptrs_t de portee
+# fichier, prototype de .h qui prend ou rend un pico8_ptrs_t, membre de
+# struct qui rend void *. Exemptes, chacun prouve par son ecrivain :
+# emitter.qy des particules (particle.c:65), le ji du contexte de
+# planet_display.c des enregistrements jy (:79, :186) ; pico8_nv_ptrs sur hp.i
+# (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
+# pico8_jo_ex sur des enregistrements jy (planet_display.c:54).
+REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex"
+
+# En-tetes du noyau, par nom de fichier''')
+# (a),(d) in read_structs
+r('''    awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \\
+        -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"\'''',
+'''    awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \\
+        -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registres.structs" \\
+        -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"\'''')
+r('''            if ($0 ~ /^[ \\t]+(const[ \\t]+)?pico8_ptrs_t[ \\t]*\\*?[ \\t]*[a-z0-9_]+;/) {
+                t = $0; sub(/;.*/, "", t); sub(/.*[ \\t*]/, "", t)
+                np[n]++; pmem[n, np[n]] = t; pline[n, np[n]] = FNR; ptext[n, np[n]] = $0
+            }''',
+'''            if ($0 ~ /^[ \\t]+(const[ \\t]+)?pico8_ptrs_t[ \\t]*\\*?[ \\t]*[a-z0-9_]+;/) {
+                t = $0; sub(/;.*/, "", t); sub(/.*[ \\t*]/, "", t)
+                np[n]++; pmem[n, np[n]] = t; pline[n, np[n]] = FNR; ptext[n, np[n]] = $0
+            }
+            if (c ~ /^[ \\t]+(const[ \\t]+)?pico8_ptrs_t[ \\t]*\\*?[ \\t]*[a-z0-9_]+[ \\t]*(\\[[^]]*\\])?[ \\t]*;/ ||
+                c ~ /^[ \\t]+(const[ \\t]+)?void[ \\t]*\\*[ \\t]*\\([ \\t]*\\*/) {
+                t = c; sub(/[ \\t]*(\\[[^]]*\\])?[ \\t]*;.*/, "", t); sub(/\\).*/, "", t); sub(/.*[ \\t*(]/, "", t)
+                nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
+            }''')
+r('''        printf "" > out_members
+''','''        printf "" > out_members
+        printf "" > out_reg
+''')
+r('''            if (!in_e(k)) continue
+''','''            if (!in_e(k) && sfile[k] !~ /(^|\\/)tests\\// && sfile[k] !~ /(^|\\/)pico8_ptrs\\.[ch]$/) {
+                m = split(names[k], nm, " ")
+                for (j = 1; j <= nr[k]; j++) {
+                    skip = 0
+                    for (i = 1; i <= m; i++) if (index(reg_non_entite, " " nm[i] "." rmem[k, j] " ")) skip = 1
+                    if (!skip) print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_reg
+                }
+            }
+            if (!in_e(k)) continue
+''')
+# (b),(c) + collect
+r('''# Paires {a, b} de modules hors tests/''','''# registres, suite : objets pico8_ptrs_t de portee fichier des .c et
+# prototypes des .h (hors pico8_ptrs.h), hors tests/, joints comme ceux de
+# void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
+read_registres() {
+    [ -f "$work/parente" ] || read_structs
+    grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/pico8_ptrs\\.[ch]$' | grep -v '^pico8_ptrs\\.[ch]$' > "$work/regfiles" || true
+    : > "$work/registres.decl"
+    if [ -s "$work/regfiles" ]; then
+        awk -v non=" $REGISTRES_NON_ENTITE " "$CLEAN_AWK"'
+        FNR == 1 { depth = 0; incomment = 0; acc = "" }
+        {
+            c = clean($0)
+            if (acc == "" && depth == 0 && $0 ~ /^[a-z]/) { start = FNR; text = $0; acc = " " }
+            if (acc != "") {
+                acc = acc " " c
+                if (acc ~ /[;{=]/) {
+                    ok = acc !~ /^[ \\t]*typedef/ && acc ~ /(^|[^A-Za-z0-9_])pico8_ptrs_t([^A-Za-z0-9_]|$)/
+                    fn = match(acc, /[A-Za-z_][A-Za-z0-9_]*[ \\t]*\\(/)
+                    if (fn) { name = substr(acc, RSTART, RLENGTH); sub(/[ \\t]*\\($/, "", name) }
+                    else { t = acc; sub(/[ \\t]*(\\[[^]]*\\])?[ \\t]*[;=].*/, "", t); sub(/.*[ \\t*]/, "", t); name = t }
+                    if (FILENAME ~ /\\.h$/) keep = fn && (acc !~ /\\{/ || index(acc, ";") < index(acc, "{"))
+                    else keep = !fn
+                    if (ok && keep && !index(non, " " name " ")) print FILENAME ":" start ":" text
+                    acc = ""
+                }
+            }
+            braces(c)
+        }' $(cat "$work/regfiles") > "$work/registres.decl" || fail "echec de awk"
+    fi
+    cat "$work/registres.structs" "$work/registres.decl" | sort -t: -k1,1 -k2,2n > "$work/registres"
+}
+
+# Paires {a, b} de modules hors tests/''')
+r('''        void-ptr) read_prototypes; return 0 ;;''','''        void-ptr) read_prototypes; return 0 ;;
+        registres) read_registres; return 0 ;;''')
+open(p,'w').write(s)
+```
+
+Diff produit sur la copie (script et TU), à reprendre par 2.11r-a :
+
+```diff
+diff --git a/tests/test_composition_residue.c b/tests/test_composition_residue.c
+index c9ab11e..33cca69 100644
+--- a/tests/test_composition_residue.c
++++ b/tests/test_composition_residue.c
+@@ -231,6 +231,32 @@ static void test_ptrs_members_count_only_on_entity_types(void) {
+                                   "résidu gardé (ptrs-entité) : 1 ligne(s)\n") == 0);
+ }
+ 
++static void test_registres_reads_declaration_points_outside_entity_types(void) {
++    setup();
++    write_file(SRC "/e.h", "typedef struct {\n    pico8_struct_" "header_t header;\n    pico8_"
++                           "ptrs_t *oe;\n} pico8_" "ke_t;\n"
++                           "typedef struct {\n    pico8_" "ptrs_t layers[16];\n    pico8_" "ptrs_t *qy;\n} pico8_"
++                           "emitter_t;\n"
++                           "typedef struct {\n    void *(*new_entity)(int k);\n    void (*kj)(void *self);\n} k_t;\n"
++                           "const pico8_" "ptrs_t *pico8_" "hv(void);\n"
++                           "pico8_lq_t *pico8_" "jo_ex(const pico8_" "ptrs_t *is,\n    int o);\n"
++                           "typedef int (*pico8_" "fn)(const pico8_" "ptrs_t *p);\n");
++    write_file(SRC "/r.c", "static pico8_" "ptrs_t g_hv;\n"
++                           "static pico8_" "ptrs_t *g_list = 0;\n"
++                           "pico8_" "ptrs_t pico8_" "jp_ptrs(const pico8_" "ptrs_t *qk) {\n    pico8_"
++                           "ptrs_t f;\n    return f;\n}\n");
++    write_file(SRC "/pico8_ptrs.h", "typedef struct {\n    const pico8_" "ptrs_t *ptrs;\n} pico8_" "ptrs_iter_t;\n"
++                                    "void pico8_" "ptrs_add(pico8_" "ptrs_t *p, void *e);\n");
++    write_file(TST "/t.c", "static pico8_" "ptrs_t g_t;\n");
++    assert(run_residue("--check registres " TREE) == 1);
++    assert(strcmp(read_file(OUT), "registres: " SRC "/e.h:6:    pico8_" "ptrs_t layers[16];\n"
++                                  "registres: " SRC "/e.h:10:    void *(*new_entity)(int k);\n"
++                                  "registres: " SRC "/e.h:13:const pico8_" "ptrs_t *pico8_" "hv(void);\n"
++                                  "registres: " SRC "/r.c:1:static pico8_" "ptrs_t g_hv;\n"
++                                  "registres: " SRC "/r.c:2:static pico8_" "ptrs_t *g_list = 0;\n"
++                                  "résidu gardé (registres) : 5 ligne(s)\n") == 0);
++}
++
+ static void test_void_ptr_reads_joined_public_prototypes(void) {
+     setup();
+     write_file(SRC "/v.h", "pico8_qy_t *pico8_" "g__mm(void *self);\n"
+@@ -254,7 +280,8 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
+     write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
+     assert(run_residue(TREE) == 0);
+     assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
+-                                  "résidu 2 : 1 ligne(s), 1 fichier(s)\n") == 0);
++                                  "registres\t2\t1\n"
++                                  "résidu 2 : 3 ligne(s), 1 fichier(s)\n") == 0);
+ }
+ 
+ static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {
+@@ -392,6 +419,7 @@ int main(void) {
+     test_entity_reader_finds_embedded_parents_by_closure();
+     test_entity_reader_ignores_what_is_not_an_embedded_parent();
+     test_ptrs_members_count_only_on_entity_types();
++    test_registres_reads_declaration_points_outside_entity_types();
+     test_void_ptr_reads_joined_public_prototypes();
+     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
+     test_attainment_list_counts_only_useful_lines();
+diff --git a/tools/composition_residue.sh b/tools/composition_residue.sh
+index 63b4d73..de1202b 100644
+--- a/tools/composition_residue.sh
++++ b/tools/composition_residue.sh
+@@ -38,10 +38,10 @@
+ 
+ set -u
+ 
+-CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"
++CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"
+ 
+ # Categories comptees dans le pied.
+-SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"
++SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité registres noyau-inclut atteinte-à-prouver inclusion-mutuelle"
+ 
+ fail() {
+     echo "composition_residue: $1" >&2
+@@ -84,6 +84,17 @@ VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
+ # enregistrements jy (research.c:233), jc.ts des particules (slipway_display.c:43).
+ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
+ 
++# registres : hors tests/, les points de declaration qui tiennent des entites
++# par void * hors des types d'entite (que ptrs-entite lit) : membre
++# pico8_ptrs_t (tableau compris) d'une struct, objet pico8_ptrs_t de portee
++# fichier, prototype de .h qui prend ou rend un pico8_ptrs_t, membre de
++# struct qui rend void *. Exemptes, chacun prouve par son ecrivain :
++# emitter.qy des particules (particle.c:65), le ji du contexte de
++# planet_display.c des enregistrements jy (:79, :186) ; pico8_nv_ptrs sur hp.i
++# (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
++# pico8_jo_ex sur des enregistrements jy (planet_display.c:54).
++REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex"
++
+ # En-tetes du noyau, par nom de fichier : noyau-inclut ne lit qu'eux.
+ NOYAU="pico8_struct.h pico8_ke.h pico8_entity.h"
+ 
+@@ -181,6 +192,7 @@ function braces(s,    t, n) {
+ # $work/members les "<type>\t<membre>" que lit --champs.
+ read_structs() {
+     awk -v non_entite=" $PTRS_NON_ENTITE " -v out_parente="$work/parente" \
++        -v reg_non_entite=" $REGISTRES_NON_ENTITE " -v out_reg="$work/registres.structs" \
+         -v out_ptrs="$work/ptrs-entité" -v out_members="$work/members" "$CLEAN_AWK"'
+     FNR == 1 { depth = 0; incomment = 0; inbody = 0 }
+     {
+@@ -219,6 +231,11 @@ read_structs() {
+                 t = $0; sub(/;.*/, "", t); sub(/.*[ \t*]/, "", t)
+                 np[n]++; pmem[n, np[n]] = t; pline[n, np[n]] = FNR; ptext[n, np[n]] = $0
+             }
++            if (c ~ /^[ \t]+(const[ \t]+)?pico8_ptrs_t[ \t]*\*?[ \t]*[a-z0-9_]+[ \t]*(\[[^]]*\])?[ \t]*;/ ||
++                c ~ /^[ \t]+(const[ \t]+)?void[ \t]*\*[ \t]*\([ \t]*\*/) {
++                t = c; sub(/[ \t]*(\[[^]]*\])?[ \t]*;.*/, "", t); sub(/\).*/, "", t); sub(/.*[ \t*(]/, "", t)
++                nr[n]++; rmem[n, nr[n]] = t; rline[n, nr[n]] = FNR; rtext[n, nr[n]] = $0
++            }
+         }
+         braces(c)
+         if (inbody && depth == 0) {
+@@ -253,10 +270,19 @@ read_structs() {
+         printf "" > out_parente
+         printf "" > out_ptrs
+         printf "" > out_members
++        printf "" > out_reg
+         for (i = 1; i <= alias_n; i++) alias_of[alias_a[i]] = alias_b[i]
+         for (k = 1; k <= n; k++) {
+             if (first[k] in e && first[k] != "pico8_struct_header_t")
+                 print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parente
++            if (!in_e(k) && sfile[k] !~ /(^|\/)tests\// && sfile[k] !~ /(^|\/)pico8_ptrs\.[ch]$/) {
++                m = split(names[k], nm, " ")
++                for (j = 1; j <= nr[k]; j++) {
++                    skip = 0
++                    for (i = 1; i <= m; i++) if (index(reg_non_entite, " " nm[i] "." rmem[k, j] " ")) skip = 1
++                    if (!skip) print sfile[k] ":" rline[k, j] ":" rtext[k, j] > out_reg
++                }
++            }
+             if (!in_e(k)) continue
+             if (sfile[k] ~ /\.h$/ && sfile[k] !~ /(^|\/)tests\//) {
+                 m = split(names[k], nm, " "); type = nm[m]
+@@ -312,6 +338,38 @@ read_prototypes() {
+     }' > "$work/void-ptr" || fail "echec de awk"
+ }
+ 
++# registres, suite : objets pico8_ptrs_t de portee fichier des .c et
++# prototypes des .h (hors pico8_ptrs.h), hors tests/, joints comme ceux de
++# void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
++read_registres() {
++    [ -f "$work/parente" ] || read_structs
++    grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/pico8_ptrs\.[ch]$' | grep -v '^pico8_ptrs\.[ch]$' > "$work/regfiles" || true
++    : > "$work/registres.decl"
++    if [ -s "$work/regfiles" ]; then
++        awk -v non=" $REGISTRES_NON_ENTITE " "$CLEAN_AWK"'
++        FNR == 1 { depth = 0; incomment = 0; acc = "" }
++        {
++            c = clean($0)
++            if (acc == "" && depth == 0 && $0 ~ /^[a-z]/) { start = FNR; text = $0; acc = " " }
++            if (acc != "") {
++                acc = acc " " c
++                if (acc ~ /[;{=]/) {
++                    ok = acc !~ /^[ \t]*typedef/ && acc ~ /(^|[^A-Za-z0-9_])pico8_ptrs_t([^A-Za-z0-9_]|$)/
++                    fn = match(acc, /[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)
++                    if (fn) { name = substr(acc, RSTART, RLENGTH); sub(/[ \t]*\($/, "", name) }
++                    else { t = acc; sub(/[ \t]*(\[[^]]*\])?[ \t]*[;=].*/, "", t); sub(/.*[ \t*]/, "", t); name = t }
++                    if (FILENAME ~ /\.h$/) keep = fn && (acc !~ /\{/ || index(acc, ";") < index(acc, "{"))
++                    else keep = !fn
++                    if (ok && keep && !index(non, " " name " ")) print FILENAME ":" start ":" text
++                    acc = ""
++                }
++            }
++            braces(c)
++        }' $(cat "$work/regfiles") > "$work/registres.decl" || fail "echec de awk"
++    fi
++    cat "$work/registres.structs" "$work/registres.decl" | sort -t: -k1,1 -k2,2n > "$work/registres"
++}
++
+ # Paires {a, b} de modules hors tests/ ou chacun inclut l'en-tete de l'autre,
+ # dans $work/inclusion-mutuelle.pairs ; dans $work/inclusion-mutuelle, les
+ # lignes #include qui realisent ces paires, au format des autres categories.
+@@ -356,6 +414,7 @@ collect() {
+             sort -t: -k1,1 -k2,2n "$work/$1" > "$work/sorted" && mv "$work/sorted" "$work/$1"
+             return 0 ;;
+         void-ptr) read_prototypes; return 0 ;;
++        registres) read_registres; return 0 ;;
+         inclusion-mutuelle) read_inclusions; return 0 ;;
+         atteinte-à-prouver)
+             status=0
+```
