@@ -106,7 +106,7 @@ static void test_one_occurrence_per_category_in_table_order(void) {
                                   "noyau-inclut\t1\t1\n"
                                   "atteinte-à-prouver\t1\t1\n"
                                   "inclusion-mutuelle\t1\t2\n"
-                                  "résidu 2 : 11 ligne(s), 11 fichier(s)\n") == 0);
+                                  "résidu 2 : 13 ligne(s), 13 fichier(s)\n") == 0);
 }
 
 static void test_other_witnesses_of_each_pattern_bite(void) {
@@ -279,20 +279,29 @@ static void test_attainment_list_counts_only_useful_lines(void) {
     assert(strstr(read_file(OUT), "atteinte-à-prouver: " ATT ":3:q1\tx\n") != NULL);
 }
 
-static void test_mutual_inclusion_is_measured_but_out_of_the_footer(void) {
+static void test_mutual_inclusion_counts_its_include_lines_in_the_footer(void) {
     setup();
     write_file(SRC "/a.h", "#include \"b.h\"\n#include \"a.h\"\n#include \"c.h\"\n");
+    write_file(SRC "/a.c", "#include \"b.h\"\n");
     write_file(SRC "/b.c", "#include <stdio.h>\n#include \"a.h\"\n");
     write_file(SRC "/c.h", "#include <a.h>\n");
     write_file(TST "/d.c", "#include \"e.h\"\n");
     write_file(TST "/e.h", "#include \"d.h\"\n");
     assert(run_residue(TREE) == 0);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle\t1\t2\n" EMPTY_FOOTER) == 0);
+    assert(strcmp(read_file(OUT), "inclusion-mutuelle\t1\t2\n"
+                                  "résidu 2 : 3 ligne(s), 3 fichier(s)\n") == 0);
     assert(run_residue("--detail " TREE) == 0);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle\ta\tb\n" EMPTY_FOOTER) == 0);
+    assert(strcmp(read_file(OUT), "inclusion-mutuelle\ta\tb\n"
+                                  "résidu 2 : 3 ligne(s), 3 fichier(s)\n") == 0);
     assert(run_residue("--check inclusion-mutuelle " TREE) == 1);
-    assert(strcmp(read_file(OUT), "inclusion-mutuelle: a <-> b\n"
-                                  "résidu gardé (inclusion-mutuelle) : 1 ligne(s)\n") == 0);
+    assert(strcmp(read_file(OUT), "inclusion-mutuelle: " SRC "/a.c:1:#include \"b.h\"\n"
+                                  "inclusion-mutuelle: " SRC "/a.h:1:#include \"b.h\"\n"
+                                  "inclusion-mutuelle: " SRC "/b.c:2:#include \"a.h\"\n"
+                                  "résidu gardé (inclusion-mutuelle) : 3 ligne(s)\n") == 0);
+    setup();
+    write_file(SRC "/a.h", "#include \"b.h\"\n");
+    assert(run_residue("--check inclusion-mutuelle " TREE) == 0);
+    assert(strcmp(read_file(OUT), "résidu gardé (inclusion-mutuelle) : 0 ligne(s)\n") == 0);
 }
 
 static void test_detail_sorts_by_category_then_file(void) {
@@ -386,7 +395,7 @@ int main(void) {
     test_void_ptr_reads_joined_public_prototypes();
     test_detail_prints_r2_sites_under_void_ptr_and_the_info_line();
     test_attainment_list_counts_only_useful_lines();
-    test_mutual_inclusion_is_measured_but_out_of_the_footer();
+    test_mutual_inclusion_counts_its_include_lines_in_the_footer();
     test_detail_sorts_by_category_then_file();
     test_check_fails_only_on_a_named_category_present();
     test_measure_on_nothing_is_an_error_not_an_empty_residue();

@@ -4,7 +4,8 @@
 # tels que recus), les lignes de chaque categorie du residu de la phase 2,
 # commentaires compris ; une ligne compte dans chaque categorie qu'elle touche.
 # atteinte-à-prouver compte les lignes utiles de COMPOSITION_ATTEINTE ;
-# inclusion-mutuelle compte des paires de modules hors tests/, jamais au pied.
+# inclusion-mutuelle compte des paires de modules hors tests/ ; au pied et a
+# --check, ses lignes sont les #include qui realisent ces paires.
 #   sans option : "<cat>\t<lignes>\t<fichiers>" par categorie non nulle
 #                 ("<paires>\t<modules>" pour inclusion-mutuelle), puis
 #                 "résidu 2 : N ligne(s), M fichier(s)" (couples fichier:ligne
@@ -16,7 +17,7 @@
 #                 ligne "info" de pico8_game_data.h s'il est lu, puis le meme
 #                 pied ; code 0.
 #   --check     : "<cat>: <fichier>:<ligne>:<texte>" par occurrence des
-#                 categories nommees ("inclusion-mutuelle: <a> <-> <b>"), puis
+#                 categories nommees, puis
 #                 "résidu gardé (<cats>) : N ligne(s)" ; code 1 si N > 0.
 #                 Toute categorie connue est acceptee.
 #   --champs    : releve de la regle 1, "<type>\t<membre>\t<ecritures>\t<hors
@@ -40,7 +41,7 @@ set -u
 CATEGORIES="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"
 
 # Categories comptees dans le pied.
-SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver"
+SORTIE="parente lien-parent accesseurs-q6 défauts nu aiguillage-nom un-ou-faux void-ptr ptrs-entité noyau-inclut atteinte-à-prouver inclusion-mutuelle"
 
 fail() {
     echo "composition_residue: $1" >&2
@@ -311,27 +312,37 @@ read_prototypes() {
     }' > "$work/void-ptr" || fail "echec de awk"
 }
 
-# Paires {a, b} de modules hors tests/ ou chacun inclut l'en-tete de l'autre.
+# Paires {a, b} de modules hors tests/ ou chacun inclut l'en-tete de l'autre,
+# dans $work/inclusion-mutuelle.pairs ; dans $work/inclusion-mutuelle, les
+# lignes #include qui realisent ces paires, au format des autres categories.
 read_inclusions() {
     grep -v '/tests/' "$work/files" | grep -v '^tests/' > "$work/modfiles" || true
+    : > "$work/inclusion-mutuelle.pairs"
     : > "$work/inclusion-mutuelle"
     [ -s "$work/modfiles" ] || return 0
     status=0
-    grep -HE '^#include "[^"]+\.h"' $(cat "$work/modfiles") > "$work/includes" || status=$?
+    grep -HnE '^#include "[^"]+\.h"' $(cat "$work/modfiles") > "$work/includes" || status=$?
     [ "$status" -le 1 ] || fail "echec de grep"
-    awk '
+    awk -v pairs="$work/inclusion-mutuelle.pairs" '
     NR == FNR { f = $0; sub(/.*\//, "", f); sub(/\.[ch]$/, "", f); mod[f] = 1; next }
     {
-        a = $0; sub(/:.*/, "", a); sub(/.*\//, "", a); sub(/\.[ch]$/, "", a)
-        b = $0; sub(/^[^:]*:#include "/, "", b); sub(/\.h".*/, "", b)
-        if (b in mod) edge[a, b] = 1
+        path = $0; sub(/:.*/, "", path)
+        a = path; sub(/.*\//, "", a); sub(/\.[ch]$/, "", a)
+        b = $0; sub(/^[^:]*:[0-9]+:#include "/, "", b); sub(/\.h".*/, "", b)
+        if (!(b in mod)) next
+        edge[a, b] = 1
+        n++; line[n] = $0; from[n] = a; to[n] = b
     }
     END {
         for (k in edge) {
             split(k, ab, SUBSEP)
-            if (ab[1] < ab[2] && ((ab[2], ab[1]) in edge)) print ab[1] "\t" ab[2]
+            if (ab[1] < ab[2] && ((ab[2], ab[1]) in edge)) print ab[1] "\t" ab[2] > pairs
         }
-    }' "$work/modfiles" "$work/includes" | sort > "$work/inclusion-mutuelle" || fail "echec de awk"
+        for (i = 1; i <= n; i++)
+            if (to[i] != from[i] && ((to[i], from[i]) in edge)) print line[i]
+    }' "$work/modfiles" "$work/includes" > "$work/inclusion-mutuelle" || fail "echec de awk"
+    sort "$work/inclusion-mutuelle.pairs" > "$work/sorted" && mv "$work/sorted" "$work/inclusion-mutuelle.pairs"
+    sort -t: -k1,1 -k2,2n "$work/inclusion-mutuelle" > "$work/sorted" && mv "$work/sorted" "$work/inclusion-mutuelle"
 }
 
 # Rend dans $work/<cat> les lignes "<fichier>:<ligne>:<texte>", dans l'ordre
@@ -437,11 +448,6 @@ if [ "$mode" = check ]; then
     : > "$work/all"
     for cat in $(printf '%s\n' "$checked" | tr ',' ' '); do
         collect "$cat"
-        if [ "$cat" = inclusion-mutuelle ]; then
-            awk -F'\t' '{ print "inclusion-mutuelle: " $1 " <-> " $2 }' "$work/$cat"
-            awk -F'\t' '{ print $1 "<->" $2 }' "$work/$cat" >> "$work/all"
-            continue
-        fi
         sed "s|^|$cat: |" "$work/$cat"
         cut -d: -f1,2 "$work/$cat" >> "$work/all"
     done
@@ -451,24 +457,18 @@ if [ "$mode" = check ]; then
     exit
 fi
 
-# Une paire d'inclusion-mutuelle entre au pied comme "a<->b" si SORTIE la nomme.
 : > "$work/all"
 for cat in $CATEGORIES; do
     collect "$cat"
     if [ -s "$work/$cat" ]; then
         case " $SORTIE " in
-            *" $cat "*)
-                if [ "$cat" = inclusion-mutuelle ]; then
-                    awk -F'\t' '{ print $1 "<->" $2 }' "$work/$cat" >> "$work/all"
-                else
-                    cut -d: -f1,2 "$work/$cat" >> "$work/all"
-                fi ;;
+            *" $cat "*) cut -d: -f1,2 "$work/$cat" >> "$work/all" ;;
         esac
         if [ "$cat" = inclusion-mutuelle ] && [ "$mode" = detail ]; then
-            sed 's/^/inclusion-mutuelle\t/' "$work/$cat"
+            sed 's/^/inclusion-mutuelle\t/' "$work/$cat.pairs"
         elif [ "$cat" = inclusion-mutuelle ]; then
-            pairs=$(wc -l < "$work/$cat" | tr -d ' ')
-            modules=$(tr '\t' '\n' < "$work/$cat" | sort -u | wc -l | tr -d ' ')
+            pairs=$(wc -l < "$work/$cat.pairs" | tr -d ' ')
+            modules=$(tr '\t' '\n' < "$work/$cat.pairs" | sort -u | wc -l | tr -d ' ')
             printf '%s\t%s\t%s\n' "$cat" "$pairs" "$modules"
         elif [ "$mode" = detail ]; then
             cut -d: -f1 "$work/$cat" | uniq -c | awk -v c="$cat" '{ print c "\t" $2 "\t" $1 }'
