@@ -39,7 +39,7 @@
 
 
 #define BUILT_HASH 0xEA365129u
-#define LIFE_HASH 0x85D7319Eu
+#define LIFE_HASH 0x196B693Au
 #define BURST_FRAMES 86
 
 /* The tag `lq.fs` carried as a tagged list, which the frozen hashes fold:
@@ -114,7 +114,7 @@ static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_jo_t *jo) {
-    return jo->has_p_ ? fold_bool_member(h, jo->p_) : fold_absent(h);
+    return (jo->p_ != 0) ? fold_bool_member(h, jo->p_) : fold_absent(h);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -357,11 +357,11 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, (uint32_t)(jo->ep != NULL));
     h = fnv(h, (uint32_t)(jo->jy != NULL));
     h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)(jo->has_fx != 0));
+    h = fnv(h, (uint32_t)(jo->fx != 0));
     h = fnv(h, (uint32_t)(jo->lq != NULL));
     h = fnv(h, (uint32_t)(jo->fo != NULL));
     h = fnv(h, (uint32_t)(jo->has_jh != 0));
-    h = fnv(h, (uint32_t)(jo->has_p_ != 0));
+    h = fnv(h, (uint32_t)(jo->p_ != 0));
     h = fnv(h, (uint32_t)(jo->has_kr != 0));
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
@@ -572,11 +572,11 @@ static void test_life(void) {
     }
 
     h = fold_cut(h, a, 3);
-    assert(!(as_ga(a)->jo.has_p_ && as_ga(a)->jo.p_));
+    assert(!as_ga(a)->jo.p_);
     h = fold_cut(h, a, 2);
-    assert(as_ga(a)->jo.has_p_ && as_ga(a)->jo.p_);
+    assert(as_ga(a)->jo.p_);
     h = fold_cut(h, a, 0);
-    assert(as_ga(a)->jo.has_p_ && as_ga(a)->jo.p_);
+    assert(as_ga(a)->jo.p_);
 
     h = fold_bool(h, cls_of(b)->hd(b, as_ga(b)->jo.ra, as_ga(b)->jo.ra));
     h = fold_bool(h, cls_of(b)->hd(b, vec_ref(near_mo(0, 0)), vec_ref(near_mo(0, 0))));

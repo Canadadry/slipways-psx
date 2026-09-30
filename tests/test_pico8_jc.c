@@ -108,7 +108,7 @@ static pico8_vec_t vec_of(const pico8_vec_t *v) {
 
 /* 0 absent, 1 false, 2 true. */
 static uint32_t p__state(const pico8_jc_t *jc) {
-    if (!jc->has_p_) {
+    if (!jc->p_) {
         return 0;
     }
     return jc->p_ ? 2u : 1u;
@@ -463,7 +463,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
 
     assert(jc->re == NULL && !jc->probe->has_od && jc->probe->od == 0 && !jc->has_mt && jc->probe->et == NULL);
     assert(jc->header.mt == NULL);
-    assert(jc->fo == NULL && !jc->has_p_);
+    assert(jc->fo == NULL && !jc->p_);
     assert(cls_of(jc)->hq != NULL && cls_of(jc)->ey != NULL);
     assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
     assert(cls_of(jc)->hd == NULL && cls_of(jc)->states[PICO8_STATE_KZ] == NULL &&

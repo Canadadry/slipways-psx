@@ -646,8 +646,8 @@ static uint32_t fold_planet(uint32_t h, void *e) {
     h = fold_jy(h, p);
     h = fold_kw(h, p);
     h = fold_string_member(h, p->header.me);
-    h = fold_bool_member(h, p->has_fx, p->fx);
-    h = fold_bool_member(h, p->has_p_, p->p_);
+    h = fold_bool_member(h, (p->fx != 0), p->fx);
+    h = fold_bool_member(h, (p->p_ != 0), p->p_);
     h = fold_fixed_member(h, 1, p->ma);
     h = p->nk != NULL ? fnv(h, (uint32_t)(p->nk - pico8_df_table)) : fnv(h, 0xFFFFFFFFu);
     return fnv(h, (uint32_t)ents_rank_in(pico8_hv(), p));

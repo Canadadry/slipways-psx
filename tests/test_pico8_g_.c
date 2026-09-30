@@ -165,7 +165,7 @@ static uint32_t fold_ref_member(uint32_t h, const void *ref) {
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_g__t *g_) {
-    return g_->has_p_ ? fold_bool_member(h, g_->p_ != 0) : fnv(h, 0u);
+    return (g_->p_ != 0) ? fold_bool_member(h, g_->p_ != 0) : fnv(h, 0u);
 }
 
 /* `g_`'s 18 spec defaults, in spec order. */
@@ -373,7 +373,7 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     assert(em->k_ == &pico8_g__k__seq);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
-    assert(e->ra == NULL && e->p == NULL && pr->et == NULL && !e->has_p_);
+    assert(e->ra == NULL && e->p == NULL && pr->et == NULL && !e->p_);
     assert(cls_of(e)->hd == NULL && cls_of(e)->hk == NULL && cls_of(e)->hb == NULL &&
            cls_of(e)->states[PICO8_STATE_LY] == NULL && cls_of(e)->states[PICO8_STATE_PH] == NULL);
     assert(cls_of(e)->hq == pico8_bv_dispatch);
@@ -583,7 +583,7 @@ static void test_life(void) {
     }
     assert(cls_of(a)->ey == pico8_d__dispatch);
     assert(pico8_d_(&a->header) == 0);
-    assert(a->has_p_ && a->p_);
+    assert(a->p_);
     pico8_dg();
     assert(!ents_listed(pico8_hv(), a) && !ents_listed(pico8_cg("g_"), a) && !ents_listed(pico8_cg("prober"), a));
     assert(ents_listed(pico8_hv(), b) && ents_listed(pico8_cg("g_"), b));
@@ -603,7 +603,7 @@ static void test_ey_on(void) {
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->header);
     assert(out == 0);
-    assert(a->has_p_ && a->p_);
+    assert(a->p_);
     h = fold_string_member(h, a->header.me);
     h = fold_fixed_member(h, a->header.t);
     h = fold_p_(h, a);
@@ -622,7 +622,7 @@ static void test_ey_off(void) {
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->header);
     assert(out == 1);
-    assert(!a->has_p_);
+    assert(!a->p_);
     assert(is_me(&a->header, "ly"));
     assert(a->header.t == pico8_fixed_from_int(0));
     h = fold_string_member(h, a->header.me);
@@ -646,13 +646,13 @@ static void test_ey_void(void) {
     cls_of(a)->hq(a, mouse_at(pico8_vec_add(middle, vec_xy(0, 3))), vec_ref(vec_xy(2, 2)));
     assert(et_kind(a) == 4);
     assert(et_fo(a) == a);
-    assert(!a->has_p_);
+    assert(!a->p_);
     nz = fm_hy()->nz;
     me = a->header.me;
     assert(cls_of(a)->ey == pico8_d__dispatch);
     out = pico8_d_(&a->header);
     assert(out == 0);
-    assert(a->has_p_ && a->p_);
+    assert(a->p_);
     assert(fm_hy()->nz == nz);
     assert(a->header.me == me);
     assert(et_kind(a) == 4);

@@ -35,7 +35,6 @@ typedef struct {
     const pico8_vec_t *p;
     pico8_struct_header_t *ij; /* borrowed, never freed */
     int p_;
-    int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
 } pico8_mz_t;

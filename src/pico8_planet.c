@@ -76,18 +76,6 @@ void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
     pico8_jo_ll((pico8_jo_t *)self, t);
 }
 
-int pico8_jo_get_fx(const void *self) {
-    const pico8_jo_t *jo = self;
-
-    return jo->has_fx && jo->fx;
-}
-
-int pico8_jo_get_p_(const void *self) {
-    const pico8_jo_t *jo = self;
-
-    return jo->has_p_ && jo->p_;
-}
-
 void pico8_jo_set_m_(void *self, int m_) {
     pico8_jo_t *jo = self;
 
@@ -106,8 +94,6 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .cn = pico8_jo_cn_dispatch,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -121,6 +107,8 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->header.p = (const pico8_vec_t *const *)&self->p;
     self->header.kq = &self->def->kq;
     self->header.ma = &self->ma;
+    self->header.fx = &self->fx;
+    self->header.p_ = &self->p_;
     self->ma = self->def->ma;
     self->kw = &g_jo_kw_shared;
     self->id = NULL;
@@ -132,13 +120,11 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->jy = NULL;
     self->nk = NULL;
     self->fx = 0;
-    self->has_fx = 0;
     self->lq = NULL;
     self->fo = NULL;
     self->jh = 0;
     self->has_jh = 0;
     self->p_ = 0;
-    self->has_p_ = 0;
     self->kr = 0;
     self->has_kr = 0;
     self->cc = NULL;
@@ -325,7 +311,6 @@ void pico8_jo_ll(pico8_jo_t *self, pico8_fixed_t t) {
         return;
     }
     self->p_ = t > pico8_fixed_from_int(60);
-    self->has_p_ = 1;
 }
 
 /* `kv`, indexed by `fz`: `pm` and `ga` are the only kinds whose spec sets
@@ -365,7 +350,6 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
         pico8_jo_keys_t keys;
 
         self->p_ = 1;
-        self->has_p_ = 1;
 
         target_kind = jo_kv(hp_instance->cw);
 
@@ -379,8 +363,7 @@ void pico8_jo_hu(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     } else {
         pico8_ke_ks((pico8_struct_header_t *)self, "ly");
         pico8_jo_lz(self, hp_instance);
-        self->fx = 1;
-        self->has_fx = 1;
+        self->fx = pico8_fixed_from_int(1);
         fp = pico8_ov("autoassemblers", pico8_fixed_from_int(3), pico8_fixed_from_int(2));
     }
 

@@ -279,33 +279,8 @@ void pico8_dl_dispatch(void *self, const pico8_vec_t *ra) {
 /* Raises `p_`, which a host of `d_` holds for itself: `g_`'s line, jo's
  * family (qh's line), a `jc` or an `mz`. */
 static void probe_host_raise_p_(pico8_struct_header_t *self) {
-    pico8_g__t *g_ = pico8_g__of(self);
-    pico8_jo_t *jo;
-    pico8_jc_t *jc;
-    pico8_mz_t *mz;
-
-    if (g_ != NULL) {
-        g_->p_ = 1;
-        g_->has_p_ = 1;
-        return;
-    }
-    if (pico8_jo_is_family(self)) {
-        jo = (pico8_jo_t *)self;
-        jo->p_ = 1;
-        jo->has_p_ = 1;
-        return;
-    }
-    if (self->cls == pico8_jc_struct_class()) {
-        jc = (pico8_jc_t *)self;
-        jc->p_ = 1;
-        jc->has_p_ = 1;
-        return;
-    }
-    assert(self->cls == pico8_mz_struct_class() &&
-           "d_: a host neither of g_'s line, of jo's family, a jc nor an mz, none of whose ey runs d_ -- stop");
-    mz = (pico8_mz_t *)self;
-    mz->p_ = 1;
-    mz->has_p_ = 1;
+    assert(self->p_ != NULL && "d_: a host that carries no p_, none of whose ey runs d_ -- stop");
+    *self->p_ = 1;
 }
 
 int pico8_d_(pico8_struct_header_t *self) {
@@ -395,18 +370,6 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     return particle;
 }
 
-/* `fx` is a fixed here, and a fixed is always true in Lua, even 0. */
-int pico8_g__get_fx(const void *self) {
-    (void)self;
-    return 1;
-}
-
-int pico8_g__get_p_(const void *self) {
-    const pico8_g__t *g_ = self;
-
-    return g_->has_p_ && g_->p_;
-}
-
 static const pico8_struct_class_t g_g__struct_class = {
     .kj = pico8_ei_dispatch,
     .ev = pico8_dl_dispatch,
@@ -416,8 +379,6 @@ static const pico8_struct_class_t g_g__struct_class = {
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_g__get_fx,
-    .get_p_ = pico8_g__get_p_,
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def) {
@@ -426,6 +387,8 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     self->header.fa = &self->def->fa;
     self->header.ra = &self->ra;
     self->header.p = &self->p;
+    self->header.fx = &self->def->fx;
+    self->header.p_ = &self->p_;
     self->emitter = &self->emitter_own;
     self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;
@@ -435,7 +398,6 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     self->probe->def = &self->def->probe;
     self->probe->et = NULL;
     self->p_ = 0;
-    self->has_p_ = 0;
     self->probe->od = self->def->probe.od;
     self->probe->has_od = self->def->probe.has_od;
     self->emitter->py = self->def->emitter.py;

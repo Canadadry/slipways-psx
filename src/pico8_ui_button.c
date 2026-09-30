@@ -299,12 +299,6 @@ static pico8_down_t pico8_fq_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_v
     return pico8_fq_ldown((pico8_fq_t *)self);
 }
 
-static int fq_get_p_(const void *self) {
-    const pico8_fq_t *fq = self;
-
-    return fq->has_p_ && fq->p_;
-}
-
 static void fq_set_m_(void *self, int m_) {
     pico8_fq_t *fq = self;
 
@@ -315,7 +309,6 @@ static void fq_set_m_(void *self, int m_) {
 static const pico8_struct_class_t g_fq_struct_class = {
     .hd = pico8_hd_true,
     .ldown = pico8_fq_ldown_dispatch,
-    .get_p_ = fq_get_p_,
     .set_m_ = fq_set_m_,
 };
 
@@ -326,8 +319,8 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     self->def = &pico8_fq_def;
     self->header.fa = &self->def->fa;
     self->my = NULL;
+    self->header.p_ = &self->p_;
     self->p_ = 0;
-    self->has_p_ = 0;
     self->m_ = 0;
     self->has_m_ = 0;
     if (keys != NULL) {
@@ -368,10 +361,8 @@ pico8_down_t pico8_fq_ldown(pico8_fq_t *self) {
         return out;
     }
     self->p_ = 0;
-    self->has_p_ = 0;
     if (self->my != NULL) {
         self->p_ = self->my(self) != 0;
-        self->has_p_ = 1;
     }
     return out;
 }

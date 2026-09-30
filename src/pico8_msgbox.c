@@ -39,7 +39,6 @@ void pico8_mh_pq(pico8_mh_t *self) {
     previous = pico8_kc();
     if (previous != NULL) {
         previous->p_ = 1;
-        previous->has_p_ = 1;
     }
     pico8_msgbox_set_kc(self);
 }
@@ -79,22 +78,14 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
 
     if (t > PICO8_FIXED_LIT(0x000a8000, 10.5)) {
         self->p_ = 1;
-        self->has_p_ = 1;
         pico8_msgbox_set_kc(NULL);
         assert(pico8_kc() == NULL && "`self.p_,kc=true` is one value for two targets: kc gets nil, not true");
     }
 }
 
-static int mh_get_p_(const void *self) {
-    const pico8_mh_t *mh = self;
-
-    return mh->has_p_ && mh->p_;
-}
-
 static const pico8_struct_class_t g_mh_struct_class = {
     .ev = pico8_mh_ev_dispatch,
     .tags = PICO8_TAG(PICO8_TAG_MH),
-    .get_p_ = mh_get_p_,
 };
 
 static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
@@ -106,8 +97,8 @@ static pico8_mh_t *pico8_mh_struct_new(const pico8_mh_keys_t *keys) {
     self->header.fa = &self->def->fa;
     self->rh = self->def->rh;
     self->lh = NULL;
+    self->header.p_ = &self->p_;
     self->p_ = 0;
-    self->has_p_ = 0;
     self->items_count = 0;
     if (keys != NULL) {
         assert(keys->count <= PICO8_MH_ITEMS_CAP &&
@@ -191,7 +182,6 @@ void pico8_iv_ph(pico8_iv_t *self) {
     self->l = new_l;
 
     self->p_ = new_l >= pico8_fixed_from_int(5);
-    self->has_p_ = 1;
 }
 
 static void pico8_iv_ph_dispatch(void *self, pico8_fixed_t t) {
@@ -223,16 +213,9 @@ static void pico8_iv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_iv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_iv_t *)self, p);
 }
 
-static int iv_get_p_(const void *self) {
-    const pico8_iv_t *iv = self;
-
-    return iv->has_p_ && iv->p_;
-}
-
 static const pico8_struct_class_t g_iv_struct_class = {
     .kj = pico8_iv_kj_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_iv_ph_dispatch},
-    .get_p_ = iv_get_p_,
 };
 
 static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
@@ -244,8 +227,8 @@ static pico8_iv_t *pico8_iv_struct_new(const pico8_iv_keys_t *keys) {
     self->header.ra = &self->ra;
     self->l = self->def->l;
     self->ra = NULL;
+    self->header.p_ = &self->p_;
     self->p_ = 0;
-    self->has_p_ = 0;
     self->at1 = NULL;
     self->at2 = pico8_fixed_from_int(0);
     if (keys != NULL) {

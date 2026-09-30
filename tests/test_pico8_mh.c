@@ -92,7 +92,7 @@ enum { FIXED_KIND = 0, BOOL_KIND = 2 };
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
-    if (e->has_p_) {
+    if (e->p_) {
         h = fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)e->p_);
     } else {
         h = fnv(h, 0xDEADu);
@@ -226,10 +226,10 @@ static void test_two_years_in_a_row(void) {
     for (i = 0; i < 20; i++) {
         tick(&run);
     }
-    assert(!first->has_p_);
+    assert(!first->p_);
     second = year_box(3421);
     track(&run, second);
-    assert(first->has_p_ && first->p_);
+    assert(first->p_);
     run.h = fnv(run.h, draw_hash());
     tick(&run);
     assert(!ents_listed(pico8_hv(), first));

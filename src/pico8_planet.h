@@ -34,14 +34,12 @@ typedef struct {
     const char *ep;
     pico8_ptrs_t *jy;
     const pico8_df_entry_t *nk;
-    int fx;
-    int has_fx;
+    pico8_fixed_t fx;
     pico8_lq_t *lq;
     pico8_struct_header_t *fo;
     pico8_fixed_t jh;
     int has_jh;
     int p_;
-    int has_p_;
     pico8_fixed_t kr;
     int has_kr;
     pico8_ents_t *cc;
@@ -102,8 +100,6 @@ void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw);
 
 /* The field accessors jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-int pico8_jo_get_fx(const void *self);
-int pico8_jo_get_p_(const void *self);
 void pico8_jo_set_m_(void *self, int m_);
 
 /* `e` is one of the ten classes of jo's tree: the only ones whose state

@@ -41,7 +41,6 @@ typedef struct {
     const pico8_vec_t *ra;
     const pico8_vec_t *p;
     int p_;
-    int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_emitter_t emitter_own;
     pico8_probe_t probe_own;
 } pico8_g__t;
@@ -50,12 +49,9 @@ typedef struct {
  * otherwise, and for a NULL `e`. */
 pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
 
-/* The `emitter_of`, `probe_of` and field accessors of g_'s descriptor, for
- * `fv`'s to name. */
+/* The `emitter_of` and `probe_of` of g_'s descriptor, for `fv`'s to name. */
 pico8_emitter_t *pico8_g__emitter_of(void *self);
 pico8_probe_t *pico8_g__probe_of(void *self);
-int pico8_g__get_fx(const void *self);
-int pico8_g__get_p_(const void *self);
 
 /* TROU-8 */
 /* Puts the provisional `fm` back in the slot, its `jk`/`nz` nil. Shuts the

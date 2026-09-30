@@ -27,7 +27,6 @@
 #define MY_TRUE_TICKS 6
 #define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u
 #define BARE_SEQUENCE_HASH 0x52BE382Au
-#define MY_FALSE_SEQUENCE_HASH 0xE43E9427u
 #define HOVER_SEQUENCE_HASH 0x27C4BCB8u
 #define HOVER_CURSOR_HASH 0x04C40AB9u
 
@@ -83,7 +82,7 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
-    h = fold_bool_member(h, e->has_p_, e->p_);
+    h = fold_bool_member(h, (e->p_ != 0), e->p_);
     h = fold_bool_member(h, e->has_m_, e->m_);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
     return fnv(h, (uint32_t)ents_listed(pico8_cv("hd"), e));
@@ -164,7 +163,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LDOWN_TICK) {
             assert(ldown(veil));
-            assert(!veil->has_p_);
+            assert(!veil->p_);
         }
         pico8_dg();
         h = fold_veil(h, veil);
@@ -173,7 +172,8 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     check("bare", h, BARE_SEQUENCE_HASH);
 }
 
-/* A `my` answering false leaves `p_` false: the veil stays. */
+/* A `my` answering false leaves `p_` false, which reads as nil: the veil
+ * stays, as a bare one. */
 static void test_false_my_keeps_the_veil(void) {
     uint32_t h = 2166136261u;
     pico8_fq_t *veil;
@@ -185,13 +185,13 @@ static void test_false_my_keeps_the_veil(void) {
         if (i == LDOWN_TICK) {
             assert(ldown(veil));
             assert(g_my_calls == 1);
-            assert(veil->has_p_ && !veil->p_);
+            assert(!veil->p_);
         }
         pico8_dg();
         h = fold_veil(h, veil);
     }
     assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hd"), veil));
-    check("my false", h, MY_FALSE_SEQUENCE_HASH);
+    check("my false", h, BARE_SEQUENCE_HASH);
 }
 
 static int in_layer(int layer, const void *e) {

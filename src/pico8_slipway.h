@@ -47,7 +47,6 @@ typedef struct {
     int has_mt;                /* 0: `mt` is nil, and is then never read */
     pico8_struct_header_t *fo; /* borrowed, never freed */
     int p_;
-    int has_p_; /* 0: `p_` is nil, and is then never read */
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
 } pico8_jc_t;

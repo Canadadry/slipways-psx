@@ -41,7 +41,7 @@ void pico8_mz_pq(pico8_mz_t *self) {
     pico8_ents_init(heap_ox);
     it = pico8_ents_all(pico8_hv());
     while (pico8_ents_iter_next(&it, &p)) {
-        if (p != NULL && p->cls->get_fx != NULL && p->cls->get_fx(p)) {
+        if (p != NULL && p->fx != NULL && *p->fx != 0) {
             pico8_ents_add(heap_ox, p);
         }
     }
@@ -121,7 +121,6 @@ void pico8_mz_ey(pico8_mz_t *self) {
     }
 
     self->p_ = result;
-    self->has_p_ = 1;
 }
 
 static void pico8_mz_ey_dispatch(void *self, pico8_struct_header_t *kv) {
@@ -167,7 +166,6 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     }
 
     self->p_ = t > pico8_fixed_from_int(25);
-    self->has_p_ = 1;
 }
 
 static void pico8_mz_pr_dispatch(void *self, pico8_fixed_t t) {
@@ -199,12 +197,6 @@ static pico8_probe_t *mz_probe_of(void *self) {
     return ((pico8_mz_t *)self)->probe;
 }
 
-static int mz_get_p_(const void *self) {
-    const pico8_mz_t *mz = self;
-
-    return mz->has_p_ && mz->p_;
-}
-
 static const pico8_struct_class_t g_mz_struct_class = {
     .kj = pico8_mz_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -217,7 +209,6 @@ static const pico8_struct_class_t g_mz_struct_class = {
         },
     .probe_of = mz_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_MZ),
-    .get_p_ = mz_get_p_,
 };
 
 static pico8_mz_t *pico8_mz_struct_new(void) {
@@ -239,8 +230,8 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     self->p = NULL;
     self->probe->et = NULL;
     self->ij = NULL;
+    self->header.p_ = &self->p_;
     self->p_ = 0;
-    self->has_p_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mz");
 #endif

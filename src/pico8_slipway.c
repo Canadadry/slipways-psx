@@ -153,7 +153,6 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
             pico8_rn(pico8_fixed_from_int(-1));
         }
         self->p_ = 1;
-        self->has_p_ = 1;
         return;
     }
 
@@ -343,12 +342,6 @@ static pico8_probe_t *jc_probe_of(void *self) {
     return ((pico8_jc_t *)self)->probe;
 }
 
-static int jc_get_p_(const void *self) {
-    const pico8_jc_t *jc = self;
-
-    return jc->has_p_ && jc->p_;
-}
-
 static const pico8_struct_class_t g_jc_struct_class = {
     .kj = pico8_jc_kj_dispatch,
     .ev = pico8_jc_ev_dispatch,
@@ -356,7 +349,6 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .ey = pico8_jc_ey_dispatch,
     .probe_of = jc_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JC),
-    .get_p_ = jc_get_p_,
 };
 
 static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
@@ -380,8 +372,8 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->header.mt = NULL;
     self->probe->et = NULL;
     self->fo = NULL;
+    self->header.p_ = &self->p_;
     self->p_ = 0;
-    self->has_p_ = 0;
     if (keys != NULL && keys->qu != NULL) {
         assert(jc_is_endpoint_class(keys->qu->cls) &&
                "jc.qu: a key neither nil nor a planet a slipway starts from (jo, qh, nl, os, hj, pm, nr, fr, mx) "

@@ -381,11 +381,11 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(jo->ep != NULL));
     h = fnv(h, (uint32_t)(jo->jy != NULL));
     h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)jo->has_fx);
+    h = fnv(h, (uint32_t)(jo->fx != 0));
     h = fnv(h, (uint32_t)(jo->lq != NULL));
     h = fnv(h, (uint32_t)(jo->fo != NULL));
     h = fnv(h, (uint32_t)jo->has_jh);
-    h = fnv(h, (uint32_t)jo->has_p_);
+    h = fnv(h, (uint32_t)(jo->p_ != 0));
     h = fnv(h, (uint32_t)jo->has_kr);
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));

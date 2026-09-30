@@ -50,8 +50,6 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .parent = pico8_jo_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -123,8 +121,6 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -170,8 +166,6 @@ static const pico8_struct_class_t g_os_struct_class = {
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -237,8 +231,6 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -327,8 +319,6 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -453,7 +443,6 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
     self->jo.p_ = last_pt == NULL;
-    self->jo.has_p_ = 1;
 }
 
 static void pico8_ga_kj_dispatch(void *self, const pico8_vec_t *ra) {
@@ -480,8 +469,6 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .emitter_of = ga_emitter_of,
     /* ga's cart list of tags is empty and replaces jo's: never jo's. */
     .tags = 0,
-    .get_fx = pico8_jo_get_fx,
-    .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
 };
 

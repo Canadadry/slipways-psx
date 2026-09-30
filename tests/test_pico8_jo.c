@@ -107,7 +107,7 @@ static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
 
 /* 0 absent, 1 false, 2 true. */
 static uint32_t p__state(const pico8_jo_t *jo) {
-    return !jo->has_p_ ? 0u : jo->p_ ? 2u : 1u;
+    return jo->p_ ? 2u : 0u;
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -237,11 +237,11 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(jo->ep != NULL));
     h = fnv(h, (uint32_t)(jo->jy != NULL));
     h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)jo->has_fx);
+    h = fnv(h, (uint32_t)(jo->fx != 0));
     h = fnv(h, (uint32_t)(jo->lq != NULL));
     h = fnv(h, (uint32_t)(jo->fo != NULL));
     h = fnv(h, (uint32_t)jo->has_jh);
-    h = fnv(h, (uint32_t)jo->has_p_);
+    h = fnv(h, (uint32_t)(jo->p_ != 0));
     h = fnv(h, (uint32_t)jo->has_kr);
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
@@ -282,7 +282,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
     h = fold_fixed_member(h, jo->ma);
-    h = jo->has_fx ? fold_bool_member(h, jo->fx) : fold_absent(h);
+    h = (jo->fx != 0) ? fold_bool_member(h, jo->fx) : fold_absent(h);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = jo->has_kr ? fold_fixed_member(h, jo->kr) : fold_absent(h);
     h = fold_string_member(h, jo->ep);

@@ -118,8 +118,6 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_fx = pico8_g__get_fx,
-    .get_p_ = pico8_g__get_p_,
     .set_m_ = fv_set_m_,
 };
 

@@ -124,7 +124,6 @@ struct pico8_fq {
     const pico8_fq_def_t *def;
     pico8_fq_my_fn my;
     int p_;
-    int has_p_;
     int m_;
     int has_m_;
 };

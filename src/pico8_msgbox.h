@@ -30,7 +30,6 @@ struct pico8_mh {
     pico8_fixed_t rh;
     pico8_mh_lh_fn lh; /* NULL: `lh` is nil */
     int p_;
-    int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
     const pico8_jb_row_t *items[PICO8_MH_ITEMS_CAP];
     int items_count;
 };
@@ -84,7 +83,6 @@ typedef struct {
     pico8_fixed_t l;
     const pico8_vec_t *ra;
     int p_;
-    int has_p_; /* 0: `p_` is nil, and `p_` is then never read */
     const char *at1;
     pico8_fixed_t at2;
 } pico8_iv_t;

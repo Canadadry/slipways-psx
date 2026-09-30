@@ -67,7 +67,7 @@ void pico8_dg(void) {
             }
         }
 
-        if (qc->cls->get_p_ != NULL && qc->cls->get_p_(qc)) {
+        if (qc->p_ != NULL && *qc->p_) {
             pico8_he(qc);
         }
 

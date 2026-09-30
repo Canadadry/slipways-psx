@@ -47,8 +47,8 @@
 #define HQ_HASH 0x9DAA980Cu
 #define KZ_TICKS 21
 #define KZ_HASH 0xE16D1D52u
-#define EY_HASH 0x2D563CE9u
-#define PR_HASH 0xAC265666u
+#define EY_HASH 0x52EB8E18u
+#define PR_HASH 0x85EB1EC6u
 #define PR_EXIT_TICK 27
 #define DRAW_HASH 0xD124A50Cu
 
@@ -115,12 +115,9 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-/* 0 absent, 1 false, 2 true. */
+/* 0 absent or false, 2 true. */
 static uint32_t p__state(const pico8_mz_t *mz) {
-    if (!mz->has_p_) {
-        return 0;
-    }
-    return mz->p_ ? 2 : 1;
+    return mz->p_ ? 2 : 0;
 }
 
 static uint32_t fold_string(uint32_t h, const char *s) {
@@ -325,7 +322,7 @@ static void check_fresh_mz(void *e) {
     assert(jj != NULL && jj->qs != NULL && strcmp(jj->qs, "-too far-") == 0);
     assert(pico8_mz_jj_wrapper() == jj);
 
-    assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->has_p_);
+    assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->p_);
     assert(mz->ox != NULL);
 
     assert(ents_listed(pico8_hv(), mz) && ents_listed(pico8_cv("kj"), mz) && ents_listed(pico8_cv("ev"), mz));
@@ -383,13 +380,11 @@ static void test_ox(void) {
     jos = pico8_cg("jo");
     for (i = 0; unlit == NULL && jos != NULL && i < jos->count; i++) {
         pico8_jo_t *jo = as_jo(jos->items[i]);
-        if (!jo->has_fx) {
+        if (jo->fx == 0) {
             unlit = jo;
         }
     }
     assert(unlit != NULL);
-    unlit->fx = 0;
-    unlit->has_fx = 1;
     first = build_mz();
     h = fold_ox(h, first);
     second = build_mz();
@@ -405,8 +400,7 @@ static void test_ox(void) {
     assert(ents_listed(build_mz()->ox, probe));
 
     lit = pico8_qh_new(NULL);
-    lit->jo.fx = 1;
-    lit->jo.has_fx = 1;
+    lit->jo.fx = pico8_fixed_from_int(1);
     assert(ents_listed(build_mz()->ox, lit));
 }
 
@@ -541,7 +535,7 @@ static void test_ey(void) {
     hq(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(paid) == ET_FALSE);
     ey(paid);
-    assert(is_me(&paid->header, "pr") && paid->header.t == 0 && p__state(paid) == 1);
+    assert(is_me(&paid->header, "pr") && paid->header.t == 0 && p__state(paid) == 0);
     assert(credits() == pico8_fixed_sub(before, pico8_fixed_from_int(3)));
     h = fold_ey(h, paid);
 

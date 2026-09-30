@@ -354,7 +354,7 @@ static void test_built(void) {
     h = fold_fixed_member(h, g_->header.t);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
-    assert(!fv->has_m_ && g_->p == NULL && pr->et == NULL && !g_->has_p_);
+    assert(!fv->has_m_ && g_->p == NULL && pr->et == NULL && !g_->p_);
     assert(cls_of(fv)->hk == NULL && cls_of(fv)->hb == NULL && cls_of(fv)->states[PICO8_STATE_PH] == NULL &&
            cls_of(fv)->ldown == NULL);
 

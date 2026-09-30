@@ -79,6 +79,8 @@ static void assert_links(const pico8_struct_header_t *h, pico8_struct_header_t w
     assert(h->fg == want.fg);
     assert(h->mt == want.mt);
     assert(h->ma == want.ma);
+    assert(h->fx == want.fx);
+    assert(h->p_ == want.p_);
 }
 
 /* Non-carriers, one per constructor that does not go through ke; the mouse
@@ -106,6 +108,7 @@ static void test_carriers_link_their_storage(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
     pico8_js_keys_t with_fg = {.has_fg = 1};
     pico8_js_t *js_fg = pico8_js_new(&with_fg);
+    pico8_fq_t *fq = pico8_fq_new(NULL);
     pico8_ui_t *ui = pico8_ui_new();
     pico8_qb_t *qb = pico8_qb_new();
     pico8_fv_t *fv = pico8_fv_new();
@@ -119,6 +122,7 @@ static void test_carriers_link_their_storage(void) {
     assert_links(&js_fg->header,
                  (pico8_struct_header_t){.fa = &js_fg->fa, .ra = &js_fg->ra, .kq = js_fg->header.kq, .fg = &js_fg->fg});
     assert_links(&ie->header, (pico8_struct_header_t){.fa = &ie->def->fa, .ra = &ie->ra, .kq = &ie->def->kq});
+    assert_links(&fq->header, (pico8_struct_header_t){.fa = &fq->def->fa, .p_ = &fq->p_});
     assert_links(&ui->header, (pico8_struct_header_t){.fa = &ui->def->fa, .ql = &ui->def->ql});
     assert_links(&qb->header, (pico8_struct_header_t){.ra = &qb->ra, .p = &qb->p, .ma = &qb->ma});
     assert_links(&fv->g_.header, (pico8_struct_header_t){.fa = &fv->g_.def->fa,
@@ -126,18 +130,24 @@ static void test_carriers_link_their_storage(void) {
                                                          .p = &fv->g_.p,
                                                          .kq = &fv->g_.def->kq,
                                                          .ql = &fv->g_.def->ql,
-                                                         .fg = &fv->g_.def->fg});
+                                                         .fg = &fv->g_.def->fg,
+                                                         .fx = &fv->g_.def->fx,
+                                                         .p_ = &fv->g_.p_});
     assert_links(&jo->header, (pico8_struct_header_t){.fa = &jo->def->fa,
                                                       .ra = (const pico8_vec_t *const *)&jo->ra,
                                                       .p = (const pico8_vec_t *const *)&jo->p,
                                                       .kq = &jo->def->kq,
-                                                      .ma = &jo->ma});
+                                                      .ma = &jo->ma,
+                                                      .fx = &jo->fx,
+                                                      .p_ = &jo->p_});
     assert_links(&fr_jo->header, (pico8_struct_header_t){.fa = &fr_jo->def->fa,
                                                          .ra = (const pico8_vec_t *const *)&fr_jo->ra,
                                                          .p = (const pico8_vec_t *const *)&fr_jo->p,
                                                          .kq = &fr_jo->def->kq,
                                                          .mt = &fr_jo->def->mt,
-                                                         .ma = &fr_jo->ma});
+                                                         .ma = &fr_jo->ma,
+                                                         .fx = &fr_jo->fx,
+                                                         .p_ = &fr_jo->p_});
 }
 
 static pico8_jc_t *jc_dragged_over_nothing(pico8_struct_header_t *qu) {
@@ -163,9 +173,9 @@ static void test_mouse_point_has_null_links(void) {
     assert(point != NULL && point->header.cls == pico8_jc_mouse_point_struct_class());
     assert_links(&point->header, (pico8_struct_header_t){.ra = &point->ra, .p = &point->p});
     assert(!jc->has_mt && jc->fa == pico8_fixed_from_int(4));
-    assert_links(&jc->header, (pico8_struct_header_t){.fa = &jc->fa});
+    assert_links(&jc->header, (pico8_struct_header_t){.fa = &jc->fa, .p_ = &jc->p_});
     assert(from_fr->has_mt && from_fr->mt == pico8_fr_def.mt && from_fr->fa == pico8_fixed_from_int(2));
-    assert_links(&from_fr->header, (pico8_struct_header_t){.fa = &from_fr->fa, .mt = &from_fr->mt});
+    assert_links(&from_fr->header, (pico8_struct_header_t){.fa = &from_fr->fa, .mt = &from_fr->mt, .p_ = &from_fr->p_});
 }
 
 int main(int argc, char **argv) {

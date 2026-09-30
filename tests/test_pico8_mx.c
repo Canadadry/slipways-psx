@@ -375,11 +375,11 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(jo->ep != NULL));
     h = fnv(h, (uint32_t)(jo->jy != NULL));
     h = fnv(h, (uint32_t)(jo->nk != NULL));
-    h = fnv(h, (uint32_t)jo->has_fx);
+    h = fnv(h, (uint32_t)(jo->fx != 0));
     h = fnv(h, (uint32_t)(jo->lq != NULL));
     h = fnv(h, (uint32_t)(jo->fo != NULL));
     h = fnv(h, (uint32_t)jo->has_jh);
-    h = fnv(h, (uint32_t)jo->has_p_);
+    h = fnv(h, (uint32_t)(jo->p_ != 0));
     h = fnv(h, (uint32_t)jo->has_kr);
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
@@ -566,7 +566,7 @@ static uint32_t fold_kf(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)ht_size(e));
     h = fold_kw(h, jo);
     h = fold_fixed_member(h, jo->ma);
-    h = jo->has_fx ? fold_bool_member(h, jo->fx) : fold_absent(h);
+    h = (jo->fx != 0) ? fold_bool_member(h, jo->fx) : fold_absent(h);
     return fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
 }
 

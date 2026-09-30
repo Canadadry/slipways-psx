@@ -60,9 +60,8 @@ void pico8_jo_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
     }
     if (other != NULL) {
         assert(pico8_jo_is_family(other) && "jo:kf: the other end of a registered slipway is a planet");
-        if (((const pico8_jo_t *)other)->has_fx && ((const pico8_jo_t *)other)->fx) {
-            self->fx = 1;
-            self->has_fx = 1;
+        if (((const pico8_jo_t *)other)->fx != 0) {
+            self->fx = pico8_fixed_from_int(1);
         }
     }
 
