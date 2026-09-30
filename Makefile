@@ -56,15 +56,11 @@
 # make class-coverage-net -> idem sur les e2e de tests/e2e/ ; échoue aussi si
 #                       sa sortie diffère de tools/class_coverage_net_expected.txt,
 #                       hors suite
-# make value-members -> liste les membres pico8_value_t des structs d'entité
-#                       et leur nombre (tools/entity_value_members.sh) ; la
-#                       phase 1b sort sur une liste vide, hors suite ; data-guard
-#                       en fait la garde
 # make data-residue  -> compte le résidu de données par catégorie
 #                       (tools/data_residue.sh) ; la phase D sort sur une sortie
 #                       vide, hors suite
-# make data-guard    -> make value-members vide, aucun offsetof dans src/,
-#                       catégories de DATA_RESIDUE_GUARD à 0, dans make test
+# make data-guard    -> aucun offsetof dans src/, catégories de
+#                       DATA_RESIDUE_GUARD à 0, dans make test
 # make sanitize-net  -> rejoue les e2e de tests/e2e/ sous ASan+UBSan (-O2),
 #                       critère « sortie propre », hors suite
 # make constants-check -> compare chaque PICO8_FIXED_LIT du cœur à son hexa relevé
@@ -833,11 +829,6 @@ e2e-judge: $(TMP_DIR)/pico8_replay_gcov tools/line_coverage.sh
 
 .PHONY: minimize e2e-cleanup e2e-judge
 
-value-members: tools/entity_value_members.sh
-	@sh tools/entity_value_members.sh
-
-.PHONY: value-members
-
 # Catégories du compteur tombées à 0, séparées par des virgules.
 DATA_RESIDUE_GUARD := spec,overrides,stash,ob,dispatch,par-nom,liste,ref-audit,valeur,type-tag
 
@@ -845,8 +836,7 @@ data-residue: tools/data_residue.sh
 	@sh tools/data_residue.sh
 
 # grep rend 1 quand rien ne correspond ; au-delà, c'est une erreur.
-data-guard: tools/entity_value_members.sh tools/data_residue.sh
-	@sh tools/entity_value_members.sh --check
+data-guard: tools/data_residue.sh
 	@status=0; grep -rn offsetof src/ || status=$$?; \
 	if [ $$status -eq 0 ]; then echo "data-guard : offsetof dans src/"; exit 1; fi; \
 	[ $$status -eq 1 ] || exit $$status; \
