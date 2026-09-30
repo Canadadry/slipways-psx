@@ -318,10 +318,9 @@ static void test_shared(void) {
     pico8_ui_t *ok = start_game();
     pico8_ui_t *other = pico8_ui_new();
     const pico8_ents_t *le = ok->le;
-    pico8_fixed_t ql;
 
     assert(other != NULL && other != ok);
-    assert(other->header.cls->get_ql(other, &ql) && ql == other->def->ql);
+    assert(other->header.ql == &other->def->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), other));

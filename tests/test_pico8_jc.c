@@ -435,8 +435,6 @@ static void *first_with_me(const char *tag, const char *me) {
  * `pq` made; registered like any `ke` entity with `kj` and `ev`. */
 static void check_fresh_jc(const void *e, const void *qu) {
     const pico8_jc_t *jc = as_jc(e);
-    pico8_jc_t with_mt = *jc;
-    pico8_fixed_t mt = 0;
     const pico8_int_seq_t *k_;
     const pico8_jc_hg_t *hg;
     size_t i;
@@ -464,10 +462,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(hg == &jc->hg_own && hg->count == 0);
 
     assert(jc->re == NULL && !jc->probe->has_od && jc->probe->od == 0 && !jc->has_mt && jc->probe->et == NULL);
-    assert(!cls_of(jc)->get_mt(jc, &mt) && mt == 0);
-    with_mt.mt = pico8_fixed_from_int(3);
-    with_mt.has_mt = 1;
-    assert(cls_of(&with_mt)->get_mt(&with_mt, &mt) && mt == with_mt.mt);
+    assert(jc->header.mt == NULL);
     assert(jc->fo == NULL && !jc->has_p_);
     assert(cls_of(jc)->hq != NULL && cls_of(jc)->ey != NULL);
     assert(cls_of(jc)->ev != NULL && cls_of(jc)->kj != NULL);
@@ -570,6 +565,20 @@ static void test_hq(void) {
     h = fold_jc(h, twin);
     h = fold_jc(h, old);
     check("hq", h, HQ_HASH);
+}
+
+static void test_hq_takes_mt_from_its_start(void) {
+    void *from_jo;
+    void *from_fr;
+
+    world();
+    from_jo = build_jc(pico8_jo_new(NULL));
+    hq_over(from_jo, NULL, vec_ref(-640, -640));
+    assert(!as_jc(from_jo)->has_mt && as_jc(from_jo)->header.mt == NULL);
+    from_fr = build_jc(&pico8_fr_new(NULL)->nr.qh.jo);
+    hq_over(from_fr, NULL, vec_ref(-640, -640));
+    assert(as_jc(from_fr)->has_mt && as_jc(from_fr)->mt == pico8_fr_def.mt);
+    assert(as_jc(from_fr)->header.mt == &as_jc(from_fr)->mt);
 }
 
 /* `A and B or C`: a falsy `re` falls back to `qu`. */
@@ -1098,6 +1107,7 @@ int main(void) {
     in_fresh_child(test_construction);
     in_fresh_child(test_ey);
     in_fresh_child(test_hq);
+    in_fresh_child(test_hq_takes_mt_from_its_start);
     in_fresh_child(test_eb);
     in_fresh_child(test_draw);
     in_fresh_child(test_bv);

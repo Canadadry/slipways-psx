@@ -38,6 +38,7 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
     self->def = &pico8_qb_def;
     self->header.ra = &self->ra;
     self->header.p = &self->p;
+    self->header.ma = &self->ma;
     self->v = &self->def->v;
     self->ma = self->def->ma;
     self->p = &self->def->p;

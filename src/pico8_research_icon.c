@@ -202,10 +202,6 @@ static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
     return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
-static const pico8_qz_box_t *ie_get_kq(const void *self) {
-    return &((const pico8_ie_t *)self)->def->kq;
-}
-
 static void ie_set_m_(void *self, int m_) {
     pico8_ie_t *ie = self;
 
@@ -218,7 +214,6 @@ static const pico8_struct_class_t g_ie_struct_class = {
     .hd = pico8_ie_hd_dispatch,
     .hb = pico8_ie_hb_dispatch,
     .ldown = pico8_ie_ldown_dispatch,
-    .get_kq = ie_get_kq,
     .set_m_ = ie_set_m_,
 };
 
@@ -230,6 +225,7 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     self->def = &pico8_ie_def;
     self->header.fa = &self->def->fa;
     self->header.ra = &self->ra;
+    self->header.kq = &self->def->kq;
     self->ra = &self->def->ra;
     self->ke = NULL;
     self->jb = NULL;

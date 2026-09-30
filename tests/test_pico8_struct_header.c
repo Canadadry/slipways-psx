@@ -1,7 +1,8 @@
 /* The kernel's component links on entities whose constructor `malloc`s
- * without zeroing. The binary runs itself again with every `malloc`
- * filling its block (MALLOC_PERTURB_ on glibc, MallocScribble on macOS),
- * so a link no init set is not NULL. */
+ * without zeroing. The binary runs itself again with `malloc` filling every
+ * block it returns (MallocScribble on macOS; MALLOC_PERTURB_ on glibc, whose
+ * tcache hands a freed block back unfilled, hence the tcache turned off), so
+ * a link no init set is not NULL. */
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -17,13 +18,19 @@
 #include "../src/pico8_dispatch_context.h"
 #include "../src/pico8_economy.h"
 #include "../src/pico8_gfx.h"
+#include "../src/pico8_help.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_mouse_reader.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
+#include "../src/pico8_scroll.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 
 static pico8_mem_t mem;
@@ -35,6 +42,7 @@ static void rerun_with_malloc_filling(char **argv) {
         return;
     }
     setenv("MALLOC_PERTURB_", "90", 1);
+    setenv("GLIBC_TUNABLES", "glibc.malloc.tcache_count=0", 1);
     setenv("MallocScribble", "1", 1);
     setenv("PICO8_MALLOC_FILLS", "1", 1);
     execv(argv[0], argv);
@@ -42,13 +50,17 @@ static void rerun_with_malloc_filling(char **argv) {
     exit(1);
 }
 
-/* Reads a fresh block on purpose: through `volatile`, which the compiler
+/* Reads a recycled block on purpose: through `volatile`, which the compiler
  * does not flag as uninitialized. */
 static void assert_malloc_fills(void) {
-    void *block = malloc(64);
-    const volatile unsigned char *bytes = block;
+    void *block = calloc(1, 64);
+    const volatile unsigned char *bytes;
     int i;
 
+    assert(block != NULL);
+    free(block);
+    block = malloc(64);
+    bytes = block;
     assert(block != NULL);
     for (i = 0; i < 64; i++) {
         assert(bytes[i] != 0 && bytes[i] == bytes[0] && "malloc must fill its block, or this test proves nothing");
@@ -56,28 +68,34 @@ static void assert_malloc_fills(void) {
     free(block);
 }
 
-/* Each link: the one a class carries, or NULL. */
-static void assert_links(const pico8_struct_header_t *h, const pico8_fixed_t *fa, const pico8_vec_t *const *ra,
-                         const pico8_vec_t *const *p) {
-    assert(h->fa == fa);
-    assert(h->ra == ra);
-    assert(h->p == p);
+/* Each link of `want`: the one a class carries, or NULL; its `cls`, `me`
+ * and `t` are not compared. */
+static void assert_links(const pico8_struct_header_t *h, pico8_struct_header_t want) {
+    assert(h->fa == want.fa);
+    assert(h->ra == want.ra);
+    assert(h->p == want.p);
+    assert(h->kq == want.kq);
+    assert(h->ql == want.ql);
+    assert(h->fg == want.fg);
+    assert(h->mt == want.mt);
+    assert(h->ma == want.ma);
 }
 
-/* Non-carriers, one per constructor that does not go through ke. */
+/* Non-carriers, one per constructor that does not go through ke; the mouse
+ * point, which `jc:hq` builds, has its own test below. */
 static void test_non_carriers_have_null_links(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
     pico8_ie_ke_t view = pico8_ie_ke_view(ie);
     pico8_nf_t *nf = pico8_nf_new();
     pico8_lq_t *lq = pico8_lq_new(NULL);
 
-    assert_links(&nf->header, NULL, (const pico8_vec_t *const *)&nf->ra, NULL);
-    assert_links(&lq->header, NULL, &lq->ra, NULL);
-    assert_links(&pico8_jb_new(NULL)->header, NULL, NULL, NULL);
-    assert_links(&pico8_hp_new(NULL)->header, NULL, NULL, NULL);
-    assert_links(&pico8_hy_new()->header, NULL, NULL, NULL);
-    assert_links(&pico8_trade_new(NULL)->header, NULL, NULL, NULL);
-    assert_links(&view.header, NULL, NULL, NULL);
+    assert_links(&nf->header, (pico8_struct_header_t){.ra = (const pico8_vec_t *const *)&nf->ra});
+    assert_links(&lq->header, (pico8_struct_header_t){.ra = &lq->ra});
+    assert_links(&pico8_jb_new(NULL)->header, (pico8_struct_header_t){0});
+    assert_links(&pico8_hp_new(NULL)->header, (pico8_struct_header_t){0});
+    assert_links(&pico8_hy_new()->header, (pico8_struct_header_t){0});
+    assert_links(&pico8_trade_new(NULL)->header, (pico8_struct_header_t){0});
+    assert_links(&view.header, (pico8_struct_header_t){0});
 }
 
 /* Carriers: the archetype's field for a class that never writes it, the
@@ -86,10 +104,68 @@ static void test_carriers_link_their_storage(void) {
     pico8_bg_t *bg = pico8_bg_new();
     pico8_js_t *js = pico8_js_new(NULL);
     pico8_ie_t *ie = pico8_ie_new(NULL);
+    pico8_js_keys_t with_fg = {.has_fg = 1};
+    pico8_js_t *js_fg = pico8_js_new(&with_fg);
+    pico8_ui_t *ui = pico8_ui_new();
+    pico8_qb_t *qb = pico8_qb_new();
+    pico8_fv_t *fv = pico8_fv_new();
+    pico8_jo_t *jo = pico8_jo_new(NULL);
+    pico8_fr_t *fr = pico8_fr_new(NULL);
+    pico8_jo_t *fr_jo = &fr->nr.qh.jo;
 
-    assert_links(&bg->header, &bg->def->fa, NULL, NULL);
-    assert_links(&js->header, &js->fa, &js->ra, NULL);
-    assert_links(&ie->header, &ie->def->fa, &ie->ra, NULL);
+    assert_links(&bg->header, (pico8_struct_header_t){.fa = &bg->def->fa});
+    assert_links(&js->header, (pico8_struct_header_t){.fa = &js->fa, .ra = &js->ra, .kq = js->header.kq});
+    assert(js->header.kq != NULL);
+    assert_links(&js_fg->header,
+                 (pico8_struct_header_t){.fa = &js_fg->fa, .ra = &js_fg->ra, .kq = js_fg->header.kq, .fg = &js_fg->fg});
+    assert_links(&ie->header, (pico8_struct_header_t){.fa = &ie->def->fa, .ra = &ie->ra, .kq = &ie->def->kq});
+    assert_links(&ui->header, (pico8_struct_header_t){.fa = &ui->def->fa, .ql = &ui->def->ql});
+    assert_links(&qb->header, (pico8_struct_header_t){.ra = &qb->ra, .p = &qb->p, .ma = &qb->ma});
+    assert_links(&fv->g_.header, (pico8_struct_header_t){.fa = &fv->g_.def->fa,
+                                                         .ra = &fv->g_.ra,
+                                                         .p = &fv->g_.p,
+                                                         .kq = &fv->g_.def->kq,
+                                                         .ql = &fv->g_.def->ql,
+                                                         .fg = &fv->g_.def->fg});
+    assert_links(&jo->header, (pico8_struct_header_t){.fa = &jo->def->fa,
+                                                      .ra = (const pico8_vec_t *const *)&jo->ra,
+                                                      .p = (const pico8_vec_t *const *)&jo->p,
+                                                      .kq = &jo->def->kq,
+                                                      .ma = &jo->ma});
+    assert_links(&fr_jo->header, (pico8_struct_header_t){.fa = &fr_jo->def->fa,
+                                                         .ra = (const pico8_vec_t *const *)&fr_jo->ra,
+                                                         .p = (const pico8_vec_t *const *)&fr_jo->p,
+                                                         .kq = &fr_jo->def->kq,
+                                                         .mt = &fr_jo->def->mt,
+                                                         .ma = &fr_jo->ma});
+}
+
+static pico8_jc_t *jc_dragged_over_nothing(pico8_struct_header_t *qu) {
+    pico8_jc_keys_t keys = {0};
+    pico8_vec_t *mp = malloc(sizeof *mp);
+    pico8_jc_t *jc;
+
+    keys.qu = qu;
+    jc = pico8_jc_new(&keys);
+    *mp = pico8_vec_v(pico8_fixed_from_int(-640), pico8_fixed_from_int(-640));
+    pico8_ok()->o_ = NULL;
+    pico8_jc_struct_class()->hq(jc, mp, NULL);
+    return jc;
+}
+
+/* The point `jc:hq` builds over nothing carries `ra` and `p` alone; the
+ * slipway's `mt` is its start's, else nil. */
+static void test_mouse_point_has_null_links(void) {
+    pico8_jc_t *jc = jc_dragged_over_nothing(&pico8_jo_new(NULL)->header);
+    pico8_jc_mouse_point_t *point = (pico8_jc_mouse_point_t *)jc->re;
+    pico8_jc_t *from_fr = jc_dragged_over_nothing(&pico8_fr_new(NULL)->nr.qh.jo.header);
+
+    assert(point != NULL && point->header.cls == pico8_jc_mouse_point_struct_class());
+    assert_links(&point->header, (pico8_struct_header_t){.ra = &point->ra, .p = &point->p});
+    assert(!jc->has_mt && jc->fa == pico8_fixed_from_int(4));
+    assert_links(&jc->header, (pico8_struct_header_t){.fa = &jc->fa});
+    assert(from_fr->has_mt && from_fr->mt == pico8_fr_def.mt && from_fr->fa == pico8_fixed_from_int(2));
+    assert_links(&from_fr->header, (pico8_struct_header_t){.fa = &from_fr->fa, .mt = &from_fr->mt});
 }
 
 int main(int argc, char **argv) {
@@ -109,6 +185,7 @@ int main(int argc, char **argv) {
     assert_malloc_fills();
     test_non_carriers_have_null_links();
     test_carriers_link_their_storage();
+    test_mouse_point_has_null_links();
 
     printf("test_pico8_struct_header: all tests passed\n");
     return 0;

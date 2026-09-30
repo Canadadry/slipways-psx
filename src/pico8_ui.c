@@ -74,14 +74,8 @@ static void pico8_ui_ev_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }
 
-static int ui_get_ql(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_ui_t *)self)->def->ql;
-    return 1;
-}
-
 static const pico8_struct_class_t g_ui_struct_class = {
     .ev = pico8_ui_ev_dispatch,
-    .get_ql = ui_get_ql,
 };
 
 static pico8_ui_t *pico8_ui_struct_new(void) {
@@ -93,6 +87,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
     self->header.fa = &self->def->fa;
+    self->header.ql = &self->def->ql;
     self->le = &g_shared_le;
     self->qa = NULL;
     self->ic = NULL;
@@ -237,12 +232,7 @@ void pico8_ui_ev(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_ui_t *sel
     if (self->rheld != NULL) {
         spr_id = 9;
     } else if (self->o_ != NULL) {
-        pico8_fixed_t ql = self->def->ql;
-
-        if (self->o_->cls->get_ql != NULL) {
-            self->o_->cls->get_ql(self->o_, &ql);
-        }
-        spr_id = pico8_ui_to_int(ql);
+        spr_id = pico8_ui_to_int(self->o_->ql != NULL ? *self->o_->ql : self->def->ql);
     } else {
         spr_id = pico8_ui_to_int(self->def->ql);
     }
@@ -307,12 +297,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     if (self->o_ != NULL) {
-        pico8_fixed_t fg = pico8_fixed_from_int(0);
-
-        if (self->o_->cls->get_fg != NULL) {
-            self->o_->cls->get_fg(self->o_, &fg);
-        }
-        poke_val = pico8_ui_to_int(fg);
+        poke_val = pico8_ui_to_int(self->o_->fg != NULL ? *self->o_->fg : pico8_fixed_from_int(0));
     } else {
         int prev = pico8_peek(mem, 0x5f80);
         poke_val = (prev - 1 > 0) ? prev - 1 : 0;

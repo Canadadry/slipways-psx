@@ -58,20 +58,6 @@ static void pico8_js_hb_dispatch(void *self) {
     }
 }
 
-static const pico8_qz_box_t *js_get_kq(const void *self) {
-    return ((const pico8_js_t *)self)->kq;
-}
-
-static int js_get_fg(const void *self, pico8_fixed_t *out) {
-    const pico8_js_t *js = self;
-
-    if (!js->has_fg) {
-        return 0;
-    }
-    *out = js->fg;
-    return 1;
-}
-
 static void js_set_m_(void *self, int m_) {
     pico8_js_t *js = self;
 
@@ -87,8 +73,6 @@ static const pico8_struct_class_t g_js_struct_class = {
     .has_hb = pico8_js_has_hb,
     .ldown = pico8_js_ldown_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
-    .get_kq = js_get_kq,
-    .get_fg = js_get_fg,
     .set_m_ = js_set_m_,
 };
 
@@ -98,7 +82,6 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_ke_struct_init(&self->header, &g_js_struct_class, pico8_js_def.me, pico8_js_def.t);
     self->lq = NULL;
     self->mb = 0;
-    self->kq = NULL;
     self->h_ = NULL;
     self->has_h_ = 0;
     self->jb = NULL;
@@ -147,6 +130,7 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
         self->_jo_fe_od = keys->_jo_fe_od;
         self->has__jo_fe_od = keys->has__jo_fe_od;
     }
+    self->header.fg = self->has_fg ? &self->fg : NULL;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("js");
 #endif
@@ -200,7 +184,7 @@ void pico8_js_pq(pico8_js_t *self, const pico8_js_keys_t *keys) {
 
     self->lq = pico8_js_lq(keys->lq_copy, keys->lq_row);
     self->mb = pico8_fixed_add(self->lq->w, pico8_fixed_from_int(2));
-    self->kq = pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
+    self->header.kq = pico8_qz(pico8_fixed_from_int(0), pico8_fixed_from_int(-1), self->mb, pico8_fixed_from_int(11));
 
     /* TROU-23 */
     if (keys->h_row != NULL || (keys->has_h_ && !keys->h_is_false)) {

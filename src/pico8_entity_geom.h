@@ -22,6 +22,8 @@ int pico8_gd(const pico8_struct_header_t *e);
  * bob. Rebinding the field to a fresh vector, as `qb:kj` does, would not. */
 void pico8_na(pico8_struct_header_t *self, pico8_fixed_t t);
 
+/* `e` is NULL or carries `ma` (asserted): a planet or the camera. Decays
+ * `e.ma` in place. */
 pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e);
 
 /* Reads every element of `j_` as an entity instance. `*out_nearest` is

@@ -100,20 +100,6 @@ void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_fv_t *)self, p);
 }
 
-static const pico8_qz_box_t *fv_get_kq(const void *self) {
-    return &((const pico8_fv_t *)self)->g_.def->kq;
-}
-
-static int fv_get_ql(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fv_t *)self)->g_.def->ql;
-    return 1;
-}
-
-static int fv_get_fg(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fv_t *)self)->g_.def->fg;
-    return 1;
-}
-
 static void fv_set_m_(void *self, int m_) {
     pico8_fv_t *fv = self;
 
@@ -132,9 +118,6 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_kq = fv_get_kq,
-    .get_ql = fv_get_ql,
-    .get_fg = fv_get_fg,
     .get_fx = pico8_g__get_fx,
     .get_p_ = pico8_g__get_p_,
     .set_m_ = fv_set_m_,
@@ -146,6 +129,9 @@ static pico8_fv_t *pico8_fv_struct_new(void) {
     assert(g_fv_up && "pico8_help_init() must run first");
     self = malloc(sizeof *self);
     pico8_g__struct_init(&self->g_, &g_fv_struct_class, &pico8_fv_def);
+    self->g_.header.kq = &self->g_.def->kq;
+    self->g_.header.ql = &self->g_.def->ql;
+    self->g_.header.fg = &self->g_.def->fg;
     self->m_ = 0;
     self->has_m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE

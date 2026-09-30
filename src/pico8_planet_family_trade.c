@@ -178,7 +178,6 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_kq = pico8_jo_get_kq,
     .get_fx = pico8_jo_get_fx,
     .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,
@@ -216,11 +215,6 @@ static pico8_nr_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
     return self;
 }
 
-static int pico8_fr_get_mt(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fr_t *)self)->nr.qh.jo.def->mt;
-    return 1;
-}
-
 static const pico8_struct_class_t g_fr_struct_class = {
     .kj = pico8_jo_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -241,10 +235,8 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .parent = pico8_nr_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_kq = pico8_jo_get_kq,
     .get_fx = pico8_jo_get_fx,
     .get_p_ = pico8_jo_get_p_,
-    .get_mt = pico8_fr_get_mt,
     .set_m_ = pico8_jo_set_m_,
 };
 
@@ -253,6 +245,7 @@ static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(&self->nr, &g_fr_struct_class, &pico8_fr_def);
+    self->nr.qh.jo.header.mt = &self->nr.qh.jo.def->mt;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "fr: the only construction key is id (ie:ldown); another key has no member "
@@ -340,7 +333,6 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .get_kq = pico8_jo_get_kq,
     .get_fx = pico8_jo_get_fx,
     .get_p_ = pico8_jo_get_p_,
     .set_m_ = pico8_jo_set_m_,

@@ -34,7 +34,7 @@ int pico8_gk(const pico8_struct_header_t *e, const pico8_vec_t *mp, const pico8_
 
     chosen = (fa >= pico8_fixed_from_int(10)) ? rp : mp;
     point = pico8_vec_sub(chosen != NULL ? *chosen : pico8_entity_geom_zero(), ra);
-    kq = e != NULL && e->cls->get_kq != NULL ? e->cls->get_kq(e) : NULL;
+    kq = e != NULL ? e->kq : NULL;
     if (kq != NULL) {
         return pico8_qz_call(kq, point);
     }
@@ -71,9 +71,8 @@ pico8_vec_t pico8_ma(pico8_vec_t p, pico8_struct_header_t *e) {
     pico8_fixed_t t = pico8_fixed_from_int(0);
 
     if (e != NULL) {
-        assert((pico8_jo_is_family(e) || e->cls == pico8_qb_struct_class()) &&
-               "ma: e is a planet (jo:kj) or the camera (qb:ph)");
-        ma = pico8_jo_is_family(e) ? &((pico8_jo_t *)e)->ma : &((pico8_qb_t *)e)->ma;
+        assert(e->ma != NULL && "ma: e is a planet (jo:kj) or the camera (qb:ph)");
+        ma = e->ma;
     }
     decremented = pico8_fixed_sub(ma != NULL ? *ma : pico8_fixed_from_int(0), PICO8_FIXED_LIT(0x00001999, 0.1));
     clamped = (decremented > 0) ? decremented : 0;

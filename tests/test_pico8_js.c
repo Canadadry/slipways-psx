@@ -303,7 +303,7 @@ static uint32_t fold_built_h_(uint32_t h, const pico8_js_t *b) {
 
 static uint32_t fold_kq(uint32_t h, const pico8_js_t *b) {
     static const int dy[] = {-2, -1, 0, 5, 9, 10, 11};
-    const pico8_qz_box_t *kq = b->kq;
+    const pico8_qz_box_t *kq = b->header.kq;
     int mb = pico8_fixed_flr_int(b->mb);
     int dx[6];
     size_t i;
@@ -1134,7 +1134,7 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
     h = fold_member_fixed(h, 1, b->fa);
     h = fold_member_opt_ref(h, b->lq);
     h = fold_member_fixed(h, 1, b->mb);
-    h = b->kq != NULL ? fold_kq(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
+    h = b->header.kq != NULL ? fold_kq(fold_kind(h, REF_KIND), b) : fnv(h, 0u);
     if (b->has_h_ && b->h_ == NULL) {
         h = fold_bool(fold_kind(h, BOOL_KIND), 0);
     } else {
@@ -1211,7 +1211,7 @@ static void write_m_(pico8_js_t *b, int present, int value) {
  * the typed reads. */
 static uint32_t fold_written(uint32_t h, void *e, void *other) {
     pico8_js_t *b = js_of(e);
-    const pico8_qz_box_t *kq_before = b->kq;
+    const pico8_qz_box_t *kq_before = b->header.kq;
     pico8_fixed_t mb = b->mb;
     pico8_lq_t *row;
     int i;
@@ -1245,7 +1245,7 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
     b->lq = row;
     h = fold_js_members(h, e);
     b->lq = NULL;
-    assert(b->kq == kq_before);
+    assert(b->header.kq == kq_before);
     assert(b->mb == mb);
     h = fold_js_members(h, e);
     b->lq = row;
@@ -1395,7 +1395,7 @@ static uint32_t members_title_and_game(void) {
         assert(lq != NULL && is_lq(lq) && row_count(lq) == 0);
         assert(b->fa == pico8_fixed_from_int(11));
         assert(b->mb == pico8_fixed_add(lq->w, pico8_fixed_from_int(2)));
-        assert(b->kq != NULL);
+        assert(b->header.kq != NULL);
         assert(!b->has_h_ && b->jb == NULL && b->ra == NULL && b->qf == NULL && !b->has_m_);
         assert(!b->has_fg && b->px == NULL && !b->has_trade && !b->has_en && b->_cr_t == NULL);
         assert(b->_jo_fe_pt == NULL && b->_jo_fe_b == NULL && !b->has__jo_fe_od);

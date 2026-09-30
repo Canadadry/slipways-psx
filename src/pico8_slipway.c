@@ -43,7 +43,11 @@ pico8_vec_t pico8_jc_end_ra(const pico8_struct_header_t *end) {
 }
 
 static int jc_mt_of(const pico8_struct_header_t *e, pico8_fixed_t *out) {
-    return e != NULL && e->cls->get_mt != NULL && e->cls->get_mt(e, out);
+    if (e == NULL || e->mt == NULL) {
+        return 0;
+    }
+    *out = *e->mt;
+    return 1;
 }
 
 void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id) {
@@ -120,6 +124,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
     /* A fixed is always true in Lua: `qu.mt or re.mt` takes the first present. */
     self->mt = pico8_fixed_from_int(0);
     self->has_mt = jc_mt_of(self->qu, &self->mt) || jc_mt_of(self->re, &self->mt);
+    self->header.mt = self->has_mt ? &self->mt : NULL;
 
     self->probe->et = pico8_jc_ce(self);
     if (self->probe->et != NULL) {
@@ -338,16 +343,6 @@ static pico8_probe_t *jc_probe_of(void *self) {
     return ((pico8_jc_t *)self)->probe;
 }
 
-static int jc_get_mt(const void *self, pico8_fixed_t *out) {
-    const pico8_jc_t *jc = self;
-
-    if (!jc->has_mt) {
-        return 0;
-    }
-    *out = jc->mt;
-    return 1;
-}
-
 static int jc_get_p_(const void *self) {
     const pico8_jc_t *jc = self;
 
@@ -361,7 +356,6 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .ey = pico8_jc_ey_dispatch,
     .probe_of = jc_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JC),
-    .get_mt = jc_get_mt,
     .get_p_ = jc_get_p_,
 };
 
@@ -383,6 +377,7 @@ static pico8_jc_t *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     self->probe->has_od = self->def->probe.has_od;
     self->mt = 0;
     self->has_mt = 0;
+    self->header.mt = NULL;
     self->probe->et = NULL;
     self->fo = NULL;
     self->p_ = 0;
