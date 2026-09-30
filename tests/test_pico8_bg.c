@@ -180,12 +180,12 @@ static int mget(int x, int y) {
 /* A fresh `bg`: ke's `me`/`t`, the spec's `fa`/`hd`/`pl`, the four
  * methods, nothing written yet, registered in hv, cv.kj and cv.hd only. */
 static void check_fresh_bg(const pico8_bg_t *bg) {
-    const pico8_struct_class_t *cls = bg->ke.header.cls;
+    const pico8_struct_class_t *cls = bg->header.cls;
     const pico8_int_seq_t *pl;
     size_t i;
 
-    assert(is_me(&bg->ke.header, "ph"));
-    assert(bg->ke.header.t == 0);
+    assert(is_me(&bg->header, "ph"));
+    assert(bg->header.t == 0);
     assert(bg->fa == pico8_fixed_from_int(1));
     assert(bg->hd == pico8_fixed_from_int(1));
     pl = bg->pl;
@@ -323,7 +323,7 @@ static void test_ldown(void) {
     assert(out.stop && out.held != NULL);
     assert(out.held->cls == pico8_mz_struct_class());
     assert(listed(pico8_cg("mz"), out.held));
-    assert(is_me(&((const pico8_mz_t *)out.held)->ke.header, "kz"));
+    assert(is_me(&((const pico8_mz_t *)out.held)->header, "kz"));
 
     check_int("ldown g_ after", list_count(pico8_cg("g_")), LDOWN_G_AFTER);
     check_int("ldown mz after", list_count(pico8_cg("mz")), LDOWN_MZ_AFTER);
@@ -412,7 +412,7 @@ static void test_gv(void) {
     bg = the_bg();
     ly = first_jo_with_me("ly");
     assert(ly != NULL);
-    r = pico8_jo_gv(ly, &bg->ke.header);
+    r = pico8_jo_gv(ly, &bg->header);
     assert(r.stop && r.held == NULL);
     assert(is_me(&ly->ke.header, "ly"));
 
@@ -420,7 +420,7 @@ static void test_gv(void) {
     keys.p = ly->p;
     keys.ra = ly->ra;
     nr = pico8_nr_new(&keys);
-    r = pico8_nr_gv(nr, &bg->ke.header);
+    r = pico8_nr_gv(nr, &bg->header);
     assert(r.stop && r.held == NULL);
 }
 

@@ -17,7 +17,7 @@
 /* `gs` points at `pico8_pj_gs_row`, `i_` at `pico8_pj_i__row`. `ed` NULL
  * reads as `pico8_pj_start.ed`, never nil. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_fixed_t fa;
     const pico8_jb_row_t *gs;
     const pico8_jb_row_t *i_;

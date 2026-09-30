@@ -234,7 +234,7 @@ static void world(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);
@@ -271,7 +271,7 @@ static void ey(void *mz) {
 /* `dg` skips the entity after one it takes out of `hv` (TROU-5): count
  * ticks by `t`, not by calls. */
 static void until_t(const pico8_mz_t *mz, int t) {
-    while (mz->ke.header.t < pico8_fixed_from_int(t)) {
+    while (mz->header.t < pico8_fixed_from_int(t)) {
         pico8_dg();
     }
 }
@@ -305,8 +305,8 @@ static void check_fresh_mz(void *e) {
     static const int want_kk[9] = {7, 7, 6, 13, 5, 1, 1, 1, 0};
     int i;
 
-    assert(is_me(&mz->ke.header, "kz"));
-    assert(mz->ke.header.t == 0);
+    assert(is_me(&mz->header, "kz"));
+    assert(mz->header.t == 0);
     assert(mz->probe->dw == 0);
     assert(mz->probe->dq != NULL && strcmp(mz->probe->dq, "pr") == 0);
     assert(mz->spawn_snd == pico8_fixed_from_int(52));
@@ -315,7 +315,7 @@ static void check_fresh_mz(void *e) {
     assert(mz->probe->od == pico8_fixed_from_int(3));
     assert(mz->probe->fp == pico8_fixed_from_int(1));
     assert(mz->fa == pico8_fixed_from_int(5));
-    assert(mz->ke.header.cls->get_fa(mz, &fa) && fa == mz->fa);
+    assert(mz->header.cls->get_fa(mz, &fa) && fa == mz->fa);
 
     kk = mz->kk;
     assert(kk == &pico8_mz_kk_seq && kk->count == 9);
@@ -431,7 +431,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
     printf("[hq] et kind %d\n", kind);
     fflush(stdout);
     assert(kind == want_kind);
-    assert(mz->ke.header.cls->get_ra(mz) == mz->ra && mz->ke.header.cls->get_p(mz) == mz->p);
+    assert(mz->header.cls->get_ra(mz) == mz->ra && mz->header.cls->get_p(mz) == mz->p);
     h = fold_vec(h, mz->ra);
     h = fold_vec(h, mz->p);
     h = fnv(h, (uint32_t)kind);
@@ -499,7 +499,7 @@ static void test_kz_ticks(void) {
     for (i = 0; i < KZ_TICKS; i++) {
         pico8_dg();
         assert(p__state(mz) == 0);
-        assert(mz->ke.header.t == pico8_fixed_from_int(i + 1));
+        assert(mz->header.t == pico8_fixed_from_int(i + 1));
         h = fnv(h, (uint32_t)mz->oi);
     }
     assert(listed(pico8_hv(), mz));
@@ -507,8 +507,8 @@ static void test_kz_ticks(void) {
 }
 
 static uint32_t fold_ey(uint32_t h, const pico8_mz_t *mz) {
-    h = fold_string(h, mz->ke.header.me);
-    h = fnv(h, (uint32_t)mz->ke.header.t);
+    h = fold_string(h, mz->header.me);
+    h = fnv(h, (uint32_t)mz->header.t);
     h = fnv(h, p__state(mz));
     return fnv(h, (uint32_t)credits());
 }
@@ -544,7 +544,7 @@ static void test_ey(void) {
     hq(paid, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(paid) == ET_FALSE);
     ey(paid);
-    assert(is_me(&paid->ke.header, "pr") && paid->ke.header.t == 0 && p__state(paid) == 1);
+    assert(is_me(&paid->header, "pr") && paid->header.t == 0 && p__state(paid) == 1);
     assert(credits() == pico8_fixed_sub(before, pico8_fixed_from_int(3)));
     h = fold_ey(h, paid);
 
@@ -553,7 +553,7 @@ static void test_ey(void) {
     hq(broke, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     pico8_fm_hy()->nz = pico8_fixed_from_int(2);
     ey(broke);
-    assert(is_me(&broke->ke.header, "kz") && p__state(broke) == 2);
+    assert(is_me(&broke->header, "kz") && p__state(broke) == 2);
     assert(credits() == pico8_fixed_from_int(2));
     h = fold_ey(h, broke);
     check("ey", h, EY_HASH);
@@ -583,7 +583,7 @@ static pico8_mz_t *paid_mz_on_unknown(void) {
     hq(mz, vec_ref_fixed(near_anchor()), vec_ref(64, 64));
     assert(et_kind(mz) == ET_FALSE);
     ey(mz);
-    assert(is_me(&mz->ke.header, "pr"));
+    assert(is_me(&mz->header, "pr"));
     assert(unknown->p != NULL);
     *p = *unknown->p;
     mz->p = p;
@@ -693,14 +693,14 @@ static void test_gv(void) {
     mz = build_mz();
     ly = first_jo_with_me("ly");
     assert(ly != NULL);
-    r = pico8_jo_gv(ly, &mz->ke.header);
+    r = pico8_jo_gv(ly, &mz->header);
     assert(r.stop && r.held == NULL);
 
     keys.id = NULL;
     keys.p = ly->p;
     keys.ra = ly->ra;
     nr = pico8_nr_new(&keys);
-    r = pico8_nr_gv(nr, &mz->ke.header);
+    r = pico8_nr_gv(nr, &mz->header);
     assert(r.stop && r.held == NULL);
 }
 

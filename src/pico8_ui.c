@@ -97,7 +97,7 @@ static void *pico8_ui_struct_new(void) {
 
     assert(g_ui_up && "pico8_ui_init() must run first");
     self = malloc(sizeof *self);
-    pico8_ke_struct_init(&self->ke.header, &g_ui_struct_class);
+    pico8_ke_struct_init(&self->header, &g_ui_struct_class);
     self->ql = pico8_ui_start.ql;
     self->fa = pico8_ui_start.fa;
     self->le = &g_shared_le;
@@ -115,7 +115,7 @@ static void *pico8_ui_struct_new(void) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("ui");
 #endif
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
@@ -368,7 +368,7 @@ void pico8_ui_bh(pico8_ui_t *self, const char *bt) {
         }
     }
 
-    held_inst = l ? self->lheld : (self->rheld != NULL ? &self->rheld->ke.header : NULL);
+    held_inst = l ? self->lheld : (self->rheld != NULL ? &self->rheld->header : NULL);
 
     if (held_inst != NULL && held_inst->cls->hq != NULL) {
         held_inst->cls->hq(held_inst, self->qa, je_ra);

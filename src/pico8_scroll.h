@@ -17,7 +17,7 @@
  * shares, `pc` on `pico8_qb_pc_vecs`: none is ever modified in place, only
  * rebound. Nothing frees the struct: TROU-7. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     const pico8_vec_t *v;
     pico8_fixed_t ma;
     const pico8_vec_t *p;

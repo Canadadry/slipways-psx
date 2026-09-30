@@ -35,7 +35,7 @@ int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
  * nil) live in the probe; `probe` points at `probe_own`: never copy the
  * struct. Nothing frees the struct: TROU-7. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     const pico8_int_seq_t *k_;

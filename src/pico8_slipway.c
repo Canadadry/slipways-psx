@@ -145,7 +145,7 @@ void pico8_jc_hq(pico8_jc_t *self, pico8_vec_t *mp) {
 
     self->probe->et = pico8_jc_ce(self);
     if (self->probe->et != NULL) {
-        pico8_probe_et_hang_fo(self->probe->et, &self->ke.header);
+        pico8_probe_et_hang_fo(self->probe->et, &self->header);
     }
 
     self->fa = self->has_mt ? pico8_fixed_from_int(2) : pico8_fixed_from_int(4);
@@ -182,11 +182,11 @@ void pico8_jc_ey(pico8_jc_t *self, pico8_struct_header_t *re) {
         int qu_registered = qu != NULL && qu->cls->kf != NULL;
         int re_registered;
         if (qu_registered) {
-            qu->cls->kf(qu, &self->ke.header);
+            qu->cls->kf(qu, &self->header);
         }
         re_registered = re != NULL && re->cls->kf != NULL;
         if (re_registered) {
-            re->cls->kf(re, &self->ke.header);
+            re->cls->kf(re, &self->header);
         }
         assert(qu_registered && re_registered &&
                "jc:ey: both endpoints must expose \"kf\", or the slipway never joins their `oe`");
@@ -404,8 +404,8 @@ static const pico8_struct_class_t g_jc_struct_class = {
 static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_jc_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke.header, &g_jc_struct_class);
-    self->ke.header.me = pico8_jc_start.me;
+    pico8_ke_struct_init(&self->header, &g_jc_struct_class);
+    self->header.me = pico8_jc_start.me;
     self->nu = pico8_jc_start.nu;
     self->fa = pico8_jc_start.fa;
     self->probe = &self->probe_own;
@@ -439,7 +439,7 @@ static void *pico8_jc_struct_new(const pico8_jc_keys_t *keys) {
     pico8_class_coverage_record("jc");
 #endif
     pico8_jc_pq(self);
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 

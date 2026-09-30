@@ -336,8 +336,8 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     const pico8_js_t *b = js_of(e);
     size_t i;
 
-    assert(b->ke.header.me != NULL && strcmp(b->ke.header.me, "ph") == 0);
-    h = fold_fixed(h, b->ke.header.t);
+    assert(b->header.me != NULL && strcmp(b->header.me, "ph") == 0);
+    h = fold_fixed(h, b->header.t);
     h = fold_fixed(h, b->fa);
     h = fold_fixed(h, b->mb);
     h = fold_kq(h, b);
@@ -500,7 +500,7 @@ static void *built_world(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);

@@ -144,8 +144,8 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(ra.x == pico8_fixed_from_int(192) && ra.y == pico8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
     assert(mo->ma == 0);
-    assert(mo->ke.header.t == 0);
-    assert(mo->ke.header.me != NULL && strcmp(mo->ke.header.me, "ph") == 0);
+    assert(mo->header.t == 0);
+    assert(mo->header.me != NULL && strcmp(mo->header.me, "ph") == 0);
     assert(mo->p != mo->ra);
 
     pc = mo->pc;
@@ -203,7 +203,7 @@ static void test_scripted_ticks(void) {
     for (i = 0; i < SCRIPTED_TICKS; i++) {
         pico8_dg();
         h = fold_mo(h);
-        h = fnv(h, (uint32_t)mo_qb()->ke.header.t);
+        h = fnv(h, (uint32_t)mo_qb()->header.t);
         if (must_vec(mo_qb()->p).y == pico8_fixed_from_int(320)) {
             bounded++;
         }
@@ -364,8 +364,8 @@ static void test_qb_is_a_struct(void) {
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
     assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
-    assert(generic->ke.header.cls->get_ra(generic) == generic->ra);
-    assert(generic->ke.header.cls->get_p(generic) == generic->p);
+    assert(generic->header.cls->get_ra(generic) == generic->ra);
+    assert(generic->header.cls->get_p(generic) == generic->p);
     pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
     pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
     assert(pico8_qb_struct_class()->kj == NULL);

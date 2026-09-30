@@ -15,7 +15,7 @@
 
 /* `pl` points at `pico8_bg_pl_seq`. Nothing frees the struct: TROU-7. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_fixed_t fa;
     pico8_fixed_t hd;
     const pico8_int_seq_t *pl;

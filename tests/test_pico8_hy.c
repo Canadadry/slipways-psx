@@ -257,7 +257,7 @@ static void built_world(void) {
     pico8_ok()->o_ = re;
     pico8_jc_struct_class()->hq(jc, mp, NULL);
     pico8_ok()->o_ = NULL;
-    while (jc->ke.header.t < pico8_fixed_from_int(15)) {
+    while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     pico8_jc_struct_class()->ey(jc, re);
@@ -274,7 +274,7 @@ static const pico8_struct_class_t *iv_descriptor(void) {
 
     keys.at1 = "ref";
     ref = pico8_iv_new(&keys);
-    return ref->ke.header.cls;
+    return ref->header.cls;
 }
 
 /* Every entry `hv` gained since it held `from` entries: its tag, and for an

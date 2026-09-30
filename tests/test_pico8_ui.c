@@ -289,10 +289,10 @@ static void test_built(void) {
 
     assert(ok->ql == pico8_fixed_from_int(58));
     assert(ok->fa == pico8_fixed_from_int(15));
-    assert(ok->ke.header.me != NULL && strcmp(ok->ke.header.me, "ph") == 0);
+    assert(ok->header.me != NULL && strcmp(ok->header.me, "ph") == 0);
     /* The presence word is constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed read. */
-    h = fnv(fnv(h, 1u), (uint32_t)ok->ke.header.t);
+    h = fnv(fnv(h, 1u), (uint32_t)ok->header.t);
     assert(ok->qa == NULL && ok->ic == NULL && ok->o_ == NULL && ok->gj == NULL && ok->lheld == NULL &&
            ok->rheld == NULL);
     assert(pico8_ui_struct_class()->ev != NULL);
@@ -319,7 +319,7 @@ static void test_shared(void) {
     pico8_fixed_t ql;
 
     assert(other != NULL && other != ok);
-    assert(other->ke.header.cls->get_ql(other, &ql) && ql == other->ql);
+    assert(other->header.cls->get_ql(other, &ql) && ql == other->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), other));
     h = fnv(h, (uint32_t)rank_in(pico8_cv("ev"), other));
@@ -715,7 +715,7 @@ static void test_ui_is_a_struct(void) {
 }
 
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
 } giver_t;
 
 static pico8_struct_header_t *g_given;
@@ -758,7 +758,7 @@ static const pico8_struct_class_t g_giver_class = {
     .set_m_ = giver_set_m_,
 };
 
-static giver_t g_giver = {{{.cls = &g_giver_class}}};
+static giver_t g_giver = {{.cls = &g_giver_class}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);
@@ -779,7 +779,7 @@ static void test_ui_held_stops_off_row(void) {
     void *right[6];
     size_t i;
 
-    pico8_lt(&g_giver.ke.header);
+    pico8_lt(&g_giver.header);
     left[0] = pico8_pm_new(NULL);
     left[1] = pico8_ga_new(NULL);
     left[2] = pico8_cg("jo")->items[0];

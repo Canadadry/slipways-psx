@@ -29,7 +29,7 @@ typedef struct {
  * the first `gw`, then points at `ic_own`, which every `gw` empties and
  * refills. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_fixed_t ql;
     pico8_fixed_t fa;
     pico8_ptrs_t *le;

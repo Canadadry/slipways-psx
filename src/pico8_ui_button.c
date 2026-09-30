@@ -106,7 +106,7 @@ static const pico8_struct_class_t g_js_struct_class = {
 static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_js_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke.header, &g_js_struct_class);
+    pico8_ke_struct_init(&self->header, &g_js_struct_class);
     self->lq = NULL;
     self->mb = 0;
     self->kq = NULL;
@@ -159,7 +159,7 @@ static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_class_coverage_record("js");
 #endif
     pico8_js_pq(self, keys);
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
@@ -352,7 +352,7 @@ static const pico8_struct_class_t g_fq_struct_class = {
 static void *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     pico8_fq_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke.header, &g_fq_struct_class);
+    pico8_ke_struct_init(&self->header, &g_fq_struct_class);
     self->fa = pico8_fq_start.fa;
     self->hd = pico8_fq_start.hd;
     self->my = NULL;
@@ -366,7 +366,7 @@ static void *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fq");
 #endif
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 

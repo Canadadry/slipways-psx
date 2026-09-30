@@ -113,7 +113,7 @@ void pico8_mz_ey(pico8_mz_t *self) {
         return;
     }
 
-    t = self->ke.header.t;
+    t = self->header.t;
 
     /* The `or` short-circuits: `d_`'s side effects must not run before tick
      * 15, so this call cannot be hoisted out of the else branch. */
@@ -246,8 +246,8 @@ static const pico8_struct_class_t g_mz_struct_class = {
 static void *pico8_mz_struct_new(void) {
     pico8_mz_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke.header, &g_mz_struct_class);
-    self->ke.header.me = pico8_mz_start.me;
+    pico8_ke_struct_init(&self->header, &g_mz_struct_class);
+    self->header.me = pico8_mz_start.me;
     self->nu = pico8_mz_start.nu;
     self->probe = &self->probe_own;
     self->probe->dw = pico8_mz_start.dw;
@@ -274,7 +274,7 @@ static void *pico8_mz_struct_new(void) {
     pico8_class_coverage_record("mz");
 #endif
     pico8_mz_pq(self);
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 

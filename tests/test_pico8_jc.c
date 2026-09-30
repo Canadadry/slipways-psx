@@ -257,8 +257,8 @@ static uint32_t fold_jc(uint32_t h, const void *e) {
     h = fold_fixed(h, 1, jc->fa);
     h = fold_fixed(h, 1, jc->nh);
     h = fnv(h, p__state(jc));
-    h = fold_string(h, jc->ke.header.me);
-    h = fold_fixed(h, 1, jc->ke.header.t);
+    h = fold_string(h, jc->header.me);
+    h = fold_fixed(h, 1, jc->header.t);
     h = fold_ref(h, jc->qu);
     h = fnv(h, (uint32_t)re_kind(jc));
     h = fold_ref(h, jc->re);
@@ -357,7 +357,7 @@ static void *dragged(void *qu, void *re) {
                         pico8_vec_v(pico8_fixed_from_int(1), pico8_fixed_from_int(1)));
     hq_over(jc, re, mp);
     pico8_ok()->o_ = NULL;
-    while (as_jc(jc)->ke.header.t < pico8_fixed_from_int(15)) {
+    while (as_jc(jc)->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
     return jc;
@@ -438,8 +438,8 @@ static void check_fresh_jc(const void *e, const void *qu) {
     const pico8_jc_hg_t *hg;
     size_t i;
 
-    assert(jc->ke.header.me != NULL && strcmp(jc->ke.header.me, "kz") == 0);
-    assert(jc->ke.header.t == 0);
+    assert(jc->header.me != NULL && strcmp(jc->header.me, "kz") == 0);
+    assert(jc->header.t == 0);
     assert(jc->fa == pico8_fixed_from_int(2));
     assert(jc->probe->fp_is_bool && jc->probe->fp == 0);
     assert(jc->probe->ik == pico8_fixed_from_int(48));

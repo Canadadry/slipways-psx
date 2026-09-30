@@ -15,7 +15,7 @@
  * two button tables, the class's shared state. Nothing frees the struct:
  * TROU-7. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_vec_t *ra;
 } pico8_nf_t;
 

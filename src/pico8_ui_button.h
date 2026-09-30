@@ -25,7 +25,7 @@ typedef void (*pico8_js_fn)(pico8_js_t *self);
  * be the vector every button of one `pz` shares: never written through.
  * Nothing frees the struct: TROU-7. */
 struct pico8_js {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_fixed_t fa;
     pico8_lq_t *lq;
     pico8_fixed_t mb;
@@ -119,7 +119,7 @@ typedef int (*pico8_fq_my_fn)(pico8_fq_t *self);
 /* `my` is the closure the construction table carried, which `mv` calls as
  * a field, not a method. Nothing frees the struct: TROU-7. */
 struct pico8_fq {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_fixed_t fa;
     pico8_fixed_t hd;
     pico8_fq_my_fn my;

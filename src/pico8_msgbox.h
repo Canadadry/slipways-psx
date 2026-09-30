@@ -26,7 +26,7 @@ enum { PICO8_MH_ITEMS_CAP = PICO8_BZ_COUNT };
  * article stays shared with the caller. Nothing frees the struct: TROU-7.
  * `nu` points at `pico8_mh_nu_tags`. */
 struct pico8_mh {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     const pico8_str_seq_t *nu;
     pico8_fixed_t fa;
     pico8_fixed_t rh;
@@ -82,7 +82,7 @@ void pico8_iv_init(void);
  * vectors `ra` points at: TROU-7. `v` points at `pico8_iv_start.v`, shared
  * by every iv. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     pico8_fixed_t fa;
     pico8_fixed_t l;
     const pico8_vec_t *v;

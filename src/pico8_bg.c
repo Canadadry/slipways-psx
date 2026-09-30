@@ -66,7 +66,7 @@ static const pico8_struct_class_t g_bg_struct_class = {
 static void *pico8_bg_struct_new(void) {
     pico8_bg_t *self = malloc(sizeof *self);
 
-    pico8_ke_struct_init(&self->ke.header, &g_bg_struct_class);
+    pico8_ke_struct_init(&self->header, &g_bg_struct_class);
     self->fa = pico8_bg_start.fa;
     self->hd = pico8_bg_start.hd;
     self->pl = pico8_bg_start.pl;
@@ -77,7 +77,7 @@ static void *pico8_bg_struct_new(void) {
     pico8_class_coverage_record("bg");
 #endif
     pico8_bg_pq(pico8_dispatch_mem(), self);
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
@@ -198,7 +198,7 @@ pico8_down_t pico8_bg_rdown(pico8_bg_t *self, pico8_vec_t *rp) {
     if (self != NULL) {
         self->mq = rp;
         out.stop = 1;
-        out.held = &self->ke.header;
+        out.held = &self->header;
     }
     return out;
 }

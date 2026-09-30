@@ -91,7 +91,7 @@ enum { FIXED_KIND = 0, BOOL_KIND = 2 };
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
-    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->ke.header.t);
+    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
     if (e->has_p_) {
         h = fnv(fnv(h, (uint32_t)BOOL_KIND), (uint32_t)e->p_);
     } else {
@@ -305,7 +305,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(nu == pico8_mh_start.nu && nu == &pico8_mh_nu_tags && nu->count == 1);
     assert(strcmp(nu->items[0], "mh") == 0);
     assert(year_box(3400)->nu == nu);
-    assert(box->ke.header.me != NULL && strcmp(box->ke.header.me, "ph") == 0);
+    assert(box->header.me != NULL && strcmp(box->header.me, "ph") == 0);
     assert(pico8_mh_ready());
     pico8_mh_shutdown();
     assert(!pico8_mh_ready());

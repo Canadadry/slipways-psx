@@ -82,7 +82,7 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
 /* The kind words are constant by the struct's shape, kept so that the
  * sequence hashes still prove the typed reads. */
 static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
-    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->ke.header.t);
+    h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
     h = fold_bool_member(h, e->has_p_, e->p_);
     h = fold_bool_member(h, e->has_m_, e->m_);
     h = fnv(h, (uint32_t)listed(pico8_hv(), e));
@@ -236,7 +236,7 @@ static void test_hover_loop_on_the_veil(void) {
     }
     h = fold_veil(h, veil);
 
-    pico8_he(&veil->ke.header);
+    pico8_he(&veil->header);
     pico8_ui_lj(&mem, pico8_ok());
     assert(ok_o_() != veil && !in_layer(14, veil));
     assert(veil->has_m_ && !veil->m_);
@@ -255,7 +255,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(veil->fa == pico8_fixed_from_int(14));
     assert(veil->hd == pico8_fq_start.hd);
     assert(veil->hd == pico8_fixed_from_int(1));
-    assert(veil->ke.header.me != NULL && strcmp(veil->ke.header.me, "ph") == 0);
+    assert(veil->header.me != NULL && strcmp(veil->header.me, "ph") == 0);
     assert(pico8_fq_ready());
     pico8_fq_shutdown();
     assert(!pico8_fq_ready());

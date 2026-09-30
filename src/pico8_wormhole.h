@@ -26,7 +26,7 @@ typedef struct {
  * `dw`, `dq`, `ik`, `od`, `fp` and `et` live in the probe; `probe` points at
  * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     const pico8_str_seq_t *nu;
     pico8_fixed_t spawn_snd;
     pico8_fixed_t oi;

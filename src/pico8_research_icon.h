@@ -23,7 +23,7 @@
  * module's shared state, read by pico8_ie_gy()/pico8_ie_id(). Nothing frees
  * the struct: TROU-7. */
 typedef struct {
-    pico8_ke_t ke_base;
+    pico8_struct_header_t header;
     const pico8_qz_box_t *kq;
     pico8_fixed_t fa;
     const pico8_vec_t *ra;

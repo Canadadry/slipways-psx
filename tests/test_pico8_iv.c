@@ -120,7 +120,7 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
         h = fnv(h, (uint32_t)ra.x);
         h = fnv(h, (uint32_t)ra.y);
         h = fnv(h, (uint32_t)e->l);
-        h = fnv(h, (uint32_t)e->ke.header.t);
+        h = fnv(h, (uint32_t)e->header.t);
         h = fnv(h, (uint32_t)listed(pico8_cv("kj"), e));
         h = fnv(h, draw_hash());
         pico8_dg();
@@ -128,7 +128,7 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
     }
     assert(!listed(pico8_cv("kj"), e));
     h = fnv(h, (uint32_t)e->l);
-    h = fnv(h, (uint32_t)e->ke.header.t);
+    h = fnv(h, (uint32_t)e->header.t);
 
     printf("[%s] ticks=%d sequence=0x%08Xu first_draw=0x%08Xu\n", label, ticks, (unsigned)h, (unsigned)first_draw);
     fflush(stdout);
@@ -169,7 +169,7 @@ static void test_mz_scan_skips_a_live_toast(void) {
 /* dg on a ke struct: the method named by `me` is called with `t`, `t` is
  * bumped on the struct itself, and a truthy `p_` takes it out of hv. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     int p_;
 } fake_toast_t;
 
@@ -201,21 +201,21 @@ static void test_dg_drives_a_ke_struct(void) {
     int i;
 
     fresh_world();
-    pico8_ke_struct_init(&f->ke.header, &g_fake_toast_class);
+    pico8_ke_struct_init(&f->header, &g_fake_toast_class);
     f->p_ = 0;
-    pico8_ke_struct_pq(&f->ke.header);
+    pico8_ke_struct_pq(&f->header);
     assert(listed(pico8_hv(), f));
 
     for (i = 0; i < 2; i++) {
         pico8_dg();
         assert(g_fake_ph_calls == i + 1 && g_fake_ph_last_t == pico8_fixed_from_int(i));
-        assert(f->ke.header.t == pico8_fixed_from_int(i + 1));
+        assert(f->header.t == pico8_fixed_from_int(i + 1));
         assert(listed(pico8_hv(), f));
     }
     pico8_dg();
     assert(g_fake_ph_calls == 3 && g_fake_ph_last_t == pico8_fixed_from_int(2));
     assert(!listed(pico8_hv(), f));
-    assert(f->ke.header.t == pico8_fixed_from_int(3));
+    assert(f->header.t == pico8_fixed_from_int(3));
 }
 
 /* The struct's defaults are, bit for bit, the class's generated defaults;
@@ -229,8 +229,8 @@ static void test_defaults_match_the_parsed_spec(void) {
     assert(pico8_iv_start.v.x == 0 && pico8_iv_start.v.y == -0x570a);
     assert(e->fa == pico8_iv_start.fa);
     assert(e->l == pico8_iv_start.l);
-    assert(e->ke.header.me != NULL && strcmp(e->ke.header.me, "ph") == 0);
-    assert(e->ke.header.t == 0);
+    assert(e->header.me != NULL && strcmp(e->header.me, "ph") == 0);
+    assert(e->header.t == 0);
     assert(build(NULL, "y", 7)->v == e->v);
     assert(pico8_iv_ready());
     pico8_iv_shutdown();
