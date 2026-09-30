@@ -100,6 +100,10 @@ static int list_count(const pico8_ptrs_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
+static int ents_list_count(const pico8_ents_t *list) {
+    return list == NULL ? 0 : list->count;
+}
+
 static int is_me(const pico8_struct_header_t *ke, const char *want) {
     return ke->me != NULL && strcmp(ke->me, want) == 0;
 }
@@ -149,7 +153,7 @@ static void start_game(void) {
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
 static pico8_bg_t *find_bg(int *count) {
-    const pico8_ptrs_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hd");
     pico8_bg_t *found = NULL;
     int i;
 
@@ -207,8 +211,8 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     assert(cls->gv == NULL && cls->states[PICO8_STATE_PH] == NULL);
     assert(cls->kj != NULL && cls->ldown != NULL && cls->rdown != NULL && cls->hq != NULL);
     assert(cls->ey == NULL);
-    assert(ents_listed(pico8_hv(), bg) && listed(pico8_cv("kj"), bg) && listed(pico8_cv("hd"), bg));
-    assert(!listed(pico8_cv("ev"), bg) && !listed(pico8_cv("hk"), bg) && !listed(pico8_cv("hb"), bg));
+    assert(ents_listed(pico8_hv(), bg) && ents_listed(pico8_cv("kj"), bg) && ents_listed(pico8_cv("hd"), bg));
+    assert(!ents_listed(pico8_cv("ev"), bg) && !ents_listed(pico8_cv("hk"), bg) && !ents_listed(pico8_cv("hb"), bg));
 }
 
 static void test_construction(void) {
@@ -345,7 +349,7 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return listed(&ic->layers[layer], e);
+    return ents_listed(&ic->layers[layer], e);
 }
 
 /* Nothing else hovered: the background is `o_`, marked `m_`, in layer 1,
@@ -441,7 +445,7 @@ static void test_draw(void) {
 
     pico8_jl();
     bg = (void *)pico8_bg_new();
-    assert(list_count(pico8_cv("kj")) == 1 && listed(pico8_cv("kj"), bg));
+    assert(ents_list_count(pico8_cv("kj")) == 1 && ents_listed(pico8_cv("kj"), bg));
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
     assert(pico8_mo()->cls == pico8_qb_struct_class());

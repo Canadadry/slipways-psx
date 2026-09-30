@@ -487,9 +487,9 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(cls_of(jc)->hd == NULL && cls_of(jc)->states[PICO8_STATE_KZ] == NULL &&
            cls_of(jc)->states[PICO8_STATE_PH] == NULL && cls_of(jc)->ldown == NULL && cls_of(jc)->gv == NULL);
 
-    assert(ents_listed(pico8_hv(), jc) && listed(pico8_cv("kj"), jc) && listed(pico8_cv("ev"), jc));
+    assert(ents_listed(pico8_hv(), jc) && ents_listed(pico8_cv("kj"), jc) && ents_listed(pico8_cv("ev"), jc));
     assert(listed(pico8_cg("jc"), jc));
-    assert(!listed(pico8_cv("hd"), jc) && !listed(pico8_cv("hk"), jc) && !listed(pico8_cv("hb"), jc));
+    assert(!ents_listed(pico8_cv("hd"), jc) && !ents_listed(pico8_cv("hk"), jc) && !ents_listed(pico8_cv("hb"), jc));
 }
 
 static void test_construction(void) {

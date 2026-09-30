@@ -39,16 +39,6 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -64,7 +54,7 @@ static int in_any_cv(const void *e) {
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (listed(pico8_cv(names[i]), e)) {
+        if (ents_listed(pico8_cv(names[i]), e)) {
             return 1;
         }
     }

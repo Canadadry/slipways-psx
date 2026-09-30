@@ -167,7 +167,7 @@ static int layer_count(const pico8_ui_t *ok, int mf) {
 }
 
 static int in_layer(const pico8_ui_t *ok, int mf, const void *e) {
-    return ok->ic != NULL && listed(&ok->ic->layers[mf], e);
+    return ok->ic != NULL && ents_listed(&ok->ic->layers[mf], e);
 }
 
 static uint32_t fold_layers(uint32_t h, const pico8_ui_t *ok) {
@@ -292,10 +292,10 @@ static void test_built(void) {
 
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ok));
     h = fnv(h, (uint32_t)pico8_hv()->count);
-    assert(listed(pico8_cv("ev"), ok));
-    h = fnv(h, (uint32_t)rank_in(pico8_cv("ev"), ok));
+    assert(ents_listed(pico8_cv("ev"), ok));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), ok));
     for (i = 0; i < sizeof not_listed / sizeof not_listed[0]; i++) {
-        assert(!listed(pico8_cv(not_listed[i]), ok));
+        assert(!ents_listed(pico8_cv(not_listed[i]), ok));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         assert(!listed(pico8_cg(tags[i]), ok));
@@ -336,7 +336,7 @@ static void test_shared(void) {
     assert(other->header.cls->get_ql(other, &ql) && ql == other->ql);
     assert(other->le == le && le == pico8_ui_le_shared());
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
-    h = fnv(h, (uint32_t)rank_in(pico8_cv("ev"), other));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("ev"), other));
 
     pico8_ui_cj(other);
     assert(other->le != le && le_of(other)->count == 0);

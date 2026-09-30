@@ -293,7 +293,7 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 
 /* The background is the `bg` of cv.hd whose `hd` and `fa` are both 1. */
 static pico8_bg_t *the_bg(void) {
-    const pico8_ptrs_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hd");
     pico8_bg_t *found = NULL;
     int count = 0;
     int i;
@@ -397,10 +397,10 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     assert(cls_of(e)->mm == pico8_g__mm);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
-    assert(listed(pico8_cv("kj"), e) && listed(pico8_cv("ev"), e));
-    assert(!listed(pico8_cv("hd"), e) && !listed(pico8_cv("hk"), e) && !listed(pico8_cv("hb"), e));
+    assert(ents_listed(pico8_cv("kj"), e) && ents_listed(pico8_cv("ev"), e));
+    assert(!ents_listed(pico8_cv("hd"), e) && !ents_listed(pico8_cv("hk"), e) && !ents_listed(pico8_cv("hb"), e));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("g_"), e));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), e));
     assert(listed(pico8_cg("g_"), e) && listed(pico8_cg("prober"), e));

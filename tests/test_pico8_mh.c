@@ -109,7 +109,7 @@ static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
     }
     h = fnv(h, (uint32_t)(pico8_kc() == e));
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
-    h = fnv(h, (uint32_t)listed(pico8_cv("ev"), e));
+    h = fnv(h, (uint32_t)ents_listed(pico8_cv("ev"), e));
     return fnv(h, (uint32_t)listed(pico8_cg("mh"), e));
 }
 
@@ -171,7 +171,7 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
     int i;
 
     for (i = 0; i < run->count; i++) {
-        assert(!listed(pico8_cv("ev"), run->boxes[i]));
+        assert(!ents_listed(pico8_cv("ev"), run->boxes[i]));
         assert(!listed(pico8_cg("mh"), run->boxes[i]));
         assert(pico8_kc() != run->boxes[i]);
     }
@@ -191,7 +191,7 @@ static const pico8_mh_t *year_box(int yr) {
     box = pico8_kc();
     assert(box != NULL);
     assert(count_of(pico8_cg("mh")) == before + 1);
-    assert(listed(pico8_cg("mh"), box) && ents_listed(pico8_hv(), box) && listed(pico8_cv("ev"), box));
+    assert(listed(pico8_cg("mh"), box) && ents_listed(pico8_hv(), box) && ents_listed(pico8_cv("ev"), box));
     return box;
 }
 
@@ -344,9 +344,9 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(from_pj != NULL);
     assert(generic != NULL);
     assert(pico8_kc() == generic);
-    assert(ents_listed(pico8_hv(), generic) && listed(pico8_cv("ev"), generic) && listed(pico8_cg("mh"), generic));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("ev"), generic) && listed(pico8_cg("mh"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!listed(pico8_cv(others[i]), from_pj) && !listed(pico8_cv(others[i]), generic));
+        assert(!ents_listed(pico8_cv(others[i]), from_pj) && !ents_listed(pico8_cv(others[i]), generic));
     }
     assert(((pico8_mh_t *)generic)->lh != NULL);
     out = ((pico8_mh_t *)generic)->lh(generic);

@@ -66,16 +66,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -84,10 +74,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -163,7 +149,7 @@ static int is_icon(const void *e) {
 }
 
 static int icons(void *out[], int cap) {
-    const pico8_ptrs_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("hb");
     int n = 0;
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
@@ -304,9 +290,9 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
            cls_of(icon)->rdown == NULL && cls_of(icon)->gv == NULL);
     assert(cls_of(icon)->hd != NULL && cls_of(icon)->hb != NULL && cls_of(icon)->kj != NULL &&
            cls_of(icon)->ldown != NULL);
-    assert(ents_listed(pico8_hv(), icon) && listed(pico8_cv("kj"), icon) && listed(pico8_cv("hd"), icon) &&
-           listed(pico8_cv("hb"), icon));
-    assert(!listed(pico8_cv("ev"), icon) && !listed(pico8_cv("hk"), icon));
+    assert(ents_listed(pico8_hv(), icon) && ents_listed(pico8_cv("kj"), icon) && ents_listed(pico8_cv("hd"), icon) &&
+           ents_listed(pico8_cv("hb"), icon));
+    assert(!ents_listed(pico8_cv("ev"), icon) && !ents_listed(pico8_cv("hk"), icon));
 
     h = fold_string(h, ie->header.me);
     h = fold_fixed(h, ie->fa);
@@ -338,8 +324,8 @@ static void test_construction(void) {
         assert(ie->header.me != NULL && strcmp(ie->header.me, "ph") == 0);
         assert(ie->fa == pico8_fixed_from_int(12));
         assert(cls_of(all[i])->hd != NULL);
-        assert(ents_listed(pico8_hv(), all[i]) && listed(pico8_cv("kj"), all[i]) && listed(pico8_cv("hd"), all[i]));
-        assert(!listed(pico8_cv("ev"), all[i]) && !listed(pico8_cv("hk"), all[i]));
+        assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("kj"), all[i]) && ents_listed(pico8_cv("hd"), all[i]));
+        assert(!ents_listed(pico8_cv("ev"), all[i]) && !ents_listed(pico8_cv("hk"), all[i]));
         h = fold_kq(h, all[i]);
     }
 

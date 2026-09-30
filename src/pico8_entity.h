@@ -28,7 +28,7 @@ const pico8_ents_t *pico8_hv(void);
  * "hk" or "hb"), or NULL if `name` is not one of those five. The five
  * buckets are fixed, so a returned pointer stays valid for the module's
  * whole lifetime. */
-const pico8_ptrs_t *pico8_cv(const char *name);
+const pico8_ents_t *pico8_cv(const char *name);
 
 /* The entities registered under `tag`, or NULL if no entity carrying
  * that tag has been lt()'d since pico8_entity_init() -- an unknown tag

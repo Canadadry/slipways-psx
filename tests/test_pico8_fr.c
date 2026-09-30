@@ -207,7 +207,7 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 
 /* The research icon whose `ke` is `kind`. */
 static void *icon_of(const pico8_entity_kind_t *kind) {
-    const pico8_ptrs_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -363,7 +363,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fnv(h, (uint32_t)list_size(jo->jy));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));

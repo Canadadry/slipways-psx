@@ -365,11 +365,11 @@ static void test_built(void) {
 
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ju));
     h = fnv(h, (uint32_t)pico8_hv()->count);
-    assert(listed(pico8_cv("kj"), ju) && listed(pico8_cv("hk"), ju) && listed(pico8_cv("hb"), ju));
-    assert(!listed(pico8_cv("ev"), ju) && !listed(pico8_cv("hd"), ju));
-    h = fnv(h, (uint32_t)rank_in(pico8_cv("kj"), ju));
-    h = fnv(h, (uint32_t)rank_in(pico8_cv("hk"), ju));
-    h = fnv(h, (uint32_t)rank_in(pico8_cv("hb"), ju));
+    assert(ents_listed(pico8_cv("kj"), ju) && ents_listed(pico8_cv("hk"), ju) && ents_listed(pico8_cv("hb"), ju));
+    assert(!ents_listed(pico8_cv("ev"), ju) && !ents_listed(pico8_cv("hd"), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("kj"), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("hk"), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("hb"), ju));
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         assert(!listed(pico8_cg(tags[i]), ju));
     }

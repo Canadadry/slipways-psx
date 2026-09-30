@@ -58,16 +58,6 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -96,7 +86,7 @@ static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
     h = fold_bool_member(h, e->has_p_, e->p_);
     h = fold_bool_member(h, e->has_m_, e->m_);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
-    return fnv(h, (uint32_t)listed(pico8_cv("hd"), e));
+    return fnv(h, (uint32_t)ents_listed(pico8_cv("hd"), e));
 }
 
 static const void *ok_o_(void) {
@@ -156,7 +146,7 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
         assert(ticks < 1000);
     }
     assert(g_my_calls == 1);
-    assert(!listed(pico8_cv("hd"), veil));
+    assert(!ents_listed(pico8_cv("hd"), veil));
     printf("[my true] ticks=%d\n", ticks);
     fflush(stdout);
     assert(ticks == MY_TRUE_TICKS);
@@ -179,7 +169,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
         pico8_dg();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(pico8_hv(), veil) && listed(pico8_cv("hd"), veil));
+    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hd"), veil));
     check("bare", h, BARE_SEQUENCE_HASH);
 }
 
@@ -200,7 +190,7 @@ static void test_false_my_keeps_the_veil(void) {
         pico8_dg();
         h = fold_veil(h, veil);
     }
-    assert(ents_listed(pico8_hv(), veil) && listed(pico8_cv("hd"), veil));
+    assert(ents_listed(pico8_hv(), veil) && ents_listed(pico8_cv("hd"), veil));
     check("my false", h, MY_FALSE_SEQUENCE_HASH);
 }
 
@@ -210,7 +200,7 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return listed(&ic->layers[layer], e);
+    return ents_listed(&ic->layers[layer], e);
 }
 
 /* A started game, then `fq()`: `ok`'s hover loop makes it `o_` (hd=1 is
@@ -294,10 +284,10 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     generic = pico8_fq_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(ents_listed(pico8_hv(), built) && listed(pico8_cv("hd"), built));
-    assert(ents_listed(pico8_hv(), generic) && listed(pico8_cv("hd"), generic));
+    assert(ents_listed(pico8_hv(), built) && ents_listed(pico8_cv("hd"), built));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("hd"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!listed(pico8_cv(others[i]), built) && !listed(pico8_cv(others[i]), generic));
+        assert(!ents_listed(pico8_cv(others[i]), built) && !ents_listed(pico8_cv(others[i]), generic));
     }
     assert(cls->hd == pico8_hd_true && cls->hd(generic, NULL, NULL) == 1);
     assert(cls->states[PICO8_STATE_PH] == NULL && cls->rdown == NULL);

@@ -267,7 +267,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && jo->kw == pico8_jo_shared_kw() && jo->em == &pico8_jo_em_row);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
@@ -375,7 +375,7 @@ static uint32_t fold_daughter(uint32_t h, void *d) {
 /* The shop's `ie:ldown` on the icon of `kind`, as the player buys it, then
  * dragged by `hq` to the middle of the screen. */
 static void *bought(const pico8_entity_kind_t *kind) {
-    const pico8_ptrs_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("hb");
     const pico8_qb_t *mo = pico8_mo_qb();
     const pico8_vec_t *mo_ra;
     int i;

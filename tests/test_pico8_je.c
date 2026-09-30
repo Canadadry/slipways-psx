@@ -59,7 +59,7 @@ static int registered(const void *e, int entity_live) {
         return 1;
     }
     for (i = 0; i < 5; i++) {
-        if ((entity_live && listed(pico8_cv(buckets[i]), e)) || listed(pico8_cg(tags[i]), e)) {
+        if ((entity_live && ents_listed(pico8_cv(buckets[i]), e)) || listed(pico8_cg(tags[i]), e)) {
             return 1;
         }
     }

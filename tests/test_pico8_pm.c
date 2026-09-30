@@ -419,7 +419,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)ptrs_size(jo->jy));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));

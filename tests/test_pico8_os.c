@@ -217,7 +217,7 @@ static void start_game(void) {
  * stamped, `eu` on that button. `db` reads `dk.trade`, which a NULL `dk`
  * lacks. */
 static void clicked_game(void) {
-    const pico8_ptrs_t *hd;
+    const pico8_ents_t *hd;
     int buttons = 0;
     int i;
 
@@ -227,7 +227,7 @@ static void clicked_game(void) {
     hd = pico8_cv("hd");
     for (i = 0; i < hd->count; i++) {
         if (((const pico8_struct_header_t *)hd->items[i])->cls == pico8_js_struct_class() && ++buttons == 2) {
-            (void)pico8_js_ldown(hd->items[i]);
+            (void)pico8_js_ldown((pico8_js_t *)hd->items[i]);
             break;
         }
     }
@@ -272,7 +272,7 @@ static void assert_members_of(const pico8_struct_class_t *c, const pico8_struct_
 
 /* The research icon whose `ke` is `gx[1]`, the processor. */
 static void *os_icon(void) {
-    const pico8_ptrs_t *hb = pico8_cv("hb");
+    const pico8_ents_t *hb = pico8_cv("hb");
     int i;
     for (i = 0; hb != NULL && i < hb->count; i++) {
         void *e = hb->items[i];
@@ -390,7 +390,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)list_size(jo->jy));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));

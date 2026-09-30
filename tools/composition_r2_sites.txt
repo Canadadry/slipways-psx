@@ -1,5 +1,5 @@
 pico8_bm_has	src/pico8_entity.c	aucun : hv est typé (2.11r-b1)	pico8_he (entity.c:217) <- ui.c:458 (typee), bootstrap.c:72 ; pico8_lt (entity.c:188) <- pico8_ke_struct_pq (ke.c:40), typee
-pico8_dc	src/pico8_entity.c	bucket_src->items (void **, registre cv) dans pico8_dc (entity.c:258)	qc = bucket_src->items[i] ; entrees typees (const char *nt), appelants cart.c:208-209
+pico8_dc	src/pico8_entity.c	aucun : cv est typé (2.11r-b2)	qc = bucket_src->items[i] ; entrees typees (const char *nt), appelants cart.c:208-209
 pico8_ke_ks	src/pico8_ke.c	pico8_d__dispatch(void *self) (probe.c:349), via pico8_d_	pico8_d_ (probe.c:334) <- probe.c:351 ; pico8_jo_hh <- pico8_mz_pr, void *pt_val = jo_list->items[i] (wormhole.c:153) ; pico8_jo_hu <- planet_display.c:325, typee
 pico8_f_	src/pico8_particle.c	aucun	appelants : help.c:180, planet_family.c:332, :436, planet_family_trade.c:408, probe.c:502 (self local des *_struct_new) ; planet_family.c:448 dans pico8_ga_pq (ga_t *) <- pico8_ga_struct_new
 pico8_ez	src/pico8_particle.c	pico8_ei_dispatch(void *self) (particle.c:152), via pico8_ei	particle.c:149 dans pico8_ei ; planet_family.c:449 dans pico8_ga_pq, typee

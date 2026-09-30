@@ -15,7 +15,7 @@ static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "
 
 typedef struct {
     const char *name; /* borrowed from g_bm_names -- not owned here */
-    pico8_ptrs_t list;
+    pico8_ents_t list;
 } pico8_cv_entry_t;
 
 static pico8_cv_entry_t g_cv[PICO8_BM_COUNT];
@@ -55,7 +55,7 @@ void pico8_entity_shutdown(void) {
     pico8_ents_free(&g_hv);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
-        pico8_ptrs_free(&g_cv[i].list);
+        pico8_ents_free(&g_cv[i].list);
         g_cv[i].name = NULL;
     }
 
@@ -79,7 +79,7 @@ void pico8_entity_init(void) {
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         g_cv[i].name = g_bm_names[i];
-        pico8_ptrs_init(&g_cv[i].list);
+        pico8_ents_init(&g_cv[i].list);
     }
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
@@ -91,7 +91,7 @@ const pico8_ents_t *pico8_hv(void) {
     return &g_hv;
 }
 
-const pico8_ptrs_t *pico8_cv(const char *name) {
+const pico8_ents_t *pico8_cv(const char *name) {
     int i;
     assert(g_initialized && "pico8_entity_init() must run before cv is read");
     for (i = 0; i < PICO8_BM_COUNT; i++) {
@@ -142,7 +142,7 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
-            pico8_ptrs_add(&g_cv[i].list, e);
+            pico8_ents_add(&g_cv[i].list, e);
         }
     }
 
@@ -167,7 +167,7 @@ void pico8_he(pico8_struct_header_t *e) {
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
-            pico8_ptrs_del(&g_cv[i].list, e);
+            pico8_ents_del(&g_cv[i].list, e);
         }
     }
 
@@ -181,15 +181,15 @@ void pico8_he(pico8_struct_header_t *e) {
 }
 
 void pico8_dc(const char *nt) {
-    const pico8_ptrs_t *bucket_src;
-    pico8_ptrs_t layers[15];
+    const pico8_ents_t *bucket_src;
+    pico8_ents_t layers[15];
     int kj = strcmp(nt, "kj") == 0;
     int i, o;
 
     assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
-        pico8_ptrs_init(&layers[i]);
+        pico8_ents_init(&layers[i]);
     }
 
     bucket_src = pico8_cv(nt);
@@ -208,12 +208,12 @@ void pico8_dc(const char *nt) {
             if (layer < 1 || layer > 15) {
                 continue;
             }
-            pico8_ptrs_add(&layers[layer - 1], qc);
+            pico8_ents_add(&layers[layer - 1], qc);
         }
     }
 
     for (o = 1; o <= 15; o++) {
-        pico8_ptrs_t *bucket = &layers[o - 1];
+        pico8_ents_t *bucket = &layers[o - 1];
 
         if (kj && bucket->count > 0) {
             pico8_fixed_t ci;
@@ -236,7 +236,7 @@ void pico8_dc(const char *nt) {
     }
 
     for (i = 0; i < 15; i++) {
-        pico8_ptrs_free(&layers[i]);
+        pico8_ents_free(&layers[i]);
     }
 }
 

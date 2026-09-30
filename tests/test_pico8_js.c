@@ -392,7 +392,7 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     assert(cls_of(b)->rdown == NULL && cls_of(b)->gv == NULL && cls_of(b)->hk == NULL);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), b));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
-        h = fnv(h, (uint32_t)listed(pico8_cv(bm[i]), b));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cv(bm[i]), b));
     }
     return fnv(h, (uint32_t)ents_rank_in(ok_le(), b));
 }
@@ -450,7 +450,7 @@ static void start_game(void) {
 /* The `i`th (from 1) of the title's four buttons, which `pz` built from
  * `bo`'s rows in order: the entities of `cv.hd` with an `mb`. */
 static void *title_button(int i) {
-    const pico8_ptrs_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hd");
     int k;
 
     for (k = 0; hd != NULL && k < hd->count; k++) {
@@ -579,7 +579,7 @@ static void call_my(void *e) {
 /* The buttons `eu`'s `nv(ix,js)` built: the only `fa`=11 entities with an
  * `lq` in `cv.hd` right after `eu`. */
 static int ix_buttons(void *out[4]) {
-    const pico8_ptrs_t *hd = pico8_cv("hd");
+    const pico8_ents_t *hd = pico8_cv("hd");
     int n = 0;
     int i;
     for (i = 0; hd != NULL && i < hd->count; i++) {
@@ -596,7 +596,7 @@ static int ix_buttons(void *out[4]) {
  * entities of `cv.hd` with an `mb`, which only a `js` has. */
 static void test_title(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *hd;
+    const pico8_ents_t *hd;
     void *first = NULL;
     int n = 0;
     int i;
@@ -710,7 +710,7 @@ static void test_gh(void) {
  * with an `lq`. */
 static void test_pj(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *hd;
+    const pico8_ents_t *hd;
     int n = 0;
     int i;
 
@@ -1362,7 +1362,7 @@ static uint32_t fold_keys(uint32_t h, pico8_lq_t *row) {
 static uint32_t members_title_and_game(void) {
     const pico8_js_keys_t empty = {0};
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *hd;
+    const pico8_ents_t *hd;
     void *title[4];
     void *ix[4];
     void *fresh[3];
@@ -1525,7 +1525,7 @@ static uint32_t members_gh(void) {
 
 static uint32_t members_pj(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *hd;
+    const pico8_ents_t *hd;
     int n = 0;
     int i;
 

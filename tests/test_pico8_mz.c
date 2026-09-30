@@ -343,9 +343,9 @@ static void check_fresh_mz(void *e) {
     assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->has_p_);
     assert(mz->ox != NULL);
 
-    assert(ents_listed(pico8_hv(), mz) && listed(pico8_cv("kj"), mz) && listed(pico8_cv("ev"), mz));
+    assert(ents_listed(pico8_hv(), mz) && ents_listed(pico8_cv("kj"), mz) && ents_listed(pico8_cv("ev"), mz));
     assert(listed(pico8_cg("mz"), mz));
-    assert(!listed(pico8_cv("hd"), mz) && !listed(pico8_cv("hk"), mz) && !listed(pico8_cv("hb"), mz));
+    assert(!ents_listed(pico8_cv("hd"), mz) && !ents_listed(pico8_cv("hk"), mz) && !ents_listed(pico8_cv("hb"), mz));
 }
 
 static void test_construction(void) {
@@ -618,12 +618,12 @@ static void test_pr_ticks(void) {
         revealed += before - unknown_count();
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, p__state(mz));
-        h = fnv(h, (uint32_t)listed(pico8_cv("kj"), mz));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cv("kj"), mz));
         h = fnv(h, (uint32_t)listed(pico8_cg("mz"), mz));
     }
     printf("[pr] left hv after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!listed(pico8_cv("kj"), mz) && !listed(pico8_cv("ev"), mz) && !listed(pico8_cg("mz"), mz));
+    assert(!ents_listed(pico8_cv("kj"), mz) && !ents_listed(pico8_cv("ev"), mz) && !listed(pico8_cg("mz"), mz));
     check_int("pr exit tick", tick, PR_EXIT_TICK);
     check("pr ticks", h, PR_HASH);
 }

@@ -65,16 +65,6 @@ static uint32_t draw_hash(void) {
     return screen_hash();
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -131,12 +121,12 @@ static void live(pico8_iv_t *e, int want_ticks, uint32_t want_sequence, uint32_t
         h = fnv(h, (uint32_t)ra.y);
         h = fnv(h, (uint32_t)e->l);
         h = fnv(h, (uint32_t)e->header.t);
-        h = fnv(h, (uint32_t)listed(pico8_cv("kj"), e));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cv("kj"), e));
         h = fnv(h, draw_hash());
         pico8_dg();
         ticks++;
     }
-    assert(!listed(pico8_cv("kj"), e));
+    assert(!ents_listed(pico8_cv("kj"), e));
     h = fnv(h, (uint32_t)e->l);
     h = fnv(h, (uint32_t)e->header.t);
 
@@ -264,10 +254,10 @@ static void test_iv_is_a_struct_registered_under_kj(void) {
 
     assert(direct != NULL);
     assert(generic != NULL);
-    assert(ents_listed(pico8_hv(), direct) && listed(pico8_cv("kj"), direct));
-    assert(ents_listed(pico8_hv(), generic) && listed(pico8_cv("kj"), generic));
+    assert(ents_listed(pico8_hv(), direct) && ents_listed(pico8_cv("kj"), direct));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("kj"), generic));
     for (i = 0; i < 4; i++) {
-        assert(!listed(pico8_cv(others[i]), direct) && !listed(pico8_cv(others[i]), generic));
+        assert(!ents_listed(pico8_cv(others[i]), direct) && !ents_listed(pico8_cv(others[i]), generic));
     }
 }
 

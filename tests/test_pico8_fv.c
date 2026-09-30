@@ -290,7 +290,7 @@ static int in_layer(int layer, const void *e) {
     if (ic == NULL) {
         return 0;
     }
-    return listed(&ic->layers[layer], e);
+    return ents_listed(&ic->layers[layer], e);
 }
 
 static const pico8_js_t *as_js(const void *e) {
@@ -399,10 +399,10 @@ static void test_built(void) {
     }
     for (i = 0; i < 5; i++) {
         static const char *const bm[] = {"kj", "ev", "hd", "hk", "hb"};
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), fv));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), fv));
     }
-    assert(listed(pico8_cv("kj"), fv) && listed(pico8_cv("ev"), fv) && listed(pico8_cv("hd"), fv));
-    assert(!listed(pico8_cv("hk"), fv) && !listed(pico8_cv("hb"), fv));
+    assert(ents_listed(pico8_cv("kj"), fv) && ents_listed(pico8_cv("ev"), fv) && ents_listed(pico8_cv("hd"), fv));
+    assert(!ents_listed(pico8_cv("hk"), fv) && !ents_listed(pico8_cv("hb"), fv));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("g_"), fv));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), fv));
     assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
@@ -531,7 +531,7 @@ static void test_eu_retires_the_help(void) {
     fv = the_help();
     pico8_eu(NULL);
     assert(!ents_listed(pico8_hv(), fv));
-    assert(!listed(pico8_cg("g_"), fv) && !listed(pico8_cv("kj"), fv) && !listed(pico8_cv("hd"), fv));
+    assert(!listed(pico8_cg("g_"), fv) && !ents_listed(pico8_cv("kj"), fv) && !ents_listed(pico8_cv("hd"), fv));
 }
 
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited

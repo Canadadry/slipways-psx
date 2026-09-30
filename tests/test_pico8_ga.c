@@ -409,7 +409,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     assert(jo->cq == &pico8_jo_cq_seq);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (j = 0; j < (int)(sizeof bm / sizeof bm[0]); j++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[j]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[j]), e));
     }
     for (j = 0; j < (int)(sizeof tags / sizeof tags[0]); j++) {
         assert(!listed(pico8_cg(tags[j]), e));
