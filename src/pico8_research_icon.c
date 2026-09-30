@@ -177,7 +177,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
      * kind-level build cost. */
     if (self->has_m_ && self->m_) {
         if (ie_self_ke_kind(self) != NULL) {
-            pico8_probe_t pb = {0};
+            pico8_probe_t pb = {.def = &pico8_probe_def_none};
 
             pb.has_od = view.has_od;
             pb.od = view.od;

@@ -29,15 +29,14 @@ void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id);
 /* `hg[id]`: 1 for an `id` already added, 0 otherwise, NULL included. */
 int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
 
-/* `k_` points at `pico8_jc_k__seq`; `ts` is this
- * slipway's own, made by `pico8_jc_pq`, which also empties `hg_own` and
- * points `hg` at it (NULL before). `fp`, `ik`, `dw`, `od` and `et` (NULL is
- * nil) live in the probe; `probe` points at `probe_own`: never copy the
- * struct. Nothing frees the struct: TROU-7. */
+/* `ts` is this slipway's own, made by `pico8_jc_pq`, which also empties
+ * `hg_own` and points `hg` at it (NULL before). `fp`, `ik`, `dw`, `od` and
+ * `et` (NULL is nil) live in the probe; `probe` points at `probe_own`: never
+ * copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_jc_def_t *def;
     pico8_fixed_t fa;
-    const pico8_int_seq_t *k_;
     pico8_fixed_t nh;
     pico8_struct_header_t *qu; /* borrowed, never freed */
     pico8_ptrs_t *ts;

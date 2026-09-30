@@ -106,9 +106,9 @@ void pico8_jc_kj(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jc_t *self) {
 
         assert(nh_i >= 1 && "k_ is 1-based: an nh of 0 would silently draw the slipway black");
 
-        if (self->k_ != NULL) {
+        if (self->def->k_ != NULL) {
             int entry;
-            if (pico8_int_seq_at(self->k_->items, self->k_->count, nh_i, &entry)) {
+            if (pico8_int_seq_at(self->def->k_->items, self->def->k_->count, nh_i, &entry)) {
                 jv = pico8_fixed_from_int(entry);
             }
         }

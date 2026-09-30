@@ -200,7 +200,7 @@ static pico8_probe_t *mz_probe_of(void *self) {
 }
 
 static int mz_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_mz_t *)self)->fa;
+    *out = ((const pico8_mz_t *)self)->def->fa;
     return 1;
 }
 
@@ -240,19 +240,18 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_mz_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_mz_struct_class);
-    self->header.me = pico8_mz_start.me;
+    self->def = &pico8_mz_def;
+    self->header.me = self->def->me;
     self->probe = &self->probe_own;
-    self->probe->dw = pico8_mz_start.dw;
-    self->probe->dq = pico8_mz_start.dq;
-    self->spawn_snd = pico8_mz_start.spawn_snd;
-    self->probe->ik = pico8_mz_start.ik;
-    self->probe->has_ik = 1;
-    self->oi = pico8_mz_start.oi;
-    self->probe->od = pico8_mz_start.od;
-    self->probe->has_od = 1;
-    self->probe->fp = pico8_mz_start.fp;
-    self->fa = pico8_mz_start.fa;
-    self->kk = pico8_mz_start.kk;
+    self->probe->def = &self->def->probe;
+    self->probe->dw = self->def->probe.dw;
+    self->probe->dq = self->def->probe.dq;
+    self->probe->ik = self->def->probe.ik;
+    self->probe->has_ik = self->def->probe.has_ik;
+    self->oi = self->def->oi;
+    self->probe->od = self->def->probe.od;
+    self->probe->has_od = self->def->probe.has_od;
+    self->probe->fp = self->def->probe.fp;
     self->jj = &g_mz_jj_wrapper;
     self->ox = NULL;
     self->ra = NULL;

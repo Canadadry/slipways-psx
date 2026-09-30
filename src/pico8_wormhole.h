@@ -22,16 +22,14 @@ typedef struct {
     const char *qs;
 } pico8_mz_jj_t;
 
-/* `kk` points at `pico8_mz_kk_seq`, `jj` at the
- * one `pico8_mz_jj_t`; all shared by every `mz` and never modified in place.
- * `dw`, `dq`, `ik`, `od`, `fp` and `et` live in the probe; `probe` points at
- * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
+/* `jj` points at the one `pico8_mz_jj_t`, shared by every `mz` and never
+ * modified in place. `dw`, `dq`, `ik`, `od`, `fp` and `et` live in the probe;
+ * `probe` points at `probe_own`: never copy the struct. Nothing frees the
+ * struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_fixed_t spawn_snd;
+    const pico8_mz_def_t *def;
     pico8_fixed_t oi;
-    pico8_fixed_t fa;
-    const pico8_int_seq_t *kk;
     pico8_mz_jj_t *jj;
     pico8_ents_t *ox;
     pico8_vec_t *ra;

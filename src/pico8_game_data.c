@@ -292,29 +292,6 @@ const pico8_ke_start_t pico8_ke_start = {
     .t = 0x0,
 };
 
-const pico8_mz_start_t pico8_mz_start = {
-    .me = "kz",
-    .dw = 0x0,
-    .dq = "pr",
-    .spawn_snd = 0x340000,
-    .ik = 0x310000,
-    .oi = 0x0,
-    .od = 0x30000,
-    .fp = 0x10000,
-    .fa = 0x50000,
-    .kk = &pico8_mz_kk_seq,
-};
-
-const pico8_jc_start_t pico8_jc_start = {
-    .me = "kz",
-    .fa = 0x20000,
-    .fp = 0,
-    .ik = 0x300000,
-    .dw = 0x106,
-    .k_ = &pico8_jc_k__seq,
-    .nh = 0x140000,
-};
-
 const pico8_g__start_t pico8_g__start = {
     .fx = 0x10000,
     .dq = "ly",
@@ -458,6 +435,9 @@ const pico8_jc_def_t pico8_jc_def = {
     .nh = 0x140000,
     .probe = {.dw = 0x106, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x300000, .has_ik = 1},
 };
+
+const pico8_probe_def_t pico8_probe_def_none = {
+    .dw = 0x0, .od = 0x0, .has_od = 0, .dq = NULL, .fp = 0x0, .ik = 0x0, .has_ik = 0};
 
 const pico8_g__def_t pico8_g__def = {
     .me = "ph",

@@ -119,30 +119,6 @@ typedef struct {
     pico8_fixed_t t;
 } pico8_ke_start_t;
 
-typedef struct {
-    const char *me;
-    pico8_fixed_t dw;
-    const char *dq;
-    pico8_fixed_t spawn_snd;
-    pico8_fixed_t ik;
-    pico8_fixed_t oi;
-    pico8_fixed_t od;
-    pico8_fixed_t fp;
-    pico8_fixed_t fa;
-    const pico8_int_seq_t *kk;
-} pico8_mz_start_t;
-
-/* fp is the spec's false. */
-typedef struct {
-    const char *me;
-    pico8_fixed_t fa;
-    int fp;
-    pico8_fixed_t ik;
-    pico8_fixed_t dw;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t nh;
-} pico8_jc_start_t;
-
 /* fp is the spec's false. */
 typedef struct {
     pico8_fixed_t fx;
@@ -594,8 +570,6 @@ extern const pico8_jb_row_t pico8_pj_ou_row;
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_mz_start_t pico8_mz_start;
-extern const pico8_jc_start_t pico8_jc_start;
 extern const pico8_g__start_t pico8_g__start;
 extern const pico8_fv_start_t pico8_fv_start;
 extern const pico8_jo_start_t pico8_jo_start;
@@ -622,6 +596,8 @@ extern const pico8_ie_def_t pico8_ie_def;
 extern const pico8_pj_def_t pico8_pj_def;
 extern const pico8_mz_def_t pico8_mz_def;
 extern const pico8_jc_def_t pico8_jc_def;
+/* The probe of research_icon's `pb`, which has no class: every field 0. */
+extern const pico8_probe_def_t pico8_probe_def_none;
 extern const pico8_g__def_t pico8_g__def;
 extern const pico8_g__def_t pico8_fv_def;
 extern const pico8_jo_def_t pico8_jo_def;

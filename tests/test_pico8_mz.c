@@ -308,15 +308,15 @@ static void check_fresh_mz(void *e) {
     assert(mz->header.t == 0);
     assert(mz->probe->dw == 0);
     assert(mz->probe->dq != NULL && strcmp(mz->probe->dq, "pr") == 0);
-    assert(mz->spawn_snd == pico8_fixed_from_int(52));
-    assert(mz->probe->ik == pico8_fixed_from_int(49));
+    assert(mz->def->spawn_snd == pico8_fixed_from_int(52));
+    assert(mz->probe->ik == pico8_fixed_from_int(49) && mz->probe->has_ik == 1);
     assert(mz->oi == 0);
     assert(mz->probe->od == pico8_fixed_from_int(3));
     assert(mz->probe->fp == pico8_fixed_from_int(1));
-    assert(mz->fa == pico8_fixed_from_int(5));
-    assert(mz->header.cls->get_fa(mz, &fa) && fa == mz->fa);
+    assert(mz->def->fa == pico8_fixed_from_int(5));
+    assert(mz->header.cls->get_fa(mz, &fa) && fa == mz->def->fa);
 
-    kk = mz->kk;
+    kk = mz->def->kk;
     assert(kk == &pico8_mz_kk_seq && kk->count == 9);
     for (i = 0; i < 9; i++) {
         assert(kk->items[i] == want_kk[i]);

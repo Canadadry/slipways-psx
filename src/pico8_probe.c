@@ -443,6 +443,7 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->ra = NULL;
     self->p = NULL;
     self->probe = &self->probe_own;
+    self->probe->def = NULL;
     self->probe->et = NULL;
     self->p_ = 0;
     self->has_p_ = 0;

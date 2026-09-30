@@ -153,7 +153,7 @@ static void test_jo_tree_strings_are_distinct_objects(void) {
     const char *const tree[] = {pico8_jo_start.me, pico8_qh_start.me, pico8_qh_start.dq, pico8_nl_start.rr,
         pico8_hj_start.rr, pico8_pm_start.fz, pico8_pm_start.me, pico8_ga_start.fz, pico8_nr_start.rr,
         pico8_fr_start.rr, pico8_mx_start.rr};
-    const char *const others[] = {pico8_ke_start.me, pico8_mz_start.me, pico8_mz_start.dq, pico8_jc_start.me,
+    const char *const others[] = {pico8_ke_start.me, pico8_mz_def.me, pico8_mz_def.probe.dq, pico8_jc_def.me,
         pico8_g__start.dq, pico8_mz_jj_qs};
     int n = (int)(sizeof tree / sizeof tree[0]);
     int i;

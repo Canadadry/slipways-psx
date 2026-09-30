@@ -107,13 +107,13 @@ static void test_qb_defaults_and_ready(void) {
 static void test_mz_defaults_and_ready(void) {
     pico8_mz_t *mz = pico8_mz_new();
 
-    assert(mz->header.me == pico8_mz_start.me && strcmp(mz->header.me, "kz") == 0 && mz->header.t == pico8_ke_start.t);
-    assert(mz->kk == pico8_mz_start.kk);
-    assert(mz->probe->dw == pico8_mz_start.dw && mz->probe->dq == pico8_mz_start.dq);
-    assert(mz->spawn_snd == pico8_mz_start.spawn_snd && mz->probe->ik == pico8_mz_start.ik);
-    assert(mz->oi == pico8_mz_start.oi);
-    assert(mz->probe->od == pico8_mz_start.od && mz->probe->od == pico8_fixed_from_int(3));
-    assert(mz->probe->fp == pico8_mz_start.fp && mz->fa == pico8_mz_start.fa);
+    assert(mz->def == &pico8_mz_def && mz->probe->def == &pico8_mz_def.probe);
+    assert(mz->header.me == mz->def->me && strcmp(mz->header.me, "kz") == 0 && mz->header.t == pico8_ke_start.t);
+    assert(mz->probe->dw == mz->def->probe.dw && mz->probe->dq == mz->def->probe.dq);
+    assert(mz->probe->ik == mz->def->probe.ik && mz->probe->has_ik == mz->def->probe.has_ik);
+    assert(mz->oi == mz->def->oi);
+    assert(mz->probe->od == mz->def->probe.od && mz->probe->od == pico8_fixed_from_int(3));
+    assert(mz->probe->has_od == mz->def->probe.has_od && mz->probe->fp == mz->def->probe.fp);
     assert(mz->jj == pico8_mz_jj_wrapper() && mz->jj->qs == pico8_mz_jj_qs);
     assert(pico8_mz_ready());
     pico8_wormhole_shutdown();

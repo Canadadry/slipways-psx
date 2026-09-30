@@ -22,6 +22,7 @@
  * nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is held as 0,
  * which is what `self.fp or 0` hands. */
 typedef struct pico8_probe {
+    const pico8_probe_def_t *def; /* NULL on g_ and the jo tree: no generic reader may use it */
     pico8_struct_header_t *et;
     pico8_fixed_t dw;
     pico8_fixed_t od;
