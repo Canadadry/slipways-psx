@@ -50,63 +50,63 @@ Le classement final vient de la lecture de chaque champ non mécanique.
 
 | Classe | Champs | Devient |
 |---|---|---|
-| **A** | **70** | champ de l'archétype |
-| **I** | **38** | reste dans l'instance, défaut dans l'archétype, copié par l'init |
+| **A** | **69** | champ de l'archétype |
+| **I** | **42** | reste dans l'instance, défaut dans l'archétype, copié par l'init |
 | **K** | **87** | reste dans l'instance, sans défaut |
-| **E** | **107** | reste dans l'instance |
-| **S** | **0** | — |
+| **E** | **103** | reste dans l'instance |
+| **S** | **1** | reste dans l'init, hors archétype |
 | **H** | **0** | — |
 
-Aucun des 302 champs n'est **S** : les états de classe partagés sont des **objets** statiques (`g_jo_kw_shared`, `g_ga_by_shared`, `g_shared_le`, `g_nf_ra`, `g_mx_ht_spent`, `g_ie_gy`), pas des membres. Le membre qui les pointe est I, puisque son défaut est l'adresse de l'objet et qu'il est réécrit ensuite. Ces objets restent statiques (règle 1, dernière phrase).
+Un seul champ est **S** : `mz.jj`. Il vaut `&g_mz_jj_wrapper` pour toute instance et n'est jamais réécrit. Mais sa valeur est l'adresse d'un `static` de `wormhole.c`, de type `pico8_mz_jj_t`, qui contient un en-tête du noyau. `game_data.c` ne peut pas le nommer (essai au §2). Ce lien vers un objet statique de classe reste posé par l'init, comme les défauts des champs I qui pointent un objet statique. Les autres états de classe partagés sont des **objets** statiques (`g_jo_kw_shared`, `g_ga_by_shared`, `g_shared_le`, `g_nf_ra`, `g_mx_ht_spent`, `g_ie_gy`), pas des membres. Le membre qui les pointe est I, puisque son défaut est l'adresse de l'objet et qu'il est réécrit ensuite. Ces objets restent statiques (règle 1, dernière phrase).
 
 Aucun champ n'est **H**. Le cas que le PRD signalait, `jo.gq`, est tranché plus bas.
 
 Par type (comptes égaux à ceux de `--champs`, 36 types, plus les deux composants) :
 
-| Type | Champs | A | I | K | E |
-|---|---|---|---|---|---|
-| `bg` | 6 | 3 | 0 | 0 | 3 |
-| `bv_et` | 1 | 0 | 0 | 0 | 1 |
-| `fm_placeholder` | 4 | 0 | 0 | 0 | 4 |
-| `fq` | 7 | 2 | 0 | 1 | 4 |
-| `fr` | 1 | 1 | 0 | 0 | 0 |
-| `fv` | 11 | 9 | 0 | 0 | 2 |
-| `g_` | 10 | 2 | 1 | 4 | 3 |
-| `ga` | 5 | 1 | 2 | 2 | 0 |
-| `hj` | 3 | 1 | 0 | 2 | 0 |
-| `hp` | 25 | 1 | 0 | 24 | 0 |
-| `hy` | 15 | 0 | 0 | 1 | 14 |
-| `ie_ke` | 6 | 0 | 0 | 6 | 0 |
-| `ie` | 10 | 3 | 1 | 2 | 4 |
-| `iv` | 8 | 2 | 1 | 2 | 3 |
-| `jb` | 2 | 0 | 0 | 0 | 2 |
-| `jc_mouse_point` | 2 | 0 | 0 | 2 | 0 |
-| `jc` | 15 | 1 | 2 | 3 | 9 |
-| `jc_too_far` | 2 | 1 | 0 | 0 | 1 |
-| `jo` | 37 | 10 | 6 | 1 | 20 |
-| `js` | 26 | 0 | 1 | 16 | 9 |
-| `lq` | 13 | 0 | 0 | 8 | 5 |
-| `mh` | 7 | 1 | 1 | 3 | 2 |
-| `mx` | 1 | 0 | 1 | 0 | 0 |
-| `mz_jj` | 1 | 1 | 0 | 0 | 0 |
-| `mz` | 13 | 4 | 1 | 2 | 6 |
-| `nf` | 1 | 0 | 1 | 0 | 0 |
-| `nl` | 3 | 2 | 1 | 0 | 0 |
-| `nr` | 2 | 2 | 0 | 0 | 0 |
-| `pj_cr` | 4 | 3 | 0 | 0 | 1 |
-| `pj` | 8 | 2 | 1 | 0 | 5 |
-| `pm` | 2 | 2 | 0 | 0 | 0 |
-| `qb` | 5 | 1 | 4 | 0 | 0 |
-| `qh` | 7 | 4 | 1 | 2 | 0 |
-| `struct_header` | 3 | 0 | 2 | 1 | 0 |
-| `trade` | 5 | 0 | 0 | 5 | 0 |
-| `ui` | 11 | 3 | 1 | 0 | 7 |
-| `emitter` (composant) | 12 | 3 | 8 | 0 | 1 |
-| `probe` (composant) | 8 | 5 | 2 | 0 | 1 |
+| Type | Champs | A | I | K | E | S |
+|---|---|---|---|---|---|---|
+| `bg` | 6 | 3 | 0 | 0 | 3 | 0 |
+| `bv_et` | 1 | 0 | 0 | 0 | 1 | 0 |
+| `fm_placeholder` | 4 | 0 | 0 | 0 | 4 | 0 |
+| `fq` | 7 | 2 | 0 | 1 | 4 | 0 |
+| `fr` | 1 | 1 | 0 | 0 | 0 | 0 |
+| `fv` | 11 | 9 | 0 | 0 | 2 | 0 |
+| `g_` | 10 | 2 | 1 | 4 | 3 | 0 |
+| `ga` | 5 | 1 | 2 | 2 | 0 | 0 |
+| `hj` | 3 | 1 | 0 | 2 | 0 | 0 |
+| `hp` | 25 | 1 | 0 | 24 | 0 | 0 |
+| `hy` | 15 | 0 | 4 | 1 | 10 | 0 |
+| `ie_ke` | 6 | 0 | 0 | 6 | 0 | 0 |
+| `ie` | 10 | 3 | 1 | 2 | 4 | 0 |
+| `iv` | 8 | 2 | 1 | 2 | 3 | 0 |
+| `jb` | 2 | 0 | 0 | 0 | 2 | 0 |
+| `jc_mouse_point` | 2 | 0 | 0 | 2 | 0 | 0 |
+| `jc` | 15 | 1 | 2 | 3 | 9 | 0 |
+| `jc_too_far` | 2 | 1 | 0 | 0 | 1 | 0 |
+| `jo` | 37 | 10 | 6 | 1 | 20 | 0 |
+| `js` | 26 | 0 | 1 | 16 | 9 | 0 |
+| `lq` | 13 | 0 | 0 | 8 | 5 | 0 |
+| `mh` | 7 | 1 | 1 | 3 | 2 | 0 |
+| `mx` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `mz_jj` | 1 | 1 | 0 | 0 | 0 | 0 |
+| `mz` | 13 | 3 | 1 | 2 | 6 | 1 |
+| `nf` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `nl` | 3 | 2 | 1 | 0 | 0 | 0 |
+| `nr` | 2 | 2 | 0 | 0 | 0 | 0 |
+| `pj_cr` | 4 | 3 | 0 | 0 | 1 | 0 |
+| `pj` | 8 | 2 | 1 | 0 | 5 | 0 |
+| `pm` | 2 | 2 | 0 | 0 | 0 | 0 |
+| `qb` | 5 | 1 | 4 | 0 | 0 | 0 |
+| `qh` | 7 | 4 | 1 | 2 | 0 | 0 |
+| `struct_header` | 3 | 0 | 2 | 1 | 0 | 0 |
+| `trade` | 5 | 0 | 0 | 5 | 0 | 0 |
+| `ui` | 11 | 3 | 1 | 0 | 7 | 0 |
+| `emitter` (composant) | 12 | 3 | 8 | 0 | 1 | 0 |
+| `probe` (composant) | 8 | 5 | 2 | 0 | 1 | 0 |
 
-Les 70 champs **A** : `bg.fa`/`hd`/`pl` ; `fq.fa`/`hd` ; `fr.mt` ; `fv.ca`/`eo`/`ff`/`fg`/`gq`/`hi`/`kq`/`ql`/`rb` ; `g_.fa`/`fx` ; `ga.fz` ; `hj.rr` ; `hp.fk` ; `ie.eh`/`fa`/`kq` ; `iv.fa`/`v` ; `jc.k_` ; `jc_too_far.qs` ; `jo.ca`/`cq`/`dz`/`em`/`fa`/`gq`/`hf`/`hs`/`ka`/`kq` ; `mh.fa` ; `mz_jj.qs` ; `mz.fa`/`jj`/`kk`/`spawn_snd` ; `nl.nl`/`rr` ; `nr.hz`/`rr` ; `pj_cr.ca`/`gq`/`hi` ; `pj.gs`/`i_` ; `pm.fz`/`ng` ; `qb.pc` ; `qh.ba`/`hp`/`px`/`qh` ; `ui.fa`/`hw`/`ql` ; émetteur `ki`/`pk`/`fc` ; sonde `dw`/`dq`/`fp`/`ik`/`has_ik`.
+Les 69 champs **A** : `bg.fa`/`hd`/`pl` ; `fq.fa`/`hd` ; `fr.mt` ; `fv.ca`/`eo`/`ff`/`fg`/`gq`/`hi`/`kq`/`ql`/`rb` ; `g_.fa`/`fx` ; `ga.fz` ; `hj.rr` ; `hp.fk` ; `ie.eh`/`fa`/`kq` ; `iv.fa`/`v` ; `jc.k_` ; `jc_too_far.qs` ; `jo.ca`/`cq`/`dz`/`em`/`fa`/`gq`/`hf`/`hs`/`ka`/`kq` ; `mh.fa` ; `mz_jj.qs` ; `mz.fa`/`kk`/`spawn_snd` ; `nl.nl`/`rr` ; `nr.hz`/`rr` ; `pj_cr.ca`/`gq`/`hi` ; `pj.gs`/`i_` ; `pm.fz`/`ng` ; `qb.pc` ; `qh.ba`/`hp`/`px`/`qh` ; `ui.fa`/`hw`/`ql` ; émetteur `ki`/`pk`/`fc` ; sonde `dw`/`dq`/`fp`/`ik`/`has_ik`.
 
-Les 38 champs **I** : `g_.ra` ; `ga.iu`/`ms` ; `ie.ra` ; `iv.l` ; `jc.fa`/`nh` ; `jo.by`/`has_mi`/`kw`/`kw_own`/`ma`/`mi` ; `js.fa` ; `mh.rh` ; `mx.ht` ; `mz.oi` ; `nf.ra` ; `nl.qw` ; `pj.fa` ; `qb.ma`/`p`/`ra`/`v` ; `qh.s` ; en-tête `me`/`t` ; `ui.le` ; émetteur `pn`/`du`/`py`/`k_`/`qo`/`ro`/`qg`/`q_` ; sonde `od`/`has_od`. Dix d'entre eux ne sont réécrits que par une clé de construction, jamais après : `ga.iu`/`ms`, `js.fa`, `mh.rh`, et six membres de l'émetteur (`pn`/`du`/`py` dans `pico8_g__struct_new` ; `py`/`k_`/`qo`/`ro`/`qg`/`q_` par `keys->pq` dans `pico8_ga_struct_new`). La règle 1 les garde dans l'instance : ils sont écrits sur l'instance, hors de la valeur de classe.
+Les 42 champs **I** : `g_.ra` ; `ga.iu`/`ms` ; `hy.nz`/`ew`/`lo`/`yr` ; `ie.ra` ; `iv.l` ; `jc.fa`/`nh` ; `jo.by`/`has_mi`/`kw`/`kw_own`/`ma`/`mi` ; `js.fa` ; `mh.rh` ; `mx.ht` ; `mz.oi` ; `nf.ra` ; `nl.qw` ; `pj.fa` ; `qb.ma`/`p`/`ra`/`v` ; `qh.s` ; en-tête `me`/`t` ; `ui.le` ; émetteur `pn`/`du`/`py`/`k_`/`qo`/`ro`/`qg`/`q_` ; sonde `od`/`has_od`. Dix d'entre eux ne sont réécrits que par une clé de construction, jamais après : `ga.iu`/`ms`, `js.fa`, `mh.rh`, et six membres de l'émetteur (`pn`/`du`/`py` dans `pico8_g__struct_new` ; `py`/`k_`/`qo`/`ro`/`qg`/`q_` par `keys->pq` dans `pico8_ga_struct_new`). La règle 1 les garde dans l'instance : ils sont écrits sur l'instance, hors de la valeur de classe.
 
 ### Verdicts non mécaniques
 
@@ -118,7 +118,8 @@ Chaque verdict est en une phrase dans la dernière colonne de l'annexe A. Les po
 - **Stockages propres** (`g_`/`ga`/`hj.emitter_own`, `g_`/`jc`/`mz`/`qh.probe_own`) : leur seule erreur est la fuite `&self->X_own` dans l'init, qui a été suivie. Les écritures faites par ce pointeur sont les lignes des composants `pico8_emitter`/`pico8_probe`. Ces champs sont **K** : le stockage appartient à l'instance.
 - **Autres fuites suivies** : `pico8_ma` (`entity_geom.c:79`) écrit `*ma = clamped` dans `jo.ma` et `qb.ma` (I). `jc_mt_of(…, &self->mt)` écrit `jc.mt` (E). `pico8_ptrs_init(&ui->ic_own…)` remplit `ui.ic_own` (E). Les fuites de `pico8_hy_lj` portent sur `hy.fu_own`/`po_own` (E). Aucune fuite ne touche un champ A.
 - **En-tête** : `cls` est **K**. C'est la classe de l'instance, argument de `pico8_ke_struct_init`, et le chemin vers l'archétype ; les TU `planet_kj_dispatch` l'échangent pour espionner. `me` et `t` sont **I** : défaut de `pico8_ke_start` ou de la classe, réécrits par `pico8_ke_ks`, `pico8_dg`, `pico8_mh_ev`.
-- **`hy.nz`/`ew`/`lo`/`yr` (E)** : 100, 1, 1 et 3401 sont écrits par le constructeur du cart. Ce ne sont pas des clés de spécification : `hy` n'a pas de `_start`, et ces champs sont réécrits ensuite.
+- **`hy.nz`/`ew`/`lo`/`yr` (I)** : le constructeur leur pose 100, 1, 1 et 3401, des littéraux non nuls identiques pour toute instance, puis ils sont réécrits. Selon la définition du PRD, E est réservé aux défauts nil/0/NULL. `hy` n'a pas de `_start` : ces quatre défauts forment son archétype (§2).
+- **Sonde locale sans classe** : `pico8_probe_t pb = {0}` (`research_icon.c:180`) est une valeur du composant sonde, construite dans `pico8_ie_kj` pour `pico8_dl_show`. Elle n'appartient à aucune classe. Ses deux écritures, `pb.has_od` (`:182`) et `pb.od` (`:183`), sont dans l'annexe A sous la sonde `has_od` et `od`. Elles ne classent rien : `od`/`has_od` sont I par `pico8_jc_hq`.
 - **Instances statiques** (`jc_too_far.qs`, `mz_jj.qs`, `pj_cr.gq`/`hi`) : 0 erreur, parce que leur seule valeur vient de l'initialiseur (piège 4). Elles sont A. `pj_cr.ca` est A : sa seule écriture est l'init de module, depuis `pico8_pj_start.cr`.
 
 ### Contrôles de complétude
@@ -128,13 +129,13 @@ Chaque verdict est en une phrase dans la dernière colonne de l'annexe A. Les po
 3. **Écritures** : les 915 lignes `error:` du banc sont toutes dans l'annexe A, rattachées à un champ, fuites et structs entières comprises : 915 sites listés. `grep -nE 'memset|memcpy|calloc' src/*.c tests/*.c` rend 95 lignes, dont aucune ne vise un type d'entité. On y trouve des clés `pico8_js_keys_t`/`pico8_lq_keys_t` (`help.c:55`, `menu.c:175`, `:356`, `planet_display.c:152-153`, `:173`, `:341`, `:353`, `:384`), des boutons `pico8_nf_button_t` (`mouse_reader.c:62-63`) et des rangées de données (`pico8_jb_row_t`, `pico8_cr_row_t`, `pico8_hp_jb_t`, `pico8_jy_t`, `pico8_jo_ex_tuple_t`). S'y ajoutent des chaînes, la mémoire PICO-8, les trames d'entrée des TU et un `pico8_kw_t` (`test_pico8_lq.c:802`).
 4. **H** : aucun champ H ; `jo.gq` est tranché plus haut.
 
-Fichiers non compilés : `main_raylib.c`, `main_screencast_viewer.c`, `pico8_raylib_backend.c`. Le grep des 38 noms de types d'entité et de composant n'y trouve rien (code 1).
+Fichiers non compilés : le filtre `raylib_backend` du banc en exclut **cinq**, pas trois. Ce sont `main_raylib.c`, `main_screencast_viewer.c`, `pico8_raylib_backend.c`, plus `pico8_raylib_backend_coords.c` et `tests/test_pico8_raylib_backend_coords.c`. Ces deux derniers compilent sans `raylib.h`. Le grep des 38 noms de types d'entité et de composant (et de `struct_header`) ne trouve rien dans les cinq : aucune écriture n'échappe au banc.
 
 ## 2. Archétypes (2.9b)
 
 ### Inventaire
 
-**25 classes reçoivent un archétype, 15 tables de classe n'en reçoivent pas.** Cela couvre les 40 tables `static const pico8_struct_class_t g_X_struct_class` (41 lignes au grep ; `layout.c:12` est une déclaration anticipée) et les 27 `pico8_X_start_t` (`game_data.h:117-423`).
+**26 classes reçoivent un archétype, 14 tables de classe n'en reçoivent pas.** Cela couvre les 40 tables `static const pico8_struct_class_t g_X_struct_class` (41 lignes au grep ; `layout.c:12` est une déclaration anticipée) et les 27 `pico8_X_start_t` (`game_data.h:117-423`).
 
 | Classe (table) | `pico8_X_start_t` | Archétype | Raison |
 |---|---|---|---|
@@ -143,7 +144,7 @@ Fichiers non compilés : `main_raylib.c`, `main_screencast_viewer.c`, `pico8_ray
 | `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `hp`, `ie`, `pj` (13) | les 13 | oui, un type par classe (`pico8_bg_def_t`…) | racines simples. `js` n'a que `fa` (I) et `nf` que `me`/`t`, mais la Sortie veut un archétype par ancienne classe |
 | — | `ke` | pas d'archétype propre | `ke` est le noyau, sans table ni instance. Ses deux défauts (`me` = `"ph"`, `t` = 0) deviennent les deux premiers membres de chaque archétype d'une classe qui descend de `ke`. `pico8_ke_start` disparaît quand la dernière famille ne l'appelle plus |
 | `pj_cr` | `pj_cr` | non | instance statique unique `g_pj_cr` : ses trois A (`ca`, `gq`, `hi`) passent dans son initialiseur statique, et `pico8_pj_cr_start` disparaît avec `pj` (2.13, famille a) |
-| `hy` | — | non | aucune clé de spécification. `nz`/`ew`/`lo`/`yr` sont des valeurs de départ du constructeur (E) |
+| `hy` | — | oui, `pico8_hy_def_t`, **dans son module** | ses quatre I (`nz` 100, `ew` 1, `lo` 1, `yr` 3401). Pas de `me`/`t` : `hy` ne descend pas de `ke`. C'est la seule exception de place (voir plus bas) |
 | `trade`, `lq`, `jb` | — | non | aucun défaut de classe : tous les champs sont K ou E |
 | `mo`, `je`, `fm` (remplaçants) | — | non | remplaçants statiques ; seul `fm` a des champs, tous E |
 | `bv_et`, `jc_too_far`, `mz_jj` | — | non | instances statiques uniques ; leurs A (`qs`) sont déjà dans l'initialiseur |
@@ -157,7 +158,7 @@ Contrôle 5 : les 27 `_start_t` et les 40 tables sont dans ce tableau. Les 36 ty
 
 Les objets constants sont **résolus** le long de la chaîne : l'init parente, puis les défauts propres. Il y a **un type d'archétype par futur type aplati**. Le type planète réunit les champs A et I des dix types de l'arbre `jo`, un seul membre par nom : `rr` de `nl`/`hj`/`nr`, `fz` de `pm`/`ga`. Le type sonde réunit ceux de `g_` et `fv`. Les champs des composants forment deux sous-archétypes, `pico8_emitter_def_t` et `pico8_probe_def_t`, enchâssés dans les archétypes des classes qui portent le composant : planète, sonde, `mz`, `jc`. Une classe sans le composant y laisse des zéros, que rien ne lit, puisque sa table n'a ni `emitter_of` ni `probe_of`.
 
-Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Le champ I dont le défaut est l'adresse d'un objet statique mutable du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet, et ce n'est pas une donnée. Il reste écrit par l'init du module propriétaire. Sont concernés `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le` et `nf.ra` → `g_nf_ra`. `kw_own` est lui aussi un membre par valeur (`{0, 0, 0}`) : l'archétype ne nomme pas l'objet de données `pico8_jo_kw_start`, que le motif de `défauts` compterait (voir l'essai d'inclusion).
+Les vecteurs et boîtes que les `_start` portent en ligne (`kq`, `gq`, `hi`, `ng`, `ra`, `p`, `v`, `hw`, `eh`) sont des membres **par valeur** de l'archétype. Le membre de l'instance, quand il reste (I), pointe dans l'archétype : `self->ra = &def->ra`. Un champ dont la valeur de classe est l'adresse d'un objet statique du module n'entre pas dans l'archétype. `game_data.c` ne peut pas nommer cet objet : c'est un `static` du module, et `mz.jj` contient en plus un en-tête du noyau. Ce champ reste écrit par l'init du module propriétaire. Sont concernés les défauts I `jo.kw` → `g_jo_kw_shared`, `jo.by` de `ga` → `g_ga_by_shared`, `ui.le` → `g_shared_le`, `nf.ra` → `g_nf_ra`, et le champ S `mz.jj` → `g_mz_jj_wrapper`. `jo.by`, NULL pour les neuf autres sortes, n'est pas non plus membre de `pico8_jo_def_t`. `kw_own` est lui aussi un membre par valeur (`{0, 0, 0}`) : l'archétype ne nomme pas l'objet de données `pico8_jo_kw_start`, que le motif de `défauts` compterait (voir l'essai d'inclusion).
 
 Texte C de l'archétype de `nl` (trois niveaux de chaîne, groupe sonde), essayé sur la copie :
 
@@ -224,7 +225,7 @@ const pico8_jo_def_t pico8_nl_def = {
 };
 ```
 
-Chaque valeur vient de la chaîne `pico8_ke_struct_init` → `pico8_jo_struct_init` → `pico8_qh_struct_init` → `pico8_nl_struct_new`, la dernière écriture l'emportant. Trois défauts de `qh` sont masqués par ceux de `nl` : `hp` 1 → 6, `s` 0xae → 0x44, `od` 15 → 20. `qh` masque lui-même `jo.hf` (1 → 0). La table champ → valeur → ligne source des 25 classes est l'annexe B : 467 lignes (259 A, 208 I), produites par `chains.py` à partir des sites de construction du banc.
+Chaque valeur vient de la chaîne `pico8_ke_struct_init` → `pico8_jo_struct_init` → `pico8_qh_struct_init` → `pico8_nl_struct_new`, la dernière écriture l'emportant. Trois défauts de `qh` sont masqués par ceux de `nl` : `hp` 1 → 6, `s` 0xae → 0x44, `od` 15 → 20. `qh` masque lui-même `jo.hf` (1 → 0). La table champ → valeur → ligne source des 26 classes est l'annexe B : 471 lignes (258 A, 212 I, 1 S), produites par `chains.py` à partir des sites de construction du banc. `hy` y a été ajouté à la main, et `mz.jj` est noté S.
 
 Le type sonde `pico8_g__def_t` porte `me`, `t`, `fa`, `fx`, `ra` (vecteur, avec un drapeau : NULL pour `g_`), les membres propres de `fv` (`hi`, `ca`, `gq`, `eo`, `ff`, `kq`, `ql`, `fg`, `rb`), `probe` et `emitter`. Chaque racine simple a son type, avec `me`/`t` en tête s'il descend de `ke` (toutes sauf `hp`), puis ses A et ses défauts I. Exemple, `pico8_bg_def_t` = `{me, t, fa, hd, pl}`.
 
@@ -232,7 +233,9 @@ Le type sonde `pico8_g__def_t` porte `me`, `t`, `fa`, `fx`, `ra` (vecteur, avec 
 
 Les archétypes prennent la place des `_start` d'aujourd'hui. Les types sont dans `game_data.h`, et les valeurs sont des objets `const` de portée fichier dans `game_data.c`, déclarés `extern` dans l'en-tête. Le « `static const` » du plan se lit « objet constant à durée de stockage statique ». Une liaison interne (`static`) le rendrait illisible pour le module de la classe et pour le test ponctuel.
 
-Pourquoi pas le module de la classe : les valeurs nomment des données que `game_data.c` garde `static` (`jo_me_text`, `qh_me_text`, `qh_dq_text`, `nl_rr_text`… `game_data.c:435-438`). Les ranger dans `planet_family.c` exigerait d'exporter ces données, soit une dizaine de nouveaux `extern`. Et les valeurs de l'arbre `jo` seraient réparties sur trois modules (`planet.c`, `planet_family.c`, `planet_family_trade.c`) pour un seul type. Les types n'emploient que `pico8_fixed_t`, `pico8_qz_box_t`, `pico8_vec_t`, `pico8_int_seq_t`, `pico8_jb_row_t`, `pico8_kw_t` et `const char *` : `game_data.h` les a déjà et n'a besoin d'**aucun type du noyau**. La paire `game_data` ↔ `struct` que 2.2 a coupée ne peut pas revenir.
+Pourquoi pas le module de la classe : les valeurs nomment des données que `game_data.c` garde `static` (`jo_me_text`, `qh_me_text`, `qh_dq_text`, `nl_rr_text`… `game_data.c:435-438`). Les ranger dans `planet_family.c` exigerait d'exporter ces données, soit une dizaine de nouveaux `extern`. Et les valeurs de l'arbre `jo` seraient réparties sur trois modules (`planet.c`, `planet_family.c`, `planet_family_trade.c`) pour un seul type. Une fois `mz.jj` et les quatre défauts d'objets statiques sortis, les types n'emploient que `pico8_fixed_t`, `pico8_qz_box_t`, `pico8_vec_t`, `pico8_int_seq_t`, `pico8_jb_row_t`, `pico8_kw_t` et `const char *`. `game_data.h` les a déjà et n'a besoin d'aucun type du noyau. La paire `game_data` ↔ `struct` que 2.2 a coupée ne revient pas. Avec `mz.jj` dans `pico8_mz_def_t`, elle reviendrait : l'essai ne compile pas (`'g_mz_jj_wrapper' undeclared`), et nommer son type depuis `game_data.h` ajoute une paire (18, mesure du vérificateur).
+
+**Exception : `hy`.** Son archétype ne nomme aucune donnée de `game_data.c`, et `economy.h` n'inclut pas `game_data.h`. Le type `pico8_hy_def_t` va donc dans `economy.h` et la valeur `static const` dans `economy.c`. C'est la lecture littérale du plan, et aucune inclusion n'est ajoutée. Dans `game_data.h`, il faudrait que `economy.h` inclue `game_data.h` (1re variante de la 3e passe : `unknown type name 'pico8_hy_def_t'`).
 
 **Essai d'inclusion** (contrôle 7), sur la copie :
 
@@ -242,6 +245,8 @@ Pourquoi pas le module de la classe : les valeurs nomment des données que `game
 - l'affectation `def = &pico8_X_def` dans `pico8_nl_struct_new` et `pico8_bg_struct_new`.
 
 Deux passes. La première avait `kw_own` en pointeur vers `pico8_jo_kw_start`. Tout compile (`-fsyntax-only`, 150 + 2 fichiers, 0 erreur). `inclusion-mutuelle` rend **17 / 16** (43 lignes au `--check`), et `parente`, `lien-parent`, `accesseurs-q6`, `void-ptr` sont inchangés. Mais `défauts` passe à 670 (+1) : la ligne `.kw_own = &pico8_jo_kw_start` nomme un objet au suffixe `_start`. D'où `kw_own` par valeur. La seconde passe porte le texte exact ci-dessus : 0 erreur, `inclusion-mutuelle` **17 / 16**, **43 lignes**, et toutes les catégories identiques au départ. Le pied est **1073 / 85**, `défauts` **669**. `--champs` passerait à 284 (les deux `def`). La copie est rendue à `522824b` après chaque passe (`git checkout -- .`, `status` vide).
+
+Troisième passe, après la revue du vérificateur, sur une copie de `d9a2b2d`. Elle ajoute `mz` et `hy` à `nl` et `bg`. `pico8_mz_def_t` (`me`, `t`, `fa`, `kk`, `spawn_snd`, `oi`, `probe`) et `pico8_mz_def` vont dans `game_data.h/.c`, avec un `def` dans `pico8_mz_t` posé par `pico8_mz_struct_new`. `pico8_hy_def_t` va dans `economy.h`, `g_hy_def` dans `economy.c`, avec un `def` dans `pico8_hy_t`. Résultats : 0 erreur ; `inclusion-mutuelle` **17 / 16**, **43 lignes** ; pied **1073 / 85**, `défauts` 669, toutes catégories identiques. Variante témoin avec `.jj = &g_mz_jj_wrapper` dans `pico8_mz_def` : `game_data.c:684: 'g_mz_jj_wrapper' undeclared`. Copie supprimée ensuite.
 
 ### Chemin de lecture : (ii), un pointeur d'archétype typé dans l'instance
 
@@ -284,11 +289,12 @@ Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `d
 | `nf` | `nf.ra` (défaut `&g_nf_ra`, objet statique du module : reste écrit par l'init) |
 | `mh` | `mh.rh` |
 | `iv` | `iv.l` |
-| `mz` | `mz.oi`, `probe.od`, `probe.has_od` |
+| `mz` | `mz.oi`, `probe.od`, `probe.has_od` ; `mz.jj` (S, `&g_mz_jj_wrapper`) reste écrit par l'init |
 | `jc` | `jc.fa`, `jc.nh`, `probe.od` (0 ou NULL), `probe.has_od` (nil) |
 | `hp` | — |
 | `ie` | `ie.ra` |
 | `pj` | `pj.fa` |
+| `hy` | `hy.nz`, `hy.ew`, `hy.lo`, `hy.yr` (pas de `me`/`t`) |
 
 ## 3. Test ponctuel de la règle 3 (2.9c)
 
@@ -298,7 +304,7 @@ Pour chaque classe, ce sont les champs I, dont l'init copie le défaut depuis `d
 
 Trois exceptions, écrites dans le TU :
 
-- `jo.kw`, `jo.by` de `ga`, `ui.le`, `nf.ra` : leur défaut est un objet statique du module, hors archétype (§2). Ils se comparent à cet objet.
+- `jo.kw`, `jo.by` de `ga`, `ui.le`, `nf.ra`, `mz.jj` : leur valeur de classe est un objet statique du module, hors archétype (§2). Ils se comparent à cet objet, et `jo.by` des neuf autres sortes à NULL. Ils ne comptent pas dans les comparaisons à l'archétype.
 - `jo.kw`/`kw_own` des neuf descendants de `qh` : `pico8_jo_pq` appelle `pico8_jo_lz` quand la planète a un `hp`, et les réécrit. Ils se comparent sur `jo`, que `lz` ne touche pas au `_new`.
 - La sonde `et` et l'émetteur `qy` (E, groupes Q7) ne sont pas dans l'archétype. Le test vérifie la valeur que le `_new` leur laisse : `et` NULL, et `qy` tel que `pico8_f_` le laisse.
 
@@ -335,36 +341,37 @@ Tout le groupe émetteur est A ou I pour les six classes, sauf `qy` (E). `pn`, `
 | Classe | Famille | Comparés (A + I) | Champs masqués |
 |---|---|---|---|
 | `bg` | a | 3 + 2 | — |
-| `ui` | a | 3 + 3 | — |
+| `ui` | a | 3 + 2 | — |
 | `js` | a | 0 + 3 | — |
 | `fq` | a | 2 + 2 | — |
 | `qb` | a | 1 + 6 | — |
-| `nf` | a | 0 + 3 | — |
+| `nf` | a | 0 + 2 | — |
 | `mh` | a | 1 + 3 | — |
 | `iv` | a | 2 + 3 | — |
 | `hp` | a | 1 + 0 | — |
 | `ie` | a | 3 + 3 | — |
 | `pj` | a | 2 + 3 | — |
-| `mz` | b | 9 + 5 | `en-tête.me` |
+| `hy` | a | 0 + 4 | — |
+| `mz` | b | 8 + 5 | `en-tête.me` |
 | `jc` | b | 6 + 6 | `en-tête.me` |
 | `g_` | c | 10 + 13 | — |
 | `fv` | c | 19 + 13 | `g_.fa`, `g_.ra`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.ki`, `emitter.fc`, `emitter.k_`, `emitter.ro`, `emitter.qg` |
-| `jo` | d | 10 + 8 | `en-tête.me` |
-| `qh` | d | 19 + 11 | `jo.has_mi`, `jo.hf`, `jo.mi`, `en-tête.me` |
-| `nl` | d | 21 + 12 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.ba`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
-| `os` | d | 19 + 11 | `jo.has_mi`, `jo.hf`, `jo.hs`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me` |
-| `hj` | e1 | 23 + 19 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
-| `pm` | e1 | 25 + 19 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.pk`, `emitter.fc`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od` |
-| `mx` | e1 | 23 + 20 | `hj.rr`, `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.du`, `emitter.fc`, `emitter.k_`, `probe.od` |
-| `ga` | e2 | 14 + 18 | `jo.by`, `jo.fa`, `jo.hf`, `jo.kq`, `en-tête.me` |
-| `nr` | e2 | 21 + 11 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
-| `fr` | e2 | 22 + 11 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `nr.hz`, `nr.rr`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
+| `jo` | d | 10 + 6 | `en-tête.me` |
+| `qh` | d | 19 + 9 | `jo.has_mi`, `jo.hf`, `jo.mi`, `en-tête.me` |
+| `nl` | d | 21 + 10 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.ba`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
+| `os` | d | 19 + 9 | `jo.has_mi`, `jo.hf`, `jo.hs`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me` |
+| `hj` | e1 | 23 + 17 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `probe.od` |
+| `pm` | e1 | 25 + 17 | `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.pn`, `emitter.du`, `emitter.py`, `emitter.pk`, `emitter.fc`, `emitter.k_`, `emitter.qo`, `emitter.ro`, `emitter.qg`, `emitter.q_`, `probe.od` |
+| `mx` | e1 | 23 + 18 | `hj.rr`, `jo.has_mi`, `jo.hf`, `jo.mi`, `qh.hp`, `qh.px`, `qh.qh`, `qh.s`, `en-tête.me`, `emitter.du`, `emitter.fc`, `emitter.k_`, `probe.od` |
+| `ga` | e2 | 14 + 16 | `jo.by`, `jo.fa`, `jo.hf`, `jo.kq`, `en-tête.me` |
+| `nr` | e2 | 21 + 9 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
+| `fr` | e2 | 22 + 9 | `jo.has_mi`, `jo.hf`, `jo.kq`, `jo.mi`, `nr.hz`, `nr.rr`, `qh.s`, `en-tête.me`, `probe.dw`, `probe.od`, `probe.fp` |
 
 **Preuve qu'il mord : deux mutations par famille**, une à la fois, sur l'archétype, jamais sur la chaîne :
 
 | Famille | Mutation 1 (défaut propre changé) | Mutation 2 (défaut hérité masqué, rendu à la valeur de l'ascendante) |
 |---|---|---|
-| a | `pico8_bg_def.hd` | `pico8_ui_def.me` de `"ph"` à une autre chaîne (valeur de `ke`, que `ui` hérite) |
+| a | `pico8_bg_def.hd` | La famille n'a **aucun défaut hérité masqué**, donc pas de cible au sens strict. On change `pico8_ui_def.me`, défaut hérité de `ke` sans masquage, pour vérifier que la valeur héritée est comparée |
 | b | `pico8_mz_def.probe.ik` | `pico8_jc_def.me` rendu à `"ph"` (`ke`), masqué par `"kz"` |
 | c | `pico8_fv_def.ql` | `pico8_fv_def.fa` rendu à `0x20000` (`g_`), masqué par `0xa0000` |
 | d | `pico8_nl_def.qw` | `pico8_nl_def.hf` rendu à 1 (`jo`), masqué par 0 (`qh`) |
@@ -375,7 +382,7 @@ Chaque mutation doit rendre le TU rouge. Une mutation verte est un `FAILED:` de 
 
 ## 4. Liste ordonnée de 2.12 et 2.13
 
-Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famille a), sans archétype propre. `ke` n'a pas d'archétype : ses `me`/`t` entrent dans chaque archétype dès 2.12, et `pico8_ke_start` sort au dernier commit de 2.13. Les familles d et e forment un seul type d'archétype : d crée `pico8_jo_def_t` complet, avec les champs des dix sortes, et e n'ajoute que des valeurs. e est coupée en deux pour tenir ≈ 50 min (226 comparaisons).
+Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famille a), sans archétype propre. `ke` n'a pas d'archétype : ses `me`/`t` entrent dans chaque archétype dès 2.12, et `pico8_ke_start` sort au dernier commit de 2.13. Les familles d et e forment un seul type d'archétype : d crée `pico8_jo_def_t` complet, avec les champs des dix sortes, et e n'ajoute que des valeurs. e est coupée en deux pour tenir ≈ 50 min (214 comparaisons). `hy` rejoint la famille a. Les comparaisons excluent les cinq champs qui pointent un objet statique (§3).
 
 **Comptes `défauts`** : `composition_residue.sh --check défauts` rend 669 lignes. Chacune est attribuée par les noms `pico8_X_start` qu'elle porte, et elle sort du compte quand le dernier de ces noms disparaît. Une ligne qui nomme plusieurs familles va donc à la dernière : `ke` se range en e2, avec `test_pico8_map_tables.c:156` et `test_pico8_spec_defaults.c:111`. Par famille : a1 66, a2 67 (dont `pj_cr` 8), b 29, c 104, d 179 (dont `pico8_jo_kw_start` 3), e1 127, e2 97 (dont `ke` 25).
 
@@ -383,18 +390,18 @@ Familles du plan provisoire, avec deux corrections. `pj_cr` va avec `pj` (famill
 
 | Sous-étape | Classes | Comparaisons ajoutées (A + I) | `défauts` |
 |---|---|---|---|
-| 2.12a | `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `hp`, `ie`, `pj` | 49 | 669 |
-| 2.12b | `mz`, `jc`, avec `pico8_probe_def_t` | 26 | 669 |
+| 2.12a | `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `hp`, `ie`, `pj`, `hy` | 51 | 669 |
+| 2.12b | `mz`, `jc`, avec `pico8_probe_def_t` | 25 | 669 |
 | 2.12c | `g_`, `fv` (type sonde), avec `pico8_emitter_def_t` | 55 | 669 |
-| 2.12d | `jo`, `qh`, `nl`, `os`, avec le type planète complet | 111 | 669 |
-| 2.12e1 | `hj`, `pm`, `mx` | 129 | 669 |
-| 2.12e2 | `ga`, `nr`, `fr` | 97 | 669 |
+| 2.12d | `jo`, `qh`, `nl`, `os`, avec le type planète complet | 103 | 669 |
+| 2.12e1 | `hj`, `pm`, `mx` | 123 | 669 |
+| 2.12e2 | `ga`, `nr`, `fr` | 91 | 669 |
 
 2.13 — l'init lit l'archétype, sept sous-étapes :
 
 | Sous-étape | Classes | `défauts` d'arrivée |
 |---|---|---|
-| 2.13a1 | `bg`, `ui`, `js`, `fq`, `nf`, `mh`, `iv`, `hp` | **603** |
+| 2.13a1 | `bg`, `ui`, `js`, `fq`, `nf`, `mh`, `iv`, `hp`, `hy` (aucune ligne `_start`) | **603** |
 | 2.13a2 | `qb`, `ie`, `pj`, `pj_cr` | **536** |
 | 2.13b | `mz`, `jc` | **507** |
 | 2.13c | `g_`, `fv` | **403** |
@@ -487,7 +494,7 @@ Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de constr
 | `hp` | `px` | K | research.c:84 hp_positions; research.c:139 hp_struct_new | — | — |  |
 | `hp` | `rn` | K | research.c:156 hp_struct_new; research.c:172 hp_struct_new | — | — |  |
 | `hp` | `rr` | K | research.c:151 hp_struct_new; research.c:177 hp_struct_new | — | — |  |
-| `hy` | `ew` | E | economy.c:30 hy_struct_new; economy.c:46 hy_struct_new | economy.c:294 hy_kt | — | valeur de départ écrite par le constructeur du cart, pas une clé de spécification (`hy` n'a pas de `_start`) ; réécrit ensuite |
+| `hy` | `ew` | I | economy.c:30 hy_struct_new; economy.c:46 hy_struct_new | economy.c:294 hy_kt | — | défaut littéral non nul du constructeur, identique pour toute instance, puis réécrit : I (la classe E est réservée à nil/0/NULL) ; archétype `pico8_hy_def_t` |
 | `hy` | `fu` | E | economy.c:35 hy_struct_new | economy.c:212 hy_lj | — |  |
 | `hy` | `fu_own` | E | economy.c:37 hy_struct_new | economy.c:210 hy_lj (fuite); economy.c:212 hy_lj (fuite) | — | stockage de liste ; fuite dans `pico8_hy_lj` suivie : la liste y est remplie |
 | `hy` | `ge` | E | economy.c:28 hy_struct_new; economy.c:44 hy_struct_new | economy.c:234 hy_lj | — |  |
@@ -497,11 +504,11 @@ Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de constr
 | `hy` | `hl` | E | economy.c:40 hy_struct_new | economy.c:243 hy_lj; economy.c:245 hy_lj; economy.c:247 hy_lj | T:js.c:563 game_end; T:pj.c:404 test_shared; T:pj.c:457 test_life; T:pj.c:753 test_ph_rows_show_ky |  |
 | `hy` | `invented` | K | economy.c:31 hy_struct_new; economy.c:50 hy_struct_new | — | — |  |
 | `hy` | `jk` | E | economy.c:29 hy_struct_new; economy.c:45 hy_struct_new | cheat.c:37 apply; economy.c:136 hy_hk; economy.c:280 hy_kt | T:hy.c:569 test_kt; T:js.c:553 tech_screen; T:js.c:1664 test_cb_writes_every_e_; T:js.c:1680 test_cb_writes_every_e_ |  |
-| `hy` | `lo` | E | economy.c:32 hy_struct_new; economy.c:51 hy_struct_new | economy.c:99 hy_nx; economy.c:104 hy_nx; menu.c:252 ix1_my_dispatch | — | valeur de départ écrite par le constructeur du cart, pas une clé de spécification (`hy` n'a pas de `_start`) ; réécrit ensuite |
-| `hy` | `nz` | E | economy.c:27 hy_struct_new; economy.c:43 hy_struct_new | cheat.c:38 apply; economy.c:135 hy_hk; economy.c:171 hy_lu | T:fr.c:380 set_credits; T:hj.c:446 set_credits; T:hy.c:520 test_lj; T:hy.c:526 test_lj; T:hy.c:531 test_lj; T:mx.c:452 set_credits; T:mz.c:566 test_ey; T:nl.c:384 set_credits; T:nr.c:389 set_credits; T:os.c:409 set_credits; T:qh.c:373 set_credits | valeur de départ écrite par le constructeur du cart, pas une clé de spécification (`hy` n'a pas de `_start`) ; réécrit ensuite |
+| `hy` | `lo` | I | economy.c:32 hy_struct_new; economy.c:51 hy_struct_new | economy.c:99 hy_nx; economy.c:104 hy_nx; menu.c:252 ix1_my_dispatch | — | défaut littéral non nul du constructeur, identique pour toute instance, puis réécrit : I (la classe E est réservée à nil/0/NULL) ; archétype `pico8_hy_def_t` |
+| `hy` | `nz` | I | economy.c:27 hy_struct_new; economy.c:43 hy_struct_new | cheat.c:38 apply; economy.c:135 hy_hk; economy.c:171 hy_lu | T:fr.c:380 set_credits; T:hj.c:446 set_credits; T:hy.c:520 test_lj; T:hy.c:526 test_lj; T:hy.c:531 test_lj; T:mx.c:452 set_credits; T:mz.c:566 test_ey; T:nl.c:384 set_credits; T:nr.c:389 set_credits; T:os.c:409 set_credits; T:qh.c:373 set_credits | défaut littéral non nul du constructeur, identique pour toute instance, puis réécrit : I (la classe E est réservée à nil/0/NULL) ; archétype `pico8_hy_def_t` |
 | `hy` | `po` | E | economy.c:34 hy_struct_new | economy.c:211 hy_lj | — |  |
 | `hy` | `po_own` | E | economy.c:36 hy_struct_new | economy.c:209 hy_lj (fuite); economy.c:211 hy_lj (fuite) | — | idem `fu_own` |
-| `hy` | `yr` | E | economy.c:33 hy_struct_new; economy.c:52 hy_struct_new | economy.c:138 hy_hk | T:hy.c:514 test_lj; T:hy.c:519 test_lj | valeur de départ écrite par le constructeur du cart, pas une clé de spécification (`hy` n'a pas de `_start`) ; réécrit ensuite |
+| `hy` | `yr` | I | economy.c:33 hy_struct_new; economy.c:52 hy_struct_new | economy.c:138 hy_hk | T:hy.c:514 test_lj; T:hy.c:519 test_lj | défaut littéral non nul du constructeur, identique pour toute instance, puis réécrit : I (la classe E est réservée à nil/0/NULL) ; archétype `pico8_hy_def_t` |
 | `ie_ke` | `has_od` | K | research_icon.c:61 ie_ke_view; research_icon.c:68 ie_ke_view | research_icon.c:171 ie_kj (struct entière) | T:ie.c:672 test_ke_view_is_a_struct (struct entière); T:ie.c:690 test_ke_view_is_a_struct (struct entière) | vue construite par `pico8_ie_ke_view` depuis `kind->rec` ; l'« écriture » de `pico8_ie_kj` est l'affectation de la vue entière à une locale |
 | `ie_ke` | `has_s` | K | research_icon.c:58 ie_ke_view; research_icon.c:65 ie_ke_view | research_icon.c:171 ie_kj (struct entière) | T:ie.c:672 test_ke_view_is_a_struct (struct entière); T:ie.c:690 test_ke_view_is_a_struct (struct entière) | vue construite par `pico8_ie_ke_view` depuis `kind->rec` ; l'« écriture » de `pico8_ie_kj` est l'affectation de la vue entière à une locale |
 | `ie_ke` | `me` | K | research_icon.c:59 ie_ke_view; research_icon.c:66 ie_ke_view | research_icon.c:171 ie_kj (struct entière) | T:ie.c:672 test_ke_view_is_a_struct (struct entière); T:ie.c:690 test_ke_view_is_a_struct (struct entière) | vue construite par `pico8_ie_ke_view` depuis `kind->rec` ; l'« écriture » de `pico8_ie_kj` est l'affectation de la vue entière à une locale |
@@ -635,7 +642,7 @@ Colonnes : type (sans `pico8_`/`_t`), champ, classe, écritures `src/` de constr
 | `mz` | `fa` | A | wormhole.c:255 mz_struct_new | — | — |  |
 | `mz` | `has_p_` | E | wormhole.c:264 mz_struct_new | probe.c:309 probe_host_raise_p_; wormhole.c:125 mz_ey; wormhole.c:171 mz_pr | — |  |
 | `mz` | `ij` | E | wormhole.c:262 mz_struct_new | wormhole.c:65 mz_hq | — |  |
-| `mz` | `jj` | A | wormhole.c:257 mz_struct_new | — | — |  |
+| `mz` | `jj` | S | wormhole.c:257 mz_struct_new | — | — | constant pour la classe, mais la valeur est `&g_mz_jj_wrapper`, `static` de `wormhole.c` dont le type contient un en-tête du noyau : `game_data.c` ne peut pas le nommer ; reste posé par l'init, hors archétype |
 | `mz` | `kk` | A | wormhole.c:256 mz_struct_new | — | — |  |
 | `mz` | `oi` | I | wormhole.c:251 mz_struct_new | wormhole.c:99 mz_kz | — |  |
 | `mz` | `ox` | E | wormhole.c:258 mz_struct_new | wormhole.c:49 mz_pq | — |  |
@@ -741,11 +748,12 @@ Pour chaque classe qui reçoit un archétype : champ (type déclarant.membre) = 
 - **`nf`** (3) : `nf.ra` = `&g_nf_ra` [I] (mouse_reader.c:47) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
 - **`mh`** (4) : `mh.fa` = `0xe0000` (msgbox.c:111) ; `mh.rh` = `0x50000` [I] (msgbox.c:112) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
 - **`iv`** (5) : `iv.fa` = `0x90000` (msgbox.c:258) ; `iv.l` = `0x0` [I] (msgbox.c:259) ; `iv.v` = `&{0x0, -0x570a}` (msgbox.c:260) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
-- **`mz`** (14) : `mz.fa` = `0x50000` (wormhole.c:255) ; `mz.jj` = `&g_mz_jj_wrapper` (wormhole.c:257) ; `mz.kk` = `&mz_kk_seq` (wormhole.c:256) ; `mz.oi` = `0x0` [I] (wormhole.c:251) ; `mz.spawn_snd` = `0x340000` (wormhole.c:248) ; `en-tête.me` = `"kz"` [I] (wormhole.c:244) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x0` (wormhole.c:246) ; `probe.od` = `0x30000` [I] (wormhole.c:252) ; `probe.has_od` = `1` [I] (wormhole.c:253) ; `probe.dq` = `"pr"` (wormhole.c:247) ; `probe.fp` = `0x10000` (wormhole.c:254) ; `probe.ik` = `0x310000` (wormhole.c:249) ; `probe.has_ik` = `1` (wormhole.c:250).
+- **`mz`** (14, dont 1 S) : `mz.fa` = `0x50000` (wormhole.c:255) ; `mz.jj` = `&g_mz_jj_wrapper` [S, hors archétype] (wormhole.c:257) ; `mz.kk` = `&mz_kk_seq` (wormhole.c:256) ; `mz.oi` = `0x0` [I] (wormhole.c:251) ; `mz.spawn_snd` = `0x340000` (wormhole.c:248) ; `en-tête.me` = `"kz"` [I] (wormhole.c:244) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x0` (wormhole.c:246) ; `probe.od` = `0x30000` [I] (wormhole.c:252) ; `probe.has_od` = `1` [I] (wormhole.c:253) ; `probe.dq` = `"pr"` (wormhole.c:247) ; `probe.fp` = `0x10000` (wormhole.c:254) ; `probe.ik` = `0x310000` (wormhole.c:249) ; `probe.has_ik` = `1` (wormhole.c:250).
 - **`jc`** (12) : `jc.fa` = `0x20000` [I] (slipway.c:403) ; `jc.k_` = `&jc_k__seq` (slipway.c:410) ; `jc.nh` = `0x140000` [I] (slipway.c:411) ; `en-tête.me` = `"kz"` [I] (slipway.c:402) ; `en-tête.t` = `0x0` [I] (ke.c:37) ; `probe.dw` = `0x106` (slipway.c:409) ; `probe.od` = `0` [I] (slipway.c:416) ; `probe.has_od` = `0` [I] (slipway.c:417) ; `probe.dq` = `NULL` (slipway.c:405) ; `probe.fp` = `0` (slipway.c:406) ; `probe.ik` = `0x300000` (slipway.c:407) ; `probe.has_ik` = `1` (slipway.c:408).
 - **`hp`** (1) : `hp.fk` = `&hp_fk_row` (research.c:159).
 - **`ie`** (6) : `ie.eh` = `&{0x760000, 0x780000}` (research_icon.c:244) ; `ie.fa` = `0xc0000` (research_icon.c:242) ; `ie.kq` = `&{0x0, 0x0, 0x90000, 0x80000}` (research_icon.c:241) ; `ie.ra` = `&{0x3e70000, 0x3e70000}` [I] (research_icon.c:243) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
 - **`pj`** (5) : `pj.fa` = `0xa0000` [I] (score_panel.c:294) ; `pj.gs` = `&pj_gs_row` (score_panel.c:295) ; `pj.i_` = `&pj_i__row` (score_panel.c:296) ; `en-tête.me` = `"ph"` [I] (ke.c:36) ; `en-tête.t` = `0x0` [I] (ke.c:37).
+- **`hy`** (4) : `hy.nz` = `0x640000` [I] (economy.c:43) ; `hy.ew` = `0x10000` [I] (economy.c:46) ; `hy.lo` = `0x10000` [I] (economy.c:51) ; `hy.yr` = `0xd490000` [I] (economy.c:52).
 
 ## Annexe C — tableau « Runs »
 
@@ -762,7 +770,7 @@ Sur la copie jetable de `522824b`, sauf les lignes 1 et 2 (arbre de travail, lec
 | 7 | `classify.py` (tri automatique) | 0 | `A? 71, E? 124, K? 65, I? 38, Z 4` ; 915 sites | < 1 s |
 | 8 | lecture et reclassement, `annex.py` | 0 | A 70, I 38, K 87, E 107 ; 302 lignes, 915 sites | < 1 s |
 | 9 | `comm -3` des listes (type, champ) | 0 | vide | < 1 s |
-| 10 | `grep memset\|memcpy\|calloc` ; grep des types dans les trois fichiers raylib | 0 / 1 | aucune entité touchée ; aucun type nommé | < 1 s |
+| 10 | `grep memset\|memcpy\|calloc` ; grep des types dans les cinq fichiers exclus | 0 / 1 | aucune entité touchée ; aucun type nommé | < 1 s |
 | 11 | `git -C tree status --short` après le banc | 0 | vide | < 1 s |
 | 12 | `chains.py` (valeurs résolues par classe, masquages) | 0 | 25 classes, 467 lignes (259 A, 208 I) ; 103 champs à écritures successives, dont 102 masquages entre niveaux | < 1 s |
 | 13 | essai d'inclusion sur la copie (types et `pico8_nl_def`/`pico8_bg_def` dans `game_data.h/.c`, `def` dans `jo`/`bg`) puis `-fsyntax-only` | 0 | 0 erreur | 2 s |
@@ -775,3 +783,8 @@ Sur la copie jetable de `522824b`, sauf les lignes 1 et 2 (arbre de travail, lec
 | 20 | `timeout 600 make test` (arbre de travail, aucun code changé) | 0 | `garde fichiers 58 en-echec 0` | 5 s |
 | 21 | `make composition-residue` (arbre de travail, fin de 2.9c) | 0 | `résidu 2 : 1073 ligne(s), 85 fichier(s)` | 0,7 s |
 | 22 | `rm -rf etude29/tree` | 0 | copie supprimée ; journaux et scripts gardés dans `etude29/` | < 1 s |
+| 23 | copie jetable de `d9a2b2d` ; 3e passe d'inclusion avec `.jj = &g_mz_jj_wrapper` dans `pico8_mz_def` | 1 | `game_data.c:684: 'g_mz_jj_wrapper' undeclared` (confirme le vérificateur) | 3 s |
+| 24 | 3e passe, `pico8_hy_def_t` dans `game_data.h` | 1 | `economy.h:34: unknown type name 'pico8_hy_def_t'` (`economy.h` n'inclut pas `game_data.h`) | 3 s |
+| 25 | 3e passe retenue : `nl`, `bg`, `mz` (sans `jj`) dans `game_data.h/.c`, `hy` dans `economy.h/.c` | 0 | 0 erreur ; `inclusion-mutuelle 17 16`, 43 lignes ; `défauts 669` ; pied `1073 / 85` | 3 s |
+| 26 | grep des types d'entité dans `pico8_raylib_backend_coords.c` et son TU | 1 | aucun | < 1 s |
+| 27 | recomptage : A 69, I 42, K 87, E 103, S 1 ; comparaisons 2.12 = 51 / 25 / 55 / 103 / 123 / 91 ; `rm -rf etude29/tree` | 0 | copie supprimée | < 1 s |
