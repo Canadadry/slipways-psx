@@ -32,7 +32,7 @@ pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s)
 
     /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
     qu_not_self = !(s != NULL && s->cls == pico8_jc_struct_class() &&
-                    ((const pico8_jc_t *)s)->qu == &self->qh.jo.ke.header);
+                    ((const pico8_jc_t *)s)->qu == &self->qh.jo.header);
 
     oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
 
@@ -141,7 +141,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->qh.jo.ke.header, w);
+            pico8_trade_t *extended = pico8_trade_kg(t, &self->qh.jo.header, w);
             pico8_struct_header_t *other;
 
             gf.t = extended;
@@ -225,7 +225,7 @@ static void *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("nr");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->qh.jo.header);
     return self;
 }
 
@@ -286,7 +286,7 @@ static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("fr");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->nr.qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->nr.qh.jo.header);
     return self;
 }
 
@@ -407,7 +407,7 @@ static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
 #endif
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->hj.qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->hj.qh.jo.header);
     return self;
 }
 

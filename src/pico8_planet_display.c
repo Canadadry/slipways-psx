@@ -151,7 +151,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
 
     memset(bs, 0, sizeof bs);
     memset(row_keys, 0, sizeof row_keys);
-    qh = pico8_qh_of(&self->ke.header);
+    qh = pico8_qh_of(&self->header);
     if (qh != NULL && qh->px != NULL) {
         icon_row = qh->px;
     } else if (self->has_mi) {
@@ -290,12 +290,12 @@ pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s)
     if (self == NULL) {
         return out;
     }
-    me_val = self->ke.header.me;
+    me_val = self->header.me;
     if (me_val == NULL || strcmp(me_val, "ly") != 0) {
         return out;
     }
     /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
-    if (s != NULL && s->cls == pico8_jc_struct_class() && ((const pico8_jc_t *)s)->qu == &self->ke.header) {
+    if (s != NULL && s->cls == pico8_jc_struct_class() && ((const pico8_jc_t *)s)->qu == &self->header) {
         pico8_jo_gh(self);
         return out;
     }
@@ -412,9 +412,9 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
      * at the `p` that was passed in. */
     adjusted = pico8_ma(p, (pico8_struct_header_t *)self);
 
-    me_val = self->ke.header.me;
+    me_val = self->header.me;
     if (me_val != NULL && strcmp(me_val, "ll") == 0) {
-        pico8_fixed_t t = self->ke.header.t;
+        pico8_fixed_t t = self->header.t;
         if (pico8_fixed_rnd(pico8_fixed_from_int(30)) < pico8_fixed_sub(t, pico8_fixed_from_int(30))) {
             return;
         }
@@ -426,14 +426,14 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
     pico8_circfill(gfx, mem, px, py, 7, 0);
 
     /* An absent `qw` reads as 0, i.e. the default palette block. */
-    nl = pico8_nl_of(&self->ke.header);
+    nl = pico8_nl_of(&self->header);
     pico8_dv(mem, nl != NULL ? nl->qw : pico8_fixed_from_int(0));
     pico8_palt(mem, 3, 0);
     pico8_palt(mem, 0, 1);
 
     /* `A and B or C`: `nk.s` is never absent, so only a nil `nk` falls
      * through to `self.s`, then to the literal 43. */
-    qh = pico8_qh_of(&self->ke.header);
+    qh = pico8_qh_of(&self->header);
     if (self->nk != NULL) {
         spr_index = self->nk->s;
     } else if (qh != NULL) {

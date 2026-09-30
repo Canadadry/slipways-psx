@@ -391,7 +391,7 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
         pico8_struct_header_t *e = list->items[i];
 
         assert(pico8_jo_is_family(e));
-        if (is_me(&((const pico8_jo_t *)e)->ke.header, me)) {
+        if (is_me(&((const pico8_jo_t *)e)->header, me)) {
             return (pico8_jo_t *)e;
         }
     }
@@ -414,7 +414,7 @@ static void test_gv(void) {
     assert(ly != NULL);
     r = pico8_jo_gv(ly, &bg->header);
     assert(r.stop && r.held == NULL);
-    assert(is_me(&ly->ke.header, "ly"));
+    assert(is_me(&ly->header, "ly"));
 
     keys.id = NULL;
     keys.p = ly->p;

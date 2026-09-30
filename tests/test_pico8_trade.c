@@ -558,8 +558,8 @@ static void test_dh_counts_numbered_routes_only(void) {
     qh = pico8_qh_new(NULL);
     qh->jo.jy = jy;
     qh->jo.cc = cc;
-    pico8_ke_ks(&qh->jo.ke.header, "ly");
-    (void)pico8_dh(&qh->jo.ke.header);
+    pico8_ke_ks(&qh->jo.header, "ly");
+    (void)pico8_dh(&qh->jo.header);
     assert(nil_want->has_gc && nil_want->gc == pico8_fixed_from_int(0));
     assert(x_want->has_gc && x_want->gc == pico8_fixed_from_int(1));
 }

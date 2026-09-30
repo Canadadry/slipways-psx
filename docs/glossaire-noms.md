@@ -29,7 +29,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_X_start` (type `pico8_X_start_t`, `pico8_game_data.h`) | les valeurs avec lesquelles une instance neuve de la classe `X` commence : exactement les clés de sa spec, celles de `ke` et de la parente à part ; `ke`, `bg`, `ui`, `js`, `fq`, `qb`, `nf`, `mh`, `iv`, `mz`, `jc`, `g_`, `fv`, `hp`, `ie`, `pj` et l'arbre `jo` : `jo`, `qh`, `nl`, `os`, `hj`, `pm`, `ga`, `nr`, `fr`, `mx` (`lq`, `jb`, `hy` et `trade` ont une spec vide) |
 | — | `pico8_pj_cr_start`, `pico8_pj_ou_row`, `pico8_pj_ea_row` | les tables `cr`, `ou`, `ea` de la spec de `pj`, générées ; `g_pj_cr` prend ses valeurs de la première |
 | — | `g_pj_ou`, `g_pj_ea` (`pico8_pj_ou_t`, `pico8_pj_ea_t`, `pico8_score_panel.c`) | l'état `ou`/`ea` de `pj` : copies statiques de leurs rangées générées (items et sous-rangées), remises à chaque init |
-| `ke` | `pico8_ke_t` | classe racine : toute entité du jeu en descend |
+| `ke` | `pico8_ke_*` | classe racine : toute entité du jeu en descend ; son état `me`/`t` vit dans l'en-tête `pico8_struct_header_t` |
 | `ke:ks(me)` | `pico8_ke_ks` | réinitialise l'état `me` de l'instance et remet son timer `t` à 0 |
 | `pq` | `pico8_X_pq` | constructeur supplémentaire, appelé à l'instanciation ; le constructeur de struct `pico8_X_new` l'appelle |
 | `lt` | `pico8_lt` | enregistre une instance fraîche dans `hv`/`cv`/`cg` ; c'est le `pq` de `ke` (`pico8_ke_struct_pq`), et prend l'en-tête `pico8_struct_header_t` |

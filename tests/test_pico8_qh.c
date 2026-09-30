@@ -260,8 +260,8 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     size_t i;
 
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->ke.header.me);
-    h = fold_fixed_member(h, jo->ke.header.t);
+    h = fold_string_member(h, jo->header.me);
+    h = fold_fixed_member(h, jo->header.t);
     h = fold_fixed_member(h, qh->hp);
     h = fold_string_member(h, qh->probe->dq);
     h = fold_qh(h, qh);
@@ -428,8 +428,8 @@ static void test_life(void) {
     set_credits(3);
     assert(cls_of(poor_lab)->ey == pico8_d__dispatch);
     h = pico8_d_(poor_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(poor_lab)->jo.ke.header.me);
-    h = fold_fixed_member(h, as_qh(poor_lab)->jo.ke.header.t);
+    h = fold_string_member(h, as_qh(poor_lab)->jo.header.me);
+    h = fold_fixed_member(h, as_qh(poor_lab)->jo.header.t);
     h = fnv(h, p__state(&as_qh(poor_lab)->jo));
     h = fnv(h, (uint32_t)credits());
     assert(p__state(&as_qh(poor_lab)->jo) == 2 && credits() == pico8_fixed_from_int(3));
@@ -440,11 +440,11 @@ static void test_life(void) {
     set_credits(100);
     assert(cls_of(in_lab)->ey == pico8_d__dispatch);
     h = pico8_d_(in_lab) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(in_lab)->jo.ke.header.me);
-    h = fold_fixed_member(h, as_qh(in_lab)->jo.ke.header.t);
+    h = fold_string_member(h, as_qh(in_lab)->jo.header.me);
+    h = fold_fixed_member(h, as_qh(in_lab)->jo.header.t);
     h = fnv(h, p__state(&as_qh(in_lab)->jo));
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_qh(in_lab)->jo.ke.header.me, "ly") == 0 && credits() == pico8_fixed_from_int(100 - 15));
+    assert(strcmp(as_qh(in_lab)->jo.header.me, "ly") == 0 && credits() == pico8_fixed_from_int(100 - 15));
     in_y = as_qh(in_lab)->jo.ra->y;
 
     ra_before = as_qh(out_lab)->jo.ra;
@@ -452,7 +452,7 @@ static void test_life(void) {
     for (i = 0; i < 4; i++) {
         h = fold_ra_y(h, in_lab);
         pico8_dg();
-        h = fold_fixed_member(h, as_qh(in_lab)->jo.ke.header.t);
+        h = fold_fixed_member(h, as_qh(in_lab)->jo.header.t);
         assert(as_qh(out_lab)->jo.ra == ra_before && ra_before->y == before);
     }
     h = fold_ra_y(h, in_lab);

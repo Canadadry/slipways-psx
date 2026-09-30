@@ -443,7 +443,7 @@ static void test_layers(void) {
     ra = je_nf()->ra;
     assert(qa != NULL && ra != NULL);
 
-    pico8_ke_ks(&planet->ke.header, "known");
+    pico8_ke_ks(&planet->header, "known");
     assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_LDOWN, qa, ra, NULL, &kv, &kn));
     assert((void *)kv == planet && kn.stop && kn.held == NULL);
     h = fnv(h, (uint32_t)rank_in(pico8_hv(), kv));
@@ -1110,10 +1110,10 @@ static void test_ke_t_by_name(void) {
     assert(zero->emitter->py == pico8_g__start.py);
     h = fold_t(h, zero);
 
-    pico8_ke_ks(&keyed->ke.header, "ll");
+    pico8_ke_ks(&keyed->header, "ll");
     assert_t(keyed, 0);
-    assert(keyed->ke.header.me != NULL && strcmp(keyed->ke.header.me, "ll") == 0);
-    h = fold_string(fold_t(h, keyed), keyed->ke.header.me);
+    assert(keyed->header.me != NULL && strcmp(keyed->header.me, "ll") == 0);
+    h = fold_string(fold_t(h, keyed), keyed->header.me);
 
     pico8_ke_ks(e[9], "ll");
     assert_t(e[9], 0);

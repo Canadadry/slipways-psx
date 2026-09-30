@@ -293,8 +293,8 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     size_t i;
 
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->ke.header.me);
-    h = fold_fixed_member(h, jo->ke.header.t);
+    h = fold_string_member(h, jo->header.me);
+    h = fold_fixed_member(h, jo->header.t);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->hp);
     h = fold_fixed_member(h, qh->s);
@@ -416,7 +416,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
     h = fold_ra_y(h, qh);
     pico8_dg();
-    h = fold_fixed_member(h, qh->jo.ke.header.t);
+    h = fold_fixed_member(h, qh->jo.header.t);
     return fold_ra_y(h, qh);
 }
 
@@ -474,7 +474,7 @@ static uint32_t fold_db(uint32_t h, void *processor) {
     export_to(processor, oz);
     export_to(bare, oz);
     os_db = pico8_db(processor);
-    bare_db = pico8_db(&bare->ke.header);
+    bare_db = pico8_db(&bare->header);
     printf("[db] processor %d, bare planet %d\n", (int)os_db, (int)bare_db);
     assert(os_db != bare_db && 2 * os_db == bare_db);
     h = fnv(h, (uint32_t)os_db);
@@ -503,10 +503,10 @@ static void test_life(void) {
     set_credits(100);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(placed)->jo.ke.header.me);
-    h = fold_fixed_member(h, as_qh(placed)->jo.ke.header.t);
+    h = fold_string_member(h, as_qh(placed)->jo.header.me);
+    h = fold_fixed_member(h, as_qh(placed)->jo.header.t);
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_qh(placed)->jo.ke.header.me, "ly") == 0);
+    assert(strcmp(as_qh(placed)->jo.header.me, "ly") == 0);
 
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
@@ -516,7 +516,7 @@ static void test_life(void) {
     h = fold_db(h, placed);
 
     idle = build_processor();
-    h = fold_string_member(h, as_qh(idle)->jo.ke.header.me);
+    h = fold_string_member(h, as_qh(idle)->jo.header.me);
     h = fold_dg(h, idle);
     check("life", h, LIFE_HASH);
 }

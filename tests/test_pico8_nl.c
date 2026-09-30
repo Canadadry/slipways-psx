@@ -260,8 +260,8 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     qh = &nl->qh;
     jo = &qh->jo;
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->ke.header.me);
-    h = fold_fixed_member(h, jo->ke.header.t);
+    h = fold_string_member(h, jo->header.me);
+    h = fold_fixed_member(h, jo->header.t);
     h = fold_string_member(h, nl->rr);
     h = fold_fixed_member(h, nl->nl);
     h = fold_qh(h, qh);
@@ -392,7 +392,7 @@ static uint32_t fold_dg(uint32_t h, const void *e) {
     assert(nl != NULL);
     h = fold_ra_y(h, nl);
     pico8_dg();
-    h = fold_fixed_member(h, nl->qh.jo.ke.header.t);
+    h = fold_fixed_member(h, nl->qh.jo.header.t);
     h = fold_ra_y(h, nl);
     return fold_fixed_member(h, nl->qw);
 }
@@ -438,11 +438,11 @@ static void test_life(void) {
     h = fold_et(h, &placed->qh);
     set_credits(100);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
-    h = pico8_d_(&placed->qh.jo.ke.header) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, placed->qh.jo.ke.header.me);
-    h = fold_fixed_member(h, placed->qh.jo.ke.header.t);
+    h = pico8_d_(&placed->qh.jo.header) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
+    h = fold_string_member(h, placed->qh.jo.header.me);
+    h = fold_fixed_member(h, placed->qh.jo.header.t);
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(placed->qh.jo.ke.header.me, "ly") == 0 && credits() == pico8_fixed_from_int(100 - 20));
+    assert(strcmp(placed->qh.jo.header.me, "ly") == 0 && credits() == pico8_fixed_from_int(100 - 20));
 
     h = fold_economy(h, placed);
 
@@ -461,7 +461,7 @@ static void test_life(void) {
     h = fold_economy(h, placed);
 
     idle = build_plate();
-    h = fold_string_member(h, idle->qh.jo.ke.header.me);
+    h = fold_string_member(h, idle->qh.jo.header.me);
     h = fold_dg(h, idle);
     assert(idle->qw == pico8_fixed_from_int(15));
     check("life", h, LIFE_HASH);

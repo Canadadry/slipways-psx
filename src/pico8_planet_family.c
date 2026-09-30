@@ -80,7 +80,7 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->jo.has_mi = 1;
     self->jo.nu = pico8_qh_start.nu;
     self->jo.hf = pico8_qh_start.hf;
-    self->jo.ke.header.me = pico8_qh_start.me;
+    self->jo.header.me = pico8_qh_start.me;
 }
 
 static void *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
@@ -100,7 +100,7 @@ static void *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("qh");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->jo.ke.header);
+    pico8_ke_struct_pq(&self->jo.header);
     return self;
 }
 
@@ -177,7 +177,7 @@ static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("nl");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->qh.jo.header);
     return self;
 }
 
@@ -234,7 +234,7 @@ static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("os");
 #endif
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->qh.jo.header);
     return self;
 }
 
@@ -331,7 +331,7 @@ static void *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
 #endif
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->qh.jo.header);
     return self;
 }
 
@@ -417,7 +417,7 @@ static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     self->hj.qh.px = pico8_pm_start.px;
     self->hj.qh.s = pico8_pm_start.s;
     self->hj.qh.jo.nu = pico8_pm_start.nu;
-    self->hj.qh.jo.ke.header.me = pico8_pm_start.me;
+    self->hj.qh.jo.header.me = pico8_pm_start.me;
     if (keys != NULL) {
         if (keys->p != NULL) {
             self->hj.qh.jo.p = keys->p;
@@ -435,7 +435,7 @@ static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     pico8_pm_pq(self);
     pico8_f_((pico8_struct_header_t *)self);
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->hj.qh.jo.ke.header);
+    pico8_ke_struct_pq(&self->hj.qh.jo.header);
     return self;
 }
 
@@ -624,7 +624,7 @@ static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
 #endif
     pico8_ga_pq(self);
     pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->jo.ke.header);
+    pico8_ke_struct_pq(&self->jo.header);
     return self;
 }
 

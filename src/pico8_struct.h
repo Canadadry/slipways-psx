@@ -75,7 +75,7 @@ struct pico8_kind_rec;
  * whose struct this one embeds first; the member is NULL for a root.
  * `emitter_of` and `probe_of` return the particle emitter and the probe the
  * instance stores in itself; the member is NULL for a class that carries
- * none. A class that sets one embeds pico8_ke_t first; each is only ever
+ * none. A class that sets one descends from ke; each is only ever
  * called as `e->cls->emitter_of(e)`, `e->cls->probe_of(e)`. */
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);

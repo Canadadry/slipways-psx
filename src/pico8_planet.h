@@ -23,7 +23,7 @@
  * struct begins with one, so jo's functions take it for `self`. Nothing
  * frees the struct: TROU-7. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     const pico8_str_seq_t *nu;
     int hf;
     pico8_fixed_t hs;

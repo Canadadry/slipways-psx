@@ -88,7 +88,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
     assert(mo->cls == pico8_qb_struct_class());
     g_spied_jo = *pico8_jo_struct_class();
     g_spied_jo.kj = spy_kj;
-    planet->ke.header.cls = &g_spied_jo;
+    planet->header.cls = &g_spied_jo;
 
     /* `kj` paints colour 0, which is also the framebuffer's cleared value,
      * so reading 0 back proves nothing unless the byte held something else
@@ -125,7 +125,7 @@ static void test_dc_kj_dispatches_mo_md_then_real_jo_kj(void) {
 
     assert(pico8_mo() == mo);
 
-    planet->ke.header.cls = pico8_jo_struct_class();
+    planet->header.cls = pico8_jo_struct_class();
     pico8_jo_shutdown();
     pico8_bootstrap_shutdown();
 }

@@ -216,7 +216,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
     }
     assert(pico8_jo_is_family(pt) && "dh: pt is a planet of cg.jo");
     jo = (const pico8_jo_t *)pt;
-    if (jo->ke.header.me == NULL || strcmp(jo->ke.header.me, "ly") != 0) {
+    if (jo->header.me == NULL || strcmp(jo->header.me, "ly") != 0) {
         return pico8_fixed_from_int(0);
     }
 

@@ -39,7 +39,7 @@ typedef struct pico8_probe {
  * was passed, aliased. `emitter` and `probe` point at `emitter_own` and
  * `probe_own`: never copy the struct. */
 typedef struct {
-    pico8_ke_t ke;
+    pico8_struct_header_t header;
     const pico8_str_seq_t *nu;
     pico8_fixed_t fx;
     pico8_fixed_t fa;
@@ -87,7 +87,7 @@ const pico8_struct_class_t *pico8_g__struct_class(void);
  * key, runs neither `pq` nor `lt`, records no coverage. */
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
 
-/* The keys of `pico8_g__new`, read, not kept. `t` is `ke.header.t`, whose default
+/* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
  * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0
  * needs its `has_` flag. */
 typedef struct {

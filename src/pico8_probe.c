@@ -444,7 +444,7 @@ static const pico8_struct_class_t g_g__struct_class = {
 };
 
 void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
-    pico8_ke_struct_init(&self->ke.header, cls);
+    pico8_ke_struct_init(&self->header, cls);
     self->emitter = &self->emitter_own;
     self->emitter->qy = NULL;
     self->ra = NULL;
@@ -485,7 +485,7 @@ static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     self = malloc(sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class);
     if (keys != NULL) {
-        self->ke.header.t = keys->t;
+        self->header.t = keys->t;
         if (keys->has_pn) {
             self->emitter->pn = keys->pn;
         }
@@ -500,7 +500,7 @@ static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_class_coverage_record("g_");
 #endif
     pico8_f_((pico8_struct_header_t *)self);
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 

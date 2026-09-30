@@ -345,8 +345,8 @@ static void test_built(void) {
     assert(em->k_ == &pico8_fv_k__seq);
     assert(em->k_ != &pico8_g__k__seq);
     assert(fv->rb == &pico8_fv_rb_row);
-    h = fold_string_member(h, g_->ke.header.me);
-    h = fold_fixed_member(h, g_->ke.header.t);
+    h = fold_string_member(h, g_->header.me);
+    h = fold_fixed_member(h, g_->header.t);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
     assert(!fv->has_m_ && g_->p == NULL && pr->et == NULL && !g_->has_p_);
@@ -412,8 +412,8 @@ static void test_life(void) {
     h = fnv(h, screen_hash());
     for (i = 0; i < 3; i++) {
         pico8_dg();
-        h = fold_fixed_member(h, fv->g_.ke.header.t);
-        h = fold_string_member(h, fv->g_.ke.header.me);
+        h = fold_fixed_member(h, fv->g_.header.t);
+        h = fold_string_member(h, fv->g_.header.me);
         assert(listed(pico8_hv(), fv));
     }
     assert(cls_of(fv)->hd(fv, vec_ref(64, 10), vec_ref(64, 112)) == 1);
@@ -498,7 +498,7 @@ static void test_particle_takes_the_help_palette(void) {
     pico8_camera_reset(&gfx);
     at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
     pico8_poke(&mem, at, 3);
-    pico8_ei(&gfx, &mem, &fv->g_.ke.header);
+    pico8_ei(&gfx, &mem, &fv->g_.header);
     assert(pico8_peek(&mem, at) == pico8_fv_k__seq.items[5] && pico8_fv_k__seq.items[5] == 9);
 }
 

@@ -3,11 +3,6 @@
 
 #include "pico8_struct.h"
 
-/* First member of every entity struct of a class descended from ke. */
-typedef struct {
-    pico8_struct_header_t header;
-} pico8_ke_t;
-
 /* Shuts the module down first. */
 void pico8_ke_init(void);
 

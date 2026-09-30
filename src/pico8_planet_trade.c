@@ -149,7 +149,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         qe_val = pico8_jy_qe(i);
 
         if (have_r_q && pico8_qe_equal(qe_val, r_q)) {
-            const pico8_qh_t *qh = pico8_qh_of(&self->ke.header);
+            const pico8_qh_t *qh = pico8_qh_of(&self->header);
             int accepted = 0;
 
             if (qh != NULL && qh->ba != NULL) {
@@ -165,7 +165,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         if (pico8_qe_equal(t_qe, qe_val) && !(have_r_q && pico8_qe_equal(qe_val, r_q))) {
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->ke.header, NULL);
+            pico8_trade_t *extended = pico8_trade_kg(t, &self->header, NULL);
             if (lw->kf != NULL) {
                 lw->kf(lw, extended);
             }

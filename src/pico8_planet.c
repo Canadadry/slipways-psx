@@ -138,7 +138,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
 
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     assert(g_jo_up && "pico8_jo_init() must run first");
-    pico8_ke_struct_init(&self->ke.header, cls);
+    pico8_ke_struct_init(&self->header, cls);
     self->nu = pico8_jo_start.nu;
     self->hf = pico8_jo_start.hf;
     self->hs = pico8_jo_start.hs;
@@ -177,7 +177,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     self->m_ = 0;
     self->has_m_ = 0;
     self->kw_own = *pico8_jo_start.kw;
-    self->ke.header.me = pico8_jo_start.me;
+    self->header.me = pico8_jo_start.me;
 }
 
 static void *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
@@ -199,7 +199,7 @@ static void *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
     pico8_class_coverage_record("jo");
 #endif
     pico8_jo_pq(self);
-    pico8_ke_struct_pq(&self->ke.header);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
@@ -282,7 +282,7 @@ void pico8_jo_pq(pico8_jo_t *self) {
     pico8_ptrs_init(oe);
     self->oe = oe;
 
-    qh = pico8_qh_of(&self->ke.header);
+    qh = pico8_qh_of(&self->header);
     if (qh != NULL) {
         pico8_hp_t *target = pico8_gb_at(pico8_fixed_flr_int(qh->hp));
 
@@ -340,7 +340,7 @@ int pico8_jo_gg(const pico8_jo_t *self) {
     if (!self->hf) {
         return 0;
     }
-    return self->ke.header.me != NULL && strcmp(self->ke.header.me, "ly") == 0;
+    return self->header.me != NULL && strcmp(self->header.me, "ly") == 0;
 }
 
 void pico8_jo_kd(pico8_jo_t *self) {
@@ -492,10 +492,10 @@ pico8_down_t pico8_jo_ldown(pico8_jo_t *self) {
     const char *me_val;
     pico8_down_t out = {0, NULL};
 
-    if (self == NULL || self->ke.header.me == NULL) {
+    if (self == NULL || self->header.me == NULL) {
         return out;
     }
-    me_val = self->ke.header.me;
+    me_val = self->header.me;
     if (strcmp(me_val, "known") == 0) {
         pico8_jo_fe(self);
         out.stop = 1;

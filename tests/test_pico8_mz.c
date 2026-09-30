@@ -281,7 +281,7 @@ static pico8_jo_t *first_jo_with_me(const char *me) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         pico8_jo_t *jo = as_jo(list->items[i]);
-        if (is_me(&jo->ke.header, me)) {
+        if (is_me(&jo->header, me)) {
             return jo;
         }
     }
@@ -564,7 +564,7 @@ static int unknown_count(void) {
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
-        if (is_me(&as_jo(jo->items[i])->ke.header, "unknown")) {
+        if (is_me(&as_jo(jo->items[i])->header, "unknown")) {
             n++;
         }
     }

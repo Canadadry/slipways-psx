@@ -158,7 +158,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
             assert(pico8_jo_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
             pt = pt_val;
 
-            if (pt->ke.header.me != NULL && strcmp(pt->ke.header.me, "unknown") == 0) {
+            if (pt->header.me != NULL && strcmp(pt->header.me, "unknown") == 0) {
                 pico8_vec_t pt_p =
                     pt->p != NULL ? *pt->p : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
                 pico8_vec_t diff = pico8_vec_sub(pt_p, self_p);

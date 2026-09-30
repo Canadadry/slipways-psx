@@ -303,8 +303,8 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     size_t i;
 
     h = fold_string_member(h, jo->id);
-    h = fold_string_member(h, jo->ke.header.me);
-    h = fold_fixed_member(h, jo->ke.header.t);
+    h = fold_string_member(h, jo->header.me);
+    h = fold_fixed_member(h, jo->header.t);
     h = fold_string_member(h, hj->rr);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->hp);
@@ -452,7 +452,7 @@ static uint32_t fold_dg(uint32_t h, void *e) {
 
     h = fold_ra_y(h, hj);
     pico8_dg();
-    h = fold_fixed_member(h, hj->qh.jo.ke.header.t);
+    h = fold_fixed_member(h, hj->qh.jo.header.t);
     return fold_ra_y(h, hj);
 }
 
@@ -510,10 +510,10 @@ static void test_life(void) {
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_hj(placed)->qh.jo.ke.header.me);
-    h = fold_fixed_member(h, as_hj(placed)->qh.jo.ke.header.t);
+    h = fold_string_member(h, as_hj(placed)->qh.jo.header.me);
+    h = fold_fixed_member(h, as_hj(placed)->qh.jo.header.t);
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_hj(placed)->qh.jo.ke.header.me, "ly") == 0);
+    assert(strcmp(as_hj(placed)->qh.jo.header.me, "ly") == 0);
 
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
@@ -535,7 +535,7 @@ static void test_life(void) {
     h = fold_economy(h, placed);
 
     idle = build_ascension();
-    h = fold_string_member(h, as_hj(idle)->qh.jo.ke.header.me);
+    h = fold_string_member(h, as_hj(idle)->qh.jo.header.me);
     h = fold_dg(h, idle);
     check("life", h, LIFE_HASH);
 }
@@ -555,7 +555,7 @@ static uint32_t fold_heir(uint32_t h, void *e, const pico8_struct_class_t *cls) 
     assert(ptrs_size(hj->emitter->qy) == 0);
     assert(hj->qh.qh == 0);
     h = fold_string_member(h, hj->qh.jo.id);
-    h = fold_string_member(h, hj->qh.jo.ke.header.me);
+    h = fold_string_member(h, hj->qh.jo.header.me);
     h = fold_qh(h, &hj->qh);
     h = fold_string_member(h, hj->rr);
     h = fold_fixed_member(h, hj->qh.probe->od);

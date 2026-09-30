@@ -160,7 +160,7 @@ static void test_fv_defaults_and_ready(void) {
     assert(fv->ql == pico8_fv_start.ql);
     assert(fv->fg == pico8_fv_start.fg);
     assert(fv->rb == pico8_fv_start.rb);
-    assert(fv->g_.ke.header.me == pico8_ke_start.me && fv->g_.ke.header.t == pico8_ke_start.t);
+    assert(fv->g_.header.me == pico8_ke_start.me && fv->g_.header.t == pico8_ke_start.t);
     assert(pico8_fv_ready());
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
@@ -189,7 +189,7 @@ static void test_g__defaults_and_ready(void) {
     assert(g_->emitter->q_ == pico8_g__start.q_);
     assert(g_->emitter->du == pico8_g__start.du);
     assert(g_->ra == NULL);
-    assert(g_->ke.header.me == pico8_ke_start.me && g_->ke.header.t == pico8_ke_start.t);
+    assert(g_->header.me == pico8_ke_start.me && g_->header.t == pico8_ke_start.t);
     assert(pico8_g__ready());
     pico8_probe_shutdown();
     assert(!pico8_g__ready());
