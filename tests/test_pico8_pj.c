@@ -1,6 +1,6 @@
 /* The score panel `pj`, built by its only road (`eu()`, `pico8_pj_new()`,
  * on a game started directly: no events file), read on its members and on
- * the class's shared `ou`/`ea`/`cr`, its defaults compared to `pico8_pj_start`, and
+ * the class's shared `ou`/`ea`/`cr`, its defaults read on its archetype, and
  * driven through the real `mv`/`cr()`/`de.my`. */
 
 #define _POSIX_C_SOURCE 200809L
@@ -92,10 +92,10 @@ static uint32_t c__state(const pico8_pj_t *pj) {
     return pj->c_ ? 2 : 1;
 }
 
-/* `ed` NULL reads as `pico8_pj_start.ed`. */
+/* `ed` NULL reads as the class's `ed`, the number 1. */
 static pico8_fixed_t ed_fixed(const pico8_pj_t *pj) {
     assert(pj->ed == NULL);
-    return pico8_pj_start.ed;
+    return pico8_fixed_from_int(1);
 }
 
 static int is_lq(const void *e) {
@@ -361,7 +361,7 @@ static void test_built(void) {
     }
 
     assert(ju->fa == pico8_fixed_from_int(10));
-    assert(ju->fa == pico8_pj_start.fa);
+    assert(ju->def == &pico8_pj_def && ju->fa == ju->def->fa);
     assert(ed_fixed(ju) == pico8_fixed_from_int(1));
     assert(ju->header.me != NULL && strcmp(ju->header.me, "ph") == 0);
     h = fold_fixed_member(h, ju->header.t);
@@ -370,11 +370,11 @@ static void test_built(void) {
            cls_of(ju)->hk != NULL);
     assert(cls_of(ju)->hd == NULL && cls_of(ju)->ev == NULL);
     h = fold_ref_member(h, pico8_pj_ea());
-    assert(ju->gs == &pico8_pj_gs_row);
-    h = fold_ref_member(h, ju->gs);
+    assert(ju->def->gs == &pico8_pj_gs_row);
+    h = fold_ref_member(h, ju->def->gs);
     h = fold_cr(h, pico8_pj_cr());
-    assert(ju->i_ == &pico8_pj_i__row);
-    h = fold_ref_member(h, ju->i_);
+    assert(ju->def->i_ == &pico8_pj_i__row);
+    h = fold_ref_member(h, ju->def->i_);
     h = fold_ref_member(h, pico8_pj_ou());
     check("built", h, BUILT_HASH);
 }
@@ -389,7 +389,7 @@ static void test_shared(void) {
     const pico8_pj_ea_t *ea;
 
     assert(other != NULL && other != ju);
-    assert(other->gs == ju->gs && other->i_ == ju->i_);
+    assert(other->def == ju->def);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
 
     cls_of(ju)->hb(ju);
@@ -610,7 +610,6 @@ static void test_ou_ea_start_as_their_rows(void) {
     assert(&ou->row != &pico8_pj_ou_row && &pico8_pj_ea()->row != &pico8_pj_ea_row);
     assert(fold_row(0u, &ou->row) == fold_row(0u, &pico8_pj_ou_row));
     assert(fold_row(0u, &pico8_pj_ea()->row) == fold_row(0u, &pico8_pj_ea_row) && pico8_pj_ea()->lh == NULL);
-    assert(pico8_pj_start.ou == &pico8_pj_ou_row && pico8_pj_start.ea == &pico8_pj_ea_row);
     ou->sub_items[0][0] = (pico8_jb_item_t){.s = "written"};
     pico8_pj_ea()->second_items[0] = (pico8_jb_item_t){.s = "year 3425"};
     pico8_pj_ea()->items[2] = (pico8_jb_item_t){.row = &pico8_pj_gs_row};
@@ -646,8 +645,7 @@ static void test_pj_is_a_struct(void) {
     assert(pico8_pj_ready());
     assert(pico8_pj_ou() != NULL && pico8_pj_ea() != NULL && pico8_pj_cr() != NULL);
     assert(pico8_pj_i_() == &pico8_pj_i__row && pico8_pj_gs() == &pico8_pj_gs_row);
-    assert(pico8_pj_i_() == pico8_pj_start.i_ && pico8_pj_gs() == pico8_pj_start.gs);
-    assert(ju->gs == &pico8_pj_gs_row && ju->i_ == &pico8_pj_i__row);
+    assert(ju->def->gs == &pico8_pj_gs_row && ju->def->i_ == &pico8_pj_i__row);
 }
 
 /* `pj.cr` is one static struct without method, holding `hi`,

@@ -203,7 +203,7 @@ static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
 }
 
 static int ie_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_ie_t *)self)->fa;
+    *out = ((const pico8_ie_t *)self)->def->fa;
     return 1;
 }
 
@@ -212,7 +212,7 @@ static const pico8_vec_t *ie_get_ra(const void *self) {
 }
 
 static const pico8_qz_box_t *ie_get_kq(const void *self) {
-    return ((const pico8_ie_t *)self)->kq;
+    return &((const pico8_ie_t *)self)->def->kq;
 }
 
 static void ie_set_m_(void *self, int m_) {
@@ -238,10 +238,8 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
     pico8_ke_struct_init(&self->header, &g_ie_struct_class);
-    self->kq = &pico8_ie_start.kq;
-    self->fa = pico8_ie_start.fa;
-    self->ra = &pico8_ie_start.ra;
-    self->eh = &pico8_ie_start.eh;
+    self->def = &pico8_ie_def;
+    self->ra = &self->def->ra;
     self->ke = NULL;
     self->jb = NULL;
     self->kh = 0;
@@ -266,7 +264,7 @@ void pico8_research_icon_init(void) {
 
     g_ie_up = 1;
     g_ie_gy = NULL;
-    g_ie_id = pico8_ie_start.id;
+    g_ie_id = pico8_fixed_from_int(0);
     g_ie_has_id = 1;
 }
 
@@ -289,7 +287,7 @@ pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys) {
 }
 
 const pico8_vec_t *pico8_ie_eh(void) {
-    return g_ie_up ? &pico8_ie_start.eh : NULL;
+    return g_ie_up ? &pico8_ie_def.eh : NULL;
 }
 
 const pico8_vec_t *pico8_ie_gy(void) {

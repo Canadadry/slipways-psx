@@ -259,7 +259,7 @@ static void *build_icon(const pico8_entity_kind_t *ke, pico8_jb_t *jb) {
 static uint32_t fold_kq(uint32_t h, void *icon) {
     static const int probe[][2] = {{0, 0},  {-1, 0}, {0, -1}, {8, 7},  {9, 8},  {10, 8}, {9, 9},
                                    {-1, -1}, {4, 4},  {8, 0},  {9, 0},  {0, 7},  {0, 8},  {0, 9}};
-    const pico8_qz_box_t *kq = as_ie(icon)->kq;
+    const pico8_qz_box_t *kq = &as_ie(icon)->def->kq;
     size_t i;
 
     assert(kq != NULL);
@@ -269,20 +269,18 @@ static uint32_t fold_kq(uint32_t h, void *icon) {
     return h;
 }
 
-/* A fresh icon: `kq`/`fa`/`ra`/`eh` those of `pico8_ie_start`, ke's `me`/`t`, the two
+/* A fresh icon: its archetype's `kq`/`fa`/`ra`/`eh`, ke's `me`/`t`, the two
  * construction keys, and nothing written by `hb` or the hover loop yet. */
 static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const void *jb) {
     const pico8_ie_t *ie = as_ie(icon);
 
     assert(ie->header.me != NULL && strcmp(ie->header.me, "ph") == 0);
     assert(ie->header.t == 0);
-    assert(ie->fa == pico8_fixed_from_int(12));
-    assert(ie->fa == pico8_ie_start.fa);
-    assert(ie->kq == &pico8_ie_start.kq);
-    assert(ie->ra == &pico8_ie_start.ra);
-    assert(ie->eh == &pico8_ie_start.eh);
+    assert(ie->def == &pico8_ie_def);
+    assert(ie->def->fa == pico8_fixed_from_int(12));
+    assert(ie->ra == &ie->def->ra);
     assert(ie->ra->x == pico8_fixed_from_int(999) && ie->ra->y == pico8_fixed_from_int(999));
-    assert(ie->eh->x == pico8_fixed_from_int(118) && ie->eh->y == pico8_fixed_from_int(120));
+    assert(ie->def->eh.x == pico8_fixed_from_int(118) && ie->def->eh.y == pico8_fixed_from_int(120));
     assert((const void *)ie->ke == ke);
     assert((const void *)ie->jb == jb);
     assert(!ie->has_kh && !ie->has_m_);
@@ -295,10 +293,10 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(!ents_listed(pico8_cv("ev"), icon) && !ents_listed(pico8_cv("hk"), icon));
 
     h = fold_string(h, ie->header.me);
-    h = fold_fixed(h, ie->fa);
+    h = fold_fixed(h, ie->def->fa);
     h = fold_kq(h, icon);
     h = fold_vec(h, ie->ra);
-    h = fold_vec(h, ie->eh);
+    h = fold_vec(h, &ie->def->eh);
     return fold_shared(h, icon);
 }
 
@@ -322,7 +320,7 @@ static void test_construction(void) {
         assert(ie->ke == classes[i]);
         assert(ie->jb != NULL);
         assert(ie->header.me != NULL && strcmp(ie->header.me, "ph") == 0);
-        assert(ie->fa == pico8_fixed_from_int(12));
+        assert(ie->def->fa == pico8_fixed_from_int(12));
         assert(cls_of(all[i])->hd != NULL);
         assert(ents_listed(pico8_hv(), all[i]) && ents_listed(pico8_cv("kj"), all[i]) && ents_listed(pico8_cv("hd"), all[i]));
         assert(!ents_listed(pico8_cv("ev"), all[i]) && !ents_listed(pico8_cv("hk"), all[i]));
@@ -336,9 +334,8 @@ static void test_construction(void) {
     h = check_fresh_icon(h, a, classes[0], jb_a);
     h = check_fresh_icon(h, b, classes[1], jb_b);
     assert(as_ie(a)->ra == as_ie(b)->ra);
-    assert(as_ie(a)->kq == as_ie(b)->kq);
-    assert(as_ie(a)->eh == as_ie(b)->eh);
-    assert(as_ie(a)->kq == as_ie(all[0])->kq);
+    assert(as_ie(a)->def == as_ie(b)->def);
+    assert(as_ie(a)->def == as_ie(all[0])->def);
     assert(icon_rank(a) == 7 && icon_rank(b) == 8);
     check("construction", h, CONSTRUCTION_HASH);
 }
@@ -362,7 +359,7 @@ static void test_start(void) {
     }
     printf("[start] first revealed icon %d\n", first);
     assert(first >= 0);
-    assert(as_ie(all[first])->ra == as_ie(all[first])->eh);
+    assert(as_ie(all[first])->ra == &as_ie(all[first])->def->eh);
     for (i = 0; i < n; i++) {
         if (kh_state(all[i]) != 2) {
             assert(as_ie(all[i])->ra != as_ie(all[first])->ra);
@@ -580,7 +577,7 @@ static void test_restart(void) {
     gy = shared_gy(as_ie(all[0]));
     id = shared_id_fixed(as_ie(all[0]));
     assert(id == pico8_fixed_from_int(1));
-    assert(gy != as_ie(all[0])->eh);
+    assert(gy != &as_ie(all[0])->def->eh);
 
     new_game();
     n = icons(all, 16);
@@ -589,14 +586,14 @@ static void test_restart(void) {
     assert(shared_gy(as_ie(all[0])) != gy);
     for (i = 0; i < n; i++) {
         if (kh_state(all[i]) == 2) {
-            assert(as_ie(all[i])->ra != as_ie(all[i])->eh);
+            assert(as_ie(all[i])->ra != &as_ie(all[i])->def->eh);
         }
         h = fold_icon(h, all[i]);
     }
     h = fold_shared(h, all[0]);
 
     pico8__init();
-    assert(shared_gy(as_ie(all[0])) == as_ie(all[0])->eh);
+    assert(shared_gy(as_ie(all[0])) == &as_ie(all[0])->def->eh);
     assert(shared_id_fixed(as_ie(all[0])) == id);
     h = fold_shared(h, all[0]);
     check("restart", h, RESTART_HASH);

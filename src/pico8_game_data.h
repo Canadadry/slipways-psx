@@ -120,14 +120,6 @@ typedef struct {
 } pico8_ke_start_t;
 
 typedef struct {
-    pico8_vec_t v;
-    pico8_fixed_t ma;
-    pico8_vec_t p;
-    pico8_vec_t ra;
-    const pico8_vec_seq_t *pc;
-} pico8_qb_start_t;
-
-typedef struct {
     const char *me;
     pico8_fixed_t dw;
     const char *dq;
@@ -197,30 +189,6 @@ typedef struct {
     pico8_fixed_t fg;
     const pico8_jb_row_t *rb;
 } pico8_fv_start_t;
-
-typedef struct {
-    pico8_qz_box_t kq;
-    pico8_fixed_t fa;
-    pico8_fixed_t id;
-    pico8_vec_t ra;
-    pico8_vec_t eh;
-} pico8_ie_start_t;
-
-typedef struct {
-    pico8_vec_t hi;
-    pico8_vec_t gq;
-    pico8_fixed_t ca;
-} pico8_pj_cr_start_t;
-
-typedef struct {
-    pico8_fixed_t fa;
-    const pico8_jb_row_t *ea;
-    const pico8_jb_row_t *gs;
-    const pico8_pj_cr_start_t *cr;
-    const pico8_jb_row_t *i_;
-    const pico8_jb_row_t *ou;
-    pico8_fixed_t ed;
-} pico8_pj_start_t;
 
 /* A class's archetype: its defaults resolved along its init chain, ke's
  * `me`/`t` first. A default that is the address of a module's static object
@@ -622,19 +590,14 @@ extern const pico8_jb_row_t pico8_pj_i__row;
 /* pj's ea and ou: the state tables pico8_score_panel_init() builds from them. */
 extern const pico8_jb_row_t pico8_pj_ea_row;
 extern const pico8_jb_row_t pico8_pj_ou_row;
-extern const pico8_pj_cr_start_t pico8_pj_cr_start;
 
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_qb_start_t pico8_qb_start;
 extern const pico8_mz_start_t pico8_mz_start;
 extern const pico8_jc_start_t pico8_jc_start;
 extern const pico8_g__start_t pico8_g__start;
 extern const pico8_fv_start_t pico8_fv_start;
-/* ie's class keys, and the kq, ra, eh every icon points at. */
-extern const pico8_ie_start_t pico8_ie_start;
-extern const pico8_pj_start_t pico8_pj_start;
 extern const pico8_jo_start_t pico8_jo_start;
 extern const pico8_qh_start_t pico8_qh_start;
 extern const pico8_nl_start_t pico8_nl_start;

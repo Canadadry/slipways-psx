@@ -14,13 +14,11 @@
 /* Throughout this module a NULL panel argument is a safe no-op. */
 
 /* TROU-7 */
-/* `gs` points at `pico8_pj_gs_row`, `i_` at `pico8_pj_i__row`. `ed` NULL
- * reads as `pico8_pj_start.ed`, never nil. */
+/* `ed` NULL reads as the class's `ed`, the number 1, never nil. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_pj_def_t *def;
     pico8_fixed_t fa;
-    const pico8_jb_row_t *gs;
-    const pico8_jb_row_t *i_;
     pico8_mh_t *ed;
     int c_;
     int has_c_;
@@ -28,8 +26,7 @@ typedef struct {
     int has_gz;
 } pico8_pj_t;
 
-/* `pj.cr`: no parent, never an entity, and no writer. `hi`, `gq` point at
- * `pico8_pj_cr_start`'s. */
+/* `pj.cr`: no parent, never an entity, and no writer. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_vec_t *hi;

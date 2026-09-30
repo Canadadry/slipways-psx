@@ -13,16 +13,16 @@
  * safe no-op, and a nil (NULL) vector member reads as the zero vector
  * rather than crashing. */
 
-/* `v`, `p` and `ra` start on the vectors of `pico8_qb_start`, which every qb
- * shares, `pc` on `pico8_qb_pc_vecs`: none is ever modified in place, only
- * rebound. Nothing frees the struct: TROU-7. */
+/* `v`, `p` and `ra` start on the vectors of the archetype, which every qb
+ * shares: none is ever modified in place, only rebound. Nothing frees the
+ * struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
+    const pico8_qb_def_t *def;
     const pico8_vec_t *v;
     pico8_fixed_t ma;
     const pico8_vec_t *p;
     const pico8_vec_t *ra;
-    const pico8_vec_seq_t *pc;
 } pico8_qb_t;
 
 /* Calls pico8_pi_init(), and requires pico8_ke_init() to have run --

@@ -91,12 +91,12 @@ static void test_js_defaults_and_ready(void) {
     assert(!pico8_js_ready());
 }
 
-/* `v`, `p` and `ra` are the generated vectors themselves. */
+/* `v`, `p` and `ra` start on the archetype's vectors. */
 static void test_qb_defaults_and_ready(void) {
     pico8_qb_t *qb = pico8_qb_new();
 
-    assert(qb->v == &pico8_qb_start.v && qb->p == &pico8_qb_start.p && qb->ra == &pico8_qb_start.ra);
-    assert(qb->ma == pico8_qb_start.ma && qb->pc == pico8_qb_start.pc && qb->pc == &pico8_qb_pc_vecs);
+    assert(qb->def == &pico8_qb_def && qb->def->pc == &pico8_qb_pc_vecs);
+    assert(qb->v == &qb->def->v && qb->p == &qb->def->p && qb->ra == &qb->def->ra && qb->ma == qb->def->ma);
     assert(qb->header.me == pico8_ke_start.me && qb->header.t == pico8_ke_start.t);
     assert(pico8_qb_ready());
     pico8_qb_shutdown();
@@ -201,34 +201,27 @@ static void test_hp_defaults_and_ready(void) {
     assert(!pico8_hp_ready());
 }
 
-/* `kq`, `ra`, `eh` hold ie's generated box and vectors. */
+/* `ra` starts on the archetype's vector. */
 static void test_ie_defaults_and_ready(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
 
-    assert(ie->kq->xl == pico8_ie_start.kq.xl && ie->kq->yt == pico8_ie_start.kq.yt);
-    assert(ie->kq->xr == pico8_ie_start.kq.xr && ie->kq->yb == pico8_ie_start.kq.yb);
-    assert(ie->fa == pico8_ie_start.fa);
-    assert(ie->ra->x == pico8_ie_start.ra.x && ie->ra->y == pico8_ie_start.ra.y);
-    assert(ie->eh->x == pico8_ie_start.eh.x && ie->eh->y == pico8_ie_start.eh.y);
+    assert(ie->def == &pico8_ie_def && ie->ra == &ie->def->ra);
     assert(ie->header.me == pico8_ke_start.me && ie->header.t == pico8_ke_start.t);
     assert(pico8_ie_ready());
     pico8_research_icon_shutdown();
     assert(!pico8_ie_ready());
 }
 
-/* `ed` absent reads as pj's generated `ed`; `cr` holds pj's generated
- * record. */
+/* `cr` holds the spec's record. */
 static void test_pj_defaults_and_ready(void) {
     pico8_pj_t *pj = pico8_pj_new();
     const pico8_pj_cr_t *cr = pico8_pj_cr();
 
-    assert(pj->fa == pico8_pj_start.fa);
-    assert(pj->gs == pico8_pj_start.gs);
-    assert(pj->i_ == pico8_pj_start.i_);
+    assert(pj->def == &pico8_pj_def && pj->fa == pj->def->fa);
     assert(pj->ed == NULL);
-    assert(cr->hi->x == pico8_pj_start.cr->hi.x && cr->hi->y == pico8_pj_start.cr->hi.y);
-    assert(cr->gq->x == pico8_pj_start.cr->gq.x && cr->gq->y == pico8_pj_start.cr->gq.y);
-    assert(cr->ca == pico8_pj_start.cr->ca);
+    assert(cr->hi->x == 0 && cr->hi->y == pico8_fixed_from_int(11));
+    assert(cr->gq->x == 0 && cr->gq->y == pico8_fixed_from_int(11));
+    assert(cr->ca == pico8_fixed_from_int(10));
     assert(pj->header.me == pico8_ke_start.me && pj->header.t == pico8_ke_start.t);
     assert(pico8_pj_ready());
     pico8_score_panel_shutdown();

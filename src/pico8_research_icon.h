@@ -1,6 +1,7 @@
 #ifndef PICO8_RESEARCH_ICON_H
 #define PICO8_RESEARCH_ICON_H
 
+#include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_gfx.h"
 #include "pico8_ke.h"
@@ -18,16 +19,14 @@
  * read off a `pico8_ie_ke_t`, never through a struct header on the kind
  * pointer. */
 
-/* `kq`, `ra` and `eh` point at `pico8_ie_start`'s, shared by every `ie`;
- * `hb` rebinds `ra` to the cursor. `gy` and `id` are no members: the
+/* `ra` starts on the archetype's, shared by every `ie`; `hb` rebinds it to
+ * the cursor. `gy` and `id` are no members: the
  * module's shared state, read by pico8_ie_gy()/pico8_ie_id(). Nothing frees
  * the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
-    const pico8_qz_box_t *kq;
-    pico8_fixed_t fa;
+    const pico8_ie_def_t *def;
     const pico8_vec_t *ra;
-    const pico8_vec_t *eh;
     const pico8_entity_kind_t *ke;
     pico8_jb_t *jb;
     int kh;
@@ -49,7 +48,7 @@ typedef struct {
 } pico8_ie_ke_t;
 
 /* Calls pico8_research_icon_shutdown(), then pico8_pi_init(); puts `ie.id`
- * back to `pico8_ie_start.id`. */
+ * back to 0. */
 void pico8_research_icon_init(void);
 
 /* Clears `ie.gy`, frees nothing. Idempotent. */
@@ -70,7 +69,7 @@ typedef struct {
  * `lt`, and nothing frees it. */
 pico8_ie_t *pico8_ie_new(const pico8_ie_keys_t *keys);
 
-/* `ie.eh`, `pico8_ie_start.eh`, for `_init` to point `ie.gy` at: an alias,
+/* `ie.eh`, `pico8_ie_def.eh`, for `_init` to point `ie.gy` at: an alias,
  * not a copy. NULL before pico8_research_icon_init() and after the
  * shutdown. */
 const pico8_vec_t *pico8_ie_eh(void);

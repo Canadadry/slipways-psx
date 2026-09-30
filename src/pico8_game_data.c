@@ -285,25 +285,11 @@ static const pico8_jb_item_t pj_ou_items[] = {{.row = &pj_ou_1}, {.row = &pj_ou_
     {.row = &pj_ou_4}, {.row = &pj_ou_5}, {.row = &pj_ou_6}, {.row = &pj_ou_7}};
 const pico8_jb_row_t pico8_pj_ou_row = {.count = 7, .items = pj_ou_items};
 
-const pico8_pj_cr_start_t pico8_pj_cr_start = {
-    .hi = {0x0, 0xb0000},
-    .gq = {0x0, 0xb0000},
-    .ca = 0xa0000,
-};
-
 const char pico8_mz_jj_qs[] = "-too far-";
 
 const pico8_ke_start_t pico8_ke_start = {
     .me = "ph",
     .t = 0x0,
-};
-
-const pico8_qb_start_t pico8_qb_start = {
-    .v = {0x0, 0x0},
-    .ma = 0x0,
-    .p = {0xc00000, 0xc00000},
-    .ra = {0xc00000, 0xc00000},
-    .pc = &pico8_qb_pc_vecs,
 };
 
 const pico8_mz_start_t pico8_mz_start = {
@@ -372,24 +358,6 @@ const pico8_fv_start_t pico8_fv_start = {
     .ql = 0xb0000,
     .fg = 0x50000,
     .rb = &pico8_fv_rb_row,
-};
-
-const pico8_ie_start_t pico8_ie_start = {
-    .kq = {0x0, 0x0, 0x90000, 0x80000},
-    .fa = 0xc0000,
-    .id = 0x0,
-    .ra = {0x3e70000, 0x3e70000},
-    .eh = {0x760000, 0x780000},
-};
-
-const pico8_pj_start_t pico8_pj_start = {
-    .fa = 0xa0000,
-    .ea = &pico8_pj_ea_row,
-    .gs = &pico8_pj_gs_row,
-    .cr = &pico8_pj_cr_start,
-    .i_ = &pico8_pj_i__row,
-    .ou = &pico8_pj_ou_row,
-    .ed = 0x10000,
 };
 
 const pico8_bg_def_t pico8_bg_def = {

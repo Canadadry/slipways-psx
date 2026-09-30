@@ -45,11 +45,11 @@ static pico8_qb_t *pico8_qb_struct_new(void) {
     pico8_qb_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_qb_struct_class);
-    self->v = &pico8_qb_start.v;
-    self->ma = pico8_qb_start.ma;
-    self->p = &pico8_qb_start.p;
-    self->ra = &pico8_qb_start.ra;
-    self->pc = pico8_qb_start.pc;
+    self->def = &pico8_qb_def;
+    self->v = &self->def->v;
+    self->ma = self->def->ma;
+    self->p = &self->def->p;
+    self->ra = &self->def->ra;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("qb");
 #endif
@@ -94,7 +94,7 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self) {
         return;
     }
 
-    pc = self->pc;
+    pc = self->def->pc;
 
     for (b = 0; b <= 3; b++) {
         int btn_p1 = pico8_btn(input, b);

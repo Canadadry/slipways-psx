@@ -64,9 +64,9 @@ static const pico8_struct_class_t g_pj_cr_struct_class = {0};
 
 static pico8_pj_cr_t g_pj_cr = {
     {.cls = &g_pj_cr_struct_class},
-    &pico8_pj_cr_start.hi,
-    &pico8_pj_cr_start.gq,
-    0,
+    &(const pico8_vec_t){0x0, 0xb0000},
+    &(const pico8_vec_t){0x0, 0xb0000},
+    0xa0000,
     NULL,
 };
 
@@ -87,11 +87,11 @@ const pico8_struct_class_t *pico8_pj_cr_struct_class(void) {
 }
 
 const pico8_jb_row_t *pico8_pj_i_(void) {
-    return pico8_pj_start.i_;
+    return pico8_pj_def.i_;
 }
 
 const pico8_jb_row_t *pico8_pj_gs(void) {
-    return pico8_pj_start.gs;
+    return pico8_pj_def.gs;
 }
 
 static void pico8_pj_init_placeholder(pico8_js_t *self) {
@@ -291,9 +291,8 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     assert(g_pj_up && "pico8_score_panel_init() must run first");
     self = malloc(sizeof *self);
     pico8_ke_struct_init(&self->header, &g_pj_struct_class);
-    self->fa = pico8_pj_start.fa;
-    self->gs = pico8_pj_start.gs;
-    self->i_ = pico8_pj_start.i_;
+    self->def = &pico8_pj_def;
+    self->fa = self->def->fa;
     self->ed = NULL;
     self->c_ = 0;
     self->has_c_ = 0;
@@ -328,16 +327,15 @@ void pico8_score_panel_init(void) {
     }
 
     g_pj_up = 1;
-    pj_row_copy(&g_pj_ou.row, g_pj_ou.items, 7, pico8_pj_start.ou);
+    pj_row_copy(&g_pj_ou.row, g_pj_ou.items, 7, &pico8_pj_ou_row);
     for (i = 0; i < g_pj_ou.row.count; i++) {
-        pj_row_copy(&g_pj_ou.subs[i], g_pj_ou.sub_items[i], 4, pico8_pj_start.ou->items[i].row);
+        pj_row_copy(&g_pj_ou.subs[i], g_pj_ou.sub_items[i], 4, pico8_pj_ou_row.items[i].row);
         g_pj_ou.items[i].row = &g_pj_ou.subs[i];
     }
-    pj_row_copy(&g_pj_ea.row, g_pj_ea.items, 3, pico8_pj_start.ea);
-    pj_row_copy(&g_pj_ea.second, g_pj_ea.second_items, 5, pico8_pj_start.ea->items[1].row);
+    pj_row_copy(&g_pj_ea.row, g_pj_ea.items, 3, &pico8_pj_ea_row);
+    pj_row_copy(&g_pj_ea.second, g_pj_ea.second_items, 5, pico8_pj_ea_row.items[1].row);
     g_pj_ea.items[1].row = &g_pj_ea.second;
     g_pj_ea.lh = NULL;
-    g_pj_cr.ca = pico8_pj_start.cr->ca;
     g_pj_cr.ep = NULL;
 
     pico8_score_panel_set_init(NULL);

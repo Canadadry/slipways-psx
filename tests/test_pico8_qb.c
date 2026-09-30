@@ -148,7 +148,7 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     assert(mo->header.me != NULL && strcmp(mo->header.me, "ph") == 0);
     assert(mo->p != mo->ra);
 
-    pc = mo->pc;
+    pc = mo->def->pc;
     assert(pc != NULL);
     assert(pc == &pico8_qb_pc_vecs && pc->count == 4);
     assert(is_vec(pc->items[0], -1, 0));
