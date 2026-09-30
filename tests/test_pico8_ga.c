@@ -130,14 +130,6 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
 
-/* A pointer that carried no tag: the frozen hashes fold 0. */
-static uint32_t fold_untagged(uint32_t h, const void *p) {
-    if (p == NULL) {
-        return fnv(h, 0xDEADu);
-    }
-    return fnv(fnv(h, 0xEEEEu), 0u);
-}
-
 /* A NULL ref folds as absent. */
 static uint32_t fold_ref_member(uint32_t h, const void *ref) {
     return ref == NULL ? fold_absent(h) : fold_ref(fnv(h, 1u), ref);
@@ -463,9 +455,8 @@ static uint32_t fold_tuple(uint32_t h, const pico8_jb_row_t *t) {
             h = fold_string(h, item->s);
         } else if (item->is_false) {
             h = fold_bool(h, 0);
-        } else if (item->is_ref) {
-            h = fold_untagged(h, item->ref);
         } else {
+            assert(!item->is_ref && "no test folds a tuple item that points: to fold one, fold 0xDEAD if NULL, else 0xEEEE then 0, as the frozen hashes did");
             h = fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
         }
     }
@@ -520,10 +511,7 @@ static uint32_t fold_lq(uint32_t h, void *e) {
         h = fold_fixed(fnv_str(h, "score"), lq->score);
         n++;
     }
-    if (lq->ra != NULL) {
-        h = fold_untagged(fnv_str(h, "ra"), lq->ra);
-        n++;
-    }
+    assert(lq->ra == NULL && "no test folds an lq whose ra is set: to fold one, fold the key \"ra\", then 0xEEEE then 0, count it in n, as the frozen hashes did");
     /* As fold_ref folded the tagged list `fs` was: never in `hv`, so the tag branch. */
     h = fnv(fnv(fnv_str(h, "fs"), 0xEEEEu), FROZEN_LIST_TAG);
     h = fold_fixed(fnv_str(h, "w"), lq->w);

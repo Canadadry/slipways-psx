@@ -102,15 +102,6 @@ static uint32_t fold_string(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-/* Items fold as untagged pointers (0); this TU folds no non-NULL one. */
-static uint32_t fold_ref(uint32_t h, const void *ref) {
-    h = fnv(h, (uint32_t)REF_KIND);
-    if (ref == NULL) {
-        return fnv(h, 0xDEADu);
-    }
-    return fnv(h, 0u);
-}
-
 /* The frozen hashes were taken when tuples were ob tables: these are the
  * bytes a table folded for its tag and its two kinds of key. */
 enum { VIEW_TAG = 0x9E5C0B7Au, VIEW_INDEX_KEY = 0, VIEW_NAME_KEY = 1 };
@@ -126,9 +117,7 @@ static uint32_t fold_tuple_item(uint32_t h, const pico8_jb_item_t *item) {
     if (item->is_false) {
         return fold_bool(h, 0);
     }
-    if (item->is_ref) {
-        return fold_ref(h, item->ref);
-    }
+    assert(!item->is_ref && "no test folds a tuple item that points (row, lq, vector): to fold one, fold REF_KIND then 0xDEAD if NULL, else 0 with no rank, as the frozen hashes did");
     return fold_fixed(h, item->is_fixed ? item->fixed : pico8_fixed_from_int(item->n));
 }
 
