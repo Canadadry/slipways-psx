@@ -18,6 +18,8 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_mouse_reader.h"
 #include "../src/pico8_msgbox.h"
+#include "../src/pico8_planet.h"
+#include "../src/pico8_planet_family.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
@@ -40,6 +42,17 @@ static void same(int ok, const char *what) {
     }
     assert(ok);
     g_compared++;
+}
+
+static void same_in(int ok, const char *kind, const char *field) {
+    char what[32];
+
+    snprintf(what, sizeof what, "%s.%s", kind, field);
+    same(ok, what);
+}
+
+static int same_kw(const pico8_kw_t *got, const pico8_kw_t *want) {
+    return got->has_qe == want->has_qe && got->qe == want->qe && got->mu == want->mu;
 }
 
 static int same_text(const char *got, const char *want) {
@@ -292,6 +305,86 @@ static void test_fv(void) {
     assert(fv->g_.probe->et == NULL);
 }
 
+/* `kw_own`, `kw` and `by` are left to each kind's test. */
+static void same_jo_part(const pico8_jo_t *jo, const pico8_jo_def_t *def, const char *kind) {
+    same_in(same_text(jo->header.me, def->me), kind, "me");
+    same_in(jo->header.t == def->t, kind, "t");
+    same_in(jo->hf == def->hf, kind, "hf");
+    same_in(jo->hs == def->hs, kind, "hs");
+    same_in(jo->fa == def->fa, kind, "fa");
+    same_in(same_box(jo->kq, &def->kq), kind, "kq");
+    same_in(jo->ma == def->ma, kind, "ma");
+    same_in(jo->ka == def->ka, kind, "ka");
+    same_in(jo->dz == def->dz, kind, "dz");
+    same_in(jo->cq == def->cq, kind, "cq");
+    same_in(same_vec(jo->gq, &def->gq), kind, "gq");
+    same_in(jo->ca == def->ca, kind, "ca");
+    same_in(jo->em == def->em, kind, "em");
+    same_in(jo->mi == def->mi, kind, "mi");
+    same_in(jo->has_mi == def->has_mi, kind, "has_mi");
+}
+
+static void same_qh_part(const pico8_qh_t *qh, const pico8_jo_def_t *def, const char *kind) {
+    same_in(qh->hp == def->hp, kind, "hp");
+    same_in(qh->px == def->px, kind, "px");
+    same_in(qh->qh == def->qh, kind, "qh");
+    same_in(qh->s == def->s, kind, "s");
+    same_in(qh->ba == def->ba, kind, "ba");
+    same_in(qh->probe->dw == def->probe.dw, kind, "probe.dw");
+    same_in(qh->probe->od == def->probe.od, kind, "probe.od");
+    same_in(qh->probe->has_od == def->probe.has_od, kind, "probe.has_od");
+    same_in(same_text_or_nil(qh->probe->dq, def->probe.dq), kind, "probe.dq");
+    same_in(qh->probe->fp == def->probe.fp, kind, "probe.fp");
+    same_in(qh->probe->ik == def->probe.ik, kind, "probe.ik");
+    same_in(qh->probe->has_ik == def->probe.has_ik, kind, "probe.has_ik");
+    assert(qh->probe->et == NULL);
+    assert(qh->jo.by == NULL);
+}
+
+/* A kind of the qh tree has an `hp`: its `_new` runs `lz`, which rewrites
+ * `kw_own` from that research and points `kw` at it. Its `kw_own` is
+ * compared on jo only. */
+static void assert_lz_ran(const pico8_jo_t *jo) {
+    assert(jo->hn != NULL && jo->kw == &jo->kw_own);
+}
+
+/* `kw` is the module's shared kw, not the archetype's. */
+static void test_jo(void) {
+    const pico8_jo_t *jo = pico8_jo_new(NULL);
+
+    same_jo_part(jo, &pico8_jo_def, "jo");
+    same_in(same_kw(&jo->kw_own, &pico8_jo_def.kw_own), "jo", "kw_own");
+    assert(jo->kw == pico8_jo_shared_kw());
+    assert(jo->by == NULL);
+}
+
+static void test_qh(void) {
+    const pico8_qh_t *qh = pico8_qh_new(NULL);
+
+    same_jo_part(&qh->jo, &pico8_qh_def, "qh");
+    same_qh_part(qh, &pico8_qh_def, "qh");
+    assert_lz_ran(&qh->jo);
+}
+
+static void test_nl(void) {
+    const pico8_nl_t *nl = pico8_nl_new(NULL);
+
+    same_jo_part(&nl->qh.jo, &pico8_nl_def, "nl");
+    same_qh_part(&nl->qh, &pico8_nl_def, "nl");
+    same_in(same_text(nl->rr, pico8_nl_def.rr), "nl", "rr");
+    same_in(nl->nl == pico8_nl_def.nl, "nl", "nl");
+    same_in(nl->qw == pico8_nl_def.qw, "nl", "qw");
+    assert_lz_ran(&nl->qh.jo);
+}
+
+static void test_os(void) {
+    const pico8_os_t *os = pico8_os_new(NULL);
+
+    same_jo_part(&os->qh.jo, &pico8_os_def, "os");
+    same_qh_part(&os->qh, &pico8_os_def, "os");
+    assert_lz_ran(&os->qh.jo);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -320,7 +413,11 @@ int main(void) {
     test_jc();
     test_g_();
     test_fv();
-    assert(g_compared == 131 && "families a to c compare 131 fields: one missed or one too many");
+    test_jo();
+    test_qh();
+    test_nl();
+    test_os();
+    assert(g_compared == 231 && "families a to d compare 231 fields: one missed or one too many");
 
     printf("test_pico8_archetype_chain: all tests passed\n");
     return 0;

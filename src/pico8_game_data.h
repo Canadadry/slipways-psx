@@ -409,6 +409,45 @@ typedef struct {
     pico8_probe_def_t probe;
 } pico8_g__def_t;
 
+/* The ten planet kinds share this type; a kind's value leaves at zero the
+ * members of the kinds it does not descend from. `kw`, and ga's `by`, point
+ * at objects their module owns: not here. */
+typedef struct {
+    const char *me;
+    pico8_fixed_t t;
+    int hf;
+    pico8_fixed_t hs;
+    pico8_fixed_t fa;
+    pico8_qz_box_t kq;
+    pico8_fixed_t ma;
+    const pico8_int_seq_t *ka;
+    const pico8_jb_row_t *dz; /* PICO8_JO_DZ_COUNT rows */
+    const pico8_int_seq_t *cq;
+    pico8_vec_t gq;
+    pico8_fixed_t ca;
+    const pico8_jb_row_t *em;
+    pico8_fixed_t mi;
+    int has_mi;
+    pico8_kw_t kw_own;
+    pico8_fixed_t hp;
+    const pico8_jb_row_t *px;
+    int qh;
+    pico8_fixed_t s;
+    const pico8_int_seq_t *ba;
+    const char *rr;
+    pico8_fixed_t nl;
+    pico8_fixed_t qw;
+    pico8_vec_t ng;
+    const char *fz;
+    pico8_fixed_t iu;
+    pico8_fixed_t ms;
+    const pico8_int_seq_t *hz;
+    pico8_fixed_t mt;
+    const pico8_int_seq_t *ht;
+    pico8_probe_def_t probe;
+    pico8_emitter_def_t emitter;
+} pico8_jo_def_t;
+
 /* The jo tree: each class's own keys only, the inherited ones are its parent's;
  * ga.by, an empty state list, is held by its module. */
 typedef struct {
@@ -670,6 +709,10 @@ extern const pico8_mz_def_t pico8_mz_def;
 extern const pico8_jc_def_t pico8_jc_def;
 extern const pico8_g__def_t pico8_g__def;
 extern const pico8_g__def_t pico8_fv_def;
+extern const pico8_jo_def_t pico8_jo_def;
+extern const pico8_jo_def_t pico8_qh_def;
+extern const pico8_jo_def_t pico8_nl_def;
+extern const pico8_jo_def_t pico8_os_def;
 extern const pico8_kind_rec_t pico8_qh_kind_rec;
 extern const pico8_kind_rec_t pico8_nl_kind_rec;
 extern const pico8_kind_rec_t pico8_os_kind_rec;
