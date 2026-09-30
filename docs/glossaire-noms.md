@@ -106,7 +106,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `gd(e)` | `pico8_gd` | `e` est-elle dans les 128px visibles de la caméra |
 | `na(self,t)` | `pico8_na` | flottement vertical, mute `ra.y` en place |
 | `ma(p,e)` | `pico8_ma` | fait décroître le halo de `e` et décale `p` d'un vecteur polaire |
-| `ij(p,j_)` | `pico8_ij` ; `pico8_ij_ents` sur `mz.ox` | plus proche voisin : rend la distance au carré et l'entité |
+| `ij(p,j_)` | `pico8_ij_ents` (sur `cg` et `mz.ox`) ; plus de version `pico8_ptrs_t` | plus proche voisin : rend la distance au carré et l'entité |
 | `mo` | `pico8_mo`, `pico8_mo_qb()` | la caméra (instance `qb`) ; `pico8_mo_qb()` la rend typée, NULL sur le remplaçant d'avant `jl()` |
 | `mp`, `rp` | — | les deux positions de souris passées à `hd`/`gk` : monde et écran. `fa >= 10` décide laquelle sert |
 
@@ -284,7 +284,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `mw(o)` | — | copie superficielle ; celle d'un besoin par `jo:lz` copie le `pico8_jy_t` |
 | `gu(qk,kb)` | `pico8_ents_has` (listes d'entités, identité de pointeur) ; plus de version `pico8_ptrs_t` | `kb` est-il dans le conteneur `qk` (identité de pointeur) |
 | — | `pico8_gu_content_ptrs` | appartenance d'une chaîne à un `pico8_ptrs_t` de chaînes (`hy.invented`), comparée par contenu ; nécessaire parce que ce port n'interne pas les chaînes, contrairement à Lua (TROU-3) |
-| `jp(qk,ow)` | `pico8_jp_ptrs` ; écrit au site sur une table statique (`cb`, `bj`) | filtre |
+| `jp(qk,ow)` | `pico8_jp_ptrs` (enregistrements `jy`) ; `pico8_jp_ents` sur les listes d'entités ; écrit au site sur une table statique (`cb`, `bj`) | filtre |
 | `nv(qk,kp)` | `pico8_nv_ptrs` ; écrit au site dans `lq:pq` (`fs`) | applique `kp`, en ignorant les résultats faux |
 | — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; `collect` n'a plus de version à valeur |
 | `la(a,b)` | `pico8_la_ptrs` ; `pico8_ents_cat` sur les listes d'entités | concatène deux conteneurs de pointeurs |
@@ -655,8 +655,8 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | L'inverse, pour les chaînes construites | `tostr`, `sub` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
 | Le tag de type | Retiré : l'en-tête d'entité (`pico8_struct_header_t`) ne porte que `cls`, à l'offset 0, et les `assert` d'entrée testent la classe (`->cls == &g_X_struct_class`), ou s'en remettent au type C du pointeur et à l'écrivain unique des registres (`hv`, `cv`, `cg` : `pico8_lt`). Piège : une confusion de représentation a produit quatre débordements de tas ; sans mot de tête, lire `->cls` sur un non-entité (un `pico8_vec_t` de 8 octets) lit **dans** l'objet, et ASan ne le voit plus |
 | Les primitives de liste | `add` → `pico8_ptrs_add`, `del` → `pico8_ptrs_del` (supprime le premier élément **identique**, pas par index), `all` → `pico8_ptrs_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_ptrs_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
-| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient le registre `cg` et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.jy`, `hp.i` |
-| Le conteneur d'entités | `pico8_ents_t` (`pico8_ents.h`) : `add`/`del`/`has`/`cat`/`all` sur des `pico8_struct_header_t *` ; tient `trade.lp`, `trade.rl`, `jo.oe`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), l'`ib` d'une proposition, `ui.le`, `mz.ox`, les registres `hv`, `cv`, `ui.ic` et les calques de `dc` |
+| Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.jy`, `hp.i` |
+| Le conteneur d'entités | `pico8_ents_t` (`pico8_ents.h`) : `add`/`del`/`has`/`cat`/`jp`/`all` sur des `pico8_struct_header_t *` ; tient `trade.lp`, `trade.rl`, `jo.oe`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), l'`ib` d'une proposition, `ui.le`, `mz.ox`, les registres `hv`, `cv`, `ui.ic`, `cg` et les calques de `dc` |
 
 ### Mise en page
 

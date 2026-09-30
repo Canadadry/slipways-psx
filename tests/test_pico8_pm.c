@@ -68,16 +68,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -88,8 +78,8 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 static uint32_t fold_absent(uint32_t h) {
@@ -422,9 +412,9 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(listed(pico8_cg("jo"), e) && !listed(pico8_cg("qh"), e) && !listed(pico8_cg("hj"), e));
+    assert(ents_listed(pico8_cg("jo"), e) && !ents_listed(pico8_cg("qh"), e) && !ents_listed(pico8_cg("hj"), e));
     return fold_spawned(h, e);
 }
 
@@ -555,7 +545,7 @@ static void test_pm_is_a_struct(void) {
 
     start_game();
     a = build_protostar(&p, &ra, "s77");
-    assert(is_a_pm_struct(a) && cls != hj && listed(pico8_cg("jo"), a) && !listed(pico8_cg("hj"), a));
+    assert(is_a_pm_struct(a) && cls != hj && ents_listed(pico8_cg("jo"), a) && !ents_listed(pico8_cg("hj"), a));
     assert_qh_shape(cls);
     assert_members_of(cls, hj, 1, 1);
     assert(cls->kf == hj->kf && cls->cn == hj->cn && cls->mm == hj->mm);
@@ -563,7 +553,7 @@ static void test_pm_is_a_struct(void) {
     {
         pico8_pm_t *bare = pico8_pm_new(NULL);
         assert(is_a_pm_struct(bare) && bare->hj.qh.jo.id == NULL && bare->hj.qh.jo.ra == NULL &&
-               bare->hj.qh.jo.oe != NULL && ptrs_size(bare->hj.emitter->qy) == 0 && listed(pico8_cg("jo"), bare));
+               bare->hj.qh.jo.oe != NULL && ptrs_size(bare->hj.emitter->qy) == 0 && ents_listed(pico8_cg("jo"), bare));
     }
 }
 

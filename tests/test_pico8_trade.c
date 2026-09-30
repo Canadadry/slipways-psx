@@ -203,7 +203,7 @@ static pico8_trade_t *route(pico8_ents_t *lp, pico8_ents_t *rl, int has_qe, int 
 }
 
 static void *planet(int i) {
-    const pico8_ptrs_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("jo");
     assert(jo != NULL && i < jo->count);
     return jo->items[i];
 }
@@ -213,7 +213,7 @@ static void *planet(int i) {
  * first route: the first element of `by` on the first planet of `cg.jo`
  * that exports. */
 static pico8_trade_t *game_route(void) {
-    const pico8_ptrs_t *jo;
+    const pico8_ents_t *jo;
     void *qu;
     void *re = NULL;
     int i;

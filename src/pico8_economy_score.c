@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
 #include "pico8_game_data.h"
@@ -22,14 +21,14 @@ static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_ptrs_t *list = pico8_cg(tag);
-    pico8_ptrs_iter_t it;
-    void *e;
+    const pico8_ents_t *list = pico8_cg(tag);
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *e;
     if (list == NULL) {
         return;
     }
-    it = pico8_ptrs_all(list);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    it = pico8_ents_all(list);
+    while (pico8_ents_iter_next(&it, &e)) {
         if (e != NULL) {
             fn(e, ctx);
         }
@@ -48,7 +47,7 @@ pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
     const pico8_qh_t *qh = pico8_qh_of(pt);
 
     if (qh != NULL && qh->qh) {
-        const pico8_ptrs_t *qh_list = pico8_cg("qh");
+        const pico8_ents_t *qh_list = pico8_cg("qh");
         return pico8_fixed_from_int(qh_list != NULL ? qh_list->count : 0);
     }
     if (call_gg_truthy(pt)) {
@@ -62,7 +61,7 @@ pico8_fixed_t pico8_da(pico8_struct_header_t *pt) {
     return pico8_fixed_from_int(0);
 }
 
-static int cz_predicate(void *e, void *ctx) {
+static int cz_predicate(pico8_struct_header_t *e, void *ctx) {
     (void)ctx;
     if (e == NULL) {
         return 0;
@@ -71,11 +70,11 @@ static int cz_predicate(void *e, void *ctx) {
 }
 
 pico8_fixed_t pico8_cz(void) {
-    const pico8_ptrs_t *jo_list = pico8_cg("jo");
-    pico8_ptrs_t filtered = pico8_jp_ptrs(jo_list, cz_predicate, NULL);
+    const pico8_ents_t *jo_list = pico8_cg("jo");
+    pico8_ents_t filtered = pico8_jp_ents(jo_list, cz_predicate, NULL);
     int mu = filtered.count;
     pico8_fixed_t result;
-    pico8_ptrs_free(&filtered);
+    pico8_ents_free(&filtered);
     result = pico8_fixed_mul(PICO8_FIXED_LIT(0x00002e14, 0.18), pico8_fixed_from_int(mu * mu));
     return pico8_fixed_flr(result);
 }

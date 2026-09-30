@@ -47,14 +47,14 @@ void pico8_qe_map_set(pico8_qe_map_t *map, pico8_fixed_t qe, pico8_fixed_t v) {
 typedef void (*cg_visit_fn)(pico8_struct_header_t *e, void *ctx);
 
 static void for_each_cg(const char *tag, cg_visit_fn fn, void *ctx) {
-    const pico8_ptrs_t *list = pico8_cg(tag);
-    pico8_ptrs_iter_t it;
-    void *e;
+    const pico8_ents_t *list = pico8_cg(tag);
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *e;
     if (list == NULL) {
         return;
     }
-    it = pico8_ptrs_all(list);
-    while (pico8_ptrs_iter_next(&it, &e)) {
+    it = pico8_ents_all(list);
+    while (pico8_ents_iter_next(&it, &e)) {
         if (e != NULL) {
             fn(e, ctx);
         }
@@ -141,7 +141,7 @@ pico8_fixed_t pico8_dj(const pico8_struct_header_t *pb, const pico8_struct_heade
 }
 
 pico8_fixed_t pico8_bk(void) {
-    const pico8_ptrs_t *jc = pico8_cg("jc");
+    const pico8_ents_t *jc = pico8_cg("jc");
     int count = (jc != NULL) ? jc->count : 0;
     pico8_fixed_t sq = pico8_fixed_sqrt(pico8_fixed_from_int(count));
     pico8_fixed_t val = pico8_fixed_sub(pico8_fixed_mul(sq, PICO8_FIXED_LIT(0x0000451e, 0.27)), PICO8_FIXED_LIT(0x00001999, 0.1));

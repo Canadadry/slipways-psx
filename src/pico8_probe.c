@@ -13,7 +13,6 @@
 #include "pico8_gfx.h"
 #include "pico8_hud.h"
 #include "pico8_audio.h"
-#include "pico8_collect.h"
 #include "pico8_ke.h"
 #include "pico8_particle.h"
 #include "pico8_planet.h"
@@ -48,7 +47,7 @@ typedef struct {
     pico8_vec_t self_p;
 } pico8_bv_ctx_t;
 
-static int pico8_bv_jc_predicate(void *e, void *ctx_ptr) {
+static int pico8_bv_jc_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
     const pico8_bv_ctx_t *ctx = (const pico8_bv_ctx_t *)ctx_ptr;
     const pico8_jc_t *sw;
     pico8_vec_t qu_p;
@@ -57,8 +56,8 @@ static int pico8_bv_jc_predicate(void *e, void *ctx_ptr) {
     if (e == NULL) {
         return 0;
     }
-    assert(((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
-    sw = e;
+    assert(e->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
+    sw = (const pico8_jc_t *)e;
 
     qu_p = pico8_jc_end_p(sw->qu);
     re_p = pico8_jc_end_p(sw->re);
@@ -162,7 +161,7 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     probe_host_set_ra_p(self, mp, p_heap);
 
     c = NULL;
-    nq = pico8_ij(p_vec, pico8_cg("np"), &c);
+    nq = pico8_ij_ents(p_vec, pico8_cg("np"), &c);
 
     et = NULL;
 
@@ -170,17 +169,17 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         et = c;
     } else {
         pico8_bv_ctx_t ctx;
-        pico8_ptrs_t filtered;
+        pico8_ents_t filtered;
         int have_first = 0;
         pico8_struct_header_t *first = NULL;
 
         ctx.self_p = p_vec;
-        filtered = pico8_jp_ptrs(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
+        filtered = pico8_jp_ents(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;
         }
-        pico8_ptrs_free(&filtered);
+        pico8_ents_free(&filtered);
 
         if (have_first && first != NULL) {
             et = first;

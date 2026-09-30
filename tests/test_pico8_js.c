@@ -93,20 +93,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -486,7 +472,7 @@ static pico8_hp_t *project(int k) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle; returns the colony. */
 static void *built_world(void) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -734,7 +720,7 @@ static void test_dk(void) {
 
     for (i = 1; i <= 4; i++) {
         void *nj;
-        const pico8_ptrs_t *jo;
+        const pico8_ents_t *jo;
         int j;
 
         start_title();
@@ -1500,7 +1486,7 @@ static uint32_t members_fe(void) {
             pt = b->_jo_fe_pt;
         }
         assert(b->_jo_fe_pt == pt);
-        assert(is_of_class(pt, pico8_jo_struct_class()) && listed(pico8_cg("jo"), pt));
+        assert(is_of_class(pt, pico8_jo_struct_class()) && ents_listed(pico8_cg("jo"), pt));
         assert(b->_jo_fe_b != NULL && is_of_class(b->_jo_fe_b, pico8_hp_struct_class()));
         assert(b->has__jo_fe_od);
         assert(b->my != NULL);

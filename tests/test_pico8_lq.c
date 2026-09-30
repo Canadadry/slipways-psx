@@ -645,7 +645,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * hovered planet off `ok.o_`), left to settle; then the colony's panel,
  * `jo:gh`, up and drawn. */
 static void built_planet_panel(void) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;

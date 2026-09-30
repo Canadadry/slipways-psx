@@ -80,6 +80,23 @@ pico8_ents_t pico8_ents_cat(const pico8_ents_t *a, const pico8_ents_t *b) {
     return out;
 }
 
+pico8_ents_t pico8_jp_ents(const pico8_ents_t *qk, pico8_jp_ents_predicate_fn ow, void *ctx) {
+    pico8_ents_t f;
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *e;
+    pico8_ents_init(&f);
+    if (qk == NULL) {
+        return f;
+    }
+    it = pico8_ents_all(qk);
+    while (pico8_ents_iter_next(&it, &e)) {
+        if (ow(e, ctx)) {
+            pico8_ents_add(&f, e);
+        }
+    }
+    return f;
+}
+
 pico8_ents_iter_t pico8_ents_all(const pico8_ents_t *ents) {
     pico8_ents_iter_t it;
     assert(ents != NULL && "ents primitive called on a NULL container");

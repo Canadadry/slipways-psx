@@ -69,16 +69,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -87,10 +77,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -358,7 +344,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
     return h;
 }
@@ -658,7 +644,7 @@ static void test_qh_is_a_struct(void) {
 
     start_game();
     a = build_lab();
-    assert(is_a_qh_struct(a) && listed(pico8_cg("qh"), a));
+    assert(is_a_qh_struct(a) && ents_listed(pico8_cg("qh"), a));
     assert(pico8_da(a) == pico8_fixed_from_int(pico8_cg("qh")->count));
     assert(cls->kf == pico8_jo_struct_class()->kf && cls->cn == pico8_jo_struct_class()->cn);
     assert_qh_shape(cls);
@@ -672,7 +658,7 @@ static void test_qh_is_a_struct(void) {
     must_abort(build_with_unknown_key, NULL);
     {
         pico8_qh_t *bare = pico8_qh_new(NULL);
-        assert(is_a_qh_struct(bare) && bare->jo.id == NULL && bare->jo.oe != NULL && listed(pico8_cg("qh"), bare));
+        assert(is_a_qh_struct(bare) && bare->jo.id == NULL && bare->jo.oe != NULL && ents_listed(pico8_cg("qh"), bare));
     }
     for (i = 0; i < sizeof descendants / sizeof descendants[0]; i++) {
         pico8_jo_keys_t keys;

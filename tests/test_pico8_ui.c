@@ -89,16 +89,6 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -107,10 +97,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -239,7 +225,7 @@ static int placed(void *e) {
 
 /* The planet of `cg.jo` nearest to `qu`, among those with a `p`. */
 static void *nearest_to(void *qu) {
-    const pico8_ptrs_t *jos = pico8_cg("jo");
+    const pico8_ents_t *jos = pico8_cg("jo");
     void *re = NULL;
     int i;
 
@@ -298,7 +284,7 @@ static void test_built(void) {
         assert(!ents_listed(pico8_cv(not_listed[i]), ok));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        assert(!listed(pico8_cg(tags[i]), ok));
+        assert(!ents_listed(pico8_cg(tags[i]), ok));
     }
 
     assert(ok->ql == pico8_fixed_from_int(58));
@@ -379,7 +365,7 @@ static void test_fresh(void) {
 
 /* The first planet of `cg.jo` whose screen position is well inside. */
 static pico8_jo_t *planet_on_screen(int *sx, int *sy) {
-    const pico8_ptrs_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("jo");
     pico8_vec_t cam = vec_at(mo_qb()->ra);
     int i;
 
@@ -390,7 +376,7 @@ static pico8_jo_t *planet_on_screen(int *sx, int *sy) {
         if (x >= 16 && x <= 112 && y >= 16 && y <= 112) {
             *sx = x;
             *sy = y;
-            return jo->items[i];
+            return (pico8_jo_t *)jo->items[i];
         }
     }
     assert(0 && "no planet on screen");
@@ -525,7 +511,7 @@ static int on_screen(void *e) {
  * other, `ey` gets that planet and `lheld` goes. */
 static void test_left(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     pico8_ui_t *ok;
     void *held;
     void *origin = NULL;

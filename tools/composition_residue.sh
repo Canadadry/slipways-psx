@@ -97,8 +97,11 @@ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 # son ecrivain : emitter.qy des particules (particle.c:65), le ji du contexte
 # de planet_display.c des enregistrements jy (:79, :186) ; pico8_nv_ptrs sur
 # hp.i (planet.c:319), pico8_gu_content_ptrs sur des chaines (tech_gate.c:26),
-# pico8_jo_ex sur des enregistrements jy (planet_display.c:54).
-REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex"
+# pico8_jo_ex sur des enregistrements jy (planet_display.c:54) ;
+# pico8_jp_ptrs et pico8_la_ptrs sur des enregistrements jy (planet_display.c:186,
+# planet_trade.c:128), les listes d'entites passant par pico8_jp_ents et
+# pico8_ents_cat.
+REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex pico8_jp_ptrs pico8_la_ptrs"
 
 # En-tetes du noyau, par nom de fichier : noyau-inclut ne lit qu'eux.
 NOYAU="pico8_struct.h pico8_ke.h pico8_entity.h"

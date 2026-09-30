@@ -73,16 +73,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -91,10 +81,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -378,9 +364,9 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(listed(pico8_cg("nr"), e) && !listed(pico8_cg("jo"), e) && !listed(pico8_cg("qh"), e));
+    assert(ents_listed(pico8_cg("nr"), e) && !ents_listed(pico8_cg("jo"), e) && !ents_listed(pico8_cg("qh"), e));
     return h;
 }
 
@@ -528,7 +514,7 @@ static void test_life(void) {
     bare = pico8_nr_new(NULL);
     assert(gate_kind(bare) == NR && as_qh(bare)->jo.id == NULL && as_qh(bare)->jo.oe != NULL &&
            as_qh(bare)->jo.kw != NULL);
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("nr"), bare));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("nr"), bare));
     {
         pico8_jo_keys_t keys;
         pico8_vec_t *p = vec_ref(vec_xy(3, 4));
@@ -560,7 +546,7 @@ static void test_nr_is_a_struct(void) {
 
     start_game();
     a = build_slipgate();
-    assert(is_an_nr_struct(a) && cls != qh && listed(pico8_cg("nr"), a));
+    assert(is_an_nr_struct(a) && cls != qh && ents_listed(pico8_cg("nr"), a));
     assert(cls->cn != qh->cn && cls->kf == qh->kf && cls->hq == qh->hq && cls->ey == qh->ey && cls->mm == qh->mm);
     assert_qh_shape(cls);
     assert(cls->kj == qh->kj && cls->ev == qh->ev && cls->hd == qh->hd && cls->hk == qh->hk);

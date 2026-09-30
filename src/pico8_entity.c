@@ -6,7 +6,6 @@
 
 #include "pico8_dispatch_context.h"
 #include "pico8_game_data.h"
-#include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
 
@@ -24,7 +23,7 @@ static pico8_cv_entry_t g_cv[PICO8_BM_COUNT];
  * pico8_entity_init(); until then pico8_cg() returns NULL for it. */
 typedef struct {
     int seen;
-    pico8_ptrs_t list;
+    pico8_ents_t list;
 } pico8_cg_entry_t;
 
 static pico8_cg_entry_t g_cg[PICO8_TAG_COUNT];
@@ -60,7 +59,7 @@ void pico8_entity_shutdown(void) {
     }
 
     for (i = 0; i < PICO8_TAG_COUNT; i++) {
-        pico8_ptrs_free(&g_cg[i].list);
+        pico8_ents_free(&g_cg[i].list);
         g_cg[i].seen = 0;
     }
 
@@ -130,7 +129,7 @@ int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return 1;
 }
 
-const pico8_ptrs_t *pico8_cg(const char *tag) {
+const pico8_ents_t *pico8_cg(const char *tag) {
     int t = pico8_tag_named(tag);
     return t >= 0 && g_cg[t].seen ? &g_cg[t].list : NULL;
 }
@@ -149,7 +148,7 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
     for (i = 0; i < PICO8_TAG_COUNT; i++) {
         if (e->cls->tags & PICO8_TAG(i)) {
             g_cg[i].seen = 1;
-            pico8_ptrs_add(&g_cg[i].list, e);
+            pico8_ents_add(&g_cg[i].list, e);
         }
     }
 
@@ -175,7 +174,7 @@ void pico8_he(pico8_struct_header_t *e) {
      * port deletes from an empty list. */
     for (i = 0; i < PICO8_TAG_COUNT; i++) {
         if (e->cls->tags & PICO8_TAG(i)) {
-            pico8_ptrs_del(&g_cg[i].list, e);
+            pico8_ents_del(&g_cg[i].list, e);
         }
     }
 }

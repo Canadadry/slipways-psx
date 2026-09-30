@@ -71,16 +71,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -89,10 +79,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -368,9 +354,9 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(!listed(pico8_cg("qh"), e));
+    assert(!ents_listed(pico8_cg("qh"), e));
     return h;
 }
 
@@ -527,7 +513,7 @@ static void test_nl_is_a_struct(void) {
 
     start_game();
     a = build_plate();
-    assert(is_an_nl_struct(a) && listed(pico8_cg("jo"), a) && !listed(pico8_cg("qh"), a));
+    assert(is_an_nl_struct(a) && ents_listed(pico8_cg("jo"), a) && !ents_listed(pico8_cg("qh"), a));
     assert_qh_shape(cls);
     assert_members_of(cls, qh, 1, 0);
     assert(cls->kf == qh->kf && cls->cn == qh->cn && cls->mm == NULL);
@@ -537,7 +523,7 @@ static void test_nl_is_a_struct(void) {
     {
         pico8_nl_t *bare = pico8_nl_new(NULL);
         assert(is_an_nl_struct(bare) && bare->qh.jo.id == NULL && bare->qh.jo.oe != NULL &&
-               listed(pico8_cg("jo"), bare));
+               ents_listed(pico8_cg("jo"), bare));
     }
 }
 

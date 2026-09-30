@@ -132,7 +132,7 @@ static void pico8_mz_ey_dispatch(void *self, pico8_struct_header_t *kv) {
 void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     pico8_fixed_t sr;
     pico8_vec_t self_p;
-    const pico8_ptrs_t *jo_list;
+    const pico8_ents_t *jo_list;
     int i;
 
     if (self == NULL) {
@@ -146,14 +146,14 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
         for (i = 0; i < jo_list->count; i++) {
-            void *pt_val = jo_list->items[i];
+            pico8_struct_header_t *pt_val = jo_list->items[i];
             pico8_jo_t *pt;
 
             if (pt_val == NULL) {
                 continue;
             }
             assert(pico8_jo_is_family(pt_val) && "mz:pr: cg.jo holds planets only");
-            pt = pt_val;
+            pt = (pico8_jo_t *)pt_val;
 
             if (pt->header.me != NULL && strcmp(pt->header.me, "unknown") == 0) {
                 pico8_vec_t pt_p =

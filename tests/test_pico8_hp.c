@@ -369,7 +369,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -737,7 +737,7 @@ static void test_install(void) {
  * once a frame is played and drawn. */
 static uint32_t fold_world(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *jo;
+    const pico8_ents_t *jo;
     int i;
 
     pico8__update60();
@@ -928,11 +928,11 @@ static void lq_on_other(void *e) {
 }
 
 static void lz_on_other(void *e) {
-    pico8_jo_lz(pico8_cg("jo")->items[0], e);
+    pico8_jo_lz((pico8_jo_t *)pico8_cg("jo")->items[0], e);
 }
 
 static void hu_on_other(void *e) {
-    pico8_jo_hu(pico8_cg("jo")->items[0], e);
+    pico8_jo_hu((pico8_jo_t *)pico8_cg("jo")->items[0], e);
 }
 
 /* A project is a struct whose descriptor has no method and no writer, its

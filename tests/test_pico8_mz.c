@@ -72,20 +72,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -166,10 +152,10 @@ static int et_kind(const pico8_mz_t *mz) {
     if (et == (const void *)pico8_mz_jj_wrapper()) {
         return ET_JJ;
     }
-    if (listed(pico8_cg("jc"), et)) {
+    if (ents_listed(pico8_cg("jc"), et)) {
         return ET_JC;
     }
-    if (listed(pico8_cg("jo"), et)) {
+    if (ents_listed(pico8_cg("jo"), et)) {
         return ET_JO;
     }
     if (is_bv_target(et)) {
@@ -220,7 +206,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
  * of the galaxy left unknown, then left to settle. `jc:hq` reads the hovered planet off
  * `ok.o_`. */
 static void world(void) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -291,7 +277,7 @@ static void until_t(const pico8_mz_t *mz, int t) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_ptrs_t *list = pico8_cg("jo");
+    const pico8_ents_t *list = pico8_cg("jo");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         pico8_jo_t *jo = as_jo(list->items[i]);
@@ -344,13 +330,13 @@ static void check_fresh_mz(void *e) {
     assert(mz->ox != NULL);
 
     assert(ents_listed(pico8_hv(), mz) && ents_listed(pico8_cv("kj"), mz) && ents_listed(pico8_cv("ev"), mz));
-    assert(listed(pico8_cg("mz"), mz));
+    assert(ents_listed(pico8_cg("mz"), mz));
     assert(!ents_listed(pico8_cv("hd"), mz) && !ents_listed(pico8_cv("hk"), mz) && !ents_listed(pico8_cv("hb"), mz));
 }
 
 static void test_construction(void) {
     pico8_down_t made;
-    const pico8_ptrs_t *mzs;
+    const pico8_ents_t *mzs;
     int before;
 
     start_game();
@@ -359,7 +345,7 @@ static void test_construction(void) {
     before = mzs == NULL ? 0 : mzs->count;
     made = pico8_bg_ldown(NULL);
     assert(made.stop && made.held != NULL);
-    assert(listed(pico8_cg("g_"), made.held));
+    assert(ents_listed(pico8_cg("g_"), made.held));
     mzs = pico8_cg("mz");
     assert((mzs == NULL ? 0 : mzs->count) == before);
 
@@ -391,7 +377,7 @@ static void test_ox(void) {
     pico8_jo_t *unlit = NULL;
     pico8_g__t *probe;
     pico8_qh_t *lit;
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     int i;
 
     world();
@@ -465,7 +451,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
 /* A quarter of the slipway's length past its `qu` end: near that
  * colonized anchor, off the slipway's segment. */
 static pico8_vec_t near_anchor(void) {
-    const pico8_ptrs_t *jcs = pico8_cg("jc");
+    const pico8_ents_t *jcs = pico8_cg("jc");
     const pico8_jc_t *jc;
     pico8_vec_t qu;
     pico8_vec_t re;
@@ -481,7 +467,7 @@ static pico8_vec_t near_anchor(void) {
 static void test_hq(void) {
     uint32_t h = 2166136261u;
     pico8_mz_t *mz;
-    const pico8_ptrs_t *jcs;
+    const pico8_ents_t *jcs;
     pico8_vec_t mid;
 
     world();
@@ -572,7 +558,7 @@ static void test_ey(void) {
 }
 
 static int unknown_count(void) {
-    const pico8_ptrs_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("jo");
     int n = 0;
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
@@ -619,11 +605,11 @@ static void test_pr_ticks(void) {
         h = fnv(h, (uint32_t)(before - unknown_count()));
         h = fnv(h, p__state(mz));
         h = fnv(h, (uint32_t)ents_listed(pico8_cv("kj"), mz));
-        h = fnv(h, (uint32_t)listed(pico8_cg("mz"), mz));
+        h = fnv(h, (uint32_t)ents_listed(pico8_cg("mz"), mz));
     }
     printf("[pr] left hv after %d ticks, %d planets revealed\n", tick, revealed);
     assert(revealed > 0);
-    assert(!ents_listed(pico8_cv("kj"), mz) && !ents_listed(pico8_cv("ev"), mz) && !listed(pico8_cg("mz"), mz));
+    assert(!ents_listed(pico8_cv("kj"), mz) && !ents_listed(pico8_cv("ev"), mz) && !ents_listed(pico8_cg("mz"), mz));
     check_int("pr exit tick", tick, PR_EXIT_TICK);
     check("pr ticks", h, PR_HASH);
 }
@@ -734,7 +720,7 @@ static void test_jj_wrapper(void) {
     void *wrapper;
     pico8_mz_t *mz;
     pico8_mz_t *other;
-    const pico8_ptrs_t *jcs;
+    const pico8_ents_t *jcs;
     pico8_vec_t mid;
 
     world();

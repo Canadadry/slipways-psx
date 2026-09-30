@@ -76,16 +76,6 @@ static uint32_t screen_hash(void) {
     return h;
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -94,10 +84,6 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
         }
     }
     return 0;
-}
-
-static int list_count(const pico8_ptrs_t *list) {
-    return list == NULL ? 0 : list->count;
 }
 
 static int ents_list_count(const pico8_ents_t *list) {
@@ -323,24 +309,24 @@ static void test_ldown(void) {
 
     start_game();
     bg = the_bg();
-    g_before = list_count(pico8_cg("g_"));
-    mz_before = list_count(pico8_cg("mz"));
+    g_before = ents_list_count(pico8_cg("g_"));
+    mz_before = ents_list_count(pico8_cg("mz"));
     check_int("ldown g_ before", g_before, LDOWN_G_BEFORE);
     check_int("ldown mz before", mz_before, LDOWN_MZ_BEFORE);
 
     out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->cls == pico8_g__struct_class());
-    assert(listed(pico8_cg("g_"), out.held));
+    assert(ents_listed(pico8_cg("g_"), out.held));
 
     out = pico8_bg_struct_class()->ldown(bg, vec_ref(1, 1), vec_ref(2, 2));
     assert(out.stop && out.held != NULL);
     assert(out.held->cls == pico8_mz_struct_class());
-    assert(listed(pico8_cg("mz"), out.held));
+    assert(ents_listed(pico8_cg("mz"), out.held));
     assert(is_me(&((const pico8_mz_t *)out.held)->header, "kz"));
 
-    check_int("ldown g_ after", list_count(pico8_cg("g_")), LDOWN_G_AFTER);
-    check_int("ldown mz after", list_count(pico8_cg("mz")), LDOWN_MZ_AFTER);
+    check_int("ldown g_ after", ents_list_count(pico8_cg("g_")), LDOWN_G_AFTER);
+    check_int("ldown mz after", ents_list_count(pico8_cg("mz")), LDOWN_MZ_AFTER);
 }
 
 static int in_layer(int layer, const void *e) {
@@ -399,7 +385,7 @@ static void test_hover(void) {
 }
 
 static pico8_jo_t *first_jo_with_me(const char *me) {
-    const pico8_ptrs_t *list = pico8_cg("jo");
+    const pico8_ents_t *list = pico8_cg("jo");
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         pico8_struct_header_t *e = list->items[i];
@@ -422,7 +408,7 @@ static void test_gv(void) {
     pico8_down_t r;
 
     start_game();
-    pico8_jo_hu(pico8_cg("jo")->items[0], pico8_hp_new(NULL));
+    pico8_jo_hu((pico8_jo_t *)pico8_cg("jo")->items[0], pico8_hp_new(NULL));
     bg = the_bg();
     ly = first_jo_with_me("ly");
     assert(ly != NULL);

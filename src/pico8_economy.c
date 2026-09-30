@@ -188,9 +188,9 @@ void pico8_hy_lj(pico8_hy_t *self) {
     pico8_fixed_t ge;
     pico8_fixed_t happiness;
     pico8_fixed_t skill_mult;
-    const pico8_ptrs_t *jo_list;
-    pico8_ptrs_iter_t it;
-    void *e;
+    const pico8_ents_t *jo_list;
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *p;
     pico8_fixed_t yr;
     pico8_fixed_t nz;
 
@@ -212,10 +212,9 @@ void pico8_hy_lj(pico8_hy_t *self) {
 
     jo_list = pico8_cg("jo");
     if (jo_list != NULL) {
-        it = pico8_ptrs_all(jo_list);
-        while (pico8_ptrs_iter_next(&it, &e)) {
-            if (e != NULL) {
-                pico8_struct_header_t *p = e;
+        it = pico8_ents_all(jo_list);
+        while (pico8_ents_iter_next(&it, &p)) {
+            if (p != NULL) {
                 pico8_fixed_t kr = pico8_fixed_flr(pico8_fixed_sub(pico8_db(p), pico8_da(p)));
                 pico8_jo_t *jo;
 

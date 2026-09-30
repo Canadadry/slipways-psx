@@ -60,16 +60,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -78,10 +68,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -403,9 +389,9 @@ static void test_built(void) {
     }
     assert(ents_listed(pico8_cv("kj"), fv) && ents_listed(pico8_cv("ev"), fv) && ents_listed(pico8_cv("hd"), fv));
     assert(!ents_listed(pico8_cv("hk"), fv) && !ents_listed(pico8_cv("hb"), fv));
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("g_"), fv));
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), fv));
-    assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("g_"), fv));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("prober"), fv));
+    assert(ents_listed(pico8_cg("g_"), fv) && ents_listed(pico8_cg("prober"), fv));
 
     for (k = 0; k < 4; k++) {
         const pico8_js_t *row = (const pico8_js_t *)hv->items[rank - 4 + k];
@@ -531,7 +517,7 @@ static void test_eu_retires_the_help(void) {
     fv = the_help();
     pico8_eu(NULL);
     assert(!ents_listed(pico8_hv(), fv));
-    assert(!listed(pico8_cg("g_"), fv) && !ents_listed(pico8_cv("kj"), fv) && !ents_listed(pico8_cv("hd"), fv));
+    assert(!ents_listed(pico8_cg("g_"), fv) && !ents_listed(pico8_cv("kj"), fv) && !ents_listed(pico8_cv("hd"), fv));
 }
 
 /* The title's help is a struct whose descriptor shares `g_`'s 4 inherited

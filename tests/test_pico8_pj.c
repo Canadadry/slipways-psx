@@ -66,16 +66,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -86,15 +76,11 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
-static int count_of(const pico8_ptrs_t *list) {
+static int ents_count_of(const pico8_ents_t *list) {
     return list == NULL ? 0 : list->count;
 }
 
@@ -371,7 +357,7 @@ static void test_built(void) {
     h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("hk"), ju));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_cv("hb"), ju));
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        assert(!listed(pico8_cg(tags[i]), ju));
+        assert(!ents_listed(pico8_cg(tags[i]), ju));
     }
 
     assert(ju->fa == pico8_fixed_from_int(10));
@@ -450,7 +436,7 @@ static void test_life(void) {
         h = fnv(h, (uint32_t)(ea->row.count >= 3));
         h = fnv(h, (uint32_t)(ea->lh != NULL));
         h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
-        h = fnv(h, (uint32_t)count_of(pico8_cg("mh")));
+        h = fnv(h, (uint32_t)ents_count_of(pico8_cg("mh")));
         h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     }
     assert(ea->row.count == 2 && ea->lh != NULL);
@@ -476,12 +462,12 @@ static void test_life(void) {
     assert(ju->fa == pico8_fixed_from_int(13));
     assert(fq_count() == fq_before + 1 && js15_count() == js_before + 2);
     assert(ju->ed == pico8_kc() && pico8_kc() != NULL);
-    boxes = count_of(pico8_cg("mh"));
+    boxes = ents_count_of(pico8_cg("mh"));
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
 
     cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
-    assert(count_of(pico8_cg("mh")) == boxes);
+    assert(ents_count_of(pico8_cg("mh")) == boxes);
     assert(ju->ed == pico8_kc());
 
     for (i = 0; i < 3; i++) {

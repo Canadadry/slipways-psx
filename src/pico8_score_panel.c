@@ -108,23 +108,23 @@ void pico8_score_panel_set_init(pico8_js_fn fn) {
     g_init_dispatch = (fn != NULL) ? fn : pico8_pj_init_placeholder;
 }
 
-static int pico8_eg_gg_pred(void *e, void *ctx) {
+static int pico8_eg_gg_pred(pico8_struct_header_t *e, void *ctx) {
     (void)ctx;
     if (e == NULL) {
         return 0;
     }
-    return pico8_jo_gg(e);
+    return pico8_jo_gg((const pico8_jo_t *)e);
 }
 
 void pico8_eg(void) {
     pico8_mem_t *mem = pico8_dispatch_mem();
-    pico8_ptrs_t filtered;
+    pico8_ents_t filtered;
     pico8_fixed_t ps;
     int i;
 
-    filtered = pico8_jp_ptrs(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
+    filtered = pico8_jp_ents(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
     ps = pico8_fixed_div(pico8_fixed_from_int(filtered.count), pico8_fixed_from_int(2));
-    pico8_ptrs_free(&filtered);
+    pico8_ents_free(&filtered);
 
     if (mem == NULL) {
         return;

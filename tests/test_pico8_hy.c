@@ -229,7 +229,7 @@ static pico8_hp_t *project(int k) {
  * two joined by a slipway paid by `ey` as a drag pays it (`jc:hq` reads the
  * hovered planet off `ok.o_`), then left to settle. */
 static void built_world(void) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     pico8_jc_keys_t jc_keys = {0};
     pico8_vec_t *mp = malloc(sizeof *mp);
     void *qu;
@@ -443,7 +443,7 @@ static void test_lu(void) {
 }
 
 static uint32_t fold_planets_kr(uint32_t h) {
-    const pico8_ptrs_t *jo = pico8_cg("jo");
+    const pico8_ents_t *jo = pico8_cg("jo");
     int i;
     for (i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = as_jo(jo->items[i]);
@@ -460,7 +460,7 @@ static const char *hl_string(void) {
 
 /* The first producing planet of `cg.jo`: `jy` set and its own `kw`. */
 static pico8_jo_t *a_maker(void) {
-    const pico8_ptrs_t *jos = pico8_cg("jo");
+    const pico8_ents_t *jos = pico8_cg("jo");
     int i;
 
     for (i = 0; i < jos->count; i++) {

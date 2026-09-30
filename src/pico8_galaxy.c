@@ -64,7 +64,7 @@ void pico8_bw(pico8_fixed_t n) {
             pico8_fixed_t rx = pico8_fixed_add(pico8_fixed_rnd(two_seventy_five), eighth);
             pico8_fixed_t ry = pico8_fixed_add(pico8_fixed_rnd(two_seventy_five), eighth);
             p_vec = pico8_vec_v(rx, ry);
-        } while (pico8_ij(p_vec, pico8_cg("jo"), &nearest) <= threshold);
+        } while (pico8_ij_ents(p_vec, pico8_cg("jo"), &nearest) <= threshold);
 
         /* `p` aliases the instance's own field, `p*128` is a separate
          * fresh vector; neither is freed here, both outlive this loop

@@ -70,16 +70,6 @@ static uint32_t draw_hash(void) {
     return screen_hash();
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -90,7 +80,7 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
     return 0;
 }
 
-static int count_of(const pico8_ptrs_t *list) {
+static int ents_count_of(const pico8_ents_t *list) {
     return list != NULL ? list->count : 0;
 }
 
@@ -110,7 +100,7 @@ static uint32_t fold_box(uint32_t h, const pico8_mh_t *e) {
     h = fnv(h, (uint32_t)(pico8_kc() == e));
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
     h = fnv(h, (uint32_t)ents_listed(pico8_cv("ev"), e));
-    return fnv(h, (uint32_t)listed(pico8_cg("mh"), e));
+    return fnv(h, (uint32_t)ents_listed(pico8_cg("mh"), e));
 }
 
 typedef struct {
@@ -172,7 +162,7 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
 
     for (i = 0; i < run->count; i++) {
         assert(!ents_listed(pico8_cv("ev"), run->boxes[i]));
-        assert(!listed(pico8_cg("mh"), run->boxes[i]));
+        assert(!ents_listed(pico8_cg("mh"), run->boxes[i]));
         assert(pico8_kc() != run->boxes[i]);
     }
     assert(run->drew);
@@ -185,13 +175,13 @@ static void run_check(const run_t *run, int want_ticks, uint32_t want_sequence, 
 /* `pj:hk` discards the box it builds; `mh:pq` has just made it `kc`. */
 static const pico8_mh_t *year_box(int yr) {
     const pico8_mh_t *box;
-    int before = count_of(pico8_cg("mh"));
+    int before = ents_count_of(pico8_cg("mh"));
 
     pico8_pj_hk(pico8_fixed_from_int(yr));
     box = pico8_kc();
     assert(box != NULL);
-    assert(count_of(pico8_cg("mh")) == before + 1);
-    assert(listed(pico8_cg("mh"), box) && ents_listed(pico8_hv(), box) && ents_listed(pico8_cv("ev"), box));
+    assert(ents_count_of(pico8_cg("mh")) == before + 1);
+    assert(ents_listed(pico8_cg("mh"), box) && ents_listed(pico8_hv(), box) && ents_listed(pico8_cv("ev"), box));
     return box;
 }
 
@@ -280,20 +270,20 @@ static void test_scores_box_follows_c_(void) {
     box = pico8_kc();
     assert(box != NULL);
     assert(ju->ed == box);
-    built = count_of(pico8_cg("mh"));
+    built = ents_count_of(pico8_cg("mh"));
     track(&run, box);
     run.h = fnv(run.h, draw_hash());
 
     for (i = 0; i < 80; i++) {
         pico8_pj_ph(ju);
-        assert(count_of(pico8_cg("mh")) == built);
+        assert(ents_count_of(pico8_cg("mh")) == built);
         tick(&run);
         assert(ents_listed(pico8_hv(), box));
     }
     set_c_(ju, 0);
     while (any_listed(&run)) {
         pico8_pj_ph(ju);
-        assert(count_of(pico8_cg("mh")) == built);
+        assert(ents_count_of(pico8_cg("mh")) == built);
         tick(&run);
     }
     run_check(&run, SCORES_TICKS, SCORES_SEQUENCE_HASH, "scores box follows c_");
@@ -344,7 +334,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     assert(from_pj != NULL);
     assert(generic != NULL);
     assert(pico8_kc() == generic);
-    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("ev"), generic) && listed(pico8_cg("mh"), generic));
+    assert(ents_listed(pico8_hv(), generic) && ents_listed(pico8_cv("ev"), generic) && ents_listed(pico8_cg("mh"), generic));
     for (i = 0; i < 4; i++) {
         assert(!ents_listed(pico8_cv(others[i]), from_pj) && !ents_listed(pico8_cv(others[i]), generic));
     }

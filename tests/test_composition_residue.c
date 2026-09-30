@@ -353,8 +353,8 @@ static void test_void_ptr_reads_joined_public_prototypes(void) {
     write_file(SRC "/i.h", "static inline int f(int x) {\nreturn pico8_" "g((void *)0) + x;\n}\n");
     assert(run_residue(TREE) == 0);
     assert(strcmp(read_file(OUT), "accesseurs-q6\t1\t1\n"
-                                  "registres\t2\t1\n"
-                                  "résidu 2 : 3 ligne(s), 1 fichier(s)\n") == 0);
+                                  "registres\t1\t1\n"
+                                  "résidu 2 : 2 ligne(s), 1 fichier(s)\n") == 0);
 }
 
 static void test_detail_prints_r2_sites_under_void_ptr_and_the_info_line(void) {

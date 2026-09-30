@@ -77,16 +77,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -95,10 +85,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -198,7 +184,7 @@ static int re_kind(const void *jc) {
     if (re == NULL) {
         return RE_ABSENT;
     }
-    if (listed(pico8_cg("np"), re)) {
+    if (ents_listed(pico8_cg("np"), re)) {
         return RE_PLANET;
     }
     if (is_throwaway(re)) {
@@ -214,10 +200,10 @@ static int et_kind(const void *jc) {
     if (et == NULL) {
         return ET_ABSENT;
     }
-    if (listed(pico8_cg("np"), et)) {
+    if (ents_listed(pico8_cg("np"), et)) {
         return ET_PLANET;
     }
-    if (listed(pico8_cg("jc"), et)) {
+    if (ents_listed(pico8_cg("jc"), et)) {
         return ET_JC;
     }
     if (is_too_far(et)) {
@@ -232,13 +218,13 @@ static int holder_kind(const void *fo) {
     if (fo == NULL) {
         return FO_ABSENT;
     }
-    if (listed(pico8_cg("jc"), fo)) {
+    if (ents_listed(pico8_cg("jc"), fo)) {
         return FO_JC;
     }
-    if (listed(pico8_cg("g_"), fo)) {
+    if (ents_listed(pico8_cg("g_"), fo)) {
         return FO_PROBE;
     }
-    if (listed(pico8_cg("mz"), fo)) {
+    if (ents_listed(pico8_cg("mz"), fo)) {
         return FO_MZ;
     }
     return FO_OTHER;
@@ -297,7 +283,7 @@ static pico8_fixed_t credits(void) {
 }
 
 static uint32_t fold_planets(uint32_t h, int with_eb) {
-    const pico8_ptrs_t *np = pico8_cg("np");
+    const pico8_ents_t *np = pico8_cg("np");
     int i;
 
     for (i = 0; np != NULL && i < np->count; i++) {
@@ -344,7 +330,7 @@ static pico8_fixed_t dist2(pico8_vec_t a, pico8_vec_t b) {
 /* A started game's first generated planet and its nearest one, both
  * colonized by a bare project. */
 static void colonized_pair(void **qu, void **re) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     int i;
 
     start_game();
@@ -434,7 +420,7 @@ static const pico8_struct_header_t *ke_of(const void *e) {
 }
 
 static void *first_with_me(const char *tag, const char *me) {
-    const pico8_ptrs_t *list = pico8_cg(tag);
+    const pico8_ents_t *list = pico8_cg(tag);
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         const pico8_struct_header_t *ke = ke_of(list->items[i]);
@@ -488,7 +474,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
            cls_of(jc)->states[PICO8_STATE_PH] == NULL && cls_of(jc)->ldown == NULL && cls_of(jc)->gv == NULL);
 
     assert(ents_listed(pico8_hv(), jc) && ents_listed(pico8_cv("kj"), jc) && ents_listed(pico8_cv("ev"), jc));
-    assert(listed(pico8_cg("jc"), jc));
+    assert(ents_listed(pico8_cg("jc"), jc));
     assert(!ents_listed(pico8_cv("hd"), jc) && !ents_listed(pico8_cv("hk"), jc) && !ents_listed(pico8_cv("hb"), jc));
 }
 
@@ -527,7 +513,7 @@ static void test_ey(void) {
 
     colonized_pair(&origin, &target);
     held = dragged(origin, target);
-    assert(listed(pico8_cg("jc"), held));
+    assert(ents_listed(pico8_cg("jc"), held));
     assert(as_jc(held)->qu == origin && as_jc(held)->re == target);
     assert(re_kind(held) == RE_PLANET && et_kind(held) == ET_ABSENT);
     assert(ents_ptrs_count(as_jo(origin)->oe) == 0 && ents_ptrs_count(as_jo(target)->oe) == 0);
@@ -782,7 +768,7 @@ static void test_hq_mouse_point(void) {
     assert(mouse_point_p(r1) != m1);
     assert(cls_of(r1)->get_p(r1) == mouse_point_p(r1));
     assert(!pico8_gd(r1));
-    assert(!ents_listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
+    assert(!ents_listed(pico8_hv(), r1) && !ents_listed(pico8_cg("jc"), r1) && !ents_listed(pico8_cg("np"), r1));
     h = fnv(h, (uint32_t)p1.x);
     h = fnv(h, (uint32_t)p1.y);
     h = fold_jc(h, a);
@@ -819,7 +805,7 @@ static void test_hq_mouse_point(void) {
 /* `jc:ce` falls through to `cg("jc")` when no planet lies on the drag: a
  * drag from a nearby planet to just past the slipway's middle crosses it. */
 static void test_ce_crosses_a_slipway(void) {
-    const pico8_ptrs_t *jos;
+    const pico8_ents_t *jos;
     void *old;
     pico8_vec_t mid;
     int i;

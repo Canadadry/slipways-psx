@@ -98,22 +98,6 @@ static void ij_step(pico8_vec_t p, pico8_struct_header_t *o, pico8_fixed_t *mk, 
     }
 }
 
-pico8_fixed_t pico8_ij(pico8_vec_t p, const pico8_ptrs_t *j_, pico8_struct_header_t **out_nearest) {
-    pico8_fixed_t mk = pico8_fixed_from_int(32767);
-    pico8_ptrs_iter_t it;
-    void *e;
-
-    *out_nearest = NULL;
-    if (j_ == NULL) {
-        return mk;
-    }
-    it = pico8_ptrs_all(j_);
-    while (pico8_ptrs_iter_next(&it, &e)) {
-        ij_step(p, e, &mk, out_nearest);
-    }
-    return mk;
-}
-
 pico8_fixed_t pico8_ij_ents(pico8_vec_t p, const pico8_ents_t *j_, pico8_struct_header_t **out_nearest) {
     pico8_fixed_t mk = pico8_fixed_from_int(32767);
     pico8_ents_iter_t it;

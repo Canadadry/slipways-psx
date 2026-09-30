@@ -93,11 +93,41 @@ static void test_all_sees_each_when_the_returned_one_is_deleted(void) {
     pico8_ents_free(&ents);
 }
 
+static int odd_rank(pico8_struct_header_t *e, void *ctx) {
+    const pico8_struct_header_t *cells = ctx;
+    return (e - cells) % 2 == 1;
+}
+
+static void test_jp_keeps_what_the_predicate_keeps_in_order(void) {
+    pico8_struct_header_t cells[5];
+    pico8_ents_t src;
+    pico8_ents_t kept;
+    int i;
+    pico8_ents_init(&src);
+    for (i = 0; i < 5; i++) {
+        pico8_ents_add(&src, &cells[i]);
+    }
+
+    kept = pico8_jp_ents(&src, odd_rank, cells);
+    assert(kept.count == 2 && kept.items[0] == &cells[1] && kept.items[1] == &cells[3]);
+    assert(src.count == 5);
+    for (i = 0; i < 5; i++) {
+        assert(src.items[i] == &cells[i]);
+    }
+    pico8_ents_free(&kept);
+
+    kept = pico8_jp_ents(NULL, odd_rank, cells);
+    assert(kept.count == 0);
+    pico8_ents_free(&kept);
+    pico8_ents_free(&src);
+}
+
 int main(void) {
     test_add_grows_past_four_keeps_order_and_free_empties();
     test_del_first_identical_and_has();
     test_cat_copies_a_then_b_and_leaves_them();
     test_all_sees_each_when_the_returned_one_is_deleted();
+    test_jp_keeps_what_the_predicate_keeps_in_order();
     printf("test_pico8_ents: ok\n");
     return 0;
 }

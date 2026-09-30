@@ -65,16 +65,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -83,10 +73,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -270,7 +256,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
     return h;
 }
@@ -278,7 +264,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
 /* After `eu`: the 90 planets `bw` built. */
 static void test_galaxy(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *jo;
+    const pico8_ents_t *jo;
     int i;
 
     start_game();
@@ -460,7 +446,7 @@ static void test_new_planet(void) {
 
     start_title();
     a = new_planet("p900", 1, 2);
-    assert(ents_listed(pico8_hv(), a) && listed(pico8_cg("jo"), a));
+    assert(ents_listed(pico8_hv(), a) && ents_listed(pico8_cg("jo"), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
     check("new planet", h, NEW_PLANET_HASH);
@@ -499,7 +485,7 @@ static void test_ll(void) {
         calls++;
     }
     assert(p__state(a) == 2);
-    assert(!ents_listed(pico8_hv(), a) && !listed(pico8_cg("jo"), a));
+    assert(!ents_listed(pico8_hv(), a) && !ents_listed(pico8_cg("jo"), a));
     check_int("ll dg calls", calls, LL_DG_CALLS);
 }
 
@@ -576,7 +562,7 @@ static int is_a_jo_struct(const void *e) {
 /* Built by `bw` or pico8_jo_new, a `jo` is a struct whose descriptor holds
  * jo's 11 dispatchers, and its class installs none of them, nor a `pq`. */
 static void test_jo_is_a_struct(void) {
-    const pico8_ptrs_t *jo;
+    const pico8_ents_t *jo;
     void *a;
     int j;
 

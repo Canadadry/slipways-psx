@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "pico8_audio.h"
-#include "pico8_collect.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_economy_formulas.h"
@@ -203,15 +202,13 @@ typedef struct {
 
 /* `be()` excludes the segment's own endpoints (their projection fraction is
  * exactly 0 or 1), so `qu` and `re` never match themselves here. */
-static int pico8_jc_ce_np_predicate(void *e, void *ctx_ptr) {
+static int pico8_jc_ce_np_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
     const pico8_jc_ce_np_ctx_t *ctx = (const pico8_jc_ce_np_ctx_t *)ctx_ptr;
-    pico8_struct_header_t *n;
 
     if (e == NULL) {
         return 0;
     }
-    n = e;
-    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_end_p(n), PICO8_FIXED_LIT(0x000000d1, 0.0032));
+    return pico8_geom_be(ctx->sp, ctx->dp, pico8_jc_end_p(e), PICO8_FIXED_LIT(0x000000d1, 0.0032));
 }
 
 typedef struct {
@@ -223,15 +220,15 @@ typedef struct {
 
 /* `self` is already registered in `cg("jc")` when this runs; `cl()` of a
  * segment against itself is always false, so no self-exclusion is needed. */
-static int pico8_jc_ce_jc_predicate(void *e, void *ctx_ptr) {
+static int pico8_jc_ce_jc_predicate(pico8_struct_header_t *e, void *ctx_ptr) {
     const pico8_jc_ce_jc_ctx_t *ctx = (const pico8_jc_ce_jc_ctx_t *)ctx_ptr;
     const pico8_jc_t *sw;
 
     if (e == NULL) {
         return 0;
     }
-    assert(((const pico8_struct_header_t *)e)->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
-    sw = e;
+    assert(e->cls == pico8_jc_struct_class() && "cg.jc holds slipways only");
+    sw = (const pico8_jc_t *)e;
     if (sw->has_mt != ctx->self_has_mt || (sw->has_mt && sw->mt != ctx->self_mt)) {
         return 0;
     }
@@ -286,9 +283,9 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
     {
         pico8_jc_ce_np_ctx_t np_ctx;
         pico8_jc_ce_jc_ctx_t jc_ctx;
-        pico8_ptrs_t part1;
-        pico8_ptrs_t part2;
-        pico8_ptrs_t ds;
+        pico8_ents_t part1;
+        pico8_ents_t part2;
+        pico8_ents_t ds;
         pico8_struct_header_t *result = NULL;
 
         np_ctx.sp = sp;
@@ -298,16 +295,16 @@ pico8_struct_header_t *pico8_jc_ce(pico8_jc_t *self) {
         jc_ctx.self_has_mt = self->has_mt;
         jc_ctx.self_mt = self->mt;
 
-        part1 = pico8_jp_ptrs(pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
-        part2 = pico8_jp_ptrs(pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);
-        ds = pico8_la_ptrs(&part1, &part2);
-        pico8_ptrs_free(&part1);
-        pico8_ptrs_free(&part2);
+        part1 = pico8_jp_ents(pico8_cg("np"), pico8_jc_ce_np_predicate, &np_ctx);
+        part2 = pico8_jp_ents(pico8_cg("jc"), pico8_jc_ce_jc_predicate, &jc_ctx);
+        ds = pico8_ents_cat(&part1, &part2);
+        pico8_ents_free(&part1);
+        pico8_ents_free(&part2);
 
         if (ds.count > 0) {
             result = ds.items[0];
         }
-        pico8_ptrs_free(&ds);
+        pico8_ents_free(&ds);
         return result;
     }
 }

@@ -21,6 +21,11 @@ int pico8_ents_has(const pico8_ents_t *ents, const pico8_struct_header_t *e);
 /* A fresh list: `a` then `b`; the caller frees its `items`. */
 pico8_ents_t pico8_ents_cat(const pico8_ents_t *a, const pico8_ents_t *b);
 
+/* As pico8_jp_ptrs: a fresh list of the elements `ow` keeps, in order; the
+ * caller frees its `items`. A NULL `qk` gives an empty list. */
+typedef int (*pico8_jp_ents_predicate_fn)(pico8_struct_header_t *e, void *ctx);
+pico8_ents_t pico8_jp_ents(const pico8_ents_t *qk, pico8_jp_ents_predicate_fn ow, void *ctx);
+
 /* As pico8_ptrs_iter_t. */
 typedef struct {
     const pico8_ents_t *ents;

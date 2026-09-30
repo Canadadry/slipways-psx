@@ -75,16 +75,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -93,10 +83,6 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
         }
     }
     return -1;
-}
-
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
 }
 
 static int ents_listed(const pico8_ents_t *list, const void *e) {
@@ -366,9 +352,9 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
         h = fnv(h, (uint32_t)ents_rank_in(pico8_cv(bm[i]), e));
     }
     for (i = 0; i < sizeof tags / sizeof tags[0]; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_cg(tags[i]), e));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_cg(tags[i]), e));
     }
-    assert(listed(pico8_cg("nr"), e) && !listed(pico8_cg("jo"), e) && !listed(pico8_cg("qh"), e));
+    assert(ents_listed(pico8_cg("nr"), e) && !ents_listed(pico8_cg("jo"), e) && !ents_listed(pico8_cg("qh"), e));
     return h;
 }
 
@@ -583,7 +569,7 @@ static void test_fr_is_a_struct(void) {
 
     start_game();
     a = build_gate();
-    assert(is_an_fr_struct(a) && cls != nr && listed(pico8_cg("nr"), a));
+    assert(is_an_fr_struct(a) && cls != nr && ents_listed(pico8_cg("nr"), a));
     assert(cls->kj == nr->kj && cls->ev == nr->ev && cls->hd == nr->hd && cls->hk == nr->hk && cls->hb == nr->hb &&
            cls->has_hb == nr->has_hb && cls->ldown == nr->ldown && cls->rdown == nr->rdown && cls->gv == nr->gv &&
            cls->hq == nr->hq && cls->ey == nr->ey && cls->kf == nr->kf && cls->cn == nr->cn && cls->ol == nr->ol &&
@@ -598,7 +584,7 @@ static void test_fr_is_a_struct(void) {
         pico8_fr_t *bare = pico8_fr_new(NULL);
         assert(is_an_fr_struct(bare) && is_a_gate(bare) && bare->nr.qh.jo.id == NULL && bare->nr.qh.jo.oe != NULL &&
                bare->nr.qh.jo.kw != NULL);
-        assert(listed(pico8_cg("nr"), bare));
+        assert(ents_listed(pico8_cg("nr"), bare));
     }
 }
 

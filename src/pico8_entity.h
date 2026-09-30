@@ -2,7 +2,6 @@
 #define PICO8_ENTITY_H
 
 #include "pico8_ents.h"
-#include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
 
@@ -34,7 +33,7 @@ const pico8_ents_t *pico8_cv(const char *name);
  * that tag has been lt()'d since pico8_entity_init() -- an unknown tag
  * included. A returned pointer stays valid until the next
  * pico8_entity_init() or pico8_entity_shutdown(). */
-const pico8_ptrs_t *pico8_cg(const char *tag);
+const pico8_ents_t *pico8_cg(const char *tag);
 
 /* Only pico8_ke_struct_pq calls it outside tests: every entity of `hv` has
  * had `me` and `t` set by pico8_ke_struct_init, and pico8_dg() reads them. */

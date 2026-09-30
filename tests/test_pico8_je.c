@@ -29,16 +29,6 @@ static pico8_mem_t mem;
 static pico8_gfx_t gfx;
 static pico8_input_t input;
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -59,7 +49,7 @@ static int registered(const void *e, int entity_live) {
         return 1;
     }
     for (i = 0; i < 5; i++) {
-        if ((entity_live && ents_listed(pico8_cv(buckets[i]), e)) || listed(pico8_cg(tags[i]), e)) {
+        if ((entity_live && ents_listed(pico8_cv(buckets[i]), e)) || ents_listed(pico8_cg(tags[i]), e)) {
             return 1;
         }
     }

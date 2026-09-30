@@ -74,16 +74,6 @@ static uint32_t fnv_str(uint32_t h, const char *s) {
     return fnv(h, 0xFFu);
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
-    int i;
-    for (i = 0; list != NULL && i < list->count; i++) {
-        if (list->items[i] == e) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
@@ -94,15 +84,11 @@ static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     return -1;
 }
 
-static int listed(const pico8_ptrs_t *list, const void *e) {
-    return rank_in(list, e) >= 0;
-}
-
 static int ents_listed(const pico8_ents_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
-static int list_count(const pico8_ptrs_t *list) {
+static int ents_list_count(const pico8_ents_t *list) {
     return list != NULL ? list->count : 0;
 }
 
@@ -332,7 +318,7 @@ static pico8_g__t *ldown(void) {
     pico8_bg_t *bg = the_bg();
     pico8_down_t out;
 
-    assert(list_count(pico8_cg("g_")) == 0);
+    assert(ents_list_count(pico8_cg("g_")) == 0);
     out = cls_of(bg)->ldown(bg, vec_ref(vec_xy(1, 1)), vec_ref(vec_xy(2, 2)));
     assert(out.stop && out.held != NULL && is_probe(out.held));
     return as_g_(out.held);
@@ -401,9 +387,9 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     }
     assert(ents_listed(pico8_cv("kj"), e) && ents_listed(pico8_cv("ev"), e));
     assert(!ents_listed(pico8_cv("hd"), e) && !ents_listed(pico8_cv("hk"), e) && !ents_listed(pico8_cv("hb"), e));
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("g_"), e));
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), e));
-    assert(listed(pico8_cg("g_"), e) && listed(pico8_cg("prober"), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("g_"), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("prober"), e));
+    assert(ents_listed(pico8_cg("g_"), e) && ents_listed(pico8_cg("prober"), e));
     return h;
 }
 
@@ -448,7 +434,7 @@ static uint32_t et_kind(const pico8_g__t *e) {
         return 1;
     }
     ref = e->probe->et;
-    if (listed(pico8_cg("np"), ref)) {
+    if (ents_listed(pico8_cg("np"), ref)) {
         return 2;
     }
     if (ref != NULL &&
@@ -485,7 +471,7 @@ static uint32_t fold_et(uint32_t h, const pico8_g__t *e) {
 static pico8_jo_t *a_planet(void) {
     pico8_struct_header_t *e;
 
-    assert(list_count(pico8_cg("np")) > 0);
+    assert(ents_list_count(pico8_cg("np")) > 0);
     e = pico8_cg("np")->items[0];
     assert(pico8_jo_is_family(e));
     return (pico8_jo_t *)e;
@@ -599,8 +585,8 @@ static void test_life(void) {
     assert(pico8_d_(&a->header) == 0);
     assert(a->has_p_ && a->p_);
     pico8_dg();
-    assert(!ents_listed(pico8_hv(), a) && !listed(pico8_cg("g_"), a) && !listed(pico8_cg("prober"), a));
-    assert(ents_listed(pico8_hv(), b) && listed(pico8_cg("g_"), b));
+    assert(!ents_listed(pico8_hv(), a) && !ents_listed(pico8_cg("g_"), a) && !ents_listed(pico8_cg("prober"), a));
+    assert(ents_listed(pico8_hv(), b) && ents_listed(pico8_cg("g_"), b));
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("life", h, LIFE_HASH);
 }
@@ -718,9 +704,9 @@ static void test_fv(void) {
     assert(size_of(fv->emitter->qy) >= 0);
     h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
     h = fnv(h, (uint32_t)ents_rank_in(hv, fv));
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("g_"), fv));
-    h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), fv));
-    assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("g_"), fv));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("prober"), fv));
+    assert(ents_listed(pico8_cg("g_"), fv) && ents_listed(pico8_cg("prober"), fv));
     h = fold_defaults(h, fv);
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
