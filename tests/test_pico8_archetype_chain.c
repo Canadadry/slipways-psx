@@ -56,10 +56,6 @@ static int same_text(const char *got, const char *want) {
     return got != NULL && want != NULL && strcmp(got, want) == 0;
 }
 
-static int same_box(const pico8_qz_box_t *got, const pico8_qz_box_t *want) {
-    return got != NULL && got->xl == want->xl && got->yt == want->yt && got->xr == want->xr && got->yb == want->yb;
-}
-
 static void test_bg(void) {
     const pico8_bg_t *bg = pico8_bg_new();
 
@@ -213,32 +209,6 @@ static void test_os(void) {
     assert_lz_ran(&os->qh.jo);
 }
 
-/* What nr's init still writes, for nr and fr. */
-static void same_nr_part(const pico8_qh_t *qh, const pico8_jo_def_t *def, const char *kind) {
-    same_in(qh->jo.header.t == def->t, kind, "t");
-    same_in(same_box(qh->jo.kq, &def->kq), kind, "kq");
-    same_in(qh->s == def->s, kind, "s");
-    same_in(qh->probe->dw == def->probe.dw, kind, "probe.dw");
-    same_in(qh->probe->od == def->probe.od, kind, "probe.od");
-    same_in(qh->probe->fp == def->probe.fp, kind, "probe.fp");
-    assert(qh->probe->et == NULL && qh->jo.by == NULL);
-}
-
-/* `qy` is left to each kind's test. */
-static void same_emitter_part(const pico8_emitter_t *emitter, const pico8_jo_def_t *def, const char *kind) {
-    same_in(emitter->pn == def->emitter.pn, kind, "emitter.pn");
-    same_in(emitter->du == def->emitter.du, kind, "emitter.du");
-    same_in(emitter->py == def->emitter.py, kind, "emitter.py");
-    same_in(emitter->ki == def->emitter.ki, kind, "emitter.ki");
-    same_in(emitter->pk == def->emitter.pk, kind, "emitter.pk");
-    same_in(emitter->fc == def->emitter.fc, kind, "emitter.fc");
-    same_in(emitter->k_ == def->emitter.k_, kind, "emitter.k_");
-    same_in(emitter->qo == def->emitter.qo, kind, "emitter.qo");
-    same_in(emitter->ro == def->emitter.ro, kind, "emitter.ro");
-    same_in(emitter->qg == def->emitter.qg, kind, "emitter.qg");
-    same_in(emitter->q_ == def->emitter.q_, kind, "emitter.q_");
-}
-
 static void test_hj(void) {
     const pico8_hj_t *hj = pico8_hj_new(NULL);
 
@@ -274,13 +244,6 @@ static void test_ga(void) {
     const pico8_ga_t *other = pico8_ga_new(NULL);
 
     same_in(ga->jo.header.t == pico8_ga_def.t, "ga", "t");
-    same_in(ga->jo.hf == pico8_ga_def.hf, "ga", "hf");
-    same_in(ga->jo.fa == pico8_ga_def.fa, "ga", "fa");
-    same_in(same_box(ga->jo.kq, &pico8_ga_def.kq), "ga", "kq");
-    same_in(same_text(ga->fz, pico8_ga_def.fz), "ga", "fz");
-    same_in(ga->iu == pico8_ga_def.iu, "ga", "iu");
-    same_in(ga->ms == pico8_ga_def.ms, "ga", "ms");
-    same_emitter_part(ga->emitter, &pico8_ga_def, "ga");
     assert(ga->emitter->qy != NULL);
     assert(ga->jo.kw == pico8_jo_shared_kw());
     assert(ga->jo.by != NULL && ga->jo.by == other->jo.by);
@@ -289,19 +252,16 @@ static void test_ga(void) {
 static void test_nr(void) {
     const pico8_nr_t *nr = pico8_nr_new(NULL);
 
-    same_nr_part(&nr->qh, &pico8_nr_def, "nr");
-    same_in(nr->hz == pico8_nr_def.hz, "nr", "hz");
-    same_in(same_text(nr->rr, pico8_nr_def.rr), "nr", "rr");
+    same_in(nr->qh.jo.header.t == pico8_nr_def.t, "nr", "t");
+    assert(nr->qh.probe->et == NULL && nr->qh.jo.by == NULL);
     assert_lz_ran(&nr->qh.jo);
 }
 
 static void test_fr(void) {
     const pico8_fr_t *fr = pico8_fr_new(NULL);
 
-    same_nr_part(&fr->nr.qh, &pico8_fr_def, "fr");
-    same_in(fr->nr.hz == pico8_fr_def.hz, "fr", "hz");
-    same_in(same_text(fr->nr.rr, pico8_fr_def.rr), "fr", "rr");
-    same_in(fr->mt == pico8_fr_def.mt, "fr", "mt");
+    same_in(fr->nr.qh.jo.header.t == pico8_fr_def.t, "fr", "t");
+    assert(fr->nr.qh.probe->et == NULL && fr->nr.qh.jo.by == NULL);
     assert_lz_ran(&fr->nr.qh.jo);
 }
 
@@ -341,7 +301,7 @@ int main(void) {
     test_ga();
     test_nr();
     test_fr();
-    assert(g_compared == 68 && "families a to e compare 68 fields: one missed or one too many");
+    assert(g_compared == 36 && "families a to e compare 36 fields: one missed or one too many");
 
     printf("test_pico8_archetype_chain: all tests passed\n");
     return 0;

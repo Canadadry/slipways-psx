@@ -77,7 +77,7 @@ void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
 }
 
 int pico8_jo_get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_jo_t *)self)->fa;
+    *out = ((const pico8_jo_t *)self)->def->fa;
     return 1;
 }
 
@@ -90,7 +90,7 @@ const pico8_vec_t *pico8_jo_get_p(const void *self) {
 }
 
 const pico8_qz_box_t *pico8_jo_get_kq(const void *self) {
-    return ((const pico8_jo_t *)self)->kq;
+    return &((const pico8_jo_t *)self)->def->kq;
 }
 
 int pico8_jo_get_fx(const void *self) {
@@ -136,9 +136,6 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     assert(g_jo_up && "pico8_jo_init() must run first");
     pico8_ke_struct_init(&self->header, cls);
     self->def = def;
-    self->hf = self->def->hf;
-    self->fa = self->def->fa;
-    self->kq = &self->def->kq;
     self->ma = self->def->ma;
     self->kw = &g_jo_kw_shared;
     self->id = NULL;
@@ -326,7 +323,7 @@ int pico8_jo_gg(const pico8_jo_t *self) {
     if (self == NULL) {
         return 0;
     }
-    if (!self->hf) {
+    if (!self->def->hf) {
         return 0;
     }
     return self->header.me != NULL && strcmp(self->header.me, "ly") == 0;

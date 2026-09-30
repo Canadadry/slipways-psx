@@ -107,7 +107,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
@@ -276,7 +276,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_fixed_member(h, qh->s);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
-    h = fold_fixed_member(h, jo->fa);
+    h = fold_fixed_member(h, jo->def->fa);
     h = fold_fixed_member(h, jo->ma);
     h = fold_fixed_member(h, jo->def->ca);
     h = fold_vec(h, &jo->def->gq);
@@ -297,7 +297,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->kq != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(jo->def->ka != NULL));
     h = fnv(h, (uint32_t)(jo->def->dz != NULL));
@@ -329,7 +329,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&
            cls_of(e)->mm == NULL && pico8_jo_is_family(e));
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->jo.def->px == &pico8_qh_px_row && qh->jo.def->ba == &pico8_qh_ba_seq);
-    assert(jo->kq == &pico8_qh_def.kq);
+    assert(jo->def == &pico8_qh_def);
     assert(jo->def == &pico8_qh_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
            jo->def->cq == &pico8_jo_cq_seq);

@@ -276,7 +276,7 @@ pico8_fixed_t pico8_dh(const pico8_struct_header_t *pt) {
         return fixed_min(pico8_fixed_from_int(count), pico8_fixed_from_int(3));
     }
 
-    if (!jo->hf) {
+    if (!jo->def->hf) {
         if (jy != NULL && jy->count > 0) {
             void *last_val = jy->items[jy->count - 1];
             if (last_val != NULL) {

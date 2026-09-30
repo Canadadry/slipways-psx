@@ -90,9 +90,9 @@ void pico8_nr_hb(pico8_nr_t *self) {
 
     oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
 
-    if (self->hz != NULL) {
+    if (self->qh.jo.def->hz != NULL) {
         int entry;
-        if (pico8_int_seq_at(self->hz->items, self->hz->count, oe_count + 1, &entry)) {
+        if (pico8_int_seq_at(self->qh.jo.def->hz->items, self->qh.jo.def->hz->count, oe_count + 1, &entry)) {
             s_val = pico8_fixed_from_int(entry);
         }
     }
@@ -187,18 +187,12 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-/* Initializes an allocated pico8_nr_t under `cls`: qh's part, nr's members
- * nil, nr's defaults. Reads no key, runs neither `pq` nor `lt`, records no
- * coverage. Requires `pico8_planet_family_trade_init()`. */
+/* Initializes an allocated pico8_nr_t under `cls` and `def`, its kind's
+ * archetype: qh's part, nr having no member of its own. Reads no key, runs
+ * neither `pq` nor `lt`, records no coverage. Requires
+ * `pico8_planet_family_trade_init()`. */
 static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_qh_struct_init(&self->qh, cls, def);
-    self->hz = pico8_nr_start.hz;
-    self->rr = pico8_nr_start.rr;
-    self->qh.probe->od = pico8_nr_start.od;
-    self->qh.probe->fp = pico8_nr_start.fp;
-    self->qh.s = pico8_nr_start.s;
-    self->qh.probe->dw = pico8_nr_start.dw;
-    self->qh.jo.kq = &pico8_nr_start.kq;
 }
 
 static pico8_nr_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
@@ -226,7 +220,7 @@ static pico8_nr_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
 }
 
 static int pico8_fr_get_mt(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fr_t *)self)->mt;
+    *out = ((const pico8_fr_t *)self)->nr.qh.jo.def->mt;
     return 1;
 }
 
@@ -265,11 +259,6 @@ static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(&self->nr, &g_fr_struct_class, &pico8_fr_def);
-    self->mt = pico8_fr_start.mt;
-    self->nr.hz = pico8_fr_start.hz;
-    self->nr.rr = pico8_fr_start.rr;
-    self->nr.qh.probe->od = pico8_fr_start.od;
-    self->nr.qh.s = pico8_fr_start.s;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "fr: the only construction key is id (ie:ldown); another key has no member "

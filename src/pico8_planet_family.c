@@ -522,27 +522,19 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_jo_struct_init(&self->jo, &g_ga_struct_class, &pico8_ga_def);
-    self->fz = pico8_ga_start.fz;
     self->emitter = &self->emitter_own;
-    self->emitter->def = NULL;
-    self->emitter->pn = 0;
-    self->emitter->du = 0;
-    self->emitter->ki = 0;
-    self->emitter->pk = 0;
-    self->emitter->fc = pico8_ga_start.fc;
-    self->emitter->qo = pico8_ga_start.qo;
-    self->emitter->ro = pico8_ga_start.ro;
-    self->emitter->qg = pico8_ga_start.qg;
-    self->emitter->q_ = pico8_ga_start.q_;
-    self->emitter->k_ = pico8_ga_start.k_;
-    self->iu = pico8_ga_start.iu;
-    self->emitter->py = pico8_ga_start.py;
-    self->ms = pico8_ga_start.ms;
+    self->emitter->def = &self->jo.def->emitter;
+    self->emitter->fc = self->jo.def->emitter.fc;
+    self->emitter->qo = self->jo.def->emitter.qo;
+    self->emitter->ro = self->jo.def->emitter.ro;
+    self->emitter->qg = self->jo.def->emitter.qg;
+    self->emitter->q_ = self->jo.def->emitter.q_;
+    self->emitter->k_ = self->jo.def->emitter.k_;
+    self->iu = self->jo.def->iu;
+    self->emitter->py = self->jo.def->emitter.py;
+    self->ms = self->jo.def->ms;
     self->emitter->qy = NULL;
     self->jo.by = &g_ga_by_shared;
-    self->jo.hf = pico8_ga_start.hf;
-    self->jo.kq = &pico8_ga_start.kq;
-    self->jo.fa = pico8_ga_start.fa;
     if (keys != NULL) {
         if (keys->jo.p != NULL) {
             self->jo.p = keys->jo.p;

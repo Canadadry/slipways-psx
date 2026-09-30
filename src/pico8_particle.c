@@ -27,7 +27,7 @@ static pico8_fixed_t emitter_host_fa_ra(pico8_struct_header_t *self, pico8_vec_t
            "ei: a host neither of g_'s line nor of jo's family, none of whose kj runs ei -- stop");
     jo = (const pico8_jo_t *)self;
     *ra = jo->ra != NULL ? *jo->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-    return jo->fa;
+    return jo->def->fa;
 }
 
 static int pico8_particle_to_int(pico8_fixed_t x) {

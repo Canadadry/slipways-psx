@@ -107,7 +107,7 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
                 const pico8_jo_t *oz;
                 assert(pico8_jo_is_family(oz_val) && "db: a trade leads to a planet");
                 oz = (const pico8_jo_t *)oz_val;
-                if (oz->hf) {
+                if (oz->def->hf) {
                     pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
                     pico8_fixed_t hs = jo->def->hs;
                     pico8_fixed_t ct_pt = pico8_fixed_from_int(0);

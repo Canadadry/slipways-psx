@@ -14,25 +14,16 @@ void pico8_planet_family_trade_init(void);
  * `pico8_planet_family_trade_init()`. */
 void pico8_planet_family_trade_shutdown(void);
 
-/* A slipgate: a laboratory, then nr's own defaults `hz` and `rr`, which no
- * ancestor has a member for. A default of nr whose name is a member of `qh`
- * or `jo` (`kq`, `od`, `fp`, `s`, `dw`) lives in that member.
- * `hz`, `kq` and `rr` point at nr's generated data, `px` at qh's.
- * Nothing frees the struct: TROU-7. */
+/* A slipgate: a laboratory and nothing of its own; its defaults are its
+ * archetype's. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    const pico8_int_seq_t *hz;
-    const char *rr;
 } pico8_nr_t;
 
-/* An infraspace gate: a slipgate, then fr's own default `mt`, which no
- * ancestor has a member for. A default of fr whose name is a member of `nr`
- * or `qh` (`rr`, `hz`, `od`, `s`) lives in that member. `hz` and `rr` point
- * at fr's generated data, `kq` at nr's, `px` at qh's.
- * Nothing frees the struct: TROU-7. */
+/* An infraspace gate: a slipgate and nothing of its own; its defaults are
+ * its archetype's. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_nr_t nr;
-    pico8_fixed_t mt;
 } pico8_fr_t;
 
 /* A synthesizer: an ascension, then `ht`, copied from its archetype;

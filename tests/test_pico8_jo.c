@@ -102,7 +102,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -207,7 +207,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->id);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
-    h = fold_fixed_member(h, jo->fa);
+    h = fold_fixed_member(h, jo->def->fa);
     h = fold_fixed_member(h, jo->ma);
     h = fold_fixed_member(h, jo->def->ca);
     h = fold_vec(h, jo->p);
@@ -220,7 +220,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->kq != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(jo->def->ka != NULL));
     h = fnv(h, (uint32_t)(jo->def->dz != NULL));
@@ -248,7 +248,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)jo->has_mi);
     h = fnv(h, (uint32_t)jo->has_m_);
     assert_jo_members(cls_of(e));
-    assert(jo->kq == &pico8_jo_def.kq);
+    assert(jo->def == &pico8_jo_def);
     assert(jo->def == &pico8_jo_def);
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && jo->kw == pico8_jo_shared_kw() && jo->def->em == &pico8_jo_em_row);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));

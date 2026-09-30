@@ -110,7 +110,7 @@ static uint32_t fold_string_member(uint32_t h, const char *s) {
 }
 
 static uint32_t fold_hf(uint32_t h, const pico8_jo_t *jo) {
-    return jo->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+    return jo->def->hf ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static uint32_t fold_p_(uint32_t h, const pico8_jo_t *jo) {
@@ -210,8 +210,8 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 
 /* `fz` is "ga" on a burst and on nothing else. */
 static int is_ga(const void *e) {
-    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_ga_t *)e)->fz != NULL &&
-           strcmp(((const pico8_ga_t *)e)->fz, "ga") == 0;
+    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_ga_t *)e)->jo.def->fz != NULL &&
+           strcmp(((const pico8_ga_t *)e)->jo.def->fz, "ga") == 0;
 }
 
 static pico8_ga_t *as_ga(void *e) {
@@ -297,8 +297,8 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     int j;
 
     assert(is_ga(e));
-    h = fold_string_member(h, g->fz);
-    h = fold_fixed_member(h, jo->fa);
+    h = fold_string_member(h, g->jo.def->fz);
+    h = fold_fixed_member(h, jo->def->fa);
     h = fold_fixed_member(h, em->fc);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
@@ -325,7 +325,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
      * and of `hf`, `hs`, `fa`, `ma`, `ca` (jo's) are constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(g->fz != NULL));
+    h = fnv(h, (uint32_t)(g->jo.def->fz != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -340,7 +340,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(jo->kq != NULL));
+    h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, (uint32_t)(jo->def->ka != NULL));
     h = fnv(h, (uint32_t)(jo->def->dz != NULL));
@@ -383,7 +383,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
            cls_of(e)->rdown == NULL && cls_of(e)->states[PICO8_STATE_LY] == NULL);
     assert(cls_of(e)->ol == NULL && cls_of(e)->hq == NULL && cls_of(e)->ey == NULL);
     assert(jo->header.cls->tags == 0);
-    assert(jo->kq == &pico8_ga_start.kq);
+    assert(jo->def == &pico8_ga_def);
     assert(jo->by != NULL);
     if (from_pm) {
         assert(em->k_ != &pico8_ga_k__seq);
@@ -427,8 +427,8 @@ static void test_built(void) {
     assert(as_ga(a)->jo.oe != as_ga(b)->jo.oe);
     assert(as_ga(a)->jo.by == as_ga(b)->jo.by && as_ga(b)->jo.by == as_ga(c)->jo.by);
     assert(as_ga(c)->jo.ra == NULL && as_ga(c)->jo.p == NULL && as_ga(c)->jo.id == NULL);
-    assert(as_ga(a)->jo.fa == pico8_fixed_from_int(3) && as_ga(a)->ms == pico8_fixed_from_int(3));
-    assert(as_ga(a)->jo.hf == 0);
+    assert(as_ga(a)->jo.def->fa == pico8_fixed_from_int(3) && as_ga(a)->ms == pico8_fixed_from_int(3));
+    assert(as_ga(a)->jo.def->hf == 0);
     assert(as_ga(b)->ms == PICO8_FIXED_LIT(0x00018000, 1.5));
     check("built", h, BUILT_HASH);
 }

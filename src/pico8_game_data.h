@@ -305,24 +305,6 @@ typedef struct {
     pico8_emitter_def_t emitter;
 } pico8_jo_def_t;
 
-/* The jo tree: each class's own keys only, the inherited ones are its parent's;
- * ga.by, an empty state list, is held by its module. */
-typedef struct {
-    const char *fz;
-    int hf;
-    pico8_qz_box_t kq;
-    pico8_fixed_t fa;
-    pico8_fixed_t fc;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t iu;
-    pico8_fixed_t py;
-    pico8_fixed_t ms;
-} pico8_ga_start_t;
-
 /* The keys pm:pq passes to the ga it spawns, besides `ra`. */
 typedef struct {
     pico8_fixed_t qo;
@@ -334,24 +316,6 @@ typedef struct {
     pico8_fixed_t ms;
     const pico8_int_seq_t *k_;
 } pico8_ga_pq_keys_t;
-
-typedef struct {
-    pico8_fixed_t od;
-    pico8_fixed_t fp;
-    pico8_qz_box_t kq;
-    pico8_fixed_t s;
-    const pico8_int_seq_t *hz;
-    pico8_fixed_t dw;
-    const char *rr;
-} pico8_nr_start_t;
-
-typedef struct {
-    pico8_fixed_t mt;
-    const char *rr;
-    pico8_fixed_t od;
-    pico8_fixed_t s;
-    const pico8_int_seq_t *hz;
-} pico8_fr_start_t;
 
 extern const int pico8_es_table[PICO8_ES_COUNT];
 extern const pico8_fixed_t pico8_ct_table[PICO8_CT_COUNT];
@@ -410,10 +374,7 @@ extern const pico8_jb_row_t pico8_pj_ou_row;
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_ga_start_t pico8_ga_start;
 extern const pico8_ga_pq_keys_t pico8_pm_ga_pq_keys;
-extern const pico8_nr_start_t pico8_nr_start;
-extern const pico8_fr_start_t pico8_fr_start;
 extern const pico8_bg_def_t pico8_bg_def;
 extern const pico8_ui_def_t pico8_ui_def;
 extern const pico8_js_def_t pico8_js_def;

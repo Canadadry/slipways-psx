@@ -171,16 +171,16 @@ static void test_kind_reader_serves_the_generated_defaults(void) {
     assert(rec->has_od && rec->od == pico8_os_def.probe.od);
 
     rec = rec_of(2);
-    assert(rec->rr == pico8_nr_start.rr);
-    assert(rec->has_s && rec->s == pico8_nr_start.s);
+    assert(rec->rr == pico8_nr_def.rr);
+    assert(rec->has_s && rec->s == pico8_nr_def.s);
     assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_nr_start.od);
+    assert(rec->has_od && rec->od == pico8_nr_def.probe.od);
 
     rec = rec_of(3);
-    assert(rec->rr == pico8_fr_start.rr);
-    assert(rec->has_s && rec->s == pico8_fr_start.s);
+    assert(rec->rr == pico8_fr_def.rr);
+    assert(rec->has_s && rec->s == pico8_fr_def.s);
     assert(rec->me == pico8_qh_def.me);
-    assert(rec->has_od && rec->od == pico8_fr_start.od);
+    assert(rec->has_od && rec->od == pico8_fr_def.probe.od);
 
     rec = rec_of(4);
     assert(rec->rr == pico8_nl_def.rr);
