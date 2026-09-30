@@ -12,7 +12,6 @@
 #include "pico8_ke.h"
 #include "pico8_planet.h"
 #include "pico8_probe.h"
-#include "pico8_slipway.h"
 #include "pico8_tech_gate.h"
 #include "pico8_wormhole_display.h"
 

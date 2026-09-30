@@ -19,7 +19,6 @@
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
 #include "pico8_vec.h"
-#include "pico8_wormhole.h"
 
 static int g_jc_up = 0;
 

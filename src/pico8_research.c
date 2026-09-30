@@ -6,8 +6,6 @@
 #include <string.h>
 
 #include "pico8_collect.h"
-#include "pico8_data_init.h"
-#include "pico8_research_display.h"
 #include "pico8_tech_gate.h"
 
 static int g_hp_up = 0;
