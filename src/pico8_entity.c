@@ -122,7 +122,7 @@ static int pico8_bm_has(const pico8_struct_header_t *e, int i) {
     }
 }
 
-int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     (void)self;
     (void)qa;
     (void)ra;

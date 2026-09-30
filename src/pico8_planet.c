@@ -32,8 +32,8 @@ static pico8_jf_state_t *g_jo_ir = NULL;
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
 
-int pico8_jo_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
+int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk(self, qa, ra);
 }
 
 void pico8_jo_hb_dispatch(void *self) {

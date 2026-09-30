@@ -136,7 +136,7 @@ void pico8_ga_pq(pico8_jo_t *self);
 /* TROU-7 */
 /* Returns a freshly allocated `pico8_qy_t` (`has_a` 1), one allocation,
  * which `ez` stores into `self.qy`. */
-pico8_qy_t *pico8_ga_mm(void *self);
+pico8_qy_t *pico8_ga_mm(pico8_struct_header_t *self);
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
 

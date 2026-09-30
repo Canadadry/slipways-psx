@@ -325,8 +325,7 @@ void pico8_d__dispatch(void *self, pico8_struct_header_t *kv) {
     (void)pico8_d_((pico8_struct_header_t *)self);
 }
 
-pico8_qy_t *pico8_g__mm(void *self_ptr) {
-    pico8_struct_header_t *self = (pico8_struct_header_t *)self_ptr;
+pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
     const pico8_emitter_t *emitter = NULL;
     pico8_fixed_t pn = 0, t = 0, du = 0, py = 0, ki = 0;
     int pk = 0;

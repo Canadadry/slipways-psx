@@ -155,6 +155,6 @@ void pico8_d__dispatch(void *self, pico8_struct_header_t *kv);
 /* TROU-7 */
 /* Returns a freshly allocated `pico8_qy_t` (`has_a` 0), one allocation;
  * `ez` appends it to `qy` and nothing ever frees it. */
-pico8_qy_t *pico8_g__mm(void *self);
+pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self);
 
 #endif

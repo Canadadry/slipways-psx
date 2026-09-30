@@ -31,8 +31,8 @@ void pico8_help_set_eu(pico8_js_fn fn) {
     g_eu_dispatch = (fn != NULL) ? fn : pico8_fv_eu_placeholder;
 }
 
-static int pico8_fv_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
+static int pico8_fv_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk(self, qa, ra);
 }
 
 /* The most items a row of `bo` holds. */

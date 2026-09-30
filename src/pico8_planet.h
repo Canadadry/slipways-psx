@@ -101,7 +101,7 @@ void pico8_jo_pq(pico8_jo_t *self);
 
 /* The dispatchers jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-int pico8_jo_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 void pico8_jo_hb_dispatch(void *self);
 pico8_down_t pico8_jo_gv_dispatch(void *self, const pico8_struct_header_t *s);
 void pico8_jo_hk_dispatch(void *self, pico8_fixed_t yr);

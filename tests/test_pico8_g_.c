@@ -550,8 +550,8 @@ static void test_life(void) {
     a = ldown();
     b = pico8_g__new(NULL);
     jc = a_slipway(&middle);
-    h = fold_particle(h, cls_of(a)->mm(a));
-    h = fold_particle(h, cls_of(b)->mm(b));
+    h = fold_particle(h, cls_of(a)->mm(&a->header));
+    h = fold_particle(h, cls_of(b)->mm(&b->header));
 
     h = fold_hq(h, a, planet_p(), 64, 2);
     h = fold_hq(h, a, middle, 64, 3);

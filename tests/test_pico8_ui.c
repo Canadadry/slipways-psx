@@ -730,7 +730,7 @@ static pico8_down_t giver_down(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     return out;
 }
 
-static int giver_hd(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+static int giver_hd(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     (void)self;
     (void)qa;
     (void)ra;

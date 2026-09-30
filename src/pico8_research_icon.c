@@ -198,8 +198,8 @@ static void pico8_ie_kj_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 /* `ie.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
+static int pico8_ie_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk(self, qa, ra);
 }
 
 static const pico8_struct_class_t g_ie_struct_class = {

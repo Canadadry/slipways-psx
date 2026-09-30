@@ -419,10 +419,10 @@ static void test_life(void) {
         h = fold_string_member(h, fv->header.me);
         assert(ents_listed(pico8_hv(), fv));
     }
-    assert(cls_of(fv)->hd(fv, vec_ref(64, 10), vec_ref(64, 112)) == 1);
-    assert(cls_of(fv)->hd(fv, vec_ref(64, 112), vec_ref(64, 10)) == 0);
-    assert(cls_of(fv)->hd(fv, vec_ref(24, 106), vec_ref(24, 106)) == 1);
-    assert(cls_of(fv)->hd(fv, vec_ref(23, 106), vec_ref(23, 106)) == 0);
+    assert(cls_of(fv)->hd(&fv->header, vec_ref(64, 10), vec_ref(64, 112)) == 1);
+    assert(cls_of(fv)->hd(&fv->header, vec_ref(64, 112), vec_ref(64, 10)) == 0);
+    assert(cls_of(fv)->hd(&fv->header, vec_ref(24, 106), vec_ref(24, 106)) == 1);
+    assert(cls_of(fv)->hd(&fv->header, vec_ref(23, 106), vec_ref(23, 106)) == 0);
     h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
     check("life", h, LIFE_HASH);
 }

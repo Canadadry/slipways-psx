@@ -144,7 +144,7 @@ struct pico8_kind_rec;
 struct pico8_struct_class {
     void (*kj)(void *self, const pico8_vec_t *ra);
     void (*ev)(void *self, const pico8_vec_t *ra);
-    int (*hd)(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+    int (*hd)(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
     void (*hk)(void *self, pico8_fixed_t yr);
     void (*hb)(void *self);
     int (*has_hb)(const void *self);
@@ -156,7 +156,7 @@ struct pico8_struct_class {
     void (*kf)(void *self, pico8_struct_header_t *sw);
     void (*cn)(void *self, struct pico8_jo_trade_proposal *lw);
     void (*ol)(void *self, pico8_vec_t p, pico8_fixed_t a);
-    struct pico8_qy *(*mm)(void *self);
+    struct pico8_qy *(*mm)(pico8_struct_header_t *self);
     pico8_state_fn states[PICO8_STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
     unsigned tags;

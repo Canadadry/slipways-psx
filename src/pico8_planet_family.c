@@ -347,7 +347,7 @@ void pico8_ga_pq(pico8_jo_t *self) {
     }
 }
 
-pico8_qy_t *pico8_ga_mm(void *self_ptr) {
+pico8_qy_t *pico8_ga_mm(pico8_struct_header_t *self_ptr) {
     const pico8_jo_t *self = (const pico8_jo_t *)self_ptr;
     pico8_fixed_t qd;
     pico8_fixed_t ms;

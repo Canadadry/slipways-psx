@@ -44,7 +44,7 @@ void pico8_he(pico8_struct_header_t *e);
 void pico8_dc(const char *nt);
 
 /* `hd=1` of `bg` and `fq`: the hover test that every point passes. */
-int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
+int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 
 /* Until pico8_jl() runs, the placeholder struct, with no member and no
  * `md`: dc() calls `mo:md(ci[o])` on a `qb` only; afterwards the

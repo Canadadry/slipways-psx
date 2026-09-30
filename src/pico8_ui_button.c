@@ -34,8 +34,8 @@ static void pico8_js_kj_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 /* `js.hd=gk`: a field assignment in the cart, not a method definition. */
-static int pico8_js_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
-    return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
+static int pico8_js_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
+    return pico8_gk(self, qa, ra);
 }
 
 static pico8_down_t pico8_js_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
