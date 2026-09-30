@@ -175,7 +175,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls) {
     self->header.me = pico8_jo_start.me;
 }
 
-static void *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_jo_t *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
     pico8_jo_t *self = malloc(sizeof *self);
 
     pico8_jo_struct_init(self, &g_jo_struct_class);

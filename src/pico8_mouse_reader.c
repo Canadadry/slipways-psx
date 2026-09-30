@@ -40,7 +40,7 @@ static void pico8_nf_pq(pico8_mem_t *mem) {
     pico8_poke(mem, 0x5f2d, 1);
 }
 
-static void *pico8_nf_struct_new(void) {
+static pico8_nf_t *pico8_nf_struct_new(void) {
     pico8_nf_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_nf_struct_class);

@@ -163,11 +163,11 @@ typedef struct {
 
 /* A kind the cart handles as a value (`gx[]`, `ie.ke`, `kv[hp.cw]`): one
  * `static const` per kind, never freed. Not an entity: it has no
- * pico8_struct_header_t. `new_entity` is the kind's
- * pico8_X_new(). `rec`, never NULL, holds the kind's `rr`, `s`, `me` and
- * `od` whether its modules are up or down. */
+ * pico8_struct_header_t. `new_entity` builds one of the kind and returns
+ * its header (pico8_X_kind_new). `rec`, never NULL, holds the kind's `rr`,
+ * `s`, `me` and `od` whether its modules are up or down. */
 typedef struct {
-    void *(*new_entity)(const pico8_jo_keys_t *keys);
+    pico8_struct_header_t *(*new_entity)(const pico8_jo_keys_t *keys);
     const struct pico8_kind_rec *rec;
 } pico8_entity_kind_t;
 

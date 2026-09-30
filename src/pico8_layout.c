@@ -328,7 +328,7 @@ static pico8_lq_t *pico8_lq_struct_finish(pico8_lq_t *self) {
     return self;
 }
 
-static void *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
+static pico8_lq_t *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
     pico8_lq_t *self = pico8_lq_struct_alloc(keys != NULL ? keys->count : 0);
     int k;
 
@@ -415,7 +415,7 @@ static pico8_jb_t *pico8_jb_struct_alloc(void) {
     return self;
 }
 
-static void *pico8_jb_struct_new(const pico8_jb_row_t *row) {
+static pico8_jb_t *pico8_jb_struct_new(const pico8_jb_row_t *row) {
     pico8_jb_t *self;
 
     assert((row == NULL || (!row->has_c && row->fn == NULL)) &&

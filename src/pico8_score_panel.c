@@ -285,7 +285,7 @@ static const pico8_struct_class_t g_pj_struct_class = {
     .get_fa = pj_get_fa,
 };
 
-static void *pico8_pj_struct_new(void) {
+static pico8_pj_t *pico8_pj_struct_new(void) {
     pico8_pj_t *self;
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");

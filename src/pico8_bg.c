@@ -63,7 +63,7 @@ static const pico8_struct_class_t g_bg_struct_class = {
     .set_m_ = bg_set_m_,
 };
 
-static void *pico8_bg_struct_new(void) {
+static pico8_bg_t *pico8_bg_struct_new(void) {
     pico8_bg_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_bg_struct_class);

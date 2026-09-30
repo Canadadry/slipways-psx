@@ -103,7 +103,7 @@ static const pico8_struct_class_t g_js_struct_class = {
     .set_m_ = js_set_m_,
 };
 
-static void *pico8_js_struct_new(const pico8_js_keys_t *keys) {
+static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     pico8_js_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_js_struct_class);
@@ -349,7 +349,7 @@ static const pico8_struct_class_t g_fq_struct_class = {
     .set_m_ = fq_set_m_,
 };
 
-static void *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
+static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     pico8_fq_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_fq_struct_class);

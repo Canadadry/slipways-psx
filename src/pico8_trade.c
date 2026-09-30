@@ -23,7 +23,7 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b) {
 
 static const pico8_struct_class_t g_trade_struct_class = {0};
 
-static void *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
+static pico8_trade_t *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
     pico8_trade_t *self = malloc(sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE

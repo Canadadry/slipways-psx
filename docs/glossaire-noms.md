@@ -13,7 +13,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` (`fz` : `pico8_pm_start.fz`, `pico8_ga_start.fz`) ; le `new_entity` d'une sorte prend un `pico8_jo_keys_t` |
+| `kv` | — | le système de classes lui-même ; `kv:jr(spec)` déclare une classe. Le port n'en garde que `kv[fz]`, lu par `jo:hu` : la table `cw` → `pico8_pm_kind`/`pico8_ga_kind` de `pico8_planet.c` (`fz` : `pico8_pm_start.fz`, `pico8_ga_start.fz`) ; le `new_entity` d'une sorte prend un `pico8_jo_keys_t` et rend l'en-tête (`pico8_X_kind_new`) |
 | `kv:jr` : `mw(ob)` | `pico8_jo_keys_t` (`pico8_struct.h`) | les clés de construction de l'arbre `jo`, que le constructeur de classe copie dans l'instance : `id`, `p`, `ra`, NULL = absente (une clé nil n'existe pas) ; `qh`, `nl`, `os`, `hj`, `fr`, `mx` ne prennent que `id` |
 | — | `pico8_ga_keys_t` (`pico8_planet_family.h`) | les clés de `ga` : celles de `jo` (`jo:hu`), puis `pq`, le groupe que passe `pm:pq` (NULL : défauts de `ga`) |
 | — | `pico8_ga_pq_keys_t`, `pico8_pm_ga_pq_keys` (`pico8_game_data.h`) | les clés que `pm:pq` passe au `ga` qu'il fait naître, hors `ra` : `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` et `k_`, générées depuis la chaîne du cart |

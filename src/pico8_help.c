@@ -143,7 +143,7 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .set_m_ = fv_set_m_,
 };
 
-static void *pico8_fv_struct_new(void) {
+static pico8_fv_t *pico8_fv_struct_new(void) {
     pico8_fv_t *self;
 
     assert(g_fv_up && "pico8_help_init() must run first");

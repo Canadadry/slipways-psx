@@ -90,7 +90,7 @@ static const pico8_struct_class_t g_ui_struct_class = {
     .get_ql = ui_get_ql,
 };
 
-static void *pico8_ui_struct_new(void) {
+static pico8_ui_t *pico8_ui_struct_new(void) {
     pico8_ui_t *self;
     int i;
 

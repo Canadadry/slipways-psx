@@ -201,7 +201,7 @@ static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *c
     self->qh.jo.kq = &pico8_nr_start.kq;
 }
 
-static void *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_nr_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_nr_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
@@ -260,7 +260,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-static void *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
     pico8_fr_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
@@ -366,7 +366,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-static void *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
     pico8_mx_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
@@ -421,7 +421,11 @@ int pico8_nr_ready(void) {
     return g_family_trade_up;
 }
 
-static const pico8_entity_kind_t g_nr_kind = {pico8_nr_struct_new, &pico8_nr_kind_rec};
+static pico8_struct_header_t *pico8_nr_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_nr_struct_new(keys)->qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_nr_kind = {pico8_nr_kind_new, &pico8_nr_kind_rec};
 
 const pico8_entity_kind_t *pico8_nr_kind(void) {
     return &g_nr_kind;
@@ -439,7 +443,11 @@ int pico8_fr_ready(void) {
     return g_family_trade_up;
 }
 
-static const pico8_entity_kind_t g_fr_kind = {pico8_fr_struct_new, &pico8_fr_kind_rec};
+static pico8_struct_header_t *pico8_fr_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_fr_struct_new(keys)->nr.qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_fr_kind = {pico8_fr_kind_new, &pico8_fr_kind_rec};
 
 const pico8_entity_kind_t *pico8_fr_kind(void) {
     return &g_fr_kind;
@@ -457,7 +465,11 @@ int pico8_mx_ready(void) {
     return g_family_trade_up;
 }
 
-static const pico8_entity_kind_t g_mx_kind = {pico8_mx_struct_new, &pico8_mx_kind_rec};
+static pico8_struct_header_t *pico8_mx_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_mx_struct_new(keys)->hj.qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_mx_kind = {pico8_mx_kind_new, &pico8_mx_kind_rec};
 
 const pico8_entity_kind_t *pico8_mx_kind(void) {
     return &g_mx_kind;

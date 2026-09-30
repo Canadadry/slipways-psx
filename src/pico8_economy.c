@@ -19,7 +19,7 @@ static int g_hy_up = 0;
 
 static const pico8_struct_class_t g_hy_struct_class = {0};
 
-static void *pico8_hy_struct_new(void) {
+static pico8_hy_t *pico8_hy_struct_new(void) {
     pico8_hy_t *self = malloc(sizeof *self);
     pico8_ptrs_t *invented;
 

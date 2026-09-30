@@ -81,7 +81,7 @@ void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls) {
     self->jo.header.me = pico8_qh_start.me;
 }
 
-static void *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_qh_t *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
     pico8_qh_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
@@ -148,7 +148,7 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-static void *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_nl_t *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
     pico8_nl_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
@@ -207,7 +207,7 @@ static const pico8_struct_class_t g_os_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-static void *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_os_t *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
     pico8_os_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
@@ -307,7 +307,7 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     self->qh.s = pico8_hj_start.s;
 }
 
-static void *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_hj_t *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
     pico8_hj_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
@@ -388,7 +388,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-static void *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
+static pico8_pm_t *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
     pico8_pm_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
@@ -562,7 +562,7 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .set_m_ = pico8_jo_set_m_,
 };
 
-static void *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
+static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     pico8_ga_t *self = malloc(sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
@@ -633,7 +633,11 @@ int pico8_qh_ready(void) {
     return g_family_up;
 }
 
-static const pico8_entity_kind_t g_qh_kind = {pico8_qh_struct_new, &pico8_qh_kind_rec};
+static pico8_struct_header_t *pico8_qh_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_qh_struct_new(keys)->jo.header;
+}
+
+static const pico8_entity_kind_t g_qh_kind = {pico8_qh_kind_new, &pico8_qh_kind_rec};
 
 const pico8_entity_kind_t *pico8_qh_kind(void) {
     return &g_qh_kind;
@@ -651,7 +655,11 @@ int pico8_nl_ready(void) {
     return g_family_up;
 }
 
-static const pico8_entity_kind_t g_nl_kind = {pico8_nl_struct_new, &pico8_nl_kind_rec};
+static pico8_struct_header_t *pico8_nl_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_nl_struct_new(keys)->qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_nl_kind = {pico8_nl_kind_new, &pico8_nl_kind_rec};
 
 const pico8_entity_kind_t *pico8_nl_kind(void) {
     return &g_nl_kind;
@@ -687,7 +695,11 @@ int pico8_os_ready(void) {
     return g_family_up;
 }
 
-static const pico8_entity_kind_t g_os_kind = {pico8_os_struct_new, &pico8_os_kind_rec};
+static pico8_struct_header_t *pico8_os_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_os_struct_new(keys)->qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_os_kind = {pico8_os_kind_new, &pico8_os_kind_rec};
 
 const pico8_entity_kind_t *pico8_os_kind(void) {
     return &g_os_kind;
@@ -705,7 +717,11 @@ int pico8_hj_ready(void) {
     return g_family_up;
 }
 
-static const pico8_entity_kind_t g_hj_kind = {pico8_hj_struct_new, &pico8_hj_kind_rec};
+static pico8_struct_header_t *pico8_hj_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_hj_struct_new(keys)->qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_hj_kind = {pico8_hj_kind_new, &pico8_hj_kind_rec};
 
 const pico8_entity_kind_t *pico8_hj_kind(void) {
     return &g_hj_kind;
@@ -723,7 +739,11 @@ int pico8_pm_ready(void) {
     return g_family_up;
 }
 
-static const pico8_entity_kind_t g_pm_kind = {pico8_pm_struct_new, &pico8_pm_kind_rec};
+static pico8_struct_header_t *pico8_pm_kind_new(const pico8_jo_keys_t *keys) {
+    return &pico8_pm_struct_new(keys)->hj.qh.jo.header;
+}
+
+static const pico8_entity_kind_t g_pm_kind = {pico8_pm_kind_new, &pico8_pm_kind_rec};
 
 const pico8_entity_kind_t *pico8_pm_kind(void) {
     return &g_pm_kind;
@@ -742,15 +762,15 @@ int pico8_ga_ready(void) {
 }
 
 /* `kv["ga"]` (jo:hu): jo's keys, no `pq`. */
-static void *pico8_ga_kind_new(const pico8_jo_keys_t *keys) {
+static pico8_struct_header_t *pico8_ga_kind_new(const pico8_jo_keys_t *keys) {
     pico8_ga_keys_t ga_keys;
 
     if (keys == NULL) {
-        return pico8_ga_struct_new(NULL);
+        return &pico8_ga_struct_new(NULL)->jo.header;
     }
     ga_keys.jo = *keys;
     ga_keys.pq = NULL;
-    return pico8_ga_struct_new(&ga_keys);
+    return &pico8_ga_struct_new(&ga_keys)->jo.header;
 }
 
 static const pico8_entity_kind_t g_ga_kind = {pico8_ga_kind_new, &pico8_ga_kind_rec};

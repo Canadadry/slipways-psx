@@ -468,7 +468,7 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
     self->emitter->du = pico8_g__start.du;
 }
 
-static void *pico8_g__struct_new(const pico8_g__keys_t *keys) {
+static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_g__t *self;
 
     assert(g_g__up && "pico8_probe_init() must run first");

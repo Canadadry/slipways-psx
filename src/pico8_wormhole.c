@@ -236,7 +236,7 @@ static const pico8_struct_class_t g_mz_struct_class = {
     .get_p_ = mz_get_p_,
 };
 
-static void *pico8_mz_struct_new(void) {
+static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_mz_t *self = malloc(sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_mz_struct_class);

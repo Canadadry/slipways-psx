@@ -233,7 +233,7 @@ static const pico8_struct_class_t g_ie_struct_class = {
     .set_m_ = ie_set_m_,
 };
 
-static void *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
+static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     pico8_ie_t *self = malloc(sizeof *self);
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");

@@ -128,7 +128,7 @@ pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe) {
 /* TROU-7 */
 /* `i` must be rewritten after `ho`, which leaves the raw string in it; the
  * real `gb[px]` must hold the struct. */
-static void *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
+static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
     pico8_hp_t *self = malloc(sizeof *self);
     pico8_ptrs_t *new_i_heap;
     const char *i_src = "";
