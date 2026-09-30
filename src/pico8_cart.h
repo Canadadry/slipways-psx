@@ -4,13 +4,11 @@
 #include "pico8_struct.h"
 #include "pico8_ui_button.h"
 
-/* Parses every module's spec and builds every data table the cart's
- * top-level statements build, which real Lua runs once before `_init()`.
- * Reads the cart memory through pico8_dispatch_mem(): the caller must have
- * set a `mem` with pico8_load_map_json() already run against it, otherwise
- * the cart data tables are simply not built and every spec still is. A
- * second call frees and reparses every spec, so it dangles every default
- * REF a struct built before it still holds.
+/* Runs every module's init, then builds the tables the cart's top-level
+ * statements build (real Lua runs them once before `_init()`), but only
+ * when pico8_dispatch_mem() is set: with a NULL mem they stay unbuilt. A
+ * second call, as the tests make, frees what the first built before
+ * building it again, so a pointer into it taken in between dangles.
  *
  * The asserts in its body cover the ordering constraints that were found;
  * an adjacency they do not cover is not thereby free. Re-derive before

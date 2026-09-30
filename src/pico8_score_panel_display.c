@@ -288,9 +288,9 @@ void pico8_pj_ph(pico8_pj_t *self) {
         int c_truthy = self != NULL && self->has_c_ && self->c_;
         int ed_equals_kc = 0;
 
-        /* `self.ed`'s class-level default is the number 1, never a REF, and a
-         * non-REF `ed` is never `kc`: the block has to fire on the first
-         * eligible tick. Comparing only a REF-valued `ed` silently disables it. */
+        /* A NULL `ed` is the class default, the number 1, which is never
+         * `kc`, not even a nil one: without the `ed != NULL` test, NULL == NULL
+         * would keep the block from firing on the first eligible tick. */
         if (self != NULL) {
             ed_equals_kc = self->ed != NULL && pico8_kc() == self->ed;
         }
