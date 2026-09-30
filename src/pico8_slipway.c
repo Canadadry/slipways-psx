@@ -364,10 +364,6 @@ static pico8_probe_t *jc_probe_of(void *self) {
     return ((pico8_jc_t *)self)->probe;
 }
 
-static const pico8_str_seq_t *jc_get_nu(const void *self) {
-    return ((const pico8_jc_t *)self)->nu;
-}
-
 static int jc_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_jc_t *)self)->fa;
     return 1;
@@ -395,7 +391,7 @@ static const pico8_struct_class_t g_jc_struct_class = {
     .hq = pico8_jc_hq_dispatch,
     .ey = pico8_jc_ey_dispatch,
     .probe_of = jc_probe_of,
-    .get_nu = jc_get_nu,
+    .tags = PICO8_TAG(PICO8_TAG_JC),
     .get_fa = jc_get_fa,
     .get_mt = jc_get_mt,
     .get_p_ = jc_get_p_,

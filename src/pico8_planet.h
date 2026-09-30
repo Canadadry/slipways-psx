@@ -113,7 +113,6 @@ void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw);
 
 /* The field accessors jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-const pico8_str_seq_t *pico8_jo_get_nu(const void *self);
 int pico8_jo_get_fa(const void *self, pico8_fixed_t *out);
 const pico8_vec_t *pico8_jo_get_ra(const void *self);
 const pico8_vec_t *pico8_jo_get_p(const void *self);

@@ -85,10 +85,6 @@ void pico8_mh_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_mh_t *self) {
     }
 }
 
-static const pico8_str_seq_t *mh_get_nu(const void *self) {
-    return ((const pico8_mh_t *)self)->nu;
-}
-
 static int mh_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_mh_t *)self)->fa;
     return 1;
@@ -102,7 +98,7 @@ static int mh_get_p_(const void *self) {
 
 static const pico8_struct_class_t g_mh_struct_class = {
     .ev = pico8_mh_ev_dispatch,
-    .get_nu = mh_get_nu,
+    .tags = PICO8_TAG(PICO8_TAG_MH),
     .get_fa = mh_get_fa,
     .get_p_ = mh_get_p_,
 };

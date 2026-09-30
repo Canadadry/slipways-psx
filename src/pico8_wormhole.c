@@ -202,10 +202,6 @@ static pico8_probe_t *mz_probe_of(void *self) {
     return ((pico8_mz_t *)self)->probe;
 }
 
-static const pico8_str_seq_t *mz_get_nu(const void *self) {
-    return ((const pico8_mz_t *)self)->nu;
-}
-
 static int mz_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_mz_t *)self)->fa;
     return 1;
@@ -236,7 +232,7 @@ static const pico8_struct_class_t g_mz_struct_class = {
             [PICO8_STATE_PR] = pico8_mz_pr_dispatch,
         },
     .probe_of = mz_probe_of,
-    .get_nu = mz_get_nu,
+    .tags = PICO8_TAG(PICO8_TAG_MZ),
     .get_fa = mz_get_fa,
     .get_ra = mz_get_ra,
     .get_p = mz_get_p,

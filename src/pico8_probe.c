@@ -396,10 +396,6 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
     return particle;
 }
 
-const pico8_str_seq_t *pico8_g__get_nu(const void *self) {
-    return ((const pico8_g__t *)self)->nu;
-}
-
 int pico8_g__get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_g__t *)self)->fa;
     return 1;
@@ -433,7 +429,7 @@ static const pico8_struct_class_t g_g__struct_class = {
     .mm = pico8_g__mm,
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
-    .get_nu = pico8_g__get_nu,
+    .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
     .get_fa = pico8_g__get_fa,
     .get_ra = pico8_g__get_ra,
     .get_p = pico8_g__get_p,

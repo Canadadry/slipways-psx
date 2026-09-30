@@ -40,12 +40,12 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `ft(rc,nt,pu)` | — (`pico8_ft_index`, `pico8_ft_name` supprimés à D.7a) | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` » |
 | `bm` | — | les cinq noms de message que `dc` sait router : `kj`, `ev`, `hd`, `hk`, `hb` |
 | `cv` | `pico8_cv` | entités indexées par nom de message `bm` : `kj` (dessin), `ev`, `hd` (survol), `hk`, `hb` |
-| `cg` | `pico8_cg` | entités indexées par étiquette (`nu`), d'où `cg("jo")` = toutes les planètes |
+| `cg` | `pico8_cg` | entités indexées par étiquette (`tags` de la classe, `PICO8_TAG_*`), d'où `cg("jo")` = toutes les planètes |
 | `hv` | `pico8_hv` | liste de toutes les entités vivantes, dans l'ordre d'enregistrement |
 | `he(e)` | `pico8_he` | retire une entité de `hv`/`cv`/`cg` |
 | `ci` | `pico8_ci_table` (`pico8_game_data.h`) | facteur de mélange de palette par couche, lu par la branche `kj` de `dc` |
 | `jl()` | `pico8_jl` | (re)construit les singletons du jeu : `mo=qb()`, `je=nf()`, `ok=ui()` |
-| `nu` | champ `"nu"` ; `const pico8_str_seq_t *nu` → `pico8_X_nu_tags` (`pico8_game_data.h` ; `fv` pointe `pico8_g__nu_tags`) | étiquettes d'une classe, ce par quoi `cg` l'indexe |
+| `nu` | `pico8_struct_class_t.tags`, masque de bits sur `pico8_tag_t` (`PICO8_TAG_*`, `pico8_struct.h`) ; `fv` et `fr` portent ceux de `g_` et `nr` | étiquettes d'une classe, ce par quoi `cg` l'indexe |
 
 ## Mémoire cart et données encodées
 
@@ -596,7 +596,7 @@ deux sens dans deux fichiers voisins — c'est signalé quand c'est le cas.
 
 | Nom | Sens |
 |---|---|
-| `np` | étiquette `nu` portée par toutes les planètes ; `bv` cherche la plus proche dans `cg("np")` |
+| `np` | étiquette (`PICO8_TAG_NP`) portée par toutes les planètes ; `bv` cherche la plus proche dans `cg("np")` |
 | `fp` | nombre de ticks que `d_` transmet à `fm:nx` ; `g_` le pose à faux, d'où le repli 0 |
 | `ik` | sprite d'état lu par `dl`, et numéro de sfx à la validation réussie |
 | `jj` | la pseudo-cible « -too far- » posée dans `et` quand aucun ancrage n'est assez proche ; son `qs` est `pico8_mz_jj_qs` |

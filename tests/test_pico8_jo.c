@@ -448,6 +448,23 @@ static void test_new_planet(void) {
     check("new planet", h, NEW_PLANET_HASH);
 }
 
+/* cg answers NULL for a tag that no entity has carried since
+ * pico8_entity_init(), known or not, and keeps a list once emptied. */
+static void test_cg_null_until_seen(void) {
+    void *a;
+
+    start_title();
+    pico8_entity_init();
+    assert(pico8_cg("jo") == NULL && pico8_cg("np") == NULL && pico8_cg("bg") == NULL);
+    a = new_planet("p902", 5, 6);
+    assert(pico8_cg("jo") != NULL && pico8_cg("np") != NULL && pico8_cg("prober") != NULL);
+    assert(pico8_cg("qh") == NULL && pico8_cg("bg") == NULL);
+    pico8_he(a);
+    assert(pico8_cg("jo") != NULL && pico8_cg("jo")->count == 0);
+    pico8_entity_init();
+    assert(pico8_cg("jo") == NULL);
+}
+
 /* `dg` calls `qc[qc.me]`: a planet whose `me` is "ll" runs `jo:ll` until
  * its `t` passes 60, then leaves `hv`. */
 static void test_ll(void) {
@@ -610,6 +627,7 @@ int main(void) {
     in_fresh_child(test_galaxy);
     in_fresh_child(test_daughters);
     in_fresh_child(test_new_planet);
+    in_fresh_child(test_cg_null_until_seen);
     in_fresh_child(test_ll);
     in_fresh_child(test_kw_shared);
     in_fresh_child(test_hh_takes_ll);

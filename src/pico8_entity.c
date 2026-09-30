@@ -20,17 +20,14 @@ typedef struct {
 
 static pico8_cv_entry_t g_cv[PICO8_BM_COUNT];
 
-/* Each tag is an owned copy: it arrives borrowed from an entity's own
- * `.nu` table, which this module does not keep alive past the lt() call
- * that reads it. */
+/* `seen`: an entity carrying the tag has been lt()'d since
+ * pico8_entity_init(); until then pico8_cg() returns NULL for it. */
 typedef struct {
-    char *tag;
+    int seen;
     pico8_ptrs_t list;
 } pico8_cg_entry_t;
 
-static pico8_cg_entry_t *g_cg = NULL;
-static int g_cg_count = 0;
-static int g_cg_capacity = 0;
+static pico8_cg_entry_t g_cg[PICO8_TAG_COUNT];
 
 static pico8_ptrs_t g_hv;
 static pico8_struct_header_t *g_mo = NULL;
@@ -45,49 +42,6 @@ typedef struct {
 /* The only one: never allocated, never freed; no field, and no writer, so
  * a write reaching it stops the run. */
 static pico8_mo_placeholder_t g_mo_placeholder = {{.cls = &g_mo_placeholder_struct_class}};
-
-/* strdup() is POSIX; this build is -std=c99. */
-static char *pico8_entity_strdup(const char *s) {
-    size_t n = strlen(s);
-    char *out = malloc(n + 1);
-    memcpy(out, s, n + 1);
-    return out;
-}
-
-static pico8_cg_entry_t *pico8_cg_find(const char *tag) {
-    int i;
-    for (i = 0; i < g_cg_count; i++) {
-        if (strcmp(g_cg[i].tag, tag) == 0) {
-            return &g_cg[i];
-        }
-    }
-    return NULL;
-}
-
-/* Callers must not hold the returned pointer across a later call that
- * grows g_cg; pico8_cg() re-derives its own fresh on every call. */
-static pico8_cg_entry_t *pico8_cg_find_or_create(const char *tag) {
-    pico8_cg_entry_t *found = pico8_cg_find(tag);
-
-    if (found != NULL) {
-        return found;
-    }
-
-    if (g_cg_count == g_cg_capacity) {
-        int new_capacity = g_cg_capacity == 0 ? 4 : g_cg_capacity * 2;
-        pico8_cg_entry_t *new_entries = realloc(g_cg, (size_t)new_capacity * sizeof *new_entries);
-        if (new_entries == NULL) {
-            abort();
-        }
-        g_cg = new_entries;
-        g_cg_capacity = new_capacity;
-    }
-
-    g_cg[g_cg_count].tag = pico8_entity_strdup(tag);
-    pico8_ptrs_init(&g_cg[g_cg_count].list);
-    g_cg_count++;
-    return &g_cg[g_cg_count - 1];
-}
 
 /* See pico8_entity.h's own comment on this declaration for what is and
  * is not freed here. */
@@ -105,14 +59,10 @@ void pico8_entity_shutdown(void) {
         g_cv[i].name = NULL;
     }
 
-    for (i = 0; i < g_cg_count; i++) {
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
         pico8_ptrs_free(&g_cg[i].list);
-        free(g_cg[i].tag);
+        g_cg[i].seen = 0;
     }
-    free(g_cg);
-    g_cg = NULL;
-    g_cg_count = 0;
-    g_cg_capacity = 0;
 
     /* TROU-7 */
     g_mo = NULL;
@@ -181,13 +131,12 @@ int pico8_hd_true(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
 }
 
 const pico8_ptrs_t *pico8_cg(const char *tag) {
-    pico8_cg_entry_t *entry = pico8_cg_find(tag);
-    return entry != NULL ? &entry->list : NULL;
+    int t = pico8_tag_named(tag);
+    return t >= 0 && g_cg[t].seen ? &g_cg[t].list : NULL;
 }
 
 pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
     int i;
-    const pico8_str_seq_t *tags;
 
     pico8_ptrs_add(&g_hv, e);
 
@@ -197,25 +146,21 @@ pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
         }
     }
 
-    /* `.nu` is a pico8_str_seq_t; an absent one registers nothing, as
-     * `all(nil)` would. */
-    tags = e->cls->get_nu != NULL ? e->cls->get_nu(e) : NULL;
-    if (tags != NULL) {
-        for (i = 0; i < tags->count; i++) {
-            pico8_cg_entry_t *bucket = pico8_cg_find_or_create(tags->items[i]);
-            pico8_ptrs_add(&bucket->list, e);
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        if (e->cls->tags & PICO8_TAG(i)) {
+            g_cg[i].seen = 1;
+            pico8_ptrs_add(&g_cg[i].list, e);
         }
     }
 
     return e;
 }
 
-/* `e` must be unregistered under exactly the fields and tags it was
- * registered under: a bm field or a `.nu` entry changed since lt()
- * leaves `e` in a list this never removes it from. */
+/* `e` must be unregistered under exactly the fields it was registered
+ * under: a bm field changed since lt() leaves `e` in a list this never
+ * removes it from. */
 void pico8_he(pico8_struct_header_t *e) {
     int i;
-    const pico8_str_seq_t *tags;
 
     /* TROU-5 */
     pico8_ptrs_del(&g_hv, e);
@@ -226,15 +171,11 @@ void pico8_he(pico8_struct_header_t *e) {
         }
     }
 
-    /* A tag never lt()'d has no bucket; Lua would error on indexing it,
-     * this port does nothing. */
-    tags = e->cls->get_nu != NULL ? e->cls->get_nu(e) : NULL;
-    if (tags != NULL) {
-        for (i = 0; i < tags->count; i++) {
-            pico8_cg_entry_t *bucket = pico8_cg_find(tags->items[i]);
-            if (bucket != NULL) {
-                pico8_ptrs_del(&bucket->list, e);
-            }
+    /* A tag never lt()'d: Lua would error on indexing its bucket, this
+     * port deletes from an empty list. */
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        if (e->cls->tags & PICO8_TAG(i)) {
+            pico8_ptrs_del(&g_cg[i].list, e);
         }
     }
 }

@@ -30,9 +30,9 @@ const pico8_ptrs_t *pico8_hv(void);
 const pico8_ptrs_t *pico8_cv(const char *name);
 
 /* The entities registered under `tag`, or NULL if no entity carrying
- * that tag has ever been lt()'d. Unlike cv, cg's storage grows as new
- * tags are first seen: do not hold a returned pointer across a later
- * lt() call, call pico8_cg() again instead. */
+ * that tag has been lt()'d since pico8_entity_init() -- an unknown tag
+ * included. A returned pointer stays valid until the next
+ * pico8_entity_init() or pico8_entity_shutdown(). */
 const pico8_ptrs_t *pico8_cg(const char *tag);
 
 /* Only pico8_ke_struct_pq calls it outside tests: every entity of `hv` has

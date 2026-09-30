@@ -37,6 +37,42 @@ static inline int pico8_state_of(const char *me) {
     return -1;
 }
 
+/* The ten tags `cg` indexes entities under, in the order
+ * every class lists its own. */
+typedef enum {
+    PICO8_TAG_QH,
+    PICO8_TAG_HJ,
+    PICO8_TAG_NR,
+    PICO8_TAG_G_,
+    PICO8_TAG_MH,
+    PICO8_TAG_JC,
+    PICO8_TAG_MZ,
+    PICO8_TAG_JO,
+    PICO8_TAG_NP,
+    PICO8_TAG_PROBER,
+    PICO8_TAG_COUNT
+} pico8_tag_t;
+
+#define PICO8_TAG(t) (1u << (t))
+
+/* The tag named `name`, or -1 for any other name. */
+static inline int pico8_tag_named(const char *name) {
+    static const char *const names[PICO8_TAG_COUNT] = {
+        [PICO8_TAG_QH] = "qh", [PICO8_TAG_HJ] = "hj", [PICO8_TAG_NR] = "nr",
+        [PICO8_TAG_G_] = "g_", [PICO8_TAG_MH] = "mh", [PICO8_TAG_JC] = "jc",
+        [PICO8_TAG_MZ] = "mz", [PICO8_TAG_JO] = "jo", [PICO8_TAG_NP] = "np",
+        [PICO8_TAG_PROBER] = "prober",
+    };
+    int i;
+
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        if (strcmp(names[i], name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 typedef struct pico8_struct_class pico8_struct_class_t;
 
 /* First member of every entity struct, and of the parent struct a child
@@ -94,6 +130,8 @@ struct pico8_struct_class {
     void (*ol)(void *self, pico8_vec_t p, pico8_fixed_t a);
     struct pico8_qy *(*mm)(void *self);
     pico8_state_fn states[PICO8_STATE_COUNT];
+    /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */
+    unsigned tags;
     const pico8_struct_class_t *(*parent)(void);
     struct pico8_emitter *(*emitter_of)(void *self);
     struct pico8_probe *(*probe_of)(void *self);
@@ -101,7 +139,6 @@ struct pico8_struct_class {
      * reader returns NULL, or 0 leaving *out untouched, when the field is
      * nil; `get_fx` and `get_p_` return its Lua truth. `set_m_` also marks
      * `m_` present. Each is only ever called as `e->cls->get_X(e, ...)`. */
-    const struct pico8_str_seq *(*get_nu)(const void *self);
     int (*get_fa)(const void *self, pico8_fixed_t *out);
     const pico8_vec_t *(*get_ra)(const void *self);
     const pico8_vec_t *(*get_p)(const void *self);

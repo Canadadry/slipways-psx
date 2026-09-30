@@ -60,7 +60,6 @@ pico8_g__t *pico8_g__of(pico8_struct_header_t *e);
  * `fv`'s to name. */
 pico8_emitter_t *pico8_g__emitter_of(void *self);
 pico8_probe_t *pico8_g__probe_of(void *self);
-const pico8_str_seq_t *pico8_g__get_nu(const void *self);
 int pico8_g__get_fa(const void *self, pico8_fixed_t *out);
 const pico8_vec_t *pico8_g__get_ra(const void *self);
 const pico8_vec_t *pico8_g__get_p(const void *self);

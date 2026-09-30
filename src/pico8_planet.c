@@ -76,10 +76,6 @@ void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
     pico8_jo_ll((pico8_jo_t *)self, t);
 }
 
-const pico8_str_seq_t *pico8_jo_get_nu(const void *self) {
-    return ((const pico8_jo_t *)self)->nu;
-}
-
 int pico8_jo_get_fa(const void *self, pico8_fixed_t *out) {
     *out = ((const pico8_jo_t *)self)->fa;
     return 1;
@@ -126,7 +122,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .kf = pico8_jo_kf_dispatch,
     .cn = pico8_jo_cn_dispatch,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
-    .get_nu = pico8_jo_get_nu,
+    .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
     .get_fa = pico8_jo_get_fa,
     .get_ra = pico8_jo_get_ra,
     .get_p = pico8_jo_get_p,
