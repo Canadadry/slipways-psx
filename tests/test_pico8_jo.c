@@ -206,7 +206,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fold_fixed_member(h, jo->header.t);
     h = fold_string_member(h, jo->id);
     h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->hs);
+    h = fold_fixed_member(h, jo->def->hs);
     h = fold_fixed_member(h, jo->fa);
     h = fold_fixed_member(h, jo->ma);
     h = fold_fixed_member(h, jo->def->ca);

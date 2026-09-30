@@ -835,7 +835,7 @@ static int identity_of(const char *s) {
     if (s == pico8_jo_def.me) {
         return 2;
     }
-    if (s == pico8_qh_start.me) {
+    if (s == pico8_qh_def.me) {
         return 3;
     }
     if (s == pico8_pm_start.me) {

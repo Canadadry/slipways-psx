@@ -152,9 +152,9 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
             const pico8_qh_t *qh = pico8_qh_of(&self->header);
             int accepted = 0;
 
-            if (qh != NULL && qh->ba != NULL) {
+            if (qh != NULL && qh->jo.def->ba != NULL) {
                 accepted = t_qe.kind == PICO8_QE_FIXED &&
-                           pico8_int_seq_has_fixed(qh->ba, t_qe.n);
+                           pico8_int_seq_has_fixed(qh->jo.def->ba, t_qe.n);
             }
             if (accepted) {
                 assert(t_qe.kind == PICO8_QE_FIXED && "a want's qe is a resource of r, never a boolean");

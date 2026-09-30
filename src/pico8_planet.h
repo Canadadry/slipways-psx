@@ -26,7 +26,6 @@ typedef struct {
     pico8_struct_header_t header;
     const pico8_jo_def_t *def;
     int hf;
-    pico8_fixed_t hs;
     pico8_fixed_t fa;
     const pico8_qz_box_t *kq;
     pico8_fixed_t ma;

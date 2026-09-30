@@ -501,7 +501,7 @@ static void test_cn_wildcard_want(void) {
     qh = pico8_qh_new(NULL);
     qh->jo.jy = jy;
     keys.has_qe = 1;
-    keys.qe = pico8_fixed_from_int(qh->ba->items[0]);
+    keys.qe = pico8_fixed_from_int(qh->jo.def->ba->items[0]);
     lw.t = pico8_trade_new(&keys);
     lw.kf = count_kf;
     pico8_jo_cn(&qh->jo, &lw);

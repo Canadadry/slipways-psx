@@ -303,7 +303,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fold_fixed_member(h, qh->hp);
     h = fold_fixed_member(h, qh->s);
     h = fold_fixed_member(h, qh->probe->od);
-    h = fold_fixed_member(h, jo->hs);
+    h = fold_fixed_member(h, jo->def->hs);
     h = fold_string_member(h, qh->probe->dq);
     h = fold_fixed_member(h, qh->probe->fp);
     h = fold_fixed_member(h, qh->probe->dw);
@@ -324,7 +324,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->ba != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -363,7 +363,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
            cls_of(e)->mm == NULL && pico8_jo_is_family(e));
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(qh->px == &pico8_os_px_row && qh->px != &pico8_qh_px_row);
-    assert(qh->ba == &pico8_qh_ba_seq);
+    assert(qh->jo.def->ba == &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_os_def.kq);
     assert(jo->def == &pico8_os_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&

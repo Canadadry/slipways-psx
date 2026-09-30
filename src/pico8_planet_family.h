@@ -22,19 +22,16 @@ void pico8_planet_family_init(void);
  * before the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
-/* A laboratory: a bare planet, then qh's own defaults, `dq`, `od`, `fp`
- * and `dw` in the probe with `et`, which its own `hq` (`bv`) writes. A
- * default of qh whose name is a member of `jo` or `ke` (`me`, `hf`,
- * `mi`) lives in that member, never in a second copy here. `px` and
- * `ba` point at qh's generated data (pico8_game_data.h). `probe` points at
- * `probe_own`: never copy the struct. Nothing frees the struct: TROU-7. */
+/* A laboratory: a bare planet, then qh's members copied from its kind's
+ * archetype, the probe's with `et`, which its own `hq` (`bv`) writes.
+ * `probe` points at `probe_own`: never copy the struct. Nothing frees the
+ * struct: TROU-7. */
 typedef struct {
     pico8_jo_t jo;
     pico8_fixed_t hp;
     const pico8_jb_row_t *px;
     int qh;
     pico8_fixed_t s;
-    const pico8_int_seq_t *ba;
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
 } pico8_qh_t;
@@ -42,22 +39,15 @@ typedef struct {
 /* The `probe_of` of qh's descriptor, for its daughters' to name. */
 pico8_probe_t *pico8_qh_probe_of(void *self);
 
-/* A trading hub: a laboratory, then nl's own defaults `rr`, `nl` and `qw`
- * (`qw` also written by its own `ly`). A default of nl whose name is a member of `qh`
- * or `jo` (`qh`, `hp`, `s`, `px`, `od`, `ba`) lives in that member.
- * `px`, `ba` and `rr` point at nl's generated data. Nothing frees
- * the struct: TROU-7. */
+/* A trading hub: a laboratory, then `qw`, copied from its archetype and
+ * written by its own `ly`. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
-    const char *rr;
-    pico8_fixed_t nl;
     pico8_fixed_t qw;
 } pico8_nl_t;
 
-/* A processor: a laboratory and nothing of its own. Each default of os
- * lives in the member of that name, qh's (`hp`, `px`, `qh`, `s`, `od`) or
- * jo's (`hs`). `px` points at os's generated data, `ba` at
- * qh's. Nothing frees the struct: TROU-7. */
+/* A processor: a laboratory and nothing of its own; its defaults are its
+ * archetype's. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
 } pico8_os_t;
@@ -66,7 +56,7 @@ typedef struct {
  * in the emitter with `qy`, which its own `pq` (`f_`) writes. A default of
  * hj whose name is a member of `qh` or `jo` (`hp`, `qh`, `px`, `od`,
  * `s`) lives in that member. `px`, the emitter's `k_` and `rr` point
- * at hj's generated data, `ba` at qh's. `emitter` points at `emitter_own`:
+ * at hj's generated data. `emitter` points at `emitter_own`:
  * never copy the struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_qh_t qh;
@@ -82,7 +72,7 @@ pico8_emitter_t *pico8_hj_emitter_of(void *self);
  * ancestor has a member for. A default of pm whose name is a member of
  * `hj`, `qh`, `jo` or `ke` (`me`, `hp`, `px`, `s` and the 11 emitter
  * defaults) lives in that member. `px`, `k_`, `ng` and `fz` point
- * at pm's generated data, `ba` at qh's; `qy` is the protostar's own.
+ * at pm's generated data; `qy` is the protostar's own.
  * Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_hj_t hj;

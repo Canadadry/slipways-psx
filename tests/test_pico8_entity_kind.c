@@ -160,44 +160,44 @@ static void test_kind_reader_serves_the_generated_defaults(void) {
 
     rec = rec_of(0);
     assert(rec->rr == NULL);
-    assert(rec->has_s && rec->s == pico8_qh_start.s);
-    assert(rec->me == pico8_qh_start.me);
-    assert(rec->has_od && rec->od == pico8_qh_start.od);
+    assert(rec->has_s && rec->s == pico8_qh_def.s);
+    assert(rec->me == pico8_qh_def.me);
+    assert(rec->has_od && rec->od == pico8_qh_def.probe.od);
 
     rec = rec_of(1);
     assert(rec->rr == NULL);
-    assert(rec->has_s && rec->s == pico8_os_start.s);
-    assert(rec->me == pico8_qh_start.me);
-    assert(rec->has_od && rec->od == pico8_os_start.od);
+    assert(rec->has_s && rec->s == pico8_os_def.s);
+    assert(rec->me == pico8_qh_def.me);
+    assert(rec->has_od && rec->od == pico8_os_def.probe.od);
 
     rec = rec_of(2);
     assert(rec->rr == pico8_nr_start.rr);
     assert(rec->has_s && rec->s == pico8_nr_start.s);
-    assert(rec->me == pico8_qh_start.me);
+    assert(rec->me == pico8_qh_def.me);
     assert(rec->has_od && rec->od == pico8_nr_start.od);
 
     rec = rec_of(3);
     assert(rec->rr == pico8_fr_start.rr);
     assert(rec->has_s && rec->s == pico8_fr_start.s);
-    assert(rec->me == pico8_qh_start.me);
+    assert(rec->me == pico8_qh_def.me);
     assert(rec->has_od && rec->od == pico8_fr_start.od);
 
     rec = rec_of(4);
-    assert(rec->rr == pico8_nl_start.rr);
-    assert(rec->has_s && rec->s == pico8_nl_start.s);
-    assert(rec->me == pico8_qh_start.me);
-    assert(rec->has_od && rec->od == pico8_nl_start.od);
+    assert(rec->rr == pico8_nl_def.rr);
+    assert(rec->has_s && rec->s == pico8_nl_def.s);
+    assert(rec->me == pico8_qh_def.me);
+    assert(rec->has_od && rec->od == pico8_nl_def.probe.od);
 
     rec = rec_of(5);
     assert(rec->rr == pico8_mx_start.rr);
     assert(rec->has_s && rec->s == pico8_mx_start.s);
-    assert(rec->me == pico8_qh_start.me);
+    assert(rec->me == pico8_qh_def.me);
     assert(rec->has_od && rec->od == pico8_mx_start.od);
 
     rec = rec_of(6);
     assert(rec->rr == pico8_hj_start.rr);
     assert(rec->has_s && rec->s == pico8_hj_start.s);
-    assert(rec->me == pico8_qh_start.me);
+    assert(rec->me == pico8_qh_def.me);
     assert(rec->has_od && rec->od == pico8_hj_start.od);
 
     rec = rec_of(7);

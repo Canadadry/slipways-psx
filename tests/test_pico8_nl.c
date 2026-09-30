@@ -247,7 +247,7 @@ static void *build_plate(void) {
 /* A plate is the only entity whose chain holds `nl`, and its `nl` is 1. */
 static int is_plate(const void *e) {
     const pico8_nl_t *nl = pico8_nl_of(e);
-    return nl != NULL && nl->nl == pico8_fixed_from_int(1);
+    return nl != NULL && nl->qh.jo.def->nl == pico8_fixed_from_int(1);
 }
 
 /* A plate as `ie:ldown` and `jo:pq` left it: its scalars, which of nl's,
@@ -266,8 +266,8 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fold_string_member(h, jo->id);
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
-    h = fold_string_member(h, nl->rr);
-    h = fold_fixed_member(h, nl->nl);
+    h = fold_string_member(h, nl->qh.jo.def->rr);
+    h = fold_fixed_member(h, nl->qh.jo.def->nl);
     h = fold_qh(h, qh);
     h = fold_fixed_member(h, qh->hp);
     h = fold_fixed_member(h, qh->s);
@@ -278,7 +278,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fold_fixed_member(h, qh->probe->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
-    h = fold_fixed_member(h, jo->hs);
+    h = fold_fixed_member(h, jo->def->hs);
     h = fold_fixed_member(h, jo->fa);
     h = fold_fixed_member(h, jo->ma);
     h = fold_fixed_member(h, jo->def->ca);
@@ -286,7 +286,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     /* The 1s of `nl` and `qw`, of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of
      * `hf`, `hs`, `fa`, `ma` and `ca`: constant by the struct's shape, kept
      * so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(nl->rr != NULL));
+    h = fnv(h, (uint32_t)(nl->qh.jo.def->rr != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -297,7 +297,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->ba != NULL));
+    h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
     h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -338,7 +338,7 @@ static uint32_t fold_plate(uint32_t h, const void *e) {
     assert(cls_of(e)->states[PICO8_STATE_LY] != pico8_qh_struct_class()->states[PICO8_STATE_LY]);
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
     assert(qh->px == &pico8_nl_px_row && qh->px != &pico8_qh_px_row);
-    assert(qh->ba == &pico8_nl_ba_seq && qh->ba != &pico8_qh_ba_seq);
+    assert(qh->jo.def->ba == &pico8_nl_ba_seq && qh->jo.def->ba != &pico8_qh_ba_seq);
     assert(jo->kq == &pico8_nl_def.kq);
     assert(jo->def == &pico8_nl_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&

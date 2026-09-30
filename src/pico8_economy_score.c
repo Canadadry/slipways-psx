@@ -109,7 +109,7 @@ pico8_fixed_t pico8_db(const pico8_struct_header_t *pt) {
                 oz = (const pico8_jo_t *)oz_val;
                 if (oz->hf) {
                     pico8_fixed_t trade_mult = pico8_fixed_from_int(0);
-                    pico8_fixed_t hs = jo->hs;
+                    pico8_fixed_t hs = jo->def->hs;
                     pico8_fixed_t ct_pt = pico8_fixed_from_int(0);
                     pico8_fixed_t ct_oz = pico8_fixed_from_int(0);
                     pico8_fixed_t bonus;

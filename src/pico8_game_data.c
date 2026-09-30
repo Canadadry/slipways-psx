@@ -436,42 +436,6 @@ static const char nr_rr_text[] = "slipgates";
 static const char fr_rr_text[] = "infraspace";
 static const char mx_rr_text[] = "void synthesis";
 
-const pico8_qh_start_t pico8_qh_start = {
-    .hp = 0x10000,
-    .px = &pico8_qh_px_row,
-    .me = qh_me_text,
-    .dq = qh_dq_text,
-    .hf = 0,
-    .qh = 1,
-    .od = 0xf0000,
-    .fp = 0x20000,
-    .dw = 0x666,
-    .mi = 0x10000,
-    .s = 0xae0000,
-    .ba = &pico8_qh_ba_seq,
-};
-
-const pico8_nl_start_t pico8_nl_start = {
-    .rr = nl_rr_text,
-    .qh = 0,
-    .nl = 0x10000,
-    .hp = 0x60000,
-    .s = 0x440000,
-    .px = &pico8_nl_px_row,
-    .od = 0x140000,
-    .qw = 0xf0000,
-    .ba = &pico8_nl_ba_seq,
-};
-
-const pico8_os_start_t pico8_os_start = {
-    .hp = 0x40000,
-    .px = &pico8_os_px_row,
-    .qh = 0,
-    .s = 0x640000,
-    .od = 0xf0000,
-    .hs = 0x8000,
-};
-
 const pico8_hj_start_t pico8_hj_start = {
     .rr = hj_rr_text,
     .hp = 0x20000,

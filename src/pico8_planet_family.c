@@ -61,25 +61,20 @@ static const pico8_struct_class_t g_qh_struct_class = {
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
     pico8_jo_struct_init(&self->jo, cls, def);
-    self->hp = pico8_qh_start.hp;
-    self->px = pico8_qh_start.px;
+    self->hp = self->jo.def->hp;
+    self->px = self->jo.def->px;
     self->probe = &self->probe_own;
-    self->probe->def = NULL;
-    self->probe->dq = pico8_qh_start.dq;
-    self->qh = pico8_qh_start.qh;
-    self->probe->od = pico8_qh_start.od;
-    self->probe->has_od = 1;
-    self->probe->fp = pico8_qh_start.fp;
-    self->probe->ik = 0;
-    self->probe->has_ik = 0;
-    self->probe->dw = pico8_qh_start.dw;
-    self->s = pico8_qh_start.s;
-    self->ba = pico8_qh_start.ba;
+    self->probe->def = &self->jo.def->probe;
+    self->probe->dq = self->jo.def->probe.dq;
+    self->qh = self->jo.def->qh;
+    self->probe->od = self->jo.def->probe.od;
+    self->probe->has_od = self->jo.def->probe.has_od;
+    self->probe->fp = self->jo.def->probe.fp;
+    self->probe->ik = self->jo.def->probe.ik;
+    self->probe->has_ik = self->jo.def->probe.has_ik;
+    self->probe->dw = self->jo.def->probe.dw;
+    self->s = self->jo.def->s;
     self->probe->et = NULL;
-    self->jo.mi = pico8_qh_start.mi;
-    self->jo.has_mi = 1;
-    self->jo.hf = pico8_qh_start.hf;
-    self->jo.header.me = pico8_qh_start.me;
 }
 
 static pico8_qh_t *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
@@ -154,15 +149,7 @@ static pico8_nl_t *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(&self->qh, &g_nl_struct_class, &pico8_nl_def);
-    self->rr = pico8_nl_start.rr;
-    self->nl = pico8_nl_start.nl;
-    self->qw = pico8_nl_start.qw;
-    self->qh.qh = pico8_nl_start.qh;
-    self->qh.hp = pico8_nl_start.hp;
-    self->qh.s = pico8_nl_start.s;
-    self->qh.px = pico8_nl_start.px;
-    self->qh.probe->od = pico8_nl_start.od;
-    self->qh.ba = pico8_nl_start.ba;
+    self->qw = self->qh.jo.def->qw;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "nl: the only construction key is id (ie:ldown); another key has no member "
@@ -213,12 +200,6 @@ static pico8_os_t *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(&self->qh, &g_os_struct_class, &pico8_os_def);
-    self->qh.hp = pico8_os_start.hp;
-    self->qh.px = pico8_os_start.px;
-    self->qh.qh = pico8_os_start.qh;
-    self->qh.s = pico8_os_start.s;
-    self->qh.probe->od = pico8_os_start.od;
-    self->qh.jo.hs = pico8_os_start.hs;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "os: the only construction key is id (ie:ldown); another key has no member "

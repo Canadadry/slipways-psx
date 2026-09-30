@@ -137,7 +137,6 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     pico8_ke_struct_init(&self->header, cls);
     self->def = def;
     self->hf = self->def->hf;
-    self->hs = self->def->hs;
     self->fa = self->def->fa;
     self->kq = &self->def->kq;
     self->ma = self->def->ma;
