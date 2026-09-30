@@ -63,6 +63,8 @@ Hors de ces sept, et **non comptés** par le compteur (pas des membres d'un type
 | `grep -n '^COMPOSITION_RESIDUE_GUARD' Makefile` | `…:= noyau-inclut,un-ou-faux,aiguillage-nom,atteinte-à-prouver,nu` |
 | `make test` ; `make e2e` | vert ; 26 conformes |
 
+Vérifié en fin d'écriture sur `aa126e1` (2.7a-c commises et vérifiées entre-temps) : compteur et garde exactement comme ci-dessus (`Makefile:864`), `tools/float_guard.txt` à `garde fichiers 57`.
+
 ## Solution
 
 Trois commits, dans l'ordre du plan, chacun vert (`make test`, `make e2e` 26 conformes) — **les trois découpages ont été compilés et joués séparément sur la copie**.
@@ -214,7 +216,7 @@ int pico8_ents_iter_next(pico8_ents_iter_t *iter, pico8_struct_header_t **out);
 - `src/pico8_collect.h` `:18-19` et `src/pico8_collect.c` `:26-39` : `pico8_gu_ptrs` retiré (aucun appelant restant, aucun TU).
 - `src/pico8_menu.h:25`, `src/pico8_menu.c:393-394` : `const pico8_struct_header_t *pico8_ha_pz(void)`, `return g_menu_up ? &g_ha_pz.header : NULL;`.
 - TU : `ui` (`le_of`, locaux `le`, marque `static pico8_struct_header_t mark;` au lieu de `static int`), `spec_defaults` (`ui_le`, `mark_cell` en `pico8_struct_header_t`, `pico8_ents_add`/`del` — c'était un `static int`), `js` (`ok_le`, locaux `le`, jumelles `ents_rank_in`/`ents_listed` pour `ok_le()`), `lq`, `pj`, `planet_gh_row_lq`, `ga_export_panel_by` (`ok_le`, `le`), `iv` (jumelle `ents_listed` pour `mz->ox`), `mz` (`fold_ox`, jumelles `ents_rank_in`/`ents_listed`).
-- `Makefile:870` : `COMPOSITION_RESIDUE_GUARD := …,nu,ptrs-entité`.
+- `Makefile:864` (après 2.7) : `COMPOSITION_RESIDUE_GUARD := noyau-inclut,un-ou-faux,aiguillage-nom,atteinte-à-prouver,nu,ptrs-entité`.
 - `tools/composition_r2_sites.txt`, ligne `pico8_bm_has` : amont → `hv->items (void **) dans pico8_dg (bootstrap.c:57)` seul ; preuve → `pico8_he (entity.c:217) <- ui.c:<ligne du pico8_he de pico8_ui_cj> (typée), bootstrap.c:72 ; …` (le reste inchangé).
 - `docs/glossaire-noms.md` (voir plus bas).
 - Compte : `ptrs-entité` → **0**, disparue de la sortie, gardée ; `void-ptr` → **8 / 4** (les huit méthodes de table du plan) ; pied → **1073 / 85** (mesuré 1280 / 85 sans 2.7) ; `wormhole.h` reste au pied par sa ligne `inclusion-mutuelle` (`:10`).
