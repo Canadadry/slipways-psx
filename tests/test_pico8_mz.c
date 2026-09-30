@@ -372,7 +372,7 @@ static void test_ox(void) {
     pico8_mz_t *second;
     pico8_jo_t *unlit = NULL;
     pico8_g__t *probe;
-    pico8_qh_t *lit;
+    pico8_jo_t *lit;
     const pico8_ents_t *jos;
     int i;
 
@@ -400,7 +400,7 @@ static void test_ox(void) {
     assert(ents_listed(build_mz()->ox, probe));
 
     lit = pico8_qh_new(NULL);
-    lit->jo.fx = pico8_fixed_from_int(1);
+    lit->fx = pico8_fixed_from_int(1);
     assert(ents_listed(build_mz()->ox, lit));
 }
 

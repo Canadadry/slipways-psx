@@ -15,7 +15,6 @@
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
-#include "pico8_planet_family.h"
 #include "pico8_probe.h"
 #include "pico8_research.h"
 #include "pico8_research_display.h"

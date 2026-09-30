@@ -22,66 +22,29 @@ void pico8_planet_family_init(void);
  * before the first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
-/* A laboratory: a planet whose `s` and probe are copied from its kind's
- * archetype, the probe's with `et`, which its own `hq` (`bv`) writes.
- * Nothing frees the struct: TROU-7. */
-typedef struct {
-    pico8_jo_t jo;
-} pico8_qh_t;
-
-/* A trading hub: a laboratory whose `qw` is copied from its archetype and
- * written by its own `ly`. Nothing frees the struct: TROU-7. */
-typedef struct {
-    pico8_qh_t qh;
-} pico8_nl_t;
-
-/* A processor: a laboratory and nothing of its own; its defaults are its
- * archetype's. Nothing frees the struct: TROU-7. */
-typedef struct {
-    pico8_qh_t qh;
-} pico8_os_t;
-
-/* An ascension: a laboratory whose emitter is copied from its kind's
- * archetype, with `qy`, which its own `pq` (`f_`) writes. Nothing frees the
- * struct: TROU-7. */
-typedef struct {
-    pico8_qh_t qh;
-} pico8_hj_t;
-
-/* A protostar: an ascension and nothing of its own; its defaults are its
- * archetype's. Nothing frees the struct: TROU-7. */
-typedef struct {
-    pico8_hj_t hj;
-} pico8_pm_t;
-
-/* A particle burst: a planet whose `iu`, `ms` and emitter are copied from
- * its archetype, with `qy`, which its own `pq` (`f_`) writes; the emitter's
- * `pn`, `du` are left unwritten, read by `g_:mm` only. `jo.by` is the one list
- * every burst shares, which `ib` extends in place and each init empties. A
- * burst spawned by `pm:pq` takes `iu`, `ms`, `py`, `k_`, `qo`, `ro`, `qg`, `q_`
- * from its keys instead. Nothing frees the struct: TROU-7. */
-typedef struct {
-    pico8_jo_t jo;
-} pico8_ga_t;
-
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to
  * `pico8_planet_family_shutdown()`, 0 otherwise. A `_kind` accessor is never
  * NULL. */
+
+/* A laboratory: a planet whose `s` and probe are copied from its kind's
+ * archetype, the probe's with `et`, which its own `hq` (`bv`) writes. */
 int pico8_qh_ready(void);
 const pico8_entity_kind_t *pico8_qh_kind(void);
 const pico8_struct_class_t *pico8_qh_struct_class(void);
 
-/* Initializes an allocated pico8_qh_t under `cls` and `def`, its kind's
+/* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
  * archetype: jo's part, then `s` and the probe copied from `def`. Reads no
  * key, runs neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_init()`. */
-void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
+void pico8_qh_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_qh_t *pico8_qh_new(const pico8_jo_keys_t *keys);
+pico8_jo_t *pico8_qh_new(const pico8_jo_keys_t *keys);
 
+/* A trading hub: a laboratory whose `qw` is copied from its archetype and
+ * written by its own `ly`. */
 int pico8_nl_ready(void);
 const pico8_entity_kind_t *pico8_nl_kind(void);
 const pico8_struct_class_t *pico8_nl_struct_class(void);
@@ -89,8 +52,10 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
  * nothing ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_nl_t *pico8_nl_new(const pico8_jo_keys_t *keys);
+pico8_jo_t *pico8_nl_new(const pico8_jo_keys_t *keys);
 
+/* A processor: a laboratory and nothing of its own; its defaults are its
+ * archetype's. */
 int pico8_os_ready(void);
 const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);
@@ -98,8 +63,10 @@ const pico8_struct_class_t *pico8_os_struct_class(void);
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new processor registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_os_t *pico8_os_new(const pico8_jo_keys_t *keys);
+pico8_jo_t *pico8_os_new(const pico8_jo_keys_t *keys);
 
+/* An ascension: a laboratory whose emitter is copied from its kind's
+ * archetype, with `qy`, which its own `pq` (`f_`) writes. */
 int pico8_hj_ready(void);
 const pico8_entity_kind_t *pico8_hj_kind(void);
 const pico8_struct_class_t *pico8_hj_struct_class(void);
@@ -107,13 +74,13 @@ const pico8_struct_class_t *pico8_hj_struct_class(void);
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new ascension registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
  * ever frees it. Requires `pico8_planet_family_init()`. */
-pico8_hj_t *pico8_hj_new(const pico8_jo_keys_t *keys);
+pico8_jo_t *pico8_hj_new(const pico8_jo_keys_t *keys);
 
-/* Initializes an allocated pico8_hj_t under `cls` and `def`, its kind's
+/* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
  * archetype: qh's part, then the emitter copied from `def`, `qy` nil. Reads
  * no key, runs neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_init()`. */
-void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
+void pico8_hj_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
@@ -122,6 +89,9 @@ void pico8_hj_kj_dispatch(void *self, const pico8_vec_t *ra);
 
 /* `pm` and `ga` are the only classes here whose spec sets `fz`: the two
  * kinds `jo:hu`'s `kv[hp.cw]` can resolve. */
+
+/* A protostar: an ascension and nothing of its own; its defaults are its
+ * archetype's. */
 int pico8_pm_ready(void);
 const pico8_entity_kind_t *pico8_pm_kind(void);
 const pico8_struct_class_t *pico8_pm_struct_class(void);
@@ -130,8 +100,14 @@ const pico8_struct_class_t *pico8_pm_struct_class(void);
  * spawns its `ga` at `ra + ng`, then registers itself into `hv`/`cv`/`cg`
  * through `lt`, after that `ga`; nothing ever frees it. Requires
  * `pico8_planet_family_init()`. */
-pico8_pm_t *pico8_pm_new(const pico8_jo_keys_t *keys);
+pico8_jo_t *pico8_pm_new(const pico8_jo_keys_t *keys);
 
+/* A particle burst: a planet whose `iu`, `ms` and emitter are copied from
+ * its archetype, with `qy`, which its own `pq` (`f_`) writes; the emitter's
+ * `pn`, `du` are left unwritten, read by `g_:mm` only. `by` is the one list
+ * every burst shares, which `ib` extends in place and each init empties. A
+ * burst spawned by `pm:pq` takes `iu`, `ms`, `py`, `k_`, `qo`, `ro`, `qg`,
+ * `q_` from its keys instead. */
 int pico8_ga_ready(void);
 const pico8_entity_kind_t *pico8_ga_kind(void);
 const pico8_struct_class_t *pico8_ga_struct_class(void);
@@ -146,22 +122,22 @@ typedef struct {
 /* `keys` (NULL means none) is read, not kept. The new burst registers
  * itself into `hv`/`cv`, in no `cg`, through `lt`, and nothing ever frees
  * it. Requires `pico8_planet_family_init()`. */
-pico8_ga_t *pico8_ga_new(const pico8_ga_keys_t *keys);
+pico8_jo_t *pico8_ga_new(const pico8_ga_keys_t *keys);
 
-void pico8_nl_ly(pico8_nl_t *self, pico8_fixed_t t);
+void pico8_nl_ly(pico8_jo_t *self, pico8_fixed_t t);
 
-void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_hj_t *self, pico8_vec_t p);
+void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
 
 /* TROU-7 */
-void pico8_pm_pq(pico8_pm_t *self);
+void pico8_pm_pq(pico8_jo_t *self);
 
-void pico8_ga_pq(pico8_ga_t *self);
+void pico8_ga_pq(pico8_jo_t *self);
 
 /* TROU-7 */
 /* Returns a freshly allocated `pico8_qy_t` (`has_a` 1), one allocation,
  * which `ez` stores into `self.qy`. */
 pico8_qy_t *pico8_ga_mm(void *self);
 
-void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ga_t *self, pico8_vec_t p);
+void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
 
 #endif

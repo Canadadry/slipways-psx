@@ -160,35 +160,35 @@ static uint32_t fold_kw(uint32_t h, const pico8_jo_t *jo) {
     return fnv(h, (uint32_t)(k == pico8_jo_shared_kw()));
 }
 
-static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->jo.def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
+    return qh->def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 /* 1 no target, 3 a target: the bytes the frozen hashes fold. */
-static uint32_t et_state(const pico8_qh_t *qh) {
-    return qh->jo.probe->et == NULL ? 1u : 3u;
+static uint32_t et_state(const pico8_jo_t *qh) {
+    return qh->probe->et == NULL ? 1u : 3u;
 }
 
 /* `et` as qh's reader gave it: false or the target. */
-static uint32_t fold_et(uint32_t h, const pico8_qh_t *qh) {
+static uint32_t fold_et(uint32_t h, const pico8_jo_t *qh) {
     switch (et_state(qh)) {
     case 1u:
         return fold_bool_member(h, 0);
     default:
-        return fold_ref(fnv(h, 1u), qh->jo.probe->et);
+        return fold_ref(fnv(h, 1u), qh->probe->et);
     }
 }
 
 /* `e` as an ascension, a `pm` or an `mx`: an `hj` first. */
-static pico8_hj_t *as_hj(void *e) {
+static pico8_jo_t *as_hj(void *e) {
     const pico8_struct_class_t *c = ((const pico8_struct_header_t *)e)->cls;
     assert(c == pico8_hj_struct_class() || c == pico8_pm_struct_class() || c == pico8_mx_struct_class());
     return e;
 }
 
-static uint32_t fold_pk(uint32_t h, const pico8_hj_t *hj) {
-    return hj->qh.jo.header.cls == pico8_pm_struct_class() ? fold_bool_member(h, hj->qh.jo.emitter->def->pk != 0)
-                                                           : fold_fixed_member(h, hj->qh.jo.emitter->def->pk);
+static uint32_t fold_pk(uint32_t h, const pico8_jo_t *hj) {
+    return hj->header.cls == pico8_pm_struct_class() ? fold_bool_member(h, hj->emitter->def->pk != 0)
+                                                           : fold_fixed_member(h, hj->emitter->def->pk);
 }
 
 /* A particle record as `g_.mm` returns it: `p`, `v`, `l`. */
@@ -301,20 +301,20 @@ static int is_of(const void *e, const pico8_jb_row_t *px) {
  * `mm`, `g_`'s), which default tables it shares with `hj`, `qh` and `jo`,
  * and where `lt` registered it -- in `cg.hj`, never in `cg.qh`. */
 static uint32_t fold_ascension(uint32_t h, void *e) {
-    const pico8_hj_t *hj = as_hj(e);
-    const pico8_emitter_t *em = hj->qh.jo.emitter;
-    const pico8_qh_t *qh = &hj->qh;
-    const pico8_jo_t *jo = &qh->jo;
+    const pico8_jo_t *hj = as_hj(e);
+    const pico8_emitter_t *em = hj->emitter;
+    const pico8_jo_t *qh = hj;
+    const pico8_jo_t *jo = qh;
     size_t i;
 
     h = fold_string_member(h, jo->id);
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
-    h = fold_string_member(h, hj->qh.jo.def->rr);
+    h = fold_string_member(h, hj->def->rr);
     h = fold_qh(h, qh);
-    h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_fixed_member(h, qh->jo.s);
-    h = fold_fixed_member(h, qh->jo.probe->od);
+    h = fold_fixed_member(h, qh->def->hp);
+    h = fold_fixed_member(h, qh->s);
+    h = fold_fixed_member(h, qh->probe->od);
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, em->def->ki);
     h = fold_fixed_member(h, em->pn);
@@ -325,9 +325,9 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
-    h = fold_string_member(h, qh->jo.probe->def->dq);
-    h = fold_fixed_member(h, qh->jo.probe->def->fp);
-    h = fold_fixed_member(h, qh->jo.probe->def->dw);
+    h = fold_string_member(h, qh->probe->def->dq);
+    h = fold_fixed_member(h, qh->probe->def->fp);
+    h = fold_fixed_member(h, qh->probe->def->dw);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
     h = fold_fixed_member(h, jo->def->hs);
@@ -338,28 +338,28 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     /* The 1s of the ten fixed emitter defaults, of `hp`, `qh`, `od`, `fp`,
      * `dw`, `s`, then of `hf`, `hs`, `fa`, `ma` and `ca`: constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(hj->qh.jo.def->rr != NULL));
+    h = fnv(h, (uint32_t)(hj->def->rr != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(hj->qh.jo.emitter->k_ != NULL));
+    h = fnv(h, (uint32_t)(hj->emitter->k_ != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
+    h = fnv(h, (uint32_t)(qh->def->px != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
+    h = fnv(h, (uint32_t)(qh->def->ba != NULL));
+    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -395,10 +395,10 @@ static uint32_t fold_ascension(uint32_t h, void *e) {
     assert_qh_members_but_kj(cls_of(e));
     assert(cls_of(e)->kj == pico8_hj_struct_class()->kj && pico8_jo_is_family(e));
     assert(cls_of(e)->mm == pico8_g__mm);
-    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->jo.def->px == &pico8_hj_px_row && em->k_ == &pico8_hj_k__seq);
+    assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && qh->def->px == &pico8_hj_px_row && em->k_ == &pico8_hj_k__seq);
     assert(jo->header.cls->tags != (PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(qh->jo.def->px != &pico8_qh_px_row);
-    assert(qh->jo.def->ba == &pico8_qh_ba_seq);
+    assert(qh->def->px != &pico8_qh_px_row);
+    assert(qh->def->ba == &pico8_qh_ba_seq);
     assert(jo->def == &pico8_hj_def);
     assert(jo->def == &pico8_hj_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
@@ -431,7 +431,7 @@ static void test_built(void) {
     a = build_ascension();
     b = build_ascension();
     assert(a != b && is_of(a, &pico8_hj_px_row) && is_of(b, &pico8_hj_px_row));
-    assert(as_hj(a)->qh.jo.emitter->qy != NULL && as_hj(a)->qh.jo.emitter->qy != as_hj(b)->qh.jo.emitter->qy);
+    assert(as_hj(a)->emitter->qy != NULL && as_hj(a)->emitter->qy != as_hj(b)->emitter->qy);
     h = fold_ascension(h, a);
     h = fold_ascension(h, b);
     check("built", h, BUILT_HASH);
@@ -446,18 +446,18 @@ static void set_credits(int n) {
     pico8_fm_hy()->nz = pico8_fixed_from_int(n);
 }
 
-static uint32_t fold_ra_y(uint32_t h, const pico8_hj_t *hj) {
-    const pico8_vec_t *ra = hj->qh.jo.ra;
+static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *hj) {
+    const pico8_vec_t *ra = hj->ra;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
 /* `dg` once, then what qh's `ly` (`na`) left on the ascension. */
 static uint32_t fold_dg(uint32_t h, void *e) {
-    const pico8_hj_t *hj = as_hj(e);
+    const pico8_jo_t *hj = as_hj(e);
 
     h = fold_ra_y(h, hj);
     pico8_dg();
-    h = fold_fixed_member(h, hj->qh.jo.header.t);
+    h = fold_fixed_member(h, hj->header.t);
     return fold_ra_y(h, hj);
 }
 
@@ -478,14 +478,14 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)pico8_da(e));
-    return as_hj(e)->qh.jo.has_mi ? fold_fixed_member(h, as_hj(e)->qh.jo.mi) : fold_absent(h);
+    return as_hj(e)->has_mi ? fold_fixed_member(h, as_hj(e)->mi) : fold_absent(h);
 }
 
 /* `dc("kj")` once: the screen it leaves and what `hj:kj` left in `qy`. */
 static uint32_t fold_draw(uint32_t h, void *e) {
     pico8_dc("kj");
     h = fnv(h, screen_hash());
-    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->qh.jo.emitter->qy));
+    return fnv(h, (uint32_t)ptrs_size(as_hj(e)->emitter->qy));
 }
 
 /* `hq` (`bv`) on screen then `ey` (`d_`) with the credits; `bb`/`ib`/`gg`/
@@ -508,17 +508,17 @@ static void test_life(void) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_hj(placed)->qh.jo.ra == mp);
-    h = fold_vec(h, as_hj(placed)->qh.jo.p);
-    h = fnv(h, et_state(&as_hj(placed)->qh));
-    h = fold_et(h, &as_hj(placed)->qh);
+    assert(as_hj(placed)->ra == mp);
+    h = fold_vec(h, as_hj(placed)->p);
+    h = fnv(h, et_state(as_hj(placed)));
+    h = fold_et(h, as_hj(placed));
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_hj(placed)->qh.jo.header.me);
-    h = fold_fixed_member(h, as_hj(placed)->qh.jo.header.t);
+    h = fold_string_member(h, as_hj(placed)->header.me);
+    h = fold_fixed_member(h, as_hj(placed)->header.t);
     h = fnv(h, (uint32_t)credits());
-    assert(strcmp(as_hj(placed)->qh.jo.header.me, "ly") == 0);
+    assert(strcmp(as_hj(placed)->header.me, "ly") == 0);
 
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
@@ -527,20 +527,20 @@ static void test_life(void) {
 
     h = fold_particle(h, cls_of(placed)->mm(placed));
     pico8_ez(placed, PICO8_FIXED_LIT(0x00028000, 2.5));
-    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->qh.jo.emitter->qy));
-    assert(ptrs_size(as_hj(placed)->qh.jo.emitter->qy) >= 2);
+    h = fnv(h, (uint32_t)ptrs_size(as_hj(placed)->emitter->qy));
+    assert(ptrs_size(as_hj(placed)->emitter->qy) >= 2);
 
     h = fold_draw(h, placed);
     h = fold_draw(h, placed);
-    as_hj(placed)->qh.jo.mi = pico8_fixed_from_int(2);
-    as_hj(placed)->qh.jo.has_mi = 1;
+    as_hj(placed)->mi = pico8_fixed_from_int(2);
+    as_hj(placed)->has_mi = 1;
     for (i = 0; i < 4; i++) {
         h = fold_draw(h, placed);
     }
     h = fold_economy(h, placed);
 
     idle = build_ascension();
-    h = fold_string_member(h, as_hj(idle)->qh.jo.header.me);
+    h = fold_string_member(h, as_hj(idle)->header.me);
     h = fold_dg(h, idle);
     check("life", h, LIFE_HASH);
 }
@@ -549,7 +549,7 @@ static void test_life(void) {
  * on `gx[5]`, each a struct under its own descriptor holding hj's `kj` and
  * `mm`. */
 static uint32_t fold_heir(uint32_t h, void *e, const pico8_struct_class_t *cls) {
-    const pico8_hj_t *hj;
+    const pico8_jo_t *hj;
 
     assert(e != NULL &&
            ((const pico8_struct_header_t *)e)->cls == cls);
@@ -557,19 +557,19 @@ static uint32_t fold_heir(uint32_t h, void *e, const pico8_struct_class_t *cls) 
     assert(is_of(e, cls == pico8_pm_struct_class() ? &pico8_pm_px_row : &pico8_mx_px_row));
     assert(cls_of(e)->kj == pico8_hj_struct_class()->kj);
     assert(cls_of(e)->mm == pico8_hj_struct_class()->mm);
-    assert(ptrs_size(hj->qh.jo.emitter->qy) == 0);
-    assert(hj->qh.jo.def->qh == 0);
-    h = fold_string_member(h, hj->qh.jo.id);
-    h = fold_string_member(h, hj->qh.jo.header.me);
-    h = fold_qh(h, &hj->qh);
-    h = fold_string_member(h, hj->qh.jo.def->rr);
-    h = fold_fixed_member(h, hj->qh.jo.probe->od);
+    assert(ptrs_size(hj->emitter->qy) == 0);
+    assert(hj->def->qh == 0);
+    h = fold_string_member(h, hj->id);
+    h = fold_string_member(h, hj->header.me);
+    h = fold_qh(h, hj);
+    h = fold_string_member(h, hj->def->rr);
+    h = fold_fixed_member(h, hj->probe->od);
     h = fold_pk(h, hj);
-    h = fold_fixed_member(h, hj->qh.jo.def->hp);
-    h = fold_fixed_member(h, hj->qh.jo.s);
-    h = fold_fixed_member(h, hj->qh.jo.emitter->py);
-    h = fold_fixed_member(h, hj->qh.jo.emitter->pn);
-    h = fold_fixed_member(h, hj->qh.jo.emitter->du);
+    h = fold_fixed_member(h, hj->def->hp);
+    h = fold_fixed_member(h, hj->s);
+    h = fold_fixed_member(h, hj->emitter->py);
+    h = fold_fixed_member(h, hj->emitter->pn);
+    h = fold_fixed_member(h, hj->emitter->du);
     h = fnv(h, (uint32_t)ents_rank_in(pico8_cg("hj"), e));
     return fold_particle(h, cls_of(e)->mm(e));
 }
@@ -587,9 +587,9 @@ static void test_heirs(void) {
     keys.id = "s77";
     pm = pico8_pm_new(&keys);
 
-    assert(strcmp(as_hj(pm)->qh.jo.def->rr, "ascension") == 0 && as_hj(pm)->qh.jo.emitter->def->pk == 0);
-    assert(as_hj(pm)->qh.jo.probe->od == pico8_fixed_from_int(60));
-    assert(strcmp(as_hj(mx)->qh.jo.def->rr, "void synthesis") == 0);
+    assert(strcmp(as_hj(pm)->def->rr, "ascension") == 0 && as_hj(pm)->emitter->def->pk == 0);
+    assert(as_hj(pm)->probe->od == pico8_fixed_from_int(60));
+    assert(strcmp(as_hj(mx)->def->rr, "void synthesis") == 0);
     h = fold_heir(h, pm, pico8_pm_struct_class());
     h = fold_heir(h, mx, pico8_mx_struct_class());
     check("heirs", h, HEIRS_HASH);
@@ -648,9 +648,9 @@ static void test_hj_is_a_struct(void) {
 
     must_abort(build_with_unknown_key, NULL);
     {
-        pico8_hj_t *bare = pico8_hj_new(NULL);
-        assert(is_an_hj_struct(bare) && bare->qh.jo.id == NULL && bare->qh.jo.oe != NULL &&
-               ptrs_size(bare->qh.jo.emitter->qy) == 0 && ents_listed(pico8_cg("hj"), bare));
+        pico8_jo_t *bare = pico8_hj_new(NULL);
+        assert(is_an_hj_struct(bare) && bare->id == NULL && bare->oe != NULL &&
+               ptrs_size(bare->emitter->qy) == 0 && ents_listed(pico8_cg("hj"), bare));
     }
 }
 

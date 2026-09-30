@@ -144,15 +144,15 @@ static int ents_list_size(const pico8_ents_t *l) {
 }
 
 /* `e` as a planet of qh's lineage. */
-static pico8_qh_t *as_qh(void *e) {
+static pico8_jo_t *as_qh(void *e) {
     const pico8_struct_header_t *h = e;
 
     assert(h != NULL && (h->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)));
     return e;
 }
 
-static uint32_t fold_qh(uint32_t h, const pico8_qh_t *qh) {
-    return qh->jo.def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
+static uint32_t fold_qh(uint32_t h, const pico8_jo_t *qh) {
+    return qh->def->qh ? fold_fixed_member(h, pico8_fixed_from_int(1)) : fold_bool_member(h, 0);
 }
 
 static void check(const char *label, uint32_t got, uint32_t want) {
@@ -220,7 +220,7 @@ static void *build(const pico8_entity_kind_t *kind) {
 /* `hz` of a slipgate or a gate; NULL on any other struct, which has none. */
 static const pico8_int_seq_t *hz_of(const void *e) {
     if (cls_of(e) == pico8_nr_struct_class() || cls_of(e) == pico8_fr_struct_class()) {
-        return ((const pico8_nr_t *)e)->qh.jo.def->hz;
+        return ((const pico8_jo_t *)e)->def->hz;
     }
     return NULL;
 }
@@ -243,28 +243,28 @@ static void *build_gate(void) {
  * where `lt` registered it -- in `cg.nr`/`np`/`prober`, never in `cg.jo` or
  * `cg.qh`. */
 static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
-    const pico8_fr_t *fr;
-    const pico8_nr_t *nr;
-    const pico8_qh_t *qh;
+    const pico8_jo_t *fr;
+    const pico8_jo_t *nr;
+    const pico8_jo_t *qh;
     const pico8_jo_t *jo;
     size_t i;
 
     assert(is_a_gate(e) && !is_a_gate(slipgate) && cls_of(e) == pico8_fr_struct_class());
     fr = e;
-    nr = &fr->nr;
-    qh = &nr->qh;
-    jo = &qh->jo;
+    nr = fr;
+    qh = nr;
+    jo = qh;
     h = fold_string_member(h, jo->id);
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
-    h = fold_string_member(h, nr->qh.jo.def->rr);
-    h = fold_fixed_member(h, fr->nr.qh.jo.def->mt);
-    h = fold_fixed_member(h, qh->jo.def->hp);
-    h = fold_fixed_member(h, qh->jo.s);
-    h = fold_fixed_member(h, qh->jo.probe->od);
-    h = fold_fixed_member(h, qh->jo.probe->def->fp);
-    h = fold_fixed_member(h, qh->jo.probe->def->dw);
-    h = fold_string_member(h, qh->jo.probe->def->dq);
+    h = fold_string_member(h, nr->def->rr);
+    h = fold_fixed_member(h, fr->def->mt);
+    h = fold_fixed_member(h, qh->def->hp);
+    h = fold_fixed_member(h, qh->s);
+    h = fold_fixed_member(h, qh->probe->od);
+    h = fold_fixed_member(h, qh->probe->def->fp);
+    h = fold_fixed_member(h, qh->probe->def->dw);
+    h = fold_string_member(h, qh->probe->def->dq);
     h = fold_qh(h, qh);
     h = jo->has_mi ? fold_fixed_member(h, jo->mi) : fold_absent(h);
     h = fold_hf(h, jo);
@@ -273,23 +273,23 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fold_fixed_member(h, jo->ma);
     h = fold_fixed_member(h, jo->def->ca);
     h = fold_vec(h, &jo->def->gq);
-    h = fnv(h, (uint32_t)nr->qh.jo.def->hz->count);
+    h = fnv(h, (uint32_t)nr->def->hz->count);
     /* The 1s of `mt`, of `hp`, `qh`, `od`, `fp`, `dw`, `s`, then of `hf`,
      * `hs`, `fa`, `ma` and `ca`: constant by the struct's shape, kept so that
      * BUILT_HASH still proves the typed reads. */
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(nr->qh.jo.def->hz != NULL));
-    h = fnv(h, (uint32_t)(nr->qh.jo.def->rr != NULL));
+    h = fnv(h, (uint32_t)(nr->def->hz != NULL));
+    h = fnv(h, (uint32_t)(nr->def->rr != NULL));
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->jo.def->px != NULL));
-    h = fnv(h, (uint32_t)(qh->jo.probe->def->dq != NULL));
-    h = fnv(h, 1u);
-    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(qh->def->px != NULL));
+    h = fnv(h, (uint32_t)(qh->probe->def->dq != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
-    h = fnv(h, (uint32_t)(qh->jo.def->ba != NULL));
-    h = fnv(h, qh->jo.probe->et != NULL ? 1u : 0u);
+    h = fnv(h, 1u);
+    h = fnv(h, 1u);
+    h = fnv(h, (uint32_t)(qh->def->ba != NULL));
+    h = fnv(h, qh->probe->et != NULL ? 1u : 0u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -337,10 +337,10 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     assert(cls_of(e)->ol == NULL && cls_of(e)->mm == NULL);
     assert(cls_of(e)->states[PICO8_STATE_PH] == NULL && cls_of(e)->states[PICO8_STATE_KZ] == NULL &&
            cls_of(e)->states[PICO8_STATE_PR] == NULL && cls_of(e)->rdown == NULL);
-    assert(nr->qh.jo.def->hz != &pico8_nr_hz_seq);
+    assert(nr->def->hz != &pico8_nr_hz_seq);
     assert(jo->def == &pico8_fr_def);
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(qh->jo.def->px == &pico8_qh_px_row && qh->jo.def->ba == &pico8_qh_ba_seq);
+    assert(qh->def->px == &pico8_qh_px_row && qh->def->ba == &pico8_qh_ba_seq);
     assert(jo->def == &pico8_fr_def);
     assert(jo->def->em == &pico8_jo_em_row && jo->def->ka == &pico8_jo_ka_seq && jo->def->dz == pico8_jo_dz_rows &&
            jo->def->cq == &pico8_jo_cq_seq);
@@ -372,7 +372,7 @@ static void test_built(void) {
     a = build_gate();
     slipgate = build(pico8_nr_kind());
     b = build_gate();
-    assert(a != b && as_qh(a)->jo.oe != as_qh(b)->jo.oe && as_qh(a)->jo.kw != as_qh(b)->jo.kw);
+    assert(a != b && as_qh(a)->oe != as_qh(b)->oe && as_qh(a)->kw != as_qh(b)->kw);
     h = fold_gate(h, a, slipgate);
     h = fold_gate(h, b, slipgate);
     check("built", h, BUILT_HASH);
@@ -382,18 +382,18 @@ static void set_credits(int n) {
     pico8_fm_hy()->nz = pico8_fixed_from_int(n);
 }
 
-static uint32_t fold_ra_y(uint32_t h, const pico8_qh_t *qh) {
-    const pico8_vec_t *ra = qh->jo.ra;
+static uint32_t fold_ra_y(uint32_t h, const pico8_jo_t *qh) {
+    const pico8_vec_t *ra = qh->ra;
     return ra == NULL ? fnv(h, 0xDEADu) : fnv(h, (uint32_t)ra->y);
 }
 
 /* `dg` once, then what qh's `ly` (`na`) left on the gate. */
 static uint32_t fold_dg(uint32_t h, void *e) {
-    const pico8_qh_t *qh = as_qh(e);
+    const pico8_jo_t *qh = as_qh(e);
 
     h = fold_ra_y(h, qh);
     pico8_dg();
-    h = fold_fixed_member(h, qh->jo.header.t);
+    h = fold_fixed_member(h, qh->header.t);
     return fold_ra_y(h, qh);
 }
 
@@ -413,7 +413,7 @@ static uint32_t fold_economy(uint32_t h, void *e) {
     h = fold_ib(h, ib);
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(e) ? 1u : 0u);
     h = fnv(h, (uint32_t)pico8_da(e));
-    return as_qh(e)->jo.has_mi ? fold_fixed_member(h, as_qh(e)->jo.mi) : fold_absent(h);
+    return as_qh(e)->has_mi ? fold_fixed_member(h, as_qh(e)->mi) : fold_absent(h);
 }
 
 /* A list of `n` copies of `item`, for `oe`: `gv`, `ldown` and `hb` only
@@ -438,14 +438,14 @@ static void place(void *e, int x, int y) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(x, y)));
     cls_of(e)->hq(e, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_qh(e)->jo.ra == mp);
+    assert(as_qh(e)->ra == mp);
 }
 
 /* A slipway drawn from `from` by its `ldown`, aimed by `jc:hq` at a point
  * with no planet: its `mt` (then `fa`) comes from `from` alone. */
 static uint32_t fold_route(uint32_t h, void *from) {
     pico8_down_t jc = cls_of(from)->ldown(from, NULL, NULL);
-    const pico8_vec_t *ra = as_qh(from)->jo.ra;
+    const pico8_vec_t *ra = as_qh(from)->ra;
     int from_has_mt = cls_of(from) == pico8_fr_struct_class();
     const pico8_jc_t *made;
 
@@ -476,7 +476,7 @@ static void test_life(void) {
 
     start_game();
     idle = build_gate();
-    h = fold_string_member(h, as_qh(idle)->jo.header.me);
+    h = fold_string_member(h, as_qh(idle)->header.me);
     h = fold_dg(h, idle);
 
     placed = build_gate();
@@ -484,8 +484,8 @@ static void test_life(void) {
     set_credits(999);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
-    h = fold_string_member(h, as_qh(placed)->jo.header.me);
-    assert(strcmp(as_qh(placed)->jo.header.me, "ly") == 0);
+    h = fold_string_member(h, as_qh(placed)->header.me);
+    assert(strcmp(as_qh(placed)->header.me, "ly") == 0);
     h = fold_economy(h, placed);
     for (i = 0; i < 3; i++) {
         h = fold_dg(h, placed);
@@ -504,25 +504,25 @@ static void test_life(void) {
     h = fold_bool(h, cls_of(placed)->gv(placed, jc.held).stop);
     h = fold_bool(h, cls_of(idle)->gv(idle, jc.held).stop);
 
-    oe = as_qh(placed)->jo.oe;
+    oe = as_qh(placed)->oe;
     for (i = 0; i <= 3; i++) {
-        as_qh(placed)->jo.oe = list_of(i, idle);
+        as_qh(placed)->oe = list_of(i, idle);
         cls_of(placed)->hb(placed);
-        h = fold_fixed_member(h, as_qh(placed)->jo.s);
+        h = fold_fixed_member(h, as_qh(placed)->s);
         h = fold_bool(h, cls_of(placed)->gv(placed, NULL).stop);
     }
-    assert(as_qh(placed)->jo.s == pico8_fixed_from_int(76));
+    assert(as_qh(placed)->s == pico8_fixed_from_int(76));
     jc = cls_of(placed)->ldown(placed, NULL, NULL);
     assert(jc.held == NULL);
     h = fold_bool(h, jc.stop);
-    as_qh(placed)->jo.oe = oe;
+    as_qh(placed)->oe = oe;
     cls_of(placed)->hb(placed);
-    h = fold_fixed_member(h, as_qh(placed)->jo.s);
-    assert(as_qh(placed)->jo.s == pico8_fixed_from_int(78));
+    h = fold_fixed_member(h, as_qh(placed)->s);
+    assert(as_qh(placed)->s == pico8_fixed_from_int(78));
     h = fold_economy(h, placed);
 
     h = fold_route(h, placed);
-    assert(is_a_gate(placed) && ((const pico8_fr_t *)placed)->nr.qh.jo.def->mt == pico8_fixed_from_int(1));
+    assert(is_a_gate(placed) && ((const pico8_jo_t *)placed)->def->mt == pico8_fixed_from_int(1));
     slipgate = build(pico8_nr_kind());
     place(slipgate, 40, 108);
     h = fold_route(h, slipgate);
@@ -583,9 +583,9 @@ static void test_fr_is_a_struct(void) {
 
     must_abort(build_with_unknown_key, NULL);
     {
-        pico8_fr_t *bare = pico8_fr_new(NULL);
-        assert(is_an_fr_struct(bare) && is_a_gate(bare) && bare->nr.qh.jo.id == NULL && bare->nr.qh.jo.oe != NULL &&
-               bare->nr.qh.jo.kw != NULL);
+        pico8_jo_t *bare = pico8_fr_new(NULL);
+        assert(is_an_fr_struct(bare) && is_a_gate(bare) && bare->id == NULL && bare->oe != NULL &&
+               bare->kw != NULL);
         assert(ents_listed(pico8_cg("nr"), bare));
     }
 }

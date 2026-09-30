@@ -824,7 +824,7 @@ static void test_gh_lab_wants_its_last(void) {
     pico8_jy_t *a = pico8_jy_new(NULL);
     pico8_jy_t *b = pico8_jy_new(NULL);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
-    pico8_qh_t *lab;
+    pico8_jo_t *lab;
     const pico8_lq_t *wants;
 
     start_game();
@@ -836,12 +836,12 @@ static void test_gh_lab_wants_its_last(void) {
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     lab = pico8_qh_new(NULL);
-    lab->jo.jy = jy;
-    lab->jo.has_mi = 1;
-    lab->jo.mi = pico8_fixed_from_int(1);
-    lab->jo.ra = malloc(sizeof *lab->jo.ra);
-    *lab->jo.ra = vec_xy(64, 64);
-    pico8_jo_gh(&lab->jo);
+    lab->jy = jy;
+    lab->has_mi = 1;
+    lab->mi = pico8_fixed_from_int(1);
+    lab->ra = malloc(sizeof *lab->ra);
+    *lab->ra = vec_xy(64, 64);
+    pico8_jo_gh(lab);
 
     wants = panel_row("wants more:");
     assert(wants != NULL && wants->items_count == 3 && wants->items[1].as.row == &b->row);

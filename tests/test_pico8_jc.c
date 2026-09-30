@@ -575,7 +575,7 @@ static void test_hq_takes_mt_from_its_start(void) {
     from_jo = build_jc(pico8_jo_new(NULL));
     hq_over(from_jo, NULL, vec_ref(-640, -640));
     assert(!as_jc(from_jo)->has_mt && as_jc(from_jo)->header.mt == NULL);
-    from_fr = build_jc(&pico8_fr_new(NULL)->nr.qh.jo);
+    from_fr = build_jc(pico8_fr_new(NULL));
     hq_over(from_fr, NULL, vec_ref(-640, -640));
     assert(as_jc(from_fr)->has_mt && as_jc(from_fr)->mt == pico8_fr_def.mt);
     assert(as_jc(from_fr)->header.mt == &as_jc(from_fr)->mt);

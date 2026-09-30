@@ -20,7 +20,7 @@ static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
 
 static int g_family_trade_up = 0;
 
-pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s) {
+pico8_down_t pico8_nr_gv(const pico8_jo_t *self, const pico8_struct_header_t *s) {
     int qu_not_self;
     int oe_count = 0;
     pico8_down_t out = {0, NULL};
@@ -31,16 +31,16 @@ pico8_down_t pico8_nr_gv(const pico8_nr_t *self, const pico8_struct_header_t *s)
 
     /* Only a held `jc` carries `qu`: a held `bg`, `mz` or planet reads it absent. */
     qu_not_self = !(s != NULL && s->cls == pico8_jc_struct_class() &&
-                    ((const pico8_jc_t *)s)->qu == &self->qh.jo.header);
+                    ((const pico8_jc_t *)s)->qu == &self->header);
 
-    oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
+    oe_count = self->oe != NULL ? self->oe->count : 0;
 
     out.stop = qu_not_self && oe_count < 3;
     return out;
 }
 
 static pico8_down_t pico8_nr_gv_dispatch(void *self, const pico8_struct_header_t *s) {
-    return pico8_nr_gv((const pico8_nr_t *)self, s);
+    return pico8_nr_gv((const pico8_jo_t *)self, s);
 }
 
 static const pico8_struct_class_t g_nr_ldown_empty_struct_class = {0};
@@ -53,7 +53,7 @@ typedef struct {
  * never written. */
 static const pico8_nr_ldown_empty_t g_nr_ldown_empty = {{.cls = &g_nr_ldown_empty_struct_class}};
 
-pico8_down_t pico8_nr_ldown(pico8_nr_t *self) {
+pico8_down_t pico8_nr_ldown(pico8_jo_t *self) {
     pico8_down_t gv_result = {0, NULL};
     pico8_jc_keys_t keys = {0};
 
@@ -77,10 +77,10 @@ pico8_down_t pico8_nr_ldown(pico8_nr_t *self) {
 static pico8_down_t pico8_nr_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     (void)qa;
     (void)ra;
-    return pico8_nr_ldown((pico8_nr_t *)self);
+    return pico8_nr_ldown((pico8_jo_t *)self);
 }
 
-void pico8_nr_hb(pico8_nr_t *self) {
+void pico8_nr_hb(pico8_jo_t *self) {
     int oe_count = 0;
     pico8_fixed_t s_val = pico8_fixed_from_int(0);
 
@@ -88,23 +88,23 @@ void pico8_nr_hb(pico8_nr_t *self) {
         return;
     }
 
-    oe_count = self->qh.jo.oe != NULL ? self->qh.jo.oe->count : 0;
+    oe_count = self->oe != NULL ? self->oe->count : 0;
 
-    if (self->qh.jo.def->hz != NULL) {
+    if (self->def->hz != NULL) {
         int entry;
-        if (pico8_int_seq_at(self->qh.jo.def->hz->items, self->qh.jo.def->hz->count, oe_count + 1, &entry)) {
+        if (pico8_int_seq_at(self->def->hz->items, self->def->hz->count, oe_count + 1, &entry)) {
             s_val = pico8_fixed_from_int(entry);
         }
     }
 
-    self->qh.jo.s = s_val;
+    self->s = s_val;
 }
 
 static void pico8_nr_hb_dispatch(void *self) {
-    pico8_nr_hb((pico8_nr_t *)self);
+    pico8_nr_hb((pico8_jo_t *)self);
 }
 
-void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
+void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     pico8_trade_t *t;
     const pico8_ents_t *oe = NULL;
     pico8_ents_iter_t it;
@@ -115,7 +115,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
     }
     t = lw->t;
 
-    oe = self->qh.jo.oe;
+    oe = self->oe;
 
     it = pico8_ents_all(oe);
     while (pico8_ents_iter_next(&it, &w)) {
@@ -138,7 +138,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->qh.jo.header, w);
+            pico8_trade_t *extended = pico8_trade_kg(t, &self->header, w);
             pico8_struct_header_t *other;
 
             gf.t = extended;
@@ -155,7 +155,7 @@ void pico8_nr_cn(pico8_nr_t *self, pico8_jo_trade_proposal_t *lw) {
 }
 
 static void pico8_nr_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw) {
-    pico8_nr_cn((pico8_nr_t *)self, lw);
+    pico8_nr_cn((pico8_jo_t *)self, lw);
 }
 
 static const pico8_struct_class_t g_nr_struct_class = {
@@ -179,35 +179,35 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
-/* Initializes an allocated pico8_nr_t under `cls` and `def`, its kind's
+/* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
  * archetype: qh's part, nr having no member of its own. Reads no key, runs
  * neither `pq` nor `lt`, records no coverage. Requires
  * `pico8_planet_family_trade_init()`. */
-static void pico8_nr_struct_init(pico8_nr_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
-    pico8_qh_struct_init(&self->qh, cls, def);
+static void pico8_nr_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
+    pico8_qh_struct_init(self, cls, def);
 }
 
-static pico8_nr_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_nr_t *self = malloc(sizeof *self);
+static pico8_jo_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
+    pico8_jo_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_nr_struct_class, &pico8_nr_def);
     if (keys != NULL) {
         if (keys->id != NULL) {
-            self->qh.jo.id = keys->id;
+            self->id = keys->id;
         }
         if (keys->p != NULL) {
-            self->qh.jo.p = keys->p;
+            self->p = keys->p;
         }
         if (keys->ra != NULL) {
-            self->qh.jo.ra = keys->ra;
+            self->ra = keys->ra;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("nr");
 #endif
-    pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->qh.jo.header);
+    pico8_jo_pq(self);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
@@ -232,29 +232,29 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
-static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_fr_t *self = malloc(sizeof *self);
+static pico8_jo_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
+    pico8_jo_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_nr_struct_init(&self->nr, &g_fr_struct_class, &pico8_fr_def);
-    self->nr.qh.jo.header.mt = &self->nr.qh.jo.def->mt;
+    pico8_nr_struct_init(self, &g_fr_struct_class, &pico8_fr_def);
+    self->header.mt = &self->def->mt;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "fr: the only construction key is id (ie:ldown); another key has no member "
                "-- stop, do not add one");
         if (keys->id != NULL) {
-            self->nr.qh.jo.id = keys->id;
+            self->id = keys->id;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fr");
 #endif
-    pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->nr.qh.jo.header);
+    pico8_jo_pq(self);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
-void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
+void pico8_mx_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
     pico8_struct_header_t *cp = NULL;
 
     if (self != NULL && sw != NULL) {
@@ -285,22 +285,22 @@ void pico8_mx_kf(pico8_mx_t *self, pico8_struct_header_t *sw) {
                 continue;
             }
 
-            if (i->row.has_qe && self->hj.qh.jo.ht != NULL && pico8_int_seq_has_fixed(self->hj.qh.jo.ht, i->row.qe)) {
-                pico8_kw_t *kw = self->hj.qh.jo.kw;
+            if (i->row.has_qe && self->ht != NULL && pico8_int_seq_has_fixed(self->ht, i->row.qe)) {
+                pico8_kw_t *kw = self->kw;
                 if (kw != NULL) {
                     kw->has_qe = 1;
                     kw->qe = i->row.qe;
                 }
-                self->hj.qh.jo.ht = &g_mx_ht_spent;
+                self->ht = &g_mx_ht_spent;
             }
         }
     }
 
-    pico8_jo_kf((pico8_jo_t *)self, sw);
+    pico8_jo_kf(self, sw);
 }
 
 static void pico8_mx_kf_dispatch(void *self, pico8_struct_header_t *sw) {
-    pico8_mx_kf((pico8_mx_t *)self, sw);
+    pico8_mx_kf((pico8_jo_t *)self, sw);
 }
 
 static const pico8_struct_class_t g_mx_struct_class = {
@@ -325,26 +325,26 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_JO) | PICO8_LINEAGE(PICO8_LINEAGE_QH),
 };
 
-static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_mx_t *self = malloc(sizeof *self);
+static pico8_jo_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
+    pico8_jo_t *self = malloc(sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
-    pico8_hj_struct_init(&self->hj, &g_mx_struct_class, &pico8_mx_def);
-    self->hj.qh.jo.ht = self->hj.qh.jo.def->ht;
+    pico8_hj_struct_init(self, &g_mx_struct_class, &pico8_mx_def);
+    self->ht = self->def->ht;
     if (keys != NULL) {
         assert(keys->p == NULL && keys->ra == NULL &&
                "mx: the only construction key is id (ie:ldown); another key has no member "
                "-- stop, do not add one");
         if (keys->id != NULL) {
-            self->hj.qh.jo.id = keys->id;
+            self->id = keys->id;
         }
     }
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("mx");
 #endif
     pico8_f_((pico8_struct_header_t *)self);
-    pico8_jo_pq((pico8_jo_t *)self);
-    pico8_ke_struct_pq(&self->hj.qh.jo.header);
+    pico8_jo_pq(self);
+    pico8_ke_struct_pq(&self->header);
     return self;
 }
 
@@ -365,7 +365,7 @@ int pico8_nr_ready(void) {
 }
 
 static pico8_struct_header_t *pico8_nr_kind_new(const pico8_jo_keys_t *keys) {
-    return &pico8_nr_struct_new(keys)->qh.jo.header;
+    return &pico8_nr_struct_new(keys)->header;
 }
 
 static const pico8_entity_kind_t g_nr_kind = {pico8_nr_kind_new, &pico8_nr_kind_rec};
@@ -378,7 +378,7 @@ const pico8_struct_class_t *pico8_nr_struct_class(void) {
     return &g_nr_struct_class;
 }
 
-pico8_nr_t *pico8_nr_new(const pico8_jo_keys_t *keys) {
+pico8_jo_t *pico8_nr_new(const pico8_jo_keys_t *keys) {
     return pico8_nr_struct_new(keys);
 }
 
@@ -387,7 +387,7 @@ int pico8_fr_ready(void) {
 }
 
 static pico8_struct_header_t *pico8_fr_kind_new(const pico8_jo_keys_t *keys) {
-    return &pico8_fr_struct_new(keys)->nr.qh.jo.header;
+    return &pico8_fr_struct_new(keys)->header;
 }
 
 static const pico8_entity_kind_t g_fr_kind = {pico8_fr_kind_new, &pico8_fr_kind_rec};
@@ -400,7 +400,7 @@ const pico8_struct_class_t *pico8_fr_struct_class(void) {
     return &g_fr_struct_class;
 }
 
-pico8_fr_t *pico8_fr_new(const pico8_jo_keys_t *keys) {
+pico8_jo_t *pico8_fr_new(const pico8_jo_keys_t *keys) {
     return pico8_fr_struct_new(keys);
 }
 
@@ -409,7 +409,7 @@ int pico8_mx_ready(void) {
 }
 
 static pico8_struct_header_t *pico8_mx_kind_new(const pico8_jo_keys_t *keys) {
-    return &pico8_mx_struct_new(keys)->hj.qh.jo.header;
+    return &pico8_mx_struct_new(keys)->header;
 }
 
 static const pico8_entity_kind_t g_mx_kind = {pico8_mx_kind_new, &pico8_mx_kind_rec};
@@ -422,6 +422,6 @@ const pico8_struct_class_t *pico8_mx_struct_class(void) {
     return &g_mx_struct_class;
 }
 
-pico8_mx_t *pico8_mx_new(const pico8_jo_keys_t *keys) {
+pico8_jo_t *pico8_mx_new(const pico8_jo_keys_t *keys) {
     return pico8_mx_struct_new(keys);
 }

@@ -122,8 +122,8 @@ static void test_carriers_link_their_storage(void) {
     pico8_iv_t *iv = pico8_iv_new(NULL);
     pico8_g__t *fv = pico8_fv_new();
     pico8_jo_t *jo = pico8_jo_new(NULL);
-    pico8_fr_t *fr = pico8_fr_new(NULL);
-    pico8_jo_t *fr_jo = &fr->nr.qh.jo;
+    pico8_jo_t *fr = pico8_fr_new(NULL);
+    pico8_jo_t *fr_jo = fr;
 
     assert_links(&bg->header, (pico8_struct_header_t){.fa = &bg->def->fa, .m_ = &bg->m_});
     assert_links(&js->header,
@@ -170,7 +170,7 @@ static void test_carriers_link_their_storage(void) {
                                                          .fx = &fr_jo->fx,
                                                          .p_ = &fr_jo->p_,
                                                          .m_ = &fr_jo->m_,
-                                                         .probe = &fr->nr.qh.jo.probe_own});
+                                                         .probe = &fr->probe_own});
 }
 
 /* A planet's links, but for its emitter and probe. */
@@ -185,28 +185,28 @@ static pico8_struct_header_t planet_links(pico8_jo_t *jo) {
                                    .m_ = &jo->m_};
 }
 
-static void assert_qh_links(pico8_qh_t *qh, pico8_emitter_t *emitter) {
-    pico8_struct_header_t want = planet_links(&qh->jo);
+static void assert_qh_links(pico8_jo_t *qh, pico8_emitter_t *emitter) {
+    pico8_struct_header_t want = planet_links(qh);
 
     want.emitter = emitter;
-    want.probe = &qh->jo.probe_own;
-    assert_links(&qh->jo.header, want);
-    assert(qh->jo.probe == qh->jo.header.probe && qh->jo.emitter == qh->jo.header.emitter);
+    want.probe = &qh->probe_own;
+    assert_links(&qh->header, want);
+    assert(qh->probe == qh->header.probe && qh->emitter == qh->header.emitter);
 }
 
 /* Emitter and probe carriers: each link is the component the instance
  * stores in itself, the one its own member points at. */
 static void test_component_carriers_link_their_own(void) {
     pico8_g__t *g_ = pico8_g__new(NULL);
-    pico8_nl_t *nl = pico8_nl_new(NULL);
-    pico8_os_t *os = pico8_os_new(NULL);
-    pico8_hj_t *hj = pico8_hj_new(NULL);
-    pico8_pm_t *pm = pico8_pm_new(NULL);
-    pico8_mx_t *mx = pico8_mx_new(NULL);
-    pico8_nr_t *nr = pico8_nr_new(NULL);
-    pico8_ga_t *ga = pico8_ga_new(NULL);
+    pico8_jo_t *nl = pico8_nl_new(NULL);
+    pico8_jo_t *os = pico8_os_new(NULL);
+    pico8_jo_t *hj = pico8_hj_new(NULL);
+    pico8_jo_t *pm = pico8_pm_new(NULL);
+    pico8_jo_t *mx = pico8_mx_new(NULL);
+    pico8_jo_t *nr = pico8_nr_new(NULL);
+    pico8_jo_t *ga = pico8_ga_new(NULL);
     pico8_mz_t *mz = pico8_mz_new();
-    pico8_struct_header_t want = planet_links(&ga->jo);
+    pico8_struct_header_t want = planet_links(ga);
 
     assert_links(&g_->header, (pico8_struct_header_t){.fa = &g_->def->fa,
                                                       .ra = &g_->ra,
@@ -219,15 +219,15 @@ static void test_component_carriers_link_their_own(void) {
     assert(*g_->header.fx == pico8_fixed_from_int(1) &&
            "a probe's fx is its archetype's 1.0, Lua's true: 0 would read as nil");
     assert_qh_links(pico8_qh_new(NULL), NULL);
-    assert_qh_links(&nl->qh, NULL);
-    assert_qh_links(&os->qh, NULL);
-    assert_qh_links(&hj->qh, &hj->qh.jo.emitter_own);
-    assert_qh_links(&pm->hj.qh, &pm->hj.qh.jo.emitter_own);
-    assert_qh_links(&mx->hj.qh, &mx->hj.qh.jo.emitter_own);
-    assert_qh_links(&nr->qh, NULL);
-    want.emitter = &ga->jo.emitter_own;
-    assert_links(&ga->jo.header, want);
-    assert(ga->jo.emitter == ga->jo.header.emitter && ga->jo.probe == NULL);
+    assert_qh_links(nl, NULL);
+    assert_qh_links(os, NULL);
+    assert_qh_links(hj, &hj->emitter_own);
+    assert_qh_links(pm, &pm->emitter_own);
+    assert_qh_links(mx, &mx->emitter_own);
+    assert_qh_links(nr, NULL);
+    want.emitter = &ga->emitter_own;
+    assert_links(&ga->header, want);
+    assert(ga->emitter == ga->header.emitter && ga->probe == NULL);
     assert_links(&mz->header, (pico8_struct_header_t){.fa = &mz->def->fa,
                                                       .ra = &mz->ra,
                                                       .p = &mz->p,
@@ -254,7 +254,7 @@ static pico8_jc_t *jc_dragged_over_nothing(pico8_struct_header_t *qu) {
 static void test_mouse_point_has_null_links(void) {
     pico8_jc_t *jc = jc_dragged_over_nothing(&pico8_jo_new(NULL)->header);
     pico8_jc_mouse_point_t *point = (pico8_jc_mouse_point_t *)jc->re;
-    pico8_jc_t *from_fr = jc_dragged_over_nothing(&pico8_fr_new(NULL)->nr.qh.jo.header);
+    pico8_jc_t *from_fr = jc_dragged_over_nothing(&pico8_fr_new(NULL)->header);
 
     assert(point != NULL && point->header.cls == pico8_jc_mouse_point_struct_class());
     assert_links(&point->header, (pico8_struct_header_t){.ra = &point->ra, .p = &point->p});

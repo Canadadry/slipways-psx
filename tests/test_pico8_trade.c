@@ -487,7 +487,7 @@ static void test_cn_wildcard_want(void) {
     pico8_trade_keys_t keys = {0};
     pico8_jo_trade_proposal_t lw = {0};
     pico8_ptrs_t *jy = malloc(sizeof *jy);
-    pico8_qh_t *qh;
+    pico8_jo_t *qh;
     pico8_jy_t *want;
     pico8_fixed_t any;
     int any_qe;
@@ -499,12 +499,12 @@ static void test_cn_wildcard_want(void) {
     pico8_ptrs_init(jy);
     pico8_ptrs_add(jy, want);
     qh = pico8_qh_new(NULL);
-    qh->jo.jy = jy;
+    qh->jy = jy;
     keys.has_qe = 1;
-    keys.qe = pico8_fixed_from_int(qh->jo.def->ba->items[0]);
+    keys.qe = pico8_fixed_from_int(qh->def->ba->items[0]);
     lw.t = pico8_trade_new(&keys);
     lw.kf = count_kf;
-    pico8_jo_cn(&qh->jo, &lw);
+    pico8_jo_cn(qh, &lw);
     assert(want->row.has_qe && want->row.qe == keys.qe && g_kf_calls == 1);
 }
 
@@ -513,22 +513,22 @@ static void test_cn_wildcard_want(void) {
 static void test_cn_nil_want_after_kg(void) {
     pico8_jo_trade_proposal_t lw = {0};
     pico8_ptrs_t *jy = malloc(sizeof *jy);
-    pico8_qh_t *qh;
+    pico8_jo_t *qh;
     pico8_trade_t *nil_route;
 
     start_game();
     pico8_ptrs_init(jy);
     pico8_ptrs_add(jy, pico8_jy_new(NULL));
     qh = pico8_qh_new(NULL);
-    qh->jo.jy = jy;
+    qh->jy = jy;
     nil_route = pico8_trade_new(&(pico8_trade_keys_t){.lp = list_of(0, NULL)});
     lw.kf = count_kf;
     lw.t = nil_route;
-    pico8_jo_cn(&qh->jo, &lw);
+    pico8_jo_cn(qh, &lw);
     assert(g_kf_calls == 1);
     lw.t = pico8_trade_kg(nil_route, NULL, NULL);
     assert(lw.t->has_qe && lw.t->qe_is_bool && lw.t->qe == 0);
-    pico8_jo_cn(&qh->jo, &lw);
+    pico8_jo_cn(qh, &lw);
     assert(g_kf_calls == 1);
 }
 
@@ -538,7 +538,7 @@ static void test_cn_nil_want_after_kg(void) {
 static void test_dh_counts_numbered_routes_only(void) {
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_ents_t *cc = malloc(sizeof *cc);
-    pico8_qh_t *qh;
+    pico8_jo_t *qh;
     pico8_jy_t *nil_want;
     pico8_jy_t *x_want;
     pico8_fixed_t x = pico8_fixed_from_int(2);
@@ -556,10 +556,10 @@ static void test_dh_counts_numbered_routes_only(void) {
     pico8_ents_add(cc, &pico8_trade_kg(nil_route, NULL, NULL)->header);
     pico8_ents_add(cc, &pico8_trade_new(&(pico8_trade_keys_t){.has_qe = 1, .qe = x})->header);
     qh = pico8_qh_new(NULL);
-    qh->jo.jy = jy;
-    qh->jo.cc = cc;
-    pico8_ke_ks(&qh->jo.header, "ly");
-    (void)pico8_dh(&qh->jo.header);
+    qh->jy = jy;
+    qh->cc = cc;
+    pico8_ke_ks(&qh->header, "ly");
+    (void)pico8_dh(&qh->header);
     assert(nil_want->has_gc && nil_want->gc == pico8_fixed_from_int(0));
     assert(x_want->has_gc && x_want->gc == pico8_fixed_from_int(1));
 }

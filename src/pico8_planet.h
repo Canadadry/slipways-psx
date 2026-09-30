@@ -17,13 +17,13 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* A bare planet: its kind's archetype (`kw` points at the one kw every bare
- * planet shares, written in place by `bb` and `mx:kf`, until `lz` points it at
- * the planet's own `kw_own`), its construction keys `id`/`p`/`ra`, then every
- * field jo's functions write on it, then its kinds' fields. Every planet
- * struct begins with one, so jo's functions take it for `self`. A kind's
- * field is indeterminate on a planet of another kind; `probe`, `emitter` are
- * NULL there, else they point at `probe_own`, `emitter_own`: never copy the
+/* A planet of any of the ten kinds, which differ only by class table and
+ * archetype: its archetype (`kw` points at the one kw every bare planet
+ * shares, written in place by `bb` and `mx:kf`, until `lz` points it at the
+ * planet's own `kw_own`), its construction keys `id`/`p`/`ra`, then every
+ * field jo's functions write on it, then its kinds' fields. A kind's field is
+ * indeterminate on a planet of another kind; `probe`, `emitter` are NULL
+ * there, else they point at `probe_own`, `emitter_own`: never copy the
  * struct. Nothing frees the struct: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;

@@ -210,11 +210,11 @@ static const pico8_struct_class_t *cls_of(const void *e) {
 
 /* `fz` is "ga" on a burst and on nothing else. */
 static int is_ga(const void *e) {
-    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_ga_t *)e)->jo.def->fz != NULL &&
-           strcmp(((const pico8_ga_t *)e)->jo.def->fz, "ga") == 0;
+    return e != NULL && cls_of(e) == pico8_ga_struct_class() && ((const pico8_jo_t *)e)->def->fz != NULL &&
+           strcmp(((const pico8_jo_t *)e)->def->fz, "ga") == 0;
 }
 
-static pico8_ga_t *as_ga(void *e) {
+static pico8_jo_t *as_ga(void *e) {
     assert(e != NULL && cls_of(e) == pico8_ga_struct_class());
     return e;
 }
@@ -263,7 +263,7 @@ static void *harvest(int x, int y, const char *id) {
     pico8_jo_hu(planet, harvest_recipe());
     made = ga_from(before + 1);
     assert(made != NULL && pico8_hv()->count == before + 2 && ga_from(0) == made);
-    assert(as_ga(made)->jo.ra == planet->ra && as_ga(made)->jo.p == planet->p);
+    assert(as_ga(made)->ra == planet->ra && as_ga(made)->p == planet->p);
     return made;
 }
 
@@ -291,22 +291,22 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
  * functions but `kj` and `mm`), which default tables it shares with `ga`
  * and `jo`, where `lt` registered it -- in `hv` alone -- and `mo.ma`. */
 static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
-    const pico8_ga_t *g = as_ga(e);
-    const pico8_emitter_t *em = g->jo.emitter;
-    const pico8_jo_t *jo = &g->jo;
+    const pico8_jo_t *g = as_ga(e);
+    const pico8_emitter_t *em = g->emitter;
+    const pico8_jo_t *jo = g;
     int j;
 
     assert(is_ga(e));
-    h = fold_string_member(h, g->jo.def->fz);
+    h = fold_string_member(h, g->def->fz);
     h = fold_fixed_member(h, jo->def->fa);
     h = fold_fixed_member(h, em->def->fc);
     h = fold_fixed_member(h, em->qo);
     h = fold_fixed_member(h, em->ro);
     h = fold_fixed_member(h, em->qg);
     h = fold_fixed_member(h, em->q_);
-    h = fold_fixed_member(h, g->jo.iu);
+    h = fold_fixed_member(h, g->iu);
     h = fold_fixed_member(h, em->py);
-    h = fold_fixed_member(h, g->jo.ms);
+    h = fold_fixed_member(h, g->ms);
     h = fold_hf(h, jo);
     h = fold_string_member(h, jo->header.me);
     h = fold_fixed_member(h, jo->header.t);
@@ -325,7 +325,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     /* The 1s of `fc`, `qo`, `ro`, `qg`, `q_`, `iu`, `py`, `ms` (ga's own)
      * and of `hf`, `hs`, `fa`, `ma`, `ca` (jo's) are constant by the
      * struct's shape, kept so that BUILT_HASH still proves the typed reads. */
-    h = fnv(h, (uint32_t)(g->jo.def->fz != NULL));
+    h = fnv(h, (uint32_t)(g->def->fz != NULL));
     h = fnv(h, 1u);
     h = fnv(h, 1u);
     h = fnv(h, 1u);
@@ -423,14 +423,14 @@ static void test_built(void) {
     c = pico8_ga_new(NULL);
     h = fold_burst(h, c, 0);
     assert(a != b && b != c && a != c);
-    assert(as_ga(a)->jo.emitter->qy != as_ga(b)->jo.emitter->qy &&
-           as_ga(b)->jo.emitter->qy != as_ga(c)->jo.emitter->qy);
-    assert(as_ga(a)->jo.oe != as_ga(b)->jo.oe);
-    assert(as_ga(a)->jo.by == as_ga(b)->jo.by && as_ga(b)->jo.by == as_ga(c)->jo.by);
-    assert(as_ga(c)->jo.ra == NULL && as_ga(c)->jo.p == NULL && as_ga(c)->jo.id == NULL);
-    assert(as_ga(a)->jo.def->fa == pico8_fixed_from_int(3) && as_ga(a)->jo.ms == pico8_fixed_from_int(3));
-    assert(as_ga(a)->jo.def->hf == 0);
-    assert(as_ga(b)->jo.ms == PICO8_FIXED_LIT(0x00018000, 1.5));
+    assert(as_ga(a)->emitter->qy != as_ga(b)->emitter->qy &&
+           as_ga(b)->emitter->qy != as_ga(c)->emitter->qy);
+    assert(as_ga(a)->oe != as_ga(b)->oe);
+    assert(as_ga(a)->by == as_ga(b)->by && as_ga(b)->by == as_ga(c)->by);
+    assert(as_ga(c)->ra == NULL && as_ga(c)->p == NULL && as_ga(c)->id == NULL);
+    assert(as_ga(a)->def->fa == pico8_fixed_from_int(3) && as_ga(a)->ms == pico8_fixed_from_int(3));
+    assert(as_ga(a)->def->hf == 0);
+    assert(as_ga(b)->ms == PICO8_FIXED_LIT(0x00018000, 1.5));
     check("built", h, BUILT_HASH);
 }
 
@@ -490,7 +490,7 @@ static uint32_t fold_lq_positional(uint32_t h, const pico8_lq_t *lq, int i) {
 /* The row `jo:ex` built into `lq`: its first `#fs` positionals, `c`, `bg`,
  * `score`, `ra`, `fs`, `w`, the rest. */
 static uint32_t fold_lq(uint32_t h, void *e) {
-    const pico8_lq_t *lq = as_ga(e)->jo.lq;
+    const pico8_lq_t *lq = as_ga(e)->lq;
     int n = 0;
     int k;
     int i;
@@ -523,13 +523,13 @@ static uint32_t fold_lq(uint32_t h, void *e) {
 
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
-    pico8_ga_t *g = as_ga(e);
-    pico8_ptrs_t *qy = g->jo.emitter->qy;
+    pico8_jo_t *g = as_ga(e);
+    pico8_ptrs_t *qy = g->emitter->qy;
 
     assert(qy != NULL && qy->count >= n);
     qy->count = n;
-    cls_of(e)->kj(e, g->jo.ra);
-    h = fold_p_(h, &g->jo);
+    cls_of(e)->kj(e, g->ra);
+    h = fold_p_(h, g);
     return fnv(h, (uint32_t)qy->count);
 }
 
@@ -560,54 +560,54 @@ static void test_life(void) {
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
         h = fnv(h, screen_hash());
-        h = fold_p_(h, &as_ga(a)->jo);
-        h = fold_p_(h, &as_ga(b)->jo);
-        h = fold_p_(h, &as_ga(c)->jo);
-        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->jo.emitter->qy));
+        h = fold_p_(h, as_ga(a));
+        h = fold_p_(h, as_ga(b));
+        h = fold_p_(h, as_ga(c));
+        h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->qy));
     }
 
-    as_ga(b)->jo.emitter->qy->count = 3;
+    as_ga(b)->emitter->qy->count = 3;
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
         h = fnv(h, screen_hash());
     }
 
     h = fold_cut(h, a, 3);
-    assert(!as_ga(a)->jo.p_);
+    assert(!as_ga(a)->p_);
     h = fold_cut(h, a, 2);
-    assert(as_ga(a)->jo.p_);
+    assert(as_ga(a)->p_);
     h = fold_cut(h, a, 0);
-    assert(as_ga(a)->jo.p_);
+    assert(as_ga(a)->p_);
 
-    h = fold_bool(h, cls_of(b)->hd(b, as_ga(b)->jo.ra, as_ga(b)->jo.ra));
+    h = fold_bool(h, cls_of(b)->hd(b, as_ga(b)->ra, as_ga(b)->ra));
     h = fold_bool(h, cls_of(b)->hd(b, vec_ref(near_mo(0, 0)), vec_ref(near_mo(0, 0))));
     h = fnv(fnv(h, 0xB0u), pico8_jo_gg(b) ? 1u : 0u);
     assert(pico8_jo_gg(a) == 0);
 
     cls_of(a)->hb(a);
-    h = fold_ref_member(h, as_ga(a)->jo.lq);
-    assert(as_ga(a)->jo.lq == NULL);
+    h = fold_ref_member(h, as_ga(a)->lq);
+    assert(as_ga(a)->lq == NULL);
     kw.has_qe = 1;
     kw.qe = pico8_fixed_from_int(12);
     kw.mu = pico8_fixed_from_int(2);
-    as_ga(a)->jo.kw = &kw;
+    as_ga(a)->kw = &kw;
     cls_of(a)->hb(a);
     row = fold_lq(2166136261u, a);
     h = fnv(h, row);
-    by = as_ga(c)->jo.by;
-    assert(by == as_ga(a)->jo.by && by->count == 0);
+    by = as_ga(c)->by;
+    assert(by == as_ga(a)->by && by->count == 0);
     pico8_ents_add(by, &pico8_trade_new(NULL)->header);
     pico8_ents_add(by, &pico8_trade_new(NULL)->header);
     cls_of(a)->hb(a);
     assert(fold_lq(2166136261u, a) != row);
     h = fold_lq(h, a);
-    assert(ents_ptrs_size(as_ga(b)->jo.by) == 2);
+    assert(ents_ptrs_size(as_ga(b)->by) == 2);
     /* `jo:ib` is `self.by or {}`: the `by` held, routes kept, never a fresh one. */
-    assert(pico8_jo_ib(&as_ga(b)->jo) == by && by->count == 2);
+    assert(pico8_jo_ib(as_ga(b)) == by && by->count == 2);
 
     hv_count = pico8_hv()->count;
     cls_of(b)->hk(b, pico8_fixed_from_int(0));
-    assert(pico8_hv()->count == hv_count && !as_ga(b)->jo.has_kr);
+    assert(pico8_hv()->count == hv_count && !as_ga(b)->has_kr);
     h = fnv(h, screen_hash());
     check("life", h, LIFE_HASH);
 }
@@ -648,7 +648,7 @@ static void test_ei_moves_a_particle_in_place(void) {
 
     start_game();
     e = spawn(84, 60, "s73", NULL);
-    em = as_ga(e)->jo.emitter;
+    em = as_ga(e)->emitter;
     assert(em->qg != 0);
     particle.p = p0;
     particle.v = v0;
