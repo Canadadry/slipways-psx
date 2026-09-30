@@ -37,7 +37,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `t` | champ `"t"` | compteur de frames de l'état courant |
 | `mv(e,rm,...)` | membre typé de `pico8_struct_class_t` (`e->cls->rm`), ou fonction directe pour `eb`, `ib`, `gg`, `md` | dispatch : appelle la méthode `rm` de `e` ; `pico8_mv` supprimé (D.10a) |
 | `dc(nt)` | `pico8_dc` | envoie le message `nt` à toutes les entités inscrites sous ce nom ; la branche `kj` dessine couche par couche via `ci` |
-| `ft(rc,nt,pu)` | `pico8_ft_index`, `pico8_ft_name` | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` ». La clé polymorphe de Lua devient deux points d'entrée ; seul `pico8_ft_index` a un appelant (`ui:gw`) |
+| `ft(rc,nt,pu)` | — (`pico8_ft_index`, `pico8_ft_name` supprimés à D.7a) | « crée la liste `rc[nt]` si besoin, puis y ajoute `pu` » |
 | `bm` | — | les cinq noms de message que `dc` sait router : `kj`, `ev`, `hd`, `hk`, `hb` |
 | `cv` | `pico8_cv` | entités indexées par nom de message `bm` : `kj` (dessin), `ev`, `hd` (survol), `hk`, `hb` |
 | `cg` | `pico8_cg` | entités indexées par étiquette (`nu`), d'où `cg("jo")` = toutes les planètes |
@@ -51,7 +51,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 
 | Nom | Symbole C | Sens |
 |---|---|---|
-| `gt` | `PICO8_GT` | alphabet de 51 caractères de `unstash` |
+| `gt` | — (`PICO8_GT` supprimé à D.8 avec `pico8_stash.c`) | alphabet de 51 caractères de `unstash` |
 | `unstash(pd)` | — (tables décodées générées : `pico8_map_tables.c`) | décode une chaîne depuis la mémoire cart, un octet = un index dans `gt`, l'octet 0 termine |
 | `r` | `pico8_r_table`, `pico8_r_lookup` | table décodée depuis l'adresse 8192 |
 | `iz` | `pico8_iz_table`, `pico8_iz_lookup` | table décodée depuis l'adresse 8259 |
@@ -135,7 +135,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | `hc` | `pico8_hc_table`, `pico8_hc_lookup` | données lues par `hp:po()`, décodées depuis l'adresse 8383 |
 | `fd` | `pico8_fd_table` | données des projets de recherche, source de `gb`, décodées depuis l'adresse 8494 ; `build_gb` la parcourt |
 | `gb` | `pico8_gb_at`, `pico8_gb_find`, `pico8_gb_count` | les instances `hp` construites depuis `fd` : `gb[k]` par rang (tableau fixe de `pico8_research.c`), `gb[px]` le dernier projet enregistré sous ce `px` (plusieurs le partagent) |
-| `dr` | `pico8_dr_table` ; vue ob `pico8_dr` | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
+| `dr` | `pico8_dr_table` ; vue ob `pico8_dr` supprimée (D.6b) | décodées depuis l'adresse 9807 : les specs d'infobulle des icônes d'amélioration : `eu()` lit `dr[i]` pour la i-ème classe de planète qui reçoit une icône `ie` |
 | `nb` | `pico8_nb_table`, `pico8_nb_lookup(px)` (`nb[px]`) | liste des technologies, décodée depuis l'adresse 10457 ; `cb()` en rend des entrées et en écrit les `e_` (`pico8_nb_e_`, tableau statique remis par `pico8_data_init`) ; le `_cr_t` d'un bouton de `cr` pointe une entrée de `pico8_nb_table` |
 | `ek` | `pico8_ek_table` (`pico8_game_data.h`) | seuils de palier comparés à `#self.invented` par `hy:kt()` |
 
@@ -272,7 +272,7 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 |---|---|---|
 | `fz` | `cls->name` | nom de la classe ; les classes sans `fz` se marchent dessus dans le registre, comme dans l'original |
 | `iq` | `cls->parent` | classe parente ; absente pour une racine |
-| `ns` | — | métatable d'instance de l'original ; sans équivalent ici, remplacée par la remontée de chaîne à chaque lecture de champ |
+| `ns` | — | métatable d'instance de l'original ; sans équivalent ici : chaque `pico8_X_struct_new` recopie les défauts de classe (`pico8_X_start`) dans les membres du struct, qu'on lit ensuite directement |
 | `pq` | `cls->pq` | constructeur supplémentaire ; chaque `pq` distinct de la chaîne est appelé une fois |
 | `cw` | champ | nom de classe lu à l'exécution, pour le re-classement dynamique de `jo:hu` |
 
@@ -289,8 +289,8 @@ Conventions de lecture : « classe » = classe `ke`-descendante du système
 | — | `pico8_jp_ptrs`, `pico8_nv_ptrs` | `jp` et `nv` sur un `pico8_ptrs_t` (élément `void *`) ; `collect` n'a plus de version à valeur |
 | `la(a,b)` | `pico8_la_ptrs` | concatène deux conteneurs de pointeurs |
 | `ne(d,c,ku)` | `pico8_ne` | formate un nombre signé : `+` devant les positifs, couleur 8 (rouge) forcée pour les négatifs, suffixe `ku` optionnel |
-| `ho(rc,mr,gp)` | `pico8_ho_apply` (`mr`, `gp` : `const pico8_str_seq_t *`) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
-| — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `pico8_ho_apply` et par `hp` |
+| `ho(rc,mr,gp)` | `hp_ho` (`static`, `pico8_research.c` ; `mr`, `gp` : `const pico8_str_seq_t *`) ; `pico8_ho_apply` supprimé (D.8) | renomme les champs positionnels d'un enregistrement selon `mr` et l'indexe dans `rc` par son `.px` |
+| — | `pico8_ho_gp_has` (`pico8_collect.h`) | 1 si `gp` nomme le champ : ceux que `ho` traduit par `r` ; lu par `hp_ho` |
 | `tostr(v)` | `pico8_tostr_fixed` (`pico8_str.h`) pour un nombre ; `s[i]` du panneau de fin par `pico8_pj_ph_s_str` (chaîne possédée, `""` hors de 1..6 : TROU-13) | conversion en chaîne ; un nombre : 4 décimales puis zéros de fin élagués |
 
 ## Fond de carte et caméra à la souris
@@ -641,7 +641,7 @@ Elles n'existent pas hors de leur fonction, mais le port a gardé leurs noms.
 | Nom | Sens |
 |---|---|
 | `rj` | dans `kv:jr`, la table de spec qui **devient** la classe |
-| `ko`, `iy` | remontée de chaîne à l'instanciation : la classe courante, et le dernier `pq` appelé. `iy` porte toute la règle de déduplication |
+| `ko`, `iy` | remontée de chaîne à l'instanciation, dans `kv:jr` : la classe courante, et le dernier `pq` appelé. `iy` porte toute la règle de déduplication. Sans équivalent ici : chaque `pico8_X_struct_new` initialise d'abord le struct parent qu'il embarque en tête, s'il en a un |
 | `qc`, `fl` | dans `dc()` : l'entité visitée, et les 15 seaux par couche |
 | `kn`, `s`, `n`, `lm`, `sc`, `rq` | dans `ob()` : table résultat, début du token, clé courante, profondeur de parenthèses, premier caractère du token, position suivante |
 | `f` | dans une spec, l'identifiant nu `f` vaut le **faux** littéral — c'est ce qui rend `fp=f` différent de `fp=0` |
@@ -653,7 +653,7 @@ Transversales, et trois trous en dépendent. Aucune n'est portée par un nom.
 | Convention | Règle |
 |---|---|
 | Emprunt de pointeur | un `pico8_jb_item_t` ne possède **jamais** ce que pointent ses membres `s`, `row` et `ref`. `pico8_ptrs_free` ne libère que son tableau |
-| L'inverse, pour les chaînes construites | `tostr`, `sub`, `unstash` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
+| L'inverse, pour les chaînes construites | `tostr`, `sub` et `ne` rendent une chaîne **possédée par l'appelant**, à libérer |
 | Le tag de type | Retiré : l'en-tête d'entité (`pico8_struct_header_t`) ne porte que `cls`, à l'offset 0, et les `assert` d'entrée testent la classe (`->cls == &g_X_struct_class`), ou s'en remettent au type C du pointeur et à l'écrivain unique des registres (`hv`, `cv`, `cg` : `pico8_lt`). Piège : une confusion de représentation a produit quatre débordements de tas ; sans mot de tête, lire `->cls` sur un non-entité (un `pico8_vec_t` de 8 octets) lit **dans** l'objet, et ASan ne le voit plus |
 | Les primitives de liste | `add` → `pico8_ptrs_add`, `del` → `pico8_ptrs_del` (supprime le premier élément **identique**, pas par index), `all` → `pico8_ptrs_all` + `_iter_next` (tolère la suppression de l'élément courant, pas d'un précédent), `foreach` → `pico8_ptrs_foreach`. Ce sont celles de PICO-8, pas celles de Lua |
 | Le conteneur de pointeurs | `pico8_ptrs_t` (`pico8_ptrs.h`) : les mêmes `add`/`del`/`all`/`foreach` sur des `void *`, `del` par identité, sans tag de type ; il ne possède que son tableau. Il tient les registres (`hv`, `cv`, `cg`, `ui.ic`, `ui.le`, `mz.ox`, calques de `dc`) et les listes membres `emitter->qy`, `jc.ts`, `hy.invented`, `jo.oe`, `jo.jy`, `hp.i`, `jo.cc`, `jo.by` (défaut partagé des `ga` : `g_ga_by_shared`), `trade.lp`, `trade.rl` et l'`ib` d'une proposition |
