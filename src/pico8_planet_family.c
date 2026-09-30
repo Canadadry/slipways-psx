@@ -289,6 +289,7 @@ void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls) {
     pico8_qh_struct_init(&self->qh, cls);
     self->rr = pico8_hj_start.rr;
     self->emitter = &self->emitter_own;
+    self->emitter->def = NULL;
     self->emitter->py = pico8_hj_start.py;
     self->emitter->ki = pico8_hj_start.ki;
     self->emitter->pn = pico8_hj_start.pn;
@@ -570,6 +571,7 @@ static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     pico8_jo_struct_init(&self->jo, &g_ga_struct_class);
     self->fz = pico8_ga_start.fz;
     self->emitter = &self->emitter_own;
+    self->emitter->def = NULL;
     self->emitter->pn = 0;
     self->emitter->du = 0;
     self->emitter->ki = 0;

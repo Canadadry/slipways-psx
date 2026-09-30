@@ -146,6 +146,7 @@ static void test_hj_defaults(void) {
     assert(hj->qh.px == pico8_hj_start.px);
     assert(hj->qh.probe->od == pico8_hj_start.od);
     assert(hj->qh.s == pico8_hj_start.s);
+    assert(hj->emitter->def == NULL);
     assert(hj->emitter->py == pico8_hj_start.py);
     assert(hj->emitter->ki == pico8_hj_start.ki);
     assert(hj->emitter->pn == pico8_hj_start.pn);
@@ -213,6 +214,7 @@ static void test_ga_defaults(void) {
     assert(ga->jo.by != NULL && ga->jo.by == other->jo.by);
     assert_same_box(ga->jo.kq, &pico8_ga_start.kq);
     assert(ga->jo.fa == pico8_ga_start.fa);
+    assert(ga->emitter->def == NULL);
     assert(ga->emitter->fc == pico8_ga_start.fc);
     assert(ga->emitter->qo == pico8_ga_start.qo);
     assert(ga->emitter->ro == pico8_ga_start.ro);

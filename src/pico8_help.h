@@ -14,19 +14,9 @@
  * no-op, and an absent or wrong-kind field reads as absent. */
 
 /* TROU-7 */
-/* `ra`, `hi`, `gq`, `kq` point at `pico8_fv_start`'s, shared by every help;
- * `k_` points at `pico8_fv_k__seq`, `rb` at `pico8_fv_rb_row`. */
+/* `g_.ra` points at `pico8_fv_def`'s, shared by every help. */
 typedef struct {
     pico8_g__t g_;
-    const pico8_vec_t *hi;
-    pico8_fixed_t ca;
-    const pico8_vec_t *gq;
-    pico8_fixed_t eo;
-    pico8_fixed_t ff;
-    const pico8_qz_box_t *kq;
-    pico8_fixed_t ql;
-    pico8_fixed_t fg;
-    const pico8_jb_row_t *rb;
     int m_;
     int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_fv_t;

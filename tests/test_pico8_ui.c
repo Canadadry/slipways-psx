@@ -1107,9 +1107,9 @@ static void test_ke_t_by_name(void) {
     zero_keys.t = 0;
     zero = pico8_g__new(&zero_keys);
     assert_t(zero, 0);
-    assert(zero->emitter->pn == pico8_g__start.pn);
-    assert(zero->emitter->du == pico8_g__start.du);
-    assert(zero->emitter->py == pico8_g__start.py);
+    assert(zero->emitter->pn == pico8_g__def.emitter.pn);
+    assert(zero->emitter->du == pico8_g__def.emitter.du);
+    assert(zero->emitter->py == pico8_g__def.emitter.py);
     h = fold_t(h, zero);
 
     pico8_ke_ks(&keyed->header, "ll");

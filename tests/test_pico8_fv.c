@@ -1,6 +1,6 @@
 /* The help screen `fv`, built by its only road (`pico8__init()` on the
  * title screen, `pico8_fv_new()`), read only through the dual-form field
- * API, its defaults compared to `pico8_fv_start`, and driven through the
+ * API, its defaults read on its archetype, and driven through the
  * real `mv`/`dc`/`dg`/`lj`. Its
  * methods are compared to the public functions. No events file. */
 
@@ -252,7 +252,7 @@ static void start_title(void) {
 /* The help, whatever its form: `g_`'s tags and `fa`=10 (a probe has 2). */
 static int is_help(pico8_struct_header_t *e) {
     const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
-    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->fa == pico8_fixed_from_int(10);
+    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(10);
 }
 
 static pico8_fv_t *the_help(void) {
@@ -308,19 +308,19 @@ static void test_built(void) {
     pr = g_->probe;
     hv = pico8_hv();
 
-    assert(g_->fa == pico8_fixed_from_int(10));
+    assert(g_->def->fa == pico8_fixed_from_int(10));
     assert(em->ki == pico8_fixed_from_int(17));
-    assert(fv->ca == pico8_fixed_from_int(11));
+    assert(g_->def->ca == pico8_fixed_from_int(11));
     assert(g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(g_->ra != NULL && fv->hi != NULL && fv->gq != NULL && em->k_ != NULL && fv->kq != NULL);
-    assert(fv->rb != NULL && pr->dq != NULL);
-    h = fold_fixed_member(h, g_->fa);
+    assert(g_->ra != NULL && em->k_ != NULL);
+    assert(g_->def->rb != NULL && pr->dq != NULL);
+    h = fold_fixed_member(h, g_->def->fa);
     h = fold_ref_member(h, g_->ra);
-    h = fold_ref_member(h, fv->hi);
-    h = fold_fixed_member(h, fv->ca);
-    h = fold_ref_member(h, fv->gq);
-    h = fold_fixed_member(h, fv->eo);
-    h = fold_fixed_member(h, fv->ff);
+    h = fold_ref_member(h, &g_->def->hi);
+    h = fold_fixed_member(h, g_->def->ca);
+    h = fold_ref_member(h, &g_->def->gq);
+    h = fold_fixed_member(h, g_->def->eo);
+    h = fold_fixed_member(h, g_->def->ff);
     h = fold_fixed_member(h, em->fc);
     h = fold_ref_member(h, em->k_);
     h = fold_fixed_member(h, em->qo);
@@ -332,27 +332,24 @@ static void test_built(void) {
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, em->pk);
     h = fold_fixed_member(h, em->ki);
-    h = fold_ref_member(h, fv->kq);
-    h = fold_fixed_member(h, fv->ql);
-    h = fold_fixed_member(h, fv->fg);
-    h = fold_ref_member(h, fv->rb);
+    h = fold_ref_member(h, &g_->def->kq);
+    h = fold_fixed_member(h, g_->def->ql);
+    h = fold_fixed_member(h, g_->def->fg);
+    h = fold_ref_member(h, g_->def->rb);
     h = fold_tags(fnv(fnv(h, 1u), 0x7Au), g_->header.cls->tags);
-    h = fold_fixed_member(h, g_->fx);
+    h = fold_fixed_member(h, g_->def->fx);
     h = fold_string_member(h, pr->dq);
     h = fold_fixed_member(h, pr->od);
     h = fold_bool_member(h, pr->fp != 0);
     h = fold_fixed_member(h, pr->dw);
     h = fold_vec(h, g_->ra);
-    h = fold_vec(h, fv->hi);
-    h = fold_vec(h, fv->gq);
-    h = fold_box(h, fv->kq);
-    assert(g_->ra == &pico8_fv_start.ra);
-    assert(fv->hi == &pico8_fv_start.hi);
-    assert(fv->gq == &pico8_fv_start.gq);
-    assert(fv->kq == &pico8_fv_start.kq);
+    h = fold_vec(h, &g_->def->hi);
+    h = fold_vec(h, &g_->def->gq);
+    h = fold_box(h, &g_->def->kq);
+    assert(g_->def == &pico8_fv_def && g_->ra == &pico8_fv_def.ra);
     assert(em->k_ == &pico8_fv_k__seq);
     assert(em->k_ != &pico8_g__k__seq);
-    assert(fv->rb == &pico8_fv_rb_row);
+    assert(g_->def->rb == &pico8_fv_rb_row);
     h = fold_string_member(h, g_->header.me);
     h = fold_fixed_member(h, g_->header.t);
     h = fnv(h, (uint32_t)size_of(em->qy));

@@ -1367,7 +1367,7 @@ static uint32_t members_title_and_game(void) {
             assert(n < 4);
             title[n++] = e;
             assert(js_of(e)->px != NULL);
-            assert(js_of(e)->fa == pico8_fv_start.ca);
+            assert(js_of(e)->fa == pico8_fv_def.ca);
             h = fold_js_members(h, e);
         }
     }

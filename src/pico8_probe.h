@@ -22,7 +22,9 @@
  * nil. `fp` is what `d_` hands to `fm:nx`: the cart's false is held as 0,
  * which is what `self.fp or 0` hands. */
 typedef struct pico8_probe {
-    const pico8_probe_def_t *def; /* NULL on g_ and the jo tree: no generic reader may use it */
+    /* NULL on the jo tree, `pico8_probe_def_none` on research_icon's `pb`:
+     * no generic reader may use it. */
+    const pico8_probe_def_t *def;
     pico8_struct_header_t *et;
     pico8_fixed_t dw;
     pico8_fixed_t od;
@@ -40,8 +42,7 @@ typedef struct pico8_probe {
  * `probe_own`: never copy the struct. */
 typedef struct {
     pico8_struct_header_t header;
-    pico8_fixed_t fx;
-    pico8_fixed_t fa;
+    const pico8_g__def_t *def;
     pico8_emitter_t *emitter;
     pico8_probe_t *probe;
     const pico8_vec_t *ra;
@@ -79,11 +80,10 @@ void pico8_probe_shutdown(void);
 int pico8_g__ready(void);
 const pico8_struct_class_t *pico8_g__struct_class(void);
 
-/* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 5
- * written members nil, g_'s 18 defaults from `pico8_g__start`, 12 of them
- * in the emitter, 4 in the probe. Reads no
- * key, runs neither `pq` nor `lt`, records no coverage. */
-void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls);
+/* Initializes an allocated pico8_g__t under `cls`: ke's part, g_'s 4
+ * written members nil, `def` kept, `ra`, the emitter and the probe copied
+ * from it. Reads no key, runs neither `pq` nor `lt`, records no coverage. */
+void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def);
 
 /* The keys of `pico8_g__new`, read, not kept. `t` is `header.t`, whose default
  * is 0: no flag. `pn`, `du`, `py` have non-zero defaults, so a key at 0

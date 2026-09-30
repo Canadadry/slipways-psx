@@ -396,7 +396,7 @@ pico8_qy_t *pico8_g__mm(void *self_ptr) {
 }
 
 int pico8_g__get_fa(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_g__t *)self)->fa;
+    *out = ((const pico8_g__t *)self)->def->fa;
     return 1;
 }
 
@@ -436,37 +436,37 @@ static const pico8_struct_class_t g_g__struct_class = {
     .get_p_ = pico8_g__get_p_,
 };
 
-void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls) {
+void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, const pico8_g__def_t *def) {
     pico8_ke_struct_init(&self->header, cls);
+    self->def = def;
     self->emitter = &self->emitter_own;
+    self->emitter->def = &self->def->emitter;
     self->emitter->qy = NULL;
-    self->ra = NULL;
+    self->ra = self->def->has_ra ? &self->def->ra : NULL;
     self->p = NULL;
     self->probe = &self->probe_own;
-    self->probe->def = NULL;
+    self->probe->def = &self->def->probe;
     self->probe->et = NULL;
     self->p_ = 0;
     self->has_p_ = 0;
-    self->fx = pico8_g__start.fx;
-    self->probe->dq = pico8_g__start.dq;
-    self->probe->od = pico8_g__start.od;
-    self->probe->has_od = 1;
-    self->probe->fp = pico8_g__start.fp;
-    self->probe->ik = 0;
-    self->probe->has_ik = 0;
-    self->fa = pico8_g__start.fa;
-    self->probe->dw = pico8_g__start.dw;
-    self->emitter->py = pico8_g__start.py;
-    self->emitter->ki = pico8_g__start.ki;
-    self->emitter->pn = pico8_g__start.pn;
-    self->emitter->pk = pico8_g__start.pk;
-    self->emitter->fc = pico8_g__start.fc;
-    self->emitter->k_ = pico8_g__start.k_;
-    self->emitter->qo = pico8_g__start.qo;
-    self->emitter->ro = pico8_g__start.ro;
-    self->emitter->qg = pico8_g__start.qg;
-    self->emitter->q_ = pico8_g__start.q_;
-    self->emitter->du = pico8_g__start.du;
+    self->probe->dq = self->def->probe.dq;
+    self->probe->od = self->def->probe.od;
+    self->probe->has_od = self->def->probe.has_od;
+    self->probe->fp = self->def->probe.fp;
+    self->probe->ik = self->def->probe.ik;
+    self->probe->has_ik = self->def->probe.has_ik;
+    self->probe->dw = self->def->probe.dw;
+    self->emitter->py = self->def->emitter.py;
+    self->emitter->ki = self->def->emitter.ki;
+    self->emitter->pn = self->def->emitter.pn;
+    self->emitter->pk = self->def->emitter.pk;
+    self->emitter->fc = self->def->emitter.fc;
+    self->emitter->k_ = self->def->emitter.k_;
+    self->emitter->qo = self->def->emitter.qo;
+    self->emitter->ro = self->def->emitter.ro;
+    self->emitter->qg = self->def->emitter.qg;
+    self->emitter->q_ = self->def->emitter.q_;
+    self->emitter->du = self->def->emitter.du;
 }
 
 static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
@@ -474,7 +474,7 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
 
     assert(g_g__up && "pico8_probe_init() must run first");
     self = malloc(sizeof *self);
-    pico8_g__struct_init(self, &g_g__struct_class);
+    pico8_g__struct_init(self, &g_g__struct_class, &pico8_g__def);
     if (keys != NULL) {
         self->header.t = keys->t;
         if (keys->has_pn) {

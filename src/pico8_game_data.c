@@ -292,51 +292,6 @@ const pico8_ke_start_t pico8_ke_start = {
     .t = 0x0,
 };
 
-const pico8_g__start_t pico8_g__start = {
-    .fx = 0x10000,
-    .dq = "ly",
-    .od = 0x0,
-    .fp = 0,
-    .fa = 0x20000,
-    .dw = 0x666,
-    .py = 0xf5c,
-    .ki = 0x90000,
-    .pn = 0x30000,
-    .pk = 0x10000,
-    .fc = 0x10000,
-    .k_ = &pico8_g__k__seq,
-    .qo = 0x1051e,
-    .ro = -0xd70,
-    .qg = 0xd70,
-    .q_ = 0x1051e,
-    .du = 0x20000,
-};
-
-const pico8_fv_start_t pico8_fv_start = {
-    .fa = 0xa0000,
-    .ra = {0x400000, 0x1c0000},
-    .hi = {0x220000, 0x380000},
-    .ca = 0xb0000,
-    .gq = {0x0, 0xb0000},
-    .eo = -0x10000,
-    .ff = 0x10000,
-    .fc = 0x50000,
-    .k_ = &pico8_fv_k__seq,
-    .qo = 0x1051e,
-    .ro = -0x1ca,
-    .qg = 0x1ca,
-    .q_ = 0x1051e,
-    .pn = 0x50000,
-    .du = 0xf0000,
-    .py = 0x1b6,
-    .pk = 0x10000,
-    .ki = 0x110000,
-    .kq = {-0x280000, 0x4e0000, 0x280000, 0x620000},
-    .ql = 0xb0000,
-    .fg = 0x50000,
-    .rb = &pico8_fv_rb_row,
-};
-
 const pico8_bg_def_t pico8_bg_def = {
     .me = "ph",
     .t = 0x0,

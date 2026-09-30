@@ -1,5 +1,5 @@
 /* The probe `g_`, read and written only through the dual-form field API,
- * its defaults compared to `pico8_g__start`/`pico8_fv_start`, built by
+ * its defaults read on its archetype, built by
  * its three roads (`bg:ldown`, `pico8_g__new(NULL)`, `pico8_g__new` with the
  * 4 keys of probe_mm_rnd_order) and driven through the real `mv`/`dc`/`dg`.
  * Its methods are compared to the public functions. Its daughter `fv` is
@@ -174,11 +174,11 @@ static uint32_t fold_defaults(uint32_t h, const pico8_g__t *g_) {
     const pico8_probe_t *pr = g_->probe;
 
     h = fold_ref_member(h, &g_->header.cls->tags);
-    h = fold_fixed_member(h, g_->fx);
+    h = fold_fixed_member(h, g_->def->fx);
     h = fold_string_member(h, pr->dq);
     h = fold_fixed_member(h, pr->od);
     h = fold_bool_member(h, pr->fp != 0);
-    h = fold_fixed_member(h, g_->fa);
+    h = fold_fixed_member(h, g_->def->fa);
     h = fold_fixed_member(h, pr->dw);
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, em->ki);
@@ -304,7 +304,7 @@ static pico8_bg_t *the_bg(void) {
 /* A probe, whatever its form: `g_`'s tags and `fa`=2 (an `fv` has 10). */
 static int is_probe(pico8_struct_header_t *e) {
     const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
-    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->fa == pico8_fixed_from_int(2);
+    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(2);
 }
 
 static pico8_g__t *as_g_(void *e) {
@@ -348,11 +348,11 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
 
     assert(is_probe(&e->header));
     assert(e->header.cls->get_p(e) == e->p);
-    h = fold_fixed_member(h, e->fx);
+    h = fold_fixed_member(h, e->def->fx);
     h = fold_string_member(h, pr->dq);
     h = fold_fixed_member(h, pr->od);
     h = fold_bool_member(h, pr->fp != 0);
-    h = fold_fixed_member(h, e->fa);
+    h = fold_fixed_member(h, e->def->fa);
     h = fold_fixed_member(h, pr->dw);
     h = fold_fixed_member(h, em->py);
     h = fold_fixed_member(h, em->ki);
@@ -409,8 +409,8 @@ static void test_built(void) {
     h = fold_probe(h, c);
     assert(a != b && b != c && a != c);
     assert(a->emitter->qy != b->emitter->qy && b->emitter->qy != c->emitter->qy);
-    assert(a->fa == pico8_fixed_from_int(2) && a->emitter->ki == pico8_fixed_from_int(9));
-    assert(a->probe->dw == pico8_g__start.dw);
+    assert(a->def->fa == pico8_fixed_from_int(2) && a->emitter->ki == pico8_fixed_from_int(9));
+    assert(a->probe->dw == 0x666);
     assert(c->emitter->pn == pico8_fixed_from_int(7) && c->header.t == pico8_fixed_from_int(3) &&
            c->emitter->du == pico8_fixed_from_int(10) && c->emitter->py == pico8_fixed_from_int(1));
     assert(b->emitter->pn == pico8_fixed_from_int(3) && b->header.t == pico8_fixed_from_int(0));
@@ -662,7 +662,7 @@ static void test_ey_void(void) {
 /* The help: `g_`'s tags and `fa`=10. */
 static int is_help(pico8_struct_header_t *e) {
     const pico8_g__t *g_ = e != NULL ? pico8_g__of(e) : NULL;
-    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->fa == pico8_fixed_from_int(10);
+    return g_ != NULL && g_->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)) && g_->def->fa == pico8_fixed_from_int(10);
 }
 
 /* The title screen's `fv`, whose class's parent is `g_`'s class: its
@@ -688,9 +688,9 @@ static void test_fv(void) {
     assert(found != NULL && !is_probe(found));
     fv = pico8_g__of(found);
     assert(fv->header.cls->tags == (PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER)));
-    assert(fv->fx == pico8_fixed_from_int(1));
+    assert(fv->def->fx == pico8_fixed_from_int(1));
     assert(fv->probe->dq != NULL && strcmp(fv->probe->dq, "ly") == 0);
-    assert(fv->fa == pico8_fixed_from_int(10));
+    assert(fv->def->fa == pico8_fixed_from_int(10));
     assert(fv->emitter->k_ == &pico8_fv_k__seq);
     assert(fv->emitter->k_ != &pico8_g__k__seq);
     assert(cls_of(fv)->ev == pico8_dl_dispatch);
@@ -748,8 +748,14 @@ static void test_g__is_a_struct(void) {
     }
     assert(pico8_g__ready());
 
-    roads[1]->fa = 0;
-    assert(!is_probe(&roads[1]->header));
+    {
+        pico8_g__def_t fa_zero = pico8_g__def;
+        pico8_g__t bare;
+
+        fa_zero.fa = 0;
+        pico8_g__struct_init(&bare, cls, &fa_zero);
+        assert(is_a_g__struct(&bare) && !is_probe(&bare.header));
+    }
 
     pico8__init();
     hv = pico8_hv();

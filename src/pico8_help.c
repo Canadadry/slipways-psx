@@ -64,12 +64,12 @@ void pico8_fv_pq(pico8_fv_t *self) {
         bs[i].my = pico8_eu_field_value();
     }
     frame.has_eo = 1;
-    frame.eo = self->eo;
-    frame.hi = self->hi;
+    frame.eo = self->g_.def->eo;
+    frame.hi = &self->g_.def->hi;
     frame.ff = 1;
     frame.has_ca = 1;
-    frame.ca = self->ca;
-    frame.gq = self->gq;
+    frame.ca = self->g_.def->ca;
+    frame.gq = &self->g_.def->gq;
     frame.ra = self->g_.ra;
     pico8_pz(&frame, bs, PICO8_BO_COUNT);
 }
@@ -87,9 +87,9 @@ void pico8_fv_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_fv_t *self, pico8_vec
         int n = 0;
         int i;
 
-        for (i = 0; self != NULL && self->rb != NULL && i < self->rb->count; i++) {
+        for (i = 0; self != NULL && self->g_.def->rb != NULL && i < self->g_.def->rb->count; i++) {
             assert(n < PICO8_FV_RB_CAP && "fv.rb has four articles in the cart");
-            items[n++] = self->rb->items[i].row;
+            items[n++] = self->g_.def->rb->items[i].row;
         }
         pico8_bl_default(gfx, mem, items, n);
     }
@@ -101,16 +101,16 @@ void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra) {
 }
 
 static const pico8_qz_box_t *fv_get_kq(const void *self) {
-    return ((const pico8_fv_t *)self)->kq;
+    return &((const pico8_fv_t *)self)->g_.def->kq;
 }
 
 static int fv_get_ql(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fv_t *)self)->ql;
+    *out = ((const pico8_fv_t *)self)->g_.def->ql;
     return 1;
 }
 
 static int fv_get_fg(const void *self, pico8_fixed_t *out) {
-    *out = ((const pico8_fv_t *)self)->fg;
+    *out = ((const pico8_fv_t *)self)->g_.def->fg;
     return 1;
 }
 
@@ -148,31 +148,9 @@ static pico8_fv_t *pico8_fv_struct_new(void) {
 
     assert(g_fv_up && "pico8_help_init() must run first");
     self = malloc(sizeof *self);
-    pico8_g__struct_init(&self->g_, &g_fv_struct_class);
+    pico8_g__struct_init(&self->g_, &g_fv_struct_class, &pico8_fv_def);
     self->m_ = 0;
     self->has_m_ = 0;
-    self->g_.fa = pico8_fv_start.fa;
-    self->g_.ra = &pico8_fv_start.ra;
-    self->g_.emitter->fc = pico8_fv_start.fc;
-    self->g_.emitter->k_ = pico8_fv_start.k_;
-    self->g_.emitter->qo = pico8_fv_start.qo;
-    self->g_.emitter->ro = pico8_fv_start.ro;
-    self->g_.emitter->qg = pico8_fv_start.qg;
-    self->g_.emitter->q_ = pico8_fv_start.q_;
-    self->g_.emitter->pn = pico8_fv_start.pn;
-    self->g_.emitter->du = pico8_fv_start.du;
-    self->g_.emitter->py = pico8_fv_start.py;
-    self->g_.emitter->pk = pico8_fv_start.pk;
-    self->g_.emitter->ki = pico8_fv_start.ki;
-    self->hi = &pico8_fv_start.hi;
-    self->ca = pico8_fv_start.ca;
-    self->gq = &pico8_fv_start.gq;
-    self->eo = pico8_fv_start.eo;
-    self->ff = pico8_fv_start.ff;
-    self->kq = &pico8_fv_start.kq;
-    self->ql = pico8_fv_start.ql;
-    self->fg = pico8_fv_start.fg;
-    self->rb = pico8_fv_start.rb;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fv");
 #endif

@@ -126,65 +126,49 @@ static void test_layout_ready(void) {
     assert(!pico8_lq_ready() && !pico8_jb_ready());
 }
 
-/* A fresh fv: fv's own generated defaults over g_'s, ke's under both. */
+/* A fresh fv: its archetype's defaults copied, ke's under them. */
 static void test_fv_defaults_and_ready(void) {
     pico8_fv_t *fv = pico8_fv_new();
+    const pico8_g__t *g_ = &fv->g_;
 
-    assert(fv->g_.fa == pico8_fv_start.fa);
-    assert(fv->g_.ra->x == pico8_fv_start.ra.x && fv->g_.ra->y == pico8_fv_start.ra.y);
-    assert(fv->g_.emitter->fc == pico8_fv_start.fc);
-    assert(fv->g_.emitter->k_ == pico8_fv_start.k_);
-    assert(fv->g_.emitter->qo == pico8_fv_start.qo);
-    assert(fv->g_.emitter->ro == pico8_fv_start.ro);
-    assert(fv->g_.emitter->qg == pico8_fv_start.qg);
-    assert(fv->g_.emitter->q_ == pico8_fv_start.q_);
-    assert(fv->g_.emitter->pn == pico8_fv_start.pn);
-    assert(fv->g_.emitter->du == pico8_fv_start.du);
-    assert(fv->g_.emitter->py == pico8_fv_start.py);
-    assert(fv->g_.emitter->pk == pico8_fv_start.pk);
-    assert(fv->g_.emitter->ki == pico8_fv_start.ki);
-    assert(fv->g_.fx == pico8_g__start.fx);
-    assert(strcmp(fv->g_.probe->dq, pico8_g__start.dq) == 0);
-    assert(fv->g_.probe->od == pico8_g__start.od);
-    assert(fv->g_.probe->fp == pico8_g__start.fp);
-    assert(fv->g_.probe->dw == pico8_g__start.dw);
-    assert(fv->hi->x == pico8_fv_start.hi.x && fv->hi->y == pico8_fv_start.hi.y);
-    assert(fv->ca == pico8_fv_start.ca);
-    assert(fv->gq->x == pico8_fv_start.gq.x && fv->gq->y == pico8_fv_start.gq.y);
-    assert(fv->eo == pico8_fv_start.eo);
-    assert(fv->ff == pico8_fv_start.ff);
-    assert(fv->kq->xl == pico8_fv_start.kq.xl && fv->kq->yt == pico8_fv_start.kq.yt);
-    assert(fv->kq->xr == pico8_fv_start.kq.xr && fv->kq->yb == pico8_fv_start.kq.yb);
-    assert(fv->ql == pico8_fv_start.ql);
-    assert(fv->fg == pico8_fv_start.fg);
-    assert(fv->rb == pico8_fv_start.rb);
-    assert(fv->g_.header.me == pico8_ke_start.me && fv->g_.header.t == pico8_ke_start.t);
+    assert(g_->def == &pico8_fv_def && g_->emitter->def == &pico8_fv_def.emitter &&
+           g_->probe->def == &pico8_fv_def.probe);
+    assert(g_->ra == &g_->def->ra);
+    assert(g_->emitter->fc == g_->def->emitter.fc && g_->emitter->k_ == g_->def->emitter.k_);
+    assert(g_->emitter->qo == g_->def->emitter.qo && g_->emitter->ro == g_->def->emitter.ro);
+    assert(g_->emitter->qg == g_->def->emitter.qg && g_->emitter->q_ == g_->def->emitter.q_);
+    assert(g_->emitter->pn == g_->def->emitter.pn && g_->emitter->du == g_->def->emitter.du);
+    assert(g_->emitter->py == g_->def->emitter.py && g_->emitter->pk == g_->def->emitter.pk);
+    assert(g_->emitter->ki == g_->def->emitter.ki);
+    assert(g_->probe->dq == g_->def->probe.dq && g_->probe->od == g_->def->probe.od);
+    assert(g_->probe->has_od == g_->def->probe.has_od && g_->probe->fp == g_->def->probe.fp);
+    assert(g_->probe->ik == g_->def->probe.ik && g_->probe->has_ik == g_->def->probe.has_ik);
+    assert(g_->probe->dw == g_->def->probe.dw);
+    assert(g_->probe->has_od == 1 && g_->probe->ik == 0 && g_->probe->has_ik == 0);
+    assert(g_->header.me == pico8_ke_start.me && g_->header.t == pico8_ke_start.t);
     assert(pico8_fv_ready());
     pico8_help_shutdown();
     assert(!pico8_fv_ready());
 }
 
-/* A fresh probe: g_'s generated defaults and ke's; no `ra` yet. */
+/* A fresh probe: its archetype's defaults copied, ke's under them; no `ra`
+ * yet. */
 static void test_g__defaults_and_ready(void) {
     pico8_g__t *g_ = pico8_g__new(NULL);
 
-    assert(g_->fx == pico8_g__start.fx);
-    assert(strcmp(g_->probe->dq, pico8_g__start.dq) == 0);
-    assert(g_->probe->od == pico8_g__start.od);
-    assert(g_->probe->fp == pico8_g__start.fp);
-    assert(g_->fa == pico8_g__start.fa);
-    assert(g_->probe->dw == pico8_g__start.dw);
-    assert(g_->emitter->py == pico8_g__start.py);
-    assert(g_->emitter->ki == pico8_g__start.ki);
-    assert(g_->emitter->pn == pico8_g__start.pn);
-    assert(g_->emitter->pk == pico8_g__start.pk);
-    assert(g_->emitter->fc == pico8_g__start.fc);
-    assert(g_->emitter->k_ == pico8_g__start.k_);
-    assert(g_->emitter->qo == pico8_g__start.qo);
-    assert(g_->emitter->ro == pico8_g__start.ro);
-    assert(g_->emitter->qg == pico8_g__start.qg);
-    assert(g_->emitter->q_ == pico8_g__start.q_);
-    assert(g_->emitter->du == pico8_g__start.du);
+    assert(g_->def == &pico8_g__def && g_->emitter->def == &pico8_g__def.emitter &&
+           g_->probe->def == &pico8_g__def.probe);
+    assert(g_->probe->dq == g_->def->probe.dq && g_->probe->od == g_->def->probe.od);
+    assert(g_->probe->has_od == g_->def->probe.has_od && g_->probe->has_od == 1);
+    assert(g_->probe->fp == g_->def->probe.fp && g_->probe->dw == g_->def->probe.dw);
+    assert(g_->probe->ik == g_->def->probe.ik && g_->probe->has_ik == g_->def->probe.has_ik);
+    assert(g_->probe->ik == 0 && g_->probe->has_ik == 0);
+    assert(g_->emitter->py == g_->def->emitter.py && g_->emitter->ki == g_->def->emitter.ki);
+    assert(g_->emitter->pn == g_->def->emitter.pn && g_->emitter->pk == g_->def->emitter.pk);
+    assert(g_->emitter->fc == g_->def->emitter.fc && g_->emitter->k_ == g_->def->emitter.k_);
+    assert(g_->emitter->qo == g_->def->emitter.qo && g_->emitter->ro == g_->def->emitter.ro);
+    assert(g_->emitter->qg == g_->def->emitter.qg && g_->emitter->q_ == g_->def->emitter.q_);
+    assert(g_->emitter->du == g_->def->emitter.du);
     assert(g_->ra == NULL);
     assert(g_->header.me == pico8_ke_start.me && g_->header.t == pico8_ke_start.t);
     assert(pico8_g__ready());

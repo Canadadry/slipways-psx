@@ -119,53 +119,6 @@ typedef struct {
     pico8_fixed_t t;
 } pico8_ke_start_t;
 
-/* fp is the spec's false. */
-typedef struct {
-    pico8_fixed_t fx;
-    const char *dq;
-    pico8_fixed_t od;
-    int fp;
-    pico8_fixed_t fa;
-    pico8_fixed_t dw;
-    pico8_fixed_t py;
-    pico8_fixed_t ki;
-    pico8_fixed_t pn;
-    pico8_fixed_t pk;
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    pico8_fixed_t du;
-} pico8_g__start_t;
-
-/* fv's own keys only: the others are g_'s. */
-typedef struct {
-    pico8_fixed_t fa;
-    pico8_vec_t ra;
-    pico8_vec_t hi;
-    pico8_fixed_t ca;
-    pico8_vec_t gq;
-    pico8_fixed_t eo;
-    pico8_fixed_t ff;
-    pico8_fixed_t fc;
-    const pico8_int_seq_t *k_;
-    pico8_fixed_t qo;
-    pico8_fixed_t ro;
-    pico8_fixed_t qg;
-    pico8_fixed_t q_;
-    pico8_fixed_t pn;
-    pico8_fixed_t du;
-    pico8_fixed_t py;
-    pico8_fixed_t pk;
-    pico8_fixed_t ki;
-    pico8_qz_box_t kq;
-    pico8_fixed_t ql;
-    pico8_fixed_t fg;
-    const pico8_jb_row_t *rb;
-} pico8_fv_start_t;
-
 /* A class's archetype: its defaults resolved along its init chain, ke's
  * `me`/`t` first. A default that is the address of a module's static object
  * (ui.le, nf.ra, mz.jj) is not here: the module's init still sets it. */
@@ -570,8 +523,6 @@ extern const pico8_jb_row_t pico8_pj_ou_row;
 /* lq, jb, hy and trade have an empty spec, hence no object; ui.le, nf.l and
  * nf.r are empty tables, held by their module. */
 extern const pico8_ke_start_t pico8_ke_start;
-extern const pico8_g__start_t pico8_g__start;
-extern const pico8_fv_start_t pico8_fv_start;
 extern const pico8_jo_start_t pico8_jo_start;
 extern const pico8_qh_start_t pico8_qh_start;
 extern const pico8_nl_start_t pico8_nl_start;

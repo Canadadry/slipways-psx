@@ -21,7 +21,7 @@ static pico8_fixed_t emitter_host_fa_ra(pico8_struct_header_t *self, pico8_vec_t
 
     if (g_ != NULL) {
         *ra = g_->ra != NULL ? *g_->ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
-        return g_->fa;
+        return g_->def->fa;
     }
     assert(pico8_jo_is_family(self) &&
            "ei: a host neither of g_'s line nor of jo's family, none of whose kj runs ei -- stop");
