@@ -366,7 +366,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)(jo->has_mi != 0));
-    h = fnv(h, (uint32_t)(jo->has_m_ != 0));
+    h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert(jo->jy == NULL && !jo->has_kr);
     assert(cls_of(e)->kf == pico8_jo_struct_class()->kf && cls_of(e)->cn == pico8_jo_struct_class()->cn &&
            cls_of(e)->kf != NULL && cls_of(e)->cn != NULL && pico8_jo_is_family(e));

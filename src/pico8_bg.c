@@ -41,20 +41,12 @@ static void pico8_bg_hq_dispatch(void *self, pico8_vec_t *qa, pico8_vec_t *ra) {
     pico8_bg_hq((pico8_bg_t *)self, ra);
 }
 
-static void bg_set_m_(void *self, int m_) {
-    pico8_bg_t *bg = self;
-
-    bg->m_ = m_ != 0;
-    bg->has_m_ = 1;
-}
-
 static const pico8_struct_class_t g_bg_struct_class = {
     .kj = pico8_bg_kj_dispatch,
     .hd = pico8_hd_true,
     .ldown = pico8_bg_ldown_dispatch,
     .rdown = pico8_bg_rdown_dispatch,
     .hq = pico8_bg_hq_dispatch,
-    .set_m_ = bg_set_m_,
 };
 
 static pico8_bg_t *pico8_bg_struct_new(void) {
@@ -64,8 +56,8 @@ static pico8_bg_t *pico8_bg_struct_new(void) {
     self->def = &pico8_bg_def;
     self->header.fa = &self->def->fa;
     self->mq = NULL;
+    self->header.m_ = &self->m_;
     self->m_ = 0;
-    self->has_m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("bg");
 #endif

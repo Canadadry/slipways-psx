@@ -246,7 +246,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)jo->has_mi);
-    h = fnv(h, (uint32_t)jo->has_m_);
+    h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert_jo_members(cls_of(e));
     assert(jo->def == &pico8_jo_def);
     assert(jo->def == &pico8_jo_def);
@@ -295,7 +295,7 @@ static uint32_t fold_live(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(jo->fo != NULL));
     h = fnv(h, (uint32_t)(jo->nk != NULL));
     h = fnv(h, (uint32_t)(jo->lq != NULL));
-    h = fnv(h, (uint32_t)jo->has_m_);
+    h = fnv(h, (uint32_t)(jo->m_ != 0));
     return h;
 }
 

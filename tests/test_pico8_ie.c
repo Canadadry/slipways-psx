@@ -120,7 +120,7 @@ static uint32_t kh_state(const void *icon) {
 
 static uint32_t m__state(const void *icon) {
     const pico8_ie_t *ie = as_ie((void *)icon);
-    return bool_state(ie->has_m_, ie->m_);
+    return bool_state((ie->m_ != 0), ie->m_);
 }
 
 static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
@@ -283,7 +283,7 @@ static uint32_t check_fresh_icon(uint32_t h, void *icon, const void *ke, const v
     assert(ie->def->eh.x == pico8_fixed_from_int(118) && ie->def->eh.y == pico8_fixed_from_int(120));
     assert((const void *)ie->ke == ke);
     assert((const void *)ie->jb == jb);
-    assert(!ie->has_kh && !ie->has_m_);
+    assert(!ie->has_kh && !ie->m_);
     assert(cls_of(icon)->states[PICO8_STATE_PH] == NULL && cls_of(icon)->ev == NULL && cls_of(icon)->hk == NULL &&
            cls_of(icon)->rdown == NULL && cls_of(icon)->gv == NULL);
     assert(cls_of(icon)->hd != NULL && cls_of(icon)->hb != NULL && cls_of(icon)->kj != NULL &&
@@ -480,23 +480,20 @@ static void test_draw(void) {
     hidden_px = draw_alone(hidden);
     assert(hidden_px == blank);
     as_ie(hidden)->m_ = 1;
-    as_ie(hidden)->has_m_ = 1;
     assert(m__state(hidden) == 2);
     assert(draw_alone(hidden) == blank);
     shown_px = draw_alone(shown);
     assert(shown_px != blank);
     as_ie(shown)->m_ = 1;
-    as_ie(shown)->has_m_ = 1;
     assert(m__state(shown) == 2);
     hovered_px = draw_alone(shown);
     assert(hovered_px != shown_px);
     as_ie(shown)->m_ = 0;
-    as_ie(shown)->has_m_ = 1;
     assert(draw_alone(shown) == shown_px);
-    cls_of(shown)->set_m_(shown, 1);
+    *as_ie(shown)->header.m_ = 1;
     assert(m__state(shown) == 2);
-    cls_of(shown)->set_m_(shown, 0);
-    assert(m__state(shown) == 1);
+    *as_ie(shown)->header.m_ = 0;
+    assert(m__state(shown) == 0);
 
     h = fnv(h, hidden_px);
     h = fnv(h, shown_px);
@@ -549,10 +546,8 @@ static void test_ke_view(void) {
         uint32_t plain = draw_alone(all[i]);
         uint32_t hovered;
         as_ie(all[i])->m_ = 1;
-        as_ie(all[i])->has_m_ = 1;
         hovered = draw_alone(all[i]);
         as_ie(all[i])->m_ = 0;
-        as_ie(all[i])->has_m_ = 1;
         printf("[ke view] icon %d: 0x%08Xu / 0x%08Xu\n", i, (unsigned)plain, (unsigned)hovered);
         assert(hovered != plain);
         h = fnv(h, plain);

@@ -318,7 +318,7 @@ static uint32_t fold_gate(uint32_t h, const void *e, const void *slipgate) {
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)jo->has_mi);
-    h = fnv(h, (uint32_t)jo->has_m_);
+    h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert(cls_of(e)->kf == cls_of(slipgate)->kf && cls_of(e)->cn == cls_of(slipgate)->cn &&
            cls_of(e)->hq == cls_of(slipgate)->hq && cls_of(e)->ey == cls_of(slipgate)->ey);
     assert(cls_of(e)->kf != NULL && cls_of(e)->cn != NULL && cls_of(e)->hq != NULL && cls_of(e)->ey != NULL &&

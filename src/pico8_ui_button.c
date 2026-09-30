@@ -58,13 +58,6 @@ static void pico8_js_hb_dispatch(void *self) {
     }
 }
 
-static void js_set_m_(void *self, int m_) {
-    pico8_js_t *js = self;
-
-    js->m_ = m_ != 0;
-    js->has_m_ = 1;
-}
-
 static const pico8_struct_class_t g_js_struct_class = {
     .kj = pico8_js_kj_dispatch,
     .ev = pico8_js_ev_dispatch,
@@ -73,7 +66,6 @@ static const pico8_struct_class_t g_js_struct_class = {
     .has_hb = pico8_js_has_hb,
     .ldown = pico8_js_ldown_dispatch,
     .states = {[PICO8_STATE_PH] = pico8_js_ph_dispatch},
-    .set_m_ = js_set_m_,
 };
 
 static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
@@ -89,8 +81,8 @@ static pico8_js_t *pico8_js_struct_new(const pico8_js_keys_t *keys) {
     self->qf = NULL;
     self->my = NULL;
     self->has_my = 0;
+    self->header.m_ = &self->m_;
     self->m_ = 0;
-    self->has_m_ = 0;
     self->hb = NULL;
     self->fg = 0;
     self->has_fg = 0;
@@ -222,7 +214,7 @@ void pico8_js_ev(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self) {
         return;
     }
 
-    if (self->jb != NULL && self->has_m_ && self->m_) {
+    if (self->jb != NULL && self->m_) {
         pico8_jb_ol(gfx, mem, self->jb, pico8_fixed_from_int(127), pico8_fixed_from_int(1));
     }
 }
@@ -246,7 +238,7 @@ void pico8_js_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_js_t *self, pic
     qt = pico8_fixed_sub(pico8_fixed_add(p.x, mb), pico8_fixed_from_int(1));
     dn = pico8_fixed_add(p.y, pico8_fixed_from_int(9));
     has_my = self->my != NULL;
-    m_flag = self->has_m_ && self->m_;
+    m_flag = self->m_;
 
     ix_p = pico8_ui_to_int(p.x);
     iy_p = pico8_ui_to_int(p.y);
@@ -299,17 +291,9 @@ static pico8_down_t pico8_fq_ldown_dispatch(void *self, pico8_vec_t *qa, pico8_v
     return pico8_fq_ldown((pico8_fq_t *)self);
 }
 
-static void fq_set_m_(void *self, int m_) {
-    pico8_fq_t *fq = self;
-
-    fq->m_ = m_ != 0;
-    fq->has_m_ = 1;
-}
-
 static const pico8_struct_class_t g_fq_struct_class = {
     .hd = pico8_hd_true,
     .ldown = pico8_fq_ldown_dispatch,
-    .set_m_ = fq_set_m_,
 };
 
 static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
@@ -321,8 +305,8 @@ static pico8_fq_t *pico8_fq_struct_new(const pico8_fq_keys_t *keys) {
     self->my = NULL;
     self->header.p_ = &self->p_;
     self->p_ = 0;
+    self->header.m_ = &self->m_;
     self->m_ = 0;
-    self->has_m_ = 0;
     if (keys != NULL) {
         self->my = keys->my;
     }

@@ -333,7 +333,7 @@ static uint32_t fold_slipgate(uint32_t h, const void *e) {
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)jo->has_mi);
-    h = fnv(h, (uint32_t)jo->has_m_);
+    h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert(cls_of(e)->cn == pico8_nr_struct_class()->cn && cls_of(e)->cn != qh_cls->cn &&
            cls_of(e)->cn != pico8_jo_struct_class()->cn);
     assert(cls_of(e)->kf == qh_cls->kf && cls_of(e)->hq == qh_cls->hq && cls_of(e)->ey == qh_cls->ey &&

@@ -130,12 +130,9 @@ static pico8_jo_t *as_jo(void *e) {
     return e;
 }
 
-/* 0 absent, 1 false, 2 true. */
+/* 0 absent or false, 2 true. */
 static uint32_t m__state(const pico8_jo_t *jo) {
-    if (!jo->has_m_) {
-        return 0;
-    }
-    return jo->m_ ? 2 : 1;
+    return jo->m_ ? 2 : 0;
 }
 
 static uint32_t fold_vec(uint32_t h, pico8_vec_t v) {
@@ -415,7 +412,7 @@ static void test_hover(void) {
     mouse_at(x + 40 > 127 ? x - 40 : x + 40, y, 0);
     pico8_ui_lj(&mem, ok);
     assert((void *)ok->o_ != planet);
-    assert(m__state(planet) == 1);
+    assert(m__state(planet) == 0);
     h = fold_entity(h, ok->o_);
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     check("hover", h, HOVER_HASH);
@@ -740,20 +737,15 @@ static int giver_hd(void *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return g_giver_hovered;
 }
 
-static void giver_set_m_(void *self, int m_) {
-    (void)self;
-    (void)m_;
-}
-
 static const pico8_struct_class_t g_giver_class = {
     .hd = giver_hd,
     .ldown = giver_down,
     .rdown = giver_down,
-    .set_m_ = giver_set_m_,
 };
 
 static const pico8_fixed_t g_giver_fa = 0xf0000;
-static giver_t g_giver = {{.cls = &g_giver_class, .fa = &g_giver_fa}};
+static int g_giver_m_;
+static giver_t g_giver = {{.cls = &g_giver_class, .fa = &g_giver_fa, .m_ = &g_giver_m_}};
 
 static void press(void *ok, int buttons) {
     mouse_at(64, 100, 0);

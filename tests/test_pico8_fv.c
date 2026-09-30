@@ -38,7 +38,7 @@
 
 #define BUILT_HASH 0x0B80F384u
 #define LIFE_HASH 0x3BFADEC0u
-#define HOVER_HASH 0x90AFEB68u
+#define HOVER_HASH 0xEE114A89u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -74,12 +74,9 @@ static int ents_listed(const pico8_ents_t *list, const void *e) {
     return ents_rank_in(list, e) >= 0;
 }
 
-/* 0 absent, 1 false, 2 true. */
+/* 0 absent or false, 2 true. */
 static uint32_t m__state(const pico8_fv_t *fv) {
-    if (!fv->has_m_) {
-        return 0;
-    }
-    return fv->m_ ? 2 : 1;
+    return fv->m_ ? 2 : 0;
 }
 
 /* The words the frozen hashes fold before a value: 0xF1 a number, 0xB0 a
@@ -354,7 +351,7 @@ static void test_built(void) {
     h = fold_fixed_member(h, g_->header.t);
     h = fnv(h, (uint32_t)size_of(em->qy));
     assert(size_of(em->qy) == 0);
-    assert(!fv->has_m_ && g_->p == NULL && pr->et == NULL && !g_->p_);
+    assert(!fv->m_ && g_->p == NULL && pr->et == NULL && !g_->p_);
     assert(cls_of(fv)->hk == NULL && cls_of(fv)->hb == NULL && cls_of(fv)->states[PICO8_STATE_PH] == NULL &&
            cls_of(fv)->ldown == NULL);
 
@@ -471,7 +468,7 @@ static void test_hover(void) {
     mouse_at(64, 10);
     pico8_ui_lj(&mem, pico8_ok());
     assert((void *)pico8_ok()->o_ != fv);
-    assert(m__state(fv) == 1);
+    assert(m__state(fv) == 0);
     assert(!in_layer(10, fv));
     h = fnv(h, m__state(fv));
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));

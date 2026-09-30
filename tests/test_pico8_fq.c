@@ -27,7 +27,7 @@
 #define MY_TRUE_TICKS 6
 #define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u
 #define BARE_SEQUENCE_HASH 0x52BE382Au
-#define HOVER_SEQUENCE_HASH 0x27C4BCB8u
+#define HOVER_SEQUENCE_HASH 0x689321F9u
 #define HOVER_CURSOR_HASH 0x04C40AB9u
 
 #define LDOWN_TICK 5
@@ -83,7 +83,7 @@ static uint32_t fold_bool_member(uint32_t h, int has, int b) {
 static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
     h = fold_bool_member(h, (e->p_ != 0), e->p_);
-    h = fold_bool_member(h, e->has_m_, e->m_);
+    h = fold_bool_member(h, (e->m_ != 0), e->m_);
     h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
     return fnv(h, (uint32_t)ents_listed(pico8_cv("hd"), e));
 }
@@ -219,7 +219,7 @@ static void test_hover_loop_on_the_veil(void) {
     pico8_ui_lj(&mem, pico8_ok());
     assert(ok_o_() == veil);
     assert(in_layer(14, veil) && !in_layer(15, veil));
-    assert(veil->has_m_ && veil->m_);
+    assert(veil->m_);
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
 
@@ -239,7 +239,7 @@ static void test_hover_loop_on_the_veil(void) {
     pico8_he(&veil->header);
     pico8_ui_lj(&mem, pico8_ok());
     assert(ok_o_() != veil && !in_layer(14, veil));
-    assert(veil->has_m_ && !veil->m_);
+    assert(!veil->m_);
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     h = fold_veil(h, veil);
     check("hover", h, HOVER_SEQUENCE_HASH);

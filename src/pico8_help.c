@@ -100,13 +100,6 @@ void pico8_fv_kj_dispatch(void *self, const pico8_vec_t *ra) {
     pico8_fv_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_fv_t *)self, p);
 }
 
-static void fv_set_m_(void *self, int m_) {
-    pico8_fv_t *fv = self;
-
-    fv->m_ = m_ != 0;
-    fv->has_m_ = 1;
-}
-
 static const pico8_struct_class_t g_fv_struct_class = {
     .kj = pico8_fv_kj_dispatch,
     .ev = pico8_dl_dispatch,
@@ -118,7 +111,6 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .emitter_of = pico8_g__emitter_of,
     .probe_of = pico8_g__probe_of,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = fv_set_m_,
 };
 
 static pico8_fv_t *pico8_fv_struct_new(void) {
@@ -130,8 +122,8 @@ static pico8_fv_t *pico8_fv_struct_new(void) {
     self->g_.header.kq = &self->g_.def->kq;
     self->g_.header.ql = &self->g_.def->ql;
     self->g_.header.fg = &self->g_.def->fg;
+    self->g_.header.m_ = &self->m_;
     self->m_ = 0;
-    self->has_m_ = 0;
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("fv");
 #endif

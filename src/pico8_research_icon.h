@@ -31,7 +31,6 @@ typedef struct {
     int kh;
     int has_kh; /* 0: `kh` is nil, and is then never read */
     int m_;
-    int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_ie_t;
 
 /* `self.ke` read as Lua reads a class: no parent, never an entity, never

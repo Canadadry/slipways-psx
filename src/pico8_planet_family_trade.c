@@ -178,7 +178,6 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 /* Initializes an allocated pico8_nr_t under `cls` and `def`, its kind's
@@ -233,7 +232,6 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .parent = pico8_nr_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_NR) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 static pico8_fr_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
@@ -329,7 +327,6 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 static pico8_mx_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {

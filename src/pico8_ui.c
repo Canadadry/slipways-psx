@@ -285,15 +285,15 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     if (self->gj != NULL) {
-        assert(self->gj->cls->set_m_ != NULL &&
+        assert(self->gj->m_ != NULL &&
                "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
-        self->gj->cls->set_m_(self->gj, 0);
+        *self->gj->m_ = 0;
     }
 
     if (self->o_ != NULL) {
-        assert(self->o_->cls->set_m_ != NULL &&
+        assert(self->o_->m_ != NULL &&
                "entity: a generic write names a field this struct has no member for -- stop, do not add a member");
-        self->o_->cls->set_m_(self->o_, 1);
+        *self->o_->m_ = 1;
     }
 
     if (self->o_ != NULL) {

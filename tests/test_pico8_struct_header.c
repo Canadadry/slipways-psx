@@ -81,6 +81,7 @@ static void assert_links(const pico8_struct_header_t *h, pico8_struct_header_t w
     assert(h->ma == want.ma);
     assert(h->fx == want.fx);
     assert(h->p_ == want.p_);
+    assert(h->m_ == want.m_);
 }
 
 /* Non-carriers, one per constructor that does not go through ke; the mouse
@@ -116,13 +117,16 @@ static void test_carriers_link_their_storage(void) {
     pico8_fr_t *fr = pico8_fr_new(NULL);
     pico8_jo_t *fr_jo = &fr->nr.qh.jo;
 
-    assert_links(&bg->header, (pico8_struct_header_t){.fa = &bg->def->fa});
-    assert_links(&js->header, (pico8_struct_header_t){.fa = &js->fa, .ra = &js->ra, .kq = js->header.kq});
+    assert_links(&bg->header, (pico8_struct_header_t){.fa = &bg->def->fa, .m_ = &bg->m_});
+    assert_links(&js->header,
+                 (pico8_struct_header_t){.fa = &js->fa, .ra = &js->ra, .kq = js->header.kq, .m_ = &js->m_});
     assert(js->header.kq != NULL);
     assert_links(&js_fg->header,
-                 (pico8_struct_header_t){.fa = &js_fg->fa, .ra = &js_fg->ra, .kq = js_fg->header.kq, .fg = &js_fg->fg});
-    assert_links(&ie->header, (pico8_struct_header_t){.fa = &ie->def->fa, .ra = &ie->ra, .kq = &ie->def->kq});
-    assert_links(&fq->header, (pico8_struct_header_t){.fa = &fq->def->fa, .p_ = &fq->p_});
+                 (pico8_struct_header_t){
+                     .fa = &js_fg->fa, .ra = &js_fg->ra, .kq = js_fg->header.kq, .fg = &js_fg->fg, .m_ = &js_fg->m_});
+    assert_links(&ie->header,
+                 (pico8_struct_header_t){.fa = &ie->def->fa, .ra = &ie->ra, .kq = &ie->def->kq, .m_ = &ie->m_});
+    assert_links(&fq->header, (pico8_struct_header_t){.fa = &fq->def->fa, .p_ = &fq->p_, .m_ = &fq->m_});
     assert_links(&ui->header, (pico8_struct_header_t){.fa = &ui->def->fa, .ql = &ui->def->ql});
     assert_links(&qb->header, (pico8_struct_header_t){.ra = &qb->ra, .p = &qb->p, .ma = &qb->ma});
     assert_links(&fv->g_.header, (pico8_struct_header_t){.fa = &fv->g_.def->fa,
@@ -132,14 +136,16 @@ static void test_carriers_link_their_storage(void) {
                                                          .ql = &fv->g_.def->ql,
                                                          .fg = &fv->g_.def->fg,
                                                          .fx = &fv->g_.def->fx,
-                                                         .p_ = &fv->g_.p_});
+                                                         .p_ = &fv->g_.p_,
+                                                         .m_ = &fv->m_});
     assert_links(&jo->header, (pico8_struct_header_t){.fa = &jo->def->fa,
                                                       .ra = (const pico8_vec_t *const *)&jo->ra,
                                                       .p = (const pico8_vec_t *const *)&jo->p,
                                                       .kq = &jo->def->kq,
                                                       .ma = &jo->ma,
                                                       .fx = &jo->fx,
-                                                      .p_ = &jo->p_});
+                                                      .p_ = &jo->p_,
+                                                      .m_ = &jo->m_});
     assert_links(&fr_jo->header, (pico8_struct_header_t){.fa = &fr_jo->def->fa,
                                                          .ra = (const pico8_vec_t *const *)&fr_jo->ra,
                                                          .p = (const pico8_vec_t *const *)&fr_jo->p,
@@ -147,7 +153,8 @@ static void test_carriers_link_their_storage(void) {
                                                          .mt = &fr_jo->def->mt,
                                                          .ma = &fr_jo->ma,
                                                          .fx = &fr_jo->fx,
-                                                         .p_ = &fr_jo->p_});
+                                                         .p_ = &fr_jo->p_,
+                                                         .m_ = &fr_jo->m_});
 }
 
 static pico8_jc_t *jc_dragged_over_nothing(pico8_struct_header_t *qu) {

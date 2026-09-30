@@ -175,7 +175,7 @@ void pico8_ie_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_ie_t *self, pico8_vec
     /* `dl(self.ke)` is not inert: every kind `self.ke` can hold inherits
      * `qh`'s `me="kz"`, so `dl` passes its own state check and draws the
      * kind-level build cost. */
-    if (self->has_m_ && self->m_) {
+    if (self->m_) {
         if (ie_self_ke_kind(self) != NULL) {
             pico8_probe_t pb = {.def = &pico8_probe_def_none};
 
@@ -202,19 +202,11 @@ static int pico8_ie_hd_dispatch(void *self, const pico8_vec_t *qa, const pico8_v
     return pico8_gk((const pico8_struct_header_t *)self, qa, ra);
 }
 
-static void ie_set_m_(void *self, int m_) {
-    pico8_ie_t *ie = self;
-
-    ie->m_ = m_ != 0;
-    ie->has_m_ = 1;
-}
-
 static const pico8_struct_class_t g_ie_struct_class = {
     .kj = pico8_ie_kj_dispatch,
     .hd = pico8_ie_hd_dispatch,
     .hb = pico8_ie_hb_dispatch,
     .ldown = pico8_ie_ldown_dispatch,
-    .set_m_ = ie_set_m_,
 };
 
 static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
@@ -231,8 +223,8 @@ static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
     self->jb = NULL;
     self->kh = 0;
     self->has_kh = 0;
+    self->header.m_ = &self->m_;
     self->m_ = 0;
-    self->has_m_ = 0;
     if (keys != NULL) {
         self->ke = keys->ke;
         self->jb = keys->jb;

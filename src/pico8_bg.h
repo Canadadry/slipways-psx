@@ -19,7 +19,6 @@ typedef struct {
     const pico8_bg_def_t *def;
     pico8_vec_t *mq;
     int m_;
-    int has_m_;
 } pico8_bg_t;
 
 void pico8_bg_init(void);

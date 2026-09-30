@@ -71,7 +71,7 @@
 #define FE_MY_HASH 0x459139D2u
 #define CR_MY_HASH 0x7ED641D9u
 #define DRAW_HASH 0x92E72EEBu
-#define JS_MEMBERS_HASH 0x31CE3B93u
+#define JS_MEMBERS_HASH 0x264E8964u
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -150,13 +150,10 @@ static pico8_js_t *js_of(const void *e) {
     return (pico8_js_t *)e;
 }
 
-/* 0 absent, 1 false, 2 true. */
+/* 0 absent or false, 2 true. */
 static uint32_t m__state(const void *e) {
     const pico8_js_t *b = js_of(e);
-    if (!b->has_m_) {
-        return 0;
-    }
-    return b->m_ ? 2u : 1u;
+    return b->m_ ? 2u : 0u;
 }
 
 /* 0 absent, 1 false, 3 a row. */
@@ -987,12 +984,10 @@ static void test_draw(void) {
     px[0] = draw_alone(plain);
     px[1] = draw_alone(with_my);
     js_of(with_my)->m_ = 1;
-    js_of(with_my)->has_m_ = 1;
     px[2] = draw_alone(with_my);
     px[3] = draw_alone(priced);
     px[4] = draw_alone(tooltip);
     js_of(tooltip)->m_ = 1;
-    js_of(tooltip)->has_m_ = 1;
     px[5] = draw_alone(tooltip);
     px[6] = draw_alone(free_);
     assert(h__state(free_) == 1 && px[6] == px[1]);
@@ -1144,7 +1139,7 @@ static uint32_t fold_js_members(uint32_t h, const void *e) {
     h = fold_member_vec(h, b->ra);
     h = fold_member_vec(h, b->qf);
     h = fold_js_fn(h, b->has_my, b->my);
-    h = b->has_m_ ? fold_bool(fold_kind(h, BOOL_KIND), b->m_) : fnv(h, 0u);
+    h = (b->m_ != 0) ? fold_bool(fold_kind(h, BOOL_KIND), b->m_) : fnv(h, 0u);
     h = fold_js_fn(h, b->hb != NULL, b->hb);
     h = fold_member_fixed(h, b->has_fg, b->fg);
     h = b->px != NULL ? fold_string(fold_kind(h, STRING_KIND), b->px) : fnv(h, 0u);
@@ -1199,10 +1194,9 @@ static void check_le_one_pz(void) {
     check_one_pz(b, le->count);
 }
 
-/* `m_` true, false, or nil (`present` 0), which clears it. */
+/* `m_` true, false, or nil (`present` 0), which reads as false. */
 static void write_m_(pico8_js_t *b, int present, int value) {
     b->m_ = present ? value : 0;
-    b->has_m_ = present;
 }
 
 /* `m_` takes true, false and nil; `lq` a row or nil. The raw writer
@@ -1218,23 +1212,23 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
 
     assert(kq_before != NULL);
     write_m_(b, 1, 1);
-    assert(b->has_m_ && b->m_ == 1);
+    assert(b->m_ == 1);
     h = fold_js_members(h, e);
     write_m_(b, 1, 0);
-    assert(b->has_m_ && b->m_ == 0);
-    h = fold_js_members(h, e);
-    write_m_(b, 1, 1);
-    write_m_(b, 1, 0);
-    assert(b->has_m_ && b->m_ == 0);
+    assert(b->m_ == 0);
     h = fold_js_members(h, e);
     write_m_(b, 1, 1);
+    write_m_(b, 1, 0);
+    assert(b->m_ == 0);
+    h = fold_js_members(h, e);
+    write_m_(b, 1, 1);
     write_m_(b, 0, 0);
-    assert(!b->has_m_);
+    assert(!b->m_);
     write_m_(b, 1, 0);
     write_m_(b, 0, 0);
-    assert(!b->has_m_);
+    assert(!b->m_);
     write_m_(b, 0, 0);
-    assert(!b->has_m_);
+    assert(!b->m_);
     h = fold_js_members(h, e);
 
     row = js_of(other)->lq;
@@ -1254,7 +1248,7 @@ static uint32_t fold_written(uint32_t h, void *e, void *other) {
     for (i = 0; i < 15 + 8; i++) {
         h = fnv(h, 0u);
     }
-    assert(b->has_m_ && b->m_ == 1);
+    assert(b->m_ == 1);
     return fold_js_members(h, e);
 }
 
@@ -1396,7 +1390,7 @@ static uint32_t members_title_and_game(void) {
         assert(b->fa == pico8_fixed_from_int(11));
         assert(b->mb == pico8_fixed_add(lq->w, pico8_fixed_from_int(2)));
         assert(b->header.kq != NULL);
-        assert(!b->has_h_ && b->jb == NULL && b->ra == NULL && b->qf == NULL && !b->has_m_);
+        assert(!b->has_h_ && b->jb == NULL && b->ra == NULL && b->qf == NULL && !b->m_);
         assert(!b->has_fg && b->px == NULL && !b->has_trade && !b->has_en && b->_cr_t == NULL);
         assert(b->_jo_fe_pt == NULL && b->_jo_fe_b == NULL && !b->has__jo_fe_od);
         assert(my_state(fresh[k]) == 0 && js_of(fresh[k])->hb == NULL);

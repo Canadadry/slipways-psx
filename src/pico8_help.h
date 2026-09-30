@@ -18,7 +18,6 @@
 typedef struct {
     pico8_g__t g_;
     int m_;
-    int has_m_; /* 0: `m_` is nil, and is then never read */
 } pico8_fv_t;
 
 /* Builds `bo`; `pico8_help_shutdown()` frees it and is called first by an

@@ -76,13 +76,6 @@ void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
     pico8_jo_ll((pico8_jo_t *)self, t);
 }
 
-void pico8_jo_set_m_(void *self, int m_) {
-    pico8_jo_t *jo = self;
-
-    jo->m_ = m_ != 0;
-    jo->has_m_ = 1;
-}
-
 static const pico8_struct_class_t g_jo_struct_class = {
     .kj = pico8_jo_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
@@ -94,7 +87,6 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .cn = pico8_jo_cn_dispatch,
     .states = {[PICO8_STATE_LL] = pico8_jo_ll_dispatch},
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
@@ -131,8 +123,8 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->by = NULL;
     self->mi = self->def->mi;
     self->has_mi = self->def->has_mi;
+    self->header.m_ = &self->m_;
     self->m_ = 0;
-    self->has_m_ = 0;
     self->kw_own = (pico8_kw_t){0};
 }
 

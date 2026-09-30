@@ -50,7 +50,6 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .parent = pico8_jo_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_QH) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 void pico8_qh_struct_init(pico8_qh_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
@@ -121,7 +120,6 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 static pico8_nl_t *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
@@ -166,7 +164,6 @@ static const pico8_struct_class_t g_os_struct_class = {
     .parent = pico8_qh_struct_class,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 static pico8_os_t *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
@@ -231,7 +228,6 @@ static const pico8_struct_class_t g_hj_struct_class = {
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_HJ) | PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 void pico8_hj_struct_init(pico8_hj_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def) {
@@ -319,7 +315,6 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .emitter_of = pico8_hj_emitter_of,
     .probe_of = pico8_qh_probe_of,
     .tags = PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER),
-    .set_m_ = pico8_jo_set_m_,
 };
 
 static pico8_pm_t *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
@@ -469,7 +464,6 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .emitter_of = ga_emitter_of,
     /* ga's cart list of tags is empty and replaces jo's: never jo's. */
     .tags = 0,
-    .set_m_ = pico8_jo_set_m_,
 };
 
 static pico8_ga_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {

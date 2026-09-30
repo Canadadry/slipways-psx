@@ -39,7 +39,6 @@ struct pico8_js {
     pico8_js_fn my;
     int has_my; /* 0: nil; 1: present, and a NULL `my` is `false` */
     int m_;
-    int has_m_; /* 0: `m_` is nil, and is then never read */
     pico8_js_fn hb;
     pico8_fixed_t fg;
     int has_fg; /* 0: `fg` is nil, and is then never read */
@@ -125,7 +124,6 @@ struct pico8_fq {
     pico8_fq_my_fn my;
     int p_;
     int m_;
-    int has_m_;
 };
 
 void pico8_fq_init(void);

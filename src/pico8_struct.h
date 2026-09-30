@@ -79,7 +79,8 @@ typedef struct pico8_struct_class pico8_struct_class_t;
  * embeds first. `me` and `t` are ke's (`me` NULL is nil). A component link
  * points at the field's storage, the archetype's for a field the class
  * never writes; NULL: the class has no such field, or it is nil. `ma` is
- * written through, by `pico8_ma`, and `p_`, by `d_`. `*fx` 0 is nil. */
+ * written through, by `pico8_ma`, `p_`, by `d_`, and `m_`, by `ui`'s
+ * hover. `*fx` 0 is nil. */
 typedef struct {
     const pico8_struct_class_t *cls;
     const char *me;
@@ -94,6 +95,7 @@ typedef struct {
     pico8_fixed_t *ma;
     const pico8_fixed_t *fx;
     int *p_;
+    int *m_;
 } pico8_struct_header_t;
 
 /* Every constructor calls it first: its `malloc` leaves the header
@@ -153,9 +155,6 @@ struct pico8_struct_class {
     const pico8_struct_class_t *(*parent)(void);
     struct pico8_emitter *(*emitter_of)(void *self);
     struct pico8_probe *(*probe_of)(void *self);
-    /* NULL: the class has no `m_`, for every instance. Also marks `m_`
-     * present; only ever called as `e->cls->set_m_(e, m_)`. */
-    void (*set_m_)(void *self, int m_);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).

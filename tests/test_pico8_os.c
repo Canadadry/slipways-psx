@@ -356,7 +356,7 @@ static uint32_t fold_processor(uint32_t h, void *e) {
     h = fnv(h, (uint32_t)(jo->cc != NULL));
     h = fnv(h, (uint32_t)(jo->by != NULL));
     h = fnv(h, (uint32_t)jo->has_mi);
-    h = fnv(h, (uint32_t)jo->has_m_);
+    h = fnv(h, (uint32_t)(jo->m_ != 0));
     assert_qh_shape(cls_of(e));
     assert_members_of(cls_of(e), pico8_qh_struct_class(), 1, 1);
     assert(cls_of(e)->kf == pico8_qh_struct_class()->kf && cls_of(e)->cn == pico8_qh_struct_class()->cn &&

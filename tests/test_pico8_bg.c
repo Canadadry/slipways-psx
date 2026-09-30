@@ -47,7 +47,7 @@
 #define LDOWN_G_AFTER 1
 #define LDOWN_MZ_BEFORE 0
 #define LDOWN_MZ_AFTER 1
-#define HOVER_HASH 0xF751E116u
+#define HOVER_HASH 0x477E2027u
 #define DRAW_HASH 0xE18E0472u
 
 static pico8_mem_t mem;
@@ -102,12 +102,9 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
-/* 0 absent, 1 false, 2 true. */
+/* 0 absent or false, 2 true. */
 static uint32_t m__state(const pico8_bg_t *bg) {
-    if (!bg->has_m_) {
-        return 0;
-    }
-    return bg->m_ ? 2 : 1;
+    return bg->m_ ? 2 : 0;
 }
 
 static const pico8_qb_t *mo_qb(void) {
@@ -194,7 +191,7 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     for (i = 0; i < 15; i++) {
         assert(pl->items[i] == want_pl[i]);
     }
-    assert(bg->mq == NULL && !bg->has_m_);
+    assert(bg->mq == NULL && !bg->m_);
     assert(cls->gv == NULL && cls->states[PICO8_STATE_PH] == NULL);
     assert(cls->kj != NULL && cls->ldown != NULL && cls->rdown != NULL && cls->hq != NULL);
     assert(cls->ey == NULL);
@@ -379,7 +376,7 @@ static void test_hover(void) {
     veil = (void *)pico8_fq_new(NULL);
     pico8_ui_lj(&mem, pico8_ok());
     assert((void *)pico8_ok()->o_ == veil);
-    assert(m__state(bg) == 1);
+    assert(m__state(bg) == 0);
     h = fnv(h, (uint32_t)pico8_peek(&mem, 0x5f80));
     h = fnv(h, m__state(bg));
     check("hover", h, HOVER_HASH);
