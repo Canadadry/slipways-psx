@@ -79,8 +79,22 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 /* `e` as a planet of qh's lineage. */
@@ -141,8 +155,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
     assert(is_bv_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
@@ -339,7 +353,7 @@ static uint32_t fold_lab(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_list_size(jo->oe));
     h = fnv(h, (uint32_t)list_size(jo->jy));
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
     }
@@ -412,7 +426,7 @@ static void test_life(void) {
     mp = vec_ref(vec_xy(7680, 7680));
     cls_of(out_lab)->hq(out_lab, mp, vec_ref(vec_xy(0, 0)));
     h = fold_held(h, out_lab, mp);
-    assert(et_state(as_qh(out_lab)) == 3 && !listed(pico8_hv(), as_qh(out_lab)->probe->et));
+    assert(et_state(as_qh(out_lab)) == 3 && !ents_listed(pico8_hv(), as_qh(out_lab)->probe->et));
 
     planet = pico8_cg("jo")->items[0];
     assert(pico8_jo_is_family(planet));
@@ -461,7 +475,7 @@ static void test_life(void) {
     }
     h = fold_ra_y(h, in_lab);
     assert(as_qh(in_lab)->jo.ra->y != in_y);
-    h = fnv(h, (uint32_t)listed(pico8_hv(), poor_lab));
+    h = fnv(h, (uint32_t)ents_listed(pico8_hv(), poor_lab));
     check("life", h, LIFE_HASH);
 }
 
@@ -595,7 +609,7 @@ static void test_descendants(void) {
     pico8_jo_hu(p, cw_project("pm"));
     made[PM] = pico8_hv()->items[pico8_hv()->count - 1];
     for (i = 0; i < DESCENDANTS; i++) {
-        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && listed(pico8_hv(), made[i]));
+        assert(made[i] != NULL && descendant_of(made[i]) == (int)i && ents_listed(pico8_hv(), made[i]));
         h = fold_descendant(fnv(h, (uint32_t)i), made[i]);
     }
     check("descendants", h, DESCENDANTS_HASH);

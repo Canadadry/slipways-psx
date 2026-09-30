@@ -29,7 +29,7 @@ typedef struct {
 
 static pico8_cg_entry_t g_cg[PICO8_TAG_COUNT];
 
-static pico8_ptrs_t g_hv;
+static pico8_ents_t g_hv;
 static pico8_struct_header_t *g_mo = NULL;
 static int g_initialized = 0;
 
@@ -52,7 +52,7 @@ void pico8_entity_shutdown(void) {
         return;
     }
 
-    pico8_ptrs_free(&g_hv);
+    pico8_ents_free(&g_hv);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         pico8_ptrs_free(&g_cv[i].list);
@@ -75,7 +75,7 @@ void pico8_entity_init(void) {
 
     pico8_entity_shutdown();
 
-    pico8_ptrs_init(&g_hv);
+    pico8_ents_init(&g_hv);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         g_cv[i].name = g_bm_names[i];
@@ -87,7 +87,7 @@ void pico8_entity_init(void) {
     g_initialized = 1;
 }
 
-const pico8_ptrs_t *pico8_hv(void) {
+const pico8_ents_t *pico8_hv(void) {
     return &g_hv;
 }
 
@@ -138,7 +138,7 @@ const pico8_ptrs_t *pico8_cg(const char *tag) {
 pico8_struct_header_t *pico8_lt(pico8_struct_header_t *e) {
     int i;
 
-    pico8_ptrs_add(&g_hv, e);
+    pico8_ents_add(&g_hv, e);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
@@ -163,7 +163,7 @@ void pico8_he(pico8_struct_header_t *e) {
     int i;
 
     /* TROU-5 */
-    pico8_ptrs_del(&g_hv, e);
+    pico8_ents_del(&g_hv, e);
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {

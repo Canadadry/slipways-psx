@@ -49,7 +49,7 @@ void pico8_bootstrap_shutdown(void) {
 }
 
 void pico8_dg(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int i;
 
     /* TROU-5 */

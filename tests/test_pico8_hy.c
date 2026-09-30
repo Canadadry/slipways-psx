@@ -280,7 +280,7 @@ static const pico8_struct_class_t *iv_descriptor(void) {
 /* Every entry `hv` gained since it held `from` entries: its tag, and for an
  * `iv` the text and color it shows. */
 static uint32_t fold_new_entities(uint32_t h, int from, const pico8_struct_class_t *iv_cls) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int i;
 
     h = fnv(h, (uint32_t)(hv->count - from));

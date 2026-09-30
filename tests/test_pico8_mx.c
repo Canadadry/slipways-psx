@@ -137,8 +137,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     return fnv(fnv(h, 0xEEEEu), FROZEN_STRUCT_TAG);
 }
@@ -420,7 +420,7 @@ static uint32_t fold_synthesizer(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
     h = fnv(h, (uint32_t)ptrs_size(jo->jy));
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
     }

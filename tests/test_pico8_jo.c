@@ -75,8 +75,22 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 static const pico8_jo_t *as_jo(const void *e) {
@@ -251,7 +265,7 @@ static uint32_t fold_planet(uint32_t h, const void *e) {
     assert(jo->kq == &pico8_jo_start.kq);
     assert(jo->gq == &pico8_jo_start.gq);
     assert(jo->header.cls->tags == (PICO8_TAG(PICO8_TAG_JO) | PICO8_TAG(PICO8_TAG_NP) | PICO8_TAG(PICO8_TAG_PROBER)) && jo->kw == pico8_jo_shared_kw() && jo->em == &pico8_jo_em_row);
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
     }
@@ -425,7 +439,7 @@ static void test_daughters(void) {
     made[PM] = turned(0, "pm");
     made[GA] = turned(1, "ga");
     for (i = 0; i < DAUGHTERS; i++) {
-        assert(made[i] != NULL && daughter_of(made[i]) == (int)i && listed(pico8_hv(), made[i]));
+        assert(made[i] != NULL && daughter_of(made[i]) == (int)i && ents_listed(pico8_hv(), made[i]));
         h = fold_daughter(fnv(h, (uint32_t)i), made[i]);
     }
     check("daughters", h, DAUGHTERS_HASH);
@@ -446,7 +460,7 @@ static void test_new_planet(void) {
 
     start_title();
     a = new_planet("p900", 1, 2);
-    assert(listed(pico8_hv(), a) && listed(pico8_cg("jo"), a));
+    assert(ents_listed(pico8_hv(), a) && listed(pico8_cg("jo"), a));
     h = fold_planet(h, a);
     h = fold_live(h, a);
     check("new planet", h, NEW_PLANET_HASH);
@@ -480,12 +494,12 @@ static void test_ll(void) {
     pico8_dg();
     assert(p__state(a) == 0);
     pico8_ke_ks(&a->header, "ll");
-    while (listed(pico8_hv(), a) && calls < 200) {
+    while (ents_listed(pico8_hv(), a) && calls < 200) {
         pico8_dg();
         calls++;
     }
     assert(p__state(a) == 2);
-    assert(!listed(pico8_hv(), a) && !listed(pico8_cg("jo"), a));
+    assert(!ents_listed(pico8_hv(), a) && !listed(pico8_cg("jo"), a));
     check_int("ll dg calls", calls, LL_DG_CALLS);
 }
 

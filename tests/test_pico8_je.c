@@ -39,13 +39,23 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* `cv` may be read only once pico8_entity_init() has run. */
 static int registered(const void *e, int entity_live) {
     const char *buckets[] = {"kj", "ev", "hd", "hk", "hb"};
     const char *tags[] = {"je", "nf", "ui", "qb", "ke"};
     int i;
 
-    if (listed(pico8_hv(), e)) {
+    if (ents_listed(pico8_hv(), e)) {
         return 1;
     }
     for (i = 0; i < 5; i++) {

@@ -84,8 +84,22 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 static int list_count(const pico8_ptrs_t *list) {
@@ -119,8 +133,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     /* The frozen hashes folded the INSTANCE tag the throwaway had. */
     assert(is_bv_target(ref) && "no test folds an entity outside hv that is not the throwaway target: to fold one, fold 0xEEEE then the frozen struct tag 0x9E5C57C7, as test_pico8_fr.c does");
@@ -381,7 +395,7 @@ static uint32_t fold_probe(uint32_t h, pico8_g__t *e) {
     assert(cls_of(e)->ev == pico8_dl_dispatch);
     assert(cls_of(e)->kj == pico8_ei_dispatch);
     assert(cls_of(e)->mm == pico8_g__mm);
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
     }
@@ -579,14 +593,14 @@ static void test_life(void) {
         h = fold_fixed_member(h, a->header.t);
         h = fold_fixed_member(h, b->header.t);
         h = fold_string_member(h, a->header.me);
-        assert(listed(pico8_hv(), a) && listed(pico8_hv(), b));
+        assert(ents_listed(pico8_hv(), a) && ents_listed(pico8_hv(), b));
     }
     assert(cls_of(a)->ey == pico8_d__dispatch);
     assert(pico8_d_(&a->header) == 0);
     assert(a->has_p_ && a->p_);
     pico8_dg();
-    assert(!listed(pico8_hv(), a) && !listed(pico8_cg("g_"), a) && !listed(pico8_cg("prober"), a));
-    assert(listed(pico8_hv(), b) && listed(pico8_cg("g_"), b));
+    assert(!ents_listed(pico8_hv(), a) && !listed(pico8_cg("g_"), a) && !listed(pico8_cg("prober"), a));
+    assert(ents_listed(pico8_hv(), b) && listed(pico8_cg("g_"), b));
     h = fnv(h, (uint32_t)pico8_hv()->count);
     check("life", h, LIFE_HASH);
 }
@@ -669,7 +683,7 @@ static int is_help(pico8_struct_header_t *e) {
  * tags, `fx`, `dq` inherited, `ev`, `mm` the functions of `g_`. */
 static void test_fv(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *hv;
+    const pico8_ents_t *hv;
     pico8_struct_header_t *found = NULL;
     const pico8_g__t *fv;
     int i;
@@ -703,7 +717,7 @@ static void test_fv(void) {
     assert(pico8_g__ready());
     assert(size_of(fv->emitter->qy) >= 0);
     h = fnv(h, (uint32_t)size_of(fv->emitter->qy));
-    h = fnv(h, (uint32_t)rank_in(hv, fv));
+    h = fnv(h, (uint32_t)ents_rank_in(hv, fv));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("g_"), fv));
     h = fnv(h, (uint32_t)rank_in(pico8_cg("prober"), fv));
     assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
@@ -726,7 +740,7 @@ static int is_a_g__struct(const void *e) {
  * `fv` is a struct of its own. */
 static void test_g__is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_g__struct_class();
-    const pico8_ptrs_t *hv;
+    const pico8_ents_t *hv;
     pico8_g__t *roads[3];
     size_t i;
     int j;

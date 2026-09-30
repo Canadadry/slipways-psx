@@ -76,8 +76,22 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 static int count_of(const pico8_ptrs_t *list) {
@@ -182,8 +196,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     if (ref == (const void *)&pico8_pj_gs_row || ref == (const void *)&pico8_pj_i__row) {
         return fold_row(fnv(h, 0x7Au), ref);
@@ -303,7 +317,7 @@ static int is_of(const void *e, const pico8_struct_class_t *cls) {
 }
 
 static int fq_count(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {
@@ -313,7 +327,7 @@ static int fq_count(void) {
 }
 
 static int js15_count(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {
@@ -329,10 +343,10 @@ static int de_my(void) {
 
 /* `pj:ph`'s second button, the one whose `my` is `de`'s. */
 static pico8_js_t *de_button(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int i;
     for (i = hv->count - 1; i >= 0; i--) {
-        pico8_js_t *e = hv->items[i];
+        pico8_js_t *e = (pico8_js_t *)hv->items[i];
         if (is_of(e, pico8_js_struct_class()) && e->fa == pico8_fixed_from_int(15) &&
             e->my != pico8_init_field_value()) {
             return e;
@@ -349,7 +363,7 @@ static void test_built(void) {
     pico8_pj_t *ju = start_game();
     size_t i;
 
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), ju));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ju));
     h = fnv(h, (uint32_t)pico8_hv()->count);
     assert(listed(pico8_cv("kj"), ju) && listed(pico8_cv("hk"), ju) && listed(pico8_cv("hb"), ju));
     assert(!listed(pico8_cv("ev"), ju) && !listed(pico8_cv("hd"), ju));
@@ -390,7 +404,7 @@ static void test_shared(void) {
 
     assert(other != NULL && other != ju);
     assert(other->gs == ju->gs && other->i_ == ju->i_);
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), other));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), other));
 
     cls_of(ju)->hb(ju);
     h = fold_ou_heads(h);
@@ -437,7 +451,7 @@ static void test_life(void) {
         h = fnv(h, (uint32_t)(ea->lh != NULL));
         h = fnv_str(h, string_at(row_of(&ea->row, 2), 1));
         h = fnv(h, (uint32_t)count_of(pico8_cg("mh")));
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_kc()));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     }
     assert(ea->row.count == 2 && ea->lh != NULL);
 
@@ -463,7 +477,7 @@ static void test_life(void) {
     assert(fq_count() == fq_before + 1 && js15_count() == js_before + 2);
     assert(ju->ed == pico8_kc() && pico8_kc() != NULL);
     boxes = count_of(pico8_cg("mh"));
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), pico8_kc()));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
 
     cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));

@@ -343,7 +343,7 @@ static void check_fresh_mz(void *e) {
     assert(mz->ra == NULL && mz->p == NULL && mz->probe->et == NULL && mz->ij == NULL && !mz->has_p_);
     assert(mz->ox != NULL);
 
-    assert(listed(pico8_hv(), mz) && listed(pico8_cv("kj"), mz) && listed(pico8_cv("ev"), mz));
+    assert(ents_listed(pico8_hv(), mz) && listed(pico8_cv("kj"), mz) && listed(pico8_cv("ev"), mz));
     assert(listed(pico8_cg("mz"), mz));
     assert(!listed(pico8_cv("hd"), mz) && !listed(pico8_cv("hk"), mz) && !listed(pico8_cv("hb"), mz));
 }
@@ -378,7 +378,7 @@ static uint32_t fold_ox(uint32_t h, const pico8_mz_t *mz) {
     ox = mz->ox;
     h = fnv(h, (uint32_t)ox->count);
     for (i = 0; i < ox->count; i++) {
-        h = fnv(h, (uint32_t)rank_in(pico8_hv(), ox->items[i]));
+        h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), ox->items[i]));
     }
     return h;
 }
@@ -459,7 +459,7 @@ static uint32_t fold_hq(uint32_t h, const pico8_mz_t *mz, int want_kind) {
         }
     }
     assert(mz->ij != NULL);
-    return fnv(h, (uint32_t)rank_in(pico8_hv(), mz->ij));
+    return fnv(h, (uint32_t)ents_rank_in(pico8_hv(), mz->ij));
 }
 
 /* A quarter of the slipway's length past its `qu` end: near that
@@ -514,7 +514,7 @@ static void test_kz_ticks(void) {
         assert(mz->header.t == pico8_fixed_from_int(i + 1));
         h = fnv(h, (uint32_t)mz->oi);
     }
-    assert(listed(pico8_hv(), mz));
+    assert(ents_listed(pico8_hv(), mz));
     check("kz ticks", h, KZ_HASH);
 }
 
@@ -610,7 +610,7 @@ static void test_pr_ticks(void) {
 
     world();
     mz = paid_mz_on_unknown();
-    while (listed(pico8_hv(), mz)) {
+    while (ents_listed(pico8_hv(), mz)) {
         int before = unknown_count();
         pico8_dg();
         tick++;

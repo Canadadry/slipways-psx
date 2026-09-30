@@ -56,7 +56,7 @@ static uint32_t fnv(uint32_t h, uint32_t word) {
     return h;
 }
 
-static int rank_in(const pico8_ptrs_t *list, const void *e) {
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
     int i;
     for (i = 0; list != NULL && i < list->count; i++) {
         if (list->items[i] == e) {
@@ -89,7 +89,7 @@ enum { FIXED_KIND = 0, BOOL_KIND = 2, REF_KIND = 3 };
 static uint32_t fold_ref(uint32_t h, const void *p) {
     h = fnv(h, (uint32_t)REF_KIND);
     h = fnv(h, (uint32_t)(p != NULL));
-    return fnv(h, (uint32_t)rank_in(pico8_hv(), p));
+    return fnv(h, (uint32_t)ents_rank_in(pico8_hv(), p));
 }
 
 /* A BOOL or FIXED value's kind word and payload; an unset `qe` folds as

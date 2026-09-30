@@ -86,6 +86,16 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int list_count(const pico8_ptrs_t *list) {
     return list == NULL ? 0 : list->count;
 }
@@ -197,7 +207,7 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     assert(cls->gv == NULL && cls->states[PICO8_STATE_PH] == NULL);
     assert(cls->kj != NULL && cls->ldown != NULL && cls->rdown != NULL && cls->hq != NULL);
     assert(cls->ey == NULL);
-    assert(listed(pico8_hv(), bg) && listed(pico8_cv("kj"), bg) && listed(pico8_cv("hd"), bg));
+    assert(ents_listed(pico8_hv(), bg) && listed(pico8_cv("kj"), bg) && listed(pico8_cv("hd"), bg));
     assert(!listed(pico8_cv("ev"), bg) && !listed(pico8_cv("hk"), bg) && !listed(pico8_cv("hb"), bg));
 }
 

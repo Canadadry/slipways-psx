@@ -49,6 +49,16 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int in_any_cv(const void *e) {
     const char *names[] = {"kj", "ev", "hd", "hk", "hb"};
     int i;
@@ -153,7 +163,7 @@ static void test_jl_builds_a_mouse_reader(void) {
     pico8_jl();
     je = pico8_je();
     assert(pico8_peek(&mem, 0x5f2d) == 1);
-    assert(listed(pico8_hv(), je) && !in_any_cv(je));
+    assert(ents_listed(pico8_hv(), je) && !in_any_cv(je));
     assert(ra_of_je(&ra) && ra.x == 0 && ra.y == 0);
     assert(je_l() != NULL && je_r() != NULL && je_l() != je_r());
     assert(on_of(je_l()) == -1 && jn_of(je_l()) == -1 && hm_of(je_l()) == -1);
@@ -273,8 +283,8 @@ static void test_nf_is_a_struct_sharing_its_buttons(void) {
     generic = pico8_nf_new();
 
     assert(is_an_nf_struct(built) && is_an_nf_struct(generic) && is_an_nf_struct(pico8_je()));
-    assert(listed(pico8_hv(), built) && !in_any_cv(built));
-    assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
+    assert(ents_listed(pico8_hv(), built) && !in_any_cv(built));
+    assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
     assert(((const pico8_struct_header_t *)generic)->cls->states[PICO8_STATE_PH] != NULL);
     assert(((const pico8_struct_header_t *)generic)->cls->kj == NULL);
     assert(pico8_nf_l() != NULL && pico8_nf_r() != NULL);

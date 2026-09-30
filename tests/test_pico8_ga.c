@@ -88,6 +88,16 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
@@ -221,7 +231,7 @@ static pico8_ga_t *as_ga(void *e) {
 
 /* The first burst of `hv` at rank `from` or later, NULL when none. */
 static void *ga_from(int from) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int i;
     for (i = from; i < hv->count; i++) {
         if (is_ga(hv->items[i])) {
@@ -278,7 +288,7 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     keys.p = vec_ref(vec_xy(x / 2, y / 2));
     keys.ra = vec_ref(near_mo(x, y));
     pm = pico8_pm_new(&keys);
-    at = rank_in(pico8_hv(), pm);
+    at = ents_rank_in(pico8_hv(), pm);
     assert(at >= 1 && is_ga(pico8_hv()->items[at - 1]));
     if (protostar != NULL) {
         *protostar = pm;
@@ -397,7 +407,7 @@ static uint32_t fold_burst(uint32_t h, void *e, int from_pm) {
     assert(jo->ka == &pico8_jo_ka_seq);
     assert(jo->dz == pico8_jo_dz_rows);
     assert(jo->cq == &pico8_jo_cq_seq);
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (j = 0; j < (int)(sizeof bm / sizeof bm[0]); j++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[j]), e));
     }
@@ -622,7 +632,7 @@ static void test_burst(void) {
     assert(ga_from(0) == e);
     while (ga_from(0) != NULL) {
         e = ga_from(0);
-        assert(ga_from(rank_in(pico8_hv(), e) + 1) == NULL);
+        assert(ga_from(ents_rank_in(pico8_hv(), e) + 1) == NULL);
         pico8__update60();
         pico8__draw();
         frames++;

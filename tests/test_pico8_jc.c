@@ -87,8 +87,22 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 static pico8_jc_t *as_jc(const void *e) {
@@ -151,8 +165,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     /* The frozen hashes folded the `{qs}` as a class-less throwaway. */
     return fnv(h, is_too_far(ref) || is_throwaway(ref) ? 0x7Au : 0xEEEEu);
@@ -473,7 +487,7 @@ static void check_fresh_jc(const void *e, const void *qu) {
     assert(cls_of(jc)->hd == NULL && cls_of(jc)->states[PICO8_STATE_KZ] == NULL &&
            cls_of(jc)->states[PICO8_STATE_PH] == NULL && cls_of(jc)->ldown == NULL && cls_of(jc)->gv == NULL);
 
-    assert(listed(pico8_hv(), jc) && listed(pico8_cv("kj"), jc) && listed(pico8_cv("ev"), jc));
+    assert(ents_listed(pico8_hv(), jc) && listed(pico8_cv("kj"), jc) && listed(pico8_cv("ev"), jc));
     assert(listed(pico8_cg("jc"), jc));
     assert(!listed(pico8_cv("hd"), jc) && !listed(pico8_cv("hk"), jc) && !listed(pico8_cv("hb"), jc));
 }
@@ -768,7 +782,7 @@ static void test_hq_mouse_point(void) {
     assert(mouse_point_p(r1) != m1);
     assert(cls_of(r1)->get_p(r1) == mouse_point_p(r1));
     assert(!pico8_gd(r1));
-    assert(!listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
+    assert(!ents_listed(pico8_hv(), r1) && !listed(pico8_cg("jc"), r1) && !listed(pico8_cg("np"), r1));
     h = fnv(h, (uint32_t)p1.x);
     h = fnv(h, (uint32_t)p1.y);
     h = fold_jc(h, a);

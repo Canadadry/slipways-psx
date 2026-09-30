@@ -78,6 +78,16 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
 }
@@ -251,8 +261,8 @@ static int is_ga(const void *e) {
 /* The `ga` that `pm:pq` spawned: registered in `hv` just before the
  * protostar, at `ra + ng`; its `qy` and `mo.ma` as `ga:pq` left them. */
 static uint32_t fold_spawned(uint32_t h, void *e) {
-    const pico8_ptrs_t *hv = pico8_hv();
-    int at = rank_in(hv, e);
+    const pico8_ents_t *hv = pico8_hv();
+    int at = ents_rank_in(hv, e);
     const pico8_ga_t *g;
     const pico8_pm_t *pm;
     const pico8_vec_t *ra;
@@ -264,7 +274,7 @@ static uint32_t fold_spawned(uint32_t h, void *e) {
     ra = pm->hj.qh.jo.ra;
     ng = pm->ng;
     assert(is_ga(hv->items[at - 1]));
-    g = hv->items[at - 1];
+    g = (const pico8_ga_t *)hv->items[at - 1];
     gra = g->jo.ra;
     assert(gra != NULL && ng != NULL);
     if (ra != NULL) {
@@ -407,7 +417,7 @@ static uint32_t fold_protostar(uint32_t h, void *e) {
     h = fold_kw(h, jo);
     h = fnv(h, (uint32_t)ents_ptrs_size(jo->oe));
     h = fnv(h, (uint32_t)ptrs_size(jo->jy));
-    h = fnv(h, (uint32_t)rank_in(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), e));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)rank_in(pico8_cv(bm[i]), e));
     }

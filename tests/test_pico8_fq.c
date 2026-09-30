@@ -68,6 +68,16 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* The kind words the frozen hashes fold before a value: any other value
  * moves them. */
 enum { FIXED_KIND = 0, BOOL_KIND = 2 };
@@ -85,7 +95,7 @@ static uint32_t fold_veil(uint32_t h, const pico8_fq_t *e) {
     h = fnv(fnv(h, (uint32_t)FIXED_KIND), (uint32_t)e->header.t);
     h = fold_bool_member(h, e->has_p_, e->p_);
     h = fold_bool_member(h, e->has_m_, e->m_);
-    h = fnv(h, (uint32_t)listed(pico8_hv(), e));
+    h = fnv(h, (uint32_t)ents_listed(pico8_hv(), e));
     return fnv(h, (uint32_t)listed(pico8_cv("hd"), e));
 }
 
@@ -134,7 +144,7 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
     pico8_jl();
     veil = veil_with_my(1);
     h = fold_veil(h, veil);
-    while (listed(pico8_hv(), veil)) {
+    while (ents_listed(pico8_hv(), veil)) {
         if (ticks == LDOWN_TICK) {
             assert(ldown(veil));
             assert(g_my_calls == 1);
@@ -169,7 +179,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
         pico8_dg();
         h = fold_veil(h, veil);
     }
-    assert(listed(pico8_hv(), veil) && listed(pico8_cv("hd"), veil));
+    assert(ents_listed(pico8_hv(), veil) && listed(pico8_cv("hd"), veil));
     check("bare", h, BARE_SEQUENCE_HASH);
 }
 
@@ -190,7 +200,7 @@ static void test_false_my_keeps_the_veil(void) {
         pico8_dg();
         h = fold_veil(h, veil);
     }
-    assert(listed(pico8_hv(), veil) && listed(pico8_cv("hd"), veil));
+    assert(ents_listed(pico8_hv(), veil) && listed(pico8_cv("hd"), veil));
     check("my false", h, MY_FALSE_SEQUENCE_HASH);
 }
 
@@ -284,8 +294,8 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     generic = pico8_fq_new(NULL);
 
     assert(is_a_veil_struct(built) && is_a_veil_struct(generic));
-    assert(listed(pico8_hv(), built) && listed(pico8_cv("hd"), built));
-    assert(listed(pico8_hv(), generic) && listed(pico8_cv("hd"), generic));
+    assert(ents_listed(pico8_hv(), built) && listed(pico8_cv("hd"), built));
+    assert(ents_listed(pico8_hv(), generic) && listed(pico8_cv("hd"), generic));
     for (i = 0; i < 4; i++) {
         assert(!listed(pico8_cv(others[i]), built) && !listed(pico8_cv(others[i]), generic));
     }

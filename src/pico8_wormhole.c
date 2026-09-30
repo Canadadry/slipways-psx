@@ -27,8 +27,8 @@ static pico8_mz_jj_t g_mz_jj_wrapper = {
 
 void pico8_mz_pq(pico8_mz_t *self) {
     pico8_ents_t *heap_ox;
-    pico8_ptrs_iter_t it;
-    void *e;
+    pico8_ents_iter_t it;
+    pico8_struct_header_t *p;
 
     if (self == NULL) {
         return;
@@ -39,9 +39,8 @@ void pico8_mz_pq(pico8_mz_t *self) {
     /* TROU-7 */
     heap_ox = malloc(sizeof *heap_ox);
     pico8_ents_init(heap_ox);
-    it = pico8_ptrs_all(pico8_hv());
-    while (pico8_ptrs_iter_next(&it, &e)) {
-        pico8_struct_header_t *p = e;
+    it = pico8_ents_all(pico8_hv());
+    while (pico8_ents_iter_next(&it, &p)) {
         if (p != NULL && p->cls->get_fx != NULL && p->cls->get_fx(p)) {
             pico8_ents_add(heap_ox, p);
         }

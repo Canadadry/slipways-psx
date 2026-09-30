@@ -70,8 +70,22 @@ static int rank_in(const pico8_ptrs_t *list, const void *e) {
     return -1;
 }
 
+static int ents_rank_in(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static int listed(const pico8_ptrs_t *list, const void *e) {
     return rank_in(list, e) >= 0;
+}
+
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    return ents_rank_in(list, e) >= 0;
 }
 
 /* 0 absent, 1 false, 2 true. */
@@ -161,8 +175,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     if (ref == (const void *)&pico8_fv_k__seq) {
         return fold_seq(fnv(h, 0x7Au), ref);
@@ -256,7 +270,7 @@ static int is_help(pico8_struct_header_t *e) {
 }
 
 static pico8_fv_t *the_help(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     pico8_struct_header_t *found = NULL;
     int i;
 
@@ -292,7 +306,7 @@ static const pico8_js_t *as_js(const void *e) {
  * `lt` registered it; `ok.le` emptied. */
 static void test_built(void) {
     uint32_t h = 2166136261u;
-    const pico8_ptrs_t *hv;
+    const pico8_ents_t *hv;
     pico8_fv_t *fv;
     const pico8_g__t *g_;
     const pico8_emitter_t *em;
@@ -368,7 +382,7 @@ static void test_built(void) {
     assert(cls_of(fv)->ey == pico8_d__dispatch);
     assert(cls_of(fv)->hd != NULL);
 
-    rank = rank_in(hv, fv);
+    rank = ents_rank_in(hv, fv);
     h = fnv(h, (uint32_t)rank);
     h = fnv(h, (uint32_t)hv->count);
     assert(rank >= 4);
@@ -394,7 +408,7 @@ static void test_built(void) {
     assert(listed(pico8_cg("g_"), fv) && listed(pico8_cg("prober"), fv));
 
     for (k = 0; k < 4; k++) {
-        const pico8_js_t *row = hv->items[rank - 4 + k];
+        const pico8_js_t *row = (const pico8_js_t *)hv->items[rank - 4 + k];
         assert(row->has_my);
         assert(row->my == pico8_eu_field_value());
     }
@@ -422,7 +436,7 @@ static void test_life(void) {
         pico8_dg();
         h = fold_fixed_member(h, fv->g_.header.t);
         h = fold_string_member(h, fv->g_.header.me);
-        assert(listed(pico8_hv(), fv));
+        assert(ents_listed(pico8_hv(), fv));
     }
     assert(cls_of(fv)->hd(fv, vec_ref(64, 10), vec_ref(64, 112)) == 1);
     assert(cls_of(fv)->hd(fv, vec_ref(64, 112), vec_ref(64, 10)) == 0);
@@ -516,7 +530,7 @@ static void test_eu_retires_the_help(void) {
     start_title();
     fv = the_help();
     pico8_eu(NULL);
-    assert(!listed(pico8_hv(), fv));
+    assert(!ents_listed(pico8_hv(), fv));
     assert(!listed(pico8_cg("g_"), fv) && !listed(pico8_cv("kj"), fv) && !listed(pico8_cv("hd"), fv));
 }
 

@@ -58,6 +58,16 @@ static int listed(const pico8_ptrs_t *list, const void *e) {
     return 0;
 }
 
+static int ents_listed(const pico8_ents_t *list, const void *e) {
+    int i;
+    for (i = 0; list != NULL && i < list->count; i++) {
+        if (list->items[i] == e) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int in_any_cv(const void *e) {
     const char *names[] = {"kj", "ev", "hd", "hk", "hb"};
     int i;
@@ -139,7 +149,7 @@ static void check_fresh_mo(const pico8_qb_t *mo) {
     pico8_vec_t ra = must_vec(mo->ra);
     pico8_vec_t v = must_vec(mo->v);
 
-    assert(listed(pico8_hv(), mo) && !in_any_cv(mo));
+    assert(ents_listed(pico8_hv(), mo) && !in_any_cv(mo));
     assert(p.x == pico8_fixed_from_int(192) && p.y == pico8_fixed_from_int(192));
     assert(ra.x == pico8_fixed_from_int(192) && ra.y == pico8_fixed_from_int(192));
     assert(v.x == 0 && v.y == 0);
@@ -254,7 +264,7 @@ static void test_second_jl(void) {
     first = pico8_mo();
     pico8_jl();
     assert(pico8_mo() != first);
-    assert(!listed(pico8_hv(), first));
+    assert(!ents_listed(pico8_hv(), first));
     check_fresh_mo(mo_qb());
 
     pico8_bootstrap_shutdown();
@@ -300,7 +310,7 @@ static void test_right_drag_moves_the_camera(void) {
 }
 
 static int ga_alive(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int i;
 
     for (i = 0; i < hv->count; i++) {
@@ -362,7 +372,7 @@ static void test_qb_is_a_struct(void) {
     pico8_jl();
     generic = pico8_qb_new();
     assert(is_a_qb_struct(pico8_mo()) && is_a_qb_struct(generic));
-    assert(listed(pico8_hv(), generic) && !in_any_cv(generic));
+    assert(ents_listed(pico8_hv(), generic) && !in_any_cv(generic));
     check_fresh_mo(generic);
     assert(generic->header.cls->get_ra(generic) == generic->ra);
     assert(generic->header.cls->get_p(generic) == generic->p);

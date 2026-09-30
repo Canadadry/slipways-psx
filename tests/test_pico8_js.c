@@ -221,8 +221,8 @@ static uint32_t fold_ref(uint32_t h, const void *ref) {
     if (ref == NULL) {
         return fnv(h, 0xDEADu);
     }
-    if (listed(pico8_hv(), ref)) {
-        return fnv(fnv(h, 0x4Eu), (uint32_t)rank_in(pico8_hv(), ref));
+    if (ents_listed(pico8_hv(), ref)) {
+        return fnv(fnv(h, 0x4Eu), (uint32_t)ents_rank_in(pico8_hv(), ref));
     }
     if (in_gb(ref)) {
         return fnv(fnv(h, 0xEEEEu), FROZEN_INSTANCE_TAG);
@@ -390,7 +390,7 @@ static uint32_t fold_button(uint32_t h, const void *e) {
     assert(cls_of(b)->states[PICO8_STATE_PH] != NULL && cls_of(b)->kj != NULL && cls_of(b)->ev != NULL &&
            cls_of(b)->ldown != NULL && cls_of(b)->hd != NULL);
     assert(cls_of(b)->rdown == NULL && cls_of(b)->gv == NULL && cls_of(b)->hk == NULL);
-    h = fnv(h, (uint32_t)listed(pico8_hv(), b));
+    h = fnv(h, (uint32_t)ents_listed(pico8_hv(), b));
     for (i = 0; i < sizeof bm / sizeof bm[0]; i++) {
         h = fnv(h, (uint32_t)listed(pico8_cv(bm[i]), b));
     }
@@ -1038,7 +1038,7 @@ static void test_nil_keys(void) {
 
 /* How many `js` structs hv holds. */
 static int all_buttons_are_structs(void) {
-    const pico8_ptrs_t *hv = pico8_hv();
+    const pico8_ents_t *hv = pico8_hv();
     int n = 0;
     int i;
     for (i = 0; i < hv->count; i++) {

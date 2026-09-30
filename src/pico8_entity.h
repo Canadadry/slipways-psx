@@ -1,6 +1,7 @@
 #ifndef PICO8_ENTITY_H
 #define PICO8_ENTITY_H
 
+#include "pico8_ents.h"
 #include "pico8_ptrs.h"
 #include "pico8_scroll.h"
 #include "pico8_struct.h"
@@ -21,7 +22,7 @@ void pico8_entity_shutdown(void);
 
 /* Every entity lt()'d and not yet he()'d, in registration order, as
  * pointers to a ke-descended struct (pico8_ke.h). */
-const pico8_ptrs_t *pico8_hv(void);
+const pico8_ents_t *pico8_hv(void);
 
 /* The entities registered under bm field name `name` ("kj", "ev", "hd",
  * "hk" or "hb"), or NULL if `name` is not one of those five. The five
