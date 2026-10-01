@@ -426,9 +426,23 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
+/* Un _init sur l'ecran titre, sans frame : l'aide d'avant rend sa place
+ * qy_fv, unique, avant que la nouvelle la prenne. */
+static void sortir_l_aide(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    for (int i = 0; i < hv->count; i++) {
+        if (hv->items[i]->cls == pico8_fv_struct_class()) {
+            pico8_he(hv->items[i]);
+            pico8_cart_vider_file_sortie();
+            return;
+        }
+    }
+}
+
 static void start_title(void) {
     pico8_input_init(&input);
     pico8_dispatch_set_input(&input);
+    sortir_l_aide();
     pico8__init();
 }
 
@@ -437,6 +451,7 @@ static void start_title(void) {
 static void start_game(void) {
     start_title();
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
 }
 
 /* The `i`th (from 1) of the title's four buttons, which `pz` built from

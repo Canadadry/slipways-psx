@@ -63,13 +63,16 @@ typedef struct {
 } pico8_g__keys_t;
 
 /* `keys` NULL means none. The new probe registers itself into `hv`/`cv`/`cg` through `lt`
- * (and gets its particle list from `f_`), and nothing ever frees it.
+ * (and gets its particle list from `f_`, which its `rendre` gives back);
+ * nothing ever frees the probe itself.
  * Asserts when called before `pico8_probe_init()`. */
 pico8_g__t *pico8_g__new(const pico8_g__keys_t *keys);
 
-/* TROU-7 */
-/* Returns a freshly allocated `pico8_qy_t` (`has_a` 0), one allocation;
- * `ez` appends it to `qy` and nothing ever frees it. */
+/* A particle (`has_a` 0) from pico8_particule_prendre, which `ez` appends
+ * to `qy`. */
 pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self);
+
+/* `rendre` of `g_` and `fv`: gives back their `qy`, not their struct. */
+void pico8_g__rendre_dispatch(pico8_struct_header_t *self);
 
 #endif

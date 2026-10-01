@@ -199,13 +199,18 @@ void pico8_hj_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_hj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
+void pico8_hj_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jo_rendre_dispatch(self);
+    pico8_qy_rendre(self->emitter);
+}
+
 static const pico8_struct_class_t g_hj_struct_class = {
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
-    .rendre = pico8_jo_rendre_dispatch,
+    .rendre = pico8_hj_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -292,7 +297,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
-    .rendre = pico8_jo_rendre_dispatch,
+    .rendre = pico8_hj_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -376,7 +381,7 @@ pico8_qy_t *pico8_ga_mm(pico8_struct_header_t *self_ptr) {
     v = pico8_vec_mul(p, ms);
     a = pico8_vec_mul(p, iu);
 
-    particle = malloc(sizeof *particle);
+    particle = pico8_particule_prendre();
     particle->p = p;
     particle->v = v;
     particle->has_a = 1;
@@ -388,7 +393,7 @@ pico8_qy_t *pico8_ga_mm(pico8_struct_header_t *self_ptr) {
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
     const pico8_ptrs_t *qy = NULL;
-    const pico8_qy_t *last_pt = NULL;
+    int third_taken = 0;
     int i;
     int px;
     int py;
@@ -424,12 +429,13 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
          * alone: the burst dies when fewer than 3 particles remain, not
-         * when none do. */
-        last_pt = pt;
+         * when none do. A flag, not `pt`: `ei` may give that particle
+         * back before `p_` is written. */
+        third_taken = pt != NULL;
     }
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
-    self->p_ = last_pt == NULL;
+    self->p_ = !third_taken;
 }
 
 static void pico8_ga_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
@@ -442,7 +448,7 @@ static const pico8_struct_class_t g_ga_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
-    .rendre = pico8_jo_rendre_dispatch,
+    .rendre = pico8_hj_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .kf = pico8_jo_kf_dispatch,

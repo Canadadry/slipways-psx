@@ -30,6 +30,7 @@
 #include "../src/pico8_ke.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_slipway.h"
@@ -257,6 +258,7 @@ static void start_game(void) {
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
 }
 
 static pico8_vec_t *vec_ref(pico8_vec_t at) {
@@ -803,6 +805,43 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* What an emitter holds in the particle zone, by sort. */
+typedef struct {
+    int particules;
+    int qy;
+    int qy_fv;
+    int rangees;
+} held_t;
+
+static held_t held_now(void) {
+    held_t h;
+    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
+    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
+    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    return h;
+}
+
+/* A probe that leaves (`he`, then the exit queue's flush) gives back its
+ * particles and its `qy`, and keeps its struct. */
+static void test_leaving_gives_back_its_particles(void) {
+    held_t before;
+    held_t after;
+    pico8_g__t *a;
+
+    start_game();
+    before = held_now();
+    a = ldown();
+    pico8_ez(&a->header, pico8_fixed_from_int(5));
+    assert(a->emitter->qy->count == 5);
+    assert(held_now().particules == before.particules + 5 && held_now().qy == before.qy + 1);
+    pico8_he(&a->header);
+    pico8_cart_vider_file_sortie();
+    after = held_now();
+    assert(after.particules == before.particules && after.qy == before.qy);
+    assert(a->emitter->qy == NULL);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -822,6 +861,7 @@ int main(void) {
     in_fresh_child(test_fv);
     in_fresh_child(test_g__is_a_struct);
     in_fresh_child(test_bv_et_is_a_struct);
+    in_fresh_child(test_leaving_gives_back_its_particles);
 
     printf("test_pico8_g_: all tests passed\n");
     return 0;

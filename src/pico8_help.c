@@ -105,6 +105,7 @@ static const pico8_struct_class_t g_fv_struct_class = {
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
+    .rendre = pico8_g__rendre_dispatch,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
 };
@@ -124,7 +125,7 @@ static pico8_g__t *pico8_fv_struct_new(void) {
     pico8_class_coverage_record("fv");
 #endif
     pico8_fv_pq(self);
-    pico8_f_((pico8_struct_header_t *)self);
+    pico8_f__dans((pico8_struct_header_t *)self, PICO8_PARTICULES_QY_FV);
     pico8_ke_struct_pq(&self->header);
     return self;
 }

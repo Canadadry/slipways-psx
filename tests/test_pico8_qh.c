@@ -198,6 +198,7 @@ static void start_game(void) {
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
 }
 
 static pico8_vec_t *vec_ref(pico8_vec_t at) {

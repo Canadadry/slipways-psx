@@ -196,6 +196,7 @@ static pico8_ui_t *start_game(void) {
     pico8_dispatch_set_input(&input);
     pico8__init();
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
     assert(pico8_ok() != NULL);
     return pico8_ok();
 }
@@ -849,6 +850,21 @@ static void assert_own_probe(pico8_struct_header_t *self, pico8_struct_header_t 
     assert(at >= (const char *)self && at < (const char *)self + size);
 }
 
+/* A second help, built once `first` gave back its list: the qy_fv sort
+ * holds one help's list at a time. */
+static pico8_struct_header_t *help_alone(pico8_struct_header_t *first) {
+    static pico8_struct_header_t *previous;
+    pico8_struct_header_t *fresh;
+
+    pico8_qy_rendre(first->emitter);
+    if (previous != NULL) {
+        pico8_qy_rendre(previous->emitter);
+    }
+    fresh = &pico8_fv_new()->header;
+    previous = fresh;
+    return fresh;
+}
+
 /* Which of the 24 classes carry a particle emitter (exactly hj, pm, ga, mx,
  * g_, fv) and a probe (qh's line, g_, fv, jc, mz), each in its own storage. */
 static void test_components_carried(void) {
@@ -894,7 +910,7 @@ static void test_components_carried(void) {
     assert_own_emitter(e[10], &pico8_ga_new(NULL)->header, sizeof(pico8_jo_t));
     assert_own_emitter(e[13], &pico8_mx_new(NULL)->header, sizeof(pico8_jo_t));
     assert_own_emitter(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
-    assert_own_emitter(e[15], &pico8_fv_new()->header, sizeof(pico8_g__t));
+    assert_own_emitter(e[15], help_alone(e[15]), sizeof(pico8_g__t));
     assert_own_probe(e[5], &pico8_qh_new(NULL)->header, sizeof(pico8_jo_t));
     assert_own_probe(e[6], &pico8_nl_new(NULL)->header, sizeof(pico8_jo_t));
     assert_own_probe(e[7], &pico8_os_new(NULL)->header, sizeof(pico8_jo_t));
@@ -904,7 +920,7 @@ static void test_components_carried(void) {
     assert_own_probe(e[12], &pico8_fr_new(NULL)->header, sizeof(pico8_jo_t));
     assert_own_probe(e[13], &pico8_mx_new(NULL)->header, sizeof(pico8_jo_t));
     assert_own_probe(e[14], &pico8_g__new(NULL)->header, sizeof(pico8_g__t));
-    assert_own_probe(e[15], &pico8_fv_new()->header, sizeof(pico8_g__t));
+    assert_own_probe(e[15], help_alone(e[15]), sizeof(pico8_g__t));
     assert_own_probe(e[19], &pico8_jc_new(NULL)->header, sizeof(pico8_jc_t));
     assert_own_probe(e[23], &pico8_mz_new()->header, sizeof(pico8_mz_t));
 }

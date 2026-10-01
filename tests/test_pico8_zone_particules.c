@@ -8,7 +8,10 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#include "../src/pico8_gfx.h"
+#include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_probe.h"
 #include "../src/pico8_ptrs.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_particules.h"
@@ -175,6 +178,102 @@ static int case_qy_rendre_releases_the_arena(void) {
     return 0;
 }
 
+/* Un hote d'emetteur reduit a ce que lisent `f_` et `ei` : `fa` 10, donc
+ * dessine sans `gd`, et `fc` 0, donc sans naissance. */
+static const pico8_emitter_def_t g_sans_naissance;
+static const pico8_struct_class_t g_hote_cls;
+static const pico8_fixed_t g_fa_dix = 10 << 16;
+static const pico8_vec_t *const g_ra_nil = NULL;
+static pico8_emitter_t g_emitter;
+static pico8_struct_header_t g_hote;
+static pico8_gfx_t g_gfx;
+static pico8_mem_t g_mem;
+
+static pico8_struct_header_t *hote(void) {
+    pico8_gfx_init(&g_gfx);
+    pico8_mem_init(&g_mem);
+    pico8_struct_header_init(&g_hote, &g_hote_cls);
+    memset(&g_emitter, 0, sizeof g_emitter);
+    g_emitter.def = &g_sans_naissance;
+    g_hote.fa = &g_fa_dix;
+    g_hote.ra = &g_ra_nil;
+    g_hote.emitter = &g_emitter;
+    pico8_f_(&g_hote);
+    return &g_hote;
+}
+
+/* Une particule qui meurt au prochain `ei` : `l` 1.1, moins 0.14. */
+static pico8_qy_t *mourante(pico8_struct_header_t *h) {
+    pico8_qy_t *p = pico8_particule_prendre();
+    memset(p, 0, sizeof *p);
+    p->l = (1 << 16) + 6554;
+    pico8_ptrs_add(h->emitter->qy, p);
+    return p;
+}
+
+static int case_f__takes_a_qy_list(void) {
+    pico8_struct_header_t *h = hote();
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 1);
+    assert(h->emitter->qy != NULL && h->emitter->qy->count == 0);
+    pico8_qy_rendre(h->emitter);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 0);
+    return 0;
+}
+
+static int case_f__fv_takes_a_qy_fv_list(void) {
+    pico8_struct_header_t *h = hote();
+    pico8_qy_rendre(h->emitter);
+    pico8_f__dans(h, PICO8_PARTICULES_QY_FV);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV) == 1);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 0);
+    return 0;
+}
+
+static int case_second_f__gives_back_the_old_list(void) {
+    pico8_struct_header_t *h = hote();
+    mourante(h);
+    mourante(h);
+    pico8_f_(h);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_QY) == 1 && "l'ancienne liste est rendue");
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 0 && "et ses particules avec elle");
+    assert(h->emitter->qy->count == 0);
+    return 0;
+}
+
+static int case_ei_gives_back_a_dying_particle(void) {
+    pico8_struct_header_t *h = hote();
+    mourante(h);
+    pico8_qy_t *survivante = mourante(h);
+    survivante->l = 5 << 16;
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 2);
+    pico8_ei(&g_gfx, &g_mem, h);
+    assert(h->emitter->qy->count == 1);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 1 && "ei rend la particule qu'il retire");
+    return 0;
+}
+
+static int case_particle_dead_after_ei(void) {
+    pico8_struct_header_t *h = hote();
+    pico8_qy_t *p = mourante(h);
+    pico8_ei(&g_gfx, &g_mem, h);
+    sink = ((volatile unsigned char *)p)[0];
+    return 0;
+}
+
+static int case_ez_notes_the_list_length(void) {
+    static const pico8_struct_class_t cls = {.mm = pico8_g__mm};
+    static const pico8_emitter_def_t def = {.ki = 9 << 16, .fc = 1 << 16};
+    pico8_struct_header_t *h = hote();
+    g_hote.cls = &cls;
+    g_emitter.def = &def;
+    g_emitter.pn = 1 << 16;
+    pico8_ez(h, 3 << 16);
+    assert(h->emitter->qy->count == 3);
+    assert(pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE) == 3 && "g_:mm prend a la poignee particule");
+    assert(pico8_zone_particules_max_elements(PICO8_PARTICULES_QY) == 3);
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
@@ -190,6 +289,12 @@ static const struct {
     {"maxima_keep_the_peak", case_maxima_keep_the_peak},
     {"qy_rendre_gives_back_particles_then_list", case_qy_rendre_gives_back_particles_then_list},
     {"qy_rendre_releases_the_arena", case_qy_rendre_releases_the_arena},
+    {"f__takes_a_qy_list", case_f__takes_a_qy_list},
+    {"f__fv_takes_a_qy_fv_list", case_f__fv_takes_a_qy_fv_list},
+    {"second_f__gives_back_the_old_list", case_second_f__gives_back_the_old_list},
+    {"ei_gives_back_a_dying_particle", case_ei_gives_back_a_dying_particle},
+    {"particle_dead_after_ei", case_particle_dead_after_ei},
+    {"ez_notes_the_list_length", case_ez_notes_the_list_length},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -275,6 +380,12 @@ int main(int argc, char **argv) {
     expect_clean("maxima_keep_the_peak");
     expect_clean("qy_rendre_gives_back_particles_then_list");
     expect_freed_crash("qy_rendre_releases_the_arena");
+    expect_clean("f__takes_a_qy_list");
+    expect_clean("f__fv_takes_a_qy_fv_list");
+    expect_clean("second_f__gives_back_the_old_list");
+    expect_clean("ei_gives_back_a_dying_particle");
+    expect_freed_crash("particle_dead_after_ei");
+    expect_clean("ez_notes_the_list_length");
     remove(STDERR_LOG);
     printf("test_pico8_zone_particules: all tests passed\n");
     return 0;

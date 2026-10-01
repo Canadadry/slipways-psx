@@ -350,8 +350,7 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
         v = pico8_vec_pa(v);
     }
 
-    /* TROU-7 */
-    particle = malloc(sizeof *particle);
+    particle = pico8_particule_prendre();
     particle->p = p;
     particle->v = v;
     particle->has_a = 0;
@@ -361,12 +360,17 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
     return particle;
 }
 
+void pico8_g__rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_qy_rendre(self->emitter);
+}
+
 static const pico8_struct_class_t g_g__struct_class = {
     .kj = pico8_ei_dispatch,
     .ev = pico8_dl_dispatch,
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
+    .rendre = pico8_g__rendre_dispatch,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
 };

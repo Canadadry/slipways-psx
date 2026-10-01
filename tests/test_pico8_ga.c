@@ -26,6 +26,7 @@
 #include "../src/pico8_layout.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_planet_family.h"
@@ -519,13 +520,21 @@ static uint32_t fold_lq(uint32_t h, void *e) {
     return fnv(h, (uint32_t)(lq->items_count + n + 2));
 }
 
+/* Cuts `qy` to its first `n` particles, giving back the others. */
+static void cut_qy(pico8_ptrs_t *qy, int n) {
+    while (qy->count > n) {
+        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), qy->items[qy->count - 1]);
+        qy->count--;
+    }
+}
+
 /* `kj` on `e` with its `qy` cut in place to `n` particles: `p_` after. */
 static uint32_t fold_cut(uint32_t h, void *e, int n) {
     pico8_jo_t *g = as_ga(e);
     pico8_ptrs_t *qy = g->emitter->qy;
 
     assert(qy != NULL && qy->count >= n);
-    qy->count = n;
+    cut_qy(qy, n);
     cls_of(e)->kj(e, g->ra);
     h = fold_p_(h, g);
     return fnv(h, (uint32_t)qy->count);
@@ -564,7 +573,7 @@ static void test_life(void) {
         h = fnv(h, (uint32_t)ptrs_size(as_ga(b)->emitter->qy));
     }
 
-    as_ga(b)->emitter->qy->count = 3;
+    cut_qy(as_ga(b)->emitter->qy, 3);
     for (i = 0; i < 3; i++) {
         pico8_dc("kj");
         h = fnv(h, screen_hash());
@@ -634,7 +643,7 @@ static void test_burst(void) {
  * (its second row reads the x just written), then accelerated by `a`, and
  * `l` less 0.14. A protostar's burst turns (`qg` is not 0). */
 static void test_ei_moves_a_particle_in_place(void) {
-    static pico8_qy_t particle;
+    pico8_qy_t *particle = pico8_particule_prendre();
     pico8_vec_t p0 = vec_xy(3, -2);
     pico8_vec_t v0 = pico8_vec_v(PICO8_FIXED_LIT(0x00018000, 1.5), PICO8_FIXED_LIT(0x00004000, 0.25));
     pico8_vec_t a0 = pico8_vec_v(PICO8_FIXED_LIT(0x00002000, 0.125), PICO8_FIXED_LIT(0xFFFF8000, -0.5));
@@ -648,24 +657,24 @@ static void test_ei_moves_a_particle_in_place(void) {
     e = spawn(84, 60, "s73", NULL);
     em = as_ga(e)->emitter;
     assert(em->qg != 0);
-    particle.p = p0;
-    particle.v = v0;
-    particle.has_a = 1;
-    particle.a = a0;
-    particle.l = pico8_fixed_from_int(5);
+    particle->p = p0;
+    particle->v = v0;
+    particle->has_a = 1;
+    particle->a = a0;
+    particle->l = pico8_fixed_from_int(5);
     qy = em->qy;
-    qy->count = 0;
-    pico8_ptrs_add(qy, &particle);
+    cut_qy(qy, 0);
+    pico8_ptrs_add(qy, particle);
 
     pico8_ei(&gfx, &mem, e);
 
     vx = pico8_fixed_add(pico8_fixed_mul(em->qo, v0.x), pico8_fixed_mul(em->ro, v0.y));
     vy = pico8_fixed_add(pico8_fixed_mul(em->qg, vx), pico8_fixed_mul(em->q_, v0.y));
-    assert(qy->count >= 1 && qy->items[0] == &particle);
-    assert(particle.p.x == pico8_fixed_add(p0.x, v0.x) && particle.p.y == pico8_fixed_add(p0.y, v0.y));
-    assert(particle.v.x == pico8_fixed_add(vx, a0.x) && particle.v.y == pico8_fixed_add(vy, a0.y));
-    assert(particle.a.x == a0.x && particle.a.y == a0.y);
-    assert(particle.l == pico8_fixed_sub(pico8_fixed_from_int(5), PICO8_FIXED_LIT(0x000023d7, 0.14)));
+    assert(qy->count >= 1 && qy->items[0] == particle);
+    assert(particle->p.x == pico8_fixed_add(p0.x, v0.x) && particle->p.y == pico8_fixed_add(p0.y, v0.y));
+    assert(particle->v.x == pico8_fixed_add(vx, a0.x) && particle->v.y == pico8_fixed_add(vy, a0.y));
+    assert(particle->a.x == a0.x && particle->a.y == a0.y);
+    assert(particle->l == pico8_fixed_sub(pico8_fixed_from_int(5), PICO8_FIXED_LIT(0x000023d7, 0.14)));
 }
 
 static int is_a_ga_struct(const void *e) {
@@ -720,6 +729,44 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* What an emitter holds in the particle zone, by sort. */
+typedef struct {
+    int particules;
+    int qy;
+    int qy_fv;
+    int rangees;
+} held_t;
+
+static held_t held_now(void) {
+    held_t h;
+    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
+    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
+    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    return h;
+}
+
+/* A burst that leaves (`he`, then the exit queue's flush) gives back the
+ * particles it still holds and its `qy`. */
+static void test_leaving_gives_back_its_particles(void) {
+    held_t built;
+    held_t after;
+    pico8_jo_t *e;
+    int count;
+
+    start_game();
+    pico8_cart_vider_file_sortie();
+    e = as_ga(harvest(40, 40, "s74"));
+    count = e->emitter->qy->count;
+    assert(count == 140);
+    built = held_now();
+    pico8_he(&e->header);
+    pico8_cart_vider_file_sortie();
+    after = held_now();
+    assert(after.particules == built.particules - count && after.qy == built.qy - 1);
+    assert(e->emitter->qy == NULL);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -736,6 +783,7 @@ int main(void) {
     in_fresh_child(test_burst);
     in_fresh_child(test_ei_moves_a_particle_in_place);
     in_fresh_child(test_ga_is_a_struct);
+    in_fresh_child(test_leaving_gives_back_its_particles);
 
     printf("test_pico8_ga: all tests passed\n");
     return 0;

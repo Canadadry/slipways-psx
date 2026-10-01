@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity_geom.h"
@@ -26,8 +25,21 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-/* TROU-7 */
+static void adosser(void) {
+    pico8_zone_particules_adosser(&pico8_zone_transitoire);
+}
+
+pico8_qy_t *pico8_particule_prendre(void) {
+    adosser();
+    return (pico8_qy_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof(pico8_qy_t));
+}
+
 void pico8_f_(pico8_struct_header_t *self) {
+    pico8_f__dans(self, PICO8_PARTICULES_QY);
+}
+
+void pico8_f__dans(pico8_struct_header_t *self, pico8_particules_sorte_t sorte) {
+    const pico8_zone_choisie_t *place;
     pico8_emitter_t *emitter;
     pico8_ptrs_t *qy;
 
@@ -35,11 +47,17 @@ void pico8_f_(pico8_struct_header_t *self) {
         return;
     }
     assert(self->emitter != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
+    assert((sorte == PICO8_PARTICULES_QY || sorte == PICO8_PARTICULES_QY_FV) && "f_: a qy list is a qy or a qy_fv");
 
     emitter = self->emitter;
-    qy = malloc(sizeof *qy);
-    pico8_ptrs_init(qy, &pico8_zone_transitoire);
+    pico8_qy_rendre(emitter);
+    adosser();
+    place = pico8_zone_particules_place(sorte);
+    qy = (pico8_ptrs_t *)pico8_zone_alloc(place, sizeof *qy);
+    pico8_ptrs_init_reserve(qy, place,
+                            sorte == PICO8_PARTICULES_QY_FV ? PICO8_QY_FV_CAPACITE : PICO8_QY_CAPACITE);
     emitter->qy = qy;
+    emitter->qy_sorte = sorte;
 }
 
 void pico8_qy_rendre(pico8_emitter_t *emitter) {
@@ -71,6 +89,7 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     while (pico8_fixed_rnd_default() < n) {
         if (qy != NULL && self->cls->mm != NULL) {
             pico8_ptrs_add(qy, self->cls->mm(self));
+            pico8_zone_particules_noter_elements(emitter->qy_sorte, qy->count);
         }
         n = pico8_fixed_sub(n, pico8_fixed_from_int(1));
     }
@@ -139,6 +158,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
                  * that slides into the vacated slot is skipped this
                  * frame. Reproduced by never compensating the index. */
                 pico8_ptrs_del(qy, p);
+                pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
             } else {
                 int px = pico8_particle_to_int(pico8_fixed_add(cx, p->p.x));
                 int py = pico8_particle_to_int(pico8_fixed_add(cy, p->p.y));

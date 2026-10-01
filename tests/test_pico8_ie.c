@@ -215,6 +215,7 @@ static void check_int(const char *label, int got, int want) {
 
 static void new_game(void) {
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
