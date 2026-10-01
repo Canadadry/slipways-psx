@@ -1,7 +1,6 @@
 #include "pico8_economy_score.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_economy_formulas.h"
@@ -12,6 +11,7 @@
 #include "pico8_planet.h"
 #include "pico8_str.h"
 #include "pico8_trade.h"
+#include "pico8_zone_frame.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
@@ -68,10 +68,9 @@ static int cz_predicate(pico8_struct_header_t *e, void *ctx) {
 
 pico8_fixed_t pico8_cz(void) {
     const pico8_ents_t *jo_list = pico8_cg("jo");
-    pico8_ents_t filtered = pico8_jp_ents(jo_list, cz_predicate, NULL);
+    pico8_ents_t filtered = pico8_jp_ents(pico8_zone_frame(), jo_list, cz_predicate, NULL);
     int mu = filtered.count;
     pico8_fixed_t result;
-    pico8_ents_free(&filtered);
     result = pico8_fixed_mul(PICO8_FIXED_LIT(0x00002e14, 0.18), pico8_fixed_from_int(mu * mu));
     return pico8_fixed_flr(result);
 }
@@ -169,7 +168,7 @@ static void sum_by_mi_visit(pico8_struct_header_t *pt, void *ctx_) {
 
 static char *concat_percent(const char *s) {
     size_t len = strlen(s);
-    char *out = malloc(len + 2);
+    char *out = (char *)pico8_zone_alloc(pico8_zone_frame(), len + 2);
     memcpy(out, s, len);
     out[len] = '%';
     out[len + 1] = '\0';
@@ -210,14 +209,12 @@ pico8_ky_t pico8_ky(void) {
         pico8_fixed_mul(pico8_fixed_add(pico8_fixed_add(di_ctx.total, gl), el), PICO8_FIXED_LIT(0x0000028f, 0.01)),
         happiness));
 
-    happiness_str = pico8_tostr_fixed(happiness);
+    happiness_str = pico8_tostr_fixed(pico8_zone_frame(), happiness);
 
     result.di = di_ctx.total;
     result.gl = gl;
     result.el = el;
-    /* TROU-7 */
     result.happiness = concat_percent(happiness_str);
-    free(happiness_str);
     result.total = total;
     result.tier = fixed_min(pico8_fixed_flr(pico8_fixed_div(total, pico8_fixed_from_int(2000))),
                             pico8_fixed_from_int(5));
@@ -261,6 +258,21 @@ const pico8_js_t *pico8_dk(void) {
 
 void pico8_economy_set_dk(const pico8_js_t *dk) {
     g_dk = dk;
+}
+
+void pico8_economy_dk_quitte(const pico8_struct_header_t *e) {
+    static pico8_js_t copie;
+
+    if (g_dk == NULL || &g_dk->header != e) {
+        return;
+    }
+    memset(&copie, 0, sizeof copie);
+    copie.px = g_dk->px;
+    copie.has_trade = g_dk->has_trade;
+    copie.trade = g_dk->trade;
+    copie.has_en = g_dk->has_en;
+    copie.en = g_dk->en;
+    g_dk = &copie;
 }
 
 pico8_fixed_t pico8_kr(pico8_struct_header_t *p) {

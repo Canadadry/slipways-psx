@@ -2,9 +2,9 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "pico8_zone_frame.h"
 
 static int g_trade_up = 0;
 
@@ -23,8 +23,8 @@ int pico8_qe_equal(pico8_qe_t a, pico8_qe_t b) {
 
 static const pico8_struct_class_t g_trade_struct_class = {0};
 
-static pico8_trade_t *pico8_trade_struct_new(const pico8_trade_keys_t *keys) {
-    pico8_trade_t *self = malloc(sizeof *self);
+static pico8_trade_t *pico8_trade_struct_new(const pico8_zone_choisie_t *zone, const pico8_trade_keys_t *keys) {
+    pico8_trade_t *self = (pico8_trade_t *)pico8_zone_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("trade");
@@ -73,8 +73,36 @@ const pico8_struct_class_t *pico8_trade_struct_class(void) {
     return &g_trade_struct_class;
 }
 
-pico8_trade_t *pico8_trade_new(const pico8_trade_keys_t *keys) {
-    return pico8_trade_struct_new(keys);
+pico8_trade_t *pico8_trade_new(const pico8_zone_choisie_t *zone, const pico8_trade_keys_t *keys) {
+    return pico8_trade_struct_new(zone, keys);
+}
+
+static pico8_ents_t *ents_copy(const pico8_zone_choisie_t *zone, const pico8_ents_t *src) {
+    pico8_ents_t empty;
+    pico8_ents_t *copy;
+
+    if (src == NULL) {
+        return NULL;
+    }
+    pico8_ents_init(&empty, zone);
+    copy = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *copy);
+    *copy = pico8_ents_cat(zone, src, &empty);
+    return copy;
+}
+
+pico8_trade_t *pico8_trade_copy(const pico8_zone_choisie_t *zone, const pico8_trade_t *self) {
+    pico8_trade_keys_t keys = {0};
+
+    assert_trade(self);
+    if (self == NULL) {
+        return NULL;
+    }
+    keys.lp = ents_copy(zone, self->lp);
+    keys.rl = ents_copy(zone, self->rl);
+    keys.qe = self->qe;
+    keys.has_qe = self->has_qe;
+    keys.qe_is_bool = self->qe_is_bool;
+    return pico8_trade_new(zone, &keys);
 }
 
 int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out) {
@@ -92,10 +120,11 @@ int pico8_trade_to(const pico8_trade_t *self, pico8_struct_header_t **out) {
     return 1;
 }
 
-/* `{np}`/`{jc}` are one-element stack containers, freed once pico8_ents_cat
- * has copied their element into the heap lp/rl it returns; a Lua `{x}`
- * holds zero elements when x is nil, so a NULL contributes nothing. */
-pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *np, pico8_struct_header_t *jc) {
+/* `{np}`/`{jc}` live in the frame zone: pico8_ents_cat copies their
+ * element into the lp/rl it returns. A Lua `{x}` holds zero elements
+ * when x is nil, so a NULL contributes nothing. */
+pico8_trade_t *pico8_trade_kg(const pico8_zone_choisie_t *zone, const pico8_trade_t *self,
+                              pico8_struct_header_t *np, pico8_struct_header_t *jc) {
     pico8_trade_keys_t keys = {0};
     pico8_ents_t empty_lp;
     pico8_ents_t empty_rl;
@@ -111,8 +140,8 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
         return NULL;
     }
 
-    pico8_ents_init(&empty_lp);
-    pico8_ents_init(&empty_rl);
+    pico8_ents_init(&empty_lp, pico8_zone_frame());
+    pico8_ents_init(&empty_rl, pico8_zone_frame());
     lp = self->lp != NULL ? self->lp : &empty_lp;
     rl = self->rl != NULL ? self->rl : &empty_rl;
     /* TROU-24 */
@@ -120,27 +149,23 @@ pico8_trade_t *pico8_trade_kg(const pico8_trade_t *self, pico8_struct_header_t *
     keys.qe_is_bool = self->has_qe ? self->qe_is_bool : 1;
     keys.qe = self->has_qe ? self->qe : 0;
 
-    pico8_ents_init(&np_list);
+    pico8_ents_init(&np_list, pico8_zone_frame());
     if (np != NULL) {
         pico8_ents_add(&np_list, np);
     }
-    pico8_ents_init(&jc_list);
+    pico8_ents_init(&jc_list, pico8_zone_frame());
     if (jc != NULL) {
         pico8_ents_add(&jc_list, jc);
     }
 
-    /* TROU-7 */
-    new_lp = malloc(sizeof *new_lp);
-    *new_lp = pico8_ents_cat(lp, &np_list);
-    new_rl = malloc(sizeof *new_rl);
-    *new_rl = pico8_ents_cat(rl, &jc_list);
-
-    pico8_ents_free(&np_list);
-    pico8_ents_free(&jc_list);
+    new_lp = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *new_lp);
+    *new_lp = pico8_ents_cat(zone, lp, &np_list);
+    new_rl = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *new_rl);
+    *new_rl = pico8_ents_cat(zone, rl, &jc_list);
 
     keys.lp = new_lp;
     keys.rl = new_rl;
-    return pico8_trade_new(&keys);
+    return pico8_trade_new(zone, &keys);
 }
 
 int pico8_trade_eq(const pico8_trade_t *l, const pico8_trade_t *r) {

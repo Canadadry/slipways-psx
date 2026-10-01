@@ -37,6 +37,8 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_partie.h"
+#include "zone_tas.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -319,6 +321,7 @@ static void test_construction(void) {
     first = invented_of(fm_hy());
     assert(first != invented_of(bare));
 
+    pico8_cart_vider_file_sortie();
     new_game();
     assert(invented_of(fm_hy()) != first && invented_of(fm_hy())->count == 0);
     h = fold_fm(h);
@@ -485,7 +488,7 @@ static void test_lj(void) {
     pico8_jo_t *needer;
     pico8_ptrs_t needs;
     pico8_fixed_t need_qe = pico8_fixed_from_int(99);
-    pico8_jy_t *need = pico8_jy_new(&need_qe);
+    pico8_jy_t *need;
     pico8_fixed_t made;
     pico8_fixed_t now;
     pico8_fixed_t qe;
@@ -521,6 +524,7 @@ static void test_lj(void) {
     h = fold_fm(h);
     h = fnv(h, (uint32_t)(hl_string() == NULL));
 
+    pico8_cart_vider_file_sortie();
     new_game();
     fm_hy()->nz = pico8_fixed_from_int(2);
     pico8_hy_lj(fm_self());
@@ -537,8 +541,9 @@ static void test_lj(void) {
     check("lj", h, LJ_HASH);
 
     fu = fm_hy()->fu;
+    need = pico8_jy_new(pico8_zone_partie(), &need_qe);
     needer = pico8_qh_new(NULL);
-    pico8_ptrs_init(&needs);
+    pico8_ptrs_init(&needs, &zone_tas);
     pico8_ptrs_add(&needs, need);
     needer->jy = &needs;
     pico8_hy_lj(fm_self());

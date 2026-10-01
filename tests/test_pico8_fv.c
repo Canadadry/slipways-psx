@@ -28,6 +28,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_probe.h"
 #include "../src/pico8_struct.h"
@@ -476,12 +477,21 @@ static void test_hover(void) {
     check("hover", h, HOVER_HASH);
 }
 
+/* Gives back each particle of `qy` and leaves it empty. */
+static void empty_qy(pico8_ptrs_t *qy) {
+    while (qy->count > 0) {
+        void *particle = qy->items[0];
+        pico8_ptrs_del(qy, particle);
+        pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), particle);
+    }
+}
+
 /* `eu`, as a difficulty button starts it, takes the help out of `hv`,
  * `cg.g_` and `cv.kj`/`cv.hd`. */
 /* A particle of the help is drawn in the help's own `k_`: at `l`=6.5, less
  * the frame's 0.14, index 6 is colour 9, where `g_`'s five have none. */
 static void test_particle_takes_the_help_palette(void) {
-    static pico8_qy_t particle;
+    pico8_qy_t *particle = pico8_particule_prendre();
     pico8_ptrs_t *qy;
     pico8_vec_t ra;
     pico8_g__t *fv;
@@ -491,13 +501,13 @@ static void test_particle_takes_the_help_palette(void) {
     fv = the_help();
     assert(fv->ra != NULL);
     ra = *fv->ra;
-    particle.p = pico8_vec_v(0, 0);
-    particle.v = pico8_vec_v(0, 0);
-    particle.has_a = 0;
-    particle.l = PICO8_FIXED_LIT(0x00068000, 6.5);
+    particle->p = pico8_vec_v(0, 0);
+    particle->v = pico8_vec_v(0, 0);
+    particle->has_a = 0;
+    particle->l = PICO8_FIXED_LIT(0x00068000, 6.5);
     qy = fv->emitter->qy;
-    qy->count = 0;
-    pico8_ptrs_add(qy, &particle);
+    empty_qy(qy);
+    pico8_ptrs_add(qy, particle);
     pico8_camera_reset(&gfx);
     at = PICO8_ADDR_SCREEN + pico8_fixed_flr_int(ra.y) * PICO8_SCREEN_WIDTH + pico8_fixed_flr_int(ra.x);
     pico8_poke(&mem, at, 3);
@@ -613,6 +623,43 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* What an emitter holds in the particle zone, by sort. */
+typedef struct {
+    int particules;
+    int qy;
+    int qy_fv;
+    int rangees;
+} held_t;
+
+static held_t held_now(void) {
+    held_t h;
+    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
+    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
+    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    return h;
+}
+
+/* The help that `eu` takes out gives back, at the exit queue's flush, its
+ * particles and its `qy_fv`, the one place of its sort. */
+static void test_eu_gives_back_the_help_particles(void) {
+    pico8_g__t *fv;
+    held_t title;
+    held_t after;
+
+    start_title();
+    fv = the_help();
+    pico8_ez(&fv->header, pico8_fixed_from_int(5));
+    title = held_now();
+    assert(title.qy_fv == 1 && fv->emitter->qy->count >= 5);
+    assert(title.particules == fv->emitter->qy->count);
+    pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
+    after = held_now();
+    assert(after.qy_fv == 0 && after.particules == 0);
+    assert(fv->emitter->qy == NULL);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -630,6 +677,7 @@ int main(void) {
     in_fresh_child(test_particle_takes_the_help_palette);
     in_fresh_child(test_eu_retires_the_help);
     in_fresh_child(test_fv_is_a_struct);
+    in_fresh_child(test_eu_gives_back_the_help_particles);
     in_fresh_child(test_g__closed);
 
     printf("test_pico8_fv: all tests passed\n");

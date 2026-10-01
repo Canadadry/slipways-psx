@@ -15,7 +15,17 @@
  *
  * Every replay starts on the title screen: the file itself clicks the
  * difficulty. The driver takes no option; an argument starting with '-'
- * gets the usage and exit 2. */
+ * gets the usage and exit 2.
+ *
+ * PICO8_REMPLISSAGE=<file>, optional, is where the live places of each
+ * interface sort, then of each particle sort, are written after the last
+ * frame, one "<sort> <count>" line each, read after flushing the exit
+ * queue; then the session's maxima of each particle sort, one
+ * "max_vivantes|max_octets|max_elements <sort> <n>" line each; then the
+ * bytes taken in the game zone, "partie <n>", and their session maximum,
+ * "max_octets partie <n>"; then the same two for the loading sub-zone,
+ * "chargement <n>" and "max_octets chargement <n>". Capture, dump and exit
+ * code stay the same. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -26,9 +36,49 @@
 #include "pico8_screencast.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
+#include "pico8_zone_interface.h"
+#include "pico8_zone_particules.h"
+#include "pico8_zone_partie.h"
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"js", "fq", "mh", "iv", "rangee", "le"};
+static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga", "ts"};
+
+static void write_remplissage(const char *path) {
+    FILE *out = fopen(path, "w");
+    if (out == NULL) {
+        fprintf(stderr, "pico8 replay: impossible d'ouvrir le fichier de remplissage '%s'\n", path);
+        return;
+    }
+    pico8_cart_vider_file_sortie();
+    for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
+        fprintf(out, "%s %d\n", SORTE_NAMES[s], pico8_zone_interface_vivantes((pico8_sorte_t)s));
+    }
+    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+        fprintf(out, "%s %d\n", PARTICULES_NAMES[s], pico8_zone_particules_vivantes((pico8_particules_sorte_t)s));
+    }
+    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+        fprintf(out, "max_vivantes %s %d\n", PARTICULES_NAMES[s],
+                pico8_zone_particules_max_vivantes((pico8_particules_sorte_t)s));
+    }
+    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+        fprintf(out, "max_octets %s %lu\n", PARTICULES_NAMES[s],
+                (unsigned long)pico8_zone_particules_max_octets((pico8_particules_sorte_t)s));
+    }
+    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+        if (s == PICO8_PARTICULES_GA) continue;
+        fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
+                pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
+    }
+    fprintf(out, "partie %lu\n", (unsigned long)pico8_zone_partie_prise());
+    fprintf(out, "max_octets partie %lu\n", (unsigned long)pico8_zone_partie_max());
+    fprintf(out, "chargement %lu\n", (unsigned long)pico8_zone_chargement_prise());
+    fprintf(out, "max_octets chargement %lu\n", (unsigned long)pico8_zone_chargement_max());
+    fclose(out);
+}
 
 int main(int argc, char **argv) {
     if (argc < 2 || argv[1][0] == '-') {
@@ -109,6 +159,11 @@ int main(int argc, char **argv) {
     int dump_ok = pico8_dump_screen(&mem, dump_out);
     fclose(dump_out);
     assert(dump_ok);
+
+    const char *remplissage_path = getenv("PICO8_REMPLISSAGE");
+    if (remplissage_path != NULL) {
+        write_remplissage(remplissage_path);
+    }
 
     pico8_input_free(&input);
 

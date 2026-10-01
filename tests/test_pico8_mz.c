@@ -36,6 +36,8 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
+#include "../src/pico8_zone.h"
+#include "../src/pico8_zone_partie.h"
 
 /* Ticks after the slipway is paid, long enough for the colonizing and
  * paying effects to leave `hv`: `dg` skips the entity after one it takes out
@@ -401,6 +403,53 @@ static void test_ox(void) {
     lit = pico8_qh_new(NULL);
     lit->fx = pico8_fixed_from_int(1);
     assert(ents_listed(build_mz()->ox, lit));
+}
+
+/* Bytes a registry has taken from the generation: capacities 4, 8, ... up
+ * to its own, each growth leaving the old block dead. */
+static size_t registry_bytes(const pico8_ents_t *list) {
+    size_t bytes = 0;
+    int k;
+    for (k = 4; list != NULL && k <= list->capacity; k *= 2) {
+        bytes += PICO8_ZONE_CELLS((size_t)k * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+    }
+    return bytes;
+}
+
+static size_t generation_but_registries(void) {
+    return pico8_zone_partie_prise() - registry_bytes(pico8_hv()) - registry_bytes(pico8_cv("kj")) -
+           registry_bytes(pico8_cv("ev")) - registry_bytes(pico8_cg("mz"));
+}
+
+/* A built `mz` takes one grab arena, `ox` reserved to the exact count;
+ * once given back, the next `mz` takes that arena again. */
+static void test_arena(void) {
+    pico8_mz_t *mz;
+    size_t before;
+    int i;
+
+    world();
+    pico8_cart_vider_file_sortie();
+    assert(!pico8_zone_partie_en_attente());
+    build_mz();
+    before = generation_but_registries();
+    mz = build_mz();
+    printf("[arena] generation +%lu, ox %d/%d\n", (unsigned long)(generation_but_registries() - before),
+           mz->ox->count, mz->ox->capacity);
+    assert(generation_but_registries() == before + PICO8_JO_PRISE_OCTETS);
+    assert(mz->ox->count > 0 && mz->ox->count == mz->ox->capacity);
+    for (i = 1; i < mz->ox->count; i++) {
+        assert(ents_rank_in(pico8_hv(), mz->ox->items[i - 1]) < ents_rank_in(pico8_hv(), mz->ox->items[i]));
+    }
+
+    ey(mz);
+    assert(mz->p_);
+    pico8_dg();
+    assert(!ents_listed(pico8_hv(), mz));
+    pico8_cart_vider_file_sortie();
+    before = generation_but_registries();
+    build_mz();
+    assert(generation_but_registries() == before && "a dead mz gives its grab arena back to the next grab");
 }
 
 /* The `fo` of the `mz`'s `et`, a slipway or the throwaway. */
@@ -812,6 +861,7 @@ int main(void) {
     pico8_cart_load();
     in_fresh_child(test_construction);
     in_fresh_child(test_ox);
+    in_fresh_child(test_arena);
     in_fresh_child(test_hq);
     in_fresh_child(test_kz_ticks);
     in_fresh_child(test_ey);

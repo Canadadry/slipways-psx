@@ -2,14 +2,15 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_tech_gate.h"
+#include "pico8_zone_partie.h"
 
 static int g_hp_up = 0;
 
-/* `gb[k]`, 1-based rank k: the projects `build_gb` made, which it owns. */
+/* `gb[k]`, 1-based rank k: the projects `build_gb` made, in the load
+ * sub-zone. */
 static pico8_hp_t *g_gb[PICO8_FD_COUNT];
 static int g_gb_count = 0;
 /* `gb[px]`: the last project registered under each `px` (several share
@@ -25,12 +26,7 @@ static int g_gb_up = 0;
 /* Borrowed from `pico8_fd_table`, never copied or freed here. */
 static const char *g_rr = NULL;
 
-static void pico8_research_free_gb_instances(void) {
-    int i;
-
-    for (i = 0; i < g_gb_count; i++) {
-        free(g_gb[i]);
-    }
+static void pico8_research_forget_gb(void) {
     g_gb_count = 0;
     g_gb_px_count = 0;
 }
@@ -114,10 +110,10 @@ pico8_qe_t pico8_jy_qe(const pico8_jy_t *i) {
     return i->row.has_qe ? (pico8_qe_t){.kind = PICO8_QE_FIXED, .n = i->row.qe} : (pico8_qe_t){.kind = PICO8_QE_NIL};
 }
 
-pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe) {
-    pico8_jy_t *i = calloc(1, sizeof *i);
+pico8_jy_t *pico8_jy_new(const pico8_zone_choisie_t *zone, const pico8_fixed_t *qe) {
+    pico8_jy_t *i = (pico8_jy_t *)pico8_zone_alloc(zone, sizeof *i);
 
-    assert(i != NULL);
+    memset(i, 0, sizeof *i);
     if (qe != NULL) {
         i->row.has_qe = 1;
         i->row.qe = *qe;
@@ -125,12 +121,12 @@ pico8_jy_t *pico8_jy_new(const pico8_fixed_t *qe) {
     return i;
 }
 
-/* TROU-7 */
 /* `i` must be rewritten after `ho`, which leaves the raw string in it; the
  * real `gb[px]` must hold the struct. */
 static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
-    pico8_hp_t *self = malloc(sizeof *self);
-    pico8_ptrs_t *new_i_heap;
+    const pico8_zone_choisie_t *chargement = pico8_zone_chargement();
+    pico8_hp_t *self = (pico8_hp_t *)pico8_zone_alloc(chargement, sizeof *self);
+    pico8_ptrs_t *new_i;
     const char *i_src = "";
     size_t c;
 
@@ -196,8 +192,12 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
 
     /* A want for every character, never skipping one: the Lua table
      * constructor is non-nil even when `r[c]` is absent. */
-    new_i_heap = malloc(sizeof *new_i_heap);
-    pico8_ptrs_init(new_i_heap);
+    new_i = (pico8_ptrs_t *)pico8_zone_alloc(chargement, sizeof *new_i);
+    if (i_src[0] == '\0') {
+        pico8_ptrs_init(new_i, chargement);
+    } else {
+        pico8_ptrs_init_reserve(new_i, chargement, (int)strlen(i_src));
+    }
     for (c = 0; i_src[c] != '\0'; c++) {
         char key[2] = {i_src[c], '\0'};
         int r_qe;
@@ -205,12 +205,12 @@ static pico8_hp_t *pico8_hp_struct_new(const pico8_hp_keys_t *keys) {
 
         if (pico8_r_lookup(key, &r_qe)) {
             qe = pico8_fixed_from_int(r_qe);
-            pico8_ptrs_add(new_i_heap, pico8_jy_new(&qe));
+            pico8_ptrs_add(new_i, pico8_jy_new(chargement, &qe));
         } else {
-            pico8_ptrs_add(new_i_heap, pico8_jy_new(NULL));
+            pico8_ptrs_add(new_i, pico8_jy_new(chargement, NULL));
         }
     }
-    self->i = new_i_heap;
+    self->i = new_i;
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("hp");
@@ -240,7 +240,7 @@ void pico8_research_init(void) {
 }
 
 void pico8_research_shutdown(void) {
-    pico8_research_free_gb_instances();
+    pico8_research_forget_gb();
     g_gb_up = 0;
     g_rr = NULL;
     g_hp_up = 0;
@@ -265,7 +265,7 @@ pico8_hp_t *pico8_hp_new(const pico8_hp_keys_t *keys) {
 void pico8_research_build_gb(void) {
     int i;
 
-    pico8_research_free_gb_instances();
+    pico8_research_forget_gb();
     g_gb_up = 1;
     g_rr = NULL;
 

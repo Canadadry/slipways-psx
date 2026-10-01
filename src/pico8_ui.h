@@ -23,19 +23,23 @@ typedef struct {
     pico8_ents_t layers[PICO8_UI_IC_LAYERS];
 } pico8_ui_ic_t;
 
-/* TROU-7 */
 /* `le` of a new `ui` is `pico8_ui_le_shared()`, until `cj` or `pz`
- * replaces it. `ic` is NULL until the first `gw`, then points at `ic_own`,
- * which every `gw` empties and refills. */
+ * replaces it with a list from `pico8_ui_le_new()`, given back when it is
+ * replaced in turn or when its `ui` leaves (`rendre`, from `jl()`). `ic` is
+ * NULL until the first `gw`, then points at `ic_own`, whose layers every
+ * `gw` remakes in the frame zone. `qa` is NULL until the first `lj`, then
+ * points at `qa_own`, rewritten in place by each `lj`. Never copy the
+ * struct. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_ui_def_t *def;
     pico8_ents_t *le;
     pico8_vec_t *qa;
+    pico8_vec_t qa_own;
     pico8_ui_ic_t *ic;
     pico8_ui_ic_t ic_own;
-    pico8_struct_header_t *o_; /* borrowed, never freed */
-    pico8_struct_header_t *gj; /* borrowed, never freed */
+    pico8_struct_header_t *o_; /* borrowed; nil once the exit queue gives it back */
+    pico8_struct_header_t *gj; /* borrowed; nil once the exit queue gives it back */
     pico8_struct_header_t *lheld; /* borrowed, never freed */
     pico8_bg_t *rheld; /* borrowed, never freed */
 } pico8_ui_t;
@@ -45,9 +49,10 @@ typedef struct {
  * replaces. */
 void pico8_ui_init(void);
 
-/* Frees `ok`; `je` is never freed: the placeholder is
- * static, an `nf` struct in its place is dropped (TROU-7). Idempotent, and
- * safe before the first `pico8_ui_init()`. */
+/* Forgets `ok` and `je` without reading them: the zone reset that precedes
+ * this call has already taken them, and the exit queue gave back `ok`'s
+ * `le` before it. The shared `le` is forgotten without being read: its
+ * array went with the loading sub-zone. Idempotent, and safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
 
 /* 1 from pico8_ui_init() to pico8_ui_shutdown(), 0 otherwise. */
@@ -63,9 +68,16 @@ const pico8_qz_box_t *pico8_ui_hw(void);
  * freed, emptied (not freed) by each `pico8_ui_init()`. */
 pico8_ents_t *pico8_ui_le_shared(void);
 
-/* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`;
- * only the current `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts
- * before the init. */
+/* An empty list in a place `le` of its own, its items grown there. */
+pico8_ents_t *pico8_ui_le_new(void);
+
+/* `le` from pico8_ui_le_new() becomes `self.le`; the list it replaces goes
+ * to the exit queue (the frame still compares it in `lj`), unless it is
+ * the shared one. */
+void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le);
+
+/* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`; it
+ * lives in the current game-zone generation. Asserts before the init. */
 pico8_ui_t *pico8_ui_new(void);
 
 /* Between `pico8_ui_init()` and `pico8_ui_set_je()` this is the placeholder

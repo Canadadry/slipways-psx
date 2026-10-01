@@ -1,17 +1,24 @@
 #ifndef PICO8_PTRS_H
 #define PICO8_PTRS_H
 
+#include "pico8_zone_choisie.h"
+
 /* PICO-8's add()/del()/all()/foreach() over plain pointers. The container
- * owns only `items`: what an element points at is the caller's. NULL is a
- * storable element. */
+ * owns only `items`, grown in and given back to `zone`: what an element
+ * points at is the caller's. NULL is a storable element. */
 typedef struct {
     void **items;
     int count;
     int capacity;
+    const pico8_zone_choisie_t *zone;
 } pico8_ptrs_t;
 
-void pico8_ptrs_init(pico8_ptrs_t *ptrs);
-/* Releases `items` only and leaves `ptrs` empty. */
+/* `zone` must outlive `ptrs`. */
+void pico8_ptrs_init(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone);
+/* Takes `items` for `capacity` elements from `zone` at once; adding past it
+ * grows through `zone` as usual -- in an arena sized to fit, a pico8_fatal. */
+void pico8_ptrs_init_reserve(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone, int capacity);
+/* Gives `items` back to the zone and leaves `ptrs` empty, same zone. */
 void pico8_ptrs_free(pico8_ptrs_t *ptrs);
 /* An iterator holds `ptrs`, not `items`: it survives the growth. */
 void pico8_ptrs_add(pico8_ptrs_t *ptrs, void *e);

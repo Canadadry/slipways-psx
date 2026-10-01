@@ -23,8 +23,13 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_msgbox.h"
+#include "../src/pico8_economy_score.h"
+#include "../src/pico8_fm.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
+#include "../src/pico8_zone_choisie.h"
+#include "../src/pico8_zone_frame.h"
+#include "../src/pico8_zone_interface.h"
 
 #define YEAR_MESSAGE_TICKS 192
 #define YEAR_MESSAGE_SEQUENCE_HASH 0xEF726FD2u
@@ -188,6 +193,7 @@ static void test_year_with_a_message(void) {
     run_t run;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     run_start(&run);
     track(&run, year_box(3425));
     run.h = fnv(run.h, draw_hash());
@@ -201,6 +207,7 @@ static void test_year_without_a_message(void) {
     run_t run;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     run_start(&run);
     track(&run, year_box(3400));
     run.h = fnv(run.h, draw_hash());
@@ -218,6 +225,7 @@ static void test_two_years_in_a_row(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     run_start(&run);
     first = year_box(3424);
     track(&run, first);
@@ -246,6 +254,7 @@ static void set_c_(pico8_pj_t *ju, int on) {
 static pico8_pj_t *game_ju(void) {
     pico8_eu(NULL);
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     assert(pico8_ju() != NULL);
     return pico8_ju();
 }
@@ -292,6 +301,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     const pico8_mh_t *box;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     box = year_box(3400);
     assert(box->def == &pico8_mh_def);
     assert(box->def->fa == pico8_fixed_from_int(14));
@@ -325,6 +335,7 @@ static void test_mh_is_a_struct_registered_under_ev(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     from_pj = year_box(3400);
     keys.lh = counting_lh;
     generic = pico8_mh_new(&keys);
@@ -349,9 +360,89 @@ static void test_mh_nil_lh_key_reads_absent(void) {
     pico8_mh_t *box;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     keys.lh = NULL;
     box = pico8_mh_new(&keys);
     assert(box->lh == NULL);
+}
+
+
+/* A box takes a place; once `dg` takes it out at the end of its run,
+ * emptying the exit queue gives the place back. */
+static void test_box_gives_its_place_back(void) {
+    run_t run;
+    int base;
+
+    pico8_jl();
+    pico8_cart_vider_file_sortie();
+    base = pico8_zone_interface_vivantes(PICO8_SORTE_MH);
+    run_start(&run);
+    track(&run, year_box(3400));
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == base + 1);
+    run_out(&run);
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == base + 1 && "out of hv, still read this frame");
+    pico8_cart_vider_file_sortie();
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_MH) == base);
+}
+
+/* Fills the frame zone with garbage after a reset. */
+static void scribble_frame_zone(void) {
+    unsigned char *reuse;
+
+    pico8_zone_frame_reset();
+    reuse = pico8_zone_alloc(pico8_zone_frame(), 4096);
+    memset(reuse, 'X', 4096);
+}
+
+/* `pj:ph` makes its texts, rows and their `ld` wrappers in the frame zone:
+ * the box draws them on later frames, after the zone is reset and reused. */
+static void test_scores_box_keeps_its_articles(void) {
+    pico8_pj_t *ju = game_ju();
+    uint32_t want;
+
+    ju->gz = pico8_fixed_from_int(0);
+    ju->has_gz = 1;
+    set_c_(ju, 1);
+    pico8_pj_ph(ju);
+    assert(pico8_kc() != NULL && ju->ed == pico8_kc());
+    want = draw_hash();
+    scribble_frame_zone();
+    assert(draw_hash() == want);
+}
+
+/* `pj:hk` makes its year label in the frame zone: `pj.ea`, which every year
+ * box shares as the cart's does, keeps its own copy. */
+static void test_year_box_keeps_its_label(void) {
+    uint32_t want;
+
+    pico8_jl();
+    pico8_cart_vider_file_sortie();
+    (void)year_box(3424);
+    want = draw_hash();
+    scribble_frame_zone();
+    assert(draw_hash() == want);
+}
+
+/* The largest box the game builds: `pj:ph`'s, with the longest label
+ * (`current score` and the longest difficulty) and the longest happiness
+ * text, a negative fraction. Its place holds it without stopping. */
+static void test_largest_scores_box_fits_its_place(void) {
+    static pico8_js_t challenging;
+    pico8_pj_t *ju = game_ju();
+    const pico8_js_t *dk = pico8_dk();
+
+    challenging.px = "challenging";
+    pico8_economy_set_dk(&challenging);
+    pico8_fm_hy()->hl = NULL;
+    pico8_fm_hy()->has_hl = 0;
+    pico8_fm_hy()->happiness = PICO8_FIXED_LIT(0x80000007, -32767.9999);
+    pico8_fm_hy()->has_happiness = 1;
+    ju->gz = pico8_fixed_from_int(0);
+    ju->has_gz = 1;
+    set_c_(ju, 1);
+    pico8_pj_ph(ju);
+    assert(pico8_kc() != NULL && ju->ed == pico8_kc());
+    pico8_economy_set_dk(dk);
 }
 
 int main(void) {
@@ -374,6 +465,10 @@ int main(void) {
     test_defaults_match_the_parsed_spec();
     test_mh_is_a_struct_registered_under_ev();
     test_mh_nil_lh_key_reads_absent();
+    test_scores_box_keeps_its_articles();
+    test_box_gives_its_place_back();
+    test_year_box_keeps_its_label();
+    test_largest_scores_box_fits_its_place();
 
     printf("test_pico8_mh: all tests passed\n");
     return 0;

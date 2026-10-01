@@ -1,7 +1,6 @@
 #include "pico8_research_icon.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -11,9 +10,12 @@
 #include "pico8_ke.h"
 #include "pico8_layout.h"
 #include "pico8_pi.h"
+#include "pico8_planet.h"
 #include "pico8_probe.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 static int g_ie_up = 0;
 
@@ -27,17 +29,6 @@ static int g_ie_has_id = 0;
 
 static int ie_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
-}
-
-/* Returns a newly heap-allocated string the caller owns and must free(). */
-static char *ie_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
 }
 
 /* Returns the kind held in `self.ke`, or NULL when the member is nil. The
@@ -106,9 +97,9 @@ void pico8_ie_hb(pico8_ie_t *self) {
         pico8_vec_t current =
             g_ie_gy != NULL ? *g_ie_gy : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
         pico8_vec_t delta = pico8_vec_v(pico8_fixed_from_int(10), pico8_fixed_from_int(0));
-        pico8_vec_t *heap = malloc(sizeof *heap);
-        *heap = pico8_vec_sub(current, delta);
-        g_ie_gy = heap;
+        pico8_vec_t *box = (pico8_vec_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *box);
+        *box = pico8_vec_sub(current, delta);
+        g_ie_gy = box;
     }
 }
 
@@ -135,16 +126,16 @@ pico8_down_t pico8_ie_ldown(pico8_ie_t *self) {
         return out;
     }
 
-    id_num_str = pico8_tostr_fixed(new_id);
-    id_str = ie_concat2("s", id_num_str);
-    free(id_num_str);
-
-    /* `id_str` is not freed: the new planet's `id` keeps that exact
-     * pointer. */
+    /* The grab opens before `id_str` is made: the planet keeps that exact
+     * pointer as its `id`, so it must live and die with the grab's arena. */
+    pico8_jo_prise_ouvrir();
+    id_num_str = pico8_tostr_fixed(pico8_zone_frame(), new_id);
+    id_str = pico8_concat2(pico8_jo_zone_construction(), "s", id_num_str);
     keys.id = id_str;
     keys.p = NULL;
     keys.ra = NULL;
     out.held = ke_kind->new_entity(&keys);
+    pico8_jo_prise_fermer();
     out.stop = out.held != NULL;
     return out;
 }
@@ -210,7 +201,7 @@ static const pico8_struct_class_t g_ie_struct_class = {
 };
 
 static pico8_ie_t *pico8_ie_struct_new(const pico8_ie_keys_t *keys) {
-    pico8_ie_t *self = malloc(sizeof *self);
+    pico8_ie_t *self = (pico8_ie_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
 
     assert(g_ie_up && "pico8_research_icon_init() must run before an ie is built");
     pico8_ke_struct_init(&self->header, &g_ie_struct_class, pico8_ie_def.me, pico8_ie_def.t);
@@ -247,7 +238,6 @@ void pico8_research_icon_init(void) {
     g_ie_has_id = 1;
 }
 
-/* TROU-7 */
 void pico8_research_icon_shutdown(void) {
     g_ie_up = 0;
     g_ie_gy = NULL;

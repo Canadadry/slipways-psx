@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -63,6 +62,22 @@ pico8_lq_cell_t pico8_lq_cell_item(const pico8_jb_item_t *item) {
 static pico8_lq_cell_t pico8_lq_scalar_item(const pico8_jb_item_t *item) {
     assert(item->row == NULL && "a tuple or a line holds scalar items only; a row inside one has no reader here");
     return pico8_lq_cell_item(item);
+}
+
+static const char *pico8_lq_copy_text(const pico8_zone_choisie_t *zone, const char *s) {
+    size_t n = strlen(s) + 1;
+    char *copy = (char *)pico8_zone_alloc(zone, n);
+
+    memcpy(copy, s, n);
+    return copy;
+}
+
+/* A STRING cell points at its copy in `zone`; any other cell is kept as is. */
+static pico8_lq_cell_t pico8_lq_own_cell(const pico8_zone_choisie_t *zone, pico8_lq_cell_t cell) {
+    if (cell.kind == PICO8_LQ_CELL_STRING) {
+        cell.as.s = pico8_lq_copy_text(zone, cell.as.s);
+    }
+    return cell;
 }
 
 /* Writes out_item plus mn's second and third Lua return values (out_w,
@@ -138,15 +153,17 @@ static void pico8_lq_pq(pico8_lq_t *self) {
     int n = self->items_count;
     int i;
 
-    /* TROU-7 */
-    self->fs = malloc((size_t)(n > 0 ? n : 1) * sizeof *self->fs);
-    assert(self->fs != NULL);
+    self->fs = (pico8_lq_item_t *)pico8_zone_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->fs);
     for (i = 0; i < n; i++) {
         pico8_fixed_t w_i = pico8_fixed_from_int(0);
         pico8_fixed_t qv_i = pico8_fixed_from_int(0);
         pico8_fixed_t x = w;
 
         pico8_lq_mn(self, self->items[i], &self->fs[i], &w_i, &qv_i);
+        /* A tuple is borrowed until this layout only: its text is copied. */
+        if (self->items[i].kind == PICO8_LQ_CELL_ROW && self->fs[i].kind == PICO8_LQ_ITEM_TEXT) {
+            self->fs[i].text = pico8_lq_copy_text(self->zone, self->fs[i].text);
+        }
         self->fs[i].d = pico8_vec_v(x, pico8_fixed_from_int(0));
         w = pico8_fixed_add(w, pico8_fixed_add(w_i, qv_i));
         fs = qv_i;
@@ -207,7 +224,7 @@ void pico8_lq_ol_default(const pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_l
 #define PICO8_JB_LINE_CAP 7
 
 /* The line `jb:pq` builds from one item of its row. */
-static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
+static pico8_lq_t *pico8_jb_line(const pico8_zone_choisie_t *zone, const pico8_jb_item_t *item) {
     pico8_lq_keys_t keys = {0};
     pico8_lq_cell_t s;
     pico8_lq_cell_t items[PICO8_JB_LINE_CAP];
@@ -217,10 +234,10 @@ static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
         s = pico8_lq_cell_string(item->s);
         keys.items = &s;
         keys.count = 1;
-        return pico8_lq_new(&keys);
+        return pico8_lq_new(zone, &keys);
     }
     if (item->row == NULL) {
-        return pico8_lq_new(NULL);
+        return pico8_lq_new(zone, NULL);
     }
     assert(item->row->fn == NULL && "jb: a line's named keys are c only; fn has no member -- stop, do not add one");
     assert(item->row->count <= PICO8_JB_LINE_CAP &&
@@ -232,7 +249,7 @@ static pico8_lq_t *pico8_jb_line(const pico8_jb_item_t *item) {
     keys.count = item->row->count;
     keys.has_c = item->row->has_c;
     keys.c = pico8_fixed_from_int(item->row->c);
-    return pico8_lq_new(&keys);
+    return pico8_lq_new(zone, &keys);
 }
 
 /* `ls` is allocated even for no line: `jb:ol` draws the frame of an empty
@@ -241,11 +258,9 @@ static void pico8_jb_pq(pico8_jb_t *self, const pico8_jb_row_t *row) {
     int n = row != NULL ? row->count : 0;
     int i;
 
-    /* TROU-7 */
-    self->ls = malloc((size_t)(n > 0 ? n : 1) * sizeof *self->ls);
-    assert(self->ls != NULL);
+    self->ls = (pico8_lq_t **)pico8_zone_alloc(self->zone, (size_t)(n > 0 ? n : 1) * sizeof *self->ls);
     for (i = 0; i < n; i++) {
-        self->ls[i] = pico8_jb_line(&row->items[i]);
+        self->ls[i] = pico8_jb_line(self->zone, &row->items[i]);
     }
     self->ls_count = n;
 }
@@ -292,10 +307,12 @@ static const pico8_struct_class_t g_lq_struct_class = {
     .ol = pico8_lq_ol_dispatch,
 };
 
-/* TROU-7 */
 /* The row with room for `n` cells, members at nil, not laid out. */
-static pico8_lq_t *pico8_lq_struct_alloc(int n) {
-    pico8_lq_t *self = malloc(sizeof *self);
+static pico8_lq_t *pico8_lq_struct_alloc(const pico8_zone_choisie_t *zone, int n) {
+    pico8_lq_t *self;
+
+    assert(zone != NULL && "lq: a row without a zone would have nowhere to keep its cells");
+    self = (pico8_lq_t *)pico8_zone_alloc(zone, sizeof *self);
 
     pico8_struct_header_init(&self->header, &g_lq_struct_class);
     self->header.ra = &self->ra;
@@ -310,8 +327,8 @@ static pico8_lq_t *pico8_lq_struct_alloc(int n) {
     self->fs = NULL;
     self->fs_count = 0;
     self->w = 0;
-    self->items = malloc((size_t)(n > 0 ? n : 1) * sizeof *self->items);
-    assert(self->items != NULL);
+    self->zone = zone;
+    self->items = (pico8_lq_cell_t *)pico8_zone_alloc(zone, (size_t)(n > 0 ? n : 1) * sizeof *self->items);
     self->items_count = n;
     return self;
 }
@@ -324,13 +341,13 @@ static pico8_lq_t *pico8_lq_struct_finish(pico8_lq_t *self) {
     return self;
 }
 
-static pico8_lq_t *pico8_lq_struct_new(const pico8_lq_keys_t *keys) {
-    pico8_lq_t *self = pico8_lq_struct_alloc(keys != NULL ? keys->count : 0);
+static pico8_lq_t *pico8_lq_struct_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t *keys) {
+    pico8_lq_t *self = pico8_lq_struct_alloc(zone, keys != NULL ? keys->count : 0);
     int k;
 
     if (keys != NULL) {
         for (k = 0; k < keys->count; k++) {
-            self->items[k] = keys->items[k];
+            self->items[k] = pico8_lq_own_cell(zone, keys->items[k]);
         }
         if (keys->has_c) {
             self->c = keys->c;
@@ -366,12 +383,12 @@ pico8_lq_keys_t pico8_lq_keys_of_row(const pico8_jb_row_t *row, pico8_lq_cell_t 
     return keys;
 }
 
-pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row) {
-    pico8_lq_t *self = pico8_lq_struct_alloc(row->items_count);
+pico8_lq_t *pico8_lq_copy(const pico8_zone_choisie_t *zone, const pico8_lq_t *row) {
+    pico8_lq_t *self = pico8_lq_struct_alloc(zone, row->items_count);
     int k;
 
     for (k = 0; k < row->items_count; k++) {
-        self->items[k] = row->items[k];
+        self->items[k] = pico8_lq_own_cell(zone, row->items[k]);
     }
     self->c = row->c;
     self->has_c = row->has_c;
@@ -384,13 +401,11 @@ pico8_lq_t *pico8_lq_copy(const pico8_lq_t *row) {
     return pico8_lq_struct_finish(self);
 }
 
-/* TROU-7 */
 void pico8_lq_add(pico8_lq_t *self, pico8_lq_cell_t cell) {
-    pico8_lq_cell_t *grown = realloc(self->items, (size_t)(self->items_count + 1) * sizeof *self->items);
-
-    assert(grown != NULL);
-    self->items = grown;
-    self->items[self->items_count] = cell;
+    self->items = (pico8_lq_cell_t *)pico8_zone_grow(self->zone, (unsigned char *)self->items,
+                                                     (size_t)self->items_count * sizeof *self->items,
+                                                     (size_t)(self->items_count + 1) * sizeof *self->items);
+    self->items[self->items_count] = pico8_lq_own_cell(self->zone, cell);
     self->items_count++;
 }
 
@@ -399,24 +414,28 @@ static const pico8_struct_class_t g_jb_struct_class = {
 };
 
 /* The `jb` itself, before its lines. */
-static pico8_jb_t *pico8_jb_struct_alloc(void) {
-    pico8_jb_t *self = malloc(sizeof *self);
+static pico8_jb_t *pico8_jb_struct_alloc(const pico8_zone_choisie_t *zone) {
+    pico8_jb_t *self;
+
+    assert(zone != NULL && "jb: a bubble without a zone would have nowhere to keep its lines");
+    self = (pico8_jb_t *)pico8_zone_alloc(zone, sizeof *self);
 
 #ifdef PICO8_CLASS_COVERAGE
     pico8_class_coverage_record("jb");
 #endif
     pico8_struct_header_init(&self->header, &g_jb_struct_class);
+    self->zone = zone;
     self->ls = NULL;
     self->ls_count = 0;
     return self;
 }
 
-static pico8_jb_t *pico8_jb_struct_new(const pico8_jb_row_t *row) {
+static pico8_jb_t *pico8_jb_struct_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t *row) {
     pico8_jb_t *self;
 
     assert((row == NULL || (!row->has_c && row->fn == NULL)) &&
            "jb: every line is positional; a named key has no member -- stop, do not add one");
-    self = pico8_jb_struct_alloc();
+    self = pico8_jb_struct_alloc(zone);
     pico8_jb_pq(self, row);
     return self;
 }
@@ -446,10 +465,10 @@ const pico8_struct_class_t *pico8_jb_struct_class(void) {
     return &g_jb_struct_class;
 }
 
-pico8_lq_t *pico8_lq_new(const pico8_lq_keys_t *keys) {
-    return pico8_lq_struct_new(keys);
+pico8_lq_t *pico8_lq_new(const pico8_zone_choisie_t *zone, const pico8_lq_keys_t *keys) {
+    return pico8_lq_struct_new(zone, keys);
 }
 
-pico8_jb_t *pico8_jb_new(const pico8_jb_row_t *row) {
-    return pico8_jb_struct_new(row);
+pico8_jb_t *pico8_jb_new(const pico8_zone_choisie_t *zone, const pico8_jb_row_t *row) {
+    return pico8_jb_struct_new(zone, row);
 }

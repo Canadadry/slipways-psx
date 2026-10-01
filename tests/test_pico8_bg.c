@@ -100,6 +100,16 @@ static uint32_t fold_vec(uint32_t h, const pico8_vec_t *p) {
     return fnv(h, (uint32_t)p->y);
 }
 
+/* `mq` as the box the cart keeps: NULL while nil. */
+static const pico8_vec_t *mq_of(const pico8_bg_t *bg) {
+    return bg->has_mq ? &bg->mq : NULL;
+}
+
+/* `mq` holds the value of `rp`, a copy. */
+static int mq_is(const pico8_bg_t *bg, const pico8_vec_t *rp) {
+    return bg->has_mq && &bg->mq != rp && bg->mq.x == rp->x && bg->mq.y == rp->y;
+}
+
 /* 0 absent or false, 2 true. */
 static uint32_t m__state(const pico8_bg_t *bg) {
     return bg->m_ ? 2 : 0;
@@ -189,7 +199,7 @@ static void check_fresh_bg(const pico8_bg_t *bg) {
     for (i = 0; i < 15; i++) {
         assert(pl->items[i] == want_pl[i]);
     }
-    assert(bg->mq == NULL && !bg->m_);
+    assert(!bg->has_mq && !bg->m_);
     assert(cls->gv == NULL && cls->states[PICO8_STATE_PH] == NULL);
     assert(cls->kj != NULL && cls->ldown != NULL && cls->rdown != NULL && cls->hq != NULL);
     assert(cls->ey == NULL);
@@ -259,7 +269,7 @@ static void hq(void *bg, pico8_vec_t *rp) {
     pico8_bg_struct_class()->hq(bg, vec_ref(1, 2), rp);
 }
 
-/* `hq` with no `mq` yet reads the zero vector; `rdown` keeps `rp` itself
+/* `hq` with no `mq` yet reads the zero vector; `rdown` keeps a copy of `rp`
  * and hands back the background; each `hq` then moves `mo.v` by the drag
  * delta and replaces `mq`. */
 static void test_drag(void) {
@@ -277,21 +287,21 @@ static void test_drag(void) {
     assert(mo_qb()->v != NULL);
     v = *mo_qb()->v;
     assert(v.x == pico8_fixed_from_int(-10) && v.y == pico8_fixed_from_int(-20));
-    assert(bg->mq == rp);
+    assert(mq_is(bg, rp));
     h = fold_vec(h, mo_qb()->v);
 
     rp = vec_ref(30, 40);
     out = pico8_bg_struct_class()->rdown(&bg->header, vec_ref(5, 6), rp);
     assert(out.stop && (void *)out.held == bg);
-    assert(bg->mq != NULL && bg->mq == rp);
-    h = fold_vec(h, bg->mq);
+    assert(mq_is(bg, rp));
+    h = fold_vec(h, mq_of(bg));
 
     for (i = 0; i < 3; i++) {
         rp = vec_ref(33 - 7 * i, 41 + 5 * i * i);
         hq(bg, rp);
-        assert(bg->mq == rp);
+        assert(mq_is(bg, rp));
         h = fold_vec(h, mo_qb()->v);
-        h = fold_vec(h, bg->mq);
+        h = fold_vec(h, mq_of(bg));
     }
     check("drag", h, DRAG_HASH);
 }
@@ -369,7 +379,7 @@ static void test_hover(void) {
     kv = NULL;
     assert(pico8_ui_jz(pico8_ok(), PICO8_JZ_RDOWN, vec_ref(1, 1), vec_ref(2, 2), NULL, &kv, &kn));
     assert((void *)kv == bg && kn.stop && (void *)kn.held == bg);
-    h = fold_vec(h, bg->mq);
+    h = fold_vec(h, mq_of(bg));
 
     veil = (void *)pico8_fq_new(NULL);
     pico8_ui_lj(&mem, pico8_ok());

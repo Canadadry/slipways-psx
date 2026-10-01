@@ -15,6 +15,10 @@
 
 enum { PICO8_JC_HG_CAP = 90 };
 
+/* `ts` elements reserved in the grab arena: past them `ts` grows in it, and
+ * a full arena is a pico8_fatal. */
+enum { PICO8_JC_TS_RESERVE = 64 };
+
 /* The `id` of each planet a slipway serves, each once; the strings are
  * borrowed from the planets. */
 typedef struct {
@@ -29,10 +33,21 @@ void pico8_jc_hg_add(pico8_jc_hg_t *hg, const char *id);
 /* `hg[id]`: 1 for an `id` already added, 0 otherwise, NULL included. */
 int pico8_jc_hg_has(const pico8_jc_hg_t *hg, const char *id);
 
+/* The `{ra,p}` `jc:hq` hangs on `re` over nothing: the slipway's own,
+ * rewritten in place at each call; `ra` points at the slipway's `point_ra`,
+ * a copy of the caller's `mp` (NULL for a nil `mp`), `p` at its `point_p`. */
+typedef struct {
+    pico8_struct_header_t header;
+    const pico8_vec_t *ra;
+    const pico8_vec_t *p;
+} pico8_jc_mouse_point_t;
+
 /* `ts` is this slipway's own, made by `pico8_jc_pq`, which also empties
  * `hg_own` and points `hg` at it (NULL before). `od` and `et` (NULL is nil)
- * live in the probe; `probe` points at `probe_own`: never copy the struct.
- * Nothing frees the struct: TROU-7. */
+ * live in the probe; `probe` points at `probe_own`, `point.ra` and `point.p`
+ * at `point_ra` and `point_p`: never copy the struct. Built with `ts` in a
+ * grab arena (`pico8_jo_prise_ouvrir`), which a refused slipway's `rendre`
+ * puts back on the free grabs. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_jc_def_t *def;
@@ -49,6 +64,9 @@ typedef struct {
     int p_;
     pico8_probe_t *probe;
     pico8_probe_t probe_own;
+    pico8_jc_mouse_point_t point;
+    pico8_vec_t point_ra;
+    pico8_vec_t point_p;
 } pico8_jc_t;
 
 /* The one static `{qs="-too far-"}` struct `jc:ce` returns: `fo` is the last
@@ -58,14 +76,6 @@ typedef struct {
     const char *qs;
     pico8_jc_t *fo;
 } pico8_jc_too_far_t;
-
-/* The `{ra,p}` `jc:hq` hangs on `re` over nothing: a fresh one per call,
- * never freed, nor its `p`; `ra` is the caller's `mp` itself, not a copy. */
-typedef struct {
-    pico8_struct_header_t header;
-    const pico8_vec_t *ra;
-    const pico8_vec_t *p;
-} pico8_jc_mouse_point_t;
 
 void pico8_jc_init(void);
 
@@ -89,17 +99,17 @@ typedef struct {
 } pico8_jc_keys_t;
 
 /* `keys` is read, not kept (NULL: none). The struct registers itself into
- * `hv`/`cv`/`cg` through `lt`, and nothing frees it. */
+ * `hv`/`cv`/`cg` through `lt`; it lives in its grab arena, kept until the
+ * generation is given back once placed, recycled after `rendre` if refused. */
 pico8_jc_t *pico8_jc_new(const pico8_jc_keys_t *keys);
 
-/* TROU-7 */
 /* Allocates the `ts` and `hg` containers every other method here assumes
- * are already present. */
+ * are already present, `ts` in the construction zone with room for
+ * PICO8_JC_TS_RESERVE. */
 void pico8_jc_pq(pico8_jc_t *self);
 
-/* TROU-7 */
 /* Rebinds `self.re` every frame: the hovered entity when it answers to
- * `gv`, otherwise a fresh `{ra,p}` struct, never freed. Also rebinds `od`,
+ * `gv`, otherwise `self.point`, rewritten in place. Also rebinds `od`,
  * `mt`, `et` and `fa`, and points the `fo` of whatever `ce()` found -- a
  * planet, another `jc` struct or the static `{qs}` struct -- back at this
  * slipway. */

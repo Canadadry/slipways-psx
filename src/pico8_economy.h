@@ -21,8 +21,8 @@ void pico8_economy_shutdown(void);
 int pico8_hy_ready(void);
 const pico8_struct_class_t *pico8_hy_struct_class(void);
 
-/* Takes no key. The caller owns the struct until pico8_probe_set_fm()
- * takes it. */
+/* Takes no key. Built in the game's generation (pico8_zone_partie()),
+ * never freed. */
 pico8_hy_t *pico8_hy_new(void);
 
 void pico8_hy_nx(pico8_hy_t *self, pico8_fixed_t hx);

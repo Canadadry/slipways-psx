@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_collect.h"
@@ -19,6 +18,8 @@
 #include "pico8_str.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 static int g_pj_up = 0;
 static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];
@@ -26,17 +27,6 @@ static pico8_pj_t *g_ju = NULL;
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;
-}
-
-/* Returns a newly allocated string the caller owns and must free(). */
-static char *pj_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
 }
 
 /* pj's class state `ou` and `ea`, reset by each init to their generated
@@ -119,9 +109,8 @@ void pico8_eg(void) {
     pico8_fixed_t ps;
     int i;
 
-    filtered = pico8_jp_ents(pico8_cg("jo"), pico8_eg_gg_pred, NULL);
+    filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("jo"), pico8_eg_gg_pred, NULL);
     ps = pico8_fixed_div(pico8_fixed_from_int(filtered.count), pico8_fixed_from_int(2));
-    pico8_ents_free(&filtered);
 
     if (mem == NULL) {
         return;
@@ -168,11 +157,10 @@ void pico8_pj_hb(void) {
         }
     }
 
-    cf = pico8_ne(fm_ge, 0, NULL, &discard_color);
+    cf = pico8_ne(pico8_zone_frame(), fm_ge, 0, NULL, &discard_color);
 
-    nz_str = pico8_tostr_fixed(fm_nz);
-    ou[0] = (pico8_jb_item_t){.s = pj_concat2(nz_str, "$")};
-    free(nz_str);
+    nz_str = pico8_tostr_fixed(pico8_zone_frame(), fm_nz);
+    ou[0] = (pico8_jb_item_t){.s = pico8_concat2(pico8_zone_frame(), nz_str, "$")};
 
     ou[1] = (pico8_jb_item_t){.s = cf};
 
@@ -186,14 +174,12 @@ void pico8_pj_hb(void) {
         }
         /* `..` binds looser than `+`: the Lua reads `"+"..(fm.po[r.k]+1)`. */
         plus_num =
-            pico8_tostr_fixed(pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
-        ou[3] = (pico8_jb_item_t){.s = pj_concat2("+", plus_num)};
-        free(plus_num);
+            pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_add(po_val, pico8_fixed_from_int(1)));
+        ou[3] = (pico8_jb_item_t){.s = pico8_concat2(pico8_zone_frame(), "+", plus_num)};
     }
 
-    happiness_str = pico8_tostr_fixed(fm_happiness);
-    ou[4] = (pico8_jb_item_t){.s = pj_concat2(happiness_str, "%")};
-    free(happiness_str);
+    happiness_str = pico8_tostr_fixed(pico8_zone_frame(), fm_happiness);
+    ou[4] = (pico8_jb_item_t){.s = pico8_concat2(pico8_zone_frame(), happiness_str, "%")};
 
     {
         int lo = pico8_fixed_flr_int(fm_lo);
@@ -206,7 +192,11 @@ void pico8_pj_hb(void) {
     ou_state = pico8_pj_ou();
     if (ou_state != NULL) {
         for (i = 0; i < 7; i++) {
-            /* TROU-7 */
+            if (ou[i].s != NULL) {
+                assert(strlen(ou[i].s) <= PICO8_PJ_TEXT_CAP && "an ou text is a number with its suffix, or a month");
+                strcpy(ou_state->texts[i], ou[i].s);
+                ou[i].s = ou_state->texts[i];
+            }
             ou_state->sub_items[i][0] = ou[i];
         }
     }
@@ -270,7 +260,7 @@ static pico8_pj_t *pico8_pj_struct_new(void) {
     pico8_pj_t *self;
 
     assert(g_pj_up && "pico8_score_panel_init() must run first");
-    self = malloc(sizeof *self);
+    self = (pico8_pj_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ke_struct_init(&self->header, &g_pj_struct_class, pico8_pj_def.me, pico8_pj_def.t);
     self->def = &pico8_pj_def;
     self->fa = self->def->fa;

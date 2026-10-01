@@ -23,7 +23,7 @@ typedef struct {
     pico8_fixed_t di;
     pico8_fixed_t gl;
     pico8_fixed_t el;
-    char *happiness; /* TROU-7: heap, never freed */
+    char *happiness; /* valid until the next reset of the frame zone */
     pico8_fixed_t total;
     pico8_fixed_t tier;
 } pico8_ky_t;
@@ -32,10 +32,15 @@ pico8_ky_t pico8_ky(void);
 
 pico8_fixed_t pico8_bf(void);
 
-/* The difficulty button `eu()` was given, borrowed and never freed here;
- * NULL until `eu()` (pico8_cart.c) calls the setter. */
+/* The difficulty button `eu()` was given, borrowed; NULL until `eu()`
+ * (pico8_cart.c) calls the setter. Once that button leaves (the `jl()` of
+ * `eu()` drops it), `dk` designates a copy of what is read from it: `px`,
+ * `trade`, `en` and their flags; any other member is nil there. */
 const pico8_js_t *pico8_dk(void);
 void pico8_economy_set_dk(const pico8_js_t *dk);
+
+/* Called by the exit queue before `e` is given back. */
+void pico8_economy_dk_quitte(const pico8_struct_header_t *e);
 
 /* Writes `kr` into planet `p` (asserted) and returns it. */
 pico8_fixed_t pico8_kr(pico8_struct_header_t *p);

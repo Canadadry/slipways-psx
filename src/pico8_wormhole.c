@@ -1,7 +1,6 @@
 #include "pico8_wormhole.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -11,6 +10,7 @@
 #include "pico8_planet.h"
 #include "pico8_probe_comp.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_choisie.h"
 
 static int g_mz_up = 0;
 
@@ -23,10 +23,16 @@ static pico8_mz_jj_t g_mz_jj_wrapper = {
     pico8_mz_jj_qs,
 };
 
+static int pico8_mz_ancrage(const pico8_struct_header_t *p) {
+    return p != NULL && p->fx != NULL && *p->fx != 0;
+}
+
 void pico8_mz_pq(pico8_mz_t *self) {
-    pico8_ents_t *heap_ox;
+    const pico8_zone_choisie_t *zone = pico8_jo_zone_construction();
+    pico8_ents_t *ox;
     pico8_ents_iter_t it;
     pico8_struct_header_t *p;
+    int n = 0;
 
     if (self == NULL) {
         return;
@@ -34,16 +40,20 @@ void pico8_mz_pq(pico8_mz_t *self) {
 
     pico8_rn(pico8_fixed_from_int(53));
 
-    /* TROU-7 */
-    heap_ox = malloc(sizeof *heap_ox);
-    pico8_ents_init(heap_ox);
     it = pico8_ents_all(pico8_hv());
     while (pico8_ents_iter_next(&it, &p)) {
-        if (p != NULL && p->fx != NULL && *p->fx != 0) {
-            pico8_ents_add(heap_ox, p);
+        n += pico8_mz_ancrage(p);
+    }
+    ox = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *ox);
+    pico8_ents_init_reserve(ox, zone, n);
+    it = pico8_ents_all(pico8_hv());
+    while (pico8_ents_iter_next(&it, &p)) {
+        if (pico8_mz_ancrage(p)) {
+            pico8_ents_add(ox, p);
         }
     }
-    self->ox = heap_ox;
+    assert(ox->count == n && ox->capacity == n);
+    self->ox = ox;
 }
 
 void pico8_mz_hq(pico8_mz_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
@@ -182,6 +192,10 @@ pico8_fixed_t pico8_mz_ej(pico8_mz_t *self, pico8_fixed_t t) {
     return pico8_fixed_mul(min_val, oi);
 }
 
+static void pico8_mz_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jo_prise_arene_rendue(((pico8_mz_t *)self)->ox->zone);
+}
+
 /* Lua's `mz.hq=bv` is rebound three statements later by `function mz:hq`,
  * so only that second definition is ever reachable. Putting
  * pico8_bv_dispatch in the HQ entry instead would look faithful and would
@@ -191,6 +205,7 @@ static const pico8_struct_class_t g_mz_struct_class = {
     .ev = pico8_dl_dispatch,
     .hq = pico8_mz_hq_dispatch,
     .ey = pico8_mz_ey_dispatch,
+    .rendre = pico8_mz_rendre_dispatch,
     .states =
         {
             [PICO8_STATE_KZ] = pico8_mz_kz_dispatch,
@@ -200,7 +215,10 @@ static const pico8_struct_class_t g_mz_struct_class = {
 };
 
 static pico8_mz_t *pico8_mz_struct_new(void) {
-    pico8_mz_t *self = malloc(sizeof *self);
+    pico8_mz_t *self;
+
+    pico8_jo_prise_ouvrir();
+    self = (pico8_mz_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     pico8_ke_struct_init(&self->header, &g_mz_struct_class, pico8_mz_def.me, pico8_mz_def.t);
     self->def = &pico8_mz_def;
@@ -225,6 +243,7 @@ static pico8_mz_t *pico8_mz_struct_new(void) {
     pico8_class_coverage_record("mz");
 #endif
     pico8_mz_pq(self);
+    pico8_jo_prise_fermer();
     pico8_ke_struct_pq(&self->header);
     return self;
 }

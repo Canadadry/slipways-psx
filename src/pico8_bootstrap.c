@@ -14,6 +14,7 @@ void pico8_jl(void) {
     pico8_nf_t *real_je;
     pico8_ui_t *real_ok;
 
+    pico8_entity_abandonner_hv();
     pico8_entity_init();
 
     /* Build once, never rebuild. `ke` must exist before `qb`/`nf`/`ui`,

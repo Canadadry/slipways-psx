@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "pico8_audio.h"
 #include "pico8_bg.h"
@@ -14,6 +13,7 @@
 #include "pico8_economy.h"
 #include "pico8_economy_score.h"
 #include "pico8_entity.h"
+#include "pico8_file_sortie.h"
 #include "pico8_fixed.h"
 #include "pico8_galaxy.h"
 #include "pico8_gfx.h"
@@ -38,6 +38,16 @@
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
+
+static void quitter_partie(void) {
+    pico8_entity_abandonner_hv();
+    pico8_cart_vider_file_sortie();
+    pico8_zone_partie_reset();
+    pico8_entity_oublier_registres();
+    pico8_jo_oublier_prises();
+}
 
 /* pico8_data_init() and pico8_score_panel_init() each run further module
  * inits of their own (research, score-panel display); listing those
@@ -45,6 +55,7 @@
 void pico8_cart_load(void) {
     pico8_mem_t *mem;
 
+    quitter_partie();
     pico8_ke_init();
     assert(pico8_ke_ready() && "ke must be declared before every ke-descended class");
     pico8_qb_init();
@@ -88,7 +99,49 @@ void pico8_cart_load(void) {
     pico8_score_panel_set_init(pico8_init_dispatch);
 }
 
+/* Une place rendue peut revenir a la meme adresse : `kc == ju.ed` serait
+ * vrai pour une boite neuve, et `gj.m_` ecrirait dans un autre objet.
+ * ASan ne voit pas la comparaison. */
+static void oublier(const pico8_struct_header_t *e) {
+    pico8_ui_t *ok = pico8_ok();
+    pico8_pj_t *ju = pico8_ju();
+
+    if (ok != NULL && ok->o_ == e) {
+        ok->o_ = NULL;
+    }
+    if (ok != NULL && ok->gj == e) {
+        ok->gj = NULL;
+    }
+    if (ok != NULL && ok->lheld != NULL && ok->lheld->cls == pico8_jc_struct_class() &&
+        ((pico8_jc_t *)ok->lheld)->re == e) {
+        ((pico8_jc_t *)ok->lheld)->re = NULL;
+    }
+    if ((const pico8_struct_header_t *)pico8_kc() == e) {
+        pico8_msgbox_set_kc(NULL);
+    }
+    if (ju != NULL && (const pico8_struct_header_t *)ju->ed == e) {
+        ju->ed = NULL;
+    }
+    pico8_economy_dk_quitte(e);
+    pico8_jo_oublier_fo(e);
+}
+
+/* Point d'oubli de partie : coupe les references a la generation que
+ * pico8_zone_partie_rendre va rendre. */
+static void oublier_partie(void) {
+    pico8_jo_oublier_prises();
+}
+
+void pico8_cart_vider_file_sortie(void) {
+    pico8_file_sortie_vider(oublier);
+    if (pico8_zone_partie_en_attente()) {
+        oublier_partie();
+        pico8_zone_partie_rendre();
+    }
+}
+
 void pico8_cart_shutdown(void) {
+    quitter_partie();
     pico8_menu_shutdown();
     pico8_research_icon_shutdown();
     pico8_score_panel_shutdown();
@@ -132,7 +185,7 @@ void pico8__init(void) {
     pico8_jl();
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
-     * and `kc` is cleared. `gy` aliases `eh`'s heap vector, it is not a copy. */
+     * and `kc` is cleared. `gy` aliases `eh`'s vector, it is not a copy. */
     pico8_ie_set_gy(pico8_ie_eh());
     pico8_msgbox_set_kc(NULL);
 
@@ -153,6 +206,7 @@ void pico8_eu(pico8_js_t *nj) {
     assert(pico8_hy_ready() && pico8_qh_ready() && "pico8_cart_load() must run before eu()");
 
     pico8_economy_set_dk(nj);
+    pico8_zone_partie_basculer();
 
     /* `jl()` runs a second time here, as in the cart: it unconditionally
      * rebuilds hv/cv/cg and the mo/je/ok singletons. */
@@ -160,7 +214,6 @@ void pico8_eu(pico8_js_t *nj) {
     (void)pico8_bg_new();
     pico8_bw(pico8_fixed_from_int(90));
 
-    /* TROU-7 */
     pico8_probe_set_fm((pico8_struct_header_t *)pico8_hy_new());
     pico8_pj_set_ju(pico8_pj_new());
 
@@ -184,7 +237,7 @@ void pico8_eu(pico8_js_t *nj) {
         pico8_ie_keys_t keys = {0};
 
         keys.ke = gx[i];
-        keys.jb = pico8_jb_new(&pico8_dr_table[i]);
+        keys.jb = pico8_jb_new(pico8_zone_partie(), &pico8_dr_table[i]);
         (void)pico8_ie_new(&keys);
     }
 
@@ -192,7 +245,12 @@ void pico8_eu(pico8_js_t *nj) {
     pico8_hy_lj(pico8_fm_hy());
 }
 
+/* Ici et pas dans un pilote : rejeu, raylib, couverture et TU passent tous
+ * par update60, et draw, qui suit dans la meme frame, relit ce qu'update a
+ * fait en zone frame. */
 void pico8__update60(void) {
+    pico8_zone_frame_reset();
+    pico8_cart_vider_file_sortie();
     pico8_dg();
     pico8_ui_lj(pico8_dispatch_mem(), pico8_ok());
 }

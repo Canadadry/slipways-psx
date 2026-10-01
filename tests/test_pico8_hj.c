@@ -27,6 +27,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -36,6 +37,11 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
+
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
 
 
 /* The tag class instances carried, which the frozen hashes fold: any
@@ -507,7 +513,7 @@ static void test_life(void) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_hj(placed)->ra == mp);
+    assert(ra_copies(as_hj(placed)->ra, mp));
     h = fold_vec(h, as_hj(placed)->p);
     h = fnv(h, et_state(as_hj(placed)));
     h = fold_et(h, as_hj(placed));
@@ -679,6 +685,45 @@ static void in_fresh_child(void (*test)(void)) {
     reap(spawn(test));
 }
 
+/* What an emitter holds in the particle zone, by sort. */
+typedef struct {
+    int particules;
+    int qy;
+    int qy_fv;
+    int rangees;
+} held_t;
+
+static held_t held_now(void) {
+    held_t h;
+    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
+    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
+    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    return h;
+}
+
+/* An ascension that leaves (`he`, then the exit queue's flush) gives back
+ * its particles, its `qy` and its row, and keeps its struct. */
+static void test_leaving_gives_back_its_particles(void) {
+    held_t before;
+    held_t after;
+    pico8_jo_t *e;
+
+    start_game();
+    pico8_cart_vider_file_sortie();
+    before = held_now();
+    e = as_hj(build_ascension());
+    pico8_ez(&e->header, pico8_fixed_from_int(5));
+    cls_of(e)->hb(&e->header);
+    assert(e->emitter->qy->count == 5);
+    assert(held_now().particules == before.particules + 5 && held_now().qy == before.qy + 1);
+    pico8_he(&e->header);
+    pico8_cart_vider_file_sortie();
+    after = held_now();
+    assert(after.particules == before.particules && after.qy == before.qy && after.rangees == before.rangees);
+    assert(e->emitter->qy == NULL && e->lq_place == NULL);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -694,6 +739,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_heirs);
     in_fresh_child(test_hj_is_a_struct);
+    in_fresh_child(test_leaving_gives_back_its_particles);
 
     printf("test_pico8_hj: all tests passed\n");
     return 0;

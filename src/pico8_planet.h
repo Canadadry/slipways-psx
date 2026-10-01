@@ -23,7 +23,8 @@
  * field jo's functions write on it, then its kinds' fields. A kind's field is
  * indeterminate on a planet of another kind; `probe`, `emitter` are NULL
  * there, else they point at `probe_own`, `emitter_own`: never copy the
- * struct. Nothing frees the struct: TROU-7. */
+ * struct. The struct lives in its game generation (a burst's in its
+ * particle place) and goes back with it. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_jo_def_t *def;
@@ -39,6 +40,7 @@ typedef struct {
     const pico8_df_entry_t *nk;
     pico8_fixed_t fx;
     pico8_lq_t *lq;
+    const pico8_zone_choisie_t *lq_place; /* where `lq` lives; NULL when `lq` is */
     pico8_struct_header_t *fo;
     pico8_fixed_t jh;
     int has_jh;
@@ -65,8 +67,9 @@ typedef struct {
 /* Calls `pico8_pi_init()` first. */
 void pico8_jo_init(void);
 
-/* Frees the `oc`/`ir` generators, never any `jo` instance. Idempotent, and
- * safe before the first `pico8_jo_init()`. */
+/* Sets the `oc`/`ir` generators back to nil without reading them: their
+ * zone may already be reset. Frees no `jo` instance. Idempotent, and safe
+ * before the first `pico8_jo_init()`. */
 void pico8_jo_shutdown(void);
 
 /* 1 from `pico8_jo_init()` to `pico8_jo_shutdown()`, 0 otherwise. */
@@ -86,8 +89,8 @@ const pico8_jb_row_t *pico8_jo_em(void);
 pico8_kw_t *pico8_jo_shared_kw(void);
 
 /* `keys` (NULL means none) is read, not kept. The new planet registers
- * itself into `hv`/`cv`/`cg` through `lt`, and nothing ever frees it.
- * Requires `pico8_jo_init()`. */
+ * itself into `hv`/`cv`/`cg` through `lt`, and lives in the construction
+ * zone until that zone is given back. Requires `pico8_jo_init()`. */
 pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
 
 /* Sets up an allocated `self` as a bare planet whose descriptor is `cls`:
@@ -96,12 +99,50 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
  * defaults. Requires `pico8_jo_init()`. */
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
+/* Bytes of the arena a held icon, a drawn slipway or a wormhole builds its
+ * object in. */
+#define PICO8_JO_PRISE_OCTETS 2048u
+
+/* Where the planet constructors, `jo:pq` and `jo:lz` allocate: the grab
+ * arena between `pico8_jo_prise_ouvrir` and `_fermer`, else the current
+ * game generation. */
+const pico8_zone_choisie_t *pico8_jo_zone_construction(void);
+
+/* Opens a grab arena, taken from the free grabs (emptied) or else from the
+ * current generation; a placed structure keeps it until the generation is
+ * given back. */
+void pico8_jo_prise_ouvrir(void);
+void pico8_jo_prise_fermer(void);
+/* Called last by the `rendre` of an object built in `zone`, whose state is
+ * `me`: a grab arena (NULL or another zone: nothing) whose object is still
+ * "kz" goes on the free grabs, for the next grab to empty and reuse. */
+void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me);
+/* The same whatever the state: for an object whose memory nothing borrows
+ * after its death. */
+void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone);
+/* `pico8_jo_prise_zone_rendue` with the zone of the planet's `oe`. */
+void pico8_jo_prise_rendue(const pico8_jo_t *self);
+/* Sets to nil the `fo` of every `cg.np` entity that points at `e`, which is
+ * being given back: `jo:kj` leaves `fo` set on a planet off screen or
+ * fading, and a recycled grab arena would put a new structure behind it. */
+void pico8_jo_oublier_fo(const pico8_struct_header_t *e);
+/* Drops the free grabs, without reading them: their arenas belong to a
+ * generation about to be given back or reset. */
+void pico8_jo_oublier_prises(void);
+
+/* `oe` taken from, and grown in, the construction zone. */
 void pico8_jo_pq(pico8_jo_t *self);
+/* `oe` taken from, and grown in, `zone`, which must outlive it. */
+void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone);
 
 /* The dispatchers jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
 int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra);
 void pico8_jo_hb_dispatch(pico8_struct_header_t *self);
+/* Gives back the place of `lq` and sets `lq` to nil; the planet stays. */
+void pico8_jo_rendre_rangee(pico8_struct_header_t *self);
+/* `pico8_jo_rendre_rangee`, then `pico8_jo_prise_rendue`. */
+void pico8_jo_rendre_dispatch(pico8_struct_header_t *self);
 pico8_down_t pico8_jo_gv_dispatch(pico8_struct_header_t *self, const pico8_struct_header_t *s);
 void pico8_jo_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr);
 void pico8_jo_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
@@ -114,7 +155,6 @@ int pico8_jo_is_family(const pico8_struct_header_t *e);
 void pico8_jo_cn_dispatch(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw);
 void pico8_jo_ll_dispatch(pico8_struct_header_t *self, pico8_fixed_t t);
 
-/* TROU-7 */
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
 /* TROU-3 */
@@ -131,14 +171,14 @@ void pico8_jo_hh(pico8_jo_t *self);
 
 void pico8_jo_hk(const pico8_jo_t *self);
 
-/* TROU-7 */
 /* Returns a freshly built `jc` instance in `held`, Lua true as `stop`
- * alone, or nil; `ui:bh` holds only the instance, and nothing frees it. */
+ * alone, or nil; `ui:bh` holds only the instance. The `jc` lives in its
+ * grab arena, which it gives back if refused. */
 pico8_down_t pico8_jo_ldown(pico8_jo_t *self);
 
-/* Both take ownership and free the previous generator; NULL is the valid
- * way back to "none", and `pico8_jo_shutdown()` releases whichever is set.
- * Both start NULL -- `bw()` is what sets them. */
+/* The state passed must live until the next call; the previous one is not
+ * freed. NULL is the valid way back to "none". Both start NULL -- only
+ * `bw()` sets them. */
 void pico8_jo_set_oc(pico8_gn_state_t *oc);
 void pico8_jo_set_ir(pico8_jf_state_t *ir);
 

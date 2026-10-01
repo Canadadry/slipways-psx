@@ -2,13 +2,15 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_vec.h"
+#include "pico8_zone_particules.h"
+
+typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
 static pico8_fixed_t emitter_host_fa_ra(const pico8_struct_header_t *self, pico8_vec_t *ra) {
@@ -22,8 +24,20 @@ static int pico8_particle_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-/* TROU-7 */
+pico8_qy_t *pico8_particule_prendre(void) {
+    return (pico8_qy_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof(pico8_qy_t));
+}
+
+const pico8_zone_choisie_t *pico8_ga_place_prendre(void) {
+    return pico8_zone_particules_place(PICO8_PARTICULES_GA);
+}
+
 void pico8_f_(pico8_struct_header_t *self) {
+    pico8_f__dans(self, PICO8_PARTICULES_QY);
+}
+
+void pico8_f__dans(pico8_struct_header_t *self, pico8_particules_sorte_t sorte) {
+    const pico8_zone_choisie_t *place;
     pico8_emitter_t *emitter;
     pico8_ptrs_t *qy;
 
@@ -31,11 +45,32 @@ void pico8_f_(pico8_struct_header_t *self) {
         return;
     }
     assert(self->emitter != NULL && "f_: a class that carries no particle emitter has no `qy` -- stop");
+    assert((sorte == PICO8_PARTICULES_QY || sorte == PICO8_PARTICULES_QY_FV) && "f_: a qy list is a qy or a qy_fv");
 
     emitter = self->emitter;
-    qy = malloc(sizeof *qy);
-    pico8_ptrs_init(qy);
+    pico8_qy_rendre(emitter);
+    place = pico8_zone_particules_place(sorte);
+    qy = (pico8_ptrs_t *)pico8_zone_alloc(place, sizeof *qy);
+    pico8_ptrs_init_reserve(qy, place,
+                            sorte == PICO8_PARTICULES_QY_FV ? PICO8_QY_FV_CAPACITE : PICO8_QY_CAPACITE);
     emitter->qy = qy;
+    emitter->qy_sorte = sorte;
+}
+
+void pico8_qy_rendre(pico8_emitter_t *emitter) {
+    pico8_ptrs_t *qy = emitter->qy;
+    const pico8_zone_choisie_t *particules = pico8_zone_particules(PICO8_PARTICULES_PARTICULE);
+    int i;
+
+    if (qy == NULL) {
+        return;
+    }
+    for (i = 0; i < qy->count; i++) {
+        pico8_zone_release(particules, qy->items[i]);
+    }
+    /* The list lives in its own arena: `qy` dies with it. */
+    pico8_zone_arene_rendre(qy->zone);
+    emitter->qy = NULL;
 }
 
 void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
@@ -51,6 +86,7 @@ void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {
     while (pico8_fixed_rnd_default() < n) {
         if (qy != NULL && self->cls->mm != NULL) {
             pico8_ptrs_add(qy, self->cls->mm(self));
+            pico8_zone_particules_noter_elements(emitter->qy_sorte, qy->count);
         }
         n = pico8_fixed_sub(n, pico8_fixed_from_int(1));
     }
@@ -119,6 +155,7 @@ void pico8_ei(const pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_struct_header_t *s
                  * that slides into the vacated slot is skipped this
                  * frame. Reproduced by never compensating the index. */
                 pico8_ptrs_del(qy, p);
+                pico8_zone_release(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), (unsigned char *)p);
             } else {
                 int px = pico8_particle_to_int(pico8_fixed_add(cx, p->p.x));
                 int py = pico8_particle_to_int(pico8_fixed_add(cy, p->p.y));

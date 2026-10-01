@@ -32,9 +32,16 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "zone_tas.h"
+
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
 
 
 /* The tag class instances carried, which the frozen hashes fold: any
@@ -453,12 +460,12 @@ static void export_to(void *pt, void *oz) {
     pico8_ents_t *by = malloc(sizeof *by);
     pico8_trade_t *t;
 
-    pico8_ents_init(lp);
+    pico8_ents_init(lp, &zone_tas);
     pico8_ents_add(lp, pt);
     pico8_ents_add(lp, oz);
     keys.lp = lp;
-    t = pico8_trade_new(&keys);
-    pico8_ents_init(by);
+    t = pico8_trade_new(pico8_zone_partie(), &keys);
+    pico8_ents_init(by, &zone_tas);
     pico8_ents_add(by, &t->header);
     assert(pico8_jo_is_family(pt));
     ((pico8_jo_t *)pt)->by = by;
@@ -501,7 +508,7 @@ static void test_life(void) {
     placed = build_processor();
     mp = vec_ref(vec_xy(7680, 7552));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_qh(placed)->ra == mp);
+    assert(ra_copies(as_qh(placed)->ra, mp));
     h = fold_vec(h, as_qh(placed)->p);
     h = fnv(h, et_state(as_qh(placed)));
     h = fold_et(h, as_qh(placed));

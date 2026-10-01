@@ -1,7 +1,6 @@
 #include "pico8_geom.h"
 
 #include <assert.h>
-#include <stdlib.h>
 
 pico8_ee_side_t pico8_geom_ee(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c) {
     pico8_fixed_t kl = pico8_fixed_sub(
@@ -38,8 +37,9 @@ int pico8_geom_be(pico8_vec_t a, pico8_vec_t b, pico8_vec_t c, pico8_fixed_t fh)
     return l > lo && l < hi && dist_sq < fh;
 }
 
-pico8_qz_box_t *pico8_qz(pico8_fixed_t xl, pico8_fixed_t yt, pico8_fixed_t xr, pico8_fixed_t yb) {
-    pico8_qz_box_t *box = malloc(sizeof *box);
+pico8_qz_box_t *pico8_qz(const pico8_zone_choisie_t *zone, pico8_fixed_t xl, pico8_fixed_t yt,
+                         pico8_fixed_t xr, pico8_fixed_t yb) {
+    pico8_qz_box_t *box = (pico8_qz_box_t *)pico8_zone_alloc(zone, sizeof *box);
     box->xl = xl;
     box->yt = yt;
     box->xr = xr;

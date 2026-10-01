@@ -34,7 +34,14 @@
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_vec.h"
+#include "zone_tas.h"
+
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
 
 
 #define BUILT_HASH 0x4194DF7Bu
@@ -429,7 +436,7 @@ static pico8_ents_t *list_of(int n, pico8_struct_header_t *item) {
     pico8_ents_t *l = malloc(sizeof *l);
     int i;
 
-    pico8_ents_init(l);
+    pico8_ents_init(l, &zone_tas);
     for (i = 0; i < n; i++) {
         pico8_ents_add(l, item);
     }
@@ -464,7 +471,7 @@ static void test_life(void) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_qh(placed)->ra == mp);
+    assert(ra_copies(as_qh(placed)->ra, mp));
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
@@ -599,8 +606,8 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     qe = pico8_fixed_from_int(r_p);
     self = pico8_nr_new(NULL);
     other = pico8_qh_new(NULL);
-    pico8_ptrs_init(jy);
-    pico8_ptrs_add(jy, pico8_jy_new(&qe));
+    pico8_ptrs_init(jy, &zone_tas);
+    pico8_ptrs_add(jy, pico8_jy_new(pico8_zone_partie(), &qe));
     other->jy = jy;
     jc_keys.qu = &self->header;
     w = pico8_jc_new(&jc_keys);
@@ -608,22 +615,22 @@ static void test_cn_skips_a_slipway_already_in_rl(void) {
     assert(self->oe != NULL && self->oe->count == 0);
     pico8_ents_add(self->oe, &w->header);
 
-    pico8_ents_init(with_w);
+    pico8_ents_init(with_w, &zone_tas);
     pico8_ents_add(with_w, &w->header);
-    pico8_ents_init(&ib);
+    pico8_ents_init(&ib, &zone_tas);
     keys.has_qe = 1;
     keys.qe = qe;
     keys.rl = with_w;
-    lw.t = pico8_trade_new(&keys);
+    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     lw.mu = pico8_fixed_from_int(2);
     lw.kf = take_offer;
     lw.ib = &ib;
     pico8_nr_cn(self, &lw);
     assert(g_offers == 0 && ib.count == 0 && lw.mu == pico8_fixed_from_int(2));
 
-    pico8_ents_init(without_w);
+    pico8_ents_init(without_w, &zone_tas);
     keys.rl = without_w;
-    lw.t = pico8_trade_new(&keys);
+    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     pico8_nr_cn(self, &lw);
     assert(g_offers == 1 && ib.count == 1 && lw.mu == pico8_fixed_from_int(1));
     pico8_ents_free(&ib);

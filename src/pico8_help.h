@@ -23,7 +23,7 @@ const pico8_struct_class_t *pico8_fv_struct_class(void);
 
 /* TROU-8 */
 /* The help's class carries `g_`'s tags, so `lt` registers it into `cg.g_` and
- * `cg.prober` too; nothing ever frees it. Its `ra` points at `pico8_fv_def`'s,
+ * `cg.prober` too; it lives in the current game-zone generation. Its `ra` points at `pico8_fv_def`'s,
  * shared by every help. Asserts when called before `pico8_help_init()`. */
 pico8_g__t *pico8_fv_new(void);
 

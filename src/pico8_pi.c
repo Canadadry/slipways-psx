@@ -1,13 +1,13 @@
 #include "pico8_pi.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_hud.h"
 #include "pico8_layout.h"
 #include "pico8_str.h"
 #include "pico8_vec.h"
+#include "pico8_zone_frame.h"
 
 typedef struct {
     char name[8];
@@ -110,7 +110,7 @@ static void pico8_pi_rk_draw(const pico8_jb_row_t *e) {
  * technology counter in the top menu bar. Other kinds do fall back to "". */
 static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
     const pico8_jb_item_t *a1 = pico8_pi_arg(e, 1);
-    char *owned = pico8_pi_is_number(e, 1) ? pico8_tostr_fixed(pico8_pi_number(e, 1)) : NULL;
+    char *owned = pico8_pi_is_number(e, 1) ? pico8_tostr_fixed(pico8_zone_frame(), pico8_pi_number(e, 1)) : NULL;
     const char *t = a1 != NULL && a1->s != NULL ? a1->s : (owned != NULL ? owned : "");
     pico8_fixed_t x = pico8_pi_number(e, 2);
     pico8_fixed_t y = pico8_pi_number(e, 3);
@@ -121,7 +121,6 @@ static void pico8_pi_io_draw(const pico8_jb_row_t *e) {
     } else {
         pico8_io_default(g_pi_gfx, g_pi_mem, t, x, y, c);
     }
-    free(owned);
 }
 
 static void pico8_pi_eq_draw(const pico8_jb_row_t *e) {

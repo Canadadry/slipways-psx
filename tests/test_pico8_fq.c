@@ -21,6 +21,7 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
+#include "../src/pico8_zone_interface.h"
 
 #define MY_TRUE_TICKS 6
 #define MY_TRUE_SEQUENCE_HASH 0xA6A43C27u
@@ -129,6 +130,7 @@ static void test_ldown_with_a_true_my_removes_the_veil(void) {
     int ticks = 0;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = veil_with_my(1);
     h = fold_veil(h, veil);
     while (ents_listed(pico8_hv(), veil)) {
@@ -157,6 +159,7 @@ static void test_bare_veil_swallows_the_click_and_stays(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LDOWN_TICK) {
@@ -178,6 +181,7 @@ static void test_false_my_keeps_the_veil(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = veil_with_my(0);
     for (i = 0; i < IDLE_TICKS; i++) {
         if (i == LDOWN_TICK) {
@@ -248,6 +252,7 @@ static void test_defaults_match_the_parsed_spec(void) {
     pico8_fq_t *veil;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     veil = pico8_fq_new(NULL);
     assert(veil->def == &pico8_fq_def);
     assert(veil->def->fa == pico8_fixed_from_int(14));
@@ -276,6 +281,7 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     int i;
 
     pico8_jl();
+    pico8_cart_vider_file_sortie();
     keys.my = pico8_de_my();
     built = pico8_fq_new(&keys);
     generic = pico8_fq_new(NULL);
@@ -289,6 +295,28 @@ static void test_fq_is_a_struct_registered_under_hd(void) {
     assert(cls->hd == pico8_hd_true && cls->hd(generic, NULL, NULL) == 1);
     assert(cls->states[PICO8_STATE_PH] == NULL && cls->rdown == NULL);
     assert(((const pico8_fq_t *)built)->my == pico8_de_my());
+}
+
+/* A veil takes a place; once its `my` lifts `p_` and `dg` takes it out,
+ * emptying the exit queue gives the place back. */
+static void test_veil_gives_its_place_back(void) {
+    pico8_fq_t *veil;
+    int base;
+    int ticks = 0;
+
+    pico8_jl();
+    pico8_cart_vider_file_sortie();
+    base = pico8_zone_interface_vivantes(PICO8_SORTE_FQ);
+    veil = veil_with_my(1);
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1);
+    assert(ldown(veil));
+    while (ents_listed(pico8_hv(), veil)) {
+        pico8_dg();
+        assert(++ticks < 1000);
+    }
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base + 1 && "out of hv, still read this frame");
+    pico8_cart_vider_file_sortie();
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_FQ) == base);
 }
 
 int main(void) {
@@ -309,6 +337,7 @@ int main(void) {
     test_hover_loop_on_the_veil();
     test_defaults_match_the_parsed_spec();
     test_fq_is_a_struct_registered_under_hd();
+    test_veil_gives_its_place_back();
 
     printf("test_pico8_fq: all tests passed\n");
     return 0;

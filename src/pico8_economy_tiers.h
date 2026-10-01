@@ -8,8 +8,8 @@
  * zero/false default rather than crashing, and a NULL instance is a safe
  * no-op. */
 
-/* Each planet's `cc` is a heap list this function owns: the one a previous
- * call installed is freed before the new one replaces it. `by` is not
+/* Each planet's `cc` is a list this function owns: made once in the game
+ * generation, then emptied in place by every later call. `by` is not
  * copied, it is whatever `pt:ib()` returned. */
 void pico8_bd(void);
 

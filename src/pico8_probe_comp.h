@@ -18,11 +18,13 @@ typedef struct pico8_probe {
     pico8_struct_header_t *et;
     pico8_fixed_t od;
     int has_od; /* 0: `od` is nil, and is then never read */
+    pico8_vec_t bv_ra;
+    pico8_vec_t bv_p;
 } pico8_probe_t;
 
-/* TROU-7 */
-/* `mp` is stored into `ra` by REF identity, not copied: the caller's vector
- * stays aliased. `et` ends in one of three states -- a real target, a
+/* The host's `ra` and `p` point at its probe's `bv_ra` (NULL for a nil `mp`)
+ * and `bv_p`, rewritten in place: a copy of `mp`, which stays the caller's.
+ * `et` ends in one of three states -- a real target, a
  * static struct with no readable field but `fo`, or literal `false` -- of
  * which only `false` is falsy; collapsing the throwaway to nil would change
  * `d_`. */

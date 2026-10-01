@@ -5,8 +5,10 @@
  * the cart calls it once from `_init()` and again from `eu()`. It builds
  * `ke`/`qb`/`nf`/`ui` only when they are missing, so a caller that skipped
  * pico8_cart_load() still gets them; what it creates registers itself into
- * `hv`/`cv`/`cg` through `lt`. `mo` and `je` are never freed, `ok` not
- * until pico8_bootstrap_shutdown(). */
+ * `hv`/`cv`/`cg` through `lt`. Every entity still in `hv` whose class has
+ * `rendre` goes to the exit queue first (pico8_file_sortie.h), released at
+ * the next flush, never during this call. `mo` and `je` are never freed,
+ * `ok` not until pico8_bootstrap_shutdown(). */
 void pico8_jl(void);
 
 /* Frees the `ok` instance through its owning module; `mo` and `je` are

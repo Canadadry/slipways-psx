@@ -33,9 +33,11 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_wormhole.h"
+#include "zone_tas.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;
@@ -96,14 +98,14 @@ static void test_non_carriers_have_null_links(void) {
     pico8_ie_t *ie = pico8_ie_new(NULL);
     pico8_ie_ke_t view = pico8_ie_ke_view(ie);
     pico8_nf_t *nf = pico8_nf_new();
-    pico8_lq_t *lq = pico8_lq_new(NULL);
+    pico8_lq_t *lq = pico8_lq_new(&zone_tas, NULL);
 
     assert_links(&nf->header, (pico8_struct_header_t){.ra = (const pico8_vec_t *const *)&nf->ra});
     assert_links(&lq->header, (pico8_struct_header_t){.ra = &lq->ra});
-    assert_links(&pico8_jb_new(NULL)->header, (pico8_struct_header_t){0});
+    assert_links(&pico8_jb_new(&zone_tas, NULL)->header, (pico8_struct_header_t){0});
     assert_links(&pico8_hp_new(NULL)->header, (pico8_struct_header_t){0});
     assert_links(&pico8_hy_new()->header, (pico8_struct_header_t){0});
-    assert_links(&pico8_trade_new(NULL)->header, (pico8_struct_header_t){0});
+    assert_links(&pico8_trade_new(pico8_zone_partie(), NULL)->header, (pico8_struct_header_t){0});
     assert_links(&view.header, (pico8_struct_header_t){0});
 }
 

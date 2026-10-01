@@ -1,18 +1,22 @@
 #include "pico8_ui.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
+#include "pico8_file_sortie.h"
 #include "pico8_ke.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
 #include "pico8_scroll.h"
+#include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_interface.h"
+#include "pico8_zone_partie.h"
 
 static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;
@@ -25,6 +29,23 @@ const pico8_qz_box_t *pico8_ui_hw(void) {
 
 pico8_ents_t *pico8_ui_le_shared(void) {
     return &g_shared_le;
+}
+
+pico8_ents_t *pico8_ui_le_new(void) {
+    const pico8_zone_choisie_t *place = pico8_zone_interface_place(PICO8_SORTE_LE);
+    pico8_ents_t *le = (pico8_ents_t *)pico8_zone_alloc(place, sizeof *le);
+
+    pico8_ents_init(le, place);
+    return le;
+}
+
+void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le) {
+    pico8_ents_t *old = self->le;
+
+    self->le = le;
+    if (old != NULL && old != &g_shared_le) {
+        pico8_file_sortie_mettre_arene(old->zone);
+    }
 }
 
 static const pico8_struct_class_t g_je_placeholder_struct_class = {0};
@@ -73,8 +94,20 @@ static void pico8_ui_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }
 
+static void pico8_ui_le_rendre(pico8_ui_t *self) {
+    if (self->le != NULL && self->le != &g_shared_le) {
+        pico8_zone_arene_rendre(self->le->zone);
+    }
+    self->le = NULL;
+}
+
+static void pico8_ui_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_ui_le_rendre((pico8_ui_t *)self);
+}
+
 static const pico8_struct_class_t g_ui_struct_class = {
     .ev = pico8_ui_ev_dispatch,
+    .rendre = pico8_ui_rendre_dispatch,
 };
 
 static pico8_ui_t *pico8_ui_struct_new(void) {
@@ -82,7 +115,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     int i;
 
     assert(g_ui_up && "pico8_ui_init() must run first");
-    self = malloc(sizeof *self);
+    self = (pico8_ui_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ke_struct_init(&self->header, &g_ui_struct_class, pico8_ui_def.me, pico8_ui_def.t);
     self->def = &pico8_ui_def;
     self->header.fa = &self->def->fa;
@@ -92,7 +125,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
     self->ic = NULL;
     self->ic_own.layer_count = PICO8_UI_IC_LAYERS;
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_init(&self->ic_own.layers[i]);
+        pico8_ents_init(&self->ic_own.layers[i], pico8_zone_frame());
     }
     self->o_ = NULL;
     self->gj = NULL;
@@ -108,7 +141,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 void pico8_ui_init(void) {
     pico8_ui_shutdown();
     pico8_pi_init();
-    pico8_ents_init(&g_shared_le);
+    pico8_ents_init(&g_shared_le, pico8_zone_chargement());
     g_ui_up = 1;
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
@@ -116,11 +149,9 @@ void pico8_ui_init(void) {
 
 void pico8_ui_shutdown(void) {
     g_ui_up = 0;
+    pico8_ents_free(&g_shared_le);
     g_je = NULL;
-    if (g_ok != NULL) {
-        free(g_ok);
-        g_ok = NULL;
-    }
+    g_ok = NULL;
 }
 
 const pico8_struct_class_t *pico8_je_placeholder_struct_class(void) {
@@ -151,10 +182,9 @@ pico8_nf_t *pico8_je_nf(void) {
     return (pico8_nf_t *)g_je;
 }
 
-/* Deliberately does not free the outgoing instance. `pico8_jl()` rebuilds
+/* The outgoing instance lives on with its generation. `pico8_jl()` rebuilds
  * je/ok mid-frame, reachable from a click dispatched inside pico8_ui_lj,
- * whose `self` is still the old `ok` after the callback returns -- freeing
- * here is a use-after-free. */
+ * whose `self` is still the old `ok` after the callback returns. */
 void pico8_ui_set_je(pico8_struct_header_t *instance) {
     if (instance == g_je) {
         return;
@@ -180,7 +210,6 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
     pico8_ents_t *le_ptr_before;
     int le_count;
     pico8_vec_t qa;
-    pico8_vec_t *heap_qa;
     int hit;
     const pico8_nf_t *je;
     const pico8_qb_t *mo;
@@ -196,10 +225,8 @@ void pico8_ui_lj(pico8_mem_t *mem, pico8_ui_t *self) {
     mo = pico8_mo_qb();
     qa = pico8_vec_add(pico8_ui_vec_or_zero(je != NULL ? je->ra : NULL),
                        pico8_ui_vec_or_zero(mo != NULL ? mo->ra : NULL));
-    /* TROU-7 */
-    heap_qa = malloc(sizeof *heap_qa);
-    *heap_qa = qa;
-    self->qa = heap_qa;
+    self->qa_own = qa;
+    self->qa = &self->qa_own;
 
     pico8_ui_gw(mem, self);
 
@@ -256,8 +283,7 @@ void pico8_ui_gw(pico8_mem_t *mem, pico8_ui_t *self) {
     }
 
     for (i = 0; i < PICO8_UI_IC_LAYERS; i++) {
-        pico8_ents_free(&self->ic_own.layers[i]);
-        pico8_ents_init(&self->ic_own.layers[i]);
+        pico8_ents_init(&self->ic_own.layers[i], pico8_zone_frame());
     }
     self->ic = &self->ic_own;
     self->o_ = NULL;
@@ -420,8 +446,6 @@ int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec
 }
 
 void pico8_ui_cj(pico8_ui_t *self) {
-    pico8_ents_t *heap_le;
-
     if (self == NULL) {
         return;
     }
@@ -436,8 +460,5 @@ void pico8_ui_cj(pico8_ui_t *self) {
         }
     }
 
-    /* TROU-7 */
-    heap_le = malloc(sizeof *heap_le);
-    pico8_ents_init(heap_le);
-    self->le = heap_le;
+    pico8_ui_set_le(self, pico8_ui_le_new());
 }

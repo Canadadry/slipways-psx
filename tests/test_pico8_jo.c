@@ -21,6 +21,7 @@
 #include "../src/pico8_economy.h"
 #include "../src/pico8_economy_formulas.h"
 #include "../src/pico8_entity.h"
+#include "../src/pico8_help.h"
 #include "../src/pico8_fixed.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
@@ -35,6 +36,7 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_interface.h"
 
 #define GALAXY_PLANETS 90
 #define GALAXY_HASH 0xE70E2EE3u
@@ -156,9 +158,23 @@ static void check_int(const char *label, int got, int want) {
     assert(got == want);
 }
 
+/* Un _init sur l'ecran titre, sans frame : l'aide d'avant rend sa place
+ * qy_fv, unique, avant que la nouvelle la prenne. */
+static void sortir_l_aide(void) {
+    const pico8_ents_t *hv = pico8_hv();
+    for (int i = 0; i < hv->count; i++) {
+        if (hv->items[i]->cls == pico8_fv_struct_class()) {
+            pico8_he(hv->items[i]);
+            pico8_cart_vider_file_sortie();
+            return;
+        }
+    }
+}
+
 static void start_title(void) {
     pico8_input_init(&input);
     pico8_dispatch_set_input(&input);
+    sortir_l_aide();
     pico8__init();
 }
 
@@ -167,6 +183,7 @@ static void start_title(void) {
 static void start_game(void) {
     start_title();
     pico8_eu(NULL);
+    pico8_cart_vider_file_sortie();
 }
 
 static pico8_vec_t *vec_ref(pico8_vec_t at) {
@@ -591,6 +608,81 @@ static void test_jo_is_a_struct(void) {
            ((const pico8_struct_header_t *)jo->items[0])->cls == pico8_qh_struct_class());
 }
 
+static int rangee_places(void) {
+    return pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+}
+
+/* A galaxy planet given a `kw` of its own with a `qe`, as `lz` and `bb`
+ * would: `jo:hb` then gives it a row. */
+static pico8_jo_t *planet_with_a_row(void) {
+    pico8_jo_t *a = (pico8_jo_t *)pico8_cg("jo")->items[0];
+
+    a->kw = &a->kw_own;
+    a->kw_own.has_qe = 1;
+    a->kw_own.qe = pico8_fixed_from_int(28);
+    a->kw_own.mu = pico8_fixed_from_int(2);
+    return a;
+}
+
+/* `jo:hb` rebuilds the planet's row in a place of its own and gives the
+ * replaced one back on the spot; once the planet leaves `hv`, emptying the
+ * exit queue gives its row's place back. */
+static void test_hb_row_place(void) {
+    pico8_jo_t *a;
+    int once;
+    int i;
+
+    start_game();
+    pico8_cart_vider_file_sortie();
+    a = planet_with_a_row();
+    cls_of(a)->hb(&a->header);
+    once = rangee_places();
+    assert(a->lq != NULL && once > 0);
+    for (i = 0; i < 5; i++) {
+        cls_of(a)->hb(&a->header);
+        assert(rangee_places() == once && "the replaced row gives its place back on the spot");
+    }
+    pico8_he(&a->header);
+    assert(rangee_places() == once && "out of hv, the planet is still read this frame");
+    pico8_cart_vider_file_sortie();
+    assert(rangee_places() == once - 1 && a->lq == NULL);
+}
+
+/* A planet whose `kw` has no `qe` gets no row from `jo.ex`, and no place. */
+static void test_hb_without_qe_takes_no_place(void) {
+    pico8_jo_t *a;
+    int before;
+
+    start_title();
+    a = new_planet("p903", 7, 8);
+    assert(a->kw != NULL && !a->kw->has_qe);
+    before = rangee_places();
+    cls_of(a)->hb(&a->header);
+    assert(a->lq == NULL && rangee_places() == before);
+}
+
+/* `jl()` hands every planet to the exit queue: a title after a game whose
+ * planets all built a row holds as many row places as before. */
+static void test_rows_given_back_after_restart(void) {
+    const pico8_ents_t *jo;
+    int title;
+    int i;
+
+    start_title();
+    pico8_cart_vider_file_sortie();
+    title = rangee_places();
+    start_game();
+    jo = pico8_cg("jo");
+    (void)planet_with_a_row();
+    for (i = 0; i < jo->count; i++) {
+        cls_of(jo->items[i])->hb(jo->items[i]);
+    }
+    assert(rangee_places() > title);
+    start_title();
+    pico8_cart_vider_file_sortie();
+    assert(rangee_places() == title);
+}
+
 /* The galaxy depends on the rnd state: run each scenario in a child forked
  * right after pico8_cart_load(), as a fresh process would start it. */
 static pid_t spawn(void (*test)(void)) {
@@ -636,6 +728,9 @@ int main(void) {
     in_fresh_child(test_kw_shared);
     in_fresh_child(test_hh_takes_ll);
     in_fresh_child(test_jo_is_a_struct);
+    in_fresh_child(test_hb_row_place);
+    in_fresh_child(test_hb_without_qe_takes_no_place);
+    in_fresh_child(test_rows_given_back_after_restart);
 
     printf("test_pico8_jo: all tests passed\n");
     return 0;

@@ -1,7 +1,6 @@
 #include "pico8_menu.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -21,6 +20,8 @@
 #include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_str.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_interface.h"
 
 /* The most items a row of `ix` or `ha` holds. */
 #define PICO8_MENU_ROW_CAP 4
@@ -54,16 +55,6 @@ static pico8_ha_pz_t g_ha_pz = {
     0,
 };
 
-static char *cr_concat2(const char *a, const char *b) {
-    size_t la = strlen(a);
-    size_t lb = strlen(b);
-    char *out = malloc(la + lb + 1);
-    memcpy(out, a, la);
-    memcpy(out + la, b, lb);
-    out[la + lb] = '\0';
-    return out;
-}
-
 /* `_cr_t` is not a cart field: it is where pico8_cr_step stashes the row's
  * captured tech, as its entry of pico8_nb_table, read back here off the
  * button `js(b)` copied it to. */
@@ -85,7 +76,6 @@ typedef struct {
     pico8_lq_cell_t h_items[2];
 } pico8_cr_row_t;
 
-/* TROU-7 */
 /* An unaffordable tech gets "my" = false, not an absent field: `t.e_` is a
  * comparison result in `cb()`, so Lua's `and` yields the boolean here. */
 static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
@@ -103,7 +93,7 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     b->row.lq_row = &b->lq;
 
     gi_result = pico8_gi_nb(t);
-    gi_str = pico8_tostr_fixed(gi_result);
+    gi_str = pico8_tostr_fixed(pico8_zone_frame(), gi_result);
 
     b->h_items[0] = pico8_lq_cell_row(&pair);
     b->h_items[1] = pico8_lq_cell_string(gi_str);
@@ -122,16 +112,16 @@ static void pico8_cr_step(const pico8_nb_entry_t *t, pico8_cr_row_t *b) {
     }
 }
 
-/* TROU-7 */
 /* `jb` of the "n invented" row: one line per invented tech, its name (NULL
- * an empty line), in one fresh block. */
+ * an empty line), in one block of the frame zone. */
 static const pico8_jb_row_t *pico8_menu_invented_lines(const pico8_ptrs_t *list) {
     int n = list != NULL ? list->count : 0;
-    pico8_jb_row_t *row = calloc(1, sizeof *row + (size_t)n * sizeof(pico8_jb_item_t));
+    size_t size = sizeof(pico8_jb_row_t) + (size_t)n * sizeof(pico8_jb_item_t);
+    pico8_jb_row_t *row = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), size);
     pico8_jb_item_t *items = (pico8_jb_item_t *)(row + 1);
     int i;
 
-    assert(row != NULL);
+    memset(row, 0, size);
     for (i = 0; i < n; i++) {
         items[i].s = list->items[i];
     }
@@ -169,18 +159,18 @@ void pico8_cr(void) {
      * affordable or not. `ix[2].hb`'s bare `cb()` wants only the affordable
      * ones. The two sites do not merge. */
     cb_list = pico8_cb(1);
-    rows = calloc((size_t)cb_list.count + 1, sizeof *rows);
-    bs = calloc((size_t)cb_list.count + 1, sizeof *bs);
-    assert(rows != NULL && bs != NULL);
+    rows = (pico8_cr_row_t *)pico8_zone_alloc(pico8_zone_frame(), ((size_t)cb_list.count + 1) * sizeof *rows);
+    bs = (pico8_js_keys_t *)pico8_zone_alloc(pico8_zone_frame(), ((size_t)cb_list.count + 1) * sizeof *bs);
+    memset(rows, 0, ((size_t)cb_list.count + 1) * sizeof *rows);
+    memset(bs, 0, ((size_t)cb_list.count + 1) * sizeof *bs);
     for (i = 0; i < cb_list.count; i++) {
         pico8_cr_step(cb_list.items[i], &rows[n++]);
     }
 
     if (gr > 0) {
         pico8_cr_row_t *extra = &rows[n++];
-        char *gr_str = pico8_tostr_fixed(pico8_fixed_from_int(gr));
-        char *label = cr_concat2(gr_str, " invented");
-        free(gr_str);
+        char *gr_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_from_int(gr));
+        char *label = pico8_concat2(pico8_zone_frame(), gr_str, " invented");
         extra->lq_items[0] = pico8_lq_cell_fixed(pico8_fixed_from_int(30));
         extra->lq_items[1] = pico8_lq_cell_string(label);
         extra->lq.items = extra->lq_items;
@@ -210,25 +200,16 @@ void pico8_cr(void) {
             ek_tl = pico8_fixed_from_int(ek);
         }
 
-        tl_str = pico8_tostr_fixed(tl);
-        diff1_str = pico8_tostr_fixed(pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
-        diff2_str = pico8_tostr_fixed(pico8_fixed_sub(ek_tl, qi));
+        tl_str = pico8_tostr_fixed(pico8_zone_frame(), tl);
+        diff1_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_sub(pico8_fixed_from_int(gr), qi));
+        diff2_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_sub(ek_tl, qi));
 
-        tmp1 = cr_concat2("level ", tl_str);
-        tmp2 = cr_concat2(tmp1, " (");
-        free(tmp1);
-        tmp3 = cr_concat2(tmp2, diff1_str);
-        free(tmp2);
-        tmp1 = cr_concat2(tmp3, "/");
-        free(tmp3);
-        tmp2 = cr_concat2(tmp1, diff2_str);
-        free(tmp1);
-        ep = cr_concat2(tmp2, ")");
-        free(tmp2);
-
-        free(tl_str);
-        free(diff1_str);
-        free(diff2_str);
+        tmp1 = pico8_concat2(pico8_zone_frame(), "level ", tl_str);
+        tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, " (");
+        tmp3 = pico8_concat2(pico8_zone_frame(), tmp2, diff1_str);
+        tmp1 = pico8_concat2(pico8_zone_frame(), tmp3, "/");
+        tmp2 = pico8_concat2(pico8_zone_frame(), tmp1, diff2_str);
+        ep = pico8_concat2(pico8_zone_frame(), tmp2, ")");
 
         cr->ep = ep;
         frame.ep = cr->ep;
@@ -238,9 +219,6 @@ void pico8_cr(void) {
         frame.gq = cr->gq;
         pico8_pz(&frame, bs, n);
     }
-
-    free(bs);
-    free(rows);
 }
 
 static void pico8_ix1_my_dispatch(pico8_js_t *self) {
@@ -257,7 +235,6 @@ static void pico8_ix2_my_dispatch(pico8_js_t *self) {
     pico8_cr();
 }
 
-/* TROU-7 */
 /* The bare `cb()` counts only affordable techs. pico8_cr()'s `cb(true)` is the
  * other, non-interchangeable site: passing the flag here would light the icon
  * whenever any tech of the era is left. */
@@ -266,7 +243,7 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     int cb_count;
     pico8_lq_cell_t item;
     pico8_lq_keys_t keys = {0};
-    pico8_lq_t *built;
+    const pico8_zone_choisie_t *place;
 
     if (self == NULL) {
         return;
@@ -278,9 +255,12 @@ static void pico8_ix2_hb_dispatch(pico8_js_t *self) {
     item = pico8_lq_cell_fixed(pico8_fixed_from_int(cb_count > 0 ? 24 : 37));
     keys.items = &item;
     keys.count = 1;
-    built = pico8_lq_new(&keys);
-
-    self->lq = built;
+    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    self->lq = pico8_lq_new(place, &keys);
+    if (self->lq_place != NULL) {
+        pico8_zone_arene_rendre(self->lq_place);
+    }
+    self->lq_place = place;
 }
 
 /* `fq(de)` takes the `my` of the one `de` of pico8_score_panel_display.c,

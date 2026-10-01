@@ -36,6 +36,12 @@
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone.h"
+#include "../src/pico8_zone_choisie.h"
+#include "../src/pico8_zone_frame.h"
+#include "../src/pico8_zone_interface.h"
+#include "../src/pico8_zone_partie.h"
+#include "zone_tas.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway
@@ -156,7 +162,8 @@ static uint32_t cell_value_kind(pico8_lq_cell_t c) {
     }
 }
 
-/* The same kind and, for its kind, the same number, string or row. */
+/* The same kind and, for its kind, the same number, text or row. A row's
+ * text is its own copy, a row borrowed. */
 static int same_cell(pico8_lq_cell_t a, pico8_lq_cell_t b) {
     if (a.kind != b.kind) {
         return 0;
@@ -165,7 +172,7 @@ static int same_cell(pico8_lq_cell_t a, pico8_lq_cell_t b) {
     case PICO8_LQ_CELL_FIXED:
         return a.as.fixed == b.as.fixed;
     case PICO8_LQ_CELL_STRING:
-        return a.as.s == b.as.s;
+        return a.as.s != b.as.s && strcmp(a.as.s, b.as.s) == 0;
     case PICO8_LQ_CELL_ROW:
         return a.as.row == b.as.row;
     default:
@@ -330,7 +337,7 @@ static uint32_t fold_row(uint32_t h, const void *lq) {
 /* Builds the row from `k` (NULL: no keys), folds it; `nil_at` as in
  * fold_positionals. */
 static uint32_t fold_built_from(uint32_t h, const char *label, const pico8_lq_keys_t *k, unsigned nil_at) {
-    const void *lq = pico8_lq_new(k);
+    const void *lq = pico8_lq_new(&zone_tas, k);
     uint32_t one = fold_row_from(2166136261u, lq, k, nil_at);
 
     assert(((const pico8_struct_header_t *)lq)->ra == &as_lq(lq)->ra);
@@ -402,7 +409,7 @@ static void test_constructions(void) {
         a[0] = tuple_of(4, f);
         k = positionals(1, a);
         h = fold_built_from(h, "spr w qw qv", &k, 0u);
-        assert(pico8_lq_new(&k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
+        assert(pico8_lq_new(&zone_tas, &k)->fs[0].sprite_qw == pico8_fixed_from_int(3));
     }
     {
         pico8_jb_row_t *qe = calloc(1, sizeof *qe);
@@ -476,8 +483,8 @@ static void test_jo_ex(void) {
         assert(p->has_o);
         o = p->o;
         for (b = 0; b < sizeof jqs / sizeof jqs[0]; b++) {
-            const void *lq = pico8_jo_ex(is, &o, pico8_fixed_from_int(jqs[b]), pico8_fixed_from_int((int)b % 3),
-                                         pico8_fixed_from_int((int)b % 2));
+            const void *lq = pico8_jo_ex(pico8_zone_frame(), is, &o, pico8_fixed_from_int(jqs[b]),
+                                         pico8_fixed_from_int((int)b % 3), pico8_fixed_from_int((int)b % 2));
             assert(lq != NULL);
             assert(as_lq(lq)->has_c == (jqs[b] > 5));
             if (jqs[b] > 5) {
@@ -487,11 +494,12 @@ static void test_jo_ex(void) {
         }
     }
     {
-        const void *lq = pico8_jo_ex(NULL, &o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
+        const void *lq =
+            pico8_jo_ex(pico8_zone_frame(), NULL, &o, pico8_fixed_from_int(2), 0, pico8_fixed_from_int(1));
         assert(lq != NULL);
         h = fold_row(h, lq);
     }
-    assert(pico8_jo_ex(NULL, NULL, pico8_fixed_from_int(1), 0, 0) == NULL);
+    assert(pico8_jo_ex(pico8_zone_frame(), NULL, NULL, pico8_fixed_from_int(1), 0, 0) == NULL);
     check("jo.ex", h, JO_EX_HASH);
 }
 
@@ -577,7 +585,7 @@ static void test_calls(void) {
 
     a[2] = tuple_of(2, f);
     t = with_c(positionals(3, a), 11);
-    lq = pico8_lq_new(&t);
+    lq = pico8_lq_new(&zone_tas, &t);
 
     want = drawn_by_ol(lq, vec_xy(64, 30), PICO8_FIXED_LIT(0x00008000, 0.5));
     h = fnv(h, want);
@@ -611,6 +619,37 @@ static void test_calls(void) {
     pico8_lq_ol(&gfx, &mem, NULL, vec_xy(20, 90), 0);
     assert(screen_hash() == want);
     check("calls", h, CALLS_HASH);
+}
+
+PICO8_BUMP_ZONE_STORAGE(panel_cells, 4096);
+
+/* Built, grown past its first cells by `lq_add`, then laid out anew by
+ * `lq_copy`, all in `zone`. */
+static uint32_t drawn_after_adds(const pico8_zone_choisie_t *zone) {
+    pico8_lq_cell_t a[] = {str("ab"), num(12)};
+    pico8_lq_keys_t t = with_c(positionals(2, a), 9);
+    pico8_lq_t *lq = pico8_lq_new(zone, &t);
+    pico8_lq_t *copy;
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        pico8_lq_add(lq, i % 2 ? num(16 + i) : str("cd"));
+    }
+    copy = pico8_lq_copy(zone, lq);
+    assert(row_count(copy) == 8);
+    return drawn_by_ol(copy, vec_xy(64, 60), PICO8_FIXED_LIT(0x00008000, 0.5));
+}
+
+/* `lq_add` grows `items` in the zone the panel kept: a panel in a bump
+ * zone draws what the same panel draws in the transient zone. */
+static void test_lq_add_in_bump_zone(void) {
+    pico8_bump_zone_t bump;
+    pico8_zone_choisie_t handle;
+    uint32_t want = drawn_after_adds(&zone_tas);
+
+    pico8_bump_zone_init(&bump, "essai-panneau", panel_cells, 4096);
+    handle = pico8_zone_choisie_bump(&bump);
+    assert(drawn_after_adds(&handle) == want);
 }
 
 /* A game started as `eu` starts it, with no difficulty picked: `dk` NULL
@@ -753,8 +792,8 @@ static const pico8_lq_t *panel_row(const char *head) {
  * resource draws it 5 wide, a want of none nothing, 6 wide. */
 static void test_gh_wants_more(void) {
     pico8_fixed_t ore = pico8_fixed_from_int(21);
-    pico8_jy_t *a = pico8_jy_new(&ore);
-    pico8_jy_t *b = pico8_jy_new(NULL);
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), &ore);
+    pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_jo_t *planet;
     const pico8_lq_t *wants;
@@ -765,7 +804,7 @@ static void test_gh_wants_more(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(2);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     planet = pico8_jo_new(NULL);
@@ -791,7 +830,7 @@ static void test_gh_wants_more(void) {
  * want arrives. */
 static void test_gh_w_maker_wants_no_more(void) {
     pico8_fixed_t ore = pico8_fixed_from_int(21);
-    pico8_jy_t *a = pico8_jy_new(&ore);
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), &ore);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_kw_t *kw = calloc(1, sizeof *kw);
     pico8_jo_t *planet;
@@ -803,7 +842,7 @@ static void test_gh_w_maker_wants_no_more(void) {
     kw->qe = pico8_fixed_from_int(r_w);
     a->has_gc = 1;
     a->gc = pico8_fixed_from_int(1);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     planet = pico8_jo_new(NULL);
     planet->jy = jy;
@@ -819,8 +858,8 @@ static void test_gh_w_maker_wants_no_more(void) {
 
 /* A laboratory (`qh` true) lists only its last want under "wants more:". */
 static void test_gh_lab_wants_its_last(void) {
-    pico8_jy_t *a = pico8_jy_new(NULL);
-    pico8_jy_t *b = pico8_jy_new(NULL);
+    pico8_jy_t *a = pico8_jy_new(pico8_zone_partie(), NULL);
+    pico8_jy_t *b = pico8_jy_new(pico8_zone_partie(), NULL);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
     pico8_jo_t *lab;
     const pico8_lq_t *wants;
@@ -830,7 +869,7 @@ static void test_gh_lab_wants_its_last(void) {
     a->gc = pico8_fixed_from_int(1);
     b->has_gc = 1;
     b->gc = pico8_fixed_from_int(1);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, a);
     pico8_ptrs_add(jy, b);
     lab = pico8_qh_new(NULL);
@@ -891,7 +930,7 @@ static void test_lq_is_a_struct(void) {
     int k;
     int i;
 
-    lq = pico8_lq_new(&t);
+    lq = pico8_lq_new(&zone_tas, &t);
     assert(lq != NULL && lq->header.cls == cls);
     assert(cls->ol != NULL);
     assert(cls->kj == NULL && cls->ev == NULL && cls->hd == NULL && cls->hk == NULL && cls->hb == NULL &&
@@ -903,7 +942,7 @@ static void test_lq_is_a_struct(void) {
     assert(pico8_lq_ready());
     assert(lq->has_c && lq->c == pico8_fixed_from_int(9));
     assert(!lq->has_bg);
-    copy = pico8_lq_copy(lq);
+    copy = pico8_lq_copy(&zone_tas, lq);
     assert(copy != lq && copy->items != lq->items && copy->items_count == 2);
     assert(copy->has_c && copy->c == pico8_fixed_from_int(9) && copy->fs_count == 2 && copy->w == lq->w);
 
@@ -942,6 +981,30 @@ static void in_fresh_child(void (*test)(void)) {
     assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
 }
 
+/* The largest row `jo:hb` can build: a planet of `r.w`, so two `ml`,
+ * with the most wants a project has and `jq` 5, the most drawn one by one.
+ * It fits in one row place. */
+static void test_jo_ex_largest_row_fits_a_place(void) {
+    const pico8_ptrs_t *is = NULL;
+    const pico8_zone_choisie_t *place;
+    pico8_fixed_t o;
+    int r_w;
+    int k;
+
+    for (k = 1; pico8_gb_at(k) != NULL; k++) {
+        const pico8_hp_t *p = pico8_gb_at(k);
+        if (p->i != NULL && (is == NULL || p->i->count > is->count)) {
+            is = p->i;
+        }
+    }
+    assert(is != NULL && is->count == 2 && "the most wants a project has; a longer `i` needs a bigger row place");
+    assert(pico8_r_lookup("w", &r_w));
+    o = pico8_fixed_from_int(r_w);
+    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    assert(pico8_jo_ex(place, is, &o, pico8_fixed_from_int(5), 0, 0) != NULL);
+    pico8_zone_arene_rendre(place);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -955,6 +1018,7 @@ int main(void) {
     pico8_cart_load();
     in_fresh_child(test_constructions);
     in_fresh_child(test_jo_ex);
+    in_fresh_child(test_jo_ex_largest_row_fits_a_place);
     in_fresh_child(test_hp_lq_and_copy);
     in_fresh_child(test_calls);
     in_fresh_child(test_planet_panel);
@@ -962,6 +1026,7 @@ int main(void) {
     in_fresh_child(test_gh_w_maker_wants_no_more);
     in_fresh_child(test_gh_lab_wants_its_last);
     in_fresh_child(test_lq_is_a_struct);
+    in_fresh_child(test_lq_add_in_bump_zone);
 
     printf("test_pico8_lq: all tests passed\n");
     return 0;

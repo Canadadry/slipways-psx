@@ -1,7 +1,6 @@
 #include "pico8_economy.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_collect.h"
@@ -18,6 +17,8 @@
 #include "pico8_ptrs.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 static int g_hy_up = 0;
 
@@ -31,7 +32,7 @@ const pico8_hy_def_t pico8_hy_def = {
 };
 
 static pico8_hy_t *pico8_hy_struct_new(void) {
-    pico8_hy_t *self = malloc(sizeof *self);
+    pico8_hy_t *self = (pico8_hy_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *self);
     pico8_ptrs_t *invented;
 
     pico8_struct_header_init(&self->header, &g_hy_struct_class);
@@ -56,9 +57,8 @@ static pico8_hy_t *pico8_hy_struct_new(void) {
     self->ge = pico8_fixed_from_int(0);
     self->jk = pico8_fixed_from_int(0);
     self->ew = self->def->ew;
-    /* TROU-7 */
-    invented = malloc(sizeof *invented);
-    pico8_ptrs_init(invented);
+    invented = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *invented);
+    pico8_ptrs_init(invented, pico8_zone_partie());
     self->invented = invented;
     self->lo = self->def->lo;
     self->yr = self->def->yr;
@@ -184,12 +184,10 @@ int pico8_hy_lu(pico8_hy_t *self, pico8_fixed_t jt) {
 
     if (jt != pico8_fixed_from_int(0)) {
         int color;
-        char *text = pico8_ne(pico8_fixed_neg(jt), 10, "$", &color);
+        char *text = pico8_ne(pico8_zone_frame(), pico8_fixed_neg(jt), 10, "$", &color);
         keys.at1 = text;
         keys.at2 = pico8_fixed_from_int(color);
         pico8_iv_new(&keys);
-        /* `text` is now owned by the new `iv` instance, which reads it every
-         * frame it stays on screen: not freed here. */
     }
 
     return 1;

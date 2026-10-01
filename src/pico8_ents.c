@@ -1,30 +1,49 @@
 #include "pico8_ents.h"
 
 #include <assert.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 #define PICO8_ENTS_INITIAL_CAPACITY 4
 
-void pico8_ents_init(pico8_ents_t *ents) {
+void pico8_ents_init(pico8_ents_t *ents, const pico8_zone_choisie_t *zone) {
+    assert(zone != NULL && "ents_init: a list without a zone would grow nowhere");
+    ents->items = NULL;
+    ents->count = 0;
+    ents->capacity = 0;
+    ents->zone = zone;
+}
+
+void pico8_ents_init_reserve(pico8_ents_t *ents, const pico8_zone_choisie_t *zone, int capacity) {
+    assert(capacity >= 0);
+    pico8_ents_init(ents, zone);
+    if (capacity == 0) {
+        return;
+    }
+    ents->items = (pico8_struct_header_t **)pico8_zone_alloc(zone, (size_t)capacity * sizeof *ents->items);
+    ents->capacity = capacity;
+}
+
+void pico8_ents_free(pico8_ents_t *ents) {
+    assert(ents != NULL && "ents primitive called on a NULL container");
+    if (ents->items != NULL) {
+        pico8_zone_release(ents->zone, (unsigned char *)ents->items);
+    }
     ents->items = NULL;
     ents->count = 0;
     ents->capacity = 0;
 }
 
-void pico8_ents_free(pico8_ents_t *ents) {
+void pico8_ents_clear(pico8_ents_t *ents) {
     assert(ents != NULL && "ents primitive called on a NULL container");
-    free(ents->items);
-    pico8_ents_init(ents);
+    ents->count = 0;
 }
 
 static void pico8_ents_grow(pico8_ents_t *ents) {
     int new_capacity = ents->capacity == 0 ? PICO8_ENTS_INITIAL_CAPACITY : ents->capacity * 2;
-    pico8_struct_header_t **new_items =
-        realloc(ents->items, (size_t)new_capacity * sizeof *new_items);
-    if (new_items == NULL) {
-        abort();
-    }
-    ents->items = new_items;
+    assert(ents->zone != NULL && "ents_add on a list pico8_ents_init never gave a zone");
+    ents->items = (pico8_struct_header_t **)pico8_zone_grow(
+        ents->zone, (unsigned char *)ents->items, (size_t)ents->capacity * sizeof *ents->items,
+        (size_t)new_capacity * sizeof *ents->items);
     ents->capacity = new_capacity;
 }
 
@@ -66,11 +85,12 @@ int pico8_ents_has(const pico8_ents_t *ents, const pico8_struct_header_t *e) {
     return 0;
 }
 
-pico8_ents_t pico8_ents_cat(const pico8_ents_t *a, const pico8_ents_t *b) {
+pico8_ents_t pico8_ents_cat(const pico8_zone_choisie_t *zone, const pico8_ents_t *a,
+                            const pico8_ents_t *b) {
     pico8_ents_t out;
     int i;
     assert(a != NULL && b != NULL && "cat: a NULL list is not tolerated, unlike has");
-    pico8_ents_init(&out);
+    pico8_ents_init(&out, zone);
     for (i = 0; i < a->count; i++) {
         pico8_ents_add(&out, a->items[i]);
     }
@@ -80,11 +100,12 @@ pico8_ents_t pico8_ents_cat(const pico8_ents_t *a, const pico8_ents_t *b) {
     return out;
 }
 
-pico8_ents_t pico8_jp_ents(const pico8_ents_t *qk, pico8_jp_ents_predicate_fn ow, void *ctx) {
+pico8_ents_t pico8_jp_ents(const pico8_zone_choisie_t *zone, const pico8_ents_t *qk,
+                           pico8_jp_ents_predicate_fn ow, void *ctx) {
     pico8_ents_t f;
     pico8_ents_iter_t it;
     pico8_struct_header_t *e;
-    pico8_ents_init(&f);
+    pico8_ents_init(&f, zone);
     if (qk == NULL) {
         return f;
     }

@@ -2,13 +2,14 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "pico8_collect.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_slipway.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
  * identity: every candidate offered here is a freshly built route, which
@@ -34,7 +35,9 @@ static void pico8_jo_ib_kf_closure(pico8_jo_trade_proposal_t *self, pico8_trade_
         return;
     }
     if (!gu_trade(self->ib, a)) {
-        pico8_ents_add(self->ib, &a->header);
+        assert(self->ib->zone == pico8_zone_partie() &&
+               "jo:ib: a kept route is copied into the generation; a list of another zone would outlive it");
+        pico8_ents_add(self->ib, &pico8_trade_copy(pico8_zone_partie(), a)->header);
         self->mu -= pico8_fixed_from_int(1);
     }
 }
@@ -115,20 +118,19 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_fixed_t e_qe = r_e.n;
-            pico8_jy_t *fresh = pico8_jy_new(&e_qe);
+            pico8_jy_t *fresh = pico8_jy_new(pico8_zone_partie(), &e_qe);
             pico8_ptrs_t prefix;
             pico8_ptrs_t merged;
-            pico8_ptrs_t *merged_heap;
+            pico8_ptrs_t *merged_own;
 
-            pico8_ptrs_init(&prefix);
+            pico8_ptrs_init(&prefix, pico8_zone_frame());
             pico8_ptrs_add(&prefix, fresh);
-            merged = pico8_la_ptrs(&prefix, jy);
-            pico8_ptrs_free(&prefix);
+            merged = pico8_la_ptrs(pico8_zone_partie(), &prefix, jy);
 
-            merged_heap = malloc(sizeof *merged_heap);
-            *merged_heap = merged;
-            self->jy = merged_heap;
-            jy = merged_heap;
+            merged_own = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *merged_own);
+            *merged_own = merged;
+            self->jy = merged_own;
+            jy = merged_own;
         }
         self->jh = pico8_fixed_from_int(1);
         self->has_jh = 1;
@@ -160,7 +162,7 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
         }
 
         if (pico8_qe_equal(t_qe, qe_val) && !(have_r_q && pico8_qe_equal(qe_val, r_q))) {
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->header, NULL);
+            pico8_trade_t *extended = pico8_trade_kg(pico8_zone_frame(), t, &self->header, NULL);
             if (lw->kf != NULL) {
                 lw->kf(lw, extended);
             }
@@ -184,8 +186,8 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
     if (self->by != NULL) {
         ib = self->by;
     } else {
-        ib = malloc(sizeof *ib);
-        pico8_ents_init(ib);
+        ib = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *ib);
+        pico8_ents_init(ib, pico8_zone_partie());
     }
 
     if (self->kw != NULL) {
@@ -211,23 +213,22 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         }
         w = w_val;
 
-        lp_list = malloc(sizeof *lp_list);
-        pico8_ents_init(lp_list);
+        lp_list = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *lp_list);
+        pico8_ents_init(lp_list, pico8_zone_frame());
         pico8_ents_add(lp_list, &self->header);
-        rl_list = malloc(sizeof *rl_list);
-        pico8_ents_init(rl_list);
+        rl_list = (pico8_ents_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *rl_list);
+        pico8_ents_init(rl_list, pico8_zone_frame());
         pico8_ents_add(rl_list, w);
 
         keys.lp = lp_list;
         keys.rl = rl_list;
-        lw.t = pico8_trade_new(&keys);
+        lw.t = pico8_trade_new(pico8_zone_frame(), &keys);
         /* Recomputed each iteration: an earlier proposal's `kf` may already
          * have grown `ib`. */
         lw.mu = mu - pico8_fixed_from_int(ib->count);
         lw.kf = pico8_jo_ib_kf_closure;
         lw.ib = ib;
 
-        /* TROU-7 */
         if (lw.mu == pico8_fixed_from_int(0)) {
             break;
         }

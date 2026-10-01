@@ -1,7 +1,6 @@
 #include "pico8_probe.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
@@ -21,6 +20,7 @@
 #include "pico8_ui.h"
 #include "pico8_wormhole.h"
 #include "pico8_str.h"
+#include "pico8_zone_frame.h"
 
 static int g_g__up = 0;
 static pico8_struct_header_t *g_fm = NULL;
@@ -144,7 +144,6 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     pico8_probe_t *probe;
     pico8_vec_t mp_vec;
     pico8_vec_t p_vec;
-    pico8_vec_t *p_heap;
     pico8_fixed_t nq;
     pico8_struct_header_t *c;
     pico8_struct_header_t *et;
@@ -157,10 +156,9 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
     probe = self->probe;
     mp_vec = mp != NULL ? *mp : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
     p_vec = pico8_vec_div(mp_vec, pico8_fixed_from_int(128));
-    /* TROU-7 */
-    p_heap = malloc(sizeof *p_heap);
-    *p_heap = p_vec;
-    probe_host_set_ra_p(self, mp, p_heap);
+    probe->bv_ra = mp_vec;
+    probe->bv_p = p_vec;
+    probe_host_set_ra_p(self, mp != NULL ? &probe->bv_ra : NULL, &probe->bv_p);
 
     c = NULL;
     nq = pico8_ij_ents(p_vec, pico8_cg("np"), &c);
@@ -176,12 +174,11 @@ void pico8_bv(pico8_struct_header_t *self, pico8_vec_t *mp, pico8_vec_t *rp) {
         pico8_struct_header_t *first = NULL;
 
         ctx.self_p = p_vec;
-        filtered = pico8_jp_ents(pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
+        filtered = pico8_jp_ents(pico8_zone_frame(), pico8_cg("jc"), pico8_bv_jc_predicate, &ctx);
         if (filtered.count > 0) {
             first = filtered.items[0];
             have_first = 1;
         }
-        pico8_ents_free(&filtered);
 
         if (have_first && first != NULL) {
             et = first;
@@ -235,7 +232,6 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
     pico8_vec_t mp;
     const pico8_nf_t *je;
     const char *display = "";
-    char *heap_display = NULL;
 
     if (me == NULL || strcmp(me, "kz") != 0) {
         return;
@@ -255,22 +251,13 @@ void pico8_dl_show(const pico8_gfx_t *gfx, pico8_mem_t *mem, const char *me, con
             }
         }
     } else if (pb->has_od) {
-        char *od_str = pico8_tostr_fixed(pb->od);
-        size_t len = strlen(od_str);
-        heap_display = malloc(len + 2);
-        memcpy(heap_display, od_str, len);
-        heap_display[len] = '$';
-        heap_display[len + 1] = '\0';
-        free(od_str);
-        display = heap_display;
+        display = pico8_concat2(pico8_zone_frame(), pico8_tostr_fixed(pico8_zone_frame(), pb->od), "$");
     }
 
     if (gfx != NULL && mem != NULL) {
         pico8_fixed_t a = PICO8_FIXED_LIT(0x00008000, 0.5);
         pico8_io(gfx, mem, display, mp.x, pico8_fixed_sub(mp.y, pico8_fixed_from_int(8)), 8, &a);
     }
-
-    free(heap_display);
 }
 
 void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
@@ -360,8 +347,7 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
         v = pico8_vec_pa(v);
     }
 
-    /* TROU-7 */
-    particle = malloc(sizeof *particle);
+    particle = pico8_particule_prendre();
     particle->p = p;
     particle->v = v;
     particle->has_a = 0;
@@ -371,12 +357,22 @@ pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {
     return particle;
 }
 
+void pico8_g__rendre_dispatch(pico8_struct_header_t *self) {
+    const pico8_g__t *g_ = (const pico8_g__t *)self;
+
+    pico8_qy_rendre(self->emitter);
+    if (g_->prise != NULL && (self->me == NULL || strcmp(self->me, "ly") != 0)) {
+        pico8_jo_prise_arene_rendue(g_->prise);
+    }
+}
+
 static const pico8_struct_class_t g_g__struct_class = {
     .kj = pico8_ei_dispatch,
     .ev = pico8_dl_dispatch,
     .hq = pico8_bv_dispatch,
     .ey = pico8_d__dispatch,
     .mm = pico8_g__mm,
+    .rendre = pico8_g__rendre_dispatch,
     .tags = PICO8_TAG(PICO8_TAG_G_) | PICO8_TAG(PICO8_TAG_PROBER),
     .lineage = PICO8_LINEAGE(PICO8_LINEAGE_G_),
 };
@@ -400,6 +396,7 @@ void pico8_g__struct_init(pico8_g__t *self, const pico8_struct_class_t *cls, con
     self->probe->def = &self->def->probe;
     self->probe->et = NULL;
     self->p_ = 0;
+    self->prise = NULL;
     self->probe->od = self->def->probe.od;
     self->probe->has_od = self->def->probe.has_od;
     self->emitter->py = self->def->emitter.py;
@@ -416,8 +413,11 @@ static pico8_g__t *pico8_g__struct_new(const pico8_g__keys_t *keys) {
     pico8_g__t *self;
 
     assert(g_g__up && "pico8_probe_init() must run first");
-    self = malloc(sizeof *self);
+    pico8_jo_prise_ouvrir();
+    self = (pico8_g__t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
     pico8_g__struct_init(self, &g_g__struct_class, &pico8_g__def);
+    self->prise = pico8_jo_zone_construction();
+    pico8_jo_prise_fermer();
     if (keys != NULL) {
         self->header.t = keys->t;
         if (keys->has_pn) {
@@ -450,18 +450,8 @@ void pico8_probe_init(void) {
     g_fm = (pico8_struct_header_t *)&g_fm_placeholder;
 }
 
-static void fm_free(pico8_struct_header_t *fm) {
-    if (fm == NULL || fm == (pico8_struct_header_t *)&g_fm_placeholder) {
-        return;
-    }
-    assert(((const pico8_struct_header_t *)fm)->cls == pico8_hy_struct_class() &&
-           "fm: pico8_probe_set_fm only ever stores a hy besides the provisional");
-    free(fm);
-}
-
 void pico8_probe_shutdown(void) {
     g_g__up = 0;
-    fm_free(g_fm);
     g_fm = NULL;
 }
 
@@ -498,10 +488,6 @@ const pico8_fm_placeholder_t *pico8_fm_placeholder(void) {
 }
 
 void pico8_probe_set_fm(pico8_struct_header_t *instance) {
-    if (g_fm == instance) {
-        return;
-    }
-    fm_free(g_fm);
     g_fm = instance;
 }
 

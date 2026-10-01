@@ -28,6 +28,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_particle.h"
+#include "../src/pico8_zone_interface.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
@@ -37,6 +38,13 @@
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_partie.h"
+#include "zone_tas.h"
+
+/* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */
+static int ra_copies(const pico8_vec_t *ra, const pico8_vec_t *mp) {
+    return mp == NULL ? ra == NULL : ra != NULL && ra != mp && ra->x == mp->x && ra->y == mp->y;
+}
 
 
 #define BUILT_HASH 0x2A676693u
@@ -500,7 +508,7 @@ static void test_life(void) {
     assert(mo_ra != NULL);
     mp = vec_ref(pico8_vec_add(*mo_ra, vec_xy(12, 108)));
     cls_of(placed)->hq(placed, mp, vec_ref(vec_xy(64, 64)));
-    assert(as_hj(placed)->ra == mp);
+    assert(ra_copies(as_hj(placed)->ra, mp));
     set_credits(200);
     assert(cls_of(placed)->ey == pico8_d__dispatch);
     h = pico8_d_(placed) ? fnv(fnv(h, 0xB0u), 1u) : fold_ref(h, NULL);
@@ -547,12 +555,12 @@ static void *join(void *qu, void *synthesizer) {
  * count of suppliers. */
 static void give_row(void *e, int qe) {
     pico8_fixed_t want_qe = pico8_fixed_from_int(qe);
-    pico8_jy_t *row = pico8_jy_new(&want_qe);
+    pico8_jy_t *row = pico8_jy_new(pico8_zone_partie(), &want_qe);
     pico8_ptrs_t *jy = malloc(sizeof *jy);
 
     row->has_gc = 1;
     row->gc = pico8_fixed_from_int(0);
-    pico8_ptrs_init(jy);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, row);
     as_hj(e)->jy = jy;
 }
@@ -699,6 +707,45 @@ static void in_fresh_child(void (*test)(void)) {
     reap(spawn(test));
 }
 
+/* What an emitter holds in the particle zone, by sort. */
+typedef struct {
+    int particules;
+    int qy;
+    int qy_fv;
+    int rangees;
+} held_t;
+
+static held_t held_now(void) {
+    held_t h;
+    h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
+    h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
+    h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
+    return h;
+}
+
+/* A synthesizer that leaves (`he`, then the exit queue's flush) gives
+ * back its particles, its `qy` and its row, and keeps its struct. */
+static void test_leaving_gives_back_its_particles(void) {
+    held_t before;
+    held_t after;
+    pico8_jo_t *e;
+
+    start_game();
+    pico8_cart_vider_file_sortie();
+    before = held_now();
+    e = as_hj(build_synthesizer());
+    pico8_ez(&e->header, pico8_fixed_from_int(5));
+    cls_of(e)->hb(&e->header);
+    assert(e->emitter->qy->count == 5);
+    assert(held_now().particules == before.particules + 5 && held_now().qy == before.qy + 1);
+    pico8_he(&e->header);
+    pico8_cart_vider_file_sortie();
+    after = held_now();
+    assert(after.particules == before.particules && after.qy == before.qy && after.rangees == before.rangees);
+    assert(e->emitter->qy == NULL && e->lq_place == NULL);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -714,6 +761,7 @@ int main(void) {
     in_fresh_child(test_life);
     in_fresh_child(test_synthesis);
     in_fresh_child(test_mx_is_a_struct);
+    in_fresh_child(test_leaving_gives_back_its_particles);
 
     printf("test_pico8_mx: all tests passed\n");
     return 0;

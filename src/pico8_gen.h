@@ -3,10 +3,12 @@
 
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
+#include "pico8_zone_choisie.h"
 
-/* C has no closures, so each of these two closure factories becomes a heap
- * state struct (the captured upvalues) plus a `_next()` holding the body
- * the returned closure would have run, one call per Lua invocation. */
+/* C has no closures, so each of these two closure factories becomes a state
+ * struct (the captured upvalues) taken from the caller's zone, plus a
+ * `_next()` holding the body the returned closure would have run, one call
+ * per Lua invocation. */
 
 /* `b` is an upvalue the body itself rewrites on every step. */
 typedef struct {
@@ -14,10 +16,10 @@ typedef struct {
     pico8_fixed_t b;
 } pico8_jf_state_t;
 
-/* The state is the caller's, to release with pico8_jf_free. */
-pico8_jf_state_t *pico8_jf(pico8_fixed_t n_, pico8_fixed_t b);
+/* The state is taken from `zone` and lives as long as it: nothing to
+ * release. */
+pico8_jf_state_t *pico8_jf(const pico8_zone_choisie_t *zone, pico8_fixed_t n_, pico8_fixed_t b);
 pico8_fixed_t pico8_jf_next(pico8_jf_state_t *state);
-void pico8_jf_free(pico8_jf_state_t *state);
 
 /* `gn`'s third argument is a zero-argument Lua closure: a function pointer
  * plus a ctx here, this port's convention for a captured closure with no
@@ -39,12 +41,11 @@ typedef struct {
 } pico8_gn_state_t;
 
 /* `hr` is `hr_count` entries whose `r` is the weight; the tickets point into
- * `hr`, which must outlive the state. The state is the caller's, to release
- * with pico8_gn_free -- which never frees `r_ctx`, left to whoever built it.
+ * `hr`. The state is taken from `zone` and lives as long as it, nothing to
+ * release; `hr` and `r_ctx` must live at least as long as the state.
  * pico8_gn_next hands back one of `hr`'s entries. */
-pico8_gn_state_t *pico8_gn(const pico8_df_entry_t *hr, int hr_count, pico8_fixed_t og, pico8_gn_random_fn r,
-                           void *r_ctx);
+pico8_gn_state_t *pico8_gn(const pico8_zone_choisie_t *zone, const pico8_df_entry_t *hr, int hr_count,
+                           pico8_fixed_t og, pico8_gn_random_fn r, void *r_ctx);
 const pico8_df_entry_t *pico8_gn_next(pico8_gn_state_t *state);
-void pico8_gn_free(pico8_gn_state_t *state);
 
 #endif

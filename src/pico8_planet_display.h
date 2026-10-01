@@ -12,20 +12,18 @@
  * for the value-returning functions), and an absent or wrong-kind field
  * reads as absent rather than crashing. */
 
-/* TROU-7 */
-/* Rebinds `self.lq` to a fresh row; the previous one is dropped. */
+/* Rebinds `self.lq` to a fresh row in a place of its own, and gives the
+ * previous row's place back on the spot: nothing reads it any more. */
 void pico8_jo_hb(pico8_jo_t *self);
 
-/* TROU-7 */
-/* Hands the rows it builds to `pz()`, which keeps them: only the scratch
- * lists that never reach a row are freed here. */
+/* Builds its rows, their texts and tuples in the frame zone and hands them
+ * to `pz()`, whose buttons copy the rows and their texts. */
 void pico8_jo_gh(const pico8_jo_t *self);
 
 /* Answering "no" for the drag's own origin planet also opens that
  * planet's info panel. */
 pico8_down_t pico8_jo_gv(const pico8_jo_t *self, const pico8_struct_header_t *s);
 
-/* TROU-7 */
 /* Every row it builds carries the captured values of its `my` callback --
  * see `pico8_jo_fe_my_dispatch` in the .c. */
 void pico8_jo_fe(pico8_jo_t *self);

@@ -2,16 +2,18 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_collect.h"
+#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_research.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 static int g_jo_up = 0;
 
@@ -21,6 +23,15 @@ static pico8_jf_state_t *g_jo_ir = NULL;
 /* Shared by every bare planet: written in place by `bb` and `mx:kf` until
  * `lz` gives the planet its own. */
 static pico8_kw_t g_jo_kw_shared;
+
+/* Nom des arenes de prise : son adresse les reconnait (pico8_jo_prise_arene_rendue). */
+static const char g_jo_nom_prise[] = "prise";
+#define PRISES_LIBRES_MAX 8
+
+/* Non NULL seulement entre pico8_jo_prise_ouvrir et _fermer. */
+static const pico8_zone_choisie_t *g_jo_prise = NULL;
+static const pico8_zone_choisie_t *g_jo_prises_libres[PRISES_LIBRES_MAX];
+static int g_jo_prises_libres_n = 0;
 
 int pico8_jo_hd_dispatch(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico8_vec_t *ra) {
     return pico8_gk(self, qa, ra);
@@ -44,6 +55,7 @@ static const pico8_struct_class_t g_jo_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .kf = pico8_jo_kf_dispatch,
@@ -77,6 +89,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
     self->nk = NULL;
     self->fx = 0;
     self->lq = NULL;
+    self->lq_place = NULL;
     self->fo = NULL;
     self->jh = 0;
     self->has_jh = 0;
@@ -95,7 +108,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
 }
 
 static pico8_jo_t *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     pico8_jo_struct_init(self, &g_jo_struct_class, &pico8_jo_def);
     if (keys != NULL) {
@@ -126,29 +139,15 @@ void pico8_jo_init(void) {
 
 void pico8_jo_shutdown(void) {
     g_jo_up = 0;
-    if (g_jo_oc != NULL) {
-        pico8_gn_free(g_jo_oc);
-        g_jo_oc = NULL;
-    }
-    if (g_jo_ir != NULL) {
-        pico8_jf_free(g_jo_ir);
-        g_jo_ir = NULL;
-    }
+    g_jo_oc = NULL;
+    g_jo_ir = NULL;
 }
 
 void pico8_jo_set_oc(pico8_gn_state_t *oc) {
-    if (g_jo_oc == oc) {
-        return;
-    }
-    pico8_gn_free(g_jo_oc);
     g_jo_oc = oc;
 }
 
 void pico8_jo_set_ir(pico8_jf_state_t *ir) {
-    if (g_jo_ir == ir) {
-        return;
-    }
-    pico8_jf_free(g_jo_ir);
     g_jo_ir = ir;
 }
 
@@ -184,15 +183,75 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
     return pico8_jo_struct_new(keys);
 }
 
+const pico8_zone_choisie_t *pico8_jo_zone_construction(void) {
+    return g_jo_prise != NULL ? g_jo_prise : pico8_zone_partie();
+}
+
+void pico8_jo_prise_ouvrir(void) {
+    assert(g_jo_prise == NULL && "une prise d'icone est deja ouverte");
+    if (g_jo_prises_libres_n > 0) {
+        g_jo_prise = g_jo_prises_libres[--g_jo_prises_libres_n];
+        pico8_zone_arene_vider(g_jo_prise);
+    } else {
+        g_jo_prise = pico8_zone_arene_prendre(pico8_zone_partie(), g_jo_nom_prise, PICO8_JO_PRISE_OCTETS);
+    }
+}
+
+void pico8_jo_prise_fermer(void) {
+    g_jo_prise = NULL;
+}
+
+void pico8_jo_prise_rendue(const pico8_jo_t *self) {
+    pico8_jo_prise_zone_rendue(self->oe != NULL ? self->oe->zone : NULL, self->header.me);
+}
+
+void pico8_jo_prise_zone_rendue(const pico8_zone_choisie_t *zone, const char *me) {
+    if (me == NULL || strcmp(me, "kz") != 0) {
+        return;
+    }
+    pico8_jo_prise_arene_rendue(zone);
+}
+
+void pico8_jo_prise_arene_rendue(const pico8_zone_choisie_t *zone) {
+    if (zone == NULL || zone->bump == NULL || zone->bump->name != g_jo_nom_prise) {
+        return;
+    }
+    assert(g_jo_prises_libres_n < PRISES_LIBRES_MAX &&
+           "prises libres pleines : plus de prises refusees en vol que prevu");
+    g_jo_prises_libres[g_jo_prises_libres_n++] = zone;
+}
+
+/* TROU-26 */
+void pico8_jo_oublier_fo(const pico8_struct_header_t *e) {
+    const pico8_ents_t *np = pico8_cg("np");
+
+    for (int i = 0; np != NULL && i < np->count; i++) {
+        pico8_jo_t *p = (pico8_jo_t *)np->items[i];
+
+        assert(pico8_jo_is_family(&p->header) && "cg.np ne tient que des planetes, qui ont un fo");
+        if (p->fo == e) {
+            p->fo = NULL;
+        }
+    }
+}
+
+void pico8_jo_oublier_prises(void) {
+    g_jo_prises_libres_n = 0;
+}
+
 void pico8_jo_pq(pico8_jo_t *self) {
+    pico8_jo_pq_dans(self, pico8_jo_zone_construction());
+}
+
+void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
     pico8_ents_t *oe;
 
     if (self == NULL) {
         return;
     }
 
-    oe = malloc(sizeof *oe);
-    pico8_ents_init(oe);
+    oe = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *oe);
+    pico8_ents_init(oe, zone);
     self->oe = oe;
 
     if (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) {
@@ -206,12 +265,10 @@ void pico8_jo_pq(pico8_jo_t *self) {
 
 /* `mw(i)`: a copy of the want, never shared with `hp.i`. */
 static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
-    (void)ctx;
     if (e != NULL) {
-        pico8_jy_t *copy = malloc(sizeof *copy);
+        pico8_jy_t *copy = (pico8_jy_t *)pico8_zone_alloc((const pico8_zone_choisie_t *)ctx, sizeof *copy);
         const pico8_jy_t *i = e;
 
-        assert(copy != NULL);
         *copy = *i;
         *out = copy;
         return 1;
@@ -220,8 +277,9 @@ static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
 }
 
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
+    const pico8_zone_choisie_t *zone = pico8_jo_zone_construction();
     pico8_ptrs_t jy;
-    pico8_ptrs_t *jy_heap;
+    pico8_ptrs_t *jy_own;
 
     pico8_hp_assert(hp_instance);
     if (self == NULL) {
@@ -231,13 +289,13 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     self->hn = hp_instance;
     self->ep = NULL;
 
-    pico8_ptrs_init(&jy);
+    pico8_ptrs_init(&jy, zone);
     if (hp_instance != NULL && hp_instance->i != NULL) {
-        jy = pico8_nv_ptrs(hp_instance->i, pico8_jo_lz_mw_step, NULL);
+        jy = pico8_nv_ptrs(zone, hp_instance->i, pico8_jo_lz_mw_step, (void *)zone);
     }
-    jy_heap = malloc(sizeof *jy_heap);
-    *jy_heap = jy;
-    self->jy = jy_heap;
+    jy_own = (pico8_ptrs_t *)pico8_zone_alloc(zone, sizeof *jy_own);
+    *jy_own = jy;
+    self->jy = jy_own;
 
     self->kw_own.has_qe = hp_instance != NULL && hp_instance->has_o;
     self->kw_own.qe = self->kw_own.has_qe ? hp_instance->o : 0;
@@ -321,14 +379,12 @@ void pico8_jo_hk(const pico8_jo_t *self) {
         char *text;
 
         keys.ra = self->ra;
-        text = pico8_ne(self->kr, 10, "$", &color);
+        text = pico8_ne(pico8_zone_frame(), self->kr, 10, "$", &color);
         /* `ne()` is the last expression of the Lua constructor, so both of its
          * return values land as positional entries 1 and 2, not named fields. */
         keys.at1 = text;
         keys.at2 = pico8_fixed_from_int(color);
         pico8_iv_new(&keys);
-        /* `text` is now owned by the new `iv` instance, which reads it every
-         * frame it stays on screen: not freed here. */
     }
 }
 

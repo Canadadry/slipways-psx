@@ -32,8 +32,11 @@
 #include "../src/pico8_mem.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_trade.h"
+#include "../src/pico8_zone_partie.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
+#include "../src/pico8_zone_frame.h"
+#include "zone_tas.h"
 
 /* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any
  * planet a slipway joins it to. */
@@ -181,7 +184,7 @@ static void join(void *qu, void *re) {
 static pico8_ents_t *list_of(int n, void *const *items) {
     pico8_ents_t *l = malloc(sizeof *l);
     int i;
-    pico8_ents_init(l);
+    pico8_ents_init(l, &zone_tas);
     for (i = 0; i < n; i++) {
         pico8_ents_add(l, items[i]);
     }
@@ -197,7 +200,7 @@ static pico8_trade_t *route(pico8_ents_t *lp, pico8_ents_t *rl, int has_qe, int 
     keys.has_qe = has_qe;
     keys.qe_is_bool = qe_is_bool;
     keys.qe = qe;
-    return pico8_trade_new(&keys);
+    return pico8_trade_new(pico8_zone_partie(), &keys);
 }
 
 static void *planet(int i) {
@@ -259,7 +262,7 @@ static void test_construction(void) {
     assert(same_qe(t, g));
     h = fold_route(h, t);
 
-    t = pico8_trade_new(NULL);
+    t = pico8_trade_new(pico8_zone_partie(), NULL);
     assert(t != NULL && t->lp == NULL && t->rl == NULL && !t->has_qe);
     t = route(lp, NULL, 0, 0, 0);
     assert(t->lp == lp && t->rl == NULL && !t->has_qe);
@@ -286,7 +289,7 @@ static void test_to(void) {
 
     out = sentinel;
     assert(!pico8_trade_to(route(list_of(0, items), NULL, 0, 0, 0), &out) && out == sentinel);
-    assert(!pico8_trade_to(pico8_trade_new(NULL), &out) && out == sentinel);
+    assert(!pico8_trade_to(pico8_trade_new(pico8_zone_partie(), NULL), &out) && out == sentinel);
     assert(!pico8_trade_to(NULL, &out) && out == sentinel);
 }
 
@@ -319,7 +322,7 @@ static void test_kg(void) {
     int i;
 
     assert(g->has_qe && lp_n + 1 < 16 && rl_n + 1 < 16);
-    k = pico8_trade_kg(g, np, jc);
+    k = pico8_trade_kg(pico8_zone_partie(), g, np, jc);
     assert(k != NULL && k != g);
     assert(g->lp == lp && g->rl == rl && lp->count == lp_n && rl->count == rl_n);
     assert(k->lp != lp && k->rl != rl);
@@ -335,26 +338,79 @@ static void test_kg(void) {
     assert(list_is(k->rl, rl_n + 1, want));
     assert(same_qe(k, g));
 
-    k = pico8_trade_kg(g, np, NULL);
+    k = pico8_trade_kg(pico8_zone_partie(), g, np, NULL);
     assert(k->lp->count == lp_n + 1 && list_is(k->rl, rl_n, rl->items));
     assert(k->rl != rl);
     assert(same_qe(k, g));
 
-    k = pico8_trade_kg(g, NULL, NULL);
+    k = pico8_trade_kg(pico8_zone_partie(), g, NULL, NULL);
     assert(list_is(k->lp, lp_n, lp->items) && list_is(k->rl, rl_n, rl->items));
 
-    k = pico8_trade_kg(route((pico8_ents_t *)lp, NULL, 0, 0, 0), np, NULL);
+    k = pico8_trade_kg(pico8_zone_partie(), route((pico8_ents_t *)lp, NULL, 0, 0, 0), np, NULL);
     assert(k->lp->count == lp_n + 1 && k->rl->count == 0);
     assert(k->has_qe && k->qe_is_bool && k->qe == 0);
 
-    k = pico8_trade_kg(pico8_trade_new(NULL), np, jc);
+    k = pico8_trade_kg(pico8_zone_partie(), pico8_trade_new(pico8_zone_partie(), NULL), np, jc);
     want[0] = np;
     assert(list_is(k->lp, 1, want));
     want[0] = jc;
     assert(list_is(k->rl, 1, want));
     assert(k->has_qe && k->qe_is_bool && k->qe == 0);
 
-    assert(pico8_trade_kg(NULL, np, jc) == NULL);
+    assert(pico8_trade_kg(pico8_zone_partie(), NULL, np, jc) == NULL);
+}
+
+/* `trade_new` and `kg` build in the zone they are given: an arena taken
+ * from the game generation grows, the generation itself does not. */
+static void test_built_in_the_given_zone(void) {
+    pico8_trade_t *g = game_route();
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(pico8_zone_partie(), "routes", 4096);
+    const size_t partie = pico8_zone_partie_prise();
+    size_t taken = pico8_zone_arene_prise(arena);
+    pico8_trade_t *k;
+
+    assert(pico8_trade_new(arena, NULL) != NULL);
+    assert(pico8_zone_arene_prise(arena) > taken);
+    taken = pico8_zone_arene_prise(arena);
+    k = pico8_trade_kg(arena, g, planet(3), g->rl->items[0]);
+    assert(k != NULL && pico8_zone_arene_prise(arena) > taken);
+    assert(pico8_zone_partie_prise() == partie);
+}
+
+/* A route made in the frame zone, copied into the generation: the copy
+ * shares neither struct nor list with it, and reads back whole once the
+ * frame zone is reset, which ASan poisons. */
+static void test_copy_outlives_the_frame(void) {
+    pico8_trade_t *g = game_route();
+    pico8_trade_t *k = pico8_trade_kg(pico8_zone_frame(), g, planet(3), g->rl->items[0]);
+    pico8_trade_t *c = pico8_trade_copy(pico8_zone_partie(), k);
+    pico8_struct_header_t *lp_want[16];
+    pico8_struct_header_t *rl_want[16];
+    const int lp_n = k->lp->count;
+    const int rl_n = k->rl->count;
+    const int qe_is_bool = k->qe_is_bool;
+    const pico8_fixed_t qe = k->qe;
+    pico8_trade_t *nil_copy;
+    int i;
+
+    assert(lp_n < 16 && rl_n < 16 && k->has_qe);
+    for (i = 0; i < lp_n; i++) {
+        lp_want[i] = k->lp->items[i];
+    }
+    for (i = 0; i < rl_n; i++) {
+        rl_want[i] = k->rl->items[i];
+    }
+    assert(c != NULL && c != k && c->header.cls == pico8_trade_struct_class());
+    assert(c->lp != k->lp && c->rl != k->rl && c->lp->items != k->lp->items && c->rl->items != k->rl->items);
+    assert(pico8_trade_eq(c, k));
+
+    pico8_zone_frame_reset();
+    assert(list_is(c->lp, lp_n, lp_want) && list_is(c->rl, rl_n, rl_want));
+    assert(c->has_qe && c->qe_is_bool == qe_is_bool && c->qe == qe);
+
+    nil_copy = pico8_trade_copy(pico8_zone_partie(), pico8_trade_new(pico8_zone_partie(), NULL));
+    assert(nil_copy != NULL && nil_copy->lp == NULL && nil_copy->rl == NULL && !nil_copy->has_qe);
+    assert(pico8_trade_copy(pico8_zone_partie(), NULL) == NULL);
 }
 
 /* Equal when they start and end at the same planet, whatever the length. */
@@ -384,7 +440,7 @@ static void test_eq(void) {
     assert(!pico8_trade_eq(ta, route(list_of(2, d), NULL, 0, 0, 0)));
     assert(!pico8_trade_eq(ta, route(list_of(0, a), NULL, 0, 0, 0)));
     assert(!pico8_trade_eq(route(list_of(0, a), NULL, 0, 0, 0), ta));
-    assert(!pico8_trade_eq(ta, pico8_trade_new(NULL)) && !pico8_trade_eq(pico8_trade_new(NULL), ta));
+    assert(!pico8_trade_eq(ta, pico8_trade_new(pico8_zone_partie(), NULL)) && !pico8_trade_eq(pico8_trade_new(pico8_zone_partie(), NULL), ta));
     assert(!pico8_trade_eq(ta, NULL) && !pico8_trade_eq(NULL, ta));
 }
 
@@ -430,24 +486,28 @@ static void to_on_other(void *e) {
 }
 
 static void kg_on_other(void *e) {
-    (void)pico8_trade_kg(e, NULL, NULL);
+    (void)pico8_trade_kg(pico8_zone_partie(), e, NULL, NULL);
+}
+
+static void copy_of_other(void *e) {
+    (void)pico8_trade_copy(pico8_zone_partie(), e);
 }
 
 static void eq_left_other(void *e) {
-    (void)pico8_trade_eq(e, pico8_trade_new(NULL));
+    (void)pico8_trade_eq(e, pico8_trade_new(pico8_zone_partie(), NULL));
 }
 
 static void eq_right_other(void *e) {
-    (void)pico8_trade_eq(pico8_trade_new(NULL), e);
+    (void)pico8_trade_eq(pico8_trade_new(pico8_zone_partie(), NULL), e);
 }
 
 /* A game's route is a struct whose descriptor has no method;
  * a `qe` key its member could not hold stops the run, as does reading a true
- * `qe`, and `to`/`kg`/`eq` refuse anything that is not a route. */
+ * `qe`, and `to`/`kg`/`copy`/`eq` refuse anything that is not a route. */
 static void test_trade_is_a_struct(void) {
     const pico8_struct_class_t *cls = pico8_trade_struct_class();
     pico8_trade_t *g = game_route();
-    pico8_trade_t *t = pico8_trade_new(NULL);
+    pico8_trade_t *t = pico8_trade_new(pico8_zone_partie(), NULL);
     int j;
 
     assert(g != NULL && g->header.cls == cls);
@@ -459,7 +519,7 @@ static void test_trade_is_a_struct(void) {
         assert(cls->states[j] == NULL);
     }
     assert(pico8_trade_ready());
-    assert(pico8_trade_new(NULL) != NULL);
+    assert(pico8_trade_new(pico8_zone_partie(), NULL) != NULL);
 
     must_abort(build_with_bool_qe_2, NULL);
     must_abort(build_with_nil_qe_holding_1, NULL);
@@ -467,6 +527,7 @@ static void test_trade_is_a_struct(void) {
     must_abort(qe_of_true_route, NULL);
     must_abort(to_on_other, pico8_ok());
     must_abort(kg_on_other, pico8_ok());
+    must_abort(copy_of_other, pico8_ok());
     must_abort(eq_left_other, pico8_ok());
     must_abort(eq_right_other, pico8_ok());
 }
@@ -493,14 +554,14 @@ static void test_cn_wildcard_want(void) {
     start_game();
     assert(pico8_r_lookup("?", &any_qe));
     any = pico8_fixed_from_int(any_qe);
-    want = pico8_jy_new(&any);
-    pico8_ptrs_init(jy);
+    want = pico8_jy_new(pico8_zone_partie(), &any);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, want);
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
     keys.has_qe = 1;
     keys.qe = pico8_fixed_from_int(qh->def->ba->items[0]);
-    lw.t = pico8_trade_new(&keys);
+    lw.t = pico8_trade_new(pico8_zone_partie(), &keys);
     lw.kf = count_kf;
     pico8_jo_cn(qh, &lw);
     assert(want->row.has_qe && want->row.qe == keys.qe && g_kf_calls == 1);
@@ -515,16 +576,16 @@ static void test_cn_nil_want_after_kg(void) {
     pico8_trade_t *nil_route;
 
     start_game();
-    pico8_ptrs_init(jy);
-    pico8_ptrs_add(jy, pico8_jy_new(NULL));
+    pico8_ptrs_init(jy, &zone_tas);
+    pico8_ptrs_add(jy, pico8_jy_new(pico8_zone_partie(), NULL));
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
-    nil_route = pico8_trade_new(&(pico8_trade_keys_t){.lp = list_of(0, NULL)});
+    nil_route = pico8_trade_new(pico8_zone_partie(), &(pico8_trade_keys_t){.lp = list_of(0, NULL)});
     lw.kf = count_kf;
     lw.t = nil_route;
     pico8_jo_cn(qh, &lw);
     assert(g_kf_calls == 1);
-    lw.t = pico8_trade_kg(nil_route, NULL, NULL);
+    lw.t = pico8_trade_kg(pico8_zone_partie(), nil_route, NULL, NULL);
     assert(lw.t->has_qe && lw.t->qe_is_bool && lw.t->qe == 0);
     pico8_jo_cn(qh, &lw);
     assert(g_kf_calls == 1);
@@ -543,16 +604,16 @@ static void test_dh_counts_numbered_routes_only(void) {
     pico8_trade_t *nil_route;
 
     start_game();
-    nil_want = pico8_jy_new(NULL);
-    x_want = pico8_jy_new(&x);
-    pico8_ptrs_init(jy);
+    nil_want = pico8_jy_new(pico8_zone_partie(), NULL);
+    x_want = pico8_jy_new(pico8_zone_partie(), &x);
+    pico8_ptrs_init(jy, &zone_tas);
     pico8_ptrs_add(jy, nil_want);
     pico8_ptrs_add(jy, x_want);
-    nil_route = pico8_trade_new(NULL);
-    pico8_ents_init(cc);
+    nil_route = pico8_trade_new(pico8_zone_partie(), NULL);
+    pico8_ents_init(cc, &zone_tas);
     pico8_ents_add(cc, &nil_route->header);
-    pico8_ents_add(cc, &pico8_trade_kg(nil_route, NULL, NULL)->header);
-    pico8_ents_add(cc, &pico8_trade_new(&(pico8_trade_keys_t){.has_qe = 1, .qe = x})->header);
+    pico8_ents_add(cc, &pico8_trade_kg(pico8_zone_partie(), nil_route, NULL, NULL)->header);
+    pico8_ents_add(cc, &pico8_trade_new(pico8_zone_partie(), &(pico8_trade_keys_t){.has_qe = 1, .qe = x})->header);
     qh = pico8_qh_new(NULL);
     qh->jy = jy;
     qh->cc = cc;
@@ -570,8 +631,8 @@ static void test_qe_equal(void) {
     const pico8_qe_t n0 = {.kind = PICO8_QE_FIXED, .n = 0};
     const pico8_qe_t n2 = {.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(2)};
     const pico8_qe_t n3 = {.kind = PICO8_QE_FIXED, .n = pico8_fixed_from_int(3)};
-    pico8_trade_t *nil_route = pico8_trade_new(NULL);
-    pico8_trade_t *two = pico8_trade_new(&(pico8_trade_keys_t){.has_qe = 1, .qe = pico8_fixed_from_int(2)});
+    pico8_trade_t *nil_route = pico8_trade_new(pico8_zone_partie(), NULL);
+    pico8_trade_t *two = pico8_trade_new(pico8_zone_partie(), &(pico8_trade_keys_t){.has_qe = 1, .qe = pico8_fixed_from_int(2)});
     pico8_qe_t got;
 
     assert(pico8_qe_equal(nil, nil) && pico8_qe_equal(no, no) && pico8_qe_equal(n2, n2));
@@ -584,7 +645,7 @@ static void test_qe_equal(void) {
 
     assert(pico8_trade_qe(NULL).kind == PICO8_QE_NIL);
     assert(pico8_trade_qe(nil_route).kind == PICO8_QE_NIL);
-    assert(pico8_trade_qe(pico8_trade_kg(nil_route, NULL, NULL)).kind == PICO8_QE_FALSE);
+    assert(pico8_trade_qe(pico8_trade_kg(pico8_zone_partie(), nil_route, NULL, NULL)).kind == PICO8_QE_FALSE);
     got = pico8_trade_qe(two);
     assert(got.kind == PICO8_QE_FIXED && got.n == pico8_fixed_from_int(2));
 }
@@ -621,6 +682,8 @@ int main(void) {
     in_fresh_child(test_construction);
     in_fresh_child(test_to);
     in_fresh_child(test_kg);
+    in_fresh_child(test_built_in_the_given_zone);
+    in_fresh_child(test_copy_outlives_the_frame);
     in_fresh_child(test_eq);
     in_fresh_child(test_trade_is_a_struct);
     in_fresh_child(test_cn_wildcard_want);

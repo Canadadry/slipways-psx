@@ -1,11 +1,13 @@
 #include "pico8_entity.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "pico8_file_sortie.h"
 #include "pico8_game_data.h"
 #include "pico8_struct.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_partie.h"
 
 #define PICO8_BM_COUNT 5
 static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "hb"};
@@ -61,7 +63,6 @@ void pico8_entity_shutdown(void) {
         g_cg[i].seen = 0;
     }
 
-    /* TROU-7 */
     g_mo = NULL;
 
     g_initialized = 0;
@@ -72,16 +73,49 @@ void pico8_entity_init(void) {
 
     pico8_entity_shutdown();
 
-    pico8_ents_init(&g_hv);
+    pico8_ents_init(&g_hv, pico8_zone_partie());
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         g_cv[i].name = g_bm_names[i];
-        pico8_ents_init(&g_cv[i].list);
+        pico8_ents_init(&g_cv[i].list, pico8_zone_partie());
+    }
+
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        pico8_ents_init(&g_cg[i].list, pico8_zone_partie());
     }
 
     g_mo = (pico8_struct_header_t *)&g_mo_placeholder;
 
     g_initialized = 1;
+}
+
+void pico8_entity_abandonner_hv(void) {
+    int i;
+
+    for (i = 0; i < g_hv.count; i++) {
+        if (g_hv.items[i]->cls->rendre != NULL) {
+            pico8_file_sortie_mettre(g_hv.items[i]);
+        }
+    }
+}
+
+static void oublier_liste(pico8_ents_t *liste) {
+    liste->items = NULL;
+    liste->count = 0;
+    liste->capacity = 0;
+}
+
+void pico8_entity_oublier_registres(void) {
+    int i;
+
+    oublier_liste(&g_hv);
+    for (i = 0; i < PICO8_BM_COUNT; i++) {
+        oublier_liste(&g_cv[i].list);
+    }
+    for (i = 0; i < PICO8_TAG_COUNT; i++) {
+        oublier_liste(&g_cg[i].list);
+        g_cg[i].seen = 0;
+    }
 }
 
 const pico8_ents_t *pico8_hv(void) {
@@ -160,7 +194,9 @@ void pico8_he(pico8_struct_header_t *e) {
     int i;
 
     /* TROU-5 */
-    pico8_ents_del(&g_hv, e);
+    if (pico8_ents_del(&g_hv, e) && e->cls->rendre != NULL) {
+        pico8_file_sortie_mettre(e);
+    }
 
     for (i = 0; i < PICO8_BM_COUNT; i++) {
         if (pico8_bm_has(e, i)) {
@@ -186,7 +222,7 @@ void pico8_dc(const char *nt) {
     assert((kj || strcmp(nt, "ev") == 0) && "dc: only kj and ev are drawn through dc");
 
     for (i = 0; i < 15; i++) {
-        pico8_ents_init(&layers[i]);
+        pico8_ents_init(&layers[i], pico8_zone_frame());
     }
 
     bucket_src = pico8_cv(nt);
@@ -230,10 +266,6 @@ void pico8_dc(const char *nt) {
             }
         }
     }
-
-    for (i = 0; i < 15; i++) {
-        pico8_ents_free(&layers[i]);
-    }
 }
 
 const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void) {
@@ -245,7 +277,7 @@ pico8_struct_header_t *pico8_mo(void) {
 }
 
 /* See pico8_entity.h's own comment on this declaration: the outgoing mo
- * is deliberately leaked rather than freed. */
+ * lives on in its generation, given back when that generation is reset. */
 void pico8_entity_set_mo(pico8_struct_header_t *instance) {
     if (instance == g_mo) {
         return;

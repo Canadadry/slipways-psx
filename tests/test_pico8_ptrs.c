@@ -3,11 +3,13 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "zone_tas.h"
+
 static void test_add_grows_past_four_and_keeps_order(void) {
     int cells[5];
     int i;
     pico8_ptrs_t ptrs;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     assert(ptrs.count == 0 && ptrs.items == NULL);
 
     for (i = 0; i < 5; i++) {
@@ -27,7 +29,7 @@ static void test_add_grows_past_four_and_keeps_order(void) {
 static void test_del_removes_only_the_first_identical_pointer(void) {
     int a, b, c;
     pico8_ptrs_t ptrs;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, &b);
     pico8_ptrs_add(&ptrs, &c);
@@ -46,7 +48,7 @@ static void test_del_removes_only_the_first_identical_pointer(void) {
 static void test_del_absent_is_a_no_op(void) {
     int a, b, absent;
     pico8_ptrs_t ptrs;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, &b);
 
@@ -62,7 +64,7 @@ static void test_del_absent_is_a_no_op(void) {
 static void test_null_is_stored_and_del_null_removes_the_first(void) {
     int a;
     pico8_ptrs_t ptrs;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, NULL);
     pico8_ptrs_add(&ptrs, NULL);
@@ -87,7 +89,7 @@ static void test_all_walks_in_order(void) {
     expected[0] = &a;
     expected[1] = &b;
     expected[2] = &c;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, &b);
     pico8_ptrs_add(&ptrs, &c);
@@ -109,7 +111,7 @@ static void test_all_tolerates_deleting_the_current_element(void) {
     void *e;
     pico8_ptrs_t ptrs;
     pico8_ptrs_iter_t it;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, &b);
     pico8_ptrs_add(&ptrs, &c);
@@ -142,7 +144,7 @@ static void test_all_revisits_when_another_element_is_deleted(void) {
     void *e;
     pico8_ptrs_t ptrs;
     pico8_ptrs_iter_t it;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, &b);
     pico8_ptrs_add(&ptrs, &c);
@@ -170,7 +172,7 @@ static void test_all_on_empty_yields_nothing(void) {
     void *e = &e;
     pico8_ptrs_t ptrs;
     pico8_ptrs_iter_t it;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
 
     it = pico8_ptrs_all(&ptrs);
     assert(pico8_ptrs_iter_next(&it, &e) == 0);
@@ -194,7 +196,7 @@ static void test_foreach_visits_each_once_in_order_with_ctx(void) {
     collector_t collector;
     pico8_ptrs_t ptrs;
     collector.count = 0;
-    pico8_ptrs_init(&ptrs);
+    pico8_ptrs_init(&ptrs, &zone_tas);
     pico8_ptrs_add(&ptrs, &a);
     pico8_ptrs_add(&ptrs, &b);
     pico8_ptrs_add(&ptrs, &c);
@@ -209,6 +211,24 @@ static void test_foreach_visits_each_once_in_order_with_ctx(void) {
     pico8_ptrs_free(&ptrs);
 }
 
+static void test_reserved_list_holds_its_capacity_in_order(void) {
+    int cells[6];
+    int i;
+    pico8_ptrs_t ptrs;
+    pico8_ptrs_init_reserve(&ptrs, &zone_tas, 6);
+    assert(ptrs.count == 0 && ptrs.capacity == 6);
+
+    for (i = 0; i < 6; i++) {
+        pico8_ptrs_add(&ptrs, &cells[i]);
+    }
+
+    assert(ptrs.count == 6 && ptrs.capacity == 6 && "a reserved list fills to its capacity without growing");
+    for (i = 0; i < 6; i++) {
+        assert(ptrs.items[i] == &cells[i]);
+    }
+    pico8_ptrs_free(&ptrs);
+}
+
 int main(void) {
     test_add_grows_past_four_and_keeps_order();
     test_del_removes_only_the_first_identical_pointer();
@@ -219,6 +239,7 @@ int main(void) {
     test_all_revisits_when_another_element_is_deleted();
     test_all_on_empty_yields_nothing();
     test_foreach_visits_each_once_in_order_with_ctx();
+    test_reserved_list_holds_its_capacity_in_order();
     printf("test_pico8_ptrs: all tests passed\n");
     return 0;
 }

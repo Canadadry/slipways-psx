@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
@@ -22,13 +21,16 @@
 #include "pico8_slipway.h"
 #include "pico8_str.h"
 #include "pico8_tech_gate.h"
+#include "pico8_ui_button.h"
+#include "pico8_zone_frame.h"
+#include "pico8_zone_interface.h"
 
-/* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there). A
- * fresh row, never freed (TROU-7). */
+/* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in
+ * the frame zone. */
 static const pico8_jb_row_t *jo_kw_tuple(const pico8_kw_t *kw) {
-    pico8_jb_row_t *t = calloc(1, sizeof *t);
+    pico8_jb_row_t *t = (pico8_jb_row_t *)pico8_zone_alloc(pico8_zone_frame(), sizeof *t);
 
-    assert(t != NULL);
+    memset(t, 0, sizeof *t);
     t->has_qe = kw->has_qe;
     t->qe = kw->qe;
     return t;
@@ -40,6 +42,7 @@ void pico8_jo_hb(pico8_jo_t *self) {
     const pico8_fixed_t *qe = NULL;
     pico8_fixed_t mu = pico8_fixed_from_int(0);
     pico8_lq_t *lq_result;
+    const pico8_zone_choisie_t *place;
 
     if (self == NULL) {
         return;
@@ -52,9 +55,33 @@ void pico8_jo_hb(pico8_jo_t *self) {
     }
     by_list = self->by;
 
-    lq_result = pico8_jo_ex(jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
-                             pico8_fixed_from_int(0));
+    place = pico8_zone_interface_place(PICO8_SORTE_RANGEE);
+    lq_result = pico8_jo_ex(place, jy_list, qe, mu, pico8_fixed_from_int(by_list != NULL ? by_list->count : 0),
+                            pico8_fixed_from_int(0));
+    if (lq_result == NULL) {
+        pico8_zone_arene_rendre(place);
+        place = NULL;
+    }
+    if (self->lq_place != NULL) {
+        pico8_zone_arene_rendre(self->lq_place);
+    }
     self->lq = lq_result;
+    self->lq_place = place;
+}
+
+void pico8_jo_rendre_rangee(pico8_struct_header_t *self) {
+    pico8_jo_t *jo = (pico8_jo_t *)self;
+
+    if (jo->lq_place != NULL) {
+        pico8_zone_arene_rendre(jo->lq_place);
+    }
+    jo->lq = NULL;
+    jo->lq_place = NULL;
+}
+
+void pico8_jo_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jo_rendre_rangee(self);
+    pico8_jo_prise_rendue((const pico8_jo_t *)self);
 }
 
 typedef struct {
@@ -93,27 +120,14 @@ static int pico8_jo_gh_jp_step(void *e, void *ctx_ptr) {
  * the gap. */
 #define PICO8_JO_GH_LB_CAP 4
 
-/* TROU-7 */
 /* Room for `n` positionals of a row of `jo:gh`, the gap's cell included. */
 static pico8_lq_cell_t *jo_gh_row_items(int n) {
-    pico8_lq_cell_t *items = malloc((size_t)n * sizeof *items);
-
-    assert(items != NULL);
-    return items;
+    return (pico8_lq_cell_t *)pico8_zone_alloc(pico8_zone_frame(), (size_t)n * sizeof(pico8_lq_cell_t));
 }
 
-/* TROU-7 */
-/* `s` followed by `$`: a fresh string, never freed; `s` itself is freed. */
-static char *jo_dollar(char *s) {
-    size_t len = strlen(s);
-    char *with_suffix = malloc(len + 2);
-
-    assert(with_suffix != NULL);
-    memcpy(with_suffix, s, len);
-    with_suffix[len] = '$';
-    with_suffix[len + 1] = '\0';
-    free(s);
-    return with_suffix;
+/* `s` followed by `$`, in the frame zone. */
+static char *jo_dollar(const char *s) {
+    return pico8_concat2(pico8_zone_frame(), s, "$");
 }
 
 /* A planet's `pz` frame: `ep` and `ra` nil when NULL, `ca` and `gq` always. */
@@ -168,7 +182,7 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     if (self->has_kr) {
         int discard_color = 0;
 
-        h_item = pico8_lq_cell_string(jo_dollar(pico8_ne(self->kr, 0, NULL, &discard_color)));
+        h_item = pico8_lq_cell_string(jo_dollar(pico8_ne(pico8_zone_frame(), self->kr, 0, NULL, &discard_color)));
         memset(&h_keys, 0, sizeof h_keys);
         h_keys.items = &h_item;
         h_keys.count = 1;
@@ -179,10 +193,10 @@ void pico8_jo_gh(const pico8_jo_t *self) {
     }
     n = 1;
 
-    pico8_ptrs_init(&ctx.ji);
+    pico8_ptrs_init(&ctx.ji, pico8_zone_frame());
 
     jy = self->jy;
-    jx = pico8_jp_ptrs(jy, pico8_jo_gh_jp_step, &ctx);
+    jx = pico8_jp_ptrs(pico8_zone_frame(), jy, pico8_jo_gh_jp_step, &ctx);
 
     if (jx.count > 0) {
         row_cap[n] = 1 + jx.count + 1;
@@ -216,7 +230,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             n++;
         }
     }
-    pico8_ptrs_free(&jx);
 
     /* A `ji` the predicate appended nothing to leaves no row at all, not a
      * row holding false: Lua's `add(t,nil)` is a no-op. */
@@ -229,7 +242,6 @@ void pico8_jo_gh(const pico8_jo_t *self) {
         }
         n++;
     }
-    pico8_ptrs_free(&ctx.ji);
 
     {
         const pico8_kw_t *kw = self->kw;
@@ -242,22 +254,15 @@ void pico8_jo_gh(const pico8_jo_t *self) {
             row_items[n] = jo_gh_row_items(row_cap[n]);
 
             if (makes) {
-                char *mu_str = pico8_tostr_fixed(mu);
+                char *mu_str = pico8_tostr_fixed(pico8_zone_frame(), mu);
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string("makes:");
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string(mu_str);
             } else {
                 const pico8_ents_t *by = self->by;
                 int by_count = (by != NULL) ? by->count : 0;
-                char *count_str = pico8_tostr_fixed(pico8_fixed_from_int(by_count));
-                char *mu_str = pico8_tostr_fixed(mu);
-                size_t count_len = strlen(count_str);
-                size_t mu_len = strlen(mu_str);
-                char *combined = malloc(count_len + 1 + mu_len + 1);
-                memcpy(combined, count_str, count_len);
-                combined[count_len] = '/';
-                memcpy(combined + count_len + 1, mu_str, mu_len + 1);
-                free(count_str);
-                free(mu_str);
+                char *count_str = pico8_tostr_fixed(pico8_zone_frame(), pico8_fixed_from_int(by_count));
+                char *mu_str = pico8_tostr_fixed(pico8_zone_frame(), mu);
+                char *combined = pico8_concat2(pico8_zone_frame(), pico8_concat2(pico8_zone_frame(), count_str, "/"), mu_str);
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string("exports:");
                 row_items[n][row_keys[n].count++] = pico8_lq_cell_string(combined);
             }
@@ -348,7 +353,7 @@ static void pico8_jo_fe_keys(pico8_jo_t *self, pico8_hp_t *b, pico8_js_keys_t *k
     keys->has_h_ = 1;
     keys->h_is_false = od <= pico8_fixed_from_int(0);
     if (od > pico8_fixed_from_int(0)) {
-        row->h_item = pico8_lq_cell_string(jo_dollar(pico8_tostr_fixed(od)));
+        row->h_item = pico8_lq_cell_string(jo_dollar(pico8_tostr_fixed(pico8_zone_frame(), od)));
         memset(&row->h, 0, sizeof row->h);
         row->h.items = &row->h_item;
         row->h.count = 1;
@@ -372,6 +377,7 @@ void pico8_jo_fe(pico8_jo_t *self) {
     pico8_js_keys_t *bs;
     pico8_jo_fe_row_t *rows;
     pico8_pz_frame_t frame;
+    size_t cap;
     int n = 0;
     int i;
 
@@ -380,9 +386,11 @@ void pico8_jo_fe(pico8_jo_t *self) {
     }
 
     bj_list = pico8_bj((const pico8_struct_header_t *)self);
-    bs = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *bs);
-    rows = calloc(bj_list.count > 0 ? bj_list.count : 1, sizeof *rows);
-    assert(bs != NULL && rows != NULL);
+    cap = bj_list.count > 0 ? (size_t)bj_list.count : 1;
+    bs = (pico8_js_keys_t *)pico8_zone_alloc(pico8_zone_frame(), cap * sizeof *bs);
+    rows = (pico8_jo_fe_row_t *)pico8_zone_alloc(pico8_zone_frame(), cap * sizeof *rows);
+    memset(bs, 0, cap * sizeof *bs);
+    memset(rows, 0, cap * sizeof *rows);
     for (i = 0; i < bj_list.count; i++) {
         pico8_jo_fe_keys(self, bj_list.items[i], &bs[n], &rows[n]);
         n++;
@@ -390,8 +398,6 @@ void pico8_jo_fe(pico8_jo_t *self) {
 
     frame = jo_pz_frame(self);
     pico8_pz(&frame, bs, n);
-    free(bs);
-    free(rows);
 }
 
 void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {

@@ -7,5 +7,5 @@ pico8_ei	src/pico8_particle.c	aucun : pico8_ei_dispatch est typé (2.20a)	pico8_
 pico8_bv	src/pico8_probe.c	aucun : pico8_bv_dispatch est typé (2.20b)	pico8_bv_dispatch ; pico8_mz_hq <- pico8_mz_hq_dispatch, typé (2.20b)
 pico8_dl	src/pico8_probe.c	aucun : pico8_dl_dispatch est typé (2.20a)	pico8_dl_dispatch ; pico8_jc_ev <- pico8_jc_ev_dispatch, typé (2.20a)
 pico8_d_	src/pico8_probe.c	aucun : pico8_d__dispatch est typé (2.20c)	pico8_d__dispatch ; pico8_jc_ey <- pico8_jc_ey_dispatch, pico8_mz_ey <- pico8_mz_ey_dispatch, typés (2.20c)
-pico8_eg_gg_pred	src/pico8_score_panel.c	aucun : prédicat typé de pico8_jp_ents sur cg (2.11r-b3)	score_panel.c:125 : pico8_jp_ents(pico8_cg("jo"), pico8_eg_gg_pred, NULL)
+pico8_eg_gg_pred	src/pico8_score_panel.c	aucun : prédicat typé de pico8_jp_ents sur cg (2.11r-b3)	score_panel.c:112 : pico8_jp_ents(pico8_zone_frame(), pico8_cg("jo"), pico8_eg_gg_pred, NULL)
 pico8_jc_hq	src/pico8_slipway.c	aucun : jo.oe est typee (2.8b)	self->probe->et = pico8_jc_ce(self) dans pico8_jc_hq <- pico8_jc_hq_dispatch, typé (2.20b)

@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_scroll.h"
@@ -15,6 +14,7 @@
 #include "pico8_planet.h"
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
+#include "pico8_zone_partie.h"
 
 static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */
@@ -30,6 +30,7 @@ static const pico8_struct_class_t g_qh_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -57,7 +58,7 @@ void pico8_qh_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
 }
 
 static pico8_jo_t *pico8_qh_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(self, &g_qh_struct_class, &pico8_qh_def);
@@ -101,6 +102,7 @@ static const pico8_struct_class_t g_nl_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -117,7 +119,7 @@ static const pico8_struct_class_t g_nl_struct_class = {
 };
 
 static pico8_jo_t *pico8_nl_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(self, &g_nl_struct_class, &pico8_nl_def);
@@ -144,6 +146,7 @@ static const pico8_struct_class_t g_os_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -160,7 +163,7 @@ static const pico8_struct_class_t g_os_struct_class = {
 };
 
 static pico8_jo_t *pico8_os_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_qh_struct_init(self, &g_os_struct_class, &pico8_os_def);
@@ -195,12 +198,19 @@ void pico8_hj_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
     pico8_hj_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
+void pico8_hj_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_jo_rendre_rangee(self);
+    pico8_qy_rendre(self->emitter);
+    pico8_jo_prise_rendue((const pico8_jo_t *)self);
+}
+
 static const pico8_struct_class_t g_hj_struct_class = {
     .kj = pico8_hj_kj_dispatch,
     .ev = pico8_dl_dispatch,
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_hj_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -234,7 +244,7 @@ void pico8_hj_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
 }
 
 static pico8_jo_t *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_hj_struct_init(self, &g_hj_struct_class, &pico8_hj_def);
@@ -257,7 +267,6 @@ static pico8_jo_t *pico8_hj_struct_new(const pico8_jo_keys_t *keys) {
 
 void pico8_pm_pq(pico8_jo_t *self) {
     pico8_vec_t spawn_ra;
-    pico8_vec_t *spawn_ra_heap;
     pico8_ga_keys_t keys;
     pico8_jo_t *spawned;
     const pico8_vec_t *ra;
@@ -269,12 +278,11 @@ void pico8_pm_pq(pico8_jo_t *self) {
     ra = self->ra;
     spawn_ra = pico8_vec_add(ra != NULL ? *ra : pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0)),
                              self->def->ng);
-    spawn_ra_heap = malloc(sizeof *spawn_ra_heap);
-    *spawn_ra_heap = spawn_ra;
 
     keys.jo.id = NULL;
     keys.jo.p = NULL;
-    keys.jo.ra = spawn_ra_heap;
+    keys.jo.ra = NULL;
+    keys.ra_copie = &spawn_ra;
     keys.pq = &pico8_pm_ga_pq_keys;
 
     spawned = pico8_ga_new(&keys);
@@ -287,6 +295,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_hj_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -304,7 +313,7 @@ static const pico8_struct_class_t g_pm_struct_class = {
 };
 
 static pico8_jo_t *pico8_pm_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_hj_struct_init(self, &g_pm_struct_class, &pico8_pm_def);
@@ -370,7 +379,7 @@ pico8_qy_t *pico8_ga_mm(pico8_struct_header_t *self_ptr) {
     v = pico8_vec_mul(p, ms);
     a = pico8_vec_mul(p, iu);
 
-    particle = malloc(sizeof *particle);
+    particle = pico8_particule_prendre();
     particle->p = p;
     particle->v = v;
     particle->has_a = 1;
@@ -382,7 +391,7 @@ pico8_qy_t *pico8_ga_mm(pico8_struct_header_t *self_ptr) {
 
 void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p) {
     const pico8_ptrs_t *qy = NULL;
-    const pico8_qy_t *last_pt = NULL;
+    int third_taken = 0;
     int i;
     int px;
     int py;
@@ -418,12 +427,13 @@ void pico8_ga_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
 
         /* Lua's `pt` outlives the loop, so `p_` follows the THIRD slot
          * alone: the burst dies when fewer than 3 particles remain, not
-         * when none do. */
-        last_pt = pt;
+         * when none do. A flag, not `pt`: `ei` may give that particle
+         * back before `p_` is written. */
+        third_taken = pt != NULL;
     }
 
     pico8_ei(gfx, mem, (pico8_struct_header_t *)self);
-    self->p_ = last_pt == NULL;
+    self->p_ = !third_taken;
 }
 
 static void pico8_ga_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {
@@ -431,11 +441,21 @@ static void pico8_ga_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_ga_kj(pico8_dispatch_gfx(), pico8_dispatch_mem(), (pico8_jo_t *)self, p);
 }
 
+/* A burst's place is the zone of its `oe` (pico8_ga_struct_new): given
+ * back last, the struct and `oe` with it. */
+static void pico8_ga_rendre_dispatch(pico8_struct_header_t *self) {
+    const pico8_zone_choisie_t *place = ((pico8_jo_t *)self)->oe->zone;
+
+    pico8_hj_rendre_dispatch(self);
+    pico8_zone_arene_rendre(place);
+}
+
 static const pico8_struct_class_t g_ga_struct_class = {
     .kj = pico8_ga_kj_dispatch,
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_ga_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .kf = pico8_jo_kf_dispatch,
@@ -448,7 +468,8 @@ static const pico8_struct_class_t g_ga_struct_class = {
 };
 
 static pico8_jo_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    const pico8_zone_choisie_t *place = pico8_ga_place_prendre();
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(place, sizeof *self);
 
     assert(g_family_up && "pico8_planet_family_init() must run first");
     pico8_jo_struct_init(self, &g_ga_struct_class, &pico8_ga_def);
@@ -472,6 +493,13 @@ static pico8_jo_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
         if (keys->jo.ra != NULL) {
             self->ra = keys->jo.ra;
         }
+        if (keys->ra_copie != NULL) {
+            pico8_vec_t *ra = (pico8_vec_t *)pico8_zone_alloc(place, sizeof *ra);
+
+            assert(keys->jo.ra == NULL && "ga: a burst borrows its ra or copies it, not both");
+            *ra = *keys->ra_copie;
+            self->ra = ra;
+        }
         if (keys->jo.id != NULL) {
             self->id = keys->jo.id;
         }
@@ -490,7 +518,7 @@ static pico8_jo_t *pico8_ga_struct_new(const pico8_ga_keys_t *keys) {
     pico8_class_coverage_record("ga");
 #endif
     pico8_ga_pq(self);
-    pico8_jo_pq(self);
+    pico8_jo_pq_dans(self, place);
     pico8_ke_struct_pq(&self->header);
     return self;
 }
@@ -500,11 +528,12 @@ void pico8_planet_family_init(void) {
     pico8_planet_family_shutdown();
     pico8_pi_init();
     g_family_up = 1;
-    pico8_ents_init(&g_ga_by_shared);
+    pico8_ents_init(&g_ga_by_shared, pico8_zone_chargement());
 }
 
 void pico8_planet_family_shutdown(void) {
     g_family_up = 0;
+    pico8_ents_free(&g_ga_by_shared);
 }
 
 int pico8_qh_ready(void) {
@@ -629,6 +658,7 @@ static pico8_struct_header_t *pico8_ga_kind_new(const pico8_jo_keys_t *keys) {
         return &pico8_ga_struct_new(NULL)->header;
     }
     ga_keys.jo = *keys;
+    ga_keys.ra_copie = NULL;
     ga_keys.pq = NULL;
     return &pico8_ga_struct_new(&ga_keys)->header;
 }

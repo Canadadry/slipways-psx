@@ -26,6 +26,8 @@
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
 #include "../src/pico8_wormhole.h"
+#include "../src/pico8_zone_frame.h"
+#include "../src/pico8_zone_interface.h"
 
 #define NO_MONEY_TICKS 51
 #define NO_MONEY_SEQUENCE_HASH 0x0F5C11D3u
@@ -62,6 +64,14 @@ static uint32_t draw_hash(void) {
     pico8_gfx_init(&gfx);
     pico8_cls(&mem);
     pico8_dc("kj");
+    return screen_hash();
+}
+
+/* One toast's `kj` alone, as `dc("kj")` would place it. */
+static uint32_t draw_hash_of(const pico8_iv_t *e) {
+    pico8_gfx_init(&gfx);
+    pico8_cls(&mem);
+    pico8_iv_kj(&gfx, &mem, e, *e->ra);
     return screen_hash();
 }
 
@@ -255,6 +265,76 @@ static void test_iv_is_a_struct_registered_under_kj(void) {
     }
 }
 
+/* A toast takes a place; once `dg` takes it out after its 50 ticks,
+ * emptying the exit queue gives the place back. */
+static void test_toast_gives_its_place_back(void) {
+    pico8_iv_t *e;
+    int base;
+    int ticks = 0;
+
+    fresh_world();
+    pico8_cart_vider_file_sortie();
+    base = pico8_zone_interface_vivantes(PICO8_SORTE_IV);
+    e = build(NULL, "-no money-", 8);
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == base + 1);
+    while (ents_listed(pico8_hv(), e)) {
+        pico8_dg();
+        assert(++ticks < 1000);
+    }
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == base + 1 && "out of hv, still read this frame");
+    pico8_cart_vider_file_sortie();
+    assert(pico8_zone_interface_vivantes(PICO8_SORTE_IV) == base);
+}
+
+/* The toast's text is made in the frame zone (`ne` of `hy:lu`, `jo:hk`):
+ * the toast draws it on later frames, after the zone is reset and reused. */
+static void test_toast_keeps_a_copy_of_its_text(void) {
+    pico8_vec_t ra = pico8_vec_v(pico8_fixed_from_int(250), pico8_fixed_from_int(260));
+    uint32_t want;
+    char *text;
+    char *reuse;
+    pico8_iv_t *e;
+
+    fresh_world();
+    want = draw_hash_of(build(&ra, "+12$", 11));
+    fresh_world();
+    text = (char *)pico8_zone_alloc(pico8_zone_frame(), 5);
+    memcpy(text, "+12$", 5);
+    e = build(&ra, text, 11);
+    pico8_zone_frame_reset();
+    reuse = (char *)pico8_zone_alloc(pico8_zone_frame(), 64);
+    memset(reuse, 'X', 64);
+    assert(e->at1 != NULL && strcmp(e->at1, "+12$") == 0);
+    assert(draw_hash_of(e) == want);
+}
+
+/* `jo:hk` hands the toast its planet's `ra`, which `na` moves in place in
+ * the next `dg`, before the toast's first `ph`: the toast follows it until
+ * then, and no longer after. */
+static void test_toast_follows_the_borrowed_ra_until_its_first_ph(void) {
+    pico8_vec_t *planet_ra = malloc(sizeof *planet_ra);
+    pico8_iv_keys_t keys = {0};
+    pico8_vec_t moved;
+    pico8_vec_t after;
+    pico8_iv_t *e;
+
+    fresh_world();
+    *planet_ra = pico8_vec_v(pico8_fixed_from_int(100), pico8_fixed_from_int(100));
+    keys.ra = planet_ra;
+    keys.at1 = "+1$";
+    keys.at2 = pico8_fixed_from_int(11);
+    e = pico8_iv_new(&keys);
+    *planet_ra = pico8_vec_v(pico8_fixed_from_int(110), PICO8_FIXED_LIT(0x00648000, 100.5));
+    moved = *planet_ra;
+    assert(e->ra->x == moved.x && e->ra->y == moved.y);
+    pico8_iv_ph(e);
+    after = pico8_vec_add(moved, e->def->v);
+    assert(e->ra->x == after.x && e->ra->y == after.y);
+    *planet_ra = pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));
+    free(planet_ra);
+    assert(e->ra->x == after.x && e->ra->y == after.y);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -274,6 +354,9 @@ int main(void) {
     test_dg_drives_a_ke_struct();
     test_defaults_match_the_parsed_spec();
     test_iv_is_a_struct_registered_under_kj();
+    test_toast_gives_its_place_back();
+    test_toast_keeps_a_copy_of_its_text();
+    test_toast_follows_the_borrowed_ra_until_its_first_ph();
 
     printf("test_pico8_iv: all tests passed\n");
     return 0;

@@ -1,7 +1,6 @@
 #include "pico8_planet_family_trade.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_struct.h"
@@ -13,6 +12,7 @@
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
+#include "pico8_zone_frame.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
 static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};
@@ -137,7 +137,7 @@ void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
 
         {
             pico8_jo_trade_proposal_t gf = *lw;
-            pico8_trade_t *extended = pico8_trade_kg(t, &self->header, w);
+            pico8_trade_t *extended = pico8_trade_kg(pico8_zone_frame(), t, &self->header, w);
             pico8_struct_header_t *other;
 
             gf.t = extended;
@@ -163,6 +163,7 @@ static const pico8_struct_class_t g_nr_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_nr_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_nr_ldown_dispatch,
     .gv = pico8_nr_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -187,7 +188,7 @@ static void pico8_nr_struct_init(pico8_jo_t *self, const pico8_struct_class_t *c
 }
 
 static pico8_jo_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_nr_struct_class, &pico8_nr_def);
@@ -216,6 +217,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_nr_hb_dispatch,
+    .rendre = pico8_jo_rendre_dispatch,
     .ldown = pico8_nr_ldown_dispatch,
     .gv = pico8_nr_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -232,7 +234,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
 };
 
 static pico8_jo_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_fr_struct_class, &pico8_fr_def);
@@ -308,6 +310,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
     .hd = pico8_jo_hd_dispatch,
     .hk = pico8_jo_hk_dispatch,
     .hb = pico8_jo_hb_dispatch,
+    .rendre = pico8_hj_rendre_dispatch,
     .ldown = pico8_jo_ldown_dispatch,
     .gv = pico8_jo_gv_dispatch,
     .hq = pico8_bv_dispatch,
@@ -325,7 +328,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
 };
 
 static pico8_jo_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(self, &g_mx_struct_class, &pico8_mx_def);

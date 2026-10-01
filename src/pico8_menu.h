@@ -7,9 +7,8 @@
 /* Throughout this module a missing singleton (`fm`, `ju`, `pj`'s class) or an
  * absent table is a safe no-op rather than a crash. */
 
-/* TROU-7 */
-/* Rebuilds the tech-tree rows and hands them to `pz`; the rows and the
- * `pj.cr.ep` string a previous call left behind are dropped, not freed. */
+/* Rebuilds the tech-tree rows and hands them to `pz`. Their texts, and
+ * `pj.cr.ep`, are in the frame zone: the buttons copy them. */
 void pico8_cr(void);
 
 /* The button of `ix`'s row `i` (1..PICO8_IX_COUNT), from `pico8_ix_table`,
