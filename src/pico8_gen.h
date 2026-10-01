@@ -1,7 +1,6 @@
 #ifndef PICO8_GEN_H
 #define PICO8_GEN_H
 
-#include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 

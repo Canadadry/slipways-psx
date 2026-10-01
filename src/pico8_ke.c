@@ -6,7 +6,6 @@
 
 #include "pico8_entity.h"
 #include "pico8_fixed.h"
-#include "pico8_game_data.h"
 
 static int g_ke_up = 0;
 

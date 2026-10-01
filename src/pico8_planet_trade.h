@@ -4,7 +4,6 @@
 #include "pico8_struct.h"
 #include "pico8_fixed.h"
 #include "pico8_planet.h"
-#include "pico8_ptrs.h"
 #include "pico8_trade.h"
 
 /* Throughout this module a NULL instance or NULL proposal argument is a

@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_wormhole.h"
 

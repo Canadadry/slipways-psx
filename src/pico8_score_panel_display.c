@@ -4,10 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
-#include "pico8_data_init.h"
 #include "pico8_economy_score.h"
-#include "pico8_entity.h"
 #include "pico8_fm.h"
 #include "pico8_layout.h"
 #include "pico8_msgbox.h"

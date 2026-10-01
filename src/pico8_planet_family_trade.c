@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "pico8_struct.h"
-#include "pico8_entity.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"

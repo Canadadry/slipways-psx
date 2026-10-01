@@ -1,7 +1,6 @@
 #ifndef PICO8_CART_H
 #define PICO8_CART_H
 
-#include "pico8_struct.h"
 #include "pico8_ui_button.h"
 
 /* Runs every module's init, then builds the tables the cart's top-level

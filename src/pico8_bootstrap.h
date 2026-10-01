@@ -1,8 +1,6 @@
 #ifndef PICO8_BOOTSTRAP_H
 #define PICO8_BOOTSTRAP_H
 
-#include "pico8_struct.h"
-
 /* Rebuilds `hv`/`cv`/`cg` and `mo`/`je`/`ok` from scratch on every call --
  * the cart calls it once from `_init()` and again from `eu()`. It builds
  * `ke`/`qb`/`nf`/`ui` only when they are missing, so a caller that skipped

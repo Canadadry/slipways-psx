@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"

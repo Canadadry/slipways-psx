@@ -1,7 +1,6 @@
 #ifndef PICO8_COLLECT_H
 #define PICO8_COLLECT_H
 
-#include "pico8_game_data.h"
 #include "pico8_geom.h"
 #include "pico8_ptrs.h"
 

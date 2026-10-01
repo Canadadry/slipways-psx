@@ -6,7 +6,6 @@
 #include "pico8_mem.h"
 #include "pico8_particle.h"
 #include "pico8_planet.h"
-#include "pico8_probe.h"
 #include "pico8_struct.h"
 #include "pico8_vec.h"
 

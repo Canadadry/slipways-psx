@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_planet.h"
 #include "pico8_slipway.h"

@@ -6,10 +6,8 @@
 #include <string.h>
 
 #include "pico8_collect.h"
-#include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy.h"
-#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_fm.h"
 #include "pico8_hud.h"

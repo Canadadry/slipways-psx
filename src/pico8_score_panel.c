@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "pico8_collect.h"
-#include "pico8_data_init.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_entity.h"
@@ -15,7 +14,6 @@
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_map_tables.h"
-#include "pico8_msgbox.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_str.h"

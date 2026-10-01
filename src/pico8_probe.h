@@ -2,7 +2,6 @@
 #define PICO8_PROBE_H
 
 #include "pico8_game_data.h"
-#include "pico8_ke.h"
 #include "pico8_particle.h"
 #include "pico8_probe_comp.h"
 #include "pico8_struct.h"

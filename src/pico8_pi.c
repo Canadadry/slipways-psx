@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_geom.h"
 #include "pico8_hud.h"
 #include "pico8_layout.h"
 #include "pico8_str.h"

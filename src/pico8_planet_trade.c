@@ -5,10 +5,8 @@
 #include <stdlib.h>
 
 #include "pico8_collect.h"
-#include "pico8_entity.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
-#include "pico8_planet_family.h"
 #include "pico8_trade.h"
 #include "pico8_slipway.h"
 

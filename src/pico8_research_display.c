@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_collect.h"
-#include "pico8_data_init.h"
-#include "pico8_entity.h"
 #include "pico8_layout.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
