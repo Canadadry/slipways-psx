@@ -30,6 +30,7 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_research.h"
+#include "../src/pico8_scroll.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_vec.h"
 

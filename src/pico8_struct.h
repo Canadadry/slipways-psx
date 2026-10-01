@@ -162,6 +162,7 @@ struct pico8_struct_class {
     unsigned tags;
     /* `PICO8_LINEAGE(l)` set: the class is l's or descends from it. */
     unsigned lineage;
+    void (*md)(pico8_struct_header_t *self, pico8_fixed_t fy);
 };
 
 /* The construction keys of the jo tree (the cart's `mw(ob)` in `kv:jr`).

@@ -31,6 +31,7 @@
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_display.h"
+#include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
 #include "../src/pico8_tech_gate.h"

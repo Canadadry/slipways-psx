@@ -7,11 +7,11 @@
 
 #include "pico8_audio.h"
 #include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
 #include "pico8_fixed.h"
 #include "pico8_hud.h"
 #include "pico8_ke.h"
 #include "pico8_pi.h"
+#include "pico8_scroll.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
 

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico8_scroll.h"
 #include "pico8_struct.h"
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"

@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
 #include "pico8_game_data.h"
-#include "pico8_scroll.h"
 #include "pico8_struct.h"
 
 #define PICO8_BM_COUNT 5
@@ -217,8 +215,8 @@ void pico8_dc(const char *nt) {
             pico8_fixed_t ci;
             /* The placeholder mo, before jl(), has no `md`. */
             if (pico8_fixed_seq_at(pico8_ci_table, PICO8_CI_COUNT, o, &ci) && g_mo != NULL &&
-                g_mo->cls == pico8_qb_struct_class()) {
-                pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)g_mo, ci);
+                g_mo->cls->md != NULL) {
+                g_mo->cls->md(g_mo, ci);
             }
         }
 
@@ -244,14 +242,6 @@ const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void) {
 
 pico8_struct_header_t *pico8_mo(void) {
     return g_mo;
-}
-
-pico8_qb_t *pico8_mo_qb(void) {
-    if (g_mo == NULL || g_mo == &g_mo_placeholder.header) {
-        return NULL;
-    }
-    assert(g_mo->cls == pico8_qb_struct_class() && "mo: only the placeholder or a qb is ever stored");
-    return (pico8_qb_t *)g_mo;
 }
 
 /* See pico8_entity.h's own comment on this declaration: the outgoing mo

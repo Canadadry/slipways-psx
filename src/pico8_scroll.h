@@ -48,4 +48,8 @@ void pico8_qb_ph(const pico8_input_t *input, pico8_qb_t *self);
  * caller, so there is no separate _default entry point here. */
 void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy);
 
+/* `mo` (pico8_entity.h) as its `qb`: NULL when there is no mo and on the
+ * placeholder. */
+pico8_qb_t *pico8_mo_qb(void);
+
 #endif

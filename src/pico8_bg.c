@@ -11,6 +11,7 @@
 #include "pico8_gen.h"
 #include "pico8_ke.h"
 #include "pico8_probe.h"
+#include "pico8_scroll.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 

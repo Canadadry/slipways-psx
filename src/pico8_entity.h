@@ -2,7 +2,6 @@
 #define PICO8_ENTITY_H
 
 #include "pico8_ents.h"
-#include "pico8_scroll.h"
 #include "pico8_struct.h"
 
 /* (Re)builds hv, cv and cg to a fresh, empty state, freeing the
@@ -51,9 +50,6 @@ int pico8_hd_true(pico8_struct_header_t *self, const pico8_vec_t *qa, const pico
  * real `qb` struct (pico8_scroll.h). Its members are read and written
  * through pico8_mo_qb(). Callers must not free it. */
 pico8_struct_header_t *pico8_mo(void);
-
-/* `mo` as its `qb`: NULL when there is no mo and on the placeholder. */
-pico8_qb_t *pico8_mo_qb(void);
 
 const pico8_struct_class_t *pico8_mo_placeholder_struct_class(void);
 

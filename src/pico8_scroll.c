@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "pico8_dispatch_context.h"
+#include "pico8_entity.h"
 #include "pico8_entity_geom.h"
 #include "pico8_pi.h"
 #include "pico8_vec.h"
@@ -27,8 +28,13 @@ static void pico8_qb_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
 }
 
+static void pico8_qb_md_dispatch(pico8_struct_header_t *self, pico8_fixed_t fy) {
+    pico8_qb_md(pico8_dispatch_gfx(), (pico8_qb_t *)self, fy);
+}
+
 static const pico8_struct_class_t g_qb_struct_class = {
     .states = {[PICO8_STATE_PH] = pico8_qb_ph_dispatch},
+    .md = pico8_qb_md_dispatch,
 };
 
 static pico8_qb_t *pico8_qb_struct_new(void) {
@@ -134,4 +140,14 @@ void pico8_qb_md(pico8_gfx_t *gfx, pico8_qb_t *self, pico8_fixed_t fy) {
 
     cp = pico8_vec_mul(pico8_qb_vec(self->ra), fy);
     pico8_camera(gfx, pico8_fixed_flr_int(cp.x), pico8_fixed_flr_int(cp.y));
+}
+
+pico8_qb_t *pico8_mo_qb(void) {
+    pico8_struct_header_t *mo = pico8_mo();
+
+    if (mo == NULL || mo->cls == pico8_mo_placeholder_struct_class()) {
+        return NULL;
+    }
+    assert(mo->cls == pico8_qb_struct_class() && "mo: only the placeholder or a qb is ever stored");
+    return (pico8_qb_t *)mo;
 }
