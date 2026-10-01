@@ -51,6 +51,30 @@ pico8_zone_choisie_t pico8_zone_choisie_slot(pico8_slot_zone_t *slot) {
     return z;
 }
 
+static pico8_bascule_zone_t *bascule_of(const pico8_zone_choisie_t *z) {
+    return ((const pico8_zone_choisie_bascule_t *)z)->zone;
+}
+
+static unsigned char *bascule_alloc(const pico8_zone_choisie_t *z, size_t n) {
+    return pico8_bascule_zone_alloc(bascule_of(z), n);
+}
+
+static unsigned char *bascule_grow(const pico8_zone_choisie_t *z, unsigned char *p,
+                                   size_t old_n, size_t new_n) {
+    unsigned char *q = pico8_bascule_zone_alloc(bascule_of(z), new_n);
+    if (old_n > 0) memcpy(q, p, old_n);
+    return q;
+}
+
+const pico8_zone_choisie_t *pico8_zone_choisie_bascule(pico8_zone_choisie_bascule_t *storage,
+                                                       pico8_bascule_zone_t *zone) {
+    assert(storage != NULL && zone != NULL && "poignee sur une zone absente");
+    pico8_zone_choisie_t z = {bascule_alloc, bascule_grow, bump_release, NULL, NULL};
+    storage->handle = z;
+    storage->zone = zone;
+    return &storage->handle;
+}
+
 unsigned char *pico8_zone_alloc(const pico8_zone_choisie_t *z, size_t n) {
     assert(z != NULL && "allocation sans zone designee");
     return z->alloc(z, n);

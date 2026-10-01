@@ -26,6 +26,20 @@ pico8_zone_choisie_t pico8_zone_choisie_bump(pico8_bump_zone_t *bump);
  * grow est refuse, rendre rend la place. */
 pico8_zone_choisie_t pico8_zone_choisie_slot(pico8_slot_zone_t *slot);
 
+/* Poignee sur la generation courante d'une zone a deux bouts, rangee dans
+ * un stockage a part : un champ de plus dans pico8_zone_choisie_t grossirait
+ * la tete de chaque arene, et les places sont taillees au plus juste. */
+typedef struct {
+    pico8_zone_choisie_t handle; /* en premier : son adresse est celle du tout */
+    pico8_bascule_zone_t *zone;
+} pico8_zone_choisie_bascule_t;
+
+/* Range dans `storage` une poignee sur `zone`, deja initialisee, et la rend ;
+ * storage et zone doivent survivre a la poignee. Rendre n'y fait rien et
+ * agrandir copie : la memoire repart au rendu de sa generation. */
+const pico8_zone_choisie_t *pico8_zone_choisie_bascule(pico8_zone_choisie_bascule_t *storage,
+                                                       pico8_bascule_zone_t *zone);
+
 /* Memoire non initialisee ; pico8_fatal si la zone est pleine. */
 unsigned char *pico8_zone_alloc(const pico8_zone_choisie_t *z, size_t n);
 /* Rend un bloc de new_n octets qui commence par les old_n octets de p ; p,

@@ -14,13 +14,16 @@
 
 PICO8_BUMP_ZONE_STORAGE(bump_cells, 64);
 PICO8_SLOT_ZONE_STORAGE(slot_cells, slot_taken, 16, 4);
+PICO8_BASCULE_ZONE_STORAGE(bascule_cells, 64);
 
 static pico8_bump_zone_t bump;
 static pico8_slot_zone_t slots;
+static pico8_bascule_zone_t bascule;
 
 static void init_zones(void) {
     pico8_bump_zone_init(&bump, "essai-frame", bump_cells, 64);
     pico8_slot_zone_init(&slots, "essai-places", slot_cells, slot_taken, 16, 4);
+    pico8_bascule_zone_init(&bascule, "essai-partie", bascule_cells, 64);
 }
 
 /* volatile : la lecture d'un pointeur perime ne doit pas etre retiree par
@@ -102,6 +105,127 @@ static int case_slot_full(void) {
     return 0;
 }
 
+static int case_bascule_prise_follows(void) {
+    assert(pico8_bascule_zone_prise(&bascule) == 0);
+    memset(pico8_bascule_zone_alloc(&bascule, 5), 1, 5);
+    assert(pico8_bascule_zone_prise(&bascule) == 8 && "arrondi a la cellule");
+    memset(pico8_bascule_zone_alloc(&bascule, 16), 1, 16);
+    assert(pico8_bascule_zone_prise(&bascule) == 24);
+    assert(pico8_bascule_zone_max(&bascule) == 24);
+    return 0;
+}
+
+static void expect_filled(const unsigned char *p, size_t n, unsigned char v) {
+    for (size_t i = 0; i < n; i++) assert(p[i] == v && "bloc recouvert");
+}
+
+static int case_bascule_old_generation_lives(void) {
+    unsigned char *a = pico8_bascule_zone_alloc(&bascule, 24);
+    memset(a, 7, 24);
+    pico8_bascule_zone_basculer(&bascule);
+    for (int i = 0; i < 5; i++) memset(pico8_bascule_zone_alloc(&bascule, 8), 9, 8);
+    expect_filled(a, 24, 7);
+    assert(pico8_bascule_zone_prise(&bascule) == 64 && "les deux generations comptent");
+    return 0;
+}
+
+/* Une generation par bout : rend le premier bloc de la generation `gen`
+ * (0 au bas, 1 en haut), apres que la suivante a servi trois blocs. */
+static unsigned char *bascule_then_serve(int gen) {
+    unsigned char *kept = NULL;
+    for (int g = 0; g <= gen + 1; g++) {
+        if (g > 0) {
+            pico8_bascule_zone_basculer(&bascule);
+            pico8_bascule_zone_rendre(&bascule);
+        }
+        unsigned char *a = pico8_bascule_zone_alloc(&bascule, 8);
+        a[0] = 1;
+        if (g == gen) kept = a;
+    }
+    for (int i = 0; i < 2; i++) memset(pico8_bascule_zone_alloc(&bascule, 8), 2, 8);
+    return kept;
+}
+
+static int case_bascule_new_generation_after_rendre(void) {
+    bascule_then_serve(1);
+    return 0;
+}
+
+static int case_bascule_stale_bas_after_rendre(void) {
+    unsigned char *a = bascule_then_serve(0);
+    sink = a[0];
+    return 0;
+}
+
+static int case_bascule_stale_haut_after_rendre(void) {
+    unsigned char *a = bascule_then_serve(1);
+    sink = a[0];
+    return 0;
+}
+
+static int case_bascule_twice_without_rendre(void) {
+    pico8_bascule_zone_basculer(&bascule);
+    pico8_bascule_zone_basculer(&bascule);
+    return 0;
+}
+
+static int case_bascule_ends_meet(void) {
+    memset(pico8_bascule_zone_alloc(&bascule, 40), 1, 40);
+    pico8_bascule_zone_basculer(&bascule);
+    memset(pico8_bascule_zone_alloc(&bascule, 24), 2, 24);
+    fprintf(stderr, "remplie\n");
+    pico8_bascule_zone_alloc(&bascule, 8);
+    return 0;
+}
+
+static int case_bascule_max_keeps_peak(void) {
+    pico8_bascule_zone_alloc(&bascule, 24);
+    pico8_bascule_zone_basculer(&bascule);
+    pico8_bascule_zone_alloc(&bascule, 16);
+    pico8_bascule_zone_rendre(&bascule);
+    assert(pico8_bascule_zone_prise(&bascule) == 16 && "le rendu decompte l'ancienne generation");
+    pico8_bascule_zone_alloc(&bascule, 8);
+    assert(pico8_bascule_zone_prise(&bascule) == 24);
+    assert(pico8_bascule_zone_max(&bascule) == 40 && "le maximum garde la frame de bascule");
+    return 0;
+}
+
+/* Deux generations vivantes, puis la remise complete. */
+static unsigned char *reset_both_ends(unsigned char **haut) {
+    unsigned char *bas = pico8_bascule_zone_alloc(&bascule, 24);
+    bas[0] = 1;
+    pico8_bascule_zone_basculer(&bascule);
+    *haut = pico8_bascule_zone_alloc(&bascule, 16);
+    (*haut)[0] = 1;
+    pico8_bascule_zone_reset(&bascule);
+    return bas;
+}
+
+static int case_bascule_reset_empties(void) {
+    unsigned char *haut;
+    reset_both_ends(&haut);
+    assert(pico8_bascule_zone_prise(&bascule) == 0);
+    assert(pico8_bascule_zone_max(&bascule) == 40 && "la remise ne touche pas au maximum de session");
+    pico8_bascule_zone_basculer(&bascule);
+    memset(pico8_bascule_zone_alloc(&bascule, 64), 3, 64);
+    return 0;
+}
+
+static int case_bascule_stale_bas_after_reset(void) {
+    unsigned char *haut;
+    unsigned char *bas = reset_both_ends(&haut);
+    sink = bas[0];
+    return 0;
+}
+
+static int case_bascule_stale_haut_after_reset(void) {
+    unsigned char *haut;
+    reset_both_ends(&haut);
+    for (int i = 0; i < 3; i++) memset(pico8_bascule_zone_alloc(&bascule, 8), 2, 8);
+    sink = haut[0];
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
@@ -113,6 +237,17 @@ static const struct {
     {"bump_full", case_bump_full},
     {"slot_taken_follows", case_slot_taken_follows},
     {"slot_full", case_slot_full},
+    {"bascule_prise_follows", case_bascule_prise_follows},
+    {"bascule_old_generation_lives", case_bascule_old_generation_lives},
+    {"bascule_new_generation_after_rendre", case_bascule_new_generation_after_rendre},
+    {"bascule_stale_bas_after_rendre", case_bascule_stale_bas_after_rendre},
+    {"bascule_stale_haut_after_rendre", case_bascule_stale_haut_after_rendre},
+    {"bascule_twice_without_rendre", case_bascule_twice_without_rendre},
+    {"bascule_ends_meet", case_bascule_ends_meet},
+    {"bascule_max_keeps_peak", case_bascule_max_keeps_peak},
+    {"bascule_reset_empties", case_bascule_reset_empties},
+    {"bascule_stale_bas_after_reset", case_bascule_stale_bas_after_reset},
+    {"bascule_stale_haut_after_reset", case_bascule_stale_haut_after_reset},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -167,6 +302,16 @@ static void expect_poison_crash(const char *name) {
     free(err);
 }
 
+static void expect_assert(const char *name, const char *message) {
+    char *err;
+    int status = run_child(name, &err);
+    if (WEXITSTATUS(status) == 0 || strstr(err, message) == NULL) {
+        fprintf(stderr, "%s: attendu un assert \"%s\", sortie %d\n%s", name, message, WEXITSTATUS(status), err);
+        assert(0 && "le cas doit echouer par cet assert");
+    }
+    free(err);
+}
+
 static void expect_fatal(const char *name, const char *zone, const char *limit) {
     char *err;
     int status = run_child(name, &err);
@@ -189,11 +334,22 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("control");
     expect_clean("slot_taken_follows");
+    expect_clean("bascule_prise_follows");
+    expect_clean("bascule_old_generation_lives");
+    expect_clean("bascule_new_generation_after_rendre");
+    expect_clean("bascule_max_keeps_peak");
+    expect_clean("bascule_reset_empties");
     expect_poison_crash("bump_stale_after_reset");
     expect_poison_crash("slot_stale_after_release");
     expect_poison_crash("bump_overflow_past_object");
+    expect_poison_crash("bascule_stale_bas_after_rendre");
+    expect_poison_crash("bascule_stale_haut_after_rendre");
+    expect_poison_crash("bascule_stale_bas_after_reset");
+    expect_poison_crash("bascule_stale_haut_after_reset");
+    expect_assert("bascule_twice_without_rendre", "vider la file de sortie entre deux eu");
     expect_fatal("bump_full", "essai-frame", " 64 ");
     expect_fatal("slot_full", "essai-places", " 4 ");
+    expect_fatal("bascule_ends_meet", "remplie\npico8_fatal: zone essai-partie pleine", " 64 ");
     remove(STDERR_LOG);
     printf("test_pico8_zone: all tests passed\n");
     return 0;

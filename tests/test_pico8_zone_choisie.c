@@ -369,6 +369,50 @@ static int case_slot_handle_full(void) {
     return 0;
 }
 
+PICO8_BASCULE_ZONE_STORAGE(bascule_cells, CAPACITY);
+
+static pico8_bascule_zone_t bascule;
+static pico8_zone_choisie_bascule_t bascule_storage;
+static const pico8_zone_choisie_t *bascule_handle;
+
+/* Un bloc de 8 octets a 6, agrandi a 16 : l'ancien bloc et sa copie. */
+static unsigned char *bascule_grown(unsigned char **copy) {
+    unsigned char *old = pico8_zone_alloc(bascule_handle, 8);
+    memset(old, 6, 8);
+    *copy = pico8_zone_grow(bascule_handle, old, 8, 16);
+    return old;
+}
+
+static int case_bascule_handle_round_trip(void) {
+    unsigned char *items = grow_counting(bascule_handle);
+    expect_counting(items);
+    size_t prise = pico8_bascule_zone_prise(&bascule);
+    pico8_zone_release(bascule_handle, items);
+    pico8_zone_release(bascule_handle, NULL);
+    assert(pico8_bascule_zone_prise(&bascule) == prise && "rendre par la poignee ne fait rien");
+    expect_counting(items);
+    unsigned char *copy;
+    unsigned char *old = bascule_grown(&copy);
+    for (size_t i = 0; i < 8; i++) assert(copy[i] == 6 && "agrandir copie");
+    memset(copy + 8, 7, 8);
+    pico8_bascule_zone_basculer(&bascule);
+    memset(pico8_zone_alloc(bascule_handle, 64), 2, 64);
+    for (size_t i = 0; i < 8; i++)
+        assert(old[i] == 6 && copy[i] == 6 && "l'ancienne generation vit jusqu'a son rendu");
+    expect_counting(items);
+    return 0;
+}
+
+static int case_bascule_handle_stale_after_rendre(void) {
+    unsigned char *copy;
+    unsigned char *old = bascule_grown(&copy);
+    pico8_bascule_zone_basculer(&bascule);
+    pico8_bascule_zone_rendre(&bascule);
+    for (int i = 0; i < 4; i++) memset(pico8_zone_alloc(bascule_handle, 64), 2, 64);
+    sink = old[0];
+    return 0;
+}
+
 static const struct {
     const char *name;
     int (*run)(void);
@@ -378,6 +422,8 @@ static const struct {
     {"slot_handle_no_grow", case_slot_handle_no_grow},
     {"slot_handle_stale_after_release", case_slot_handle_stale_after_release},
     {"slot_handle_full", case_slot_handle_full},
+    {"bascule_handle_round_trip", case_bascule_handle_round_trip},
+    {"bascule_handle_stale_after_rendre", case_bascule_handle_stale_after_rendre},
     {"arena_alive_until_released", case_arena_alive_until_released},
     {"arena_dead_after_release", case_arena_dead_after_release},
     {"arena_full", case_arena_full},
@@ -487,6 +533,8 @@ int main(int argc, char **argv) {
     handle = pico8_zone_choisie_bump(&bump);
     pico8_slot_zone_init(&slots, "essai-places", slot_cells, slot_taken, SLOT_SIZE, 2);
     slot_handle = pico8_zone_choisie_slot(&slots);
+    pico8_bascule_zone_init(&bascule, "essai-partie", bascule_cells, CAPACITY);
+    bascule_handle = pico8_zone_choisie_bascule(&bascule_storage, &bascule);
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
             if (strcmp(argv[1], CASES[i].name) == 0) return CASES[i].run();
@@ -500,6 +548,8 @@ int main(int argc, char **argv) {
     expect_assert("slot_handle_no_grow", "une place ne grandit pas");
     expect_poison_crash("slot_handle_stale_after_release");
     expect_fatal("slot_handle_full", "zone essai-places pleine, limite 2 places");
+    expect_clean("bascule_handle_round_trip");
+    expect_poison_crash("bascule_handle_stale_after_rendre");
     expect_clean("bump_read_before_reset");
     expect_poison_crash("bump_stale_after_reset");
     expect_fatal("bump_grow_past_capacity", "zone essai-liste pleine, limite 1024 octets");
