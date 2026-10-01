@@ -33,7 +33,9 @@
 #include "../src/pico8_planet_family_trade.h"
 #include "../src/pico8_research.h"
 #include "../src/pico8_scroll.h"
+#include "../src/pico8_slipway.h"
 #include "../src/pico8_struct.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_vec.h"
 
 
@@ -279,6 +281,11 @@ static void *spawn(int x, int y, const char *id, void **protostar) {
     pm = pico8_pm_new(&keys);
     at = ents_rank_in(pico8_hv(), pm);
     assert(at >= 1 && is_ga(pico8_hv()->items[at - 1]));
+    {
+        const pico8_vec_t *ra = as_ga(pico8_hv()->items[at - 1])->ra;
+        pico8_vec_t want = pico8_vec_add(*keys.ra, ((pico8_jo_t *)pm)->def->ng);
+        assert(ra != keys.ra && ra->x == want.x && ra->y == want.y);
+    }
     if (protostar != NULL) {
         *protostar = pm;
     }
@@ -637,6 +644,8 @@ static void test_burst(void) {
         assert(frames < 600);
     }
     check_int("burst frames", frames, BURST_FRAMES);
+    pico8_cart_vider_file_sortie();
+    check_int("ga places after the burst", pico8_zone_particules_vivantes(PICO8_PARTICULES_GA), 0);
 }
 
 /* `ei` moves a particle of `qy` in place: `p` by the old `v`, `v` turned
@@ -734,6 +743,7 @@ typedef struct {
     int particules;
     int qy;
     int qy_fv;
+    int ga;
     int rangees;
 } held_t;
 
@@ -742,12 +752,13 @@ static held_t held_now(void) {
     h.particules = pico8_zone_particules_vivantes(PICO8_PARTICULES_PARTICULE);
     h.qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
     h.qy_fv = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY_FV);
+    h.ga = pico8_zone_particules_vivantes(PICO8_PARTICULES_GA);
     h.rangees = pico8_zone_interface_vivantes(PICO8_SORTE_RANGEE);
     return h;
 }
 
 /* A burst that leaves (`he`, then the exit queue's flush) gives back the
- * particles it still holds and its `qy`. */
+ * particles it still holds, its `qy`, then its own place. */
 static void test_leaving_gives_back_its_particles(void) {
     held_t built;
     held_t after;
@@ -764,7 +775,48 @@ static void test_leaving_gives_back_its_particles(void) {
     pico8_cart_vider_file_sortie();
     after = held_now();
     assert(after.particules == built.particules - count && after.qy == built.qy - 1);
-    assert(e->emitter->qy == NULL);
+    assert(after.ga == built.ga - 1);
+}
+
+/* The largest bursts: a protostar's, which copies its `ra` into its place,
+ * and a harvest's, which borrows the planet's; each with its `oe`. Neither
+ * stops on « zone place ga pleine ». */
+static void test_the_largest_bursts_fit_their_place(void) {
+    held_t before;
+
+    start_game();
+    pico8_cart_vider_file_sortie();
+    before = held_now();
+    (void)harvest(40, 40, "s84");
+    (void)spawn(80, 70, "s83", NULL);
+    assert(held_now().ga == before.ga + 2);
+    printf("ga place: %lu bytes at most\n", (unsigned long)pico8_zone_particules_max_octets(PICO8_PARTICULES_GA));
+}
+
+/* A burst can be hovered, so a dragged slipway can end on it; the flush
+ * that gives the burst back lets go of that end too. */
+static void test_leaving_lets_go_of_a_dragged_slipway(void) {
+    pico8_jo_keys_t keys;
+    pico8_jc_keys_t jc_keys;
+    pico8_jc_t *jc;
+    pico8_vec_t mp = vec_xy(40, 40);
+    void *e;
+
+    start_game();
+    pico8_cart_vider_file_sortie();
+    keys.id = "s85";
+    keys.p = vec_ref(vec_xy(30, 30));
+    keys.ra = vec_ref(near_mo(60, 60));
+    jc_keys.qu = &pico8_jo_new(&keys)->header;
+    jc = pico8_jc_new(&jc_keys);
+    e = harvest(40, 40, "s86");
+    pico8_ok()->lheld = &jc->header;
+    pico8_ok()->o_ = e;
+    pico8_jc_hq(jc, &mp);
+    assert(jc->re == e);
+    pico8_he(e);
+    pico8_cart_vider_file_sortie();
+    assert(jc->re == NULL);
 }
 
 int main(void) {
@@ -784,6 +836,8 @@ int main(void) {
     in_fresh_child(test_ei_moves_a_particle_in_place);
     in_fresh_child(test_ga_is_a_struct);
     in_fresh_child(test_leaving_gives_back_its_particles);
+    in_fresh_child(test_the_largest_bursts_fit_their_place);
+    in_fresh_child(test_leaving_lets_go_of_a_dragged_slipway);
 
     printf("test_pico8_ga: all tests passed\n");
     return 0;

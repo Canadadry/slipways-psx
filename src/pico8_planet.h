@@ -23,7 +23,8 @@
  * field jo's functions write on it, then its kinds' fields. A kind's field is
  * indeterminate on a planet of another kind; `probe`, `emitter` are NULL
  * there, else they point at `probe_own`, `emitter_own`: never copy the
- * struct. Nothing frees the struct: TROU-7. */
+ * struct. Nothing frees the struct but a burst's, given back with its
+ * place: TROU-7. */
 typedef struct {
     pico8_struct_header_t header;
     const pico8_jo_def_t *def;
@@ -97,7 +98,10 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys);
  * defaults. Requires `pico8_jo_init()`. */
 void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
+/* `oe` taken from, and grown in, the transient zone. */
 void pico8_jo_pq(pico8_jo_t *self);
+/* `oe` taken from, and grown in, `zone`, which must outlive it. */
+void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone);
 
 /* The dispatchers jo's descriptor holds, for a daughter's `static const`
  * descriptor to name. */

@@ -55,6 +55,11 @@ void pico8_f__dans(pico8_struct_header_t *self, pico8_particules_sorte_t sorte);
  * pico8_qy_rendre once in a `qy`. */
 pico8_qy_t *pico8_particule_prendre(void);
 
+/* A fresh place of the `ga` sort, as an arena: the burst puts its struct,
+ * its `oe` and its `ra` box there, and its `rendre` gives it back by
+ * pico8_zone_arene_rendre. */
+const pico8_zone_choisie_t *pico8_ga_place_prendre(void);
+
 /* Gives back each particle still in `emitter->qy` to the `particule`
  * handle, then the list's arena, and leaves `emitter->qy` NULL; nothing
  * when it already is. */

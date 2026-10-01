@@ -105,6 +105,10 @@ static void oublier(const pico8_struct_header_t *e) {
     if (ok != NULL && ok->gj == e) {
         ok->gj = NULL;
     }
+    if (ok != NULL && ok->lheld != NULL && ok->lheld->cls == pico8_jc_struct_class() &&
+        ((pico8_jc_t *)ok->lheld)->re == e) {
+        ((pico8_jc_t *)ok->lheld)->re = NULL;
+    }
     if ((const pico8_struct_header_t *)pico8_kc() == e) {
         pico8_msgbox_set_kc(NULL);
     }

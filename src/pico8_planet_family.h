@@ -113,23 +113,28 @@ int pico8_ga_ready(void);
 const pico8_entity_kind_t *pico8_ga_kind(void);
 const pico8_struct_class_t *pico8_ga_struct_class(void);
 
-/* A burst's construction keys: `jo`'s (jo:hu), then the group pm:pq passes
- * (`pq` NULL: ga's own defaults stand; its `k_` NULL: `k_` is nil). */
+/* A burst's construction keys: `jo`'s (jo:hu), whose `p`, `ra`, `id` the
+ * burst borrows, then the group pm:pq passes (`pq` NULL: ga's own defaults
+ * stand; its `k_` NULL: `k_` is nil). `ra_copie`, when not NULL, is copied
+ * into the burst's own place and becomes its `ra`; `jo.ra` must then be
+ * NULL. */
 typedef struct {
     pico8_jo_keys_t jo;
+    const pico8_vec_t *ra_copie;
     const pico8_ga_pq_keys_t *pq;
 } pico8_ga_keys_t;
 
-/* `keys` (NULL means none) is read, not kept. The new burst registers
- * itself into `hv`/`cv`, in no `cg`, through `lt`, and nothing ever frees
- * it. Requires `pico8_planet_family_init()`. */
+/* `keys` (NULL means none) is not kept. The new burst lives, with its `oe`
+ * and its copied `ra`, in one place of the `ga` sort, and registers itself
+ * into `hv`/`cv`, in no `cg`, through `lt`; its `rendre` gives that place
+ * back once it leaves through the exit queue. Requires
+ * `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_ga_new(const pico8_ga_keys_t *keys);
 
 void pico8_nl_ly(pico8_jo_t *self, pico8_fixed_t t);
 
 void pico8_hj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec_t p);
 
-/* TROU-7 */
 void pico8_pm_pq(pico8_jo_t *self);
 
 void pico8_ga_pq(pico8_jo_t *self);

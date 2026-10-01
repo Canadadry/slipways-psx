@@ -32,6 +32,8 @@ static const char *const NOMS[PICO8_SORTE_COUNT] = {"js", "fq", "mh", "iv", "ran
 typedef struct {
     int frame;
     int vivantes[PICO8_SORTE_COUNT];
+    int qy;
+    int ga;
 } releve_t;
 
 static void relever(releve_t *r, int frame) {
@@ -40,6 +42,8 @@ static void relever(releve_t *r, int frame) {
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
         r->vivantes[s] = pico8_zone_interface_vivantes((pico8_sorte_t)s);
     }
+    r->qy = pico8_zone_particules_vivantes(PICO8_PARTICULES_QY);
+    r->ga = pico8_zone_particules_vivantes(PICO8_PARTICULES_GA);
 }
 
 static void imprimer(const char *e2e, const releve_t *r) {
@@ -47,7 +51,7 @@ static void imprimer(const char *e2e, const releve_t *r) {
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
         printf(" %s=%d", NOMS[s], r->vivantes[s]);
     }
-    printf("\n");
+    printf(" qy=%d ga=%d\n", r->qy, r->ga);
 }
 
 /* Releve les comptes apres chaque frame de `frames` (AVANT_F0 : apres
@@ -143,6 +147,27 @@ static void empty_planet_fade_ne_monte_pas(void) {
     assert(aucun_ne_monte(&r[0], &r[1]) && "une sorte monte pendant l'effacement de p40");
 }
 
+/* f56 : « harvest », p27 devient un eclat. A f139, sa troisieme particule
+ * vit encore : on prolonge le rejeu sans action (la souris reste en
+ * (100,62), sans clic) jusqu'a son extinction. */
+static void tech_geoharvesting_burst_rend_l_eclat(void) {
+    const int frames[] = {55, 56, 139};
+    releve_t r[3];
+    releve_t fin;
+    int frame;
+    rejouer("tech_geoharvesting_burst", frames, 3, r);
+    assert(r[0].ga == 0 && r[1].ga == 1 && "le « harvest » fait un eclat");
+    fin = r[2];
+    for (frame = 140; fin.ga != 0 && frame < 160; frame++) {
+        pico8__update60();
+        pico8__draw();
+        relever(&fin, frame);
+    }
+    imprimer("tech_geoharvesting_burst", &fin);
+    assert(fin.ga == 0 && "un eclat eteint doit rendre sa place");
+    assert(fin.qy == r[0].qy && "un eclat eteint doit rendre sa liste");
+}
+
 /* Tampon alloue, termine par un nul, que l'appelant libere. */
 static char *lire_fichier(const char *path, size_t *len) {
     FILE *f = fopen(path, "rb");
@@ -236,6 +261,7 @@ int main(void) {
     dans_un_enfant(pause_restart_revient_au_titre);
     dans_un_enfant(message_box_hold_ne_bouge_pas_sans_action);
     dans_un_enfant(empty_planet_fade_ne_monte_pas);
+    dans_un_enfant(tech_geoharvesting_burst_rend_l_eclat);
     dans_un_enfant(le_rejeu_ecrit_le_remplissage_en_fin_de_session);
     printf("test_pico8_places_vivantes: all tests passed\n");
     return 0;

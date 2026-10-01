@@ -189,14 +189,18 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
 }
 
 void pico8_jo_pq(pico8_jo_t *self) {
+    pico8_jo_pq_dans(self, &pico8_zone_transitoire);
+}
+
+void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
     pico8_ents_t *oe;
 
     if (self == NULL) {
         return;
     }
 
-    oe = malloc(sizeof *oe);
-    pico8_ents_init(oe, &pico8_zone_transitoire);
+    oe = (pico8_ents_t *)pico8_zone_alloc(zone, sizeof *oe);
+    pico8_ents_init(oe, zone);
     self->oe = oe;
 
     if (self->header.cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_QH)) {

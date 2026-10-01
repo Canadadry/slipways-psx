@@ -34,6 +34,11 @@ pico8_qy_t *pico8_particule_prendre(void) {
     return (pico8_qy_t *)pico8_zone_alloc(pico8_zone_particules(PICO8_PARTICULES_PARTICULE), sizeof(pico8_qy_t));
 }
 
+const pico8_zone_choisie_t *pico8_ga_place_prendre(void) {
+    adosser();
+    return pico8_zone_particules_place(PICO8_PARTICULES_GA);
+}
+
 void pico8_f_(pico8_struct_header_t *self) {
     pico8_f__dans(self, PICO8_PARTICULES_QY);
 }
