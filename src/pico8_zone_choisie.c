@@ -92,6 +92,12 @@ const pico8_zone_choisie_t *pico8_zone_arene_prendre(const pico8_zone_choisie_t 
     return &arene->handle;
 }
 
+size_t pico8_zone_arene_prise(const pico8_zone_choisie_t *arene) {
+    const arene_t *a = (const arene_t *)arene;
+    assert(arene != NULL && arene->bump == &a->bump && "mesure d'une poignee qui n'est pas une arene");
+    return ARENE_HEAD_CELLS * sizeof(pico8_zone_cell_t) + a->bump.used;
+}
+
 void pico8_zone_arene_rendre(const pico8_zone_choisie_t *arene) {
     const arene_t *a = (const arene_t *)arene;
     assert(arene != NULL && arene->bump == &a->bump && "rendu d'une poignee qui n'est pas une arene");

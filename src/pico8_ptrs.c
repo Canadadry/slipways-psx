@@ -13,6 +13,13 @@ void pico8_ptrs_init(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone) {
     ptrs->zone = zone;
 }
 
+void pico8_ptrs_init_reserve(pico8_ptrs_t *ptrs, const pico8_zone_choisie_t *zone, int capacity) {
+    assert(capacity > 0);
+    pico8_ptrs_init(ptrs, zone);
+    ptrs->items = (void **)pico8_zone_alloc(zone, (size_t)capacity * sizeof(void *));
+    ptrs->capacity = capacity;
+}
+
 void pico8_ptrs_free(pico8_ptrs_t *ptrs) {
     assert(ptrs != NULL && "ptrs primitive called on a NULL container");
     if (ptrs->items != NULL) {

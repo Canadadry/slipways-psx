@@ -211,6 +211,24 @@ static void test_foreach_visits_each_once_in_order_with_ctx(void) {
     pico8_ptrs_free(&ptrs);
 }
 
+static void test_reserved_list_holds_its_capacity_in_order(void) {
+    int cells[6];
+    int i;
+    pico8_ptrs_t ptrs;
+    pico8_ptrs_init_reserve(&ptrs, &pico8_zone_transitoire, 6);
+    assert(ptrs.count == 0 && ptrs.capacity == 6);
+
+    for (i = 0; i < 6; i++) {
+        pico8_ptrs_add(&ptrs, &cells[i]);
+    }
+
+    assert(ptrs.count == 6 && ptrs.capacity == 6 && "a reserved list fills to its capacity without growing");
+    for (i = 0; i < 6; i++) {
+        assert(ptrs.items[i] == &cells[i]);
+    }
+    pico8_ptrs_free(&ptrs);
+}
+
 int main(void) {
     test_add_grows_past_four_and_keeps_order();
     test_del_removes_only_the_first_identical_pointer();
@@ -221,6 +239,7 @@ int main(void) {
     test_all_revisits_when_another_element_is_deleted();
     test_all_on_empty_yields_nothing();
     test_foreach_visits_each_once_in_order_with_ctx();
+    test_reserved_list_holds_its_capacity_in_order();
     printf("test_pico8_ptrs: all tests passed\n");
     return 0;
 }

@@ -18,9 +18,11 @@
  * gets the usage and exit 2.
  *
  * PICO8_REMPLISSAGE=<file>, optional, is where the live places of each
- * interface sort are written after the last frame, one "<sort> <count>"
- * line each, read after flushing the exit queue. Capture, dump and exit
- * code stay the same. */
+ * interface sort, then of each particle sort, are written after the last
+ * frame, one "<sort> <count>" line each, read after flushing the exit
+ * queue; then the session's maxima of each particle sort, one
+ * "max_vivantes|max_octets|max_elements <sort> <n>" line each. Capture,
+ * dump and exit code stay the same. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -32,12 +34,14 @@
 #include "pico8_dispatch_context.h"
 #include "pico8_cart.h"
 #include "pico8_zone_interface.h"
+#include "pico8_zone_particules.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 static const char *const SORTE_NAMES[PICO8_SORTE_COUNT] = {"js", "fq", "mh", "iv", "rangee", "le"};
+static const char *const PARTICULES_NAMES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga"};
 
 static void write_remplissage(const char *path) {
     FILE *out = fopen(path, "w");
@@ -48,6 +52,21 @@ static void write_remplissage(const char *path) {
     pico8_cart_vider_file_sortie();
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
         fprintf(out, "%s %d\n", SORTE_NAMES[s], pico8_zone_interface_vivantes((pico8_sorte_t)s));
+    }
+    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+        fprintf(out, "%s %d\n", PARTICULES_NAMES[s], pico8_zone_particules_vivantes((pico8_particules_sorte_t)s));
+    }
+    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+        fprintf(out, "max_vivantes %s %d\n", PARTICULES_NAMES[s],
+                pico8_zone_particules_max_vivantes((pico8_particules_sorte_t)s));
+    }
+    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+        fprintf(out, "max_octets %s %lu\n", PARTICULES_NAMES[s],
+                (unsigned long)pico8_zone_particules_max_octets((pico8_particules_sorte_t)s));
+    }
+    for (int s = PICO8_PARTICULES_QY; s <= PICO8_PARTICULES_QY_FV; s++) {
+        fprintf(out, "max_elements %s %d\n", PARTICULES_NAMES[s],
+                pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
     }
     fclose(out);
 }

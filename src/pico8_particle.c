@@ -9,7 +9,10 @@
 #include "pico8_fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_vec.h"
+#include "pico8_zone_particules.h"
 #include "pico8_zone_transitoire.h"
+
+typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];
 
 /* `fa`, and `ra` into `*ra` (the zero vector when nil), of the host of `ei`. */
 static pico8_fixed_t emitter_host_fa_ra(const pico8_struct_header_t *self, pico8_vec_t *ra) {
@@ -37,6 +40,22 @@ void pico8_f_(pico8_struct_header_t *self) {
     qy = malloc(sizeof *qy);
     pico8_ptrs_init(qy, &pico8_zone_transitoire);
     emitter->qy = qy;
+}
+
+void pico8_qy_rendre(pico8_emitter_t *emitter) {
+    pico8_ptrs_t *qy = emitter->qy;
+    const pico8_zone_choisie_t *particules = pico8_zone_particules(PICO8_PARTICULES_PARTICULE);
+    int i;
+
+    if (qy == NULL) {
+        return;
+    }
+    for (i = 0; i < qy->count; i++) {
+        pico8_zone_release(particules, qy->items[i]);
+    }
+    /* The list lives in its own arena: `qy` dies with it. */
+    pico8_zone_arene_rendre(qy->zone);
+    emitter->qy = NULL;
 }
 
 void pico8_ez(pico8_struct_header_t *self, pico8_fixed_t n) {

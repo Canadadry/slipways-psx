@@ -22,6 +22,7 @@
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
 #include "../src/pico8_zone_interface.h"
+#include "../src/pico8_zone_particules.h"
 
 #define AVANT_F0 (-1)
 #define MAX_RELEVES 4
@@ -177,8 +178,9 @@ static int memes_octets(const char *a_path, const char *b_path) {
 #define DUMP_B "tmp/test_places_vivantes_b.txt"
 
 /* PICO8_REMPLISSAGE=<fichier> : le rejeu y ecrit une ligne « <sorte>
- * <vivantes> » par sorte en fin de session, sans toucher capture, dump ni
- * code de sortie. */
+ * <vivantes> » par sorte d'interface puis de particules, et les maxima de
+ * la session par sorte de particules, en fin de session, sans toucher
+ * capture, dump ni code de sortie. */
 static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
     const int frames[] = {17};
     releve_t r[1];
@@ -191,10 +193,31 @@ static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
     assert(memes_octets(CAPTURE_A, CAPTURE_B) && "le remplissage ne change pas la capture");
     assert(memes_octets(DUMP_A, DUMP_B) && "le remplissage ne change pas le dump");
 
-    char attendu[256] = "";
+    char attendu[1024] = "";
+    char ligne[48];
     for (int s = 0; s < PICO8_SORTE_COUNT; s++) {
-        char ligne[32];
         snprintf(ligne, sizeof ligne, "%s %d\n", NOMS[s], r[0].vivantes[s]);
+        strcat(attendu, ligne);
+    }
+    static const char *const PARTICULES[PICO8_PARTICULES_COUNT] = {"particule", "qy", "qy_fv", "ga"};
+    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+        snprintf(ligne, sizeof ligne, "%s %d\n", PARTICULES[s],
+                 pico8_zone_particules_vivantes((pico8_particules_sorte_t)s));
+        strcat(attendu, ligne);
+    }
+    for (int s = 0; s < PICO8_PARTICULES_COUNT; s++) {
+        snprintf(ligne, sizeof ligne, "max_vivantes %s %d\n", PARTICULES[s],
+                 pico8_zone_particules_max_vivantes((pico8_particules_sorte_t)s));
+        strcat(attendu, ligne);
+    }
+    for (int s = PICO8_PARTICULES_QY; s < PICO8_PARTICULES_COUNT; s++) {
+        snprintf(ligne, sizeof ligne, "max_octets %s %lu\n", PARTICULES[s],
+                 (unsigned long)pico8_zone_particules_max_octets((pico8_particules_sorte_t)s));
+        strcat(attendu, ligne);
+    }
+    for (int s = PICO8_PARTICULES_QY; s <= PICO8_PARTICULES_QY_FV; s++) {
+        snprintf(ligne, sizeof ligne, "max_elements %s %d\n", PARTICULES[s],
+                 pico8_zone_particules_max_elements((pico8_particules_sorte_t)s));
         strcat(attendu, ligne);
     }
     size_t len;

@@ -46,6 +46,11 @@ typedef struct pico8_emitter {
  * frees it. */
 void pico8_f_(pico8_struct_header_t *self);
 
+/* Gives back each particle still in `emitter->qy` to the `particule`
+ * handle, then the list's arena, and leaves `emitter->qy` NULL; nothing
+ * when it already is. */
+void pico8_qy_rendre(pico8_emitter_t *emitter);
+
 /* Appends `self:mm()` records to `self.qy` while `rnd() < n`, subtracting 1
  * from `n` each turn: a fractional `n` genuinely has a chance of spawning
  * one more particle than `flr(n)`. A `self` whose class chain has no `mm`

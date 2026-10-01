@@ -251,6 +251,54 @@ static int case_arena_full(void) {
     return 0;
 }
 
+static int case_arena_taken_counts_head_and_blocks(void) {
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", ARENA_SIZE);
+    size_t head = pico8_zone_arene_prise(arena);
+    assert(head > 0 && head < (size_t)ARENA_SIZE && "la tete de l'arene compte dans ce qu'elle a pris");
+    pico8_zone_alloc(arena, 10);
+    assert(pico8_zone_arene_prise(arena) == head + 16 && "un bloc compte en cellules entieres");
+    pico8_zone_alloc(arena, ARENA_SIZE - head - 16);
+    assert(pico8_zone_arene_prise(arena) == (size_t)ARENA_SIZE && "une arene pleine a tout pris");
+    pico8_zone_arene_rendre(arena);
+    return 0;
+}
+
+#define RESERVED 40
+
+/* Une arene qui tient juste la liste et ses RESERVED elements : un seul
+ * agrandissement la ferait deborder. */
+static const pico8_zone_choisie_t *reserved_list(pico8_ptrs_t **out) {
+    const pico8_zone_choisie_t *probe = pico8_zone_arene_prendre(&pico8_zone_transitoire, "sonde", ARENA_SIZE);
+    size_t head = pico8_zone_arene_prise(probe);
+    pico8_zone_arene_rendre(probe);
+    size_t size = head + PICO8_ZONE_CELLS(sizeof(pico8_ptrs_t)) * sizeof(pico8_zone_cell_t) +
+                  RESERVED * sizeof(void *);
+    const pico8_zone_choisie_t *arena = pico8_zone_arene_prendre(&pico8_zone_transitoire, "place essai", size);
+    pico8_ptrs_t *ptrs = (pico8_ptrs_t *)pico8_zone_alloc(arena, sizeof *ptrs);
+    pico8_ptrs_init_reserve(ptrs, arena, RESERVED);
+    assert(pico8_zone_arene_prise(arena) == size);
+    *out = ptrs;
+    return arena;
+}
+
+static int case_ptrs_reserved_fills_without_growing(void) {
+    pico8_ptrs_t *ptrs;
+    const pico8_zone_choisie_t *arena = reserved_list(&ptrs);
+    assert(ptrs->count == 0);
+    for (int i = 0; i < RESERVED; i++) pico8_ptrs_add(ptrs, &cells[i % LIST_LENGTH]);
+    assert(ptrs->count == RESERVED);
+    for (int i = 0; i < RESERVED; i++) assert(ptrs->items[i] == &cells[i % LIST_LENGTH]);
+    pico8_zone_arene_rendre(arena);
+    return 0;
+}
+
+static int case_ptrs_reserved_overflow(void) {
+    pico8_ptrs_t *ptrs;
+    reserved_list(&ptrs);
+    for (int i = 0; i <= RESERVED; i++) pico8_ptrs_add(ptrs, &cells[i % LIST_LENGTH]);
+    return 0;
+}
+
 /* Les places voisines d'une arene, hors du bloc qu'elle a pris : sous ASan,
  * l'arene ne doit pas les empoisonner. */
 static pico8_zone_cell_t neighbours[2 * PICO8_ZONE_CELLS(ARENA_SIZE)];
@@ -334,6 +382,9 @@ static const struct {
     {"arena_dead_after_release", case_arena_dead_after_release},
     {"arena_full", case_arena_full},
     {"arena_spares_neighbour", case_arena_spares_neighbour},
+    {"arena_taken_counts_head_and_blocks", case_arena_taken_counts_head_and_blocks},
+    {"ptrs_reserved_fills_without_growing", case_ptrs_reserved_fills_without_growing},
+    {"ptrs_reserved_overflow", case_ptrs_reserved_overflow},
     {"bump_grow_keeps_order", case_bump_grow_keeps_order},
     {"bump_read_before_reset", case_bump_read_before_reset},
     {"bump_stale_after_reset", case_bump_stale_after_reset},
@@ -464,6 +515,9 @@ int main(int argc, char **argv) {
     expect_freed_crash("arena_dead_after_release");
     expect_fatal("arena_full", "zone place essai pleine, limite ");
     expect_clean("arena_spares_neighbour");
+    expect_clean("arena_taken_counts_head_and_blocks");
+    expect_clean("ptrs_reserved_fills_without_growing");
+    expect_fatal("ptrs_reserved_overflow", "zone place essai pleine, limite ");
     remove(STDERR_LOG);
     printf("test_pico8_zone_choisie: all tests passed\n");
     return 0;

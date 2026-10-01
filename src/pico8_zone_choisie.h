@@ -42,6 +42,8 @@ void pico8_zone_release(const pico8_zone_choisie_t *z, unsigned char *p);
  * doit vivre autant que l'arene : il compose « zone <name> pleine ». */
 const pico8_zone_choisie_t *pico8_zone_arene_prendre(const pico8_zone_choisie_t *from,
                                                      const char *name, size_t size);
+/* Octets pris dans le bloc, tete comprise. */
+size_t pico8_zone_arene_prise(const pico8_zone_choisie_t *arene);
 /* Rend le bloc entier a la poignee qui l'a donne. */
 void pico8_zone_arene_rendre(const pico8_zone_choisie_t *arene);
 
