@@ -233,7 +233,7 @@ static void world(void) {
     while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(jc, re);
+    pico8_jc_struct_class()->ey(&jc->header, re);
     assert((void *)jc->re == re);
     for (i = 0; i < SETTLE_TICKS; i++) {
         pico8_dg();

@@ -22,7 +22,7 @@ static pico8_vec_t pico8_qb_vec(const pico8_vec_t *v) {
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which qb:ph does not read. */
-static void pico8_qb_ph_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_qb_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_qb_ph(pico8_dispatch_input(), (pico8_qb_t *)self);
 }

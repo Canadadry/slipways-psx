@@ -321,9 +321,9 @@ int pico8_d_(pico8_struct_header_t *self) {
     return 0;
 }
 
-void pico8_d__dispatch(void *self, pico8_struct_header_t *kv) {
+void pico8_d__dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv) {
     (void)kv;
-    (void)pico8_d_((pico8_struct_header_t *)self);
+    (void)pico8_d_(self);
 }
 
 pico8_qy_t *pico8_g__mm(pico8_struct_header_t *self) {

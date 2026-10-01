@@ -364,14 +364,14 @@ static void test_qb_is_a_struct(void) {
     check_fresh_mo(generic);
     assert(generic->header.ra == &generic->ra);
     assert(generic->header.p == &generic->p);
-    pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
+    pico8_qb_struct_class()->states[PICO8_STATE_PH](&generic->header, pico8_fixed_from_int(0));
     pico8_qb_md(pico8_dispatch_gfx(), generic, pico8_fixed_from_int(1));
     assert(pico8_qb_struct_class()->kj == NULL);
     {
         pico8_vec_t p_before = must_vec(generic->p);
 
         generic->v = NULL;
-        pico8_qb_struct_class()->states[PICO8_STATE_PH](generic, pico8_fixed_from_int(0));
+        pico8_qb_struct_class()->states[PICO8_STATE_PH](&generic->header, pico8_fixed_from_int(0));
         assert(generic->v != NULL && generic->v->x == 0 && generic->v->y == 0);
         assert(generic->p->x == p_before.x && generic->p->y == p_before.y);
     }

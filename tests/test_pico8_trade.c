@@ -174,7 +174,7 @@ static void join(void *qu, void *re) {
     while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(jc, re);
+    pico8_jc_struct_class()->ey(&jc->header, re);
 }
 
 static pico8_ents_t *list_of(int n, void *const *items) {

@@ -83,7 +83,7 @@ void pico8_hj_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
 
 /* The dispatchers hj's descriptor holds, for a daughter's `static const`
  * descriptor to name. */
-void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t);
+void pico8_qh_ly_dispatch(pico8_struct_header_t *self, pico8_fixed_t t);
 void pico8_hj_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 
 /* `pm` and `ga` are the only classes here whose spec sets `fz`: the two

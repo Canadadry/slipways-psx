@@ -39,7 +39,7 @@ int pico8_jo_is_family(const pico8_struct_header_t *e) {
     return (e->cls->lineage & PICO8_LINEAGE(PICO8_LINEAGE_JO)) != 0;
 }
 
-void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t) {
+void pico8_jo_ll_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_jo_ll((pico8_jo_t *)self, t);
 }
 

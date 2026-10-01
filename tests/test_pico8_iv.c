@@ -176,8 +176,8 @@ typedef struct {
 static int g_fake_ph_calls = 0;
 static pico8_fixed_t g_fake_ph_last_t;
 
-static void fake_toast_ph(void *self, pico8_fixed_t t) {
-    fake_toast_t *f = self;
+static void fake_toast_ph(pico8_struct_header_t *self, pico8_fixed_t t) {
+    fake_toast_t *f = (fake_toast_t *)self;
     g_fake_ph_calls++;
     g_fake_ph_last_t = t;
     if (t >= pico8_fixed_from_int(2)) {

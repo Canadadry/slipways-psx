@@ -278,12 +278,12 @@ void pico8_jb_ol(pico8_gfx_t *gfx, pico8_mem_t *mem, const pico8_jb_t *self, pic
     }
 }
 
-static void pico8_lq_ol_dispatch(void *self, pico8_vec_t p, pico8_fixed_t a) {
+static void pico8_lq_ol_dispatch(pico8_struct_header_t *self, pico8_vec_t p, pico8_fixed_t a) {
     pico8_lq_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_lq_t *)self, p, a);
 }
 
 /* No launcher reaches it (`jo.lq` is an `lq`); a vector `om` counts as 0. */
-static void pico8_jb_ol_dispatch(void *self, pico8_vec_t p, pico8_fixed_t a) {
+static void pico8_jb_ol_dispatch(pico8_struct_header_t *self, pico8_vec_t p, pico8_fixed_t a) {
     (void)p;
     pico8_jb_ol(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_jb_t *)self, pico8_fixed_from_int(0), a);
 }

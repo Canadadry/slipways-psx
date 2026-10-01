@@ -19,7 +19,7 @@ static pico8_vec_t g_nf_ra;
 
 /* dg() dispatches the per-tick state method as `qc[qc.me](qc,qc.t)`, so
  * `t` is the frame counter, which nf:ph does not read. */
-static void pico8_nf_ph_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_nf_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_nf_ph(pico8_dispatch_input(), (pico8_nf_t *)self);
 }

@@ -129,7 +129,7 @@ typedef struct {
     pico8_struct_header_t *held;
 } pico8_down_t;
 
-typedef void (*pico8_state_fn)(void *self, pico8_fixed_t t);
+typedef void (*pico8_state_fn)(pico8_struct_header_t *self, pico8_fixed_t t);
 
 struct pico8_qy;
 struct pico8_jo_trade_proposal;
@@ -152,10 +152,10 @@ struct pico8_struct_class {
     pico8_down_t (*rdown)(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
     pico8_down_t (*gv)(pico8_struct_header_t *self, const pico8_struct_header_t *s);
     void (*hq)(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
-    void (*ey)(void *self, pico8_struct_header_t *kv);
-    void (*kf)(void *self, pico8_struct_header_t *sw);
-    void (*cn)(void *self, struct pico8_jo_trade_proposal *lw);
-    void (*ol)(void *self, pico8_vec_t p, pico8_fixed_t a);
+    void (*ey)(pico8_struct_header_t *self, pico8_struct_header_t *kv);
+    void (*kf)(pico8_struct_header_t *self, pico8_struct_header_t *sw);
+    void (*cn)(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw);
+    void (*ol)(pico8_struct_header_t *self, pico8_vec_t p, pico8_fixed_t a);
     struct pico8_qy *(*mm)(pico8_struct_header_t *self);
     pico8_state_fn states[PICO8_STATE_COUNT];
     /* `PICO8_TAG(t)` set: lt() registers every instance under tag t. */

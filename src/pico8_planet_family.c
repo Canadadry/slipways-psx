@@ -19,8 +19,8 @@ static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */
 static pico8_ents_t g_ga_by_shared;
 
-void pico8_qh_ly_dispatch(void *self, pico8_fixed_t t) {
-    pico8_na((pico8_struct_header_t *)self, t);
+void pico8_qh_ly_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
+    pico8_na(self, t);
 }
 
 static const pico8_struct_class_t g_qh_struct_class = {
@@ -90,7 +90,7 @@ void pico8_nl_ly(pico8_jo_t *self, pico8_fixed_t t) {
     }
 }
 
-static void pico8_nl_ly_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_nl_ly_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_nl_ly((pico8_jo_t *)self, t);
 }
 

@@ -119,7 +119,7 @@ void pico8_pj_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_pj_t *self);
 void pico8_eg(void);
 
 void pico8_pj_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr);
-void pico8_pj_ph_dispatch(void *self, pico8_fixed_t t);
+void pico8_pj_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t);
 
 void pico8_score_panel_display_init(void);
 void pico8_score_panel_display_shutdown(void);

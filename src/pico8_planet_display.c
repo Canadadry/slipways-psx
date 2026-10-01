@@ -446,7 +446,7 @@ void pico8_jo_kj(pico8_gfx_t *gfx, pico8_mem_t *mem, pico8_jo_t *self, pico8_vec
             pico8_vec_t offset =
                 pico8_vec_add(adjusted, pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(7)));
             assert(self->lq->header.cls->ol != NULL && "lq must have an `ol`");
-            self->lq->header.cls->ol(self->lq, offset, PICO8_FIXED_LIT(0x00008000, 0.5));
+            self->lq->header.cls->ol(&self->lq->header, offset, PICO8_FIXED_LIT(0x00008000, 0.5));
         }
     }
 

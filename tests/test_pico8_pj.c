@@ -399,7 +399,7 @@ static void test_shared(void) {
 
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
+    cls_of(ju)->states[PICO8_STATE_PH](&ju->header, pico8_fixed_from_int(0));
     assert(ju->fa == pico8_fixed_from_int(13));
     assert(c__state(ju) == 2);
     assert(other->fa == pico8_fixed_from_int(10));
@@ -452,7 +452,7 @@ static void test_life(void) {
     js_before = js15_count();
     pico8_fm_hy()->hl = "final score";
     pico8_fm_hy()->has_hl = 1;
-    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
+    cls_of(ju)->states[PICO8_STATE_PH](&ju->header, pico8_fixed_from_int(0));
     assert(c__state(ju) == 2);
     assert(ju->has_gz && ju->gz == 0);
     assert(ju->fa == pico8_fixed_from_int(13));
@@ -462,7 +462,7 @@ static void test_life(void) {
     h = fnv(h, (uint32_t)ents_rank_in(pico8_hv(), pico8_kc()));
     h = fnv(h, (uint32_t)pico8_hv()->count);
 
-    cls_of(ju)->states[PICO8_STATE_PH](ju, pico8_fixed_from_int(0));
+    cls_of(ju)->states[PICO8_STATE_PH](&ju->header, pico8_fixed_from_int(0));
     assert(ents_count_of(pico8_cg("mh")) == boxes);
     assert(ju->ed == pico8_kc());
 

@@ -182,7 +182,7 @@ void pico8_iv_ph(pico8_iv_t *self) {
     self->p_ = new_l >= pico8_fixed_from_int(5);
 }
 
-static void pico8_iv_ph_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_iv_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_iv_ph((pico8_iv_t *)self);
 }

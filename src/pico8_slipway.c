@@ -320,7 +320,7 @@ static void pico8_jc_hq_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, p
     pico8_jc_hq((pico8_jc_t *)self, qa);
 }
 
-static void pico8_jc_ey_dispatch(void *self, pico8_struct_header_t *kv) {
+static void pico8_jc_ey_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv) {
     pico8_jc_ey((pico8_jc_t *)self, kv);
 }
 

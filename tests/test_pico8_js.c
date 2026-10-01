@@ -498,7 +498,7 @@ static void *built_world(void) {
     while (jc->header.t < pico8_fixed_from_int(15)) {
         pico8_dg();
     }
-    pico8_jc_struct_class()->ey(jc, re);
+    pico8_jc_struct_class()->ey(&jc->header, re);
     for (i = 0; i < 120; i++) {
         pico8_dg();
     }

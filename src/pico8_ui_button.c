@@ -18,9 +18,9 @@ static int pico8_ui_to_int(pico8_fixed_t x) {
     return pico8_fixed_flr_int(x);
 }
 
-static void pico8_js_ph_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_js_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     (void)t;
-    pico8_js_ph(self);
+    pico8_js_ph((pico8_js_t *)self);
 }
 
 static void pico8_js_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra) {

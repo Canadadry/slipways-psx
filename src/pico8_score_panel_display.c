@@ -337,7 +337,7 @@ void pico8_pj_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr) {
     pico8_pj_hk(yr);
 }
 
-void pico8_pj_ph_dispatch(void *self, pico8_fixed_t t) {
+void pico8_pj_ph_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     (void)t;
     pico8_pj_ph((pico8_pj_t *)self);
 }

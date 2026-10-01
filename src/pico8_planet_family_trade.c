@@ -153,7 +153,7 @@ void pico8_nr_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
     }
 }
 
-static void pico8_nr_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw) {
+static void pico8_nr_cn_dispatch(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw) {
     pico8_nr_cn((pico8_jo_t *)self, lw);
 }
 
@@ -298,7 +298,7 @@ void pico8_mx_kf(pico8_jo_t *self, pico8_struct_header_t *sw) {
     pico8_jo_kf(self, sw);
 }
 
-static void pico8_mx_kf_dispatch(void *self, pico8_struct_header_t *sw) {
+static void pico8_mx_kf_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *sw) {
     pico8_mx_kf((pico8_jo_t *)self, sw);
 }
 

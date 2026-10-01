@@ -106,13 +106,13 @@ pico8_down_t pico8_jo_gv_dispatch(pico8_struct_header_t *self, const pico8_struc
 void pico8_jo_hk_dispatch(pico8_struct_header_t *self, pico8_fixed_t yr);
 void pico8_jo_kj_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
 pico8_down_t pico8_jo_ldown_dispatch(pico8_struct_header_t *self, pico8_vec_t *qa, pico8_vec_t *ra);
-void pico8_jo_kf_dispatch(void *self, pico8_struct_header_t *sw);
+void pico8_jo_kf_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *sw);
 
 /* `e` is one of the ten classes of jo's tree: the only ones whose state
  * `ll` is jo's. */
 int pico8_jo_is_family(const pico8_struct_header_t *e);
-void pico8_jo_cn_dispatch(void *self, struct pico8_jo_trade_proposal *lw);
-void pico8_jo_ll_dispatch(void *self, pico8_fixed_t t);
+void pico8_jo_cn_dispatch(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw);
+void pico8_jo_ll_dispatch(pico8_struct_header_t *self, pico8_fixed_t t);
 
 /* TROU-7 */
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);

@@ -59,6 +59,6 @@ void pico8_dl_dispatch(pico8_struct_header_t *self, const pico8_vec_t *ra);
  * and `mz:ey` consume it. */
 int pico8_d_(pico8_struct_header_t *self);
 
-void pico8_d__dispatch(void *self, pico8_struct_header_t *kv);
+void pico8_d__dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv);
 
 #endif

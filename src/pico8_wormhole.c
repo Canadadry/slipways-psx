@@ -96,7 +96,7 @@ void pico8_mz_kz(pico8_mz_t *self, pico8_fixed_t t) {
     self->oi = result;
 }
 
-static void pico8_mz_kz_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_mz_kz_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_mz_kz((pico8_mz_t *)self, t);
 }
 
@@ -121,7 +121,7 @@ void pico8_mz_ey(pico8_mz_t *self) {
     self->p_ = result;
 }
 
-static void pico8_mz_ey_dispatch(void *self, pico8_struct_header_t *kv) {
+static void pico8_mz_ey_dispatch(pico8_struct_header_t *self, pico8_struct_header_t *kv) {
     (void)kv;
     pico8_mz_ey((pico8_mz_t *)self);
 }
@@ -166,7 +166,7 @@ void pico8_mz_pr(pico8_mz_t *self, pico8_fixed_t t) {
     self->p_ = t > pico8_fixed_from_int(25);
 }
 
-static void pico8_mz_pr_dispatch(void *self, pico8_fixed_t t) {
+static void pico8_mz_pr_dispatch(pico8_struct_header_t *self, pico8_fixed_t t) {
     pico8_mz_pr((pico8_mz_t *)self, t);
 }
 
