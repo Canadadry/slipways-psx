@@ -479,7 +479,8 @@ static int memes_octets(const char *a_path, const char *b_path) {
 /* PICO8_REMPLISSAGE=<fichier> : le rejeu y ecrit une ligne « <sorte>
  * <vivantes> » par sorte d'interface puis de particules, les maxima de
  * la session par sorte de particules, puis les octets pris de la zone
- * partie et leur maximum, en fin de session, sans toucher capture, dump ni
+ * partie et leur maximum, puis ceux de la sous-zone chargement, en fin de
+ * session, sans toucher capture, dump ni
  * code de sortie. */
 static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
     const int frames[] = {17};
@@ -522,6 +523,10 @@ static void le_rejeu_ecrit_le_remplissage_en_fin_de_session(void) {
     }
     snprintf(ligne, sizeof ligne, "partie %lu\nmax_octets partie %lu\n", (unsigned long)pico8_zone_partie_prise(),
              (unsigned long)pico8_zone_partie_max());
+    strcat(attendu, ligne);
+    snprintf(ligne, sizeof ligne, "chargement %lu\n", (unsigned long)pico8_zone_chargement_prise());
+    strcat(attendu, ligne);
+    snprintf(ligne, sizeof ligne, "max_octets chargement %lu\n", (unsigned long)pico8_zone_chargement_max());
     strcat(attendu, ligne);
     size_t len;
     char *ecrit = lire_fichier(REMPLISSAGE, &len);

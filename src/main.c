@@ -23,7 +23,9 @@
  * queue; then the session's maxima of each particle sort, one
  * "max_vivantes|max_octets|max_elements <sort> <n>" line each; then the
  * bytes taken in the game zone, "partie <n>", and their session maximum,
- * "max_octets partie <n>". Capture, dump and exit code stay the same. */
+ * "max_octets partie <n>"; then the same two for the loading sub-zone,
+ * "chargement <n>" and "max_octets chargement <n>". Capture, dump and exit
+ * code stay the same. */
 
 #include "pico8_mem.h"
 #include "pico8_assets.h"
@@ -72,6 +74,8 @@ static void write_remplissage(const char *path) {
     }
     fprintf(out, "partie %lu\n", (unsigned long)pico8_zone_partie_prise());
     fprintf(out, "max_octets partie %lu\n", (unsigned long)pico8_zone_partie_max());
+    fprintf(out, "chargement %lu\n", (unsigned long)pico8_zone_chargement_prise());
+    fprintf(out, "max_octets chargement %lu\n", (unsigned long)pico8_zone_chargement_max());
     fclose(out);
 }
 

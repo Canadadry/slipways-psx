@@ -16,6 +16,7 @@
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 #include "pico8_zone_interface.h"
+#include "pico8_zone_partie.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_ui_up = 0;
@@ -142,7 +143,7 @@ static pico8_ui_t *pico8_ui_struct_new(void) {
 void pico8_ui_init(void) {
     pico8_ui_shutdown();
     pico8_pi_init();
-    pico8_ents_init(&g_shared_le, &pico8_zone_transitoire);
+    pico8_ents_init(&g_shared_le, pico8_zone_chargement());
     g_ui_up = 1;
 
     g_je = (pico8_struct_header_t *)&g_je_placeholder;
@@ -150,6 +151,7 @@ void pico8_ui_init(void) {
 
 void pico8_ui_shutdown(void) {
     g_ui_up = 0;
+    pico8_ents_free(&g_shared_le);
     g_je = NULL;
     if (g_ok != NULL) {
         pico8_ui_le_rendre(g_ok);

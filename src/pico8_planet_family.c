@@ -15,6 +15,7 @@
 #include "pico8_planet.h"
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
+#include "pico8_zone_partie.h"
 #include "pico8_zone_transitoire.h"
 
 static int g_family_up = 0;
@@ -528,11 +529,12 @@ void pico8_planet_family_init(void) {
     pico8_planet_family_shutdown();
     pico8_pi_init();
     g_family_up = 1;
-    pico8_ents_init(&g_ga_by_shared, &pico8_zone_transitoire);
+    pico8_ents_init(&g_ga_by_shared, pico8_zone_chargement());
 }
 
 void pico8_planet_family_shutdown(void) {
     g_family_up = 0;
+    pico8_ents_free(&g_ga_by_shared);
 }
 
 int pico8_qh_ready(void) {

@@ -300,6 +300,7 @@ DATA_ENGINE_SRCS := \
     src/pico8_zone_frame.c \
     src/pico8_zone_interface.c \
     src/pico8_zone_particules.c \
+    src/pico8_zone_partie.c \
     src/pico8_zone_transitoire.c \
     src/pico8_fatal_pc.c
 

@@ -17,8 +17,9 @@
 /* Calls `pico8_pi_init()` first. */
 void pico8_planet_family_init(void);
 
-/* Frees nothing, no instance nor ga's shared `by`. Idempotent, and safe
- * before the first `pico8_planet_family_init()`. */
+/* Frees no instance; ga's shared `by` is forgotten without being read, its
+ * array going with the loading sub-zone. Idempotent, and safe before the
+ * first `pico8_planet_family_init()`. */
 void pico8_planet_family_shutdown(void);
 
 /* Every `_ready` below is 1 from `pico8_planet_family_init()` to

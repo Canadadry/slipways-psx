@@ -46,8 +46,9 @@ typedef struct {
 void pico8_ui_init(void);
 
 /* Frees `ok` and gives back its `le`; `je` is never freed: the placeholder is
- * static, an `nf` struct in its place is dropped (TROU-7). Idempotent, and
- * safe before the first `pico8_ui_init()`. */
+ * static, an `nf` struct in its place is dropped (TROU-7). The shared `le`
+ * is forgotten without being read: its array went with the loading
+ * sub-zone. Idempotent, and safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
 
 /* 1 from pico8_ui_init() to pico8_ui_shutdown(), 0 otherwise. */

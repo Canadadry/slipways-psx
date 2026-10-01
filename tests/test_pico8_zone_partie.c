@@ -11,12 +11,16 @@
 #include "../src/pico8_assets.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_dispatch_context.h"
+#include "../src/pico8_ents.h"
 #include "../src/pico8_gen.h"
 #include "../src/pico8_gfx.h"
 #include "../src/pico8_input.h"
 #include "../src/pico8_mem.h"
+#include "../src/pico8_planet_family.h"
+#include "../src/pico8_ui.h"
 #include "../src/pico8_zone_choisie.h"
 #include "../src/pico8_zone_partie.h"
+#include "../src/pico8_zone_sizes.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_partie_stderr.txt"
 
@@ -115,6 +119,75 @@ static int case_prise_and_max(void) {
     return 0;
 }
 
+static unsigned char *counting_block_chargement(void) {
+    unsigned char *block = pico8_zone_alloc(pico8_zone_chargement(), 64);
+    for (int i = 0; i < 64; i++) block[i] = (unsigned char)i;
+    return block;
+}
+
+static int case_chargement_survives_eu(void) {
+    load_cart_and_start();
+    unsigned char *block = counting_block_chargement();
+    pico8_eu(NULL);
+    pico8__update60();
+    allocate_again();
+    for (int i = 0; i < 64; i++) assert(block[i] == i && "la sous-zone chargement ne suit pas les generations");
+    return 0;
+}
+
+static int case_chargement_dead_after_cart_load(void) {
+    load_cart_and_start();
+    unsigned char *block = counting_block_chargement();
+    pico8_cart_load();
+    for (int i = 0; i < 4; i++) memset(pico8_zone_alloc(pico8_zone_chargement(), 64), 2, 64);
+    sink = block[63];
+    return 0;
+}
+
+static int case_chargement_prise_and_max(void) {
+    load_cart_and_start();
+    const size_t depart = pico8_zone_chargement_prise();
+    (void)counting_block_chargement();
+    assert(pico8_zone_chargement_prise() == depart + 64);
+    pico8_eu(NULL);
+    pico8__update60();
+    assert(pico8_zone_chargement_prise() == depart + 64 && "ni eu ni le rendu ne touchent la sous-zone");
+    assert(pico8_zone_chargement_max() == depart + 64);
+    pico8_cart_shutdown();
+    assert(pico8_zone_chargement_prise() == 0);
+    assert(pico8_zone_chargement_max() == depart + 64 && "le maximum ne se remet qu'avec le processus");
+    return 0;
+}
+
+static int case_chargement_full(void) {
+    load_cart_and_start();
+    (void)pico8_zone_alloc(pico8_zone_chargement(), PICO8_ZONE_CHARGEMENT_BYTES);
+    (void)pico8_zone_alloc(pico8_zone_chargement(), 1);
+    return 0;
+}
+
+static size_t octets_de_quatre_pointeurs(void) {
+    return PICO8_ZONE_CELLS(4 * sizeof(pico8_struct_header_t *)) * sizeof(pico8_zone_cell_t);
+}
+
+static int case_listes_statiques_dans_chargement(void) {
+    static pico8_struct_header_t element;
+    load_cart_and_start();
+    const size_t depart = pico8_zone_chargement_prise();
+    pico8_ents_t *le = pico8_ui_le_shared();
+    pico8_ents_add(le, &element);
+    assert(pico8_zone_chargement_prise() == depart + octets_de_quatre_pointeurs() &&
+           "la liste de depart de ok.le prend sa capacite dans la sous-zone chargement");
+    pico8_ents_t *by = pico8_ga_new(NULL)->by;
+    pico8_ents_add(by, &element);
+    assert(pico8_zone_chargement_prise() == depart + 2 * octets_de_quatre_pointeurs() &&
+           "le by partage des ga prend sa capacite dans la sous-zone chargement");
+    pico8_cart_shutdown();
+    assert(le->items == NULL && le->count == 0 && le->capacity == 0 && "ui_shutdown oublie la liste de depart");
+    assert(by->items == NULL && by->count == 0 && by->capacity == 0 && "le shutdown oublie le by partage");
+    return 0;
+}
+
 static int case_double_eu_without_flush(void) {
     load_cart_and_start();
     pico8_eu(NULL);
@@ -132,6 +205,11 @@ static const struct {
     {"dead_after_cart_load", case_dead_after_cart_load},
     {"prise_and_max", case_prise_and_max},
     {"double_eu_without_flush", case_double_eu_without_flush},
+    {"chargement_survives_eu", case_chargement_survives_eu},
+    {"chargement_dead_after_cart_load", case_chargement_dead_after_cart_load},
+    {"chargement_prise_and_max", case_chargement_prise_and_max},
+    {"chargement_full", case_chargement_full},
+    {"listes_statiques_dans_chargement", case_listes_statiques_dans_chargement},
 };
 
 #define CASE_COUNT (sizeof CASES / sizeof CASES[0])
@@ -196,6 +274,16 @@ static void expect_assert(const char *name, const char *message) {
     free(err);
 }
 
+static void expect_fatal(const char *name, const char *message) {
+    char *err;
+    int status = run_child(name, &err);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 3 || strstr(err, message) == NULL) {
+        fprintf(stderr, "%s: attendu sortie 3 et \"%s\", statut %d\n%s", name, message, status, err);
+        assert(0 && "une sous-zone pleine doit appeler pico8_fatal");
+    }
+    free(err);
+}
+
 int main(int argc, char **argv) {
     if (argc == 2) {
         for (size_t i = 0; i < CASE_COUNT; i++)
@@ -210,6 +298,11 @@ int main(int argc, char **argv) {
     expect_poison_crash("dead_after_cart_load");
     expect_clean("prise_and_max");
     expect_assert("double_eu_without_flush", "vider la file de sortie entre deux eu");
+    expect_clean("chargement_survives_eu");
+    expect_poison_crash("chargement_dead_after_cart_load");
+    expect_clean("chargement_prise_and_max");
+    expect_fatal("chargement_full", "zone chargement pleine, limite 65536 octets");
+    expect_clean("listes_statiques_dans_chargement");
     remove(STDERR_LOG);
     printf("test_pico8_zone_partie: all tests passed\n");
     return 0;
