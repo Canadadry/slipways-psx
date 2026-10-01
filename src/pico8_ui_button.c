@@ -3,11 +3,11 @@
 #include <string.h>
 
 #include "p8/audio.h"
-#include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
-#include "pico8_entity_geom.h"
-#include "pico8_geom.h"
-#include "pico8_ke.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
+#include "engine/geom.h"
+#include "engine/entity.h"
 #include "pico8_layout.h"
 #include "pico8_zone_interface.h"
 

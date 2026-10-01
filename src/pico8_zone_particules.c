@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-#include "pico8_zone_sizes.h"
+#include "engine/zone_sizes.h"
 
 /* Taille : en-tete d'arene compris (x86-64), une liste tient juste sa
  * capacite reservee. Nombre : ce qui vit a la fois au pire de la frame. */

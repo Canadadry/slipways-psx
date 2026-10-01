@@ -16,13 +16,13 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
-#include "../src/pico8_entity_geom.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "p8/fixed.h"
-#include "../src/pico8_geom.h"
+#include "engine/geom.h"
 #include "p8/gfx.h"
 #include "../src/pico8_help.h"
 #include "p8/input.h"
@@ -31,10 +31,10 @@
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_probe.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_vec.h"
+#include "engine/vec.h"
 
 
 #define BUILT_HASH 0x0B80F384u

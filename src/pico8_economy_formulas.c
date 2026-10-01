@@ -2,10 +2,10 @@
 
 #include <assert.h>
 
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 
 static pico8_fixed_t fixed_max(pico8_fixed_t a, pico8_fixed_t b) {
     return (a > b) ? a : b;

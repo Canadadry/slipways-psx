@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* Zone partie : une generation par partie, de `eu` a `eu`. Un bloc qu'elle
  * alloue vit jusqu'au rendu de sa generation, fait par le vidage de la file

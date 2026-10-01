@@ -1,12 +1,12 @@
 #ifndef PICO8_PARTICLE_H
 #define PICO8_PARTICLE_H
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "pico8_game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_ptrs.h"
-#include "pico8_vec.h"
+#include "engine/pointer_list.h"
+#include "engine/vec.h"
 #include "pico8_zone_particules.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe

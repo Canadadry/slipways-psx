@@ -10,7 +10,7 @@
 #include "pico8_score_panel.h"
 #include "p8/str.h"
 #include "pico8_ui_button.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 
 /* The captured `t` of `pj:hk`'s `iw.lh` closure. One static is enough:

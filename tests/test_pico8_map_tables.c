@@ -7,7 +7,7 @@
 #include "p8/fixed.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
-#include "../src/pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 static void check_int_seq(const int *seq, int count) {
     int out = -12345;

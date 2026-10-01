@@ -6,8 +6,8 @@
 #include "p8/mem.h"
 #include "pico8_particle.h"
 #include "pico8_planet.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* Throughout this module -- this file and its `_trade` sibling -- a NULL
  * instance, gfx or mem argument is a safe no-op, and an absent or

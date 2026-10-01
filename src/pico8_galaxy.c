@@ -3,15 +3,15 @@
 #include <string.h>
 
 #include "pico8_economy_score.h"
-#include "pico8_entity.h"
-#include "pico8_entity_geom.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "pico8_game_data.h"
 #include "pico8_gen.h"
 #include "pico8_planet.h"
 #include "p8/str.h"
-#include "pico8_vec.h"
-#include "pico8_zone_frame.h"
-#include "pico8_zone_partie.h"
+#include "engine/vec.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 
 /* Adapts pico8_jf_next to pico8_gn_random_fn's ctx shape: `ctx` is always
  * the pico8_jf_state_t this file passes alongside it. */

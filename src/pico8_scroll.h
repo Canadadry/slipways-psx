@@ -5,9 +5,9 @@
 #include "pico8_game_data.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "pico8_ke.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL struct, `gfx` or `input` argument is a
  * safe no-op, and a nil (NULL) vector member reads as the zero vector

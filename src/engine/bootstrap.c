@@ -1,10 +1,10 @@
-#include "pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 
 #include <assert.h>
 
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_mouse_reader.h"
 #include "pico8_scroll.h"
 #include "pico8_ui.h"

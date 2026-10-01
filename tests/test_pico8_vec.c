@@ -1,4 +1,4 @@
-#include "../src/pico8_vec.h"
+#include "engine/vec.h"
 #include "../src/pico8_fixed_test_double.h"
 
 #include <assert.h>

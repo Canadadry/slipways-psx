@@ -4,8 +4,8 @@
 #include "pico8_game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL `self`, `gfx` or `mem` argument is a safe
  * no-op, and an absent or wrong-kind field reads as absent rather than

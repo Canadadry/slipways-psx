@@ -1,8 +1,8 @@
 #ifndef PICO8_FILE_SORTIE_H
 #define PICO8_FILE_SORTIE_H
 
-#include "pico8_struct.h"
-#include "pico8_zone_choisie.h"
+#include "engine/entity_class.h"
+#include "engine/allocator.h"
 
 #define PICO8_FILE_SORTIE_CAP 256
 

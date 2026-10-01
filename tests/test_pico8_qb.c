@@ -14,18 +14,18 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"
 #include "../src/pico8_planet_family.h"
 #include "../src/pico8_scroll.h"
-#include "../src/pico8_struct.h"
-#include "../src/pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 #define SCRIPTED_TICKS 110
 #define SCRIPTED_HASH 0xDF9F2872u

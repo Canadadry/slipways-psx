@@ -34,11 +34,11 @@
 #include "pico8_cheat.h"
 #include "pico8_dump.h"
 #include "pico8_screencast.h"
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "pico8_cart.h"
 #include "pico8_zone_interface.h"
 #include "pico8_zone_particules.h"
-#include "pico8_zone_partie.h"
+#include "engine/game_zone.h"
 
 #include <assert.h>
 #include <stdio.h>

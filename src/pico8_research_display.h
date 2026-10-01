@@ -1,10 +1,10 @@
 #ifndef PICO8_RESEARCH_DISPLAY_H
 #define PICO8_RESEARCH_DISPLAY_H
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "p8/fixed.h"
 #include "pico8_layout.h"
-#include "pico8_ptrs.h"
+#include "engine/pointer_list.h"
 #include "pico8_research.h"
 
 /* Returns a row in the frame zone, valid until its next reset, or NULL

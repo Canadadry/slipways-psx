@@ -7,8 +7,8 @@
 #include "p8/mem.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL panel argument is a safe no-op. */
 

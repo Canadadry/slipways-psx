@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include "../src/pico8_zone.h"
+#include "engine/zone.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_stderr.txt"
 

@@ -16,9 +16,9 @@
 
 #include "p8/assets.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy_score.h"
-#include "../src/pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "../src/pico8_fm.h"
 #include "../src/pico8_game_data.h"
@@ -30,10 +30,10 @@
 #include "../src/pico8_msgbox.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_vec.h"
+#include "engine/vec.h"
 
 #define BUILT_HASH 0x9BE763EBu
 #define SHARED_HASH 0xAC16627Bu

@@ -4,17 +4,17 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "pico8_gen.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_probe.h"
 #include "pico8_scroll.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 #include "pico8_wormhole.h"
-#include "pico8_zone_frame.h"
-#include "pico8_zone_partie.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 
 static int g_bg_up = 0;
 

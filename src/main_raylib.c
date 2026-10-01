@@ -14,7 +14,7 @@
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "pico8_cheat.h"
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "pico8_cart.h"
 #include "pico8_raylib_backend.h"
 #include "pico8_replay_source.h"

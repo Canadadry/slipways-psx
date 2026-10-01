@@ -8,12 +8,12 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include "../src/pico8_collect.h"
-#include "../src/pico8_ents.h"
-#include "../src/pico8_ptrs.h"
+#include "engine/collect.h"
+#include "engine/entity_list.h"
+#include "engine/pointer_list.h"
 #include "p8/str.h"
-#include "../src/pico8_zone.h"
-#include "../src/pico8_zone_choisie.h"
+#include "engine/zone.h"
+#include "engine/allocator.h"
 #include "zone_tas.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_choisie_stderr.txt"

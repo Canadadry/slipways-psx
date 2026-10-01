@@ -10,7 +10,7 @@
 #include "pico8_research.h"
 #include "p8/str.h"
 #include "pico8_tech_gate.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 /* In the frame zone. */
 static char *pico8_hp_jb_join(const pico8_hp_t *self) {

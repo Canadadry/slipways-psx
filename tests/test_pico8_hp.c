@@ -16,11 +16,11 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy.h"
-#include "../src/pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "../src/pico8_fm.h"
 #include "p8/gfx.h"
@@ -34,12 +34,12 @@
 #include "../src/pico8_research_display.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "../src/pico8_tech_gate.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_vec.h"
-#include "../src/pico8_zone.h"
-#include "../src/pico8_zone_partie.h"
+#include "engine/vec.h"
+#include "engine/zone.h"
+#include "engine/game_zone.h"
 
 /* `gb[12]`, a colony that needs two resources and exports one; `gb[3]`, a
  * project with an `o` and no `i`, which exports to any planet a slipway

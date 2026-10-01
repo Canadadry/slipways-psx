@@ -1,8 +1,8 @@
 #ifndef PICO8_ENTS_H
 #define PICO8_ENTS_H
 
-#include "pico8_struct.h"
-#include "pico8_zone_choisie.h"
+#include "engine/entity_class.h"
+#include "engine/allocator.h"
 
 /* pico8_ptrs_t for entities only. Owns only `items`, grown in and given back
  * to `zone`; NULL is storable. */

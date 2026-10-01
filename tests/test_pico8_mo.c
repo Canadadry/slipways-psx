@@ -9,19 +9,19 @@
 #include <stdlib.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
-#include "../src/pico8_entity_geom.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"
 #include "../src/pico8_scroll.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_vec.h"
+#include "engine/vec.h"
 
 #define GD_NEAR 1
 #define GD_FAR 0

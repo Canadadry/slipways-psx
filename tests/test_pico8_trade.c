@@ -15,11 +15,11 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy_tiers.h"
-#include "../src/pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "../src/pico8_planet.h"
@@ -30,12 +30,12 @@
 #include "../src/pico8_slipway.h"
 #include "p8/input.h"
 #include "p8/mem.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "../src/pico8_trade.h"
-#include "../src/pico8_zone_partie.h"
+#include "engine/game_zone.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_vec.h"
-#include "../src/pico8_zone_frame.h"
+#include "engine/vec.h"
+#include "engine/frame_zone.h"
 #include "zone_tas.h"
 
 /* `gb[3]`: a project with an `o` and no `i`, whose planet exports to any

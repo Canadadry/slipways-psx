@@ -5,8 +5,8 @@
 #include "p8/gfx.h"
 #include "pico8_layout.h"
 #include "p8/mem.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL `ie` struct, `gfx` or `mem` is a safe
  * no-op, and a nil member, or an absent field of `self.ke`, reads as its

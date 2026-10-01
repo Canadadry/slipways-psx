@@ -5,9 +5,9 @@
 #include "p8/gfx.h"
 #include "pico8_map_tables.h"
 #include "p8/mem.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
-#include "pico8_zone_choisie.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
+#include "engine/allocator.h"
 
 /* C has no closures, so lq:mn bakes the draw its Lua counterpart returns as a
  * closure into this tagged record instead. */

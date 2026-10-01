@@ -10,8 +10,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "../src/pico8_zone.h"
-#include "../src/pico8_zone_choisie.h"
+#include "engine/zone.h"
+#include "engine/allocator.h"
 #include "zone_tas.h"
 
 #define ARENA_SIZE 512

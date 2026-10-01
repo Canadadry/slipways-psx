@@ -17,10 +17,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_data_init.h"
-#include "../src/pico8_struct.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/entity_class.h"
+#include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "../src/pico8_layout.h"
@@ -29,7 +29,7 @@
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_ui_button.h"
-#include "../src/pico8_vec.h"
+#include "engine/vec.h"
 
 /* The `js` button instances `pz()` just built. */
 static const pico8_ents_t *ok_le(void) {

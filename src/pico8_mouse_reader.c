@@ -4,12 +4,12 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "pico8_game_data.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
-#include "pico8_vec.h"
-#include "pico8_zone_partie.h"
+#include "engine/vec.h"
+#include "engine/game_zone.h"
 
 static int g_nf_up = 0;
 static pico8_nf_button_t g_nf_l;

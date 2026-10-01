@@ -1,7 +1,7 @@
 #ifndef PICO8_ZONE_FRAME_H
 #define PICO8_ZONE_FRAME_H
 
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* Zone frame : un bloc qu'elle alloue vit jusqu'a la prochaine remise a
  * zero, faite en tete de pico8__update60(). Jamais de free sur ce bloc.

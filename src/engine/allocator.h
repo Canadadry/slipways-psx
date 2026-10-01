@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "pico8_zone.h"
+#include "engine/zone.h"
 
 /* Zone designee : la poignee qu'un proprietaire ou un appelant passe aux
  * fonctions partagees qui allouent pour lui. Un bloc n'est agrandi ou rendu

@@ -2,13 +2,13 @@
 #define PICO8_UI_H
 
 #include "pico8_bg.h"
-#include "pico8_ents.h"
+#include "engine/entity_list.h"
 #include "pico8_game_data.h"
-#include "pico8_geom.h"
+#include "engine/geom.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "pico8_mouse_reader.h"
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 
 /* Throughout this module a NULL `ui`, `gfx` or `mem` argument is a safe
  * no-op, and an absent or wrong-kind field of another entity (`je`, `mo`,

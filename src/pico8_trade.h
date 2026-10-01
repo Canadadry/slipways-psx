@@ -1,10 +1,10 @@
 #ifndef PICO8_TRADE_H
 #define PICO8_TRADE_H
 
-#include "pico8_ents.h"
+#include "engine/entity_list.h"
 #include "p8/fixed.h"
-#include "pico8_struct.h"
-#include "pico8_zone_choisie.h"
+#include "engine/entity_class.h"
+#include "engine/allocator.h"
 
 /* `lp`/`rl` are the containers the keys held, borrowed, not copied. */
 typedef struct {

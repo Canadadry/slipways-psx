@@ -19,9 +19,9 @@
 #include "../src/pico8_bg.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
-#include "../src/pico8_entity_geom.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "../src/pico8_fm.h"
 #include "../src/pico8_game_data.h"
 #include "../src/pico8_gen.h"
@@ -43,11 +43,11 @@
 #include "../src/pico8_trade.h"
 #include "../src/pico8_ui.h"
 #include "../src/pico8_wormhole.h"
-#include "../src/pico8_zone_choisie.h"
-#include "../src/pico8_zone_frame.h"
+#include "engine/allocator.h"
+#include "engine/frame_zone.h"
 #include "../src/pico8_zone_interface.h"
 #include "../src/pico8_zone_particules.h"
-#include "../src/pico8_zone_partie.h"
+#include "engine/game_zone.h"
 
 #define AVANT_F0 (-1)
 #define MAX_RELEVES 4

@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_collect.h"
+#include "engine/collect.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_fm.h"
 

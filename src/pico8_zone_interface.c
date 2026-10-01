@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "pico8_zone_sizes.h"
+#include "engine/zone_sizes.h"
 
 /* Taille : la plus grande place que le jeu construit, en-tete d'arene
  * compris (x86-64). Nombre : ce qui vit a la fois au pire de la frame. */

@@ -1,7 +1,7 @@
 #ifndef PICO8_PTRS_H
 #define PICO8_PTRS_H
 
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* PICO-8's add()/del()/all()/foreach() over plain pointers. The container
  * owns only `items`, grown in and given back to `zone`: what an element

@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 static int g_trade_up = 0;
 

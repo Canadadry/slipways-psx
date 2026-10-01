@@ -4,22 +4,22 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_collect.h"
-#include "pico8_dispatch_context.h"
+#include "engine/collect.h"
+#include "engine/dispatch_context.h"
 #include "pico8_economy_formulas.h"
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "pico8_fm.h"
 #include "pico8_game_data.h"
 #include "pico8_hud.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_map_tables.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "p8/str.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
-#include "pico8_zone_frame.h"
-#include "pico8_zone_partie.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 
 static int g_pj_up = 0;
 static pico8_bz_row_t g_bz[PICO8_BZ_COUNT];

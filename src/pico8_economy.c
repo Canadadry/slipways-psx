@@ -3,22 +3,22 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_collect.h"
+#include "engine/collect.h"
 #include "pico8_economy_formulas.h"
 #include "pico8_economy_score.h"
 #include "pico8_economy_tiers.h"
-#include "pico8_entity.h"
-#include "pico8_ents.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_list.h"
 #include "pico8_fm.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
-#include "pico8_ptrs.h"
+#include "engine/pointer_list.h"
 #include "pico8_research.h"
 #include "pico8_tech_gate.h"
-#include "pico8_zone_frame.h"
-#include "pico8_zone_partie.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 
 static int g_hy_up = 0;
 

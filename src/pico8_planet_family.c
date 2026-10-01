@@ -5,16 +5,16 @@
 #include <string.h>
 
 #include "pico8_scroll.h"
-#include "pico8_struct.h"
-#include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
-#include "pico8_ke.h"
+#include "engine/entity_class.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/entity.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
 #include "pico8_planet_display.h"
 #include "pico8_probe.h"
-#include "pico8_zone_partie.h"
+#include "engine/game_zone.h"
 
 static int g_family_up = 0;
 /* Every burst's `by`, which `ib` extends in place; each init empties it. */

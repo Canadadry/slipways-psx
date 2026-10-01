@@ -3,15 +3,15 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
-#include "pico8_entity_geom.h"
-#include "pico8_ke.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_geom.h"
+#include "engine/entity.h"
 #include "pico8_msgbox.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_probe.h"
-#include "pico8_struct.h"
-#include "pico8_zone_partie.h"
+#include "engine/entity_class.h"
+#include "engine/game_zone.h"
 
 static int g_fv_up = 0;
 

@@ -1,7 +1,7 @@
 #ifndef PICO8_PLANET_TRADE_H
 #define PICO8_PLANET_TRADE_H
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "p8/fixed.h"
 #include "pico8_planet.h"
 #include "pico8_trade.h"

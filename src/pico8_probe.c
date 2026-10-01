@@ -3,24 +3,24 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "pico8_economy.h"
-#include "pico8_entity.h"
-#include "pico8_entity_geom.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "p8/fixed.h"
 #include "pico8_fm.h"
-#include "pico8_geom.h"
+#include "engine/geom.h"
 #include "p8/gfx.h"
 #include "pico8_hud.h"
 #include "p8/audio.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_particle.h"
 #include "pico8_planet.h"
 #include "pico8_slipway.h"
 #include "pico8_ui.h"
 #include "pico8_wormhole.h"
 #include "p8/str.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 static int g_g__up = 0;
 static pico8_struct_header_t *g_fm = NULL;

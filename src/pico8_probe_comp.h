@@ -5,8 +5,8 @@
 #include "pico8_game_data.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* What `bv`, `dl` and `d_` read and write of their host, the probe's own
  * fields, stored in the host (`probe_own`) and never copied; the rest is

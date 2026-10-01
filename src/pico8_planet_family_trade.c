@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "pico8_particle.h"
 #include "pico8_pi.h"
 #include "pico8_planet.h"
@@ -12,7 +12,7 @@
 #include "pico8_probe.h"
 #include "pico8_slipway.h"
 #include "pico8_trade.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 /* What `mx:kf` leaves in `ht` once it accepts a resource: `o()`. */
 static const pico8_int_seq_t g_mx_ht_spent = {0, NULL};

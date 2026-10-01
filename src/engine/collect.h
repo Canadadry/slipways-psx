@@ -1,8 +1,8 @@
 #ifndef PICO8_COLLECT_H
 #define PICO8_COLLECT_H
 
-#include "pico8_geom.h"
-#include "pico8_ptrs.h"
+#include "engine/geom.h"
+#include "engine/pointer_list.h"
 
 /* `ow` gets each element plus `ctx`, this port's stand-in for the captured
  * upvalue of the original's closure. Returns a new container in `zone` the

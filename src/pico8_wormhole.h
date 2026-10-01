@@ -1,12 +1,12 @@
 #ifndef PICO8_WORMHOLE_H
 #define PICO8_WORMHOLE_H
 
-#include "pico8_ents.h"
+#include "engine/entity_list.h"
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_probe_comp.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL struct argument is a safe no-op, and a nil
  * or wrong-kind member reads as its zero/false default rather than

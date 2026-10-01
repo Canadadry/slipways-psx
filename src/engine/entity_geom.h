@@ -1,9 +1,9 @@
 #ifndef PICO8_ENTITY_GEOM_H
 #define PICO8_ENTITY_GEOM_H
 
-#include "pico8_ents.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
+#include "engine/entity_list.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* A vector-valued entity field -- `ra`, `p`, and `kq`'s box -- is a
  * pointer to a vector the field borrows and never owns.

@@ -3,7 +3,7 @@
 
 #include "p8/gfx.h"
 #include "p8/mem.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 #include "pico8_wormhole.h"
 
 /* TROU-3 */

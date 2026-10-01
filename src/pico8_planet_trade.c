@@ -3,13 +3,13 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "pico8_collect.h"
+#include "engine/collect.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "pico8_trade.h"
 #include "pico8_slipway.h"
-#include "pico8_zone_frame.h"
-#include "pico8_zone_partie.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
  * identity: every candidate offered here is a freshly built route, which

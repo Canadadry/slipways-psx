@@ -12,9 +12,9 @@
 #include "p8/mem.h"
 #include "../src/pico8_particle.h"
 #include "../src/pico8_probe.h"
-#include "../src/pico8_ptrs.h"
+#include "engine/pointer_list.h"
 #include "../src/pico8_slipway_display.h"
-#include "../src/pico8_zone_choisie.h"
+#include "engine/allocator.h"
 #include "../src/pico8_zone_particules.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_particules_stderr.txt"

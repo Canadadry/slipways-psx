@@ -1,4 +1,4 @@
-#include "../src/pico8_ptrs.h"
+#include "engine/pointer_list.h"
 
 #include <assert.h>
 #include <stdio.h>

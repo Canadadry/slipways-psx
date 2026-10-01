@@ -4,9 +4,9 @@
 #include "pico8_game_data.h"
 #include "pico8_particle.h"
 #include "pico8_probe_comp.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
-#include "pico8_zone_choisie.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
+#include "engine/allocator.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
  * for the value-returning functions), a non-NULL `self` must be a struct

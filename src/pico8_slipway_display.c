@@ -3,11 +3,11 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "pico8_dispatch_context.h"
-#include "pico8_entity_geom.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_geom.h"
 #include "pico8_planet.h"
 #include "pico8_slipway.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 #include "pico8_zone_particules.h"
 
 typedef char pico8_ts_tient_sa_place[sizeof(pico8_ts_t) <= PICO8_TS_PLACE ? 1 : -1];

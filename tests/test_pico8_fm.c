@@ -17,7 +17,7 @@
 #include "p8/assets.h"
 #include "../src/pico8_cart.h"
 #include "../src/pico8_cheat.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy.h"
 #include "p8/fixed.h"
 #include "../src/pico8_fm.h"
@@ -27,7 +27,7 @@
 #include "../src/pico8_probe.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_tech_gate.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 
 static pico8_mem_t mem;
 static pico8_gfx_t gfx;

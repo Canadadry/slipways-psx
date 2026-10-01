@@ -1,11 +1,11 @@
-#include "pico8_entity_geom.h"
+#include "engine/entity_geom.h"
 
 #include <assert.h>
 
 #include <stddef.h>
 
-#include "pico8_entity.h"
-#include "pico8_geom.h"
+#include "engine/entity_registry.h"
+#include "engine/geom.h"
 
 static pico8_vec_t pico8_entity_geom_zero(void) {
     return pico8_vec_v(pico8_fixed_from_int(0), pico8_fixed_from_int(0));

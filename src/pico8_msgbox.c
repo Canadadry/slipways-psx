@@ -5,10 +5,10 @@
 #include <string.h>
 
 #include "p8/audio.h"
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "pico8_hud.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_layout.h"
 #include "pico8_pi.h"
 #include "pico8_scroll.h"

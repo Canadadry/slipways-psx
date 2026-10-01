@@ -5,7 +5,7 @@
 #include "p8/fixed.h"
 #include "pico8_fm.h"
 #include "pico8_map_tables.h"
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 
 /* Throughout this module a NULL `self` is a safe no-op. */
 

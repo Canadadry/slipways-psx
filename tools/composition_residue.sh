@@ -99,7 +99,7 @@ VOID_EXCLUSION='s/void \*+(r_)?ctx\b//g'
 # qu'un de ses noms, ou une declaration sans nom lisible, n'est pas exempte.
 PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 
-# registres : hors tests/ et pico8_ptrs.[ch], les points de declaration qui
+# registres : hors tests/ et engine/pointer_list.[ch], les points de declaration qui
 # tiennent des entites par void * hors des types d'entite (que ptrs-entite
 # lit). Membre d'une struct (ou d'un objet struct, meme dans une fonction) qui
 # nomme pico8_ptrs_t ou un alias, quel que soit son declarateur (tableau,
@@ -126,8 +126,8 @@ PTRS_NON_ENTITE="pico8_hy_t.invented pico8_jo_t.jy pico8_hp_t.i pico8_jc_t.ts"
 # listes d'entites passant par pico8_jp_ents et pico8_ents_cat.
 REGISTRES_NON_ENTITE="pico8_emitter_t.qy pico8_jo_gh_ctx_t.ji pico8_nv_ptrs pico8_gu_content_ptrs pico8_jo_ex pico8_jp_ptrs pico8_la_ptrs"
 
-# En-tetes du noyau, par nom de fichier : noyau-inclut ne lit qu'eux.
-NOYAU="pico8_struct.h pico8_ke.h pico8_entity.h"
+# En-tetes du noyau, par chemin relatif a src/ : noyau-inclut ne lit qu'eux.
+NOYAU="engine/entity_class.h engine/entity.h engine/entity_registry.h"
 
 ATTEINTE=${COMPOSITION_ATTEINTE:-tools/atteinte_a_prouver.txt}
 R2=${COMPOSITION_R2:-tools/composition_r2_sites.txt}
@@ -178,14 +178,14 @@ find "$@" \( -name '*.c' -o -name '*.h' \) -type f | sort > "$work/files"
 : > "$work/noyau"
 while IFS= read -r file; do
     for name in $NOYAU; do
-        [ "${file##*/}" = "$name" ] && printf '%s\n' "$file" >> "$work/noyau"
+        case /$file in */"$name") printf '%s\n' "$file" >> "$work/noyau" ;; esac
     done
 done < "$work/files"
 
-# registres lit hors tests/ et pico8_ptrs.[ch] ; REG_TYPES est pico8_ptrs_t
+# registres lit hors tests/ et engine/pointer_list.[ch] ; REG_TYPES est pico8_ptrs_t
 # et ses alias "typedef pico8_ptrs_t X;" de ces fichiers (un alias d'alias
 # n'est pas suivi).
-grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/pico8_ptrs\.[ch]$' | grep -v '^pico8_ptrs\.[ch]$' > "$work/regfiles" || true
+grep -v '/tests/' "$work/files" | grep -v '^tests/' | grep -v '/engine/pointer_list\.[ch]$' | grep -v '^engine/pointer_list\.[ch]$' > "$work/regfiles" || true
 REG_TYPES=pico8_ptrs_t
 if [ -s "$work/regfiles" ]; then
     grep -hE '^[[:space:]]*typedef[[:space:]]+(const[[:space:]]+)?pico8_ptrs_t[[:space:]*]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;' $(cat "$work/regfiles") > "$work/reg.alias"
@@ -357,7 +357,7 @@ read_structs() {
         for (k = 1; k <= n; k++) {
             if (!sobj[k] && first[k] in e && first[k] != "pico8_struct_header_t")
                 print sfile[k] ":" firstline[k] ":" firsttext[k] > out_parente
-            if (!in_e(k) && sfile[k] !~ /(^|\/)tests\// && sfile[k] !~ /(^|\/)pico8_ptrs\.[ch]$/) {
+            if (!in_e(k) && sfile[k] !~ /(^|\/)tests\// && sfile[k] !~ /(^|\/)engine\/pointer_list\.[ch]$/) {
                 m = split(names[k], nm, " ")
                 for (j = 1; j <= nr[k]; j++) {
                     q = split(rmem[k, j], mm, " "); left = q
@@ -395,7 +395,7 @@ read_structs() {
 # (table de methodes, new_entity) n'est pas de premier niveau.
 read_prototypes() {
     sep=$(printf '\001')
-    grep -E '\.h$' "$work/files" | grep -v '/pico8_ptrs\.h$' | grep -v '^pico8_ptrs\.h$' > "$work/headers" || true
+    grep -E '\.h$' "$work/files" | grep -v '/engine/pointer_list\.h$' | grep -v '^engine/pointer_list\.h$' > "$work/headers" || true
     : > "$work/void-ptr"
     [ -s "$work/headers" ] || return 0
     awk -v sep="$sep" "$CLEAN_AWK"'
@@ -427,7 +427,7 @@ read_prototypes() {
 }
 
 # registres, suite : objets pico8_ptrs_t de portee fichier des .c et
-# prototypes des .h (hors pico8_ptrs.h), hors tests/, joints comme ceux de
+# prototypes des .h (hors engine/pointer_list.h), hors tests/, joints comme ceux de
 # void-ptr ; un nom de REGISTRES_NON_ENTITE est exempte.
 read_registres() {
     [ -f "$work/parente" ] || read_structs
@@ -503,7 +503,7 @@ read_inclusions() {
 # dans l'en-tete (static inline) est lue comme un prototype, ce que
 # usegraph.py ne fait pas. Un nom que deux
 # en-tetes declarent n'est a aucun : les etiquettes, lues sans cette regle,
-# feraient six paires par les declarations anticipees de pico8_struct.h.
+# feraient six paires par les declarations anticipees de engine/entity_class.h.
 # Rend dans $work/usage-mutuel.pairs les paires, dans $work/usage-mutuel le
 # premier emploi de chaque sens (ordre de $work/files, puis des lignes).
 read_usages() {

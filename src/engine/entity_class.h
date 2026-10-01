@@ -5,8 +5,8 @@
 
 #include "pico8_coverage.h"
 #include "p8/fixed.h"
-#include "pico8_geom.h"
-#include "pico8_vec.h"
+#include "engine/geom.h"
+#include "engine/vec.h"
 
 /* The states `dg` runs as `qc[qc.me](qc,qc.t)`. */
 typedef enum {

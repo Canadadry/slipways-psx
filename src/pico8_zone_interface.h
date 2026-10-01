@@ -1,7 +1,7 @@
 #ifndef PICO8_ZONE_INTERFACE_H
 #define PICO8_ZONE_INTERFACE_H
 
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* Une sorte prend une place a elle par objet ; `rangee` est un `lq`
  * reaffecte dans un objet qui lui survit, `le` une liste `ok.le`. */

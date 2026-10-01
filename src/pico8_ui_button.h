@@ -8,9 +8,9 @@
 #include "p8/mem.h"
 #include "pico8_planet.h"
 #include "pico8_research.h"
-#include "pico8_struct.h"
-#include "pico8_vec.h"
-#include "pico8_zone_choisie.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
+#include "engine/allocator.h"
 
 typedef struct pico8_js pico8_js_t;
 

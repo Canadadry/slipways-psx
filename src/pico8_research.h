@@ -4,8 +4,8 @@
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
-#include "pico8_ptrs.h"
-#include "pico8_struct.h"
+#include "engine/pointer_list.h"
+#include "engine/entity_class.h"
 #include "pico8_trade.h"
 
 /* A want of `hp.i` or `jo.jy`, the cart's `{qe=r[c]}`, then `gc` as

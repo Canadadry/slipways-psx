@@ -1,7 +1,7 @@
 #ifndef PICO8_KE_H
 #define PICO8_KE_H
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 
 /* Shuts the module down first. */
 void pico8_ke_init(void);

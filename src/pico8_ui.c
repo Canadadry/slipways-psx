@@ -3,20 +3,20 @@
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
-#include "pico8_file_sortie.h"
-#include "pico8_ke.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/exit_queue.h"
+#include "engine/entity.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
 #include "pico8_scroll.h"
 #include "pico8_ui_button.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 #include "pico8_wormhole.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 #include "pico8_zone_interface.h"
-#include "pico8_zone_partie.h"
+#include "engine/game_zone.h"
 
 static int g_ui_up = 0;
 static pico8_struct_header_t *g_je = NULL;

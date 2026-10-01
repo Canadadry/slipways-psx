@@ -3,7 +3,7 @@
 
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* C has no closures, so each of these two closure factories becomes a state
  * struct (the captured upvalues) taken from the caller's zone, plus a

@@ -2,8 +2,8 @@
 #define PICO8_GEOM_H
 
 #include "p8/fixed.h"
-#include "pico8_vec.h"
-#include "pico8_zone_choisie.h"
+#include "engine/vec.h"
+#include "engine/allocator.h"
 
 /* Three values, not a bool: `cl` needs "on the line" (the Lua nil `ee`
  * returns for a zero cross product) told apart from "off it, on this

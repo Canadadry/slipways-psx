@@ -3,10 +3,10 @@
 
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_probe_comp.h"
-#include "pico8_ptrs.h"
-#include "pico8_struct.h"
+#include "engine/pointer_list.h"
+#include "engine/entity_class.h"
 
 /* Throughout this module a NULL struct argument is a safe no-op (Lua nil
  * for the value-returning functions), and a nil or wrong-kind member, or

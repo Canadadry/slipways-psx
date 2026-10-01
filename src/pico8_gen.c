@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #include "pico8_game_data.h"
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 pico8_jf_state_t *pico8_jf(const pico8_zone_choisie_t *zone, pico8_fixed_t n_, pico8_fixed_t b) {
     pico8_jf_state_t *state = (pico8_jf_state_t *)pico8_zone_alloc(zone, sizeof *state);

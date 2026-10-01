@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include "../src/pico8_zone_choisie.h"
+#include "engine/allocator.h"
 #include "../src/pico8_zone_interface.h"
 
 #define STDERR_LOG "tmp/test_pico8_zone_interface_stderr.txt"

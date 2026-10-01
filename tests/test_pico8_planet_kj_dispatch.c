@@ -4,16 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../src/pico8_bootstrap.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
+#include "engine/bootstrap.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "../src/pico8_planet_display.h"
 #include "../src/pico8_scroll.h"
-#include "../src/pico8_struct.h"
-#include "../src/pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 
 /* `dc("kj")`'s `mo:md(ci[o])` special case, which needs both a real `mo`
  * and a real entity registered under "kj" to run at all: `jl()`, a real

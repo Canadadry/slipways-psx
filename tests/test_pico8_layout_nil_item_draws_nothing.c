@@ -30,7 +30,7 @@
 #include "../src/pico8_hud.h"
 #include "../src/pico8_layout.h"
 #include "p8/mem.h"
-#include "../src/pico8_vec.h"
+#include "engine/vec.h"
 #include "zone_tas.h"
 
 /* Where the row is rendered. Any position clear of the screen edges does;

@@ -9,12 +9,12 @@
 #include <sys/wait.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy_score.h"
-#include "../src/pico8_entity.h"
-#include "../src/pico8_file_sortie.h"
+#include "engine/entity_registry.h"
+#include "engine/exit_queue.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
 #include "p8/mem.h"

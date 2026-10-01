@@ -1,10 +1,10 @@
-#include "pico8_ke.h"
+#include "engine/entity.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 
 static int g_ke_up = 0;

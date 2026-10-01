@@ -4,14 +4,14 @@
 #include <string.h>
 
 #include "pico8_economy_formulas.h"
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "pico8_fm.h"
 #include "pico8_game_data.h"
 #include "pico8_map_tables.h"
 #include "pico8_planet.h"
 #include "p8/str.h"
 #include "pico8_trade.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
 static pico8_fixed_t fixed_min(pico8_fixed_t a, pico8_fixed_t b) {
     return (a < b) ? a : b;

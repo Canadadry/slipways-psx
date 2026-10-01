@@ -4,12 +4,12 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
-#include "pico8_entity.h"
-#include "pico8_entity_geom.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
 #include "pico8_pi.h"
-#include "pico8_vec.h"
-#include "pico8_zone_partie.h"
+#include "engine/vec.h"
+#include "engine/game_zone.h"
 
 static int g_qb_up = 0;
 

@@ -3,8 +3,8 @@
 
 #include "pico8_economy_formulas.h"
 #include "p8/fixed.h"
-#include "pico8_ptrs.h"
-#include "pico8_struct.h"
+#include "engine/pointer_list.h"
+#include "engine/entity_class.h"
 
 /* hy's archetype, here and not with the others: pico8_fm.h does not include
  * pico8_game_data.h. */

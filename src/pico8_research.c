@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "pico8_tech_gate.h"
-#include "pico8_zone_partie.h"
+#include "engine/game_zone.h"
 
 static int g_hp_up = 0;
 

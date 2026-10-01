@@ -5,14 +5,14 @@
 #include <string.h>
 
 #include "p8/audio.h"
-#include "pico8_collect.h"
-#include "pico8_dispatch_context.h"
+#include "engine/collect.h"
+#include "engine/dispatch_context.h"
 #include "pico8_economy.h"
-#include "pico8_entity_geom.h"
+#include "engine/entity_geom.h"
 #include "pico8_fm.h"
 #include "pico8_game_data.h"
 #include "pico8_hud.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_map_tables.h"
 #include "pico8_msgbox.h"
 #include "pico8_planet.h"
@@ -22,7 +22,7 @@
 #include "p8/str.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui_button.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 #include "pico8_zone_interface.h"
 
 /* `kw` as `lq:mn` reads it, `{qe=kw.qe}` (`mu` is never read there), in

@@ -1,10 +1,10 @@
-#include "pico8_zone.h"
+#include "engine/zone.h"
 
 #include <assert.h>
 #include <stdio.h>
 
 #include "p8/fatal.h"
-#include "pico8_zone_sizes.h"
+#include "engine/zone_sizes.h"
 
 #ifdef PICO8_ZONE_ASAN
 #include <sanitizer/asan_interface.h>

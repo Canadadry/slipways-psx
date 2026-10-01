@@ -1,7 +1,7 @@
 #ifndef PICO8_MENU_H
 #define PICO8_MENU_H
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "pico8_ui_button.h"
 
 /* Throughout this module a missing singleton (`fm`, `ju`, `pj`'s class) or an

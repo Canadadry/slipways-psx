@@ -2,7 +2,7 @@
 #define PICO8_STR_H
 
 #include "p8/fixed.h"
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* PICO-8's sub(s,i,j): 1-indexed and both bounds included, so sub(s,1,1) is
  * the first character alone. `i` clamps up to 1 and `j` down to strlen(s);

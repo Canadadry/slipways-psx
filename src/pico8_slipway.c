@@ -4,20 +4,20 @@
 #include <string.h>
 
 #include "p8/audio.h"
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "pico8_economy.h"
 #include "pico8_economy_formulas.h"
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "pico8_fm.h"
-#include "pico8_geom.h"
+#include "engine/geom.h"
 #include "p8/input.h"
-#include "pico8_ke.h"
+#include "engine/entity.h"
 #include "pico8_planet.h"
 #include "pico8_probe_comp.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui.h"
-#include "pico8_vec.h"
-#include "pico8_zone_frame.h"
+#include "engine/vec.h"
+#include "engine/frame_zone.h"
 #include "pico8_zone_particules.h"
 
 static int g_jc_up = 0;

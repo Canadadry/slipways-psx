@@ -1,13 +1,13 @@
-#include "pico8_entity.h"
+#include "engine/entity_registry.h"
 
 #include <assert.h>
 #include <string.h>
 
-#include "pico8_file_sortie.h"
+#include "engine/exit_queue.h"
 #include "pico8_game_data.h"
-#include "pico8_struct.h"
-#include "pico8_zone_frame.h"
-#include "pico8_zone_partie.h"
+#include "engine/entity_class.h"
+#include "engine/frame_zone.h"
+#include "engine/game_zone.h"
 
 #define PICO8_BM_COUNT 5
 static const char *const g_bm_names[PICO8_BM_COUNT] = {"kj", "ev", "hd", "hk", "hb"};

@@ -17,12 +17,12 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy_score.h"
 #include "../src/pico8_economy_tiers.h"
-#include "../src/pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "../src/pico8_fm.h"
 #include "p8/gfx.h"
@@ -34,8 +34,8 @@
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
-#include "../src/pico8_struct.h"
-#include "../src/pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 #include "zone_tas.h"
 
 /* The cart keeps the box of `mp`, the port a copy of it (nil stays nil). */

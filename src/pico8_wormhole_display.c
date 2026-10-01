@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "pico8_wormhole.h"
 

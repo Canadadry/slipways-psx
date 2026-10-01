@@ -4,9 +4,9 @@
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "pico8_probe.h"
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "pico8_ui_button.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL instance, gfx or mem argument is a safe
  * no-op, and an absent or wrong-kind field reads as absent. */

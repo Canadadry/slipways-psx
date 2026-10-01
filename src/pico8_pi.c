@@ -6,8 +6,8 @@
 #include "pico8_hud.h"
 #include "pico8_layout.h"
 #include "p8/str.h"
-#include "pico8_vec.h"
-#include "pico8_zone_frame.h"
+#include "engine/vec.h"
+#include "engine/frame_zone.h"
 
 typedef struct {
     char name[8];

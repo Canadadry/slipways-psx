@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 /* `particule` est un element de `qy`, `qy` la liste d'un emetteur,
  * `qy_fv` celle de l'ecran d'aide, `ga` un eclat avec son `oe` et sa

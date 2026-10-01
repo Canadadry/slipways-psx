@@ -3,7 +3,7 @@
 
 #include "p8/fixed.h"
 #include "pico8_map_tables.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 
 /* Throughout this module an absent or wrong-kind field reads as its
  * zero/false default rather than crashing, and a NULL instance is a safe

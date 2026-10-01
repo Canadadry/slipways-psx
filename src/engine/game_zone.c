@@ -1,6 +1,6 @@
-#include "pico8_zone_partie.h"
+#include "engine/game_zone.h"
 
-#include "pico8_zone_sizes.h"
+#include "engine/zone_sizes.h"
 
 PICO8_BASCULE_ZONE_STORAGE(partie_cells, PICO8_ZONE_GENERATION_BYTES);
 PICO8_BUMP_ZONE_STORAGE(chargement_cells, PICO8_ZONE_CHARGEMENT_BYTES);

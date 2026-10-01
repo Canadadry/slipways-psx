@@ -18,8 +18,8 @@
 
 #include "p8/assets.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -34,10 +34,10 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_scroll.h"
 #include "../src/pico8_slipway.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "../src/pico8_ui.h"
-#include "../src/pico8_vec.h"
-#include "../src/pico8_zone_partie.h"
+#include "engine/vec.h"
+#include "engine/game_zone.h"
 
 
 #define BUILT_HASH 0xEA365129u

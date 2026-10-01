@@ -9,13 +9,13 @@
 
 #include "p8/assets.h"
 #include "../src/pico8_data_init.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "../src/pico8_hud.h"
 #include "../src/pico8_layout.h"
 #include "p8/mem.h"
-#include "../src/pico8_struct.h"
+#include "engine/entity_class.h"
 #include "zone_tas.h"
 
 #define DR_FIRST_ENTRY_HASH 0x8B2796B5u

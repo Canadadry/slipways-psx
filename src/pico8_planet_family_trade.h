@@ -2,7 +2,7 @@
 #define PICO8_PLANET_FAMILY_TRADE_H
 
 #include "pico8_planet_trade.h"
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 
 /* TROU-8 */
 /* Calls `pico8_pi_init()` first. */

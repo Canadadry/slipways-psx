@@ -13,11 +13,11 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_struct.h"
-#include "../src/pico8_dispatch_context.h"
-#include "../src/pico8_entity.h"
+#include "engine/entity_class.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_registry.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
@@ -27,8 +27,8 @@
 #include "../src/pico8_fm.h"
 #include "../src/pico8_score_panel.h"
 #include "../src/pico8_score_panel_display.h"
-#include "../src/pico8_zone_choisie.h"
-#include "../src/pico8_zone_frame.h"
+#include "engine/allocator.h"
+#include "engine/frame_zone.h"
 #include "../src/pico8_zone_interface.h"
 
 #define YEAR_MESSAGE_TICKS 192

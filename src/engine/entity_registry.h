@@ -1,8 +1,8 @@
 #ifndef PICO8_ENTITY_H
 #define PICO8_ENTITY_H
 
-#include "pico8_ents.h"
-#include "pico8_struct.h"
+#include "engine/entity_list.h"
+#include "engine/entity_class.h"
 
 /* (Re)builds hv, cv and cg empty, growing in the current game-zone
  * generation (pico8_zone_partie.h), after pico8_entity_shutdown() forgot

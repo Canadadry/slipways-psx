@@ -1,6 +1,6 @@
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 
-#include "pico8_zone_sizes.h"
+#include "engine/zone_sizes.h"
 
 PICO8_BUMP_ZONE_STORAGE(frame_cells, PICO8_ZONE_FRAME_BYTES);
 

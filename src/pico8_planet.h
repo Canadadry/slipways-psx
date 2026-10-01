@@ -1,16 +1,16 @@
 #ifndef PICO8_PLANET_H
 #define PICO8_PLANET_H
 
-#include "pico8_ents.h"
+#include "engine/entity_list.h"
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
 #include "pico8_gen.h"
 #include "pico8_layout.h"
 #include "pico8_particle.h"
 #include "pico8_probe_comp.h"
-#include "pico8_ptrs.h"
+#include "engine/pointer_list.h"
 #include "pico8_research.h"
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 
 /* Throughout this module a NULL instance argument is a safe no-op (Lua nil
  * for the value-returning functions), and an absent or wrong-kind field

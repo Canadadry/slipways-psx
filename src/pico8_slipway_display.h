@@ -1,12 +1,12 @@
 #ifndef PICO8_SLIPWAY_DISPLAY_H
 #define PICO8_SLIPWAY_DISPLAY_H
 
-#include "pico8_struct.h"
+#include "engine/entity_class.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/mem.h"
 #include "pico8_slipway.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 
 /* Throughout this module a NULL struct or entity argument is a safe no-op
  * and a nil or wrong-kind member or field reads as absent rather than

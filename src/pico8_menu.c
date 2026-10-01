@@ -5,8 +5,8 @@
 
 #include "p8/audio.h"
 #include "pico8_fm.h"
-#include "pico8_struct.h"
-#include "pico8_dispatch_context.h"
+#include "engine/entity_class.h"
+#include "engine/dispatch_context.h"
 #include "pico8_economy.h"
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
@@ -18,9 +18,9 @@
 #include "pico8_score_panel_display.h"
 #include "pico8_tech_gate.h"
 #include "pico8_ui_button.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 #include "p8/str.h"
-#include "pico8_zone_frame.h"
+#include "engine/frame_zone.h"
 #include "pico8_zone_interface.h"
 
 /* The most items a row of `ix` or `ha` holds. */

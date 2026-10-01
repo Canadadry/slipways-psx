@@ -1,4 +1,4 @@
-#include "../src/pico8_ents.h"
+#include "engine/entity_list.h"
 
 #include <assert.h>
 #include <stdio.h>

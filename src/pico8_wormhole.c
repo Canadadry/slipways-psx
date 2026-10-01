@@ -4,13 +4,13 @@
 #include <string.h>
 
 #include "p8/audio.h"
-#include "pico8_entity.h"
-#include "pico8_entity_geom.h"
-#include "pico8_ke.h"
+#include "engine/entity_registry.h"
+#include "engine/entity_geom.h"
+#include "engine/entity.h"
 #include "pico8_planet.h"
 #include "pico8_probe_comp.h"
 #include "pico8_tech_gate.h"
-#include "pico8_zone_choisie.h"
+#include "engine/allocator.h"
 
 static int g_mz_up = 0;
 

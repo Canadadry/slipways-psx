@@ -3,11 +3,11 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "pico8_dispatch_context.h"
-#include "pico8_entity_geom.h"
+#include "engine/dispatch_context.h"
+#include "engine/entity_geom.h"
 #include "p8/fixed.h"
 #include "pico8_game_data.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 #include "pico8_zone_particules.h"
 
 typedef char pico8_qy_fits_its_place[sizeof(pico8_qy_t) <= PICO8_PARTICULE_PLACE ? 1 : -1];

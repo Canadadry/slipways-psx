@@ -15,17 +15,17 @@
 #include <unistd.h>
 
 #include "p8/assets.h"
-#include "../src/pico8_bootstrap.h"
+#include "engine/bootstrap.h"
 #include "../src/pico8_cart.h"
-#include "../src/pico8_dispatch_context.h"
+#include "engine/dispatch_context.h"
 #include "../src/pico8_economy.h"
 #include "../src/pico8_economy_formulas.h"
-#include "../src/pico8_entity.h"
+#include "engine/entity_registry.h"
 #include "../src/pico8_help.h"
 #include "p8/fixed.h"
 #include "p8/gfx.h"
 #include "p8/input.h"
-#include "../src/pico8_ke.h"
+#include "engine/entity.h"
 #include "p8/mem.h"
 #include "../src/pico8_planet.h"
 #include "../src/pico8_planet_display.h"
@@ -34,8 +34,8 @@
 #include "../src/pico8_research.h"
 #include "../src/pico8_research_icon.h"
 #include "../src/pico8_scroll.h"
-#include "../src/pico8_struct.h"
-#include "../src/pico8_vec.h"
+#include "engine/entity_class.h"
+#include "engine/vec.h"
 #include "../src/pico8_zone_interface.h"
 
 #define GALAXY_PLANETS 90

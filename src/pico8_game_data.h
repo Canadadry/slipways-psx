@@ -2,9 +2,9 @@
 #define PICO8_GAME_DATA_H
 
 #include "p8/fixed.h"
-#include "pico8_geom.h"
+#include "engine/geom.h"
 #include "pico8_map_tables.h"
-#include "pico8_vec.h"
+#include "engine/vec.h"
 
 enum {
     PICO8_ES_COUNT = 4,
