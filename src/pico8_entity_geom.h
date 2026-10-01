@@ -6,7 +6,7 @@
 #include "pico8_vec.h"
 
 /* A vector-valued entity field -- `ra`, `p`, and `kq`'s box -- is a
- * pointer to a heap vector the field borrows and never owns.
+ * pointer to a vector the field borrows and never owns.
  * Throughout this module a NULL instance, an absent field or a wrong-kind
  * field reads as the zero vector, as 0, or as a false hit test. */
 /* TROU-15 */

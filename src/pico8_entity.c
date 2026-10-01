@@ -277,7 +277,7 @@ pico8_struct_header_t *pico8_mo(void) {
 }
 
 /* See pico8_entity.h's own comment on this declaration: the outgoing mo
- * is deliberately leaked rather than freed. */
+ * lives on in its generation, given back when that generation is reset. */
 void pico8_entity_set_mo(pico8_struct_header_t *instance) {
     if (instance == g_mo) {
         return;

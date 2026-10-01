@@ -86,18 +86,6 @@ suivante.
 
 Fichier : `src/pico8_bootstrap.c`.
 
-## TROU-7 — Fuites mémoire assumées
-
-Ce port n'a pas de ramasse-miettes là où Lua en a un. Deux conventions
-fuient volontairement :
-
-- les constructeurs de rangées (`jo.ex`, `hp:lq`, `pz`…) allouent une table
-  que personne ne libère jamais ;
-- une réaffectation de champ (`self.kw = {…}`) abandonne l'ancienne valeur.
-
-Une partie longue croît donc lentement en mémoire. Remplacer `malloc`
-(voir « À faire » du `README`) refermerait les deux.
-
 ## TROU-8 — Le tag `prober` n'a aucun lecteur
 
 `g_` et toute la famille `jo` s'enregistrent sous le tag `prober`, mais

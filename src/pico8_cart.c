@@ -185,7 +185,7 @@ void pico8__init(void) {
     pico8_jl();
 
     /* `ie.gy,kc=ie.eh`: Lua pads the extra name with nil, so `gy` takes `eh`
-     * and `kc` is cleared. `gy` aliases `eh`'s heap vector, it is not a copy. */
+     * and `kc` is cleared. `gy` aliases `eh`'s vector, it is not a copy. */
     pico8_ie_set_gy(pico8_ie_eh());
     pico8_msgbox_set_kc(NULL);
 

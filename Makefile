@@ -583,8 +583,7 @@ $(TMP_DIR)/test_pico8_bg_kj: $(call objs,tests/test_pico8_bg_kj.c $(DATA_ENGINE_
 
 # Sous ASan, et sans jumeau non instrumenté : le crash visé dépend de la
 # disposition de l'allocateur (le même rejeu sort 139 en -O0 et 0 en -O1), donc
-# seul le débordement lui-même est un oracle fiable. detect_leaks=0 au lancement,
-# ce port fuit par conception.
+# seul le débordement lui-même est un oracle fiable.
 $(TMP_DIR)/test_pico8_planet_gh_row_lq: $(call asan_objs,tests/test_pico8_planet_gh_row_lq.c $(DATA_ENGINE_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) -o $@ $(filter %.o,$^) -lm
 
@@ -717,15 +716,12 @@ UNIT_TESTS := \
 # Un lancement par TU, en cible à part : c'est ce que -j parallélise.
 UNIT_RUNS := $(addprefix unit-run-,$(UNIT_TESTS))
 
-UNIT_RUNS_SPECIAL := unit-run-test_pico8_planet_gh_row_lq unit-run-test_pico8_zone unit-run-test_pico8_zone_choisie unit-run-test_pico8_zone_frame unit-run-test_pico8_zone_interface unit-run-test_pico8_zone_particules unit-run-test_pico8_zone_partie unit-run-test_pico8_file_sortie unit-run-test_pico8_iv unit-run-test_pico8_mh unit-run-test_pico8_places_vivantes unit-run-test_pico8_trade
+UNIT_RUNS_SPECIAL := unit-run-test_pico8_zone unit-run-test_pico8_zone_choisie unit-run-test_pico8_zone_frame unit-run-test_pico8_zone_interface unit-run-test_pico8_zone_particules unit-run-test_pico8_zone_partie unit-run-test_pico8_file_sortie unit-run-test_pico8_iv unit-run-test_pico8_mh unit-run-test_pico8_places_vivantes unit-run-test_pico8_trade
 
 unit: $(UNIT_RUNS)
 
 $(filter-out $(UNIT_RUNS_SPECIAL),$(UNIT_RUNS)): unit-run-%: $(TMP_DIR)/%
 	./$<
-
-unit-run-test_pico8_planet_gh_row_lq: $(TMP_DIR)/test_pico8_planet_gh_row_lq
-	ASAN_OPTIONS=detect_leaks=0 ./$<
 
 unit-run-test_pico8_zone: $(TMP_DIR)/test_pico8_zone
 	ASAN_OPTIONS=detect_leaks=0 ./$<
@@ -975,7 +971,6 @@ composition-guard: tools/composition_residue.sh
 
 .PHONY: composition-residue composition-guard
 
-# detect_leaks=0 : les entités ne sont jamais libérées (TROU-7).
 $(TMP_DIR)/pico8_replay_sanitize: $(call sanitize_objs,$(REPLAY_SRCS)) | $(TMP_DIR)
 	$(CC) $(CFLAGS) $(ASAN_CFLAGS) $(UBSAN_CFLAGS) -o $@ $(filter %.o,$^)
 
@@ -984,7 +979,7 @@ SANITIZE_RUNS := $(addprefix sanitize-run-,$(E2E_EVENTS))
 
 $(SANITIZE_RUNS): sanitize-run-%: % $(TMP_DIR)/pico8_replay_sanitize
 	@mkdir -p $(SANITIZE_DIR)/$(<D)
-	@ASAN_OPTIONS=detect_leaks=0 ./$(TMP_DIR)/pico8_replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< sale"; exit 1; }
+	@./$(TMP_DIR)/pico8_replay_sanitize $< /dev/null $(SANITIZE_DIR)/$<.dump.txt > $(SANITIZE_DIR)/$<.log 2>&1 || { cat $(SANITIZE_DIR)/$<.log; echo "sanitize: $< sale"; exit 1; }
 
 sanitize-net: $(SANITIZE_RUNS)
 	@echo "sanitize: $(words $(SANITIZE_RUNS)) propre(s)"

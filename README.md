@@ -13,7 +13,6 @@
 Règle de cette liste : chaque todo est une seule phrase claire, lisible sans référence externe, de 30 mots au plus.
 
 - [ ] Sur le vrai PICO-8, vérifier trois comportements : l'affichage de -0.0001, la couleur d'un cercle tracé avec une couleur nil, et sin/cos entre les multiples de 1/64.
-- [ ] Remplacer malloc par des zones mémoire de taille fixe, en suivant `docs/plan-4.md`.
 - [ ] Afficher un budget de slipways et de relais, et bloquer leur ajout quand il est plein.
 - [ ] Ajouter une triche qui donne des points de score bonus, pour qu'un e2e court montre les étoiles allumées du panneau de score.
 - [ ] Faire respecter la couverture de classes par `make e2e-cleanup`, qui propose de retirer `place_processor_ascension`, seul e2e à instancier le processeur et la porte d'ascension.

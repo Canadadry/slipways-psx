@@ -229,7 +229,6 @@ pico8_ents_t *pico8_jo_ib(pico8_jo_t *self) {
         lw.kf = pico8_jo_ib_kf_closure;
         lw.ib = ib;
 
-        /* TROU-7 */
         if (lw.mu == pico8_fixed_from_int(0)) {
             break;
         }

@@ -1,7 +1,6 @@
 #include "pico8_economy_score.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_economy_formulas.h"

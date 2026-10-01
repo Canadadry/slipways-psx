@@ -155,7 +155,6 @@ int pico8_jo_is_family(const pico8_struct_header_t *e);
 void pico8_jo_cn_dispatch(pico8_struct_header_t *self, struct pico8_jo_trade_proposal *lw);
 void pico8_jo_ll_dispatch(pico8_struct_header_t *self, pico8_fixed_t t);
 
-/* TROU-7 */
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance);
 
 /* TROU-3 */
@@ -172,9 +171,9 @@ void pico8_jo_hh(pico8_jo_t *self);
 
 void pico8_jo_hk(const pico8_jo_t *self);
 
-/* TROU-7 */
 /* Returns a freshly built `jc` instance in `held`, Lua true as `stop`
- * alone, or nil; `ui:bh` holds only the instance, and nothing frees it. */
+ * alone, or nil; `ui:bh` holds only the instance. The `jc` lives in its
+ * grab arena, which it gives back if refused. */
 pico8_down_t pico8_jo_ldown(pico8_jo_t *self);
 
 /* The state passed must live until the next call; the previous one is not

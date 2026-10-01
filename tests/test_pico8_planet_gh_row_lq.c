@@ -8,10 +8,9 @@
  * Built under AddressSanitizer, because the resulting SIGSEGV depends on
  * allocator layout and is not a sound oracle: on the replay that reported
  * it, -O0 exits 139 while -O1 and -O2 exit 0, and ASan reports the
- * overflow in all three. The target runs with detect_leaks=0.
+ * overflow in all three.
  *
  * The field assertions below are a second, sanitizer-independent oracle. */
-/* TROU-7 */
 
 #include <assert.h>
 #include <stdio.h>

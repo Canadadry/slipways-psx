@@ -113,7 +113,7 @@ typedef struct {
     struct pico8_probe *probe;
 } pico8_struct_header_t;
 
-/* Every constructor calls it first: its `malloc` leaves the header
+/* Every constructor calls it first: its zone block leaves the header
  * indeterminate, and a reader would follow a link left unset. `me` is nil,
  * `t` 0 and every link NULL until the constructor sets its own. */
 static inline void pico8_struct_header_init(pico8_struct_header_t *self, const pico8_struct_class_t *cls) {

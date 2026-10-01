@@ -1,7 +1,6 @@
 #include "pico8_menu.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_audio.h"
