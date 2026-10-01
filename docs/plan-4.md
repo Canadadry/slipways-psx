@@ -34,8 +34,6 @@ Chaque étape classe les sites qu'elle touche dans sa zone, en suivant le tablea
 
 Chacune est une PRD et un commit (ou une courte suite de commits), et respecte l'invariant du §3.
 
-**Prérequis, avant de lancer `plan-pilot` :** un humain joue une partie complète et chargée dans raylib, sur le build actuel, et sa session enregistrée entre au filet avec son `sha256` posé avant toute conversion. Le plafond de frames des e2e (`tools/e2e_limits.sh`, 600 au plus) ne peut pas la contenir : le prérequis tranche aussi comment elle en est exemptée, en restant couverte par `make test-all` et `make sanitize-net`. On ne la raccourcit pas pour la faire entrer. Les e2e sont des sessions courtes : ils ne remplissent ni la zone partie ni la zone particules d'une fin de partie, et ils ne recyclent pas assez de places pour qu'une référence périmée se voie à l'image. Cette partie y est donc soumise au même invariant que les autres (image identique, propre sous `make sanitize-net`). Un `pico8_fatal` qu'elle déclenche relève la limite nommée, consignée dans la note « Découvert ».
-
 0a. **Socle — outils.** Une PRD.
    - `pico8_fatal`, avec son implémentation PC dans le rejeu et le backend raylib.
    - Un module de zone générique (zone frame à pointeur montant, zone à places de taille fixe), avec son empoisonnement ASan et ses tests unitaires. Critère de ces tests : sous ASan, un pointeur gardé d'avant une remise à zéro (frame précédente, partie précédente), ou vers une place rendue, fait encore planter **après** que la zone a servi de nouvelles allocations. Sinon la réutilisation masque le bug, et l'oracle du §4 ne tranche rien.
@@ -58,7 +56,11 @@ Une étape de 1 à 4 est finie quand les sites de sa zone sont convertis et que 
 
 Chaque étape se termine en ajoutant sous sa propre entrée une courte note « Découvert » : les sites classés autrement que dans le §2 (par la règle du §4 ou par un crash ASan), la zone attribuée à chaque propriétaire, les limites relevées, et les comptes du cliquet qu'elle laisse. Si un constat contredit le tableau du §2, l'étape corrige le tableau dans le même commit.
 
-## 6. Hors périmètre
+## 6. Décision actée, à ne pas rouvrir
+
+**Pas de partie longue enregistrée, ni comme prérequis ni comme filet.** Le plan tourne sans humain. Les e2e courts suffisent : une limite trop basse se révèle en jouant, par un `pico8_fatal` qui la nomme, et on la relève. Un accès à une place rendue ou remise à zéro est le travail de l'empoisonnement ASan (§3), pas d'une session longue.
+
+## 7. Hors périmètre
 
 - Afficher un budget de slipways et de relais, et bloquer l'ajout quand il est plein. C'est une évolution du jeu, à faire séparément.
 - Les économies de taille pour la PSX : la table `pico8_quarter_wave` (64 Ko, réductible de moitié), les chaînes d'`assert` (~29 Ko), les assets en binaire au lieu de JSON.
