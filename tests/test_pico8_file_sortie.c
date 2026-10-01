@@ -69,6 +69,8 @@ static void load_cart_and_start(void) {
     pico8_dispatch_set_input(&input);
     pico8_cart_load();
     pico8__init();
+    /* Le `pz` du titre a remplace `ok.le` : la premiere frame vide la file. */
+    pico8_cart_vider_file_sortie();
 }
 
 static int case_he_alive_until_flush(void) {
@@ -90,6 +92,31 @@ static int case_he_released_at_flush(void) {
     pico8_he(&e->header);
     pico8__update60();
     sink = (unsigned char)e->p_;
+    return 0;
+}
+
+/* `cj` remplace `ok.le` ; la frame relit encore l'ancienne liste. */
+static const pico8_ents_t *replaced_le(void) {
+    load_cart_and_start();
+    const pico8_ents_t *old = pico8_ok()->le;
+    assert(old != pico8_ui_le_shared());
+    pico8_ui_cj(pico8_ok());
+    assert(pico8_file_sortie_compte() == 1 && "cj enfile la liste qu'il remplace");
+    return old;
+}
+
+static int case_le_alive_until_flush(void) {
+    const pico8_ents_t *old = replaced_le();
+    sink = (unsigned char)old->count;
+    pico8__update60();
+    assert(pico8_file_sortie_compte() == 0);
+    return 0;
+}
+
+static int case_le_released_at_flush(void) {
+    const pico8_ents_t *old = replaced_le();
+    pico8__update60();
+    sink = (unsigned char)old->count;
     return 0;
 }
 
@@ -201,6 +228,8 @@ static const struct {
 } CASES[] = {
     {"he_alive_until_flush", case_he_alive_until_flush},
     {"he_released_at_flush", case_he_released_at_flush},
+    {"le_alive_until_flush", case_le_alive_until_flush},
+    {"le_released_at_flush", case_le_released_at_flush},
     {"he_outside_hv_or_without_member", case_he_outside_hv_or_without_member},
     {"jl_enqueues_registered", case_jl_enqueues_registered},
     {"shutdown_drains", case_shutdown_drains},
@@ -283,6 +312,8 @@ int main(int argc, char **argv) {
     self_path = argv[0];
     expect_clean("he_alive_until_flush");
     expect_freed_crash("he_released_at_flush");
+    expect_clean("le_alive_until_flush");
+    expect_freed_crash("le_released_at_flush");
     expect_clean("he_outside_hv_or_without_member");
     expect_clean("jl_enqueues_registered");
     expect_clean("shutdown_drains");

@@ -13,7 +13,7 @@ static const struct {
     [PICO8_SORTE_MH] = {"place mh", 12u * 1024u},
     [PICO8_SORTE_IV] = {"place iv", 320u},
     [PICO8_SORTE_RANGEE] = {"place rangee", 1184u},
-    [PICO8_SORTE_LE] = {"place le", 512u},
+    [PICO8_SORTE_LE] = {"place le", 208u},
 };
 
 static const pico8_zone_choisie_t *g_adossement;

@@ -14,7 +14,6 @@
 #include "pico8_scroll.h"
 #include "pico8_ui.h"
 #include "pico8_ui_button.h"
-#include "pico8_zone_transitoire.h"
 
 static int g_mh_up = 0;
 static int g_iv_up = 0;
@@ -294,11 +293,18 @@ static pico8_js_t *pico8_pz_step(pico8_pz_ctx_t *ctx, const pico8_js_keys_t *row
     return pico8_js_new(&b);
 }
 
+/* With no `ok` there is no list to hold the button. */
+static void pz_add(pico8_ents_t *le, pico8_js_t *button) {
+    if (le != NULL) {
+        pico8_ents_add(le, &button->header);
+    }
+}
+
 void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     pico8_lq_cell_t ep_cell;
     pico8_vec_t ra;
     pico8_pz_ctx_t ctx;
-    pico8_ents_t *le_heap;
+    pico8_ents_t *le;
     pico8_ui_t *ok;
     pico8_fixed_t rn_arg;
     pico8_js_keys_t ep_row = {0};
@@ -342,28 +348,20 @@ void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n) {
     ok = pico8_ok();
     pico8_ui_cj(ok);
 
-    /* TROU-7 */
-    le_heap = malloc(sizeof *le_heap);
-    pico8_ents_init(le_heap, &pico8_zone_transitoire);
+    le = ok != NULL ? pico8_ui_le_new() : NULL;
     if (has_ep) {
-        pico8_ents_add(le_heap, &pico8_pz_step(&ctx, &ep_row)->header);
+        pz_add(le, pico8_pz_step(&ctx, &ep_row));
     }
     for (i = 0; i < n; i++) {
-        pico8_ents_add(le_heap, &pico8_pz_step(&ctx, &bs[i])->header);
+        pz_add(le, pico8_pz_step(&ctx, &bs[i]));
     }
     if (ok != NULL) {
-        ok->le = le_heap;
-    } else {
-        pico8_ents_free(le_heap);
-        free(le_heap);
+        pico8_ui_set_le(ok, le);
     }
 
-    /* TROU-7 */
     /* The `js` buttons built just above stay registered in `hv`/`cv`/`cg`
      * once `le` no longer holds them, exactly as in the cart. */
     if (frame->ff && ok != NULL) {
-        pico8_ents_t *empty_heap = malloc(sizeof *empty_heap);
-        pico8_ents_init(empty_heap, &pico8_zone_transitoire);
-        ok->le = empty_heap;
+        pico8_ui_set_le(ok, pico8_ui_le_new());
     }
 }

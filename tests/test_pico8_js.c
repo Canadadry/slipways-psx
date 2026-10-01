@@ -1797,6 +1797,62 @@ static void test_ix2_row_places(void) {
     assert(rangee_places() == title);
 }
 
+static int le_places(void) {
+    return pico8_zone_interface_vivantes(PICO8_SORTE_LE);
+}
+
+/* Each `ok.le` a `cj` or a `pz` makes takes a place of its own; the list
+ * it replaces stays readable until the next frame gives its place back. */
+static void test_le_places_come_back(void) {
+    void *ix[4];
+    const pico8_ents_t *menu;
+    int base;
+    int open;
+    int count;
+    int i;
+
+    start_game();
+    one_frame();
+    base = le_places();
+    assert(ix_buttons(ix) == 4);
+    call_my(ix[3]);
+    one_frame();
+    open = le_places();
+    printf("[places] le: %d before the pause menu, %d open\n", base, open);
+    assert(pico8_ok()->le != pico8_ui_le_shared() && open == 1 && "ok.le is one list in a place");
+    for (i = 0; i < 5; i++) {
+        menu = ok_le();
+        count = menu->count;
+        pico8_ui_cj(pico8_ok());
+        assert(menu->count == count && "the replaced list lives until the next frame");
+        call_my(ix[3]);
+        one_frame();
+        assert(le_places() == open && "a replaced list gives its place back");
+    }
+}
+
+/* `jl()` drops the old `ok` with its `le`, even one a `cj` made after the
+ * `jl()` (a click on « restart » ends its frame on the old `ok`). */
+static void test_le_places_after_restart(void) {
+    void *ix[4];
+    pico8_ui_t *old;
+    int title;
+
+    start_title();
+    one_frame();
+    title = le_places();
+    start_game();
+    one_frame();
+    assert(ix_buttons(ix) == 4);
+    call_my(ix[3]);
+    one_frame();
+    old = pico8_ok();
+    start_title();
+    pico8_ui_cj(old);
+    one_frame();
+    assert(le_places() == title);
+}
+
 int main(void) {
     pico8_mem_init(&mem);
     pico8_gfx_init(&gfx);
@@ -1835,6 +1891,8 @@ int main(void) {
     in_fresh_child(test_js_places_come_back);
     in_fresh_child(test_js_places_after_restart);
     in_fresh_child(test_ix2_row_places);
+    in_fresh_child(test_le_places_come_back);
+    in_fresh_child(test_le_places_after_restart);
 
     printf("test_pico8_js: all tests passed\n");
     return 0;

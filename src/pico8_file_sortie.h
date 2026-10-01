@@ -2,6 +2,7 @@
 #define PICO8_FILE_SORTIE_H
 
 #include "pico8_struct.h"
+#include "pico8_zone_choisie.h"
 
 #define PICO8_FILE_SORTIE_CAP 256
 
@@ -10,10 +11,15 @@
  * est pleine. */
 void pico8_file_sortie_mettre(pico8_struct_header_t *e);
 
+/* Une arene que plus rien ne designe hors de la frame en cours, rendue
+ * entiere au vidage. Meme limite que les entites. */
+void pico8_file_sortie_mettre_arene(const pico8_zone_choisie_t *arene);
+
 int pico8_file_sortie_compte(void);
 
-/* Pour chaque entree, dans l'ordre : `oublier(e)`, qui remet a nil ce qui
- * la designe encore, puis `rendre`. La file est vide au retour. */
+/* Pour chaque entree, dans l'ordre : une entite passe par `oublier(e)`, qui
+ * remet a nil ce qui la designe encore, puis par `rendre` ; une arene est
+ * rendue. La file est vide au retour. */
 void pico8_file_sortie_vider(void (*oublier)(const pico8_struct_header_t *e));
 
 #endif

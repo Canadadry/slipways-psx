@@ -133,10 +133,9 @@ typedef struct {
     const pico8_vec_t *ra;
 } pico8_pz_frame_t;
 
-/* TROU-7 */
 /* The `n` rows of `bs` are the keys of `ok.le`'s buttons, each read on a
  * copy that gets `ra`, `qf` and `fa`; `bs` stays the caller's, unchanged.
- * A NULL `frame` is a no-op. */
+ * The `le` it replaces goes to the exit queue. A NULL `frame` is a no-op. */
 void pico8_pz(const pico8_pz_frame_t *frame, const pico8_js_keys_t *bs, int n);
 
 #endif

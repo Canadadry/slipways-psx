@@ -23,9 +23,9 @@ typedef struct {
     pico8_ents_t layers[PICO8_UI_IC_LAYERS];
 } pico8_ui_ic_t;
 
-/* TROU-7 */
 /* `le` of a new `ui` is `pico8_ui_le_shared()`, until `cj` or `pz`
- * replaces it. `ic` is NULL until the first `gw`, then points at `ic_own`,
+ * replaces it with a list from `pico8_ui_le_new()`, given back when it is
+ * replaced in turn or when its `ui` leaves (`rendre`, from `jl()`). `ic` is NULL until the first `gw`, then points at `ic_own`,
  * which every `gw` empties and refills. */
 typedef struct {
     pico8_struct_header_t header;
@@ -45,7 +45,7 @@ typedef struct {
  * replaces. */
 void pico8_ui_init(void);
 
-/* Frees `ok`; `je` is never freed: the placeholder is
+/* Frees `ok` and gives back its `le`; `je` is never freed: the placeholder is
  * static, an `nf` struct in its place is dropped (TROU-7). Idempotent, and
  * safe before the first `pico8_ui_init()`. */
 void pico8_ui_shutdown(void);
@@ -62,6 +62,14 @@ const pico8_qz_box_t *pico8_ui_hw(void);
 /* The empty container every new `ui` starts with as `le`: static, never
  * freed, emptied (not freed) by each `pico8_ui_init()`. */
 pico8_ents_t *pico8_ui_le_shared(void);
+
+/* An empty list in a place `le` of its own, its items grown there. */
+pico8_ents_t *pico8_ui_le_new(void);
+
+/* `le` from pico8_ui_le_new() becomes `self.le`; the list it replaces goes
+ * to the exit queue (the frame still compares it in `lj`), unless it is
+ * the shared one. */
+void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le);
 
 /* The `ui` registers itself through `lt` into `hv` and `cv.ev`, no `cg`;
  * only the current `ok` is ever freed, by `pico8_ui_shutdown()`. Asserts

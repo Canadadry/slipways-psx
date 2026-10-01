@@ -6,11 +6,13 @@
 
 #include "pico8_dispatch_context.h"
 #include "pico8_entity.h"
+#include "pico8_file_sortie.h"
 #include "pico8_ke.h"
 #include "pico8_mouse.h"
 #include "pico8_pi.h"
 #include "pico8_planet_family.h"
 #include "pico8_scroll.h"
+#include "pico8_ui_button.h"
 #include "pico8_vec.h"
 #include "pico8_wormhole.h"
 #include "pico8_zone_transitoire.h"
@@ -26,6 +28,23 @@ const pico8_qz_box_t *pico8_ui_hw(void) {
 
 pico8_ents_t *pico8_ui_le_shared(void) {
     return &g_shared_le;
+}
+
+pico8_ents_t *pico8_ui_le_new(void) {
+    const pico8_zone_choisie_t *place = pico8_ui_button_place(PICO8_SORTE_LE);
+    pico8_ents_t *le = (pico8_ents_t *)pico8_zone_alloc(place, sizeof *le);
+
+    pico8_ents_init(le, place);
+    return le;
+}
+
+void pico8_ui_set_le(pico8_ui_t *self, pico8_ents_t *le) {
+    pico8_ents_t *old = self->le;
+
+    self->le = le;
+    if (old != NULL && old != &g_shared_le) {
+        pico8_file_sortie_mettre_arene(old->zone);
+    }
 }
 
 static const pico8_struct_class_t g_je_placeholder_struct_class = {0};
@@ -74,8 +93,21 @@ static void pico8_ui_ev_dispatch(pico8_struct_header_t *self, const pico8_vec_t 
     pico8_ui_ev(pico8_dispatch_gfx(), pico8_dispatch_mem(), (const pico8_ui_t *)self);
 }
 
+static void pico8_ui_le_rendre(pico8_ui_t *self) {
+    if (self->le != NULL && self->le != &g_shared_le) {
+        pico8_zone_arene_rendre(self->le->zone);
+    }
+    self->le = NULL;
+}
+
+/* TROU-7 */
+static void pico8_ui_rendre_dispatch(pico8_struct_header_t *self) {
+    pico8_ui_le_rendre((pico8_ui_t *)self);
+}
+
 static const pico8_struct_class_t g_ui_struct_class = {
     .ev = pico8_ui_ev_dispatch,
+    .rendre = pico8_ui_rendre_dispatch,
 };
 
 static pico8_ui_t *pico8_ui_struct_new(void) {
@@ -119,6 +151,7 @@ void pico8_ui_shutdown(void) {
     g_ui_up = 0;
     g_je = NULL;
     if (g_ok != NULL) {
+        pico8_ui_le_rendre(g_ok);
         free(g_ok);
         g_ok = NULL;
     }
@@ -421,8 +454,6 @@ int pico8_ui_jz(pico8_ui_t *self, pico8_jz_slot_t rm, pico8_vec_t *qa, pico8_vec
 }
 
 void pico8_ui_cj(pico8_ui_t *self) {
-    pico8_ents_t *heap_le;
-
     if (self == NULL) {
         return;
     }
@@ -437,8 +468,5 @@ void pico8_ui_cj(pico8_ui_t *self) {
         }
     }
 
-    /* TROU-7 */
-    heap_le = malloc(sizeof *heap_le);
-    pico8_ents_init(heap_le, &pico8_zone_transitoire);
-    self->le = heap_le;
+    pico8_ui_set_le(self, pico8_ui_le_new());
 }
