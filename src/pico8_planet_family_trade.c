@@ -1,7 +1,6 @@
 #include "pico8_planet_family_trade.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_struct.h"
@@ -188,7 +187,7 @@ static void pico8_nr_struct_init(pico8_jo_t *self, const pico8_struct_class_t *c
 }
 
 static pico8_jo_t *pico8_nr_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_nr_struct_class, &pico8_nr_def);
@@ -234,7 +233,7 @@ static const pico8_struct_class_t g_fr_struct_class = {
 };
 
 static pico8_jo_t *pico8_fr_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_nr_struct_init(self, &g_fr_struct_class, &pico8_fr_def);
@@ -328,7 +327,7 @@ static const pico8_struct_class_t g_mx_struct_class = {
 };
 
 static pico8_jo_t *pico8_mx_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     assert(g_family_trade_up && "pico8_planet_family_trade_init() must run first");
     pico8_hj_struct_init(self, &g_mx_struct_class, &pico8_mx_def);

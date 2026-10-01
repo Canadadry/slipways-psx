@@ -22,7 +22,7 @@ const pico8_entity_kind_t *pico8_nr_kind(void);
 const pico8_struct_class_t *pico8_nr_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept. The new slipgate registers
- * itself into `hv`/`cv`/`cg` through `lt`, and nothing ever frees it.
+ * itself into `hv`/`cv`/`cg` through `lt`, and it lives in the game generation.
  * Requires `pico8_planet_family_trade_init()`. */
 pico8_jo_t *pico8_nr_new(const pico8_jo_keys_t *keys);
 
@@ -34,7 +34,7 @@ const pico8_struct_class_t *pico8_fr_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new infraspace gate registers itself into `hv`/`cv`/`cg` through
- * `lt`, and nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
+ * `lt`, and it lives in the game generation. Requires `pico8_planet_family_trade_init()`. */
 pico8_jo_t *pico8_fr_new(const pico8_jo_keys_t *keys);
 
 /* A synthesizer: an ascension whose `ht` is copied from its archetype;
@@ -45,7 +45,7 @@ const pico8_struct_class_t *pico8_mx_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new synthesizer registers itself into `hv`/`cv`/`cg` through
- * `lt`, and nothing ever frees it. Requires `pico8_planet_family_trade_init()`. */
+ * `lt`, and it lives in the game generation. Requires `pico8_planet_family_trade_init()`. */
 pico8_jo_t *pico8_mx_new(const pico8_jo_keys_t *keys);
 
 /* Never stores `s`, which may be NULL: `nr:ldown` passes a static struct

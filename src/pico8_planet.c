@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "pico8_collect.h"
@@ -13,7 +12,7 @@
 #include "pico8_pi.h"
 #include "pico8_research.h"
 #include "pico8_zone_frame.h"
-#include "pico8_zone_transitoire.h"
+#include "pico8_zone_partie.h"
 
 static int g_jo_up = 0;
 
@@ -99,7 +98,7 @@ void pico8_jo_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, con
 }
 
 static pico8_jo_t *pico8_jo_struct_new(const pico8_jo_keys_t *keys) {
-    pico8_jo_t *self = malloc(sizeof *self);
+    pico8_jo_t *self = (pico8_jo_t *)pico8_zone_alloc(pico8_jo_zone_construction(), sizeof *self);
 
     pico8_jo_struct_init(self, &g_jo_struct_class, &pico8_jo_def);
     if (keys != NULL) {
@@ -174,8 +173,12 @@ pico8_jo_t *pico8_jo_new(const pico8_jo_keys_t *keys) {
     return pico8_jo_struct_new(keys);
 }
 
+const pico8_zone_choisie_t *pico8_jo_zone_construction(void) {
+    return pico8_zone_partie();
+}
+
 void pico8_jo_pq(pico8_jo_t *self) {
-    pico8_jo_pq_dans(self, &pico8_zone_transitoire);
+    pico8_jo_pq_dans(self, pico8_jo_zone_construction());
 }
 
 void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
@@ -200,12 +203,10 @@ void pico8_jo_pq_dans(pico8_jo_t *self, const pico8_zone_choisie_t *zone) {
 
 /* `mw(i)`: a copy of the want, never shared with `hp.i`. */
 static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
-    (void)ctx;
     if (e != NULL) {
-        pico8_jy_t *copy = malloc(sizeof *copy);
+        pico8_jy_t *copy = (pico8_jy_t *)pico8_zone_alloc((const pico8_zone_choisie_t *)ctx, sizeof *copy);
         const pico8_jy_t *i = e;
 
-        assert(copy != NULL);
         *copy = *i;
         *out = copy;
         return 1;
@@ -214,8 +215,9 @@ static int pico8_jo_lz_mw_step(void *e, void *ctx, void **out) {
 }
 
 void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
+    const pico8_zone_choisie_t *zone = pico8_jo_zone_construction();
     pico8_ptrs_t jy;
-    pico8_ptrs_t *jy_heap;
+    pico8_ptrs_t *jy_own;
 
     pico8_hp_assert(hp_instance);
     if (self == NULL) {
@@ -225,13 +227,13 @@ void pico8_jo_lz(pico8_jo_t *self, pico8_hp_t *hp_instance) {
     self->hn = hp_instance;
     self->ep = NULL;
 
-    pico8_ptrs_init(&jy, &pico8_zone_transitoire);
+    pico8_ptrs_init(&jy, zone);
     if (hp_instance != NULL && hp_instance->i != NULL) {
-        jy = pico8_nv_ptrs(&pico8_zone_transitoire, hp_instance->i, pico8_jo_lz_mw_step, NULL);
+        jy = pico8_nv_ptrs(zone, hp_instance->i, pico8_jo_lz_mw_step, (void *)zone);
     }
-    jy_heap = malloc(sizeof *jy_heap);
-    *jy_heap = jy;
-    self->jy = jy_heap;
+    jy_own = (pico8_ptrs_t *)pico8_zone_alloc(zone, sizeof *jy_own);
+    *jy_own = jy;
+    self->jy = jy_own;
 
     self->kw_own.has_qe = hp_instance != NULL && hp_instance->has_o;
     self->kw_own.qe = self->kw_own.has_qe ? hp_instance->o : 0;

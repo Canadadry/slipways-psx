@@ -122,21 +122,29 @@ static size_t octets_des_registres(void) {
     return r;
 }
 
+static size_t octets_d_un_bloc(size_t taille) {
+    return PICO8_ZONE_CELLS(taille) * sizeof(pico8_zone_cell_t);
+}
+
 /* Octets d'une liste de planete faite dans la generation : son conteneur,
  * puis ses blocs comme un registre. */
 static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
     if (liste == NULL) return 0;
-    return PICO8_ZONE_CELLS(sizeof *liste) * sizeof(pico8_zone_cell_t) + octets_d_un_registre(liste);
+    return octets_d_un_bloc(sizeof *liste) + octets_d_un_registre(liste);
 }
 
-/* Les listes `by` et `cc` que le `bd` d'une partie fait une fois par planete
- * de `cg.jo`. */
-static size_t octets_des_listes_de_bd(void) {
+/* Empreinte `P` des planetes de `cg.jo` : structure, `p`, `ra`, identifiant
+ * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
+ * planetes de `bw` n'ont pas avant une action. */
+static size_t octets_des_planetes(void) {
     const pico8_ents_t *jo = pico8_cg("jo");
     size_t octets = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
-        octets += octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
+        assert(p->jy == NULL && "une planete a des besoins, que P ne compte pas");
+        octets += octets_d_un_bloc(sizeof *p) + octets_d_un_bloc(sizeof *p->p) + octets_d_un_bloc(sizeof *p->ra) +
+                  octets_d_un_bloc(strlen(p->id) + 1) + octets_d_une_liste_de_planete(p->oe) +
+                  octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
     }
     return octets;
 }
@@ -153,7 +161,7 @@ static int case_prise_and_max(void) {
     (void)counting_block();
     assert(pico8_zone_partie_prise() == partie + 64);
     pico8__update60();
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_listes_de_bd() + 64);
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() + 64);
     assert(pico8_zone_partie_max() == partie + 64);
     pico8_cart_shutdown();
     assert(pico8_zone_partie_prise() == 0);

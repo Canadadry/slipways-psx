@@ -39,8 +39,8 @@ const pico8_struct_class_t *pico8_qh_struct_class(void);
 void pico8_qh_struct_init(pico8_jo_t *self, const pico8_struct_class_t *cls, const pico8_jo_def_t *def);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
- * ever frees it. Requires `pico8_planet_family_init()`. */
+ * NULL. The new laboratory registers itself into `hv`/`cv`/`cg` through `lt`, and it
+ * lives in the game generation. Requires `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_qh_new(const pico8_jo_keys_t *keys);
 
 /* A trading hub: a laboratory whose `qw` is copied from its archetype and
@@ -51,7 +51,7 @@ const pico8_struct_class_t *pico8_nl_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
  * NULL. The new trading hub registers itself into `hv`/`cv`/`cg` through `lt`, and
- * nothing ever frees it. Requires `pico8_planet_family_init()`. */
+ * it lives in the game generation. Requires `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_nl_new(const pico8_jo_keys_t *keys);
 
 /* A processor: a laboratory and nothing of its own; its defaults are its
@@ -61,8 +61,8 @@ const pico8_entity_kind_t *pico8_os_kind(void);
 const pico8_struct_class_t *pico8_os_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new processor registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
- * ever frees it. Requires `pico8_planet_family_init()`. */
+ * NULL. The new processor registers itself into `hv`/`cv`/`cg` through `lt`, and it
+ * lives in the game generation. Requires `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_os_new(const pico8_jo_keys_t *keys);
 
 /* An ascension: a laboratory whose emitter is copied from its kind's
@@ -72,8 +72,8 @@ const pico8_entity_kind_t *pico8_hj_kind(void);
 const pico8_struct_class_t *pico8_hj_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept: `id` only, `p` and `ra`
- * NULL. The new ascension registers itself into `hv`/`cv`/`cg` through `lt`, and nothing
- * ever frees it. Requires `pico8_planet_family_init()`. */
+ * NULL. The new ascension registers itself into `hv`/`cv`/`cg` through `lt`, and it
+ * lives in the game generation. Requires `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_hj_new(const pico8_jo_keys_t *keys);
 
 /* Initializes an allocated pico8_jo_t under `cls` and `def`, its kind's
@@ -100,7 +100,7 @@ const pico8_struct_class_t *pico8_pm_struct_class(void);
 
 /* `keys` (NULL means none) is read, not kept. The new protostar first
  * spawns its `ga` at `ra + ng`, then registers itself into `hv`/`cv`/`cg`
- * through `lt`, after that `ga`; nothing ever frees it. Requires
+ * through `lt`, after that `ga`; it lives in the game generation. Requires
  * `pico8_planet_family_init()`. */
 pico8_jo_t *pico8_pm_new(const pico8_jo_keys_t *keys);
 

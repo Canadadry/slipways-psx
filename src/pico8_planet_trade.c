@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "pico8_collect.h"
 #include "pico8_map_tables.h"
@@ -11,7 +10,6 @@
 #include "pico8_slipway.h"
 #include "pico8_zone_frame.h"
 #include "pico8_zone_partie.h"
-#include "pico8_zone_transitoire.h"
 
 /* Membership by trade equality (same endpoints), not pico8_ents_has's pointer
  * identity: every candidate offered here is a freshly built route, which
@@ -121,16 +119,16 @@ void pico8_jo_cn(pico8_jo_t *self, pico8_jo_trade_proposal_t *lw) {
             pico8_jy_t *fresh = pico8_jy_new(&e_qe);
             pico8_ptrs_t prefix;
             pico8_ptrs_t merged;
-            pico8_ptrs_t *merged_heap;
+            pico8_ptrs_t *merged_own;
 
             pico8_ptrs_init(&prefix, pico8_zone_frame());
             pico8_ptrs_add(&prefix, fresh);
-            merged = pico8_la_ptrs(&pico8_zone_transitoire, &prefix, jy);
+            merged = pico8_la_ptrs(pico8_zone_partie(), &prefix, jy);
 
-            merged_heap = malloc(sizeof *merged_heap);
-            *merged_heap = merged;
-            self->jy = merged_heap;
-            jy = merged_heap;
+            merged_own = (pico8_ptrs_t *)pico8_zone_alloc(pico8_zone_partie(), sizeof *merged_own);
+            *merged_own = merged;
+            self->jy = merged_own;
+            jy = merged_own;
         }
         self->jh = pico8_fixed_from_int(1);
         self->has_jh = 1;

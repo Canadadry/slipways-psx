@@ -205,7 +205,7 @@ static void dans_un_enfant(void (*test)(void)) {
 
 static char *lire_fichier(const char *path, size_t *len);
 
-/* L'enfant doit mourir par ASan en relisant une sentinelle rendue. */
+/* L'enfant doit mourir par ASan en relisant un bloc rendu. */
 static void dans_un_enfant_qui_meurt_par_asan(void (*test)(void)) {
     fflush(stdout);
     remove(ASAN_LOG);
@@ -222,13 +222,13 @@ static void dans_un_enfant_qui_meurt_par_asan(void (*test)(void)) {
     char *err = lire_fichier(ASAN_LOG, &len);
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
         fprintf(stderr, "%s", err);
-        assert(0 && "la sentinelle rendue se relit : la generation n'a pas ete rendue");
+        assert(0 && "le bloc rendu se relit : la generation n'a pas ete rendue");
     }
     if (strstr(err, "use-after-poison") == NULL) {
         fprintf(stderr, "%s", err);
-        assert(0 && "attendu use-after-poison sur la sentinelle rendue");
+        assert(0 && "attendu use-after-poison sur le bloc rendu");
     }
-    printf("  pause_restart f13 : la sentinelle relue plante (use-after-poison)\n");
+    printf("  pause_restart f13 : le bloc relu plante (use-after-poison)\n");
     free(err);
     remove(ASAN_LOG);
 }
@@ -331,6 +331,29 @@ static void pause_restart_rend_la_partie_quittee_a_la_frame_suivante(void) {
     g_lu = s[63];
 }
 
+static const pico8_jo_t *planete_de_la_premiere_partie(void) {
+    demarrer("pause_restart");
+    jouer_jusqu_a(6);
+    const pico8_ents_t *jo = pico8_cg("jo");
+    assert(jo != NULL && jo->count > 0 && "la premiere partie a des planetes");
+    return (const pico8_jo_t *)jo->items[0];
+}
+
+/* f12 : le clic bascule ; les planetes de la partie quittee vivent encore. */
+static void pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic(void) {
+    const pico8_jo_t *p = planete_de_la_premiere_partie();
+    jouer_jusqu_a(12);
+    assert(pico8_zone_partie_en_attente());
+    g_lu = (unsigned char)p->has_jh;
+}
+
+/* f13 : elles meurent avec leur generation. */
+static void pause_restart_rend_les_planetes_de_la_partie_quittee(void) {
+    const pico8_jo_t *p = planete_de_la_premiere_partie();
+    jouer_jusqu_a(13);
+    g_lu = (unsigned char)p->has_jh;
+}
+
 /* f7 : « restart » (`_init`) ne bascule pas. */
 static void pause_restart_garde_la_partie_a_travers_restart(void) {
     demarrer("pause_restart");
@@ -368,37 +391,45 @@ static size_t octets_des_registres(void) {
     return r;
 }
 
+static size_t octets_d_un_bloc(size_t taille) {
+    return PICO8_ZONE_CELLS(taille) * sizeof(pico8_zone_cell_t);
+}
+
 /* Octets d'une liste de planete faite dans la generation : son conteneur,
  * puis ses blocs comme un registre. */
 static size_t octets_d_une_liste_de_planete(const pico8_ents_t *liste) {
     if (liste == NULL) return 0;
-    return PICO8_ZONE_CELLS(sizeof *liste) * sizeof(pico8_zone_cell_t) + octets_d_un_registre(liste);
+    return octets_d_un_bloc(sizeof *liste) + octets_d_un_registre(liste);
 }
 
-/* Les listes `by` et `cc` que le `bd` d'une partie fait une fois par planete
- * de `cg.jo`. */
-static size_t octets_des_listes_de_bd(void) {
+/* Empreinte `P` des planetes de `cg.jo` : structure, `p`, `ra`, identifiant
+ * et listes `oe`, `by`, `cc`. Sans `jy` ni copies de besoins, que les
+ * planetes de `bw` n'ont pas avant une action. */
+static size_t octets_des_planetes(void) {
     const pico8_ents_t *jo = pico8_cg("jo");
     size_t octets = 0;
     for (int i = 0; jo != NULL && i < jo->count; i++) {
         const pico8_jo_t *p = (const pico8_jo_t *)jo->items[i];
-        octets += octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
+        assert(p->jy == NULL && "une planete a des besoins, que P ne compte pas");
+        octets += octets_d_un_bloc(sizeof *p) + octets_d_un_bloc(sizeof *p->p) + octets_d_un_bloc(sizeof *p->ra) +
+                  octets_d_un_bloc(strlen(p->id) + 1) + octets_d_une_liste_de_planete(p->oe) +
+                  octets_d_une_liste_de_planete(p->by) + octets_d_une_liste_de_planete(p->cc);
     }
     return octets;
 }
 
 /* Apres le rendu de f13, la generation ne tient que ce qu'a fait le eu de
  * f12 et ce qui a grandi depuis : les etats de bw, les registres, blocs
- * morts compris, et les listes `by`/`cc` de son `bd`. */
+ * morts compris, et ses planetes. */
 static void pause_restart_borne_les_blocs_morts_des_registres(void) {
     const size_t g = etats_de_bw();
     demarrer("pause_restart");
     jouer_jusqu_a(13);
     const size_t r = octets_des_registres();
-    const size_t l = octets_des_listes_de_bd();
-    printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, listes de bd=%lu\n",
-           (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r, (unsigned long)l);
-    assert(pico8_zone_partie_prise() == g + r + l && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
+    const size_t p = octets_des_planetes();
+    printf("  pause_restart f13 : partie=%lu, etats de bw=%lu, registres=%lu, planetes=%lu\n",
+           (unsigned long)pico8_zone_partie_prise(), (unsigned long)g, (unsigned long)r, (unsigned long)p);
+    assert(pico8_zone_partie_prise() == g + r + p && "les registres prennent 2C - 4 pointeurs, et rien d'autre n'entre");
 }
 
 /* f12 : le bw de la nouvelle partie prend ses etats a cote de ceux de la
@@ -413,8 +444,8 @@ static void pause_restart_compte_les_etats_de_bw(void) {
     const size_t f12 = pico8_zone_partie_prise();
     assert(f12 >= f11 + g && "les etats des deux parties vivent jusqu'au rendu");
     jouer_jusqu_a(13);
-    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_listes_de_bd() &&
-           "le rendu de f13 laisse les etats, les registres et les listes de bd de la nouvelle partie");
+    assert(pico8_zone_partie_prise() == g + octets_des_registres() + octets_des_planetes() &&
+           "le rendu de f13 laisse les etats, les registres et les planetes de la nouvelle partie");
     assert(pico8_zone_partie_max() >= f12);
     printf("  pause_restart f11/f12/f13 : partie=%lu/%lu/%lu, max=%lu\n", (unsigned long)f11, (unsigned long)f12,
            (unsigned long)pico8_zone_partie_prise(), (unsigned long)pico8_zone_partie_max());
@@ -686,6 +717,8 @@ int main(void) {
     dans_un_enfant(pause_restart_garde_la_partie_quittee_pendant_le_clic);
     dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_la_partie_quittee_a_la_frame_suivante);
     dans_un_enfant(pause_restart_garde_la_partie_a_travers_restart);
+    dans_un_enfant(pause_restart_garde_les_planetes_de_la_partie_quittee_pendant_le_clic);
+    dans_un_enfant_qui_meurt_par_asan(pause_restart_rend_les_planetes_de_la_partie_quittee);
     dans_un_enfant(pause_restart_compte_les_etats_de_bw);
     dans_un_enfant(pause_restart_borne_les_blocs_morts_des_registres);
     dans_un_enfant(pause_restart_recharge_apres_le_titre);
