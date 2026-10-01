@@ -13,6 +13,16 @@ void pico8_ents_init(pico8_ents_t *ents, const pico8_zone_choisie_t *zone) {
     ents->zone = zone;
 }
 
+void pico8_ents_init_reserve(pico8_ents_t *ents, const pico8_zone_choisie_t *zone, int capacity) {
+    assert(capacity >= 0);
+    pico8_ents_init(ents, zone);
+    if (capacity == 0) {
+        return;
+    }
+    ents->items = (pico8_struct_header_t **)pico8_zone_alloc(zone, (size_t)capacity * sizeof *ents->items);
+    ents->capacity = capacity;
+}
+
 void pico8_ents_free(pico8_ents_t *ents) {
     assert(ents != NULL && "ents primitive called on a NULL container");
     if (ents->items != NULL) {

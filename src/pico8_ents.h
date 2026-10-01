@@ -15,6 +15,9 @@ typedef struct {
 
 /* `zone` must outlive `ents`. */
 void pico8_ents_init(pico8_ents_t *ents, const pico8_zone_choisie_t *zone);
+/* Takes `items` for `capacity` elements from `zone` at once (0 takes nothing);
+ * adding past it grows through `zone` as usual. */
+void pico8_ents_init_reserve(pico8_ents_t *ents, const pico8_zone_choisie_t *zone, int capacity);
 /* Gives `items` back to the zone and leaves `ents` empty, same zone. */
 void pico8_ents_free(pico8_ents_t *ents);
 /* Count back to 0; `items`, its capacity and the zone stay, so later adds

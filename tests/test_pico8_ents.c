@@ -150,6 +150,40 @@ static void test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_the
     pico8_zone_arene_rendre(arene);
 }
 
+static void test_reserved_list_fills_its_capacity_without_taking_then_grows(void) {
+    pico8_struct_header_t cells[4];
+    pico8_ents_t ents;
+    const pico8_zone_choisie_t *arene = pico8_zone_arene_prendre(&pico8_zone_transitoire, "tu ents", 1024);
+    int i;
+    pico8_ents_init_reserve(&ents, arene, 3);
+    assert(ents.count == 0 && ents.capacity == 3 && ents.zone == arene);
+    const size_t prise = pico8_zone_arene_prise(arene);
+
+    for (i = 0; i < 3; i++) {
+        pico8_ents_add(&ents, &cells[i]);
+    }
+    assert(pico8_zone_arene_prise(arene) == prise && "n adds into a list reserved for n take nothing");
+    assert(ents.count == 3 && ents.capacity == 3);
+    for (i = 0; i < 3; i++) {
+        assert(ents.items[i] == &cells[i]);
+    }
+
+    pico8_ents_add(&ents, &cells[3]);
+    assert(ents.capacity > 3 && pico8_zone_arene_prise(arene) > prise && "past the reserve, it grows in its zone");
+    assert(ents.count == 4 && ents.items[0] == &cells[0] && ents.items[3] == &cells[3]);
+    pico8_zone_arene_rendre(arene);
+}
+
+static void test_reserving_zero_takes_nothing(void) {
+    pico8_ents_t ents;
+    const pico8_zone_choisie_t *arene = pico8_zone_arene_prendre(&pico8_zone_transitoire, "tu ents", 1024);
+    const size_t prise = pico8_zone_arene_prise(arene);
+    pico8_ents_init_reserve(&ents, arene, 0);
+    assert(ents.count == 0 && ents.capacity == 0 && ents.items == NULL && ents.zone == arene);
+    assert(pico8_zone_arene_prise(arene) == prise && "a reserve of 0 takes nothing from its zone");
+    pico8_zone_arene_rendre(arene);
+}
+
 int main(void) {
     test_add_grows_past_four_keeps_order_and_free_empties();
     test_del_first_identical_and_has();
@@ -157,6 +191,8 @@ int main(void) {
     test_all_sees_each_when_the_returned_one_is_deleted();
     test_jp_keeps_what_the_predicate_keeps_in_order();
     test_clear_keeps_items_and_capacity_and_takes_nothing_until_past_them();
+    test_reserved_list_fills_its_capacity_without_taking_then_grows();
+    test_reserving_zero_takes_nothing();
     printf("test_pico8_ents: ok\n");
     return 0;
 }
