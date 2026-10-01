@@ -520,6 +520,8 @@ Estimation : 2.1 à 2.11, 22 sous-étapes fermes (2.9 et 2.10 en comptent trois 
 
 ### Phase 3 — Renommage
 
+**Reportée** (décision de l'humain du 2026-10-01) : le plan s'arrête à la fin de la phase 2 ; la phase 3 se fera plus tard.
+
 Un champ est renommé **seulement** si `docs/glossaire-noms.md` en donne le sens. Sinon, il garde son nom minifié. Aucun sens n'est inventé. Un commit par groupe de champs renommés ; le glossaire est mis à jour en conséquence (l'entrée pointe du nom minifié vers le nouveau nom).
 
 ## 6. Tests existants
